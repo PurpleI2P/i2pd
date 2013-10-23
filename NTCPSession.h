@@ -2,11 +2,13 @@
 #define NTCP_SESSION_H__
 
 #include <inttypes.h>
+#include <mutex>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/adler32.h>
 #include "RouterInfo.h"
+#include "I2NPProtocol.h"
 
 namespace i2p
 {
@@ -58,7 +60,6 @@ namespace ntcp
 	
 #pragma pack()	
 
-	const int NTCP_MAX_MESSAGE_SIZE = 16384; 
 	class NTCPSession
 	{
 		public:
@@ -71,8 +72,13 @@ namespace ntcp
 			
 			void ClientLogin ();
 			void ServerLogin ();
-			void SendMessage (uint8_t * buf, int len);
+			void SendMessage (const uint8_t * buf, int len);
+			void SendI2NPMessage (I2NPMessage * msg);
+			
+		protected:
+
 			void Terminate ();
+			void Connected ();
 			
 		private:
 
@@ -100,7 +106,7 @@ namespace ntcp
 			void HandleNextMessage (uint8_t * buf, int len, int dataSize);
 
 			void Send (const uint8_t * buf, int len, bool zeroSize = false);
-			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint8_t * sentBuffer);
 
 			void SendTimeSyncMessage ();
 			
@@ -120,11 +126,13 @@ namespace ntcp
 			NTCPPhase3 m_Phase3;
 			NTCPPhase4 m_Phase4;
 			
-			uint8_t m_ReceiveBuffer[NTCP_MAX_MESSAGE_SIZE*2], m_SendBuffer[NTCP_MAX_MESSAGE_SIZE];
+			uint8_t m_ReceiveBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2];
 			int m_ReceiveBufferOffset; 
 
-			uint8_t m_DecryptedBuffer[NTCP_MAX_MESSAGE_SIZE*2];
+			uint8_t m_DecryptedBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2];
 			int m_DecryptedBufferOffset; 
+
+			std::mutex m_EncryptionMutex;
 	};	
 
 	class NTCPClient: public NTCPSession

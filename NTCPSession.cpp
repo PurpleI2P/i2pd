@@ -49,9 +49,17 @@ namespace ntcp
 
 	void NTCPSession::Terminate ()
 	{
+		m_IsEstablished = false;
 		m_Socket.close ();
 		// TODO: notify tunnels
 		i2p::transports.RemoveNTCPSession (this);
+		delete this;
+	}	
+
+	void NTCPSession::Connected ()
+	{
+		m_IsEstablished = true;
+		i2p::transports.AddNTCPSession (this);
 	}	
 		
 	void NTCPSession::ClientLogin ()
@@ -287,7 +295,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 4 sent: ", bytes_transferred);
-			m_IsEstablished = true;
+			Connected ();
 			m_ReceiveBufferOffset = 0;
 			m_DecryptedBufferOffset = 0;
 			Receive ();
@@ -323,16 +331,10 @@ namespace ntcp
 				Terminate ();
 				return;
 			}	
-			m_IsEstablished = true;
+			Connected ();
 			
 			SendTimeSyncMessage ();
-
-			uint8_t buf1[1000];
-			int l = CreateDatabaseStoreMsg (buf1, 1000);
-			SendMessage (buf1, l);
-
-			l = CreateDeliveryStatusMsg (buf1, 1000);
-			SendMessage (buf1, l);			
+			SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 			
 			m_ReceiveBufferOffset = 0;
 			m_DecryptedBufferOffset = 0;
@@ -411,31 +413,35 @@ namespace ntcp
 	void NTCPSession::HandleNextMessage (uint8_t * buf, int len, int dataSize)
 	{
 		if (dataSize)
-			i2p::HandleI2NPMessage (*this, buf+2, dataSize);
+			i2p::HandleI2NPMessage (buf+2, dataSize);
 		else	
 			LogPrint ("Timestamp");	
 	}	
 
 	void NTCPSession::Send (const uint8_t * buf, int len, bool zeroSize)
 	{
-		*((uint16_t *)m_SendBuffer) = zeroSize ? 0 :htobe16 (len);
+		uint8_t * sendBuffer = new uint8_t[NTCP_MAX_MESSAGE_SIZE];
+		*((uint16_t *)sendBuffer) = zeroSize ? 0 :htobe16 (len);
 		int rem = (len + 6) % 16;
 		int padding = 0;
 		if (rem > 0) padding = 16 - rem;
-		memcpy (m_SendBuffer + 2, buf, len);
+		memcpy (sendBuffer + 2, buf, len);
 		// TODO: fill padding 
-		m_Adler.CalculateDigest (m_SendBuffer + len + 2 + padding, m_SendBuffer, len + 2+ padding);
+		m_Adler.CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
 
 		int l = len + padding + 6;
-		m_Encryption.ProcessData(m_SendBuffer, m_SendBuffer, l);
+		{
+			std::lock_guard<std::mutex> lock (m_EncryptionMutex);
+			m_Encryption.ProcessData(sendBuffer, sendBuffer, l);
+		}	
 
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_SendBuffer, l), boost::asio::transfer_all (),                      
-        	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));				
+		boost::asio::async_write (m_Socket, boost::asio::buffer (sendBuffer, l), boost::asio::transfer_all (),                      
+        	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, sendBuffer));				
 	}
 		
-	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint8_t * sentBuffer)
 	{		
-		
+		delete sentBuffer;
 		if (ecode)
         {
 			LogPrint ("Couldn't send msg: ", ecode.message ());
@@ -453,10 +459,19 @@ namespace ntcp
 		Send ((uint8_t *)&t, 4, true);
 	}	
 
-	void NTCPSession::SendMessage (uint8_t * buf, int len)
+	void NTCPSession::SendMessage (const uint8_t * buf, int len)
 	{
 		Send (buf, len);
 	}
+
+	void NTCPSession::SendI2NPMessage (I2NPMessage * msg)
+	{
+		if (msg)
+		{
+			Send (msg->buf, msg->len);
+			DeleteI2NPMessage (msg);
+		}	
+	}	
 		
 	NTCPClient::NTCPClient (boost::asio::io_service& service, const char * address, 
 		int port, const i2p::data::RouterInfo& in_RouterInfo): NTCPSession (m_Socket, &in_RouterInfo),
@@ -467,6 +482,7 @@ namespace ntcp
 
 	void NTCPClient::Connect ()
 	{
+		LogPrint ("Connecting to ", m_Endpoint.address ().to_string (),":",  m_Endpoint.port ());
 		 m_Socket.async_connect (m_Endpoint, boost::bind (&NTCPClient::HandleConnect,
 			this, boost::asio::placeholders::error));
 	}	
