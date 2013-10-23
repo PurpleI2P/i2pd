@@ -1,0 +1,45 @@
+#ifndef ROUTER_CONTEXT_H__
+#define ROUTER_CONTEXT_H__
+
+#include <inttypes.h>
+#include <cryptopp/dsa.h>
+#include <cryptopp/osrng.h>
+#include "RouterInfo.h"
+
+namespace i2p
+{
+	const char ROUTER_INFO[] = "router.info";
+	const char ROUTER_KEYS[] = "router.keys";	
+	
+	class RouterContext
+	{
+		public:
+
+			RouterContext ();
+
+			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
+			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
+			const uint8_t * GetSigningPrivateKey () const;
+			const i2p::data::RouterIdentity& GetRouterIdentity () const { return m_RouterInfo.GetRouterIdentity (); };
+			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
+			
+			void Sign (uint8_t * buf, int len, uint8_t * signature);
+			
+		private:
+
+			void CreateNewRouter ();
+			bool Load ();
+			void Save ();
+			
+		private:
+
+			i2p::data::RouterInfo m_RouterInfo;
+			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
+			uint8_t m_PrivateKey[256], m_SigningPrivateKeyStr[20];
+			CryptoPP::AutoSeededRandomPool m_Rnd;
+	};
+
+	extern RouterContext context;
+}	
+
+#endif
