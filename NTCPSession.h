@@ -72,7 +72,6 @@ namespace ntcp
 			
 			void ClientLogin ();
 			void ServerLogin ();
-			void SendMessage (const uint8_t * buf, int len);
 			void SendI2NPMessage (I2NPMessage * msg);
 			
 		protected:
@@ -102,9 +101,8 @@ namespace ntcp
 			// common
 			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void DecryptReceived (uint8_t * encrypted, int len); // len is multiple of 16
-			void HandleNextMessage (uint8_t * buf, int len, int dataSize);
-
+			void DecryptNextBlock (const uint8_t * encrypted);	
+		
 			void Send (const uint8_t * buf, int len, bool zeroSize = false);
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint8_t * sentBuffer);
 
@@ -129,9 +127,9 @@ namespace ntcp
 			uint8_t m_ReceiveBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2];
 			int m_ReceiveBufferOffset; 
 
-			uint8_t m_DecryptedBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2];
-			int m_DecryptedBufferOffset; 
-
+			i2p::I2NPMessage * m_NextMessage, * m_DelayedMessage;
+			size_t m_NextMessageOffset;
+			
 			std::mutex m_EncryptionMutex;
 	};	
 

@@ -21,12 +21,13 @@ namespace i2p
 namespace ntcp
 {
 	NTCPSession::NTCPSession (boost::asio::ip::tcp::socket& s, const i2p::data::RouterInfo * in_RemoteRouterInfo): 
-		m_Socket (s), m_IsEstablished (false), m_ReceiveBufferOffset (0)
+		m_Socket (s), m_IsEstablished (false), m_ReceiveBufferOffset (0),
+		m_NextMessage (nullptr), m_DelayedMessage (nullptr)
 	{		
 		if (in_RemoteRouterInfo)
 			m_RemoteRouterInfo = *in_RemoteRouterInfo;
 	}
-
+	
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
 	{
 		CryptoPP::DH dh (elgp, elgg);
@@ -51,15 +52,29 @@ namespace ntcp
 	{
 		m_IsEstablished = false;
 		m_Socket.close ();
+		if (m_DelayedMessage)
+			delete m_DelayedMessage;
 		// TODO: notify tunnels
 		i2p::transports.RemoveNTCPSession (this);
 		delete this;
+		LogPrint ("NTCP session terminated");
 	}	
 
 	void NTCPSession::Connected ()
 	{
+		LogPrint ("NTCP session connected");
 		m_IsEstablished = true;
 		i2p::transports.AddNTCPSession (this);
+
+		SendTimeSyncMessage ();
+		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
+
+		if (m_DelayedMessage)
+		{
+			i2p::I2NPMessage * delayedMessage = m_DelayedMessage;
+			m_DelayedMessage = 0;
+			SendI2NPMessage (delayedMessage);
+		}	
 	}	
 		
 	void NTCPSession::ClientLogin ()
@@ -297,7 +312,7 @@ namespace ntcp
 			LogPrint ("Phase 4 sent: ", bytes_transferred);
 			Connected ();
 			m_ReceiveBufferOffset = 0;
-			m_DecryptedBufferOffset = 0;
+			m_NextMessage = nullptr;
 			Receive ();
 		}	
 	}	
@@ -332,12 +347,9 @@ namespace ntcp
 				return;
 			}	
 			Connected ();
-			
-			SendTimeSyncMessage ();
-			SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
-			
+						
 			m_ReceiveBufferOffset = 0;
-			m_DecryptedBufferOffset = 0;
+			m_NextMessage = nullptr;
 			Receive ();
 		}
 	}
@@ -360,63 +372,58 @@ namespace ntcp
 		{
 			LogPrint ("Received: ", bytes_transferred);
 			m_ReceiveBufferOffset += bytes_transferred;
-			div_t d = div (m_ReceiveBufferOffset, 16);
-			if (d.quot)
+
+			if (m_ReceiveBufferOffset >= 16)
 			{	
-				int decryptedLen = d.quot*16;
-				DecryptReceived (m_ReceiveBuffer, decryptedLen);
-				if (d.rem)
-				{	
-					// we guarantee no overlap due if (d.quot)
-					memcpy (m_ReceiveBuffer, m_ReceiveBuffer + decryptedLen, d.rem);
-					m_ReceiveBufferOffset = d.rem;
+				uint8_t * nextBlock = m_ReceiveBuffer;
+				while (m_ReceiveBufferOffset >= 16)
+				{
+					DecryptNextBlock (nextBlock); // 16 bytes
+					nextBlock += 16;
+					m_ReceiveBufferOffset -= 16;
 				}	
-				else
-					m_ReceiveBufferOffset = 0;
+				if (m_ReceiveBufferOffset > 0)
+					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
 			}	
+		
 			Receive ();
 		}	
 	}	
 
-	void NTCPSession::DecryptReceived (uint8_t * encrypted, int len)
+	void NTCPSession::DecryptNextBlock (const uint8_t * encrypted) // 16 bytes
 	{
-		// here we might want to pass it to another thread
-		m_Decryption.ProcessData(m_DecryptedBuffer + m_DecryptedBufferOffset, encrypted, len);
-		m_DecryptedBufferOffset += len;
-		
-		
-		int size = m_DecryptedBufferOffset;
-		uint8_t * buf = m_DecryptedBuffer;
-
-		while (size > 2)
+		if (!m_NextMessage) // new message, header expected
 		{	
-			uint16_t dataSize = be16toh (*(uint16_t *)buf);
-			int len = dataSize ? dataSize + 6 : 16; // 0 mean timestamp and size = 16
-			if (dataSize) // regular message
-			{	
-				int rem = len % 16;
-				if (rem > 0) len += 16 - rem;
+			m_NextMessage = i2p::NewI2NPMessage ();
+			m_NextMessageOffset = 0;
+			
+			uint8_t decrypted[16];
+			m_Decryption.ProcessData (decrypted, encrypted, 16);
+			uint16_t dataSize = be16toh (*(uint16_t *)decrypted);
+			if (dataSize)
+			{
+				// new message
+				memcpy (m_NextMessage->buf, decrypted + 2, 14);
+				m_NextMessageOffset += 14;
+				m_NextMessage->len = dataSize; 
 			}	
-			if (len > size) break;
-			HandleNextMessage (buf, len, dataSize);
-			buf += len; size -= len;
-		}
-
-		if (buf != m_DecryptedBuffer)
-		{
-			if (size > 0)
-				memmove (m_DecryptedBuffer, buf, size);
-			m_DecryptedBufferOffset = size;
-		}
-	}	
+			else
+				// timestamp
+				LogPrint ("Timestamp");	
+		}	
+		else // message continues
+		{	
+			m_Decryption.ProcessData (m_NextMessage->buf + m_NextMessageOffset, encrypted, 16);
+			m_NextMessageOffset += 16;
+		}		
 		
-	void NTCPSession::HandleNextMessage (uint8_t * buf, int len, int dataSize)
-	{
-		if (dataSize)
-			i2p::HandleI2NPMessage (buf+2, dataSize);
-		else	
-			LogPrint ("Timestamp");	
-	}	
+		if (m_NextMessageOffset >= m_NextMessage->len + 4) // +checksum
+		{	
+			// we have a complete I2NP message
+			i2p::HandleI2NPMessage (m_NextMessage);	
+			m_NextMessage = 0;
+		}	
+ 	}	
 
 	void NTCPSession::Send (const uint8_t * buf, int len, bool zeroSize)
 	{
@@ -459,17 +466,17 @@ namespace ntcp
 		Send ((uint8_t *)&t, 4, true);
 	}	
 
-	void NTCPSession::SendMessage (const uint8_t * buf, int len)
-	{
-		Send (buf, len);
-	}
-
 	void NTCPSession::SendI2NPMessage (I2NPMessage * msg)
 	{
 		if (msg)
 		{
-			Send (msg->buf, msg->len);
-			DeleteI2NPMessage (msg);
+			if (m_IsEstablished)
+			{	
+				Send (msg->GetBuffer (), msg->GetLength ());
+				DeleteI2NPMessage (msg);
+			}	
+			else
+				m_DelayedMessage = msg;	
 		}	
 	}	
 		
