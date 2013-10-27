@@ -397,19 +397,23 @@ namespace ntcp
 			m_NextMessage = i2p::NewI2NPMessage ();
 			m_NextMessageOffset = 0;
 			
-			uint8_t decrypted[16];
-			m_Decryption.ProcessData (decrypted, encrypted, 16);
-			uint16_t dataSize = be16toh (*(uint16_t *)decrypted);
+			m_Decryption.ProcessData (m_NextMessage->buf, encrypted, 16);
+			uint16_t dataSize = be16toh (*(uint16_t *)m_NextMessage->buf);
 			if (dataSize)
 			{
 				// new message
-				memcpy (m_NextMessage->buf, decrypted + 2, 14);
-				m_NextMessageOffset += 14;
-				m_NextMessage->len = dataSize; 
+				m_NextMessageOffset += 16;
+				m_NextMessage->offset = 2; // size field
+				m_NextMessage->len = dataSize + 2; 
 			}	
 			else
+			{	
 				// timestamp
 				LogPrint ("Timestamp");	
+				i2p::DeleteI2NPMessage (m_NextMessage);
+				m_NextMessage = nullptr;
+				return;
+			}	
 		}	
 		else // message continues
 		{	
@@ -421,18 +425,38 @@ namespace ntcp
 		{	
 			// we have a complete I2NP message
 			i2p::HandleI2NPMessage (m_NextMessage);	
-			m_NextMessage = 0;
+			m_NextMessage = nullptr;
 		}	
  	}	
 
-	void NTCPSession::Send (const uint8_t * buf, int len, bool zeroSize)
+	void NTCPSession::Send (i2p::I2NPMessage * msg)
 	{
-		uint8_t * sendBuffer = new uint8_t[NTCP_MAX_MESSAGE_SIZE];
-		*((uint16_t *)sendBuffer) = zeroSize ? 0 :htobe16 (len);
+		uint8_t * sendBuffer;
+		int len;
+
+		if (msg)
+		{	
+			// regular I2NP
+			if (msg->offset < 2)
+			{
+				LogPrint ("Malformed I2NP message");
+				i2p::DeleteI2NPMessage (msg);
+			}	
+			sendBuffer = msg->GetBuffer () - 2; 
+			len = msg->GetLength ();
+			*((uint16_t *)sendBuffer) = htobe16 (len);
+		}	
+		else
+		{
+			// prepare timestamp
+			sendBuffer = m_TimeSyncBuffer;
+			len = 4;
+			*((uint16_t *)sendBuffer) = 0;
+			*((uint32_t *)(sendBuffer + 2)) = htobe32 (time (0));
+		}	
 		int rem = (len + 6) % 16;
 		int padding = 0;
 		if (rem > 0) padding = 16 - rem;
-		memcpy (sendBuffer + 2, buf, len);
 		// TODO: fill padding 
 		m_Adler.CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
 
@@ -443,12 +467,13 @@ namespace ntcp
 		}	
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (sendBuffer, l), boost::asio::transfer_all (),                      
-        	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, sendBuffer));				
+        	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, msg));				
 	}
 		
-	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint8_t * sentBuffer)
+	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg)
 	{		
-		delete sentBuffer;
+		if (msg)
+			i2p::DeleteI2NPMessage (msg);
 		if (ecode)
         {
 			LogPrint ("Couldn't send msg: ", ecode.message ());
@@ -462,8 +487,7 @@ namespace ntcp
 
 	void NTCPSession::SendTimeSyncMessage ()
 	{
-		uint32_t t = htobe32 (time (0));
-		Send ((uint8_t *)&t, 4, true);
+		Send (nullptr);
 	}	
 
 	void NTCPSession::SendI2NPMessage (I2NPMessage * msg)
@@ -471,10 +495,7 @@ namespace ntcp
 		if (msg)
 		{
 			if (m_IsEstablished)
-			{	
-				Send (msg->GetBuffer (), msg->GetLength ());
-				DeleteI2NPMessage (msg);
-			}	
+				Send (msg);
 			else
 				m_DelayedMessage = msg;	
 		}	

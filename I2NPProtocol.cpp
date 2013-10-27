@@ -19,8 +19,8 @@ namespace i2p
 	I2NPMessage * NewI2NPMessage ()
 	{
 		I2NPMessage * msg = new I2NPMessage;
-		msg->offset = 0;
-		msg->len = sizeof (I2NPHeader);
+		msg->offset = 2; // reserve 2 bytes for NTCP header, should reserve more for SSU in future
+		msg->len = sizeof (I2NPHeader) + 2;
 		return msg;
 	}
 	
@@ -42,7 +42,7 @@ namespace i2p
 			msgID++;
 		}	
 		header->expiration = htobe64 (i2p::util::GetMillisecondsSinceEpoch () + 5000); // TODO: 5 secs is a magic number
-		int len = msg->len - sizeof (I2NPHeader);
+		int len = msg->GetLength () - sizeof (I2NPHeader);
 		header->size = htobe16 (len);
 		uint8_t hash[32];
 		CryptoPP::SHA256().CalculateDigest(hash, msg->GetPayload (), len);

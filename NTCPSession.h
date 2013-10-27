@@ -103,8 +103,8 @@ namespace ntcp
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void DecryptNextBlock (const uint8_t * encrypted);	
 		
-			void Send (const uint8_t * buf, int len, bool zeroSize = false);
-			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint8_t * sentBuffer);
+			void Send (i2p::I2NPMessage * msg);
+			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg);
 
 			void SendTimeSyncMessage ();
 			
@@ -124,7 +124,7 @@ namespace ntcp
 			NTCPPhase3 m_Phase3;
 			NTCPPhase4 m_Phase4;
 			
-			uint8_t m_ReceiveBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2];
+			uint8_t m_ReceiveBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2], m_TimeSyncBuffer[16];
 			int m_ReceiveBufferOffset; 
 
 			i2p::I2NPMessage * m_NextMessage, * m_DelayedMessage;
