@@ -58,6 +58,14 @@ namespace i2p
 		return msg;
 	}	
 
+	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len)
+	{
+		I2NPMessage * msg = NewI2NPMessage ();
+		memcpy (msg->GetBuffer (), buf, len);
+		msg->len += msg->offset + len;
+		return msg;
+	}	
+	
 	I2NPMessage * CreateDeliveryStatusMsg ()
 	{
 #pragma pack(1)		
@@ -238,8 +246,17 @@ namespace i2p
 						encryption.ProcessData((uint8_t *)(records + j), (uint8_t *)(records + j), sizeof (records[j])); 
 					}
 
-					i2p::transports.SendMessage (clearText.nextIdent, 
-						CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
+					if (clearText.flag & 0x40) // we are endpoint of outboud tunnel
+					{
+						// so we send it to reply tunnel 
+						i2p::transports.SendMessage (clearText.nextIdent, 
+							CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
+								eI2NPVariableTunnelBuildReply, buf, len, 
+							    be32toh (clearText.nextMessageID)));                         
+					}	
+					else	
+						i2p::transports.SendMessage (clearText.nextIdent, 
+							CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
 					return;
 				}	
 			}	
@@ -279,22 +296,80 @@ namespace i2p
 		return msg;
 	}	
 	
-	
-	void HandleTunnelGatewayMsg (uint8_t * buf, size_t len)
-	{		
-		TunnelGatewayHeader * header = (TunnelGatewayHeader *)buf;
-		uint32_t tunnelID = be32toh(header->tunnelID);
-		LogPrint ("TunnelGateway of ", (int)be16toh(header->length), 
-			" bytes for tunnel ", (unsigned int)tunnelID);
-		i2p::tunnel::Tunnel * tunnel =  i2p::tunnel::tunnels.GetTunnel (tunnelID);
-		if (tunnel)
-		{	
-			// TODO: we must submit message to tunnel
-		}	
-		else
-			LogPrint ("Tunnel ", (unsigned int)tunnelID, " not found");
+	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len)
+	{
+		I2NPMessage * msg = NewI2NPMessage ();
+		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
+		header->tunnelID = htobe32 (tunnelID);
+		header->length = htobe16 (len);
+		memcpy (msg->GetPayload () + sizeof (TunnelGatewayHeader), buf, len);
+		msg->len += sizeof (TunnelGatewayHeader) + len;
+		FillI2NPMessageHeader (msg, eI2NPTunnelGateway);
+		return msg;
 	}	
 
+	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg)
+	{
+		if (msg->offset >= sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader))
+		{
+			// message is capable to be used without copying
+			TunnelGatewayHeader * header = (TunnelGatewayHeader *)(msg->GetBuffer () - sizeof (TunnelGatewayHeader));
+			header->tunnelID = htobe32 (tunnelID);
+			int len = msg->GetLength ();
+			header->length = htobe16 (len);
+			msg->offset -= (sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader));
+			msg->len = msg->offset + sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader) +len;
+			FillI2NPMessageHeader (msg, eI2NPTunnelGateway);
+			return msg;
+		}
+		else
+		{	
+			I2NPMessage * msg1 = CreateTunnelGatewayMsg (tunnelID, msg->GetBuffer (), msg->GetLength ());
+			DeleteI2NPMessage (msg);
+			return msg1;
+		}	                               
+	}
+
+	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
+		const uint8_t * buf, size_t len, uint32_t replyMsgID)
+	{
+		I2NPMessage * msg = NewI2NPMessage ();
+		size_t gatewayMsgOffset = sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
+		msg->offset += gatewayMsgOffset;
+		msg->len += gatewayMsgOffset;
+		memcpy (msg->GetPayload (), buf, len);
+		msg->len += len;
+		FillI2NPMessageHeader (msg, msgType, replyMsgID); // create content message
+		len = msg->GetLength ();
+		msg->offset -= gatewayMsgOffset;
+		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
+		header->tunnelID = htobe32 (tunnelID);
+		header->length = htobe16 (len);
+		FillI2NPMessageHeader (msg, eI2NPTunnelGateway); // gateway message
+		return msg;
+	}	
+	
+	void HandleTunnelGatewayMsg (I2NPMessage * msg)
+	{		
+		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
+		uint32_t tunnelID = be32toh(header->tunnelID);
+		uint16_t len = be16toh(header->length);
+		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID);
+		i2p::tunnel::TransitTunnel * tunnel =  i2p::tunnel::tunnels.GetTransitTunnel (tunnelID);
+		if (tunnel)
+		{	
+			// we make payload as new I2NP message to send
+			msg->offset += sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
+			msg->len = msg->offset + len;
+			tunnel->SendTunnelDataMsg (nullptr, 0, msg);
+		}	
+		else
+		{	
+			LogPrint ("Tunnel ", (unsigned int)tunnelID, " not found");
+			i2p::DeleteI2NPMessage (msg);
+		}	
+	}	
+	
 	void HandleI2NPMessage (uint8_t * msg, size_t len)
 	{
 		I2NPHeader * header = (I2NPHeader *)msg;
@@ -305,9 +380,6 @@ namespace i2p
 		int size = be16toh (header->size);
 		switch (header->typeID)
 		{
-			case eI2NPTunnelData: // main message
-				LogPrint ("Unexpected TunnelData");
-			break;	
 			case eI2NPGarlic:
 				LogPrint ("Garlic");
 			break;	
@@ -326,16 +398,12 @@ namespace i2p
 				LogPrint ("VariableTunnelBuild");
 				HandleVariableTunnelBuildMsg  (msgID, buf, size);
 			break;	
-			case eI2NPTunnelGateway:
-				LogPrint ("TunnelGateway");
-				HandleTunnelGatewayMsg (buf, size);
-			break;
 			case eI2NPVariableTunnelBuildReply:
 				LogPrint ("VariableTunnelBuildReply");
 				HandleVariableTunnelBuildReplyMsg (msgID, buf, size);
 			break;		
 			default:
-				;
+				LogPrint ("Unexpected message ", (int)header->typeID);
 		}	
 	}
 
@@ -348,6 +416,11 @@ namespace i2p
 				LogPrint ("TunnelData");
 				i2p::tunnel::tunnels.PostTunnelData (msg);
 			}
+			else if (msg->GetHeader ()->typeID == eI2NPTunnelGateway)
+			{
+				LogPrint ("TunnelGateway");
+				HandleTunnelGatewayMsg (msg);
+			}	
 			else
 			{	
 				HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());

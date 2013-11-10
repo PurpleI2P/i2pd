@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <vector>
+#include <string.h>
 #include "RouterInfo.h"
 
 namespace i2p
@@ -83,16 +84,24 @@ namespace i2p
 	{	
 		uint8_t buf[NTCP_MAX_MESSAGE_SIZE];	
 		size_t len, offset;
-
+		
 		I2NPHeader * GetHeader () { return (I2NPHeader *)(buf + offset); };
 		uint8_t * GetPayload () { return buf + offset + sizeof(I2NPHeader); };
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
+
+		I2NPMessage& operator=(const I2NPMessage& other)
+		{
+			memcpy (buf + offset, other.buf + other.offset, other.GetLength ());
+			len = offset + other.GetLength ();
+			return *this;
+		}	
 	};	
 	I2NPMessage * NewI2NPMessage ();
 	void DeleteI2NPMessage (I2NPMessage * msg);
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID = 0);
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
+	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len);
 	
 	I2NPMessage * CreateDeliveryStatusMsg ();
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, uint32_t replyTunnelID);
@@ -118,8 +127,12 @@ namespace i2p
 	I2NPMessage * CreateTunnelDataMsg (const uint8_t * buf);	
 	I2NPMessage * CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);		
 	
-	void HandleTunnelGatewayMsg (uint8_t * buf, size_t len);
-		
+	void HandleTunnelGatewayMsg (I2NPMessage * msg);
+	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
+	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
+		const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
+	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
+	
 	void HandleI2NPMessage (uint8_t * msg, size_t len);
 	void HandleI2NPMessage (I2NPMessage * msg);
 }	
