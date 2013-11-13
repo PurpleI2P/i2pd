@@ -26,7 +26,7 @@ namespace tunnel
 
 			size_t CreateFirstFragment (TunnelMessageBlockExt * block, uint8_t * buf, size_t len);
 			size_t CreateFollowOnFragment (TunnelMessageBlockExt * block, uint8_t * buf, size_t len);
-			I2NPMessage * CreateNextTunnelMessage (uint32_t tunnelID, int from, int to, size_t size);
+			I2NPMessage * CreateNextTunnelMessage (uint32_t tunnelID, TunnelMessageBlockExt * block, size_t size);
 			
 		private:
 
@@ -34,6 +34,19 @@ namespace tunnel
 			// for fragmented  messages
 			size_t m_NextOffset, m_NextSeqn;
 			uint32_t m_NextMsgID;
+	};	
+
+	class TunnelGateway
+	{
+		public:
+
+			TunnelGateway (TunnelBase * tunnel): m_Tunnel (tunnel) {};
+			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
+			
+		private:
+
+			TunnelBase * m_Tunnel;
+			TunnelGatewayBuffer m_Buffer;
 	};	
 }		
 }	
