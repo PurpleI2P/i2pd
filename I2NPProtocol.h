@@ -27,6 +27,7 @@ namespace i2p
 		uint16_t size;		
 	};
 
+	
 	struct I2NPBuildRequestRecordClearText
 	{
 		uint32_t receiveTunnel;
@@ -104,7 +105,8 @@ namespace i2p
 	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len);
 	
 	I2NPMessage * CreateDeliveryStatusMsg ();
-	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, uint32_t replyTunnelID);
+	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
+		uint32_t replyTunnelID, bool exploratory = false);
 	I2NPMessage * CreateDatabaseStoreMsg ();
 	
 	void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);

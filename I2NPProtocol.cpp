@@ -81,25 +81,44 @@ namespace i2p
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
 	}
 
-	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, uint32_t replyTunnelID)
+	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
+		uint32_t replyTunnelID, bool exploratory)
 	{
-#pragma pack(1)
-		struct
+		I2NPMessage * m = NewI2NPMessage ();
+		uint8_t * buf = m->GetPayload ();
+		memcpy (buf, key, 32); // key
+		buf += 32;
+		memcpy (buf, from, 32); // from
+		buf += 32;
+		if (replyTunnelID)
 		{
-			uint8_t key[32];
-			uint8_t from[32];
-			uint8_t flags;
-			uint32_t replyTunnelID;
-			uint16_t size;		
-		} msg;		
-#pragma pack ()	
-
-		memcpy (msg.key, key, 32);
-		memcpy (msg.from, from, 32);
-		msg.flags = replyTunnelID ? 0x01 : 0;
-		msg.replyTunnelID = htobe32 (replyTunnelID);
-		msg.size = 0;
-		return CreateI2NPMessage (eI2NPDatabaseLookup, (uint8_t *)&msg, sizeof (msg));
+			*buf = 0x01; // set delivery flag
+			*(uint32_t *)(buf+1) = htobe32 (replyTunnelID);
+			buf += 5;
+		}
+		else
+		{	
+			*buf = 0; // flag
+			buf++;
+		}	
+		
+		if (exploratory)
+		{
+			*(uint16_t *)buf = htobe16 (1); // one exlude record
+			buf += 2;
+			// reply with non-floodfill routers only
+			memset (buf, 0, 32);
+			buf += 32;
+		}
+		else
+		{
+			// nothing to exclude
+			*(uint16_t *)buf = htobe16 (0);
+			buf += 2;
+		}	
+		m->len += (buf - m->GetPayload ()); 
+		FillI2NPMessageHeader (m, eI2NPDatabaseLookup);
+		return m; 
 	}	
 
 	I2NPMessage * CreateDatabaseStoreMsg ()
@@ -167,7 +186,7 @@ namespace i2p
 			peerHash[l1] = 0;
 			LogPrint (i,": ", peerHash);	
 
-			i2p::data::netdb.RequestDestination (msg->key, buf + sizeof (*msg) +i*32);
+			i2p::data::netdb.HandleDatabaseSearchReply (msg->key, buf + sizeof (*msg) +i*32);
 		}	
 	}	
 
@@ -211,8 +230,18 @@ namespace i2p
 		i2p::tunnel::Tunnel * tunnel =  i2p::tunnel::tunnels.GetPendingTunnel (replyMsgID);
 		if (tunnel)
 		{
+			// endpoint of inbound tunnel
 			LogPrint ("VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
-			tunnel->HandleVariableTunnelBuildReplyMsg (buf, len);
+			if (tunnel->HandleTunnelBuildResponse (buf, len))
+			{
+				LogPrint ("Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				i2p::tunnel::tunnels.AddInboundTunnel (static_cast<i2p::tunnel::InboundTunnel *>(tunnel));
+			}
+			else
+			{
+				LogPrint ("Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				delete tunnel;
+			}	
 		}
 		else
 		{
@@ -269,8 +298,17 @@ namespace i2p
 		i2p::tunnel::Tunnel * tunnel = i2p::tunnel::tunnels.GetPendingTunnel (replyMsgID);
 		if (tunnel)
 		{	
-			tunnel->HandleVariableTunnelBuildReplyMsg (buf, len);
-			LogPrint ("Tunnel ", tunnel->GetTunnelID (), " has been created");
+			// reply for outbound tunnel
+			if (tunnel->HandleTunnelBuildResponse (buf, len))
+			{	
+				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				i2p::tunnel::tunnels.AddOutboundTunnel (static_cast<i2p::tunnel::OutboundTunnel *>(tunnel));
+			}	
+			else
+			{	
+				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				delete tunnel;
+			}	
 		}	
 		else
 			LogPrint ("Pending tunnel for message ", replyMsgID, " not found");

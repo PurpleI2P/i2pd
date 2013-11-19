@@ -2,6 +2,7 @@
 #include "Log.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
+#include "RouterContext.h"
 #include "NetDb.h"
 
 namespace i2p
@@ -11,17 +12,44 @@ namespace data
 	
 	NetDb netdb;
 
-	NetDb::NetDb ()
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (0)
 	{
 		Load ("netDb");
 	}
 	
 	NetDb::~NetDb ()
 	{
+		Stop ();
 		for (auto l:m_LeaseSets)
 			delete l.second;
 		for (auto r:m_RouterInfos)
 			delete r.second;
+	}	
+
+	void NetDb::Start ()
+	{
+		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
+	}
+	
+	void NetDb::Stop ()
+	{
+		if (m_Thread)
+		{	
+			m_IsRunning = false;
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = 0;
+		}	
+	}	
+	
+	void NetDb::Run ()
+	{
+		m_IsRunning = true;
+		while (m_IsRunning)
+		{	
+			sleep (10);
+			Explore ();
+		}	
 	}	
 	
 	void NetDb::AddRouterInfo (uint8_t * buf, int len)
@@ -78,10 +106,9 @@ namespace data
 			i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
 			if (inbound)
 			{
-				I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (destination, inbound->GetGatewayIdentHash (), 
-					inbound->GetGetwayTunnelID ());
+				I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (destination, inbound->GetNextIdentHash (), 
+					inbound->GetNextTunnelID ());
 				outbound->SendTunnelDataMsg (router, 0, msg);
-				i2p::DeleteI2NPMessage (msg);
 			}	
 			else
 				LogPrint ("No inbound tunnels found");	
@@ -89,13 +116,64 @@ namespace data
 		else
 			LogPrint ("No outbound tunnels found");
 	}	
-	
-	const RouterInfo * NetDb::GetNextFloodfill () const
+
+	void NetDb::HandleDatabaseSearchReply (const uint8_t * key, const uint8_t * router)	
 	{
+		if (!memcmp (m_Exploratory, key, 32))
+		{
+			if (m_RouterInfos.find (std::string ((const char *)router, 32)) == m_RouterInfos.end ())
+				LogPrint ("Found new router");
+			else
+				LogPrint ("Bayan");
+		}
+		else
+			RequestDestination (key, router);
+	}	
+
+	void NetDb::Explore ()
+	{
+		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+		i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+		if (outbound && inbound)
+		{
+			const RouterInfo * floodFill = GetRandomNTCPRouter (true);
+			if (floodFill)
+			{
+				LogPrint ("Exploring new routers ...");
+				CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+				rnd.GenerateBlock (m_Exploratory, 32);
+				I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Exploratory, inbound->GetNextIdentHash (), 
+					inbound->GetNextTunnelID (), true);
+				outbound->SendTunnelDataMsg (floodFill->GetIdentHash (), 0, msg);
+			}	
+		}
+	}	
+
+	const RouterInfo * NetDb::GetRandomNTCPRouter (bool floodfillOnly) const
+	{
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1), i = 0;
+		RouterInfo * last = nullptr;
 		for (auto it: m_RouterInfos)
-			if (it.second->IsFloodfill () && it.second->IsNTCP ())
-				return it.second;
-		return 0;
+		{	
+			if (it.second->IsNTCP () && (!floodfillOnly || it.second->IsFloodfill ()))
+				last = it.second;
+			if (i >= ind) break;
+			else i++;
+		}	
+		return last;
+	}	
+
+	const RouterInfo * NetDb::GetRandomRouter () const
+	{
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1), i = 0;
+		for (auto it: m_RouterInfos)
+		{	
+			if (i >= ind) return it.second;
+			else i++;
+		}	
+		return nullptr;
 	}	
 }
 }
