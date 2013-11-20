@@ -51,6 +51,7 @@ namespace data
 			const RouterIdentity& GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (const RouterIdentity& identity);
 			const uint8_t * GetIdentHash () const { return m_IdentHash; };
+			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
 			Address * GetNTCPAddress ();
 			
@@ -63,6 +64,9 @@ namespace data
 			void CreateBuffer ();
 			const char * GetBuffer () const  { return m_Buffer; };
 			int GetBufferLen () const { return m_BufferLen; };
+
+			bool IsUpdated () const { return m_IsUpdated; };
+			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
 			
 		private:
 
@@ -77,11 +81,13 @@ namespace data
 
 			RouterIdentity m_RouterIdentity;
 			uint8_t m_IdentHash[32];
+			char m_IdentHashBase64[48];
 			char m_Buffer[2048];
 			int m_BufferLen;
 			uint64_t m_Timestamp;
 			std::vector<Address> m_Addresses;
 			std::map<std::string, std::string> m_Properties;
+			bool m_IsUpdated;
 	};	
 }	
 }

@@ -1,9 +1,9 @@
 #include <string.h>
 #include <endian.h>
-#include <cryptopp/gzip.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
+#include <cryptopp/gzip.h>
 #include "ElGamal.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
@@ -129,16 +129,16 @@ namespace i2p
 		memcpy (msg->key, context.GetRouterInfo ().GetIdentHash (), 32);
 		msg->type = 0;
 		msg->replyToken = 0;
-		msg->size = 0;
 		
 		CryptoPP::Gzip compressor;
 		compressor.Put ((uint8_t *)context.GetRouterInfo ().GetBuffer (), context.GetRouterInfo ().GetBufferLen ());
 		compressor.MessageEnd();
 		int size = compressor.MaxRetrievable ();
-		msg->size = htobe16 (size);
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
+		*(uint16_t *)buf = htobe16 (size); // size
+		buf += 2;
 		compressor.Get (buf, size); 
-		m->len += sizeof (I2NPDatabaseStoreMsg) + size; // payload size
+		m->len += sizeof (I2NPDatabaseStoreMsg) + 2 + size; // payload size
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
 		
 		return m;
@@ -146,22 +146,32 @@ namespace i2p
 
 	void HandleDatabaseStoreMsg (uint8_t * buf, size_t len)
 	{		
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;	
+		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;
+		size_t offset = sizeof (I2NPDatabaseStoreMsg);
+		if (msg->replyToken)
+			offset += 36;
 		if (msg->type)
 		{
 			LogPrint ("LeaseSet");
-			i2p::data::netdb.AddLeaseSet (buf + sizeof (I2NPDatabaseStoreMsg)-2, len - sizeof (I2NPDatabaseStoreMsg)+2);
+			i2p::data::netdb.AddLeaseSet (buf + offset, len - offset);
 		}	
 		else
 		{
 			LogPrint ("RouterInfo");
+			size_t size = be16toh (*(uint16_t *)(buf + offset));
+			if (size > 2048)
+			{
+				LogPrint ("Invalid RouterInfo length ", (int)size);
+				return;
+			}	
+			offset += 2;
 			CryptoPP::Gunzip decompressor;
-			decompressor.Put (buf + sizeof (I2NPDatabaseStoreMsg), be16toh (msg->size));
+			decompressor.Put (buf + offset, size);
 			decompressor.MessageEnd();
-			uint8_t uncompressed[1024];
-			int size = decompressor.MaxRetrievable ();
-			decompressor.Get (uncompressed, size);
-			i2p::data::netdb.AddRouterInfo (uncompressed, size);
+			uint8_t uncompressed[2048];
+			int uncomressedSize = decompressor.MaxRetrievable ();
+			decompressor.Get (uncompressed, uncomressedSize);
+			i2p::data::netdb.AddRouterInfo (uncompressed, uncomressedSize);
 		}	
 	}	
 
@@ -421,9 +431,6 @@ namespace i2p
 			case eI2NPGarlic:
 				LogPrint ("Garlic");
 			break;	
-			case eI2NPDatabaseStore:
-				LogPrint ("DatabaseStore");
-				HandleDatabaseStoreMsg (buf, size);
 			break;	
 			case eI2NPDatabaseSearchReply:
 				LogPrint ("DatabaseSearchReply");
@@ -449,20 +456,23 @@ namespace i2p
 	{
 		if (msg)
 		{	
-			if (msg->GetHeader ()->typeID == eI2NPTunnelData)
-			{
-				LogPrint ("TunnelData");
-				i2p::tunnel::tunnels.PostTunnelData (msg);
-			}
-			else if (msg->GetHeader ()->typeID == eI2NPTunnelGateway)
-			{
-				LogPrint ("TunnelGateway");
-				HandleTunnelGatewayMsg (msg);
-			}	
-			else
+			switch (msg->GetHeader ()->typeID)
 			{	
-				HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
-				DeleteI2NPMessage (msg);
+				case eI2NPTunnelData:
+					LogPrint ("TunnelData");
+					i2p::tunnel::tunnels.PostTunnelData (msg);
+				break;	
+				case eI2NPTunnelGateway:
+					LogPrint ("TunnelGateway");
+					HandleTunnelGatewayMsg (msg);
+				break;
+				case eI2NPDatabaseStore:
+					LogPrint ("DatabaseStore");
+					i2p::data::netdb.PostDatabaseStoreMsg (msg);
+				break;	
+				default:
+					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
+					DeleteI2NPMessage (msg);
 			}	
 		}	
 	}	

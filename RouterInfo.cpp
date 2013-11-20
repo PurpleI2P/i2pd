@@ -16,12 +16,14 @@ namespace i2p
 {
 namespace data
 {		
-	RouterInfo::RouterInfo (const char * filename)
+	RouterInfo::RouterInfo (const char * filename):
+		m_IsUpdated (false)
 	{
 		ReadFromFile (filename);
 	}	
 
-	RouterInfo::RouterInfo (const uint8_t * buf, int len)
+	RouterInfo::RouterInfo (const uint8_t * buf, int len):
+		m_IsUpdated (true)
 	{
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
@@ -122,6 +124,8 @@ namespace data
 		}		
 		
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));
+		size_t l = i2p::data::ByteStreamToBase64 (m_IdentHash, 32, m_IdentHashBase64, 48);
+		m_IdentHashBase64[l] = 0;
 	}	
 
 	void RouterInfo::WriteToStream (std::ostream& s)
@@ -179,6 +183,7 @@ namespace data
 
 	void RouterInfo::CreateBuffer ()
 	{
+		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
 		std::stringstream s;
 		WriteToStream (s);
 		m_BufferLen = s.str ().size ();

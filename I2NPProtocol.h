@@ -23,8 +23,7 @@ namespace i2p
 	{
 		uint8_t key[32];
 		uint8_t type;
-		uint32_t replyToken;
-		uint16_t size;		
+		uint32_t replyToken;	
 	};
 
 	

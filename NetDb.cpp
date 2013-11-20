@@ -1,5 +1,7 @@
+#include <fstream>
 #include <boost/filesystem.hpp>
 #include "Log.h"
+#include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
 #include "RouterContext.h"
@@ -12,9 +14,8 @@ namespace data
 	
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (0)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (0), m_LastFloodfill (0)
 	{
-		Load ("netDb");
 	}
 	
 	NetDb::~NetDb ()
@@ -28,6 +29,7 @@ namespace data
 
 	void NetDb::Start ()
 	{
+		Load ("netDb");
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
 	
@@ -44,11 +46,38 @@ namespace data
 	
 	void NetDb::Run ()
 	{
+		uint32_t lastTs = 0;
 		m_IsRunning = true;
 		while (m_IsRunning)
 		{	
-			sleep (10);
-			Explore ();
+			I2NPMessage * msg = m_Queue.GetNextWithTimeout (10000); // 10 sec
+			if (msg)
+			{	
+				while (msg)
+				{
+					if (msg->GetHeader ()->typeID == eI2NPDatabaseStore)
+					{	
+						i2p::HandleDatabaseStoreMsg (msg->GetPayload (), msg->GetLength ()); // TODO
+						i2p::DeleteI2NPMessage (msg);
+					}	
+					else // WTF?
+					{
+						LogPrint ("NetDb: unexpected message type ", msg->GetHeader ()->typeID);
+						i2p::HandleI2NPMessage (msg);
+					}	
+					msg = m_Queue.Get ();
+				}	
+			}
+			else // if no new DatabaseStore coming, explore it
+				Explore ();
+
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			if (ts - lastTs >= 60) // save routers every minute
+			{
+				if (lastTs)
+					SaveUpdated ("netDb");
+				lastTs = ts;
+			}	
 		}	
 	}	
 	
@@ -98,6 +127,22 @@ namespace data
 			LogPrint (directory, " doesn't exist");
 	}	
 
+	void NetDb::SaveUpdated (const char * directory)
+	{	
+		int count = 0;
+		for (auto it: m_RouterInfos)
+			if (it.second->IsUpdated ())
+			{
+				std::ofstream r (std::string (directory) + "/routerInfo-" + 
+					it.second->GetIdentHashBase64 () + ".dat");
+				r.write ((char *)it.second->GetBuffer (), it.second->GetBufferLen ());
+				it.second->SetUpdated (false);
+				count++;
+			}
+		if (count > 0)
+			LogPrint (count," new routers saved");
+	}
+	
 	void NetDb::RequestDestination (const uint8_t * destination, const uint8_t * router)
 	{
 		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
@@ -122,12 +167,16 @@ namespace data
 		if (!memcmp (m_Exploratory, key, 32))
 		{
 			if (m_RouterInfos.find (std::string ((const char *)router, 32)) == m_RouterInfos.end ())
-				LogPrint ("Found new router");
+			{	
+				LogPrint ("Found new router. Requesting RouterInfo ...");
+				if (m_LastFloodfill)
+					RequestDestination (router, m_LastFloodfill->GetIdentHash ());
+			}	
 			else
 				LogPrint ("Bayan");
 		}
-		else
-			RequestDestination (key, router);
+	//	else
+	//		RequestDestination (key, router);
 	}	
 
 	void NetDb::Explore ()
@@ -136,15 +185,15 @@ namespace data
 		i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
 		if (outbound && inbound)
 		{
-			const RouterInfo * floodFill = GetRandomNTCPRouter (true);
-			if (floodFill)
+			m_LastFloodfill = GetRandomNTCPRouter (true);
+			if (m_LastFloodfill)
 			{
 				LogPrint ("Exploring new routers ...");
 				CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 				rnd.GenerateBlock (m_Exploratory, 32);
 				I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Exploratory, inbound->GetNextIdentHash (), 
 					inbound->GetNextTunnelID (), true);
-				outbound->SendTunnelDataMsg (floodFill->GetIdentHash (), 0, msg);
+				outbound->SendTunnelDataMsg (m_LastFloodfill->GetIdentHash (), 0, msg);
 			}	
 		}
 	}	
@@ -174,6 +223,11 @@ namespace data
 			else i++;
 		}	
 		return nullptr;
+	}	
+
+	void NetDb::PostDatabaseStoreMsg (I2NPMessage * msg)
+	{
+		if (msg) m_Queue.Put (msg);	
 	}	
 }
 }
