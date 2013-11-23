@@ -30,11 +30,12 @@ namespace data
 			
 			void RequestDestination (const uint8_t * destination, const uint8_t * router);
 			void HandleDatabaseSearchReply (const uint8_t * key, const uint8_t * router);
+			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
 			const RouterInfo * GetRandomNTCPRouter (bool floodfillOnly = false) const;
 			const RouterInfo * GetRandomRouter () const;
 
-			void PostDatabaseStoreMsg (I2NPMessage * msg);
+			void PostI2NPMsg (I2NPMessage * msg);
 			
 		private:
 

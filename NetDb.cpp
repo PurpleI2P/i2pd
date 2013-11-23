@@ -1,5 +1,6 @@
 #include <fstream>
 #include <boost/filesystem.hpp>
+#include "base64.h"
 #include "Log.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
@@ -59,7 +60,9 @@ namespace data
 					{	
 						i2p::HandleDatabaseStoreMsg (msg->GetPayload (), msg->GetLength ()); // TODO
 						i2p::DeleteI2NPMessage (msg);
-					}	
+					}
+					else if (msg->GetHeader ()->typeID == eI2NPDatabaseSearchReply)
+						HandleDatabaseSearchReplyMsg (msg);
 					else // WTF?
 					{
 						LogPrint ("NetDb: unexpected message type ", msg->GetHeader ()->typeID);
@@ -179,6 +182,42 @@ namespace data
 	//		RequestDestination (key, router);
 	}	
 
+	void NetDb::HandleDatabaseSearchReplyMsg (I2NPMessage * msg)
+	{
+		uint8_t * buf = msg->GetPayload ();
+		char key[48];
+		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
+		key[l] = 0;
+		int num = buf[32]; // num
+		LogPrint ("DatabaseSearchReply for ", key, " num=", num);
+		if (num > 0)
+		{
+			if (!memcmp (m_Exploratory, buf, 32) && m_LastFloodfill)
+			{
+				i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+				i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+				for (int i = 0; i < num; i++)
+				{
+					uint8_t * router = buf + 33 + i*32;
+					char peerHash[48];
+					int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
+					peerHash[l1] = 0;
+					LogPrint (i,": ", peerHash);
+
+					if (outbound && inbound)
+					{
+						I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (router, inbound->GetNextIdentHash (), 
+							inbound->GetNextTunnelID ());
+						outbound->GetTunnelGateway ().PutTunnelDataMsg (m_LastFloodfill->GetIdentHash (), 0, msg);
+					}	
+				}
+				if (outbound)
+					outbound->GetTunnelGateway ().SendBuffer ();
+			}	
+		}	
+		i2p::DeleteI2NPMessage (msg);
+	}	
+	
 	void NetDb::Explore ()
 	{
 		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
@@ -225,7 +264,7 @@ namespace data
 		return nullptr;
 	}	
 
-	void NetDb::PostDatabaseStoreMsg (I2NPMessage * msg)
+	void NetDb::PostI2NPMsg (I2NPMessage * msg)
 	{
 		if (msg) m_Queue.Put (msg);	
 	}	

@@ -175,31 +175,6 @@ namespace i2p
 		}	
 	}	
 
-	void HandleDatabaseSearchReplyMsg (uint8_t * buf, size_t len)
-	{	
-#pragma pack(1)
-		struct
-		{
-			uint8_t key[32];
-			uint8_t num;
-		} * msg;	
-#pragma pack()	
-		msg = (decltype(msg))buf;
-		char key[48];
-		int l = i2p::data::ByteStreamToBase64 (msg->key, 32, key, 48);
-		key[l] = 0;
-		LogPrint ("DatabaseSearchReply for ", key, " num=", (int)msg->num);
-		for (int i = 0; i < msg->num; i++)
-		{
-			char peerHash[48];
-			int l1 = i2p::data::ByteStreamToBase64 (buf + sizeof (*msg) +i*32, 32, peerHash, 48);
-			peerHash[l1] = 0;
-			LogPrint (i,": ", peerHash);	
-
-			i2p::data::netdb.HandleDatabaseSearchReply (msg->key, buf + sizeof (*msg) +i*32);
-		}	
-	}	
-
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 
 	    const uint8_t * nextIdent, uint32_t nextTunnelID, 
@@ -432,10 +407,6 @@ namespace i2p
 				LogPrint ("Garlic");
 			break;	
 			break;	
-			case eI2NPDatabaseSearchReply:
-				LogPrint ("DatabaseSearchReply");
-				HandleDatabaseSearchReplyMsg (buf, size);
-			break;	
 			case eI2NPDeliveryStatus:
 				LogPrint ("DeliveryStatus");
 			break;	
@@ -468,7 +439,11 @@ namespace i2p
 				break;
 				case eI2NPDatabaseStore:
 					LogPrint ("DatabaseStore");
-					i2p::data::netdb.PostDatabaseStoreMsg (msg);
+					i2p::data::netdb.PostI2NPMsg (msg);
+				break;	
+				case eI2NPDatabaseSearchReply:
+					LogPrint ("DatabaseSearchReply");
+					i2p::data::netdb.PostI2NPMsg (msg);
 				break;	
 				default:
 					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());

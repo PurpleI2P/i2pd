@@ -8,6 +8,9 @@ namespace i2p
 {
 namespace tunnel
 {
+	const size_t TUNNEL_DATA_MSG_SIZE = 1028;
+	const size_t TUNNEL_DATA_MAX_PAYLOAD_SIZE = 1003;
+	
 	enum TunnelDeliveryType 
 	{ 
 		eDeliveryTypeLocal = 0, 

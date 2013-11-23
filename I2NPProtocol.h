@@ -106,11 +106,9 @@ namespace i2p
 	I2NPMessage * CreateDeliveryStatusMsg ();
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false);
+
 	I2NPMessage * CreateDatabaseStoreMsg ();
-	
 	void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
-	void HandleDatabaseSearchReplyMsg (uint8_t * buf, size_t len);
-	
 	
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 
