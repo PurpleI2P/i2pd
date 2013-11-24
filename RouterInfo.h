@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <boost/asio.hpp>
+#include "LeaseSet.h"
 
 namespace i2p
 {
@@ -23,7 +24,7 @@ namespace data
 #pragma pack ()	
 	
 	
-	class RouterInfo
+	class RouterInfo: public RoutingDestination
 	{
 		public:
 
@@ -50,7 +51,6 @@ namespace data
 			
 			const RouterIdentity& GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (const RouterIdentity& identity);
-			const uint8_t * GetIdentHash () const { return m_IdentHash; };
 			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
 			Address * GetNTCPAddress ();
@@ -67,6 +67,10 @@ namespace data
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
+
+			// implements RoutingDestination
+			const uint8_t * GetIdentHash () const { return m_IdentHash; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.publicKey; };
 			
 		private:
 
