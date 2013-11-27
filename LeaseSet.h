@@ -22,6 +22,7 @@ namespace data
 		public:
 			virtual const uint8_t * GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
+			virtual bool IsDestination () const = 0; // for garlic 
 	};	
 	
 	class LeaseSet: public RoutingDestination
@@ -33,6 +34,7 @@ namespace data
 			// implements RoutingDestination
 			const uint8_t * GetIdentHash () const { return m_IdentHash; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };
+			bool IsDestination () const { return true; };
 			
 		private:
 

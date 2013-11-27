@@ -126,6 +126,8 @@ namespace data
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));
 		size_t l = i2p::data::ByteStreamToBase64 (m_IdentHash, 32, m_IdentHashBase64, 48);
 		m_IdentHashBase64[l] = 0;
+		memcpy (m_IdentHashAbbreviation, m_IdentHashBase64, 4);
+		m_IdentHashAbbreviation[4] = 0;
 	}	
 
 	void RouterInfo::WriteToStream (std::ostream& s)

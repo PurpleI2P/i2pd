@@ -95,8 +95,18 @@ namespace garlic
 		size_t size = 0;
 		payload[size] = 1; // 1 clove
 		size++;
-		payload[size] = 0;//  delivery instructions flag
-		size++;
+		if (m_Destination->IsDestination ())
+		{
+			payload[size] = eGarlicDeliveryTypeDestination << 5;//  delivery instructions flag destination
+			size++;
+			memcpy (payload + size, m_Destination->GetIdentHash (), 32);
+			size += 32;
+		}	
+		else	
+		{	
+			payload[size] = 0;//  delivery instructions flag local
+			size++;
+		}
 		memcpy (payload + size, msg->GetBuffer (), msg->GetLength ());
 		size += msg->GetLength ();
 		*(uint32_t *)(payload + size) = htobe32 (m_Rnd.GenerateWord32 ()); // CloveID

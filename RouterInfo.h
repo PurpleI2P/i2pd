@@ -52,6 +52,7 @@ namespace data
 			const RouterIdentity& GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (const RouterIdentity& identity);
 			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
+			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
 			Address * GetNTCPAddress ();
 			
@@ -71,6 +72,7 @@ namespace data
 			// implements RoutingDestination
 			const uint8_t * GetIdentHash () const { return m_IdentHash; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.publicKey; };
+			bool IsDestination () const { return false; };
 			
 		private:
 
@@ -85,7 +87,7 @@ namespace data
 
 			RouterIdentity m_RouterIdentity;
 			uint8_t m_IdentHash[32];
-			char m_IdentHashBase64[48];
+			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
 			char m_Buffer[2048];
 			int m_BufferLen;
 			uint64_t m_Timestamp;
