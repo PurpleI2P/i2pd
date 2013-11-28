@@ -26,10 +26,11 @@ namespace data
 			
 			void AddRouterInfo (uint8_t * buf, int len);
 			void AddLeaseSet (uint8_t * buf, int len);
-			RouterInfo * FindRouter (const uint8_t * ident);
-			
+			RouterInfo * FindRouter (const uint8_t * ident) const;
+
+			void RequestDestination (const char * b32, const uint8_t * router); // in base32
 			void RequestDestination (const uint8_t * destination, const uint8_t * router);
-			void HandleDatabaseSearchReply (const uint8_t * key, const uint8_t * router);
+			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
 			const RouterInfo * GetRandomNTCPRouter (bool floodfillOnly = false) const;
