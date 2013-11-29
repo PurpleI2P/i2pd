@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <mutex>
+#include <list>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -60,13 +61,15 @@ namespace ntcp
 	
 #pragma pack()	
 
+	const int TERMINATION_TIMEOUT = 60; // 1 minute
 	class NTCPSession
 	{
 		public:
 
-			NTCPSession (boost::asio::ip::tcp::socket& s, const i2p::data::RouterInfo * in_RemoteRouterInfo = 0);
+			NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouterInfo = 0);
 			virtual ~NTCPSession () {};
 
+			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
 			const i2p::data::RouterInfo& GetRemoteRouterInfo () const { return m_RemoteRouterInfo; };
 			
@@ -77,7 +80,9 @@ namespace ntcp
 		protected:
 
 			void Terminate ();
-			void Connected ();
+			virtual void Connected ();
+			void SendTimeSyncMessage ();
+			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }
 			
 		private:
 
@@ -106,11 +111,15 @@ namespace ntcp
 			void Send (i2p::I2NPMessage * msg);
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg);
 
-			void SendTimeSyncMessage ();
+
+			// timer
+			void ScheduleTermination ();
+			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:
 
-			boost::asio::ip::tcp::socket& m_Socket;
+			boost::asio::ip::tcp::socket m_Socket;
+			boost::asio::deadline_timer m_TerminationTimer;
 			bool m_IsEstablished;
 			
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;
@@ -127,7 +136,8 @@ namespace ntcp
 			uint8_t m_ReceiveBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2], m_TimeSyncBuffer[16];
 			int m_ReceiveBufferOffset; 
 
-			i2p::I2NPMessage * m_NextMessage, * m_DelayedMessage;
+			i2p::I2NPMessage * m_NextMessage;
+			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			size_t m_NextMessageOffset;
 			
 			std::mutex m_EncryptionMutex;
@@ -146,7 +156,6 @@ namespace ntcp
 			
 		private:
 
-			boost::asio::ip::tcp::socket m_Socket;	
 			boost::asio::ip::tcp::endpoint m_Endpoint;
 	};	
 
@@ -154,12 +163,11 @@ namespace ntcp
 	{
 		public:
 
-			NTCPServerConnection (boost::asio::io_service& service);
-			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
+			NTCPServerConnection (boost::asio::io_service& service): NTCPSession (service) {};
 			
-		private:
+		protected:
 
-			boost::asio::ip::tcp::socket m_Socket;	
+			virtual void Connected ();
 	};	
 }	
 }	

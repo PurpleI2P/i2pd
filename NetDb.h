@@ -26,7 +26,7 @@ namespace data
 			
 			void AddRouterInfo (uint8_t * buf, int len);
 			void AddLeaseSet (uint8_t * buf, int len);
-			RouterInfo * FindRouter (const uint8_t * ident) const;
+			RouterInfo * FindRouter (const IdentHash& ident) const;
 
 			void RequestDestination (const char * b32, const uint8_t * router); // in base32
 			void RequestDestination (const uint8_t * destination, const uint8_t * router);
@@ -47,8 +47,8 @@ namespace data
 			
 		private:
 
-			std::map<std::string, LeaseSet *> m_LeaseSets;
-			std::map<std::string, RouterInfo *> m_RouterInfos;
+			std::map<IdentHash, LeaseSet *> m_LeaseSets;
+			std::map<IdentHash, RouterInfo *> m_RouterInfos;
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	

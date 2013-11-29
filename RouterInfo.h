@@ -53,6 +53,7 @@ namespace data
 			void SetRouterIdentity (const RouterIdentity& identity);
 			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
 			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
+			uint64_t GetTimestamp () const { return m_Timestamp; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
 			Address * GetNTCPAddress ();
 			
@@ -70,7 +71,7 @@ namespace data
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
 
 			// implements RoutingDestination
-			const uint8_t * GetIdentHash () const { return m_IdentHash; };
+			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.publicKey; };
 			bool IsDestination () const { return false; };
 			
@@ -86,7 +87,7 @@ namespace data
 		private:
 
 			RouterIdentity m_RouterIdentity;
-			uint8_t m_IdentHash[32];
+			IdentHash m_IdentHash;
 			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
 			char m_Buffer[2048];
 			int m_BufferLen;

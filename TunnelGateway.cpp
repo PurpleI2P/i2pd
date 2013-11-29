@@ -60,7 +60,7 @@ namespace tunnel
 		}	
 	}	
 
-	std::vector<I2NPMessage *> TunnelGatewayBuffer::GetTunnelDataMsgs (uint32_t tunnelID) 
+	std::vector<I2NPMessage *> TunnelGatewayBuffer::GetTunnelDataMsgs () 
 	{ 
 		m_Remaining = 0;
 		m_NextOffset = 0;
@@ -71,7 +71,7 @@ namespace tunnel
 			int ind = 0;
 			while (ind < cnt)
 			{
-				auto tunnelMsg = CreateNextTunnelMessage (tunnelID, ind);
+				auto tunnelMsg = CreateNextTunnelMessage (ind);
 				if (!tunnelMsg) break;
 				res.push_back (tunnelMsg);
 			}
@@ -139,7 +139,7 @@ namespace tunnel
 		return ret;
 	}	
 
-	I2NPMessage * TunnelGatewayBuffer::CreateNextTunnelMessage (uint32_t tunnelID, int& ind)
+	I2NPMessage * TunnelGatewayBuffer::CreateNextTunnelMessage (int& ind)
 	{
 		int cnt = m_I2NPMsgs.size ();
 		if (ind > cnt - 1) return nullptr; // no more messages
@@ -166,7 +166,7 @@ namespace tunnel
 		
 		I2NPMessage * tunnelMsg = NewI2NPMessage ();
 		uint8_t * buf = tunnelMsg->GetPayload ();
-		*(uint32_t *)(buf) = htobe32 (tunnelID);
+		*(uint32_t *)(buf) = htobe32 (m_TunnelID);
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (buf + 4, 16); // original IV	
 		memcpy (buf + TUNNEL_DATA_MSG_SIZE, buf + 4, 16); // copy IV for checksum 	
@@ -219,12 +219,13 @@ namespace tunnel
 
 	void TunnelGateway::SendBuffer ()
 	{
-		auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs (m_Tunnel->GetNextTunnelID ());
+		auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto tunnelMsg : tunnelMsgs)
 		{	
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg);
 			FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
 			i2p::transports.SendMessage (m_Tunnel->GetNextIdentHash (), tunnelMsg);
+			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}	
 	}	
 }		

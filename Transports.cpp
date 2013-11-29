@@ -57,16 +57,28 @@ namespace i2p
 		}	
 	}	
 
+	void Transports::Run () 
+	{ 
+		try
+		{	
+			m_Service.run ();
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint ("Transports: ", ex.what ());
+		}	
+	}
+		
 	void Transports::AddNTCPSession (i2p::ntcp::NTCPSession * session)
 	{
 		if (session)
-			m_NTCPSessions[std::string ((const char *)session->GetRemoteRouterInfo ().GetIdentHash (), 32)] = session;
+			m_NTCPSessions[session->GetRemoteRouterInfo ().GetIdentHash ()] = session;
 	}	
 
 	void Transports::RemoveNTCPSession (i2p::ntcp::NTCPSession * session)
 	{
 		if (session)
-			m_NTCPSessions.erase (std::string ((const char *)session->GetRemoteRouterInfo ().GetIdentHash (), 32));
+			m_NTCPSessions.erase (session->GetRemoteRouterInfo ().GetIdentHash ());
 	}	
 		
 	void Transports::HandleAccept (i2p::ntcp::NTCPServerConnection * conn, const boost::system::error_code& error)
@@ -94,17 +106,17 @@ namespace i2p
 		return 0;
 	}	
 
-	i2p::ntcp::NTCPSession * Transports::FindNTCPSession (const uint8_t * ident)
+	i2p::ntcp::NTCPSession * Transports::FindNTCPSession (const i2p::data::IdentHash& ident)
 	{
-		auto it = m_NTCPSessions.find (std::string ((const char *)ident,32));
+		auto it = m_NTCPSessions.find (ident);
 		if (it != m_NTCPSessions.end ())
 			return it->second;
 		return 0;
 	}	
 
-	void Transports::SendMessage (const uint8_t * ident, i2p::I2NPMessage * msg)
+	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
-		if (!memcmp (ident, i2p::context.GetRouterInfo ().GetIdentHash (), 32))
+		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 			// we send it to ourself
 			i2p::HandleI2NPMessage (msg);
 		else
@@ -117,7 +129,10 @@ namespace i2p
 				{	
 					auto address = r->GetNTCPAddress ();
 					if (address)
+					{	
 						session = new i2p::ntcp::NTCPClient (m_Service, address->host.c_str (), address->port, *r);
+						AddNTCPSession (session);
+					}	
 				}
 			}	
 			if (session)

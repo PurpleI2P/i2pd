@@ -95,14 +95,13 @@ namespace data
 	void NetDb::AddRouterInfo (uint8_t * buf, int len)
 	{
 		RouterInfo * r = new RouterInfo (buf, len);
-		std::string hash((const char *)r->GetIdentHash (), 32);
-		auto it = m_RouterInfos.find(hash);
+		auto it = m_RouterInfos.find(r->GetIdentHash ());
 		if (it != m_RouterInfos.end ())
 		{
 			if (r->GetTimestamp () > it->second->GetTimestamp ())
 			{
 				LogPrint ("RouterInfo updated");
-				*m_RouterInfos[hash] = *r; // we can't replace point because it's used by tunnels
+				*m_RouterInfos[r->GetIdentHash ()] = *r; // we can't replace point because it's used by tunnels
 			}	
 			else
 				delete r;
@@ -110,19 +109,19 @@ namespace data
 		else	
 		{	
 			LogPrint ("New RouterInfo added");
-			m_RouterInfos[hash] = r;
+			m_RouterInfos[r->GetIdentHash ()] = r;
 		}	
 	}	
 
 	void NetDb::AddLeaseSet (uint8_t * buf, int len)
 	{
 		LeaseSet * l = new LeaseSet (buf, len);
-		m_LeaseSets[std::string ((const char *)l->GetIdentHash (), 32)] = l;
+		m_LeaseSets[l->GetIdentHash ()] = l;
 	}	
 
-	RouterInfo * NetDb::FindRouter (const uint8_t * ident) const
+	RouterInfo * NetDb::FindRouter (const IdentHash& ident) const
 	{
-		auto it = m_RouterInfos.find (std::string ((const char *)ident, 32));
+		auto it = m_RouterInfos.find (ident);
 		if (it != m_RouterInfos.end ())
 			return it->second;
 		else
@@ -143,7 +142,7 @@ namespace data
 					for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
 					{
 						RouterInfo * r = new RouterInfo (it1->path ().c_str ());
-						m_RouterInfos[std::string ((const char *)r->GetIdentHash (), 32)] = r;
+						m_RouterInfos[r->GetIdentHash ()] = r;
 						numRouters++;
 					}	
 				}	
@@ -252,7 +251,7 @@ namespace data
 
 				if (isExploratory)
 				{	
-					if (m_RouterInfos.find (std::string ((const char *)router, 32)) == m_RouterInfos.end ())
+					if (m_RouterInfos.find (IdentHash(router)) == m_RouterInfos.end ())
 					{	
 						LogPrint ("Found new router. Requesting RouterInfo ...");
 						if (outbound && inbound)

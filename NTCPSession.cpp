@@ -20,9 +20,9 @@ namespace i2p
 {
 namespace ntcp
 {
-	NTCPSession::NTCPSession (boost::asio::ip::tcp::socket& s, const i2p::data::RouterInfo * in_RemoteRouterInfo): 
-		m_Socket (s), m_IsEstablished (false), m_ReceiveBufferOffset (0),
-		m_NextMessage (nullptr), m_DelayedMessage (nullptr)
+	NTCPSession::NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouterInfo): 
+		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false), 
+		m_ReceiveBufferOffset (0), m_NextMessage (nullptr)
 	{		
 		if (in_RemoteRouterInfo)
 			m_RemoteRouterInfo = *in_RemoteRouterInfo;
@@ -52,8 +52,9 @@ namespace ntcp
 	{
 		m_IsEstablished = false;
 		m_Socket.close ();
-		if (m_DelayedMessage)
-			delete m_DelayedMessage;
+		for (auto it :m_DelayedMessages)
+			delete it;
+		m_DelayedMessages.clear ();
 		// TODO: notify tunnels
 		i2p::transports.RemoveNTCPSession (this);
 		delete this;
@@ -64,16 +65,15 @@ namespace ntcp
 	{
 		LogPrint ("NTCP session connected");
 		m_IsEstablished = true;
-		i2p::transports.AddNTCPSession (this);
 
 		SendTimeSyncMessage ();
 		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 
-		if (m_DelayedMessage)
+		if (!m_DelayedMessages.empty ())
 		{
-			i2p::I2NPMessage * delayedMessage = m_DelayedMessage;
-			m_DelayedMessage = 0;
-			SendI2NPMessage (delayedMessage);
+			for (auto it :m_DelayedMessages)
+				SendI2NPMessage (it);
+			m_DelayedMessages.clear ();
 		}	
 	}	
 		
@@ -467,7 +467,8 @@ namespace ntcp
 		}	
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (sendBuffer, l), boost::asio::transfer_all (),                      
-        	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, msg));				
+        	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, msg));	
+		ScheduleTermination (); // reset termination timer
 	}
 		
 	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg)
@@ -497,13 +498,31 @@ namespace ntcp
 			if (m_IsEstablished)
 				Send (msg);
 			else
-				m_DelayedMessage = msg;	
+				m_DelayedMessages.push_back (msg);	
+		}	
+	}	
+
+	void NTCPSession::ScheduleTermination ()
+	{
+		m_TerminationTimer.cancel ();
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(TERMINATION_TIMEOUT));
+		m_TerminationTimer.async_wait (boost::bind (&NTCPSession::HandleTerminationTimer,
+			this, boost::asio::placeholders::error));
+	}
+
+	void NTCPSession::HandleTerminationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			LogPrint ("No activity fo ", TERMINATION_TIMEOUT, " seconds");
+			m_Socket.close ();
 		}	
 	}	
 		
+		
 	NTCPClient::NTCPClient (boost::asio::io_service& service, const char * address, 
-		int port, const i2p::data::RouterInfo& in_RouterInfo): NTCPSession (m_Socket, &in_RouterInfo),
-		m_Socket (service), m_Endpoint (boost::asio::ip::address::from_string (address), port)	
+		int port, const i2p::data::RouterInfo& in_RouterInfo): NTCPSession (service, &in_RouterInfo),
+		m_Endpoint (boost::asio::ip::address::from_string (address), port)	
 	{
 		Connect ();
 	}
@@ -511,7 +530,7 @@ namespace ntcp
 	void NTCPClient::Connect ()
 	{
 		LogPrint ("Connecting to ", m_Endpoint.address ().to_string (),":",  m_Endpoint.port ());
-		 m_Socket.async_connect (m_Endpoint, boost::bind (&NTCPClient::HandleConnect,
+		 GetSocket ().async_connect (m_Endpoint, boost::bind (&NTCPClient::HandleConnect,
 			this, boost::asio::placeholders::error));
 	}	
 
@@ -529,9 +548,14 @@ namespace ntcp
 		}	
 	}	
 
-	NTCPServerConnection::NTCPServerConnection (boost::asio::io_service& service):
-		NTCPSession (m_Socket), m_Socket (service)
+	void NTCPServerConnection::Connected ()
 	{
+		LogPrint ("NTCP server session connected");
+		SetIsEstablished (true);
+		i2p::transports.AddNTCPSession (this);
+
+		SendTimeSyncMessage ();
+		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 	}	
 }	
 }	

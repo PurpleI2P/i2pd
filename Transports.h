@@ -28,15 +28,14 @@ namespace i2p
 			void RemoveNTCPSession (i2p::ntcp::NTCPSession * session);
 			
 			i2p::ntcp::NTCPSession * GetNextNTCPSession ();
-			i2p::ntcp::NTCPSession * FindNTCPSession (const uint8_t * ident);
+			i2p::ntcp::NTCPSession * FindNTCPSession (const i2p::data::IdentHash& ident);
 
-			void SendMessage (const uint8_t * ident, i2p::I2NPMessage * msg);
+			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 						
 		private:
 
-			void Run () { m_Service.run (); };
-			void HandleAccept (i2p::ntcp::NTCPServerConnection * conn, 
-				const boost::system::error_code& error);
+			void Run ();
+			void HandleAccept (i2p::ntcp::NTCPServerConnection * conn, const boost::system::error_code& error);
 			
 		private:
 
@@ -45,7 +44,7 @@ namespace i2p
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor;
 
-			std::map<std::string, i2p::ntcp::NTCPSession *> m_NTCPSessions;
+			std::map<i2p::data::IdentHash, i2p::ntcp::NTCPSession *> m_NTCPSessions;
 	};	
 
 	extern Transports transports;
