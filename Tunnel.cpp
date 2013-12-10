@@ -151,8 +151,8 @@ namespace tunnel
 		
 	Tunnels tunnels;
 	
-	Tunnels::Tunnels (): m_IsRunning (false), m_IsTunnelCreated (false), m_NextReplyMsgID (555),
-		m_ZeroHopsInboundTunnel (nullptr), m_ZeroHopsOutboundTunnel (nullptr), m_Thread (0)
+	Tunnels::Tunnels (): m_IsRunning (false), m_IsTunnelCreated (false), 
+		m_NextReplyMsgID (555),m_Thread (0)
 	{
 	}
 	
@@ -173,9 +173,6 @@ namespace tunnel
 		for (auto& it : m_PendingTunnels)
 			delete it.second;
 		m_PendingTunnels.clear ();
-
-		delete m_ZeroHopsInboundTunnel;
-		delete m_ZeroHopsOutboundTunnel;
 	}	
 	
 	InboundTunnel * Tunnels::GetInboundTunnel (uint32_t tunnelID)
@@ -258,10 +255,6 @@ namespace tunnel
 	void Tunnels::Run ()
 	{
 		sleep (1); // wait for other parts are ready
-
-		// we must start with zero hops tunnels
-		CreateZeroHopsInboundTunnel ();
-		CreateZeroHopsOutboundTunnel ();
 		
 		uint32_t lastTs = 0;
 		while (m_IsRunning)
@@ -314,8 +307,8 @@ namespace tunnel
 		}	
 		m_PendingTunnels.clear ();
 		
-		ManageOutboundTunnels ();
 		ManageInboundTunnels ();
+		ManageOutboundTunnels ();
 		
 	/*	if (!m_IsTunnelCreated)
 		{	
@@ -347,10 +340,9 @@ namespace tunnel
 		if (m_OutboundTunnels.size () < 10)
 		{
 			// trying to create one more oubound tunnel
-			InboundTunnel * inboundTunnel = m_ZeroHopsInboundTunnel;
-			if (!m_InboundTunnels.empty ())
-				inboundTunnel = m_InboundTunnels.rbegin ()->second;
-
+			if (m_InboundTunnels.empty ())	return;
+			
+			InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
 			if (m_OutboundTunnels.empty () || m_OutboundTunnels.size () < 3)
 			{	
 				LogPrint ("Creating one hop outbound tunnel...");
@@ -360,10 +352,10 @@ namespace tunnel
 			}	
 			else
 			{
-				OutboundTunnel * outboundTunnel =  *m_OutboundTunnels.begin ();
+				OutboundTunnel * outboundTunnel =  GetNextOutboundTunnel ();
 				LogPrint ("Creating two hops outbound tunnel...");
 				CreateTunnel<OutboundTunnel> (
-				  	new TunnelConfig (inboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router,
+				  	new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (),
 						i2p::data::netdb.GetRandomNTCPRouter (),
 			     		inboundTunnel->GetTunnelConfig ()),
 				        	outboundTunnel);
@@ -384,6 +376,13 @@ namespace tunnel
 			else 
 				it++;
 		}
+
+		if (m_InboundTunnels.empty ())
+		{
+			LogPrint ("Creating zero hops inbound tunnel...");
+			CreateZeroHopsInboundTunnel ();
+			return;
+		}
 		
 		if (m_InboundTunnels.size () < 10)
 		{
@@ -395,12 +394,11 @@ namespace tunnel
 			}
 			else
 			{
-				OutboundTunnel * outboundTunnel =  *m_OutboundTunnels.rbegin ();
-				InboundTunnel * inboundTunnel =  m_InboundTunnels.rbegin ()->second;
+				OutboundTunnel * outboundTunnel =  GetNextOutboundTunnel ();
 				LogPrint ("Creating two hops inbound tunnel...");
 				CreateTunnel<InboundTunnel> (
 					new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (),
-				    	inboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router),
+				    	outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router),
 				        	outboundTunnel);
 			}	
 		}
@@ -423,26 +421,20 @@ namespace tunnel
 
 	void Tunnels::AddOutboundTunnel (OutboundTunnel * newTunnel)
 	{
-		if (newTunnel != m_ZeroHopsOutboundTunnel) 
-			m_OutboundTunnels.push_back (newTunnel);
+		m_OutboundTunnels.push_back (newTunnel);
 	}	
 
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
 	{
-		if (newTunnel != m_ZeroHopsInboundTunnel) 
-			m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
+		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
+		// build symmetric outbound tunnel
+		CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
 	}	
 
-	void Tunnels::CreateZeroHopsOutboundTunnel ()
-	{
-		m_ZeroHopsOutboundTunnel = CreateTunnel<OutboundTunnel> (
-			new TunnelConfig (&i2p::context.GetRouterInfo (), 
-				m_ZeroHopsInboundTunnel->GetTunnelConfig ()));
-	}
 	
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
-		m_ZeroHopsInboundTunnel = CreateTunnel<InboundTunnel> (
+		CreateTunnel<InboundTunnel> (
 			new TunnelConfig (&i2p::context.GetRouterInfo ()));
 	}	
 	

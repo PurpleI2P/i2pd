@@ -45,6 +45,11 @@ namespace i2p
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor;
 
 			std::map<i2p::data::IdentHash, i2p::ntcp::NTCPSession *> m_NTCPSessions;
+
+		public:
+
+			// for HTTP only
+			const decltype(m_NTCPSessions)& GetNTCPSessions () const { return m_NTCPSessions; };
 	};	
 
 	extern Transports transports;

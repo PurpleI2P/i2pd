@@ -20,7 +20,7 @@ namespace i2p
 {
 namespace ntcp
 {
-	NTCPSession::NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouterInfo): 
+	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo * in_RemoteRouterInfo): 
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false), 
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr)
 	{		
@@ -521,7 +521,7 @@ namespace ntcp
 		
 		
 	NTCPClient::NTCPClient (boost::asio::io_service& service, const char * address, 
-		int port, const i2p::data::RouterInfo& in_RouterInfo): NTCPSession (service, &in_RouterInfo),
+		int port, i2p::data::RouterInfo& in_RouterInfo): NTCPSession (service, &in_RouterInfo),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port)	
 	{
 		Connect ();
@@ -539,6 +539,7 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Connect error: ", ecode.message ());
+			GetRemoteRouterInfo ().SetUnreachable (true);
 			Terminate ();
 		}
 		else

@@ -10,13 +10,15 @@ namespace tunnel
 {
 	void TunnelEndpoint::HandleDecryptedTunnelDataMsg (I2NPMessage * msg)
 	{
+		m_NumReceivedBytes += TUNNEL_DATA_MSG_SIZE;
+		
 		uint8_t * decrypted = msg->GetPayload () + 20; // 4 + 16
-		uint8_t * zero = (uint8_t *)memchr (decrypted + 4, 0, 1004); // witout checksum
+		uint8_t * zero = (uint8_t *)memchr (decrypted + 4, 0, TUNNEL_DATA_ENCRYPTED_SIZE - 4); // witout 4-byte checksum
 		if (zero)
 		{	
 			LogPrint ("TunnelMessage: zero found at ", (int)(zero-decrypted));
 			uint8_t * fragment = zero + 1;
-			while (fragment < decrypted + 1008)
+			while (fragment < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 			{
 				uint8_t flag = fragment[0];
 				fragment++;
@@ -77,7 +79,7 @@ namespace tunnel
 				msg->offset = fragment - msg->buf;
 				msg->len = msg->offset + size;
 				bool isLastMessage = false;
-				if (fragment + size < decrypted + 1008)
+				if (fragment + size < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 				{
 					// this is not last message. we have to copy it
 					m.data = NewI2NPMessage ();
@@ -140,6 +142,7 @@ namespace tunnel
 
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
+		LogPrint ("TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes");
 		switch (msg.deliveryType)
 		{
 			case eDeliveryTypeLocal:
@@ -152,7 +155,7 @@ namespace tunnel
 				i2p::transports.SendMessage (msg.hash, msg.data);
 			break;
 			default:
-				;
+				LogPrint ("TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);
 		};	
 	}	
 }		

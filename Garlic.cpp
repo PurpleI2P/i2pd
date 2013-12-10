@@ -139,21 +139,20 @@ namespace garlic
 	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg)
 	{
 		if (!destination) return nullptr;
-		std::string dest ((const char *)destination->GetIdentHash (), 32);
-		auto it = m_Sessions.find (dest);
+		auto it = m_Sessions.find (destination->GetIdentHash ());
 		GarlicRoutingSession * session = nullptr;
 		if (it != m_Sessions.end ())
 			session = it->second;
 		if (!session)
 		{
 			session = new GarlicRoutingSession (destination, 4); // TODO: change it later
-			m_Sessions[dest] = session;
+			m_Sessions[destination->GetIdentHash ()] = session;
 		}	
 
 		I2NPMessage * ret = session->WrapSingleMessage (msg);
 		if (session->GetNumRemainingSessionTags () <= 0)
 		{
-			m_Sessions.erase (dest);
+			m_Sessions.erase (destination->GetIdentHash ());
 			delete session;
 		}	
 		return ret;

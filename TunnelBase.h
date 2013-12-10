@@ -9,6 +9,7 @@ namespace i2p
 namespace tunnel
 {
 	const size_t TUNNEL_DATA_MSG_SIZE = 1028;
+	const size_t TUNNEL_DATA_ENCRYPTED_SIZE = 1008;
 	const size_t TUNNEL_DATA_MAX_PAYLOAD_SIZE = 1003;
 	
 	enum TunnelDeliveryType 
@@ -29,9 +30,11 @@ namespace tunnel
 	{
 		public:
 
+			virtual ~TunnelBase () {};
+			
 			virtual void EncryptTunnelMsg (I2NPMessage * tunnelMsg) = 0;
 			virtual uint32_t GetNextTunnelID () const = 0;
-			virtual const uint8_t * GetNextIdentHash () const = 0;
+			virtual const i2p::data::IdentHash& GetNextIdentHash () const = 0;
 	};	
 }
 }

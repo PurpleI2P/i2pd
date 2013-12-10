@@ -24,6 +24,8 @@ namespace i2p
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 			
 			void Sign (uint8_t * buf, int len, uint8_t * signature);
+
+			void OverrideNTCPAddress (const char * host, int port); // temporary
 			
 		private:
 

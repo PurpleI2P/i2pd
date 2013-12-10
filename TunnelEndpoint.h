@@ -15,6 +15,9 @@ namespace tunnel
 	{	
 		public:
 
+			TunnelEndpoint (): m_NumReceivedBytes (0) {};
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			
 			void HandleDecryptedTunnelDataMsg (I2NPMessage * msg);
 
 		private:
@@ -24,6 +27,7 @@ namespace tunnel
 		private:
 		
 			std::map<uint32_t, TunnelMessageBlock> m_IncompleteMessages;
+			size_t m_NumReceivedBytes;
 	};	
 }		
 }

@@ -62,6 +62,8 @@ namespace data
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
 			bool IsNTCP () const;
+			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
+			bool IsUnreachable () const { return m_IsUnreachable; };
 			
 			void CreateBuffer ();
 			const char * GetBuffer () const  { return m_Buffer; };
@@ -94,7 +96,7 @@ namespace data
 			uint64_t m_Timestamp;
 			std::vector<Address> m_Addresses;
 			std::map<std::string, std::string> m_Properties;
-			bool m_IsUpdated;
+			bool m_IsUpdated, m_IsUnreachable;
 	};	
 }	
 }

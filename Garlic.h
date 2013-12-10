@@ -69,7 +69,7 @@ namespace garlic
 			
 		private:
 
-			std::map<std::string, GarlicRoutingSession *> m_Sessions;
+			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 	};	
 
 	extern GarlicRouting routing;

@@ -17,7 +17,7 @@ namespace i2p
 namespace data
 {		
 	RouterInfo::RouterInfo (const char * filename):
-		m_IsUpdated (false)
+		m_IsUpdated (false), m_IsUnreachable (false)
 	{
 		ReadFromFile (filename);
 	}	

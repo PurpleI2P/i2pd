@@ -129,7 +129,6 @@ namespace tunnel
 			void ManageOutboundTunnels ();
 			void ManageInboundTunnels ();
 			
-			void CreateZeroHopsOutboundTunnel ();
 			void CreateZeroHopsInboundTunnel ();
 			
 		private:
@@ -137,8 +136,6 @@ namespace tunnel
 			bool m_IsRunning;
 			bool m_IsTunnelCreated; // TODO: temporary
 			uint32_t m_NextReplyMsgID; // TODO: make it random later
-			InboundTunnel * m_ZeroHopsInboundTunnel;
-			OutboundTunnel * m_ZeroHopsOutboundTunnel;
 			std::thread * m_Thread;	
 			std::map<uint32_t, Tunnel *> m_PendingTunnels; // by replyMsgID
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
@@ -151,6 +148,7 @@ namespace tunnel
 			// for HTTP only
 			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
+			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
 	};	
 
 	extern Tunnels tunnels;

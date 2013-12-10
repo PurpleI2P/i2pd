@@ -319,7 +319,8 @@ namespace data
 		RouterInfo * last = nullptr;
 		for (auto it: m_RouterInfos)
 		{	
-			if (it.second->IsNTCP () && (!floodfillOnly || it.second->IsFloodfill ()))
+			if (it.second->IsNTCP () && !it.second->IsUnreachable () && 
+				(!floodfillOnly || it.second->IsFloodfill ()))
 				last = it.second;
 			if (i >= ind) break;
 			else i++;
