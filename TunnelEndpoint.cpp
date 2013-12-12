@@ -1,3 +1,4 @@
+#include <endian.h>
 #include <string.h>
 #include "Log.h"
 #include "I2NPProtocol.h"

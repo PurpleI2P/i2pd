@@ -1,3 +1,4 @@
+#include <endian.h>
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>

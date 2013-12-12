@@ -1,4 +1,5 @@
 #include <string.h>
+#include <endian.h>
 #include "Log.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"

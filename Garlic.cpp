@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <endian.h>
 #include <map>
 #include <string>
 #include "ElGamal.h"

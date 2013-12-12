@@ -1,3 +1,4 @@
+#include <endian.h>
 #include <cryptopp/sha.h>
 #include "RouterContext.h"
 #include "Log.h"
