@@ -66,12 +66,12 @@ namespace ntcp
 	{
 		public:
 
-			NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouterInfo = 0);
+			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo * in_RemoteRouterInfo = 0);
 			virtual ~NTCPSession () {};
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
-			const i2p::data::RouterInfo& GetRemoteRouterInfo () const { return m_RemoteRouterInfo; };
+			i2p::data::RouterInfo& GetRemoteRouterInfo () { return m_RemoteRouterInfo; };
 			
 			void ClientLogin ();
 			void ServerLogin ();
@@ -147,7 +147,7 @@ namespace ntcp
 	{
 		public:
 
-			NTCPClient (boost::asio::io_service& service, const char * address, int port, const i2p::data::RouterInfo& in_RouterInfo);
+			NTCPClient (boost::asio::io_service& service, const char * address, int port, i2p::data::RouterInfo& in_RouterInfo);
 
 		private:
 
