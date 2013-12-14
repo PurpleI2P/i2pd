@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <map>
+#include <set>
 #include <string>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -65,11 +66,23 @@ namespace garlic
 			GarlicRouting ();
 			~GarlicRouting ();
 
+			void HandleGarlicMessage (uint8_t * buf, size_t len);
+			
 			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg);
+
+		private:
+
+			void HandleAESBlock (uint8_t * buf, size_t len);
+			void HandleGarlicPayload (uint8_t * buf, size_t len);
 			
 		private:
 
+			// outgoing sessions
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
+			// incoming session
+			uint8_t m_SessionKey[32];
+			std::set<std::string> m_SessionTags;
+			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;
 	};	
 
 	extern GarlicRouting routing;

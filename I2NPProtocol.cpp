@@ -11,6 +11,7 @@
 #include "Tunnel.h"
 #include "base64.h"
 #include "Transports.h"
+#include "Garlic.h"
 #include "I2NPProtocol.h"
 
 namespace i2p
@@ -362,6 +363,12 @@ namespace i2p
 			i2p::DeleteI2NPMessage (msg);
 		}	
 	}	
+
+	size_t GetI2NPMessageLength (uint8_t * msg)
+	{
+		I2NPHeader * header = (I2NPHeader *)msg;
+		return be16toh (header->size) + sizeof (I2NPHeader);
+	}	
 	
 	void HandleI2NPMessage (uint8_t * msg, size_t len)
 	{
@@ -375,6 +382,7 @@ namespace i2p
 		{
 			case eI2NPGarlic:
 				LogPrint ("Garlic");
+				i2p::garlic::routing.HandleGarlicMessage (buf, size);
 			break;	
 			break;	
 			case eI2NPDeliveryStatus:

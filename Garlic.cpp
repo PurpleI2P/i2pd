@@ -5,6 +5,7 @@
 #include "ElGamal.h"
 #include "RouterContext.h"
 #include "Timestamp.h"
+#include "Streaming.h"
 #include "Garlic.h"
 
 namespace i2p
@@ -157,6 +158,110 @@ namespace garlic
 			delete session;
 		}	
 		return ret;
+	}	
+
+	void GarlicRouting::HandleGarlicMessage (uint8_t * buf, size_t len)
+	{
+		uint32_t length = be32toh (*(uint32_t *)buf);
+		buf += 4;
+		std::string sessionTag((const char *)buf, 32);
+		if (m_SessionTags.count (sessionTag) > 0)
+		{
+			// existing session
+			uint8_t iv[32]; // IV is first 16 bytes
+			CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
+			m_Decryption.SetKeyWithIV (m_SessionKey, 32, iv);
+			m_Decryption.ProcessData(buf + 32, buf + 32, length - 32);
+			HandleAESBlock (buf + 32, length - 32);
+		}
+		else
+		{
+			// new session
+			ElGamalBlock elGamal;
+			i2p::crypto::ElGamalDecrypt (i2p::context.GetLeaseSetPrivateKey (), buf, (uint8_t *)&elGamal, true);
+			memcpy (m_SessionKey, elGamal.sessionKey, 32);
+			uint8_t iv[32]; // IV is first 16 bytes
+			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
+			m_Decryption.SetKeyWithIV (m_SessionKey, 32, iv);
+			m_Decryption.ProcessData(buf + 514, buf + 514, length - 514);
+			HandleAESBlock (buf + 514, length - 514);
+		}	
+		
+	}	
+
+	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len)
+	{
+		uint16_t tagCount = be16toh (*(uint16_t *)buf);
+		buf += 2;
+		for (int i = 0; i < tagCount; i++)
+			m_SessionTags.insert (std::string ((const char *)(buf + i*32), 32));
+		buf += tagCount*32;
+		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
+		buf += 4;
+		buf += 32;// payload hash. TODO: verify it
+		if (*buf) // session key?
+			buf += 32; // new session key
+		buf++; // flag
+		// payload
+		HandleGarlicPayload (buf, payloadSize);
+	}	
+
+	void GarlicRouting::HandleGarlicPayload (uint8_t * buf, size_t len)
+	{
+		int numCloves = buf[0];
+		LogPrint (numCloves," cloves");
+		buf++;
+		for (int i = 0; i < numCloves; i++)
+		{
+			// delivery instructions
+			uint8_t flag = buf[0];
+			buf++; // flag
+			if (flag & 0x80) // encrypted?
+			{
+				// TODO: implement
+				LogPrint ("Clove encrypted");
+				buf += 32; 
+			}	
+			GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
+			switch (deliveryType)
+			{
+				case eGarlicDeliveryTypeLocal:
+					LogPrint ("Garlic type local");
+					i2p::HandleI2NPMessage (buf, len);
+				break;	
+				case eGarlicDeliveryTypeDestination:
+				{	
+					LogPrint ("Garlic type destination");
+					i2p::data::IdentHash destination (buf);	
+					buf += 32;
+					// we assume streaming protocol for destination
+					// later on we should let destination decide
+					I2NPHeader * header = (I2NPHeader *)buf;
+					if (header->typeID == eI2NPData)
+						i2p::stream::HandleDataMessage (&destination, buf + sizeof (I2NPHeader), be16toh (header->size));
+					else
+						LogPrint ("Unexpected I2NP garlic message ", (int)header->typeID);
+					break;
+				}	
+				case eGarlicDeliveryTypeRouter:
+					LogPrint ("Garlic type router not implemented");
+					// TODO: implement
+					buf += 32;
+				break;
+				case eGarlicDeliveryTypeTunnel:
+					LogPrint ("Garlic type tunnel not implemented");
+					// TODO: implement
+					buf += 4;
+					buf += 32;
+				break;
+				default:
+					LogPrint ("Unknow garlic delivery type ", (int)deliveryType);
+			}
+			buf += GetI2NPMessageLength (buf); //  I2NP
+			buf += 4; // CloveID
+			buf += 8; // Date
+			buf += 3; // Certificate
+		}	
 	}	
 }	
 }
