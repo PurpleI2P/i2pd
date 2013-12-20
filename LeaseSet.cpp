@@ -1,4 +1,3 @@
-#include <cryptopp/sha.h>
 #include "Log.h"
 #include "LeaseSet.h"
 
@@ -6,6 +5,7 @@ namespace i2p
 {
 namespace data
 {
+	
 	LeaseSet::LeaseSet (const uint8_t * buf, int len)
 	{
 #pragma pack(1)
@@ -19,7 +19,8 @@ namespace data
 #pragma pack ()	
 
 		const H * header = (const H *)buf;
-		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&header->destination, sizeof (Identity));
+		m_Identity = header->destination;
+		m_IdentHash = CalculateIdentHash (m_Identity);
 		memcpy (m_EncryptionKey, header->encryptionKey, 256);
 		LogPrint ("LeaseSet num=", (int)header->num);
 

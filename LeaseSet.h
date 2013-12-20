@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <list>
+#include "Identity.h"
 
 namespace i2p
 {
@@ -12,13 +13,6 @@ namespace data
 	
 #pragma pack(1)
 
-	struct Identity
-	{
-		uint8_t publicKey[256];
-		uint8_t signingKey[128];
-		uint8_t certificate[3];
-	};
-	
 	struct Lease
 	{
 		uint8_t tunnelGateway[32];
@@ -28,40 +22,6 @@ namespace data
 	
 #pragma pack()	
 
-	class IdentHash
-	{
-		public:
-
-			IdentHash (const uint8_t * hash) { memcpy (m_Hash, hash, 32); };
-			IdentHash (const IdentHash& ) = default;
-			IdentHash (IdentHash&& ) = default;
-			IdentHash () = default;
-			
-			IdentHash& operator= (const IdentHash& ) = default;
-			IdentHash& operator= (IdentHash&& ) = default;
-			
-			uint8_t * operator()() { return m_Hash; };
-			const uint8_t * operator()() const { return m_Hash; };
-
-			operator uint8_t * () { return m_Hash; };
-			operator const uint8_t * () const { return m_Hash; };
-			
-			bool operator== (const IdentHash& other) const { return !memcmp (m_Hash, other.m_Hash, 32); };
-			bool operator< (const IdentHash& other) const { return memcmp (m_Hash, other.m_Hash, 32) < 0; };
-			
-		private:
-
-			uint8_t m_Hash[32];
-	};	
-	
-	class RoutingDestination  // TODO: move to separate file later
-	{
-		public:
-			virtual const IdentHash& GetIdentHash () const = 0;
-			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
-			virtual bool IsDestination () const = 0; // for garlic 
-	};	
-	
 	class LeaseSet: public RoutingDestination
 	{
 		public:
@@ -69,6 +29,7 @@ namespace data
 			LeaseSet (const uint8_t * buf, int len);
 
 			// implements RoutingDestination
+			const Identity& GetIdentity () const { return m_Identity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };
 			bool IsDestination () const { return true; };
@@ -76,6 +37,7 @@ namespace data
 		private:
 
 			std::list<Lease> m_Leases;
+			Identity m_Identity;
 			IdentHash m_IdentHash;
 			uint8_t m_EncryptionKey[256];
 	};	
