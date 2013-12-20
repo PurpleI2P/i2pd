@@ -12,18 +12,7 @@
 namespace i2p
 {
 namespace data
-{		
-#pragma pack (1)
-
-	struct RouterIdentity
-	{
-		uint8_t publicKey[256];
-		uint8_t signingKey[128];
-		uint8_t certificate[3];
-	};
-#pragma pack ()	
-	
-	
+{			
 	class RouterInfo: public RoutingDestination
 	{
 		public:
@@ -49,8 +38,8 @@ namespace data
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
 			
-			const RouterIdentity& GetRouterIdentity () const { return m_RouterIdentity; };
-			void SetRouterIdentity (const RouterIdentity& identity);
+			const Identity& GetRouterIdentity () const { return m_RouterIdentity; };
+			void SetRouterIdentity (const Identity& identity);
 			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
 			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
@@ -88,7 +77,7 @@ namespace data
 			
 		private:
 
-			RouterIdentity m_RouterIdentity;
+			Identity m_RouterIdentity;
 			IdentHash m_IdentHash;
 			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
 			char m_Buffer[2048];

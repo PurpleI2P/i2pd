@@ -3,13 +3,20 @@
 #include <cryptopp/gzip.h>
 #include "Log.h"
 #include "RouterInfo.h"
+#include "RouterContext.h"
 #include "Streaming.h"
 
 namespace i2p
 {
 namespace stream
 {
-	void StreamingDestination::HandleNextPacket (const uint8_t * buf, size_t len)
+	Stream::Stream (const i2p::data::IdentHash& destination):
+		m_SendStreamID (0)
+	{
+		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+	}	
+
+	void Stream::HandleNextPacket (const uint8_t * buf, size_t len)
 	{
 		const uint8_t * end = buf + len;
 		buf += 4; // sendStreamID
@@ -42,15 +49,45 @@ namespace stream
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
 			LogPrint ("From identity");
-			optionalData += sizeof (i2p::data::RouterIdentity);
+			optionalData += sizeof (i2p::data::Identity);
 		}	
 
 		// we have reached payload section
 		std::string str((const char *)buf, end-buf);
 		LogPrint ("Payload: ", str);
 	}	
+		
+	StreamingDestination m_SharedLocalDestination;	
+	
+	void StreamingDestination::HandleNextPacket (const uint8_t * buf, size_t len)
+	{
+		uint32_t sendStreamID = *(uint32_t *)(buf);
+		auto it = m_Streams.find (sendStreamID);
+		if (it != m_Streams.end ())
+			it->second->HandleNextPacket (buf, len);
+		else
+			LogPrint ("Unknown stream ", sendStreamID);
+	}	
 
-
+	Stream * StreamingDestination::CreateNewStream (const i2p::data::IdentHash& destination)
+	{
+		/*i2p::data::LeaseSet * leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+		if (!leaseSet)
+		{
+			i2p::data::netdb.RequestDestination (destination);
+			sleep (5); // wait for 5 seconds
+			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+			if (!leaseSet)
+			{
+				LogPrint ("Couldn't find LeaseSet");
+				return nullptr;
+			}	
+		}	*/
+		Stream * s = new Stream (destination);
+		m_Streams[s->GetRecvStreamID ()] = s;
+		return s;
+	}	
+	
 	void HandleDataMessage (i2p::data::IdentHash * destination, const uint8_t * buf, size_t len)
 	{
 		uint32_t length = be32toh (*(uint32_t *)buf);
@@ -63,12 +100,32 @@ namespace stream
 			decompressor.Put (buf, length);
 			decompressor.MessageEnd();
 			uint8_t uncompressed[2048];
-			int uncomressedSize = decompressor.MaxRetrievable ();
-			decompressor.Get (uncompressed, uncomressedSize);
+			int uncompressedSize = decompressor.MaxRetrievable ();
+			decompressor.Get (uncompressed, uncompressedSize);
 			// then forward to streaming engine
+			// TODO: we have onle one destination, might be more
+			m_SharedLocalDestination.HandleNextPacket (uncompressed, uncompressedSize);
 		}	
 		else
 			LogPrint ("Data: protocol ", buf[9], " is not supported");
+	}	
+
+	I2NPMessage * CreateDataMessage (Stream * s, uint8_t * payload, size_t len)
+	{
+		I2NPMessage * msg = NewI2NPMessage ();
+		CryptoPP::Gzip compressor;
+		compressor.Put (payload, len);
+		compressor.MessageEnd();
+		int size = compressor.MaxRetrievable ();
+		uint8_t * buf = msg->GetPayload ();
+		*(uint16_t *)buf = htobe32 (size); // length
+		buf += 4;
+		compressor.Get (buf, size);
+		buf[9] = 6; // streaming protocol
+		msg->len += size + 4; 
+		FillI2NPMessageHeader (msg, eI2NPData);
+		
+		return msg;
 	}	
 }		
 }	

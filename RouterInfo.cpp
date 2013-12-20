@@ -30,7 +30,7 @@ namespace data
 		ReadFromBuffer ();
 	}	
 	
-	void RouterInfo::SetRouterIdentity (const RouterIdentity& identity)
+	void RouterInfo::SetRouterIdentity (const Identity& identity)
 	{	
 		m_RouterIdentity = identity;
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));

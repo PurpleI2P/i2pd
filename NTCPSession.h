@@ -37,7 +37,7 @@ namespace ntcp
 	struct NTCPPhase3
 	{
 		uint16_t size;
-		i2p::data::RouterIdentity ident;
+		i2p::data::Identity ident;
 		uint32_t timestamp; 
 		uint8_t padding[15];
 		uint8_t signature[40];

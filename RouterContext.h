@@ -22,7 +22,7 @@ namespace i2p
 			const uint8_t * GetSigningPrivateKey () const;
 			const uint8_t * GetLeaseSetPrivateKey () const { return m_LeaseSetPrivateKey; };
 			const uint8_t * GetLeaseSetPublicKey () const { return m_LeaseSetPublicKey; };
-			const i2p::data::RouterIdentity& GetRouterIdentity () const { return m_RouterInfo.GetRouterIdentity (); };
+			const i2p::data::Identity& GetRouterIdentity () const { return m_RouterInfo.GetRouterIdentity (); };
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 			
 			void Sign (uint8_t * buf, int len, uint8_t * signature);

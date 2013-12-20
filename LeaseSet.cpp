@@ -1,6 +1,5 @@
 #include <cryptopp/sha.h>
 #include "Log.h"
-#include "RouterInfo.h"
 #include "LeaseSet.h"
 
 namespace i2p
@@ -12,7 +11,7 @@ namespace data
 #pragma pack(1)
 		struct H
 		{
-			RouterIdentity destination;
+			Identity destination;
 			uint8_t encryptionKey[256];
 			uint8_t signingKey[128];
 			uint8_t num;
@@ -20,7 +19,7 @@ namespace data
 #pragma pack ()	
 
 		const H * header = (const H *)buf;
-		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&header->destination, sizeof (RouterIdentity));
+		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&header->destination, sizeof (Identity));
 		memcpy (m_EncryptionKey, header->encryptionKey, 256);
 		LogPrint ("LeaseSet num=", (int)header->num);
 

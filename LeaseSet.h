@@ -11,12 +11,21 @@ namespace data
 {	
 	
 #pragma pack(1)
+
+	struct Identity
+	{
+		uint8_t publicKey[256];
+		uint8_t signingKey[128];
+		uint8_t certificate[3];
+	};
+	
 	struct Lease
 	{
 		uint8_t tunnelGateway[32];
 		uint32_t tunnelID;
 		uint64_t endDate;
 	};	
+	
 #pragma pack()	
 
 	class IdentHash

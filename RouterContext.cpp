@@ -26,7 +26,7 @@ namespace i2p
 	
 	void RouterContext::CreateNewRouter ()
 	{
-		i2p::data::RouterIdentity ident;
+		i2p::data::Identity ident;
 		
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(m_Rnd, m_PrivateKey, ident.publicKey);
