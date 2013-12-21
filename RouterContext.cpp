@@ -18,28 +18,17 @@ namespace i2p
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(m_Rnd, m_LeaseSetPrivateKey, m_LeaseSetPublicKey);
 	}	
-
-	const uint8_t * RouterContext::GetSigningPrivateKey () const 
-	{ 
-		return m_SigningPrivateKeyStr; 
-	}	
 	
 	void RouterContext::CreateNewRouter ()
 	{
+		m_Keys = i2p::data::CreateRandomKeys ();
+		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+		
 		i2p::data::Identity ident;
-		
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(m_Rnd, m_PrivateKey, ident.publicKey);
-		
-		m_SigningPrivateKey.Initialize (m_Rnd, i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag);
-		m_SigningPrivateKey.GetPrivateExponent ().Encode (m_SigningPrivateKeyStr, 20);
-
-		CryptoPP::DSA::PublicKey publicKey;
-		m_SigningPrivateKey.MakePublicKey (publicKey);
-		publicKey.GetPublicElement ().Encode (ident.signingKey, 128);
-
-		memset (ident.certificate, 0, sizeof (ident.certificate));
-		
+		// copy public and signing keys together
+		memcpy (ident.publicKey, m_Keys.publicKey, sizeof (ident.publicKey) + sizeof (ident.signingKey));
+		memset (ident.certificate, 0, sizeof (ident.certificate));		
 		m_RouterInfo.SetRouterIdentity (ident);
 
 		m_RouterInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
@@ -76,10 +65,9 @@ namespace i2p
 		std::ifstream fk (ROUTER_KEYS);
 		if (!fk.is_open ())	return false;
 			
-		fk.read ((char *)m_PrivateKey, 256);
-		fk.read ((char *)m_SigningPrivateKeyStr, 20);
+		fk.read ((char *)&m_Keys, sizeof (m_Keys));
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
-			CryptoPP::Integer (m_SigningPrivateKeyStr, 20));
+			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 
 		m_RouterInfo = i2p::data::RouterInfo (ROUTER_INFO); // TODO
 		
@@ -89,10 +77,7 @@ namespace i2p
 	void RouterContext::Save ()
 	{
 		std::ofstream fk (ROUTER_KEYS);
-		fk.write ((char *)m_PrivateKey, 256);
-		fk.write ((char *)m_SigningPrivateKeyStr, 20);
-		fk.write ((char *)m_RouterInfo.GetRouterIdentity ().publicKey, 256);
-		fk.write ((char *)m_RouterInfo.GetRouterIdentity ().signingKey, 128);
+		fk.write ((char *)&m_Keys, sizeof (m_Keys));
 				
 		std::ofstream fi (ROUTER_INFO);
 		fi.write ((char *)m_RouterInfo.GetBuffer (), m_RouterInfo.GetBufferLen ());

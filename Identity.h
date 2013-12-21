@@ -3,13 +3,20 @@
 
 #include <inttypes.h>
 #include <string.h>
-#include <cryptopp/sha.h>
 
 namespace i2p
 {
 namespace data
 {
 #pragma pack(1)
+
+	struct Keys
+	{
+		uint8_t privateKey[256];
+		uint8_t signingPrivateKey[20];
+		uint8_t publicKey[256];
+		uint8_t signingKey[128];
+	};
 	
 	struct Identity
 	{
@@ -46,13 +53,9 @@ namespace data
 			uint8_t m_Hash[32];
 	};	
 
-	inline IdentHash CalculateIdentHash (const Identity& identity)
-	{
-		IdentHash hash;
-		CryptoPP::SHA256().CalculateDigest((uint8_t *)hash, (uint8_t *)&identity, sizeof (Identity));
-		return hash;
-	};
-
+	IdentHash CalculateIdentHash (const Identity& identity);
+	Keys CreateRandomKeys ();
+	
 	class RoutingDestination
 	{
 		public:
