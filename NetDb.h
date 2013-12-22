@@ -27,9 +27,12 @@ namespace data
 			void AddRouterInfo (uint8_t * buf, int len);
 			void AddLeaseSet (uint8_t * buf, int len);
 			RouterInfo * FindRouter (const IdentHash& ident) const;
-
+			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
+			
 			void RequestDestination (const char * b32, const uint8_t * router); // in base32
 			void RequestDestination (const uint8_t * destination, const uint8_t * router);
+			void RequestDestination (const IdentHash& destination);
+			
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			

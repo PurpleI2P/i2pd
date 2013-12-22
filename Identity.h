@@ -23,6 +23,8 @@ namespace data
 		uint8_t publicKey[256];
 		uint8_t signingKey[128];
 		uint8_t certificate[3];
+
+		Identity& operator=(const Keys& keys);
 	};	
 	
 #pragma pack()

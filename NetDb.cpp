@@ -128,6 +128,15 @@ namespace data
 		else
 			return nullptr;
 	}
+
+	LeaseSet * NetDb::FindLeaseSet (const IdentHash& destination) const
+	{
+		auto it = m_LeaseSets.find (destination);
+		if (it != m_LeaseSets.end ())
+			return it->second;
+		else
+			return nullptr;
+	}	
 	
 	void NetDb::Load (const char * directory)
 	{
@@ -156,19 +165,36 @@ namespace data
 
 	void NetDb::SaveUpdated (const char * directory)
 	{	
-		int count = 0;
+		auto GetFilePath = [](const char * directory, const RouterInfo * routerInfo)
+		{
+			return std::string (directory) + "/r" +
+				routerInfo->GetIdentHashBase64 ()[0] + "/routerInfo-" + 
+				routerInfo->GetIdentHashBase64 () + ".dat";
+		};	
+			
+		int count = 0, deletedCount = 0;
 		for (auto it: m_RouterInfos)
+		{	
 			if (it.second->IsUpdated ())
 			{
-				std::ofstream r (std::string (directory) + "/r" +
-				    it.second->GetIdentHashBase64 ()[0] + "/routerInfo-" + 
-					it.second->GetIdentHashBase64 () + ".dat");
+				std::ofstream r (GetFilePath(directory, it.second));
 				r.write ((char *)it.second->GetBuffer (), it.second->GetBufferLen ());
 				it.second->SetUpdated (false);
 				count++;
 			}
+			else if (it.second->IsUnreachable ())
+			{
+				if (boost::filesystem::exists (GetFilePath (directory, it.second)))
+				{    
+				    boost::filesystem::remove (GetFilePath (directory, it.second));
+					deletedCount++;
+				}	
+			}	
+		}	
 		if (count > 0)
 			LogPrint (count," new/updated routers saved");
+		if (deletedCount > 0)
+			LogPrint (deletedCount," routers deleted");
 	}
 
 	void NetDb::RequestDestination (const char * b32, const uint8_t * router)
@@ -197,6 +223,11 @@ namespace data
 			LogPrint ("No outbound tunnels found");
 	}	
 
+	void NetDb::RequestDestination (const IdentHash& destination)
+	{
+		RequestDestination ((const uint8_t *)destination, GetRandomNTCPRouter (true)->GetIdentHash ());
+	}	
+	
 	void NetDb::HandleDatabaseStoreMsg (uint8_t * buf, size_t len)
 	{		
 		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;

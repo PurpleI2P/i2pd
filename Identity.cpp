@@ -9,6 +9,14 @@ namespace i2p
 {
 namespace data
 {
+	Identity& Identity::operator=(const Keys& keys)
+	{
+		// copy public and signing keys together
+		memcpy (publicKey, keys.publicKey, sizeof (publicKey) + sizeof (signingKey));
+		memset (certificate, 0, sizeof (certificate));		
+		return *this;
+	}	
+	
 	IdentHash CalculateIdentHash (const Identity& identity)
 	{
 		IdentHash hash;
