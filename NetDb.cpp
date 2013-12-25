@@ -270,8 +270,8 @@ namespace data
 		if (num > 0)
 		{
 			bool isExploratory = !memcmp (m_Exploratory, buf, 32) && m_LastFloodfill;			
-			i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-			i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+			i2p::tunnel::OutboundTunnel * outbound = isExploratory ? m_LastOutboundTunnel : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+			i2p::tunnel::InboundTunnel * inbound = isExploratory ? m_LastInboundTunnel : i2p::tunnel::tunnels.GetNextInboundTunnel ();
 			
 			for (int i = 0; i < num; i++)
 			{
@@ -327,9 +327,9 @@ namespace data
 	
 	void NetDb::Explore ()
 	{
-		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
-		if (outbound && inbound)
+		m_LastOutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+		m_LastInboundTunnel = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+		if (m_LastOutboundTunnel && m_LastInboundTunnel)
 		{
 			m_LastFloodfill = GetRandomNTCPRouter (true);
 			if (m_LastFloodfill)
@@ -337,9 +337,13 @@ namespace data
 				LogPrint ("Exploring new routers ...");
 				CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 				rnd.GenerateBlock (m_Exploratory, 32);
-				I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Exploratory, inbound->GetNextIdentHash (), 
-					inbound->GetNextTunnelID (), true);
-				outbound->SendTunnelDataMsg (m_LastFloodfill->GetIdentHash (), 0, msg);
+				
+				m_LastOutboundTunnel->GetTunnelGateway ().PutTunnelDataMsg (m_LastFloodfill->GetIdentHash (), 0,
+					CreateDatabaseStoreMsg ()); // tell floodfill about us                                         
+				m_LastOutboundTunnel->GetTunnelGateway ().PutTunnelDataMsg (m_LastFloodfill->GetIdentHash (), 0, 
+					i2p::CreateDatabaseLookupMsg (m_Exploratory, m_LastInboundTunnel->GetNextIdentHash (), 
+					m_LastInboundTunnel->GetNextTunnelID (), true)); // explore
+				m_LastOutboundTunnel->GetTunnelGateway ().SendBuffer ();
 			}	
 		}
 	}	

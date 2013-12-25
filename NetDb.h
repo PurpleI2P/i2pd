@@ -9,6 +9,7 @@
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
 #include "LeaseSet.h"
+#include "Tunnel.h"
 
 namespace i2p
 {
@@ -57,6 +58,8 @@ namespace data
 			std::thread * m_Thread;	
 			uint8_t m_Exploratory[32];
 			const RouterInfo * m_LastFloodfill;
+			i2p::tunnel::OutboundTunnel * m_LastOutboundTunnel;
+			i2p::tunnel::InboundTunnel * m_LastInboundTunnel;
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
 	};
 
