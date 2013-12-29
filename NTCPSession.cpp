@@ -184,7 +184,8 @@ namespace ntcp
 	{
 		if (ecode)
         {
-			LogPrint ("Phase 2 read error: ", ecode.message ());
+			LogPrint ("Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
+			GetRemoteRouterInfo ().SetUnreachable (true); // this RouterInfo is not valid
 			Terminate ();
 		}
 		else
@@ -459,10 +460,7 @@ namespace ntcp
 		m_Adler.CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
 
 		int l = len + padding + 6;
-		{
-			std::lock_guard<std::mutex> lock (m_EncryptionMutex);
-			m_Encryption.ProcessData(sendBuffer, sendBuffer, l);
-		}	
+		m_Encryption.ProcessData(sendBuffer, sendBuffer, l);	
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (sendBuffer, l), boost::asio::transfer_all (),                      
         	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, msg));	

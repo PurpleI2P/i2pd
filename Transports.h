@@ -36,9 +36,11 @@ namespace i2p
 
 			void Run ();
 			void HandleAccept (i2p::ntcp::NTCPServerConnection * conn, const boost::system::error_code& error);
+			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			
 		private:
 
+			bool m_IsRunning;
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;

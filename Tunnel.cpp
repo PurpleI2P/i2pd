@@ -219,7 +219,17 @@ namespace tunnel
 	
 	OutboundTunnel * Tunnels::GetNextOutboundTunnel ()
 	{
-		OutboundTunnel * tunnel  = nullptr; 
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		uint32_t ind = rnd.GenerateWord32 (0, m_OutboundTunnels.size () - 1), i = 0;
+		for (auto it: m_OutboundTunnels)
+		{	
+			if (i >= ind) return it;
+			else i++;
+		}	
+		return nullptr;
+		
+		// TODO: implement it base on profiling
+		/*OutboundTunnel * tunnel  = nullptr; 
 		size_t minSent = 0;
 		for (auto it : m_OutboundTunnels)
 			if (!tunnel || it->GetNumSentBytes () < minSent)
@@ -227,7 +237,7 @@ namespace tunnel
 				tunnel = it;
 				minSent = it->GetNumSentBytes ();
 			}		
-		return tunnel;
+		return tunnel;*/
 	}	
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
@@ -353,13 +363,13 @@ namespace tunnel
 			}	
 			else
 			{
-				OutboundTunnel * outboundTunnel =  GetNextOutboundTunnel ();
+				//OutboundTunnel * outboundTunnel =  GetNextOutboundTunnel ();
 				LogPrint ("Creating two hops outbound tunnel...");
 				CreateTunnel<OutboundTunnel> (
 				  	new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (),
 						i2p::data::netdb.GetRandomNTCPRouter (),
-			     		inboundTunnel->GetTunnelConfig ()),
-				        	outboundTunnel);
+			     		inboundTunnel->GetTunnelConfig ())/*,
+				        	outboundTunnel*/);
 			}	
 		}
 	}
@@ -395,7 +405,7 @@ namespace tunnel
 			}
 			else
 			{
-				OutboundTunnel * outboundTunnel =  GetNextOutboundTunnel ();
+				OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
 				LogPrint ("Creating two hops inbound tunnel...");
 				CreateTunnel<InboundTunnel> (
 					new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (),

@@ -36,6 +36,7 @@ namespace data
 			RouterInfo (const char * filename);
 			RouterInfo () = default;
 			RouterInfo (const RouterInfo& ) = default;
+			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
 			
 			const Identity& GetRouterIdentity () const { return m_RouterIdentity; };
@@ -74,6 +75,7 @@ namespace data
 			void WriteToStream (std::ostream& s);
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
+			void UpdateIdentHashBase64 ();
 			
 		private:
 

@@ -2,7 +2,6 @@
 #define NTCP_SESSION_H__
 
 #include <inttypes.h>
-#include <mutex>
 #include <list>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
@@ -139,8 +138,6 @@ namespace ntcp
 			i2p::I2NPMessage * m_NextMessage;
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			size_t m_NextMessageOffset;
-			
-			std::mutex m_EncryptionMutex;
 	};	
 
 	class NTCPClient: public NTCPSession
