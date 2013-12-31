@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include <map>
-#include "LeaseSet.h"
+#include "Identity.h"
 #include "I2NPProtocol.h"
 
 namespace i2p
@@ -22,11 +22,12 @@ namespace stream
 	const uint16_t PACKET_FLAG_ECHO = 0x0200;
 	const uint16_t PACKET_FLAG_NO_ACK = 0x0400;
 
+	class StreamingDestination;
 	class Stream
 	{	
 		public:
 
-			Stream (const i2p::data::IdentHash& destination);
+			Stream (StreamingDestination * local, const i2p::data::IdentHash& remote);
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 
@@ -35,18 +36,27 @@ namespace stream
 		private:
 
 			uint32_t m_SendStreamID, m_RecvStreamID;
+			StreamingDestination * m_LocalDestination;
 	};
 	
 	class StreamingDestination
 	{
 		public:
 
+			StreamingDestination ();
+
+			const i2p::data::Keys GetKeys () const { return m_Keys; };
+			I2NPMessage * CreateLeaseSet () const;
+			
 			Stream * CreateNewStream (const i2p::data::IdentHash& destination);
 			void HandleNextPacket (const uint8_t * buf, size_t len);
-
+			
 		private:
 
 			std::map<uint32_t, Stream *> m_Streams;
+			i2p::data::Keys m_Keys;
+			i2p::data::Identity m_Identity;
+			i2p::data::IdentHash m_IdentHash;
 	};	
 	
 	// assuming data is I2CP message

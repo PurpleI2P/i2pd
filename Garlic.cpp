@@ -29,7 +29,7 @@ namespace garlic
 		delete[] m_SessionTags;
 	}
 		
-	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
+	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
@@ -46,7 +46,7 @@ namespace garlic
 			buf += 514;
 			// AES block
 			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
-			len += 514 + CreateAESBlock (buf, msg);	
+			len += 514 + CreateAESBlock (buf, msg, leaseSet);	
 		}
 		else // existing session
 		{	
@@ -57,7 +57,7 @@ namespace garlic
 			CryptoPP::SHA256().CalculateDigest(iv, m_SessionTags + m_NextTag*32, 32);
 			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
 			// AES block
-			len += 32 + CreateAESBlock (buf, msg);
+			len += 32 + CreateAESBlock (buf, msg, leaseSet);
 		}	
 		m_NextTag++;
 		*(uint32_t *)(m->GetPayload ()) = htobe32 (len);
@@ -67,7 +67,7 @@ namespace garlic
 		return m;
 	}	
 
-	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, I2NPMessage * msg)
+	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
 		size_t blockSize = 0;
 		*(uint16_t *)buf = htobe16 (m_NumTags); // tag count
@@ -80,7 +80,7 @@ namespace garlic
 		blockSize += 32;
 		buf[blockSize] = 0; // flag
 		blockSize++;
-		size_t len = CreateGarlicPayload (buf + blockSize, msg);
+		size_t len = CreateGarlicPayload (buf + blockSize, msg, leaseSet);
 		*payloadSize = htobe32 (len);
 		CryptoPP::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
 		blockSize += len;
@@ -91,32 +91,25 @@ namespace garlic
 		return blockSize;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg)
+	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		size_t size = 0;
-		payload[size] = 1; // 1 clove
+		uint8_t * numCloves = payload + size;
+		*numCloves = 0;
 		size++;
-		if (m_Destination->IsDestination ())
-		{
-			payload[size] = eGarlicDeliveryTypeDestination << 5;//  delivery instructions flag destination
-			size++;
-			memcpy (payload + size, m_Destination->GetIdentHash (), 32);
-			size += 32;
-		}	
-		else	
+
+		if (leaseSet) // first clove is our leaseSet if presented
 		{	
-			payload[size] = 0;//  delivery instructions flag local
-			size++;
-		}
-		memcpy (payload + size, msg->GetBuffer (), msg->GetLength ());
-		size += msg->GetLength ();
-		*(uint32_t *)(payload + size) = htobe32 (m_Rnd.GenerateWord32 ()); // CloveID
-		size += 4;
-		*(uint64_t *)(payload + size) = htobe64 (ts); // Expiration of clove
-		size += 8;
-		memset (payload + size, 0, 3); // certificate of clove
-		size += 3;
+			size += CreateGarlicClove (payload + size, leaseSet, false);
+			(*numCloves)++;
+		}	
+		if (msg) // next clove message ifself if presented
+		{	
+			size += CreateGarlicClove (payload + size, msg, true);
+			(*numCloves)++;
+		}	
+		
 		memset (payload + size, 0, 3); // certificate of message
 		size += 3;
 		*(uint32_t *)(payload + size) = htobe32 (m_Rnd.GenerateWord32 ()); // MessageID
@@ -126,6 +119,34 @@ namespace garlic
 		return size;
 	}	
 
+	size_t GarlicRoutingSession::CreateGarlicClove (uint8_t * buf, I2NPMessage * msg, bool isDestination)
+	{
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
+		size_t size = 0;
+		if (isDestination)
+		{
+			buf[size] = eGarlicDeliveryTypeDestination << 5;//  delivery instructions flag destination
+			size++;
+			memcpy (buf + size, m_Destination->GetIdentHash (), 32);
+			size += 32;
+		}	
+		else	
+		{	
+			buf[size] = 0;//  delivery instructions flag local
+			size++;
+		}
+		
+		memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
+		size += msg->GetLength ();
+		*(uint32_t *)(buf + size) = htobe32 (m_Rnd.GenerateWord32 ()); // CloveID
+		size += 4;
+		*(uint64_t *)(buf + size) = htobe64 (ts); // Expiration of clove
+		size += 8;
+		memset (buf + size, 0, 3); // certificate of clove
+		size += 3;
+		return size;
+	}	
+		
 	GarlicRouting routing;	
 	GarlicRouting::GarlicRouting ()
 	{
@@ -138,7 +159,8 @@ namespace garlic
 		m_Sessions.clear ();
 	}	
 
-	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg)
+	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination * destination, 
+		I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
 		if (!destination) return nullptr;
 		auto it = m_Sessions.find (destination->GetIdentHash ());
@@ -151,7 +173,7 @@ namespace garlic
 			m_Sessions[destination->GetIdentHash ()] = session;
 		}	
 
-		I2NPMessage * ret = session->WrapSingleMessage (msg);
+		I2NPMessage * ret = session->WrapSingleMessage (msg, leaseSet);
 		if (session->GetNumRemainingSessionTags () <= 0)
 		{
 			m_Sessions.erase (destination->GetIdentHash ());

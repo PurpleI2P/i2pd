@@ -1,17 +1,21 @@
 #include <endian.h>
 #include <string>
 #include <cryptopp/gzip.h>
+#include <cryptopp/dsa.h>
 #include "Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
+#include "Tunnel.h"
+#include "Timestamp.h"
+#include "CryptoConst.h"
 #include "Streaming.h"
 
 namespace i2p
 {
 namespace stream
 {
-	Stream::Stream (const i2p::data::IdentHash& destination):
-		m_SendStreamID (0)
+	Stream::Stream (StreamingDestination * local, const i2p::data::IdentHash& remote):
+		m_SendStreamID (0), m_LocalDestination (local)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}	
@@ -57,8 +61,16 @@ namespace stream
 		LogPrint ("Payload: ", str);
 	}	
 		
-	StreamingDestination m_SharedLocalDestination;	
-	
+	StreamingDestination * sharedLocalDestination = nullptr;	
+
+	StreamingDestination::StreamingDestination ()
+	{		
+		// TODO: read from file later
+		m_Keys = i2p::data::CreateRandomKeys ();
+		m_Identity = m_Keys;
+		m_IdentHash = i2p::data::CalculateIdentHash (m_Identity);
+	}
+		
 	void StreamingDestination::HandleNextPacket (const uint8_t * buf, size_t len)
 	{
 		uint32_t sendStreamID = *(uint32_t *)(buf);
@@ -83,11 +95,59 @@ namespace stream
 				return nullptr;
 			}	
 		}	*/
-		Stream * s = new Stream (destination);
+		Stream * s = new Stream (this, destination);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;
 	}	
-	
+
+	I2NPMessage * StreamingDestination::CreateLeaseSet () const
+	{
+		I2NPMessage * m = NewI2NPMessage ();
+		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();
+		memcpy (msg->key, (const uint8_t *)m_IdentHash, 32);
+		msg->type = 1; // LeaseSet
+		msg->replyToken = 0;
+		
+		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
+		size_t size = 0;
+		memcpy (buf + size, &m_Identity, sizeof (m_Identity));
+		size += sizeof (m_Identity); // destination
+		memcpy (buf + size, i2p::context.GetLeaseSetPublicKey (), 256);
+		size += 256; // encryption key
+		memset (buf + size, 0, 128);
+		size += 128; // signing key
+		auto tunnel = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+		if (tunnel)
+		{	
+			buf[size] = 1; // 1 lease
+			size++; // num
+			memcpy (buf + size, (const uint8_t *)tunnel->GetNextIdentHash (), 32);
+			size += 32; // tunnel_gw
+			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ());
+			size += 4; // tunnel_id
+			uint64_t ts = tunnel->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT;
+			ts *= 1000; // in milliseconds
+			*(uint64_t *)(buf + size) = htobe64 (ts);
+			size += 8; // end_date
+		}	
+		else
+		{
+			buf[size] = 0; // zero leases
+			size++; // num
+		}	
+
+		CryptoPP::DSA::PrivateKey signingPrivateKey;
+		signingPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+		CryptoPP::DSA::Signer signer (signingPrivateKey);
+		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, size, buf+ size);
+		size += 40; // signature
+
+		m->len += size + sizeof (I2NPDatabaseStoreMsg);
+		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
+		return m;
+	}	
+		
 	void HandleDataMessage (i2p::data::IdentHash * destination, const uint8_t * buf, size_t len)
 	{
 		uint32_t length = be32toh (*(uint32_t *)buf);
@@ -104,7 +164,8 @@ namespace stream
 			decompressor.Get (uncompressed, uncompressedSize);
 			// then forward to streaming engine
 			// TODO: we have onle one destination, might be more
-			m_SharedLocalDestination.HandleNextPacket (uncompressed, uncompressedSize);
+			if (sharedLocalDestination)
+				sharedLocalDestination->HandleNextPacket (uncompressed, uncompressedSize);
 		}	
 		else
 			LogPrint ("Data: protocol ", buf[9], " is not supported");
