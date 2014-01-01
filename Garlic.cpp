@@ -63,7 +63,10 @@ namespace garlic
 		*(uint32_t *)(m->GetPayload ()) = htobe32 (len);
 		m->len += len + 4;
 		FillI2NPMessageHeader (m, eI2NPGarlic);
-		DeleteI2NPMessage (msg);
+		if (msg)
+			DeleteI2NPMessage (msg);
+		if (leaseSet)
+			DeleteI2NPMessage (leaseSet);
 		return m;
 	}	
 
