@@ -8,6 +8,7 @@
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
 #include "RouterContext.h"
+#include "Garlic.h"
 #include "NetDb.h"
 
 namespace i2p
@@ -197,15 +198,25 @@ namespace data
 			LogPrint (deletedCount," routers deleted");
 	}
 
-	void NetDb::RequestDestination (const char * b32, const uint8_t * router)
+	void NetDb::RequestDestination (const char * b32)
 	{
 		uint8_t destination[32];
 		Base32ToByteStream (b32, strlen(b32), destination, 32);
-		RequestDestination (destination, router);
+		RequestDestination (destination, true);
+	}	
+
+	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet)
+	{
+		auto floodfill= GetRandomNTCPRouter (true);
+		if (floodfill)
+			RequestDestination (destination, floodfill, isLeaseSet);
+		else
+			LogPrint ("No floodfill routers found");
 	}	
 	
-	void NetDb::RequestDestination (const uint8_t * destination, const uint8_t * router)
+	void NetDb::RequestDestination (const IdentHash& destination, const RouterInfo * floodfill, bool isLeaseSet)
 	{
+		if (!floodfill) return;
 		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
 		if (outbound)
 		{
@@ -214,18 +225,15 @@ namespace data
 			{
 				I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (destination, inbound->GetNextIdentHash (), 
 					inbound->GetNextTunnelID ());
-				outbound->SendTunnelDataMsg (router, 0, msg);
+				if (isLeaseSet) // wrap lookup message into garlic
+					msg = i2p::garlic::routing.WrapSingleMessage (floodfill, msg);
+				outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);
 			}	
 			else
 				LogPrint ("No inbound tunnels found");	
 		}
 		else
 			LogPrint ("No outbound tunnels found");
-	}	
-
-	void NetDb::RequestDestination (const IdentHash& destination)
-	{
-		RequestDestination ((const uint8_t *)destination, GetRandomNTCPRouter (true)->GetIdentHash ());
 	}	
 	
 	void NetDb::HandleDatabaseStoreMsg (uint8_t * buf, size_t len)

@@ -109,7 +109,7 @@ namespace garlic
 		}	
 		if (msg) // next clove message ifself if presented
 		{	
-			size += CreateGarlicClove (payload + size, msg, true);
+			size += CreateGarlicClove (payload + size, msg, m_Destination->IsDestination ());
 			(*numCloves)++;
 		}	
 		
