@@ -71,7 +71,7 @@ namespace data
 						else // WTF?
 						{
 							LogPrint ("NetDb: unexpected message type ", msg->GetHeader ()->typeID);
-							i2p::HandleI2NPMessage (msg);
+							i2p::HandleI2NPMessage (msg, false);
 						}	
 						msg = m_Queue.Get ();
 					}	

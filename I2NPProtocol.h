@@ -132,8 +132,8 @@ namespace i2p
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
 
 	size_t GetI2NPMessageLength (uint8_t * msg);
-	void HandleI2NPMessage (uint8_t * msg, size_t len);
-	void HandleI2NPMessage (I2NPMessage * msg);
+	void HandleI2NPMessage (uint8_t * msg, size_t len, bool isFromTunnel);
+	void HandleI2NPMessage (I2NPMessage * msg, bool isFromTunnel);
 }	
 
 #endif

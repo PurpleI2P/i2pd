@@ -384,7 +384,8 @@ namespace ntcp
 				if (m_ReceiveBufferOffset > 0)
 					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
 			}	
-		
+			
+			ScheduleTermination (); // reset termination timer
 			Receive ();
 		}	
 	}	
@@ -423,7 +424,7 @@ namespace ntcp
 		if (m_NextMessageOffset >= m_NextMessage->len + 4) // +checksum
 		{	
 			// we have a complete I2NP message
-			i2p::HandleI2NPMessage (m_NextMessage);	
+			i2p::HandleI2NPMessage (m_NextMessage, false);	
 			m_NextMessage = nullptr;
 		}	
  	}	
@@ -464,7 +465,6 @@ namespace ntcp
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (sendBuffer, l), boost::asio::transfer_all (),                      
         	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, msg));	
-		ScheduleTermination (); // reset termination timer
 	}
 		
 	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg)
@@ -479,6 +479,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Msg sent: ", bytes_transferred);
+			ScheduleTermination (); // reset termination timer
 		}	
 	}
 

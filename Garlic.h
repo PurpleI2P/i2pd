@@ -67,7 +67,7 @@ namespace garlic
 			GarlicRouting ();
 			~GarlicRouting ();
 
-			void HandleGarlicMessage (uint8_t * buf, size_t len);
+			void HandleGarlicMessage (uint8_t * buf, size_t len, bool isFromTunnel);
 			
 			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination * destination, 
 				I2NPMessage * msg, I2NPMessage * leaseSet = nullptr);

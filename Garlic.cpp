@@ -185,7 +185,7 @@ namespace garlic
 		return ret;
 	}	
 
-	void GarlicRouting::HandleGarlicMessage (uint8_t * buf, size_t len)
+	void GarlicRouting::HandleGarlicMessage (uint8_t * buf, size_t len, bool isFromTunnel)
 	{
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
@@ -203,7 +203,9 @@ namespace garlic
 		{
 			// new session
 			ElGamalBlock elGamal;
-			i2p::crypto::ElGamalDecrypt (i2p::context.GetLeaseSetPrivateKey (), buf, (uint8_t *)&elGamal, true);
+			i2p::crypto::ElGamalDecrypt (
+			   	isFromTunnel ? i2p::context.GetLeaseSetPrivateKey () : i2p::context.GetPrivateKey (), 
+				buf, (uint8_t *)&elGamal, true);
 			memcpy (m_SessionKey, elGamal.sessionKey, 32);
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
@@ -252,7 +254,7 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint ("Garlic type local");
-					i2p::HandleI2NPMessage (buf, len);
+					i2p::HandleI2NPMessage (buf, len, false);
 				break;	
 				case eGarlicDeliveryTypeDestination:
 				{	

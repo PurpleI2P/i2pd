@@ -370,7 +370,7 @@ namespace i2p
 		return be16toh (header->size) + sizeof (I2NPHeader);
 	}	
 	
-	void HandleI2NPMessage (uint8_t * msg, size_t len)
+	void HandleI2NPMessage (uint8_t * msg, size_t len, bool isFromTunnel)
 	{
 		I2NPHeader * header = (I2NPHeader *)msg;
 		uint32_t msgID = be32toh (header->msgID);	
@@ -382,7 +382,7 @@ namespace i2p
 		{
 			case eI2NPGarlic:
 				LogPrint ("Garlic");
-				i2p::garlic::routing.HandleGarlicMessage (buf, size);
+				i2p::garlic::routing.HandleGarlicMessage (buf, size, isFromTunnel);
 			break;	
 			break;	
 			case eI2NPDeliveryStatus:
@@ -401,7 +401,7 @@ namespace i2p
 		}	
 	}
 
-	void HandleI2NPMessage (I2NPMessage * msg)
+	void HandleI2NPMessage (I2NPMessage * msg, bool isFromTunnel)
 	{
 		if (msg)
 		{	
@@ -424,7 +424,7 @@ namespace i2p
 					i2p::data::netdb.PostI2NPMsg (msg);
 				break;	
 				default:
-					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
+					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength (), isFromTunnel);
 					DeleteI2NPMessage (msg);
 			}	
 		}	
