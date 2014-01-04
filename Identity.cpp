@@ -1,3 +1,5 @@
+#include <time.h>
+#include <stdio.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/dh.h>
@@ -42,6 +44,31 @@ namespace data
 		publicKey.GetPublicElement ().Encode (keys.signingKey, 128);
 		
 		return keys;
+	}	
+
+	RoutingKey CreateRoutingKey (const IdentHash& ident)
+	{
+		uint8_t buf[41]; // ident + yyyymmdd
+		memcpy (buf, (const uint8_t *)ident, 32);
+		time_t t = time (nullptr);
+		struct tm tm;
+		gmtime_r (&t, &tm);
+		sprintf ((char *)(buf + 32),"%4i%2i%2i", tm.tm_year, tm.tm_mon, tm.tm_mday);
+		
+		RoutingKey key;
+		CryptoPP::SHA256().CalculateDigest(key.hash, buf, 40);
+		return key;
+	}	
+	
+	XORMetric operator^(const RoutingKey& key1, const RoutingKey& key2)
+	{
+		// TODO: implementation depends on CPU
+		XORMetric m;
+		((uint64_t *)m.metric)[0] = ((uint64_t *)key1.hash)[0] ^ ((uint64_t *)key2.hash)[0];
+		((uint64_t *)m.metric)[1] = ((uint64_t *)key1.hash)[1] ^ ((uint64_t *)key2.hash)[1];
+		((uint64_t *)m.metric)[2] = ((uint64_t *)key1.hash)[2] ^ ((uint64_t *)key2.hash)[2];
+		((uint64_t *)m.metric)[3] = ((uint64_t *)key1.hash)[3] ^ ((uint64_t *)key2.hash)[3];
+		return m;
 	}	
 }
 }

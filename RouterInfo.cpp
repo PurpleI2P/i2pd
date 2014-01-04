@@ -35,6 +35,7 @@ namespace data
 		m_RouterIdentity = identity;
 		m_IdentHash = CalculateIdentHash (m_RouterIdentity);
 		UpdateIdentHashBase64 ();
+		UpdateRoutingKey ();
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 	
@@ -126,6 +127,7 @@ namespace data
 		
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));
 		UpdateIdentHashBase64 ();
+		UpdateRoutingKey ();
 	}	
 
 	void RouterInfo::UpdateIdentHashBase64 ()
@@ -135,6 +137,11 @@ namespace data
 		memcpy (m_IdentHashAbbreviation, m_IdentHashBase64, 4);
 		m_IdentHashAbbreviation[4] = 0;
 	}	
+
+	void RouterInfo::UpdateRoutingKey ()
+	{		
+		m_RoutingKey = CreateRoutingKey (m_IdentHash);
+	}
 		
 	void RouterInfo::WriteToStream (std::ostream& s)
 	{

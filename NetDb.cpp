@@ -388,5 +388,26 @@ namespace data
 	{
 		if (msg) m_Queue.Put (msg);	
 	}	
+
+	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination) const
+	{
+		RouterInfo * r = nullptr;
+		XORMetric minMetric;
+		RoutingKey destKey = CreateRoutingKey (destination);
+		minMetric.SetMax ();
+		for (auto it: m_RouterInfos)
+		{	
+			if (it.second->IsFloodfill () &&! it.second->IsUnreachable ())
+			{	
+				XORMetric m = destKey ^ it.second->GetRoutingKey ();
+				if (m < minMetric)
+				{
+					minMetric = m;
+					r = it.second;
+				}
+			}	
+		}	
+		return r;
+	}	
 }
 }

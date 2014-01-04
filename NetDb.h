@@ -48,6 +48,7 @@ namespace data
 			void SaveUpdated (const char * directory);
 			void Run (); // exploratory thread
 			void Explore ();
+			const RouterInfo * GetClosestFloodfill (const IdentHash& destination) const;
 			
 		private:
 

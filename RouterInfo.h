@@ -46,6 +46,7 @@ namespace data
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
 			Address * GetNTCPAddress ();
+			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
 			void SetProperty (const char * key, const char * value);
@@ -56,6 +57,7 @@ namespace data
 			bool IsUnreachable () const { return m_IsUnreachable; };
 			
 			void CreateBuffer ();
+			void UpdateRoutingKey ();
 			const char * GetBuffer () const  { return m_Buffer; };
 			int GetBufferLen () const { return m_BufferLen; };
 
@@ -81,6 +83,7 @@ namespace data
 
 			Identity m_RouterIdentity;
 			IdentHash m_IdentHash;
+			RoutingKey m_RoutingKey;
 			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
 			char m_Buffer[2048];
 			int m_BufferLen;
