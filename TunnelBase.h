@@ -2,6 +2,7 @@
 #define TUNNEL_BASE_H__
 
 #include <inttypes.h>
+#include "Timestamp.h"
 #include "I2NPProtocol.h"
 
 namespace i2p
@@ -30,11 +31,20 @@ namespace tunnel
 	{
 		public:
 
+			TunnelBase (): m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
 			
 			virtual void EncryptTunnelMsg (I2NPMessage * tunnelMsg) = 0;
 			virtual uint32_t GetNextTunnelID () const = 0;
 			virtual const i2p::data::IdentHash& GetNextIdentHash () const = 0;
+			virtual uint32_t GetTunnelID () const = 0; // as known at our side
+
+			uint32_t GetCreationTime () const { return m_CreationTime; };
+			void SetCreationTime (uint32_t t) { m_CreationTime = t; };
+
+		private:
+			
+			uint32_t m_CreationTime; // seconds since epoch
 	};	
 }
 }

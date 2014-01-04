@@ -33,9 +33,7 @@ namespace tunnel
 
 			void Build (uint32_t replyMsgID, OutboundTunnel * outboundTunnel = 0);
 			
-			virtual uint32_t GetTunnelID () const = 0; // as known at our side
 			TunnelConfig * GetTunnelConfig () const { return m_Config; }
-			uint32_t GetCreationTime () const { return m_CreationTime; };
 			bool IsEstablished () const { return m_IsEstablished; };
 						
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
@@ -54,7 +52,6 @@ namespace tunnel
 		private:
 
 			TunnelConfig * m_Config;
-			uint32_t m_CreationTime; // seconds since epoch
 			bool m_IsEstablished;
 
 			CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_ECBDecryption;
@@ -70,9 +67,11 @@ namespace tunnel
 			void SendTunnelDataMsg (i2p::I2NPMessage * msg); //local
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
 
-			uint32_t GetTunnelID () const { return GetNextTunnelID (); };
 			TunnelGateway& GetTunnelGateway () { return m_Gateway; };
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
+
+			// implements TunnelBase
+			uint32_t GetTunnelID () const { return GetNextTunnelID (); };
 			
 		private:
 
@@ -85,10 +84,10 @@ namespace tunnel
 
 			InboundTunnel (TunnelConfig * config): Tunnel (config) {};
 			void HandleTunnelDataMsg (I2NPMessage * msg);
-
-			uint32_t GetTunnelID () const { return GetTunnelConfig ()->GetLastHop ()->nextTunnelID; };
 			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
-			
+
+			// implements TunnelBase
+			uint32_t GetTunnelID () const { return GetTunnelConfig ()->GetLastHop ()->nextTunnelID; };
 		private:
 
 			TunnelEndpoint m_Endpoint; 
@@ -128,6 +127,7 @@ namespace tunnel
 			void ManageTunnels ();
 			void ManageOutboundTunnels ();
 			void ManageInboundTunnels ();
+			void ManageTransitTunnels ();
 			
 			void CreateZeroHopsInboundTunnel ();
 			

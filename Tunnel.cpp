@@ -13,8 +13,7 @@ namespace i2p
 namespace tunnel
 {		
 	
-	Tunnel::Tunnel (TunnelConfig * config): m_Config (config),
-		m_CreationTime (i2p::util::GetSecondsSinceEpoch ()), m_IsEstablished (false)
+	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_IsEstablished (false)
 	{
 	}	
 
@@ -320,6 +319,7 @@ namespace tunnel
 		
 		ManageInboundTunnels ();
 		ManageOutboundTunnels ();
+		ManageTransitTunnels ();
 		
 	/*	if (!m_IsTunnelCreated)
 		{	
@@ -407,11 +407,27 @@ namespace tunnel
 			{
 				OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
 				LogPrint ("Creating two hops inbound tunnel...");
+				auto router = outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router;
 				CreateTunnel<InboundTunnel> (
-					new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (),
-				    	outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router),
+					new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (), 
+							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomNTCPRouter ()),
 				        	outboundTunnel);
 			}	
+		}
+	}	
+
+	void Tunnels::ManageTransitTunnels ()
+	{
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_TransitTunnels.begin (); it != m_TransitTunnels.end ();)
+		{
+			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+			{
+				LogPrint ("Transit tunnel ", it->second->GetTunnelID (), " expired");
+				it = m_TransitTunnels.erase (it);
+			}	
+			else 
+				it++;
 		}
 	}	
 	
