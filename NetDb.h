@@ -2,6 +2,7 @@
 #define NETDB_H__
 
 #include <inttypes.h>
+#include <set>
 #include <map>
 #include <string>
 #include <thread>
@@ -15,6 +16,35 @@ namespace i2p
 {
 namespace data
 {		
+	class RequestedDestination
+	{
+		public:
+
+			RequestedDestination (const IdentHash& destination, bool isLeaseSet, bool isExploratory = false):
+				m_Destination (destination), m_IsLeaseSet (isLeaseSet), m_IsExploratory (isExploratory), 
+				m_LastRouter (nullptr), m_LastReplyTunnel (nullptr), m_LastOutboundTunnel (nullptr) {};
+			
+			const IdentHash& GetDestination () const { return m_Destination; };
+			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
+			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
+			const i2p::tunnel::InboundTunnel * GetLastReplyTunnel () const { return m_LastReplyTunnel; };
+			bool IsExploratory () const { return m_IsExploratory; };
+			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
+			I2NPMessage * CreateRequestMessage (const RouterInfo * router, const i2p::tunnel::InboundTunnel * replyTunnel);
+
+			i2p::tunnel::OutboundTunnel * GetLastOutboundTunnel () const { return m_LastOutboundTunnel; };
+			void SetLastOutboundTunnel (i2p::tunnel::OutboundTunnel * tunnel) { m_LastOutboundTunnel = tunnel; };
+			
+		private:
+
+			IdentHash m_Destination;
+			bool m_IsLeaseSet, m_IsExploratory;
+			std::set<IdentHash> m_ExcludedPeers;
+			const RouterInfo * m_LastRouter;
+			const i2p::tunnel::InboundTunnel * m_LastReplyTunnel;
+			i2p::tunnel::OutboundTunnel * m_LastOutboundTunnel;
+	};	
+	
 	class NetDb
 	{
 		public:
@@ -49,18 +79,19 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination) const;
+
+			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
+				bool isLeaseSet, bool isExploratory = false);
+			void DeleteRequestedDestination (const IdentHash& dest);
 			
 		private:
 
 			std::map<IdentHash, LeaseSet *> m_LeaseSets;
 			std::map<IdentHash, RouterInfo *> m_RouterInfos;
-
+			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
+			
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			uint8_t m_Exploratory[32];
-			const RouterInfo * m_LastFloodfill;
-			i2p::tunnel::OutboundTunnel * m_LastOutboundTunnel;
-			i2p::tunnel::InboundTunnel * m_LastInboundTunnel;
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
 	};
 

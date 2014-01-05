@@ -83,7 +83,7 @@ namespace i2p
 	}
 
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
-		uint32_t replyTunnelID, bool exploratory)
+		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		uint8_t * buf = m->GetPayload ();
@@ -113,9 +113,23 @@ namespace i2p
 		}
 		else
 		{
-			// nothing to exclude
-			*(uint16_t *)buf = htobe16 (0);
-			buf += 2;
+			if (excludedPeers)
+			{
+				int cnt = excludedPeers->size ();
+				*(uint16_t *)buf = htobe16 (cnt);
+				buf += 2;
+				for (auto& it: *excludedPeers)
+				{
+					memcpy (buf, it, 32);
+					buf += 32;
+				}	
+			}
+			else
+			{	
+				// nothing to exclude
+				*(uint16_t *)buf = htobe16 (0);
+				buf += 2;
+			}	
 		}	
 		m->len += (buf - m->GetPayload ()); 
 		FillI2NPMessageHeader (m, eI2NPDatabaseLookup);

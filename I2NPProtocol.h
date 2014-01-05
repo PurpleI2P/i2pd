@@ -2,7 +2,7 @@
 #define I2NP_PROTOCOL_H__
 
 #include <inttypes.h>
-#include <vector>
+#include <set>
 #include <string.h>
 #include "RouterInfo.h"
 
@@ -105,7 +105,8 @@ namespace i2p
 	
 	I2NPMessage * CreateDeliveryStatusMsg ();
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
-		uint32_t replyTunnelID, bool exploratory = false);
+		uint32_t replyTunnelID, bool exploratory = false, 
+	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
 
 	I2NPMessage * CreateDatabaseStoreMsg ();
 	
