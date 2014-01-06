@@ -136,6 +136,36 @@ namespace i2p
 		return m; 
 	}	
 
+	void HandleDatabaseLookupMsg (uint8_t * buf, size_t len)
+	{
+		char key[48];
+		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
+		key[l] = 0;
+		LogPrint ("DatabaseLookup for ", key, " recieved");
+		uint8_t flag = buf[64];
+		uint32_t replyTunnelID = 0;
+		if (flag & 0x01) //reply to yunnel
+			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
+		// TODO: implement search. We send non-found for now
+		I2NPMessage * replyMsg = CreateDatabaseSearchReply (buf);
+		if (replyTunnelID)
+			i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+		else
+			i2p::transports.SendMessage (buf, replyMsg);
+	}	
+
+	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident)
+	{
+		I2NPMessage * m = NewI2NPMessage ();
+		uint8_t * buf = m->GetPayload ();
+		memcpy (buf, ident, 32);
+		buf[32] = 0; // TODO:
+		memcpy (buf + 33, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
+		m->len += 65;
+		FillI2NPMessageHeader (m, eI2NPDatabaseSearchReply);
+		return m; 
+	}	
+	
 	I2NPMessage * CreateDatabaseStoreMsg ()
 	{
 		I2NPMessage * m = NewI2NPMessage ();
@@ -409,7 +439,11 @@ namespace i2p
 			case eI2NPVariableTunnelBuildReply:
 				LogPrint ("VariableTunnelBuildReply");
 				HandleVariableTunnelBuildReplyMsg (msgID, buf, size);
-			break;		
+			break;	
+			case eI2NPDatabaseLookup:
+				LogPrint ("DatabaseLookup");
+				HandleDatabaseLookupMsg (buf, size);
+			break;	
 			default:
 				LogPrint ("Unexpected message ", (int)header->typeID);
 		}	
