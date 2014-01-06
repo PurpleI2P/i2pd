@@ -12,32 +12,23 @@ namespace tunnel
 {
 	class TunnelGatewayBuffer
 	{
-		struct TunnelMessageBlockExt: public TunnelMessageBlock
-		{
-			size_t deliveryInstructionsLen, totalLen;
-			bool isFragmented;
-		};	
-		
 		public:
-
-			TunnelGatewayBuffer (uint32_t tunnelID): m_TunnelID (tunnelID), m_Remaining (0) {}; 
-			
+			TunnelGatewayBuffer (uint32_t tunnelID): m_TunnelID (tunnelID), 
+				m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0) {};
 			void PutI2NPMsg (const uint8_t * gwHash, uint32_t gwTunnel, I2NPMessage * msg);	
 			std::vector<I2NPMessage *> GetTunnelDataMsgs ();
 
 		private:
 
-			size_t CreateFirstFragment (TunnelMessageBlockExt * block, uint8_t * buf, size_t len);
-			size_t CreateFollowOnFragment (TunnelMessageBlockExt * block, uint8_t * buf, size_t len);
-			I2NPMessage * CreateNextTunnelMessage (int& ind);
+			void CreateCurrentTunnelDataMessage ();
+			void CompleteCurrentTunnelDataMessage ();
 			
 		private:
 
 			uint32_t m_TunnelID;
-			std::vector<TunnelMessageBlockExt *> m_I2NPMsgs;
-			// for fragmented  messages
-			size_t m_NextOffset, m_NextSeqn, m_Remaining;
-			uint32_t m_NextMsgID;
+			std::vector<I2NPMessage *> m_TunnelDataMsgs;
+			I2NPMessage * m_CurrentTunnelDataMsg;
+			size_t m_RemainingSize;
 	};	
 
 	class TunnelGateway

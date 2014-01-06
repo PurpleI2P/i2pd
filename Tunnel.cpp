@@ -65,14 +65,9 @@ namespace tunnel
 		FillI2NPMessageHeader (msg, eI2NPVariableTunnelBuild);
 		
 		if (outboundTunnel)
-		{	
-			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);
-			DeleteI2NPMessage (msg);
-		}	
+			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);	
 		else
-		{	
 			i2p::transports.SendMessage (GetNextIdentHash (), msg);
-		}	
 	}	
 		
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
