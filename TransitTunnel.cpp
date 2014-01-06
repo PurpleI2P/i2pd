@@ -14,7 +14,8 @@ namespace tunnel
 	TransitTunnel::TransitTunnel (uint32_t receiveTunnelID, 
 	    const uint8_t * nextIdent, uint32_t nextTunnelID, 
 		const uint8_t * layerKey,const uint8_t * ivKey): 
-			m_TunnelID (receiveTunnelID),  m_NextTunnelID (nextTunnelID), m_NextIdent (nextIdent)
+			m_TunnelID (receiveTunnelID),  m_NextTunnelID (nextTunnelID), 
+			m_NextIdent (nextIdent), m_NumTransmittedBytes (0)
 	{	
 		memcpy (m_LayerKey, layerKey, 32);
 		memcpy (m_IVKey, ivKey, 32);
@@ -43,6 +44,7 @@ namespace tunnel
 		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
 	
 		i2p::transports.SendMessage (m_NextIdent, tunnelMsg);	
+		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 	}
 
 	void TransitTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)

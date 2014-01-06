@@ -104,15 +104,22 @@ namespace util
 				s << "-->" << it.second->GetTunnelID ();
 			else
 				s << "-->" << it.second->GetTunnelID () << "-->";
-			s << "<BR>";
+			s << " " << it.second->GetNumTransmittedBytes () << "<BR>";
 		}	
 
 		s << "<P>Transports</P>";
 		for (auto it: i2p::transports.GetNTCPSessions ())
 		{	
+			// RouterInfo of incoming connection doesn't have address
+			bool outgoing = it.second->GetRemoteRouterInfo ().GetNTCPAddress ();
 			if (it.second->IsEstablished ())
+			{
+				if (outgoing) s << "-->";
 				s << it.second->GetRemoteRouterInfo ().GetIdentHashAbbreviation () <<  ": " 
-					<< it.second->GetSocket ().remote_endpoint().address ().to_string () << "<BR>";
+					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
+				if (!outgoing) s << "-->";
+				s << "<BR>";
+			}	
 		}	
 	}	
 
