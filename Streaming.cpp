@@ -96,7 +96,7 @@ namespace stream
 		auto outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
 		if (outbound)
 		{
-			auto lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
+			auto& lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
 			outbound->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
 		}	
 		else
@@ -235,7 +235,7 @@ namespace stream
 		compressor.MessageEnd();
 		int size = compressor.MaxRetrievable ();
 		uint8_t * buf = msg->GetPayload ();
-		*(uint16_t *)buf = htobe32 (size); // length
+		*(uint32_t *)buf = htobe32 (size); // length
 		buf += 4;
 		compressor.Get (buf, size);
 		buf[9] = 6; // streaming protocol

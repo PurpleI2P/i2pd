@@ -16,7 +16,7 @@ namespace tunnel
 			CreateCurrentTunnelDataMessage ();
 
 		// create delivery instructions
-		uint8_t di[40];
+		uint8_t di[43]; // max delivery instruction length is 43 for tunnel
 		size_t diLen = 1;// flag
 		TunnelDeliveryType dt = eDeliveryTypeLocal;
 		if (gwHash)
