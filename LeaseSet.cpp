@@ -2,6 +2,7 @@
 #include "CryptoConst.h"
 #include "Log.h"
 #include "LeaseSet.h"
+#include "I2PEndian.h"
 
 namespace i2p
 {

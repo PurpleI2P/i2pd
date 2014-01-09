@@ -169,7 +169,7 @@ namespace data
 				{
 					for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
 					{
-						RouterInfo * r = new RouterInfo (it1->path ().c_str ()); // FIXME!!! path::value_type != char in boost 1_55 on Windows. How to solve?
+						RouterInfo * r = new RouterInfo (it1->path().string().c_str ());
 						m_RouterInfos[r->GetIdentHash ()] = r;
 						numRouters++;
 					}	
