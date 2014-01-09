@@ -4,6 +4,8 @@
 #include <string>
 #include "ElGamal.h"
 #include "RouterContext.h"
+#include "I2NPProtocol.h"
+#include "Tunnel.h"
 #include "Timestamp.h"
 #include "Streaming.h"
 #include "Garlic.h"
@@ -65,8 +67,6 @@ namespace garlic
 		FillI2NPMessageHeader (m, eI2NPGarlic);
 		if (msg)
 			DeleteI2NPMessage (msg);
-		if (leaseSet)
-			DeleteI2NPMessage (leaseSet);
 		return m;
 	}	
 
@@ -97,17 +97,23 @@ namespace garlic
 	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
+		uint32_t msgID = m_Rnd.GenerateWord32 ();
 		size_t size = 0;
 		uint8_t * numCloves = payload + size;
 		*numCloves = 0;
 		size++;
+		
+		if (leaseSet) 
+		{
+			// clove is DeliveryStatus is LeaseSet is presented
+			size += CreateDeliveryStatusClove (payload + size, msgID);
+			(*numCloves)++;
 
-		if (leaseSet) // first clove is our leaseSet if presented
-		{	
+			// clove is our leaseSet if presented
 			size += CreateGarlicClove (payload + size, leaseSet, false);
 			(*numCloves)++;
 		}	
-		if (msg) // next clove message ifself if presented
+		if (msg) // clove message ifself if presented
 		{	
 			size += CreateGarlicClove (payload + size, msg, m_Destination->IsDestination ());
 			(*numCloves)++;
@@ -115,7 +121,7 @@ namespace garlic
 		
 		memset (payload + size, 0, 3); // certificate of message
 		size += 3;
-		*(uint32_t *)(payload + size) = htobe32 (m_Rnd.GenerateWord32 ()); // MessageID
+		*(uint32_t *)(payload + size) = htobe32 (msgID); // MessageID
 		size += 4;
 		*(uint64_t *)(payload + size) = htobe64 (ts); // Expiration of message
 		size += 8;
@@ -149,6 +155,42 @@ namespace garlic
 		size += 3;
 		return size;
 	}	
+
+	size_t GarlicRoutingSession::CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID)
+	{		
+		size_t size = 0;
+		auto tunnel = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+		if (tunnel)
+		{	
+			buf[size] = eGarlicDeliveryTypeTunnel << 5; // delivery instructions flag tunnel
+			size++;
+			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ()); // tunnelID
+			size += 4; 
+			memcpy (buf + size, tunnel->GetNextIdentHash (), 32); // To Hash
+			size += 32;
+		}
+		else	
+		{	
+			LogPrint ("No reply tunnels for garlic DeliveryStatus found");
+			buf[size] = 0;//  delivery instructions flag local
+			size++;
+		}
+			
+		
+		I2NPMessage * msg = CreateDeliveryStatusMsg (msgID);
+		memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
+		size += msg->GetLength ();
+		DeleteI2NPMessage (msg);
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
+		*(uint32_t *)(buf + size) = htobe32 (m_Rnd.GenerateWord32 ()); // CloveID
+		size += 4;
+		*(uint64_t *)(buf + size) = htobe64 (ts); // Expiration of clove
+		size += 8;
+		memset (buf + size, 0, 3); // certificate of clove
+		size += 3;
+		
+		return size;
+	}
 		
 	GarlicRouting routing;	
 	GarlicRouting::GarlicRouting ()

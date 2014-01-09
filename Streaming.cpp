@@ -91,7 +91,7 @@ namespace stream
 		size += len; // payload
 		m_LocalDestination->Sign (packet, size, signature);
 		I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
-			CreateDataMessage (this, packet, size), m_LocalDestination->CreateLeaseSet ()); 
+			CreateDataMessage (this, packet, size), m_LocalDestination->GetLeaseSet ()); 
 
 		auto outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
 		if (outbound)
@@ -106,7 +106,7 @@ namespace stream
 		
 	StreamingDestination * sharedLocalDestination = nullptr;	
 
-	StreamingDestination::StreamingDestination ()
+	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
 	{		
 		// TODO: read from file later
 		m_Keys = i2p::data::CreateRandomKeys ();
@@ -115,6 +115,12 @@ namespace stream
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 	}
+
+	StreamingDestination::~StreamingDestination ()
+	{
+		if (m_LeaseSet)
+			DeleteI2NPMessage (m_LeaseSet);
+	}	
 		
 	void StreamingDestination::HandleNextPacket (const uint8_t * buf, size_t len)
 	{
@@ -140,6 +146,15 @@ namespace stream
 			m_Streams.erase (stream->GetRecvStreamID ());
 			delete stream;
 		}	
+	}	
+
+	I2NPMessage * StreamingDestination::GetLeaseSet ()
+	{
+		if (!m_LeaseSet)
+			m_LeaseSet = CreateLeaseSet ();
+		else
+			FillI2NPMessageHeader (m_LeaseSet, eI2NPDatabaseStore); // refresh msgID
+		return m_LeaseSet;
 	}	
 		
 	I2NPMessage * StreamingDestination::CreateLeaseSet () const

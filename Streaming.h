@@ -52,15 +52,20 @@ namespace stream
 		public:
 
 			StreamingDestination ();
-
+			~StreamingDestination ();
+			
 			const i2p::data::Keys& GetKeys () const { return m_Keys; };
 			const i2p::data::Identity& GetIdentity () const { return m_Identity; }; 
-			I2NPMessage * CreateLeaseSet () const;
+			I2NPMessage * GetLeaseSet ();
 			void Sign (uint8_t * buf, int len, uint8_t * signature) const;
 			
 			Stream * CreateNewStream (const i2p::data::LeaseSet * remote);
 			void DeleteStream (Stream * stream);
 			void HandleNextPacket (const uint8_t * buf, size_t len);
+
+		private:
+
+			I2NPMessage * CreateLeaseSet () const;
 			
 		private:
 
@@ -69,6 +74,8 @@ namespace stream
 			i2p::data::Identity m_Identity;
 			i2p::data::IdentHash m_IdentHash;
 
+			I2NPMessage * m_LeaseSet;
+			
 			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
 	};	
 

@@ -103,7 +103,7 @@ namespace i2p
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
 	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len);
 	
-	I2NPMessage * CreateDeliveryStatusMsg ();
+	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID);
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false, 
 	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr);

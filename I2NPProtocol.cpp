@@ -67,7 +67,7 @@ namespace i2p
 		return msg;
 	}	
 	
-	I2NPMessage * CreateDeliveryStatusMsg ()
+	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
 #pragma pack(1)		
 		struct
@@ -77,7 +77,7 @@ namespace i2p
 		} msg;
 #pragma pack ()
 		
-		msg.msgID = 0;
+		msg.msgID = htobe32 (msgID);
 		msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
 	}

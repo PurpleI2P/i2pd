@@ -48,6 +48,7 @@ namespace garlic
 			size_t CreateAESBlock (uint8_t * buf, I2NPMessage * msg, I2NPMessage * leaseSet);
 			size_t CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg, I2NPMessage * leaseSet);
 			size_t CreateGarlicClove (uint8_t * buf, I2NPMessage * msg, bool isDestination);
+			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
 			
 		private:
 
