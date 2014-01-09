@@ -1,4 +1,4 @@
-#include <endian.h>
+#include "I2PEndian.h"
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
@@ -78,7 +78,7 @@ namespace data
 				else // if no new DatabaseStore coming, explore it
 					Explore ();
 
-				uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastTs >= 60) // save routers every minute
 				{
 					if (lastTs)
@@ -142,7 +142,7 @@ namespace data
 				{
 					for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
 					{
-						RouterInfo * r = new RouterInfo (it1->path ().c_str ());
+						RouterInfo * r = new RouterInfo (it1->path ().c_str ()); // FIXME!!! path::value_type != char in boost 1_55 on Windows. How to solve?
 						m_RouterInfos[r->GetIdentHash ()] = r;
 						numRouters++;
 					}	
@@ -222,7 +222,7 @@ namespace data
 			decompressor.Put (buf + offset, size);
 			decompressor.MessageEnd();
 			uint8_t uncompressed[2048];
-			int uncomressedSize = decompressor.MaxRetrievable ();
+			size_t uncomressedSize = decompressor.MaxRetrievable ();
 			decompressor.Get (uncompressed, uncomressedSize);
 			AddRouterInfo (uncompressed, uncomressedSize);
 		}	

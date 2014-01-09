@@ -20,7 +20,7 @@ namespace util
 			  	 std::chrono::system_clock::now().time_since_epoch()).count ();
 	}
 
-	inline uint32_t GetSecondsSinceEpoch ()
+	inline uint64_t GetSecondsSinceEpoch ()
 	{
 		return std::chrono::duration_cast<std::chrono::seconds>(
 			  	 std::chrono::system_clock::now().time_since_epoch()).count ();
