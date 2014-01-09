@@ -143,7 +143,7 @@ namespace tunnel
 		CryptoPP::SHA256().CalculateDigest (hash, payload, size+16);
 		memcpy (buf+20, hash, 4); // checksum		
 		payload[-1] = 0; // zero	
-		ssize_t paddingSize = payload - buf - 25; // 25  = 24 + 1 
+		ptrdiff_t paddingSize = payload - buf - 25; // 25  = 24 + 1 
 		if (paddingSize > 0)
 			memset (buf + 24, 1, paddingSize); // padding TODO: fill with random data
 
