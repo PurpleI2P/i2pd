@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
-#include <endian.h>
+#include "I2PEndian.h"
 #include <time.h>
 #include <boost/bind.hpp>
 #include <cryptopp/dh.h>

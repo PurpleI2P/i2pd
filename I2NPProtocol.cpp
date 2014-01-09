@@ -1,5 +1,5 @@
 #include <string.h>
-#include <endian.h>
+#include "I2PEndian.h"
 #include <cryptopp/sha.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>

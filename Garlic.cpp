@@ -1,5 +1,5 @@
 #include <inttypes.h>
-#include <endian.h>
+#include "I2PEndian.h"
 #include <map>
 #include <string>
 #include "ElGamal.h"

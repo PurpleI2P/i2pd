@@ -1,4 +1,4 @@
-#include <endian.h>
+#include "I2PEndian.h"
 #include <string>
 #include <cryptopp/gzip.h>
 #include "Log.h"

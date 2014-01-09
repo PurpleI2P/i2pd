@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cryptopp/integer.h>
+#include <boost/thread.hpp>
 #include "Log.h"
 #include "base64.h"
 #include "Transports.h"
@@ -19,7 +20,7 @@ int main( int, char** )
   i2p::transports.Start ();	
   i2p::tunnel::tunnels.Start ();	
  
-  sleep (1000);
+  boost::this_thread::sleep(boost::posix_time::seconds(1000));
   i2p::tunnel::tunnels.Stop ();	
   i2p::transports.Stop ();	
   i2p::data::netdb.Stop ();	

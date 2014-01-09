@@ -1,4 +1,5 @@
-#include <endian.h>
+#include "I2PEndian.h"
+#include <boost/thread.hpp>
 #include <cryptopp/sha.h>
 #include "RouterContext.h"
 #include "Log.h"
@@ -259,9 +260,9 @@ namespace tunnel
 
 	void Tunnels::Run ()
 	{
-		sleep (1); // wait for other parts are ready
+		boost::this_thread::sleep(boost::posix_time::seconds(1)); // wait for other parts are ready
 		
-		uint32_t lastTs = 0;
+		uint64_t lastTs = 0;
 		while (m_IsRunning)
 		{
 			try
@@ -287,7 +288,7 @@ namespace tunnel
 					msg = m_Queue.Get ();
 				}	
 			
-				uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastTs >= 15) // manage tunnels every 15 seconds
 				{
 					ManageTunnels ();
@@ -331,7 +332,7 @@ namespace tunnel
 
 	void Tunnels::ManageOutboundTunnels ()
 	{
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
 		{
 			if (ts > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
@@ -377,7 +378,7 @@ namespace tunnel
 	
 	void Tunnels::ManageInboundTunnels ()
 	{
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 		{
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)

@@ -35,11 +35,15 @@ namespace data
 
 			IdentHash (const uint8_t * hash) { memcpy (m_Hash, hash, 32); };
 			IdentHash (const IdentHash& ) = default;
+#ifndef _WIN32 // FIXME!!! msvs 2013 can't compile it
 			IdentHash (IdentHash&& ) = default;
+#endif
 			IdentHash () = default;
 			
 			IdentHash& operator= (const IdentHash& ) = default;
+#ifndef _WIN32
 			IdentHash& operator= (IdentHash&& ) = default;
+#endif
 			
 			uint8_t * operator()() { return m_Hash; };
 			const uint8_t * operator()() const { return m_Hash; };
