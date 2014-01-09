@@ -169,7 +169,7 @@ namespace data
 				{
 					for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
 					{
-#ifdef BOOST_VERSION > 10500
+#if BOOST_VERSION > 10500
 						RouterInfo * r = new RouterInfo (it1->path().string().c_str ());
 #else
 						RouterInfo * r = new RouterInfo(it1->path().c_str());

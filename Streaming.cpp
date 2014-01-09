@@ -124,7 +124,7 @@ namespace stream
 		
 	void StreamingDestination::HandleNextPacket (const uint8_t * buf, size_t len)
 	{
-		uint32_t sendStreamID = *(uint32_t *)(buf);
+		uint32_t sendStreamID = be32toh (*(uint32_t *)(buf));
 		auto it = m_Streams.find (sendStreamID);
 		if (it != m_Streams.end ())
 			it->second->HandleNextPacket (buf, len);
