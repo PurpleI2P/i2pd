@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <sstream>
+#include <vector>
 #include "RouterInfo.h"
 #include "RouterContext.h"
 
@@ -83,34 +84,30 @@ namespace tunnel
 	{
 		public:			
 			
-			TunnelConfig (const i2p::data::RouterInfo * peer, TunnelConfig * replyTunnelConfig = 0) // one hop 
+
+			TunnelConfig (std::vector<const i2p::data::RouterInfo *> peers, 
+				TunnelConfig * replyTunnelConfig = 0) // replyTunnelConfig=0 means inbound
 			{
-				m_FirstHop = new TunnelHopConfig (peer);
-				m_LastHop = m_FirstHop;	
+				TunnelHopConfig * prev = nullptr;
+				for (auto it: peers)
+				{
+					auto hop = new TunnelHopConfig (it);
+					if (prev)
+						prev->SetNext (hop);
+					else	
+						m_FirstHop = hop;
+					prev = hop;
+				}	
+				m_LastHop = prev;
 				
 				if (replyTunnelConfig) // outbound
-				{	
-					m_FirstHop->isGateway = false;
-					m_LastHop->SetReplyHop (replyTunnelConfig->GetFirstHop ());
-				}	
-				else
-					m_FirstHop->SetNextRouter (&i2p::context.GetRouterInfo ());
- 			}
-
-			TunnelConfig (const i2p::data::RouterInfo * peer1, const i2p::data::RouterInfo * peer2, TunnelConfig * replyTunnelConfig = 0) // two hops 
-			{
-				m_FirstHop = new TunnelHopConfig (peer1);
-				m_LastHop = new TunnelHopConfig (peer2);
-				m_FirstHop->SetNext (m_LastHop);
-				
-				if (replyTunnelConfig)
 				{
 					m_FirstHop->isGateway = false;
 					m_LastHop->SetReplyHop (replyTunnelConfig->GetFirstHop ());
 				}	
-				else
+				else // inbound
 					m_LastHop->SetNextRouter (&i2p::context.GetRouterInfo ());
-			}	
+			}
 			
 			~TunnelConfig ()
 			{

@@ -67,7 +67,7 @@ namespace i2p
 		return msg;
 	}	
 	
-	I2NPMessage * CreateDeliveryStatusMsg ()
+	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
 #pragma pack(1)		
 		struct
@@ -77,13 +77,13 @@ namespace i2p
 		} msg;
 #pragma pack ()
 		
-		msg.msgID = 0;
+		msg.msgID = htobe32 (msgID);
 		msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
 	}
 
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
-		uint32_t replyTunnelID, bool exploratory)
+		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		uint8_t * buf = m->GetPayload ();
@@ -113,15 +113,59 @@ namespace i2p
 		}
 		else
 		{
-			// nothing to exclude
-			*(uint16_t *)buf = htobe16 (0);
-			buf += 2;
+			if (excludedPeers)
+			{
+				int cnt = excludedPeers->size ();
+				*(uint16_t *)buf = htobe16 (cnt);
+				buf += 2;
+				for (auto& it: *excludedPeers)
+				{
+					memcpy (buf, it, 32);
+					buf += 32;
+				}	
+			}
+			else
+			{	
+				// nothing to exclude
+				*(uint16_t *)buf = htobe16 (0);
+				buf += 2;
+			}	
 		}	
 		m->len += (buf - m->GetPayload ()); 
 		FillI2NPMessageHeader (m, eI2NPDatabaseLookup);
 		return m; 
 	}	
 
+	void HandleDatabaseLookupMsg (uint8_t * buf, size_t len)
+	{
+		char key[48];
+		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
+		key[l] = 0;
+		LogPrint ("DatabaseLookup for ", key, " recieved");
+		uint8_t flag = buf[64];
+		uint32_t replyTunnelID = 0;
+		if (flag & 0x01) //reply to yunnel
+			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
+		// TODO: implement search. We send non-found for now
+		I2NPMessage * replyMsg = CreateDatabaseSearchReply (buf);
+		if (replyTunnelID)
+			i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+		else
+			i2p::transports.SendMessage (buf, replyMsg);
+	}	
+
+	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident)
+	{
+		I2NPMessage * m = NewI2NPMessage ();
+		uint8_t * buf = m->GetPayload ();
+		memcpy (buf, ident, 32);
+		buf[32] = 0; // TODO:
+		memcpy (buf + 33, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
+		m->len += 65;
+		FillI2NPMessageHeader (m, eI2NPDatabaseSearchReply);
+		return m; 
+	}	
+	
 	I2NPMessage * CreateDatabaseStoreMsg ()
 	{
 		I2NPMessage * m = NewI2NPMessage ();
@@ -370,7 +414,7 @@ namespace i2p
 		return be16toh (header->size) + sizeof (I2NPHeader);
 	}	
 	
-	void HandleI2NPMessage (uint8_t * msg, size_t len)
+	void HandleI2NPMessage (uint8_t * msg, size_t len, bool isFromTunnel)
 	{
 		I2NPHeader * header = (I2NPHeader *)msg;
 		uint32_t msgID = be32toh (header->msgID);	
@@ -382,7 +426,7 @@ namespace i2p
 		{
 			case eI2NPGarlic:
 				LogPrint ("Garlic");
-				i2p::garlic::routing.HandleGarlicMessage (buf, size);
+				i2p::garlic::routing.HandleGarlicMessage (buf, size, isFromTunnel);
 			break;	
 			break;	
 			case eI2NPDeliveryStatus:
@@ -395,13 +439,17 @@ namespace i2p
 			case eI2NPVariableTunnelBuildReply:
 				LogPrint ("VariableTunnelBuildReply");
 				HandleVariableTunnelBuildReplyMsg (msgID, buf, size);
-			break;		
+			break;	
+			case eI2NPDatabaseLookup:
+				LogPrint ("DatabaseLookup");
+				HandleDatabaseLookupMsg (buf, size);
+			break;	
 			default:
 				LogPrint ("Unexpected message ", (int)header->typeID);
 		}	
 	}
 
-	void HandleI2NPMessage (I2NPMessage * msg)
+	void HandleI2NPMessage (I2NPMessage * msg, bool isFromTunnel)
 	{
 		if (msg)
 		{	
@@ -424,7 +472,7 @@ namespace i2p
 					i2p::data::netdb.PostI2NPMsg (msg);
 				break;	
 				default:
-					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
+					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength (), isFromTunnel);
 					DeleteI2NPMessage (msg);
 			}	
 		}	

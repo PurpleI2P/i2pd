@@ -2,7 +2,7 @@
 #define I2NP_PROTOCOL_H__
 
 #include <inttypes.h>
-#include <vector>
+#include <set>
 #include <string.h>
 #include "RouterInfo.h"
 
@@ -103,10 +103,13 @@ namespace i2p
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
 	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len);
 	
-	I2NPMessage * CreateDeliveryStatusMsg ();
+	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID);
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
-		uint32_t replyTunnelID, bool exploratory = false);
-
+		uint32_t replyTunnelID, bool exploratory = false, 
+	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
+	void HandleDatabaseLookupMsg (uint8_t * buf, size_t len);
+	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident);
+	
 	I2NPMessage * CreateDatabaseStoreMsg ();
 	
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
@@ -132,8 +135,8 @@ namespace i2p
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
 
 	size_t GetI2NPMessageLength (uint8_t * msg);
-	void HandleI2NPMessage (uint8_t * msg, size_t len);
-	void HandleI2NPMessage (I2NPMessage * msg);
+	void HandleI2NPMessage (uint8_t * msg, size_t len, bool isFromTunnel);
+	void HandleI2NPMessage (I2NPMessage * msg, bool isFromTunnel);
 }	
 
 #endif

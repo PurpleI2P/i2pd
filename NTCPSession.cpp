@@ -20,12 +20,10 @@ namespace i2p
 {
 namespace ntcp
 {
-	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo * in_RemoteRouterInfo): 
+	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo): 
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false), 
-		m_ReceiveBufferOffset (0), m_NextMessage (nullptr)
+		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), m_NextMessage (nullptr)
 	{		
-		if (in_RemoteRouterInfo)
-			m_RemoteRouterInfo = *in_RemoteRouterInfo;
 	}
 	
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
@@ -186,7 +184,8 @@ namespace ntcp
 	{
 		if (ecode)
         {
-			LogPrint ("Phase 2 read error: ", ecode.message ());
+			LogPrint ("Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
+			GetRemoteRouterInfo ().SetUnreachable (true); // this RouterInfo is not valid
 			Terminate ();
 		}
 		else
@@ -385,7 +384,8 @@ namespace ntcp
 				if (m_ReceiveBufferOffset > 0)
 					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
 			}	
-		
+			
+			ScheduleTermination (); // reset termination timer
 			Receive ();
 		}	
 	}	
@@ -424,7 +424,7 @@ namespace ntcp
 		if (m_NextMessageOffset >= m_NextMessage->len + 4) // +checksum
 		{	
 			// we have a complete I2NP message
-			i2p::HandleI2NPMessage (m_NextMessage);	
+			i2p::HandleI2NPMessage (m_NextMessage, false);	
 			m_NextMessage = nullptr;
 		}	
  	}	
@@ -461,14 +461,10 @@ namespace ntcp
 		m_Adler.CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
 
 		int l = len + padding + 6;
-		{
-			std::lock_guard<std::mutex> lock (m_EncryptionMutex);
-			m_Encryption.ProcessData(sendBuffer, sendBuffer, l);
-		}	
+		m_Encryption.ProcessData(sendBuffer, sendBuffer, l);	
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (sendBuffer, l), boost::asio::transfer_all (),                      
         	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, msg));	
-		ScheduleTermination (); // reset termination timer
 	}
 		
 	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg)
@@ -483,6 +479,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Msg sent: ", bytes_transferred);
+			ScheduleTermination (); // reset termination timer
 		}	
 	}
 
@@ -521,7 +518,8 @@ namespace ntcp
 		
 		
 	NTCPClient::NTCPClient (boost::asio::io_service& service, const char * address, 
-		int port, i2p::data::RouterInfo& in_RouterInfo): NTCPSession (service, &in_RouterInfo),
+		int port, i2p::data::RouterInfo& in_RouterInfo): 
+		NTCPSession (service, in_RouterInfo),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port)	
 	{
 		Connect ();

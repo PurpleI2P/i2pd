@@ -23,6 +23,7 @@ namespace i2p
 
 	void Transports::Start ()
 	{
+		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		// create acceptors
 		auto addresses = context.GetRouterInfo ().GetAddresses ();
@@ -48,6 +49,7 @@ namespace i2p
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
 
+		m_IsRunning = false;
 		m_Service.stop ();
 		if (m_Thread)
 		{	
@@ -59,13 +61,16 @@ namespace i2p
 
 	void Transports::Run () 
 	{ 
-		try
-		{	
-			m_Service.run ();
-		}
-		catch (std::exception& ex)
+		while (m_IsRunning)
 		{
-			LogPrint ("Transports: ", ex.what ());
+			try
+			{	
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint ("Transports: ", ex.what ());
+			}	
 		}	
 	}
 		
@@ -118,27 +123,30 @@ namespace i2p
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 			// we send it to ourself
-			i2p::HandleI2NPMessage (msg);
+			i2p::HandleI2NPMessage (msg, false);
 		else
-		{	
-			auto session = FindNTCPSession (ident);
-			if (!session)
-			{
-				RouterInfo * r = netdb.FindRouter (ident);
-				if (r)
+			m_Service.post (boost::bind (&Transports::PostMessage, this, ident, msg));                             
+	}	
+
+	void Transports::PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
+	{
+		auto session = FindNTCPSession (ident);
+		if (!session)
+		{
+			RouterInfo * r = netdb.FindRouter (ident);
+			if (r)
+			{	
+				auto address = r->GetNTCPAddress ();
+				if (address)
 				{	
-					auto address = r->GetNTCPAddress ();
-					if (address)
-					{	
-						session = new i2p::ntcp::NTCPClient (m_Service, address->host.c_str (), address->port, *r);
-						AddNTCPSession (session);
-					}	
-				}
-			}	
-			if (session)
-				session->SendI2NPMessage (msg);
-			else
-				LogPrint ("Session not found"); 
+					session = new i2p::ntcp::NTCPClient (m_Service, address->host.c_str (), address->port, *r);
+					AddNTCPSession (session);
+				}	
+			}
 		}	
+		if (session)
+			session->SendI2NPMessage (msg);
+		else
+			LogPrint ("Session not found"); 
 	}	
 }

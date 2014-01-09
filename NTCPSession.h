@@ -2,7 +2,6 @@
 #define NTCP_SESSION_H__
 
 #include <inttypes.h>
-#include <mutex>
 #include <list>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
@@ -66,7 +65,7 @@ namespace ntcp
 	{
 		public:
 
-			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo * in_RemoteRouterInfo = 0);
+			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo);
 			virtual ~NTCPSession () {};
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
@@ -126,7 +125,7 @@ namespace ntcp
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;
 			CryptoPP::Adler32 m_Adler;
 			
-			i2p::data::RouterInfo m_RemoteRouterInfo;
+			i2p::data::RouterInfo& m_RemoteRouterInfo;
 			
 			NTCPPhase1 m_Phase1;
 			NTCPPhase2 m_Phase2;
@@ -139,8 +138,6 @@ namespace ntcp
 			i2p::I2NPMessage * m_NextMessage;
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			size_t m_NextMessageOffset;
-			
-			std::mutex m_EncryptionMutex;
 	};	
 
 	class NTCPClient: public NTCPSession
@@ -163,11 +160,16 @@ namespace ntcp
 	{
 		public:
 
-			NTCPServerConnection (boost::asio::io_service& service): NTCPSession (service) {};
+			NTCPServerConnection (boost::asio::io_service& service): 
+				NTCPSession (service, m_DummyRemoteRouterInfo) {};
 			
 		protected:
 
 			virtual void Connected ();
+			
+		private:	
+
+			i2p::data::RouterInfo m_DummyRemoteRouterInfo;
 	};	
 }	
 }	

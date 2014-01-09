@@ -40,13 +40,15 @@ namespace garlic
 
 			GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags);
 			~GarlicRoutingSession ();
-			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
+			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet);
 			int GetNumRemainingSessionTags () const { return m_NumTags - m_NextTag; };
 
 		private:
 
-			size_t CreateAESBlock (uint8_t * buf, I2NPMessage * msg);
-			size_t CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg);
+			size_t CreateAESBlock (uint8_t * buf, I2NPMessage * msg, I2NPMessage * leaseSet);
+			size_t CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg, I2NPMessage * leaseSet);
+			size_t CreateGarlicClove (uint8_t * buf, I2NPMessage * msg, bool isDestination);
+			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
 			
 		private:
 
@@ -66,9 +68,10 @@ namespace garlic
 			GarlicRouting ();
 			~GarlicRouting ();
 
-			void HandleGarlicMessage (uint8_t * buf, size_t len);
+			void HandleGarlicMessage (uint8_t * buf, size_t len, bool isFromTunnel);
 			
-			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg);
+			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination * destination, 
+				I2NPMessage * msg, I2NPMessage * leaseSet = nullptr);
 
 		private:
 

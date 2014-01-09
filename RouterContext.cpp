@@ -26,9 +26,7 @@ namespace i2p
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		
 		i2p::data::Identity ident;
-		// copy public and signing keys together
-		memcpy (ident.publicKey, m_Keys.publicKey, sizeof (ident.publicKey) + sizeof (ident.signingKey));
-		memset (ident.certificate, 0, sizeof (ident.certificate));		
+		ident = m_Keys;
 		m_RouterInfo.SetRouterIdentity (ident);
 
 		m_RouterInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:

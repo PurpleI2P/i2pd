@@ -147,7 +147,7 @@ namespace tunnel
 		switch (msg.deliveryType)
 		{
 			case eDeliveryTypeLocal:
-				i2p::HandleI2NPMessage (msg.data);
+				i2p::HandleI2NPMessage (msg.data, true);
 			break;
 			case eDeliveryTypeTunnel:
 				i2p::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));

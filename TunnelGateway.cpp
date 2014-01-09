@@ -12,198 +12,144 @@ namespace tunnel
 {
 	void TunnelGatewayBuffer::PutI2NPMsg (const uint8_t * gwHash, uint32_t gwTunnel, I2NPMessage * msg)
 	{
-		TunnelMessageBlockExt * block = new TunnelMessageBlockExt;
-		block->deliveryInstructionsLen = 1; // flag
+		if (!m_CurrentTunnelDataMsg)
+			CreateCurrentTunnelDataMessage ();
+
+		// create delivery instructions
+		uint8_t di[43]; // max delivery instruction length is 43 for tunnel
+		size_t diLen = 1;// flag
+		TunnelDeliveryType dt = eDeliveryTypeLocal;
 		if (gwHash)
 		{	
-			block->deliveryInstructionsLen += 32; // hash
-			memcpy (block->hash, gwHash, 32);
 			if (gwTunnel)
-			{	
-				block->deliveryType = eDeliveryTypeTunnel;
-				block->deliveryInstructionsLen += 4; // tunnelID
-				block->tunnelID = gwTunnel;
-			}	
-			else
-				block->deliveryType = eDeliveryTypeRouter;
-		}	
-		else	
-			block->deliveryType = eDeliveryTypeLocal;
-		block->deliveryInstructionsLen += 2; // size
-		// we don't reserve 4 bytes for msgID yet
-		block->totalLen = block->deliveryInstructionsLen + msg->GetLength ();
-		block->data = msg;
-		m_I2NPMsgs.push_back (block);
-
-		if (!m_Remaining) m_Remaining = TUNNEL_DATA_MAX_PAYLOAD_SIZE;
-		if (block->totalLen <= m_Remaining) // message fits
-		{
-			block->isFragmented = false;
-			m_Remaining -= block->totalLen;
-		}	
-		else // message doesn't fit
-		{
-			if (block->deliveryInstructionsLen + 4 <= m_Remaining)
 			{
-				// delivery instructions of first fragment fits
-				block->isFragmented = true;
-				block->deliveryInstructionsLen += 4;
-				block->totalLen += 4;
-				m_Remaining = m_Remaining + TUNNEL_DATA_MAX_PAYLOAD_SIZE - block->totalLen - 7; // TODO: handle case if more than two fragments
-			}	
-			else
-			{
-				// delivery instructions of first fragment don't fit
-				block->isFragmented = false;
-				m_Remaining = 0;
-			}	
-		}	
-	}	
-
-	std::vector<I2NPMessage *> TunnelGatewayBuffer::GetTunnelDataMsgs () 
-	{ 
-		m_Remaining = 0;
-		m_NextOffset = 0;
-		std::vector<I2NPMessage *> res;
-		int cnt = m_I2NPMsgs.size ();
-		if (cnt > 0)
-		{	
-			int ind = 0;
-			while (ind < cnt)
-			{
-				auto tunnelMsg = CreateNextTunnelMessage (ind);
-				if (!tunnelMsg) break;
-				res.push_back (tunnelMsg);
+				*(uint32_t *)(di + diLen) = htobe32 (gwTunnel);
+				diLen += 4; // tunnelID
+				dt = eDeliveryTypeTunnel;
 			}
-			for (auto msg: m_I2NPMsgs)
-				delete msg;
-			m_I2NPMsgs.clear ();
+			else
+				dt = eDeliveryTypeRouter;
+			
+			memcpy (di + diLen, gwHash, 32);
+			diLen += 32; //len
 		}	
-		
-		return res; 
-	}
+		di[0] = dt << 5; // set delivery type
 
-	size_t TunnelGatewayBuffer::CreateFirstFragment (TunnelMessageBlockExt * block, uint8_t * buf, size_t len)
-	{
-		size_t ret = 1;
-		buf[0] = block->deliveryType << 5; // flag
-		if (block->deliveryType == eDeliveryTypeTunnel)
+		// create fragments
+		if (diLen + msg->GetLength () + 2<= m_RemainingSize)
 		{
-			*(uint32_t *)(buf + ret) = htobe32 (block->tunnelID);
-			ret += 4;
-		}
-		if (block->deliveryType == eDeliveryTypeTunnel || block->deliveryType == eDeliveryTypeRouter)
-		{
-			memcpy (buf + ret, block->hash, 32);
-			ret += 32;
+			// message fits. First and last fragment
+			*(uint16_t *)(di + diLen) = htobe16 (msg->GetLength ());
+			diLen += 2; // size
+			memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len, di, diLen);
+			memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len + diLen, msg->GetBuffer (), msg->GetLength ());
+			m_CurrentTunnelDataMsg->len += diLen + msg->GetLength ();
+			m_RemainingSize -= diLen + msg->GetLength ();
+			if (!m_RemainingSize)
+				CompleteCurrentTunnelDataMessage ();
+			DeleteI2NPMessage (msg);
 		}	
-		size_t size = block->data->GetLength ();
-		if (block->totalLen > len) // entire message doesn't fit
-		{	
-			buf[0] |= 0x08; // set fragmented bit
-			m_NextMsgID = block->data->GetHeader ()->msgID;
-			*(uint32_t *)(buf + ret) = m_NextMsgID;
-			ret += 4; // msgID
-			m_NextSeqn = 1;
-			size = len - ret - 2; // 2 bytes for size field
-			m_NextOffset = size;
-		}	
-		*(uint16_t *)(buf + ret) = htobe16 (size); // size
-		ret += 2;
-		memcpy (buf + ret, block->data->GetBuffer (), size);
-		ret += size;
-		return ret;	
-	}	
-
-	size_t TunnelGatewayBuffer::CreateFollowOnFragment (TunnelMessageBlockExt * block, uint8_t * buf, size_t len)
-	{
-		int ret = 0;
-		buf[0] = 0x80 | (m_NextSeqn << 1);// follow-on flag and seqn
-		size_t fragmentLen = len - 7; // 7 bytes of header
-		if (fragmentLen >= block->data->GetLength () - m_NextOffset)
-		{
-			// fragment fits
-			fragmentLen = block->data->GetLength () - m_NextOffset;
-			buf[0] |= 0x01; // last fragment
-		}
 		else
-			m_NextSeqn++;
+		{
+			if (diLen + 6 <= m_RemainingSize)
+			{
+				// delivery instructions fit
+				uint32_t msgID = msg->GetHeader ()->msgID;
+				size_t size = m_RemainingSize - diLen - 6; // 6 = 4 (msgID) + 2 (size)
 
-		*(uint32_t *)(buf + 1) = m_NextMsgID; // msgID
-		*(uint16_t *)(buf + 5) = htobe16 (fragmentLen); // size
-		memcpy (buf + 7, block->data->GetBuffer () + m_NextOffset, fragmentLen);
-
-		m_NextOffset += fragmentLen;
-		ret += fragmentLen + 7;
-		
+				// first fragment
+				di[0] |= 0x08; // fragmented
+				*(uint32_t *)(di + diLen) = htobe32 (msgID);
+				diLen += 4; // Message ID
+				*(uint16_t *)(di + diLen) = htobe16 (size);
+				diLen += 2; // size
+				memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len, di, diLen);
+				memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len + diLen, msg->GetBuffer (), size);
+				m_CurrentTunnelDataMsg->len += diLen + size;
+				CompleteCurrentTunnelDataMessage ();
+				// follow on fragments
+				int fragmentNumber = 1;
+				while (size < msg->GetLength ())
+				{	
+					CreateCurrentTunnelDataMessage ();
+					uint8_t * buf = m_CurrentTunnelDataMsg->GetBuffer ();
+					buf[0] = 0x80 | (fragmentNumber << 1); // frag
+					bool isLastFragment = false;
+					size_t s = msg->GetLength () - size;
+					if (s > TUNNEL_DATA_MAX_PAYLOAD_SIZE - 7) // 7 follow on instructions
+						s = TUNNEL_DATA_MAX_PAYLOAD_SIZE - 7;	
+					else // last fragment
+					{	
+						buf[0] |= 0x01;
+						isLastFragment = true;
+					}	
+					*(uint32_t *)(buf + 1) = htobe32 (msgID); //Message ID
+					*(uint16_t *)(buf + 5) = htobe16 (s); // size
+					memcpy (buf + 7, msg->GetBuffer () + size, s);
+					m_CurrentTunnelDataMsg->len += s+7;
+					if (isLastFragment)
+					{
+						m_RemainingSize -= s+7; 
+						if (!m_RemainingSize)
+							CompleteCurrentTunnelDataMessage ();
+					}
+					else
+						CompleteCurrentTunnelDataMessage ();
+					size += s;
+					fragmentNumber++;
+				}
+				DeleteI2NPMessage (msg);
+			}	
+			else
+			{
+				// delivery instructions don't fit. Create new message
+				CompleteCurrentTunnelDataMessage ();
+				PutI2NPMsg (gwHash, gwTunnel, msg);
+				// don't delete msg because it's taken care inside
+			}	
+		}			
+	}
+	
+	std::vector<I2NPMessage *> TunnelGatewayBuffer::GetTunnelDataMsgs ()
+	{
+		CompleteCurrentTunnelDataMessage ();
+		std::vector<I2NPMessage *> ret = m_TunnelDataMsgs; // TODO: implement it better
+		m_TunnelDataMsgs.clear ();	
 		return ret;
 	}	
 
-	I2NPMessage * TunnelGatewayBuffer::CreateNextTunnelMessage (int& ind)
+	void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage ()
 	{
-		int cnt = m_I2NPMsgs.size ();
-		if (ind > cnt - 1) return nullptr; // no more messages
-		// calculate payload size
-		size_t size = 0;
-		int i = ind;
-		if (m_NextOffset)
-		{	
-			size = m_I2NPMsgs[i]->data->GetLength () - m_NextOffset + 7; // including follow-on header
-			i++;
-		}	
-		while (i < cnt)
-		{	
-			auto msg = m_I2NPMsgs[i];
-			size += msg->totalLen;
-			if (size >= TUNNEL_DATA_MAX_PAYLOAD_SIZE)
-			{
-				size = TUNNEL_DATA_MAX_PAYLOAD_SIZE;
-				break;
-			}	
-			if (msg->isFragmented) break;
-			i++;
-		}
+		m_CurrentTunnelDataMsg = NewI2NPMessage ();
+		// we reserve space for padding
+		m_CurrentTunnelDataMsg->offset += TUNNEL_DATA_MSG_SIZE + sizeof (I2NPHeader);
+		m_CurrentTunnelDataMsg->len = m_CurrentTunnelDataMsg->offset;
+		m_RemainingSize = TUNNEL_DATA_MAX_PAYLOAD_SIZE;
+	}	
+	
+	void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage ()
+	{
+		if (!m_CurrentTunnelDataMsg) return;
+		uint8_t * payload = m_CurrentTunnelDataMsg->GetBuffer ();
+		size_t size = m_CurrentTunnelDataMsg->len - m_CurrentTunnelDataMsg->offset;
 		
-		I2NPMessage * tunnelMsg = NewI2NPMessage ();
-		uint8_t * buf = tunnelMsg->GetPayload ();
+		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - sizeof (I2NPHeader);
+		uint8_t * buf = m_CurrentTunnelDataMsg->GetPayload ();
 		*(uint32_t *)(buf) = htobe32 (m_TunnelID);
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (buf + 4, 16); // original IV	
-		memcpy (buf + TUNNEL_DATA_MSG_SIZE, buf + 4, 16); // copy IV for checksum 	
-		size_t zero  = TUNNEL_DATA_MSG_SIZE - size -1;
-		buf[zero] = 0; // zero
-		size_t s = 0;
-		while (ind < cnt)
-		{
-			auto msg = m_I2NPMsgs[ind];
-			if (m_NextOffset)	
-			{	
-				s += CreateFollowOnFragment (msg, buf + zero + 1 + s, size - s);
-				m_NextOffset = 0; // TODO:
-			}	
-			else
-			{	
-				s += CreateFirstFragment (msg, buf + zero + 1 + s, size - s);
-				if (msg->isFragmented) break; // payload is full, but we stay at the same message
-			}
-			ind++;
-			if (s >= size) break; //  payload is full but we moved to next message
-		}
-
-		if (s != size)
-		{	
-			LogPrint ("TunnelData payload size mismatch ", s, "!=", size);
-			return nullptr;
-		}	
-		
+		memcpy (payload + size, buf + 4, 16); // copy IV for checksum 
 		uint8_t hash[32];
-		CryptoPP::SHA256().CalculateDigest(hash, buf+zero+1, size+16);
-		memcpy (buf+20, hash, 4); // checksum
-		if (zero > 24)
-			memset (buf+24, 1, zero-24); // padding TODO: fill with random data
-		tunnelMsg->len += TUNNEL_DATA_MSG_SIZE;
+		CryptoPP::SHA256().CalculateDigest (hash, payload, size+16);
+		memcpy (buf+20, hash, 4); // checksum		
+		payload[-1] = 0; // zero	
+		ssize_t paddingSize = payload - buf - 25; // 25  = 24 + 1 
+		if (paddingSize > 0)
+			memset (buf + 24, 1, paddingSize); // padding TODO: fill with random data
+
 		// we can't fill message header yet because encryption is required
-		return tunnelMsg;
+		m_TunnelDataMsgs.push_back (m_CurrentTunnelDataMsg);
+		m_CurrentTunnelDataMsg = nullptr;
 	}	
 	
 	void TunnelGateway::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)

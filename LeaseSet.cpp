@@ -1,3 +1,5 @@
+#include <cryptopp/dsa.h>
+#include "CryptoConst.h"
 #include "Log.h"
 #include "LeaseSet.h"
 
@@ -24,10 +26,22 @@ namespace data
 		memcpy (m_EncryptionKey, header->encryptionKey, 256);
 		LogPrint ("LeaseSet num=", (int)header->num);
 
+		const uint8_t * leases = buf + sizeof (H);
 		for (int i = 0; i < header->num; i++)
 		{
-			m_Leases.push_back (*(Lease *)(buf + sizeof (H)));
+			Lease lease = *(Lease *)leases;
+			lease.tunnelID = be32toh (lease.tunnelID);
+			m_Leases.push_back (lease);
+			leases += sizeof (Lease);
 		}	
+
+		// verify
+		CryptoPP::DSA::PublicKey pubKey;
+		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+			CryptoPP::Integer (m_Identity.signingKey, 128));
+		CryptoPP::DSA::Verifier verifier (pubKey);
+		if (!verifier.VerifyMessage (buf, leases - buf, leases, 40))
+			LogPrint ("LeaseSet verification failed");
 	}	
 }		
 }	

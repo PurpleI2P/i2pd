@@ -23,6 +23,7 @@ namespace tunnel
 			
 			virtual void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
 			virtual void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
+			virtual size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
 			
 			uint32_t GetTunnelID () const { return m_TunnelID; };
 
@@ -37,6 +38,7 @@ namespace tunnel
 			i2p::data::IdentHash m_NextIdent;
 			uint8_t m_LayerKey[32];
 			uint8_t m_IVKey[32];
+			size_t m_NumTransmittedBytes;
 			
 			CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption m_ECBEncryption;
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_CBCEncryption;
@@ -53,6 +55,7 @@ namespace tunnel
 				layerKey, ivKey), m_Gateway(this) {};
 
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
+			size_t GetNumTransmittedBytes () const { return m_Gateway.GetNumSentBytes (); };
 			
 		private:
 
@@ -69,6 +72,7 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey) {};
 
 			void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
+			size_t GetNumTransmittedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 			
 		private:
 

@@ -23,6 +23,8 @@ namespace data
 		uint8_t publicKey[256];
 		uint8_t signingKey[128];
 		uint8_t certificate[3];
+
+		Identity& operator=(const Keys& keys);
 	};	
 	
 #pragma pack()
@@ -59,7 +61,26 @@ namespace data
 
 	IdentHash CalculateIdentHash (const Identity& identity);
 	Keys CreateRandomKeys ();
+
+	// kademlia
+	struct RoutingKey
+	{
+		uint8_t hash[32];
+	};	
+
+	struct XORMetric
+	{
+		uint8_t metric[32];
+
+		void SetMin () { memset (metric, 0, 32); };
+		void SetMax () { memset (metric, 0xFF, 32); };
+		bool operator< (const XORMetric& other) const { return memcmp (metric, other.metric, 32) < 0; };
+	};	
+
+	RoutingKey CreateRoutingKey (const IdentHash& ident);
+	XORMetric operator^(const RoutingKey& key1, const RoutingKey& key2); 	
 	
+	// destination for delivery instuctions
 	class RoutingDestination
 	{
 		public:
