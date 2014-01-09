@@ -353,7 +353,10 @@ namespace tunnel
 			{	
 				LogPrint ("Creating one hop outbound tunnel...");
 				CreateTunnel<OutboundTunnel> (
-				  	new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (),
+				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *> 
+					    { 
+							i2p::data::netdb.GetRandomNTCPRouter ()
+						},		
 			     		inboundTunnel->GetTunnelConfig ()));
 			}	
 			else
@@ -361,8 +364,11 @@ namespace tunnel
 				//OutboundTunnel * outboundTunnel =  GetNextOutboundTunnel ();
 				LogPrint ("Creating two hops outbound tunnel...");
 				CreateTunnel<OutboundTunnel> (
-				  	new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (),
-						i2p::data::netdb.GetRandomNTCPRouter (),
+				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
+				    	{
+							i2p::data::netdb.GetRandomNTCPRouter (),
+							i2p::data::netdb.GetRandomNTCPRouter ()
+						},		
 			     		inboundTunnel->GetTunnelConfig ())/*,
 				        	outboundTunnel*/);
 			}	
@@ -396,7 +402,11 @@ namespace tunnel
 			if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
 			{	
 				LogPrint ("Creating one hop inbound tunnel...");
-				CreateTunnel<InboundTunnel> (new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter ()));
+				CreateTunnel<InboundTunnel> (
+					new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
+					    {              
+							i2p::data::netdb.GetRandomNTCPRouter ()
+						}));
 			}
 			else
 			{
@@ -404,9 +414,12 @@ namespace tunnel
 				LogPrint ("Creating two hops inbound tunnel...");
 				auto router = outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router;
 				CreateTunnel<InboundTunnel> (
-					new TunnelConfig (i2p::data::netdb.GetRandomNTCPRouter (), 
-							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomNTCPRouter ()),
-				        	outboundTunnel);
+					new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
+						{                
+				            i2p::data::netdb.GetRandomNTCPRouter (), 
+							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomNTCPRouter ()
+		                }),                 
+				    outboundTunnel);
 			}	
 		}
 	}	
@@ -457,7 +470,10 @@ namespace tunnel
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
 		CreateTunnel<InboundTunnel> (
-			new TunnelConfig (&i2p::context.GetRouterInfo ()));
+			new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
+			    { 
+					&i2p::context.GetRouterInfo ()
+				}));
 	}	
 	
 	OutboundTunnel * Tunnels::CreateOneHopOutboundTestTunnel (InboundTunnel * replyTunnel)
@@ -471,7 +487,9 @@ namespace tunnel
 		if (peer)
 		{
 			const i2p::data::RouterInfo& router = peer->GetRemoteRouterInfo ();
-			return CreateTunnel<InboundTunnel> (new TunnelConfig (&router), outboundTunnel);
+			return CreateTunnel<InboundTunnel> (
+				new TunnelConfig (std::vector<const i2p::data::RouterInfo *>{&router}), 
+			    outboundTunnel);
 		}	
 		else
 			LogPrint ("No established peers");
@@ -490,7 +508,11 @@ namespace tunnel
 		{
 			const i2p::data::RouterInfo& router = peer->GetRemoteRouterInfo ();
 			return  CreateTunnel<InboundTunnel> (
-						new TunnelConfig (&router, &i2p::context.GetRouterInfo ()),
+						new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
+						    { 
+								&router, 
+								&i2p::context.GetRouterInfo ()
+							}),
 			            	outboundTunnel);		
 		}
 		else
