@@ -1,13 +1,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include "I2PEndian.h"
-#include <time.h>
 #include <boost/bind.hpp>
 #include <cryptopp/dh.h>
 #include <cryptopp/secblock.h>
 #include <cryptopp/dsa.h>
 #include "base64.h"
 #include "Log.h"
+#include "Timestamp.h"
 #include "CryptoConst.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
@@ -149,7 +149,7 @@ namespace ntcp
 		memcpy (xy, m_Phase1.pubKey, 256);
 		memcpy (xy + 256, y, 256);
 		CryptoPP::SHA256().CalculateDigest(m_Phase2.encrypted.hxy, xy, 512); 
-		uint32_t tsB = htobe32 (time(0));
+		uint32_t tsB = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		m_Phase2.encrypted.timestamp = tsB;
 		// TODO: fill filler
 
@@ -217,7 +217,7 @@ namespace ntcp
 	{
 		m_Phase3.size = htons (sizeof (m_Phase3.ident));
 		memcpy (&m_Phase3.ident, &i2p::context.GetRouterIdentity (), sizeof (m_Phase3.ident));		
-		uint32_t tsA = htobe32 (time(0));
+		uint32_t tsA = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		m_Phase3.timestamp = tsA;
 		
 		SignedData s;
