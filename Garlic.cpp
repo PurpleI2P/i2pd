@@ -312,17 +312,27 @@ namespace garlic
 						LogPrint ("Unexpected I2NP garlic message ", (int)header->typeID);
 					break;
 				}	
-				case eGarlicDeliveryTypeRouter:
-					LogPrint ("Garlic type router not implemented");
-					// TODO: implement
-					buf += 32;
-				break;
 				case eGarlicDeliveryTypeTunnel:
-					LogPrint ("Garlic type tunnel not implemented");
-					// TODO: implement
+				{	
+					LogPrint ("Garlic type tunnel");
+					uint32_t gwTunnel = be32toh (*(uint32_t *)buf);
 					buf += 4;
+					uint8_t * gwHash = buf;
 					buf += 32;
-				break;
+					auto tunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+					if (tunnel) // we have send it through an outbound tunnel
+					{	
+						I2NPMessage * msg = CreateI2NPMessage (buf, len - 36);
+						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
+					}	
+					else
+						LogPrint ("No outbound tunnels available for garlic clove");
+					break;
+				}
+				case eGarlicDeliveryTypeRouter:
+					LogPrint ("Garlic type router not supported");
+					buf += 32;
+				break;	
 				default:
 					LogPrint ("Unknow garlic delivery type ", (int)deliveryType);
 			}
