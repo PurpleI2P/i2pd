@@ -1,5 +1,5 @@
 #include "I2PEndian.h"
-#include <boost/thread.hpp>
+#include <thread>
 #include <cryptopp/sha.h>
 #include "RouterContext.h"
 #include "Log.h"
@@ -260,7 +260,7 @@ namespace tunnel
 
 	void Tunnels::Run ()
 	{
-		boost::this_thread::sleep(boost::posix_time::seconds(1)); // wait for other parts are ready
+		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 		
 		uint64_t lastTs = 0;
 		while (m_IsRunning)

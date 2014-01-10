@@ -232,14 +232,17 @@ namespace garlic
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
 		std::string sessionTag((const char *)buf, 32);
-		if (m_SessionTags.count (sessionTag) > 0)
+		auto it = m_SessionTags.find (sessionTag);
+		if (it != m_SessionTags.end ())
 		{
 			// existing session
+			std::string sessionKey (it->second);
+			m_SessionTags.erase (it); // tag might be used only once
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
-			m_Decryption.SetKeyWithIV (m_SessionKey, 32, iv);
+			m_Decryption.SetKeyWithIV ((uint8_t *)sessionKey.c_str (), 32, iv); // tag is mapped to 32 bytes key
 			m_Decryption.ProcessData(buf + 32, buf + 32, length - 32);
-			HandleAESBlock (buf + 32, length - 32);
+			HandleAESBlock (buf + 32, length - 32, (uint8_t *)sessionKey.c_str ());
 		}
 		else
 		{
@@ -248,22 +251,21 @@ namespace garlic
 			i2p::crypto::ElGamalDecrypt (
 			   	isFromTunnel ? i2p::context.GetLeaseSetPrivateKey () : i2p::context.GetPrivateKey (), 
 				buf, (uint8_t *)&elGamal, true);
-			memcpy (m_SessionKey, elGamal.sessionKey, 32);
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
-			m_Decryption.SetKeyWithIV (m_SessionKey, 32, iv);
+			m_Decryption.SetKeyWithIV (elGamal.sessionKey, 32, iv);
 			m_Decryption.ProcessData(buf + 514, buf + 514, length - 514);
-			HandleAESBlock (buf + 514, length - 514);
+			HandleAESBlock (buf + 514, length - 514, elGamal.sessionKey);
 		}	
 		
 	}	
 
-	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len)
+	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, uint8_t * sessionKey)
 	{
 		uint16_t tagCount = be16toh (*(uint16_t *)buf);
 		buf += 2;
 		for (int i = 0; i < tagCount; i++)
-			m_SessionTags.insert (std::string ((const char *)(buf + i*32), 32));
+			m_SessionTags[std::string ((const char *)(buf + i*32), 32)] = std::string ((const char *)sessionKey, 32);
 		buf += tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
 		buf += 4;
@@ -312,17 +314,27 @@ namespace garlic
 						LogPrint ("Unexpected I2NP garlic message ", (int)header->typeID);
 					break;
 				}	
-				case eGarlicDeliveryTypeRouter:
-					LogPrint ("Garlic type router not implemented");
-					// TODO: implement
-					buf += 32;
-				break;
 				case eGarlicDeliveryTypeTunnel:
-					LogPrint ("Garlic type tunnel not implemented");
-					// TODO: implement
+				{	
+					LogPrint ("Garlic type tunnel");
+					uint32_t gwTunnel = be32toh (*(uint32_t *)buf);
 					buf += 4;
+					uint8_t * gwHash = buf;
 					buf += 32;
-				break;
+					auto tunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+					if (tunnel) // we have send it through an outbound tunnel
+					{	
+						I2NPMessage * msg = CreateI2NPMessage (buf, len - 36);
+						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
+					}	
+					else
+						LogPrint ("No outbound tunnels available for garlic clove");
+					break;
+				}
+				case eGarlicDeliveryTypeRouter:
+					LogPrint ("Garlic type router not supported");
+					buf += 32;
+				break;	
 				default:
 					LogPrint ("Unknow garlic delivery type ", (int)deliveryType);
 			}

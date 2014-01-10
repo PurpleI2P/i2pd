@@ -35,7 +35,7 @@ namespace stream
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
-			bool IsEstablished () const { return !m_SendStreamID; };
+			bool IsEstablished () const { return m_SendStreamID; };
 			
 			void HandleNextPacket (const uint8_t * buf, size_t len);
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds

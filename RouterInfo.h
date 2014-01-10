@@ -7,7 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <boost/asio.hpp>
-#include "LeaseSet.h"
+#include "Identity.h"
 
 namespace i2p
 {

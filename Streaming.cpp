@@ -24,7 +24,9 @@ namespace stream
 	{
 		const uint8_t * end = buf + len;
 		buf += 4; // sendStreamID
-		buf += 4; // receiveStreamID
+		if (!m_SendStreamID)
+			m_SendStreamID = be32toh (*(uint32_t *)buf);
+		buf += 4; // receiveStreamID		
 		buf += 4; // sequenceNum
 		buf += 4; // ackThrough
 		int nackCount = buf[0];
@@ -124,7 +126,7 @@ namespace stream
 		
 	void StreamingDestination::HandleNextPacket (const uint8_t * buf, size_t len)
 	{
-		uint32_t sendStreamID = *(uint32_t *)(buf);
+		uint32_t sendStreamID = be32toh (*(uint32_t *)(buf));
 		auto it = m_Streams.find (sendStreamID);
 		if (it != m_Streams.end ())
 			it->second->HandleNextPacket (buf, len);
@@ -150,10 +152,10 @@ namespace stream
 
 	I2NPMessage * StreamingDestination::GetLeaseSet ()
 	{
-		if (!m_LeaseSet)
-			m_LeaseSet = CreateLeaseSet ();
-		else
-			FillI2NPMessageHeader (m_LeaseSet, eI2NPDatabaseStore); // refresh msgID
+		if (m_LeaseSet) // temporary always create new LeaseSet
+			DeleteI2NPMessage (m_LeaseSet);
+		m_LeaseSet = CreateLeaseSet ();
+		
 		return m_LeaseSet;
 	}	
 		

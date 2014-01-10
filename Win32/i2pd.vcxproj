@@ -10,6 +10,54 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\base64.cpp" />
+    <ClCompile Include="..\Garlic.cpp" />
+    <ClCompile Include="..\HTTPServer.cpp" />
+    <ClCompile Include="..\I2NPProtocol.cpp" />
+    <ClCompile Include="..\i2p.cpp" />
+    <ClCompile Include="..\I2PEndian.cpp" />
+    <ClCompile Include="..\Identity.cpp" />
+    <ClCompile Include="..\LeaseSet.cpp" />
+    <ClCompile Include="..\Log.cpp" />
+    <ClCompile Include="..\NetDb.cpp" />
+    <ClCompile Include="..\NTCPSession.cpp" />
+    <ClCompile Include="..\RouterContext.cpp" />
+    <ClCompile Include="..\RouterInfo.cpp" />
+    <ClCompile Include="..\Streaming.cpp" />
+    <ClCompile Include="..\TransitTunnel.cpp" />
+    <ClCompile Include="..\Transports.cpp" />
+    <ClCompile Include="..\Tunnel.cpp" />
+    <ClCompile Include="..\TunnelEndpoint.cpp" />
+    <ClCompile Include="..\TunnelGateway.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\base64.h" />
+    <ClInclude Include="..\CryptoConst.h" />
+    <ClInclude Include="..\ElGamal.h" />
+    <ClInclude Include="..\Garlic.h" />
+    <ClInclude Include="..\HTTPServer.h" />
+    <ClInclude Include="..\I2NPProtocol.h" />
+    <ClInclude Include="..\I2PEndian.h" />
+    <ClInclude Include="..\Identity.h" />
+    <ClInclude Include="..\LeaseSet.h" />
+    <ClInclude Include="..\LittleBigEndian.h" />
+    <ClInclude Include="..\Log.h" />
+    <ClInclude Include="..\NetDb.h" />
+    <ClInclude Include="..\NTCPSession.h" />
+    <ClInclude Include="..\Queue.h" />
+    <ClInclude Include="..\RouterContext.h" />
+    <ClInclude Include="..\RouterInfo.h" />
+    <ClInclude Include="..\Streaming.h" />
+    <ClInclude Include="..\Timestamp.h" />
+    <ClInclude Include="..\TransitTunnel.h" />
+    <ClInclude Include="..\Transports.h" />
+    <ClInclude Include="..\Tunnel.h" />
+    <ClInclude Include="..\TunnelBase.h" />
+    <ClInclude Include="..\TunnelConfig.h" />
+    <ClInclude Include="..\TunnelEndpoint.h" />
+    <ClInclude Include="..\TunnelGateway.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{930568EC-31C9-406A-AD1C-9636DF5D8FAA}</ProjectGuid>
     <RootNamespace>i2pd</RootNamespace>
@@ -39,8 +87,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>$(BOOST);$(CRYPTOPP);$(IncludePath)</IncludePath>
+    <IncludePath>./..;$(BOOST);$(CRYPTOPP);$(IncludePath)</IncludePath>
     <LibraryPath>$(BOOST)\stage\lib;$(CRYPTOPP)\cryptopp\Win32\Output\$(Configuration)\;$(LibraryPath)</LibraryPath>
+    <SourcePath>./..;$(VC_SourcePath);</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>.\boost;.\cryptopp;$(IncludePath)</IncludePath>
@@ -73,54 +122,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="base64.h" />
-    <ClInclude Include="CryptoConst.h" />
-    <ClInclude Include="ElGamal.h" />
-    <ClInclude Include="Garlic.h" />
-    <ClInclude Include="HTTPServer.h" />
-    <ClInclude Include="I2NPProtocol.h" />
-    <ClInclude Include="I2PEndian.h" />
-    <ClInclude Include="Identity.h" />
-    <ClInclude Include="LeaseSet.h" />
-    <ClInclude Include="LittleBigEndian.h" />
-    <ClInclude Include="Log.h" />
-    <ClInclude Include="NetDb.h" />
-    <ClInclude Include="NTCPSession.h" />
-    <ClInclude Include="Queue.h" />
-    <ClInclude Include="RouterContext.h" />
-    <ClInclude Include="RouterInfo.h" />
-    <ClInclude Include="Streaming.h" />
-    <ClInclude Include="Timestamp.h" />
-    <ClInclude Include="TransitTunnel.h" />
-    <ClInclude Include="Transports.h" />
-    <ClInclude Include="Tunnel.h" />
-    <ClInclude Include="TunnelBase.h" />
-    <ClInclude Include="TunnelConfig.h" />
-    <ClInclude Include="TunnelEndpoint.h" />
-    <ClInclude Include="TunnelGateway.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="base64.cpp" />
-    <ClCompile Include="Garlic.cpp" />
-    <ClCompile Include="HTTPServer.cpp" />
-    <ClCompile Include="I2NPProtocol.cpp" />
-    <ClCompile Include="i2p.cpp" />
-    <ClCompile Include="I2PEndian.cpp" />
-    <ClCompile Include="Identity.cpp" />
-    <ClCompile Include="LeaseSet.cpp" />
-    <ClCompile Include="Log.cpp" />
-    <ClCompile Include="NetDb.cpp" />
-    <ClCompile Include="NTCPSession.cpp" />
-    <ClCompile Include="RouterContext.cpp" />
-    <ClCompile Include="RouterInfo.cpp" />
-    <ClCompile Include="Streaming.cpp" />
-    <ClCompile Include="TransitTunnel.cpp" />
-    <ClCompile Include="Transports.cpp" />
-    <ClCompile Include="Tunnel.cpp" />
-    <ClCompile Include="TunnelEndpoint.cpp" />
-    <ClCompile Include="TunnelGateway.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
