@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <map>
 #include <cryptopp/dsa.h>
+#include "Queue.h"
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
@@ -25,26 +26,39 @@ namespace stream
 	const uint16_t PACKET_FLAG_NO_ACK = 0x0400;
 
 	const size_t STREAMING_MTU = 1730; 
-		
+
+	struct Packet
+	{
+		uint8_t buf[STREAMING_MTU];	
+		size_t len, offset;
+
+		Packet (): len (0), offset (0) {};
+		uint8_t * GetBuffer () { return buf + offset; };
+		size_t GetLength () const { return len - offset; };
+	};	
+	
 	class StreamingDestination;
 	class Stream
 	{	
 		public:
 
 			Stream (StreamingDestination * local, const i2p::data::LeaseSet * remote);
+			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
 			bool IsEstablished () const { return m_SendStreamID; };
 			
-			void HandleNextPacket (const uint8_t * buf, size_t len);
+			void HandleNextPacket (Packet * packet);
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds
+			size_t Receive (uint8_t * buf, size_t len, int timeout); // returns 0 if timeout expired
 			
 		private:
 
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			StreamingDestination * m_LocalDestination;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
+			i2p::util::Queue<Packet> m_ReceiveQueue;
 	};
 	
 	class StreamingDestination
@@ -61,7 +75,7 @@ namespace stream
 			
 			Stream * CreateNewStream (const i2p::data::LeaseSet * remote);
 			void DeleteStream (Stream * stream);
-			void HandleNextPacket (const uint8_t * buf, size_t len);
+			void HandleNextPacket (Packet * packet);
 
 		private:
 

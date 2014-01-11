@@ -1,5 +1,6 @@
 #include "I2PEndian.h"
 #include <string>
+#include <algorithm>
 #include <cryptopp/gzip.h>
 #include "Log.h"
 #include "RouterInfo.h"
@@ -20,9 +21,15 @@ namespace stream
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}	
 
-	void Stream::HandleNextPacket (const uint8_t * buf, size_t len)
+	Stream::~Stream ()
 	{
-		const uint8_t * end = buf + len;
+		while (auto packet = m_ReceiveQueue.Get ())
+			delete packet;
+	}	
+		
+	void Stream::HandleNextPacket (Packet * packet)
+	{
+		const uint8_t * end = packet->buf + packet->len, * buf = packet->buf;
 		buf += 4; // sendStreamID
 		if (!m_SendStreamID)
 			m_SendStreamID = be32toh (*(uint32_t *)buf);
@@ -61,6 +68,9 @@ namespace stream
 		// we have reached payload section
 		std::string str((const char *)buf, end-buf);
 		LogPrint ("Payload: ", str);
+
+		packet->offset = buf - packet->buf;
+		m_ReceiveQueue.Put (packet);
 	}	
 
 	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
@@ -105,6 +115,37 @@ namespace stream
 			DeleteI2NPMessage (msg);
 		return len;
 	}	
+
+	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
+	{
+		if (m_ReceiveQueue.IsEmpty ())
+		{
+			if (!m_ReceiveQueue.Wait (timeout, 0))
+				return 0;
+		}
+
+		// either non-empty or we have received empty
+		size_t pos = 0;
+		while (pos < len)
+		{
+			Packet * packet = m_ReceiveQueue.Peek ();
+			if (packet)
+			{
+				size_t l = std::min (packet->GetLength (), len - pos);
+				memcpy (buf + pos, packet->GetBuffer (), l);
+				pos += l;
+				packet->offset += l;
+				if (!packet->GetLength ())
+				{
+					m_ReceiveQueue.Get ();
+					delete packet;
+				}	
+			}
+			else // no more data available
+				break;
+		}	
+		return pos; 
+	}	
 		
 	StreamingDestination * sharedLocalDestination = nullptr;	
 
@@ -124,14 +165,17 @@ namespace stream
 			DeleteI2NPMessage (m_LeaseSet);
 	}	
 		
-	void StreamingDestination::HandleNextPacket (const uint8_t * buf, size_t len)
+	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
-		uint32_t sendStreamID = be32toh (*(uint32_t *)(buf));
+		uint32_t sendStreamID = be32toh (*(uint32_t *)(packet->buf));
 		auto it = m_Streams.find (sendStreamID);
 		if (it != m_Streams.end ())
-			it->second->HandleNextPacket (buf, len);
+			it->second->HandleNextPacket (packet);
 		else
+		{	
 			LogPrint ("Unknown stream ", sendStreamID);
+			delete packet;
+		}	
 	}	
 
 	Stream * StreamingDestination::CreateNewStream (const i2p::data::LeaseSet * remote)
@@ -232,13 +276,14 @@ namespace stream
 			CryptoPP::Gunzip decompressor;
 			decompressor.Put (buf, length);
 			decompressor.MessageEnd();
-			uint8_t uncompressed[2048];
-			int uncompressedSize = decompressor.MaxRetrievable ();
-			decompressor.Get (uncompressed, uncompressedSize);
+			Packet * uncompressed = new Packet;
+			uncompressed->offset = 0;
+			uncompressed->len = decompressor.MaxRetrievable ();
+			decompressor.Get (uncompressed->buf, uncompressed->len);
 			// then forward to streaming engine
 			// TODO: we have onle one destination, might be more
 			if (sharedLocalDestination)
-				sharedLocalDestination->HandleNextPacket (uncompressed, uncompressedSize);
+				sharedLocalDestination->HandleNextPacket (uncompressed);
 		}	
 		else
 			LogPrint ("Data: protocol ", buf[9], " is not supported");

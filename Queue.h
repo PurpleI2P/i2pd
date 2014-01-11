@@ -45,6 +45,18 @@ namespace util
 				}	
 				return el;
 			}
+
+			bool Wait (int sec, int usec)
+			{
+				std::unique_lock<std::mutex> l(m_QueueMutex);
+				return m_NonEmpty.wait_for (l, std::chrono::seconds (sec) + std::chrono::milliseconds (usec)) != std::cv_status::timeout;
+			}
+
+			bool IsEmpty () 
+			{	
+				std::unique_lock<std::mutex> l(m_QueueMutex);
+				return m_Queue.empty ();
+			}
 			
 			void WakeUp () { m_NonEmpty.notify_one (); };
 
@@ -54,14 +66,21 @@ namespace util
 				return GetNonThreadSafe ();
 			}	
 
+			Element * Peek ()
+			{
+				std::unique_lock<std::mutex> l(m_QueueMutex);
+				return GetNonThreadSafe (true);
+			}	
+			
 		private:
 
-			Element * GetNonThreadSafe ()
+			Element * GetNonThreadSafe (bool peek = false)
 			{
 				if (!m_Queue.empty ())
 				{
 					Element * el = m_Queue.front ();
-					m_Queue.pop ();
+					if (!peek)
+						m_Queue.pop ();
 					return el;
 				}				
 				return nullptr;
