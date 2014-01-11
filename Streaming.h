@@ -8,6 +8,7 @@
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
+#include "Tunnel.h"
 
 namespace i2p
 {
@@ -52,13 +53,18 @@ namespace stream
 			void HandleNextPacket (Packet * packet);
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds
 			size_t Receive (uint8_t * buf, size_t len, int timeout); // returns 0 if timeout expired
+
+		private:
+
+			void SendQuickAck ();
 			
 		private:
 
-			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
+			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
 			StreamingDestination * m_LocalDestination;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::util::Queue<Packet> m_ReceiveQueue;
+			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;
 	};
 	
 	class StreamingDestination

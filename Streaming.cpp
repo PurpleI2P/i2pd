@@ -16,7 +16,8 @@ namespace i2p
 namespace stream
 {
 	Stream::Stream (StreamingDestination * local, const i2p::data::LeaseSet * remote):
-		m_SendStreamID (0), m_SequenceNumber (0), m_LocalDestination (local), m_RemoteLeaseSet (remote)
+		m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (0),
+		m_LocalDestination (local), m_RemoteLeaseSet (remote), m_OutboundTunnel (nullptr)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}	
@@ -33,7 +34,8 @@ namespace stream
 		buf += 4; // sendStreamID
 		if (!m_SendStreamID)
 			m_SendStreamID = be32toh (*(uint32_t *)buf);
-		buf += 4; // receiveStreamID		
+		buf += 4; // receiveStreamID	
+		m_LastReceivedSequenceNumber = be32toh (*(uint32_t *)buf);
 		buf += 4; // sequenceNum
 		buf += 4; // ackThrough
 		int nackCount = buf[0];
@@ -64,13 +66,15 @@ namespace stream
 			LogPrint ("From identity");
 			optionalData += sizeof (i2p::data::Identity);
 		}	
-
+		
 		// we have reached payload section
 		std::string str((const char *)buf, end-buf);
 		LogPrint ("Payload: ", str);
 
 		packet->offset = buf - packet->buf;
 		m_ReceiveQueue.Put (packet);
+		
+		SendQuickAck ();
 	}	
 
 	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
@@ -105,17 +109,50 @@ namespace stream
 		I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
 			CreateDataMessage (this, packet, size), m_LocalDestination->GetLeaseSet ()); 
 
-		auto outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		if (outbound)
+		if (!m_OutboundTunnel)
+			m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+		if (m_OutboundTunnel)
 		{
 			auto& lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
-			outbound->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
+			m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
 		}	
 		else
 			DeleteI2NPMessage (msg);
 		return len;
 	}	
 
+	void Stream::SendQuickAck ()
+	{
+		uint8_t packet[STREAMING_MTU];
+		size_t size = 0;
+		*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
+		size += 4; // sendStreamID
+		*(uint32_t *)(packet + size) = htobe32 (m_RecvStreamID);
+		size += 4; // receiveStreamID
+		*(uint32_t *)(packet + size) = 0; // this is plain Ack message
+		size += 4; // sequenceNum
+		*(uint32_t *)(packet + size) = htobe32 (m_LastReceivedSequenceNumber);
+		size += 4; // ack Through
+		packet[size] = 0; 
+		size++; // NACK count
+		size++; // resend delay
+		*(uint16_t *)(packet + size) = 0; // nof flags set
+		size += 2; // flags
+		*(uint16_t *)(packet + size) = 0; // nof flags set
+		size += 2; // options size
+
+		I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
+			CreateDataMessage (this, packet, size));
+		if (m_OutboundTunnel)
+		{
+			auto& lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
+			m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
+			LogPrint ("Quick Ack sent");
+		}	
+		else
+			DeleteI2NPMessage (msg);
+	}	
+		
 	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
 	{
 		if (m_ReceiveQueue.IsEmpty ())
