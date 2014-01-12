@@ -26,11 +26,12 @@ namespace stream
 	const uint16_t PACKET_FLAG_ECHO = 0x0200;
 	const uint16_t PACKET_FLAG_NO_ACK = 0x0400;
 
-	const size_t STREAMING_MTU = 1730; 
+	const size_t STREAMING_MTU = 1730;
+	const size_t MAX_PACKET_SIZE = 1754;
 
 	struct Packet
 	{
-		uint8_t buf[STREAMING_MTU];	
+		uint8_t buf[1754];	
 		size_t len, offset;
 
 		Packet (): len (0), offset (0) {};
@@ -48,19 +49,23 @@ namespace stream
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
+			bool IsOpen () const { return m_IsOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
 			
 			void HandleNextPacket (Packet * packet);
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds
 			size_t Receive (uint8_t * buf, size_t len, int timeout); // returns 0 if timeout expired
-
+			void Close ();
+			
 		private:
 
+			void ConnectAndSend (uint8_t * buf, size_t len);
 			void SendQuickAck ();
 			
 		private:
 
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
+			bool m_IsOpen;
 			StreamingDestination * m_LocalDestination;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::util::Queue<Packet> m_ReceiveQueue;

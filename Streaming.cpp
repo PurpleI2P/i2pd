@@ -16,7 +16,7 @@ namespace i2p
 namespace stream
 {
 	Stream::Stream (StreamingDestination * local, const i2p::data::LeaseSet * remote):
-		m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (0),
+		m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false),
 		m_LocalDestination (local), m_RemoteLeaseSet (remote), m_OutboundTunnel (nullptr)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -54,7 +54,7 @@ namespace stream
 		{
 			LogPrint ("Synchronize");
 		}	
-
+		
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
 			LogPrint ("Signature");
@@ -68,17 +68,36 @@ namespace stream
 		}	
 		
 		// we have reached payload section
+		LogPrint ("seqn=",m_LastReceivedSequenceNumber,", flags=", flags); 
 		std::string str((const char *)buf, end-buf);
 		LogPrint ("Payload: ", str);
 
 		packet->offset = buf - packet->buf;
 		m_ReceiveQueue.Put (packet);
-		
-		SendQuickAck ();
+
+		if (flags & PACKET_FLAG_CLOSE)
+		{
+			LogPrint ("Closed");
+			m_IsOpen = false;
+		}	
+		else
+			SendQuickAck ();
 	}	
 
 	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
 	{
+		if (!m_IsOpen)
+			ConnectAndSend (buf, len);
+		else
+		{
+			// TODO: implement
+		}	
+		return len;
+	}	
+
+	void Stream::ConnectAndSend (uint8_t * buf, size_t len)
+	{
+		m_IsOpen = true;
 		uint8_t packet[STREAMING_MTU];
 		size_t size = 0;
 		*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
@@ -94,15 +113,19 @@ namespace stream
 		size++; // resend delay
 		// TODO: for initial packet only, following packets have different falgs
 		*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_SYNCHRONIZE | 
-			PACKET_FLAG_FROM_INCLUDED | PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_NO_ACK);
+			PACKET_FLAG_FROM_INCLUDED | PACKET_FLAG_SIGNATURE_INCLUDED | 
+		    PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED | PACKET_FLAG_NO_ACK);
 		size += 2; // flags
-		*(uint16_t *)(packet + size) = htobe16 (sizeof (i2p::data::Identity) + 40); // identity + signature
+		*(uint16_t *)(packet + size) = htobe16 (sizeof (i2p::data::Identity) + 40 + 2); // identity + signature + packet size
 		size += 2; // options size
 		memcpy (packet + size, &m_LocalDestination->GetIdentity (), sizeof (i2p::data::Identity)); 
 		size += sizeof (i2p::data::Identity); // from
+		*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
+		size += 2; // max packet size
 		uint8_t * signature = packet + size; // set it later
 		memset (signature, 0, 40); // zeroes for now
 		size += 40; // signature
+		
 		memcpy (packet + size, buf, len); 
 		size += len; // payload
 		m_LocalDestination->Sign (packet, size, signature);
@@ -118,9 +141,8 @@ namespace stream
 		}	
 		else
 			DeleteI2NPMessage (msg);
-		return len;
 	}	
-
+		
 	void Stream::SendQuickAck ()
 	{
 		uint8_t packet[STREAMING_MTU];
@@ -152,6 +174,46 @@ namespace stream
 		else
 			DeleteI2NPMessage (msg);
 	}	
+
+	void Stream::Close ()
+	{
+		if (m_IsOpen)
+		{	
+			m_IsOpen = false;
+			uint8_t packet[STREAMING_MTU];
+			size_t size = 0;
+			*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
+			size += 4; // sendStreamID
+			*(uint32_t *)(packet + size) = htobe32 (m_RecvStreamID);
+			size += 4; // receiveStreamID
+			*(uint32_t *)(packet + size) = htobe32 (m_SequenceNumber);
+			size += 4; // sequenceNum
+			*(uint32_t *)(packet + size) = htobe32 (m_LastReceivedSequenceNumber);
+			size += 4; // ack Through
+			packet[size] = 0; 
+			size++; // NACK count
+			size++; // resend delay
+			*(uint16_t *)(packet + size) = PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED;
+			size += 2; // flags
+			*(uint16_t *)(packet + size) = 40; // 40 bytes signature
+			size += 2; // options size
+			uint8_t * signature = packet + size;
+			memset (packet + size, 0, 40);
+			size += 40; // signature
+			m_LocalDestination->Sign (packet, size, signature);
+
+			I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
+				CreateDataMessage (this, packet, size));
+			if (m_OutboundTunnel)
+			{
+				auto& lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
+				m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
+				LogPrint ("FIN sent");
+			}	
+			else
+				DeleteI2NPMessage (msg);
+		}	
+	}
 		
 	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
 	{
@@ -316,6 +378,11 @@ namespace stream
 			Packet * uncompressed = new Packet;
 			uncompressed->offset = 0;
 			uncompressed->len = decompressor.MaxRetrievable ();
+			if (uncompressed->len > MAX_PACKET_SIZE)
+			{
+				LogPrint ("Recieved packet size exceeds mac packer size");
+				uncompressed->len = MAX_PACKET_SIZE;
+			}	
 			decompressor.Get (uncompressed->buf, uncompressed->len);
 			// then forward to streaming engine
 			// TODO: we have onle one destination, might be more
