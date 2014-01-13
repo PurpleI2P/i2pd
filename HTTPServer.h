@@ -48,6 +48,7 @@ namespace util
 			void HandleWrite(const boost::system::error_code& ecode);
 
 			void HandleRequest ();
+			void HandleDestinationRequest (std::string b32);
 			void FillContent (std::stringstream& s);
 
 		private:

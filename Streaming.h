@@ -54,7 +54,7 @@ namespace stream
 			
 			void HandleNextPacket (Packet * packet);
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds
-			size_t Receive (uint8_t * buf, size_t len, int timeout); // returns 0 if timeout expired
+			size_t Receive (uint8_t * buf, size_t len, int timeout = 0); // returns 0 if timeout expired
 			void Close ();
 			
 		private:
@@ -105,7 +105,7 @@ namespace stream
 	};	
 
 	Stream * CreateStream (const i2p::data::LeaseSet * remote);
-	void CloseStream (Stream * stream);
+	void DeleteStream (Stream * stream);
 	
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash * destination, const uint8_t * buf, size_t len);

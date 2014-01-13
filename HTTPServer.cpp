@@ -1,8 +1,11 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include "base64.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"
 #include "Transports.h"
+#include "NetDb.h"
+#include "Streaming.h"
 #include "HTTPServer.h"
 
 namespace i2p
@@ -123,12 +126,63 @@ namespace util
 		}	
 	}	
 
+	void HTTPConnection::HandleDestinationRequest (std::string b32)
+	{
+		uint8_t destination[32];
+		i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), destination, 32);
+		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+		if (!leaseSet)
+		{
+			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
+			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
+			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+			if (!leaseSet) // still no LeaseSet
+			{
+				m_Reply.content = "<html>LeaseSet not found</html>";
+				m_Reply.headers.resize(2);
+				m_Reply.headers[0].name = "Content-Length";
+				m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+				m_Reply.headers[1].name = "Content-Type";
+				m_Reply.headers[1].value = "text/html";
+				return;
+			}	
+		}	
+		// we found LeaseSet
+		auto s = i2p::stream::CreateStream (leaseSet);
+		if (s)
+		{
+			std::string request = "GET / HTTP/1.1\n Host:" + b32 + ".b32.i2p\n";
+			s->Send ((uint8_t *)request.c_str (), request.length (), 30);			
+			std::stringstream ss;
+			uint8_t buf[8192];
+			size_t r = s->Receive (buf, 8192, 30); // 30 seconds
+			if (r) // we recieved data
+			{
+				ss << std::string ((char *)buf, r);
+				while (s->IsOpen () && (r = s->Receive (buf, 8192, 30)) > 0)
+					ss << std::string ((char *)buf,r);	
+			}	
+			else // nothing received
+				ss << "<html>Not responding</html>";
+			s->Close ();
+			//DeleteStream (s);
+			
+			m_Reply.content = ss.str ();
+			m_Reply.headers.resize(2);
+			m_Reply.headers[0].name = "Content-Length";
+			m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+			m_Reply.headers[1].name = "Content-Type";
+			m_Reply.headers[1].value = "text/html";
+		}	
+	}	
+	
 	
 	HTTPServer::HTTPServer (int port): 
 		m_Thread (nullptr), m_Work (m_Service), 
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_NewSocket (nullptr)
 	{
+		
 	}
 
 	HTTPServer::~HTTPServer ()

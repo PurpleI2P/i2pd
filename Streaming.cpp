@@ -73,12 +73,16 @@ namespace stream
 		LogPrint ("Payload: ", str);
 
 		packet->offset = buf - packet->buf;
-		m_ReceiveQueue.Put (packet);
-
+		if (packet->GetLength () > 0)
+			m_ReceiveQueue.Put (packet);
+		else
+			delete packet;
+		
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint ("Closed");
 			m_IsOpen = false;
+			m_ReceiveQueue.WakeUp ();
 		}	
 		else
 			SendQuickAck ();
@@ -212,13 +216,16 @@ namespace stream
 			}	
 			else
 				DeleteI2NPMessage (msg);
+			m_ReceiveQueue.WakeUp ();
 		}	
 	}
 		
 	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
 	{
+		if (!m_IsOpen) return 0;
 		if (m_ReceiveQueue.IsEmpty ())
 		{
+			if (!timeout) return 0;
 			if (!m_ReceiveQueue.Wait (timeout, 0))
 				return 0;
 		}
@@ -358,7 +365,7 @@ namespace stream
 		return sharedLocalDestination->CreateNewStream (remote);
 	}
 		
-	void CloseStream (Stream * stream)
+	void DeleteStream (Stream * stream)
 	{
 		if (sharedLocalDestination)
 			sharedLocalDestination->DeleteStream (stream);
