@@ -119,10 +119,9 @@ namespace data
 			if (r->GetTimestamp () > it->second->GetTimestamp ())
 			{
 				LogPrint ("RouterInfo updated");
-				*m_RouterInfos[r->GetIdentHash ()] = *r; // we can't replace point because it's used by tunnels
-			}	
-			else
-				delete r;
+				*(it->second) = *r; // we can't replace pointer because it's used by tunnels
+			}				
+			delete r;
 		}	
 		else	
 		{	
@@ -135,7 +134,18 @@ namespace data
 	{
 		LeaseSet * l = new LeaseSet (buf, len);
 		DeleteRequestedDestination (l->GetIdentHash ());
-		m_LeaseSets[l->GetIdentHash ()] = l;
+		auto it = m_LeaseSets.find(l->GetIdentHash ());
+		if (it != m_LeaseSets.end ())
+		{
+			LogPrint ("LeaseSet updated");
+			*(it->second) = *l; // we can't replace pointer because it's used by streams
+			delete l;
+		}
+		else
+		{	
+			LogPrint ("New LeaseSet added");
+			m_LeaseSets[l->GetIdentHash ()] = l;
+		}	
 	}	
 
 	RouterInfo * NetDb::FindRouter (const IdentHash& ident) const

@@ -27,7 +27,9 @@ namespace data
 		public:
 
 			LeaseSet (const uint8_t * buf, int len);
-
+			LeaseSet (const LeaseSet& ) = default;
+			LeaseSet& operator=(const LeaseSet& ) = default;
+			
 			// implements RoutingDestination
 			const Identity& GetIdentity () const { return m_Identity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
