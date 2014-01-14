@@ -404,6 +404,7 @@ namespace stream
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		CryptoPP::Gzip compressor;
+		compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
 		compressor.Put (payload, len);
 		compressor.MessageEnd();
 		int size = compressor.MaxRetrievable ();
@@ -411,6 +412,7 @@ namespace stream
 		*(uint32_t *)buf = htobe32 (size); // length
 		buf += 4;
 		compressor.Get (buf, size);
+		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
 		buf[9] = 6; // streaming protocol
 		msg->len += size + 4; 
 		FillI2NPMessageHeader (msg, eI2NPData);
