@@ -170,9 +170,18 @@ namespace stream
 			CreateDataMessage (this, packet, size));
 		if (m_OutboundTunnel)
 		{
-			auto& lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
-			m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
-			LogPrint ("Quick Ack sent");
+			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+			if (!leases.empty ())
+			{	
+				auto& lease = leases[0]; // TODO:
+				m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
+				LogPrint ("Quick Ack sent");
+			}	
+			else
+			{
+				LogPrint ("All leases are expired");
+				DeleteI2NPMessage (msg);
+			}	
 		}	
 		else
 			DeleteI2NPMessage (msg);

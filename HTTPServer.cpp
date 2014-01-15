@@ -149,14 +149,14 @@ namespace util
 		uint8_t destination[32];
 		i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), destination, 32);
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
-		if (!leaseSet)
+		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
 			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
 			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
-			if (!leaseSet) // still no LeaseSet
+			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
-				m_Reply.content = "<html>LeaseSet not found</html>";
+				m_Reply.content = leaseSet ? "<html>Leases expired</html>" : "<html>LeaseSet not found</html>";
 				m_Reply.headers.resize(2);
 				m_Reply.headers[0].name = "Content-Length";
 				m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
@@ -166,6 +166,12 @@ namespace util
 			}	
 		}	
 		// we found LeaseSet
+		if (leaseSet->HasExpiredLeases ())
+		{
+			// we should re-request LeaseSet
+			LogPrint ("LeaseSet re-requested");
+			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
+		}	
 		auto s = i2p::stream::CreateStream (leaseSet);
 		if (s)
 		{

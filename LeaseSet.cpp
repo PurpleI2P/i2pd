@@ -1,8 +1,9 @@
+#include "I2PEndian.h"
 #include <cryptopp/dsa.h>
 #include "CryptoConst.h"
 #include "Log.h"
+#include "Timestamp.h"
 #include "LeaseSet.h"
-#include "I2PEndian.h"
 
 namespace i2p
 {
@@ -43,6 +44,32 @@ namespace data
 		CryptoPP::DSA::Verifier verifier (pubKey);
 		if (!verifier.VerifyMessage (buf, leases - buf, leases, 40))
 			LogPrint ("LeaseSet verification failed");
+	}	
+
+	std::vector<Lease> LeaseSet::GetNonExpiredLeases () const
+	{
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		std::vector<Lease> leases;
+		for (auto& it: m_Leases)
+			if (ts < it.endDate)
+				leases.push_back (it);
+		return leases;	
+	}	
+
+	bool LeaseSet::HasExpiredLeases () const
+	{
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		for (auto& it: m_Leases)
+			if (ts >= it.endDate) return true;
+		return false;
+	}	
+
+	bool LeaseSet::HasNonExpiredLeases () const
+	{
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		for (auto& it: m_Leases)
+			if (ts < it.endDate) return true;
+		return false;
 	}	
 }		
 }	
