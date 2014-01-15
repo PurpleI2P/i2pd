@@ -33,6 +33,7 @@ namespace data
 		{
 			Lease lease = *(Lease *)leases;
 			lease.tunnelID = be32toh (lease.tunnelID);
+			lease.endDate = be64toh (lease.endDate);
 			m_Leases.push_back (lease);
 			leases += sizeof (Lease);
 		}	
