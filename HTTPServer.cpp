@@ -1,6 +1,7 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include "base64.h"
+#include "Log.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"
 #include "Transports.h"
@@ -45,7 +46,7 @@ namespace util
 
 	void HTTPConnection::Receive ()
 	{
-		m_Socket->async_read_some (boost::asio::buffer (m_Buffer),
+		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, 8192),
 			 boost::bind(&HTTPConnection::HandleReceive, this,
 				 boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
@@ -54,7 +55,12 @@ namespace util
 	{
 		if (!ecode)
   		{
-			HandleRequest ();
+			m_Buffer[bytes_transferred] = 0;
+			auto address = ExtractAddress ();
+			if (address.find ('?') != std::string::npos)
+				HandleDestinationRequest ("zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq");  
+			else	  
+				HandleRequest ();
 			boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
           		boost::bind (&HTTPConnection::HandleWrite, this,
            			boost::asio::placeholders::error));
@@ -64,6 +70,18 @@ namespace util
 			Terminate ();
 	}
 
+	std::string HTTPConnection::ExtractAddress ()
+	{
+		char * get = strstr (m_Buffer, "GET");
+		if (get)
+		{
+			char * http = strstr (get, "HTTP");
+			if (http)
+				return std::string (get + 3, http - get - 3);
+		}	
+		return "";
+	}	
+	
 	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
 	{
 		Terminate ();

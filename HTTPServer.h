@@ -50,11 +50,12 @@ namespace util
 			void HandleRequest ();
 			void HandleDestinationRequest (std::string b32);
 			void FillContent (std::stringstream& s);
-
+			std::string ExtractAddress ();
+			
 		private:
 	
 			boost::asio::ip::tcp::socket * m_Socket;
-			boost::array<char, 8192> m_Buffer;
+			char m_Buffer[8192];
 			request m_Request;
 			reply m_Reply;
 	};	
