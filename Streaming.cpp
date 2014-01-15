@@ -77,15 +77,14 @@ namespace stream
 			m_ReceiveQueue.Put (packet);
 		else
 			delete packet;
-		
+
+		SendQuickAck ();
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint ("Closed");
 			m_IsOpen = false;
 			m_ReceiveQueue.WakeUp ();
-		}	
-		else
-			SendQuickAck ();
+		}
 	}	
 
 	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
@@ -325,11 +324,12 @@ namespace stream
 		size += 256; // encryption key
 		memset (buf + size, 0, 128);
 		size += 128; // signing key
-		auto tunnel = i2p::tunnel::tunnels.GetNextInboundTunnel ();
-		if (tunnel)
+		auto tunnels = i2p::tunnel::tunnels.GetInboundTunnels (5); // 5 tunnels maximum
+		buf[size] = tunnels.size (); // num leases
+		size++; // num	
+		for (auto it: tunnels)
 		{	
-			buf[size] = 1; // 1 lease
-			size++; // num
+			auto tunnel = it;	
 			memcpy (buf + size, (const uint8_t *)tunnel->GetNextIdentHash (), 32);
 			size += 32; // tunnel_gw
 			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ());
@@ -338,11 +338,6 @@ namespace stream
 			ts *= 1000; // in milliseconds
 			*(uint64_t *)(buf + size) = htobe64 (ts);
 			size += 8; // end_date
-		}	
-		else
-		{
-			buf[size] = 0; // zero leases
-			size++; // num
 		}	
 		Sign (buf, size, buf+ size);
 		size += 40; // signature

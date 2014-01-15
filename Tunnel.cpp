@@ -211,6 +211,23 @@ namespace tunnel
 			}		
 		return tunnel;
 	}
+
+	std::vector<InboundTunnel *> Tunnels::GetInboundTunnels (int num) const
+	{
+		std::vector<InboundTunnel *> v;
+		int i = 0;
+		for (auto it : m_InboundTunnels)
+		{
+			if (i >= num) break;
+			if (it.second->GetNextIdentHash () != i2p::context.GetRouterInfo ().GetIdentHash ())
+			{
+				// exclude one hop tunnels
+				v.push_back (it.second);
+				i++;
+			}	
+		}	
+		return v;
+	}	
 	
 	OutboundTunnel * Tunnels::GetNextOutboundTunnel ()
 	{
