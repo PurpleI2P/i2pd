@@ -163,10 +163,11 @@ namespace garlic
 		{	
 			buf[size] = eGarlicDeliveryTypeTunnel << 5; // delivery instructions flag tunnel
 			size++;
-			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ()); // tunnelID
-			size += 4; 
+			// hash and tunnelID sequence is reversed for Garlic
 			memcpy (buf + size, tunnel->GetNextIdentHash (), 32); // To Hash
 			size += 32;
+			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ()); // tunnelID
+			size += 4; 	
 		}
 		else	
 		{	
@@ -330,10 +331,11 @@ namespace garlic
 				case eGarlicDeliveryTypeTunnel:
 				{	
 					LogPrint ("Garlic type tunnel");
-					uint32_t gwTunnel = be32toh (*(uint32_t *)buf);
-					buf += 4;
+					// gwHash and gwTunnel sequence is reverted
 					uint8_t * gwHash = buf;
 					buf += 32;
+					uint32_t gwTunnel = be32toh (*(uint32_t *)buf);
+					buf += 4;
 					auto tunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
 					if (tunnel) // we have send it through an outbound tunnel
 					{	
