@@ -163,7 +163,7 @@ namespace stream
 		size++; // resend delay
 		*(uint16_t *)(packet + size) = 0; // nof flags set
 		size += 2; // flags
-		*(uint16_t *)(packet + size) = 0; // nof flags set
+		*(uint16_t *)(packet + size) = 0; // no options
 		size += 2; // options size
 
 		I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
@@ -207,7 +207,7 @@ namespace stream
 			size++; // resend delay
 			*(uint16_t *)(packet + size) = PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED;
 			size += 2; // flags
-			*(uint16_t *)(packet + size) = 40; // 40 bytes signature
+			*(uint16_t *)(packet + size) = htobe16 (40); // 40 bytes signature
 			size += 2; // options size
 			uint8_t * signature = packet + size;
 			memset (packet + size, 0, 40);

@@ -17,13 +17,7 @@ namespace garlic
 	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags):
 		m_Destination (destination), m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0)
 	{
-		m_Rnd.GenerateBlock (m_SessionKey, 32);
-		if (m_NumTags > 0)
-		{	
-			m_SessionTags = new uint8_t[m_NumTags*32];
-			for (int i = 0; i < m_NumTags; i++)
-				m_Rnd.GenerateBlock (m_SessionTags + i*32, 32);
-		}	
+		m_SessionTags = new uint8_t[m_NumTags*32];
 	}	
 
 	GarlicRoutingSession::~GarlicRoutingSession	()
@@ -36,8 +30,13 @@ namespace garlic
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
-		if (m_NextTag < 0) // new session
+		if (m_NextTag < 0 || m_NextTag >= m_NumTags) // new session
 		{
+			// create new session tags and session key
+			m_Rnd.GenerateBlock (m_SessionKey, 32);
+			for (int i = 0; i < m_NumTags; i++)
+				m_Rnd.GenerateBlock (m_SessionTags + i*32, 32);
+			
 			// create ElGamal block
 			ElGamalBlock elGamal;
 			memcpy (elGamal.sessionKey, m_SessionKey, 32); 
@@ -268,12 +267,26 @@ namespace garlic
 			m_SessionTags[std::string ((const char *)(buf + i*32), 32)] = std::string ((const char *)sessionKey, 32);
 		buf += tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
+		if (payloadSize > len)
+		{
+			LogPrint ("Unxpected payload size ", payloadSize);
+			return;
+		}	
 		buf += 4;
-		buf += 32;// payload hash. TODO: verify it
+		uint8_t * payloadHash = buf;
+		buf += 32;// payload hash. 
 		if (*buf) // session key?
 			buf += 32; // new session key
 		buf++; // flag
+
 		// payload
+		uint8_t hash[32];
+		CryptoPP::SHA256().CalculateDigest(hash, buf, payloadSize);
+		if (memcmp (hash, payloadHash, 32)) // payload hash doesn't match
+		{
+			LogPrint ("Wrong payload hash");
+			return;
+		}		    
 		HandleGarlicPayload (buf, payloadSize);
 	}	
 

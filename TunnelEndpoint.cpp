@@ -143,7 +143,7 @@ namespace tunnel
 
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
-		LogPrint ("TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes");
+		LogPrint ("TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes. Msg type ", (int)msg.data->GetHeader()->typeID);
 		switch (msg.deliveryType)
 		{
 			case eDeliveryTypeLocal:
