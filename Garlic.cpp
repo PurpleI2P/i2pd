@@ -15,9 +15,19 @@ namespace i2p
 namespace garlic
 {	
 	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags):
-		m_Destination (destination), m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0)
+		m_Destination (destination), m_FirstMsgID (0), m_IsAcknowledged (false), 
+		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0)
 	{
-		m_SessionTags = new uint8_t[m_NumTags*32];
+		// create new session tags and session key
+		m_Rnd.GenerateBlock (m_SessionKey, 32);
+		if (m_NumTags > 0)
+		{
+			m_SessionTags = new uint8_t[m_NumTags*32];
+			for (int i = 0; i < m_NumTags; i++)
+				m_Rnd.GenerateBlock (m_SessionTags + i*32, 32);
+		}	
+		else
+			m_SessionTags = nullptr;
 	}	
 
 	GarlicRoutingSession::~GarlicRoutingSession	()
@@ -27,16 +37,16 @@ namespace garlic
 		
 	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
+		if (GetNumRemainingSessionTags () < 1)
+		{
+			LogPrint ("No more session tags");
+			return nullptr;
+		}	
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
-		if (m_NextTag < 0 || m_NextTag >= m_NumTags) // new session
+		if (m_NextTag < 0) // new session
 		{
-			// create new session tags and session key
-			m_Rnd.GenerateBlock (m_SessionKey, 32);
-			for (int i = 0; i < m_NumTags; i++)
-				m_Rnd.GenerateBlock (m_SessionTags + i*32, 32);
-			
 			// create ElGamal block
 			ElGamalBlock elGamal;
 			memcpy (elGamal.sessionKey, m_SessionKey, 32); 
@@ -47,7 +57,7 @@ namespace garlic
 			buf += 514;
 			// AES block
 			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
-			len += 514 + CreateAESBlock (buf, msg, leaseSet);	
+			len += 514 + CreateAESBlock (buf, msg, leaseSet, true);	
 		}
 		else // existing session
 		{	
@@ -58,7 +68,7 @@ namespace garlic
 			CryptoPP::SHA256().CalculateDigest(iv, m_SessionTags + m_NextTag*32, 32);
 			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
 			// AES block
-			len += 32 + CreateAESBlock (buf, msg, leaseSet);
+			len += 32 + CreateAESBlock (buf, msg, leaseSet, false);
 		}	
 		m_NextTag++;
 		*(uint32_t *)(m->GetPayload ()) = htobe32 (len);
@@ -69,20 +79,23 @@ namespace garlic
 		return m;
 	}	
 
-	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, I2NPMessage * msg, I2NPMessage * leaseSet)
+	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, I2NPMessage * msg, I2NPMessage * leaseSet, bool isNewSession)
 	{
 		size_t blockSize = 0;
-		*(uint16_t *)buf = htobe16 (m_NumTags); // tag count
+		*(uint16_t *)buf = isNewSession ? htobe16 (m_NumTags) : 0; // tag count
 		blockSize += 2;
-		memcpy (buf + blockSize, m_SessionTags, m_NumTags*32); // tags
-		blockSize += m_NumTags*32;
+		if (isNewSession)
+		{	
+			memcpy (buf + blockSize, m_SessionTags, m_NumTags*32); // tags
+			blockSize += m_NumTags*32;
+		}	
 		uint32_t * payloadSize = (uint32_t *)(buf + blockSize);
 		blockSize += 4;
 		uint8_t * payloadHash = buf + blockSize;
 		blockSize += 32;
 		buf[blockSize] = 0; // flag
 		blockSize++;
-		size_t len = CreateGarlicPayload (buf + blockSize, msg, leaseSet);
+		size_t len = CreateGarlicPayload (buf + blockSize, msg, leaseSet, isNewSession);
 		*payloadSize = htobe32 (len);
 		CryptoPP::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
 		blockSize += len;
@@ -93,21 +106,24 @@ namespace garlic
 		return blockSize;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg, I2NPMessage * leaseSet)
+	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg, I2NPMessage * leaseSet, bool isNewSession)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
-		uint32_t msgID = m_Rnd.GenerateWord32 ();
+		uint32_t msgID = m_Rnd.GenerateWord32 ();	
 		size_t size = 0;
 		uint8_t * numCloves = payload + size;
 		*numCloves = 0;
 		size++;
-		
-		if (leaseSet) 
+
+		if (isNewSession)
 		{
-			// clove is DeliveryStatus is LeaseSet is presented
+			// clove is DeliveryStatus 
 			size += CreateDeliveryStatusClove (payload + size, msgID);
 			(*numCloves)++;
-
+			m_FirstMsgID = msgID;
+		}	
+		if (leaseSet) 
+		{
 			// clove is our leaseSet if presented
 			size += CreateGarlicClove (payload + size, leaseSet, false);
 			(*numCloves)++;
@@ -212,18 +228,25 @@ namespace garlic
 		GarlicRoutingSession * session = nullptr;
 		if (it != m_Sessions.end ())
 			session = it->second;
+		if (session && (/*!session->IsAcknowledged () ||*/ session->GetNumRemainingSessionTags () < 1))
+		{
+			// we have to create new session
+			m_Sessions.erase (it);
+			m_CreatedSessions.erase (session->GetFirstMsgID ());
+			delete session;
+			session = nullptr;
+		}	
+		bool isNewSession = false;
 		if (!session)
 		{
-			session = new GarlicRoutingSession (destination, 4); // TODO: change it later
+			session = new GarlicRoutingSession (destination, 16); // TODO: change it later
 			m_Sessions[destination->GetIdentHash ()] = session;
+			isNewSession = true;
 		}	
 
 		I2NPMessage * ret = session->WrapSingleMessage (msg, leaseSet);
-		if (session->GetNumRemainingSessionTags () <= 0)
-		{
-			m_Sessions.erase (destination->GetIdentHash ());
-			delete session;
-		}	
+		if (isNewSession)
+			m_CreatedSessions[session->GetFirstMsgID ()] = session;
 		return ret;
 	}	
 
@@ -270,7 +293,7 @@ namespace garlic
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
 		if (payloadSize > len)
 		{
-			LogPrint ("Unxpected payload size ", payloadSize);
+			LogPrint ("Unexpected payload size ", payloadSize);
 			return;
 		}	
 		buf += 4;
@@ -357,6 +380,18 @@ namespace garlic
 			buf += 4; // CloveID
 			buf += 8; // Date
 			buf += 3; // Certificate
+		}	
+	}	
+
+	void GarlicRouting::HandleDeliveryStatusMessage (uint8_t * buf, size_t len)
+	{
+		I2NPDeliveryStatusMsg * msg = (I2NPDeliveryStatusMsg *)buf;
+		auto it = m_CreatedSessions.find (be32toh (msg->msgID));
+		if (it != m_CreatedSessions.end ())			
+		{
+			it->second->SetAcknowledged (true);
+			m_CreatedSessions.erase (it);
+			LogPrint ("Garlic message ", be32toh (msg->msgID), " acknowledged");
 		}	
 	}	
 }	
