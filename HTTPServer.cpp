@@ -24,16 +24,19 @@ namespace util
 	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers()
 	{
 		std::vector<boost::asio::const_buffer> buffers;
-		buffers.push_back (boost::asio::buffer ("HTTP/1.0 200 OK\r\n")); // always OK
-		for (std::size_t i = 0; i < headers.size(); ++i)
-		{
-			header& h = headers[i];
-			buffers.push_back(boost::asio::buffer(h.name));
-			buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
-			buffers.push_back(boost::asio::buffer(h.value));
+		if (headers.size () > 0)
+		{	
+			buffers.push_back (boost::asio::buffer ("HTTP/1.0 200 OK\r\n")); // always OK
+			for (std::size_t i = 0; i < headers.size(); ++i)
+			{
+				header& h = headers[i];
+				buffers.push_back(boost::asio::buffer(h.name));
+				buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
+				buffers.push_back(boost::asio::buffer(h.value));
+				buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+			}
 			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-		}
-		buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+		}	
 		buffers.push_back(boost::asio::buffer(content));
 		return buffers;
 	}
@@ -185,6 +188,10 @@ namespace util
 				ss << std::string ((char *)buf, r);
 				while (s->IsOpen () && (r = s->Receive (buf, 8192, 30)) > 0)
 					ss << std::string ((char *)buf,r);	
+				
+				m_Reply.content = ss.str (); // send "as is"
+				m_Reply.headers.resize(0); // no headers
+				return;
 			}	
 			else // nothing received
 				ss << "<html>Not responding</html>";
