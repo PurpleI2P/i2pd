@@ -132,7 +132,7 @@ namespace stream
 		memcpy (packet + size, buf, len); 
 		size += len; // payload
 		m_LocalDestination->Sign (packet, size, signature);
-		I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
+		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
 			CreateDataMessage (this, packet, size), m_LocalDestination->GetLeaseSet ()); 
 
 		if (!m_OutboundTunnel)
@@ -166,7 +166,7 @@ namespace stream
 		*(uint16_t *)(packet + size) = 0; // no options
 		size += 2; // options size
 
-		I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
+		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
 			CreateDataMessage (this, packet, size));
 		if (m_OutboundTunnel)
 		{
