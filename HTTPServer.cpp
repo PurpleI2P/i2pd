@@ -183,6 +183,8 @@ namespace util
 			std::stringstream ss;
 			uint8_t buf[8192];
 			size_t r = s->Receive (buf, 8192, 30); // 30 seconds
+			if (!r && s->IsEstablished ()) // nothing received but connection is established
+				r = s->Receive (buf, 8192, 30); // wait for another 30 secondd
 			if (r) // we recieved data
 			{
 				ss << std::string ((char *)buf, r);
