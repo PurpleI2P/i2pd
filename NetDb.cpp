@@ -347,7 +347,7 @@ namespace data
 							// do we have that floodfill router in our database?
 							if (r)
 							{
-								if (!dest->IsExcluded (r->GetIdentHash ()) && dest->GetNumExcludedPeers () < 10) // TODO: fix TunnelGateway first
+								if (!dest->IsExcluded (r->GetIdentHash ()) && dest->GetNumExcludedPeers () < 30) // TODO: fix TunnelGateway first
 								{	
 									// request destination
 									auto msg = dest->CreateRequestMessage (r, dest->GetLastReplyTunnel ());
