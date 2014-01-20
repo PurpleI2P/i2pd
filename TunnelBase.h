@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
+#include "Identity.h"
 
 namespace i2p
 {
@@ -23,7 +24,7 @@ namespace tunnel
 	{
 		TunnelDeliveryType deliveryType;
 		uint32_t tunnelID;
-		uint8_t hash[32];	
+		i2p::data::IdentHash hash;	
 		I2NPMessage * data;
 	};
 

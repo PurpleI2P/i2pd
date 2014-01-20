@@ -41,12 +41,12 @@ namespace tunnel
 							LogPrint ("Delivery type tunnel");	
 							m.tunnelID = be32toh (*(uint32_t *)fragment);
 							fragment += 4; // tunnelID
-							memcpy (m.hash, fragment, 32);
+							m.hash = i2p::data::IdentHash (fragment);
 							fragment += 32; // hash
 						break;
 						case eDeliveryTypeRouter: // 2
 							LogPrint ("Delivery type router");	
-							memcpy (m.hash, fragment, 32);	
+							m.hash = i2p::data::IdentHash (fragment);	
 							fragment += 32; // to hash
 						break;
 						default:
