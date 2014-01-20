@@ -60,8 +60,9 @@ namespace util
   		{
 			m_Buffer[bytes_transferred] = 0;
 			auto address = ExtractAddress ();
-			if (address.find ('?') != std::string::npos)
-				HandleDestinationRequest ("zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq");  
+			LogPrint (address);
+			if (address.length () > 1) // not just '/'
+				HandleDestinationRequest (address.substr (1)); // exclude '/'
 			else	  
 				HandleRequest ();
 			boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
@@ -80,7 +81,7 @@ namespace util
 		{
 			char * http = strstr (get, "HTTP");
 			if (http)
-				return std::string (get + 3, http - get - 3);
+				return std::string (get + 4, http - get - 5);
 		}	
 		return "";
 	}	
@@ -145,6 +146,7 @@ namespace util
 				s << "<BR>";
 			}	
 		}	
+		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";
 	}	
 
 	void HTTPConnection::HandleDestinationRequest (std::string b32)
@@ -179,7 +181,7 @@ namespace util
 		if (s)
 		{
 			std::string request = "GET / HTTP/1.1\n Host:" + b32 + ".b32.i2p\n";
-			s->Send ((uint8_t *)request.c_str (), request.length (), 30);			
+			s->Send ((uint8_t *)request.c_str (), request.length (), 10);			
 			std::stringstream ss;
 			uint8_t buf[8192];
 			size_t r = s->Receive (buf, 8192, 30); // 30 seconds
