@@ -1,5 +1,5 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include <endian.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -63,20 +63,13 @@ namespace i2p
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		memcpy (msg->GetBuffer (), buf, len);
-		msg->len += msg->offset + len;
+		msg->len = msg->offset + len;
 		return msg;
 	}	
 	
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
-#pragma pack(1)		
-		struct
-		{
-			uint32_t msgID;
-			uint64_t timestamp;
-		} msg;
-#pragma pack ()
-		
+		I2NPDeliveryStatusMsg msg;
 		msg.msgID = htobe32 (msgID);
 		msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
@@ -431,6 +424,8 @@ namespace i2p
 			break;	
 			case eI2NPDeliveryStatus:
 				LogPrint ("DeliveryStatus");
+				// we assume DeliveryStatusMessage is sent with garlic only
+				i2p::garlic::routing.HandleDeliveryStatusMessage (buf, size);
 			break;	
 			case eI2NPVariableTunnelBuild:
 				LogPrint ("VariableTunnelBuild");

@@ -1,5 +1,5 @@
 #include "I2PEndian.h"
-#include <boost/thread.hpp>
+#include <thread>
 #include <cryptopp/sha.h>
 #include "RouterContext.h"
 #include "Log.h"
@@ -211,6 +211,23 @@ namespace tunnel
 			}		
 		return tunnel;
 	}
+
+	std::vector<InboundTunnel *> Tunnels::GetInboundTunnels (int num) const
+	{
+		std::vector<InboundTunnel *> v;
+		int i = 0;
+		for (auto it : m_InboundTunnels)
+		{
+			if (i >= num) break;
+			if (it.second->GetNextIdentHash () != i2p::context.GetRouterInfo ().GetIdentHash ())
+			{
+				// exclude one hop tunnels
+				v.push_back (it.second);
+				i++;
+			}	
+		}	
+		return v;
+	}	
 	
 	OutboundTunnel * Tunnels::GetNextOutboundTunnel ()
 	{
@@ -260,7 +277,7 @@ namespace tunnel
 
 	void Tunnels::Run ()
 	{
-		boost::this_thread::sleep(boost::posix_time::seconds(1)); // wait for other parts are ready
+		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 		
 		uint64_t lastTs = 0;
 		while (m_IsRunning)

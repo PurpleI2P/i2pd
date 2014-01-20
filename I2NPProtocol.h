@@ -26,6 +26,11 @@ namespace i2p
 		uint32_t replyToken;	
 	};
 
+	struct I2NPDeliveryStatusMsg
+	{
+		uint32_t msgID;
+		uint64_t timestamp;
+	};
 	
 	struct I2NPBuildRequestRecordClearText
 	{
