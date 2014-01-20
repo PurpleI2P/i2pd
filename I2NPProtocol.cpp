@@ -1,5 +1,5 @@
 #include <string.h>
-#include <endian.h>
+#include <I2PEndian.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -171,6 +171,7 @@ namespace i2p
 		CryptoPP::Gzip compressor;
 		compressor.Put ((uint8_t *)context.GetRouterInfo ().GetBuffer (), context.GetRouterInfo ().GetBufferLen ());
 		compressor.MessageEnd();
+		// WARNING!!! MaxRetrievable() return uint64_t. Есть подозрение, что что-то не так
 		int size = compressor.MaxRetrievable ();
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
 		*(uint16_t *)buf = htobe16 (size); // size
