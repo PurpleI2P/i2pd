@@ -31,6 +31,7 @@ namespace tunnel
 	{
 		public:
 
+			//WARNING!!! GetSecondsSinceEpoch() return uint64_t
 			TunnelBase (): m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
 			
