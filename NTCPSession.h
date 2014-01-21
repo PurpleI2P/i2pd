@@ -144,7 +144,7 @@ namespace ntcp
 	{
 		public:
 
-			NTCPClient (boost::asio::io_service& service, const char * address, int port, i2p::data::RouterInfo& in_RouterInfo);
+			NTCPClient (boost::asio::io_service& service, boost::asio::ip::address& address, int port, i2p::data::RouterInfo& in_RouterInfo);
 
 		private:
 

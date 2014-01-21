@@ -27,7 +27,7 @@ namespace data
 			struct Address
 			{
 				TransportStyle transportStyle;
-				std::string host;
+				boost::asio::ip::address host;
 				int port;
 				uint64_t date;
 				uint8_t cost;

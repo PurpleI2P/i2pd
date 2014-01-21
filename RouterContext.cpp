@@ -45,7 +45,7 @@ namespace i2p
 		auto address = m_RouterInfo.GetNTCPAddress ();
 		if (address)
 		{
-			address->host = host;
+			address->host = boost::asio::ip::address::from_string (host);
 			address->port = port;
 		}	
 

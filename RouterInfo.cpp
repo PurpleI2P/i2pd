@@ -101,7 +101,7 @@ namespace data
 				r += ReadString (value, s); 
 				s.seekg (1, std::ios_base::cur); r++; // ;
 				if (!strcmp (key, "host"))
-					address.host = value;
+					address.host = boost::asio::ip::address::from_string (value);
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
 			}	
@@ -166,7 +166,7 @@ namespace data
 			std::stringstream properties;
 			WriteString ("host", properties);
 			properties << '=';
-			WriteString (address.host, properties);
+			WriteString (address.host.to_string (), properties);
 			properties << ';';
 			WriteString ("port", properties);
 			properties << '=';
@@ -227,7 +227,7 @@ namespace data
 	void RouterInfo::AddNTCPAddress (const char * host, int port)
 	{
 		Address addr;
-		addr.host = host;
+		addr.host = boost::asio::ip::address::from_string (host);
 		addr.port = port;
 		addr.transportStyle = eTransportNTCP;
 		addr.cost = 2;
