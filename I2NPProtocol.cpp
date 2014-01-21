@@ -63,20 +63,13 @@ namespace i2p
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		memcpy (msg->GetBuffer (), buf, len);
-		msg->len += msg->offset + len;
+		msg->len = msg->offset + len;
 		return msg;
 	}	
 	
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
-#pragma pack(1)		
-		struct
-		{
-			uint32_t msgID;
-			uint64_t timestamp;
-		} msg;
-#pragma pack ()
-		
+		I2NPDeliveryStatusMsg msg;
 		msg.msgID = htobe32 (msgID);
 		msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
@@ -178,6 +171,7 @@ namespace i2p
 		CryptoPP::Gzip compressor;
 		compressor.Put ((uint8_t *)context.GetRouterInfo ().GetBuffer (), context.GetRouterInfo ().GetBufferLen ());
 		compressor.MessageEnd();
+		// WARNING!!! MaxRetrievable() return uint64_t. Есть подозрение, что что-то не так
 		int size = compressor.MaxRetrievable ();
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
 		*(uint16_t *)buf = htobe16 (size); // size
@@ -431,6 +425,8 @@ namespace i2p
 			break;	
 			case eI2NPDeliveryStatus:
 				LogPrint ("DeliveryStatus");
+				// we assume DeliveryStatusMessage is sent with garlic only
+				i2p::garlic::routing.HandleDeliveryStatusMessage (buf, size);
 			break;	
 			case eI2NPVariableTunnelBuild:
 				LogPrint ("VariableTunnelBuild");

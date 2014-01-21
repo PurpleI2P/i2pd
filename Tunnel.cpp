@@ -138,13 +138,29 @@ namespace tunnel
 	{
 		m_Gateway.SendTunnelDataMsg (gwHash, gwTunnel, msg);
 	}
-	
-	void OutboundTunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)
+		
+	void OutboundTunnel::SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs)
 	{
-		SendTunnelDataMsg (nullptr, 0, msg);
+		for (auto& it : msgs)
+		{
+			switch (it.deliveryType)
+			{
+				case eDeliveryTypeLocal:
+					m_Gateway.SendTunnelDataMsg (nullptr, 0, it.data);
+				break;
+				case eDeliveryTypeTunnel:
+					m_Gateway.SendTunnelDataMsg (it.hash, it.tunnelID, it.data);
+				break;
+				case eDeliveryTypeRouter:
+					m_Gateway.SendTunnelDataMsg (it.hash, 0, it.data);
+				break;	
+				default:
+					LogPrint ("Unexpected delivery type ", (int)it.deliveryType);
+			}	
+		}	
+		m_Gateway.SendBuffer ();
 	}	
-		
-		
+	
 	Tunnels tunnels;
 	
 	Tunnels::Tunnels (): m_IsRunning (false), m_IsTunnelCreated (false), 
@@ -211,6 +227,23 @@ namespace tunnel
 			}		
 		return tunnel;
 	}
+
+	std::vector<InboundTunnel *> Tunnels::GetInboundTunnels (int num) const
+	{
+		std::vector<InboundTunnel *> v;
+		int i = 0;
+		for (auto it : m_InboundTunnels)
+		{
+			if (i >= num) break;
+			if (it.second->GetNextIdentHash () != i2p::context.GetRouterInfo ().GetIdentHash ())
+			{
+				// exclude one hop tunnels
+				v.push_back (it.second);
+				i++;
+			}	
+		}	
+		return v;
+	}	
 	
 	OutboundTunnel * Tunnels::GetNextOutboundTunnel ()
 	{

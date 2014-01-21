@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
+#include "Identity.h"
 
 namespace i2p
 {
@@ -22,8 +23,8 @@ namespace tunnel
 	struct TunnelMessageBlock
 	{
 		TunnelDeliveryType deliveryType;
+		i2p::data::IdentHash hash;	
 		uint32_t tunnelID;
-		uint8_t hash[32];	
 		I2NPMessage * data;
 	};
 
@@ -31,6 +32,7 @@ namespace tunnel
 	{
 		public:
 
+			//WARNING!!! GetSecondsSinceEpoch() return uint64_t
 			TunnelBase (): m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
 			

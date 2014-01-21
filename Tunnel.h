@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <map>
 #include <list>
+#include <vector>
 #include <string>
 #include <thread>
 #include <cryptopp/modes.h>
@@ -64,10 +65,9 @@ namespace tunnel
 
 			OutboundTunnel (TunnelConfig * config): Tunnel (config), m_Gateway (this) {};
 
-			void SendTunnelDataMsg (i2p::I2NPMessage * msg); //local
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
-
-			TunnelGateway& GetTunnelGateway () { return m_Gateway; };
+			void SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs); // multiple messages
+			
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
 
 			// implements TunnelBase
@@ -107,6 +107,7 @@ namespace tunnel
 			InboundTunnel * GetInboundTunnel (uint32_t tunnelID);
 			Tunnel * GetPendingTunnel (uint32_t replyMsgID);
 			InboundTunnel * GetNextInboundTunnel ();
+			std::vector<InboundTunnel *> GetInboundTunnels (int num)  const;
 			OutboundTunnel * GetNextOutboundTunnel ();
 			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
 			void AddTransitTunnel (TransitTunnel * tunnel);

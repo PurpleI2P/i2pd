@@ -27,11 +27,16 @@ namespace data
 		public:
 
 			LeaseSet (const uint8_t * buf, int len);
-
+			LeaseSet (const LeaseSet& ) = default;
+			LeaseSet& operator=(const LeaseSet& ) = default;
+			
 			// implements RoutingDestination
 			const Identity& GetIdentity () const { return m_Identity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			const std::vector<Lease>& GetLeases () const { return m_Leases; };
+			std::vector<Lease> GetNonExpiredLeases () const;
+			bool HasExpiredLeases () const;
+			bool HasNonExpiredLeases () const;
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };
 			bool IsDestination () const { return true; };
 			

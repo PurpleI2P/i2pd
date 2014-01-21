@@ -142,7 +142,14 @@ namespace i2p
 					session = new i2p::ntcp::NTCPClient (m_Service, address->host.c_str (), address->port, *r);
 					AddNTCPSession (session);
 				}	
+				else
+					LogPrint ("No NTCP addresses available");
 			}
+			else
+			{
+				LogPrint ("Router not found. Requested");
+				i2p::data::netdb.RequestDestination (ident);
+			}	
 		}	
 		if (session)
 			session->SendI2NPMessage (msg);

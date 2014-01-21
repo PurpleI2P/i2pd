@@ -1,8 +1,12 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include "base64.h"
+#include "Log.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"
 #include "Transports.h"
+#include "NetDb.h"
+#include "Streaming.h"
 #include "HTTPServer.h"
 
 namespace i2p
@@ -20,16 +24,19 @@ namespace util
 	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers()
 	{
 		std::vector<boost::asio::const_buffer> buffers;
-		buffers.push_back (boost::asio::buffer ("HTTP/1.0 200 OK\r\n")); // always OK
-		for (std::size_t i = 0; i < headers.size(); ++i)
-		{
-			header& h = headers[i];
-			buffers.push_back(boost::asio::buffer(h.name));
-			buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
-			buffers.push_back(boost::asio::buffer(h.value));
+		if (headers.size () > 0)
+		{	
+			buffers.push_back (boost::asio::buffer ("HTTP/1.0 200 OK\r\n")); // always OK
+			for (std::size_t i = 0; i < headers.size(); ++i)
+			{
+				header& h = headers[i];
+				buffers.push_back(boost::asio::buffer(h.name));
+				buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
+				buffers.push_back(boost::asio::buffer(h.value));
+				buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+			}
 			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-		}
-		buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+		}	
 		buffers.push_back(boost::asio::buffer(content));
 		return buffers;
 	}
@@ -42,7 +49,7 @@ namespace util
 
 	void HTTPConnection::Receive ()
 	{
-		m_Socket->async_read_some (boost::asio::buffer (m_Buffer),
+		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, 8192),
 			 boost::bind(&HTTPConnection::HandleReceive, this,
 				 boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
@@ -51,7 +58,13 @@ namespace util
 	{
 		if (!ecode)
   		{
-			HandleRequest ();
+			m_Buffer[bytes_transferred] = 0;
+			auto address = ExtractAddress ();
+			LogPrint (address);
+			if (address.length () > 1) // not just '/'
+				HandleDestinationRequest (address.substr (1)); // exclude '/'
+			else	  
+				HandleRequest ();
 			boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
           		boost::bind (&HTTPConnection::HandleWrite, this,
            			boost::asio::placeholders::error));
@@ -61,6 +74,18 @@ namespace util
 			Terminate ();
 	}
 
+	std::string HTTPConnection::ExtractAddress ()
+	{
+		char * get = strstr (m_Buffer, "GET");
+		if (get)
+		{
+			char * http = strstr (get, "HTTP");
+			if (http)
+				return std::string (get + 4, http - get - 5);
+		}	
+		return "";
+	}	
+	
 	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
 	{
 		Terminate ();
@@ -121,14 +146,78 @@ namespace util
 				s << "<BR>";
 			}	
 		}	
+		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";
 	}	
 
+	void HTTPConnection::HandleDestinationRequest (std::string b32)
+	{
+		uint8_t destination[32];
+		i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), destination, 32);
+		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
+		{
+			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
+			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
+			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
+			{
+				m_Reply.content = leaseSet ? "<html>Leases expired</html>" : "<html>LeaseSet not found</html>";
+				m_Reply.headers.resize(2);
+				m_Reply.headers[0].name = "Content-Length";
+				m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+				m_Reply.headers[1].name = "Content-Type";
+				m_Reply.headers[1].value = "text/html";
+				return;
+			}	
+		}	
+		// we found LeaseSet
+		if (leaseSet->HasExpiredLeases ())
+		{
+			// we should re-request LeaseSet
+			LogPrint ("LeaseSet re-requested");
+			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
+		}	
+		auto s = i2p::stream::CreateStream (leaseSet);
+		if (s)
+		{
+			std::string request = "GET / HTTP/1.1\n Host:" + b32 + ".b32.i2p\n";
+			s->Send ((uint8_t *)request.c_str (), request.length (), 10);			
+			std::stringstream ss;
+			uint8_t buf[8192];
+			size_t r = s->Receive (buf, 8192, 30); // 30 seconds
+			if (!r && s->IsEstablished ()) // nothing received but connection is established
+				r = s->Receive (buf, 8192, 30); // wait for another 30 secondd
+			if (r) // we recieved data
+			{
+				ss << std::string ((char *)buf, r);
+				while (s->IsOpen () && (r = s->Receive (buf, 8192, 30)) > 0)
+					ss << std::string ((char *)buf,r);	
+				
+				m_Reply.content = ss.str (); // send "as is"
+				m_Reply.headers.resize(0); // no headers
+				return;
+			}	
+			else // nothing received
+				ss << "<html>Not responding</html>";
+			s->Close ();
+			//DeleteStream (s);
+			
+			m_Reply.content = ss.str ();
+			m_Reply.headers.resize(2);
+			m_Reply.headers[0].name = "Content-Length";
+			m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+			m_Reply.headers[1].name = "Content-Type";
+			m_Reply.headers[1].value = "text/html";
+		}	
+	}	
+	
 	
 	HTTPServer::HTTPServer (int port): 
 		m_Thread (nullptr), m_Work (m_Service), 
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_NewSocket (nullptr)
 	{
+		
 	}
 
 	HTTPServer::~HTTPServer ()
