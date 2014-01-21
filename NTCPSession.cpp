@@ -517,7 +517,7 @@ namespace ntcp
 	}	
 		
 		
-	NTCPClient::NTCPClient (boost::asio::io_service& service, boost::asio::ip::address& address, 
+	NTCPClient::NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, 
 		int port, i2p::data::RouterInfo& in_RouterInfo): 
 		NTCPSession (service, in_RouterInfo),
 		m_Endpoint (address, port)	

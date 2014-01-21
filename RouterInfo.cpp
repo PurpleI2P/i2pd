@@ -101,7 +101,16 @@ namespace data
 				r += ReadString (value, s); 
 				s.seekg (1, std::ios_base::cur); r++; // ;
 				if (!strcmp (key, "host"))
-					address.host = boost::asio::ip::address::from_string (value);
+				{	
+					boost::system::error_code ecode;
+					address.host = boost::asio::ip::address::from_string (value, ecode);
+					if (ecode)
+					{	
+						// TODO: we should try to resolve address here
+						LogPrint ("Unexpected address ", value);
+						SetUnreachable (true);
+					}		
+				}	
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
 			}	
