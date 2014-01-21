@@ -1,5 +1,6 @@
 #include "I2PEndian.h"
 #include <fstream>
+#include <vector>
 #include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
 #include "base64.h"
@@ -313,7 +314,8 @@ namespace data
 			{	
 				i2p::tunnel::OutboundTunnel * outbound = dest->GetLastOutboundTunnel ();
 				const i2p::tunnel::InboundTunnel * inbound = dest->GetLastReplyTunnel ();
-			
+				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+				
 				for (int i = 0; i < num; i++)
 				{
 					uint8_t * router = buf + 33 + i*32;
@@ -332,7 +334,11 @@ namespace data
 								RequestedDestination * d1 = CreateRequestedDestination (router, false, false);
 								d1->SetLastOutboundTunnel (outbound);
 								auto msg = d1->CreateRequestMessage (dest->GetLastRouter (), dest->GetLastReplyTunnel ());
-								outbound->GetTunnelGateway ().PutTunnelDataMsg (dest->GetLastRouter ()->GetIdentHash (), 0, msg);
+								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+									{ 
+										i2p::tunnel::eDeliveryTypeRouter,
+										dest->GetLastRouter ()->GetIdentHash (), 0, msg
+									});
 							}	
 						}
 						else
@@ -351,7 +357,11 @@ namespace data
 								{	
 									// request destination
 									auto msg = dest->CreateRequestMessage (r, dest->GetLastReplyTunnel ());
-									outbound->GetTunnelGateway ().PutTunnelDataMsg (r->GetIdentHash (), 0, msg);
+									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+										{ 
+											i2p::tunnel::eDeliveryTypeRouter,
+											r->GetIdentHash (), 0, msg
+										});
 								}	
 							}
 							else
@@ -361,15 +371,18 @@ namespace data
 								RequestedDestination * d2 = CreateRequestedDestination (router, false, false);
 								d2->SetLastOutboundTunnel (outbound);
 								I2NPMessage * msg = d2->CreateRequestMessage (dest->GetLastRouter (), inbound);
-								outbound->GetTunnelGateway ().PutTunnelDataMsg (
-									dest->GetLastRouter ()->GetIdentHash (), 0, msg);
+								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+									{ 
+										i2p::tunnel::eDeliveryTypeRouter,
+										dest->GetLastRouter ()->GetIdentHash (), 0, msg
+									});
 							}	
 						}	
 					}	
 				}
 				
-				if (outbound)
-					outbound->GetTunnelGateway ().SendBuffer ();	
+				if (msgs.size () > 0)
+					outbound->SendTunnelDataMsg (msgs);	
 			}
 			else
 			{
@@ -398,12 +411,21 @@ namespace data
 				rnd.GenerateBlock (randomHash, 32);
 				RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
 				dest->SetLastOutboundTunnel (outbound);
-				
-				outbound->GetTunnelGateway ().PutTunnelDataMsg (floodfill->GetIdentHash (), 0,
-					CreateDatabaseStoreMsg ()); // tell floodfill about us                                         
-				outbound->GetTunnelGateway ().PutTunnelDataMsg (floodfill->GetIdentHash (), 0, 
-					dest->CreateRequestMessage (floodfill, inbound)); // explore
-				outbound->GetTunnelGateway ().SendBuffer ();
+
+				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+					{ 
+						i2p::tunnel::eDeliveryTypeRouter,
+						floodfill->GetIdentHash (), 0,
+						CreateDatabaseStoreMsg () // tell floodfill about us 
+					});  
+				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+					{ 
+						i2p::tunnel::eDeliveryTypeRouter,
+						floodfill->GetIdentHash (), 0, 
+						dest->CreateRequestMessage (floodfill, inbound) // explore
+					}); 
+				outbound->SendTunnelDataMsg (msgs);	
 			}	
 		}
 	}	

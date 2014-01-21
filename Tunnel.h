@@ -68,7 +68,6 @@ namespace tunnel
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
 			void SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs); // multiple messages
 			
-			TunnelGateway& GetTunnelGateway () { return m_Gateway; };
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
 
 			// implements TunnelBase

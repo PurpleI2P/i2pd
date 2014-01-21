@@ -23,8 +23,8 @@ namespace tunnel
 	struct TunnelMessageBlock
 	{
 		TunnelDeliveryType deliveryType;
-		uint32_t tunnelID;
 		i2p::data::IdentHash hash;	
+		uint32_t tunnelID;
 		I2NPMessage * data;
 	};
 
