@@ -265,22 +265,28 @@ namespace data
 		return false;	
 	}	
 
-	bool RouterInfo::IsNTCP () const
+	bool RouterInfo::IsNTCP (bool v4only) const
 	{
 		for (auto& address : m_Addresses)
 		{
 			if (address.transportStyle == eTransportNTCP)
-				return true;
+			{	
+				if (!v4only || address.host.is_v4 ())
+					return true;
+			}	
 		}		
 		return false;
 	}	
 
-	RouterInfo::Address * RouterInfo::GetNTCPAddress () 
+	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
 	{
 		for (auto& address : m_Addresses)
 		{
 			if (address.transportStyle == eTransportNTCP)
-				return &address;
+			{	
+				if (!v4only || address.host.is_v4 ())
+					return &address;
+			}	
 		}	
 		return nullptr;
 	}	
