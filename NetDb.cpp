@@ -239,16 +239,6 @@ namespace data
 
 	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet)
 	{
-		auto floodfill= GetRandomNTCPRouter (true);
-		if (floodfill)
-			RequestDestination (destination, floodfill, isLeaseSet);
-		else
-			LogPrint ("No floodfill routers found");
-	}	
-	
-	void NetDb::RequestDestination (const IdentHash& destination, const RouterInfo * floodfill, bool isLeaseSet)
-	{
-		if (!floodfill) return;
 		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
 		if (outbound)
 		{
@@ -256,9 +246,31 @@ namespace data
 			if (inbound)
 			{
 				RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet);
-				dest->SetLastOutboundTunnel (outbound);
-				auto msg = dest->CreateRequestMessage (floodfill, inbound);
-				outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);
+				auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+				if (floodfill)
+				{	
+					std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+					// our RouterInfo
+					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+						{ 
+							i2p::tunnel::eDeliveryTypeRouter,
+							floodfill->GetIdentHash (), 0,
+							CreateDatabaseStoreMsg () 
+						});  
+
+					// DatabaseLookup message
+					dest->SetLastOutboundTunnel (outbound);
+					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+						{ 
+							i2p::tunnel::eDeliveryTypeRouter,
+							floodfill->GetIdentHash (), 0,
+							dest->CreateRequestMessage (floodfill, inbound)
+						});	
+				
+					outbound->SendTunnelDataMsg (msgs);	
+				}	
+				else
+					LogPrint ("No more floodfills found");
 			}	
 			else
 				LogPrint ("No inbound tunnels found");	
@@ -487,7 +499,8 @@ namespace data
 		if (msg) m_Queue.Put (msg);	
 	}	
 
-	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination) const
+	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination, 
+		const std::set<IdentHash>& excluded) const
 	{
 		RouterInfo * r = nullptr;
 		XORMetric minMetric;
@@ -495,7 +508,7 @@ namespace data
 		minMetric.SetMax ();
 		for (auto it: m_RouterInfos)
 		{	
-			if (it.second->IsFloodfill () &&! it.second->IsUnreachable ())
+			if (it.second->IsFloodfill () &&! it.second->IsUnreachable () && !excluded.count (it.first))
 			{	
 				XORMetric m = destKey ^ it.second->GetRoutingKey ();
 				if (m < minMetric)

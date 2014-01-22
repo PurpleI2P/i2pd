@@ -26,7 +26,8 @@ namespace data
 			
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
-			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
+			const std::set<IdentHash>& GetExcludedPeers () { return m_ExcludedPeers; };
+ 			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
 			const i2p::tunnel::InboundTunnel * GetLastReplyTunnel () const { return m_LastReplyTunnel; };
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
@@ -62,8 +63,7 @@ namespace data
 			
 			void RequestDestination (const char * b32); // in base32
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false);
-			void RequestDestination (const IdentHash& destination, const RouterInfo * floodfill, bool isLeaseSet = false);
-			
+						
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
@@ -78,7 +78,7 @@ namespace data
 			void SaveUpdated (const char * directory);
 			void Run (); // exploratory thread
 			void Explore ();
-			const RouterInfo * GetClosestFloodfill (const IdentHash& destination) const;
+			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
 				bool isLeaseSet, bool isExploratory = false);
