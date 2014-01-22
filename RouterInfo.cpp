@@ -128,7 +128,13 @@ namespace data
 		size = be16toh (size);
 		while (r < size)
 		{
+#ifdef _WIN32			
 			char key[500], value[500];
+			// TODO: investigate why properties get read as one long string under Windows
+			// length should not be more than 44
+#else
+			char key[50], value[50];
+#endif			
 			r += ReadString (key, s);
 			s.seekg (1, std::ios_base::cur); r++; // =
 			r += ReadString (value, s); 
