@@ -115,8 +115,9 @@ namespace tunnel
 				
 				while (hop)
 				{
-					delete hop;
+					auto tmp = hop;
 					hop = hop->next;
+					delete tmp;
 				}	
 			}
 			

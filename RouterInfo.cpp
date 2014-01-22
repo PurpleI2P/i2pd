@@ -41,7 +41,7 @@ namespace data
 	
 	void RouterInfo::ReadFromFile (const char * filename)
 	{
-		std::ifstream s(filename);
+		std::ifstream s(filename, std::ios::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
@@ -95,7 +95,7 @@ namespace data
 			size = be16toh (size);
 			while (r < size)
 			{
-				char key[50], value[50];
+				char key[500], value[500];
 				r += ReadString (key, s);
 				s.seekg (1, std::ios_base::cur); r++; // =
 				r += ReadString (value, s); 
@@ -117,7 +117,7 @@ namespace data
 		size = be16toh (size);
 		while (r < size)
 		{
-			char key[50], value[50];
+			char key[500], value[500];
 			r += ReadString (key, s);
 			s.seekg (1, std::ios_base::cur); r++; // =
 			r += ReadString (value, s); 
@@ -212,6 +212,16 @@ namespace data
 	{
 		uint8_t len;
 		s.read ((char *)&len, 1);
+
+		//static int count_l = 0;
+		//count_l++;
+		//std::cout << count_l << "    " << (int)len << std::endl;
+		//if (len > 40)
+		//{
+		//	std::cout << (int)len << std::endl;
+		//}
+
+
 		s.read (str, len);
 		str[len] = 0;
 		return len+1;
