@@ -76,6 +76,7 @@ namespace data
 
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
+			void DownloadRouterInfo (const std::string& address, const std::string& filename); // for reseed 
 			void Run (); // exploratory thread
 			void Explore ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;

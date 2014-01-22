@@ -1,6 +1,7 @@
 #include "I2PEndian.h"
 #include <fstream>
 #include <vector>
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
 #include "base64.h"
@@ -520,5 +521,42 @@ namespace data
 		}	
 		return r;
 	}	
+
+	void NetDb::DownloadRouterInfo (const std::string& address, const std::string& filename)
+	{
+		try
+		{
+			boost::asio::ip::tcp::iostream site(address, "http");
+			if (!site)
+			{
+				site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds 
+				site << "GET " << filename << "HTTP/1.0\nHost: " << address << "\nAccept: */*\nConnection: close\n\n";
+				// read response
+				std::string version, statusMessage;
+				site >> version; // HTTP version
+				int status;
+				site >> status; // status
+				std::getline (site, statusMessage);
+				if (status == 200) // OK
+				{
+					std::string header;
+					while (header != "\n")
+						std::getline (site, header);
+					// read content
+					std::stringstream ss;
+					ss << site.rdbuf();
+					AddRouterInfo ((uint8_t *)ss.str ().c_str (), ss.str ().size ());
+				}
+				else
+					LogPrint ("HTTP response ", status);
+			}
+			else
+				LogPrint ("Can't connect to ", address);
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint ("Failed to download ", filename, " : ", ex.what ());
+		}
+	}
 }
 }
