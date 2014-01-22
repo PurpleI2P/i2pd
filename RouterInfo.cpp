@@ -12,6 +12,8 @@
 #include "RouterInfo.h"
 #include "RouterContext.h"
 
+
+
 namespace i2p
 {
 namespace data
@@ -41,7 +43,7 @@ namespace data
 	
 	void RouterInfo::ReadFromFile (const char * filename)
 	{
-		std::ifstream s(filename);
+		std::ifstream s(filename, std::ifstream::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
@@ -95,7 +97,7 @@ namespace data
 			size = be16toh (size);
 			while (r < size)
 			{
-				char key[50], value[50];
+				char key[500], value[500];
 				r += ReadString (key, s);
 				s.seekg (1, std::ios_base::cur); r++; // =
 				r += ReadString (value, s); 
@@ -126,7 +128,7 @@ namespace data
 		size = be16toh (size);
 		while (r < size)
 		{
-			char key[50], value[50];
+			char key[500], value[500];
 			r += ReadString (key, s);
 			s.seekg (1, std::ios_base::cur); r++; // =
 			r += ReadString (value, s); 
