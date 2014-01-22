@@ -529,7 +529,7 @@ namespace data
 			boost::asio::ip::tcp::iostream site(address, "http");
 			if (!site)
 			{
-				site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds 
+				//site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds 
 				site << "GET " << filename << "HTTP/1.0\nHost: " << address << "\nAccept: */*\nConnection: close\n\n";
 				// read response
 				std::string version, statusMessage;
