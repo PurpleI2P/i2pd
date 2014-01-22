@@ -60,7 +60,7 @@ namespace i2p
 
 	bool RouterContext::Load ()
 	{
-		std::ifstream fk (ROUTER_KEYS, std::ios::binary);
+		std::ifstream fk (ROUTER_KEYS, std::ifstream::binary | std::ofstream::in);
 		if (!fk.is_open ())	return false;
 			
 		fk.read ((char *)&m_Keys, sizeof (m_Keys));
@@ -74,10 +74,10 @@ namespace i2p
 	
 	void RouterContext::Save ()
 	{
-		std::ofstream fk (ROUTER_KEYS, std::ios::binary);
+		std::ofstream fk (ROUTER_KEYS, std::ofstream::binary | std::ofstream::out);
 		fk.write ((char *)&m_Keys, sizeof (m_Keys));
 				
-		std::ofstream fi(ROUTER_INFO, std::ios::binary);
+		std::ofstream fi (ROUTER_INFO, std::ofstream::binary | std::ofstream::out);
 		fi.write ((char *)m_RouterInfo.GetBuffer (), m_RouterInfo.GetBufferLen ());
 	}	
 }	
