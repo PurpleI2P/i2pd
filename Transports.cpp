@@ -139,7 +139,7 @@ namespace i2p
 				auto address = r->GetNTCPAddress ();
 				if (address)
 				{	
-					session = new i2p::ntcp::NTCPClient (m_Service, address->host.c_str (), address->port, *r);
+					session = new i2p::ntcp::NTCPClient (m_Service, address->host, address->port, *r);
 					AddNTCPSession (session);
 				}	
 				else

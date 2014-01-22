@@ -517,10 +517,10 @@ namespace ntcp
 	}	
 		
 		
-	NTCPClient::NTCPClient (boost::asio::io_service& service, const char * address, 
+	NTCPClient::NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, 
 		int port, i2p::data::RouterInfo& in_RouterInfo): 
 		NTCPSession (service, in_RouterInfo),
-		m_Endpoint (boost::asio::ip::address::from_string (address), port)	
+		m_Endpoint (address, port)	
 	{
 		Connect ();
 	}

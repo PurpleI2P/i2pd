@@ -101,7 +101,16 @@ namespace data
 				r += ReadString (value, s); 
 				s.seekg (1, std::ios_base::cur); r++; // ;
 				if (!strcmp (key, "host"))
-					address.host = value;
+				{	
+					boost::system::error_code ecode;
+					address.host = boost::asio::ip::address::from_string (value, ecode);
+					if (ecode)
+					{	
+						// TODO: we should try to resolve address here
+						LogPrint ("Unexpected address ", value);
+						SetUnreachable (true);
+					}		
+				}	
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
 			}	
@@ -166,7 +175,7 @@ namespace data
 			std::stringstream properties;
 			WriteString ("host", properties);
 			properties << '=';
-			WriteString (address.host, properties);
+			WriteString (address.host.to_string (), properties);
 			properties << ';';
 			WriteString ("port", properties);
 			properties << '=';
@@ -237,7 +246,7 @@ namespace data
 	void RouterInfo::AddNTCPAddress (const char * host, int port)
 	{
 		Address addr;
-		addr.host = host;
+		addr.host = boost::asio::ip::address::from_string (host);
 		addr.port = port;
 		addr.transportStyle = eTransportNTCP;
 		addr.cost = 2;
@@ -266,22 +275,28 @@ namespace data
 		return false;	
 	}	
 
-	bool RouterInfo::IsNTCP () const
+	bool RouterInfo::IsNTCP (bool v4only) const
 	{
 		for (auto& address : m_Addresses)
 		{
 			if (address.transportStyle == eTransportNTCP)
-				return true;
+			{	
+				if (!v4only || address.host.is_v4 ())
+					return true;
+			}	
 		}		
 		return false;
 	}	
 
-	RouterInfo::Address * RouterInfo::GetNTCPAddress () 
+	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
 	{
 		for (auto& address : m_Addresses)
 		{
 			if (address.transportStyle == eTransportNTCP)
-				return &address;
+			{	
+				if (!v4only || address.host.is_v4 ())
+					return &address;
+			}	
 		}	
 		return nullptr;
 	}	

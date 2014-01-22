@@ -27,7 +27,7 @@ namespace data
 			struct Address
 			{
 				TransportStyle transportStyle;
-				std::string host;
+				boost::asio::ip::address host;
 				int port;
 				uint64_t date;
 				uint8_t cost;
@@ -45,14 +45,14 @@ namespace data
 			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
-			Address * GetNTCPAddress ();
+			Address * GetNTCPAddress (bool v4only = true);
 			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
 			void SetProperty (const char * key, const char * value);
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
-			bool IsNTCP () const;
+			bool IsNTCP (bool v4only = true) const;
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
 			
