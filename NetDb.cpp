@@ -222,7 +222,10 @@ namespace data
 			{
 				// RouterInfo expires in 72 hours if more than 300
 				if (total > 300 && ts > it.second->GetTimestamp () + 3*24*3600*1000LL) // 3 days
+				{	
+					total--;
 					it.second->SetUnreachable (true);
+				}	
 				
 				if (it.second->IsUnreachable ())
 				{	
