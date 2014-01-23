@@ -207,6 +207,8 @@ namespace data
 		};	
 			
 		int count = 0, deletedCount = 0;
+		auto total = m_RouterInfos.size ();
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: m_RouterInfos)
 		{	
 			if (it.second->IsUpdated ())
@@ -216,13 +218,20 @@ namespace data
 				it.second->SetUpdated (false);
 				count++;
 			}
-			else if (it.second->IsUnreachable ())
+			else 
 			{
-				if (boost::filesystem::exists (GetFilePath (directory, it.second)))
-				{    
-				    boost::filesystem::remove (GetFilePath (directory, it.second));
-					deletedCount++;
-				}	
+				// RouterInfo expires in 72 hours if more than 300
+				if (total > 300 && ts > it.second->GetTimestamp () + 3*24*3600*1000LL) // 3 days
+					it.second->SetUnreachable (true);
+				
+				if (it.second->IsUnreachable ())
+				{	
+					if (boost::filesystem::exists (GetFilePath (directory, it.second)))
+					{    
+						boost::filesystem::remove (GetFilePath (directory, it.second));
+						deletedCount++;
+					}	
+				}
 			}	
 		}	
 		if (count > 0)
