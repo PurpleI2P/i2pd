@@ -1,6 +1,7 @@
 #include "I2PEndian.h"
 #include <fstream>
 #include <vector>
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
 #include "base64.h"
@@ -206,6 +207,8 @@ namespace data
 		};	
 			
 		int count = 0, deletedCount = 0;
+		auto total = m_RouterInfos.size ();
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: m_RouterInfos)
 		{	
 			if (it.second->IsUpdated ())
@@ -215,13 +218,23 @@ namespace data
 				it.second->SetUpdated (false);
 				count++;
 			}
-			else if (it.second->IsUnreachable ())
+			else 
 			{
-				if (boost::filesystem::exists (GetFilePath (directory, it.second)))
-				{    
-				    boost::filesystem::remove (GetFilePath (directory, it.second));
-					deletedCount++;
+				// RouterInfo expires in 72 hours if more than 300
+				if (total > 300 && ts > it.second->GetTimestamp () + 3*24*3600*1000LL) // 3 days
+				{	
+					total--;
+					it.second->SetUnreachable (true);
 				}	
+				
+				if (it.second->IsUnreachable ())
+				{	
+					if (boost::filesystem::exists (GetFilePath (directory, it.second)))
+					{    
+						boost::filesystem::remove (GetFilePath (directory, it.second));
+						deletedCount++;
+					}	
+				}
 			}	
 		}	
 		if (count > 0)
@@ -239,16 +252,6 @@ namespace data
 
 	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet)
 	{
-		auto floodfill= GetRandomNTCPRouter (true);
-		if (floodfill)
-			RequestDestination (destination, floodfill, isLeaseSet);
-		else
-			LogPrint ("No floodfill routers found");
-	}	
-	
-	void NetDb::RequestDestination (const IdentHash& destination, const RouterInfo * floodfill, bool isLeaseSet)
-	{
-		if (!floodfill) return;
 		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
 		if (outbound)
 		{
@@ -256,9 +259,31 @@ namespace data
 			if (inbound)
 			{
 				RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet);
-				dest->SetLastOutboundTunnel (outbound);
-				auto msg = dest->CreateRequestMessage (floodfill, inbound);
-				outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);
+				auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+				if (floodfill)
+				{	
+					std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+					// our RouterInfo
+					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+						{ 
+							i2p::tunnel::eDeliveryTypeRouter,
+							floodfill->GetIdentHash (), 0,
+							CreateDatabaseStoreMsg () 
+						});  
+
+					// DatabaseLookup message
+					dest->SetLastOutboundTunnel (outbound);
+					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+						{ 
+							i2p::tunnel::eDeliveryTypeRouter,
+							floodfill->GetIdentHash (), 0,
+							dest->CreateRequestMessage (floodfill, inbound)
+						});	
+				
+					outbound->SendTunnelDataMsg (msgs);	
+				}	
+				else
+					LogPrint ("No more floodfills found");
 			}	
 			else
 				LogPrint ("No inbound tunnels found");	
@@ -487,7 +512,8 @@ namespace data
 		if (msg) m_Queue.Put (msg);	
 	}	
 
-	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination) const
+	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination, 
+		const std::set<IdentHash>& excluded) const
 	{
 		RouterInfo * r = nullptr;
 		XORMetric minMetric;
@@ -495,7 +521,7 @@ namespace data
 		minMetric.SetMax ();
 		for (auto it: m_RouterInfos)
 		{	
-			if (it.second->IsFloodfill () &&! it.second->IsUnreachable ())
+			if (it.second->IsFloodfill () &&! it.second->IsUnreachable () && !excluded.count (it.first))
 			{	
 				XORMetric m = destKey ^ it.second->GetRoutingKey ();
 				if (m < minMetric)
@@ -507,5 +533,42 @@ namespace data
 		}	
 		return r;
 	}	
+
+	void NetDb::DownloadRouterInfo (const std::string& address, const std::string& filename)
+	{
+		try
+		{
+			boost::asio::ip::tcp::iostream site(address, "http");
+			if (!site)
+			{
+				//site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds 
+				site << "GET " << filename << "HTTP/1.0\nHost: " << address << "\nAccept: */*\nConnection: close\n\n";
+				// read response
+				std::string version, statusMessage;
+				site >> version; // HTTP version
+				int status;
+				site >> status; // status
+				std::getline (site, statusMessage);
+				if (status == 200) // OK
+				{
+					std::string header;
+					while (header != "\n")
+						std::getline (site, header);
+					// read content
+					std::stringstream ss;
+					ss << site.rdbuf();
+					AddRouterInfo ((uint8_t *)ss.str ().c_str (), ss.str ().size ());
+				}
+				else
+					LogPrint ("HTTP response ", status);
+			}
+			else
+				LogPrint ("Can't connect to ", address);
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint ("Failed to download ", filename, " : ", ex.what ());
+		}
+	}
 }
 }
