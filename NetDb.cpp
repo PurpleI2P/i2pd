@@ -213,7 +213,7 @@ namespace data
 		{	
 			if (it.second->IsUpdated ())
 			{
-				std::ofstream r (GetFilePath(directory, it.second));
+				std::ofstream r (GetFilePath(directory, it.second), std::ofstream::binary);
 				r.write ((char *)it.second->GetBuffer (), it.second->GetBufferLen ());
 				it.second->SetUpdated (false);
 				count++;

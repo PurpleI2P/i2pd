@@ -13,6 +13,14 @@
 
 int main( int, char** ) 
 {
+
+#ifdef _WIN32
+  setlocale(LC_CTYPE, "");
+  SetConsoleCP(1251);
+  SetConsoleOutputCP(1251);
+  setlocale(LC_ALL, "Russian");
+#endif
+
   i2p::util::HTTPServer httpServer (7070);	
 
   httpServer.Start ();	
