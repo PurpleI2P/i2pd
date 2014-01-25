@@ -412,8 +412,8 @@ namespace data
 			else
 			{
 				// no more requests for detination possible. delete it
-				m_RequestedDestinations.erase (it);
 				delete it->second;
+				m_RequestedDestinations.erase (it);
 			}	
 		}
 		else
@@ -474,8 +474,8 @@ namespace data
 		auto it = m_RequestedDestinations.find (dest);
 		if (it != m_RequestedDestinations.end ())
 		{	
-			m_RequestedDestinations.erase (it);
 			delete it->second;
+			m_RequestedDestinations.erase (it);
 		}	
 	}	
 	
@@ -499,12 +499,15 @@ namespace data
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1), i = 0;
+		RouterInfo * last = nullptr;	
 		for (auto it: m_RouterInfos)
 		{	
-			if (i >= ind) return it.second;
+			if (!it.second->IsUnreachable ())
+				last = it.second;
+			if (i >= ind) break;
 			else i++;
 		}	
-		return nullptr;
+		return last;
 	}	
 
 	void NetDb::PostI2NPMsg (I2NPMessage * msg)
