@@ -395,16 +395,15 @@ namespace tunnel
 			}	
 			else
 			{
-				//OutboundTunnel * outboundTunnel =  GetNextOutboundTunnel ();
+
 				LogPrint ("Creating two hops outbound tunnel...");
 				CreateTunnel<OutboundTunnel> (
 				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 				    	{
-							i2p::data::netdb.GetRandomNTCPRouter (),
-							i2p::data::netdb.GetRandomNTCPRouter ()
+							i2p::data::netdb.GetRandomNTCPRouter (), // first hop must be NTCP
+							i2p::data::netdb.GetRandomRouter ()
 						},		
-			     		inboundTunnel->GetTunnelConfig ())/*,
-				        	outboundTunnel*/);
+			     		inboundTunnel->GetTunnelConfig ()));
 			}	
 		}
 	}

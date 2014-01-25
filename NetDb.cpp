@@ -499,12 +499,15 @@ namespace data
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1), i = 0;
+		RouterInfo * last = nullptr;	
 		for (auto it: m_RouterInfos)
 		{	
-			if (i >= ind) return it.second;
+			if (!it.second->IsUnreachable ())
+				last = it.second;
+			if (i >= ind) break;
 			else i++;
 		}	
-		return nullptr;
+		return last;
 	}	
 
 	void NetDb::PostI2NPMsg (I2NPMessage * msg)
