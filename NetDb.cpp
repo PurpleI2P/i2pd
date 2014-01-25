@@ -412,8 +412,8 @@ namespace data
 			else
 			{
 				// no more requests for detination possible. delete it
-				m_RequestedDestinations.erase (it);
 				delete it->second;
+				m_RequestedDestinations.erase (it);
 			}	
 		}
 		else
@@ -474,8 +474,8 @@ namespace data
 		auto it = m_RequestedDestinations.find (dest);
 		if (it != m_RequestedDestinations.end ())
 		{	
-			m_RequestedDestinations.erase (it);
 			delete it->second;
+			m_RequestedDestinations.erase (it);
 		}	
 	}	
 	

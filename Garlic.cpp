@@ -236,8 +236,8 @@ namespace garlic
 		auto it = m_Sessions.find (destination->GetIdentHash ());
 		if (it != m_Sessions.end ())
 		{
-			m_Sessions.erase (it);
 			delete it->second;
+			m_Sessions.erase (it);
 		}
 		GarlicRoutingSession * session = new GarlicRoutingSession (destination, 0); // not follow-on messages expected
 		m_Sessions[destination->GetIdentHash ()] = session;
