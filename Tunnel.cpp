@@ -397,11 +397,12 @@ namespace tunnel
 			{
 
 				LogPrint ("Creating two hops outbound tunnel...");
+				auto firstHop = i2p::data::netdb.GetRandomNTCPRouter (); // first hop must be NTCP
 				CreateTunnel<OutboundTunnel> (
 				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 				    	{
-							i2p::data::netdb.GetRandomNTCPRouter (), // first hop must be NTCP
-							i2p::data::netdb.GetRandomRouter ()
+							firstHop,
+							i2p::data::netdb.GetRandomRouter (firstHop)
 						},		
 			     		inboundTunnel->GetTunnelConfig ()));
 			}	
@@ -449,8 +450,8 @@ namespace tunnel
 				CreateTunnel<InboundTunnel> (
 					new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 						{                
-				            i2p::data::netdb.GetRandomNTCPRouter (), 
-							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomNTCPRouter ()
+				            i2p::data::netdb.GetRandomRouter (outboundTunnel->GetEndpointRouter ()), 
+							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomNTCPRouter () // last hop must be NTCP
 		                }),                 
 				    outboundTunnel);
 			}	

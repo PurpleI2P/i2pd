@@ -427,7 +427,7 @@ namespace data
 		auto inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
 		if (outbound && inbound)
 		{
-			auto floodfill = GetRandomNTCPRouter (true);
+			auto floodfill = GetRandomRouter (outbound->GetEndpointRouter (), true);
 			if (floodfill)
 			{
 				LogPrint ("Exploring new routers ...");
@@ -495,19 +495,29 @@ namespace data
 		return last;
 	}	
 
-	const RouterInfo * NetDb::GetRandomRouter () const
+	const RouterInfo * NetDb::GetRandomRouter (const RouterInfo * compatibleWith, bool floodfillOnly) const
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1), i = 0;
-		RouterInfo * last = nullptr;	
-		for (auto it: m_RouterInfos)
+		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1);	
+		for (int j = 0; j < 2; j++)
 		{	
-			if (!it.second->IsUnreachable ())
-				last = it.second;
-			if (i >= ind) break;
-			else i++;
+			uint32_t i = 0;
+			for (auto it: m_RouterInfos)
+			{	
+				if (i >= ind)
+				{	
+					if (!it.second->IsUnreachable () && 
+					 (!compatibleWith || it.second->IsCompatible (*compatibleWith)) &&
+					 (!floodfillOnly || it.second->IsFloodfill ()))
+						return it.second;
+				}	
+				else 
+					i++;
+			}
+			// we couldn't find anything, try second pass
+			ind = 0;
 		}	
-		return last;
+		return nullptr; // seem we have too few routers
 	}	
 
 	void NetDb::PostI2NPMsg (I2NPMessage * msg)

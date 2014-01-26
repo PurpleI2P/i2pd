@@ -68,7 +68,7 @@ namespace data
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
 			const RouterInfo * GetRandomNTCPRouter (bool floodfillOnly = false) const;
-			const RouterInfo * GetRandomRouter () const;
+			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr, bool floodfillOnly = false) const;
 
 			void PostI2NPMsg (I2NPMessage * msg);
 			

@@ -17,6 +17,14 @@ namespace data
 	{
 		public:
 
+			enum SupportedTranports
+			{	
+				eNTCPV4 = 0x01,
+				eNTCPV6 = 0x20,
+				eSSUV4 = 0x40,
+				eSSUV6 = 0x80
+			};
+			
 			enum TransportStyle
 			{
 				eTransportUnknown = 0,
@@ -53,6 +61,8 @@ namespace data
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
 			bool IsNTCP (bool v4only = true) const;
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
 			
@@ -91,6 +101,7 @@ namespace data
 			std::vector<Address> m_Addresses;
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
+			uint8_t m_SupportedTransports;
 	};	
 }	
 }

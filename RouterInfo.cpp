@@ -13,19 +13,18 @@
 #include "RouterContext.h"
 
 
-
 namespace i2p
 {
 namespace data
 {		
 	RouterInfo::RouterInfo (const char * filename):
-		m_IsUpdated (false), m_IsUnreachable (false)
+		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0)
 	{
 		ReadFromFile (filename);
 	}	
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
-		m_IsUpdated (true)
+		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0)
 	{
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
@@ -111,7 +110,15 @@ namespace data
 						// TODO: we should try to resolve address here
 						LogPrint ("Unexpected address ", value);
 						SetUnreachable (true);
-					}		
+					}	
+					else
+					{
+						// add supported protocol
+						if (address.host.is_v4 ())
+							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;	
+						else
+							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+ 					}	
 				}	
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
@@ -275,17 +282,12 @@ namespace data
 
 	bool RouterInfo::IsNTCP (bool v4only) const
 	{
-		for (auto& address : m_Addresses)
-		{
-			if (address.transportStyle == eTransportNTCP)
-			{	
-				if (!v4only || address.host.is_v4 ())
-					return true;
-			}	
-		}		
-		return false;
-	}	
-
+		if (v4only)
+			return m_SupportedTransports & eNTCPV4;
+		else
+			return m_SupportedTransports & (eNTCPV4 | eNTCPV6);
+	}		
+		
 	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
 	{
 		for (auto& address : m_Addresses)
