@@ -3,7 +3,9 @@
 
 #include <inttypes.h>
 #include <map>
+#include <set>
 #include <cryptopp/dsa.h>
+#include "I2PEndian.h"
 #include "Queue.h"
 #include "Identity.h"
 #include "LeaseSet.h"
@@ -37,6 +39,16 @@ namespace stream
 		Packet (): len (0), offset (0) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
+
+		uint32_t GetReceivedSeqn () const { return be32toh (*(uint32_t *)(buf + 8)); };
+	};	
+
+	struct PacketCmp
+	{
+		bool operator() (const Packet * p1, const Packet * p2) const
+  		{	
+			return p1->GetReceivedSeqn () < p2->GetReceivedSeqn (); 
+		};
 	};	
 	
 	class StreamingDestination;
@@ -61,6 +73,8 @@ namespace stream
 
 			void ConnectAndSend (uint8_t * buf, size_t len);
 			void SendQuickAck ();
+
+			void SavePacket (Packet * packet);
 			
 		private:
 
@@ -69,6 +83,7 @@ namespace stream
 			StreamingDestination * m_LocalDestination;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::util::Queue<Packet> m_ReceiveQueue;
+			std::set<Packet *, PacketCmp> m_SavedPackets;
 			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;
 	};
 	

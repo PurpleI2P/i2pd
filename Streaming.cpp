@@ -1,4 +1,3 @@
-#include "I2PEndian.h"
 #include <string>
 #include <algorithm>
 #include <cryptopp/gzip.h>
@@ -26,6 +25,8 @@ namespace stream
 	{
 		while (auto packet = m_ReceiveQueue.Get ())
 			delete packet;
+		for (auto it: m_SavedPackets)
+			delete it;
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
@@ -80,6 +81,26 @@ namespace stream
 	
 			m_LastReceivedSequenceNumber = receivedSeqn;
 			SendQuickAck ();
+
+			// we should also try stored messages if any
+			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
+			{			
+				if ((*it)->GetReceivedSeqn () == m_LastReceivedSequenceNumber + 1)
+				{
+					Packet * packet = *it;
+					m_SavedPackets.erase (it++);
+
+					LogPrint ("Process saved packet seqn=", packet->GetReceivedSeqn ());
+					if (packet->GetLength () > 0)
+						m_ReceiveQueue.Put (packet);
+					else
+						delete packet;
+					m_LastReceivedSequenceNumber++;
+					SendQuickAck ();
+				}
+				else
+					break;
+			}	
 		}	
 		else 
 		{	
@@ -90,13 +111,14 @@ namespace stream
 				m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel (); // pick another tunnel
 				if (m_OutboundTunnel)
 					SendQuickAck (); // resend ack for previous message again
+				delete packet; // packet dropped
 			}	
 			else
 			{
 				LogPrint ("Missing messages from ", m_LastReceivedSequenceNumber + 1, " to ", receivedSeqn - 1);
-				// actually do nothing. just wait for missing message again
+				// save message and wait for missing message again
+				SavePacket (packet);
 			}	
-			delete packet; // packet dropped
 		}	
 			
 		if (flags & PACKET_FLAG_CLOSE)
@@ -107,6 +129,11 @@ namespace stream
 		}
 	}	
 
+	void Stream::SavePacket (Packet * packet)
+	{
+		m_SavedPackets.insert (packet);
+	}	
+		
 	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
 	{
 		if (!m_IsOpen)
