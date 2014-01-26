@@ -9,6 +9,7 @@
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
+#include "Transports.h"
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
@@ -28,6 +29,16 @@ namespace data
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_LastReplyTunnel = replyTunnel;
+		return msg;
+	}	
+
+	I2NPMessage * RequestedDestination::CreateRequestMessage (const IdentHash& floodfill)
+	{
+		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
+			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
+		m_ExcludedPeers.insert (floodfill);
+		m_LastRouter = nullptr;
+		m_LastReplyTunnel = nullptr;
 		return msg;
 	}	
 	
@@ -252,44 +263,49 @@ namespace data
 
 	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet)
 	{
-		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		if (outbound)
-		{
-			i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
-			if (inbound)
+		if (isLeaseSet) // we request LeaseSet through tunnels
+		{	
+			i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+			if (outbound)
 			{
-				RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet);
-				auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
-				if (floodfill)
-				{	
-					std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-					// our RouterInfo
-					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-						{ 
-							i2p::tunnel::eDeliveryTypeRouter,
-							floodfill->GetIdentHash (), 0,
-							CreateDatabaseStoreMsg () 
-						});  
-
-					// DatabaseLookup message
-					dest->SetLastOutboundTunnel (outbound);
-					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-						{ 
-							i2p::tunnel::eDeliveryTypeRouter,
-							floodfill->GetIdentHash (), 0,
-							dest->CreateRequestMessage (floodfill, inbound)
-						});	
+				i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+				if (inbound)
+				{
+					RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet);
+					auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+					if (floodfill)
+					{	
+						std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+						// DatabaseLookup message
+						dest->SetLastOutboundTunnel (outbound);
+						msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+							{ 
+								i2p::tunnel::eDeliveryTypeRouter,
+								floodfill->GetIdentHash (), 0,
+								dest->CreateRequestMessage (floodfill, inbound)
+							});	
 				
-					outbound->SendTunnelDataMsg (msgs);	
+						outbound->SendTunnelDataMsg (msgs);	
+					}	
+					else
+						LogPrint ("No more floodfills found");
 				}	
 				else
-					LogPrint ("No more floodfills found");
-			}	
+					LogPrint ("No inbound tunnels found");	
+			}
 			else
-				LogPrint ("No inbound tunnels found");	
-		}
-		else
-			LogPrint ("No outbound tunnels found");
+				LogPrint ("No outbound tunnels found");
+		}	
+		else // RouterInfo is requested directly
+		{
+			RequestedDestination * dest = CreateRequestedDestination (destination, false);
+			auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+			if (floodfill)
+			{
+				dest->SetLastOutboundTunnel (nullptr);
+				i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+			}	
+		}	
 	}	
 	
 	void NetDb::HandleDatabaseStoreMsg (uint8_t * buf, size_t len)
@@ -402,11 +418,18 @@ namespace data
 										dest->GetLastRouter ()->GetIdentHash (), 0, msg
 									});
 							}	
+						}
+						else // we should send directly
+						{
+							if (!dest->IsLeaseSet ()) // if not LeaseSet
+								i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							else
+								LogPrint ("Can't request LeaseSet");
 						}	
 					}	
 				}
 				
-				if (msgs.size () > 0)
+				if (outbound && msgs.size () > 0)
 					outbound->SendTunnelDataMsg (msgs);	
 			}
 			else
