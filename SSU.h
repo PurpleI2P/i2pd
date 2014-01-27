@@ -4,11 +4,24 @@
 #include <inttypes.h>
 #include <map>
 #include <boost/asio.hpp>
+#include <cryptopp/modes.h>
+#include <cryptopp/aes.h>
+#include "I2PEndian.h"
 
 namespace i2p
 {
 namespace ssu
 {
+#pragma pack(1)
+	struct SSUHeader
+	{
+		uint8_t mac[16];
+		uint8_t iv[16];
+		uint8_t flag;
+		uint32_t time;	
+	};
+#pragma pack()
+
 	const int SSU_MTU = 1484;
 
 	// payload types (4 bits)
@@ -38,11 +51,16 @@ namespace ssu
 		public:
 
 			SSUSession ();
-			void ProcessNextMessage (uint8_t * buf, std::size_t len);
+			void ProcessNextMessage (uint8_t * buf, size_t len);
+		
+		private:
+
+			void Authenticate (uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
 
 		private:
 			
 			SessionState m_State;	
+			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;			
 	};
 
 	class SSUServer

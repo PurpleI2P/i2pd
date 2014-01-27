@@ -14,6 +14,16 @@ namespace ssu
 
 	void SSUSession::ProcessNextMessage (uint8_t * buf, std::size_t len)
 	{
+		switch (m_State)
+		{
+			default:
+				LogPrint ("SSU state not implemented yet");
+		}
+	}
+
+	void SSUSession::Authenticate (uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey)
+	{	
+		m_Encryption.SetKeyWithIV (aesKey, 32, iv);
 	}
 
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
