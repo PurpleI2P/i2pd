@@ -5,7 +5,7 @@ OBJECTS = i2p.o base64.o NTCPSession.o RouterInfo.o Transports.o RouterContext.o
 	NetDb.o LeaseSet.o Tunnel.o TunnelEndpoint.o TunnelGateway.o TransitTunnel.o \
 	I2NPProtocol.o Log.o Garlic.o HTTPServer.o Streaming.o Identity.o SSU.o
 INCFLAGS = 
-LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem
+LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lpthread
 LIBS = 
 
 all: i2p
