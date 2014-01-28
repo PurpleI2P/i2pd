@@ -7,6 +7,7 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include "I2PEndian.h"
+#include "RouterInfo.h"
 
 namespace i2p
 {
@@ -46,21 +47,30 @@ namespace ssu
 		eSessionStateEstablised
 	};		
 
+	class SSUServer;
 	class SSUSession
 	{
 		public:
 
-			SSUSession ();
-			void ProcessNextMessage (uint8_t * buf, size_t len);
-		
+			SSUSession (SSUServer * server, const boost::asio::ip::udp::endpoint& remoteEndpoint,
+				i2p::data::RouterInfo * router = nullptr);
+			void ProcessNextMessage (uint8_t * buf, size_t len);		
+
 		private:
 
-			void Authenticate (uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
+			void ProcessSessionRequest (uint8_t * buf, size_t len);
+
+			void Encrypt (uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
+			void Decrypt (uint8_t * buf, size_t len, uint8_t * aesKey);			
+			bool Validate (uint8_t * buf, size_t len, uint8_t * macKey);			
 
 		private:
 			
+			SSUServer * m_Server;
+			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			SessionState m_State;	
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;			
+			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
+			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;			
 	};
 
 	class SSUServer
@@ -71,6 +81,9 @@ namespace ssu
 			~SSUServer ();
 			void Start ();
 			void Stop ();
+			SSUSession * GetSession (i2p::data::RouterInfo * router);
+			
+			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 
 		private:
 
@@ -81,7 +94,7 @@ namespace ssu
 			
 			boost::asio::ip::udp::socket m_Socket;
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
-			uint8_t m_ReceiveBuffer[SSU_MTU];
+			uint8_t m_ReceiveBuffer[2*SSU_MTU];
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
 	};
 }
