@@ -39,6 +39,7 @@ namespace data
 				int port;
 				uint64_t date;
 				uint8_t cost;
+				uint8_t key[32]; // into key for SSU
 			};
 			
 			RouterInfo (const char * filename);
@@ -54,6 +55,7 @@ namespace data
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
 			Address * GetNTCPAddress (bool v4only = true);
+			Address * GetSSUAddress (bool v4only = true);
 			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
@@ -88,6 +90,7 @@ namespace data
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
 			void UpdateIdentHashBase64 ();
+			Address * GetAddress (TransportStyle s, bool v4only);
 			
 		private:
 

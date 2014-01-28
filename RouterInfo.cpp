@@ -122,6 +122,8 @@ namespace data
 				}	
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
+				else if (!strcmp (key, "key"))
+					Base64ToByteStream (value, strlen (value), address.key, 32);
 			}	
 			m_Addresses.push_back(address);
 		}	
@@ -290,9 +292,19 @@ namespace data
 		
 	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
 	{
+		return GetAddress (eTransportNTCP, v4only);
+	}	
+
+	RouterInfo::Address * RouterInfo::GetSSUAddress (bool v4only)
+	{
+		return GetAddress (eTransportSSU, v4only);
+	}	
+
+	RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only)
+	{
 		for (auto& address : m_Addresses)
 		{
-			if (address.transportStyle == eTransportNTCP)
+			if (address.transportStyle == s)
 			{	
 				if (!v4only || address.host.is_v4 ())
 					return &address;
