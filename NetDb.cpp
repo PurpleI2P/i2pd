@@ -191,16 +191,15 @@ namespace data
 		}
 
 		// list of chars might appear in base64 string
-		const char * chars = GetBase64SubstitutionTable ();
+		const char * chars = GetBase64SubstitutionTable (); // 64 bytes
 		boost::filesystem::path suffix;
-		while (*chars)
+		for (int i = 0; i < 64; i++)
 		{
 #ifndef _WIN32
-			suffix = std::string ("/r") + *chars;
+			suffix = std::string ("/r") + chars[i];
 #else
-			suffix = std::string ("\\r") + *chars;
+			suffix = std::string ("\\r") + chars[i];
 #endif
-			chars++;	
 			if (!boost::filesystem::create_directory( boost::filesystem::path (p / suffix) )) return false;
 		}
 		return true;
