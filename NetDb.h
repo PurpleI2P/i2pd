@@ -76,6 +76,7 @@ namespace data
 			
 		private:
 
+			bool CreateNetDb(const char * directory);
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
 			void DownloadRouterInfo (const std::string& address, const std::string& filename); // for reseed 

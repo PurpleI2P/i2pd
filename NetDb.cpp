@@ -177,43 +177,75 @@ namespace data
 			return it->second;
 		else
 			return nullptr;
-	}	
+	}
+
+	// TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
+	bool NetDb::CreateNetDb(const char * directory)
+	{
+		boost::filesystem::path p (directory);
+		LogPrint (directory, " doesn't exist, trying to create it.");
+		if (!boost::filesystem::create_directory (p))
+		{
+			LogPrint("Failed to create directory ", directory);
+			return false;
+		}
+
+		// Random chars
+		std::string chars = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-~";
+		boost::filesystem::path suffix;
+		for (auto c : chars)
+		{
+#ifndef _WIN32
+			suffix = "/r";
+#else
+			suffix = "\\r";
+#endif
+			suffix += c;
+			if (!boost::filesystem::create_directory( boost::filesystem::path (p / suffix) )) return false;
+		}
+		return true;
+	}
 	
 	void NetDb::Load (const char * directory)
 	{
 		boost::filesystem::path p (directory);
-		if (boost::filesystem::exists (p))
+		if (!boost::filesystem::exists (p))
 		{
-			int numRouters = 0;
-			boost::filesystem::directory_iterator end;
-			for (boost::filesystem::directory_iterator it (p); it != end; ++it)
+			if (!CreateNetDb(directory)) return;
+		}
+		// TODO: Reseed if needed.
+		int numRouters = 0;
+		boost::filesystem::directory_iterator end;
+		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
+		{
+			if (boost::filesystem::is_directory (it->status()))
 			{
-				if (boost::filesystem::is_directory (it->status()))
+				for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
 				{
-					for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
-					{
 #if BOOST_VERSION > 10500
-						RouterInfo * r = new RouterInfo (it1->path().string().c_str ());
+					RouterInfo * r = new RouterInfo (it1->path().string().c_str ());
 #else
-						RouterInfo * r = new RouterInfo(it1->path().c_str());
+					RouterInfo * r = new RouterInfo(it1->path().c_str());
 #endif
-						m_RouterInfos[r->GetIdentHash ()] = r;
-						numRouters++;
-					}	
+					m_RouterInfos[r->GetIdentHash ()] = r;
+					numRouters++;
 				}	
 			}	
-			LogPrint (numRouters, " routers loaded");
 		}
-		else
-			LogPrint (directory, " doesn't exist");
+		LogPrint (numRouters, " routers loaded");
 	}	
 
 	void NetDb::SaveUpdated (const char * directory)
 	{	
 		auto GetFilePath = [](const char * directory, const RouterInfo * routerInfo)
 		{
+#ifndef _WIN32
 			return std::string (directory) + "/r" +
-				routerInfo->GetIdentHashBase64 ()[0] + "/routerInfo-" + 
+				routerInfo->GetIdentHashBase64 ()[0] + "/routerInfo-" +
+#else
+			return std::string (directory) + "\\r" +
+				routerInfo->GetIdentHashBase64 ()[0] + "\\routerInfo-" +
+#endif
 				routerInfo->GetIdentHashBase64 () + ".dat";
 		};	
 			
@@ -570,6 +602,9 @@ namespace data
 		return r;
 	}	
 
+	//TODO: Move to reseed.
+	//TODO: Implement v1 & v2 reseeding. Lightweight zip library is needed for v2.
+	//TODO: Implement SU3, utils.
 	void NetDb::DownloadRouterInfo (const std::string& address, const std::string& filename)
 	{
 		try
