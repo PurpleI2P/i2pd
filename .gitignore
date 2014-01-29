@@ -2,6 +2,8 @@
 *.o
 router.info
 router.keys
+i2p
+netDb
 
 #################
 ## Eclipse
