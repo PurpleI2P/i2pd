@@ -8,6 +8,7 @@
 #include <cryptopp/aes.h>
 #include "I2PEndian.h"
 #include "RouterInfo.h"
+#include "I2NPProtocol.h"
 
 namespace i2p
 {
@@ -25,7 +26,7 @@ namespace ssu
 
 	const int SSU_MTU = 1484;
 
-	// payload types (4 bits)
+	// payload types (3 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
 	const uint8_t PAYLOAD_TYPE_SESSION_CREATED = 1;
 	const uint8_t PAYLOAD_TYPE_SESSION_CONFIRMED = 2;
@@ -54,13 +55,22 @@ namespace ssu
 
 			SSUSession (SSUServer * server, const boost::asio::ip::udp::endpoint& remoteEndpoint,
 				i2p::data::RouterInfo * router = nullptr);
-			void ProcessNextMessage (uint8_t * buf, size_t len);		
+			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
+
+			void Connect ();
+			void SendI2NPMessage (I2NPMessage * msg);
 
 		private:
 
-			void ProcessSessionRequest (uint8_t * buf, size_t len);
+			void CreateAESKey (uint8_t * pubKey, uint8_t * aesKey); // TODO: shouldn't be here
 
-			void Encrypt (uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
+			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+			void SendSessionRequest ();
+			void ProcessSessionCreated (uint8_t * buf, size_t len);
+			void SendSessionCreated (const boost::asio::ip::udp::endpoint& senderEndpoint);
+
+			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, uint8_t * macKey);			
 
@@ -68,9 +78,11 @@ namespace ssu
 			
 			SSUServer * m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
+			i2p::data::RouterInfo * m_RemoteRouter;
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;			
+			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
+			uint8_t m_SessionKey[32];
 	};
 
 	class SSUServer
