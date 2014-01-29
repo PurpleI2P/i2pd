@@ -190,17 +190,17 @@ namespace data
 			return false;
 		}
 
-		// Random chars
-		std::string chars = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-~";
+		// list of chars might appear in base64 string
+		const char * chars = GetBase64SubstitutionTable ();
 		boost::filesystem::path suffix;
-		for (auto c : chars)
+		while (*chars)
 		{
 #ifndef _WIN32
-			suffix = "/r";
+			suffix = std::string ("/r") + *chars;
 #else
-			suffix = "\\r";
+			suffix = std::string ("\\r") + *chars;
 #endif
-			suffix += c;
+			chars++;	
 			if (!boost::filesystem::create_directory( boost::filesystem::path (p / suffix) )) return false;
 		}
 		return true;
@@ -604,6 +604,7 @@ namespace data
 
 	//TODO: Move to reseed.
 	//TODO: Implement v1 & v2 reseeding. Lightweight zip library is needed for v2.
+	// orignal: zip is part of crypto++, see implementation of DatabaseStoreMsg
 	//TODO: Implement SU3, utils.
 	void NetDb::DownloadRouterInfo (const std::string& address, const std::string& filename)
 	{
