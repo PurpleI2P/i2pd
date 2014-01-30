@@ -24,6 +24,7 @@
     <ClCompile Include="..\NTCPSession.cpp" />
     <ClCompile Include="..\RouterContext.cpp" />
     <ClCompile Include="..\RouterInfo.cpp" />
+    <ClCompile Include="..\SSU.cpp" />
     <ClCompile Include="..\Streaming.cpp" />
     <ClCompile Include="..\TransitTunnel.cpp" />
     <ClCompile Include="..\Transports.cpp" />
@@ -48,6 +49,7 @@
     <ClInclude Include="..\Queue.h" />
     <ClInclude Include="..\RouterContext.h" />
     <ClInclude Include="..\RouterInfo.h" />
+    <ClInclude Include="..\SSU.h" />
     <ClInclude Include="..\Streaming.h" />
     <ClInclude Include="..\Timestamp.h" />
     <ClInclude Include="..\TransitTunnel.h" />

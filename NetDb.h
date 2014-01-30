@@ -26,12 +26,15 @@ namespace data
 			
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
-			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
+			const std::set<IdentHash>& GetExcludedPeers () { return m_ExcludedPeers; };
+ 			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
 			const i2p::tunnel::InboundTunnel * GetLastReplyTunnel () const { return m_LastReplyTunnel; };
 			bool IsExploratory () const { return m_IsExploratory; };
+			bool IsLeaseSet () const { return m_IsLeaseSet; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
 			I2NPMessage * CreateRequestMessage (const RouterInfo * router, const i2p::tunnel::InboundTunnel * replyTunnel);
-
+			I2NPMessage * CreateRequestMessage (const IdentHash& floodfill);
+			
 			i2p::tunnel::OutboundTunnel * GetLastOutboundTunnel () const { return m_LastOutboundTunnel; };
 			void SetLastOutboundTunnel (i2p::tunnel::OutboundTunnel * tunnel) { m_LastOutboundTunnel = tunnel; };
 			
@@ -62,23 +65,24 @@ namespace data
 			
 			void RequestDestination (const char * b32); // in base32
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false);
-			void RequestDestination (const IdentHash& destination, const RouterInfo * floodfill, bool isLeaseSet = false);
-			
+						
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
 			const RouterInfo * GetRandomNTCPRouter (bool floodfillOnly = false) const;
-			const RouterInfo * GetRandomRouter () const;
+			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr, bool floodfillOnly = false) const;
 
 			void PostI2NPMsg (I2NPMessage * msg);
 			
 		private:
 
+			bool CreateNetDb(const char * directory);
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
+			void DownloadRouterInfo (const std::string& address, const std::string& filename); // for reseed 
 			void Run (); // exploratory thread
 			void Explore ();
-			const RouterInfo * GetClosestFloodfill (const IdentHash& destination) const;
+			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
 				bool isLeaseSet, bool isExploratory = false);

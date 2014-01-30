@@ -10,10 +10,21 @@
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "HTTPServer.h"
+#include "util.h"
 
-int main( int, char** ) 
+int main( int argc, char* argv[] )
 {
-  i2p::util::HTTPServer httpServer (7070);	
+  i2p::util::ParseArguments(argc,argv);
+#ifdef _WIN32
+  setlocale(LC_CTYPE, "");
+  SetConsoleCP(1251);
+  SetConsoleOutputCP(1251);
+  setlocale(LC_ALL, "Russian");
+#endif
+
+  int httpport = i2p::util::GetIntArg("--httpport", 7070);
+
+  i2p::util::HTTPServer httpServer (httpport);
 
   httpServer.Start ();	
   i2p::data::netdb.Start ();

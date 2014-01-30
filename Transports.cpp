@@ -12,7 +12,7 @@ namespace i2p
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_Thread (0), m_Work (m_Service),m_NTCPAcceptor (0)
+		m_Thread (nullptr), m_Work (m_Service),m_NTCPAcceptor (nullptr), m_SSUServer (nullptr)
 	{		
 	}
 		
@@ -34,11 +34,22 @@ namespace i2p
 				m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service,
 					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address.port));
 
-				LogPrint ("Start listening port ", address.port);	
+				LogPrint ("Start listening TCP port ", address.port);	
 				auto conn = new i2p::ntcp::NTCPServerConnection (m_Service);
 				m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
 					conn, boost::asio::placeholders::error));
 			}	
+			else if (address.transportStyle == RouterInfo::eTransportSSU)
+			{
+				if (!m_SSUServer)
+				{	
+					m_SSUServer = new i2p::ssu::SSUServer (m_Service, address.port);
+					LogPrint ("Start listening UDP port ", address.port);
+					m_SSUServer->Start ();	
+				}
+				else
+					LogPrint ("SSU server already exists");
+			}
 		}	
 	}
 		
@@ -48,6 +59,12 @@ namespace i2p
 			delete session.second;
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
+
+		if (m_SSUServer)
+		{
+			m_SSUServer->Stop ();
+			delete m_SSUServer;
+		}
 
 		m_IsRunning = false;
 		m_Service.stop ();
@@ -139,7 +156,7 @@ namespace i2p
 				auto address = r->GetNTCPAddress ();
 				if (address)
 				{	
-					session = new i2p::ntcp::NTCPClient (m_Service, address->host.c_str (), address->port, *r);
+					session = new i2p::ntcp::NTCPClient (m_Service, address->host, address->port, *r);
 					AddNTCPSession (session);
 				}	
 				else

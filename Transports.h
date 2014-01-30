@@ -7,6 +7,7 @@
 #include <string>
 #include <boost/asio.hpp>
 #include "NTCPSession.h"
+#include "SSU.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 
@@ -47,6 +48,7 @@ namespace i2p
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor;
 
 			std::map<i2p::data::IdentHash, i2p::ntcp::NTCPSession *> m_NTCPSessions;
+			i2p::ssu::SSUServer * m_SSUServer;
 
 		public:
 

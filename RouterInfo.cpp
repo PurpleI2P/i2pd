@@ -12,18 +12,19 @@
 #include "RouterInfo.h"
 #include "RouterContext.h"
 
+
 namespace i2p
 {
 namespace data
 {		
 	RouterInfo::RouterInfo (const char * filename):
-		m_IsUpdated (false), m_IsUnreachable (false)
+		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0)
 	{
 		ReadFromFile (filename);
 	}	
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
-		m_IsUpdated (true)
+		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0)
 	{
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
@@ -41,7 +42,7 @@ namespace data
 	
 	void RouterInfo::ReadFromFile (const char * filename)
 	{
-		std::ifstream s(filename);
+		std::ifstream s(filename, std::ifstream::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
@@ -95,15 +96,34 @@ namespace data
 			size = be16toh (size);
 			while (r < size)
 			{
-				char key[50], value[50];
+				char key[500], value[500];
 				r += ReadString (key, s);
 				s.seekg (1, std::ios_base::cur); r++; // =
 				r += ReadString (value, s); 
 				s.seekg (1, std::ios_base::cur); r++; // ;
 				if (!strcmp (key, "host"))
-					address.host = value;
+				{	
+					boost::system::error_code ecode;
+					address.host = boost::asio::ip::address::from_string (value, ecode);
+					if (ecode)
+					{	
+						// TODO: we should try to resolve address here
+						LogPrint ("Unexpected address ", value);
+						SetUnreachable (true);
+					}	
+					else
+					{
+						// add supported protocol
+						if (address.host.is_v4 ())
+							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;	
+						else
+							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+ 					}	
+				}	
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
+				else if (!strcmp (key, "key"))
+					Base64ToByteStream (value, strlen (value), address.key, 32);
 			}	
 			m_Addresses.push_back(address);
 		}	
@@ -117,7 +137,13 @@ namespace data
 		size = be16toh (size);
 		while (r < size)
 		{
+#ifdef _WIN32			
+			char key[500], value[500];
+			// TODO: investigate why properties get read as one long string under Windows
+			// length should not be more than 44
+#else
 			char key[50], value[50];
+#endif			
 			r += ReadString (key, s);
 			s.seekg (1, std::ios_base::cur); r++; // =
 			r += ReadString (value, s); 
@@ -166,7 +192,7 @@ namespace data
 			std::stringstream properties;
 			WriteString ("host", properties);
 			properties << '=';
-			WriteString (address.host, properties);
+			WriteString (address.host.to_string (), properties);
 			properties << ';';
 			WriteString ("port", properties);
 			properties << '=';
@@ -227,7 +253,7 @@ namespace data
 	void RouterInfo::AddNTCPAddress (const char * host, int port)
 	{
 		Address addr;
-		addr.host = host;
+		addr.host = boost::asio::ip::address::from_string (host);
 		addr.port = port;
 		addr.transportStyle = eTransportNTCP;
 		addr.cost = 2;
@@ -256,22 +282,33 @@ namespace data
 		return false;	
 	}	
 
-	bool RouterInfo::IsNTCP () const
+	bool RouterInfo::IsNTCP (bool v4only) const
 	{
-		for (auto& address : m_Addresses)
-		{
-			if (address.transportStyle == eTransportNTCP)
-				return true;
-		}		
-		return false;
+		if (v4only)
+			return m_SupportedTransports & eNTCPV4;
+		else
+			return m_SupportedTransports & (eNTCPV4 | eNTCPV6);
+	}		
+		
+	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
+	{
+		return GetAddress (eTransportNTCP, v4only);
 	}	
 
-	RouterInfo::Address * RouterInfo::GetNTCPAddress () 
+	RouterInfo::Address * RouterInfo::GetSSUAddress (bool v4only)
+	{
+		return GetAddress (eTransportSSU, v4only);
+	}	
+
+	RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only)
 	{
 		for (auto& address : m_Addresses)
 		{
-			if (address.transportStyle == eTransportNTCP)
-				return &address;
+			if (address.transportStyle == s)
+			{	
+				if (!v4only || address.host.is_v4 ())
+					return &address;
+			}	
 		}	
 		return nullptr;
 	}	

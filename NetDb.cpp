@@ -1,6 +1,7 @@
 #include "I2PEndian.h"
 #include <fstream>
 #include <vector>
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
 #include "base64.h"
@@ -8,6 +9,7 @@
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
+#include "Transports.h"
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
@@ -27,6 +29,16 @@ namespace data
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_LastReplyTunnel = replyTunnel;
+		return msg;
+	}	
+
+	I2NPMessage * RequestedDestination::CreateRequestMessage (const IdentHash& floodfill)
+	{
+		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
+			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
+		m_ExcludedPeers.insert (floodfill);
+		m_LastRouter = nullptr;
+		m_LastReplyTunnel = nullptr;
 		return msg;
 	}	
 	
@@ -165,63 +177,106 @@ namespace data
 			return it->second;
 		else
 			return nullptr;
-	}	
+	}
+
+	// TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
+	bool NetDb::CreateNetDb(const char * directory)
+	{
+		boost::filesystem::path p (directory);
+		LogPrint (directory, " doesn't exist, trying to create it.");
+		if (!boost::filesystem::create_directory (p))
+		{
+			LogPrint("Failed to create directory ", directory);
+			return false;
+		}
+
+		// list of chars might appear in base64 string
+		const char * chars = GetBase64SubstitutionTable (); // 64 bytes
+		boost::filesystem::path suffix;
+		for (int i = 0; i < 64; i++)
+		{
+#ifndef _WIN32
+			suffix = std::string ("/r") + chars[i];
+#else
+			suffix = std::string ("\\r") + chars[i];
+#endif
+			if (!boost::filesystem::create_directory( boost::filesystem::path (p / suffix) )) return false;
+		}
+		return true;
+	}
 	
 	void NetDb::Load (const char * directory)
 	{
 		boost::filesystem::path p (directory);
-		if (boost::filesystem::exists (p))
+		if (!boost::filesystem::exists (p))
 		{
-			int numRouters = 0;
-			boost::filesystem::directory_iterator end;
-			for (boost::filesystem::directory_iterator it (p); it != end; ++it)
+			if (!CreateNetDb(directory)) return;
+		}
+		// TODO: Reseed if needed.
+		int numRouters = 0;
+		boost::filesystem::directory_iterator end;
+		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
+		{
+			if (boost::filesystem::is_directory (it->status()))
 			{
-				if (boost::filesystem::is_directory (it->status()))
+				for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
 				{
-					for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
-					{
 #if BOOST_VERSION > 10500
-						RouterInfo * r = new RouterInfo (it1->path().string().c_str ());
+					RouterInfo * r = new RouterInfo (it1->path().string().c_str ());
 #else
-						RouterInfo * r = new RouterInfo(it1->path().c_str());
+					RouterInfo * r = new RouterInfo(it1->path().c_str());
 #endif
-						m_RouterInfos[r->GetIdentHash ()] = r;
-						numRouters++;
-					}	
+					m_RouterInfos[r->GetIdentHash ()] = r;
+					numRouters++;
 				}	
 			}	
-			LogPrint (numRouters, " routers loaded");
 		}
-		else
-			LogPrint (directory, " doesn't exist");
+		LogPrint (numRouters, " routers loaded");
 	}	
 
 	void NetDb::SaveUpdated (const char * directory)
 	{	
 		auto GetFilePath = [](const char * directory, const RouterInfo * routerInfo)
 		{
+#ifndef _WIN32
 			return std::string (directory) + "/r" +
-				routerInfo->GetIdentHashBase64 ()[0] + "/routerInfo-" + 
+				routerInfo->GetIdentHashBase64 ()[0] + "/routerInfo-" +
+#else
+			return std::string (directory) + "\\r" +
+				routerInfo->GetIdentHashBase64 ()[0] + "\\routerInfo-" +
+#endif
 				routerInfo->GetIdentHashBase64 () + ".dat";
 		};	
 			
 		int count = 0, deletedCount = 0;
+		auto total = m_RouterInfos.size ();
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: m_RouterInfos)
 		{	
 			if (it.second->IsUpdated ())
 			{
-				std::ofstream r (GetFilePath(directory, it.second));
+				std::ofstream r (GetFilePath(directory, it.second), std::ofstream::binary);
 				r.write ((char *)it.second->GetBuffer (), it.second->GetBufferLen ());
 				it.second->SetUpdated (false);
 				count++;
 			}
-			else if (it.second->IsUnreachable ())
+			else 
 			{
-				if (boost::filesystem::exists (GetFilePath (directory, it.second)))
-				{    
-				    boost::filesystem::remove (GetFilePath (directory, it.second));
-					deletedCount++;
+				// RouterInfo expires in 72 hours if more than 300
+				if (total > 300 && ts > it.second->GetTimestamp () + 3*24*3600*1000LL) // 3 days
+				{	
+					total--;
+					it.second->SetUnreachable (true);
 				}	
+				
+				if (it.second->IsUnreachable ())
+				{	
+					if (boost::filesystem::exists (GetFilePath (directory, it.second)))
+					{    
+						boost::filesystem::remove (GetFilePath (directory, it.second));
+						deletedCount++;
+					}	
+				}
 			}	
 		}	
 		if (count > 0)
@@ -239,32 +294,49 @@ namespace data
 
 	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet)
 	{
-		auto floodfill= GetRandomNTCPRouter (true);
-		if (floodfill)
-			RequestDestination (destination, floodfill, isLeaseSet);
-		else
-			LogPrint ("No floodfill routers found");
-	}	
-	
-	void NetDb::RequestDestination (const IdentHash& destination, const RouterInfo * floodfill, bool isLeaseSet)
-	{
-		if (!floodfill) return;
-		i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		if (outbound)
-		{
-			i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
-			if (inbound)
+		if (isLeaseSet) // we request LeaseSet through tunnels
+		{	
+			i2p::tunnel::OutboundTunnel * outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+			if (outbound)
 			{
-				RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet);
-				dest->SetLastOutboundTunnel (outbound);
-				auto msg = dest->CreateRequestMessage (floodfill, inbound);
-				outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);
-			}	
+				i2p::tunnel::InboundTunnel * inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+				if (inbound)
+				{
+					RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet);
+					auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+					if (floodfill)
+					{	
+						std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+						// DatabaseLookup message
+						dest->SetLastOutboundTunnel (outbound);
+						msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+							{ 
+								i2p::tunnel::eDeliveryTypeRouter,
+								floodfill->GetIdentHash (), 0,
+								dest->CreateRequestMessage (floodfill, inbound)
+							});	
+				
+						outbound->SendTunnelDataMsg (msgs);	
+					}	
+					else
+						LogPrint ("No more floodfills found");
+				}	
+				else
+					LogPrint ("No inbound tunnels found");	
+			}
 			else
-				LogPrint ("No inbound tunnels found");	
-		}
-		else
-			LogPrint ("No outbound tunnels found");
+				LogPrint ("No outbound tunnels found");
+		}	
+		else // RouterInfo is requested directly
+		{
+			RequestedDestination * dest = CreateRequestedDestination (destination, false);
+			auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+			if (floodfill)
+			{
+				dest->SetLastOutboundTunnel (nullptr);
+				i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+			}	
+		}	
 	}	
 	
 	void NetDb::HandleDatabaseStoreMsg (uint8_t * buf, size_t len)
@@ -377,18 +449,25 @@ namespace data
 										dest->GetLastRouter ()->GetIdentHash (), 0, msg
 									});
 							}	
+						}
+						else // we should send directly
+						{
+							if (!dest->IsLeaseSet ()) // if not LeaseSet
+								i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							else
+								LogPrint ("Can't request LeaseSet");
 						}	
 					}	
 				}
 				
-				if (msgs.size () > 0)
+				if (outbound && msgs.size () > 0)
 					outbound->SendTunnelDataMsg (msgs);	
 			}
 			else
 			{
 				// no more requests for detination possible. delete it
-				m_RequestedDestinations.erase (it);
 				delete it->second;
+				m_RequestedDestinations.erase (it);
 			}	
 		}
 		else
@@ -402,7 +481,7 @@ namespace data
 		auto inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
 		if (outbound && inbound)
 		{
-			auto floodfill = GetRandomNTCPRouter (true);
+			auto floodfill = GetRandomRouter (outbound->GetEndpointRouter (), true);
 			if (floodfill)
 			{
 				LogPrint ("Exploring new routers ...");
@@ -449,8 +528,8 @@ namespace data
 		auto it = m_RequestedDestinations.find (dest);
 		if (it != m_RequestedDestinations.end ())
 		{	
-			m_RequestedDestinations.erase (it);
 			delete it->second;
+			m_RequestedDestinations.erase (it);
 		}	
 	}	
 	
@@ -470,16 +549,29 @@ namespace data
 		return last;
 	}	
 
-	const RouterInfo * NetDb::GetRandomRouter () const
+	const RouterInfo * NetDb::GetRandomRouter (const RouterInfo * compatibleWith, bool floodfillOnly) const
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1), i = 0;
-		for (auto it: m_RouterInfos)
+		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1);	
+		for (int j = 0; j < 2; j++)
 		{	
-			if (i >= ind) return it.second;
-			else i++;
+			uint32_t i = 0;
+			for (auto it: m_RouterInfos)
+			{	
+				if (i >= ind)
+				{	
+					if (!it.second->IsUnreachable () && 
+					 (!compatibleWith || it.second->IsCompatible (*compatibleWith)) &&
+					 (!floodfillOnly || it.second->IsFloodfill ()))
+						return it.second;
+				}	
+				else 
+					i++;
+			}
+			// we couldn't find anything, try second pass
+			ind = 0;
 		}	
-		return nullptr;
+		return nullptr; // seem we have too few routers
 	}	
 
 	void NetDb::PostI2NPMsg (I2NPMessage * msg)
@@ -487,7 +579,8 @@ namespace data
 		if (msg) m_Queue.Put (msg);	
 	}	
 
-	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination) const
+	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination, 
+		const std::set<IdentHash>& excluded) const
 	{
 		RouterInfo * r = nullptr;
 		XORMetric minMetric;
@@ -495,7 +588,7 @@ namespace data
 		minMetric.SetMax ();
 		for (auto it: m_RouterInfos)
 		{	
-			if (it.second->IsFloodfill () &&! it.second->IsUnreachable ())
+			if (it.second->IsFloodfill () &&! it.second->IsUnreachable () && !excluded.count (it.first))
 			{	
 				XORMetric m = destKey ^ it.second->GetRoutingKey ();
 				if (m < minMetric)
@@ -507,5 +600,46 @@ namespace data
 		}	
 		return r;
 	}	
+
+	//TODO: Move to reseed.
+	//TODO: Implement v1 & v2 reseeding. Lightweight zip library is needed for v2.
+	// orignal: zip is part of crypto++, see implementation of DatabaseStoreMsg
+	//TODO: Implement SU3, utils.
+	void NetDb::DownloadRouterInfo (const std::string& address, const std::string& filename)
+	{
+		try
+		{
+			boost::asio::ip::tcp::iostream site(address, "http");
+			if (!site)
+			{
+				//site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds 
+				site << "GET " << filename << "HTTP/1.0\nHost: " << address << "\nAccept: */*\nConnection: close\n\n";
+				// read response
+				std::string version, statusMessage;
+				site >> version; // HTTP version
+				int status;
+				site >> status; // status
+				std::getline (site, statusMessage);
+				if (status == 200) // OK
+				{
+					std::string header;
+					while (header != "\n")
+						std::getline (site, header);
+					// read content
+					std::stringstream ss;
+					ss << site.rdbuf();
+					AddRouterInfo ((uint8_t *)ss.str ().c_str (), ss.str ().size ());
+				}
+				else
+					LogPrint ("HTTP response ", status);
+			}
+			else
+				LogPrint ("Can't connect to ", address);
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint ("Failed to download ", filename, " : ", ex.what ());
+		}
+	}
 }
 }

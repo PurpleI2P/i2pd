@@ -17,6 +17,14 @@ namespace data
 	{
 		public:
 
+			enum SupportedTranports
+			{	
+				eNTCPV4 = 0x01,
+				eNTCPV6 = 0x20,
+				eSSUV4 = 0x40,
+				eSSUV6 = 0x80
+			};
+			
 			enum TransportStyle
 			{
 				eTransportUnknown = 0,
@@ -27,10 +35,11 @@ namespace data
 			struct Address
 			{
 				TransportStyle transportStyle;
-				std::string host;
+				boost::asio::ip::address host;
 				int port;
 				uint64_t date;
 				uint8_t cost;
+				uint8_t key[32]; // into key for SSU
 			};
 			
 			RouterInfo (const char * filename);
@@ -45,14 +54,17 @@ namespace data
 			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
-			Address * GetNTCPAddress ();
+			Address * GetNTCPAddress (bool v4only = true);
+			Address * GetSSUAddress (bool v4only = true);
 			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
 			void SetProperty (const char * key, const char * value);
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
-			bool IsNTCP () const;
+			bool IsNTCP (bool v4only = true) const;
+			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
 			
@@ -78,6 +90,7 @@ namespace data
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
 			void UpdateIdentHashBase64 ();
+			Address * GetAddress (TransportStyle s, bool v4only);
 			
 		private:
 
@@ -91,6 +104,7 @@ namespace data
 			std::vector<Address> m_Addresses;
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
+			uint8_t m_SupportedTransports;
 	};	
 }	
 }

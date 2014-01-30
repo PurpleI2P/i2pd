@@ -3,6 +3,7 @@
 #include <cryptopp/dsa.h>
 #include "CryptoConst.h"
 #include "RouterContext.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -45,7 +46,7 @@ namespace i2p
 		auto address = m_RouterInfo.GetNTCPAddress ();
 		if (address)
 		{
-			address->host = host;
+			address->host = boost::asio::ip::address::from_string (host);
 			address->port = port;
 		}	
 
@@ -60,7 +61,7 @@ namespace i2p
 
 	bool RouterContext::Load ()
 	{
-		std::ifstream fk (ROUTER_KEYS);
+		std::ifstream fk (ROUTER_KEYS, std::ifstream::binary | std::ofstream::in);
 		if (!fk.is_open ())	return false;
 			
 		fk.read ((char *)&m_Keys, sizeof (m_Keys));
@@ -74,10 +75,10 @@ namespace i2p
 	
 	void RouterContext::Save ()
 	{
-		std::ofstream fk (ROUTER_KEYS);
+		std::ofstream fk (ROUTER_KEYS, std::ofstream::binary | std::ofstream::out);
 		fk.write ((char *)&m_Keys, sizeof (m_Keys));
 				
-		std::ofstream fi (ROUTER_INFO);
+		std::ofstream fi (ROUTER_INFO, std::ofstream::binary | std::ofstream::out);
 		fi.write ((char *)m_RouterInfo.GetBuffer (), m_RouterInfo.GetBufferLen ());
 	}	
 }	
