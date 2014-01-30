@@ -3,6 +3,7 @@
 #include <cryptopp/dsa.h>
 #include "CryptoConst.h"
 #include "RouterContext.h"
+#include "util.h"
 
 namespace i2p
 {
