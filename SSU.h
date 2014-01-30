@@ -26,10 +26,11 @@ namespace ssu
 
 	const int SSU_MTU = 1484;
 
-	// payload types (3 bits)
+	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
 	const uint8_t PAYLOAD_TYPE_SESSION_CREATED = 1;
 	const uint8_t PAYLOAD_TYPE_SESSION_CONFIRMED = 2;
+	const uint8_t PAYLOAD_TYPE_SESSION_DESTROY = 8;
 	const uint8_t PAYLOAD_TYPE_RELAY_REQUEST = 3;
 	const uint8_t PAYLOAD_TYPE_RELAY_RESPONSE = 4;
 	const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
