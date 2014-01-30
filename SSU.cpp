@@ -209,7 +209,7 @@ namespace ssu
 	}	
 
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
-		m_Socket (service, boost::asio::ip::udp::v4 (), port)
+		m_Socket (service, boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v4 (), port))
 	{
 	}
 	
