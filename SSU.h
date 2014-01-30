@@ -68,7 +68,7 @@ namespace ssu
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
-			void SendSessionCreated (const boost::asio::ip::udp::endpoint& senderEndpoint);
+			void SendSessionCreated (const uint8_t * x);
 
 			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
@@ -95,7 +95,8 @@ namespace ssu
 			void Start ();
 			void Stop ();
 			SSUSession * GetSession (i2p::data::RouterInfo * router);
-			
+
+			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 
 		private:
@@ -105,6 +106,7 @@ namespace ssu
 
 		private:
 			
+			boost::asio::ip::udp::endpoint m_Endpoint;
 			boost::asio::ip::udp::socket m_Socket;
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
 			uint8_t m_ReceiveBuffer[2*SSU_MTU];

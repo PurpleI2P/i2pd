@@ -63,7 +63,8 @@ namespace ssu
 		{
 			m_State = eSessionStateRequestReceived;
 			LogPrint ("Session request received");	
-			SendSessionCreated (senderEndpoint);
+			m_RemoteEndpoint = senderEndpoint;
+			SendSessionCreated (buf + sizeof (SSUHeader));
 		}
 	}
 
@@ -102,7 +103,7 @@ namespace ssu
 		m_Server->Send (buf, 304, m_RemoteEndpoint);
 	}
 
-	void SSUSession::SendSessionCreated (const boost::asio::ip::udp::endpoint& senderEndpoint)
+	void SSUSession::SendSessionCreated (const uint8_t * x)
 	{
 		auto address = m_RemoteRouter ? m_RemoteRouter->GetSSUAddress () : nullptr;
 		if (!address)
@@ -110,11 +111,40 @@ namespace ssu
 			LogPrint ("Missing remote SSU address");
 			return;
 		}
+		uint8_t signedData[532]; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
+		memcpy (signedData, x, 256); // x
 
-		uint8_t buf[368 + 18];
+		uint8_t buf[368 + 18];	
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, i2p::context.GetRouterIdentity ().publicKey, 256);
+		memcpy (signedData + 256, payload, 256); // y
+		payload += 256;
+		*payload = 4; // we assume ipv4
+		payload++;
+		*(uint32_t *)(payload) = m_RemoteEndpoint.address ().to_v4 ().to_ulong (); // network bytes order already
+		payload += 4;
+		*(uint16_t *)(payload) = htobe16 (m_RemoteEndpoint.port ());
+		payload += 2;
+		memcpy (signedData + 512, payload - 6, 6); // remote endpoint IP and port 
+		*(uint32_t *)(signedData + 518) = m_Server->GetEndpoint ().address ().to_v4 ().to_ulong (); // our IP
+		*(uint16_t *)(signedData + 522) = htobe16 (m_Server->GetEndpoint ().port ()); // our port
+		*(uint32_t *)(payload) = 0; //  relay tag, always 0 for now
+		payload += 4; 
+		*(uint32_t *)(payload) = htobe32 (i2p::util::GetSecondsSinceEpoch ()); // signed on time
+		payload += 4;
+		memcpy (signedData + 524, payload - 8, 8); // relayTag and signed on time 
+		i2p::context.Sign (signedData, 532, payload); // DSA signature
+		// TODO: fill padding with random data	
 
+		uint8_t iv[16];
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		// encrypt signature and 8 bytes padding with newly created session key	
+		m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
+		m_Encryption.ProcessData (payload, payload, 48);
+
+		// encrypt message with intro key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, address->key, iv, address->key);
 		m_State = eSessionStateRequestSent;		
 		m_Server->Send (buf, 368, m_RemoteEndpoint);
 	}
@@ -209,7 +239,7 @@ namespace ssu
 	}	
 
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
-		m_Socket (service, boost::asio::ip::udp::endpoint (boost::asio::ip::udp::v4 (), port))
+		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
 	{
 	}
 	
