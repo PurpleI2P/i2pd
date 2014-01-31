@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include "Reseed.h"
 #include "Log.h"
@@ -11,7 +10,8 @@ namespace i2p
 {
 namespace data
 {
-
+	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
+	//TODO: Implement SU3, utils.
 	Reseeder::Reseeder()
 	{
 	}
@@ -32,10 +32,11 @@ namespace data
 				LogPrint("Reseed failed");
 				return false;
 			}
-			boost::regex e("<\\s*A\\s+[^>]*href\\s*=\\s*\"([^\"]*)\"",
-               boost::regex::normal | boost::regbase::icase);
+			boost::regex e("<\\s*A\\s+[^>]*href\\s*=\\s*\"([^\"]*)\"", boost::regex::normal | boost::regbase::icase);
 			boost::sregex_token_iterator i(content.begin(), content.end(), e, 1);
 			boost::sregex_token_iterator j;
+			//TODO: Ugly code, try to clean up.
+			//TODO: Try to reduce N number of variables
 			std::string name;
 			std::string routerInfo;
 			std::string tmpUrl;
@@ -43,7 +44,6 @@ namespace data
 			std::string ignoreFileSuffix = ".zip";
 			while (i != j)
 			{
-				//TODO: Ugly code, try to clean up.
 				name = *i++;
 				if (name.find(ignoreFileSuffix)!=std::string::npos)
 					continue;
@@ -52,7 +52,7 @@ namespace data
 				tmpUrl.append(name);
 				routerInfo = i2p::util::http::httpRequest(tmpUrl);
 				filename = "netDb/r";
-				filename += name.at(11);
+				filename += name.at(11); // first char in id
 				filename.append("/");
 				filename.append(name.c_str());
 				std::ofstream outfile (filename, std::ios::binary);

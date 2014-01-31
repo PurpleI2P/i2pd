@@ -49,8 +49,6 @@ const char* GetCharArg(const std::string& strArg, const std::string& nDefault)
 
 namespace http
 {
-	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
-	//TODO: Implement SU3, utils.
 	std::string httpRequest(const std::string& address)
 	{
 		try
@@ -61,7 +59,6 @@ namespace http
 			site.connect(u.host_, "http");
 			if (site)
 			{
-				//site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds
 				// User-Agent is needed to get the server list routerInfo files.
 				site << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
 				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";
