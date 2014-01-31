@@ -9,7 +9,7 @@ INCFLAGS =
 LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lpthread
 LIBS = 
 
-all: i2p
+all: obj i2p
 
 i2p: $(OBJECTS:obj/%=obj/%)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
@@ -18,11 +18,14 @@ i2p: $(OBJECTS:obj/%=obj/%)
 .SUFFIXES:	.c .cc .C .cpp .o
 
 obj/%.o : %.cpp
-	mkdir -p obj
 	$(CC) -o $@ $< -c $(CFLAGS) $(INCFLAGS)
 
+obj:
+	mkdir -p obj
+
 clean:
-	rm -fr obj
+	rm -fr obj i2p
 
 .PHONY: all
 .PHONY: clean
+
