@@ -9,8 +9,9 @@ namespace i2p
 namespace util
 {
 	extern std::map<std::string, std::string> mapArgs;
-	void ParseArguments(int argc, const char* const argv[]);
+	void OptionParser(int argc, const char* const argv[]);
 	int GetIntArg(const std::string& strArg, int nDefault);
+	const char* GetCharArg(const std::string& strArg, const std::string& nDefault);
 
 }
 }
