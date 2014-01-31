@@ -49,11 +49,7 @@ const char* GetCharArg(const std::string& strArg, const std::string& nDefault)
 
 namespace http
 {
-//const std::string& filename
-//AddRouterInfo ((uint8_t *)ss.str ().c_str (), ss.str ().size ());
-	//TODO: Move to reseed.
-	//TODO: Implement v1 & v2 reseeding. Lightweight zip library is needed for v2.
-	// orignal: zip is part of crypto++, see implementation of DatabaseStoreMsg
+	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
 	//TODO: Implement SU3, utils.
 	std::string httpRequest(const std::string& address)
 	{

@@ -40,9 +40,13 @@ namespace data
 			std::string routerInfo;
 			std::string tmpUrl;
 			std::string filename;
+			std::string ignoreFileSuffix = ".zip";
 			while (i != j)
 			{
+				//TODO: Ugly code, try to clean up.
 				name = *i++;
+				if (name.find(ignoreFileSuffix)!=std::string::npos)
+					continue;
 				LogPrint("Downloading ", name);
 				tmpUrl = reseedHost;
 				tmpUrl.append(name);
