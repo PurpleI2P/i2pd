@@ -78,8 +78,8 @@ namespace data
 
 			bool CreateNetDb(const char * directory);
 			void Load (const char * directory);
+			void Load (const char * directory, bool reseed);
 			void SaveUpdated (const char * directory);
-			void DownloadRouterInfo (const std::string& address, const std::string& filename); // for reseed 
 			void Run (); // exploratory thread
 			void Explore ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
@@ -95,6 +95,7 @@ namespace data
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
 			
 			bool m_IsRunning;
+			int m_reseedRetries = 0;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
 	};

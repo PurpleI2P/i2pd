@@ -18,14 +18,13 @@ First, build it.
 * $ cd i2pd
 * $ make
 
-Now, copy your netDb folder from your Java I2P config dir. (The one with r0, r1, r2, ... folders in it) to the source folder where your i2p binary is.
-
 Next, find out your public ip. (find it for example at http://www.whatismyip.com/)
 
 Then, run it with:
 
 $ ./i2p --host=YOUR_PUBLIC_IP
 
+The client should now reseed by itself.
 
 Other options:
 * --port=				- The port to listen on
