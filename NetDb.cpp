@@ -13,6 +13,7 @@
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
+#include "Reseed.h"
 
 namespace i2p
 {
@@ -207,12 +208,23 @@ namespace data
 	
 	void NetDb::Load (const char * directory)
 	{
+		Load(directory, false);
+	}
+
+	void NetDb::Load (const char * directory, bool reseed)
+	{
+		i2p::data::Reseeder *reseeder = new i2p::data::Reseeder();
 		boost::filesystem::path p (directory);
 		if (!boost::filesystem::exists (p))
 		{
 			if (!CreateNetDb(directory)) return;
+			reseeder->reseedNow();
 		}
-		// TODO: Reseed if needed.
+		if (reseed)
+		{
+			reseeder->reseedNow();
+			m_reseedRetries++;
+		}
 		int numRouters = 0;
 		boost::filesystem::directory_iterator end;
 		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
@@ -232,6 +244,8 @@ namespace data
 			}	
 		}
 		LogPrint (numRouters, " routers loaded");
+		if (numRouters < 100 && m_reseedRetries < 10)
+			Load(directory, true); // Reseed
 	}	
 
 	void NetDb::SaveUpdated (const char * directory)
@@ -601,45 +615,5 @@ namespace data
 		return r;
 	}	
 
-	//TODO: Move to reseed.
-	//TODO: Implement v1 & v2 reseeding. Lightweight zip library is needed for v2.
-	// orignal: zip is part of crypto++, see implementation of DatabaseStoreMsg
-	//TODO: Implement SU3, utils.
-	void NetDb::DownloadRouterInfo (const std::string& address, const std::string& filename)
-	{
-		try
-		{
-			boost::asio::ip::tcp::iostream site(address, "http");
-			if (!site)
-			{
-				//site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds 
-				site << "GET " << filename << "HTTP/1.0\nHost: " << address << "\nAccept: */*\nConnection: close\n\n";
-				// read response
-				std::string version, statusMessage;
-				site >> version; // HTTP version
-				int status;
-				site >> status; // status
-				std::getline (site, statusMessage);
-				if (status == 200) // OK
-				{
-					std::string header;
-					while (header != "\n")
-						std::getline (site, header);
-					// read content
-					std::stringstream ss;
-					ss << site.rdbuf();
-					AddRouterInfo ((uint8_t *)ss.str ().c_str (), ss.str ().size ());
-				}
-				else
-					LogPrint ("HTTP response ", status);
-			}
-			else
-				LogPrint ("Can't connect to ", address);
-		}
-		catch (std::exception& ex)
-		{
-			LogPrint ("Failed to download ", filename, " : ", ex.what ());
-		}
-	}
 }
 }
