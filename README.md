@@ -15,8 +15,8 @@ Testing
 
 First, build it.
 
-$ cd i2pd
-$ make
+* $ cd i2pd
+* $ make
 
 Now, copy your netDb folder from your Java I2P config dir. (The one with r0, r1, r2, ... folders in it) to the source folder where your i2p binary is.
 
@@ -28,8 +28,8 @@ $ ./i2p --host=YOUR_PUBLIC_IP
 
 
 Other options:
---port=				- The port to listen on
---httpport=			- The http port to listen on
+* --port=				- The port to listen on
+* --httpport=			- The http port to listen on
 
 
 To visit an I2P page, you need to find the b32 address of your destination.
