@@ -63,6 +63,13 @@ namespace data
 	void NetDb::Start ()
 	{
 		Load ("netDb");
+		while (m_RouterInfos.size () < 100 && m_ReseedRetries < 10)
+		{
+			Reseeder reseeder;
+			reseeder.reseedNow();
+			m_ReseedRetries++;
+			Load ("netDb");
+		}	
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
 	
@@ -205,26 +212,21 @@ namespace data
 		}
 		return true;
 	}
-	
+
 	void NetDb::Load (const char * directory)
 	{
-		Load(directory, false);
-	}
-
-	void NetDb::Load (const char * directory, bool reseed)
-	{
-		i2p::data::Reseeder *reseeder = new i2p::data::Reseeder();
 		boost::filesystem::path p (directory);
 		if (!boost::filesystem::exists (p))
 		{
+			// seems netDb doesn't exist yet
 			if (!CreateNetDb(directory)) return;
-			reseeder->reseedNow();
 		}
-		if (reseed)
-		{
-			reseeder->reseedNow();
-			m_ReseedRetries++;
-		}
+		// make sure we cleanup netDb from previous attempts
+		for (auto r: m_RouterInfos)
+			delete r.second;
+		m_RouterInfos.clear ();	
+
+		// load routers now
 		int numRouters = 0;
 		boost::filesystem::directory_iterator end;
 		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
@@ -244,8 +246,6 @@ namespace data
 			}	
 		}
 		LogPrint (numRouters, " routers loaded");
-		if (numRouters < 100 && m_ReseedRetries < 10)
-			Load(directory, true); // Reseed
 	}	
 
 	void NetDb::SaveUpdated (const char * directory)

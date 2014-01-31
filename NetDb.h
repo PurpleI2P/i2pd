@@ -78,7 +78,6 @@ namespace data
 
 			bool CreateNetDb(const char * directory);
 			void Load (const char * directory);
-			void Load (const char * directory, bool reseed);
 			void SaveUpdated (const char * directory);
 			void Run (); // exploratory thread
 			void Explore ();
