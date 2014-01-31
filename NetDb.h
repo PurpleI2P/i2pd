@@ -95,7 +95,7 @@ namespace data
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
 			
 			bool m_IsRunning;
-			int m_reseedRetries = 0;
+			int m_ReseedRetries;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
 	};

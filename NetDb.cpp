@@ -45,7 +45,7 @@ namespace data
 	
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (0)
+	NetDb::NetDb (): m_IsRunning (false), m_ReseedRetries (0), m_Thread (0)
 	{
 	}
 	
@@ -223,7 +223,7 @@ namespace data
 		if (reseed)
 		{
 			reseeder->reseedNow();
-			m_reseedRetries++;
+			m_ReseedRetries++;
 		}
 		int numRouters = 0;
 		boost::filesystem::directory_iterator end;
@@ -244,7 +244,7 @@ namespace data
 			}	
 		}
 		LogPrint (numRouters, " routers loaded");
-		if (numRouters < 100 && m_reseedRetries < 10)
+		if (numRouters < 100 && m_ReseedRetries < 10)
 			Load(directory, true); // Reseed
 	}	
 

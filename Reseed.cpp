@@ -10,6 +10,20 @@ namespace i2p
 {
 namespace data
 {
+
+	static std::vector<std::string> httpReseedHostList = {
+				"http://193.150.121.66/netDb/",
+				"http://netdb.i2p2.no/",
+				"http://reseed.i2p-projekt.de/",
+				"http://cowpuncher.drollette.com/netdb/",
+				"http://i2p.mooo.com/netDb/",
+				"http://reseed.info/",
+				"http://reseed.pkol.de/",
+				"http://uk.reseed.i2p2.no/",
+				"http://i2p-netdb.innovatio.no/",
+				"http://ieb9oopo.mooo.com"
+			};	
+	
 	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
 	//TODO: Implement SU3, utils.
 	Reseeder::Reseeder()
