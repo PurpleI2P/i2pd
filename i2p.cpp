@@ -14,7 +14,7 @@
 
 int main( int argc, char* argv[] )
 {
-  i2p::util::ParseArguments(argc,argv);
+  i2p::util::OptionParser(argc,argv);
 #ifdef _WIN32
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
@@ -22,6 +22,9 @@ int main( int argc, char* argv[] )
   setlocale(LC_ALL, "Russian");
 #endif
 
+  //TODO: This is an ugly workaround. fix it.
+  //TODO: Autodetect public IP.
+  i2p::context.OverrideNTCPAddress(i2p::util::GetCharArg("--host", "127.0.0.1"), i2p::util::GetIntArg("--port", 17070));
   int httpport = i2p::util::GetIntArg("--httpport", 7070);
 
   i2p::util::HTTPServer httpServer (httpport);

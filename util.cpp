@@ -6,7 +6,7 @@ namespace util
 {
 std::map<std::string, std::string> mapArgs;
 
-void ParseArguments(int argc, const char* const argv[])
+void OptionParser(int argc, const char* const argv[])
 {
 	mapArgs.clear();
     for (int i = 1; i < argc; i++)
@@ -33,11 +33,11 @@ int GetIntArg(const std::string& strArg, int nDefault)
     return nDefault;
 }
 
-std::string GetStringArg(const std::string& strArg, std::string nDefault)
+const char* GetCharArg(const std::string& strArg, const std::string& nDefault)
 {
     if (mapArgs.count(strArg))
-        return mapArgs[strArg];
-    return nDefault;
+        return mapArgs[strArg].c_str();
+    return nDefault.c_str();
 }
 
 
