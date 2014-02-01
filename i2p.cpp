@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 #include <cryptopp/integer.h>
+#include <boost/filesystem.hpp>
 #include "Log.h"
 #include "base64.h"
 #include "Transports.h"
@@ -14,7 +15,7 @@
 
 int main( int argc, char* argv[] )
 {
-  i2p::util::OptionParser(argc,argv);
+  i2p::util::config::OptionParser(argc,argv);
 #ifdef _WIN32
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
@@ -22,10 +23,24 @@ int main( int argc, char* argv[] )
   setlocale(LC_ALL, "Russian");
 #endif
 
+  LogPrint("\n\n\n\ni2pd starting\n");
+  LogPrint("default data directory: ", i2p::util::filesystem::GetDefaultDataDir().string());
+  if (!boost::filesystem::exists( i2p::util::filesystem::GetDefaultDataDir() ))
+  {
+    // Create data directory
+    if (!boost::filesystem::create_directory( i2p::util::filesystem::GetDefaultDataDir() ))
+    {
+      LogPrint("Failed to create data directory, exiting! :(");
+      return -1;
+    }
+  }
+  i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+
   //TODO: This is an ugly workaround. fix it.
   //TODO: Autodetect public IP.
-  i2p::context.OverrideNTCPAddress(i2p::util::GetCharArg("--host", "127.0.0.1"), i2p::util::GetIntArg("--port", 17070));
-  int httpport = i2p::util::GetIntArg("--httpport", 7070);
+  i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
+      i2p::util::config::GetArg("-port", 17070));
+  int httpport = i2p::util::config::GetArg("-httpport", 7070);
 
   i2p::util::HTTPServer httpServer (httpport);
 

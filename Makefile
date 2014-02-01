@@ -6,7 +6,7 @@ OBJECTS = obj/i2p.o obj/base64.o obj/NTCPSession.o obj/RouterInfo.o obj/Transpor
     obj/TunnelGateway.o obj/TransitTunnel.o obj/I2NPProtocol.o obj/Log.o obj/Garlic.o \
     obj/HTTPServer.o obj/Streaming.o obj/Identity.o obj/SSU.o obj/util.o obj/Reseed.o
 INCFLAGS = 
-LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lpthread
+LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 LIBS = 
 
 all: obj i2p
