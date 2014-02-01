@@ -14,6 +14,7 @@
 #include "Garlic.h"
 #include "NetDb.h"
 #include "Reseed.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -62,13 +63,21 @@ namespace data
 
 	void NetDb::Start ()
 	{
-		Load ("netDb");
+#ifndef _WIN32
+		Load ("/netDb");
+#else
+		Load ("\\netDb");
+#endif
 		while (m_RouterInfos.size () < 100 && m_ReseedRetries < 10)
 		{
 			Reseeder reseeder;
 			reseeder.reseedNow();
 			m_ReseedRetries++;
-			Load ("netDb");
+#ifndef _WIN32
+			Load ("/netDb");
+#else
+			Load ("\\netDb");
+#endif
 		}	
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
@@ -188,13 +197,12 @@ namespace data
 	}
 
 	// TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
-	bool NetDb::CreateNetDb(const char * directory)
+	bool NetDb::CreateNetDb(boost::filesystem::path directory)
 	{
-		boost::filesystem::path p (directory);
-		LogPrint (directory, " doesn't exist, trying to create it.");
-		if (!boost::filesystem::create_directory (p))
+		LogPrint (directory.string(), " doesn't exist, trying to create it.");
+		if (!boost::filesystem::create_directory (directory))
 		{
-			LogPrint("Failed to create directory ", directory);
+			LogPrint("Failed to create directory ", directory.string());
 			return false;
 		}
 
@@ -208,18 +216,19 @@ namespace data
 #else
 			suffix = std::string ("\\r") + chars[i];
 #endif
-			if (!boost::filesystem::create_directory( boost::filesystem::path (p / suffix) )) return false;
+			if (!boost::filesystem::create_directory( boost::filesystem::path (directory / suffix) )) return false;
 		}
 		return true;
 	}
 
 	void NetDb::Load (const char * directory)
 	{
-		boost::filesystem::path p (directory);
+		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
+		p /= (directory);
 		if (!boost::filesystem::exists (p))
 		{
 			// seems netDb doesn't exist yet
-			if (!CreateNetDb(directory)) return;
+			if (!CreateNetDb(p)) return;
 		}
 		// make sure we cleanup netDb from previous attempts
 		for (auto r: m_RouterInfos)
