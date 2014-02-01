@@ -89,30 +89,37 @@ namespace config
 
 namespace filesystem
 {
-	const boost::filesystem::path &GetDataDir(bool fNetSpecific)
+	const boost::filesystem::path &GetDataDir()
 	{
 
 		static boost::filesystem::path path;
 
-		if (config::mapArgs.count("-datadir")) {
-			path = boost::filesystem::system_complete(config::mapArgs["-datadir"]);
-			if (!boost::filesystem::is_directory(path)) {
-				path = "";
-				return path;
-			}
+		if (i2p::util::config::mapArgs.count("-datadir")) {
+			path = boost::filesystem::system_complete(i2p::util::config::mapArgs["-datadir"]);
 		} else {
 			path = GetDefaultDataDir();
 		}
 
-		boost::filesystem::create_directory(path);
-
+		if (!boost::filesystem::exists( path ))
+		{
+			// Create data directory
+			if (!boost::filesystem::create_directory( path ))
+			{
+				LogPrint("Failed to create data directory!");
+				return "";
+			}
+		}
+		if (!boost::filesystem::is_directory(path)) {
+			path = GetDefaultDataDir();
+		}
+		LogPrint("Debug: ",path.string());
 		return path;
 	}
 
 	boost::filesystem::path GetConfigFile()
 	{
 		boost::filesystem::path pathConfigFile(i2p::util::config::GetArg("-conf", "i2p.conf"));
-		if (!pathConfigFile.is_complete()) pathConfigFile = GetDataDir(false) / pathConfigFile;
+		if (!pathConfigFile.is_complete()) pathConfigFile = GetDataDir() / pathConfigFile;
 		return pathConfigFile;
 	}
 

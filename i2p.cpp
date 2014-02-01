@@ -24,16 +24,7 @@ int main( int argc, char* argv[] )
 #endif
 
   LogPrint("\n\n\n\ni2pd starting\n");
-  LogPrint("default data directory: ", i2p::util::filesystem::GetDefaultDataDir().string());
-  if (!boost::filesystem::exists( i2p::util::filesystem::GetDefaultDataDir() ))
-  {
-    // Create data directory
-    if (!boost::filesystem::create_directory( i2p::util::filesystem::GetDefaultDataDir() ))
-    {
-      LogPrint("Failed to create data directory, exiting! :(");
-      return -1;
-    }
-  }
+  LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
   //TODO: This is an ugly workaround. fix it.

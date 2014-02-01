@@ -22,6 +22,7 @@ namespace util
 
 	namespace filesystem
 	{
+		const boost::filesystem::path &GetDataDir();
 		boost::filesystem::path GetDefaultDataDir();
 		boost::filesystem::path GetConfigFile();
 		void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
