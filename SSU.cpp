@@ -59,7 +59,9 @@ namespace ssu
 	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		LogPrint ("Process session request");
-		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_REQUEST, buf, len))
+		// use our intro key
+		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_REQUEST, 
+			i2p::context.GetRouterInfo (), buf, len))
 		{
 			m_State = eSessionStateRequestReceived;
 			LogPrint ("Session request received");	
@@ -71,11 +73,20 @@ namespace ssu
 	void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
 	{
 		LogPrint ("Process session created");
-		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_CREATED, buf, len))
+		if (!m_RemoteRouter)
+		{
+			LogPrint ("Unsolicited session created message");
+			return;
+		}
+
+		// use remote intro key
+		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_CREATED, *m_RemoteRouter, buf, len))
 		{
 			m_State = eSessionStateCreatedReceived;
-			LogPrint ("Session request received");	
-			// TODO:
+			LogPrint ("Session created received");	
+			boost::asio::ip::address_v4 ourAddress (be32toh (*(uint32_t* )(buf + sizeof (SSUHeader) + 257)));
+			uint16_t ourPort = be16toh (*(uint16_t *)(buf + sizeof (SSUHeader) + 261));
+			LogPrint ("Our external address is ", ourAddress.to_string (), ":", ourPort);
 		}
 	}	
 
@@ -92,7 +103,7 @@ namespace ssu
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, i2p::context.GetRouterIdentity ().publicKey, 256);
 		payload[256] = 4; // we assume ipv4
-		*(uint32_t *)(payload + 257) =  address->host.to_v4 ().to_ulong (); // network bytes order already
+		*(uint32_t *)(payload + 257) =  htobe32 (address->host.to_v4 ().to_ulong ()); 
 		
 		uint8_t iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
@@ -121,7 +132,7 @@ namespace ssu
 		payload += 256;
 		*payload = 4; // we assume ipv4
 		payload++;
-		*(uint32_t *)(payload) = m_RemoteEndpoint.address ().to_v4 ().to_ulong (); // network bytes order already
+		*(uint32_t *)(payload) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); 
 		payload += 4;
 		*(uint16_t *)(payload) = htobe16 (m_RemoteEndpoint.port ());
 		payload += 2;
@@ -149,9 +160,9 @@ namespace ssu
 		m_Server->Send (buf, 368, m_RemoteEndpoint);
 	}
 
-	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len)
+	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len)
 	{
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		auto address = r.GetSSUAddress ();
 		if (address)
 		{
 			// use intro key for verification and decryption
@@ -171,7 +182,7 @@ namespace ssu
 				LogPrint ("MAC verifcation failed");	
 		}
 		else
-			LogPrint ("SSU is not supported");
+			LogPrint ("SSU is not supported by ", r.GetIdentHashAbbreviation ());
 		return false;
 	}	
 
@@ -207,6 +218,7 @@ namespace ssu
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
 		m_Decryption.SetKeyWithIV (aesKey, 32, header->iv);
+		encryptedLen = (encryptedLen/16)*16; // make sure 16 bytes boundary
 		m_Decryption.ProcessData (encrypted, encrypted, encryptedLen);
 	}
 

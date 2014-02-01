@@ -70,7 +70,7 @@ namespace ssu
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 
-			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
+			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, uint8_t * macKey);			
