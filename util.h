@@ -3,6 +3,8 @@
 
 #include <map>
 #include <string>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #define PAIRTYPE(t1, t2)    std::pair<t1, t2>
 
