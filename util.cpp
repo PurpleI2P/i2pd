@@ -94,8 +94,8 @@ namespace filesystem
 
 		static boost::filesystem::path path;
 
-		if (config::mapArgs.count("--datadir")) {
-			path = boost::filesystem::system_complete(config::mapArgs["--datadir"]);
+		if (config::mapArgs.count("-datadir")) {
+			path = boost::filesystem::system_complete(config::mapArgs["-datadir"]);
 			if (!boost::filesystem::is_directory(path)) {
 				path = "";
 				return path;
