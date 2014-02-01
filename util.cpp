@@ -112,7 +112,6 @@ namespace filesystem
 		if (!boost::filesystem::is_directory(path)) {
 			path = GetDefaultDataDir();
 		}
-		LogPrint("Debug: ",path.string());
 		return path;
 	}
 
