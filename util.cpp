@@ -91,7 +91,6 @@ namespace filesystem
 {
 	const boost::filesystem::path &GetDataDir()
 	{
-
 		static boost::filesystem::path path;
 
 		if (i2p::util::config::mapArgs.count("-datadir")) {
@@ -106,7 +105,8 @@ namespace filesystem
 			if (!boost::filesystem::create_directory( path ))
 			{
 				LogPrint("Failed to create data directory!");
-				return "";
+				path = "";
+				return path;
 			}
 		}
 		if (!boost::filesystem::is_directory(path)) {
@@ -181,7 +181,9 @@ namespace http
 		{
 			i2p::util::http::url u(address);
 			boost::asio::ip::tcp::iostream site;
-			site.expires_from_now (boost::posix_time::seconds(30));
+			// please don't uncomment following line because it's not compatible with boost 1.46
+			// 1.46 is default boost for Ubuntu 12.04 LTS
+			//site.expires_from_now (boost::posix_time::seconds(30));
 			site.connect(u.host_, "http");
 			if (site)
 			{
