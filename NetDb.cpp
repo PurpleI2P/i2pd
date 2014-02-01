@@ -2,7 +2,6 @@
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
 #include "base64.h"
 #include "Log.h"
@@ -20,7 +19,6 @@ namespace i2p
 {
 namespace data
 {		
-
 	I2NPMessage * RequestedDestination::CreateRequestMessage (const RouterInfo * router,
 		const i2p::tunnel::InboundTunnel * replyTunnel)
 	{
@@ -43,7 +41,12 @@ namespace data
 		m_LastReplyTunnel = nullptr;
 		return msg;
 	}	
-	
+
+#ifndef _WIN32		
+	const char NetDb::m_NetDbPath[] = "/netDb";
+#else
+	const char NetDb::m_NetDbPath[] = "\\netDb";
+#endif			
 	NetDb netdb;
 
 	NetDb::NetDb (): m_IsRunning (false), m_ReseedRetries (0), m_Thread (0)
@@ -62,22 +65,14 @@ namespace data
 	}	
 
 	void NetDb::Start ()
-	{
-#ifndef _WIN32
-		Load ("/netDb");
-#else
-		Load ("\\netDb");
-#endif
+	{	
+		Load (m_NetDbPath);
 		while (m_RouterInfos.size () < 100 && m_ReseedRetries < 10)
 		{
 			Reseeder reseeder;
 			reseeder.reseedNow();
 			m_ReseedRetries++;
-#ifndef _WIN32
-			Load ("/netDb");
-#else
-			Load ("\\netDb");
-#endif
+			Load (m_NetDbPath);
 		}	
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
@@ -128,7 +123,7 @@ namespace data
 				if (ts - lastTs >= 60) // save routers every minute
 				{
 					if (lastTs)
-						SaveUpdated ("netDb");
+						SaveUpdated (m_NetDbPath);
 					lastTs = ts;
 				}	
 			}
@@ -270,7 +265,14 @@ namespace data
 #endif
 				routerInfo->GetIdentHashBase64 () + ".dat";
 		};	
-			
+
+		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
+		p /= (directory);
+#if BOOST_VERSION > 10500		
+		const char * fullDirectory = p.string().c_str ();
+#else
+		const char * fullDirectory = p.c_str ();
+#endif		
 		int count = 0, deletedCount = 0;
 		auto total = m_RouterInfos.size ();
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -278,7 +280,7 @@ namespace data
 		{	
 			if (it.second->IsUpdated ())
 			{
-				std::ofstream r (GetFilePath(directory, it.second), std::ofstream::binary);
+				std::ofstream r (GetFilePath(fullDirectory, it.second), std::ofstream::binary);
 				r.write ((char *)it.second->GetBuffer (), it.second->GetBufferLen ());
 				it.second->SetUpdated (false);
 				count++;
@@ -294,9 +296,9 @@ namespace data
 				
 				if (it.second->IsUnreachable ())
 				{	
-					if (boost::filesystem::exists (GetFilePath (directory, it.second)))
+					if (boost::filesystem::exists (GetFilePath (fullDirectory, it.second)))
 					{    
-						boost::filesystem::remove (GetFilePath (directory, it.second));
+						boost::filesystem::remove (GetFilePath (fullDirectory, it.second));
 						deletedCount++;
 					}	
 				}

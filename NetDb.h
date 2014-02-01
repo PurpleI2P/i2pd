@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <boost/filesystem.hpp>
 #include "Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
@@ -97,6 +98,8 @@ namespace data
 			int m_ReseedRetries;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
+
+			static const char m_NetDbPath[];
 	};
 
 	extern NetDb netdb;
