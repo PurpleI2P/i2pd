@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <boost/filesystem.hpp>
 #include "Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
