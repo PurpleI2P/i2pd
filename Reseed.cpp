@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <boost/regex.hpp>
+#include <boost/filesystem.hpp>
 #include "Reseed.h"
 #include "Log.h"
 #include "util.h"
@@ -56,6 +57,7 @@ namespace data
 			std::string tmpUrl;
 			std::string filename;
 			std::string ignoreFileSuffix = ".zip";
+			boost::filesystem::path root = i2p::util::filesystem::GetDataDir();
 			while (i != j)
 			{
 				name = *i++;
@@ -65,9 +67,20 @@ namespace data
 				tmpUrl = reseedHost;
 				tmpUrl.append(name);
 				routerInfo = i2p::util::http::httpRequest(tmpUrl);
-				filename = "netDb/r";
+				if (routerInfo.size()==0)
+					continue;
+				filename = root.string();
+#ifndef _WIN32
+				filename += "/netDb/r";
+#else
+				filename += "\\netDb\\r";
+#endif
 				filename += name.at(11); // first char in id
+#ifndef _WIN32
 				filename.append("/");
+#else
+				filename.append("\\");
+#endif
 				filename.append(name.c_str());
 				std::ofstream outfile (filename, std::ios::binary);
 				outfile << routerInfo;
