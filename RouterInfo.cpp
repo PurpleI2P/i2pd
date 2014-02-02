@@ -50,6 +50,7 @@ namespace data
 			if (m_BufferLen < 40)
 			{
 				LogPrint("File", filename, " is malformed");
+				return;
 			}
 			s.seekg(0, std::ios::beg);
 			s.read(m_Buffer,m_BufferLen);
