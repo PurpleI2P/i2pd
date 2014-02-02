@@ -84,6 +84,7 @@ namespace stream
 			void SendQuickAck ();
 
 			void SavePacket (Packet * packet);
+			void ProcessPacket (Packet * packet);
 			
 		private:
 

@@ -34,55 +34,22 @@ namespace stream
 		if (!m_SendStreamID)
 			m_SendStreamID = packet->GetReceiveStreamID ();
 		
-		// process flags
-		uint16_t flags = packet->GetFlags ();
-		const uint8_t * optionData = packet->GetOptionData ();
-		if (flags & PACKET_FLAG_SYNCHRONIZE)
-		{
-			LogPrint ("Synchronize");
-		}	
-		
-		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
-		{
-			LogPrint ("Signature");
-			optionData += 40;
-		}	
-
-		if (flags & PACKET_FLAG_FROM_INCLUDED)
-		{
-			LogPrint ("From identity");
-			optionData += sizeof (i2p::data::Identity);
-		}	
-		
 		uint32_t receivedSeqn = packet->GetSeqn ();
-		LogPrint ("seqn=", receivedSeqn, ", flags=", flags); 
+		LogPrint ("Received seqn=", receivedSeqn); 
 		if (!receivedSeqn || receivedSeqn == m_LastReceivedSequenceNumber + 1)
 		{			
-			// we have received next message
-			packet->offset = packet->GetPayload () - packet->buf;
-			if (packet->GetLength () > 0)
-				m_ReceiveQueue.Put (packet);
-			else
-				delete packet;
-	
-			m_LastReceivedSequenceNumber = receivedSeqn;
-			SendQuickAck ();
+			// we have received next in sequence message
+			ProcessPacket (packet);
 
 			// we should also try stored messages if any
 			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
 			{			
 				if ((*it)->GetSeqn () == m_LastReceivedSequenceNumber + 1)
 				{
-					Packet * packet = *it;
+					Packet * savedPacket = *it;
 					m_SavedPackets.erase (it++);
 
-					LogPrint ("Process saved packet seqn=", packet->GetSeqn ());
-					if (packet->GetLength () > 0)
-						m_ReceiveQueue.Put (packet);
-					else
-						delete packet;
-					m_LastReceivedSequenceNumber++;
-					SendQuickAck ();
+					ProcessPacket (savedPacket);
 				}
 				else
 					break;
@@ -106,18 +73,53 @@ namespace stream
 				SavePacket (packet);
 			}	
 		}	
-			
+	}	
+
+	void Stream::SavePacket (Packet * packet)
+	{
+		m_SavedPackets.insert (packet);
+	}	
+
+	void Stream::ProcessPacket (Packet * packet)
+	{
+		// process flags
+		uint32_t receivedSeqn = packet->GetSeqn ();
+		uint16_t flags = packet->GetFlags ();
+		LogPrint ("Process seqn=", receivedSeqn, ", flags=", flags);
+		
+		const uint8_t * optionData = packet->GetOptionData ();
+		if (flags & PACKET_FLAG_SYNCHRONIZE)
+		{
+			LogPrint ("Synchronize");
+		}	
+		
+		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
+		{
+			LogPrint ("Signature");
+			optionData += 40;
+		}	
+
+		if (flags & PACKET_FLAG_FROM_INCLUDED)
+		{
+			LogPrint ("From identity");
+			optionData += sizeof (i2p::data::Identity);
+		}	
+
+		packet->offset = packet->GetPayload () - packet->buf;
+		if (packet->GetLength () > 0)
+			m_ReceiveQueue.Put (packet);
+		else
+			delete packet;
+		
+		m_LastReceivedSequenceNumber = receivedSeqn;
+		SendQuickAck ();
+
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint ("Closed");
 			m_IsOpen = false;
 			m_ReceiveQueue.WakeUp ();
 		}
-	}	
-
-	void Stream::SavePacket (Packet * packet)
-	{
-		m_SavedPackets.insert (packet);
 	}	
 		
 	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
