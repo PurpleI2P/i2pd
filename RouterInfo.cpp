@@ -46,7 +46,12 @@ namespace data
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
-			m_BufferLen = s.tellg (); 
+			m_BufferLen = s.tellg ();
+			if (m_BufferLen < 40)
+			{
+				LogPrint("File", filename, " is malformed");
+				return;
+			}
 			s.seekg(0, std::ios::beg);
 			s.read(m_Buffer,m_BufferLen);
 			ReadFromBuffer ();
