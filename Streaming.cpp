@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cryptopp/gzip.h>
 #include "Log.h"
+#include "I2PEndian.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
 #include "Tunnel.h"

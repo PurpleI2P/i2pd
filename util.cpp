@@ -10,8 +10,14 @@
 #include <boost/foreach.hpp>
 #include <boost/program_options/detail/config_file.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <boost/algorithm/string.hpp>
 #include "util.h"
 #include "Log.h"
+
+#ifdef WIN32
+#include <Windows.h>
+#include <shlobj.h>
+#endif
 
 namespace i2p
 {
@@ -152,7 +158,9 @@ namespace filesystem
 		// Unix: ~/.i2pd
 #ifdef WIN32
 		// Windows
-		return GetSpecialFolderPath(CSIDL_APPDATA) / "i2pd";
+		char localAppData[MAX_PATH];
+		SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
+		return boost::filesystem::path(std::string(localAppData) + "\\i2pd");
 #else
 		boost::filesystem::path pathRet;
 		char* pszHome = getenv("HOME");
