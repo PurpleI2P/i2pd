@@ -1,4 +1,3 @@
-#include "I2PEndian.h"
 #include <string>
 #include <algorithm>
 #include <cryptopp/gzip.h>
@@ -26,60 +25,35 @@ namespace stream
 	{
 		while (auto packet = m_ReceiveQueue.Get ())
 			delete packet;
+		for (auto it: m_SavedPackets)
+			delete it;
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
 	{
-		const uint8_t * buf = packet->buf;
-		buf += 4; // sendStreamID
 		if (!m_SendStreamID)
-			m_SendStreamID = be32toh (*(uint32_t *)buf);
-		buf += 4; // receiveStreamID	
-		uint32_t receivedSeqn = be32toh (*(uint32_t *)buf);
-		buf += 4; // sequenceNum
-		buf += 4; // ackThrough
-		int nackCount = buf[0];
-		buf++; // NACK count
-		buf += 4*nackCount; // NACKs
-		buf++; // resendDelay 
-		uint16_t flags = be16toh (*(uint16_t *)buf);
-		buf += 2; // flags
-		uint16_t optionalSize = be16toh (*(uint16_t *)buf);	
-		buf += 2; // optional size
-		const uint8_t * optionalData = buf;
-		buf += optionalSize;
-
-		// process flags
-		if (flags & PACKET_FLAG_SYNCHRONIZE)
-		{
-			LogPrint ("Synchronize");
-		}	
+			m_SendStreamID = packet->GetReceiveStreamID ();
 		
-		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
-		{
-			LogPrint ("Signature");
-			optionalData += 40;
-		}	
-
-		if (flags & PACKET_FLAG_FROM_INCLUDED)
-		{
-			LogPrint ("From identity");
-			optionalData += sizeof (i2p::data::Identity);
-		}	
-		
-		// we have reached payload section
-		LogPrint ("seqn=", receivedSeqn, ", flags=", flags); 
+		uint32_t receivedSeqn = packet->GetSeqn ();
+		LogPrint ("Received seqn=", receivedSeqn); 
 		if (!receivedSeqn || receivedSeqn == m_LastReceivedSequenceNumber + 1)
 		{			
-			// we have received next message
-			packet->offset = buf - packet->buf;
-			if (packet->GetLength () > 0)
-				m_ReceiveQueue.Put (packet);
-			else
-				delete packet;
-	
-			m_LastReceivedSequenceNumber = receivedSeqn;
-			SendQuickAck ();
+			// we have received next in sequence message
+			ProcessPacket (packet);
+
+			// we should also try stored messages if any
+			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
+			{			
+				if ((*it)->GetSeqn () == m_LastReceivedSequenceNumber + 1)
+				{
+					Packet * savedPacket = *it;
+					m_SavedPackets.erase (it++);
+
+					ProcessPacket (savedPacket);
+				}
+				else
+					break;
+			}	
 		}	
 		else 
 		{	
@@ -90,15 +64,56 @@ namespace stream
 				m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel (); // pick another tunnel
 				if (m_OutboundTunnel)
 					SendQuickAck (); // resend ack for previous message again
+				delete packet; // packet dropped
 			}	
 			else
 			{
 				LogPrint ("Missing messages from ", m_LastReceivedSequenceNumber + 1, " to ", receivedSeqn - 1);
-				// actually do nothing. just wait for missing message again
+				// save message and wait for missing message again
+				SavePacket (packet);
 			}	
-			delete packet; // packet dropped
 		}	
-			
+	}	
+
+	void Stream::SavePacket (Packet * packet)
+	{
+		m_SavedPackets.insert (packet);
+	}	
+
+	void Stream::ProcessPacket (Packet * packet)
+	{
+		// process flags
+		uint32_t receivedSeqn = packet->GetSeqn ();
+		uint16_t flags = packet->GetFlags ();
+		LogPrint ("Process seqn=", receivedSeqn, ", flags=", flags);
+		
+		const uint8_t * optionData = packet->GetOptionData ();
+		if (flags & PACKET_FLAG_SYNCHRONIZE)
+		{
+			LogPrint ("Synchronize");
+		}	
+		
+		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
+		{
+			LogPrint ("Signature");
+			optionData += 40;
+		}	
+
+		if (flags & PACKET_FLAG_FROM_INCLUDED)
+		{
+			LogPrint ("From identity");
+			optionData += sizeof (i2p::data::Identity);
+		}	
+
+		packet->offset = packet->GetPayload () - packet->buf;
+		if (packet->GetLength () > 0)
+			m_ReceiveQueue.Put (packet);
+		else
+			delete packet;
+		
+		m_LastReceivedSequenceNumber = receivedSeqn;
+		SendQuickAck ();
+
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint ("Closed");
@@ -106,7 +121,7 @@ namespace stream
 			m_ReceiveQueue.WakeUp ();
 		}
 	}	
-
+		
 	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
 	{
 		if (!m_IsOpen)

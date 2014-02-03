@@ -386,15 +386,13 @@ namespace i2p
 		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
 		uint32_t tunnelID = be32toh(header->tunnelID);
 		uint16_t len = be16toh(header->length);
-		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID);
+		// we make payload as new I2NP message to send
+		msg->offset += sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
+		msg->len = msg->offset + len;
+		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)msg->GetHeader()->typeID);
 		i2p::tunnel::TransitTunnel * tunnel =  i2p::tunnel::tunnels.GetTransitTunnel (tunnelID);
 		if (tunnel)
-		{	
-			// we make payload as new I2NP message to send
-			msg->offset += sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
-			msg->len = msg->offset + len;
 			tunnel->SendTunnelDataMsg (nullptr, 0, msg);
-		}	
 		else
 		{	
 			LogPrint ("Tunnel ", (unsigned int)tunnelID, " not found");

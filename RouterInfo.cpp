@@ -13,19 +13,18 @@
 #include "RouterContext.h"
 
 
-
 namespace i2p
 {
 namespace data
 {		
 	RouterInfo::RouterInfo (const char * filename):
-		m_IsUpdated (false), m_IsUnreachable (false)
+		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0)
 	{
 		ReadFromFile (filename);
 	}	
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
-		m_IsUpdated (true)
+		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0)
 	{
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
@@ -47,7 +46,12 @@ namespace data
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
-			m_BufferLen = s.tellg (); 
+			m_BufferLen = s.tellg ();
+			if (m_BufferLen < 40)
+			{
+				LogPrint("File", filename, " is malformed");
+				return;
+			}
 			s.seekg(0, std::ios::beg);
 			s.read(m_Buffer,m_BufferLen);
 			ReadFromBuffer ();
@@ -111,10 +115,20 @@ namespace data
 						// TODO: we should try to resolve address here
 						LogPrint ("Unexpected address ", value);
 						SetUnreachable (true);
-					}		
+					}	
+					else
+					{
+						// add supported protocol
+						if (address.host.is_v4 ())
+							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;	
+						else
+							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+ 					}	
 				}	
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
+				else if (!strcmp (key, "key"))
+					Base64ToByteStream (value, strlen (value), address.key, 32);
 			}	
 			m_Addresses.push_back(address);
 		}	
@@ -275,22 +289,27 @@ namespace data
 
 	bool RouterInfo::IsNTCP (bool v4only) const
 	{
-		for (auto& address : m_Addresses)
-		{
-			if (address.transportStyle == eTransportNTCP)
-			{	
-				if (!v4only || address.host.is_v4 ())
-					return true;
-			}	
-		}		
-		return false;
+		if (v4only)
+			return m_SupportedTransports & eNTCPV4;
+		else
+			return m_SupportedTransports & (eNTCPV4 | eNTCPV6);
+	}		
+		
+	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
+	{
+		return GetAddress (eTransportNTCP, v4only);
 	}	
 
-	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
+	RouterInfo::Address * RouterInfo::GetSSUAddress (bool v4only)
+	{
+		return GetAddress (eTransportSSU, v4only);
+	}	
+
+	RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only)
 	{
 		for (auto& address : m_Addresses)
 		{
-			if (address.transportStyle == eTransportNTCP)
+			if (address.transportStyle == s)
 			{	
 				if (!v4only || address.host.is_v4 ())
 					return &address;

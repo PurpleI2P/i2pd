@@ -3,6 +3,7 @@
 #include "CryptoConst.h"
 #include "Log.h"
 #include "Timestamp.h"
+#include "NetDb.h"
 #include "LeaseSet.h"
 
 namespace i2p
@@ -28,6 +29,7 @@ namespace data
 		memcpy (m_EncryptionKey, header->encryptionKey, 256);
 		LogPrint ("LeaseSet num=", (int)header->num);
 
+		// process leases
 		const uint8_t * leases = buf + sizeof (H);
 		for (int i = 0; i < header->num; i++)
 		{
@@ -36,8 +38,16 @@ namespace data
 			lease.endDate = be64toh (lease.endDate);
 			m_Leases.push_back (lease);
 			leases += sizeof (Lease);
-		}	
 
+			// check if lease's gateway is in our netDb
+			if (!netdb.FindRouter (lease.tunnelGateway))
+			{
+				// if not found request it
+				LogPrint ("Lease's tunnel gateway not found. Requested");
+				netdb.RequestDestination (lease.tunnelGateway);
+			}	
+		}	
+		
 		// verify
 		CryptoPP::DSA::PublicKey pubKey;
 		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 

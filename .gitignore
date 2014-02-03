@@ -1,3 +1,10 @@
+# i2pd
+obj/*.o
+router.info
+router.keys
+i2p
+netDb
+
 #################
 ## Eclipse
 #################

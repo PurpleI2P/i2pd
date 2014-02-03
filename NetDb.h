@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <boost/filesystem.hpp>
 #include "Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
@@ -30,9 +31,11 @@ namespace data
  			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
 			const i2p::tunnel::InboundTunnel * GetLastReplyTunnel () const { return m_LastReplyTunnel; };
 			bool IsExploratory () const { return m_IsExploratory; };
+			bool IsLeaseSet () const { return m_IsLeaseSet; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
 			I2NPMessage * CreateRequestMessage (const RouterInfo * router, const i2p::tunnel::InboundTunnel * replyTunnel);
-
+			I2NPMessage * CreateRequestMessage (const IdentHash& floodfill);
+			
 			i2p::tunnel::OutboundTunnel * GetLastOutboundTunnel () const { return m_LastOutboundTunnel; };
 			void SetLastOutboundTunnel (i2p::tunnel::OutboundTunnel * tunnel) { m_LastOutboundTunnel = tunnel; };
 			
@@ -68,15 +71,15 @@ namespace data
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
 			const RouterInfo * GetRandomNTCPRouter (bool floodfillOnly = false) const;
-			const RouterInfo * GetRandomRouter () const;
+			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr, bool floodfillOnly = false) const;
 
 			void PostI2NPMsg (I2NPMessage * msg);
 			
 		private:
 
+			bool CreateNetDb(boost::filesystem::path directory);
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
-			void DownloadRouterInfo (const std::string& address, const std::string& filename); // for reseed 
 			void Run (); // exploratory thread
 			void Explore ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
@@ -92,8 +95,11 @@ namespace data
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
 			
 			bool m_IsRunning;
+			int m_ReseedRetries;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
+
+			static const char m_NetDbPath[];
 	};
 
 	extern NetDb netdb;

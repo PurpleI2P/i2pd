@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 #include <cryptopp/integer.h>
+#include <boost/filesystem.hpp>
 #include "Log.h"
 #include "base64.h"
 #include "Transports.h"
@@ -10,10 +11,11 @@
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "HTTPServer.h"
+#include "util.h"
 
-int main( int, char** ) 
+int main( int argc, char* argv[] )
 {
-
+  i2p::util::config::OptionParser(argc,argv);
 #ifdef _WIN32
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
@@ -21,7 +23,17 @@ int main( int, char** )
   setlocale(LC_ALL, "Russian");
 #endif
 
-  i2p::util::HTTPServer httpServer (7070);	
+  LogPrint("\n\n\n\ni2pd starting\n");
+  LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
+  i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+
+  //TODO: This is an ugly workaround. fix it.
+  //TODO: Autodetect public IP.
+  i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
+      i2p::util::config::GetArg("-port", 17070));
+  int httpport = i2p::util::config::GetArg("-httpport", 7070);
+
+  i2p::util::HTTPServer httpServer (httpport);
 
   httpServer.Start ();	
   i2p::data::netdb.Start ();

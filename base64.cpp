@@ -27,6 +27,11 @@ namespace data
 		       '4', '5', '6', '7', '8', '9', '-', '~'
 	};
 
+	const char * GetBase64SubstitutionTable ()
+	{
+		return T64;
+	}	
+	
 	/*
 	* Reverse Substitution Table (built in run time)
 	*/
