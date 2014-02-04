@@ -474,7 +474,9 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Couldn't send msg: ", ecode.message ());
-			Terminate ();
+			// we shouldn't call Terminate () here, because HandleReceive takes care
+			// TODO: 'delete this' statement in Terminate () must be eliminated later
+			// Terminate ();
 		}
 		else
 		{	

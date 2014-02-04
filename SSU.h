@@ -63,7 +63,7 @@ namespace ssu
 
 		private:
 
-			void CreateAESKey (uint8_t * pubKey, uint8_t * aesKey); // TODO: shouldn't be here
+			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
 
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
@@ -83,7 +83,7 @@ namespace ssu
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
-			uint8_t m_SessionKey[32];
+			uint8_t m_SessionKey[32], m_MacKey[32];
 	};
 
 	class SSUServer

@@ -20,7 +20,7 @@ namespace ssu
 	{
 	}
 
-	void SSUSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey) // TODO: move it to base class for NTCP and SSU
+	void SSUSession::CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		CryptoPP::SecByteBlock secretKey(dh.AgreedValueLength());
@@ -34,9 +34,13 @@ namespace ssu
 		{
 			aesKey[0] = 0;
 			memcpy (aesKey + 1, secretKey, 31);
+			memcpy (macKey, secretKey + 31, 32);
 		}	
-		else	
+		else
+		{	
 			memcpy (aesKey, secretKey, 32);
+			memcpy (macKey, secretKey + 32, 32);
+		}
 	}		
 
 	void SSUSession::ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
@@ -172,7 +176,7 @@ namespace ssu
 				SSUHeader * header = (SSUHeader *)buf;
 				if ((header->flag >> 4) == expectedPayloadType)
 				{
-					CreateAESKey (buf + sizeof (SSUHeader), m_SessionKey);	
+					CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);	
 					return true;				
 				}
 				else
