@@ -55,6 +55,10 @@ namespace ssu
 				// session created
 				ProcessSessionCreated (buf, len);
 			break;
+			case eSessionStateCreatedSent:
+				// session confirmed
+				ProcessSessionConfirmed (buf, len);
+			break;
 			default:
 				LogPrint ("SSU state not implemented yet");
 		}
@@ -88,11 +92,34 @@ namespace ssu
 		{
 			m_State = eSessionStateCreatedReceived;
 			LogPrint ("Session created received");	
-			boost::asio::ip::address_v4 ourAddress (be32toh (*(uint32_t* )(buf + sizeof (SSUHeader) + 257)));
-			uint16_t ourPort = be16toh (*(uint16_t *)(buf + sizeof (SSUHeader) + 261));
-			LogPrint ("Our external address is ", ourAddress.to_string (), ":", ourPort);
+			uint8_t * ourAddress = buf + sizeof (SSUHeader) + 257;
+			boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )(ourAddress)));
+			uint16_t ourPort = be16toh (*(uint16_t *)(ourAddress + 4));
+			LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
+			uint32_t relayTag = be32toh (*(uint32_t *)(buf + sizeof (SSUHeader) + 263));
+			SendSessionConfirmed (buf + sizeof (SSUHeader), ourAddress, relayTag);
 		}
 	}	
+
+	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
+	{
+		LogPrint ("Process session confirmed");
+		if (Validate (buf, len, m_MacKey))
+		{
+			Decrypt (buf, len, m_SessionKey);
+			SSUHeader * header = (SSUHeader *)buf;
+			if ((header->flag >> 4) == PAYLOAD_TYPE_SESSION_CONFIRMED)
+			{
+				m_State = eSessionStateConfirmedReceived;
+				LogPrint ("Session confirmed received");	
+				// TODO:	
+			}
+			else
+				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
+		}
+		else
+			LogPrint ("MAC verifcation failed");	
+	}
 
 	void SSUSession::SendSessionRequest ()
 	{
@@ -141,7 +168,7 @@ namespace ssu
 		*(uint16_t *)(payload) = htobe16 (m_RemoteEndpoint.port ());
 		payload += 2;
 		memcpy (signedData + 512, payload - 6, 6); // remote endpoint IP and port 
-		*(uint32_t *)(signedData + 518) = m_Server->GetEndpoint ().address ().to_v4 ().to_ulong (); // our IP
+		*(uint32_t *)(signedData + 518) = htobe32 (m_Server->GetEndpoint ().address ().to_v4 ().to_ulong ()); // our IP
 		*(uint16_t *)(signedData + 522) = htobe16 (m_Server->GetEndpoint ().port ()); // our port
 		*(uint32_t *)(payload) = 0; //  relay tag, always 0 for now
 		payload += 4; 
@@ -162,6 +189,52 @@ namespace ssu
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, address->key, iv, address->key);
 		m_State = eSessionStateRequestSent;		
 		m_Server->Send (buf, 368, m_RemoteEndpoint);
+	}
+
+	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag)
+	{
+		auto address = m_RemoteRouter ? m_RemoteRouter->GetSSUAddress () : nullptr;
+		if (!address)
+		{
+			LogPrint ("Missing remote SSU address");
+			return;
+		}
+
+		uint8_t buf[480 + 18];
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		*payload = 1; // 1 fragment
+		payload++; // info
+		size_t identLen = sizeof (i2p::context.GetRouterIdentity ()); // 387 bytes
+		*(uint16_t *)(payload) =  htobe16 (identLen);
+		payload += 2; // cursize
+		memcpy (payload, (uint8_t *)&i2p::context.GetRouterIdentity (), identLen);
+		payload += identLen;
+		uint32_t signedOnTime = i2p::util::GetSecondsSinceEpoch ();
+		*(uint32_t *)(payload) = htobe32 (signedOnTime); // signed on time
+		payload += 4;
+		size_t paddingSize = ((payload - buf) + 40)%16;
+		if (paddingSize > 0) paddingSize = 16 - paddingSize;
+		// TODO: fill padding	
+		payload += paddingSize; // padding size
+
+		// signature		
+		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, our signed on time 
+		memcpy (signedData, i2p::context.GetRouterIdentity ().publicKey, 256); // x
+		memcpy (signedData + 256, y, 256); // y
+		memcpy (signedData + 512, ourAddress, 6); // our address/port as seem by party
+		*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
+		*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
+		*(uint32_t *)(signedData + 524) = htobe32 (relayTag); // relay tag
+		*(uint32_t *)(signedData + 528) = htobe32 (signedOnTime); // signed on time
+		i2p::context.Sign (signedData, 532, payload); // DSA signature	
+
+		uint8_t iv[16];
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		// encrypt message with session key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CONFIRMED, buf, 480, m_SessionKey, iv, m_MacKey);
+		m_State = eSessionStateConfirmedSent;	
+		m_Server->Send (buf, 480, m_RemoteEndpoint);
 	}
 
 	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len)
