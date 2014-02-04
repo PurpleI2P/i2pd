@@ -2,9 +2,13 @@
 #include <thread>
 #include <cryptopp/integer.h>
 #include <boost/filesystem.hpp>
+
+#ifndef _WIN32
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
+#endif
+
 #include "Log.h"
 #include "base64.h"
 #include "Transports.h"
@@ -16,6 +20,7 @@
 #include "HTTPServer.h"
 #include "util.h"
 
+#ifndef _WIN32
 void handle_sighup(int n)
 {
   if (i2p::util::config::GetArg("daemon", 0) == 1)
@@ -30,6 +35,7 @@ void handle_sighup(int n)
   LogPrint("Reloading config.");
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 }
+#endif
 
 int main( int argc, char* argv[] )
 {
@@ -46,6 +52,7 @@ int main( int argc, char* argv[] )
   LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
+#ifndef _WIN32
   struct sigaction sa;
   sa.sa_handler = handle_sighup;
   sigemptyset(&sa.sa_mask);
@@ -77,11 +84,16 @@ int main( int argc, char* argv[] )
       return -1;
     }
   }
+#endif
 
   if (i2p::util::config::GetArg("-log", 0) == 1)
   {
     std::string logfile = i2p::util::filesystem::GetDataDir().string();
+#ifndef _WIN32
     logfile.append("/debug.log");
+#else
+    logfile.append("\\debug.log");
+#endif
     LogPrint("Logging to file enabled.");
     freopen(logfile.c_str(),"a",stdout);
   }
@@ -102,6 +114,7 @@ int main( int argc, char* argv[] )
   int running = 1;
   while (running)
   {
+    //TODO Meeh: Find something better to do here.
     std::this_thread::sleep_for (std::chrono::seconds(1000));
   }
 
@@ -109,6 +122,7 @@ int main( int argc, char* argv[] )
   i2p::transports.Stop ();	
   i2p::data::netdb.Stop ();	
   httpServer.Stop ();
+
   if (i2p::util::config::GetArg("-log", 0) == 1)
   {
     fclose (stdout);
