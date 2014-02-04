@@ -173,9 +173,10 @@ namespace stream
 
 		if (!m_OutboundTunnel)
 			m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		if (m_OutboundTunnel)
+		auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+		if (m_OutboundTunnel && !leases.empty ())
 		{
-			auto& lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
+			auto& lease = *leases.begin (); // TODO:
 			m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
 		}	
 		else
@@ -209,7 +210,7 @@ namespace stream
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
 			if (!leases.empty ())
 			{	
-				auto& lease = leases[0]; // TODO:
+				auto& lease = *leases.begin (); // TODO:
 				m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
 				LogPrint ("Quick Ack sent");
 			}	
@@ -252,11 +253,12 @@ namespace stream
 
 			I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
 				CreateDataMessage (this, packet, size));
-			if (m_OutboundTunnel)
+			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+			if (m_OutboundTunnel && !leases.empty ())
 			{
-				auto& lease = m_RemoteLeaseSet->GetLeases ()[0]; // TODO:
+				auto& lease = *leases.begin (); // TODO:
 				m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
-				LogPrint ("FIN sent");
+				LogPrint ("FIN sent");	
 			}	
 			else
 				DeleteI2NPMessage (msg);
