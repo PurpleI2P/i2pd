@@ -25,23 +25,29 @@
 int running = 1;
 
 #ifndef _WIN32
-void handle_sighup(int n)
+void handle_signal(int sig)
 {
-  if (i2p::util::config::GetArg("daemon", 0) == 1)
+  switch (sig)
   {
-    static bool first=true;
-    if (first)
-    {
-      first=false;
-      return;
-    }
+    case SIGHUP:
+      if (i2p::util::config::GetArg("daemon", 0) == 1)
+      {
+        static bool first=true;
+        if (first)
+        {
+          first=false;
+          return;
+        }
+      }
+      LogPrint("Reloading config.");
+      i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+    break;
+    case SIGABRT:
+    case SIGTERM:
+    case SIGINT:
+      running = 0; // Exit loop
+    break;
   }
-  LogPrint("Reloading config.");
-  i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
-}
-void handle_shutdown(int sig)
-{
-  running = 0; // Exit loop
 }
 #endif
 
@@ -62,15 +68,6 @@ int main( int argc, char* argv[] )
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
 #ifndef _WIN32
-  struct sigaction sa;
-  sa.sa_handler = handle_sighup;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = SA_RESTART;
-  if (sigaction(SIGHUP,&sa,0) == -1)
-  {
-    LogPrint("Failed to install SIGHUP handler.");
-  }
-
   if (i2p::util::config::GetArg("-daemon", 0) == 1)
   {
     pid_t pid;
@@ -92,12 +89,36 @@ int main( int argc, char* argv[] )
       LogPrint("Error, could not create process group.");
       return -1;
     }
+    chdir(i2p::util::filesystem::GetDataDir().string().c_str());
   }
 
-  // Handle shutdown
-  signal(SIGABRT, &handle_shutdown);
-  signal(SIGTERM, &handle_shutdown);
-  signal(SIGINT, &handle_shutdown);
+  // Pidfile
+  std::string pidfile = i2p::util::filesystem::GetDataDir().string();
+  pidfile.append("/i2pd.pid");
+  int pidFilehandle = open(pidfile.c_str(), O_RDWR|O_CREAT, 0600);
+  if (pidFilehandle == -1 )
+  {
+    LogPrint("Error, could not create pid file (", pidfile, ")\nIs an instance already running?");
+    return -1;
+  }
+  if (lockf(pidFilehandle,F_TLOCK,0) == -1)
+  {
+    LogPrint("Error, could not create pid file (", pidfile, ")\nIs an instance already running?");
+    return -1;
+  }
+  char pid[10];
+  sprintf(pid,"%d\n",getpid());
+  write(pidFilehandle, pid, strlen(pid));
+
+  // Signal handler
+  struct sigaction sa;
+  sa.sa_handler = handle_signal;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  sigaction(SIGHUP,&sa,0);
+  sigaction(SIGABRT,&sa,0);
+  sigaction(SIGTERM,&sa,0);
+  sigaction(SIGINT,&sa,0);
 #endif
 
   if (i2p::util::config::GetArg("-log", 0) == 1)
@@ -119,9 +140,9 @@ int main( int argc, char* argv[] )
 
   i2p::util::HTTPServer httpServer (i2p::util::config::GetArg("-httpport", 7070));
 
-  httpServer.Start ();	
+  httpServer.Start ();
   i2p::data::netdb.Start ();
-  i2p::transports.Start ();	
+  i2p::transports.Start ();
   i2p::tunnel::tunnels.Start ();
 
   while (running)
@@ -131,14 +152,18 @@ int main( int argc, char* argv[] )
   }
   LogPrint("Shutdown started.");
 
-  i2p::tunnel::tunnels.Stop ();	
-  i2p::transports.Stop ();	
-  i2p::data::netdb.Stop ();	
+  i2p::tunnel::tunnels.Stop ();
+  i2p::transports.Stop ();
+  i2p::data::netdb.Stop ();
   httpServer.Stop ();
 
   if (i2p::util::config::GetArg("-log", 0) == 1)
   {
     fclose (stdout);
   }
+#ifndef _WIN32
+  close(pidFilehandle);
+  unlink(pidfile.c_str());
+#endif
   return 0;
 }
