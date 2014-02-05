@@ -134,7 +134,7 @@ namespace ssu
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, i2p::context.GetRouterIdentity ().publicKey, 256);
 		payload[256] = 4; // we assume ipv4
-		*(uint32_t *)(payload + 257) =  htobe32 (address->host.to_v4 ().to_ulong ()); 
+		*(uint32_t *)(payload + 257) =  htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); 
 		
 		uint8_t iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
