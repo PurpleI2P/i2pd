@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS // to use freopen
+#endif
+
 #include <iostream>
 #include <thread>
 #include <cryptopp/integer.h>
