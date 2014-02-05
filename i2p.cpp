@@ -20,6 +20,10 @@
 #include "HTTPServer.h"
 #include "util.h"
 
+
+// Global
+int running = 1;
+
 #ifndef _WIN32
 void handle_sighup(int n)
 {
@@ -35,7 +39,12 @@ void handle_sighup(int n)
   LogPrint("Reloading config.");
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 }
+void handle_shutdown(int sig)
+{
+  running = 0; // Exit loop
+}
 #endif
+
 
 int main( int argc, char* argv[] )
 {
@@ -84,6 +93,11 @@ int main( int argc, char* argv[] )
       return -1;
     }
   }
+
+  // Handle shutdown
+  signal(SIGABRT, &handle_shutdown);
+  signal(SIGTERM, &handle_shutdown);
+  signal(SIGINT, &handle_shutdown);
 #endif
 
   if (i2p::util::config::GetArg("-log", 0) == 1)
@@ -102,21 +116,20 @@ int main( int argc, char* argv[] )
   //TODO: Autodetect public IP.
   i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
       i2p::util::config::GetArg("-port", 17070));
-  int httpport = i2p::util::config::GetArg("-httpport", 7070);
 
-  i2p::util::HTTPServer httpServer (httpport);
+  i2p::util::HTTPServer httpServer (i2p::util::config::GetArg("-httpport", 7070));
 
   httpServer.Start ();	
   i2p::data::netdb.Start ();
   i2p::transports.Start ();	
   i2p::tunnel::tunnels.Start ();
 
-  int running = 1;
   while (running)
   {
     //TODO Meeh: Find something better to do here.
-    std::this_thread::sleep_for (std::chrono::seconds(1000));
+    std::this_thread::sleep_for (std::chrono::seconds(1));
   }
+  LogPrint("Shutdown started.");
 
   i2p::tunnel::tunnels.Stop ();	
   i2p::transports.Stop ();	
