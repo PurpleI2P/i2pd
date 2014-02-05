@@ -103,7 +103,7 @@ int main( int argc, char* argv[] )
   }
   if (lockf(pidFilehandle,F_TLOCK,0) == -1)
   {
-    LogPrint("Error, could not create pid file (", pidfile, ")\nIs an instance already running?");
+    LogPrint("Error, could not lock pid file (", pidfile, ")\nIs an instance already running?");
     return -1;
   }
   char pid[10];
