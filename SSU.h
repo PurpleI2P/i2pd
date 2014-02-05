@@ -65,12 +65,14 @@ namespace ssu
 
 			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
 
+			void ProcessMessage (uint8_t * buf, size_t len); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
+			void ProcessData (uint8_t * buf, size_t len);	
 
 			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
