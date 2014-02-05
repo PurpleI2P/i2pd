@@ -30,12 +30,12 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
 	const uint8_t PAYLOAD_TYPE_SESSION_CREATED = 1;
 	const uint8_t PAYLOAD_TYPE_SESSION_CONFIRMED = 2;
-	const uint8_t PAYLOAD_TYPE_SESSION_DESTROY = 8;
 	const uint8_t PAYLOAD_TYPE_RELAY_REQUEST = 3;
 	const uint8_t PAYLOAD_TYPE_RELAY_RESPONSE = 4;
 	const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
 	const uint8_t PAYLOAD_TYPE_DATA = 6;
 	const uint8_t PAYLOAD_TYPE_TEST = 7;
+	const uint8_t PAYLOAD_TYPE_SESSION_DESTROY = 8;
 
 	enum SessionState
 	{
@@ -69,6 +69,8 @@ namespace ssu
 			void SendSessionRequest ();
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
+			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
+			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
 
 			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);

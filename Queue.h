@@ -99,6 +99,10 @@ namespace util
 		public:
 
 			MsgQueue (): m_Thread (std::bind (&MsgQueue<Msg>::Run, this)) {};
+			void Stop()
+			{
+					m_Thread.detach();
+			}
 
 		private:
 			void Run ()
