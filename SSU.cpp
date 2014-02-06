@@ -368,24 +368,23 @@ namespace ssu
 		uint8_t flag = *buf;
 		buf++;
 		LogPrint ("Process SSU data flags=", (int)flag);
-		if (flag)
-		{	
-			//TODO: process options
-			return;
-		}	
 		uint8_t numFragments = *buf; // number of fragments
 		buf++;
-		uint32_t msgID = be32toh (*(uint32_t *)buf); // message ID
-		buf += 4;
-		uint8_t frag[4];
-		frag[0] = 0;
-		memcpy (frag + 1, buf, 3);
-		buf += 3;
-		uint32_t fragmentInfo = be32toh (*(uint32_t *)frag); // fragment info
-		uint16_t fragmentSize = be16toh (fragmentInfo & 0x1FFF); // bits 0 - 13
-		bool isLast = fragmentInfo & 0x010000; // bit 16	
-		uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
-		LogPrint ("SSU data fragment ", (int)fragmentNum, " of ", (int)numFragments, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 
+		for (int i = 0; i < numFragments; i++)
+		{	
+			uint32_t msgID = be32toh (*(uint32_t *)buf); // message ID
+			buf += 4;
+			uint8_t frag[4];
+			frag[0] = 0;
+			memcpy (frag + 1, buf, 3);
+			buf += 3;
+			uint32_t fragmentInfo = be32toh (*(uint32_t *)frag); // fragment info
+			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
+			bool isLast = fragmentInfo & 0x010000; // bit 16	
+			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
+			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 
+			buf += fragmentSize;
+		}	
 	}
 
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
