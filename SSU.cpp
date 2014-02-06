@@ -47,6 +47,11 @@ namespace ssu
 	{
 		switch (m_State)
 		{
+			case eSessionStateEstablised:
+				// most common case
+				ProcessMessage (buf, len);
+			break;
+			// establishing
 			case eSessionStateUnknown:
 				// session request
 				ProcessSessionRequest (buf, len, senderEndpoint);
@@ -62,6 +67,34 @@ namespace ssu
 			default:
 				LogPrint ("SSU state not implemented yet");
 		}
+	}
+
+	void SSUSession::ProcessMessage (uint8_t * buf, size_t len)
+	{
+		if (Validate (buf, len, m_MacKey))
+		{
+			Decrypt (buf, len, m_SessionKey);
+			SSUHeader * header = (SSUHeader *)buf;
+			uint8_t payloadType = header->flag >> 4;
+			switch (payloadType)
+			{
+				case PAYLOAD_TYPE_DATA:
+					LogPrint ("SSU data received");
+					ProcessData (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+				break;
+				case PAYLOAD_TYPE_TEST:
+					LogPrint ("SSU test received");
+				break;
+				case PAYLOAD_TYPE_SESSION_DESTROY:
+					LogPrint ("SSU session destroy received");
+				break;	
+				default:
+					LogPrint ("Unexpected SSU payload type ", (int)payloadType);
+			}
+		}
+		// TODO: try intro key as well
+		else
+			LogPrint ("MAC verifcation failed");	
 	}
 
 	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
@@ -98,6 +131,7 @@ namespace ssu
 			LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 			uint32_t relayTag = be32toh (*(uint32_t *)(buf + sizeof (SSUHeader) + 263));
 			SendSessionConfirmed (buf + sizeof (SSUHeader), ourAddress, relayTag);
+			m_State = eSessionStateEstablised;
 		}
 	}	
 
@@ -113,6 +147,7 @@ namespace ssu
 				m_State = eSessionStateConfirmedReceived;
 				LogPrint ("Session confirmed received");	
 				// TODO:	
+				m_State = eSessionStateEstablised;
 			}
 			else
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
@@ -326,6 +361,31 @@ namespace ssu
 	{
 		// TODO:
 	}	
+
+	void SSUSession::ProcessData (uint8_t * buf, size_t len)
+	{
+		//uint8_t * start = buf;
+		uint8_t flag = *buf;
+		buf++;
+		LogPrint ("Process SSU data flags=", (int)flag);
+		uint8_t numFragments = *buf; // number of fragments
+		buf++;
+		for (int i = 0; i < numFragments; i++)
+		{	
+			uint32_t msgID = be32toh (*(uint32_t *)buf); // message ID
+			buf += 4;
+			uint8_t frag[4];
+			frag[0] = 0;
+			memcpy (frag + 1, buf, 3);
+			buf += 3;
+			uint32_t fragmentInfo = be32toh (*(uint32_t *)frag); // fragment info
+			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
+			bool isLast = fragmentInfo & 0x010000; // bit 16	
+			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
+			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 
+			buf += fragmentSize;
+		}	
+	}
 
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
