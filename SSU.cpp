@@ -382,7 +382,32 @@ namespace ssu
 			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
 			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
-			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 
+			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 			
+			I2NPMessage * msg = nullptr;
+			if (fragmentNum > 0) // follow-up fragment
+			{
+				auto it = m_IncomleteMessages.find (msgID);
+				if (it != m_IncomleteMessages.end ())
+					msg = it->second;
+				else
+					// TODO:
+					LogPrint ("Unexpected follow-on fragment ", fragmentNum, " of message ", msgID);	
+			}
+			else // first fragment
+				msg = NewI2NPMessage ();
+			if (msg)
+			{
+				memcpy (msg->buf + msg->len, buf, fragmentSize);
+				msg->len += fragmentSize;	
+				if (!fragmentNum && !isLast)
+					m_IncomleteMessages[msgID] = msg;
+				if (isLast)
+				{
+					if (fragmentNum > 0)	
+						m_IncomleteMessages.erase (msgID);
+					i2p::HandleI2NPMessage (msg, false);	
+				}
+			}
 			buf += fragmentSize;
 		}	
 	}

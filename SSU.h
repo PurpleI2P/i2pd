@@ -88,6 +88,7 @@ namespace ssu
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
+			std::map<uint32_t, I2NPMessage *> m_IncomleteMessages;
 	};
 
 	class SSUServer
