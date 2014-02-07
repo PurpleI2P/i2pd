@@ -37,6 +37,14 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_TEST = 7;
 	const uint8_t PAYLOAD_TYPE_SESSION_DESTROY = 8;
 
+	// data flags
+	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
+	const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
+	const uint8_t DATA_FLAG_REQUEST_PREVIOUS_ACKS = 0x08;
+	const uint8_t DATA_FLAG_EXPLICIT_CONGESTION_NOTIFICATION = 0x10;
+	const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
+	const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;	
+
 	enum SessionState
 	{
 		eSessionStateUnknown,
@@ -73,6 +81,7 @@ namespace ssu
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
 			void ProcessData (uint8_t * buf, size_t len);	
+			void SendMsgAck (uint32_t msgID);
 
 			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);

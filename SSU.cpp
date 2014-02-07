@@ -382,7 +382,7 @@ namespace ssu
 			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
 			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
-			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 			
+			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 		
 			I2NPMessage * msg = nullptr;
 			if (fragmentNum > 0) // follow-up fragment
 			{
@@ -414,15 +414,35 @@ namespace ssu
 						m_IncomleteMessages.erase (msgID);
 					msg->FromSSU (msgID);
 					i2p::HandleI2NPMessage (msg, false);	
+					SendMsgAck (msgID);
 				}
 			}
 			buf += fragmentSize;
 		}	
 	}
 
+	void SSUSession::SendMsgAck (uint32_t msgID)
+	{
+		uint8_t buf[48]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
+		uint8_t iv[16];
+		*buf = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
+		buf[1] = 1; // number of ACKs
+		*(uint32_t *)(buf + 2) = htobe32 (msgID); // msgID	
+		buf[6] = 0; // number of fragments
+
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		// encrypt message with session key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48, m_SessionKey, iv, m_MacKey);
+		m_State = eSessionStateConfirmedSent;	
+		m_Server->Send (buf, 48, m_RemoteEndpoint);
+	}
+
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
 	{
+		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
+		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
 	}
 	
 	SSUServer::~SSUServer ()
