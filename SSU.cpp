@@ -388,23 +388,31 @@ namespace ssu
 			{
 				auto it = m_IncomleteMessages.find (msgID);
 				if (it != m_IncomleteMessages.end ())
+				{
 					msg = it->second;
+					memcpy (msg->buf + msg->len, buf, fragmentSize);
+					msg->len += fragmentSize;
+				}
 				else
 					// TODO:
 					LogPrint ("Unexpected follow-on fragment ", fragmentNum, " of message ", msgID);	
 			}
 			else // first fragment
-				msg = NewI2NPMessage ();
-			if (msg)
 			{
-				memcpy (msg->buf + msg->len, buf, fragmentSize);
-				msg->len += fragmentSize;	
+				msg = NewI2NPMessage ();
+				memcpy (msg->GetSSUHeader (), buf, fragmentSize);
+				msg->len += fragmentSize - sizeof (I2NPHeaderShort);
+			}
+
+			if (msg)
+			{					
 				if (!fragmentNum && !isLast)
 					m_IncomleteMessages[msgID] = msg;
 				if (isLast)
 				{
 					if (fragmentNum > 0)	
 						m_IncomleteMessages.erase (msgID);
+					msg->FromSSU (msgID);
 					i2p::HandleI2NPMessage (msg, false);	
 				}
 			}

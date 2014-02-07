@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <set>
 #include <string.h>
+#include "I2PEndian.h"
 #include "RouterInfo.h"
 
 namespace i2p
@@ -17,6 +18,12 @@ namespace i2p
 		uint64_t expiration;
 		uint16_t size;
 		uint8_t chks;
+	};	
+
+	struct I2NPHeaderShort
+	{
+		uint8_t typeID;
+		uint32_t shortExpiration;
 	};	
 
 	struct I2NPDatabaseStoreMsg
@@ -101,6 +108,19 @@ namespace i2p
 			len = offset + other.GetLength ();
 			return *this;
 		}	
+
+		// for SSU only
+		uint8_t * GetSSUHeader () { return buf + offset + sizeof(I2NPHeader) - sizeof(I2NPHeaderShort); };	
+		void FromSSU (uint32_t msgID) // we have received SSU message and convert it to regular
+		{
+			I2NPHeaderShort ssu = *(I2NPHeaderShort *)GetSSUHeader ();
+			I2NPHeader * header = GetHeader ();
+			header->typeID = ssu.typeID;
+			header->msgID = htobe32 (msgID);
+			header->expiration = htobe64 (be32toh (ssu.shortExpiration)*1000LL);
+			header->size = htobe16 (len - offset - sizeof (I2NPHeader));
+			header->chks = 0;
+		}
 	};	
 	I2NPMessage * NewI2NPMessage ();
 	void DeleteI2NPMessage (I2NPMessage * msg);
