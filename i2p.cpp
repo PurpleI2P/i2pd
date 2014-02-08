@@ -27,6 +27,7 @@
 
 // Global
 int running = 1;
+int isDaemon;
 
 #ifndef _WIN32
 void handle_signal(int sig)
@@ -59,6 +60,7 @@ void handle_signal(int sig)
 int main( int argc, char* argv[] )
 {
   i2p::util::config::OptionParser(argc,argv);
+  isDaemon = i2p::util::config::GetArg("-daemon", 0);
 #ifdef _WIN32
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
@@ -71,8 +73,22 @@ int main( int argc, char* argv[] )
   LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
+  int isLogging = i2p::util::config::GetArg("-log", 0);
+  if (isLogging == 1)
+  {
+    std::string logfile = i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
-  if (i2p::util::config::GetArg("-daemon", 0) == 1)
+    logfile.append("/debug.log");
+#else
+    logfile.append("\\debug.log");
+#endif
+    freopen(logfile.c_str(),"a",stdout);
+    LogPrint("Logging to file enabled.");
+  }
+
+
+#ifndef _WIN32
+  if (isDaemon == 1)
   {
     pid_t pid;
     pid = fork();
@@ -125,18 +141,6 @@ int main( int argc, char* argv[] )
   sigaction(SIGINT,&sa,0);
 #endif
 
-  if (i2p::util::config::GetArg("-log", 0) == 1)
-  {
-    std::string logfile = i2p::util::filesystem::GetDataDir().string();
-#ifndef _WIN32
-    logfile.append("/debug.log");
-#else
-    logfile.append("\\debug.log");
-#endif
-    LogPrint("Logging to file enabled.");
-    freopen(logfile.c_str(),"a",stdout);
-  }
-
   //TODO: This is an ugly workaround. fix it.
   //TODO: Autodetect public IP.
   i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
@@ -161,7 +165,7 @@ int main( int argc, char* argv[] )
   i2p::data::netdb.Stop ();
   httpServer.Stop ();
 
-  if (i2p::util::config::GetArg("-log", 0) == 1)
+  if (isLogging == 1)
   {
     fclose (stdout);
   }
