@@ -98,17 +98,18 @@ namespace util
 	{
 		public:
 
-			MsgQueue (): m_Thread (std::bind (&MsgQueue<Msg>::Run, this)) {};
+			MsgQueue (): m_Thread (std::bind (&MsgQueue<Msg>::Run, this)) , running(1) {};
 			void Stop()
 			{
-					m_Thread.detach();
+				running = 0;
+				m_Thread.join();
 			}
 
 		private:
 			void Run ()
 			{
 				Msg * msg = nullptr;
-				while ((msg = Queue<Msg>::GetNext ()) != nullptr)
+				while ((msg = Queue<Msg>::GetNext ()) != nullptr && running)
 				{
 					msg->Process ();
 					delete msg;
@@ -117,6 +118,7 @@ namespace util
 			
 		private:
 			std::thread m_Thread;
+			int running;
 	};	
 }		
 }	
