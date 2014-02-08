@@ -54,7 +54,7 @@ namespace ssu
 		eSessionStateCreatedReceived,
 		eSessionStateConfirmedSent,
 		eSessionStateConfirmedReceived,
-		eSessionStateEstablised
+		eSessionStateEstablished
 	};		
 
 	class SSUServer;

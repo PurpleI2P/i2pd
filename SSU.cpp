@@ -47,7 +47,7 @@ namespace ssu
 	{
 		switch (m_State)
 		{
-			case eSessionStateEstablised:
+			case eSessionStateEstablished:
 				// most common case
 				ProcessMessage (buf, len);
 			break;
@@ -131,7 +131,7 @@ namespace ssu
 			LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 			uint32_t relayTag = be32toh (*(uint32_t *)(buf + sizeof (SSUHeader) + 263));
 			SendSessionConfirmed (buf + sizeof (SSUHeader), ourAddress, relayTag);
-			m_State = eSessionStateEstablised;
+			m_State = eSessionStateEstablished;
 		}
 	}	
 
@@ -147,7 +147,7 @@ namespace ssu
 				m_State = eSessionStateConfirmedReceived;
 				LogPrint ("Session confirmed received");	
 				// TODO:	
-				m_State = eSessionStateEstablised;
+				m_State = eSessionStateEstablished;
 			}
 			else
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
@@ -368,6 +368,28 @@ namespace ssu
 		uint8_t flag = *buf;
 		buf++;
 		LogPrint ("Process SSU data flags=", (int)flag);
+		if (flag & DATA_FLAG_EXPLICIT_ACKS_INCLUDED)
+		{
+			// explicit ACKs
+			uint8_t numAcks =*buf;
+			buf++;
+			// TODO: process ACKs
+			buf += numAcks*4;
+		}
+		if (flag & DATA_FLAG_ACK_BITFIELDS_INCLUDED)
+		{
+			// explicit ACK bitfields
+			uint8_t numBitfields =*buf;
+			buf++;
+			for (int i = 0; i < numBitfields; i++)
+			{
+				buf += 4; // msgID
+				// TODO: process ACH bitfields
+				while (*buf & 0x80) // not last
+					buf++;
+				buf++; // last byte
+			}	
+		}	
 		uint8_t numFragments = *buf; // number of fragments
 		buf++;
 		for (int i = 0; i < numFragments; i++)
@@ -425,16 +447,19 @@ namespace ssu
 	{
 		uint8_t buf[48]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
 		uint8_t iv[16];
-		*buf = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
-		buf[1] = 1; // number of ACKs
-		*(uint32_t *)(buf + 2) = htobe32 (msgID); // msgID	
-		buf[6] = 0; // number of fragments
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		*payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
+		payload++;
+		*payload = 1; // number of ACKs
+		payload++;
+		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
+		payload += 4;
+		*payload = 0; // number of fragments
 
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt message with session key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48, m_SessionKey, iv, m_MacKey);
-		m_State = eSessionStateConfirmedSent;	
 		m_Server->Send (buf, 48, m_RemoteEndpoint);
 	}
 
