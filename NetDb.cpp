@@ -2,7 +2,6 @@
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
 #include "base64.h"
 #include "Log.h"
@@ -13,12 +12,13 @@
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
+#include "Reseed.h"
+#include "util.h"
 
 namespace i2p
 {
 namespace data
 {		
-
 	I2NPMessage * RequestedDestination::CreateRequestMessage (const RouterInfo * router,
 		const i2p::tunnel::InboundTunnel * replyTunnel)
 	{
@@ -41,10 +41,15 @@ namespace data
 		m_LastReplyTunnel = nullptr;
 		return msg;
 	}	
-	
+
+#ifndef _WIN32		
+	const char NetDb::m_NetDbPath[] = "/netDb";
+#else
+	const char NetDb::m_NetDbPath[] = "\\netDb";
+#endif			
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (0)
+	NetDb::NetDb (): m_IsRunning (false), m_ReseedRetries (0), m_Thread (0)
 	{
 	}
 	
@@ -60,8 +65,15 @@ namespace data
 	}	
 
 	void NetDb::Start ()
-	{
-		Load ("netDb");
+	{	
+		Load (m_NetDbPath);
+		while (m_RouterInfos.size () < 100 && m_ReseedRetries < 10)
+		{
+			Reseeder reseeder;
+			reseeder.reseedNow();
+			m_ReseedRetries++;
+			Load (m_NetDbPath);
+		}	
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
 	
@@ -111,7 +123,7 @@ namespace data
 				if (ts - lastTs >= 60) // save routers every minute
 				{
 					if (lastTs)
-						SaveUpdated ("netDb");
+						SaveUpdated (m_NetDbPath);
 					lastTs = ts;
 				}	
 			}
@@ -180,13 +192,12 @@ namespace data
 	}
 
 	// TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
-	bool NetDb::CreateNetDb(const char * directory)
+	bool NetDb::CreateNetDb(boost::filesystem::path directory)
 	{
-		boost::filesystem::path p (directory);
-		LogPrint (directory, " doesn't exist, trying to create it.");
-		if (!boost::filesystem::create_directory (p))
+		LogPrint (directory.string(), " doesn't exist, trying to create it.");
+		if (!boost::filesystem::create_directory (directory))
 		{
-			LogPrint("Failed to create directory ", directory);
+			LogPrint("Failed to create directory ", directory.string());
 			return false;
 		}
 
@@ -200,19 +211,26 @@ namespace data
 #else
 			suffix = std::string ("\\r") + chars[i];
 #endif
-			if (!boost::filesystem::create_directory( boost::filesystem::path (p / suffix) )) return false;
+			if (!boost::filesystem::create_directory( boost::filesystem::path (directory / suffix) )) return false;
 		}
 		return true;
 	}
-	
+
 	void NetDb::Load (const char * directory)
 	{
-		boost::filesystem::path p (directory);
+		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
+		p /= (directory);
 		if (!boost::filesystem::exists (p))
 		{
-			if (!CreateNetDb(directory)) return;
+			// seems netDb doesn't exist yet
+			if (!CreateNetDb(p)) return;
 		}
-		// TODO: Reseed if needed.
+		// make sure we cleanup netDb from previous attempts
+		for (auto r: m_RouterInfos)
+			delete r.second;
+		m_RouterInfos.clear ();	
+
+		// load routers now
 		int numRouters = 0;
 		boost::filesystem::directory_iterator end;
 		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
@@ -247,7 +265,14 @@ namespace data
 #endif
 				routerInfo->GetIdentHashBase64 () + ".dat";
 		};	
-			
+
+		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
+		p /= (directory);
+#if BOOST_VERSION > 10500		
+		const char * fullDirectory = p.string().c_str ();
+#else
+		const char * fullDirectory = p.c_str ();
+#endif		
 		int count = 0, deletedCount = 0;
 		auto total = m_RouterInfos.size ();
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -255,7 +280,7 @@ namespace data
 		{	
 			if (it.second->IsUpdated ())
 			{
-				std::ofstream r (GetFilePath(directory, it.second), std::ofstream::binary);
+				std::ofstream r (GetFilePath(fullDirectory, it.second), std::ofstream::binary);
 				r.write ((char *)it.second->GetBuffer (), it.second->GetBufferLen ());
 				it.second->SetUpdated (false);
 				count++;
@@ -271,9 +296,9 @@ namespace data
 				
 				if (it.second->IsUnreachable ())
 				{	
-					if (boost::filesystem::exists (GetFilePath (directory, it.second)))
+					if (boost::filesystem::exists (GetFilePath (fullDirectory, it.second)))
 					{    
-						boost::filesystem::remove (GetFilePath (directory, it.second));
+						boost::filesystem::remove (GetFilePath (fullDirectory, it.second));
 						deletedCount++;
 					}	
 				}
@@ -601,45 +626,5 @@ namespace data
 		return r;
 	}	
 
-	//TODO: Move to reseed.
-	//TODO: Implement v1 & v2 reseeding. Lightweight zip library is needed for v2.
-	// orignal: zip is part of crypto++, see implementation of DatabaseStoreMsg
-	//TODO: Implement SU3, utils.
-	void NetDb::DownloadRouterInfo (const std::string& address, const std::string& filename)
-	{
-		try
-		{
-			boost::asio::ip::tcp::iostream site(address, "http");
-			if (!site)
-			{
-				//site.expires_from_now (boost::posix_time::seconds (10)); // wait for 10 seconds 
-				site << "GET " << filename << "HTTP/1.0\nHost: " << address << "\nAccept: */*\nConnection: close\n\n";
-				// read response
-				std::string version, statusMessage;
-				site >> version; // HTTP version
-				int status;
-				site >> status; // status
-				std::getline (site, statusMessage);
-				if (status == 200) // OK
-				{
-					std::string header;
-					while (header != "\n")
-						std::getline (site, header);
-					// read content
-					std::stringstream ss;
-					ss << site.rdbuf();
-					AddRouterInfo ((uint8_t *)ss.str ().c_str (), ss.str ().size ());
-				}
-				else
-					LogPrint ("HTTP response ", status);
-			}
-			else
-				LogPrint ("Can't connect to ", address);
-		}
-		catch (std::exception& ex)
-		{
-			LogPrint ("Failed to download ", filename, " : ", ex.what ());
-		}
-	}
 }
 }

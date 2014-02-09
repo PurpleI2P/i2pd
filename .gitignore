@@ -1,5 +1,5 @@
 # i2pd
-*.o
+obj/*.o
 router.info
 router.keys
 i2p

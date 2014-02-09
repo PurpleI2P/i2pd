@@ -18,7 +18,6 @@ namespace crypto
 	// digest is 16 bytes
 	// block size is 64 bytes	
 	{
-		size_t totalLen = len + 64 + 32; 
 		uint8_t buf[2048];
 		// ikeypad
 		((uint64_t *)buf)[0] = ((uint64_t *)key)[0] ^ IPAD; 
@@ -47,10 +46,10 @@ namespace crypto
 		// copy first hash after okeypad		
 		memcpy (buf + 64, hash, 16);
 		// fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-		memset (buf + 72, 0, 16);			
+		memset (buf + 80, 0, 16);			
 		
 		// calculate digest
-		CryptoPP::Weak1::MD5().CalculateDigest (digest, buf, totalLen);
+		CryptoPP::Weak1::MD5().CalculateDigest (digest, buf, 96);
 	}
 }
 }

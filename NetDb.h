@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <thread>
+#include <boost/filesystem.hpp>
 #include "Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
@@ -76,10 +77,9 @@ namespace data
 			
 		private:
 
-			bool CreateNetDb(const char * directory);
+			bool CreateNetDb(boost::filesystem::path directory);
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
-			void DownloadRouterInfo (const std::string& address, const std::string& filename); // for reseed 
 			void Run (); // exploratory thread
 			void Explore ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
@@ -95,8 +95,11 @@ namespace data
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
 			
 			bool m_IsRunning;
+			int m_ReseedRetries;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
+
+			static const char m_NetDbPath[];
 	};
 
 	extern NetDb netdb;

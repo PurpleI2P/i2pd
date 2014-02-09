@@ -22,6 +22,7 @@
     <ClCompile Include="..\Log.cpp" />
     <ClCompile Include="..\NetDb.cpp" />
     <ClCompile Include="..\NTCPSession.cpp" />
+    <ClCompile Include="..\Reseed.cpp" />
     <ClCompile Include="..\RouterContext.cpp" />
     <ClCompile Include="..\RouterInfo.cpp" />
     <ClCompile Include="..\SSU.cpp" />
@@ -31,6 +32,7 @@
     <ClCompile Include="..\Tunnel.cpp" />
     <ClCompile Include="..\TunnelEndpoint.cpp" />
     <ClCompile Include="..\TunnelGateway.cpp" />
+    <ClCompile Include="..\util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\base64.h" />
@@ -47,6 +49,7 @@
     <ClInclude Include="..\NetDb.h" />
     <ClInclude Include="..\NTCPSession.h" />
     <ClInclude Include="..\Queue.h" />
+    <ClInclude Include="..\Reseed.h" />
     <ClInclude Include="..\RouterContext.h" />
     <ClInclude Include="..\RouterInfo.h" />
     <ClInclude Include="..\SSU.h" />
@@ -59,6 +62,7 @@
     <ClInclude Include="..\TunnelConfig.h" />
     <ClInclude Include="..\TunnelEndpoint.h" />
     <ClInclude Include="..\TunnelGateway.h" />
+    <ClInclude Include="..\util.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{930568EC-31C9-406A-AD1C-9636DF5D8FAA}</ProjectGuid>

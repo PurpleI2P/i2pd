@@ -46,7 +46,12 @@ namespace data
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
-			m_BufferLen = s.tellg (); 
+			m_BufferLen = s.tellg ();
+			if (m_BufferLen < 40)
+			{
+				LogPrint("File", filename, " is malformed");
+				return;
+			}
 			s.seekg(0, std::ios::beg);
 			s.read(m_Buffer,m_BufferLen);
 			ReadFromBuffer ();
@@ -289,6 +294,14 @@ namespace data
 		else
 			return m_SupportedTransports & (eNTCPV4 | eNTCPV6);
 	}		
+
+	bool RouterInfo::IsSSU (bool v4only) const
+	{
+		if (v4only)
+			return m_SupportedTransports & eSSUV4;
+		else
+			return m_SupportedTransports & (eSSUV4 | eSSUV6);
+	}
 		
 	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
 	{

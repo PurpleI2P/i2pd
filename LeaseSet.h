@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
+#include <set>
 #include "Identity.h"
 
 namespace i2p
@@ -18,6 +19,14 @@ namespace data
 		uint8_t tunnelGateway[32];
 		uint32_t tunnelID;
 		uint64_t endDate;
+
+		bool operator< (const Lease& other) const 
+		{
+			if (endDate != other.endDate)
+				return endDate > other.endDate;
+			else
+				return tunnelID < other.tunnelID; 
+		}	
 	};	
 	
 #pragma pack()	
@@ -34,7 +43,7 @@ namespace data
 			const Identity& GetIdentity () const { return m_Identity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			const std::vector<Lease>& GetLeases () const { return m_Leases; };
-			std::vector<Lease> GetNonExpiredLeases () const;
+			std::set<Lease> GetNonExpiredLeases () const;
 			bool HasExpiredLeases () const;
 			bool HasNonExpiredLeases () const;
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };

@@ -26,7 +26,7 @@ namespace ssu
 
 	const int SSU_MTU = 1484;
 
-	// payload types (3 bits)
+	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
 	const uint8_t PAYLOAD_TYPE_SESSION_CREATED = 1;
 	const uint8_t PAYLOAD_TYPE_SESSION_CONFIRMED = 2;
@@ -35,6 +35,15 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
 	const uint8_t PAYLOAD_TYPE_DATA = 6;
 	const uint8_t PAYLOAD_TYPE_TEST = 7;
+	const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
+
+	// data flags
+	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
+	const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
+	const uint8_t DATA_FLAG_REQUEST_PREVIOUS_ACKS = 0x08;
+	const uint8_t DATA_FLAG_EXPLICIT_CONGESTION_NOTIFICATION = 0x10;
+	const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
+	const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;	
 
 	enum SessionState
 	{
@@ -45,7 +54,7 @@ namespace ssu
 		eSessionStateCreatedReceived,
 		eSessionStateConfirmedSent,
 		eSessionStateConfirmedReceived,
-		eSessionStateEstablised
+		eSessionStateEstablished
 	};		
 
 	class SSUServer;
@@ -58,18 +67,26 @@ namespace ssu
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
 
 			void Connect ();
+			void Close ();
+			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			void SendI2NPMessage (I2NPMessage * msg);
 
 		private:
 
-			void CreateAESKey (uint8_t * pubKey, uint8_t * aesKey); // TODO: shouldn't be here
+			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
 
+			void ProcessMessage (uint8_t * buf, size_t len); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
-			void SendSessionCreated (const boost::asio::ip::udp::endpoint& senderEndpoint);
-
-			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
+			void SendSessionCreated (const uint8_t * x);
+			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
+			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
+			void ProcessData (uint8_t * buf, size_t len);	
+			void SendMsgAck (uint32_t msgID);
+			void SendSesionDestroyed ();
+			
+			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, uint8_t * macKey);			
@@ -82,7 +99,8 @@ namespace ssu
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
-			uint8_t m_SessionKey[32];
+			uint8_t m_SessionKey[32], m_MacKey[32];
+			std::map<uint32_t, I2NPMessage *> m_IncomleteMessages;
 	};
 
 	class SSUServer
@@ -94,7 +112,10 @@ namespace ssu
 			void Start ();
 			void Stop ();
 			SSUSession * GetSession (i2p::data::RouterInfo * router);
+			void DeleteSession (SSUSession * session);
+			void DeleteAllSessions ();
 			
+			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 
 		private:
@@ -104,6 +125,7 @@ namespace ssu
 
 		private:
 			
+			boost::asio::ip::udp::endpoint m_Endpoint;
 			boost::asio::ip::udp::socket m_Socket;
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
 			uint8_t m_ReceiveBuffer[2*SSU_MTU];
