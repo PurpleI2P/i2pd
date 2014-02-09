@@ -13,7 +13,7 @@ namespace crypto
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C; 			
 
-	inline void HMACMD5Digest (uint8_t * msg, size_t len, uint8_t * key, uint8_t * digest)
+	inline void HMACMD5Digest (uint8_t * msg, size_t len, const uint8_t * key, uint8_t * digest)
 	// key is 32 bytes
 	// digest is 16 bytes
 	// block size is 64 bytes	

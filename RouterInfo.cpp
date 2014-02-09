@@ -303,17 +303,17 @@ namespace data
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 		
-	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
+	const RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only) const
 	{
 		return GetAddress (eTransportNTCP, v4only);
 	}	
 
-	RouterInfo::Address * RouterInfo::GetSSUAddress (bool v4only)
+	const RouterInfo::Address * RouterInfo::GetSSUAddress (bool v4only) const 
 	{
 		return GetAddress (eTransportSSU, v4only);
 	}	
 
-	RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only)
+	const RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only) const
 	{
 		for (auto& address : m_Addresses)
 		{

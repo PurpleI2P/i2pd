@@ -55,8 +55,7 @@ namespace i2p
 			}
 		}	
 
-		// TODO: do it for SSU only
-		DetectExternalIP ();
+		//DetectExternalIP ();
 	}
 		
 	void Transports::Stop ()
@@ -189,7 +188,7 @@ namespace i2p
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			if (router && router->IsSSU () && m_SSUServer)
-				m_SSUServer->GetSession (const_cast<i2p::data::RouterInfo *>(router)); //TODO	
+				m_SSUServer->GetSession (router); 	
 		}	
 		if (m_Timer)
 		{	
