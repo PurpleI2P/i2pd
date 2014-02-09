@@ -133,6 +133,7 @@ namespace ssu
 			uint32_t relayTag = be32toh (*(uint32_t *)(buf + sizeof (SSUHeader) + 263));
 			SendSessionConfirmed (buf + sizeof (SSUHeader), ourAddress, relayTag);
 			m_State = eSessionStateEstablished;
+			Established ();
 		}
 	}	
 
@@ -149,6 +150,7 @@ namespace ssu
 				LogPrint ("Session confirmed received");	
 				// TODO:	
 				m_State = eSessionStateEstablished;
+				Established ();
 			}
 			else
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
@@ -362,13 +364,35 @@ namespace ssu
 	void SSUSession::Close ()
 	{
 		SendSesionDestroyed ();
+		if (!m_DelayedMessages.empty ())
+		{
+			for (auto it :m_DelayedMessages)
+				delete it;
+			m_DelayedMessages.clear ();
+		}	
+	}	
+
+	void SSUSession::Established ()
+	{
+		if (!m_DelayedMessages.empty ())
+		{
+			for (auto it :m_DelayedMessages)
+				Send (it);
+			m_DelayedMessages.clear ();
+		}	
 	}	
 	
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
-		// TODO:
+		if (msg)
+		{	
+			if (m_State == eSessionStateEstablished)
+				Send (msg);
+			else
+				m_DelayedMessages.push_back (msg);
+		}	
 	}	
-
+	
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)
 	{
 		//uint8_t * start = buf;
@@ -479,6 +503,52 @@ namespace ssu
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, m_SessionKey, iv, m_MacKey);
 		m_Server->Send (buf, 48, m_RemoteEndpoint);
 	}	
+
+	void SSUSession::Send (i2p::I2NPMessage * msg)
+	{
+		uint32_t msgID = htobe32 (msg->ToSSU ());
+		size_t payloadSize = SSU_MTU - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
+		size_t len = msg->GetLength ();
+		uint8_t * msgBuf = msg->GetSSUHeader ();
+
+		uint32_t fragmentNum = 0;
+		while (len > 0)
+		{	
+			uint8_t buf[SSU_MTU + 18], iv[16];
+			buf[0] = DATA_FLAG_WANT_REPLY; // for compatibility
+			buf[1] = 1; // always 1 message fragment per message
+			*(uint32_t *)(buf + 2) =  msgID;
+			bool isLast = (len <= payloadSize);
+			size_t size = isLast ? len : payloadSize;
+			uint32_t fragmentInfo = (fragmentNum << 17);
+			if (isLast)
+				fragmentInfo |= 0x010000;
+			
+			fragmentInfo |= size;
+			fragmentInfo = htobe32 (fragmentInfo);
+			memcpy (buf + 6, (uint8_t *)(&fragmentInfo) + 1, 3);
+			memcpy (buf + 9, msgBuf, size);
+			
+			size += sizeof (SSUHeader) + 9;
+			if (size % 16) // make sure 16 bytes boundary
+				size = (size/16 + 1)*16;
+			
+			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+			rnd.GenerateBlock (iv, 16); // random iv
+			// encrypt message with session key
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, size, m_SessionKey, iv, m_MacKey);
+			m_Server->Send (buf, size, m_RemoteEndpoint);
+
+			if (!isLast)
+			{	
+				len -= payloadSize;
+				msgBuf += payloadSize;
+			}	
+			else
+				len = 0;
+			fragmentNum++;
+		}	
+	}	
 	
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
@@ -506,6 +576,7 @@ namespace ssu
 	void SSUServer::Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
 		m_Socket.send_to (boost::asio::buffer (buf, len), to);
+		LogPrint ("SSU sent ", len, " bytes");
 	}	
 
 	void SSUServer::Receive ()
