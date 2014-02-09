@@ -43,7 +43,7 @@ namespace i2p
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
 	{
 		m_RouterInfo.CreateBuffer ();
-		auto address = m_RouterInfo.GetNTCPAddress ();
+		auto address = const_cast<i2p::data::RouterInfo::Address *>(m_RouterInfo.GetNTCPAddress ());
 		if (address)
 		{
 			address->host = boost::asio::ip::address::from_string (host);

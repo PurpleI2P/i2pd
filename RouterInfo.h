@@ -54,8 +54,8 @@ namespace data
 			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			std::vector<Address>& GetAddresses () { return m_Addresses; };
-			Address * GetNTCPAddress (bool v4only = true);
-			Address * GetSSUAddress (bool v4only = true);
+			const Address * GetNTCPAddress (bool v4only = true) const;
+			const Address * GetSSUAddress (bool v4only = true) const;
 			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
@@ -91,7 +91,7 @@ namespace data
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
 			void UpdateIdentHashBase64 ();
-			Address * GetAddress (TransportStyle s, bool v4only);
+			const Address * GetAddress (TransportStyle s, bool v4only) const;
 			
 		private:
 

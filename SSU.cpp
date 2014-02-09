@@ -14,8 +14,8 @@ namespace i2p
 namespace ssu
 {
 
-	SSUSession::SSUSession (SSUServer * server, const boost::asio::ip::udp::endpoint& remoteEndpoint,
-		i2p::data::RouterInfo * router): m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
+	SSUSession::SSUSession (SSUServer * server, boost::asio::ip::udp::endpoint& remoteEndpoint,
+		const i2p::data::RouterInfo * router): m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
 		m_RemoteRouter (router), m_State (eSessionStateUnknown)
 	{
 	}
@@ -273,7 +273,7 @@ namespace ssu
 		m_Server->Send (buf, 480, m_RemoteEndpoint);
 	}
 
-	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len)
+	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, const i2p::data::RouterInfo& r, uint8_t * buf, size_t len)
 	{
 		auto address = r.GetSSUAddress ();
 		if (address)
@@ -299,7 +299,8 @@ namespace ssu
 		return false;
 	}	
 
-	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey)
+	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, 
+		const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey)
 	{	
 		if (len < sizeof (SSUHeader))
 		{
@@ -320,7 +321,7 @@ namespace ssu
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, macKey, header->mac);
 	}
 
-	void SSUSession::Decrypt (uint8_t * buf, size_t len, uint8_t * aesKey)
+	void SSUSession::Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey)
 	{
 		if (len < sizeof (SSUHeader))
 		{
@@ -335,7 +336,7 @@ namespace ssu
 		m_Decryption.ProcessData (encrypted, encrypted, encryptedLen);
 	}
 
-	bool SSUSession::Validate (uint8_t * buf, size_t len, uint8_t * macKey)
+	bool SSUSession::Validate (uint8_t * buf, size_t len, const uint8_t * macKey)
 	{
 		if (len < sizeof (SSUHeader))
 		{
@@ -535,7 +536,7 @@ namespace ssu
 			LogPrint ("SSU receive error: ", ecode.message ());
 	}
 
-	SSUSession * SSUServer::GetSession (i2p::data::RouterInfo * router)
+	SSUSession * SSUServer::GetSession (const i2p::data::RouterInfo * router)
 	{
 		SSUSession * session = nullptr;
 		if (router)
