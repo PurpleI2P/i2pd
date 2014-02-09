@@ -25,6 +25,7 @@ namespace i2p
 	{
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
+		m_Timer = new boost::asio::deadline_timer (m_Service);
 		// create acceptors
 		auto addresses = context.GetRouterInfo ().GetAddresses ();
 		for (auto& address : addresses)
@@ -38,9 +39,11 @@ namespace i2p
 				auto conn = new i2p::ntcp::NTCPServerConnection (m_Service);
 				m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
 					conn, boost::asio::placeholders::error));
-			}	
+			// temporary always run SSU server
+			// TODO: uncomment following lines later	
+			/*}	
 			else if (address.transportStyle == RouterInfo::eTransportSSU)
-			{
+			{*/
 				if (!m_SSUServer)
 				{	
 					m_SSUServer = new i2p::ssu::SSUServer (m_Service, address.port);
@@ -51,6 +54,9 @@ namespace i2p
 					LogPrint ("SSU server already exists");
 			}
 		}	
+
+		// TODO: do it for SSU only
+		DetectExternalIP ();
 	}
 		
 	void Transports::Stop ()
@@ -59,7 +65,10 @@ namespace i2p
 			delete session.second;
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
-
+		
+		m_Timer->cancel ();
+		delete m_Timer;
+		
 		if (m_SSUServer)
 		{
 			m_SSUServer->Stop ();
@@ -173,4 +182,30 @@ namespace i2p
 		else
 			LogPrint ("Session not found"); 
 	}	
+
+	void Transports::DetectExternalIP ()
+	{
+		for (int i = 0; i < 5; i ++)
+		{
+			auto router = i2p::data::netdb.GetRandomRouter ();
+			if (router && router->IsSSU () && m_SSUServer)
+				m_SSUServer->GetSession (const_cast<i2p::data::RouterInfo *>(router)); //TODO	
+		}	
+		if (m_Timer)
+		{	
+			m_Timer->expires_from_now (boost::posix_time::seconds(5)); // 5 seconds
+			m_Timer->async_wait (boost::bind (&Transports::HandleTimer, this, boost::asio::placeholders::error));
+		}	
+	}
+		
+	void Transports::HandleTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			// end of external IP detection
+			if (m_SSUServer)
+				 m_SSUServer->DeleteAllSessions ();
+		}	
+	}	
+		
 }

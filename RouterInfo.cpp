@@ -294,6 +294,14 @@ namespace data
 		else
 			return m_SupportedTransports & (eNTCPV4 | eNTCPV6);
 	}		
+
+	bool RouterInfo::IsSSU (bool v4only) const
+	{
+		if (v4only)
+			return m_SupportedTransports & eSSUV4;
+		else
+			return m_SupportedTransports & (eSSUV4 | eSSUV6);
+	}
 		
 	RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only)
 	{

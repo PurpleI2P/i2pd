@@ -53,7 +53,7 @@ namespace data
 			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
 			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
-			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
+			std::vector<Address>& GetAddresses () { return m_Addresses; };
 			Address * GetNTCPAddress (bool v4only = true);
 			Address * GetSSUAddress (bool v4only = true);
 			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
@@ -63,6 +63,7 @@ namespace data
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
 			bool IsNTCP (bool v4only = true) const;
+			bool IsSSU (bool v4only = true) const;
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
 			
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 

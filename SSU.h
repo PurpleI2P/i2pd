@@ -35,7 +35,7 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
 	const uint8_t PAYLOAD_TYPE_DATA = 6;
 	const uint8_t PAYLOAD_TYPE_TEST = 7;
-	const uint8_t PAYLOAD_TYPE_SESSION_DESTROY = 8;
+	const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
 
 	// data flags
 	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
@@ -67,6 +67,8 @@ namespace ssu
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
 
 			void Connect ();
+			void Close ();
+			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			void SendI2NPMessage (I2NPMessage * msg);
 
 		private:
@@ -82,7 +84,8 @@ namespace ssu
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
 			void ProcessData (uint8_t * buf, size_t len);	
 			void SendMsgAck (uint32_t msgID);
-
+			void SendSesionDestroyed ();
+			
 			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, uint8_t * aesKey);			
@@ -109,7 +112,9 @@ namespace ssu
 			void Start ();
 			void Stop ();
 			SSUSession * GetSession (i2p::data::RouterInfo * router);
-
+			void DeleteSession (SSUSession * session);
+			void DeleteAllSessions ();
+			
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 
