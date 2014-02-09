@@ -85,7 +85,7 @@ namespace ssu
 				case PAYLOAD_TYPE_TEST:
 					LogPrint ("SSU test received");
 				break;
-				case PAYLOAD_TYPE_SESSION_DESTROY:
+				case PAYLOAD_TYPE_SESSION_DESTROYED:
 					LogPrint ("SSU session destroy received");
 				break;	
 				default:
@@ -129,6 +129,7 @@ namespace ssu
 			boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )(ourAddress)));
 			uint16_t ourPort = be16toh (*(uint16_t *)(ourAddress + 4));
 			LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
+			i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
 			uint32_t relayTag = be32toh (*(uint32_t *)(buf + sizeof (SSUHeader) + 263));
 			SendSessionConfirmed (buf + sizeof (SSUHeader), ourAddress, relayTag);
 			m_State = eSessionStateEstablished;
@@ -357,6 +358,11 @@ namespace ssu
 		SendSessionRequest ();
 	}
 
+	void SSUSession::Close ()
+	{
+		SendSesionDestroyed ();
+	}	
+	
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
 		// TODO:
@@ -445,7 +451,7 @@ namespace ssu
 
 	void SSUSession::SendMsgAck (uint32_t msgID)
 	{
-		uint8_t buf[48]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
+		uint8_t buf[48 + 18]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
 		uint8_t iv[16];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
@@ -463,6 +469,16 @@ namespace ssu
 		m_Server->Send (buf, 48, m_RemoteEndpoint);
 	}
 
+	void SSUSession::SendSesionDestroyed ()
+	{
+		uint8_t buf[48 + 18], iv[16];
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		// encrypt message with session key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, m_SessionKey, iv, m_MacKey);
+		m_Server->Send (buf, 48, m_RemoteEndpoint);
+	}	
+	
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
 	{
@@ -546,6 +562,26 @@ namespace ssu
 		}
 		return session;
 	}
+
+	void SSUServer::DeleteSession (SSUSession * session)
+	{
+		if (session)
+		{
+			session->Close ();
+			m_Sessions.erase (session->GetRemoteEndpoint ());
+			delete session;
+		}	
+	}	
+
+	void SSUServer::DeleteAllSessions ()
+	{
+		for (auto it: m_Sessions)
+		{
+			it.second->Close ();
+			delete it.second;			
+		}	
+		m_Sessions.clear ();
+	}	
 }
 }
 

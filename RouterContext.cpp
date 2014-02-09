@@ -52,6 +52,13 @@ namespace i2p
 
 		m_RouterInfo.CreateBuffer ();
 	}	
+
+	void RouterContext::UpdateAddress (const char * host)
+	{
+		for (auto& address : m_RouterInfo.GetAddresses ())
+			address.host = boost::asio::ip::address::from_string (host);	
+		m_RouterInfo.CreateBuffer ();
+	}	
 	
 	void RouterContext::Sign (uint8_t * buf, int len, uint8_t * signature)
 	{
