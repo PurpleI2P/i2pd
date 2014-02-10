@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <map>
+#include <list>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -82,9 +83,11 @@ namespace ssu
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
+			void Established ();
 			void ProcessData (uint8_t * buf, size_t len);	
 			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();
+			void Send (i2p::I2NPMessage * msg);
 			
 			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, const i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
@@ -101,6 +104,7 @@ namespace ssu
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
 			std::map<uint32_t, I2NPMessage *> m_IncomleteMessages;
+			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 	};
 
 	class SSUServer
