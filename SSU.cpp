@@ -47,6 +47,7 @@ namespace ssu
 	{
 		switch (m_State)
 		{
+			case eSessionStateConfirmedSent:
 			case eSessionStateEstablished:
 				// most common case
 				ProcessMessage (buf, len);
@@ -132,8 +133,6 @@ namespace ssu
 			i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
 			uint32_t relayTag = be32toh (*(uint32_t *)(buf + sizeof (SSUHeader) + 263));
 			SendSessionConfirmed (buf + sizeof (SSUHeader), ourAddress, relayTag);
-			m_State = eSessionStateEstablished;
-			Established ();
 		}
 	}	
 
@@ -147,9 +146,9 @@ namespace ssu
 			if ((header->flag >> 4) == PAYLOAD_TYPE_SESSION_CONFIRMED)
 			{
 				m_State = eSessionStateConfirmedReceived;
-				LogPrint ("Session confirmed received");	
-				// TODO:	
+				LogPrint ("Session confirmed received");		
 				m_State = eSessionStateEstablished;
+				// TODO: send DeliverStatus	
 				Established ();
 			}
 			else
@@ -374,6 +373,7 @@ namespace ssu
 
 	void SSUSession::Established ()
 	{
+		SendI2NPMessage (CreateDatabaseStoreMsg ());
 		if (!m_DelayedMessages.empty ())
 		{
 			for (auto it :m_DelayedMessages)
@@ -463,11 +463,25 @@ namespace ssu
 					m_IncomleteMessages[msgID] = msg;
 				if (isLast)
 				{
+					SendMsgAck (msgID);
 					if (fragmentNum > 0)	
 						m_IncomleteMessages.erase (msgID);
 					msg->FromSSU (msgID);
-					i2p::HandleI2NPMessage (msg, false);	
-					SendMsgAck (msgID);
+					if (m_State == eSessionStateEstablished)
+						i2p::HandleI2NPMessage (msg, false);
+					else
+					{
+						// we expect DeliveryStatus
+						if (msg->GetHeader ()->typeID == eI2NPDeliveryStatus)
+						{
+							LogPrint ("SSU session established");
+							m_State = eSessionStateEstablished;
+							Established ();
+						}	
+						else
+							LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
+						DeleteI2NPMessage (msg);
+					}	
 				}
 			}
 			buf += fragmentSize;
