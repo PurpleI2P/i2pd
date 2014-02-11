@@ -168,7 +168,23 @@ namespace i2p
 					AddNTCPSession (session);
 				}	
 				else
-					LogPrint ("No NTCP addresses available");
+				{	
+					// SSU always have lower prioprity than NTCP
+					// TODO: it shouldn't
+					LogPrint ("No NTCP addresses available. Trying SSU");
+					address = r->GetSSUAddress ();
+					if (address && m_SSUServer)
+					{
+						auto s = m_SSUServer->GetSession (r);
+						if (s)
+						{
+							s->SendI2NPMessage (msg);
+							return;
+						}
+					}
+					else
+						LogPrint ("No SSU addresses available");
+				}	
 			}
 			else
 			{

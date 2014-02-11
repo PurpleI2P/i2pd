@@ -528,10 +528,13 @@ namespace ssu
 		uint32_t fragmentNum = 0;
 		while (len > 0)
 		{	
-			uint8_t buf[SSU_MTU + 18], iv[16];
-			buf[0] = DATA_FLAG_WANT_REPLY; // for compatibility
-			buf[1] = 1; // always 1 message fragment per message
-			*(uint32_t *)(buf + 2) =  msgID;
+			uint8_t buf[SSU_MTU + 18], iv[16], * payload = buf + sizeof (SSUHeader);
+			*payload = DATA_FLAG_WANT_REPLY; // for compatibility
+			payload++;
+			*payload = 1; // always 1 message fragment per message
+			payload++;
+			*(uint32_t *)payload = msgID;
+			payload += 4;
 			bool isLast = (len <= payloadSize);
 			size_t size = isLast ? len : payloadSize;
 			uint32_t fragmentInfo = (fragmentNum << 17);
@@ -540,10 +543,11 @@ namespace ssu
 			
 			fragmentInfo |= size;
 			fragmentInfo = htobe32 (fragmentInfo);
-			memcpy (buf + 6, (uint8_t *)(&fragmentInfo) + 1, 3);
-			memcpy (buf + 9, msgBuf, size);
+			memcpy (payload, (uint8_t *)(&fragmentInfo) + 1, 3);
+			payload += 3;
+			memcpy (payload, msgBuf, size);
 			
-			size += sizeof (SSUHeader) + 9;
+			size += payload - buf;
 			if (size % 16) // make sure 16 bytes boundary
 				size = (size/16 + 1)*16;
 			
@@ -584,6 +588,7 @@ namespace ssu
 
 	void SSUServer::Stop ()
 	{
+		DeleteAllSessions ();
 		m_Socket.close ();
 	}
 
