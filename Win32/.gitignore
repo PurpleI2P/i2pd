@@ -6,3 +6,5 @@
 !*.vcxproj
 !*.vcxproj.filters
 !.gitignore
+!*.cpp
+!*.h

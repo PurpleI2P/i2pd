@@ -11,6 +11,8 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
+#else
+#include "./Win32/Win32Service.h"
 #endif
 
 #include "Log.h"
@@ -24,6 +26,26 @@
 #include "HTTPServer.h"
 #include "util.h"
 
+
+#ifdef _WIN32
+// Internal name of the service
+#define SERVICE_NAME             "i2pService"
+
+// Displayed name of the service
+#define SERVICE_DISPLAY_NAME     "i2p router service"
+
+// Service start options.
+#define SERVICE_START_TYPE       SERVICE_DEMAND_START
+
+// List of service dependencies - "dep1\0dep2\0\0"
+#define SERVICE_DEPENDENCIES     ""
+
+// The name of the account under which the service should run
+#define SERVICE_ACCOUNT          "NT AUTHORITY\\LocalService"
+
+// The password to the service account name
+#define SERVICE_PASSWORD         NULL
+#endif
 
 // Global
 int running = 1;
@@ -60,7 +82,7 @@ void handle_signal(int sig)
 int main( int argc, char* argv[] )
 {
   i2p::util::config::OptionParser(argc,argv);
-  isDaemon = i2p::util::config::GetArg("-daemon", 0);
+  isDaemon = i2p::util::config::GetArg("-daemon", 1);
 #ifdef _WIN32
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
@@ -139,6 +161,40 @@ int main( int argc, char* argv[] )
   sigaction(SIGABRT,&sa,0);
   sigaction(SIGTERM,&sa,0);
   sigaction(SIGINT,&sa,0);
+#else
+  std::string serviceControl = i2p::util::config::GetArg("-service", "none");
+  if (serviceControl == "install")
+  {
+	  InstallService(
+		  SERVICE_NAME,               // Name of service
+		  SERVICE_DISPLAY_NAME,       // Name to display
+		  SERVICE_START_TYPE,         // Service start type
+		  SERVICE_DEPENDENCIES,       // Dependencies
+		  SERVICE_ACCOUNT,            // Service running account
+		  SERVICE_PASSWORD            // Password of the account
+		  );
+	  return 0;
+  }
+  else if (serviceControl == "remove")
+  {
+	  UninstallService(SERVICE_NAME);
+	  return 0;
+  }
+  else if (serviceControl != "none")
+  {
+	  LogPrint(" --service=install  to install the service.");
+	  LogPrint(" --service=remove   to remove the service.");
+	  return -1;
+  }
+  else if (isDaemon)
+  {
+	  I2PService service(SERVICE_NAME);
+	  if (!I2PService::Run(service))
+	  {
+		  LogPrint("Service failed to run w/err 0x%08lx\n", GetLastError());
+	  }
+	  return 0;
+  }
 #endif
 
   //TODO: This is an ugly workaround. fix it.
