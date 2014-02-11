@@ -87,15 +87,22 @@ namespace ssu
 					LogPrint ("SSU test received");
 				break;
 				case PAYLOAD_TYPE_SESSION_DESTROYED:
+				{
 					LogPrint ("SSU session destroy received");
+					if (m_Server)
+						m_Server->DeleteSession (this); // delete this 
+				}
 				break;	
 				default:
 					LogPrint ("Unexpected SSU payload type ", (int)payloadType);
 			}
 		}
-		// TODO: try intro key as well
+		// TODO: try intro key
 		else
+		{	
 			LogPrint ("MAC verifcation failed");	
+			m_State = eSessionStateUnknown;
+		}
 	}
 
 	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
