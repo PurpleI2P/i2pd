@@ -97,10 +97,19 @@ namespace ssu
 					LogPrint ("Unexpected SSU payload type ", (int)payloadType);
 			}
 		}
-		// TODO: try intro key
 		else
-		{	
-			LogPrint ("MAC verifcation failed");	
+		{
+			LogPrint ("MAC key failed. Trying intro key");	
+			auto introKey = GetIntroKey ();
+			if (introKey && Validate (buf, len, introKey))
+			{
+				Decrypt (buf, len, introKey);
+				SSUHeader * header = (SSUHeader *)buf;
+				LogPrint ("Unexpected SSU payload type ", (int)(header->flag >> 4));
+				// TODO:
+			}	
+			else	
+				LogPrint ("MAC verifcation failed");	
 			m_State = eSessionStateUnknown;
 		}
 	}
@@ -109,8 +118,7 @@ namespace ssu
 	{
 		LogPrint ("Process session request");
 		// use our intro key
-		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_REQUEST, 
-			i2p::context.GetRouterInfo (), buf, len))
+		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_REQUEST, buf, len))
 		{
 			m_State = eSessionStateRequestReceived;
 			LogPrint ("Session request received");	
@@ -129,7 +137,7 @@ namespace ssu
 		}
 
 		// use remote intro key
-		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_CREATED, *m_RemoteRouter, buf, len))
+		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_CREATED, buf, len))
 		{
 			m_State = eSessionStateCreatedReceived;
 			LogPrint ("Session created received");	
@@ -167,10 +175,10 @@ namespace ssu
 
 	void SSUSession::SendSessionRequest ()
 	{
-		auto address = m_RemoteRouter ? m_RemoteRouter->GetSSUAddress () : nullptr;
-		if (!address)
+		auto introKey = GetIntroKey ();
+		if (!introKey)
 		{
-			LogPrint ("Missing remote SSU address");
+			LogPrint ("SSU is not supported");
 			return;
 		}
 	
@@ -183,7 +191,7 @@ namespace ssu
 		uint8_t iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, 304, address->key, iv, address->key);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, 304, introKey, iv, introKey);
 		
 		m_State = eSessionStateRequestSent;		
 		m_Server->Send (buf, 304, m_RemoteEndpoint);
@@ -191,10 +199,10 @@ namespace ssu
 
 	void SSUSession::SendSessionCreated (const uint8_t * x)
 	{
-		auto address = m_RemoteRouter ? m_RemoteRouter->GetSSUAddress () : nullptr;
-		if (!address)
+		auto introKey = GetIntroKey ();
+		if (!introKey)
 		{
-			LogPrint ("Missing remote SSU address");
+			LogPrint ("SSU is not supported");
 			return;
 		}
 		uint8_t signedData[532]; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
@@ -230,20 +238,13 @@ namespace ssu
 		m_Encryption.ProcessData (payload, payload, 48);
 
 		// encrypt message with intro key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, address->key, iv, address->key);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, introKey, iv, introKey);
 		m_State = eSessionStateRequestSent;		
 		m_Server->Send (buf, 368, m_RemoteEndpoint);
 	}
 
 	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag)
 	{
-		auto address = m_RemoteRouter ? m_RemoteRouter->GetSSUAddress () : nullptr;
-		if (!address)
-		{
-			LogPrint ("Missing remote SSU address");
-			return;
-		}
-
 		uint8_t buf[480 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 1; // 1 fragment
@@ -281,15 +282,15 @@ namespace ssu
 		m_Server->Send (buf, 480, m_RemoteEndpoint);
 	}
 
-	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, const i2p::data::RouterInfo& r, uint8_t * buf, size_t len)
+	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len)
 	{
-		auto address = r.GetSSUAddress ();
-		if (address)
+		auto introKey = GetIntroKey ();
+		if (introKey)
 		{
 			// use intro key for verification and decryption
-			if (Validate (buf, len, address->key))
+			if (Validate (buf, len, introKey))
 			{
-				Decrypt (buf, len, address->key);
+				Decrypt (buf, len, introKey);
 				SSUHeader * header = (SSUHeader *)buf;
 				if ((header->flag >> 4) == expectedPayloadType)
 				{
@@ -303,7 +304,7 @@ namespace ssu
 				LogPrint ("MAC verifcation failed");	
 		}
 		else
-			LogPrint ("SSU is not supported by ", r.GetIdentHashAbbreviation ());
+			LogPrint ("SSU is not supported");
 		return false;
 	}	
 
@@ -389,6 +390,22 @@ namespace ssu
 		}	
 	}	
 	
+	const uint8_t * SSUSession::GetIntroKey () const
+	{
+		if (m_RemoteRouter)
+		{
+			// we are client
+			auto address = m_RemoteRouter->GetSSUAddress ();
+			return address ? address->key : nullptr;
+		}
+		else
+		{
+			// we are server
+			auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+			return address ? address->key : nullptr;
+		}
+	}	
+
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
 		if (msg)
@@ -520,8 +537,21 @@ namespace ssu
 		uint8_t buf[48 + 18], iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
-		// encrypt message with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, m_SessionKey, iv, m_MacKey);
+		if (m_State == eSessionStateEstablished)
+			// encrypt message with session key
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, m_SessionKey, iv, m_MacKey);
+		else
+		{
+			auto introKey = GetIntroKey ();
+			if (introKey)
+				// encrypt message with intro key
+				FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, introKey, iv, introKey);
+			else
+			{
+				LogPrint ("SSU: can't send SessionDestroyed message");
+				return;
+			}
+		}
 		m_Server->Send (buf, 48, m_RemoteEndpoint);
 	}	
 
