@@ -89,10 +89,11 @@ namespace ssu
 			void SendSesionDestroyed ();
 			void Send (i2p::I2NPMessage * msg);
 			
-			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, const i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
+			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
+			const uint8_t * GetIntroKey () const; 
 
 		private:
 			
