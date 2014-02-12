@@ -87,6 +87,7 @@ namespace data
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
 				bool isLeaseSet, bool isExploratory = false);
 			void DeleteRequestedDestination (const IdentHash& dest);
+			void DeleteRequestedDestination (RequestedDestination * dest);
 			
 		private:
 

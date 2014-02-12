@@ -448,10 +448,18 @@ namespace data
 						{
 							auto r = FindRouter (router); 
 							// do we have that floodfill router in our database?
-							if (r)
+							if (r) 
 							{
+								// we do
 								if (!dest->IsExcluded (r->GetIdentHash ()) && dest->GetNumExcludedPeers () < 30) // TODO: fix TunnelGateway first
 								{	
+									// tell floodfill about us 
+									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+										{ 
+											i2p::tunnel::eDeliveryTypeRouter,
+											r->GetIdentHash (), 0,
+											CreateDatabaseStoreMsg () 
+										});  
 									// request destination
 									auto msg = dest->CreateRequestMessage (r, dest->GetLastReplyTunnel ());
 									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
@@ -506,16 +514,15 @@ namespace data
 		auto inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
 		if (outbound && inbound)
 		{
-			auto floodfill = GetRandomRouter (outbound->GetEndpointRouter (), true);
+			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+			uint8_t randomHash[32];
+			rnd.GenerateBlock (randomHash, 32);
+			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
+			dest->SetLastOutboundTunnel (outbound);
+			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
 			if (floodfill)
-			{
+			{	
 				LogPrint ("Exploring new routers ...");
-				CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-				uint8_t randomHash[32];
-				rnd.GenerateBlock (randomHash, 32);
-				RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
-				dest->SetLastOutboundTunnel (outbound);
-
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 					{ 
@@ -529,8 +536,10 @@ namespace data
 						floodfill->GetIdentHash (), 0, 
 						dest->CreateRequestMessage (floodfill, inbound) // explore
 					}); 
-				outbound->SendTunnelDataMsg (msgs);	
+				outbound->SendTunnelDataMsg (msgs);		
 			}	
+			else
+				DeleteRequestedDestination (dest);
 		}
 	}	
 
@@ -555,6 +564,15 @@ namespace data
 		{	
 			delete it->second;
 			m_RequestedDestinations.erase (it);
+		}	
+	}	
+
+	void NetDb::DeleteRequestedDestination (RequestedDestination * dest)
+	{
+		if (dest)
+		{
+			m_RequestedDestinations.erase (dest->GetDestination ());
+			delete dest;
 		}	
 	}	
 	
