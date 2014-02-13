@@ -90,7 +90,7 @@ namespace data
 	
 	void NetDb::Run ()
 	{
-		uint32_t lastTs = 0;
+		uint32_t lastSave = 0, lastPublish = 0;
 		m_IsRunning = true;
 		while (m_IsRunning)
 		{	
@@ -120,11 +120,16 @@ namespace data
 					Explore ();
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastTs >= 60) // save routers every minute
+				if (ts - lastSave >= 60) // save routers every minute
 				{
-					if (lastTs)
+					if (lastSave)
 						SaveUpdated (m_NetDbPath);
-					lastTs = ts;
+					lastSave = ts;
+				}	
+				if (ts - lastPublish >= 600) // publish every 10 minutes
+				{
+					Publish ();
+					lastPublish = ts;
 				}	
 			}
 			catch (std::exception& ex)
@@ -543,6 +548,17 @@ namespace data
 		}
 	}	
 
+	void NetDb::Publish ()
+	{
+		std::set<IdentHash> excluded; // TODO: fill up later
+		auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
+		if (floodfill)
+		{
+			LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation ());
+			transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg ());	
+		}	
+	}	
+	
 	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest,
 		bool isLeaseSet, bool isExploratory)
 	{

@@ -82,6 +82,7 @@ namespace data
 			void SaveUpdated (const char * directory);
 			void Run (); // exploratory thread
 			void Explore ();
+			void Publish ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
