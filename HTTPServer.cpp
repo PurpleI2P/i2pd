@@ -156,7 +156,7 @@ namespace util
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
-			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
+			i2p::data::netdb.Subscribe(destination);
 			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
@@ -169,13 +169,6 @@ namespace util
 				m_Reply.headers[1].value = "text/html";
 				return;
 			}	
-		}	
-		// we found LeaseSet
-		if (leaseSet->HasExpiredLeases ())
-		{
-			// we should re-request LeaseSet
-			LogPrint ("LeaseSet re-requested");
-			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
 		}	
 		auto s = i2p::stream::CreateStream (leaseSet);
 		if (s)

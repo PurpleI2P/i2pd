@@ -63,7 +63,9 @@ namespace data
 			void AddLeaseSet (uint8_t * buf, int len);
 			RouterInfo * FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
-			
+			void Subscribe (const IdentHash& ident); // keep LeaseSets upto date			
+			void Unsubscribe (const IdentHash& ident);	
+
 			void RequestDestination (const char * b32); // in base32
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false);
 						
@@ -83,6 +85,7 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore ();
 			void Publish ();
+			void ValidateSubscriptions ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
@@ -95,6 +98,7 @@ namespace data
 			std::map<IdentHash, LeaseSet *> m_LeaseSets;
 			std::map<IdentHash, RouterInfo *> m_RouterInfos;
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
+			std::set<IdentHash> m_Subscriptions;
 			
 			bool m_IsRunning;
 			int m_ReseedRetries;

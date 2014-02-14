@@ -120,10 +120,13 @@ namespace data
 					Explore ();
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastSave >= 60) // save routers every minute
+				if (ts - lastSave >= 60) // save routers and validate subscriptions every minute
 				{
 					if (lastSave)
+					{
 						SaveUpdated (m_NetDbPath);
+						ValidateSubscriptions ();
+					}	
 					lastSave = ts;
 				}	
 				if (ts - lastPublish >= 600) // publish every 10 minutes
@@ -660,5 +663,33 @@ namespace data
 		return r;
 	}	
 
+	void NetDb::Subscribe (const IdentHash& ident)
+	{
+		LeaseSet * leaseSet = FindLeaseSet (ident);
+		if (!leaseSet)
+		{
+			LogPrint ("LeaseSet requested");	
+			RequestDestination (ident, true);
+		}
+		m_Subscriptions.insert (ident);
+	}
+		
+	void NetDb::Unsubscribe (const IdentHash& ident)
+	{
+		m_Subscriptions.erase (ident);
+	}
+
+	void NetDb::ValidateSubscriptions ()
+	{
+		for (auto it : m_Subscriptions)
+		{
+			LeaseSet * leaseSet = FindLeaseSet (it);
+			if (!leaseSet || leaseSet->HasExpiredLeases ())
+			{
+				LogPrint ("LeaseSet re-requested");	
+				RequestDestination (it, true);
+			}			
+		}
+	}
 }
 }
