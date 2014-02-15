@@ -60,7 +60,7 @@ namespace util
   		{
 			m_Buffer[bytes_transferred] = 0;
 			auto address = ExtractAddress ();
-			LogPrint (address);
+			//LogPrint (address);
 			if (address.length () > 1) // not just '/'
 				HandleDestinationRequest (address.substr (1)); // exclude '/'
 			else	  

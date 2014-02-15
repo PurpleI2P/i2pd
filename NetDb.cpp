@@ -494,7 +494,10 @@ namespace data
 						else // we should send directly
 						{
 							if (!dest->IsLeaseSet ()) // if not LeaseSet
-								i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							{
+								if (!dest->IsExcluded (router) && dest->GetNumExcludedPeers () < 30) 
+									i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							}	
 							else
 								LogPrint ("Can't request LeaseSet");
 						}	
