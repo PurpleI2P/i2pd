@@ -318,7 +318,7 @@ namespace stream
 		
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
-		uint32_t sendStreamID = be32toh (*(uint32_t *)(packet->buf));
+		uint32_t sendStreamID = packet->GetSendStreamID ();
 		auto it = m_Streams.find (sendStreamID);
 		if (it != m_Streams.end ())
 			it->second->HandleNextPacket (packet);
