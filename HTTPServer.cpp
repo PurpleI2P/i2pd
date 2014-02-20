@@ -185,7 +185,7 @@ namespace util
 				return;
 			}	
 		}	
-		auto s = i2p::stream::CreateStream (leaseSet);
+		auto s = i2p::stream::CreateStream (*leaseSet);
 		if (s)
 		{
 			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + b32 + ".b32.i2p\n";

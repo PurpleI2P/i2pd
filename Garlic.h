@@ -9,6 +9,7 @@
 #include <cryptopp/osrng.h>
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
+#include "ElGamal.h"
 
 namespace i2p
 {	
@@ -37,7 +38,7 @@ namespace garlic
 	{
 		public:
 
-			GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags);
+			GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet);
 			int GetNextTag () const { return m_NextTag; };
@@ -57,7 +58,7 @@ namespace garlic
 
 		private:
 
-			const i2p::data::RoutingDestination * m_Destination;
+			const i2p::data::RoutingDestination& m_Destination;
 			uint8_t m_SessionKey[32];
 			uint32_t m_FirstMsgID; // first message ID
 			bool m_IsAcknowledged;
@@ -65,6 +66,7 @@ namespace garlic
 			uint8_t * m_SessionTags; // m_NumTags*32 bytes
 			
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;
+			i2p::crypto::ElGamalEncryption m_ElGamalEncryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};	
 
@@ -78,8 +80,8 @@ namespace garlic
 			void HandleGarlicMessage (uint8_t * buf, size_t len, bool isFromTunnel);
 			void HandleDeliveryStatusMessage (uint8_t * buf, size_t len);
 			
-			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg);
-			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination * destination, 
+			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg);
+			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
 			    I2NPMessage * msg, I2NPMessage * leaseSet = nullptr);
 
 		private:

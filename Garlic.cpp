@@ -2,7 +2,6 @@
 #include "I2PEndian.h"
 #include <map>
 #include <string>
-#include "ElGamal.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
@@ -14,9 +13,10 @@ namespace i2p
 {
 namespace garlic
 {	
-	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags):
+	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags):
 		m_Destination (destination), m_FirstMsgID (0), m_IsAcknowledged (false), 
-		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0)
+		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0),
+		m_ElGamalEncryption (m_Destination.GetEncryptionPublicKey (), true)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -56,7 +56,7 @@ namespace garlic
 			m_Rnd.GenerateBlock (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
-			i2p::crypto::ElGamalEncrypt (m_Destination->GetEncryptionPublicKey (), (uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
+			m_ElGamalEncryption.Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf);			
 			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
 			buf += 514;
 			len += 514;	
@@ -140,7 +140,7 @@ namespace garlic
 		}	
 		if (msg) // clove message ifself if presented
 		{	
-			size += CreateGarlicClove (payload + size, msg, m_Destination->IsDestination ());
+			size += CreateGarlicClove (payload + size, msg, m_Destination.IsDestination ());
 			(*numCloves)++;
 		}	
 		
@@ -161,7 +161,7 @@ namespace garlic
 		{
 			buf[size] = eGarlicDeliveryTypeDestination << 5;//  delivery instructions flag destination
 			size++;
-			memcpy (buf + size, m_Destination->GetIdentHash (), 32);
+			memcpy (buf + size, m_Destination.GetIdentHash (), 32);
 			size += 32;
 		}	
 		else	
@@ -230,33 +230,31 @@ namespace garlic
 		m_Sessions.clear ();
 	}	
 
-	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg)
+	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg)
 	{
-		if (!destination) return nullptr;
-		auto it = m_Sessions.find (destination->GetIdentHash ());
+		auto it = m_Sessions.find (destination.GetIdentHash ());
 		if (it != m_Sessions.end ())
 		{
 			delete it->second;
 			m_Sessions.erase (it);
 		}
 		GarlicRoutingSession * session = new GarlicRoutingSession (destination, 0); // not follow-on messages expected
-		m_Sessions[destination->GetIdentHash ()] = session;
+		m_Sessions[destination.GetIdentHash ()] = session;
 
 		return session->WrapSingleMessage (msg, nullptr);
 	}	
 
-	I2NPMessage * GarlicRouting::WrapMessage (const i2p::data::RoutingDestination * destination, 
+	I2NPMessage * GarlicRouting::WrapMessage (const i2p::data::RoutingDestination& destination, 
 		I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
-		if (!destination) return nullptr;
-		auto it = m_Sessions.find (destination->GetIdentHash ());
+		auto it = m_Sessions.find (destination.GetIdentHash ());
 		GarlicRoutingSession * session = nullptr;
 		if (it != m_Sessions.end ())
 			session = it->second;
 		if (!session)
 		{
 			session = new GarlicRoutingSession (destination, 4); // TODO: change it later
-			m_Sessions[destination->GetIdentHash ()] = session;
+			m_Sessions[destination.GetIdentHash ()] = session;
 		}	
 
 		I2NPMessage * ret = session->WrapSingleMessage (msg, leaseSet);

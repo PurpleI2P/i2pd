@@ -25,7 +25,7 @@ namespace data
 		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, &m_ExcludedPeers);
 		if (m_IsLeaseSet) // wrap lookup message into garlic
-			msg = i2p::garlic::routing.WrapSingleMessage (router, msg);
+			msg = i2p::garlic::routing.WrapSingleMessage (*router, msg);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_LastReplyTunnel = replyTunnel;

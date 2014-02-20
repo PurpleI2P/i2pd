@@ -13,11 +13,11 @@ namespace i2p
 namespace crypto
 {
 
-	class ElGamalEncryptor
+	class ElGamalEncryption
 	{
 		public:
 
-			ElGamalEncryptor (const uint8_t * key, bool zeroPadding = false):
+			ElGamalEncryption (const uint8_t * key, bool zeroPadding = false):
 				y (key, 256), k (rnd, CryptoPP::Integer::One(), elgp-1),
 				a (a_exp_b_mod_c (elgg, k, elgp)), b1 (a_exp_b_mod_c (y, k, elgp)), 
 				m_ZeroPadding (zeroPadding)
