@@ -32,6 +32,14 @@ namespace data
 				eTransportSSU
 			};
 
+			struct Introducer			
+			{
+				boost::asio::ip::address iHost;
+				int iPort;
+				uint8_t iKey[32];
+				uint32_t iTag;
+			};
+
 			struct Address
 			{
 				TransportStyle transportStyle;
@@ -39,7 +47,9 @@ namespace data
 				int port;
 				uint64_t date;
 				uint8_t cost;
-				uint8_t key[32]; // into key for SSU
+				// SSU only
+				uint8_t key[32]; // intro key for SSU
+				std::vector<Introducer> introducers;
 			};
 			
 			RouterInfo (const char * filename);
