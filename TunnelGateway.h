@@ -37,8 +37,6 @@ namespace tunnel
 
 			TunnelGateway (TunnelBase * tunnel): 
 				m_Tunnel (tunnel), m_Buffer (tunnel->GetNextTunnelID ()), m_NumSentBytes (0) {};
-			void SendTunnelDataMsg (i2p::I2NPMessage * msg);
-			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
 			void SendTunnelDataMsg (const TunnelMessageBlock& block);
 			void PutTunnelDataMsg (const TunnelMessageBlock& block);	
 			void SendBuffer ();

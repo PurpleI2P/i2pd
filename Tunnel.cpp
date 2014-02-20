@@ -136,7 +136,22 @@ namespace tunnel
 
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
 	{
-		m_Gateway.SendTunnelDataMsg (gwHash, gwTunnel, msg);
+		TunnelMessageBlock block;
+		if (gwHash)
+		{
+			block.hash = gwHash;
+			if (gwTunnel)
+			{	
+				block.deliveryType = eDeliveryTypeTunnel;
+				block.tunnelID = gwTunnel;
+			}	
+			else
+				block.deliveryType = eDeliveryTypeRouter;
+		}	
+		else	
+			block.deliveryType = eDeliveryTypeLocal;
+		block.data = msg;
+		m_Gateway.SendTunnelDataMsg (block);
 	}
 		
 	void OutboundTunnel::SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs)

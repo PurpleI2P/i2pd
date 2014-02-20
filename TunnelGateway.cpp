@@ -148,31 +148,6 @@ namespace tunnel
 		m_TunnelDataMsgs.push_back (m_CurrentTunnelDataMsg);
 		m_CurrentTunnelDataMsg = nullptr;
 	}	
-
-	void TunnelGateway::SendTunnelDataMsg (i2p::I2NPMessage * msg)
-	{
-		SendTunnelDataMsg (nullptr, 0, msg);
-	}	
-
-	void TunnelGateway::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
-	{
-		TunnelMessageBlock block;
-		if (gwHash)
-		{
-			block.hash = gwHash;
-			if (gwTunnel)
-			{	
-				block.deliveryType = eDeliveryTypeTunnel;
-				block.tunnelID = gwTunnel;
-			}	
-			else
-				block.deliveryType = eDeliveryTypeRouter;
-		}	
-		else	
-			block.deliveryType = eDeliveryTypeLocal;
-		block.data = msg;
-		SendTunnelDataMsg (block);
-	}	
 	
 	void TunnelGateway::SendTunnelDataMsg (const TunnelMessageBlock& block)
 	{

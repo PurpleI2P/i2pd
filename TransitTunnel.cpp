@@ -55,7 +55,10 @@ namespace tunnel
 
 	void TransitTunnelGateway::SendTunnelDataMsg (i2p::I2NPMessage * msg)
 	{
-		m_Gateway.SendTunnelDataMsg (msg);
+		TunnelMessageBlock block;
+		block.deliveryType = eDeliveryTypeLocal;
+		block.data = msg;
+		m_Gateway.SendTunnelDataMsg (block);
 	}		
 
 	void TransitTunnelEndpoint::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
