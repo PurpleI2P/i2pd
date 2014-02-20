@@ -392,7 +392,7 @@ namespace i2p
 		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)msg->GetHeader()->typeID);
 		i2p::tunnel::TransitTunnel * tunnel =  i2p::tunnel::tunnels.GetTransitTunnel (tunnelID);
 		if (tunnel)
-			tunnel->SendTunnelDataMsg (nullptr, 0, msg);
+			tunnel->SendTunnelDataMsg (msg);
 		else
 		{	
 			LogPrint ("Tunnel ", (unsigned int)tunnelID, " not found");

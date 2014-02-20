@@ -47,15 +47,15 @@ namespace tunnel
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 	}
 
-	void TransitTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
+	void TransitTunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)
 	{	
 		LogPrint ("We are not a gateway for transit tunnel ", m_TunnelID);
 		i2p::DeleteI2NPMessage (msg);	
 	}		
 
-	void TransitTunnelGateway::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
+	void TransitTunnelGateway::SendTunnelDataMsg (i2p::I2NPMessage * msg)
 	{
-		m_Gateway.SendTunnelDataMsg (gwHash, gwTunnel, msg);
+		m_Gateway.SendTunnelDataMsg (msg);
 	}		
 
 	void TransitTunnelEndpoint::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)

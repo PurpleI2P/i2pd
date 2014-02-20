@@ -10,7 +10,7 @@ namespace i2p
 {
 namespace tunnel
 {
-	void TunnelGatewayBuffer::PutI2NPMsg (const uint8_t * gwHash, uint32_t gwTunnel, I2NPMessage * msg)
+	void TunnelGatewayBuffer::PutI2NPMsg (const TunnelMessageBlock& block)
 	{
 		if (!m_CurrentTunnelDataMsg)
 			CreateCurrentTunnelDataMessage ();
@@ -18,24 +18,21 @@ namespace tunnel
 		// create delivery instructions
 		uint8_t di[43]; // max delivery instruction length is 43 for tunnel
 		size_t diLen = 1;// flag
-		TunnelDeliveryType dt = eDeliveryTypeLocal;
-		if (gwHash)
+		if (block.deliveryType != eDeliveryTypeLocal) // tunnel or router
 		{	
-			if (gwTunnel)
+			if (block.deliveryType == eDeliveryTypeTunnel)
 			{
-				*(uint32_t *)(di + diLen) = htobe32 (gwTunnel);
+				*(uint32_t *)(di + diLen) = htobe32 (block.tunnelID);
 				diLen += 4; // tunnelID
-				dt = eDeliveryTypeTunnel;
 			}
-			else
-				dt = eDeliveryTypeRouter;
 			
-			memcpy (di + diLen, gwHash, 32);
+			memcpy (di + diLen, block.hash, 32);
 			diLen += 32; //len
 		}	
-		di[0] = dt << 5; // set delivery type
+		di[0] = block.deliveryType << 5; // set delivery type
 
 		// create fragments
+		I2NPMessage * msg = block.data;
 		if (diLen + msg->GetLength () + 2<= m_RemainingSize)
 		{
 			// message fits. First and last fragment
@@ -104,7 +101,7 @@ namespace tunnel
 			{
 				// delivery instructions don't fit. Create new message
 				CompleteCurrentTunnelDataMessage ();
-				PutI2NPMsg (gwHash, gwTunnel, msg);
+				PutI2NPMsg (block);
 				// don't delete msg because it's taken care inside
 			}	
 		}			
@@ -151,16 +148,41 @@ namespace tunnel
 		m_TunnelDataMsgs.push_back (m_CurrentTunnelDataMsg);
 		m_CurrentTunnelDataMsg = nullptr;
 	}	
-	
+
+	void TunnelGateway::SendTunnelDataMsg (i2p::I2NPMessage * msg)
+	{
+		SendTunnelDataMsg (nullptr, 0, msg);
+	}	
+
 	void TunnelGateway::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
 	{
-		PutTunnelDataMsg (gwHash, gwTunnel, msg);
+		TunnelMessageBlock block;
+		if (gwHash)
+		{
+			block.hash = gwHash;
+			if (gwTunnel)
+			{	
+				block.deliveryType = eDeliveryTypeTunnel;
+				block.tunnelID = gwTunnel;
+			}	
+			else
+				block.deliveryType = eDeliveryTypeRouter;
+		}	
+		else	
+			block.deliveryType = eDeliveryTypeLocal;
+		block.data = msg;
+		SendTunnelDataMsg (block);
+	}	
+	
+	void TunnelGateway::SendTunnelDataMsg (const TunnelMessageBlock& block)
+	{
+		PutTunnelDataMsg (block);
 		SendBuffer ();
 	}	
 
-	void TunnelGateway::PutTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
+	void TunnelGateway::PutTunnelDataMsg (const TunnelMessageBlock& block)
 	{
-		m_Buffer.PutI2NPMsg (gwHash, gwTunnel, msg);
+		m_Buffer.PutI2NPMsg (block);
 	}	
 
 	void TunnelGateway::SendBuffer ()

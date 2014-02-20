@@ -142,22 +142,7 @@ namespace tunnel
 	void OutboundTunnel::SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs)
 	{
 		for (auto& it : msgs)
-		{
-			switch (it.deliveryType)
-			{
-				case eDeliveryTypeLocal:
-					m_Gateway.SendTunnelDataMsg (nullptr, 0, it.data);
-				break;
-				case eDeliveryTypeTunnel:
-					m_Gateway.SendTunnelDataMsg (it.hash, it.tunnelID, it.data);
-				break;
-				case eDeliveryTypeRouter:
-					m_Gateway.SendTunnelDataMsg (it.hash, 0, it.data);
-				break;	
-				default:
-					LogPrint ("Unexpected delivery type ", (int)it.deliveryType);
-			}	
-		}	
+			m_Gateway.PutTunnelDataMsg (it);
 		m_Gateway.SendBuffer ();
 	}	
 	

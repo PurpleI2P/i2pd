@@ -60,7 +60,7 @@ namespace ntcp
 	
 #pragma pack()	
 
-	const int TERMINATION_TIMEOUT = 60; // 1 minute
+	const int TERMINATION_TIMEOUT = 150; // 2.5 minutes
 	class NTCPSession
 	{
 		public:
