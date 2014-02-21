@@ -68,24 +68,46 @@ namespace i2p
 
 	bool RouterContext::Load ()
 	{
-		std::ifstream fk (ROUTER_KEYS, std::ifstream::binary | std::ofstream::in);
+		std::string dataDir = i2p::util::filesystem::GetDataDir ().string ();
+#ifndef _WIN32
+		dataDir.append ("/");
+#else
+		dataDir.append ("\\");
+#endif
+		std::string router_keys = dataDir;
+		router_keys.append (ROUTER_KEYS);
+		std::string router_info = dataDir;
+		router_info.append (ROUTER_INFO);
+
+		std::ifstream fk (router_keys.c_str (), std::ifstream::binary | std::ofstream::in);
 		if (!fk.is_open ())	return false;
 			
 		fk.read ((char *)&m_Keys, sizeof (m_Keys));
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 
-		m_RouterInfo = i2p::data::RouterInfo (ROUTER_INFO); // TODO
+		m_RouterInfo = i2p::data::RouterInfo (router_info.c_str ()); // TODO
 		
 		return true;
 	}
 	
 	void RouterContext::Save ()
 	{
-		std::ofstream fk (ROUTER_KEYS, std::ofstream::binary | std::ofstream::out);
+		std::string dataDir = i2p::util::filesystem::GetDataDir ().string ();
+#ifndef _WIN32
+		dataDir.append ("/");
+#else
+		dataDir.append ("\\");
+#endif
+		std::string router_keys = dataDir;
+		router_keys.append (ROUTER_KEYS);
+		std::string router_info = dataDir;
+		router_info.append (ROUTER_INFO);
+
+		std::ofstream fk (router_keys.c_str (), std::ofstream::binary | std::ofstream::out);
 		fk.write ((char *)&m_Keys, sizeof (m_Keys));
 				
-		std::ofstream fi (ROUTER_INFO, std::ofstream::binary | std::ofstream::out);
+		std::ofstream fi (router_info.c_str (), std::ofstream::binary | std::ofstream::out);
 		fi.write ((char *)m_RouterInfo.GetBuffer (), m_RouterInfo.GetBufferLen ());
 	}	
 }	
