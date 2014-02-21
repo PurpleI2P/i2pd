@@ -25,7 +25,7 @@ namespace data
 		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, &m_ExcludedPeers);
 		if (m_IsLeaseSet) // wrap lookup message into garlic
-			msg = i2p::garlic::routing.WrapSingleMessage (router, msg);
+			msg = i2p::garlic::routing.WrapSingleMessage (*router, msg);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_LastReplyTunnel = replyTunnel;
@@ -90,7 +90,7 @@ namespace data
 	
 	void NetDb::Run ()
 	{
-		uint32_t lastTs = 0;
+		uint32_t lastSave = 0, lastPublish = 0;
 		m_IsRunning = true;
 		while (m_IsRunning)
 		{	
@@ -120,11 +120,19 @@ namespace data
 					Explore ();
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastTs >= 60) // save routers every minute
+				if (ts - lastSave >= 60) // save routers and validate subscriptions every minute
 				{
-					if (lastTs)
+					if (lastSave)
+					{
 						SaveUpdated (m_NetDbPath);
-					lastTs = ts;
+						ValidateSubscriptions ();
+					}	
+					lastSave = ts;
+				}	
+				if (ts - lastPublish >= 600) // publish every 10 minutes
+				{
+					Publish ();
+					lastPublish = ts;
 				}	
 			}
 			catch (std::exception& ex)
@@ -486,7 +494,10 @@ namespace data
 						else // we should send directly
 						{
 							if (!dest->IsLeaseSet ()) // if not LeaseSet
-								i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							{
+								if (!dest->IsExcluded (router) && dest->GetNumExcludedPeers () < 30) 
+									i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							}	
 							else
 								LogPrint ("Can't request LeaseSet");
 						}	
@@ -543,6 +554,17 @@ namespace data
 		}
 	}	
 
+	void NetDb::Publish ()
+	{
+		std::set<IdentHash> excluded; // TODO: fill up later
+		auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
+		if (floodfill)
+		{
+			LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation ());
+			transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg ());	
+		}	
+	}	
+	
 	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest,
 		bool isLeaseSet, bool isExploratory)
 	{
@@ -644,5 +666,33 @@ namespace data
 		return r;
 	}	
 
+	void NetDb::Subscribe (const IdentHash& ident)
+	{
+		LeaseSet * leaseSet = FindLeaseSet (ident);
+		if (!leaseSet)
+		{
+			LogPrint ("LeaseSet requested");	
+			RequestDestination (ident, true);
+		}
+		m_Subscriptions.insert (ident);
+	}
+		
+	void NetDb::Unsubscribe (const IdentHash& ident)
+	{
+		m_Subscriptions.erase (ident);
+	}
+
+	void NetDb::ValidateSubscriptions ()
+	{
+		for (auto it : m_Subscriptions)
+		{
+			LeaseSet * leaseSet = FindLeaseSet (it);
+			if (!leaseSet || leaseSet->HasExpiredLeases ())
+			{
+				LogPrint ("LeaseSet re-requested");	
+				RequestDestination (it, true);
+			}			
+		}
+	}
 }
 }

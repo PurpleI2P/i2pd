@@ -21,7 +21,7 @@ namespace i2p
 {
 namespace tunnel
 {	
-	const int TUNNEL_EXPIRATION_TIMEOUT = 600; // 10 minutes	
+	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes	
 	
 	class OutboundTunnel;
 	class InboundTunnel;

@@ -129,6 +129,27 @@ namespace data
 					address.port = boost::lexical_cast<int>(value);
 				else if (!strcmp (key, "key"))
 					Base64ToByteStream (value, strlen (value), address.key, 32);
+				else if (key[0] == 'i')
+				{	
+					// introducers
+					size_t l = strlen(key); 	
+					unsigned char index = key[l-1]; // TODO:
+					key[l-1] = 0;
+					if (index >= address.introducers.size ())
+						address.introducers.resize (index + 1); 
+					Introducer& introducer = address.introducers.at (index);
+					if (!strcmp (key, "ihost"))
+					{
+						boost::system::error_code ecode;
+						introducer.iHost = boost::asio::ip::address::from_string (value, ecode);
+					}	
+					else if (!strcmp (key, "iport"))
+						introducer.iPort = boost::lexical_cast<int>(value);
+					else if (!strcmp (key, "itag"))
+						introducer.iTag = boost::lexical_cast<uint32_t>(value);
+					else if (!strcmp (key, "ikey"))
+						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
+				}
 			}	
 			m_Addresses.push_back(address);
 		}	
@@ -302,6 +323,13 @@ namespace data
 		else
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
+
+	bool RouterInfo::UsesIntroducer () const
+	{
+		if (!IsSSU ()) return false;
+		auto address = GetSSUAddress (true); // no introducers for v6
+		return address && !address->introducers.empty ();
+	}		
 		
 	const RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only) const
 	{

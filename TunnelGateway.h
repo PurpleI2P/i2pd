@@ -15,7 +15,7 @@ namespace tunnel
 		public:
 			TunnelGatewayBuffer (uint32_t tunnelID): m_TunnelID (tunnelID), 
 				m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0) {};
-			void PutI2NPMsg (const uint8_t * gwHash, uint32_t gwTunnel, I2NPMessage * msg);	
+			void PutI2NPMsg (const TunnelMessageBlock& block);	
 			std::vector<I2NPMessage *> GetTunnelDataMsgs ();
 
 		private:
@@ -37,8 +37,8 @@ namespace tunnel
 
 			TunnelGateway (TunnelBase * tunnel): 
 				m_Tunnel (tunnel), m_Buffer (tunnel->GetNextTunnelID ()), m_NumSentBytes (0) {};
-			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
-			void PutTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);	
+			void SendTunnelDataMsg (const TunnelMessageBlock& block);
+			void PutTunnelDataMsg (const TunnelMessageBlock& block);	
 			void SendBuffer ();
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			
