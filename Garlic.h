@@ -9,7 +9,6 @@
 #include <cryptopp/osrng.h>
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
-#include "ElGamal.h"
 
 namespace i2p
 {	
@@ -66,7 +65,6 @@ namespace garlic
 			uint8_t * m_SessionTags; // m_NumTags*32 bytes
 			
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;
-			i2p::crypto::ElGamalEncryption m_ElGamalEncryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};	
 

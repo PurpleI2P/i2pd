@@ -15,8 +15,7 @@ namespace garlic
 {	
 	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags):
 		m_Destination (destination), m_FirstMsgID (0), m_IsAcknowledged (false), 
-		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0),
-		m_ElGamalEncryption (m_Destination.GetEncryptionPublicKey (), true)
+		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -56,7 +55,7 @@ namespace garlic
 			m_Rnd.GenerateBlock (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
-			m_ElGamalEncryption.Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf);			
+			m_Destination.GetElGamalEncryption ()->Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
 			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
 			buf += 514;
 			len += 514;	

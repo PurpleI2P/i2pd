@@ -212,7 +212,7 @@ namespace i2p
 		const I2NPBuildRequestRecordClearText& clearText,
 	    I2NPBuildRequestRecordElGamalEncrypted& record)
 	{
-		i2p::crypto::ElGamalEncrypt (router.GetRouterIdentity ().publicKey, (uint8_t *)&clearText, sizeof(clearText), record.encrypted);
+		router.GetElGamalEncryption ()->Encrypt ((uint8_t *)&clearText, sizeof(clearText), record.encrypted);
 		memcpy (record.toPeer, (const uint8_t *)router.GetIdentHash (), 16);
 	}	
 	
