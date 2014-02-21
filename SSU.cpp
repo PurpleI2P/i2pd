@@ -65,6 +65,15 @@ namespace ssu
 				// session confirmed
 				ProcessSessionConfirmed (buf, len);
 			break;
+			case eSessionRelayRequestSent:
+				// relay response
+				ProcessRelayResponse (buf,len);
+			break;
+			case eSessionRelayRequestReceived:
+				// HolePunch
+				m_State = eSessionStateUnknown;
+				Connect ();
+			break;
 			default:
 				LogPrint ("SSU state not implemented yet");
 		}
@@ -91,8 +100,12 @@ namespace ssu
 					LogPrint ("SSU session destroy received");
 					if (m_Server)
 						m_Server->DeleteSession (this); // delete this 
-				}
-				break;	
+					break;
+				}	
+				case PAYLOAD_TYPE_RELAY_INTRO:
+					LogPrint ("SSU relay intro received");
+					// TODO:
+				break;
 				default:
 					LogPrint ("Unexpected SSU payload type ", (int)payloadType);
 			}
@@ -197,6 +210,37 @@ namespace ssu
 		m_Server->Send (buf, 304, m_RemoteEndpoint);
 	}
 
+	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer)
+	{
+		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		if (!address)
+		{
+			LogPrint ("SSU is not supported");
+			return;
+		}
+	
+		uint8_t buf[96 + 18]; 
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		*(uint32_t *)payload = htobe32 (introducer.iTag);
+		payload += 4;
+		*payload = 0; // no address
+		payload++;
+		*(uint16_t *)payload = 0; // port = 0
+		payload += 2;
+		*payload = 0; // challenge
+		payload++;	
+		memcpy (payload, address->key, 32);
+		payload += 32;
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		*(uint32_t *)payload = htobe32 (rnd.GenerateWord32 ()); // nonce	
+
+		uint8_t iv[16];
+		rnd.GenerateBlock (iv, 16); // random iv
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, introducer.iKey, iv, introducer.iKey);
+		m_State = eSessionRelayRequestSent;		
+		m_Server->Send (buf, 96, m_RemoteEndpoint);
+	}
+
 	void SSUSession::SendSessionCreated (const uint8_t * x)
 	{
 		auto introKey = GetIntroKey ();
@@ -282,6 +326,46 @@ namespace ssu
 		m_Server->Send (buf, 480, m_RemoteEndpoint);
 	}
 
+	void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t len)
+	{
+		LogPrint ("Process relay response");
+		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		if (!address)
+		{
+			LogPrint ("SSU is not supported");
+			return;
+		}
+
+		if (Validate (buf, len, address->key))
+		{
+			Decrypt (buf, len, address->key);
+			SSUHeader * header = (SSUHeader *)buf;
+			if ((header->flag >> 4) == PAYLOAD_TYPE_RELAY_RESPONSE)
+			{
+				LogPrint ("Relay response received");		
+				m_State = eSessionRelayRequestReceived;
+				uint8_t * payload = buf + sizeof (SSUHeader);
+				payload++;
+				boost::asio::ip::address_v4 remoteIP (be32toh (*(uint32_t* )(payload)));
+				payload += 4;
+				uint16_t remotePort = be16toh (*(uint16_t *)(payload));
+				payload += 2;
+				boost::asio::ip::udp::endpoint newRemoteEndpoint(remoteIP, remotePort);
+				m_Server->ReassignSession (m_RemoteEndpoint, newRemoteEndpoint);
+				m_RemoteEndpoint = newRemoteEndpoint;	
+				payload++;
+				boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )(payload)));
+				payload += 4;
+				uint16_t ourPort = be16toh (*(uint16_t *)(payload));
+				payload += 2;
+				LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
+				i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
+			}
+			else
+				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));
+		}
+	}
+
 	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len)
 	{
 		auto introKey = GetIntroKey ();
@@ -301,7 +385,7 @@ namespace ssu
 					LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
 			}
 			else
-				LogPrint ("MAC verifcation failed");	
+				LogPrint ("MAC verification failed");	
 		}
 		else
 			LogPrint ("SSU is not supported");
@@ -366,6 +450,11 @@ namespace ssu
 	void SSUSession::Connect ()
 	{
 		SendSessionRequest ();
+	}
+
+	void SSUSession::ConnectThroughIntroducer (const i2p::data::RouterInfo::Introducer& introducer)
+	{	
+		SendRelayRequest (introducer);
 	}
 
 	void SSUSession::Close ()
@@ -677,12 +766,27 @@ namespace ssu
 					session = it->second;
 				else
 				{
-					// otherwise create new session
-					session = new SSUSession (this, remoteEndpoint, router);
-					m_Sessions[remoteEndpoint] = session;
-					LogPrint ("New SSU session to [", router->GetIdentHashAbbreviation (), "] ",
-						remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port (), " created");
-					session->Connect ();
+					// otherwise create new session					
+					if (!router->UsesIntroducer ())
+					{
+						// connect directly
+						session = new SSUSession (this, remoteEndpoint, router);
+						m_Sessions[remoteEndpoint] = session;
+						LogPrint ("New SSU session to [", router->GetIdentHashAbbreviation (), "] ",
+							remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port (), " created");
+						session->Connect ();
+					}
+					else
+					{
+						// connect to introducer
+						auto& introducer = address->introducers[0]; // TODO:
+						boost::asio::ip::udp::endpoint introducerEndpoint (introducer.iHost, introducer.iPort);
+						session = new SSUSession (this, introducerEndpoint, router);
+						m_Sessions[introducerEndpoint] = session;
+						LogPrint ("New SSU session to [", router->GetIdentHashAbbreviation (), 
+							"] created through introducer ", introducerEndpoint.address ().to_string (), ":", introducerEndpoint.port ());
+						session->ConnectThroughIntroducer (introducer);
+					}
 				}
 			}
 			else
@@ -709,6 +813,18 @@ namespace ssu
 			delete it.second;			
 		}	
 		m_Sessions.clear ();
+	}
+
+	void SSUServer::ReassignSession (const boost::asio::ip::udp::endpoint& oldEndpoint, const boost::asio::ip::udp::endpoint& newEndpoint)
+	{
+		auto it = m_Sessions.find (oldEndpoint);
+		if (it != m_Sessions.end ())
+		{
+			m_Sessions.erase (it);
+			m_Sessions[newEndpoint] = it->second;
+			LogPrint ("SSU session ressigned from ", oldEndpoint.address ().to_string (), ":", oldEndpoint.port (), 
+				" to ", newEndpoint.address ().to_string (), ":", newEndpoint.port ());
+		}						
 	}	
 }
 }

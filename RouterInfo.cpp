@@ -323,6 +323,13 @@ namespace data
 		else
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
+
+	bool RouterInfo::UsesIntroducer () const
+	{
+		if (!IsSSU ()) return false;
+		auto address = GetSSUAddress (true); // no introducers for v6
+		return address && !address->introducers.empty ();
+	}		
 		
 	const RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only) const
 	{

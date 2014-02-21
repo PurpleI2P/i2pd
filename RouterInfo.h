@@ -75,6 +75,7 @@ namespace data
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			bool UsesIntroducer () const;
 			
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
