@@ -82,7 +82,7 @@ void handle_signal(int sig)
 int main( int argc, char* argv[] )
 {
   i2p::util::config::OptionParser(argc,argv);
-  isDaemon = i2p::util::config::GetArg("-daemon", 1);
+  isDaemon = i2p::util::config::GetArg("-daemon", 0);
 #ifdef _WIN32
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
@@ -95,6 +95,50 @@ int main( int argc, char* argv[] )
   LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
+#ifdef _WIN32
+	std::string serviceControl = i2p::util::config::GetArg("-service", "none");
+	if (serviceControl == "install")
+	{
+		InstallService(
+			SERVICE_NAME,               // Name of service
+			SERVICE_DISPLAY_NAME,       // Name to display
+			SERVICE_START_TYPE,         // Service start type
+			SERVICE_DEPENDENCIES,       // Dependencies
+			SERVICE_ACCOUNT,            // Service running account
+			SERVICE_PASSWORD            // Password of the account
+			);
+		return 0;
+	}
+	else if (serviceControl == "remove")
+	{
+		UninstallService(SERVICE_NAME);
+		return 0;
+	}
+	else if (serviceControl != "none")
+	{
+		printf(" --service=install  to install the service.\n");
+		printf(" --service=remove   to remove the service.\n");
+		return 0;
+	}
+	else if (isDaemon)
+	{
+		std::string logfile = i2p::util::filesystem::GetDataDir().string();
+		logfile.append("\\debug.log");
+		FILE* openResult = freopen(logfile.c_str(), "a", stdout);
+		if (!openResult)
+		{
+			return -17;
+		}
+		LogPrint("Service logging enabled.");
+		I2PService service(SERVICE_NAME);
+		if (!I2PService::Run(service))
+		{
+			LogPrint("Service failed to run w/err 0x%08lx\n", GetLastError());
+		}
+		return 0;
+	}
+#endif
+
   int isLogging = i2p::util::config::GetArg("-log", 0);
   if (isLogging == 1)
   {
@@ -104,7 +148,13 @@ int main( int argc, char* argv[] )
 #else
     logfile.append("\\debug.log");
 #endif
-    freopen(logfile.c_str(),"a",stdout);
+    FILE* openResult = freopen(logfile.c_str(),"a",stdout);
+	// It seems that we need to add FLUSH() for LogPrint and call it in some important places
+	if (!openResult)
+	{
+		LogPrint("Can't do [freopen()].");
+		return -17;
+	}
     LogPrint("Logging to file enabled.");
   }
 
@@ -161,40 +211,6 @@ int main( int argc, char* argv[] )
   sigaction(SIGABRT,&sa,0);
   sigaction(SIGTERM,&sa,0);
   sigaction(SIGINT,&sa,0);
-#else
-  std::string serviceControl = i2p::util::config::GetArg("-service", "none");
-  if (serviceControl == "install")
-  {
-	  InstallService(
-		  SERVICE_NAME,               // Name of service
-		  SERVICE_DISPLAY_NAME,       // Name to display
-		  SERVICE_START_TYPE,         // Service start type
-		  SERVICE_DEPENDENCIES,       // Dependencies
-		  SERVICE_ACCOUNT,            // Service running account
-		  SERVICE_PASSWORD            // Password of the account
-		  );
-	  return 0;
-  }
-  else if (serviceControl == "remove")
-  {
-	  UninstallService(SERVICE_NAME);
-	  return 0;
-  }
-  else if (serviceControl != "none")
-  {
-	  LogPrint(" --service=install  to install the service.");
-	  LogPrint(" --service=remove   to remove the service.");
-	  return -1;
-  }
-  else if (isDaemon)
-  {
-	  I2PService service(SERVICE_NAME);
-	  if (!I2PService::Run(service))
-	  {
-		  LogPrint("Service failed to run w/err 0x%08lx\n", GetLastError());
-	  }
-	  return 0;
-  }
 #endif
 
   //TODO: This is an ugly workaround. fix it.

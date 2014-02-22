@@ -30,9 +30,6 @@ protected:
 	void SetServiceStatus(DWORD dwCurrentState,
 		DWORD dwWin32ExitCode = NO_ERROR,
 		DWORD dwWaitHint = 0);
-	void WriteEventLogEntry(PSTR pszMessage, WORD wType);
-	void WriteErrorLogEntry(PSTR pszFunction,
-		DWORD dwError = GetLastError());
 
 private:
 

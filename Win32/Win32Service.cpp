@@ -3,6 +3,7 @@
 #include <strsafe.h>
 #include <windows.h>
 
+#include "Log.h"
 #include "Transports.h"
 #include "NTCPSession.h"
 #include "Tunnel.h"
@@ -116,13 +117,13 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 	}
 	catch (DWORD dwError)
 	{
-		WriteErrorLogEntry("Service Start", dwError);
+		LogPrint("Service Start", dwError);
 
 		SetServiceStatus(SERVICE_STOPPED, dwError);
 	}
 	catch (...)
 	{
-		WriteEventLogEntry("Service failed to start.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Service failed to start.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(SERVICE_STOPPED);
 	}
@@ -131,7 +132,7 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 
 void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 {
-	WriteEventLogEntry("CppWindowsService in OnStart",
+	LogPrint("CppWindowsService in OnStart",
 		EVENTLOG_INFORMATION_TYPE);
 
 	i2p::util::config::OptionParser(dwArgc, pszArgv);
@@ -141,16 +142,16 @@ void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 
 	_httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
 	_httpServer->Start();
-	WriteEventLogEntry("HTTPServer started",
+	LogPrint("HTTPServer started",
 		EVENTLOG_INFORMATION_TYPE);
 	i2p::data::netdb.Start();
-	WriteEventLogEntry("NetDB started",
+	LogPrint("NetDB started",
 		EVENTLOG_INFORMATION_TYPE);
 	i2p::transports.Start();
-	WriteEventLogEntry("Transports started",
+	LogPrint("Transports started",
 		EVENTLOG_INFORMATION_TYPE);
 	i2p::tunnel::tunnels.Start();
-	WriteEventLogEntry("Tunnels started",
+	LogPrint("Tunnels started",
 		EVENTLOG_INFORMATION_TYPE);
 	_worker = new std::thread(std::bind(&I2PService::WorkerThread, this));
 }
@@ -181,13 +182,13 @@ void I2PService::Stop()
 	}
 	catch (DWORD dwError)
 	{
-		WriteErrorLogEntry("Service Stop", dwError);
+		LogPrint("Service Stop", dwError);
 
 		SetServiceStatus(dwOriginalState);
 	}
 	catch (...)
 	{
-		WriteEventLogEntry("Service failed to stop.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Service failed to stop.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(dwOriginalState);
 	}
@@ -197,20 +198,20 @@ void I2PService::Stop()
 void I2PService::OnStop()
 {
 	// Log a service stop message to the Application log.
-	WriteEventLogEntry("CppWindowsService in OnStop",
+	LogPrint("CppWindowsService in OnStop",
 		EVENTLOG_INFORMATION_TYPE);
 
 	i2p::tunnel::tunnels.Stop();
-	WriteEventLogEntry("Tunnels stoped",
+	LogPrint("Tunnels stoped",
 		EVENTLOG_INFORMATION_TYPE);
 	i2p::transports.Stop();
-	WriteEventLogEntry("Transports stoped",
+	LogPrint("Transports stoped",
 		EVENTLOG_INFORMATION_TYPE);
 	i2p::data::netdb.Stop();
-	WriteEventLogEntry("NetDB stoped",
+	LogPrint("NetDB stoped",
 		EVENTLOG_INFORMATION_TYPE);
 	_httpServer->Stop();
-	WriteEventLogEntry("HTTPServer stoped",
+	LogPrint("HTTPServer stoped",
 		EVENTLOG_INFORMATION_TYPE);
 	delete _httpServer;
 
@@ -236,13 +237,13 @@ void I2PService::Pause()
 	}
 	catch (DWORD dwError)
 	{
-		WriteErrorLogEntry("Service Pause", dwError);
+		LogPrint("Service Pause", dwError);
 
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 	catch (...)
 	{
-		WriteEventLogEntry("Service failed to pause.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Service failed to pause.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(SERVICE_RUNNING);
 	}
@@ -266,13 +267,13 @@ void I2PService::Continue()
 	}
 	catch (DWORD dwError)
 	{
-		WriteErrorLogEntry("Service Continue", dwError);
+		LogPrint("Service Continue", dwError);
 
 		SetServiceStatus(SERVICE_PAUSED);
 	}
 	catch (...)
 	{
-		WriteEventLogEntry("Service failed to resume.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Service failed to resume.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(SERVICE_PAUSED);
 	}
@@ -294,11 +295,11 @@ void I2PService::Shutdown()
 	}
 	catch (DWORD dwError)
 	{
-		WriteErrorLogEntry("Service Shutdown", dwError);
+		LogPrint("Service Shutdown", dwError);
 	}
 	catch (...)
 	{
-		WriteEventLogEntry("Service failed to shut down.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Service failed to shut down.", EVENTLOG_ERROR_TYPE);
 	}
 }
 
@@ -325,42 +326,6 @@ void I2PService::SetServiceStatus(DWORD dwCurrentState,
 		0 : dwCheckPoint++;
 
 	::SetServiceStatus(m_statusHandle, &m_status);
-}
-
-
-void I2PService::WriteEventLogEntry(PSTR pszMessage, WORD wType)
-{
-	HANDLE hEventSource = NULL;
-	LPCSTR lpszStrings[2] = { NULL, NULL };
-
-	hEventSource = RegisterEventSource(NULL, m_name);
-	if (hEventSource)
-	{
-		lpszStrings[0] = m_name;
-		lpszStrings[1] = pszMessage;
-
-		ReportEvent(hEventSource,  // Event log handle
-			wType,                 // Event type
-			0,                     // Event category
-			0,                     // Event identifier
-			NULL,                  // No security identifier
-			2,                     // Size of lpszStrings array
-			0,                     // No binary data
-			lpszStrings,           // Array of strings
-			NULL                   // No binary data
-			);
-
-		DeregisterEventSource(hEventSource);
-	}
-}
-
-
-void I2PService::WriteErrorLogEntry(PSTR pszFunction, DWORD dwError)
-{
-	char szMessage[260];
-	StringCchPrintf(szMessage, ARRAYSIZE(szMessage),
-		"%s failed w/err 0x%08lx", pszFunction, dwError);
-	WriteEventLogEntry(szMessage, EVENTLOG_ERROR_TYPE);
 }
 
 //*****************************************************************************

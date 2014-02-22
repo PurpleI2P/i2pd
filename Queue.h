@@ -99,6 +99,13 @@ namespace util
 		public:
 
 			MsgQueue (): m_Thread (std::bind (&MsgQueue<Msg>::Run, this)) , running(1) {};
+			/*
+			~MsgQueue()
+			{
+				WakeUp();
+				Stop();
+			}
+			*/
 			void Stop()
 			{
 				running = 0;
@@ -109,7 +116,7 @@ namespace util
 			void Run ()
 			{
 				Msg * msg = nullptr;
-				while ((msg = Queue<Msg>::GetNext ()) != nullptr && running)
+				while (((msg = Queue<Msg>::GetNext ()) != nullptr) && running)
 				{
 					msg->Process ();
 					delete msg;
