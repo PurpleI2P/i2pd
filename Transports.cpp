@@ -66,11 +66,8 @@ namespace i2p
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
 		
-		if (m_Timer)
-		{
-			m_Timer->cancel();
-			delete m_Timer;
-		}
+		m_Timer->cancel();
+		delete m_Timer;
 		
 		if (m_SSUServer)
 		{
