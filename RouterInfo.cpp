@@ -208,14 +208,23 @@ namespace data
 		{
 			s.write ((char *)&address.cost, sizeof (address.cost));
 			s.write ((char *)&address.date, sizeof (address.date));
+			std::stringstream properties;
 			if (address.transportStyle == eTransportNTCP)
 				WriteString ("NTCP", s);
 			else if (address.transportStyle == eTransportSSU)
+			{	
 				WriteString ("SSU", s);
+				// wtite intro key
+				WriteString ("key", properties);
+				properties << '=';
+				char value[64];
+				ByteStreamToBase64 (address.key, 32, value, 64);
+				WriteString (value, properties);
+				properties << ';';
+			}	
 			else
 				WriteString ("", s);
 
-			std::stringstream properties;
 			WriteString ("host", properties);
 			properties << '=';
 			WriteString (address.host.to_string (), properties);
@@ -287,6 +296,18 @@ namespace data
 		m_Addresses.push_back(addr);	
 	}	
 
+	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key)
+	{
+		Address addr;
+		addr.host = boost::asio::ip::address::from_string (host);
+		addr.port = port;
+		addr.transportStyle = eTransportSSU;
+		addr.cost = 10; // NTCP should have prioprity over SSU
+		addr.date = 0;
+		memcpy (addr.key, key, 32);
+		m_Addresses.push_back(addr);	
+	}	
+		
 	void RouterInfo::SetProperty (const char * key, const char * value)
 	{
 		m_Properties[key] = value;
