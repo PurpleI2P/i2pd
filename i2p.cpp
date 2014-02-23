@@ -140,8 +140,6 @@ int main( int argc, char* argv[] )
 	}
 #endif
 
-  volatile int isLogging = i2p::util::config::GetArg("-log", 0);
-
 
   if (isLogging == 1)
   {
