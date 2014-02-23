@@ -95,6 +95,7 @@ int main( int argc, char* argv[] )
   LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
   i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
+
 #ifdef _WIN32
 	std::string serviceControl = i2p::util::config::GetArg("-service", "none");
 	if (serviceControl == "install")
@@ -140,6 +141,7 @@ int main( int argc, char* argv[] )
 #endif
 
   volatile int isLogging = i2p::util::config::GetArg("-log", 0);
+
 
   if (isLogging == 1)
   {
