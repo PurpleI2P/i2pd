@@ -25,11 +25,16 @@ namespace i2p
 		m_Keys = i2p::data::CreateRandomKeys ();
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
-		
+		UpdateRouterInfo ();
+	}
+
+	void RouterContext::UpdateRouterInfo ()
+	{
 		i2p::data::Identity ident;
 		ident = m_Keys;
 		m_RouterInfo.SetRouterIdentity (ident);
 
+		//m_RouterInfo.AddSSUAddress ("127.0.0.1", 17007, m_RouterInfo.GetIdentHash ());
 		m_RouterInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
 		m_RouterInfo.SetProperty ("caps", "LR");
 		m_RouterInfo.SetProperty ("coreVersion", "0.9.8.1");
@@ -38,8 +43,8 @@ namespace i2p
 		m_RouterInfo.SetProperty ("start_uptime", "90m");
 
 		m_RouterInfo.CreateBuffer ();
-	}
-
+	}	
+	
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
 	{
 		m_RouterInfo.CreateBuffer ();
@@ -51,6 +56,7 @@ namespace i2p
 		}	
 
 		m_RouterInfo.CreateBuffer ();
+		Save (true);
 	}	
 
 	void RouterContext::UpdateAddress (const char * host)
@@ -91,7 +97,7 @@ namespace i2p
 		return true;
 	}
 	
-	void RouterContext::Save ()
+	void RouterContext::Save (bool infoOnly)
 	{
 		std::string dataDir = i2p::util::filesystem::GetDataDir ().string ();
 #ifndef _WIN32
@@ -104,9 +110,12 @@ namespace i2p
 		std::string router_info = dataDir;
 		router_info.append (ROUTER_INFO);
 
-		std::ofstream fk (router_keys.c_str (), std::ofstream::binary | std::ofstream::out);
-		fk.write ((char *)&m_Keys, sizeof (m_Keys));
-				
+		if (!infoOnly)
+		{	
+			std::ofstream fk (router_keys.c_str (), std::ofstream::binary | std::ofstream::out);
+			fk.write ((char *)&m_Keys, sizeof (m_Keys));
+		}
+		
 		std::ofstream fi (router_info.c_str (), std::ofstream::binary | std::ofstream::out);
 		fi.write ((char *)m_RouterInfo.GetBuffer (), m_RouterInfo.GetBufferLen ());
 	}	

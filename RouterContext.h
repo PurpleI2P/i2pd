@@ -33,8 +33,9 @@ namespace i2p
 		private:
 
 			void CreateNewRouter ();
+			void UpdateRouterInfo ();
 			bool Load ();
-			void Save ();
+			void Save (bool infoOnly = false);
 			
 		private:
 

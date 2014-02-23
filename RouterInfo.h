@@ -69,6 +69,7 @@ namespace data
 			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
+			void AddSSUAddress (const char * host, int port, const uint8_t * key);
 			void SetProperty (const char * key, const char * value);
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
