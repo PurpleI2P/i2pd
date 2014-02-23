@@ -48,8 +48,8 @@
 #endif
 
 // Global
-int running = 1;
-int isDaemon;
+volatile int running = 1;
+volatile int isDaemon;
 
 #ifndef _WIN32
 void handle_signal(int sig)
@@ -82,7 +82,7 @@ void handle_signal(int sig)
 int main( int argc, char* argv[] )
 {
   i2p::util::config::OptionParser(argc,argv);
-  isDaemon = i2p::util::config::GetArg("-daemon", 0);
+  volatile int isDaemon = i2p::util::config::GetArg("-daemon", 0);
 #ifdef _WIN32
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
@@ -139,7 +139,8 @@ int main( int argc, char* argv[] )
 	}
 #endif
 
-  int isLogging = i2p::util::config::GetArg("-log", 0);
+  volatile int isLogging = i2p::util::config::GetArg("-log", 0);
+
   if (isLogging == 1)
   {
     std::string logfile = i2p::util::filesystem::GetDataDir().string();

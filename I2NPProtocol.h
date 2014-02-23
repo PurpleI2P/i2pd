@@ -121,6 +121,15 @@ namespace i2p
 			header->size = htobe16 (len - offset - sizeof (I2NPHeader));
 			header->chks = 0;
 		}
+		uint32_t ToSSU () // return msgID
+		{
+			I2NPHeader header = *GetHeader ();
+			I2NPHeaderShort * ssu = (I2NPHeaderShort *)GetSSUHeader ();
+			ssu->typeID = header.typeID;
+			ssu->shortExpiration = htobe32 (be64toh (header.expiration)/1000LL); 
+			len = offset + sizeof (I2NPHeaderShort) + be16toh (header.size);
+			return be32toh (header.msgID);
+		}	
 	};	
 	I2NPMessage * NewI2NPMessage ();
 	void DeleteI2NPMessage (I2NPMessage * msg);

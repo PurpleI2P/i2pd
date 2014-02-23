@@ -125,7 +125,7 @@ namespace util
 			
 		private:
 			std::thread m_Thread;
-			int running;
+			volatile int running;
 	};	
 }		
 }	

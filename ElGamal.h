@@ -12,25 +12,47 @@ namespace i2p
 {
 namespace crypto
 {
-	inline void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, int len, 
-		uint8_t * encrypted, bool zeroPadding = false) // 514 with padding and 512 without
-	{
-		CryptoPP::AutoSeededRandomPool rnd;		
-		CryptoPP::Integer y(key, 256), k(rnd, CryptoPP::Integer::One(), elgp-1);
 
-		if (zeroPadding)
-		{
-			encrypted[0] = 0;
-			encrypted[257] = 0;
-		}	
-		a_exp_b_mod_c (elgg, k, elgp).Encode (zeroPadding ? encrypted + 1 : encrypted, 256);
-		uint8_t m[255];
-		m[0] = 0xFF;
-		memcpy (m+33, data, len);
-		CryptoPP::SHA256().CalculateDigest(m+1, m+33, 222);
-		a_times_b_mod_c (a_exp_b_mod_c (y, k, elgp), 
-			CryptoPP::Integer (m, 255), elgp).Encode (zeroPadding ? encrypted + 258 : encrypted + 256, 256);
-	}	
+	class ElGamalEncryption
+	{
+		public:
+
+			ElGamalEncryption (const uint8_t * key):
+				y (key, 256), k (rnd, CryptoPP::Integer::One(), elgp-1),
+				a (a_exp_b_mod_c (elgg, k, elgp)), b1 (a_exp_b_mod_c (y, k, elgp))
+			{
+			}
+
+			void Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding = false)
+			{
+				// calculate b = b1*m mod p
+				uint8_t m[255];
+				m[0] = 0xFF;
+				memcpy (m+33, data, len);
+				CryptoPP::SHA256().CalculateDigest(m+1, m+33, 222);
+				CryptoPP::Integer b (a_times_b_mod_c (b1, CryptoPP::Integer (m, 255), elgp));
+
+				// copy a and b
+				if (zeroPadding)
+				{
+					encrypted[0] = 0;
+					a.Encode (encrypted + 1, 256);
+					encrypted[257] = 0;
+					b.Encode (encrypted + 258, 256);
+				}	
+				else
+				{
+					a.Encode (encrypted, 256);	
+					b.Encode (encrypted + 256, 256);
+				}	
+			}
+
+		private:
+
+			CryptoPP::AutoSeededRandomPool rnd;	
+			CryptoPP::Integer y, k, a, b1;	
+			bool m_ZeroPadding;	
+	};
 
 	inline bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
 		uint8_t * data, bool zeroPadding = false)

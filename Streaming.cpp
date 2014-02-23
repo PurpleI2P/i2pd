@@ -14,7 +14,7 @@ namespace i2p
 {
 namespace stream
 {
-	Stream::Stream (StreamingDestination * local, const i2p::data::LeaseSet * remote):
+	Stream::Stream (StreamingDestination * local, const i2p::data::LeaseSet& remote):
 		m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false),
 		m_LocalDestination (local), m_RemoteLeaseSet (remote), m_OutboundTunnel (nullptr)
 	{
@@ -172,7 +172,7 @@ namespace stream
 
 		if (!m_OutboundTunnel)
 			m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+		auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
 		if (m_OutboundTunnel && !leases.empty ())
 		{
 			auto& lease = *leases.begin (); // TODO:
@@ -206,7 +206,7 @@ namespace stream
 			CreateDataMessage (this, packet, size));
 		if (m_OutboundTunnel)
 		{
-			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+			auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
 			if (!leases.empty ())
 			{	
 				auto& lease = *leases.begin (); // TODO:
@@ -252,7 +252,7 @@ namespace stream
 
 			I2NPMessage * msg = i2p::garlic::routing.WrapSingleMessage (m_RemoteLeaseSet, 
 				CreateDataMessage (this, packet, size));
-			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+			auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
 			if (m_OutboundTunnel && !leases.empty ())
 			{
 				auto& lease = *leases.begin (); // TODO:
@@ -318,7 +318,7 @@ namespace stream
 		
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
-		uint32_t sendStreamID = be32toh (*(uint32_t *)(packet->buf));
+		uint32_t sendStreamID = packet->GetSendStreamID ();
 		auto it = m_Streams.find (sendStreamID);
 		if (it != m_Streams.end ())
 			it->second->HandleNextPacket (packet);
@@ -329,7 +329,7 @@ namespace stream
 		}	
 	}	
 
-	Stream * StreamingDestination::CreateNewStream (const i2p::data::LeaseSet * remote)
+	Stream * StreamingDestination::CreateNewStream (const i2p::data::LeaseSet& remote)
 	{
 		Stream * s = new Stream (this, remote);
 		m_Streams[s->GetRecvStreamID ()] = s;
@@ -399,7 +399,7 @@ namespace stream
 		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, len, signature);
 	}
 		
-	Stream * CreateStream (const i2p::data::LeaseSet * remote)
+	Stream * CreateStream (const i2p::data::LeaseSet& remote)
 	{
 		if (!sharedLocalDestination)
 			sharedLocalDestination = new StreamingDestination ();

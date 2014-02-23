@@ -55,8 +55,7 @@ namespace i2p
 			}
 		}	
 
-		// TODO: do it for SSU only
-		DetectExternalIP ();
+		//DetectExternalIP ();
 	}
 		
 	void Transports::Stop ()
@@ -65,9 +64,12 @@ namespace i2p
 			delete session.second;
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
-		
-		m_Timer->cancel();
-		delete m_Timer;
+
+		if (m_Timer)
+		{	
+			m_Timer->cancel ();
+			delete m_Timer;
+		}
 		
 		if (m_SSUServer)
 		{
@@ -169,7 +171,23 @@ namespace i2p
 					AddNTCPSession (session);
 				}	
 				else
-					LogPrint ("No NTCP addresses available");
+				{	
+					// SSU always have lower prioprity than NTCP
+					// TODO: it shouldn't
+					LogPrint ("No NTCP addresses available. Trying SSU");
+					address = r->GetSSUAddress ();
+					if (address && m_SSUServer)
+					{
+						auto s = m_SSUServer->GetSession (r);
+						if (s)
+						{
+							s->SendI2NPMessage (msg);
+							return;
+						}
+					}
+					else
+						LogPrint ("No SSU addresses available");
+				}	
 			}
 			else
 			{
@@ -189,7 +207,7 @@ namespace i2p
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			if (router && router->IsSSU () && m_SSUServer)
-				m_SSUServer->GetSession (const_cast<i2p::data::RouterInfo *>(router)); //TODO	
+				m_SSUServer->GetSession (router); 	
 		}	
 		if (m_Timer)
 		{	

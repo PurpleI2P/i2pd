@@ -25,7 +25,7 @@ namespace data
 		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, &m_ExcludedPeers);
 		if (m_IsLeaseSet) // wrap lookup message into garlic
-			msg = i2p::garlic::routing.WrapSingleMessage (router, msg);
+			msg = i2p::garlic::routing.WrapSingleMessage (*router, msg);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_LastReplyTunnel = replyTunnel;
@@ -90,7 +90,7 @@ namespace data
 	
 	void NetDb::Run ()
 	{
-		uint32_t lastTs = 0;
+		uint32_t lastSave = 0, lastPublish = 0;
 		m_IsRunning = true;
 		while (m_IsRunning)
 		{	
@@ -120,11 +120,19 @@ namespace data
 					Explore ();
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastTs >= 60) // save routers every minute
+				if (ts - lastSave >= 60) // save routers and validate subscriptions every minute
 				{
-					if (lastTs)
+					if (lastSave)
+					{
 						SaveUpdated (m_NetDbPath);
-					lastTs = ts;
+						ValidateSubscriptions ();
+					}	
+					lastSave = ts;
+				}	
+				if (ts - lastPublish >= 600) // publish every 10 minutes
+				{
+					Publish ();
+					lastPublish = ts;
 				}	
 			}
 			catch (std::exception& ex)
@@ -448,10 +456,18 @@ namespace data
 						{
 							auto r = FindRouter (router); 
 							// do we have that floodfill router in our database?
-							if (r)
+							if (r) 
 							{
+								// we do
 								if (!dest->IsExcluded (r->GetIdentHash ()) && dest->GetNumExcludedPeers () < 30) // TODO: fix TunnelGateway first
 								{	
+									// tell floodfill about us 
+									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+										{ 
+											i2p::tunnel::eDeliveryTypeRouter,
+											r->GetIdentHash (), 0,
+											CreateDatabaseStoreMsg () 
+										});  
 									// request destination
 									auto msg = dest->CreateRequestMessage (r, dest->GetLastReplyTunnel ());
 									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
@@ -478,7 +494,10 @@ namespace data
 						else // we should send directly
 						{
 							if (!dest->IsLeaseSet ()) // if not LeaseSet
-								i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							{
+								if (!dest->IsExcluded (router) && dest->GetNumExcludedPeers () < 30) 
+									i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+							}	
 							else
 								LogPrint ("Can't request LeaseSet");
 						}	
@@ -506,16 +525,15 @@ namespace data
 		auto inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
 		if (outbound && inbound)
 		{
-			auto floodfill = GetRandomRouter (outbound->GetEndpointRouter (), true);
+			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+			uint8_t randomHash[32];
+			rnd.GenerateBlock (randomHash, 32);
+			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
+			dest->SetLastOutboundTunnel (outbound);
+			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
 			if (floodfill)
-			{
+			{	
 				LogPrint ("Exploring new routers ...");
-				CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-				uint8_t randomHash[32];
-				rnd.GenerateBlock (randomHash, 32);
-				RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
-				dest->SetLastOutboundTunnel (outbound);
-
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 					{ 
@@ -529,11 +547,24 @@ namespace data
 						floodfill->GetIdentHash (), 0, 
 						dest->CreateRequestMessage (floodfill, inbound) // explore
 					}); 
-				outbound->SendTunnelDataMsg (msgs);	
+				outbound->SendTunnelDataMsg (msgs);		
 			}	
+			else
+				DeleteRequestedDestination (dest);
 		}
 	}	
 
+	void NetDb::Publish ()
+	{
+		std::set<IdentHash> excluded; // TODO: fill up later
+		auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
+		if (floodfill)
+		{
+			LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation ());
+			transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg ());	
+		}	
+	}	
+	
 	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest,
 		bool isLeaseSet, bool isExploratory)
 	{
@@ -555,6 +586,15 @@ namespace data
 		{	
 			delete it->second;
 			m_RequestedDestinations.erase (it);
+		}	
+	}	
+
+	void NetDb::DeleteRequestedDestination (RequestedDestination * dest)
+	{
+		if (dest)
+		{
+			m_RequestedDestinations.erase (dest->GetDestination ());
+			delete dest;
 		}	
 	}	
 	
@@ -626,5 +666,33 @@ namespace data
 		return r;
 	}	
 
+	void NetDb::Subscribe (const IdentHash& ident)
+	{
+		LeaseSet * leaseSet = FindLeaseSet (ident);
+		if (!leaseSet)
+		{
+			LogPrint ("LeaseSet requested");	
+			RequestDestination (ident, true);
+		}
+		m_Subscriptions.insert (ident);
+	}
+		
+	void NetDb::Unsubscribe (const IdentHash& ident)
+	{
+		m_Subscriptions.erase (ident);
+	}
+
+	void NetDb::ValidateSubscriptions ()
+	{
+		for (auto it : m_Subscriptions)
+		{
+			LeaseSet * leaseSet = FindLeaseSet (it);
+			if (!leaseSet || leaseSet->HasExpiredLeases ())
+			{
+				LogPrint ("LeaseSet re-requested");	
+				RequestDestination (it, true);
+			}			
+		}
+	}
 }
 }

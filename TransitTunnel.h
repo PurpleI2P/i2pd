@@ -22,7 +22,7 @@ namespace tunnel
 	    		const uint8_t * layerKey,const uint8_t * ivKey); 
 			
 			virtual void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
-			virtual void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
+			virtual void SendTunnelDataMsg (i2p::I2NPMessage * msg);
 			virtual size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
 			
 			uint32_t GetTunnelID () const { return m_TunnelID; };
@@ -54,7 +54,7 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, 
 				layerKey, ivKey), m_Gateway(this) {};
 
-			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
+			void SendTunnelDataMsg (i2p::I2NPMessage * msg);
 			size_t GetNumTransmittedBytes () const { return m_Gateway.GetNumSentBytes (); };
 			
 		private:
