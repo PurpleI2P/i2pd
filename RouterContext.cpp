@@ -32,17 +32,19 @@ namespace i2p
 	{
 		i2p::data::Identity ident;
 		ident = m_Keys;
-		m_RouterInfo.SetRouterIdentity (ident);
 
-		//m_RouterInfo.AddSSUAddress ("127.0.0.1", 17007, m_RouterInfo.GetIdentHash ());
-		m_RouterInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
-		m_RouterInfo.SetProperty ("caps", "LR");
-		m_RouterInfo.SetProperty ("coreVersion", "0.9.8.1");
-		m_RouterInfo.SetProperty ("netId", "2");
-		m_RouterInfo.SetProperty ("router.version", "0.9.8.1");
-		m_RouterInfo.SetProperty ("start_uptime", "90m");
+		i2p::data::RouterInfo routerInfo;
+		routerInfo.SetRouterIdentity (ident);
+		//routerInfo.AddSSUAddress ("127.0.0.1", 17007, routerInfo.GetIdentHash ());
+		routerInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
+		routerInfo.SetProperty ("caps", "LR");
+		routerInfo.SetProperty ("coreVersion", "0.9.8.1");
+		routerInfo.SetProperty ("netId", "2");
+		routerInfo.SetProperty ("router.version", "0.9.8.1");
+		routerInfo.SetProperty ("start_uptime", "90m");
+		routerInfo.CreateBuffer ();
 
-		m_RouterInfo.CreateBuffer ();
+		m_RouterInfo = routerInfo;
 	}	
 	
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)

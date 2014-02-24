@@ -133,7 +133,7 @@ namespace data
 				{	
 					// introducers
 					size_t l = strlen(key); 	
-					unsigned char index = key[l-1]; // TODO:
+					unsigned char index = key[l-1] - '0'; // TODO:
 					key[l-1] = 0;
 					if (index >= address.introducers.size ())
 						address.introducers.resize (index + 1); 
@@ -214,12 +214,10 @@ namespace data
 			else if (address.transportStyle == eTransportSSU)
 			{	
 				WriteString ("SSU", s);
-				// wtite intro key
-				WriteString ("key", properties);
+				// caps
+				WriteString ("caps", properties);
 				properties << '=';
-				char value[64];
-				ByteStreamToBase64 (address.key, 32, value, 64);
-				WriteString (value, properties);
+				WriteString ("BC", properties); // TODO:
 				properties << ';';
 			}	
 			else
@@ -229,6 +227,17 @@ namespace data
 			properties << '=';
 			WriteString (address.host.to_string (), properties);
 			properties << ';';
+			if (address.transportStyle == eTransportSSU)
+			{
+				// wtite intro key
+				WriteString ("key", properties);
+				properties << '=';
+				char value[64];
+				size_t l = ByteStreamToBase64 (address.key, 32, value, 64);
+				value[l] = 0;
+				WriteString (value, properties);
+				properties << ';';
+			}	
 			WriteString ("port", properties);
 			properties << '=';
 			WriteString (boost::lexical_cast<std::string>(address.port), properties);
