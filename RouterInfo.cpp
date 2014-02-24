@@ -217,7 +217,7 @@ namespace data
 				// caps
 				WriteString ("caps", properties);
 				properties << '=';
-				WriteString ("BC", properties); // TODO:
+				WriteString ("B", properties); // TODO: should be 'BC' for introducers
 				properties << ';';
 			}	
 			else

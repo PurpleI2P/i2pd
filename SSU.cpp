@@ -176,7 +176,7 @@ namespace ssu
 				m_State = eSessionStateConfirmedReceived;
 				LogPrint ("Session confirmed received");		
 				m_State = eSessionStateEstablished;
-				// TODO: send DeliverStatus	
+				SendI2NPMessage (CreateDeliveryStatusMsg (0));
 				Established ();
 			}
 			else

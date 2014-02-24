@@ -70,8 +70,17 @@ namespace i2p
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
 		I2NPDeliveryStatusMsg msg;
-		msg.msgID = htobe32 (msgID);
-		msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
+		if (msgID)
+		{
+			msg.msgID = htobe32 (msgID);
+			msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
+		}
+		else // for SSU establishment
+		{
+			auto rnd = i2p::context.GetRandomNumberGenerator ();
+			msg.msgID = htobe32 (rnd.GenerateWord32 ());
+			msg.timestamp = htobe64 (2); // netID = 2
+ 		}
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
 	}
 
