@@ -74,7 +74,7 @@ namespace ssu
 			void Close ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			void SendI2NPMessage (I2NPMessage * msg);
-
+			
 		private:
 
 			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
@@ -141,6 +141,10 @@ namespace ssu
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
 			uint8_t m_ReceiveBuffer[2*SSU_MTU];
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
+
+		public:
+			// for HTTP only
+			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 	};
 }
 }

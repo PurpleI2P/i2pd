@@ -144,6 +144,7 @@ namespace util
 		}	
 
 		s << "<P>Transports</P>";
+		s << "NTCP<BR>";
 		for (auto it: i2p::transports.GetNTCPSessions ())
 		{	
 			// RouterInfo of incoming connection doesn't have address
@@ -155,6 +156,16 @@ namespace util
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 				if (!outgoing) s << "-->";
 				s << "<BR>";
+			}	
+		}	
+		auto ssuServer = i2p::transports.GetSSUServer ();
+		if (ssuServer)
+		{
+			s << "<BR>SSU<BR>";
+			for (auto it: ssuServer->GetSessions ())
+			{
+				auto endpoint = it.second->GetRemoteEndpoint ();
+				s << endpoint.address ().to_string () << ":" << endpoint.port () << "<BR>";
 			}	
 		}	
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";

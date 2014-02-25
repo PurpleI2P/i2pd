@@ -58,6 +58,7 @@ namespace i2p
 
 			// for HTTP only
 			const decltype(m_NTCPSessions)& GetNTCPSessions () const { return m_NTCPSessions; };
+			const i2p::ssu::SSUServer * GetSSUServer () const { return m_SSUServer; };
 	};	
 
 	extern Transports transports;
