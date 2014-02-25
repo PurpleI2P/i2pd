@@ -154,13 +154,38 @@ namespace ssu
 		{
 			m_State = eSessionStateCreatedReceived;
 			LogPrint ("Session created received");	
-			uint8_t * ourAddress = buf + sizeof (SSUHeader) + 257;
-			boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )(ourAddress)));
-			uint16_t ourPort = be16toh (*(uint16_t *)(ourAddress + 4));
+			uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
+			uint8_t * payload = buf + sizeof (SSUHeader);
+			uint8_t * y = payload;
+			memcpy (signedData, i2p::context.GetRouterIdentity ().publicKey, 256); // x
+			memcpy (signedData + 256, y, 256); // y
+			payload += 256;
+			payload += 1; // size, assume 4
+			uint8_t * ourAddress = payload;
+			boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )ourAddress));
+			payload += 4; // address
+			uint16_t ourPort = be16toh (*(uint16_t *)payload);
+			payload += 2; // port
+			memcpy (signedData + 512, ourAddress, 6); // our IP and port 
 			LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 			i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
-			uint32_t relayTag = be32toh (*(uint32_t *)(buf + sizeof (SSUHeader) + 263));
-			SendSessionConfirmed (buf + sizeof (SSUHeader), ourAddress, relayTag);
+			*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
+			*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
+			memcpy (signedData + 524, payload, 8); // relayTag and signed on time 
+			uint32_t relayTag = be32toh (*(uint32_t *)payload);
+			payload += 4; // relayTag
+			payload += 4; // signed on time
+			// decrypt DSA signature
+			m_Decryption.SetKeyWithIV (m_SessionKey, 32, ((SSUHeader *)buf)->iv);
+			m_Decryption.ProcessData (payload, payload, 48);
+			// verify
+			CryptoPP::DSA::PublicKey pubKey;
+			pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
+			CryptoPP::DSA::Verifier verifier (pubKey);
+			if (!verifier.VerifyMessage (signedData, 532, payload, 40))
+				LogPrint ("SSU signature verification failed");
+			
+			SendSessionConfirmed (y, ourAddress, relayTag);
 		}
 	}	
 
@@ -244,7 +269,8 @@ namespace ssu
 	void SSUSession::SendSessionCreated (const uint8_t * x)
 	{
 		auto introKey = GetIntroKey ();
-		if (!introKey)
+		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		if (!introKey || !address)
 		{
 			LogPrint ("SSU is not supported");
 			return;
@@ -264,8 +290,8 @@ namespace ssu
 		*(uint16_t *)(payload) = htobe16 (m_RemoteEndpoint.port ());
 		payload += 2;
 		memcpy (signedData + 512, payload - 6, 6); // remote endpoint IP and port 
-		*(uint32_t *)(signedData + 518) = htobe32 (m_Server->GetEndpoint ().address ().to_v4 ().to_ulong ()); // our IP
-		*(uint16_t *)(signedData + 522) = htobe16 (m_Server->GetEndpoint ().port ()); // our port
+		*(uint32_t *)(signedData + 518) = htobe32 (address->host.to_v4 ().to_ulong ()); // our IP
+		*(uint16_t *)(signedData + 522) = htobe16 (address->port); // our port
 		*(uint32_t *)(payload) = 0; //  relay tag, always 0 for now
 		payload += 4; 
 		*(uint32_t *)(payload) = htobe32 (i2p::util::GetSecondsSinceEpoch ()); // signed on time
