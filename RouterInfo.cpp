@@ -303,6 +303,7 @@ namespace data
 		addr.cost = 2;
 		addr.date = 0;
 		m_Addresses.push_back(addr);	
+		m_SupportedTransports |= eNTCPV4;
 	}	
 
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key)
@@ -315,6 +316,7 @@ namespace data
 		addr.date = 0;
 		memcpy (addr.key, key, 32);
 		m_Addresses.push_back(addr);	
+		m_SupportedTransports |= eSSUV4;
 	}	
 		
 	void RouterInfo::SetProperty (const char * key, const char * value)

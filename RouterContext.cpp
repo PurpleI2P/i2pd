@@ -35,7 +35,7 @@ namespace i2p
 
 		i2p::data::RouterInfo routerInfo;
 		routerInfo.SetRouterIdentity (ident);
-		//routerInfo.AddSSUAddress ("127.0.0.1", 17007, routerInfo.GetIdentHash ());
+		routerInfo.AddSSUAddress ("127.0.0.1", 17007, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
 		routerInfo.SetProperty ("caps", "LR");
 		routerInfo.SetProperty ("coreVersion", "0.9.8.1");

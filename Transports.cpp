@@ -39,23 +39,20 @@ namespace i2p
 				auto conn = new i2p::ntcp::NTCPServerConnection (m_Service);
 				m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
 					conn, boost::asio::placeholders::error));
-			// temporary always run SSU server
-			// TODO: uncomment following lines later	
-			/*}	
+			}	
 			else if (address.transportStyle == RouterInfo::eTransportSSU)
-			{*/
+			{
 				if (!m_SSUServer)
 				{	
 					m_SSUServer = new i2p::ssu::SSUServer (m_Service, address.port);
 					LogPrint ("Start listening UDP port ", address.port);
 					m_SSUServer->Start ();	
+					DetectExternalIP ();
 				}
 				else
 					LogPrint ("SSU server already exists");
 			}
 		}	
-
-		//DetectExternalIP ();
 	}
 		
 	void Transports::Stop ()
