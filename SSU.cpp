@@ -309,7 +309,7 @@ namespace ssu
 
 		// encrypt message with intro key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, introKey, iv, introKey);
-		m_State = eSessionStateRequestSent;		
+		m_State = eSessionStateCreatedSent;		
 		m_Server->Send (buf, 368, m_RemoteEndpoint);
 	}
 

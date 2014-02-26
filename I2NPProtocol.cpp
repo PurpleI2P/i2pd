@@ -77,8 +77,7 @@ namespace i2p
 		}
 		else // for SSU establishment
 		{
-			auto rnd = i2p::context.GetRandomNumberGenerator ();
-			msg.msgID = htobe32 (rnd.GenerateWord32 ());
+			msg.msgID = htobe32 (i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
 			msg.timestamp = htobe64 (2); // netID = 2
  		}
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
