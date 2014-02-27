@@ -180,6 +180,9 @@ namespace data
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));
 		UpdateIdentHashBase64 ();
 		UpdateRoutingKey ();
+
+		if (!m_SupportedTransports)
+			SetUnreachable (true);
 	}	
 
 	void RouterInfo::UpdateIdentHashBase64 ()
