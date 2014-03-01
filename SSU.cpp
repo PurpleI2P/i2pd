@@ -72,6 +72,7 @@ namespace ssu
 			case eSessionRelayResponseReceived:
 				// HolePunch received
 				LogPrint ("SSU HolePuch of ", len, " bytes received");
+				m_State = eSessionStateEstablished;
 				Established ();
 			break;	
 			case eSessionRelayRequestReceived:
