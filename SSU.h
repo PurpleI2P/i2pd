@@ -57,6 +57,7 @@ namespace ssu
 		eSessionStateConfirmedReceived,
 		eSessionRelayRequestSent,
 		eSessionRelayRequestReceived,	
+		eSessionRelayResponseReceived,	
 		eSessionStateEstablished
 	};		
 

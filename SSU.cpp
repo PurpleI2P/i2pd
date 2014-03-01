@@ -69,6 +69,11 @@ namespace ssu
 				// relay response
 				ProcessRelayResponse (buf,len);
 			break;
+			case eSessionRelayResponseReceived:
+				// HolePunch received
+				LogPrint ("SSU HolePuch of ", len, " bytes received");
+				Established ();
+			break;	
 			case eSessionRelayRequestReceived:
 				// HolePunch
 				m_State = eSessionStateUnknown;
@@ -386,6 +391,7 @@ namespace ssu
 				payload += 2;
 				LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 				i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
+				m_State= eSessionRelayResponseReceived;
 			}
 			else
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));
