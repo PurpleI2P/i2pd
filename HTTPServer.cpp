@@ -164,8 +164,13 @@ namespace util
 			s << "<BR>SSU<BR>";
 			for (auto it: ssuServer->GetSessions ())
 			{
+				// incoming connections don't have remote router
+				bool outgoing = it.second->GetRemoteRouter ();
 				auto endpoint = it.second->GetRemoteEndpoint ();
-				s << endpoint.address ().to_string () << ":" << endpoint.port () << "<BR>";
+				if (outgoing) s << "-->";
+				s << endpoint.address ().to_string () << ":" << endpoint.port ();
+				if (!outgoing) s << "-->";
+				s << "<BR>";
 			}	
 		}	
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";

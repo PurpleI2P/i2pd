@@ -74,6 +74,7 @@ namespace ssu
 			void ConnectThroughIntroducer (const i2p::data::RouterInfo::Introducer& introducer);	
 			void Close ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
+			const i2p::data::RouterInfo * GetRemoteRouter () const  { return m_RemoteRouter; };
 			void SendI2NPMessage (I2NPMessage * msg);
 			
 		private:
