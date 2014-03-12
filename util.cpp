@@ -99,11 +99,12 @@ namespace filesystem
 	{
 		static boost::filesystem::path path;
 
-		if (i2p::util::config::mapArgs.count("-datadir")) {
+		// TODO: datadir parameter is useless because GetDataDir is called before OptionParser
+		// and mapArgs is not initialized yet
+		/*if (i2p::util::config::mapArgs.count("-datadir")) 
 			path = boost::filesystem::system_complete(i2p::util::config::mapArgs["-datadir"]);
-		} else {
+		else */
 			path = GetDefaultDataDir();
-		}
 
 		if (!boost::filesystem::exists( path ))
 		{
@@ -115,9 +116,8 @@ namespace filesystem
 				return path;
 			}
 		}
-		if (!boost::filesystem::is_directory(path)) {
+		if (!boost::filesystem::is_directory(path)) 
 			path = GetDefaultDataDir();
-		}
 		return path;
 	}
 
