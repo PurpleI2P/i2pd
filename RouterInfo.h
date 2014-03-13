@@ -32,6 +32,14 @@ namespace data
 				eTransportSSU
 			};
 
+			struct Introducer			
+			{
+				boost::asio::ip::address iHost;
+				int iPort;
+				uint8_t iKey[32];
+				uint32_t iTag;
+			};
+
 			struct Address
 			{
 				TransportStyle transportStyle;
@@ -39,7 +47,9 @@ namespace data
 				int port;
 				uint64_t date;
 				uint8_t cost;
-				uint8_t key[32]; // into key for SSU
+				// SSU only
+				uint8_t key[32]; // intro key for SSU
+				std::vector<Introducer> introducers;
 			};
 			
 			RouterInfo (const char * filename);
@@ -53,17 +63,20 @@ namespace data
 			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
 			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
-			const std::vector<Address>& GetAddresses () const { return m_Addresses; };
-			Address * GetNTCPAddress (bool v4only = true);
-			Address * GetSSUAddress (bool v4only = true);
+			std::vector<Address>& GetAddresses () { return m_Addresses; };
+			const Address * GetNTCPAddress (bool v4only = true) const;
+			const Address * GetSSUAddress (bool v4only = true) const;
 			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
+			void AddSSUAddress (const char * host, int port, const uint8_t * key);
 			void SetProperty (const char * key, const char * value);
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
 			bool IsNTCP (bool v4only = true) const;
+			bool IsSSU (bool v4only = true) const;
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
+			bool UsesIntroducer () const;
 			
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
@@ -90,7 +103,7 @@ namespace data
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
 			void UpdateIdentHashBase64 ();
-			Address * GetAddress (TransportStyle s, bool v4only);
+			const Address * GetAddress (TransportStyle s, bool v4only) const;
 			
 		private:
 

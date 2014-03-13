@@ -25,6 +25,7 @@ namespace i2p
 	{
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
+		m_Timer = new boost::asio::deadline_timer (m_Service);
 		// create acceptors
 		auto addresses = context.GetRouterInfo ().GetAddresses ();
 		for (auto& address : addresses)
@@ -46,6 +47,7 @@ namespace i2p
 					m_SSUServer = new i2p::ssu::SSUServer (m_Service, address.port);
 					LogPrint ("Start listening UDP port ", address.port);
 					m_SSUServer->Start ();	
+					DetectExternalIP ();
 				}
 				else
 					LogPrint ("SSU server already exists");
@@ -60,6 +62,12 @@ namespace i2p
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
 
+		if (m_Timer)
+		{	
+			m_Timer->cancel ();
+			delete m_Timer;
+		}
+		
 		if (m_SSUServer)
 		{
 			m_SSUServer->Stop ();
@@ -140,7 +148,7 @@ namespace i2p
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 			// we send it to ourself
-			i2p::HandleI2NPMessage (msg, false);
+			i2p::HandleI2NPMessage (msg);
 		else
 			m_Service.post (boost::bind (&Transports::PostMessage, this, ident, msg));                             
 	}	
@@ -160,7 +168,23 @@ namespace i2p
 					AddNTCPSession (session);
 				}	
 				else
-					LogPrint ("No NTCP addresses available");
+				{	
+					// SSU always have lower prioprity than NTCP
+					// TODO: it shouldn't
+					LogPrint ("No NTCP addresses available. Trying SSU");
+					address = r->GetSSUAddress ();
+					if (address && m_SSUServer)
+					{
+						auto s = m_SSUServer->GetSession (r);
+						if (s)
+						{
+							s->SendI2NPMessage (msg);
+							return;
+						}
+					}
+					else
+						LogPrint ("No SSU addresses available");
+				}	
 			}
 			else
 			{
@@ -173,4 +197,30 @@ namespace i2p
 		else
 			LogPrint ("Session not found"); 
 	}	
+
+	void Transports::DetectExternalIP ()
+	{
+		for (int i = 0; i < 5; i ++)
+		{
+			auto router = i2p::data::netdb.GetRandomRouter ();
+			if (router && router->IsSSU () && m_SSUServer)
+				m_SSUServer->GetSession (router); 	
+		}	
+		if (m_Timer)
+		{	
+			m_Timer->expires_from_now (boost::posix_time::seconds(5)); // 5 seconds
+			m_Timer->async_wait (boost::bind (&Transports::HandleTimer, this, boost::asio::placeholders::error));
+		}	
+	}
+		
+	void Transports::HandleTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			// end of external IP detection
+			if (m_SSUServer)
+				 m_SSUServer->DeleteAllSessions ();
+		}	
+	}	
+		
 }

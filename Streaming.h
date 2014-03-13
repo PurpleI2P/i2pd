@@ -65,11 +65,11 @@ namespace stream
 	{	
 		public:
 
-			Stream (StreamingDestination * local, const i2p::data::LeaseSet * remote);
+			Stream (StreamingDestination * local, const i2p::data::LeaseSet& remote);
 			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
-			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
+			const i2p::data::LeaseSet& GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
 			bool IsOpen () const { return m_IsOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
 			
@@ -91,7 +91,7 @@ namespace stream
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
 			bool m_IsOpen;
 			StreamingDestination * m_LocalDestination;
-			const i2p::data::LeaseSet * m_RemoteLeaseSet;
+			const i2p::data::LeaseSet& m_RemoteLeaseSet;
 			i2p::util::Queue<Packet> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;
@@ -109,7 +109,7 @@ namespace stream
 			I2NPMessage * GetLeaseSet ();
 			void Sign (uint8_t * buf, int len, uint8_t * signature) const;
 			
-			Stream * CreateNewStream (const i2p::data::LeaseSet * remote);
+			Stream * CreateNewStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			void HandleNextPacket (Packet * packet);
 
@@ -129,7 +129,7 @@ namespace stream
 			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
 	};	
 
-	Stream * CreateStream (const i2p::data::LeaseSet * remote);
+	Stream * CreateStream (const i2p::data::LeaseSet& remote);
 	void DeleteStream (Stream * stream);
 	
 	// assuming data is I2CP message

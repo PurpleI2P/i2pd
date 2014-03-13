@@ -60,9 +60,20 @@ namespace util
   		{
 			m_Buffer[bytes_transferred] = 0;
 			auto address = ExtractAddress ();
-			LogPrint (address);
 			if (address.length () > 1) // not just '/'
-				HandleDestinationRequest (address.substr (1)); // exclude '/'
+			{
+				std::string uri ("/"), b32;
+				size_t pos = address.find ('/', 1);
+				if (pos == std::string::npos)
+					b32 = address.substr (1); // excluding leading '/' to end of line
+				else
+				{
+					b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
+					uri = address.substr (pos); // rest of line
+				}	
+
+				HandleDestinationRequest (b32, uri); 
+			}	
 			else	  
 				HandleRequest ();
 			boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
@@ -133,6 +144,7 @@ namespace util
 		}	
 
 		s << "<P>Transports</P>";
+		s << "NTCP<BR>";
 		for (auto it: i2p::transports.GetNTCPSessions ())
 		{	
 			// RouterInfo of incoming connection doesn't have address
@@ -146,17 +158,36 @@ namespace util
 				s << "<BR>";
 			}	
 		}	
+		auto ssuServer = i2p::transports.GetSSUServer ();
+		if (ssuServer)
+		{
+			s << "<BR>SSU<BR>";
+			for (auto it: ssuServer->GetSessions ())
+			{
+				// incoming connections don't have remote router
+				bool outgoing = it.second->GetRemoteRouter ();
+				auto endpoint = it.second->GetRemoteEndpoint ();
+				if (outgoing) s << "-->";
+				s << endpoint.address ().to_string () << ":" << endpoint.port ();
+				if (!outgoing) s << "-->";
+				s << "<BR>";
+			}	
+		}	
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";
 	}	
 
-	void HTTPConnection::HandleDestinationRequest (std::string b32)
+	void HTTPConnection::HandleDestinationRequest (const std::string& b32, const std::string& uri)
 	{
 		uint8_t destination[32];
-		i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), destination, 32);
+		if (i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), destination, 32) != 32)
+		{
+			LogPrint ("Invalid Base32 address ", b32);
+			return;
+		}	
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
-			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
+			i2p::data::netdb.Subscribe(destination);
 			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
@@ -170,17 +201,10 @@ namespace util
 				return;
 			}	
 		}	
-		// we found LeaseSet
-		if (leaseSet->HasExpiredLeases ())
-		{
-			// we should re-request LeaseSet
-			LogPrint ("LeaseSet re-requested");
-			i2p::data::netdb.RequestDestination (i2p::data::IdentHash (destination), true);
-		}	
-		auto s = i2p::stream::CreateStream (leaseSet);
+		auto s = i2p::stream::CreateStream (*leaseSet);
 		if (s)
 		{
-			std::string request = "GET / HTTP/1.1\n Host:" + b32 + ".b32.i2p\n";
+			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + b32 + ".b32.i2p\n";
 			s->Send ((uint8_t *)request.c_str (), request.length (), 10);			
 			std::stringstream ss;
 			uint8_t buf[8192];
@@ -200,7 +224,7 @@ namespace util
 			else // nothing received
 				ss << "<html>Not responding</html>";
 			s->Close ();
-			//DeleteStream (s);
+			DeleteStream (s);
 			
 			m_Reply.content = ss.str ();
 			m_Reply.headers.resize(2);

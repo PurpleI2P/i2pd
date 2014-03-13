@@ -22,6 +22,7 @@ namespace i2p
 		I2NPMessage * msg = new I2NPMessage;
 		msg->offset = 2; // reserve 2 bytes for NTCP header, should reserve more for SSU in future
 		msg->len = sizeof (I2NPHeader) + 2;
+		msg->from = nullptr;
 		return msg;
 	}
 	
@@ -70,8 +71,16 @@ namespace i2p
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
 		I2NPDeliveryStatusMsg msg;
-		msg.msgID = htobe32 (msgID);
-		msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
+		if (msgID)
+		{
+			msg.msgID = htobe32 (msgID);
+			msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
+		}
+		else // for SSU establishment
+		{
+			msg.msgID = htobe32 (i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
+			msg.timestamp = htobe64 (2); // netID = 2
+ 		}
 		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
 	}
 
@@ -212,7 +221,7 @@ namespace i2p
 		const I2NPBuildRequestRecordClearText& clearText,
 	    I2NPBuildRequestRecordElGamalEncrypted& record)
 	{
-		i2p::crypto::ElGamalEncrypt (router.GetRouterIdentity ().publicKey, (uint8_t *)&clearText, sizeof(clearText), record.encrypted);
+		router.GetElGamalEncryption ()->Encrypt ((uint8_t *)&clearText, sizeof(clearText), record.encrypted);
 		memcpy (record.toPeer, (const uint8_t *)router.GetIdentHash (), 16);
 	}	
 	
@@ -392,7 +401,7 @@ namespace i2p
 		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)msg->GetHeader()->typeID);
 		i2p::tunnel::TransitTunnel * tunnel =  i2p::tunnel::tunnels.GetTransitTunnel (tunnelID);
 		if (tunnel)
-			tunnel->SendTunnelDataMsg (nullptr, 0, msg);
+			tunnel->SendTunnelDataMsg (msg);
 		else
 		{	
 			LogPrint ("Tunnel ", (unsigned int)tunnelID, " not found");
@@ -406,7 +415,7 @@ namespace i2p
 		return be16toh (header->size) + sizeof (I2NPHeader);
 	}	
 	
-	void HandleI2NPMessage (uint8_t * msg, size_t len, bool isFromTunnel)
+	void HandleI2NPMessage (uint8_t * msg, size_t len)
 	{
 		I2NPHeader * header = (I2NPHeader *)msg;
 		uint32_t msgID = be32toh (header->msgID);	
@@ -415,12 +424,7 @@ namespace i2p
 		uint8_t * buf = msg + sizeof (I2NPHeader);
 		int size = be16toh (header->size);
 		switch (header->typeID)
-		{
-			case eI2NPGarlic:
-				LogPrint ("Garlic");
-				i2p::garlic::routing.HandleGarlicMessage (buf, size, isFromTunnel);
-			break;	
-			break;	
+		{	
 			case eI2NPDeliveryStatus:
 				LogPrint ("DeliveryStatus");
 				// we assume DeliveryStatusMessage is sent with garlic only
@@ -443,7 +447,7 @@ namespace i2p
 		}	
 	}
 
-	void HandleI2NPMessage (I2NPMessage * msg, bool isFromTunnel)
+	void HandleI2NPMessage (I2NPMessage * msg)
 	{
 		if (msg)
 		{	
@@ -465,8 +469,12 @@ namespace i2p
 					LogPrint ("DatabaseSearchReply");
 					i2p::data::netdb.PostI2NPMsg (msg);
 				break;	
+				case eI2NPGarlic:
+					LogPrint ("Garlic");
+					i2p::garlic::routing.HandleGarlicMessage (msg);
+				break;
 				default:
-					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength (), isFromTunnel);
+					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
 					DeleteI2NPMessage (msg);
 			}	
 		}	

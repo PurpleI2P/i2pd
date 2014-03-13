@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <map>
+#include <list>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -35,7 +36,15 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
 	const uint8_t PAYLOAD_TYPE_DATA = 6;
 	const uint8_t PAYLOAD_TYPE_TEST = 7;
-	const uint8_t PAYLOAD_TYPE_SESSION_DESTROY = 8;
+	const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
+
+	// data flags
+	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
+	const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
+	const uint8_t DATA_FLAG_REQUEST_PREVIOUS_ACKS = 0x08;
+	const uint8_t DATA_FLAG_EXPLICIT_CONGESTION_NOTIFICATION = 0x10;
+	const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
+	const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;	
 
 	enum SessionState
 	{
@@ -46,7 +55,10 @@ namespace ssu
 		eSessionStateCreatedReceived,
 		eSessionStateConfirmedSent,
 		eSessionStateConfirmedReceived,
-		eSessionStateEstablised
+		eSessionRelayRequestSent,
+		eSessionRelayRequestReceived,	
+		eSessionRelayResponseReceived,	
+		eSessionStateEstablished
 	};		
 
 	class SSUServer;
@@ -54,13 +66,17 @@ namespace ssu
 	{
 		public:
 
-			SSUSession (SSUServer * server, const boost::asio::ip::udp::endpoint& remoteEndpoint,
-				i2p::data::RouterInfo * router = nullptr);
+			SSUSession (SSUServer * server, boost::asio::ip::udp::endpoint& remoteEndpoint,
+				const i2p::data::RouterInfo * router = nullptr);
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
 
 			void Connect ();
+			void ConnectThroughIntroducer (const i2p::data::RouterInfo::Introducer& introducer);	
+			void Close ();
+			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
+			const i2p::data::RouterInfo * GetRemoteRouter () const  { return m_RemoteRouter; };
 			void SendI2NPMessage (I2NPMessage * msg);
-
+			
 		private:
 
 			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
@@ -68,26 +84,35 @@ namespace ssu
 			void ProcessMessage (uint8_t * buf, size_t len); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
+			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
+			void ProcessRelayResponse (uint8_t * buf, size_t len);
+			void Established ();
 			void ProcessData (uint8_t * buf, size_t len);	
-
-			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, i2p::data::RouterInfo& r, uint8_t * buf, size_t len);
-			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, uint8_t * aesKey, uint8_t * iv, uint8_t * macKey);
-			void Decrypt (uint8_t * buf, size_t len, uint8_t * aesKey);			
-			bool Validate (uint8_t * buf, size_t len, uint8_t * macKey);			
+			void SendMsgAck (uint32_t msgID);
+			void SendSesionDestroyed ();
+			void Send (i2p::I2NPMessage * msg);
+			
+			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
+			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
+			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
+			const uint8_t * GetIntroKey () const; 
 
 		private:
 			
 			SSUServer * m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
-			i2p::data::RouterInfo * m_RemoteRouter;
+			const i2p::data::RouterInfo * m_RemoteRouter;
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
+			std::map<uint32_t, I2NPMessage *> m_IncomleteMessages;
+			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 	};
 
 	class SSUServer
@@ -98,10 +123,13 @@ namespace ssu
 			~SSUServer ();
 			void Start ();
 			void Stop ();
-			SSUSession * GetSession (i2p::data::RouterInfo * router);
+			SSUSession * GetSession (const i2p::data::RouterInfo * router);
+			void DeleteSession (SSUSession * session);
+			void DeleteAllSessions ();			
 
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
+			void ReassignSession (const boost::asio::ip::udp::endpoint& oldEndpoint, const boost::asio::ip::udp::endpoint& newEndpoint);	
 
 		private:
 
@@ -115,6 +143,10 @@ namespace ssu
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
 			uint8_t m_ReceiveBuffer[2*SSU_MTU];
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
+
+		public:
+			// for HTTP only
+			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 	};
 }
 }

@@ -28,12 +28,14 @@ namespace i2p
 			void Sign (uint8_t * buf, int len, uint8_t * signature);
 
 			void OverrideNTCPAddress (const char * host, int port); // temporary
+			void UpdateAddress (const char * host);	// called from SSU
 			
 		private:
 
 			void CreateNewRouter ();
+			void UpdateRouterInfo ();
 			bool Load ();
-			void Save ();
+			void Save (bool infoOnly = false);
 			
 		private:
 

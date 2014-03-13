@@ -2,7 +2,6 @@
 #include "I2PEndian.h"
 #include <map>
 #include <string>
-#include "ElGamal.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
@@ -14,7 +13,7 @@ namespace i2p
 {
 namespace garlic
 {	
-	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags):
+	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags):
 		m_Destination (destination), m_FirstMsgID (0), m_IsAcknowledged (false), 
 		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0)
 	{
@@ -56,7 +55,7 @@ namespace garlic
 			m_Rnd.GenerateBlock (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
-			i2p::crypto::ElGamalEncrypt (m_Destination->GetEncryptionPublicKey (), (uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
+			m_Destination.GetElGamalEncryption ()->Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
 			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
 			buf += 514;
 			len += 514;	
@@ -140,7 +139,7 @@ namespace garlic
 		}	
 		if (msg) // clove message ifself if presented
 		{	
-			size += CreateGarlicClove (payload + size, msg, m_Destination->IsDestination ());
+			size += CreateGarlicClove (payload + size, msg, m_Destination.IsDestination ());
 			(*numCloves)++;
 		}	
 		
@@ -161,7 +160,7 @@ namespace garlic
 		{
 			buf[size] = eGarlicDeliveryTypeDestination << 5;//  delivery instructions flag destination
 			size++;
-			memcpy (buf + size, m_Destination->GetIdentHash (), 32);
+			memcpy (buf + size, m_Destination.GetIdentHash (), 32);
 			size += 32;
 		}	
 		else	
@@ -230,33 +229,31 @@ namespace garlic
 		m_Sessions.clear ();
 	}	
 
-	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg)
+	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg)
 	{
-		if (!destination) return nullptr;
-		auto it = m_Sessions.find (destination->GetIdentHash ());
+		auto it = m_Sessions.find (destination.GetIdentHash ());
 		if (it != m_Sessions.end ())
 		{
 			delete it->second;
 			m_Sessions.erase (it);
 		}
 		GarlicRoutingSession * session = new GarlicRoutingSession (destination, 0); // not follow-on messages expected
-		m_Sessions[destination->GetIdentHash ()] = session;
+		m_Sessions[destination.GetIdentHash ()] = session;
 
 		return session->WrapSingleMessage (msg, nullptr);
 	}	
 
-	I2NPMessage * GarlicRouting::WrapMessage (const i2p::data::RoutingDestination * destination, 
+	I2NPMessage * GarlicRouting::WrapMessage (const i2p::data::RoutingDestination& destination, 
 		I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
-		if (!destination) return nullptr;
-		auto it = m_Sessions.find (destination->GetIdentHash ());
+		auto it = m_Sessions.find (destination.GetIdentHash ());
 		GarlicRoutingSession * session = nullptr;
 		if (it != m_Sessions.end ())
 			session = it->second;
 		if (!session)
 		{
 			session = new GarlicRoutingSession (destination, 4); // TODO: change it later
-			m_Sessions[destination->GetIdentHash ()] = session;
+			m_Sessions[destination.GetIdentHash ()] = session;
 		}	
 
 		I2NPMessage * ret = session->WrapSingleMessage (msg, leaseSet);
@@ -265,8 +262,14 @@ namespace garlic
 		return ret;
 	}
 
-	void GarlicRouting::HandleGarlicMessage (uint8_t * buf, size_t len, bool isFromTunnel)
+	void GarlicRouting::HandleGarlicMessage (I2NPMessage * msg)
 	{
+		if (msg) m_Queue.Put (msg);	
+	}
+		
+	void GarlicRouting::ProcessGarlicMessage (I2NPMessage * msg)
+	{
+		uint8_t * buf = msg->GetPayload ();
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
 		std::string sessionTag((const char *)buf, 32);
@@ -287,7 +290,7 @@ namespace garlic
 			// new session
 			ElGamalBlock elGamal;
 			if (i2p::crypto::ElGamalDecrypt (
-			   	isFromTunnel ? i2p::context.GetLeaseSetPrivateKey () : i2p::context.GetPrivateKey (), 
+			   	msg->from ? i2p::context.GetLeaseSetPrivateKey () : i2p::context.GetPrivateKey (), 
 				buf, (uint8_t *)&elGamal, true))
 			{	
 				uint8_t iv[32]; // IV is first 16 bytes
@@ -299,7 +302,7 @@ namespace garlic
 			else
 				LogPrint ("Failed to decrypt garlic");
 		}	
-		
+		DeleteI2NPMessage (msg);	
 	}	
 
 	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, uint8_t * sessionKey)
@@ -354,7 +357,7 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint ("Garlic type local");
-					i2p::HandleI2NPMessage (buf, len, false);
+					i2p::HandleI2NPMessage (buf, len);
 				break;	
 				case eGarlicDeliveryTypeDestination:
 				{	
@@ -411,6 +414,41 @@ namespace garlic
 			it->second->SetAcknowledged (true);
 			m_CreatedSessions.erase (it);
 			LogPrint ("Garlic message ", be32toh (msg->msgID), " acknowledged");
+		}	
+	}	
+
+	void GarlicRouting::Start ()
+	{
+		m_IsRunning = true;
+		m_Thread = new std::thread (std::bind (&GarlicRouting::Run, this));
+	}
+	
+	void GarlicRouting::Stop ()
+	{
+		m_IsRunning = false;
+		m_Queue.WakeUp ();
+		if (m_Thread)
+		{	
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = 0;
+		}	
+	}
+
+	void GarlicRouting::Run ()
+	{
+		while (m_IsRunning)
+		{
+			try
+			{
+				I2NPMessage * msg = m_Queue.GetNext ();
+				if (msg)
+					ProcessGarlicMessage (msg);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint ("GarlicRouting: ", ex.what ());
+			}	
 		}	
 	}	
 }	

@@ -130,34 +130,35 @@ namespace tunnel
 	
 	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
 	{
+		msg->from = this;
 		EncryptTunnelMsg (msg);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
 	}	
 
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
 	{
-		m_Gateway.SendTunnelDataMsg (gwHash, gwTunnel, msg);
+		TunnelMessageBlock block;
+		if (gwHash)
+		{
+			block.hash = gwHash;
+			if (gwTunnel)
+			{	
+				block.deliveryType = eDeliveryTypeTunnel;
+				block.tunnelID = gwTunnel;
+			}	
+			else
+				block.deliveryType = eDeliveryTypeRouter;
+		}	
+		else	
+			block.deliveryType = eDeliveryTypeLocal;
+		block.data = msg;
+		m_Gateway.SendTunnelDataMsg (block);
 	}
 		
 	void OutboundTunnel::SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs)
 	{
 		for (auto& it : msgs)
-		{
-			switch (it.deliveryType)
-			{
-				case eDeliveryTypeLocal:
-					m_Gateway.SendTunnelDataMsg (nullptr, 0, it.data);
-				break;
-				case eDeliveryTypeTunnel:
-					m_Gateway.SendTunnelDataMsg (it.hash, it.tunnelID, it.data);
-				break;
-				case eDeliveryTypeRouter:
-					m_Gateway.SendTunnelDataMsg (it.hash, 0, it.data);
-				break;	
-				default:
-					LogPrint ("Unexpected delivery type ", (int)it.deliveryType);
-			}	
-		}	
+			m_Gateway.PutTunnelDataMsg (it);
 		m_Gateway.SendBuffer ();
 	}	
 	
@@ -389,7 +390,7 @@ namespace tunnel
 				CreateTunnel<OutboundTunnel> (
 				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *> 
 					    { 
-							i2p::data::netdb.GetRandomNTCPRouter ()
+							i2p::data::netdb.GetRandomRouter ()
 						},		
 			     		inboundTunnel->GetTunnelConfig ()));
 			}	
@@ -397,7 +398,7 @@ namespace tunnel
 			{
 
 				LogPrint ("Creating two hops outbound tunnel...");
-				auto firstHop = i2p::data::netdb.GetRandomNTCPRouter (); // first hop must be NTCP
+				auto firstHop = i2p::data::netdb.GetRandomRouter (); 
 				CreateTunnel<OutboundTunnel> (
 				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 				    	{
@@ -439,7 +440,7 @@ namespace tunnel
 				CreateTunnel<InboundTunnel> (
 					new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 					    {              
-							i2p::data::netdb.GetRandomNTCPRouter ()
+							i2p::data::netdb.GetRandomRouter ()
 						}));
 			}
 			else
@@ -447,11 +448,12 @@ namespace tunnel
 				OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
 				LogPrint ("Creating two hops inbound tunnel...");
 				auto router = outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router;
+				auto firstHop = i2p::data::netdb.GetRandomRouter (outboundTunnel->GetEndpointRouter ()); 
 				CreateTunnel<InboundTunnel> (
 					new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 						{                
-				            i2p::data::netdb.GetRandomRouter (outboundTunnel->GetEndpointRouter ()), 
-							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomNTCPRouter () // last hop must be NTCP
+				            firstHop, 
+							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomRouter (firstHop) 
 		                }),                 
 				    outboundTunnel);
 			}	

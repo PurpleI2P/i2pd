@@ -4,11 +4,14 @@
 #include <inttypes.h>
 #include <map>
 #include <string>
+#include <thread>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/osrng.h>
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
+#include "Tunnel.h"
+#include "Queue.h"
 
 namespace i2p
 {	
@@ -37,7 +40,7 @@ namespace garlic
 	{
 		public:
 
-			GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags);
+			GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet);
 			int GetNextTag () const { return m_NextTag; };
@@ -57,7 +60,7 @@ namespace garlic
 
 		private:
 
-			const i2p::data::RoutingDestination * m_Destination;
+			const i2p::data::RoutingDestination& m_Destination;
 			uint8_t m_SessionKey[32];
 			uint32_t m_FirstMsgID; // first message ID
 			bool m_IsAcknowledged;
@@ -75,20 +78,28 @@ namespace garlic
 			GarlicRouting ();
 			~GarlicRouting ();
 
-			void HandleGarlicMessage (uint8_t * buf, size_t len, bool isFromTunnel);
+			void Start ();
+			void Stop ();
+			
+			void HandleGarlicMessage (I2NPMessage * msg);
 			void HandleDeliveryStatusMessage (uint8_t * buf, size_t len);
 			
-			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination * destination, I2NPMessage * msg);
-			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination * destination, 
+			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg);
+			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
 			    I2NPMessage * msg, I2NPMessage * leaseSet = nullptr);
 
 		private:
 
+			void Run ();
+			void ProcessGarlicMessage (I2NPMessage * msg);
 			void HandleAESBlock (uint8_t * buf, size_t len, uint8_t * sessionKey);
 			void HandleGarlicPayload (uint8_t * buf, size_t len);
 			
 		private:
 
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			i2p::util::Queue<I2NPMessage> m_Queue;
 			// outgoing sessions
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session

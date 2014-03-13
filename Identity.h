@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include "ElGamal.h"
 
 namespace i2p
 {
@@ -84,9 +85,24 @@ namespace data
 	class RoutingDestination
 	{
 		public:
+
+			RoutingDestination (): m_ElGamalEncryption (nullptr) {};
+			virtual ~RoutingDestination () { delete m_ElGamalEncryption; };
+			
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
 			virtual bool IsDestination () const = 0; // for garlic 
+
+			i2p::crypto::ElGamalEncryption * GetElGamalEncryption () const
+			{
+				if (!m_ElGamalEncryption)
+					m_ElGamalEncryption = new i2p::crypto::ElGamalEncryption (GetEncryptionPublicKey ());
+				return m_ElGamalEncryption;
+			}
+			
+		private:
+
+			mutable i2p::crypto::ElGamalEncryption * m_ElGamalEncryption; // use lazy initialization
 	};	
 }
 }

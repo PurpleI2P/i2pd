@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <set>
 #include <string.h>
+#include "I2PEndian.h"
 #include "RouterInfo.h"
 
 namespace i2p
@@ -17,6 +18,12 @@ namespace i2p
 		uint64_t expiration;
 		uint16_t size;
 		uint8_t chks;
+	};	
+
+	struct I2NPHeaderShort
+	{
+		uint8_t typeID;
+		uint32_t shortExpiration;
 	};	
 
 	struct I2NPDatabaseStoreMsg
@@ -84,11 +91,17 @@ namespace i2p
 		eI2NPVariableTunnelBuildReply = 24	
 	};	
 
+namespace tunnel
+{		
+	class InboundTunnel;
+}
+
 	const int NTCP_MAX_MESSAGE_SIZE = 16384; 
 	struct I2NPMessage
 	{	
 		uint8_t buf[NTCP_MAX_MESSAGE_SIZE];	
 		size_t len, offset;
+		i2p::tunnel::InboundTunnel * from;
 		
 		I2NPHeader * GetHeader () { return (I2NPHeader *)(buf + offset); };
 		uint8_t * GetPayload () { return buf + offset + sizeof(I2NPHeader); };
@@ -99,7 +112,30 @@ namespace i2p
 		{
 			memcpy (buf + offset, other.buf + other.offset, other.GetLength ());
 			len = offset + other.GetLength ();
+			from = other.from;
 			return *this;
+		}	
+
+		// for SSU only
+		uint8_t * GetSSUHeader () { return buf + offset + sizeof(I2NPHeader) - sizeof(I2NPHeaderShort); };	
+		void FromSSU (uint32_t msgID) // we have received SSU message and convert it to regular
+		{
+			I2NPHeaderShort ssu = *(I2NPHeaderShort *)GetSSUHeader ();
+			I2NPHeader * header = GetHeader ();
+			header->typeID = ssu.typeID;
+			header->msgID = htobe32 (msgID);
+			header->expiration = htobe64 (be32toh (ssu.shortExpiration)*1000LL);
+			header->size = htobe16 (len - offset - sizeof (I2NPHeader));
+			header->chks = 0;
+		}
+		uint32_t ToSSU () // return msgID
+		{
+			I2NPHeader header = *GetHeader ();
+			I2NPHeaderShort * ssu = (I2NPHeaderShort *)GetSSUHeader ();
+			ssu->typeID = header.typeID;
+			ssu->shortExpiration = htobe32 (be64toh (header.expiration)/1000LL); 
+			len = offset + sizeof (I2NPHeaderShort) + be16toh (header.size);
+			return be32toh (header.msgID);
 		}	
 	};	
 	I2NPMessage * NewI2NPMessage ();
@@ -140,8 +176,8 @@ namespace i2p
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
 
 	size_t GetI2NPMessageLength (uint8_t * msg);
-	void HandleI2NPMessage (uint8_t * msg, size_t len, bool isFromTunnel);
-	void HandleI2NPMessage (I2NPMessage * msg, bool isFromTunnel);
+	void HandleI2NPMessage (uint8_t * msg, size_t len);
+	void HandleI2NPMessage (I2NPMessage * msg);
 }	
 
 #endif
