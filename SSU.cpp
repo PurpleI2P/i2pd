@@ -853,8 +853,9 @@ namespace ssu
 		auto it = m_Sessions.find (oldEndpoint);
 		if (it != m_Sessions.end ())
 		{
+			auto session = it->second;
 			m_Sessions.erase (it);
-			m_Sessions[newEndpoint] = it->second;
+			m_Sessions[newEndpoint] = session;
 			LogPrint ("SSU session ressigned from ", oldEndpoint.address ().to_string (), ":", oldEndpoint.port (), 
 				" to ", newEndpoint.address ().to_string (), ":", newEndpoint.port ());
 		}						

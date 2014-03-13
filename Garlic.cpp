@@ -218,7 +218,7 @@ namespace garlic
 	}
 		
 	GarlicRouting routing;	
-	GarlicRouting::GarlicRouting ()
+	GarlicRouting::GarlicRouting (): m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
 	
