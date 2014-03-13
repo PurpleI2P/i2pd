@@ -32,6 +32,7 @@
     <ClCompile Include="..\Tunnel.cpp" />
     <ClCompile Include="..\TunnelEndpoint.cpp" />
     <ClCompile Include="..\TunnelGateway.cpp" />
+    <ClCompile Include="..\UPnP.cpp" />
     <ClCompile Include="..\util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -62,6 +63,7 @@
     <ClInclude Include="..\TunnelConfig.h" />
     <ClInclude Include="..\TunnelEndpoint.h" />
     <ClInclude Include="..\TunnelGateway.h" />
+    <ClInclude Include="..\UPnP.h" />
     <ClInclude Include="..\util.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
