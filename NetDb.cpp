@@ -318,13 +318,6 @@ namespace data
 			LogPrint (deletedCount," routers deleted");
 	}
 
-	void NetDb::RequestDestination (const char * b32)
-	{
-		uint8_t destination[32];
-		Base32ToByteStream (b32, strlen(b32), destination, 32);
-		RequestDestination (destination, true);
-	}	
-
 	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet)
 	{
 		if (isLeaseSet) // we request LeaseSet through tunnels
