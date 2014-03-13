@@ -91,11 +91,17 @@ namespace i2p
 		eI2NPVariableTunnelBuildReply = 24	
 	};	
 
+namespace tunnel
+{		
+	class InboundTunnel;
+}
+
 	const int NTCP_MAX_MESSAGE_SIZE = 16384; 
 	struct I2NPMessage
 	{	
 		uint8_t buf[NTCP_MAX_MESSAGE_SIZE];	
 		size_t len, offset;
+		i2p::tunnel::InboundTunnel * from;
 		
 		I2NPHeader * GetHeader () { return (I2NPHeader *)(buf + offset); };
 		uint8_t * GetPayload () { return buf + offset + sizeof(I2NPHeader); };
@@ -106,6 +112,7 @@ namespace i2p
 		{
 			memcpy (buf + offset, other.buf + other.offset, other.GetLength ());
 			len = offset + other.GetLength ();
+			from = other.from;
 			return *this;
 		}	
 
@@ -169,8 +176,8 @@ namespace i2p
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
 
 	size_t GetI2NPMessageLength (uint8_t * msg);
-	void HandleI2NPMessage (uint8_t * msg, size_t len, bool isFromTunnel);
-	void HandleI2NPMessage (I2NPMessage * msg, bool isFromTunnel);
+	void HandleI2NPMessage (uint8_t * msg, size_t len);
+	void HandleI2NPMessage (I2NPMessage * msg);
 }	
 
 #endif

@@ -148,7 +148,7 @@ namespace i2p
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 			// we send it to ourself
-			i2p::HandleI2NPMessage (msg, false);
+			i2p::HandleI2NPMessage (msg);
 		else
 			m_Service.post (boost::bind (&Transports::PostMessage, this, ident, msg));                             
 	}	

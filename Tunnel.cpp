@@ -130,6 +130,7 @@ namespace tunnel
 	
 	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
 	{
+		msg->from = this;
 		EncryptTunnelMsg (msg);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
 	}	

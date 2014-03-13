@@ -9,6 +9,7 @@
 #include <cryptopp/osrng.h>
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
+#include "Tunnel.h"
 
 namespace i2p
 {	
@@ -75,7 +76,7 @@ namespace garlic
 			GarlicRouting ();
 			~GarlicRouting ();
 
-			void HandleGarlicMessage (uint8_t * buf, size_t len, bool isFromTunnel);
+			void HandleGarlicMessage (I2NPMessage * msg);
 			void HandleDeliveryStatusMessage (uint8_t * buf, size_t len);
 			
 			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg);

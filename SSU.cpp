@@ -614,7 +614,7 @@ namespace ssu
 						m_IncomleteMessages.erase (msgID);
 					msg->FromSSU (msgID);
 					if (m_State == eSessionStateEstablished)
-						i2p::HandleI2NPMessage (msg, false);
+						i2p::HandleI2NPMessage (msg);
 					else
 					{
 						// we expect DeliveryStatus
