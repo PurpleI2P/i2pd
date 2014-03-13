@@ -12,6 +12,7 @@
 #include "RouterInfo.h"
 #include "LeaseSet.h"
 #include "Tunnel.h"
+#include "AddressBook.h"
 
 namespace i2p
 {
@@ -104,6 +105,7 @@ namespace data
 			int m_ReseedRetries;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
+			AddressBook m_AddressBook;
 
 			static const char m_NetDbPath[];
 	};
