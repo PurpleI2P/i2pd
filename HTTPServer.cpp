@@ -118,6 +118,20 @@ namespace util
 
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
+		s << "Our external address:" << "<BR>" << "<BR>";
+		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
+		{
+			switch (address.transportStyle) {
+			case i2p::data::RouterInfo::eTransportNTCP:
+				s << "NTCP&nbsp;&nbsp;";
+				break;
+			case i2p::data::RouterInfo::eTransportSSU:
+				s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+				break;
+			}
+			s << address.host.to_string() << ":" << address.port << "<BR>";
+		}
+
 		s << "<P>Tunnels</P>";
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
 		{	
