@@ -22,6 +22,7 @@
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "HTTPServer.h"
+#include "Garlic.h"
 #include "util.h"
 
 
@@ -152,6 +153,7 @@ int main( int argc, char* argv[] )
   i2p::data::netdb.Start ();
   i2p::transports.Start ();
   i2p::tunnel::tunnels.Start ();
+  i2p::garlic::routing.Start ();
 
   while (running)
   {
@@ -160,6 +162,7 @@ int main( int argc, char* argv[] )
   }
   LogPrint("Shutdown started.");
 
+  i2p::garlic::routing.Stop ();	
   i2p::tunnel::tunnels.Stop ();
   i2p::transports.Stop ();
   i2p::data::netdb.Stop ();

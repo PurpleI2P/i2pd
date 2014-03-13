@@ -4,12 +4,14 @@
 #include <inttypes.h>
 #include <map>
 #include <string>
+#include <thread>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/osrng.h>
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
 #include "Tunnel.h"
+#include "Queue.h"
 
 namespace i2p
 {	
@@ -76,6 +78,9 @@ namespace garlic
 			GarlicRouting ();
 			~GarlicRouting ();
 
+			void Start ();
+			void Stop ();
+			
 			void HandleGarlicMessage (I2NPMessage * msg);
 			void HandleDeliveryStatusMessage (uint8_t * buf, size_t len);
 			
@@ -85,11 +90,16 @@ namespace garlic
 
 		private:
 
+			void Run ();
+			void ProcessGarlicMessage (I2NPMessage * msg);
 			void HandleAESBlock (uint8_t * buf, size_t len, uint8_t * sessionKey);
 			void HandleGarlicPayload (uint8_t * buf, size_t len);
 			
 		private:
 
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			i2p::util::Queue<I2NPMessage> m_Queue;
 			// outgoing sessions
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session

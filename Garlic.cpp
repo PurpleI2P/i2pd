@@ -264,6 +264,11 @@ namespace garlic
 
 	void GarlicRouting::HandleGarlicMessage (I2NPMessage * msg)
 	{
+		if (msg) m_Queue.Put (msg);	
+	}
+		
+	void GarlicRouting::ProcessGarlicMessage (I2NPMessage * msg)
+	{
 		uint8_t * buf = msg->GetPayload ();
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
@@ -409,6 +414,41 @@ namespace garlic
 			it->second->SetAcknowledged (true);
 			m_CreatedSessions.erase (it);
 			LogPrint ("Garlic message ", be32toh (msg->msgID), " acknowledged");
+		}	
+	}	
+
+	void GarlicRouting::Start ()
+	{
+		m_IsRunning = true;
+		m_Thread = new std::thread (std::bind (&GarlicRouting::Run, this));
+	}
+	
+	void GarlicRouting::Stop ()
+	{
+		m_IsRunning = false;
+		m_Queue.WakeUp ();
+		if (m_Thread)
+		{	
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = 0;
+		}	
+	}
+
+	void GarlicRouting::Run ()
+	{
+		while (m_IsRunning)
+		{
+			try
+			{
+				I2NPMessage * msg = m_Queue.GetNext ();
+				if (msg)
+					ProcessGarlicMessage (msg);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint ("GarlicRouting: ", ex.what ());
+			}	
 		}	
 	}	
 }	
