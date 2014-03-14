@@ -14,7 +14,7 @@ namespace i2p
 namespace tunnel
 {		
 	
-	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_IsEstablished (false)
+	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_Pool (nullptr), m_IsEstablished (false)
 	{
 	}	
 
@@ -343,6 +343,9 @@ namespace tunnel
 		for (auto& it : m_PendingTunnels)
 		{	
 			LogPrint ("Pending tunnel build request ", it.first, " has not been responded. Deleted");
+			auto pool = it.second->GetTunnelPool ();
+			if (pool)
+				pool->TunnelCreationFailed (it.second);
 			delete it.second;
 		}	
 		m_PendingTunnels.clear ();
@@ -418,6 +421,9 @@ namespace tunnel
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
 				LogPrint ("Tunnel ", it->second->GetTunnelID (), " expired");
+				auto pool = it->second->GetTunnelPool ();
+				if (pool)
+					pool->TunnelExpired (it->second);
 				it = m_InboundTunnels.erase (it);
 			}	
 			else 
