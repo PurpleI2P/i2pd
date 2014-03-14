@@ -300,7 +300,7 @@ namespace stream
 		
 	StreamingDestination * sharedLocalDestination = nullptr;	
 
-	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
+	StreamingDestination::StreamingDestination (): m_TunnelPool (this), m_LeaseSet (nullptr)
 	{		
 		// TODO: read from file later
 		m_Keys = i2p::data::CreateRandomKeys ();
@@ -315,7 +315,17 @@ namespace stream
 		if (m_LeaseSet)
 			DeleteI2NPMessage (m_LeaseSet);
 	}	
-		
+	
+	void StreamingDestination::Start ()
+	{
+		m_TunnelPool.CreateTunnels ();
+	}
+
+	void StreamingDestination::Stop ()
+	{
+		// TODO:
+	}	
+	
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
 		uint32_t sendStreamID = packet->GetSendStreamID ();

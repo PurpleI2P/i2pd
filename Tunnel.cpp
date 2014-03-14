@@ -504,8 +504,14 @@ namespace tunnel
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
 	{
 		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
-		// build symmetric outbound tunnel
-		CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
+		auto pool = newTunnel->GetTunnelPool ();
+		if (pool)
+			pool->TunnelCreated (newTunnel);
+		else
+		{
+			// build symmetric outbound tunnel
+			CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
+		}
 	}	
 
 	

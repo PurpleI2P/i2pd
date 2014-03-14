@@ -104,6 +104,13 @@ namespace data
 
 			mutable i2p::crypto::ElGamalEncryption * m_ElGamalEncryption; // use lazy initialization
 	};	
+
+	class LocalDestination 
+	{
+		public:
+
+			virtual void UpdateLeaseSet () = 0; // LeaseSet must be update
+	};	
 }
 }
 
