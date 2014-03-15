@@ -308,14 +308,17 @@ namespace stream
 		m_IdentHash = i2p::data::CalculateIdentHash (m_Identity);
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
 	}
 
 	StreamingDestination::~StreamingDestination ()
 	{
 		if (m_LeaseSet)
 			DeleteI2NPMessage (m_LeaseSet);
+		if (m_Pool)
+			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 	}	
-		
+	
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
 		uint32_t sendStreamID = packet->GetSendStreamID ();
@@ -345,12 +348,20 @@ namespace stream
 		}	
 	}	
 
+	void StreamingDestination::UpdateLeaseSet ()
+	{
+		auto newLeaseSet = CreateLeaseSet ();
+		// TODO: make it atomic
+		auto oldLeaseSet = m_LeaseSet;
+		m_LeaseSet = newLeaseSet;
+		if (oldLeaseSet)
+			DeleteI2NPMessage (oldLeaseSet);
+	}	
+		
 	I2NPMessage * StreamingDestination::GetLeaseSet ()
 	{
-		if (m_LeaseSet) // temporary always create new LeaseSet
-			DeleteI2NPMessage (m_LeaseSet);
-		m_LeaseSet = CreateLeaseSet ();
-		
+		if (!m_LeaseSet)
+			m_LeaseSet = CreateLeaseSet ();
 		return m_LeaseSet;
 	}	
 		
@@ -370,7 +381,7 @@ namespace stream
 		size += 256; // encryption key
 		memset (buf + size, 0, 128);
 		size += 128; // signing key
-		auto tunnels = i2p::tunnel::tunnels.GetInboundTunnels (5); // 5 tunnels maximum
+		auto tunnels = m_Pool->GetInboundTunnels (5); // 5 tunnels maximum
 		buf[size] = tunnels.size (); // num leases
 		size++; // num	
 		for (auto it: tunnels)
@@ -410,6 +421,17 @@ namespace stream
 	{
 		if (sharedLocalDestination)
 			sharedLocalDestination->DeleteStream (stream);
+	}	
+
+	void StartStreaming ()
+	{
+		if (!sharedLocalDestination)
+			sharedLocalDestination = new StreamingDestination ();
+	}
+		
+	void StopStreaming ()
+	{
+		delete sharedLocalDestination;
 	}	
 		
 	void HandleDataMessage (i2p::data::IdentHash * destination, const uint8_t * buf, size_t len)

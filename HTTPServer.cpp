@@ -121,13 +121,16 @@ namespace util
 		s << "Our external address:" << "<BR>" << "<BR>";
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{
-			switch (address.transportStyle) {
-			case i2p::data::RouterInfo::eTransportNTCP:
-				s << "NTCP&nbsp;&nbsp;";
+			switch (address.transportStyle) 
+			{
+				case i2p::data::RouterInfo::eTransportNTCP:
+					s << "NTCP&nbsp;&nbsp;";
 				break;
-			case i2p::data::RouterInfo::eTransportSSU:
-				s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+				case i2p::data::RouterInfo::eTransportSSU:
+					s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 				break;
+				default:
+					s << "Unknown&nbsp;&nbsp;";
 			}
 			s << address.host.to_string() << ":" << address.port << "<BR>";
 		}
@@ -142,9 +145,11 @@ namespace util
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
 		{	
 			it.second->GetTunnelConfig ()->Print (s);
+			if (it.second->GetTunnelPool ())
+				s << " " << "Pool";
 			s << " " << (int)it.second->GetNumReceivedBytes () << "<BR>";
 		}	
-
+		
 		s << "<P>Transit tunnels</P>";
 		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
 		{	

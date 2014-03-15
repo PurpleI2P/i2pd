@@ -12,6 +12,7 @@
 #include "RouterInfo.h"
 #include "LeaseSet.h"
 #include "Tunnel.h"
+#include "AddressBook.h"
 
 namespace i2p
 {
@@ -63,10 +64,10 @@ namespace data
 			void AddLeaseSet (uint8_t * buf, int len);
 			RouterInfo * FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
+			const IdentHash * FindAddress (const std::string& address) { return m_AddressBook.FindAddress (address); }; // TODO: move AddressBook away from NetDb
+
 			void Subscribe (const IdentHash& ident); // keep LeaseSets upto date			
 			void Unsubscribe (const IdentHash& ident);	
-
-			void RequestDestination (const char * b32); // in base32
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false);
 						
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
@@ -104,6 +105,7 @@ namespace data
 			int m_ReseedRetries;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
+			AddressBook m_AddressBook;
 
 			static const char m_NetDbPath[];
 	};

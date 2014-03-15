@@ -11,6 +11,7 @@
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
+#include "TunnelPool.h"
 
 namespace i2p
 {
@@ -97,22 +98,25 @@ namespace stream
 			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;
 	};
 	
-	class StreamingDestination
+	class StreamingDestination: public i2p::data::LocalDestination 
 	{
 		public:
 
 			StreamingDestination ();
-			~StreamingDestination ();
-			
+			~StreamingDestination ();	
+
 			const i2p::data::Keys& GetKeys () const { return m_Keys; };
 			const i2p::data::Identity& GetIdentity () const { return m_Identity; }; 
 			I2NPMessage * GetLeaseSet ();
-			void Sign (uint8_t * buf, int len, uint8_t * signature) const;
-			
+			void Sign (uint8_t * buf, int len, uint8_t * signature) const;			
+
 			Stream * CreateNewStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			void HandleNextPacket (Packet * packet);
 
+			// implements LocalDestination
+			void UpdateLeaseSet ();
+			
 		private:
 
 			I2NPMessage * CreateLeaseSet () const;
@@ -124,6 +128,7 @@ namespace stream
 			i2p::data::Identity m_Identity;
 			i2p::data::IdentHash m_IdentHash;
 
+			i2p::tunnel::TunnelPool * m_Pool;
 			I2NPMessage * m_LeaseSet;
 			
 			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
@@ -131,6 +136,8 @@ namespace stream
 
 	Stream * CreateStream (const i2p::data::LeaseSet& remote);
 	void DeleteStream (Stream * stream);
+	void StartStreaming ();
+	void StopStreaming ();
 	
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash * destination, const uint8_t * buf, size_t len);

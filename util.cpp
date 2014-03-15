@@ -121,6 +121,18 @@ namespace filesystem
 		return path;
 	}
 
+	std::string GetFullPath (const std::string& filename)
+	{
+		std::string fullPath = GetDataDir ().string ();
+#ifndef _WIN32
+		fullPath.append ("/");
+#else
+		fullPath.append ("\\");
+#endif
+		fullPath.append (filename);
+		return fullPath;
+	}		
+
 	boost::filesystem::path GetConfigFile()
 	{
 		boost::filesystem::path pathConfigFile(i2p::util::config::GetArg("-conf", "i2p.conf"));

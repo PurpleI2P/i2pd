@@ -11,6 +11,7 @@
 #include <cryptopp/aes.h>
 #include "Queue.h"
 #include "TunnelConfig.h"
+#include "TunnelPool.h"
 #include "TransitTunnel.h"
 #include "TunnelEndpoint.h"
 #include "TunnelGateway.h"
@@ -36,7 +37,9 @@ namespace tunnel
 			
 			TunnelConfig * GetTunnelConfig () const { return m_Config; }
 			bool IsEstablished () const { return m_IsEstablished; };
-						
+			TunnelPool * GetTunnelPool () const { return m_Pool; };
+			void SetTunnelPool (TunnelPool * pool) { m_Pool = pool; };			
+			
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 			
 			// implements TunnelBase
@@ -53,6 +56,7 @@ namespace tunnel
 		private:
 
 			TunnelConfig * m_Config;
+			TunnelPool * m_Pool; // pool, tunnel belongs to, or null
 			bool m_IsEstablished;
 
 			CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_ECBDecryption;
@@ -101,9 +105,8 @@ namespace tunnel
 
 			Tunnels ();
 			~Tunnels ();
-
 			void Start ();
-			void Stop ();
+			void Stop ();		
 			
 			InboundTunnel * GetInboundTunnel (uint32_t tunnelID);
 			Tunnel * GetPendingTunnel (uint32_t replyMsgID);
@@ -117,6 +120,8 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
+			TunnelPool * CreateTunnelPool (i2p::data::LocalDestination * localDestination);
+			void DeleteTunnelPool (TunnelPool * pool);
 			
 			OutboundTunnel * CreateOneHopOutboundTestTunnel (InboundTunnel * replyTunnel);
 			InboundTunnel * CreateOneHopInboundTestTunnel (OutboundTunnel * outboundTunnel = 0);
@@ -130,6 +135,7 @@ namespace tunnel
 			void ManageOutboundTunnels ();
 			void ManageInboundTunnels ();
 			void ManageTransitTunnels ();
+			void ManageTunnelPools ();
 			
 			void CreateZeroHopsInboundTunnel ();
 			
@@ -143,6 +149,7 @@ namespace tunnel
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
 			std::list<OutboundTunnel *> m_OutboundTunnels;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
+			std::list<TunnelPool *> m_Pools;
 			i2p::util::Queue<I2NPMessage> m_Queue;
 
 		public:

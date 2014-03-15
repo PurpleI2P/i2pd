@@ -14,7 +14,7 @@ namespace i2p
 namespace tunnel
 {		
 	
-	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_IsEstablished (false)
+	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_Pool (nullptr), m_IsEstablished (false)
 	{
 	}	
 
@@ -186,6 +186,10 @@ namespace tunnel
 		for (auto& it : m_PendingTunnels)
 			delete it.second;
 		m_PendingTunnels.clear ();
+
+		for (auto& it: m_Pools)
+			delete it;
+		m_Pools.clear ();
 	}	
 	
 	InboundTunnel * Tunnels::GetInboundTunnel (uint32_t tunnelID)
@@ -267,6 +271,19 @@ namespace tunnel
 				minSent = it->GetNumSentBytes ();
 			}		
 		return tunnel;*/
+	}	
+
+	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination * localDestination)
+	{
+		auto pool = new TunnelPool (localDestination);
+		m_Pools.push_back (pool);
+		return pool;
+	}	
+
+	void Tunnels::DeleteTunnelPool (TunnelPool * pool)
+	{
+		m_Pools.remove (pool);
+		delete pool;
 	}	
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
@@ -350,6 +367,7 @@ namespace tunnel
 		ManageInboundTunnels ();
 		ManageOutboundTunnels ();
 		ManageTransitTunnels ();
+		ManageTunnelPools ();
 		
 	/*	if (!m_IsTunnelCreated)
 		{	
@@ -418,6 +436,9 @@ namespace tunnel
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
 				LogPrint ("Tunnel ", it->second->GetTunnelID (), " expired");
+				auto pool = it->second->GetTunnelPool ();
+				if (pool)
+					pool->TunnelExpired (it->second);
 				it = m_InboundTunnels.erase (it);
 			}	
 			else 
@@ -431,7 +452,7 @@ namespace tunnel
 			return;
 		}
 		
-		if (m_InboundTunnels.size () < 10)
+		if (m_InboundTunnels.size () < 15) // TODO: store exploratory tunnels explicitly
 		{
 			// trying to create one more inbound tunnel
 			if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
@@ -474,6 +495,12 @@ namespace tunnel
 				it++;
 		}
 	}	
+
+	void Tunnels::ManageTunnelPools ()
+	{
+		for (auto& it: m_Pools)
+			it->CreateTunnels ();
+	}	
 	
 	void Tunnels::PostTunnelData (I2NPMessage * msg)
 	{
@@ -498,8 +525,14 @@ namespace tunnel
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
 	{
 		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
-		// build symmetric outbound tunnel
-		CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
+		auto pool = newTunnel->GetTunnelPool ();
+		if (!pool)
+		{		
+			// build symmetric outbound tunnel
+			CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
+		}
+		else
+			pool->TunnelCreated (newTunnel);
 	}	
 
 	

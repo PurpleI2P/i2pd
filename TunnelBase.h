@@ -48,6 +48,17 @@ namespace tunnel
 			
 			uint32_t m_CreationTime; // seconds since epoch
 	};	
+
+	struct TunnelCreationTimeCmp
+	{
+		bool operator() (const TunnelBase * t1, const TunnelBase * t2) const
+  		{	
+			if (t1->GetCreationTime () != t2->GetCreationTime ())
+				return t1->GetCreationTime () > t2->GetCreationTime (); 
+			else
+				return t1 < t2;
+		};
+	};	
 }
 }
 
