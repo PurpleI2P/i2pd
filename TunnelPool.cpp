@@ -21,6 +21,8 @@ namespace tunnel
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
 	{
 		m_InboundTunnels.insert (createdTunnel);
+		if (m_Owner)
+			m_Owner->UpdateLeaseSet ();
 	}
 
 	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
@@ -60,8 +62,9 @@ namespace tunnel
 			new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 				{                
 			        firstHop, 
-					secondHop,
-					i2p::data::netdb.GetRandomRouter (secondHop) 
+					secondHop
+					// TODO: swithc to 3-hops later	
+					/*i2p::data::netdb.GetRandomRouter (secondHop) */
 	            }),                 
 			outboundTunnel);
 		tunnel->SetTunnelPool (this);
