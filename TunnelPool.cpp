@@ -15,7 +15,7 @@ namespace tunnel
 	TunnelPool::~TunnelPool ()
 	{
 		for (auto it: m_InboundTunnels)
-			delete it;
+			it->SetTunnelPool (nullptr);
 	}
 
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
@@ -55,7 +55,7 @@ namespace tunnel
 					i2p::data::netdb.GetRandomRouter (firstHop) 
 	            }),                 
 			outboundTunnel);
-			tunnel->SetTunnelPool (this);
+		tunnel->SetTunnelPool (this);
 	}
 
 	void TunnelPool::ManageTunnels ()

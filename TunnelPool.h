@@ -38,10 +38,6 @@ namespace tunnel
 			int m_NumTunnels;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 
-		public:
-
-			// for HTTP only
-			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 	};	
 }
 }

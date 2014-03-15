@@ -273,9 +273,17 @@ namespace tunnel
 		return tunnel;*/
 	}	
 
-	void Tunnels::CreateTunnelPool (i2p::data::LocalDestination * localDestination)
+	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination * localDestination)
 	{
-		m_Pools.push_back (new TunnelPool (localDestination));
+		auto pool = new TunnelPool (localDestination);
+		m_Pools.push_back (pool);
+		return pool;
+	}	
+
+	void Tunnels::DeleteTunnelPool (TunnelPool * pool)
+	{
+		m_Pools.remove (pool);
+		delete pool;
 	}	
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
@@ -441,7 +449,7 @@ namespace tunnel
 			return;
 		}
 		
-		if (m_InboundTunnels.size () < 10)
+		if (m_InboundTunnels.size () < 15) // TODO: store exploratory tunnels explicitly
 		{
 			// trying to create one more inbound tunnel
 			if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
@@ -513,10 +521,10 @@ namespace tunnel
 
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
 	{
+		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
 		auto pool = newTunnel->GetTunnelPool ();
 		if (!pool)
-		{
-			m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
+		{		
 			// build symmetric outbound tunnel
 			CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
 		}

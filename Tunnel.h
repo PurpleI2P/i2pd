@@ -120,7 +120,8 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
-			void CreateTunnelPool (i2p::data::LocalDestination * localDestination);
+			TunnelPool * CreateTunnelPool (i2p::data::LocalDestination * localDestination);
+			void DeleteTunnelPool (TunnelPool * pool);
 			
 			OutboundTunnel * CreateOneHopOutboundTestTunnel (InboundTunnel * replyTunnel);
 			InboundTunnel * CreateOneHopInboundTestTunnel (OutboundTunnel * outboundTunnel = 0);
