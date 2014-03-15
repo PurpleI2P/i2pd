@@ -436,6 +436,9 @@ namespace tunnel
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
 				LogPrint ("Tunnel ", it->second->GetTunnelID (), " expired");
+				auto pool = it->second->GetTunnelPool ();
+				if (pool)
+					pool->TunnelExpired (it->second);
 				it = m_InboundTunnels.erase (it);
 			}	
 			else 
@@ -496,7 +499,7 @@ namespace tunnel
 	void Tunnels::ManageTunnelPools ()
 	{
 		for (auto& it: m_Pools)
-			it->ManageTunnels ();
+			it->CreateTunnels ();
 	}	
 	
 	void Tunnels::PostTunnelData (I2NPMessage * msg)

@@ -23,6 +23,13 @@ namespace tunnel
 		m_InboundTunnels.insert (createdTunnel);
 	}
 
+	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
+	{
+		m_InboundTunnels.erase (expiredTunnel);
+		if (m_Owner)
+			m_Owner->UpdateLeaseSet ();
+	}	
+		
 	std::vector<InboundTunnel *> TunnelPool::GetInboundTunnels (int num) const
 	{
 		std::vector<InboundTunnel *> v;
@@ -48,34 +55,16 @@ namespace tunnel
 		OutboundTunnel * outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Creating destination inbound tunnel...");
 		auto firstHop = i2p::data::netdb.GetRandomRouter (outboundTunnel ? outboundTunnel->GetEndpointRouter () : nullptr); 
+		auto secondHop = i2p::data::netdb.GetRandomRouter (firstHop);	
 		auto * tunnel = tunnels.CreateTunnel<InboundTunnel> (
 			new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 				{                
 			        firstHop, 
-					i2p::data::netdb.GetRandomRouter (firstHop) 
+					secondHop,
+					i2p::data::netdb.GetRandomRouter (secondHop) 
 	            }),                 
 			outboundTunnel);
 		tunnel->SetTunnelPool (this);
 	}
-
-	void TunnelPool::ManageTunnels ()
-	{
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-		bool isLeaseSetUpdated = false;
-		for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
-		{
-			if (ts > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
-			{
-				LogPrint ("Destination tunnel ", (*it)->GetTunnelID (), " expired");
-				m_InboundTunnels.erase (it++);
-				isLeaseSetUpdated = true;
-			}	
-			else 
-				++it;
-		}
-		CreateTunnels ();
-		if (isLeaseSetUpdated && m_Owner)
-			m_Owner->UpdateLeaseSet ();
-	}	
 }
 }

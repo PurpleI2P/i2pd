@@ -25,8 +25,8 @@ namespace tunnel
 
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);
+			void TunnelExpired (InboundTunnel * expiredTunnel);
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
-			void ManageTunnels ();
 	
 		private:
 
