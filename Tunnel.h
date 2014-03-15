@@ -105,9 +105,8 @@ namespace tunnel
 
 			Tunnels ();
 			~Tunnels ();
-
 			void Start ();
-			void Stop ();
+			void Stop ();		
 			
 			InboundTunnel * GetInboundTunnel (uint32_t tunnelID);
 			Tunnel * GetPendingTunnel (uint32_t replyMsgID);
@@ -121,6 +120,7 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
+			void CreateTunnelPool (i2p::data::LocalDestination * localDestination);
 			
 			OutboundTunnel * CreateOneHopOutboundTestTunnel (InboundTunnel * replyTunnel);
 			InboundTunnel * CreateOneHopInboundTestTunnel (OutboundTunnel * outboundTunnel = 0);
@@ -134,6 +134,7 @@ namespace tunnel
 			void ManageOutboundTunnels ();
 			void ManageInboundTunnels ();
 			void ManageTransitTunnels ();
+			void ManageTunnelPools ();
 			
 			void CreateZeroHopsInboundTunnel ();
 			
@@ -147,6 +148,7 @@ namespace tunnel
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
 			std::list<OutboundTunnel *> m_OutboundTunnels;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
+			std::list<TunnelPool *> m_Pools;
 			i2p::util::Queue<I2NPMessage> m_Queue;
 
 		public:
@@ -155,6 +157,7 @@ namespace tunnel
 			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
+			const decltype(m_Pools)& GetTunnelPools () const { return m_Pools; };
 	};	
 
 	extern Tunnels tunnels;

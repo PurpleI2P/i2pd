@@ -1,5 +1,6 @@
 #include "Tunnel.h"
 #include "NetDb.h"
+#include "Timestamp.h"
 #include "TunnelPool.h"
 
 namespace i2p
@@ -14,19 +15,7 @@ namespace tunnel
 	TunnelPool::~TunnelPool ()
 	{
 		for (auto it: m_InboundTunnels)
-			it->SetTunnelPool (nullptr);
-	}
-
-	void TunnelPool::TunnelCreationFailed (Tunnel * failedTunnel)
-	{
-		CreateInboundTunnel ();
-	}	
-
-	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
-	{
-		CreateInboundTunnel ();
-		if (m_Owner)
-			m_Owner->UpdateLeaseSet ();
+			delete it;
 	}
 
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
@@ -49,7 +38,8 @@ namespace tunnel
 
 	void TunnelPool::CreateTunnels ()
 	{
-		for (int i = 0; i < m_NumTunnels; i++)
+		int num = m_InboundTunnels.size ();
+		for (int i = num; i < m_NumTunnels; i++)
 			CreateInboundTunnel ();	
 	}
 
@@ -67,5 +57,25 @@ namespace tunnel
 			outboundTunnel);
 			tunnel->SetTunnelPool (this);
 	}
+
+	void TunnelPool::ManageTunnels ()
+	{
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		bool isLeaseSetUpdated = false;
+		for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
+		{
+			if (ts > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+			{
+				LogPrint ("Destination tunnel ", (*it)->GetTunnelID (), " expired");
+				m_InboundTunnels.erase (it++);
+				isLeaseSetUpdated = true;
+			}	
+			else 
+				++it;
+		}
+		CreateTunnels ();
+		if (isLeaseSetUpdated && m_Owner)
+			m_Owner->UpdateLeaseSet ();
+	}	
 }
 }

@@ -11,7 +11,6 @@
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
-#include "TunnelPool.h"
 
 namespace i2p
 {
@@ -103,9 +102,7 @@ namespace stream
 		public:
 
 			StreamingDestination ();
-			~StreamingDestination ();
-			void Start ();
-			void Stop ();			
+			~StreamingDestination ();	
 
 			const i2p::data::Keys& GetKeys () const { return m_Keys; };
 			const i2p::data::Identity& GetIdentity () const { return m_Identity; }; 
@@ -130,7 +127,6 @@ namespace stream
 			i2p::data::Identity m_Identity;
 			i2p::data::IdentHash m_IdentHash;
 
-			i2p::tunnel::TunnelPool m_TunnelPool;
 			I2NPMessage * m_LeaseSet;
 			
 			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;

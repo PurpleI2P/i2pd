@@ -24,11 +24,9 @@ namespace tunnel
 			~TunnelPool ();
 
 			void CreateTunnels ();
-			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
-
-			void TunnelCreationFailed (Tunnel * failedTunnel);
-			void TunnelExpired (InboundTunnel * expiredTunnel);
 			void TunnelCreated (InboundTunnel * createdTunnel);
+			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
+			void ManageTunnels ();
 	
 		private:
 
@@ -39,6 +37,11 @@ namespace tunnel
 			i2p::data::LocalDestination * m_Owner;
 			int m_NumTunnels;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
+
+		public:
+
+			// for HTTP only
+			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 	};	
 }
 }

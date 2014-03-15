@@ -148,6 +148,17 @@ namespace util
 			s << " " << (int)it.second->GetNumReceivedBytes () << "<BR>";
 		}	
 
+		s << "<P>Tunnel pools</P>";
+		for (auto it: i2p::tunnel::tunnels.GetTunnelPools ())
+		{
+			for (auto it1: it->GetInboundTunnels ())
+			{
+				it1->GetTunnelConfig ()->Print (s);
+				s << " " << (int)it1->GetNumReceivedBytes () << "<BR>";
+			}	
+			s << "<BR>";
+		}
+		
 		s << "<P>Transit tunnels</P>";
 		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
 		{	

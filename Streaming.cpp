@@ -300,7 +300,7 @@ namespace stream
 		
 	StreamingDestination * sharedLocalDestination = nullptr;	
 
-	StreamingDestination::StreamingDestination (): m_TunnelPool (this), m_LeaseSet (nullptr)
+	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
 	{		
 		// TODO: read from file later
 		m_Keys = i2p::data::CreateRandomKeys ();
@@ -308,22 +308,13 @@ namespace stream
 		m_IdentHash = i2p::data::CalculateIdentHash (m_Identity);
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+		i2p::tunnel::tunnels.CreateTunnelPool (this);
 	}
 
 	StreamingDestination::~StreamingDestination ()
 	{
 		if (m_LeaseSet)
 			DeleteI2NPMessage (m_LeaseSet);
-	}	
-	
-	void StreamingDestination::Start ()
-	{
-		m_TunnelPool.CreateTunnels ();
-	}
-
-	void StreamingDestination::Stop ()
-	{
-		// TODO:
 	}	
 	
 	void StreamingDestination::HandleNextPacket (Packet * packet)

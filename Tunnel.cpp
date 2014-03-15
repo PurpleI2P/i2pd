@@ -186,6 +186,10 @@ namespace tunnel
 		for (auto& it : m_PendingTunnels)
 			delete it.second;
 		m_PendingTunnels.clear ();
+
+		for (auto& it: m_Pools)
+			delete it;
+		m_Pools.clear ();
 	}	
 	
 	InboundTunnel * Tunnels::GetInboundTunnel (uint32_t tunnelID)
@@ -268,6 +272,11 @@ namespace tunnel
 			}		
 		return tunnel;*/
 	}	
+
+	void Tunnels::CreateTunnelPool (i2p::data::LocalDestination * localDestination)
+	{
+		m_Pools.push_back (new TunnelPool (localDestination));
+	}	
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
 	{
@@ -343,9 +352,6 @@ namespace tunnel
 		for (auto& it : m_PendingTunnels)
 		{	
 			LogPrint ("Pending tunnel build request ", it.first, " has not been responded. Deleted");
-			auto pool = it.second->GetTunnelPool ();
-			if (pool)
-				pool->TunnelCreationFailed (it.second);
 			delete it.second;
 		}	
 		m_PendingTunnels.clear ();
@@ -353,6 +359,7 @@ namespace tunnel
 		ManageInboundTunnels ();
 		ManageOutboundTunnels ();
 		ManageTransitTunnels ();
+		ManageTunnelPools ();
 		
 	/*	if (!m_IsTunnelCreated)
 		{	
@@ -421,9 +428,6 @@ namespace tunnel
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
 				LogPrint ("Tunnel ", it->second->GetTunnelID (), " expired");
-				auto pool = it->second->GetTunnelPool ();
-				if (pool)
-					pool->TunnelExpired (it->second);
 				it = m_InboundTunnels.erase (it);
 			}	
 			else 
@@ -480,6 +484,12 @@ namespace tunnel
 				it++;
 		}
 	}	
+
+	void Tunnels::ManageTunnelPools ()
+	{
+		for (auto& it: m_Pools)
+			it->ManageTunnels ();
+	}	
 	
 	void Tunnels::PostTunnelData (I2NPMessage * msg)
 	{
@@ -503,15 +513,15 @@ namespace tunnel
 
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
 	{
-		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
 		auto pool = newTunnel->GetTunnelPool ();
-		if (pool)
-			pool->TunnelCreated (newTunnel);
-		else
+		if (!pool)
 		{
+			m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
 			// build symmetric outbound tunnel
 			CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
 		}
+		else
+			pool->TunnelCreated (newTunnel);
 	}	
 
 	
