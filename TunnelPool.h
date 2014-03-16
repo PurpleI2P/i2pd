@@ -29,19 +29,24 @@ namespace tunnel
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);
 			void TunnelExpired (InboundTunnel * expiredTunnel);
+			void TunnelCreated (OutboundTunnel * createdTunnel);
+			void TunnelExpired (OutboundTunnel * expiredTunnel);
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
-	
+			OutboundTunnel * GetNextOutboundTunnel ();
+			
 		private:
 
 			void CreateInboundTunnel ();	
-
+			void CreateOutboundTunnel ();
+			
 		private:
 
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 			i2p::data::LocalDestination * m_LocalDestination;
 			int m_NumTunnels;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
-
+			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
+			OutboundTunnel * m_LastOutboundTunnel;
 	};	
 }
 }

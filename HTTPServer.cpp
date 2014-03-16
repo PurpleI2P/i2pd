@@ -139,6 +139,8 @@ namespace util
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
 		{	
 			it->GetTunnelConfig ()->Print (s);
+			if (it->GetTunnelPool ())
+				s << " " << "Pool";
 			s << " " << (int)it->GetNumSentBytes () << "<BR>";
 		}	
 

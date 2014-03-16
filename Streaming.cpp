@@ -171,7 +171,7 @@ namespace stream
 			CreateDataMessage (this, packet, size), m_LocalDestination->GetLeaseSet ()); 
 
 		if (!m_OutboundTunnel)
-			m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+			m_OutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
 		auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
 		if (m_OutboundTunnel && !leases.empty ())
 		{
