@@ -418,7 +418,10 @@ namespace ssu
 					LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
 			}
 			else
+			{	
 				LogPrint ("MAC verification failed");	
+				Failed ();
+			}	
 		}
 		else
 			LogPrint ("SSU is not supported");
@@ -510,6 +513,14 @@ namespace ssu
 				Send (it);
 			m_DelayedMessages.clear ();
 		}	
+	}	
+
+	void SSUSession::Failed ()
+	{
+		m_State = eSessionStateFailed;
+		Close ();
+		if (m_Server)
+			m_Server->DeleteSession (this); // delete this 
 	}	
 	
 	const uint8_t * SSUSession::GetIntroKey () const
