@@ -550,11 +550,15 @@ namespace data
 	void NetDb::Publish ()
 	{
 		std::set<IdentHash> excluded; // TODO: fill up later
-		auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
-		if (floodfill)
-		{
-			LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation ());
-			transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg ());	
+		for (int i = 0; i < 3; i++)
+		{	
+			auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
+			if (floodfill)
+			{
+				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation ());
+				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg ());	
+				excluded.insert (floodfill->GetIdentHash ());
+			}
 		}	
 	}	
 	
