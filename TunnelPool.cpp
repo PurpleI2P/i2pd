@@ -1,15 +1,21 @@
+#include <cryptopp/dh.h>
+#include "CryptoConst.h"
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "Timestamp.h"
+#include "RouterContext.h"
 #include "TunnelPool.h"
 
 namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::data::LocalDestination * owner, int numTunnels):
-		m_Owner (owner), m_NumTunnels (numTunnels)
+	TunnelPool::TunnelPool (i2p::data::LocalDestination * localDestination, int numTunnels):
+		m_LocalDestination (localDestination), m_NumTunnels (numTunnels)
 	{
+		CryptoPP::AutoSeededRandomPool rnd;
+		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 	}
 
 	TunnelPool::~TunnelPool ()
@@ -21,15 +27,15 @@ namespace tunnel
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
 	{
 		m_InboundTunnels.insert (createdTunnel);
-		if (m_Owner)
-			m_Owner->UpdateLeaseSet ();
+		if (m_LocalDestination)
+			m_LocalDestination->UpdateLeaseSet ();
 	}
 
 	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
 	{
 		m_InboundTunnels.erase (expiredTunnel);
-		if (m_Owner)
-			m_Owner->UpdateLeaseSet ();
+		if (m_LocalDestination)
+			m_LocalDestination->UpdateLeaseSet ();
 	}	
 		
 	std::vector<InboundTunnel *> TunnelPool::GetInboundTunnels (int num) const
@@ -63,7 +69,7 @@ namespace tunnel
 				{                
 			        firstHop, 
 					secondHop
-					// TODO: swithc to 3-hops later	
+					// TODO: switch to 3-hops later	
 					/*i2p::data::netdb.GetRandomRouter (secondHop) */
 	            }),                 
 			outboundTunnel);

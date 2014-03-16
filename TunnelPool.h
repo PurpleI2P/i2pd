@@ -20,9 +20,12 @@ namespace tunnel
 	{
 		public:
 
-			TunnelPool (i2p::data::LocalDestination * owner, int numTunnels = 5);
+			TunnelPool (i2p::data::LocalDestination * localDestination, int numTunnels = 5);
 			~TunnelPool ();
 
+			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
+			
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);
 			void TunnelExpired (InboundTunnel * expiredTunnel);
@@ -34,7 +37,8 @@ namespace tunnel
 
 		private:
 
-			i2p::data::LocalDestination * m_Owner;
+			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+			i2p::data::LocalDestination * m_LocalDestination;
 			int m_NumTunnels;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 

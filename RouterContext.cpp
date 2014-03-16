@@ -14,10 +14,6 @@ namespace i2p
 		if (!Load ())
 			CreateNewRouter ();
 		Save ();
-
-		// we generate LeaseSet at every start-up
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(m_Rnd, m_LeaseSetPrivateKey, m_LeaseSetPublicKey);
 	}	
 	
 	void RouterContext::CreateNewRouter ()
