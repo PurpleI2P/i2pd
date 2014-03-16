@@ -5,6 +5,7 @@
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
+#include "TunnelPool.h"
 #include "Timestamp.h"
 #include "Streaming.h"
 #include "Garlic.h"
@@ -288,9 +289,12 @@ namespace garlic
 		else
 		{
 			// new session
+			i2p::tunnel::TunnelPool * pool = nullptr;
+			if (msg->from)
+				pool = msg->from->GetTunnelPool ();	
 			ElGamalBlock elGamal;
 			if (i2p::crypto::ElGamalDecrypt (
-			   	msg->from ? i2p::context.GetLeaseSetPrivateKey () : i2p::context.GetPrivateKey (), 
+			   	pool ? pool->GetEncryptionPrivateKey () : i2p::context.GetPrivateKey (), 
 				buf, (uint8_t *)&elGamal, true))
 			{	
 				uint8_t iv[32]; // IV is first 16 bytes
