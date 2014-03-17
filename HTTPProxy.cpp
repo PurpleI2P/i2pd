@@ -58,75 +58,76 @@ namespace proxy
 	void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (!ecode)
-  		{
+		{
 			m_Buffer[bytes_transferred] = 0;
 			
 			std::pair<std::string,std::string> requestInfo = ExtractRequest ();
 			request m_Request;
-			parseHeaders(m_Buffer, m_Request.headers);
+			parseHeaders (m_Buffer, m_Request.headers);
 			
 			LogPrint("Requesting ", requestInfo.first, " with path ", requestInfo.second);
 			HandleDestinationRequest (requestInfo.first, requestInfo.second);
 			
 			boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
-          		boost::bind (&HTTPConnection::HandleWrite, this,
-           			boost::asio::placeholders::error));
+				boost::bind (&HTTPConnection::HandleWrite, this,
+					boost::asio::placeholders::error));
 			//Receive ();
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
 			Terminate ();
 	}
 
-void HTTPConnection::parseHeaders(const std::string& h, std::vector<header>& hm) {
-	std::string str(h);
-	std::string::size_type idx;
-	std::string t;
-	int i = 0;
-	while((idx=str.find("\r\n")) != std::string::npos) {
-		t=str.substr(0,idx);
-		str.erase(0,idx+2);
-		if(t == "")
-			break;
-		idx=t.find(": ");
-		if(idx == std::string::npos) {
-			std::cout << "Bad header line: " << t << std::endl;
-			break;
-		}
-	 	LogPrint ("Name: ", t.substr (0,idx), " Value: ", t.substr (idx+2));
-	 	hm[i].name = t.substr(0,idx);
-	 	hm[i].value = t.substr(idx+2);
-	 	i++;
-	}
-}
-
-// TODO: Support other requests than GET.
-std::pair<std::string, std::string> HTTPConnection::ExtractRequest ()
-{
-	char * get = strstr (m_Buffer, "GET");
-	if (get)
-	{
-		char * http = strstr (get, "HTTP");
-		if (http)
-		{
-			std::string url (get + 4, http - get - 5);
-			size_t sp = url.find_first_of( '/', 7 /* skip http:// part */ );
-			if ( sp != std::string::npos )
+	void HTTPConnection::parseHeaders(const std::string& h, std::vector<header>& hm) {
+		std::string str (h);
+		std::string::size_type idx;
+		std::string t;
+		int i = 0;
+		while( (idx=str.find ("\r\n")) != std::string::npos) {
+			t=str.substr (0,idx);
+			str.erase (0,idx+2);
+			if (t == "")
+				break;
+			idx=t.find(": ");
+			if (idx == std::string::npos)
 			{
-				std::string base_url( url.begin()+7, url.begin()+sp );
-				LogPrint("Base URL is: ", base_url);
-				if ( sp != std::string::npos )
-				{
-					std::string query( url.begin()+sp+1, url.end() );
-					LogPrint("Query is: ", "/" + query);
+				std::cout << "Bad header line: " << t << std::endl;
+				break;
+			}
+			LogPrint ("Name: ", t.substr (0,idx), " Value: ", t.substr (idx+2));
+			hm[i].name = t.substr (0,idx);
+			hm[i].value = t.substr (idx+2);
+			i++;
+		}
+	}
 
-					return std::make_pair(base_url, "/" + query);
+	// TODO: Support other requests than GET.
+	std::pair<std::string, std::string> HTTPConnection::ExtractRequest ()
+	{
+		char * get = strstr (m_Buffer, "GET");
+		if (get)
+		{
+			char * http = strstr (get, "HTTP");
+			if (http)
+			{
+				std::string url (get + 4, http - get - 5);
+				size_t sp = url.find_first_of ('/', 7 /* skip http:// part */ );
+				if (sp != std::string::npos)
+				{
+					std::string base_url (url.begin()+7, url.begin()+sp);
+					LogPrint ("Base URL is: ", base_url);
+					if ( sp != std::string::npos )
+					{
+						std::string query (url.begin ()+sp+1, url.end ());
+						LogPrint ("Query is: ", "/" + query);
+
+						return std::make_pair (base_url, "/" + query);
+					}
+					return std::make_pair (base_url, "/");
 				}
-				return std::make_pair(base_url, "/");
 			}
 		}
+		return std::make_pair ("","");
 	}
-	return std::make_pair("","");
-}
 	
 	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
 	{
@@ -139,8 +140,8 @@ std::pair<std::string, std::string> HTTPConnection::ExtractRequest ()
 		std::string fullAddress;
 		if (address.find (".b32.i2p") != std::string::npos)
 		{
-			int li = address.find_first_of(".");
-			std::string newaddress = address.substr(0, li);
+			int li = address.find_first_of (".");
+			std::string newaddress = address.substr (0, li);
 			if (i2p::data::Base32ToByteStream (newaddress.c_str (), newaddress.length (), (uint8_t *)destination, 32) != 32)
 			{
 				LogPrint ("Invalid Base32 address ", newaddress);
@@ -150,7 +151,7 @@ std::pair<std::string, std::string> HTTPConnection::ExtractRequest ()
 		}
 		else
 		{	
-			auto addr = i2p::data::netdb.FindAddress(address);
+			auto addr = i2p::data::netdb.FindAddress (address);
 			if (!addr) 
 			{
 				LogPrint ("Unknown address ", address);
@@ -237,11 +238,11 @@ std::pair<std::string, std::string> HTTPConnection::ExtractRequest ()
 		m_Acceptor.close();
 		m_Service.stop ();
 		if (m_Thread)
-        {       
-            m_Thread->join (); 
-            delete m_Thread;
-            m_Thread = nullptr;
-        }    
+		{
+			m_Thread->join ();
+			delete m_Thread;
+			m_Thread = nullptr;
+		}
 	}
 
 	void HTTPProxy::Run ()
