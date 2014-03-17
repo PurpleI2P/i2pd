@@ -1,0 +1,91 @@
+#ifndef HTTP_PROXY_H__
+#define HTTP_PROXY_H__
+
+#include <sstream>
+#include <thread>
+#include <boost/asio.hpp>
+#include <boost/array.hpp>
+
+namespace i2p
+{
+namespace proxy
+{
+	class HTTPConnection
+	{
+		struct header
+		{
+		  std::string name;
+		  std::string value;
+		};
+
+		struct request
+		{
+		  std::string method;
+		  std::string uri;
+		  int http_version_major;
+		  int http_version_minor;
+		  std::vector<header> headers;
+		};
+
+		struct reply
+		{
+			std::vector<header> headers;
+			std::string content;
+
+			std::vector<boost::asio::const_buffer> to_buffers();
+		};
+	
+		public:
+
+			HTTPConnection (boost::asio::ip::tcp::socket * socket): m_Socket (socket) { Receive (); };
+			~HTTPConnection () { delete m_Socket; }
+
+		private:
+
+			void Terminate ();
+			void Receive ();
+			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);			
+			void HandleWrite(const boost::system::error_code& ecode);
+
+			void HandleDestinationRequest (const std::string& address, const std::string& uri);
+			std::pair<std::string, std::string> ExtractRequest ();
+			void parseHeaders(const std::string& h, std::vector<header>& hm);
+			
+		private:
+	
+			boost::asio::ip::tcp::socket * m_Socket;
+			char m_Buffer[8192];
+			request m_Request;
+			reply m_Reply;
+	};	
+
+	class HTTPProxy
+	{
+		public:
+
+			HTTPProxy (int port);
+			~HTTPProxy ();
+
+			void Start ();
+			void Stop ();
+
+		private:
+
+			void Run ();	
+ 			void Accept ();
+			void HandleAccept(const boost::system::error_code& ecode);	
+
+		private:
+
+			std::thread * m_Thread;
+			boost::asio::io_service m_Service;
+			boost::asio::io_service::work m_Work;
+			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::ip::tcp::socket * m_NewSocket;
+	};		
+}
+}
+
+#endif
+
+

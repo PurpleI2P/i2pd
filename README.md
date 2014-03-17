@@ -41,6 +41,6 @@ Options
 * --httpport=           - The http port to listen on
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --daemon=             - Eanble or disable daemon mode. 1 for yes, 0 for no.
-
+* --httpproxyport=      - The port to listen on (HTTP Proxy)
 
 
