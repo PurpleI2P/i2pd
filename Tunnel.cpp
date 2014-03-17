@@ -502,7 +502,10 @@ namespace tunnel
 	void Tunnels::ManageTunnelPools ()
 	{
 		for (auto& it: m_Pools)
+		{	
 			it->CreateTunnels ();
+			it->TestTunnels ();
+		}
 	}	
 	
 	void Tunnels::PostTunnelData (I2NPMessage * msg)

@@ -1,9 +1,11 @@
 #include <cryptopp/dh.h>
+#include "I2PEndian.h"
 #include "CryptoConst.h"
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
+#include "Garlic.h"
 #include "TunnelPool.h"
 
 namespace i2p
@@ -48,6 +50,8 @@ namespace tunnel
 	void TunnelPool::TunnelExpired (OutboundTunnel * expiredTunnel)
 	{
 		m_OutboundTunnels.erase (expiredTunnel);
+		if (expiredTunnel == m_LastOutboundTunnel)
+			m_LastOutboundTunnel = nullptr;
 	}
 		
 	std::vector<InboundTunnel *> TunnelPool::GetInboundTunnels (int num) const
@@ -88,6 +92,43 @@ namespace tunnel
 		num = m_OutboundTunnels.size ();
 		for (int i = num; i < m_NumTunnels; i++)
 			CreateOutboundTunnel ();	
+	}
+
+	void TunnelPool::TestTunnels ()
+	{
+		auto& rnd = i2p::context.GetRandomNumberGenerator ();
+		for (auto it: m_Tests)
+		{
+			LogPrint ("Tunnel test ", (int)it.first, " failed"); 
+			// both outbound and inbound tunnels considered as invalid
+			TunnelExpired (it.second.first);
+			TunnelExpired (it.second.second);
+		}
+		m_Tests.clear ();	
+		auto it1 = m_OutboundTunnels.begin ();
+		auto it2 = m_InboundTunnels.begin ();
+		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
+		{
+			uint32_t msgID = rnd.GenerateWord32 ();
+			m_Tests[msgID] = std::make_pair (*it1, *it2);
+			(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
+				CreateDeliveryStatusMsg (msgID));
+			it1++; it2++;
+		}
+	}
+
+	void TunnelPool::ProcessDeliveryStatus (I2NPMessage * msg)
+	{
+		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
+		auto it = m_Tests.find (be32toh (deliveryStatus->msgID));
+		if (it != m_Tests.end ())
+		{
+			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - be64toh (deliveryStatus->timestamp), " milliseconds");
+			m_Tests.erase (it);
+		}
+		else
+			i2p::garlic::routing.HandleDeliveryStatusMessage (msg->GetPayload (), msg->GetLength ()); // TODO:
+		DeleteI2NPMessage (msg);
 	}
 
 	void TunnelPool::CreateInboundTunnel ()
