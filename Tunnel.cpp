@@ -390,13 +390,16 @@ namespace tunnel
 			if (ts > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
 				LogPrint ("Tunnel ", (*it)->GetTunnelID (), " expired");
+				auto pool = (*it)->GetTunnelPool ();
+				if (pool)
+					pool->TunnelExpired (*it);
 				it = m_OutboundTunnels.erase (it);
 			}	
 			else 
 				it++;
 		}
 	
-		if (m_OutboundTunnels.size () < 10)
+		if (m_OutboundTunnels.size () < 15) // TODO: store exploratory tunnels explicitly
 		{
 			// trying to create one more oubound tunnel
 			if (m_InboundTunnels.empty ())	return;
@@ -520,6 +523,9 @@ namespace tunnel
 	void Tunnels::AddOutboundTunnel (OutboundTunnel * newTunnel)
 	{
 		m_OutboundTunnels.push_back (newTunnel);
+		auto pool = newTunnel->GetTunnelPool ();
+		if (pool)
+			pool->TunnelCreated (newTunnel);
 	}	
 
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)

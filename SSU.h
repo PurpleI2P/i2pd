@@ -58,7 +58,8 @@ namespace ssu
 		eSessionRelayRequestSent,
 		eSessionRelayRequestReceived,	
 		eSessionRelayResponseReceived,	
-		eSessionStateEstablished
+		eSessionStateEstablished,
+		eSessionStateFailed
 	};		
 
 	class SSUServer;
@@ -91,6 +92,7 @@ namespace ssu
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
 			void ProcessRelayResponse (uint8_t * buf, size_t len);
 			void Established ();
+			void Failed ();
 			void ProcessData (uint8_t * buf, size_t len);	
 			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();

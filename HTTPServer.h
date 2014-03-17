@@ -48,7 +48,7 @@ namespace util
 			void HandleWrite(const boost::system::error_code& ecode);
 
 			void HandleRequest ();
-			void HandleDestinationRequest (const std::string& b32, const std::string& uri);
+			void HandleDestinationRequest (const std::string& address, const std::string& uri);
 			void FillContent (std::stringstream& s);
 			std::string ExtractAddress ();
 			

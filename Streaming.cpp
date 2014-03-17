@@ -171,7 +171,7 @@ namespace stream
 			CreateDataMessage (this, packet, size), m_LocalDestination->GetLeaseSet ()); 
 
 		if (!m_OutboundTunnel)
-			m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+			m_OutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
 		auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
 		if (m_OutboundTunnel && !leases.empty ())
 		{
@@ -377,7 +377,7 @@ namespace stream
 		size_t size = 0;
 		memcpy (buf + size, &m_Identity, sizeof (m_Identity));
 		size += sizeof (m_Identity); // destination
-		memcpy (buf + size, i2p::context.GetLeaseSetPublicKey (), 256);
+		memcpy (buf + size, m_Pool->GetEncryptionPublicKey (), 256);
 		size += 256; // encryption key
 		memset (buf + size, 0, 128);
 		size += 128; // signing key

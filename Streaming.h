@@ -108,6 +108,7 @@ namespace stream
 			const i2p::data::Keys& GetKeys () const { return m_Keys; };
 			const i2p::data::Identity& GetIdentity () const { return m_Identity; }; 
 			I2NPMessage * GetLeaseSet ();
+			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };
 			void Sign (uint8_t * buf, int len, uint8_t * signature) const;			
 
 			Stream * CreateNewStream (const i2p::data::LeaseSet& remote);

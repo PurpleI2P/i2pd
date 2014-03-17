@@ -20,8 +20,6 @@ namespace i2p
 			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
 			const uint8_t * GetPrivateKey () const { return m_Keys.privateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_Keys.signingPrivateKey; };
-			const uint8_t * GetLeaseSetPrivateKey () const { return m_LeaseSetPrivateKey; };
-			const uint8_t * GetLeaseSetPublicKey () const { return m_LeaseSetPublicKey; };
 			const i2p::data::Identity& GetRouterIdentity () const { return m_RouterInfo.GetRouterIdentity (); };
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 			
@@ -42,7 +40,6 @@ namespace i2p
 			i2p::data::RouterInfo m_RouterInfo;
 			i2p::data::Keys m_Keys;
 			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
-			uint8_t m_LeaseSetPublicKey[256], m_LeaseSetPrivateKey[256];
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};
 
