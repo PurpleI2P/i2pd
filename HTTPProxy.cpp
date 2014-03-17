@@ -114,7 +114,7 @@ namespace proxy
 				if (sp != std::string::npos)
 				{
 					std::string base_url (url.begin()+7, url.begin()+sp);
-					LogPrint ("Base URL is: ", base_url);
+					LogPrint ("Base URL is: ", base_url, "\n");
 					if ( sp != std::string::npos )
 					{
 						std::string query (url.begin ()+sp+1, url.end ());
@@ -169,7 +169,7 @@ namespace proxy
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
-				m_Reply.content = leaseSet ? "<html>Leases expired</html>" : "<html>LeaseSet not found</html>";
+				m_Reply.content = leaseSet ? "<html>"+ i2p::proxy::itoopieImage +"<br>Leases expired</html>" : "<html>"+ i2p::proxy::itoopieImage +"LeaseSet not found</html>";
 				m_Reply.headers.resize(2);
 				m_Reply.headers[0].name = "Content-Length";
 				m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
@@ -199,7 +199,7 @@ namespace proxy
 				return;
 			}	
 			else // nothing received
-				ss << "<html>Not responding</html>";
+				ss << "<html>"+ i2p::proxy::itoopieImage +"<br>Not responding</html>";
 			s->Close ();
 			DeleteStream (s);
 			
