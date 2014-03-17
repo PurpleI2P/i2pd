@@ -197,14 +197,31 @@ namespace util
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";
 	}	
 
-	void HTTPConnection::HandleDestinationRequest (const std::string& b32, const std::string& uri)
+	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
-		uint8_t destination[32];
-		if (i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), destination, 32) != 32)
-		{
-			LogPrint ("Invalid Base32 address ", b32);
-			return;
+		i2p::data::IdentHash destination;
+		std::string fullAddress;
+		if (address.find (".i2p") != std::string::npos)
+		{	
+			auto addr = i2p::data::netdb.FindAddress(address);
+			if (!addr) 
+			{
+				LogPrint ("Unknown address ", address);
+				return;
+			}	
+			destination = *addr;
+			fullAddress = address;
+		}
+		else
+		{	
+			if (i2p::data::Base32ToByteStream (address.c_str (), address.length (), (uint8_t *)destination, 32) != 32)
+			{
+				LogPrint ("Invalid Base32 address ", address);
+				return;
+			}
+			fullAddress = address + ".b32.i2p";
 		}	
+			
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
@@ -225,7 +242,7 @@ namespace util
 		auto s = i2p::stream::CreateStream (*leaseSet);
 		if (s)
 		{
-			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + b32 + ".b32.i2p\n";
+			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + fullAddress + "\n";
 			s->Send ((uint8_t *)request.c_str (), request.length (), 10);			
 			std::stringstream ss;
 			uint8_t buf[8192];
