@@ -425,11 +425,6 @@ namespace i2p
 		int size = be16toh (header->size);
 		switch (header->typeID)
 		{	
-			case eI2NPDeliveryStatus:
-				LogPrint ("DeliveryStatus");
-				// we assume DeliveryStatusMessage is sent with garlic only
-				i2p::garlic::routing.HandleDeliveryStatusMessage (buf, size);
-			break;	
 			case eI2NPVariableTunnelBuild:
 				LogPrint ("VariableTunnelBuild");
 				HandleVariableTunnelBuildMsg  (msgID, buf, size);
@@ -461,6 +456,10 @@ namespace i2p
 					LogPrint ("TunnelGateway");
 					HandleTunnelGatewayMsg (msg);
 				break;
+				case eI2NPGarlic:
+					LogPrint ("Garlic");
+					i2p::garlic::routing.HandleGarlicMessage (msg);
+				break;
 				case eI2NPDatabaseStore:
 					LogPrint ("DatabaseStore");
 					i2p::data::netdb.PostI2NPMsg (msg);
@@ -468,11 +467,17 @@ namespace i2p
 				case eI2NPDatabaseSearchReply:
 					LogPrint ("DatabaseSearchReply");
 					i2p::data::netdb.PostI2NPMsg (msg);
+				break;					
+				case eI2NPDeliveryStatus:
+					LogPrint ("DeliveryStatus");
+					if (msg->from && msg->from->GetTunnelPool ())
+						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (msg);
+					else
+					{
+						i2p::garlic::routing.HandleDeliveryStatusMessage (msg->GetPayload (), msg->GetLength ()); 
+						DeleteI2NPMessage (msg);
+					}			
 				break;	
-				case eI2NPGarlic:
-					LogPrint ("Garlic");
-					i2p::garlic::routing.HandleGarlicMessage (msg);
-				break;
 				default:
 					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
 					DeleteI2NPMessage (msg);

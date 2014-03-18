@@ -1,8 +1,10 @@
 #ifndef TUNNEL_POOL__
 #define TUNNEL_POOL__
 
+#include <inttypes.h>
 #include <set>
 #include <vector>
+#include <utility>
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
@@ -34,6 +36,9 @@ namespace tunnel
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
 			OutboundTunnel * GetNextOutboundTunnel ();
 			
+			void TestTunnels ();
+			void ProcessDeliveryStatus (I2NPMessage * msg);
+
 		private:
 
 			void CreateInboundTunnel ();	
@@ -46,6 +51,7 @@ namespace tunnel
 			int m_NumTunnels;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
+			std::map<uint32_t, std::pair<OutboundTunnel *, InboundTunnel *> > m_Tests;
 			OutboundTunnel * m_LastOutboundTunnel;
 	};	
 }

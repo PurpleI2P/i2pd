@@ -78,11 +78,14 @@ namespace stream
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds
 			size_t Receive (uint8_t * buf, size_t len, int timeout = 0); // returns 0 if timeout expired
 			void Close ();
+
+			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
 			
 		private:
 
 			void ConnectAndSend (uint8_t * buf, size_t len);
 			void SendQuickAck ();
+			bool SendPacket (uint8_t * packet, size_t size);
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
@@ -90,7 +93,7 @@ namespace stream
 		private:
 
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
-			bool m_IsOpen;
+			bool m_IsOpen, m_LeaseSetUpdated;
 			StreamingDestination * m_LocalDestination;
 			const i2p::data::LeaseSet& m_RemoteLeaseSet;
 			i2p::util::Queue<Packet> m_ReceiveQueue;

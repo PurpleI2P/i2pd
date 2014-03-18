@@ -22,6 +22,7 @@
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "HTTPServer.h"
+#include "HTTPProxy.h"
 #include "Garlic.h"
 #include "util.h"
 #include "Streaming.h"
@@ -156,6 +157,9 @@ int main( int argc, char* argv[] )
   i2p::tunnel::tunnels.Start ();
   i2p::garlic::routing.Start ();
   i2p::stream::StartStreaming ();	
+
+  i2p::proxy::HTTPProxy httpProxy (i2p::util::config::GetArg("-httpproxyport", 4446));
+  httpProxy.Start();
 
   while (running)
   {
