@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="..\base64.cpp" />
     <ClCompile Include="..\Garlic.cpp" />
+    <ClCompile Include="..\HTTPProxy.cpp" />
     <ClCompile Include="..\HTTPServer.cpp" />
     <ClCompile Include="..\I2NPProtocol.cpp" />
     <ClCompile Include="..\i2p.cpp" />
@@ -32,6 +33,7 @@
     <ClCompile Include="..\Tunnel.cpp" />
     <ClCompile Include="..\TunnelEndpoint.cpp" />
     <ClCompile Include="..\TunnelGateway.cpp" />
+    <ClCompile Include="..\TunnelPool.cpp" />
     <ClCompile Include="..\UPnP.cpp" />
     <ClCompile Include="..\util.cpp" />
   </ItemGroup>
@@ -40,6 +42,7 @@
     <ClInclude Include="..\CryptoConst.h" />
     <ClInclude Include="..\ElGamal.h" />
     <ClInclude Include="..\Garlic.h" />
+    <ClInclude Include="..\HTTPProxy.h" />
     <ClInclude Include="..\HTTPServer.h" />
     <ClInclude Include="..\I2NPProtocol.h" />
     <ClInclude Include="..\I2PEndian.h" />
@@ -63,6 +66,7 @@
     <ClInclude Include="..\TunnelConfig.h" />
     <ClInclude Include="..\TunnelEndpoint.h" />
     <ClInclude Include="..\TunnelGateway.h" />
+    <ClInclude Include="..\TunnelPool.h" />
     <ClInclude Include="..\UPnP.h" />
     <ClInclude Include="..\util.h" />
   </ItemGroup>
