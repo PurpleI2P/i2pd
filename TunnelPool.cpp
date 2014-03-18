@@ -37,7 +37,11 @@ namespace tunnel
 
 	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
 	{
-		m_InboundTunnels.erase (expiredTunnel);
+		if (expiredTunnel)
+		{	
+			expiredTunnel->SetTunnelPool (nullptr);
+			m_InboundTunnels.erase (expiredTunnel);
+		}	
 		if (m_LocalDestination)
 			m_LocalDestination->UpdateLeaseSet ();
 	}	
@@ -49,7 +53,11 @@ namespace tunnel
 
 	void TunnelPool::TunnelExpired (OutboundTunnel * expiredTunnel)
 	{
-		m_OutboundTunnels.erase (expiredTunnel);
+		if (expiredTunnel)
+		{	
+			expiredTunnel->SetTunnelPool (nullptr);
+			m_OutboundTunnels.erase (expiredTunnel);
+		}	
 		if (expiredTunnel == m_LastOutboundTunnel)
 			m_LastOutboundTunnel = nullptr;
 	}
