@@ -28,7 +28,7 @@ namespace data
 			enum Caps
 			{
 				eFloodfill = 0x01,
-				eHighBanwidth = 0x02,
+				eHighBandwidth = 0x02,
 				eReachable = 0x04
 			};
 
@@ -84,7 +84,8 @@ namespace data
 			bool IsSSU (bool v4only = true) const;
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
 			bool UsesIntroducer () const;
-			
+			uint8_t GetCaps () const { return m_Caps; };			
+
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
 			

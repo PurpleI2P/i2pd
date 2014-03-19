@@ -200,8 +200,10 @@ namespace data
 				case 'f':
 					m_Caps |= Caps::eFloodfill;
 				break;
+				case 'M':
+				case 'N':
 				case 'O':
-					m_Caps |= Caps::eHighBanwidth;
+					m_Caps |= Caps::eHighBandwidth;
 				break;
 				case 'R':
 					m_Caps |= Caps::eReachable;

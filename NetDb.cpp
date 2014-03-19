@@ -601,7 +601,7 @@ namespace data
 		}	
 	}	
 
-	const RouterInfo * NetDb::GetRandomRouter (const RouterInfo * compatibleWith, bool floodfillOnly) const
+	const RouterInfo * NetDb::GetRandomRouter (const RouterInfo * compatibleWith, uint8_t caps) const
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1);	
@@ -614,7 +614,7 @@ namespace data
 				{	
 					if (!it.second->IsUnreachable () && 
 					 (!compatibleWith || it.second->IsCompatible (*compatibleWith)) &&
-					 (!floodfillOnly || it.second->IsFloodfill ()))
+					 (!caps || (it.second->GetCaps () & caps) == caps))
 						return it.second;
 				}	
 				else 
