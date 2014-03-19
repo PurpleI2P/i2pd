@@ -20,11 +20,18 @@ namespace data
 			enum SupportedTranports
 			{	
 				eNTCPV4 = 0x01,
-				eNTCPV6 = 0x20,
-				eSSUV4 = 0x40,
-				eSSUV6 = 0x80
+				eNTCPV6 = 0x02,
+				eSSUV4 = 0x04,
+				eSSUV6 = 0x08
 			};
 			
+			enum Caps
+			{
+				eFloodfill = 0x01,
+				eHighBanwidth = 0x02,
+				eReachable = 0x04
+			};
+
 			enum TransportStyle
 			{
 				eTransportUnknown = 0,
@@ -102,6 +109,7 @@ namespace data
 			void WriteToStream (std::ostream& s);
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
+			void ExtractCaps (const char * value);
 			void UpdateIdentHashBase64 ();
 			const Address * GetAddress (TransportStyle s, bool v4only) const;
 			
@@ -117,7 +125,7 @@ namespace data
 			std::vector<Address> m_Addresses;
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
-			uint8_t m_SupportedTransports;
+			uint8_t m_SupportedTransports, m_Caps;
 	};	
 }	
 }

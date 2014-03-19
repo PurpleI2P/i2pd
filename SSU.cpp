@@ -822,14 +822,19 @@ namespace ssu
 					}
 					else
 					{
-						// connect to introducer
-						auto& introducer = address->introducers[0]; // TODO:
-						boost::asio::ip::udp::endpoint introducerEndpoint (introducer.iHost, introducer.iPort);
-						session = new SSUSession (this, introducerEndpoint, router);
-						m_Sessions[introducerEndpoint] = session;
-						LogPrint ("New SSU session to [", router->GetIdentHashAbbreviation (), 
-							"] created through introducer ", introducerEndpoint.address ().to_string (), ":", introducerEndpoint.port ());
-						session->ConnectThroughIntroducer (introducer);
+						// connect through introducer
+						if (address->introducers.size () > 0)
+						{
+							auto& introducer = address->introducers[0]; // TODO:
+							boost::asio::ip::udp::endpoint introducerEndpoint (introducer.iHost, introducer.iPort);
+							session = new SSUSession (this, introducerEndpoint, router);
+							m_Sessions[introducerEndpoint] = session;
+							LogPrint ("New SSU session to [", router->GetIdentHashAbbreviation (), 
+								"] through introducer ", introducerEndpoint.address ().to_string (), ":", introducerEndpoint.port ());
+							session->ConnectThroughIntroducer (introducer);
+						}
+						else
+							LogPrint ("Router is unreachable, but not introducers presentd. Ignored");
 					}
 				}
 			}
