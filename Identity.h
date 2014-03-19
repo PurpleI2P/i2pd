@@ -33,6 +33,8 @@ namespace data
 		Identity pub;
 		uint8_t privateKey[256];
 		uint8_t signingPrivateKey[20];	
+
+		PrivateKeys& operator=(const Keys& keys);
 	};
 	
 #pragma pack()

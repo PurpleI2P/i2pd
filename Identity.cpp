@@ -19,6 +19,13 @@ namespace data
 		return *this;
 	}	
 	
+	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
+	{
+		pub = keys;
+		memcpy (privateKey, keys.privateKey, 276); // 256 + 20
+		return *this;
+	}
+
 	IdentHash CalculateIdentHash (const Identity& identity)
 	{
 		IdentHash hash;
