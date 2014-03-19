@@ -2,6 +2,7 @@
 #define STREAMING_H__
 
 #include <inttypes.h>
+#include <string>
 #include <map>
 #include <set>
 #include <cryptopp/dsa.h>
@@ -106,6 +107,7 @@ namespace stream
 		public:
 
 			StreamingDestination ();
+			StreamingDestination (const std::string& fullPath);
 			~StreamingDestination ();	
 
 			const i2p::data::Keys& GetKeys () const { return m_Keys; };

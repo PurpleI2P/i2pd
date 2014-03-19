@@ -28,6 +28,13 @@ namespace data
 		Identity& operator=(const Keys& keys);
 	};	
 	
+	struct PrivateKeys // for eepsites
+	{
+		Identity pub;
+		uint8_t privateKey[256];
+		uint8_t signingPrivateKey[20];	
+	};
+	
 #pragma pack()
 
 	class IdentHash

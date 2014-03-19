@@ -1,4 +1,4 @@
-#include <string>
+#include <fstream>
 #include <algorithm>
 #include <cryptopp/gzip.h>
 #include "Log.h"
@@ -301,12 +301,27 @@ namespace stream
 
 	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
 	{		
-		// TODO: read from file later
 		m_Keys = i2p::data::CreateRandomKeys ();
 		m_Identity = m_Keys;
 		m_IdentHash = i2p::data::CalculateIdentHash (m_Identity);
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
+	}
+
+	StreamingDestination::StreamingDestination (const std::string& fullPath): m_LeaseSet (nullptr) 
+	{
+		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
+		if (s.is_open ())	
+		{	
+			i2p::data::PrivateKeys keys;
+			s.read ((char *)&keys, sizeof (keys));
+			// TODO: use PrivateKeys 
+			m_Identity = keys.pub;
+			memcpy (m_Keys.privateKey, keys.privateKey, 276);
+		}
+		else
+			LogPrint ("Can't open file ", fullPath);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
 	}
 
