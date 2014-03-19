@@ -177,7 +177,7 @@ namespace data
 			m_Properties[key] = value;
 			
 			// extract caps	
-			if (strcmp (key, "caps"))
+			if (!strcmp (key, "caps"))
 				ExtractCaps (value);
 		}		
 		
