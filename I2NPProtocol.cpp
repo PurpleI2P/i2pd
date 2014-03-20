@@ -31,17 +31,17 @@ namespace i2p
 		delete msg;
 	}	
 
+	static uint32_t I2NPmsgID = 0; // TODO: create class
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID)
 	{
-		static uint32_t msgID = 0;
 		I2NPHeader * header = msg->GetHeader ();
 		header->typeID = msgType;
 		if (replyMsgID) // for tunnel creation
 			header->msgID = htobe32 (replyMsgID); 
 		else
 		{	
-			header->msgID = htobe32 (msgID);
-			msgID++;
+			header->msgID = htobe32 (I2NPmsgID);
+			I2NPmsgID++;
 		}	
 		header->expiration = htobe64 (i2p::util::GetMillisecondsSinceEpoch () + 5000); // TODO: 5 secs is a magic number
 		int len = msg->GetLength () - sizeof (I2NPHeader);
@@ -50,6 +50,17 @@ namespace i2p
 		CryptoPP::SHA256().CalculateDigest(hash, msg->GetPayload (), len);
 		header->chks = hash[0];
 	}	
+
+	void RenewI2NPMessageHeader (I2NPMessage * msg)
+	{
+		if (msg)
+		{
+			I2NPHeader * header = msg->GetHeader ();
+			header->msgID = htobe32 (I2NPmsgID);
+			I2NPmsgID++;
+			header->expiration = htobe64 (i2p::util::GetMillisecondsSinceEpoch () + 5000); 		
+		}
+	}
 
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID)
 	{
