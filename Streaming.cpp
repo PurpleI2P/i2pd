@@ -302,8 +302,7 @@ namespace stream
 	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
 	{		
 		m_Keys = i2p::data::CreateRandomKeys ();
-		m_Identity = m_Keys;
-		m_IdentHash = i2p::data::CalculateIdentHash (m_Identity);
+		m_IdentHash = i2p::data::CalculateIdentHash (m_Keys.pub);
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
@@ -313,13 +312,7 @@ namespace stream
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
-		{	
-			i2p::data::PrivateKeys keys;
-			s.read ((char *)&keys, sizeof (keys));
-			// TODO: use PrivateKeys 
-			m_Identity = keys.pub;
-			memcpy (m_Keys.privateKey, keys.privateKey, 276);
-		}
+			s.read ((char *)&m_Keys, sizeof (m_Keys));
 		else
 			LogPrint ("Can't open file ", fullPath);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
@@ -391,8 +384,8 @@ namespace stream
 		
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
 		size_t size = 0;
-		memcpy (buf + size, &m_Identity, sizeof (m_Identity));
-		size += sizeof (m_Identity); // destination
+		memcpy (buf + size, &m_Keys.pub, sizeof (m_Keys.pub));
+		size += sizeof (m_Keys.pub); // destination
 		memcpy (buf + size, m_Pool->GetEncryptionPublicKey (), 256);
 		size += 256; // encryption key
 		memset (buf + size, 0, 128);

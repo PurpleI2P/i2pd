@@ -110,8 +110,8 @@ namespace stream
 			StreamingDestination (const std::string& fullPath);
 			~StreamingDestination ();	
 
-			const i2p::data::Keys& GetKeys () const { return m_Keys; };
-			const i2p::data::Identity& GetIdentity () const { return m_Identity; }; 
+			const i2p::data::PrivateKeys& GetKeys () const { return m_Keys; };
+			const i2p::data::Identity& GetIdentity () const { return m_Keys.pub; }; 
 			I2NPMessage * GetLeaseSet ();
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };
 			void Sign (uint8_t * buf, int len, uint8_t * signature) const;			
@@ -130,8 +130,7 @@ namespace stream
 		private:
 
 			std::map<uint32_t, Stream *> m_Streams;
-			i2p::data::Keys m_Keys;
-			i2p::data::Identity m_Identity;
+			i2p::data::PrivateKeys m_Keys;
 			i2p::data::IdentHash m_IdentHash;
 
 			i2p::tunnel::TunnelPool * m_Pool;
