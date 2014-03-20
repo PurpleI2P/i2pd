@@ -369,8 +369,10 @@ namespace stream
 		
 	const I2NPMessage * StreamingDestination::GetLeaseSet ()
 	{
-		if (!m_LeaseSet)
-			m_LeaseSet = CreateLeaseSet ();
+		// TODO: LeaseSet is always re-created. ivestigate
+		if (m_LeaseSet)
+			DeleteI2NPMessage (m_LeaseSet);
+		m_LeaseSet = CreateLeaseSet ();
 		return m_LeaseSet;
 	}	
 		
