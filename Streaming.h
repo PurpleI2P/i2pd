@@ -112,7 +112,7 @@ namespace stream
 
 			const i2p::data::PrivateKeys& GetKeys () const { return m_Keys; };
 			const i2p::data::Identity& GetIdentity () const { return m_Keys.pub; }; 
-			I2NPMessage * GetLeaseSet ();
+			const I2NPMessage * GetLeaseSet ();
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };
 			void Sign (uint8_t * buf, int len, uint8_t * signature) const;			
 

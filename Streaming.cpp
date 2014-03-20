@@ -264,7 +264,7 @@ namespace stream
 
 	bool Stream::SendPacket (uint8_t * packet, size_t size)
 	{		
-		I2NPMessage * leaseSet = nullptr;
+		const I2NPMessage * leaseSet = nullptr;
 		if (m_LeaseSetUpdated)
 		{	
 			leaseSet = m_LocalDestination->GetLeaseSet ();
@@ -367,7 +367,7 @@ namespace stream
 			it.second->SetLeaseSetUpdated ();
 	}	
 		
-	I2NPMessage * StreamingDestination::GetLeaseSet ()
+	const I2NPMessage * StreamingDestination::GetLeaseSet ()
 	{
 		if (!m_LeaseSet)
 			m_LeaseSet = CreateLeaseSet ();

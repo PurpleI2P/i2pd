@@ -103,9 +103,10 @@ namespace tunnel
 		size_t len, offset;
 		i2p::tunnel::InboundTunnel * from;
 		
-		I2NPHeader * GetHeader () { return (I2NPHeader *)(buf + offset); };
-		uint8_t * GetPayload () { return buf + offset + sizeof(I2NPHeader); };
+		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); };
+		uint8_t * GetPayload () { return GetBuffer () + sizeof(I2NPHeader); };
 		uint8_t * GetBuffer () { return buf + offset; };
+		const uint8_t * GetBuffer () const { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
 
 		I2NPMessage& operator=(const I2NPMessage& other)

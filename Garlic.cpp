@@ -43,7 +43,7 @@ namespace garlic
 		}
 	}
 	
-	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet)
+	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, const I2NPMessage * leaseSet)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
@@ -89,7 +89,7 @@ namespace garlic
 		return m;
 	}	
 
-	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, I2NPMessage * msg, I2NPMessage * leaseSet)
+	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, const I2NPMessage * msg, const I2NPMessage * leaseSet)
 	{
 		size_t blockSize = 0;
 		*(uint16_t *)buf = m_NextTag < 0 ? htobe16 (m_NumTags) : 0; // tag count
@@ -116,7 +116,7 @@ namespace garlic
 		return blockSize;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, I2NPMessage * msg, I2NPMessage * leaseSet)
+	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, const I2NPMessage * leaseSet)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		uint32_t msgID = m_Rnd.GenerateWord32 ();	
@@ -153,7 +153,7 @@ namespace garlic
 		return size;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicClove (uint8_t * buf, I2NPMessage * msg, bool isDestination)
+	size_t GarlicRoutingSession::CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		size_t size = 0;
@@ -245,7 +245,7 @@ namespace garlic
 	}	
 
 	I2NPMessage * GarlicRouting::WrapMessage (const i2p::data::RoutingDestination& destination, 
-		I2NPMessage * msg, I2NPMessage * leaseSet)
+		I2NPMessage * msg, const I2NPMessage * leaseSet)
 	{
 		auto it = m_Sessions.find (destination.GetIdentHash ());
 		GarlicRoutingSession * session = nullptr;
