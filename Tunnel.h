@@ -37,6 +37,9 @@ namespace tunnel
 			
 			TunnelConfig * GetTunnelConfig () const { return m_Config; }
 			bool IsEstablished () const { return m_IsEstablished; };
+			bool IsFailed () const { return m_IsEstablished; };
+			void SetFailed (bool failed) { m_IsFailed = failed; } 
+
 			TunnelPool * GetTunnelPool () const { return m_Pool; };
 			void SetTunnelPool (TunnelPool * pool) { m_Pool = pool; };			
 			
@@ -57,7 +60,7 @@ namespace tunnel
 
 			TunnelConfig * m_Config;
 			TunnelPool * m_Pool; // pool, tunnel belongs to, or null
-			bool m_IsEstablished;
+			bool m_IsEstablished, m_IsFailed; 
 
 			CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_ECBDecryption;
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_CBCDecryption;

@@ -31,8 +31,6 @@ namespace tunnel
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
 	{
 		m_InboundTunnels.insert (createdTunnel);
-		if (m_LocalDestination)
-			m_LocalDestination->UpdateLeaseSet ();
 	}
 
 	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
@@ -54,10 +52,10 @@ namespace tunnel
 	void TunnelPool::TunnelExpired (OutboundTunnel * expiredTunnel)
 	{
 		if (expiredTunnel)
-		{	
+		{
 			expiredTunnel->SetTunnelPool (nullptr);
 			m_OutboundTunnels.erase (expiredTunnel);
-		}	
+		}
 		if (expiredTunnel == m_LastOutboundTunnel)
 			m_LastOutboundTunnel = nullptr;
 	}
@@ -69,8 +67,11 @@ namespace tunnel
 		for (auto it : m_InboundTunnels)
 		{
 			if (i >= num) break;
-			v.push_back (it);
-			i++;	
+			if (!it->IsFailed ())
+			{
+				v.push_back (it);
+				i++;
+			}	
 		}	
 		return v;
 	}
@@ -82,7 +83,7 @@ namespace tunnel
 		if (m_LastOutboundTunnel && tunnel == m_LastOutboundTunnel)
 		{
 			for (auto it: m_OutboundTunnels)
-				if (it != m_LastOutboundTunnel)
+				if (it != m_LastOutboundTunnel && !it->IsFailed ())
 				{
 					tunnel = it;
 					break;
@@ -109,8 +110,8 @@ namespace tunnel
 		{
 			LogPrint ("Tunnel test ", (int)it.first, " failed"); 
 			// both outbound and inbound tunnels considered as invalid
-			TunnelExpired (it.second.first);
-			TunnelExpired (it.second.second);
+			it.second.first->SetFailed (true);
+			it.second.second->SetFailed (true);
 		}
 		m_Tests.clear ();	
 		auto it1 = m_OutboundTunnels.begin ();
