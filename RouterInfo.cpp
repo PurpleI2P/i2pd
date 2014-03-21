@@ -18,13 +18,13 @@ namespace i2p
 namespace data
 {		
 	RouterInfo::RouterInfo (const char * filename):
-		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0)
+		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
 		ReadFromFile (filename);
 	}	
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
-		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0)
+		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
@@ -175,6 +175,10 @@ namespace data
 			r += ReadString (value, s); 
 			s.seekg (1, std::ios_base::cur); r++; // ;
 			m_Properties[key] = value;
+			
+			// extract caps	
+			if (!strcmp (key, "caps"))
+				ExtractCaps (value);
 		}		
 		
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));
@@ -184,6 +188,31 @@ namespace data
 		if (!m_SupportedTransports)
 			SetUnreachable (true);
 	}	
+
+	void RouterInfo::ExtractCaps (const char * value)
+	{
+		m_Caps = 0;	
+		const char * cap = value;
+		while (*cap)
+		{
+			switch (*cap)
+			{
+				case 'f':
+					m_Caps |= Caps::eFloodfill;
+				break;
+				case 'M':
+				case 'N':
+				case 'O':
+					m_Caps |= Caps::eHighBandwidth;
+				break;
+				case 'R':
+					m_Caps |= Caps::eReachable;
+				break;
+				default: ;
+			}	
+			cap++;
+		}
+	}
 
 	void RouterInfo::UpdateIdentHashBase64 ()
 	{
@@ -337,10 +366,7 @@ namespace data
 
 	bool RouterInfo::IsFloodfill () const
 	{
-		const char * caps = GetProperty ("caps");
-		if (caps)
-			return strchr (caps, 'f');
-		return false;	
+		return m_Caps & Caps::eFloodfill;
 	}	
 
 	bool RouterInfo::IsNTCP (bool v4only) const
@@ -361,9 +387,7 @@ namespace data
 
 	bool RouterInfo::UsesIntroducer () const
 	{
-		if (!IsSSU ()) return false;
-		auto address = GetSSUAddress (true); // no introducers for v6
-		return address && !address->introducers.empty ();
+		return !(m_Caps & Caps::eReachable); // non-reachable
 	}		
 		
 	const RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only) const

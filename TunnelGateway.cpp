@@ -107,7 +107,7 @@ namespace tunnel
 		}			
 	}
 	
-	std::vector<I2NPMessage *> TunnelGatewayBuffer::GetTunnelDataMsgs ()
+	const std::vector<I2NPMessage *> TunnelGatewayBuffer::GetTunnelDataMsgs ()
 	{
 		CompleteCurrentTunnelDataMessage ();
 		std::vector<I2NPMessage *> ret = m_TunnelDataMsgs; // TODO: implement it better

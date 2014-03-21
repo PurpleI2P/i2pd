@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <set>
 #include <map>
+#include <vector>
 #include <string>
 #include <thread>
 #include <boost/filesystem.hpp>
@@ -73,8 +74,7 @@ namespace data
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
-			const RouterInfo * GetRandomNTCPRouter (bool floodfillOnly = false) const;
-			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr, bool floodfillOnly = false) const;
+			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr, uint8_t caps = 0) const;
 
 			void PostI2NPMsg (I2NPMessage * msg);
 			
@@ -98,6 +98,7 @@ namespace data
 
 			std::map<IdentHash, LeaseSet *> m_LeaseSets;
 			std::map<IdentHash, RouterInfo *> m_RouterInfos;
+			std::vector<RouterInfo *> m_Floodfills;
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
 			std::set<IdentHash> m_Subscriptions;
 			

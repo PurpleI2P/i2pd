@@ -1,4 +1,4 @@
-#include <string>
+#include <fstream>
 #include <algorithm>
 #include <cryptopp/gzip.h>
 #include "Log.h"
@@ -264,7 +264,7 @@ namespace stream
 
 	bool Stream::SendPacket (uint8_t * packet, size_t size)
 	{		
-		I2NPMessage * leaseSet = nullptr;
+		const I2NPMessage * leaseSet = nullptr;
 		if (m_LeaseSetUpdated)
 		{	
 			leaseSet = m_LocalDestination->GetLeaseSet ();
@@ -301,12 +301,20 @@ namespace stream
 
 	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
 	{		
-		// TODO: read from file later
 		m_Keys = i2p::data::CreateRandomKeys ();
-		m_Identity = m_Keys;
-		m_IdentHash = i2p::data::CalculateIdentHash (m_Identity);
+		m_IdentHash = i2p::data::CalculateIdentHash (m_Keys.pub);
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
+	}
+
+	StreamingDestination::StreamingDestination (const std::string& fullPath): m_LeaseSet (nullptr) 
+	{
+		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
+		if (s.is_open ())	
+			s.read ((char *)&m_Keys, sizeof (m_Keys));
+		else
+			LogPrint ("Can't open file ", fullPath);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
 	}
 
@@ -359,10 +367,12 @@ namespace stream
 			it.second->SetLeaseSetUpdated ();
 	}	
 		
-	I2NPMessage * StreamingDestination::GetLeaseSet ()
+	const I2NPMessage * StreamingDestination::GetLeaseSet ()
 	{
 		if (!m_LeaseSet)
 			m_LeaseSet = CreateLeaseSet ();
+		else
+			RenewI2NPMessageHeader (m_LeaseSet); 
 		return m_LeaseSet;
 	}	
 		
@@ -376,8 +386,8 @@ namespace stream
 		
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
 		size_t size = 0;
-		memcpy (buf + size, &m_Identity, sizeof (m_Identity));
-		size += sizeof (m_Identity); // destination
+		memcpy (buf + size, &m_Keys.pub, sizeof (m_Keys.pub));
+		size += sizeof (m_Keys.pub); // destination
 		memcpy (buf + size, m_Pool->GetEncryptionPublicKey (), 256);
 		size += 256; // encryption key
 		memset (buf + size, 0, 128);
