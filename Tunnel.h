@@ -37,7 +37,7 @@ namespace tunnel
 			
 			TunnelConfig * GetTunnelConfig () const { return m_Config; }
 			bool IsEstablished () const { return m_IsEstablished; };
-			bool IsFailed () const { return m_IsEstablished; };
+			bool IsFailed () const { return m_IsFailed; };
 			void SetFailed (bool failed) { m_IsFailed = failed; } 
 
 			TunnelPool * GetTunnelPool () const { return m_Pool; };

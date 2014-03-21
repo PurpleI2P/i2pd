@@ -141,6 +141,8 @@ namespace util
 			it->GetTunnelConfig ()->Print (s);
 			if (it->GetTunnelPool ())
 				s << " " << "Pool";
+			if (it->IsFailed ())
+				s << " " << "Failed";
 			s << " " << (int)it->GetNumSentBytes () << "<BR>";
 		}	
 
@@ -149,6 +151,8 @@ namespace util
 			it.second->GetTunnelConfig ()->Print (s);
 			if (it.second->GetTunnelPool ())
 				s << " " << "Pool";
+			if (it.second->IsFailed ())
+				s << " " << "Failed";
 			s << " " << (int)it.second->GetNumReceivedBytes () << "<BR>";
 		}	
 		

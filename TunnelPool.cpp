@@ -118,11 +118,25 @@ namespace tunnel
 		auto it2 = m_InboundTunnels.begin ();
 		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
 		{
-			uint32_t msgID = rnd.GenerateWord32 ();
-			m_Tests[msgID] = std::make_pair (*it1, *it2);
-			(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
-				CreateDeliveryStatusMsg (msgID));
-			it1++; it2++;
+			bool failed = false;
+			if ((*it1)->IsFailed ())
+			{	
+				failed = true;
+				it1++;
+			}
+			if ((*it2)->IsFailed ())
+			{	
+				failed = true;
+				it2++;
+			}
+			if (!failed)
+			{	
+				uint32_t msgID = rnd.GenerateWord32 ();
+				m_Tests[msgID] = std::make_pair (*it1, *it2);
+				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
+					CreateDeliveryStatusMsg (msgID));
+				it1++; it2++;
+			}	
 		}
 	}
 
