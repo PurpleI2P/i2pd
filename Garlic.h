@@ -35,7 +35,7 @@ namespace garlic
 	};		
 #pragma pack()	
 
-	
+	const int TAGS_EXPIRATION_TIMEOUT = 660; // 15 minutes
 	class GarlicRoutingSession
 	{
 		public:
@@ -66,6 +66,7 @@ namespace garlic
 			bool m_IsAcknowledged;
 			int m_NumTags, m_NextTag;
 			uint8_t * m_SessionTags; // m_NumTags*32 bytes
+			uint32_t m_TagsCreationTime; // seconds since epoch
 			
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
