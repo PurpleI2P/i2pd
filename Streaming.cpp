@@ -409,7 +409,7 @@ namespace stream
 		}	
 		Sign (buf, size, buf+ size);
 		size += 40; // signature
-
+		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
 		m->len += size + sizeof (I2NPDatabaseStoreMsg);
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
 		return m;
