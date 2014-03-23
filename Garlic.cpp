@@ -392,7 +392,7 @@ namespace garlic
 					// later on we should let destination decide
 					I2NPHeader * header = (I2NPHeader *)buf;
 					if (header->typeID == eI2NPData)
-						i2p::stream::HandleDataMessage (&destination, buf + sizeof (I2NPHeader), be16toh (header->size));
+						i2p::stream::HandleDataMessage (destination, buf + sizeof (I2NPHeader), be16toh (header->size));
 					else
 						LogPrint ("Unexpected I2NP garlic message ", (int)header->typeID);
 					break;

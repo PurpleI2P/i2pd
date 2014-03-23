@@ -5,6 +5,8 @@
 #include <string>
 #include <map>
 #include <set>
+#include <thread>
+#include <boost/asio.hpp>
 #include <cryptopp/dsa.h>
 #include "I2PEndian.h"
 #include "Queue.h"
@@ -67,7 +69,7 @@ namespace stream
 	{	
 		public:
 
-			Stream (StreamingDestination * local, const i2p::data::LeaseSet& remote);
+			Stream (boost::asio::io_service& service, StreamingDestination * local, const i2p::data::LeaseSet& remote);
 			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
@@ -95,6 +97,7 @@ namespace stream
 			
 		private:
 
+			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
 			bool m_IsOpen, m_LeaseSetUpdated;
 			StreamingDestination * m_LocalDestination;
@@ -119,7 +122,7 @@ namespace stream
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };
 			void Sign (uint8_t * buf, int len, uint8_t * signature) const;			
 
-			Stream * CreateNewStream (const i2p::data::LeaseSet& remote);
+			Stream * CreateNewStream (boost::asio::io_service& service, const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			void HandleNextPacket (Packet * packet);
 
@@ -142,13 +145,43 @@ namespace stream
 			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
 	};	
 
+	class StreamingDestinations
+	{
+		public:
+
+			StreamingDestinations (): m_IsRunning (false), m_Thread (nullptr), 
+				m_Work (m_Service), m_SharedLocalDestination (nullptr) {};
+			~StreamingDestinations () {};
+
+			void Start ();
+			void Stop ();
+
+			void HandleNextPacket (i2p::data::IdentHash destination, Packet * packet); 
+
+			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
+			void DeleteClientStream (Stream * stream);
+			
+		private:	
+
+			void Run ();
+			
+		private:
+
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			boost::asio::io_service m_Service;
+			boost::asio::io_service::work m_Work;
+
+			StreamingDestination * m_SharedLocalDestination;	
+	};	
+	
 	Stream * CreateStream (const i2p::data::LeaseSet& remote);
 	void DeleteStream (Stream * stream);
 	void StartStreaming ();
 	void StopStreaming ();
 	
 	// assuming data is I2CP message
-	void HandleDataMessage (i2p::data::IdentHash * destination, const uint8_t * buf, size_t len);
+	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateDataMessage (Stream * s, uint8_t * payload, size_t len);
 }		
 }	
