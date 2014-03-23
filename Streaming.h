@@ -156,7 +156,7 @@ namespace stream
 			void Start ();
 			void Stop ();
 
-			void HandleNextPacket (i2p::data::IdentHash destination, Packet * packet); 
+			void HandleNextPacket (i2p::data::IdentHash destination, Packet * packet);
 
 			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
 			void DeleteClientStream (Stream * stream);
@@ -164,6 +164,7 @@ namespace stream
 		private:	
 
 			void Run ();
+			void PostNextPacket (i2p::data::IdentHash destination, Packet * packet); 
 			
 		private:
 

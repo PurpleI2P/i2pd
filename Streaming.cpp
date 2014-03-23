@@ -1,5 +1,6 @@
 #include <fstream>
 #include <algorithm>
+#include <boost/bind.hpp>
 #include <cryptopp/gzip.h>
 #include "Log.h"
 #include "RouterInfo.h"
@@ -479,8 +480,13 @@ namespace stream
 		else
 			delete stream;
 	}	
-		
+
 	void StreamingDestinations::HandleNextPacket (i2p::data::IdentHash destination, Packet * packet)
+	{
+		m_Service.post (boost::bind (&StreamingDestinations::PostNextPacket, this, destination, packet)); 
+	}	
+	
+	void StreamingDestinations::PostNextPacket (i2p::data::IdentHash destination, Packet * packet)
 	{
 		// TODO: we have onle one destination, might be more
 		if (m_SharedLocalDestination)
@@ -527,7 +533,7 @@ namespace stream
 				uncompressed->len = MAX_PACKET_SIZE;
 			}	
 			decompressor.Get (uncompressed->buf, uncompressed->len);
-			// then forward to streaming engine
+			// then forward to streaming engine thread
 			destinations.HandleNextPacket (destination, uncompressed);
 		}	
 		else
