@@ -20,6 +20,7 @@ namespace stream
 		m_RemoteLeaseSet (remote), m_OutboundTunnel (nullptr)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+		UpdateCurrentRemoteLease ();
 	}	
 
 	Stream::~Stream ()
@@ -62,6 +63,7 @@ namespace stream
 			{
 				// we have received duplicate. Most likely our outbound tunnel is dead
 				LogPrint ("Duplicate message ", receivedSeqn, " received");
+				UpdateCurrentRemoteLease (); // pick another lease
 				m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel (); // pick another tunnel
 				if (m_OutboundTunnel)
 					SendQuickAck (); // resend ack for previous message again
@@ -276,11 +278,12 @@ namespace stream
 			m_OutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
 		if (m_OutboundTunnel)
 		{
-			auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
-			if (!leases.empty ())
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			if (ts >= m_CurrentRemoteLease.endDate)
+				UpdateCurrentRemoteLease ();
+			if (ts < m_CurrentRemoteLease.endDate)
 			{	
-				auto& lease = *leases.begin (); // TODO:
-				m_OutboundTunnel->SendTunnelDataMsg (lease.tunnelGateway, lease.tunnelID, msg);
+				m_OutboundTunnel->SendTunnelDataMsg (m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID, msg);
 				return true;
 			}	
 			else
@@ -296,6 +299,18 @@ namespace stream
 		}	
 		return false;
 	}
+
+	void Stream::UpdateCurrentRemoteLease ()
+	{
+		auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
+		if (!leases.empty ())
+		{	
+			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
+			m_CurrentRemoteLease = leases[i];
+		}	
+		else
+			m_CurrentRemoteLease.endDate = 0;
+	}	
 		
 	StreamingDestination * sharedLocalDestination = nullptr;	
 
@@ -402,7 +417,7 @@ namespace stream
 			size += 32; // tunnel_gw
 			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ());
 			size += 4; // tunnel_id
-			uint64_t ts = tunnel->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT;
+			uint64_t ts = tunnel->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - 60; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
 			*(uint64_t *)(buf + size) = htobe64 (ts);
 			size += 8; // end_date

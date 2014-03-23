@@ -90,6 +90,8 @@ namespace stream
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
+
+			void UpdateCurrentRemoteLease ();
 			
 		private:
 
@@ -97,6 +99,7 @@ namespace stream
 			bool m_IsOpen, m_LeaseSetUpdated;
 			StreamingDestination * m_LocalDestination;
 			const i2p::data::LeaseSet& m_RemoteLeaseSet;
+			i2p::data::Lease m_CurrentRemoteLease;
 			i2p::util::Queue<Packet> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;

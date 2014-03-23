@@ -35,7 +35,7 @@ namespace garlic
 	};		
 #pragma pack()	
 
-	const int TAGS_EXPIRATION_TIMEOUT = 660; // 15 minutes
+	const int TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes
 	class GarlicRoutingSession
 	{
 		public:

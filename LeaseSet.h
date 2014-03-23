@@ -4,7 +4,6 @@
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
-#include <set>
 #include "Identity.h"
 
 namespace i2p
@@ -43,7 +42,7 @@ namespace data
 			const Identity& GetIdentity () const { return m_Identity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			const std::vector<Lease>& GetLeases () const { return m_Leases; };
-			std::set<Lease> GetNonExpiredLeases () const;
+			const std::vector<Lease> GetNonExpiredLeases () const;
 			bool HasExpiredLeases () const;
 			bool HasNonExpiredLeases () const;
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };
