@@ -42,6 +42,11 @@ namespace data
 		return msg;
 	}	
 
+	void RequestedDestination::ClearExcludedPeers ()
+	{
+		m_ExcludedPeers.clear ();
+	}	
+	
 #ifndef _WIN32		
 	const char NetDb::m_NetDbPath[] = "/netDb";
 #else
@@ -353,6 +358,7 @@ namespace data
 					}
 					if (msgs.size () > 0)
 					{	
+						dest->ClearExcludedPeers (); 
 						dest->SetLastOutboundTunnel (outbound);
 						outbound->SendTunnelDataMsg (msgs);	
 					}	

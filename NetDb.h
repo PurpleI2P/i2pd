@@ -30,7 +30,8 @@ namespace data
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
 			const std::set<IdentHash>& GetExcludedPeers () { return m_ExcludedPeers; };
- 			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
+			void ClearExcludedPeers ();
+			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
 			const i2p::tunnel::InboundTunnel * GetLastReplyTunnel () const { return m_LastReplyTunnel; };
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsLeaseSet () const { return m_IsLeaseSet; };
