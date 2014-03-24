@@ -42,6 +42,11 @@ namespace data
 		return msg;
 	}	
 
+	void RequestedDestination::ClearExcludedPeers ()
+	{
+		m_ExcludedPeers.clear ();
+	}	
+	
 #ifndef _WIN32		
 	const char NetDb::m_NetDbPath[] = "/netDb";
 #else
@@ -335,19 +340,26 @@ namespace data
 				if (inbound)
 				{
 					RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet);
-					auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
-					if (floodfill)
+					std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+					// request 3 closests floodfills
+					for (int i = 0; i < 3; i++)
 					{	
-						std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-						// DatabaseLookup message
+						auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+						if (floodfill)
+						{		
+							// DatabaseLookup message
+							msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+								{ 
+									i2p::tunnel::eDeliveryTypeRouter,
+									floodfill->GetIdentHash (), 0,
+									dest->CreateRequestMessage (floodfill, inbound)
+								});	
+						}	
+					}
+					if (msgs.size () > 0)
+					{	
+						dest->ClearExcludedPeers (); 
 						dest->SetLastOutboundTunnel (outbound);
-						msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-							{ 
-								i2p::tunnel::eDeliveryTypeRouter,
-								floodfill->GetIdentHash (), 0,
-								dest->CreateRequestMessage (floodfill, inbound)
-							});	
-				
 						outbound->SendTunnelDataMsg (msgs);	
 					}	
 					else

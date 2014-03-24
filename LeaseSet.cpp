@@ -57,13 +57,13 @@ namespace data
 			LogPrint ("LeaseSet verification failed");
 	}	
 
-	std::set<Lease> LeaseSet::GetNonExpiredLeases () const
+	const std::vector<Lease> LeaseSet::GetNonExpiredLeases () const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		std::set<Lease> leases;
+		std::vector<Lease> leases;
 		for (auto& it: m_Leases)
 			if (ts < it.endDate)
-				leases.insert (it);
+				leases.push_back (it);
 		return leases;	
 	}	
 

@@ -16,7 +16,7 @@ namespace garlic
 {	
 	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags):
 		m_Destination (destination), m_FirstMsgID (0), m_IsAcknowledged (false), 
-		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0)
+		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -40,6 +40,8 @@ namespace garlic
 		{
 			for (int i = 0; i < m_NumTags; i++)
 				m_Rnd.GenerateBlock (m_SessionTags + i*32, 32);
+			m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
+			SetAcknowledged (false);
 		}
 	}
 	
@@ -48,6 +50,24 @@ namespace garlic
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
+
+		// take care about tags
+		if (m_NumTags > 0)
+		{	
+			if (i2p::util::GetSecondsSinceEpoch () >= m_TagsCreationTime + TAGS_EXPIRATION_TIMEOUT)
+			{
+				// old tags expired create new set
+				LogPrint ("Garlic tags expired");
+				GenerateSessionTags ();
+				m_NextTag = -1;
+			}	
+			else if (!m_IsAcknowledged)  // new set of tags was not acknowledged
+			{
+				LogPrint ("Previous garlic tags was not acknowledged. Use ElGamal");		
+				m_NextTag = -1; // have to use ElGamal
+			}
+		}	
+		// create message
 		if (m_NextTag < 0 || !m_NumTags) // new session
 		{
 			// create ElGamal block
@@ -253,7 +273,7 @@ namespace garlic
 			session = it->second;
 		if (!session)
 		{
-			session = new GarlicRoutingSession (destination, 4); // TODO: change it later
+			session = new GarlicRoutingSession (destination, 32); 
 			m_Sessions[destination.GetIdentHash ()] = session;
 		}	
 
@@ -372,7 +392,7 @@ namespace garlic
 					// later on we should let destination decide
 					I2NPHeader * header = (I2NPHeader *)buf;
 					if (header->typeID == eI2NPData)
-						i2p::stream::HandleDataMessage (&destination, buf + sizeof (I2NPHeader), be16toh (header->size));
+						i2p::stream::HandleDataMessage (destination, buf + sizeof (I2NPHeader), be16toh (header->size));
 					else
 						LogPrint ("Unexpected I2NP garlic message ", (int)header->typeID);
 					break;

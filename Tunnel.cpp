@@ -14,7 +14,8 @@ namespace i2p
 namespace tunnel
 {		
 	
-	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_Pool (nullptr), m_IsEstablished (false)
+	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_Pool (nullptr), 
+		m_IsEstablished (false), m_IsFailed (false)
 	{
 	}	
 
@@ -130,6 +131,7 @@ namespace tunnel
 	
 	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
 	{
+		if (IsFailed ()) SetFailed (false); // incoming messages means a tunnel is alive			
 		msg->from = this;
 		EncryptTunnelMsg (msg);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
@@ -225,11 +227,14 @@ namespace tunnel
 		InboundTunnel * tunnel  = nullptr; 
 		size_t minReceived = 0;
 		for (auto it : m_InboundTunnels)
+		{
+			if (it.second->IsFailed ()) continue;
 			if (!tunnel || it.second->GetNumReceivedBytes () < minReceived)
 			{
 				tunnel = it.second;
 				minReceived = it.second->GetNumReceivedBytes ();
-			}		
+			}
+		}			
 		return tunnel;
 	}
 
@@ -240,7 +245,7 @@ namespace tunnel
 		for (auto it : m_InboundTunnels)
 		{
 			if (i >= num) break;
-			if (it.second->GetNextIdentHash () != i2p::context.GetRouterInfo ().GetIdentHash ())
+			if (!it.second->IsFailed () && it.second->GetNextIdentHash () != i2p::context.GetRouterInfo ().GetIdentHash ())
 			{
 				// exclude one hop tunnels
 				v.push_back (it.second);
@@ -254,23 +259,17 @@ namespace tunnel
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_OutboundTunnels.size () - 1), i = 0;
+		OutboundTunnel * tunnel = nullptr;
 		for (auto it: m_OutboundTunnels)
 		{	
 			if (i >= ind) return it;
-			else i++;
-		}	
-		return nullptr;
-		
-		// TODO: implement it base on profiling
-		/*OutboundTunnel * tunnel  = nullptr; 
-		size_t minSent = 0;
-		for (auto it : m_OutboundTunnels)
-			if (!tunnel || it->GetNumSentBytes () < minSent)
+			if (!it->IsFailed ())
 			{
 				tunnel = it;
-				minSent = it->GetNumSentBytes ();
-			}		
-		return tunnel;*/
+				i++;
+			}
+		}	
+		return tunnel;
 	}	
 
 	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination * localDestination)
