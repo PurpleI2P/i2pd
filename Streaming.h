@@ -37,7 +37,7 @@ namespace stream
 
 	struct Packet
 	{
-		uint8_t buf[1754];	
+		uint8_t buf[MAX_PACKET_SIZE];	
 		size_t len, offset;
 
 		Packet (): len (0), offset (0) {};
@@ -88,7 +88,8 @@ namespace stream
 
 			void ConnectAndSend (uint8_t * buf, size_t len);
 			void SendQuickAck ();
-			bool SendPacket (uint8_t * packet, size_t size);
+			bool SendPacket (Packet * packet);
+			bool SendPacket (const uint8_t * buf, size_t len);
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
@@ -183,7 +184,7 @@ namespace stream
 	
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);
-	I2NPMessage * CreateDataMessage (Stream * s, uint8_t * payload, size_t len);
+	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len);
 }		
 }	
 
