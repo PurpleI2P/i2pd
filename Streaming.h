@@ -7,6 +7,7 @@
 #include <set>
 #include <thread>
 #include <boost/asio.hpp>
+#include <boost/bind.hpp>
 #include <cryptopp/dsa.h>
 #include "I2PEndian.h"
 #include "Queue.h"
@@ -80,10 +81,13 @@ namespace stream
 			void HandleNextPacket (Packet * packet);
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds
 			size_t Receive (uint8_t * buf, size_t len, int timeout = 0); // returns 0 if timeout expired
+			template<typename Buffer, typename ReceiveHandler>
+			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
+
 			void Close ();
 
 			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
-			
+	
 		private:
 
 			void ConnectAndSend (uint8_t * buf, size_t len);
@@ -96,6 +100,9 @@ namespace stream
 
 			void UpdateCurrentRemoteLease ();
 			
+			template<typename Buffer, typename ReceiveHandler>
+			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler);
+
 		private:
 
 			boost::asio::io_service& m_Service;
@@ -107,6 +114,7 @@ namespace stream
 			i2p::util::Queue<Packet> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;
+			boost::asio::deadline_timer m_ReceiveTimer;
 	};
 	
 	class StreamingDestination: public i2p::data::LocalDestination 
@@ -185,6 +193,28 @@ namespace stream
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len);
+
+//-------------------------------------------------
+
+	template<typename Buffer, typename ReceiveHandler>
+	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
+	{
+		m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
+		m_ReceiveTimer.async_wait (boost::bind (&Stream::HandleReceiveTimer,
+			this, boost::asio::placeholders::error, buffer, handler));
+	}
+
+	template<typename Buffer, typename ReceiveHandler>
+	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler)
+	{
+		// TODO:
+		if (ecode == boost::asio::error::operation_aborted)
+			// timeout not expired	
+			handler (boost::system::error_code (), 0);
+		else
+			// timeout expired
+			handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), 0);
+	}
 }		
 }	
 

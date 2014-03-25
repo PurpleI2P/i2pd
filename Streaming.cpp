@@ -1,6 +1,5 @@
 #include <fstream>
 #include <algorithm>
-#include <boost/bind.hpp>
 #include <cryptopp/gzip.h>
 #include "Log.h"
 #include "RouterInfo.h"
@@ -19,7 +18,7 @@ namespace stream
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false), 
 		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (remote), 
-		m_OutboundTunnel (nullptr)
+		m_OutboundTunnel (nullptr), m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -27,6 +26,7 @@ namespace stream
 
 	Stream::~Stream ()
 	{
+		m_ReceiveTimer.cancel ();
 		while (auto packet = m_ReceiveQueue.Get ())
 			delete packet;
 		for (auto it: m_SavedPackets)
@@ -124,6 +124,7 @@ namespace stream
 			LogPrint ("Closed");
 			m_IsOpen = false;
 			m_ReceiveQueue.WakeUp ();
+			m_ReceiveTimer.cancel ();
 		}
 	}	
 		
