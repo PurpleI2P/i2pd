@@ -57,7 +57,10 @@ namespace stream
 				}
 				else
 					break;
-			}	
+			}
+
+			// send ack for last message
+			SendQuickAck ();
 		}	
 		else 
 		{	
@@ -117,7 +120,6 @@ namespace stream
 			delete packet;
 		
 		m_LastReceivedSequenceNumber = receivedSeqn;
-		SendQuickAck ();
 
 		if (flags & PACKET_FLAG_CLOSE)
 		{
