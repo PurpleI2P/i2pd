@@ -201,7 +201,7 @@ namespace stream
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
 		m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
-		m_ReceiveTimer.async_wait (boost::bind (&Stream::HandleReceiveTimer,
+		m_ReceiveTimer.async_wait (boost::bind (&Stream::HandleReceiveTimer<Buffer, ReceiveHandler>,
 			this, boost::asio::placeholders::error, buffer, handler));
 	}
 

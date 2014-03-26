@@ -277,6 +277,9 @@ namespace util
 		}	
 	}	
 	
+	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+	}
 	
 	HTTPServer::HTTPServer (int port): 
 		m_Thread (nullptr), m_Work (m_Service), 
