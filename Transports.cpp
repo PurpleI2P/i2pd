@@ -156,34 +156,36 @@ namespace i2p
 	void Transports::PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
 		auto session = FindNTCPSession (ident);
-		if (!session)
+		if (session)
+			session->SendI2NPMessage (msg);
+		else
 		{
 			RouterInfo * r = netdb.FindRouter (ident);
 			if (r)
 			{	
-				auto address = r->GetNTCPAddress ();
-				if (address)
-				{	
-					session = new i2p::ntcp::NTCPClient (m_Service, address->host, address->port, *r);
-					AddNTCPSession (session);
-				}	
+				auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (r) : nullptr;
+				if (ssuSession)
+					ssuSession->SendI2NPMessage (msg);
 				else
 				{	
-					// SSU always have lower prioprity than NTCP
-					// TODO: it shouldn't
-					LogPrint ("No NTCP addresses available. Trying SSU");
-					address = r->GetSSUAddress ();
-					if (address && m_SSUServer)
-					{
-						auto s = m_SSUServer->GetSession (r);
-						if (s)
-						{
-							s->SendI2NPMessage (msg);
-							return;
-						}
-					}
+					// existing session not found. create new 
+					// try NTCP first
+					auto address = r->GetNTCPAddress ();
+					if (address)
+					{	
+						auto s = new i2p::ntcp::NTCPClient (m_Service, address->host, address->port, *r);
+						AddNTCPSession (s);
+						s->SendI2NPMessage (msg);
+					}	
 					else
-						LogPrint ("No SSU addresses available");
+					{	
+						// then SSU					
+						auto s = m_SSUServer ? m_SSUServer->GetSession (r) : nullptr;
+						if (s)
+							s->SendI2NPMessage (msg);
+						else
+							LogPrint ("No NTCP and SSU addresses available");
+					}
 				}	
 			}
 			else
@@ -192,10 +194,6 @@ namespace i2p
 				i2p::data::netdb.RequestDestination (ident);
 			}	
 		}	
-		if (session)
-			session->SendI2NPMessage (msg);
-		else
-			LogPrint ("Session not found"); 
 	}	
 
 	void Transports::DetectExternalIP ()

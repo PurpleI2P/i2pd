@@ -796,6 +796,18 @@ namespace ssu
 			LogPrint ("SSU receive error: ", ecode.message ());
 	}
 
+	SSUSession * SSUServer::FindSession (const i2p::data::RouterInfo * router)
+	{
+		if (!router) return nullptr;
+		auto address = router->GetSSUAddress ();
+		if (!address) return nullptr;
+		auto it = m_Sessions.find (boost::asio::ip::udp::endpoint (address->host, address->port));
+		if (it != m_Sessions.end ())
+			return it->second;
+		else
+			return nullptr;
+	}	
+		
 	SSUSession * SSUServer::GetSession (const i2p::data::RouterInfo * router)
 	{
 		SSUSession * session = nullptr;
