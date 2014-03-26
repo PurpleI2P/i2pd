@@ -126,6 +126,7 @@ namespace ssu
 			void Start ();
 			void Stop ();
 			SSUSession * GetSession (const i2p::data::RouterInfo * router);
+			SSUSession * FindSession (const i2p::data::RouterInfo * router);
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			
 

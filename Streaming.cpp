@@ -1,6 +1,5 @@
 #include <fstream>
 #include <algorithm>
-#include <boost/bind.hpp>
 #include <cryptopp/gzip.h>
 #include "Log.h"
 #include "RouterInfo.h"
@@ -19,7 +18,7 @@ namespace stream
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false), 
 		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (remote), 
-		m_OutboundTunnel (nullptr)
+		m_OutboundTunnel (nullptr), m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -27,6 +26,7 @@ namespace stream
 
 	Stream::~Stream ()
 	{
+		m_ReceiveTimer.cancel ();
 		while (auto packet = m_ReceiveQueue.Get ())
 			delete packet;
 		for (auto it: m_SavedPackets)
@@ -57,7 +57,10 @@ namespace stream
 				}
 				else
 					break;
-			}	
+			}
+
+			// send ack for last message
+			SendQuickAck ();
 		}	
 		else 
 		{	
@@ -117,13 +120,13 @@ namespace stream
 			delete packet;
 		
 		m_LastReceivedSequenceNumber = receivedSeqn;
-		SendQuickAck ();
 
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint ("Closed");
 			m_IsOpen = false;
 			m_ReceiveQueue.WakeUp ();
+			m_ReceiveTimer.cancel ();
 		}
 	}	
 		
@@ -141,7 +144,9 @@ namespace stream
 	void Stream::ConnectAndSend (uint8_t * buf, size_t len)
 	{
 		m_IsOpen = true;
-		uint8_t packet[STREAMING_MTU];
+		Packet * p = new Packet ();
+		uint8_t * packet = p->GetBuffer ();
+		// TODO: implement setters
 		size_t size = 0;
 		*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
 		size += 4; // sendStreamID
@@ -167,18 +172,18 @@ namespace stream
 		size += 2; // max packet size
 		uint8_t * signature = packet + size; // set it later
 		memset (signature, 0, 40); // zeroes for now
-		size += 40; // signature
-		
+		size += 40; // signature		
 		memcpy (packet + size, buf, len); 
 		size += len; // payload
 		m_LocalDestination->Sign (packet, size, signature);
+		p->len = size;
 		
-		SendPacket (packet, size);
+		m_Service.post (boost::bind (&Stream::SendPacket, this, p));
 	}	
 		
 	void Stream::SendQuickAck ()
 	{
-		uint8_t packet[STREAMING_MTU];
+		uint8_t packet[MAX_PACKET_SIZE];
 		size_t size = 0;
 		*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
 		size += 4; // sendStreamID
@@ -195,7 +200,7 @@ namespace stream
 		size += 2; // flags
 		*(uint16_t *)(packet + size) = 0; // no options
 		size += 2; // options size
-
+		
 		if (SendPacket (packet, size))
 			LogPrint ("Quick Ack sent");
 	}	
@@ -205,7 +210,7 @@ namespace stream
 		if (m_IsOpen)
 		{	
 			m_IsOpen = false;
-			uint8_t packet[STREAMING_MTU];
+			uint8_t packet[MAX_PACKET_SIZE];
 			size_t size = 0;
 			*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
 			size += 4; // sendStreamID
@@ -226,7 +231,7 @@ namespace stream
 			memset (packet + size, 0, 40);
 			size += 40; // signature
 			m_LocalDestination->Sign (packet, size, signature);
-
+			
 			if (SendPacket (packet, size))
 				LogPrint ("FIN sent");
 			m_ReceiveQueue.WakeUp ();
@@ -266,7 +271,19 @@ namespace stream
 		return pos; 
 	}	
 
-	bool Stream::SendPacket (uint8_t * packet, size_t size)
+	bool Stream::SendPacket (Packet * packet)
+	{
+		if (packet)
+		{	
+			bool ret = SendPacket (packet->GetBuffer (), packet->GetLength ());
+			delete packet;
+			return ret;
+		}	
+		else
+			return false;
+	}	
+	
+	bool Stream::SendPacket (const uint8_t * buf, size_t len)
 	{		
 		const I2NPMessage * leaseSet = nullptr;
 		if (m_LeaseSetUpdated)
@@ -275,7 +292,7 @@ namespace stream
 			m_LeaseSetUpdated = false;
 		}	
 		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
-			CreateDataMessage (this, packet, size), leaseSet);
+			CreateDataMessage (this, buf, len), leaseSet);
 		if (!m_OutboundTunnel)
 			m_OutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
 		if (m_OutboundTunnel)
@@ -540,7 +557,7 @@ namespace stream
 			LogPrint ("Data: protocol ", buf[9], " is not supported");
 	}	
 
-	I2NPMessage * CreateDataMessage (Stream * s, uint8_t * payload, size_t len)
+	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len)
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		CryptoPP::Gzip compressor;
