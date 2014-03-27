@@ -7,7 +7,6 @@
 #include "TransitTunnel.h"
 #include "Transports.h"
 #include "NetDb.h"
-#include "Streaming.h"
 #include "HTTPServer.h"
 
 namespace i2p
@@ -44,6 +43,11 @@ namespace util
 
 	void HTTPConnection::Terminate ()
 	{
+		if (m_Stream)
+		{	
+			m_Stream->Close ();
+			DeleteStream (m_Stream);	
+		}
 		m_Socket->close ();
 		delete this;
 	}
@@ -94,10 +98,17 @@ namespace util
 		return "";
 	}	
 	
-	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode, bool terminate)
+	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
 	{
-		if (terminate)
+		Terminate ();
+	}
+
+	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
+	{
+		if (ecode || (m_Stream && !m_Stream->IsOpen ()))
 			Terminate ();
+		else // data keeps coming
+			AsyncStreamReceive ();
 	}
 
 	void HTTPConnection::HandleRequest ()
@@ -231,47 +242,58 @@ namespace util
 				SendReply (leaseSet ? "<html>Leases expired</html>" : "<html>LeaseSet not found</html>");
 				return;
 			}	
-		}	
-		auto s = i2p::stream::CreateStream (*leaseSet);
-		if (s)
+		}
+		if (!m_Stream)	
+			m_Stream = i2p::stream::CreateStream (*leaseSet);
+		if (m_Stream)
 		{
 			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + fullAddress + "\n";
-			s->Send ((uint8_t *)request.c_str (), request.length (), 10);			
+			m_Stream->Send ((uint8_t *)request.c_str (), request.length (), 10);			
 			std::stringstream ss;
 			uint8_t buf[8192];
-			size_t r = s->Receive (buf, 8192, 30); // 30 seconds
-			if (!r && s->IsEstablished ()) // nothing received but connection is established
-				r = s->Receive (buf, 8192, 30); // wait for another 30 secondd
+			size_t r = m_Stream->Receive (buf, 8192, 30); // 30 seconds
+			if (!r && m_Stream->IsEstablished ()) // nothing received but connection is established
+				r = m_Stream->Receive (buf, 8192, 30); // wait for another 30 secondd
 			if (r) // we recieved data
 			{
 				ss << std::string ((char *)buf, r);
-				while (s->IsOpen () && (r = s->Receive (buf, 8192, 30)) > 0)
+				while (m_Stream->IsOpen () && (r = m_Stream->Receive (buf, 8192, 30)) > 0)
 					ss << std::string ((char *)buf,r);	
 				
 				m_Reply.content = ss.str (); // send "as is"
 				m_Reply.headers.resize(0); // no headers
 				boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
-          			boost::bind (&HTTPConnection::HandleWrite, this,
-           				boost::asio::placeholders::error, true));
+          			boost::bind (&HTTPConnection::HandleWriteReply, this, boost::asio::placeholders::error));
 				return;
 			}	
 			else // nothing received
 				ss << "<html>Not responding</html>";
-			s->Close ();
-			DeleteStream (s);
-			
 			SendReply (ss.str ());
 		}	
 	}	
 	
+	void HTTPConnection::AsyncStreamReceive ()
+	{
+		if (m_Stream)
+			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
+				boost::protect (boost::bind (&HTTPConnection::HandleStreamReceive, this, 
+					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)),
+				30); // 30 seconds timeout
+	}
+
 	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (bytes_transferred)
 		{
+			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
+        		boost::bind (&HTTPConnection::HandleWrite, this, boost::asio::placeholders::error));
 		}
 		else
 		{
-			SendReply ("Not responding");
+			if (m_Stream && m_Stream->IsOpen ())
+				SendReply ("Not responding");
+			else
+				Terminate ();
 		}	
 	}
 
@@ -285,8 +307,8 @@ namespace util
 		m_Reply.headers[1].value = "text/html";
 
 		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
-        	boost::bind (&HTTPConnection::HandleWrite, this,
-           		boost::asio::placeholders::error, true));
+        	boost::bind (&HTTPConnection::HandleWriteReply, this, 
+				boost::asio::placeholders::error));
 	}
 	
 	HTTPServer::HTTPServer (int port): 
