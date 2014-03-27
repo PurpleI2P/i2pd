@@ -1,4 +1,5 @@
 #include <boost/bind.hpp>
+#include <boost/bind/protect.hpp>
 #include <boost/lexical_cast.hpp>
 #include "base64.h"
 #include "Log.h"
@@ -76,10 +77,6 @@ namespace util
 			}	
 			else	  
 				HandleRequest ();
-			boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
-          		boost::bind (&HTTPConnection::HandleWrite, this,
-           			boost::asio::placeholders::error));
-			//Receive ();
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
 			Terminate ();
@@ -97,9 +94,10 @@ namespace util
 		return "";
 	}	
 	
-	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
+	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode, bool terminate)
 	{
-		Terminate ();
+		if (terminate)
+			Terminate ();
 	}
 
 	void HTTPConnection::HandleRequest ()
@@ -108,12 +106,7 @@ namespace util
 		s << "<html>";
 		FillContent (s);
 		s << "</html>";
-		m_Reply.content = s.str ();
-		m_Reply.headers.resize(2);
-		m_Reply.headers[0].name = "Content-Length";
-		m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
-		m_Reply.headers[1].name = "Content-Type";
-		m_Reply.headers[1].value = "text/html";
+		SendReply (s.str ());
 	}	
 
 	void HTTPConnection::FillContent (std::stringstream& s)
@@ -211,6 +204,7 @@ namespace util
 			if (!addr) 
 			{
 				LogPrint ("Unknown address ", address);
+				SendReply ("Unknown address");
 				return;
 			}	
 			destination = *addr;
@@ -234,12 +228,7 @@ namespace util
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
-				m_Reply.content = leaseSet ? "<html>Leases expired</html>" : "<html>LeaseSet not found</html>";
-				m_Reply.headers.resize(2);
-				m_Reply.headers[0].name = "Content-Length";
-				m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
-				m_Reply.headers[1].name = "Content-Type";
-				m_Reply.headers[1].value = "text/html";
+				SendReply (leaseSet ? "<html>Leases expired</html>" : "<html>LeaseSet not found</html>");
 				return;
 			}	
 		}	
@@ -261,6 +250,9 @@ namespace util
 				
 				m_Reply.content = ss.str (); // send "as is"
 				m_Reply.headers.resize(0); // no headers
+				boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
+          			boost::bind (&HTTPConnection::HandleWrite, this,
+           				boost::asio::placeholders::error, true));
 				return;
 			}	
 			else // nothing received
@@ -268,17 +260,33 @@ namespace util
 			s->Close ();
 			DeleteStream (s);
 			
-			m_Reply.content = ss.str ();
-			m_Reply.headers.resize(2);
-			m_Reply.headers[0].name = "Content-Length";
-			m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
-			m_Reply.headers[1].name = "Content-Type";
-			m_Reply.headers[1].value = "text/html";
+			SendReply (ss.str ());
 		}	
 	}	
 	
 	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		if (bytes_transferred)
+		{
+		}
+		else
+		{
+			SendReply ("Not responding");
+		}	
+	}
+
+	void HTTPConnection::SendReply (const std::string& content)
+	{
+		m_Reply.content = content;
+		m_Reply.headers.resize(2);
+		m_Reply.headers[0].name = "Content-Length";
+		m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+		m_Reply.headers[1].name = "Content-Type";
+		m_Reply.headers[1].value = "text/html";
+
+		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
+        	boost::bind (&HTTPConnection::HandleWrite, this,
+           		boost::asio::placeholders::error, true));
 	}
 	
 	HTTPServer::HTTPServer (int port): 
