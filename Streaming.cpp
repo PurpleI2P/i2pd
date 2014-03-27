@@ -248,7 +248,12 @@ namespace stream
 				return 0;
 		}
 
-		// either non-empty or we have received empty
+		// either non-empty or we have received something
+		return ConcatenatePackets (buf, len);
+	}	
+
+	size_t Stream::ConcatenatePackets (uint8_t * buf, size_t len)
+	{
 		size_t pos = 0;
 		while (pos < len)
 		{
@@ -269,7 +274,7 @@ namespace stream
 				break;
 		}	
 		return pos; 
-	}	
+	}
 
 	bool Stream::SendPacket (Packet * packet)
 	{

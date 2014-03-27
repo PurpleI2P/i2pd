@@ -44,7 +44,8 @@ namespace util
 
 			void Terminate ();
 			void Receive ();
-			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);			
+			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);	
+			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);			
 			void HandleWrite(const boost::system::error_code& ecode);
 
 			void HandleRequest ();

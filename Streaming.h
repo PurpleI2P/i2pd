@@ -97,6 +97,7 @@ namespace stream
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
+			size_t ConcatenatePackets (uint8_t * buf, size_t len);
 
 			void UpdateCurrentRemoteLease ();
 			
@@ -200,20 +201,20 @@ namespace stream
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
 		m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
-		m_ReceiveTimer.async_wait (boost::bind (&Stream::HandleReceiveTimer,
+		m_ReceiveTimer.async_wait (boost::bind (&Stream::HandleReceiveTimer<Buffer, ReceiveHandler>,
 			this, boost::asio::placeholders::error, buffer, handler));
 	}
 
 	template<typename Buffer, typename ReceiveHandler>
 	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler)
 	{
-		// TODO:
+		size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), boost::asio::buffer_size(buffer));
 		if (ecode == boost::asio::error::operation_aborted)
 			// timeout not expired	
-			handler (boost::system::error_code (), 0);
+			handler (boost::system::error_code (), received);
 		else
 			// timeout expired
-			handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), 0);
+			handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
 	}
 }		
 }	
