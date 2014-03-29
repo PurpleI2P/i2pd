@@ -1,6 +1,7 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind/protect.hpp>
+#include <boost/regex.hpp>
 
 #include "base64.h"
 #include "Log.h"
@@ -62,12 +63,12 @@ namespace proxy
 		{
 			m_Buffer[bytes_transferred] = 0;
 			
-			std::pair<std::string,std::string> requestInfo = ExtractRequest ();
 			request m_Request;
+			ExtractRequest (m_Request);
 			parseHeaders (m_Buffer, m_Request.headers);
 			
-			LogPrint("Requesting ", requestInfo.first, " with path ", requestInfo.second);
-			HandleDestinationRequest (requestInfo.first, requestInfo.second);
+			LogPrint("Requesting ", m_Request.host, " with path ", m_Request.uri, " and method ", m_Request.method);
+			HandleDestinationRequest (m_Request.host, m_Request.uri);
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
 			Terminate ();
@@ -96,33 +97,31 @@ namespace proxy
 		}
 	}
 
-	// TODO: Support other requests than GET.
-	std::pair<std::string, std::string> HTTPConnection::ExtractRequest ()
+	void HTTPConnection::ExtractRequest (request &m_Request)
 	{
-		char * get = strstr (m_Buffer, "GET");
-		if (get)
-		{
-			char * http = strstr (get, "HTTP");
-			if (http)
-			{
-				std::string url (get + 4, http - get - 5);
-				size_t sp = url.find_first_of ('/', 7 /* skip http:// part */ );
-				if (sp != std::string::npos)
-				{
-					std::string base_url (url.begin()+7, url.begin()+sp);
-					LogPrint ("Base URL is: ", base_url, "\n");
-					if ( sp != std::string::npos )
-					{
-						std::string query (url.begin ()+sp+1, url.end ());
-						LogPrint ("Query is: ", "/" + query);
-
-						return std::make_pair (base_url, "/" + query);
-					}
-					return std::make_pair (base_url, "/");
-				}
+		std::string requestString = m_Buffer;
+		int idx=requestString.find(" ");
+		std::string method = requestString.substr(0,idx);
+		requestString = requestString.substr(idx+1);
+		idx=requestString.find(" ");
+		std::string requestUrl = requestString.substr(0,idx);
+		LogPrint("method is: ", method, "\nRequest is: ", requestUrl);
+		std::string server="";
+		std::string port="80";
+		boost::regex rHTTP("http://(.*?)(:(\\d+))?(/.*)");
+		boost::smatch m;
+		std::string path;
+		if(boost::regex_search(requestUrl, m, rHTTP, boost::match_extra)) {
+			server=m[1].str();
+			if(m[2].str() != "") {
+				port=m[3].str();
 			}
+			path=m[4].str();
 		}
-		return std::make_pair ("","");
+		LogPrint("server is: ",server, "\n path is: ",path);
+		m_Request.uri = path;
+		m_Request.method = method;
+		m_Request.host = server;
 	}
 	
 	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)

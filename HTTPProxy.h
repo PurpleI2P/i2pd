@@ -24,6 +24,7 @@ namespace proxy
 		{
 		  std::string method;
 		  std::string uri;
+		  std::string host;
 		  int http_version_major;
 		  int http_version_minor;
 		  std::vector<header> headers;
@@ -54,7 +55,7 @@ namespace proxy
 			void SendReply (const std::string& content);
 
 			void HandleDestinationRequest (const std::string& address, const std::string& uri);
-			std::pair<std::string, std::string> ExtractRequest ();
+			void ExtractRequest (request& m_Request);
 			void parseHeaders(const std::string& h, std::vector<header>& hm);
 			
 		private:
