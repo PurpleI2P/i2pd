@@ -60,8 +60,8 @@ namespace proxy
 			
 		private:
 	
-			i2p::stream::Stream * m_Stream;
 			boost::asio::ip::tcp::socket * m_Socket;
+			i2p::stream::Stream * m_Stream;
 			char m_Buffer[8192], m_StreamBuffer[8192];
 			request m_Request;
 			reply m_Reply;
