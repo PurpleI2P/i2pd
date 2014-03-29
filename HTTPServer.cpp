@@ -64,26 +64,31 @@ namespace util
 		if (!ecode)
   		{
 			m_Buffer[bytes_transferred] = 0;
-			auto address = ExtractAddress ();
-			if (address.length () > 1) // not just '/'
-			{
-				std::string uri ("/"), b32;
-				size_t pos = address.find ('/', 1);
-				if (pos == std::string::npos)
-					b32 = address.substr (1); // excluding leading '/' to end of line
-				else
-				{
-					b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
-					uri = address.substr (pos); // rest of line
-				}	
-
-				HandleDestinationRequest (b32, uri); 
-			}	
-			else	  
-				HandleRequest ();
+			RunRequest();
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
 			Terminate ();
+	}
+
+	void HTTPConnection::RunRequest ()
+	{
+		auto address = ExtractAddress ();
+		if (address.length () > 1) // not just '/'
+		{
+			std::string uri ("/"), b32;
+			size_t pos = address.find ('/', 1);
+			if (pos == std::string::npos)
+				b32 = address.substr (1); // excluding leading '/' to end of line
+			else
+			{
+				b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
+				uri = address.substr (pos); // rest of line
+			}	
+
+			HandleDestinationRequest (b32, uri); 
+		}	
+		else	  
+			HandleRequest ();
 	}
 
 	std::string HTTPConnection::ExtractAddress ()
@@ -215,7 +220,7 @@ namespace util
 			if (!addr) 
 			{
 				LogPrint ("Unknown address ", address);
-				SendReply ("Unknown address");
+				SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>");
 				return;
 			}	
 			destination = *addr;
@@ -226,7 +231,7 @@ namespace util
 			if (i2p::data::Base32ToByteStream (address.c_str (), address.length (), (uint8_t *)destination, 32) != 32)
 			{
 				LogPrint ("Invalid Base32 address ", address);
-				SendReply ("Invalid Base32 address");
+				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address");
 				return;
 			}
 			fullAddress = address + ".b32.i2p";
@@ -240,7 +245,7 @@ namespace util
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
-				SendReply (leaseSet ? "<html>Leases expired</html>" : "<html>LeaseSet not found</html>");
+				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>");
 				return;
 			}	
 		}
@@ -273,7 +278,7 @@ namespace util
 		else
 		{
 			if (m_Stream && m_Stream->IsOpen ())
-				SendReply ("Not responding");
+				SendReply ("<html>" + itoopieImage + "<br>Not responding</html>");
 			else
 				Terminate ();
 		}	
@@ -341,10 +346,16 @@ namespace util
 	{
 		if (!ecode)
 		{
-			new HTTPConnection (m_NewSocket);
+			CreateConnection(m_NewSocket); // new HTTPConnection(m_NewSocket);
 			Accept ();
 		}
 	}	
+
+	void HTTPServer::CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket)
+	{
+		new HTTPConnection (m_NewSocket);
+	}
+
 }
 }
 
