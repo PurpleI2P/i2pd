@@ -39,15 +39,19 @@ namespace proxy
 	
 		public:
 
-			HTTPConnection (boost::asio::ip::tcp::socket * socket): m_Socket (socket) { Receive (); };
+			HTTPConnection (boost::asio::ip::tcp::socket * socket): m_Socket (socket), m_Stream (nullptr) { Receive (); };
 			~HTTPConnection () { delete m_Socket; }
 
 		private:
 
 			void Terminate ();
 			void Receive ();
-			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);			
-			void HandleWrite(const boost::system::error_code& ecode);
+			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void AsyncStreamReceive ();
+			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleWriteReply(const boost::system::error_code& ecode);
+			void HandleWrite (const boost::system::error_code& ecode);
+			void SendReply (const std::string& content);
 
 			void HandleDestinationRequest (const std::string& address, const std::string& uri);
 			std::pair<std::string, std::string> ExtractRequest ();
@@ -55,8 +59,9 @@ namespace proxy
 			
 		private:
 	
+			i2p::stream::Stream * m_Stream;
 			boost::asio::ip::tcp::socket * m_Socket;
-			char m_Buffer[8192];
+			char m_Buffer[8192], m_StreamBuffer[8192];
 			request m_Request;
 			reply m_Reply;
 	};	

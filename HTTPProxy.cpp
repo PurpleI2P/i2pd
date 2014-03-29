@@ -1,5 +1,6 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/bind/protect.hpp>
 
 #include "base64.h"
 #include "Log.h"
@@ -67,11 +68,6 @@ namespace proxy
 			
 			LogPrint("Requesting ", requestInfo.first, " with path ", requestInfo.second);
 			HandleDestinationRequest (requestInfo.first, requestInfo.second);
-			
-			boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
-				boost::bind (&HTTPConnection::HandleWrite, this,
-					boost::asio::placeholders::error));
-			//Receive ();
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
 			Terminate ();
@@ -129,9 +125,17 @@ namespace proxy
 		return std::make_pair ("","");
 	}
 	
-	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
+	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
 	{
 		Terminate ();
+	}
+
+	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
+	{
+		if (ecode || (m_Stream && !m_Stream->IsOpen ()))
+			Terminate ();
+		else // data keeps coming
+			AsyncStreamReceive ();
 	}
 
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
@@ -155,11 +159,12 @@ namespace proxy
 			if (!addr) 
 			{
 				LogPrint ("Unknown address ", address);
+				SendReply("<html>"+ i2p::proxy::itoopieImage +"<br>Unknown address " + address + "</html>");
 				return;
 			}	
 			destination = *addr;
 			fullAddress = address;
-		}	
+		}
 			
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
@@ -169,47 +174,57 @@ namespace proxy
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
-				m_Reply.content = leaseSet ? "<html>"+ i2p::proxy::itoopieImage +"<br>Leases expired</html>" : "<html>"+ i2p::proxy::itoopieImage +"LeaseSet not found</html>";
-				m_Reply.headers.resize(2);
-				m_Reply.headers[0].name = "Content-Length";
-				m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
-				m_Reply.headers[1].name = "Content-Type";
-				m_Reply.headers[1].value = "text/html";
+				SendReply(leaseSet ? "<html>"+ i2p::proxy::itoopieImage +"<br>Leases expired</html>" : "<html>"+ i2p::proxy::itoopieImage +"LeaseSet not found</html>");
 				return;
 			}	
 		}	
-		auto s = i2p::stream::CreateStream (*leaseSet);
-		if (s)
+		if (!m_Stream)
+			m_Stream = i2p::stream::CreateStream (*leaseSet);
+		if (m_Stream)
 		{
 			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + fullAddress + "\n";
-			s->Send ((uint8_t *)request.c_str (), request.length (), 10);			
-			std::stringstream ss;
-			uint8_t buf[8192];
-			size_t r = s->Receive (buf, 8192, 30); // 30 seconds
-			if (!r && s->IsEstablished ()) // nothing received but connection is established
-				r = s->Receive (buf, 8192, 30); // wait for another 30 secondd
-			if (r) // we recieved data
-			{
-				ss << std::string ((char *)buf, r);
-				while (s->IsOpen () && (r = s->Receive (buf, 8192, 30)) > 0)
-					ss << std::string ((char *)buf,r);	
-				
-				m_Reply.content = ss.str (); // send "as is"
-				m_Reply.headers.resize(0); // no headers
-				return;
-			}	
-			else // nothing received
-				ss << "<html>"+ i2p::proxy::itoopieImage +"<br>Not responding</html>";
-			s->Close ();
-			DeleteStream (s);
-			
-			m_Reply.content = ss.str ();
-			m_Reply.headers.resize(2);
-			m_Reply.headers[0].name = "Content-Length";
-			m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
-			m_Reply.headers[1].name = "Content-Type";
-			m_Reply.headers[1].value = "text/html";
+			m_Stream->Send ((uint8_t *)request.c_str (), request.length (), 10);
+			AsyncStreamReceive ();
+		}
+	}
+
+	void HTTPConnection::AsyncStreamReceive ()
+	{
+		if (m_Stream)
+			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
+				boost::protect (boost::bind (&HTTPConnection::HandleStreamReceive, this,
+					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)),
+				45); // 45 seconds timeout
+	}
+
+	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (bytes_transferred)
+		{
+			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
+				boost::bind (&HTTPConnection::HandleWrite, this, boost::asio::placeholders::error));
+		}
+		else
+		{
+			if (m_Stream && m_Stream->IsOpen ())
+				SendReply ("<html>"+ i2p::proxy::itoopieImage +"<br>Not responding</html>");
+			else
+				Terminate ();
 		}	
+	}
+
+	void HTTPConnection::SendReply (const std::string& content)
+	{
+		m_Reply.content = content;
+		m_Reply.headers.resize(2);
+		m_Reply.headers[0].name = "Content-Length";
+		m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+		m_Reply.headers[1].name = "Content-Type";
+		m_Reply.headers[1].value = "text/html";
+
+		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
+			boost::bind (&HTTPConnection::HandleWriteReply, this,
+				boost::asio::placeholders::error));
 	}	
 	
 	
