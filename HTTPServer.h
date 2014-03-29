@@ -5,6 +5,7 @@
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
+#include "Streaming.h"
 
 namespace i2p
 {
@@ -37,7 +38,7 @@ namespace util
 	
 		public:
 
-			HTTPConnection (boost::asio::ip::tcp::socket * socket): m_Socket (socket) { Receive (); };
+			HTTPConnection (boost::asio::ip::tcp::socket * socket): m_Socket (socket), m_Stream (nullptr) { Receive (); };
 			~HTTPConnection () { delete m_Socket; }
 
 		private:
@@ -45,8 +46,11 @@ namespace util
 			void Terminate ();
 			void Receive ();
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);	
+			void AsyncStreamReceive ();
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);			
-			void HandleWrite(const boost::system::error_code& ecode);
+			void HandleWriteReply(const boost::system::error_code& ecode);
+			void HandleWrite (const boost::system::error_code& ecode);
+			void SendReply (const std::string& content);
 
 			void HandleRequest ();
 			void HandleDestinationRequest (const std::string& address, const std::string& uri);
@@ -56,7 +60,8 @@ namespace util
 		private:
 	
 			boost::asio::ip::tcp::socket * m_Socket;
-			char m_Buffer[8192];
+			i2p::stream::Stream * m_Stream;
+			char m_Buffer[8192], m_StreamBuffer[8192];
 			request m_Request;
 			reply m_Reply;
 	};	

@@ -115,7 +115,10 @@ namespace stream
 
 		packet->offset = packet->GetPayload () - packet->buf;
 		if (packet->GetLength () > 0)
+		{	
 			m_ReceiveQueue.Put (packet);
+			m_ReceiveTimer.cancel ();
+		}	
 		else
 			delete packet;
 		

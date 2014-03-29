@@ -200,6 +200,16 @@ namespace stream
 	template<typename Buffer, typename ReceiveHandler>
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
+		if (!m_ReceiveQueue.IsEmpty ())
+		{
+			size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), 					boost::asio::buffer_size(buffer));
+			if (received)
+			{
+				// TODO: post to stream's thread
+				handler (boost::system::error_code (), received);
+				return;
+			}	
+		}
 		m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
 		m_ReceiveTimer.async_wait (boost::bind (&Stream::HandleReceiveTimer<Buffer, ReceiveHandler>,
 			this, boost::asio::placeholders::error, buffer, handler));
