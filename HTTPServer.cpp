@@ -226,6 +226,7 @@ namespace util
 			if (i2p::data::Base32ToByteStream (address.c_str (), address.length (), (uint8_t *)destination, 32) != 32)
 			{
 				LogPrint ("Invalid Base32 address ", address);
+				SendReply ("Invalid Base32 address");
 				return;
 			}
 			fullAddress = address + ".b32.i2p";
@@ -249,26 +250,7 @@ namespace util
 		{
 			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + fullAddress + "\n";
 			m_Stream->Send ((uint8_t *)request.c_str (), request.length (), 10);			
-			std::stringstream ss;
-			uint8_t buf[8192];
-			size_t r = m_Stream->Receive (buf, 8192, 30); // 30 seconds
-			if (!r && m_Stream->IsEstablished ()) // nothing received but connection is established
-				r = m_Stream->Receive (buf, 8192, 30); // wait for another 30 secondd
-			if (r) // we recieved data
-			{
-				ss << std::string ((char *)buf, r);
-				while (m_Stream->IsOpen () && (r = m_Stream->Receive (buf, 8192, 30)) > 0)
-					ss << std::string ((char *)buf,r);	
-				
-				m_Reply.content = ss.str (); // send "as is"
-				m_Reply.headers.resize(0); // no headers
-				boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
-          			boost::bind (&HTTPConnection::HandleWriteReply, this, boost::asio::placeholders::error));
-				return;
-			}	
-			else // nothing received
-				ss << "<html>Not responding</html>";
-			SendReply (ss.str ());
+			AsyncStreamReceive ();
 		}	
 	}	
 	
@@ -278,7 +260,7 @@ namespace util
 			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
 				boost::protect (boost::bind (&HTTPConnection::HandleStreamReceive, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)),
-				30); // 30 seconds timeout
+				45); // 45 seconds timeout
 	}
 
 	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
