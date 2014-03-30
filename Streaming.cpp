@@ -60,7 +60,8 @@ namespace stream
 			}
 
 			// send ack for last message
-			SendQuickAck ();
+			if (m_IsOpen)
+				SendQuickAck ();
 		}	
 		else 
 		{	
@@ -127,9 +128,9 @@ namespace stream
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint ("Closed");
+			SendQuickAck (); // send ack for close explicitly?
 			m_IsOpen = false;
 			m_ReceiveQueue.WakeUp ();
-			m_ReceiveTimer.cancel ();
 		}
 	}	
 		
