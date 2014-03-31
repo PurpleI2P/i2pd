@@ -492,15 +492,17 @@ namespace ssu
 
 	void SSUSession::Connect ()
 	{
-		if (m_Server)
+		if (m_State == eSessionStateUnknown)
 		{	
-			if (!m_ConnectTimer)
+			if (m_Server)
+			{	
 				m_ConnectTimer = new boost::asio::deadline_timer (m_Server->GetService ());
-			m_ConnectTimer->expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-			m_ConnectTimer->async_wait (boost::bind (&SSUSession::HandleConnectTimer,
-				this, boost::asio::placeholders::error));
-		}		
-		SendSessionRequest ();
+				m_ConnectTimer->expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
+				m_ConnectTimer->async_wait (boost::bind (&SSUSession::HandleConnectTimer,
+					this, boost::asio::placeholders::error));
+			}		
+			SendSessionRequest ();
+		}	
 	}
 
 	void SSUSession::HandleConnectTimer (const boost::system::error_code& ecode)
