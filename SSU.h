@@ -26,6 +26,7 @@ namespace ssu
 #pragma pack()
 
 	const int SSU_MTU = 1484;
+	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
@@ -70,7 +71,8 @@ namespace ssu
 			SSUSession (SSUServer * server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 				const i2p::data::RouterInfo * router = nullptr);
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
-
+			~SSUSession ();
+			
 			void Connect ();
 			void ConnectThroughIntroducer (const i2p::data::RouterInfo::Introducer& introducer);	
 			void Close ();
@@ -93,6 +95,7 @@ namespace ssu
 			void ProcessRelayResponse (uint8_t * buf, size_t len);
 			void Established ();
 			void Failed ();
+			void HandleConnectTimer (const boost::system::error_code& ecode);
 			void ProcessData (uint8_t * buf, size_t len);	
 			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();
@@ -109,6 +112,7 @@ namespace ssu
 			SSUServer * m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			const i2p::data::RouterInfo * m_RemoteRouter;
+			boost::asio::deadline_timer * m_ConnectTimer;
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
@@ -130,6 +134,7 @@ namespace ssu
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			
 
+			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void ReassignSession (const boost::asio::ip::udp::endpoint& oldEndpoint, const boost::asio::ip::udp::endpoint& newEndpoint);	

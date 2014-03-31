@@ -16,10 +16,16 @@ namespace ssu
 
 	SSUSession::SSUSession (SSUServer * server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		const i2p::data::RouterInfo * router): m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
-		m_RemoteRouter (router), m_State (eSessionStateUnknown)
+		m_RemoteRouter (router), m_ConnectTimer (nullptr),m_State (eSessionStateUnknown)
 	{
 	}
 
+	SSUSession::~SSUSession ()
+	{
+		if (m_ConnectTimer)
+			delete m_ConnectTimer;
+	}	
+	
 	void SSUSession::CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
@@ -160,6 +166,7 @@ namespace ssu
 		{
 			m_State = eSessionStateCreatedReceived;
 			LogPrint ("Session created received");	
+			if (m_ConnectTimer) m_ConnectTimer->cancel ();
 			uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
 			uint8_t * payload = buf + sizeof (SSUHeader);
 			uint8_t * y = payload;
@@ -485,9 +492,27 @@ namespace ssu
 
 	void SSUSession::Connect ()
 	{
+		if (m_Server)
+		{	
+			if (!m_ConnectTimer)
+				m_ConnectTimer = new boost::asio::deadline_timer (m_Server->GetService ());
+			m_ConnectTimer->expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
+			m_ConnectTimer->async_wait (boost::bind (&SSUSession::HandleConnectTimer,
+				this, boost::asio::placeholders::error));
+		}		
 		SendSessionRequest ();
 	}
 
+	void SSUSession::HandleConnectTimer (const boost::system::error_code& ecode)
+	{
+		if (!ecode)
+		{
+			// timeout expired
+			LogPrint ("SSU session was not established after ", SSU_CONNECT_TIMEOUT, " second");
+			Failed ();
+		}	
+	}	
+	
 	void SSUSession::ConnectThroughIntroducer (const i2p::data::RouterInfo::Introducer& introducer)
 	{	
 		SendRelayRequest (introducer);
@@ -517,10 +542,13 @@ namespace ssu
 
 	void SSUSession::Failed ()
 	{
-		m_State = eSessionStateFailed;
-		Close ();
-		if (m_Server)
-			m_Server->DeleteSession (this); // delete this 
+		if (m_State != eSessionStateFailed)
+		{	
+			m_State = eSessionStateFailed;
+			Close ();
+			if (m_Server)
+				m_Server->DeleteSession (this); // delete this 
+		}	
 	}	
 	
 	const uint8_t * SSUSession::GetIntroKey () const
