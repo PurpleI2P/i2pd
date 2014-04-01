@@ -255,7 +255,7 @@ namespace tunnel
 		return tunnel;
 	}	
 
-	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination * localDestination)
+	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination& localDestination)
 	{
 		auto pool = new TunnelPool (localDestination);
 		m_Pools.push_back (pool);

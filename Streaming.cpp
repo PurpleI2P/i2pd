@@ -347,7 +347,7 @@ namespace stream
 		m_IdentHash = i2p::data::CalculateIdentHash (m_Keys.pub);
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this);
 	}
 
 	StreamingDestination::StreamingDestination (const std::string& fullPath): m_LeaseSet (nullptr) 
@@ -357,7 +357,7 @@ namespace stream
 			s.read ((char *)&m_Keys, sizeof (m_Keys));
 		else
 			LogPrint ("Can't open file ", fullPath);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this);
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this);
 	}
 
 	StreamingDestination::~StreamingDestination ()

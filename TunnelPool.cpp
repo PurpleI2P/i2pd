@@ -12,7 +12,7 @@ namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::data::LocalDestination * localDestination, int numTunnels):
+	TunnelPool::TunnelPool (i2p::data::LocalDestination& localDestination, int numTunnels):
 		m_LocalDestination (localDestination), m_NumTunnels (numTunnels), m_LastOutboundTunnel (nullptr)
 	{
 		CryptoPP::AutoSeededRandomPool rnd;
@@ -40,8 +40,7 @@ namespace tunnel
 			expiredTunnel->SetTunnelPool (nullptr);
 			m_InboundTunnels.erase (expiredTunnel);
 		}	
-		if (m_LocalDestination)
-			m_LocalDestination->UpdateLeaseSet ();
+		m_LocalDestination.UpdateLeaseSet ();
 	}	
 
 	void TunnelPool::TunnelCreated (OutboundTunnel * createdTunnel)
