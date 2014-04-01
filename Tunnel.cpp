@@ -535,49 +535,5 @@ namespace tunnel
 					&i2p::context.GetRouterInfo ()
 				}));
 	}	
-	
-	OutboundTunnel * Tunnels::CreateOneHopOutboundTestTunnel (InboundTunnel * replyTunnel)
-	{	
-		return CreateTunnel<OutboundTunnel> (replyTunnel->GetTunnelConfig ()->Invert ());
-	}	
-
-	InboundTunnel * Tunnels::CreateOneHopInboundTestTunnel (OutboundTunnel * outboundTunnel)
-	{
-		i2p::ntcp::NTCPSession * peer = i2p::transports.GetNextNTCPSession ();
-		if (peer)
-		{
-			const i2p::data::RouterInfo& router = peer->GetRemoteRouterInfo ();
-			return CreateTunnel<InboundTunnel> (
-				new TunnelConfig (std::vector<const i2p::data::RouterInfo *>{&router}), 
-			    outboundTunnel);
-		}	
-		else
-			LogPrint ("No established peers");
-		return 0;
-	}	
-
-	OutboundTunnel * Tunnels::CreateTwoHopsOutboundTestTunnel (InboundTunnel * replyTunnel)
-	{		
-		return CreateTunnel<OutboundTunnel> (replyTunnel->GetTunnelConfig ()->Invert ());
-	}	
-
-	InboundTunnel * Tunnels::CreateTwoHopsInboundTestTunnel (OutboundTunnel * outboundTunnel)
-	{
-		i2p::ntcp::NTCPSession * peer = i2p::transports.GetNextNTCPSession ();
-		if (peer)
-		{
-			const i2p::data::RouterInfo& router = peer->GetRemoteRouterInfo ();
-			return  CreateTunnel<InboundTunnel> (
-						new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
-						    { 
-								&router, 
-								&i2p::context.GetRouterInfo ()
-							}),
-			            	outboundTunnel);		
-		}
-		else
-			LogPrint ("No established peers");
-		return 0;
-	}	
 }
 }

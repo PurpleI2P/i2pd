@@ -125,11 +125,6 @@ namespace tunnel
 			TunnelPool * CreateTunnelPool (i2p::data::LocalDestination * localDestination);
 			void DeleteTunnelPool (TunnelPool * pool);
 			
-			OutboundTunnel * CreateOneHopOutboundTestTunnel (InboundTunnel * replyTunnel);
-			InboundTunnel * CreateOneHopInboundTestTunnel (OutboundTunnel * outboundTunnel = 0);
-			OutboundTunnel * CreateTwoHopsOutboundTestTunnel (InboundTunnel * replyTunnel);
-			InboundTunnel * CreateTwoHopsInboundTestTunnel (OutboundTunnel * outboundTunnel = 0);
-			
 		private:
 			
 			void Run ();	
