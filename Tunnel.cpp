@@ -190,7 +190,7 @@ namespace tunnel
 		m_PendingTunnels.clear ();
 
 		for (auto& it: m_Pools)
-			delete it;
+			delete it.second;
 		m_Pools.clear ();
 	}	
 	
@@ -258,14 +258,17 @@ namespace tunnel
 	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination& localDestination)
 	{
 		auto pool = new TunnelPool (localDestination);
-		m_Pools.push_back (pool);
+		m_Pools[pool->GetIdentHash ()] = pool;
 		return pool;
 	}	
 
 	void Tunnels::DeleteTunnelPool (TunnelPool * pool)
 	{
-		m_Pools.remove (pool);
-		delete pool;
+		if (pool)
+		{
+			m_Pools.erase (pool->GetIdentHash ());
+			delete pool;
+		}
 	}	
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
@@ -485,8 +488,8 @@ namespace tunnel
 	{
 		for (auto& it: m_Pools)
 		{	
-			it->CreateTunnels ();
-			it->TestTunnels ();
+			it.second->CreateTunnels ();
+			it.second->TestTunnels ();
 		}
 	}	
 	

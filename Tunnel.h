@@ -146,7 +146,7 @@ namespace tunnel
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
 			std::list<OutboundTunnel *> m_OutboundTunnels;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
-			std::list<TunnelPool *> m_Pools;
+			std::map<i2p::data::IdentHash, TunnelPool *> m_Pools;
 			i2p::util::Queue<I2NPMessage> m_Queue;
 
 		public:
