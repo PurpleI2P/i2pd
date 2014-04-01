@@ -138,6 +138,7 @@ namespace stream
 
 			// implements LocalDestination
 			void UpdateLeaseSet ();
+			const i2p::data::IdentHash& GetIdentHash () const { return m_IdentHash; };
 			
 		private:
 

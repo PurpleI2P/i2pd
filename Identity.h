@@ -118,7 +118,8 @@ namespace data
 	{
 		public:
 
-			virtual void UpdateLeaseSet () = 0; // LeaseSet must be update
+			virtual const IdentHash& GetIdentHash () const = 0;
+			virtual void UpdateLeaseSet () = 0; // LeaseSet must be updated
 	};	
 }
 }
