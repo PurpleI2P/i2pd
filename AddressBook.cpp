@@ -39,18 +39,26 @@ void AddressBook::LoadHosts ()
 		return;
 	}
 	int numAddresses = 0;
-	char str[1024];
+
+	std::string s;
+
 	while (!f.eof ())
 	{
-		f.getline (str, 1024);
-		char * key = strchr (str, '=');
-		if (key)
+		getline(f, s);
+
+		if (!s.length())
+			break;
+
+		size_t pos = s.find('=');
+
+		if (pos != std::string::npos)
 		{
-			*key = 0;
-			key++;
+			std::string name = s.substr(0, pos++);
+			std::string addr = s.substr(pos);
+
 			Identity ident;
-			Base64ToByteStream (key, strlen(key), (uint8_t *)&ident, sizeof (ident));
-			m_Addresses[str] = CalculateIdentHash (ident);	
+			Base64ToByteStream (addr.c_str(), addr.length(), (uint8_t *)&ident, sizeof (ident));
+			m_Addresses[name] = CalculateIdentHash (ident);	
 			numAddresses++;
 		}		
 	}
