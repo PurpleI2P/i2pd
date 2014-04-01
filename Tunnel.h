@@ -114,7 +114,6 @@ namespace tunnel
 			InboundTunnel * GetInboundTunnel (uint32_t tunnelID);
 			Tunnel * GetPendingTunnel (uint32_t replyMsgID);
 			InboundTunnel * GetNextInboundTunnel ();
-			std::vector<InboundTunnel *> GetInboundTunnels (int num)  const;
 			OutboundTunnel * GetNextOutboundTunnel ();
 			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
 			void AddTransitTunnel (TransitTunnel * tunnel);
