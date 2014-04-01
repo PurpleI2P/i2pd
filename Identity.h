@@ -119,6 +119,8 @@ namespace data
 		public:
 
 			virtual const IdentHash& GetIdentHash () const = 0;
+			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
+			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
 			virtual void UpdateLeaseSet () = 0; // LeaseSet must be updated
 	};	
 }

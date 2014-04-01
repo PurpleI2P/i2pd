@@ -32,7 +32,9 @@ namespace i2p
 			// implements LocalDestination
 			void UpdateLeaseSet () {};
 			const i2p::data::IdentHash& GetIdentHash () const { return m_RouterInfo.GetIdentHash (); };
-
+			const uint8_t * GetEncryptionPrivateKey () const { return GetPrivateKey (); };
+			const uint8_t * GetEncryptionPublicKey () const { return m_Keys.publicKey; };
+			
 		private:
 
 			void CreateNewRouter ();

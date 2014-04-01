@@ -1,4 +1,3 @@
-#include <cryptopp/dh.h>
 #include "I2PEndian.h"
 #include "CryptoConst.h"
 #include "Tunnel.h"
@@ -15,9 +14,6 @@ namespace tunnel
 	TunnelPool::TunnelPool (i2p::data::LocalDestination& localDestination, int numTunnels):
 		m_LocalDestination (localDestination), m_NumTunnels (numTunnels), m_LastOutboundTunnel (nullptr)
 	{
-		CryptoPP::AutoSeededRandomPool rnd;
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 	}
 
 	TunnelPool::~TunnelPool ()
