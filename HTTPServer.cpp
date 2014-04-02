@@ -255,7 +255,7 @@ namespace util
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
 		{	
 			it.second->GetTunnelConfig ()->Print (s);
-			if (it.second->GetTunnelPool ())
+			if (it.second->GetTunnelPool () && !it.second->GetTunnelPool ()->IsExploratory ())
 				s << " " << "Pool";
 			if (it.second->IsFailed ())
 				s << " " << "Failed";

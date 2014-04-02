@@ -3,7 +3,6 @@
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "Timestamp.h"
-#include "RouterContext.h"
 #include "Garlic.h"
 #include "TunnelPool.h"
 

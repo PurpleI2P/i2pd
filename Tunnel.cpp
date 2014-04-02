@@ -167,7 +167,7 @@ namespace tunnel
 	Tunnels tunnels;
 	
 	Tunnels::Tunnels (): m_IsRunning (false), m_IsTunnelCreated (false), 
-		m_NextReplyMsgID (555),m_Thread (0)
+		m_NextReplyMsgID (555), m_Thread (nullptr), m_ExploratoryPool (nullptr)
 	{
 	}
 	

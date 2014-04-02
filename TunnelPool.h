@@ -9,6 +9,7 @@
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
+#include "RouterContext.h"
 
 namespace i2p
 {
@@ -27,7 +28,8 @@ namespace tunnel
 
 			const uint8_t * GetEncryptionPrivateKey () const { return m_LocalDestination.GetEncryptionPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };
-			
+			bool IsExploratory () const { return &m_LocalDestination == &i2p::context; };		
+
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);
 			void TunnelExpired (InboundTunnel * expiredTunnel);
