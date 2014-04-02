@@ -68,7 +68,7 @@ namespace ssu
 	{
 		public:
 
-			SSUSession (SSUServer * server, boost::asio::ip::udp::endpoint& remoteEndpoint,
+			SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 				const i2p::data::RouterInfo * router = nullptr);
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
 			~SSUSession ();
@@ -109,10 +109,10 @@ namespace ssu
 
 		private:
 			
-			SSUServer * m_Server;
+			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			const i2p::data::RouterInfo * m_RemoteRouter;
-			boost::asio::deadline_timer * m_ConnectTimer;
+			boost::asio::deadline_timer m_Timer;
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
