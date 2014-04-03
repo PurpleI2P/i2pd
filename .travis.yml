@@ -22,13 +22,13 @@ notifications:
     recipients:
       - meeh@sigterm.no
     on_success: change
-    on_failure: change
+    on_failure: always
   irc: 
     channels: 
       - "irc.freenode.net#i2p-dev"
     template:
       - "%{repository}/%{branch} (%{commit} - %{author}): %{message}"
-    on_failure: change
+    on_failure: always
     on_success: change
 
 

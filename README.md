@@ -9,6 +9,8 @@ on Windows
 
 Requires msvs2013, boost 1.46 and higher, crypto++
 
+[![Build Status](https://travis-ci.org/orignal/i2pd.svg?branch=master)](https://travis-ci.org/orignal/i2pd)
+
 
 Testing
 -------
