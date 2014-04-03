@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include "Queue.h"
@@ -83,6 +84,7 @@ namespace tunnel
 			
 		private:
 
+			std::mutex m_SendMutex;
 			TunnelGateway m_Gateway; 
 	};
 	
