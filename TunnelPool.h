@@ -28,7 +28,7 @@ namespace tunnel
 
 			const uint8_t * GetEncryptionPrivateKey () const { return m_LocalDestination.GetEncryptionPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };
-			bool IsExploratory () const { return &m_LocalDestination == &i2p::context; };		
+			bool IsExploratory () const { return m_LocalDestination.GetIdentHash () == i2p::context.GetIdentHash (); };		
 
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);

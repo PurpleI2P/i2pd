@@ -384,35 +384,18 @@ namespace tunnel
 				it++;
 		}
 	
-		if (m_OutboundTunnels.size () < 15) // TODO: store exploratory tunnels explicitly
+		if (m_OutboundTunnels.size () < 5) 
 		{
 			// trying to create one more oubound tunnel
-			if (m_InboundTunnels.empty ())	return;
-			
 			InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
-			if (m_OutboundTunnels.empty () || m_OutboundTunnels.size () < 3)
-			{	
-				LogPrint ("Creating one hop outbound tunnel...");
-				CreateTunnel<OutboundTunnel> (
-				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *> 
-					    { 
-							i2p::data::netdb.GetRandomRouter ()
-						},		
-			     		inboundTunnel->GetTunnelConfig ()));
-			}	
-			else
-			{
-
-				LogPrint ("Creating two hops outbound tunnel...");
-				auto firstHop = i2p::data::netdb.GetRandomRouter (); 
-				CreateTunnel<OutboundTunnel> (
-				  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
-				    	{
-							firstHop,
-							i2p::data::netdb.GetRandomRouter (firstHop)
-						},		
-			     		inboundTunnel->GetTunnelConfig ()));
-			}	
+			if (!inboundTunnel) return;
+			LogPrint ("Creating one hop outbound tunnel...");
+			CreateTunnel<OutboundTunnel> (
+			  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *> 
+				    { 
+						i2p::data::netdb.GetRandomRouter ()
+					},		
+		     		inboundTunnel->GetTunnelConfig ()));
 		}
 	}
 	
@@ -437,35 +420,20 @@ namespace tunnel
 		{
 			LogPrint ("Creating zero hops inbound tunnel...");
 			CreateZeroHopsInboundTunnel ();
+			if (!m_ExploratoryPool)
+				m_ExploratoryPool = CreateTunnelPool (i2p::context);
 			return;
 		}
 		
-		if (m_InboundTunnels.size () < 15) // TODO: store exploratory tunnels explicitly
+		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 5) 
 		{
-			// trying to create one more inbound tunnel
-			if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3)
-			{	
-				LogPrint ("Creating one hop inbound tunnel...");
-				CreateTunnel<InboundTunnel> (
-					new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
-					    {              
-							i2p::data::netdb.GetRandomRouter ()
-						}));
-			}
-			else
-			{
-				OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
-				LogPrint ("Creating two hops inbound tunnel...");
-				auto router = outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router;
-				auto firstHop = i2p::data::netdb.GetRandomRouter (outboundTunnel->GetEndpointRouter ()); 
-				CreateTunnel<InboundTunnel> (
-					new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
-						{                
-				            firstHop, 
-							router != &i2p::context.GetRouterInfo () ? router : i2p::data::netdb.GetRandomRouter (firstHop) 
-		                }),                 
-				    outboundTunnel);
-			}	
+			// trying to create one more inbound tunnel			
+			LogPrint ("Creating one hop inbound tunnel...");
+			CreateTunnel<InboundTunnel> (
+				new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
+				    {              
+						i2p::data::netdb.GetRandomRouter ()
+					}));
 		}
 	}	
 
