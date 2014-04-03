@@ -532,8 +532,9 @@ namespace data
 	
 	void NetDb::Explore ()
 	{
-		auto outbound = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		auto inbound = i2p::tunnel::tunnels.GetNextInboundTunnel ();
+		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
 		if (outbound && inbound)
 		{
 			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
