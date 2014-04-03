@@ -37,6 +37,7 @@ namespace tunnel
 			void TunnelExpired (OutboundTunnel * expiredTunnel);
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
 			OutboundTunnel * GetNextOutboundTunnel ();
+			InboundTunnel * GetNextInboundTunnel ();
 			const i2p::data::IdentHash& GetIdentHash () { return m_LocalDestination.GetIdentHash (); };			
 
 			void TestTunnels ();
@@ -46,6 +47,8 @@ namespace tunnel
 
 			void CreateInboundTunnel ();	
 			void CreateOutboundTunnel ();
+			template<class TTunnels>
+			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels);
 			
 		private:
 

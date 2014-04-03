@@ -86,7 +86,22 @@ namespace tunnel
 		m_LastOutboundTunnel = tunnel;
 		return tunnel;
 	}	
-		
+
+	InboundTunnel * TunnelPool::GetNextInboundTunnel ()
+	{
+		return GetNextTunnel (m_InboundTunnels);
+	}
+
+	template<class TTunnels>
+	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels)
+	{
+		if (tunnels.empty ()) return nullptr;
+		for (auto it: tunnels)
+			if (!it->IsFailed ())
+				return it;
+		return nullptr;
+	}
+
 	void TunnelPool::CreateTunnels ()
 	{
 		int num = m_InboundTunnels.size ();

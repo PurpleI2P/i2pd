@@ -154,11 +154,14 @@ namespace tunnel
 		else	
 			block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
+		
+		std::unique_lock<std::mutex> l(m_SendMutex);
 		m_Gateway.SendTunnelDataMsg (block);
 	}
 		
 	void OutboundTunnel::SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs)
 	{
+		std::unique_lock<std::mutex> l(m_SendMutex);
 		for (auto& it : msgs)
 			m_Gateway.PutTunnelDataMsg (it);
 		m_Gateway.SendBuffer ();
