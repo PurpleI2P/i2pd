@@ -1,10 +1,11 @@
-
 cmake_minimum_required ( VERSION 2.8 )
-
 project ( i2pd )
+
+
 
 set ( SRC_DIR ".." )
 set ( INC_DIR ".." )
+
 
 add_definitions ( "-std=c++0x -Wall" )
 
@@ -70,10 +71,35 @@ find_package ( Threads REQUIRED )
 
 find_package ( Boost COMPONENTS system filesystem regex program_options REQUIRED )
 
+find_package(Crypto++ QUIET)
+
+# Check for libraries
+if(!Boost_FOUND)
+    message(FATAL_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
+    return()
+else()
+    # Adding boost directories
+    INCLUDE_DIRECTORIES(${INCLUDE_DIRECTORIES} ${Boost_INCLUDE_DIRS})
+    LINK_DIRECTORIES(${LINK_DIRECTORIES} ${Boost_LIBRARY_DIRS})
+endif()
+
+if(!CRYPTO++_FOUND)
+    message(FATAL_ERROR "Could not find Crypto++. Please download and install it first!")
+    return()
+else()
+    # Adding Crypto++ directories
+    INCLUDE_DIRECTORIES(${INCLUDE_DIRECTORIES} ${CRYPTO++_INCLUDE_DIR})
+    LINK_DIRECTORIES(${LINK_DIRECTORIES} ${CRYPTO++_LIBRARIES})
+endif()
+
+
+# End checks
+
+
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 find_package ( CryptoPP REQUIRED )
 
-include_directories ( ${Boost_INCLUDE_DIRS} ${CryptoPP_INCLUDE_DIRS})
+include_directories ( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR})
 
 
 unset ( TMP )
@@ -91,4 +117,4 @@ set ( HEADERS ${TMP} )
 
 add_executable ( ${PROJECT_NAME} WIN32 ${HEADERS} ${SOURCES} )
 
-target_link_libraries( ${PROJECT_NAME} ${Boost_LIBRARIES} ${CryptoPP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+target_link_libraries( ${PROJECT_NAME} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
