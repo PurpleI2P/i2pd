@@ -1,12 +1,6 @@
 language: cpp
-matrix:
-  allow_failures:
-    - compiler: clang
-compiler:
-  - gcc
-  - clang
-cache:
-  - apt
+compiler: gcc
+cache: apt
 branches:
   only:
     - master
