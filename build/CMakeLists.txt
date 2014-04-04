@@ -69,19 +69,21 @@ set ( HEADERS
 source_group ("Header Files" FILES ${HEADERS})
 source_group ("Source Files" FILES ${SOURCES})
 
+set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
+
 find_package ( Threads REQUIRED )
 
 find_package ( Boost COMPONENTS system filesystem regex program_options REQUIRED )
 
-find_package(Crypto++ QUIET)
+find_package ( CryptoPP REQUIRED )
 
 # Check for libraries
-if(!Boost_FOUND)
+if(NOT DEFINED Boost_INCLUDE_DIRS)
     message(FATAL_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
     return()
 endif()
 
-if(!CRYPTO++_FOUND)
+if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
     message(FATAL_ERROR "Could not find Crypto++. Please download and install it first!")
     return()
 endif()
@@ -89,9 +91,6 @@ endif()
 
 # End checks
 
-
-set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
-find_package ( CryptoPP REQUIRED )
 
 include_directories ( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR})
 
