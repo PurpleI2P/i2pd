@@ -1,7 +1,9 @@
 cmake_minimum_required ( VERSION 2.8 )
 project ( i2pd )
 
-
+# Default build is Debug
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 
 set ( SRC_DIR ".." )
 set ( INC_DIR ".." )
@@ -77,19 +79,11 @@ find_package(Crypto++ QUIET)
 if(!Boost_FOUND)
     message(FATAL_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
     return()
-else()
-    # Adding boost directories
-    INCLUDE_DIRECTORIES(${INCLUDE_DIRECTORIES} ${Boost_INCLUDE_DIRS})
-    LINK_DIRECTORIES(${LINK_DIRECTORIES} ${Boost_LIBRARY_DIRS})
 endif()
 
 if(!CRYPTO++_FOUND)
     message(FATAL_ERROR "Could not find Crypto++. Please download and install it first!")
     return()
-else()
-    # Adding Crypto++ directories
-    INCLUDE_DIRECTORIES(${INCLUDE_DIRECTORIES} ${CRYPTO++_INCLUDE_DIR})
-    LINK_DIRECTORIES(${LINK_DIRECTORIES} ${CRYPTO++_LIBRARIES})
 endif()
 
 
