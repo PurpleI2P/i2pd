@@ -10,6 +10,7 @@
 #include "SSU.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
+#include "Identity.h"
 
 namespace i2p
 {
@@ -24,6 +25,7 @@ namespace i2p
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
+			i2p::data::DHKeysPair * GetNextDHKeysPair ();	
 
 			void AddNTCPSession (i2p::ntcp::NTCPSession * session);
 			void RemoveNTCPSession (i2p::ntcp::NTCPSession * session);

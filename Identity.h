@@ -11,6 +11,12 @@ namespace data
 {
 #pragma pack(1)
 
+	struct DHKeysPair // transient keys for transport sessions
+	{
+		uint8_t publicKey[256];
+		uint8_t privateKey[256];
+	};	
+
 	struct Keys
 	{
 		uint8_t privateKey[256];
@@ -71,6 +77,7 @@ namespace data
 
 	IdentHash CalculateIdentHash (const Identity& identity);
 	Keys CreateRandomKeys ();
+	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
 	// kademlia
 	struct RoutingKey

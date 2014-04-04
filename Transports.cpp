@@ -221,4 +221,11 @@ namespace i2p
 		}	
 	}	
 		
+	i2p::data::DHKeysPair * Transports::GetNextDHKeysPair ()
+	{
+		// TODO: use supplier with separate thread
+		i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
+		i2p::data::CreateRandomDHKeysPair (pair);
+		return pair;
+	}
 }

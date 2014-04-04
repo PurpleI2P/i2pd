@@ -53,6 +53,14 @@ namespace data
 		return keys;
 	}	
 
+	void CreateRandomDHKeysPair (DHKeysPair * keys)
+	{
+		if (!keys) return;
+		CryptoPP::AutoSeededRandomPool rnd;
+		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+		dh.GenerateKeyPair(rnd, keys->privateKey, keys->publicKey);
+	}
+
 	RoutingKey CreateRoutingKey (const IdentHash& ident)
 	{
 		uint8_t buf[41]; // ident + yyyymmdd

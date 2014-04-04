@@ -7,6 +7,7 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/adler32.h>
+#include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 
@@ -66,7 +67,7 @@ namespace ntcp
 		public:
 
 			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo);
-			virtual ~NTCPSession () {};
+			virtual ~NTCPSession ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
@@ -120,6 +121,7 @@ namespace ntcp
 			boost::asio::ip::tcp::socket m_Socket;
 			boost::asio::deadline_timer m_TerminationTimer;
 			bool m_IsEstablished;
+			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;
