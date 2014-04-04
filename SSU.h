@@ -8,6 +8,7 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include "I2PEndian.h"
+#include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 
@@ -113,6 +114,7 @@ namespace ssu
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			const i2p::data::RouterInfo * m_RemoteRouter;
 			boost::asio::deadline_timer m_Timer;
+			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	

@@ -6,6 +6,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
+#include "Transports.h"
 #include "hmac.h"
 #include "SSU.h"
 
@@ -18,17 +19,19 @@ namespace ssu
 		const i2p::data::RouterInfo * router): m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
 		m_RemoteRouter (router), m_Timer (m_Server.GetService ()), m_State (eSessionStateUnknown)
 	{
+		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
 
 	SSUSession::~SSUSession ()
 	{
+		delete m_DHKeysPair;
 	}	
 	
 	void SSUSession::CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		CryptoPP::SecByteBlock secretKey(dh.AgreedValueLength());
-		if (!dh.Agree (secretKey, i2p::context.GetPrivateKey (), pubKey))
+		if (!dh.Agree (secretKey, m_DHKeysPair->privateKey, pubKey))
 		{    
 		    LogPrint ("Couldn't create shared key");
 			return;
@@ -167,7 +170,7 @@ namespace ssu
 			uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
 			uint8_t * payload = buf + sizeof (SSUHeader);
 			uint8_t * y = payload;
-			memcpy (signedData, i2p::context.GetRouterIdentity ().publicKey, 256); // x
+			memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
 			memcpy (signedData + 256, y, 256); // y
 			payload += 256;
 			payload += 1; // size, assume 4
@@ -232,7 +235,7 @@ namespace ssu
 	
 		uint8_t buf[304 + 18]; // 304 bytes for ipv4 (320 for ipv6)
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		memcpy (payload, i2p::context.GetRouterIdentity ().publicKey, 256);
+		memcpy (payload, m_DHKeysPair->publicKey, 256); // x
 		payload[256] = 4; // we assume ipv4
 		*(uint32_t *)(payload + 257) =  htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); 
 		
@@ -290,7 +293,7 @@ namespace ssu
 
 		uint8_t buf[368 + 18];	
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		memcpy (payload, i2p::context.GetRouterIdentity ().publicKey, 256);
+		memcpy (payload, m_DHKeysPair->publicKey, 256);
 		memcpy (signedData + 256, payload, 256); // y
 		payload += 256;
 		*payload = 4; // we assume ipv4
@@ -344,7 +347,7 @@ namespace ssu
 
 		// signature		
 		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, our signed on time 
-		memcpy (signedData, i2p::context.GetRouterIdentity ().publicKey, 256); // x
+		memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
 		memcpy (signedData + 256, y, 256); // y
 		memcpy (signedData + 512, ourAddress, 6); // our address/port as seem by party
 		*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
