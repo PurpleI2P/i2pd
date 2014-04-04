@@ -9,10 +9,76 @@ using namespace i2p::data;
 
 namespace i2p
 {
+	DHKeysPairSupplier::~DHKeysPairSupplier ()
+	{
+		Stop ();
+	}
+
+	void DHKeysPairSupplier::Start ()
+	{
+		m_IsRunning = true;
+		m_Thread = new std::thread (std::bind (&DHKeysPairSupplier::Run, this));
+	}
+
+	void DHKeysPairSupplier::Stop ()
+	{
+		m_IsRunning = false;
+		m_Acquired.notify_one ();	
+		if (m_Thread)
+		{	
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = 0;
+		}	
+	}
+
+	void DHKeysPairSupplier::Run ()
+	{
+		while (m_IsRunning)
+		{
+			int num;
+			while ((num = m_QueueSize - m_Queue.size ()) > 0)
+				CreateDHKeysPairs (num);
+			std::unique_lock<std::mutex>  l(m_AcquiredMutex);
+			m_Acquired.wait (l); // wait for element gets aquired
+		}
+	}		
+
+	void DHKeysPairSupplier::CreateDHKeysPairs (int num)
+	{
+		if (num > 0)
+		{
+			for (int i = 0; i < num; i++)
+			{
+				i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
+				i2p::data::CreateRandomDHKeysPair (pair);
+				m_Queue.push (pair);
+			}
+		}
+	}
+
+	i2p::data::DHKeysPair * DHKeysPairSupplier::Acquire ()
+	{
+		if (!m_Queue.empty ())
+		{
+			auto pair = m_Queue.front ();
+			m_Queue.pop ();
+			m_Acquired.notify_one ();
+			return pair;
+		}	
+		else // queue is empty, create new
+		{
+			i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
+			i2p::data::CreateRandomDHKeysPair (pair);
+			return pair;
+		}
+	}
+
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_Thread (nullptr), m_Work (m_Service),m_NTCPAcceptor (nullptr), m_SSUServer (nullptr)
+		m_Thread (nullptr), m_Work (m_Service), m_NTCPAcceptor (nullptr), 
+		m_SSUServer (nullptr), m_DHKeysPairSupplier (5) // 5 pre-generated keys
 	{		
 	}
 		
@@ -23,6 +89,7 @@ namespace i2p
 
 	void Transports::Start ()
 	{
+		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		m_Timer = new boost::asio::deadline_timer (m_Service);
@@ -74,6 +141,7 @@ namespace i2p
 			delete m_SSUServer;
 		}
 
+		m_DHKeysPairSupplier.Stop ();
 		m_IsRunning = false;
 		m_Service.stop ();
 		if (m_Thread)
@@ -223,9 +291,6 @@ namespace i2p
 		
 	i2p::data::DHKeysPair * Transports::GetNextDHKeysPair ()
 	{
-		// TODO: use supplier with separate thread
-		i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
-		i2p::data::CreateRandomDHKeysPair (pair);
-		return pair;
+		return m_DHKeysPairSupplier.Acquire ();
 	}
 }

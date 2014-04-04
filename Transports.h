@@ -2,8 +2,11 @@
 #define TRANSPORTS_H__
 
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <functional>
 #include <map>
+#include <queue>
 #include <string>
 #include <boost/asio.hpp>
 #include "NTCPSession.h"
@@ -14,6 +17,32 @@
 
 namespace i2p
 {
+	class DHKeysPairSupplier
+	{
+		public:
+
+			DHKeysPairSupplier (int size): m_QueueSize (size), m_IsRunning (false), m_Thread (nullptr) {};
+			~DHKeysPairSupplier ();
+			void Start ();
+			void Stop ();
+			i2p::data::DHKeysPair * Acquire ();
+
+		private:
+
+			void Run ();
+			void CreateDHKeysPairs (int num);
+
+		private:
+
+			int m_QueueSize;
+			std::queue<i2p::data::DHKeysPair *> m_Queue;
+
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			std::condition_variable m_Acquired;
+			std::mutex m_AcquiredMutex;
+	};
+
 	class Transports
 	{
 		public:
@@ -55,6 +84,8 @@ namespace i2p
 			std::map<i2p::data::IdentHash, i2p::ntcp::NTCPSession *> m_NTCPSessions;
 			i2p::ssu::SSUServer * m_SSUServer;
 			boost::asio::deadline_timer * m_Timer;
+
+			DHKeysPairSupplier m_DHKeysPairSupplier;
 
 		public:
 
