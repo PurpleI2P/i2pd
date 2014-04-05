@@ -1,8 +1,12 @@
 #ifndef I2PENDIAN_H__
 #define I2PENDIAN_H__
 
-#ifndef _WIN32
+#ifdef __linux__
 #include <endian.h>
+#elif __FreeBSD__
+#include <sys/endian.h>
+#elif __MACH__ // Mac OS X
+#include <machine/endian.h>
 #else
 #include <cstdint>
 
