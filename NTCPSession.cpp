@@ -56,11 +56,19 @@ namespace ntcp
 	{
 		m_IsEstablished = false;
 		m_Socket.close ();
-		for (auto it :m_DelayedMessages)
-			delete it;
-		m_DelayedMessages.clear ();
-		// TODO: notify tunnels
 		i2p::transports.RemoveNTCPSession (this);
+		int numDelayed = 0;
+		for (auto it :m_DelayedMessages)
+		{	
+			// try to send them again
+			i2p::transports.SendMessage (m_RemoteRouterInfo.GetIdentHash (), it);
+			numDelayed++;
+		}	
+		m_DelayedMessages.clear ();
+		if (numDelayed > 0)
+			LogPrint ("NTCP session ", numDelayed, " not sent");
+		// TODO: notify tunnels
+		
 		delete this;
 		LogPrint ("NTCP session terminated");
 	}	
@@ -327,6 +335,7 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 4 read error: ", ecode.message ());
+			GetRemoteRouterInfo ().SetUnreachable (true); // this router doesn't like us
 			Terminate ();
 		}
 		else
