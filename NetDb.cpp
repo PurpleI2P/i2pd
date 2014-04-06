@@ -442,9 +442,11 @@ namespace data
 
 					if (dest->IsExploratory ())
 					{	
-						if (!FindRouter (router)) // router with ident not found
+						auto r = FindRouter (router); 
+						if (!r || i2p::util::GetMillisecondsSinceEpoch () > r->GetTimestamp () + 3600*1000LL) 
 						{	
-							LogPrint ("Found new router. Requesting RouterInfo ...");
+							// router with ident not found or too old (1 hour)
+							LogPrint ("Found new/outdated router. Requesting RouterInfo ...");
 							if (outbound && inbound)
 							{
 								RequestedDestination * d1 = CreateRequestedDestination (router, false, false);

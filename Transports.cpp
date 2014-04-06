@@ -239,7 +239,7 @@ namespace i2p
 					// existing session not found. create new 
 					// try NTCP first
 					auto address = r->GetNTCPAddress ();
-					if (address && !r->IsUnreachable ())
+					if (address && !r->UsesIntroducer () && !r->IsUnreachable ())
 					{	
 						auto s = new i2p::ntcp::NTCPClient (m_Service, address->host, address->port, *r);
 						AddNTCPSession (s);
