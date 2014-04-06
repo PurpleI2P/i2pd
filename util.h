@@ -41,6 +41,7 @@ namespace util
     			void parse(const std::string& url_s);
 			public:
     			std::string protocol_, host_, path_, query_;
+				unsigned int port_;
 		};
 	}
 }

@@ -7,6 +7,8 @@
 #include "Log.h"
 #include "AddressBook.h"
 
+#include <boost/algorithm/string.hpp>
+
 namespace i2p
 {
 namespace data
@@ -27,7 +29,36 @@ const IdentHash * AddressBook::FindAddress (const std::string& address)
 	else
 		return nullptr;	
 }
-		
+
+void AddressBook::LoadHostsFromI2P ()
+{
+	std::string content;
+
+	std::stringstream url_ss;
+	// TODO: hosts link in config
+	// TODO: url download via HTTPProxy
+	url_ss << "http://127.0.0.1:" << i2p::util::config::GetArg("-httpport", 7070) << "/udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna/hosts.txt";
+	while (true)
+	{
+		content = i2p::util::http::httpRequest(url_ss.str());
+
+		// TODO: check http errors
+		if (! boost::starts_with(content, "<html>"))
+			break;
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+	}
+
+	std::ofstream f_save(i2p::util::filesystem::GetFullPath("hosts.txt").c_str(), std::ofstream::out);
+	if (f_save.is_open())
+	{
+		f_save << content;
+		f_save.close();
+	}
+	else
+		LogPrint("Can't write hosts.txt");
+	m_IsLoaded = false;
+	return;
+}
 
 void AddressBook::LoadHosts ()
 {
@@ -35,7 +66,9 @@ void AddressBook::LoadHosts ()
 	std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
 	if (!f.is_open ())	
 	{
-		LogPrint ("hosts.txt not found");
+		LogPrint ("hosts.txt not found. Try to load...");
+		std::thread load_hosts(&AddressBook::LoadHostsFromI2P, this);
+		load_hosts.detach();
 		return;
 	}
 	int numAddresses = 0;
