@@ -204,7 +204,13 @@ namespace http
 			// please don't uncomment following line because it's not compatible with boost 1.46
 			// 1.46 is default boost for Ubuntu 12.04 LTS
 			//site.expires_from_now (boost::posix_time::seconds(30));
-			site.connect(u.host_, "http");
+			if (u.port_ == 80)
+				site.connect(u.host_, "http");
+			else
+			{
+				std::stringstream ss; ss << u.port_;
+				site.connect(u.host_, ss.str());
+			}
 			if (site)
 			{
 				// User-Agent is needed to get the server list routerInfo files.
@@ -265,6 +271,16 @@ namespace http
 		transform(prot_i, path_i,
 			  back_inserter(host_),
 			  std::ptr_fun<int,int>(tolower)); // host is icase
+
+		std::string::const_iterator port_i = find(host_.begin(), host_.end(), ':');
+		if (port_i != host_.end())
+		{
+			port_ = std::stoi(std::string(port_i + 1, host_.end()));
+			host_.assign(host_.begin(), port_i);
+		}
+		else
+			port_ = 80;
+
 		std::string::const_iterator query_i = find(path_i, url_s.end(), '?');
 		path_.assign(path_i, query_i);
 		if( query_i != url_s.end() )
