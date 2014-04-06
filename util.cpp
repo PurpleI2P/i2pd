@@ -249,6 +249,11 @@ namespace http
 		}
 	}
 
+	std::string url::portstr_ = "80";
+	unsigned int url::port_ = 80;
+	std::string url::user_ = "";
+	std::string url::pass_ = "";	
+	
 	url::url(const std::string& url_s)
 	{
 		parse(url_s);

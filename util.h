@@ -41,10 +41,10 @@ namespace util
     			void parse(const std::string& url_s);
 			public:
 				std::string protocol_, host_, path_, query_;
-				std::string portstr_ = "80";
-				unsigned int port_ = 80;
-				std::string user_ = "";
-				std::string pass_ = "";
+				static std::string portstr_;
+				static unsigned int port_;
+				static std::string user_;
+				static std::string pass_;
 		};
 	}
 }
