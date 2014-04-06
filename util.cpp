@@ -254,6 +254,17 @@ namespace http
 		parse(url_s);
 	}
 
+
+	// code for parser tests
+	//{
+	//	i2p::util::http::url u_1("http://user:password@site.com:8080/asdasd?qqqqqqqqqqqqq");
+	//	i2p::util::http::url u_2("http://user:password@site.com/asdasd?qqqqqqqqqqqqqq");
+	//	i2p::util::http::url u_3("http://user:@site.com/asdasd?qqqqqqqqqqqqq");
+	//	i2p::util::http::url u_4("http://user@site.com/asdasd?qqqqqqqqqqqq");
+	//	i2p::util::http::url u_5("http://@site.com:800/asdasd?qqqqqqqqqqqq");
+	//	i2p::util::http::url u_6("http://@site.com:err_port/asdasd?qqqqqqqqqqqq");
+	//	i2p::util::http::url u_7("http://user:password@site.com:err_port/asdasd?qqqqqqqqqqqq");
+	//}
 	void url::parse(const std::string& url_s)
 	{
 		const std::string prot_end("://");
@@ -272,14 +283,36 @@ namespace http
 			  back_inserter(host_),
 			  std::ptr_fun<int,int>(tolower)); // host is icase
 
+		// parse user/password
+		auto user_pass_i = find(host_.begin(), host_.end(), '@');
+		if (user_pass_i != host_.end())
+		{
+			std::string user_pass = std::string(host_.begin(), user_pass_i);
+			auto pass_i = find(user_pass.begin(), user_pass.end(), ':');
+			if (pass_i != user_pass.end())
+			{
+				user_ = std::string(user_pass.begin(), pass_i);
+				pass_ = std::string(pass_i + 1, user_pass.end());
+			}
+			else
+				user_ = user_pass;
+
+			host_.assign(user_pass_i + 1, host_.end());
+		}
+
+		// parse port
 		auto port_i = find(host_.begin(), host_.end(), ':');
 		if (port_i != host_.end())
 		{
-			port_ = std::stoi(std::string(port_i + 1, host_.end()));
+			portstr_ = std::string(port_i + 1, host_.end());
 			host_.assign(host_.begin(), port_i);
+			try{
+				port_ = std::stoi(portstr_);
+			}
+			catch (std::exception e) {
+				port_ = 80;
+			}
 		}
-		else
-			port_ = 80;
 
 		std::string::const_iterator query_i = find(path_i, url_s.end(), '?');
 		path_.assign(path_i, query_i);
