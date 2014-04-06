@@ -272,7 +272,7 @@ namespace http
 			  back_inserter(host_),
 			  std::ptr_fun<int,int>(tolower)); // host is icase
 
-		std::string::const_iterator port_i = find(host_.begin(), host_.end(), ':');
+		auto port_i = find(host_.begin(), host_.end(), ':');
 		if (port_i != host_.end())
 		{
 			port_ = std::stoi(std::string(port_i + 1, host_.end()));
