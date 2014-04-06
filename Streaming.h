@@ -138,6 +138,9 @@ namespace stream
 
 			// implements LocalDestination
 			void UpdateLeaseSet ();
+			const i2p::data::IdentHash& GetIdentHash () const { return m_IdentHash; };
+			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			
 		private:
 
@@ -148,7 +151,8 @@ namespace stream
 			std::map<uint32_t, Stream *> m_Streams;
 			i2p::data::PrivateKeys m_Keys;
 			i2p::data::IdentHash m_IdentHash;
-
+			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+			
 			i2p::tunnel::TunnelPool * m_Pool;
 			I2NPMessage * m_LeaseSet;
 			

@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
+#include "Identity.h"
 #include "RouterInfo.h"
 
 namespace i2p
@@ -11,7 +12,7 @@ namespace i2p
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";	
 	
-	class RouterContext
+	class RouterContext: public i2p::data::LocalDestination 
 	{
 		public:
 
@@ -27,6 +28,12 @@ namespace i2p
 
 			void OverrideNTCPAddress (const char * host, int port); // temporary
 			void UpdateAddress (const char * host);	// called from SSU
+			
+			// implements LocalDestination
+			void UpdateLeaseSet () {};
+			const i2p::data::IdentHash& GetIdentHash () const { return m_RouterInfo.GetIdentHash (); };
+			const uint8_t * GetEncryptionPrivateKey () const { return GetPrivateKey (); };
+			const uint8_t * GetEncryptionPublicKey () const { return m_Keys.publicKey; };
 			
 		private:
 

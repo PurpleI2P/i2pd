@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include "Queue.h"
@@ -83,6 +84,7 @@ namespace tunnel
 			
 		private:
 
+			std::mutex m_SendMutex;
 			TunnelGateway m_Gateway; 
 	};
 	
@@ -114,8 +116,8 @@ namespace tunnel
 			InboundTunnel * GetInboundTunnel (uint32_t tunnelID);
 			Tunnel * GetPendingTunnel (uint32_t replyMsgID);
 			InboundTunnel * GetNextInboundTunnel ();
-			std::vector<InboundTunnel *> GetInboundTunnels (int num)  const;
 			OutboundTunnel * GetNextOutboundTunnel ();
+			TunnelPool * GetExploratoryPool () const { return m_ExploratoryPool; };
 			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
 			void AddTransitTunnel (TransitTunnel * tunnel);
 			void AddOutboundTunnel (OutboundTunnel * newTunnel);
@@ -123,13 +125,8 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
-			TunnelPool * CreateTunnelPool (i2p::data::LocalDestination * localDestination);
+			TunnelPool * CreateTunnelPool (i2p::data::LocalDestination& localDestination);
 			void DeleteTunnelPool (TunnelPool * pool);
-			
-			OutboundTunnel * CreateOneHopOutboundTestTunnel (InboundTunnel * replyTunnel);
-			InboundTunnel * CreateOneHopInboundTestTunnel (OutboundTunnel * outboundTunnel = 0);
-			OutboundTunnel * CreateTwoHopsOutboundTestTunnel (InboundTunnel * replyTunnel);
-			InboundTunnel * CreateTwoHopsInboundTestTunnel (OutboundTunnel * outboundTunnel = 0);
 			
 		private:
 			
@@ -152,7 +149,8 @@ namespace tunnel
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
 			std::list<OutboundTunnel *> m_OutboundTunnels;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
-			std::list<TunnelPool *> m_Pools;
+			std::map<i2p::data::IdentHash, TunnelPool *> m_Pools;
+			TunnelPool * m_ExploratoryPool;
 			i2p::util::Queue<I2NPMessage> m_Queue;
 
 		public:

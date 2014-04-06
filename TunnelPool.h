@@ -9,6 +9,7 @@
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
+#include "RouterContext.h"
 
 namespace i2p
 {
@@ -22,12 +23,13 @@ namespace tunnel
 	{
 		public:
 
-			TunnelPool (i2p::data::LocalDestination * localDestination, int numTunnels = 5);
+			TunnelPool (i2p::data::LocalDestination& localDestination, int numTunnels = 5);
 			~TunnelPool ();
 
-			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
-			
+			const uint8_t * GetEncryptionPrivateKey () const { return m_LocalDestination.GetEncryptionPrivateKey (); };
+			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };
+			bool IsExploratory () const { return m_LocalDestination.GetIdentHash () == i2p::context.GetIdentHash (); };		
+
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);
 			void TunnelExpired (InboundTunnel * expiredTunnel);
@@ -35,7 +37,9 @@ namespace tunnel
 			void TunnelExpired (OutboundTunnel * expiredTunnel);
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
 			OutboundTunnel * GetNextOutboundTunnel ();
-			
+			InboundTunnel * GetNextInboundTunnel ();
+			const i2p::data::IdentHash& GetIdentHash () { return m_LocalDestination.GetIdentHash (); };			
+
 			void TestTunnels ();
 			void ProcessDeliveryStatus (I2NPMessage * msg);
 
@@ -43,11 +47,12 @@ namespace tunnel
 
 			void CreateInboundTunnel ();	
 			void CreateOutboundTunnel ();
+			template<class TTunnels>
+			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels);
 			
 		private:
 
-			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
-			i2p::data::LocalDestination * m_LocalDestination;
+			i2p::data::LocalDestination& m_LocalDestination;
 			int m_NumTunnels;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;

@@ -24,13 +24,19 @@ namespace ntcp
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false), 
 		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), m_NextMessage (nullptr)
 	{		
+		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
 	
+	NTCPSession::~NTCPSession ()
+	{
+		delete m_DHKeysPair;
+	}
+
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
 	{
 		CryptoPP::DH dh (elgp, elgg);
 		CryptoPP::SecByteBlock secretKey(dh.AgreedValueLength());
-		if (!dh.Agree (secretKey, i2p::context.GetPrivateKey (), pubKey))
+		if (!dh.Agree (secretKey, m_DHKeysPair->privateKey, pubKey))
 		{    
 		    LogPrint ("Couldn't create shared key");
 			Terminate ();
@@ -50,11 +56,19 @@ namespace ntcp
 	{
 		m_IsEstablished = false;
 		m_Socket.close ();
-		for (auto it :m_DelayedMessages)
-			delete it;
-		m_DelayedMessages.clear ();
-		// TODO: notify tunnels
 		i2p::transports.RemoveNTCPSession (this);
+		int numDelayed = 0;
+		for (auto it :m_DelayedMessages)
+		{	
+			// try to send them again
+			i2p::transports.SendMessage (m_RemoteRouterInfo.GetIdentHash (), it);
+			numDelayed++;
+		}	
+		m_DelayedMessages.clear ();
+		if (numDelayed > 0)
+			LogPrint ("NTCP session ", numDelayed, " not sent");
+		// TODO: notify tunnels
+		
 		delete this;
 		LogPrint ("NTCP session terminated");
 	}	
@@ -78,7 +92,7 @@ namespace ntcp
 	void NTCPSession::ClientLogin ()
 	{
 		// send Phase1
-		const uint8_t * x = i2p::context.GetRouterIdentity ().publicKey;
+		const uint8_t * x = m_DHKeysPair->publicKey;
 		memcpy (m_Phase1.pubKey, x, 256);
 		CryptoPP::SHA256().CalculateDigest(m_Phase1.HXxorHI, x, 256);
 		const uint8_t * ident = m_RemoteRouterInfo.GetIdentHash ();
@@ -143,7 +157,7 @@ namespace ntcp
 
 	void NTCPSession::SendPhase2 ()
 	{
-		const uint8_t * y = i2p::context.GetRouterIdentity ().publicKey;
+		const uint8_t * y = m_DHKeysPair->publicKey;
 		memcpy (m_Phase2.pubKey, y, 256);
 		uint8_t xy[512];
 		memcpy (xy, m_Phase1.pubKey, 256);
@@ -200,7 +214,7 @@ namespace ntcp
 			m_Decryption.ProcessData((uint8_t *)&m_Phase2.encrypted, (uint8_t *)&m_Phase2.encrypted, sizeof(m_Phase2.encrypted));
 			// verify
 			uint8_t xy[512], hxy[32];
-			memcpy (xy, i2p::context.GetRouterIdentity ().publicKey, 256);
+			memcpy (xy, m_DHKeysPair->publicKey, 256);
 			memcpy (xy + 256, m_Phase2.pubKey, 256);
 			CryptoPP::SHA256().CalculateDigest(hxy, xy, 512); 
 			if (memcmp (hxy, m_Phase2.encrypted.hxy, 32))
@@ -321,6 +335,7 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 4 read error: ", ecode.message ());
+			GetRemoteRouterInfo ().SetUnreachable (true); // this router doesn't like us
 			Terminate ();
 		}
 		else

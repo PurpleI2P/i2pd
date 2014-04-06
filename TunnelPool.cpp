@@ -1,10 +1,8 @@
-#include <cryptopp/dh.h>
 #include "I2PEndian.h"
 #include "CryptoConst.h"
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "Timestamp.h"
-#include "RouterContext.h"
 #include "Garlic.h"
 #include "TunnelPool.h"
 
@@ -12,12 +10,9 @@ namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::data::LocalDestination * localDestination, int numTunnels):
+	TunnelPool::TunnelPool (i2p::data::LocalDestination& localDestination, int numTunnels):
 		m_LocalDestination (localDestination), m_NumTunnels (numTunnels), m_LastOutboundTunnel (nullptr)
 	{
-		CryptoPP::AutoSeededRandomPool rnd;
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 	}
 
 	TunnelPool::~TunnelPool ()
@@ -40,8 +35,7 @@ namespace tunnel
 			expiredTunnel->SetTunnelPool (nullptr);
 			m_InboundTunnels.erase (expiredTunnel);
 		}	
-		if (m_LocalDestination)
-			m_LocalDestination->UpdateLeaseSet ();
+		m_LocalDestination.UpdateLeaseSet ();
 	}	
 
 	void TunnelPool::TunnelCreated (OutboundTunnel * createdTunnel)
@@ -92,7 +86,22 @@ namespace tunnel
 		m_LastOutboundTunnel = tunnel;
 		return tunnel;
 	}	
-		
+
+	InboundTunnel * TunnelPool::GetNextInboundTunnel ()
+	{
+		return GetNextTunnel (m_InboundTunnels);
+	}
+
+	template<class TTunnels>
+	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels)
+	{
+		if (tunnels.empty ()) return nullptr;
+		for (auto it: tunnels)
+			if (!it->IsFailed ())
+				return it;
+		return nullptr;
+	}
+
 	void TunnelPool::CreateTunnels ()
 	{
 		int num = m_InboundTunnels.size ();
