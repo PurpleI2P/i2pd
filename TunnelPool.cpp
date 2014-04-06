@@ -169,14 +169,14 @@ namespace tunnel
 			*m_OutboundTunnels.begin () : tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Creating destination inbound tunnel...");
 		auto firstHop = i2p::data::netdb.GetRandomRouter (outboundTunnel ? outboundTunnel->GetEndpointRouter () : nullptr); 
-		auto secondHop = i2p::data::netdb.GetRandomRouter (firstHop);	
+		auto secondHop = outboundTunnel ? outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router : nullptr;
+		if (!secondHop || secondHop->GetIdentHash () == i2p::context.GetIdentHash ())
+			secondHop = i2p::data::netdb.GetRandomRouter (firstHop);	
 		auto * tunnel = tunnels.CreateTunnel<InboundTunnel> (
 			new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 				{                
 			        firstHop, 
 					secondHop
-					// TODO: switch to 3-hops later	
-					/*i2p::data::netdb.GetRandomRouter (secondHop) */
 	            }),                 
 			outboundTunnel);
 		tunnel->SetTunnelPool (this);
