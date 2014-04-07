@@ -80,7 +80,7 @@ void AddressBook::LoadHosts ()
 		getline(f, s);
 
 		if (!s.length())
-			break;
+			continue; // skip empty line
 
 		size_t pos = s.find('=');
 
@@ -90,8 +90,11 @@ void AddressBook::LoadHosts ()
 			std::string addr = s.substr(pos);
 
 			Identity ident;
-			Base64ToByteStream (addr.c_str(), addr.length(), (uint8_t *)&ident, sizeof (ident));
-			m_Addresses[name] = CalculateIdentHash (ident);	
+			if (!ident.FromBase64(addr)) {
+				LogPrint ("hosts.txt: ignore ", name);
+				continue;
+			}
+			m_Addresses[name] = ident.Hash();
 			numAddresses++;
 		}		
 	}
