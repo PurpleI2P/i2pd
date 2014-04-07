@@ -32,6 +32,7 @@ namespace data
 		uint8_t certificate[3];
 
 		Identity& operator=(const Keys& keys);
+		bool FromBase64(const std::string&);
 	};	
 	
 	struct PrivateKeys // for eepsites

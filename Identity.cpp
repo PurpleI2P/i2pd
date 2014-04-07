@@ -6,6 +6,7 @@
 #include <cryptopp/dsa.h>
 #include "CryptoConst.h"
 #include "Identity.h"
+#include "base64.h"
 
 namespace i2p
 {
@@ -17,6 +18,12 @@ namespace data
 		memcpy (publicKey, keys.publicKey, sizeof (publicKey) + sizeof (signingKey));
 		memset (certificate, 0, sizeof (certificate));		
 		return *this;
+	}
+
+	bool Identity::FromBase64 (const std::string& s)
+	{
+		size_t count = Base64ToByteStream (s.c_str(), s.length(), reinterpret_cast<uint8_t*> (this), sizeof (Identity));
+		return count == sizeof(Identity);
 	}	
 	
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
