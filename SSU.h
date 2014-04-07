@@ -23,6 +23,8 @@ namespace ssu
 		uint8_t iv[16];
 		uint8_t flag;
 		uint32_t time;	
+
+		uint8_t GetPayloadType () const { return flag >> 4; };
 	};
 #pragma pack()
 
@@ -87,6 +89,8 @@ namespace ssu
 			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
 
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
+			void ProcessIntroKeyMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for non-established session			
+
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
@@ -106,7 +110,7 @@ namespace ssu
 			void Send (i2p::I2NPMessage * msg);
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			
-			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
+			bool ProcessIntroKeyEncryptedMessage (uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			

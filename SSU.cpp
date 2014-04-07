@@ -59,10 +59,10 @@ namespace ssu
 				// most common case
 				ProcessMessage (buf, len, senderEndpoint);
 			break;
-			// establishing
+			// establishing or testing
 			case eSessionStateUnknown:
-				// session request
-				ProcessSessionRequest (buf, len, senderEndpoint);
+				// we must use intro key
+				ProcessIntroKeyMessage (buf, len, senderEndpoint);
 			break;
 			case eSessionStateRequestSent:
 				// session created
@@ -98,8 +98,7 @@ namespace ssu
 		{
 			Decrypt (buf, len, m_SessionKey);
 			SSUHeader * header = (SSUHeader *)buf;
-			uint8_t payloadType = header->flag >> 4;
-			switch (payloadType)
+			switch (header->GetPayloadType ())
 			{
 				case PAYLOAD_TYPE_DATA:
 					LogPrint ("SSU data received");
@@ -120,7 +119,7 @@ namespace ssu
 					// TODO:
 				break;
 				default:
-					LogPrint ("Unexpected SSU payload type ", (int)payloadType);
+					LogPrint ("Unexpected SSU payload type ", (int)header->GetPayloadType ());
 			}
 		}
 		else
@@ -140,17 +139,30 @@ namespace ssu
 		}
 	}
 
+	void SSUSession::ProcessIntroKeyMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
+	{
+		if (ProcessIntroKeyEncryptedMessage (buf, len))
+		{
+			SSUHeader * header = (SSUHeader *)buf;
+			switch (header->GetPayloadType ())
+			{
+				case PAYLOAD_TYPE_SESSION_REQUEST:
+					ProcessSessionRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);				
+				break;
+				case PAYLOAD_TYPE_PEER_TEST:
+					// TODO
+				break;	
+				default: ;
+			}
+		}		
+	}
+
 	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		LogPrint ("Process session request");
-		// use our intro key
-		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_REQUEST, buf, len))
-		{
-			m_State = eSessionStateRequestReceived;
-			LogPrint ("Session request received");	
-			m_RemoteEndpoint = senderEndpoint;
-			SendSessionCreated (buf + sizeof (SSUHeader));
-		}
+		m_State = eSessionStateRequestReceived;
+		LogPrint ("Session request received");	
+		m_RemoteEndpoint = senderEndpoint;
+		SendSessionCreated (buf);
 	}
 
 	void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
@@ -163,8 +175,14 @@ namespace ssu
 		}
 
 		// use remote intro key
-		if (ProcessIntroKeyEncryptedMessage (PAYLOAD_TYPE_SESSION_CREATED, buf, len))
+		if (ProcessIntroKeyEncryptedMessage (buf, len))
 		{
+			SSUHeader * header = (SSUHeader *)buf;
+			if (header->GetPayloadType () != PAYLOAD_TYPE_SESSION_CONFIRMED)
+			{
+				LogPrint ("Unexpected payload type ", header->GetPayloadType ());
+				return;
+			}
 			m_State = eSessionStateCreatedReceived;
 			LogPrint ("Session created received");	
 			m_Timer.cancel (); // connect timer
@@ -210,7 +228,7 @@ namespace ssu
 		{
 			Decrypt (buf, len, m_SessionKey);
 			SSUHeader * header = (SSUHeader *)buf;
-			if ((header->flag >> 4) == PAYLOAD_TYPE_SESSION_CONFIRMED)
+			if (header->GetPayloadType () == PAYLOAD_TYPE_SESSION_CONFIRMED)
 			{
 				m_State = eSessionStateConfirmedReceived;
 				LogPrint ("Session confirmed received");		
@@ -407,7 +425,7 @@ namespace ssu
 		}
 	}
 
-	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len)
+	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t * buf, size_t len)
 	{
 		auto introKey = GetIntroKey ();
 		if (introKey)
@@ -416,14 +434,8 @@ namespace ssu
 			if (Validate (buf, len, introKey))
 			{
 				Decrypt (buf, len, introKey);
-				SSUHeader * header = (SSUHeader *)buf;
-				if ((header->flag >> 4) == expectedPayloadType)
-				{
-					CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);	
-					return true;				
-				}
-				else
-					LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
+				CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);	
+				return true;					
 			}
 			else
 			{	
