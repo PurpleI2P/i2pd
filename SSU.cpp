@@ -731,6 +731,33 @@ namespace ssu
 		m_Server.Send (buf, 80, e);
 	}	
 
+	void SSUSession::SendPeerTest ()
+	{
+		auto introKey = GetIntroKey ();
+		if (!introKey)
+		{
+			LogPrint ("SSU is not supported. Can't send peer test");
+			return;
+		}
+		uint8_t buf[80 + 18];
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		uint32_t nonce = 0;
+		rnd.GenerateWord32 (nonce);
+		*(uint32_t *)payload = htobe32 (nonce);
+		payload += 4; // nonce					
+		*payload = 4;
+		payload++; // size
+		memset (payload, 0, 6); // address and port always zero for Alice
+		payload += 6; // address and port
+		memcpy (payload, introKey, 32); // intro key	
+		uint8_t iv[16];	
+		rnd.GenerateBlock (iv, 16); // random iv
+		// encrypt message with session key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80, m_SessionKey, iv, m_MacKey);
+		m_Server.Send (buf, 80, m_RemoteEndpoint);
+	}	
+
 	void SSUSession::SendMsgAck (uint32_t msgID)
 	{
 		uint8_t buf[48 + 18]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
@@ -822,8 +849,8 @@ namespace ssu
 				len = 0;
 			fragmentNum++;
 		}	
-	}	
-	
+	}		
+
 	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
 	{
 		uint8_t buf[SSU_MTU + 18];
