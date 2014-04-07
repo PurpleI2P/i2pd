@@ -57,7 +57,7 @@ namespace ssu
 			case eSessionStateConfirmedSent:
 			case eSessionStateEstablished:
 				// most common case
-				ProcessMessage (buf, len);
+				ProcessMessage (buf, len, senderEndpoint);
 			break;
 			// establishing
 			case eSessionStateUnknown:
@@ -92,7 +92,7 @@ namespace ssu
 		}
 	}
 
-	void SSUSession::ProcessMessage (uint8_t * buf, size_t len)
+	void SSUSession::ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		if (Validate (buf, len, m_MacKey))
 		{
@@ -105,8 +105,9 @@ namespace ssu
 					LogPrint ("SSU data received");
 					ProcessData (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
 				break;
-				case PAYLOAD_TYPE_TEST:
-					LogPrint ("SSU test received");
+				case PAYLOAD_TYPE_PEER_TEST:
+					LogPrint ("SSU peer test received");
+					ProcessPeerTest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
 				break;
 				case PAYLOAD_TYPE_SESSION_DESTROYED:
 				{
@@ -678,6 +679,58 @@ namespace ssu
 		}	
 	}
 
+
+	void SSUSession::ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
+	{
+		uint8_t * buf1 = buf;
+		uint32_t nonce = be32toh (*(uint32_t *)buf);
+		buf += 4; // nonce
+		uint8_t size = *buf;
+		buf++; // size
+		uint8_t * address = (size == 4) ? buf : nullptr;
+		buf += size; // address
+		uint16_t port = *(uint16_t *)buf; // use it as is
+		buf += 2; // port
+		uint8_t * introKey = buf;
+		if (port)
+		{
+			LogPrint ("SSU peer test. We are Charlie");
+			Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
+			if (address)
+				SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
+			else
+				LogPrint ("Address of ", size, " bytes not supported");	
+		}
+		else
+		{
+			LogPrint ("SSU peer test. We are Bob");
+			// TODO:
+		}	
+	}
+	
+	void SSUSession::SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey)
+	{
+		uint8_t buf[80 + 18];
+		uint8_t iv[16];
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		*(uint32_t *)payload = htobe32 (nonce);
+		payload += 4; // nonce					
+		*payload = 4;
+		payload++; // size
+		*(uint32_t *)payload = htobe32 (address);
+		payload += 4; // address
+		*(uint16_t *)payload = htobe32 (port);
+		payload += 2; // port
+		memcpy (payload, introKey, 32); // intro key
+
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		// encrypt message with specified intro key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80, introKey, iv, introKey);
+		boost::asio::ip::udp::endpoint e (boost::asio::ip::address_v4 (address), port);
+		m_Server.Send (buf, 80, e);
+	}	
+
 	void SSUSession::SendMsgAck (uint32_t msgID)
 	{
 		uint8_t buf[48 + 18]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
@@ -771,6 +824,24 @@ namespace ssu
 		}	
 	}	
 	
+	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
+	{
+		uint8_t buf[SSU_MTU + 18];
+		uint8_t iv[16];
+		size_t msgSize = len + sizeof (SSUHeader); 
+		if (msgSize > SSU_MTU)
+		{
+			LogPrint ("SSU payload size ", msgSize, " exceeds MTU");
+			return;
+		} 
+		memcpy (buf + sizeof (SSUHeader), payload, len);
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		// encrypt message with session key
+		FillHeaderAndEncrypt (type, buf, msgSize, m_SessionKey, iv, m_MacKey);
+		m_Server.Send (buf, msgSize, m_RemoteEndpoint);
+	}			
+
 	SSUServer::SSUServer (boost::asio::io_service& service, int port):
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
 	{

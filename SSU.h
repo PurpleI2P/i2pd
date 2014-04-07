@@ -26,7 +26,7 @@ namespace ssu
 	};
 #pragma pack()
 
-	const int SSU_MTU = 1484;
+	const size_t SSU_MTU = 1484;
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 
 	// payload types (4 bits)
@@ -37,7 +37,7 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_RELAY_RESPONSE = 4;
 	const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
 	const uint8_t PAYLOAD_TYPE_DATA = 6;
-	const uint8_t PAYLOAD_TYPE_TEST = 7;
+	const uint8_t PAYLOAD_TYPE_PEER_TEST = 7;
 	const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
 
 	// data flags
@@ -85,7 +85,7 @@ namespace ssu
 
 			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
 
-			void ProcessMessage (uint8_t * buf, size_t len); // call for established session
+			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
@@ -97,10 +97,13 @@ namespace ssu
 			void Established ();
 			void Failed ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);
-			void ProcessData (uint8_t * buf, size_t len);	
+			void ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey); // Charlie to Alice
+			void ProcessData (uint8_t * buf, size_t len);		
 			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();
 			void Send (i2p::I2NPMessage * msg);
+			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			
 			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
