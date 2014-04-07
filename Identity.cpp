@@ -24,6 +24,13 @@ namespace data
 	{
 		size_t count = Base64ToByteStream (s.c_str(), s.length(), reinterpret_cast<uint8_t*> (this), sizeof (Identity));
 		return count == sizeof(Identity);
+	}
+
+	IdentHash Identity::Hash()
+	{
+		IdentHash hash;
+		CryptoPP::SHA256().CalculateDigest(reinterpret_cast<uint8_t*>(&hash), reinterpret_cast<uint8_t*> (this), sizeof (Identity));
+		return hash;
 	}	
 	
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
