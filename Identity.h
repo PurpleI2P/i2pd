@@ -9,6 +9,8 @@ namespace i2p
 {
 namespace data
 {
+	class IdentHash;
+
 #pragma pack(1)
 
 	struct DHKeysPair // transient keys for transport sessions
@@ -32,6 +34,8 @@ namespace data
 		uint8_t certificate[3];
 
 		Identity& operator=(const Keys& keys);
+		bool FromBase64(const std::string&);
+		IdentHash Hash();
 	};	
 	
 	struct PrivateKeys // for eepsites
