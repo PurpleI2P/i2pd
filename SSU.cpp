@@ -16,8 +16,9 @@ namespace ssu
 {
 
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-		const i2p::data::RouterInfo * router): m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
-		m_RemoteRouter (router), m_Timer (m_Server.GetService ()), m_State (eSessionStateUnknown)
+		const i2p::data::RouterInfo * router, bool peerTest ): 
+		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
+		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
@@ -170,7 +171,8 @@ namespace ssu
 				break;
 			}		
 			case PAYLOAD_TYPE_PEER_TEST:
-				// TODO
+				LogPrint ("SSU peer test received");
+				// TODO:
 			break;	
 			default: ;
 		}	
@@ -541,7 +543,9 @@ namespace ssu
 			for (auto it :m_DelayedMessages)
 				Send (it);
 			m_DelayedMessages.clear ();
-		}	
+		}
+		if (m_PeerTest)
+			SendPeerTest ();
 	}	
 
 	void SSUSession::Failed ()
@@ -730,6 +734,7 @@ namespace ssu
 
 	void SSUSession::SendPeerTest ()
 	{
+		LogPrint ("SSU sending peer test");
 		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 		if (!address)
 		{
@@ -937,7 +942,7 @@ namespace ssu
 			return nullptr;
 	}	
 		
-	SSUSession * SSUServer::GetSession (const i2p::data::RouterInfo * router)
+	SSUSession * SSUServer::GetSession (const i2p::data::RouterInfo * router, bool peerTest)
 	{
 		SSUSession * session = nullptr;
 		if (router)
@@ -955,10 +960,10 @@ namespace ssu
 					if (!router->UsesIntroducer ())
 					{
 						// connect directly
-						session = new SSUSession (*this, remoteEndpoint, router);
+						session = new SSUSession (*this, remoteEndpoint, router, peerTest);
 						m_Sessions[remoteEndpoint] = session;
-						LogPrint ("New SSU session to [", router->GetIdentHashAbbreviation (), "] ",
-							remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port (), " created");
+						LogPrint ("Creating new SSU session to [", router->GetIdentHashAbbreviation (), "] ",
+							remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
 						session->Connect ();
 					}
 					else
@@ -970,7 +975,7 @@ namespace ssu
 							boost::asio::ip::udp::endpoint introducerEndpoint (introducer.iHost, introducer.iPort);
 							session = new SSUSession (*this, introducerEndpoint, router);
 							m_Sessions[introducerEndpoint] = session;
-							LogPrint ("New SSU session to [", router->GetIdentHashAbbreviation (), 
+							LogPrint ("Creating new SSU session to [", router->GetIdentHashAbbreviation (), 
 								"] through introducer ", introducerEndpoint.address ().to_string (), ":", introducerEndpoint.port ());
 							session->ConnectThroughIntroducer (introducer);
 						}
@@ -1013,7 +1018,7 @@ namespace ssu
 			auto session = it->second;
 			m_Sessions.erase (it);
 			m_Sessions[newEndpoint] = session;
-			LogPrint ("SSU session ressigned from ", oldEndpoint.address ().to_string (), ":", oldEndpoint.port (), 
+			LogPrint ("SSU session reassigned from ", oldEndpoint.address ().to_string (), ":", oldEndpoint.port (), 
 				" to ", newEndpoint.address ().to_string (), ":", newEndpoint.port ());
 		}						
 	}	

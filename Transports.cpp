@@ -270,7 +270,7 @@ namespace i2p
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			if (router && router->IsSSU () && m_SSUServer)
-				m_SSUServer->GetSession (router); 	
+				m_SSUServer->GetSession (router, true);  // peer test	
 		}	
 		if (m_Timer)
 		{	

@@ -72,7 +72,7 @@ namespace ssu
 		public:
 
 			SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-				const i2p::data::RouterInfo * router = nullptr);
+				const i2p::data::RouterInfo * router = nullptr, bool peerTest = false);
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
 			~SSUSession ();
 			
@@ -122,6 +122,7 @@ namespace ssu
 			const i2p::data::RouterInfo * m_RemoteRouter;
 			boost::asio::deadline_timer m_Timer;
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
+			bool m_PeerTest;
 			SessionState m_State;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
@@ -138,7 +139,7 @@ namespace ssu
 			~SSUServer ();
 			void Start ();
 			void Stop ();
-			SSUSession * GetSession (const i2p::data::RouterInfo * router);
+			SSUSession * GetSession (const i2p::data::RouterInfo * router, bool peerTest = false);
 			SSUSession * FindSession (const i2p::data::RouterInfo * router);
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			
