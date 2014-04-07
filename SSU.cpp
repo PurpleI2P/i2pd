@@ -138,23 +138,42 @@ namespace ssu
 
 	void SSUSession::ProcessIntroKeyMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		if (ProcessIntroKeyEncryptedMessage (buf, len))
+		auto introKey = GetIntroKey ();
+		if (!introKey)
 		{
-			SSUHeader * header = (SSUHeader *)buf;
-			switch (header->GetPayloadType ())
+			LogPrint ("SSU is not supported");
+			return;
+		}	
+		// use intro key for verification and decryption
+		if (!Validate (buf, len, introKey))
+		{
+			LogPrint ("MAC verification intro key failed");	
+			Failed ();
+			return;
+		}	
+		
+		Decrypt (buf, len, introKey);
+		CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);
+		SSUHeader * header = (SSUHeader *)buf;
+		switch (header->GetPayloadType ())
+		{
+			case PAYLOAD_TYPE_SESSION_REQUEST:
+				ProcessSessionRequest (buf, len, senderEndpoint);				
+			break;
+			case PAYLOAD_TYPE_SESSION_CREATED:
+				ProcessSessionCreated (buf, len);
+			break;
+			case PAYLOAD_TYPE_SESSION_DESTROYED:
 			{
-				case PAYLOAD_TYPE_SESSION_REQUEST:
-					ProcessSessionRequest (buf, len, senderEndpoint);				
+				LogPrint ("SSU session destroy with into key received");
+				m_Server.DeleteSession (this); // delete this 
 				break;
-				case PAYLOAD_TYPE_SESSION_CREATED:
-					ProcessSessionCreated (buf, len);
-				break;
-				case PAYLOAD_TYPE_PEER_TEST:
-					// TODO
-				break;	
-				default: ;
-			}
-		}		
+			}		
+			case PAYLOAD_TYPE_PEER_TEST:
+				// TODO
+			break;	
+			default: ;
+		}	
 	}
 
 	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
@@ -413,29 +432,6 @@ namespace ssu
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));
 		}
 	}
-
-	bool SSUSession::ProcessIntroKeyEncryptedMessage (uint8_t * buf, size_t len)
-	{
-		auto introKey = GetIntroKey ();
-		if (introKey)
-		{
-			// use intro key for verification and decryption
-			if (Validate (buf, len, introKey))
-			{
-				Decrypt (buf, len, introKey);
-				CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);	
-				return true;					
-			}
-			else
-			{	
-				LogPrint ("MAC verification failed");	
-				Failed ();
-			}	
-		}
-		else
-			LogPrint ("SSU is not supported");
-		return false;
-	}	
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, 
 		const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey)
@@ -734,12 +730,13 @@ namespace ssu
 
 	void SSUSession::SendPeerTest ()
 	{
-		auto introKey = GetIntroKey ();
-		if (!introKey)
+		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		if (!address)
 		{
 			LogPrint ("SSU is not supported. Can't send peer test");
 			return;
 		}
+		auto introKey = address->key;
 		uint8_t buf[80 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();

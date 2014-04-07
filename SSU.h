@@ -110,7 +110,6 @@ namespace ssu
 			void Send (i2p::I2NPMessage * msg);
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			
-			bool ProcessIntroKeyEncryptedMessage (uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
