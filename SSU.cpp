@@ -61,12 +61,9 @@ namespace ssu
 			break;
 			// establishing or testing
 			case eSessionStateUnknown:
+			case eSessionStateRequestSent:
 				// we must use intro key
 				ProcessIntroKeyMessage (buf, len, senderEndpoint);
-			break;
-			case eSessionStateRequestSent:
-				// session created
-				ProcessSessionCreated (buf, len);
 			break;
 			case eSessionStateCreatedSent:
 				// session confirmed
@@ -147,7 +144,10 @@ namespace ssu
 			switch (header->GetPayloadType ())
 			{
 				case PAYLOAD_TYPE_SESSION_REQUEST:
-					ProcessSessionRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);				
+					ProcessSessionRequest (buf, len, senderEndpoint);				
+				break;
+				case PAYLOAD_TYPE_SESSION_CREATED:
+					ProcessSessionCreated (buf, len);
 				break;
 				case PAYLOAD_TYPE_PEER_TEST:
 					// TODO
@@ -162,63 +162,52 @@ namespace ssu
 		m_State = eSessionStateRequestReceived;
 		LogPrint ("Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
-		SendSessionCreated (buf);
+		SendSessionCreated (buf + sizeof (SSUHeader));
 	}
 
 	void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
 	{
-		LogPrint ("Process session created");
 		if (!m_RemoteRouter)
 		{
 			LogPrint ("Unsolicited session created message");
 			return;
 		}
 
-		// use remote intro key
-		if (ProcessIntroKeyEncryptedMessage (buf, len))
-		{
-			SSUHeader * header = (SSUHeader *)buf;
-			if (header->GetPayloadType () != PAYLOAD_TYPE_SESSION_CONFIRMED)
-			{
-				LogPrint ("Unexpected payload type ", header->GetPayloadType ());
-				return;
-			}
-			m_State = eSessionStateCreatedReceived;
-			LogPrint ("Session created received");	
-			m_Timer.cancel (); // connect timer
-			uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
-			uint8_t * payload = buf + sizeof (SSUHeader);
-			uint8_t * y = payload;
-			memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
-			memcpy (signedData + 256, y, 256); // y
-			payload += 256;
-			payload += 1; // size, assume 4
-			uint8_t * ourAddress = payload;
-			boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )ourAddress));
-			payload += 4; // address
-			uint16_t ourPort = be16toh (*(uint16_t *)payload);
-			payload += 2; // port
-			memcpy (signedData + 512, ourAddress, 6); // our IP and port 
-			LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
-			i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
-			*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
-			*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
-			memcpy (signedData + 524, payload, 8); // relayTag and signed on time 
-			uint32_t relayTag = be32toh (*(uint32_t *)payload);
-			payload += 4; // relayTag
-			payload += 4; // signed on time
-			// decrypt DSA signature
-			m_Decryption.SetKeyWithIV (m_SessionKey, 32, ((SSUHeader *)buf)->iv);
-			m_Decryption.ProcessData (payload, payload, 48);
-			// verify
-			CryptoPP::DSA::PublicKey pubKey;
-			pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
-			CryptoPP::DSA::Verifier verifier (pubKey);
-			if (!verifier.VerifyMessage (signedData, 532, payload, 40))
-				LogPrint ("SSU signature verification failed");
-			
-			SendSessionConfirmed (y, ourAddress, relayTag);
-		}
+		m_State = eSessionStateCreatedReceived;
+		LogPrint ("Session created received");	
+		m_Timer.cancel (); // connect timer
+		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
+		uint8_t * payload = buf + sizeof (SSUHeader);	
+		uint8_t * y = payload;
+		memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
+		memcpy (signedData + 256, y, 256); // y
+		payload += 256;
+		payload += 1; // size, assume 4
+		uint8_t * ourAddress = payload;
+		boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )ourAddress));
+		payload += 4; // address
+		uint16_t ourPort = be16toh (*(uint16_t *)payload);
+		payload += 2; // port
+		memcpy (signedData + 512, ourAddress, 6); // our IP and port 
+		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
+		i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
+		*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
+		*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
+		memcpy (signedData + 524, payload, 8); // relayTag and signed on time 
+		uint32_t relayTag = be32toh (*(uint32_t *)payload);
+		payload += 4; // relayTag
+		payload += 4; // signed on time
+		// decrypt DSA signature
+		m_Decryption.SetKeyWithIV (m_SessionKey, 32, ((SSUHeader *)buf)->iv);
+		m_Decryption.ProcessData (payload, payload, 48);
+		// verify
+		CryptoPP::DSA::PublicKey pubKey;
+		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
+		CryptoPP::DSA::Verifier verifier (pubKey);
+		if (!verifier.VerifyMessage (signedData, 532, payload, 40))
+			LogPrint ("SSU signature verification failed");
+		
+		SendSessionConfirmed (y, ourAddress, relayTag);
 	}	
 
 	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
