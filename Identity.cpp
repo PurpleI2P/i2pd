@@ -40,13 +40,6 @@ namespace data
 		return *this;
 	}
 
-	IdentHash CalculateIdentHash (const Identity& identity)
-	{
-		IdentHash hash;
-		CryptoPP::SHA256().CalculateDigest((uint8_t *)hash, (uint8_t *)&identity, sizeof (Identity));
-		return hash;
-	}
-
 	Keys CreateRandomKeys ()
 	{
 		Keys keys;		

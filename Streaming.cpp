@@ -345,7 +345,7 @@ namespace stream
 	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
 	{		
 		m_Keys = i2p::data::CreateRandomKeys ();
-		m_IdentHash = i2p::data::CalculateIdentHash (m_Keys.pub);
+		m_IdentHash = m_Keys.pub.Hash ();
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
