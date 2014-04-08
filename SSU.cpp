@@ -572,7 +572,7 @@ namespace ssu
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			LogPrint ("SSU no activity fo ", SSU_TERMINATION_TIMEOUT, " seconds");
-			Close ();
+			Failed ();
 		}	
 	}	
 		
