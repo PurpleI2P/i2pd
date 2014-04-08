@@ -546,6 +546,7 @@ namespace ssu
 		}
 		if (m_PeerTest)
 			SendPeerTest ();
+		ScheduleTermination ();
 	}	
 
 	void SSUSession::Failed ()
@@ -557,7 +558,24 @@ namespace ssu
 			m_Server.DeleteSession (this); // delete this 
 		}	
 	}	
-	
+
+	void SSUSession::ScheduleTermination ()
+	{
+		m_Timer.cancel ();
+		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_TIMEOUT));
+		m_Timer.async_wait (boost::bind (&SSUSession::HandleTerminationTimer,
+			this, boost::asio::placeholders::error));
+	}
+
+	void SSUSession::HandleTerminationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			LogPrint ("SSU no activity fo ", SSU_TERMINATION_TIMEOUT, " seconds");
+			Close ();
+		}	
+	}	
+		
 	const uint8_t * SSUSession::GetIntroKey () const
 	{
 		if (m_RemoteRouter)
@@ -587,6 +605,7 @@ namespace ssu
 	
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)
 	{
+		ScheduleTermination ();
 		//uint8_t * start = buf;
 		uint8_t flag = *buf;
 		buf++;

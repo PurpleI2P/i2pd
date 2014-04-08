@@ -30,6 +30,7 @@ namespace ssu
 
 	const size_t SSU_MTU = 1484;
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
+	const int SSU_TERMINATION_TIMEOUT = 270; // 4.5 minutes
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
@@ -115,6 +116,9 @@ namespace ssu
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
 			const uint8_t * GetIntroKey () const; 
 
+			void ScheduleTermination ();
+			void HandleTerminationTimer (const boost::system::error_code& ecode);
+			
 		private:
 			
 			SSUServer& m_Server;
