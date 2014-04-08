@@ -71,7 +71,6 @@ namespace i2p
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 
 			void DetectExternalIP ();
-			void HandleTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -83,7 +82,6 @@ namespace i2p
 
 			std::map<i2p::data::IdentHash, i2p::ntcp::NTCPSession *> m_NTCPSessions;
 			i2p::ssu::SSUServer * m_SSUServer;
-			boost::asio::deadline_timer * m_Timer;
 
 			DHKeysPairSupplier m_DHKeysPairSupplier;
 
