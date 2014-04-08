@@ -100,6 +100,7 @@ namespace ssu
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
 			void ProcessRelayResponse (uint8_t * buf, size_t len);
+			void ProcessRelayIntro (uint8_t * buf, size_t len);
 			void Established ();
 			void Failed ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);

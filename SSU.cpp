@@ -115,7 +115,7 @@ namespace ssu
 				}	
 				case PAYLOAD_TYPE_RELAY_INTRO:
 					LogPrint ("SSU relay intro received");
-					// TODO:
+					ProcessRelayIntro (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
 				break;
 				default:
 					LogPrint ("Unexpected SSU payload type ", (int)header->GetPayloadType ());
@@ -429,6 +429,22 @@ namespace ssu
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));
 		}
 	}
+
+	void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t len)
+	{
+		uint8_t size = *buf;
+		if (size == 4)
+		{
+			buf++; // size
+			boost::asio::ip::address_v4 address (be32toh (*(uint32_t* )buf));
+			buf += 4; // address
+			uint16_t port = be16toh (*(uint16_t *)buf);
+			// send hole punch of 1 byte
+			m_Server.Send (buf, 1, boost::asio::ip::udp::endpoint (address, port));
+		}
+		else
+			LogPrint ("Address size ", size, " is not supported"); 	
+	}		
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, 
 		const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey)
