@@ -128,6 +128,7 @@ namespace data
 	{
 		public:
 
+			virtual ~LocalDestination() {};
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
