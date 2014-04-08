@@ -98,7 +98,7 @@ namespace ssu
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
-			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
+			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress);
 			void ProcessRelayResponse (uint8_t * buf, size_t len);
 			void ProcessRelayIntro (uint8_t * buf, size_t len);
 			void Established ();
@@ -128,7 +128,8 @@ namespace ssu
 			boost::asio::deadline_timer m_Timer;
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			bool m_PeerTest;
-			SessionState m_State;	
+			SessionState m_State;
+			uint32_t m_RelayTag;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];

@@ -18,7 +18,8 @@ namespace ssu
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
-		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown)
+		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
+		m_RelayTag (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
@@ -210,7 +211,7 @@ namespace ssu
 		*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
 		*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
 		memcpy (signedData + 524, payload, 8); // relayTag and signed on time 
-		uint32_t relayTag = be32toh (*(uint32_t *)payload);
+		m_RelayTag = be32toh (*(uint32_t *)payload);
 		payload += 4; // relayTag
 		payload += 4; // signed on time
 		// decrypt DSA signature
@@ -223,7 +224,7 @@ namespace ssu
 		if (!verifier.VerifyMessage (signedData, 532, payload, 40))
 			LogPrint ("SSU signature verification failed");
 		
-		SendSessionConfirmed (y, ourAddress, relayTag);
+		SendSessionConfirmed (y, ourAddress);
 	}	
 
 	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
@@ -350,7 +351,7 @@ namespace ssu
 		m_Server.Send (buf, 368, m_RemoteEndpoint);
 	}
 
-	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag)
+	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress)
 	{
 		uint8_t buf[480 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
@@ -376,7 +377,7 @@ namespace ssu
 		memcpy (signedData + 512, ourAddress, 6); // our address/port as seem by party
 		*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
 		*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
-		*(uint32_t *)(signedData + 524) = htobe32 (relayTag); // relay tag
+		*(uint32_t *)(signedData + 524) = htobe32 (m_RelayTag); // relay tag
 		*(uint32_t *)(signedData + 528) = htobe32 (signedOnTime); // signed on time
 		i2p::context.Sign (signedData, 532, payload); // DSA signature	
 
@@ -992,11 +993,20 @@ namespace ssu
 						{
 							auto& introducer = address->introducers[0]; // TODO:
 							boost::asio::ip::udp::endpoint introducerEndpoint (introducer.iHost, introducer.iPort);
-							session = new SSUSession (*this, introducerEndpoint, router);
-							m_Sessions[introducerEndpoint] = session;
-							LogPrint ("Creating new SSU session to [", router->GetIdentHashAbbreviation (), 
-								"] through introducer ", introducerEndpoint.address ().to_string (), ":", introducerEndpoint.port ());
-							session->ConnectThroughIntroducer (introducer);
+							it = m_Sessions.find (introducerEndpoint);
+							if (it == m_Sessions.end ())
+							{
+								session = new SSUSession (*this, introducerEndpoint, router);
+								m_Sessions[introducerEndpoint] = session;
+								LogPrint ("Creating new SSU session to [", router->GetIdentHashAbbreviation (), 
+									"] through introducer ", introducerEndpoint.address ().to_string (), ":", introducerEndpoint.port ());
+								session->ConnectThroughIntroducer (introducer);
+							}
+							else
+							{
+								LogPrint ("Session to introducer already exists");
+								// TODO:
+							}	
 						}
 						else
 							LogPrint ("Router is unreachable, but not introducers presentd. Ignored");
