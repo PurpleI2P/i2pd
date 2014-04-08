@@ -58,6 +58,7 @@ namespace ssu
 			case eSessionStateConfirmedSent:
 			case eSessionStateEstablished:
 				// most common case
+				ScheduleTermination ();
 				ProcessMessage (buf, len, senderEndpoint);
 			break;
 			// establishing or testing
@@ -164,12 +165,6 @@ namespace ssu
 			case PAYLOAD_TYPE_SESSION_CREATED:
 				ProcessSessionCreated (buf, len);
 			break;
-			case PAYLOAD_TYPE_SESSION_DESTROYED:
-			{
-				LogPrint ("SSU session destroy with into key received");
-				m_Server.DeleteSession (this); // delete this 
-				break;
-			}		
 			case PAYLOAD_TYPE_PEER_TEST:
 				LogPrint ("SSU peer test received");
 				// TODO:
@@ -605,7 +600,6 @@ namespace ssu
 	
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)
 	{
-		ScheduleTermination ();
 		//uint8_t * start = buf;
 		uint8_t flag = *buf;
 		buf++;
@@ -806,21 +800,11 @@ namespace ssu
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
 		if (m_State == eSessionStateEstablished)
+		{
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, m_SessionKey, iv, m_MacKey);
-		else
-		{
-			auto introKey = GetIntroKey ();
-			if (introKey)
-				// encrypt message with intro key
-				FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, introKey, iv, introKey);
-			else
-			{
-				LogPrint ("SSU: can't send SessionDestroyed message");
-				return;
-			}
+			m_Server.Send (buf, 48, m_RemoteEndpoint);
 		}
-		m_Server.Send (buf, 48, m_RemoteEndpoint);
 	}	
 
 	void SSUSession::Send (i2p::I2NPMessage * msg)
