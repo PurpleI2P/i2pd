@@ -79,7 +79,6 @@ namespace data
 			uint8_t m_Hash[32];
 	};	
 
-	IdentHash CalculateIdentHash (const Identity& identity);
 	Keys CreateRandomKeys ();
 	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
@@ -107,7 +106,7 @@ namespace data
 		public:
 
 			RoutingDestination (): m_ElGamalEncryption (nullptr) {};
-			virtual ~RoutingDestination () { delete m_ElGamalEncryption; };
+			virtual ~RoutingDestination () { if (m_ElGamalEncryption) delete m_ElGamalEncryption; };
 			
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
@@ -129,6 +128,7 @@ namespace data
 	{
 		public:
 
+			virtual ~LocalDestination() {};
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 

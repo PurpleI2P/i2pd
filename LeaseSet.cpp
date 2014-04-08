@@ -25,7 +25,7 @@ namespace data
 
 		const H * header = (const H *)buf;
 		m_Identity = header->destination;
-		m_IdentHash = CalculateIdentHash (m_Identity);
+		m_IdentHash = m_Identity.Hash();
 		memcpy (m_EncryptionKey, header->encryptionKey, 256);
 		LogPrint ("LeaseSet num=", (int)header->num);
 
