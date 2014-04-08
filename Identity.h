@@ -79,7 +79,6 @@ namespace data
 			uint8_t m_Hash[32];
 	};	
 
-	IdentHash CalculateIdentHash (const Identity& identity);
 	Keys CreateRandomKeys ();
 	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 

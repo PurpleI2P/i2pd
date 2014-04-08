@@ -34,7 +34,7 @@ namespace data
 	void RouterInfo::SetRouterIdentity (const Identity& identity)
 	{	
 		m_RouterIdentity = identity;
-		m_IdentHash = CalculateIdentHash (m_RouterIdentity);
+		m_IdentHash      = m_RouterIdentity.Hash ();
 		UpdateIdentHashBase64 ();
 		UpdateRoutingKey ();
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
