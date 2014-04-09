@@ -72,12 +72,12 @@ namespace ssu
 				// session confirmed
 				ProcessSessionConfirmed (buf, len);
 			break;
-			case eSessionRelayRequestSent:
+			case eSessionStateRelayRequestSent:
 				// relay response
-				ProcessRelayResponse (buf,len);
+				ProcessRelayResponse (buf, len);
 				m_Server.DeleteSession (this); 
 			break;
-			case eSessionIntroduced:
+			case eSessionStateIntroduced:
 				// HolePunch received
 				LogPrint ("SSU HolePuch of ", len, " bytes received");
 				m_State = eSessionStateUnknown;
@@ -110,6 +110,10 @@ namespace ssu
 					m_Server.DeleteSession (this); // delete this 
 					break;
 				}	
+				case PAYLOAD_TYPE_RELAY_RESPONSE:
+					LogPrint ("SSU relay response received though established session");
+					// Ignore it for now
+				break;
 				case PAYLOAD_TYPE_RELAY_INTRO:
 					LogPrint ("SSU relay intro received");
 					ProcessRelayIntro (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
@@ -295,8 +299,13 @@ namespace ssu
 
 		uint8_t iv[16];
 		rnd.GenerateBlock (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, iKey, iv, iKey);
-		m_State = eSessionRelayRequestSent;		
+		if (m_State == eSessionStateEstablished)
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, m_SessionKey, iv, m_MacKey);
+		else
+		{
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, iKey, iv, iKey);
+			m_State = eSessionStateRelayRequestSent;
+		}			
 		m_Server.Send (buf, 96, m_RemoteEndpoint);
 	}
 
@@ -529,7 +538,7 @@ namespace ssu
 
 	void SSUSession::WaitForIntroduction ()
 	{
-		m_State = eSessionIntroduced;
+		m_State = eSessionStateIntroduced;
 		// set connect timer
 		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
 		m_Timer.async_wait (boost::bind (&SSUSession::HandleConnectTimer,

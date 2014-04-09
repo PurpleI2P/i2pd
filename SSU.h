@@ -60,9 +60,9 @@ namespace ssu
 		eSessionStateCreatedReceived,
 		eSessionStateConfirmedSent,
 		eSessionStateConfirmedReceived,
-		eSessionRelayRequestSent,
-		eSessionRelayRequestReceived,	
-		eSessionIntroduced,
+		eSessionStateRelayRequestSent,
+		eSessionStateRelayRequestReceived,	
+		eSessionStateIntroduced,
 		eSessionStateEstablished,
 		eSessionStateFailed
 	};		
