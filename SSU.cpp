@@ -425,7 +425,6 @@ namespace ssu
 				payload += 2; // our port
 				LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 				i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
-				m_Server.DeleteSession (this); // we don't need this session anymore
 			}
 			else
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));
@@ -532,9 +531,9 @@ namespace ssu
 			// set connect timer
 			m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
 			m_Timer.async_wait (boost::bind (&SSUSession::HandleConnectTimer,
-				this, boost::asio::placeholders::error));		
-			SendRelayRequest (iTag, iKey);
-		}
+				this, boost::asio::placeholders::error));
+		}	
+		SendRelayRequest (iTag, iKey);
 	}
 
 	void SSUSession::WaitForIntroduction ()
