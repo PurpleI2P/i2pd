@@ -23,11 +23,14 @@ namespace ssu
 		uint8_t iv[16];
 		uint8_t flag;
 		uint32_t time;	
+
+		uint8_t GetPayloadType () const { return flag >> 4; };
 	};
 #pragma pack()
 
-	const int SSU_MTU = 1484;
+	const size_t SSU_MTU = 1484;
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
+	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
@@ -37,7 +40,7 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_RELAY_RESPONSE = 4;
 	const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
 	const uint8_t PAYLOAD_TYPE_DATA = 6;
-	const uint8_t PAYLOAD_TYPE_TEST = 7;
+	const uint8_t PAYLOAD_TYPE_PEER_TEST = 7;
 	const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
 
 	// data flags
@@ -70,7 +73,7 @@ namespace ssu
 		public:
 
 			SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-				const i2p::data::RouterInfo * router = nullptr);
+				const i2p::data::RouterInfo * router = nullptr, bool peerTest = false);
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
 			~SSUSession ();
 			
@@ -80,34 +83,43 @@ namespace ssu
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			const i2p::data::RouterInfo * GetRemoteRouter () const  { return m_RemoteRouter; };
 			void SendI2NPMessage (I2NPMessage * msg);
-			
+			void SendPeerTest (); // Alice			
+
 		private:
 
 			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
 
-			void ProcessMessage (uint8_t * buf, size_t len); // call for established session
+			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
+			void ProcessIntroKeyMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for non-established session			
+
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
-			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, uint32_t relayTag);
+			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress);
 			void ProcessRelayResponse (uint8_t * buf, size_t len);
+			void ProcessRelayIntro (uint8_t * buf, size_t len);
 			void Established ();
 			void Failed ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);
-			void ProcessData (uint8_t * buf, size_t len);	
+			void ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey); // Charlie to Alice
+			void ProcessData (uint8_t * buf, size_t len);		
 			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();
 			void Send (i2p::I2NPMessage * msg);
+			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			
-			bool ProcessIntroKeyEncryptedMessage (uint8_t expectedPayloadType, uint8_t * buf, size_t len);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
 			const uint8_t * GetIntroKey () const; 
 
+			void ScheduleTermination ();
+			void HandleTerminationTimer (const boost::system::error_code& ecode);
+			
 		private:
 			
 			SSUServer& m_Server;
@@ -115,7 +127,9 @@ namespace ssu
 			const i2p::data::RouterInfo * m_RemoteRouter;
 			boost::asio::deadline_timer m_Timer;
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
-			SessionState m_State;	
+			bool m_PeerTest;
+			SessionState m_State;
+			uint32_t m_RelayTag;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
@@ -131,7 +145,7 @@ namespace ssu
 			~SSUServer ();
 			void Start ();
 			void Stop ();
-			SSUSession * GetSession (const i2p::data::RouterInfo * router);
+			SSUSession * GetSession (const i2p::data::RouterInfo * router, bool peerTest = false);
 			SSUSession * FindSession (const i2p::data::RouterInfo * router);
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			

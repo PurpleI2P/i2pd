@@ -92,7 +92,6 @@ namespace i2p
 		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
-		m_Timer = new boost::asio::deadline_timer (m_Service);
 		// create acceptors
 		auto addresses = context.GetRouterInfo ().GetAddresses ();
 		for (auto& address : addresses)
@@ -124,22 +123,16 @@ namespace i2p
 		
 	void Transports::Stop ()
 	{	
-		for (auto session: m_NTCPSessions)
-			delete session.second;
-		m_NTCPSessions.clear ();
-		delete m_NTCPAcceptor;
-
-		if (m_Timer)
-		{	
-			m_Timer->cancel ();
-			delete m_Timer;
-		}
-		
 		if (m_SSUServer)
 		{
 			m_SSUServer->Stop ();
 			delete m_SSUServer;
-		}
+		}	
+		
+		for (auto session: m_NTCPSessions)
+			delete session.second;
+		m_NTCPSessions.clear ();
+		delete m_NTCPAcceptor;
 
 		m_DHKeysPairSupplier.Stop ();
 		m_IsRunning = false;
@@ -270,24 +263,10 @@ namespace i2p
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			if (router && router->IsSSU () && m_SSUServer)
-				m_SSUServer->GetSession (router); 	
-		}	
-		if (m_Timer)
-		{	
-			m_Timer->expires_from_now (boost::posix_time::seconds(5)); // 5 seconds
-			m_Timer->async_wait (boost::bind (&Transports::HandleTimer, this, boost::asio::placeholders::error));
+				m_SSUServer->GetSession (router, true);  // peer test	
 		}	
 	}
 		
-	void Transports::HandleTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{
-			// end of external IP detection
-			if (m_SSUServer)
-				 m_SSUServer->DeleteAllSessions ();
-		}	
-	}	
 		
 	i2p::data::DHKeysPair * Transports::GetNextDHKeysPair ()
 	{

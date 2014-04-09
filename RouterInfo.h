@@ -29,7 +29,9 @@ namespace data
 			{
 				eFloodfill = 0x01,
 				eHighBandwidth = 0x02,
-				eReachable = 0x04
+				eReachable = 0x04,
+				eSSUTesting = 0x08,
+				eSSUIntroducer = 0x10
 			};
 
 			enum TransportStyle
@@ -84,6 +86,8 @@ namespace data
 			bool IsSSU (bool v4only = true) const;
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
 			bool UsesIntroducer () const;
+			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
+			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };
 			uint8_t GetCaps () const { return m_Caps; };			
 
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 

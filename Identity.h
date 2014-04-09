@@ -9,6 +9,8 @@ namespace i2p
 {
 namespace data
 {
+	class IdentHash;
+
 #pragma pack(1)
 
 	struct DHKeysPair // transient keys for transport sessions
@@ -32,6 +34,8 @@ namespace data
 		uint8_t certificate[3];
 
 		Identity& operator=(const Keys& keys);
+		bool FromBase64(const std::string&);
+		IdentHash Hash();
 	};	
 	
 	struct PrivateKeys // for eepsites
@@ -75,7 +79,6 @@ namespace data
 			uint8_t m_Hash[32];
 	};	
 
-	IdentHash CalculateIdentHash (const Identity& identity);
 	Keys CreateRandomKeys ();
 	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
@@ -103,7 +106,7 @@ namespace data
 		public:
 
 			RoutingDestination (): m_ElGamalEncryption (nullptr) {};
-			virtual ~RoutingDestination () { delete m_ElGamalEncryption; };
+			virtual ~RoutingDestination () { if (m_ElGamalEncryption) delete m_ElGamalEncryption; };
 			
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
@@ -125,6 +128,7 @@ namespace data
 	{
 		public:
 
+			virtual ~LocalDestination() {};
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 

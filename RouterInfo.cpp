@@ -34,7 +34,7 @@ namespace data
 	void RouterInfo::SetRouterIdentity (const Identity& identity)
 	{	
 		m_RouterIdentity = identity;
-		m_IdentHash = CalculateIdentHash (m_RouterIdentity);
+		m_IdentHash      = m_RouterIdentity.Hash ();
 		UpdateIdentHashBase64 ();
 		UpdateRoutingKey ();
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
@@ -129,6 +129,8 @@ namespace data
 					address.port = boost::lexical_cast<int>(value);
 				else if (!strcmp (key, "key"))
 					Base64ToByteStream (value, strlen (value), address.key, 32);
+				else if (!strcmp (key, "caps"))
+					ExtractCaps (value);
 				else if (key[0] == 'i')
 				{	
 					// introducers
@@ -191,7 +193,6 @@ namespace data
 
 	void RouterInfo::ExtractCaps (const char * value)
 	{
-		m_Caps = 0;	
 		const char * cap = value;
 		while (*cap)
 		{
@@ -208,6 +209,12 @@ namespace data
 				case 'R':
 					m_Caps |= Caps::eReachable;
 				break;
+				case 'B':
+					m_Caps |= Caps::eSSUTesting;
+				break;	
+				case 'C':
+					m_Caps |= Caps::eSSUIntroducer;
+				break;		
 				default: ;
 			}	
 			cap++;
@@ -249,7 +256,10 @@ namespace data
 				// caps
 				WriteString ("caps", properties);
 				properties << '=';
-				WriteString ("B", properties); // TODO: should be 'BC' for introducers
+				std::string caps;
+				if (IsPeerTesting ()) caps += 'B';
+				if (IsIntroducer ()) caps += 'C';
+				WriteString (caps, properties);
 				properties << ';';
 			}	
 			else
@@ -344,11 +354,12 @@ namespace data
 		addr.host = boost::asio::ip::address::from_string (host);
 		addr.port = port;
 		addr.transportStyle = eTransportSSU;
-		addr.cost = 10; // NTCP should have prioprity over SSU
+		addr.cost = 10; // NTCP should have priority over SSU
 		addr.date = 0;
 		memcpy (addr.key, key, 32);
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= eSSUV4;
+		m_Caps |= eSSUTesting; // TODO
 	}	
 		
 	void RouterInfo::SetProperty (const char * key, const char * value)

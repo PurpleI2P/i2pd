@@ -519,7 +519,7 @@ namespace ntcp
 	void NTCPSession::ScheduleTermination ()
 	{
 		m_TerminationTimer.cancel ();
-		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(TERMINATION_TIMEOUT));
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(NTCP_TERMINATION_TIMEOUT));
 		m_TerminationTimer.async_wait (boost::bind (&NTCPSession::HandleTerminationTimer,
 			this, boost::asio::placeholders::error));
 	}
@@ -528,7 +528,7 @@ namespace ntcp
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint ("No activity fo ", TERMINATION_TIMEOUT, " seconds");
+			LogPrint ("No activity fo ", NTCP_TERMINATION_TIMEOUT, " seconds");
 			m_Socket.close ();
 		}	
 	}	
