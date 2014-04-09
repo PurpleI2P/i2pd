@@ -123,16 +123,16 @@ namespace i2p
 		
 	void Transports::Stop ()
 	{	
-		for (auto session: m_NTCPSessions)
-			delete session.second;
-		m_NTCPSessions.clear ();
-		delete m_NTCPAcceptor;
-		
 		if (m_SSUServer)
 		{
 			m_SSUServer->Stop ();
 			delete m_SSUServer;
-		}
+		}	
+		
+		for (auto session: m_NTCPSessions)
+			delete session.second;
+		m_NTCPSessions.clear ();
+		delete m_NTCPAcceptor;
 
 		m_DHKeysPairSupplier.Stop ();
 		m_IsRunning = false;
