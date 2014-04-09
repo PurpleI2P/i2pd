@@ -425,6 +425,7 @@ namespace ssu
 				payload += 2; // our port
 				LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 				i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
+				m_Server.DeleteSession (this); // we don't need this session anymore
 			}
 			else
 				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));
