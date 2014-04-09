@@ -62,7 +62,7 @@ namespace ssu
 		eSessionStateConfirmedReceived,
 		eSessionRelayRequestSent,
 		eSessionRelayRequestReceived,	
-		eSessionRelayResponseReceived,	
+		eSessionIntroduced,
 		eSessionStateEstablished,
 		eSessionStateFailed
 	};		
@@ -78,7 +78,8 @@ namespace ssu
 			~SSUSession ();
 			
 			void Connect ();
-			void ConnectThroughIntroducer (const i2p::data::RouterInfo::Introducer& introducer);	
+			void Introduce (uint32_t iTag, const uint8_t * iKey);
+			void WaitForIntroduction ();
 			void Close ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			const i2p::data::RouterInfo * GetRemoteRouter () const  { return m_RemoteRouter; };
@@ -94,7 +95,7 @@ namespace ssu
 
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
-			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
+			void SendRelayRequest (uint32_t iTag, const uint8_t * iKey);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
@@ -153,7 +154,6 @@ namespace ssu
 			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
-			void ReassignSession (const boost::asio::ip::udp::endpoint& oldEndpoint, const boost::asio::ip::udp::endpoint& newEndpoint);	
 
 		private:
 
