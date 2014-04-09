@@ -733,19 +733,40 @@ namespace ssu
 		uint16_t port = *(uint16_t *)buf; // use it as is
 		buf += 2; // port
 		uint8_t * introKey = buf;
-		if (port)
+		if (port && !address)
 		{
-			LogPrint ("SSU peer test. We are Charlie");
-			Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
-			if (address)
-				SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
+			LogPrint ("Address of ", size, " bytes not supported");	
+			return;
+		}	
+		if (m_PeerTestNonces.count (nonce) > 0)
+		{
+			// existing test
+			if (port)
+			{
+				LogPrint ("SSU peer test from Charlie. We are Bob");
+				// TODO:  back to Alice
+			}
 			else
-				LogPrint ("Address of ", size, " bytes not supported");	
+			{
+				LogPrint ("SSU peer test from Alice. We are Charlie");
+				SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
+			}
 		}
 		else
 		{
-			LogPrint ("SSU peer test. We are Bob");
-			// TODO:
+			// new test
+			m_PeerTestNonces.insert (nonce);
+			if (port)
+			{
+				LogPrint ("SSU peer test from Bob. We are Charlie");
+				Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
+				SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
+			}
+			else
+			{
+				LogPrint ("SSU peer test from Alice. We are Bob");
+				// TODO: find Charlie
+			}
 		}	
 	}
 	

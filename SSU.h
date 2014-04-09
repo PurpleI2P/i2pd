@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <map>
 #include <list>
+#include <set>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -131,6 +132,7 @@ namespace ssu
 			bool m_PeerTest;
 			SessionState m_State;
 			uint32_t m_RelayTag;	
+			std::set<uint32_t> m_PeerTestNonces;
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
