@@ -740,7 +740,13 @@ namespace ssu
 		if (m_PeerTestNonces.count (nonce) > 0)
 		{
 			// existing test
-			if (port)
+			if (m_PeerTest)
+			{
+				LogPrint ("SSU peer test from Bob. We are Alice");
+				m_PeerTestNonces.erase (nonce);
+				m_PeerTest = false;
+			}
+			else if (port)
 			{
 				LogPrint ("SSU peer test from Charlie. We are Bob");
 				// TODO:  back to Alice
@@ -807,6 +813,7 @@ namespace ssu
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t nonce = 0;
 		rnd.GenerateWord32 (nonce);
+		m_PeerTestNonces.insert (nonce);
 		*(uint32_t *)payload = htobe32 (nonce);
 		payload += 4; // nonce					
 		*payload = 4;
