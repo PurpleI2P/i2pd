@@ -242,20 +242,6 @@ namespace stream
 			m_ReceiveQueue.WakeUp ();
 		}	
 	}
-		
-	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
-	{
-		if (!m_IsOpen) return 0;
-		if (m_ReceiveQueue.IsEmpty ())
-		{
-			if (!timeout) return 0;
-			if (!m_ReceiveQueue.Wait (timeout, 0))
-				return 0;
-		}
-
-		// either non-empty or we have received something
-		return ConcatenatePackets (buf, len);
-	}	
 
 	size_t Stream::ConcatenatePackets (uint8_t * buf, size_t len)
 	{

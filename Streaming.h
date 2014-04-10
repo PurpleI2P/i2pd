@@ -80,7 +80,7 @@ namespace stream
 			
 			void HandleNextPacket (Packet * packet);
 			size_t Send (uint8_t * buf, size_t len, int timeout); // timeout in seconds
-			size_t Receive (uint8_t * buf, size_t len, int timeout = 0); // returns 0 if timeout expired
+			
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 
