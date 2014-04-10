@@ -565,7 +565,7 @@ namespace ssu
 				Send (it);
 			m_DelayedMessages.clear ();
 		}
-		if (m_PeerTest)
+		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
 			SendPeerTest ();
 		ScheduleTermination ();
 	}	
