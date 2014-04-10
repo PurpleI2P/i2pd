@@ -843,11 +843,11 @@ namespace ssu
 
 	void SSUSession::SendSesionDestroyed ()
 	{
-		uint8_t buf[48 + 18], iv[16];
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
-		if (m_State == eSessionStateEstablished)
+		if (HasSessionKey ())
 		{
+			uint8_t buf[48 + 18], iv[16];
+			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+			rnd.GenerateBlock (iv, 16); // random iv
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, m_SessionKey, iv, m_MacKey);
 			m_Server.Send (buf, 48, m_RemoteEndpoint);

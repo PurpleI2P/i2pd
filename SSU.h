@@ -118,6 +118,7 @@ namespace ssu
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
 			const uint8_t * GetIntroKey () const; 
+			bool HasSessionKey () const  { return m_State == eSessionStateCreatedReceived || m_State == eSessionStateRequestReceived; };
 
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
