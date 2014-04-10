@@ -748,7 +748,7 @@ namespace ssu
 			else
 			{
 				LogPrint ("SSU peer test from Alice. We are Charlie");
-				SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
+				//SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
 			}
 		}
 		else
