@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <map>
 #include <list>
+#include <set>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -60,9 +61,9 @@ namespace ssu
 		eSessionStateCreatedReceived,
 		eSessionStateConfirmedSent,
 		eSessionStateConfirmedReceived,
-		eSessionRelayRequestSent,
-		eSessionRelayRequestReceived,	
-		eSessionRelayResponseReceived,	
+		eSessionStateRelayRequestSent,
+		eSessionStateRelayRequestReceived,	
+		eSessionStateIntroduced,
 		eSessionStateEstablished,
 		eSessionStateFailed
 	};		
@@ -78,7 +79,8 @@ namespace ssu
 			~SSUSession ();
 			
 			void Connect ();
-			void ConnectThroughIntroducer (const i2p::data::RouterInfo::Introducer& introducer);	
+			void Introduce (uint32_t iTag, const uint8_t * iKey);
+			void WaitForIntroduction ();
 			void Close ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			const i2p::data::RouterInfo * GetRemoteRouter () const  { return m_RemoteRouter; };
@@ -94,7 +96,7 @@ namespace ssu
 
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
-			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
+			void SendRelayRequest (uint32_t iTag, const uint8_t * iKey);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
@@ -116,6 +118,7 @@ namespace ssu
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
 			const uint8_t * GetIntroKey () const; 
+			bool HasSessionKey () const  { return m_State == eSessionStateCreatedReceived || m_State == eSessionStateRequestReceived; };
 
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
@@ -130,6 +133,7 @@ namespace ssu
 			bool m_PeerTest;
 			SessionState m_State;
 			uint32_t m_RelayTag;	
+			std::set<uint32_t> m_PeerTestNonces;
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
@@ -153,7 +157,6 @@ namespace ssu
 			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
-			void ReassignSession (const boost::asio::ip::udp::endpoint& oldEndpoint, const boost::asio::ip::udp::endpoint& newEndpoint);	
 
 		private:
 
