@@ -5,12 +5,12 @@
 #include <string>
 #include <map>
 #include <set>
+#include <queue>
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <cryptopp/dsa.h>
 #include "I2PEndian.h"
-#include "Queue.h"
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
@@ -112,7 +112,7 @@ namespace stream
 			StreamingDestination * m_LocalDestination;
 			const i2p::data::LeaseSet& m_RemoteLeaseSet;
 			i2p::data::Lease m_CurrentRemoteLease;
-			i2p::util::Queue<Packet> m_ReceiveQueue;
+			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;
 			boost::asio::deadline_timer m_ReceiveTimer;
@@ -204,7 +204,7 @@ namespace stream
 	template<typename Buffer, typename ReceiveHandler>
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
-		if (!m_ReceiveQueue.IsEmpty ())
+		if (!m_ReceiveQueue.empty ())
 		{
 			size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), 					boost::asio::buffer_size(buffer));
 			if (received)
