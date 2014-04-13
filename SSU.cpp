@@ -19,7 +19,7 @@ namespace ssu
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
 		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
-		m_RelayTag (0)
+		m_IsSessionKey (false), m_RelayTag (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
@@ -35,7 +35,7 @@ namespace ssu
 			}			
 	}	
 	
-	void SSUSession::CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
+	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		CryptoPP::SecByteBlock secretKey(dh.AgreedValueLength());
@@ -56,128 +56,92 @@ namespace ssu
 			memcpy (aesKey, secretKey, 32);
 			memcpy (macKey, secretKey + 32, 32);
 		}
+		m_IsSessionKey = true;
 	}		
 
 	void SSUSession::ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		switch (m_State)
+		if (m_State == eSessionStateIntroduced)
 		{
-			case eSessionStateConfirmedSent:
-			case eSessionStateEstablished:
-				// most common case
-				ScheduleTermination ();
-				ProcessMessage (buf, len, senderEndpoint);
-			break;
-			// establishing or testing
-			case eSessionStateUnknown:
-			case eSessionStateRequestSent:
-				// we must use intro key
-				ProcessIntroKeyMessage (buf, len, senderEndpoint);
-			break;
-			case eSessionStateCreatedSent:
-				// session confirmed
-				ProcessSessionConfirmed (buf, len);
-			break;
-			case eSessionStateRelayRequestSent:
-				// relay response
-				ProcessRelayResponse (buf, len);
-				m_Server.DeleteSession (this); 
-			break;
-			case eSessionStateIntroduced:
-				// HolePunch received
-				LogPrint ("SSU HolePuch of ", len, " bytes received");
-				m_State = eSessionStateUnknown;
-				Connect ();
-			break;	
-			default:
-				LogPrint ("SSU state not implemented yet");
+			// HolePunch received
+			LogPrint ("SSU HolePuch of ", len, " bytes received");
+			m_State = eSessionStateUnknown;
+			Connect ();
 		}
+		else
+		{
+			ScheduleTermination ();
+			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
+				Decrypt (buf, len, m_SessionKey);	
+			else 
+			{
+				// try intro key depending on side
+				auto introKey = GetIntroKey ();
+				if (introKey && Validate (buf, len, introKey))
+					Decrypt (buf, len, introKey);
+				else
+				{    
+					// try own intro key
+					auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+					if (!address)
+					{
+						LogPrint ("SSU is not supported");
+						return;
+					}	
+					if (Validate (buf, len, address->key))
+						Decrypt (buf, len, address->key);
+					else
+					{
+						LogPrint ("MAC verifcation failed");
+						m_Server.DeleteSession (this); 
+						return;
+					}	
+				}	
+			}	
+			// successfully decrypted
+			ProcessMessage (buf, len, senderEndpoint);
+		}	
 	}
 
 	void SSUSession::ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		if (Validate (buf, len, m_MacKey))
-		{
-			Decrypt (buf, len, m_SessionKey);
-			SSUHeader * header = (SSUHeader *)buf;
-			switch (header->GetPayloadType ())
-			{
-				case PAYLOAD_TYPE_DATA:
-					LogPrint ("SSU data received");
-					ProcessData (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
-				break;
-				case PAYLOAD_TYPE_PEER_TEST:
-					LogPrint ("SSU peer test received");
-					ProcessPeerTest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
-				break;
-				case PAYLOAD_TYPE_SESSION_DESTROYED:
-				{
-					LogPrint ("SSU session destroy received");
-					m_Server.DeleteSession (this); // delete this 
-					break;
-				}	
-				case PAYLOAD_TYPE_RELAY_RESPONSE:
-					LogPrint ("SSU relay response received though established session");
-					// Ignore it for now
-				break;
-				case PAYLOAD_TYPE_RELAY_INTRO:
-					LogPrint ("SSU relay intro received");
-					ProcessRelayIntro (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
-				break;
-				default:
-					LogPrint ("Unexpected SSU payload type ", (int)header->GetPayloadType ());
-			}
-		}
-		else
-		{
-			LogPrint ("MAC key failed. Trying intro key");	
-			auto introKey = GetIntroKey ();
-			if (introKey && Validate (buf, len, introKey))
-			{
-				Decrypt (buf, len, introKey);
-				SSUHeader * header = (SSUHeader *)buf;
-				LogPrint ("Unexpected SSU payload type ", (int)(header->flag >> 4));
-				// TODO:
-			}	
-			else	
-				LogPrint ("MAC verifcation failed");	
-			m_State = eSessionStateUnknown;
-		}
-	}
-
-	void SSUSession::ProcessIntroKeyMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
-	{
-		auto introKey = GetIntroKey ();
-		if (!introKey)
-		{
-			LogPrint ("SSU is not supported");
-			return;
-		}	
-		// use intro key for verification and decryption
-		if (!Validate (buf, len, introKey))
-		{
-			LogPrint ("MAC verification intro key failed");	
-			m_Server.DeleteSession (this); 
-			return;
-		}	
-		
-		Decrypt (buf, len, introKey);
-		CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);
 		SSUHeader * header = (SSUHeader *)buf;
 		switch (header->GetPayloadType ())
 		{
+			case PAYLOAD_TYPE_DATA:
+				LogPrint ("SSU data received");
+				ProcessData (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+			break;
 			case PAYLOAD_TYPE_SESSION_REQUEST:
 				ProcessSessionRequest (buf, len, senderEndpoint);				
 			break;
 			case PAYLOAD_TYPE_SESSION_CREATED:
 				ProcessSessionCreated (buf, len);
 			break;
+			case PAYLOAD_TYPE_SESSION_CONFIRMED:
+				ProcessSessionConfirmed (buf, len);
+			break;	
 			case PAYLOAD_TYPE_PEER_TEST:
 				LogPrint ("SSU peer test received");
-				// TODO:
-			break;	
-			default: ;
-		}	
+				ProcessPeerTest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
+			break;
+			case PAYLOAD_TYPE_SESSION_DESTROYED:
+			{
+				LogPrint ("SSU session destroy received");
+				m_Server.DeleteSession (this); // delete this 
+				break;
+			}	
+			case PAYLOAD_TYPE_RELAY_RESPONSE:
+				ProcessRelayResponse (buf, len);
+				m_Server.DeleteSession (this);
+			break;
+			case PAYLOAD_TYPE_RELAY_INTRO:
+				LogPrint ("SSU relay intro received");
+				ProcessRelayIntro (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+			break;
+			default:
+				LogPrint ("Unexpected SSU payload type ", (int)header->GetPayloadType ());
+		}
 	}
 
 	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
@@ -185,6 +149,7 @@ namespace ssu
 		m_State = eSessionStateRequestReceived;
 		LogPrint ("Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
+		CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);
 		SendSessionCreated (buf + sizeof (SSUHeader));
 	}
 
@@ -202,6 +167,7 @@ namespace ssu
 		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
 		uint8_t * payload = buf + sizeof (SSUHeader);	
 		uint8_t * y = payload;
+		CreateAESandMacKey (y, m_SessionKey, m_MacKey);
 		memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
 		memcpy (signedData + 256, y, 256); // y
 		payload += 256;
@@ -235,24 +201,11 @@ namespace ssu
 
 	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
 	{
-		LogPrint ("Process session confirmed");
-		if (Validate (buf, len, m_MacKey))
-		{
-			Decrypt (buf, len, m_SessionKey);
-			SSUHeader * header = (SSUHeader *)buf;
-			if (header->GetPayloadType () == PAYLOAD_TYPE_SESSION_CONFIRMED)
-			{
-				m_State = eSessionStateConfirmedReceived;
-				LogPrint ("Session confirmed received");		
-				m_State = eSessionStateEstablished;
-				SendI2NPMessage (CreateDeliveryStatusMsg (0));
-				Established ();
-			}
-			else
-				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));	
-		}
-		else
-			LogPrint ("MAC verifcation failed");	
+		m_State = eSessionStateConfirmedReceived;
+		LogPrint ("Session confirmed received");		
+		m_State = eSessionStateEstablished;
+		SendI2NPMessage (CreateDeliveryStatusMsg (0));
+		Established ();
 	}
 
 	void SSUSession::SendSessionRequest ()
@@ -403,38 +356,20 @@ namespace ssu
 
 	void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t len)
 	{
-		LogPrint ("Process relay response");
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
-		if (!address)
-		{
-			LogPrint ("SSU is not supported");
-			return;
-		}
-
-		if (Validate (buf, len, address->key))
-		{
-			Decrypt (buf, len, address->key);
-			SSUHeader * header = (SSUHeader *)buf;
-			if (header->GetPayloadType () == PAYLOAD_TYPE_RELAY_RESPONSE)
-			{
-				LogPrint ("Relay response received");		
-				uint8_t * payload = buf + sizeof (SSUHeader);
-				payload++; // remote size
-				//boost::asio::ip::address_v4 remoteIP (be32toh (*(uint32_t* )(payload)));
-				payload += 4; // remote address
-				//uint16_t remotePort = be16toh (*(uint16_t *)(payload));
-				payload += 2; // remote port
-				payload++; // our size
-				boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )(payload)));
-				payload += 4; // our address
-				uint16_t ourPort = be16toh (*(uint16_t *)(payload));
-				payload += 2; // our port
-				LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
-				i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
-			}
-			else
-				LogPrint ("Unexpected payload type ", (int)(header->flag >> 4));
-		}
+		LogPrint ("Relay response received");		
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		payload++; // remote size
+		//boost::asio::ip::address_v4 remoteIP (be32toh (*(uint32_t* )(payload)));
+		payload += 4; // remote address
+		//uint16_t remotePort = be16toh (*(uint16_t *)(payload));
+		payload += 2; // remote port
+		payload++; // our size
+		boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )(payload)));
+		payload += 4; // our address
+		uint16_t ourPort = be16toh (*(uint16_t *)(payload));
+		payload += 2; // our port
+		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
+		i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
 	}
 
 	void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t len)
@@ -874,7 +809,7 @@ namespace ssu
 
 	void SSUSession::SendSesionDestroyed ()
 	{
-		if (HasSessionKey ())
+		if (m_IsSessionKey)
 		{
 			uint8_t buf[48 + 18], iv[16];
 			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();

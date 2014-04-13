@@ -66,7 +66,7 @@ namespace ssu
 		eSessionStateIntroduced,
 		eSessionStateEstablished,
 		eSessionStateFailed
-	};		
+	};	
 
 	class SSUServer;
 	class SSUSession
@@ -89,11 +89,9 @@ namespace ssu
 
 		private:
 
-			void CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
+			void CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
 
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
-			void ProcessIntroKeyMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for non-established session			
-
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void SendRelayRequest (uint32_t iTag, const uint8_t * iKey);
@@ -118,7 +116,6 @@ namespace ssu
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
 			const uint8_t * GetIntroKey () const; 
-			bool HasSessionKey () const  { return m_State == eSessionStateCreatedReceived || m_State == eSessionStateRequestReceived; };
 
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
@@ -140,6 +137,7 @@ namespace ssu
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			bool m_PeerTest;
 			SessionState m_State;
+			bool m_IsSessionKey;
 			uint32_t m_RelayTag;	
 			std::set<uint32_t> m_PeerTestNonces;
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
