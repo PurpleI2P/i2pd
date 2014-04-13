@@ -124,6 +124,14 @@ namespace ssu
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:
+
+			struct IncompleteMessage
+			{
+				I2NPMessage * msg;
+				uint8_t nextFragmentNum;	
+
+				IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (1) {};
+			};
 			
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
@@ -137,7 +145,7 @@ namespace ssu
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
-			std::map<uint32_t, I2NPMessage *> m_IncomleteMessages;
+			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 	};
 

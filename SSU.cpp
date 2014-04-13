@@ -27,6 +27,12 @@ namespace ssu
 	SSUSession::~SSUSession ()
 	{
 		delete m_DHKeysPair;
+		for (auto it: m_IncomleteMessages)
+			if (it.second)
+			{
+				DeleteI2NPMessage (it.second->msg);
+				delete it.second;
+			}			
 	}	
 	
 	void SSUSession::CreateAESandMacKey (uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
@@ -673,9 +679,29 @@ namespace ssu
 				auto it = m_IncomleteMessages.find (msgID);
 				if (it != m_IncomleteMessages.end ())
 				{
-					msg = it->second;
-					memcpy (msg->buf + msg->len, buf, fragmentSize);
-					msg->len += fragmentSize;
+					if (fragmentNum == it->second->nextFragmentNum)
+					{
+						// expected fragment
+						msg = it->second->msg;
+						memcpy (msg->buf + msg->len, buf, fragmentSize);
+						msg->len += fragmentSize;
+						it->second->nextFragmentNum++;
+					}	
+					else if (fragmentNum < it->second->nextFragmentNum)
+						// duplicate fragment
+						LogPrint ("Duplicate fragment ", fragmentNum, " of message ", msgID, ". Ignored");	
+					else
+					{
+						// missing fragment
+						LogPrint ("Missing fragments from ", it->second->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
+						//TODO
+					}	
+ 						
+					if (isLast)
+					{
+						delete it->second;
+						m_IncomleteMessages.erase (it);
+					}	
 				}
 				else
 					// TODO:
@@ -691,12 +717,10 @@ namespace ssu
 			if (msg)
 			{					
 				if (!fragmentNum && !isLast)
-					m_IncomleteMessages[msgID] = msg;
+					m_IncomleteMessages[msgID] = new IncompleteMessage (msg);
 				if (isLast)
 				{
 					SendMsgAck (msgID);
-					if (fragmentNum > 0)	
-						m_IncomleteMessages.erase (msgID);
 					msg->FromSSU (msgID);
 					if (m_State == eSessionStateEstablished)
 						i2p::HandleI2NPMessage (msg);
