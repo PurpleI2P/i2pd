@@ -262,13 +262,14 @@ namespace http
 
 	// code for parser tests
 	//{
+    //  i2p::util::http::url u_0("http://127.0.0.1:7070/asdasd?qqqqqqqqqqqq");
 	//	i2p::util::http::url u_1("http://user:password@site.com:8080/asdasd?qqqqqqqqqqqqq");
 	//	i2p::util::http::url u_2("http://user:password@site.com/asdasd?qqqqqqqqqqqqqq");
 	//	i2p::util::http::url u_3("http://user:@site.com/asdasd?qqqqqqqqqqqqq");
 	//	i2p::util::http::url u_4("http://user@site.com/asdasd?qqqqqqqqqqqq");
 	//	i2p::util::http::url u_5("http://@site.com:800/asdasd?qqqqqqqqqqqq");
 	//	i2p::util::http::url u_6("http://@site.com:err_port/asdasd?qqqqqqqqqqqq");
-	//	i2p::util::http::url u_7("http://user:password@site.com:err_port/asdasd?qqqqqqqqqqqq");
+    //	i2p::util::http::url u_7("http://user:password@site.com:err_port/asdasd?qqqqqqqqqqqq");
 	//}
 	void url::parse(const std::string& url_s)
 	{

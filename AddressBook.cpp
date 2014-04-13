@@ -43,7 +43,7 @@ void AddressBook::LoadHostsFromI2P ()
 		content = i2p::util::http::httpRequest(url_ss.str());
 
 		// TODO: check http errors
-		if (! boost::starts_with(content, "<html>"))
+        if (! boost::starts_with(content, "<html>") && content.size() > 0)
 			break;
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
