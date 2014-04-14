@@ -28,8 +28,12 @@ namespace stream
 	Stream::~Stream ()
 	{
 		m_ReceiveTimer.cancel ();
-		while (auto packet = m_ReceiveQueue.Get ())
+		while (!m_ReceiveQueue.empty ())
+		{
+			auto packet = m_ReceiveQueue.front ();
+			m_ReceiveQueue.pop ();
 			delete packet;
+		}		
 		for (auto it: m_SavedPackets)
 			delete it;
 	}	
@@ -118,7 +122,7 @@ namespace stream
 		packet->offset = packet->GetPayload () - packet->buf;
 		if (packet->GetLength () > 0)
 		{	
-			m_ReceiveQueue.Put (packet);
+			m_ReceiveQueue.push (packet);
 			m_ReceiveTimer.cancel ();
 		}	
 		else
@@ -131,7 +135,6 @@ namespace stream
 			LogPrint ("Closed");
 			SendQuickAck (); // send ack for close explicitly?
 			m_IsOpen = false;
-			m_ReceiveQueue.WakeUp ();
 		}
 	}	
 		
@@ -239,44 +242,24 @@ namespace stream
 			
 			if (SendPacket (packet, size))
 				LogPrint ("FIN sent");
-			m_ReceiveQueue.WakeUp ();
 		}	
 	}
-		
-	size_t Stream::Receive (uint8_t * buf, size_t len, int timeout)
-	{
-		if (!m_IsOpen) return 0;
-		if (m_ReceiveQueue.IsEmpty ())
-		{
-			if (!timeout) return 0;
-			if (!m_ReceiveQueue.Wait (timeout, 0))
-				return 0;
-		}
-
-		// either non-empty or we have received something
-		return ConcatenatePackets (buf, len);
-	}	
 
 	size_t Stream::ConcatenatePackets (uint8_t * buf, size_t len)
 	{
 		size_t pos = 0;
-		while (pos < len)
+		while (pos < len && !m_ReceiveQueue.empty ())
 		{
-			Packet * packet = m_ReceiveQueue.Peek ();
-			if (packet)
+			Packet * packet = m_ReceiveQueue.front ();
+			size_t l = std::min (packet->GetLength (), len - pos);
+			memcpy (buf + pos, packet->GetBuffer (), l);
+			pos += l;
+			packet->offset += l;
+			if (!packet->GetLength ())
 			{
-				size_t l = std::min (packet->GetLength (), len - pos);
-				memcpy (buf + pos, packet->GetBuffer (), l);
-				pos += l;
-				packet->offset += l;
-				if (!packet->GetLength ())
-				{
-					m_ReceiveQueue.Get ();
-					delete packet;
-				}	
-			}
-			else // no more data available
-				break;
+				m_ReceiveQueue.pop ();
+				delete packet;
+			}	
 		}	
 		return pos; 
 	}
