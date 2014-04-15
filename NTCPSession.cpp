@@ -3,7 +3,6 @@
 #include "I2PEndian.h"
 #include <boost/bind.hpp>
 #include <cryptopp/dh.h>
-#include <cryptopp/secblock.h>
 #include <cryptopp/dsa.h>
 #include "base64.h"
 #include "Log.h"
@@ -35,21 +34,36 @@ namespace ntcp
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
 	{
 		CryptoPP::DH dh (elgp, elgg);
-		CryptoPP::SecByteBlock secretKey(dh.AgreedValueLength());
-		if (!dh.Agree (secretKey, m_DHKeysPair->privateKey, pubKey))
+		uint8_t sharedKey[64];
+		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
 		    LogPrint ("Couldn't create shared key");
 			Terminate ();
 			return;
 		};
 
-		if (secretKey[0] & 0x80)
+		if (sharedKey[0] & 0x80)
 		{
 			aesKey[0] = 0;
-			memcpy (aesKey + 1, secretKey, 31);
+			memcpy (aesKey + 1, sharedKey, 31);
 		}	
-		else	
-			memcpy (aesKey, secretKey, 32);
+		else if (sharedKey[0])	
+			memcpy (aesKey, sharedKey, 32);
+		else
+		{
+			// find first non-zero byte
+			uint8_t * nonZero = sharedKey + 1;
+			while (!*nonZero)
+			{
+				nonZero++;
+				if (nonZero - sharedKey > 32)
+				{
+					LogPrint ("First 32 bytes of shared key is all zeros. Ignored");
+					return;
+				}	
+			}
+			memcpy (aesKey, nonZero, 32);
+		}
 	}	
 
 	void NTCPSession::Terminate ()
