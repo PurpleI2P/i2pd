@@ -38,7 +38,7 @@ namespace ssu
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		uint8_t sharedKey[64];
+		uint8_t sharedKey[256];
 		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
 		    LogPrint ("Couldn't create shared key");

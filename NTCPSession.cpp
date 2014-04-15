@@ -34,7 +34,7 @@ namespace ntcp
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
 	{
 		CryptoPP::DH dh (elgp, elgg);
-		uint8_t sharedKey[64];
+		uint8_t sharedKey[256];
 		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
 		    LogPrint ("Couldn't create shared key");
