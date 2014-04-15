@@ -1,7 +1,7 @@
 #include <string.h>
 #include <boost/bind.hpp>
 #include <cryptopp/dh.h>
-#include <cryptopp/secblock.h>
+#include <cryptopp/sha.h>
 #include "CryptoConst.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -38,23 +38,40 @@ namespace ssu
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		CryptoPP::SecByteBlock secretKey(dh.AgreedValueLength());
-		if (!dh.Agree (secretKey, m_DHKeysPair->privateKey, pubKey))
+		uint8_t sharedKey[64];
+		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
 		    LogPrint ("Couldn't create shared key");
 			return;
 		};
 
-		if (secretKey[0] & 0x80)
+		if (sharedKey[0] & 0x80)
 		{
 			aesKey[0] = 0;
-			memcpy (aesKey + 1, secretKey, 31);
-			memcpy (macKey, secretKey + 31, 32);
+			memcpy (aesKey + 1, sharedKey, 31);
+			memcpy (macKey, sharedKey + 31, 32);
+		}	
+		else if (sharedKey[0])
+		{
+			memcpy (aesKey, sharedKey, 32);
+			memcpy (macKey, sharedKey + 32, 32);
 		}	
 		else
 		{	
-			memcpy (aesKey, secretKey, 32);
-			memcpy (macKey, secretKey + 32, 32);
+			// find first non-zero byte
+			uint8_t * nonZero = sharedKey + 1;
+			while (!*nonZero)
+			{
+				nonZero++;
+				if (nonZero - sharedKey > 32)
+				{
+					LogPrint ("First 32 bytes of shared key is all zeros. Ignored");
+					return;
+				}	
+			}
+			
+			memcpy (aesKey, nonZero, 32);
+			CryptoPP::SHA256().CalculateDigest(macKey, nonZero, 64 - (nonZero - sharedKey));
 		}
 		m_IsSessionKey = true;
 	}		
