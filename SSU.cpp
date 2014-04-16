@@ -154,7 +154,7 @@ namespace ssu
 			break;
 			case PAYLOAD_TYPE_RELAY_REQUEST:
 				LogPrint ("SSU relay request received");
-				ProcessRelayIntro (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+				ProcessRelayRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
 			break;
 			case PAYLOAD_TYPE_RELAY_INTRO:
 				LogPrint ("SSU relay intro received");

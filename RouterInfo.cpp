@@ -359,7 +359,8 @@ namespace data
 		memcpy (addr.key, key, 32);
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= eSSUV4;
-		m_Caps |= eSSUTesting; // TODO
+		m_Caps |= eSSUTesting; 
+		m_Caps |= eSSUIntroducer; 
 	}	
 		
 	void RouterInfo::SetProperty (const char * key, const char * value)
