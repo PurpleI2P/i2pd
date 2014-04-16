@@ -294,6 +294,7 @@ namespace ssu
 			LogPrint ("SSU is not supported");
 			return;
 		}
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint8_t signedData[532]; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
 		memcpy (signedData, x, 256); // x
 
@@ -311,8 +312,14 @@ namespace ssu
 		memcpy (signedData + 512, payload - 6, 6); // remote endpoint IP and port 
 		*(uint32_t *)(signedData + 518) = htobe32 (address->host.to_v4 ().to_ulong ()); // our IP
 		*(uint16_t *)(signedData + 522) = htobe16 (address->port); // our port
-		*(uint32_t *)(payload) = 0; //  relay tag, always 0 for now
-		payload += 4; 
+		uint32_t relayTag = 0;
+		if (i2p::context.GetRouterInfo ().IsIntroducer ())
+		{
+			rnd.GenerateWord32 (relayTag);
+			m_Server.AddRelay (relayTag, m_RemoteEndpoint);
+		}
+		*(uint32_t *)(payload) = relayTag; 
+		payload += 4; // relay tag 
 		*(uint32_t *)(payload) = htobe32 (i2p::util::GetSecondsSinceEpoch ()); // signed on time
 		payload += 4;
 		memcpy (signedData + 524, payload - 8, 8); // relayTag and signed on time 
@@ -320,7 +327,6 @@ namespace ssu
 		// TODO: fill padding with random data	
 
 		uint8_t iv[16];
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt signature and 8 bytes padding with newly created session key	
 		m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
@@ -929,6 +935,19 @@ namespace ssu
 		m_Socket.close ();
 	}
 
+	void SSUServer::AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay)
+	{
+		m_Relays[tag] = relay;
+	}	
+
+	SSUSession * SSUServer::FindRelaySession (uint32_t tag)
+	{
+		auto it = m_Relays.find (tag);
+		if (it != m_Relays.end ())
+			return FindSession (it->second);
+		return nullptr;
+	}
+
 	void SSUServer::Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
 		m_Socket.send_to (boost::asio::buffer (buf, len), to);
@@ -968,12 +987,17 @@ namespace ssu
 		if (!router) return nullptr;
 		auto address = router->GetSSUAddress ();
 		if (!address) return nullptr;
-		auto it = m_Sessions.find (boost::asio::ip::udp::endpoint (address->host, address->port));
+		return FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
+	}	
+
+	SSUSession * SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e)
+	{
+		auto it = m_Sessions.find (e);
 		if (it != m_Sessions.end ())
 			return it->second;
 		else
 			return nullptr;
-	}	
+	}
 		
 	SSUSession * SSUServer::GetSession (const i2p::data::RouterInfo * router, bool peerTest)
 	{

@@ -157,12 +157,15 @@ namespace ssu
 			void Stop ();
 			SSUSession * GetSession (const i2p::data::RouterInfo * router, bool peerTest = false);
 			SSUSession * FindSession (const i2p::data::RouterInfo * router);
+			SSUSession * FindSession (const boost::asio::ip::udp::endpoint& e);
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			
 
 			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
+			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
+			SSUSession * FindRelaySession (uint32_t tag);
 
 		private:
 
@@ -176,6 +179,7 @@ namespace ssu
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
 			uint8_t m_ReceiveBuffer[2*SSU_MTU];
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
+			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 
 		public:
 			// for HTTP only
