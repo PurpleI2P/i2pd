@@ -160,7 +160,7 @@ namespace stream
 		size += 4; // sendStreamID
 		*(uint32_t *)(packet + size) = htobe32 (m_RecvStreamID);
 		size += 4; // receiveStreamID
-		*(uint32_t *)(packet + size) = htobe32 (m_SequenceNumber);
+		*(uint32_t *)(packet + size) = htobe32 (m_SequenceNumber++);
 		size += 4; // sequenceNum
 		*(uint32_t *)(packet + size) = 0; // TODO
 		size += 4; // ack Through
@@ -224,7 +224,7 @@ namespace stream
 			size += 4; // sendStreamID
 			*(uint32_t *)(packet + size) = htobe32 (m_RecvStreamID);
 			size += 4; // receiveStreamID
-			*(uint32_t *)(packet + size) = htobe32 (m_SequenceNumber);
+			*(uint32_t *)(packet + size) = htobe32 (m_SequenceNumber++);
 			size += 4; // sequenceNum
 			*(uint32_t *)(packet + size) = htobe32 (m_LastReceivedSequenceNumber);
 			size += 4; // ack Through
@@ -286,7 +286,7 @@ namespace stream
 		}	
 		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
 			CreateDataMessage (this, buf, len), leaseSet);
-		if (!m_OutboundTunnel)
+		if (!m_OutboundTunnel || m_OutboundTunnel->IsFailed ())
 			m_OutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
 		if (m_OutboundTunnel)
 		{

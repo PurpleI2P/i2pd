@@ -99,6 +99,9 @@ namespace ssu
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress);
+			void ProcessRelayRequest (uint8_t * buf, size_t len);
+			void SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from, const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to);
+			void SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from);
 			void ProcessRelayResponse (uint8_t * buf, size_t len);
 			void ProcessRelayIntro (uint8_t * buf, size_t len);
 			void Established ();
@@ -157,12 +160,15 @@ namespace ssu
 			void Stop ();
 			SSUSession * GetSession (const i2p::data::RouterInfo * router, bool peerTest = false);
 			SSUSession * FindSession (const i2p::data::RouterInfo * router);
+			SSUSession * FindSession (const boost::asio::ip::udp::endpoint& e);
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			
 
 			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
+			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
+			SSUSession * FindRelaySession (uint32_t tag);
 
 		private:
 
@@ -176,6 +182,7 @@ namespace ssu
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
 			uint8_t m_ReceiveBuffer[2*SSU_MTU];
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
+			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 
 		public:
 			// for HTTP only

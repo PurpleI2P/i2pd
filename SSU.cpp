@@ -1,7 +1,7 @@
 #include <string.h>
 #include <boost/bind.hpp>
 #include <cryptopp/dh.h>
-#include <cryptopp/secblock.h>
+#include <cryptopp/sha.h>
 #include "CryptoConst.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -38,23 +38,40 @@ namespace ssu
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		CryptoPP::SecByteBlock secretKey(dh.AgreedValueLength());
-		if (!dh.Agree (secretKey, m_DHKeysPair->privateKey, pubKey))
+		uint8_t sharedKey[256];
+		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
 		    LogPrint ("Couldn't create shared key");
 			return;
 		};
 
-		if (secretKey[0] & 0x80)
+		if (sharedKey[0] & 0x80)
 		{
 			aesKey[0] = 0;
-			memcpy (aesKey + 1, secretKey, 31);
-			memcpy (macKey, secretKey + 31, 32);
+			memcpy (aesKey + 1, sharedKey, 31);
+			memcpy (macKey, sharedKey + 31, 32);
+		}	
+		else if (sharedKey[0])
+		{
+			memcpy (aesKey, sharedKey, 32);
+			memcpy (macKey, sharedKey + 32, 32);
 		}	
 		else
 		{	
-			memcpy (aesKey, secretKey, 32);
-			memcpy (macKey, secretKey + 32, 32);
+			// find first non-zero byte
+			uint8_t * nonZero = sharedKey + 1;
+			while (!*nonZero)
+			{
+				nonZero++;
+				if (nonZero - sharedKey > 32)
+				{
+					LogPrint ("First 32 bytes of shared key is all zeros. Ignored");
+					return;
+				}	
+			}
+			
+			memcpy (aesKey, nonZero, 32);
+			CryptoPP::SHA256().CalculateDigest(macKey, nonZero, 64 - (nonZero - sharedKey));
 		}
 		m_IsSessionKey = true;
 	}		
@@ -134,6 +151,10 @@ namespace ssu
 			case PAYLOAD_TYPE_RELAY_RESPONSE:
 				ProcessRelayResponse (buf, len);
 				m_Server.DeleteSession (this);
+			break;
+			case PAYLOAD_TYPE_RELAY_REQUEST:
+				LogPrint ("SSU relay request received");
+				ProcessRelayRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
 			break;
 			case PAYLOAD_TYPE_RELAY_INTRO:
 				LogPrint ("SSU relay intro received");
@@ -277,6 +298,7 @@ namespace ssu
 			LogPrint ("SSU is not supported");
 			return;
 		}
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint8_t signedData[532]; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
 		memcpy (signedData, x, 256); // x
 
@@ -294,8 +316,14 @@ namespace ssu
 		memcpy (signedData + 512, payload - 6, 6); // remote endpoint IP and port 
 		*(uint32_t *)(signedData + 518) = htobe32 (address->host.to_v4 ().to_ulong ()); // our IP
 		*(uint16_t *)(signedData + 522) = htobe16 (address->port); // our port
-		*(uint32_t *)(payload) = 0; //  relay tag, always 0 for now
-		payload += 4; 
+		uint32_t relayTag = 0;
+		if (i2p::context.GetRouterInfo ().IsIntroducer ())
+		{
+			rnd.GenerateWord32 (relayTag);
+			m_Server.AddRelay (relayTag, m_RemoteEndpoint);
+		}
+		*(uint32_t *)(payload) = relayTag; 
+		payload += 4; // relay tag 
 		*(uint32_t *)(payload) = htobe32 (i2p::util::GetSecondsSinceEpoch ()); // signed on time
 		payload += 4;
 		memcpy (signedData + 524, payload - 8, 8); // relayTag and signed on time 
@@ -303,7 +331,6 @@ namespace ssu
 		// TODO: fill padding with random data	
 
 		uint8_t iv[16];
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt signature and 8 bytes padding with newly created session key	
 		m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
@@ -354,6 +381,82 @@ namespace ssu
 		m_Server.Send (buf, 480, m_RemoteEndpoint);
 	}
 
+	void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len)
+	{
+		uint32_t relayTag = be32toh (*(uint32_t *)buf);
+		auto session = m_Server.FindRelaySession (relayTag);
+		if (session)
+		{
+			buf += 4; // relay tag	
+			uint8_t size = *buf;
+			if (size == 4)
+			{
+				buf++; // size
+				boost::asio::ip::address_v4 address (be32toh (*(uint32_t* )buf));
+				buf += 4; // address
+				uint16_t port = be16toh (*(uint16_t *)buf);
+				buf += 2; // port
+				uint8_t challengeSize = *buf;
+				buf++; // challenge size
+				buf += challengeSize;
+				uint8_t * introKey = buf;
+				buf += 32; // introkey
+				uint32_t nonce = be32toh (*(uint32_t *)buf);
+				boost::asio::ip::udp::endpoint from (address, port);
+				SendRelayResponse (nonce, from, introKey, session->m_RemoteEndpoint);
+				SendRelayIntro (session, from);
+			}
+			else
+				LogPrint ("Address size ", size, " is not supported"); 	
+		}	
+	}
+
+	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from, const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
+	{
+		uint8_t buf[64 + 18];
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		// Charlie	
+		*payload = 4;
+		payload++; // size
+		*(uint32_t *)payload = htobe32 (to.address ().to_v4 ().to_ulong ()); // Charlie's IP
+		payload += 4; // address	
+		*(uint16_t *)payload = htobe16 (to.port ()); // Charlie's port
+		payload += 2; // port
+		// Alice
+		*payload = 4;
+		payload++; // size
+		*(uint32_t *)payload = htobe32 (from.address ().to_v4 ().to_ulong ()); // Alice's IP
+		payload += 4; // address	
+		*(uint16_t *)payload = htobe16 (from.port ()); // Alice's port
+		payload += 2; // port
+		*(uint32_t *)payload = htobe32 (nonce);		
+
+		uint8_t iv[16];
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64, introKey, iv, introKey);
+		m_Server.Send (buf, 64, from);
+	}	
+
+	void SSUSession::SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from)
+	{
+		if (!session) return;	
+		uint8_t buf[48 + 18];
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		*payload = 4;
+		payload++; // size
+		*(uint32_t *)payload = htobe32 (from.address ().to_v4 ().to_ulong ()); // Alice's IP
+		payload += 4; // address	
+		*(uint16_t *)payload = htobe16 (from.port ()); // Alice's port
+		payload += 2; // port
+		*payload = 0; // challenge size	
+		uint8_t iv[16];
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		rnd.GenerateBlock (iv, 16); // random iv
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, 48, session->m_SessionKey, iv, session->m_MacKey);
+		m_Server.Send (buf, 48, session->m_RemoteEndpoint);
+	}
+	
 	void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t len)
 	{
 		LogPrint ("Relay response received");		
@@ -912,6 +1015,19 @@ namespace ssu
 		m_Socket.close ();
 	}
 
+	void SSUServer::AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay)
+	{
+		m_Relays[tag] = relay;
+	}	
+
+	SSUSession * SSUServer::FindRelaySession (uint32_t tag)
+	{
+		auto it = m_Relays.find (tag);
+		if (it != m_Relays.end ())
+			return FindSession (it->second);
+		return nullptr;
+	}
+
 	void SSUServer::Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
 		m_Socket.send_to (boost::asio::buffer (buf, len), to);
@@ -951,12 +1067,17 @@ namespace ssu
 		if (!router) return nullptr;
 		auto address = router->GetSSUAddress ();
 		if (!address) return nullptr;
-		auto it = m_Sessions.find (boost::asio::ip::udp::endpoint (address->host, address->port));
+		return FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
+	}	
+
+	SSUSession * SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e)
+	{
+		auto it = m_Sessions.find (e);
 		if (it != m_Sessions.end ())
 			return it->second;
 		else
 			return nullptr;
-	}	
+	}
 		
 	SSUSession * SSUServer::GetSession (const i2p::data::RouterInfo * router, bool peerTest)
 	{
