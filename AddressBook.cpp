@@ -33,18 +33,13 @@ const IdentHash * AddressBook::FindAddress (const std::string& address)
 void AddressBook::LoadHostsFromI2P ()
 {
 	std::string content;
-
-	std::stringstream url_ss;
-	// TODO: hosts link in config
-	// TODO: url download via HTTPProxy
-	url_ss << "http://127.0.0.1:" << i2p::util::config::GetArg("-httpport", 7070) << "/udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna/hosts.txt";
 	while (true)
 	{
-		content = i2p::util::http::httpRequest(url_ss.str());
-
-		// TODO: check http errors
-        if (! boost::starts_with(content, "<html>") && content.size() > 0)
-			break;
+		// TODO: hosts link in config
+		int http_code = i2p::util::http::httpRequestViaI2pProxy("http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt", content);
+		if (http_code ==200)
+			if (!boost::starts_with(content, "<html>") && !content.empty()) // TODO: test and remove
+				break;
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
 

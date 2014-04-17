@@ -35,6 +35,8 @@ namespace util
 	namespace http
 	{
 		std::string httpRequest(const std::string& address);
+		int httpRequestViaI2pProxy(const std::string& address, std::string &content); // return http code
+		
 		struct url {
     			url(const std::string& url_s); // omitted copy, ==, accessors, ...
 			private:

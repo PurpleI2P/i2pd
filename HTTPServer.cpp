@@ -133,7 +133,7 @@ namespace util
 				case 500: buffers.push_back(boost::asio::buffer("HTTP/1.0 500 Internal Server Error\r\n")); break;
 				case 502: buffers.push_back(boost::asio::buffer("HTTP/1.0 502 Bad Gateway\r\n")); break;
 				case 503: buffers.push_back(boost::asio::buffer("HTTP/1.0 503 Not Implemented\r\n")); break;
-				case 504: buffers.push_back(boost::asio::buffer("HTTP/1.0 504 Gateway Timeou\r\n")); break;
+				case 504: buffers.push_back(boost::asio::buffer("HTTP/1.0 504 Gateway Timeout\r\n")); break;
 				default:
 					buffers.push_back(boost::asio::buffer("HTTP/1.0 200 OK\r\n"));
 			}
