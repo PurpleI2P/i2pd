@@ -311,28 +311,41 @@ namespace util
 	{
 		i2p::data::IdentHash destination;
 		std::string fullAddress;
-		if (address.find (".i2p") != std::string::npos)
-		{	
-			auto addr = i2p::data::netdb.FindAddress(address);
-			if (!addr) 
-			{
-				LogPrint ("Unknown address ", address);
-				SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>");
-				return;
-			}	
-			destination = *addr;
-			fullAddress = address;
-		}
-		else
-		{	
-			if (i2p::data::Base32ToByteStream (address.c_str (), address.length (), (uint8_t *)destination, 32) != 32)
+		if (address.find(".b32.i2p") != std::string::npos)
+		{
+			if (i2p::data::Base32ToByteStream(address.c_str(), address.length() - strlen(".b32.i2p"), (uint8_t *)destination, 32) != 32)
 			{
 				LogPrint ("Invalid Base32 address ", address);
 				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address");
 				return;
 			}
-			fullAddress = address + ".b32.i2p";
-		}	
+			fullAddress = address;
+		}
+		else
+		{
+			if (address.find(".i2p") != std::string::npos)
+			{
+				auto addr = i2p::data::netdb.FindAddress(address);
+				if (!addr)
+				{
+					LogPrint ("Unknown address ", address);
+					SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>");
+					return;
+				}
+				destination = *addr;
+				fullAddress = address;
+			}
+			else
+			{
+				if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
+				{
+					LogPrint("Invalid Base32 address ", address);
+					SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address");
+					return;
+				}
+				fullAddress = address + ".b32.i2p";
+			}
+		}
 			
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
