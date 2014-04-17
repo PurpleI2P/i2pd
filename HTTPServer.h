@@ -36,7 +36,7 @@ namespace util
 				std::vector<header> headers;
 				std::string content;
 
-				std::vector<boost::asio::const_buffer> to_buffers();
+				std::vector<boost::asio::const_buffer> to_buffers (int status);
 			};
 	
 		public:
@@ -53,7 +53,7 @@ namespace util
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);			
 			void HandleWriteReply(const boost::system::error_code& ecode);
 			void HandleWrite (const boost::system::error_code& ecode);
-			void SendReply (const std::string& content);
+			void SendReply (const std::string& content, int status = 200);
 
 			void HandleRequest ();
 			void FillContent (std::stringstream& s);
