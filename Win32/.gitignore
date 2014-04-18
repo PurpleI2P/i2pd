@@ -1,6 +1,11 @@
 *
 !*/
 
+!*.h
+!*.cpp
+
+!*.bat
+
 !*.sln
 !*.vcproj
 !*.vcxproj

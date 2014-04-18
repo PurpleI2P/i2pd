@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Win32">
+      <UniqueIdentifier>{a880a08c-16b8-4243-82ea-6bfc63bb7dab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Identity.cpp">
@@ -92,6 +95,9 @@
     </ClCompile>
     <ClCompile Include="..\AddressBook.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Win32Service.cpp">
+      <Filter>Win32</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +196,9 @@
     </ClInclude>
     <ClInclude Include="..\AddressBook.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32Service.h">
+      <Filter>Win32</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
