@@ -5,4 +5,5 @@
 !*.vcproj
 !*.vcxproj
 !*.vcxproj.filters
+!*.iss
 !.gitignore

@@ -35,16 +35,18 @@ namespace util
 	namespace http
 	{
 		std::string httpRequest(const std::string& address);
+		int httpRequestViaI2pProxy(const std::string& address, std::string &content); // return http code
+		
 		struct url {
     			url(const std::string& url_s); // omitted copy, ==, accessors, ...
 			private:
     			void parse(const std::string& url_s);
 			public:
 				std::string protocol_, host_, path_, query_;
-				static std::string portstr_;
-				static unsigned int port_;
-				static std::string user_;
-				static std::string pass_;
+				std::string portstr_;
+				unsigned int port_;
+				std::string user_;
+				std::string pass_;
 		};
 	}
 }

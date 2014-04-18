@@ -118,12 +118,26 @@ namespace util
 
 	} // namespace misc_strings
 
-	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers()
+	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers(int status)
 	{
 		std::vector<boost::asio::const_buffer> buffers;
 		if (headers.size () > 0)
-		{	
-			buffers.push_back (boost::asio::buffer ("HTTP/1.0 200 OK\r\n")); // always OK
+		{
+			switch (status)
+			{
+				case 105: buffers.push_back(boost::asio::buffer("HTTP/1.0 105 Name Not Resolved\r\n")); break;
+				case 200: buffers.push_back(boost::asio::buffer("HTTP/1.0 200 OK\r\n")); break;
+				case 400: buffers.push_back(boost::asio::buffer("HTTP/1.0 400 Bad Request\r\n")); break;
+				case 404: buffers.push_back(boost::asio::buffer("HTTP/1.0 404 Not Found\r\n")); break;
+				case 408: buffers.push_back(boost::asio::buffer("HTTP/1.0 408 Request Timeout\r\n")); break;
+				case 500: buffers.push_back(boost::asio::buffer("HTTP/1.0 500 Internal Server Error\r\n")); break;
+				case 502: buffers.push_back(boost::asio::buffer("HTTP/1.0 502 Bad Gateway\r\n")); break;
+				case 503: buffers.push_back(boost::asio::buffer("HTTP/1.0 503 Not Implemented\r\n")); break;
+				case 504: buffers.push_back(boost::asio::buffer("HTTP/1.0 504 Gateway Timeout\r\n")); break;
+				default:
+					buffers.push_back(boost::asio::buffer("HTTP/1.0 200 OK\r\n"));
+			}
+
 			for (std::size_t i = 0; i < headers.size(); ++i)
 			{
 				header& h = headers[i];
@@ -311,28 +325,41 @@ namespace util
 	{
 		i2p::data::IdentHash destination;
 		std::string fullAddress;
-		if (address.find (".i2p") != std::string::npos)
-		{	
-			auto addr = i2p::data::netdb.FindAddress(address);
-			if (!addr) 
+		if (address.find(".b32.i2p") != std::string::npos)
+		{
+			if (i2p::data::Base32ToByteStream(address.c_str(), address.length() - strlen(".b32.i2p"), (uint8_t *)destination, 32) != 32)
 			{
-				LogPrint ("Unknown address ", address);
-				SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>");
+				LogPrint ("Invalid Base32 address ", address);
+				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
 				return;
-			}	
-			destination = *addr;
+			}
 			fullAddress = address;
 		}
 		else
-		{	
-			if (i2p::data::Base32ToByteStream (address.c_str (), address.length (), (uint8_t *)destination, 32) != 32)
+		{
+			if (address.find(".i2p") != std::string::npos)
 			{
-				LogPrint ("Invalid Base32 address ", address);
-				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address");
-				return;
+				auto addr = i2p::data::netdb.FindAddress(address);
+				if (!addr)
+				{
+					LogPrint ("Unknown address ", address);
+					SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 105);
+					return;
+				}
+				destination = *addr;
+				fullAddress = address;
 			}
-			fullAddress = address + ".b32.i2p";
-		}	
+			else
+			{
+				if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
+				{
+					LogPrint("Invalid Base32 address ", address);
+					SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
+					return;
+				}
+				fullAddress = address + ".b32.i2p";
+			}
+		}
 			
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
@@ -342,7 +369,7 @@ namespace util
 			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
-				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>");
+				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
 				return;
 			}	
 		}
@@ -375,13 +402,13 @@ namespace util
 		else
 		{
 			if (m_Stream && m_Stream->IsOpen ())
-				SendReply ("<html>" + itoopieImage + "<br>Not responding</html>");
+				SendReply ("<html>" + itoopieImage + "<br>Not responding</html>", 504);
 			else
 				Terminate ();
 		}	
 	}
 
-	void HTTPConnection::SendReply (const std::string& content)
+	void HTTPConnection::SendReply (const std::string& content, int status)
 	{
 		m_Reply.content = content;
 		m_Reply.headers.resize(2);
@@ -390,7 +417,7 @@ namespace util
 		m_Reply.headers[1].name = "Content-Type";
 		m_Reply.headers[1].value = "text/html";
 
-		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(),
+		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
         	boost::bind (&HTTPConnection::HandleWriteReply, this, 
 				boost::asio::placeholders::error));
 	}
