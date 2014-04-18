@@ -11,6 +11,8 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
+#else
+#include "./Win32/Win32Service.h"
 #endif
 
 #include "Log.h"
@@ -71,6 +73,9 @@ int main( int argc, char* argv[] )
   setlocale(LC_ALL, "Russian");
 #endif
 
+#ifdef _WIN32
+  service_control(isDaemon);
+#endif
 
   LogPrint("\n\n\n\ni2pd starting\n");
   LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
@@ -168,6 +173,7 @@ int main( int argc, char* argv[] )
   }
   LogPrint("Shutdown started.");
 
+  httpProxy.Stop ();
   i2p::stream::StopStreaming ();
   i2p::garlic::routing.Stop ();	
   i2p::tunnel::tunnels.Stop ();

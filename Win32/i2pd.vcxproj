@@ -37,6 +37,7 @@
     <ClCompile Include="..\TunnelPool.cpp" />
     <ClCompile Include="..\UPnP.cpp" />
     <ClCompile Include="..\util.cpp" />
+    <ClCompile Include="Win32Service.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\AddressBook.h" />
@@ -71,6 +72,7 @@
     <ClInclude Include="..\TunnelPool.h" />
     <ClInclude Include="..\UPnP.h" />
     <ClInclude Include="..\util.h" />
+    <ClInclude Include="Win32Service.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{930568EC-31C9-406A-AD1C-9636DF5D8FAA}</ProjectGuid>
@@ -136,6 +138,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(ProjectDir)$(TargetName)$(TargetExt)</OutputFile>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
