@@ -483,7 +483,7 @@ namespace ntcp
 			*((uint16_t *)sendBuffer) = 0;
 			*((uint32_t *)(sendBuffer + 2)) = htobe32 (time (0));
 		}	
-		int rem = (len + 6) % 16;
+		int rem = (len + 6) & 0x0F; // %16
 		int padding = 0;
 		if (rem > 0) padding = 16 - rem;
 		// TODO: fill padding 

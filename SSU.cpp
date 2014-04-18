@@ -506,6 +506,7 @@ namespace ssu
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
 		m_Encryption.SetKeyWithIV (aesKey, 32, iv);
+		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary 
 		m_Encryption.ProcessData (encrypted, encrypted, encryptedLen);
 		// assume actual buffer size is 18 (16 + 2) bytes more
 		memcpy (buf + len, iv, 16);
@@ -524,7 +525,7 @@ namespace ssu
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
 		m_Decryption.SetKeyWithIV (aesKey, 32, header->iv);
-		encryptedLen = (encryptedLen/16)*16; // make sure 16 bytes boundary
+		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary 
 		m_Decryption.ProcessData (encrypted, encrypted, encryptedLen);
 	}
 
@@ -953,8 +954,8 @@ namespace ssu
 			memcpy (payload, msgBuf, size);
 			
 			size += payload - buf;
-			if (size % 16) // make sure 16 bytes boundary
-				size = (size/16 + 1)*16;
+			if (size & 0x0F) // make sure 16 bytes boundary
+				size = ((size >> 4) + 1) << 4; // (/16 + 1)*16
 			
 			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 			rnd.GenerateBlock (iv, 16); // random iv
