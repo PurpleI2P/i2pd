@@ -13,6 +13,9 @@
   <ItemGroup>
     <ClCompile Include="..\AddressBook.cpp" />
     <ClCompile Include="..\base64.cpp" />
+    <ClCompile Include="..\Daemon.cpp" />
+    <ClCompile Include="..\DaemonLinux.cpp" />
+    <ClCompile Include="..\DaemonWin32.cpp" />
     <ClCompile Include="..\Garlic.cpp" />
     <ClCompile Include="..\HTTPProxy.cpp" />
     <ClCompile Include="..\HTTPServer.cpp" />
@@ -43,6 +46,7 @@
     <ClInclude Include="..\AddressBook.h" />
     <ClInclude Include="..\base64.h" />
     <ClInclude Include="..\CryptoConst.h" />
+    <ClInclude Include="..\Daemon.h" />
     <ClInclude Include="..\ElGamal.h" />
     <ClInclude Include="..\Garlic.h" />
     <ClInclude Include="..\HTTPProxy.h" />
