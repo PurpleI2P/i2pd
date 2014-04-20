@@ -110,7 +110,7 @@ namespace i2p
 			{
 				if (!m_SSUServer)
 				{	
-					m_SSUServer = new i2p::ssu::SSUServer (m_Service, address.port);
+					m_SSUServer = new i2p::ssu::SSUServer (address.port);
 					LogPrint ("Start listening UDP port ", address.port);
 					m_SSUServer->Start ();	
 					DetectExternalIP ();

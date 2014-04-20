@@ -5,6 +5,7 @@
 #include <map>
 #include <list>
 #include <set>
+#include <thread>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -154,7 +155,7 @@ namespace ssu
 	{
 		public:
 
-			SSUServer (boost::asio::io_service& service, int port);
+			SSUServer (int port);
 			~SSUServer ();
 			void Start ();
 			void Stop ();
@@ -172,11 +173,16 @@ namespace ssu
 
 		private:
 
+			void Run ();
 			void Receive ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
 		private:
-			
+
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			boost::asio::io_service m_Service;
+			boost::asio::io_service::work m_Work;
 			boost::asio::ip::udp::endpoint m_Endpoint;
 			boost::asio::ip::udp::socket m_Socket;
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;

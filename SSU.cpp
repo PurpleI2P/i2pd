@@ -992,8 +992,8 @@ namespace ssu
 		m_Server.Send (buf, msgSize, m_RemoteEndpoint);
 	}			
 
-	SSUServer::SSUServer (boost::asio::io_service& service, int port):
-		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
+	SSUServer::SSUServer (int port): m_Thread (nullptr), m_Work (m_Service),
+		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (m_Service, m_Endpoint)
 	{
 		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
 		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
@@ -1007,15 +1007,40 @@ namespace ssu
 
 	void SSUServer::Start ()
 	{
-		Receive ();
+		m_IsRunning = true;
+		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
+		m_Service.post (boost::bind (&SSUServer::Receive, this));  
 	}
 
 	void SSUServer::Stop ()
 	{
 		DeleteAllSessions ();
+		m_IsRunning = false;
+		m_Service.stop ();
 		m_Socket.close ();
+		if (m_Thread)
+		{	
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = 0;
+		}	
 	}
 
+	void SSUServer::Run () 
+	{ 
+		while (m_IsRunning)
+		{
+			try
+			{	
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint ("SSU server: ", ex.what ());
+			}	
+		}	
+	}
+		
 	void SSUServer::AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay)
 	{
 		m_Relays[tag] = relay;
