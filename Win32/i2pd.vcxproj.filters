@@ -99,6 +99,15 @@
     <ClCompile Include="Win32Service.cpp">
       <Filter>Win32</Filter>
     </ClCompile>
+    <ClCompile Include="..\Daemon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DaemonLinux.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\DaemonWin32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Identity.h">
@@ -199,6 +208,9 @@
     </ClInclude>
     <ClInclude Include="Win32Service.h">
       <Filter>Win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Daemon.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
