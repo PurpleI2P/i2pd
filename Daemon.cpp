@@ -1,7 +1,3 @@
-#ifdef _WIN32
-#define _CRT_SECURE_NO_WARNINGS // to use freopen
-#endif
-
 #include <thread>
 
 #include "Daemon.h"
@@ -68,13 +64,9 @@ namespace i2p
 				logfile_path.append("\\debug.log");
 #endif
 				logfile.open(logfile_path, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
-				//logfile = freopen(logfile_path.c_str(), "a", stdout);
-				if (!logfile.is_open())
-				{
-					exit(-17);
-				}
 
-				//std::streambuf * old = std::cout.rdbuf(logfile.rdbuf());
+				if (!logfile.is_open())
+					exit(-17);
 
 				LogPrint("Logging to file enabled.");
 
@@ -90,22 +82,22 @@ namespace i2p
 		{
 			d.httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
 			d.httpServer->Start();
-			LogPrint("HTTPServer started", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("HTTPServer started");
 
 			i2p::data::netdb.Start();
-			LogPrint("NetDB started", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("NetDB started");
 			i2p::transports.Start();
-			LogPrint("Transports started", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Transports started");
 			i2p::tunnel::tunnels.Start();
-			LogPrint("Tunnels started", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Tunnels started");
 			i2p::garlic::routing.Start();
-			LogPrint("Routing started", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Routing started");
 			i2p::stream::StartStreaming();
-			LogPrint("Streaming started", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Streaming started");
 
 			d.httpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
 			d.httpProxy->Start();
-			LogPrint("Proxy started", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Proxy started");
 
 			return true;
 		}
@@ -115,19 +107,19 @@ namespace i2p
 			LogPrint("Shutdown started.");
 
 			d.httpProxy->Stop();
-			LogPrint("HTTPProxy stoped", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("HTTPProxy stoped");
 			i2p::stream::StopStreaming();
-			LogPrint("Streaming stoped", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Streaming stoped");
 			i2p::garlic::routing.Stop();
-			LogPrint("Routing stoped", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Routing stoped");
 			i2p::tunnel::tunnels.Stop();
-			LogPrint("Tunnels stoped", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Tunnels stoped");
 			i2p::transports.Stop();
-			LogPrint("Transports stoped", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("Transports stoped");
 			i2p::data::netdb.Stop();
-			LogPrint("NetDB stoped", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("NetDB stoped");
 			d.httpServer->Stop();
-			LogPrint("HTTPServer stoped", EVENTLOG_INFORMATION_TYPE);
+			LogPrint("HTTPServer stoped");
 
 			delete d.httpProxy; d.httpProxy = nullptr;
 			delete d.httpServer; d.httpServer = nullptr;
