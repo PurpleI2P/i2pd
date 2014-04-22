@@ -110,6 +110,7 @@
     <IncludePath>./..;$(BOOST);$(CRYPTOPP);$(IncludePath)</IncludePath>
     <LibraryPath>$(BOOST)\stage\lib;$(CRYPTOPP)\cryptopp\Win32\Output\$(Configuration)\;$(LibraryPath)</LibraryPath>
     <SourcePath>./..;$(VC_SourcePath);</SourcePath>
+    <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>./..;$(BOOST);$(CRYPTOPP);$(IncludePath)</IncludePath>
@@ -127,6 +128,8 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(ProjectDir)$(TargetName)$(TargetExt)</OutputFile>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
