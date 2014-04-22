@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+//#include <boost/filesystem.hpp>
+#include "util.h"
+
+
 void handle_signal(int sig)
 {
 	switch (sig)
@@ -26,7 +30,7 @@ void handle_signal(int sig)
 	case SIGABRT:
 	case SIGTERM:
 	case SIGINT:
-		running = 0; // Exit loop
+		Daemon.running = 0; // Exit loop
 		break;
 	}
 }
@@ -63,9 +67,9 @@ namespace i2p
 			}
 
 			// Pidfile
-			std::string pidfile = i2p::util::filesystem::GetDataDir().string();
+			pidfile = i2p::util::filesystem::GetDataDir().string();
 			pidfile.append("/i2pd.pid");
-			int pidFilehandle = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
+			pidFilehandle = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
 			if (pidFilehandle == -1)
 			{
 				LogPrint("Error, could not create pid file (", pidfile, ")\nIs an instance already running?");
@@ -90,7 +94,7 @@ namespace i2p
 			sigaction(SIGTERM, &sa, 0);
 			sigaction(SIGINT, &sa, 0);
 
-			retunrn Daemon_Singleton::start();
+			return Daemon_Singleton::start();
 		}
 
 		bool DaemonLinux::stop()

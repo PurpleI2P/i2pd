@@ -57,6 +57,10 @@ namespace i2p
 
 			virtual bool start();
 			virtual bool stop();
+                private:
+                       std::string pidfile;
+                       int pidFilehandle;
+
 		};
 #endif
 	}
