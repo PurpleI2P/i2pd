@@ -138,20 +138,8 @@ namespace stream
 		}
 	}	
 		
-	size_t Stream::Send (uint8_t * buf, size_t len, int timeout)
+	size_t Stream::Send (const uint8_t * buf, size_t len, int timeout)
 	{
-		if (!m_IsOpen)
-			ConnectAndSend (buf, len);
-		else
-		{
-			// TODO: implement
-		}	
-		return len;
-	}	
-
-	void Stream::ConnectAndSend (uint8_t * buf, size_t len)
-	{
-		m_IsOpen = true;
 		Packet * p = new Packet ();
 		uint8_t * packet = p->GetBuffer ();
 		// TODO: implement setters
@@ -167,27 +155,43 @@ namespace stream
 		packet[size] = 0; 
 		size++; // NACK count
 		size++; // resend delay
-		// TODO: for initial packet only, following packets have different falgs
-		*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_SYNCHRONIZE | 
-			PACKET_FLAG_FROM_INCLUDED | PACKET_FLAG_SIGNATURE_INCLUDED | 
-		    PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED | PACKET_FLAG_NO_ACK);
-		size += 2; // flags
-		*(uint16_t *)(packet + size) = htobe16 (sizeof (i2p::data::Identity) + 40 + 2); // identity + signature + packet size
-		size += 2; // options size
-		memcpy (packet + size, &m_LocalDestination->GetIdentity (), sizeof (i2p::data::Identity)); 
-		size += sizeof (i2p::data::Identity); // from
-		*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
-		size += 2; // max packet size
-		uint8_t * signature = packet + size; // set it later
-		memset (signature, 0, 40); // zeroes for now
-		size += 40; // signature		
-		memcpy (packet + size, buf, len); 
-		size += len; // payload
-		m_LocalDestination->Sign (packet, size, signature);
+		if (!m_IsOpen)
+		{	
+			//  initial packet
+			m_IsOpen = true;
+			*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_SYNCHRONIZE | 
+				PACKET_FLAG_FROM_INCLUDED | PACKET_FLAG_SIGNATURE_INCLUDED | 
+				PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED | PACKET_FLAG_NO_ACK);
+			size += 2; // flags
+			*(uint16_t *)(packet + size) = htobe16 (sizeof (i2p::data::Identity) + 40 + 2); // identity + signature + packet size
+			size += 2; // options size
+			memcpy (packet + size, &m_LocalDestination->GetIdentity (), sizeof (i2p::data::Identity)); 
+			size += sizeof (i2p::data::Identity); // from
+			*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
+			size += 2; // max packet size
+			uint8_t * signature = packet + size; // set it later
+			memset (signature, 0, 40); // zeroes for now
+			size += 40; // signature		
+			memcpy (packet + size, buf, len); 
+			size += len; // payload
+			m_LocalDestination->Sign (packet, size, signature);
+		}	
+		else
+		{
+			// follow on packet
+			*(uint16_t *)(packet + size) = 0;
+			size += 2; // flags
+			*(uint16_t *)(packet + size) = 0; // no options
+			size += 2; // options size
+			memcpy (packet + size, buf, len); 
+			size += len; // payload
+		}	
 		p->len = size;
-		
 		m_Service.post (boost::bind (&Stream::SendPacket, this, p));
+		
+		return len;
 	}	
+
 		
 	void Stream::SendQuickAck ()
 	{

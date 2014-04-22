@@ -5,6 +5,7 @@
 #include <map>
 #include <list>
 #include <set>
+#include <thread>
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
@@ -12,6 +13,7 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
+#include "SSUData.h"
 
 namespace i2p
 {
@@ -43,14 +45,6 @@ namespace ssu
 	const uint8_t PAYLOAD_TYPE_DATA = 6;
 	const uint8_t PAYLOAD_TYPE_PEER_TEST = 7;
 	const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
-
-	// data flags
-	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
-	const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
-	const uint8_t DATA_FLAG_REQUEST_PREVIOUS_ACKS = 0x08;
-	const uint8_t DATA_FLAG_EXPLICIT_CONGESTION_NOTIFICATION = 0x10;
-	const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
-	const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;	
 
 	enum SessionState
 	{
@@ -86,6 +80,8 @@ namespace ssu
 			const i2p::data::RouterInfo * GetRemoteRouter () const  { return m_RemoteRouter; };
 			void SendI2NPMessage (I2NPMessage * msg);
 			void SendPeerTest (); // Alice			
+
+			SessionState GetState () const  { return m_State; };
 
 		private:
 
@@ -124,15 +120,8 @@ namespace ssu
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:
-
-			struct IncompleteMessage
-			{
-				I2NPMessage * msg;
-				uint8_t nextFragmentNum;	
-
-				IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (1) {};
-			};
 			
+			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			const i2p::data::RouterInfo * m_RemoteRouter;
@@ -146,15 +135,15 @@ namespace ssu
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
 			uint8_t m_SessionKey[32], m_MacKey[32];
-			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
+			SSUData m_Data;
 	};
 
 	class SSUServer
 	{
 		public:
 
-			SSUServer (boost::asio::io_service& service, int port);
+			SSUServer (int port);
 			~SSUServer ();
 			void Start ();
 			void Stop ();
@@ -172,11 +161,16 @@ namespace ssu
 
 		private:
 
+			void Run ();
 			void Receive ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
 		private:
-			
+
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			boost::asio::io_service m_Service;
+			boost::asio::io_service::work m_Work;
 			boost::asio::ip::udp::endpoint m_Endpoint;
 			boost::asio::ip::udp::socket m_Socket;
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
