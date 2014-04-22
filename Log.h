@@ -12,10 +12,7 @@ struct LogMsg
 
 	LogMsg (std::ostream& o = std::cout): output (o) {};
 	
-	void Process () 
-	{
-		output << s.str ();
-	}
+	void Process();
 };
 
 extern i2p::util::MsgQueue<LogMsg> g_Log;

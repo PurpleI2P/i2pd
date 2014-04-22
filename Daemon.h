@@ -1,15 +1,21 @@
 #pragma once
+#include <fstream>
 
-#include "HTTPServer.h"
-#include "HTTPProxy.h"
+#ifdef _WIN32
+#define Daemon i2p::util::DaemonWin32::Instance()
+#else
+#define Daemon i2p::util::DaemonLinux::Instance()
+#endif
 
 namespace i2p
 {
 	namespace util
 	{
+		class Daemon_Singleton_Private;
 		class Daemon_Singleton
 		{
 		public:
+			virtual bool init(int argc, char* argv[]);
 			virtual bool start();
 			virtual bool stop();
 
@@ -18,20 +24,18 @@ namespace i2p
 			
 			int running;
 
-		private:
-			i2p::util::HTTPServer *httpServer;
-			i2p::proxy::HTTPProxy *httpProxy;
+			std::ofstream logfile;
 
 		protected:
-			Daemon_Singleton() : running(1) {};
-			virtual ~Daemon_Singleton() {
-				delete httpServer;
-				delete httpProxy;
-			};
+			Daemon_Singleton();
+			virtual ~Daemon_Singleton();
+
+			// d-pointer for httpServer, httpProxy, etc.
+			class Daemon_Singleton_Private;
+			Daemon_Singleton_Private &d;
 		};
 
 #ifdef _WIN32
-		#define Daemon i2p::util::DaemonWin32::Instance()
 		class DaemonWin32 : public Daemon_Singleton
 		{
 		public:
@@ -41,11 +45,11 @@ namespace i2p
 				return instance;
 			}
 
+			virtual bool init(int argc, char* argv[]);
 			virtual bool start();
 			virtual bool stop();
 		};
 #else
-		#define Daemon i2p::util::DaemonLinux::Instance()
 		class DaemonLinux : public Daemon_Singleton
 		{
 		public:
