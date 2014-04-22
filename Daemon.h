@@ -16,7 +16,7 @@ namespace i2p
 			int isLogging;
 			int isDaemon;
 			
-			int running = 1;
+			int running;
 
 		private:
 			i2p::util::HTTPServer *httpServer;
