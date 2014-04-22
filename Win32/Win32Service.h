@@ -1,8 +1,6 @@
 #ifndef WIN_32_SERVICE_H__
 #define WIN_32_SERVICE_H__
 
-#include "../HTTPServer.h"
-#include "../HTTPProxy.h"
 #include <thread>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -40,6 +38,7 @@ public:
 
 	virtual ~I2PService(void);
 
+	static BOOL isService();
 	static BOOL Run(I2PService &service);
 	void Stop();
 
@@ -70,8 +69,7 @@ private:
 
 	BOOL m_fStopping;
 	HANDLE m_hStoppedEvent;
-	i2p::util::HTTPServer* _httpServer;
-	i2p::proxy::HTTPProxy* _httpProxy;
+
 	std::thread* _worker;
 };
 
@@ -83,7 +81,5 @@ void InstallService(PSTR pszServiceName,
 	PSTR pszPassword);
 
 void UninstallService(PSTR pszServiceName);
-
-void service_control(int isDaemon);
 
 #endif // WIN_32_SERVICE_H__

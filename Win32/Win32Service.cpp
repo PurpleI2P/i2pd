@@ -7,17 +7,26 @@
 #include <strsafe.h>
 #include <windows.h>
 
-#include "Log.h"
-#include "Transports.h"
-#include "NTCPSession.h"
-#include "Tunnel.h"
-#include "NetDb.h"
-#include "Garlic.h"
-#include "util.h"
-#include "Streaming.h"
+#include "../Daemon.h"
+#include "../Log.h"
 
 I2PService *I2PService::s_service = NULL;
 
+BOOL I2PService::isService()
+{
+	BOOL bIsService = FALSE;
+
+	HWINSTA hWinStation = GetProcessWindowStation();
+	if (hWinStation != NULL)
+	{
+		USEROBJECTFLAGS uof = { 0 };
+		if (GetUserObjectInformation(hWinStation, UOI_FLAGS, &uof, sizeof(USEROBJECTFLAGS), NULL) && ((uof.dwFlags & WSF_VISIBLE) == 0))
+		{
+			bIsService = TRUE;
+		}
+	}
+	return bIsService;
+}
 
 BOOL I2PService::Run(I2PService &service)
 {
@@ -65,7 +74,7 @@ void WINAPI I2PService::ServiceCtrlHandler(DWORD dwCtrl)
 I2PService::I2PService(PSTR pszServiceName,
 	BOOL fCanStop,
 	BOOL fCanShutdown,
-	BOOL fCanPauseContinue) : _httpServer(nullptr), _httpProxy(nullptr)
+	BOOL fCanPauseContinue)
 {
 	m_name = (pszServiceName == NULL) ? "" : pszServiceName;
 
@@ -123,13 +132,13 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint("Service Start", dwError);
+		LogPrint("Win32Service Start", dwError);
 
 		SetServiceStatus(SERVICE_STOPPED, dwError);
 	}
 	catch (...)
 	{
-		LogPrint("Service failed to start.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Win32Service failed to start.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(SERVICE_STOPPED);
 	}
@@ -138,32 +147,15 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 
 void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 {
-	LogPrint("CppWindowsService in OnStart",
+	LogPrint("Win32Service in OnStart",
 		EVENTLOG_INFORMATION_TYPE);
 
-	i2p::util::config::OptionParser(dwArgc, pszArgv);
-	i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
-	i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-		i2p::util::config::GetArg("-port", 17070));
+	Daemon.start();
 
-	_httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
-	_httpServer->Start();
-	LogPrint("HTTPServer started", EVENTLOG_INFORMATION_TYPE);
-
-	i2p::data::netdb.Start();
-	LogPrint("NetDB started", EVENTLOG_INFORMATION_TYPE);
-	i2p::transports.Start();
-	LogPrint("Transports started", EVENTLOG_INFORMATION_TYPE);
-	i2p::tunnel::tunnels.Start();
-	LogPrint("Tunnels started", EVENTLOG_INFORMATION_TYPE);
-	i2p::garlic::routing.Start();
-	LogPrint("Routing started", EVENTLOG_INFORMATION_TYPE);
-	i2p::stream::StartStreaming();
-	LogPrint("Streaming started", EVENTLOG_INFORMATION_TYPE);
-
-	_httpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
-	_httpProxy->Start();
-	LogPrint("Proxy started", EVENTLOG_INFORMATION_TYPE);
+	//i2p::util::config::OptionParser(dwArgc, pszArgv);
+	//i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+	//i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
+	//	i2p::util::config::GetArg("-port", 17070));
 
 	_worker = new std::thread(std::bind(&I2PService::WorkerThread, this));
 }
@@ -194,13 +186,13 @@ void I2PService::Stop()
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint("Service Stop", dwError);
+		LogPrint("Win32Service Stop", dwError);
 
 		SetServiceStatus(dwOriginalState);
 	}
 	catch (...)
 	{
-		LogPrint("Service failed to stop.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Win32Service failed to stop.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(dwOriginalState);
 	}
@@ -210,24 +202,9 @@ void I2PService::Stop()
 void I2PService::OnStop()
 {
 	// Log a service stop message to the Application log.
-	LogPrint("CppWindowsService in OnStop", EVENTLOG_INFORMATION_TYPE);
+	LogPrint("Win32Service in OnStop", EVENTLOG_INFORMATION_TYPE);
 
-	_httpProxy->Stop();
-	LogPrint("HTTPProxy stoped", EVENTLOG_INFORMATION_TYPE);
-	delete _httpProxy;
-	i2p::stream::StopStreaming();
-	LogPrint("Streaming stoped", EVENTLOG_INFORMATION_TYPE);
-	i2p::garlic::routing.Stop();
-	LogPrint("Routing stoped", EVENTLOG_INFORMATION_TYPE);
-	i2p::tunnel::tunnels.Stop();
-	LogPrint("Tunnels stoped", EVENTLOG_INFORMATION_TYPE);
-	i2p::transports.Stop();
-	LogPrint("Transports stoped", EVENTLOG_INFORMATION_TYPE);
-	i2p::data::netdb.Stop();
-	LogPrint("NetDB stoped", EVENTLOG_INFORMATION_TYPE);
-	_httpServer->Stop();
-	LogPrint("HTTPServer stoped", EVENTLOG_INFORMATION_TYPE);
-	delete _httpServer;
+	Daemon.stop();
 
 	m_fStopping = TRUE;
 	if (WaitForSingleObject(m_hStoppedEvent, INFINITE) != WAIT_OBJECT_0)
@@ -251,13 +228,13 @@ void I2PService::Pause()
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint("Service Pause", dwError);
+		LogPrint("Win32Service Pause", dwError);
 
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 	catch (...)
 	{
-		LogPrint("Service failed to pause.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Win32Service failed to pause.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(SERVICE_RUNNING);
 	}
@@ -281,13 +258,13 @@ void I2PService::Continue()
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint("Service Continue", dwError);
+		LogPrint("Win32Service Continue", dwError);
 
 		SetServiceStatus(SERVICE_PAUSED);
 	}
 	catch (...)
 	{
-		LogPrint("Service failed to resume.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Win32Service failed to resume.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(SERVICE_PAUSED);
 	}
@@ -309,11 +286,11 @@ void I2PService::Shutdown()
 	}
 	catch (DWORD dwError)
 	{
-		LogPrint("Service Shutdown", dwError);
+		LogPrint("Win32Service Shutdown", dwError);
 	}
 	catch (...)
 	{
-		LogPrint("Service failed to shut down.", EVENTLOG_ERROR_TYPE);
+		LogPrint("Win32Service failed to shut down.", EVENTLOG_ERROR_TYPE);
 	}
 }
 
@@ -365,6 +342,8 @@ void InstallService(PSTR pszServiceName,
 	PSTR pszAccount,
 	PSTR pszPassword)
 {
+	printf("Try to install Win32Service (%s).\n", pszServiceName);
+
 	char szPath[MAX_PATH];
 	SC_HANDLE schSCManager = NULL;
 	SC_HANDLE schService = NULL;
@@ -409,7 +388,7 @@ void InstallService(PSTR pszServiceName,
 		return;
 	}
 
-	printf("%s is installed.\n", pszServiceName);
+	printf("Win32Service is installed as %s.\n", pszServiceName);
 
 	// Centralized cleanup for all allocated resources.
 	FreeHandles(schSCManager, schService);
@@ -417,6 +396,8 @@ void InstallService(PSTR pszServiceName,
 
 void UninstallService(PSTR pszServiceName)
 {
+	printf("Try to uninstall Win32Service (%s).\n", pszServiceName);
+
 	SC_HANDLE schSCManager = NULL;
 	SC_HANDLE schService = NULL;
 	SERVICE_STATUS ssSvcStatus = {};
@@ -443,7 +424,7 @@ void UninstallService(PSTR pszServiceName)
 	// Try to stop the service
 	if (ControlService(schService, SERVICE_CONTROL_STOP, &ssSvcStatus))
 	{
-		printf("Stopping %s.", pszServiceName);
+		printf("Stopping %s.\n", pszServiceName);
 		Sleep(1000);
 
 		while (QueryServiceStatus(schService, &ssSvcStatus))
@@ -478,49 +459,4 @@ void UninstallService(PSTR pszServiceName)
 
 	// Centralized cleanup for all allocated resources.
 	FreeHandles(schSCManager, schService);
-}
-
-void service_control(int isDaemon)
-{
-	std::string serviceControl = i2p::util::config::GetArg("-service", "none");
-	if (serviceControl == "install")
-	{
-		InstallService(
-			SERVICE_NAME,               // Name of service
-			SERVICE_DISPLAY_NAME,       // Name to display
-			SERVICE_START_TYPE,         // Service start type
-			SERVICE_DEPENDENCIES,       // Dependencies
-			SERVICE_ACCOUNT,            // Service running account
-			SERVICE_PASSWORD            // Password of the account
-			);
-		exit(0);
-	}
-	else if (serviceControl == "remove")
-	{
-		UninstallService(SERVICE_NAME);
-		exit(0);
-	}
-	else if (serviceControl != "none")
-	{
-		printf(" --service=install  to install the service.\n");
-		printf(" --service=remove   to remove the service.\n");
-		exit(0);
-	}
-	else if (isDaemon)
-	{
-		std::string logfile = i2p::util::filesystem::GetDataDir().string();
-		logfile.append("\\debug.log");
-		FILE* openResult = freopen(logfile.c_str(), "a", stdout);
-		if (!openResult)
-		{
-			exit(-17);
-		}
-		LogPrint("Service logging enabled.");
-		I2PService service(SERVICE_NAME);
-		if (!I2PService::Run(service))
-		{
-			LogPrint("Service failed to run w/err 0x%08lx\n", GetLastError());
-		}
-		exit(0);
-	}
 }
