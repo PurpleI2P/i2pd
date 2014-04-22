@@ -6,7 +6,7 @@ OBJECTS = obj/i2p.o obj/base64.o obj/NTCPSession.o obj/RouterInfo.o obj/Transpor
     obj/TunnelGateway.o obj/TransitTunnel.o obj/I2NPProtocol.o obj/Log.o obj/Garlic.o \
     obj/HTTPServer.o obj/Streaming.o obj/Identity.o obj/SSU.o obj/util.o obj/Reseed.o \
     obj/UPnP.o obj/TunnelPool.o obj/HTTPProxy.o obj/AddressBook.o \
-    obj/Daemon.o obj/DaemonLinux.o
+    obj/Daemon.o obj/DaemonLinux.o obj/SSUData.o
 INCFLAGS = 
 LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 LIBS = 

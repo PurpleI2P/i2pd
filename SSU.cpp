@@ -19,20 +19,14 @@ namespace ssu
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
 		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
-		m_IsSessionKey (false), m_RelayTag (0)
+		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
 
 	SSUSession::~SSUSession ()
 	{
-		delete m_DHKeysPair;
-		for (auto it: m_IncomleteMessages)
-			if (it.second)
-			{
-				DeleteI2NPMessage (it.second->msg);
-				delete it.second;
-			}			
+		delete m_DHKeysPair;		
 	}	
 	
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
@@ -603,6 +597,7 @@ namespace ssu
 
 	void SSUSession::Established ()
 	{
+		m_State = eSessionStateEstablished;
 		SendI2NPMessage (CreateDatabaseStoreMsg ());
 		if (!m_DelayedMessages.empty ())
 		{
@@ -671,115 +666,7 @@ namespace ssu
 	
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)
 	{
-		//uint8_t * start = buf;
-		uint8_t flag = *buf;
-		buf++;
-		LogPrint ("Process SSU data flags=", (int)flag);
-		if (flag & DATA_FLAG_EXPLICIT_ACKS_INCLUDED)
-		{
-			// explicit ACKs
-			uint8_t numAcks =*buf;
-			buf++;
-			// TODO: process ACKs
-			buf += numAcks*4;
-		}
-		if (flag & DATA_FLAG_ACK_BITFIELDS_INCLUDED)
-		{
-			// explicit ACK bitfields
-			uint8_t numBitfields =*buf;
-			buf++;
-			for (int i = 0; i < numBitfields; i++)
-			{
-				buf += 4; // msgID
-				// TODO: process ACH bitfields
-				while (*buf & 0x80) // not last
-					buf++;
-				buf++; // last byte
-			}	
-		}	
-		uint8_t numFragments = *buf; // number of fragments
-		buf++;
-		for (int i = 0; i < numFragments; i++)
-		{	
-			uint32_t msgID = be32toh (*(uint32_t *)buf); // message ID
-			buf += 4;
-			uint8_t frag[4];
-			frag[0] = 0;
-			memcpy (frag + 1, buf, 3);
-			buf += 3;
-			uint32_t fragmentInfo = be32toh (*(uint32_t *)frag); // fragment info
-			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
-			bool isLast = fragmentInfo & 0x010000; // bit 16	
-			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
-			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 		
-			I2NPMessage * msg = nullptr;
-			if (fragmentNum > 0) // follow-up fragment
-			{
-				auto it = m_IncomleteMessages.find (msgID);
-				if (it != m_IncomleteMessages.end ())
-				{
-					if (fragmentNum == it->second->nextFragmentNum)
-					{
-						// expected fragment
-						msg = it->second->msg;
-						memcpy (msg->buf + msg->len, buf, fragmentSize);
-						msg->len += fragmentSize;
-						it->second->nextFragmentNum++;
-					}	
-					else if (fragmentNum < it->second->nextFragmentNum)
-						// duplicate fragment
-						LogPrint ("Duplicate fragment ", fragmentNum, " of message ", msgID, ". Ignored");	
-					else
-					{
-						// missing fragment
-						LogPrint ("Missing fragments from ", it->second->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
-						//TODO
-					}	
- 						
-					if (isLast)
-					{
-						delete it->second;
-						m_IncomleteMessages.erase (it);
-					}	
-				}
-				else
-					// TODO:
-					LogPrint ("Unexpected follow-on fragment ", fragmentNum, " of message ", msgID);	
-			}
-			else // first fragment
-			{
-				msg = NewI2NPMessage ();
-				memcpy (msg->GetSSUHeader (), buf, fragmentSize);
-				msg->len += fragmentSize - sizeof (I2NPHeaderShort);
-			}
-
-			if (msg)
-			{					
-				if (!fragmentNum && !isLast)
-					m_IncomleteMessages[msgID] = new IncompleteMessage (msg);
-				if (isLast)
-				{
-					SendMsgAck (msgID);
-					msg->FromSSU (msgID);
-					if (m_State == eSessionStateEstablished)
-						i2p::HandleI2NPMessage (msg);
-					else
-					{
-						// we expect DeliveryStatus
-						if (msg->GetHeader ()->typeID == eI2NPDeliveryStatus)
-						{
-							LogPrint ("SSU session established");
-							m_State = eSessionStateEstablished;
-							Established ();
-						}	
-						else
-							LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
-						DeleteI2NPMessage (msg);
-					}	
-				}
-			}
-			buf += fragmentSize;
-		}	
+		m_Data.ProcessMessage (buf, len);
 	}
 
 
@@ -992,8 +879,8 @@ namespace ssu
 		m_Server.Send (buf, msgSize, m_RemoteEndpoint);
 	}			
 
-	SSUServer::SSUServer (boost::asio::io_service& service, int port):
-		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (service, m_Endpoint)
+	SSUServer::SSUServer (int port): m_Thread (nullptr), m_Work (m_Service),
+		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (m_Service, m_Endpoint)
 	{
 		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
 		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
@@ -1007,15 +894,40 @@ namespace ssu
 
 	void SSUServer::Start ()
 	{
-		Receive ();
+		m_IsRunning = true;
+		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
+		m_Service.post (boost::bind (&SSUServer::Receive, this));  
 	}
 
 	void SSUServer::Stop ()
 	{
 		DeleteAllSessions ();
+		m_IsRunning = false;
+		m_Service.stop ();
 		m_Socket.close ();
+		if (m_Thread)
+		{	
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = 0;
+		}	
 	}
 
+	void SSUServer::Run () 
+	{ 
+		while (m_IsRunning)
+		{
+			try
+			{	
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint ("SSU server: ", ex.what ());
+			}	
+		}	
+	}
+		
 	void SSUServer::AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay)
 	{
 		m_Relays[tag] = relay;
