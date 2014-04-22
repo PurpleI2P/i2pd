@@ -238,6 +238,7 @@ namespace util
 
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
+		s << "Data path: " << i2p::util::filesystem::GetDataDir().string() << "<BR>" << "<BR>";
 		s << "Our external address:" << "<BR>" << "<BR>";
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{
