@@ -17,7 +17,7 @@ int main( int argc, char* argv[] )
 		//TODO Meeh: Find something better to do here.
 		std::this_thread::sleep_for (std::chrono::seconds(1));
 	}
-	Daemon.start();
+	Daemon.stop();
 
 	return 0;
 }
