@@ -2,6 +2,8 @@
 #define _CRT_SECURE_NO_WARNINGS // to use freopen
 #endif
 
+#include <thread>
+
 #include "Daemon.h"
 
 #include "Log.h"
@@ -15,15 +17,42 @@
 #include "Garlic.h"
 #include "util.h"
 #include "Streaming.h"
+#include "HTTPServer.h"
+#include "HTTPProxy.h"
 
 namespace i2p
 {
 	namespace util
 	{
-		bool Daemon_Singleton::start()
+		class Daemon_Singleton::Daemon_Singleton_Private
 		{
+		public:
+			Daemon_Singleton_Private() : httpServer(nullptr), httpProxy(nullptr) { };
+			~Daemon_Singleton_Private() {
+				delete httpServer;
+				delete httpProxy;
+			};
+
+			i2p::util::HTTPServer *httpServer;
+			i2p::proxy::HTTPProxy *httpProxy;
+		};
+
+		Daemon_Singleton::Daemon_Singleton() : d(*new Daemon_Singleton_Private()), running(1) {};
+		Daemon_Singleton::~Daemon_Singleton() {
+			delete &d;
+		};
+
+
+		bool Daemon_Singleton::init(int argc, char* argv[])
+		{
+			i2p::util::config::OptionParser(argc, argv);
+
+			LogPrint("\n\n\n\ni2pd starting\n");
+			LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
+			i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+
 			isDaemon = i2p::util::config::GetArg("-daemon", 0);
-			isLogging = i2p::util::config::GetArg("-log", 0);
+			isLogging = i2p::util::config::GetArg("-log", 1);
 
 			//TODO: This is an ugly workaround. fix it.
 			//TODO: Autodetect public IP.
@@ -32,27 +61,51 @@ namespace i2p
 
 			if (isLogging == 1)
 			{
-				std::string logfile = i2p::util::filesystem::GetDataDir().string();
+				std::string logfile_path = i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
-				logfile.append("/debug.log");
+				logfile_path.append("/debug.log");
 #else
-				logfile.append("\\debug.log");
+				logfile_path.append("\\debug.log");
 #endif
-				freopen(logfile.c_str(), "a", stdout);
-				LogPrint("Logging to file enabled.");
-			}
+				logfile.open(logfile_path, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+				//logfile = freopen(logfile_path.c_str(), "a", stdout);
+				if (!logfile.is_open())
+				{
+					exit(-17);
+				}
 
-			httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
-			httpServer->Start();
+				//std::streambuf * old = std::cout.rdbuf(logfile.rdbuf());
+
+				LogPrint("Logging to file enabled.");
+
+				LogPrint("CMD parameters:");
+				for (int i = 0; i < argc; ++i)
+					LogPrint(i, "  ", argv[i]);
+
+			}
+			return true;
+		}
+			
+		bool Daemon_Singleton::start()
+		{
+			d.httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
+			d.httpServer->Start();
+			LogPrint("HTTPServer started", EVENTLOG_INFORMATION_TYPE);
 
 			i2p::data::netdb.Start();
+			LogPrint("NetDB started", EVENTLOG_INFORMATION_TYPE);
 			i2p::transports.Start();
+			LogPrint("Transports started", EVENTLOG_INFORMATION_TYPE);
 			i2p::tunnel::tunnels.Start();
+			LogPrint("Tunnels started", EVENTLOG_INFORMATION_TYPE);
 			i2p::garlic::routing.Start();
+			LogPrint("Routing started", EVENTLOG_INFORMATION_TYPE);
 			i2p::stream::StartStreaming();
+			LogPrint("Streaming started", EVENTLOG_INFORMATION_TYPE);
 
-			httpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
-			httpProxy->Start();
+			d.httpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
+			d.httpProxy->Start();
+			LogPrint("Proxy started", EVENTLOG_INFORMATION_TYPE);
 
 			return true;
 		}
@@ -61,16 +114,23 @@ namespace i2p
 		{
 			LogPrint("Shutdown started.");
 
-			httpProxy->Stop();
+			d.httpProxy->Stop();
+			LogPrint("HTTPProxy stoped", EVENTLOG_INFORMATION_TYPE);
 			i2p::stream::StopStreaming();
+			LogPrint("Streaming stoped", EVENTLOG_INFORMATION_TYPE);
 			i2p::garlic::routing.Stop();
+			LogPrint("Routing stoped", EVENTLOG_INFORMATION_TYPE);
 			i2p::tunnel::tunnels.Stop();
+			LogPrint("Tunnels stoped", EVENTLOG_INFORMATION_TYPE);
 			i2p::transports.Stop();
+			LogPrint("Transports stoped", EVENTLOG_INFORMATION_TYPE);
 			i2p::data::netdb.Stop();
-			httpServer->Stop();
+			LogPrint("NetDB stoped", EVENTLOG_INFORMATION_TYPE);
+			d.httpServer->Stop();
+			LogPrint("HTTPServer stoped", EVENTLOG_INFORMATION_TYPE);
 
-			delete httpProxy; httpProxy = NULL;
-			delete httpServer; httpServer = NULL;
+			delete d.httpProxy; d.httpProxy = nullptr;
+			delete d.httpServer; d.httpServer = nullptr;
 
 			if (isLogging == 1)
 			{
