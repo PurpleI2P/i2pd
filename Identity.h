@@ -73,7 +73,9 @@ namespace data
 			
 			bool operator== (const IdentHash& other) const { return !memcmp (m_Hash, other.m_Hash, 32); };
 			bool operator< (const IdentHash& other) const { return memcmp (m_Hash, other.m_Hash, 32) < 0; };
-			
+
+                        bool FromBase32(const std::string&);
+
 		private:
 
 			uint8_t m_Hash[32];
@@ -106,7 +108,7 @@ namespace data
 		public:
 
 			RoutingDestination (): m_ElGamalEncryption (nullptr) {};
-			virtual ~RoutingDestination () { if (m_ElGamalEncryption) delete m_ElGamalEncryption; };
+			virtual ~RoutingDestination () { delete m_ElGamalEncryption; };
 			
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;

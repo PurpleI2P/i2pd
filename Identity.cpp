@@ -40,6 +40,12 @@ namespace data
 		return *this;
 	}
 
+        bool IdentHash::FromBase32(const std::string& s)
+        {
+                size_t count = Base32ToByteStream(s.c_str(), s.length(), m_Hash, sizeof(m_Hash));
+                return count == sizeof(m_Hash);
+        }
+
 	Keys CreateRandomKeys ()
 	{
 		Keys keys;		
