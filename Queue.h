@@ -5,6 +5,7 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <functional>
 
 namespace i2p
 {
@@ -104,6 +105,8 @@ namespace util
 	{
 		public:
 
+			typedef std::function<void()> OnEmpty;
+
 			MsgQueue (): m_IsRunning (true), m_Thread (std::bind (&MsgQueue<Msg>::Run, this))  {};
 			void Stop()
 			{
@@ -111,6 +114,8 @@ namespace util
 				Queue<Msg>::WakeUp ();					
 				m_Thread.join();
 			}
+
+			void SetOnEmpty (OnEmpty const & e) { m_OnEmpty = e; };
 
 		private:
 
@@ -123,6 +128,8 @@ namespace util
 						msg->Process ();
 						delete msg;
 					}
+					if (m_OnEmpty != nullptr)
+						m_OnEmpty ();
 					Queue<Msg>::Wait ();
 				}	
 			}	
@@ -131,6 +138,7 @@ namespace util
 			
 			bool m_IsRunning;
 			std::thread m_Thread;	
+			OnEmpty m_OnEmpty;
 	};	
 }		
 }	
