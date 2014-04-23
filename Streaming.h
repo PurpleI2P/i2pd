@@ -214,7 +214,7 @@ namespace stream
 			}	
 		}
 		m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
-		m_ReceiveTimer.async_wait ([&buffer, handler, this](const boost::system::error_code& ecode)
+		m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
 			{ this->HandleReceiveTimer (ecode, buffer, handler); });
 	}
 
