@@ -21,6 +21,7 @@ set ( SOURCES
         NTCPSession.cpp
         RouterContext.cpp
         SSU.cpp
+	SSUData.cpp
         TransitTunnel.cpp
         Tunnel.cpp
         TunnelGateway.cpp
@@ -37,6 +38,7 @@ set ( SOURCES
         TunnelEndpoint.cpp
         TunnelPool.cpp
         util.cpp
+	Daemon.cpp
 )
 
 set ( HEADERS
@@ -48,6 +50,7 @@ set ( HEADERS
         NTCPSession.h
         RouterContext.h
         SSU.h
+	SSUData.h
         TransitTunnel.h
         Tunnel.h
         TunnelGateway.h
@@ -64,7 +67,16 @@ set ( HEADERS
         TunnelEndpoint.h
         TunnelPool.h
         util.h
+	Daemon.h
 )
+
+if (WIN32)
+	list (APPEND SOURCES DeamonWin32.cpp)
+else ()
+	list (APPEND SOURCES DaemonLinux.cpp)
+endif ()
+
+
 
 source_group ("Header Files" FILES ${HEADERS})
 source_group ("Source Files" FILES ${SOURCES})
