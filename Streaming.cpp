@@ -283,11 +283,11 @@ namespace stream
 	bool Stream::SendPacket (const uint8_t * buf, size_t len)
 	{		
 		const I2NPMessage * leaseSet = nullptr;
-
-		leaseSet = m_LocalDestination->GetLeaseSet ();
-		if (!leaseSet)
-			return false;
-
+		if (m_LeaseSetUpdated)
+		{	
+			leaseSet = m_LocalDestination->GetLeaseSet ();
+			m_LeaseSetUpdated = false;
+		}	
 		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
 			CreateDataMessage (this, buf, len), leaseSet);
 		if (!m_OutboundTunnel || m_OutboundTunnel->IsFailed ())
