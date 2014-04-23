@@ -108,7 +108,7 @@ namespace data
 		public:
 
 			RoutingDestination (): m_ElGamalEncryption (nullptr) {};
-			virtual ~RoutingDestination () { if (m_ElGamalEncryption) delete m_ElGamalEncryption; };
+			virtual ~RoutingDestination () { delete m_ElGamalEncryption; };
 			
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
