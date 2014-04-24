@@ -63,12 +63,7 @@ namespace i2p
 #else
 				logfile_path.append("\\debug.log");
 #endif
-				logfile.open(logfile_path, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
-
-				if (!logfile.is_open())
-					exit(-17);
-
-				LogPrint("Logging to file enabled.");
+				g_Log.SetLogFile (logfile_path);
 
 				LogPrint("CMD parameters:");
 				for (int i = 0; i < argc; ++i)
