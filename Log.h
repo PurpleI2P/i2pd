@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <functional>
 #include "Queue.h"
 
 struct LogMsg
@@ -15,7 +16,18 @@ struct LogMsg
 	void Process();
 };
 
-extern i2p::util::MsgQueue<LogMsg> g_Log;
+class Log: public i2p::util::MsgQueue<LogMsg>
+{
+	public:
+
+		Log () { SetOnEmpty (std::bind (&Log::Flush, this)); };
+
+	private:
+
+		void Flush ();
+};
+
+extern Log g_Log;
 
 template<typename TValue>
 void LogPrint (std::stringstream& s, TValue arg) 

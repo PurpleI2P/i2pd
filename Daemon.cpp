@@ -33,7 +33,7 @@ namespace i2p
 			i2p::proxy::HTTPProxy *httpProxy;
 		};
 
-		Daemon_Singleton::Daemon_Singleton() : d(*new Daemon_Singleton_Private()), running(1) {};
+		Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
 		Daemon_Singleton::~Daemon_Singleton() {
 			delete &d;
 		};

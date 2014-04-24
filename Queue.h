@@ -5,6 +5,7 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <functional>
 
 namespace i2p
 {
@@ -44,6 +45,12 @@ namespace util
 					el = GetNonThreadSafe ();
 				}	
 				return el;
+			}
+
+			void Wait ()
+			{
+				std::unique_lock<std::mutex> l(m_QueueMutex);
+				m_NonEmpty.wait (l);
 			}
 
 			bool Wait (int sec, int usec)
@@ -98,27 +105,40 @@ namespace util
 	{
 		public:
 
-			MsgQueue (): m_Thread (std::bind (&MsgQueue<Msg>::Run, this)) , running(1) {};
+			typedef std::function<void()> OnEmpty;
+
+			MsgQueue (): m_IsRunning (true), m_Thread (std::bind (&MsgQueue<Msg>::Run, this))  {};
 			void Stop()
 			{
-				running = 0;
+				m_IsRunning = false;
+				Queue<Msg>::WakeUp ();					
 				m_Thread.join();
 			}
 
+			void SetOnEmpty (OnEmpty const & e) { m_OnEmpty = e; };
+
 		private:
+
 			void Run ()
 			{
-				Msg * msg = nullptr;
-				while ((msg = Queue<Msg>::GetNext ()) != nullptr && running)
+				while (m_IsRunning)
 				{
-					msg->Process ();
-					delete msg;
+					while (Msg * msg = Queue<Msg>::Get ())
+					{
+						msg->Process ();
+						delete msg;
+					}
+					if (m_OnEmpty != nullptr)
+						m_OnEmpty ();
+					Queue<Msg>::Wait ();
 				}	
 			}	
 			
 		private:
-			std::thread m_Thread;
-			volatile int running;
+			
+			bool m_IsRunning;
+			std::thread m_Thread;	
+			OnEmpty m_OnEmpty;
 	};	
 }		
 }	

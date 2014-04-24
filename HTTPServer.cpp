@@ -1,5 +1,4 @@
 #include <boost/bind.hpp>
-#include <boost/bind/protect.hpp>
 #include <boost/lexical_cast.hpp>
 #include "base64.h"
 #include "Log.h"
@@ -388,8 +387,8 @@ namespace util
 	{
 		if (m_Stream)
 			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-				boost::protect (boost::bind (&HTTPConnection::HandleStreamReceive, this, 
-					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)),
+				boost::bind (&HTTPConnection::HandleStreamReceive, this, 
+					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
 				45); // 45 seconds timeout
 	}
 
