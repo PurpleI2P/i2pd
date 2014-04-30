@@ -87,9 +87,13 @@ namespace i2p
 		eI2NPTunnelData = 18,
 		eI2NPTunnelGateway = 19,
 		eI2NPData = 20,
+		eI2NPTunnelBuild = 21,
+		eI2NPTunnelBuildReply = 22,
 		eI2NPVariableTunnelBuild = 23,
 		eI2NPVariableTunnelBuildReply = 24	
 	};	
+
+	const int NUM_TUNNEL_BUILD_RECORDS = 8;	
 
 namespace tunnel
 {		
@@ -164,10 +168,12 @@ namespace tunnel
 	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, 
 		const I2NPBuildRequestRecordClearText& clearText,
 	    I2NPBuildRequestRecordElGamalEncrypted& record);
-		
+	
+	bool HandleBuildRequestRecords (int num, I2NPBuildRequestRecordElGamalEncrypted * records, I2NPBuildRequestRecordClearText& clearText);
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
-	
+	void HandleTunnelBuildMsg (uint8_t * buf, size_t len);	
+
 	I2NPMessage * CreateTunnelDataMsg (const uint8_t * buf);	
 	I2NPMessage * CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);		
 	

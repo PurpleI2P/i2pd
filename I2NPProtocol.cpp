@@ -236,6 +236,41 @@ namespace i2p
 		memcpy (record.toPeer, (const uint8_t *)router.GetIdentHash (), 16);
 	}	
 	
+	bool HandleBuildRequestRecords (int num, I2NPBuildRequestRecordElGamalEncrypted * records, I2NPBuildRequestRecordClearText& clearText)
+	{
+		for (int i = 0; i < num; i++)
+		{	
+			if (!memcmp (records[i].toPeer, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
+			{	
+				LogPrint ("Record ",i," is ours");	
+			
+				i2p::crypto::ElGamalDecrypt (i2p::context.GetPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
+
+				i2p::tunnel::TransitTunnel * transitTunnel = 
+					i2p::tunnel::CreateTransitTunnel (
+					be32toh (clearText.receiveTunnel), 
+					clearText.nextIdent, be32toh (clearText.nextTunnel),
+				    clearText.layerKey, clearText.ivKey, 
+				    clearText.flag & 0x80, clearText.flag & 0x40);
+				i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
+				// replace record to reply
+				I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);
+				reply->ret = 0;
+				//TODO: fill filler
+				CryptoPP::SHA256().CalculateDigest(reply->hash, reply->padding, sizeof (reply->padding) + 1); // + 1 byte of ret
+				// encrypt reply
+				CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption encryption;
+				for (int j = 0; j < num; j++)
+				{
+					encryption.SetKeyWithIV (clearText.replyKey, 32, clearText.replyIV);
+					encryption.ProcessData((uint8_t *)(records + j), (uint8_t *)(records + j), sizeof (records[j])); 
+				}
+				return true;
+			}	
+		}	
+		return false;
+	}
+
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
 	{	
 		int num = buf[0];
@@ -260,50 +295,41 @@ namespace i2p
 		else
 		{
 			I2NPBuildRequestRecordElGamalEncrypted * records = (I2NPBuildRequestRecordElGamalEncrypted *)(buf+1); 
-			for (int i = 0; i < num; i++)
-			{	
-				if (!memcmp (records[i].toPeer, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
-				{	
-					LogPrint ("Record ",i," is ours");	
-				
-					I2NPBuildRequestRecordClearText clearText;	
-					i2p::crypto::ElGamalDecrypt (i2p::context.GetPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
-
-					i2p::tunnel::TransitTunnel * transitTunnel = 
-						i2p::tunnel::CreateTransitTunnel (
-						be32toh (clearText.receiveTunnel), 
-						clearText.nextIdent, be32toh (clearText.nextTunnel),
-					    clearText.layerKey, clearText.ivKey, 
-					    clearText.flag & 0x80, clearText.flag & 0x40);
-					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
-					// replace record to reply
-					I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);
-					reply->ret = 0;
-					//TODO: fill filler
-					CryptoPP::SHA256().CalculateDigest(reply->hash, reply->padding, sizeof (reply->padding) + 1); // + 1 byte of ret
-					// encrypt reply
-					CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption encryption;
-					for (int j = 0; j < num; j++)
-					{
-						encryption.SetKeyWithIV (clearText.replyKey, 32, clearText.replyIV);
-						encryption.ProcessData((uint8_t *)(records + j), (uint8_t *)(records + j), sizeof (records[j])); 
-					}
-
-					if (clearText.flag & 0x40) // we are endpoint of outboud tunnel
-					{
-						// so we send it to reply tunnel 
-						i2p::transports.SendMessage (clearText.nextIdent, 
-							CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
-								eI2NPVariableTunnelBuildReply, buf, len, 
-							    be32toh (clearText.nextMessageID)));                         
-					}	
-					else	
-						i2p::transports.SendMessage (clearText.nextIdent, 
-							CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
-					return;
+			I2NPBuildRequestRecordClearText clearText;	
+			if (HandleBuildRequestRecords (num, records, clearText))
+			{
+				if (clearText.flag & 0x40) // we are endpoint of outboud tunnel
+				{
+					// so we send it to reply tunnel 
+					i2p::transports.SendMessage (clearText.nextIdent, 
+						CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
+							eI2NPVariableTunnelBuildReply, buf, len, 
+						    be32toh (clearText.nextMessageID)));                         
 				}	
+				else	
+					i2p::transports.SendMessage (clearText.nextIdent, 
+						CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
 			}	
 		}	
+	}
+
+	void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
+	{
+		I2NPBuildRequestRecordClearText clearText;	
+		if (HandleBuildRequestRecords (NUM_TUNNEL_BUILD_RECORDS, (I2NPBuildRequestRecordElGamalEncrypted *)buf, clearText))
+		{
+			if (clearText.flag & 0x40) // we are endpoint of outbound tunnel
+			{
+				// so we send it to reply tunnel 
+				i2p::transports.SendMessage (clearText.nextIdent, 
+					CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
+						eI2NPTunnelBuildReply, buf, len, 
+					    be32toh (clearText.nextMessageID)));                         
+			}	
+			else	
+				i2p::transports.SendMessage (clearText.nextIdent, 
+					CreateI2NPMessage (eI2NPTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
+		} 
 	}
 
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
@@ -443,6 +469,14 @@ namespace i2p
 			case eI2NPVariableTunnelBuildReply:
 				LogPrint ("VariableTunnelBuildReply");
 				HandleVariableTunnelBuildReplyMsg (msgID, buf, size);
+			break;	
+			case eI2NPTunnelBuild:
+				LogPrint ("TunnelBuild");
+				HandleTunnelBuildMsg  (buf, size);
+			break;	
+			case eI2NPTunnelBuildReply:
+				LogPrint ("TunnelBuildReply");
+				// TODO:
 			break;	
 			case eI2NPDatabaseLookup:
 				LogPrint ("DatabaseLookup");
