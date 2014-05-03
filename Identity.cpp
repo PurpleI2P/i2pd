@@ -22,14 +22,14 @@ namespace data
 
 	bool Identity::FromBase64 (const std::string& s)
 	{
-		size_t count = Base64ToByteStream (s.c_str(), s.length(), reinterpret_cast<uint8_t*> (this), sizeof (Identity));
+		size_t count = Base64ToByteStream (s.c_str(), s.length(), publicKey, sizeof (Identity));
 		return count == sizeof(Identity);
 	}
 
-	IdentHash Identity::Hash()
+	IdentHash Identity::Hash() const 
 	{
 		IdentHash hash;
-		CryptoPP::SHA256().CalculateDigest(reinterpret_cast<uint8_t*>(&hash), reinterpret_cast<uint8_t*> (this), sizeof (Identity));
+		CryptoPP::SHA256().CalculateDigest(hash, publicKey, sizeof (Identity));
 		return hash;
 	}	
 	
@@ -40,11 +40,11 @@ namespace data
 		return *this;
 	}
 
-        bool IdentHash::FromBase32(const std::string& s)
-        {
-                size_t count = Base32ToByteStream(s.c_str(), s.length(), m_Hash, sizeof(m_Hash));
-                return count == sizeof(m_Hash);
-        }
+    bool IdentHash::FromBase32(const std::string& s)
+    {
+            size_t count = Base32ToByteStream(s.c_str(), s.length(), m_Hash, sizeof(m_Hash));
+            return count == sizeof(m_Hash);
+    }
 
 	Keys CreateRandomKeys ()
 	{

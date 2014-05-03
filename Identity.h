@@ -34,8 +34,8 @@ namespace data
 		uint8_t certificate[3];
 
 		Identity& operator=(const Keys& keys);
-		bool FromBase64(const std::string&);
-		IdentHash Hash();
+		bool FromBase64(const std::string& );
+		IdentHash Hash() const;
 	};	
 	
 	struct PrivateKeys // for eepsites
@@ -44,6 +44,10 @@ namespace data
 		uint8_t privateKey[256];
 		uint8_t signingPrivateKey[20];	
 
+		PrivateKeys () = default;
+		PrivateKeys (const PrivateKeys& ) = default;
+		PrivateKeys (const Keys& keys) { *this = keys; };
+		
 		PrivateKeys& operator=(const Keys& keys);
 	};
 	
