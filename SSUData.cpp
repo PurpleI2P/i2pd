@@ -90,6 +90,8 @@ namespace ssu
  						
 					if (isLast)
 					{
+						if (!msg)
+							DeleteI2NPMessage (it->second->msg);
 						delete it->second;
 						m_IncomleteMessages.erase (it);
 					}	

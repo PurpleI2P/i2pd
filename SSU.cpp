@@ -859,6 +859,7 @@ namespace ssu
 				len = 0;
 			fragmentNum++;
 		}	
+		DeleteI2NPMessage (msg);
 	}		
 
 	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
