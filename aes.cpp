@@ -33,7 +33,7 @@ namespace crypto
 		"add $32, %%rcx \n"	
 		
 
-	void ECNEncryptionAESNI::SetKey (const uint8_t * key)
+	void ECNCryptoAESNI::SetKey (const uint8_t * key)
 	{
 		__asm__
 		(
@@ -70,6 +70,60 @@ namespace crypto
 			: "S" (key), "D" (m_KeySchedule) // input
 			: "%rcx" // modified
 		);
+	}
+
+	void ECNCryptoAESNI::Encrypt (const ChipherBlock * in, ChipherBlock * out)
+	{
+		__asm__
+		(
+			"movq %0, %%rdx \n"
+			"movups	(%%rsi), %%xmm0 \n"
+			"pxor (%%rdx), %%xmm0 \n"
+			"aesenc	16(%%rdx), %%xmm0 \n"
+			"aesenc	32(%%rdx), %%xmm0 \n"
+			"aesenc	64(%%rdx), %%xmm0 \n"
+			"aesenc	80(%%rdx), %%xmm0 \n"
+			"aesenc	96(%%rdx), %%xmm0 \n"
+			"aesenc	112(%%rdx), %%xmm0 \n"
+			"aesenc	128(%%rdx), %%xmm0 \n"
+			"aesenc	144(%%rdx), %%xmm0 \n"
+			"aesenc	160(%%rdx), %%xmm0 \n"
+			"aesenc	176(%%rdx), %%xmm0 \n"
+			"aesenc	192(%%rdx), %%xmm0 \n"
+			"aesenc	208(%%rdx), %%xmm0 \n"
+			"aesenclast	224(%%rdx), %%xmm0 \n"
+			"movups	%%xmm0, (%%rdi) \n"	
+			:
+			: "S" (in), "D" (out), "r" ((uint64_t)m_KeySchedule)
+			: "%rdx"
+		);
+	}	
+
+	void ECNCryptoAESNI::Decrypt (const ChipherBlock * in, ChipherBlock * out)
+	{
+		__asm__
+		(
+			"movq %0, %%rdx \n"
+			"movups	(%%rsi), %%xmm0 \n"
+			"pxor 224(%%rdx), %%xmm0 \n"
+			"aesdec	208(%%rdx), %%xmm0 \n"
+			"aesdec	192(%%rdx), %%xmm0 \n"
+			"aesdec	176(%%rdx), %%xmm0 \n"
+			"aesdec	160(%%rdx), %%xmm0 \n"
+			"aesdec	144(%%rdx), %%xmm0 \n"
+			"aesdec	128(%%rdx), %%xmm0 \n"
+			"aesdec	112(%%rdx), %%xmm0 \n"
+			"aesdec	96(%%rdx), %%xmm0 \n"
+			"aesdec	80(%%rdx), %%xmm0 \n"
+			"aesdec	64(%%rdx), %%xmm0 \n"
+			"aesdec	32(%%rdx), %%xmm0 \n"
+			"aesdec	16(%%rdx), %%xmm0 \n"
+			"aesdeclast (%%rdx), %%xmm0 \n"
+			"movups	%%xmm0, (%%rdi) \n"	
+			:
+			: "S" (in), "D" (out), "r" ((uint64_t)m_KeySchedule)
+			: "%rdx"
+		);		
 	}
 
 #endif		

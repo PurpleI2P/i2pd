@@ -17,12 +17,14 @@ namespace crypto
 
 #ifdef __x86_64__
 	// AES-NI assumed
-	class ECNEncryptionAESNI
+	class ECNCryptoAESNI
 	{
 		public:
 		
 			void SetKey (const uint8_t * key);
-		
+			void Encrypt (const ChipherBlock * in, ChipherBlock * out);	
+			void Decrypt (const ChipherBlock * in, ChipherBlock * out);		
+
 		private:
 
 			uint32_t m_KeySchedule[4*(14+1)]; // 14 rounds for AES-256
