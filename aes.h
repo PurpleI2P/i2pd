@@ -17,7 +17,7 @@ namespace crypto
 
 #ifdef __x86_64__
 	// AES-NI assumed
-	class ECNCryptoAESNI
+	class ECBCryptoAESNI
 	{
 		public:
 		

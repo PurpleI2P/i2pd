@@ -33,7 +33,7 @@ namespace crypto
 		"add $32, %%rcx \n"	
 		
 
-	void ECNCryptoAESNI::SetKey (const uint8_t * key)
+	void ECBCryptoAESNI::SetKey (const uint8_t * key)
 	{
 		__asm__
 		(
@@ -72,7 +72,7 @@ namespace crypto
 		);
 	}
 
-	void ECNCryptoAESNI::Encrypt (const ChipherBlock * in, ChipherBlock * out)
+	void ECBCryptoAESNI::Encrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
 		__asm__
 		(
@@ -99,7 +99,7 @@ namespace crypto
 		);
 	}	
 
-	void ECNCryptoAESNI::Decrypt (const ChipherBlock * in, ChipherBlock * out)
+	void ECBCryptoAESNI::Decrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
 		__asm__
 		(
