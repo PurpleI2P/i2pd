@@ -21,8 +21,8 @@ namespace crypto
 	
 			CBCEncryption () { memset (m_LastBlock.buf, 0, 16); };
 
-			void SetKey (uint8_t * key) { m_ECBEncryption.SetKey (key, 32); }; // 32 bytes
-			void SetIV (uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
+			void SetKey (const uint8_t * key) { m_ECBEncryption.SetKey (key, 32); }; // 32 bytes
+			void SetIV (const uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
 
 			void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			bool Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
@@ -39,8 +39,8 @@ namespace crypto
 	
 			CBCDecryption () { memset (m_IV.buf, 0, 16); };
 
-			void SetKey (uint8_t * key) { m_ECBDecryption.SetKey (key, 32); }; // 32 bytes
-			void SetIV (uint8_t * iv) { memcpy (m_IV.buf, iv, 16); }; // 16 bytes
+			void SetKey (const uint8_t * key) { m_ECBDecryption.SetKey (key, 32); }; // 32 bytes
+			void SetIV (const uint8_t * iv) { memcpy (m_IV.buf, iv, 16); }; // 16 bytes
 
 			void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			bool Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);

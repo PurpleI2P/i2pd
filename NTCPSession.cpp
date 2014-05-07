@@ -183,10 +183,12 @@ namespace ntcp
 
 		uint8_t aesKey[32];
 		CreateAESKey (m_Phase1.pubKey, aesKey);
-		m_Encryption.SetKeyWithIV (aesKey, 32, y + 240);
-		m_Decryption.SetKeyWithIV (aesKey, 32, m_Phase1.HXxorHI + 16);
+		m_Encryption.SetKey (aesKey);
+		m_Encryption.SetIV (y + 240);
+		m_Decryption.SetKey (aesKey);
+		m_Decryption.SetIV (m_Phase1.HXxorHI + 16);
 		
-		m_Encryption.ProcessData((uint8_t *)&m_Phase2.encrypted, (uint8_t *)&m_Phase2.encrypted, sizeof(m_Phase2.encrypted));
+		m_Encryption.Encrypt ((uint8_t *)&m_Phase2.encrypted, sizeof(m_Phase2.encrypted), (uint8_t *)&m_Phase2.encrypted);
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Phase2, sizeof (m_Phase2)), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase2Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsB));
 
@@ -222,10 +224,12 @@ namespace ntcp
 		
 			uint8_t aesKey[32];
 			CreateAESKey (m_Phase2.pubKey, aesKey);
-			m_Decryption.SetKeyWithIV (aesKey, 32, m_Phase2.pubKey + 240);
-			m_Encryption.SetKeyWithIV (aesKey, 32, m_Phase1.HXxorHI + 16);
+			m_Decryption.SetKey (aesKey);
+			m_Decryption.SetIV (m_Phase2.pubKey + 240);
+			m_Encryption.SetKey (aesKey);
+			m_Encryption.SetIV (m_Phase1.HXxorHI + 16);
 			
-			m_Decryption.ProcessData((uint8_t *)&m_Phase2.encrypted, (uint8_t *)&m_Phase2.encrypted, sizeof(m_Phase2.encrypted));
+			m_Decryption.Decrypt((uint8_t *)&m_Phase2.encrypted, sizeof(m_Phase2.encrypted), (uint8_t *)&m_Phase2.encrypted);
 			// verify
 			uint8_t xy[512], hxy[32];
 			memcpy (xy, m_DHKeysPair->publicKey, 256);
@@ -256,7 +260,7 @@ namespace ntcp
 		s.tsB = m_Phase2.encrypted.timestamp;
 		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Phase3.signature);
 
-		m_Encryption.ProcessData((uint8_t *)&m_Phase3, (uint8_t *)&m_Phase3, sizeof(m_Phase3));
+		m_Encryption.Encrypt((uint8_t *)&m_Phase3, sizeof(m_Phase3), (uint8_t *)&m_Phase3);
 		        
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Phase3, sizeof (m_Phase3)), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase3Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsA));				
@@ -288,7 +292,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 3 received: ", bytes_transferred);
-			m_Decryption.ProcessData((uint8_t *)&m_Phase3, (uint8_t *)&m_Phase3, sizeof(m_Phase3));
+			m_Decryption.Decrypt ((uint8_t *)&m_Phase3, sizeof(m_Phase3), (uint8_t *)&m_Phase3);
 			m_RemoteRouterInfo.SetRouterIdentity (m_Phase3.ident);
 
 			SignedData s;
@@ -321,7 +325,7 @@ namespace ntcp
 		s.tsA = m_Phase3.timestamp;
 		s.tsB = tsB;
 		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Phase4.signature);
-		m_Encryption.ProcessData((uint8_t *)&m_Phase4, (uint8_t *)&m_Phase4, sizeof(m_Phase4));
+		m_Encryption.Encrypt ((uint8_t *)&m_Phase4, sizeof(m_Phase4), (uint8_t *)&m_Phase4);
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Phase4, sizeof (m_Phase4)), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase4Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
@@ -355,7 +359,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 4 received: ", bytes_transferred);
-			m_Decryption.ProcessData((uint8_t *)&m_Phase4, (uint8_t *)&m_Phase4, sizeof(m_Phase4));
+			m_Decryption.Decrypt((uint8_t *)&m_Phase4, sizeof(m_Phase4), (uint8_t *)&m_Phase4);
 
 			// verify signature
 			SignedData s;
@@ -426,7 +430,7 @@ namespace ntcp
 			m_NextMessage = i2p::NewI2NPMessage ();
 			m_NextMessageOffset = 0;
 			
-			m_Decryption.ProcessData (m_NextMessage->buf, encrypted, 16);
+			m_Decryption.Decrypt (encrypted, 16, m_NextMessage->buf);
 			uint16_t dataSize = be16toh (*(uint16_t *)m_NextMessage->buf);
 			if (dataSize)
 			{
@@ -446,7 +450,7 @@ namespace ntcp
 		}	
 		else // message continues
 		{	
-			m_Decryption.ProcessData (m_NextMessage->buf + m_NextMessageOffset, encrypted, 16);
+			m_Decryption.Decrypt (encrypted, 16, m_NextMessage->buf + m_NextMessageOffset);
 			m_NextMessageOffset += 16;
 		}		
 		
@@ -490,7 +494,7 @@ namespace ntcp
 		m_Adler.CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
 
 		int l = len + padding + 6;
-		m_Encryption.ProcessData(sendBuffer, sendBuffer, l);	
+		m_Encryption.Encrypt(sendBuffer, l, sendBuffer);	
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (sendBuffer, l), boost::asio::transfer_all (),                      
         	boost::bind(&NTCPSession::HandleSent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, msg));	

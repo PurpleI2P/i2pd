@@ -7,6 +7,7 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/adler32.h>
+#include "aes.h"
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
@@ -123,8 +124,8 @@ namespace ntcp
 			bool m_IsEstablished;
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;
+			i2p::crypto::CBCDecryption m_Decryption;
+			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::Adler32 m_Adler;
 			
 			i2p::data::RouterInfo& m_RemoteRouterInfo;
