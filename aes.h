@@ -15,6 +15,21 @@ namespace crypto
 		uint64_t ll[2];
 	};
 
+#ifdef __x86_64__
+	// AES-NI assumed
+	class ECNEncryptionAESNI
+	{
+		public:
+		
+			void SetKey (const uint8_t * key);
+		
+		private:
+
+			uint32_t m_KeySchedule[4*(14+1)]; // 14 rounds for AES-256
+	};	
+
+#endif			
+
 	class CBCEncryption
 	{
 		public:
