@@ -94,7 +94,7 @@ namespace crypto
 			"aesenclast	224(%%rdx), %%xmm0 \n"
 			"movups	%%xmm0, (%%rdi) \n"	
 			:
-			: "S" (in), "D" (out), "r" ((uint64_t)m_KeySchedule)
+			: "r" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
 			: "%rdx"
 		);
 	}	
@@ -121,7 +121,7 @@ namespace crypto
 			"aesdeclast (%%rdx), %%xmm0 \n"
 			"movups	%%xmm0, (%%rdi) \n"	
 			:
-			: "S" (in), "D" (out), "r" ((uint64_t)m_KeySchedule)
+			: "r" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
 			: "%rdx"
 		);		
 	}
