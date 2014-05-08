@@ -44,6 +44,48 @@ namespace crypto
 			void Decrypt (const ChipherBlock * in, ChipherBlock * out);		
 	};	
 
+	typedef ECBEncryptionAESNI ECBEncryption;
+	typedef ECBDecryptionAESNI ECBDecryption;
+
+#else // use crypto++
+
+	class ECBEncryption
+	{
+		public:
+		
+			void SetKey (const uint8_t * key) 
+			{ 
+				m_Encryption.SetKey (key, 32); 
+			}
+			void Encrypt (const ChipherBlock * in, ChipherBlock * out)
+			{
+				m_Encryption.ProcessData (out->buf, in->buf, 16);
+			}	
+
+		private:
+
+			CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption m_Encryption;
+	};	
+
+	class ECBDecryption
+	{
+		public:
+		
+			void SetKey (const uint8_t * key) 
+			{ 
+				m_Decryption.SetKey (key, 32); 
+			}
+			void Decrypt (const ChipherBlock * in, ChipherBlock * out)
+			{
+				m_Decryption.ProcessData (out->buf, in->buf, 16);
+			}	
+
+		private:
+
+			CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_Decryption;
+	};		
+
+
 #endif			
 
 	class CBCEncryption
