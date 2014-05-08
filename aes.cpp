@@ -76,7 +76,6 @@ namespace crypto
 	{
 		__asm__
 		(
-			"movq %0, %%rdx \n"
 			"movups	(%%rsi), %%xmm0 \n"
 			"pxor (%%rdx), %%xmm0 \n"
 			"aesenc	16(%%rdx), %%xmm0 \n"
@@ -93,9 +92,7 @@ namespace crypto
 			"aesenc	208(%%rdx), %%xmm0 \n"
 			"aesenclast	224(%%rdx), %%xmm0 \n"
 			"movups	%%xmm0, (%%rdi) \n"	
-			:
-			: "r" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
-			: "%rdx"
+			: : "d" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
 		);
 	}	
 
@@ -103,7 +100,6 @@ namespace crypto
 	{
 		__asm__
 		(
-			"movq %0, %%rdx \n"
 			"movups	(%%rsi), %%xmm0 \n"
 			"pxor 224(%%rdx), %%xmm0 \n"
 			"aesdec	208(%%rdx), %%xmm0 \n"
@@ -120,9 +116,7 @@ namespace crypto
 			"aesdec	16(%%rdx), %%xmm0 \n"
 			"aesdeclast (%%rdx), %%xmm0 \n"
 			"movups	%%xmm0, (%%rdi) \n"	
-			:
-			: "r" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
-			: "%rdx"
+			: : "d" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
 		);		
 	}
 
