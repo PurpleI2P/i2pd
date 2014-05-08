@@ -33,7 +33,7 @@ namespace crypto
 		"add $32, %%rcx \n"	
 		
 
-	void ECBCryptoAESNI::SetKey (const uint8_t * key)
+	void ECBCryptoAESNI::ExpandKey (const uint8_t * key)
 	{
 		__asm__
 		(
@@ -68,11 +68,11 @@ namespace crypto
 			"movups	%%xmm1, (%%rcx) \n"
 			: // output
 			: "S" (key), "D" (m_KeySchedule) // input
-			: "%rcx" // modified
+			: "%rcx" // clogged
 		);
 	}
 
-	void ECBCryptoAESNI::Encrypt (const ChipherBlock * in, ChipherBlock * out)
+	void ECBEncryptionAESNI::Encrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
 		__asm__
 		(
@@ -92,11 +92,11 @@ namespace crypto
 			"aesenc	208(%%rdx), %%xmm0 \n"
 			"aesenclast	224(%%rdx), %%xmm0 \n"
 			"movups	%%xmm0, (%%rdi) \n"	
-			: : "d" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
+			: : "d" (m_KeySchedule), "S" (in), "D" (out)
 		);
-	}	
+	}		
 
-	void ECBCryptoAESNI::Decrypt (const ChipherBlock * in, ChipherBlock * out)
+	void ECBDecryptionAESNI::Decrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
 		__asm__
 		(
@@ -116,8 +116,36 @@ namespace crypto
 			"aesdec	16(%%rdx), %%xmm0 \n"
 			"aesdeclast (%%rdx), %%xmm0 \n"
 			"movups	%%xmm0, (%%rdi) \n"	
-			: : "d" ((uint64_t)m_KeySchedule), "S" (in), "D" (out)
+			: : "d" (m_KeySchedule), "S" (in), "D" (out)
 		);		
+	}
+
+	#define CallAESIMC(offset) \
+		"movups "#offset"(%%rdx), %%xmm0 \n"	\
+		"aesimc %%xmm0, %%xmm0 \n" \
+		"movups %%xmm0, "#offset"(%%rdx) \n" 
+
+	void ECBDecryptionAESNI::SetKey (const uint8_t * key)
+	{
+		ExpandKey (key); // expand encryption key first
+		// then  invert it using aesimc
+		__asm__
+		(
+			CallAESIMC(16)
+			CallAESIMC(32)
+			CallAESIMC(48)
+			CallAESIMC(64)
+			CallAESIMC(80)
+			CallAESIMC(96)
+			CallAESIMC(112)
+			CallAESIMC(128)
+			CallAESIMC(144)
+			CallAESIMC(160)
+			CallAESIMC(176)
+			CallAESIMC(192)
+			CallAESIMC(208)
+			: : "d" (m_KeySchedule)
+		);
 	}
 
 #endif		

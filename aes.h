@@ -18,16 +18,30 @@ namespace crypto
 #ifdef __x86_64__
 	// AES-NI assumed
 	class ECBCryptoAESNI
+	{	
+		protected:
+
+			void ExpandKey (const uint8_t * key);
+		
+		protected:
+
+			uint32_t m_KeySchedule[4*(14+1)]; // 14 rounds for AES-256
+	};	
+
+	class ECBEncryptionAESNI: public ECBCryptoAESNI
+	{
+		public:
+		
+			void SetKey (const uint8_t * key) { ExpandKey (key); };
+			void Encrypt (const ChipherBlock * in, ChipherBlock * out);	
+	};	
+
+	class ECBDecryptionAESNI: public ECBCryptoAESNI
 	{
 		public:
 		
 			void SetKey (const uint8_t * key);
-			void Encrypt (const ChipherBlock * in, ChipherBlock * out);	
 			void Decrypt (const ChipherBlock * in, ChipherBlock * out);		
-
-		private:
-
-			uint32_t m_KeySchedule[4*(14+1)]; // 14 rounds for AES-256
 	};	
 
 #endif			
