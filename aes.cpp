@@ -50,11 +50,11 @@ namespace crypto
 			KeyExpansion256
 			"aeskeygenassist $8, %%xmm3, %%xmm2 \n"
 			KeyExpansion256
-			"aeskeygenassist $10, %%xmm3, %%xmm2 \n"
+			"aeskeygenassist $16, %%xmm3, %%xmm2 \n"
 			KeyExpansion256
-			"aeskeygenassist $20, %%xmm3, %%xmm2 \n"
+			"aeskeygenassist $32, %%xmm3, %%xmm2 \n"
 			KeyExpansion256
-			"aeskeygenassist $40, %%xmm3, %%xmm2 \n"
+			"aeskeygenassist $64, %%xmm3, %%xmm2 \n"
 			// key expansion final
 			"pshufd	$0xff, %%xmm2, %%xmm2 \n"
 			"movaps	%%xmm1, %%xmm4 \n" 
