@@ -17,22 +17,20 @@ namespace tunnel
 			m_TunnelID (receiveTunnelID),  m_NextTunnelID (nextTunnelID), 
 			m_NextIdent (nextIdent), m_NumTransmittedBytes (0)
 	{	
-		memcpy (m_LayerKey, layerKey, 32);
-		memcpy (m_IVKey, ivKey, 32);
+		m_ECBEncryption.SetKey (ivKey); 
+		m_CBCEncryption.SetKey (layerKey); 
 	}	
 
 	void TransitTunnel::EncryptTunnelMsg (I2NPMessage * tunnelMsg)
 	{
 		uint8_t * payload = tunnelMsg->GetPayload () + 4;
-		m_ECBEncryption.SetKey (m_IVKey, 32); 
-		m_ECBEncryption.ProcessData(payload, payload, 16); // iv
+		
+		m_ECBEncryption.Encrypt ((i2p::crypto::ChipherBlock *)payload, (i2p::crypto::ChipherBlock *)payload); // iv
 
-		m_CBCEncryption.SetKeyWithIV (m_LayerKey, 32, payload); 
-		m_CBCEncryption.ProcessData(payload + 16, payload + 16, TUNNEL_DATA_ENCRYPTED_SIZE); // payload
+		m_CBCEncryption.SetIV (payload); 
+		m_CBCEncryption.Encrypt (payload + 16, TUNNEL_DATA_ENCRYPTED_SIZE, payload + 16); // payload
 
-		m_ECBEncryption.SetKey (m_IVKey, 32); 
-		m_ECBEncryption.ProcessData(payload, payload, 16); // double iv encryption
-
+		m_ECBEncryption.Encrypt((i2p::crypto::ChipherBlock *)payload, (i2p::crypto::ChipherBlock *)payload); // double iv encryption
 	}	
 	
 	void TransitTunnel::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
