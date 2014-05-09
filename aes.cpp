@@ -165,8 +165,7 @@ namespace crypto
 	{
 		for (int i = 0; i < numBlocks; i++)
 		{
-			m_LastBlock.ll[0] ^= in[i].ll[0];
-			m_LastBlock.ll[1] ^= in[i].ll[1];
+			m_LastBlock ^= in[i];
 			m_ECBEncryption.Encrypt (&m_LastBlock, &m_LastBlock);
 			out[i] = m_LastBlock;
 		}
@@ -186,8 +185,7 @@ namespace crypto
 		{
 			ChipherBlock tmp = in[i];
 			m_ECBDecryption.Decrypt (in + i, out + i);
-			out[i].ll[0] ^= m_IV.ll[0];
-			out[i].ll[1] ^= m_IV.ll[1];
+			out[i] ^= m_IV;
 			m_IV = tmp;
 		}
 	}
