@@ -13,6 +13,22 @@ namespace crypto
 	{
 		uint8_t buf[16];
 		uint64_t ll[2];
+
+		void operator^(const ChipherBlock& other) // XOR
+		{
+#ifdef __x86_64__
+			__asm__
+			(
+				"movups	(%[b1]), %%xmm0 \n"
+				"pxor (%[b2]), %%xmm0 \n"
+				"movups	%%xmm0, (%[b1]) \n"	
+				: : [b1]"r"(buf), [b2]"r"(other.buf): "memory", "%xmm0"
+			);
+#else
+			ll[0] ^= other.ll[0];
+			ll[1] ^= other.ll[1];
+#endif
+		}	 
 	};
 
 #ifdef __x86_64__
