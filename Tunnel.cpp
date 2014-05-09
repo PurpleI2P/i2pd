@@ -57,10 +57,8 @@ namespace tunnel
 		while (hop)
 		{
 			for (size_t i = ind; i < numRecords; i++)
-			{	
-				m_CBCDecryption.SetKeyWithIV (hop->replyKey, 32, hop->replyIV);
-				m_CBCDecryption.ProcessData((uint8_t *)&records[i], (uint8_t *)&records[i], sizeof (I2NPBuildRequestRecordElGamalEncrypted));
-			}	
+				hop->decryption.Decrypt((uint8_t *)&records[i], 
+					sizeof (I2NPBuildRequestRecordElGamalEncrypted), (uint8_t *)&records[i]);
 			hop = hop->prev;
 			ind--;
 		}	
@@ -83,8 +81,7 @@ namespace tunnel
 			for (int i = 0; i < num; i++)
 			{			
 				uint8_t * record = msg + 1 + i*sizeof (I2NPBuildResponseRecord);
-				m_CBCDecryption.SetKeyWithIV(hop->replyKey, 32, hop->replyIV);
-				m_CBCDecryption.ProcessData(record, record, sizeof (I2NPBuildResponseRecord));
+				hop->decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
 			}
 			hop = hop->prev;
 			num--;
@@ -99,21 +96,19 @@ namespace tunnel
 				// if any of participants declined the tunnel is not established
 				m_IsEstablished = false; 
 		}
+		if (m_IsEstablished) 
+		{
+			// change reply keys to layer keys
+			TunnelHopConfig * hop = m_Config->GetFirstHop ();
+			while (hop)
+			{
+				hop->decryption.SetKey (hop->layerKey);
+				hop->ivDecryption.SetKey (hop->ivKey);
+				hop = hop->next;
+			}	
+		}	
 		return m_IsEstablished;
 	}	
-	
-	void Tunnel::LayerDecrypt (const uint8_t * in, size_t len, const uint8_t * layerKey, 
-		const uint8_t * iv, uint8_t * out)
-	{
-		m_CBCDecryption.SetKeyWithIV (layerKey, 32, iv); 
-		m_CBCDecryption.ProcessData(out, in, len); 
-	}	
-
-	void Tunnel::IVDecrypt (const uint8_t * in, const uint8_t * ivKey, uint8_t * out)
-	{
-		m_ECBDecryption.SetKey (ivKey, 32); 
-		m_ECBDecryption.ProcessData(out, in, 16); 
-	}		
 
 	void Tunnel::EncryptTunnelMsg (I2NPMessage * tunnelMsg)
 	{
@@ -121,10 +116,14 @@ namespace tunnel
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
 		while (hop)
 		{	
-			// iv + data
-			IVDecrypt (payload, hop->ivKey, payload);
-			LayerDecrypt (payload + 16, TUNNEL_DATA_ENCRYPTED_SIZE, hop->layerKey, payload, payload+16);
-			IVDecrypt (payload, hop->ivKey, payload);
+			// iv
+			hop->ivDecryption.Decrypt ((i2p::crypto::ChipherBlock *)payload, (i2p::crypto::ChipherBlock *)payload);
+			// data
+			hop->decryption.SetIV (payload);
+			hop->decryption.Decrypt (payload + 16, TUNNEL_DATA_ENCRYPTED_SIZE, payload+16);
+			// double iv ecncryption
+			hop->ivDecryption.Decrypt ((i2p::crypto::ChipherBlock *)payload, (i2p::crypto::ChipherBlock *)payload);
+
 			hop = hop->prev;
 		}
 	}	

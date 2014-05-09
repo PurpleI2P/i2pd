@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <sstream>
 #include <vector>
+#include "aes.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
 
@@ -22,7 +23,9 @@ namespace tunnel
 		bool isGateway, isEndpoint;	
 		
 		TunnelHopConfig * next, * prev;
-
+		i2p::crypto::CBCDecryption decryption;	
+		i2p::crypto::ECBDecryption ivDecryption;
+		
 		TunnelHopConfig (const i2p::data::RouterInfo * r)
 		{
 			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
@@ -38,6 +41,8 @@ namespace tunnel
 
 			next = 0;
 			prev = 0;
+			decryption.SetKey (replyKey);
+			decryption.SetIV (replyIV);
 		}	
 
 		void SetNextRouter (const i2p::data::RouterInfo * r)
