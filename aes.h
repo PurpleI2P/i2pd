@@ -19,13 +19,18 @@ namespace crypto
 	// AES-NI assumed
 	class ECBCryptoAESNI
 	{	
+		public:
+
+			ECBCryptoAESNI ();
+		
 		protected:
 
 			void ExpandKey (const uint8_t * key);
 		
 		protected:
 
-			uint32_t m_KeySchedule[4*(14+1)]; // 14 rounds for AES-256
+			uint8_t * m_KeySchedule; // start of 16 bytes boundary of m_UnalignedBuffer
+			uint8_t m_UnalignedBuffer[256]; // 14 rounds for AES-256, 240 + 16 bytes
 	};	
 
 	class ECBEncryptionAESNI: public ECBCryptoAESNI
@@ -94,7 +99,7 @@ namespace crypto
 	
 			CBCEncryption () { memset (m_LastBlock.buf, 0, 16); };
 
-			void SetKey (const uint8_t * key) { m_ECBEncryption.SetKey (key, 32); }; // 32 bytes
+			void SetKey (const uint8_t * key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
 			void SetIV (const uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
 
 			void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
@@ -103,7 +108,7 @@ namespace crypto
 		private:
 
 			ChipherBlock m_LastBlock;
-			CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption m_ECBEncryption;
+			ECBEncryption m_ECBEncryption;
 	};
 
 	class CBCDecryption
@@ -112,7 +117,7 @@ namespace crypto
 	
 			CBCDecryption () { memset (m_IV.buf, 0, 16); };
 
-			void SetKey (const uint8_t * key) { m_ECBDecryption.SetKey (key, 32); }; // 32 bytes
+			void SetKey (const uint8_t * key) { m_ECBDecryption.SetKey (key); }; // 32 bytes
 			void SetIV (const uint8_t * iv) { memcpy (m_IV.buf, iv, 16); }; // 16 bytes
 
 			void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
@@ -121,7 +126,7 @@ namespace crypto
 		private:
 
 			ChipherBlock m_IV;
-			CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_ECBDecryption;
+			ECBDecryption m_ECBDecryption;
 	};	
 }
 }

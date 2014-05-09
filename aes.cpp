@@ -7,7 +7,15 @@ namespace crypto
 {
 
 #ifdef __x86_64__
-		
+
+	ECBCryptoAESNI::ECBCryptoAESNI ()
+	{
+		m_KeySchedule = m_UnalignedBuffer;
+		uint8_t rem = ((uint64_t)m_KeySchedule) & 0x0f;
+		if (rem)
+			m_KeySchedule += (16 - rem);
+	}	
+	
 	#define KeyExpansion256 \
 		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
 		"movaps	%%xmm1, %%xmm4 \n" \
@@ -159,7 +167,7 @@ namespace crypto
 		{
 			m_LastBlock.ll[0] ^= in[i].ll[0];
 			m_LastBlock.ll[1] ^= in[i].ll[1];
-			m_ECBEncryption.ProcessData (m_LastBlock.buf, m_LastBlock.buf, 16);
+			m_ECBEncryption.Encrypt (&m_LastBlock, &m_LastBlock);
 			out[i] = m_LastBlock;
 		}
 	}
@@ -177,7 +185,7 @@ namespace crypto
 		for (int i = 0; i < numBlocks; i++)
 		{
 			ChipherBlock tmp = in[i];
-			m_ECBDecryption.ProcessData (out[i].buf, in[i].buf, 16);
+			m_ECBDecryption.Decrypt (in + i, out + i);
 			out[i].ll[0] ^= m_IV.ll[0];
 			out[i].ll[1] ^= m_IV.ll[1];
 			m_IV = tmp;
