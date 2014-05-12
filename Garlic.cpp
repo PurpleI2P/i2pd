@@ -20,6 +20,7 @@ namespace garlic
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
+		m_Encryption.SetKey (m_SessionKey);
 		if (m_NumTags > 0)
 		{
 			m_SessionTags = new uint8_t[m_NumTags*32];
@@ -77,7 +78,7 @@ namespace garlic
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
 			m_Destination.GetElGamalEncryption ()->Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
-			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
+			m_Encryption.SetIV (iv);
 			buf += 514;
 			len += 514;	
 		}
@@ -87,7 +88,7 @@ namespace garlic
 			memcpy (buf, m_SessionTags + m_NextTag*32, 32);			
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, m_SessionTags + m_NextTag*32, 32);
-			m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
+			m_Encryption.SetIV (iv);
 			buf += 32;
 			len += 32;
 
@@ -132,7 +133,7 @@ namespace garlic
 		size_t rem = blockSize % 16;
 		if (rem)
 			blockSize += (16-rem); //padding
-		m_Encryption.ProcessData(buf, buf, blockSize);
+		m_Encryption.Encrypt(buf, blockSize, buf);
 		return blockSize;
 	}	
 
@@ -248,6 +249,9 @@ namespace garlic
 		for (auto it: m_Sessions)
 			delete it.second;
 		m_Sessions.clear ();
+		for (auto it: m_SessionDecryptions)
+			delete it;
+		m_SessionDecryptions.clear ();
 	}	
 
 	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg)
@@ -298,13 +302,12 @@ namespace garlic
 		if (it != m_SessionTags.end ())
 		{
 			// existing session
-			std::string sessionKey (it->second);
-			m_SessionTags.erase (it); // tag might be used only once
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
-			m_Decryption.SetKeyWithIV ((uint8_t *)sessionKey.c_str (), 32, iv); // tag is mapped to 32 bytes key
-			m_Decryption.ProcessData(buf + 32, buf + 32, length - 32);
-			HandleAESBlock (buf + 32, length - 32, (uint8_t *)sessionKey.c_str ());
+			it->second->SetIV (iv);
+			it->second->Decrypt (buf + 32, length - 32, buf + 32);
+			HandleAESBlock (buf + 32, length - 32, it->second);
+			m_SessionTags.erase (it); // tag might be used only once
 		}
 		else
 		{
@@ -317,11 +320,14 @@ namespace garlic
 			   	pool ? pool->GetEncryptionPrivateKey () : i2p::context.GetPrivateKey (), 
 				buf, (uint8_t *)&elGamal, true))
 			{	
+				i2p::crypto::CBCDecryption * decryption = new i2p::crypto::CBCDecryption;
+				m_SessionDecryptions.push_back (decryption);
+				decryption->SetKey (elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes
 				CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
-				m_Decryption.SetKeyWithIV (elGamal.sessionKey, 32, iv);
-				m_Decryption.ProcessData(buf + 514, buf + 514, length - 514);
-				HandleAESBlock (buf + 514, length - 514, elGamal.sessionKey);
+				decryption->SetIV (iv);
+				decryption->Decrypt(buf + 514, length - 514, buf + 514);
+				HandleAESBlock (buf + 514, length - 514, decryption);
 			}	
 			else
 				LogPrint ("Failed to decrypt garlic");
@@ -329,12 +335,12 @@ namespace garlic
 		DeleteI2NPMessage (msg);	
 	}	
 
-	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, uint8_t * sessionKey)
+	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, i2p::crypto::CBCDecryption * decryption)
 	{
 		uint16_t tagCount = be16toh (*(uint16_t *)buf);
 		buf += 2;
 		for (int i = 0; i < tagCount; i++)
-			m_SessionTags[std::string ((const char *)(buf + i*32), 32)] = std::string ((const char *)sessionKey, 32);
+			m_SessionTags[std::string ((const char *)(buf + i*32), 32)] = decryption;
 		buf += tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
 		if (payloadSize > len)

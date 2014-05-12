@@ -3,11 +3,11 @@
 
 #include <inttypes.h>
 #include <map>
+#include <list>
 #include <string>
 #include <thread>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
 #include <cryptopp/osrng.h>
+#include "aes.h"
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
 #include "Tunnel.h"
@@ -68,7 +68,7 @@ namespace garlic
 			uint8_t * m_SessionTags; // m_NumTags*32 bytes
 			uint32_t m_TagsCreationTime; // seconds since epoch
 			
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;
+			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};	
 
@@ -93,7 +93,7 @@ namespace garlic
 
 			void Run ();
 			void ProcessGarlicMessage (I2NPMessage * msg);
-			void HandleAESBlock (uint8_t * buf, size_t len, uint8_t * sessionKey);
+			void HandleAESBlock (uint8_t * buf, size_t len, i2p::crypto::CBCDecryption * decryption);
 			void HandleGarlicPayload (uint8_t * buf, size_t len);
 			
 		private:
@@ -105,8 +105,8 @@ namespace garlic
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 			// incoming session
-			std::map<std::string, std::string> m_SessionTags; // tag -> key
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;
+			std::list<i2p::crypto::CBCDecryption *> m_SessionDecryptions; // multiple tags refer to one decyption
+			std::map<std::string, i2p::crypto::CBCDecryption *> m_SessionTags; // tag -> decryption
 	};	
 
 	extern GarlicRouting routing;
