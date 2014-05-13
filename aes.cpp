@@ -16,7 +16,7 @@ namespace crypto
 			m_KeySchedule += (16 - rem);
 	}	
 	
-	#define KeyExpansion256 \
+	#define KeyExpansion256(round0,round1) \
 		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
 		"movaps	%%xmm1, %%xmm4 \n" \
 		"pslldq	$4, %%xmm4 \n" \
@@ -26,7 +26,7 @@ namespace crypto
 		"pslldq	$4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm1 \n" \
 		"pxor %%xmm2, %%xmm1 \n" \
-		"movaps	%%xmm1, (%%rcx) \n" \
+		"movaps	%%xmm1, "#round0"(%[sched]) \n" \
 		"aeskeygenassist $0, %%xmm1, %%xmm4 \n" \
 		"pshufd	$0xaa, %%xmm4, %%xmm2 \n" \
 		"movaps	%%xmm3, %%xmm4 \n" \
@@ -37,9 +37,7 @@ namespace crypto
 		"pslldq	$4, %%xmm4 \n" \
 		"pxor %%xmm4, %%xmm3 \n" \
 		"pxor %%xmm2, %%xmm3 \n" \
-		"movaps	%%xmm3, 16(%%rcx) \n" \
-		"add $32, %%rcx \n"	
-		
+		"movaps	%%xmm3, "#round1"(%[sched]) \n" 
 
 	void ECBCryptoAESNI::ExpandKey (const uint8_t * key)
 	{
@@ -49,19 +47,18 @@ namespace crypto
 			"movups 16(%[key]), %%xmm3 \n"
 			"movaps %%xmm1, (%[sched]) \n"
 			"movaps %%xmm3, 16(%[sched]) \n"
-			"lea 32(%[sched]), %%rcx \n"
 			"aeskeygenassist $1, %%xmm3, %%xmm2 \n"
-			KeyExpansion256
+			KeyExpansion256(32,48)
 			"aeskeygenassist $2, %%xmm3, %%xmm2 \n"
-			KeyExpansion256
+			KeyExpansion256(64,80)
 			"aeskeygenassist $4, %%xmm3, %%xmm2 \n"
-			KeyExpansion256
+			KeyExpansion256(96,112)
 			"aeskeygenassist $8, %%xmm3, %%xmm2 \n"
-			KeyExpansion256
+			KeyExpansion256(128,144)
 			"aeskeygenassist $16, %%xmm3, %%xmm2 \n"
-			KeyExpansion256
+			KeyExpansion256(160,176)
 			"aeskeygenassist $32, %%xmm3, %%xmm2 \n"
-			KeyExpansion256
+			KeyExpansion256(192,208)
 			"aeskeygenassist $64, %%xmm3, %%xmm2 \n"
 			// key expansion final
 			"pshufd	$0xff, %%xmm2, %%xmm2 \n"
@@ -73,10 +70,10 @@ namespace crypto
 			"pslldq	$4, %%xmm4 \n"
 			"pxor %%xmm4, %%xmm1 \n"
 			"pxor %%xmm2, %%xmm1 \n"
-			"movups	%%xmm1, (%%rcx) \n"
+			"movups	%%xmm1, 224(%[sched]) \n"
 			: // output
 			: [key]"r"(key), [sched]"r"(m_KeySchedule) // input
-			: "%rcx", "%xmm1", "%xmm2", "%xmm3", "%xmm4" // clogged
+			: "%xmm1", "%xmm2", "%xmm3", "%xmm4" // clogged
 		);
 	}
 
