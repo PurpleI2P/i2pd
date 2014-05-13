@@ -28,7 +28,8 @@ namespace crypto
 		public:
 
 			ECBCryptoAESNI ();
-		
+			uint8_t * GetKeySchedule () { return m_KeySchedule; };
+			
 		protected:
 
 			void ExpandKey (const uint8_t * key);
@@ -114,6 +115,7 @@ namespace crypto
 		private:
 
 			ChipherBlock m_LastBlock;
+			
 			ECBEncryption m_ECBEncryption;
 	};
 
