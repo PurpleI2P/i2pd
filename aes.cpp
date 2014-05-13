@@ -170,7 +170,7 @@ namespace crypto
 		__asm__
 		(
 		 	"movups	(%[iv]), %%xmm1 \n"
-		 	"block: \n"
+		 	"block_e: \n"
 		 	"movups	(%[in]), %%xmm0 \n"
 		 	"pxor %%xmm1, %%xmm0 \n"
 		 	EncryptAES256
@@ -179,7 +179,7 @@ namespace crypto
 		 	"add $16, %[in] \n"
 		 	"add $16, %[out] \n"
 		 	"dec %[num] \n"
-		 	"jnz block; \n"	 	
+		 	"jnz block_e; \n"	 	
 		 	"movups	%%xmm1, (%[iv]) \n"
 			: 
 			: [iv]"r"(&m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()), 
@@ -206,6 +206,28 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
+#ifdef __x86_64__
+		__asm__
+		(
+			"movups	(%[iv]), %%xmm1 \n"
+		 	"block_d: \n"
+		 	"movups	(%[in]), %%xmm0 \n"
+			"movaps %%xmm0, %%xmm2 \n"
+		 	DecryptAES256
+			"pxor %%xmm1, %%xmm0 \n"
+		 	"movups	%%xmm0, (%[out]) \n"
+			"movaps %%xmm2, %%xmm1 \n"
+		 	"add $16, %[in] \n"
+		 	"add $16, %[out] \n"
+		 	"dec %[num] \n"
+		 	"jnz block_d; \n"	 	
+		 	"movups	%%xmm1, (%[iv]) \n"
+			: 
+			: [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()), 
+			  [in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
+			: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
+		); 
+#else
 		for (int i = 0; i < numBlocks; i++)
 		{
 			ChipherBlock tmp = in[i];
@@ -213,12 +235,13 @@ namespace crypto
 			out[i] ^= m_IV;
 			m_IV = tmp;
 		}
+#endif
 	}
 
 	bool CBCDecryption::Decrypt (const uint8_t * in, std::size_t len, uint8_t * out)
 	{
 		div_t d = div (len, 16);
-		if (d.rem) return false; // len is not multipple of 16
+		if (d.rem) return false; // len is not multiple of 16
 		Decrypt (d.quot, (const ChipherBlock *)in, (ChipherBlock *)out); 
 		return true;
 	}
