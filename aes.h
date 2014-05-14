@@ -111,6 +111,7 @@ namespace crypto
 
 			void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			bool Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
+			void Encrypt (const uint8_t * in, uint8_t * out); // one block
 
 		private:
 
@@ -130,6 +131,7 @@ namespace crypto
 
 			void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			bool Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
+			void Decrypt (const uint8_t * in, uint8_t * out); // one block
 
 		private:
 

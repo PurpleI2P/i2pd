@@ -204,6 +204,27 @@ namespace crypto
 		return true;
 	}
 
+	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
+	{
+#ifdef __x86_64__
+		__asm__
+		(
+			"movups	(%[iv]), %%xmm1 \n"
+			"movups	(%[in]), %%xmm0 \n"
+		 	"pxor %%xmm1, %%xmm0 \n"
+		 	EncryptAES256
+			"movups	%%xmm0, (%[out]) \n"
+			"movups	%%xmm0, (%[iv]) \n"
+			: 
+			: [iv]"r"(&m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()), 
+			  [in]"r"(in), [out]"r"(out)
+			: "%xmm0", "%xmm1", "memory"
+		);		
+#else
+		Encrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out); 
+#endif
+	}
+
 	void CBCDecryption::Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
 #ifdef __x86_64__
@@ -244,6 +265,27 @@ namespace crypto
 		if (d.rem) return false; // len is not multiple of 16
 		Decrypt (d.quot, (const ChipherBlock *)in, (ChipherBlock *)out); 
 		return true;
+	}
+
+	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
+	{
+#ifdef __x86_64__
+		__asm__
+		(
+			"movups	(%[iv]), %%xmm1 \n"
+		 	"movups	(%[in]), %%xmm0 \n"
+			"movups	%%xmm0, (%[iv]) \n"
+		 	DecryptAES256
+			"pxor %%xmm1, %%xmm0 \n"
+		 	"movups	%%xmm0, (%[out]) \n"	
+			: 
+			: [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()), 
+			  [in]"r"(in), [out]"r"(out)
+			: "%xmm0", "%xmm1", "memory"
+		);
+#else
+		Decrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out); 
+#endif
 	}
 }
 }

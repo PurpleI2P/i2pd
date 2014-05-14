@@ -430,7 +430,7 @@ namespace ntcp
 			m_NextMessage = i2p::NewI2NPMessage ();
 			m_NextMessageOffset = 0;
 			
-			m_Decryption.Decrypt (encrypted, 16, m_NextMessage->buf);
+			m_Decryption.Decrypt (encrypted, m_NextMessage->buf);
 			uint16_t dataSize = be16toh (*(uint16_t *)m_NextMessage->buf);
 			if (dataSize)
 			{
@@ -450,7 +450,7 @@ namespace ntcp
 		}	
 		else // message continues
 		{	
-			m_Decryption.Decrypt (encrypted, 16, m_NextMessage->buf + m_NextMessageOffset);
+			m_Decryption.Decrypt (encrypted, m_NextMessage->buf + m_NextMessageOffset);
 			m_NextMessageOffset += 16;
 		}		
 		
