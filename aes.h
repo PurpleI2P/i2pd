@@ -154,7 +154,11 @@ namespace crypto
 		private:
 
 			ECBEncryption m_IVEncryption;
+#ifdef __x86_64__
+			ECBEncryption m_LayerEncryption;
+#else
 			CBCEncryption m_LayerEncryption;
+#endif
 	};
 
 	class TunnelDecryption // with double IV encryption
