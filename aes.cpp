@@ -77,57 +77,57 @@ namespace crypto
 		);
 	}
 
-	#define EncryptAES256 \
-		"pxor (%[sched]), %%xmm0 \n" \
-		"aesenc	16(%[sched]), %%xmm0 \n" \
-		"aesenc	32(%[sched]), %%xmm0 \n" \
-		"aesenc	48(%[sched]), %%xmm0 \n" \
-		"aesenc	64(%[sched]), %%xmm0 \n" \
-		"aesenc	80(%[sched]), %%xmm0 \n" \
-		"aesenc	96(%[sched]), %%xmm0 \n" \
-		"aesenc	112(%[sched]), %%xmm0 \n" \
-		"aesenc	128(%[sched]), %%xmm0 \n" \
-		"aesenc	144(%[sched]), %%xmm0 \n" \
-		"aesenc	160(%[sched]), %%xmm0 \n" \
-		"aesenc	176(%[sched]), %%xmm0 \n" \
-		"aesenc	192(%[sched]), %%xmm0 \n" \
-		"aesenc	208(%[sched]), %%xmm0 \n" \
-		"aesenclast	224(%[sched]), %%xmm0 \n"
+	#define EncryptAES256(sched) \
+		"pxor (%["#sched"]), %%xmm0 \n" \
+		"aesenc	16(%["#sched"]), %%xmm0 \n" \
+		"aesenc	32(%["#sched"]), %%xmm0 \n" \
+		"aesenc	48(%["#sched"]), %%xmm0 \n" \
+		"aesenc	64(%["#sched"]), %%xmm0 \n" \
+		"aesenc	80(%["#sched"]), %%xmm0 \n" \
+		"aesenc	96(%["#sched"]), %%xmm0 \n" \
+		"aesenc	112(%["#sched"]), %%xmm0 \n" \
+		"aesenc	128(%["#sched"]), %%xmm0 \n" \
+		"aesenc	144(%["#sched"]), %%xmm0 \n" \
+		"aesenc	160(%["#sched"]), %%xmm0 \n" \
+		"aesenc	176(%["#sched"]), %%xmm0 \n" \
+		"aesenc	192(%["#sched"]), %%xmm0 \n" \
+		"aesenc	208(%["#sched"]), %%xmm0 \n" \
+		"aesenclast	224(%["#sched"]), %%xmm0 \n"
 		
 	void ECBEncryptionAESNI::Encrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
 		__asm__
 		(
 			"movups	(%[in]), %%xmm0 \n"
-			EncryptAES256
+			EncryptAES256(sched)
 			"movups	%%xmm0, (%[out]) \n"	
 			: : [sched]"r"(m_KeySchedule), [in]"r"(in), [out]"r"(out) : "%xmm0"
 		);
 	}		
 
-	#define DecryptAES256 \
-		"pxor 224(%[sched]), %%xmm0 \n" \
-		"aesdec	208(%[sched]), %%xmm0 \n" \
-		"aesdec	192(%[sched]), %%xmm0 \n" \
-		"aesdec	176(%[sched]), %%xmm0 \n" \
-		"aesdec	160(%[sched]), %%xmm0 \n" \
-		"aesdec	144(%[sched]), %%xmm0 \n" \
-		"aesdec	128(%[sched]), %%xmm0 \n" \
-		"aesdec	112(%[sched]), %%xmm0 \n" \
-		"aesdec	96(%[sched]), %%xmm0 \n" \
-		"aesdec	80(%[sched]), %%xmm0 \n" \
-		"aesdec	64(%[sched]), %%xmm0 \n" \
-		"aesdec	48(%[sched]), %%xmm0 \n" \
-		"aesdec	32(%[sched]), %%xmm0 \n" \
-		"aesdec	16(%[sched]), %%xmm0 \n" \
-		"aesdeclast (%[sched]), %%xmm0 \n"
+	#define DecryptAES256(sched) \
+		"pxor 224(%["#sched"]), %%xmm0 \n" \
+		"aesdec	208(%["#sched"]), %%xmm0 \n" \
+		"aesdec	192(%["#sched"]), %%xmm0 \n" \
+		"aesdec	176(%["#sched"]), %%xmm0 \n" \
+		"aesdec	160(%["#sched"]), %%xmm0 \n" \
+		"aesdec	144(%["#sched"]), %%xmm0 \n" \
+		"aesdec	128(%["#sched"]), %%xmm0 \n" \
+		"aesdec	112(%["#sched"]), %%xmm0 \n" \
+		"aesdec	96(%["#sched"]), %%xmm0 \n" \
+		"aesdec	80(%["#sched"]), %%xmm0 \n" \
+		"aesdec	64(%["#sched"]), %%xmm0 \n" \
+		"aesdec	48(%["#sched"]), %%xmm0 \n" \
+		"aesdec	32(%["#sched"]), %%xmm0 \n" \
+		"aesdec	16(%["#sched"]), %%xmm0 \n" \
+		"aesdeclast (%["#sched"]), %%xmm0 \n"
 	
 	void ECBDecryptionAESNI::Decrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
 		__asm__
 		(
 			"movups	(%[in]), %%xmm0 \n"
-			DecryptAES256
+			DecryptAES256(sched)
 			"movups	%%xmm0, (%[out]) \n"	
 			: : [sched]"r"(m_KeySchedule), [in]"r"(in), [out]"r"(out) : "%xmm0"
 		);		
@@ -173,7 +173,7 @@ namespace crypto
 		 	"block_e: \n"
 		 	"movups	(%[in]), %%xmm0 \n"
 		 	"pxor %%xmm1, %%xmm0 \n"
-		 	EncryptAES256
+		 	EncryptAES256(sched)
 		 	"movaps	%%xmm0, %%xmm1 \n"	
 		 	"movups	%%xmm0, (%[out]) \n"
 		 	"add $16, %[in] \n"
@@ -212,7 +212,7 @@ namespace crypto
 			"movups	(%[iv]), %%xmm1 \n"
 			"movups	(%[in]), %%xmm0 \n"
 		 	"pxor %%xmm1, %%xmm0 \n"
-		 	EncryptAES256
+		 	EncryptAES256(sched)
 			"movups	%%xmm0, (%[out]) \n"
 			"movups	%%xmm0, (%[iv]) \n"
 			: 
@@ -234,7 +234,7 @@ namespace crypto
 		 	"block_d: \n"
 		 	"movups	(%[in]), %%xmm0 \n"
 			"movaps %%xmm0, %%xmm2 \n"
-		 	DecryptAES256
+		 	DecryptAES256(sched)
 			"pxor %%xmm1, %%xmm0 \n"
 		 	"movups	%%xmm0, (%[out]) \n"
 			"movaps %%xmm2, %%xmm1 \n"
@@ -275,7 +275,7 @@ namespace crypto
 			"movups	(%[iv]), %%xmm1 \n"
 		 	"movups	(%[in]), %%xmm0 \n"
 			"movups	%%xmm0, (%[iv]) \n"
-		 	DecryptAES256
+		 	DecryptAES256(sched)
 			"pxor %%xmm1, %%xmm0 \n"
 		 	"movups	%%xmm0, (%[out]) \n"	
 			: 
