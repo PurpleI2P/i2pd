@@ -29,7 +29,7 @@ namespace ssu
 		delete m_DHKeysPair;		
 	}	
 	
-	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey)
+	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		uint8_t sharedKey[256];
@@ -41,14 +41,14 @@ namespace ssu
 
 		if (sharedKey[0] & 0x80)
 		{
-			aesKey[0] = 0;
-			memcpy (aesKey + 1, sharedKey, 31);
-			memcpy (macKey, sharedKey + 31, 32);
+			m_SessionKey[0] = 0;
+			memcpy (m_SessionKey + 1, sharedKey, 31);
+			memcpy (m_MacKey, sharedKey + 31, 32);
 		}	
 		else if (sharedKey[0])
 		{
-			memcpy (aesKey, sharedKey, 32);
-			memcpy (macKey, sharedKey + 32, 32);
+			memcpy (m_SessionKey, sharedKey, 32);
+			memcpy (m_MacKey, sharedKey + 32, 32);
 		}	
 		else
 		{	
@@ -64,10 +64,11 @@ namespace ssu
 				}	
 			}
 			
-			memcpy (aesKey, nonZero, 32);
-			CryptoPP::SHA256().CalculateDigest(macKey, nonZero, 64 - (nonZero - sharedKey));
+			memcpy (m_SessionKey, nonZero, 32);
+			CryptoPP::SHA256().CalculateDigest(m_MacKey, nonZero, 64 - (nonZero - sharedKey));
 		}
 		m_IsSessionKey = true;
+		m_SessionKeyDecryption.SetKey (m_SessionKey);
 	}		
 
 	void SSUSession::ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
@@ -83,7 +84,7 @@ namespace ssu
 		{
 			ScheduleTermination ();
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
-				Decrypt (buf, len, m_SessionKey);	
+				DecryptSessionKey (buf, len);	
 			else 
 			{
 				// try intro key depending on side
@@ -164,7 +165,7 @@ namespace ssu
 		m_State = eSessionStateRequestReceived;
 		LogPrint ("Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
-		CreateAESandMacKey (buf + sizeof (SSUHeader), m_SessionKey, m_MacKey);
+		CreateAESandMacKey (buf + sizeof (SSUHeader));
 		SendSessionCreated (buf + sizeof (SSUHeader));
 	}
 
@@ -182,7 +183,7 @@ namespace ssu
 		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
 		uint8_t * payload = buf + sizeof (SSUHeader);	
 		uint8_t * y = payload;
-		CreateAESandMacKey (y, m_SessionKey, m_MacKey);
+		CreateAESandMacKey (y);
 		memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
 		memcpy (signedData + 256, y, 256); // y
 		payload += 256;
@@ -523,6 +524,24 @@ namespace ssu
 		m_Decryption.ProcessData (encrypted, encrypted, encryptedLen);
 	}
 
+	void SSUSession::DecryptSessionKey (uint8_t * buf, size_t len)
+	{
+		if (len < sizeof (SSUHeader))
+		{
+			LogPrint ("Unexpected SSU packet length ", len);
+			return;
+		}
+		SSUHeader * header = (SSUHeader *)buf;
+		uint8_t * encrypted = &header->flag;
+		uint16_t encryptedLen = len - (encrypted - buf);	
+		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary 
+		if (encryptedLen > 0)
+		{	
+			m_SessionKeyDecryption.SetIV (header->iv);
+			m_SessionKeyDecryption.Decrypt (encrypted, encryptedLen, encrypted);
+		}	
+	}	
+		
 	bool SSUSession::Validate (uint8_t * buf, size_t len, const uint8_t * macKey)
 	{
 		if (len < sizeof (SSUHeader))
