@@ -37,8 +37,7 @@ namespace tunnel
 			i2p::data::IdentHash m_NextIdent;
 			size_t m_NumTransmittedBytes;
 			
-			i2p::crypto::ECBEncryption m_ECBEncryption;
-			i2p::crypto::CBCEncryption m_CBCEncryption;
+			i2p::crypto::TunnelEncryption m_Encryption;
 	};	
 
 	class TransitTunnelGateway: public TransitTunnel

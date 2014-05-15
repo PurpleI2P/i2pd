@@ -143,7 +143,7 @@ namespace crypto
 	{
 		public:
 
-			void SetKeys (uint8_t * layerKey, uint8_t * ivKey)
+			void SetKeys (const uint8_t * layerKey, const uint8_t * ivKey)
 			{
 				m_LayerEncryption.SetKey (layerKey);
 				m_IVEncryption.SetKey (ivKey);
@@ -165,7 +165,7 @@ namespace crypto
 	{
 		public:
 
-			void SetKeys (uint8_t * layerKey, uint8_t * ivKey)
+			void SetKeys (const uint8_t * layerKey, const uint8_t * ivKey)
 			{
 				m_LayerDecryption.SetKey (layerKey);
 				m_IVDecryption.SetKey (ivKey);
