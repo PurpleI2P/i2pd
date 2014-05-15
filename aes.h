@@ -176,7 +176,11 @@ namespace crypto
 		private:
 
 			ECBDecryption m_IVDecryption;
+#ifdef __x86_64__
+			ECBDecryption m_LayerDecryption;
+#else
 			CBCDecryption m_LayerDecryption;
+#endif
 	};
 }
 }

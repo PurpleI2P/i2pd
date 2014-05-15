@@ -325,9 +325,37 @@ namespace crypto
 
 	void TunnelDecryption::Decrypt (uint8_t * payload)
 	{
+#ifdef __x86_64__
+		__asm__
+		(
+            // decrypt IV 
+			"movups	(%[payload]), %%xmm0 \n"
+			DecryptAES256(sched_iv)
+			"movaps %%xmm0, %%xmm1 \n"
+			// double IV encryption
+			DecryptAES256(sched_iv)
+			"movups %%xmm0, (%[payload]) \n"
+			// decrypt data, IV is xmm1
+			"block_dt: \n"
+			"add $16, %[payload] \n"
+			"movups	(%[payload]), %%xmm0 \n"
+			"movaps %%xmm0, %%xmm2 \n"
+		 	DecryptAES256(sched_l)
+			"pxor %%xmm1, %%xmm0 \n"
+		 	"movups	%%xmm0, (%[payload]) \n"
+			"movaps %%xmm2, %%xmm1 \n"
+		 	"dec %[num] \n"
+		 	"jnz block_dt; \n"	 	
+			: 
+			: [sched_iv]"r"(m_IVDecryption.GetKeySchedule ()), [sched_l]"r"(m_LayerDecryption.GetKeySchedule ()), 
+			  [payload]"r"(payload), [num]"r"(63) // 63 blocks = 1008 bytes
+			: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
+		);
+#else
 		m_IVDecryption.Decrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // iv
 		m_LayerDecryption.Decrypt (payload + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, payload + 16); // data
 		m_IVDecryption.Decrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // double iv
+#endif
 	}
 }
 }
