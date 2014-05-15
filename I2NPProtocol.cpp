@@ -1,8 +1,6 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include <cryptopp/sha.h>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
 #include <cryptopp/gzip.h>
 #include "ElGamal.h"
 #include "Timestamp.h"
@@ -259,11 +257,12 @@ namespace i2p
 				//TODO: fill filler
 				CryptoPP::SHA256().CalculateDigest(reply->hash, reply->padding, sizeof (reply->padding) + 1); // + 1 byte of ret
 				// encrypt reply
-				CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption encryption;
+				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)
 				{
-					encryption.SetKeyWithIV (clearText.replyKey, 32, clearText.replyIV);
-					encryption.ProcessData((uint8_t *)(records + j), (uint8_t *)(records + j), sizeof (records[j])); 
+					encryption.SetKey (clearText.replyKey);
+					encryption.SetIV (clearText.replyIV);
+					encryption.Encrypt((uint8_t *)(records + j), sizeof (records[j]), (uint8_t *)(records + j)); 
 				}
 				return true;
 			}	

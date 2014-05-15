@@ -51,14 +51,17 @@ namespace tunnel
 			i++;
 			hop = hop->next;
 		}	
-		
+
+		i2p::crypto::CBCDecryption decryption;
 		hop = m_Config->GetLastHop ()->prev;
 		size_t ind = numRecords - 1;
 		while (hop)
 		{
-			for (size_t i = ind; i < numRecords; i++)
-				hop->decryption.Decrypt((uint8_t *)&records[i], 
-					sizeof (I2NPBuildRequestRecordElGamalEncrypted), (uint8_t *)&records[i]);
+			decryption.SetKey (hop->replyKey);
+			decryption.SetIV (hop->replyIV);
+			for (size_t i = ind; i < numRecords; i++)	
+				decryption.Decrypt((uint8_t *)&records[i], 
+					sizeof (I2NPBuildRequestRecordElGamalEncrypted), (uint8_t *)&records[i]);	
 			hop = hop->prev;
 			ind--;
 		}	
@@ -74,14 +77,17 @@ namespace tunnel
 	{
 		LogPrint ("TunnelBuildResponse ", (int)msg[0], " records.");
 
+		i2p::crypto::CBCDecryption decryption;
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
 		int num = msg[0];
 		while (hop)
 		{	
+			decryption.SetKey (hop->replyKey);
+			decryption.SetIV (hop->replyIV);
 			for (int i = 0; i < num; i++)
 			{			
 				uint8_t * record = msg + 1 + i*sizeof (I2NPBuildResponseRecord);
-				hop->decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
+				decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
 			}
 			hop = hop->prev;
 			num--;
@@ -102,8 +108,7 @@ namespace tunnel
 			TunnelHopConfig * hop = m_Config->GetFirstHop ();
 			while (hop)
 			{
-				hop->decryption.SetKey (hop->layerKey);
-				hop->ivDecryption.SetKey (hop->ivKey);
+				hop->decryption.SetKeys (hop->layerKey, hop->ivKey);
 				hop = hop->next;
 			}	
 		}	
@@ -116,14 +121,7 @@ namespace tunnel
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
 		while (hop)
 		{	
-			// iv
-			hop->ivDecryption.Decrypt ((i2p::crypto::ChipherBlock *)payload, (i2p::crypto::ChipherBlock *)payload);
-			// data
-			hop->decryption.SetIV (payload);
-			hop->decryption.Decrypt (payload + 16, TUNNEL_DATA_ENCRYPTED_SIZE, payload+16);
-			// double iv ecncryption
-			hop->ivDecryption.Decrypt ((i2p::crypto::ChipherBlock *)payload, (i2p::crypto::ChipherBlock *)payload);
-
+			hop->decryption.Decrypt (payload);
 			hop = hop->prev;
 		}
 	}	

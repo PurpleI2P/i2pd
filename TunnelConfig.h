@@ -23,8 +23,7 @@ namespace tunnel
 		bool isGateway, isEndpoint;	
 		
 		TunnelHopConfig * next, * prev;
-		i2p::crypto::CBCDecryption decryption;	
-		i2p::crypto::ECBDecryption ivDecryption;
+		i2p::crypto::TunnelDecryption decryption;	
 		
 		TunnelHopConfig (const i2p::data::RouterInfo * r)
 		{
@@ -41,8 +40,6 @@ namespace tunnel
 
 			next = 0;
 			prev = 0;
-			decryption.SetKey (replyKey);
-			decryption.SetIV (replyIV);
 		}	
 
 		void SetNextRouter (const i2p::data::RouterInfo * r)
