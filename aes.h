@@ -138,6 +138,42 @@ namespace crypto
 			ChipherBlock m_IV;
 			ECBDecryption m_ECBDecryption;
 	};	
+
+	class TunnelEncryption // with double IV encryption
+	{
+		public:
+
+			void SetKeys (uint8_t * layerKey, uint8_t * ivKey)
+			{
+				m_LayerEncryption.SetKey (layerKey);
+				m_IVEncryption.SetKey (ivKey);
+			}	
+
+			void Encrypt (uint8_t * payload); // 1024 bytes (16 IV + 1008 data)		
+
+		private:
+
+			ECBEncryption m_IVEncryption;
+			CBCEncryption m_LayerEncryption;
+	};
+
+	class TunnelDecryption // with double IV encryption
+	{
+		public:
+
+			void SetKeys (uint8_t * layerKey, uint8_t * ivKey)
+			{
+				m_LayerDecryption.SetKey (layerKey);
+				m_IVDecryption.SetKey (ivKey);
+			}			
+
+			void Decrypt (uint8_t * payload); // 1024 bytes (16 IV + 1008 data)	
+
+		private:
+
+			ECBDecryption m_IVDecryption;
+			CBCDecryption m_LayerDecryption;
+	};
 }
 }
 

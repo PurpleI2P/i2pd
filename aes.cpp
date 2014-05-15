@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "TunnelBase.h"
 #include "aes.h"
 
 namespace i2p
@@ -286,6 +287,20 @@ namespace crypto
 #else
 		Decrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out); 
 #endif
+	}
+
+	void TunnelEncryption::Encrypt (uint8_t * payload)
+	{
+		m_IVEncryption.Encrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // iv
+		m_LayerEncryption.Encrypt (payload + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, payload + 16); // data
+		m_IVEncryption.Encrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // double iv
+	}
+
+	void TunnelDecryption::Decrypt (uint8_t * payload)
+	{
+		m_IVDecryption.Decrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // iv
+		m_LayerDecryption.Decrypt (payload + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, payload + 16); // data
+		m_IVDecryption.Decrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // double iv
 	}
 }
 }
