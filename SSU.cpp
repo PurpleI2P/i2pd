@@ -68,6 +68,7 @@ namespace ssu
 			CryptoPP::SHA256().CalculateDigest(m_MacKey, nonZero, 64 - (nonZero - sharedKey));
 		}
 		m_IsSessionKey = true;
+		m_SessionKeyEncryption.SetKey (m_SessionKey);
 		m_SessionKeyDecryption.SetKey (m_SessionKey);
 	}		
 
@@ -509,6 +510,28 @@ namespace ssu
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, macKey, header->mac);
 	}
 
+	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len)
+	{
+		if (len < sizeof (SSUHeader))
+		{
+			LogPrint ("Unexpected SSU packet length ", len);
+			return;
+		}
+		SSUHeader * header = (SSUHeader *)buf;
+		i2p::context.GetRandomNumberGenerator ().GenerateBlock (header->iv, 16); // random iv
+		m_SessionKeyEncryption.SetIV (header->iv);
+		header->flag = payloadType << 4; // MSB is 0
+		header->time = htobe32 (i2p::util::GetSecondsSinceEpoch ());
+		uint8_t * encrypted = &header->flag;
+		uint16_t encryptedLen = len - (encrypted - buf);
+		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary, TODO: do we really need it? 
+		m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
+		// assume actual buffer size is 18 (16 + 2) bytes more
+		memcpy (buf + len, header->iv, 16);
+		*(uint16_t *)(buf + len + 16) = htobe16 (encryptedLen);
+		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, m_MacKey, header->mac);
+	}	
+		
 	void SSUSession::Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey)
 	{
 		if (len < sizeof (SSUHeader))
@@ -790,17 +813,14 @@ namespace ssu
 		memset (payload, 0, 6); // address and port always zero for Alice
 		payload += 6; // address and port
 		memcpy (payload, introKey, 32); // intro key	
-		uint8_t iv[16];	
-		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt message with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80, m_SessionKey, iv, m_MacKey);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80);
 		m_Server.Send (buf, 80, m_RemoteEndpoint);
 	}	
 
 	void SSUSession::SendMsgAck (uint32_t msgID)
 	{
 		uint8_t buf[48 + 18]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
-		uint8_t iv[16];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
 		payload++;
@@ -810,10 +830,8 @@ namespace ssu
 		payload += 4;
 		*payload = 0; // number of fragments
 
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt message with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48, m_SessionKey, iv, m_MacKey);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
 		m_Server.Send (buf, 48, m_RemoteEndpoint);
 	}
 
@@ -821,11 +839,9 @@ namespace ssu
 	{
 		if (m_IsSessionKey)
 		{
-			uint8_t buf[48 + 18], iv[16];
-			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-			rnd.GenerateBlock (iv, 16); // random iv
+			uint8_t buf[48 + 18];
 			// encrypt message with session key
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48, m_SessionKey, iv, m_MacKey);
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
 			m_Server.Send (buf, 48, m_RemoteEndpoint);
 		}
 	}	
@@ -840,7 +856,7 @@ namespace ssu
 		uint32_t fragmentNum = 0;
 		while (len > 0)
 		{	
-			uint8_t buf[SSU_MTU + 18], iv[16], * payload = buf + sizeof (SSUHeader);
+			uint8_t buf[SSU_MTU + 18], * payload = buf + sizeof (SSUHeader);
 			*payload = DATA_FLAG_WANT_REPLY; // for compatibility
 			payload++;
 			*payload = 1; // always 1 message fragment per message
@@ -863,10 +879,8 @@ namespace ssu
 			if (size & 0x0F) // make sure 16 bytes boundary
 				size = ((size >> 4) + 1) << 4; // (/16 + 1)*16
 			
-			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-			rnd.GenerateBlock (iv, 16); // random iv
 			// encrypt message with session key
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, size, m_SessionKey, iv, m_MacKey);
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, size);
 			m_Server.Send (buf, size, m_RemoteEndpoint);
 
 			if (!isLast)
@@ -884,7 +898,6 @@ namespace ssu
 	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
 	{
 		uint8_t buf[SSU_MTU + 18];
-		uint8_t iv[16];
 		size_t msgSize = len + sizeof (SSUHeader); 
 		if (msgSize > SSU_MTU)
 		{
@@ -892,10 +905,8 @@ namespace ssu
 			return;
 		} 
 		memcpy (buf + sizeof (SSUHeader), payload, len);
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt message with session key
-		FillHeaderAndEncrypt (type, buf, msgSize, m_SessionKey, iv, m_MacKey);
+		FillHeaderAndEncrypt (type, buf, msgSize);
 		m_Server.Send (buf, msgSize, m_RemoteEndpoint);
 	}			
 

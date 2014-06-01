@@ -113,6 +113,7 @@ namespace ssu
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len); // with session key 
 			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);
 			void DecryptSessionKey (uint8_t * buf, size_t len);
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
@@ -136,6 +137,7 @@ namespace ssu
 			std::set<uint32_t> m_PeerTestNonces;
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	 // TODO: remove
 			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	 // TODO: remove
+			i2p::crypto::CBCEncryption m_SessionKeyEncryption;
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			uint8_t m_SessionKey[32], m_MacKey[32];
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
