@@ -21,8 +21,7 @@ namespace crypto
 		}	 
 	};
 
-#ifdef __x86_64__
-	// AES-NI assumed
+#ifdef AESNI
 	class ECBCryptoAESNI
 	{	
 		public:
@@ -154,7 +153,7 @@ namespace crypto
 		private:
 
 			ECBEncryption m_IVEncryption;
-#ifdef __x86_64__
+#ifdef AESNI
 			ECBEncryption m_LayerEncryption;
 #else
 			CBCEncryption m_LayerEncryption;
@@ -176,7 +175,7 @@ namespace crypto
 		private:
 
 			ECBDecryption m_IVDecryption;
-#ifdef __x86_64__
+#ifdef AESNI
 			ECBDecryption m_LayerDecryption;
 #else
 			CBCDecryption m_LayerDecryption;

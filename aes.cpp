@@ -7,7 +7,7 @@ namespace i2p
 namespace crypto
 {
 
-#ifdef __x86_64__
+#ifdef AESNI
 
 	ECBCryptoAESNI::ECBCryptoAESNI ()
 	{
@@ -167,7 +167,7 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef __x86_64__
+#ifdef AESNI
 		__asm__
 		(
 		 	"movups	(%[iv]), %%xmm1 \n"
@@ -207,7 +207,7 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
-#ifdef __x86_64__
+#ifdef AESNI
 		__asm__
 		(
 			"movups	(%[iv]), %%xmm1 \n"
@@ -228,7 +228,7 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef __x86_64__
+#ifdef AESNI
 		__asm__
 		(
 			"movups	(%[iv]), %%xmm1 \n"
@@ -270,7 +270,7 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
-#ifdef __x86_64__
+#ifdef AESNI
 		__asm__
 		(
 			"movups	(%[iv]), %%xmm1 \n"
@@ -291,7 +291,7 @@ namespace crypto
 
 	void TunnelEncryption::Encrypt (uint8_t * payload)
 	{
-#ifdef __x86_64__
+#ifdef AESNI
 		__asm__
 		(
             // encrypt IV 
@@ -325,7 +325,7 @@ namespace crypto
 
 	void TunnelDecryption::Decrypt (uint8_t * payload)
 	{
-#ifdef __x86_64__
+#ifdef AESNI
 		__asm__
 		(
             // decrypt IV 

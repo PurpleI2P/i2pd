@@ -11,6 +11,11 @@ INCFLAGS =
 LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 LIBS = 
 
+#check if AES-NI is supported by CPU
+ifneq ($(shell grep -c aes /proc/cpuinfo),0) 
+	CPU_FLAGS = -DAESNI
+endif
+
 all: obj i2p
 
 i2p: $(OBJECTS:obj/%=obj/%)
@@ -20,7 +25,7 @@ i2p: $(OBJECTS:obj/%=obj/%)
 .SUFFIXES:	.c .cc .C .cpp .o
 
 obj/%.o : %.cpp
-	$(CC) -o $@ $< -c $(CFLAGS) $(INCFLAGS)
+	$(CC) -o $@ $< -c $(CFLAGS) $(INCFLAGS) $(CPU_FLAGS)
 
 obj:
 	mkdir -p obj
