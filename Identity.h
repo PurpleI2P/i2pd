@@ -78,7 +78,7 @@ namespace data
 			bool operator== (const IdentHash& other) const { return !memcmp (m_Hash, other.m_Hash, 32); };
 			bool operator< (const IdentHash& other) const { return memcmp (m_Hash, other.m_Hash, 32) < 0; };
 
-                        bool FromBase32(const std::string&);
+            bool FromBase32(const std::string&);
 
 		private:
 
@@ -89,14 +89,19 @@ namespace data
 	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
 	// kademlia
-	struct RoutingKey
+	union RoutingKey
 	{
 		uint8_t hash[32];
+		uint64_t hash_ll[4];
 	};	
 
 	struct XORMetric
 	{
-		uint8_t metric[32];
+		union
+		{	
+			uint8_t metric[32];
+			uint64_t metric_ll[4];	
+		};	
 
 		void SetMin () { memset (metric, 0, 32); };
 		void SetMax () { memset (metric, 0xFF, 32); };

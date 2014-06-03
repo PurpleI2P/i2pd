@@ -98,12 +98,11 @@ namespace data
 	
 	XORMetric operator^(const RoutingKey& key1, const RoutingKey& key2)
 	{
-		// TODO: implementation depends on CPU
 		XORMetric m;
-		((uint64_t *)m.metric)[0] = ((uint64_t *)key1.hash)[0] ^ ((uint64_t *)key2.hash)[0];
-		((uint64_t *)m.metric)[1] = ((uint64_t *)key1.hash)[1] ^ ((uint64_t *)key2.hash)[1];
-		((uint64_t *)m.metric)[2] = ((uint64_t *)key1.hash)[2] ^ ((uint64_t *)key2.hash)[2];
-		((uint64_t *)m.metric)[3] = ((uint64_t *)key1.hash)[3] ^ ((uint64_t *)key2.hash)[3];
+		m.metric_ll[0] = key1.hash_ll[0] ^ key2.hash_ll[0];
+		m.metric_ll[1] = key1.hash_ll[1] ^ key2.hash_ll[1];
+		m.metric_ll[2] = key1.hash_ll[2] ^ key2.hash_ll[2];
+		m.metric_ll[3] = key1.hash_ll[3] ^ key2.hash_ll[3];
 		return m;
 	}	
 }
