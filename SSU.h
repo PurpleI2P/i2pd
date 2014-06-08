@@ -7,8 +7,6 @@
 #include <set>
 #include <thread>
 #include <boost/asio.hpp>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
 #include "aes.h"
 #include "I2PEndian.h"
 #include "Identity.h"
@@ -135,8 +133,6 @@ namespace ssu
 			bool m_IsSessionKey;
 			uint32_t m_RelayTag;	
 			std::set<uint32_t> m_PeerTestNonces;
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	 // TODO: remove
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	 // TODO: remove
 			i2p::crypto::CBCEncryption m_SessionKeyEncryption;
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			uint8_t m_SessionKey[32], m_MacKey[32];

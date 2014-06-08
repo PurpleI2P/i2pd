@@ -204,8 +204,8 @@ namespace ssu
 		payload += 4; // relayTag
 		payload += 4; // signed on time
 		// decrypt DSA signature
-		m_Decryption.SetKeyWithIV (m_SessionKey, 32, ((SSUHeader *)buf)->iv);
-		m_Decryption.ProcessData (payload, payload, 48);
+		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
+		m_SessionKeyDecryption.Decrypt (payload, 48, payload);
 		// verify
 		CryptoPP::DSA::PublicKey pubKey;
 		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
@@ -329,8 +329,8 @@ namespace ssu
 		uint8_t iv[16];
 		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt signature and 8 bytes padding with newly created session key	
-		m_Encryption.SetKeyWithIV (m_SessionKey, 32, iv);
-		m_Encryption.ProcessData (payload, payload, 48);
+		m_SessionKeyEncryption.SetIV (iv);
+		m_SessionKeyEncryption.Encrypt (payload, 48, payload);
 
 		// encrypt message with intro key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, introKey, iv, introKey);
@@ -501,9 +501,10 @@ namespace ssu
 		header->time = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
-		m_Encryption.SetKeyWithIV (aesKey, 32, iv);
-		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary 
-		m_Encryption.ProcessData (encrypted, encrypted, encryptedLen);
+		i2p::crypto::CBCEncryption encryption;
+		encryption.SetKey (aesKey);
+		encryption.SetIV (iv);
+		encryption.Encrypt (encrypted, encryptedLen, encrypted);
 		// assume actual buffer size is 18 (16 + 2) bytes more
 		memcpy (buf + len, iv, 16);
 		*(uint16_t *)(buf + len + 16) = htobe16 (encryptedLen);
@@ -541,9 +542,10 @@ namespace ssu
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
-		m_Decryption.SetKeyWithIV (aesKey, 32, header->iv);
-		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary 
-		m_Decryption.ProcessData (encrypted, encrypted, encryptedLen);
+		i2p::crypto::CBCDecryption decryption;
+		decryption.SetKey (aesKey);
+		decryption.SetIV (header->iv);
+		decryption.Decrypt (encrypted, encryptedLen, encrypted);
 	}
 
 	void SSUSession::DecryptSessionKey (uint8_t * buf, size_t len)
