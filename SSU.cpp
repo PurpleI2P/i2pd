@@ -524,7 +524,6 @@ namespace ssu
 		header->time = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
-		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary, TODO: do we really need it? 
 		m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
 		// assume actual buffer size is 18 (16 + 2) bytes more
 		memcpy (buf + len, header->iv, 16);
@@ -557,7 +556,6 @@ namespace ssu
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
-		encryptedLen = (encryptedLen>>4)<<4; // make sure 16 bytes boundary 
 		if (encryptedLen > 0)
 		{	
 			m_SessionKeyDecryption.SetIV (header->iv);

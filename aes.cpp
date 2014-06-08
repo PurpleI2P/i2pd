@@ -197,12 +197,10 @@ namespace crypto
 #endif		
 	}
 
-	bool CBCEncryption::Encrypt (const uint8_t * in, std::size_t len, uint8_t * out)
+	void CBCEncryption::Encrypt (const uint8_t * in, std::size_t len, uint8_t * out)
 	{
-		div_t d = div (len, 16);
-		if (d.rem) return false; // len is not multipple of 16
-		Encrypt (d.quot, (const ChipherBlock *)in, (ChipherBlock *)out); 
-		return true;
+		// len/16
+		Encrypt (len >> 4, (const ChipherBlock *)in, (ChipherBlock *)out); 
 	}
 
 	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
@@ -260,12 +258,9 @@ namespace crypto
 #endif
 	}
 
-	bool CBCDecryption::Decrypt (const uint8_t * in, std::size_t len, uint8_t * out)
+	void CBCDecryption::Decrypt (const uint8_t * in, std::size_t len, uint8_t * out)
 	{
-		div_t d = div (len, 16);
-		if (d.rem) return false; // len is not multiple of 16
-		Decrypt (d.quot, (const ChipherBlock *)in, (ChipherBlock *)out); 
-		return true;
+		Decrypt (len >> 4, (const ChipherBlock *)in, (ChipherBlock *)out); 
 	}
 
 	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
