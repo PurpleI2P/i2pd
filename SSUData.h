@@ -31,6 +31,10 @@ namespace ssu
 
 		private:
 
+			void SendMsgAck (uint32_t msgID);
+
+		private:
+
 			struct IncompleteMessage
 			{
 				I2NPMessage * msg;

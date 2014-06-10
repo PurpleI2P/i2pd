@@ -97,7 +97,6 @@ namespace ssu
 			void ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey); // Charlie to Alice
 			void ProcessData (uint8_t * buf, size_t len);		
-			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			void Send (const uint8_t * buf, size_t size); 

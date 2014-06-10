@@ -807,22 +807,6 @@ namespace ssu
 		Send (buf, 80);
 	}	
 
-	void SSUSession::SendMsgAck (uint32_t msgID)
-	{
-		uint8_t buf[48 + 18]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
-		uint8_t * payload = buf + sizeof (SSUHeader);
-		*payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
-		payload++;
-		*payload = 1; // number of ACKs
-		payload++;
-		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
-		payload += 4;
-		*payload = 0; // number of fragments
-
-		// encrypt message with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
-		Send (buf, 48);
-	}
 
 	void SSUSession::SendSesionDestroyed ()
 	{
