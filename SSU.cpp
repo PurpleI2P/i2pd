@@ -163,7 +163,6 @@ namespace ssu
 
 	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		m_State = eSessionStateRequestReceived;
 		LogPrint ("Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
 		CreateAESandMacKey (buf + sizeof (SSUHeader));
@@ -178,7 +177,6 @@ namespace ssu
 			return;
 		}
 
-		m_State = eSessionStateCreatedReceived;
 		LogPrint ("Session created received");	
 		m_Timer.cancel (); // connect timer
 		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
@@ -218,9 +216,7 @@ namespace ssu
 
 	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
 	{
-		m_State = eSessionStateConfirmedReceived;
 		LogPrint ("Session confirmed received");		
-		m_State = eSessionStateEstablished;
 		SendI2NPMessage (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
@@ -244,8 +240,6 @@ namespace ssu
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, 304, introKey, iv, introKey);
-		
-		m_State = eSessionStateRequestSent;		
 		m_Server.Send (buf, 304, m_RemoteEndpoint);
 	}
 
@@ -278,10 +272,7 @@ namespace ssu
 		if (m_State == eSessionStateEstablished)
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, m_SessionKey, iv, m_MacKey);
 		else
-		{
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, iKey, iv, iKey);
-			m_State = eSessionStateRelayRequestSent;
-		}			
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, iKey, iv, iKey);			
 		m_Server.Send (buf, 96, m_RemoteEndpoint);
 	}
 
@@ -333,8 +324,7 @@ namespace ssu
 		m_SessionKeyEncryption.Encrypt (payload, 48, payload);
 
 		// encrypt message with intro key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, introKey, iv, introKey);
-		m_State = eSessionStateCreatedSent;		
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, introKey, iv, introKey);	
 		m_Server.Send (buf, 368, m_RemoteEndpoint);
 	}
 
@@ -373,7 +363,6 @@ namespace ssu
 		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt message with session key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CONFIRMED, buf, 480, m_SessionKey, iv, m_MacKey);
-		m_State = eSessionStateConfirmedSent;	
 		m_Server.Send (buf, 480, m_RemoteEndpoint);
 	}
 

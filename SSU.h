@@ -47,15 +47,7 @@ namespace ssu
 
 	enum SessionState
 	{
-		eSessionStateUnknown,
-		eSessionStateRequestSent, 
-		eSessionStateRequestReceived,
-		eSessionStateCreatedSent,
-		eSessionStateCreatedReceived,
-		eSessionStateConfirmedSent,
-		eSessionStateConfirmedReceived,
-		eSessionStateRelayRequestSent,
-		eSessionStateRelayRequestReceived,	
+		eSessionStateUnknown,	
 		eSessionStateIntroduced,
 		eSessionStateEstablished,
 		eSessionStateFailed
