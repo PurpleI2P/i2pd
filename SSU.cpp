@@ -325,7 +325,7 @@ namespace ssu
 
 		// encrypt message with intro key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, introKey, iv, introKey);	
-		m_Server.Send (buf, 368, m_RemoteEndpoint);
+		Send (buf, 368);
 	}
 
 	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress)
@@ -363,7 +363,7 @@ namespace ssu
 		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt message with session key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CONFIRMED, buf, 480, m_SessionKey, iv, m_MacKey);
-		m_Server.Send (buf, 480, m_RemoteEndpoint);
+		Send (buf, 480);
 	}
 
 	void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len)
@@ -633,7 +633,7 @@ namespace ssu
 		if (!m_DelayedMessages.empty ())
 		{
 			for (auto it :m_DelayedMessages)
-				Send (it);
+				m_Data.Send (it);
 			m_DelayedMessages.clear ();
 		}
 		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
@@ -689,7 +689,7 @@ namespace ssu
 		if (msg)
 		{	
 			if (m_State == eSessionStateEstablished)
-				Send (msg);
+				m_Data.Send (msg);
 			else
 				m_DelayedMessages.push_back (msg);
 		}	
@@ -804,7 +804,7 @@ namespace ssu
 		memcpy (payload, introKey, 32); // intro key	
 		// encrypt message with session key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80);
-		m_Server.Send (buf, 80, m_RemoteEndpoint);
+		Send (buf, 80);
 	}	
 
 	void SSUSession::SendMsgAck (uint32_t msgID)
@@ -821,7 +821,7 @@ namespace ssu
 
 		// encrypt message with session key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
-		m_Server.Send (buf, 48, m_RemoteEndpoint);
+		Send (buf, 48);
 	}
 
 	void SSUSession::SendSesionDestroyed ()
@@ -831,58 +831,9 @@ namespace ssu
 			uint8_t buf[48 + 18];
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
-			m_Server.Send (buf, 48, m_RemoteEndpoint);
+			Send (buf, 48);
 		}
 	}	
-
-	void SSUSession::Send (i2p::I2NPMessage * msg)
-	{
-		uint32_t msgID = htobe32 (msg->ToSSU ());
-		size_t payloadSize = SSU_MTU - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
-		size_t len = msg->GetLength ();
-		uint8_t * msgBuf = msg->GetSSUHeader ();
-
-		uint32_t fragmentNum = 0;
-		while (len > 0)
-		{	
-			uint8_t buf[SSU_MTU + 18], * payload = buf + sizeof (SSUHeader);
-			*payload = DATA_FLAG_WANT_REPLY; // for compatibility
-			payload++;
-			*payload = 1; // always 1 message fragment per message
-			payload++;
-			*(uint32_t *)payload = msgID;
-			payload += 4;
-			bool isLast = (len <= payloadSize);
-			size_t size = isLast ? len : payloadSize;
-			uint32_t fragmentInfo = (fragmentNum << 17);
-			if (isLast)
-				fragmentInfo |= 0x010000;
-			
-			fragmentInfo |= size;
-			fragmentInfo = htobe32 (fragmentInfo);
-			memcpy (payload, (uint8_t *)(&fragmentInfo) + 1, 3);
-			payload += 3;
-			memcpy (payload, msgBuf, size);
-			
-			size += payload - buf;
-			if (size & 0x0F) // make sure 16 bytes boundary
-				size = ((size >> 4) + 1) << 4; // (/16 + 1)*16
-			
-			// encrypt message with session key
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, size);
-			m_Server.Send (buf, size, m_RemoteEndpoint);
-
-			if (!isLast)
-			{	
-				len -= payloadSize;
-				msgBuf += payloadSize;
-			}	
-			else
-				len = 0;
-			fragmentNum++;
-		}	
-		DeleteI2NPMessage (msg);
-	}		
 
 	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
 	{
@@ -896,8 +847,13 @@ namespace ssu
 		memcpy (buf + sizeof (SSUHeader), payload, len);
 		// encrypt message with session key
 		FillHeaderAndEncrypt (type, buf, msgSize);
-		m_Server.Send (buf, msgSize, m_RemoteEndpoint);
+		Send (buf, msgSize);
 	}			
+
+	void SSUSession::Send (const uint8_t * buf, size_t size)
+	{
+		m_Server.Send (buf, size, m_RemoteEndpoint);
+	}	
 
 	SSUServer::SSUServer (int port): m_Thread (nullptr), m_Work (m_Service),
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (m_Service, m_Endpoint)
@@ -961,7 +917,7 @@ namespace ssu
 		return nullptr;
 	}
 
-	void SSUServer::Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
+	void SSUServer::Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
 		m_Socket.send_to (boost::asio::buffer (buf, len), to);
 		LogPrint ("SSU sent ", len, " bytes");

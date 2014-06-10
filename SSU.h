@@ -99,8 +99,8 @@ namespace ssu
 			void ProcessData (uint8_t * buf, size_t len);		
 			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();
-			void Send (i2p::I2NPMessage * msg);
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
+			void Send (const uint8_t * buf, size_t size); 
 			
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len); // with session key 
@@ -148,7 +148,7 @@ namespace ssu
 
 			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
-			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
+			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
 			SSUSession * FindRelaySession (uint32_t tag);
 
