@@ -1,5 +1,5 @@
 #include <thread>
-
+#include <stdlib.h>
 #include "Daemon.h"
 
 int main( int argc, char* argv[] )
