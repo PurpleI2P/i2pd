@@ -26,7 +26,8 @@ namespace tunnel
 				
 				bool isFollowOnFragment = flag & 0x80, isLastFragment = true;		
 				uint32_t msgID = 0;
-				TunnelMessageBlock m;
+				int fragmentNum = 0;
+				TunnelMessageBlockEx m;
 				if (!isFollowOnFragment)
 				{	
 					// first fragment
@@ -68,7 +69,7 @@ namespace tunnel
 					// follow on
 					msgID = be32toh (*(uint32_t *)fragment); // MessageID			
 					fragment += 4; 
-					int fragmentNum = (flag >> 1) & 0x3F; // 6 bits
+					fragmentNum = (flag >> 1) & 0x3F; // 6 bits
 					isLastFragment = flag & 0x01;
 					LogPrint ("Follow on fragment ", fragmentNum, " of message ", msgID, isLastFragment ? " last" : " non-last");
 				}	
@@ -101,22 +102,34 @@ namespace tunnel
 					if (msgID) // msgID is presented, assume message is fragmented
 					{
 						if (!isFollowOnFragment) // create new incomlete message
+						{
+							m.nextFragmentNum = 1;
 							m_IncompleteMessages[msgID] = m;
+						}
 						else
 						{
 							auto it = m_IncompleteMessages.find (msgID);
 							if (it != m_IncompleteMessages.end())
 							{
-								I2NPMessage * incompleteMessage = it->second.data; 
-								memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
-								incompleteMessage->len += size;
-								// TODO: check fragmentNum sequence
-								if (isLastFragment)
+								if (fragmentNum == it->second.nextFragmentNum)
 								{
-									// message complete
-									HandleNextMessage (it->second);	
-									m_IncompleteMessages.erase (it); 
-								}	
+									I2NPMessage * incompleteMessage = it->second.data; 
+									memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
+									incompleteMessage->len += size;
+									if (isLastFragment)
+									{
+										// message complete
+										HandleNextMessage (it->second);	
+										m_IncompleteMessages.erase (it); 
+									}	
+									else
+										it->second.nextFragmentNum++;
+								}
+								else
+								{	
+									LogPrint ("Unexpected fragment ", fragmentNum, " instead ", it->second.nextFragmentNum, " of message ", msgID, ". Discarded");
+									m_IncompleteMessages.erase (it); // TODO: store unexpect fragment for a while
+								}
 							}
 							else
 								LogPrint ("First fragment of message ", msgID, " not found. Discarded");

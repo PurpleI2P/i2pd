@@ -26,7 +26,12 @@ namespace tunnel
 			
 		private:
 		
-			std::map<uint32_t, TunnelMessageBlock> m_IncompleteMessages;
+			struct TunnelMessageBlockEx: public TunnelMessageBlock
+			{
+				uint8_t nextFragmentNum;
+			};				
+
+			std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
 			size_t m_NumReceivedBytes;
 	};	
 }		
