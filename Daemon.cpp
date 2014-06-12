@@ -53,7 +53,7 @@ namespace i2p
 			//TODO: This is an ugly workaround. fix it.
 			//TODO: Autodetect public IP.
 			i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-				i2p::util::config::GetArg("-port", 17070));
+				i2p::util::config::GetArg("-port", 17007));
 
 			if (isLogging == 1)
 			{
