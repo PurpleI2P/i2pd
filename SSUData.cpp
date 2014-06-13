@@ -36,8 +36,6 @@ namespace ssu
 				delete[] f;
 			m_SentMessages.erase (it);	
 		}
-		else
-			LogPrint ("SSU ack received for unknown message ", msgID);
 	}		
 
 	void SSUData::ProcessMessage (uint8_t * buf, size_t len)
@@ -62,7 +60,6 @@ namespace ssu
 			buf++;
 			for (int i = 0; i < numBitfields; i++)
 			{
-				ProcessSentMessageAck (be32toh (*(uint32_t *)buf)); // TODO: should be replaced to fragments
 				buf += 4; // msgID
 				// TODO: process individual Ack bitfields
 				while (*buf & 0x80) // not last
