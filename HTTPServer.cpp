@@ -238,7 +238,7 @@ namespace util
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
 		s << "Data path: " << i2p::util::filesystem::GetDataDir().string() << "<BR>" << "<BR>";
-		s << "Our external address:" << "<BR>" << "<BR>";
+		s << "Our external address:" << "<BR>";
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{
 			switch (address.transportStyle) 
@@ -254,7 +254,10 @@ namespace util
 			}
 			s << address.host.to_string() << ":" << address.port << "<BR>";
 		}
-
+		s << "<BR>Routers: " << i2p::data::netdb.GetNumRouters () << " ";
+		s << "Floodfills: " << i2p::data::netdb.GetNumFloodfills () << " ";
+		s << "LeaseSets: " << i2p::data::netdb.GetNumLeaseSets () << "<BR>";
+		
 		s << "<P>Tunnels</P>";
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
 		{	

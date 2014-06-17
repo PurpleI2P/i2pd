@@ -533,21 +533,21 @@ namespace data
 	}	
 	
 	void NetDb::Explore ()
-	{
-		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
-		if (outbound && inbound)
-		{
-			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-			uint8_t randomHash[32];
-			rnd.GenerateBlock (randomHash, 32);
-			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
-			dest->SetLastOutboundTunnel (outbound);
-			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
-			if (floodfill)
+	{	
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		uint8_t randomHash[32];
+		rnd.GenerateBlock (randomHash, 32);
+		RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
+		auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
+		if (floodfill)
+		{	
+			LogPrint ("Exploring new routers ...");
+			auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+			auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+			auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
+			if (outbound && inbound)
 			{	
-				LogPrint ("Exploring new routers ...");
+				dest->SetLastOutboundTunnel (outbound);
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 					{ 
@@ -564,8 +564,14 @@ namespace data
 				outbound->SendTunnelDataMsg (msgs);		
 			}	
 			else
-				DeleteRequestedDestination (dest);
-		}
+			{	
+				dest->SetLastOutboundTunnel (nullptr);
+				dest->SetLastReplyTunnel (nullptr);
+				i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+			}	
+		}	
+		else
+			DeleteRequestedDestination (dest);
 	}	
 
 	void NetDb::Publish ()
