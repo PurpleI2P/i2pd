@@ -91,7 +91,7 @@ namespace data
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
 			void Run (); // exploratory thread
-			void Explore ();
+			void Explore (int numDestinations);
 			void Publish ();
 			void ValidateSubscriptions ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;

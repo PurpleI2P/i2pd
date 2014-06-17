@@ -122,7 +122,10 @@ namespace data
 					}	
 				}
 				else // if no new DatabaseStore coming, explore it
-					Explore ();
+				{
+					auto numRouters = m_RouterInfos.size ();
+					Explore (numRouters < 1500 ? 5 : 1);
+				}	
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastSave >= 60) // save routers and validate subscriptions every minute
@@ -532,46 +535,54 @@ namespace data
 		i2p::DeleteI2NPMessage (msg);
 	}	
 	
-	void NetDb::Explore ()
+	void NetDb::Explore (int numDestinations)
 	{	
+		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
+		bool throughTunnels = outbound && inbound;
+		
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint8_t randomHash[32];
-		rnd.GenerateBlock (randomHash, 32);
-		RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
-		auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
-		if (floodfill)
+		std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+		std::set<const RouterInfo *> floodfills;
+		LogPrint ("Exploring new ", numDestinations, " routers ...");
+		for (int i = 0; i < numDestinations; i++)
 		{	
-			LogPrint ("Exploring new routers ...");
-			auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-			auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-			auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
-			if (outbound && inbound)
+			rnd.GenerateBlock (randomHash, 32);
+			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true);
+			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
+			if (floodfill && !floodfills.count (floodfill)) // request floodfill only once
 			{	
-				dest->SetLastOutboundTunnel (outbound);
-				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-					{ 
-						i2p::tunnel::eDeliveryTypeRouter,
-						floodfill->GetIdentHash (), 0,
-						CreateDatabaseStoreMsg () // tell floodfill about us 
-					});  
-				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-					{ 
-						i2p::tunnel::eDeliveryTypeRouter,
-						floodfill->GetIdentHash (), 0, 
-						dest->CreateRequestMessage (floodfill, inbound) // explore
-					}); 
-				outbound->SendTunnelDataMsg (msgs);		
+				floodfills.insert (floodfill);
+				if (throughTunnels)
+				{	
+					dest->SetLastOutboundTunnel (outbound);
+					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+						{ 
+							i2p::tunnel::eDeliveryTypeRouter,
+							floodfill->GetIdentHash (), 0,
+							CreateDatabaseStoreMsg () // tell floodfill about us 
+						});  
+					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+						{ 
+							i2p::tunnel::eDeliveryTypeRouter,
+							floodfill->GetIdentHash (), 0, 
+							dest->CreateRequestMessage (floodfill, inbound) // explore
+						}); 
+				}	
+				else
+				{	
+					dest->SetLastOutboundTunnel (nullptr);
+					dest->SetLastReplyTunnel (nullptr);
+					i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+				}	
 			}	
 			else
-			{	
-				dest->SetLastOutboundTunnel (nullptr);
-				dest->SetLastReplyTunnel (nullptr);
-				i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
-			}	
+				DeleteRequestedDestination (dest);
 		}	
-		else
-			DeleteRequestedDestination (dest);
+		if (throughTunnels && msgs.size () > 0)
+			outbound->SendTunnelDataMsg (msgs);		
 	}	
 
 	void NetDb::Publish ()
