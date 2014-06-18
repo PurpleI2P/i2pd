@@ -8,14 +8,13 @@ namespace i2p
 namespace crypto
 {
 	// DH	
-	extern const CryptoPP::Integer elgp;
-	extern const CryptoPP::Integer elgg; 
-
+	const CryptoPP::Integer& elgp();
+	const CryptoPP::Integer& elgg();
 
 	// DSA
-	extern const CryptoPP::Integer dsap;		
-	extern const CryptoPP::Integer dsaq;
-	extern const CryptoPP::Integer dsag;	
+	const CryptoPP::Integer& dsap();
+	const CryptoPP::Integer& dsaq();
+	const CryptoPP::Integer& dsag();
 }		
 }	
 

@@ -50,7 +50,7 @@ namespace data
 		
 		// verify
 		CryptoPP::DSA::PublicKey pubKey;
-		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+		pubKey.Initialize (i2p::crypto::dsap(), i2p::crypto::dsaq(), i2p::crypto::dsag(), 
 			CryptoPP::Integer (m_Identity.signingKey, 128));
 		CryptoPP::DSA::Verifier verifier (pubKey);
 		if (!verifier.VerifyMessage (buf, leases - buf, leases, 40))

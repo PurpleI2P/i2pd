@@ -31,7 +31,7 @@ namespace ssu
 	
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey)
 	{
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+		CryptoPP::DH dh (i2p::crypto::elgp(), i2p::crypto::elgg());
 		uint8_t sharedKey[256];
 		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
@@ -211,7 +211,7 @@ namespace ssu
 		m_SessionKeyDecryption.Decrypt (payload, 48, payload);
 		// verify
 		CryptoPP::DSA::PublicKey pubKey;
-		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
+		pubKey.Initialize (i2p::crypto::dsap(), i2p::crypto::dsaq(), i2p::crypto::dsag(), CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
 		CryptoPP::DSA::Verifier verifier (pubKey);
 		if (!verifier.VerifyMessage (signedData, 532, payload, 40))
 			LogPrint ("SSU signature verification failed");
