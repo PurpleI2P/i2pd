@@ -76,7 +76,7 @@ namespace data
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
-			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr, uint8_t caps = 0) const;
+			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr) const;
 
 			void PostI2NPMsg (I2NPMessage * msg);
 
