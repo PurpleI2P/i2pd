@@ -24,6 +24,7 @@ namespace tunnel
 		
 		TunnelHopConfig * next, * prev;
 		i2p::crypto::TunnelDecryption decryption;	
+		int recordIndex; // record # in tunnel build message
 		
 		TunnelHopConfig (const i2p::data::RouterInfo * r)
 		{

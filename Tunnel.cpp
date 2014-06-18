@@ -48,22 +48,27 @@ namespace tunnel
 					hop->next ? rnd.GenerateWord32 () : replyMsgID, // we set replyMsgID for last hop only
 				    hop->isGateway, hop->isEndpoint), 
 		    	records[i]);
+			hop->recordIndex = i; //TODO:
 			i++;
 			hop = hop->next;
 		}	
 
 		i2p::crypto::CBCDecryption decryption;
 		hop = m_Config->GetLastHop ()->prev;
-		size_t ind = numRecords - 1;
 		while (hop)
 		{
 			decryption.SetKey (hop->replyKey);
 			decryption.SetIV (hop->replyIV);
-			for (size_t i = ind; i < numRecords; i++)	
-				decryption.Decrypt((uint8_t *)&records[i], 
-					sizeof (I2NPBuildRequestRecordElGamalEncrypted), (uint8_t *)&records[i]);	
+			// decrypt records after current hop
+			TunnelHopConfig * hop1 = hop->next;
+			while (hop1)
+			{	
+				decryption.Decrypt((uint8_t *)&records[hop1->recordIndex], 
+					sizeof (I2NPBuildRequestRecordElGamalEncrypted), 
+				    (uint8_t *)&records[hop1->recordIndex]);
+				hop1 = hop1->next;
+			}	
 			hop = hop->prev;
-			ind--;
 		}	
 		FillI2NPMessageHeader (msg, eI2NPVariableTunnelBuild);
 		
@@ -76,21 +81,28 @@ namespace tunnel
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
 	{
 		LogPrint ("TunnelBuildResponse ", (int)msg[0], " records.");
-
+		auto numHops = m_Config->GetNumHops (); 
+		if (msg[0] != numHops)
+		{
+			LogPrint ("Number of records in response ", (int)msg[0], " doesn't match ", numHops);
+			return false;
+		}	
+		
 		i2p::crypto::CBCDecryption decryption;
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
-		int num = msg[0];
 		while (hop)
 		{	
 			decryption.SetKey (hop->replyKey);
 			decryption.SetIV (hop->replyIV);
-			for (int i = 0; i < num; i++)
-			{			
-				uint8_t * record = msg + 1 + i*sizeof (I2NPBuildResponseRecord);
+			// decrypt records before and including current hop
+			TunnelHopConfig * hop1 = hop;
+			while (hop1)
+			{
+				uint8_t * record = msg + 1 + hop1->recordIndex*sizeof (I2NPBuildResponseRecord);
 				decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
-			}
+				hop1 = hop1->prev;
+			}	
 			hop = hop->prev;
-			num--;
 		}
 
 		m_IsEstablished = true;
