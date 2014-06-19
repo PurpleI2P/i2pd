@@ -27,7 +27,7 @@ namespace tunnel
 	void Tunnel::Build (uint32_t replyMsgID, OutboundTunnel * outboundTunnel)
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		size_t numRecords = m_Config->GetNumHops ();
+		int numRecords = m_Config->GetNumHops () + 1; // +1 fake record. TODO:
 		I2NPMessage * msg = NewI2NPMessage ();
 		*msg->GetPayload () = numRecords;
 		msg->len += numRecords*sizeof (I2NPBuildRequestRecordElGamalEncrypted) + 1;
@@ -52,7 +52,13 @@ namespace tunnel
 			i++;
 			hop = hop->next;
 		}	
-
+		// fill up fake records with random data	
+		while (i < numRecords)
+		{
+			rnd.GenerateBlock ((uint8_t *)(records + i), sizeof (records[i])); 
+			i++;
+		}	
+		
 		i2p::crypto::CBCDecryption decryption;
 		hop = m_Config->GetLastHop ()->prev;
 		while (hop)
@@ -81,12 +87,6 @@ namespace tunnel
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
 	{
 		LogPrint ("TunnelBuildResponse ", (int)msg[0], " records.");
-		auto numHops = m_Config->GetNumHops (); 
-		if (msg[0] != numHops)
-		{
-			LogPrint ("Number of records in response ", (int)msg[0], " doesn't match ", numHops);
-			return false;
-		}	
 		
 		i2p::crypto::CBCDecryption decryption;
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
@@ -98,26 +98,34 @@ namespace tunnel
 			TunnelHopConfig * hop1 = hop;
 			while (hop1)
 			{
-				uint8_t * record = msg + 1 + hop1->recordIndex*sizeof (I2NPBuildResponseRecord);
-				decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
+				auto idx = hop1->recordIndex;
+				if (idx >= 0 && idx < msg[0])
+				{	
+					uint8_t * record = msg + 1 + idx*sizeof (I2NPBuildResponseRecord);
+					decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
+				}	
+				else
+					LogPrint ("Tunnel hop index ", idx, " is out of range");
 				hop1 = hop1->prev;
 			}	
 			hop = hop->prev;
 		}
 
 		m_IsEstablished = true;
-		for (int i = 0; i < msg[0]; i++)
+		hop = m_Config->GetFirstHop ();
+		while (hop)
 		{			
-			I2NPBuildResponseRecord * record = (I2NPBuildResponseRecord *)(msg + 1 + i*sizeof (I2NPBuildResponseRecord));
+			I2NPBuildResponseRecord * record = (I2NPBuildResponseRecord *)(msg + 1 + hop->recordIndex*sizeof (I2NPBuildResponseRecord));
 			LogPrint ("Ret code=", (int)record->ret);
 			if (record->ret) 
 				// if any of participants declined the tunnel is not established
 				m_IsEstablished = false; 
+			hop = hop->next;
 		}
 		if (m_IsEstablished) 
 		{
 			// change reply keys to layer keys
-			TunnelHopConfig * hop = m_Config->GetFirstHop ();
+			hop = m_Config->GetFirstHop ();
 			while (hop)
 			{
 				hop->decryption.SetKeys (hop->layerKey, hop->ivKey);
