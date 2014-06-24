@@ -64,11 +64,11 @@ namespace tunnel
 		while (hop)
 		{
 			decryption.SetKey (hop->replyKey);
-			decryption.SetIV (hop->replyIV);
 			// decrypt records after current hop
 			TunnelHopConfig * hop1 = hop->next;
 			while (hop1)
 			{	
+				decryption.SetIV (hop->replyIV);
 				decryption.Decrypt((uint8_t *)&records[hop1->recordIndex], 
 					sizeof (I2NPBuildRequestRecordElGamalEncrypted), 
 				    (uint8_t *)&records[hop1->recordIndex]);
@@ -93,7 +93,6 @@ namespace tunnel
 		while (hop)
 		{	
 			decryption.SetKey (hop->replyKey);
-			decryption.SetIV (hop->replyIV);
 			// decrypt records before and including current hop
 			TunnelHopConfig * hop1 = hop;
 			while (hop1)
@@ -102,6 +101,7 @@ namespace tunnel
 				if (idx >= 0 && idx < msg[0])
 				{	
 					uint8_t * record = msg + 1 + idx*sizeof (I2NPBuildResponseRecord);
+					decryption.SetIV (hop->replyIV);
 					decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
 				}	
 				else
