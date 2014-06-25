@@ -134,9 +134,9 @@ namespace tunnel
 				return m_LastHop;
 			}
 
-			size_t GetNumHops () const
+			int GetNumHops () const
 			{
-				size_t num = 0;
+				int num = 0;
 				TunnelHopConfig * hop = m_FirstHop;		
 				while (hop)
 				{
@@ -183,6 +183,8 @@ namespace tunnel
 						newConfig->m_LastHop = newHop; 
 						if (hop->isGateway) // inbound tunnel
 							newHop->SetReplyHop (m_FirstHop); // use it as reply tunnel
+						else
+							newHop->SetNextRouter (&i2p::context.GetRouterInfo ());
 					}	
 					if (!hop->next) newConfig->m_FirstHop = newHop; // last hop
 									

@@ -275,9 +275,9 @@ namespace tunnel
 		return tunnel;
 	}	
 
-	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination& localDestination)
+	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination& localDestination, int numHops)
 	{
-		auto pool = new TunnelPool (localDestination);
+		auto pool = new TunnelPool (localDestination, numHops);
 		m_Pools[pool->GetIdentHash ()] = pool;
 		return pool;
 	}	
@@ -441,7 +441,7 @@ namespace tunnel
 			LogPrint ("Creating zero hops inbound tunnel...");
 			CreateZeroHopsInboundTunnel ();
 			if (!m_ExploratoryPool)
-				m_ExploratoryPool = CreateTunnelPool (i2p::context);
+				m_ExploratoryPool = CreateTunnelPool (i2p::context, 2); // 2-hop exploratory
 			return;
 		}
 		

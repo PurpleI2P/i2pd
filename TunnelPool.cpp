@@ -10,8 +10,8 @@ namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::data::LocalDestination& localDestination, int numTunnels):
-		m_LocalDestination (localDestination), m_NumTunnels (numTunnels), m_LastOutboundTunnel (nullptr)
+	TunnelPool::TunnelPool (i2p::data::LocalDestination& localDestination, int numHops, int numTunnels):
+		m_LocalDestination (localDestination), m_NumHops (numHops), m_NumTunnels (numTunnels), m_LastOutboundTunnel (nullptr)
 	{
 	}
 
@@ -189,15 +189,18 @@ namespace tunnel
 		if (inboundTunnel)
 		{	
 			LogPrint ("Creating destination outbound tunnel...");
-			auto firstHop = i2p::data::netdb.GetRandomRouter (&i2p::context.GetRouterInfo ()); 
-			auto secondHop = i2p::data::netdb.GetRandomRouter (firstHop);	
+
+			const i2p::data::RouterInfo * prevHop = &i2p::context.GetRouterInfo ();
+			std::vector<const i2p::data::RouterInfo *> hops;
+			for (int i = 0; i < m_NumHops; i++)
+			{
+				auto hop = i2p::data::netdb.GetRandomRouter (prevHop);
+				prevHop = hop;
+				hops.push_back (hop);
+			}	
+				
 			auto * tunnel = tunnels.CreateTunnel<OutboundTunnel> (
-				new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
-					{                
-					    firstHop, 
-						secondHop
-			        },
-					inboundTunnel->GetTunnelConfig ()));
+				new TunnelConfig (hops, inboundTunnel->GetTunnelConfig ()));
 			tunnel->SetTunnelPool (this);
 		}	
 	}	
