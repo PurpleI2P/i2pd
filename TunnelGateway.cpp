@@ -107,13 +107,10 @@ namespace tunnel
 		}			
 	}
 	
-	const std::vector<I2NPMessage *> TunnelGatewayBuffer::GetTunnelDataMsgs ()
+	void TunnelGatewayBuffer::ClearTunnelDataMsgs ()
 	{
-		CompleteCurrentTunnelDataMessage ();
-		std::vector<I2NPMessage *> ret = m_TunnelDataMsgs; // TODO: implement it better
-		m_TunnelDataMsgs.clear ();	
-		return ret;
-	}	
+		m_TunnelDataMsgs.clear ();
+	}
 
 	void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage ()
 	{
@@ -162,6 +159,7 @@ namespace tunnel
 
 	void TunnelGateway::SendBuffer ()
 	{
+		m_Buffer.CompleteCurrentTunnelDataMessage ();
 		auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto tunnelMsg : tunnelMsgs)
 		{	
@@ -170,6 +168,7 @@ namespace tunnel
 			i2p::transports.SendMessage (m_Tunnel->GetNextIdentHash (), tunnelMsg);
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}	
+		m_Buffer.ClearTunnelDataMsgs ();
 	}	
 }		
 }	
