@@ -2,6 +2,7 @@
 #define TRANSIT_TUNNEL_H__
 
 #include <inttypes.h>
+#include <mutex>
 #include "aes.h"
 #include "I2NPProtocol.h"
 #include "TunnelEndpoint.h"
@@ -55,6 +56,7 @@ namespace tunnel
 			
 		private:
 
+			std::mutex m_SendMutex;
 			TunnelGateway m_Gateway;
 	};	
 

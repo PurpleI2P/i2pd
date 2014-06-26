@@ -48,6 +48,7 @@ namespace tunnel
 		TunnelMessageBlock block;
 		block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
+		std::unique_lock<std::mutex> l(m_SendMutex);
 		m_Gateway.SendTunnelDataMsg (block);
 	}		
 
