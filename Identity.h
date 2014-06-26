@@ -34,8 +34,8 @@ namespace data
 		uint8_t certificate[3];
 
 		Identity& operator=(const Keys& keys);
-		bool FromBase64(const std::string&);
-		IdentHash Hash();
+		bool FromBase64(const std::string& );
+		IdentHash Hash() const;
 	};	
 	
 	struct PrivateKeys // for eepsites
@@ -44,6 +44,10 @@ namespace data
 		uint8_t privateKey[256];
 		uint8_t signingPrivateKey[20];	
 
+		PrivateKeys () = default;
+		PrivateKeys (const PrivateKeys& ) = default;
+		PrivateKeys (const Keys& keys) { *this = keys; };
+		
 		PrivateKeys& operator=(const Keys& keys);
 	};
 	
@@ -74,7 +78,7 @@ namespace data
 			bool operator== (const IdentHash& other) const { return !memcmp (m_Hash, other.m_Hash, 32); };
 			bool operator< (const IdentHash& other) const { return memcmp (m_Hash, other.m_Hash, 32) < 0; };
 
-                        bool FromBase32(const std::string&);
+            bool FromBase32(const std::string&);
 
 		private:
 
@@ -85,14 +89,19 @@ namespace data
 	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
 	// kademlia
-	struct RoutingKey
+	union RoutingKey
 	{
 		uint8_t hash[32];
+		uint64_t hash_ll[4];
 	};	
 
 	struct XORMetric
 	{
-		uint8_t metric[32];
+		union
+		{	
+			uint8_t metric[32];
+			uint64_t metric_ll[4];	
+		};	
 
 		void SetMin () { memset (metric, 0, 32); };
 		void SetMax () { memset (metric, 0xFF, 32); };

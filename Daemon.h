@@ -1,5 +1,5 @@
 #pragma once
-#include <fstream>
+#include <string>
 
 #ifdef _WIN32
 #define Daemon i2p::util::DaemonWin32::Instance()
@@ -23,8 +23,6 @@ namespace i2p
 			int isDaemon;
 			
 			int running;
-
-			std::ofstream logfile;
 
 		protected:
 			Daemon_Singleton();

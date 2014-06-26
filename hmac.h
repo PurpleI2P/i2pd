@@ -18,38 +18,38 @@ namespace crypto
 	// digest is 16 bytes
 	// block size is 64 bytes	
 	{
-		uint8_t buf[2048];
+		uint64_t buf[256];
 		// ikeypad
-		((uint64_t *)buf)[0] = ((uint64_t *)key)[0] ^ IPAD; 
-		((uint64_t *)buf)[1] = ((uint64_t *)key)[1] ^ IPAD; 
-		((uint64_t *)buf)[2] = ((uint64_t *)key)[2] ^ IPAD; 
-		((uint64_t *)buf)[3] = ((uint64_t *)key)[3] ^ IPAD; 
-		((uint64_t *)buf)[4] = IPAD; 
-		((uint64_t *)buf)[5] = IPAD; 
-		((uint64_t *)buf)[6] = IPAD; 
-		((uint64_t *)buf)[7] = IPAD; 		
+		buf[0] = ((uint64_t *)key)[0] ^ IPAD; 
+		buf[1] = ((uint64_t *)key)[1] ^ IPAD; 
+		buf[2] = ((uint64_t *)key)[2] ^ IPAD; 
+		buf[3] = ((uint64_t *)key)[3] ^ IPAD; 
+		buf[4] = IPAD; 
+		buf[5] = IPAD; 
+		buf[6] = IPAD; 
+		buf[7] = IPAD; 		
 		// concatenate with msg
-		memcpy (buf + 64, msg, len);
+		memcpy (buf + 8, msg, len);
 		// calculate first hash
 		uint8_t hash[16]; // MD5
-		CryptoPP::Weak1::MD5().CalculateDigest (hash, buf, len + 64);
+		CryptoPP::Weak1::MD5().CalculateDigest (hash, (uint8_t *)buf, len + 64);
 		
 		// okeypad			
-		((uint64_t *)buf)[0] = ((uint64_t *)key)[0] ^ OPAD; 
-		((uint64_t *)buf)[1] = ((uint64_t *)key)[1] ^ OPAD; 
-		((uint64_t *)buf)[2] = ((uint64_t *)key)[2] ^ OPAD; 
-		((uint64_t *)buf)[3] = ((uint64_t *)key)[3] ^ OPAD; 
-		((uint64_t *)buf)[4] = OPAD; 
-		((uint64_t *)buf)[5] = OPAD; 
-		((uint64_t *)buf)[6] = OPAD; 
-		((uint64_t *)buf)[7] = OPAD; 
+		buf[0] = ((uint64_t *)key)[0] ^ OPAD; 
+		buf[1] = ((uint64_t *)key)[1] ^ OPAD; 
+		buf[2] = ((uint64_t *)key)[2] ^ OPAD; 
+		buf[3] = ((uint64_t *)key)[3] ^ OPAD; 
+		buf[4] = OPAD; 
+		buf[5] = OPAD; 
+		buf[6] = OPAD; 
+		buf[7] = OPAD; 
 		// copy first hash after okeypad		
-		memcpy (buf + 64, hash, 16);
+		memcpy (buf + 8, hash, 16);
 		// fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-		memset (buf + 80, 0, 16);			
+		memset (buf + 10, 0, 16);			
 		
 		// calculate digest
-		CryptoPP::Weak1::MD5().CalculateDigest (digest, buf, 96);
+		CryptoPP::Weak1::MD5().CalculateDigest (digest, (uint8_t *)buf, 96);
 	}
 }
 }

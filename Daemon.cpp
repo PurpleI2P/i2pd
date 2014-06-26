@@ -53,7 +53,7 @@ namespace i2p
 			//TODO: This is an ugly workaround. fix it.
 			//TODO: Autodetect public IP.
 			i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-				i2p::util::config::GetArg("-port", 17070));
+				i2p::util::config::GetArg("-port", 17007));
 
 			if (isLogging == 1)
 			{
@@ -63,12 +63,7 @@ namespace i2p
 #else
 				logfile_path.append("\\debug.log");
 #endif
-				logfile.open(logfile_path, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
-
-				if (!logfile.is_open())
-					exit(-17);
-
-				LogPrint("Logging to file enabled.");
+				g_Log.SetLogFile (logfile_path);
 
 				LogPrint("CMD parameters:");
 				for (int i = 0; i < argc; ++i)

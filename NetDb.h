@@ -33,6 +33,7 @@ namespace data
 			void ClearExcludedPeers ();
 			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
 			const i2p::tunnel::InboundTunnel * GetLastReplyTunnel () const { return m_LastReplyTunnel; };
+			void SetLastReplyTunnel (i2p::tunnel::InboundTunnel * tunnel) { m_LastReplyTunnel = tunnel; };
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsLeaseSet () const { return m_IsLeaseSet; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
@@ -75,9 +76,14 @@ namespace data
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			
-			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr, uint8_t caps = 0) const;
+			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr) const;
 
 			void PostI2NPMsg (I2NPMessage * msg);
+
+			// for web interface
+			int GetNumRouters () const { return m_RouterInfos.size (); };
+			int GetNumFloodfills () const { return m_Floodfills.size (); };
+			int GetNumLeaseSets () const { return m_LeaseSets.size (); };
 			
 		private:
 
@@ -85,7 +91,7 @@ namespace data
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
 			void Run (); // exploratory thread
-			void Explore ();
+			void Explore (int numDestinations);
 			void Publish ();
 			void ValidateSubscriptions ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;

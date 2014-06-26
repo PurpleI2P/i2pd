@@ -1,20 +1,29 @@
 #include "Log.h"
 
-#include "Daemon.h"
-
 Log g_Log;
 
 void LogMsg::Process()
 {
-	if (Daemon.isLogging == 1 && Daemon.logfile.is_open())
-		Daemon.logfile << s.str();
-
 	output << s.str();
+
+	std::cout << s.str (); // TODO: delete later
 }
 
 void Log::Flush ()
 {
-	if (Daemon.isLogging == 1 && Daemon.logfile.is_open())
-		Daemon.logfile.flush();
+	if (m_LogFile)
+		m_LogFile->flush();
 }
 
+void Log::SetLogFile (const std::string& fullFilePath)
+{
+	if (m_LogFile) delete m_LogFile;
+	m_LogFile = new std::ofstream (fullFilePath, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+	if (m_LogFile->is_open ())
+		LogPrint("Logging to file ",  fullFilePath, " enabled.");
+	else
+	{
+		delete m_LogFile;
+		m_LogFile = nullptr;
+	}
+}

@@ -1,8 +1,10 @@
 #ifndef LOG_H__
 #define LOG_H__
 
+#include <string>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <functional>
 #include "Queue.h"
 
@@ -20,11 +22,19 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 {
 	public:
 
-		Log () { SetOnEmpty (std::bind (&Log::Flush, this)); };
+		Log (): m_LogFile (nullptr) { SetOnEmpty (std::bind (&Log::Flush, this)); };
+		~Log () { delete m_LogFile; };
+
+		void SetLogFile (const std::string& fullFilePath);
+		std::ofstream * GetLogFile () const { return m_LogFile; };	
 
 	private:
 
 		void Flush ();
+
+	private:
+		
+		std::ofstream * m_LogFile;
 };
 
 extern Log g_Log;
@@ -45,7 +55,7 @@ void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
 template<typename... TArgs>
 void LogPrint (TArgs... args) 
 {
-	LogMsg * msg = new LogMsg ();
+	LogMsg * msg = g_Log.GetLogFile () ? new LogMsg (*g_Log.GetLogFile ()) : new LogMsg ();
 	LogPrint (msg->s, args...);
 	msg->s << std::endl;
 	g_Log.Put (msg);

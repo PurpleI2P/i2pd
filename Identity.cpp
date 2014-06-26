@@ -22,14 +22,14 @@ namespace data
 
 	bool Identity::FromBase64 (const std::string& s)
 	{
-		size_t count = Base64ToByteStream (s.c_str(), s.length(), reinterpret_cast<uint8_t*> (this), sizeof (Identity));
+		size_t count = Base64ToByteStream (s.c_str(), s.length(), publicKey, sizeof (Identity));
 		return count == sizeof(Identity);
 	}
 
-	IdentHash Identity::Hash()
+	IdentHash Identity::Hash() const 
 	{
 		IdentHash hash;
-		CryptoPP::SHA256().CalculateDigest(reinterpret_cast<uint8_t*>(&hash), reinterpret_cast<uint8_t*> (this), sizeof (Identity));
+		CryptoPP::SHA256().CalculateDigest(hash, publicKey, sizeof (Identity));
 		return hash;
 	}	
 	
@@ -40,11 +40,11 @@ namespace data
 		return *this;
 	}
 
-        bool IdentHash::FromBase32(const std::string& s)
-        {
-                size_t count = Base32ToByteStream(s.c_str(), s.length(), m_Hash, sizeof(m_Hash));
-                return count == sizeof(m_Hash);
-        }
+    bool IdentHash::FromBase32(const std::string& s)
+    {
+            size_t count = Base32ToByteStream(s.c_str(), s.length(), m_Hash, sizeof(m_Hash));
+            return count == sizeof(m_Hash);
+    }
 
 	Keys CreateRandomKeys ()
 	{
@@ -98,12 +98,11 @@ namespace data
 	
 	XORMetric operator^(const RoutingKey& key1, const RoutingKey& key2)
 	{
-		// TODO: implementation depends on CPU
 		XORMetric m;
-		((uint64_t *)m.metric)[0] = ((uint64_t *)key1.hash)[0] ^ ((uint64_t *)key2.hash)[0];
-		((uint64_t *)m.metric)[1] = ((uint64_t *)key1.hash)[1] ^ ((uint64_t *)key2.hash)[1];
-		((uint64_t *)m.metric)[2] = ((uint64_t *)key1.hash)[2] ^ ((uint64_t *)key2.hash)[2];
-		((uint64_t *)m.metric)[3] = ((uint64_t *)key1.hash)[3] ^ ((uint64_t *)key2.hash)[3];
+		m.metric_ll[0] = key1.hash_ll[0] ^ key2.hash_ll[0];
+		m.metric_ll[1] = key1.hash_ll[1] ^ key2.hash_ll[1];
+		m.metric_ll[2] = key1.hash_ll[2] ^ key2.hash_ll[2];
+		m.metric_ll[3] = key1.hash_ll[3] ^ key2.hash_ll[3];
 		return m;
 	}	
 }

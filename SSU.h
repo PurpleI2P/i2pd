@@ -2,13 +2,13 @@
 #define SSU_H__
 
 #include <inttypes.h>
+#include <string.h>
 #include <map>
 #include <list>
 #include <set>
 #include <thread>
 #include <boost/asio.hpp>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
+#include "aes.h"
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -48,15 +48,7 @@ namespace ssu
 
 	enum SessionState
 	{
-		eSessionStateUnknown,
-		eSessionStateRequestSent, 
-		eSessionStateRequestReceived,
-		eSessionStateCreatedSent,
-		eSessionStateCreatedReceived,
-		eSessionStateConfirmedSent,
-		eSessionStateConfirmedReceived,
-		eSessionStateRelayRequestSent,
-		eSessionStateRelayRequestReceived,	
+		eSessionStateUnknown,	
 		eSessionStateIntroduced,
 		eSessionStateEstablished,
 		eSessionStateFailed
@@ -85,7 +77,7 @@ namespace ssu
 
 		private:
 
-			void CreateAESandMacKey (const uint8_t * pubKey, uint8_t * aesKey, uint8_t * macKey); 
+			void CreateAESandMacKey (const uint8_t * pubKey); 
 
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
@@ -106,13 +98,14 @@ namespace ssu
 			void ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey); // Charlie to Alice
 			void ProcessData (uint8_t * buf, size_t len);		
-			void SendMsgAck (uint32_t msgID);
 			void SendSesionDestroyed ();
-			void Send (i2p::I2NPMessage * msg);
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
+			void Send (const uint8_t * buf, size_t size); 
 			
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
-			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);			
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len); // with session key 
+			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);
+			void DecryptSessionKey (uint8_t * buf, size_t len);
 			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
 			const uint8_t * GetIntroKey () const; 
 
@@ -120,7 +113,21 @@ namespace ssu
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:
-			
+
+			union IV
+			{
+				uint8_t buf[16];
+				uint64_t ll[2];
+
+				IV (const IV&) = default;
+				IV (const uint8_t * iv) { memcpy (buf, iv, 16); };
+				bool operator< (const IV& other) const
+				{
+					if (ll[0] != other.ll[0]) return ll[0] < other.ll[0];
+					return ll[1] < other.ll[1];
+				};
+			};			
+
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
@@ -132,10 +139,11 @@ namespace ssu
 			bool m_IsSessionKey;
 			uint32_t m_RelayTag;	
 			std::set<uint32_t> m_PeerTestNonces;
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_Encryption;	
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_Decryption;	
+			i2p::crypto::CBCEncryption m_SessionKeyEncryption;
+			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			uint8_t m_SessionKey[32], m_MacKey[32];
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
+			std::set<IV> m_ReceivedIVs;	
 			SSUData m_Data;
 	};
 
@@ -155,7 +163,7 @@ namespace ssu
 
 			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
-			void Send (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
+			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
 			SSUSession * FindRelaySession (uint32_t tag);
 

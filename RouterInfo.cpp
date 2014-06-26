@@ -214,7 +214,10 @@ namespace data
 				break;	
 				case 'C':
 					m_Caps |= Caps::eSSUIntroducer;
-				break;		
+				break;	
+				case 'H':
+					m_Caps |= Caps::eHidden;
+				break;	
 				default: ;
 			}	
 			cap++;

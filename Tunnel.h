@@ -8,8 +8,6 @@
 #include <string>
 #include <thread>
 #include <mutex>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
 #include "Queue.h"
 #include "TunnelConfig.h"
 #include "TunnelPool.h"
@@ -53,18 +51,9 @@ namespace tunnel
 			
 		private:
 
-			void LayerDecrypt (const uint8_t * in, size_t len, const uint8_t * layerKey, 
-				const uint8_t * iv, uint8_t * out);
-			void IVDecrypt (const uint8_t * in, const uint8_t * ivKey, uint8_t * out);	
-			
-		private:
-
 			TunnelConfig * m_Config;
 			TunnelPool * m_Pool; // pool, tunnel belongs to, or null
-			bool m_IsEstablished, m_IsFailed; 
-
-			CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_ECBDecryption;
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption m_CBCDecryption;
+			bool m_IsEstablished, m_IsFailed;
 	};	
 
 	class OutboundTunnel: public Tunnel 
@@ -125,7 +114,7 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
-			TunnelPool * CreateTunnelPool (i2p::data::LocalDestination& localDestination);
+			TunnelPool * CreateTunnelPool (i2p::data::LocalDestination& localDestination, int numHops);
 			void DeleteTunnelPool (TunnelPool * pool);
 			
 		private:

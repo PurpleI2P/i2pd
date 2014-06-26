@@ -31,7 +31,8 @@ namespace data
 				eHighBandwidth = 0x02,
 				eReachable = 0x04,
 				eSSUTesting = 0x08,
-				eSSUIntroducer = 0x10
+				eSSUIntroducer = 0x10,
+				eHidden = 0x20
 			};
 
 			enum TransportStyle
@@ -88,6 +89,8 @@ namespace data
 			bool UsesIntroducer () const;
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
 			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };
+			bool IsHidden () const { return m_Caps & eHidden; };
+
 			uint8_t GetCaps () const { return m_Caps; };			
 
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 

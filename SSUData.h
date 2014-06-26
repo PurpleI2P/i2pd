@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <map>
+#include <vector>
 #include "I2NPProtocol.h"
 
 namespace i2p
@@ -27,6 +28,12 @@ namespace ssu
 			~SSUData ();
 
 			void ProcessMessage (uint8_t * buf, size_t len);
+			void Send (i2p::I2NPMessage * msg);
+
+		private:
+
+			void SendMsgAck (uint32_t msgID);
+			void ProcessSentMessageAck (uint32_t msgID);
 
 		private:
 
@@ -40,6 +47,7 @@ namespace ssu
 
 			SSUSession& m_Session;
 			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
+			std::map<uint32_t, std::vector<uint8_t *> > m_SentMessages; // msgID -> fragments	
 	};	
 }
 }

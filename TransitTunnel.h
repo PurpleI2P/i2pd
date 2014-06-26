@@ -2,8 +2,7 @@
 #define TRANSIT_TUNNEL_H__
 
 #include <inttypes.h>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
+#include "aes.h"
 #include "I2NPProtocol.h"
 #include "TunnelEndpoint.h"
 #include "TunnelGateway.h"
@@ -36,12 +35,9 @@ namespace tunnel
 
 			uint32_t m_TunnelID, m_NextTunnelID;
 			i2p::data::IdentHash m_NextIdent;
-			uint8_t m_LayerKey[32];
-			uint8_t m_IVKey[32];
 			size_t m_NumTransmittedBytes;
 			
-			CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption m_ECBEncryption;
-			CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption m_CBCEncryption;
+			i2p::crypto::TunnelEncryption m_Encryption;
 	};	
 
 	class TransitTunnelGateway: public TransitTunnel

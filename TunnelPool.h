@@ -23,7 +23,7 @@ namespace tunnel
 	{
 		public:
 
-			TunnelPool (i2p::data::LocalDestination& localDestination, int numTunnels = 5);
+			TunnelPool (i2p::data::LocalDestination& localDestination, int numHops, int numTunnels = 5);
 			~TunnelPool ();
 
 			const uint8_t * GetEncryptionPrivateKey () const { return m_LocalDestination.GetEncryptionPrivateKey (); };
@@ -53,7 +53,7 @@ namespace tunnel
 		private:
 
 			i2p::data::LocalDestination& m_LocalDestination;
-			int m_NumTunnels;
+			int m_NumHops, m_NumTunnels;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
 			std::map<uint32_t, std::pair<OutboundTunnel *, InboundTunnel *> > m_Tests;
