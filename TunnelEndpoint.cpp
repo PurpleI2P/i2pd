@@ -19,6 +19,17 @@ namespace tunnel
 		{	
 			LogPrint ("TunnelMessage: zero found at ", (int)(zero-decrypted));
 			uint8_t * fragment = zero + 1;
+			// verify checksum
+			memcpy (msg->GetPayload () + TUNNEL_DATA_MSG_SIZE, msg->GetPayload () + 4, 16); // copy iv to the end
+			uint8_t hash[32];
+			CryptoPP::SHA256().CalculateDigest (hash, fragment, TUNNEL_DATA_MSG_SIZE -(fragment - msg->GetPayload ()) + 16); // payload + iv
+			if (memcmp (hash, decrypted, 4))
+			{
+				LogPrint ("TunnelMessage: checksum verification failed");
+				i2p::DeleteI2NPMessage (msg);
+				return;
+			}	
+			// process fragments
 			while (fragment < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 			{
 				uint8_t flag = fragment[0];
