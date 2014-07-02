@@ -44,7 +44,8 @@ inline void StartLog (const std::string& fullFilePath)
 	if (!g_Log)
 	{	
 		g_Log = new Log ();
-		g_Log->SetLogFile (fullFilePath);
+		if (fullFilePath.length () > 0)
+			g_Log->SetLogFile (fullFilePath);
 	}	
 }
 
