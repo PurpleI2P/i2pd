@@ -65,7 +65,7 @@ namespace util
 				return m_Queue.empty ();
 			}
 			
-			void WakeUp () { m_NonEmpty.notify_one (); };
+			void WakeUp () { m_NonEmpty.notify_all (); };
 
 			Element * Get ()
 			{
@@ -108,11 +108,15 @@ namespace util
 			typedef std::function<void()> OnEmpty;
 
 			MsgQueue (): m_IsRunning (true), m_Thread (std::bind (&MsgQueue<Msg>::Run, this))  {};
+			~MsgQueue () { Stop (); };
 			void Stop()
 			{
-				m_IsRunning = false;
-				Queue<Msg>::WakeUp ();					
-				m_Thread.join();
+				if (m_IsRunning)
+				{
+					m_IsRunning = false;
+					Queue<Msg>::WakeUp ();					
+					m_Thread.join();
+				}
 			}
 
 			void SetOnEmpty (OnEmpty const & e) { m_OnEmpty = e; };

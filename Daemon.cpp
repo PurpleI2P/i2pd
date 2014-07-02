@@ -55,7 +55,17 @@ namespace i2p
 			i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
 				i2p::util::config::GetArg("-port", 17007));
 
-			if (isLogging == 1)
+			LogPrint("CMD parameters:");
+			for (int i = 0; i < argc; ++i)
+				LogPrint(i, "  ", argv[i]);
+
+			return true;
+		}
+			
+		bool Daemon_Singleton::start()
+		{
+			// initialize log			
+			if (isLogging)
 			{
 				std::string logfile_path = i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
@@ -63,18 +73,9 @@ namespace i2p
 #else
 				logfile_path.append("\\debug.log");
 #endif
-				g_Log.SetLogFile (logfile_path);
-
-				LogPrint("CMD parameters:");
-				for (int i = 0; i < argc; ++i)
-					LogPrint(i, "  ", argv[i]);
-
+				StartLog (logfile_path);
 			}
-			return true;
-		}
-			
-		bool Daemon_Singleton::start()
-		{
+
 			d.httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
 			d.httpServer->Start();
 			LogPrint("HTTPServer started");
@@ -115,14 +116,10 @@ namespace i2p
 			LogPrint("NetDB stoped");
 			d.httpServer->Stop();
 			LogPrint("HTTPServer stoped");
+			StopLog ();
 
 			delete d.httpProxy; d.httpProxy = nullptr;
 			delete d.httpServer; d.httpServer = nullptr;
-
-			if (isLogging == 1)
-			{
-				fclose(stdout);
-			}
 
 			return true;
 		}
