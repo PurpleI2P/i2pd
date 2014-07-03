@@ -537,6 +537,18 @@ namespace data
 	
 	void NetDb::Explore (int numDestinations)
 	{	
+		// clean up previous exploratories
+		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
+		{
+			if (it->second->IsExploratory ())
+			{
+				delete it->second;
+				it = m_RequestedDestinations.erase (it);
+			}
+			else
+				it++;
+		}	
+		// new requests
 		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
 		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
