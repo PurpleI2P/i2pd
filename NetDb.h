@@ -95,12 +95,13 @@ namespace data
 			void Publish ();
 			void ValidateSubscriptions ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
+			void KeyspaceRotation ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
 				bool isLeaseSet, bool isExploratory = false);
 			void DeleteRequestedDestination (const IdentHash& dest);
 			void DeleteRequestedDestination (RequestedDestination * dest);
-			
+		
 		private:
 
 			std::map<IdentHash, LeaseSet *> m_LeaseSets;
