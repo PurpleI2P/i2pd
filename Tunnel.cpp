@@ -399,6 +399,7 @@ namespace tunnel
 				if (pool)
 					pool->TunnelExpired (*it);
 				it = m_OutboundTunnels.erase (it);
+				// TODO: delete tunnel, but make nobody uses it
 			}	
 			else 
 				it++;
@@ -431,6 +432,7 @@ namespace tunnel
 				if (pool)
 					pool->TunnelExpired (it->second);
 				it = m_InboundTunnels.erase (it);
+				// TODO: delete tunnel, but make nobody uses it
 			}	
 			else 
 				it++;
@@ -465,7 +467,9 @@ namespace tunnel
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
 				LogPrint ("Transit tunnel ", it->second->GetTunnelID (), " expired");
+				auto tmp = it->second;
 				it = m_TransitTunnels.erase (it);
+				delete tmp;
 			}	
 			else 
 				it++;
