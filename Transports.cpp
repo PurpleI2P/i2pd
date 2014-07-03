@@ -245,7 +245,10 @@ namespace i2p
 						if (s)
 							s->SendI2NPMessage (msg);
 						else
+						{
 							LogPrint ("No NTCP and SSU addresses available");
+							DeleteI2NPMessage (msg); 
+						}
 					}
 				}	
 			}
@@ -253,6 +256,7 @@ namespace i2p
 			{
 				LogPrint ("Router not found. Requested");
 				i2p::data::netdb.RequestDestination (ident);
+				DeleteI2NPMessage (msg); // TODO: implement a placeholder for router and send once it's available
 			}	
 		}	
 	}	
