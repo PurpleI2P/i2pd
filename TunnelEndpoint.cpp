@@ -125,23 +125,25 @@ namespace tunnel
 								if (fragmentNum == it->second.nextFragmentNum)
 								{
 									I2NPMessage * incompleteMessage = it->second.data; 
-									if (incompleteMessage->len + size >= I2NP_MAX_MESSAGE_SIZE)
+									if (incompleteMessage->len + size < I2NP_MAX_MESSAGE_SIZE) // check if messega is not too long
+									{	
+										memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
+										incompleteMessage->len += size;
+										if (isLastFragment)
+										{
+											// message complete
+											HandleNextMessage (it->second);	
+											m_IncompleteMessages.erase (it); 
+										}	
+										else
+											it->second.nextFragmentNum++;
+									}
+									else
 									{
 										LogPrint ("Fragment ", fragmentNum, " of message ", msgID, "exceeds max I2NP message size. Message dropped");
 										i2p::DeleteI2NPMessage (it->second.data);
 										m_IncompleteMessages.erase (it);
-										continue;
 									}
-									memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
-									incompleteMessage->len += size;
-									if (isLastFragment)
-									{
-										// message complete
-										HandleNextMessage (it->second);	
-										m_IncompleteMessages.erase (it); 
-									}	
-									else
-										it->second.nextFragmentNum++;
 								}
 								else
 								{	
@@ -157,6 +159,9 @@ namespace tunnel
 								// last message is follow-on fragment
 								// not passed to anywhere because first fragment
 								i2p::DeleteI2NPMessage (msg);
+							else
+								// delete temporarty copy used for first fragment only
+								i2p::DeleteI2NPMessage (m.data);
 						}	
 					}
 					else
