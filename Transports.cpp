@@ -230,9 +230,9 @@ namespace i2p
 				else
 				{	
 					// existing session not found. create new 
-					// try NTCP first
+					// try NTCP first if message size < 16K
 					auto address = r->GetNTCPAddress ();
-					if (address && !r->UsesIntroducer () && !r->IsUnreachable ())
+					if (address && !r->UsesIntroducer () && !r->IsUnreachable () && msg->GetLength () < i2p::ntcp::NTCP_MAX_MESSAGE_SIZE)
 					{	
 						auto s = new i2p::ntcp::NTCPClient (m_Service, address->host, address->port, *r);
 						AddNTCPSession (s);

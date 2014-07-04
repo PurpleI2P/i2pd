@@ -62,6 +62,7 @@ namespace ntcp
 	
 #pragma pack()	
 
+	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 	class NTCPSession
 	{
@@ -135,7 +136,7 @@ namespace ntcp
 			NTCPPhase3 m_Phase3;
 			NTCPPhase4 m_Phase4;
 			
-			uint8_t m_ReceiveBuffer[i2p::NTCP_MAX_MESSAGE_SIZE*2], m_TimeSyncBuffer[16];
+			uint8_t m_ReceiveBuffer[NTCP_MAX_MESSAGE_SIZE*2], m_TimeSyncBuffer[16];
 			int m_ReceiveBufferOffset; 
 
 			i2p::I2NPMessage * m_NextMessage;

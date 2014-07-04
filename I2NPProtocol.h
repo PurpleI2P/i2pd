@@ -100,10 +100,10 @@ namespace tunnel
 	class InboundTunnel;
 }
 
-	const int NTCP_MAX_MESSAGE_SIZE = 16384; 
+	const size_t I2NP_MAX_MESSAGE_SIZE = 32768; 
 	struct I2NPMessage
 	{	
-		uint8_t buf[NTCP_MAX_MESSAGE_SIZE];	
+		uint8_t buf[I2NP_MAX_MESSAGE_SIZE];	
 		size_t len, offset;
 		i2p::tunnel::InboundTunnel * from;
 		

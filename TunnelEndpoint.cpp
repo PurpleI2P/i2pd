@@ -125,6 +125,13 @@ namespace tunnel
 								if (fragmentNum == it->second.nextFragmentNum)
 								{
 									I2NPMessage * incompleteMessage = it->second.data; 
+									if (incompleteMessage->len + size >= I2NP_MAX_MESSAGE_SIZE)
+									{
+										LogPrint ("Fragment ", fragmentNum, " of message ", msgID, "exceeds max I2NP message size. Message dropped");
+										i2p::DeleteI2NPMessage (it->second.data);
+										m_IncompleteMessages.erase (it);
+										continue;
+									}
 									memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
 									incompleteMessage->len += size;
 									if (isLastFragment)
@@ -139,7 +146,8 @@ namespace tunnel
 								else
 								{	
 									LogPrint ("Unexpected fragment ", fragmentNum, " instead ", it->second.nextFragmentNum, " of message ", msgID, ". Discarded");
-									m_IncompleteMessages.erase (it); // TODO: store unexpect fragment for a while
+									i2p::DeleteI2NPMessage (it->second.data);
+									m_IncompleteMessages.erase (it); // TODO: store unexpected fragment for a while
 								}
 							}
 							else
