@@ -91,7 +91,6 @@ namespace tunnel
 
 				msg->offset = fragment - msg->buf;
 				msg->len = msg->offset + size;
-				bool isLastMessage = false;
 				if (fragment + size < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 				{
 					// this is not last message. we have to copy it
@@ -101,10 +100,7 @@ namespace tunnel
 					*(m.data) = *msg;
 				}
 				else
-				{	
 					m.data = msg;
-					isLastMessage = true;
-				}
 				
 				if (!isFollowOnFragment && isLastFragment)
 					HandleNextMessage (m);
@@ -119,49 +115,8 @@ namespace tunnel
 						}
 						else
 						{
-							auto it = m_IncompleteMessages.find (msgID);
-							if (it != m_IncompleteMessages.end())
-							{
-								if (fragmentNum == it->second.nextFragmentNum)
-								{
-									I2NPMessage * incompleteMessage = it->second.data; 
-									if (incompleteMessage->len + size < I2NP_MAX_MESSAGE_SIZE) // check if messega is not too long
-									{	
-										memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
-										incompleteMessage->len += size;
-										if (isLastFragment)
-										{
-											// message complete
-											HandleNextMessage (it->second);	
-											m_IncompleteMessages.erase (it); 
-										}	
-										else
-											it->second.nextFragmentNum++;
-									}
-									else
-									{
-										LogPrint ("Fragment ", fragmentNum, " of message ", msgID, "exceeds max I2NP message size. Message dropped");
-										i2p::DeleteI2NPMessage (it->second.data);
-										m_IncompleteMessages.erase (it);
-									}
-								}
-								else
-								{	
-									LogPrint ("Unexpected fragment ", fragmentNum, " instead ", it->second.nextFragmentNum, " of message ", msgID, ". Discarded");
-									i2p::DeleteI2NPMessage (it->second.data);
-									m_IncompleteMessages.erase (it); // TODO: store unexpected fragment for a while
-								}
-							}
-							else
-								LogPrint ("First fragment of message ", msgID, " not found. Discarded");
-
-							if (isLastMessage) 
-								// last message is follow-on fragment
-								// not passed to anywhere because first fragment
-								i2p::DeleteI2NPMessage (msg);
-							else
-								// delete temporarty copy used for first fragment only
-								i2p::DeleteI2NPMessage (m.data);
+							m.nextFragmentNum = fragmentNum;
+							HandleFollowOnFragment (msgID, isLastFragment, m);
 						}	
 					}
 					else
@@ -178,6 +133,49 @@ namespace tunnel
 		}	
 	}	
 
+	void TunnelEndpoint::HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, const TunnelMessageBlockEx& m)
+	{
+		auto fragment = m.data->GetBuffer ();
+		auto size = m.data->GetLength ();
+		auto it = m_IncompleteMessages.find (msgID);
+		if (it != m_IncompleteMessages.end())
+		{
+			if (m.nextFragmentNum == it->second.nextFragmentNum)
+			{
+				I2NPMessage * incompleteMessage = it->second.data; 
+				if (incompleteMessage->len + size < I2NP_MAX_MESSAGE_SIZE) // check if messega is not too long
+				{	
+					memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
+					incompleteMessage->len += size;
+					if (isLastFragment)
+					{
+						// message complete
+						HandleNextMessage (it->second);	
+						m_IncompleteMessages.erase (it); 
+					}	
+					else
+						it->second.nextFragmentNum++;
+				}
+				else
+				{
+					LogPrint ("Fragment ", m.nextFragmentNum, " of message ", msgID, "exceeds max I2NP message size. Message dropped");
+					i2p::DeleteI2NPMessage (it->second.data);
+					m_IncompleteMessages.erase (it);
+				}
+			}
+			else
+			{	
+				LogPrint ("Unexpected fragment ", m.nextFragmentNum, " instead ", it->second.nextFragmentNum, " of message ", msgID, ". Discarded");
+				i2p::DeleteI2NPMessage (it->second.data);
+				m_IncompleteMessages.erase (it); // TODO: store unexpected fragment for a while
+			}
+		}
+		else
+			LogPrint ("First fragment of message ", msgID, " not found. Discarded");
+
+		i2p::DeleteI2NPMessage (m.data);
+	}	
+	
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
 		LogPrint ("TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes. Msg type ", (int)msg.data->GetHeader()->typeID);
