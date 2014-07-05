@@ -21,6 +21,7 @@ namespace tunnel
 		public:
 
 			TunnelEndpoint (): m_NumReceivedBytes (0) {};
+			~TunnelEndpoint ();
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
 			void HandleDecryptedTunnelDataMsg (I2NPMessage * msg);

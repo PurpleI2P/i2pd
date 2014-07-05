@@ -9,6 +9,12 @@ namespace i2p
 {
 namespace tunnel
 {
+	TunnelEndpoint::~TunnelEndpoint ()
+	{
+		for (auto it: m_IncompleteMessages)
+			i2p::DeleteI2NPMessage (it.second.data);
+	}	
+	
 	void TunnelEndpoint::HandleDecryptedTunnelDataMsg (I2NPMessage * msg)
 	{
 		m_NumReceivedBytes += TUNNEL_DATA_MSG_SIZE;
