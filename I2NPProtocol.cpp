@@ -1,4 +1,5 @@
 #include <string.h>
+#include <atomic>
 #include "I2PEndian.h"
 #include <cryptopp/sha.h>
 #include <cryptopp/gzip.h>
@@ -29,7 +30,7 @@ namespace i2p
 		delete msg;
 	}	
 
-	static uint32_t I2NPmsgID = 0; // TODO: create class
+	static std::atomic<uint32_t> I2NPmsgID(0); // TODO: create class
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID)
 	{
 		I2NPHeader * header = msg->GetHeader ();

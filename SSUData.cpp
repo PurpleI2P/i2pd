@@ -98,7 +98,7 @@ namespace ssu
 					}	
 					else if (fragmentNum < it->second->nextFragmentNum)
 						// duplicate fragment
-						LogPrint ("Duplicate fragment ", fragmentNum, " of message ", msgID, ". Ignored");	
+						LogPrint ("Duplicate fragment ", (int)fragmentNum, " of message ", msgID, ". Ignored");	
 					else
 					{
 						// missing fragment
@@ -108,7 +108,7 @@ namespace ssu
  						
 					if (isLast)
 					{
-						if (!msg)
+						if (!msg)	
 							DeleteI2NPMessage (it->second->msg);
 						delete it->second;
 						m_IncomleteMessages.erase (it);
@@ -116,7 +116,7 @@ namespace ssu
 				}
 				else
 					// TODO:
-					LogPrint ("Unexpected follow-on fragment ", fragmentNum, " of message ", msgID);	
+					LogPrint ("Unexpected follow-on fragment ", (int)fragmentNum, " of message ", msgID);	
 			}
 			else // first fragment
 			{
@@ -156,6 +156,12 @@ namespace ssu
 	void SSUData::Send (i2p::I2NPMessage * msg)
 	{
 		uint32_t msgID = msg->ToSSU ();
+		if (m_SentMessages.count (msgID) > 0)
+		{
+			LogPrint ("SSU message ", msgID, " already sent");
+			DeleteI2NPMessage (msg);
+			return;
+		}		
 		auto fragments = m_SentMessages[msgID];
 		msgID = htobe32 (msgID);	
 		size_t payloadSize = SSU_MTU - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 

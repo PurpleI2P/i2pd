@@ -626,7 +626,7 @@ namespace ssu
 		if (!m_DelayedMessages.empty ())
 		{
 			for (auto it :m_DelayedMessages)
-				delete it;
+				DeleteI2NPMessage (it);
 			m_DelayedMessages.clear ();
 		}	
 	}	
