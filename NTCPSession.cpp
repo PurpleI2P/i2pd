@@ -23,12 +23,13 @@ namespace ntcp
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false), 
 		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), m_NextMessage (nullptr)
 	{		
-		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();	
 	}
 	
 	NTCPSession::~NTCPSession ()
 	{
 		delete m_DHKeysPair;
+		delete m_NextMessage;
 	}
 
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)

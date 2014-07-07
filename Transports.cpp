@@ -52,6 +52,7 @@ namespace i2p
 			{
 				i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
 				i2p::data::CreateRandomDHKeysPair (pair);
+				std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 				m_Queue.push (pair);
 			}
 		}
@@ -61,6 +62,7 @@ namespace i2p
 	{
 		if (!m_Queue.empty ())
 		{
+			std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 			auto pair = m_Queue.front ();
 			m_Queue.pop ();
 			m_Acquired.notify_one ();
