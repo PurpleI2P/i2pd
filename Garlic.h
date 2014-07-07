@@ -98,6 +98,7 @@ namespace garlic
 			
 		private:
 
+			typedef i2p::data::Tag<32> SessionTag;
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue;
@@ -106,7 +107,7 @@ namespace garlic
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 			// incoming session
 			std::list<i2p::crypto::CBCDecryption *> m_SessionDecryptions; // multiple tags refer to one decyption
-			std::map<std::string, i2p::crypto::CBCDecryption *> m_SessionTags; // tag -> decryption
+			std::map<SessionTag, i2p::crypto::CBCDecryption *> m_SessionTags; // tag -> decryption
 	};	
 
 	extern GarlicRouting routing;

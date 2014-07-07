@@ -114,20 +114,7 @@ namespace ssu
 			
 		private:
 
-			union IV
-			{
-				uint8_t buf[16];
-				uint64_t ll[2];
-
-				IV (const IV&) = default;
-				IV (const uint8_t * iv) { memcpy (buf, iv, 16); };
-				bool operator< (const IV& other) const
-				{
-					if (ll[0] != other.ll[0]) return ll[0] < other.ll[0];
-					return ll[1] < other.ll[1];
-				};
-			};			
-
+			typedef i2p::data::Tag<16> IV;			
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;

@@ -297,8 +297,7 @@ namespace garlic
 		uint8_t * buf = msg->GetPayload ();
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
-		std::string sessionTag((const char *)buf, 32);
-		auto it = m_SessionTags.find (sessionTag);
+		auto it = m_SessionTags.find (SessionTag(buf));
 		if (it != m_SessionTags.end ())
 		{
 			// existing session
@@ -340,7 +339,7 @@ namespace garlic
 		uint16_t tagCount = be16toh (*(uint16_t *)buf);
 		buf += 2;
 		for (int i = 0; i < tagCount; i++)
-			m_SessionTags[std::string ((const char *)(buf + i*32), 32)] = decryption;
+			m_SessionTags[SessionTag(buf + i*32)] = decryption;
 		buf += tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
 		if (payloadSize > len)
