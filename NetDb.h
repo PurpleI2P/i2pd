@@ -25,7 +25,8 @@ namespace data
 
 			RequestedDestination (const IdentHash& destination, bool isLeaseSet, bool isExploratory = false):
 				m_Destination (destination), m_IsLeaseSet (isLeaseSet), m_IsExploratory (isExploratory), 
-				m_LastRouter (nullptr), m_LastReplyTunnel (nullptr), m_LastOutboundTunnel (nullptr) {};
+				m_LastRouter (nullptr), m_LastReplyTunnel (nullptr), m_LastOutboundTunnel (nullptr),
+				m_CreationTime (0) {};
 			
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
@@ -37,6 +38,7 @@ namespace data
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsLeaseSet () const { return m_IsLeaseSet; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
+			uint64_t GetCreationTime () const { return m_CreationTime; };
 			I2NPMessage * CreateRequestMessage (const RouterInfo * router, const i2p::tunnel::InboundTunnel * replyTunnel);
 			I2NPMessage * CreateRequestMessage (const IdentHash& floodfill);
 			
@@ -51,6 +53,7 @@ namespace data
 			const RouterInfo * m_LastRouter;
 			const i2p::tunnel::InboundTunnel * m_LastReplyTunnel;
 			i2p::tunnel::OutboundTunnel * m_LastOutboundTunnel;
+			uint64_t m_CreationTime;
 	};	
 	
 	class NetDb

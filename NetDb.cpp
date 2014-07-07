@@ -29,6 +29,7 @@ namespace data
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_LastReplyTunnel = replyTunnel;
+		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}	
 
@@ -39,6 +40,7 @@ namespace data
 		m_ExcludedPeers.insert (floodfill);
 		m_LastRouter = nullptr;
 		m_LastReplyTunnel = nullptr;
+		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}	
 
@@ -543,9 +545,10 @@ namespace data
 	void NetDb::Explore (int numDestinations)
 	{	
 		// clean up previous exploratories
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();	
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
-			if (it->second->IsExploratory ())
+			if (it->second->IsExploratory () || ts > it->second->GetCreationTime () + 60) // no response for 1 minute
 			{
 				delete it->second;
 				it = m_RequestedDestinations.erase (it);
