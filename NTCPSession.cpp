@@ -34,7 +34,7 @@ namespace ntcp
 
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
 	{
-		CryptoPP::DH dh (elgp, elgg);
+		CryptoPP::DH dh (elgp(), elgg());
 		uint8_t sharedKey[256];
 		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
@@ -304,7 +304,7 @@ namespace ntcp
 			s.tsB = tsB;
 			
 			CryptoPP::DSA::PublicKey pubKey;
-			pubKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
+			pubKey.Initialize (dsap(), dsaq(), dsag(), CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
 			CryptoPP::DSA::Verifier verifier (pubKey);
 			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Phase3.signature, 40))
 			{	
@@ -371,7 +371,7 @@ namespace ntcp
 			s.tsB = m_Phase2.encrypted.timestamp;
 
 			CryptoPP::DSA::PublicKey pubKey;
-			pubKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
+			pubKey.Initialize (dsap(), dsaq(), dsag(), CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
 			CryptoPP::DSA::Verifier verifier (pubKey);
 			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Phase4.signature, 40))
 			{	

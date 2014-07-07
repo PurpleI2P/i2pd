@@ -39,6 +39,8 @@ set ( SOURCES
         TunnelPool.cpp
         util.cpp
 	Daemon.cpp
+	CryptoConst.cpp
+	aes.cpp
 )
 
 set ( HEADERS
@@ -68,6 +70,8 @@ set ( HEADERS
         TunnelPool.h
         util.h
 	Daemon.h
+	CryptoConst.h
+	aes.h
 )
 
 if (WIN32)

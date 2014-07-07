@@ -19,7 +19,7 @@ namespace i2p
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::CreateRandomKeys ();
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+		m_SigningPrivateKey.Initialize (i2p::crypto::dsap(), i2p::crypto::dsaq(), i2p::crypto::dsag(), 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		UpdateRouterInfo ();
 	}
@@ -76,7 +76,7 @@ namespace i2p
 		if (!fk.is_open ())	return false;
 			
 		fk.read ((char *)&m_Keys, sizeof (m_Keys));
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+		m_SigningPrivateKey.Initialize (i2p::crypto::dsap(), i2p::crypto::dsaq(), i2p::crypto::dsag(), 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 
 		m_RouterInfo = i2p::data::RouterInfo (i2p::util::filesystem::GetFullPath (ROUTER_INFO).c_str ()); // TODO

@@ -52,13 +52,13 @@ namespace data
 		CryptoPP::AutoSeededRandomPool rnd;
 
 		// encryption
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+		CryptoPP::DH dh (i2p::crypto::elgp(), i2p::crypto::elgg());
 		dh.GenerateKeyPair(rnd, keys.privateKey, keys.publicKey);
 
 		// signing
 		CryptoPP::DSA::PrivateKey privateKey;
 		CryptoPP::DSA::PublicKey publicKey;
-		privateKey.Initialize (rnd, i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag);
+		privateKey.Initialize (rnd, i2p::crypto::dsap(), i2p::crypto::dsaq(), i2p::crypto::dsag());
 		privateKey.MakePublicKey (publicKey);
 		privateKey.GetPrivateExponent ().Encode (keys.signingPrivateKey, 20);	
 		publicKey.GetPublicElement ().Encode (keys.signingKey, 128);
@@ -70,7 +70,7 @@ namespace data
 	{
 		if (!keys) return;
 		CryptoPP::AutoSeededRandomPool rnd;
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+		CryptoPP::DH dh (i2p::crypto::elgp(), i2p::crypto::elgg());
 		dh.GenerateKeyPair(rnd, keys->privateKey, keys->publicKey);
 	}
 

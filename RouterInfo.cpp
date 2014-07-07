@@ -66,7 +66,7 @@ namespace data
 		ReadFromStream (str);
 		// verify signature
 		CryptoPP::DSA::PublicKey pubKey;
-		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RouterIdentity.signingKey, 128));
+		pubKey.Initialize (i2p::crypto::dsap(), i2p::crypto::dsaq(), i2p::crypto::dsag(), CryptoPP::Integer (m_RouterIdentity.signingKey, 128));
 		CryptoPP::DSA::Verifier verifier (pubKey);
 		int l = m_BufferLen - 40;
 		if (!verifier.VerifyMessage ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l, 40))
