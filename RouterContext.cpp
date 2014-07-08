@@ -34,9 +34,9 @@ namespace i2p
 		routerInfo.AddSSUAddress ("127.0.0.1", 17007, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
 		routerInfo.SetProperty ("caps", "LR");
-		routerInfo.SetProperty ("coreVersion", "0.9.8.1");
+		routerInfo.SetProperty ("coreVersion", "0.9.11");
 		routerInfo.SetProperty ("netId", "2");
-		routerInfo.SetProperty ("router.version", "0.9.8.1");
+		routerInfo.SetProperty ("router.version", "0.9.11");
 		routerInfo.SetProperty ("start_uptime", "90m");
 		routerInfo.CreateBuffer ();
 

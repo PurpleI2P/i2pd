@@ -95,7 +95,8 @@ namespace i2p
 	}
 
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
-		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
+		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers,
+	    bool encryption)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		uint8_t * buf = m->GetPayload ();
@@ -105,12 +106,13 @@ namespace i2p
 		buf += 32;
 		if (replyTunnelID)
 		{
-			*buf = 0x01; // set delivery flag
+			*buf = encryption ? 0x03: 0x01; // set delivery flag
 			*(uint32_t *)(buf+1) = htobe32 (replyTunnelID);
 			buf += 5;
 		}
 		else
 		{	
+			encryption = false; // encryption can we set for tunnels only
 			*buf = 0; // flag
 			buf++;
 		}	
@@ -142,6 +144,16 @@ namespace i2p
 				*(uint16_t *)buf = htobe16 (0);
 				buf += 2;
 			}	
+		}	
+		if (encryption)
+		{
+			// session key and tag for reply
+			auto& rnd = i2p::context.GetRandomNumberGenerator ();
+			rnd.GenerateBlock (buf, 32); // key
+			buf[32] = 1; // 1 tag
+			rnd.GenerateBlock (buf + 33, 32); // tag
+			i2p::garlic::routing.AddSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
+			buf += 65;
 		}	
 		m->len += (buf - m->GetPayload ()); 
 		FillI2NPMessageHeader (m, eI2NPDatabaseLookup);

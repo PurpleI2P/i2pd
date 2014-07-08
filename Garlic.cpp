@@ -398,7 +398,7 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint ("Garlic type local");
-					i2p::HandleI2NPMessage (buf, len);
+					i2p::HandleI2NPMessage (CreateI2NPMessage (buf, len));
 				break;	
 				case eGarlicDeliveryTypeDestination:
 				{	
