@@ -249,11 +249,18 @@ namespace garlic
 		for (auto it: m_Sessions)
 			delete it.second;
 		m_Sessions.clear ();
-		for (auto it: m_SessionDecryptions)
-			delete it;
-		m_SessionDecryptions.clear ();
+		// TODO: delete remaining session decryptions
+		m_SessionTags.clear ();
 	}	
 
+	void GarlicRouting::AddSessionKey (const uint8_t * key, const uint8_t * tag)
+	{
+		SessionDecryption * decryption = new SessionDecryption;
+		decryption->SetKey (key);
+		decryption->SetTagCount (1);
+		m_SessionTags[SessionTag(tag)] = decryption;
+	}	
+		
 	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg)
 	{
 		auto it = m_Sessions.find (destination.GetIdentHash ());
@@ -305,7 +312,9 @@ namespace garlic
 			CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
 			it->second->SetIV (iv);
 			it->second->Decrypt (buf + 32, length - 32, buf + 32);
+			it->second->UseTag ();
 			HandleAESBlock (buf + 32, length - 32, it->second);
+			if (!it->second->GetTagCount ()) delete it->second; // all tags were used
 			m_SessionTags.erase (it); // tag might be used only once
 		}
 		else
@@ -319,8 +328,7 @@ namespace garlic
 			   	pool ? pool->GetEncryptionPrivateKey () : i2p::context.GetPrivateKey (), 
 				buf, (uint8_t *)&elGamal, true))
 			{	
-				i2p::crypto::CBCDecryption * decryption = new i2p::crypto::CBCDecryption;
-				m_SessionDecryptions.push_back (decryption);
+				SessionDecryption * decryption = new SessionDecryption;
 				decryption->SetKey (elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes
 				CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
@@ -334,12 +342,16 @@ namespace garlic
 		DeleteI2NPMessage (msg);	
 	}	
 
-	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, i2p::crypto::CBCDecryption * decryption)
+	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption)
 	{
 		uint16_t tagCount = be16toh (*(uint16_t *)buf);
-		buf += 2;
-		for (int i = 0; i < tagCount; i++)
-			m_SessionTags[SessionTag(buf + i*32)] = decryption;
+		buf += 2;	
+		if (tagCount > 0)
+		{	
+			decryption->SetTagCount (tagCount);
+			for (int i = 0; i < tagCount; i++)
+				m_SessionTags[SessionTag(buf + i*32)] = decryption;	
+		}	
 		buf += tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
 		if (payloadSize > len)

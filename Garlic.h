@@ -74,6 +74,21 @@ namespace garlic
 
 	class GarlicRouting
 	{
+			typedef i2p::data::Tag<32> SessionTag;
+			class SessionDecryption: public i2p::crypto::CBCDecryption
+			{
+				public:
+
+					SessionDecryption (): m_TagCount (0) {};
+					void SetTagCount (int tagCount) { m_TagCount = tagCount; };	
+					int GetTagCount () const { return m_TagCount; };
+					bool UseTag () { m_TagCount--; return m_TagCount > 0; };
+					
+				private:
+
+					int m_TagCount;
+			};
+		
 		public:
 
 			GarlicRouting ();
@@ -81,7 +96,8 @@ namespace garlic
 
 			void Start ();
 			void Stop ();
-			
+			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag 
+		
 			void HandleGarlicMessage (I2NPMessage * msg);
 			void HandleDeliveryStatusMessage (uint8_t * buf, size_t len);
 			
@@ -93,12 +109,11 @@ namespace garlic
 
 			void Run ();
 			void ProcessGarlicMessage (I2NPMessage * msg);
-			void HandleAESBlock (uint8_t * buf, size_t len, i2p::crypto::CBCDecryption * decryption);
+			void HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption);
 			void HandleGarlicPayload (uint8_t * buf, size_t len);
 			
 		private:
-
-			typedef i2p::data::Tag<32> SessionTag;
+			
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue;
@@ -106,8 +121,8 @@ namespace garlic
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 			// incoming session
-			std::list<i2p::crypto::CBCDecryption *> m_SessionDecryptions; // multiple tags refer to one decyption
-			std::map<SessionTag, i2p::crypto::CBCDecryption *> m_SessionTags; // tag -> decryption
+			// multiple tags refer to one decyption
+			std::map<SessionTag, SessionDecryption *> m_SessionTags; // tag -> decryption
 	};	
 
 	extern GarlicRouting routing;
