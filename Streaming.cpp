@@ -19,7 +19,7 @@ namespace stream
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false), 
 		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (remote), 
-		m_OutboundTunnel (nullptr), m_ReceiveTimer (m_Service)
+		m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -75,9 +75,7 @@ namespace stream
 				// we have received duplicate. Most likely our outbound tunnel is dead
 				LogPrint ("Duplicate message ", receivedSeqn, " received");
 				UpdateCurrentRemoteLease (); // pick another lease
-				m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel (); // pick another tunnel
-				if (m_OutboundTunnel)
-					SendQuickAck (); // resend ack for previous message again
+				SendQuickAck (); // resend ack for previous message again
 				delete packet; // packet dropped
 			}	
 			else
@@ -292,16 +290,15 @@ namespace stream
 
 		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
 			CreateDataMessage (this, buf, len), leaseSet);
-		if (!m_OutboundTunnel || m_OutboundTunnel->IsFailed ())
-			m_OutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
-		if (m_OutboundTunnel)
+		auto outboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
+		if (outboundTunnel)
 		{
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			if (ts >= m_CurrentRemoteLease.endDate)
 				UpdateCurrentRemoteLease ();
 			if (ts < m_CurrentRemoteLease.endDate)
 			{	
-				m_OutboundTunnel->SendTunnelDataMsg (m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID, msg);
+				outboundTunnel->SendTunnelDataMsg (m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID, msg);
 				return true;
 			}	
 			else

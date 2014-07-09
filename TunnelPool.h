@@ -57,7 +57,6 @@ namespace tunnel
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
 			std::map<uint32_t, std::pair<OutboundTunnel *, InboundTunnel *> > m_Tests;
-			OutboundTunnel * m_LastOutboundTunnel;
 	};	
 }
 }

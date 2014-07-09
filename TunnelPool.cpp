@@ -11,7 +11,7 @@ namespace i2p
 namespace tunnel
 {
 	TunnelPool::TunnelPool (i2p::data::LocalDestination& localDestination, int numHops, int numTunnels):
-		m_LocalDestination (localDestination), m_NumHops (numHops), m_NumTunnels (numTunnels), m_LastOutboundTunnel (nullptr)
+		m_LocalDestination (localDestination), m_NumHops (numHops), m_NumTunnels (numTunnels)
 	{
 	}
 
@@ -50,8 +50,6 @@ namespace tunnel
 			expiredTunnel->SetTunnelPool (nullptr);
 			m_OutboundTunnels.erase (expiredTunnel);
 		}
-		if (expiredTunnel == m_LastOutboundTunnel)
-			m_LastOutboundTunnel = nullptr;
 	}
 		
 	std::vector<InboundTunnel *> TunnelPool::GetInboundTunnels (int num) const
@@ -72,19 +70,7 @@ namespace tunnel
 
 	OutboundTunnel * TunnelPool::GetNextOutboundTunnel () 
 	{
-		if (m_OutboundTunnels.empty ()) return nullptr;
-		auto tunnel = *m_OutboundTunnels.begin ();
-		if (m_LastOutboundTunnel && tunnel == m_LastOutboundTunnel)
-		{
-			for (auto it: m_OutboundTunnels)
-				if (it != m_LastOutboundTunnel && !it->IsFailed ())
-				{
-					tunnel = it;
-					break;
-				}	
-		}
-		m_LastOutboundTunnel = tunnel;
-		return tunnel;
+		return GetNextTunnel (m_OutboundTunnels);
 	}	
 
 	InboundTunnel * TunnelPool::GetNextInboundTunnel ()
@@ -121,6 +107,8 @@ namespace tunnel
 			// both outbound and inbound tunnels considered as invalid
 			it.second.first->SetFailed (true);
 			it.second.second->SetFailed (true);
+			m_OutboundTunnels.erase (it.second.first);
+			m_InboundTunnels.erase (it.second.second);
 		}
 		m_Tests.clear ();	
 		auto it1 = m_OutboundTunnels.begin ();

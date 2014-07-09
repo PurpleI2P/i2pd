@@ -14,7 +14,6 @@
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
-#include "Tunnel.h"
 #include "TunnelPool.h"
 
 namespace i2p
@@ -113,7 +112,6 @@ namespace stream
 			i2p::data::Lease m_CurrentRemoteLease;
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
-			i2p::tunnel::OutboundTunnel * m_OutboundTunnel;
 			boost::asio::deadline_timer m_ReceiveTimer;
 	};
 	
