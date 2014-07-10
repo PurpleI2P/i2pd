@@ -81,7 +81,7 @@ namespace tunnel
 	{
 		public:
 
-			InboundTunnel (TunnelConfig * config): Tunnel (config) {};
+			InboundTunnel (TunnelConfig * config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (I2NPMessage * msg);
 			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 

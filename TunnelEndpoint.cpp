@@ -1,8 +1,10 @@
 #include "I2PEndian.h"
 #include <string.h>
 #include "Log.h"
+#include "NetDb.h"
 #include "I2NPProtocol.h"
 #include "Transports.h"
+#include "RouterContext.h"
 #include "TunnelEndpoint.h"
 
 namespace i2p
@@ -194,7 +196,28 @@ namespace tunnel
 				i2p::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));
 			break;
 			case eDeliveryTypeRouter:
-				i2p::transports.SendMessage (msg.hash, msg.data);
+				if (msg.hash == i2p::context.GetRouterInfo ().GetIdentHash ()) // check if message is sent to us
+					i2p::HandleI2NPMessage (msg.data);
+				else
+				{	
+					// to somebody else
+					if (!m_IsInbound) // outbound transit tunnel
+					{
+						if (msg.data->GetHeader()->typeID == eI2NPDatabaseStore)
+						{
+							// catch RI
+							auto ds = NewI2NPMessage ();
+							*ds = *(msg.data);
+							i2p::data::netdb.PostI2NPMsg (ds);
+						}
+						i2p::transports.SendMessage (msg.hash, msg.data);
+					}
+					else // we shouldn't send this message. possible leakage 
+					{
+						LogPrint ("Message to another router arrived from an inbound tunnel. Dropped");
+						i2p::DeleteI2NPMessage (msg.data);
+					}
+				}
 			break;
 			default:
 				LogPrint ("TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);

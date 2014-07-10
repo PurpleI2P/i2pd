@@ -20,7 +20,7 @@ namespace tunnel
 		
 		public:
 
-			TunnelEndpoint (): m_NumReceivedBytes (0) {};
+			TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0) {};
 			~TunnelEndpoint ();
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
@@ -34,6 +34,7 @@ namespace tunnel
 		private:			
 
 			std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
+			bool m_IsInbound;
 			size_t m_NumReceivedBytes;
 	};	
 }		
