@@ -430,6 +430,7 @@ namespace data
 		if (it != m_RequestedDestinations.end ())
 		{	
 			RequestedDestination * dest = it->second;
+			bool deleteDest = true;
 			if (num > 0)
 			{	
 				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
@@ -478,6 +479,7 @@ namespace data
 								// we do
 								if (!dest->IsExcluded (r->GetIdentHash ()) && dest->GetNumExcludedPeers () < 30) // TODO: fix TunnelGateway first
 								{	
+									LogPrint ("Try ", key, " at floodfill ", peerHash); 
 									// tell floodfill about us 
 									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 										{ 
@@ -492,6 +494,7 @@ namespace data
 											i2p::tunnel::eDeliveryTypeRouter,
 											r->GetIdentHash (), 0, msg
 										});
+									deleteDest = false;
 								}	
 							}
 							else
@@ -512,16 +515,26 @@ namespace data
 							if (!dest->IsLeaseSet ()) // if not LeaseSet
 							{
 								if (!dest->IsExcluded (router) && dest->GetNumExcludedPeers () < 30) 
+								{	
+									LogPrint ("Try ", key, " at floodfill ", peerHash, " directly"); 
 									i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
+									deleteDest = false;
+								}	
 							}	
 							else
 								LogPrint ("Can't request LeaseSet");
 						}	
-					}	
+					}						
 				}
 				
 				if (outbound && msgs.size () > 0)
 					outbound->SendTunnelDataMsg (msgs);	
+				if (deleteDest)
+				{
+					// no more requests for tha destinationation. delete it
+					delete it->second;
+					m_RequestedDestinations.erase (it);
+				}	
 			}
 			else
 			{
