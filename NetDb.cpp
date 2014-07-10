@@ -28,7 +28,6 @@ namespace data
 			msg = i2p::garlic::routing.WrapSingleMessage (*router, msg);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
-		m_LastReplyTunnel = replyTunnel;
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}	
@@ -39,7 +38,6 @@ namespace data
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
 		m_LastRouter = nullptr;
-		m_LastReplyTunnel = nullptr;
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}	
@@ -369,7 +367,6 @@ namespace data
 					if (msgs.size () > 0)
 					{	
 						dest->ClearExcludedPeers (); 
-						dest->SetLastOutboundTunnel (outbound);
 						outbound->SendTunnelDataMsg (msgs);	
 					}	
 					else
@@ -386,10 +383,7 @@ namespace data
 			RequestedDestination * dest = CreateRequestedDestination (destination, false);
 			auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 			if (floodfill)
-			{
-				dest->SetLastOutboundTunnel (nullptr);
 				i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
-			}	
 		}	
 	}	
 	
@@ -438,8 +432,9 @@ namespace data
 			RequestedDestination * dest = it->second;
 			if (num > 0)
 			{	
-				i2p::tunnel::OutboundTunnel * outbound = dest->GetLastOutboundTunnel ();
-				const i2p::tunnel::InboundTunnel * inbound = dest->GetLastReplyTunnel ();
+				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				
 				for (int i = 0; i < num; i++)
@@ -457,11 +452,10 @@ namespace data
 						{	
 							// router with ident not found or too old (1 hour)
 							LogPrint ("Found new/outdated router. Requesting RouterInfo ...");
-							if (outbound && inbound)
+							if (outbound && inbound && dest->GetLastRouter ())
 							{
 								RequestedDestination * d1 = CreateRequestedDestination (router, false, false);
-								d1->SetLastOutboundTunnel (outbound);
-								auto msg = d1->CreateRequestMessage (dest->GetLastRouter (), dest->GetLastReplyTunnel ());
+								auto msg = d1->CreateRequestMessage (dest->GetLastRouter (), inbound);
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
 										i2p::tunnel::eDeliveryTypeRouter,
@@ -475,7 +469,7 @@ namespace data
 					else
 					{	
 						// reply to our destination. Try other floodfills
-						if (outbound && inbound)
+						if (outbound && inbound && dest->GetLastRouter ())
 						{
 							auto r = FindRouter (router); 
 							// do we have that floodfill router in our database?
@@ -492,7 +486,7 @@ namespace data
 											CreateDatabaseStoreMsg () 
 										});  
 									// request destination
-									auto msg = dest->CreateRequestMessage (r, dest->GetLastReplyTunnel ());
+									auto msg = dest->CreateRequestMessage (r, inbound);
 									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 										{ 
 											i2p::tunnel::eDeliveryTypeRouter,
@@ -505,7 +499,6 @@ namespace data
 								// request router
 								LogPrint ("Found new floodfill. Request it");
 								RequestedDestination * d2 = CreateRequestedDestination (router, false, false);
-								d2->SetLastOutboundTunnel (outbound);
 								I2NPMessage * msg = d2->CreateRequestMessage (dest->GetLastRouter (), inbound);
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
@@ -577,7 +570,6 @@ namespace data
 				floodfills.insert (floodfill);
 				if (throughTunnels)
 				{	
-					dest->SetLastOutboundTunnel (outbound);
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 						{ 
 							i2p::tunnel::eDeliveryTypeRouter,
@@ -592,11 +584,7 @@ namespace data
 						}); 
 				}	
 				else
-				{	
-					dest->SetLastOutboundTunnel (nullptr);
-					dest->SetLastReplyTunnel (nullptr);
 					i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
-				}	
 			}	
 			else
 				DeleteRequestedDestination (dest);
