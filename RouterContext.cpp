@@ -92,7 +92,6 @@ namespace i2p
 			fk.write ((char *)&m_Keys, sizeof (m_Keys));
 		}
 		
-		std::ofstream fi (i2p::util::filesystem::GetFullPath (ROUTER_INFO).c_str (), std::ofstream::binary | std::ofstream::out);
-		fi.write ((char *)m_RouterInfo.GetBuffer (), m_RouterInfo.GetBufferLen ());
+		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
 	}	
 }	

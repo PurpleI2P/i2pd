@@ -200,7 +200,7 @@ namespace i2p
 		msg->replyToken = 0;
 		
 		CryptoPP::Gzip compressor;
-		compressor.Put ((uint8_t *)context.GetRouterInfo ().GetBuffer (), context.GetRouterInfo ().GetBufferLen ());
+		compressor.Put (context.GetRouterInfo ().GetBuffer (), context.GetRouterInfo ().GetBufferLen ());
 		compressor.MessageEnd();
 		// WARNING!!! MaxRetrievable() return uint64_t. Есть подозрение, что что-то не так
 		int size = compressor.MaxRetrievable ();

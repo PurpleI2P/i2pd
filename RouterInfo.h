@@ -13,6 +13,7 @@ namespace i2p
 {
 namespace data
 {			
+	const int MAX_RI_BUFFER_SIZE = 2048;
 	class RouterInfo: public RoutingDestination
 	{
 		public:
@@ -95,14 +96,16 @@ namespace data
 
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
+
+			const uint8_t * GetBuffer () const { return m_Buffer; };
+			int GetBufferLen () const { return m_BufferLen; };
 			
 			void CreateBuffer ();
 			void UpdateRoutingKey ();
-			const char * GetBuffer () const  { return m_Buffer; };
-			int GetBufferLen () const { return m_BufferLen; };
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
+			void SaveToFile (const std::string& fullPath);
 
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
@@ -127,7 +130,7 @@ namespace data
 			IdentHash m_IdentHash;
 			RoutingKey m_RoutingKey;
 			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
-			char m_Buffer[2048];
+			uint8_t m_Buffer[MAX_RI_BUFFER_SIZE];
 			int m_BufferLen;
 			uint64_t m_Timestamp;
 			std::vector<Address> m_Addresses;

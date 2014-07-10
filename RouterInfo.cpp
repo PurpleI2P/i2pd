@@ -53,7 +53,7 @@ namespace data
 				return;
 			}
 			s.seekg(0, std::ios::beg);
-			s.read(m_Buffer,m_BufferLen);
+			s.read((char *)m_Buffer, m_BufferLen);
 			ReadFromBuffer ();
 		}	
 		else
@@ -62,7 +62,7 @@ namespace data
 
 	void RouterInfo::ReadFromBuffer ()
 	{
-		std::stringstream str (std::string (m_Buffer, m_BufferLen));
+		std::stringstream str (std::string ((char *)m_Buffer, m_BufferLen));
 		ReadFromStream (str);
 		// verify signature
 		CryptoPP::DSA::PublicKey pubKey;
@@ -322,6 +322,12 @@ namespace data
 		i2p::context.Sign ((uint8_t *)m_Buffer, m_BufferLen, (uint8_t *)m_Buffer + m_BufferLen);
 		m_BufferLen += 40;
 	}	
+
+	void RouterInfo::SaveToFile (const std::string& fullPath)
+	{
+		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+		f.write ((char *)m_Buffer, m_BufferLen);
+	}
 	
 	size_t RouterInfo::ReadString (char * str, std::istream& s)
 	{
