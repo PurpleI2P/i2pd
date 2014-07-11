@@ -184,6 +184,7 @@ namespace stream
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
 
+			std::map<i2p::data::IdentHash, StreamingDestination *> m_Destinations;
 			StreamingDestination * m_SharedLocalDestination;	
 	};	
 	

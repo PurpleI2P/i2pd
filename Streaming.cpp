@@ -464,15 +464,21 @@ namespace stream
 	void StreamingDestinations::Start ()
 	{
 		if (!m_SharedLocalDestination)
+		{	
 			m_SharedLocalDestination = new StreamingDestination ();
-		
+			m_Destinations[m_SharedLocalDestination->GetIdentHash ()] = m_SharedLocalDestination;
+		}
+
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&StreamingDestinations::Run, this));
 	}
 		
 	void StreamingDestinations::Stop ()
 	{
-		delete m_SharedLocalDestination;
+		for (auto it: m_Destinations)
+			delete it.second;	
+		m_Destinations.clear ();
+		m_SharedLocalDestination = 0; // deleted through m_Destination
 		
 		m_IsRunning = false;
 		m_Service.stop ();
@@ -510,9 +516,14 @@ namespace stream
 	
 	void StreamingDestinations::PostNextPacket (i2p::data::IdentHash destination, Packet * packet)
 	{
-		// TODO: we have onle one destination, might be more
-		if (m_SharedLocalDestination)
-			m_SharedLocalDestination->HandleNextPacket (packet);
+		auto it = m_Destinations.find (destination);
+		if (it != m_Destinations.end ())
+			it->second->HandleNextPacket (packet);
+		else
+		{
+			LogPrint ("Local destination ", destination.ToBase64 (), " not found");
+			delete packet;
+		}
 	}	
 		
 	Stream * CreateStream (const i2p::data::LeaseSet& remote)

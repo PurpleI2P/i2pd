@@ -3,6 +3,8 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include <string>
+#include "base64.h"
 #include "ElGamal.h"
 
 namespace i2p
@@ -34,6 +36,14 @@ namespace data
 			
 			bool operator== (const Tag<sz>& other) const { return !memcmp (m_Buf, other.m_Buf, sz); };
 			bool operator< (const Tag<sz>& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; };
+
+			std::string ToBase64 () const
+			{
+				char str[sz*2];
+				int l = i2p::data::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
+				str[l] = 0;
+				return std::string (str);
+			}
 
 		private:
 
