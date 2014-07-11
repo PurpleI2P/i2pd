@@ -80,7 +80,8 @@ namespace garlic
 				public:
 
 					SessionDecryption (): m_TagCount (0) {};
-					void SetTagCount (int tagCount) { m_TagCount = tagCount; };	
+					void SetTagCount (int tagCount) { m_TagCount = tagCount; };
+					void AddTagCount (int tagCount) { m_TagCount += tagCount; };
 					int GetTagCount () const { return m_TagCount; };
 					bool UseTag () { m_TagCount--; return m_TagCount > 0; };
 					

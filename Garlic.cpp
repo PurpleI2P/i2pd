@@ -348,7 +348,7 @@ namespace garlic
 		buf += 2;	
 		if (tagCount > 0)
 		{	
-			decryption->SetTagCount (tagCount);
+			decryption->AddTagCount (tagCount);
 			for (int i = 0; i < tagCount; i++)
 				m_SessionTags[SessionTag(buf + i*32)] = decryption;	
 		}	
