@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cryptopp/dh.h>
 #include <cryptopp/gzip.h>
+#include "util.h"
 #include "Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
@@ -353,7 +354,7 @@ namespace stream
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
 	}
 
 	StreamingDestination::~StreamingDestination ()
@@ -367,12 +368,20 @@ namespace stream
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
 		uint32_t sendStreamID = packet->GetSendStreamID ();
-		auto it = m_Streams.find (sendStreamID);
-		if (it != m_Streams.end ())
-			it->second->HandleNextPacket (packet);
-		else
+		if (sendStreamID)
 		{	
-			LogPrint ("Unknown stream ", sendStreamID);
+			auto it = m_Streams.find (sendStreamID);
+			if (it != m_Streams.end ())
+				it->second->HandleNextPacket (packet);
+			else
+			{	
+				LogPrint ("Unknown stream ", sendStreamID);
+				delete packet;
+			}
+		}	
+		else
+		{
+			LogPrint ("Uncoming stream is not implemented yet");
 			delete packet;
 		}	
 	}	
@@ -468,7 +477,8 @@ namespace stream
 			m_SharedLocalDestination = new StreamingDestination ();
 			m_Destinations[m_SharedLocalDestination->GetIdentHash ()] = m_SharedLocalDestination;
 		}
-
+		LoadLocalDestinations ();	
+		
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&StreamingDestinations::Run, this));
 	}
@@ -495,6 +505,30 @@ namespace stream
 		m_Service.run ();
 	}	
 
+	void StreamingDestinations::LoadLocalDestinations ()
+	{
+		int numDestinations = 0;
+		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
+		boost::filesystem::directory_iterator end;
+		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
+		{
+			if (boost::filesystem::is_regular_file (*it) && it->path ().extension () == ".dat")
+			{
+				auto fullPath =
+#if BOOST_VERSION > 10500
+				it->path().string();
+#else
+				it->path();
+#endif
+				auto localDestination = new StreamingDestination (fullPath);
+				m_Destinations[localDestination->GetIdentHash ()] = localDestination;
+				numDestinations++;
+			}	
+		}	
+		if (numDestinations > 0)
+			LogPrint (numDestinations, " local destinations loaded");
+	}	
+	
 	Stream * StreamingDestinations::CreateClientStream (const i2p::data::LeaseSet& remote)
 	{
 		if (!m_SharedLocalDestination) return nullptr;

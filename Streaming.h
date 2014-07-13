@@ -175,6 +175,7 @@ namespace stream
 		private:	
 
 			void Run ();
+			void LoadLocalDestinations ();
 			void PostNextPacket (i2p::data::IdentHash destination, Packet * packet); 
 			
 		private:
