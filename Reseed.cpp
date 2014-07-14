@@ -56,7 +56,7 @@ namespace data
 			std::string routerInfo;
 			std::string tmpUrl;
 			std::string filename;
-			std::string ignoreFileSuffix = ".zip";
+			std::string ignoreFileSuffix = ".su3";
 			boost::filesystem::path root = i2p::util::filesystem::GetDataDir();
 			while (i != j)
 			{
