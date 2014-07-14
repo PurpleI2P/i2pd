@@ -75,6 +75,9 @@
     <ClCompile Include="..\I2PEndian.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\SOCKS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\SSU.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -192,6 +195,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\I2PEndian.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SOCKS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\SSU.h">
