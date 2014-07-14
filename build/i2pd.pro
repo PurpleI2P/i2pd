@@ -40,7 +40,8 @@ SOURCES += \
     ../NetDb.cpp \
     ../Log.cpp \
     ../Identity.cpp \
-    ../I2NPProtocol.cpp
+    ../I2NPProtocol.cpp \
+    ../SOCKS.cpp
 
 HEADERS += \
     ../LeaseSet.h \
@@ -75,7 +76,8 @@ HEADERS += \
     ../Log.h \
     ../LittleBigEndian.h \
     ../I2PEndian.h \
-    ../I2NPProtocol.h
+    ../I2NPProtocol.h \
+    ../SOCKS.h
 
 OTHER_FILES += \
     ../README.md \
