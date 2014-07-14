@@ -8,6 +8,8 @@ language:
   - cpp
 compiler:
   - gcc
+cache:
+  - apt
 branches:
   only:
     - master
