@@ -39,6 +39,7 @@ set ( SOURCES
         TunnelPool.cpp
         util.cpp
 	Daemon.cpp
+    SOCKS.cpp
 )
 
 set ( HEADERS
@@ -68,6 +69,7 @@ set ( HEADERS
         TunnelPool.h
         util.h
 	Daemon.h
+    SOCKS.h
 )
 
 if (WIN32)
