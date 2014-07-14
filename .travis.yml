@@ -36,9 +36,16 @@ notifications:
 
 ---
 
+# OSX Notes
+# To force build against OSX, set the language to objective-c as well acording to
+# this issue: https://github.com/biocore/scikit-bio/issues/184#issuecomment-37843764
+# Since this is a seperate section, it shouldn't stop the linux build.
+# See the head links as well for more information.
+
 os:
   - osx
 language:
+  - objective-c
   - cpp
 compiler:
   - clang
