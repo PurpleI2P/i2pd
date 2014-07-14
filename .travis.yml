@@ -1,3 +1,7 @@
+# Travis file for i2pd
+# Documentation:
+# - http://docs.travis-ci.com/user/build-configuration/#The-Build-Matrix
+# - http://blog.travis-ci.com/2014-05-13-multi-os-feature-available/
 language: cpp
 compiler: gcc
 os:
@@ -6,7 +10,7 @@ os:
 branches:
   only:
     - master
-before_install:
+before_script:
   - if [[ "$os" == "linux" ]]; then sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test; fi # GCC 4.7
   - if [[ "$os" == "linux" ]]; then sudo add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu/ quantal main universe"; fi # Boost 1.50
   - if [[ "$os" == "linux" ]]; then sudo apt-get update -qq; fi
