@@ -5,7 +5,7 @@ OBJECTS = obj/CryptoConst.o obj/base64.o obj/NTCPSession.o obj/RouterInfo.o obj/
 	obj/TunnelGateway.o obj/TransitTunnel.o obj/I2NPProtocol.o obj/Log.o obj/Garlic.o \
 	obj/HTTPServer.o obj/Streaming.o obj/Identity.o obj/SSU.o obj/util.o obj/Reseed.o \
 	obj/UPnP.o obj/TunnelPool.o obj/HTTPProxy.o obj/AddressBook.o  obj/Daemon.o \
-	obj/DaemonLinux.o obj/SSUData.o obj/i2p.o obj/aes.o
+    obj/DaemonLinux.o obj/SSUData.o obj/i2p.o obj/aes.o obj/SOCKS.o
 INCFLAGS = -DCRYPTOPP_DISABLE_ASM
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 LIBS = 
