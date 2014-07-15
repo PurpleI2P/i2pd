@@ -126,7 +126,9 @@ namespace ssu
 						}
 						else
 							break;
-					}	
+					}
+					if (isLast)
+						LogPrint ("Message ", msgID, " complete");
 				}	
 			}	
 			else
@@ -138,7 +140,12 @@ namespace ssu
 				{
 					// missing fragment
 					LogPrint ("Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
-					incompleteMessage->savedFragments.insert (new Fragment (fragmentNum, buf, fragmentSize, isLast));
+					auto savedFragment = new Fragment (fragmentNum, buf, fragmentSize, isLast);
+					if (!incompleteMessage->savedFragments.insert (savedFragment).second)
+					{
+						LogPrint ("Fragment ", (int)fragmentNum, " of message ", msgID, " already saved");
+						delete savedFragment;
+					}	
 				}
 				isLast = false;
 			}	
