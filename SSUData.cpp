@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "Log.h"
 #include "SSU.h"
 #include "SSUData.h"
@@ -172,7 +173,9 @@ namespace ssu
 						LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
 					DeleteI2NPMessage (msg);
 				}	
-			}				
+			}	
+			else
+				SendFragmentAck (msgID, fragmentNum);			
 			buf += fragmentSize;
 		}	
 	}
@@ -252,6 +255,36 @@ namespace ssu
 		m_Session.FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
 		m_Session.Send (buf, 48);
 	}
+
+	void SSUData::SendFragmentAck (uint32_t msgID, int fragmentNum)
+	{
+		if (fragmentNum > 64)
+		{
+			LogPrint ("Fragment number ", fragmentNum, " exceeds 64");
+			return;
+		}
+		uint8_t buf[64 + 18];
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		*payload = DATA_FLAG_ACK_BITFIELDS_INCLUDED; // flag
+		payload++;	
+		*payload = 1; // number of ACK bitfields
+		payload++;
+		// one ack
+		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
+		payload += 4;
+		div_t d = div (fragmentNum, 7);
+		memset (payload, 0x80, d.quot); // 0x80 means non-last
+		payload += d.quot;		
+		*payload = 0x40 >> d.rem; // set corresponding bit
+		payload++;
+		*payload = 0; // number of fragments
+
+		size_t len = d.quot < 4 ? 48 : 64; // 48 = 37 + 7 + 4 (3+1)			
+		// encrypt message with session key
+		m_Session.FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, len);
+		m_Session.Send (buf, len);
+	}	
+
 }
 }
 
