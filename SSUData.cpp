@@ -82,73 +82,90 @@ namespace ssu
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
 			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
 			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 		
-			I2NPMessage * msg = nullptr;
-			if (fragmentNum > 0) // follow-up fragment
-			{
-				auto it = m_IncomleteMessages.find (msgID);
-				if (it != m_IncomleteMessages.end ())
-				{
-					if (fragmentNum == it->second->nextFragmentNum)
-					{
-						// expected fragment
-						msg = it->second->msg;
-						memcpy (msg->buf + msg->len, buf, fragmentSize);
-						msg->len += fragmentSize;
-						it->second->nextFragmentNum++;
-					}	
-					else if (fragmentNum < it->second->nextFragmentNum)
-						// duplicate fragment
-						LogPrint ("Duplicate fragment ", (int)fragmentNum, " of message ", msgID, ". Ignored");	
-					else
-					{
-						// missing fragment
-						LogPrint ("Missing fragments from ", it->second->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
-						//TODO
-					}	
- 						
-					if (isLast)
-					{
-						if (!msg)	
-							DeleteI2NPMessage (it->second->msg);
-						delete it->second;
-						m_IncomleteMessages.erase (it);
-					}	
-				}
-				else
-					// TODO:
-					LogPrint ("Unexpected follow-on fragment ", (int)fragmentNum, " of message ", msgID);	
-			}
-			else // first fragment
-			{
-				msg = NewI2NPMessage ();
-				memcpy (msg->GetSSUHeader (), buf, fragmentSize);
-				msg->len += fragmentSize - sizeof (I2NPHeaderShort);
-			}
 
-			if (msg)
-			{					
-				if (!fragmentNum && !isLast)
-					m_IncomleteMessages[msgID] = new IncompleteMessage (msg);
-				if (isLast)
+			//  find message with msgID
+			I2NPMessage * msg = nullptr;
+			IncompleteMessage * incompleteMessage = nullptr;
+			auto it = m_IncomleteMessages.find (msgID);
+			if (it != m_IncomleteMessages.end ()) 
+			{	
+				// message exists
+				incompleteMessage = it->second;
+				msg = incompleteMessage->msg;
+			}	
+			else
+			{
+				// create new message
+				msg = NewI2NPMessage ();
+				msg->len -= sizeof (I2NPHeaderShort);
+				incompleteMessage = new IncompleteMessage (msg);
+				m_IncomleteMessages[msgID] = incompleteMessage;
+			}	
+
+			// handle current fragment
+			if (fragmentNum == incompleteMessage->nextFragmentNum)
+			{
+				// expected fragment
+				memcpy (msg->buf + msg->len, buf, fragmentSize);
+				msg->len += fragmentSize;
+				incompleteMessage->nextFragmentNum++;
+				if (!isLast && !incompleteMessage->savedFragments.empty ())
 				{
-					SendMsgAck (msgID);
-					msg->FromSSU (msgID);
-					if (m_Session.GetState () == eSessionStateEstablished)
-						i2p::HandleI2NPMessage (msg);
-					else
+					// try saved fragments
+					for (auto it1 = incompleteMessage->savedFragments.begin (); it1 != incompleteMessage->savedFragments.end ();)
 					{
-						// we expect DeliveryStatus
-						if (msg->GetHeader ()->typeID == eI2NPDeliveryStatus)
+						auto savedFragment = *it1;
+						if (savedFragment->fragmentNum == incompleteMessage->nextFragmentNum)
 						{
-							LogPrint ("SSU session established");
-							m_Session.Established ();
-						}	
+							memcpy (msg->buf + msg->len, savedFragment->buf, savedFragment->len);
+							msg->len += savedFragment->len;
+							isLast = savedFragment->isLast;
+							incompleteMessage->nextFragmentNum++;
+							incompleteMessage->savedFragments.erase (it1++);
+							delete savedFragment;
+						}
 						else
-							LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
-						DeleteI2NPMessage (msg);
+							break;
 					}	
+				}	
+			}	
+			else
+			{	
+				if (fragmentNum < incompleteMessage->nextFragmentNum)
+					// duplicate fragment
+					LogPrint ("Duplicate fragment ", (int)fragmentNum, " of message ", msgID, ". Ignored");	
+				else
+				{
+					// missing fragment
+					LogPrint ("Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
+					incompleteMessage->savedFragments.insert (new Fragment (fragmentNum, buf, fragmentSize, isLast));
 				}
-			}
+				isLast = false;
+			}	
+
+			if (isLast)
+			{
+				// delete incomplete message
+				delete incompleteMessage;
+				m_IncomleteMessages.erase (msgID);				
+				// process message
+				SendMsgAck (msgID);
+				msg->FromSSU (msgID);
+				if (m_Session.GetState () == eSessionStateEstablished)
+					i2p::HandleI2NPMessage (msg);
+				else
+				{
+					// we expect DeliveryStatus
+					if (msg->GetHeader ()->typeID == eI2NPDeliveryStatus)
+					{
+						LogPrint ("SSU session established");
+						m_Session.Established ();
+					}	
+					else
+						LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
+					DeleteI2NPMessage (msg);
+				}	
+			}				
 			buf += fragmentSize;
 		}	
 	}
