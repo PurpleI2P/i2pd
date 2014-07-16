@@ -83,7 +83,8 @@ namespace ssu
 		}
 		else
 		{
-			ScheduleTermination ();
+			if (m_State == eSessionStateEstablished)
+				ScheduleTermination ();
 			/* // check for duplicate
 			const uint8_t * iv = ((SSUHeader *)buf)->iv;
 			if (m_ReceivedIVs.count (iv)) return; // duplicate detected
@@ -652,7 +653,6 @@ namespace ssu
 		if (m_State != eSessionStateFailed)
 		{	
 			m_State = eSessionStateFailed;
-			Close ();
 			m_Server.DeleteSession (this); // delete this 
 		}	
 	}	
