@@ -39,12 +39,8 @@ namespace ssu
 		}
 	}		
 
-	void SSUData::ProcessMessage (uint8_t * buf, size_t len)
+	void SSUData::ProcessAcks (uint8_t *& buf, uint8_t flag)
 	{
-		//uint8_t * start = buf;
-		uint8_t flag = *buf;
-		buf++;
-		LogPrint ("Process SSU data flags=", (int)flag);
 		if (flag & DATA_FLAG_EXPLICIT_ACKS_INCLUDED)
 		{
 			// explicit ACKs
@@ -83,7 +79,7 @@ namespace ssu
 							{
 								if (fragment < numSentFragments)
 								{
-									delete it->second[fragment];
+									delete[] it->second[fragment];
 									it->second[fragment] = nullptr;
 								}	
 							}				
@@ -95,7 +91,11 @@ namespace ssu
 				}
 				while (isNonLast); 
 			}	
-		}	
+		}		
+	}
+
+	void SSUData::ProcessFragments (uint8_t * buf)
+	{
 		uint8_t numFragments = *buf; // number of fragments
 		buf++;
 		for (int i = 0; i < numFragments; i++)
@@ -206,6 +206,27 @@ namespace ssu
 				SendFragmentAck (msgID, fragmentNum);			
 			buf += fragmentSize;
 		}	
+	}
+
+	void SSUData::ProcessMessage (uint8_t * buf, size_t len)
+	{
+		//uint8_t * start = buf;
+		uint8_t flag = *buf;
+		buf++;
+		LogPrint ("Process SSU data flags=", (int)flag);
+		// process acks if presented
+		if (flag & (DATA_FLAG_ACK_BITFIELDS_INCLUDED | DATA_FLAG_EXPLICIT_ACKS_INCLUDED))
+			ProcessAcks (buf, flag);
+		// extended data if presented
+		if (flag & DATA_FLAG_EXTENDED_DATA_INCLUDED)
+		{
+			uint8_t extendedDataSize = *buf;
+			buf++; // size
+			LogPrint ("SSU extended data of ", extendedDataSize, " bytes presented");
+			buf += extendedDataSize;
+		}
+		// process data
+		ProcessFragments (buf);
 	}
 
 	void SSUData::Send (i2p::I2NPMessage * msg)

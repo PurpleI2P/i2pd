@@ -65,6 +65,8 @@ namespace ssu
 
 			void SendMsgAck (uint32_t msgID);
 			void SendFragmentAck (uint32_t msgID, int fragmentNum);
+			void ProcessAcks (uint8_t *& buf, uint8_t flag);
+			void ProcessFragments (uint8_t * buf);
 			void ProcessSentMessageAck (uint32_t msgID);	
 
 		private:
