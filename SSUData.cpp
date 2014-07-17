@@ -61,11 +61,39 @@ namespace ssu
 			buf++;
 			for (int i = 0; i < numBitfields; i++)
 			{
+				uint32_t msgID = be32toh (*(uint32_t *)buf);
 				buf += 4; // msgID
-				// TODO: process individual Ack bitfields
-				while (*buf & 0x80) // not last
+				auto it = m_SentMessages.find (msgID);
+				int numSentFragments = it->second.size ();				
+				// process individual Ack bitfields
+				bool isNonLast = false;
+				int fragment = 0;
+				do
+				{
+					uint8_t bitfield = *buf;
+					isNonLast = bitfield & 0x80;
+					bitfield &= 0x7F; // clear MSB
+					if (bitfield && it != m_SentMessages.end ())
+					{	
+						// process bits
+						uint8_t mask = 0x40;
+						for (int j = 0; j < 7; j++)
+						{			
+							if (bitfield & mask)
+							{
+								if (fragment < numSentFragments)
+								{
+									delete it->second[fragment];
+									it->second[fragment] = nullptr;
+								}	
+							}				
+							fragment++;
+							mask >>= 1;
+						}
+					}	
 					buf++;
-				buf++; // last byte
+				}
+				while (isNonLast); 
 			}	
 		}	
 		uint8_t numFragments = *buf; // number of fragments
