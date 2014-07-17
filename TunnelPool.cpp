@@ -188,7 +188,7 @@ namespace tunnel
 			hops.push_back (hop);
 		}		
 		std::reverse (hops.begin (), hops.end ());	
-		auto * tunnel = tunnels.CreateTunnel<InboundTunnel> (new TunnelConfig (hops));
+		auto * tunnel = tunnels.CreateTunnel<InboundTunnel> (new TunnelConfig (hops), outboundTunnel);
 		tunnel->SetTunnelPool (this);
 	}
 
