@@ -63,13 +63,15 @@ namespace i2p
 			i2p::ntcp::NTCPSession * FindNTCPSession (const i2p::data::IdentHash& ident);
 
 			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
-						
+			void CloseSession (const i2p::data::RouterInfo * router);
+			
 		private:
 
 			void Run ();
 			void HandleAccept (i2p::ntcp::NTCPServerConnection * conn, const boost::system::error_code& error);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
-
+			void PostCloseSession (const i2p::data::RouterInfo * router);
+			
 			void DetectExternalIP ();
 			
 		private:

@@ -263,6 +263,23 @@ namespace i2p
 		}	
 	}	
 
+	void Transports::CloseSession (const i2p::data::RouterInfo * router)
+	{
+		if (!router) return;
+		m_Service.post (boost::bind (&Transports::PostCloseSession, this, router));    
+	}	
+
+	void Transports::PostCloseSession (const i2p::data::RouterInfo * router)
+	{
+		auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (router) : nullptr;
+		if (ssuSession) // try SSU first
+		{	
+			m_SSUServer->DeleteSession (ssuSession);
+			LogPrint ("SSU session closed");	
+		}	
+		// TODO: delete NTCP
+	}	
+		
 	void Transports::DetectExternalIP ()
 	{
 		for (int i = 0; i < 5; i ++)

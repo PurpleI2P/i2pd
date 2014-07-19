@@ -359,6 +359,7 @@ namespace i2p
 			else
 			{	
 				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				i2p::transports.CloseSession (tunnel->GetTunnelConfig ()->GetFirstHop ()->router);
 				delete tunnel;
 			}	
 		}	
