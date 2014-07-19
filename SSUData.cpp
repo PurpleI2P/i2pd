@@ -22,7 +22,7 @@ namespace ssu
 			}	
 		for (auto it: m_SentMessages)
 		{
-			for (auto f: it.second)
+			for (auto f: it.second.fragments)
 			delete[] f;
 		}	
 	}
@@ -33,7 +33,7 @@ namespace ssu
 		if (it != m_SentMessages.end ())
 		{
 			// delete all ack-ed message's fragments
-			for (auto f: it->second)
+			for (auto f: it->second.fragments)
 				delete[] f;
 			m_SentMessages.erase (it);	
 		}
@@ -59,8 +59,7 @@ namespace ssu
 			{
 				uint32_t msgID = be32toh (*(uint32_t *)buf);
 				buf += 4; // msgID
-				auto it = m_SentMessages.find (msgID);
-				int numSentFragments = it->second.size ();				
+				auto it = m_SentMessages.find (msgID);		
 				// process individual Ack bitfields
 				bool isNonLast = false;
 				int fragment = 0;
@@ -71,6 +70,7 @@ namespace ssu
 					bitfield &= 0x7F; // clear MSB
 					if (bitfield && it != m_SentMessages.end ())
 					{	
+						int numSentFragments = it->second.fragments.size ();		
 						// process bits
 						uint8_t mask = 0x40;
 						for (int j = 0; j < 7; j++)
@@ -79,8 +79,8 @@ namespace ssu
 							{
 								if (fragment < numSentFragments)
 								{
-									delete[] it->second[fragment];
-									it->second[fragment] = nullptr;
+									delete[] it->second.fragments[fragment];
+									it->second.fragments[fragment] = nullptr;
 								}	
 							}				
 							fragment++;
@@ -238,7 +238,8 @@ namespace ssu
 			DeleteI2NPMessage (msg);
 			return;
 		}		
-		auto fragments = m_SentMessages[msgID];
+		SentMessage& sentMessage = m_SentMessages[msgID]; 
+		auto& fragments = sentMessage.fragments;
 		msgID = htobe32 (msgID);	
 		size_t payloadSize = SSU_MTU - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
 		size_t len = msg->GetLength ();

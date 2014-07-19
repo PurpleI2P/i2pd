@@ -49,6 +49,13 @@ namespace ssu
 		IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (0) {};
 		~IncompleteMessage () { for (auto it: savedFragments) { delete it; }; };
 	};
+
+	struct SentMessage
+	{
+		std::vector<uint8_t *> fragments;
+		uint32_t nextResendTime; // in seconds
+		int numResends;
+	};	
 	
 	class SSUSession;
 	class SSUData
@@ -75,7 +82,7 @@ namespace ssu
 
 			SSUSession& m_Session;
 			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
-			std::map<uint32_t, std::vector<uint8_t *> > m_SentMessages; // msgID -> fragments	
+			std::map<uint32_t, SentMessage> m_SentMessages; // msgID -> fragments	
 	};	
 }
 }
