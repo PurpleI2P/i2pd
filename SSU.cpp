@@ -824,6 +824,7 @@ namespace ssu
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
 			Send (buf, 48);
+			LogPrint ("SSU session destoryed sent");
 		}
 	}	
 
@@ -1021,7 +1022,12 @@ namespace ssu
 							introducerSession->Introduce (introducer->iTag, introducer->iKey);
 						}
 						else
+						{	
 							LogPrint ("Router is unreachable, but no introducers presented. Ignored");
+							m_Sessions.erase (remoteEndpoint);
+							delete session;
+							session = nullptr;
+						}	
 					}
 				}
 			}
