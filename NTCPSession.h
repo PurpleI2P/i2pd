@@ -78,6 +78,9 @@ namespace ntcp
 			void ClientLogin ();
 			void ServerLogin ();
 			void SendI2NPMessage (I2NPMessage * msg);
+
+			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
 		protected:
 
@@ -142,6 +145,8 @@ namespace ntcp
 			i2p::I2NPMessage * m_NextMessage;
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			size_t m_NextMessageOffset;
+
+			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};	
 
 	class NTCPClient: public NTCPSession

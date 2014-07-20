@@ -303,6 +303,7 @@ namespace util
 				s << it.second->GetRemoteRouterInfo ().GetIdentHashAbbreviation () <<  ": "
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 				if (!outgoing) s << "-->";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << "<BR>";
 			}
 		}
@@ -318,6 +319,7 @@ namespace util
 				if (outgoing) s << "-->";
 				s << endpoint.address ().to_string () << ":" << endpoint.port ();
 				if (!outgoing) s << "-->";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << "<BR>";
 			}
 		}

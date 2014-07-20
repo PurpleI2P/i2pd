@@ -19,7 +19,8 @@ namespace ssu
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
 		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
-		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this)
+		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
+		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
@@ -74,6 +75,7 @@ namespace ssu
 
 	void SSUSession::ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
+		m_NumReceivedBytes += len;
 		if (m_State == eSessionStateIntroduced)
 		{
 			// HolePunch received
@@ -842,6 +844,7 @@ namespace ssu
 
 	void SSUSession::Send (const uint8_t * buf, size_t size)
 	{
+		m_NumSentBytes += size;
 		m_Server.Send (buf, size, m_RemoteEndpoint);
 	}	
 
@@ -910,7 +913,6 @@ namespace ssu
 	void SSUServer::Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
 		m_Socket.send_to (boost::asio::buffer (buf, len), to);
-		LogPrint ("SSU sent ", len, " bytes");
 	}	
 
 	void SSUServer::Receive ()
@@ -923,7 +925,6 @@ namespace ssu
 	{
 		if (!ecode)
 		{
-			LogPrint ("SSU received ", bytes_transferred, " bytes");
 			SSUSession * session = nullptr;
 			auto it = m_Sessions.find (m_SenderEndpoint);
 			if (it != m_Sessions.end ())

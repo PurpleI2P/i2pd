@@ -73,7 +73,10 @@ namespace ssu
 			void SendPeerTest (); // Alice			
 
 			SessionState GetState () const  { return m_State; };
-
+			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			
+			
 		private:
 
 			void CreateAESandMacKey (const uint8_t * pubKey); 
@@ -131,6 +134,7 @@ namespace ssu
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			std::set<IV> m_ReceivedIVs;	
 			SSUData m_Data;
+			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};
 
 	class SSUServer
