@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include <set>
+#include <boost/asio.hpp>
 #include "I2NPProtocol.h"
 
 namespace i2p
@@ -14,6 +15,8 @@ namespace ssu
 {
 
 	const size_t SSU_MTU = 1484;
+	const int RESEND_INTERVAL = 3; // in seconds
+	const int MAX_NUM_RESENDS = 5;
 	// data flags
 	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
 	const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
@@ -24,10 +27,12 @@ namespace ssu
 
 	struct Fragment
 	{
-		int fragmentNum, len;
+		int fragmentNum;
+		size_t len;
 		bool isLast;
-		uint8_t buf[SSU_MTU];
+		uint8_t buf[SSU_MTU + 18];
 
+		Fragment () = default;
 		Fragment (int n, const uint8_t * b, int l, bool last): 
 			fragmentNum (n), len (l), isLast (last) { memcpy (buf, b, len); };		
 	};	
@@ -52,9 +57,11 @@ namespace ssu
 
 	struct SentMessage
 	{
-		std::vector<uint8_t *> fragments;
+		std::vector<Fragment *> fragments;
 		uint32_t nextResendTime; // in seconds
 		int numResends;
+
+		~SentMessage () { for (auto it: fragments) { delete it; }; };
 	};	
 	
 	class SSUSession;
@@ -76,13 +83,15 @@ namespace ssu
 			void ProcessFragments (uint8_t * buf);
 			void ProcessSentMessageAck (uint32_t msgID);	
 
-		private:
-
+			void ScheduleResend ();
+			void HandleResendTimer (const boost::system::error_code& ecode);	
 			
+		private:	
 
 			SSUSession& m_Session;
 			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
-			std::map<uint32_t, SentMessage> m_SentMessages; // msgID -> fragments	
+			std::map<uint32_t, SentMessage *> m_SentMessages;
+			boost::asio::deadline_timer m_ResendTimer;
 	};	
 }
 }
