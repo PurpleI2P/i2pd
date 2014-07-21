@@ -19,7 +19,8 @@ namespace ssu
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
 		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
-		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this)
+		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
+		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
@@ -74,6 +75,7 @@ namespace ssu
 
 	void SSUSession::ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
+		m_NumReceivedBytes += len;
 		if (m_State == eSessionStateIntroduced)
 		{
 			// HolePunch received
@@ -83,11 +85,12 @@ namespace ssu
 		}
 		else
 		{
-			ScheduleTermination ();
-			// check for duplicate
+			if (m_State == eSessionStateEstablished)
+				ScheduleTermination ();
+			/* // check for duplicate
 			const uint8_t * iv = ((SSUHeader *)buf)->iv;
 			if (m_ReceivedIVs.count (iv)) return; // duplicate detected
-			m_ReceivedIVs.insert (iv);
+			m_ReceivedIVs.insert (iv);*/
 
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
 				DecryptSessionKey (buf, len);	
@@ -652,7 +655,6 @@ namespace ssu
 		if (m_State != eSessionStateFailed)
 		{	
 			m_State = eSessionStateFailed;
-			Close ();
 			m_Server.DeleteSession (this); // delete this 
 		}	
 	}	
@@ -822,6 +824,7 @@ namespace ssu
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
 			Send (buf, 48);
+			LogPrint ("SSU session destoryed sent");
 		}
 	}	
 
@@ -842,6 +845,7 @@ namespace ssu
 
 	void SSUSession::Send (const uint8_t * buf, size_t size)
 	{
+		m_NumSentBytes += size;
 		m_Server.Send (buf, size, m_RemoteEndpoint);
 	}	
 
@@ -910,7 +914,6 @@ namespace ssu
 	void SSUServer::Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
 		m_Socket.send_to (boost::asio::buffer (buf, len), to);
-		LogPrint ("SSU sent ", len, " bytes");
 	}	
 
 	void SSUServer::Receive ()
@@ -923,7 +926,6 @@ namespace ssu
 	{
 		if (!ecode)
 		{
-			LogPrint ("SSU received ", bytes_transferred, " bytes");
 			SSUSession * session = nullptr;
 			auto it = m_Sessions.find (m_SenderEndpoint);
 			if (it != m_Sessions.end ())
@@ -1020,7 +1022,12 @@ namespace ssu
 							introducerSession->Introduce (introducer->iTag, introducer->iKey);
 						}
 						else
+						{	
 							LogPrint ("Router is unreachable, but no introducers presented. Ignored");
+							m_Sessions.erase (remoteEndpoint);
+							delete session;
+							session = nullptr;
+						}	
 					}
 				}
 			}

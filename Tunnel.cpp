@@ -361,10 +361,12 @@ namespace tunnel
 	void Tunnels::ManageTunnels ()
 	{
 		// check pending tunnel. if something is still there, wipe it out
-		// because it wouldn't be reponded anyway
+		// because it wouldn't be responded anyway
 		for (auto& it : m_PendingTunnels)
 		{	
 			LogPrint ("Pending tunnel build request ", it.first, " has not been responded. Deleted");
+			if (it.second->GetTunnelConfig ()->GetFirstHop ()->isGateway) // outbound
+				i2p::transports.CloseSession (it.second->GetTunnelConfig ()->GetFirstHop ()->router);
 			delete it.second;
 		}	
 		m_PendingTunnels.clear ();

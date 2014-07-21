@@ -14,13 +14,13 @@ namespace util
 	class HTTPConnection
 	{
 		protected:
-			
+
 			struct header
 			{
 			  std::string name;
 			  std::string value;
 			};
-	
+
 			struct request
 			{
 			  std::string method;
@@ -38,7 +38,7 @@ namespace util
 
 				std::vector<boost::asio::const_buffer> to_buffers (int status);
 			};
-	
+
 		public:
 
 			HTTPConnection (boost::asio::ip::tcp::socket * socket): m_Socket (socket), m_Stream (nullptr) { Receive (); };
@@ -48,9 +48,9 @@ namespace util
 
 			void Terminate ();
 			void Receive ();
-			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);	
+			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void AsyncStreamReceive ();
-			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);			
+			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleWriteReply(const boost::system::error_code& ecode);
 			void HandleWrite (const boost::system::error_code& ecode);
 			void SendReply (const std::string& content, int status = 200);
@@ -58,9 +58,9 @@ namespace util
 			void HandleRequest ();
 			void FillContent (std::stringstream& s);
 			std::string ExtractAddress ();
-			
+
 		protected:
-	
+
 			boost::asio::ip::tcp::socket * m_Socket;
 			i2p::stream::Stream * m_Stream;
 			char m_Buffer[8192], m_StreamBuffer[8192];
@@ -68,14 +68,16 @@ namespace util
 			reply m_Reply;
 
 		protected:
-			
+
+
 			virtual void HandleDestinationRequest(const std::string& address, const std::string& uri);
+			virtual void HandleDestinationRequest(const std::string& address, const std::string& method, const std::string& data, const std::string& uri);
 			virtual void RunRequest ();
 
 		private:
 
 			static const std::string itoopieImage;
-	};	
+	};
 
 	class HTTPServer
 	{
@@ -89,9 +91,9 @@ namespace util
 
 		private:
 
-			void Run ();	
+			void Run ();
  			void Accept ();
-			void HandleAccept(const boost::system::error_code& ecode);	
+			void HandleAccept(const boost::system::error_code& ecode);
 
 		private:
 
@@ -103,7 +105,7 @@ namespace util
 
 		protected:
 			virtual void CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket);
-	};		
+	};
 }
 }
 
