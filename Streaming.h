@@ -213,6 +213,11 @@ namespace stream
 				return;
 			}	
 		}
+		if (!m_IsOpen)
+		{
+			handler (boost::asio::error::make_error_code (boost::asio::error::connection_reset), 0);
+			return;
+		}
 		m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
 		m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
 			{ this->HandleReceiveTimer (ecode, buffer, handler); });

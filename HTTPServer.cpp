@@ -416,9 +416,9 @@ namespace util
 		}
 		else
 		{
-			if (m_Stream && m_Stream->IsOpen ())
+			if (ecode == boost::asio::error::timed_out)
 				SendReply ("<html>" + itoopieImage + "<br>Not responding</html>", 504);
-			else
+			else 
 				Terminate ();
 		}
 	}
