@@ -354,32 +354,18 @@ namespace ssu
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			for (auto it = m_SentMessages.begin (); it != m_SentMessages.end ();)
+			for (auto it : m_SentMessages)
 			{
-				if (ts >= it->second->nextResendTime)
+				if (ts >= it.second->nextResendTime && it.second->numResends < MAX_NUM_RESENDS)
 				{	
-					bool isEmpty = true;
-					for (auto f: it->second->fragments)
-						if (f)
-						{
-							isEmpty = false;
-							m_Session.Send (f->buf, f->len); // resend
-						}
+					for (auto f: it.second->fragments)
+						if (f) m_Session.Send (f->buf, f->len); // resend
 
-					it->second->numResends++;
-					if (isEmpty || it->second->numResends >= MAX_NUM_RESENDS)
-					{
-						delete it->second;
-						it = m_SentMessages.erase (it);
-					}	
-					else
-						it++;
+					it.second->numResends++;
+					it.second->nextResendTime += it.second->numResends*RESEND_INTERVAL;
 				}	
-				else
-					it++;
 			}
-			if (!m_SentMessages.empty ())
-				ScheduleResend ();	
+			ScheduleResend ();	
 		}	
 	}	
 }

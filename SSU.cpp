@@ -87,10 +87,6 @@ namespace ssu
 		{
 			if (m_State == eSessionStateEstablished)
 				ScheduleTermination ();
-			/* // check for duplicate
-			const uint8_t * iv = ((SSUHeader *)buf)->iv;
-			if (m_ReceivedIVs.count (iv)) return; // duplicate detected
-			m_ReceivedIVs.insert (iv);*/
 
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
 				DecryptSessionKey (buf, len);	

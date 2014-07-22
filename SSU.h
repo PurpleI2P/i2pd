@@ -115,8 +115,7 @@ namespace ssu
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:
-
-			typedef i2p::data::Tag<16> IV;			
+	
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
@@ -132,7 +131,6 @@ namespace ssu
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			uint8_t m_SessionKey[32], m_MacKey[32];
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
-			std::set<IV> m_ReceivedIVs;	
 			SSUData m_Data;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};
