@@ -155,44 +155,40 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::AddRouterInfo (uint8_t * buf, int len)
-	{
-		RouterInfo * r = new RouterInfo (buf, len);
-		DeleteRequestedDestination (r->GetIdentHash ());
-		auto it = m_RouterInfos.find(r->GetIdentHash ());
+	void NetDb::AddRouterInfo (const IdentHash& ident, uint8_t * buf, int len)
+	{	
+		DeleteRequestedDestination (ident);
+		auto it = m_RouterInfos.find(ident);
 		if (it != m_RouterInfos.end ())
 		{
-			if (r->GetTimestamp () > it->second->GetTimestamp ())
-			{
+			auto ts = it->second->GetTimestamp ();
+			it->second->Update (buf, len);
+			if (it->second->GetTimestamp () > ts)
 				LogPrint ("RouterInfo updated");
-				*(it->second) = *r; // we can't replace pointer because it's used by tunnels
-			}				
-			delete r;
 		}	
 		else	
 		{	
 			LogPrint ("New RouterInfo added");
+			RouterInfo * r = new RouterInfo (buf, len);
 			m_RouterInfos[r->GetIdentHash ()] = r;
 			if (r->IsFloodfill ())
 				m_Floodfills.push_back (r);
 		}	
 	}	
 
-	void NetDb::AddLeaseSet (uint8_t * buf, int len)
+	void NetDb::AddLeaseSet (const IdentHash& ident, uint8_t * buf, int len)
 	{
-		LeaseSet * l = new LeaseSet (buf, len);
-		DeleteRequestedDestination (l->GetIdentHash ());
-		auto it = m_LeaseSets.find(l->GetIdentHash ());
+		DeleteRequestedDestination (ident);
+		auto it = m_LeaseSets.find(ident);
 		if (it != m_LeaseSets.end ())
 		{
+			it->second->Update (buf, len); 
 			LogPrint ("LeaseSet updated");
-			*(it->second) = *l; // we can't replace pointer because it's used by streams
-			delete l;
 		}
 		else
 		{	
 			LogPrint ("New LeaseSet added");
-			m_LeaseSets[l->GetIdentHash ()] = l;
+			m_LeaseSets[ident] = new LeaseSet (buf, len);
 		}	
 	}	
 
@@ -395,7 +391,7 @@ namespace data
 		if (msg->type)
 		{
 			LogPrint ("LeaseSet");
-			AddLeaseSet (buf + offset, len - offset);
+			AddLeaseSet (msg->key, buf + offset, len - offset);
 		}	
 		else
 		{
@@ -413,7 +409,7 @@ namespace data
 			uint8_t uncompressed[2048];
 			size_t uncomressedSize = decompressor.MaxRetrievable ();
 			decompressor.Get (uncompressed, uncomressedSize);
-			AddRouterInfo (uncompressed, uncomressedSize);
+			AddRouterInfo (msg->key, uncompressed, uncomressedSize);
 		}	
 	}	
 

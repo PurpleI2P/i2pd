@@ -58,8 +58,8 @@ namespace data
 			void Start ();
 			void Stop ();
 			
-			void AddRouterInfo (uint8_t * buf, int len);
-			void AddLeaseSet (uint8_t * buf, int len);
+			void AddRouterInfo (const IdentHash& ident, uint8_t * buf, int len);
+			void AddLeaseSet (const IdentHash& ident, uint8_t * buf, int len);
 			RouterInfo * FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 			const IdentHash * FindAddress (const std::string& address) { return m_AddressBook.FindAddress (address); }; // TODO: move AddressBook away from NetDb

@@ -30,7 +30,20 @@ namespace data
 		m_BufferLen = len;
 		ReadFromBuffer ();
 	}	
-	
+
+	void RouterInfo::Update (const uint8_t * buf, int len)
+	{
+		m_IsUpdated = true;
+		m_IsUnreachable = false;
+		m_SupportedTransports = 0;
+		m_Caps = 0;
+		m_Addresses.clear ();
+		m_Properties.clear ();
+		memcpy (m_Buffer, buf, len);
+		m_BufferLen = len;
+		ReadFromBuffer ();
+	}	
+		
 	void RouterInfo::SetRouterIdentity (const Identity& identity)
 	{	
 		m_RouterIdentity = identity;

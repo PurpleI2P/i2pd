@@ -13,6 +13,17 @@ namespace data
 	
 	LeaseSet::LeaseSet (const uint8_t * buf, int len)
 	{
+		ReadFromBuffer (buf, len);
+	}
+
+	void LeaseSet::Update (const uint8_t * buf, int len)
+	{	
+		m_Leases.clear ();
+		ReadFromBuffer (buf, len);
+	}
+	
+	void LeaseSet::ReadFromBuffer (const uint8_t * buf, int len)	
+	{	
 #pragma pack(1)
 		struct H
 		{
@@ -55,8 +66,8 @@ namespace data
 		CryptoPP::DSA::Verifier verifier (pubKey);
 		if (!verifier.VerifyMessage (buf, leases - buf, leases, 40))
 			LogPrint ("LeaseSet verification failed");
-	}	
-
+	}				
+	
 	const std::vector<Lease> LeaseSet::GetNonExpiredLeases () const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();

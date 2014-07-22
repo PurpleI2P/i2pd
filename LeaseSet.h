@@ -37,6 +37,7 @@ namespace data
 			LeaseSet (const uint8_t * buf, int len);
 			LeaseSet (const LeaseSet& ) = default;
 			LeaseSet& operator=(const LeaseSet& ) = default;
+			void Update (const uint8_t * buf, int len);
 			
 			// implements RoutingDestination
 			const Identity& GetIdentity () const { return m_Identity; };
@@ -47,6 +48,10 @@ namespace data
 			bool HasNonExpiredLeases () const;
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };
 			bool IsDestination () const { return true; };
+
+		private:
+
+			void ReadFromBuffer (const uint8_t * buf, int len);
 			
 		private:
 

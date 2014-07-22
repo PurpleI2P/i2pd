@@ -68,6 +68,7 @@ namespace data
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
+			void Update (const uint8_t * buf, int len);
 			
 			const Identity& GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (const Identity& identity);
