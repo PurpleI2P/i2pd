@@ -35,7 +35,8 @@ namespace data
 				"https://i2p.mooo.com/netDb/",
 				"https://reseed.info/",
 				"https://i2p-netdb.innovatio.no/",
-				"https://ieb9oopo.mooo.com"
+				"https://ieb9oopo.mooo.com/",
+				"https://ssl.webpack.de/ivae2he9.sg4.e-plaza.de/" // Only HTTPS and SU3 (v2) support
 			};
 	
 	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
@@ -52,6 +53,15 @@ namespace data
 	{
 		try
 		{
+			// Seems like the best place to try to intercept with SSL
+			/*ssl_server = true;
+			try {
+				// SSL
+			}
+			catch (std::exception& e)
+			{
+				LogPrint("Exception in SSL: ", e.what());
+			}*/
 			std::string reseedHost = httpReseedHostList[(rand() % httpReseedHostList.size())];
 			LogPrint("Reseeding from ", reseedHost);
 			std::string content = i2p::util::http::httpRequest(reseedHost);
