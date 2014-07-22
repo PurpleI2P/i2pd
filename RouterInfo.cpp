@@ -20,19 +20,28 @@ namespace data
 	RouterInfo::RouterInfo (const char * filename):
 		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
+		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		ReadFromFile (filename);
 	}	
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
 		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
+		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
 		ReadFromBuffer ();
 	}	
 
+	RouterInfo::~RouterInfo ()
+	{
+		delete m_Buffer;
+	}	
+		
 	void RouterInfo::Update (const uint8_t * buf, int len)
 	{
+		if (!m_Buffer)	
+			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		m_IsUpdated = true;
 		m_IsUnreachable = false;
 		m_SupportedTransports = 0;
@@ -42,12 +51,13 @@ namespace data
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
 		ReadFromBuffer ();
+		// don't delete buffer until save to file
 	}	
 		
 	void RouterInfo::SetRouterIdentity (const Identity& identity)
 	{	
 		m_RouterIdentity = identity;
-		m_IdentHash      = m_RouterIdentity.Hash ();
+		m_IdentHash = m_RouterIdentity.Hash ();
 		UpdateIdentHashBase64 ();
 		UpdateRoutingKey ();
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
@@ -338,8 +348,13 @@ namespace data
 
 	void RouterInfo::SaveToFile (const std::string& fullPath)
 	{
-		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
-		f.write ((char *)m_Buffer, m_BufferLen);
+		if (m_Buffer)
+		{	
+			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+			f.write ((char *)m_Buffer, m_BufferLen);
+		}	
+		else
+			LogPrint ("Can't save to file");
 	}
 	
 	size_t RouterInfo::ReadString (char * str, std::istream& s)

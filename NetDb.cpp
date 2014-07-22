@@ -264,6 +264,7 @@ namespace data
 #else
 					RouterInfo * r = new RouterInfo(it1->path().c_str());
 #endif
+					r->DeleteBuffer ();
 					m_RouterInfos[r->GetIdentHash ()] = r;
 					if (r->IsFloodfill ())
 						m_Floodfills.push_back (r);
@@ -305,6 +306,7 @@ namespace data
 			{
 				it.second->SaveToFile (GetFilePath(fullDirectory, it.second));
 				it.second->SetUpdated (false);
+				it.second->DeleteBuffer ();
 				count++;
 			}
 			else 

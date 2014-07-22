@@ -64,11 +64,11 @@ namespace data
 			};
 			
 			RouterInfo (const char * filename);
-			RouterInfo () = default;
+			RouterInfo (): m_Buffer (nullptr) {};
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
-			void Update (const uint8_t * buf, int len);
+			~RouterInfo ();
 			
 			const Identity& GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (const Identity& identity);
@@ -108,10 +108,14 @@ namespace data
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
 			void SaveToFile (const std::string& fullPath);
 
+			void Update (const uint8_t * buf, int len);
+			void DeleteBuffer () { delete m_Buffer; m_Buffer = nullptr; };
+			
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.publicKey; };
 			bool IsDestination () const { return false; };
+
 			
 		private:
 
@@ -131,7 +135,7 @@ namespace data
 			IdentHash m_IdentHash;
 			RoutingKey m_RoutingKey;
 			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
-			uint8_t m_Buffer[MAX_RI_BUFFER_SIZE];
+			uint8_t * m_Buffer;
 			int m_BufferLen;
 			uint64_t m_Timestamp;
 			std::vector<Address> m_Addresses;
