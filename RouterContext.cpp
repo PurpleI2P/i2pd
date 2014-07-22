@@ -40,7 +40,7 @@ namespace i2p
 		routerInfo.SetProperty ("start_uptime", "90m");
 		routerInfo.CreateBuffer ();
 
-		m_RouterInfo = routerInfo;
+		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 	}	
 	
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)

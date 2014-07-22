@@ -340,6 +340,8 @@ namespace data
 		std::stringstream s;
 		WriteToStream (s);
 		m_BufferLen = s.str ().size ();
+		if (!m_Buffer)
+			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, s.str ().c_str (), m_BufferLen);
 		// signature
 		i2p::context.Sign ((uint8_t *)m_Buffer, m_BufferLen, (uint8_t *)m_Buffer + m_BufferLen);
