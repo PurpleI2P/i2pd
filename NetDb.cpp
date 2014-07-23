@@ -106,17 +106,21 @@ namespace data
 				{	
 					while (msg)
 					{
-						if (msg->GetHeader ()->typeID == eI2NPDatabaseStore)
-						{	
-							HandleDatabaseStoreMsg (msg->GetPayload (), msg->GetLength ()); // TODO
-							i2p::DeleteI2NPMessage (msg);
-						}
-						else if (msg->GetHeader ()->typeID == eI2NPDatabaseSearchReply)
-							HandleDatabaseSearchReplyMsg (msg);
-						else // WTF?
+						switch (msg->GetHeader ()->typeID) 
 						{
-							LogPrint ("NetDb: unexpected message type ", msg->GetHeader ()->typeID);
-							i2p::HandleI2NPMessage (msg);
+							case eI2NPDatabaseStore:	
+								HandleDatabaseStoreMsg (msg->GetPayload (), msg->GetLength ()); // TODO
+								i2p::DeleteI2NPMessage (msg);
+							break;
+							case eI2NPDatabaseSearchReply:
+								HandleDatabaseSearchReplyMsg (msg);
+							break;
+							case eI2NPDatabaseLookup:
+								HandleDatabaseLookupMsg (msg);
+							break;	
+							default: // WTF?
+								LogPrint ("NetDb: unexpected message type ", msg->GetHeader ()->typeID);
+								i2p::HandleI2NPMessage (msg);
 						}	
 						msg = m_Queue.Get ();
 					}	
@@ -545,6 +549,26 @@ namespace data
 		i2p::DeleteI2NPMessage (msg);
 	}	
 	
+	void NetDb::HandleDatabaseLookupMsg (I2NPMessage * msg)
+	{
+		uint8_t * buf = msg->GetPayload ();
+		char key[48];
+		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
+		key[l] = 0;
+		LogPrint ("DatabaseLookup for ", key, " recieved");
+		uint8_t flag = buf[64];
+		uint32_t replyTunnelID = 0;
+		if (flag & 0x01) //reply to tunnel
+			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
+		// TODO: implement search. We send non-found for now
+		I2NPMessage * replyMsg = CreateDatabaseSearchReply (buf);
+		if (replyTunnelID)
+			i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+		else
+			i2p::transports.SendMessage (buf, replyMsg);
+		i2p::DeleteI2NPMessage (msg);
+	}	
+
 	void NetDb::Explore (int numDestinations)
 	{	
 		// clean up previous exploratories
