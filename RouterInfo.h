@@ -63,8 +63,8 @@ namespace data
 				std::vector<Introducer> introducers;
 			};
 			
-			RouterInfo (const char * filename);
-			RouterInfo (): m_Buffer (nullptr) {};
+			RouterInfo (const std::string& fullPath);
+			RouterInfo (): m_Buffer (nullptr) { m_IdentHashBase64[0] = 0; m_IdentHashAbbreviation[0] = 0; };
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
@@ -99,8 +99,9 @@ namespace data
 			bool IsUnreachable () const { return m_IsUnreachable; };
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
-			int GetBufferLen () const { return m_BufferLen; };
-			
+			const uint8_t * GetBuffer (); // load if necessary
+			int GetBufferLen () const { return m_BufferLen; };			
+
 			void CreateBuffer ();
 			void UpdateRoutingKey ();
 
@@ -119,7 +120,8 @@ namespace data
 			
 		private:
 
-			void ReadFromFile (const char * filename);
+			bool LoadFile ();
+			void ReadFromFile ();
 			void ReadFromStream (std::istream& s);
 			void ReadFromBuffer ();
 			void WriteToStream (std::ostream& s);
@@ -131,6 +133,7 @@ namespace data
 			
 		private:
 
+			std::string m_FullPath;
 			Identity m_RouterIdentity;
 			IdentHash m_IdentHash;
 			RoutingKey m_RoutingKey;

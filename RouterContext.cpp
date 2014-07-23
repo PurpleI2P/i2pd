@@ -79,7 +79,7 @@ namespace i2p
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 
-		m_RouterInfo = i2p::data::RouterInfo (i2p::util::filesystem::GetFullPath (ROUTER_INFO).c_str ()); // TODO
+		m_RouterInfo = i2p::data::RouterInfo (i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
 		
 		return true;
 	}

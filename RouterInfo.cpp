@@ -17,11 +17,12 @@ namespace i2p
 {
 namespace data
 {		
-	RouterInfo::RouterInfo (const char * filename):
-		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
+	RouterInfo::RouterInfo (const std::string& fullPath):
+		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false), 
+		m_SupportedTransports (0), m_Caps (0)
 	{
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-		ReadFromFile (filename);
+		ReadFromFile ();
 	}	
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
@@ -63,24 +64,35 @@ namespace data
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 	
-	void RouterInfo::ReadFromFile (const char * filename)
+	bool RouterInfo::LoadFile ()
 	{
-		std::ifstream s(filename, std::ifstream::binary);
+		std::ifstream s(m_FullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
 			m_BufferLen = s.tellg ();
 			if (m_BufferLen < 40)
 			{
-				LogPrint("File", filename, " is malformed");
-				return;
+				LogPrint("File", m_FullPath, " is malformed");
+				return false;
 			}
 			s.seekg(0, std::ios::beg);
+			if (!m_Buffer)
+				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 			s.read((char *)m_Buffer, m_BufferLen);
-			ReadFromBuffer ();
 		}	
 		else
-			LogPrint ("Can't open file ", filename);
+		{
+			LogPrint ("Can't open file ", m_FullPath);
+			return false;		
+		}
+		return true;
+	}	
+
+	void RouterInfo::ReadFromFile ()
+	{
+		if (LoadFile ())
+			ReadFromBuffer ();
 	}	
 
 	void RouterInfo::ReadFromBuffer ()
@@ -334,6 +346,16 @@ namespace data
 		s.write (properties.str ().c_str (), properties.str ().size ());
 	}	
 
+	const uint8_t * RouterInfo::GetBuffer ()
+	{
+		if (!m_Buffer)
+		{
+			if (LoadFile ())
+				LogPrint ("Buffer for ", m_IdentHashAbbreviation, " loaded from file");
+		} 
+		return m_Buffer; 
+	}
+
 	void RouterInfo::CreateBuffer ()
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
@@ -350,6 +372,7 @@ namespace data
 
 	void RouterInfo::SaveToFile (const std::string& fullPath)
 	{
+		m_FullPath = fullPath;
 		if (m_Buffer)
 		{	
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
