@@ -346,7 +346,7 @@ namespace data
 		s.write (properties.str ().c_str (), properties.str ().size ());
 	}	
 
-	const uint8_t * RouterInfo::GetBuffer ()
+	const uint8_t * RouterInfo::LoadBuffer ()
 	{
 		if (!m_Buffer)
 		{

@@ -172,23 +172,26 @@ namespace i2p
 		return m; 
 	}	
 	
-	I2NPMessage * CreateDatabaseStoreMsg ()
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router)
 	{
+		if (!router) // we send own RouterInfo
+			router = &context.GetRouterInfo ();
+
 		I2NPMessage * m = NewI2NPMessage ();
 		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();		
 
-		memcpy (msg->key, context.GetRouterInfo ().GetIdentHash (), 32);
+		memcpy (msg->key, router->GetIdentHash (), 32);
 		msg->type = 0;
 		msg->replyToken = 0;
 		
 		CryptoPP::Gzip compressor;
-		compressor.Put (context.GetRouterInfo ().GetBuffer (), context.GetRouterInfo ().GetBufferLen ());
+		compressor.Put (router->GetBuffer (), router->GetBufferLen ());
 		compressor.MessageEnd();
-		// WARNING!!! MaxRetrievable() return uint64_t. Есть подозрение, что что-то не так
-		int size = compressor.MaxRetrievable ();
+		auto size = compressor.MaxRetrievable ();
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
 		*(uint16_t *)buf = htobe16 (size); // size
 		buf += 2;
+		// TODO: check if size doesn't exceed buffer
 		compressor.Get (buf, size); 
 		m->len += sizeof (I2NPDatabaseStoreMsg) + 2 + size; // payload size
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
@@ -504,15 +507,9 @@ namespace i2p
 					i2p::garlic::routing.HandleGarlicMessage (msg);
 				break;
 				case eI2NPDatabaseStore:
-					LogPrint ("DatabaseStore");
-					i2p::data::netdb.PostI2NPMsg (msg);
-				break;	
 				case eI2NPDatabaseSearchReply:
-					LogPrint ("DatabaseSearchReply");
-					i2p::data::netdb.PostI2NPMsg (msg);
-				break;					
 				case eI2NPDatabaseLookup:
-					LogPrint ("DatabaseLookup");
+					// forward to netDb
 					i2p::data::netdb.PostI2NPMsg (msg);
 				break;
 				case eI2NPDeliveryStatus:

@@ -109,13 +109,16 @@ namespace data
 						switch (msg->GetHeader ()->typeID) 
 						{
 							case eI2NPDatabaseStore:	
+								LogPrint ("DatabaseStore");
 								HandleDatabaseStoreMsg (msg->GetPayload (), msg->GetLength ()); // TODO
 								i2p::DeleteI2NPMessage (msg);
 							break;
 							case eI2NPDatabaseSearchReply:
+								LogPrint ("DatabaseSearchReply");
 								HandleDatabaseSearchReplyMsg (msg);
 							break;
 							case eI2NPDatabaseLookup:
+								LogPrint ("DatabaseLookup");
 								HandleDatabaseLookupMsg (msg);
 							break;	
 							default: // WTF?
@@ -560,12 +563,23 @@ namespace data
 		uint32_t replyTunnelID = 0;
 		if (flag & 0x01) //reply to tunnel
 			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
-		// TODO: implement search. We send non-found for now
-		I2NPMessage * replyMsg = CreateDatabaseSearchReply (buf);
-		if (replyTunnelID)
-			i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+
+		I2NPMessage * replyMsg = nullptr;
+		auto router = FindRouter (buf);
+		if (router)
+		{
+			router->LoadBuffer ();
+			replyMsg = CreateDatabaseStoreMsg (router);
+		}
 		else
-			i2p::transports.SendMessage (buf, replyMsg);
+			replyMsg = CreateDatabaseSearchReply (buf);
+		if (replyMsg)
+		{	
+			if (replyTunnelID)
+				i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+			else
+				i2p::transports.SendMessage (buf, replyMsg);
+		}
 		i2p::DeleteI2NPMessage (msg);
 	}	
 

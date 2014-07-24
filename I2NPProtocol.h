@@ -156,7 +156,7 @@ namespace tunnel
 	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr, bool encryption = false);
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident);
 	
-	I2NPMessage * CreateDatabaseStoreMsg ();
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);
 	
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 

@@ -99,7 +99,7 @@ namespace data
 			bool IsUnreachable () const { return m_IsUnreachable; };
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
-			const uint8_t * GetBuffer (); // load if necessary
+			const uint8_t * LoadBuffer (); // load if necessary
 			int GetBufferLen () const { return m_BufferLen; };			
 
 			void CreateBuffer ();
