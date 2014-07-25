@@ -582,7 +582,10 @@ namespace data
 			replyMsg = CreateDatabaseStoreMsg (router);
 		}
 		else
-			replyMsg = CreateDatabaseSearchReply (buf);
+		{
+			std::set<IdentHash> excluded; // empty for now
+			replyMsg = CreateDatabaseSearchReply (buf, GetClosestFloodfill (buf, excluded));
+		}	
 		if (replyMsg)
 		{	
 			if (replyTunnelID)

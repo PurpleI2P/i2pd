@@ -154,7 +154,7 @@ namespace tunnel
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false, 
 	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr, bool encryption = false);
-	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident);
+	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, const i2p::data::RouterInfo * floodfill);
 	
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);
 	

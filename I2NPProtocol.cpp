@@ -160,14 +160,24 @@ namespace i2p
 		return m; 
 	}	
 
-	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident)
+	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
+		const i2p::data::RouterInfo * floodfill)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		uint8_t * buf = m->GetPayload ();
+		size_t len = 0;
 		memcpy (buf, ident, 32);
-		buf[32] = 0; // TODO:
-		memcpy (buf + 33, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
-		m->len += 65;
+		len += 32;
+		buf[len] = floodfill ? 1 : 0; // 1 router for now
+		len++;
+		if (floodfill)
+		{
+			memcpy (buf + len, floodfill->GetIdentHash (), 32);
+			len += 32;
+		}	
+		memcpy (buf + len, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
+		len += 32;	
+		m->len += len;
 		FillI2NPMessageHeader (m, eI2NPDatabaseSearchReply);
 		return m; 
 	}	
