@@ -267,15 +267,25 @@ namespace data
 				for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
 				{
 #if BOOST_VERSION > 10500
-					RouterInfo * r = new RouterInfo (it1->path().string());
+					const std::string& fullPath = it1->path().string();
 #else
-					RouterInfo * r = new RouterInfo(it1->path());
+					const std::string& fullPath = it1->path();
 #endif
-					r->DeleteBuffer ();
-					m_RouterInfos[r->GetIdentHash ()] = r;
-					if (r->IsFloodfill ())
-						m_Floodfills.push_back (r);
-					numRouters++;
+					RouterInfo * r = new RouterInfo(fullPath);
+					if (!r->IsUnreachable ())
+					{	
+						r->DeleteBuffer ();
+						m_RouterInfos[r->GetIdentHash ()] = r;
+						if (r->IsFloodfill ())
+							m_Floodfills.push_back (r);
+						numRouters++;
+					}	
+					else
+					{	
+						if (boost::filesystem::exists (fullPath))  
+							boost::filesystem::remove (fullPath);
+						delete r;
+					}	
 				}	
 			}	
 		}

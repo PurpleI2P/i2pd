@@ -118,8 +118,10 @@ namespace data
 		// read addresses
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses));
+		bool introducers = false;
 		for (int i = 0; i < numAddresses; i++)
 		{
+			bool isValidAddress = true;
 			Address address;
 			s.read ((char *)&address.cost, sizeof (address.cost));
 			s.read ((char *)&address.date, sizeof (address.date));
@@ -149,7 +151,7 @@ namespace data
 					{	
 						// TODO: we should try to resolve address here
 						LogPrint ("Unexpected address ", value);
-						SetUnreachable (true);
+						isValidAddress = false;
 					}	
 					else
 					{
@@ -169,6 +171,7 @@ namespace data
 				else if (key[0] == 'i')
 				{	
 					// introducers
+					introducers = true;
 					size_t l = strlen(key); 	
 					unsigned char index = key[l-1] - '0'; // TODO:
 					key[l-1] = 0;
@@ -188,7 +191,8 @@ namespace data
 						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
 				}
 			}	
-			m_Addresses.push_back(address);
+			if (isValidAddress)
+				m_Addresses.push_back(address);
 		}	
 		// read peers
 		uint8_t numPeers;
@@ -222,7 +226,7 @@ namespace data
 		UpdateIdentHashBase64 ();
 		UpdateRoutingKey ();
 
-		if (!m_SupportedTransports)
+		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))
 			SetUnreachable (true);
 	}	
 
