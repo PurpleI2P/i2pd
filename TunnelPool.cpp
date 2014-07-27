@@ -164,11 +164,11 @@ namespace tunnel
 		auto it = m_Tests.find (be32toh (deliveryStatus->msgID));
 		if (it != m_Tests.end ())
 		{
-			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - be64toh (deliveryStatus->timestamp), " milliseconds");
-			m_Tests.erase (it);
 			// restore from test failed state if any
 			it->second.first->SetState (eTunnelStateEstablished);
 			it->second.second->SetState (eTunnelStateEstablished);
+			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - be64toh (deliveryStatus->timestamp), " milliseconds");
+			m_Tests.erase (it);
 		}
 		else
 			i2p::garlic::routing.HandleDeliveryStatusMessage (msg->GetPayload (), msg->GetLength ()); // TODO:
