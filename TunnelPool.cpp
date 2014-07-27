@@ -109,16 +109,26 @@ namespace tunnel
 		for (auto it: m_Tests)
 		{
 			LogPrint ("Tunnel test ", (int)it.first, " failed"); 
-			// both outbound and inbound tunnels considered as invalid
+			// if test failed again with another tunnel we consider it failed
 			if (it.second.first)
 			{	
-				it.second.first->SetFailed (true);
-				m_OutboundTunnels.erase (it.second.first);
+				if (it.second.first->GetState () == eTunnelStateTestFailed)
+				{	
+					it.second.first->SetState (eTunnelStateFailed);
+					m_OutboundTunnels.erase (it.second.first);
+				}
+				else
+					it.second.first->SetState (eTunnelStateTestFailed);
 			}	
 			if (it.second.second)
 			{
-				it.second.second->SetFailed (true);
-				m_InboundTunnels.erase (it.second.second);
+				if (it.second.second->GetState () == eTunnelStateTestFailed)
+				{	
+					it.second.second->SetState (eTunnelStateFailed);
+					m_InboundTunnels.erase (it.second.second);
+				}	
+				else
+					it.second.second->SetState (eTunnelStateTestFailed);
 			}	
 		}
 		m_Tests.clear ();	
@@ -138,7 +148,7 @@ namespace tunnel
 				it2++;
 			}
 			if (!failed)
-			{	
+			{
 				uint32_t msgID = rnd.GenerateWord32 ();
 				m_Tests[msgID] = std::make_pair (*it1, *it2);
 				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
@@ -156,6 +166,9 @@ namespace tunnel
 		{
 			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - be64toh (deliveryStatus->timestamp), " milliseconds");
 			m_Tests.erase (it);
+			// restore from test failed state if any
+			it->second.first->SetState (eTunnelStateEstablished);
+			it->second.second->SetState (eTunnelStateEstablished);
 		}
 		else
 			i2p::garlic::routing.HandleDeliveryStatusMessage (msg->GetPayload (), msg->GetLength ()); // TODO:

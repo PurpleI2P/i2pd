@@ -14,8 +14,8 @@ namespace i2p
 namespace tunnel
 {		
 	
-	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_Pool (nullptr), 
-		m_IsEstablished (false), m_IsFailed (false)
+	Tunnel::Tunnel (TunnelConfig * config): 
+		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending)
 	{
 	}	
 
@@ -111,7 +111,7 @@ namespace tunnel
 			hop = hop->prev;
 		}
 
-		m_IsEstablished = true;
+		bool established = true;
 		hop = m_Config->GetFirstHop ();
 		while (hop)
 		{			
@@ -119,10 +119,10 @@ namespace tunnel
 			LogPrint ("Ret code=", (int)record->ret);
 			if (record->ret) 
 				// if any of participants declined the tunnel is not established
-				m_IsEstablished = false; 
+				established = false; 
 			hop = hop->next;
 		}
-		if (m_IsEstablished) 
+		if (established) 
 		{
 			// change reply keys to layer keys
 			hop = m_Config->GetFirstHop ();
@@ -132,7 +132,8 @@ namespace tunnel
 				hop = hop->next;
 			}	
 		}	
-		return m_IsEstablished;
+		if (established) m_State = eTunnelStateEstablished;
+		return established;
 	}	
 
 	void Tunnel::EncryptTunnelMsg (I2NPMessage * tunnelMsg)
@@ -148,7 +149,7 @@ namespace tunnel
 	
 	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
 	{
-		if (IsFailed ()) SetFailed (false); // incoming messages means a tunnel is alive			
+		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive			
 		msg->from = this;
 		EncryptTunnelMsg (msg);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
