@@ -23,20 +23,20 @@ namespace garlic
 		m_Encryption.SetKey (m_SessionKey);
 		if (m_NumTags > 0)
 		{
-			m_SessionTags = new uint8_t[m_NumTags*32];
+			m_SessionTags = new SessionTag[m_NumTags];
 			GenerateSessionTags ();
 		}	
 		else
 			m_SessionTags = nullptr;
 	}	
 
-	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const uint8_t * sessionTag):
+	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
 		m_Destination (nullptr), m_FirstMsgID (0), m_IsAcknowledged (true), m_NumTags (1), m_NextTag (0)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
-		m_SessionTags = new uint8_t[1]; // 1 tag	
-		memcpy (m_SessionTags, sessionTag, 32);
+		m_SessionTags = new SessionTag[1]; // 1 tag	
+		m_SessionTags[0] = sessionTag;
 		m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}	
 
@@ -50,7 +50,7 @@ namespace garlic
 		if (m_SessionTags)
 		{
 			for (int i = 0; i < m_NumTags; i++)
-				m_Rnd.GenerateBlock (m_SessionTags + i*32, 32);
+				m_Rnd.GenerateBlock (m_SessionTags[i], 32);
 			m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
 			SetAcknowledged (false);
 		}
@@ -100,9 +100,9 @@ namespace garlic
 		else // existing session
 		{	
 			// session tag
-			memcpy (buf, m_SessionTags + m_NextTag*32, 32);			
+			memcpy (buf, m_SessionTags[m_NextTag], 32);			
 			uint8_t iv[32]; // IV is first 16 bytes
-			CryptoPP::SHA256().CalculateDigest(iv, m_SessionTags + m_NextTag*32, 32);
+			CryptoPP::SHA256().CalculateDigest(iv, m_SessionTags[m_NextTag], 32);
 			m_Encryption.SetIV (iv);
 			buf += 32;
 			len += 32;
@@ -132,8 +132,11 @@ namespace garlic
 		blockSize += 2;
 		if (m_NextTag < 0) // session tags recreated
 		{	
-			memcpy (buf + blockSize, m_SessionTags, m_NumTags*32); // tags
-			blockSize += m_NumTags*32;
+			for (int i = 0; i < m_NumTags; i++)
+			{
+				memcpy (buf + blockSize, m_SessionTags[i], 32); // tags
+				blockSize += 32;
+			}
 		}	
 		uint32_t * payloadSize = (uint32_t *)(buf + blockSize);
 		blockSize += 4;

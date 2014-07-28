@@ -37,12 +37,13 @@ namespace garlic
 
 	const int TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes
 
+	typedef i2p::data::Tag<32> SessionTag;
 	class GarlicRoutingSession
 	{
 		public:
 
 			GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags);
-			GarlicRoutingSession (const uint8_t * sessionKey, const uint8_t * sessionTag); // one time encryption
+			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, const I2NPMessage * leaseSet);
 			int GetNextTag () const { return m_NextTag; };
@@ -67,7 +68,7 @@ namespace garlic
 			uint32_t m_FirstMsgID; // first message ID
 			bool m_IsAcknowledged;
 			int m_NumTags, m_NextTag;
-			uint8_t * m_SessionTags; // m_NumTags*32 bytes
+			SessionTag * m_SessionTags; // m_NumTags*32 bytes
 			uint32_t m_TagsCreationTime; // seconds since epoch
 			
 			i2p::crypto::CBCEncryption m_Encryption;
@@ -76,7 +77,6 @@ namespace garlic
 
 	class GarlicRouting
 	{
-			typedef i2p::data::Tag<32> SessionTag;
 			class SessionDecryption: public i2p::crypto::CBCDecryption
 			{
 				public:
