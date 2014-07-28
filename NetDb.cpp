@@ -571,8 +571,20 @@ namespace data
 		LogPrint ("DatabaseLookup for ", key, " recieved");
 		uint8_t flag = buf[64];
 		uint32_t replyTunnelID = 0;
+		uint8_t * excluded = buf + 64;	
 		if (flag & 0x01) //reply to tunnel
+		{
 			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
+			excluded += 4;
+		}
+		uint16_t numExcluded = be16toh (*(uint16_t *)excluded);	
+		excluded += 2;
+		if (numExcluded > 512)
+		{
+			LogPrint ("Number of excluded peers exceeds 512");
+			numExcluded = 0; // TODO:
+		}
+		excluded += numExcluded*32; // TODO: check excluded list and all zeros (exploratory) 
 
 		I2NPMessage * replyMsg = nullptr;
 		auto router = FindRouter (buf);
@@ -589,7 +601,21 @@ namespace data
 		if (replyMsg)
 		{	
 			if (replyTunnelID)
+			{
+				// encryption might be used though tunnel only
+				if (flag & 0x02) // encrypted reply requested
+				{
+					uint8_t * sessionKey = excluded;
+					uint8_t numTags = sessionKey[32];
+					if (numTags > 0) 
+					{
+						uint8_t * sessionTag = sessionKey + 33; // take first tag
+						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
+						replyMsg = garlic.WrapSingleMessage (replyMsg, nullptr);
+					}
+				}	
 				i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+			}
 			else
 				i2p::transports.SendMessage (buf, replyMsg);
 		}
