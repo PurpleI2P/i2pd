@@ -14,7 +14,7 @@ namespace i2p
 {
 namespace garlic
 {	
-	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags):
+	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags):
 		m_Destination (destination), m_FirstMsgID (0), m_IsAcknowledged (false), 
 		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0)
 	{
@@ -28,6 +28,16 @@ namespace garlic
 		}	
 		else
 			m_SessionTags = nullptr;
+	}	
+
+	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const uint8_t * sessionTag):
+		m_Destination (nullptr), m_FirstMsgID (0), m_IsAcknowledged (true), m_NumTags (1), m_NextTag (0)
+	{
+		memcpy (m_SessionKey, sessionKey, 32);
+		m_Encryption.SetKey (m_SessionKey);
+		m_SessionTags = new uint8_t[1]; // 1 tag	
+		memcpy (m_SessionTags, sessionTag, 32);
+		m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}	
 
 	GarlicRoutingSession::~GarlicRoutingSession	()
@@ -71,13 +81,18 @@ namespace garlic
 		// create message
 		if (m_NextTag < 0 || !m_NumTags) // new session
 		{
+			if (!m_Destination)
+			{
+				LogPrint ("Can't use ElGamal for unknown destination");
+				return nullptr;
+			}
 			// create ElGamal block
 			ElGamalBlock elGamal;
 			memcpy (elGamal.sessionKey, m_SessionKey, 32); 
 			m_Rnd.GenerateBlock (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
-			m_Destination.GetElGamalEncryption ()->Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
+			m_Destination->GetElGamalEncryption ()->Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
 			m_Encryption.SetIV (iv);
 			buf += 514;
 			len += 514;	
@@ -161,7 +176,7 @@ namespace garlic
 		}	
 		if (msg) // clove message ifself if presented
 		{	
-			size += CreateGarlicClove (payload + size, msg, m_Destination.IsDestination ());
+			size += CreateGarlicClove (payload + size, msg, m_Destination ? m_Destination->IsDestination () : false);
 			(*numCloves)++;
 		}	
 		
@@ -178,11 +193,11 @@ namespace garlic
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		size_t size = 0;
-		if (isDestination)
+		if (isDestination && m_Destination)
 		{
 			buf[size] = eGarlicDeliveryTypeDestination << 5;//  delivery instructions flag destination
 			size++;
-			memcpy (buf + size, m_Destination.GetIdentHash (), 32);
+			memcpy (buf + size, m_Destination->GetIdentHash (), 32);
 			size += 32;
 		}	
 		else	
@@ -269,7 +284,7 @@ namespace garlic
 			delete it->second;
 			m_Sessions.erase (it);
 		}
-		GarlicRoutingSession * session = new GarlicRoutingSession (destination, 0); // not follow-on messages expected
+		GarlicRoutingSession * session = new GarlicRoutingSession (&destination, 0); // not follow-on messages expected
 		m_Sessions[destination.GetIdentHash ()] = session;
 
 		return session->WrapSingleMessage (msg, nullptr);
@@ -284,7 +299,7 @@ namespace garlic
 			session = it->second;
 		if (!session)
 		{
-			session = new GarlicRoutingSession (destination, 32); 
+			session = new GarlicRoutingSession (&destination, 32); 
 			m_Sessions[destination.GetIdentHash ()] = session;
 		}	
 

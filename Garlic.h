@@ -36,11 +36,13 @@ namespace garlic
 #pragma pack()	
 
 	const int TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes
+
 	class GarlicRoutingSession
 	{
 		public:
 
-			GarlicRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);
+			GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags);
+			GarlicRoutingSession (const uint8_t * sessionKey, const uint8_t * sessionTag); // one time encryption
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, const I2NPMessage * leaseSet);
 			int GetNextTag () const { return m_NextTag; };
@@ -60,7 +62,7 @@ namespace garlic
 
 		private:
 
-			const i2p::data::RoutingDestination& m_Destination;
+			const i2p::data::RoutingDestination * m_Destination;
 			uint8_t m_SessionKey[32];
 			uint32_t m_FirstMsgID; // first message ID
 			bool m_IsAcknowledged;
