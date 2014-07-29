@@ -6,6 +6,7 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include "RouterInfo.h"
+#include "LeaseSet.h"
 
 namespace i2p
 {
@@ -157,7 +158,8 @@ namespace tunnel
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, const i2p::data::RouterInfo * floodfill);
 	
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);
-	
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet);		
+
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 
 	    const uint8_t * nextIdent, uint32_t nextTunnelID, 

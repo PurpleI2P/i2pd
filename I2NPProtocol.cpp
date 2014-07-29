@@ -209,6 +209,19 @@ namespace i2p
 		return m;
 	}	
 
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet)
+	{
+		if (!leaseSet) return nullptr;
+		I2NPMessage * m = NewI2NPMessage ();
+		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();
+		memcpy (msg->key, leaseSet->GetIdentHash (), 32);
+		msg->type = 1; // LeaseSet
+		msg->replyToken = 0;
+		memcpy (m->GetPayload () + sizeof (I2NPDatabaseStoreMsg), leaseSet->GetBuffer (), leaseSet->GetBufferLen ());
+		m->len += leaseSet->GetBufferLen () + sizeof (I2NPDatabaseStoreMsg);
+		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
+		return m;
+	}
 
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 

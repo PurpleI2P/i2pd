@@ -55,6 +55,9 @@ namespace data
 			LeaseSet& operator=(const LeaseSet& ) = default;
 			void Update (const uint8_t * buf, int len);
 			
+			const uint8_t * GetBuffer () const { return m_Buffer; };
+			size_t GetBufferLen () const { return m_BufferLen; };	
+
 			// implements RoutingDestination
 			const Identity& GetIdentity () const { return m_Identity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
