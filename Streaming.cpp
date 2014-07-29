@@ -426,41 +426,10 @@ namespace stream
 		
 	I2NPMessage * StreamingDestination::CreateLeaseSet () const
 	{
-		I2NPMessage * m = NewI2NPMessage ();
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();
-		memcpy (msg->key, (const uint8_t *)m_IdentHash, 32);
-		msg->type = 1; // LeaseSet
-		msg->replyToken = 0;
-		
-		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
-		size_t size = 0;
-		memcpy (buf + size, &m_Keys.pub, sizeof (m_Keys.pub));
-		size += sizeof (m_Keys.pub); // destination
-		memcpy (buf + size, m_Pool->GetEncryptionPublicKey (), 256);
-		size += 256; // encryption key
-		memset (buf + size, 0, 128);
-		size += 128; // signing key
-		auto tunnels = m_Pool->GetInboundTunnels (5); // 5 tunnels maximum
-		buf[size] = tunnels.size (); // num leases
-		size++; // num	
-		for (auto it: tunnels)
-		{	
-			auto tunnel = it;	
-			memcpy (buf + size, (const uint8_t *)tunnel->GetNextIdentHash (), 32);
-			size += 32; // tunnel_gw
-			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ());
-			size += 4; // tunnel_id
-			uint64_t ts = tunnel->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - 60; // 1 minute before expiration
-			ts *= 1000; // in milliseconds
-			*(uint64_t *)(buf + size) = htobe64 (ts);
-			size += 8; // end_date
-		}	
-		Sign (buf, size, buf+ size);
-		size += 40; // signature
-		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
-		m->len += size + sizeof (I2NPDatabaseStoreMsg);
-		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
-		return m;
+		// TODO: should store actual LeaseSet rather than msg
+		if (!m_Pool) return nullptr;
+		i2p::data::LeaseSet leaseSet(*m_Pool);	
+		return CreateDatabaseStoreMsg (leaseSet);
 	}	
 
 	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const
