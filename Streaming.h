@@ -124,10 +124,8 @@ namespace stream
 			~StreamingDestination ();	
 
 			const i2p::data::PrivateKeys& GetKeys () const { return m_Keys; };
-			const i2p::data::Identity& GetIdentity () const { return m_Keys.pub; }; 
 			const I2NPMessage * GetLeaseSet ();
-			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };
-			void Sign (uint8_t * buf, int len, uint8_t * signature) const;			
+			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 
 			Stream * CreateNewStream (boost::asio::io_service& service, const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
@@ -136,8 +134,10 @@ namespace stream
 			// implements LocalDestination
 			void UpdateLeaseSet ();
 			const i2p::data::IdentHash& GetIdentHash () const { return m_IdentHash; };
+			const i2p::data::Identity& GetIdentity () const { return m_Keys.pub; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			
 		private:
 

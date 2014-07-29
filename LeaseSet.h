@@ -8,6 +8,12 @@
 
 namespace i2p
 {
+
+namespace tunnel
+{
+	class TunnelPool;
+}
+
 namespace data
 {	
 	
@@ -28,14 +34,24 @@ namespace data
 		}	
 	};	
 	
+	struct LeaseSetHeader
+	{
+		Identity destination;
+		uint8_t encryptionKey[256];
+		uint8_t signingKey[128];
+		uint8_t num;
+	};	
+	
 #pragma pack()	
 
+	const int MAX_LS_BUFFER_SIZE = 2048;	
 	class LeaseSet: public RoutingDestination
 	{
 		public:
 
 			LeaseSet (const uint8_t * buf, int len);
 			LeaseSet (const LeaseSet& ) = default;
+			LeaseSet (const i2p::tunnel::TunnelPool& pool);
 			LeaseSet& operator=(const LeaseSet& ) = default;
 			void Update (const uint8_t * buf, int len);
 			
@@ -51,7 +67,7 @@ namespace data
 
 		private:
 
-			void ReadFromBuffer (const uint8_t * buf, int len);
+			void ReadFromBuffer ();
 			
 		private:
 
@@ -59,6 +75,8 @@ namespace data
 			Identity m_Identity;
 			IdentHash m_IdentHash;
 			uint8_t m_EncryptionKey[256];
+			uint8_t m_Buffer[MAX_LS_BUFFER_SIZE];
+			size_t m_BufferLen;
 	};	
 }		
 }	

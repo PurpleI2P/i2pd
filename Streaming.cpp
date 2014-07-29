@@ -463,7 +463,7 @@ namespace stream
 		return m;
 	}	
 
-	void StreamingDestination::Sign (uint8_t * buf, int len, uint8_t * signature) const
+	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
 		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, len, signature);

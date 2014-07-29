@@ -64,10 +64,10 @@ namespace i2p
 		m_RouterInfo.CreateBuffer ();
 	}	
 	
-	void RouterContext::Sign (uint8_t * buf, int len, uint8_t * signature)
+	void RouterContext::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
-		signer.SignMessage (m_Rnd, buf, len, signature);
+		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, len, signature);
 	}
 
 	bool RouterContext::Load ()

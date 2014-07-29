@@ -23,8 +23,6 @@ namespace i2p
 			const uint8_t * GetSigningPrivateKey () const { return m_Keys.signingPrivateKey; };
 			const i2p::data::Identity& GetRouterIdentity () const { return m_RouterInfo.GetRouterIdentity (); };
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
-			
-			void Sign (uint8_t * buf, int len, uint8_t * signature);
 
 			void OverrideNTCPAddress (const char * host, int port); // temporary
 			void UpdateAddress (const char * host);	// called from SSU
@@ -32,8 +30,10 @@ namespace i2p
 			// implements LocalDestination
 			void UpdateLeaseSet () {};
 			const i2p::data::IdentHash& GetIdentHash () const { return m_RouterInfo.GetIdentHash (); };
+			const i2p::data::Identity& GetIdentity () const { return GetRouterIdentity (); };
 			const uint8_t * GetEncryptionPrivateKey () const { return GetPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_Keys.publicKey; };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			
 		private:
 
