@@ -583,20 +583,28 @@ namespace data
 		{
 			LogPrint ("Number of excluded peers exceeds 512");
 			numExcluded = 0; // TODO:
-		}
-		excluded += numExcluded*32; // TODO: check excluded list and all zeros (exploratory) 
+		} 
 
 		I2NPMessage * replyMsg = nullptr;
 		auto router = FindRouter (buf);
 		if (router)
 		{
+			LogPrint ("Requested ", key, " found");
 			router->LoadBuffer ();
 			replyMsg = CreateDatabaseStoreMsg (router);
+			excluded += numExcluded*32; // we don't care about exluded
 		}
 		else
 		{
-			std::set<IdentHash> excluded; // empty for now
-			replyMsg = CreateDatabaseSearchReply (buf, GetClosestFloodfill (buf, excluded));
+			LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
+			std::set<IdentHash> excludedRouters;
+			for (int i = 0; i < numExcluded; i++)
+			{
+				// TODO: check for all zeroes (exploratory)
+				excludedRouters.insert (excluded);
+				excluded += 32;
+			}	
+			replyMsg = CreateDatabaseSearchReply (buf, GetClosestFloodfill (buf, excludedRouters));
 		}	
 		if (replyMsg)
 		{	
