@@ -102,12 +102,15 @@ namespace tunnel
 }
 
 	const size_t I2NP_MAX_MESSAGE_SIZE = 32768; 
+	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 2400; 
 	struct I2NPMessage
 	{	
-		uint8_t buf[I2NP_MAX_MESSAGE_SIZE];	
+		uint8_t * buf;	
 		size_t len, offset;
 		i2p::tunnel::InboundTunnel * from;
 		
+		I2NPMessage (): buf (nullptr),len (sizeof (I2NPHeader) + 2), offset(2), from (nullptr) {}; 
+		// reserve 2 bytes for NTCP header
 		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); };
 		uint8_t * GetPayload () { return GetBuffer () + sizeof(I2NPHeader); };
 		uint8_t * GetBuffer () { return buf + offset; };
@@ -144,7 +147,16 @@ namespace tunnel
 			return be32toh (header.msgID);
 		}	
 	};	
+
+	template<int sz>
+	struct I2NPMessageBuffer: public I2NPMessage
+	{
+		I2NPMessageBuffer () { buf = m_Buffer; };
+		uint8_t m_Buffer[sz];
+	};
+
 	I2NPMessage * NewI2NPMessage ();
+	I2NPMessage * NewI2NPShortMessage ();
 	void DeleteI2NPMessage (I2NPMessage * msg);
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID = 0);
 	void RenewI2NPMessageHeader (I2NPMessage * msg);

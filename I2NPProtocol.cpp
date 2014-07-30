@@ -18,13 +18,14 @@ namespace i2p
 
 	I2NPMessage * NewI2NPMessage ()
 	{
-		I2NPMessage * msg = new I2NPMessage;
-		msg->offset = 2; // reserve 2 bytes for NTCP header, should reserve more for SSU in future
-		msg->len = sizeof (I2NPHeader) + 2;
-		msg->from = nullptr;
-		return msg;
+		return new I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>();
 	}
 	
+	I2NPMessage * NewI2NPShortMessage ()
+	{
+		return new I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE>();
+	}
+
 	void DeleteI2NPMessage (I2NPMessage * msg)
 	{
 		delete msg;
