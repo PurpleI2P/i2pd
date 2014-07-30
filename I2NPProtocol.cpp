@@ -26,6 +26,11 @@ namespace i2p
 		return new I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE>();
 	}
 
+	I2NPMessage * NewI2NPMessage (size_t len)
+	{
+		return (len < I2NP_MAX_SHORT_MESSAGE_SIZE/2) ? NewI2NPShortMessage () : NewI2NPMessage ();
+	}	
+	
 	void DeleteI2NPMessage (I2NPMessage * msg)
 	{
 		delete msg;
@@ -64,7 +69,7 @@ namespace i2p
 
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPMessage (len);
 		memcpy (msg->GetPayload (), buf, len);
 		msg->len += len;
 		FillI2NPMessageHeader (msg, msgType, replyMsgID);
@@ -164,7 +169,7 @@ namespace i2p
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
 		const i2p::data::RouterInfo * floodfill)
 	{
-		I2NPMessage * m = NewI2NPMessage ();
+		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		size_t len = 0;
 		memcpy (buf, ident, 32);
@@ -188,7 +193,7 @@ namespace i2p
 		if (!router) // we send own RouterInfo
 			router = &context.GetRouterInfo ();
 
-		I2NPMessage * m = NewI2NPMessage ();
+		I2NPMessage * m = NewI2NPShortMessage ();
 		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();		
 
 		memcpy (msg->key, router->GetIdentHash (), 32);
@@ -213,7 +218,7 @@ namespace i2p
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet)
 	{
 		if (!leaseSet) return nullptr;
-		I2NPMessage * m = NewI2NPMessage ();
+		I2NPMessage * m = NewI2NPShortMessage ();
 		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();
 		memcpy (msg->key, leaseSet->GetIdentHash (), 32);
 		msg->type = 1; // LeaseSet
@@ -398,7 +403,7 @@ namespace i2p
 	
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPMessage (len);
 		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
 		header->tunnelID = htobe32 (tunnelID);
 		header->length = htobe16 (len);
@@ -433,7 +438,7 @@ namespace i2p
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
 		const uint8_t * buf, size_t len, uint32_t replyMsgID)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPMessage (len);
 		size_t gatewayMsgOffset = sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
 		msg->offset += gatewayMsgOffset;
 		msg->len += gatewayMsgOffset;

@@ -106,10 +106,11 @@ namespace tunnel
 	struct I2NPMessage
 	{	
 		uint8_t * buf;	
-		size_t len, offset;
+		size_t len, offset, maxLen;
 		i2p::tunnel::InboundTunnel * from;
 		
-		I2NPMessage (): buf (nullptr),len (sizeof (I2NPHeader) + 2), offset(2), from (nullptr) {}; 
+		I2NPMessage (): buf (nullptr),len (sizeof (I2NPHeader) + 2), 
+			offset(2), maxLen (0), from (nullptr) {}; 
 		// reserve 2 bytes for NTCP header
 		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); };
 		uint8_t * GetPayload () { return GetBuffer () + sizeof(I2NPHeader); };
@@ -151,12 +152,13 @@ namespace tunnel
 	template<int sz>
 	struct I2NPMessageBuffer: public I2NPMessage
 	{
-		I2NPMessageBuffer () { buf = m_Buffer; };
+		I2NPMessageBuffer () { buf = m_Buffer; maxLen = sz; };
 		uint8_t m_Buffer[sz];
 	};
 
 	I2NPMessage * NewI2NPMessage ();
 	I2NPMessage * NewI2NPShortMessage ();
+	I2NPMessage * NewI2NPMessage (size_t len);
 	void DeleteI2NPMessage (I2NPMessage * msg);
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID = 0);
 	void RenewI2NPMessageHeader (I2NPMessage * msg);
