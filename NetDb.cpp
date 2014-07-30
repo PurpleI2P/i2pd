@@ -570,8 +570,8 @@ namespace data
 		key[l] = 0;
 		LogPrint ("DatabaseLookup for ", key, " recieved");
 		uint8_t flag = buf[64];
+		uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
-		uint8_t * excluded = buf + 64;	
 		if (flag & 0x01) //reply to tunnel
 		{
 			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
@@ -581,7 +581,7 @@ namespace data
 		excluded += 2;
 		if (numExcluded > 512)
 		{
-			LogPrint ("Number of excluded peers exceeds 512");
+			LogPrint ("Number of excluded peers", numExcluded, " exceeds 512");
 			numExcluded = 0; // TODO:
 		} 
 
@@ -591,6 +591,10 @@ namespace data
 		{
 			LogPrint ("Requested ", key, " found");
 			router->LoadBuffer ();
+			if (!router->GetBuffer ()) router = nullptr;
+		}
+		if (router)
+		{	
 			replyMsg = CreateDatabaseStoreMsg (router);
 			excluded += numExcluded*32; // we don't care about exluded
 		}
