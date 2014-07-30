@@ -56,7 +56,7 @@ namespace garlic
 		}
 	}
 	
-	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, const I2NPMessage * leaseSet)
+	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
@@ -122,6 +122,8 @@ namespace garlic
 		FillI2NPMessageHeader (m, eI2NPGarlic);
 		if (msg)
 			DeleteI2NPMessage (msg);
+		if (leaseSet)
+			DeleteI2NPMessage (leaseSet);
 		return m;
 	}	
 
@@ -294,7 +296,7 @@ namespace garlic
 	}	
 
 	I2NPMessage * GarlicRouting::WrapMessage (const i2p::data::RoutingDestination& destination, 
-		I2NPMessage * msg, const I2NPMessage * leaseSet)
+		I2NPMessage * msg, I2NPMessage * leaseSet)
 	{
 		auto it = m_Sessions.find (destination.GetIdentHash ());
 		GarlicRoutingSession * session = nullptr;

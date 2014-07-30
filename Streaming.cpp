@@ -281,11 +281,11 @@ namespace stream
 	
 	bool Stream::SendPacket (const uint8_t * buf, size_t len)
 	{		
-		const I2NPMessage * leaseSet = nullptr;
+		I2NPMessage * leaseSet = nullptr;
 
 		if (m_LeaseSetUpdated)
 		{	
-			leaseSet = m_LocalDestination->GetLeaseSet ();
+			leaseSet = m_LocalDestination->GetLeaseSetMsg ();
 			m_LeaseSetUpdated = false;
 		}	
 
@@ -359,10 +359,9 @@ namespace stream
 
 	StreamingDestination::~StreamingDestination ()
 	{
-		if (m_LeaseSet)
-			DeleteI2NPMessage (m_LeaseSet);
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
+		delete m_LeaseSet;
 	}	
 	
 	void StreamingDestination::HandleNextPacket (Packet * packet)
@@ -402,34 +401,21 @@ namespace stream
 			delete stream;
 		}	
 	}	
-
-	void StreamingDestination::UpdateLeaseSet ()
-	{
-		auto newLeaseSet = CreateLeaseSet ();
-		// TODO: make it atomic
-		auto oldLeaseSet = m_LeaseSet;
-		m_LeaseSet = newLeaseSet;
-		if (oldLeaseSet)
-			DeleteI2NPMessage (oldLeaseSet);
-		for (auto it: m_Streams)
-			it.second->SetLeaseSetUpdated ();
-	}	
 		
-	const I2NPMessage * StreamingDestination::GetLeaseSet ()
+	I2NPMessage * StreamingDestination::GetLeaseSetMsg ()
 	{
-		if (!m_LeaseSet)
-			m_LeaseSet = CreateLeaseSet ();
-		else
-			RenewI2NPMessageHeader (m_LeaseSet); 
-		return m_LeaseSet;
-	}	
-		
-	I2NPMessage * StreamingDestination::CreateLeaseSet () const
-	{
-		// TODO: should store actual LeaseSet rather than msg
 		if (!m_Pool) return nullptr;
-		i2p::data::LeaseSet leaseSet(*m_Pool);	
-		return CreateDatabaseStoreMsg (leaseSet);
+		if (!m_LeaseSet || m_LeaseSet->HasExpiredLeases ())
+		{	
+			auto newLeaseSet = new i2p::data::LeaseSet (*m_Pool);
+			// TODO: make it atomic
+			auto oldLeaseSet = m_LeaseSet;
+			m_LeaseSet = newLeaseSet;
+			delete oldLeaseSet;
+			for (auto it: m_Streams)
+				it.second->SetLeaseSetUpdated ();
+		}	
+		return CreateDatabaseStoreMsg (m_LeaseSet);
 	}	
 
 	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const

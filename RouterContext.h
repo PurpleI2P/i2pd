@@ -28,7 +28,6 @@ namespace i2p
 			void UpdateAddress (const char * host);	// called from SSU
 			
 			// implements LocalDestination
-			void UpdateLeaseSet () {};
 			const i2p::data::IdentHash& GetIdentHash () const { return m_RouterInfo.GetIdentHash (); };
 			const i2p::data::Identity& GetIdentity () const { return GetRouterIdentity (); };
 			const uint8_t * GetEncryptionPrivateKey () const { return GetPrivateKey (); };

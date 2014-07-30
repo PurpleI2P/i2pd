@@ -156,7 +156,6 @@ namespace data
 			virtual const Identity& GetIdentity () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
-			virtual void UpdateLeaseSet () = 0; // LeaseSet must be updated
 			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;
 	};	
 }

@@ -38,7 +38,6 @@ namespace tunnel
 				if (it.second.second == expiredTunnel) it.second.second = nullptr;
 				
 		}	
-		m_LocalDestination.UpdateLeaseSet ();
 	}	
 
 	void TunnelPool::TunnelCreated (OutboundTunnel * createdTunnel)
