@@ -135,11 +135,12 @@ namespace data
 				}	
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-				if (ts - lastSave >= 60) // save routers and validate subscriptions every minute
+				if (ts - lastSave >= 60) // save routers, manage leasesets and validate subscriptions every minute
 				{
 					if (lastSave)
 					{
 						SaveUpdated (m_NetDbPath);
+						ManageLeaseSets ();
 						ValidateSubscriptions ();
 					}	
 					lastSave = ts;
@@ -185,7 +186,7 @@ namespace data
 
 	void NetDb::AddLeaseSet (const IdentHash& ident, uint8_t * buf, int len)
 	{
-		DeleteRequestedDestination (ident);
+		bool unsolicited = !DeleteRequestedDestination (ident);
 		auto it = m_LeaseSets.find(ident);
 		if (it != m_LeaseSets.end ())
 		{
@@ -195,7 +196,7 @@ namespace data
 		else
 		{	
 			LogPrint ("New LeaseSet added");
-			m_LeaseSets[ident] = new LeaseSet (buf, len);
+			m_LeaseSets[ident] = new LeaseSet (buf, len, unsolicited);
 		}	
 	}	
 
@@ -586,19 +587,27 @@ namespace data
 		} 
 
 		I2NPMessage * replyMsg = nullptr;
-		auto router = FindRouter (buf);
-		if (router)
+
 		{
-			LogPrint ("Requested ", key, " found");
-			router->LoadBuffer ();
-			if (!router->GetBuffer ()) router = nullptr;
+			auto router = FindRouter (buf);
+			if (router)
+			{
+				LogPrint ("Requested RouterInfo ", key, " found");
+				router->LoadBuffer ();
+				if (router->GetBuffer ()) 
+					replyMsg = CreateDatabaseStoreMsg (router);
+			}
 		}
-		if (router)
-		{	
-			replyMsg = CreateDatabaseStoreMsg (router);
-			excluded += numExcluded*32; // we don't care about exluded
+		if (!replyMsg)
+		{
+			auto leaseSet = FindLeaseSet (buf);
+			if (leaseSet && leaseSet->IsUnsolicited ()) // we don't send back our LeaseSets
+			{
+				LogPrint ("Requested LeaseSet ", key, " found");
+				replyMsg = CreateDatabaseStoreMsg (leaseSet);
+			}
 		}
-		else
+		if (!replyMsg)
 		{
 			LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
 			std::set<IdentHash> excludedRouters;
@@ -609,7 +618,10 @@ namespace data
 				excluded += 32;
 			}	
 			replyMsg = CreateDatabaseSearchReply (buf, GetClosestFloodfill (buf, excludedRouters));
-		}	
+		}
+		else
+			excluded += numExcluded*32; // we don't care about exluded	
+
 		if (replyMsg)
 		{	
 			if (replyTunnelID)
@@ -721,14 +733,16 @@ namespace data
 			return it->second;
 	}
 	
-	void NetDb::DeleteRequestedDestination (const IdentHash& dest)
+	bool NetDb::DeleteRequestedDestination (const IdentHash& dest)
 	{
 		auto it = m_RequestedDestinations.find (dest);
 		if (it != m_RequestedDestinations.end ())
 		{	
 			delete it->second;
 			m_RequestedDestinations.erase (it);
+			return true;
 		}	
+		return false;
 	}	
 
 	void NetDb::DeleteRequestedDestination (RequestedDestination * dest)
@@ -799,6 +813,8 @@ namespace data
 			LogPrint ("LeaseSet requested");	
 			RequestDestination (ident, true);
 		}
+		else
+			leaseSet->SetUnsolicited (false);
 		m_Subscriptions.insert (ident);
 	}
 		
@@ -826,6 +842,21 @@ namespace data
 			it.second->UpdateRoutingKey ();
 		LogPrint ("Keyspace rotation complete");	
 		Publish ();
+	}
+
+	void NetDb::ManageLeaseSets ()
+	{
+		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
+		{
+			if (it->second->IsUnsolicited () && !it->second->HasNonExpiredLeases ()) // all leases expired
+			{
+				LogPrint ("LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				delete it->second;
+				it = m_LeaseSets.erase (it);
+			}	
+			else 
+				it++;
+		}
 	}
 }
 }

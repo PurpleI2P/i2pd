@@ -92,10 +92,11 @@ namespace data
 			void ValidateSubscriptions ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			void KeyspaceRotation ();
+			void ManageLeaseSets ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
 				bool isLeaseSet, bool isExploratory = false);
-			void DeleteRequestedDestination (const IdentHash& dest);
+			bool DeleteRequestedDestination (const IdentHash& dest); // returns true if found
 			void DeleteRequestedDestination (RequestedDestination * dest);
 		
 		private:
