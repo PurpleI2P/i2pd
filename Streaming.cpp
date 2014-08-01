@@ -10,6 +10,7 @@
 #include "Timestamp.h"
 #include "CryptoConst.h"
 #include "Garlic.h"
+#include "NetDb.h"
 #include "Streaming.h"
 
 namespace i2p
@@ -18,13 +19,21 @@ namespace stream
 {
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
-		m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false), 
-		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (remote), 
-		m_ReceiveTimer (m_Service)
+		m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false),  
+		m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local), 
+		m_RemoteLeaseSet (&remote), m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
 	}	
+
+	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local):
+		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), 
+		m_IsOpen (false), m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local),
+		m_RemoteLeaseSet (nullptr), m_ReceiveTimer (m_Service)
+	{
+		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+	}
 
 	Stream::~Stream ()
 	{
@@ -41,9 +50,9 @@ namespace stream
 		
 	void Stream::HandleNextPacket (Packet * packet)
 	{
-		if (!m_SendStreamID)
-			m_SendStreamID = packet->GetReceiveStreamID ();
-		
+		if (!m_SendStreamID) 
+			m_SendStreamID = packet->GetReceiveStreamID (); 	
+
 		uint32_t receivedSeqn = packet->GetSeqn ();
 		LogPrint ("Received seqn=", receivedSeqn); 
 		if (!receivedSeqn || receivedSeqn == m_LastReceivedSequenceNumber + 1)
@@ -115,6 +124,13 @@ namespace stream
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
 			LogPrint ("From identity");
+			if (!m_RemoteLeaseSet)
+			{
+				i2p::data::Identity * identity = (i2p::data::Identity *)optionData;
+				m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (identity->Hash ());
+				if (!m_RemoteLeaseSet)
+					LogPrint ("LeaseSet ", identity->Hash ().ToBase64 (), " not found");
+			}
 			optionData += sizeof (i2p::data::Identity);
 		}	
 
@@ -281,6 +297,12 @@ namespace stream
 	
 	bool Stream::SendPacket (const uint8_t * buf, size_t len)
 	{		
+		if (!m_RemoteLeaseSet)
+		{
+			LogPrint ("Can't send packet. Missing remote LeaseSet");
+			return false;
+		}
+
 		I2NPMessage * leaseSet = nullptr;
 
 		if (m_LeaseSetUpdated)
@@ -289,7 +311,7 @@ namespace stream
 			m_LeaseSetUpdated = false;
 		}	
 
-		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
+		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (*m_RemoteLeaseSet, 
 			CreateDataMessage (this, buf, len), leaseSet);
 		auto outboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
 		if (outboundTunnel)
@@ -318,18 +340,24 @@ namespace stream
 
 	void Stream::UpdateCurrentRemoteLease ()
 	{
-		auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
-		if (!leases.empty ())
-		{	
-			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-			m_CurrentRemoteLease = leases[i];
-		}	
+		if (m_RemoteLeaseSet)
+		{
+			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+			if (!leases.empty ())
+			{	
+				uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
+				m_CurrentRemoteLease = leases[i];
+			}	
+			else
+				m_CurrentRemoteLease.endDate = 0;
+		}
 		else
 			m_CurrentRemoteLease.endDate = 0;
 	}	
 		
 
-	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service): 
+		m_Service (service), m_LeaseSet (nullptr)
 	{		
 		m_Keys = i2p::data::CreateRandomKeys ();
 
@@ -341,7 +369,8 @@ namespace stream
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
 	}
 
-	StreamingDestination::StreamingDestination (const std::string& fullPath): m_LeaseSet (nullptr) 
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const std::string& fullPath):
+		m_Service (service), m_LeaseSet (nullptr) 
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -378,20 +407,26 @@ namespace stream
 				delete packet;
 			}
 		}	
-		else
+		else // new incoming stream
 		{
-			LogPrint ("Uncoming stream is not implemented yet");
-			delete packet;
+			auto incomingStream = CreateNewIncomingStream ();
+			incomingStream->HandleNextPacket (packet);
 		}	
 	}	
 
-	Stream * StreamingDestination::CreateNewStream (boost::asio::io_service& service,
-		const i2p::data::LeaseSet& remote)
+	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote)
 	{
-		Stream * s = new Stream (service, this, remote);
+		Stream * s = new Stream (m_Service, this, remote);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;
 	}	
+
+	Stream * StreamingDestination::CreateNewIncomingStream ()
+	{
+		Stream * s = new Stream (m_Service, this);
+		m_Streams[s->GetRecvStreamID ()] = s;
+		return s;
+	}
 
 	void StreamingDestination::DeleteStream (Stream * stream)
 	{
@@ -429,7 +464,7 @@ namespace stream
 	{
 		if (!m_SharedLocalDestination)
 		{	
-			m_SharedLocalDestination = new StreamingDestination ();
+			m_SharedLocalDestination = new StreamingDestination (m_Service);
 			m_Destinations[m_SharedLocalDestination->GetIdentHash ()] = m_SharedLocalDestination;
 		}
 		LoadLocalDestinations ();	
@@ -475,7 +510,7 @@ namespace stream
 #else
 				it->path();
 #endif
-				auto localDestination = new StreamingDestination (fullPath);
+				auto localDestination = new StreamingDestination (m_Service, fullPath);
 				m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 				numDestinations++;
 			}	
@@ -487,7 +522,7 @@ namespace stream
 	Stream * StreamingDestinations::CreateClientStream (const i2p::data::LeaseSet& remote)
 	{
 		if (!m_SharedLocalDestination) return nullptr;
-		return m_SharedLocalDestination->CreateNewStream (m_Service, remote);
+		return m_SharedLocalDestination->CreateNewOutgoingStream (remote);
 	}
 		
 	void StreamingDestinations::DeleteClientStream (Stream * stream)

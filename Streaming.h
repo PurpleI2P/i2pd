@@ -69,11 +69,13 @@ namespace stream
 	{	
 		public:
 
-			Stream (boost::asio::io_service& service, StreamingDestination * local, const i2p::data::LeaseSet& remote);
+			Stream (boost::asio::io_service& service, StreamingDestination * local, const i2p::data::LeaseSet& remote); // outgoing
+			Stream (boost::asio::io_service& service, StreamingDestination * local); // incoming			
+
 			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
-			const i2p::data::LeaseSet& GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
+			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
 			bool IsOpen () const { return m_IsOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
 			
@@ -106,9 +108,9 @@ namespace stream
 
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
-			bool m_IsOpen, m_LeaseSetUpdated;
+			bool m_IsOpen, m_IsOutgoing, m_LeaseSetUpdated;
 			StreamingDestination * m_LocalDestination;
-			const i2p::data::LeaseSet& m_RemoteLeaseSet;
+			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::data::Lease m_CurrentRemoteLease;
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
@@ -119,15 +121,15 @@ namespace stream
 	{
 		public:
 
-			StreamingDestination ();
-			StreamingDestination (const std::string& fullPath);
+			StreamingDestination (boost::asio::io_service& service);
+			StreamingDestination (boost::asio::io_service& service, const std::string& fullPath);
 			~StreamingDestination ();	
 
 			const i2p::data::PrivateKeys& GetKeys () const { return m_Keys; };
 			I2NPMessage * GetLeaseSetMsg ();
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 
-			Stream * CreateNewStream (boost::asio::io_service& service, const i2p::data::LeaseSet& remote);
+			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			void HandleNextPacket (Packet * packet);
 
@@ -137,9 +139,14 @@ namespace stream
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-			
+
+		private:		
+	
+			Stream * CreateNewIncomingStream ();
+
 		private:
 
+			boost::asio::io_service& m_Service;
 			std::map<uint32_t, Stream *> m_Streams;
 			i2p::data::PrivateKeys m_Keys;
 			i2p::data::IdentHash m_IdentHash;
