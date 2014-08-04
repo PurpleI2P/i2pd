@@ -29,7 +29,7 @@ namespace stream
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), 
-		m_IsOpen (false), m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local),
+		m_IsOpen (true), m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local),
 		m_RemoteLeaseSet (nullptr), m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -114,12 +114,6 @@ namespace stream
 		{
 			LogPrint ("Synchronize");
 		}	
-		
-		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
-		{
-			LogPrint ("Signature");
-			optionData += 40;
-		}	
 
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
@@ -133,6 +127,18 @@ namespace stream
 					LogPrint ("LeaseSet ", identity->Hash ().ToBase64 (), " not found");
 			}
 			optionData += sizeof (i2p::data::Identity);
+		}	
+
+		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
+		{
+			LogPrint ("Max packet size");
+			optionData += 2;
+		}	
+		
+		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
+		{
+			LogPrint ("Signature");
+			optionData += 40;
 		}	
 
 		packet->offset = packet->GetPayload () - packet->buf;

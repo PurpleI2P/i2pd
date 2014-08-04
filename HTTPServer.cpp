@@ -543,8 +543,9 @@ namespace util
 		}	
 		else
 		{
-			std::string response ("HTTP/1.0 200 OK\r\n");
+			std::string response ("HTTP/1.0 503 Not Implemented\r\n");
 			m_Stream->Send ((uint8_t *)response.c_str (), response.length (), 30);
+			m_Stream->Close ();
 		}	
 		delete this;
 	}	
