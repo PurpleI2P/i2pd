@@ -332,6 +332,7 @@ namespace util
 
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& method, const std::string& data, const std::string& uri)
 	{
+		const i2p::data::LeaseSet * leaseSet = nullptr;
 		i2p::data::IdentHash destination;
 		std::string fullAddress;
 		if (address.find(".b32.i2p") != std::string::npos)
@@ -360,17 +361,29 @@ namespace util
 			}
 			else
 			{
-				if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
+				if (address == "local")
 				{
-					LogPrint("Invalid Base32 address ", address);
-					SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
-					return;
+					// TODO: remove later
+					fullAddress = "local.i2p";
+					auto destination = i2p::stream::GetSharedLocalDestination ();
+					leaseSet = destination->GetLeaseSet ();
+					EepAccept (destination);
 				}
-				fullAddress = address + ".b32.i2p";
+				else
+				{	
+					if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
+					{
+						LogPrint("Invalid Base32 address ", address);
+						SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
+						return;
+					}
+					fullAddress = address + ".b32.i2p";
+				}	
 			}
 		}
 
-		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+		if (!leaseSet)
+			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
 			i2p::data::netdb.Subscribe(destination);
@@ -495,6 +508,47 @@ namespace util
 		new HTTPConnection (m_NewSocket);
 	}
 
+// eepSite. TODO: move away
+		
+	void HTTPConnection::EepAccept (i2p::stream::StreamingDestination * destination)
+	{
+		if (destination)
+			destination->SetAcceptor (std::bind (&HTTPConnection::HandleEepAccept, this, std::placeholders::_1));
+	}
+		
+	void HTTPConnection::HandleEepAccept (i2p::stream::Stream * stream)
+	{
+		if (stream)
+		{	
+			auto conn = new EepSiteDummyConnection (stream);
+			conn->AsyncStreamReceive ();
+		}	
+	}	
+
+	void EepSiteDummyConnection::AsyncStreamReceive ()
+	{
+		if (m_Stream)
+			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
+				boost::bind (&EepSiteDummyConnection::HandleStreamReceive, this,
+					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
+				60); // 60 seconds timeout
+	}	
+		
+	void EepSiteDummyConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (ecode)
+		{	
+			LogPrint ("eepSite error: ", ecode.message ());
+			DeleteStream (m_Stream);
+		}	
+		else
+		{
+			std::string response ("HTTP/1.0 200 OK\r\n");
+			m_Stream->Send ((uint8_t *)response.c_str (), response.length (), 30);
+		}	
+		delete this;
+	}	
+		
 }
 }
 

@@ -127,8 +127,9 @@ namespace stream
 			if (!m_RemoteLeaseSet)
 			{
 				i2p::data::Identity * identity = (i2p::data::Identity *)optionData;
+				LogPrint ("Incoming stream from ", identity->Hash ().ToBase64 ());
 				m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (identity->Hash ());
-				if (!m_RemoteLeaseSet)
+				if (!m_RemoteLeaseSet)	
 					LogPrint ("LeaseSet ", identity->Hash ().ToBase64 (), " not found");
 			}
 			optionData += sizeof (i2p::data::Identity);
@@ -410,6 +411,8 @@ namespace stream
 		else // new incoming stream
 		{
 			auto incomingStream = CreateNewIncomingStream ();
+			if (m_Acceptor != nullptr)
+				m_Acceptor (incomingStream);
 			incomingStream->HandleNextPacket (packet);
 		}	
 	}	
@@ -438,6 +441,11 @@ namespace stream
 	}	
 		
 	I2NPMessage * StreamingDestination::GetLeaseSetMsg ()
+	{		
+		return CreateDatabaseStoreMsg (GetLeaseSet ());
+	}	
+
+	const i2p::data::LeaseSet * StreamingDestination::GetLeaseSet ()
 	{
 		if (!m_Pool) return nullptr;
 		if (!m_LeaseSet || m_LeaseSet->HasExpiredLeases ())
@@ -450,9 +458,9 @@ namespace stream
 			for (auto it: m_Streams)
 				it.second->SetLeaseSetUpdated ();
 		}	
-		return CreateDatabaseStoreMsg (m_LeaseSet);
+		return m_LeaseSet;
 	}	
-
+		
 	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
@@ -524,15 +532,20 @@ namespace stream
 		if (!m_SharedLocalDestination) return nullptr;
 		return m_SharedLocalDestination->CreateNewOutgoingStream (remote);
 	}
-		
-	void StreamingDestinations::DeleteClientStream (Stream * stream)
-	{
-		if (m_SharedLocalDestination)
-			m_SharedLocalDestination->DeleteStream (stream);
-		else
-			delete stream;
-	}	
 
+	void StreamingDestinations::DeleteStream (Stream * stream)
+	{
+		if (stream)
+		{	
+			m_Service.post (
+				[=](void)
+				{
+					stream->GetLocalDestination ()->DeleteStream (stream);
+				}	
+				            );
+		}	
+	}	
+		
 	void StreamingDestinations::HandleNextPacket (i2p::data::IdentHash destination, Packet * packet)
 	{
 		m_Service.post (boost::bind (&StreamingDestinations::PostNextPacket, this, destination, packet)); 
@@ -557,7 +570,7 @@ namespace stream
 		
 	void DeleteStream (Stream * stream)
 	{
-		destinations.DeleteClientStream (stream);
+		destinations.DeleteStream (stream);
 	}	
 
 	void StartStreaming ()
@@ -568,6 +581,11 @@ namespace stream
 	void StopStreaming ()
 	{
 		destinations.Stop ();
+	}	
+
+	StreamingDestination * GetSharedLocalDestination ()
+	{
+		return destinations.GetSharedLocalDestination ();
 	}	
 		
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len)

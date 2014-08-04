@@ -7,6 +7,7 @@
 #include <set>
 #include <queue>
 #include <thread>
+#include <functional>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <cryptopp/dsa.h>
@@ -78,6 +79,7 @@ namespace stream
 			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
 			bool IsOpen () const { return m_IsOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
+			StreamingDestination * GetLocalDestination () { return m_LocalDestination; };
 			
 			void HandleNextPacket (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len, int timeout); // timeout in seconds
@@ -127,10 +129,12 @@ namespace stream
 
 			const i2p::data::PrivateKeys& GetKeys () const { return m_Keys; };
 			I2NPMessage * GetLeaseSetMsg ();
+			const i2p::data::LeaseSet * GetLeaseSet ();
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 
 			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote);
-			void DeleteStream (Stream * stream);
+			void DeleteStream (Stream * stream);			
+			void SetAcceptor (const std::function<void (Stream *)>& acceptor) { m_Acceptor = acceptor; };
 			void HandleNextPacket (Packet * packet);
 
 			// implements LocalDestination
@@ -156,6 +160,7 @@ namespace stream
 			i2p::data::LeaseSet * m_LeaseSet;
 			
 			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
+			std::function<void (Stream *)> m_Acceptor;
 	};	
 
 	class StreamingDestinations
@@ -172,7 +177,8 @@ namespace stream
 			void HandleNextPacket (i2p::data::IdentHash destination, Packet * packet);
 
 			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
-			void DeleteClientStream (Stream * stream);
+			void DeleteStream (Stream * stream);
+			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
 			
 		private:	
 
@@ -195,6 +201,7 @@ namespace stream
 	void DeleteStream (Stream * stream);
 	void StartStreaming ();
 	void StopStreaming ();
+	StreamingDestination * GetSharedLocalDestination ();
 	
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);

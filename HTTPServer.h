@@ -59,6 +59,10 @@ namespace util
 			void FillContent (std::stringstream& s);
 			std::string ExtractAddress ();
 
+			// for eepsite
+			void EepAccept (i2p::stream::StreamingDestination * destination);
+			void HandleEepAccept (i2p::stream::Stream * stream);
+			
 		protected:
 
 			boost::asio::ip::tcp::socket * m_Socket;
@@ -94,7 +98,7 @@ namespace util
 			void Run ();
  			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode);
-
+			
 		private:
 
 			std::thread * m_Thread;
@@ -106,6 +110,24 @@ namespace util
 		protected:
 			virtual void CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket);
 	};
+
+	// TODO: move away
+	class EepSiteDummyConnection
+	{
+		public:
+
+			EepSiteDummyConnection (i2p::stream::Stream * stream): m_Stream (stream) {};
+			void AsyncStreamReceive ();
+			
+		private:
+
+			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			
+		private:
+
+			i2p::stream::Stream * m_Stream;
+			char m_StreamBuffer[8192];
+	};	
 }
 }
 
