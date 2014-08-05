@@ -257,7 +257,7 @@ namespace stream
 			packet[size] = 0; 
 			size++; // NACK count
 			size++; // resend delay
-			*(uint16_t *)(packet + size) = PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED;
+			*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 			size += 2; // flags
 			*(uint16_t *)(packet + size) = htobe16 (40); // 40 bytes signature
 			size += 2; // options size
