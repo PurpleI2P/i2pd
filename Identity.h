@@ -71,14 +71,28 @@ namespace data
 		uint8_t signingKey[128];
 	};
 	
+	
+	const uint8_t CERTIFICATE_TYPE_NULL = 0;
+	const uint8_t CERTIFICATE_TYPE_HASHCASH = 1;
+	const uint8_t CERTIFICATE_TYPE_HIDDEN = 2;
+	const uint8_t CERTIFICATE_TYPE_SIGNED = 3;	
+	const uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;	
+	const uint8_t CERTIFICATE_TYPE_KEY = 5;
+
+	const size_t DEFAULT_IDENTITY_SIZE = 387;
 	struct Identity
 	{
 		uint8_t publicKey[256];
 		uint8_t signingKey[128];
-		uint8_t certificate[3];
+		struct
+		{
+			uint8_t type;
+			uint16_t length;
+		} certificate;	
 
 		Identity& operator=(const Keys& keys);
 		bool FromBase64(const std::string& );
+		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash() const;
 	};	
 	

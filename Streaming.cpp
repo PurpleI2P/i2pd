@@ -118,14 +118,17 @@ namespace stream
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
 			LogPrint ("From identity");
-			if (!m_RemoteLeaseSet)
+			optionData += m_RemoteIdentity.FromBuffer (optionData, packet->GetOptionSize ());
+			if (m_RemoteLeaseSet)
 			{
-				i2p::data::Identity * identity = (i2p::data::Identity *)optionData;
-				LogPrint ("Incoming stream from ", identity->Hash ().ToBase64 ());
-				m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (identity->Hash ());
-				if (!m_RemoteLeaseSet)	
-					LogPrint ("LeaseSet ", identity->Hash ().ToBase64 (), " not found");
+				if (m_RemoteIdentity.Hash () != m_RemoteLeaseSet->GetIdentHash ()) // check recieved identity
+				{
+					LogPrint ("Unexpected identity ",  m_RemoteIdentity.Hash ().ToBase64 (), " ", m_RemoteLeaseSet->GetIdentHash ().ToBase64 (), " expected");
+					m_RemoteLeaseSet = nullptr; 
+				}
 			}
+			else
+				LogPrint ("Incoming stream from ", m_RemoteIdentity.Hash ().ToBase64 ());
 			optionData += sizeof (i2p::data::Identity);
 		}	
 
@@ -303,11 +306,15 @@ namespace stream
 	}	
 	
 	bool Stream::SendPacket (const uint8_t * buf, size_t len)
-	{		
+	{	
 		if (!m_RemoteLeaseSet)
 		{
-			LogPrint ("Can't send packet. Missing remote LeaseSet");
-			return false;
+			UpdateCurrentRemoteLease ();	
+			if (!m_RemoteLeaseSet)
+			{
+				LogPrint ("Can't send packet. Missing remote LeaseSet");
+				return false;
+			}
 		}
 
 		I2NPMessage * leaseSet = nullptr;
@@ -347,6 +354,12 @@ namespace stream
 
 	void Stream::UpdateCurrentRemoteLease ()
 	{
+		if (!m_RemoteLeaseSet)
+		{
+			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (m_RemoteIdentity.Hash ());
+			if (!m_RemoteLeaseSet)	
+				LogPrint ("LeaseSet ", m_RemoteIdentity.Hash ().ToBase64 (), " not found");
+		}
 		if (m_RemoteLeaseSet)
 		{
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();

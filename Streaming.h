@@ -112,6 +112,7 @@ namespace stream
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
 			bool m_IsOpen, m_IsOutgoing, m_LeaseSetUpdated;
 			StreamingDestination * m_LocalDestination;
+			i2p::data::Identity m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::data::Lease m_CurrentRemoteLease;
 			std::queue<Packet *> m_ReceiveQueue;
