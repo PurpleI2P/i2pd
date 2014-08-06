@@ -255,7 +255,8 @@ namespace stream
 		if (m_IsOpen)
 		{	
 			m_IsOpen = false;
-			uint8_t packet[MAX_PACKET_SIZE];
+			Packet * p = new Packet ();
+			uint8_t * packet = p->GetBuffer ();
 			size_t size = 0;
 			*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
 			size += 4; // sendStreamID
@@ -277,8 +278,9 @@ namespace stream
 			size += 40; // signature
 			m_LocalDestination->Sign (packet, size, signature);
 			
-			if (SendPacket (packet, size))
-				LogPrint ("FIN sent");
+			p->len = size;
+			m_Service.post (boost::bind (&Stream::SendPacket, this, p));
+			LogPrint ("FIN sent");
 		}	
 	}
 
