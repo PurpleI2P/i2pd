@@ -55,6 +55,8 @@ namespace stream
 		uint16_t GetOptionSize () const { return be16toh (*(uint16_t *)GetOption ()); };
 		const uint8_t * GetOptionData () const { return GetOption () + 2; };
 		const uint8_t * GetPayload () const { return GetOptionData () + GetOptionSize (); };
+
+		bool IsSYN () const { return GetFlags () & PACKET_FLAG_SYNCHRONIZE; };
 	};	
 
 	struct PacketCmp

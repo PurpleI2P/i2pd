@@ -54,6 +54,14 @@ namespace stream
 			m_SendStreamID = packet->GetReceiveStreamID (); 	
 
 		uint32_t receivedSeqn = packet->GetSeqn ();
+		if (!receivedSeqn && !packet->IsSYN ())
+		{
+			// plain ack
+			LogPrint ("Plain ACK received");
+			delete packet;
+			return;
+		}
+
 		LogPrint ("Received seqn=", receivedSeqn); 
 		if (!receivedSeqn || receivedSeqn == m_LastReceivedSequenceNumber + 1)
 		{			
