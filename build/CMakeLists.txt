@@ -38,6 +38,7 @@ set ( SOURCES
         TunnelEndpoint.cpp
         TunnelPool.cpp
         util.cpp
+        aes.cpp
 	Daemon.cpp
     SOCKS.cpp
 )
@@ -68,6 +69,7 @@ set ( HEADERS
         TunnelEndpoint.h
         TunnelPool.h
         util.h
+        aes.h
 	Daemon.h
     SOCKS.h
 )
