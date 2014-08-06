@@ -34,7 +34,7 @@ namespace stream
 	const uint16_t PACKET_FLAG_NO_ACK = 0x0400;
 
 	const size_t STREAMING_MTU = 1730;
-	const size_t MAX_PACKET_SIZE = 1754;
+	const size_t MAX_PACKET_SIZE = 4096;
 
 	struct Packet
 	{
@@ -111,7 +111,8 @@ namespace stream
 		private:
 
 			boost::asio::io_service& m_Service;
-			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber, m_LastReceivedSequenceNumber;
+			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
+			int32_t m_LastReceivedSequenceNumber;
 			bool m_IsOpen, m_IsOutgoing, m_LeaseSetUpdated;
 			StreamingDestination * m_LocalDestination;
 			i2p::data::Identity m_RemoteIdentity;
