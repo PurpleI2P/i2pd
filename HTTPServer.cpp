@@ -13,7 +13,7 @@ namespace i2p
 namespace util
 {
 
-	const std::string HTTPConnection::itoopieImage = 
+	const std::string HTTPConnection::itoopieImage =
 		"<img alt=\"\" src=\"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAADYAAABECAYAAAG9qPaBAAAACXBIWXMAAA7DAAAOwwHHb6h"
 		"kAAAStElEQVR4nMU7CXRUVbL1ek0nTUI6BLNAICEIhESWQAAFgsH8D4g5IwSHg6PfEQ/E0T"
@@ -108,8 +108,8 @@ namespace util
 		"13ZO0Q0SjbAu6DCkQs4FYg4EwKcOv4WsAFLePCb04Y/ZFCY2MjQ8uGE4cTx7A9f7/dk8r/B"
 		"+U0vclvzH+PAAAAAElFTkSuQmCC"
 		"\" />";
-	
-	namespace misc_strings 
+
+	namespace misc_strings
 	{
 
 		const char name_value_separator[] = { ':', ' ' };
@@ -146,7 +146,7 @@ namespace util
 				buffers.push_back(boost::asio::buffer(misc_strings::crlf));
 			}
 			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-		}	
+		}
 		buffers.push_back(boost::asio::buffer(content));
 		return buffers;
 	}
@@ -154,9 +154,9 @@ namespace util
 	void HTTPConnection::Terminate ()
 	{
 		if (m_Stream)
-		{	
+		{
 			m_Stream->Close ();
-			DeleteStream (m_Stream);	
+			DeleteStream (m_Stream);
 		}
 		m_Socket->close ();
 		delete this;
@@ -193,11 +193,11 @@ namespace util
 			{
 				b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
 				uri = address.substr (pos); // rest of line
-			}	
+			}
 
-			HandleDestinationRequest (b32, uri); 
-		}	
-		else	  
+			HandleDestinationRequest (b32, uri);
+		}
+		else
 			HandleRequest ();
 	}
 
@@ -209,10 +209,10 @@ namespace util
 			char * http = strstr (get, "HTTP");
 			if (http)
 				return std::string (get + 4, http - get - 5);
-		}	
+		}
 		return "";
-	}	
-	
+	}
+
 	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
 	{
 		Terminate ();
@@ -233,7 +233,7 @@ namespace util
 		FillContent (s);
 		s << "</html>";
 		SendReply (s.str ());
-	}	
+	}
 
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
@@ -241,7 +241,7 @@ namespace util
 		s << "Our external address:" << "<BR>";
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{
-			switch (address.transportStyle) 
+			switch (address.transportStyle)
 			{
 				case i2p::data::RouterInfo::eTransportNTCP:
 					s << "NTCP&nbsp;&nbsp;";
@@ -257,31 +257,31 @@ namespace util
 		s << "<BR>Routers: " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "Floodfills: " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "LeaseSets: " << i2p::data::netdb.GetNumLeaseSets () << "<BR>";
-		
+
 		s << "<P>Tunnels</P>";
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
-		{	
+		{
 			it->GetTunnelConfig ()->Print (s);
 			if (it->GetTunnelPool () && !it->GetTunnelPool ()->IsExploratory ())
 				s << " " << "Pool";
 			if (it->IsFailed ())
 				s << " " << "Failed";
 			s << " " << (int)it->GetNumSentBytes () << "<BR>";
-		}	
+		}
 
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
-		{	
+		{
 			it.second->GetTunnelConfig ()->Print (s);
 			if (it.second->GetTunnelPool () && !it.second->GetTunnelPool ()->IsExploratory ())
 				s << " " << "Pool";
 			if (it.second->IsFailed ())
 				s << " " << "Failed";
 			s << " " << (int)it.second->GetNumReceivedBytes () << "<BR>";
-		}	
-		
+		}
+
 		s << "<P>Transit tunnels</P>";
 		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
-		{	
+		{
 			if (dynamic_cast<i2p::tunnel::TransitTunnelGateway *>(it.second))
 				s << it.second->GetTunnelID () << "-->";
 			else if (dynamic_cast<i2p::tunnel::TransitTunnelEndpoint *>(it.second))
@@ -289,23 +289,24 @@ namespace util
 			else
 				s << "-->" << it.second->GetTunnelID () << "-->";
 			s << " " << it.second->GetNumTransmittedBytes () << "<BR>";
-		}	
+		}
 
 		s << "<P>Transports</P>";
 		s << "NTCP<BR>";
 		for (auto it: i2p::transports.GetNTCPSessions ())
-		{	
+		{
 			// RouterInfo of incoming connection doesn't have address
 			bool outgoing = it.second->GetRemoteRouterInfo ().GetNTCPAddress ();
 			if (it.second->IsEstablished ())
 			{
 				if (outgoing) s << "-->";
-				s << it.second->GetRemoteRouterInfo ().GetIdentHashAbbreviation () <<  ": " 
+				s << it.second->GetRemoteRouterInfo ().GetIdentHashAbbreviation () <<  ": "
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 				if (!outgoing) s << "-->";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << "<BR>";
-			}	
-		}	
+			}
+		}
 		auto ssuServer = i2p::transports.GetSSUServer ();
 		if (ssuServer)
 		{
@@ -318,14 +319,20 @@ namespace util
 				if (outgoing) s << "-->";
 				s << endpoint.address ().to_string () << ":" << endpoint.port ();
 				if (!outgoing) s << "-->";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << "<BR>";
-			}	
-		}	
+			}
+		}
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";
-	}	
-
+	}
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
+  {
+    HandleDestinationRequest(address, "GET", "", uri);
+  }
+
+	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& method, const std::string& data, const std::string& uri)
 	{
+		const i2p::data::LeaseSet * leaseSet = nullptr;
 		i2p::data::IdentHash destination;
 		std::string fullAddress;
 		if (address.find(".b32.i2p") != std::string::npos)
@@ -354,17 +361,29 @@ namespace util
 			}
 			else
 			{
-				if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
+				if (address == "local")
 				{
-					LogPrint("Invalid Base32 address ", address);
-					SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
-					return;
+					// TODO: remove later
+					fullAddress = "local.i2p";
+					auto destination = i2p::stream::GetSharedLocalDestination ();
+					leaseSet = destination->GetLeaseSet ();
+					EepAccept (destination);
 				}
-				fullAddress = address + ".b32.i2p";
+				else
+				{	
+					if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
+					{
+						LogPrint("Invalid Base32 address ", address);
+						SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
+						return;
+					}
+					fullAddress = address + ".b32.i2p";
+				}	
 			}
 		}
-			
-		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+
+		if (!leaseSet)
+			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
 			i2p::data::netdb.Subscribe(destination);
@@ -374,23 +393,29 @@ namespace util
 			{
 				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
 				return;
-			}	
+			}
 		}
-		if (!m_Stream)	
+		if (!m_Stream)
 			m_Stream = i2p::stream::CreateStream (*leaseSet);
 		if (m_Stream)
 		{
-			std::string request = "GET " + uri + " HTTP/1.1\n Host:" + fullAddress + "\n";
-			m_Stream->Send ((uint8_t *)request.c_str (), request.length (), 10);			
+			std::string request = method+" " + uri + " HTTP/1.1\n Host:" + fullAddress + "\r\n";
+      if (!strcmp(method.c_str(), "GET"))
+      {
+        // POST/PUT, apply body
+        request += "\r\n"+ data;
+      }
+      LogPrint("HTTP Client Request: ", request);
+			m_Stream->Send ((uint8_t *)request.c_str (), request.length (), 10);
 			AsyncStreamReceive ();
-		}	
-	}	
-	
+		}
+	}
+
 	void HTTPConnection::AsyncStreamReceive ()
 	{
 		if (m_Stream)
 			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-				boost::bind (&HTTPConnection::HandleStreamReceive, this, 
+				boost::bind (&HTTPConnection::HandleStreamReceive, this,
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
 				45); // 45 seconds timeout
 	}
@@ -404,11 +429,11 @@ namespace util
 		}
 		else
 		{
-			if (m_Stream && m_Stream->IsOpen ())
+			if (ecode == boost::asio::error::timed_out)
 				SendReply ("<html>" + itoopieImage + "<br>Not responding</html>", 504);
-			else
+			else 
 				Terminate ();
-		}	
+		}
 	}
 
 	void HTTPConnection::SendReply (const std::string& content, int status)
@@ -421,16 +446,16 @@ namespace util
 		m_Reply.headers[1].value = "text/html";
 
 		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
-        	boost::bind (&HTTPConnection::HandleWriteReply, this, 
+			boost::bind (&HTTPConnection::HandleWriteReply, this,
 				boost::asio::placeholders::error));
 	}
-	
-	HTTPServer::HTTPServer (int port): 
-		m_Thread (nullptr), m_Work (m_Service), 
+
+	HTTPServer::HTTPServer (int port):
+		m_Thread (nullptr), m_Work (m_Service),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_NewSocket (nullptr)
 	{
-		
+
 	}
 
 	HTTPServer::~HTTPServer ()
@@ -450,17 +475,17 @@ namespace util
 		m_Acceptor.close();
 		m_Service.stop ();
 		if (m_Thread)
-        {       
-            m_Thread->join (); 
+        {
+            m_Thread->join ();
             delete m_Thread;
             m_Thread = nullptr;
-        }    
+        }
 	}
 
 	void HTTPServer::Run ()
 	{
 		m_Service.run ();
-	}	
+	}
 
 	void HTTPServer::Accept ()
 	{
@@ -476,13 +501,55 @@ namespace util
 			CreateConnection(m_NewSocket); // new HTTPConnection(m_NewSocket);
 			Accept ();
 		}
-	}	
+	}
 
 	void HTTPServer::CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket)
 	{
 		new HTTPConnection (m_NewSocket);
 	}
 
+// eepSite. TODO: move away
+		
+	void HTTPConnection::EepAccept (i2p::stream::StreamingDestination * destination)
+	{
+		if (destination)
+			destination->SetAcceptor (std::bind (&HTTPConnection::HandleEepAccept, this, std::placeholders::_1));
+	}
+		
+	void HTTPConnection::HandleEepAccept (i2p::stream::Stream * stream)
+	{
+		if (stream)
+		{	
+			auto conn = new EepSiteDummyConnection (stream);
+			conn->AsyncStreamReceive ();
+		}	
+	}	
+
+	void EepSiteDummyConnection::AsyncStreamReceive ()
+	{
+		if (m_Stream)
+			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
+				boost::bind (&EepSiteDummyConnection::HandleStreamReceive, this,
+					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
+				60); // 60 seconds timeout
+	}	
+		
+	void EepSiteDummyConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (ecode)
+		{	
+			LogPrint ("eepSite error: ", ecode.message ());
+			DeleteStream (m_Stream);
+		}	
+		else
+		{
+			std::string response ("HTTP/1.0 503 Not Implemented\r\n");
+			m_Stream->Send ((uint8_t *)response.c_str (), response.length (), 30);
+			m_Stream->Close ();
+		}	
+		delete this;
+	}	
+		
 }
 }
 

@@ -1,12 +1,10 @@
 #include "Log.h"
 
-Log g_Log;
+Log * g_Log = nullptr;
 
 void LogMsg::Process()
 {
 	output << s.str();
-
-	std::cout << s.str (); // TODO: delete later
 }
 
 void Log::Flush ()

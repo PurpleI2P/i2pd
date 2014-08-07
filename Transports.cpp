@@ -52,6 +52,7 @@ namespace i2p
 			{
 				i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
 				i2p::data::CreateRandomDHKeysPair (pair);
+				std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 				m_Queue.push (pair);
 			}
 		}
@@ -61,6 +62,7 @@ namespace i2p
 	{
 		if (!m_Queue.empty ())
 		{
+			std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 			auto pair = m_Queue.front ();
 			m_Queue.pop ();
 			m_Acquired.notify_one ();
@@ -230,9 +232,9 @@ namespace i2p
 				else
 				{	
 					// existing session not found. create new 
-					// try NTCP first
+					// try NTCP first if message size < 16K
 					auto address = r->GetNTCPAddress ();
-					if (address && !r->UsesIntroducer () && !r->IsUnreachable ())
+					if (address && !r->UsesIntroducer () && !r->IsUnreachable () && msg->GetLength () < i2p::ntcp::NTCP_MAX_MESSAGE_SIZE)
 					{	
 						auto s = new i2p::ntcp::NTCPClient (m_Service, address->host, address->port, *r);
 						AddNTCPSession (s);
@@ -245,7 +247,10 @@ namespace i2p
 						if (s)
 							s->SendI2NPMessage (msg);
 						else
+						{
 							LogPrint ("No NTCP and SSU addresses available");
+							DeleteI2NPMessage (msg); 
+						}
 					}
 				}	
 			}
@@ -253,10 +258,28 @@ namespace i2p
 			{
 				LogPrint ("Router not found. Requested");
 				i2p::data::netdb.RequestDestination (ident);
+				DeleteI2NPMessage (msg); // TODO: implement a placeholder for router and send once it's available
 			}	
 		}	
 	}	
 
+	void Transports::CloseSession (const i2p::data::RouterInfo * router)
+	{
+		if (!router) return;
+		m_Service.post (boost::bind (&Transports::PostCloseSession, this, router));    
+	}	
+
+	void Transports::PostCloseSession (const i2p::data::RouterInfo * router)
+	{
+		auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (router) : nullptr;
+		if (ssuSession) // try SSU first
+		{	
+			m_SSUServer->DeleteSession (ssuSession);
+			LogPrint ("SSU session closed");	
+		}	
+		// TODO: delete NTCP
+	}	
+		
 	void Transports::DetectExternalIP ()
 	{
 		for (int i = 0; i < 5; i ++)

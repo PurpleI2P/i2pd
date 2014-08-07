@@ -6,6 +6,7 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include "RouterInfo.h"
+#include "LeaseSet.h"
 
 namespace i2p
 {
@@ -100,13 +101,17 @@ namespace tunnel
 	class InboundTunnel;
 }
 
-	const int NTCP_MAX_MESSAGE_SIZE = 16384; 
+	const size_t I2NP_MAX_MESSAGE_SIZE = 32768; 
+	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 2400; 
 	struct I2NPMessage
 	{	
-		uint8_t buf[NTCP_MAX_MESSAGE_SIZE];	
-		size_t len, offset;
+		uint8_t * buf;	
+		size_t len, offset, maxLen;
 		i2p::tunnel::InboundTunnel * from;
 		
+		I2NPMessage (): buf (nullptr),len (sizeof (I2NPHeader) + 2), 
+			offset(2), maxLen (0), from (nullptr) {}; 
+		// reserve 2 bytes for NTCP header
 		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); };
 		uint8_t * GetPayload () { return GetBuffer () + sizeof(I2NPHeader); };
 		uint8_t * GetBuffer () { return buf + offset; };
@@ -143,7 +148,17 @@ namespace tunnel
 			return be32toh (header.msgID);
 		}	
 	};	
+
+	template<int sz>
+	struct I2NPMessageBuffer: public I2NPMessage
+	{
+		I2NPMessageBuffer () { buf = m_Buffer; maxLen = sz; };
+		uint8_t m_Buffer[sz];
+	};
+
 	I2NPMessage * NewI2NPMessage ();
+	I2NPMessage * NewI2NPShortMessage ();
+	I2NPMessage * NewI2NPMessage (size_t len);
 	void DeleteI2NPMessage (I2NPMessage * msg);
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID = 0);
 	void RenewI2NPMessageHeader (I2NPMessage * msg);
@@ -153,12 +168,12 @@ namespace tunnel
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID);
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false, 
-	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
-	void HandleDatabaseLookupMsg (uint8_t * buf, size_t len);
-	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident);
+	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr, bool encryption = false);
+	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, const i2p::data::RouterInfo * floodfill);
 	
-	I2NPMessage * CreateDatabaseStoreMsg ();
-	
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet);		
+
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 
 	    const uint8_t * nextIdent, uint32_t nextTunnelID, 

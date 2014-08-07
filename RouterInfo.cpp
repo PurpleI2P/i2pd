@@ -17,52 +17,87 @@ namespace i2p
 {
 namespace data
 {		
-	RouterInfo::RouterInfo (const char * filename):
-		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
+	RouterInfo::RouterInfo (const std::string& fullPath):
+		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false), 
+		m_SupportedTransports (0), m_Caps (0)
 	{
-		ReadFromFile (filename);
+		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+		ReadFromFile ();
 	}	
 
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
 		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
+		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
 		ReadFromBuffer ();
 	}	
-	
+
+	RouterInfo::~RouterInfo ()
+	{
+		delete m_Buffer;
+	}	
+		
+	void RouterInfo::Update (const uint8_t * buf, int len)
+	{
+		if (!m_Buffer)	
+			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+		m_IsUpdated = true;
+		m_IsUnreachable = false;
+		m_SupportedTransports = 0;
+		m_Caps = 0;
+		m_Addresses.clear ();
+		m_Properties.clear ();
+		memcpy (m_Buffer, buf, len);
+		m_BufferLen = len;
+		ReadFromBuffer ();
+		// don't delete buffer until save to file
+	}	
+		
 	void RouterInfo::SetRouterIdentity (const Identity& identity)
 	{	
 		m_RouterIdentity = identity;
-		m_IdentHash      = m_RouterIdentity.Hash ();
+		m_IdentHash = m_RouterIdentity.Hash ();
 		UpdateIdentHashBase64 ();
 		UpdateRoutingKey ();
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 	
-	void RouterInfo::ReadFromFile (const char * filename)
+	bool RouterInfo::LoadFile ()
 	{
-		std::ifstream s(filename, std::ifstream::binary);
+		std::ifstream s(m_FullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
 			m_BufferLen = s.tellg ();
 			if (m_BufferLen < 40)
 			{
-				LogPrint("File", filename, " is malformed");
-				return;
+				LogPrint("File", m_FullPath, " is malformed");
+				return false;
 			}
 			s.seekg(0, std::ios::beg);
-			s.read(m_Buffer,m_BufferLen);
-			ReadFromBuffer ();
+			if (!m_Buffer)
+				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+			s.read((char *)m_Buffer, m_BufferLen);
 		}	
 		else
-			LogPrint ("Can't open file ", filename);
+		{
+			LogPrint ("Can't open file ", m_FullPath);
+			return false;		
+		}
+		return true;
+	}	
+
+	void RouterInfo::ReadFromFile ()
+	{
+		if (LoadFile ())
+			ReadFromBuffer ();
 	}	
 
 	void RouterInfo::ReadFromBuffer ()
 	{
-		std::stringstream str (std::string (m_Buffer, m_BufferLen));
+		std::stringstream str (std::string ((char *)m_Buffer, m_BufferLen));
 		ReadFromStream (str);
 		// verify signature
 		CryptoPP::DSA::PublicKey pubKey;
@@ -83,8 +118,10 @@ namespace data
 		// read addresses
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses));
+		bool introducers = false;
 		for (int i = 0; i < numAddresses; i++)
 		{
+			bool isValidAddress = true;
 			Address address;
 			s.read ((char *)&address.cost, sizeof (address.cost));
 			s.read ((char *)&address.date, sizeof (address.date));
@@ -114,7 +151,7 @@ namespace data
 					{	
 						// TODO: we should try to resolve address here
 						LogPrint ("Unexpected address ", value);
-						SetUnreachable (true);
+						isValidAddress = false;
 					}	
 					else
 					{
@@ -134,6 +171,7 @@ namespace data
 				else if (key[0] == 'i')
 				{	
 					// introducers
+					introducers = true;
 					size_t l = strlen(key); 	
 					unsigned char index = key[l-1] - '0'; // TODO:
 					key[l-1] = 0;
@@ -153,7 +191,8 @@ namespace data
 						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
 				}
 			}	
-			m_Addresses.push_back(address);
+			if (isValidAddress)
+				m_Addresses.push_back(address);
 		}	
 		// read peers
 		uint8_t numPeers;
@@ -187,7 +226,7 @@ namespace data
 		UpdateIdentHashBase64 ();
 		UpdateRoutingKey ();
 
-		if (!m_SupportedTransports)
+		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))
 			SetUnreachable (true);
 	}	
 
@@ -311,17 +350,41 @@ namespace data
 		s.write (properties.str ().c_str (), properties.str ().size ());
 	}	
 
+	const uint8_t * RouterInfo::LoadBuffer ()
+	{
+		if (!m_Buffer)
+		{
+			if (LoadFile ())
+				LogPrint ("Buffer for ", m_IdentHashAbbreviation, " loaded from file");
+		} 
+		return m_Buffer; 
+	}
+
 	void RouterInfo::CreateBuffer ()
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
 		std::stringstream s;
 		WriteToStream (s);
 		m_BufferLen = s.str ().size ();
+		if (!m_Buffer)
+			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, s.str ().c_str (), m_BufferLen);
 		// signature
 		i2p::context.Sign ((uint8_t *)m_Buffer, m_BufferLen, (uint8_t *)m_Buffer + m_BufferLen);
 		m_BufferLen += 40;
 	}	
+
+	void RouterInfo::SaveToFile (const std::string& fullPath)
+	{
+		m_FullPath = fullPath;
+		if (m_Buffer)
+		{	
+			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+			f.write ((char *)m_Buffer, m_BufferLen);
+		}	
+		else
+			LogPrint ("Can't save to file");
+	}
 	
 	size_t RouterInfo::ReadString (char * str, std::istream& s)
 	{

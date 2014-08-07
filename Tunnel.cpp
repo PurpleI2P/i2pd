@@ -14,8 +14,8 @@ namespace i2p
 namespace tunnel
 {		
 	
-	Tunnel::Tunnel (TunnelConfig * config): m_Config (config), m_Pool (nullptr), 
-		m_IsEstablished (false), m_IsFailed (false)
+	Tunnel::Tunnel (TunnelConfig * config): 
+		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending)
 	{
 	}	
 
@@ -111,7 +111,7 @@ namespace tunnel
 			hop = hop->prev;
 		}
 
-		m_IsEstablished = true;
+		bool established = true;
 		hop = m_Config->GetFirstHop ();
 		while (hop)
 		{			
@@ -119,10 +119,10 @@ namespace tunnel
 			LogPrint ("Ret code=", (int)record->ret);
 			if (record->ret) 
 				// if any of participants declined the tunnel is not established
-				m_IsEstablished = false; 
+				established = false; 
 			hop = hop->next;
 		}
-		if (m_IsEstablished) 
+		if (established) 
 		{
 			// change reply keys to layer keys
 			hop = m_Config->GetFirstHop ();
@@ -132,7 +132,8 @@ namespace tunnel
 				hop = hop->next;
 			}	
 		}	
-		return m_IsEstablished;
+		if (established) m_State = eTunnelStateEstablished;
+		return established;
 	}	
 
 	void Tunnel::EncryptTunnelMsg (I2NPMessage * tunnelMsg)
@@ -148,7 +149,7 @@ namespace tunnel
 	
 	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
 	{
-		if (IsFailed ()) SetFailed (false); // incoming messages means a tunnel is alive			
+		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive			
 		msg->from = this;
 		EncryptTunnelMsg (msg);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
@@ -361,10 +362,12 @@ namespace tunnel
 	void Tunnels::ManageTunnels ()
 	{
 		// check pending tunnel. if something is still there, wipe it out
-		// because it wouldn't be reponded anyway
+		// because it wouldn't be responded anyway
 		for (auto& it : m_PendingTunnels)
 		{	
 			LogPrint ("Pending tunnel build request ", it.first, " has not been responded. Deleted");
+			if (it.second->GetTunnelConfig ()->GetFirstHop ()->isGateway) // outbound
+				i2p::transports.CloseSession (it.second->GetTunnelConfig ()->GetFirstHop ()->router);
 			delete it.second;
 		}	
 		m_PendingTunnels.clear ();
@@ -398,6 +401,7 @@ namespace tunnel
 				auto pool = (*it)->GetTunnelPool ();
 				if (pool)
 					pool->TunnelExpired (*it);
+				delete *it;
 				it = m_OutboundTunnels.erase (it);
 			}	
 			else 
@@ -430,6 +434,7 @@ namespace tunnel
 				auto pool = it->second->GetTunnelPool ();
 				if (pool)
 					pool->TunnelExpired (it->second);
+				delete it->second;
 				it = m_InboundTunnels.erase (it);
 			}	
 			else 
@@ -465,7 +470,9 @@ namespace tunnel
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
 				LogPrint ("Transit tunnel ", it->second->GetTunnelID (), " expired");
+				auto tmp = it->second;
 				it = m_TransitTunnels.erase (it);
+				delete tmp;
 			}	
 			else 
 				it++;

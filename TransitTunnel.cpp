@@ -30,11 +30,11 @@ namespace tunnel
 		EncryptTunnelMsg (tunnelMsg);
 		
 		LogPrint ("TransitTunnel: ",m_TunnelID,"->", m_NextTunnelID);
+		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 		*(uint32_t *)(tunnelMsg->GetPayload ()) = htobe32 (m_NextTunnelID);
 		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
-	
+		
 		i2p::transports.SendMessage (m_NextIdent, tunnelMsg);	
-		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 	}
 
 	void TransitTunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)
@@ -48,6 +48,7 @@ namespace tunnel
 		TunnelMessageBlock block;
 		block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
+		std::unique_lock<std::mutex> l(m_SendMutex);
 		m_Gateway.SendTunnelDataMsg (block);
 	}		
 

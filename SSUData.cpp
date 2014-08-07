@@ -1,4 +1,7 @@
+#include <stdlib.h>
+#include <boost/bind.hpp>
 #include "Log.h"
+#include "Timestamp.h"
 #include "SSU.h"
 #include "SSUData.h"
 
@@ -7,7 +10,7 @@ namespace i2p
 namespace ssu
 {
 	SSUData::SSUData (SSUSession& session):
-		m_Session (session)
+		m_Session (session), m_ResendTimer (session.m_Server.GetService ())
 	{
 	}
 
@@ -20,10 +23,7 @@ namespace ssu
 				delete it.second;
 			}	
 		for (auto it: m_SentMessages)
-		{
-			for (auto f: it.second)
-			delete[] f;
-		}	
+			delete it.second;
 	}
 
 	void SSUData::ProcessSentMessageAck (uint32_t msgID)
@@ -31,19 +31,15 @@ namespace ssu
 		auto it = m_SentMessages.find (msgID);
 		if (it != m_SentMessages.end ())
 		{
-			// delete all ack-ed message's fragments
-			for (auto f: it->second)
-				delete[] f;
+			delete it->second;
 			m_SentMessages.erase (it);	
+			if (m_SentMessages.empty ())
+				m_ResendTimer.cancel ();
 		}
 	}		
 
-	void SSUData::ProcessMessage (uint8_t * buf, size_t len)
+	void SSUData::ProcessAcks (uint8_t *& buf, uint8_t flag)
 	{
-		//uint8_t * start = buf;
-		uint8_t flag = *buf;
-		buf++;
-		LogPrint ("Process SSU data flags=", (int)flag);
 		if (flag & DATA_FLAG_EXPLICIT_ACKS_INCLUDED)
 		{
 			// explicit ACKs
@@ -60,13 +56,45 @@ namespace ssu
 			buf++;
 			for (int i = 0; i < numBitfields; i++)
 			{
+				uint32_t msgID = be32toh (*(uint32_t *)buf);
 				buf += 4; // msgID
-				// TODO: process individual Ack bitfields
-				while (*buf & 0x80) // not last
+				auto it = m_SentMessages.find (msgID);		
+				// process individual Ack bitfields
+				bool isNonLast = false;
+				int fragment = 0;
+				do
+				{
+					uint8_t bitfield = *buf;
+					isNonLast = bitfield & 0x80;
+					bitfield &= 0x7F; // clear MSB
+					if (bitfield && it != m_SentMessages.end ())
+					{	
+						int numSentFragments = it->second->fragments.size ();		
+						// process bits
+						uint8_t mask = 0x40;
+						for (int j = 0; j < 7; j++)
+						{			
+							if (bitfield & mask)
+							{
+								if (fragment < numSentFragments)
+								{
+									delete it->second->fragments[fragment];
+									it->second->fragments[fragment] = nullptr;
+								}	
+							}				
+							fragment++;
+							mask >>= 1;
+						}
+					}	
 					buf++;
-				buf++; // last byte
+				}
+				while (isNonLast); 
 			}	
-		}	
+		}		
+	}
+
+	void SSUData::ProcessFragments (uint8_t * buf)
+	{
 		uint8_t numFragments = *buf; // number of fragments
 		buf++;
 		for (int i = 0; i < numFragments; i++)
@@ -82,81 +110,140 @@ namespace ssu
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
 			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
 			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 		
-			I2NPMessage * msg = nullptr;
-			if (fragmentNum > 0) // follow-up fragment
-			{
-				auto it = m_IncomleteMessages.find (msgID);
-				if (it != m_IncomleteMessages.end ())
-				{
-					if (fragmentNum == it->second->nextFragmentNum)
-					{
-						// expected fragment
-						msg = it->second->msg;
-						memcpy (msg->buf + msg->len, buf, fragmentSize);
-						msg->len += fragmentSize;
-						it->second->nextFragmentNum++;
-					}	
-					else if (fragmentNum < it->second->nextFragmentNum)
-						// duplicate fragment
-						LogPrint ("Duplicate fragment ", fragmentNum, " of message ", msgID, ". Ignored");	
-					else
-					{
-						// missing fragment
-						LogPrint ("Missing fragments from ", it->second->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
-						//TODO
-					}	
- 						
-					if (isLast)
-					{
-						if (!msg)
-							DeleteI2NPMessage (it->second->msg);
-						delete it->second;
-						m_IncomleteMessages.erase (it);
-					}	
-				}
-				else
-					// TODO:
-					LogPrint ("Unexpected follow-on fragment ", fragmentNum, " of message ", msgID);	
-			}
-			else // first fragment
-			{
-				msg = NewI2NPMessage ();
-				memcpy (msg->GetSSUHeader (), buf, fragmentSize);
-				msg->len += fragmentSize - sizeof (I2NPHeaderShort);
-			}
 
-			if (msg)
-			{					
-				if (!fragmentNum && !isLast)
-					m_IncomleteMessages[msgID] = new IncompleteMessage (msg);
-				if (isLast)
+			//  find message with msgID
+			I2NPMessage * msg = nullptr;
+			IncompleteMessage * incompleteMessage = nullptr;
+			auto it = m_IncomleteMessages.find (msgID);
+			if (it != m_IncomleteMessages.end ()) 
+			{	
+				// message exists
+				incompleteMessage = it->second;
+				msg = incompleteMessage->msg;
+			}	
+			else
+			{
+				// create new message
+				msg = NewI2NPMessage ();
+				msg->len -= sizeof (I2NPHeaderShort);
+				incompleteMessage = new IncompleteMessage (msg);
+				m_IncomleteMessages[msgID] = incompleteMessage;
+			}	
+
+			// handle current fragment
+			if (fragmentNum == incompleteMessage->nextFragmentNum)
+			{
+				// expected fragment
+				memcpy (msg->buf + msg->len, buf, fragmentSize);
+				msg->len += fragmentSize;
+				incompleteMessage->nextFragmentNum++;
+				if (!isLast && !incompleteMessage->savedFragments.empty ())
 				{
-					SendMsgAck (msgID);
-					msg->FromSSU (msgID);
-					if (m_Session.GetState () == eSessionStateEstablished)
-						i2p::HandleI2NPMessage (msg);
-					else
+					// try saved fragments
+					for (auto it1 = incompleteMessage->savedFragments.begin (); it1 != incompleteMessage->savedFragments.end ();)
 					{
-						// we expect DeliveryStatus
-						if (msg->GetHeader ()->typeID == eI2NPDeliveryStatus)
+						auto savedFragment = *it1;
+						if (savedFragment->fragmentNum == incompleteMessage->nextFragmentNum)
 						{
-							LogPrint ("SSU session established");
-							m_Session.Established ();
-						}	
+							memcpy (msg->buf + msg->len, savedFragment->buf, savedFragment->len);
+							msg->len += savedFragment->len;
+							isLast = savedFragment->isLast;
+							incompleteMessage->nextFragmentNum++;
+							incompleteMessage->savedFragments.erase (it1++);
+							delete savedFragment;
+						}
 						else
-							LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
-						DeleteI2NPMessage (msg);
+							break;
+					}
+					if (isLast)
+						LogPrint ("Message ", msgID, " complete");
+				}	
+			}	
+			else
+			{	
+				if (fragmentNum < incompleteMessage->nextFragmentNum)
+					// duplicate fragment
+					LogPrint ("Duplicate fragment ", (int)fragmentNum, " of message ", msgID, ". Ignored");	
+				else
+				{
+					// missing fragment
+					LogPrint ("Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
+					auto savedFragment = new Fragment (fragmentNum, buf, fragmentSize, isLast);
+					if (!incompleteMessage->savedFragments.insert (savedFragment).second)
+					{
+						LogPrint ("Fragment ", (int)fragmentNum, " of message ", msgID, " already saved");
+						delete savedFragment;
 					}	
 				}
-			}
+				isLast = false;
+			}	
+
+			if (isLast)
+			{
+				// delete incomplete message
+				delete incompleteMessage;
+				m_IncomleteMessages.erase (msgID);				
+				// process message
+				SendMsgAck (msgID);
+				msg->FromSSU (msgID);
+				if (m_Session.GetState () == eSessionStateEstablished)
+					i2p::HandleI2NPMessage (msg);
+				else
+				{
+					// we expect DeliveryStatus
+					if (msg->GetHeader ()->typeID == eI2NPDeliveryStatus)
+					{
+						LogPrint ("SSU session established");
+						m_Session.Established ();
+					}	
+					else
+						LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
+					DeleteI2NPMessage (msg);
+				}	
+			}	
+			else
+				SendFragmentAck (msgID, fragmentNum);			
 			buf += fragmentSize;
 		}	
+	}
+
+	void SSUData::ProcessMessage (uint8_t * buf, size_t len)
+	{
+		//uint8_t * start = buf;
+		uint8_t flag = *buf;
+		buf++;
+		LogPrint ("Process SSU data flags=", (int)flag);
+		// process acks if presented
+		if (flag & (DATA_FLAG_ACK_BITFIELDS_INCLUDED | DATA_FLAG_EXPLICIT_ACKS_INCLUDED))
+			ProcessAcks (buf, flag);
+		// extended data if presented
+		if (flag & DATA_FLAG_EXTENDED_DATA_INCLUDED)
+		{
+			uint8_t extendedDataSize = *buf;
+			buf++; // size
+			LogPrint ("SSU extended data of ", extendedDataSize, " bytes presented");
+			buf += extendedDataSize;
+		}
+		// process data
+		ProcessFragments (buf);
 	}
 
 	void SSUData::Send (i2p::I2NPMessage * msg)
 	{
 		uint32_t msgID = msg->ToSSU ();
-		auto fragments = m_SentMessages[msgID];
+		if (m_SentMessages.count (msgID) > 0)
+		{
+			LogPrint ("SSU message ", msgID, " already sent");
+			DeleteI2NPMessage (msg);
+			return;
+		}	
+		if (m_SentMessages.empty ()) // schedule resend at first message only
+			ScheduleResend ();
+		SentMessage * sentMessage = new SentMessage;
+		m_SentMessages[msgID] = sentMessage; 
+		sentMessage->nextResendTime = i2p::util::GetSecondsSinceEpoch () + RESEND_INTERVAL;
+		sentMessage->numResends = 0;
+		auto& fragments = sentMessage->fragments;
 		msgID = htobe32 (msgID);	
 		size_t payloadSize = SSU_MTU - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
 		size_t len = msg->GetLength ();
@@ -165,8 +252,9 @@ namespace ssu
 		uint32_t fragmentNum = 0;
 		while (len > 0)
 		{	
-			uint8_t * buf = new uint8_t[SSU_MTU + 18];
-			fragments.push_back (buf);
+			Fragment * fragment = new Fragment;
+			uint8_t * buf = fragment->buf;
+			fragments.push_back (fragment);
 			uint8_t	* payload = buf + sizeof (SSUHeader);
 			*payload = DATA_FLAG_WANT_REPLY; // for compatibility
 			payload++;
@@ -189,6 +277,7 @@ namespace ssu
 			size += payload - buf;
 			if (size & 0x0F) // make sure 16 bytes boundary
 				size = ((size >> 4) + 1) << 4; // (/16 + 1)*16
+			fragment->len = size; 
 			
 			// encrypt message with session key
 			m_Session.FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, size);
@@ -222,6 +311,63 @@ namespace ssu
 		m_Session.FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
 		m_Session.Send (buf, 48);
 	}
+
+	void SSUData::SendFragmentAck (uint32_t msgID, int fragmentNum)
+	{
+		if (fragmentNum > 64)
+		{
+			LogPrint ("Fragment number ", fragmentNum, " exceeds 64");
+			return;
+		}
+		uint8_t buf[64 + 18];
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		*payload = DATA_FLAG_ACK_BITFIELDS_INCLUDED; // flag
+		payload++;	
+		*payload = 1; // number of ACK bitfields
+		payload++;
+		// one ack
+		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
+		payload += 4;
+		div_t d = div (fragmentNum, 7);
+		memset (payload, 0x80, d.quot); // 0x80 means non-last
+		payload += d.quot;		
+		*payload = 0x40 >> d.rem; // set corresponding bit
+		payload++;
+		*payload = 0; // number of fragments
+
+		size_t len = d.quot < 4 ? 48 : 64; // 48 = 37 + 7 + 4 (3+1)			
+		// encrypt message with session key
+		m_Session.FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, len);
+		m_Session.Send (buf, len);
+	}	
+
+	void SSUData::ScheduleResend()
+	{		
+		m_ResendTimer.cancel ();
+		m_ResendTimer.expires_from_now (boost::posix_time::seconds(RESEND_INTERVAL));
+		m_ResendTimer.async_wait (boost::bind (&SSUData::HandleResendTimer,
+			this, boost::asio::placeholders::error));
+	}
+		
+	void SSUData::HandleResendTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto it : m_SentMessages)
+			{
+				if (ts >= it.second->nextResendTime && it.second->numResends < MAX_NUM_RESENDS)
+				{	
+					for (auto f: it.second->fragments)
+						if (f) m_Session.Send (f->buf, f->len); // resend
+
+					it.second->numResends++;
+					it.second->nextResendTime += it.second->numResends*RESEND_INTERVAL;
+				}	
+			}
+			ScheduleResend ();	
+		}	
+	}	
 }
 }
 

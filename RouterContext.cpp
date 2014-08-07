@@ -34,13 +34,13 @@ namespace i2p
 		routerInfo.AddSSUAddress ("127.0.0.1", 17007, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
 		routerInfo.SetProperty ("caps", "LR");
-		routerInfo.SetProperty ("coreVersion", "0.9.8.1");
+		routerInfo.SetProperty ("coreVersion", "0.9.11");
 		routerInfo.SetProperty ("netId", "2");
-		routerInfo.SetProperty ("router.version", "0.9.8.1");
+		routerInfo.SetProperty ("router.version", "0.9.11");
 		routerInfo.SetProperty ("start_uptime", "90m");
 		routerInfo.CreateBuffer ();
 
-		m_RouterInfo = routerInfo;
+		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 	}	
 	
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
@@ -64,10 +64,10 @@ namespace i2p
 		m_RouterInfo.CreateBuffer ();
 	}	
 	
-	void RouterContext::Sign (uint8_t * buf, int len, uint8_t * signature)
+	void RouterContext::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
-		signer.SignMessage (m_Rnd, buf, len, signature);
+		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, len, signature);
 	}
 
 	bool RouterContext::Load ()
@@ -79,7 +79,8 @@ namespace i2p
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 
-		m_RouterInfo = i2p::data::RouterInfo (i2p::util::filesystem::GetFullPath (ROUTER_INFO).c_str ()); // TODO
+		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
+		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 		
 		return true;
 	}
@@ -92,7 +93,6 @@ namespace i2p
 			fk.write ((char *)&m_Keys, sizeof (m_Keys));
 		}
 		
-		std::ofstream fi (i2p::util::filesystem::GetFullPath (ROUTER_INFO).c_str (), std::ofstream::binary | std::ofstream::out);
-		fi.write ((char *)m_RouterInfo.GetBuffer (), m_RouterInfo.GetBufferLen ());
+		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
 	}	
 }	

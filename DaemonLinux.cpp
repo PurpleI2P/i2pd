@@ -48,24 +48,29 @@ namespace i2p
 			{
 				pid_t pid;
 				pid = fork();
-				if (pid > 0)
-				{
-					g_Log.Stop();
-					return 0;
-				}
-				if (pid < 0)
-				{
-					return -1;
-				}
+				if (pid > 0) // parent
+					::exit (EXIT_SUCCESS);
 
+				if (pid < 0) // error
+					return false;
+
+				// child
 				umask(0);
 				int sid = setsid();
 				if (sid < 0)
 				{
 					LogPrint("Error, could not create process group.");
-					return -1;
+					return false;
 				}
 				chdir(i2p::util::filesystem::GetDataDir().string().c_str());
+
+				// close stdin/stdout/stderr descriptors
+				::close (0);
+				::open ("/dev/null", O_RDWR);
+				::close (1);
+				::open ("/dev/null", O_RDWR);	
+				::close (2);
+				::open ("/dev/null", O_RDWR);
 			}
 
 			// Pidfile
@@ -75,12 +80,12 @@ namespace i2p
 			if (pidFilehandle == -1)
 			{
 				LogPrint("Error, could not create pid file (", pidfile, ")\nIs an instance already running?");
-				return -1;
+				return false;
 			}
 			if (lockf(pidFilehandle, F_TLOCK, 0) == -1)
 			{
 				LogPrint("Error, could not lock pid file (", pidfile, ")\nIs an instance already running?");
-				return -1;
+				return false;
 			}
 			char pid[10];
 			sprintf(pid, "%d\n", getpid());
@@ -101,12 +106,10 @@ namespace i2p
 
 		bool DaemonLinux::stop()
 		{
-			Daemon_Singleton::stop();
-
 			close(pidFilehandle);
 			unlink(pidfile.c_str());
 
-			return true;
+			return Daemon_Singleton::stop();			
 		}
 
 	}

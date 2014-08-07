@@ -22,6 +22,14 @@ namespace i2p
 namespace tunnel
 {	
 	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes	
+
+	enum TunnelState
+	{
+		eTunnelStatePending,
+		eTunnelStateEstablished,
+		eTunnelStateTestFailed,
+		eTunnelStateFailed
+	};	
 	
 	class OutboundTunnel;
 	class InboundTunnel;
@@ -35,9 +43,10 @@ namespace tunnel
 			void Build (uint32_t replyMsgID, OutboundTunnel * outboundTunnel = 0);
 			
 			TunnelConfig * GetTunnelConfig () const { return m_Config; }
-			bool IsEstablished () const { return m_IsEstablished; };
-			bool IsFailed () const { return m_IsFailed; };
-			void SetFailed (bool failed) { m_IsFailed = failed; } 
+			TunnelState GetState () const { return m_State; };
+			void SetState (TunnelState state)  { m_State = state; };
+			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
+			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 
 			TunnelPool * GetTunnelPool () const { return m_Pool; };
 			void SetTunnelPool (TunnelPool * pool) { m_Pool = pool; };			
@@ -53,7 +62,7 @@ namespace tunnel
 
 			TunnelConfig * m_Config;
 			TunnelPool * m_Pool; // pool, tunnel belongs to, or null
-			bool m_IsEstablished, m_IsFailed;
+			TunnelState m_State;
 	};	
 
 	class OutboundTunnel: public Tunnel 
@@ -81,7 +90,7 @@ namespace tunnel
 	{
 		public:
 
-			InboundTunnel (TunnelConfig * config): Tunnel (config) {};
+			InboundTunnel (TunnelConfig * config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (I2NPMessage * msg);
 			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 

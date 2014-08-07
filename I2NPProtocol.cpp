@@ -1,4 +1,5 @@
 #include <string.h>
+#include <atomic>
 #include "I2PEndian.h"
 #include <cryptopp/sha.h>
 #include <cryptopp/gzip.h>
@@ -17,19 +18,25 @@ namespace i2p
 
 	I2NPMessage * NewI2NPMessage ()
 	{
-		I2NPMessage * msg = new I2NPMessage;
-		msg->offset = 2; // reserve 2 bytes for NTCP header, should reserve more for SSU in future
-		msg->len = sizeof (I2NPHeader) + 2;
-		msg->from = nullptr;
-		return msg;
+		return new I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>();
 	}
+	
+	I2NPMessage * NewI2NPShortMessage ()
+	{
+		return new I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE>();
+	}
+
+	I2NPMessage * NewI2NPMessage (size_t len)
+	{
+		return (len < I2NP_MAX_SHORT_MESSAGE_SIZE/2) ? NewI2NPShortMessage () : NewI2NPMessage ();
+	}	
 	
 	void DeleteI2NPMessage (I2NPMessage * msg)
 	{
 		delete msg;
 	}	
 
-	static uint32_t I2NPmsgID = 0; // TODO: create class
+	static std::atomic<uint32_t> I2NPmsgID(0); // TODO: create class
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID)
 	{
 		I2NPHeader * header = msg->GetHeader ();
@@ -62,7 +69,7 @@ namespace i2p
 
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPMessage (len);
 		memcpy (msg->GetPayload (), buf, len);
 		msg->len += len;
 		FillI2NPMessageHeader (msg, msgType, replyMsgID);
@@ -94,7 +101,8 @@ namespace i2p
 	}
 
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
-		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
+		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers,
+	    bool encryption)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		uint8_t * buf = m->GetPayload ();
@@ -104,12 +112,13 @@ namespace i2p
 		buf += 32;
 		if (replyTunnelID)
 		{
-			*buf = 0x01; // set delivery flag
+			*buf = encryption ? 0x03: 0x01; // set delivery flag
 			*(uint32_t *)(buf+1) = htobe32 (replyTunnelID);
 			buf += 5;
 		}
 		else
 		{	
+			encryption = false; // encryption can we set for tunnels only
 			*buf = 0; // flag
 			buf++;
 		}	
@@ -142,58 +151,63 @@ namespace i2p
 				buf += 2;
 			}	
 		}	
+		if (encryption)
+		{
+			// session key and tag for reply
+			auto& rnd = i2p::context.GetRandomNumberGenerator ();
+			rnd.GenerateBlock (buf, 32); // key
+			buf[32] = 1; // 1 tag
+			rnd.GenerateBlock (buf + 33, 32); // tag
+			i2p::garlic::routing.AddSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
+			buf += 65;
+		}	
 		m->len += (buf - m->GetPayload ()); 
 		FillI2NPMessageHeader (m, eI2NPDatabaseLookup);
 		return m; 
 	}	
 
-	void HandleDatabaseLookupMsg (uint8_t * buf, size_t len)
+	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
+		const i2p::data::RouterInfo * floodfill)
 	{
-		char key[48];
-		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
-		key[l] = 0;
-		LogPrint ("DatabaseLookup for ", key, " recieved");
-		uint8_t flag = buf[64];
-		uint32_t replyTunnelID = 0;
-		if (flag & 0x01) //reply to yunnel
-			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
-		// TODO: implement search. We send non-found for now
-		I2NPMessage * replyMsg = CreateDatabaseSearchReply (buf);
-		if (replyTunnelID)
-			i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
-		else
-			i2p::transports.SendMessage (buf, replyMsg);
-	}	
-
-	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident)
-	{
-		I2NPMessage * m = NewI2NPMessage ();
+		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
+		size_t len = 0;
 		memcpy (buf, ident, 32);
-		buf[32] = 0; // TODO:
-		memcpy (buf + 33, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
-		m->len += 65;
+		len += 32;
+		buf[len] = floodfill ? 1 : 0; // 1 router for now
+		len++;
+		if (floodfill)
+		{
+			memcpy (buf + len, floodfill->GetIdentHash (), 32);
+			len += 32;
+		}	
+		memcpy (buf + len, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
+		len += 32;	
+		m->len += len;
 		FillI2NPMessageHeader (m, eI2NPDatabaseSearchReply);
 		return m; 
 	}	
 	
-	I2NPMessage * CreateDatabaseStoreMsg ()
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router)
 	{
-		I2NPMessage * m = NewI2NPMessage ();
+		if (!router) // we send own RouterInfo
+			router = &context.GetRouterInfo ();
+
+		I2NPMessage * m = NewI2NPShortMessage ();
 		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();		
 
-		memcpy (msg->key, context.GetRouterInfo ().GetIdentHash (), 32);
+		memcpy (msg->key, router->GetIdentHash (), 32);
 		msg->type = 0;
 		msg->replyToken = 0;
 		
 		CryptoPP::Gzip compressor;
-		compressor.Put ((uint8_t *)context.GetRouterInfo ().GetBuffer (), context.GetRouterInfo ().GetBufferLen ());
+		compressor.Put (router->GetBuffer (), router->GetBufferLen ());
 		compressor.MessageEnd();
-		// WARNING!!! MaxRetrievable() return uint64_t. Есть подозрение, что что-то не так
-		int size = compressor.MaxRetrievable ();
+		auto size = compressor.MaxRetrievable ();
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
 		*(uint16_t *)buf = htobe16 (size); // size
 		buf += 2;
+		// TODO: check if size doesn't exceed buffer
 		compressor.Get (buf, size); 
 		m->len += sizeof (I2NPDatabaseStoreMsg) + 2 + size; // payload size
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
@@ -201,6 +215,19 @@ namespace i2p
 		return m;
 	}	
 
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet)
+	{
+		if (!leaseSet) return nullptr;
+		I2NPMessage * m = NewI2NPShortMessage ();
+		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();
+		memcpy (msg->key, leaseSet->GetIdentHash (), 32);
+		msg->type = 1; // LeaseSet
+		msg->replyToken = 0;
+		memcpy (m->GetPayload () + sizeof (I2NPDatabaseStoreMsg), leaseSet->GetBuffer (), leaseSet->GetBufferLen ());
+		m->len += leaseSet->GetBufferLen () + sizeof (I2NPDatabaseStoreMsg);
+		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
+		return m;
+	}
 
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 
@@ -346,6 +373,7 @@ namespace i2p
 			else
 			{	
 				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				i2p::transports.CloseSession (tunnel->GetTunnelConfig ()->GetFirstHop ()->router);
 				delete tunnel;
 			}	
 		}	
@@ -375,7 +403,7 @@ namespace i2p
 	
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPMessage (len);
 		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
 		header->tunnelID = htobe32 (tunnelID);
 		header->length = htobe16 (len);
@@ -410,7 +438,7 @@ namespace i2p
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
 		const uint8_t * buf, size_t len, uint32_t replyMsgID)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPMessage (len);
 		size_t gatewayMsgOffset = sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
 		msg->offset += gatewayMsgOffset;
 		msg->len += gatewayMsgOffset;
@@ -435,6 +463,13 @@ namespace i2p
 		msg->offset += sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
 		msg->len = msg->offset + len;
 		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)msg->GetHeader()->typeID);
+		if (msg->GetHeader()->typeID == eI2NPDatabaseStore)
+		{
+			// transit DatabaseStore my contain new/updated RI
+			auto ds = NewI2NPMessage ();
+			*ds = *msg;
+			i2p::data::netdb.PostI2NPMsg (ds);
+		}	
 		i2p::tunnel::TransitTunnel * tunnel =  i2p::tunnel::tunnels.GetTransitTunnel (tunnelID);
 		if (tunnel)
 			tunnel->SendTunnelDataMsg (msg);
@@ -477,10 +512,6 @@ namespace i2p
 				LogPrint ("TunnelBuildReply");
 				// TODO:
 			break;	
-			case eI2NPDatabaseLookup:
-				LogPrint ("DatabaseLookup");
-				HandleDatabaseLookupMsg (buf, size);
-			break;	
 			default:
 				LogPrint ("Unexpected message ", (int)header->typeID);
 		}	
@@ -505,13 +536,11 @@ namespace i2p
 					i2p::garlic::routing.HandleGarlicMessage (msg);
 				break;
 				case eI2NPDatabaseStore:
-					LogPrint ("DatabaseStore");
-					i2p::data::netdb.PostI2NPMsg (msg);
-				break;	
 				case eI2NPDatabaseSearchReply:
-					LogPrint ("DatabaseSearchReply");
+				case eI2NPDatabaseLookup:
+					// forward to netDb
 					i2p::data::netdb.PostI2NPMsg (msg);
-				break;					
+				break;
 				case eI2NPDeliveryStatus:
 					LogPrint ("DeliveryStatus");
 					if (msg->from && msg->from->GetTunnelPool ())

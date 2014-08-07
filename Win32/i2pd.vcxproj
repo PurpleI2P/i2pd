@@ -43,6 +43,7 @@
     <ClCompile Include="..\TunnelPool.cpp" />
     <ClCompile Include="..\UPnP.cpp" />
     <ClCompile Include="..\util.cpp" />
+    <ClCompile Include="..\SOCKS.cpp" />
     <ClCompile Include="Win32Service.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -80,6 +81,7 @@
     <ClInclude Include="..\TunnelPool.h" />
     <ClInclude Include="..\UPnP.h" />
     <ClInclude Include="..\util.h" />
+    <ClInclude Include="..\SOCKS.h" />
     <ClInclude Include="Win32Service.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

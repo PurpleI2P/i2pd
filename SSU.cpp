@@ -19,7 +19,8 @@ namespace ssu
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
 		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
-		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this)
+		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
+		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
@@ -74,20 +75,18 @@ namespace ssu
 
 	void SSUSession::ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
+		m_NumReceivedBytes += len;
 		if (m_State == eSessionStateIntroduced)
 		{
 			// HolePunch received
-			LogPrint ("SSU HolePuch of ", len, " bytes received");
+			LogPrint ("SSU HolePunch of ", len, " bytes received");
 			m_State = eSessionStateUnknown;
 			Connect ();
 		}
 		else
 		{
-			ScheduleTermination ();
-			// check for duplicate
-			const uint8_t * iv = ((SSUHeader *)buf)->iv;
-			if (m_ReceivedIVs.count (iv)) return; // duplicate detected
-			m_ReceivedIVs.insert (iv);
+			if (m_State == eSessionStateEstablished)
+				ScheduleTermination ();
 
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
 				DecryptSessionKey (buf, len);	
@@ -151,7 +150,8 @@ namespace ssu
 			}	
 			case PAYLOAD_TYPE_RELAY_RESPONSE:
 				ProcessRelayResponse (buf, len);
-				m_Server.DeleteSession (this);
+				if (m_State != eSessionStateEstablished)
+					m_Server.DeleteSession (this);
 			break;
 			case PAYLOAD_TYPE_RELAY_REQUEST:
 				LogPrint ("SSU relay request received");
@@ -626,7 +626,7 @@ namespace ssu
 		if (!m_DelayedMessages.empty ())
 		{
 			for (auto it :m_DelayedMessages)
-				delete it;
+				DeleteI2NPMessage (it);
 			m_DelayedMessages.clear ();
 		}	
 	}	
@@ -651,7 +651,6 @@ namespace ssu
 		if (m_State != eSessionStateFailed)
 		{	
 			m_State = eSessionStateFailed;
-			Close ();
 			m_Server.DeleteSession (this); // delete this 
 		}	
 	}	
@@ -821,6 +820,7 @@ namespace ssu
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
 			Send (buf, 48);
+			LogPrint ("SSU session destoryed sent");
 		}
 	}	
 
@@ -841,6 +841,7 @@ namespace ssu
 
 	void SSUSession::Send (const uint8_t * buf, size_t size)
 	{
+		m_NumSentBytes += size;
 		m_Server.Send (buf, size, m_RemoteEndpoint);
 	}	
 
@@ -909,7 +910,6 @@ namespace ssu
 	void SSUServer::Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
 		m_Socket.send_to (boost::asio::buffer (buf, len), to);
-		LogPrint ("SSU sent ", len, " bytes");
 	}	
 
 	void SSUServer::Receive ()
@@ -922,7 +922,6 @@ namespace ssu
 	{
 		if (!ecode)
 		{
-			LogPrint ("SSU received ", bytes_transferred, " bytes");
 			SSUSession * session = nullptr;
 			auto it = m_Sessions.find (m_SenderEndpoint);
 			if (it != m_Sessions.end ())
@@ -985,30 +984,46 @@ namespace ssu
 					else
 					{
 						// connect through introducer
-						session->WaitForIntroduction ();
-						if (address->introducers.size () > 0)
+						int numIntroducers = address->introducers.size ();
+						if (numIntroducers > 0)
 						{
-							auto& introducer = address->introducers[0]; // TODO:
-							boost::asio::ip::udp::endpoint introducerEndpoint (introducer.iHost, introducer.iPort);
-							LogPrint ("Creating new SSU session to [", router->GetIdentHashAbbreviation (), 
-									"] through introducer ", introducerEndpoint.address ().to_string (), ":", introducerEndpoint.port ());
-							it = m_Sessions.find (introducerEndpoint);
 							SSUSession * introducerSession = nullptr;
-							if (it != m_Sessions.end ())
+							const i2p::data::RouterInfo::Introducer * introducer = nullptr;
+							// we might have a session to introducer already
+							for (int i = 0; i < numIntroducers; i++)
 							{
-								LogPrint ("Session to introducer already exists");
-								introducerSession = it->second; 
-							}	
-							else
-							{
-								LogPrint ("New session to introducer created");
-								introducerSession = new SSUSession (*this, introducerEndpoint, router);
-								m_Sessions[introducerEndpoint] = introducerSession;																
+								introducer = &(address->introducers[i]);
+								it = m_Sessions.find (boost::asio::ip::udp::endpoint (introducer->iHost, introducer->iPort));
+								if (it != m_Sessions.end ())
+								{
+									introducerSession = it->second;
+									break; 
+								}	
 							}
-							introducerSession->Introduce (introducer.iTag, introducer.iKey);
+
+							if (introducerSession) // session found 
+								LogPrint ("Session to introducer already exists");
+							else // create new
+							{
+								LogPrint ("Creating new session to introducer");
+								introducer = &(address->introducers[0]); // TODO:
+								boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
+								introducerSession = new SSUSession (*this, introducerEndpoint, router);
+								m_Sessions[introducerEndpoint] = introducerSession;													
+							}	
+							// introduce
+							LogPrint ("Introduce new SSU session to [", router->GetIdentHashAbbreviation (), 
+									"] through introducer ", introducer->iHost, ":", introducer->iPort);
+							session->WaitForIntroduction ();	
+							introducerSession->Introduce (introducer->iTag, introducer->iKey);
 						}
 						else
-							LogPrint ("Router is unreachable, but not introducers presentd. Ignored");
+						{	
+							LogPrint ("Router is unreachable, but no introducers presented. Ignored");
+							m_Sessions.erase (remoteEndpoint);
+							delete session;
+							session = nullptr;
+						}	
 					}
 				}
 			}

@@ -3,13 +3,57 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include <string>
+#include "base64.h"
 #include "ElGamal.h"
 
 namespace i2p
 {
 namespace data
 {
-	class IdentHash;
+	template<int sz>
+	class Tag
+	{
+		public:
+
+			Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); };
+			Tag (const Tag<sz>& ) = default;
+#ifndef _WIN32 // FIXME!!! msvs 2013 can't compile it
+			Tag (Tag<sz>&& ) = default;
+#endif
+			Tag () = default;
+			
+			Tag<sz>& operator= (const Tag<sz>& ) = default;
+#ifndef _WIN32
+			Tag<sz>& operator= (Tag<sz>&& ) = default;
+#endif
+			
+			uint8_t * operator()() { return m_Buf; };
+			const uint8_t * operator()() const { return m_Buf; };
+
+			operator uint8_t * () { return m_Buf; };
+			operator const uint8_t * () const { return m_Buf; };
+			
+			bool operator== (const Tag<sz>& other) const { return !memcmp (m_Buf, other.m_Buf, sz); };
+			bool operator< (const Tag<sz>& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; };
+
+			std::string ToBase64 () const
+			{
+				char str[sz*2];
+				int l = i2p::data::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
+				str[l] = 0;
+				return std::string (str);
+			}
+
+		private:
+
+			union // 8 bytes alignment
+			{	
+				uint8_t m_Buf[sz];
+				uint64_t ll[sz/8];
+			};		
+	};	
+	typedef Tag<32> IdentHash;
 
 #pragma pack(1)
 
@@ -27,14 +71,28 @@ namespace data
 		uint8_t signingKey[128];
 	};
 	
+	
+	const uint8_t CERTIFICATE_TYPE_NULL = 0;
+	const uint8_t CERTIFICATE_TYPE_HASHCASH = 1;
+	const uint8_t CERTIFICATE_TYPE_HIDDEN = 2;
+	const uint8_t CERTIFICATE_TYPE_SIGNED = 3;	
+	const uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;	
+	const uint8_t CERTIFICATE_TYPE_KEY = 5;
+
+	const size_t DEFAULT_IDENTITY_SIZE = 387;
 	struct Identity
 	{
 		uint8_t publicKey[256];
 		uint8_t signingKey[128];
-		uint8_t certificate[3];
+		struct
+		{
+			uint8_t type;
+			uint16_t length;
+		} certificate;	
 
 		Identity& operator=(const Keys& keys);
 		bool FromBase64(const std::string& );
+		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash() const;
 	};	
 	
@@ -52,39 +110,7 @@ namespace data
 	};
 	
 #pragma pack()
-
-	class IdentHash
-	{
-		public:
-
-			IdentHash (const uint8_t * hash) { memcpy (m_Hash, hash, 32); };
-			IdentHash (const IdentHash& ) = default;
-#ifndef _WIN32 // FIXME!!! msvs 2013 can't compile it
-			IdentHash (IdentHash&& ) = default;
-#endif
-			IdentHash () = default;
-			
-			IdentHash& operator= (const IdentHash& ) = default;
-#ifndef _WIN32
-			IdentHash& operator= (IdentHash&& ) = default;
-#endif
-			
-			uint8_t * operator()() { return m_Hash; };
-			const uint8_t * operator()() const { return m_Hash; };
-
-			operator uint8_t * () { return m_Hash; };
-			operator const uint8_t * () const { return m_Hash; };
-			
-			bool operator== (const IdentHash& other) const { return !memcmp (m_Hash, other.m_Hash, 32); };
-			bool operator< (const IdentHash& other) const { return memcmp (m_Hash, other.m_Hash, 32) < 0; };
-
-            bool FromBase32(const std::string&);
-
-		private:
-
-			uint8_t m_Hash[32];
-	};	
-
+		
 	Keys CreateRandomKeys ();
 	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
@@ -141,9 +167,10 @@ namespace data
 
 			virtual ~LocalDestination() {};
 			virtual const IdentHash& GetIdentHash () const = 0;
+			virtual const Identity& GetIdentity () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
-			virtual void UpdateLeaseSet () = 0; // LeaseSet must be updated
+			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;
 	};	
 }
 }

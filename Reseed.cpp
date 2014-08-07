@@ -19,11 +19,25 @@ namespace data
 				"http://cowpuncher.drollette.com/netdb/",
 				"http://i2p.mooo.com/netDb/",
 				"http://reseed.info/",
-				"http://reseed.pkol.de/",
 				"http://uk.reseed.i2p2.no/",
+				"http://us.reseed.i2p2.no/",
+				"http://jp.reseed.i2p2.no/",
 				"http://i2p-netdb.innovatio.no/",
 				"http://ieb9oopo.mooo.com"
-			};	
+			};
+
+	//TODO: Remember to add custom port support. Not all serves on 443
+	static std::vector<std::string> httpsReseedHostList = {
+				"https://193.150.121.66/netDb/",
+				"https://netdb.i2p2.no/",
+				"https://reseed.i2p-projekt.de/",
+				"https://cowpuncher.drollette.com/netdb/",
+				"https://i2p.mooo.com/netDb/",
+				"https://reseed.info/",
+				"https://i2p-netdb.innovatio.no/",
+				"https://ieb9oopo.mooo.com/",
+				"https://ssl.webpack.de/ivae2he9.sg4.e-plaza.de/" // Only HTTPS and SU3 (v2) support
+			};
 	
 	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
 	//TODO: Implement SU3, utils.
@@ -39,6 +53,15 @@ namespace data
 	{
 		try
 		{
+			// Seems like the best place to try to intercept with SSL
+			/*ssl_server = true;
+			try {
+				// SSL
+			}
+			catch (std::exception& e)
+			{
+				LogPrint("Exception in SSL: ", e.what());
+			}*/
 			std::string reseedHost = httpReseedHostList[(rand() % httpReseedHostList.size())];
 			LogPrint("Reseeding from ", reseedHost);
 			std::string content = i2p::util::http::httpRequest(reseedHost);
@@ -56,7 +79,7 @@ namespace data
 			std::string routerInfo;
 			std::string tmpUrl;
 			std::string filename;
-			std::string ignoreFileSuffix = ".zip";
+			std::string ignoreFileSuffix = ".su3";
 			boost::filesystem::path root = i2p::util::filesystem::GetDataDir();
 			while (i != j)
 			{

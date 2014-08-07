@@ -313,6 +313,7 @@ namespace crypto
 		);
 #else
 		m_IVEncryption.Encrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // iv
+		m_LayerEncryption.SetIV (payload);
 		m_LayerEncryption.Encrypt (payload + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, payload + 16); // data
 		m_IVEncryption.Encrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // double iv
 #endif
@@ -348,6 +349,7 @@ namespace crypto
 		);
 #else
 		m_IVDecryption.Decrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // iv
+		m_LayerDecryption.SetIV (payload);	
 		m_LayerDecryption.Decrypt (payload + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, payload + 16); // data
 		m_IVDecryption.Decrypt ((ChipherBlock *)payload, (ChipherBlock *)payload); // double iv
 #endif

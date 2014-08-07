@@ -31,7 +31,6 @@ namespace ssu
 	};
 #pragma pack()
 
-	const size_t SSU_MTU = 1484;
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 
@@ -74,7 +73,10 @@ namespace ssu
 			void SendPeerTest (); // Alice			
 
 			SessionState GetState () const  { return m_State; };
-
+			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			
+			
 		private:
 
 			void CreateAESandMacKey (const uint8_t * pubKey); 
@@ -113,21 +115,7 @@ namespace ssu
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:
-
-			union IV
-			{
-				uint8_t buf[16];
-				uint64_t ll[2];
-
-				IV (const IV&) = default;
-				IV (const uint8_t * iv) { memcpy (buf, iv, 16); };
-				bool operator< (const IV& other) const
-				{
-					if (ll[0] != other.ll[0]) return ll[0] < other.ll[0];
-					return ll[1] < other.ll[1];
-				};
-			};			
-
+	
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
@@ -143,8 +131,8 @@ namespace ssu
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			uint8_t m_SessionKey[32], m_MacKey[32];
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
-			std::set<IV> m_ReceivedIVs;	
 			SSUData m_Data;
+			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};
 
 	class SSUServer

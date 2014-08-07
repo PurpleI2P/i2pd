@@ -1,20 +1,15 @@
-#CC = clang++
-CC = g++
-CFLAGS = -g -Wall -std=c++11 -lstdc++
-OBJECTS = obj/CryptoConst.o obj/base64.o obj/NTCPSession.o obj/RouterInfo.o obj/Transports.o \
-	obj/RouterContext.o obj/NetDb.o obj/LeaseSet.o obj/Tunnel.o obj/TunnelEndpoint.o \
-	obj/TunnelGateway.o obj/TransitTunnel.o obj/I2NPProtocol.o obj/Log.o obj/Garlic.o \
-	obj/HTTPServer.o obj/Streaming.o obj/Identity.o obj/SSU.o obj/util.o obj/Reseed.o \
-	obj/UPnP.o obj/TunnelPool.o obj/HTTPProxy.o obj/AddressBook.o  obj/Daemon.o \
-	obj/DaemonLinux.o obj/SSUData.o obj/i2p.o obj/aes.o
+CC = clang++
+CFLAGS = -g -Wall -std=c++11 -lstdc++ -I/usr/local/include
+include filelist.mk
 INCFLAGS = -DCRYPTOPP_DISABLE_ASM
-LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
+LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 LIBS = 
 
-#check if AES-NI is supported by CPU
-ifneq ($(shell grep -c aes /proc/cpuinfo),0) 
-	CPU_FLAGS = -DAESNI
-endif
+# OSX Notes
+# http://www.hutsby.net/2011/08/macs-with-aes-ni.html
+# Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
+# Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
+CPU_FLAGS = -DAESNI
 
 # Apple Mac OSX
 UNAME_S := $(shell uname -s)

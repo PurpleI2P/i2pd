@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cryptopp/dh.h>
 #include <cryptopp/gzip.h>
+#include "util.h"
 #include "Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
@@ -9,6 +10,7 @@
 #include "Timestamp.h"
 #include "CryptoConst.h"
 #include "Garlic.h"
+#include "NetDb.h"
 #include "Streaming.h"
 
 namespace i2p
@@ -17,13 +19,21 @@ namespace stream
 {
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
-		m_SequenceNumber (0), m_LastReceivedSequenceNumber (0), m_IsOpen (false), 
-		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (remote), 
-		m_OutboundTunnel (nullptr), m_ReceiveTimer (m_Service)
+		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
+		m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local), 
+		m_RemoteLeaseSet (&remote), m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
 	}	
+
+	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local):
+		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
+		m_IsOpen (false), m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local),
+		m_RemoteLeaseSet (nullptr), m_ReceiveTimer (m_Service)
+	{
+		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+	}
 
 	Stream::~Stream ()
 	{
@@ -40,20 +50,29 @@ namespace stream
 		
 	void Stream::HandleNextPacket (Packet * packet)
 	{
-		if (!m_SendStreamID)
-			m_SendStreamID = packet->GetReceiveStreamID ();
-		
-		uint32_t receivedSeqn = packet->GetSeqn ();
+		if (!m_SendStreamID) 
+			m_SendStreamID = packet->GetReceiveStreamID (); 	
+
+		int32_t receivedSeqn = packet->GetSeqn ();
+		bool isSyn = packet->IsSYN ();
+		if (!receivedSeqn && !isSyn)
+		{
+			// plain ack
+			LogPrint ("Plain ACK received");
+			delete packet;
+			return;
+		}
+
 		LogPrint ("Received seqn=", receivedSeqn); 
-		if (!receivedSeqn || receivedSeqn == m_LastReceivedSequenceNumber + 1)
+		if (isSyn || receivedSeqn == m_LastReceivedSequenceNumber + 1)
 		{			
 			// we have received next in sequence message
 			ProcessPacket (packet);
-
+			
 			// we should also try stored messages if any
 			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
 			{			
-				if ((*it)->GetSeqn () == m_LastReceivedSequenceNumber + 1)
+				if ((*it)->GetSeqn () == (uint32_t)(m_LastReceivedSequenceNumber + 1))
 				{
 					Packet * savedPacket = *it;
 					m_SavedPackets.erase (it++);
@@ -66,7 +85,14 @@ namespace stream
 
 			// send ack for last message
 			if (m_IsOpen)
-				SendQuickAck ();
+				SendQuickAck ();	
+			else if (isSyn)
+			{
+				// we have to send SYN back to incoming connection
+				m_IsOpen = true;
+				SendQuickAck (true);
+			}	
+				
 		}	
 		else 
 		{	
@@ -75,9 +101,7 @@ namespace stream
 				// we have received duplicate. Most likely our outbound tunnel is dead
 				LogPrint ("Duplicate message ", receivedSeqn, " received");
 				UpdateCurrentRemoteLease (); // pick another lease
-				m_OutboundTunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel (); // pick another tunnel
-				if (m_OutboundTunnel)
-					SendQuickAck (); // resend ack for previous message again
+				SendQuickAck (); // resend ack for previous message again
 				delete packet; // packet dropped
 			}	
 			else
@@ -106,17 +130,31 @@ namespace stream
 		{
 			LogPrint ("Synchronize");
 		}	
+
+		if (flags & PACKET_FLAG_DELAY_REQUESTED)
+		{
+			optionData += 2;
+		}	
+		
+		if (flags & PACKET_FLAG_FROM_INCLUDED)
+		{
+			optionData += m_RemoteIdentity.FromBuffer (optionData, i2p::data::DEFAULT_IDENTITY_SIZE);
+			LogPrint ("From identity ", m_RemoteIdentity.Hash ().ToBase64 ());		
+			if (!m_RemoteLeaseSet)
+				LogPrint ("Incoming stream from ", m_RemoteIdentity.Hash ().ToBase64 ());
+		}	
+
+		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
+		{
+			uint16_t maxPacketSize = be16toh (*(uint16_t *)optionData);
+			LogPrint ("Max packet size ", maxPacketSize);
+			optionData += 2;
+		}	
 		
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
 			LogPrint ("Signature");
 			optionData += 40;
-		}	
-
-		if (flags & PACKET_FLAG_FROM_INCLUDED)
-		{
-			LogPrint ("From identity");
-			optionData += sizeof (i2p::data::Identity);
 		}	
 
 		packet->offset = packet->GetPayload () - packet->buf;
@@ -135,6 +173,7 @@ namespace stream
 			LogPrint ("Closed");
 			SendQuickAck (); // send ack for close explicitly?
 			m_IsOpen = false;
+			m_ReceiveTimer.cancel ();
 		}
 	}	
 		
@@ -163,10 +202,10 @@ namespace stream
 				PACKET_FLAG_FROM_INCLUDED | PACKET_FLAG_SIGNATURE_INCLUDED | 
 				PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED | PACKET_FLAG_NO_ACK);
 			size += 2; // flags
-			*(uint16_t *)(packet + size) = htobe16 (sizeof (i2p::data::Identity) + 40 + 2); // identity + signature + packet size
+			*(uint16_t *)(packet + size) = htobe16 (i2p::data::DEFAULT_IDENTITY_SIZE + 40 + 2); // identity + signature + packet size
 			size += 2; // options size
-			memcpy (packet + size, &m_LocalDestination->GetIdentity (), sizeof (i2p::data::Identity)); 
-			size += sizeof (i2p::data::Identity); // from
+			memcpy (packet + size, &m_LocalDestination->GetIdentity (), i2p::data::DEFAULT_IDENTITY_SIZE); 
+			size += i2p::data::DEFAULT_IDENTITY_SIZE; // from
 			*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
 			size += 2; // max packet size
 			uint8_t * signature = packet + size; // set it later
@@ -193,7 +232,7 @@ namespace stream
 	}	
 
 		
-	void Stream::SendQuickAck ()
+	void Stream::SendQuickAck (bool syn)
 	{
 		uint8_t packet[MAX_PACKET_SIZE];
 		size_t size = 0;
@@ -208,7 +247,7 @@ namespace stream
 		packet[size] = 0; 
 		size++; // NACK count
 		size++; // resend delay
-		*(uint16_t *)(packet + size) = 0; // nof flags set
+		*(uint16_t *)(packet + size) = syn ? htobe16 (PACKET_FLAG_SYNCHRONIZE) : 0; // nof flags set
 		size += 2; // flags
 		*(uint16_t *)(packet + size) = 0; // no options
 		size += 2; // options size
@@ -222,7 +261,8 @@ namespace stream
 		if (m_IsOpen)
 		{	
 			m_IsOpen = false;
-			uint8_t packet[MAX_PACKET_SIZE];
+			Packet * p = new Packet ();
+			uint8_t * packet = p->GetBuffer ();
 			size_t size = 0;
 			*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
 			size += 4; // sendStreamID
@@ -235,7 +275,7 @@ namespace stream
 			packet[size] = 0; 
 			size++; // NACK count
 			size++; // resend delay
-			*(uint16_t *)(packet + size) = PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED;
+			*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 			size += 2; // flags
 			*(uint16_t *)(packet + size) = htobe16 (40); // 40 bytes signature
 			size += 2; // options size
@@ -244,8 +284,9 @@ namespace stream
 			size += 40; // signature
 			m_LocalDestination->Sign (packet, size, signature);
 			
-			if (SendPacket (packet, size))
-				LogPrint ("FIN sent");
+			p->len = size;
+			m_Service.post (boost::bind (&Stream::SendPacket, this, p));
+			LogPrint ("FIN sent");
 		}	
 	}
 
@@ -281,27 +322,36 @@ namespace stream
 	}	
 	
 	bool Stream::SendPacket (const uint8_t * buf, size_t len)
-	{		
-		const I2NPMessage * leaseSet = nullptr;
+	{	
+		if (!m_RemoteLeaseSet)
+		{
+			UpdateCurrentRemoteLease ();	
+			if (!m_RemoteLeaseSet)
+			{
+				LogPrint ("Can't send packet. Missing remote LeaseSet");
+				return false;
+			}
+		}
+
+		I2NPMessage * leaseSet = nullptr;
 
 		if (m_LeaseSetUpdated)
 		{	
-			leaseSet = m_LocalDestination->GetLeaseSet ();
+			leaseSet = m_LocalDestination->GetLeaseSetMsg ();
 			m_LeaseSetUpdated = false;
 		}	
 
-		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (m_RemoteLeaseSet, 
+		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (*m_RemoteLeaseSet, 
 			CreateDataMessage (this, buf, len), leaseSet);
-		if (!m_OutboundTunnel || m_OutboundTunnel->IsFailed ())
-			m_OutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
-		if (m_OutboundTunnel)
+		auto outboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
+		if (outboundTunnel)
 		{
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			if (ts >= m_CurrentRemoteLease.endDate)
 				UpdateCurrentRemoteLease ();
 			if (ts < m_CurrentRemoteLease.endDate)
 			{	
-				m_OutboundTunnel->SendTunnelDataMsg (m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID, msg);
+				outboundTunnel->SendTunnelDataMsg (m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID, msg);
 				return true;
 			}	
 			else
@@ -320,18 +370,30 @@ namespace stream
 
 	void Stream::UpdateCurrentRemoteLease ()
 	{
-		auto leases = m_RemoteLeaseSet.GetNonExpiredLeases ();
-		if (!leases.empty ())
-		{	
-			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-			m_CurrentRemoteLease = leases[i];
-		}	
+		if (!m_RemoteLeaseSet)
+		{
+			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (m_RemoteIdentity.Hash ());
+			if (!m_RemoteLeaseSet)	
+				LogPrint ("LeaseSet ", m_RemoteIdentity.Hash ().ToBase64 (), " not found");
+		}
+		if (m_RemoteLeaseSet)
+		{
+			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+			if (!leases.empty ())
+			{	
+				uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
+				m_CurrentRemoteLease = leases[i];
+			}	
+			else
+				m_CurrentRemoteLease.endDate = 0;
+		}
 		else
 			m_CurrentRemoteLease.endDate = 0;
 	}	
 		
 
-	StreamingDestination::StreamingDestination (): m_LeaseSet (nullptr)
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service): 
+		m_Service (service), m_LeaseSet (nullptr)
 	{		
 		m_Keys = i2p::data::CreateRandomKeys ();
 
@@ -343,7 +405,8 @@ namespace stream
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
 	}
 
-	StreamingDestination::StreamingDestination (const std::string& fullPath): m_LeaseSet (nullptr) 
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const std::string& fullPath):
+		m_Service (service), m_LeaseSet (nullptr) 
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -356,37 +419,52 @@ namespace stream
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
 	}
 
 	StreamingDestination::~StreamingDestination ()
 	{
-		if (m_LeaseSet)
-			DeleteI2NPMessage (m_LeaseSet);
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
+		delete m_LeaseSet;
 	}	
 	
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
 		uint32_t sendStreamID = packet->GetSendStreamID ();
-		auto it = m_Streams.find (sendStreamID);
-		if (it != m_Streams.end ())
-			it->second->HandleNextPacket (packet);
-		else
+		if (sendStreamID)
 		{	
-			LogPrint ("Unknown stream ", sendStreamID);
-			delete packet;
+			auto it = m_Streams.find (sendStreamID);
+			if (it != m_Streams.end ())
+				it->second->HandleNextPacket (packet);
+			else
+			{	
+				LogPrint ("Unknown stream ", sendStreamID);
+				delete packet;
+			}
+		}	
+		else // new incoming stream
+		{
+			auto incomingStream = CreateNewIncomingStream ();
+			incomingStream->HandleNextPacket (packet);
+			if (m_Acceptor != nullptr)
+				m_Acceptor (incomingStream);
 		}	
 	}	
 
-	Stream * StreamingDestination::CreateNewStream (boost::asio::io_service& service,
-		const i2p::data::LeaseSet& remote)
+	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote)
 	{
-		Stream * s = new Stream (service, this, remote);
+		Stream * s = new Stream (m_Service, this, remote);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;
 	}	
+
+	Stream * StreamingDestination::CreateNewIncomingStream ()
+	{
+		Stream * s = new Stream (m_Service, this);
+		m_Streams[s->GetRecvStreamID ()] = s;
+		return s;
+	}
 
 	void StreamingDestination::DeleteStream (Stream * stream)
 	{
@@ -396,68 +474,29 @@ namespace stream
 			delete stream;
 		}	
 	}	
-
-	void StreamingDestination::UpdateLeaseSet ()
-	{
-		auto newLeaseSet = CreateLeaseSet ();
-		// TODO: make it atomic
-		auto oldLeaseSet = m_LeaseSet;
-		m_LeaseSet = newLeaseSet;
-		if (oldLeaseSet)
-			DeleteI2NPMessage (oldLeaseSet);
-		for (auto it: m_Streams)
-			it.second->SetLeaseSetUpdated ();
-	}	
 		
-	const I2NPMessage * StreamingDestination::GetLeaseSet ()
+	I2NPMessage * StreamingDestination::GetLeaseSetMsg ()
+	{		
+		return CreateDatabaseStoreMsg (GetLeaseSet ());
+	}	
+
+	const i2p::data::LeaseSet * StreamingDestination::GetLeaseSet ()
 	{
-		if (!m_LeaseSet)
-			m_LeaseSet = CreateLeaseSet ();
-		else
-			RenewI2NPMessageHeader (m_LeaseSet); 
+		if (!m_Pool) return nullptr;
+		if (!m_LeaseSet || m_LeaseSet->HasExpiredLeases ())
+		{	
+			auto newLeaseSet = new i2p::data::LeaseSet (*m_Pool);
+			// TODO: make it atomic
+			auto oldLeaseSet = m_LeaseSet;
+			m_LeaseSet = newLeaseSet;
+			delete oldLeaseSet;
+			for (auto it: m_Streams)
+				it.second->SetLeaseSetUpdated ();
+		}	
 		return m_LeaseSet;
 	}	
 		
-	I2NPMessage * StreamingDestination::CreateLeaseSet () const
-	{
-		I2NPMessage * m = NewI2NPMessage ();
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();
-		memcpy (msg->key, (const uint8_t *)m_IdentHash, 32);
-		msg->type = 1; // LeaseSet
-		msg->replyToken = 0;
-		
-		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
-		size_t size = 0;
-		memcpy (buf + size, &m_Keys.pub, sizeof (m_Keys.pub));
-		size += sizeof (m_Keys.pub); // destination
-		memcpy (buf + size, m_Pool->GetEncryptionPublicKey (), 256);
-		size += 256; // encryption key
-		memset (buf + size, 0, 128);
-		size += 128; // signing key
-		auto tunnels = m_Pool->GetInboundTunnels (5); // 5 tunnels maximum
-		buf[size] = tunnels.size (); // num leases
-		size++; // num	
-		for (auto it: tunnels)
-		{	
-			auto tunnel = it;	
-			memcpy (buf + size, (const uint8_t *)tunnel->GetNextIdentHash (), 32);
-			size += 32; // tunnel_gw
-			*(uint32_t *)(buf + size) = htobe32 (tunnel->GetNextTunnelID ());
-			size += 4; // tunnel_id
-			uint64_t ts = tunnel->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - 60; // 1 minute before expiration
-			ts *= 1000; // in milliseconds
-			*(uint64_t *)(buf + size) = htobe64 (ts);
-			size += 8; // end_date
-		}	
-		Sign (buf, size, buf+ size);
-		size += 40; // signature
-		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
-		m->len += size + sizeof (I2NPDatabaseStoreMsg);
-		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
-		return m;
-	}	
-
-	void StreamingDestination::Sign (uint8_t * buf, int len, uint8_t * signature) const
+	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
 		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, len, signature);
@@ -467,7 +506,11 @@ namespace stream
 	void StreamingDestinations::Start ()
 	{
 		if (!m_SharedLocalDestination)
-			m_SharedLocalDestination = new StreamingDestination ();
+		{	
+			m_SharedLocalDestination = new StreamingDestination (m_Service);
+			m_Destinations[m_SharedLocalDestination->GetIdentHash ()] = m_SharedLocalDestination;
+		}
+		LoadLocalDestinations ();	
 		
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&StreamingDestinations::Run, this));
@@ -475,7 +518,10 @@ namespace stream
 		
 	void StreamingDestinations::Stop ()
 	{
-		delete m_SharedLocalDestination;
+		for (auto it: m_Destinations)
+			delete it.second;	
+		m_Destinations.clear ();
+		m_SharedLocalDestination = 0; // deleted through m_Destination
 		
 		m_IsRunning = false;
 		m_Service.stop ();
@@ -492,20 +538,49 @@ namespace stream
 		m_Service.run ();
 	}	
 
+	void StreamingDestinations::LoadLocalDestinations ()
+	{
+		int numDestinations = 0;
+		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
+		boost::filesystem::directory_iterator end;
+		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
+		{
+			if (boost::filesystem::is_regular_file (*it) && it->path ().extension () == ".dat")
+			{
+				auto fullPath =
+#if BOOST_VERSION > 10500
+				it->path().string();
+#else
+				it->path();
+#endif
+				auto localDestination = new StreamingDestination (m_Service, fullPath);
+				m_Destinations[localDestination->GetIdentHash ()] = localDestination;
+				numDestinations++;
+			}	
+		}	
+		if (numDestinations > 0)
+			LogPrint (numDestinations, " local destinations loaded");
+	}	
+	
 	Stream * StreamingDestinations::CreateClientStream (const i2p::data::LeaseSet& remote)
 	{
 		if (!m_SharedLocalDestination) return nullptr;
-		return m_SharedLocalDestination->CreateNewStream (m_Service, remote);
+		return m_SharedLocalDestination->CreateNewOutgoingStream (remote);
 	}
-		
-	void StreamingDestinations::DeleteClientStream (Stream * stream)
-	{
-		if (m_SharedLocalDestination)
-			m_SharedLocalDestination->DeleteStream (stream);
-		else
-			delete stream;
-	}	
 
+	void StreamingDestinations::DeleteStream (Stream * stream)
+	{
+		if (stream)
+		{	
+			m_Service.post (
+				[=](void)
+				{
+					stream->GetLocalDestination ()->DeleteStream (stream);
+				}	
+				            );
+		}	
+	}	
+		
 	void StreamingDestinations::HandleNextPacket (i2p::data::IdentHash destination, Packet * packet)
 	{
 		m_Service.post (boost::bind (&StreamingDestinations::PostNextPacket, this, destination, packet)); 
@@ -513,9 +588,14 @@ namespace stream
 	
 	void StreamingDestinations::PostNextPacket (i2p::data::IdentHash destination, Packet * packet)
 	{
-		// TODO: we have onle one destination, might be more
-		if (m_SharedLocalDestination)
-			m_SharedLocalDestination->HandleNextPacket (packet);
+		auto it = m_Destinations.find (destination);
+		if (it != m_Destinations.end ())
+			it->second->HandleNextPacket (packet);
+		else
+		{
+			LogPrint ("Local destination ", destination.ToBase64 (), " not found");
+			delete packet;
+		}
 	}	
 		
 	Stream * CreateStream (const i2p::data::LeaseSet& remote)
@@ -525,7 +605,7 @@ namespace stream
 		
 	void DeleteStream (Stream * stream)
 	{
-		destinations.DeleteClientStream (stream);
+		destinations.DeleteStream (stream);
 	}	
 
 	void StartStreaming ()
@@ -536,6 +616,11 @@ namespace stream
 	void StopStreaming ()
 	{
 		destinations.Stop ();
+	}	
+
+	StreamingDestination * GetSharedLocalDestination ()
+	{
+		return destinations.GetSharedLocalDestination ();
 	}	
 		
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len)
@@ -554,7 +639,7 @@ namespace stream
 			uncompressed->len = decompressor.MaxRetrievable ();
 			if (uncompressed->len > MAX_PACKET_SIZE)
 			{
-				LogPrint ("Recieved packet size exceeds mac packet size");
+				LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size");
 				uncompressed->len = MAX_PACKET_SIZE;
 			}	
 			decompressor.Get (uncompressed->buf, uncompressed->len);

@@ -9,7 +9,13 @@ on Windows
 
 Requires msvs2013, boost 1.46 and higher, crypto++
 
-[![Build Status](https://travis-ci.org/orignal/i2pd.svg?branch=master)](https://travis-ci.org/orignal/i2pd)
+Build Statuses
+---------------
+
+- Linux x64      - [![Build Status](https://jenkins.nordcloud.no/buildStatus/icon?job=i2pd-linux)](https://jenkins.nordcloud.no/job/i2pd-linux/)
+- Linux ARM      - Too be added
+- Mac OS X       - Too be added
+- Microsoft VC13 - Too be added
 
 
 Testing

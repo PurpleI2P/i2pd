@@ -13,6 +13,7 @@ namespace i2p
 {
 namespace data
 {			
+	const int MAX_RI_BUFFER_SIZE = 2048;
 	class RouterInfo: public RoutingDestination
 	{
 		public:
@@ -62,11 +63,12 @@ namespace data
 				std::vector<Introducer> introducers;
 			};
 			
-			RouterInfo (const char * filename);
-			RouterInfo () = default;
+			RouterInfo (const std::string& fullPath);
+			RouterInfo (): m_Buffer (nullptr) { m_IdentHashBase64[0] = 0; m_IdentHashAbbreviation[0] = 0; };
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
+			~RouterInfo ();
 			
 			const Identity& GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (const Identity& identity);
@@ -95,23 +97,31 @@ namespace data
 
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };
-			
+
+			const uint8_t * GetBuffer () const { return m_Buffer; };
+			const uint8_t * LoadBuffer (); // load if necessary
+			int GetBufferLen () const { return m_BufferLen; };			
+
 			void CreateBuffer ();
 			void UpdateRoutingKey ();
-			const char * GetBuffer () const  { return m_Buffer; };
-			int GetBufferLen () const { return m_BufferLen; };
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
+			void SaveToFile (const std::string& fullPath);
 
+			void Update (const uint8_t * buf, int len);
+			void DeleteBuffer () { delete m_Buffer; m_Buffer = nullptr; };
+			
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.publicKey; };
 			bool IsDestination () const { return false; };
+
 			
 		private:
 
-			void ReadFromFile (const char * filename);
+			bool LoadFile ();
+			void ReadFromFile ();
 			void ReadFromStream (std::istream& s);
 			void ReadFromBuffer ();
 			void WriteToStream (std::ostream& s);
@@ -123,11 +133,12 @@ namespace data
 			
 		private:
 
+			std::string m_FullPath;
 			Identity m_RouterIdentity;
 			IdentHash m_IdentHash;
 			RoutingKey m_RoutingKey;
 			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
-			char m_Buffer[2048];
+			uint8_t * m_Buffer;
 			int m_BufferLen;
 			uint64_t m_Timestamp;
 			std::vector<Address> m_Addresses;

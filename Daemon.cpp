@@ -15,6 +15,7 @@
 #include "Streaming.h"
 #include "HTTPServer.h"
 #include "HTTPProxy.h"
+#include "SOCKS.h"
 
 namespace i2p
 {
@@ -23,14 +24,16 @@ namespace i2p
 		class Daemon_Singleton::Daemon_Singleton_Private
 		{
 		public:
-			Daemon_Singleton_Private() : httpServer(nullptr), httpProxy(nullptr) { };
+			Daemon_Singleton_Private() : httpServer(nullptr), httpProxy(nullptr), socksProxy(nullptr) { };
 			~Daemon_Singleton_Private() {
 				delete httpServer;
 				delete httpProxy;
+				delete socksProxy;
 			};
 
 			i2p::util::HTTPServer *httpServer;
 			i2p::proxy::HTTPProxy *httpProxy;
+			i2p::proxy::SOCKSProxy *socksProxy;
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
@@ -55,29 +58,35 @@ namespace i2p
 			i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
 				i2p::util::config::GetArg("-port", 17007));
 
-			if (isLogging == 1)
-			{
-				std::string logfile_path = i2p::util::filesystem::GetDataDir().string();
-#ifndef _WIN32
-				logfile_path.append("/debug.log");
-#else
-				logfile_path.append("\\debug.log");
-#endif
-				g_Log.SetLogFile (logfile_path);
+			LogPrint("CMD parameters:");
+			for (int i = 0; i < argc; ++i)
+				LogPrint(i, "  ", argv[i]);
 
-				LogPrint("CMD parameters:");
-				for (int i = 0; i < argc; ++i)
-					LogPrint(i, "  ", argv[i]);
-
-			}
 			return true;
 		}
 			
 		bool Daemon_Singleton::start()
 		{
+			// initialize log			
+			if (isLogging)
+			{
+				if (isDaemon)
+				{
+					std::string logfile_path = i2p::util::filesystem::GetDataDir().string();
+	#ifndef _WIN32
+					logfile_path.append("/debug.log");
+	#else
+					logfile_path.append("\\debug.log");
+	#endif
+					StartLog (logfile_path);
+				}
+				else
+					StartLog (""); // write to stdout
+			}
+
 			d.httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
 			d.httpServer->Start();
-			LogPrint("HTTPServer started");
+			LogPrint("HTTP Server started");
 
 			i2p::data::netdb.Start();
 			LogPrint("NetDB started");
@@ -92,8 +101,10 @@ namespace i2p
 
 			d.httpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
 			d.httpProxy->Start();
-			LogPrint("Proxy started");
-
+			LogPrint("HTTP Proxy started");
+			d.socksProxy = new i2p::proxy::SOCKSProxy(i2p::util::config::GetArg("-socksproxyport", 4447));
+			d.socksProxy->Start();
+			LogPrint("SOCKS Proxy Started");
 			return true;
 		}
 
@@ -102,7 +113,9 @@ namespace i2p
 			LogPrint("Shutdown started.");
 
 			d.httpProxy->Stop();
-			LogPrint("HTTPProxy stoped");
+			LogPrint("HTTP Proxy stoped");
+			d.socksProxy->Stop();
+			LogPrint("SOCKS Proxy stoped");
 			i2p::stream::StopStreaming();
 			LogPrint("Streaming stoped");
 			i2p::garlic::routing.Stop();
@@ -114,15 +127,11 @@ namespace i2p
 			i2p::data::netdb.Stop();
 			LogPrint("NetDB stoped");
 			d.httpServer->Stop();
-			LogPrint("HTTPServer stoped");
-
+			LogPrint("HTTP Server stoped");
+			StopLog ();
+                        delete d.socksProxy; d.socksProxy = nullptr;
 			delete d.httpProxy; d.httpProxy = nullptr;
 			delete d.httpServer; d.httpServer = nullptr;
-
-			if (isLogging == 1)
-			{
-				fclose(stdout);
-			}
 
 			return true;
 		}

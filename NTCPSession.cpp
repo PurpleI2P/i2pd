@@ -21,7 +21,8 @@ namespace ntcp
 {
 	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo): 
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false), 
-		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), m_NextMessage (nullptr)
+		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), m_NextMessage (nullptr),
+		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 	}
@@ -402,7 +403,7 @@ namespace ntcp
 		}
 		else
 		{
-			LogPrint ("Received: ", bytes_transferred);
+			m_NumReceivedBytes += bytes_transferred;
 			m_ReceiveBufferOffset += bytes_transferred;
 
 			if (m_ReceiveBufferOffset >= 16)
@@ -513,7 +514,7 @@ namespace ntcp
 		}
 		else
 		{	
-			LogPrint ("Msg sent: ", bytes_transferred);
+			m_NumSentBytes += bytes_transferred;
 			ScheduleTermination (); // reset termination timer
 		}	
 	}
