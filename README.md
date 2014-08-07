@@ -7,7 +7,7 @@ Requires gcc 4.6 and higher, boost 1.46 and higher, crypto++
 
 on Windows
 
-Requires msvs2013, boost 1.46 and higher, crypto++
+Requires msvs2013 (require Visual C++ Compiler November 2013 CTP update), boost 1.46 and higher, crypto++
 
 Build Statuses
 ---------------
