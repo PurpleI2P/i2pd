@@ -12,6 +12,7 @@ set ( INC_DIR ".." )
 add_definitions ( "-std=c++0x -Wall" )
 
 set ( SOURCES
+		CryptoConst.cpp	
         AddressBook.cpp
         Garlic.cpp
         HTTPServer.cpp
@@ -44,6 +45,7 @@ set ( SOURCES
 )
 
 set ( HEADERS
+		CryptoConst.h
         AddressBook.h
         Garlic.h
         HTTPServer.h
