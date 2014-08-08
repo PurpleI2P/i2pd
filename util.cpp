@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/program_options/detail/config_file.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/algorithm/string.hpp>
@@ -372,7 +373,7 @@ namespace http
 			portstr_ = std::string(port_i + 1, host_.end());
 			host_.assign(host_.begin(), port_i);
 			try{
-				port_ = std::stoi(portstr_);
+				port_ = boost::lexical_cast<decltype(port_)>(portstr_);
 			}
 			catch (std::exception e) {
 				port_ = 80;
