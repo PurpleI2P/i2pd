@@ -87,12 +87,8 @@ namespace stream
 			if (m_IsOpen)
 				SendQuickAck ();	
 			else if (isSyn)
-			{
 				// we have to send SYN back to incoming connection
-				m_IsOpen = true;
-				SendQuickAck (true);
-			}	
-				
+				Send (nullptr, 0, 0); // also sets m_IsOpen				
 		}	
 		else 
 		{	
@@ -232,7 +228,7 @@ namespace stream
 	}	
 
 		
-	void Stream::SendQuickAck (bool syn)
+	void Stream::SendQuickAck ()
 	{
 		uint8_t packet[MAX_PACKET_SIZE];
 		size_t size = 0;
@@ -247,7 +243,7 @@ namespace stream
 		packet[size] = 0; 
 		size++; // NACK count
 		size++; // resend delay
-		*(uint16_t *)(packet + size) = syn ? htobe16 (PACKET_FLAG_SYNCHRONIZE) : 0; // nof flags set
+		*(uint16_t *)(packet + size) = 0; // nof flags set
 		size += 2; // flags
 		*(uint16_t *)(packet + size) = 0; // no options
 		size += 2; // options size

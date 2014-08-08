@@ -95,7 +95,7 @@ namespace stream
 	
 		private:
 
-			void SendQuickAck (bool syn = false);
+			void SendQuickAck ();
 			bool SendPacket (Packet * packet);
 			bool SendPacket (const uint8_t * buf, size_t len);
 
