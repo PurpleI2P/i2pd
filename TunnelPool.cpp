@@ -36,7 +36,7 @@ namespace tunnel
 			m_InboundTunnels.erase (expiredTunnel);
 			for (auto it: m_Tests)
 				if (it.second.second == expiredTunnel) it.second.second = nullptr;
-				
+			RecreateInboundTunnel (expiredTunnel);	
 		}	
 	}	
 
@@ -53,6 +53,7 @@ namespace tunnel
 			m_OutboundTunnels.erase (expiredTunnel);
 			for (auto it: m_Tests)
 				if (it.second.first == expiredTunnel) it.second.first = nullptr;
+			RecreateOutboundTunnel (expiredTunnel);
 		}
 	}
 		
@@ -204,6 +205,16 @@ namespace tunnel
 		tunnel->SetTunnelPool (this);
 	}
 
+	void TunnelPool::RecreateInboundTunnel (InboundTunnel * tunnel)
+	{
+		OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
+		if (!outboundTunnel)
+			outboundTunnel = tunnels.GetNextOutboundTunnel ();
+		LogPrint ("Re-creating destination inbound tunnel...");
+		auto * newTunnel = tunnels.CreateTunnel<InboundTunnel> (tunnel->GetTunnelConfig ()->Clone (), outboundTunnel);
+		newTunnel->SetTunnelPool (this);
+	}	
+		
 	void TunnelPool::CreateOutboundTunnel ()
 	{
 		InboundTunnel * inboundTunnel = m_InboundTunnels.size () > 0 ? 
@@ -226,5 +237,16 @@ namespace tunnel
 			tunnel->SetTunnelPool (this);
 		}	
 	}	
+
+	void TunnelPool::RecreateOutboundTunnel (OutboundTunnel * tunnel)
+	{
+		InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
+		if (!inboundTunnel)
+			inboundTunnel = tunnels.GetNextInboundTunnel ();
+		LogPrint ("Re-creating destination outbound tunnel...");
+		auto * newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
+			tunnel->GetTunnelConfig ()->Clone (inboundTunnel->GetTunnelConfig ()));
+		newTunnel->SetTunnelPool (this);
+	}			
 }
 }

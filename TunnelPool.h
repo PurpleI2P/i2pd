@@ -48,6 +48,8 @@ namespace tunnel
 
 			void CreateInboundTunnel ();	
 			void CreateOutboundTunnel ();
+			void RecreateInboundTunnel (InboundTunnel * tunnel);
+			void RecreateOutboundTunnel (OutboundTunnel * tunnel);
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels);
 			
