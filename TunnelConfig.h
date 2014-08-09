@@ -89,7 +89,7 @@ namespace tunnel
 			
 
 			TunnelConfig (std::vector<const i2p::data::RouterInfo *> peers, 
-				const TunnelConfig * replyTunnelConfig = nullptr) // replyTunnelConfig=0 means inbound
+				const TunnelConfig * replyTunnelConfig = nullptr) // replyTunnelConfig=nullptr means inbound
 			{
 				TunnelHopConfig * prev = nullptr;
 				for (auto it: peers)
@@ -195,23 +195,14 @@ namespace tunnel
 
 			TunnelConfig * Clone (const TunnelConfig * replyTunnelConfig = nullptr) const
 			{
-				TunnelConfig * newConfig = new TunnelConfig (); 
-				TunnelHopConfig * hop = m_FirstHop, * prev = nullptr;
+				std::vector<const i2p::data::RouterInfo *> peers;
+				TunnelHopConfig * hop = m_FirstHop;
 				while (hop)
 				{
-					TunnelHopConfig * newHop = new TunnelHopConfig (hop->router);
-					newHop->SetPrev (prev);
-					newHop->SetNextRouter (hop->nextRouter);
-					newHop->isGateway = hop->isGateway;
-					newHop->isEndpoint = hop->isEndpoint;
-					prev = newHop;
-					if (!newConfig->m_FirstHop) newConfig->m_FirstHop = newHop; 
+					peers.push_back (hop->router);
 					hop = hop->next;
-				}
-				newConfig->m_LastHop = prev;
-				if (replyTunnelConfig && newConfig->m_LastHop)
-					newConfig->m_LastHop->SetReplyHop (replyTunnelConfig->GetFirstHop ());
-				return newConfig;
+				}	
+				return new TunnelConfig (peers, replyTunnelConfig);
 			}	
 			
 		private:
