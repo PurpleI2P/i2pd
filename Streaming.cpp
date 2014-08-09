@@ -20,7 +20,7 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
-		m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local), 
+		m_LeaseSetUpdated (true), m_LocalDestination (local), 
 		m_RemoteLeaseSet (&remote), m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -29,7 +29,7 @@ namespace stream
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
-		m_IsOpen (false), m_IsOutgoing(true), m_LeaseSetUpdated (true), m_LocalDestination (local),
+		m_IsOpen (false), m_LeaseSetUpdated (true), m_LocalDestination (local),
 		m_RemoteLeaseSet (nullptr), m_ReceiveTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -482,10 +482,14 @@ namespace stream
 		if (!m_LeaseSet || m_LeaseSet->HasExpiredLeases ())
 		{	
 			auto newLeaseSet = new i2p::data::LeaseSet (*m_Pool);
-			// TODO: make it atomic
-			auto oldLeaseSet = m_LeaseSet;
-			m_LeaseSet = newLeaseSet;
-			delete oldLeaseSet;
+			if (!m_LeaseSet)
+				m_LeaseSet = newLeaseSet;
+			else
+			{	
+				// TODO: implement it better
+				*m_LeaseSet = *newLeaseSet;
+				delete newLeaseSet;
+			}	
 			for (auto it: m_Streams)
 				it.second->SetLeaseSetUpdated ();
 		}	
@@ -648,9 +652,10 @@ namespace stream
 
 	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
-		CryptoPP::Gzip compressor;
-		compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
+		I2NPMessage * msg = NewI2NPShortMessage ();
+		CryptoPP::Gzip compressor; // DEFAULT_DEFLATE_LEVEL
+		if (len <= COMPRESSION_THRESHOLD_SIZE)
+			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
 		compressor.Put (payload, len);
 		compressor.MessageEnd();
 		int size = compressor.MaxRetrievable ();
