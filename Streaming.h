@@ -36,6 +36,7 @@ namespace stream
 	const size_t STREAMING_MTU = 1730;
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;	
+	const int RESEND_TIMEOUT = 10; // in seconds
 	
 	struct Packet
 	{
@@ -58,6 +59,7 @@ namespace stream
 		const uint8_t * GetPayload () const { return GetOptionData () + GetOptionSize (); };
 
 		bool IsSYN () const { return GetFlags () & PACKET_FLAG_SYNCHRONIZE; };
+		bool IsNoAck () const { return GetFlags () & PACKET_FLAG_NO_ACK; };
 	};	
 
 	struct PacketCmp
@@ -102,6 +104,7 @@ namespace stream
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
+			void ProcessAck (Packet * packet);
 			size_t ConcatenatePackets (uint8_t * buf, size_t len);
 
 			void UpdateCurrentRemoteLease ();
@@ -109,6 +112,9 @@ namespace stream
 			template<typename Buffer, typename ReceiveHandler>
 			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler);
 
+			void ScheduleResend ();
+			void HandleResendTimer (const boost::system::error_code& ecode);
+			
 		private:
 
 			boost::asio::io_service& m_Service;
@@ -121,7 +127,8 @@ namespace stream
 			i2p::data::Lease m_CurrentRemoteLease;
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
-			boost::asio::deadline_timer m_ReceiveTimer;
+			std::set<Packet *, PacketCmp> m_SentPackets;
+			boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer;
 	};
 	
 	class StreamingDestination: public i2p::data::LocalDestination 
