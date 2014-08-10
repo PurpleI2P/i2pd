@@ -559,7 +559,19 @@ namespace data
 			}	
 		}
 		else
+		{	
 			LogPrint ("Requested destination for ", key, " not found");
+			// it might contain new routers
+			for (int i = 0; i < num; i++)
+			{
+				IdentHash router (buf + 33 + i*32);
+				if (!FindRouter (router))
+				{	
+					LogPrint ("New router ", router.ToBase64 (), " found. Request it");
+					RequestDestination (router);
+				}	
+			}	
+		}	
 		i2p::DeleteI2NPMessage (msg);
 	}	
 	

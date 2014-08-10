@@ -463,9 +463,11 @@ namespace i2p
 		msg->offset += sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
 		msg->len = msg->offset + len;
 		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)msg->GetHeader()->typeID);
-		if (msg->GetHeader()->typeID == eI2NPDatabaseStore)
+		if (msg->GetHeader()->typeID == eI2NPDatabaseStore ||
+		    msg->GetHeader()->typeID == eI2NPDatabaseSearchReply)
 		{
-			// transit DatabaseStore my contain new/updated RI
+			// transit DatabaseStore my contain new/updated RI 
+			// or DatabaseSearchReply with new routers
 			auto ds = NewI2NPMessage ();
 			*ds = *msg;
 			i2p::data::netdb.PostI2NPMsg (ds);

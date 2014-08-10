@@ -203,9 +203,10 @@ namespace tunnel
 					// to somebody else
 					if (!m_IsInbound) // outbound transit tunnel
 					{
-						if (msg.data->GetHeader()->typeID == eI2NPDatabaseStore)
+						if (msg.data->GetHeader()->typeID == eI2NPDatabaseStore ||
+						    msg.data->GetHeader()->typeID == eI2NPDatabaseSearchReply )
 						{
-							// catch RI
+							// catch RI or reply with new list of routers
 							auto ds = NewI2NPMessage ();
 							*ds = *(msg.data);
 							i2p::data::netdb.PostI2NPMsg (ds);
