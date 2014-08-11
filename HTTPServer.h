@@ -78,7 +78,7 @@ namespace util
 			virtual void HandleDestinationRequest(const std::string& address, const std::string& method, const std::string& data, const std::string& uri);
 			virtual void RunRequest ();
 
-		private:
+		public:
 
 			static const std::string itoopieImage;
 	};
