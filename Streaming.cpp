@@ -243,6 +243,7 @@ namespace stream
 				size_t sentLen = STREAMING_MTU - size;
 				if (len < sentLen) sentLen = len;		
 				memcpy (packet + size, buf, sentLen); 
+				buf += sentLen;
 				len -= sentLen;
 				size += sentLen; // payload
 				m_LocalDestination->Sign (packet, size, signature);
@@ -257,6 +258,7 @@ namespace stream
 				size_t sentLen = STREAMING_MTU - size;
 				if (len < sentLen) sentLen = len;		
 				memcpy (packet + size, buf, sentLen); 
+				buf += sentLen;
 				len -= sentLen;
 				size += sentLen; // payload
 			}	

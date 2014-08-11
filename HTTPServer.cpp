@@ -545,9 +545,9 @@ namespace util
 		{
 			std::string content ("");
 			content += "<html>" + HTTPConnection::itoopieImage + "</html>";
-			std::string response ("HTTP/1.0 200 OK\r\n\r\n");
+			std::string response ("HTTP/1.0 200 OK\r\n");
 			response += "Content-Length: " + boost::lexical_cast<std::string>(content.length()) + "\r\n";
-			response +=	"Content-Type: text/html\r\n";
+			response +=	"Content-Type: text/html\r\n\r\n";
 			response += content;			
 			m_Stream->Send ((uint8_t *)response.c_str (), response.length (), 30);
 			m_Stream->Close ();
