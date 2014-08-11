@@ -37,13 +37,15 @@ namespace stream
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;	
 	const int RESEND_TIMEOUT = 10; // in seconds
+	const int MAX_NUM_RESEND_ATTEMPTS = 5;	
 	
 	struct Packet
 	{
 		uint8_t buf[MAX_PACKET_SIZE];	
 		size_t len, offset;
-
-		Packet (): len (0), offset (0) {};
+		int numResendAttempts;
+		
+		Packet (): len (0), offset (0), numResendAttempts (0) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
 

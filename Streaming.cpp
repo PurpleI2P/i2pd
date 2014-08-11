@@ -176,6 +176,7 @@ namespace stream
 			SendQuickAck (); // send ack for close explicitly?
 			m_IsOpen = false;
 			m_ReceiveTimer.cancel ();
+			m_ResendTimer.cancel ();
 		}
 	}	
 
@@ -427,7 +428,16 @@ namespace stream
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			for (auto it : m_SentPackets)
-				SendPacket (it->GetBuffer (), it->GetLength ());
+			{
+				it->numResendAttempts++;
+				if (it->numResendAttempts <= MAX_NUM_RESEND_ATTEMPTS)
+					SendPacket (it->GetBuffer (), it->GetLength ());
+				else
+				{
+					Close ();
+					return;
+				}	
+			}	
 			ScheduleResend ();
 		}	
 	}	
