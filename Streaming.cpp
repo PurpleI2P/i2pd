@@ -309,7 +309,7 @@ namespace stream
 		size += 2; // options size
 		p.len = size;		
 
-		std::vector<Packet *> { &p };
+		SendPackets (std::vector<Packet *> { &p });
 		LogPrint ("Quick Ack sent");
 	}	
 
@@ -419,6 +419,7 @@ namespace stream
 									m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
 									msg
 								});	
+					leaseSet = nullptr; // send leaseSet only one time
 				}
 				outboundTunnel->SendTunnelDataMsg (msgs);
 			}	
