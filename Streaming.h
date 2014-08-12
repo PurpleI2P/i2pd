@@ -54,6 +54,7 @@ namespace stream
 		uint32_t GetSeqn () const { return be32toh (*(uint32_t *)(buf + 8)); };
 		uint32_t GetAckThrough () const { return be32toh (*(uint32_t *)(buf + 12)); };
 		uint8_t GetNACKCount () const { return buf[16]; };
+		uint32_t GetNACK (int i) const { return be32toh (((uint32_t *)(buf + 17))[i]); };
 		const uint8_t * GetOption () const { return buf + 17 + GetNACKCount ()*4 + 3; }; // 3 = resendDelay + flags
 		uint16_t GetFlags () const { return be16toh (*(uint16_t *)(GetOption () - 2)); };
 		uint16_t GetOptionSize () const { return be16toh (*(uint16_t *)GetOption ()); };

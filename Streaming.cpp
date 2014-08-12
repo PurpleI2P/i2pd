@@ -183,13 +183,29 @@ namespace stream
 	void Stream::ProcessAck (Packet * packet)
 	{
 		uint32_t ackThrough = packet->GetAckThrough ();
-		// TODO: handle NACKs
+		int nackCount = packet->GetNACKCount ();
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{			
-			if ((*it)->GetSeqn () <= ackThrough)
+			auto seqn = (*it)->GetSeqn ();
+			if (seqn <= ackThrough)
 			{
+				if (nackCount > 0)
+				{
+					bool nacked = false;
+					for (int i = 0; i < nackCount; i++)
+						if (seqn == packet->GetNACK (i))
+						{
+							nacked = true;
+							break;
+						}
+					if (nacked)
+					{
+						LogPrint ("Packet ", seqn, " NACK");
+						continue;
+					}	
+				}
 				auto sentPacket = *it;
-				LogPrint ("Packet ", sentPacket->GetSeqn (), " acknowledged");
+				LogPrint ("Packet ", seqn, " acknowledged");
 				m_SentPackets.erase (it++);
 				delete sentPacket;	
 			}
