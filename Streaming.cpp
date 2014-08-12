@@ -431,6 +431,54 @@ namespace stream
 		return false;
 	}
 
+	void Stream::SendPackets (const std::vector<Packet *>& packets)
+	{
+		if (!m_RemoteLeaseSet)
+		{
+			UpdateCurrentRemoteLease ();	
+			if (!m_RemoteLeaseSet)
+			{
+				LogPrint ("Can't send packets. Missing remote LeaseSet");
+				return;
+			}
+		}
+
+		I2NPMessage * leaseSet = nullptr;
+		if (m_LeaseSetUpdated)
+		{	
+			leaseSet = m_LocalDestination->GetLeaseSetMsg ();
+			m_LeaseSetUpdated = false;
+		}	
+
+		auto outboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
+		if (outboundTunnel)
+		{
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			if (ts >= m_CurrentRemoteLease.endDate)
+				UpdateCurrentRemoteLease ();
+			if (ts < m_CurrentRemoteLease.endDate)
+			{	
+				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+				for (auto it: packets)
+				{ 
+					auto msg = i2p::garlic::routing.WrapMessage (*m_RemoteLeaseSet, 
+						CreateDataMessage (this, it->GetBuffer (), it->GetLength ()), leaseSet);
+					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+								{ 
+									i2p::tunnel::eDeliveryTypeTunnel,
+									m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
+									msg
+								});	
+				}
+				outboundTunnel->SendTunnelDataMsg (msgs);
+			}	
+			else
+				LogPrint ("All leases are expired");
+		}	
+		else 
+			LogPrint ("No outbound tunnels in the pool");
+	}
+
 	void Stream::ScheduleResend ()
 	{
 		m_ResendTimer.cancel ();
@@ -443,17 +491,20 @@ namespace stream
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
+			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
 			{
 				it->numResendAttempts++;
 				if (it->numResendAttempts <= MAX_NUM_RESEND_ATTEMPTS)
-					SendPacket (it->GetBuffer (), it->GetLength ());
+					packets.push_back (it);
 				else
 				{
 					Close ();
 					return;
 				}	
 			}	
+			if (packets.size () > 0)
+				SendPackets (packets);
 			ScheduleResend ();
 		}	
 	}	

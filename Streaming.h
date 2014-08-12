@@ -103,7 +103,8 @@ namespace stream
 
 			void SendQuickAck ();
 			bool SendPacket (Packet * packet);
-			bool SendPacket (const uint8_t * buf, size_t len);
+			bool SendPacket (const uint8_t * buf, size_t len); // TODO: remove
+			void SendPackets (const std::vector<Packet *>& packets);
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
