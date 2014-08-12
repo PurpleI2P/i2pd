@@ -289,7 +289,8 @@ namespace stream
 		
 	void Stream::SendQuickAck ()
 	{
-		uint8_t packet[MAX_PACKET_SIZE];
+		Packet p;
+		uint8_t * packet = p.GetBuffer ();	
 		size_t size = 0;
 		*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
 		size += 4; // sendStreamID
@@ -306,9 +307,10 @@ namespace stream
 		size += 2; // flags
 		*(uint16_t *)(packet + size) = 0; // no options
 		size += 2; // options size
-		
-		if (SendPacket (packet, size))
-			LogPrint ("Quick Ack sent");
+		p.len = size;		
+
+		std::vector<Packet *> { &p };
+		LogPrint ("Quick Ack sent");
 	}	
 
 	void Stream::Close ()
@@ -368,69 +370,17 @@ namespace stream
 	{
 		if (packet)
 		{	
-			bool ret = SendPacket (packet->GetBuffer (), packet->GetLength ());
-			if (ret)
-			{
-				bool isEmpty = m_SentPackets.empty ();
-				m_SentPackets.insert (packet);
-				if (isEmpty)
-					ScheduleResend ();
-			}	
-			else	
-				delete packet;
-			return ret;
+			SendPackets (std::vector<Packet *> { packet });
+			bool isEmpty = m_SentPackets.empty ();
+			m_SentPackets.insert (packet);
+			if (isEmpty)
+				ScheduleResend ();
+			return true;
 		}	
 		else
 			return false;
 	}	
 	
-	bool Stream::SendPacket (const uint8_t * buf, size_t len)
-	{	
-		if (!m_RemoteLeaseSet)
-		{
-			UpdateCurrentRemoteLease ();	
-			if (!m_RemoteLeaseSet)
-			{
-				LogPrint ("Can't send packet. Missing remote LeaseSet");
-				return false;
-			}
-		}
-
-		I2NPMessage * leaseSet = nullptr;
-
-		if (m_LeaseSetUpdated)
-		{	
-			leaseSet = m_LocalDestination->GetLeaseSetMsg ();
-			m_LeaseSetUpdated = false;
-		}	
-
-		I2NPMessage * msg = i2p::garlic::routing.WrapMessage (*m_RemoteLeaseSet, 
-			CreateDataMessage (this, buf, len), leaseSet);
-		auto outboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel ();
-		if (outboundTunnel)
-		{
-			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			if (ts >= m_CurrentRemoteLease.endDate)
-				UpdateCurrentRemoteLease ();
-			if (ts < m_CurrentRemoteLease.endDate)
-			{	
-				outboundTunnel->SendTunnelDataMsg (m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID, msg);
-				return true;
-			}	
-			else
-			{
-				LogPrint ("All leases are expired");
-				DeleteI2NPMessage (msg);
-			}	
-		}	
-		else
-		{	
-			LogPrint ("No outbound tunnels in the pool");
-			DeleteI2NPMessage (msg);
-		}	
-		return false;
-	}
-
 	void Stream::SendPackets (const std::vector<Packet *>& packets)
 	{
 		if (!m_RemoteLeaseSet)
