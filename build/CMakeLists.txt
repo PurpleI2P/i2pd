@@ -42,6 +42,7 @@ set ( SOURCES
         aes.cpp
 	Daemon.cpp
     SOCKS.cpp
+	I2PTunnel.cpp
 )
 
 set ( HEADERS
@@ -74,6 +75,7 @@ set ( HEADERS
         aes.h
 	Daemon.h
     SOCKS.h
+	I2PTunnel.h
 )
 
 if (WIN32)
