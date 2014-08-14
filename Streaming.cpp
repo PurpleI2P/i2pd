@@ -201,6 +201,7 @@ namespace stream
 					if (nacked)
 					{
 						LogPrint ("Packet ", seqn, " NACK");
+						it++;
 						continue;
 					}	
 				}
