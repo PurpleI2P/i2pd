@@ -131,7 +131,6 @@ namespace stream
 		for (auto it: m_Connections)
 			delete it;
 		m_Connections.clear ();
-		delete m_DestinationIdentHash;
 		m_DestinationIdentHash = nullptr;
 	}
 
@@ -146,16 +145,33 @@ namespace stream
 	{
 		if (!ecode)
 		{
-			if (!m_RemoteLeaseSet && m_DestinationIdentHash)
-				m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
-			if (m_RemoteLeaseSet)
+			if (!m_RemoteLeaseSet)
+			{
+				// try to get it
+				if (m_DestinationIdentHash)
+					m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
+				else
+				{
+					auto identHash = i2p::data::netdb.FindAddress (m_Destination);	
+					if (identHash)
+					{
+						m_DestinationIdentHash = new i2p::data::IdentHash (*identHash);
+						i2p::data::netdb.Subscribe (*m_DestinationIdentHash);
+					}
+				}
+			}
+
+			if (m_RemoteLeaseSet) // leaseSet found
 			{	
 				LogPrint ("New I2PTunnel connection");
 				auto connection = new I2PTunnelConnection (socket, m_RemoteLeaseSet);
 				m_Connections.insert (connection);
 			}
 			else
+			{
+				LogPrint ("LeaseSet for I2PTunnel destination not found");
 				delete socket;
+			}	
 			Accept ();
 		}
 		else

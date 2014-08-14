@@ -14,87 +14,92 @@ namespace i2p
 namespace data
 {
 
-AddressBook::AddressBook (): m_IsLoaded (false)
-{
-}
+	AddressBook::AddressBook (): m_IsLoaded (false), m_IsDowloading (false)
+	{
+	}
 
 	
-const IdentHash * AddressBook::FindAddress (const std::string& address)
-{
-	if (!m_IsLoaded)
-		LoadHosts ();
-	auto it = m_Addresses.find (address);
-	if (it != m_Addresses.end ())
-		return &it->second;
-	else
+	const IdentHash * AddressBook::FindAddress (const std::string& address)
+	{
+		if (!m_IsLoaded)
+			LoadHosts ();
+		if (m_IsLoaded)
+		{
+			auto it = m_Addresses.find (address);
+			if (it != m_Addresses.end ())
+				return &it->second;
+		}
 		return nullptr;	
-}
+	}
 
-void AddressBook::LoadHostsFromI2P ()
-{
-	std::string content;
-	while (true)
+	void AddressBook::LoadHostsFromI2P ()
 	{
-		// TODO: hosts link in config
+		std::string content;
 		int http_code = i2p::util::http::httpRequestViaI2pProxy("http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt", content);
-		if (http_code ==200)
-			if (!boost::starts_with(content, "<html>") && !content.empty()) // TODO: test and remove
-				break;
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-	}
-
-	std::ofstream f_save(i2p::util::filesystem::GetFullPath("hosts.txt").c_str(), std::ofstream::out);
-	if (f_save.is_open())
-	{
-		f_save << content;
-		f_save.close();
-	}
-	else
-		LogPrint("Can't write hosts.txt");
-	m_IsLoaded = false;
-	return;
-}
-
-void AddressBook::LoadHosts ()
-{
-	m_IsLoaded = true;
-	std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
-	if (!f.is_open ())	
-	{
-		LogPrint ("hosts.txt not found. Try to load...");
-		std::thread load_hosts(&AddressBook::LoadHostsFromI2P, this);
-		load_hosts.detach();
+		if (http_code == 200)
+		{
+			std::ofstream f_save(i2p::util::filesystem::GetFullPath("hosts.txt").c_str(), std::ofstream::out);
+			if (f_save.is_open())
+			{
+				f_save << content;
+				f_save.close();
+			}
+			else
+				LogPrint("Can't write hosts.txt");
+			m_IsLoaded = false;
+		}	
+		else
+			LogPrint ("Failed to download hosts.txt");
+		m_IsDowloading = false;	
+	
 		return;
 	}
-	int numAddresses = 0;
 
-	std::string s;
-
-	while (!f.eof ())
+	void AddressBook::LoadHosts ()
 	{
-		getline(f, s);
-
-		if (!s.length())
-			continue; // skip empty line
-
-		size_t pos = s.find('=');
-
-		if (pos != std::string::npos)
+		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
+		if (!f.is_open ())	
 		{
-			std::string name = s.substr(0, pos++);
-			std::string addr = s.substr(pos);
-
-			Identity ident;
-			if (!ident.FromBase64(addr)) {
-				LogPrint ("hosts.txt: ignore ", name);
-				continue;
+			LogPrint ("hosts.txt not found. Try to load...");
+			if (!m_IsDowloading)
+			{
+				m_IsDowloading = true;
+				std::thread load_hosts(&AddressBook::LoadHostsFromI2P, this);
+				load_hosts.detach();
 			}
-			m_Addresses[name] = ident.Hash();
-			numAddresses++;
-		}		
+			return;
+		}
+		int numAddresses = 0;
+
+		std::string s;
+
+		while (!f.eof ())
+		{
+			getline(f, s);
+
+			if (!s.length())
+				continue; // skip empty line
+
+			size_t pos = s.find('=');
+
+			if (pos != std::string::npos)
+			{
+				std::string name = s.substr(0, pos++);
+				std::string addr = s.substr(pos);
+
+				Identity ident;
+				if (!ident.FromBase64(addr)) 
+				{
+					LogPrint ("hosts.txt: ignore ", name);
+					continue;
+				}
+				m_Addresses[name] = ident.Hash();
+				numAddresses++;
+			}		
+		}
+		LogPrint (numAddresses, " addresses loaded");
+		m_IsLoaded = true;
 	}
-	LogPrint (numAddresses, " addresses loaded");
-}
 
 }
 }

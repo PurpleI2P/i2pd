@@ -26,7 +26,7 @@ namespace data
 			void LoadHostsFromI2P ();
 
 			std::map<std::string, IdentHash>  m_Addresses;
-			bool m_IsLoaded;
+			bool m_IsLoaded, m_IsDowloading;
 	};
 }
 }
