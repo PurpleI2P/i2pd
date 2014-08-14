@@ -73,6 +73,7 @@ namespace proxy
 			void Start();
 			void Stop();
 		
+			boost::asio::io_service& GetService () { return m_ios; };	
 
 		private:
 		
