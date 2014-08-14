@@ -19,11 +19,6 @@ namespace stream
 
 	I2PTunnelConnection::~I2PTunnelConnection ()
 	{
-		Terminate ();
-	}	
-
-	void I2PTunnelConnection::Terminate ()
-	{	
 		if (m_Stream)
 		{
 			m_Stream->Close ();
@@ -31,6 +26,10 @@ namespace stream
 			m_Stream = nullptr;
 		}
 		delete m_Socket;
+	}	
+
+	void I2PTunnelConnection::Terminate ()
+	{	
 		// TODO: remove from I2PTunnel		
 	}			
 
@@ -46,10 +45,11 @@ namespace stream
 		if (ecode)
         {
 			LogPrint ("I2PTunnel read error: ", ecode.message ());
+			m_Stream->Close ();
 			Terminate ();
 		}
 		else
-		{
+		{	
 			if (m_Stream)
 				m_Stream->Send (m_Buffer, bytes_transferred, 0);
 			Receive ();
@@ -109,7 +109,7 @@ namespace stream
 			pos = m_Destination.find (".i2p");
 			if (pos != std::string::npos)
 			{
-				auto identHash = i2p::data::netdb.FindAddress (m_Destination.substr (0, pos));	
+				auto identHash = i2p::data::netdb.FindAddress (m_Destination);	
 				if (identHash)
 					m_DestinationIdentHash = new i2p::data::IdentHash (*identHash);
 			}
@@ -150,6 +150,7 @@ namespace stream
 				m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
 			if (m_RemoteLeaseSet)
 			{	
+				LogPrint ("New I2PTunnel connection");
 				auto connection = new I2PTunnelConnection (socket, m_RemoteLeaseSet);
 				m_Connections.insert (connection);
 			}

@@ -219,7 +219,7 @@ namespace stream
 	size_t Stream::Send (const uint8_t * buf, size_t len, int timeout)
 	{
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
-		while (len > 0)
+		while (!m_IsOpen || len > 0)
 		{
 			Packet * p = new Packet ();
 			uint8_t * packet = p->GetBuffer ();
