@@ -113,8 +113,8 @@ namespace garlic
 
 			void Run ();
 			void ProcessGarlicMessage (I2NPMessage * msg);
-			void HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption);
-			void HandleGarlicPayload (uint8_t * buf, size_t len);
+			void HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption, i2p::tunnel::InboundTunnel * from);
+			void HandleGarlicPayload (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
 			
 		private:
 			

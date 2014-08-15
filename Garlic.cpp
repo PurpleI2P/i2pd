@@ -345,7 +345,7 @@ namespace garlic
 			it->second->SetIV (iv);
 			it->second->Decrypt (buf + 32, length - 32, buf + 32);
 			it->second->UseTag ();
-			HandleAESBlock (buf + 32, length - 32, it->second);
+			HandleAESBlock (buf + 32, length - 32, it->second, msg->from);
 			if (!it->second->GetTagCount ()) delete it->second; // all tags were used
 			m_SessionTags.erase (it); // tag might be used only once
 		}
@@ -366,7 +366,7 @@ namespace garlic
 				CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
 				decryption->SetIV (iv);
 				decryption->Decrypt(buf + 514, length - 514, buf + 514);
-				HandleAESBlock (buf + 514, length - 514, decryption);
+				HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 			}	
 			else
 				LogPrint ("Failed to decrypt garlic");
@@ -374,7 +374,7 @@ namespace garlic
 		DeleteI2NPMessage (msg);	
 	}	
 
-	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption)
+	void GarlicRouting::HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption, i2p::tunnel::InboundTunnel * from)
 	{
 		uint16_t tagCount = be16toh (*(uint16_t *)buf);
 		buf += 2;	
@@ -406,10 +406,10 @@ namespace garlic
 			LogPrint ("Wrong payload hash");
 			return;
 		}		    
-		HandleGarlicPayload (buf, payloadSize);
+		HandleGarlicPayload (buf, payloadSize, from);
 	}	
 
-	void GarlicRouting::HandleGarlicPayload (uint8_t * buf, size_t len)
+	void GarlicRouting::HandleGarlicPayload (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)
 	{
 		int numCloves = buf[0];
 		LogPrint (numCloves," cloves");
@@ -454,7 +454,9 @@ namespace garlic
 					buf += 32;
 					uint32_t gwTunnel = be32toh (*(uint32_t *)buf);
 					buf += 4;
-					auto tunnel = i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+					i2p::tunnel::OutboundTunnel * tunnel = nullptr;
+					if (from && from->GetTunnelPool ())
+						tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
 					if (tunnel) // we have send it through an outbound tunnel
 					{	
 						I2NPMessage * msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf));
