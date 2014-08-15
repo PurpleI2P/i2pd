@@ -452,6 +452,7 @@ namespace stream
 				else
 				{
 					Close ();
+					m_ReceiveTimer.cancel ();
 					return;
 				}	
 			}	
