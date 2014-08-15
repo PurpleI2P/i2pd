@@ -456,7 +456,10 @@ namespace stream
 				}	
 			}	
 			if (packets.size () > 0)
+			{
+				UpdateCurrentRemoteLease (); // pick another lease
 				SendPackets (packets);
+			}	
 			ScheduleResend ();
 		}	
 	}	
