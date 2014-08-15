@@ -157,10 +157,12 @@ namespace stream
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			void SetLeaseSetUpdated ();
 
 		private:		
 	
 			Stream * CreateNewIncomingStream ();
+			void UpdateLeaseSet ();
 
 		private:
 

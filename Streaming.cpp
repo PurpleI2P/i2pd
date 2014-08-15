@@ -575,21 +575,29 @@ namespace stream
 	const i2p::data::LeaseSet * StreamingDestination::GetLeaseSet ()
 	{
 		if (!m_Pool) return nullptr;
-		if (!m_LeaseSet || m_LeaseSet->HasExpiredLeases ())
-		{	
-			auto newLeaseSet = new i2p::data::LeaseSet (*m_Pool);
-			if (!m_LeaseSet)
-				m_LeaseSet = newLeaseSet;
-			else
-			{	
-				// TODO: implement it better
-				*m_LeaseSet = *newLeaseSet;
-				delete newLeaseSet;
-			}	
-			for (auto it: m_Streams)
-				it.second->SetLeaseSetUpdated ();
-		}	
+		if (!m_LeaseSet)
+			UpdateLeaseSet ();
 		return m_LeaseSet;
+	}	
+
+	void StreamingDestination::UpdateLeaseSet ()
+	{
+		auto newLeaseSet = new i2p::data::LeaseSet (*m_Pool);
+		if (!m_LeaseSet)
+			m_LeaseSet = newLeaseSet;
+		else
+		{	
+			// TODO: implement it better
+			*m_LeaseSet = *newLeaseSet;
+			delete newLeaseSet;
+		}	
+	}	
+		
+	void StreamingDestination::SetLeaseSetUpdated ()
+	{
+		UpdateLeaseSet ();
+		for (auto it: m_Streams)
+			it.second->SetLeaseSetUpdated ();
 	}	
 		
 	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const

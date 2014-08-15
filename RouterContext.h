@@ -33,6 +33,7 @@ namespace i2p
 			const uint8_t * GetEncryptionPrivateKey () const { return GetPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_Keys.publicKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			void SetLeaseSetUpdated () {};
 			
 		private:
 

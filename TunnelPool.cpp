@@ -26,6 +26,7 @@ namespace tunnel
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
 	{
 		m_InboundTunnels.insert (createdTunnel);
+		m_LocalDestination.SetLeaseSetUpdated ();
 	}
 
 	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
@@ -126,6 +127,7 @@ namespace tunnel
 				{	
 					it.second.second->SetState (eTunnelStateFailed);
 					m_InboundTunnels.erase (it.second.second);
+					m_LocalDestination.SetLeaseSetUpdated ();
 				}	
 				else
 					it.second.second->SetState (eTunnelStateTestFailed);
