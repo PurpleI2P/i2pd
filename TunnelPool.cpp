@@ -169,10 +169,10 @@ namespace tunnel
 			it->second.second->SetState (eTunnelStateEstablished);
 			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - be64toh (deliveryStatus->timestamp), " milliseconds");
 			m_Tests.erase (it);
+			DeleteI2NPMessage (msg);
 		}
 		else
-			i2p::garlic::routing.HandleDeliveryStatusMessage (msg->GetPayload (), msg->GetLength ()); // TODO:
-		DeleteI2NPMessage (msg);
+			i2p::garlic::routing.PostI2NPMsg (msg);
 	}
 
 	void TunnelPool::CreateInboundTunnel ()

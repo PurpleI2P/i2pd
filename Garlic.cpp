@@ -325,13 +325,8 @@ namespace garlic
 			m_CreatedSessions[session->GetFirstMsgID ()] = session;
 		return ret;
 	}
-
-	void GarlicRouting::HandleGarlicMessage (I2NPMessage * msg)
-	{
-		if (msg) m_Queue.Put (msg);	
-	}
 		
-	void GarlicRouting::ProcessGarlicMessage (I2NPMessage * msg)
+	void GarlicRouting::HandleGarlicMessage (I2NPMessage * msg)
 	{
 		uint8_t * buf = msg->GetPayload ();
 		uint32_t length = be32toh (*(uint32_t *)buf);
@@ -480,16 +475,18 @@ namespace garlic
 		}	
 	}	
 
-	void GarlicRouting::HandleDeliveryStatusMessage (uint8_t * buf, size_t len)
+	void GarlicRouting::HandleDeliveryStatusMessage (I2NPMessage * msg)
 	{
-		I2NPDeliveryStatusMsg * msg = (I2NPDeliveryStatusMsg *)buf;
-		auto it = m_CreatedSessions.find (be32toh (msg->msgID));
+		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
+		uint32_t msgID = be32toh (deliveryStatus->msgID);
+		auto it = m_CreatedSessions.find (msgID);
 		if (it != m_CreatedSessions.end ())			
 		{
 			it->second->SetAcknowledged (true);
 			m_CreatedSessions.erase (it);
-			LogPrint ("Garlic message ", be32toh (msg->msgID), " acknowledged");
+			LogPrint ("Garlic message ", msgID, " acknowledged");
 		}	
+		DeleteI2NPMessage (msg);	
 	}	
 
 	void GarlicRouting::Start ()
@@ -510,6 +507,11 @@ namespace garlic
 		}	
 	}
 
+	void GarlicRouting::PostI2NPMsg (I2NPMessage * msg)
+	{
+		if (msg) m_Queue.Put (msg);	
+	}	
+		
 	void GarlicRouting::Run ()
 	{
 		while (m_IsRunning)
@@ -518,7 +520,20 @@ namespace garlic
 			{
 				I2NPMessage * msg = m_Queue.GetNext ();
 				if (msg)
-					ProcessGarlicMessage (msg);
+				{
+					switch (msg->GetHeader ()->typeID) 
+					{
+						case eI2NPGarlic:
+							HandleGarlicMessage (msg);
+						break;
+						case eI2NPDeliveryStatus:
+							HandleDeliveryStatusMessage (msg);
+						break;	
+						default: 
+							LogPrint ("Garlic: unexpected message type ", msg->GetHeader ()->typeID);
+							i2p::HandleI2NPMessage (msg);
+					}	
+				}
 			}
 			catch (std::exception& ex)
 			{

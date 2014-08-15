@@ -100,10 +100,8 @@ namespace garlic
 
 			void Start ();
 			void Stop ();
+			void PostI2NPMsg (I2NPMessage * msg);
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag 
-		
-			void HandleGarlicMessage (I2NPMessage * msg);
-			void HandleDeliveryStatusMessage (uint8_t * buf, size_t len);
 			
 			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg);
 			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
@@ -112,7 +110,8 @@ namespace garlic
 		private:
 
 			void Run ();
-			void ProcessGarlicMessage (I2NPMessage * msg);
+			void HandleGarlicMessage (I2NPMessage * msg);
+			void HandleDeliveryStatusMessage (I2NPMessage * msg);
 			void HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption, i2p::tunnel::InboundTunnel * from);
 			void HandleGarlicPayload (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
 			
