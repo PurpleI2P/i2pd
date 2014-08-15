@@ -394,10 +394,10 @@ namespace stream
 			}
 		}
 
-		I2NPMessage * leaseSet = nullptr;
+		const i2p::data::LeaseSet * leaseSet = nullptr;
 		if (m_LeaseSetUpdated)
 		{	
-			leaseSet = m_LocalDestination->GetLeaseSetMsg ();
+			leaseSet = m_LocalDestination->GetLeaseSet ();
 			m_LeaseSetUpdated = false;
 		}	
 
@@ -570,11 +570,6 @@ namespace stream
 			m_Streams.erase (stream->GetRecvStreamID ());
 			delete stream;
 		}	
-	}	
-		
-	I2NPMessage * StreamingDestination::GetLeaseSetMsg ()
-	{		
-		return CreateDatabaseStoreMsg (GetLeaseSet ());
 	}	
 
 	const i2p::data::LeaseSet * StreamingDestination::GetLeaseSet ()

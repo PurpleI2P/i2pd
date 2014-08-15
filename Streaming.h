@@ -143,7 +143,6 @@ namespace stream
 			~StreamingDestination ();	
 
 			const i2p::data::PrivateKeys& GetKeys () const { return m_Keys; };
-			I2NPMessage * GetLeaseSetMsg ();
 			const i2p::data::LeaseSet * GetLeaseSet ();
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 

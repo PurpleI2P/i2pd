@@ -45,7 +45,7 @@ namespace garlic
 			GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
-			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, I2NPMessage * leaseSet);
+			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet);
 			int GetNextTag () const { return m_NextTag; };
 			uint32_t GetFirstMsgID () const { return m_FirstMsgID; };
 
@@ -54,8 +54,8 @@ namespace garlic
 			
 		private:
 
-			size_t CreateAESBlock (uint8_t * buf, const I2NPMessage * msg, const I2NPMessage * leaseSet);
-			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, const I2NPMessage * leaseSet);
+			size_t CreateAESBlock (uint8_t * buf, const I2NPMessage * msg, bool attachLeaseSet);
+			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, bool attachLeaseSet);
 			size_t CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination);
 			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
 			
@@ -70,7 +70,8 @@ namespace garlic
 			int m_NumTags, m_NextTag;
 			SessionTag * m_SessionTags; // m_NumTags*32 bytes
 			uint32_t m_TagsCreationTime; // seconds since epoch
-			
+			const i2p::data::LeaseSet * m_LocalLeaseSet;			
+
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};	
@@ -106,7 +107,7 @@ namespace garlic
 			
 			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg);
 			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
-			    I2NPMessage * msg, I2NPMessage * leaseSet = nullptr);
+			    I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet = nullptr);
 
 		private:
 
