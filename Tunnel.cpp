@@ -1,5 +1,7 @@
 #include "I2PEndian.h"
 #include <thread>
+#include <algorithm>
+#include <vector> 
 #include <cryptopp/sha.h>
 #include "RouterContext.h"
 #include "Log.h"
@@ -27,17 +29,24 @@ namespace tunnel
 	void Tunnel::Build (uint32_t replyMsgID, OutboundTunnel * outboundTunnel)
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		int numRecords = m_Config->GetNumHops () + 1; // +1 fake record. TODO:
+		auto numHops = m_Config->GetNumHops ();
+		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops; 
 		I2NPMessage * msg = NewI2NPMessage ();
 		*msg->GetPayload () = numRecords;
-		msg->len += numRecords*sizeof (I2NPBuildRequestRecordElGamalEncrypted) + 1;
-		
-		I2NPBuildRequestRecordElGamalEncrypted * records = (I2NPBuildRequestRecordElGamalEncrypted *)(msg->GetPayload () + 1); 
+		msg->len += numRecords*sizeof (I2NPBuildRequestRecordElGamalEncrypted) + 1;		
 
+		// shuffle records
+		std::vector<int> recordIndicies;
+		for (int i = 0; i < numRecords; i++) recordIndicies.push_back(i);
+		std::random_shuffle (recordIndicies.begin(), recordIndicies.end());
+
+		// create real records
+		I2NPBuildRequestRecordElGamalEncrypted * records = (I2NPBuildRequestRecordElGamalEncrypted *)(msg->GetPayload () + 1); 
 		TunnelHopConfig * hop = m_Config->GetFirstHop ();
 		int i = 0;
 		while (hop)
 		{
+			int idx = recordIndicies[i];
 			EncryptBuildRequestRecord (*hop->router,
 				CreateBuildRequestRecord (hop->router->GetIdentHash (), 
 				    hop->tunnelID,
@@ -47,18 +56,19 @@ namespace tunnel
 					hop->replyKey, hop->replyIV,
 					hop->next ? rnd.GenerateWord32 () : replyMsgID, // we set replyMsgID for last hop only
 				    hop->isGateway, hop->isEndpoint), 
-		    	records[i]);
-			hop->recordIndex = i; //TODO:
+		    	records[idx]);
+			hop->recordIndex = idx; 
 			i++;
 			hop = hop->next;
 		}	
 		// fill up fake records with random data	
-		while (i < numRecords)
+		for (int i = numHops; i < numRecords; i++)
 		{
-			rnd.GenerateBlock ((uint8_t *)(records + i), sizeof (records[i])); 
-			i++;
+			int idx = recordIndicies[i];
+			rnd.GenerateBlock ((uint8_t *)(records + idx), sizeof (records[idx])); 
 		}	
-		
+
+		// decrypt real records
 		i2p::crypto::CBCDecryption decryption;
 		hop = m_Config->GetLastHop ()->prev;
 		while (hop)
@@ -77,7 +87,8 @@ namespace tunnel
 			hop = hop->prev;
 		}	
 		FillI2NPMessageHeader (msg, eI2NPVariableTunnelBuild);
-		
+
+		// send message
 		if (outboundTunnel)
 			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);	
 		else

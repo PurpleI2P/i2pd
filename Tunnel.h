@@ -22,6 +22,7 @@ namespace i2p
 namespace tunnel
 {	
 	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes	
+	const int STANDARD_NUM_RECORDS = 5; // in VariableTunnelBuild message
 
 	enum TunnelState
 	{
