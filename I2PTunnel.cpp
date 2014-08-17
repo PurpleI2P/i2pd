@@ -30,6 +30,7 @@ namespace stream
 
 	void I2PTunnelConnection::Terminate ()
 	{	
+		m_Socket->close ();
 		// TODO: remove from I2PTunnel		
 	}			
 
@@ -58,7 +59,14 @@ namespace stream
 
 	void I2PTunnelConnection::HandleWrite (const boost::system::error_code& ecode)
 	{
-		StreamReceive ();
+		if (ecode)
+		{
+			LogPrint ("I2PTunnel write error: ", ecode.message ());
+			m_Stream->Close ();
+			Terminate ();
+		}
+		else
+			StreamReceive ();
 	}
 
 	void I2PTunnelConnection::StreamReceive ()
