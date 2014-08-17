@@ -4,6 +4,7 @@
 #include "CryptoConst.h"
 #include "RouterContext.h"
 #include "util.h"
+#include "version.h"
 
 namespace i2p
 {
@@ -14,12 +15,12 @@ namespace i2p
 		if (!Load ())
 			CreateNewRouter ();
 		Save ();
-	}	
-	
+	}
+
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::CreateRandomKeys ();
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag,
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		UpdateRouterInfo ();
 	}
@@ -31,18 +32,20 @@ namespace i2p
 
 		i2p::data::RouterInfo routerInfo;
 		routerInfo.SetRouterIdentity (ident);
-		routerInfo.AddSSUAddress ("127.0.0.1", 17007, routerInfo.GetIdentHash ());
-		routerInfo.AddNTCPAddress ("127.0.0.1", 17007); // TODO:
+		routerInfo.AddSSUAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"),
+			i2p::util::config::GetArg("-port", 17007), routerInfo.GetIdentHash ());
+		routerInfo.AddNTCPAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"),
+			i2p::util::config::GetArg("-port", 17007));
 		routerInfo.SetProperty ("caps", "LR");
-		routerInfo.SetProperty ("coreVersion", "0.9.11");
+		routerInfo.SetProperty ("coreVersion", I2P_VERSION);
 		routerInfo.SetProperty ("netId", "2");
-		routerInfo.SetProperty ("router.version", "0.9.11");
+		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.SetProperty ("start_uptime", "90m");
 		routerInfo.CreateBuffer ();
 
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
-	}	
-	
+	}
+
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
 	{
 		m_RouterInfo.CreateBuffer ();
@@ -51,19 +54,19 @@ namespace i2p
 		{
 			address->host = boost::asio::ip::address::from_string (host);
 			address->port = port;
-		}	
+		}
 
 		m_RouterInfo.CreateBuffer ();
 		Save (true);
-	}	
+	}
 
 	void RouterContext::UpdateAddress (const char * host)
 	{
 		for (auto& address : m_RouterInfo.GetAddresses ())
-			address.host = boost::asio::ip::address::from_string (host);	
+			address.host = boost::asio::ip::address::from_string (host);
 		m_RouterInfo.CreateBuffer ();
-	}	
-	
+	}
+
 	void RouterContext::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
@@ -74,25 +77,25 @@ namespace i2p
 	{
 		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ofstream::in);
 		if (!fk.is_open ())	return false;
-			
+
 		fk.read ((char *)&m_Keys, sizeof (m_Keys));
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
+		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag,
 			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 
 		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
-		
+
 		return true;
 	}
-	
+
 	void RouterContext::Save (bool infoOnly)
 	{
 		if (!infoOnly)
-		{	
+		{
 			std::ofstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ofstream::binary | std::ofstream::out);
 			fk.write ((char *)&m_Keys, sizeof (m_Keys));
 		}
-		
+
 		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
-	}	
-}	
+	}
+}
