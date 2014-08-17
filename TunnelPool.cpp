@@ -74,23 +74,29 @@ namespace tunnel
 		return v;
 	}
 
-	OutboundTunnel * TunnelPool::GetNextOutboundTunnel () 
+	OutboundTunnel * TunnelPool::GetNextOutboundTunnel (OutboundTunnel * suggested) 
 	{
-		return GetNextTunnel (m_OutboundTunnels);
+		return GetNextTunnel (m_OutboundTunnels, suggested);
 	}	
 
-	InboundTunnel * TunnelPool::GetNextInboundTunnel ()
+	InboundTunnel * TunnelPool::GetNextInboundTunnel (InboundTunnel * suggested)
 	{
-		return GetNextTunnel (m_InboundTunnels);
+		return GetNextTunnel (m_InboundTunnels, suggested);
 	}
 
 	template<class TTunnels>
-	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels)
+	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels, 
+		typename TTunnels::value_type suggested)
 	{
 		if (tunnels.empty ()) return nullptr;
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		if (suggested && tunnels.count (suggested) > 0 && 
+		    ts + TUNNEL_EXPIRATION_THRESHOLD <= suggested->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+				return suggested;
 		for (auto it: tunnels)
-			if (!it->IsFailed ())
-				return it;
+			if (!it->IsFailed () && ts + TUNNEL_EXPIRATION_THRESHOLD <= 
+				it->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+					return it;
 		return nullptr;
 	}
 

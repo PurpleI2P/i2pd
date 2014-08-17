@@ -19,6 +19,7 @@ namespace tunnel
 	class InboundTunnel;
 	class OutboundTunnel;
 
+	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute
 	class TunnelPool // per local destination
 	{
 		public:
@@ -37,8 +38,8 @@ namespace tunnel
 			void TunnelCreated (OutboundTunnel * createdTunnel);
 			void TunnelExpired (OutboundTunnel * expiredTunnel);
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
-			OutboundTunnel * GetNextOutboundTunnel ();
-			InboundTunnel * GetNextInboundTunnel ();
+			OutboundTunnel * GetNextOutboundTunnel (OutboundTunnel * suggested = nullptr);
+			InboundTunnel * GetNextInboundTunnel (InboundTunnel * suggested = nullptr);
 			const i2p::data::IdentHash& GetIdentHash () { return m_LocalDestination.GetIdentHash (); };			
 
 			void TestTunnels ();
@@ -51,7 +52,8 @@ namespace tunnel
 			void RecreateInboundTunnel (InboundTunnel * tunnel);
 			void RecreateOutboundTunnel (OutboundTunnel * tunnel);
 			template<class TTunnels>
-			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels);
+			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, 
+				typename TTunnels::value_type suggested = nullptr);
 			
 		private:
 

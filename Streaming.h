@@ -128,6 +128,7 @@ namespace stream
 			i2p::data::Identity m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::data::Lease m_CurrentRemoteLease;
+			i2p::tunnel::OutboundTunnel * m_CurrentOutboundTunnel;
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::set<Packet *, PacketCmp> m_SentPackets;
