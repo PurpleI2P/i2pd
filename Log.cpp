@@ -5,7 +5,7 @@ Log * g_Log = nullptr;
 
 void LogMsg::Process()
 {
-	output << boost::posix_time::second_clock::local_time() << " - ";
+	output << boost::posix_time::second_clock::local_time().time_of_day () << " - ";
 	output << s.str();
 }
 
