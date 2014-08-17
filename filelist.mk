@@ -11,7 +11,7 @@ H_FILES := CryptoConst.h base64.h NTCPSession.h RouterInfo.h Transports.h \
 	RouterContext.h NetDb.h LeaseSet.h Tunnel.h TunnelEndpoint.h TunnelGateway.h \
 	TransitTunnel.h I2NPProtocol.h Log.h Garlic.h HTTPServer.h Streaming.h Identity.h \
 	SSU.h util.h Reseed.h DaemonLinux.h SSUData.h i2p.h aes.h SOCKS.h UPnP.h TunnelPool.h \
-	HTTPProxy.h AddressBook.h Daemon.h I2PTunnel.h
+	HTTPProxy.h AddressBook.h Daemon.h I2PTunnel.h version.h
 
 
 OBJECTS = $(addprefix obj/, $(notdir $(CPP_FILES:.cpp=.o)))

@@ -76,6 +76,7 @@ set ( HEADERS
 	Daemon.h
     SOCKS.h
 	I2PTunnel.h
+  version.h
 )
 
 if (WIN32)
