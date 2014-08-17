@@ -2,12 +2,12 @@
 CC = g++
 CFLAGS = -g -Wall -std=c++0x
 include filelist.mk
-INCFLAGS = 
-LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
-LIBS = 
+INCFLAGS =
+LDFLAGS = -Wl,-rpath,/usr/local/lib -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
+LIBS =
 
 #check if AES-NI is supported by CPU
-ifneq ($(shell grep -c aes /proc/cpuinfo),0) 
+ifneq ($(shell grep -c aes /proc/cpuinfo),0)
 	CPU_FLAGS = -DAESNI
 endif
 

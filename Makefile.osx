@@ -2,8 +2,8 @@ CC = clang++
 CFLAGS = -g -Wall -std=c++11 -lstdc++ -I/usr/local/include
 include filelist.mk
 INCFLAGS = -DCRYPTOPP_DISABLE_ASM
-LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
-LIBS = 
+LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
+LIBS =
 
 # OSX Notes
 # http://www.hutsby.net/2011/08/macs-with-aes-ni.html

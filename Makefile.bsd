@@ -2,8 +2,8 @@ CC = g++
 CFLAGS = -std=c++11 -O2
 include filelist.mk
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
-LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -lcryptopp -lboost_system -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
-LIBS = 
+LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
+LIBS =
 
 all: obj i2p
 
