@@ -217,9 +217,9 @@ namespace tunnel
 			delete it.second;
 		m_TransitTunnels.clear ();
 
-		for (auto& it : m_PendingTunnels)
+		/*for (auto& it : m_PendingTunnels)
 			delete it.second;
-		m_PendingTunnels.clear ();
+		m_PendingTunnels.clear ();*/
 
 		for (auto& it: m_Pools)
 			delete it.second;
@@ -246,11 +246,7 @@ namespace tunnel
 	{
 		auto it = m_PendingTunnels.find(replyMsgID);
 		if (it != m_PendingTunnels.end ())
-		{
-			Tunnel * t = it->second;
-			m_PendingTunnels.erase (it);
-			return t;
-		}	
+			return it->second;
 		return nullptr;
 	}	
 
@@ -372,33 +368,29 @@ namespace tunnel
 
 	void Tunnels::ManageTunnels ()
 	{
-		// check pending tunnel. if something is still there, wipe it out
-		// because it wouldn't be responded anyway
-		for (auto& it : m_PendingTunnels)
+		// check pending tunnel. delete non-successive
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_PendingTunnels.begin (); it != m_PendingTunnels.end ();)
 		{	
-			LogPrint ("Pending tunnel build request ", it.first, " has not been responded. Deleted");
-			if (it.second->GetTunnelConfig ()->GetFirstHop ()->isGateway) // outbound
-				i2p::transports.CloseSession (it.second->GetTunnelConfig ()->GetFirstHop ()->router);
-			delete it.second;
+			if (it->second->GetState () == eTunnelStatePending) 
+			{
+				if (ts > it->second->GetCreationTime () + TUNNEL_CREATION_TIMEOUT)
+				{
+					LogPrint ("Pending tunnel build request ", it->first, " was not successive. Deleted");
+					delete it->second;
+					it = m_PendingTunnels.erase (it);
+				}
+				else
+					it++;
+			}
+			else
+				it = m_PendingTunnels.erase (it);
 		}	
-		m_PendingTunnels.clear ();
 		
 		ManageInboundTunnels ();
 		ManageOutboundTunnels ();
 		ManageTransitTunnels ();
 		ManageTunnelPools ();
-		
-	/*	if (!m_IsTunnelCreated)
-		{	
-			InboundTunnel * inboundTunnel = CreateOneHopInboundTestTunnel ();
-			if (inboundTunnel)
-			    CreateOneHopOutboundTestTunnel (inboundTunnel);
-			inboundTunnel = CreateTwoHopsInboundTestTunnel ();
-			if (inboundTunnel)
-				CreateTwoHopsOutboundTestTunnel (inboundTunnel);
-				
-			m_IsTunnelCreated = true;
-		}*/
 	}	
 
 	void Tunnels::ManageOutboundTunnels ()
