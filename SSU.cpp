@@ -314,7 +314,7 @@ namespace ssu
 			rnd.GenerateWord32 (relayTag);
 			m_Server.AddRelay (relayTag, m_RemoteEndpoint);
 		}
-		*(uint32_t *)(payload) = relayTag; 
+		*(uint32_t *)(payload) = htobe32 (relayTag); 
 		payload += 4; // relay tag 
 		*(uint32_t *)(payload) = htobe32 (i2p::util::GetSecondsSinceEpoch ()); // signed on time
 		payload += 4;
