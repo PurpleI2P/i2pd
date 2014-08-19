@@ -257,6 +257,9 @@ namespace data
 				case 'H':
 					m_Caps |= Caps::eHidden;
 				break;	
+				case 'U':
+					m_Caps |= Caps::eUnreachable;
+				break;	
 				default: ;
 			}	
 			cap++;
@@ -465,7 +468,7 @@ namespace data
 
 	bool RouterInfo::UsesIntroducer () const
 	{
-		return !(m_Caps & Caps::eReachable); // non-reachable
+		return m_Caps & Caps::eUnreachable; // non-reachable
 	}		
 		
 	const RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only) const

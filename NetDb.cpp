@@ -259,6 +259,7 @@ namespace data
 		m_Floodfills.clear ();	
 
 		// load routers now
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();	
 		int numRouters = 0;
 		boost::filesystem::directory_iterator end;
 		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
@@ -273,7 +274,7 @@ namespace data
 					const std::string& fullPath = it1->path();
 #endif
 					RouterInfo * r = new RouterInfo(fullPath);
-					if (!r->IsUnreachable ())
+					if (!r->IsUnreachable () && (!r->UsesIntroducer () || ts < r->GetTimestamp () + 3600*1000LL)) // 1 hour
 					{	
 						r->DeleteBuffer ();
 						m_RouterInfos[r->GetIdentHash ()] = r;
@@ -329,8 +330,10 @@ namespace data
 			}
 			else 
 			{
+				// RouterInfo expires after 1 hour if uses introducer
+				if ((it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hour
 				// RouterInfo expires in 72 hours if more than 300
-				if (total > 300 && ts > it.second->GetTimestamp () + 3*24*3600*1000LL) // 3 days
+					|| (total > 300 && ts > it.second->GetTimestamp () + 3*24*3600*1000LL)) // 3 days
 				{	
 					total--;
 					it.second->SetUnreachable (true);

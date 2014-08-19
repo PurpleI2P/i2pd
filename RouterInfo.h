@@ -33,7 +33,8 @@ namespace data
 				eReachable = 0x04,
 				eSSUTesting = 0x08,
 				eSSUIntroducer = 0x10,
-				eHidden = 0x20
+				eHidden = 0x20,
+				eUnreachable = 0x40
 			};
 
 			enum TransportStyle
