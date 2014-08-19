@@ -109,7 +109,7 @@ namespace ssu
 						Decrypt (buf, len, address->key);
 					else
 					{
-						LogPrint ("MAC verifcation failed");
+						LogPrint ("MAC verification failed ", len, " bytes from ", senderEndpoint);
 						m_Server.DeleteSession (this); 
 						return;
 					}	
