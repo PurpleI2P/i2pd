@@ -87,7 +87,8 @@ namespace ssu
 		{
 			if (m_State == eSessionStateEstablished)
 				ScheduleTermination ();
-
+			
+			if (!len) return; // ignore zero-length packets	
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
 				DecryptSessionKey (buf, len);	
 			else 
@@ -820,7 +821,7 @@ namespace ssu
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
 			Send (buf, 48);
-			LogPrint ("SSU session destoryed sent");
+			LogPrint ("SSU session destroyed sent");
 		}
 	}	
 
