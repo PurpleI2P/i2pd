@@ -17,6 +17,15 @@ namespace stream
 		Receive ();
 	}	
 
+	I2PTunnelConnection::I2PTunnelConnection (Stream * stream,  boost::asio::ip::tcp::socket * socket, 
+		const boost::asio::ip::tcp::endpoint& target):
+		m_Socket (socket), m_Stream (stream)
+	{
+		if (m_Socket)
+			m_Socket->async_connect (target, boost::bind (&I2PTunnelConnection::HandleConnect,
+				this, boost::asio::placeholders::error));
+	}
+
 	I2PTunnelConnection::~I2PTunnelConnection ()
 	{
 		if (m_Stream)
@@ -89,6 +98,23 @@ namespace stream
 		{
 			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
         		boost::bind (&I2PTunnelConnection::HandleWrite, this, boost::asio::placeholders::error));
+		}
+	}
+
+	void I2PTunnelConnection::HandleConnect (const boost::system::error_code& ecode)
+	{
+		if (ecode)
+		{
+			LogPrint ("I2PTunnel connect error: ", ecode.message ());
+			if (m_Stream) m_Stream->Close ();
+			DeleteStream (m_Stream);
+			m_Stream = nullptr;
+		}
+		else
+		{
+			LogPrint ("I2PTunnel connected");
+			StreamReceive ();
+			Receive ();	
 		}
 	}
 
@@ -184,6 +210,36 @@ namespace stream
 		}
 		else
 			delete socket;
+	}
+
+	I2PServerTunnel::I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
+		const i2p::data::IdentHash& localDestination): m_Service (service),
+		m_Endpoint (boost::asio::ip::address::from_string (address), port)
+	{
+		m_LocalDestination = FindLocalDestination (localDestination);
+		if (!m_LocalDestination)
+			LogPrint ("Local destination ", localDestination.ToBase64 (), " not found");
+	}
+	
+	void I2PServerTunnel::Start ()
+	{
+		Accept ();
+	}
+
+	void I2PServerTunnel::Stop ()
+	{
+	}	
+
+	void I2PServerTunnel::Accept ()
+	{
+		if (m_LocalDestination)
+			m_LocalDestination->SetAcceptor (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+	}
+
+	void I2PServerTunnel::HandleAccept (i2p::stream::Stream * stream)
+	{
+		if (stream)
+			new I2PTunnelConnection (stream, new boost::asio::ip::tcp::socket (m_Service), m_Endpoint);
 	}
 }		
 }	

@@ -197,7 +197,8 @@ namespace stream
 			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			
+			StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
+
 		private:	
 
 			void Run ();
@@ -220,7 +221,8 @@ namespace stream
 	void StartStreaming ();
 	void StopStreaming ();
 	StreamingDestination * GetSharedLocalDestination ();
-	
+	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);		
+
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len);

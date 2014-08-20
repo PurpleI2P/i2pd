@@ -20,6 +20,8 @@ namespace stream
 
 			I2PTunnelConnection (boost::asio::ip::tcp::socket * socket,
 				const i2p::data::LeaseSet * leaseSet);
+			I2PTunnelConnection (Stream * stream,  boost::asio::ip::tcp::socket * socket, 
+				const boost::asio::ip::tcp::endpoint& target); 
 			~I2PTunnelConnection ();
 
 		private:
@@ -32,6 +34,7 @@ namespace stream
 
 			void StreamReceive ();
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleConnect (const boost::system::error_code& ecode);
 
 		private:
 
@@ -64,6 +67,28 @@ namespace stream
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			std::set<I2PTunnelConnection *> m_Connections;
 	};	
+
+	class I2PServerTunnel
+	{
+		public:
+
+			I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
+				const i2p::data::IdentHash& localDestination);	
+
+			void Start ();
+			void Stop ();
+
+		private:
+
+			void Accept ();
+			void HandleAccept (Stream * stream);
+
+		private:
+
+			boost::asio::io_service& m_Service;
+			StreamingDestination * m_LocalDestination;	
+			boost::asio::ip::tcp::endpoint m_Endpoint;		
+	};
 }		
 }	
 

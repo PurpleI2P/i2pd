@@ -707,7 +707,15 @@ namespace stream
 			delete packet;
 		}
 	}	
-		
+	
+	StreamingDestination * StreamingDestinations::FindLocalDestination (const i2p::data::IdentHash& destination) const
+	{
+		auto it = m_Destinations.find (destination);
+		if (it != m_Destinations.end ())
+			return it->second;
+		return nullptr;
+	}	
+	
 	Stream * CreateStream (const i2p::data::LeaseSet& remote)
 	{
 		return destinations.CreateClientStream (remote);
@@ -732,7 +740,12 @@ namespace stream
 	{
 		return destinations.GetSharedLocalDestination ();
 	}	
-		
+	
+	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination)
+	{
+		return destinations.FindLocalDestination (destination);
+	}
+
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len)
 	{
 		uint32_t length = be32toh (*(uint32_t *)buf);
