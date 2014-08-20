@@ -13,6 +13,7 @@
 #include "RouterInfo.h"
 #include "LeaseSet.h"
 #include "Tunnel.h"
+#include "TunnelPool.h"
 #include "AddressBook.h"
 
 namespace i2p
@@ -66,8 +67,9 @@ namespace data
 
 			void Subscribe (const IdentHash& ident); // keep LeaseSets upto date			
 			void Unsubscribe (const IdentHash& ident);	
-			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false);
-						
+			void PublishLeaseSet (const LeaseSet * leaseSet, i2p::tunnel::TunnelPool * pool);
+			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false);			
+			
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			void HandleDatabaseLookupMsg (I2NPMessage * msg);			

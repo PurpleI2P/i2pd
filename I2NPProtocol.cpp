@@ -215,16 +215,32 @@ namespace i2p
 		return m;
 	}	
 
-	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet)
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet,  uint32_t replyToken)
 	{
 		if (!leaseSet) return nullptr;
 		I2NPMessage * m = NewI2NPShortMessage ();
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();
+		uint8_t * payload = m->GetPayload ();	
+		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)payload;
 		memcpy (msg->key, leaseSet->GetIdentHash (), 32);
 		msg->type = 1; // LeaseSet
-		msg->replyToken = 0;
-		memcpy (m->GetPayload () + sizeof (I2NPDatabaseStoreMsg), leaseSet->GetBuffer (), leaseSet->GetBufferLen ());
-		m->len += leaseSet->GetBufferLen () + sizeof (I2NPDatabaseStoreMsg);
+		msg->replyToken = htobe32 (replyToken);
+		size_t size = sizeof (I2NPDatabaseStoreMsg);
+		if (replyToken)
+		{
+			auto leases = leaseSet->GetNonExpiredLeases ();
+			if (leases.size () > 0)
+			{
+				*(uint32_t *)(payload + size) = htobe32 (leases[0].tunnelID);
+				size += 4; // reply tunnelID
+				memcpy (payload + size, leases[0].tunnelGateway, 32);
+				size += 32; // reply tunnel gateway
+			}
+			else
+				msg->replyToken = 0;
+		}
+		memcpy (payload + size, leaseSet->GetBuffer (), leaseSet->GetBufferLen ());
+		size += leaseSet->GetBufferLen ();
+		m->len += size;
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
 		return m;
 	}

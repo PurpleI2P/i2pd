@@ -172,7 +172,7 @@ namespace tunnel
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, const i2p::data::RouterInfo * floodfill);
 	
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);
-	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet);		
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet, uint32_t replyToken = 0);		
 
 	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
 		const uint8_t * ourIdent, uint32_t receiveTunnelID, 

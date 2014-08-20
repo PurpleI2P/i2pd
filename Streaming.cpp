@@ -494,7 +494,7 @@ namespace stream
 		
 
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service): 
-		m_Service (service), m_LeaseSet (nullptr)
+		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (false)
 	{		
 		m_Keys = i2p::data::CreateRandomKeys ();
 
@@ -507,7 +507,7 @@ namespace stream
 	}
 
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const std::string& fullPath):
-		m_Service (service), m_LeaseSet (nullptr) 
+		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (true) 
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -602,6 +602,8 @@ namespace stream
 		UpdateLeaseSet ();
 		for (auto it: m_Streams)
 			it.second->SetLeaseSetUpdated ();
+		if (m_IsPublic)
+			i2p::data::netdb.PublishLeaseSet (m_LeaseSet, m_Pool);
 	}	
 		
 	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const
