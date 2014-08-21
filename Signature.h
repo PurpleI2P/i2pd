@@ -3,6 +3,9 @@
 
 #include <inttypes.h>
 #include <cryptopp/dsa.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/eccrypto.h>
 #include "CryptoConst.h"
 
 namespace i2p
@@ -35,7 +38,29 @@ namespace crypto
 		private:
 
 			CryptoPP::DSA::PublicKey m_PublicKey;
-	};		
+	};
+
+	class ECDSAP256Verifier: public Verifier
+	{
+		public:
+
+			ECDSAP256Verifier (const uint8_t * signingKey)
+			{
+				m_PublicKey.Initialize (CryptoPP::ASN1::secp256r1(), 
+					CryptoPP::ECP::Point (CryptoPP::Integer (signingKey, 32), 
+					CryptoPP::Integer (signingKey + 32, 32)));
+			}			
+
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature)
+			{
+				CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier (m_PublicKey);
+				return verifier.VerifyMessage (buf, len, signature, 64);
+			}	
+
+		private:
+
+			CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey m_PublicKey;
+	};	
 }
 }
 
