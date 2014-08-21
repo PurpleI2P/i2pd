@@ -24,15 +24,17 @@ namespace data
 	{
 		public:
 
-			RequestedDestination (const IdentHash& destination, bool isLeaseSet, bool isExploratory = false):
+			RequestedDestination (const IdentHash& destination, bool isLeaseSet, 
+			    bool isExploratory = false, i2p::tunnel::TunnelPool * pool = nullptr):
 				m_Destination (destination), m_IsLeaseSet (isLeaseSet), m_IsExploratory (isExploratory), 
-				m_LastRouter (nullptr), m_CreationTime (0) {};
+				m_Pool (pool), m_LastRouter (nullptr), m_CreationTime (0) {};
 			
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
 			const std::set<IdentHash>& GetExcludedPeers () { return m_ExcludedPeers; };
 			void ClearExcludedPeers ();
 			const RouterInfo * GetLastRouter () const { return m_LastRouter; };
+			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; };
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsLeaseSet () const { return m_IsLeaseSet; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
@@ -44,6 +46,7 @@ namespace data
 
 			IdentHash m_Destination;
 			bool m_IsLeaseSet, m_IsExploratory;
+			i2p::tunnel::TunnelPool * m_Pool;
 			std::set<IdentHash> m_ExcludedPeers;
 			const RouterInfo * m_LastRouter;
 			uint64_t m_CreationTime;
@@ -65,10 +68,11 @@ namespace data
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 			const IdentHash * FindAddress (const std::string& address) { return m_AddressBook.FindAddress (address); }; // TODO: move AddressBook away from NetDb
 
-			void Subscribe (const IdentHash& ident); // keep LeaseSets upto date			
+			void Subscribe (const IdentHash& ident, i2p::tunnel::TunnelPool * pool = nullptr); // keep LeaseSets upto date			
 			void Unsubscribe (const IdentHash& ident);	
 			void PublishLeaseSet (const LeaseSet * leaseSet, i2p::tunnel::TunnelPool * pool);
-			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false);			
+			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false, 
+				i2p::tunnel::TunnelPool * pool = nullptr);			
 			
 			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
@@ -97,7 +101,7 @@ namespace data
 			void ManageLeaseSets ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
-				bool isLeaseSet, bool isExploratory = false);
+				bool isLeaseSet, bool isExploratory = false, i2p::tunnel::TunnelPool * pool = nullptr);
 			bool DeleteRequestedDestination (const IdentHash& dest); // returns true if found
 			void DeleteRequestedDestination (RequestedDestination * dest);
 		
