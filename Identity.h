@@ -6,6 +6,7 @@
 #include <string>
 #include "base64.h"
 #include "ElGamal.h"
+#include "Signature.h"
 
 namespace i2p
 {

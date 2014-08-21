@@ -84,6 +84,8 @@
     <ClInclude Include="..\util.h" />
     <ClInclude Include="..\SOCKS.h" />
 	<ClInclude Include="..\I2PTunnel.h" />
+	<ClInclude Include="..\version.h" />
+	<ClInclude Include="..\Signature.h" />
     <ClInclude Include="Win32Service.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

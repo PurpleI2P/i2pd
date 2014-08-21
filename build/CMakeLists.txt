@@ -77,6 +77,7 @@ set ( HEADERS
     SOCKS.h
 	I2PTunnel.h
   version.h
+	Signature.h
 )
 
 if (WIN32)
