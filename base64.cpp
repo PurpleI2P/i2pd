@@ -232,5 +232,35 @@ namespace data
 		}
 		return ret;
 	}
+
+	size_t ByteStreamToBase32 (const uint8_t * inBuf, size_t len, char * outBuf, size_t outLen)
+	{
+		size_t ret = 0, pos = 1;
+		int bits = 8, tmp = inBuf[0];
+		while (ret < outLen && (bits > 0 || pos < len))
+		{ 	
+			if (bits < 5)
+			{
+				if (pos < len)
+				{
+					tmp <<= 8;
+		      		tmp |= inBuf[pos] & 0xFF;
+					pos++;
+		      		bits += 8;
+				}
+				else // last byte
+				{
+					tmp <<= (5 - bits);
+				  	bits = 5;
+				}
+			}	
+		
+			bits -= 5;
+			int ind = (tmp >> bits) & 0x1F;
+			outBuf[ret] = (ind < 26) ? (ind + 'a') : ((ind - 26) + '2');
+			ret++;
+		}
+		return ret;
+	}
 }
 }

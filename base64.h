@@ -14,6 +14,7 @@ namespace data
 	const char * GetBase64SubstitutionTable ();	
 	
 	size_t Base32ToByteStream (const char * inBuf, size_t len, uint8_t * outBuf, size_t outLen);
+	size_t ByteStreamToBase32 (const uint8_t * InBuf, size_t len, char * outBuf, size_t outLen);
 }
 }
 
