@@ -115,6 +115,7 @@ namespace data
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen ();
+			size_t GetSignatureLen ();
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature);
 			
 		private:

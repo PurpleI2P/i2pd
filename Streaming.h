@@ -125,7 +125,7 @@ namespace stream
 			int32_t m_LastReceivedSequenceNumber;
 			bool m_IsOpen, m_LeaseSetUpdated;
 			StreamingDestination * m_LocalDestination;
-			i2p::data::Identity m_RemoteIdentity;
+			i2p::data::IdentityEx m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::data::Lease m_CurrentRemoteLease;
 			i2p::tunnel::OutboundTunnel * m_CurrentOutboundTunnel;

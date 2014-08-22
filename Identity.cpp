@@ -107,7 +107,15 @@ namespace data
 			return m_Verifier->GetPublicKeyLen ();
 		return 128;
 	}	
-		
+
+	size_t IdentityEx::GetSignatureLen ()
+	{		
+		if (!m_Verifier) 
+			CreateVerifier ();
+		if (m_Verifier)
+			return m_Verifier->GetSignatureLen ();
+		return 40;
+	}	
 	bool IdentityEx::Verify (const uint8_t * buf, size_t len, const uint8_t * signature)
 	{
 		if (!m_Verifier) 

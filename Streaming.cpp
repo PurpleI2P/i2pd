@@ -132,9 +132,7 @@ namespace stream
 		
 		const uint8_t * optionData = packet->GetOptionData ();
 		if (flags & PACKET_FLAG_SYNCHRONIZE)
-		{
 			LogPrint ("Synchronize");
-		}	
 
 		if (flags & PACKET_FLAG_DELAY_REQUESTED)
 		{
@@ -143,10 +141,10 @@ namespace stream
 		
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
-			optionData += m_RemoteIdentity.FromBuffer (optionData, i2p::data::DEFAULT_IDENTITY_SIZE);
-			LogPrint ("From identity ", m_RemoteIdentity.Hash ().ToBase64 ());		
+			optionData += m_RemoteIdentity.FromBuffer (optionData, packet->GetOptionSize ());
+			LogPrint ("From identity ", m_RemoteIdentity.GetIdentHash ().ToBase64 ());		
 			if (!m_RemoteLeaseSet)
-				LogPrint ("Incoming stream from ", m_RemoteIdentity.Hash ().ToBase64 ());
+				LogPrint ("Incoming stream from ", m_RemoteIdentity.GetIdentHash ().ToBase64 ());
 		}	
 
 		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
@@ -159,7 +157,18 @@ namespace stream
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
 			LogPrint ("Signature");
-			optionData += 40;
+			uint8_t signature[256]; 
+			auto signatureLen = m_RemoteIdentity.GetSignatureLen ();
+			memcpy (signature, optionData, signatureLen);
+			memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
+			if (!m_RemoteIdentity.Verify (packet->GetBuffer (), packet->GetLength (), signature))
+			{  
+				LogPrint ("Signature verification failed");
+			    Close ();
+				flags |= PACKET_FLAG_CLOSE;
+			}	
+			memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
+			optionData += signatureLen;
 		}	
 
 		packet->offset = packet->GetPayload () - packet->buf;
@@ -473,9 +482,9 @@ namespace stream
 	{
 		if (!m_RemoteLeaseSet)
 		{
-			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (m_RemoteIdentity.Hash ());
+			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (m_RemoteIdentity.GetIdentHash ());
 			if (!m_RemoteLeaseSet)	
-				LogPrint ("LeaseSet ", m_RemoteIdentity.Hash ().ToBase64 (), " not found");
+				LogPrint ("LeaseSet ", m_RemoteIdentity.GetIdentHash ().ToBase64 (), " not found");
 		}
 		if (m_RemoteLeaseSet)
 		{
