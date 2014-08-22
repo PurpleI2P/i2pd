@@ -135,7 +135,7 @@ namespace data
 							m_Verifier = new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey);
 						break;
 						case PUBLIC_KEY_TYPE_ECDSA_SHA256_P256:
-							m_Verifier = new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey);
+							m_Verifier = new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + 64);
 						break;	
 						default:
 							LogPrint ("Signing key type ", keyType, " is not supported");
