@@ -33,6 +33,123 @@ namespace data
 		return DEFAULT_IDENTITY_SIZE;
 	}
 
+	IdentityEx::IdentityEx ():
+		m_Verifier (nullptr), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+	{
+	}
+	
+	IdentityEx::IdentityEx (const uint8_t * buf, size_t len):
+		m_Verifier (nullptr), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+	{
+		FromBuffer (buf, len);
+	}
+
+	IdentityEx::IdentityEx (const IdentityEx& other):
+		m_Verifier (nullptr), m_ExtendedBuffer (nullptr)
+	{
+		*this = other;
+	}	
+		
+	IdentityEx::~IdentityEx ()
+	{
+		delete m_Verifier;
+		delete[] m_ExtendedBuffer;
+	}	
+
+	IdentityEx& IdentityEx::operator=(const IdentityEx& other)
+	{
+		memcpy (&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
+		m_IdentHash = other.m_IdentHash;
+		
+		delete m_Verifier;
+		m_Verifier = nullptr;
+		
+		delete[] m_ExtendedBuffer;
+		m_ExtendedLen = other.m_ExtendedLen;
+		if (m_ExtendedLen > 0)
+		{	
+			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
+			memcpy (m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
+		}	        
+		else
+			m_ExtendedBuffer = nullptr;
+
+		return *this;
+	}	
+
+	size_t IdentityEx::FromBuffer (const uint8_t * buf, size_t len)
+	{
+		delete m_Verifier;
+		m_Verifier = nullptr;
+		delete[] m_ExtendedBuffer;
+		
+		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
+		if (m_StandardIdentity.certificate.length)
+		{
+			m_ExtendedLen = be16toh (m_StandardIdentity.certificate.length);
+			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
+			memcpy (m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
+		}		
+		else
+		{
+			m_ExtendedLen = 0;
+			m_ExtendedBuffer = nullptr;
+		}	
+		CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen ());
+		return GetFullLen ();
+	}	
+
+	size_t IdentityEx::GetSigningPublicKeyLen () 
+	{
+		if (!m_Verifier) 
+			CreateVerifier ();
+		if (m_Verifier)
+			return m_Verifier->GetPublicKeyLen ();
+		return 128;
+	}	
+		
+	bool IdentityEx::Verify (const uint8_t * buf, size_t len, const uint8_t * signature)
+	{
+		if (!m_Verifier) 
+			CreateVerifier ();
+		if (m_Verifier)
+			return m_Verifier->Verify (buf, len, signature);
+		return false;
+	}	
+		
+	void IdentityEx::CreateVerifier ()
+	{
+		switch (m_StandardIdentity.certificate.type)
+		{	
+			case CERTIFICATE_TYPE_NULL:
+				m_Verifier = new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey);
+			break;
+			case CERTIFICATE_TYPE_KEY:
+			{	
+				if (m_ExtendedBuffer)
+				{
+					uint16_t keyType = be16toh (*(uint16_t *)m_ExtendedBuffer); // sigining key
+					switch (keyType)
+					{
+						case PUBLIC_KEY_TYPE_DSA_SHA1:
+							m_Verifier = new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey);
+						break;
+						case PUBLIC_KEY_TYPE_ECDSA_SHA256_P256:
+							m_Verifier = new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey);
+						break;	
+						default:
+							LogPrint ("Signing key type ", keyType, " is not supported");
+					}	
+				}
+				else
+					LogPrint ("Missing certificate payload");
+				break;
+			}	
+			default:
+				LogPrint ("Certificate type ", m_StandardIdentity.certificate.type, " is not supported");
+		}	
+	}	
+		
 	IdentHash Identity::Hash() const 
 	{
 		IdentHash hash;

@@ -80,7 +80,9 @@ namespace data
 	const uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;	
 	const uint8_t CERTIFICATE_TYPE_KEY = 5;
 
-	const size_t DEFAULT_IDENTITY_SIZE = 387;
+	const uint16_t PUBLIC_KEY_TYPE_DSA_SHA1 = 0;
+	const uint16_t PUBLIC_KEY_TYPE_ECDSA_SHA256_P256 = 1;
+	
 	struct Identity
 	{
 		uint8_t publicKey[256];
@@ -95,6 +97,37 @@ namespace data
 		bool FromBase64(const std::string& );
 		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash() const;
+	};	
+	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
+
+	class IdentityEx
+	{
+		public:
+
+			IdentityEx ();
+			IdentityEx (const uint8_t * buf, size_t len);
+			IdentityEx (const IdentityEx& other);
+			~IdentityEx ();
+			IdentityEx& operator=(const IdentityEx& other);
+
+			size_t FromBuffer (const uint8_t * buf, size_t len);
+			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
+			const IdentHash& GetIdentHash () const { return m_IdentHash; };
+			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
+			size_t GetSigningPublicKeyLen ();
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature);
+			
+		private:
+
+			void CreateVerifier ();
+			
+		private:
+
+			Identity m_StandardIdentity;
+			IdentHash m_IdentHash;
+			i2p::crypto::Verifier * m_Verifier;
+			size_t m_ExtendedLen;
+			uint8_t * m_ExtendedBuffer;
 	};	
 	
 	struct PrivateKeys // for eepsites

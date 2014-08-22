@@ -18,6 +18,8 @@ namespace crypto
 			
 			virtual ~Verifier () {};
 			virtual bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) = 0;
+			virtual size_t GetPublicKeyLen () const = 0;
+			virtual size_t GetSignatureLen () const = 0;
 	};
 
 	class DSAVerifier: public Verifier
@@ -35,6 +37,9 @@ namespace crypto
 				return verifier.VerifyMessage (buf, len, signature, 40);
 			}	
 
+			size_t GetPublicKeyLen () const { return 128; };
+			size_t GetSignatureLen () const { return 40; };
+			
 		private:
 
 			CryptoPP::DSA::PublicKey m_PublicKey;
@@ -57,6 +62,9 @@ namespace crypto
 				return verifier.VerifyMessage (buf, len, signature, 64);
 			}	
 
+			size_t GetPublicKeyLen () const { return 64; };
+			size_t GetSignatureLen () const { return 64; };
+			
 		private:
 
 			CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey m_PublicKey;
