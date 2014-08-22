@@ -110,7 +110,7 @@ namespace data
 						{
 							case eI2NPDatabaseStore:	
 								LogPrint ("DatabaseStore");
-								HandleDatabaseStoreMsg (msg->GetPayload (), msg->GetLength ()); // TODO
+								HandleDatabaseStoreMsg (msg->GetPayload (), be16toh (msg->GetHeader ()->size)); // TODO
 								i2p::DeleteI2NPMessage (msg);
 							break;
 							case eI2NPDatabaseSearchReply:
