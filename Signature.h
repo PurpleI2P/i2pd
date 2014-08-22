@@ -5,6 +5,7 @@
 #include <cryptopp/dsa.h>
 #include <cryptopp/asn.h>
 #include <cryptopp/oids.h>
+#include <cryptopp/osrng.h>
 #include <cryptopp/eccrypto.h>
 #include "CryptoConst.h"
 
@@ -20,6 +21,14 @@ namespace crypto
 			virtual bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) = 0;
 			virtual size_t GetPublicKeyLen () const = 0;
 			virtual size_t GetSignatureLen () const = 0;
+	};
+
+	class Singer
+	{
+		public:
+
+			virtual ~Singer () {};		
+			virtual void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) = 0; 
 	};
 
 	class DSAVerifier: public Verifier
@@ -43,6 +52,26 @@ namespace crypto
 		private:
 
 			CryptoPP::DSA::PublicKey m_PublicKey;
+	};
+
+	class DSASinger: public Singer
+	{
+		public:
+
+			DSASinger (const uint8_t * signingPrivateKey)
+			{
+				m_PrivateKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingPrivateKey, 20));
+			}
+
+			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature)
+			{
+				CryptoPP::DSA::Signer signer (m_PrivateKey);
+				signer.SignMessage (rnd, buf, len, signature);
+			}
+
+		private:
+
+			CryptoPP::DSA::PrivateKey m_PrivateKey;
 	};
 
 	class ECDSAP256Verifier: public Verifier
@@ -69,6 +98,26 @@ namespace crypto
 
 			CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey m_PublicKey;
 	};	
+
+	class ECDSAP256Singer: public Singer
+	{
+		public:
+
+			ECDSAP256Singer (const uint8_t * signingPrivateKey)
+			{
+				m_PrivateKey.Initialize (CryptoPP::ASN1::secp256r1(), CryptoPP::Integer (signingPrivateKey, 32));
+			}
+
+			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature)
+			{
+				CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Signer signer (m_PrivateKey);
+				signer.SignMessage (rnd, buf, len, signature);
+			}
+
+		private:
+
+			CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey m_PrivateKey;
+	};
 }
 }
 
