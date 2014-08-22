@@ -23,11 +23,11 @@ namespace crypto
 			virtual size_t GetSignatureLen () const = 0;
 	};
 
-	class Singer
+	class Signer
 	{
 		public:
 
-			virtual ~Singer () {};		
+			virtual ~Signer () {};		
 			virtual void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) = 0; 
 	};
 
@@ -54,11 +54,11 @@ namespace crypto
 			CryptoPP::DSA::PublicKey m_PublicKey;
 	};
 
-	class DSASinger: public Singer
+	class DSASigner: public Signer
 	{
 		public:
 
-			DSASinger (const uint8_t * signingPrivateKey)
+			DSASigner (const uint8_t * signingPrivateKey)
 			{
 				m_PrivateKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingPrivateKey, 20));
 			}
@@ -73,6 +73,16 @@ namespace crypto
 
 			CryptoPP::DSA::PrivateKey m_PrivateKey;
 	};
+
+	inline void CreateDSARandomKeys (CryptoPP::RandomNumberGenerator& rnd, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		CryptoPP::DSA::PrivateKey privateKey;
+		CryptoPP::DSA::PublicKey publicKey;
+		privateKey.Initialize (rnd, dsap, dsaq, dsag);
+		privateKey.MakePublicKey (publicKey);
+		privateKey.GetPrivateExponent ().Encode (signingPrivateKey, 20);	
+		publicKey.GetPublicElement ().Encode (signingPublicKey, 128);
+	}	
 
 	class ECDSAP256Verifier: public Verifier
 	{
@@ -99,11 +109,11 @@ namespace crypto
 			CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey m_PublicKey;
 	};	
 
-	class ECDSAP256Singer: public Singer
+	class ECDSAP256Signer: public Signer
 	{
 		public:
 
-			ECDSAP256Singer (const uint8_t * signingPrivateKey)
+			ECDSAP256Signer (const uint8_t * signingPrivateKey)
 			{
 				m_PrivateKey.Initialize (CryptoPP::ASN1::secp256r1(), CryptoPP::Integer (signingPrivateKey, 32));
 			}
@@ -118,6 +128,18 @@ namespace crypto
 
 			CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey m_PrivateKey;
 	};
+
+	inline void CreateECDSAP256RandomKeys (CryptoPP::RandomNumberGenerator& rnd, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privateKey;
+		CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey publicKey;
+		privateKey.Initialize (rnd, CryptoPP::ASN1::secp256r1());
+		privateKey.MakePublicKey (publicKey);
+		privateKey.GetPrivateExponent ().Encode (signingPrivateKey, 32);	
+		auto q = publicKey.GetPublicElement ();
+		q.x.Encode (signingPublicKey, 32);
+		q.y.Encode (signingPublicKey + 32, 32);
+	}	
 }
 }
 
