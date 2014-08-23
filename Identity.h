@@ -118,17 +118,17 @@ namespace data
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
 			size_t GetSignatureLen () const;
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature);
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			
 		private:
 
-			void CreateVerifier () const;
+			void CreateVerifier ();
 			
 		private:
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			mutable i2p::crypto::Verifier * m_Verifier;
+			i2p::crypto::Verifier * m_Verifier;
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};	

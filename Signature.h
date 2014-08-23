@@ -18,7 +18,7 @@ namespace crypto
 		public:
 			
 			virtual ~Verifier () {};
-			virtual bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) = 0;
+			virtual bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const = 0;
 			virtual size_t GetPublicKeyLen () const = 0;
 			virtual size_t GetSignatureLen () const = 0;
 	};
@@ -28,7 +28,7 @@ namespace crypto
 		public:
 
 			virtual ~Signer () {};		
-			virtual void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) = 0; 
+			virtual void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const = 0; 
 	};
 
 	class DSAVerifier: public Verifier
@@ -40,7 +40,7 @@ namespace crypto
 				m_PublicKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingKey, 128));
 			}
 	
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature)
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				CryptoPP::DSA::Verifier verifier (m_PublicKey);
 				return verifier.VerifyMessage (buf, len, signature, 40);
@@ -63,7 +63,7 @@ namespace crypto
 				m_PrivateKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingPrivateKey, 20));
 			}
 
-			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature)
+			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const
 			{
 				CryptoPP::DSA::Signer signer (m_PrivateKey);
 				signer.SignMessage (rnd, buf, len, signature);
@@ -95,7 +95,7 @@ namespace crypto
 					CryptoPP::Integer (signingKey + 32, 32)));
 			}			
 
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature)
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier (m_PublicKey);
 				return verifier.VerifyMessage (buf, len, signature, 64);
@@ -118,7 +118,7 @@ namespace crypto
 				m_PrivateKey.Initialize (CryptoPP::ASN1::secp256r1(), CryptoPP::Integer (signingPrivateKey, 32));
 			}
 
-			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature)
+			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const
 			{
 				CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Signer signer (m_PrivateKey);
 				signer.SignMessage (rnd, buf, len, signature);

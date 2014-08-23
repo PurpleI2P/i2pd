@@ -46,9 +46,8 @@ namespace data
 			m_BufferLen += sizeof (Lease);
 		}	
 		// signature
-		// TODO: signer
 		localDestination.Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
-		m_BufferLen += 40; // TODO:
+		m_BufferLen += localDestination.GetIdentity ().GetSignatureLen (); 
 		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
 
 		ReadFromBuffer ();

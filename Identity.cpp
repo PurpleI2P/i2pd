@@ -61,9 +61,6 @@ namespace data
 		memcpy (&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
 		m_IdentHash = other.m_IdentHash;
 		
-		delete m_Verifier;
-		m_Verifier = nullptr;
-		
 		delete[] m_ExtendedBuffer;
 		m_ExtendedLen = other.m_ExtendedLen;
 		if (m_ExtendedLen > 0)
@@ -73,7 +70,10 @@ namespace data
 		}	        
 		else
 			m_ExtendedBuffer = nullptr;
-
+		
+		delete m_Verifier;
+		CreateVerifier ();
+		
 		return *this;
 	}	
 
@@ -82,22 +82,21 @@ namespace data
 		m_StandardIdentity = standard;
 		m_IdentHash = m_StandardIdentity.Hash ();
 		
-		delete m_Verifier;
-		m_Verifier = nullptr;
 		delete[] m_ExtendedBuffer;
 		m_ExtendedBuffer = nullptr;
 		m_ExtendedLen = 0;
+
+		delete m_Verifier;
+		CreateVerifier ();
 		
 		return *this;
 	}	
 		
 	size_t IdentityEx::FromBuffer (const uint8_t * buf, size_t len)
 	{
-		delete m_Verifier;
-		m_Verifier = nullptr;
-		delete[] m_ExtendedBuffer;
-		
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
+
+		delete[] m_ExtendedBuffer;
 		if (m_StandardIdentity.certificate.length)
 		{
 			m_ExtendedLen = be16toh (m_StandardIdentity.certificate.length);
@@ -110,6 +109,10 @@ namespace data
 			m_ExtendedBuffer = nullptr;
 		}	
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen ());
+		
+		delete m_Verifier;
+		CreateVerifier ();
+		
 		return GetFullLen ();
 	}	
 
@@ -123,8 +126,6 @@ namespace data
 		
 	size_t IdentityEx::GetSigningPublicKeyLen () const
 	{
-		if (!m_Verifier) 
-			CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->GetPublicKeyLen ();
 		return 128;
@@ -132,22 +133,18 @@ namespace data
 
 	size_t IdentityEx::GetSignatureLen () const
 	{		
-		if (!m_Verifier) 
-			CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->GetSignatureLen ();
 		return 40;
 	}	
-	bool IdentityEx::Verify (const uint8_t * buf, size_t len, const uint8_t * signature)
+	bool IdentityEx::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const 
 	{
-		if (!m_Verifier) 
-			CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->Verify (buf, len, signature);
 		return false;
 	}	
 		
-	void IdentityEx::CreateVerifier () const
+	void IdentityEx::CreateVerifier () 
 	{
 		switch (m_StandardIdentity.certificate.type)
 		{	
