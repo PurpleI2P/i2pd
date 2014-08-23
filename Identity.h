@@ -93,6 +93,8 @@ namespace data
 			uint16_t length;
 		} certificate;	
 
+		Identity () = default;
+		Identity (const Keys& keys) { *this = keys; };
 		Identity& operator=(const Keys& keys);
 		bool FromBase64(const std::string& );
 		size_t FromBuffer (const uint8_t * buf, size_t len);
@@ -133,17 +135,27 @@ namespace data
 			uint8_t * m_ExtendedBuffer;
 	};	
 	
-	struct PrivateKeys // for eepsites
+	class PrivateKeys // for eepsites
 	{
-		Identity pub;
-		uint8_t privateKey[256];
-		uint8_t signingPrivateKey[20];	
+		public:
+			
+			PrivateKeys () = default;
+			PrivateKeys (const PrivateKeys& ) = default;
+			PrivateKeys (const Keys& keys) { *this = keys; };
+			PrivateKeys& operator=(const Keys& keys);
 
-		PrivateKeys () = default;
-		PrivateKeys (const PrivateKeys& ) = default;
-		PrivateKeys (const Keys& keys) { *this = keys; };
-		
-		PrivateKeys& operator=(const Keys& keys);
+			const IdentityEx& GetPublic () const { return m_Public; };
+			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
+			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
+
+			size_t FromBuffer (const uint8_t * buf, size_t len);
+			size_t ToBuffer (uint8_t * buf, size_t len) const;
+			
+		private:
+
+			IdentityEx m_Public;
+			uint8_t m_PrivateKey[256];
+			uint8_t m_SigningPrivateKey[128]; // assume private key doesn't exceed 128 bytes
 	};
 	
 #pragma pack()

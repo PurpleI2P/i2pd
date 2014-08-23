@@ -186,12 +186,34 @@ namespace data
 	
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
 	{
-		pub = keys;
-		memcpy (privateKey, keys.privateKey, 276); // 256 + 20
+		m_Public = Identity (keys);
+		memcpy (m_PrivateKey, keys.privateKey, 256); // 256 
+		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, 20); // 20 - DSA	
 		return *this;
 	}
 
-
+	size_t PrivateKeys::FromBuffer (const uint8_t * buf, size_t len)
+	{
+		size_t ret = m_Public.FromBuffer (buf, len);
+		memcpy (m_PrivateKey, buf + ret, 256); // private key always 256
+		ret += 256;
+		size_t signingPrivateKeySize = m_Public.GetSignatureLen ()/2; // 20 for DSA
+		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize); 
+		ret += signingPrivateKeySize;
+		return ret;
+	}
+		
+	size_t PrivateKeys::ToBuffer (uint8_t * buf, size_t len) const
+	{
+		size_t ret = m_Public.ToBuffer (buf, len);
+		memcpy (buf + ret, m_PrivateKey, 256); // private key always 256
+		ret += 256;
+		size_t signingPrivateKeySize = m_Public.GetSignatureLen ()/2; // 20 for DSA
+		memcpy (buf + ret, m_SigningPrivateKey, signingPrivateKeySize); 
+		ret += signingPrivateKeySize;
+		return ret;
+	}	
+		
 	Keys CreateRandomKeys ()
 	{
 		Keys keys;		

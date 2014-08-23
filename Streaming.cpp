@@ -506,10 +506,8 @@ namespace stream
 		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (false)
 	{		
 		m_Keys = i2p::data::CreateRandomKeys ();
-
-		m_Identity = m_Keys.pub;
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
-			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+			CryptoPP::Integer (m_Keys.GetSigningPrivateKey (), 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
@@ -520,13 +518,20 @@ namespace stream
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
-			s.read ((char *)&m_Keys, sizeof (m_Keys));
+		{	
+			s.seekg (0, std::ios::end);
+			size_t len = s.tellg();
+			s.seekg (0, std::ios::beg);
+			uint8_t * buf = new uint8_t[len];
+			s.read ((char *)buf, len);
+			m_Keys.FromBuffer (buf, len);
+			delete[] buf;
+		}	
 		else
 			LogPrint ("Can't open file ", fullPath);
 
-		m_Identity = m_Keys.pub;
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
-			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+			CryptoPP::Integer (m_Keys.GetSigningPrivateKey (), 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
