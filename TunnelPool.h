@@ -30,7 +30,7 @@ namespace tunnel
 			const uint8_t * GetEncryptionPrivateKey () const { return m_LocalDestination.GetEncryptionPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };
 			const i2p::data::LocalDestination& GetLocalDestination () const { return m_LocalDestination; };
-			bool IsExploratory () const { return m_LocalDestination.GetIdentHash () == i2p::context.GetIdentHash (); };		
+			bool IsExploratory () const { return GetIdentHash () == i2p::context.GetRouterIdentHash (); };		
 
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);
@@ -40,7 +40,7 @@ namespace tunnel
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
 			OutboundTunnel * GetNextOutboundTunnel (OutboundTunnel * suggested = nullptr);
 			InboundTunnel * GetNextInboundTunnel (InboundTunnel * suggested = nullptr);
-			const i2p::data::IdentHash& GetIdentHash () { return m_LocalDestination.GetIdentHash (); };			
+			const i2p::data::IdentHash& GetIdentHash () const { return m_LocalDestination.GetIdentity ().GetIdentHash (); };			
 
 			void TestTunnels ();
 			void ProcessDeliveryStatus (I2NPMessage * msg);

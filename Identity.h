@@ -109,24 +109,26 @@ namespace data
 			IdentityEx (const IdentityEx& other);
 			~IdentityEx ();
 			IdentityEx& operator=(const IdentityEx& other);
-
+			IdentityEx& operator=(const Identity& standard);
+			
 			size_t FromBuffer (const uint8_t * buf, size_t len);
+			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
-			size_t GetSigningPublicKeyLen ();
-			size_t GetSignatureLen ();
+			size_t GetSigningPublicKeyLen () const;
+			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature);
 			
 		private:
 
-			void CreateVerifier ();
+			void CreateVerifier () const;
 			
 		private:
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			i2p::crypto::Verifier * m_Verifier;
+			mutable i2p::crypto::Verifier * m_Verifier;
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};	
@@ -201,8 +203,7 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual const IdentHash& GetIdentHash () const = 0;
-			virtual const Identity& GetIdentity () const = 0;
+			virtual const IdentityEx& GetIdentity () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
 			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;

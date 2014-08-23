@@ -153,8 +153,7 @@ namespace stream
 			void HandleNextPacket (Packet * packet);
 
 			// implements LocalDestination
-			const i2p::data::IdentHash& GetIdentHash () const { return m_IdentHash; };
-			const i2p::data::Identity& GetIdentity () const { return m_Keys.pub; };
+			const i2p::data::IdentityEx& GetIdentity () const { return m_Identity; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
@@ -170,7 +169,7 @@ namespace stream
 			boost::asio::io_service& m_Service;
 			std::map<uint32_t, Stream *> m_Streams;
 			i2p::data::PrivateKeys m_Keys;
-			i2p::data::IdentHash m_IdentHash;
+			i2p::data::IdentityEx m_Identity;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 			
 			i2p::tunnel::TunnelPool * m_Pool;

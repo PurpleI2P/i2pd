@@ -44,6 +44,7 @@ namespace i2p
 		routerInfo.CreateBuffer ();
 
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
+		m_Identity = m_RouterInfo.GetRouterIdentity ();
 	}
 
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
@@ -84,7 +85,8 @@ namespace i2p
 
 		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
-
+		m_Identity = m_RouterInfo.GetRouterIdentity ();
+		
 		return true;
 	}
 

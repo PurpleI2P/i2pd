@@ -34,14 +34,6 @@ namespace data
 		}	
 	};	
 	
-	struct LeaseSetHeader
-	{
-		Identity destination;
-		uint8_t encryptionKey[256];
-		uint8_t signingKey[128];
-		uint8_t num;
-	};	
-	
 #pragma pack()	
 
 	const int MAX_LS_BUFFER_SIZE = 2048;	

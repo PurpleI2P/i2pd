@@ -77,6 +77,20 @@ namespace data
 		return *this;
 	}	
 
+	IdentityEx& IdentityEx::operator=(const Identity& standard)
+	{
+		m_StandardIdentity = standard;
+		m_IdentHash = m_StandardIdentity.Hash ();
+		
+		delete m_Verifier;
+		m_Verifier = nullptr;
+		delete[] m_ExtendedBuffer;
+		m_ExtendedBuffer = nullptr;
+		m_ExtendedLen = 0;
+		
+		return *this;
+	}	
+		
 	size_t IdentityEx::FromBuffer (const uint8_t * buf, size_t len)
 	{
 		delete m_Verifier;
@@ -99,7 +113,15 @@ namespace data
 		return GetFullLen ();
 	}	
 
-	size_t IdentityEx::GetSigningPublicKeyLen () 
+	size_t IdentityEx::ToBuffer (uint8_t * buf, size_t len) const
+	{		
+		memcpy (buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
+		if (m_ExtendedLen > 0 && m_ExtendedBuffer)
+			memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
+		return GetFullLen ();
+	}
+		
+	size_t IdentityEx::GetSigningPublicKeyLen () const
 	{
 		if (!m_Verifier) 
 			CreateVerifier ();
@@ -108,7 +130,7 @@ namespace data
 		return 128;
 	}	
 
-	size_t IdentityEx::GetSignatureLen ()
+	size_t IdentityEx::GetSignatureLen () const
 	{		
 		if (!m_Verifier) 
 			CreateVerifier ();
@@ -125,7 +147,7 @@ namespace data
 		return false;
 	}	
 		
-	void IdentityEx::CreateVerifier ()
+	void IdentityEx::CreateVerifier () const
 	{
 		switch (m_StandardIdentity.certificate.type)
 		{	

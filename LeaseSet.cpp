@@ -22,17 +22,18 @@ namespace data
 
 	LeaseSet::LeaseSet (const i2p::tunnel::TunnelPool& pool):
 		m_IsUnsolicited (false)
-	{
-		m_BufferLen = 0;	
+	{	
 		// header
 		const i2p::data::LocalDestination& localDestination = pool.GetLocalDestination ();
-		LeaseSetHeader * header = (LeaseSetHeader *)m_Buffer;
-		header->destination = localDestination.GetIdentity ();
-		memcpy (header->encryptionKey, localDestination.GetEncryptionPublicKey (), 256);
-		memset (header->signingKey, 0, 128);
+		m_BufferLen = localDestination.GetIdentity ().ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
+		memcpy (m_Buffer + m_BufferLen, localDestination.GetEncryptionPublicKey (), 256);
+		m_BufferLen += 256;
+		auto signingKeyLen = localDestination.GetIdentity ().GetSigningPublicKeyLen ();
+		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
+		m_BufferLen += signingKeyLen;
 		auto tunnels = pool.GetInboundTunnels (5); // 5 tunnels maximum
-		header->num = tunnels.size (); // num leases
-		m_BufferLen += sizeof (LeaseSetHeader);	
+		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
+		m_BufferLen++;
 		// leases
 		for (auto it: tunnels)
 		{	
@@ -45,8 +46,9 @@ namespace data
 			m_BufferLen += sizeof (Lease);
 		}	
 		// signature
+		// TODO: signer
 		localDestination.Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
-		m_BufferLen += 40;
+		m_BufferLen += 40; // TODO:
 		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
 
 		ReadFromBuffer ();
