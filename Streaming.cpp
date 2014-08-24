@@ -261,15 +261,17 @@ namespace stream
 				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
 				*(uint16_t *)(packet + size) = htobe16 (flags);
 				size += 2; // flags
-				*(uint16_t *)(packet + size) = htobe16 (i2p::data::DEFAULT_IDENTITY_SIZE + 40 + 2); // identity + signature + packet size
+				size_t identityLen = m_LocalDestination->GetIdentity ().GetFullLen ();
+				size_t signatureLen = m_LocalDestination->GetIdentity ().GetSignatureLen ();
+				*(uint16_t *)(packet + size) = htobe16 (identityLen + signatureLen + 2); // identity + signature + packet size
 				size += 2; // options size
-				memcpy (packet + size, &m_LocalDestination->GetIdentity (), i2p::data::DEFAULT_IDENTITY_SIZE); 
-				size += i2p::data::DEFAULT_IDENTITY_SIZE; // from
+				m_LocalDestination->GetIdentity ().ToBuffer (packet + size, identityLen); 
+				size += identityLen; // from
 				*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
 				size += 2; // max packet size
 				uint8_t * signature = packet + size; // set it later
-				memset (signature, 0, 40); // zeroes for now
-				size += 40; // signature
+				memset (signature, 0, signatureLen); // zeroes for now
+				size += signatureLen; // signature
 				size_t sentLen = STREAMING_MTU - size;
 				if (len < sentLen) sentLen = len;		
 				memcpy (packet + size, buf, sentLen); 
@@ -347,11 +349,12 @@ namespace stream
 			size++; // resend delay
 			*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 			size += 2; // flags
-			*(uint16_t *)(packet + size) = htobe16 (40); // 40 bytes signature
+			size_t signatureLen = m_LocalDestination->GetIdentity ().GetSignatureLen ();
+			*(uint16_t *)(packet + size) = htobe16 (signatureLen); // signature only
 			size += 2; // options size
 			uint8_t * signature = packet + size;
-			memset (packet + size, 0, 40);
-			size += 40; // signature
+			memset (packet + size, 0, signatureLen);
+			size += signatureLen; // signature
 			m_LocalDestination->Sign (packet, size, signature);
 			
 			p->len = size;
@@ -505,7 +508,7 @@ namespace stream
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service): 
 		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (false)
 	{		
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys ();
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (/*i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256*/); // uncomment for ECDSA
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel

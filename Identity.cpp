@@ -50,15 +50,18 @@ namespace data
 			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
 			*(uint16_t *)m_ExtendedBuffer = htobe16 (SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 			*(uint16_t *)(m_ExtendedBuffer + 2) = htobe16 (CRYPTO_KEY_TYPE_ELGAMAL);
+			uint8_t buf[DEFAULT_IDENTITY_SIZE + 4];
+			ToBuffer (buf, DEFAULT_IDENTITY_SIZE + 4);
+			CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen ());
 		}
 		else // DSA-SHA1
 		{
 			memcpy (m_StandardIdentity.signingKey, signingKey, sizeof (m_StandardIdentity.signingKey));
 			memset (&m_StandardIdentity.certificate, 0, sizeof (m_StandardIdentity.certificate));
+			m_IdentHash = m_StandardIdentity.Hash ();
 			m_ExtendedLen = 0;
 			m_ExtendedBuffer = nullptr;
 		}	
-		m_IdentHash = m_StandardIdentity.Hash ();
 		CreateVerifier ();
 	}	
 		
