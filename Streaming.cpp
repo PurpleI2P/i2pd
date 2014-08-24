@@ -505,7 +505,7 @@ namespace stream
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service): 
 		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (false)
 	{		
-		m_Keys = i2p::data::CreateRandomKeys ();
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys ();
 		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
 			CryptoPP::Integer (m_Keys.GetSigningPrivateKey (), 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);

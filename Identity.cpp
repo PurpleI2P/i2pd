@@ -29,7 +29,6 @@ namespace data
 	size_t Identity::FromBuffer (const uint8_t * buf, size_t len)
 	{
 		memcpy (publicKey, buf, DEFAULT_IDENTITY_SIZE);
-		// TODO: process certificate
 		return DEFAULT_IDENTITY_SIZE;
 	}
 
@@ -37,7 +36,31 @@ namespace data
 		m_Verifier (nullptr), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 	}
-	
+
+	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type)
+	{	
+		memcpy (m_StandardIdentity.publicKey, publicKey, sizeof (m_StandardIdentity.publicKey));
+		if (type == SIGNING_KEY_TYPE_ECDSA_SHA256_P256)
+		{
+			memcpy (m_StandardIdentity.signingKey + 64, signingKey, 64);
+			m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
+			m_ExtendedLen = 4; // 4 bytes extra
+			m_StandardIdentity.certificate.length = htobe16 (4); 
+			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
+			*(uint16_t *)m_ExtendedBuffer = htobe16 (SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+			*(uint16_t *)(m_ExtendedBuffer + 2) = htobe16 (CRYPTO_KEY_TYPE_ELGAMAL);
+		}
+		else // DSA-SHA1
+		{
+			memcpy (m_StandardIdentity.signingKey, signingKey, sizeof (m_StandardIdentity.signingKey));
+			memset (&m_StandardIdentity.certificate, 0, sizeof (m_StandardIdentity.certificate));
+			m_ExtendedLen = 0;
+			m_ExtendedBuffer = nullptr;
+		}	
+		m_IdentHash = m_StandardIdentity.Hash ();
+		CreateVerifier ();
+	}	
+		
 	IdentityEx::IdentityEx (const uint8_t * buf, size_t len):
 		m_Verifier (nullptr), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
@@ -143,38 +166,28 @@ namespace data
 			return m_Verifier->Verify (buf, len, signature);
 		return false;
 	}	
+
+	SigningKeyType IdentityEx::GetSigningKeyType () const
+	{
+		if (m_StandardIdentity.certificate.type == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
+			return be16toh (*(const uint16_t *)m_ExtendedBuffer); // signing key
+		return SIGNING_KEY_TYPE_DSA_SHA1;
+	}	
 		
 	void IdentityEx::CreateVerifier () 
 	{
-		switch (m_StandardIdentity.certificate.type)
-		{	
-			case CERTIFICATE_TYPE_NULL:
+		auto keyType = GetSigningKeyType ();
+		switch (keyType)
+		{
+			case SIGNING_KEY_TYPE_DSA_SHA1:
 				m_Verifier = new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey);
 			break;
-			case CERTIFICATE_TYPE_KEY:
-			{	
-				if (m_ExtendedBuffer)
-				{
-					uint16_t keyType = be16toh (*(uint16_t *)m_ExtendedBuffer); // sigining key
-					switch (keyType)
-					{
-						case PUBLIC_KEY_TYPE_DSA_SHA1:
-							m_Verifier = new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey);
-						break;
-						case PUBLIC_KEY_TYPE_ECDSA_SHA256_P256:
-							m_Verifier = new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + 64);
-						break;	
-						default:
-							LogPrint ("Signing key type ", keyType, " is not supported");
-					}	
-				}
-				else
-					LogPrint ("Missing certificate payload");
-				break;
-			}	
+			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+				m_Verifier = new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + 64);
+			break;	
 			default:
-				LogPrint ("Certificate type ", m_StandardIdentity.certificate.type, " is not supported");
-		}	
+				LogPrint ("Signing key type ", (int)keyType, " is not supported");
+		}			
 	}	
 		
 	IdentHash Identity::Hash() const 
@@ -213,24 +226,35 @@ namespace data
 		ret += signingPrivateKeySize;
 		return ret;
 	}	
+
+	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type)
+	{
+		if (type == SIGNING_KEY_TYPE_ECDSA_SHA256_P256)
+		{
+			PrivateKeys keys;
+			CryptoPP::AutoSeededRandomPool rnd;
+			// encryption
+			uint8_t publicKey[256];
+			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+			dh.GenerateKeyPair(rnd, keys.m_PrivateKey, publicKey);
+			// signature
+			uint8_t signingPublicKey[64];
+			i2p::crypto::CreateECDSAP256RandomKeys (rnd, keys.m_SigningPrivateKey, signingPublicKey);
+			keys.m_Public = IdentityEx (publicKey, signingPublicKey, SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+			return keys;
+		}	
+		return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
+	}	
 		
 	Keys CreateRandomKeys ()
 	{
 		Keys keys;		
 		CryptoPP::AutoSeededRandomPool rnd;
-
 		// encryption
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(rnd, keys.privateKey, keys.publicKey);
-
 		// signing
-		CryptoPP::DSA::PrivateKey privateKey;
-		CryptoPP::DSA::PublicKey publicKey;
-		privateKey.Initialize (rnd, i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag);
-		privateKey.MakePublicKey (publicKey);
-		privateKey.GetPrivateExponent ().Encode (keys.signingPrivateKey, 20);	
-		publicKey.GetPublicElement ().Encode (keys.signingKey, 128);
-		
+		i2p::crypto::CreateDSARandomKeys (rnd, keys.signingPrivateKey, keys.signingKey);	
 		return keys;
 	}	
 

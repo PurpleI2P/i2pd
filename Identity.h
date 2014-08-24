@@ -80,9 +80,6 @@ namespace data
 	const uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;	
 	const uint8_t CERTIFICATE_TYPE_KEY = 5;
 
-	const uint16_t PUBLIC_KEY_TYPE_DSA_SHA1 = 0;
-	const uint16_t PUBLIC_KEY_TYPE_ECDSA_SHA256_P256 = 1;
-	
 	struct Identity
 	{
 		uint8_t publicKey[256];
@@ -102,11 +99,18 @@ namespace data
 	};	
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
 
+	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
+	const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
+	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
+	typedef uint16_t SigningKeyType;
+	
 	class IdentityEx
 	{
 		public:
 
 			IdentityEx ();
+			IdentityEx (const uint8_t * publicKey, const uint8_t * signingKey,
+				SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
 			IdentityEx (const uint8_t * buf, size_t len);
 			IdentityEx (const IdentityEx& other);
 			~IdentityEx ();
@@ -121,6 +125,7 @@ namespace data
 			size_t GetSigningPublicKeyLen () const;
 			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
+			SigningKeyType GetSigningKeyType () const;
 			
 		private:
 
@@ -150,7 +155,9 @@ namespace data
 
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
-			
+
+			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+				
 		private:
 
 			IdentityEx m_Public;
