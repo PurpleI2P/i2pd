@@ -175,7 +175,6 @@ namespace stream
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;			
 
-			CryptoPP::DSA::PrivateKey m_SigningPrivateKey;
 			std::function<void (Stream *)> m_Acceptor;
 	};	
 

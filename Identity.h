@@ -144,25 +144,33 @@ namespace data
 	{
 		public:
 			
-			PrivateKeys () = default;
-			PrivateKeys (const PrivateKeys& ) = default;
-			PrivateKeys (const Keys& keys) { *this = keys; };
+			PrivateKeys (): m_Signer (nullptr) {};
+			PrivateKeys (const PrivateKeys& other): m_Signer (nullptr) { *this = other; };
+			PrivateKeys (const Keys& keys): m_Signer (nullptr) { *this = keys; };
 			PrivateKeys& operator=(const Keys& keys);
-
+			PrivateKeys& operator=(const PrivateKeys& other);
+			~PrivateKeys () { delete m_Signer; };
+			
 			const IdentityEx& GetPublic () const { return m_Public; };
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
-
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 
 			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
-				
+	
+		private:
+
+			void CreateSigner ();
+			
 		private:
 
 			IdentityEx m_Public;
 			uint8_t m_PrivateKey[256];
 			uint8_t m_SigningPrivateKey[128]; // assume private key doesn't exceed 128 bytes
+			i2p::crypto::Signer * m_Signer;
 	};
 	
 #pragma pack()

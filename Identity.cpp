@@ -4,9 +4,10 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/dh.h>
 #include <cryptopp/dsa.h>
-#include "CryptoConst.h"
-#include "Identity.h"
 #include "base64.h"
+#include "CryptoConst.h"
+#include "RouterContext.h"
+#include "Identity.h"
 
 namespace i2p
 {
@@ -201,10 +202,22 @@ namespace data
 	{
 		m_Public = Identity (keys);
 		memcpy (m_PrivateKey, keys.privateKey, 256); // 256 
-		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, 20); // 20 - DSA	
+		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, 20); // 20 - DSA
+		delete m_Signer;
+		CreateSigner ();
 		return *this;
 	}
 
+	PrivateKeys& PrivateKeys::operator=(const PrivateKeys& other)
+	{		
+		m_Public = other.m_Public;
+		memcpy (m_PrivateKey, other.m_PrivateKey, 256); // 256 
+		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, 128); // 128
+		delete m_Signer;
+		CreateSigner ();
+		return *this;
+	}	
+		
 	size_t PrivateKeys::FromBuffer (const uint8_t * buf, size_t len)
 	{
 		size_t ret = m_Public.FromBuffer (buf, len);
@@ -213,6 +226,8 @@ namespace data
 		size_t signingPrivateKeySize = m_Public.GetSignatureLen ()/2; // 20 for DSA
 		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize); 
 		ret += signingPrivateKeySize;
+		delete m_Signer;
+		CreateSigner ();
 		return ret;
 	}
 		
@@ -227,12 +242,26 @@ namespace data
 		return ret;
 	}	
 
+	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	{
+		if (m_Signer)
+			m_Signer->Sign (i2p::context.GetRandomNumberGenerator (), buf, len, signature);
+	}			
+
+	void PrivateKeys::CreateSigner ()
+	{
+		if (m_Public.GetSigningKeyType () == SIGNING_KEY_TYPE_ECDSA_SHA256_P256)
+			m_Signer = new i2p::crypto::ECDSAP256Signer (m_SigningPrivateKey);
+		else
+			m_Signer = new i2p::crypto::DSASigner (m_SigningPrivateKey);
+	}	
+		
 	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type)
 	{
 		if (type == SIGNING_KEY_TYPE_ECDSA_SHA256_P256)
 		{
 			PrivateKeys keys;
-			CryptoPP::AutoSeededRandomPool rnd;
+			auto& rnd = i2p::context.GetRandomNumberGenerator ();
 			// encryption
 			uint8_t publicKey[256];
 			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
@@ -241,6 +270,7 @@ namespace data
 			uint8_t signingPublicKey[64];
 			i2p::crypto::CreateECDSAP256RandomKeys (rnd, keys.m_SigningPrivateKey, signingPublicKey);
 			keys.m_Public = IdentityEx (publicKey, signingPublicKey, SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+			keys.CreateSigner ();
 			return keys;
 		}	
 		return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
@@ -249,7 +279,7 @@ namespace data
 	Keys CreateRandomKeys ()
 	{
 		Keys keys;		
-		CryptoPP::AutoSeededRandomPool rnd;
+		auto& rnd = i2p::context.GetRandomNumberGenerator ();
 		// encryption
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(rnd, keys.privateKey, keys.publicKey);

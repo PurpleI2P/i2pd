@@ -506,8 +506,6 @@ namespace stream
 		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (false)
 	{		
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys ();
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
-			CryptoPP::Integer (m_Keys.GetSigningPrivateKey (), 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
@@ -530,8 +528,6 @@ namespace stream
 		else
 			LogPrint ("Can't open file ", fullPath);
 
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, 
-			CryptoPP::Integer (m_Keys.GetSigningPrivateKey (), 20));
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
@@ -622,8 +618,7 @@ namespace stream
 		
 	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
-		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, len, signature);
+		m_Keys.Sign(buf, len, signature);
 	}
 
 	StreamingDestinations destinations;	
