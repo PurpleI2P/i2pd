@@ -498,13 +498,16 @@ namespace data
 								if (!dest->IsExcluded (r->GetIdentHash ()) && dest->GetNumExcludedPeers () < 30) // TODO: fix TunnelGateway first
 								{	
 									LogPrint ("Try ", key, " at floodfill ", peerHash); 
-									// tell floodfill about us 
-									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-										{ 
-											i2p::tunnel::eDeliveryTypeRouter,
-											r->GetIdentHash (), 0,
-											CreateDatabaseStoreMsg () 
-										});  
+									if (!dest->IsLeaseSet ())
+									{	
+										// tell floodfill about us 
+										msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+											{ 
+												i2p::tunnel::eDeliveryTypeRouter,
+												r->GetIdentHash (), 0,
+												CreateDatabaseStoreMsg () 
+											});  
+									}	
 									// request destination
 									auto msg = dest->CreateRequestMessage (r, inbound);
 									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
