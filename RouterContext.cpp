@@ -20,18 +20,13 @@ namespace i2p
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::CreateRandomKeys ();
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag,
-			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
 		UpdateRouterInfo ();
 	}
 
 	void RouterContext::UpdateRouterInfo ()
 	{
-		i2p::data::Identity ident;
-		ident = m_Keys;
-
 		i2p::data::RouterInfo routerInfo;
-		routerInfo.SetRouterIdentity (ident);
+		routerInfo.SetRouterIdentity (GetIdentity ().GetStandardIdentity ());
 		routerInfo.AddSSUAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"),
 			i2p::util::config::GetArg("-port", 17007), routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"),
@@ -42,9 +37,7 @@ namespace i2p
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.SetProperty ("start_uptime", "90m");
 		routerInfo.CreateBuffer ();
-
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
-		m_Identity = m_RouterInfo.GetRouterIdentity ();
 	}
 
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
@@ -70,22 +63,20 @@ namespace i2p
 
 	void RouterContext::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		CryptoPP::DSA::Signer signer (m_SigningPrivateKey);
-		signer.SignMessage (i2p::context.GetRandomNumberGenerator (), buf, len, signature);
+		m_Keys.Sign(buf, len, signature);
 	}
 
 	bool RouterContext::Load ()
 	{
 		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ofstream::in);
 		if (!fk.is_open ())	return false;
-
-		fk.read ((char *)&m_Keys, sizeof (m_Keys));
-		m_SigningPrivateKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag,
-			CryptoPP::Integer (m_Keys.signingPrivateKey, 20));
+		
+		i2p::data::Keys keys;	
+		fk.read ((char *)&keys, sizeof (keys));
+		m_Keys = keys;
 
 		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
-		m_Identity = m_RouterInfo.GetRouterIdentity ();
 		
 		return true;
 	}
@@ -95,7 +86,14 @@ namespace i2p
 		if (!infoOnly)
 		{
 			std::ofstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ofstream::binary | std::ofstream::out);
-			fk.write ((char *)&m_Keys, sizeof (m_Keys));
+			i2p::data::Keys keys;
+			memcpy (keys.privateKey, m_Keys.GetPrivateKey (), sizeof (keys.privateKey));
+			memcpy (keys.signingPrivateKey, m_Keys.GetSigningPrivateKey (), sizeof (keys.signingPrivateKey));
+			auto& ident = GetIdentity ().GetStandardIdentity ();	
+			memcpy (keys.publicKey, ident.publicKey, sizeof (keys.publicKey));
+			memcpy (keys.signingKey, ident.signingKey, sizeof (keys.signingKey));
+
+			fk.write ((char *)&keys, sizeof (keys));
 		}
 
 		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
