@@ -451,11 +451,9 @@ namespace data
 			bool deleteDest = true;
 			if (num > 0)
 			{	
-				auto exploratoryPool = dest ? dest->GetTunnelPool () : nullptr;
-				if (!exploratoryPool)
-					exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-				auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
+				auto pool = dest ? dest->GetTunnelPool () : nullptr;
+				auto outbound = pool ? pool->GetNextOutboundTunnel () : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+				auto inbound = pool ? pool->GetNextInboundTunnel () : i2p::tunnel::tunnels.GetNextInboundTunnel ();
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				
 				for (int i = 0; i < num; i++)
@@ -475,7 +473,7 @@ namespace data
 							LogPrint ("Found new/outdated router. Requesting RouterInfo ...");
 							if (outbound && inbound && dest->GetLastRouter ())
 							{
-								RequestedDestination * d1 = CreateRequestedDestination (router, false, false, exploratoryPool);
+								RequestedDestination * d1 = CreateRequestedDestination (router, false, false, pool);
 								auto msg = d1->CreateRequestMessage (dest->GetLastRouter (), inbound);
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
@@ -521,7 +519,7 @@ namespace data
 							{	
 								// request router
 								LogPrint ("Found new floodfill. Request it");
-								RequestedDestination * d2 = CreateRequestedDestination (router, false, false, exploratoryPool);
+								RequestedDestination * d2 = CreateRequestedDestination (router, false, false, pool);
 								I2NPMessage * msg = d2->CreateRequestMessage (dest->GetLastRouter (), inbound);
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
