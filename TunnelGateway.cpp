@@ -148,13 +148,17 @@ namespace tunnel
 	
 	void TunnelGateway::SendTunnelDataMsg (const TunnelMessageBlock& block)
 	{
-		PutTunnelDataMsg (block);
-		SendBuffer ();
+		if (block.data)
+		{	
+			PutTunnelDataMsg (block);
+			SendBuffer ();
+		}	
 	}	
 
 	void TunnelGateway::PutTunnelDataMsg (const TunnelMessageBlock& block)
 	{
-		m_Buffer.PutI2NPMsg (block);
+		if (block.data)
+			m_Buffer.PutI2NPMsg (block);
 	}	
 
 	void TunnelGateway::SendBuffer ()

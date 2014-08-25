@@ -295,16 +295,7 @@ namespace garlic
 		
 	I2NPMessage * GarlicRouting::WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg)
 	{
-		auto it = m_Sessions.find (destination.GetIdentHash ());
-		if (it != m_Sessions.end ())
-		{
-			delete it->second;
-			m_Sessions.erase (it);
-		}
-		GarlicRoutingSession * session = new GarlicRoutingSession (&destination, 0); // not follow-on messages expected
-		m_Sessions[destination.GetIdentHash ()] = session;
-
-		return session->WrapSingleMessage (msg, nullptr);
+		return WrapMessage (destination, msg, nullptr);
 	}	
 
 	I2NPMessage * GarlicRouting::WrapMessage (const i2p::data::RoutingDestination& destination, 
