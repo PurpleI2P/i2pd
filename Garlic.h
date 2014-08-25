@@ -6,6 +6,7 @@
 #include <list>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <cryptopp/osrng.h>
 #include "aes.h"
 #include "I2NPProtocol.h"
@@ -121,6 +122,7 @@ namespace garlic
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue;
 			// outgoing sessions
+			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 			// incoming session

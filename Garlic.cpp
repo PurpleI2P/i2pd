@@ -308,12 +308,16 @@ namespace garlic
 		if (!session)
 		{
 			session = new GarlicRoutingSession (&destination, 32); 
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			m_Sessions[destination.GetIdentHash ()] = session;
 		}	
 
 		I2NPMessage * ret = session->WrapSingleMessage (msg, leaseSet);
 		if (!session->GetNextTag ()) // tags have beed recreated
+		{
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			m_CreatedSessions[session->GetFirstMsgID ()] = session;
+		}
 		return ret;
 	}
 		
