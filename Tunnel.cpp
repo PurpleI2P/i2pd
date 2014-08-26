@@ -256,7 +256,7 @@ namespace tunnel
 		size_t minReceived = 0;
 		for (auto it : m_InboundTunnels)
 		{
-			if (it.second->IsFailed ()) continue;
+			if (!it.second->IsEstablished ()) continue;
 			if (!tunnel || it.second->GetNumReceivedBytes () < minReceived)
 			{
 				tunnel = it.second;
@@ -274,7 +274,7 @@ namespace tunnel
 		for (auto it: m_OutboundTunnels)
 		{	
 			if (i >= ind) return it;
-			if (!it->IsFailed ())
+			if (it->IsEstablished ())
 			{
 				tunnel = it;
 				i++;
@@ -408,7 +408,11 @@ namespace tunnel
 				it = m_OutboundTunnels.erase (it);
 			}	
 			else 
+			{
+				if (ts + TUNNEL_EXPIRATION_THRESHOLD > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+					(*it)->SetState (eTunnelStateExpiring);
 				it++;
+			}
 		}
 	
 		if (m_OutboundTunnels.size () < 5) 
@@ -441,7 +445,11 @@ namespace tunnel
 				it = m_InboundTunnels.erase (it);
 			}	
 			else 
+			{
+				if (ts + TUNNEL_EXPIRATION_THRESHOLD > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+					it->second->SetState (eTunnelStateExpiring);
 				it++;
+			}
 		}
 
 		if (m_InboundTunnels.empty ())

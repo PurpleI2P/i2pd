@@ -19,7 +19,6 @@ namespace tunnel
 	class InboundTunnel;
 	class OutboundTunnel;
 
-	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute
 	class TunnelPool // per local destination
 	{
 		public:

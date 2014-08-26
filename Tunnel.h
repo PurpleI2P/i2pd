@@ -22,6 +22,7 @@ namespace i2p
 namespace tunnel
 {	
 	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes	
+	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute	
 	const int TUNNEL_CREATION_TIMEOUT = 20; // 20 seconds
 	const int STANDARD_NUM_RECORDS = 5; // in VariableTunnelBuild message
 
@@ -30,7 +31,8 @@ namespace tunnel
 		eTunnelStatePending,
 		eTunnelStateEstablished,
 		eTunnelStateTestFailed,
-		eTunnelStateFailed
+		eTunnelStateFailed,
+		eTunnelStateExpiring
 	};	
 	
 	class OutboundTunnel;
