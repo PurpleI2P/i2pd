@@ -527,9 +527,22 @@ namespace stream
 			s.read ((char *)buf, len);
 			m_Keys.FromBuffer (buf, len);
 			delete[] buf;
+			LogPrint ("Local address ", m_Keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p loaded");
 		}	
 		else
-			LogPrint ("Can't open file ", fullPath);
+		{
+			LogPrint ("Can't open file ", fullPath, " Creating new one");
+			// new eepsites use ECDSA
+			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256); 
+			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+			size_t len = m_Keys.GetFullLen ();
+			uint8_t * buf = new uint8_t[len];
+			len = m_Keys.ToBuffer (buf, len);
+			f.write ((char *)buf, len);
+			delete[] buf;
+			
+			LogPrint ("New private keys file ", fullPath, " for ", m_Keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p created");
+		}	
 
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
@@ -627,7 +640,7 @@ namespace stream
 			m_SharedLocalDestination = new StreamingDestination (m_Service);
 			m_Destinations[m_SharedLocalDestination->GetIdentity ().GetIdentHash ()] = m_SharedLocalDestination;
 		}
-		LoadLocalDestinations ();	
+		// LoadLocalDestinations ();	
 		
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&StreamingDestinations::Run, this));
@@ -671,7 +684,7 @@ namespace stream
 				it->path();
 #endif
 				auto localDestination = new StreamingDestination (m_Service, fullPath);
-				m_Destinations[localDestination->GetIdentity ().GetIdentHash ()] = localDestination;
+				m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 				numDestinations++;
 			}	
 		}	
@@ -679,6 +692,13 @@ namespace stream
 			LogPrint (numDestinations, " local destinations loaded");
 	}	
 	
+	StreamingDestination * StreamingDestinations::LoadLocalDestination (const std::string& filename)
+	{
+		auto localDestination = new StreamingDestination (m_Service, i2p::util::filesystem::GetFullPath (filename));
+		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
+		return localDestination;
+	}
+
 	Stream * StreamingDestinations::CreateClientStream (const i2p::data::LeaseSet& remote)
 	{
 		if (!m_SharedLocalDestination) return nullptr;
@@ -722,7 +742,7 @@ namespace stream
 			return it->second;
 		return nullptr;
 	}	
-	
+
 	Stream * CreateStream (const i2p::data::LeaseSet& remote)
 	{
 		return destinations.CreateClientStream (remote);
@@ -752,6 +772,11 @@ namespace stream
 	{
 		return destinations.FindLocalDestination (destination);
 	}
+
+	StreamingDestination * LoadLocalDestination (const std::string& filename)
+	{
+		return destinations.LoadLocalDestination (filename);
+	}		
 
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len)
 	{

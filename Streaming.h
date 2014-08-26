@@ -193,6 +193,7 @@ namespace stream
 			void DeleteStream (Stream * stream);
 			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
 			StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
+			StreamingDestination * LoadLocalDestination (const std::string& filename);
 
 		private:	
 
@@ -216,7 +217,8 @@ namespace stream
 	void StartStreaming ();
 	void StopStreaming ();
 	StreamingDestination * GetSharedLocalDestination ();
-	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);		
+	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	
+	StreamingDestination * LoadLocalDestination (const std::string& filename);	
 
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);

@@ -26,18 +26,20 @@ namespace i2p
 		{
 		public:
 			Daemon_Singleton_Private() : httpServer(nullptr), httpProxy(nullptr), 
-				socksProxy(nullptr), ircTunnel(nullptr) { };
+				socksProxy(nullptr), ircTunnel(nullptr), serverTunnel (nullptr) { };
 			~Daemon_Singleton_Private() {
 				delete httpServer;
 				delete httpProxy;
 				delete socksProxy;
 				delete ircTunnel;
+				delete serverTunnel;
 			};
 
 			i2p::util::HTTPServer *httpServer;
 			i2p::proxy::HTTPProxy *httpProxy;
 			i2p::proxy::SOCKSProxy *socksProxy;
 			i2p::stream::I2PClientTunnel * ircTunnel;
+			i2p::stream::I2PServerTunnel * serverTunnel;
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
@@ -117,6 +119,16 @@ namespace i2p
 				d.ircTunnel->Start ();
 				LogPrint("IRC tunnel started");
 			}	
+			std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
+			if (eepKeys.length () > 0) // eepkeys file is presented
+			{
+				auto localDestination = i2p::stream::LoadLocalDestination (eepKeys);
+				d.serverTunnel = new i2p::stream::I2PServerTunnel (d.socksProxy->GetService (), 
+					i2p::util::config::GetArg("-eephost", "127.0.0.1"), i2p::util::config::GetArg("-eepport", 80),
+					localDestination->GetIdentHash ());
+				d.serverTunnel->Start ();
+				LogPrint("Server tunnel started");
+			}
 			return true;
 		}
 
@@ -147,6 +159,14 @@ namespace i2p
 				d.ircTunnel = nullptr;
 				LogPrint("IRC tunnel stoped");	
 			}
+			if (d.serverTunnel)
+			{
+				d.serverTunnel->Stop ();
+				delete d.serverTunnel; 
+				d.serverTunnel = nullptr;
+				LogPrint("Server tunnel stoped");	
+			}			
+
 			StopLog ();
 
             delete d.socksProxy; d.socksProxy = nullptr;

@@ -46,6 +46,14 @@ namespace data
 				return std::string (str);
 			}
 
+			std::string ToBase32 () const
+			{
+				char str[sz*2];
+				int l = i2p::data::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
+				str[l] = 0;
+				return std::string (str);
+			}
+
 		private:
 
 			union // 8 bytes alignment
@@ -155,7 +163,8 @@ namespace data
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
-			
+
+			size_t GetFullLen () const { return m_Public.GetFullLen () + 256 + m_Public.GetSignatureLen ()/2; };			
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 

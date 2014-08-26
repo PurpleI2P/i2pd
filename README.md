@@ -53,5 +53,7 @@ Options
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
 * --ircport=      		- The local port of IRC tunnel to listen on. 6668 by default
 * --ircdest=      		- I2P destination address of IRC server. For example irc.postman.i2p
-
+* --eepkeys=      		- File name containing destination keys. For example privKeys.dat
+* --eephost=      		- Address incoming trafic forward to. 127.0.0.1 by default
+* --eepport=      		- Port incoming trafic forward to. 80 by default
 
