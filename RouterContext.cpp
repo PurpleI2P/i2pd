@@ -36,13 +36,13 @@ namespace i2p
 		routerInfo.SetProperty ("netId", "2");
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.SetProperty ("start_uptime", "90m");
-		routerInfo.CreateBuffer ();
+		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 	}
 
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
 	{
-		m_RouterInfo.CreateBuffer ();
+		m_RouterInfo.CreateBuffer (m_Keys);
 		auto address = const_cast<i2p::data::RouterInfo::Address *>(m_RouterInfo.GetNTCPAddress ());
 		if (address)
 		{
@@ -50,7 +50,7 @@ namespace i2p
 			address->port = port;
 		}
 
-		m_RouterInfo.CreateBuffer ();
+		m_RouterInfo.CreateBuffer (m_Keys);
 		Save (true);
 	}
 
@@ -58,12 +58,7 @@ namespace i2p
 	{
 		for (auto& address : m_RouterInfo.GetAddresses ())
 			address.host = boost::asio::ip::address::from_string (host);
-		m_RouterInfo.CreateBuffer ();
-	}
-
-	void RouterContext::Sign (const uint8_t * buf, int len, uint8_t * signature) const
-	{
-		m_Keys.Sign(buf, len, signature);
+		m_RouterInfo.CreateBuffer (m_Keys);
 	}
 
 	bool RouterContext::Load ()

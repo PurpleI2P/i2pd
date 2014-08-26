@@ -40,7 +40,7 @@ namespace tunnel
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
 			OutboundTunnel * GetNextOutboundTunnel (OutboundTunnel * suggested = nullptr);
 			InboundTunnel * GetNextInboundTunnel (InboundTunnel * suggested = nullptr);
-			const i2p::data::IdentHash& GetIdentHash () const { return m_LocalDestination.GetIdentity ().GetIdentHash (); };			
+			const i2p::data::IdentHash& GetIdentHash () const { return m_LocalDestination.GetIdentHash (); };			
 
 			void TestTunnels ();
 			void ProcessDeliveryStatus (I2NPMessage * msg);

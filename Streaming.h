@@ -143,7 +143,6 @@ namespace stream
 			StreamingDestination (boost::asio::io_service& service, const std::string& fullPath);
 			~StreamingDestination ();	
 
-			const i2p::data::PrivateKeys& GetKeys () const { return m_Keys; };
 			const i2p::data::LeaseSet * GetLeaseSet ();
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 
@@ -153,10 +152,9 @@ namespace stream
 			void HandleNextPacket (Packet * packet);
 
 			// implements LocalDestination
-			const i2p::data::IdentityEx& GetIdentity () const { return m_Keys.GetPublic (); };
+			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			void SetLeaseSetUpdated ();
 
 		private:		

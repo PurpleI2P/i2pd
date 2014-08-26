@@ -20,7 +20,6 @@ namespace i2p
 
 			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
 			const uint8_t * GetPrivateKey () const { return m_Keys.GetPrivateKey (); };
-			const uint8_t * GetSigningPrivateKey () const { return m_Keys.GetSigningPrivateKey (); };
 			const i2p::data::Identity& GetRouterIdentity () const { return m_RouterInfo.GetRouterIdentity (); };
 			const i2p::data::IdentHash& GetRouterIdentHash () const { return m_RouterInfo.GetIdentHash (); };
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
@@ -29,10 +28,9 @@ namespace i2p
 			void UpdateAddress (const char * host);	// called from SSU
 			
 			// implements LocalDestination
-			const i2p::data::IdentityEx& GetIdentity () const { return m_Keys.GetPublic (); };
-			const uint8_t * GetEncryptionPrivateKey () const { return GetPrivateKey (); };
+			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
+			const uint8_t * GetEncryptionPrivateKey () const { return m_Keys.GetPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ().GetStandardIdentity ().publicKey; };
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			void SetLeaseSetUpdated () {};
 			
 		private:

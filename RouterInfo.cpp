@@ -363,7 +363,7 @@ namespace data
 		return m_Buffer; 
 	}
 
-	void RouterInfo::CreateBuffer ()
+	void RouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
 		std::stringstream s;
@@ -373,8 +373,8 @@ namespace data
 			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, s.str ().c_str (), m_BufferLen);
 		// signature
-		i2p::context.Sign ((uint8_t *)m_Buffer, m_BufferLen, (uint8_t *)m_Buffer + m_BufferLen);
-		m_BufferLen += 40;
+		privateKeys.Sign ((uint8_t *)m_Buffer, m_BufferLen, (uint8_t *)m_Buffer + m_BufferLen);
+		m_BufferLen += privateKeys.GetPublic ().GetSignatureLen ();
 	}	
 
 	void RouterInfo::SaveToFile (const std::string& fullPath)

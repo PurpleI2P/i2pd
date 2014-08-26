@@ -618,11 +618,6 @@ namespace stream
 		if (m_IsPublic)
 			i2p::data::netdb.PublishLeaseSet (m_LeaseSet, m_Pool);
 	}	
-		
-	void StreamingDestination::Sign (const uint8_t * buf, int len, uint8_t * signature) const
-	{
-		m_Keys.Sign(buf, len, signature);
-	}
 
 	StreamingDestinations destinations;	
 	void StreamingDestinations::Start ()

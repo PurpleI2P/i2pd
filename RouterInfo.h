@@ -103,7 +103,7 @@ namespace data
 			const uint8_t * LoadBuffer (); // load if necessary
 			int GetBufferLen () const { return m_BufferLen; };			
 
-			void CreateBuffer ();
+			void CreateBuffer (const PrivateKeys& privateKeys);
 			void UpdateRoutingKey ();
 
 			bool IsUpdated () const { return m_IsUpdated; };
