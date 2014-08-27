@@ -656,10 +656,15 @@ namespace data
 						replyMsg = garlic.WrapSingleMessage (replyMsg, nullptr);
 					}
 				}	
-				i2p::tunnel::tunnels.GetNextOutboundTunnel ()->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+				if (outbound)
+					outbound->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+				else
+					i2p::transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
 			}
 			else
-				i2p::transports.SendMessage (buf, replyMsg);
+				i2p::transports.SendMessage (buf+32, replyMsg);
 		}
 		i2p::DeleteI2NPMessage (msg);
 	}	
