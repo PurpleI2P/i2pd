@@ -30,6 +30,8 @@ namespace ntcp
 	NTCPSession::~NTCPSession ()
 	{
 		delete m_DHKeysPair;
+		if (m_NextMessage)	
+			i2p::DeleteI2NPMessage (m_NextMessage);
 	}
 
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
@@ -436,6 +438,14 @@ namespace ntcp
 			if (dataSize)
 			{
 				// new message
+				if (dataSize > NTCP_MAX_MESSAGE_SIZE)
+				{
+					LogPrint ("NTCP data size ", dataSize, " exceeds max size");
+					i2p::DeleteI2NPMessage (m_NextMessage);
+					m_NextMessage = nullptr;
+					Terminate ();
+					return;
+				}
 				m_NextMessageOffset += 16;
 				m_NextMessage->offset = 2; // size field
 				m_NextMessage->len = dataSize + 2; 
