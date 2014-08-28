@@ -481,6 +481,8 @@ namespace data
 										dest->GetLastRouter ()->GetIdentHash (), 0, msg
 									});
 							}	
+							else
+								RequestDestination (router, false, pool);
 						}
 						else
 							LogPrint ("Bayan");
