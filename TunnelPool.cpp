@@ -91,10 +91,20 @@ namespace tunnel
 		if (tunnels.empty ()) return nullptr;
 		if (suggested && tunnels.count (suggested) > 0 && suggested->IsEstablished ())
 				return suggested;
+		
+		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		uint32_t ind = rnd.GenerateWord32 (0, tunnels.size ()/2), i = 0;
+		typename TTunnels::value_type tunnel = nullptr;
 		for (auto it: tunnels)
+		{	
+			if (i >= ind) break;
 			if (it->IsEstablished ())
-					return it;
-		return nullptr;
+			{
+				tunnel = it;
+				i++;
+			}
+		}	
+		return tunnel;
 	}
 
 	void TunnelPool::CreateTunnels ()

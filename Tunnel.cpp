@@ -273,7 +273,7 @@ namespace tunnel
 		OutboundTunnel * tunnel = nullptr;
 		for (auto it: m_OutboundTunnels)
 		{	
-			if (i >= ind) return it;
+			if (i >= ind) break;
 			if (it->IsEstablished ())
 			{
 				tunnel = it;
