@@ -685,8 +685,8 @@ namespace data
 		}	
 		// new requests
 		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
-		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
+		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
+		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : i2p::tunnel::tunnels.GetNextInboundTunnel ();
 		bool throughTunnels = outbound && inbound;
 		
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
