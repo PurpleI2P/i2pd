@@ -409,7 +409,7 @@ namespace tunnel
 			}	
 			else 
 			{
-				if (ts + TUNNEL_EXPIRATION_THRESHOLD > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+				if ((*it)->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 					(*it)->SetState (eTunnelStateExpiring);
 				it++;
 			}
@@ -446,7 +446,7 @@ namespace tunnel
 			}	
 			else 
 			{
-				if (ts + TUNNEL_EXPIRATION_THRESHOLD > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+				if (it->second->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 					it->second->SetState (eTunnelStateExpiring);
 				it++;
 			}

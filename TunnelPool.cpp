@@ -65,7 +65,7 @@ namespace tunnel
 		for (auto it : m_InboundTunnels)
 		{
 			if (i >= num) break;
-			if (!it->IsFailed ())
+			if (it->IsEstablished ())
 			{
 				v.push_back (it);
 				i++;
@@ -89,23 +89,25 @@ namespace tunnel
 		typename TTunnels::value_type suggested)
 	{
 		if (tunnels.empty ()) return nullptr;
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-		if (suggested && tunnels.count (suggested) > 0 && 
-		    ts + TUNNEL_EXPIRATION_THRESHOLD <= suggested->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+		if (suggested && tunnels.count (suggested) > 0 && suggested->IsEstablished ())
 				return suggested;
 		for (auto it: tunnels)
-			if (!it->IsFailed () && ts + TUNNEL_EXPIRATION_THRESHOLD <= 
-				it->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+			if (it->IsEstablished ())
 					return it;
 		return nullptr;
 	}
 
 	void TunnelPool::CreateTunnels ()
 	{
-		int num = m_InboundTunnels.size ();
+		int num = 0;
+		for (auto it : m_InboundTunnels)
+			if (it->IsEstablished ()) num++;
 		for (int i = num; i < m_NumTunnels; i++)
 			CreateInboundTunnel ();	
-		num = m_OutboundTunnels.size ();
+		
+		num = 0;
+		for (auto it : m_OutboundTunnels)
+			if (it->IsEstablished ()) num++;
 		for (int i = num; i < m_NumTunnels; i++)
 			CreateOutboundTunnel ();	
 	}
@@ -173,8 +175,10 @@ namespace tunnel
 		if (it != m_Tests.end ())
 		{
 			// restore from test failed state if any
-			it->second.first->SetState (eTunnelStateEstablished);
-			it->second.second->SetState (eTunnelStateEstablished);
+			if (it->second.first->GetState () == eTunnelStateTestFailed)
+				it->second.first->SetState (eTunnelStateEstablished);
+			if (it->second.second->GetState () == eTunnelStateTestFailed)
+				it->second.second->SetState (eTunnelStateEstablished);
 			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - be64toh (deliveryStatus->timestamp), " milliseconds");
 			m_Tests.erase (it);
 			DeleteI2NPMessage (msg);
