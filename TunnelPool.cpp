@@ -102,7 +102,7 @@ namespace tunnel
 				tunnel = it;
 				i++;
 			}
-			if (i >= ind) break;
+			if (i > ind && tunnel) break;
 		}	
 		return tunnel;
 	}
