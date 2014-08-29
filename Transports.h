@@ -69,6 +69,8 @@ namespace i2p
 
 			void Run ();
 			void HandleAccept (i2p::ntcp::NTCPServerConnection * conn, const boost::system::error_code& error);
+			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
+				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostCloseSession (const i2p::data::RouterInfo * router);
 			

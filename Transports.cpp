@@ -258,11 +258,31 @@ namespace i2p
 			{
 				LogPrint ("Router not found. Requested");
 				i2p::data::netdb.RequestDestination (ident);
-				DeleteI2NPMessage (msg); // TODO: implement a placeholder for router and send once it's available
+				auto resendTimer = new boost::asio::deadline_timer (m_Service);
+				resendTimer->expires_from_now (boost::posix_time::seconds(5)); // 5 seconds
+				resendTimer->async_wait (boost::bind (&Transports::HandleResendTimer,
+					this, boost::asio::placeholders::error, resendTimer, ident, msg));			
 			}	
 		}	
 	}	
 
+	void Transports::HandleResendTimer (const boost::system::error_code& ecode, 
+		boost::asio::deadline_timer * timer, const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
+	{
+		RouterInfo * r = netdb.FindRouter (ident);
+		if (r)
+		{
+			LogPrint ("Router found. Sending message");
+			PostMessage (ident, msg);
+		}	
+		else
+		{
+			LogPrint ("Router not found. Failed to send message");
+			DeleteI2NPMessage (msg);
+		}	
+		delete timer;
+	}	
+		
 	void Transports::CloseSession (const i2p::data::RouterInfo * router)
 	{
 		if (!router) return;
