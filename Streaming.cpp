@@ -9,7 +9,6 @@
 #include "Tunnel.h"
 #include "Timestamp.h"
 #include "CryptoConst.h"
-#include "Garlic.h"
 #include "NetDb.h"
 #include "Streaming.h"
 
@@ -20,8 +19,8 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
-		m_LeaseSetUpdated (true), m_LocalDestination (local), 
-		m_RemoteLeaseSet (&remote), m_CurrentOutboundTunnel (nullptr), 
+		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (&remote),
+		m_RoutingSession (nullptr), m_CurrentOutboundTunnel (nullptr), 
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -31,7 +30,7 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
 		m_IsOpen (false), m_LeaseSetUpdated (true), m_LocalDestination (local),
-		m_RemoteLeaseSet (nullptr), m_CurrentOutboundTunnel (nullptr), 
+		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), m_CurrentOutboundTunnel (nullptr), 
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -427,8 +426,9 @@ namespace stream
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				for (auto it: packets)
 				{ 
-					auto msg = i2p::garlic::routing.WrapMessage (*m_RemoteLeaseSet, 
-						CreateDataMessage (this, it->GetBuffer (), it->GetLength ()), leaseSet);
+					auto msg = m_RoutingSession->WrapSingleMessage ( 
+						CreateDataMessage (this, it->GetBuffer (), it->GetLength ()), 
+					    leaseSet);
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 								{ 
 									i2p::tunnel::eDeliveryTypeTunnel,
@@ -486,11 +486,13 @@ namespace stream
 		if (!m_RemoteLeaseSet)
 		{
 			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (m_RemoteIdentity.GetIdentHash ());
-			if (!m_RemoteLeaseSet)	
+			if (!m_RemoteLeaseSet)		
 				LogPrint ("LeaseSet ", m_RemoteIdentity.GetIdentHash ().ToBase64 (), " not found");
 		}
 		if (m_RemoteLeaseSet)
 		{
+			if (!m_RoutingSession)
+				m_RoutingSession = i2p::garlic::routing.GetRoutingSession (*m_RemoteLeaseSet, 32);
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
 			if (!leases.empty ())
 			{	

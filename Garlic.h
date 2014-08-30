@@ -48,7 +48,6 @@ namespace garlic
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet);
 			int GetNextTag () const { return m_NextTag; };
-			uint32_t GetFirstMsgID () const { return m_FirstMsgID; };
 
 			bool IsAcknowledged () const { return m_IsAcknowledged; };
 			void SetAcknowledged (bool acknowledged) { m_IsAcknowledged = acknowledged; };
@@ -66,7 +65,6 @@ namespace garlic
 
 			const i2p::data::RoutingDestination * m_Destination;
 			uint8_t m_SessionKey[32];
-			uint32_t m_FirstMsgID; // first message ID
 			bool m_IsAcknowledged;
 			int m_NumTags, m_NextTag;
 			SessionTag * m_SessionTags; // m_NumTags*32 bytes
@@ -104,10 +102,13 @@ namespace garlic
 			void PostI2NPMsg (I2NPMessage * msg);
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag 
 			
+			GarlicRoutingSession * GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
 			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg);
 			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
 			    I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet = nullptr);
 
+			void DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID);
+			
 		private:
 
 			void Run ();
