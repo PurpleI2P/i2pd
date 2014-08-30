@@ -81,6 +81,7 @@ namespace ssu
 
 			void CreateAESandMacKey (const uint8_t * pubKey); 
 
+			void PostI2NPMessage (I2NPMessage * msg);
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();

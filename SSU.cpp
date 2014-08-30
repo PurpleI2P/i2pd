@@ -691,6 +691,11 @@ namespace ssu
 
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
+		m_Server.GetService ().post (boost::bind (&SSUSession::PostI2NPMessage, this, msg));    
+	}	
+
+	void SSUSession::PostI2NPMessage (I2NPMessage * msg)
+	{
 		if (msg)
 		{	
 			if (m_State == eSessionStateEstablished)
@@ -698,8 +703,8 @@ namespace ssu
 			else
 				m_DelayedMessages.push_back (msg);
 		}	
-	}	
-	
+	}		
+		
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)
 	{
 		m_Data.ProcessMessage (buf, len);
