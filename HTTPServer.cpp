@@ -7,6 +7,7 @@
 #include "Transports.h"
 #include "NetDb.h"
 #include "HTTPServer.h"
+#include "I2PEndian.h"
 
 // For image and info
 #include "version.h"
@@ -316,13 +317,15 @@ namespace util
 		if (m_Stream)
 		{
 			std::string request = method+" " + uri + " HTTP/1.1\n Host:" + fullAddress + "\r\n";
-      if (!strcmp(method.c_str(), "GET"))
-      {
-        // POST/PUT, apply body
-        request += "\r\n"+ data;
-      }
-      LogPrint("HTTP Client Request: ", request);
-			m_Stream->Send ((uint8_t *)request.c_str (), request.length (), 10);
+      			if (!strcmp(method.c_str(), "GET") && data.size () > 0)
+      			{
+      					// POST/PUT, apply body
+        				request +=  "Content-Length: " ;
+        				request += request.size ();
+        				request += "\r\n" + data;
+      			}
+      			LogPrint("HTTP Client Request: ", request);
+			m_Stream->Send ((uint8_t *)request.c_str (), request.size (), 10);
 			AsyncStreamReceive ();
 		}
 	}
