@@ -181,8 +181,11 @@ namespace util
 			it->GetTunnelConfig ()->Print (s);
 			if (it->GetTunnelPool () && !it->GetTunnelPool ()->IsExploratory ())
 				s << " " << "Pool";
-			if (it->IsFailed ())
+			auto state = it->GetState ();
+			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
+			else if (state == i2p::tunnel::eTunnelStateExpiring)
+				s << " " << "Exp";
 			s << " " << (int)it->GetNumSentBytes () << "<br>";
 		}
 
@@ -191,8 +194,11 @@ namespace util
 			it.second->GetTunnelConfig ()->Print (s);
 			if (it.second->GetTunnelPool () && !it.second->GetTunnelPool ()->IsExploratory ())
 				s << " " << "Pool";
-			if (it.second->IsFailed ())
+			auto state = it.second->GetState ();
+			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
+			else if (state == i2p::tunnel::eTunnelStateExpiring)
+				s << " " << "Exp";
 			s << " " << (int)it.second->GetNumReceivedBytes () << "<br>";
 		}
 
