@@ -11,6 +11,7 @@ namespace i2p
 {
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";	
+	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 	
 	class RouterContext: public i2p::data::LocalDestination 
 	{
@@ -36,15 +37,17 @@ namespace i2p
 		private:
 
 			void CreateNewRouter ();
+			void NewRouterInfo ();
 			void UpdateRouterInfo ();
 			bool Load ();
-			void Save (bool infoOnly = false);
+			void SaveKeys ();
 			
 		private:
 
 			i2p::data::RouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys; 
 			CryptoPP::AutoSeededRandomPool m_Rnd;
+			uint64_t m_LastUpdateTime;
 	};
 
 	extern RouterContext context;

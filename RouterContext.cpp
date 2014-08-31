@@ -3,6 +3,7 @@
 #include <cryptopp/dsa.h>
 #include "CryptoConst.h"
 #include "RouterContext.h"
+#include "Timestamp.h"
 #include "util.h"
 #include "version.h"
 
@@ -10,27 +11,30 @@ namespace i2p
 {
 	RouterContext context;
 
-	RouterContext::RouterContext ()
+	RouterContext::RouterContext ():
+		m_LastUpdateTime (0)
 	{
 		if (!Load ())
 			CreateNewRouter ();
-		Save ();
+		UpdateRouterInfo ();
 	}
 
 	void RouterContext::CreateNewRouter ()
 	{
 		m_Keys = i2p::data::CreateRandomKeys ();
-		UpdateRouterInfo ();
+		SaveKeys ();
+		NewRouterInfo ();
 	}
 
-	void RouterContext::UpdateRouterInfo ()
+	void RouterContext::NewRouterInfo ()
 	{
 		i2p::data::RouterInfo routerInfo;
 		routerInfo.SetRouterIdentity (GetIdentity ().GetStandardIdentity ());
-		routerInfo.AddSSUAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-			i2p::util::config::GetArg("-port", 17007), routerInfo.GetIdentHash ());
-		routerInfo.AddNTCPAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-			i2p::util::config::GetArg("-port", 17007));
+		int port = i2p::util::config::GetArg("-port", 0);
+		if (!port)
+			port = m_Rnd.GenerateWord32 (9111, 30777); // I2P network ports range
+		routerInfo.AddSSUAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"), port, routerInfo.GetIdentHash ());
+		routerInfo.AddNTCPAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"), port);
 		routerInfo.SetProperty ("caps", "LR");
 		routerInfo.SetProperty ("coreVersion", I2P_VERSION);
 		routerInfo.SetProperty ("netId", "2");
@@ -40,6 +44,13 @@ namespace i2p
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 	}
 
+	void RouterContext::UpdateRouterInfo ()
+	{
+		m_RouterInfo.CreateBuffer (m_Keys);
+		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
+		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
+	}	
+		
 	void RouterContext::OverrideNTCPAddress (const char * host, int port)
 	{
 		m_RouterInfo.CreateBuffer (m_Keys);
@@ -49,16 +60,24 @@ namespace i2p
 			address->host = boost::asio::ip::address::from_string (host);
 			address->port = port;
 		}
-
-		m_RouterInfo.CreateBuffer (m_Keys);
-		Save (true);
+		UpdateRouterInfo ();
 	}
 
 	void RouterContext::UpdateAddress (const char * host)
 	{
+		bool updated = false;
+		auto newAddress = boost::asio::ip::address::from_string (host);
 		for (auto& address : m_RouterInfo.GetAddresses ())
-			address.host = boost::asio::ip::address::from_string (host);
-		m_RouterInfo.CreateBuffer (m_Keys);
+		{
+			if (address.host != newAddress)
+			{	
+				address.host = newAddress;
+				updated = true;
+			}	
+		}	
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		if (updated || ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
+			UpdateRouterInfo ();
 	}
 
 	bool RouterContext::Load ()
@@ -72,25 +91,20 @@ namespace i2p
 
 		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
+		m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
 		
 		return true;
 	}
 
-	void RouterContext::Save (bool infoOnly)
-	{
-		if (!infoOnly)
-		{
-			std::ofstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ofstream::binary | std::ofstream::out);
-			i2p::data::Keys keys;
-			memcpy (keys.privateKey, m_Keys.GetPrivateKey (), sizeof (keys.privateKey));
-			memcpy (keys.signingPrivateKey, m_Keys.GetSigningPrivateKey (), sizeof (keys.signingPrivateKey));
-			auto& ident = GetIdentity ().GetStandardIdentity ();	
-			memcpy (keys.publicKey, ident.publicKey, sizeof (keys.publicKey));
-			memcpy (keys.signingKey, ident.signingKey, sizeof (keys.signingKey));
-
-			fk.write ((char *)&keys, sizeof (keys));
-		}
-
-		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
+	void RouterContext::SaveKeys ()
+	{	
+		std::ofstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ofstream::binary | std::ofstream::out);
+		i2p::data::Keys keys;
+		memcpy (keys.privateKey, m_Keys.GetPrivateKey (), sizeof (keys.privateKey));
+		memcpy (keys.signingPrivateKey, m_Keys.GetSigningPrivateKey (), sizeof (keys.signingPrivateKey));
+		auto& ident = GetIdentity ().GetStandardIdentity ();	
+		memcpy (keys.publicKey, ident.publicKey, sizeof (keys.publicKey));
+		memcpy (keys.signingKey, ident.signingKey, sizeof (keys.signingKey));
+		fk.write ((char *)&keys, sizeof (keys));	
 	}
 }
