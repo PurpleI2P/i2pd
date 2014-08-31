@@ -8,6 +8,7 @@
 #include "CryptoConst.h"
 #include "RouterContext.h"
 #include "Identity.h"
+#include "I2PEndian.h"
 
 namespace i2p
 {
