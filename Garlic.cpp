@@ -323,7 +323,7 @@ namespace garlic
 
 	void GarlicRouting::DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID)
 	{
-		std::unique_lock<std::mutex> l(m_SessionsMutex);
+		std::unique_lock<std::mutex> l(m_CreatedSessionsMutex);
 		m_CreatedSessions[msgID] = session;
 	}	
 		
@@ -480,12 +480,15 @@ namespace garlic
 	{
 		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
 		uint32_t msgID = be32toh (deliveryStatus->msgID);
-		auto it = m_CreatedSessions.find (msgID);
-		if (it != m_CreatedSessions.end ())			
 		{
-			it->second->SetAcknowledged (true);
-			m_CreatedSessions.erase (it);
-			LogPrint ("Garlic message ", msgID, " acknowledged");
+			std::unique_lock<std::mutex> l(m_CreatedSessionsMutex);
+			auto it = m_CreatedSessions.find (msgID);
+			if (it != m_CreatedSessions.end ())			
+			{
+				it->second->SetAcknowledged (true);
+				m_CreatedSessions.erase (it);
+				LogPrint ("Garlic message ", msgID, " acknowledged");
+			}	
 		}	
 		DeleteI2NPMessage (msg);	
 	}	

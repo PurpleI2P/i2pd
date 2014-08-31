@@ -125,6 +125,7 @@ namespace garlic
 			// outgoing sessions
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
+			std::mutex m_CreatedSessionsMutex;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 			// incoming session
 			// multiple tags refer to one decyption
