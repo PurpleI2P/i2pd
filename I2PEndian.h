@@ -1,7 +1,7 @@
 #ifndef I2PENDIAN_H__
 #define I2PENDIAN_H__
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD_kernel__)
 #include <endian.h>
 #elif __FreeBSD__
 #include <sys/endian.h>
