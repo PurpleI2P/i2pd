@@ -83,6 +83,8 @@ namespace data
 			
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key);
+			bool AddIntroducer (const Address * address, uint32_t tag);
+			bool RemoveIntroducer (uint32_t tag);
 			void SetProperty (const char * key, const char * value);
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;
@@ -94,7 +96,8 @@ namespace data
 			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };
 			bool IsHidden () const { return m_Caps & eHidden; };
 
-			uint8_t GetCaps () const { return m_Caps; };			
+			uint8_t GetCaps () const { return m_Caps; };	
+			void SetCaps (const char * caps);
 
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
 			bool IsUnreachable () const { return m_IsUnreachable; };

@@ -27,6 +27,8 @@ namespace i2p
 
 			void OverrideNTCPAddress (const char * host, int port); // temporary
 			void UpdateAddress (const char * host);	// called from SSU
+			void AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag);
+			void RemoveIntroducer (uint32_t tag);
 			
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };

@@ -316,7 +316,50 @@ namespace data
 			properties << ';';
 			if (address.transportStyle == eTransportSSU)
 			{
-				// wtite intro key
+				// write introducers if any
+				if (address.introducers.size () > 0)
+				{	
+					int i = 0;
+					for (auto introducer: address.introducers)
+					{
+						WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						WriteString (introducer.iHost.to_string (), properties);
+						properties << ';';
+						i++;
+					}	
+					i = 0;
+					for (auto introducer: address.introducers)
+					{
+						WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						char value[64];
+						size_t l = ByteStreamToBase64 (introducer.iKey, 32, value, 64);
+						value[l] = 0;
+						WriteString (value, properties);
+						properties << ';';
+						i++;
+					}	
+					i = 0;
+					for (auto introducer: address.introducers)
+					{
+						WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						WriteString (boost::lexical_cast<std::string>(introducer.iPort), properties);
+						properties << ';';
+						i++;
+					}	
+					i = 0;
+					for (auto introducer: address.introducers)
+					{
+						WriteString ("itag" + boost::lexical_cast<std::string>(i), properties);
+						properties << '=';
+						WriteString (boost::lexical_cast<std::string>(introducer.iTag), properties);
+						properties << ';';
+						i++;
+					}	
+				}	
+				// write intro key
 				WriteString ("key", properties);
 				properties << '=';
 				char value[64];
@@ -430,6 +473,50 @@ namespace data
 		m_SupportedTransports |= eSSUV4;
 		m_Caps |= eSSUTesting; 
 		m_Caps |= eSSUIntroducer; 
+	}	
+
+	bool RouterInfo::AddIntroducer (const Address * address, uint32_t tag)
+	{
+		for (auto& addr : m_Addresses)
+		{
+			if (addr.transportStyle == eTransportSSU && addr.host.is_v4 ())
+			{	
+				for (auto intro: addr.introducers)
+					if (intro.iTag == tag) return false; // already presented
+				Introducer x;
+				x.iHost = address->host;
+				x.iPort = address->port;
+				x.iTag = tag;
+				memcpy (x.iKey, address->key, 32); // TODO: replace to Tag<32>
+				addr.introducers.push_back (x);
+				return true;
+			}	
+		}	
+		return false;
+	}	
+
+	bool RouterInfo::RemoveIntroducer (uint32_t tag)
+	{		
+		for (auto& addr : m_Addresses)
+		{
+			if (addr.transportStyle == eTransportSSU && addr.host.is_v4 ())
+			{	
+				for (std::vector<Introducer>::iterator it = addr.introducers.begin (); it != addr.introducers.begin (); it++)
+					if (it->iTag == tag) 
+					{
+						addr.introducers.erase (it);
+						return true;
+					}	
+			}	
+		}	
+		return false;
+	}
+		
+	void RouterInfo::SetCaps (const char * caps)
+	{
+		SetProperty ("caps", caps);
+		m_Caps = 0;
+		ExtractCaps (caps);
 	}	
 		
 	void RouterInfo::SetProperty (const char * key, const char * value)

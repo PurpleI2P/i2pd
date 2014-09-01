@@ -80,6 +80,22 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
+	void RouterContext::AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag)
+	{
+		auto address = routerInfo.GetSSUAddress ();
+		if (address)
+		{	
+			if (m_RouterInfo.AddIntroducer (address, tag))
+				UpdateRouterInfo ();
+		}	
+	}	
+
+	void RouterContext::RemoveIntroducer (uint32_t tag)
+	{
+		if (m_RouterInfo.RemoveIntroducer (tag))
+			UpdateRouterInfo ();
+	}	
+		
 	bool RouterContext::Load ()
 	{
 		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ofstream::in);
