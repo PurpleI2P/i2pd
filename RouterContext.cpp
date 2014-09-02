@@ -107,6 +107,7 @@ namespace i2p
 
 		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
+		m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
 		m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
 		
 		return true;
