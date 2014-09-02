@@ -12,7 +12,20 @@
 namespace i2p
 {
 namespace data
-{			
+{
+	const char CAPS_FLAG_FLOODFILL = 'f';
+	const char CAPS_FLAG_HIDDEN = 'H';
+	const char CAPS_FLAG_REACHABLE = 'R';
+	const char CAPS_FLAG_UNREACHABLE = 'U';	
+	const char CAPS_FLAG_LOW_BANDWIDTH1 = 'K';		
+	const char CAPS_FLAG_LOW_BANDWIDTH2 = 'L';	
+	const char CAPS_FLAG_HIGH_BANDWIDTH1 = 'M';	
+	const char CAPS_FLAG_HIGH_BANDWIDTH2 = 'N';
+	const char CAPS_FLAG_HIGH_BANDWIDTH3 = 'O';
+
+	const char CAPS_FLAG_SSU_TESTING = 'B';
+	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
+
 	const int MAX_RI_BUFFER_SIZE = 2048;
 	class RouterInfo: public RoutingDestination
 	{
@@ -97,6 +110,7 @@ namespace data
 			bool IsHidden () const { return m_Caps & eHidden; };
 
 			uint8_t GetCaps () const { return m_Caps; };	
+			void SetCaps (uint8_t caps);
 			void SetCaps (const char * caps);
 
 			void SetUnreachable (bool unreachable) { m_IsUnreachable = unreachable; }; 
@@ -134,7 +148,8 @@ namespace data
 			void ExtractCaps (const char * value);
 			void UpdateIdentHashBase64 ();
 			const Address * GetAddress (TransportStyle s, bool v4only) const;
-			
+			void UpdateCapsProperty ();			
+
 		private:
 
 			std::string m_FullPath;

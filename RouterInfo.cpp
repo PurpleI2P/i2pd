@@ -237,33 +237,45 @@ namespace data
 		{
 			switch (*cap)
 			{
-				case 'f':
+				case CAPS_FLAG_FLOODFILL:
 					m_Caps |= Caps::eFloodfill;
 				break;
-				case 'M':
-				case 'N':
-				case 'O':
+				case CAPS_FLAG_HIGH_BANDWIDTH1:
+				case CAPS_FLAG_HIGH_BANDWIDTH2:
+				case CAPS_FLAG_HIGH_BANDWIDTH3:
 					m_Caps |= Caps::eHighBandwidth;
 				break;
-				case 'R':
-					m_Caps |= Caps::eReachable;
-				break;
-				case 'B':
-					m_Caps |= Caps::eSSUTesting;
-				break;	
-				case 'C':
-					m_Caps |= Caps::eSSUIntroducer;
-				break;	
-				case 'H':
+				case CAPS_FLAG_HIDDEN:
 					m_Caps |= Caps::eHidden;
 				break;	
-				case 'U':
+				case CAPS_FLAG_REACHABLE:
+					m_Caps |= Caps::eReachable;
+				break;
+				case CAPS_FLAG_UNREACHABLE:
 					m_Caps |= Caps::eUnreachable;
+				break;	
+				case CAPS_FLAG_SSU_TESTING:
+					m_Caps |= Caps::eSSUTesting;
+				break;	
+				case CAPS_FLAG_SSU_INTRODUCER:
+					m_Caps |= Caps::eSSUIntroducer;
 				break;	
 				default: ;
 			}	
 			cap++;
 		}
+	}
+
+	void RouterInfo::UpdateCapsProperty ()
+	{	
+		std::string caps;
+		caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH1 : CAPS_FLAG_LOW_BANDWIDTH2; // bandwidth
+		if (m_Caps & eFloodfill) caps += CAPS_FLAG_FLOODFILL; // floodfill
+		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
+		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
+		if (m_Caps & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable
+
+		SetProperty ("caps", caps.c_str ());
 	}
 
 	void RouterInfo::UpdateIdentHashBase64 ()
@@ -302,8 +314,8 @@ namespace data
 				WriteString ("caps", properties);
 				properties << '=';
 				std::string caps;
-				if (IsPeerTesting ()) caps += 'B';
-				if (IsIntroducer ()) caps += 'C';
+				if (IsPeerTesting ()) caps += CAPS_FLAG_SSU_TESTING;
+				if (IsIntroducer ()) caps += CAPS_FLAG_SSU_INTRODUCER;
 				WriteString (caps, properties);
 				properties << ';';
 			}	
@@ -510,6 +522,12 @@ namespace data
 			}	
 		}	
 		return false;
+	}
+
+	void RouterInfo::SetCaps (uint8_t caps)
+	{
+		m_Caps = caps;
+		UpdateCapsProperty ();
 	}
 		
 	void RouterInfo::SetCaps (const char * caps)
