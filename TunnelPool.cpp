@@ -199,8 +199,9 @@ namespace tunnel
 
 	void TunnelPool::CreateInboundTunnel ()
 	{
-		OutboundTunnel * outboundTunnel = m_OutboundTunnels.size () > 0 ? 
-			*m_OutboundTunnels.begin () : tunnels.GetNextOutboundTunnel ();
+		OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
+		if (!outboundTunnel)
+			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Creating destination inbound tunnel...");
 		const i2p::data::RouterInfo * prevHop = &i2p::context.GetRouterInfo ();	
 		std::vector<const i2p::data::RouterInfo *> hops;
@@ -239,8 +240,9 @@ namespace tunnel
 		
 	void TunnelPool::CreateOutboundTunnel ()
 	{
-		InboundTunnel * inboundTunnel = m_InboundTunnels.size () > 0 ? 
-			*m_InboundTunnels.begin () : tunnels.GetNextInboundTunnel ();
+		InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
+		if (!inboundTunnel)
+			inboundTunnel = tunnels.GetNextInboundTunnel ();
 		if (inboundTunnel)
 		{	
 			LogPrint ("Creating destination outbound tunnel...");
