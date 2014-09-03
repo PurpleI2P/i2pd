@@ -761,12 +761,16 @@ namespace ssu
 			else
 			{
 				LogPrint ("SSU peer test from Alice. We are Bob");
-				// TODO: find Charlie
+				auto session = m_Server.GetRandomEstablishedSession (); // charlie
+				if (session)
+					session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
+						senderEndpoint.port (), introKey, false); 		
 			}
 		}	
 	}
 	
-	void SSUSession::SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey)
+	void SSUSession::SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, 
+		uint8_t * introKey, bool toAddress)
 	{
 		uint8_t buf[80 + 18];
 		uint8_t iv[16];
@@ -777,16 +781,25 @@ namespace ssu
 		payload++; // size
 		*(uint32_t *)payload = htobe32 (address);
 		payload += 4; // address
-		*(uint16_t *)payload = htobe32 (port);
+		*(uint16_t *)payload = htobe16 (port);
 		payload += 2; // port
 		memcpy (payload, introKey, 32); // intro key
 
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
-		// encrypt message with specified intro key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80, introKey, iv, introKey);
-		boost::asio::ip::udp::endpoint e (boost::asio::ip::address_v4 (address), port);
-		m_Server.Send (buf, 80, e);
+		if (toAddress)
+		{	
+			// encrypt message with specified intro key
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80, introKey, iv, introKey);
+			boost::asio::ip::udp::endpoint e (boost::asio::ip::address_v4 (address), port);
+			m_Server.Send (buf, 80, e);
+		}	
+		else
+		{
+			// encrypt message with session key
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80);
+			Send (buf, 80);
+		}	
 	}	
 
 	void SSUSession::SendPeerTest ()

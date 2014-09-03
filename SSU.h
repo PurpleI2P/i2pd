@@ -99,7 +99,7 @@ namespace ssu
 			void Failed ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);
 			void ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
-			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey); // Charlie to Alice
+			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, uint8_t * introKey, bool toAddress = true); 
 			void ProcessData (uint8_t * buf, size_t len);		
 			void SendSesionDestroyed ();
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
