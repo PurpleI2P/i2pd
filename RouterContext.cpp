@@ -39,7 +39,7 @@ namespace i2p
 		routerInfo.SetProperty ("coreVersion", I2P_VERSION);
 		routerInfo.SetProperty ("netId", "2");
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
-		routerInfo.SetProperty ("start_uptime", "90m");
+		routerInfo.SetProperty ("stat_uptime", "90m");
 		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 	}
