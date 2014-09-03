@@ -264,7 +264,7 @@ namespace i2p
 		if (isEndpoint) clearText.flag |= 0x40;
 		memcpy (clearText.ourIdent, ourIdent, 32);
 		memcpy (clearText.nextIdent, nextIdent, 32);
-		clearText.requestTime = i2p::util::GetHoursSinceEpoch (); 
+		clearText.requestTime = htobe32 (i2p::util::GetHoursSinceEpoch ()); 
 		clearText.nextMessageID = htobe32(nextMessageID);
 		return clearText;
 	}	
