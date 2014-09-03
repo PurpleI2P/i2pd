@@ -81,6 +81,7 @@ namespace util
 		public:
 
 			static const std::string itoopieImage;
+			static const std::string itoopieFavicon;
 	};
 
 	class HTTPServer
