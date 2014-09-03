@@ -147,6 +147,7 @@ namespace ssu
 			SSUSession * GetSession (const i2p::data::RouterInfo * router, bool peerTest = false);
 			SSUSession * FindSession (const i2p::data::RouterInfo * router);
 			SSUSession * FindSession (const boost::asio::ip::udp::endpoint& e);
+			SSUSession * GetRandomEstablishedSession ();
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			
 
@@ -161,6 +162,9 @@ namespace ssu
 			void Run ();
 			void Receive ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+
+			template<typename Filter>
+			SSUSession * GetRandomSession (Filter filter);
 
 		private:
 

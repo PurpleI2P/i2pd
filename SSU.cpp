@@ -1058,6 +1058,30 @@ namespace ssu
 		}	
 		m_Sessions.clear ();
 	}
+
+	template<typename Filter>
+	SSUSession * SSUServer::GetRandomSession (Filter filter)
+	{
+		std::vector<SSUSession *> filteredSessions;
+		for (auto s :m_Sessions)
+			if (filter (s.second)) filteredSessions.push_back (s.second);
+		if (filteredSessions.size () > 0)
+		{
+			auto ind = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, filteredSessions.size ()-1);
+			return filteredSessions[ind];
+		}
+		return nullptr;	
+	}
+
+	SSUSession * SSUServer::GetRandomEstablishedSession ()
+	{
+		return GetRandomSession (
+				[](SSUSession * session)->bool 
+				{ 
+					return session->GetState () == eSessionStateEstablished; 
+				}
+								);
+	}
 }
 }
 
