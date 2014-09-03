@@ -51,12 +51,12 @@ namespace tunnel
 			if (diLen + 6 <= m_RemainingSize)
 			{
 				// delivery instructions fit
-				uint32_t msgID = msg->GetHeader ()->msgID;
+				uint32_t msgID = msg->GetHeader ()->msgID; // in network bytes order
 				size_t size = m_RemainingSize - diLen - 6; // 6 = 4 (msgID) + 2 (size)
 
 				// first fragment
 				di[0] |= 0x08; // fragmented
-				*(uint32_t *)(di + diLen) = htobe32 (msgID);
+				*(uint32_t *)(di + diLen) = msgID;
 				diLen += 4; // Message ID
 				*(uint16_t *)(di + diLen) = htobe16 (size);
 				diLen += 2; // size
@@ -80,7 +80,7 @@ namespace tunnel
 						buf[0] |= 0x01;
 						isLastFragment = true;
 					}	
-					*(uint32_t *)(buf + 1) = htobe32 (msgID); //Message ID
+					*(uint32_t *)(buf + 1) = msgID; //Message ID
 					*(uint16_t *)(buf + 5) = htobe16 (s); // size
 					memcpy (buf + 7, msg->GetBuffer () + size, s);
 					m_CurrentTunnelDataMsg->len += s+7;
