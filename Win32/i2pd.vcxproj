@@ -16,7 +16,6 @@
     <ClCompile Include="..\base64.cpp" />
     <ClCompile Include="..\CryptoConst.cpp" />
     <ClCompile Include="..\Daemon.cpp" />
-    <ClCompile Include="..\DaemonLinux.cpp" />
     <ClCompile Include="..\DaemonWin32.cpp" />
     <ClCompile Include="..\Garlic.cpp" />
     <ClCompile Include="..\HTTPProxy.cpp" />

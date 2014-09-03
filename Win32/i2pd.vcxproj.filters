@@ -105,9 +105,6 @@
     <ClCompile Include="..\Daemon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\DaemonLinux.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\DaemonWin32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
