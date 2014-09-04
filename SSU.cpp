@@ -23,6 +23,7 @@ namespace ssu
 		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+		ScheduleTermination ();
 	}
 
 	SSUSession::~SSUSession ()
