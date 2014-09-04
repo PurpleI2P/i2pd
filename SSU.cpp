@@ -827,7 +827,7 @@ namespace ssu
 		uint32_t nonce = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		if (!nonce) nonce = 1;
 		m_PeerTestNonces.insert (nonce);
-		SendPeerTest (nonce, 0, 0, address->key, true); // address and port always zero for Alice
+		SendPeerTest (nonce, 0, 0, address->key, false); // address and port always zero for Alice
 	}	
 
 
