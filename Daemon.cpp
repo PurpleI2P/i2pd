@@ -51,6 +51,7 @@ namespace i2p
 		bool Daemon_Singleton::init(int argc, char* argv[])
 		{
 			i2p::util::config::OptionParser(argc, argv);
+			i2p::context.Init ();
 
 			LogPrint("\n\n\n\ni2pd starting\n");
 			LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());

@@ -18,6 +18,7 @@ namespace i2p
 		public:
 
 			RouterContext ();
+			void Init ();
 
 			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
 			const uint8_t * GetPrivateKey () const { return m_Keys.GetPrivateKey (); };

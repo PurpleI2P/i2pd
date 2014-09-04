@@ -14,6 +14,10 @@ namespace i2p
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0)
 	{
+	}
+
+	void RouterContext::Init ()
+	{
 		if (!Load ())
 			CreateNewRouter ();
 		UpdateRouterInfo ();
