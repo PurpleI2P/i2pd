@@ -314,7 +314,8 @@ namespace ssu
 		uint32_t relayTag = 0;
 		if (i2p::context.GetRouterInfo ().IsIntroducer ())
 		{
-			rnd.GenerateWord32 (relayTag);
+			relayTag = rnd.GenerateWord32 ();
+			if (!relayTag) relayTag = 1;
 			m_Server.AddRelay (relayTag, m_RemoteEndpoint);
 		}
 		*(uint32_t *)(payload) = htobe32 (relayTag); 
@@ -748,12 +749,16 @@ namespace ssu
 			else if (port)
 			{
 				LogPrint ("SSU peer test from Charlie. We are Bob");
-				// TODO:  back to Alice
+				boost::asio::ip::udp::endpoint ep (boost::asio::ip::address_v4 (be32toh (*(uint32_t *)address)), be16toh (port)); // Alice's address/port
+				auto session = m_Server.FindSession (ep); // find session with Alice
+				if (session)
+					session->Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Alice
 			}
 			else
 			{
 				LogPrint ("SSU peer test from Alice. We are Charlie");
-				//SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
+				SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
+						senderEndpoint.port (), introKey); // to Alice
 			}
 		}
 		else
@@ -778,7 +783,7 @@ namespace ssu
 	}
 	
 	void SSUSession::SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, 
-		uint8_t * introKey, bool toAddress)
+		const uint8_t * introKey, bool toAddress)
 	{
 		uint8_t buf[80 + 18];
 		uint8_t iv[16];
@@ -819,23 +824,10 @@ namespace ssu
 			LogPrint ("SSU is not supported. Can't send peer test");
 			return;
 		}
-		auto introKey = address->key;
-		uint8_t buf[80 + 18];
-		uint8_t * payload = buf + sizeof (SSUHeader);
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		uint32_t nonce = 0;
-		rnd.GenerateWord32 (nonce);
+		uint32_t nonce = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+		if (!nonce) nonce = 1;
 		m_PeerTestNonces.insert (nonce);
-		*(uint32_t *)payload = htobe32 (nonce);
-		payload += 4; // nonce					
-		*payload = 4;
-		payload++; // size
-		memset (payload, 0, 6); // address and port always zero for Alice
-		payload += 6; // address and port
-		memcpy (payload, introKey, 32); // intro key	
-		// encrypt message with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80);
-		Send (buf, 80);
+		SendPeerTest (nonce, 0, 0, address->key, true); // address and port always zero for Alice
 	}	
 
 
