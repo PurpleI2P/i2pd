@@ -23,7 +23,8 @@ namespace ssu
 		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
-		ScheduleTermination ();
+		if (!router) // incoming session
+			ScheduleConnectTimer ();
 	}
 
 	SSUSession::~SSUSession ()
@@ -584,12 +585,18 @@ namespace ssu
 		if (m_State == eSessionStateUnknown)
 		{	
 			// set connect timer
-			m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-			m_Timer.async_wait (boost::bind (&SSUSession::HandleConnectTimer,
-				this, boost::asio::placeholders::error));	
+			ScheduleConnectTimer ();
 			SendSessionRequest ();
 		}	
 	}
+
+	void SSUSession::ScheduleConnectTimer ()
+	{
+		m_Timer.cancel ();
+		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
+		m_Timer.async_wait (boost::bind (&SSUSession::HandleConnectTimer,
+			this, boost::asio::placeholders::error));	
+}
 
 	void SSUSession::HandleConnectTimer (const boost::system::error_code& ecode)
 	{
