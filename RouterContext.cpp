@@ -39,7 +39,8 @@ namespace i2p
 			port = m_Rnd.GenerateWord32 (9111, 30777); // I2P network ports range
 		routerInfo.AddSSUAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"), port, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"), port);
-		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable); // LR
+		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
+			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
 		routerInfo.SetProperty ("coreVersion", I2P_VERSION);
 		routerInfo.SetProperty ("netId", "2");
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
