@@ -158,7 +158,7 @@ namespace ssu
 			break;
 			case PAYLOAD_TYPE_RELAY_REQUEST:
 				LogPrint ("SSU relay request received");
-				ProcessRelayRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+				ProcessRelayRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
 			break;
 			case PAYLOAD_TYPE_RELAY_INTRO:
 				LogPrint ("SSU relay intro received");
@@ -375,7 +375,7 @@ namespace ssu
 		Send (buf, 480);
 	}
 
-	void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len)
+	void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
 	{
 		uint32_t relayTag = be32toh (*(uint32_t *)buf);
 		auto session = m_Server.FindRelaySession (relayTag);
@@ -389,14 +389,16 @@ namespace ssu
 			uint8_t challengeSize = *buf;
 			buf++; // challenge size
 			buf += challengeSize;
+			uint8_t * introKey = buf;
 			buf += 32; // introkey
 			uint32_t nonce = be32toh (*(uint32_t *)buf);
-			SendRelayResponse (nonce, session->m_RemoteEndpoint);
-			SendRelayIntro (session, m_RemoteEndpoint);
+			SendRelayResponse (nonce, from, introKey, session->m_RemoteEndpoint);
+			SendRelayIntro (session, from);
 		}	
 	}
 
-	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& to)
+	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
+		const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
 	{
 		uint8_t buf[64 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
@@ -410,15 +412,28 @@ namespace ssu
 		// Alice
 		*payload = 4;
 		payload++; // size
-		*(uint32_t *)payload = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // Alice's IP
+		*(uint32_t *)payload = htobe32 (from.address ().to_v4 ().to_ulong ()); // Alice's IP
 		payload += 4; // address	
-		*(uint16_t *)payload = htobe16 (m_RemoteEndpoint.port ()); // Alice's port
+		*(uint16_t *)payload = htobe16 (from.port ()); // Alice's port
 		payload += 2; // port
 		*(uint32_t *)payload = htobe32 (nonce);		
 
-		// encrypt with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64);
-		Send (buf, 64);
+		if (m_State == eSessionStateEstablished)
+		{	
+			// encrypt with session key
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64);
+			Send (buf, 64);
+		}	
+		else
+		{
+			// ecrypt with Alice's intro key
+			uint8_t iv[16];
+			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+			rnd.GenerateBlock (iv, 16); // random iv
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64, introKey, iv, introKey);
+			m_Server.Send (buf, 64, from);
+		}	
+		LogPrint ("SSU relay response sent");
 	}	
 
 	void SSUSession::SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from)
@@ -438,6 +453,7 @@ namespace ssu
 		rnd.GenerateBlock (iv, 16); // random iv
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, 48, session->m_SessionKey, iv, session->m_MacKey);
 		m_Server.Send (buf, 48, session->m_RemoteEndpoint);
+		LogPrint ("SSU relay intro sent");
 	}
 	
 	void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t len)
