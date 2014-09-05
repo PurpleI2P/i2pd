@@ -33,6 +33,8 @@ namespace ssu
 
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
+	const int SSU_KEEP_ALIVE_INETRVAL = 30; // 30 seconds	
+	const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
@@ -76,7 +78,10 @@ namespace ssu
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
-			
+			void StartToIntroducer ();
+			void StopToIntroducer ();	
+			uint32_t GetRelayTag () const { return m_RelayTag; };	
+
 		private:
 
 			void CreateAESandMacKey (const uint8_t * pubKey); 
@@ -103,6 +108,7 @@ namespace ssu
 			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, const uint8_t * introKey, bool toAddress = true); 
 			void ProcessData (uint8_t * buf, size_t len);		
 			void SendSesionDestroyed ();
+			void SendKeepAlive ();
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			void Send (const uint8_t * buf, size_t size); 
 			
@@ -116,6 +122,9 @@ namespace ssu
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
+			void ScheduleKeepAlive ();
+			void HandleKeepAliveTimer (const boost::system::error_code& ecode);
+
 		private:
 	
 			friend class SSUData; // TODO: change in later
@@ -124,7 +133,7 @@ namespace ssu
 			const i2p::data::RouterInfo * m_RemoteRouter;
 			boost::asio::deadline_timer m_Timer;
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
-			bool m_PeerTest;
+			bool m_PeerTest, m_ToIntroducer;
 			SessionState m_State;
 			bool m_IsSessionKey;
 			uint32_t m_RelayTag;	
@@ -148,7 +157,7 @@ namespace ssu
 			SSUSession * GetSession (const i2p::data::RouterInfo * router, bool peerTest = false);
 			SSUSession * FindSession (const i2p::data::RouterInfo * router);
 			SSUSession * FindSession (const boost::asio::ip::udp::endpoint& e);
-			SSUSession * GetRandomEstablishedSession ();
+			SSUSession * GetRandomEstablishedSession (const SSUSession * excluded);
 			void DeleteSession (SSUSession * session);
 			void DeleteAllSessions ();			
 
@@ -163,6 +172,8 @@ namespace ssu
 			void Run ();
 			void Receive ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+	
+			std::set<SSUSession *> GetIntroducers (int maxNumIntroducers);		
 
 			template<typename Filter>
 			SSUSession * GetRandomSession (Filter filter);

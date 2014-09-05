@@ -18,8 +18,8 @@ namespace ssu
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
-		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
-		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
+		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_ToIntroducer (false),
+		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
 		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
@@ -87,10 +87,10 @@ namespace ssu
 		}
 		else
 		{
-			if (m_State == eSessionStateEstablished)
-				ScheduleTermination ();
-			
 			if (!len) return; // ignore zero-length packets	
+			if (m_State == eSessionStateEstablished && !m_ToIntroducer)
+				ScheduleTermination ();		
+			
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
 				DecryptSessionKey (buf, len);	
 			else 
@@ -416,10 +416,8 @@ namespace ssu
 		payload += 2; // port
 		*(uint32_t *)payload = htobe32 (nonce);		
 
-		uint8_t iv[16];
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64, m_SessionKey, iv, m_MacKey);
+		// encrypt with session key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64);
 		Send (buf, 64);
 	}	
 
@@ -672,7 +670,22 @@ namespace ssu
 			Failed ();
 		}	
 	}	
-		
+	
+	void SSUSession::ScheduleKeepAlive ()
+	{
+		m_Timer.cancel ();
+		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_KEEP_ALIVE_INETRVAL));
+		m_Timer.async_wait (boost::bind (&SSUSession::HandleKeepAliveTimer,
+			this, boost::asio::placeholders::error));
+	}
+
+	void SSUSession::HandleKeepAliveTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+			SendKeepAlive ();
+	}
+
+	
 	const uint8_t * SSUSession::GetIntroKey () const
 	{
 		if (m_RemoteRouter)
@@ -765,7 +778,7 @@ namespace ssu
 			else
 			{
 				LogPrint ("SSU peer test from Alice. We are Bob");
-				auto session = m_Server.GetRandomEstablishedSession (); // charlie
+				auto session = m_Server.GetRandomEstablishedSession (this); // charlie
 				if (session)
 					session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
 						senderEndpoint.port (), introKey, false); 		
@@ -821,6 +834,18 @@ namespace ssu
 		SendPeerTest (nonce, 0, 0, address->key, false); // address and port always zero for Alice
 	}	
 
+	void SSUSession::SendKeepAlive ()
+	{
+		uint8_t buf[48 + 18];	
+		uint8_t	* payload = buf + sizeof (SSUHeader);
+		*payload = 0; // flags
+		payload++;
+		*payload = 0; // num fragments  
+		// encrypt message with session key
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
+		Send (buf, 48);
+		LogPrint ("SSU keep-alive sent");
+	}
 
 	void SSUSession::SendSesionDestroyed ()
 	{
@@ -853,6 +878,24 @@ namespace ssu
 	{
 		m_NumSentBytes += size;
 		m_Server.Send (buf, size, m_RemoteEndpoint);
+	}	
+
+	void SSUSession::StartToIntroducer ()
+	{
+		if (m_State == eSessionStateEstablished)
+		{
+			m_ToIntroducer = true;
+			ScheduleKeepAlive ();
+		}
+	}
+
+	void SSUSession::StopToIntroducer ()
+	{
+		if (m_State == eSessionStateEstablished)
+		{
+			m_ToIntroducer = false;
+			ScheduleTermination ();
+		}
 	}	
 
 	SSUServer::SSUServer (int port): m_Thread (nullptr), m_Work (m_Service),
@@ -1077,14 +1120,36 @@ namespace ssu
 		return nullptr;	
 	}
 
-	SSUSession * SSUServer::GetRandomEstablishedSession ()
+	SSUSession * SSUServer::GetRandomEstablishedSession (const SSUSession * excluded)
 	{
 		return GetRandomSession (
-				[](SSUSession * session)->bool 
-				{ 
-					return session->GetState () == eSessionStateEstablished; 
-				}
+			[excluded](SSUSession * session)->bool 
+			{ 
+				return session->GetState () == eSessionStateEstablished &&
+					session != excluded; 
+			}
 								);
+	}
+
+	std::set<SSUSession *> SSUServer::GetIntroducers (int maxNumIntroducers)
+	{
+		std::set<SSUSession *> ret;
+		for (int i = 0; i < maxNumIntroducers; i++)
+		{
+			auto session = GetRandomSession (
+				[&ret](SSUSession * session)->bool 
+				{ 
+					return session->GetRelayTag () && !ret.count (session) &&
+						session->GetState () == eSessionStateEstablished; 
+				}
+											);	
+			if (session)
+			{
+				ret.insert (session);
+				break;
+			}	
+		}
+		return ret;
 	}
 }
 }
