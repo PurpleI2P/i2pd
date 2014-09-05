@@ -383,29 +383,20 @@ namespace ssu
 		{
 			buf += 4; // relay tag	
 			uint8_t size = *buf;
-			if (size == 4)
-			{
-				buf++; // size
-				boost::asio::ip::address_v4 address (be32toh (*(uint32_t* )buf));
-				buf += 4; // address
-				uint16_t port = be16toh (*(uint16_t *)buf);
-				buf += 2; // port
-				uint8_t challengeSize = *buf;
-				buf++; // challenge size
-				buf += challengeSize;
-				uint8_t * introKey = buf;
-				buf += 32; // introkey
-				uint32_t nonce = be32toh (*(uint32_t *)buf);
-				boost::asio::ip::udp::endpoint from (address, port);
-				SendRelayResponse (nonce, from, introKey, session->m_RemoteEndpoint);
-				SendRelayIntro (session, from);
-			}
-			else
-				LogPrint ("Address size ", size, " is not supported"); 	
+			buf++; // size
+			buf += size; // address
+			buf += 2; // port
+			uint8_t challengeSize = *buf;
+			buf++; // challenge size
+			buf += challengeSize;
+			buf += 32; // introkey
+			uint32_t nonce = be32toh (*(uint32_t *)buf);
+			SendRelayResponse (nonce, session->m_RemoteEndpoint);
+			SendRelayIntro (session, m_RemoteEndpoint);
 		}	
 	}
 
-	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from, const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
+	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& to)
 	{
 		uint8_t buf[64 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
@@ -419,17 +410,17 @@ namespace ssu
 		// Alice
 		*payload = 4;
 		payload++; // size
-		*(uint32_t *)payload = htobe32 (from.address ().to_v4 ().to_ulong ()); // Alice's IP
+		*(uint32_t *)payload = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // Alice's IP
 		payload += 4; // address	
-		*(uint16_t *)payload = htobe16 (from.port ()); // Alice's port
+		*(uint16_t *)payload = htobe16 (m_RemoteEndpoint.port ()); // Alice's port
 		payload += 2; // port
 		*(uint32_t *)payload = htobe32 (nonce);		
 
 		uint8_t iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64, introKey, iv, introKey);
-		m_Server.Send (buf, 64, from);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64, m_SessionKey, iv, m_MacKey);
+		Send (buf, 64);
 	}	
 
 	void SSUSession::SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from)
