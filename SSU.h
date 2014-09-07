@@ -33,8 +33,9 @@ namespace ssu
 
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
-	const int SSU_KEEP_ALIVE_INETRVAL = 30; // 30 seconds	
+	const int SSU_KEEP_ALIVE_INTERVAL = 30; // 30 seconds	
 	const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
+	const int SSU_MAX_NUM_INTRODUCERS = 3;
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
@@ -78,8 +79,7 @@ namespace ssu
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
-			void StartToIntroducer ();
-			void StopToIntroducer ();	
+			void SendKeepAlive ();	
 			uint32_t GetRelayTag () const { return m_RelayTag; };	
 
 		private:
@@ -109,7 +109,6 @@ namespace ssu
 			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, const uint8_t * introKey, bool toAddress = true); 
 			void ProcessData (uint8_t * buf, size_t len);		
 			void SendSesionDestroyed ();
-			void SendKeepAlive ();
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			void Send (const uint8_t * buf, size_t size); 
 			
@@ -122,9 +121,6 @@ namespace ssu
 
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
-			
-			void ScheduleKeepAlive ();
-			void HandleKeepAliveTimer (const boost::system::error_code& ecode);
 
 		private:
 	
@@ -134,7 +130,7 @@ namespace ssu
 			const i2p::data::RouterInfo * m_RemoteRouter;
 			boost::asio::deadline_timer m_Timer;
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
-			bool m_PeerTest, m_ToIntroducer;
+			bool m_PeerTest;
 			SessionState m_State;
 			bool m_IsSessionKey;
 			uint32_t m_RelayTag;	
@@ -172,13 +168,15 @@ namespace ssu
 
 			void Run ();
 			void Receive ();
-			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-	
-			std::set<SSUSession *> GetIntroducers (int maxNumIntroducers);		
+			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);	
 
 			template<typename Filter>
 			SSUSession * GetRandomSession (Filter filter);
-
+			
+			std::set<SSUSession *> FindIntroducers (int maxNumIntroducers);	
+			void ScheduleIntroducersUpdateTimer ();
+			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode);
+			
 		private:
 
 			bool m_IsRunning;
@@ -188,6 +186,8 @@ namespace ssu
 			boost::asio::ip::udp::endpoint m_Endpoint;
 			boost::asio::ip::udp::socket m_Socket;
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
+			boost::asio::deadline_timer m_IntroducersUpdateTimer;
+			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
 			uint8_t m_ReceiveBuffer[2*SSU_MTU];
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer

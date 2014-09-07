@@ -97,7 +97,7 @@ namespace data
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key);
 			bool AddIntroducer (const Address * address, uint32_t tag);
-			bool RemoveIntroducer (uint32_t tag);
+			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetProperty (const char * key, const char * value);
 			const char * GetProperty (const char * key) const;
 			bool IsFloodfill () const;

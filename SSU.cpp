@@ -18,8 +18,8 @@ namespace ssu
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
-		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_ToIntroducer (false),
-		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
+		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
+		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
 		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
@@ -88,7 +88,7 @@ namespace ssu
 		else
 		{
 			if (!len) return; // ignore zero-length packets	
-			if (m_State == eSessionStateEstablished && !m_ToIntroducer)
+			if (m_State == eSessionStateEstablished)
 				ScheduleTermination ();		
 			
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
@@ -687,21 +687,6 @@ namespace ssu
 		}	
 	}	
 	
-	void SSUSession::ScheduleKeepAlive ()
-	{
-		m_Timer.cancel ();
-		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_KEEP_ALIVE_INETRVAL));
-		m_Timer.async_wait (boost::bind (&SSUSession::HandleKeepAliveTimer,
-			this, boost::asio::placeholders::error));
-	}
-
-	void SSUSession::HandleKeepAliveTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-			SendKeepAlive ();
-	}
-
-	
 	const uint8_t * SSUSession::GetIntroKey () const
 	{
 		if (m_RemoteRouter)
@@ -852,15 +837,19 @@ namespace ssu
 
 	void SSUSession::SendKeepAlive ()
 	{
-		uint8_t buf[48 + 18];	
-		uint8_t	* payload = buf + sizeof (SSUHeader);
-		*payload = 0; // flags
-		payload++;
-		*payload = 0; // num fragments  
-		// encrypt message with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
-		Send (buf, 48);
-		LogPrint ("SSU keep-alive sent");
+		if (m_State == eSessionStateEstablished)
+		{	
+			uint8_t buf[48 + 18];	
+			uint8_t	* payload = buf + sizeof (SSUHeader);
+			*payload = 0; // flags
+			payload++;
+			*payload = 0; // num fragments  
+			// encrypt message with session key
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
+			Send (buf, 48);
+			LogPrint ("SSU keep-alive sent");
+			ScheduleTermination ();
+		}	
 	}
 
 	void SSUSession::SendSesionDestroyed ()
@@ -896,26 +885,10 @@ namespace ssu
 		m_Server.Send (buf, size, m_RemoteEndpoint);
 	}	
 
-	void SSUSession::StartToIntroducer ()
-	{
-		if (m_State == eSessionStateEstablished)
-		{
-			m_ToIntroducer = true;
-			ScheduleKeepAlive ();
-		}
-	}
-
-	void SSUSession::StopToIntroducer ()
-	{
-		if (m_State == eSessionStateEstablished)
-		{
-			m_ToIntroducer = false;
-			ScheduleTermination ();
-		}
-	}	
 
 	SSUServer::SSUServer (int port): m_Thread (nullptr), m_Work (m_Service),
-		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (m_Service, m_Endpoint)
+		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (m_Service, m_Endpoint),
+		m_IntroducersUpdateTimer (m_Service)	
 	{
 		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
 		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
@@ -1147,7 +1120,7 @@ namespace ssu
 								);
 	}
 
-	std::set<SSUSession *> SSUServer::GetIntroducers (int maxNumIntroducers)
+	std::set<SSUSession *> SSUServer::FindIntroducers (int maxNumIntroducers)
 	{
 		std::set<SSUSession *> ret;
 		for (int i = 0; i < maxNumIntroducers; i++)
@@ -1167,6 +1140,51 @@ namespace ssu
 		}
 		return ret;
 	}
+
+	void SSUServer::ScheduleIntroducersUpdateTimer ()
+	{
+		m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU_KEEP_ALIVE_INTERVAL));
+		m_IntroducersUpdateTimer.async_wait (boost::bind (&SSUServer::HandleIntroducersUpdateTimer,
+			this, boost::asio::placeholders::error));	
+	}
+
+	void SSUServer::HandleIntroducersUpdateTimer (const boost::system::error_code& ecode)
+	{
+		if (!ecode)
+		{
+			// timeout expired
+			std::list<boost::asio::ip::udp::endpoint> newList;
+			int numIntroducers = 0;
+			for (auto it :m_Introducers)
+			{	
+				auto session = FindSession (it);
+				if (session)
+				{
+					session->SendKeepAlive ();
+					newList.push_back (it);
+					numIntroducers++;
+				}
+				else	
+					i2p::context.RemoveIntroducer (it);
+			}
+
+			if (!numIntroducers)
+			{
+				// create new
+				auto introducers = FindIntroducers (SSU_MAX_NUM_INTRODUCERS);
+				if (introducers.size () > 0)
+				{
+					for (auto it1: introducers)
+					{
+						i2p::context.AddIntroducer (*it1->GetRemoteRouter (), it1->GetRelayTag ());
+						newList.push_back (it1->GetRemoteEndpoint ());
+					}	
+				}	
+			}	
+			m_Introducers = newList;
+			ScheduleIntroducersUpdateTimer ();
+		}	
+	}	
 }
 }
 

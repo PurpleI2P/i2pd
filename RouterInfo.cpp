@@ -507,14 +507,14 @@ namespace data
 		return false;
 	}	
 
-	bool RouterInfo::RemoveIntroducer (uint32_t tag)
+	bool RouterInfo::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
 	{		
 		for (auto& addr : m_Addresses)
 		{
 			if (addr.transportStyle == eTransportSSU && addr.host.is_v4 ())
 			{	
 				for (std::vector<Introducer>::iterator it = addr.introducers.begin (); it != addr.introducers.begin (); it++)
-					if (it->iTag == tag) 
+					if ( boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e) 
 					{
 						addr.introducers.erase (it);
 						return true;
