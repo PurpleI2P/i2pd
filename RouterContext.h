@@ -30,7 +30,9 @@ namespace i2p
 			void UpdateAddress (const char * host);	// called from SSU
 			void AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
-			
+			bool IsUnreachable () const { return m_IsUnreachable; };
+			void SetUnreachable ();				
+
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_Keys.GetPrivateKey (); };
@@ -51,6 +53,7 @@ namespace i2p
 			i2p::data::PrivateKeys m_Keys; 
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			uint64_t m_LastUpdateTime;
+			bool m_IsUnreachable;
 	};
 
 	extern RouterContext context;

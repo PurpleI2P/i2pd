@@ -65,6 +65,9 @@ namespace i2p
 			i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
 				i2p::util::config::GetArg("-port", 17007));
 
+			if (i2p::util::config::GetArg("-unreachable", 0))
+				i2p::context.SetUnreachable ();
+
 			LogPrint("CMD parameters:");
 			for (int i = 0; i < argc; ++i)
 				LogPrint(i, "  ", argv[i]);

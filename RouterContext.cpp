@@ -12,7 +12,7 @@ namespace i2p
 	RouterContext context;
 
 	RouterContext::RouterContext ():
-		m_LastUpdateTime (0)
+		m_LastUpdateTime (0), m_IsUnreachable (false)
 	{
 	}
 
@@ -100,7 +100,26 @@ namespace i2p
 		if (m_RouterInfo.RemoveIntroducer (e))
 			UpdateRouterInfo ();
 	}	
-		
+	
+	void RouterContext::SetUnreachable ()
+	{
+		m_IsUnreachable = true;	
+		// set caps
+		m_RouterInfo.SetCaps (i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting); // LU, B
+		// remove NTCP address
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (size_t i = 0; i < addresses.size (); i++)
+		{
+			if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+			{
+				addresses.erase (addresses.begin () + i);
+				break;
+			}
+		}	
+		// update
+		UpdateRouterInfo ();
+	}
+	
 	bool RouterContext::Load ()
 	{
 		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ofstream::in);

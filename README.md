@@ -48,7 +48,8 @@ Options
 * --port=               - The port to listen on
 * --httpport=           - The http port to listen on
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
-* --daemon=             - Eanble or disable daemon mode. 1 for yes, 0 for no.
+* --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
+* --unreachable=        - 1 if router is declared as unreachable and works through introducers.
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
 * --ircport=      		- The local port of IRC tunnel to listen on. 6668 by default

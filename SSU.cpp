@@ -905,6 +905,8 @@ namespace ssu
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 		m_Service.post (boost::bind (&SSUServer::Receive, this));  
+		if (i2p::context.IsUnreachable ())
+			ScheduleIntroducersUpdateTimer ();
 	}
 
 	void SSUServer::Stop ()
