@@ -5,6 +5,17 @@ router.keys
 i2p
 netDb
 
+# Autotools
+autom4te.cache
+.deps
+stamp-h1
+Makefile
+config.h
+config.h.in~
+config.log
+config.status
+config.sub
+
 #################
 ## Eclipse
 #################
