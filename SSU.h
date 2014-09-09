@@ -81,6 +81,7 @@ namespace ssu
 			
 			void SendKeepAlive ();	
 			uint32_t GetRelayTag () const { return m_RelayTag; };	
+			uint32_t GetCreationTime () const { return m_CreationTime; };
 
 		private:
 
@@ -141,6 +142,7 @@ namespace ssu
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			SSUData m_Data;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
+			uint32_t m_CreationTime; // seconds since epoch
 	};
 
 	class SSUServer

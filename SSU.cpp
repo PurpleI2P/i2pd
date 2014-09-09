@@ -22,6 +22,7 @@ namespace ssu
 		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
 		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
+		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 		if (!router) // incoming session
 			ScheduleConnectTimer ();
@@ -1124,14 +1125,16 @@ namespace ssu
 
 	std::set<SSUSession *> SSUServer::FindIntroducers (int maxNumIntroducers)
 	{
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		std::set<SSUSession *> ret;
 		for (int i = 0; i < maxNumIntroducers; i++)
 		{
 			auto session = GetRandomSession (
-				[&ret](SSUSession * session)->bool 
+				[&ret, ts](SSUSession * session)->bool 
 				{ 
 					return session->GetRelayTag () && !ret.count (session) &&
-						session->GetState () == eSessionStateEstablished; 
+						session->GetState () == eSessionStateEstablished &&
+						ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION; 
 				}
 											);	
 			if (session)
@@ -1157,10 +1160,11 @@ namespace ssu
 			// timeout expired
 			std::list<boost::asio::ip::udp::endpoint> newList;
 			size_t numIntroducers = 0;
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it :m_Introducers)
 			{	
 				auto session = FindSession (it);
-				if (session)
+				if (session && ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION)
 				{
 					session->SendKeepAlive ();
 					newList.push_back (it);
