@@ -24,6 +24,7 @@ Testing
 First, build it.
 
 * $ cd i2pd
+* $ ./configure
 * $ make
 
 Next, find out your public ip. (find it for example at http://www.whatismyip.com/)
