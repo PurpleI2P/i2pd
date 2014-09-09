@@ -116,6 +116,10 @@ namespace i2p
 				break;
 			}
 		}	
+		// delete previous introducers
+		for (auto& addr : addresses)
+			addr.introducers.clear ();
+		
 		// update
 		UpdateRouterInfo ();
 	}

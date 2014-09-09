@@ -1170,10 +1170,10 @@ namespace ssu
 					i2p::context.RemoveIntroducer (it);
 			}
 
-			if (!numIntroducers)
+			if (numIntroducers < SSU_MAX_NUM_INTRODUCERS)
 			{
 				// create new
-				auto introducers = FindIntroducers (SSU_MAX_NUM_INTRODUCERS);
+				auto introducers = FindIntroducers (SSU_MAX_NUM_INTRODUCERS - numIntroducers);
 				if (introducers.size () > 0)
 				{
 					for (auto it1: introducers)
