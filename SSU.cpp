@@ -1156,7 +1156,7 @@ namespace ssu
 		{
 			// timeout expired
 			std::list<boost::asio::ip::udp::endpoint> newList;
-			int numIntroducers = 0;
+			size_t numIntroducers = 0;
 			for (auto it :m_Introducers)
 			{	
 				auto session = FindSession (it);
@@ -1173,13 +1173,16 @@ namespace ssu
 			if (numIntroducers < SSU_MAX_NUM_INTRODUCERS)
 			{
 				// create new
-				auto introducers = FindIntroducers (SSU_MAX_NUM_INTRODUCERS - numIntroducers);
+				auto introducers = FindIntroducers (SSU_MAX_NUM_INTRODUCERS);
 				if (introducers.size () > 0)
 				{
 					for (auto it1: introducers)
 					{
-						i2p::context.AddIntroducer (*it1->GetRemoteRouter (), it1->GetRelayTag ());
-						newList.push_back (it1->GetRemoteEndpoint ());
+						if (i2p::context.AddIntroducer (*it1->GetRemoteRouter (), it1->GetRelayTag ()))
+						{	
+							newList.push_back (it1->GetRemoteEndpoint ());
+							if (newList.size () >= SSU_MAX_NUM_INTRODUCERS) break;
+						}	
 					}	
 				}	
 			}	

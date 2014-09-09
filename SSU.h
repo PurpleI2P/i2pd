@@ -35,7 +35,7 @@ namespace ssu
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 	const int SSU_KEEP_ALIVE_INTERVAL = 30; // 30 seconds	
 	const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
-	const int SSU_MAX_NUM_INTRODUCERS = 3;
+	const size_t SSU_MAX_NUM_INTRODUCERS = 3;
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;

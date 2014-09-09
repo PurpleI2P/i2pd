@@ -85,14 +85,17 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	void RouterContext::AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag)
+	bool RouterContext::AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag)
 	{
+		bool ret = false;
 		auto address = routerInfo.GetSSUAddress ();
 		if (address)
 		{	
-			if (m_RouterInfo.AddIntroducer (address, tag))
+			ret = m_RouterInfo.AddIntroducer (address, tag);
+			if (ret)
 				UpdateRouterInfo ();
 		}	
+		return true;
 	}	
 
 	void RouterContext::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
