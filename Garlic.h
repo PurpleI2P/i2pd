@@ -129,6 +129,7 @@ namespace garlic
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 			// incoming session
 			// multiple tags refer to one decyption
+			std::mutex m_SessionsTagsMutex;
 			std::map<SessionTag, SessionDecryption *> m_SessionTags; // tag -> decryption
 	};	
 

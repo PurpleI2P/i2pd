@@ -290,6 +290,7 @@ namespace garlic
 		SessionDecryption * decryption = new SessionDecryption;
 		decryption->SetKey (key);
 		decryption->SetTagCount (1);
+		std::unique_lock<std::mutex> l(m_SessionsTagsMutex);
 		m_SessionTags[SessionTag(tag)] = decryption;
 	}	
 
@@ -343,6 +344,7 @@ namespace garlic
 			it->second->UseTag ();
 			HandleAESBlock (buf + 32, length - 32, it->second, msg->from);
 			if (!it->second->GetTagCount ()) delete it->second; // all tags were used
+			std::unique_lock<std::mutex> l(m_SessionsTagsMutex);
 			m_SessionTags.erase (it); // tag might be used only once
 		}
 		else
@@ -377,6 +379,7 @@ namespace garlic
 		if (tagCount > 0)
 		{	
 			decryption->AddTagCount (tagCount);
+			std::unique_lock<std::mutex> l(m_SessionsTagsMutex);
 			for (int i = 0; i < tagCount; i++)
 				m_SessionTags[SessionTag(buf + i*32)] = decryption;	
 		}	
