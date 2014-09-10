@@ -14,13 +14,15 @@ namespace stream
 {
 	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds	
+
+	class I2PTunnel;
 	class I2PTunnelConnection
 	{
 		public:
 
-			I2PTunnelConnection (boost::asio::ip::tcp::socket * socket,
+			I2PTunnelConnection (I2PTunnel * owner, boost::asio::ip::tcp::socket * socket,
 				const i2p::data::LeaseSet * leaseSet);
-			I2PTunnelConnection (Stream * stream,  boost::asio::ip::tcp::socket * socket, 
+			I2PTunnelConnection (I2PTunnel * owner, Stream * stream,  boost::asio::ip::tcp::socket * socket, 
 				const boost::asio::ip::tcp::endpoint& target); 
 			~I2PTunnelConnection ();
 
@@ -41,9 +43,29 @@ namespace stream
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
 			boost::asio::ip::tcp::socket * m_Socket;
 			Stream * m_Stream;
+			I2PTunnel * m_Owner;
+	};	
+
+	class I2PTunnel
+	{
+		public:
+
+			I2PTunnel (boost::asio::io_service& service): m_Service (service) {};
+			virtual ~I2PTunnel () { ClearConnections (); }; 
+
+			void AddConnection (I2PTunnelConnection * conn);
+			void RemoveConnection (I2PTunnelConnection * conn);	
+			void ClearConnections ();
+			
+			boost::asio::io_service& GetService () { return m_Service; };
+			
+		private:
+
+			boost::asio::io_service& m_Service;
+			std::set<I2PTunnelConnection *> m_Connections;
 	};	
 	
-	class I2PClientTunnel
+	class I2PClientTunnel: public I2PTunnel
 	{
 		public:
 
@@ -60,15 +82,13 @@ namespace stream
 			
 		private:
 
-			boost::asio::io_service& m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			std::string m_Destination;
 			const i2p::data::IdentHash * m_DestinationIdentHash;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
-			std::set<I2PTunnelConnection *> m_Connections;
 	};	
 
-	class I2PServerTunnel
+	class I2PServerTunnel: public I2PTunnel
 	{
 		public:
 
@@ -85,7 +105,6 @@ namespace stream
 
 		private:
 
-			boost::asio::io_service& m_Service;
 			StreamingDestination * m_LocalDestination;	
 			boost::asio::ip::tcp::endpoint m_Endpoint;		
 	};

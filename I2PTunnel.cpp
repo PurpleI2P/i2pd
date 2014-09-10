@@ -8,8 +8,9 @@ namespace i2p
 {
 namespace stream
 {
-	I2PTunnelConnection::I2PTunnelConnection (boost::asio::ip::tcp::socket * socket,
-		const i2p::data::LeaseSet * leaseSet): m_Socket (socket)
+	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, 
+	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
+		m_Socket (socket), m_Owner (owner) 
 	{
 		m_Stream = i2p::stream::CreateStream (*leaseSet);
 		m_Stream->Send (m_Buffer, 0, 0); // connect
@@ -17,9 +18,9 @@ namespace stream
 		Receive ();
 	}	
 
-	I2PTunnelConnection::I2PTunnelConnection (Stream * stream,  boost::asio::ip::tcp::socket * socket, 
-		const boost::asio::ip::tcp::endpoint& target):
-		m_Socket (socket), m_Stream (stream)
+	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, Stream * stream,  
+	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target):
+		m_Socket (socket), m_Stream (stream), m_Owner (owner)
 	{
 		if (m_Socket)
 			m_Socket->async_connect (target, boost::bind (&I2PTunnelConnection::HandleConnect,
@@ -40,7 +41,9 @@ namespace stream
 	void I2PTunnelConnection::Terminate ()
 	{	
 		m_Socket->close ();
-		// TODO: remove from I2PTunnel		
+		if (m_Owner)
+			m_Owner->RemoveConnection (this);
+		// TODO: delete		
 	}			
 
 	void I2PTunnelConnection::Receive ()
@@ -118,8 +121,25 @@ namespace stream
 		}
 	}
 
+	void I2PTunnel::AddConnection (I2PTunnelConnection * conn)
+	{
+		m_Connections.insert (conn);
+	}
+		
+	void I2PTunnel::RemoveConnection (I2PTunnelConnection * conn)
+	{
+		m_Connections.erase (conn);
+	}	
+	
+	void I2PTunnel::ClearConnections ()
+	{
+		for (auto it: m_Connections)
+			delete it;
+		m_Connections.clear ();
+	}	
+		
 	I2PClientTunnel::I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, int port):
-		m_Service (service), m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+		I2PTunnel (service), m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_Destination (destination), m_DestinationIdentHash (nullptr), m_RemoteLeaseSet (nullptr)
 	{
 	}	
@@ -162,15 +182,13 @@ namespace stream
 	void I2PClientTunnel::Stop ()
 	{
 		m_Acceptor.close();
-		for (auto it: m_Connections)
-			delete it;
-		m_Connections.clear ();
+		ClearConnections ();
 		m_DestinationIdentHash = nullptr;
 	}
 
 	void I2PClientTunnel::Accept ()
 	{
-		auto newSocket = new boost::asio::ip::tcp::socket (m_Service);
+		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
 		m_Acceptor.async_accept (*newSocket, boost::bind (&I2PClientTunnel::HandleAccept, this,
 			boost::asio::placeholders::error, newSocket));
 	}	
@@ -198,8 +216,8 @@ namespace stream
 			if (m_RemoteLeaseSet) // leaseSet found
 			{	
 				LogPrint ("New I2PTunnel connection");
-				auto connection = new I2PTunnelConnection (socket, m_RemoteLeaseSet);
-				m_Connections.insert (connection);
+				auto connection = new I2PTunnelConnection (this, socket, m_RemoteLeaseSet);
+				AddConnection (connection);
 			}
 			else
 			{
@@ -213,7 +231,7 @@ namespace stream
 	}
 
 	I2PServerTunnel::I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-		const i2p::data::IdentHash& localDestination): m_Service (service),
+		const i2p::data::IdentHash& localDestination): I2PTunnel (service),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
 		m_LocalDestination = FindLocalDestination (localDestination);
@@ -228,6 +246,7 @@ namespace stream
 
 	void I2PServerTunnel::Stop ()
 	{
+		ClearConnections ();
 	}	
 
 	void I2PServerTunnel::Accept ()
@@ -239,7 +258,7 @@ namespace stream
 	void I2PServerTunnel::HandleAccept (i2p::stream::Stream * stream)
 	{
 		if (stream)
-			new I2PTunnelConnection (stream, new boost::asio::ip::tcp::socket (m_Service), m_Endpoint);
+			new I2PTunnelConnection (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
 	}
 }		
 }	
