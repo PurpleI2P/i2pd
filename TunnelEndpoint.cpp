@@ -15,6 +15,8 @@ namespace tunnel
 	{
 		for (auto it: m_IncompleteMessages)
 			i2p::DeleteI2NPMessage (it.second.data);
+		for (auto it: m_OutOfSequenceFragments)
+			i2p::DeleteI2NPMessage (it.second.data);
 	}	
 	
 	void TunnelEndpoint::HandleDecryptedTunnelDataMsg (I2NPMessage * msg)
@@ -120,6 +122,7 @@ namespace tunnel
 						{
 							m.nextFragmentNum = 1;
 							m_IncompleteMessages[msgID] = m;
+							HandleOutOfSequenceFragment (msgID, m);
 						}
 						else
 						{
@@ -148,40 +151,78 @@ namespace tunnel
 		auto it = m_IncompleteMessages.find (msgID);
 		if (it != m_IncompleteMessages.end())
 		{
-			if (m.nextFragmentNum == it->second.nextFragmentNum)
+			auto& msg = it->second;
+			if (m.nextFragmentNum == msg.nextFragmentNum)
 			{
-				I2NPMessage * incompleteMessage = it->second.data; 
-				if (incompleteMessage->len + size < I2NP_MAX_MESSAGE_SIZE) // check if messega is not too long
+				if (msg.data->len + size < I2NP_MAX_MESSAGE_SIZE) // check if messega is not too long
 				{	
-					memcpy (incompleteMessage->buf + incompleteMessage->len, fragment, size); // concatenate fragment
-					incompleteMessage->len += size;
+					memcpy (msg.data->buf + msg.data->len, fragment, size); // concatenate fragment
+					msg.data->len += size;
 					if (isLastFragment)
 					{
 						// message complete
-						HandleNextMessage (it->second);	
+						HandleNextMessage (msg);	
 						m_IncompleteMessages.erase (it); 
 					}	
 					else
-						it->second.nextFragmentNum++;
+					{	
+						msg.nextFragmentNum++;
+						HandleOutOfSequenceFragment (msgID, msg);
+					}	
 				}
 				else
 				{
 					LogPrint ("Fragment ", m.nextFragmentNum, " of message ", msgID, "exceeds max I2NP message size. Message dropped");
-					i2p::DeleteI2NPMessage (it->second.data);
+					i2p::DeleteI2NPMessage (msg.data);
 					m_IncompleteMessages.erase (it);
 				}
+				i2p::DeleteI2NPMessage (m.data);
 			}
 			else
 			{	
-				LogPrint ("Unexpected fragment ", m.nextFragmentNum, " instead ", it->second.nextFragmentNum, " of message ", msgID, ". Discarded");
-				i2p::DeleteI2NPMessage (it->second.data);
-				m_IncompleteMessages.erase (it); // TODO: store unexpected fragment for a while
+				LogPrint ("Unexpected fragment ", (int)m.nextFragmentNum, " instead ", (int)msg.nextFragmentNum, " of message ", msgID, ". Saved");
+				AddOutOfSequenceFragment (msgID, m.nextFragmentNum, isLastFragment, m.data);
 			}
 		}
 		else
-			LogPrint ("First fragment of message ", msgID, " not found. Discarded");
+		{	
+			LogPrint ("First fragment of message ", msgID, " not found. Saved");
+			AddOutOfSequenceFragment (msgID, m.nextFragmentNum, isLastFragment, m.data);
+		}	
+	}	
 
-		i2p::DeleteI2NPMessage (m.data);
+	void TunnelEndpoint::AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, I2NPMessage * data)
+	{
+		auto it = m_OutOfSequenceFragments.find (msgID);
+		if (it == m_OutOfSequenceFragments.end ())
+			m_OutOfSequenceFragments.insert (std::pair<uint32_t, Fragment> (msgID, {fragmentNum, isLastFragment, data}));	
+		else
+			i2p::DeleteI2NPMessage (data);
+	}	
+
+	void TunnelEndpoint::HandleOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg)
+	{
+		auto it = m_OutOfSequenceFragments.find (msgID);
+		if (it != m_OutOfSequenceFragments.end ())
+		{
+			if (it->second.fragmentNum == msg.nextFragmentNum)
+			{
+				LogPrint ("Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
+				auto size = it->second.data->GetLength ();
+				memcpy (msg.data->buf + msg.data->len, it->second.data->GetBuffer (), size); // concatenate out-of-sync fragment
+				msg.data->len += size;
+				if (it->second.isLastFragment)
+				{
+					// message complete
+					HandleNextMessage (msg);	
+					m_IncompleteMessages.erase (msgID); 
+				}	
+				else
+					msg.nextFragmentNum++;
+				i2p::DeleteI2NPMessage (it->second.data);
+				m_OutOfSequenceFragments.erase (it);
+			}	
+		}	
 	}	
 	
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)

@@ -17,6 +17,13 @@ namespace tunnel
 		{
 			uint8_t nextFragmentNum;
 		};	
+
+		struct Fragment
+		{
+			uint8_t fragmentNum;
+			bool isLastFragment;
+			I2NPMessage * data;
+		};	
 		
 		public:
 
@@ -30,10 +37,14 @@ namespace tunnel
 
 			void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, const TunnelMessageBlockEx& m);
 			void HandleNextMessage (const TunnelMessageBlock& msg);
+
+			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, I2NPMessage * data);
+			void HandleOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg);
 			
 		private:			
 
 			std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
+			std::map<uint32_t, Fragment> m_OutOfSequenceFragments;
 			bool m_IsInbound;
 			size_t m_NumReceivedBytes;
 	};	
