@@ -121,8 +121,8 @@ namespace tunnel
 						if (!isFollowOnFragment) // create new incomlete message
 						{
 							m.nextFragmentNum = 1;
-							m_IncompleteMessages[msgID] = m;
 							HandleOutOfSequenceFragment (msgID, m);
+							m_IncompleteMessages[msgID] = m;
 						}
 						else
 						{
