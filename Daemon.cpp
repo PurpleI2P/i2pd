@@ -60,10 +60,12 @@ namespace i2p
 			isDaemon = i2p::util::config::GetArg("-daemon", 0);
 			isLogging = i2p::util::config::GetArg("-log", 1);
 
-			//TODO: This is an ugly workaround. fix it.
-			//TODO: Autodetect public IP.
-			i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-				i2p::util::config::GetArg("-port", 17007));
+			int port = i2p::util::config::GetArg("-port", 0);
+			if (port)
+				i2p::context.UpdatePort (port);					
+			const char * host = i2p::util::config::GetCharArg("-host", "");
+			if (host && host[0])
+				i2p::context.UpdateAddress (host);	
 
 			if (i2p::util::config::GetArg("-unreachable", 0))
 				i2p::context.SetUnreachable ();

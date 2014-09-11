@@ -55,17 +55,20 @@ namespace i2p
 		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}	
-		
-	void RouterContext::OverrideNTCPAddress (const char * host, int port)
+
+	void RouterContext::UpdatePort (int port)
 	{
-		m_RouterInfo.CreateBuffer (m_Keys);
-		auto address = const_cast<i2p::data::RouterInfo::Address *>(m_RouterInfo.GetNTCPAddress ());
-		if (address)
+		bool updated = false;
+		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			address->host = boost::asio::ip::address::from_string (host);
-			address->port = port;
-		}
-		UpdateRouterInfo ();
+			if (address.port != port)
+			{	
+				address.port = port;
+				updated = true;
+			}	
+		}	
+		if (updated)
+			UpdateRouterInfo ();
 	}
 
 	void RouterContext::UpdateAddress (const char * host)

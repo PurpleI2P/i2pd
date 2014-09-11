@@ -26,8 +26,8 @@ namespace i2p
 			const i2p::data::IdentHash& GetRouterIdentHash () const { return m_RouterInfo.GetIdentHash (); };
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 
-			void OverrideNTCPAddress (const char * host, int port); // temporary
-			void UpdateAddress (const char * host);	// called from SSU
+			void UpdatePort (int port); // called from Daemon
+			void UpdateAddress (const char * host);	// called from SSU or Daemon
 			bool AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const { return m_IsUnreachable; };
