@@ -701,7 +701,7 @@ namespace util
 			if (i2p::data::Base32ToByteStream(address.c_str(), address.length() - strlen(".b32.i2p"), (uint8_t *)destination, 32) != 32)
 			{
 				LogPrint ("Invalid Base32 address ", address);
-				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
+				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address</hmtl>", 400);
 				return;
 			}
 			fullAddress = address;
@@ -714,7 +714,7 @@ namespace util
 				if (!addr)
 				{
 					LogPrint ("Unknown address ", address);
-					SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 105);
+					SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 404);
 					return;
 				}
 				destination = *addr;
@@ -735,7 +735,7 @@ namespace util
 					if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
 					{
 						LogPrint("Invalid Base32 address ", address);
-						SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address", 400);
+						SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address</hmtl>", 400);
 						return;
 					}
 					fullAddress = address + ".b32.i2p";
@@ -766,7 +766,7 @@ namespace util
       					// POST/PUT, apply body
         				request +=  "Content-Length: " ;
         				request += data.size ();
-        				request += "\r\n" + data;
+        				request += "\r\n\r\n" + data;
       			}
       			LogPrint("HTTP Client Request: ", request);
 			m_Stream->Send ((uint8_t *)request.c_str (), request.size (), 10);
