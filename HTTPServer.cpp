@@ -701,7 +701,7 @@ namespace util
 			if (i2p::data::Base32ToByteStream(address.c_str(), address.length() - strlen(".b32.i2p"), (uint8_t *)destination, 32) != 32)
 			{
 				LogPrint ("Invalid Base32 address ", address);
-				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address</hmtl>", 400);
+				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address</html>", 400);
 				return;
 			}
 			fullAddress = address;
@@ -735,7 +735,7 @@ namespace util
 					if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
 					{
 						LogPrint("Invalid Base32 address ", address);
-						SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address</hmtl>", 400);
+						SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address</html>", 400);
 						return;
 					}
 					fullAddress = address + ".b32.i2p";
