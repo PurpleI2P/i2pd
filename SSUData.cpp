@@ -71,7 +71,7 @@ namespace ssu
 					{	
 						int numSentFragments = it->second->fragments.size ();		
 						// process bits
-						uint8_t mask = 0x40;
+						uint8_t mask = 0x01;
 						for (int j = 0; j < 7; j++)
 						{			
 							if (bitfield & mask)
@@ -83,7 +83,7 @@ namespace ssu
 								}	
 							}				
 							fragment++;
-							mask >>= 1;
+							mask <<= 1;
 						}
 					}	
 					buf++;
@@ -331,7 +331,7 @@ namespace ssu
 		div_t d = div (fragmentNum, 7);
 		memset (payload, 0x80, d.quot); // 0x80 means non-last
 		payload += d.quot;		
-		*payload = 0x40 >> d.rem; // set corresponding bit
+		*payload = 0x01 << d.rem; // set corresponding bit
 		payload++;
 		*payload = 0; // number of fragments
 
