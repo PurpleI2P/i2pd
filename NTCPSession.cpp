@@ -25,10 +25,12 @@ namespace ntcp
 		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+		m_Establisher = new Establisher;
 	}
 	
 	NTCPSession::~NTCPSession ()
 	{
+		delete m_Establisher;
 		delete m_DHKeysPair;
 		if (m_NextMessage)	
 			i2p::DeleteI2NPMessage (m_NextMessage);
@@ -95,6 +97,9 @@ namespace ntcp
 		LogPrint ("NTCP session connected");
 		m_IsEstablished = true;
 
+		delete m_Establisher;
+		m_Establisher = nullptr;
+		
 		SendTimeSyncMessage ();
 		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 
@@ -110,20 +115,20 @@ namespace ntcp
 	{
 		// send Phase1
 		const uint8_t * x = m_DHKeysPair->publicKey;
-		memcpy (m_Phase1.pubKey, x, 256);
-		CryptoPP::SHA256().CalculateDigest(m_Phase1.HXxorHI, x, 256);
+		memcpy (m_Establisher->phase1.pubKey, x, 256);
+		CryptoPP::SHA256().CalculateDigest(m_Establisher->phase1.HXxorHI, x, 256);
 		const uint8_t * ident = m_RemoteRouterInfo.GetIdentHash ();
 		for (int i = 0; i < 32; i++)
-			m_Phase1.HXxorHI[i] ^= ident[i];
+			m_Establisher->phase1.HXxorHI[i] ^= ident[i];
 		
-		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Phase1, sizeof (m_Phase1)), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase1Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}	
 
 	void NTCPSession::ServerLogin ()
 	{
 		// receive Phase1
-		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Phase1, sizeof (m_Phase1)),                     
+		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)),                     
 			boost::bind(&NTCPSession::HandlePhase1Received, this, 
 				boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}	
@@ -138,7 +143,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 1 sent: ", bytes_transferred);
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Phase2, sizeof (m_Phase2)),                  
+			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase2, sizeof (NTCPPhase2)),                  
 				boost::bind(&NTCPSession::HandlePhase2Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 		}	
@@ -156,11 +161,11 @@ namespace ntcp
 			LogPrint ("Phase 1 received: ", bytes_transferred);
 			// verify ident
 			uint8_t digest[32];
-			CryptoPP::SHA256().CalculateDigest(digest, m_Phase1.pubKey, 256);
+			CryptoPP::SHA256().CalculateDigest(digest, m_Establisher->phase1.pubKey, 256);
 			const uint8_t * ident = i2p::context.GetRouterInfo ().GetIdentHash ();
 			for (int i = 0; i < 32; i++)
 			{	
-				if ((m_Phase1.HXxorHI[i] ^ ident[i]) != digest[i])
+				if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i])
 				{
 					LogPrint ("Wrong ident");
 					Terminate ();
@@ -175,24 +180,24 @@ namespace ntcp
 	void NTCPSession::SendPhase2 ()
 	{
 		const uint8_t * y = m_DHKeysPair->publicKey;
-		memcpy (m_Phase2.pubKey, y, 256);
+		memcpy (m_Establisher->phase2.pubKey, y, 256);
 		uint8_t xy[512];
-		memcpy (xy, m_Phase1.pubKey, 256);
+		memcpy (xy, m_Establisher->phase1.pubKey, 256);
 		memcpy (xy + 256, y, 256);
-		CryptoPP::SHA256().CalculateDigest(m_Phase2.encrypted.hxy, xy, 512); 
+		CryptoPP::SHA256().CalculateDigest(m_Establisher->phase2.encrypted.hxy, xy, 512); 
 		uint32_t tsB = htobe32 (i2p::util::GetSecondsSinceEpoch ());
-		m_Phase2.encrypted.timestamp = tsB;
+		m_Establisher->phase2.encrypted.timestamp = tsB;
 		// TODO: fill filler
 
 		uint8_t aesKey[32];
-		CreateAESKey (m_Phase1.pubKey, aesKey);
+		CreateAESKey (m_Establisher->phase1.pubKey, aesKey);
 		m_Encryption.SetKey (aesKey);
 		m_Encryption.SetIV (y + 240);
 		m_Decryption.SetKey (aesKey);
-		m_Decryption.SetIV (m_Phase1.HXxorHI + 16);
+		m_Decryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
 		
-		m_Encryption.Encrypt ((uint8_t *)&m_Phase2.encrypted, sizeof(m_Phase2.encrypted), (uint8_t *)&m_Phase2.encrypted);
-		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Phase2, sizeof (m_Phase2)), boost::asio::transfer_all (),
+		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
+		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase2Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsB));
 
 	}	
@@ -207,7 +212,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 2 sent: ", bytes_transferred);
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Phase3, sizeof (m_Phase3)),                   
+			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase3, sizeof (NTCPPhase3)),                   
 				boost::bind(&NTCPSession::HandlePhase3Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsB));
 		}	
@@ -226,19 +231,19 @@ namespace ntcp
 			LogPrint ("Phase 2 received: ", bytes_transferred);
 		
 			uint8_t aesKey[32];
-			CreateAESKey (m_Phase2.pubKey, aesKey);
+			CreateAESKey (m_Establisher->phase2.pubKey, aesKey);
 			m_Decryption.SetKey (aesKey);
-			m_Decryption.SetIV (m_Phase2.pubKey + 240);
+			m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
 			m_Encryption.SetKey (aesKey);
-			m_Encryption.SetIV (m_Phase1.HXxorHI + 16);
+			m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
 			
-			m_Decryption.Decrypt((uint8_t *)&m_Phase2.encrypted, sizeof(m_Phase2.encrypted), (uint8_t *)&m_Phase2.encrypted);
+			m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 			// verify
 			uint8_t xy[512], hxy[32];
 			memcpy (xy, m_DHKeysPair->publicKey, 256);
-			memcpy (xy + 256, m_Phase2.pubKey, 256);
+			memcpy (xy + 256, m_Establisher->phase2.pubKey, 256);
 			CryptoPP::SHA256().CalculateDigest(hxy, xy, 512); 
-			if (memcmp (hxy, m_Phase2.encrypted.hxy, 32))
+			if (memcmp (hxy, m_Establisher->phase2.encrypted.hxy, 32))
 			{
 				LogPrint ("Incorrect hash");
 				Terminate ();
@@ -250,22 +255,22 @@ namespace ntcp
 
 	void NTCPSession::SendPhase3 ()
 	{
-		m_Phase3.size = htons (sizeof (m_Phase3.ident));
-		memcpy (&m_Phase3.ident, &i2p::context.GetRouterIdentity (), sizeof (m_Phase3.ident));		
+		m_Establisher->phase3.size = htons (i2p::data::DEFAULT_IDENTITY_SIZE);
+		memcpy (&m_Establisher->phase3.ident, &i2p::context.GetRouterIdentity (), i2p::data::DEFAULT_IDENTITY_SIZE);		
 		uint32_t tsA = htobe32 (i2p::util::GetSecondsSinceEpoch ());
-		m_Phase3.timestamp = tsA;
+		m_Establisher->phase3.timestamp = tsA;
 		
 		SignedData s;
-		memcpy (s.x, m_Phase1.pubKey, 256);
-		memcpy (s.y, m_Phase2.pubKey, 256);
+		memcpy (s.x, m_Establisher->phase1.pubKey, 256);
+		memcpy (s.y, m_Establisher->phase2.pubKey, 256);
 		memcpy (s.ident, m_RemoteRouterInfo.GetIdentHash (), 32);
 		s.tsA = tsA;
-		s.tsB = m_Phase2.encrypted.timestamp;
-		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Phase3.signature);
+		s.tsB = m_Establisher->phase2.encrypted.timestamp;
+		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Establisher->phase3.signature);
 
-		m_Encryption.Encrypt((uint8_t *)&m_Phase3, sizeof(m_Phase3), (uint8_t *)&m_Phase3);
+		m_Encryption.Encrypt((uint8_t *)&m_Establisher->phase3, sizeof(NTCPPhase3), (uint8_t *)&m_Establisher->phase3);
 		        
-		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Phase3, sizeof (m_Phase3)), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase3, sizeof (NTCPPhase3)), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase3Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsA));				
 	}	
 		
@@ -279,7 +284,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 3 sent: ", bytes_transferred);
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Phase4, sizeof (m_Phase4)),                  
+			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase4, sizeof (NTCPPhase4)),                  
 				boost::bind(&NTCPSession::HandlePhase4Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsA));
 		}	
@@ -295,20 +300,20 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 3 received: ", bytes_transferred);
-			m_Decryption.Decrypt ((uint8_t *)&m_Phase3, sizeof(m_Phase3), (uint8_t *)&m_Phase3);
-			m_RemoteRouterInfo.SetRouterIdentity (m_Phase3.ident);
+			m_Decryption.Decrypt ((uint8_t *)&m_Establisher->phase3, sizeof(NTCPPhase3), (uint8_t *)&m_Establisher->phase3);
+			m_RemoteRouterInfo.SetRouterIdentity (m_Establisher->phase3.ident);
 
 			SignedData s;
-			memcpy (s.x, m_Phase1.pubKey, 256);
-			memcpy (s.y, m_Phase2.pubKey, 256);
+			memcpy (s.x, m_Establisher->phase1.pubKey, 256);
+			memcpy (s.y, m_Establisher->phase2.pubKey, 256);
 			memcpy (s.ident, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
-			s.tsA = m_Phase3.timestamp;
+			s.tsA = m_Establisher->phase3.timestamp;
 			s.tsB = tsB;
 			
 			CryptoPP::DSA::PublicKey pubKey;
 			pubKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
 			CryptoPP::DSA::Verifier verifier (pubKey);
-			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Phase3.signature, 40))
+			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Establisher->phase3.signature, 40))
 			{	
 				LogPrint ("signature verification failed");
 				Terminate ();
@@ -322,15 +327,15 @@ namespace ntcp
 	void NTCPSession::SendPhase4 (uint32_t tsB)
 	{
 		SignedData s;
-		memcpy (s.x, m_Phase1.pubKey, 256);
-		memcpy (s.y, m_Phase2.pubKey, 256);
+		memcpy (s.x, m_Establisher->phase1.pubKey, 256);
+		memcpy (s.y, m_Establisher->phase2.pubKey, 256);
 		memcpy (s.ident, m_RemoteRouterInfo.GetIdentHash (), 32);
-		s.tsA = m_Phase3.timestamp;
+		s.tsA = m_Establisher->phase3.timestamp;
 		s.tsB = tsB;
-		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Phase4.signature);
-		m_Encryption.Encrypt ((uint8_t *)&m_Phase4, sizeof(m_Phase4), (uint8_t *)&m_Phase4);
+		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Establisher->phase4.signature);
+		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase4, sizeof(NTCPPhase4), (uint8_t *)&m_Establisher->phase4);
 
-		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Phase4, sizeof (m_Phase4)), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase4, sizeof (NTCPPhase4)), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase4Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}	
 
@@ -362,20 +367,20 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 4 received: ", bytes_transferred);
-			m_Decryption.Decrypt((uint8_t *)&m_Phase4, sizeof(m_Phase4), (uint8_t *)&m_Phase4);
+			m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase4, sizeof(NTCPPhase4), (uint8_t *)&m_Establisher->phase4);
 
 			// verify signature
 			SignedData s;
-			memcpy (s.x, m_Phase1.pubKey, 256);
-			memcpy (s.y, m_Phase2.pubKey, 256);
+			memcpy (s.x, m_Establisher->phase1.pubKey, 256);
+			memcpy (s.y, m_Establisher->phase2.pubKey, 256);
 			memcpy (s.ident, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
 			s.tsA = tsA;
-			s.tsB = m_Phase2.encrypted.timestamp;
+			s.tsB = m_Establisher->phase2.encrypted.timestamp;
 
 			CryptoPP::DSA::PublicKey pubKey;
 			pubKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
 			CryptoPP::DSA::Verifier verifier (pubKey);
-			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Phase4.signature, 40))
+			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Establisher->phase4.signature, 40))
 			{	
 				LogPrint ("signature verification failed");
 				Terminate ();
@@ -391,7 +396,7 @@ namespace ntcp
 
 	void NTCPSession::Receive ()
 	{
-		m_Socket.async_read_some (boost::asio::buffer(m_ReceiveBuffer + m_ReceiveBufferOffset, NTCP_MAX_MESSAGE_SIZE*2 -m_ReceiveBufferOffset),                
+		m_Socket.async_read_some (boost::asio::buffer(m_ReceiveBuffer + m_ReceiveBufferOffset, NTCP_BUFFER_SIZE - m_ReceiveBufferOffset),                
 			boost::bind(&NTCPSession::HandleReceived, this, 
 			boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}	

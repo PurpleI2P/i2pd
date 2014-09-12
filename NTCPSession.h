@@ -63,6 +63,7 @@ namespace ntcp
 #pragma pack()	
 
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
+	const size_t NTCP_BUFFER_SIZE = 1040; // fits one tunnel message (1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 	class NTCPSession
 	{
@@ -133,13 +134,16 @@ namespace ntcp
 			CryptoPP::Adler32 m_Adler;
 			
 			i2p::data::RouterInfo& m_RemoteRouterInfo;
+
+			struct Establisher
+			{	
+				NTCPPhase1 phase1;
+				NTCPPhase2 phase2;
+				NTCPPhase3 phase3;
+				NTCPPhase4 phase4;
+			} * m_Establisher;	
 			
-			NTCPPhase1 m_Phase1;
-			NTCPPhase2 m_Phase2;
-			NTCPPhase3 m_Phase3;
-			NTCPPhase4 m_Phase4;
-			
-			uint8_t m_ReceiveBuffer[NTCP_MAX_MESSAGE_SIZE*2], m_TimeSyncBuffer[16];
+			uint8_t m_ReceiveBuffer[NTCP_BUFFER_SIZE], m_TimeSyncBuffer[16];
 			int m_ReceiveBufferOffset; 
 
 			i2p::I2NPMessage * m_NextMessage;
