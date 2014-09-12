@@ -765,7 +765,7 @@ namespace util
       			{
       					// POST/PUT, apply body
         				request +=  "Content-Length: " ;
-        				request += request.size ();
+        				request += data.size ();
         				request += "\r\n" + data;
       			}
       			LogPrint("HTTP Client Request: ", request);

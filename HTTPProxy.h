@@ -20,7 +20,7 @@ namespace proxy
 		protected:
 			void RunRequest();
 			void parseHeaders(const std::string& h, std::vector<header>& hm);
-			void ExtractRequest(request &m_Request);
+			void ExtractRequest(request& r);
 	};
 
 	class HTTPProxy : public i2p::util::HTTPServer
