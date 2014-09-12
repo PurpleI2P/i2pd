@@ -846,7 +846,7 @@ namespace ssu
 			payload++;
 			*payload = 0; // num fragments  
 			// encrypt message with session key
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
 			Send (buf, 48);
 			LogPrint ("SSU keep-alive sent");
 			ScheduleTermination ();
