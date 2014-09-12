@@ -760,15 +760,15 @@ namespace util
 			m_Stream = i2p::stream::CreateStream (*leaseSet);
 		if (m_Stream)
 		{
-			std::string request = method+" " + uri + " HTTP/1.1\n Host:" + fullAddress + "\r\n";
-      			if (!strcmp(method.c_str(), "GET") && data.size () > 0)
-      			{
-      					// POST/PUT, apply body
-        				request +=  "Content-Length: " ;
-        				request += data.size ();
-        				request += "\r\n\r\n" + data;
-      			}
-      			LogPrint("HTTP Client Request: ", request);
+			std::string request = method + " " + uri + " HTTP/1.1\r\nHost:" + fullAddress + "\r\n";
+  			if (method == "POST" && data.size () > 0)
+  			{
+  					// POST/PUT, apply body
+				  	request += "Content-Type: application/x-www-form-urlencoded\r\n";
+    				request += "Content-Length: " + boost::lexical_cast<std::string>(data.size ()) + "\r\n";
+    				request += "\r\n" + data;
+  			}
+  			LogPrint("HTTP Client Request: ", request);
 			m_Stream->Send ((uint8_t *)request.c_str (), request.size (), 10);
 			AsyncStreamReceive ();
 		}
