@@ -751,6 +751,7 @@ namespace data
 		if (it == m_RequestedDestinations.end ()) // not exist yet
 		{
 			RequestedDestination * d = new RequestedDestination (dest, isLeaseSet, isExploratory, pool);
+			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 			m_RequestedDestinations[dest] = d;
 			return d;
 		}	
@@ -764,6 +765,7 @@ namespace data
 		if (it != m_RequestedDestinations.end ())
 		{	
 			delete it->second;
+			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 			m_RequestedDestinations.erase (it);
 			return true;
 		}	
@@ -774,6 +776,7 @@ namespace data
 	{
 		if (dest)
 		{
+			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 			m_RequestedDestinations.erase (dest->GetDestination ());
 			delete dest;
 		}	
