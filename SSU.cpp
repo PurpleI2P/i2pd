@@ -1030,7 +1030,7 @@ namespace ssu
 					{
 						// connect through introducer
 						int numIntroducers = address->introducers.size ();
-						if (numIntroducers > 0)
+						if (numIntroducers > 0 && !i2p::context.GetRouterInfo ().UsesIntroducer ())
 						{
 							SSUSession * introducerSession = nullptr;
 							const i2p::data::RouterInfo::Introducer * introducer = nullptr;
@@ -1064,7 +1064,7 @@ namespace ssu
 						}
 						else
 						{	
-							LogPrint ("Router is unreachable, but no introducers presented. Ignored");
+							LogPrint ("Can't connect to unreachable router. ", numIntroducers ? "We are unreachable" : "No introducers presented");
 							m_Sessions.erase (remoteEndpoint);
 							delete session;
 							session = nullptr;
