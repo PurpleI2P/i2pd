@@ -485,7 +485,7 @@ namespace ssu
 			buf += 4; // address
 			uint16_t port = be16toh (*(uint16_t *)buf);
 			// send hole punch of 1 byte
-			m_Server.Send (buf, 1, boost::asio::ip::udp::endpoint (address, port));
+			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (address, port));
 		}
 		else
 			LogPrint ("Address size ", size, " is not supported"); 	
@@ -1030,7 +1030,7 @@ namespace ssu
 					{
 						// connect through introducer
 						int numIntroducers = address->introducers.size ();
-						if (numIntroducers > 0 && !i2p::context.GetRouterInfo ().UsesIntroducer ())
+						if (numIntroducers > 0)
 						{
 							SSUSession * introducerSession = nullptr;
 							const i2p::data::RouterInfo::Introducer * introducer = nullptr;
@@ -1060,11 +1060,13 @@ namespace ssu
 							LogPrint ("Introduce new SSU session to [", router->GetIdentHashAbbreviation (), 
 									"] through introducer ", introducer->iHost, ":", introducer->iPort);
 							session->WaitForIntroduction ();	
+							if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+								Send (m_ReceiveBuffer, 0, remoteEndpoint); // send HolePunch
 							introducerSession->Introduce (introducer->iTag, introducer->iKey);
 						}
 						else
 						{	
-							LogPrint ("Can't connect to unreachable router. ", numIntroducers ? "We are unreachable" : "No introducers presented");
+							LogPrint ("Can't connect to unreachable router. No introducers presented");
 							m_Sessions.erase (remoteEndpoint);
 							delete session;
 							session = nullptr;

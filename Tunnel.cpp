@@ -400,19 +400,20 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
 			{
-				if (ts > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+				auto tunnel = *it;
+				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
-					LogPrint ("Tunnel ", (*it)->GetTunnelID (), " expired");
+					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
 					auto pool = (*it)->GetTunnelPool ();
 					if (pool)
-						pool->TunnelExpired (*it);
+						pool->TunnelExpired (tunnel);
 					delete *it;
 					it = m_OutboundTunnels.erase (it);
 				}	
 				else 
 				{
-					if ((*it)->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > (*it)->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
-						(*it)->SetState (eTunnelStateExpiring);
+					if (tunnel->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						tunnel->SetState (eTunnelStateExpiring);
 					it++;
 				}
 			}
@@ -440,19 +441,20 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 			{
-				if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+				auto tunnel = it->second;
+				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
-					LogPrint ("Tunnel ", it->second->GetTunnelID (), " expired");
-					auto pool = it->second->GetTunnelPool ();
+					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
+					auto pool = tunnel->GetTunnelPool ();
 					if (pool)
-						pool->TunnelExpired (it->second);
-					delete it->second;
+						pool->TunnelExpired (tunnel);
+					delete tunnel;
 					it = m_InboundTunnels.erase (it);
 				}	
 				else 
 				{
-					if (it->second->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
-						it->second->SetState (eTunnelStateExpiring);
+					if (tunnel->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						tunnel->SetState (eTunnelStateExpiring);
 					it++;
 				}
 			}
