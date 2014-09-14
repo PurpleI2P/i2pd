@@ -69,7 +69,7 @@ namespace data
 			{
 				TransportStyle transportStyle;
 				boost::asio::ip::address host;
-				int port;
+				int port, mtu;
 				uint64_t date;
 				uint8_t cost;
 				// SSU only

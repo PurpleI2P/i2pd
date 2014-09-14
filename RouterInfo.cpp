@@ -133,6 +133,8 @@ namespace data
 				address.transportStyle = eTransportSSU;
 			else
 				address.transportStyle = eTransportUnknown;
+			address.port = 0;
+			address.mtu = 0;
 			uint16_t size, r = 0;
 			s.read ((char *)&size, sizeof (size));
 			size = be16toh (size);
@@ -164,6 +166,8 @@ namespace data
 				}	
 				else if (!strcmp (key, "port"))
 					address.port = boost::lexical_cast<int>(value);
+				else if (!strcmp (key, "mtu"))
+					address.mtu = boost::lexical_cast<int>(value);
 				else if (!strcmp (key, "key"))
 					Base64ToByteStream (value, strlen (value), address.key, 32);
 				else if (!strcmp (key, "caps"))
