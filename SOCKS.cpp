@@ -10,8 +10,8 @@ namespace i2p
 {
 namespace proxy
 {
-	constexpr uint8_t socks_leaseset_timeout = 10;
-	constexpr uint8_t socks_timeout = 60;
+	const uint8_t socks_leaseset_timeout = 10;
+	const uint8_t socks_timeout = 60;
 		
 	void SOCKS4AHandler::AsyncSockRead()
 	{
@@ -80,9 +80,9 @@ namespace proxy
 		}
 	}
 
-	constexpr size_t socks_hostname_size = 1024;
-	constexpr size_t socks_ident_size = 1024;
-	constexpr size_t destb32_len = 52;
+	const size_t socks_hostname_size = 1024;
+	const size_t socks_ident_size = 1024;
+	const size_t destb32_len = 52;
 	
 	void SOCKS4AHandler::HandleSockForward(const boost::system::error_code & ecode, std::size_t len)
 	{

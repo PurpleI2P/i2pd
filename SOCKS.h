@@ -14,7 +14,7 @@ namespace i2p
 namespace proxy
 {
 
-	constexpr size_t socks_buffer_size = 8192;
+	const size_t socks_buffer_size = 8192;
 
 	class SOCKS4AHandler {
 
