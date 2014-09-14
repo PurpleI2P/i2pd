@@ -152,6 +152,7 @@ namespace tunnel
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
 			std::mutex m_OutboundTunnelsMutex;
 			std::list<OutboundTunnel *> m_OutboundTunnels;
+			std::mutex m_TransitTunnelsMutex;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
 			std::map<i2p::data::IdentHash, TunnelPool *> m_Pools;
 			TunnelPool * m_ExploratoryPool;

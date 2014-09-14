@@ -260,6 +260,8 @@ namespace tunnel
 				new TunnelConfig (hops, inboundTunnel->GetTunnelConfig ()));
 			tunnel->SetTunnelPool (this);
 		}	
+		else
+			LogPrint ("Can't create outbound tunnel. No inbound tunnels found");
 	}	
 
 	void TunnelPool::RecreateOutboundTunnel (OutboundTunnel * tunnel)
@@ -267,10 +269,15 @@ namespace tunnel
 		InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
 		if (!inboundTunnel)
 			inboundTunnel = tunnels.GetNextInboundTunnel ();
-		LogPrint ("Re-creating destination outbound tunnel...");
-		auto * newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
-			tunnel->GetTunnelConfig ()->Clone (inboundTunnel->GetTunnelConfig ()));
-		newTunnel->SetTunnelPool (this);
+		if (inboundTunnel)
+		{	
+			LogPrint ("Re-creating destination outbound tunnel...");
+			auto * newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
+				tunnel->GetTunnelConfig ()->Clone (inboundTunnel->GetTunnelConfig ()));
+			newTunnel->SetTunnelPool (this);
+		}	
+		else
+			LogPrint ("Can't re-create outbound tunnel. No inbound tunnels found");
 	}			
 }
 }

@@ -301,6 +301,7 @@ namespace tunnel
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
 	{
+		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
 		m_TransitTunnels[tunnel->GetTunnelID ()] = tunnel;
 	}	
 
@@ -490,7 +491,10 @@ namespace tunnel
 			{
 				LogPrint ("Transit tunnel ", it->second->GetTunnelID (), " expired");
 				auto tmp = it->second;
-				it = m_TransitTunnels.erase (it);
+				{
+					std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
+					it = m_TransitTunnels.erase (it);
+				}	
 				delete tmp;
 			}	
 			else 
