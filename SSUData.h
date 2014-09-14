@@ -15,7 +15,9 @@ namespace ssu
 {
 
 	const size_t SSU_MTU = 1484;
-	const size_t SSU_PACKET_SIZE = SSU_MTU - 20 - 8; // 20 - IPv4 header, 8 - UDP
+	const size_t IPV4_HEADER_SIZE = 20;
+	const size_t UDP_HEADER_SIZE = 8;
+	const size_t SSU_MAX_PACKET_SIZE = SSU_MTU - IPV4_HEADER_SIZE - UDP_HEADER_SIZE; // 1456
 	const int RESEND_INTERVAL = 3; // in seconds
 	const int MAX_NUM_RESENDS = 5;
 	// data flags
@@ -31,7 +33,7 @@ namespace ssu
 		int fragmentNum;
 		size_t len;
 		bool isLast;
-		uint8_t buf[SSU_PACKET_SIZE + 18];
+		uint8_t buf[SSU_MAX_PACKET_SIZE + 18];
 
 		Fragment () = default;
 		Fragment (int n, const uint8_t * b, int l, bool last): 
@@ -93,6 +95,7 @@ namespace ssu
 			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
 			std::map<uint32_t, SentMessage *> m_SentMessages;
 			boost::asio::deadline_timer m_ResendTimer;
+			int m_PacketSize;
 	};	
 }
 }

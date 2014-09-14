@@ -12,6 +12,29 @@ namespace ssu
 	SSUData::SSUData (SSUSession& session):
 		m_Session (session), m_ResendTimer (session.m_Server.GetService ())
 	{
+		m_PacketSize = SSU_MAX_PACKET_SIZE;
+		auto remoteRouter = session.GetRemoteRouter ();
+		if (remoteRouter)
+		{
+			auto ssuAddress = remoteRouter->GetSSUAddress ();
+			if (ssuAddress && ssuAddress->mtu)
+			{
+				m_PacketSize = ssuAddress->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
+				if (m_PacketSize > 0)
+				{
+					// make sure packet size multiple of 16
+					m_PacketSize >>= 4;
+					m_PacketSize <<= 4;
+					if (m_PacketSize > (int)SSU_MAX_PACKET_SIZE) m_PacketSize = SSU_MAX_PACKET_SIZE;
+					LogPrint ("MTU=", ssuAddress->mtu, " packet size=", m_PacketSize); 
+				}
+				else
+				{	
+					LogPrint ("Unexpected MTU ", ssuAddress->mtu);
+					m_PacketSize = SSU_MAX_PACKET_SIZE;
+				}	
+			}	
+		}	
 	}
 
 	SSUData::~SSUData ()
@@ -245,7 +268,7 @@ namespace ssu
 		sentMessage->numResends = 0;
 		auto& fragments = sentMessage->fragments;
 		msgID = htobe32 (msgID);	
-		size_t payloadSize = SSU_PACKET_SIZE - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
+		size_t payloadSize = m_PacketSize - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
 		size_t len = msg->GetLength ();
 		uint8_t * msgBuf = msg->GetSSUHeader ();
 
