@@ -14,7 +14,7 @@ namespace i2p
 namespace ssu
 {
 
-	const size_t SSU_MTU = 1484;
+	const size_t SSU_MTU = 1472; // 1484;
 	const int RESEND_INTERVAL = 3; // in seconds
 	const int MAX_NUM_RESENDS = 5;
 	// data flags

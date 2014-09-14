@@ -253,6 +253,7 @@ namespace ssu
 		while (len > 0)
 		{	
 			Fragment * fragment = new Fragment;
+			fragment->fragmentNum = fragmentNum;
 			uint8_t * buf = fragment->buf;
 			fragments.push_back (fragment);
 			uint8_t	* payload = buf + sizeof (SSUHeader);
