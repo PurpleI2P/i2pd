@@ -1086,6 +1086,11 @@ namespace ssu
 		{
 			session->Close ();
 			m_Sessions.erase (session->GetRemoteEndpoint ());
+			if (session->GetRelayTag () && i2p::context.GetRouterInfo ().UsesIntroducer ()) 
+			{
+				m_Introducers.remove (session->GetRemoteEndpoint ());
+				i2p::context.RemoveIntroducer (session->GetRemoteEndpoint ());
+			}	
 			delete session;
 		}	
 	}	
