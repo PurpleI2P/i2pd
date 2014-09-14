@@ -245,7 +245,7 @@ namespace ssu
 		sentMessage->numResends = 0;
 		auto& fragments = sentMessage->fragments;
 		msgID = htobe32 (msgID);	
-		size_t payloadSize = SSU_MTU - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
+		size_t payloadSize = SSU_PACKET_SIZE - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
 		size_t len = msg->GetLength ();
 		uint8_t * msgBuf = msg->GetSSUHeader ();
 

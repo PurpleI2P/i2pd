@@ -14,7 +14,8 @@ namespace i2p
 namespace ssu
 {
 
-	const size_t SSU_MTU = 1472; // 1484;
+	const size_t SSU_MTU = 1484;
+	const size_t SSU_PACKET_SIZE = SSU_MTU - 20 - 8; // 20 - IPv4 header, 8 - UDP
 	const int RESEND_INTERVAL = 3; // in seconds
 	const int MAX_NUM_RESENDS = 5;
 	// data flags
@@ -30,7 +31,7 @@ namespace ssu
 		int fragmentNum;
 		size_t len;
 		bool isLast;
-		uint8_t buf[SSU_MTU + 18];
+		uint8_t buf[SSU_PACKET_SIZE + 18];
 
 		Fragment () = default;
 		Fragment (int n, const uint8_t * b, int l, bool last): 
