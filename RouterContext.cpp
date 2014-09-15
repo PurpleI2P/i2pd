@@ -98,7 +98,7 @@ namespace i2p
 			if (ret)
 				UpdateRouterInfo ();
 		}	
-		return true;
+		return ret;
 	}	
 
 	void RouterContext::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)

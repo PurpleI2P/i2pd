@@ -1086,11 +1086,6 @@ namespace ssu
 		{
 			session->Close ();
 			m_Sessions.erase (session->GetRemoteEndpoint ());
-			if (session->GetRelayTag () && i2p::context.GetRouterInfo ().UsesIntroducer ()) 
-			{
-				m_Introducers.remove (session->GetRemoteEndpoint ());
-				i2p::context.RemoveIntroducer (session->GetRemoteEndpoint ());
-			}	
 			delete session;
 		}	
 	}	
@@ -1189,7 +1184,8 @@ namespace ssu
 				{
 					for (auto it1: introducers)
 					{
-						if (i2p::context.AddIntroducer (*it1->GetRemoteRouter (), it1->GetRelayTag ()))
+						auto router = it1->GetRemoteRouter ();
+						if (router && i2p::context.AddIntroducer (*router, it1->GetRelayTag ()))
 						{	
 							newList.push_back (it1->GetRemoteEndpoint ());
 							if (newList.size () >= SSU_MAX_NUM_INTRODUCERS) break;
