@@ -517,7 +517,7 @@ namespace data
 		{
 			if (addr.transportStyle == eTransportSSU && addr.host.is_v4 ())
 			{	
-				for (std::vector<Introducer>::iterator it = addr.introducers.begin (); it != addr.introducers.begin (); it++)
+				for (std::vector<Introducer>::iterator it = addr.introducers.begin (); it != addr.introducers.end (); it++)
 					if ( boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e) 
 					{
 						addr.introducers.erase (it);
