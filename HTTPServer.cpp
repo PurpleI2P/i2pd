@@ -512,7 +512,7 @@ namespace util
 
 	void HTTPConnection::Receive ()
 	{
-		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, 8191),
+		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
 			 boost::bind(&HTTPConnection::HandleReceive, this,
 				 boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
@@ -521,9 +521,15 @@ namespace util
 	{
 		if (!ecode)
   		{
-			m_Buffer[bytes_transferred] = 0;
-			 m_BufferLen = bytes_transferred;
-			RunRequest();
+			if (!m_Stream) // new request
+			{
+				m_Buffer[bytes_transferred] = 0;
+				m_BufferLen = bytes_transferred;
+				RunRequest();
+			}
+			else // follow-on
+				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred, 10);
+			Receive ();
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
 			Terminate ();

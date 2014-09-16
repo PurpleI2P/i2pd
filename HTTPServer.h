@@ -11,6 +11,7 @@ namespace i2p
 {
 namespace util
 {
+	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
 	class HTTPConnection
 	{
 		protected:
@@ -68,7 +69,7 @@ namespace util
 
 			boost::asio::ip::tcp::socket * m_Socket;
 			i2p::stream::Stream * m_Stream;
-			char m_Buffer[8192], m_StreamBuffer[8192];
+			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1], m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
 			request m_Request;
 			reply m_Reply;
