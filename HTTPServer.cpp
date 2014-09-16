@@ -512,7 +512,7 @@ namespace util
 
 	void HTTPConnection::Receive ()
 	{
-		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, 8192),
+		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, 8191),
 			 boost::bind(&HTTPConnection::HandleReceive, this,
 				 boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
@@ -522,6 +522,7 @@ namespace util
 		if (!ecode)
   		{
 			m_Buffer[bytes_transferred] = 0;
+			 m_BufferLen = bytes_transferred;
 			RunRequest();
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
@@ -684,18 +685,19 @@ namespace util
 				s << "<br>";
 			}
 		}
-		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq\">Flibusta</a></p>";
+		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
 	}
-	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
-  {
-    HandleDestinationRequest(address, "GET", "", uri);
-  }
 
-	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& method, const std::string& data, const std::string& uri)
+	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
-		const i2p::data::LeaseSet * leaseSet = nullptr;
+		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n";
+		LogPrint("HTTP Client Request: ", request);
+		SendToAddress (address, request.c_str (), request.size ());		
+	}
+
+	void HTTPConnection::SendToAddress (const std::string& address, const char * buf, size_t len)
+	{	
 		i2p::data::IdentHash destination;
-		std::string fullAddress;
 		if (address.find(".b32.i2p") != std::string::npos)
 		{
 			if (i2p::data::Base32ToByteStream(address.c_str(), address.length() - strlen(".b32.i2p"), (uint8_t *)destination, 32) != 32)
@@ -704,7 +706,6 @@ namespace util
 				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address</html>", 400);
 				return;
 			}
-			fullAddress = address;
 		}
 		else
 		{
@@ -718,33 +719,15 @@ namespace util
 					return;
 				}
 				destination = *addr;
-				fullAddress = address;
-			}
-			else
-			{
-				if (address == "local")
-				{
-					// TODO: remove later
-					fullAddress = "local.i2p";
-					auto destination = i2p::stream::GetSharedLocalDestination ();
-					leaseSet = destination->GetLeaseSet ();
-					EepAccept (destination);
-				}
-				else
-				{
-					if (i2p::data::Base32ToByteStream(address.c_str(), address.length(), (uint8_t *)destination, 32) != 32)
-					{
-						LogPrint("Invalid Base32 address ", address);
-						SendReply("<html>" + itoopieImage + "<br>Invalid Base32 address</html>", 400);
-						return;
-					}
-					fullAddress = address + ".b32.i2p";
-				}
 			}
 		}
 
-		if (!leaseSet)
-			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+		SendToDestination (destination, buf, len);
+	}
+	
+	void HTTPConnection::SendToDestination (const i2p::data::IdentHash& destination, const char * buf, size_t len)
+	{
+		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
 			i2p::data::netdb.Subscribe(destination);
@@ -760,20 +743,11 @@ namespace util
 			m_Stream = i2p::stream::CreateStream (*leaseSet);
 		if (m_Stream)
 		{
-			std::string request = method + " " + uri + " HTTP/1.1\r\nHost:" + fullAddress + "\r\n";
-  			if (method == "POST" && data.size () > 0)
-  			{
-  					// POST/PUT, apply body
-				  	request += "Content-Type: application/x-www-form-urlencoded\r\n";
-    				request += "Content-Length: " + boost::lexical_cast<std::string>(data.size ()) + "\r\n";
-    				request += "\r\n" + data;
-  			}
-  			LogPrint("HTTP Client Request: ", request);
-			m_Stream->Send ((uint8_t *)request.c_str (), request.size (), 10);
+			m_Stream->Send ((uint8_t *)buf, len, 10);
 			AsyncStreamReceive ();
 		}
-	}
-
+	}	
+	
 	void HTTPConnection::AsyncStreamReceive ()
 	{
 		if (m_Stream)

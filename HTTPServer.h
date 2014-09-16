@@ -41,7 +41,8 @@ namespace util
 
 		public:
 
-			HTTPConnection (boost::asio::ip::tcp::socket * socket): m_Socket (socket), m_Stream (nullptr) { Receive (); };
+			HTTPConnection (boost::asio::ip::tcp::socket * socket): 
+				m_Socket (socket), m_Stream (nullptr), m_BufferLen (0) { Receive (); };
 			virtual ~HTTPConnection() { delete m_Socket; }
 
 		private:
@@ -68,15 +69,16 @@ namespace util
 			boost::asio::ip::tcp::socket * m_Socket;
 			i2p::stream::Stream * m_Stream;
 			char m_Buffer[8192], m_StreamBuffer[8192];
+			size_t m_BufferLen;
 			request m_Request;
 			reply m_Reply;
 
 		protected:
-
-
-			virtual void HandleDestinationRequest(const std::string& address, const std::string& uri);
-			virtual void HandleDestinationRequest(const std::string& address, const std::string& method, const std::string& data, const std::string& uri);
+	
 			virtual void RunRequest ();
+			void HandleDestinationRequest(const std::string& address, const std::string& uri);
+			void SendToAddress (const std::string& address, const char * buf, size_t len);
+			void SendToDestination (const i2p::data::IdentHash& destination, const char * buf, size_t len);
 
 		public:
 

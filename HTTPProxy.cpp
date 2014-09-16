@@ -63,14 +63,8 @@ namespace proxy
 		request r;
 		ExtractRequest(r);
 		parseHeaders(m_Buffer, r.headers);
-		const char * data = nullptr;
-		if (r.method == "POST")
-		{	
-			data = strstr (m_Buffer, "\r\n\r\n");	
-			if (data) data += 4;
-		}
 		LogPrint("Requesting ", r.host, " with path ", r.uri, " and method ", r.method);
-		HandleDestinationRequest(r.host, r.method, data ? std::string (data) : "" , r.uri);
+		SendToAddress (r.host, m_Buffer, m_BufferLen);
 	}
 
 }
