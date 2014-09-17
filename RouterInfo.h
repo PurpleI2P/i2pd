@@ -61,7 +61,7 @@ namespace data
 			{
 				boost::asio::ip::address iHost;
 				int iPort;
-				uint8_t iKey[32];
+				Tag<32> iKey;
 				uint32_t iTag;
 			};
 
@@ -73,7 +73,7 @@ namespace data
 				uint64_t date;
 				uint8_t cost;
 				// SSU only
-				uint8_t key[32]; // intro key for SSU
+				Tag<32> key; // intro key for SSU
 				std::vector<Introducer> introducers;
 			};
 			
