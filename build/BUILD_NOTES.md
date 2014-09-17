@@ -13,7 +13,7 @@ Available cmake options:
 
 * CMAKE_BUILD_TYPE -- build profile (Debug/Release)
 * WITH_AESNI -- AES-NI support (ON/OFF)
-* WITH_HARDENING -- enable hardening features (ON/OFF)
+* WITH_HARDENING -- enable hardening features (ON/OFF) (gcc only)
 
 Debian
 ------
@@ -45,3 +45,7 @@ To use newer compiler you should set these variables:
   export CXX=/usr/local/bin/g++47
 
 Replace "47" with your actual gcc version
+
+Branch 10.X has more reliable clang version, that can finally build i2pd,
+but i still recommend to use gcc, otherwise you will fight it's bugs by
+your own.
