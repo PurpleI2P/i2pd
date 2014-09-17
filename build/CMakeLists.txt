@@ -114,7 +114,7 @@ message(STATUS "---------------------------------------")
 
 add_executable ( ${PROJECT_NAME} ${SOURCES} )
 
-if (WITH_HARDENING)
+if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-z relro -z now" )
 endif ()
 
