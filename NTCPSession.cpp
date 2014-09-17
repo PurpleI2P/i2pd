@@ -100,6 +100,9 @@ namespace ntcp
 		delete m_Establisher;
 		m_Establisher = nullptr;
 		
+		delete m_DHKeysPair;
+		m_DHKeysPair = nullptr;	
+
 		SendTimeSyncMessage ();
 		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 
@@ -154,6 +157,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 1 read error: ", ecode.message ());
+			i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
+			m_DHKeysPair = nullptr;
 			Terminate ();
 		}
 		else
@@ -168,6 +173,8 @@ namespace ntcp
 				if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i])
 				{
 					LogPrint ("Wrong ident");
+					i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
+					m_DHKeysPair = nullptr;
 					Terminate ();
 					return;
 				}	
@@ -224,6 +231,8 @@ namespace ntcp
         {
 			LogPrint ("Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
 			GetRemoteRouterInfo ().SetUnreachable (true); // this RouterInfo is not valid
+			i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
+			m_DHKeysPair = nullptr;
 			Terminate ();
 		}
 		else

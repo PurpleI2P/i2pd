@@ -76,6 +76,12 @@ namespace i2p
 		}
 	}
 
+	void DHKeysPairSupplier::Return (i2p::data::DHKeysPair * pair)
+	{
+		std::unique_lock<std::mutex>  l(m_AcquiredMutex);
+		m_Queue.push (pair);
+	}
+
 	Transports transports;	
 	
 	Transports::Transports (): 
@@ -314,5 +320,10 @@ namespace i2p
 	i2p::data::DHKeysPair * Transports::GetNextDHKeysPair ()
 	{
 		return m_DHKeysPairSupplier.Acquire ();
+	}
+
+	void Transports::ReuseDHKeysPair (i2p::data::DHKeysPair * pair)
+	{
+		m_DHKeysPairSupplier.Return (pair);
 	}
 }
