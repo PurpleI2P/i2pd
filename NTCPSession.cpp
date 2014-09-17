@@ -128,7 +128,7 @@ namespace ntcp
 	void NTCPSession::ServerLogin ()
 	{
 		// receive Phase1
-		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)),                     
+		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),                    
 			boost::bind(&NTCPSession::HandlePhase1Received, this, 
 				boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}	
@@ -143,7 +143,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 1 sent: ", bytes_transferred);
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase2, sizeof (NTCPPhase2)),                  
+			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),                 
 				boost::bind(&NTCPSession::HandlePhase2Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 		}	
@@ -212,7 +212,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 2 sent: ", bytes_transferred);
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase3, sizeof (NTCPPhase3)),                   
+			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase3, sizeof (NTCPPhase3)), boost::asio::transfer_all (),                   
 				boost::bind(&NTCPSession::HandlePhase3Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsB));
 		}	
@@ -284,7 +284,7 @@ namespace ntcp
 		else
 		{	
 			LogPrint ("Phase 3 sent: ", bytes_transferred);
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase4, sizeof (NTCPPhase4)),                  
+			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase4, sizeof (NTCPPhase4)), boost::asio::transfer_all (),                  
 				boost::bind(&NTCPSession::HandlePhase4Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsA));
 		}	
