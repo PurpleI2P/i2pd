@@ -726,6 +726,11 @@ namespace util
 				}
 				destination = *addr;
 			}
+			else
+			{
+				SendReply ("<html>Unexpected address " + address + "</html>", 404);
+				return;
+			}	
 		}
 
 		SendToDestination (destination, buf, len);
