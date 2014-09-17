@@ -1,5 +1,5 @@
 cmake_minimum_required ( VERSION 2.8 )
-project ( "i2pd" "CXX")
+project ( "i2pd" )
 
 # configurale options
 option(WITH_AESNI     "Use AES-NI instructions set" OFF)
