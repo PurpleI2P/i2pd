@@ -166,18 +166,21 @@ namespace data
 		ps = (unsigned char *)InBuffer;
 		
 		if (outCount > len) return -1;
-		pd = (unsigned char *)OutBuffer;
+		pd = OutBuffer;
+		auto endOfOutBuffer = OutBuffer + outCount;		
 		for ( i = 0; i < n; i++ ){
 		     acc_1 = iT64[*ps++];
 		     acc_2 = iT64[*ps++];
 		     acc_1 <<= 2;
 		     acc_1 |= acc_2>>4;
 		     *pd++  = acc_1;
+			 if (pd >= endOfOutBuffer) break;
 
 		     acc_2 <<= 4;
 		     acc_1 = iT64[*ps++];
 		     acc_2 |= acc_1 >> 2;
 		     *pd++ = acc_2;
+			  if (pd >= endOfOutBuffer) break;	
 
 		     acc_2 = iT64[*ps++];
 		     acc_2 |= acc_1 << 6;
