@@ -13,7 +13,7 @@ Available cmake options:
 
 * CMAKE_BUILD_TYPE -- build profile (Debug/Release)
 * WITH_AESNI -- AES-NI support (ON/OFF)
-* WITH_HARDEN -- enable hardening features (ON/OFF)
+* WITH_HARDENING -- enable hardening features (ON/OFF)
 
 Debian
 ------
