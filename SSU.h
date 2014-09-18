@@ -129,6 +129,7 @@ namespace ssu
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			const i2p::data::RouterInfo * m_RemoteRouter;
+			i2p::data::IdentHash m_RemoteIdent; // if m_RemoteRouter is null
 			boost::asio::deadline_timer m_Timer;
 			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			bool m_PeerTest;

@@ -226,7 +226,21 @@ namespace ssu
 
 	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
 	{
-		LogPrint ("Session confirmed received");		
+		LogPrint ("Session confirmed received");	
+		uint8_t * payload = buf + sizeof (SSUHeader);
+		payload++; // identity fragment info
+		uint16_t identitySize = be16toh (*(uint16_t *)payload);	
+		payload += 2; // size of identity fragment
+		if (identitySize == i2p::data::DEFAULT_IDENTITY_SIZE)
+		{
+			i2p::data::Identity ident;
+			ident.FromBuffer (payload, identitySize);
+			m_RemoteIdent = ident.Hash ();
+		}
+		else
+			LogPrint ("SSU unexpected identity size ", identitySize);
+		payload += identitySize; // identity	
+		// TODO: verify signature
 		SendI2NPMessage (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
