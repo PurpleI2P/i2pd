@@ -18,12 +18,11 @@ namespace ssu
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
-		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest), m_State (eSessionStateUnknown),
-		m_IsSessionKey (false), m_RelayTag (0), m_Data (*this),
-		m_NumSentBytes (0), m_NumReceivedBytes (0)
+		m_Timer (m_Server.GetService ()), m_DHKeysPair (nullptr), m_PeerTest (peerTest),
+ 		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
+		m_Data (*this), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
-		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 		if (!router) // incoming session
 			ScheduleConnectTimer ();
 	}
@@ -174,13 +173,15 @@ namespace ssu
 	{
 		LogPrint ("Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
+		if (!m_DHKeysPair)
+			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 		CreateAESandMacKey (buf + sizeof (SSUHeader));
 		SendSessionCreated (buf + sizeof (SSUHeader));
 	}
 
 	void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
 	{
-		if (!m_RemoteRouter)
+		if (!m_RemoteRouter || !m_DHKeysPair)
 		{
 			LogPrint ("Unsolicited session created message");
 			return;
@@ -593,6 +594,7 @@ namespace ssu
 		{	
 			// set connect timer
 			ScheduleConnectTimer ();
+			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 			SendSessionRequest ();
 		}	
 	}
@@ -650,6 +652,11 @@ namespace ssu
 	void SSUSession::Established ()
 	{
 		m_State = eSessionStateEstablished;
+		if (m_DHKeysPair)
+		{
+			delete m_DHKeysPair;
+			m_DHKeysPair = nullptr;
+		}
 		SendI2NPMessage (CreateDatabaseStoreMsg ());
 		if (!m_DelayedMessages.empty ())
 		{
