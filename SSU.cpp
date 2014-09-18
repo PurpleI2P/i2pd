@@ -271,7 +271,7 @@ namespace ssu
 		payload += 2;
 		*payload = 0; // challenge
 		payload++;	
-		memcpy (payload, address->key, 32);
+		memcpy (payload, (const uint8_t *)address->key, 32);
 		payload += 32;
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		*(uint32_t *)payload = htobe32 (rnd.GenerateWord32 ()); // nonce	
@@ -694,13 +694,13 @@ namespace ssu
 		{
 			// we are client
 			auto address = m_RemoteRouter->GetSSUAddress ();
-			return address ? address->key : nullptr;
+			return address ? (const uint8_t *)address->key : nullptr;
 		}
 		else
 		{
 			// we are server
 			auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
-			return address ? address->key : nullptr;
+			return address ? (const uint8_t *)address->key : nullptr;
 		}
 	}	
 
