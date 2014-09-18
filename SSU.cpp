@@ -236,6 +236,7 @@ namespace ssu
 			i2p::data::Identity ident;
 			ident.FromBuffer (payload, identitySize);
 			m_RemoteIdent = ident.Hash ();
+			m_Data.UpdatePacketSize (m_RemoteIdent);
 		}
 		else
 			LogPrint ("SSU unexpected identity size ", identitySize);

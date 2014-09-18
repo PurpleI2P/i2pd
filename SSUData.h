@@ -8,6 +8,8 @@
 #include <set>
 #include <boost/asio.hpp>
 #include "I2NPProtocol.h"
+#include "Identity.h"
+#include "RouterInfo.h"
 
 namespace i2p
 {
@@ -78,6 +80,8 @@ namespace ssu
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void Send (i2p::I2NPMessage * msg);
 
+			void UpdatePacketSize (const i2p::data::IdentHash& remoteIdent);
+
 		private:
 
 			void SendMsgAck (uint32_t msgID);
@@ -88,6 +92,8 @@ namespace ssu
 
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);	
+			
+			void AdjustPacketSize (const i2p::data::RouterInfo& remoteRouter);	
 			
 		private:	
 

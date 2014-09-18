@@ -2,6 +2,7 @@
 #include <boost/bind.hpp>
 #include "Log.h"
 #include "Timestamp.h"
+#include "NetDb.h"
 #include "SSU.h"
 #include "SSUData.h"
 
@@ -15,26 +16,7 @@ namespace ssu
 		m_PacketSize = SSU_MAX_PACKET_SIZE;
 		auto remoteRouter = session.GetRemoteRouter ();
 		if (remoteRouter)
-		{
-			auto ssuAddress = remoteRouter->GetSSUAddress ();
-			if (ssuAddress && ssuAddress->mtu)
-			{
-				m_PacketSize = ssuAddress->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
-				if (m_PacketSize > 0)
-				{
-					// make sure packet size multiple of 16
-					m_PacketSize >>= 4;
-					m_PacketSize <<= 4;
-					if (m_PacketSize > (int)SSU_MAX_PACKET_SIZE) m_PacketSize = SSU_MAX_PACKET_SIZE;
-					LogPrint ("MTU=", ssuAddress->mtu, " packet size=", m_PacketSize); 
-				}
-				else
-				{	
-					LogPrint ("Unexpected MTU ", ssuAddress->mtu);
-					m_PacketSize = SSU_MAX_PACKET_SIZE;
-				}	
-			}	
-		}	
+			AdjustPacketSize (*remoteRouter);
 	}
 
 	SSUData::~SSUData ()
@@ -47,6 +29,35 @@ namespace ssu
 			}	
 		for (auto it: m_SentMessages)
 			delete it.second;
+	}
+
+	void SSUData::AdjustPacketSize (const i2p::data::RouterInfo& remoteRouter)
+	{
+		auto ssuAddress = remoteRouter.GetSSUAddress ();
+		if (ssuAddress && ssuAddress->mtu)
+		{
+			m_PacketSize = ssuAddress->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
+			if (m_PacketSize > 0)
+			{
+				// make sure packet size multiple of 16
+				m_PacketSize >>= 4;
+				m_PacketSize <<= 4;
+				if (m_PacketSize > (int)SSU_MAX_PACKET_SIZE) m_PacketSize = SSU_MAX_PACKET_SIZE;
+				LogPrint ("MTU=", ssuAddress->mtu, " packet size=", m_PacketSize); 
+			}
+			else
+			{	
+				LogPrint ("Unexpected MTU ", ssuAddress->mtu);
+				m_PacketSize = SSU_MAX_PACKET_SIZE;
+			}	
+		}		
+	}
+
+	void SSUData::UpdatePacketSize (const i2p::data::IdentHash& remoteIdent)
+	{
+ 		auto routerInfo = i2p::data::netdb.FindRouter (remoteIdent);
+		if (routerInfo)
+			AdjustPacketSize (*routerInfo);
 	}
 
 	void SSUData::ProcessSentMessageAck (uint32_t msgID)
