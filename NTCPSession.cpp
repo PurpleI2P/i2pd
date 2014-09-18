@@ -255,6 +255,8 @@ namespace ntcp
 			if (memcmp (hxy, m_Establisher->phase2.encrypted.hxy, 32))
 			{
 				LogPrint ("Incorrect hash");
+				i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
+				m_DHKeysPair = nullptr;
 				Terminate ();
 				return ;
 			}	
@@ -427,7 +429,11 @@ namespace ntcp
 				uint8_t * nextBlock = m_ReceiveBuffer;
 				while (m_ReceiveBufferOffset >= 16)
 				{
-					DecryptNextBlock (nextBlock); // 16 bytes
+					if (!DecryptNextBlock (nextBlock)) // 16 bytes
+					{
+						Terminate ();
+						return; 
+					}	
 					nextBlock += 16;
 					m_ReceiveBufferOffset -= 16;
 				}	
@@ -440,7 +446,7 @@ namespace ntcp
 		}	
 	}	
 
-	void NTCPSession::DecryptNextBlock (const uint8_t * encrypted) // 16 bytes
+	bool NTCPSession::DecryptNextBlock (const uint8_t * encrypted) // 16 bytes
 	{
 		if (!m_NextMessage) // new message, header expected
 		{	
@@ -457,8 +463,7 @@ namespace ntcp
 					LogPrint ("NTCP data size ", dataSize, " exceeds max size");
 					i2p::DeleteI2NPMessage (m_NextMessage);
 					m_NextMessage = nullptr;
-					Terminate ();
-					return;
+					return false;
 				}
 				m_NextMessageOffset += 16;
 				m_NextMessage->offset = 2; // size field
@@ -470,7 +475,7 @@ namespace ntcp
 				LogPrint ("Timestamp");	
 				i2p::DeleteI2NPMessage (m_NextMessage);
 				m_NextMessage = nullptr;
-				return;
+				return true;
 			}	
 		}	
 		else // message continues
@@ -484,7 +489,8 @@ namespace ntcp
 			// we have a complete I2NP message
 			i2p::HandleI2NPMessage (m_NextMessage);	
 			m_NextMessage = nullptr;
-		}	
+		}
+		return true;	
  	}	
 
 	void NTCPSession::Send (i2p::I2NPMessage * msg)
