@@ -87,13 +87,9 @@ namespace data
 				std::string name = s.substr(0, pos++);
 				std::string addr = s.substr(pos);
 
-				Identity ident;
-				if (!ident.FromBase64(addr)) 
-				{
-					LogPrint ("hosts.txt: ignore ", name);
-					continue;
-				}
-				m_Addresses[name] = ident.Hash();
+				IdentityEx ident;
+				ident.FromBase64(addr);
+				m_Addresses[name] = ident.GetIdentHash ();
 				numAddresses++;
 			}		
 		}

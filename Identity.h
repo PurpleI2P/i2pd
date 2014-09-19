@@ -101,9 +101,8 @@ namespace data
 		Identity () = default;
 		Identity (const Keys& keys) { *this = keys; };
 		Identity& operator=(const Keys& keys);
-		bool FromBase64(const std::string& );
 		size_t FromBuffer (const uint8_t * buf, size_t len);
-		IdentHash Hash() const;
+		IdentHash Hash () const;
 	};	
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
 
@@ -124,7 +123,8 @@ namespace data
 			~IdentityEx ();
 			IdentityEx& operator=(const IdentityEx& other);
 			IdentityEx& operator=(const Identity& standard);
-			
+
+			size_t FromBase64(const std::string& s);
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };

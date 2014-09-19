@@ -22,18 +22,19 @@ namespace data
 		return *this;
 	}
 
-	bool Identity::FromBase64 (const std::string& s)
-	{
-		size_t count = Base64ToByteStream (s.c_str(), s.length(), publicKey, DEFAULT_IDENTITY_SIZE);
-		return count == DEFAULT_IDENTITY_SIZE;
-	}
-
 	size_t Identity::FromBuffer (const uint8_t * buf, size_t len)
 	{
 		memcpy (publicKey, buf, DEFAULT_IDENTITY_SIZE);
 		return DEFAULT_IDENTITY_SIZE;
 	}
 
+	IdentHash Identity::Hash () const
+	{
+		IdentHash hash;
+		CryptoPP::SHA256().CalculateDigest(hash, publicKey, DEFAULT_IDENTITY_SIZE);
+		return hash;
+	}	
+	
 	IdentityEx::IdentityEx ():
 		m_Verifier (nullptr), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
@@ -151,6 +152,13 @@ namespace data
 			memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
 		return GetFullLen ();
 	}
+
+	size_t IdentityEx::FromBase64(const std::string& s)
+	{
+		uint8_t buf[512];
+		auto len = Base64ToByteStream (s.c_str(), s.length(), buf, 512);
+		return FromBuffer (buf, len);
+	}	
 		
 	size_t IdentityEx::GetSigningPublicKeyLen () const
 	{
@@ -193,13 +201,6 @@ namespace data
 			default:
 				LogPrint ("Signing key type ", (int)keyType, " is not supported");
 		}			
-	}	
-		
-	IdentHash Identity::Hash() const 
-	{
-		IdentHash hash;
-		CryptoPP::SHA256().CalculateDigest(hash, publicKey, DEFAULT_IDENTITY_SIZE);
-		return hash;
 	}	
 	
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
