@@ -1,0 +1,21 @@
+Source: i2pd
+Section: net
+Priority: extra
+Maintainer: hagen <hagen@i2pmail.org>
+Build-Depends: debhelper (>= 8.0.0), cmake, dpkg-dev (>= 1.16.1~),
+ libboost-regex-dev,
+ libboost-system-dev (>= 1.46),
+ libboost-date-time-dev,
+ libboost-filesystem-dev,
+ libboost-program-options-dev,
+ libcrypto++-dev
+Standards-Version: 3.9.3
+Homepage: https://github.com/PrivacySolutions/i2pd
+Vcs-Git: git://github.com/PrivacySolutions/i2pd.git
+Vcs-Browser: https://github.com/PrivacySolutions/i2pd.git
+
+Package: i2pd
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: i2p router written in C++
+ Mainly runs on linux, but also supports OSX, BSD and Windows

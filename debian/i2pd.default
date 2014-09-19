@@ -1,0 +1,7 @@
+# Defaults for i2pd initscript
+# sourced by /etc/init.d/i2pd
+# installed at /etc/default/i2pd by the maintainer scripts
+
+# Additional options that are passed to the Daemon.
+DAEMON_OPTS="--host=1.2.3.4 --port=4567"
+# change ip and port above to your external address and port
