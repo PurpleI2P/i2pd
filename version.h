@@ -10,9 +10,9 @@
 
 /* TEMPORARY STORE FOR IMAGE CODES */
 
-#define ICTOOPIE_128 i2p::util:HTTPConnection::itoopieImage
+#define ICTOOPIE_128 i2p::util::HTTPConnection::itoopieImage
 
-#define ICTOOPIE_64_FAVICON i2p::util:HTTPConnection::itoopieFavicon
+#define ICTOOPIE_64_FAVICON i2p::util::HTTPConnection::itoopieFavicon
 
 
 #endif
