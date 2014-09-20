@@ -408,8 +408,8 @@ namespace tunnel
 					auto pool = (*it)->GetTunnelPool ();
 					if (pool)
 						pool->TunnelExpired (tunnel);
-					delete *it;
 					it = m_OutboundTunnels.erase (it);
+					delete tunnel;
 				}	
 				else 
 				{
@@ -449,8 +449,8 @@ namespace tunnel
 					auto pool = tunnel->GetTunnelPool ();
 					if (pool)
 						pool->TunnelExpired (tunnel);
-					delete tunnel;
 					it = m_InboundTunnels.erase (it);
+					delete tunnel;
 				}	
 				else 
 				{
