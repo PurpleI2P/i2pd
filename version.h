@@ -5,7 +5,7 @@
 
 #define CODENAME "Purple"
 
-#define I2P_VERSION "0.9.14.1"
+#define I2P_VERSION "0.9.15"
 
 
 /* TEMPORARY STORE FOR IMAGE CODES */

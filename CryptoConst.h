@@ -7,15 +7,28 @@ namespace i2p
 {
 namespace crypto
 {
-	// DH	
-	extern const CryptoPP::Integer elgp;
-	extern const CryptoPP::Integer elgg; 
+	struct CryptoConstants
+	{
+		// DH/ElGamal
+		const CryptoPP::Integer elgp;
+		const CryptoPP::Integer elgg; 
 
+		// DSA
+		const CryptoPP::Integer dsap;		
+		const CryptoPP::Integer dsaq;
+		const CryptoPP::Integer dsag;			
+	};	
+	
+	const CryptoConstants& GetCryptoConstants ();
+	
+	// DH/ElGamal	
+	#define elgp GetCryptoConstants ().elgp
+	#define elgg GetCryptoConstants ().elgg
 
 	// DSA
-	extern const CryptoPP::Integer dsap;		
-	extern const CryptoPP::Integer dsaq;
-	extern const CryptoPP::Integer dsag;	
+	#define dsap GetCryptoConstants ().dsap	
+	#define dsaq GetCryptoConstants ().dsaq
+	#define dsag GetCryptoConstants ().dsag		
 }		
 }	
 
