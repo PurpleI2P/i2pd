@@ -20,8 +20,9 @@ namespace i2p
 namespace ntcp
 {
 	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo): 
-		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false), 
-		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), m_NextMessage (nullptr),
+		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false),  
+		m_DHKeysPair (nullptr), m_RemoteRouterInfo (in_RemoteRouterInfo), 
+		m_ReceiveBufferOffset (0), m_NextMessage (nullptr),
 		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
@@ -116,6 +117,8 @@ namespace ntcp
 		
 	void NTCPSession::ClientLogin ()
 	{
+		if (!m_DHKeysPair)
+			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 		// send Phase1
 		const uint8_t * x = m_DHKeysPair->publicKey;
 		memcpy (m_Establisher->phase1.pubKey, x, 256);
@@ -157,8 +160,6 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 1 read error: ", ecode.message ());
-			i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
-			m_DHKeysPair = nullptr;
 			Terminate ();
 		}
 		else
@@ -173,8 +174,6 @@ namespace ntcp
 				if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i])
 				{
 					LogPrint ("Wrong ident");
-					i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
-					m_DHKeysPair = nullptr;
 					Terminate ();
 					return;
 				}	
@@ -186,6 +185,8 @@ namespace ntcp
 
 	void NTCPSession::SendPhase2 ()
 	{
+		if (!m_DHKeysPair)
+			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 		const uint8_t * y = m_DHKeysPair->publicKey;
 		memcpy (m_Establisher->phase2.pubKey, y, 256);
 		uint8_t xy[512];
