@@ -35,6 +35,9 @@ namespace ntcp
 		delete m_DHKeysPair;
 		if (m_NextMessage)	
 			i2p::DeleteI2NPMessage (m_NextMessage);
+		for (auto it :m_DelayedMessages)
+			i2p::DeleteI2NPMessage (it);
+		m_DelayedMessages.clear ();	
 	}
 
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, uint8_t * aesKey)
@@ -144,7 +147,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Couldn't send Phase 1 message: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{	
@@ -160,7 +164,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 1 read error: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{	
@@ -215,7 +220,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Couldn't send Phase 2 message: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{	
@@ -231,10 +237,13 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
-			GetRemoteRouterInfo ().SetUnreachable (true); // this RouterInfo is not valid
-			i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
-			m_DHKeysPair = nullptr;
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				GetRemoteRouterInfo ().SetUnreachable (true); // this RouterInfo is not valid
+				i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
+				m_DHKeysPair = nullptr;
+				Terminate ();
+			}
 		}
 		else
 		{	
@@ -291,7 +300,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Couldn't send Phase 3 message: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{	
@@ -307,7 +317,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 3 read error: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{	
@@ -356,7 +367,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Couldn't send Phase 4 message: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{	
@@ -373,8 +385,11 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Phase 4 read error: ", ecode.message ());
-			GetRemoteRouterInfo ().SetUnreachable (true); // this router doesn't like us
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				GetRemoteRouterInfo ().SetUnreachable (true); // this router doesn't like us
+				Terminate ();
+			}	
 		}
 		else
 		{	
@@ -418,7 +433,8 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Read error: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{
@@ -604,8 +620,11 @@ namespace ntcp
 		if (ecode)
         {
 			LogPrint ("Connect error: ", ecode.message ());
-			GetRemoteRouterInfo ().SetUnreachable (true);
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				GetRemoteRouterInfo ().SetUnreachable (true);
+				Terminate ();
+			}
 		}
 		else
 		{

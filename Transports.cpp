@@ -135,6 +135,7 @@ namespace i2p
 		{
 			m_SSUServer->Stop ();
 			delete m_SSUServer;
+			m_SSUServer = nullptr;
 		}	
 		
 		for (auto session: m_NTCPSessions)
@@ -149,7 +150,7 @@ namespace i2p
 		{	
 			m_Thread->join (); 
 			delete m_Thread;
-			m_Thread = 0;
+			m_Thread = nullptr;
 		}	
 	}	
 
@@ -188,13 +189,14 @@ namespace i2p
 			conn->ServerLogin ();
 		}
 		else
-		{
 			delete conn;
-		}
 
-    	conn = new i2p::ntcp::NTCPServerConnection (m_Service);
-		m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
-			conn, boost::asio::placeholders::error));
+		if (error != boost::asio::error::operation_aborted)
+		{
+    		conn = new i2p::ntcp::NTCPServerConnection (m_Service);
+			m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
+				conn, boost::asio::placeholders::error));
+		}	
 	}
 
 	i2p::ntcp::NTCPSession * Transports::GetNextNTCPSession ()
