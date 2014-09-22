@@ -58,8 +58,20 @@ endif ()
 
 # compiler flags customization (by vendor)
 add_definitions ( "-Wall -Wextra" )
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
+# check for c++11 support
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
+CHECK_CXX_COMPILER_FLAG("-std=c++0x" CXX0X_SUPPORTED)
+if (CXX11_SUPPORTED)
   add_definitions( "-std=c++11" )
+elseif (CXX0X_SUPPORTED) # gcc 4.6
+  add_definitions( "-std=c++0x" )
+else ()
+  message(SEND_ERROR "C++11 standart not seems to be supported by compiler. Too old version?")
+endif ()
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if (WITH_HARDENING)
     add_definitions( "-D_FORTIFY_SOURCE=2" )
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security" )
@@ -67,7 +79,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE -pie" )
   endif ()
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  add_definitions( "-std=c++11" )
+  # more tweaks
 endif ()
 
 # compiler flags customization (by system)
