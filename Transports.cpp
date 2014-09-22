@@ -142,6 +142,7 @@ namespace i2p
 			delete session.second;
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
+		m_NTCPAcceptor = nullptr;
 
 		m_DHKeysPairSupplier.Stop ();
 		m_IsRunning = false;

@@ -134,13 +134,14 @@ namespace util
 					}
 					if (m_OnEmpty != nullptr)
 						m_OnEmpty ();
-					Queue<Msg>::Wait ();
+					if (m_IsRunning)
+						Queue<Msg>::Wait ();
 				}	
 			}	
 			
 		private:
 			
-			bool m_IsRunning;
+			volatile bool m_IsRunning;
 			std::thread m_Thread;	
 			OnEmpty m_OnEmpty;
 	};	
