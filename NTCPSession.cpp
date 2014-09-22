@@ -595,7 +595,7 @@ namespace ntcp
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			LogPrint ("No activity fo ", NTCP_TERMINATION_TIMEOUT, " seconds");
-			m_Socket.close ();
+			Terminate ();
 		}	
 	}	
 		
