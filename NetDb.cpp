@@ -747,11 +747,11 @@ namespace data
 	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest,
 		bool isLeaseSet, bool isExploratory, i2p::tunnel::TunnelPool * pool)
 	{
+		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		auto it = m_RequestedDestinations.find (dest);
 		if (it == m_RequestedDestinations.end ()) // not exist yet
 		{
 			RequestedDestination * d = new RequestedDestination (dest, isLeaseSet, isExploratory, pool);
-			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 			m_RequestedDestinations[dest] = d;
 			return d;
 		}	
@@ -764,8 +764,8 @@ namespace data
 		auto it = m_RequestedDestinations.find (dest);
 		if (it != m_RequestedDestinations.end ())
 		{	
-			delete it->second;
 			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
+			delete it->second;
 			m_RequestedDestinations.erase (it);
 			return true;
 		}	
