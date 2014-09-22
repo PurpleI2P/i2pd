@@ -791,22 +791,27 @@ namespace ssu
 		}
 		else
 		{
-			// new test
-			m_PeerTestNonces.insert (nonce);
-			if (port)
+			if (m_State == eSessionStateEstablished)
 			{
-				LogPrint ("SSU peer test from Bob. We are Charlie");
-				Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
-				SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice
+				// new test
+				m_PeerTestNonces.insert (nonce);
+				if (port)
+				{
+					LogPrint ("SSU peer test from Bob. We are Charlie");
+					Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
+					SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice
+				}
+				else
+				{
+					LogPrint ("SSU peer test from Alice. We are Bob");
+					auto session = m_Server.GetRandomEstablishedSession (this); // charlie
+					if (session)
+						session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
+							senderEndpoint.port (), introKey, false); 		
+				}
 			}
 			else
-			{
-				LogPrint ("SSU peer test from Alice. We are Bob");
-				auto session = m_Server.GetRandomEstablishedSession (this); // charlie
-				if (session)
-					session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
-						senderEndpoint.port (), introKey, false); 		
-			}
+				LogPrint ("SSU peer test from Charlie. We are Alice");
 		}	
 	}
 	
