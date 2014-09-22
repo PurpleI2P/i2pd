@@ -1,0 +1,11 @@
+i2pd (20140919-2) unstable; urgency=low
+
+  * updated to latest sources
+
+ -- hagen <hagen@i2pmail.org>  Fri, 19 Sep 2014 05:16:12 +0000
+
+i2pd (20140919-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)
+
+ -- hagen <hagen@i2pmail.org>  Mon, 19 Sep 2014 00:00:00 +0000

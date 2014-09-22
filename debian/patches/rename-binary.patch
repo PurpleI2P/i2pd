@@ -1,0 +1,25 @@
+diff --git a/Makefile b/Makefile
+index 9b9425b..84de72f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -8,9 +8,9 @@ else
+ 	include Makefile.linux
+ endif
+ 
+-all: obj i2p
++all: obj i2pd
+ 
+-i2p: $(OBJECTS:obj/%=obj/%)
++i2pd: $(OBJECTS:obj/%=obj/%)
+ 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+ 
+ .SUFFIXES:
+@@ -23,7 +23,7 @@ obj:
+ 	mkdir -p obj
+ 
+ clean:
+-	rm -fr obj i2p
++	rm -fr obj i2pd
+ 
+ .PHONY: all
+ .PHONY: clean
