@@ -755,7 +755,7 @@ namespace ssu
 		buf += 4; // nonce
 		uint8_t size = *buf;
 		buf++; // size
-		uint8_t * address = (size == 4) ? buf : nullptr;
+		uint32_t address = (size == 4) ? *(uint32_t *)buf : 0; // use it as is
 		buf += size; // address
 		uint16_t port = *(uint16_t *)buf; // use it as is
 		buf += 2; // port
@@ -777,7 +777,7 @@ namespace ssu
 			else if (port)
 			{
 				LogPrint ("SSU peer test from Charlie. We are Bob");
-				boost::asio::ip::udp::endpoint ep (boost::asio::ip::address_v4 (be32toh (*(uint32_t *)address)), be16toh (port)); // Alice's address/port
+				boost::asio::ip::udp::endpoint ep (boost::asio::ip::address_v4 (be32toh (address)), be16toh (port)); // Alice's address/port
 				auto session = m_Server.FindSession (ep); // find session with Alice
 				if (session)
 					session->Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Alice
@@ -797,7 +797,7 @@ namespace ssu
 			{
 				LogPrint ("SSU peer test from Bob. We are Charlie");
 				Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
-				SendPeerTest (nonce, be32toh (*(uint32_t *)address), be16toh (port), introKey); // to Alice
+				SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice
 			}
 			else
 			{
@@ -817,11 +817,19 @@ namespace ssu
 		uint8_t iv[16];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*(uint32_t *)payload = htobe32 (nonce);
-		payload += 4; // nonce					
-		*payload = 4;
-		payload++; // size
-		*(uint32_t *)payload = htobe32 (address);
-		payload += 4; // address
+		payload += 4; // nonce	
+		if (address)
+		{					
+			*payload = 4;
+			payload++; // size
+			*(uint32_t *)payload = htobe32 (address);
+			payload += 4; // address
+		}
+		else
+		{
+			*payload = 0;
+			payload++; //size
+		}
 		*(uint16_t *)payload = htobe16 (port);
 		payload += 2; // port
 		memcpy (payload, introKey, 32); // intro key
