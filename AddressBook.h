@@ -19,6 +19,7 @@ namespace data
 
 			AddressBook ();
 			const IdentHash * FindAddress (const std::string& address);
+			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 		
 		private:
 	

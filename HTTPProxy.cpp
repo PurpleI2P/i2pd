@@ -1,6 +1,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 
+#include "NetDb.h"
 #include "HTTPProxy.h"
 
 namespace i2p
@@ -63,6 +64,19 @@ namespace proxy
 		request r;
 		ExtractRequest(r);
 		parseHeaders(m_Buffer, r.headers);
+		size_t addressHelperPos = r.uri.find ("i2paddresshelper");
+		if (addressHelperPos != std::string::npos)
+		{
+			// jump service
+			size_t addressPos = r.uri.find ("=", addressHelperPos);
+			if (addressPos != std::string::npos)
+			{
+				LogPrint ("Jump service for ", r.host, " found. Inserting to address book");
+				auto base64 = r.uri.substr (addressPos + 1);
+				i2p::data::netdb.InsertAddress (r.host, base64);
+			}
+		}			
+	
 		LogPrint("Requesting ", r.host, " with path ", r.uri, " and method ", r.method);
 		SendToAddress (r.host, m_Buffer, m_BufferLen);
 	}

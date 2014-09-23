@@ -67,6 +67,7 @@ namespace data
 			RouterInfo * FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 			const IdentHash * FindAddress (const std::string& address) { return m_AddressBook.FindAddress (address); }; // TODO: move AddressBook away from NetDb
+			void InsertAddress (const std::string& address, const std::string& base64) { m_AddressBook.InsertAddress (address, base64); };
 
 			void Subscribe (const IdentHash& ident, i2p::tunnel::TunnelPool * pool = nullptr); // keep LeaseSets upto date			
 			void Unsubscribe (const IdentHash& ident);	
