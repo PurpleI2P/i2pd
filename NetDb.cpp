@@ -87,6 +87,7 @@ namespace data
 		if (m_Thread)
 		{	
 			m_IsRunning = false;
+			m_Queue.WakeUp ();
 			m_Thread->join (); 
 			delete m_Thread;
 			m_Thread = 0;
@@ -128,8 +129,10 @@ namespace data
 						msg = m_Queue.Get ();
 					}	
 				}
-				else // if no new DatabaseStore coming, explore it
+				else 				
 				{
+					if (!m_IsRunning) break;
+					// if no new DatabaseStore coming, explore it
 					auto numRouters = m_RouterInfos.size ();
 					Explore (numRouters < 1500 ? 5 : 1);
 				}	
