@@ -1,5 +1,16 @@
 CC = g++
-CFLAGS = -g -Wall -std=c++0x
+CFLAGS = -g -Wall
+CXXVER := $(shell ${CC} -dumpversion)
+ifeq ($(shell expr match ${CXXVER} "4\.[0-5]"),3)
+  $(error Compiler too old)
+endif
+
+ifeq (${CXXVER},"4.6")
+  CFLAGS += -std=c++0x
+else
+  CFLAGS += -std=c++11
+endif
+
 include filelist.mk
 INCFLAGS =
 LDFLAGS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
