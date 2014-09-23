@@ -1,15 +1,17 @@
 CC = g++
 CFLAGS = -g -Wall
 CXXVER := $(shell ${CC} -dumpversion)
-ifeq ($(shell expr match ${CXXVER} "4\.[0-5]"),3)
-  $(error Compiler too old)
+
+ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # >= 4.10
+CFLAGS += -std=c++11
+else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7
+CFLAGS += -std=c++11
+else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
+CFLAGS += -std=c++0x
+else # not supported
+$(error Compiler too old)
 endif
 
-ifeq (${CXXVER},"4.9")
-  CFLAGS += -std=c++11
-else
-  CFLAGS += -std=c++0x
-endif
 
 include filelist.mk
 INCFLAGS =
