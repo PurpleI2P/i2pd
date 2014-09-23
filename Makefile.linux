@@ -5,10 +5,10 @@ ifeq ($(shell expr match ${CXXVER} "4\.[0-5]"),3)
   $(error Compiler too old)
 endif
 
-ifeq (${CXXVER},"4.6")
-  CFLAGS += -std=c++0x
-else
+ifeq (${CXXVER},"4.9")
   CFLAGS += -std=c++11
+else
+  CFLAGS += -std=c++0x
 endif
 
 include filelist.mk
