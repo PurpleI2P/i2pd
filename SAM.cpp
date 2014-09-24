@@ -18,7 +18,7 @@ namespace stream
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			delete m_Stream;
+			DeleteStream (m_Stream);
 		}
 	}	
 
@@ -27,7 +27,7 @@ namespace stream
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			delete m_Stream;
+			DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		delete this;

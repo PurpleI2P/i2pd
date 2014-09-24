@@ -38,6 +38,7 @@ namespace stream
 
 	Stream::~Stream ()
 	{
+		Close ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
 		while (!m_ReceiveQueue.empty ())
@@ -561,7 +562,8 @@ namespace stream
 
 	StreamingDestination::~StreamingDestination ()
 	{
-		// TODO: delete streams
+		for (auto it: m_Streams)
+			delete it.second;
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;

@@ -505,6 +505,7 @@ namespace util
 		{
 			m_Stream->Close ();
 			DeleteStream (m_Stream);
+			m_Stream = nullptr;
 		}
 		m_Socket->close ();
 		delete this;
