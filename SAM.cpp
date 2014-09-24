@@ -1,5 +1,6 @@
 #include <string.h>
 #include <boost/bind.hpp>
+#include "base64.h"
 #include "Log.h"
 #include "SAM.h"
 
@@ -14,7 +15,11 @@ namespace stream
 
 	SAMSocket::~SAMSocket ()
 	{
-		delete m_Stream;
+		if (m_Stream)
+		{
+			m_Stream->Close ();
+			delete m_Stream;
+		}
 	}	
 
 	void SAMSocket::Terminate ()
@@ -200,6 +205,48 @@ namespace stream
 
 		if (ecode != boost::asio::error::operation_aborted)
 			Accept ();
+	}
+
+	bool SAMBridge::CreateSession (const std::string& id, const char * destination, size_t len)
+	{
+		if (m_Sessions.find (id) != m_Sessions.end ()) // session exists
+ 			return false;
+
+		StreamingDestination * localDestination = nullptr; 
+		if (destination)
+		{
+			uint8_t * buf = new uint8_t[len];
+			size_t l = i2p::data::Base64ToByteStream (destination, len, buf, len);
+			i2p::data::PrivateKeys keys;
+			keys.FromBuffer (buf, l);
+			delete[] buf;
+			localDestination = GetLocalDestination (keys);
+		}
+		else // transient
+			localDestination = CreateNewLocalDestination (); 
+		if (localDestination)
+		{
+			SAMSession session;
+			session.localDestination = localDestination;
+			session.isTransient = !destination;
+			m_Sessions[id] = session;
+			return true;
+		}
+		return false;
+	}
+
+	void SAMBridge::CloseSession (const std::string& id)
+	{
+		auto it = m_Sessions.find (id);
+		if (it != m_Sessions.end ())
+		{
+			for (auto it1 : it->second.sockets)
+				delete it1;
+			it->second.sockets.clear ();
+			if (it->second.isTransient)
+				DeleteLocalDestination (it->second.localDestination);
+			m_Sessions.erase (it);
+		}
 	}
 }
 }

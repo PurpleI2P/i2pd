@@ -551,8 +551,17 @@ namespace stream
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
 	}
 
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys):
+		m_Service (service), m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (false)
+	{
+		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
+	}
+
 	StreamingDestination::~StreamingDestination ()
 	{
+		// TODO: delete streams
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;
@@ -701,6 +710,34 @@ namespace stream
 		return localDestination;
 	}
 
+	StreamingDestination * StreamingDestinations::CreateNewLocalDestination ()
+	{
+		auto localDestination = new StreamingDestination (m_Service);
+		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
+		return localDestination;
+	}
+
+	void StreamingDestinations::DeleteLocalDestination (StreamingDestination * destination)
+	{
+		if (!destination) return;
+		auto it = m_Destinations.find (destination->GetIdentHash ());
+		if (it != m_Destinations.end ())
+		{
+			delete it->second;
+			m_Destinations.erase (it);
+		}
+	}
+
+	StreamingDestination * StreamingDestinations::GetLocalDestination (const i2p::data::PrivateKeys& keys)
+	{
+		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
+		if (it != m_Destinations.end ())
+			return it->second;
+		auto localDestination = new StreamingDestination (m_Service, keys);
+		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
+		return localDestination;
+	}
+
 	Stream * StreamingDestinations::CreateClientStream (const i2p::data::LeaseSet& remote)
 	{
 		if (!m_SharedLocalDestination) return nullptr;
@@ -770,6 +807,21 @@ namespace stream
 		return destinations.GetSharedLocalDestination ();
 	}	
 	
+	StreamingDestination * CreateNewLocalDestination ()
+	{
+		return destinations.CreateNewLocalDestination ();
+	}
+
+	void DeleteLocalDestination (StreamingDestination * destination)
+	{
+		destinations.DeleteLocalDestination (destination);
+	}
+
+	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys)
+	{
+		return destinations.GetLocalDestination (keys);
+	}
+
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination)
 	{
 		return destinations.FindLocalDestination (destination);

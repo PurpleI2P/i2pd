@@ -3,6 +3,8 @@
 
 #include <inttypes.h>
 #include <string>
+#include <map>
+#include <list>
 #include <thread>
 #include <boost/asio.hpp>
 #include "Streaming.h"
@@ -48,6 +50,13 @@ namespace stream
 			Stream * m_Stream;
 	};	
 
+	struct SAMSession
+	{
+		StreamingDestination * localDestination;
+		std::list<SAMSocket *> sockets;
+		bool isTransient;
+	};
+
 	class SAMBridge
 	{
 		public:
@@ -59,6 +68,8 @@ namespace stream
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
+			bool CreateSession (const std::string& id, const char * destination = nullptr, size_t len = 0); // null means transient
+			void CloseSession (const std::string& id);
 
 		private:
 
@@ -74,6 +85,7 @@ namespace stream
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			SAMSocket * m_NewSocket;
+			std::map<std::string, SAMSession> m_Sessions;
 	};		
 }
 }
