@@ -44,6 +44,7 @@
     <ClCompile Include="..\util.cpp" />
     <ClCompile Include="..\SOCKS.cpp" />
 	<ClCompile Include="..\I2PTunnel.cpp" />
+	<ClCompile Include="..\SAM.cpp" />
     <ClCompile Include="Win32Service.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -85,6 +86,7 @@
 	<ClInclude Include="..\I2PTunnel.h" />
 	<ClInclude Include="..\version.h" />
 	<ClInclude Include="..\Signature.h" />
+	<ClInclude Include="..\SAM.h" />
     <ClInclude Include="Win32Service.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

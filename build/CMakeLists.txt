@@ -41,6 +41,7 @@ set (SOURCES
   "${CMAKE_SOURCE_DIR}/base64.cpp"
   "${CMAKE_SOURCE_DIR}/i2p.cpp"
   "${CMAKE_SOURCE_DIR}/util.cpp"
+  "${CMAKE_SOURCE_DIR}/SAM.cpp"	
 )
 
 file (GLOB HEADERS "${CMAKE_SOURCE_DIR}/*.h")

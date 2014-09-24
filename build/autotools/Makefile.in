@@ -113,7 +113,8 @@ am_i2p_OBJECTS = AddressBook.$(OBJEXT) CryptoConst.$(OBJEXT) \
 	SSUData.$(OBJEXT) Streaming.$(OBJEXT) TransitTunnel.$(OBJEXT) \
 	Transports.$(OBJEXT) Tunnel.$(OBJEXT) TunnelEndpoint.$(OBJEXT) \
 	TunnelGateway.$(OBJEXT) TunnelPool.$(OBJEXT) UPnP.$(OBJEXT) \
-	aes.$(OBJEXT) base64.$(OBJEXT) i2p.$(OBJEXT) util.$(OBJEXT)
+	aes.$(OBJEXT) base64.$(OBJEXT) i2p.$(OBJEXT) util.$(OBJEXT) \
+	SAM.$(OBJEXT)
 i2p_OBJECTS = $(am_i2p_OBJECTS)
 i2p_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -480,6 +481,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/base64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/i2p.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SAM.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
