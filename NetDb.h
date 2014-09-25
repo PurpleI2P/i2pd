@@ -105,6 +105,9 @@ namespace data
 				bool isLeaseSet, bool isExploratory = false, i2p::tunnel::TunnelPool * pool = nullptr);
 			bool DeleteRequestedDestination (const IdentHash& dest); // returns true if found
 			void DeleteRequestedDestination (RequestedDestination * dest);
+
+			template<typename Filter>
+			const RouterInfo * GetRandomRouter (Filter filter) const;	
 		
 		private:
 

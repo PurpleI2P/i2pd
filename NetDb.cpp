@@ -787,6 +787,23 @@ namespace data
 
 	const RouterInfo * NetDb::GetRandomRouter (const RouterInfo * compatibleWith) const
 	{
+		if (compatibleWith)
+			return GetRandomRouter (
+				[compatibleWith](const RouterInfo * router)->bool 
+				{ 
+					return !router->IsHidden () && router->IsCompatible (*compatibleWith); 
+				});
+		else
+			return GetRandomRouter (
+				[](const RouterInfo * router)->bool 
+				{ 
+					return !router->IsHidden (); 
+				});
+	}	
+
+	template<typename Filter>
+	const RouterInfo * NetDb::GetRandomRouter (Filter filter) const
+	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1);	
 		for (int j = 0; j < 2; j++)
@@ -796,8 +813,7 @@ namespace data
 			{	
 				if (i >= ind)
 				{	
-					if (!it.second->IsUnreachable () && !it.second->IsHidden () && 
-					 (!compatibleWith || it.second->IsCompatible (*compatibleWith)))
+					if (!it.second->IsUnreachable () && filter (it.second))
 						return it.second;
 				}	
 				else 
@@ -808,7 +824,7 @@ namespace data
 		}	
 		return nullptr; // seems we have too few routers
 	}	
-
+	
 	void NetDb::PostI2NPMsg (I2NPMessage * msg)
 	{
 		if (msg) m_Queue.Put (msg);	
