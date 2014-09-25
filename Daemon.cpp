@@ -17,6 +17,7 @@
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PTunnel.h"
+#include "SAM.h"
 
 namespace i2p
 {
@@ -26,13 +27,15 @@ namespace i2p
 		{
 		public:
 			Daemon_Singleton_Private() : httpServer(nullptr), httpProxy(nullptr), 
-				socksProxy(nullptr), ircTunnel(nullptr), serverTunnel (nullptr) { };
+				socksProxy(nullptr), ircTunnel(nullptr), serverTunnel (nullptr),
+				samBridge (nullptr) { };
 			~Daemon_Singleton_Private() {
 				delete httpServer;
 				delete httpProxy;
 				delete socksProxy;
 				delete ircTunnel;
 				delete serverTunnel;
+				delete samBridge;
 			};
 
 			i2p::util::HTTPServer *httpServer;
@@ -40,6 +43,7 @@ namespace i2p
 			i2p::proxy::SOCKSProxy *socksProxy;
 			i2p::stream::I2PClientTunnel * ircTunnel;
 			i2p::stream::I2PServerTunnel * serverTunnel;
+			i2p::stream::SAMBridge * samBridge;
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
@@ -135,6 +139,13 @@ namespace i2p
 				d.serverTunnel->Start ();
 				LogPrint("Server tunnel started");
 			}
+			int samPort = i2p::util::config::GetArg("-samport", 0);
+			if (samPort)
+			{
+				d.samBridge = new i2p::stream::SAMBridge (samPort);
+				d.samBridge->Start ();
+				LogPrint("SAM bridge started");
+			} 
 			return true;
 		}
 
@@ -172,12 +183,20 @@ namespace i2p
 				d.serverTunnel = nullptr;
 				LogPrint("Server tunnel stoped");	
 			}			
+			if (d.samBridge)
+			{
+				d.samBridge->Stop ();
+				delete d.samBridge; 
+				d.samBridge = nullptr;
+				LogPrint("SAM brdige stoped");	
+			}
 
 			StopLog ();
 
             delete d.socksProxy; d.socksProxy = nullptr;
 			delete d.httpProxy; d.httpProxy = nullptr;
 			delete d.httpServer; d.httpServer = nullptr;
+			delete d.samBridge; d.samBridge = nullptr;
 
 			return true;
 		}
