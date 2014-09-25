@@ -1,7 +1,9 @@
 #include <string.h>
 #include <boost/bind.hpp>
 #include "base64.h"
+#include "Identity.h"
 #include "Log.h"
+#include "NetDb.h"
 #include "SAM.h"
 
 namespace i2p
@@ -33,6 +35,12 @@ namespace stream
 		}
 		if (m_SocketType == eSAMSocketTypeSession)
 			m_Owner.CloseSession (m_ID);
+		else if (m_SocketType == eSAMSocketTypeStream)
+		{
+			auto session = m_Owner.FindSession (m_ID);
+			if (session)
+				session->sockets.remove (this);
+		}
 		delete this;
 	}
 
@@ -153,6 +161,7 @@ namespace stream
 		auto session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination); 
 		if (session)
 		{
+			m_SocketType = eSAMSocketTypeSession;
 			memcpy (m_Buffer, SAM_SESSION_CREATE_REPLY_OK, sizeof (SAM_SESSION_CREATE_REPLY_OK));
 			uint8_t ident[1024];
 			size_t l = session->localDestination->GetPrivateKeys ().ToBuffer (ident, 1024);
@@ -166,7 +175,36 @@ namespace stream
 
 	void SAMSocket::ProcessStreamConnect (char * buf, size_t len)
 	{
-		Receive ();
+		std::map<std::string, std::string> params;
+		ExtractParams (buf, len, params);
+		std::string& id = params[SAM_PARAM_ID];
+		std::string& destination = params[SAM_PARAM_DESTINATION];
+		m_ID = id;
+		auto session = m_Owner.FindSession (id);
+		if (session)
+		{
+			uint8_t ident[1024];
+			size_t l = i2p::data::Base64ToByteStream (destination.c_str (), destination.length (), ident, 1024);
+			i2p::data::IdentityEx dest;
+			dest.FromBuffer (ident, l);
+			auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
+			if (leaseSet)
+			{
+				m_SocketType = eSAMSocketTypeStream;
+				m_Stream = i2p::stream::CreateStream (*leaseSet);
+				m_Stream->Send ((uint8_t *)m_Buffer, 0, 0); // connect
+				StreamReceive ();
+				session->sockets.push_back (this);
+				SendMessageReply (SAM_STREAM_CONNECT_REPLY_OK, sizeof(SAM_STREAM_CONNECT_REPLY_OK), false);
+			}
+			else
+			{
+				i2p::data::netdb.Subscribe (dest.GetIdentHash ());
+				SendMessageReply (SAM_STREAM_CONNECT_CANT_REACH_PEER, sizeof(SAM_STREAM_CONNECT_CANT_REACH_PEER), true);
+			}
+		}
+		else
+			SendMessageReply (SAM_STREAM_CONNECT_INVALID_ID, sizeof(SAM_STREAM_CONNECT_INVALID_ID), true);
 	}
 
 	void SAMSocket::ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params)
