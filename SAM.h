@@ -21,9 +21,11 @@ namespace stream
 	const char SAM_SESSION_CREATE_REPLY_OK[] = "SESSION STATUS RESULT=OK DESTINATION=";
 	const char SAM_SESSION_CREATE_DUPLICATED_ID[] = "SESSION STATUS RESULT=DUPLICATED_ID";
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
-	const char SAM_STREAM_CONNECT_REPLY_OK[] = "STREAM STATUS RESULT=OK";
-	const char SAM_STREAM_CONNECT_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID";
-	const char SAM_STREAM_CONNECT_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER";	
+	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK";
+	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID";
+	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER";
+	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR";
+	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";	
 	const char SAM_PARAM_STYLE[] = "STYLE";		
 	const char SAM_PARAM_ID[] = "ID";	
 	const char SAM_PARAM_DESTINATION[] = "DESTINATION";	
@@ -33,7 +35,8 @@ namespace stream
 	{
 		eSAMSocketTypeUnknown,
 		eSAMSocketTypeSession,
-		eSAMSocketTypeStream	
+		eSAMSocketTypeStream,
+		eSAMSocketTypeAcceptor	
 	};
 
 	class SAMBridge;
@@ -58,12 +61,14 @@ namespace stream
 			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
-			void StreamReceive ();	
-			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleWriteStreamData (const boost::system::error_code& ecode);
+			void I2PReceive ();	
+			void HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleI2PAccept (i2p::stream::Stream * stream);
+			void HandleWriteI2PData (const boost::system::error_code& ecode);
 
 			void ProcessSessionCreate (char * buf, size_t len);
 			void ProcessStreamConnect (char * buf, size_t len);
+			void ProcessStreamAccept (char * buf, size_t len);
 			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
 
 		private:

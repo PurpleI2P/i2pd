@@ -152,6 +152,8 @@ namespace stream
 			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);			
 			void SetAcceptor (const std::function<void (Stream *)>& acceptor) { m_Acceptor = acceptor; };
+			void ResetAcceptor () { m_Acceptor = nullptr; };
+			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
 			void HandleNextPacket (Packet * packet);
 
 			// implements LocalDestination

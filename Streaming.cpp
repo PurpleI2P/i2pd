@@ -568,7 +568,7 @@ namespace stream
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;
 	}	
-	
+
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
 		uint32_t sendStreamID = packet->GetSendStreamID ();
@@ -589,6 +589,11 @@ namespace stream
 			incomingStream->HandleNextPacket (packet);
 			if (m_Acceptor != nullptr)
 				m_Acceptor (incomingStream);
+			else
+			{
+				LogPrint ("Acceptor for incoming stream is not set");
+				DeleteStream (incomingStream);
+			}
 		}	
 	}	
 

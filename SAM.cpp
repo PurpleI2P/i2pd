@@ -33,13 +33,30 @@ namespace stream
 			DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
-		if (m_SocketType == eSAMSocketTypeSession)
-			m_Owner.CloseSession (m_ID);
-		else if (m_SocketType == eSAMSocketTypeStream)
+		switch (m_SocketType)
 		{
-			auto session = m_Owner.FindSession (m_ID);
-			if (session)
-				session->sockets.remove (this);
+			case eSAMSocketTypeSession:
+				m_Owner.CloseSession (m_ID);
+			break;
+			case eSAMSocketTypeStream:
+			{
+				auto session = m_Owner.FindSession (m_ID);
+				if (session)
+					session->sockets.remove (this);
+				break;
+			}
+			case eSAMSocketTypeAcceptor:
+			{
+				auto session = m_Owner.FindSession (m_ID);
+				if (session)
+				{
+					session->sockets.remove (this);
+					session->localDestination->ResetAcceptor ();
+				}
+				break;
+			}
+			default:
+				;
 		}
 		delete this;
 	}
@@ -137,6 +154,8 @@ namespace stream
 					ProcessSessionCreate (eol + 1, bytes_transferred - (eol - m_Buffer) - 1);
 				else if (!strcmp (m_Buffer, SAM_STREAM_CONNECT))
 					ProcessStreamConnect (eol + 1, bytes_transferred - (eol - m_Buffer) - 1);
+				else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
+					ProcessStreamAccept (eol + 1, bytes_transferred - (eol - m_Buffer) - 1);
 				else		
 				{	
 					LogPrint ("SAM unexpected message ", m_Buffer);		
@@ -191,20 +210,43 @@ namespace stream
 			if (leaseSet)
 			{
 				m_SocketType = eSAMSocketTypeStream;
-				m_Stream = i2p::stream::CreateStream (*leaseSet);
-				m_Stream->Send ((uint8_t *)m_Buffer, 0, 0); // connect
-				StreamReceive ();
 				session->sockets.push_back (this);
-				SendMessageReply (SAM_STREAM_CONNECT_REPLY_OK, sizeof(SAM_STREAM_CONNECT_REPLY_OK), false);
+				m_Stream = session->localDestination->CreateNewOutgoingStream (*leaseSet);
+				m_Stream->Send ((uint8_t *)m_Buffer, 0, 0); // connect
+				I2PReceive ();				
+				SendMessageReply (SAM_STREAM_STATUS_OK, sizeof(SAM_STREAM_STATUS_OK), false);
 			}
 			else
 			{
 				i2p::data::netdb.Subscribe (dest.GetIdentHash ());
-				SendMessageReply (SAM_STREAM_CONNECT_CANT_REACH_PEER, sizeof(SAM_STREAM_CONNECT_CANT_REACH_PEER), true);
+				SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, sizeof(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
 			}
 		}
 		else
-			SendMessageReply (SAM_STREAM_CONNECT_INVALID_ID, sizeof(SAM_STREAM_CONNECT_INVALID_ID), true);
+			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, sizeof(SAM_STREAM_STATUS_INVALID_ID), true);
+	}
+
+	void SAMSocket::ProcessStreamAccept (char * buf, size_t len)
+	{
+		std::map<std::string, std::string> params;
+		ExtractParams (buf, len, params);
+		std::string& id = params[SAM_PARAM_ID];
+		m_ID = id;
+		auto session = m_Owner.FindSession (id);
+		if (session)
+		{
+			if (!session->localDestination->IsAcceptorSet ())
+			{
+				m_SocketType = eSAMSocketTypeAcceptor;
+				session->sockets.push_back (this);
+				session->localDestination->SetAcceptor (std::bind (&SAMSocket::HandleI2PAccept, this, std::placeholders::_1));
+				SendMessageReply (SAM_STREAM_STATUS_OK, sizeof(SAM_STREAM_STATUS_OK), false);
+			}
+			else
+				SendMessageReply (SAM_STREAM_STATUS_I2P_ERROR, sizeof(SAM_STREAM_STATUS_I2P_ERROR), true);
+		}	
+		else
+			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, sizeof(SAM_STREAM_STATUS_INVALID_ID), true);
 	}
 
 	void SAMSocket::ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params)
@@ -246,16 +288,16 @@ namespace stream
 		}
 	}
 
-	void SAMSocket::StreamReceive ()
+	void SAMSocket::I2PReceive ()
 	{
 		if (m_Stream)
 			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE),
-				boost::bind (&SAMSocket::HandleStreamReceive, this,
+				boost::bind (&SAMSocket::HandleI2PReceive, this,
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
 				SAM_SOCKET_CONNECTION_MAX_IDLE);
 	}	
 
-	void SAMSocket::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	void SAMSocket::HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
 		{
@@ -265,11 +307,11 @@ namespace stream
 		else
 		{
 			boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		boost::bind (&SAMSocket::HandleWriteStreamData, this, boost::asio::placeholders::error));
+        		boost::bind (&SAMSocket::HandleWriteI2PData, this, boost::asio::placeholders::error));
 		}
 	}
 
-	void SAMSocket::HandleWriteStreamData (const boost::system::error_code& ecode)
+	void SAMSocket::HandleWriteI2PData (const boost::system::error_code& ecode)
 	{
 		if (ecode)
 		{
@@ -278,8 +320,17 @@ namespace stream
 				Terminate ();
 		}
 		else
-			StreamReceive ();
+			I2PReceive ();
 	}
+
+	void SAMSocket::HandleI2PAccept (i2p::stream::Stream * stream)
+	{
+		m_Stream = stream;
+		auto session = m_Owner.FindSession (m_ID);
+		if (session)	
+			session->localDestination->ResetAcceptor ();	
+		I2PReceive ();
+	}	
 
 	SAMBridge::SAMBridge (int port):
 		m_IsRunning (false), m_Thread (nullptr),
