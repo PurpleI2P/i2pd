@@ -197,6 +197,15 @@ namespace tunnel
 			i2p::garlic::routing.PostI2NPMsg (msg);
 	}
 
+	const i2p::data::RouterInfo * TunnelPool::SelectNextHop (const i2p::data::RouterInfo * prevHop) const
+	{
+		auto hop = m_NumHops >= 3 ? i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop) :
+			i2p::data::netdb.GetRandomRouter (prevHop);
+		if (!hop)
+			hop = i2p::data::netdb.GetRandomRouter ();
+		return hop;	
+	}	
+		
 	void TunnelPool::CreateInboundTunnel ()
 	{
 		OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
@@ -219,7 +228,7 @@ namespace tunnel
 		}
 		for (int i = 0; i < numHops; i++)
 		{
-			auto hop = i2p::data::netdb.GetRandomRouter (prevHop);
+			auto hop = SelectNextHop (prevHop);
 			prevHop = hop;
 			hops.push_back (hop);
 		}		
@@ -251,7 +260,7 @@ namespace tunnel
 			std::vector<const i2p::data::RouterInfo *> hops;
 			for (int i = 0; i < m_NumHops; i++)
 			{
-				auto hop = i2p::data::netdb.GetRandomRouter (prevHop);
+				auto hop = SelectNextHop (prevHop);
 				prevHop = hop;
 				hops.push_back (hop);
 			}	
@@ -263,7 +272,7 @@ namespace tunnel
 		else
 			LogPrint ("Can't create outbound tunnel. No inbound tunnels found");
 	}	
-
+		
 	void TunnelPool::RecreateOutboundTunnel (OutboundTunnel * tunnel)
 	{
 		InboundTunnel * inboundTunnel = GetNextInboundTunnel ();

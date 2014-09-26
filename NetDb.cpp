@@ -785,22 +785,34 @@ namespace data
 		}	
 	}	
 
+	const RouterInfo * NetDb::GetRandomRouter () const
+	{
+		return GetRandomRouter (
+			[](const RouterInfo * router)->bool 
+			{ 
+				return !router->IsHidden (); 
+			});
+	}	
+	
 	const RouterInfo * NetDb::GetRandomRouter (const RouterInfo * compatibleWith) const
 	{
-		if (compatibleWith)
-			return GetRandomRouter (
-				[compatibleWith](const RouterInfo * router)->bool 
-				{ 
-					return !router->IsHidden () && router->IsCompatible (*compatibleWith); 
-				});
-		else
-			return GetRandomRouter (
-				[](const RouterInfo * router)->bool 
-				{ 
-					return !router->IsHidden (); 
-				});
+		return GetRandomRouter (
+			[compatibleWith](const RouterInfo * router)->bool 
+			{ 
+				return !router->IsHidden () && router->IsCompatible (*compatibleWith); 
+			});
 	}	
 
+	const RouterInfo * NetDb::GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const
+	{
+		return GetRandomRouter (
+			[compatibleWith](const RouterInfo * router)->bool 
+			{ 
+				return !router->IsHidden () && router->IsCompatible (*compatibleWith) && 
+					(router->GetCaps () & RouterInfo::eHighBandwidth); 
+			});
+	}	
+	
 	template<typename Filter>
 	const RouterInfo * NetDb::GetRandomRouter (Filter filter) const
 	{

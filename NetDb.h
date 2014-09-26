@@ -79,8 +79,10 @@ namespace data
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			void HandleDatabaseLookupMsg (I2NPMessage * msg);			
 
-			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith = nullptr) const;
-
+			const RouterInfo * GetRandomRouter () const;
+			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith) const;
+			const RouterInfo * GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const;
+			
 			void PostI2NPMsg (I2NPMessage * msg);
 
 			// for web interface

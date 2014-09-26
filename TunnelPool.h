@@ -7,6 +7,7 @@
 #include <utility>
 #include "Identity.h"
 #include "LeaseSet.h"
+#include "RouterInfo.h"
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
 #include "RouterContext.h"
@@ -53,6 +54,7 @@ namespace tunnel
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, 
 				typename TTunnels::value_type suggested = nullptr);
+			const i2p::data::RouterInfo * SelectNextHop (const i2p::data::RouterInfo * prevHop) const;
 			
 		private:
 
