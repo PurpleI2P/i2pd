@@ -246,7 +246,10 @@ namespace tunnel
 	{
 		auto it = m_PendingTunnels.find(replyMsgID);
 		if (it != m_PendingTunnels.end ())
+		{	
+			it->second->SetState (eTunnelStateBuildReplyReceived);	
 			return it->second;
+		}
 		return nullptr;
 	}	
 
@@ -369,23 +372,35 @@ namespace tunnel
 
 	void Tunnels::ManageTunnels ()
 	{
-		// check pending tunnel. delete non-successive
+		// check pending tunnel. delete failed or timeout
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_PendingTunnels.begin (); it != m_PendingTunnels.end ();)
 		{	
-			if (it->second->GetState () == eTunnelStatePending) 
+			auto tunnel = it->second;
+			switch (tunnel->GetState ())
 			{
-				if (ts > it->second->GetCreationTime () + TUNNEL_CREATION_TIMEOUT)
-				{
-					LogPrint ("Pending tunnel build request ", it->first, " was not successive. Deleted");
-					delete it->second;
+				case eTunnelStatePending: 
+					if (ts > tunnel->GetCreationTime () + TUNNEL_CREATION_TIMEOUT)
+					{
+						LogPrint ("Pending tunnel build request ", it->first, " timeout. Deleted");
+						delete tunnel;
+						it = m_PendingTunnels.erase (it);
+					}
+					else
+						it++;
+				break;
+				case eTunnelStateBuildFailed:
+					LogPrint ("Pending tunnel build request ", it->first, " failed. Deleted");
+					delete tunnel;
 					it = m_PendingTunnels.erase (it);
-				}
-				else
+				break;
+				case eTunnelStateBuildReplyReceived:
+					// intermidiate state, will be either established of build failed
 					it++;
-			}
-			else
-				it = m_PendingTunnels.erase (it);
+				break;	
+				default:
+					it = m_PendingTunnels.erase (it);
+			}	
 		}	
 		
 		ManageInboundTunnels ();
@@ -405,7 +420,7 @@ namespace tunnel
 				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
 					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
-					auto pool = (*it)->GetTunnelPool ();
+					auto pool = tunnel->GetTunnelPool ();
 					if (pool)
 						pool->TunnelExpired (tunnel);
 					it = m_OutboundTunnels.erase (it);

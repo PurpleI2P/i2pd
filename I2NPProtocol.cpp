@@ -330,7 +330,10 @@ namespace i2p
 				i2p::tunnel::tunnels.AddInboundTunnel (static_cast<i2p::tunnel::InboundTunnel *>(tunnel));
 			}
 			else
+			{
 				LogPrint ("Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);	
+			}
 		}
 		else
 		{
@@ -386,7 +389,10 @@ namespace i2p
 				i2p::tunnel::tunnels.AddOutboundTunnel (static_cast<i2p::tunnel::OutboundTunnel *>(tunnel));
 			}	
 			else
+			{
 				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);	
+			}
 		}	
 		else
 			LogPrint ("Pending tunnel for message ", replyMsgID, " not found");
