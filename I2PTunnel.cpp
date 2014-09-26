@@ -170,7 +170,7 @@ namespace stream
 		}
 		if (m_DestinationIdentHash)
 		{
-			i2p::data::netdb.Subscribe (*m_DestinationIdentHash);
+			i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetSharedLocalDestination ()->GetTunnelPool ());
 			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
 		}	
 		else
@@ -208,7 +208,7 @@ namespace stream
 					if (identHash)
 					{
 						m_DestinationIdentHash = new i2p::data::IdentHash (*identHash);
-						i2p::data::netdb.Subscribe (*m_DestinationIdentHash);
+						i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetSharedLocalDestination ()->GetTunnelPool ());
 					}
 				}
 			}

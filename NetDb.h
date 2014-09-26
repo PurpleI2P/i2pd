@@ -118,7 +118,7 @@ namespace data
 			std::vector<RouterInfo *> m_Floodfills;
 			std::mutex m_RequestedDestinationsMutex;
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
-			std::set<IdentHash> m_Subscriptions;
+			std::map<IdentHash, i2p::tunnel::TunnelPool *> m_Subscriptions;
 			
 			bool m_IsRunning;
 			int m_ReseedRetries;

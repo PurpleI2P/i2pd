@@ -368,7 +368,7 @@ namespace data
 				i2p::tunnel::InboundTunnel * inbound = pool ? pool->GetNextInboundTunnel () :i2p::tunnel::tunnels.GetNextInboundTunnel ();
 				if (inbound)
 				{
-					RequestedDestination * dest = CreateRequestedDestination (destination, isLeaseSet, pool);
+					RequestedDestination * dest = CreateRequestedDestination (destination, true, false, pool);
 					std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 					// request 3 closests floodfills
 					for (int i = 0; i < 3; i++)
@@ -401,7 +401,7 @@ namespace data
 		}	
 		else // RouterInfo is requested directly
 		{
-			RequestedDestination * dest = CreateRequestedDestination (destination, false, pool);
+			RequestedDestination * dest = CreateRequestedDestination (destination, false, false, pool);
 			auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 			if (floodfill)
 				i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
@@ -874,7 +874,7 @@ namespace data
 		}
 		else
 			leaseSet->SetUnsolicited (false);
-		m_Subscriptions.insert (ident);
+		m_Subscriptions[ident] = pool;
 	}
 		
 	void NetDb::Unsubscribe (const IdentHash& ident)
@@ -886,11 +886,11 @@ namespace data
 	{
 		for (auto it : m_Subscriptions)
 		{
-			LeaseSet * leaseSet = FindLeaseSet (it);
+			LeaseSet * leaseSet = FindLeaseSet (it.first);
 			if (!leaseSet || leaseSet->HasExpiredLeases ())
 			{
 				LogPrint ("LeaseSet re-requested");	
-				RequestDestination (it, true);
+				RequestDestination (it.first, true, it.second);
 			}			
 		}
 	}
