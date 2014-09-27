@@ -508,13 +508,15 @@ namespace stream
 	}	
 		
 
-	StreamingDestination::StreamingDestination (boost::asio::io_service& service): 
-		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (false)
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service, bool isPublic): 
+		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (isPublic)
 	{		
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (/*i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256*/); // uncomment for ECDSA
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
+		if (m_IsPublic)
+			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
 	}
 
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const std::string& fullPath):
@@ -530,13 +532,12 @@ namespace stream
 			s.read ((char *)buf, len);
 			m_Keys.FromBuffer (buf, len);
 			delete[] buf;
-			LogPrint ("Local address ", m_Keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p loaded");
+			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p loaded");
 		}	
 		else
 		{
 			LogPrint ("Can't open file ", fullPath, " Creating new one");
-			// new eepsites use ECDSA
-			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256); 
+			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (/*i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256*/); 
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = m_Keys.GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
@@ -552,12 +553,14 @@ namespace stream
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
 	}
 
-	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys):
-		m_Service (service), m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (false)
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, bool isPublic):
+		m_Service (service), m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
+		if (m_IsPublic)
+			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
 	}
 
 	StreamingDestination::~StreamingDestination ()
@@ -655,7 +658,7 @@ namespace stream
 	{
 		if (!m_SharedLocalDestination)
 		{	
-			m_SharedLocalDestination = new StreamingDestination (m_Service);
+			m_SharedLocalDestination = new StreamingDestination (m_Service, false); // non-public
 			m_Destinations[m_SharedLocalDestination->GetIdentity ().GetIdentHash ()] = m_SharedLocalDestination;
 		}
 		// LoadLocalDestinations ();	
@@ -717,9 +720,9 @@ namespace stream
 		return localDestination;
 	}
 
-	StreamingDestination * StreamingDestinations::CreateNewLocalDestination ()
+	StreamingDestination * StreamingDestinations::CreateNewLocalDestination (bool isPublic)
 	{
-		auto localDestination = new StreamingDestination (m_Service);
+		auto localDestination = new StreamingDestination (m_Service, isPublic);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		return localDestination;
 	}
@@ -735,12 +738,12 @@ namespace stream
 		}
 	}
 
-	StreamingDestination * StreamingDestinations::GetLocalDestination (const i2p::data::PrivateKeys& keys)
+	StreamingDestination * StreamingDestinations::GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
 		if (it != m_Destinations.end ())
 			return it->second;
-		auto localDestination = new StreamingDestination (m_Service, keys);
+		auto localDestination = new StreamingDestination (m_Service, keys, isPublic);
 		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
 		return localDestination;
 	}
@@ -814,9 +817,9 @@ namespace stream
 		return destinations.GetSharedLocalDestination ();
 	}	
 	
-	StreamingDestination * CreateNewLocalDestination ()
+	StreamingDestination * CreateNewLocalDestination (bool isPublic)
 	{
-		return destinations.CreateNewLocalDestination ();
+		return destinations.CreateNewLocalDestination (isPublic);
 	}
 
 	void DeleteLocalDestination (StreamingDestination * destination)
@@ -824,9 +827,9 @@ namespace stream
 		destinations.DeleteLocalDestination (destination);
 	}
 
-	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys)
+	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
 	{
-		return destinations.GetLocalDestination (keys);
+		return destinations.GetLocalDestination (keys, isPublic);
 	}
 
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination)

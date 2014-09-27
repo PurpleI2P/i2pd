@@ -186,7 +186,8 @@ namespace stream
 			size_t l = session->localDestination->GetPrivateKeys ().ToBuffer (ident, 1024);
 			size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, m_Buffer + sizeof (SAM_SESSION_CREATE_REPLY_OK), 
 				SAM_SOCKET_BUFFER_SIZE - sizeof (SAM_SESSION_CREATE_REPLY_OK));
-			SendMessageReply (m_Buffer, sizeof (SAM_SESSION_CREATE_REPLY_OK) + l1, false);
+			m_Buffer[sizeof (SAM_SESSION_CREATE_REPLY_OK) + l1] = '\n';
+			SendMessageReply (m_Buffer, sizeof (SAM_SESSION_CREATE_REPLY_OK) + l1 + 1, false);
 		}
 		else
 			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, sizeof(SAM_SESSION_CREATE_DUPLICATED_ID), true);

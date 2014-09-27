@@ -141,9 +141,9 @@ namespace stream
 	{
 		public:
 
-			StreamingDestination (boost::asio::io_service& service);
+			StreamingDestination (boost::asio::io_service& service, bool isPublic);
 			StreamingDestination (boost::asio::io_service& service, const std::string& fullPath);
-			StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys);
+			StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, bool isPublic);
 			~StreamingDestination ();	
 
 			const i2p::data::LeaseSet * GetLeaseSet ();
@@ -197,9 +197,9 @@ namespace stream
 			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			StreamingDestination * CreateNewLocalDestination ();
+			StreamingDestination * CreateNewLocalDestination (bool isPublic);
 			void DeleteLocalDestination (StreamingDestination * destination);
-			StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys);
+			StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
 			StreamingDestination * LoadLocalDestination (const std::string& filename);
 
@@ -225,9 +225,9 @@ namespace stream
 	void StartStreaming ();
 	void StopStreaming ();
 	StreamingDestination * GetSharedLocalDestination ();
-	StreamingDestination * CreateNewLocalDestination ();
+	StreamingDestination * CreateNewLocalDestination (bool isPublic = true);
 	void DeleteLocalDestination (StreamingDestination * destination);
-	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys);
+	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	
 	StreamingDestination * LoadLocalDestination (const std::string& filename);	
 
