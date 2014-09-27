@@ -146,8 +146,6 @@ namespace tunnel
 		private:
 
 			bool m_IsRunning;
-			bool m_IsTunnelCreated; // TODO: temporary
-			uint32_t m_NextReplyMsgID; // TODO: make it random later
 			std::thread * m_Thread;	
 			std::map<uint32_t, Tunnel *> m_PendingTunnels; // by replyMsgID
 			std::mutex m_InboundTunnelsMutex;

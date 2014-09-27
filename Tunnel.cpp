@@ -198,8 +198,7 @@ namespace tunnel
 	
 	Tunnels tunnels;
 	
-	Tunnels::Tunnels (): m_IsRunning (false), m_IsTunnelCreated (false), 
-		m_NextReplyMsgID (555), m_Thread (nullptr), m_ExploratoryPool (nullptr)
+	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr), m_ExploratoryPool (nullptr)
 	{
 	}
 	
@@ -535,9 +534,9 @@ namespace tunnel
 	TTunnel * Tunnels::CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel)
 	{
 		TTunnel * newTunnel = new TTunnel (config);
-		m_PendingTunnels[m_NextReplyMsgID] = newTunnel; 
-		newTunnel->Build (m_NextReplyMsgID, outboundTunnel);
-		m_NextReplyMsgID++; // TODO: should be atomic
+		uint32_t replyMsgID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+		m_PendingTunnels[replyMsgID] = newTunnel; 
+		newTunnel->Build (replyMsgID, outboundTunnel);
 		return newTunnel;
 	}	
 
