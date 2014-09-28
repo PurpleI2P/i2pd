@@ -62,6 +62,7 @@ namespace util
 			void ShowTransports (std::stringstream& s);
 			void ShowTunnels (std::stringstream& s);
 			void ShowTransitTunnels (std::stringstream& s);
+			void ShowLocalDestinations (std::stringstream& s);
 			void FillContent (std::stringstream& s);
 			std::string ExtractAddress ();
 

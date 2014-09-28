@@ -842,6 +842,11 @@ namespace stream
 		return destinations.LoadLocalDestination (filename);
 	}		
 
+	const StreamingDestinations& GetLocalDestinations ()
+	{
+		return destinations;
+	}	
+		
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len)
 	{
 		uint32_t length = be32toh (*(uint32_t *)buf);

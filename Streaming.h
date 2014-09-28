@@ -218,6 +218,10 @@ namespace stream
 
 			std::map<i2p::data::IdentHash, StreamingDestination *> m_Destinations;
 			StreamingDestination * m_SharedLocalDestination;	
+
+		public:
+			// for HTTP
+			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
 	};	
 	
 	Stream * CreateStream (const i2p::data::LeaseSet& remote);
@@ -229,8 +233,10 @@ namespace stream
 	void DeleteLocalDestination (StreamingDestination * destination);
 	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	
-	StreamingDestination * LoadLocalDestination (const std::string& filename);	
-
+	StreamingDestination * LoadLocalDestination (const std::string& filename);
+	// for HTTP
+	const StreamingDestinations& GetLocalDestinations ();	
+	
 	// assuming data is I2CP message
 	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len);

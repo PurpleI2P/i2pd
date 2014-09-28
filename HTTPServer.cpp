@@ -8,6 +8,7 @@
 #include "NetDb.h"
 #include "HTTPServer.h"
 #include "I2PEndian.h"
+#include "Streaming.h"
 
 // For image and info
 #include "version.h"
@@ -460,6 +461,7 @@ namespace util
 	const char HTTP_COMMAND_TUNNELS[] = "tunnels";
 	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
 	const char HTTP_COMMAND_TRANSPORTS[] = "transports";		
+	const char HTTP_COMMAND_LOCAL_DESTINATIONS[] = "local_destinations";
 	
 	namespace misc_strings
 	{
@@ -628,8 +630,9 @@ namespace util
 		s << "<b>Floodfills:</b> <i>" << i2p::data::netdb.GetNumFloodfills () << "</i> ";
 		s << "<b>LeaseSets:</b> <i>" << i2p::data::netdb.GetNumLeaseSets () << "</i><br>";
 
-		s << "<br><b><a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a></b><br>";
-		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a></b><br>";
+		s << "<br><b><a href=/?" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a></b>";
+		s << "<br><b><a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a></b>";
+		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a></b>";
 		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a></b><br>";
 		
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
@@ -643,7 +646,8 @@ namespace util
 			ShowTunnels (s);
 		else if (command == HTTP_COMMAND_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
-			
+		else if (command == HTTP_COMMAND_LOCAL_DESTINATIONS)
+			ShowLocalDestinations (s);	
 	}	
 
 	void HTTPConnection::ShowTransports (std::stringstream& s)
@@ -662,6 +666,7 @@ namespace util
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << "<br>";
 			}
+			s << std::endl;
 		}
 		auto ssuServer = i2p::transports.GetSSUServer ();
 		if (ssuServer)
@@ -677,6 +682,7 @@ namespace util
 				if (!outgoing) s << "-->";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << "<br>";
+				s << std::endl;
 			}
 		}
 	}
@@ -694,6 +700,7 @@ namespace util
 			else if (state == i2p::tunnel::eTunnelStateExpiring)
 				s << " " << "Exp";
 			s << " " << (int)it->GetNumSentBytes () << "<br>";
+			s << std::endl;
 		}
 
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
@@ -707,6 +714,7 @@ namespace util
 			else if (state == i2p::tunnel::eTunnelStateExpiring)
 				s << " " << "Exp";
 			s << " " << (int)it.second->GetNumReceivedBytes () << "<br>";
+			s << std::endl;
 		}
 	}	
 
@@ -723,6 +731,14 @@ namespace util
 			s << " " << it.second->GetNumTransmittedBytes () << "<br>";
 		}
 	}
+
+	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
+	{
+		for (auto& it: i2p::stream::GetLocalDestinations ().GetDestinations ())
+		{
+			s << it.first.ToBase32 () << ".b32.i2p<br>" << std::endl;
+		}
+	}	
 	
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
