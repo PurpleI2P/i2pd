@@ -244,7 +244,7 @@ namespace tunnel
 	Tunnel * Tunnels::GetPendingTunnel (uint32_t replyMsgID)
 	{
 		auto it = m_PendingTunnels.find(replyMsgID);
-		if (it != m_PendingTunnels.end ())
+		if (it != m_PendingTunnels.end () && it->second->GetState () == eTunnelStatePending)
 		{	
 			it->second->SetState (eTunnelStateBuildReplyReceived);	
 			return it->second;
