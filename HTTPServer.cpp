@@ -457,6 +457,10 @@ namespace util
 		"//8AAAAH/////wAAAA//////gAAAH//////AAAA//////+AAAH//////+AAA///////+AAP///////+"
 		"AH//////////////8=";		 
 
+	const char HTTP_COMMAND_TUNNELS[] = "tunnels";
+	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
+	const char HTTP_COMMAND_TRANSPORTS[] = "transports";		
+	
 	namespace misc_strings
 	{
 
@@ -539,7 +543,7 @@ namespace util
 	void HTTPConnection::RunRequest ()
 	{
 		auto address = ExtractAddress ();
-		if (address.length () > 1) // not just '/'
+		if (address.length () > 1 && address[1] != '?') // not just '/' or '/?'
 		{
 			std::string uri ("/"), b32;
 			size_t pos = address.find ('/', 1);
@@ -554,7 +558,7 @@ namespace util
 			HandleDestinationRequest (b32, uri);
 		}
 		else
-			HandleRequest ();
+			HandleRequest (address);
 	}
 
 	std::string HTTPConnection::ExtractAddress ()
@@ -582,7 +586,7 @@ namespace util
 			AsyncStreamReceive ();
 	}
 
-	void HTTPConnection::HandleRequest ()
+	void HTTPConnection::HandleRequest (const std::string& address)
 	{
 		std::stringstream s;
 		// Html5 head start
@@ -590,9 +594,12 @@ namespace util
 		s << "<head><meta charset=\"utf-8\" />"; // TODO: Find something to parse html/template system. This is horrible.
 		s << "<link rel='shortcut icon' href='";
 		s << itoopieFavicon;
-		s << "' /><title>Purple I2Pd Webconsole</title></head>";
+		s << "' /><title>Purple I2P Webconsole</title></head>";
 		// Head end
-		FillContent (s);
+		if (address.length () > 1)
+			HandleCommand (address.substr (2), s);
+		else			
+			FillContent (s);
 		s << "</html>";
 		SendReply (s.str ());
 	}
@@ -621,46 +628,26 @@ namespace util
 		s << "<b>Floodfills:</b> <i>" << i2p::data::netdb.GetNumFloodfills () << "</i> ";
 		s << "<b>LeaseSets:</b> <i>" << i2p::data::netdb.GetNumLeaseSets () << "</i><br>";
 
-		s << "<br><b>Tunnels</b><br>";
-		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
-		{
-			it->GetTunnelConfig ()->Print (s);
-			if (it->GetTunnelPool () && !it->GetTunnelPool ()->IsExploratory ())
-				s << " " << "Pool";
-			auto state = it->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << " " << "Failed";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << " " << "Exp";
-			s << " " << (int)it->GetNumSentBytes () << "<br>";
-		}
+		s << "<br><b><a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a></b><br>";
+		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a></b><br>";
+		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a></b><br>";
+		
+		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
+	}
 
-		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
-		{
-			it.second->GetTunnelConfig ()->Print (s);
-			if (it.second->GetTunnelPool () && !it.second->GetTunnelPool ()->IsExploratory ())
-				s << " " << "Pool";
-			auto state = it.second->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << " " << "Failed";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << " " << "Exp";
-			s << " " << (int)it.second->GetNumReceivedBytes () << "<br>";
-		}
+	void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
+	{
+		if (command == HTTP_COMMAND_TRANSPORTS)
+			ShowTransports (s);
+		else if (command == HTTP_COMMAND_TUNNELS)
+			ShowTunnels (s);
+		else if (command == HTTP_COMMAND_TRANSIT_TUNNELS)
+			ShowTransitTunnels (s);
+			
+	}	
 
-		s << "<br><b>Transit tunnels</b><br>";
-		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
-		{
-			if (dynamic_cast<i2p::tunnel::TransitTunnelGateway *>(it.second))
-				s << it.second->GetTunnelID () << "-->";
-			else if (dynamic_cast<i2p::tunnel::TransitTunnelEndpoint *>(it.second))
-				s << "-->" << it.second->GetTunnelID ();
-			else
-				s << "-->" << it.second->GetTunnelID () << "-->";
-			s << " " << it.second->GetNumTransmittedBytes () << "<br>";
-		}
-
-		s << "<br><b>Transports</b><br>";
+	void HTTPConnection::ShowTransports (std::stringstream& s)
+	{
 		s << "NTCP<br>";
 		for (auto it: i2p::transports.GetNTCPSessions ())
 		{
@@ -692,9 +679,51 @@ namespace util
 				s << "<br>";
 			}
 		}
-		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
 	}
+	
+	void HTTPConnection::ShowTunnels (std::stringstream& s)
+	{
+		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
+		{
+			it->GetTunnelConfig ()->Print (s);
+			if (it->GetTunnelPool () && !it->GetTunnelPool ()->IsExploratory ())
+				s << " " << "Pool";
+			auto state = it->GetState ();
+			if (state == i2p::tunnel::eTunnelStateFailed)
+				s << " " << "Failed";
+			else if (state == i2p::tunnel::eTunnelStateExpiring)
+				s << " " << "Exp";
+			s << " " << (int)it->GetNumSentBytes () << "<br>";
+		}
 
+		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
+		{
+			it.second->GetTunnelConfig ()->Print (s);
+			if (it.second->GetTunnelPool () && !it.second->GetTunnelPool ()->IsExploratory ())
+				s << " " << "Pool";
+			auto state = it.second->GetState ();
+			if (state == i2p::tunnel::eTunnelStateFailed)
+				s << " " << "Failed";
+			else if (state == i2p::tunnel::eTunnelStateExpiring)
+				s << " " << "Exp";
+			s << " " << (int)it.second->GetNumReceivedBytes () << "<br>";
+		}
+	}	
+
+	void HTTPConnection::ShowTransitTunnels (std::stringstream& s)
+	{
+		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
+		{
+			if (dynamic_cast<i2p::tunnel::TransitTunnelGateway *>(it.second))
+				s << it.second->GetTunnelID () << "-->";
+			else if (dynamic_cast<i2p::tunnel::TransitTunnelEndpoint *>(it.second))
+				s << "-->" << it.second->GetTunnelID ();
+			else
+				s << "-->" << it.second->GetTunnelID () << "-->";
+			s << " " << it.second->GetNumTransmittedBytes () << "<br>";
+		}
+	}
+	
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
 		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n";
@@ -856,54 +885,6 @@ namespace util
 	{
 		new HTTPConnection (m_NewSocket);
 	}
-
-// eepSite. TODO: move away
-
-	void HTTPConnection::EepAccept (i2p::stream::StreamingDestination * destination)
-	{
-		if (destination)
-			destination->SetAcceptor (std::bind (&HTTPConnection::HandleEepAccept, this, std::placeholders::_1));
-	}
-
-	void HTTPConnection::HandleEepAccept (i2p::stream::Stream * stream)
-	{
-		if (stream)
-		{
-			auto conn = new EepSiteDummyConnection (stream);
-			conn->AsyncStreamReceive ();
-		}
-	}
-
-	void EepSiteDummyConnection::AsyncStreamReceive ()
-	{
-		if (m_Stream)
-			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-				boost::bind (&EepSiteDummyConnection::HandleStreamReceive, this,
-					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
-				60); // 60 seconds timeout
-	}
-
-	void EepSiteDummyConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
-	{
-		if (ecode)
-		{
-			LogPrint ("eepSite error: ", ecode.message ());
-			DeleteStream (m_Stream);
-		}
-		else
-		{
-			std::string content ("");
-			content += "<html>" + HTTPConnection::itoopieImage + "</html>";
-			std::string response ("HTTP/1.0 200 OK\r\n");
-			response += "Content-Length: " + boost::lexical_cast<std::string>(content.length()) + "\r\n";
-			response +=	"Content-Type: text/html\r\n\r\n";
-			response += content;
-			m_Stream->Send ((uint8_t *)response.c_str (), response.length (), 30);
-			m_Stream->Close ();
-		}
-		delete this;
-	}
-
 }
 }
 

@@ -57,13 +57,14 @@ namespace util
 			void HandleWrite (const boost::system::error_code& ecode);
 			void SendReply (const std::string& content, int status = 200);
 
-			void HandleRequest ();
+			void HandleRequest (const std::string& address);
+			void HandleCommand (const std::string& command, std::stringstream& s);
+			void ShowTransports (std::stringstream& s);
+			void ShowTunnels (std::stringstream& s);
+			void ShowTransitTunnels (std::stringstream& s);
 			void FillContent (std::stringstream& s);
 			std::string ExtractAddress ();
 
-			// for eepsite
-			void EepAccept (i2p::stream::StreamingDestination * destination);
-			void HandleEepAccept (i2p::stream::Stream * stream);
 			
 		protected:
 
@@ -114,24 +115,6 @@ namespace util
 		protected:
 			virtual void CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket);
 	};
-
-	// TODO: move away
-	class EepSiteDummyConnection
-	{
-		public:
-
-			EepSiteDummyConnection (i2p::stream::Stream * stream): m_Stream (stream) {};
-			void AsyncStreamReceive ();
-			
-		private:
-
-			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			
-		private:
-
-			i2p::stream::Stream * m_Stream;
-			char m_StreamBuffer[8192];
-	};	
 }
 }
 
