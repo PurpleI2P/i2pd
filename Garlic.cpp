@@ -429,7 +429,7 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint ("Garlic type local");
-					i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf)));
+					i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
 				break;	
 				case eGarlicDeliveryTypeDestination:
 				{	
@@ -458,7 +458,7 @@ namespace garlic
 						tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
 					if (tunnel) // we have send it through an outbound tunnel
 					{	
-						I2NPMessage * msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf));
+						I2NPMessage * msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
 						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
 					}	
 					else

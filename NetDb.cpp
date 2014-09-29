@@ -111,8 +111,7 @@ namespace data
 						{
 							case eI2NPDatabaseStore:	
 								LogPrint ("DatabaseStore");
-								HandleDatabaseStoreMsg (msg->GetPayload (), be16toh (msg->GetHeader ()->size)); // TODO
-								i2p::DeleteI2NPMessage (msg);
+								HandleDatabaseStoreMsg (msg);
 							break;
 							case eI2NPDatabaseSearchReply:
 								LogPrint ("DatabaseSearchReply");
@@ -166,7 +165,7 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::AddRouterInfo (const IdentHash& ident, uint8_t * buf, int len)
+	void NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
 		DeleteRequestedDestination (ident);
 		auto it = m_RouterInfos.find(ident);
@@ -187,7 +186,7 @@ namespace data
 		}	
 	}	
 
-	void NetDb::AddLeaseSet (const IdentHash& ident, uint8_t * buf, int len)
+	void NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len)
 	{
 		bool unsolicited = !DeleteRequestedDestination (ident);
 		auto it = m_LeaseSets.find(ident);
@@ -408,8 +407,10 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::HandleDatabaseStoreMsg (uint8_t * buf, size_t len)
-	{		
+	void NetDb::HandleDatabaseStoreMsg (I2NPMessage * m)
+	{	
+		const uint8_t * buf = m->GetPayload ();
+		size_t len = be16toh (m->GetHeader ()->size);		
 		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;
 		size_t offset = sizeof (I2NPDatabaseStoreMsg);
 		if (msg->replyToken)
@@ -437,6 +438,7 @@ namespace data
 			decompressor.Get (uncompressed, uncomressedSize);
 			AddRouterInfo (msg->key, uncompressed, uncomressedSize);
 		}	
+		i2p::DeleteI2NPMessage (m);
 	}	
 
 	void NetDb::HandleDatabaseSearchReplyMsg (I2NPMessage * msg)

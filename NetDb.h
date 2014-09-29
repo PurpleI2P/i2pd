@@ -62,8 +62,8 @@ namespace data
 			void Start ();
 			void Stop ();
 			
-			void AddRouterInfo (const IdentHash& ident, uint8_t * buf, int len);
-			void AddLeaseSet (const IdentHash& ident, uint8_t * buf, int len);
+			void AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
+			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len);
 			RouterInfo * FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 			const IdentHash * FindAddress (const std::string& address) { return m_AddressBook.FindAddress (address); }; // TODO: move AddressBook away from NetDb
@@ -75,7 +75,7 @@ namespace data
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false, 
 				i2p::tunnel::TunnelPool * pool = nullptr);			
 			
-			void HandleDatabaseStoreMsg (uint8_t * buf, size_t len);
+			void HandleDatabaseStoreMsg (I2NPMessage * msg);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			void HandleDatabaseLookupMsg (I2NPMessage * msg);			
 
