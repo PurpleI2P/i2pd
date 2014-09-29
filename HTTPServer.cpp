@@ -640,13 +640,15 @@ namespace util
 
 	void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
 	{
-		if (command == HTTP_COMMAND_TRANSPORTS)
+		size_t paramsPos = command.find('&');
+		std::string cmd = command.substr (0, paramsPos);
+		if (cmd == HTTP_COMMAND_TRANSPORTS)
 			ShowTransports (s);
-		else if (command == HTTP_COMMAND_TUNNELS)
+		else if (cmd == HTTP_COMMAND_TUNNELS)
 			ShowTunnels (s);
-		else if (command == HTTP_COMMAND_TRANSIT_TUNNELS)
+		else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
-		else if (command == HTTP_COMMAND_LOCAL_DESTINATIONS)
+		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATIONS)
 			ShowLocalDestinations (s);	
 	}	
 
