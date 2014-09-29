@@ -28,8 +28,11 @@ namespace stream
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";	
 	const char SAM_PARAM_STYLE[] = "STYLE";		
 	const char SAM_PARAM_ID[] = "ID";	
+	const char SAM_PARAM_SILENT[] = "SILENT";
 	const char SAM_PARAM_DESTINATION[] = "DESTINATION";	
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";	
+	const char SAM_VALUE_TRUE[] = "true";	
+	const char SAM_VALUE_FALSE[] = "false";	
 
 	enum SAMSocketType
 	{
@@ -79,6 +82,7 @@ namespace stream
 			uint8_t m_StreamBuffer[SAM_SOCKET_BUFFER_SIZE];
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
+			bool m_IsSilent;
 			Stream * m_Stream;
 	};	
 

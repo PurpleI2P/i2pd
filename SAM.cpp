@@ -12,7 +12,7 @@ namespace stream
 {
 	SAMSocket::SAMSocket (SAMBridge& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_SocketType (eSAMSocketTypeUnknown),
-		m_Stream (nullptr)
+		 m_IsSilent (false), m_Stream (nullptr)
 	{
 	}
 
@@ -113,9 +113,17 @@ namespace stream
 
 	void SAMSocket::SendMessageReply (const char * msg, size_t len, bool close)
 	{
-		boost::asio::async_write (m_Socket, boost::asio::buffer (msg, len), boost::asio::transfer_all (),
-			boost::bind(&SAMSocket::HandleMessageReplySent, this, 
-			boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, close));
+		if (!m_IsSilent || m_SocketType == eSAMSocketTypeAcceptor) 
+			boost::asio::async_write (m_Socket, boost::asio::buffer (msg, len), boost::asio::transfer_all (),
+				boost::bind(&SAMSocket::HandleMessageReplySent, this, 
+				boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, close));
+		else
+		{
+			if (close)
+				Terminate ();
+			else
+				Receive ();	
+		}		
 	}
 
 	void SAMSocket::HandleMessageReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred, bool close)
@@ -213,6 +221,8 @@ namespace stream
 		ExtractParams (buf, len, params);
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
+		std::string& silent = params[SAM_PARAM_SILENT];
+		if (silent == SAM_VALUE_TRUE) m_IsSilent = true;	
 		m_ID = id;
 		auto session = m_Owner.FindSession (id);
 		if (session)
@@ -228,7 +238,7 @@ namespace stream
 				session->sockets.push_back (this);
 				m_Stream = session->localDestination->CreateNewOutgoingStream (*leaseSet);
 				m_Stream->Send ((uint8_t *)m_Buffer, 0, 0); // connect
-				I2PReceive ();				
+				I2PReceive ();			
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 			}
 			else
@@ -237,8 +247,8 @@ namespace stream
 				SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
 			}
 		}
-		else
-			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+		else	
+			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);		
 	}
 
 	void SAMSocket::ProcessStreamAccept (char * buf, size_t len)
@@ -247,6 +257,8 @@ namespace stream
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, len, params);
 		std::string& id = params[SAM_PARAM_ID];
+		std::string& silent = params[SAM_PARAM_SILENT];
+		if (silent == SAM_VALUE_TRUE) m_IsSilent = true;	
 		m_ID = id;
 		auto session = m_Owner.FindSession (id);
 		if (session)
@@ -341,11 +353,23 @@ namespace stream
 
 	void SAMSocket::HandleI2PAccept (i2p::stream::Stream * stream)
 	{
-		m_Stream = stream;
-		auto session = m_Owner.FindSession (m_ID);
-		if (session)	
-			session->localDestination->ResetAcceptor ();	
-		I2PReceive ();
+		if (stream)
+		{
+			m_Stream = stream;
+			auto session = m_Owner.FindSession (m_ID);
+			if (session)	
+				session->localDestination->ResetAcceptor ();	
+			if (!m_IsSilent)
+			{
+				// send remote peer address
+				uint8_t ident[1024];
+				size_t l = stream->GetRemoteIdentity ().ToBuffer (ident, 1024);
+				size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, m_Buffer, SAM_SOCKET_BUFFER_SIZE);
+				m_Buffer[l1] = '\n';
+				SendMessageReply (m_Buffer, l1 + 1, false);
+			}	
+			I2PReceive ();
+		}
 	}	
 
 	SAMBridge::SAMBridge (int port):

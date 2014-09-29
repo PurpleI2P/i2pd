@@ -86,6 +86,7 @@ namespace stream
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
+			const i2p::data::IdentityEx& GetRemoteIdentity () const { return m_RemoteIdentity; };
 			bool IsOpen () const { return m_IsOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
 			StreamingDestination * GetLocalDestination () { return m_LocalDestination; };
