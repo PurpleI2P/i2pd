@@ -12,7 +12,7 @@ namespace i2p
 	RouterContext context;
 
 	RouterContext::RouterContext ():
-		m_LastUpdateTime (0), m_IsUnreachable (false)
+		m_LastUpdateTime (0), m_IsUnreachable (false), m_AcceptsTunnels (true)
 	{
 	}
 

@@ -6,9 +6,10 @@
 #include "TransitTunnel.h"
 #include "Transports.h"
 #include "NetDb.h"
-#include "HTTPServer.h"
 #include "I2PEndian.h"
 #include "Streaming.h"
+#include "RouterContext.h"
+#include "HTTPServer.h"
 
 // For image and info
 #include "version.h"
@@ -460,7 +461,9 @@ namespace util
 
 	const char HTTP_COMMAND_TUNNELS[] = "tunnels";
 	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
-	const char HTTP_COMMAND_TRANSPORTS[] = "transports";		
+	const char HTTP_COMMAND_TRANSPORTS[] = "transports";	
+	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
+	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";		
 	const char HTTP_COMMAND_LOCAL_DESTINATIONS[] = "local_destinations";
 	const char HTTP_COMMAND_LOCAL_DESTINATION[] = "local_destination";
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
@@ -654,6 +657,11 @@ namespace util
 		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a></b>";
 		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a></b><br>";
 		
+		if (i2p::context.AcceptsTunnels ())
+			s << "<br><b><a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a></b><br>";
+		else	
+			s << "<br><b><a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a></b><br>";
+
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
 	}
 
@@ -667,6 +675,10 @@ namespace util
 			ShowTunnels (s);
 		else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
+		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
+			StartAcceptingTunnels (s);
+		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
+			StopAcceptingTunnels (s);
 		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATIONS)
 			ShowLocalDestinations (s);	
 		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATION)
@@ -795,6 +807,18 @@ namespace util
 		}	
 	}	
 	
+	void HTTPConnection::StartAcceptingTunnels (std::stringstream& s)
+	{
+		i2p::context.SetAcceptsTunnels (true);
+		s << "Accepting tunnels started" <<  std::endl;		
+	}
+
+	void HTTPConnection::StopAcceptingTunnels (std::stringstream& s)
+	{
+		i2p::context.SetAcceptsTunnels (false);
+		s << "Accepting tunnels stopped" <<  std::endl;
+	}
+
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
 		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n";

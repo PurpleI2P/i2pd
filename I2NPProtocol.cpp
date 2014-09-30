@@ -297,7 +297,7 @@ namespace i2p
 				i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
 				// replace record to reply
 				I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);
-				reply->ret = 0;
+				reply->ret = i2p::context.AcceptsTunnels () ? 0 : 30; // always reject with bandwidth reason (30)
 				//TODO: fill filler
 				CryptoPP::SHA256().CalculateDigest(reply->hash, reply->padding, sizeof (reply->padding) + 1); // + 1 byte of ret
 				// encrypt reply

@@ -32,6 +32,8 @@ namespace i2p
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const { return m_IsUnreachable; };
 			void SetUnreachable ();				
+			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
+			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
@@ -53,7 +55,7 @@ namespace i2p
 			i2p::data::PrivateKeys m_Keys; 
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			uint64_t m_LastUpdateTime;
-			bool m_IsUnreachable;
+			bool m_IsUnreachable, m_AcceptsTunnels;
 	};
 
 	extern RouterContext context;
