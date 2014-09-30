@@ -742,7 +742,10 @@ namespace stream
 	{
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
 		if (it != m_Destinations.end ())
+		{
+			LogPrint ("Local destination ", keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p exists");
 			return it->second;
+		}	
 		auto localDestination = new StreamingDestination (m_Service, keys, isPublic);
 		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
 		return localDestination;

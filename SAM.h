@@ -26,6 +26,9 @@ namespace stream
 	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER\n";
 	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";	
+	const char SAM_DEST_GENERATE[] = "DEST GENERATE";
+	const char SAM_DEST_REPLY[] = "DEST REPLY PUB=%s PRIV=%s\n";	
+	const char SAM_DEST_REPLY_I2P_ERROR[] = "DEST REPLY RESULT=I2P_ERROR\n";
 	const char SAM_PARAM_STYLE[] = "STYLE";		
 	const char SAM_PARAM_ID[] = "ID";	
 	const char SAM_PARAM_SILENT[] = "SILENT";
@@ -72,6 +75,7 @@ namespace stream
 			void ProcessSessionCreate (char * buf, size_t len);
 			void ProcessStreamConnect (char * buf, size_t len);
 			void ProcessStreamAccept (char * buf, size_t len);
+			void ProcessDestGenerate ();
 			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
 
 		private:

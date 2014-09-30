@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include <boost/bind.hpp>
 #include "base64.h"
 #include "Identity.h"
@@ -160,31 +161,36 @@ namespace stream
 				*eol = 0;
 				char * separator = strchr (m_Buffer, ' ');
 				if (separator)
-					separator = strchr (separator + 1, ' ');
-				if (separator)
-				{	
-					*separator = 0;
+				{
+					separator = strchr (separator + 1, ' ');	
+					if (separator) 
+						*separator = 0;
+					else
+						separator = eol;
+
 					if (!strcmp (m_Buffer, SAM_SESSION_CREATE))
 						ProcessSessionCreate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_CONNECT))
 						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
 						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
+						ProcessDestGenerate ();
 					else		
 					{	
 						LogPrint ("SAM unexpected message ", m_Buffer);		
 						Terminate ();
 					}
-				}	
+				}
 				else
-				{	
-					LogPrint ("SAM malformed message");
+				{
+					LogPrint ("SAM malformed message ", m_Buffer);
 					Terminate ();
 				}
 			}
 			else
 			{	
-				LogPrint ("SAM malformed message");
+				LogPrint ("SAM malformed message ", m_Buffer);
 				Terminate ();
 			}
 		}
@@ -275,6 +281,28 @@ namespace stream
 		}	
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
+	}
+
+	void SAMSocket::ProcessDestGenerate ()
+	{
+		LogPrint ("SAM dest generate");
+		auto localDestination = CreateNewLocalDestination ();
+		if (localDestination)
+		{
+			uint8_t buf[1024];
+			char priv[1024], pub[1024];
+			size_t l = localDestination->GetPrivateKeys ().ToBuffer (buf, 1024);
+			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
+			priv[l1] = 0;
+
+			l = localDestination->GetIdentity ().ToBuffer (buf, 1024);
+			l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
+			pub[l1] = 0;
+			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, pub, priv);
+			SendMessageReply (m_Buffer, len, true);
+		}
+		else
+			SendMessageReply (SAM_DEST_REPLY_I2P_ERROR, strlen(SAM_DEST_REPLY_I2P_ERROR), true);
 	}
 
 	void SAMSocket::ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params)
