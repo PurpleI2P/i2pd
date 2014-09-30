@@ -100,6 +100,7 @@ namespace ssu
 			SSUSession& m_Session;
 			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
 			std::map<uint32_t, SentMessage *> m_SentMessages;
+			std::set<uint32_t> m_ReceivedMessages;
 			boost::asio::deadline_timer m_ResendTimer;
 			int m_PacketSize;
 	};	

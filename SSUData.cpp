@@ -221,7 +221,19 @@ namespace ssu
 				SendMsgAck (msgID);
 				msg->FromSSU (msgID);
 				if (m_Session.GetState () == eSessionStateEstablished)
-					i2p::HandleI2NPMessage (msg);
+				{
+					if (!m_ReceivedMessages.count (msgID))
+					{	
+						if (m_ReceivedMessages.size () > 100) m_ReceivedMessages.clear ();
+						m_ReceivedMessages.insert (msgID);
+						i2p::HandleI2NPMessage (msg);
+					}	
+					else
+					{
+						LogPrint ("SSU message ", msgID, " already received");						
+						i2p::DeleteI2NPMessage (msg);
+					}	
+				}	
 				else
 				{
 					// we expect DeliveryStatus
