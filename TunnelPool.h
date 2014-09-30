@@ -63,6 +63,13 @@ namespace tunnel
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
 			std::map<uint32_t, std::pair<OutboundTunnel *, InboundTunnel *> > m_Tests;
+
+		public:
+
+			// for HTTP only
+			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
+			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
+
 	};	
 }
 }

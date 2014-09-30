@@ -462,6 +462,8 @@ namespace util
 	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
 	const char HTTP_COMMAND_TRANSPORTS[] = "transports";		
 	const char HTTP_COMMAND_LOCAL_DESTINATIONS[] = "local_destinations";
+	const char HTTP_COMMAND_LOCAL_DESTINATION[] = "local_destination";
+	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
 	
 	namespace misc_strings
 	{
@@ -575,6 +577,23 @@ namespace util
 		return "";
 	}
 
+	void HTTPConnection::ExtractParams (const std::string& str, std::map<std::string, std::string>& params)
+	{
+		if (str[0] != '&') return;
+		size_t pos = 1, end;
+		do
+		{
+			end = str.find ('&', pos);
+			std::string param = str.substr (pos, end - pos);
+			LogPrint (param);
+			size_t e = param.find ('=');
+			if (e != std::string::npos)
+				params[param.substr(0, e)] = param.substr(e+1);
+			pos = end + 1;
+		}	
+		while (end != std::string::npos);
+	}
+	
 	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
 	{
 		Terminate ();
@@ -650,6 +669,13 @@ namespace util
 			ShowTransitTunnels (s);
 		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATIONS)
 			ShowLocalDestinations (s);	
+		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATION)
+		{
+			std::map<std::string, std::string> params;
+			ExtractParams (command.substr (paramsPos), params);
+			auto b32 = params[HTTP_PARAM_BASE32_ADDRESS];
+			ShowLocalDestination (b32, s);
+		}	
 	}	
 
 	void HTTPConnection::ShowTransports (std::stringstream& s)
@@ -738,8 +764,35 @@ namespace util
 	{
 		for (auto& it: i2p::stream::GetLocalDestinations ().GetDestinations ())
 		{
-			s << it.first.ToBase32 () << ".b32.i2p<br>" << std::endl;
+			std::string b32 = it.first.ToBase32 (); 
+			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
+			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << b32 << ">"; 
+			s << b32 << ".b32.i2p</a><br>" << std::endl;
 		}
+	}	
+
+	void  HTTPConnection::ShowLocalDestination (const std::string& b32, std::stringstream& s)
+	{
+		i2p::data::IdentHash ident;
+		i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), ident, 32);
+		auto dest = i2p::stream::FindLocalDestination (ident);
+		if (dest)
+		{
+			auto pool = dest->GetTunnelPool ();
+			if (pool)
+			{
+				for (auto it: pool->GetOutboundTunnels ())
+				{
+					it->GetTunnelConfig ()->Print (s);
+					s << "<br>" << std::endl;
+				}
+				for (auto it: pool->GetInboundTunnels ())
+				{
+					it->GetTunnelConfig ()->Print (s);
+					s << "<br>" << std::endl;
+				}
+			}	
+		}	
 	}	
 	
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
