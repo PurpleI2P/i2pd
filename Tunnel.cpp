@@ -412,7 +412,6 @@ namespace tunnel
 	{
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		{
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			for (auto it = m_OutboundTunnels.begin (); it != m_OutboundTunnels.end ();)
 			{
 				auto tunnel = *it;
@@ -422,7 +421,10 @@ namespace tunnel
 					auto pool = tunnel->GetTunnelPool ();
 					if (pool)
 						pool->TunnelExpired (tunnel);
-					it = m_OutboundTunnels.erase (it);
+					{
+						std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+						it = m_OutboundTunnels.erase (it);
+					}
 					delete tunnel;
 				}	
 				else 
@@ -453,7 +455,6 @@ namespace tunnel
 	{
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 		{
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 			{
 				auto tunnel = it->second;
@@ -463,7 +464,10 @@ namespace tunnel
 					auto pool = tunnel->GetTunnelPool ();
 					if (pool)
 						pool->TunnelExpired (tunnel);
-					it = m_InboundTunnels.erase (it);
+					{
+						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+						it = m_InboundTunnels.erase (it);
+					}
 					delete tunnel;
 				}	
 				else 
