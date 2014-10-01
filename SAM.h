@@ -20,6 +20,7 @@ namespace stream
 	const char SAM_SESSION_CREATE[] = "SESSION CREATE";
 	const char SAM_SESSION_CREATE_REPLY_OK[] = "SESSION STATUS RESULT=OK DESTINATION=";
 	const char SAM_SESSION_CREATE_DUPLICATED_ID[] = "SESSION STATUS RESULT=DUPLICATED_ID\n";
+	const char SAM_SESSION_CREATE_DUPLICATED_DEST[] = "SESSION STATUS RESULT=DUPLICATED_DEST\n";	
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
 	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK\n";
 	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
@@ -94,7 +95,6 @@ namespace stream
 	{
 		StreamingDestination * localDestination;
 		std::list<SAMSocket *> sockets;
-		bool isTransient;
 	};
 
 	class SAMBridge

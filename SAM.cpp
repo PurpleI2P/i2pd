@@ -204,6 +204,12 @@ namespace stream
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
 		m_ID = id;
+		if (m_Owner.FindSession (id))
+		{
+			// session exists
+			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), true);
+			return;
+		}
 		auto session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination); 
 		if (session)
 		{
@@ -217,7 +223,7 @@ namespace stream
 			SendMessageReply (m_Buffer, l + l2 + 1, false);
 		}
 		else
-			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), true);
+			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_DEST, strlen(SAM_SESSION_CREATE_DUPLICATED_DEST), true);
 	}
 
 	void SAMSocket::ProcessStreamConnect (char * buf, size_t len)
@@ -474,9 +480,6 @@ namespace stream
 
 	SAMSession * SAMBridge::CreateSession (const std::string& id, const std::string& destination)
 	{
-		if (m_Sessions.find (id) != m_Sessions.end ()) // session exists
- 			return nullptr;
-
 		StreamingDestination * localDestination = nullptr; 
 		if (destination != "")
 		{
@@ -485,7 +488,7 @@ namespace stream
 			i2p::data::PrivateKeys keys;
 			keys.FromBuffer (buf, l);
 			delete[] buf;
-			localDestination = GetLocalDestination (keys);
+			localDestination = CreateNewLocalDestination (keys);
 		}
 		else // transient
 			localDestination = CreateNewLocalDestination (); 
@@ -493,9 +496,10 @@ namespace stream
 		{
 			SAMSession session;
 			session.localDestination = localDestination;
-			session.isTransient = destination == "";
-			m_Sessions[id] = session;
-			return &m_Sessions[id];
+			auto ret = m_Sessions.insert (std::pair<std::string, SAMSession>(id, session));
+			if (!ret.second)
+				LogPrint ("Session ", id, " already exists");
+			return &(ret.first->second);
 		}
 		return nullptr;
 	}
@@ -508,8 +512,7 @@ namespace stream
 			for (auto it1 : it->second.sockets)
 				delete it1;
 			it->second.sockets.clear ();
-			if (it->second.isTransient)
-				DeleteLocalDestination (it->second.localDestination);
+			DeleteLocalDestination (it->second.localDestination);
 			m_Sessions.erase (it);
 		}
 	}

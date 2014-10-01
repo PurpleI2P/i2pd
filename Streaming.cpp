@@ -738,13 +738,13 @@ namespace stream
 		}
 	}
 
-	StreamingDestination * StreamingDestinations::GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
+	StreamingDestination * StreamingDestinations::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
 		if (it != m_Destinations.end ())
 		{
 			LogPrint ("Local destination ", keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p exists");
-			return it->second;
+			return nullptr;
 		}	
 		auto localDestination = new StreamingDestination (m_Service, keys, isPublic);
 		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
@@ -825,14 +825,14 @@ namespace stream
 		return destinations.CreateNewLocalDestination (isPublic);
 	}
 
+	StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
+	{
+		return destinations.CreateNewLocalDestination (keys, isPublic);
+	}
+
 	void DeleteLocalDestination (StreamingDestination * destination)
 	{
 		destinations.DeleteLocalDestination (destination);
-	}
-
-	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
-	{
-		return destinations.GetLocalDestination (keys, isPublic);
 	}
 
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination)

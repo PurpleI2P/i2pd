@@ -199,8 +199,8 @@ namespace stream
 			void DeleteStream (Stream * stream);
 			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
 			StreamingDestination * CreateNewLocalDestination (bool isPublic);
+			StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			void DeleteLocalDestination (StreamingDestination * destination);
-			StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
 			StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 
@@ -231,8 +231,8 @@ namespace stream
 	void StopStreaming ();
 	StreamingDestination * GetSharedLocalDestination ();
 	StreamingDestination * CreateNewLocalDestination (bool isPublic = true);
+	StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);	
 	void DeleteLocalDestination (StreamingDestination * destination);
-	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	
 	StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 	// for HTTP
