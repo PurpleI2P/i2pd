@@ -143,7 +143,7 @@ namespace stream
 		public:
 
 			StreamingDestination (boost::asio::io_service& service, bool isPublic);
-			StreamingDestination (boost::asio::io_service& service, const std::string& fullPath);
+			StreamingDestination (boost::asio::io_service& service, const std::string& fullPath, bool isPublic);
 			StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, bool isPublic);
 			~StreamingDestination ();	
 
@@ -202,7 +202,7 @@ namespace stream
 			void DeleteLocalDestination (StreamingDestination * destination);
 			StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
-			StreamingDestination * LoadLocalDestination (const std::string& filename);
+			StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 
 		private:	
 
@@ -234,7 +234,7 @@ namespace stream
 	void DeleteLocalDestination (StreamingDestination * destination);
 	StreamingDestination * GetLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	
-	StreamingDestination * LoadLocalDestination (const std::string& filename);
+	StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 	// for HTTP
 	const StreamingDestinations& GetLocalDestinations ();	
 	

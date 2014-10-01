@@ -519,8 +519,8 @@ namespace stream
 			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
 	}
 
-	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const std::string& fullPath):
-		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (true) 
+	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const std::string& fullPath, bool isPublic):
+		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (isPublic) 
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -704,7 +704,7 @@ namespace stream
 #else
 				it->path();
 #endif
-				auto localDestination = new StreamingDestination (m_Service, fullPath);
+				auto localDestination = new StreamingDestination (m_Service, fullPath, true);
 				m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 				numDestinations++;
 			}	
@@ -713,9 +713,9 @@ namespace stream
 			LogPrint (numDestinations, " local destinations loaded");
 	}	
 	
-	StreamingDestination * StreamingDestinations::LoadLocalDestination (const std::string& filename)
+	StreamingDestination * StreamingDestinations::LoadLocalDestination (const std::string& filename, bool isPublic)
 	{
-		auto localDestination = new StreamingDestination (m_Service, i2p::util::filesystem::GetFullPath (filename));
+		auto localDestination = new StreamingDestination (m_Service, i2p::util::filesystem::GetFullPath (filename), isPublic);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		return localDestination;
 	}
@@ -840,9 +840,9 @@ namespace stream
 		return destinations.FindLocalDestination (destination);
 	}
 
-	StreamingDestination * LoadLocalDestination (const std::string& filename)
+	StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic)
 	{
-		return destinations.LoadLocalDestination (filename);
+		return destinations.LoadLocalDestination (filename, isPublic);
 	}		
 
 	const StreamingDestinations& GetLocalDestinations ()
