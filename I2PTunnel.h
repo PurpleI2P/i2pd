@@ -50,18 +50,22 @@ namespace stream
 	{
 		public:
 
-			I2PTunnel (boost::asio::io_service& service): m_Service (service) {};
+			I2PTunnel (boost::asio::io_service& service, StreamingDestination * localDestination): 
+				m_Service (service), m_LocalDestination (localDestination) {};
 			virtual ~I2PTunnel () { ClearConnections (); }; 
 
 			void AddConnection (I2PTunnelConnection * conn);
 			void RemoveConnection (I2PTunnelConnection * conn);	
 			void ClearConnections ();
-			
+			StreamingDestination * GetLocalDestination () { return m_LocalDestination; };
+			void SetLocalDestination (StreamingDestination * dest) { m_LocalDestination = dest; }; 			
+
 			boost::asio::io_service& GetService () { return m_Service; };
 			
 		private:
 
 			boost::asio::io_service& m_Service;
+			StreamingDestination * m_LocalDestination;
 			std::set<I2PTunnelConnection *> m_Connections;
 	};	
 	
@@ -69,7 +73,8 @@ namespace stream
 	{
 		public:
 
-			I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, int port);
+			I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, int port,
+				StreamingDestination * localDestination = nullptr);
 			~I2PClientTunnel ();				
 	
 			void Start ();
@@ -93,7 +98,7 @@ namespace stream
 		public:
 
 			I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-				const i2p::data::IdentHash& localDestination);	
+				StreamingDestination * localDestination);	
 
 			void Start ();
 			void Stop ();
@@ -105,7 +110,6 @@ namespace stream
 
 		private:
 
-			StreamingDestination * m_LocalDestination;	
 			boost::asio::ip::tcp::endpoint m_Endpoint;		
 	};
 }		

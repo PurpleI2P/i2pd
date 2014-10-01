@@ -12,7 +12,7 @@ namespace stream
 	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
 		m_Socket (socket), m_Owner (owner) 
 	{
-		m_Stream = i2p::stream::CreateStream (*leaseSet);
+		m_Stream = m_Owner->GetLocalDestination ()->CreateNewOutgoingStream (*leaseSet);
 		m_Stream->Send (m_Buffer, 0, 0); // connect
 		StreamReceive ();
 		Receive ();
@@ -138,8 +138,10 @@ namespace stream
 		m_Connections.clear ();
 	}	
 		
-	I2PClientTunnel::I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, int port):
-		I2PTunnel (service), m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+	I2PClientTunnel::I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, 
+		int port, StreamingDestination * localDestination): 
+		I2PTunnel (service, localDestination ? localDestination : GetSharedLocalDestination ()), 
+		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_Destination (destination), m_DestinationIdentHash (nullptr), m_RemoteLeaseSet (nullptr)
 	{
 	}	
@@ -170,7 +172,7 @@ namespace stream
 		}
 		if (m_DestinationIdentHash)
 		{
-			i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetSharedLocalDestination ()->GetTunnelPool ());
+			i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetLocalDestination ()->GetTunnelPool ());
 			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
 		}	
 		else
@@ -231,12 +233,9 @@ namespace stream
 	}
 
 	I2PServerTunnel::I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-		const i2p::data::IdentHash& localDestination): I2PTunnel (service),
+		StreamingDestination * localDestination): I2PTunnel (service, localDestination),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
-		m_LocalDestination = FindLocalDestination (localDestination);
-		if (!m_LocalDestination)
-			LogPrint ("Local destination ", localDestination.ToBase64 (), " not found");
 	}
 	
 	void I2PServerTunnel::Start ()
@@ -251,8 +250,11 @@ namespace stream
 
 	void I2PServerTunnel::Accept ()
 	{
-		if (m_LocalDestination)
-			m_LocalDestination->SetAcceptor (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+		auto localDestination = GetLocalDestination ();	
+		if (localDestination)
+			localDestination->SetAcceptor (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+		else
+			LogPrint ("Local destination not set for server tunnel");
 	}
 
 	void I2PServerTunnel::HandleAccept (i2p::stream::Stream * stream)

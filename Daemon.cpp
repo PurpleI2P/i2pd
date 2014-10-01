@@ -124,8 +124,12 @@ namespace i2p
 			std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
 			if (ircDestination.length () > 0) // ircdest is presented
 			{
+				i2p::stream::StreamingDestination * localDestination = nullptr;
+				std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
+				if (ircKeys.length () > 0)
+					localDestination = i2p::stream::LoadLocalDestination (ircKeys);
 				d.ircTunnel = new i2p::stream::I2PClientTunnel (d.socksProxy->GetService (), ircDestination,
-					i2p::util::config::GetArg("-ircport", 6668));
+					i2p::util::config::GetArg("-ircport", 6668), localDestination);
 				d.ircTunnel->Start ();
 				LogPrint("IRC tunnel started");
 			}	
@@ -135,7 +139,7 @@ namespace i2p
 				auto localDestination = i2p::stream::LoadLocalDestination (eepKeys);
 				d.serverTunnel = new i2p::stream::I2PServerTunnel (d.socksProxy->GetService (), 
 					i2p::util::config::GetArg("-eephost", "127.0.0.1"), i2p::util::config::GetArg("-eepport", 80),
-					localDestination->GetIdentHash ());
+					localDestination);
 				d.serverTunnel->Start ();
 				LogPrint("Server tunnel started");
 			}
