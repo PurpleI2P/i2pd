@@ -287,17 +287,22 @@ namespace i2p
 				LogPrint ("Record ",i," is ours");	
 			
 				i2p::crypto::ElGamalDecrypt (i2p::context.GetPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
-
-				i2p::tunnel::TransitTunnel * transitTunnel = 
-					i2p::tunnel::CreateTransitTunnel (
-					be32toh (clearText.receiveTunnel), 
-					clearText.nextIdent, be32toh (clearText.nextTunnel),
-				    clearText.layerKey, clearText.ivKey, 
-				    clearText.flag & 0x80, clearText.flag & 0x40);
-				i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
 				// replace record to reply
-				I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);
-				reply->ret = i2p::context.AcceptsTunnels () ? 0 : 30; // always reject with bandwidth reason (30)
+				I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);				
+				if (i2p::context.AcceptsTunnels ())
+				{	
+					i2p::tunnel::TransitTunnel * transitTunnel = 
+						i2p::tunnel::CreateTransitTunnel (
+							be32toh (clearText.receiveTunnel), 
+							clearText.nextIdent, be32toh (clearText.nextTunnel),
+							clearText.layerKey, clearText.ivKey, 
+							clearText.flag & 0x80, clearText.flag & 0x40);
+					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
+					reply->ret = 0;
+				}
+				else
+					reply->ret = 30; // always reject with bandwidth reason (30)
+				
 				//TODO: fill filler
 				CryptoPP::SHA256().CalculateDigest(reply->hash, reply->padding, sizeof (reply->padding) + 1); // + 1 byte of ret
 				// encrypt reply
