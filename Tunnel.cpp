@@ -256,6 +256,7 @@ namespace tunnel
 	{
 		InboundTunnel * tunnel  = nullptr; 
 		size_t minReceived = 0;
+		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		for (auto it : m_InboundTunnels)
 		{
 			if (!it.second->IsEstablished ()) continue;
@@ -273,6 +274,7 @@ namespace tunnel
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_OutboundTunnels.size () - 1), i = 0;
 		OutboundTunnel * tunnel = nullptr;
+		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		for (auto it: m_OutboundTunnels)
 		{	
 			if (it->IsEstablished ())
