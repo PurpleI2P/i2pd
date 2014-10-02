@@ -176,6 +176,8 @@ namespace stream
 						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
 						ProcessDestGenerate ();
+					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
+						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else		
 					{	
 						LogPrint ("SAM unexpected message ", m_Buffer);		
@@ -331,6 +333,28 @@ namespace stream
 			SendMessageReply (SAM_DEST_REPLY_I2P_ERROR, strlen(SAM_DEST_REPLY_I2P_ERROR), true);
 	}
 
+	void SAMSocket::ProcessNamingLookup (char * buf, size_t len)
+	{
+		LogPrint ("SAM naming lookup: ", buf);
+		std::map<std::string, std::string> params;
+		ExtractParams (buf, len, params);
+		std::string& name = params[SAM_PARAM_NAME];
+		if (name == "ME")
+		{
+			/*uint8_t buf[1024];
+			char pub[1024];
+			size_t l = localDestination->GetIdentity ().ToBuffer (buf, 1024);
+			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
+			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, pub);
+			SendMessageReply (m_Buffer, len, false);*/
+		}
+		else
+		{
+			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
+			SendMessageReply (m_Buffer, len, true);
+		}
+	}	
+
 	void SAMSocket::ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params)
 	{
 		while (char * separator = strchr (buf, ' '))
@@ -350,8 +374,8 @@ namespace stream
 	void SAMSocket::Receive ()
 	{
 		m_Socket.async_read_some (boost::asio::buffer(m_Buffer, SAM_SOCKET_BUFFER_SIZE),                
-			boost::bind(&SAMSocket::HandleReceived, this, 
-			boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+			boost::bind((m_SocketType == eSAMSocketTypeSession) ? &SAMSocket::HandleMessage : &SAMSocket::HandleReceived,
+			this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
 
 	void SAMSocket::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)

@@ -33,10 +33,14 @@ namespace stream
 	const char SAM_DEST_GENERATE[] = "DEST GENERATE";
 	const char SAM_DEST_REPLY[] = "DEST REPLY PUB=%s PRIV=%s\n";	
 	const char SAM_DEST_REPLY_I2P_ERROR[] = "DEST REPLY RESULT=I2P_ERROR\n";
+	const char SAM_NAMING_LOOKUP[] = "NAMING LOOKUP";
+	const char SAM_NAMING_REPLY[] = "NAMING REPLY RESULT=OK NAME=ME VALUE=%s\n";
+	const char SAM_NAMING_REPLY_INVALID_KEY[] = "NAMING REPLY RESULT=INVALID_KEY NAME=%s\n";	
 	const char SAM_PARAM_STYLE[] = "STYLE";		
 	const char SAM_PARAM_ID[] = "ID";	
 	const char SAM_PARAM_SILENT[] = "SILENT";
 	const char SAM_PARAM_DESTINATION[] = "DESTINATION";	
+	const char SAM_PARAM_NAME[] = "NAME";		
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";	
 	const char SAM_VALUE_TRUE[] = "true";	
 	const char SAM_VALUE_FALSE[] = "false";	
@@ -81,6 +85,7 @@ namespace stream
 			void ProcessStreamConnect (char * buf, size_t len);
 			void ProcessStreamAccept (char * buf, size_t len);
 			void ProcessDestGenerate ();
+			void ProcessNamingLookup (char * buf, size_t len);
 			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
 
 			void Connect (const i2p::data::LeaseSet& remote, SAMSession * session);
