@@ -801,7 +801,8 @@ namespace data
 		return GetRandomRouter (
 			[compatibleWith](const RouterInfo * router)->bool 
 			{ 
-				return !router->IsHidden () && router->IsCompatible (*compatibleWith); 
+				return !router->IsHidden () && router != compatibleWith && 
+					router->IsCompatible (*compatibleWith); 
 			});
 	}	
 
@@ -810,8 +811,8 @@ namespace data
 		return GetRandomRouter (
 			[compatibleWith](const RouterInfo * router)->bool 
 			{ 
-				return !router->IsHidden () && router->IsCompatible (*compatibleWith) && 
-					(router->GetCaps () & RouterInfo::eHighBandwidth); 
+				return !router->IsHidden () && router != compatibleWith &&
+					router->IsCompatible (*compatibleWith) && (router->GetCaps () & RouterInfo::eHighBandwidth); 
 			});
 	}	
 	
