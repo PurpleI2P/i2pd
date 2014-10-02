@@ -12,8 +12,8 @@ namespace i2p
 namespace stream
 {
 	SAMSocket::SAMSocket (SAMBridge& owner): 
-		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_SocketType (eSAMSocketTypeUnknown),
-		 m_IsSilent (false), m_Stream (nullptr)
+		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
+		m_SocketType (eSAMSocketTypeUnknown), m_IsSilent (false), m_Stream (nullptr)
 	{
 	}
 
@@ -245,22 +245,42 @@ namespace stream
 			dest.FromBuffer (ident, l);
 			auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
 			if (leaseSet)
-			{
-				m_SocketType = eSAMSocketTypeStream;
-				session->sockets.push_back (this);
-				m_Stream = session->localDestination->CreateNewOutgoingStream (*leaseSet);
-				m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
-				I2PReceive ();			
-				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
-			}
+				Connect (*leaseSet, session);
 			else
 			{
-				i2p::data::netdb.Subscribe (dest.GetIdentHash ());
-				SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
+				i2p::data::netdb.Subscribe (dest.GetIdentHash (), session->localDestination->GetTunnelPool ());
+				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_CONNECT_TIMEOUT));
+				m_Timer.async_wait (boost::bind (&SAMSocket::HandleDestinationRequestTimer,
+					this, boost::asio::placeholders::error, dest.GetIdentHash (), session));	
 			}
 		}
 		else	
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);		
+	}
+
+	void SAMSocket::Connect (const i2p::data::LeaseSet& remote, SAMSession * session)
+	{
+		m_SocketType = eSAMSocketTypeStream;
+		session->sockets.push_back (this);
+		m_Stream = session->localDestination->CreateNewOutgoingStream (remote);
+		m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
+		I2PReceive ();			
+		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+	}
+
+	void SAMSocket::HandleDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session)
+	{
+		if (!ecode) // timeout expired
+		{
+			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			if (leaseSet)
+				Connect (*leaseSet, session);
+			else
+			{
+				LogPrint ("SAM destination to connect not found");
+				SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
+			}
+		}
 	}
 
 	void SAMSocket::ProcessStreamAccept (char * buf, size_t len)

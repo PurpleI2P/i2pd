@@ -7,6 +7,8 @@
 #include <list>
 #include <thread>
 #include <boost/asio.hpp>
+#include "Identity.h"
+#include "LeaseSet.h"
 #include "Streaming.h"
 
 namespace i2p
@@ -15,6 +17,7 @@ namespace stream
 {
 	const size_t SAM_SOCKET_BUFFER_SIZE = 4096;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds	
+	const int SAM_CONNECT_TIMEOUT = 5; // in seconds
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=3.1\n";
 	const char SAM_SESSION_CREATE[] = "SESSION CREATE";
@@ -47,6 +50,7 @@ namespace stream
 	};
 
 	class SAMBridge;
+	class SAMSession;
 	class SAMSocket
 	{
 		public:
@@ -79,10 +83,14 @@ namespace stream
 			void ProcessDestGenerate ();
 			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
 
+			void Connect (const i2p::data::LeaseSet& remote, SAMSession * session);
+			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session);
+
 		private:
 
 			SAMBridge& m_Owner;
 			boost::asio::ip::tcp::socket m_Socket;
+			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[SAM_SOCKET_BUFFER_SIZE + 1];
 			uint8_t m_StreamBuffer[SAM_SOCKET_BUFFER_SIZE];
 			SAMSocketType m_SocketType;
