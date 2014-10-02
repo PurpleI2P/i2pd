@@ -93,7 +93,7 @@ namespace proxy
 		}
 		
 		LogPrint("--- socks4a sock forward: ", len);
-		m_stream->Send(m_sock_buff, len, 1);
+		m_stream->Send(m_sock_buff, len);
 	}
 
 	void SOCKS4AHandler::HandleSockRecv(const boost::system::error_code & ecode, std::size_t len)

@@ -92,7 +92,7 @@ namespace stream
 			StreamingDestination * GetLocalDestination () { return m_LocalDestination; };
 			
 			void HandleNextPacket (Packet * packet);
-			size_t Send (const uint8_t * buf, size_t len, int timeout); // timeout in seconds
+			size_t Send (const uint8_t * buf, size_t len);
 			
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);

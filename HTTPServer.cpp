@@ -540,7 +540,7 @@ namespace util
 				RunRequest();
 			}
 			else // follow-on
-				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred, 10);
+				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
 			Receive ();
 		}
 		/*else if (ecode != boost::asio::error::operation_aborted)
@@ -879,7 +879,7 @@ namespace util
 			m_Stream = i2p::stream::CreateStream (*leaseSet);
 		if (m_Stream)
 		{
-			m_Stream->Send ((uint8_t *)buf, len, 10);
+			m_Stream->Send ((uint8_t *)buf, len);
 			AsyncStreamReceive ();
 		}
 	}	

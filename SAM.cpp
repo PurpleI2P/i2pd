@@ -249,7 +249,7 @@ namespace stream
 				m_SocketType = eSAMSocketTypeStream;
 				session->sockets.push_back (this);
 				m_Stream = session->localDestination->CreateNewOutgoingStream (*leaseSet);
-				m_Stream->Send ((uint8_t *)m_Buffer, 0, 0); // connect
+				m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
 				I2PReceive ();			
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 			}
@@ -345,7 +345,7 @@ namespace stream
 		else
 		{
 			if (m_Stream)
-				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred, 0);
+				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
 			Receive ();
 		}
 	}

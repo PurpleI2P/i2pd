@@ -13,7 +13,7 @@ namespace stream
 		m_Socket (socket), m_Owner (owner) 
 	{
 		m_Stream = m_Owner->GetLocalDestination ()->CreateNewOutgoingStream (*leaseSet);
-		m_Stream->Send (m_Buffer, 0, 0); // connect
+		m_Stream->Send (m_Buffer, 0); // connect
 		StreamReceive ();
 		Receive ();
 	}	
@@ -64,7 +64,7 @@ namespace stream
 		else
 		{	
 			if (m_Stream)
-				m_Stream->Send (m_Buffer, bytes_transferred, 0);
+				m_Stream->Send (m_Buffer, bytes_transferred);
 			Receive ();
 		}
 	}	

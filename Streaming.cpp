@@ -96,7 +96,7 @@ namespace stream
 				SendQuickAck ();	
 			else if (isSyn)
 				// we have to send SYN back to incoming connection
-				Send (nullptr, 0, 0); // also sets m_IsOpen				
+				Send (nullptr, 0); // also sets m_IsOpen				
 		}	
 		else 
 		{	
@@ -229,7 +229,7 @@ namespace stream
 			m_ResendTimer.cancel ();
 	}		
 		
-	size_t Stream::Send (const uint8_t * buf, size_t len, int timeout)
+	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		while (!m_IsOpen || len > 0)
