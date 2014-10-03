@@ -73,7 +73,7 @@ namespace proxy
 			{
 				LogPrint ("Jump service for ", r.host, " found. Inserting to address book");
 				auto base64 = r.uri.substr (addressPos + 1);
-				i2p::data::netdb.InsertAddress (r.host, base64);
+				i2p::data::netdb.GetAddressBook ().InsertAddress (r.host, base64);
 			}
 		}			
 	

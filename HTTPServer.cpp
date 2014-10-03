@@ -829,34 +829,12 @@ namespace util
 	void HTTPConnection::SendToAddress (const std::string& address, const char * buf, size_t len)
 	{	
 		i2p::data::IdentHash destination;
-		if (address.find(".b32.i2p") != std::string::npos)
+		if (!i2p::data::netdb.GetAddressBook ().GetIdentHash (address, destination))
 		{
-			if (i2p::data::Base32ToByteStream(address.c_str(), address.length() - strlen(".b32.i2p"), (uint8_t *)destination, 32) != 32)
-			{
-				LogPrint ("Invalid Base32 address ", address);
-				SendReply ("<html>" + itoopieImage + "<br>Invalid Base32 address</html>", 400);
-				return;
-			}
-		}
-		else
-		{
-			if (address.find(".i2p") != std::string::npos)
-			{
-				auto addr = i2p::data::netdb.FindAddress(address);
-				if (!addr)
-				{
-					LogPrint ("Unknown address ", address);
-					SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 404);
-					return;
-				}
-				destination = *addr;
-			}
-			else
-			{
-				SendReply ("<html>Unexpected address " + address + "</html>", 404);
-				return;
-			}	
-		}
+			LogPrint ("Unknown address ", address);
+			SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 404);
+			return;
+		}		
 
 		SendToDestination (destination, buf, len);
 	}

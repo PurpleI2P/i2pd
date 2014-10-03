@@ -153,23 +153,9 @@ namespace stream
 	
 	void I2PClientTunnel::Start ()
 	{
-		auto pos = m_Destination.find(".b32.i2p");
-		if (pos != std::string::npos)
-		{
-			uint8_t hash[32];
-			i2p::data::Base32ToByteStream (m_Destination.c_str(), pos, hash, 32);
-			m_DestinationIdentHash = new i2p::data::IdentHash (hash);
-		}
-		else
-		{	
-			pos = m_Destination.find (".i2p");
-			if (pos != std::string::npos)
-			{
-				auto identHash = i2p::data::netdb.FindAddress (m_Destination);	
-				if (identHash)
-					m_DestinationIdentHash = new i2p::data::IdentHash (*identHash);
-			}
-		}
+		i2p::data::IdentHash identHash;
+		if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
+			m_DestinationIdentHash = new i2p::data::IdentHash (identHash);	
 		if (m_DestinationIdentHash)
 		{
 			i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetLocalDestination ()->GetTunnelPool ());
@@ -206,10 +192,10 @@ namespace stream
 					m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
 				else
 				{
-					auto identHash = i2p::data::netdb.FindAddress (m_Destination);	
-					if (identHash)
+					i2p::data::IdentHash identHash;
+					if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 					{
-						m_DestinationIdentHash = new i2p::data::IdentHash (*identHash);
+						m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
 						i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetSharedLocalDestination ()->GetTunnelPool ());
 					}
 				}

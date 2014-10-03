@@ -18,6 +18,29 @@ namespace data
 	{
 	}
 
+	bool AddressBook::GetIdentHash (const std::string& address, IdentHash& ident)
+	{
+		auto pos = address.find(".b32.i2p");
+		if (pos != std::string::npos)
+		{
+			Base32ToByteStream (address.c_str(), pos, ident, 32);
+			return true;
+		}
+		else
+		{	
+			pos = address.find (".i2p");
+			if (pos != std::string::npos)
+			{
+				auto identHash = FindAddress (address);	
+				if (identHash)
+				{
+					ident = *identHash;
+					return true;
+				}
+			}
+		}	
+		return false;
+	}
 	
 	const IdentHash * AddressBook::FindAddress (const std::string& address)
 	{
