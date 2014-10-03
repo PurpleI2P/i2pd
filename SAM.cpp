@@ -359,9 +359,11 @@ namespace stream
 
 	void SAMSocket::ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params)
 	{
-		while (char * separator = strchr (buf, ' '))
+		char * separator;	
+		do
 		{
-			*separator = 0;
+			separator = strchr (buf, ' ');
+			if (separator) *separator = 0;
 			char * value = strchr (buf, '=');
 			if (value)
 			{
@@ -371,6 +373,7 @@ namespace stream
 			}	
 			buf = separator + 1;
 		}
+		while (separator);
 	}	
 
 	void SAMSocket::Receive ()
