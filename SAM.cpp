@@ -253,7 +253,7 @@ namespace stream
 			{
 				i2p::data::netdb.Subscribe (dest.GetIdentHash (), session->localDestination->GetTunnelPool ());
 				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_CONNECT_TIMEOUT));
-				m_Timer.async_wait (boost::bind (&SAMSocket::HandleDestinationRequestTimer,
+				m_Timer.async_wait (boost::bind (&SAMSocket::HandleStreamDestinationRequestTimer,
 					this, boost::asio::placeholders::error, dest.GetIdentHash (), session));	
 			}
 		}
@@ -271,7 +271,7 @@ namespace stream
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
 
-	void SAMSocket::HandleDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session)
+	void SAMSocket::HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session)
 	{
 		if (!ecode) // timeout expired
 		{
@@ -282,6 +282,22 @@ namespace stream
 			{
 				LogPrint ("SAM destination to connect not found");
 				SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
+			}
+		}
+	}
+
+	void SAMSocket::HandleNamingLookupDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident)
+	{
+		if (!ecode) // timeout expired
+		{
+			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			if (leaseSet)
+				SendNamingLookupReply (leaseSet);
+			else
+			{
+				LogPrint ("SAM name destination not found");
+				size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_KEY_NOT_FOUND, (ident.ToBase32 () + ".b32.i2p").c_str ());
+				SendMessageReply (m_Buffer, len, false);
 			}
 		}
 	}
@@ -340,22 +356,40 @@ namespace stream
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, len, params);
 		std::string& name = params[SAM_PARAM_NAME];
-		if (name == "ME" && m_Session)
+		i2p::data::IdentHash ident;
+		if (name == "ME")
+			SendNamingLookupReply (nullptr);
+		else if (i2p::data::netdb.GetAddressBook ().GetIdentHash (name, ident))
 		{
-			uint8_t buf[1024];
-			char pub[1024];
-			size_t l = m_Session->localDestination->GetIdentity ().ToBuffer (buf, 1024);
-			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
-			pub[l1] = 0;
-			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, pub);
-			SendMessageReply (m_Buffer, l2, false);
+			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			if (leaseSet)
+				SendNamingLookupReply (leaseSet);
+			else
+			{
+				i2p::data::netdb.Subscribe (ident, m_Session->localDestination->GetTunnelPool ());
+				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_NAMING_LOOKUP_TIMEOUT));
+				m_Timer.async_wait (boost::bind (&SAMSocket::HandleNamingLookupDestinationRequestTimer,
+					this, boost::asio::placeholders::error, ident));
+			}	
 		}
 		else
 		{
 			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
-			SendMessageReply (m_Buffer, len, true);
+			SendMessageReply (m_Buffer, len, false);
 		}
 	}	
+
+	void SAMSocket::SendNamingLookupReply (i2p::data::LeaseSet * leaseSet)
+	{
+		uint8_t buf[1024];
+		char pub[1024];
+		const i2p::data::IdentityEx& identity = leaseSet ? leaseSet->GetIdentity () : m_Session->localDestination->GetIdentity ();
+		size_t l = identity.ToBuffer (buf, 1024);
+		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
+		pub[l1] = 0;
+		size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, pub);
+		SendMessageReply (m_Buffer, l2, false);
+	}
 
 	void SAMSocket::ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params)
 	{

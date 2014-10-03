@@ -46,7 +46,8 @@ namespace data
 			LeaseSet (const i2p::tunnel::TunnelPool& pool);
 			LeaseSet& operator=(const LeaseSet& ) = default;
 			void Update (const uint8_t * buf, int len);
-			
+			const IdentityEx& GetIdentity () const { return m_Identity; };			
+
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			size_t GetBufferLen () const { return m_BufferLen; };	
 
@@ -54,7 +55,6 @@ namespace data
 			void SetUnsolicited (bool unsolicited) { m_IsUnsolicited = unsolicited; };
 
 			// implements RoutingDestination
-			const Identity& GetIdentity () const { return m_Identity.GetStandardIdentity (); };
 			const IdentHash& GetIdentHash () const { return m_Identity.GetIdentHash (); };
 			const std::vector<Lease>& GetLeases () const { return m_Leases; };
 			const std::vector<Lease> GetNonExpiredLeases () const;

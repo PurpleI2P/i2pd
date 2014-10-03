@@ -18,6 +18,7 @@ namespace stream
 	const size_t SAM_SOCKET_BUFFER_SIZE = 4096;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds	
 	const int SAM_CONNECT_TIMEOUT = 5; // in seconds
+	const int SAM_NAMING_LOOKUP_TIMEOUT = 5; // in seconds
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=3.1\n";
 	const char SAM_SESSION_CREATE[] = "SESSION CREATE";
@@ -35,7 +36,8 @@ namespace stream
 	const char SAM_DEST_REPLY_I2P_ERROR[] = "DEST REPLY RESULT=I2P_ERROR\n";
 	const char SAM_NAMING_LOOKUP[] = "NAMING LOOKUP";
 	const char SAM_NAMING_REPLY[] = "NAMING REPLY RESULT=OK NAME=ME VALUE=%s\n";
-	const char SAM_NAMING_REPLY_INVALID_KEY[] = "NAMING REPLY RESULT=INVALID_KEY NAME=%s\n";	
+	const char SAM_NAMING_REPLY_INVALID_KEY[] = "NAMING REPLY RESULT=INVALID_KEY NAME=%s\n";
+	const char SAM_NAMING_REPLY_KEY_NOT_FOUND[] = "NAMING REPLY RESULT=INVALID_KEY_NOT_FOUND NAME=%s\n";		
 	const char SAM_PARAM_STYLE[] = "STYLE";		
 	const char SAM_PARAM_ID[] = "ID";	
 	const char SAM_PARAM_SILENT[] = "SILENT";
@@ -89,7 +91,9 @@ namespace stream
 			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
 
 			void Connect (const i2p::data::LeaseSet& remote, SAMSession * session);
-			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session);
+			void HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session);
+			void HandleNamingLookupDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
+			void SendNamingLookupReply (i2p::data::LeaseSet * leaseSet);
 
 		private:
 
