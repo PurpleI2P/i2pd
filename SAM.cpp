@@ -13,7 +13,8 @@ namespace stream
 {
 	SAMSocket::SAMSocket (SAMBridge& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
-		m_SocketType (eSAMSocketTypeUnknown), m_IsSilent (false), m_Stream (nullptr)
+		m_SocketType (eSAMSocketTypeUnknown), m_IsSilent (false), m_Stream (nullptr),
+		m_Session (nullptr)
 	{
 	}
 
@@ -212,17 +213,17 @@ namespace stream
 			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), true);
 			return;
 		}
-		auto session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination); 
-		if (session)
+		m_Session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination); 
+		if (m_Session)
 		{
 			m_SocketType = eSAMSocketTypeSession;
-			size_t l = strlen (SAM_SESSION_CREATE_REPLY_OK);
-			memcpy (m_Buffer, SAM_SESSION_CREATE_REPLY_OK, l);
-			uint8_t ident[1024];
-			size_t l1 = session->localDestination->GetPrivateKeys ().ToBuffer (ident, 1024);
-			size_t l2 = i2p::data::ByteStreamToBase64 (ident, l1, m_Buffer + l, SAM_SOCKET_BUFFER_SIZE - l);
-			m_Buffer[l + l2] = '\n';
-			SendMessageReply (m_Buffer, l + l2 + 1, false);
+			uint8_t buf[1024];
+			char priv[1024];
+			size_t l = m_Session->localDestination->GetPrivateKeys ().ToBuffer (buf, 1024);
+			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
+			priv[l1] = 0;
+			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
+			SendMessageReply (m_Buffer, l2, false);
 		}
 		else
 			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_DEST, strlen(SAM_SESSION_CREATE_DUPLICATED_DEST), true);
@@ -339,14 +340,15 @@ namespace stream
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, len, params);
 		std::string& name = params[SAM_PARAM_NAME];
-		if (name == "ME")
+		if (name == "ME" && m_Session)
 		{
-			/*uint8_t buf[1024];
+			uint8_t buf[1024];
 			char pub[1024];
-			size_t l = localDestination->GetIdentity ().ToBuffer (buf, 1024);
+			size_t l = m_Session->localDestination->GetIdentity ().ToBuffer (buf, 1024);
 			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
-			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, pub);
-			SendMessageReply (m_Buffer, len, false);*/
+			pub[l1] = 0;
+			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, pub);
+			SendMessageReply (m_Buffer, l2, false);
 		}
 		else
 		{

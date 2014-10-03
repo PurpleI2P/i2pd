@@ -21,7 +21,7 @@ namespace stream
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=3.1\n";
 	const char SAM_SESSION_CREATE[] = "SESSION CREATE";
-	const char SAM_SESSION_CREATE_REPLY_OK[] = "SESSION STATUS RESULT=OK DESTINATION=";
+	const char SAM_SESSION_CREATE_REPLY_OK[] = "SESSION STATUS RESULT=OK DESTINATION=%s\n";
 	const char SAM_SESSION_CREATE_DUPLICATED_ID[] = "SESSION STATUS RESULT=DUPLICATED_ID\n";
 	const char SAM_SESSION_CREATE_DUPLICATED_DEST[] = "SESSION STATUS RESULT=DUPLICATED_DEST\n";	
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
@@ -102,6 +102,7 @@ namespace stream
 			std::string m_ID; // nickname
 			bool m_IsSilent;
 			Stream * m_Stream;
+			SAMSession * m_Session;
 	};	
 
 	struct SAMSession
