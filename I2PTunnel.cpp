@@ -196,7 +196,7 @@ namespace stream
 					if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 					{
 						m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
-						i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetSharedLocalDestination ()->GetTunnelPool ());
+						i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetLocalDestination ()->GetTunnelPool ());
 					}
 				}
 			}
