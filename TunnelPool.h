@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 #include <utility>
+#include <mutex>
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "RouterInfo.h"
@@ -38,8 +39,8 @@ namespace tunnel
 			void TunnelCreated (OutboundTunnel * createdTunnel);
 			void TunnelExpired (OutboundTunnel * expiredTunnel);
 			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
-			OutboundTunnel * GetNextOutboundTunnel (OutboundTunnel * suggested = nullptr);
-			InboundTunnel * GetNextInboundTunnel (InboundTunnel * suggested = nullptr);
+			OutboundTunnel * GetNextOutboundTunnel (OutboundTunnel * suggested = nullptr) const;
+			InboundTunnel * GetNextInboundTunnel (InboundTunnel * suggested = nullptr) const;
 			const i2p::data::IdentHash& GetIdentHash () const { return m_LocalDestination.GetIdentHash (); };			
 
 			void TestTunnels ();
@@ -53,14 +54,16 @@ namespace tunnel
 			void RecreateOutboundTunnel (OutboundTunnel * tunnel);
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, 
-				typename TTunnels::value_type suggested = nullptr);
+				typename TTunnels::value_type suggested = nullptr) const;
 			const i2p::data::RouterInfo * SelectNextHop (const i2p::data::RouterInfo * prevHop) const;
 			
 		private:
 
 			i2p::data::LocalDestination& m_LocalDestination;
 			int m_NumHops, m_NumTunnels;
+			mutable std::mutex m_InboundTunnelsMutex;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
+			mutable std::mutex m_OutboundTunnelsMutex;
 			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
 			std::map<uint32_t, std::pair<OutboundTunnel *, InboundTunnel *> > m_Tests;
 

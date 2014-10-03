@@ -25,7 +25,10 @@ namespace tunnel
 
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
 	{
-		m_InboundTunnels.insert (createdTunnel);
+		{
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			m_InboundTunnels.insert (createdTunnel);
+		}
 		m_LocalDestination.SetLeaseSetUpdated ();
 	}
 
@@ -34,15 +37,18 @@ namespace tunnel
 		if (expiredTunnel)
 		{	
 			expiredTunnel->SetTunnelPool (nullptr);
-			m_InboundTunnels.erase (expiredTunnel);
 			for (auto it: m_Tests)
 				if (it.second.second == expiredTunnel) it.second.second = nullptr;
 			RecreateInboundTunnel (expiredTunnel);	
+
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			m_InboundTunnels.erase (expiredTunnel);
 		}	
 	}	
 
 	void TunnelPool::TunnelCreated (OutboundTunnel * createdTunnel)
 	{
+		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		m_OutboundTunnels.insert (createdTunnel);
 	}
 
@@ -51,10 +57,12 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			m_OutboundTunnels.erase (expiredTunnel);
 			for (auto it: m_Tests)
 				if (it.second.first == expiredTunnel) it.second.first = nullptr;
 			RecreateOutboundTunnel (expiredTunnel);
+
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			m_OutboundTunnels.erase (expiredTunnel);
 		}
 	}
 		
@@ -62,6 +70,7 @@ namespace tunnel
 	{
 		std::vector<InboundTunnel *> v;
 		int i = 0;
+		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		for (auto it : m_InboundTunnels)
 		{
 			if (i >= num) break;
@@ -74,19 +83,21 @@ namespace tunnel
 		return v;
 	}
 
-	OutboundTunnel * TunnelPool::GetNextOutboundTunnel (OutboundTunnel * suggested) 
+	OutboundTunnel * TunnelPool::GetNextOutboundTunnel (OutboundTunnel * suggested) const
 	{
+		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
 		return GetNextTunnel (m_OutboundTunnels, suggested);
 	}	
 
-	InboundTunnel * TunnelPool::GetNextInboundTunnel (InboundTunnel * suggested)
+	InboundTunnel * TunnelPool::GetNextInboundTunnel (InboundTunnel * suggested) const
 	{
+		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
 		return GetNextTunnel (m_InboundTunnels, suggested);
 	}
 
 	template<class TTunnels>
 	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels, 
-		typename TTunnels::value_type suggested)
+		typename TTunnels::value_type suggested) const
 	{
 		if (tunnels.empty ()) return nullptr;
 		if (suggested && tunnels.count (suggested) > 0 && suggested->IsEstablished ())
@@ -110,14 +121,20 @@ namespace tunnel
 	void TunnelPool::CreateTunnels ()
 	{
 		int num = 0;
-		for (auto it : m_InboundTunnels)
-			if (it->IsEstablished ()) num++;
+		{
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			for (auto it : m_InboundTunnels)
+				if (it->IsEstablished ()) num++;
+		}
 		for (int i = num; i < m_NumTunnels; i++)
 			CreateInboundTunnel ();	
 		
 		num = 0;
-		for (auto it : m_OutboundTunnels)
-			if (it->IsEstablished ()) num++;
+		{
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
+			for (auto it : m_OutboundTunnels)
+				if (it->IsEstablished ()) num++;
+		}
 		for (int i = num; i < m_NumTunnels; i++)
 			CreateOutboundTunnel ();	
 	}
@@ -134,6 +151,7 @@ namespace tunnel
 				if (it.second.first->GetState () == eTunnelStateTestFailed)
 				{	
 					it.second.first->SetState (eTunnelStateFailed);
+					std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 					m_OutboundTunnels.erase (it.second.first);
 				}
 				else
@@ -144,7 +162,10 @@ namespace tunnel
 				if (it.second.second->GetState () == eTunnelStateTestFailed)
 				{	
 					it.second.second->SetState (eTunnelStateFailed);
-					m_InboundTunnels.erase (it.second.second);
+					{
+						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+						m_InboundTunnels.erase (it.second.second);
+					}
 					m_LocalDestination.SetLeaseSetUpdated ();
 				}	
 				else
