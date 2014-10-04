@@ -363,7 +363,7 @@ namespace stream
 			m_LocalDestination->Sign (packet, size, signature);
 			
 			p->len = size;
-			m_Service.post (boost::bind (&Stream::SendPacket, this, p));
+			SendPacket (p);
 			LogPrint ("FIN sent");
 		}	
 	}
