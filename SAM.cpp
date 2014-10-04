@@ -251,7 +251,7 @@ namespace stream
 				Connect (*leaseSet, session);
 			else
 			{
-				i2p::data::netdb.Subscribe (dest.GetIdentHash (), session->localDestination->GetTunnelPool ());
+				i2p::data::netdb.RequestDestination (dest.GetIdentHash (), true, session->localDestination->GetTunnelPool ());
 				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_CONNECT_TIMEOUT));
 				m_Timer.async_wait (boost::bind (&SAMSocket::HandleStreamDestinationRequestTimer,
 					this, boost::asio::placeholders::error, dest.GetIdentHash (), session));	
@@ -366,7 +366,7 @@ namespace stream
 				SendNamingLookupReply (leaseSet);
 			else
 			{
-				i2p::data::netdb.Subscribe (ident, m_Session->localDestination->GetTunnelPool ());
+				i2p::data::netdb.RequestDestination (ident, true, m_Session->localDestination->GetTunnelPool ());
 				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_NAMING_LOOKUP_TIMEOUT));
 				m_Timer.async_wait (boost::bind (&SAMSocket::HandleNamingLookupDestinationRequestTimer,
 					this, boost::asio::placeholders::error, ident));
@@ -447,7 +447,8 @@ namespace stream
 		if (ecode)
 		{
 			LogPrint ("SAM stream read error: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{

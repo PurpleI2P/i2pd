@@ -275,8 +275,15 @@ namespace stream
 	{
 		size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), boost::asio::buffer_size(buffer));
 		if (ecode == boost::asio::error::operation_aborted)
+		{	
 			// timeout not expired	
-			handler (boost::system::error_code (), received);
+			if (m_IsOpen)
+				// no error
+				handler (boost::system::error_code (), received); 
+			else
+				// socket closed
+				handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0);
+		}	
 		else
 			// timeout expired
 			handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
