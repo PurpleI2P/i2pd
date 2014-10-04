@@ -8,6 +8,7 @@
 #include <queue>
 #include <thread>
 #include <functional>
+#include <mutex>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <cryptopp/dsa.h>
@@ -171,6 +172,7 @@ namespace stream
 		private:
 
 			boost::asio::io_service& m_Service;
+			std::mutex m_StreamsMutex;
 			std::map<uint32_t, Stream *> m_Streams;
 			i2p::data::PrivateKeys m_Keys;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
@@ -217,6 +219,7 @@ namespace stream
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
 
+			std::mutex m_DestinationsMutex;
 			std::map<i2p::data::IdentHash, StreamingDestination *> m_Destinations;
 			StreamingDestination * m_SharedLocalDestination;	
 
