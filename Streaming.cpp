@@ -37,20 +37,25 @@ namespace stream
 	}
 
 	Stream::~Stream ()
-	{
-		Close ();
-		m_ReceiveTimer.cancel ();
-		m_ResendTimer.cancel ();
+	{	
 		while (!m_ReceiveQueue.empty ())
 		{
 			auto packet = m_ReceiveQueue.front ();
 			m_ReceiveQueue.pop ();
 			delete packet;
-		}		
-		for (auto it: m_SavedPackets)
-			delete it;
+		}	
+		m_ReceiveTimer.cancel ();
+					
 		for (auto it: m_SentPackets)
 			delete it;
+		m_SentPackets.clear ();
+		m_ResendTimer.cancel ();
+
+		for (auto it: m_SavedPackets)
+			delete it;
+		m_SavedPackets.clear ();
+		
+		Close ();
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
@@ -387,11 +392,14 @@ namespace stream
 		if (packet)
 		{	
 			SendPackets (std::vector<Packet *> { packet });
-			bool isEmpty = m_SentPackets.empty ();
-			m_SentPackets.insert (packet);
-			if (isEmpty)
-				ScheduleResend ();
-			return true;
+			if (m_IsOpen)
+			{	
+				bool isEmpty = m_SentPackets.empty ();
+				m_SentPackets.insert (packet);
+				if (isEmpty)
+					ScheduleResend ();
+			}	
+			return true;	
 		}	
 		else
 			return false;
@@ -565,8 +573,12 @@ namespace stream
 
 	StreamingDestination::~StreamingDestination ()
 	{
-		for (auto it: m_Streams)
-			delete it.second;
+		{
+			std::unique_lock<std::mutex> l(m_StreamsMutex);
+			for (auto it: m_Streams)
+				delete it.second;
+			m_Streams.clear ();
+		}	
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;
@@ -619,10 +631,14 @@ namespace stream
 	void StreamingDestination::DeleteStream (Stream * stream)
 	{
 		if (stream)
-		{
+		{	
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
-			m_Streams.erase (stream->GetRecvStreamID ());
-			delete stream;
+			auto it = m_Streams.find (stream->GetRecvStreamID ());
+			if (it != m_Streams.end ())
+			{	
+				m_Streams.erase (it);
+				delete stream;
+			}	
 		}	
 	}	
 
@@ -738,9 +754,12 @@ namespace stream
 		auto it = m_Destinations.find (destination->GetIdentHash ());
 		if (it != m_Destinations.end ())
 		{
-			delete it->second;
-			std::unique_lock<std::mutex> l(m_DestinationsMutex);
-			m_Destinations.erase (it);
+			auto d = it->second;
+			{
+				std::unique_lock<std::mutex> l(m_DestinationsMutex);
+				m_Destinations.erase (it);
+			}	
+			delete d;
 		}
 	}
 

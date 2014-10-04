@@ -102,7 +102,7 @@ namespace data
 		{	
 			try
 			{	
-				I2NPMessage * msg = m_Queue.GetNextWithTimeout (10000); // 10 sec
+				I2NPMessage * msg = m_Queue.GetNextWithTimeout (30000); // 30 sec
 				if (msg)
 				{	
 					while (msg)
