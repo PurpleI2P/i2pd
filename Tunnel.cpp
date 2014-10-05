@@ -422,9 +422,12 @@ namespace tunnel
 				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
 					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
-					auto pool = tunnel->GetTunnelPool ();
-					if (pool)
-						pool->TunnelExpired (tunnel);
+					{
+						std::unique_lock<std::mutex> l(m_PoolsMutex);
+						auto pool = tunnel->GetTunnelPool ();
+						if (pool)
+							pool->TunnelExpired (tunnel);
+					}	
 					{
 						std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 						it = m_OutboundTunnels.erase (it);
@@ -465,9 +468,12 @@ namespace tunnel
 				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
 					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
-					auto pool = tunnel->GetTunnelPool ();
-					if (pool)
-						pool->TunnelExpired (tunnel);
+					{
+						std::unique_lock<std::mutex> l(m_PoolsMutex);
+						auto pool = tunnel->GetTunnelPool ();
+						if (pool)
+							pool->TunnelExpired (tunnel);
+					}	
 					{
 						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 						it = m_InboundTunnels.erase (it);
