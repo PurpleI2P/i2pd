@@ -474,6 +474,7 @@ namespace stream
 	{
 		if (stream)
 		{
+			LogPrint ("SAM incoming I2P connection for session ", m_ID);
 			m_Stream = stream;
 			auto session = m_Owner.FindSession (m_ID);
 			if (session)	
