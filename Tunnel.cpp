@@ -290,6 +290,7 @@ namespace tunnel
 	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination& localDestination, int numHops)
 	{
 		auto pool = new TunnelPool (localDestination, numHops);
+		std::unique_lock<std::mutex> l(m_PoolsMutex);
 		m_Pools[pool->GetIdentHash ()] = pool;
 		return pool;
 	}	
@@ -298,6 +299,7 @@ namespace tunnel
 	{
 		if (pool)
 		{
+			std::unique_lock<std::mutex> l(m_PoolsMutex);
 			m_Pools.erase (pool->GetIdentHash ());
 			delete pool;
 		}
@@ -524,6 +526,7 @@ namespace tunnel
 
 	void Tunnels::ManageTunnelPools ()
 	{
+		std::unique_lock<std::mutex> l(m_PoolsMutex);
 		for (auto& it: m_Pools)
 		{	
 			it.second->CreateTunnels ();
