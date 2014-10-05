@@ -30,6 +30,7 @@ set (SOURCES
   "${CMAKE_SOURCE_DIR}/SSU.cpp"
   "${CMAKE_SOURCE_DIR}/SSUData.cpp"
   "${CMAKE_SOURCE_DIR}/Streaming.cpp"
+  "${CMAKE_SOURCE_DIR}/Destination.cpp"	
   "${CMAKE_SOURCE_DIR}/TransitTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/Tunnel.cpp"
   "${CMAKE_SOURCE_DIR}/TunnelGateway.cpp"

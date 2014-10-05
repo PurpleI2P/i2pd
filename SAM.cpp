@@ -5,6 +5,7 @@
 #include "Identity.h"
 #include "Log.h"
 #include "NetDb.h"
+#include "Destination.h"
 #include "SAM.h"
 
 namespace i2p

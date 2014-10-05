@@ -7,7 +7,7 @@
 #include "Tunnel.h"
 #include "TunnelPool.h"
 #include "Timestamp.h"
-#include "Streaming.h"
+#include "Destination.h"
 #include "Garlic.h"
 
 namespace i2p

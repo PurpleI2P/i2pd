@@ -1,6 +1,7 @@
 #include "SOCKS.h"
 #include "Identity.h"
 #include "NetDb.h"
+#include "Destination.h"
 #include <cstring>
 #include <stdexcept>
 #include <boost/date_time/posix_time/posix_time.hpp>

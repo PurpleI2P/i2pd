@@ -2,6 +2,7 @@
 #include "base64.h"
 #include "Log.h"
 #include "NetDb.h"
+#include "Destination.h"
 #include "I2PTunnel.h"
 
 namespace i2p

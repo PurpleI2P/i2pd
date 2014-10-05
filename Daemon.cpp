@@ -13,6 +13,7 @@
 #include "Garlic.h"
 #include "util.h"
 #include "Streaming.h"
+#include "Destination.h"
 #include "HTTPServer.h"
 #include "HTTPProxy.h"
 #include "SOCKS.h"

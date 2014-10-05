@@ -35,6 +35,7 @@
     <ClCompile Include="..\SSU.cpp" />
     <ClCompile Include="..\SSUData.cpp" />
     <ClCompile Include="..\Streaming.cpp" />
+	<ClCompile Include="..\Destination.cpp" />
     <ClCompile Include="..\TransitTunnel.cpp" />
     <ClCompile Include="..\Transports.cpp" />
     <ClCompile Include="..\Tunnel.cpp" />
@@ -72,6 +73,7 @@
     <ClInclude Include="..\SSU.h" />
     <ClInclude Include="..\SSUData.h" />
     <ClInclude Include="..\Streaming.h" />
+	<ClInclude Include="..\Destination.h" />
     <ClInclude Include="..\Timestamp.h" />
     <ClInclude Include="..\TransitTunnel.h" />
     <ClInclude Include="..\Transports.h" />
