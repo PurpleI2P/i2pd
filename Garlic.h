@@ -13,6 +13,7 @@
 #include "LeaseSet.h"
 #include "Tunnel.h"
 #include "Queue.h"
+#include "Identity.h"
 
 namespace i2p
 {	
@@ -39,6 +40,24 @@ namespace garlic
 	const int TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes
 
 	typedef i2p::data::Tag<32> SessionTag;
+	class GarlicDestination
+	{
+		public:
+
+			GarlicDestination (i2p::data::LocalDestination * localDestination = nullptr):
+				m_LocalDestination (localDestination) {};
+			~GarlicDestination ();
+
+			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
+			void HandleGarlicMessage (I2NPMessage * msg);
+
+		private:
+			
+			i2p::crypto::CBCDecryption m_Decryption;
+			std::map<SessionTag, const uint8_t *> m_Tags; // tag->key, if null use key from decryption		
+			i2p::data::LocalDestination * m_LocalDestination;
+	};				
+
 	class GarlicRoutingSession
 	{
 		public:

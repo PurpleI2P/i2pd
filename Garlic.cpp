@@ -14,6 +14,72 @@ namespace i2p
 {
 namespace garlic
 {	
+	GarlicDestination::~GarlicDestination ()
+	{
+		for (auto it: m_Tags)
+			if (it.second) delete[] it.second;
+	}
+
+	void GarlicDestination::AddSessionKey (const uint8_t * key, const uint8_t * tag)
+	{
+		if (key)
+		{
+			uint8_t * newKey = new uint8_t[32];
+			memcpy (newKey, key, 32);
+			m_Tags[SessionTag(tag)] = newKey;
+		}
+	}
+
+	void GarlicDestination::HandleGarlicMessage (I2NPMessage * msg)
+	{
+		uint8_t * buf = msg->GetPayload ();
+		uint32_t length = be32toh (*(uint32_t *)buf);
+		buf += 4; // lentgh
+		auto it = m_Tags.find (SessionTag(buf));
+		if (it != m_Tags.end ())
+		{
+			// tag found. Use AES
+			uint8_t iv[32]; // IV is first 16 bytes
+			CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
+			if (it->second) // separate key
+			{
+				i2p::crypto::CBCDecryption decryption;
+				decryption.SetKey (it->second);
+				decryption.SetIV (iv);
+				decryption.Decrypt (buf + 32, length - 32, buf + 32);
+				delete[] it->second;
+			}
+			else // common key
+			{
+				m_Decryption.SetIV (iv);
+				m_Decryption.Decrypt (buf + 32, length - 32, buf + 32);
+			}	
+			m_Tags.erase (it); // tag might be used only once
+		}
+		else
+		{
+			// tag not found. Use ElGamal
+			if (m_LocalDestination)
+			{
+				ElGamalBlock elGamal;
+				if (i2p::crypto::ElGamalDecrypt (m_LocalDestination->GetEncryptionPrivateKey (), buf, (uint8_t *)&elGamal, true))
+				{	
+					m_Decryption.SetKey (elGamal.sessionKey);
+					uint8_t iv[32]; // IV is first 16 bytes
+					CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
+					m_Decryption.SetIV (iv);
+					m_Decryption.Decrypt(buf + 514, length - 514, buf + 514);
+				}	
+				else
+					LogPrint ("Failed to decrypt garlic");
+			}
+			else
+				LogPrint ("Can't use ElGamal without local destination");
+		}
+		DeleteI2NPMessage (msg);	
+	}	
+
+
 	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags):
 		m_Destination (destination), m_IsAcknowledged (false), m_NumTags (numTags), 
 		m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0), m_LocalLeaseSet (nullptr)	
