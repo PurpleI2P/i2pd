@@ -582,6 +582,7 @@ namespace stream
 		{
 			SAMSession session;
 			session.localDestination = localDestination;
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			auto ret = m_Sessions.insert (std::pair<std::string, SAMSession>(id, session));
 			if (!ret.second)
 				LogPrint ("Session ", id, " already exists");
@@ -592,6 +593,7 @@ namespace stream
 
 	void SAMBridge::CloseSession (const std::string& id)
 	{
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_Sessions.find (id);
 		if (it != m_Sessions.end ())
 		{
@@ -605,6 +607,7 @@ namespace stream
 
 	SAMSession * SAMBridge::FindSession (const std::string& id)
 	{
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_Sessions.find (id);
 		if (it != m_Sessions.end ())
 			return &it->second;

@@ -6,6 +6,7 @@
 #include <map>
 #include <list>
 #include <thread>
+#include <mutex>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "LeaseSet.h"
@@ -144,6 +145,7 @@ namespace stream
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			SAMSocket * m_NewSocket;
+			std::mutex m_SessionsMutex;
 			std::map<std::string, SAMSession> m_Sessions;
 	};		
 }

@@ -182,7 +182,10 @@ namespace data
 			RouterInfo * r = new RouterInfo (buf, len);
 			m_RouterInfos[r->GetIdentHash ()] = r;
 			if (r->IsFloodfill ())
+			{
+				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 				m_Floodfills.push_back (r);
+			}	
 		}	
 	}	
 
@@ -852,6 +855,7 @@ namespace data
 		XORMetric minMetric;
 		RoutingKey destKey = CreateRoutingKey (destination);
 		minMetric.SetMax ();
+		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 		for (auto it: m_Floodfills)
 		{	
 			if (!it->IsUnreachable () && !excluded.count (it->GetIdentHash ()))

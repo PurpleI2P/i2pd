@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <boost/filesystem.hpp>
 #include "Queue.h"
 #include "I2NPProtocol.h"
@@ -114,6 +115,7 @@ namespace data
 
 			std::map<IdentHash, LeaseSet *> m_LeaseSets;
 			std::map<IdentHash, RouterInfo *> m_RouterInfos;
+			mutable std::mutex m_FloodfillsMutex;
 			std::vector<RouterInfo *> m_Floodfills;
 			std::mutex m_RequestedDestinationsMutex;
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
