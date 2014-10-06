@@ -40,6 +40,7 @@ namespace i2p
 			const uint8_t * GetEncryptionPrivateKey () const { return m_Keys.GetPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ().GetStandardIdentity ().publicKey; };
 			void SetLeaseSetUpdated () {};
+			void HandleDataMessage (const uint8_t * buf, size_t len) {};
 			
 		private:
 

@@ -434,13 +434,16 @@ namespace garlic
 				case eGarlicDeliveryTypeDestination:
 				{	
 					LogPrint ("Garlic type destination");
-					i2p::data::IdentHash destination (buf);	
-					buf += 32;
-					// we assume streaming protocol for destination
-					// later on we should let destination decide
+					buf += 32; // destination. check it later or for multiple destinations
 					I2NPHeader * header = (I2NPHeader *)buf;
 					if (header->typeID == eI2NPData)
-						i2p::stream::HandleDataMessage (destination, buf + sizeof (I2NPHeader), be16toh (header->size));
+					{
+						auto pool = from ? from->GetTunnelPool () : nullptr;
+						if (pool)	
+							pool->GetLocalDestination ().HandleDataMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
+						else
+							LogPrint ("Local destination doesn't exist");
+					}
 					else
 						LogPrint ("Unexpected I2NP garlic message ", (int)header->typeID);
 					break;

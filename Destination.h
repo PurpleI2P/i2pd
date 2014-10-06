@@ -37,6 +37,7 @@ namespace stream
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void SetLeaseSetUpdated ();
+			void HandleDataMessage (const uint8_t * buf, size_t len);
 
 		private:		
 	
@@ -69,8 +70,6 @@ namespace stream
 			void Start ();
 			void Stop ();
 
-			void HandleNextPacket (i2p::data::IdentHash destination, Packet * packet);
-
 			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
@@ -84,7 +83,6 @@ namespace stream
 
 			void Run ();
 			void LoadLocalDestinations ();
-			void PostNextPacket (i2p::data::IdentHash destination, Packet * packet); 
 			
 		private:
 
@@ -117,7 +115,6 @@ namespace stream
 	const StreamingDestinations& GetLocalDestinations ();	
 	
 	// assuming data is I2CP message
-	void HandleDataMessage (i2p::data::IdentHash destination, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len);
 }		
 }	
