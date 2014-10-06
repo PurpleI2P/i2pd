@@ -17,10 +17,16 @@ namespace tunnel
 
 	TunnelPool::~TunnelPool ()
 	{
-		for (auto it: m_InboundTunnels)
-			it->SetTunnelPool (nullptr);
-		for (auto it: m_OutboundTunnels)
-			it->SetTunnelPool (nullptr);
+		{
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
+			for (auto it: m_InboundTunnels)
+				it->SetTunnelPool (nullptr);
+		}
+		{
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			for (auto it: m_OutboundTunnels)
+				it->SetTunnelPool (nullptr);
+		}
 	}
 
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
