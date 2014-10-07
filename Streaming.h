@@ -77,8 +77,8 @@ namespace stream
 	{	
 		public:
 
-			Stream (boost::asio::io_service& service, StreamingDestination * local, const i2p::data::LeaseSet& remote); // outgoing
-			Stream (boost::asio::io_service& service, StreamingDestination * local); // incoming			
+			Stream (boost::asio::io_service& service, StreamingDestination& local, const i2p::data::LeaseSet& remote); // outgoing
+			Stream (boost::asio::io_service& service, StreamingDestination& local); // incoming			
 
 			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
@@ -87,7 +87,7 @@ namespace stream
 			const i2p::data::IdentityEx& GetRemoteIdentity () const { return m_RemoteIdentity; };
 			bool IsOpen () const { return m_IsOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
-			StreamingDestination * GetLocalDestination () { return m_LocalDestination; };
+			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
 			
 			void HandleNextPacket (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
@@ -124,7 +124,7 @@ namespace stream
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
 			bool m_IsOpen, m_LeaseSetUpdated;
-			StreamingDestination * m_LocalDestination;
+			StreamingDestination& m_LocalDestination;
 			i2p::data::IdentityEx m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 			i2p::garlic::GarlicRoutingSession * m_RoutingSession;

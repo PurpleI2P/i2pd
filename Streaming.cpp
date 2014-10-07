@@ -10,7 +10,7 @@ namespace i2p
 {
 namespace stream
 {
-	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local, 
+	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
 		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (&remote),
@@ -20,7 +20,7 @@ namespace stream
 		UpdateCurrentRemoteLease ();
 	}	
 
-	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local):
+	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
 		m_IsOpen (false), m_LeaseSetUpdated (true), m_LocalDestination (local),
 		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), 
@@ -102,7 +102,7 @@ namespace stream
 			{
 				// we have received duplicate. Most likely our outbound tunnel is dead
 				LogPrint ("Duplicate message ", receivedSeqn, " received");
-				m_LocalDestination->ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
+				m_LocalDestination.ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendQuickAck (); // resend ack for previous message again
 				delete packet; // packet dropped
@@ -259,11 +259,11 @@ namespace stream
 				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
 				*(uint16_t *)(packet + size) = htobe16 (flags);
 				size += 2; // flags
-				size_t identityLen = m_LocalDestination->GetIdentity ().GetFullLen ();
-				size_t signatureLen = m_LocalDestination->GetIdentity ().GetSignatureLen ();
+				size_t identityLen = m_LocalDestination.GetIdentity ().GetFullLen ();
+				size_t signatureLen = m_LocalDestination.GetIdentity ().GetSignatureLen ();
 				*(uint16_t *)(packet + size) = htobe16 (identityLen + signatureLen + 2); // identity + signature + packet size
 				size += 2; // options size
-				m_LocalDestination->GetIdentity ().ToBuffer (packet + size, identityLen); 
+				m_LocalDestination.GetIdentity ().ToBuffer (packet + size, identityLen); 
 				size += identityLen; // from
 				*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
 				size += 2; // max packet size
@@ -276,7 +276,7 @@ namespace stream
 				buf += sentLen;
 				len -= sentLen;
 				size += sentLen; // payload
-				m_LocalDestination->Sign (packet, size, signature);
+				m_LocalDestination.Sign (packet, size, signature);
 			}	
 			else
 			{
@@ -347,13 +347,13 @@ namespace stream
 			size++; // resend delay
 			*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 			size += 2; // flags
-			size_t signatureLen = m_LocalDestination->GetIdentity ().GetSignatureLen ();
+			size_t signatureLen = m_LocalDestination.GetIdentity ().GetSignatureLen ();
 			*(uint16_t *)(packet + size) = htobe16 (signatureLen); // signature only
 			size += 2; // options size
 			uint8_t * signature = packet + size;
 			memset (packet + size, 0, signatureLen);
 			size += signatureLen; // signature
-			m_LocalDestination->Sign (packet, size, signature);
+			m_LocalDestination.Sign (packet, size, signature);
 			
 			p->len = size;
 			SendPacket (p);
@@ -413,7 +413,7 @@ namespace stream
 		const i2p::data::LeaseSet * leaseSet = nullptr;
 		if (m_LeaseSetUpdated)
 		{	
-			leaseSet = m_LocalDestination->GetLeaseSet ();
+			leaseSet = m_LocalDestination.GetLeaseSet ();
 			m_LeaseSetUpdated = false;
 		}	
 
@@ -436,7 +436,7 @@ namespace stream
 							});	
 				leaseSet = nullptr; // send leaseSet only one time
 			}
-			m_LocalDestination->SendTunnelDataMsgs (msgs);
+			m_LocalDestination.SendTunnelDataMsgs (msgs);
 		}	
 		else
 			LogPrint ("All leases are expired");
@@ -469,7 +469,7 @@ namespace stream
 			}	
 			if (packets.size () > 0)
 			{
-				m_LocalDestination->ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
+				m_LocalDestination.ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendPackets (packets);
 			}	

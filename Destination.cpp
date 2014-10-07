@@ -121,7 +121,7 @@ namespace stream
 
 	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote)
 	{
-		Stream * s = new Stream (m_Service, this, remote);
+		Stream * s = new Stream (m_Service, *this, remote);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;
@@ -129,7 +129,7 @@ namespace stream
 
 	Stream * StreamingDestination::CreateNewIncomingStream ()
 	{
-		Stream * s = new Stream (m_Service, this);
+		Stream * s = new Stream (m_Service, *this);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;
@@ -320,7 +320,7 @@ namespace stream
 	void StreamingDestinations::DeleteStream (Stream * stream)
 	{
 		if (stream)
-			stream->GetLocalDestination ()->DeleteStream (stream);
+			stream->GetLocalDestination ().DeleteStream (stream);
 	}	
 	
 	StreamingDestination * StreamingDestinations::FindLocalDestination (const i2p::data::IdentHash& destination) const
