@@ -26,7 +26,12 @@ namespace data
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 
 		    &m_ExcludedPeers, m_IsLeaseSet, m_Pool);
 		if (m_IsLeaseSet) // wrap lookup message into garlic
-			msg = i2p::garlic::routing.WrapSingleMessage (*router, msg);
+		{
+			if (m_Pool)
+				msg = m_Pool->GetGarlicDestination ().WrapMessage (*router, msg);
+			else
+				LogPrint ("Can't create garlic message without destination");
+		}	
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
@@ -943,7 +948,7 @@ namespace data
 			return;
 		}	
 		uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-		auto msg = i2p::garlic::routing.WrapSingleMessage (*floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, replyToken));	
+		auto msg = pool->GetGarlicDestination ().WrapMessage (*floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, replyToken));	
 		outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);		
 	}
 }

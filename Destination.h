@@ -3,7 +3,6 @@
 
 #include <thread>
 #include <mutex>
-#include <cryptopp/gzip.h>
 #include "Identity.h"
 #include "TunnelPool.h"
 #include "CryptoConst.h"
@@ -64,9 +63,6 @@ namespace stream
 			bool m_IsPublic;			
 
 			std::function<void (Stream *)> m_Acceptor;
-			
-			//CryptoPP::Gzip m_Compressor; 
-			//CryptoPP::Gunzip m_Decompressor;
 	};	
 
 	class StreamingDestinations

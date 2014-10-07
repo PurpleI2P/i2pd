@@ -488,7 +488,7 @@ namespace stream
 		if (m_RemoteLeaseSet)
 		{
 			if (!m_RoutingSession)
-				m_RoutingSession = i2p::garlic::routing.GetRoutingSession (*m_RemoteLeaseSet, 32);
+				m_RoutingSession = m_LocalDestination.GetRoutingSession (*m_RemoteLeaseSet, 32);
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
 			if (!leases.empty ())
 			{	
