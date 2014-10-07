@@ -18,7 +18,7 @@ namespace garlic
 	{
 		if (key)
 		{
-			std::shared_ptr<i2p::crypto::CBCDecryption> decryption (new i2p::crypto::CBCDecryption);
+			auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
 			decryption->SetKey (key);
 			m_Tags[SessionTag(tag)] = decryption;
 		}
@@ -46,7 +46,7 @@ namespace garlic
 			ElGamalBlock elGamal;
 			if (i2p::crypto::ElGamalDecrypt (GetEncryptionPrivateKey (), buf, (uint8_t *)&elGamal, true))
 			{	
-				std::shared_ptr<i2p::crypto::CBCDecryption> decryption (new i2p::crypto::CBCDecryption);
+				auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
 				decryption->SetKey (elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes
 				CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
