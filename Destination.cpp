@@ -1,7 +1,6 @@
 #include <fstream>
 #include <algorithm>
 #include <cryptopp/dh.h>
-#include <cryptopp/gzip.h>
 #include "Log.h"
 #include "util.h"
 #include "Destination.h"
@@ -178,20 +177,23 @@ namespace stream
 		if (buf[9] == 6) // streaming protocol
 		{	
 			// unzip it
-			CryptoPP::Gunzip decompressor;
-			decompressor.Put (buf, length);
-			decompressor.MessageEnd();
+			m_Decompressor.Put (buf, length);
+			m_Decompressor.MessageEnd();
 			Packet * uncompressed = new Packet;
 			uncompressed->offset = 0;
-			uncompressed->len = decompressor.MaxRetrievable ();
-			if (uncompressed->len > MAX_PACKET_SIZE)
+			uncompressed->len = m_Decompressor.MaxRetrievable ();
+			if (uncompressed->len <= MAX_PACKET_SIZE)
 			{
-				LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size");
-				uncompressed->len = MAX_PACKET_SIZE;
+				m_Decompressor.Get (uncompressed->buf, uncompressed->len);
+				// then forward to streaming  thread
+				m_Service.post (boost::bind (&StreamingDestination::HandleNextPacket, this, uncompressed)); 
+			}
+			else
+			{
+				LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size. Skipped");
+				m_Decompressor.Skip ();
+				delete uncompressed;
 			}	
-			decompressor.Get (uncompressed->buf, uncompressed->len);
-			// then forward to streaming  thread
-			m_Service.post (boost::bind (&StreamingDestination::HandleNextPacket, this, uncompressed)); 
 		}	
 		else
 			LogPrint ("Data: unexpected protocol ", buf[9]);
@@ -200,16 +202,17 @@ namespace stream
 	I2NPMessage * StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len)
 	{
 		I2NPMessage * msg = NewI2NPShortMessage ();
-		CryptoPP::Gzip compressor; // DEFAULT_DEFLATE_LEVEL
 		if (len <= COMPRESSION_THRESHOLD_SIZE)
-			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
-		compressor.Put (payload, len);
-		compressor.MessageEnd();
-		int size = compressor.MaxRetrievable ();
+			m_Compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
+		else
+			m_Compressor.SetDeflateLevel (CryptoPP::Gzip::DEFAULT_DEFLATE_LEVEL);
+		m_Compressor.Put (payload, len);
+		m_Compressor.MessageEnd();
+		int size = m_Compressor.MaxRetrievable ();
 		uint8_t * buf = msg->GetPayload ();
 		*(uint32_t *)buf = htobe32 (size); // length
 		buf += 4;
-		compressor.Get (buf, size);
+		m_Compressor.Get (buf, size);
 		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
 		buf[9] = 6; // streaming protocol
 		msg->len += size + 4; 
