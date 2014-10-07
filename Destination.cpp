@@ -197,6 +197,27 @@ namespace stream
 			LogPrint ("Data: unexpected protocol ", buf[9]);
 	}	
 	
+	I2NPMessage * StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len)
+	{
+		I2NPMessage * msg = NewI2NPShortMessage ();
+		CryptoPP::Gzip compressor; // DEFAULT_DEFLATE_LEVEL
+		if (len <= COMPRESSION_THRESHOLD_SIZE)
+			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
+		compressor.Put (payload, len);
+		compressor.MessageEnd();
+		int size = compressor.MaxRetrievable ();
+		uint8_t * buf = msg->GetPayload ();
+		*(uint32_t *)buf = htobe32 (size); // length
+		buf += 4;
+		compressor.Get (buf, size);
+		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
+		buf[9] = 6; // streaming protocol
+		msg->len += size + 4; 
+		FillI2NPMessageHeader (msg, eI2NPData);
+		
+		return msg;
+	}		
+
 	void StreamingDestination::SetLeaseSetUpdated ()
 	{
 		UpdateLeaseSet ();
@@ -385,26 +406,5 @@ namespace stream
 	{
 		return destinations;
 	}	
-
-	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len)
-	{
-		I2NPMessage * msg = NewI2NPShortMessage ();
-		CryptoPP::Gzip compressor; // DEFAULT_DEFLATE_LEVEL
-		if (len <= COMPRESSION_THRESHOLD_SIZE)
-			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
-		compressor.Put (payload, len);
-		compressor.MessageEnd();
-		int size = compressor.MaxRetrievable ();
-		uint8_t * buf = msg->GetPayload ();
-		*(uint32_t *)buf = htobe32 (size); // length
-		buf += 4;
-		compressor.Get (buf, size);
-		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
-		buf[9] = 6; // streaming protocol
-		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg, eI2NPData);
-		
-		return msg;
-	}		
 }		
 }

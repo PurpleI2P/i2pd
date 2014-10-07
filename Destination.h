@@ -33,14 +33,16 @@ namespace stream
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
 			void HandleNextPacket (Packet * packet);
 			void SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs);
+			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
+			// I2CP
+			void HandleDataMessage (const uint8_t * buf, size_t len);
+			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
 
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void SetLeaseSetUpdated ();
-			void HandleDataMessage (const uint8_t * buf, size_t len);
-			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
 
 		private:		
 	
@@ -117,9 +119,6 @@ namespace stream
 	StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 	// for HTTP
 	const StreamingDestinations& GetLocalDestinations ();	
-	
-	// assuming data is I2CP message
-	I2NPMessage * CreateDataMessage (Stream * s, const uint8_t * payload, size_t len);
 }		
 }	
 

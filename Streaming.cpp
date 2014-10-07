@@ -426,7 +426,7 @@ namespace stream
 			for (auto it: packets)
 			{ 
 				auto msg = m_RoutingSession->WrapSingleMessage ( 
-					CreateDataMessage (this, it->GetBuffer (), it->GetLength ()), 
+					m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength ()), 
 				    leaseSet);
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 							{ 
