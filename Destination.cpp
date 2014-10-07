@@ -177,6 +177,7 @@ namespace stream
 		if (buf[9] == 6) // streaming protocol
 		{	
 			// unzip it
+			CryptoPP::Gunzip m_Decompressor;
 			m_Decompressor.Put (buf, length);
 			m_Decompressor.MessageEnd();
 			Packet * uncompressed = new Packet;
@@ -202,6 +203,7 @@ namespace stream
 	I2NPMessage * StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len)
 	{
 		I2NPMessage * msg = NewI2NPShortMessage ();
+		CryptoPP::Gzip m_Compressor;
 		if (len <= COMPRESSION_THRESHOLD_SIZE)
 			m_Compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
 		else

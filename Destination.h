@@ -65,8 +65,8 @@ namespace stream
 
 			std::function<void (Stream *)> m_Acceptor;
 			
-			CryptoPP::Gzip m_Compressor; 
-			CryptoPP::Gunzip m_Decompressor;
+			//CryptoPP::Gzip m_Compressor; 
+			//CryptoPP::Gunzip m_Decompressor;
 	};	
 
 	class StreamingDestinations
