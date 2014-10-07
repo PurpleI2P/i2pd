@@ -6,6 +6,7 @@
 #include <cryptopp/osrng.h>
 #include "Identity.h"
 #include "RouterInfo.h"
+#include "Garlic.h"
 
 namespace i2p
 {
@@ -13,7 +14,7 @@ namespace i2p
 	const char ROUTER_KEYS[] = "router.keys";	
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 	
-	class RouterContext: public i2p::data::LocalDestination 
+	class RouterContext: public i2p::garlic::GarlicDestination 
 	{
 		public:
 

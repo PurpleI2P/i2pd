@@ -288,7 +288,7 @@ namespace tunnel
 		return tunnel;
 	}	
 
-	TunnelPool * Tunnels::CreateTunnelPool (i2p::data::LocalDestination& localDestination, int numHops)
+	TunnelPool * Tunnels::CreateTunnelPool (i2p::garlic::GarlicDestination& localDestination, int numHops)
 	{
 		auto pool = new TunnelPool (localDestination, numHops);
 		std::unique_lock<std::mutex> l(m_PoolsMutex);

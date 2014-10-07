@@ -23,7 +23,8 @@ namespace data
 		const i2p::tunnel::InboundTunnel * replyTunnel)
 	{
 		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
-			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, &m_ExcludedPeers, m_IsLeaseSet);
+			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 
+		    &m_ExcludedPeers, m_IsLeaseSet, m_Pool);
 		if (m_IsLeaseSet) // wrap lookup message into garlic
 			msg = i2p::garlic::routing.WrapSingleMessage (*router, msg);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
@@ -102,7 +103,7 @@ namespace data
 		{	
 			try
 			{	
-				I2NPMessage * msg = m_Queue.GetNextWithTimeout (30000); // 30 sec
+				I2NPMessage * msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
 				if (msg)
 				{	
 					while (msg)

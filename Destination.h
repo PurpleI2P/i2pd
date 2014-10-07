@@ -7,13 +7,14 @@
 #include "TunnelPool.h"
 #include "CryptoConst.h"
 #include "NetDb.h"
+#include "Garlic.h"
 #include "Streaming.h"
 
 namespace i2p
 {
 namespace stream
 {
-	class StreamingDestination: public i2p::data::LocalDestination 
+	class StreamingDestination: public i2p::garlic::GarlicDestination 
 	{
 		public:
 

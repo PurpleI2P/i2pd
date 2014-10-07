@@ -14,6 +14,7 @@
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
 #include "Garlic.h"
+#include "Tunnel.h"
 
 namespace i2p
 {

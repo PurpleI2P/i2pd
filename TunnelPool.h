@@ -12,6 +12,7 @@
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
 #include "RouterContext.h"
+#include "Garlic.h"
 
 namespace i2p
 {
@@ -25,13 +26,13 @@ namespace tunnel
 	{
 		public:
 
-			TunnelPool (i2p::data::LocalDestination& localDestination, int numHops, int numTunnels = 5);
+			TunnelPool (i2p::garlic::GarlicDestination& localDestination, int numHops, int numTunnels = 5);
 			~TunnelPool ();
 
 			const uint8_t * GetEncryptionPrivateKey () const { return m_LocalDestination.GetEncryptionPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };
 			const i2p::data::LocalDestination& GetLocalDestination () const { return m_LocalDestination; };			
-			i2p::data::LocalDestination& GetLocalDestination () { return m_LocalDestination; };
+			i2p::garlic::GarlicDestination& GetGarlicDestination () const { return m_LocalDestination; };	
 			bool IsExploratory () const { return GetIdentHash () == i2p::context.GetRouterIdentHash (); };		
 
 			void CreateTunnels ();
@@ -60,7 +61,7 @@ namespace tunnel
 			
 		private:
 
-			i2p::data::LocalDestination& m_LocalDestination;
+			i2p::garlic::GarlicDestination& m_LocalDestination;
 			int m_NumHops, m_NumTunnels;
 			mutable std::mutex m_InboundTunnelsMutex;
 			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first

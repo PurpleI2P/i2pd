@@ -103,7 +103,7 @@ namespace i2p
 
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers,
-	    bool encryption)
+	    bool encryption, i2p::tunnel::TunnelPool * pool)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		uint8_t * buf = m->GetPayload ();
@@ -159,7 +159,10 @@ namespace i2p
 			rnd.GenerateBlock (buf, 32); // key
 			buf[32] = 1; // 1 tag
 			rnd.GenerateBlock (buf + 33, 32); // tag
-			i2p::garlic::routing.AddSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
+			if (pool)
+				pool->GetGarlicDestination ().AddSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
+			else
+				LogPrint ("Destination for encrypteed reply not specified");
 			buf += 65;
 		}	
 		m->len += (buf - m->GetPayload ()); 

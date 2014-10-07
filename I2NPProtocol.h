@@ -99,6 +99,7 @@ namespace i2p
 namespace tunnel
 {		
 	class InboundTunnel;
+	class TunnelPool;
 }
 
 	const size_t I2NP_MAX_MESSAGE_SIZE = 32768; 
@@ -168,7 +169,8 @@ namespace tunnel
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID);
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false, 
-	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr, bool encryption = false);
+	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr, bool encryption = false,
+	    i2p::tunnel::TunnelPool * pool = nullptr);
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, const i2p::data::RouterInfo * floodfill);
 	
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);

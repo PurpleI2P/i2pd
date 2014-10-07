@@ -11,7 +11,6 @@
 #include "aes.h"
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
-#include "Tunnel.h"
 #include "Queue.h"
 #include "Identity.h"
 
@@ -40,22 +39,25 @@ namespace garlic
 	const int TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes
 
 	typedef i2p::data::Tag<32> SessionTag;
-	class GarlicDestination
+	class GarlicDestination: public i2p::data::LocalDestination
 	{
 		public:
 
-			GarlicDestination (i2p::data::LocalDestination * localDestination = nullptr):
-				m_LocalDestination (localDestination) {};
+			GarlicDestination () {};
 			~GarlicDestination ();
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void HandleGarlicMessage (I2NPMessage * msg);
 
 		private:
+
+			void HandleAESBlock (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
+			void HandleGarlicPayload (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
+			
+		private:
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			std::map<SessionTag, const uint8_t *> m_Tags; // tag->key, if null use key from decryption		
-			i2p::data::LocalDestination * m_LocalDestination;
 	};				
 
 	class GarlicRoutingSession
@@ -95,22 +97,7 @@ namespace garlic
 	};	
 
 	class GarlicRouting
-	{
-			class SessionDecryption: public i2p::crypto::CBCDecryption
-			{
-				public:
-
-					SessionDecryption (): m_TagCount (0) {};
-					void SetTagCount (int tagCount) { m_TagCount = tagCount; };
-					void AddTagCount (int tagCount) { m_TagCount += tagCount; };
-					int GetTagCount () const { return m_TagCount; };
-					bool UseTag () { m_TagCount--; return m_TagCount > 0; };
-					
-				private:
-
-					int m_TagCount;
-			};
-		
+	{		
 		public:
 
 			GarlicRouting ();
@@ -119,7 +106,6 @@ namespace garlic
 			void Start ();
 			void Stop ();
 			void PostI2NPMsg (I2NPMessage * msg);
-			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag 
 			
 			GarlicRoutingSession * GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
 			I2NPMessage * WrapSingleMessage (const i2p::data::RoutingDestination& destination, I2NPMessage * msg);
@@ -133,9 +119,7 @@ namespace garlic
 			void Run ();
 			void HandleGarlicMessage (I2NPMessage * msg);
 			void HandleDeliveryStatusMessage (I2NPMessage * msg);
-			void HandleAESBlock (uint8_t * buf, size_t len, SessionDecryption * decryption, i2p::tunnel::InboundTunnel * from);
-			void HandleGarlicPayload (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
-			
+					
 		private:
 			
 			bool m_IsRunning;
@@ -146,10 +130,6 @@ namespace garlic
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			std::mutex m_CreatedSessionsMutex;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
-			// incoming session
-			// multiple tags refer to one decyption
-			std::mutex m_SessionsTagsMutex;
-			std::map<SessionTag, SessionDecryption *> m_SessionTags; // tag -> decryption
 	};	
 
 	extern GarlicRouting routing;
