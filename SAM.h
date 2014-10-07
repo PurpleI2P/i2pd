@@ -91,8 +91,8 @@ namespace stream
 			void ProcessNamingLookup (char * buf, size_t len);
 			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
 
-			void Connect (const i2p::data::LeaseSet& remote, SAMSession * session);
-			void HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session);
+			void Connect (const i2p::data::LeaseSet& remote);
+			void HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
 			void HandleNamingLookupDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
 			void SendNamingLookupReply (i2p::data::LeaseSet * leaseSet);
 

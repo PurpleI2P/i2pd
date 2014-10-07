@@ -43,18 +43,16 @@ namespace stream
 			break;
 			case eSAMSocketTypeStream:
 			{
-				auto session = m_Owner.FindSession (m_ID);
-				if (session)
-					session->sockets.remove (this);
+				if (m_Session)
+					m_Session->sockets.remove (this);
 				break;
 			}
 			case eSAMSocketTypeAcceptor:
 			{
-				auto session = m_Owner.FindSession (m_ID);
-				if (session)
+				if (m_Session)
 				{
-					session->sockets.remove (this);
-					session->localDestination->ResetAcceptor ();
+					m_Session->sockets.remove (this);
+					m_Session->localDestination->ResetAcceptor ();
 				}
 				break;
 			}
@@ -240,8 +238,8 @@ namespace stream
 		std::string& silent = params[SAM_PARAM_SILENT];
 		if (silent == SAM_VALUE_TRUE) m_IsSilent = true;	
 		m_ID = id;
-		auto session = m_Owner.FindSession (id);
-		if (session)
+		m_Session = m_Owner.FindSession (id);
+		if (m_Session)
 		{
 			uint8_t ident[1024];
 			size_t l = i2p::data::Base64ToByteStream (destination.c_str (), destination.length (), ident, 1024);
@@ -249,36 +247,36 @@ namespace stream
 			dest.FromBuffer (ident, l);
 			auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
 			if (leaseSet)
-				Connect (*leaseSet, session);
+				Connect (*leaseSet);
 			else
 			{
-				i2p::data::netdb.RequestDestination (dest.GetIdentHash (), true, session->localDestination->GetTunnelPool ());
+				i2p::data::netdb.RequestDestination (dest.GetIdentHash (), true, m_Session->localDestination->GetTunnelPool ());
 				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_CONNECT_TIMEOUT));
 				m_Timer.async_wait (boost::bind (&SAMSocket::HandleStreamDestinationRequestTimer,
-					this, boost::asio::placeholders::error, dest.GetIdentHash (), session));	
+					this, boost::asio::placeholders::error, dest.GetIdentHash ()));	
 			}
 		}
 		else	
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);		
 	}
 
-	void SAMSocket::Connect (const i2p::data::LeaseSet& remote, SAMSession * session)
+	void SAMSocket::Connect (const i2p::data::LeaseSet& remote)
 	{
 		m_SocketType = eSAMSocketTypeStream;
-		session->sockets.push_back (this);
-		m_Stream = session->localDestination->CreateNewOutgoingStream (remote);
+		m_Session->sockets.push_back (this);
+		m_Stream = m_Session->localDestination->CreateNewOutgoingStream (remote);
 		m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
 		I2PReceive ();			
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
 
-	void SAMSocket::HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident, SAMSession * session)
+	void SAMSocket::HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident)
 	{
 		if (!ecode) // timeout expired
 		{
 			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
 			if (leaseSet)
-				Connect (*leaseSet, session);
+				Connect (*leaseSet);
 			else
 			{
 				LogPrint ("SAM destination to connect not found");
@@ -312,14 +310,14 @@ namespace stream
 		std::string& silent = params[SAM_PARAM_SILENT];
 		if (silent == SAM_VALUE_TRUE) m_IsSilent = true;	
 		m_ID = id;
-		auto session = m_Owner.FindSession (id);
-		if (session)
+		m_Session = m_Owner.FindSession (id);
+		if (m_Session)
 		{
-			if (!session->localDestination->IsAcceptorSet ())
+			if (!m_Session->localDestination->IsAcceptorSet ())
 			{
 				m_SocketType = eSAMSocketTypeAcceptor;
-				session->sockets.push_back (this);
-				session->localDestination->SetAcceptor (std::bind (&SAMSocket::HandleI2PAccept, this, std::placeholders::_1));
+				m_Session->sockets.push_back (this);
+				m_Session->localDestination->SetAcceptor (std::bind (&SAMSocket::HandleI2PAccept, this, std::placeholders::_1));
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 			}
 			else
