@@ -13,20 +13,14 @@
 namespace i2p
 {
 namespace garlic
-{	
-	GarlicDestination::~GarlicDestination ()
-	{
-		for (auto it: m_Tags)
-			if (it.second) delete[] it.second;
-	}
-
+{
 	void GarlicDestination::AddSessionKey (const uint8_t * key, const uint8_t * tag)
 	{
 		if (key)
 		{
-			uint8_t * newKey = new uint8_t[32];
-			memcpy (newKey, key, 32);
-			m_Tags[SessionTag(tag)] = newKey;
+			std::shared_ptr<i2p::crypto::CBCDecryption> decryption (new i2p::crypto::CBCDecryption);
+			decryption->SetKey (key);
+			m_Tags[SessionTag(tag)] = decryption;
 		}
 	}
 
@@ -41,20 +35,9 @@ namespace garlic
 			// tag found. Use AES
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
-			if (it->second) // separate key
-			{
-				i2p::crypto::CBCDecryption decryption;
-				decryption.SetKey (it->second);
-				decryption.SetIV (iv);
-				decryption.Decrypt (buf + 32, length - 32, buf + 32);
-				delete[] it->second;
-			}
-			else // common key
-			{
-				m_Decryption.SetIV (iv);
-				m_Decryption.Decrypt (buf + 32, length - 32, buf + 32);
-			}	
-			HandleAESBlock (buf + 32, length - 32, msg->from);
+			it->second->SetIV (iv);
+			it->second->Decrypt (buf + 32, length - 32, buf + 32);
+			HandleAESBlock (buf + 32, length - 32, it->second, msg->from);
 			m_Tags.erase (it); // tag might be used only once
 		}
 		else
@@ -63,12 +46,13 @@ namespace garlic
 			ElGamalBlock elGamal;
 			if (i2p::crypto::ElGamalDecrypt (GetEncryptionPrivateKey (), buf, (uint8_t *)&elGamal, true))
 			{	
-				m_Decryption.SetKey (elGamal.sessionKey);
+				std::shared_ptr<i2p::crypto::CBCDecryption> decryption (new i2p::crypto::CBCDecryption);
+				decryption->SetKey (elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes
 				CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32); 
-				m_Decryption.SetIV (iv);
-				m_Decryption.Decrypt(buf + 514, length - 514, buf + 514);
-				HandleAESBlock (buf + 514, length - 514, msg->from);
+				decryption->SetIV (iv);
+				decryption->Decrypt(buf + 514, length - 514, buf + 514);
+				HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 			}	
 			else
 				LogPrint ("Failed to decrypt garlic");
@@ -76,14 +60,15 @@ namespace garlic
 		DeleteI2NPMessage (msg);	
 	}	
 
-	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)
+	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption,
+		i2p::tunnel::InboundTunnel * from)
 	{
 		uint16_t tagCount = be16toh (*(uint16_t *)buf);
 		buf += 2;	
 		if (tagCount > 0)
 		{	
 			for (int i = 0; i < tagCount; i++)
-				m_Tags[SessionTag(buf + i*32)] = nullptr;	
+				m_Tags[SessionTag(buf + i*32)] = decryption;	
 		}	
 		buf += tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);

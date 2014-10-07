@@ -7,6 +7,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <memory>
 #include <cryptopp/osrng.h>
 #include "aes.h"
 #include "I2NPProtocol.h"
@@ -44,20 +45,20 @@ namespace garlic
 		public:
 
 			GarlicDestination () {};
-			~GarlicDestination ();
+			~GarlicDestination () {};
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void HandleGarlicMessage (I2NPMessage * msg);
 
 		private:
 
-			void HandleAESBlock (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
+			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption, 
+				i2p::tunnel::InboundTunnel * from);
 			void HandleGarlicPayload (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
 			
 		private:
 			
-			i2p::crypto::CBCDecryption m_Decryption;
-			std::map<SessionTag, const uint8_t *> m_Tags; // tag->key, if null use key from decryption		
+			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;	
 	};				
 
 	class GarlicRoutingSession
