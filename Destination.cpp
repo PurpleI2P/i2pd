@@ -11,7 +11,7 @@ namespace i2p
 namespace stream
 {
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service, bool isPublic): 
-		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (isPublic)
+		m_Service (service), m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic)
 	{		
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (/*i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256*/); // uncomment for ECDSA
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
@@ -22,7 +22,7 @@ namespace stream
 	}
 
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const std::string& fullPath, bool isPublic):
-		m_Service (service), m_LeaseSet (nullptr), m_IsPublic (isPublic) 
+		m_Service (service), m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic) 
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -56,7 +56,7 @@ namespace stream
 	}
 
 	StreamingDestination::StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, bool isPublic):
-		m_Service (service), m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic)
+		m_Service (service), m_Keys (keys), m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
@@ -77,6 +77,19 @@ namespace stream
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;
 	}	
+
+	void StreamingDestination::SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs)
+	{
+		m_CurrentOutboundTunnel = m_Pool->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
+		if (m_CurrentOutboundTunnel)
+			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
+		else
+		{
+			LogPrint ("No outbound tunnels in the pool");
+			for (auto it: msgs)
+				DeleteI2NPMessage (it.data);
+		}
+	}
 
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{

@@ -78,7 +78,7 @@ namespace tunnel
 			OutboundTunnel (TunnelConfig * config): Tunnel (config), m_Gateway (this) {};
 
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
-			void SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs); // multiple messages
+			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
 			const i2p::data::RouterInfo * GetEndpointRouter () const 
 				{ return GetTunnelConfig ()->GetLastHop ()->router; }; 
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };

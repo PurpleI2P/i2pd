@@ -32,6 +32,7 @@ namespace stream
 			void ResetAcceptor () { m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
 			void HandleNextPacket (Packet * packet);
+			void SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs);
 
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
@@ -39,6 +40,7 @@ namespace stream
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void SetLeaseSetUpdated ();
 			void HandleDataMessage (const uint8_t * buf, size_t len);
+			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
 
 		private:		
 	
@@ -54,6 +56,7 @@ namespace stream
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 			
 			i2p::tunnel::TunnelPool * m_Pool;
+			i2p::tunnel::OutboundTunnel * m_CurrentOutboundTunnel;
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;			
 

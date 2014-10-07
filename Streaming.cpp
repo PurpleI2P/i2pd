@@ -14,8 +14,7 @@ namespace stream
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
 		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (&remote),
-		m_RoutingSession (nullptr), m_CurrentOutboundTunnel (nullptr), 
-		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
+		m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -24,7 +23,7 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination * local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
 		m_IsOpen (false), m_LeaseSetUpdated (true), m_LocalDestination (local),
-		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), m_CurrentOutboundTunnel (nullptr), 
+		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), 
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -103,7 +102,7 @@ namespace stream
 			{
 				// we have received duplicate. Most likely our outbound tunnel is dead
 				LogPrint ("Duplicate message ", receivedSeqn, " received");
-				m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
+				m_LocalDestination->ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendQuickAck (); // resend ack for previous message again
 				delete packet; // packet dropped
@@ -418,35 +417,29 @@ namespace stream
 			m_LeaseSetUpdated = false;
 		}	
 
-		m_CurrentOutboundTunnel = m_LocalDestination->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
-		if (m_CurrentOutboundTunnel)
-		{
-			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			if (ts >= m_CurrentRemoteLease.endDate)
-				UpdateCurrentRemoteLease ();
-			if (ts < m_CurrentRemoteLease.endDate)
-			{	
-				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-				for (auto it: packets)
-				{ 
-					auto msg = m_RoutingSession->WrapSingleMessage ( 
-						CreateDataMessage (this, it->GetBuffer (), it->GetLength ()), 
-					    leaseSet);
-					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-								{ 
-									i2p::tunnel::eDeliveryTypeTunnel,
-									m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
-									msg
-								});	
-					leaseSet = nullptr; // send leaseSet only one time
-				}
-				m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
-			}	
-			else
-				LogPrint ("All leases are expired");
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		if (ts >= m_CurrentRemoteLease.endDate)
+			UpdateCurrentRemoteLease ();
+		if (ts < m_CurrentRemoteLease.endDate)
+		{	
+			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+			for (auto it: packets)
+			{ 
+				auto msg = m_RoutingSession->WrapSingleMessage ( 
+					CreateDataMessage (this, it->GetBuffer (), it->GetLength ()), 
+				    leaseSet);
+				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+							{ 
+								i2p::tunnel::eDeliveryTypeTunnel,
+								m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
+								msg
+							});	
+				leaseSet = nullptr; // send leaseSet only one time
+			}
+			m_LocalDestination->SendTunnelDataMsgs (msgs);
 		}	
-		else 
-			LogPrint ("No outbound tunnels in the pool");
+		else
+			LogPrint ("All leases are expired");
 	}
 
 	void Stream::ScheduleResend ()
@@ -476,7 +469,7 @@ namespace stream
 			}	
 			if (packets.size () > 0)
 			{
-				m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
+				m_LocalDestination->ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendPackets (packets);
 			}	

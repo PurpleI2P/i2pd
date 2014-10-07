@@ -188,7 +188,7 @@ namespace tunnel
 		m_Gateway.SendTunnelDataMsg (block);
 	}
 		
-	void OutboundTunnel::SendTunnelDataMsg (std::vector<TunnelMessageBlock> msgs)
+	void OutboundTunnel::SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs)
 	{
 		std::unique_lock<std::mutex> l(m_SendMutex);
 		for (auto& it : msgs)
