@@ -39,15 +39,16 @@ namespace garlic
 
 	const int TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes			
 
-	typedef i2p::data::Tag<32> SessionTag;		
+	typedef i2p::data::Tag<32> SessionTag;	
+	class GarlicDestination;
 	class GarlicRoutingSession
 	{
 		public:
 
-			GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags);
+			GarlicRoutingSession (GarlicDestination * owner, const i2p::data::RoutingDestination * destination, int numTags);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
-			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet);
+			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, bool attachLeaseSet = false);
 			int GetNextTag () const { return m_NextTag; };
 
 			bool IsAcknowledged () const { return m_IsAcknowledged; };
@@ -64,13 +65,13 @@ namespace garlic
 
 		private:
 
+			GarlicDestination * m_Owner;
 			const i2p::data::RoutingDestination * m_Destination;
 			uint8_t m_SessionKey[32];
 			bool m_IsAcknowledged;
 			int m_NumTags, m_NextTag;
 			SessionTag * m_SessionTags; // m_NumTags*32 bytes
-			uint32_t m_TagsCreationTime; // seconds since epoch
-			const i2p::data::LeaseSet * m_LocalLeaseSet;			
+			uint32_t m_TagsCreationTime; // seconds since epoch		
 
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
@@ -90,6 +91,8 @@ namespace garlic
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void HandleGarlicMessage (I2NPMessage * msg);
 
+			virtual const i2p::data::LeaseSet * GetLeaseSet () = 0; // TODO
+			
 		private:
 
 			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption, 

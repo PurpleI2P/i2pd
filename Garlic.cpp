@@ -14,9 +14,10 @@ namespace i2p
 {
 namespace garlic
 {
-	GarlicRoutingSession::GarlicRoutingSession (const i2p::data::RoutingDestination * destination, int numTags):
-		m_Destination (destination), m_IsAcknowledged (false), m_NumTags (numTags), 
-		m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0), m_LocalLeaseSet (nullptr)	
+	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
+	    const i2p::data::RoutingDestination * destination, int numTags):
+		m_Owner (owner), m_Destination (destination), m_IsAcknowledged (false), 
+		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -31,8 +32,8 @@ namespace garlic
 	}	
 
 	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
-		m_Destination (nullptr), m_IsAcknowledged (true), m_NumTags (1), m_NextTag (0),
-		m_LocalLeaseSet (nullptr)	
+		m_Owner (nullptr), m_Destination (nullptr), m_IsAcknowledged (true), m_NumTags (1), 
+		m_NextTag (0)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
@@ -57,9 +58,8 @@ namespace garlic
 		}
 	}
 	
-	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet)
+	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, bool attachLeaseSet)
 	{
-		if (leaseSet) m_LocalLeaseSet = leaseSet;
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
@@ -117,7 +117,7 @@ namespace garlic
 			}			
 		}	
 		// AES block
-		len += CreateAESBlock (buf, msg, leaseSet);
+		len += CreateAESBlock (buf, msg, attachLeaseSet);
 		m_NextTag++;
 		*(uint32_t *)(m->GetPayload ()) = htobe32 (len);
 		m->len += len + 4;
@@ -166,7 +166,7 @@ namespace garlic
 		*numCloves = 0;
 		size++;
 
-		if (m_LocalLeaseSet)
+		if (m_Owner)
 		{	
 			if (m_NextTag < 0) // new session
 			{
@@ -183,7 +183,7 @@ namespace garlic
 			if (attachLeaseSet) 
 			{
 				// clove if our leaseSet must be attached
-				auto leaseSet = CreateDatabaseStoreMsg (m_LocalLeaseSet);
+				auto leaseSet = CreateDatabaseStoreMsg (m_Owner->GetLeaseSet ());
 				size += CreateGarlicClove (payload + size, leaseSet, false);
 				DeleteI2NPMessage (leaseSet);
 				(*numCloves)++;
@@ -235,9 +235,9 @@ namespace garlic
 	size_t GarlicRoutingSession::CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID)
 	{		
 		size_t size = 0;
-		if (m_LocalLeaseSet)
+		if (m_Owner)
 		{
-			auto leases = m_LocalLeaseSet->GetNonExpiredLeases ();
+			auto leases = m_Owner->GetLeaseSet ()->GetNonExpiredLeases ();
 			if (!leases.empty ())
 			{	
 				buf[size] = eGarlicDeliveryTypeTunnel << 5; // delivery instructions flag tunnel
@@ -443,7 +443,7 @@ namespace garlic
 			session = it->second;
 		if (!session)
 		{
-			session = new GarlicRoutingSession (&destination, numTags); 
+			session = new GarlicRoutingSession (this, &destination, numTags); 
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			m_Sessions[destination.GetIdentHash ()] = session;
 		}	

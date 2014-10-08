@@ -410,13 +410,6 @@ namespace stream
 			}
 		}
 
-		const i2p::data::LeaseSet * leaseSet = nullptr;
-		if (m_LeaseSetUpdated)
-		{	
-			leaseSet = m_LocalDestination.GetLeaseSet ();
-			m_LeaseSetUpdated = false;
-		}	
-
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		if (ts >= m_CurrentRemoteLease.endDate)
 			UpdateCurrentRemoteLease ();
@@ -427,14 +420,14 @@ namespace stream
 			{ 
 				auto msg = m_RoutingSession->WrapSingleMessage ( 
 					m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength ()), 
-				    leaseSet);
+				    m_LeaseSetUpdated);
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 							{ 
 								i2p::tunnel::eDeliveryTypeTunnel,
 								m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
 								msg
 							});	
-				leaseSet = nullptr; // send leaseSet only one time
+				m_LeaseSetUpdated = false; // send leaseSet only one time
 			}
 			m_LocalDestination.SendTunnelDataMsgs (msgs);
 		}	

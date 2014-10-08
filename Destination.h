@@ -23,7 +23,6 @@ namespace stream
 			StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, bool isPublic);
 			~StreamingDestination ();	
 
-			const i2p::data::LeaseSet * GetLeaseSet ();
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 
 			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote);
@@ -43,6 +42,9 @@ namespace stream
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void SetLeaseSetUpdated ();
+
+			// implements GarlicDestination
+			const i2p::data::LeaseSet * GetLeaseSet ();
 
 		private:		
 	
