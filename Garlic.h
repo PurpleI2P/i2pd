@@ -91,6 +91,9 @@ namespace garlic
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void HandleGarlicMessage (I2NPMessage * msg);
 
+			void DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID);
+			void HandleDeliveryStatusMessage (I2NPMessage * msg);
+			
 			virtual const i2p::data::LeaseSet * GetLeaseSet () = 0; // TODO
 			
 		private:
@@ -106,6 +109,9 @@ namespace garlic
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			// incoming
 			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;	
+			// DeliveryStatus
+			std::mutex m_CreatedSessionsMutex;
+			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 	};	
 
 	class GarlicRouting
@@ -119,22 +125,16 @@ namespace garlic
 			void Stop ();
 			void PostI2NPMsg (I2NPMessage * msg);
 			
-			void DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID);
-			
 		private:
 
 			void Run ();
 			void HandleGarlicMessage (I2NPMessage * msg);
-			void HandleDeliveryStatusMessage (I2NPMessage * msg);
 					
 		private:
 			
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue;
-			
-			std::mutex m_CreatedSessionsMutex;
-			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 	};	
 
 	extern GarlicRouting routing;

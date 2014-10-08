@@ -221,7 +221,7 @@ namespace tunnel
 			DeleteI2NPMessage (msg);
 		}
 		else
-			i2p::garlic::routing.PostI2NPMsg (msg);
+			m_LocalDestination.HandleDeliveryStatusMessage (msg);
 	}
 
 	const i2p::data::RouterInfo * TunnelPool::SelectNextHop (const i2p::data::RouterInfo * prevHop) const

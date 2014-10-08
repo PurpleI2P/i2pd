@@ -175,7 +175,7 @@ namespace garlic
 				if (size > 0) // successive?
 				{
 					(*numCloves)++;
-					routing.DeliveryStatusSent (this, msgID);
+					m_Owner->DeliveryStatusSent (this, msgID);
 				}
 				else
 					LogPrint ("DeliveryStatus clove was not created");
@@ -450,27 +450,13 @@ namespace garlic
 		return session;
 	}	
 
-	GarlicRouting routing;	
-
-	void GarlicRouting::DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID)
+	void GarlicDestination::DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID)
 	{
 		std::unique_lock<std::mutex> l(m_CreatedSessionsMutex);
 		m_CreatedSessions[msgID] = session;
-	}	
-		
-	void GarlicRouting::HandleGarlicMessage (I2NPMessage * msg)
-	{
-		auto pool = msg->from ? msg->from->GetTunnelPool () : nullptr;
-		if (pool)
-			pool->GetGarlicDestination ().HandleGarlicMessage (msg);
-		else
-		{
-			LogPrint ("Local destination doesn't exist");
-			DeleteI2NPMessage (msg);
-		}	
-	}	
+	}		
 
-	void GarlicRouting::HandleDeliveryStatusMessage (I2NPMessage * msg)
+	void GarlicDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
 	{
 		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
 		uint32_t msgID = be32toh (deliveryStatus->msgID);
@@ -483,8 +469,22 @@ namespace garlic
 				m_CreatedSessions.erase (it);
 				LogPrint ("Garlic message ", msgID, " acknowledged");
 			}	
-		}	
+		}
 		DeleteI2NPMessage (msg);	
+	}
+		
+	GarlicRouting routing;	
+
+	void GarlicRouting::HandleGarlicMessage (I2NPMessage * msg)
+	{
+		auto pool = msg->from ? msg->from->GetTunnelPool () : nullptr;
+		if (pool)
+			pool->GetGarlicDestination ().HandleGarlicMessage (msg);
+		else
+		{
+			LogPrint ("Local destination doesn't exist");
+			DeleteI2NPMessage (msg);
+		}	
 	}	
 
 	void GarlicRouting::Start ()
@@ -517,21 +517,13 @@ namespace garlic
 			try
 			{
 				I2NPMessage * msg = m_Queue.GetNext ();
-				if (msg)
-				{
-					switch (msg->GetHeader ()->typeID) 
-					{
-						case eI2NPGarlic:
-							HandleGarlicMessage (msg);
-						break;
-						case eI2NPDeliveryStatus:
-							HandleDeliveryStatusMessage (msg);
-						break;	
-						default: 
-							LogPrint ("Garlic: unexpected message type ", msg->GetHeader ()->typeID);
-							i2p::HandleI2NPMessage (msg);
-					}	
-				}
+				if (msg->GetHeader ()->typeID == eI2NPGarlic)
+					HandleGarlicMessage (msg);
+				else
+				{		
+					LogPrint ("Garlic: unexpected message type ", msg->GetHeader ()->typeID);
+					i2p::HandleI2NPMessage (msg);
+				}	
 			}
 			catch (std::exception& ex)
 			{
