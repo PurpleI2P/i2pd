@@ -30,21 +30,21 @@ namespace stream
 
 	I2PTunnelConnection::~I2PTunnelConnection ()
 	{
-		if (m_Stream)
-		{
-			m_Stream->Close ();
-			DeleteStream (m_Stream);
-			m_Stream = nullptr;
-		}
 		delete m_Socket;
 	}	
 
 	void I2PTunnelConnection::Terminate ()
 	{	
+		if (m_Stream)
+		{
+			m_Stream->Close ();
+			DeleteStream (m_Stream);
+			m_Stream = nullptr;
+		}	
 		m_Socket->close ();
 		if (m_Owner)
 			m_Owner->RemoveConnection (this);
-		// TODO: delete		
+		delete this;	
 	}			
 
 	void I2PTunnelConnection::Receive ()
@@ -59,8 +59,8 @@ namespace stream
 		if (ecode)
         {
 			LogPrint ("I2PTunnel read error: ", ecode.message ());
-			m_Stream->Close ();
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{	
@@ -75,8 +75,8 @@ namespace stream
 		if (ecode)
 		{
 			LogPrint ("I2PTunnel write error: ", ecode.message ());
-			m_Stream->Close ();
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 			StreamReceive ();
@@ -96,7 +96,8 @@ namespace stream
 		if (ecode)
 		{
 			LogPrint ("I2PTunnel stream read error: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{
@@ -110,9 +111,12 @@ namespace stream
 		if (ecode)
 		{
 			LogPrint ("I2PTunnel connect error: ", ecode.message ());
-			if (m_Stream) m_Stream->Close ();
-			DeleteStream (m_Stream);
-			m_Stream = nullptr;
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				if (m_Stream) m_Stream->Close ();
+				DeleteStream (m_Stream);
+				m_Stream = nullptr;
+			}	
 		}
 		else
 		{
