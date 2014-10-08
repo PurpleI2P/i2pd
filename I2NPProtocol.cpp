@@ -574,7 +574,7 @@ namespace i2p
 					if (msg->from && msg->from->GetTunnelPool ())
 						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (msg);
 					else
-						i2p::garlic::routing.PostI2NPMsg (msg); 	
+						DeleteI2NPMessage (msg); 	
 				break;	
 				default:
 					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
