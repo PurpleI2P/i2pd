@@ -544,8 +544,8 @@ namespace util
 				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
 			Receive ();
 		}
-		/*else if (ecode != boost::asio::error::operation_aborted)
-			Terminate ();*/
+		else if (ecode != boost::asio::error::operation_aborted)
+			Terminate ();
 	}
 
 	void HTTPConnection::RunRequest ()
@@ -600,13 +600,17 @@ namespace util
 	
 	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
 	{
-		Terminate ();
+		if (ecode != boost::asio::error::operation_aborted)
+			Terminate ();
 	}
 
 	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
 	{
 		if (ecode || (m_Stream && !m_Stream->IsOpen ()))
-			Terminate ();
+		{
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
+		}	
 		else // data keeps coming
 			AsyncStreamReceive ();
 	}
@@ -883,7 +887,7 @@ namespace util
 		{
 			if (ecode == boost::asio::error::timed_out)
 				SendReply ("<html>" + itoopieImage + "<br>Not responding</html>", 504);
-			else
+			else if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 	}
