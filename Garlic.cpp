@@ -17,7 +17,8 @@ namespace garlic
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
 	    const i2p::data::RoutingDestination * destination, int numTags):
 		m_Owner (owner), m_Destination (destination), m_IsAcknowledged (false), 
-		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0)
+		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0),
+		m_LeaseSetUpdated (numTags > 0)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -33,7 +34,7 @@ namespace garlic
 
 	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
 		m_Owner (nullptr), m_Destination (nullptr), m_IsAcknowledged (true), m_NumTags (1), 
-		m_NextTag (0)
+		m_NextTag (0), m_LeaseSetUpdated (false)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
@@ -58,7 +59,7 @@ namespace garlic
 		}
 	}
 	
-	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg, bool attachLeaseSet)
+	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		size_t len = 0;
@@ -117,7 +118,7 @@ namespace garlic
 			}			
 		}	
 		// AES block
-		len += CreateAESBlock (buf, msg, attachLeaseSet);
+		len += CreateAESBlock (buf, msg);
 		m_NextTag++;
 		*(uint32_t *)(m->GetPayload ()) = htobe32 (len);
 		m->len += len + 4;
@@ -127,7 +128,7 @@ namespace garlic
 		return m;
 	}	
 
-	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, const I2NPMessage * msg, bool attachLeaseSet)
+	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, const I2NPMessage * msg)
 	{
 		size_t blockSize = 0;
 		*(uint16_t *)buf = m_NextTag < 0 ? htobe16 (m_NumTags) : 0; // tag count
@@ -146,7 +147,7 @@ namespace garlic
 		blockSize += 32;
 		buf[blockSize] = 0; // flag
 		blockSize++;
-		size_t len = CreateGarlicPayload (buf + blockSize, msg, attachLeaseSet);
+		size_t len = CreateGarlicPayload (buf + blockSize, msg);
 		*payloadSize = htobe32 (len);
 		CryptoPP::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
 		blockSize += len;
@@ -157,7 +158,7 @@ namespace garlic
 		return blockSize;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, bool attachLeaseSet)
+	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		uint32_t msgID = m_Rnd.GenerateWord32 ();	
@@ -180,8 +181,9 @@ namespace garlic
 				else
 					LogPrint ("DeliveryStatus clove was not created");
 			}	
-			if (attachLeaseSet) 
+			if (m_LeaseSetUpdated) 
 			{
+				m_LeaseSetUpdated = false;
 				// clove if our leaseSet must be attached
 				auto leaseSet = CreateDatabaseStoreMsg (m_Owner->GetLeaseSet ());
 				size += CreateGarlicClove (payload + size, leaseSet, false);
@@ -428,10 +430,10 @@ namespace garlic
 	}	
 	
 	I2NPMessage * GarlicDestination::WrapMessage (const i2p::data::RoutingDestination& destination, 
-		I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet)	
+		I2NPMessage * msg, bool attachLeaseSet)	
 	{
-		auto session = GetRoutingSession (destination, leaseSet ? 32 : 0); // don't use tag if no LeaseSet
-		return session->WrapSingleMessage (msg, leaseSet);	
+		auto session = GetRoutingSession (destination, attachLeaseSet ? 32 : 0); // don't use tag if no LeaseSet
+		return session->WrapSingleMessage (msg);	
 	}
 
 	GarlicRoutingSession * GarlicDestination::GetRoutingSession (
@@ -471,6 +473,13 @@ namespace garlic
 			}	
 		}
 		DeleteI2NPMessage (msg);	
+	}
+
+	void GarlicDestination::SetLeaseSetUpdated ()
+	{
+		std::unique_lock<std::mutex> l(m_CreatedSessionsMutex);	
+		for (auto it: m_Sessions)
+			it.second->SetLeaseSetUpdated ();
 	}
 }	
 }

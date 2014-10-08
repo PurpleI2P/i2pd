@@ -13,7 +13,7 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
-		m_LeaseSetUpdated (true), m_LocalDestination (local), m_RemoteLeaseSet (&remote),
+		m_LocalDestination (local), m_RemoteLeaseSet (&remote),
 		m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -22,8 +22,7 @@ namespace stream
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
-		m_IsOpen (false), m_LeaseSetUpdated (true), m_LocalDestination (local),
-		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), 
+		m_IsOpen (false), m_LocalDestination (local), m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), 
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -419,15 +418,13 @@ namespace stream
 			for (auto it: packets)
 			{ 
 				auto msg = m_RoutingSession->WrapSingleMessage ( 
-					m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength ()), 
-				    m_LeaseSetUpdated);
+					m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 							{ 
 								i2p::tunnel::eDeliveryTypeTunnel,
 								m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
 								msg
 							});	
-				m_LeaseSetUpdated = false; // send leaseSet only one time
 			}
 			m_LocalDestination.SendTunnelDataMsgs (msgs);
 		}	

@@ -96,8 +96,6 @@ namespace stream
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 
 			void Close ();
-
-			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
 	
 		private:
 
@@ -123,7 +121,7 @@ namespace stream
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
-			bool m_IsOpen, m_LeaseSetUpdated;
+			bool m_IsOpen;
 			StreamingDestination& m_LocalDestination;
 			i2p::data::IdentityEx m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;

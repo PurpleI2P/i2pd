@@ -226,9 +226,8 @@ namespace stream
 
 	void StreamingDestination::SetLeaseSetUpdated ()
 	{
+		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();	
 		UpdateLeaseSet ();
-		for (auto it: m_Streams)
-			it.second->SetLeaseSetUpdated ();
 		if (m_IsPublic)
 			i2p::data::netdb.PublishLeaseSet (m_LeaseSet, m_Pool);
 	}	

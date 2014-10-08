@@ -48,16 +48,18 @@ namespace garlic
 			GarlicRoutingSession (GarlicDestination * owner, const i2p::data::RoutingDestination * destination, int numTags);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
-			I2NPMessage * WrapSingleMessage (I2NPMessage * msg, bool attachLeaseSet = false);
+			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
 			int GetNextTag () const { return m_NextTag; };
-
+			
 			bool IsAcknowledged () const { return m_IsAcknowledged; };
 			void SetAcknowledged (bool acknowledged) { m_IsAcknowledged = acknowledged; };
+
+			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
 			
 		private:
 
-			size_t CreateAESBlock (uint8_t * buf, const I2NPMessage * msg, bool attachLeaseSet);
-			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, bool attachLeaseSet);
+			size_t CreateAESBlock (uint8_t * buf, const I2NPMessage * msg);
+			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg);
 			size_t CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination);
 			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
 			
@@ -72,6 +74,7 @@ namespace garlic
 			int m_NumTags, m_NextTag;
 			SessionTag * m_SessionTags; // m_NumTags*32 bytes
 			uint32_t m_TagsCreationTime; // seconds since epoch		
+			bool m_LeaseSetUpdated;
 
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
@@ -86,7 +89,7 @@ namespace garlic
 
 			GarlicRoutingSession * GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
 			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
-			    I2NPMessage * msg, const i2p::data::LeaseSet * leaseSet = nullptr);
+			    I2NPMessage * msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			void HandleGarlicMessage (I2NPMessage * msg);
@@ -94,6 +97,7 @@ namespace garlic
 			void DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID);
 			void HandleDeliveryStatusMessage (I2NPMessage * msg);
 			
+			virtual void SetLeaseSetUpdated ();
 			virtual const i2p::data::LeaseSet * GetLeaseSet () = 0; // TODO
 			
 		private:

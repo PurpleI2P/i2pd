@@ -669,7 +669,7 @@ namespace data
 					{
 						uint8_t * sessionTag = sessionKey + 33; // take first tag
 						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
-						replyMsg = garlic.WrapSingleMessage (replyMsg, nullptr);
+						replyMsg = garlic.WrapSingleMessage (replyMsg);
 					}
 				}	
 				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
