@@ -454,7 +454,6 @@ namespace garlic
 
 	void GarlicDestination::DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID)
 	{
-		std::unique_lock<std::mutex> l(m_CreatedSessionsMutex);
 		m_CreatedSessions[msgID] = session;
 	}		
 
@@ -463,7 +462,6 @@ namespace garlic
 		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
 		uint32_t msgID = be32toh (deliveryStatus->msgID);
 		{
-			std::unique_lock<std::mutex> l(m_CreatedSessionsMutex);
 			auto it = m_CreatedSessions.find (msgID);
 			if (it != m_CreatedSessions.end ())			
 			{
@@ -477,9 +475,20 @@ namespace garlic
 
 	void GarlicDestination::SetLeaseSetUpdated ()
 	{
-		std::unique_lock<std::mutex> l(m_CreatedSessionsMutex);	
+		std::unique_lock<std::mutex> l(m_SessionsMutex);	
 		for (auto it: m_Sessions)
 			it.second->SetLeaseSetUpdated ();
 	}
+
+	void GarlicDestination::ProcessGarlicMessage (I2NPMessage * msg)
+	{
+		HandleGarlicMessage (msg);
+	}
+
+	void GarlicDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
+	{
+		HandleDeliveryStatusMessage (msg);
+	}
+
 }	
 }

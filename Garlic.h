@@ -92,14 +92,19 @@ namespace garlic
 			    I2NPMessage * msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
-			void HandleGarlicMessage (I2NPMessage * msg);
-
 			void DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID);
-			void HandleDeliveryStatusMessage (I2NPMessage * msg);
 			
+			virtual void ProcessGarlicMessage (I2NPMessage * msg);
+			virtual void ProcessDeliveryStatusMessage (I2NPMessage * msg);			
 			virtual void SetLeaseSetUpdated ();
+
 			virtual const i2p::data::LeaseSet * GetLeaseSet () = 0; // TODO
-			
+
+		protected:
+
+			void HandleGarlicMessage (I2NPMessage * msg);
+			void HandleDeliveryStatusMessage (I2NPMessage * msg);			
+	
 		private:
 
 			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption, 
@@ -114,7 +119,6 @@ namespace garlic
 			// incoming
 			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;	
 			// DeliveryStatus
-			std::mutex m_CreatedSessionsMutex;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 	};	
 }	

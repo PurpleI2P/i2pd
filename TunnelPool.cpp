@@ -221,7 +221,7 @@ namespace tunnel
 			DeleteI2NPMessage (msg);
 		}
 		else
-			m_LocalDestination.HandleDeliveryStatusMessage (msg);
+			m_LocalDestination.ProcessDeliveryStatusMessage (msg);
 	}
 
 	const i2p::data::RouterInfo * TunnelPool::SelectNextHop (const i2p::data::RouterInfo * prevHop) const

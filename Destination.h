@@ -41,10 +41,14 @@ namespace stream
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
-			void SetLeaseSetUpdated ();
 
 			// implements GarlicDestination
 			const i2p::data::LeaseSet * GetLeaseSet ();
+
+			// override GarlicDestination
+			void ProcessGarlicMessage (I2NPMessage * msg);
+			void ProcessDeliveryStatusMessage (I2NPMessage * msg);	
+			void SetLeaseSetUpdated ();
 
 		private:		
 	

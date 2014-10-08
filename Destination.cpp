@@ -187,8 +187,7 @@ namespace stream
 			if (uncompressed->len <= MAX_PACKET_SIZE)
 			{
 				decompressor.Get (uncompressed->buf, uncompressed->len);
-				// then forward to streaming  thread
-				m_Service.post (boost::bind (&StreamingDestination::HandleNextPacket, this, uncompressed)); 
+				HandleNextPacket (uncompressed); 
 			}
 			else
 			{
@@ -231,6 +230,16 @@ namespace stream
 		if (m_IsPublic)
 			i2p::data::netdb.PublishLeaseSet (m_LeaseSet, m_Pool);
 	}	
+
+	void StreamingDestination::ProcessGarlicMessage (I2NPMessage * msg)
+	{
+		m_Service.post (boost::bind (&StreamingDestination::HandleGarlicMessage, this, msg)); 
+	}
+
+	void StreamingDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
+	{
+		m_Service.post (boost::bind (&StreamingDestination::HandleDeliveryStatusMessage, this, msg)); 
+	}
 
 	StreamingDestinations destinations;	
 	void StreamingDestinations::Start ()
