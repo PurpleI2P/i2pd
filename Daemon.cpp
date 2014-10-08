@@ -111,8 +111,6 @@ namespace i2p
 			LogPrint("Transports started");
 			i2p::tunnel::tunnels.Start();
 			LogPrint("Tunnels started");
-			i2p::garlic::routing.Start();
-			LogPrint("Routing started");
 			i2p::stream::StartStreaming();
 			LogPrint("Streaming started");
 
@@ -164,8 +162,6 @@ namespace i2p
 			LogPrint("SOCKS Proxy stoped");
 			i2p::stream::StopStreaming();
 			LogPrint("Streaming stoped");
-			i2p::garlic::routing.Stop();
-			LogPrint("Routing stoped");
 			i2p::tunnel::tunnels.Stop();
 			LogPrint("Tunnels stoped");
 			i2p::transports.Stop();

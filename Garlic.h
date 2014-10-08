@@ -113,31 +113,6 @@ namespace garlic
 			std::mutex m_CreatedSessionsMutex;
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 	};	
-
-	class GarlicRouting
-	{		
-		public:
-
-			GarlicRouting (): m_IsRunning (false), m_Thread (nullptr) {};
-			~GarlicRouting () {};
-
-			void Start ();
-			void Stop ();
-			void PostI2NPMsg (I2NPMessage * msg);
-			
-		private:
-
-			void Run ();
-			void HandleGarlicMessage (I2NPMessage * msg);
-					
-		private:
-			
-			bool m_IsRunning;
-			std::thread * m_Thread;	
-			i2p::util::Queue<I2NPMessage> m_Queue;
-	};	
-
-	extern GarlicRouting routing;
 }	
 }
 

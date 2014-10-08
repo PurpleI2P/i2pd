@@ -561,7 +561,10 @@ namespace i2p
 				break;
 				case eI2NPGarlic:
 					LogPrint ("Garlic");
-					i2p::garlic::routing.PostI2NPMsg (msg);
+					if (msg->from && msg->from->GetTunnelPool ())
+						msg->from->GetTunnelPool ()->GetGarlicDestination ().HandleGarlicMessage (msg);
+					else
+						i2p::context.HandleGarlicMessage (msg); 
 				break;
 				case eI2NPDatabaseStore:
 				case eI2NPDatabaseSearchReply:
@@ -574,7 +577,7 @@ namespace i2p
 					if (msg->from && msg->from->GetTunnelPool ())
 						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (msg);
 					else
-						DeleteI2NPMessage (msg); 	
+						i2p::context.HandleDeliveryStatusMessage (msg);
 				break;	
 				default:
 					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
