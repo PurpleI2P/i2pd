@@ -140,22 +140,16 @@ namespace stream
 	{
 		if (!m_ReceiveQueue.empty ())
 		{
-			size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), 					boost::asio::buffer_size(buffer));
-			if (received)
-			{
-				// TODO: post to stream's thread
-				handler (boost::system::error_code (), received);
-				return;
-			}	
+			m_Service.post ([=](void) { this->HandleReceiveTimer (
+				boost::asio::error::make_error_code (boost::asio::error::operation_aborted),
+				buffer, handler); });
 		}
-		if (!m_IsOpen)
+		else
 		{
-			handler (boost::asio::error::make_error_code (boost::asio::error::connection_reset), 0);
-			return;
+			m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
+			m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
+				{ this->HandleReceiveTimer (ecode, buffer, handler); });
 		}
-		m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
-		m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
-			{ this->HandleReceiveTimer (ecode, buffer, handler); });
 	}
 
 	template<typename Buffer, typename ReceiveHandler>

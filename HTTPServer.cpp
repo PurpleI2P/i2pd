@@ -878,7 +878,7 @@ namespace util
 
 	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (bytes_transferred)
+		if (!ecode)
 		{
 			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
         		boost::bind (&HTTPConnection::HandleWrite, this, boost::asio::placeholders::error));
