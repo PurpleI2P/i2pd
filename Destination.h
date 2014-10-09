@@ -18,10 +18,13 @@ namespace stream
 	{
 		public:
 
-			StreamingDestination (boost::asio::io_service& service, bool isPublic);
-			StreamingDestination (boost::asio::io_service& service, const std::string& fullPath, bool isPublic);
-			StreamingDestination (boost::asio::io_service& service, const i2p::data::PrivateKeys& keys, bool isPublic);
+			StreamingDestination (bool isPublic);
+			StreamingDestination (const std::string& fullPath, bool isPublic);
+			StreamingDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			~StreamingDestination ();	
+
+			void Start ();
+			void Stop ();
 
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 
@@ -52,12 +55,17 @@ namespace stream
 
 		private:		
 	
+			void Run ();
 			Stream * CreateNewIncomingStream ();
 			void UpdateLeaseSet ();
 
 		private:
 
-			boost::asio::io_service& m_Service;
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			boost::asio::io_service m_Service;
+			boost::asio::io_service::work m_Work;
+
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, Stream *> m_Streams;
 			i2p::data::PrivateKeys m_Keys;
@@ -75,8 +83,7 @@ namespace stream
 	{
 		public:
 
-			StreamingDestinations (): m_IsRunning (false), m_Thread (nullptr), 
-				m_Work (m_Service), m_SharedLocalDestination (nullptr) {};
+			StreamingDestinations (): m_SharedLocalDestination (nullptr) {};
 			~StreamingDestinations () {};
 
 			void Start ();
@@ -93,15 +100,9 @@ namespace stream
 
 		private:	
 
-			void Run ();
 			void LoadLocalDestinations ();
 			
 		private:
-
-			bool m_IsRunning;
-			std::thread * m_Thread;	
-			boost::asio::io_service m_Service;
-			boost::asio::io_service::work m_Work;
 
 			std::mutex m_DestinationsMutex;
 			std::map<i2p::data::IdentHash, StreamingDestination *> m_Destinations;
