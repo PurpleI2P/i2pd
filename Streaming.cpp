@@ -13,7 +13,7 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
-		m_LocalDestination (local), m_RemoteLeaseSet (&remote),
+		m_IsReset (false), m_LocalDestination (local), m_RemoteLeaseSet (&remote),
 		m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -22,7 +22,8 @@ namespace stream
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
-		m_IsOpen (false), m_LocalDestination (local), m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), 
+		m_IsOpen (false), m_IsReset (false), m_LocalDestination (local), 
+		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), 
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -184,6 +185,7 @@ namespace stream
 			LogPrint ("Closed");
 			SendQuickAck (); // send ack for close explicitly?
 			m_IsOpen = false;
+			m_IsReset = true;
 			m_ReceiveTimer.cancel ();
 			m_ResendTimer.cancel ();
 		}
@@ -252,7 +254,7 @@ namespace stream
 			if (!m_IsOpen)
 			{	
 				//  initial packet
-				m_IsOpen = true;
+				m_IsOpen = true; m_IsReset = false;
 				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED | 
 					PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
 				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
@@ -453,6 +455,7 @@ namespace stream
 				else
 				{
 					Close ();
+					m_IsReset = true;
 					m_ReceiveTimer.cancel ();
 					return;
 				}	

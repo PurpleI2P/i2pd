@@ -121,7 +121,7 @@ namespace stream
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
-			bool m_IsOpen;
+			bool m_IsOpen, m_IsReset;
 			StreamingDestination& m_LocalDestination;
 			i2p::data::IdentityEx m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
@@ -170,7 +170,8 @@ namespace stream
 				handler (boost::system::error_code (), received); 
 			else
 				// socket closed
-				handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0);
+				handler (m_IsReset ? boost::asio::error::make_error_code (boost::asio::error::connection_reset) :
+					boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0);
 		}	
 		else
 			// timeout expired
