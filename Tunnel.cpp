@@ -301,12 +301,14 @@ namespace tunnel
 		if (pool)
 		{
 			{
+				std::unique_lock<std::mutex> l(m_PoolsMutex);
+				m_Pools.erase (pool->GetIdentHash ());
+			}
+			{
 				std::unique_lock<std::mutex> l(m_PendingTunnelsMutex);
 				for (auto it: m_PendingTunnels)
 					if (it.second->GetTunnelPool () == pool) it.second->SetTunnelPool (nullptr);
 			}
-			std::unique_lock<std::mutex> l(m_PoolsMutex);
-			m_Pools.erase (pool->GetIdentHash ());
 			delete pool;
 		}
 	}	
