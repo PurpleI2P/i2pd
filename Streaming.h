@@ -36,6 +36,7 @@ namespace stream
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;	
 	const int RESEND_TIMEOUT = 10; // in seconds
+	const int ACK_SEND_TIMEOUT = 200; // in milliseconds
 	const int MAX_NUM_RESEND_ATTEMPTS = 5;	
 	
 	struct Packet
@@ -115,13 +116,14 @@ namespace stream
 
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
+			void HandleAckSendTimer (const boost::system::error_code& ecode);
 			
 		private:
 
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
-			bool m_IsOpen, m_IsReset;
+			bool m_IsOpen, m_IsReset, m_IsAckSendScheduled;
 			StreamingDestination& m_LocalDestination;
 			i2p::data::IdentityEx m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
@@ -130,7 +132,7 @@ namespace stream
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::set<Packet *, PacketCmp> m_SentPackets;
-			boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer;
+			boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer, m_AckSendTimer;
 	};
 
 //-------------------------------------------------

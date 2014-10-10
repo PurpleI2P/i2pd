@@ -12,9 +12,10 @@ namespace stream
 {
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local, 
 		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
-		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false),  
-		m_IsReset (false), m_LocalDestination (local), m_RemoteLeaseSet (&remote),
-		m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
+		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false), 
+		m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local), 
+		m_RemoteLeaseSet (&remote), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service),
+		m_ResendTimer (m_Service), m_AckSendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -22,15 +23,16 @@ namespace stream
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
-		m_IsOpen (false), m_IsReset (false), m_LocalDestination (local), 
-		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), 
-		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service)
+		m_IsOpen (false), m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local),
+		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), 
+		m_ResendTimer (m_Service), m_AckSendTimer (m_Service)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}
 
 	Stream::~Stream ()
 	{	
+		m_AckSendTimer.cancel ();
 		while (!m_ReceiveQueue.empty ())
 		{
 			auto packet = m_ReceiveQueue.front ();
@@ -89,9 +91,17 @@ namespace stream
 					break;
 			}
 
-			// send ack for last message
+			// schedule ack for last message
 			if (m_IsOpen)
-				SendQuickAck ();	
+			{
+				if (!m_IsAckSendScheduled)
+				{
+					m_IsAckSendScheduled = true;
+					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ACK_SEND_TIMEOUT));
+					m_AckSendTimer.async_wait (boost::bind (&Stream::HandleAckSendTimer,
+						this, boost::asio::placeholders::error));
+				}
+			}	
 			else if (isSyn)
 				// we have to send SYN back to incoming connection
 				Send (nullptr, 0); // also sets m_IsOpen				
@@ -470,6 +480,16 @@ namespace stream
 		}	
 	}	
 		
+	void Stream::HandleAckSendTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_IsOpen)
+				SendQuickAck ();
+		}
+		m_IsAckSendScheduled = false;		
+	}
+
 	void Stream::UpdateCurrentRemoteLease ()
 	{
 		if (!m_RemoteLeaseSet)
