@@ -59,6 +59,7 @@ namespace stream
 			default:
 				;
 		}
+		m_Socket.close ();
 		delete this;
 	}
 
@@ -447,7 +448,7 @@ namespace stream
 		{
 			LogPrint ("SAM stream read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+				m_Socket.get_io_service ().post (boost::bind (&SAMSocket::Terminate, this));
 		}
 		else
 		{
