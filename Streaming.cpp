@@ -395,6 +395,11 @@ namespace stream
 	{
 		if (packet)
 		{	
+			if (m_IsAckSendScheduled)
+			{
+				m_IsAckSendScheduled = false;	
+				m_AckSendTimer.cancel ();
+			}
 			SendPackets (std::vector<Packet *> { packet });
 			if (m_IsOpen)
 			{	
@@ -482,12 +487,12 @@ namespace stream
 		
 	void Stream::HandleAckSendTimer (const boost::system::error_code& ecode)
 	{
-		if (ecode != boost::asio::error::operation_aborted)
+		if (m_IsAckSendScheduled)
 		{
 			if (m_IsOpen)
 				SendQuickAck ();
-		}
-		m_IsAckSendScheduled = false;		
+			m_IsAckSendScheduled = false;
+		}	
 	}
 
 	void Stream::UpdateCurrentRemoteLease ()
