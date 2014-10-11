@@ -77,6 +77,11 @@ namespace stream
 			bool m_IsPublic;			
 
 			std::function<void (Stream *)> m_Acceptor;
+
+		public:
+
+			// for HTTP only
+			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
 	};	
 
 	class StreamingDestinations

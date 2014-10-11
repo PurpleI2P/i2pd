@@ -798,6 +798,7 @@ namespace util
 			auto pool = dest->GetTunnelPool ();
 			if (pool)
 			{
+				s << "<b>Tunnels:</b><br>";
 				for (auto it: pool->GetOutboundTunnels ())
 				{
 					it->GetTunnelConfig ()->Print (s);
@@ -809,6 +810,9 @@ namespace util
 					s << "<br>" << std::endl;
 				}
 			}	
+			s << "<br><b>Streams:</b><br>";
+			for (auto it: dest->GetStreams ())
+				s << it.first << "->" << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase32 () << ".b32.i2p<br>" << std::endl; 
 		}	
 	}	
 	

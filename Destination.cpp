@@ -70,15 +70,7 @@ namespace stream
 
 	StreamingDestination::~StreamingDestination ()
 	{
-		{
-			std::unique_lock<std::mutex> l(m_StreamsMutex);
-			for (auto it: m_Streams)
-				delete it.second;
-			m_Streams.clear ();
-		}	
 		Stop ();
-		if (m_Pool)
-			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;
 	}	
 
@@ -95,6 +87,17 @@ namespace stream
 		
 	void StreamingDestination::Stop ()
 	{	
+		{
+			std::unique_lock<std::mutex> l(m_StreamsMutex);
+			for (auto it: m_Streams)
+				delete it.second;
+			m_Streams.clear ();
+		}	
+		if (m_Pool)
+		{	
+			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);
+			m_Pool = nullptr;
+		}	
 		m_IsRunning = false;
 		m_Service.stop ();
 		if (m_Thread)

@@ -37,6 +37,7 @@ namespace tunnel
 		
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
 	{
+		if (m_IsDeleted) return;
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.insert (createdTunnel);
@@ -60,6 +61,7 @@ namespace tunnel
 
 	void TunnelPool::TunnelCreated (OutboundTunnel * createdTunnel)
 	{
+		if (m_IsDeleted) return;
 		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		m_OutboundTunnels.insert (createdTunnel);
 	}
