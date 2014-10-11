@@ -243,7 +243,6 @@ namespace tunnel
 		
 	Tunnel * Tunnels::GetPendingTunnel (uint32_t replyMsgID)
 	{
-		std::unique_lock<std::mutex> l(m_PendingTunnelsMutex);
 		auto it = m_PendingTunnels.find(replyMsgID);
 		if (it != m_PendingTunnels.end () && it->second->GetState () == eTunnelStatePending)
 		{	
@@ -298,19 +297,7 @@ namespace tunnel
 
 	void Tunnels::DeleteTunnelPool (TunnelPool * pool)
 	{
-		if (pool)
-		{
-			{
-				std::unique_lock<std::mutex> l(m_PoolsMutex);
-				m_Pools.erase (pool->GetIdentHash ());
-			}
-			{
-				std::unique_lock<std::mutex> l(m_PendingTunnelsMutex);
-				for (auto it: m_PendingTunnels)
-					if (it.second->GetTunnelPool () == pool) it.second->SetTunnelPool (nullptr);
-			}
-			delete pool;
-		}
+		if (pool) pool->SetDeleted ();
 	}	
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
@@ -394,7 +381,6 @@ namespace tunnel
 	{
 		// check pending tunnel. delete failed or timeout
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::unique_lock<std::mutex> l(m_PendingTunnelsMutex);
 		for (auto it = m_PendingTunnels.begin (); it != m_PendingTunnels.end ();)
 		{	
 			auto tunnel = it->second;
@@ -546,10 +532,22 @@ namespace tunnel
 	void Tunnels::ManageTunnelPools ()
 	{
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
-		for (auto& it: m_Pools)
+		for (auto it = m_Pools.begin (); it != m_Pools.end ();)
 		{	
-			it.second->CreateTunnels ();
-			it.second->TestTunnels ();
+			TunnelPool * pool = it->second;
+			if (!pool->IsDeleted ())
+			{	
+				pool->CreateTunnels ();
+				pool->TestTunnels ();
+				it++;
+			}		
+			else
+			{
+				it = m_Pools.erase (it);
+				for (auto it1: m_PendingTunnels)
+					if (it1.second->GetTunnelPool () == pool) it1.second->SetTunnelPool (nullptr);
+				delete pool;
+			}	
 		}
 	}	
 	

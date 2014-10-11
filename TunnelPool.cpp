@@ -11,7 +11,8 @@ namespace i2p
 namespace tunnel
 {
 	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination& localDestination, int numHops, int numTunnels):
-		m_LocalDestination (localDestination), m_NumHops (numHops), m_NumTunnels (numTunnels)
+		m_LocalDestination (localDestination), m_NumHops (numHops), m_NumTunnels (numTunnels),
+		m_IsDeleted (false)
 	{
 	}
 

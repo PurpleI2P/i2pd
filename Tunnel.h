@@ -148,7 +148,6 @@ namespace tunnel
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			std::mutex m_PendingTunnelsMutex;
 			std::map<uint32_t, Tunnel *> m_PendingTunnels; // by replyMsgID
 			std::mutex m_InboundTunnelsMutex;
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
