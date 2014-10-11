@@ -297,7 +297,11 @@ namespace tunnel
 
 	void Tunnels::DeleteTunnelPool (TunnelPool * pool)
 	{
-		if (pool) pool->SetDeleted ();
+		if (pool)
+		{	
+			pool->DetachTunnels ();
+			pool->SetDeleted ();
+		}	
 	}	
 	
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)

@@ -49,7 +49,8 @@ namespace tunnel
 			void ProcessDeliveryStatus (I2NPMessage * msg);
 
 			bool IsDeleted () const { return m_IsDeleted; };
-			void SetDeleted () { m_IsDeleted = true; }
+			void SetDeleted () { m_IsDeleted = true; };
+			void DetachTunnels ();
 			
 		private:
 

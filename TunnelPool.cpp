@@ -18,6 +18,11 @@ namespace tunnel
 
 	TunnelPool::~TunnelPool ()
 	{
+		DetachTunnels ();
+	}
+
+	void TunnelPool::DetachTunnels ()
+	{
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
 			for (auto it: m_InboundTunnels)
@@ -28,8 +33,8 @@ namespace tunnel
 			for (auto it: m_OutboundTunnels)
 				it->SetTunnelPool (nullptr);
 		}
-	}
-
+	}	
+		
 	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
 	{
 		{
