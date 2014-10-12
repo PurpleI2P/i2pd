@@ -242,7 +242,6 @@ namespace data
 			virtual const PrivateKeys& GetPrivateKeys () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
-			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len) = 0;
 
 			const IdentityEx& GetIdentity () const { return GetPrivateKeys ().GetPublic (); };
 			const IdentHash& GetIdentHash () const { return GetIdentity ().GetIdentHash (); };  

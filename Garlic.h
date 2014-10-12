@@ -97,9 +97,10 @@ namespace garlic
 			virtual void ProcessGarlicMessage (I2NPMessage * msg);
 			virtual void ProcessDeliveryStatusMessage (I2NPMessage * msg);			
 			virtual void SetLeaseSetUpdated ();
-
+			
 			virtual const i2p::data::LeaseSet * GetLeaseSet () = 0; // TODO
-
+			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len) = 0;
+			
 		protected:
 
 			void HandleGarlicMessage (I2NPMessage * msg);
