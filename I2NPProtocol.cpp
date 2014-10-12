@@ -508,7 +508,7 @@ namespace i2p
 		}	
 	}	
 
-	size_t GetI2NPMessageLength (uint8_t * msg)
+	size_t GetI2NPMessageLength (const uint8_t * msg)
 	{
 		I2NPHeader * header = (I2NPHeader *)msg;
 		return be16toh (header->size) + sizeof (I2NPHeader);

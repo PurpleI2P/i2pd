@@ -200,7 +200,7 @@ namespace tunnel
 		const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
 
-	size_t GetI2NPMessageLength (uint8_t * msg);
+	size_t GetI2NPMessageLength (const uint8_t * msg);
 	void HandleI2NPMessage (uint8_t * msg, size_t len);
 	void HandleI2NPMessage (I2NPMessage * msg);
 }	

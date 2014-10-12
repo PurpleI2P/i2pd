@@ -271,6 +271,19 @@ namespace stream
 		m_Service.post (boost::bind (&StreamingDestination::HandleDeliveryStatusMessage, this, msg)); 
 	}
 
+	void StreamingDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
+	{
+		I2NPHeader * header = (I2NPHeader *)buf;
+		switch (header->typeID)
+		{	
+			case eI2NPData:
+				HandleDataMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
+			break;	
+			default:
+				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf)));
+		}		
+	}	
+		
 	StreamingDestinations destinations;	
 	void StreamingDestinations::Start ()
 	{

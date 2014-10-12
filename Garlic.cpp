@@ -382,19 +382,13 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint ("Garlic type local");
-					i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
+					HandleI2NPMessage (buf, len);
 				break;	
-				case eGarlicDeliveryTypeDestination:
-				{	
+				case eGarlicDeliveryTypeDestination:	
 					LogPrint ("Garlic type destination");
 					buf += 32; // destination. check it later or for multiple destinations
-					I2NPHeader * header = (I2NPHeader *)buf;
-					if (header->typeID == eI2NPData)
-						HandleDataMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
-					else
-						LogPrint ("Unexpected I2NP garlic message ", (int)header->typeID);
-					break;
-				}	
+					HandleI2NPMessage (buf, len);
+				break;
 				case eGarlicDeliveryTypeTunnel:
 				{	
 					LogPrint ("Garlic type tunnel");
