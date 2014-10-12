@@ -4,6 +4,7 @@
 #include <cryptopp/gzip.h>
 #include "Log.h"
 #include "util.h"
+#include "NetDb.h"
 #include "Destination.h"
 
 namespace i2p
@@ -71,6 +72,9 @@ namespace stream
 	StreamingDestination::~StreamingDestination ()
 	{
 		Stop ();
+		for (auto it: m_RemoteLeaseSets)
+			delete it.second;
+			
 		delete m_LeaseSet;
 	}	
 
@@ -278,10 +282,65 @@ namespace stream
 		{	
 			case eI2NPData:
 				HandleDataMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
+			break;
+			case eI2NPDatabaseStore:
+				HandleDatabaseStoreMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
+				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf))); // TODO: remove
 			break;	
 			default:
 				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf)));
 		}		
+	}	
+
+	void StreamingDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
+	{
+		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;
+		size_t offset = sizeof (I2NPDatabaseStoreMsg);
+		if (msg->replyToken) // TODO:
+			offset += 36;
+		if (msg->type == 1) // LeaseSet
+		{
+			LogPrint ("Remote LeaseSet");
+			auto it = m_RemoteLeaseSets.find (msg->key);
+			if (it != m_RemoteLeaseSets.end ())
+			{
+				it->second->Update (buf + offset, len - offset); 
+				LogPrint ("Remote LeaseSet updated");
+			}
+			else
+			{	
+				LogPrint ("New remote LeaseSet added");
+				m_RemoteLeaseSets[msg->key] = new i2p::data::LeaseSet (buf + offset, len - offset);
+			}	
+		}	
+		else
+			LogPrint ("Unexpected client's DatabaseStore type ", msg->type, ". Dropped");
+	}	
+
+	const i2p::data::LeaseSet * StreamingDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
+	{
+		auto it = m_RemoteLeaseSets.find (ident);
+		if (it != m_RemoteLeaseSets.end ())
+		{	
+			if (it->second->HasNonExpiredLeases ())
+				return it->second;
+			else
+			{
+				LogPrint ("All leases of remote LeaseSet expired. Request it");
+				i2p::data::netdb.RequestDestination (ident, true, m_Pool);
+			}	
+		}	
+		else
+		{	
+			auto ls = i2p::data::netdb.FindLeaseSet (ident);
+			if (ls)
+			{
+				ls = new i2p::data::LeaseSet (*ls);
+				m_RemoteLeaseSets[ident] = ls;			
+				return ls;
+			}	
+		}
+		return nullptr;
 	}	
 		
 	StreamingDestinations destinations;	

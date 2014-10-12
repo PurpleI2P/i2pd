@@ -850,12 +850,12 @@ namespace util
 	
 	void HTTPConnection::SendToDestination (const i2p::data::IdentHash& destination, const char * buf, size_t len)
 	{
-		auto leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+		auto leaseSet = i2p::stream::GetSharedLocalDestination ()->FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
 			i2p::data::netdb.Subscribe(destination, i2p::stream::GetSharedLocalDestination ()->GetTunnelPool ());
 			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
-			leaseSet = i2p::data::netdb.FindLeaseSet (destination);
+			leaseSet = i2p::stream::GetSharedLocalDestination ()->FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
 				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);

@@ -60,7 +60,7 @@ namespace stream
 				;
 		}
 		m_Socket.close ();
-		delete this;
+	//	delete this;
 	}
 
 	void SAMSocket::ReceiveHandshake ()
@@ -275,7 +275,7 @@ namespace stream
 	{
 		if (!ecode) // timeout expired
 		{
-			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 			if (leaseSet)
 				Connect (*leaseSet);
 			else
@@ -290,7 +290,7 @@ namespace stream
 	{
 		if (!ecode) // timeout expired
 		{
-			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 			if (leaseSet)
 				SendNamingLookupReply (leaseSet);
 			else
@@ -361,7 +361,7 @@ namespace stream
 			SendNamingLookupReply (nullptr);
 		else if (i2p::data::netdb.GetAddressBook ().GetIdentHash (name, ident))
 		{
-			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 			if (leaseSet)
 				SendNamingLookupReply (leaseSet);
 			else
@@ -379,7 +379,7 @@ namespace stream
 		}
 	}	
 
-	void SAMSocket::SendNamingLookupReply (i2p::data::LeaseSet * leaseSet)
+	void SAMSocket::SendNamingLookupReply (const i2p::data::LeaseSet * leaseSet)
 	{
 		uint8_t buf[1024];
 		char pub[1024];
@@ -448,7 +448,7 @@ namespace stream
 		{
 			LogPrint ("SAM stream read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				m_Socket.get_io_service ().post (boost::bind (&SAMSocket::Terminate, this));
+				Terminate ();
 		}
 		else
 		{

@@ -94,7 +94,7 @@ namespace stream
 			void Connect (const i2p::data::LeaseSet& remote);
 			void HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
 			void HandleNamingLookupDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
-			void SendNamingLookupReply (i2p::data::LeaseSet * leaseSet);
+			void SendNamingLookupReply (const i2p::data::LeaseSet * leaseSet);
 
 		private:
 

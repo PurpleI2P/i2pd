@@ -6,7 +6,7 @@
 #include "Identity.h"
 #include "TunnelPool.h"
 #include "CryptoConst.h"
-#include "NetDb.h"
+#include "LeaseSet.h"
 #include "Garlic.h"
 #include "Streaming.h"
 
@@ -36,6 +36,7 @@ namespace stream
 			void HandleNextPacket (Packet * packet);
 			void SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs);
 			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
+			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
 			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
@@ -59,6 +60,7 @@ namespace stream
 			void Run ();
 			Stream * CreateNewIncomingStream ();
 			void UpdateLeaseSet ();
+			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);
 
 		private:
 
@@ -66,6 +68,7 @@ namespace stream
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
+			std::map<i2p::data::IdentHash, i2p::data::LeaseSet *> m_RemoteLeaseSets;
 
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, Stream *> m_Streams;
@@ -76,9 +79,9 @@ namespace stream
 			i2p::tunnel::OutboundTunnel * m_CurrentOutboundTunnel;
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;			
-
+			
 			std::function<void (Stream *)> m_Acceptor;
-
+			
 		public:
 
 			// for HTTP only

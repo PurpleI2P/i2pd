@@ -499,7 +499,7 @@ namespace stream
 	{
 		if (!m_RemoteLeaseSet)
 		{
-			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (m_RemoteIdentity.GetIdentHash ());
+			m_RemoteLeaseSet = m_LocalDestination.FindLeaseSet (m_RemoteIdentity.GetIdentHash ());
 			if (!m_RemoteLeaseSet)		
 				LogPrint ("LeaseSet ", m_RemoteIdentity.GetIdentHash ().ToBase64 (), " not found");
 		}

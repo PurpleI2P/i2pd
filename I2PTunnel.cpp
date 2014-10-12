@@ -164,7 +164,7 @@ namespace stream
 		if (m_DestinationIdentHash)
 		{
 			i2p::data::netdb.Subscribe (*m_DestinationIdentHash, GetLocalDestination ()->GetTunnelPool ());
-			m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
+			m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*m_DestinationIdentHash);
 		}	
 		else
 			LogPrint ("I2PTunnel unknown destination ", m_Destination);
@@ -194,7 +194,7 @@ namespace stream
 			{
 				// try to get it
 				if (m_DestinationIdentHash)
-					m_RemoteLeaseSet = i2p::data::netdb.FindLeaseSet (*m_DestinationIdentHash);
+					m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*m_DestinationIdentHash);
 				else
 				{
 					i2p::data::IdentHash identHash;
