@@ -86,6 +86,7 @@ namespace stream
 		public:
 
 			// for HTTP only
+			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
 	};	
 

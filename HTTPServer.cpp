@@ -795,6 +795,7 @@ namespace util
 		auto dest = i2p::stream::FindLocalDestination (ident);
 		if (dest)
 		{
+			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>";
 			auto pool = dest->GetTunnelPool ();
 			if (pool)
 			{
@@ -812,7 +813,11 @@ namespace util
 			}	
 			s << "<br><b>Streams:</b><br>";
 			for (auto it: dest->GetStreams ())
-				s << it.first << "->" << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase32 () << ".b32.i2p<br>" << std::endl; 
+			{	
+				s << it.first << "->" << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase32 () << ".b32.i2p ";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				s << "<br>"<< std::endl; 
+			}	
 		}	
 	}	
 	

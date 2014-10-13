@@ -15,7 +15,8 @@ namespace stream
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false), 
 		m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local), 
 		m_RemoteLeaseSet (&remote), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service),
-		m_ResendTimer (m_Service), m_AckSendTimer (m_Service)
+		m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0), 
+		m_NumReceivedBytes (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -25,7 +26,8 @@ namespace stream
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
 		m_IsOpen (false), m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), 
-		m_ResendTimer (m_Service), m_AckSendTimer (m_Service)
+		m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0), 
+		m_NumReceivedBytes (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}
@@ -55,6 +57,7 @@ namespace stream
 		
 	void Stream::HandleNextPacket (Packet * packet)
 	{
+		m_NumReceivedBytes += packet->GetLength ();
 		if (!m_SendStreamID) 
 			m_SendStreamID = packet->GetReceiveStreamID (); 	
 
@@ -442,6 +445,7 @@ namespace stream
 								m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
 								msg
 							});	
+				m_NumSentBytes += it->GetLength ();
 			}
 			m_LocalDestination.SendTunnelDataMsgs (msgs);
 		}	

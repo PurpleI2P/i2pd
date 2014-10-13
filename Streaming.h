@@ -97,7 +97,10 @@ namespace stream
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 
 			void Close ();
-	
+
+			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			
 		private:
 
 			void SendQuickAck ();
@@ -133,6 +136,7 @@ namespace stream
 			std::set<Packet *, PacketCmp> m_SavedPackets;
 			std::set<Packet *, PacketCmp> m_SentPackets;
 			boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer, m_AckSendTimer;
+			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};
 
 //-------------------------------------------------
