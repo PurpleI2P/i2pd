@@ -74,7 +74,8 @@ namespace stream
 		Stop ();
 		for (auto it: m_RemoteLeaseSets)
 			delete it.second;
-			
+		if (m_Pool)
+			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;
 	}	
 
@@ -98,10 +99,7 @@ namespace stream
 			m_Streams.clear ();
 		}	
 		if (m_Pool)
-		{	
-			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);
-			m_Pool = nullptr;
-		}	
+			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		m_IsRunning = false;
 		m_Service.stop ();
 		if (m_Thread)
@@ -110,6 +108,7 @@ namespace stream
 			delete m_Thread;
 			m_Thread = 0;
 		}	
+		m_Service.reset ();
 	}	
 
 	void StreamingDestination::SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs)
@@ -429,6 +428,11 @@ namespace stream
 		if (it != m_Destinations.end ())
 		{
 			LogPrint ("Local destination ", keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p exists");
+			if (!it->second->IsRunning ())
+			{	
+				it->second->Start ();
+				return it->second;
+			}	
 			return nullptr;
 		}	
 		auto localDestination = new StreamingDestination (keys, isPublic);

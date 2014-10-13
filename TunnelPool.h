@@ -48,8 +48,8 @@ namespace tunnel
 			void TestTunnels ();
 			void ProcessDeliveryStatus (I2NPMessage * msg);
 
-			bool IsDeleted () const { return m_IsDeleted; };
-			void SetDeleted () { m_IsDeleted = true; };
+			bool IsActive () const { return m_IsActive; };
+			void SetActive (bool isActive) { m_IsActive = isActive; };
 			void DetachTunnels ();
 			
 		private:
@@ -72,7 +72,7 @@ namespace tunnel
 			mutable std::mutex m_OutboundTunnelsMutex;
 			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
 			std::map<uint32_t, std::pair<OutboundTunnel *, InboundTunnel *> > m_Tests;
-			bool m_IsDeleted;
+			bool m_IsActive;
 
 		public:
 

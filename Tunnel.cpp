@@ -299,11 +299,24 @@ namespace tunnel
 	{
 		if (pool)
 		{	
-			pool->DetachTunnels ();
-			pool->SetDeleted ();
+			StopTunnelPool (pool);
+			m_Pools.erase (pool->GetLocalDestination ().GetIdentHash ());
+			for (auto it: m_PendingTunnels)
+				if (it.second->GetTunnelPool () == pool)
+					it.second->SetTunnelPool (nullptr);
+			delete pool;
 		}	
 	}	
-	
+
+	void Tunnels::StopTunnelPool (TunnelPool * pool)
+	{
+		if (pool)
+		{
+			pool->SetActive (false);
+			pool->DetachTunnels ();
+		}	
+	}	
+		
 	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
 	{
 		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
@@ -536,22 +549,14 @@ namespace tunnel
 	void Tunnels::ManageTunnelPools ()
 	{
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
-		for (auto it = m_Pools.begin (); it != m_Pools.end ();)
+		for (auto it: m_Pools)
 		{	
-			TunnelPool * pool = it->second;
-			if (!pool->IsDeleted ())
+			TunnelPool * pool = it.second;
+			if (pool->IsActive ())
 			{	
 				pool->CreateTunnels ();
 				pool->TestTunnels ();
-				it++;
 			}		
-			else
-			{
-				it = m_Pools.erase (it);
-				for (auto it1: m_PendingTunnels)
-					if (it1.second->GetTunnelPool () == pool) it1.second->SetTunnelPool (nullptr);
-				delete pool;
-			}	
 		}
 	}	
 	
@@ -575,8 +580,10 @@ namespace tunnel
 		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		m_OutboundTunnels.push_back (newTunnel);
 		auto pool = newTunnel->GetTunnelPool ();
-		if (pool)
+		if (pool && pool->IsActive ())
 			pool->TunnelCreated (newTunnel);
+		else
+			newTunnel->SetTunnelPool (nullptr);
 	}	
 
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
@@ -590,7 +597,12 @@ namespace tunnel
 			CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
 		}
 		else
-			pool->TunnelCreated (newTunnel);
+		{
+			if (pool->IsActive ())
+				pool->TunnelCreated (newTunnel);
+			else
+				newTunnel->SetTunnelPool (nullptr);
+		}	
 	}	
 
 	

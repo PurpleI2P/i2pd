@@ -131,6 +131,7 @@ namespace tunnel
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
 			TunnelPool * CreateTunnelPool (i2p::garlic::GarlicDestination& localDestination, int numHops);
 			void DeleteTunnelPool (TunnelPool * pool);
+			void StopTunnelPool (TunnelPool * pool);
 			
 		private:
 			

@@ -599,7 +599,7 @@ namespace stream
 			for (auto it1 : it->second.sockets)
 				delete it1;
 			it->second.sockets.clear ();
-			DeleteLocalDestination (it->second.localDestination);
+			it->second.localDestination->Stop ();
 			m_Sessions.erase (it);
 		}
 	}

@@ -25,7 +25,8 @@ namespace stream
 
 			void Start ();
 			void Stop ();
-
+			bool IsRunning () const { return m_IsRunning; };
+			
 			i2p::tunnel::TunnelPool * GetTunnelPool () const  { return m_Pool; };			
 
 			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote);
