@@ -67,8 +67,8 @@ namespace stream
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			boost::asio::io_service m_Service;
-			boost::asio::io_service::work m_Work;
+			boost::asio::io_service * m_Service;
+			boost::asio::io_service::work * m_Work;
 			std::map<i2p::data::IdentHash, i2p::data::LeaseSet *> m_RemoteLeaseSets;
 
 			std::mutex m_StreamsMutex;
