@@ -108,7 +108,8 @@ namespace stream
 		if (m_Pool)
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		m_IsRunning = false;
-		m_Service->stop ();
+		if (m_Service)
+			m_Service->stop ();
 		if (m_Thread)
 		{	
 			m_Thread->join (); 
