@@ -12,16 +12,14 @@ namespace i2p
 namespace data
 {
 	
-	LeaseSet::LeaseSet (const uint8_t * buf, int len, bool unsolicited): 
-		m_IsUnsolicited (unsolicited)
+	LeaseSet::LeaseSet (const uint8_t * buf, int len)
 	{
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
 		ReadFromBuffer ();
 	}
 
-	LeaseSet::LeaseSet (const i2p::tunnel::TunnelPool& pool):
-		m_IsUnsolicited (false)
+	LeaseSet::LeaseSet (const i2p::tunnel::TunnelPool& pool)
 	{	
 		// header
 		const i2p::data::LocalDestination& localDestination = pool.GetLocalDestination ();

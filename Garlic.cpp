@@ -382,12 +382,12 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint ("Garlic type local");
-					HandleI2NPMessage (buf, len);
+					HandleI2NPMessage (buf, len, from);
 				break;	
 				case eGarlicDeliveryTypeDestination:	
 					LogPrint ("Garlic type destination");
 					buf += 32; // destination. check it later or for multiple destinations
-					HandleI2NPMessage (buf, len);
+					HandleI2NPMessage (buf, len, from);
 				break;
 				case eGarlicDeliveryTypeTunnel:
 				{	

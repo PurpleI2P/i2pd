@@ -64,7 +64,7 @@ namespace data
 			void Stop ();
 			
 			void AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
-			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len);
+			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, i2p::tunnel::InboundTunnel * from);
 			RouterInfo * FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 			AddressBook& GetAddressBook () { return m_AddressBook; };// TODO: move AddressBook away from NetDb

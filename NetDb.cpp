@@ -195,19 +195,23 @@ namespace data
 		}	
 	}	
 
-	void NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len)
+	void NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
+		i2p::tunnel::InboundTunnel * from)
 	{
-		bool unsolicited = !DeleteRequestedDestination (ident);
-		auto it = m_LeaseSets.find(ident);
-		if (it != m_LeaseSets.end ())
-		{
-			it->second->Update (buf, len); 
-			LogPrint ("LeaseSet updated");
-		}
-		else
+		DeleteRequestedDestination (ident);
+		if (!from) // unsolicited LS must be received directly
 		{	
-			LogPrint ("New LeaseSet added");
-			m_LeaseSets[ident] = new LeaseSet (buf, len, unsolicited);
+			auto it = m_LeaseSets.find(ident);
+			if (it != m_LeaseSets.end ())
+			{
+				it->second->Update (buf, len); 
+				LogPrint ("LeaseSet updated");
+			}
+			else
+			{	
+				LogPrint ("New LeaseSet added");
+				m_LeaseSets[ident] = new LeaseSet (buf, len);
+			}	
 		}	
 	}	
 
@@ -427,7 +431,7 @@ namespace data
 		if (msg->type)
 		{
 			LogPrint ("LeaseSet");
-			AddLeaseSet (msg->key, buf + offset, len - offset);
+			AddLeaseSet (msg->key, buf + offset, len - offset, m->from);
 		}	
 		else
 		{
@@ -635,7 +639,7 @@ namespace data
 		if (!replyMsg)
 		{
 			auto leaseSet = FindLeaseSet (buf);
-			if (leaseSet && leaseSet->IsUnsolicited ()) // we don't send back our LeaseSets
+			if (leaseSet) // we don't send back our LeaseSets
 			{
 				LogPrint ("Requested LeaseSet ", key, " found");
 				replyMsg = CreateDatabaseStoreMsg (leaseSet);
@@ -885,8 +889,6 @@ namespace data
 			LogPrint ("LeaseSet requested");	
 			RequestDestination (ident, true, pool);
 		}
-		else
-			leaseSet->SetUnsolicited (false);
 		m_Subscriptions[ident] = pool;
 	}
 		
@@ -920,7 +922,7 @@ namespace data
 	{
 		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
 		{
-			if (it->second->IsUnsolicited () && !it->second->HasNonExpiredLeases ()) // all leases expired
+			if (it->second->HasNonExpiredLeases ()) // all leases expired
 			{
 				LogPrint ("LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				delete it->second;

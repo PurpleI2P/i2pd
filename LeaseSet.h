@@ -41,7 +41,7 @@ namespace data
 	{
 		public:
 
-			LeaseSet (const uint8_t * buf, int len, bool unsolicited = false);
+			LeaseSet (const uint8_t * buf, int len);
 			LeaseSet (const LeaseSet& ) = default;
 			LeaseSet (const i2p::tunnel::TunnelPool& pool);
 			LeaseSet& operator=(const LeaseSet& ) = default;
@@ -50,9 +50,6 @@ namespace data
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			size_t GetBufferLen () const { return m_BufferLen; };	
-
-			bool IsUnsolicited () const { return m_IsUnsolicited; };
-			void SetUnsolicited (bool unsolicited) { m_IsUnsolicited = unsolicited; };
 
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_Identity.GetIdentHash (); };
@@ -74,7 +71,6 @@ namespace data
 			uint8_t m_EncryptionKey[256];
 			uint8_t m_Buffer[MAX_LS_BUFFER_SIZE];
 			size_t m_BufferLen;
-			bool m_IsUnsolicited;
 	};	
 }		
 }	

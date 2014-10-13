@@ -99,7 +99,7 @@ namespace garlic
 			virtual void SetLeaseSetUpdated ();
 			
 			virtual const i2p::data::LeaseSet * GetLeaseSet () = 0; // TODO
-			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len) = 0;
+			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from) = 0;
 			
 		protected:
 

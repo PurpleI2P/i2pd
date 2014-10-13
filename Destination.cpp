@@ -283,7 +283,7 @@ namespace stream
 		m_Service->post (boost::bind (&StreamingDestination::HandleDeliveryStatusMessage, this, msg)); 
 	}
 
-	void StreamingDestination::HandleI2NPMessage (const uint8_t * buf, size_t len)
+	void StreamingDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)
 	{
 		I2NPHeader * header = (I2NPHeader *)buf;
 		switch (header->typeID)
@@ -293,10 +293,10 @@ namespace stream
 			break;
 			case eI2NPDatabaseStore:
 				HandleDatabaseStoreMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
-				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf))); // TODO: remove
+				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from)); // TODO: remove
 			break;	
 			default:
-				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf)));
+				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
 		}		
 	}	
 

@@ -49,7 +49,7 @@ namespace stream
 
 			// implements GarlicDestination
 			const i2p::data::LeaseSet * GetLeaseSet ();
-			void HandleI2NPMessage (const uint8_t * buf, size_t len);
+			void HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
 
 			// override GarlicDestination
 			void ProcessGarlicMessage (I2NPMessage * msg);
