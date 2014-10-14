@@ -43,6 +43,15 @@ namespace garlic
 	class GarlicDestination;
 	class GarlicRoutingSession
 	{
+			struct UnconfirmedTags
+			{
+				UnconfirmedTags (int n): numTags (n), tagsCreationTime (0) { sessionTags = new SessionTag[numTags]; };
+				~UnconfirmedTags () { delete[] sessionTags; };
+				int numTags;
+				SessionTag * sessionTags;
+				uint32_t tagsCreationTime;
+			};
+
 		public:
 
 			GarlicRoutingSession (GarlicDestination * owner, const i2p::data::RoutingDestination * destination, int numTags);
@@ -50,7 +59,7 @@ namespace garlic
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
 			int GetNextTag () const { return m_NextTag; };
-			void TagsConfirmed (uint32_t msgID) { m_IsAcknowledged = true; };
+			void TagsConfirmed (uint32_t msgID);
 
 			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
 			
@@ -71,7 +80,8 @@ namespace garlic
 			bool m_IsAcknowledged;
 			int m_NumTags, m_NextTag;
 			SessionTag * m_SessionTags; // m_NumTags*32 bytes
-			uint32_t m_TagsCreationTime; // seconds since epoch		
+			uint32_t m_TagsCreationTime; // seconds since epoch	
+			std::map<uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;	
 			bool m_LeaseSetUpdated;
 
 			i2p::crypto::CBCEncryption m_Encryption;

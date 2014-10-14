@@ -45,6 +45,9 @@ namespace garlic
 
 	GarlicRoutingSession::~GarlicRoutingSession	()
 	{	
+		for (auto it: m_UnconfirmedTagsMsgs)	
+			delete it.second;
+		 m_UnconfirmedTagsMsgs.clear ();
 		delete[] m_SessionTags;
 	}
 	
@@ -59,6 +62,15 @@ namespace garlic
 		}
 	}
 	
+	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID) 
+	{ 
+		auto it = m_UnconfirmedTagsMsgs.find (msgID);	
+		if (it != m_UnconfirmedTagsMsgs.end ())
+		{
+		}
+		m_IsAcknowledged = true; 
+	}
+
 	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
