@@ -169,7 +169,7 @@ namespace garlic
 
 		if (m_Owner)
 		{	
-			if (m_NextTag < 0) // new session
+			if (m_NumTags > 0 && m_NextTag < 0) // new session
 			{
 				// clove is DeliveryStatus 
 				size += CreateDeliveryStatusClove (payload + size, msgID);
