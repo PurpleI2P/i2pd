@@ -292,7 +292,7 @@ namespace data
 
 	void RouterInfo::UpdateRoutingKey ()
 	{		
-		m_RoutingKey = CreateRoutingKey (m_IdentHash);
+		memcpy (m_RoutingKey.hash, (const uint8_t *)m_IdentHash, 32);
 	}
 		
 	void RouterInfo::WriteToStream (std::ostream& s)
