@@ -544,8 +544,8 @@ namespace util
 				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
 			Receive ();
 		}
-		else if (ecode != boost::asio::error::operation_aborted)
-			Terminate ();
+		/*else if (ecode != boost::asio::error::operation_aborted)
+			Terminate ();*/
 	}
 
 	void HTTPConnection::RunRequest ()

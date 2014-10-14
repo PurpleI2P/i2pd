@@ -92,7 +92,6 @@ namespace data
 			std::vector<Address>& GetAddresses () { return m_Addresses; };
 			const Address * GetNTCPAddress (bool v4only = true) const;
 			const Address * GetSSUAddress (bool v4only = true) const;
-			const RoutingKey& GetRoutingKey () const { return m_RoutingKey; };
 			
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key);
@@ -119,9 +118,7 @@ namespace data
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			const uint8_t * LoadBuffer (); // load if necessary
 			int GetBufferLen () const { return m_BufferLen; };			
-
 			void CreateBuffer (const PrivateKeys& privateKeys);
-			void UpdateRoutingKey ();
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
@@ -155,7 +152,6 @@ namespace data
 			std::string m_FullPath;
 			Identity m_RouterIdentity;
 			IdentHash m_IdentHash;
-			RoutingKey m_RoutingKey;
 			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
 			uint8_t * m_Buffer;
 			int m_BufferLen;

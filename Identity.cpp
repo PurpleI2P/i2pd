@@ -301,7 +301,7 @@ namespace data
 		dh.GenerateKeyPair(rnd, keys->privateKey, keys->publicKey);
 	}
 
-	RoutingKey CreateRoutingKey (const IdentHash& ident)
+	IdentHash CreateRoutingKey (const IdentHash& ident)
 	{
 		uint8_t buf[41]; // ident + yyyymmdd
 		memcpy (buf, (const uint8_t *)ident, 32);
@@ -310,26 +310,24 @@ namespace data
 		// WARNING!!! check if it is correct
 #ifdef _WIN32
 		gmtime_s(&tm, &t);
-		// тут возвращается какое-то значение sprintf'ом. может стоит его проверять?
-		// http://msdn.microsoft.com/en-us/library/ce3zzk1k.aspx
 		sprintf_s((char *)(buf + 32), 9, "%4i%2i%2i", tm.tm_year, tm.tm_mon, tm.tm_mday);
 #else
 		gmtime_r(&t, &tm);
-		// тут возвращается какое-то значение sprintf'ом. может стоит его проверять?
 		sprintf((char *)(buf + 32), "%4i%2i%2i", tm.tm_year, tm.tm_mon, tm.tm_mday);
 #endif		
-		RoutingKey key;
-		CryptoPP::SHA256().CalculateDigest(key.hash, buf, 40);
+		IdentHash key;
+		CryptoPP::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
 		return key;
 	}	
 	
-	XORMetric operator^(const RoutingKey& key1, const RoutingKey& key2)
+	XORMetric operator^(const IdentHash& key1, const IdentHash& key2)
 	{
 		XORMetric m;
-		m.metric_ll[0] = key1.hash_ll[0] ^ key2.hash_ll[0];
-		m.metric_ll[1] = key1.hash_ll[1] ^ key2.hash_ll[1];
-		m.metric_ll[2] = key1.hash_ll[2] ^ key2.hash_ll[2];
-		m.metric_ll[3] = key1.hash_ll[3] ^ key2.hash_ll[3];
+		const uint64_t * hash1 = key1.GetLL (), * hash2 = key2.GetLL ();
+		m.metric_ll[0] = hash1[0] ^ hash2[0];
+		m.metric_ll[1] = hash1[1] ^ hash2[1];
+		m.metric_ll[2] = hash1[2] ^ hash2[2];
+		m.metric_ll[3] = hash1[3] ^ hash2[3];
 		return m;
 	}	
 }

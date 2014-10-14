@@ -102,7 +102,7 @@ namespace data
 	
 	void NetDb::Run ()
 	{
-		uint32_t lastSave = 0, lastPublish = 0, lastKeyspaceRotation = 0;
+		uint32_t lastSave = 0, lastPublish = 0;
 		m_IsRunning = true;
 		while (m_IsRunning)
 		{	
@@ -158,11 +158,6 @@ namespace data
 					Publish ();
 					lastPublish = ts;
 				}	
-				if (ts % 86400 < 60 && ts - lastKeyspaceRotation >= 60)  // wihhin 1 minutes since midnight (86400 = 24*3600)
-				{
-					KeyspaceRotation ();
-					lastKeyspaceRotation = ts;
-				} 
 			}
 			catch (std::exception& ex)
 			{
@@ -863,14 +858,14 @@ namespace data
 	{
 		RouterInfo * r = nullptr;
 		XORMetric minMetric;
-		RoutingKey destKey = CreateRoutingKey (destination);
+		IdentHash destKey = CreateRoutingKey (destination);
 		minMetric.SetMax ();
 		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 		for (auto it: m_Floodfills)
 		{	
 			if (!it->IsUnreachable () && !excluded.count (it->GetIdentHash ()))
 			{	
-				XORMetric m = destKey ^ it->GetRoutingKey ();
+				XORMetric m = destKey ^ it->GetIdentHash ();
 				if (m < minMetric)
 				{
 					minMetric = m;
@@ -908,14 +903,6 @@ namespace data
 				RequestDestination (it.first, true, it.second);
 			}			
 		}
-	}
-
-	void NetDb::KeyspaceRotation ()
-	{
-		for (auto it: m_RouterInfos)
-			it.second->UpdateRoutingKey ();
-		LogPrint ("Keyspace rotation complete");	
-		Publish ();
 	}
 
 	void NetDb::ManageLeaseSets ()

@@ -35,6 +35,8 @@ namespace data
 			operator uint8_t * () { return m_Buf; };
 			operator const uint8_t * () const { return m_Buf; };
 			
+			const uint64_t * GetLL () const { return ll; };
+
 			bool operator== (const Tag<sz>& other) const { return !memcmp (m_Buf, other.m_Buf, sz); };
 			bool operator< (const Tag<sz>& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; };
 
@@ -52,7 +54,7 @@ namespace data
 				int l = i2p::data::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
 				str[l] = 0;
 				return std::string (str);
-			}
+			}	
 
 		private:
 
@@ -188,12 +190,6 @@ namespace data
 	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
 	// kademlia
-	union RoutingKey
-	{
-		uint8_t hash[32];
-		uint64_t hash_ll[4];
-	};	
-
 	struct XORMetric
 	{
 		union
@@ -207,8 +203,8 @@ namespace data
 		bool operator< (const XORMetric& other) const { return memcmp (metric, other.metric, 32) < 0; };
 	};	
 
-	RoutingKey CreateRoutingKey (const IdentHash& ident);
-	XORMetric operator^(const RoutingKey& key1, const RoutingKey& key2); 	
+	IdentHash CreateRoutingKey (const IdentHash& ident);
+	XORMetric operator^(const IdentHash& key1, const IdentHash& key2); 	
 	
 	// destination for delivery instuctions
 	class RoutingDestination

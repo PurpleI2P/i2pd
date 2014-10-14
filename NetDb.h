@@ -100,7 +100,6 @@ namespace data
 			void Publish ();
 			void ValidateSubscriptions ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
-			void KeyspaceRotation ();
 			void ManageLeaseSets ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 

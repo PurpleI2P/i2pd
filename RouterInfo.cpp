@@ -60,7 +60,6 @@ namespace data
 		m_RouterIdentity = identity;
 		m_IdentHash = m_RouterIdentity.Hash ();
 		UpdateIdentHashBase64 ();
-		UpdateRoutingKey ();
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 	
@@ -228,7 +227,6 @@ namespace data
 		
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));
 		UpdateIdentHashBase64 ();
-		UpdateRoutingKey ();
 
 		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))
 			SetUnreachable (true);
@@ -289,11 +287,6 @@ namespace data
 		memcpy (m_IdentHashAbbreviation, m_IdentHashBase64, 4);
 		m_IdentHashAbbreviation[4] = 0;
 	}	
-
-	void RouterInfo::UpdateRoutingKey ()
-	{		
-		memcpy (m_RoutingKey.hash, (const uint8_t *)m_IdentHash, 32);
-	}
 		
 	void RouterInfo::WriteToStream (std::ostream& s)
 	{
