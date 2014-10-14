@@ -55,7 +55,7 @@ namespace garlic
 			for (int i = 0; i < m_NumTags; i++)
 				m_Rnd.GenerateBlock (m_SessionTags[i], 32);
 			m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
-			SetAcknowledged (false);
+			m_IsAcknowledged = false;
 		}
 	}
 	
@@ -459,7 +459,7 @@ namespace garlic
 			auto it = m_CreatedSessions.find (msgID);
 			if (it != m_CreatedSessions.end ())			
 			{
-				it->second->SetAcknowledged (true);
+				it->second->TagsConfirmed (msgID);
 				m_CreatedSessions.erase (it);
 				LogPrint ("Garlic message ", msgID, " acknowledged");
 			}	

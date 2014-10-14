@@ -50,9 +50,7 @@ namespace garlic
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
 			int GetNextTag () const { return m_NextTag; };
-			
-			bool IsAcknowledged () const { return m_IsAcknowledged; };
-			void SetAcknowledged (bool acknowledged) { m_IsAcknowledged = acknowledged; };
+			void TagsConfirmed (uint32_t msgID) { m_IsAcknowledged = true; };
 
 			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
 			
