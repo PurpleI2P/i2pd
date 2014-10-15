@@ -187,26 +187,32 @@ namespace stream
 	{
 		if (!ecode)
 		{
-			if (!m_RemoteLeaseSet)
+			if (!m_DestinationIdentHash)
 			{
-				// try to get it
-				if (m_DestinationIdentHash)
-					m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*m_DestinationIdentHash);
+				i2p::data::IdentHash identHash;
+				if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
+					m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
+			}	
+			if (m_DestinationIdentHash)
+			{
+				// try to get a LeaseSet
+				m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*m_DestinationIdentHash);
+				if (m_RemoteLeaseSet && m_RemoteLeaseSet->HasNonExpiredLeases ())
+					CreateConnection (socket);
 				else
 				{
-					i2p::data::IdentHash identHash;
-					if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
-					{
-						m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
-						i2p::data::netdb.RequestDestination (*m_DestinationIdentHash, GetLocalDestination ()->GetTunnelPool ());
-						m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
-						m_Timer.async_wait (boost::bind (&I2PClientTunnel::HandleDestinationRequestTimer,
-							this, boost::asio::placeholders::error, socket));
-					}
+					i2p::data::netdb.RequestDestination (*m_DestinationIdentHash, GetLocalDestination ()->GetTunnelPool ());
+					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
+					m_Timer.async_wait (boost::bind (&I2PClientTunnel::HandleDestinationRequestTimer,
+						this, boost::asio::placeholders::error, socket));
 				}
-			}
+			}	
 			else
-				CreateConnection (socket);
+			{
+				LogPrint ("Remote destination ", m_Destination, " not found");
+				delete socket;
+			}	
+				
 			Accept ();
 		}
 		else
