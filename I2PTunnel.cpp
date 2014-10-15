@@ -201,7 +201,7 @@ namespace stream
 					CreateConnection (socket);
 				else
 				{
-					i2p::data::netdb.RequestDestination (*m_DestinationIdentHash, GetLocalDestination ()->GetTunnelPool ());
+					i2p::data::netdb.RequestDestination (*m_DestinationIdentHash, true, GetLocalDestination ()->GetTunnelPool ());
 					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
 					m_Timer.async_wait (boost::bind (&I2PClientTunnel::HandleDestinationRequestTimer,
 						this, boost::asio::placeholders::error, socket));
