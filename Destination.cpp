@@ -11,11 +11,11 @@ namespace i2p
 {
 namespace stream
 {
-	StreamingDestination::StreamingDestination (bool isPublic): 
+	StreamingDestination::StreamingDestination (bool isPublic, i2p::data::SigningKeyType sigType): 
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr), 
 		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic)
 	{		
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (/*i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256*/); // uncomment for ECDSA
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
@@ -42,7 +42,7 @@ namespace stream
 		else
 		{
 			LogPrint ("Can't open file ", fullPath, " Creating new one");
-			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (/*i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256*/); 
+			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); 
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = m_Keys.GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
@@ -359,7 +359,7 @@ namespace stream
 	{
 		if (!m_SharedLocalDestination)
 		{	
-			m_SharedLocalDestination = new StreamingDestination (false); // non-public
+			m_SharedLocalDestination = new StreamingDestination (false, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // non-public, DSA
 			m_Destinations[m_SharedLocalDestination->GetIdentity ().GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
@@ -409,9 +409,9 @@ namespace stream
 		return localDestination;
 	}
 
-	StreamingDestination * StreamingDestinations::CreateNewLocalDestination (bool isPublic)
+	StreamingDestination * StreamingDestinations::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
 	{
-		auto localDestination = new StreamingDestination (isPublic);
+		auto localDestination = new StreamingDestination (isPublic, sigType);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
@@ -499,9 +499,9 @@ namespace stream
 		return destinations.GetSharedLocalDestination ();
 	}	
 	
-	StreamingDestination * CreateNewLocalDestination (bool isPublic)
+	StreamingDestination * CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
 	{
-		return destinations.CreateNewLocalDestination (isPublic);
+		return destinations.CreateNewLocalDestination (isPublic, sigType);
 	}
 
 	StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)

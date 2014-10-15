@@ -18,7 +18,7 @@ namespace stream
 	{
 		public:
 
-			StreamingDestination (bool isPublic);
+			StreamingDestination (bool isPublic, i2p::data::SigningKeyType sigType);
 			StreamingDestination (const std::string& fullPath, bool isPublic);
 			StreamingDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			~StreamingDestination ();	
@@ -103,7 +103,7 @@ namespace stream
 			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
 			void DeleteStream (Stream * stream);
 			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			StreamingDestination * CreateNewLocalDestination (bool isPublic);
+			StreamingDestination * CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType);
 			StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			void DeleteLocalDestination (StreamingDestination * destination);
 			StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
@@ -130,7 +130,7 @@ namespace stream
 	void StartStreaming ();
 	void StopStreaming ();
 	StreamingDestination * GetSharedLocalDestination ();
-	StreamingDestination * CreateNewLocalDestination (bool isPublic = true);
+	StreamingDestination * CreateNewLocalDestination (bool isPublic = true, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // transient
 	StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);	
 	void DeleteLocalDestination (StreamingDestination * destination);
 	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	

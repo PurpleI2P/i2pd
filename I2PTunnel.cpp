@@ -145,7 +145,8 @@ namespace stream
 		
 	I2PClientTunnel::I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, 
 		int port, StreamingDestination * localDestination): 
-		I2PTunnel (service, localDestination ? localDestination : GetSharedLocalDestination ()), 
+		I2PTunnel (service, localDestination ? localDestination : 
+			CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256)), 
 		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_Timer (service), m_Destination (destination), m_DestinationIdentHash (nullptr), 
 		m_RemoteLeaseSet (nullptr)
