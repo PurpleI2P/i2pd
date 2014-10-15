@@ -376,26 +376,19 @@ namespace data
 				if (inbound)
 				{
 					RequestedDestination * dest = CreateRequestedDestination (destination, true, false, pool);
-					std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-					// request 3 closests floodfills
-					for (int i = 0; i < 3; i++)
-					{	
-						auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
-						if (floodfill)
-						{		
-							// DatabaseLookup message
-							msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+					auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+					if (floodfill)
+					{		
+						// DatabaseLookup message
+						outbound->SendTunnelDataMsg (
+						    {
+								i2p::tunnel::TunnelMessageBlock 
 								{ 
 									i2p::tunnel::eDeliveryTypeRouter,
 									floodfill->GetIdentHash (), 0,
 									dest->CreateRequestMessage (floodfill, inbound)
-								});	
-						}	
-					}
-					if (msgs.size () > 0)
-					{	
-						dest->ClearExcludedPeers (); 
-						outbound->SendTunnelDataMsg (msgs);	
+								}
+							});	
 					}	
 					else
 						LogPrint ("No more floodfills found");
@@ -468,6 +461,43 @@ namespace data
 				auto outbound = pool ? pool->GetNextOutboundTunnel () : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
 				auto inbound = pool ? pool->GetNextInboundTunnel () : i2p::tunnel::tunnels.GetNextInboundTunnel ();
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+				if (!dest->IsExploratory ())
+				{
+					// reply to our destination. Try other floodfills
+					if (outbound && inbound )
+					{
+						auto count = dest->GetExcludedPeers ().size ();
+						if (count < 7)
+						{	
+							auto nextFloodfill = GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
+							if (nextFloodfill)
+							{
+								if (!dest->IsLeaseSet ())
+								{	
+									// tell floodfill about us 
+									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+										{ 
+											i2p::tunnel::eDeliveryTypeRouter,
+											nextFloodfill->GetIdentHash (), 0,
+											CreateDatabaseStoreMsg () 
+										});  
+								}	
+								
+								// request destination
+								LogPrint ("Try ", key, " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ()); 
+								auto msg = dest->CreateRequestMessage (nextFloodfill, inbound);
+								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+									{ 
+										i2p::tunnel::eDeliveryTypeRouter,
+										nextFloodfill->GetIdentHash (), 0, msg
+									});
+								deleteDest = false;
+							}	
+						}
+						else
+							LogPrint (key, " was not found on 7 floodfills");
+					}	
+				}	
 				
 				for (int i = 0; i < num; i++)
 				{
@@ -501,64 +531,14 @@ namespace data
 							LogPrint ("Bayan");
 					}	
 					else
-					{	
-						// reply to our destination. Try other floodfills
-						if (outbound && inbound && dest->GetLastRouter ())
-						{
-							auto r = FindRouter (router); 
-							// do we have that floodfill router in our database?
-							if (r) 
-							{
-								// we do
-								if (!dest->IsExcluded (r->GetIdentHash ()) && dest->GetNumExcludedPeers () < 30) // TODO: fix TunnelGateway first
-								{	
-									LogPrint ("Try ", key, " at floodfill ", peerHash); 
-									if (!dest->IsLeaseSet ())
-									{	
-										// tell floodfill about us 
-										msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-											{ 
-												i2p::tunnel::eDeliveryTypeRouter,
-												r->GetIdentHash (), 0,
-												CreateDatabaseStoreMsg () 
-											});  
-									}	
-									// request destination
-									auto msg = dest->CreateRequestMessage (r, inbound);
-									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-										{ 
-											i2p::tunnel::eDeliveryTypeRouter,
-											r->GetIdentHash (), 0, msg
-										});
-									deleteDest = false;
-								}	
-							}
-							else
-							{	
-								// request router
-								LogPrint ("Found new floodfill. Request it");
-								RequestedDestination * d2 = CreateRequestedDestination (router, false, false, pool);
-								I2NPMessage * msg = d2->CreateRequestMessage (dest->GetLastRouter (), inbound);
-								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-									{ 
-										i2p::tunnel::eDeliveryTypeRouter,
-										dest->GetLastRouter ()->GetIdentHash (), 0, msg
-									});
-							}	
-						}
-						else // we should send directly
-						{
-							if (!dest->IsLeaseSet ()) // if not LeaseSet
-							{
-								if (!dest->IsExcluded (router) && dest->GetNumExcludedPeers () < 30) 
-								{	
-									LogPrint ("Try ", key, " at floodfill ", peerHash, " directly"); 
-									i2p::transports.SendMessage (router, dest->CreateRequestMessage (router));
-									deleteDest = false;
-								}	
-							}	
-							else
-								LogPrint ("Can't request LeaseSet");
+					{		
+						auto r = FindRouter (router); 
+						// do we have that floodfill router in our database?
+						if (!r) 
+						{	
+							// request router
+							LogPrint ("Found new floodfill. Request it");
+							RequestDestination (router, false, pool);
 						}	
 					}						
 				}
@@ -567,7 +547,7 @@ namespace data
 					outbound->SendTunnelDataMsg (msgs);	
 				if (deleteDest)
 				{
-					// no more requests for tha destinationation. delete it
+					// no more requests for the destinationation. delete it
 					delete it->second;
 					m_RequestedDestinations.erase (it);
 				}	

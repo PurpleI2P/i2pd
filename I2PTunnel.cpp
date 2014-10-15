@@ -44,7 +44,7 @@ namespace stream
 		m_Socket->close ();
 		if (m_Owner)
 			m_Owner->RemoveConnection (this);
-		delete this;	
+		//delete this;	
 	}			
 
 	void I2PTunnelConnection::Receive ()

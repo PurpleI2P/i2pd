@@ -307,13 +307,12 @@ namespace data
 		memcpy (buf, (const uint8_t *)ident, 32);
 		time_t t = time (nullptr);
 		struct tm tm;
-		// WARNING!!! check if it is correct
 #ifdef _WIN32
 		gmtime_s(&tm, &t);
-		sprintf_s((char *)(buf + 32), 9, "%4i%2i%2i", tm.tm_year, tm.tm_mon, tm.tm_mday);
+		sprintf_s((char *)(buf + 32), 9, "%4i%2i%2i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
 #else
 		gmtime_r(&t, &tm);
-		sprintf((char *)(buf + 32), "%4i%2i%2i", tm.tm_year, tm.tm_mon, tm.tm_mday);
+		sprintf((char *)(buf + 32), "%4i%2i%2i", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
 #endif		
 		IdentHash key;
 		CryptoPP::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
