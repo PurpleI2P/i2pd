@@ -858,7 +858,7 @@ namespace util
 		auto leaseSet = i2p::stream::GetSharedLocalDestination ()->FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
-			i2p::data::netdb.Subscribe(destination, i2p::stream::GetSharedLocalDestination ()->GetTunnelPool ());
+			i2p::data::netdb.RequestDestination (destination, true, i2p::stream::GetSharedLocalDestination ()->GetTunnelPool ());
 			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
 			leaseSet = i2p::stream::GetSharedLocalDestination ()->FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet

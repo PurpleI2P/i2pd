@@ -69,8 +69,6 @@ namespace data
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 			AddressBook& GetAddressBook () { return m_AddressBook; };// TODO: move AddressBook away from NetDb
 
-			void Subscribe (const IdentHash& ident, i2p::tunnel::TunnelPool * pool = nullptr); // keep LeaseSets upto date			
-			void Unsubscribe (const IdentHash& ident);	
 			void PublishLeaseSet (const LeaseSet * leaseSet, i2p::tunnel::TunnelPool * pool);
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false, 
 				i2p::tunnel::TunnelPool * pool = nullptr);			
@@ -98,7 +96,6 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Publish ();
-			void ValidateSubscriptions ();
 			const RouterInfo * GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			void ManageLeaseSets ();
 
@@ -118,7 +115,6 @@ namespace data
 			std::vector<RouterInfo *> m_Floodfills;
 			std::mutex m_RequestedDestinationsMutex;
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
-			std::map<IdentHash, i2p::tunnel::TunnelPool *> m_Subscriptions;
 			
 			bool m_IsRunning;
 			int m_ReseedRetries;

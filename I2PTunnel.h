@@ -14,6 +14,7 @@ namespace stream
 {
 	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds	
+	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 
 	class I2PTunnel;
 	class I2PTunnelConnection
@@ -84,10 +85,13 @@ namespace stream
 
 			void Accept ();
 			void HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
-			
+			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+			void CreateConnection (boost::asio::ip::tcp::socket * socket);				
+
 		private:
 
 			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::deadline_timer m_Timer;
 			std::string m_Destination;
 			const i2p::data::IdentHash * m_DestinationIdentHash;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;

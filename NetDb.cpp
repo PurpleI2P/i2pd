@@ -149,7 +149,6 @@ namespace data
 					{
 						SaveUpdated (m_NetDbPath);
 						ManageLeaseSets ();
-						ValidateSubscriptions ();
 					}	
 					lastSave = ts;
 				}	
@@ -855,35 +854,6 @@ namespace data
 		}	
 		return r;
 	}	
-
-	void NetDb::Subscribe (const IdentHash& ident, i2p::tunnel::TunnelPool * pool)
-	{
-		LeaseSet * leaseSet = FindLeaseSet (ident);
-		if (!leaseSet)
-		{
-			LogPrint ("LeaseSet requested");	
-			RequestDestination (ident, true, pool);
-		}
-		m_Subscriptions[ident] = pool;
-	}
-		
-	void NetDb::Unsubscribe (const IdentHash& ident)
-	{
-		m_Subscriptions.erase (ident);
-	}
-
-	void NetDb::ValidateSubscriptions ()
-	{
-		for (auto it : m_Subscriptions)
-		{
-			LeaseSet * leaseSet = FindLeaseSet (it.first);
-			if (!leaseSet || leaseSet->HasExpiredLeases ())
-			{
-				LogPrint ("LeaseSet re-requested");	
-				RequestDestination (it.first, true, it.second);
-			}			
-		}
-	}
 
 	void NetDb::ManageLeaseSets ()
 	{
