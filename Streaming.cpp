@@ -201,6 +201,7 @@ namespace stream
 			m_IsReset = true;
 			m_ReceiveTimer.cancel ();
 			m_ResendTimer.cancel ();
+			m_AckSendTimer.cancel ();
 		}
 	}	
 

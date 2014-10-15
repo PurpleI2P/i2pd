@@ -102,7 +102,7 @@ namespace stream
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			for (auto it: m_Streams)
-				delete it.second;
+				delete it.second;	
 			m_Streams.clear ();
 		}	
 		if (m_Pool)
@@ -186,7 +186,10 @@ namespace stream
 			if (it != m_Streams.end ())
 			{	
 				m_Streams.erase (it);
-				delete stream;
+				if (m_Service)
+					m_Service->post ([stream](void) { delete stream; }); 
+				else
+					delete stream;
 			}	
 		}	
 	}	
