@@ -38,7 +38,7 @@ namespace stream
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			DeleteStream (m_Stream);
+			m_Owner->GetLocalDestination ()->DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}	
 		m_Socket->close ();
@@ -114,7 +114,7 @@ namespace stream
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				if (m_Stream) m_Stream->Close ();
-				DeleteStream (m_Stream);
+				m_Owner->GetLocalDestination ()->DeleteStream (m_Stream);
 				m_Stream = nullptr;
 			}	
 		}

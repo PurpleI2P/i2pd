@@ -100,8 +100,6 @@ namespace stream
 			void Start ();
 			void Stop ();
 
-			Stream * CreateClientStream (const i2p::data::LeaseSet& remote);
-			void DeleteStream (Stream * stream);
 			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
 			StreamingDestination * CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType);
 			StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
@@ -125,8 +123,6 @@ namespace stream
 	};	
 
 	
-	Stream * CreateStream (const i2p::data::LeaseSet& remote);
-	void DeleteStream (Stream * stream);
 	void StartStreaming ();
 	void StopStreaming ();
 	StreamingDestination * GetSharedLocalDestination ();

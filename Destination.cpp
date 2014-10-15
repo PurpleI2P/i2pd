@@ -453,18 +453,6 @@ namespace stream
 		localDestination->Start ();
 		return localDestination;
 	}
-
-	Stream * StreamingDestinations::CreateClientStream (const i2p::data::LeaseSet& remote)
-	{
-		if (!m_SharedLocalDestination) return nullptr;
-		return m_SharedLocalDestination->CreateNewOutgoingStream (remote);
-	}
-
-	void StreamingDestinations::DeleteStream (Stream * stream)
-	{
-		if (stream)
-			stream->GetLocalDestination ().DeleteStream (stream);
-	}	
 	
 	StreamingDestination * StreamingDestinations::FindLocalDestination (const i2p::data::IdentHash& destination) const
 	{
@@ -472,16 +460,6 @@ namespace stream
 		if (it != m_Destinations.end ())
 			return it->second;
 		return nullptr;
-	}	
-
-	Stream * CreateStream (const i2p::data::LeaseSet& remote)
-	{
-		return destinations.CreateClientStream (remote);
-	}
-		
-	void DeleteStream (Stream * stream)
-	{
-		destinations.DeleteStream (stream);
 	}	
 
 	void StartStreaming ()

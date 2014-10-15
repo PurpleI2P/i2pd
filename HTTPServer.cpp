@@ -516,7 +516,7 @@ namespace util
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			DeleteStream (m_Stream);
+			i2p::stream::GetSharedLocalDestination ()->DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		m_Socket->close ();
@@ -868,7 +868,7 @@ namespace util
 			}
 		}
 		if (!m_Stream)
-			m_Stream = i2p::stream::CreateStream (*leaseSet);
+			m_Stream = i2p::stream::GetSharedLocalDestination ()->CreateNewOutgoingStream (*leaseSet);
 		if (m_Stream)
 		{
 			m_Stream->Send ((uint8_t *)buf, len);

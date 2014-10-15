@@ -24,7 +24,7 @@ namespace stream
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			DeleteStream (m_Stream);
+			m_Session->localDestination->DeleteStream (m_Stream);
 		}
 	}	
 
@@ -33,7 +33,7 @@ namespace stream
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			DeleteStream (m_Stream);
+			m_Session->localDestination->DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		switch (m_SocketType)
