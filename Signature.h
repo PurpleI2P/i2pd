@@ -31,23 +31,26 @@ namespace crypto
 			virtual void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const = 0; 
 	};
 
+	const size_t DSA_PUBLIC_KEY_LENGTH = 128;
+	const size_t DSA_SIGNATURE_LENGTH = 40;	
+	const size_t DSA_PRIVATE_KEY_LENGTH = DSA_SIGNATURE_LENGTH/2;
 	class DSAVerifier: public Verifier
 	{
 		public:
 
 			DSAVerifier (const uint8_t * signingKey)
 			{
-				m_PublicKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingKey, 128));
+				m_PublicKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingKey, DSA_PUBLIC_KEY_LENGTH));
 			}
 	
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				CryptoPP::DSA::Verifier verifier (m_PublicKey);
-				return verifier.VerifyMessage (buf, len, signature, 40);
+				return verifier.VerifyMessage (buf, len, signature, DSA_SIGNATURE_LENGTH);
 			}	
 
-			size_t GetPublicKeyLen () const { return 128; };
-			size_t GetSignatureLen () const { return 40; };
+			size_t GetPublicKeyLen () const { return DSA_PUBLIC_KEY_LENGTH; };
+			size_t GetSignatureLen () const { return DSA_SIGNATURE_LENGTH; };
 			
 		private:
 
@@ -60,7 +63,7 @@ namespace crypto
 
 			DSASigner (const uint8_t * signingPrivateKey)
 			{
-				m_PrivateKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingPrivateKey, 20));
+				m_PrivateKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH));
 			}
 
 			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const
@@ -80,10 +83,15 @@ namespace crypto
 		CryptoPP::DSA::PublicKey publicKey;
 		privateKey.Initialize (rnd, dsap, dsaq, dsag);
 		privateKey.MakePublicKey (publicKey);
-		privateKey.GetPrivateExponent ().Encode (signingPrivateKey, 20);	
-		publicKey.GetPublicElement ().Encode (signingPublicKey, 128);
+		privateKey.GetPrivateExponent ().Encode (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH);	
+		publicKey.GetPublicElement ().Encode (signingPublicKey, DSA_PUBLIC_KEY_LENGTH);
 	}	
 
+
+	const size_t ECDSAP256_PUBLIC_KEY_LENGTH = 64;
+	const size_t ECDSAP256_PUBLIC_KEY_HALF_LENGTH = ECDSAP256_PUBLIC_KEY_LENGTH/2;
+	const size_t ECDSAP256_SIGNATURE_LENGTH = 64;
+	const size_t ECDSAP256_PRIVATE_KEY_LENGTH = ECDSAP256_SIGNATURE_LENGTH/2;		
 	class ECDSAP256Verifier: public Verifier
 	{
 		public:
@@ -91,18 +99,18 @@ namespace crypto
 			ECDSAP256Verifier (const uint8_t * signingKey)
 			{
 				m_PublicKey.Initialize (CryptoPP::ASN1::secp256r1(), 
-					CryptoPP::ECP::Point (CryptoPP::Integer (signingKey, 32), 
-					CryptoPP::Integer (signingKey + 32, 32)));
+					CryptoPP::ECP::Point (CryptoPP::Integer (signingKey, ECDSAP256_PUBLIC_KEY_HALF_LENGTH), 
+					CryptoPP::Integer (signingKey + ECDSAP256_PUBLIC_KEY_HALF_LENGTH, ECDSAP256_PUBLIC_KEY_HALF_LENGTH)));
 			}			
 
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier (m_PublicKey);
-				return verifier.VerifyMessage (buf, len, signature, 64);
+				return verifier.VerifyMessage (buf, len, signature, ECDSAP256_SIGNATURE_LENGTH);
 			}	
 
-			size_t GetPublicKeyLen () const { return 64; };
-			size_t GetSignatureLen () const { return 64; };
+			size_t GetPublicKeyLen () const { return ECDSAP256_PUBLIC_KEY_LENGTH; };
+			size_t GetSignatureLen () const { return ECDSAP256_SIGNATURE_LENGTH; };
 			
 		private:
 
@@ -115,7 +123,7 @@ namespace crypto
 
 			ECDSAP256Signer (const uint8_t * signingPrivateKey)
 			{
-				m_PrivateKey.Initialize (CryptoPP::ASN1::secp256r1(), CryptoPP::Integer (signingPrivateKey, 32));
+				m_PrivateKey.Initialize (CryptoPP::ASN1::secp256r1(), CryptoPP::Integer (signingPrivateKey, ECDSAP256_PRIVATE_KEY_LENGTH));
 			}
 
 			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const
@@ -135,10 +143,10 @@ namespace crypto
 		CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey publicKey;
 		privateKey.Initialize (rnd, CryptoPP::ASN1::secp256r1());
 		privateKey.MakePublicKey (publicKey);
-		privateKey.GetPrivateExponent ().Encode (signingPrivateKey, 32);	
+		privateKey.GetPrivateExponent ().Encode (signingPrivateKey, ECDSAP256_PRIVATE_KEY_LENGTH);	
 		auto q = publicKey.GetPublicElement ();
-		q.x.Encode (signingPublicKey, 32);
-		q.y.Encode (signingPublicKey + 32, 32);
+		q.x.Encode (signingPublicKey, ECDSAP256_PUBLIC_KEY_HALF_LENGTH);
+		q.y.Encode (signingPublicKey + ECDSAP256_PUBLIC_KEY_HALF_LENGTH, ECDSAP256_PUBLIC_KEY_HALF_LENGTH);
 	}	
 }
 }
