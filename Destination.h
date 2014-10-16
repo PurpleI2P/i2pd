@@ -88,51 +88,7 @@ namespace stream
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
-	};	
-
-	class StreamingDestinations
-	{
-		public:
-
-			StreamingDestinations (): m_SharedLocalDestination (nullptr) {};
-			~StreamingDestinations () {};
-
-			void Start ();
-			void Stop ();
-
-			StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			StreamingDestination * CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType);
-			StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
-			void DeleteLocalDestination (StreamingDestination * destination);
-			StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
-			StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
-
-		private:	
-
-			void LoadLocalDestinations ();
-			
-		private:
-
-			std::mutex m_DestinationsMutex;
-			std::map<i2p::data::IdentHash, StreamingDestination *> m_Destinations;
-			StreamingDestination * m_SharedLocalDestination;	
-
-		public:
-			// for HTTP
-			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
-	};	
-
-	
-	void StartStreaming ();
-	void StopStreaming ();
-	StreamingDestination * GetSharedLocalDestination ();
-	StreamingDestination * CreateNewLocalDestination (bool isPublic = true, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // transient
-	StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);	
-	void DeleteLocalDestination (StreamingDestination * destination);
-	StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	
-	StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
-	// for HTTP
-	const StreamingDestinations& GetLocalDestinations ();	
+	};		
 }		
 }	
 

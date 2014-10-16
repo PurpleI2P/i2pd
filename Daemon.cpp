@@ -17,6 +17,7 @@
 #include "HTTPServer.h"
 #include "HTTPProxy.h"
 #include "SOCKS.h"
+#include "ClientContext.h"
 #include "I2PTunnel.h"
 #include "SAM.h"
 
@@ -111,8 +112,8 @@ namespace i2p
 			LogPrint("Transports started");
 			i2p::tunnel::tunnels.Start();
 			LogPrint("Tunnels started");
-			i2p::stream::StartStreaming();
-			LogPrint("Streaming started");
+			i2p::client::context.Start ();
+			LogPrint("Client started");
 
 			d.httpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
 			d.httpProxy->Start();
@@ -126,7 +127,7 @@ namespace i2p
 				i2p::stream::StreamingDestination * localDestination = nullptr;
 				std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 				if (ircKeys.length () > 0)
-					localDestination = i2p::stream::LoadLocalDestination (ircKeys, false);
+					localDestination = i2p::client::LoadLocalDestination (ircKeys, false);
 				d.ircTunnel = new i2p::stream::I2PClientTunnel (d.socksProxy->GetService (), ircDestination,
 					i2p::util::config::GetArg("-ircport", 6668), localDestination);
 				d.ircTunnel->Start ();
@@ -135,7 +136,7 @@ namespace i2p
 			std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
 			if (eepKeys.length () > 0) // eepkeys file is presented
 			{
-				auto localDestination = i2p::stream::LoadLocalDestination (eepKeys, true);
+				auto localDestination = i2p::client::LoadLocalDestination (eepKeys, true);
 				d.serverTunnel = new i2p::stream::I2PServerTunnel (d.socksProxy->GetService (), 
 					i2p::util::config::GetArg("-eephost", "127.0.0.1"), i2p::util::config::GetArg("-eepport", 80),
 					localDestination);
@@ -160,8 +161,8 @@ namespace i2p
 			LogPrint("HTTP Proxy stoped");
 			d.socksProxy->Stop();
 			LogPrint("SOCKS Proxy stoped");
-			i2p::stream::StopStreaming();
-			LogPrint("Streaming stoped");
+			i2p::client::context.Stop();
+			LogPrint("Client stoped");
 			i2p::tunnel::tunnels.Stop();
 			LogPrint("Tunnels stoped");
 			i2p::transports.Stop();

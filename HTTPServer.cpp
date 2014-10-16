@@ -10,6 +10,7 @@
 #include "Streaming.h"
 #include "Destination.h"
 #include "RouterContext.h"
+#include "ClientContext.h"
 #include "HTTPServer.h"
 
 // For image and info
@@ -516,7 +517,7 @@ namespace util
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			i2p::stream::GetSharedLocalDestination ()->DeleteStream (m_Stream);
+			i2p::client::GetSharedLocalDestination ()->DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		m_Socket->close ();
@@ -779,7 +780,7 @@ namespace util
 
 	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
 	{
-		for (auto& it: i2p::stream::GetLocalDestinations ().GetDestinations ())
+		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			std::string b32 = it.first.ToBase32 (); 
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
@@ -792,7 +793,7 @@ namespace util
 	{
 		i2p::data::IdentHash ident;
 		i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), ident, 32);
-		auto dest = i2p::stream::FindLocalDestination (ident);
+		auto dest = i2p::client::FindLocalDestination (ident);
 		if (dest)
 		{
 			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>";
@@ -855,12 +856,12 @@ namespace util
 	
 	void HTTPConnection::SendToDestination (const i2p::data::IdentHash& destination, const char * buf, size_t len)
 	{
-		auto leaseSet = i2p::stream::GetSharedLocalDestination ()->FindLeaseSet (destination);
+		auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
 		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
 		{
-			i2p::data::netdb.RequestDestination (destination, true, i2p::stream::GetSharedLocalDestination ()->GetTunnelPool ());
+			i2p::data::netdb.RequestDestination (destination, true, i2p::client::GetSharedLocalDestination ()->GetTunnelPool ());
 			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
-			leaseSet = i2p::stream::GetSharedLocalDestination ()->FindLeaseSet (destination);
+			leaseSet = i2p::client::GetSharedLocalDestination ()->FindLeaseSet (destination);
 			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
 			{
 				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
@@ -868,7 +869,7 @@ namespace util
 			}
 		}
 		if (!m_Stream)
-			m_Stream = i2p::stream::GetSharedLocalDestination ()->CreateNewOutgoingStream (*leaseSet);
+			m_Stream = i2p::client::GetSharedLocalDestination ()->CreateNewOutgoingStream (*leaseSet);
 		if (m_Stream)
 		{
 			m_Stream->Send ((uint8_t *)buf, len);

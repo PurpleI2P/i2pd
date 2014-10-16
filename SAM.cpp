@@ -6,6 +6,7 @@
 #include "Log.h"
 #include "NetDb.h"
 #include "Destination.h"
+#include "ClientContext.h"
 #include "SAM.h"
 
 namespace i2p
@@ -331,7 +332,7 @@ namespace stream
 	void SAMSocket::ProcessDestGenerate ()
 	{
 		LogPrint ("SAM dest generate");
-		auto localDestination = CreateNewLocalDestination ();
+		auto localDestination = i2p::client::CreateNewLocalDestination ();
 		if (localDestination)
 		{
 			uint8_t buf[1024];
@@ -573,10 +574,10 @@ namespace stream
 			i2p::data::PrivateKeys keys;
 			keys.FromBuffer (buf, l);
 			delete[] buf;
-			localDestination = CreateNewLocalDestination (keys);
+			localDestination = i2p::client::CreateNewLocalDestination (keys);
 		}
 		else // transient
-			localDestination = CreateNewLocalDestination (); 
+			localDestination = i2p::client::CreateNewLocalDestination (); 
 		if (localDestination)
 		{
 			SAMSession session;
