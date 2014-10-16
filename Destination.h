@@ -28,6 +28,7 @@ namespace client
 			bool IsRunning () const { return m_IsRunning; };
 			boost::asio::io_service * GetService () { return m_Service; };
 			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; }; 
+			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases (); };
 
 			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
 			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);

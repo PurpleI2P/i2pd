@@ -20,6 +20,7 @@ namespace client
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds	
 	const int SAM_CONNECT_TIMEOUT = 5; // in seconds
 	const int SAM_NAMING_LOOKUP_TIMEOUT = 5; // in seconds
+	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 20; // in seconds	
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=3.0\n";
 	const char SAM_SESSION_CREATE[] = "SESSION CREATE";
@@ -95,6 +96,8 @@ namespace client
 			void HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
 			void HandleNamingLookupDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
 			void SendNamingLookupReply (const i2p::data::LeaseSet * leaseSet);
+			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);
+			void SendSessionCreateReplyOk ();
 
 		private:
 

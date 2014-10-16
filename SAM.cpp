@@ -220,16 +220,43 @@ namespace client
 		if (m_Session)
 		{
 			m_SocketType = eSAMSocketTypeSession;
-			uint8_t buf[1024];
-			char priv[1024];
-			size_t l = m_Session->localDestination->GetPrivateKeys ().ToBuffer (buf, 1024);
-			size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
-			priv[l1] = 0;
-			size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
-			SendMessageReply (m_Buffer, l2, false);
+			if (m_Session->localDestination->IsReady ())
+				SendSessionCreateReplyOk ();
+			else
+			{
+				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
+				m_Timer.async_wait (boost::bind (&SAMSocket::HandleSessionReadinessCheckTimer,
+					this, boost::asio::placeholders::error));	
+			}
 		}
 		else
 			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_DEST, strlen(SAM_SESSION_CREATE_DUPLICATED_DEST), true);
+	}
+
+	void SAMSocket::HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_Session->localDestination->IsReady ())
+				SendSessionCreateReplyOk ();
+			else
+			{
+				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
+				m_Timer.async_wait (boost::bind (&SAMSocket::HandleSessionReadinessCheckTimer,
+					this, boost::asio::placeholders::error));
+			}	
+		}
+	}
+
+	void SAMSocket::SendSessionCreateReplyOk ()
+	{
+		uint8_t buf[1024];
+		char priv[1024];
+		size_t l = m_Session->localDestination->GetPrivateKeys ().ToBuffer (buf, 1024);
+		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
+		priv[l1] = 0;
+		size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
+		SendMessageReply (m_Buffer, l2, false);
 	}
 
 	void SAMSocket::ProcessStreamConnect (char * buf, size_t len)
