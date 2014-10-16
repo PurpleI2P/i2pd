@@ -1,4 +1,5 @@
 #include "util.h"
+#include "Log.h"
 #include "ClientContext.h"
 
 namespace i2p
@@ -6,6 +7,22 @@ namespace i2p
 namespace client
 {
 	ClientContext context;	
+
+	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
+		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_IrcTunnel (nullptr),
+		m_ServerTunnel (nullptr), m_SamBridge (nullptr)	
+	{
+	}
+	
+	ClientContext::~ClientContext () 
+	{
+		delete m_HttpProxy;
+		delete m_SocksProxy;
+		delete m_IrcTunnel;
+		delete m_ServerTunnel;
+		delete m_SamBridge;
+	}
+	
 	void ClientContext::Start ()
 	{
 		if (!m_SharedLocalDestination)
@@ -14,10 +31,76 @@ namespace client
 			m_Destinations[m_SharedLocalDestination->GetIdentity ().GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
+
+		m_HttpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
+		m_HttpProxy->Start();
+		LogPrint("HTTP Proxy started");
+		m_SocksProxy = new i2p::proxy::SOCKSProxy(i2p::util::config::GetArg("-socksproxyport", 4447));
+		m_SocksProxy->Start();
+		LogPrint("SOCKS Proxy Started");
+		std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
+		if (ircDestination.length () > 0) // ircdest is presented
+		{
+			i2p::stream::StreamingDestination * localDestination = nullptr;
+			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
+			if (ircKeys.length () > 0)
+				localDestination = i2p::client::LoadLocalDestination (ircKeys, false);
+			m_IrcTunnel = new i2p::stream::I2PClientTunnel (m_SocksProxy->GetService (), ircDestination,
+				i2p::util::config::GetArg("-ircport", 6668), localDestination);
+			m_IrcTunnel->Start ();
+			LogPrint("IRC tunnel started");
+		}	
+		std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
+		if (eepKeys.length () > 0) // eepkeys file is presented
+		{
+			auto localDestination = i2p::client::LoadLocalDestination (eepKeys, true);
+			m_ServerTunnel = new i2p::stream::I2PServerTunnel (m_SocksProxy->GetService (), 
+				i2p::util::config::GetArg("-eephost", "127.0.0.1"), i2p::util::config::GetArg("-eepport", 80),
+				localDestination);
+			m_ServerTunnel->Start ();
+			LogPrint("Server tunnel started");
+		}
+		int samPort = i2p::util::config::GetArg("-samport", 0);
+		if (samPort)
+		{
+			m_SamBridge = new i2p::stream::SAMBridge (samPort);
+			m_SamBridge->Start ();
+			LogPrint("SAM bridge started");
+		} 
 	}
 		
 	void ClientContext::Stop ()
 	{
+		m_HttpProxy->Stop();
+		delete m_HttpProxy;
+		m_HttpProxy = nullptr;
+		LogPrint("HTTP Proxy stoped");
+		m_SocksProxy->Stop();
+		delete m_SocksProxy;
+		m_SocksProxy = nullptr;
+		LogPrint("SOCKS Proxy stoped");
+		if (m_IrcTunnel)
+		{
+			m_IrcTunnel->Stop ();
+			delete m_IrcTunnel; 
+			m_IrcTunnel = nullptr;
+			LogPrint("IRC tunnel stoped");	
+		}
+		if (m_ServerTunnel)
+		{
+			m_ServerTunnel->Stop ();
+			delete m_ServerTunnel; 
+			m_ServerTunnel = nullptr;
+			LogPrint("Server tunnel stoped");	
+		}			
+		if (m_SamBridge)
+		{
+			m_SamBridge->Stop ();
+			delete m_SamBridge; 
+			m_SamBridge = nullptr;
+			LogPrint("SAM brdige stoped");	
+		}		
+		
 		for (auto it: m_Destinations)
 		{	
 			it.second->Stop ();

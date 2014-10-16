@@ -3,6 +3,10 @@
 
 #include <mutex>
 #include "Destination.h"
+#include "HTTPProxy.h"
+#include "SOCKS.h"
+#include "I2PTunnel.h"
+#include "SAM.h"
 
 namespace i2p
 {
@@ -12,8 +16,8 @@ namespace client
 	{
 		public:
 
-			ClientContext (): m_SharedLocalDestination (nullptr) {};
-			~ClientContext () {};
+			ClientContext ();
+			~ClientContext ();
 
 			void Start ();
 			void Stop ();
@@ -34,6 +38,12 @@ namespace client
 			std::mutex m_DestinationsMutex;
 			std::map<i2p::data::IdentHash, i2p::stream::StreamingDestination *> m_Destinations;
 			i2p::stream::StreamingDestination * m_SharedLocalDestination;	
+
+			i2p::proxy::HTTPProxy * m_HttpProxy;
+			i2p::proxy::SOCKSProxy * m_SocksProxy;
+			i2p::stream::I2PClientTunnel * m_IrcTunnel;
+			i2p::stream::I2PServerTunnel * m_ServerTunnel;
+			i2p::stream::SAMBridge * m_SamBridge;
 
 		public:
 			// for HTTP
