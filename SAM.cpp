@@ -11,7 +11,7 @@
 
 namespace i2p
 {
-namespace stream
+namespace client
 {
 	SAMSocket::SAMSocket (SAMBridge& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
@@ -25,7 +25,8 @@ namespace stream
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			m_Session->localDestination->DeleteStream (m_Stream);
+			if (m_Session && m_Session->localDestination)
+				m_Session->localDestination->DeleteStream (m_Stream);
 		}
 	}	
 
@@ -34,7 +35,8 @@ namespace stream
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			m_Session->localDestination->DeleteStream (m_Stream);
+			if (m_Session && m_Session->localDestination)
+				m_Session->localDestination->DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		switch (m_SocketType)
@@ -332,7 +334,7 @@ namespace stream
 	void SAMSocket::ProcessDestGenerate ()
 	{
 		LogPrint ("SAM dest generate");
-		auto localDestination = i2p::client::CreateNewLocalDestination ();
+		auto localDestination = i2p::client::context.CreateNewLocalDestination ();
 		if (localDestination)
 		{
 			uint8_t buf[1024];
@@ -566,7 +568,7 @@ namespace stream
 
 	SAMSession * SAMBridge::CreateSession (const std::string& id, const std::string& destination)
 	{
-		StreamingDestination * localDestination = nullptr; 
+		i2p::stream::StreamingDestination * localDestination = nullptr; 
 		if (destination != "")
 		{
 			uint8_t * buf = new uint8_t[destination.length ()];
@@ -574,10 +576,10 @@ namespace stream
 			i2p::data::PrivateKeys keys;
 			keys.FromBuffer (buf, l);
 			delete[] buf;
-			localDestination = i2p::client::CreateNewLocalDestination (keys);
+			localDestination = i2p::client::context.CreateNewLocalDestination (keys);
 		}
 		else // transient
-			localDestination = i2p::client::CreateNewLocalDestination (); 
+			localDestination = i2p::client::context.CreateNewLocalDestination (); 
 		if (localDestination)
 		{
 			SAMSession session;

@@ -23,8 +23,8 @@ namespace client
 			void Stop ();
 
 			i2p::stream::StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			i2p::stream::StreamingDestination * CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType);
-			i2p::stream::StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
+			i2p::stream::StreamingDestination * CreateNewLocalDestination (bool isPublic = true, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // transient
+			i2p::stream::StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);
 			void DeleteLocalDestination (i2p::stream::StreamingDestination * destination);
 			i2p::stream::StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
 			i2p::stream::StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
@@ -41,9 +41,9 @@ namespace client
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
-			i2p::stream::I2PClientTunnel * m_IrcTunnel;
-			i2p::stream::I2PServerTunnel * m_ServerTunnel;
-			i2p::stream::SAMBridge * m_SamBridge;
+			I2PClientTunnel * m_IrcTunnel;
+			I2PServerTunnel * m_ServerTunnel;
+			SAMBridge * m_SamBridge;
 
 		public:
 			// for HTTP
@@ -51,13 +51,6 @@ namespace client
 	};
 	
 	extern ClientContext context;	
-
-	i2p::stream::StreamingDestination * GetSharedLocalDestination ();
-	i2p::stream::StreamingDestination * CreateNewLocalDestination (bool isPublic = true, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // transient
-	i2p::stream::StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);	
-	void DeleteLocalDestination (i2p::stream::StreamingDestination * destination);
-	i2p::stream::StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination);	
-	i2p::stream::StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 }		
 }	
 

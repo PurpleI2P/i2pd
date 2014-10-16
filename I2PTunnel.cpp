@@ -8,7 +8,7 @@
 
 namespace i2p
 {
-namespace stream
+namespace client
 {
 	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, 
 	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
@@ -20,7 +20,7 @@ namespace stream
 		Receive ();
 	}	
 
-	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, Stream * stream,  
+	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, i2p::stream::Stream * stream,  
 	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target):
 		m_Socket (socket), m_Stream (stream), m_Owner (owner)
 	{
@@ -145,9 +145,9 @@ namespace stream
 	}	
 		
 	I2PClientTunnel::I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, 
-		int port, StreamingDestination * localDestination): 
+		int port, i2p::stream::StreamingDestination * localDestination): 
 		I2PTunnel (service, localDestination ? localDestination : 
-			i2p::client::CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256)), 
+			i2p::client::context.CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256)), 
 		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_Timer (service), m_Destination (destination), m_DestinationIdentHash (nullptr), 
 		m_RemoteLeaseSet (nullptr)
@@ -251,7 +251,7 @@ namespace stream
 	}
 
 	I2PServerTunnel::I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-		StreamingDestination * localDestination): I2PTunnel (service, localDestination),
+		i2p::stream::StreamingDestination * localDestination): I2PTunnel (service, localDestination),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
 	}

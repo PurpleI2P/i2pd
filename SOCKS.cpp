@@ -160,7 +160,7 @@ namespace proxy
 			LogPrint("--- sock4a find lease set");
 			m_ls = i2p::data::netdb.FindLeaseSet(m_dest);
 			if (!m_ls || m_ls->HasNonExpiredLeases()) {
-				i2p::data::netdb.RequestDestination (m_dest, true, i2p::client::GetSharedLocalDestination ()->GetTunnelPool ());
+				i2p::data::netdb.RequestDestination (m_dest, true, i2p::client::context.GetSharedLocalDestination ()->GetTunnelPool ());
 				m_ls_timer.expires_from_now(boost::posix_time::seconds(socks_leaseset_timeout));
 				m_ls_timer.async_wait(boost::bind(&SOCKS4AHandler::LeaseSetTimeout, this, boost::asio::placeholders::error));
 			} else {
@@ -224,7 +224,7 @@ namespace proxy
 	void SOCKS4AHandler::SentConnectionSuccess(const boost::system::error_code & ecode)
 	{
 		LogPrint("--- socks4a making connection");
-		m_stream = i2p::client::GetSharedLocalDestination ()->CreateNewOutgoingStream(*m_ls);
+		m_stream = i2p::client::context.GetSharedLocalDestination ()->CreateNewOutgoingStream(*m_ls);
 		m_state = OKAY;
 		LogPrint("--- socks4a state is ", m_state);
 		AsyncSockRead();

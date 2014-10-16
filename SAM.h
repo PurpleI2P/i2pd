@@ -14,7 +14,7 @@
 
 namespace i2p
 {
-namespace stream
+namespace client
 {
 	const size_t SAM_SOCKET_BUFFER_SIZE = 4096;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds	
@@ -106,13 +106,13 @@ namespace stream
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
 			bool m_IsSilent;
-			Stream * m_Stream;
+			i2p::stream::Stream * m_Stream;
 			SAMSession * m_Session;
 	};	
 
 	struct SAMSession
 	{
-		StreamingDestination * localDestination;
+		i2p::stream::StreamingDestination * localDestination;
 		std::list<SAMSocket *> sockets;
 	};
 

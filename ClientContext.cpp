@@ -44,8 +44,8 @@ namespace client
 			i2p::stream::StreamingDestination * localDestination = nullptr;
 			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 			if (ircKeys.length () > 0)
-				localDestination = i2p::client::LoadLocalDestination (ircKeys, false);
-			m_IrcTunnel = new i2p::stream::I2PClientTunnel (m_SocksProxy->GetService (), ircDestination,
+				localDestination = i2p::client::context.LoadLocalDestination (ircKeys, false);
+			m_IrcTunnel = new I2PClientTunnel (m_SocksProxy->GetService (), ircDestination,
 				i2p::util::config::GetArg("-ircport", 6668), localDestination);
 			m_IrcTunnel->Start ();
 			LogPrint("IRC tunnel started");
@@ -53,8 +53,8 @@ namespace client
 		std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
 		if (eepKeys.length () > 0) // eepkeys file is presented
 		{
-			auto localDestination = i2p::client::LoadLocalDestination (eepKeys, true);
-			m_ServerTunnel = new i2p::stream::I2PServerTunnel (m_SocksProxy->GetService (), 
+			auto localDestination = i2p::client::context.LoadLocalDestination (eepKeys, true);
+			m_ServerTunnel = new I2PServerTunnel (m_SocksProxy->GetService (), 
 				i2p::util::config::GetArg("-eephost", "127.0.0.1"), i2p::util::config::GetArg("-eepport", 80),
 				localDestination);
 			m_ServerTunnel->Start ();
@@ -63,7 +63,7 @@ namespace client
 		int samPort = i2p::util::config::GetArg("-samport", 0);
 		if (samPort)
 		{
-			m_SamBridge = new i2p::stream::SAMBridge (samPort);
+			m_SamBridge = new SAMBridge (samPort);
 			m_SamBridge->Start ();
 			LogPrint("SAM bridge started");
 		} 
@@ -195,35 +195,5 @@ namespace client
 			return it->second;
 		return nullptr;
 	}	
-
-	i2p::stream::StreamingDestination * GetSharedLocalDestination ()
-	{
-		return context.GetSharedLocalDestination ();
-	}	
-	
-	i2p::stream::StreamingDestination * CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
-	{
-		return context.CreateNewLocalDestination (isPublic, sigType);
-	}
-
-	i2p::stream::StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
-	{
-		return context.CreateNewLocalDestination (keys, isPublic);
-	}
-
-	void DeleteLocalDestination (i2p::stream::StreamingDestination * destination)
-	{
-		context.DeleteLocalDestination (destination);
-	}
-
-	i2p::stream::StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination)
-	{
-		return context.FindLocalDestination (destination);
-	}
-
-	i2p::stream::StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic)
-	{
-		return context.LoadLocalDestination (filename, isPublic);
-	}		
 }		
 }	
