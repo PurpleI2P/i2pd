@@ -17,7 +17,7 @@ namespace garlic
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
 	    const i2p::data::RoutingDestination * destination, int numTags):
 		m_Owner (owner), m_Destination (destination), m_NumTags (numTags), 
-		m_TagsCreationTime (0), m_LeaseSetUpdated (numTags > 0)
+		m_LeaseSetUpdated (numTags > 0)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -30,7 +30,7 @@ namespace garlic
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
 		m_SessionTags.push_back (sessionTag);
-		m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
+		m_SessionTags.back ().creationTime = i2p::util::GetSecondsSinceEpoch ();
 	}	
 
 	GarlicRoutingSession::~GarlicRoutingSession	()
@@ -43,9 +43,12 @@ namespace garlic
 	GarlicRoutingSession::UnconfirmedTags * GarlicRoutingSession::GenerateSessionTags ()
 	{
 		auto tags = new UnconfirmedTags (m_NumTags);
+		tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch ();		
 		for (int i = 0; i < m_NumTags; i++)
+		{
 			m_Rnd.GenerateBlock (tags->sessionTags[i], 32);
-		tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
+			tags->sessionTags[i].creationTime = tags->tagsCreationTime;
+		}			
 		return tags;	
 	}
 	
@@ -60,7 +63,6 @@ namespace garlic
 			{	
 				for (int i = 0; i < tags->numTags; i++)
 					m_SessionTags.push_back (tags->sessionTags[i]);
-				m_TagsCreationTime = ts;
 			}	
 			m_UnconfirmedTagsMsgs.erase (it);
 			delete tags;
@@ -84,18 +86,27 @@ namespace garlic
 		size_t len = 0;
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
 
-		// take care about tags
+		// find non-expired tag
+		bool tagFound = false;	
+		SessionTag tag; 
 		if (m_NumTags > 0)
 		{	
-			if (m_TagsCreationTime && i2p::util::GetSecondsSinceEpoch () >= m_TagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			while (m_SessionTags.empty ())
 			{
-				// old tags expired create new set
-				LogPrint ("Garlic tags expired");
-				m_SessionTags.clear ();
-			}	
+				if (ts < m_SessionTags.front ().creationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+				{
+					tag = m_SessionTags.front ();
+					m_SessionTags.pop_front (); // use same tag only once
+					tagFound = true;
+					break;
+				}	
+				else
+					m_SessionTags.pop_front (); // remove expired tag
+			}
 		}	
 		// create message
-		if (!m_NumTags || !m_SessionTags.size ()) // new session
+		if (!tagFound) // new session
 		{
 			LogPrint ("No garlic tags available. Use ElGamal");
 			if (!m_Destination)
@@ -117,8 +128,6 @@ namespace garlic
 		else // existing session
 		{	
 			// session tag
-			SessionTag tag = m_SessionTags.front ();
-			m_SessionTags.pop_front (); // use same tag only once
 			memcpy (buf, tag, 32);	
 			uint8_t iv[32]; // IV is first 16 bytes
 			CryptoPP::SHA256().CalculateDigest(iv, tag, 32);
@@ -344,8 +353,9 @@ namespace garlic
 		buf += 2;	
 		if (tagCount > 0)
 		{	
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 			for (int i = 0; i < tagCount; i++)
-				m_Tags[SessionTag(buf + i*32)] = decryption;	
+				m_Tags[SessionTag(buf + i*32, ts)] = decryption;	
 		}	
 		buf += tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);

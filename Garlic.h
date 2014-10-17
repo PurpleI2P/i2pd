@@ -40,7 +40,19 @@ namespace garlic
 	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes			
 	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
 	
-	typedef i2p::data::Tag<32> SessionTag;	
+	struct SessionTag: public i2p::data::Tag<32> 
+	{
+		SessionTag (const uint8_t * buf, uint32_t ts = 0): Tag<32>(buf), creationTime (ts) {};
+		SessionTag () = default;
+		SessionTag (const SessionTag& ) = default;
+		SessionTag& operator= (const SessionTag& ) = default;
+#ifndef _WIN32
+		SessionTag (SessionTag&& ) = default; 
+		SessionTag& operator= (SessionTag&& ) = default;	
+#endif
+		uint32_t creationTime; // seconds since epoch	
+	};
+		
 	class GarlicDestination;
 	class GarlicRoutingSession
 	{
@@ -79,7 +91,6 @@ namespace garlic
 			uint8_t m_SessionKey[32];
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
-			uint32_t m_TagsCreationTime; // seconds since epoch	
 			std::map<uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;	
 			bool m_LeaseSetUpdated;
 
