@@ -92,7 +92,7 @@ namespace garlic
 		if (m_NumTags > 0)
 		{	
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			while (m_SessionTags.empty ())
+			while (!m_SessionTags.empty ())
 			{
 				if (ts < m_SessionTags.front ().creationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
 				{
