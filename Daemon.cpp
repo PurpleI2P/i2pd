@@ -4,6 +4,7 @@
 
 #include "Log.h"
 #include "base64.h"
+#include "version.h"
 #include "Transports.h"
 #include "NTCPSession.h"
 #include "RouterInfo.h"
@@ -54,6 +55,7 @@ namespace i2p
 			i2p::context.Init ();
 
 			LogPrint("\n\n\n\ni2pd starting\n");
+			LogPrint("Version ", VERSION);
 			LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
 			i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 

@@ -624,7 +624,7 @@ namespace util
 		s << "<head><meta charset=\"utf-8\" />"; // TODO: Find something to parse html/template system. This is horrible.
 		s << "<link rel='shortcut icon' href='";
 		s << itoopieFavicon;
-		s << "' /><title>Purple I2P Webconsole</title></head>";
+		s << "' /><title>Purple I2P " << VERSION " Webconsole</title></head>";
 		// Head end
 		if (address.length () > 1)
 			HandleCommand (address.substr (2), s);
