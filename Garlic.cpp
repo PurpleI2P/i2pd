@@ -16,30 +16,20 @@ namespace garlic
 {
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
 	    const i2p::data::RoutingDestination * destination, int numTags):
-		m_Owner (owner), m_Destination (destination), m_IsAcknowledged (false), 
-		m_NumTags (numTags), m_NextTag (-1), m_SessionTags (0), m_TagsCreationTime (0),
-		m_LeaseSetUpdated (numTags > 0)
+		m_Owner (owner), m_Destination (destination), m_NumTags (numTags), 
+		m_TagsCreationTime (0), m_LeaseSetUpdated (numTags > 0)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
-		if (m_NumTags > 0)
-		{
-			m_SessionTags = new SessionTag[m_NumTags];
-			GenerateSessionTags ();
-		}	
-		else
-			m_SessionTags = nullptr;
 	}	
 
 	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
-		m_Owner (nullptr), m_Destination (nullptr), m_IsAcknowledged (true), m_NumTags (1), 
-		m_NextTag (0), m_LeaseSetUpdated (false)
+		m_Owner (nullptr), m_Destination (nullptr), m_NumTags (1), m_LeaseSetUpdated (false)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
-		m_SessionTags = new SessionTag[1]; // 1 tag	
-		m_SessionTags[0] = sessionTag;
+		m_SessionTags.push_back (sessionTag);
 		m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}	
 
@@ -47,19 +37,16 @@ namespace garlic
 	{	
 		for (auto it: m_UnconfirmedTagsMsgs)	
 			delete it.second;
-		 m_UnconfirmedTagsMsgs.clear ();
-		delete[] m_SessionTags;
+		m_UnconfirmedTagsMsgs.clear ();
 	}
 	
-	void GarlicRoutingSession::GenerateSessionTags ()
+	GarlicRoutingSession::UnconfirmedTags * GarlicRoutingSession::GenerateSessionTags ()
 	{
-		if (m_SessionTags)
-		{
-			for (int i = 0; i < m_NumTags; i++)
-				m_Rnd.GenerateBlock (m_SessionTags[i], 32);
-			m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
-			m_IsAcknowledged = false;
-		}
+		auto tags = new UnconfirmedTags (m_NumTags);
+		for (int i = 0; i < m_NumTags; i++)
+			m_Rnd.GenerateBlock (tags->sessionTags[i], 32);
+		tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
+		return tags;	
 	}
 	
 	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID) 
@@ -67,8 +54,13 @@ namespace garlic
 		auto it = m_UnconfirmedTagsMsgs.find (msgID);	
 		if (it != m_UnconfirmedTagsMsgs.end ())
 		{
+			UnconfirmedTags * tags = it->second;
+			for (int i = 0; i < tags->numTags; i++)
+				m_SessionTags.push_back (tags->sessionTags[i]);
+			m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
+			m_UnconfirmedTagsMsgs.erase (it);
+			delete tags;
 		}
-		m_IsAcknowledged = true; 
 	}
 
 	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
@@ -80,22 +72,17 @@ namespace garlic
 		// take care about tags
 		if (m_NumTags > 0)
 		{	
-			if (i2p::util::GetSecondsSinceEpoch () >= m_TagsCreationTime + TAGS_EXPIRATION_TIMEOUT)
+			if (m_TagsCreationTime && i2p::util::GetSecondsSinceEpoch () >= m_TagsCreationTime + TAGS_EXPIRATION_TIMEOUT)
 			{
 				// old tags expired create new set
 				LogPrint ("Garlic tags expired");
-				GenerateSessionTags ();
-				m_NextTag = -1;
+				m_SessionTags.clear ();
 			}	
-			else if (!m_IsAcknowledged)  // new set of tags was not acknowledged
-			{
-				LogPrint ("Previous garlic tags was not acknowledged. Use ElGamal");		
-				m_NextTag = -1; // have to use ElGamal
-			}
 		}	
 		// create message
-		if (m_NextTag < 0 || !m_NumTags) // new session
+		if (!m_NumTags || !m_SessionTags.size ()) // new session
 		{
+			LogPrint ("No garlic tags available. Use ElGamal");
 			if (!m_Destination)
 			{
 				LogPrint ("Can't use ElGamal for unknown destination");
@@ -115,23 +102,17 @@ namespace garlic
 		else // existing session
 		{	
 			// session tag
-			memcpy (buf, m_SessionTags[m_NextTag], 32);			
+			SessionTag tag = m_SessionTags.front ();
+			m_SessionTags.pop_front (); // use same tag only once
+			memcpy (buf, tag, 32);	
 			uint8_t iv[32]; // IV is first 16 bytes
-			CryptoPP::SHA256().CalculateDigest(iv, m_SessionTags[m_NextTag], 32);
+			CryptoPP::SHA256().CalculateDigest(iv, tag, 32);
 			m_Encryption.SetIV (iv);
 			buf += 32;
-			len += 32;
-
-			// re-create session tags if necessary				
-			if (m_NextTag >= m_NumTags - 1) // we have used last tag
-			{
-				GenerateSessionTags ();
-				m_NextTag = -1;
-			}			
+			len += 32;		
 		}	
 		// AES block
 		len += CreateAESBlock (buf, msg);
-		m_NextTag++;
 		*(uint32_t *)(m->GetPayload ()) = htobe32 (len);
 		m->len += len + 4;
 		FillI2NPMessageHeader (m, eI2NPGarlic);
@@ -143,13 +124,15 @@ namespace garlic
 	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, const I2NPMessage * msg)
 	{
 		size_t blockSize = 0;
-		*(uint16_t *)buf = m_NextTag < 0 ? htobe16 (m_NumTags) : 0; // tag count
+		bool createNewTags = m_Owner && ((int)m_SessionTags.size () <= m_NumTags/4);
+		UnconfirmedTags * newTags = createNewTags ? GenerateSessionTags () : nullptr;
+		*(uint16_t *)buf = newTags ? htobe16 (newTags->numTags) : 0; // tag count
 		blockSize += 2;
-		if (m_NextTag < 0) // session tags recreated
+		if (newTags) // session tags recreated
 		{	
-			for (int i = 0; i < m_NumTags; i++)
+			for (int i = 0; i < newTags->numTags; i++)
 			{
-				memcpy (buf + blockSize, m_SessionTags[i], 32); // tags
+				memcpy (buf + blockSize, newTags->sessionTags[i], 32); // tags
 				blockSize += 32;
 			}
 		}	
@@ -159,7 +142,7 @@ namespace garlic
 		blockSize += 32;
 		buf[blockSize] = 0; // flag
 		blockSize++;
-		size_t len = CreateGarlicPayload (buf + blockSize, msg);
+		size_t len = CreateGarlicPayload (buf + blockSize, msg, newTags);
 		*payloadSize = htobe32 (len);
 		CryptoPP::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
 		blockSize += len;
@@ -170,7 +153,7 @@ namespace garlic
 		return blockSize;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg)
+	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, UnconfirmedTags * newTags)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		uint32_t msgID = m_Rnd.GenerateWord32 ();	
@@ -181,13 +164,14 @@ namespace garlic
 
 		if (m_Owner)
 		{	
-			if (m_NumTags > 0 && m_NextTag < 0) // new session
+			if (newTags) // new session
 			{
 				// clove is DeliveryStatus 
 				size += CreateDeliveryStatusClove (payload + size, msgID);
 				if (size > 0) // successive?
 				{
 					(*numCloves)++;
+					m_UnconfirmedTagsMsgs[msgID] = newTags;
 					m_Owner->DeliveryStatusSent (this, msgID);
 				}
 				else

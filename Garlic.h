@@ -58,7 +58,6 @@ namespace garlic
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
-			int GetNextTag () const { return m_NextTag; };
 			void TagsConfirmed (uint32_t msgID);
 
 			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
@@ -66,20 +65,19 @@ namespace garlic
 		private:
 
 			size_t CreateAESBlock (uint8_t * buf, const I2NPMessage * msg);
-			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg);
+			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, UnconfirmedTags * newTags);
 			size_t CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination);
 			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
 			
-			void GenerateSessionTags ();
+			UnconfirmedTags * GenerateSessionTags ();
 
 		private:
 
 			GarlicDestination * m_Owner;
 			const i2p::data::RoutingDestination * m_Destination;
 			uint8_t m_SessionKey[32];
-			bool m_IsAcknowledged;
-			int m_NumTags, m_NextTag;
-			SessionTag * m_SessionTags; // m_NumTags*32 bytes
+			std::list<SessionTag> m_SessionTags;
+			int m_NumTags;
 			uint32_t m_TagsCreationTime; // seconds since epoch	
 			std::map<uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;	
 			bool m_LeaseSetUpdated;
