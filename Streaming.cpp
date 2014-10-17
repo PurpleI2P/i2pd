@@ -519,7 +519,10 @@ namespace stream
 				m_CurrentRemoteLease = leases[i];
 			}	
 			else
+			{	
+				m_RemoteLeaseSet = m_LocalDestination.FindLeaseSet (m_RemoteIdentity.GetIdentHash ()); // re-request expired
 				m_CurrentRemoteLease.endDate = 0;
+			}	
 		}
 		else
 			m_CurrentRemoteLease.endDate = 0;
