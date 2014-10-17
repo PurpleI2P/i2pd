@@ -51,16 +51,31 @@ namespace garlic
 	
 	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID) 
 	{ 
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		auto it = m_UnconfirmedTagsMsgs.find (msgID);	
 		if (it != m_UnconfirmedTagsMsgs.end ())
 		{
 			UnconfirmedTags * tags = it->second;
-			for (int i = 0; i < tags->numTags; i++)
-				m_SessionTags.push_back (tags->sessionTags[i]);
-			m_TagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
+			if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+			{	
+				for (int i = 0; i < tags->numTags; i++)
+					m_SessionTags.push_back (tags->sessionTags[i]);
+				m_TagsCreationTime = ts;
+			}	
 			m_UnconfirmedTagsMsgs.erase (it);
 			delete tags;
 		}
+		// delete expired unconfirmed tags
+		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
+		{
+			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+			{
+				delete it->second;
+				it = m_UnconfirmedTagsMsgs.erase (it);
+			}	
+			else
+				it++;
+		}	
 	}
 
 	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
@@ -72,7 +87,7 @@ namespace garlic
 		// take care about tags
 		if (m_NumTags > 0)
 		{	
-			if (m_TagsCreationTime && i2p::util::GetSecondsSinceEpoch () >= m_TagsCreationTime + TAGS_EXPIRATION_TIMEOUT)
+			if (m_TagsCreationTime && i2p::util::GetSecondsSinceEpoch () >= m_TagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
 			{
 				// old tags expired create new set
 				LogPrint ("Garlic tags expired");

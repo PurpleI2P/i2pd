@@ -37,8 +37,9 @@ namespace garlic
 	};		
 #pragma pack()	
 
-	const int TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes			
-
+	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes			
+	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
+	
 	typedef i2p::data::Tag<32> SessionTag;	
 	class GarlicDestination;
 	class GarlicRoutingSession
