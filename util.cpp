@@ -168,13 +168,15 @@ namespace filesystem
 		// Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd
 		// Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd
 		// Mac: ~/Library/Application Support/i2pd
-		// Unix: ~/.i2pd
+		// Unix: ~/.i2pd or /var/lib/i2pd is system=1
 #ifdef WIN32
 		// Windows
 		char localAppData[MAX_PATH];
 		SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
 		return boost::filesystem::path(std::string(localAppData) + "\\i2pd");
 #else
+		if (i2p::util::config::GetArg("-service", 0)) // use system folder
+			return boost::filesystem::path("/var/lib/i2pd");
 		boost::filesystem::path pathRet;
 		char* pszHome = getenv("HOME");
 		if (pszHome == NULL || strlen(pszHome) == 0)

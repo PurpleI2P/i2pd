@@ -28,6 +28,8 @@ namespace i2p
 			Daemon_Singleton();
 			virtual ~Daemon_Singleton();
 
+			bool IsService () const;				
+
 			// d-pointer for httpServer, httpProxy, etc.
 			class Daemon_Singleton_Private;
 			Daemon_Singleton_Private &d;

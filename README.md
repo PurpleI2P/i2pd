@@ -49,6 +49,7 @@ Options
 * --httpport=           - The http port to listen on
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
+* --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
 * --unreachable=        - 1 if router is declared as unreachable and works through introducers.
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)

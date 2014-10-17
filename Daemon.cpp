@@ -39,6 +39,14 @@ namespace i2p
 			delete &d;
 		};
 
+		bool Daemon_Singleton::IsService () const
+		{
+#ifndef _WIN32
+			return i2p::util::config::GetArg("-service", 0);
+#else
+			return false;
+#endif
+		}
 
 		bool Daemon_Singleton::init(int argc, char* argv[])
 		{
@@ -76,11 +84,11 @@ namespace i2p
 			{
 				if (isDaemon)
 				{
-					std::string logfile_path = i2p::util::filesystem::GetDataDir().string();
+					std::string logfile_path = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
 	#ifndef _WIN32
-					logfile_path.append("/debug.log");
+					logfile_path.append("/i2pd.log");
 	#else
-					logfile_path.append("\\debug.log");
+					logfile_path.append("\\i2pd.log");
 	#endif
 					StartLog (logfile_path);
 				}
