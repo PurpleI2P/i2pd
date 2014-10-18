@@ -148,7 +148,7 @@ namespace garlic
 	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, const I2NPMessage * msg)
 	{
 		size_t blockSize = 0;
-		bool createNewTags = m_Owner && ((int)m_SessionTags.size () <= m_NumTags/4);
+		bool createNewTags = m_Owner && ((int)m_SessionTags.size () <= m_NumTags/2);
 		UnconfirmedTags * newTags = createNewTags ? GenerateSessionTags () : nullptr;
 		*(uint16_t *)buf = newTags ? htobe16 (newTags->numTags) : 0; // tag count
 		blockSize += 2;
@@ -343,7 +343,29 @@ namespace garlic
 			else
 				LogPrint ("Failed to decrypt garlic");
 		}
-		DeleteI2NPMessage (msg);	
+		DeleteI2NPMessage (msg);
+
+		// cleanup expired tags
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		if (ts > m_LastTagsCleanupTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+		{
+			if (m_LastTagsCleanupTime)
+			{
+				int numExpiredTags = 0;
+				for (auto it = m_Tags.begin (); it != m_Tags.end ();)
+				{
+					if (ts > it->first.creationTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+					{
+						numExpiredTags++;
+						it = m_Tags.erase (it);
+					}	
+					else
+						it++;
+				}
+				LogPrint (numExpiredTags, " tags expired for ", GetIdentHash().ToBase64 ());
+			}	
+			m_LastTagsCleanupTime = ts;
+		}	
 	}	
 
 	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption,

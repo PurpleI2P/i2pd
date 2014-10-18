@@ -37,7 +37,7 @@ namespace garlic
 	};		
 #pragma pack()	
 
-	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 900; // 15 minutes			
+	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 960; // 16 minutes			
 	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
 	
 	struct SessionTag: public i2p::data::Tag<32> 
@@ -102,7 +102,7 @@ namespace garlic
 	{
 		public:
 
-			GarlicDestination () {};
+			GarlicDestination (): m_LastTagsCleanupTime (0) {};
 			~GarlicDestination ();
 
 			GarlicRoutingSession * GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
@@ -136,7 +136,8 @@ namespace garlic
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
 			// incoming
-			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;	
+			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
+			uint32_t m_LastTagsCleanupTime;
 			// DeliveryStatus
 			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
 	};	
