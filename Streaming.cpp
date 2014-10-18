@@ -412,6 +412,8 @@ namespace stream
 				if (isEmpty)
 					ScheduleResend ();
 			}	
+			else
+				delete packet;
 			return true;	
 		}	
 		else

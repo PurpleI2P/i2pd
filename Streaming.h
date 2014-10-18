@@ -100,6 +100,8 @@ namespace stream
 
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			size_t GetSendQueueSize () const { return m_SentPackets.size (); };
+			size_t GetReceiveQueueSize () const { return m_ReceiveQueue.size (); };
 			
 		private:
 

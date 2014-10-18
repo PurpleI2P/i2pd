@@ -817,6 +817,7 @@ namespace util
 			{	
 				s << it.first << "->" << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase32 () << ".b32.i2p ";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				s << " [out:" << it.second->GetSendQueueSize () << "][in:" << it.second->GetReceiveQueueSize () << "]";
 				s << "<br>"<< std::endl; 
 			}	
 		}	
