@@ -74,8 +74,6 @@ namespace data
 		uint8_t publicKey[256];
 		uint8_t signingKey[128];
 	};
-#pragma pack()
-	Keys CreateRandomKeys ();
 	
 	const uint8_t CERTIFICATE_TYPE_NULL = 0;
 	const uint8_t CERTIFICATE_TYPE_HASHCASH = 1;
@@ -99,7 +97,10 @@ namespace data
 		Identity& operator=(const Keys& keys);
 		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash () const;
-	};	
+	};
+#pragma pack()
+	Keys CreateRandomKeys ();
+	
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
 
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
