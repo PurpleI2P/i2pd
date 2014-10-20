@@ -1,5 +1,7 @@
+#include <cryptopp/dh.h>
 #include <boost/bind.hpp>
 #include "Log.h"
+#include "CryptoConst.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "NetDb.h"
@@ -9,6 +11,11 @@ using namespace i2p::data;
 
 namespace i2p
 {
+	DHKeysPairSupplier::DHKeysPairSupplier (int size):
+		m_QueueSize (size), m_IsRunning (false), m_Thread (nullptr)
+	{
+	}	
+
 	DHKeysPairSupplier::~DHKeysPairSupplier ()
 	{
 		Stop ();
@@ -48,17 +55,18 @@ namespace i2p
 	{
 		if (num > 0)
 		{
+			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 			for (int i = 0; i < num; i++)
 			{
-				i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
-				i2p::data::CreateRandomDHKeysPair (pair);
+				DHKeysPair * pair = new DHKeysPair ();
+				dh.GenerateKeyPair(m_Rnd, pair->privateKey, pair->publicKey);
 				std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 				m_Queue.push (pair);
 			}
 		}
 	}
 
-	i2p::data::DHKeysPair * DHKeysPairSupplier::Acquire ()
+	DHKeysPair * DHKeysPairSupplier::Acquire ()
 	{
 		if (!m_Queue.empty ())
 		{
@@ -70,13 +78,14 @@ namespace i2p
 		}	
 		else // queue is empty, create new
 		{
-			i2p::data::DHKeysPair * pair = new i2p::data::DHKeysPair ();
-			i2p::data::CreateRandomDHKeysPair (pair);
+			DHKeysPair * pair = new DHKeysPair ();
+			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+			dh.GenerateKeyPair(m_Rnd, pair->privateKey, pair->publicKey);
 			return pair;
 		}
 	}
 
-	void DHKeysPairSupplier::Return (i2p::data::DHKeysPair * pair)
+	void DHKeysPairSupplier::Return (DHKeysPair * pair)
 	{
 		std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 		m_Queue.push (pair);
@@ -318,14 +327,13 @@ namespace i2p
 				m_SSUServer->GetSession (router, true);  // peer test	
 		}	
 	}
-		
-		
-	i2p::data::DHKeysPair * Transports::GetNextDHKeysPair ()
+			
+	DHKeysPair * Transports::GetNextDHKeysPair ()
 	{
 		return m_DHKeysPairSupplier.Acquire ();
 	}
 
-	void Transports::ReuseDHKeysPair (i2p::data::DHKeysPair * pair)
+	void Transports::ReuseDHKeysPair (DHKeysPair * pair)
 	{
 		m_DHKeysPairSupplier.Return (pair);
 	}

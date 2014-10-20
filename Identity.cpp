@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/osrng.h>
-#include <cryptopp/dh.h>
 #include <cryptopp/dsa.h>
 #include "base64.h"
 #include "CryptoConst.h"
@@ -292,14 +291,6 @@ namespace data
 		i2p::crypto::CreateDSARandomKeys (rnd, keys.signingPrivateKey, keys.signingKey);	
 		return keys;
 	}	
-
-	void CreateRandomDHKeysPair (DHKeysPair * keys)
-	{
-		if (!keys) return;
-		CryptoPP::AutoSeededRandomPool rnd;
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(rnd, keys->privateKey, keys->publicKey);
-	}
 
 	IdentHash CreateRoutingKey (const IdentHash& ident)
 	{
