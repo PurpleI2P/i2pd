@@ -3,11 +3,11 @@ Build notes
 
 Common build/install process:
 
-  git clone https://github.com/PrivacySolutions/i2pd.git
-  cd i2pd/build
-  cmake -DCMAKE_BUILD_TYPE=Release <more options> .
-  make
-  make install
+* git clone https://github.com/PrivacySolutions/i2pd.git
+* cd i2pd/build
+* cmake -DCMAKE_BUILD_TYPE=Release <more options> .
+* make
+* make install
 
 Available cmake options:
 
@@ -19,7 +19,6 @@ Debian
 ------
 
 Required "-dev" packages:
-
 * cmake
 * libboost-filesystem-dev
 * libboost-program-options-dev
