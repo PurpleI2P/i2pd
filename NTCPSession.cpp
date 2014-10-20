@@ -21,9 +21,8 @@ namespace ntcp
 {
 	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo): 
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false),  
-		m_DHKeysPair (nullptr), m_RemoteRouterInfo (in_RemoteRouterInfo), 
-		m_ReceiveBufferOffset (0), m_NextMessage (nullptr),
-		m_NumSentBytes (0), m_NumReceivedBytes (0)
+		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), 
+		m_NextMessage (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
 		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
 		m_Establisher = new Establisher;
@@ -32,7 +31,6 @@ namespace ntcp
 	NTCPSession::~NTCPSession ()
 	{
 		delete m_Establisher;
-		delete m_DHKeysPair;
 		if (m_NextMessage)	
 			i2p::DeleteI2NPMessage (m_NextMessage);
 		for (auto it :m_DelayedMessages)

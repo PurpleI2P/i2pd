@@ -10,6 +10,7 @@
 #include <string>
 #include <cryptopp/osrng.h>
 #include <boost/asio.hpp>
+#include "TransportSession.h"
 #include "NTCPSession.h"
 #include "SSU.h"
 #include "RouterInfo.h"
@@ -18,12 +19,6 @@
 
 namespace i2p
 {
-	struct DHKeysPair // transient keys for transport sessions
-	{
-		uint8_t publicKey[256];
-		uint8_t privateKey[256];
-	};	
-
 	class DHKeysPairSupplier
 	{
 		public:
@@ -32,8 +27,8 @@ namespace i2p
 			~DHKeysPairSupplier ();
 			void Start ();
 			void Stop ();
-			DHKeysPair * Acquire ();
-			void Return (DHKeysPair * pair);
+			i2p::transport::DHKeysPair * Acquire ();
+			void Return (i2p::transport::DHKeysPair * pair);
 
 		private:
 
@@ -43,7 +38,7 @@ namespace i2p
 		private:
 
 			const int m_QueueSize;
-			std::queue<DHKeysPair *> m_Queue;
+			std::queue<i2p::transport::DHKeysPair *> m_Queue;
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
@@ -63,8 +58,8 @@ namespace i2p
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
-			DHKeysPair * GetNextDHKeysPair ();	
-			void ReuseDHKeysPair (DHKeysPair * pair);
+			i2p::transport::DHKeysPair * GetNextDHKeysPair ();	
+			void ReuseDHKeysPair (i2p::transport::DHKeysPair * pair);
 
 			void AddNTCPSession (i2p::ntcp::NTCPSession * session);
 			void RemoveNTCPSession (i2p::ntcp::NTCPSession * session);

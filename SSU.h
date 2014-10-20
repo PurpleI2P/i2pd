@@ -13,12 +13,11 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
+#include "TransportSession.h"
 #include "SSUData.h"
 
 namespace i2p
 {
-	class DHKeysPair;	
-
 namespace ssu
 {
 #pragma pack(1)
@@ -59,7 +58,7 @@ namespace ssu
 	};	
 
 	class SSUServer;
-	class SSUSession
+	class SSUSession: public i2p::transport::TransportSession
 	{
 		public:
 
@@ -133,7 +132,6 @@ namespace ssu
 			const i2p::data::RouterInfo * m_RemoteRouter;
 			i2p::data::IdentHash m_RemoteIdent; // if m_RemoteRouter is null
 			boost::asio::deadline_timer m_Timer;
-			DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			bool m_PeerTest;
 			SessionState m_State;
 			bool m_IsSessionKey;

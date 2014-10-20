@@ -11,11 +11,10 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
+#include "TransportSession.h"
 
 namespace i2p
 {
-	class DHKeysPair;
-
 namespace ntcp
 {
 
@@ -68,7 +67,7 @@ namespace ntcp
 	const size_t NTCP_BUFFER_SIZE = 1040; // fits one tunnel message (1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 
-	class NTCPSession
+	class NTCPSession: public i2p::transport::TransportSession
 	{
 		public:
 
@@ -130,7 +129,6 @@ namespace ntcp
 			boost::asio::ip::tcp::socket m_Socket;
 			boost::asio::deadline_timer m_TerminationTimer;
 			bool m_IsEstablished;
-			DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;

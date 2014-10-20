@@ -58,7 +58,7 @@ namespace i2p
 			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 			for (int i = 0; i < num; i++)
 			{
-				DHKeysPair * pair = new DHKeysPair ();
+				i2p::transport::DHKeysPair * pair = new i2p::transport::DHKeysPair ();
 				dh.GenerateKeyPair(m_Rnd, pair->privateKey, pair->publicKey);
 				std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 				m_Queue.push (pair);
@@ -66,7 +66,7 @@ namespace i2p
 		}
 	}
 
-	DHKeysPair * DHKeysPairSupplier::Acquire ()
+	i2p::transport::DHKeysPair * DHKeysPairSupplier::Acquire ()
 	{
 		if (!m_Queue.empty ())
 		{
@@ -78,14 +78,14 @@ namespace i2p
 		}	
 		else // queue is empty, create new
 		{
-			DHKeysPair * pair = new DHKeysPair ();
+			i2p::transport::DHKeysPair * pair = new i2p::transport::DHKeysPair ();
 			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 			dh.GenerateKeyPair(m_Rnd, pair->privateKey, pair->publicKey);
 			return pair;
 		}
 	}
 
-	void DHKeysPairSupplier::Return (DHKeysPair * pair)
+	void DHKeysPairSupplier::Return (i2p::transport::DHKeysPair * pair)
 	{
 		std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 		m_Queue.push (pair);
@@ -328,12 +328,12 @@ namespace i2p
 		}	
 	}
 			
-	DHKeysPair * Transports::GetNextDHKeysPair ()
+	i2p::transport::DHKeysPair * Transports::GetNextDHKeysPair ()
 	{
 		return m_DHKeysPairSupplier.Acquire ();
 	}
 
-	void Transports::ReuseDHKeysPair (DHKeysPair * pair)
+	void Transports::ReuseDHKeysPair (i2p::transport::DHKeysPair * pair)
 	{
 		m_DHKeysPairSupplier.Return (pair);
 	}

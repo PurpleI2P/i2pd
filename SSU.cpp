@@ -18,7 +18,7 @@ namespace ssu
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		const i2p::data::RouterInfo * router, bool peerTest ): 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
-		m_Timer (m_Server.GetService ()), m_DHKeysPair (nullptr), m_PeerTest (peerTest),
+		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest),
  		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
 		m_Data (*this), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
@@ -28,8 +28,7 @@ namespace ssu
 	}
 
 	SSUSession::~SSUSession ()
-	{
-		delete m_DHKeysPair;		
+	{		
 	}	
 	
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey)
