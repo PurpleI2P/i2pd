@@ -5,6 +5,7 @@
 #include <thread>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
+#include "LeaseSet.h"
 #include "Streaming.h"
 
 namespace i2p
@@ -12,6 +13,7 @@ namespace i2p
 namespace util
 {
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
+	const int HTTP_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	class HTTPConnection
 	{
 		protected:
@@ -43,7 +45,8 @@ namespace util
 		public:
 
 			HTTPConnection (boost::asio::ip::tcp::socket * socket): 
-				m_Socket (socket), m_Stream (nullptr), m_BufferLen (0) { Receive (); };
+				m_Socket (socket), m_Timer (socket->get_io_service ()), 
+				m_Stream (nullptr), m_BufferLen (0) { Receive (); };
 			virtual ~HTTPConnection() { delete m_Socket; }
 
 		private:
@@ -74,6 +77,7 @@ namespace util
 		protected:
 
 			boost::asio::ip::tcp::socket * m_Socket;
+			boost::asio::deadline_timer m_Timer;
 			i2p::stream::Stream * m_Stream;
 			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1], m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
@@ -85,7 +89,8 @@ namespace util
 			virtual void RunRequest ();
 			void HandleDestinationRequest(const std::string& address, const std::string& uri);
 			void SendToAddress (const std::string& address, const char * buf, size_t len);
-			void SendToDestination (const i2p::data::IdentHash& destination, const char * buf, size_t len);
+			void HandleDestinationRequestTimeout (const boost::system::error_code& ecode, i2p::data::IdentHash destination, const char * buf, size_t len);
+			void SendToDestination (const i2p::data::LeaseSet * remote, const char * buf, size_t len);
 
 		public:
 

@@ -852,32 +852,42 @@ namespace util
 			return;
 		}		
 
-		SendToDestination (destination, buf, len);
-	}
-	
-	void HTTPConnection::SendToDestination (const i2p::data::IdentHash& destination, const char * buf, size_t len)
-	{
 		auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-		if (!leaseSet || !leaseSet->HasNonExpiredLeases ())
+		if (leaseSet && leaseSet->HasNonExpiredLeases ())
+			SendToDestination (leaseSet, buf, len);
+		else
 		{
 			i2p::data::netdb.RequestDestination (destination, true, i2p::client::context.GetSharedLocalDestination ()->GetTunnelPool ());
-			std::this_thread::sleep_for (std::chrono::seconds(10)); // wait for 10 seconds
-			leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-			if (!leaseSet || !leaseSet->HasNonExpiredLeases ()) // still no LeaseSet
-			{
-				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
-				return;
-			}
+			m_Timer.expires_from_now (boost::posix_time::seconds(HTTP_DESTINATION_REQUEST_TIMEOUT));
+			m_Timer.async_wait (boost::bind (&HTTPConnection::HandleDestinationRequestTimeout,
+				this, boost::asio::placeholders::error, destination, buf, len));
 		}
+	}
+	
+	void HTTPConnection::HandleDestinationRequestTimeout (const boost::system::error_code& ecode, i2p::data::IdentHash destination, const char * buf, size_t len)
+	{	
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
+			if (leaseSet && leaseSet->HasNonExpiredLeases ())
+				SendToDestination (leaseSet, buf, len);
+			else
+				// still no LeaseSet
+				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
+		}
+	}	
+	
+	void HTTPConnection::SendToDestination (const i2p::data::LeaseSet * remote, const char * buf, size_t len)
+	{
 		if (!m_Stream)
-			m_Stream = i2p::client::context.GetSharedLocalDestination ()->CreateNewOutgoingStream (*leaseSet);
+			m_Stream = i2p::client::context.GetSharedLocalDestination ()->CreateNewOutgoingStream (*remote);
 		if (m_Stream)
 		{
 			m_Stream->Send ((uint8_t *)buf, len);
 			AsyncStreamReceive ();
 		}
-	}	
-	
+	}
+
 	void HTTPConnection::AsyncStreamReceive ()
 	{
 		if (m_Stream)
