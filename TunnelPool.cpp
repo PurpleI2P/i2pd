@@ -257,7 +257,7 @@ namespace tunnel
 		{	
 			// last hop
 			auto hop = outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router;
-			if (hop->GetIdentHash () != i2p::context.GetRouterIdentHash ()) // outbound shouldn't be zero-hop tunnel
+			if (hop->GetIdentHash () != i2p::context.GetIdentHash ()) // outbound shouldn't be zero-hop tunnel
 			{	
 				prevHop = hop;
 				hops.push_back (prevHop);

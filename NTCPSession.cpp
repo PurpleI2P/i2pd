@@ -275,7 +275,7 @@ namespace transport
 	void NTCPSession::SendPhase3 ()
 	{
 		m_Establisher->phase3.size = htons (i2p::data::DEFAULT_IDENTITY_SIZE);
-		memcpy (&m_Establisher->phase3.ident, &i2p::context.GetRouterIdentity (), i2p::data::DEFAULT_IDENTITY_SIZE);		
+		memcpy (&m_Establisher->phase3.ident, &i2p::context.GetIdentity ().GetStandardIdentity (), i2p::data::DEFAULT_IDENTITY_SIZE);	// TODO:	
 		uint32_t tsA = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		m_Establisher->phase3.timestamp = tsA;
 		

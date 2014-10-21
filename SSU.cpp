@@ -359,10 +359,10 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 1; // 1 fragment
 		payload++; // info
-		size_t identLen = sizeof (i2p::context.GetRouterIdentity ()); // 387 bytes
+		size_t identLen = i2p::data::DEFAULT_IDENTITY_SIZE; // 387 bytes
 		*(uint16_t *)(payload) =  htobe16 (identLen);
 		payload += 2; // cursize
-		memcpy (payload, (uint8_t *)&i2p::context.GetRouterIdentity (), identLen);
+		memcpy (payload, (uint8_t *)&i2p::context.GetIdentity ().GetStandardIdentity (), identLen); // TODO
 		payload += identLen;
 		uint32_t signedOnTime = i2p::util::GetSecondsSinceEpoch ();
 		*(uint32_t *)(payload) = htobe32 (signedOnTime); // signed on time

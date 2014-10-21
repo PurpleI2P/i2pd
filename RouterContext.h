@@ -22,9 +22,6 @@ namespace i2p
 			void Init ();
 
 			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
-			const uint8_t * GetPrivateKey () const { return m_Keys.GetPrivateKey (); };
-			const i2p::data::Identity& GetRouterIdentity () const { return m_RouterInfo.GetRouterIdentity (); };
-			const i2p::data::IdentHash& GetRouterIdentHash () const { return m_RouterInfo.GetIdentHash (); };
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 
 			void UpdatePort (int port); // called from Daemon

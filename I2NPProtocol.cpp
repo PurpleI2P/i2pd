@@ -290,7 +290,7 @@ namespace i2p
 			{	
 				LogPrint ("Record ",i," is ours");	
 			
-				i2p::crypto::ElGamalDecrypt (i2p::context.GetPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
+				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
 				// replace record to reply
 				I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);				
 				if (i2p::context.AcceptsTunnels ())

@@ -33,7 +33,7 @@ namespace tunnel
 			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };
 			const i2p::data::LocalDestination& GetLocalDestination () const { return m_LocalDestination; };			
 			i2p::garlic::GarlicDestination& GetGarlicDestination () const { return m_LocalDestination; };	
-			bool IsExploratory () const { return GetIdentHash () == i2p::context.GetRouterIdentHash (); };		
+			bool IsExploratory () const { return GetIdentHash () == i2p::context.GetIdentHash (); };		
 
 			void CreateTunnels ();
 			void TunnelCreated (InboundTunnel * createdTunnel);
