@@ -17,14 +17,14 @@ using namespace i2p::crypto;
 
 namespace i2p
 {
-namespace ntcp
+namespace transport
 {
 	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo): 
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false),  
 		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), 
 		m_NextMessage (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
-		m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+		m_DHKeysPair = transports.GetNextDHKeysPair ();
 		m_Establisher = new Establisher;
 	}
 	
@@ -77,12 +77,12 @@ namespace ntcp
 	{
 		m_IsEstablished = false;
 		m_Socket.close ();
-		i2p::transports.RemoveNTCPSession (this);
+		transports.RemoveNTCPSession (this);
 		int numDelayed = 0;
 		for (auto it :m_DelayedMessages)
 		{	
 			// try to send them again
-			i2p::transports.SendMessage (m_RemoteRouterInfo.GetIdentHash (), it);
+			transports.SendMessage (m_RemoteRouterInfo.GetIdentHash (), it);
 			numDelayed++;
 		}	
 		m_DelayedMessages.clear ();
@@ -119,7 +119,7 @@ namespace ntcp
 	void NTCPSession::ClientLogin ()
 	{
 		if (!m_DHKeysPair)
-			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		// send Phase1
 		const uint8_t * x = m_DHKeysPair->publicKey;
 		memcpy (m_Establisher->phase1.pubKey, x, 256);
@@ -189,7 +189,7 @@ namespace ntcp
 	void NTCPSession::SendPhase2 ()
 	{
 		if (!m_DHKeysPair)
-			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		const uint8_t * y = m_DHKeysPair->publicKey;
 		memcpy (m_Establisher->phase2.pubKey, y, 256);
 		uint8_t xy[512];
@@ -238,7 +238,7 @@ namespace ntcp
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				GetRemoteRouterInfo ().SetUnreachable (true); // this RouterInfo is not valid
-				i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
+				transports.ReuseDHKeysPair (m_DHKeysPair);
 				m_DHKeysPair = nullptr;
 				Terminate ();
 			}
@@ -263,7 +263,7 @@ namespace ntcp
 			if (memcmp (hxy, m_Establisher->phase2.encrypted.hxy, 32))
 			{
 				LogPrint ("Incorrect hash");
-				i2p::transports.ReuseDHKeysPair (m_DHKeysPair);
+				transports.ReuseDHKeysPair (m_DHKeysPair);
 				m_DHKeysPair = nullptr;
 				Terminate ();
 				return ;
@@ -635,7 +635,7 @@ namespace ntcp
 	{
 		LogPrint ("NTCP server session connected");
 		SetIsEstablished (true);
-		i2p::transports.AddNTCPSession (this);
+		transports.AddNTCPSession (this);
 
 		SendTimeSyncMessage ();
 		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		

@@ -19,6 +19,8 @@
 
 namespace i2p
 {
+namespace transport
+{
 	class DHKeysPairSupplier
 	{
 		public:
@@ -27,8 +29,8 @@ namespace i2p
 			~DHKeysPairSupplier ();
 			void Start ();
 			void Stop ();
-			i2p::transport::DHKeysPair * Acquire ();
-			void Return (i2p::transport::DHKeysPair * pair);
+			DHKeysPair * Acquire ();
+			void Return (DHKeysPair * pair);
 
 		private:
 
@@ -38,7 +40,7 @@ namespace i2p
 		private:
 
 			const int m_QueueSize;
-			std::queue<i2p::transport::DHKeysPair *> m_Queue;
+			std::queue<DHKeysPair *> m_Queue;
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
@@ -59,13 +61,13 @@ namespace i2p
 			
 			boost::asio::io_service& GetService () { return m_Service; };
 			i2p::transport::DHKeysPair * GetNextDHKeysPair ();	
-			void ReuseDHKeysPair (i2p::transport::DHKeysPair * pair);
+			void ReuseDHKeysPair (DHKeysPair * pair);
 
-			void AddNTCPSession (i2p::ntcp::NTCPSession * session);
-			void RemoveNTCPSession (i2p::ntcp::NTCPSession * session);
+			void AddNTCPSession (NTCPSession * session);
+			void RemoveNTCPSession (NTCPSession * session);
 			
-			i2p::ntcp::NTCPSession * GetNextNTCPSession ();
-			i2p::ntcp::NTCPSession * FindNTCPSession (const i2p::data::IdentHash& ident);
+			NTCPSession * GetNextNTCPSession ();
+			NTCPSession * FindNTCPSession (const i2p::data::IdentHash& ident);
 
 			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void CloseSession (const i2p::data::RouterInfo * router);
@@ -73,7 +75,7 @@ namespace i2p
 		private:
 
 			void Run ();
-			void HandleAccept (i2p::ntcp::NTCPServerConnection * conn, const boost::system::error_code& error);
+			void HandleAccept (NTCPServerConnection * conn, const boost::system::error_code& error);
 			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
 				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
@@ -89,8 +91,8 @@ namespace i2p
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor;
 
-			std::map<i2p::data::IdentHash, i2p::ntcp::NTCPSession *> m_NTCPSessions;
-			i2p::ssu::SSUServer * m_SSUServer;
+			std::map<i2p::data::IdentHash, NTCPSession *> m_NTCPSessions;
+			SSUServer * m_SSUServer;
 
 			DHKeysPairSupplier m_DHKeysPairSupplier;
 
@@ -98,10 +100,11 @@ namespace i2p
 
 			// for HTTP only
 			const decltype(m_NTCPSessions)& GetNTCPSessions () const { return m_NTCPSessions; };
-			const i2p::ssu::SSUServer * GetSSUServer () const { return m_SSUServer; };
+			const SSUServer * GetSSUServer () const { return m_SSUServer; };
 	};	
 
 	extern Transports transports;
 }	
+}
 
 #endif

@@ -34,7 +34,7 @@ namespace tunnel
 		*(uint32_t *)(tunnelMsg->GetPayload ()) = htobe32 (m_NextTunnelID);
 		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
 		
-		i2p::transports.SendMessage (m_NextIdent, tunnelMsg);	
+		i2p::transport::transports.SendMessage (m_NextIdent, tunnelMsg);	
 	}
 
 	void TransitTunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)

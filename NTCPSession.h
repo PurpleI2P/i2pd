@@ -15,7 +15,7 @@
 
 namespace i2p
 {
-namespace ntcp
+namespace transport
 {
 
 #pragma pack(1)
@@ -67,7 +67,7 @@ namespace ntcp
 	const size_t NTCP_BUFFER_SIZE = 1040; // fits one tunnel message (1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 
-	class NTCPSession: public i2p::transport::TransportSession
+	class NTCPSession: public TransportSession
 	{
 		public:
 

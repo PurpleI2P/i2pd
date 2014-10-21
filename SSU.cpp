@@ -12,7 +12,7 @@
 
 namespace i2p
 {
-namespace ssu
+namespace transport
 {
 
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
@@ -173,7 +173,7 @@ namespace ssu
 		LogPrint ("Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
 		if (!m_DHKeysPair)
-			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		CreateAESandMacKey (buf + sizeof (SSUHeader));
 		SendSessionCreated (buf + sizeof (SSUHeader));
 	}
@@ -608,7 +608,7 @@ namespace ssu
 		{	
 			// set connect timer
 			ScheduleConnectTimer ();
-			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+			m_DHKeysPair = transports.GetNextDHKeysPair ();
 			SendSessionRequest ();
 		}	
 	}

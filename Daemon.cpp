@@ -103,7 +103,7 @@ namespace i2p
 			LogPrint("HTTP Server started");
 			i2p::data::netdb.Start();
 			LogPrint("NetDB started");
-			i2p::transports.Start();
+			i2p::transport::transports.Start();
 			LogPrint("Transports started");
 			i2p::tunnel::tunnels.Start();
 			LogPrint("Tunnels started");
@@ -120,7 +120,7 @@ namespace i2p
 			LogPrint("Client stoped");
 			i2p::tunnel::tunnels.Stop();
 			LogPrint("Tunnels stoped");
-			i2p::transports.Stop();
+			i2p::transport::transports.Stop();
 			LogPrint("Transports stoped");
 			i2p::data::netdb.Stop();
 			LogPrint("NetDB stoped");

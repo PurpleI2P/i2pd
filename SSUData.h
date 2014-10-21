@@ -13,7 +13,7 @@
 
 namespace i2p
 {
-namespace ssu
+namespace transport
 {
 
 	const size_t SSU_MTU = 1484;

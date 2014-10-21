@@ -15,6 +15,8 @@
 #include "Reseed.h"
 #include "util.h"
 
+using namespace i2p::transport;
+
 namespace i2p
 {
 namespace data
@@ -403,7 +405,7 @@ namespace data
 			RequestedDestination * dest = CreateRequestedDestination (destination, false, false, pool);
 			auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 			if (floodfill)
-				i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+				transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
 		}	
 	}	
 	
@@ -655,10 +657,10 @@ namespace data
 				if (outbound)
 					outbound->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
 				else
-					i2p::transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
+					transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
 			}
 			else
-				i2p::transports.SendMessage (buf+32, replyMsg);
+				transports.SendMessage (buf+32, replyMsg);
 		}
 		i2p::DeleteI2NPMessage (msg);
 	}	
@@ -712,7 +714,7 @@ namespace data
 						}); 
 				}	
 				else
-					i2p::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+					i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
 			}	
 			else
 				DeleteRequestedDestination (dest);

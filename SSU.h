@@ -18,7 +18,7 @@
 
 namespace i2p
 {
-namespace ssu
+namespace transport
 {
 #pragma pack(1)
 	struct SSUHeader
@@ -58,7 +58,7 @@ namespace ssu
 	};	
 
 	class SSUServer;
-	class SSUSession: public i2p::transport::TransportSession
+	class SSUSession: public TransportSession
 	{
 		public:
 

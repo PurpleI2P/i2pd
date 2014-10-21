@@ -699,7 +699,7 @@ namespace util
 	void HTTPConnection::ShowTransports (std::stringstream& s)
 	{
 		s << "NTCP<br>";
-		for (auto it: i2p::transports.GetNTCPSessions ())
+		for (auto it: i2p::transport::transports.GetNTCPSessions ())
 		{
 			// RouterInfo of incoming connection doesn't have address
 			bool outgoing = it.second->GetRemoteRouterInfo ().GetNTCPAddress ();
@@ -714,7 +714,7 @@ namespace util
 			}
 			s << std::endl;
 		}
-		auto ssuServer = i2p::transports.GetSSUServer ();
+		auto ssuServer = i2p::transport::transports.GetSSUServer ();
 		if (ssuServer)
 		{
 			s << "<br>SSU<br>";
