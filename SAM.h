@@ -47,6 +47,9 @@ namespace client
 	const char SAM_PARAM_DESTINATION[] = "DESTINATION";	
 	const char SAM_PARAM_NAME[] = "NAME";		
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";	
+	const char SAM_VALUE_STREAM[] = "STREAM";
+	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
+	const char SAM_VALUE_RAW[] = "RAW";	
 	const char SAM_VALUE_TRUE[] = "true";	
 	const char SAM_VALUE_FALSE[] = "false";	
 
@@ -142,15 +145,21 @@ namespace client
 			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode);
 
+			void ReceiveDatagram ();
+			void HandleReceivedDatagram (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+
 		private:
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
+			boost::asio::ip::udp::socket m_DatagramSocket;
 			SAMSocket * m_NewSocket;
 			std::mutex m_SessionsMutex;
 			std::map<std::string, SAMSession> m_Sessions;
+			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE];
 	};		
 }
 }

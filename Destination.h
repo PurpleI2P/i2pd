@@ -46,6 +46,10 @@ namespace client
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;
 
+			// datagram
+			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
+			void CreateDatagramDestination ();
+
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };

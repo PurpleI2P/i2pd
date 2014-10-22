@@ -84,7 +84,8 @@ namespace client
 		delete m_LeaseSet;
 		delete m_Work;
 		delete m_Service;
-		delete m_StreamingDestination; // TODO
+		delete m_StreamingDestination;
+		delete m_DatagramDestination;
 	}	
 
 	void ClientDestination::Run ()
@@ -292,5 +293,11 @@ namespace client
 			return m_StreamingDestination->IsAcceptorSet ();
 		return false;
 	}	
+
+	void ClientDestination::CreateDatagramDestination ()
+	{
+		if (!m_DatagramDestination)
+			m_DatagramDestination = new i2p::datagram::DatagramDestination (*this);
+	}
 }
 }

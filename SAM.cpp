@@ -206,6 +206,7 @@ namespace client
 		LogPrint ("SAM session create: ", buf);
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, len, params);
+		std::string& style = params[SAM_PARAM_STYLE]; 
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
 		m_ID = id;
@@ -220,7 +221,11 @@ namespace client
 		{
 			m_SocketType = eSAMSocketTypeSession;
 			if (m_Session->localDestination->IsReady ())
+			{
+				if (style == SAM_VALUE_DATAGRAM)
+					m_Session->localDestination->CreateDatagramDestination ();
 				SendSessionCreateReplyOk ();
+			}
 			else
 			{
 				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
@@ -523,7 +528,8 @@ namespace client
 	SAMBridge::SAMBridge (int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-		m_NewSocket	(nullptr)
+		m_DatagramEndpoint (boost::asio::ip::udp::v4 (), port-1), m_DatagramSocket (m_Service, m_DatagramEndpoint),
+		m_NewSocket (nullptr)
 	{
 	}
 
@@ -536,6 +542,7 @@ namespace client
 	void SAMBridge::Start ()
 	{
 		Accept ();
+		ReceiveDatagram ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&SAMBridge::Run, this));
 	}
@@ -640,6 +647,24 @@ namespace client
 		if (it != m_Sessions.end ())
 			return &it->second;
 		return nullptr;
+	}
+
+	void SAMBridge::ReceiveDatagram ()
+	{
+		m_DatagramSocket.async_receive_from (
+			boost::asio::buffer (m_DatagramReceiveBuffer, i2p::datagram::MAX_DATAGRAM_SIZE), 
+			m_SenderEndpoint,
+			boost::bind (&SAMBridge::HandleReceivedDatagram, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
+	}
+
+	void SAMBridge::HandleReceivedDatagram (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (!ecode)
+		{
+			ReceiveDatagram ();
+		}
+		else
+			LogPrint ("SAM datagram receive error: ", ecode.message ());
 	}
 }
 }
