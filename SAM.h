@@ -11,6 +11,7 @@
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "Streaming.h"
+#include "Destination.h"
 
 namespace i2p
 {
@@ -115,7 +116,7 @@ namespace client
 
 	struct SAMSession
 	{
-		i2p::stream::StreamingDestination * localDestination;
+		ClientDestination * localDestination;
 		std::list<SAMSocket *> sockets;
 	};
 

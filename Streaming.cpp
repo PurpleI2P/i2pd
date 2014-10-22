@@ -115,7 +115,7 @@ namespace stream
 			{
 				// we have received duplicate. Most likely our outbound tunnel is dead
 				LogPrint ("Duplicate message ", receivedSeqn, " received");
-				m_LocalDestination.ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
+				m_LocalDestination.GetOwner ().ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendQuickAck (); // resend ack for previous message again
 				delete packet; // packet dropped
@@ -274,11 +274,11 @@ namespace stream
 				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
 				*(uint16_t *)(packet + size) = htobe16 (flags);
 				size += 2; // flags
-				size_t identityLen = m_LocalDestination.GetIdentity ().GetFullLen ();
-				size_t signatureLen = m_LocalDestination.GetIdentity ().GetSignatureLen ();
+				size_t identityLen = m_LocalDestination.GetOwner ().GetIdentity ().GetFullLen ();
+				size_t signatureLen = m_LocalDestination.GetOwner ().GetIdentity ().GetSignatureLen ();
 				*(uint16_t *)(packet + size) = htobe16 (identityLen + signatureLen + 2); // identity + signature + packet size
 				size += 2; // options size
-				m_LocalDestination.GetIdentity ().ToBuffer (packet + size, identityLen); 
+				m_LocalDestination.GetOwner ().GetIdentity ().ToBuffer (packet + size, identityLen); 
 				size += identityLen; // from
 				*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
 				size += 2; // max packet size
@@ -291,7 +291,7 @@ namespace stream
 				buf += sentLen;
 				len -= sentLen;
 				size += sentLen; // payload
-				m_LocalDestination.Sign (packet, size, signature);
+				m_LocalDestination.GetOwner ().Sign (packet, size, signature);
 			}	
 			else
 			{
@@ -362,13 +362,13 @@ namespace stream
 			size++; // resend delay
 			*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 			size += 2; // flags
-			size_t signatureLen = m_LocalDestination.GetIdentity ().GetSignatureLen ();
+			size_t signatureLen = m_LocalDestination.GetOwner ().GetIdentity ().GetSignatureLen ();
 			*(uint16_t *)(packet + size) = htobe16 (signatureLen); // signature only
 			size += 2; // options size
 			uint8_t * signature = packet + size;
 			memset (packet + size, 0, signatureLen);
 			size += signatureLen; // signature
-			m_LocalDestination.Sign (packet, size, signature);
+			m_LocalDestination.GetOwner ().Sign (packet, size, signature);
 			
 			p->len = size;
 			SendPacket (p);
@@ -441,7 +441,7 @@ namespace stream
 			for (auto it: packets)
 			{ 
 				auto msg = m_RoutingSession->WrapSingleMessage ( 
-					m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength ()));
+					m_LocalDestination.GetOwner ().CreateDataMessage (it->GetBuffer (), it->GetLength ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 							{ 
 								i2p::tunnel::eDeliveryTypeTunnel,
@@ -450,7 +450,7 @@ namespace stream
 							});	
 				m_NumSentBytes += it->GetLength ();
 			}
-			m_LocalDestination.SendTunnelDataMsgs (msgs);
+			m_LocalDestination.GetOwner ().SendTunnelDataMsgs (msgs);
 		}	
 		else
 			LogPrint ("All leases are expired");
@@ -484,7 +484,7 @@ namespace stream
 			}	
 			if (packets.size () > 0)
 			{
-				m_LocalDestination.ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
+				m_LocalDestination.GetOwner ().ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendPackets (packets);
 			}	
@@ -506,14 +506,14 @@ namespace stream
 	{
 		if (!m_RemoteLeaseSet)
 		{
-			m_RemoteLeaseSet = m_LocalDestination.FindLeaseSet (m_RemoteIdentity.GetIdentHash ());
+			m_RemoteLeaseSet = m_LocalDestination.GetOwner ().FindLeaseSet (m_RemoteIdentity.GetIdentHash ());
 			if (!m_RemoteLeaseSet)		
 				LogPrint ("LeaseSet ", m_RemoteIdentity.GetIdentHash ().ToBase64 (), " not found");
 		}
 		if (m_RemoteLeaseSet)
 		{
 			if (!m_RoutingSession)
-				m_RoutingSession = m_LocalDestination.GetRoutingSession (*m_RemoteLeaseSet, 32);
+				m_RoutingSession = m_LocalDestination.GetOwner ().GetRoutingSession (*m_RemoteLeaseSet, 32);
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
 			if (!leases.empty ())
 			{	
@@ -522,12 +522,88 @@ namespace stream
 			}	
 			else
 			{	
-				m_RemoteLeaseSet = m_LocalDestination.FindLeaseSet (m_RemoteIdentity.GetIdentHash ()); // re-request expired
+				m_RemoteLeaseSet = m_LocalDestination.GetOwner ().FindLeaseSet (m_RemoteIdentity.GetIdentHash ()); // re-request expired
 				m_CurrentRemoteLease.endDate = 0;
 			}	
 		}
 		else
 			m_CurrentRemoteLease.endDate = 0;
+	}	
+
+	void StreamingDestination::Start ()
+	{	
+	}
+		
+	void StreamingDestination::Stop ()
+	{	
+		ResetAcceptor ();
+		{
+			std::unique_lock<std::mutex> l(m_StreamsMutex);
+			for (auto it: m_Streams)
+				delete it.second;	
+			m_Streams.clear ();
+		}	
+	}	
+
+	void StreamingDestination::HandleNextPacket (Packet * packet)
+	{
+		uint32_t sendStreamID = packet->GetSendStreamID ();
+		if (sendStreamID)
+		{	
+			auto it = m_Streams.find (sendStreamID);
+			if (it != m_Streams.end ())
+				it->second->HandleNextPacket (packet);
+			else
+			{	
+				LogPrint ("Unknown stream ", sendStreamID);
+				delete packet;
+			}
+		}	
+		else // new incoming stream
+		{
+			auto incomingStream = CreateNewIncomingStream ();
+			incomingStream->HandleNextPacket (packet);
+			if (m_Acceptor != nullptr)
+				m_Acceptor (incomingStream);
+			else
+			{
+				LogPrint ("Acceptor for incoming stream is not set");
+				DeleteStream (incomingStream);
+			}
+		}	
+	}	
+
+	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote)
+	{
+		Stream * s = new Stream (*m_Owner.GetService (), *this, remote);
+		std::unique_lock<std::mutex> l(m_StreamsMutex);
+		m_Streams[s->GetRecvStreamID ()] = s;
+		return s;
+	}	
+
+	Stream * StreamingDestination::CreateNewIncomingStream ()
+	{
+		Stream * s = new Stream (*m_Owner.GetService (), *this);
+		std::unique_lock<std::mutex> l(m_StreamsMutex);
+		m_Streams[s->GetRecvStreamID ()] = s;
+		return s;
+	}
+
+	void StreamingDestination::DeleteStream (Stream * stream)
+	{
+		if (stream)
+		{	
+			std::unique_lock<std::mutex> l(m_StreamsMutex);
+			auto it = m_Streams.find (stream->GetRecvStreamID ());
+			if (it != m_Streams.end ())
+			{	
+				m_Streams.erase (it);
+				if (m_Owner.GetService ())
+					m_Owner.GetService ()->post ([stream](void) { delete stream; }); 
+				else
+					delete stream;
+			}	
+		}	
 	}		
 }		
 }	

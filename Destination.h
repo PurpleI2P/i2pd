@@ -28,6 +28,7 @@ namespace client
 			bool IsRunning () const { return m_IsRunning; };
 			boost::asio::io_service * GetService () { return m_Service; };
 			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; }; 
+			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
 			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases (); };
 
 			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
@@ -52,10 +53,6 @@ namespace client
 			void HandleDataMessage (const uint8_t * buf, size_t len);
 			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
 
-		protected:
-
-			virtual void HandleNextPacket (i2p::stream::Packet * packet) = 0; // TODO	
-
 		private:
 				
 			void Run ();			
@@ -77,55 +74,14 @@ namespace client
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;
 		
+			i2p::stream::StreamingDestination * m_StreamingDestination;
+	
 		public:
 			
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 	};	
-}
-
-namespace stream
-{
-	class StreamingDestination: public i2p::client::ClientDestination 
-	{
-		public:
-
-			StreamingDestination (bool isPublic, i2p::data::SigningKeyType sigType):
-				ClientDestination (isPublic, sigType) {};
-			StreamingDestination (const std::string& fullPath, bool isPublic):
-				ClientDestination (fullPath, isPublic) {};
-			StreamingDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
-				ClientDestination (keys, isPublic) {};
-			~StreamingDestination () {};	
-
-			void Start ();
-			void Stop ();
-
-			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote);
-			void DeleteStream (Stream * stream);			
-			void SetAcceptor (const std::function<void (Stream *)>& acceptor) { m_Acceptor = acceptor; };
-			void ResetAcceptor () { m_Acceptor = nullptr; };
-			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
-
-			// ClientDestination
-			void HandleNextPacket (Packet * packet);
-
-		private:		
-	
-			Stream * CreateNewIncomingStream ();
-
-		private:
-
-			std::mutex m_StreamsMutex;
-			std::map<uint32_t, Stream *> m_Streams;
-			std::function<void (Stream *)> m_Acceptor;
-			
-		public:
-
-			// for HTTP only
-			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
-	};		
-}		
+}	
 }	
 
 #endif

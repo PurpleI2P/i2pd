@@ -26,7 +26,7 @@ namespace client
 		{
 			m_Stream->Close ();
 			if (m_Session && m_Session->localDestination)
-				m_Session->localDestination->DeleteStream (m_Stream);
+				m_Session->localDestination->GetStreamingDestination ()->DeleteStream (m_Stream);
 		}
 	}	
 
@@ -36,7 +36,7 @@ namespace client
 		{
 			m_Stream->Close ();
 			if (m_Session && m_Session->localDestination)
-				m_Session->localDestination->DeleteStream (m_Stream);
+				m_Session->localDestination->GetStreamingDestination ()->DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		switch (m_SocketType)
@@ -55,7 +55,7 @@ namespace client
 				if (m_Session)
 				{
 					m_Session->sockets.remove (this);
-					m_Session->localDestination->ResetAcceptor ();
+					m_Session->localDestination->GetStreamingDestination ()->ResetAcceptor ();
 				}
 				break;
 			}
@@ -295,7 +295,7 @@ namespace client
 	{
 		m_SocketType = eSAMSocketTypeStream;
 		m_Session->sockets.push_back (this);
-		m_Stream = m_Session->localDestination->CreateNewOutgoingStream (remote);
+		m_Stream = m_Session->localDestination->GetStreamingDestination ()->CreateNewOutgoingStream (remote);
 		m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
 		I2PReceive ();			
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
@@ -344,11 +344,11 @@ namespace client
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
 		{
-			if (!m_Session->localDestination->IsAcceptorSet ())
+			if (!m_Session->localDestination->GetStreamingDestination ()->IsAcceptorSet ())
 			{
 				m_SocketType = eSAMSocketTypeAcceptor;
 				m_Session->sockets.push_back (this);
-				m_Session->localDestination->SetAcceptor (std::bind (&SAMSocket::HandleI2PAccept, this, std::placeholders::_1));
+				m_Session->localDestination->GetStreamingDestination ()->SetAcceptor (std::bind (&SAMSocket::HandleI2PAccept, this, std::placeholders::_1));
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 			}
 			else
@@ -507,7 +507,7 @@ namespace client
 			m_Stream = stream;
 			auto session = m_Owner.FindSession (m_ID);
 			if (session)	
-				session->localDestination->ResetAcceptor ();	
+				session->localDestination->GetStreamingDestination ()->ResetAcceptor ();	
 			if (!m_IsSilent)
 			{
 				// send remote peer address
@@ -595,7 +595,7 @@ namespace client
 
 	SAMSession * SAMBridge::CreateSession (const std::string& id, const std::string& destination)
 	{
-		i2p::stream::StreamingDestination * localDestination = nullptr; 
+		ClientDestination * localDestination = nullptr; 
 		if (destination != "")
 		{
 			uint8_t * buf = new uint8_t[destination.length ()];

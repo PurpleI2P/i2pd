@@ -22,12 +22,12 @@ namespace client
 			void Start ();
 			void Stop ();
 
-			i2p::stream::StreamingDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			i2p::stream::StreamingDestination * CreateNewLocalDestination (bool isPublic = true, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // transient
-			i2p::stream::StreamingDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);
-			void DeleteLocalDestination (i2p::stream::StreamingDestination * destination);
-			i2p::stream::StreamingDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
-			i2p::stream::StreamingDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
+			ClientDestination * GetSharedLocalDestination () const { return m_SharedLocalDestination; };
+			ClientDestination * CreateNewLocalDestination (bool isPublic = true, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // transient
+			ClientDestination * CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true);
+			void DeleteLocalDestination (ClientDestination * destination);
+			ClientDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
+			ClientDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 
 		private:	
 
@@ -36,8 +36,8 @@ namespace client
 		private:
 
 			std::mutex m_DestinationsMutex;
-			std::map<i2p::data::IdentHash, i2p::stream::StreamingDestination *> m_Destinations;
-			i2p::stream::StreamingDestination * m_SharedLocalDestination;	
+			std::map<i2p::data::IdentHash, ClientDestination *> m_Destinations;
+			ClientDestination * m_SharedLocalDestination;	
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;

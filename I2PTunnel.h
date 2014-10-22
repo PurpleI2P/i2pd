@@ -6,6 +6,7 @@
 #include <set>
 #include <boost/asio.hpp>
 #include "Identity.h"
+#include "Destination.h"
 #include "Streaming.h"
 
 namespace i2p
@@ -51,22 +52,22 @@ namespace client
 	{
 		public:
 
-			I2PTunnel (boost::asio::io_service& service, i2p::stream::StreamingDestination * localDestination): 
+			I2PTunnel (boost::asio::io_service& service, ClientDestination * localDestination): 
 				m_Service (service), m_LocalDestination (localDestination) {};
 			virtual ~I2PTunnel () { ClearConnections (); }; 
 
 			void AddConnection (I2PTunnelConnection * conn);
 			void RemoveConnection (I2PTunnelConnection * conn);	
 			void ClearConnections ();
-			i2p::stream::StreamingDestination * GetLocalDestination () { return m_LocalDestination; };
-			void SetLocalDestination (i2p::stream::StreamingDestination * dest) { m_LocalDestination = dest; }; 			
+			ClientDestination * GetLocalDestination () { return m_LocalDestination; };
+			void SetLocalDestination (ClientDestination * dest) { m_LocalDestination = dest; }; 			
 
 			boost::asio::io_service& GetService () { return m_Service; };
 			
 		private:
 
 			boost::asio::io_service& m_Service;
-			i2p::stream::StreamingDestination * m_LocalDestination;
+			ClientDestination * m_LocalDestination;
 			std::set<I2PTunnelConnection *> m_Connections;
 	};	
 	
@@ -75,7 +76,7 @@ namespace client
 		public:
 
 			I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, int port,
-				i2p::stream::StreamingDestination * localDestination = nullptr);
+				ClientDestination * localDestination = nullptr);
 			~I2PClientTunnel ();				
 	
 			void Start ();
@@ -102,7 +103,7 @@ namespace client
 		public:
 
 			I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-				i2p::stream::StreamingDestination * localDestination);	
+				ClientDestination * localDestination);	
 
 			void Start ();
 			void Stop ();

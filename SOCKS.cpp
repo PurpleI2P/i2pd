@@ -224,7 +224,7 @@ namespace proxy
 	void SOCKS4AHandler::SentConnectionSuccess(const boost::system::error_code & ecode)
 	{
 		LogPrint("--- socks4a making connection");
-		m_stream = i2p::client::context.GetSharedLocalDestination ()->CreateNewOutgoingStream(*m_ls);
+		m_stream = i2p::client::context.GetSharedLocalDestination ()->GetStreamingDestination ()->CreateNewOutgoingStream(*m_ls);
 		m_state = OKAY;
 		LogPrint("--- socks4a state is ", m_state);
 		AsyncSockRead();

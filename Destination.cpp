@@ -21,6 +21,7 @@ namespace client
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
 		if (m_IsPublic)
 			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
+		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
 	ClientDestination::ClientDestination (const std::string& fullPath, bool isPublic):
@@ -56,6 +57,7 @@ namespace client
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
+		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
@@ -67,6 +69,7 @@ namespace client
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
 		if (m_IsPublic)
 			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
+		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
 	ClientDestination::~ClientDestination ()
@@ -79,6 +82,7 @@ namespace client
 		delete m_LeaseSet;
 		delete m_Work;
 		delete m_Service;
+		delete m_StreamingDestination; // TODO
 	}	
 
 	void ClientDestination::Run ()
@@ -94,10 +98,12 @@ namespace client
 		m_Pool->SetActive (true);
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
+		m_StreamingDestination->Start ();	
 	}
 		
 	void ClientDestination::Stop ()
 	{	
+		m_StreamingDestination->Stop ();	
 		if (m_Pool)
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		m_IsRunning = false;
@@ -250,7 +256,7 @@ namespace client
 			if (uncompressed->len <= i2p::stream::MAX_PACKET_SIZE)
 			{
 				decompressor.Get (uncompressed->buf, uncompressed->len);
-				HandleNextPacket (uncompressed); 
+				m_StreamingDestination->HandleNextPacket (uncompressed); 
 			}
 			else
 			{
@@ -286,87 +292,4 @@ namespace client
 		return msg;
 	}				
 }
-
-namespace stream
-{
-
-	void StreamingDestination::Start ()
-	{	
-		ClientDestination::Start ();
-	}
-		
-	void StreamingDestination::Stop ()
-	{	
-		ResetAcceptor ();
-		{
-			std::unique_lock<std::mutex> l(m_StreamsMutex);
-			for (auto it: m_Streams)
-				delete it.second;	
-			m_Streams.clear ();
-		}	
-		ClientDestination::Stop ();		
-	}	
-
-
-	void StreamingDestination::HandleNextPacket (Packet * packet)
-	{
-		uint32_t sendStreamID = packet->GetSendStreamID ();
-		if (sendStreamID)
-		{	
-			auto it = m_Streams.find (sendStreamID);
-			if (it != m_Streams.end ())
-				it->second->HandleNextPacket (packet);
-			else
-			{	
-				LogPrint ("Unknown stream ", sendStreamID);
-				delete packet;
-			}
-		}	
-		else // new incoming stream
-		{
-			auto incomingStream = CreateNewIncomingStream ();
-			incomingStream->HandleNextPacket (packet);
-			if (m_Acceptor != nullptr)
-				m_Acceptor (incomingStream);
-			else
-			{
-				LogPrint ("Acceptor for incoming stream is not set");
-				DeleteStream (incomingStream);
-			}
-		}	
-	}	
-
-	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote)
-	{
-		Stream * s = new Stream (*GetService (), *this, remote);
-		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
-		return s;
-	}	
-
-	Stream * StreamingDestination::CreateNewIncomingStream ()
-	{
-		Stream * s = new Stream (*GetService (), *this);
-		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
-		return s;
-	}
-
-	void StreamingDestination::DeleteStream (Stream * stream)
-	{
-		if (stream)
-		{	
-			std::unique_lock<std::mutex> l(m_StreamsMutex);
-			auto it = m_Streams.find (stream->GetRecvStreamID ());
-			if (it != m_Streams.end ())
-			{	
-				m_Streams.erase (it);
-				if (GetService ())
-					GetService ()->post ([stream](void) { delete stream; }); 
-				else
-					delete stream;
-			}	
-		}	
-	}	
-}		
 }
