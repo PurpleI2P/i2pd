@@ -244,7 +244,7 @@ namespace client
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
 		// we assume I2CP payload
-		if (buf[9] == 6) // streaming protocol
+		if (buf[9] == PROTOCOL_TYPE_STREAMING && m_StreamingDestination) // streaming protocol
 		{	
 			// unzip it
 			CryptoPP::Gunzip decompressor;
@@ -261,7 +261,6 @@ namespace client
 			else
 			{
 				LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size. Skipped");
-				decompressor.Skip ();
 				delete uncompressed;
 			}	
 		}	
@@ -285,11 +284,37 @@ namespace client
 		buf += 4;
 		compressor.Get (buf, size);
 		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
-		buf[9] = 6; // streaming protocol
+		buf[9] = PROTOCOL_TYPE_STREAMING; // streaming protocol. TODO:
 		msg->len += size + 4; 
 		FillI2NPMessageHeader (msg, eI2NPData);
 		
 		return msg;
-	}				
+	}	
+
+	i2p::stream::Stream * ClientDestination::CreateStream (const i2p::data::LeaseSet& remote)
+	{
+		if (m_StreamingDestination)
+			return m_StreamingDestination->CreateNewOutgoingStream (remote);
+		return nullptr;	
+	}		
+
+	void ClientDestination::AcceptStreams (const std::function<void (i2p::stream::Stream *)>& acceptor)
+	{
+		if (m_StreamingDestination)
+			m_StreamingDestination->SetAcceptor (acceptor);
+	}
+
+	void ClientDestination::StopAcceptingStreams ()
+	{
+		if (m_StreamingDestination)
+			m_StreamingDestination->ResetAcceptor ();
+	}
+
+	bool ClientDestination::IsAcceptingStreams () const
+	{
+		if (m_StreamingDestination)
+			return m_StreamingDestination->IsAcceptorSet ();
+		return false;
+	}	
 }
 }

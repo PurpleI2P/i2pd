@@ -25,8 +25,8 @@ namespace client
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			if (m_Session && m_Session->localDestination)
-				m_Session->localDestination->GetStreamingDestination ()->DeleteStream (m_Stream);
+			i2p::stream::DeleteStream (m_Stream);
+			m_Stream = nullptr;
 		}
 	}	
 
@@ -35,8 +35,7 @@ namespace client
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			if (m_Session && m_Session->localDestination)
-				m_Session->localDestination->GetStreamingDestination ()->DeleteStream (m_Stream);
+			i2p::stream::DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		switch (m_SocketType)
@@ -55,7 +54,7 @@ namespace client
 				if (m_Session)
 				{
 					m_Session->sockets.remove (this);
-					m_Session->localDestination->GetStreamingDestination ()->ResetAcceptor ();
+					m_Session->localDestination->StopAcceptingStreams ();
 				}
 				break;
 			}
@@ -295,7 +294,7 @@ namespace client
 	{
 		m_SocketType = eSAMSocketTypeStream;
 		m_Session->sockets.push_back (this);
-		m_Stream = m_Session->localDestination->GetStreamingDestination ()->CreateNewOutgoingStream (remote);
+		m_Stream = m_Session->localDestination->CreateStream (remote);
 		m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
 		I2PReceive ();			
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
@@ -344,11 +343,11 @@ namespace client
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
 		{
-			if (!m_Session->localDestination->GetStreamingDestination ()->IsAcceptorSet ())
+			if (!m_Session->localDestination->IsAcceptingStreams ())
 			{
 				m_SocketType = eSAMSocketTypeAcceptor;
 				m_Session->sockets.push_back (this);
-				m_Session->localDestination->GetStreamingDestination ()->SetAcceptor (std::bind (&SAMSocket::HandleI2PAccept, this, std::placeholders::_1));
+				m_Session->localDestination->AcceptStreams (std::bind (&SAMSocket::HandleI2PAccept, this, std::placeholders::_1));
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 			}
 			else
@@ -507,7 +506,7 @@ namespace client
 			m_Stream = stream;
 			auto session = m_Owner.FindSession (m_ID);
 			if (session)	
-				session->localDestination->GetStreamingDestination ()->ResetAcceptor ();	
+				session->localDestination->StopAcceptingStreams ();	
 			if (!m_IsSilent)
 			{
 				// send remote peer address

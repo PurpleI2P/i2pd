@@ -182,6 +182,8 @@ namespace stream
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
 	};		
 
+	void DeleteStream (Stream * stream);
+
 //-------------------------------------------------
 
 	template<typename Buffer, typename ReceiveHandler>

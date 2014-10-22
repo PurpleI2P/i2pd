@@ -14,7 +14,7 @@ namespace client
 	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
 		m_Socket (socket), m_Owner (owner) 
 	{
-		m_Stream = m_Owner->GetLocalDestination ()->GetStreamingDestination ()->CreateNewOutgoingStream (*leaseSet);
+		m_Stream = m_Owner->GetLocalDestination ()->CreateStream (*leaseSet);
 		m_Stream->Send (m_Buffer, 0); // connect
 		StreamReceive ();
 		Receive ();
@@ -39,7 +39,7 @@ namespace client
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			m_Owner->GetLocalDestination ()->GetStreamingDestination ()->DeleteStream (m_Stream);
+			i2p::stream::DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}	
 		m_Socket->close ();
@@ -115,7 +115,7 @@ namespace client
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				if (m_Stream) m_Stream->Close ();
-				m_Owner->GetLocalDestination ()->GetStreamingDestination ()->DeleteStream (m_Stream);
+				i2p::stream::DeleteStream (m_Stream);
 				m_Stream = nullptr;
 			}	
 		}
@@ -270,7 +270,7 @@ namespace client
 	{
 		auto localDestination = GetLocalDestination ();	
 		if (localDestination)
-			localDestination->GetStreamingDestination ()->SetAcceptor (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+			localDestination->AcceptStreams (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
 		else
 			LogPrint ("Local destination not set for server tunnel");
 	}

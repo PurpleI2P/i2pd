@@ -605,5 +605,11 @@ namespace stream
 			}	
 		}	
 	}		
+
+	void DeleteStream (Stream * stream)
+	{
+		if (stream)
+			stream->GetLocalDestination ().DeleteStream (stream);
+	}
 }		
 }	

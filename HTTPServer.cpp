@@ -517,7 +517,7 @@ namespace util
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			i2p::client::context.GetSharedLocalDestination ()->GetStreamingDestination ()->DeleteStream (m_Stream);
+			i2p::stream::DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}
 		m_Socket->close ();
@@ -880,7 +880,7 @@ namespace util
 	void HTTPConnection::SendToDestination (const i2p::data::LeaseSet * remote, const char * buf, size_t len)
 	{
 		if (!m_Stream)
-			m_Stream = i2p::client::context.GetSharedLocalDestination ()->GetStreamingDestination ()->CreateNewOutgoingStream (*remote);
+			m_Stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (*remote);
 		if (m_Stream)
 		{
 			m_Stream->Send ((uint8_t *)buf, len);

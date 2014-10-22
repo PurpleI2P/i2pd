@@ -14,6 +14,10 @@ namespace i2p
 {
 namespace client
 {
+	const uint8_t PROTOCOL_TYPE_STREAMING = 6;
+	const uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
+	const uint8_t PROTOCOL_TYPE_RAW = 18;	
+
 	class ClientDestination: public i2p::garlic::GarlicDestination
 	{
 		public:
@@ -28,12 +32,18 @@ namespace client
 			bool IsRunning () const { return m_IsRunning; };
 			boost::asio::io_service * GetService () { return m_Service; };
 			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; }; 
-			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
 			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases (); };
 
 			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
 			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);
 			void SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs);
+
+			// streaming
+			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
+			i2p::stream::Stream * CreateStream (const i2p::data::LeaseSet& remote);
+			void AcceptStreams (const std::function<void (i2p::stream::Stream *)>& acceptor);
+			void StopAcceptingStreams ();
+			bool IsAcceptingStreams () const;
 
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
