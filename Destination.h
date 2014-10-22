@@ -9,6 +9,7 @@
 #include "LeaseSet.h"
 #include "Garlic.h"
 #include "Streaming.h"
+#include "Datagram.h"
 
 namespace i2p
 {
@@ -84,6 +85,7 @@ namespace client
 			bool m_IsPublic;
 		
 			i2p::stream::StreamingDestination * m_StreamingDestination;
+			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
 		public:
 			

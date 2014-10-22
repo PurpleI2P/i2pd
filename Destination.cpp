@@ -12,7 +12,8 @@ namespace client
 {
 	ClientDestination::ClientDestination (bool isPublic, i2p::data::SigningKeyType sigType): 
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr), 
-		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic)
+		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic),
+		m_DatagramDestination (nullptr)
 	{		
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
@@ -25,7 +26,8 @@ namespace client
 
 	ClientDestination::ClientDestination (const std::string& fullPath, bool isPublic):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),
-		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic) 
+		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic),
+		m_DatagramDestination (nullptr)
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -61,7 +63,8 @@ namespace client
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),	
-		m_Keys (keys), m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic)
+		m_Keys (keys), m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic),
+		m_DatagramDestination (nullptr)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
@@ -249,6 +252,15 @@ namespace client
 				// streaming protocol
 				if (m_StreamingDestination)
 					m_StreamingDestination->HandleDataMessagePayload (buf, length);
+				else
+					LogPrint ("Missing streaming destination");
+			break;
+			case PROTOCOL_TYPE_DATAGRAM:
+				// datagram protocol
+				if (m_DatagramDestination)
+					m_DatagramDestination->HandleDataMessagePayload (buf, length);
+				else
+					LogPrint ("Missing streaming destination");
 			break;
 			default:
 				LogPrint ("Data: unexpected protocol ", buf[9]);
