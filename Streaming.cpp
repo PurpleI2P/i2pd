@@ -1,3 +1,4 @@
+#include <cryptopp/gzip.h>
 #include "Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
@@ -441,7 +442,7 @@ namespace stream
 			for (auto it: packets)
 			{ 
 				auto msg = m_RoutingSession->WrapSingleMessage ( 
-					m_LocalDestination.GetOwner ().CreateDataMessage (it->GetBuffer (), it->GetLength ()));
+					m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 							{ 
 								i2p::tunnel::eDeliveryTypeTunnel,
@@ -605,6 +606,50 @@ namespace stream
 			}	
 		}	
 	}		
+
+	void StreamingDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len)
+	{
+		// unzip it
+		CryptoPP::Gunzip decompressor;
+		decompressor.Put (buf, len);
+		decompressor.MessageEnd();
+		Packet * uncompressed = new Packet;
+		uncompressed->offset = 0;
+		uncompressed->len = decompressor.MaxRetrievable ();
+		if (uncompressed->len <= MAX_PACKET_SIZE)
+		{
+			decompressor.Get (uncompressed->buf, uncompressed->len);
+			HandleNextPacket (uncompressed); 
+		}
+		else
+		{
+			LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size. Skipped");
+			delete uncompressed;
+		}	
+	}
+
+	I2NPMessage * StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len)
+	{
+		I2NPMessage * msg = NewI2NPShortMessage ();
+		CryptoPP::Gzip compressor;
+		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
+			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
+		else
+			compressor.SetDeflateLevel (CryptoPP::Gzip::DEFAULT_DEFLATE_LEVEL);
+		compressor.Put (payload, len);
+		compressor.MessageEnd();
+		int size = compressor.MaxRetrievable ();
+		uint8_t * buf = msg->GetPayload ();
+		*(uint32_t *)buf = htobe32 (size); // length
+		buf += 4;
+		compressor.Get (buf, size);
+		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
+		buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
+		msg->len += size + 4; 
+		FillI2NPMessageHeader (msg, eI2NPData);
+		
+		return msg;
+	}	
 
 	void DeleteStream (Stream * stream)
 	{

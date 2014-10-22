@@ -1,7 +1,6 @@
 #include <fstream>
 #include <algorithm>
 #include <cryptopp/dh.h>
-#include <cryptopp/gzip.h>
 #include "Log.h"
 #include "util.h"
 #include "NetDb.h"
@@ -244,51 +243,16 @@ namespace client
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
 		// we assume I2CP payload
-		if (buf[9] == PROTOCOL_TYPE_STREAMING && m_StreamingDestination) // streaming protocol
-		{	
-			// unzip it
-			CryptoPP::Gunzip decompressor;
-			decompressor.Put (buf, length);
-			decompressor.MessageEnd();
-			i2p::stream::Packet * uncompressed = new i2p::stream::Packet;
-			uncompressed->offset = 0;
-			uncompressed->len = decompressor.MaxRetrievable ();
-			if (uncompressed->len <= i2p::stream::MAX_PACKET_SIZE)
-			{
-				decompressor.Get (uncompressed->buf, uncompressed->len);
-				m_StreamingDestination->HandleNextPacket (uncompressed); 
-			}
-			else
-			{
-				LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size. Skipped");
-				delete uncompressed;
-			}	
-		}	
-		else
-			LogPrint ("Data: unexpected protocol ", buf[9]);
-	}	
-	
-	I2NPMessage * ClientDestination::CreateDataMessage (const uint8_t * payload, size_t len)
-	{
-		I2NPMessage * msg = NewI2NPShortMessage ();
-		CryptoPP::Gzip compressor;
-		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
-			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
-		else
-			compressor.SetDeflateLevel (CryptoPP::Gzip::DEFAULT_DEFLATE_LEVEL);
-		compressor.Put (payload, len);
-		compressor.MessageEnd();
-		int size = compressor.MaxRetrievable ();
-		uint8_t * buf = msg->GetPayload ();
-		*(uint32_t *)buf = htobe32 (size); // length
-		buf += 4;
-		compressor.Get (buf, size);
-		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
-		buf[9] = PROTOCOL_TYPE_STREAMING; // streaming protocol. TODO:
-		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg, eI2NPData);
-		
-		return msg;
+		switch (buf[9])
+		{
+			case PROTOCOL_TYPE_STREAMING:
+				// streaming protocol
+				if (m_StreamingDestination)
+					m_StreamingDestination->HandleDataMessagePayload (buf, length);
+			break;
+			default:
+				LogPrint ("Data: unexpected protocol ", buf[9]);
+		}
 	}	
 
 	i2p::stream::Stream * ClientDestination::CreateStream (const i2p::data::LeaseSet& remote)

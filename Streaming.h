@@ -160,13 +160,14 @@ namespace stream
 			void SetAcceptor (const std::function<void (Stream *)>& acceptor) { m_Acceptor = acceptor; };
 			void ResetAcceptor () { m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
-
-			// ClientDestination
 			i2p::client::ClientDestination& GetOwner () { return m_Owner; };
-			void HandleNextPacket (Packet * packet);
+
+			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
+			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
 
 		private:		
 	
+			void HandleNextPacket (Packet * packet);
 			Stream * CreateNewIncomingStream ();
 
 		private:

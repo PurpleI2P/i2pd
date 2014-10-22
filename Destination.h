@@ -61,7 +61,6 @@ namespace client
 
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
-			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
 
 		private:
 				
