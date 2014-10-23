@@ -268,10 +268,10 @@ namespace client
 		}
 	}	
 
-	i2p::stream::Stream * ClientDestination::CreateStream (const i2p::data::LeaseSet& remote)
+	i2p::stream::Stream * ClientDestination::CreateStream (const i2p::data::LeaseSet& remote, int port)
 	{
 		if (m_StreamingDestination)
-			return m_StreamingDestination->CreateNewOutgoingStream (remote);
+			return m_StreamingDestination->CreateNewOutgoingStream (remote, port);
 		return nullptr;	
 	}		
 

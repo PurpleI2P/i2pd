@@ -29,6 +29,7 @@ namespace util
 			  std::string method;
 			  std::string uri;
 			  std::string host;
+		      int port;	
 			  int http_version_major;
 			  int http_version_minor;
 			  std::vector<header> headers;
@@ -88,9 +89,10 @@ namespace util
 	
 			virtual void RunRequest ();
 			void HandleDestinationRequest(const std::string& address, const std::string& uri);
-			void SendToAddress (const std::string& address, const char * buf, size_t len);
-			void HandleDestinationRequestTimeout (const boost::system::error_code& ecode, i2p::data::IdentHash destination, const char * buf, size_t len);
-			void SendToDestination (const i2p::data::LeaseSet * remote, const char * buf, size_t len);
+			void SendToAddress (const std::string& address, int port, const char * buf, size_t len);
+			void HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
+				i2p::data::IdentHash destination, int port, const char * buf, size_t len);
+			void SendToDestination (const i2p::data::LeaseSet * remote, int port, const char * buf, size_t len);
 
 		public:
 

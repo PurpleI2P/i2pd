@@ -41,7 +41,7 @@ namespace client
 
 			// streaming
 			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
-			i2p::stream::Stream * CreateStream (const i2p::data::LeaseSet& remote);
+			i2p::stream::Stream * CreateStream (const i2p::data::LeaseSet& remote, int port = 0);
 			void AcceptStreams (const std::function<void (i2p::stream::Stream *)>& acceptor);
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;

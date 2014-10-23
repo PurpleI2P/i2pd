@@ -52,10 +52,11 @@ namespace proxy
 			}
 			path=m[4].str();
 		}
-		LogPrint("server is: ",server, "\n path is: ",path);
+		LogPrint("server is: ",server, " port is: ", port, "\n path is: ",path);
 		r.uri = path;
 		r.method = method;
 		r.host = server;
+		r.port = boost::lexical_cast<int>(port);
 	}
 
 
@@ -77,8 +78,8 @@ namespace proxy
 			}
 		}			
 	
-		LogPrint("Requesting ", r.host, " with path ", r.uri, " and method ", r.method);
-		SendToAddress (r.host, m_Buffer, m_BufferLen);
+		LogPrint("Requesting ", r.host, ":", r.port, " with path ", r.uri, " and method ", r.method);
+		SendToAddress (r.host, r.port,  m_Buffer, m_BufferLen);
 	}
 
 }

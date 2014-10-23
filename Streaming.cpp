@@ -12,12 +12,12 @@ namespace i2p
 namespace stream
 {
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local, 
-		const i2p::data::LeaseSet& remote): m_Service (service), m_SendStreamID (0), 
+		const i2p::data::LeaseSet& remote, int port): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false), 
 		m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local), 
 		m_RemoteLeaseSet (&remote), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service),
 		m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0), 
-		m_NumReceivedBytes (0)
+		m_NumReceivedBytes (0), m_Port (port)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -28,7 +28,7 @@ namespace stream
 		m_IsOpen (false), m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), 
 		m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0), 
-		m_NumReceivedBytes (0)
+		m_NumReceivedBytes (0), m_Port (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}
@@ -441,8 +441,7 @@ namespace stream
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 			for (auto it: packets)
 			{ 
-				auto msg = m_RoutingSession->WrapSingleMessage ( 
-					m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength ()));
+				auto msg = m_RoutingSession->WrapSingleMessage (CreateDataMessage (it->GetBuffer (), it->GetLength ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 							{ 
 								i2p::tunnel::eDeliveryTypeTunnel,
@@ -531,6 +530,30 @@ namespace stream
 			m_CurrentRemoteLease.endDate = 0;
 	}	
 
+	I2NPMessage * Stream::CreateDataMessage (const uint8_t * payload, size_t len)
+	{
+		I2NPMessage * msg = NewI2NPShortMessage ();
+		CryptoPP::Gzip compressor;
+		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
+			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
+		else
+			compressor.SetDeflateLevel (CryptoPP::Gzip::DEFAULT_DEFLATE_LEVEL);
+		compressor.Put (payload, len);
+		compressor.MessageEnd();
+		int size = compressor.MaxRetrievable ();
+		uint8_t * buf = msg->GetPayload ();
+		*(uint32_t *)buf = htobe32 (size); // length
+		buf += 4;
+		compressor.Get (buf, size);
+		*(uint16_t *)(buf + 4) = 0; // source port
+		*(uint16_t *)(buf + 6) = htobe16 (m_Port); // destination port 
+		buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
+		msg->len += size + 4; 
+		FillI2NPMessageHeader (msg, eI2NPData);
+		
+		return msg;
+	}	
+		
 	void StreamingDestination::Start ()
 	{	
 	}
@@ -574,9 +597,9 @@ namespace stream
 		}	
 	}	
 
-	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote)
+	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote, int port)
 	{
-		Stream * s = new Stream (*m_Owner.GetService (), *this, remote);
+		Stream * s = new Stream (*m_Owner.GetService (), *this, remote, port);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;
@@ -627,29 +650,6 @@ namespace stream
 			delete uncompressed;
 		}	
 	}
-
-	I2NPMessage * StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len)
-	{
-		I2NPMessage * msg = NewI2NPShortMessage ();
-		CryptoPP::Gzip compressor;
-		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
-			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
-		else
-			compressor.SetDeflateLevel (CryptoPP::Gzip::DEFAULT_DEFLATE_LEVEL);
-		compressor.Put (payload, len);
-		compressor.MessageEnd();
-		int size = compressor.MaxRetrievable ();
-		uint8_t * buf = msg->GetPayload ();
-		*(uint32_t *)buf = htobe32 (size); // length
-		buf += 4;
-		compressor.Get (buf, size);
-		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
-		buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
-		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg, eI2NPData);
-		
-		return msg;
-	}	
 
 	void DeleteStream (Stream * stream)
 	{
