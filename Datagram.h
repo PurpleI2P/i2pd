@@ -2,6 +2,8 @@
 #define DATAGRAM_H__
 
 #include <inttypes.h>
+#include "LeaseSet.h"
+#include "I2NPProtocol.h"
 
 namespace i2p
 {
@@ -16,14 +18,22 @@ namespace datagram
 	{
 		public:
 
-			DatagramDestination (i2p::client::ClientDestination& owner): m_Owner (owner) {};
+			DatagramDestination (i2p::client::ClientDestination& owner);
 			~DatagramDestination () {};				
 
+			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::LeaseSet& remote);
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
 
 		private:
 
+			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
+
+		private:
+
 			i2p::client::ClientDestination& m_Owner;
+			uint8_t m_OutgoingBuffer[MAX_DATAGRAM_SIZE];
+			uint8_t * m_Signature, * m_Payload;
+			size_t m_HeaderLen;
 	};		
 }
 }
