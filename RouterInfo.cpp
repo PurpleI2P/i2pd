@@ -290,7 +290,6 @@ namespace data
 		
 	void RouterInfo::WriteToStream (std::ostream& s)
 	{
-		s.write ((char *)&m_RouterIdentity, sizeof (m_RouterIdentity));
 		uint64_t ts = htobe64 (m_Timestamp);
 		s.write ((char *)&ts, sizeof (ts));
 
@@ -419,6 +418,9 @@ namespace data
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
 		std::stringstream s;
+		uint8_t ident[1024];
+		auto identLen = privateKeys.GetPublic ().ToBuffer (ident, 1024);
+		s.write ((char *)ident, identLen);			
 		WriteToStream (s);
 		m_BufferLen = s.str ().size ();
 		if (!m_Buffer)
