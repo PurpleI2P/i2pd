@@ -16,8 +16,8 @@ namespace transport
 {
 
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-		const i2p::data::RouterInfo * router, bool peerTest ): 
-		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
+		const i2p::data::RouterInfo * router, bool peerTest ): TransportSession (router), 
+		m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
 		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest),
  		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
 		m_Data (*this), m_NumSentBytes (0), m_NumReceivedBytes (0)
@@ -232,10 +232,8 @@ namespace transport
 		payload += 2; // size of identity fragment
 		if (identitySize == i2p::data::DEFAULT_IDENTITY_SIZE)
 		{
-			i2p::data::Identity ident;
-			ident.FromBuffer (payload, identitySize);
-			m_RemoteIdent = ident.Hash ();
-			m_Data.UpdatePacketSize (m_RemoteIdent);
+			m_RemoteIdentity.FromBuffer (payload, identitySize);
+			m_Data.UpdatePacketSize (m_RemoteIdentity.GetIdentHash ());
 		}
 		else
 			LogPrint ("SSU unexpected identity size ", identitySize);

@@ -72,12 +72,10 @@ namespace transport
 		public:
 
 			NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouter = nullptr);
-			virtual ~NTCPSession ();
+			~NTCPSession ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
-			const i2p::data::RouterInfo * GetRemoteRouter () { return m_RemoteRouter; };
-			const i2p::data::IdentityEx& GetRemoteIdentity () { return m_RemoteIdentity; };
 			
 			void ClientLogin ();
 			void ServerLogin ();
@@ -134,9 +132,6 @@ namespace transport
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::Adler32 m_Adler;
-			
-			const i2p::data::RouterInfo * m_RemoteRouter;
-			i2p::data::IdentityEx m_RemoteIdentity; 
 
 			struct Establisher
 			{	

@@ -72,7 +72,6 @@ namespace transport
 			void WaitForIntroduction ();
 			void Close ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
-			const i2p::data::RouterInfo * GetRemoteRouter () const  { return m_RemoteRouter; };
 			void SendI2NPMessage (I2NPMessage * msg);
 			void SendPeerTest (); // Alice			
 
@@ -129,8 +128,6 @@ namespace transport
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
-			const i2p::data::RouterInfo * m_RemoteRouter;
-			i2p::data::IdentHash m_RemoteIdent; // if m_RemoteRouter is null
 			boost::asio::deadline_timer m_Timer;
 			bool m_PeerTest;
 			SessionState m_State;

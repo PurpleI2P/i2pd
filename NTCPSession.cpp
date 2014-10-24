@@ -20,12 +20,10 @@ namespace i2p
 namespace transport
 {
 	NTCPSession::NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouter): 
-		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false),  
-		m_RemoteRouter (in_RemoteRouter), m_ReceiveBufferOffset (0), 
+		TransportSession (in_RemoteRouter),	m_Socket (service), 
+		m_TerminationTimer (service), m_IsEstablished (false), m_ReceiveBufferOffset (0), 
 		m_NextMessage (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
-		if (m_RemoteRouter)
-			m_RemoteIdentity = m_RemoteRouter->GetRouterIdentity ();
 		m_DHKeysPair = transports.GetNextDHKeysPair ();
 		m_Establisher = new Establisher;
 	}
