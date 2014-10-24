@@ -23,6 +23,8 @@ namespace transport
 		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), 
 		m_NextMessage (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
+		if (m_RemoteRouterInfo)
+			m_RemoteRouterIdentity = m_RemoteRouterInfo->GetRouterIdentity ();
 		m_DHKeysPair = transports.GetNextDHKeysPair ();
 		m_Establisher = new Establisher;
 	}
@@ -118,14 +120,8 @@ namespace transport
 		
 	void NTCPSession::ClientLogin ()
 	{
-		if (!m_RemoteRouterInfo)
-		{
-			LogPrint ("Remote router info is not set");
-			Terminate ();
-		}
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
-		m_RemoteRouterIdentity = m_RemoteRouterInfo->GetRouterIdentity ();
 		// send Phase1
 		const uint8_t * x = m_DHKeysPair->publicKey;
 		memcpy (m_Establisher->phase1.pubKey, x, 256);
@@ -634,11 +630,8 @@ namespace transport
 	void NTCPServerConnection::Connected ()
 	{
 		LogPrint ("NTCP server session connected");
-		SetIsEstablished (true);
 		transports.AddNTCPSession (this);
-
-		SendTimeSyncMessage ();
-		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
+		NTCPSession::Connected ();
 	}	
 }	
 }	
