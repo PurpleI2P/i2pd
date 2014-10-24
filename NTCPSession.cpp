@@ -3,7 +3,6 @@
 #include "I2PEndian.h"
 #include <boost/bind.hpp>
 #include <cryptopp/dh.h>
-#include <cryptopp/dsa.h>
 #include "base64.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -120,11 +119,12 @@ namespace transport
 	{
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
+		m_RemoteRouterIdentity = m_RemoteRouterInfo. GetRouterIdentity ();
 		// send Phase1
 		const uint8_t * x = m_DHKeysPair->publicKey;
 		memcpy (m_Establisher->phase1.pubKey, x, 256);
 		CryptoPP::SHA256().CalculateDigest(m_Establisher->phase1.HXxorHI, x, 256);
-		const uint8_t * ident = m_RemoteRouterInfo.GetIdentHash ();
+		const uint8_t * ident = m_RemoteRouterIdentity.GetIdentHash ();
 		for (int i = 0; i < 32; i++)
 			m_Establisher->phase1.HXxorHI[i] ^= ident[i];
 		
@@ -322,7 +322,7 @@ namespace transport
 		{	
 			LogPrint ("Phase 3 received: ", bytes_transferred);
 			m_Decryption.Decrypt ((uint8_t *)&m_Establisher->phase3, sizeof(NTCPPhase3), (uint8_t *)&m_Establisher->phase3);
-			m_RemoteRouterInfo.SetRouterIdentity (m_Establisher->phase3.ident);
+			m_RemoteRouterIdentity = m_Establisher->phase3.ident;
 
 			SignedData s;
 			memcpy (s.x, m_Establisher->phase1.pubKey, 256);
@@ -331,10 +331,7 @@ namespace transport
 			s.tsA = m_Establisher->phase3.timestamp;
 			s.tsB = tsB;
 			
-			CryptoPP::DSA::PublicKey pubKey;
-			pubKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
-			CryptoPP::DSA::Verifier verifier (pubKey);
-			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Establisher->phase3.signature, 40))
+			if (!m_RemoteRouterIdentity.Verify ((uint8_t *)&s, sizeof(s), m_Establisher->phase3.signature))
 			{	
 				LogPrint ("signature verification failed");
 				Terminate ();
@@ -350,7 +347,7 @@ namespace transport
 		SignedData s;
 		memcpy (s.x, m_Establisher->phase1.pubKey, 256);
 		memcpy (s.y, m_Establisher->phase2.pubKey, 256);
-		memcpy (s.ident, m_RemoteRouterInfo.GetIdentHash (), 32);
+		memcpy (s.ident, m_RemoteRouterIdentity.GetIdentHash (), 32);
 		s.tsA = m_Establisher->phase3.timestamp;
 		s.tsB = tsB;
 		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Establisher->phase4.signature);
@@ -402,10 +399,7 @@ namespace transport
 			s.tsA = tsA;
 			s.tsB = m_Establisher->phase2.encrypted.timestamp;
 
-			CryptoPP::DSA::PublicKey pubKey;
-			pubKey.Initialize (dsap, dsaq, dsag, CryptoPP::Integer (m_RemoteRouterInfo.GetRouterIdentity ().signingKey, 128));
-			CryptoPP::DSA::Verifier verifier (pubKey);
-			if (!verifier.VerifyMessage ((uint8_t *)&s, sizeof(s), m_Establisher->phase4.signature, 40))
+			if (!m_RemoteRouterIdentity.Verify ((uint8_t *)&s, sizeof(s), m_Establisher->phase4.signature))
 			{	
 				LogPrint ("signature verification failed");
 				Terminate ();

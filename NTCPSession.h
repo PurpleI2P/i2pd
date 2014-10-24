@@ -135,6 +135,7 @@ namespace transport
 			CryptoPP::Adler32 m_Adler;
 			
 			i2p::data::RouterInfo& m_RemoteRouterInfo;
+			i2p::data::IdentityEx m_RemoteRouterIdentity; 
 
 			struct Establisher
 			{	
