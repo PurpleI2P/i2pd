@@ -704,9 +704,9 @@ namespace util
 			if (it.second->IsEstablished ())
 			{
 				// incoming connection doesn't have remote RI
-				bool outgoing = it.second->GetRemoteRouterInfo ();
+				bool outgoing = it.second->GetRemoteRouter ();
 				if (outgoing) s << "-->";
-				s << it.second->GetRemoteRouterIdentity ().GetIdentHash ().ToBase64 ().substr (0, 4) <<  ": "
+				s << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase64 ().substr (0, 4) <<  ": "
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 				if (!outgoing) s << "-->";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";

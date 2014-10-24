@@ -229,6 +229,13 @@ namespace data
 			return nullptr;
 	}
 
+	void NetDb::SetUnreachable (const IdentHash& ident, bool unreachable)
+	{
+		auto it = m_RouterInfos.find (ident);
+		if (it != m_RouterInfos.end ())
+			return it->second->SetUnreachable (unreachable);
+	}
+
 	// TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
 	bool NetDb::CreateNetDb(boost::filesystem::path directory)
 	{

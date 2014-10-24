@@ -78,7 +78,8 @@ namespace data
 			const RouterInfo * GetRandomRouter () const;
 			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith) const;
 			const RouterInfo * GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const;
-			
+			void SetUnreachable (const IdentHash& ident, bool unreachable);			
+
 			void PostI2NPMsg (I2NPMessage * msg);
 
 			// for web interface

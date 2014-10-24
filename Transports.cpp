@@ -184,13 +184,13 @@ namespace transport
 	void Transports::AddNTCPSession (NTCPSession * session)
 	{
 		if (session)
-			m_NTCPSessions[session->GetRemoteRouterIdentity ().GetIdentHash ()] = session;
+			m_NTCPSessions[session->GetRemoteIdentity ().GetIdentHash ()] = session;
 	}	
 
 	void Transports::RemoveNTCPSession (NTCPSession * session)
 	{
 		if (session)
-			m_NTCPSessions.erase (session->GetRemoteRouterIdentity ().GetIdentHash ());
+			m_NTCPSessions.erase (session->GetRemoteIdentity ().GetIdentHash ());
 	}	
 		
 	void Transports::HandleAccept (NTCPServerConnection * conn, const boost::system::error_code& error)

@@ -71,13 +71,13 @@ namespace transport
 	{
 		public:
 
-			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo * in_RemoteRouterInfo = nullptr);
+			NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouter = nullptr);
 			virtual ~NTCPSession ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
-			i2p::data::RouterInfo * GetRemoteRouterInfo () { return m_RemoteRouterInfo; };
-			const i2p::data::IdentityEx& GetRemoteRouterIdentity () { return m_RemoteRouterIdentity; };
+			const i2p::data::RouterInfo * GetRemoteRouter () { return m_RemoteRouter; };
+			const i2p::data::IdentityEx& GetRemoteIdentity () { return m_RemoteIdentity; };
 			
 			void ClientLogin ();
 			void ServerLogin ();
@@ -135,8 +135,8 @@ namespace transport
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::Adler32 m_Adler;
 			
-			i2p::data::RouterInfo * m_RemoteRouterInfo;
-			i2p::data::IdentityEx m_RemoteRouterIdentity; 
+			const i2p::data::RouterInfo * m_RemoteRouter;
+			i2p::data::IdentityEx m_RemoteIdentity; 
 
 			struct Establisher
 			{	
@@ -160,7 +160,7 @@ namespace transport
 	{
 		public:
 
-			NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, int port, i2p::data::RouterInfo& in_RouterInfo);
+			NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, int port, const i2p::data::RouterInfo& in_RouterInfo);
 
 		private:
 
