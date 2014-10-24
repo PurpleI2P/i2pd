@@ -18,7 +18,7 @@ namespace i2p
 {
 namespace transport
 {
-	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo): 
+	NTCPSession::NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo * in_RemoteRouterInfo): 
 		m_Socket (service), m_TerminationTimer (service), m_IsEstablished (false),  
 		m_RemoteRouterInfo (in_RemoteRouterInfo), m_ReceiveBufferOffset (0), 
 		m_NextMessage (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0)
@@ -81,7 +81,8 @@ namespace transport
 		for (auto it :m_DelayedMessages)
 		{	
 			// try to send them again
-			transports.SendMessage (m_RemoteRouterInfo.GetIdentHash (), it);
+			if (m_RemoteRouterInfo)
+				transports.SendMessage (m_RemoteRouterInfo->GetIdentHash (), it);
 			numDelayed++;
 		}	
 		m_DelayedMessages.clear ();
@@ -117,9 +118,14 @@ namespace transport
 		
 	void NTCPSession::ClientLogin ()
 	{
+		if (!m_RemoteRouterInfo)
+		{
+			LogPrint ("Remote router info is not set");
+			Terminate ();
+		}
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
-		m_RemoteRouterIdentity = m_RemoteRouterInfo. GetRouterIdentity ();
+		m_RemoteRouterIdentity = m_RemoteRouterInfo->GetRouterIdentity ();
 		// send Phase1
 		const uint8_t * x = m_DHKeysPair->publicKey;
 		memcpy (m_Establisher->phase1.pubKey, x, 256);
@@ -237,7 +243,7 @@ namespace transport
 			LogPrint ("Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				GetRemoteRouterInfo ().SetUnreachable (true); // this RouterInfo is not valid
+				m_RemoteRouterInfo->SetUnreachable (true); // this RouterInfo is not valid
 				transports.ReuseDHKeysPair (m_DHKeysPair);
 				m_DHKeysPair = nullptr;
 				Terminate ();
@@ -282,7 +288,7 @@ namespace transport
 		SignedData s;
 		memcpy (s.x, m_Establisher->phase1.pubKey, 256);
 		memcpy (s.y, m_Establisher->phase2.pubKey, 256);
-		memcpy (s.ident, m_RemoteRouterInfo.GetIdentHash (), 32);
+		memcpy (s.ident, m_RemoteRouterIdentity.GetIdentHash (), 32);
 		s.tsA = tsA;
 		s.tsB = m_Establisher->phase2.encrypted.timestamp;
 		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Establisher->phase3.signature);
@@ -382,7 +388,7 @@ namespace transport
 			LogPrint ("Phase 4 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				GetRemoteRouterInfo ().SetUnreachable (true); // this router doesn't like us
+				m_RemoteRouterInfo->SetUnreachable (true); // this router doesn't like us
 				Terminate ();
 			}	
 		}
@@ -594,8 +600,7 @@ namespace transport
 		
 	NTCPClient::NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, 
 		int port, i2p::data::RouterInfo& in_RouterInfo): 
-		NTCPSession (service, in_RouterInfo),
-		m_Endpoint (address, port)	
+		NTCPSession (service, &in_RouterInfo), m_Endpoint (address, port)	
 	{
 		Connect ();
 	}
@@ -614,7 +619,8 @@ namespace transport
 			LogPrint ("Connect error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				GetRemoteRouterInfo ().SetUnreachable (true);
+				if (GetRemoteRouterInfo ())
+					GetRemoteRouterInfo ()->SetUnreachable (true);
 				Terminate ();
 			}
 		}

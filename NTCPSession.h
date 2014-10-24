@@ -71,12 +71,13 @@ namespace transport
 	{
 		public:
 
-			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo);
+			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo * in_RemoteRouterInfo = nullptr);
 			virtual ~NTCPSession ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
-			i2p::data::RouterInfo& GetRemoteRouterInfo () { return m_RemoteRouterInfo; };
+			i2p::data::RouterInfo * GetRemoteRouterInfo () { return m_RemoteRouterInfo; };
+			const i2p::data::IdentityEx& GetRemoteRouterIdentity () { return m_RemoteRouterIdentity; };
 			
 			void ClientLogin ();
 			void ServerLogin ();
@@ -134,7 +135,7 @@ namespace transport
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::Adler32 m_Adler;
 			
-			i2p::data::RouterInfo& m_RemoteRouterInfo;
+			i2p::data::RouterInfo * m_RemoteRouterInfo;
 			i2p::data::IdentityEx m_RemoteRouterIdentity; 
 
 			struct Establisher
@@ -176,15 +177,11 @@ namespace transport
 		public:
 
 			NTCPServerConnection (boost::asio::io_service& service): 
-				NTCPSession (service, m_DummyRemoteRouterInfo) {};
+				NTCPSession (service) {};
 			
 		protected:
 
 			virtual void Connected ();
-			
-		private:	
-
-			i2p::data::RouterInfo m_DummyRemoteRouterInfo;
 	};	
 }	
 }	

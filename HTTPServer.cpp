@@ -701,12 +701,12 @@ namespace util
 		s << "NTCP<br>";
 		for (auto it: i2p::transport::transports.GetNTCPSessions ())
 		{
-			// RouterInfo of incoming connection doesn't have address
-			bool outgoing = it.second->GetRemoteRouterInfo ().GetNTCPAddress ();
 			if (it.second->IsEstablished ())
 			{
+				// incoming connection doesn't have remote RI
+				bool outgoing = it.second->GetRemoteRouterInfo ();
 				if (outgoing) s << "-->";
-				s << it.second->GetRemoteRouterInfo ().GetIdentHashAbbreviation () <<  ": "
+				s << it.second->GetRemoteRouterIdentity ().GetIdentHash ().ToBase64 ().substr (0, 4) <<  ": "
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 				if (!outgoing) s << "-->";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
