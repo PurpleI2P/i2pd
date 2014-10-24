@@ -39,13 +39,14 @@ namespace datagram
 
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
 			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-			auto msg = m_Owner.WrapMessage (remote, CreateDataMessage (m_OutgoingBuffer, len + m_HeaderLen));
+			auto msg = m_Owner.WrapMessage (remote, CreateDataMessage (m_OutgoingBuffer, len + m_HeaderLen), true);
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
 					leases[i].tunnelGateway, leases[i].tunnelID,
 					msg
 				});
+			m_Owner.SendTunnelDataMsgs (msgs);
 		}
 		else
 			LogPrint ("Failed to send datagram. All leases expired");	

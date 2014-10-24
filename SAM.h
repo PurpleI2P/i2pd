@@ -159,7 +159,7 @@ namespace client
 			SAMSocket * m_NewSocket;
 			std::mutex m_SessionsMutex;
 			std::map<std::string, SAMSession> m_Sessions;
-			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE];
+			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
 	};		
 }
 }

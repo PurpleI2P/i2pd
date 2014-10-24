@@ -677,6 +677,45 @@ namespace client
 	{
 		if (!ecode)
 		{
+			m_DatagramReceiveBuffer[bytes_transferred] = 0;
+			char * eol = strchr ((char *)m_DatagramReceiveBuffer, '\n');
+			*eol = 0; eol++;
+			size_t payloadLen = bytes_transferred - ((uint8_t *)eol - m_DatagramReceiveBuffer); 
+			LogPrint ("SAM datagram received ", m_DatagramReceiveBuffer," size=", payloadLen);
+			char * sessionID = strchr ((char *)m_DatagramReceiveBuffer, ' ');
+			if (sessionID)
+			{
+				sessionID++;
+				char * destination = strchr (sessionID, ' ');
+				if (destination)
+				{
+					*destination = 0; destination++;
+					auto session = FindSession (sessionID);
+					if (session)
+					{	
+						uint8_t ident[1024];
+						size_t l = i2p::data::Base64ToByteStream (destination, strlen(destination), ident, 1024);
+						i2p::data::IdentityEx dest;
+						dest.FromBuffer (ident, l);
+						auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
+						if (leaseSet)
+							session->localDestination->GetDatagramDestination ()->
+								SendDatagramTo ((uint8_t *)eol, payloadLen, *leaseSet);
+						else
+						{
+							LogPrint ("SAM datagram destination not found");
+							i2p::data::netdb.RequestDestination (dest.GetIdentHash (), true, 
+								session->localDestination->GetTunnelPool ());
+						}	
+					}	
+					else
+						LogPrint ("Session ", sessionID, " not found");
+				}
+				else
+					LogPrint ("Missing destination key");
+			}
+			else
+				LogPrint ("Missing sessionID");
 			ReceiveDatagram ();
 		}
 		else
