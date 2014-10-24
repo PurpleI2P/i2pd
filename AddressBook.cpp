@@ -11,14 +11,14 @@
 
 namespace i2p
 {
-namespace data
+namespace client
 {
 
 	AddressBook::AddressBook (): m_IsLoaded (false), m_IsDowloading (false)
 	{
 	}
 
-	bool AddressBook::GetIdentHash (const std::string& address, IdentHash& ident)
+	bool AddressBook::GetIdentHash (const std::string& address, i2p::data::IdentHash& ident)
 	{
 		auto pos = address.find(".b32.i2p");
 		if (pos != std::string::npos)
@@ -42,7 +42,7 @@ namespace data
 		return false;
 	}
 	
-	const IdentHash * AddressBook::FindAddress (const std::string& address)
+	const i2p::data::IdentHash * AddressBook::FindAddress (const std::string& address)
 	{
 		if (!m_IsLoaded)
 			LoadHosts ();
@@ -57,7 +57,7 @@ namespace data
 
 	void AddressBook::InsertAddress (const std::string& address, const std::string& base64)
 	{
-		IdentityEx ident;
+		i2p::data::IdentityEx ident;
 		ident.FromBase64 (base64);
 		m_Addresses[address] = ident.GetIdentHash ();
 		LogPrint (address,"->",ident.GetIdentHash ().ToBase32 (), ".b32.i2p added");
@@ -118,7 +118,7 @@ namespace data
 				std::string name = s.substr(0, pos++);
 				std::string addr = s.substr(pos);
 
-				IdentityEx ident;
+				i2p::data::IdentityEx ident;
 				ident.FromBase64(addr);
 				m_Addresses[name] = ident.GetIdentHash ();
 				numAddresses++;

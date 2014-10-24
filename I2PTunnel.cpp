@@ -162,7 +162,7 @@ namespace client
 	void I2PClientTunnel::Start ()
 	{
 		i2p::data::IdentHash identHash;
-		if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
+		if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 			m_DestinationIdentHash = new i2p::data::IdentHash (identHash);	
 		if (!m_DestinationIdentHash)
 			LogPrint ("I2PTunnel unknown destination ", m_Destination);
@@ -192,7 +192,7 @@ namespace client
 			if (!m_DestinationIdentHash)
 			{
 				i2p::data::IdentHash identHash;
-				if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
+				if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 					m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
 			}	
 			if (m_DestinationIdentHash)

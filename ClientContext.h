@@ -7,6 +7,7 @@
 #include "SOCKS.h"
 #include "I2PTunnel.h"
 #include "SAM.h"
+#include "AddressBook.h"
 
 namespace i2p
 {
@@ -29,6 +30,8 @@ namespace client
 			ClientDestination * FindLocalDestination (const i2p::data::IdentHash& destination) const;		
 			ClientDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 
+			AddressBook& GetAddressBook () { return m_AddressBook; };
+
 		private:	
 
 			void LoadLocalDestinations ();
@@ -38,6 +41,8 @@ namespace client
 			std::mutex m_DestinationsMutex;
 			std::map<i2p::data::IdentHash, ClientDestination *> m_Destinations;
 			ClientDestination * m_SharedLocalDestination;	
+
+			AddressBook m_AddressBook;
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;

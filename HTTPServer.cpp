@@ -845,7 +845,7 @@ namespace util
 	void HTTPConnection::SendToAddress (const std::string& address, int port, const char * buf, size_t len)
 	{	
 		i2p::data::IdentHash destination;
-		if (!i2p::data::netdb.GetAddressBook ().GetIdentHash (address, destination))
+		if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
 		{
 			LogPrint ("Unknown address ", address);
 			SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 404);

@@ -401,7 +401,7 @@ namespace client
 		i2p::data::IdentHash ident;
 		if (name == "ME")
 			SendNamingLookupReply (nullptr);
-		else if (m_Session && i2p::data::netdb.GetAddressBook ().GetIdentHash (name, ident))
+		else if (m_Session && context.GetAddressBook ().GetIdentHash (name, ident))
 		{
 			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 			if (leaseSet)
