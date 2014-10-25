@@ -214,10 +214,7 @@ namespace transport
 		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
 		m_SessionKeyDecryption.Decrypt (payload, 48, payload);
 		// verify
-		CryptoPP::DSA::PublicKey pubKey;
-		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
-		CryptoPP::DSA::Verifier verifier (pubKey);
-		if (!verifier.VerifyMessage (signedData, 532, payload, 40))
+		if (!m_RemoteIdentity.Verify (signedData, 532, payload))
 			LogPrint ("SSU signature verification failed");
 		
 		SendSessionConfirmed (y, ourAddress);
@@ -230,15 +227,15 @@ namespace transport
 		payload++; // identity fragment info
 		uint16_t identitySize = be16toh (*(uint16_t *)payload);	
 		payload += 2; // size of identity fragment
-		if (identitySize == i2p::data::DEFAULT_IDENTITY_SIZE)
-		{
-			m_RemoteIdentity.FromBuffer (payload, identitySize);
-			m_Data.UpdatePacketSize (m_RemoteIdentity.GetIdentHash ());
-		}
-		else
-			LogPrint ("SSU unexpected identity size ", identitySize);
+		m_RemoteIdentity.FromBuffer (payload, identitySize);
+		m_Data.UpdatePacketSize (m_RemoteIdentity.GetIdentHash ());
 		payload += identitySize; // identity	
-		// TODO: verify signature
+		payload += 4; // signed-on time
+		size_t paddingSize = (payload - buf) + m_RemoteIdentity.GetSignatureLen ();
+		paddingSize >>= 4;  // %16
+		if (paddingSize > 0) paddingSize = 16 - paddingSize;
+		payload += paddingSize;
+		// TODO: verify signature (need data from session request), payload points to signature
 		SendI2NPMessage (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
