@@ -1,0 +1,10 @@
+description "i2p client daemon"
+
+start on runlevel [2345]
+stop on runlevel [016] or unmounting-filesystem
+
+# these can be overridden in /etc/init/i2pd.override
+env I2P_HOST="1.2.3.4"
+env I2P_PORT="4567"
+
+exec /usr/sbin/i2pd --daemon=0 --log=1 --host=$I2P_HOST --port=$I2P_PORT
