@@ -84,18 +84,13 @@ namespace i2p
 			// initialize log			
 			if (isLogging)
 			{
-				if (isDaemon)
-				{
-					std::string logfile_path = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
+				std::string logfile_path = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
 	#ifndef _WIN32
-					logfile_path.append("/i2pd.log");
+				logfile_path.append("/i2pd.log");
 	#else
-					logfile_path.append("\\i2pd.log");
+				logfile_path.append("\\i2pd.log");
 	#endif
-					StartLog (logfile_path);
-				}
-				else
-					StartLog (""); // write to stdout
+				StartLog (logfile_path);
 			}
 
 			d.httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
