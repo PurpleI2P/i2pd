@@ -57,10 +57,10 @@ do_stop()
 }
 
 # Function that sends a SIGHUP to the daemon/service
-#do_reload() {
-#  start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME
-#  return 0
-#}
+do_reload() {
+  start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME
+  return 0
+}
 
 case "$1" in
   start)
@@ -82,14 +82,12 @@ case "$1" in
   status)
        status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
        ;;
-  #reload|force-reload)
-      #log_daemon_msg "Reloading $DESC" "$NAME"
-      #do_reload
-      #log_end_msg $?
-      #;;
-  restart|force-reload)
-  # If the "reload" option is implemented then remove the
-  # 'force-reload' alias
+  reload|force-reload)
+      log_daemon_msg "Reloading $DESC" "$NAME"
+      do_reload
+      log_end_msg $?
+      ;;
+  restart)
   log_daemon_msg "Restarting $DESC" "$NAME"
   do_stop
   case "$?" in
