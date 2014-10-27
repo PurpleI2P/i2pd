@@ -32,7 +32,9 @@ namespace i2p
 			void SetUnreachable ();				
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
-
+			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
+			void SetSupportsV6 (bool supportsV6);
+			
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_Keys.GetPrivateKey (); };

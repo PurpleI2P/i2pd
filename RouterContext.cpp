@@ -78,7 +78,7 @@ namespace i2p
 		auto newAddress = boost::asio::ip::address::from_string (host);
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
-			if (address.host != newAddress)
+			if (address.host != newAddress && address.IsCompatible (newAddress))
 			{	
 				address.host = newAddress;
 				updated = true;
@@ -130,7 +130,15 @@ namespace i2p
 		// update
 		UpdateRouterInfo ();
 	}
-	
+
+	void RouterContext::SetSupportsV6 (bool supportsV6)
+	{
+		if (supportsV6)
+			m_RouterInfo.EnableV6 ();
+		else
+			m_RouterInfo.DisableV6 ();
+	}	
+		
 	bool RouterContext::Load ()
 	{
 		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ofstream::in);

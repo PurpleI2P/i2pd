@@ -253,7 +253,7 @@ namespace transport
 				{	
 					// existing session not found. create new 
 					// try NTCP first if message size < 16K
-					auto address = r->GetNTCPAddress ();
+					auto address = r->GetNTCPAddress (!context.SupportsV6 ()); 
 					if (address && !r->UsesIntroducer () && !r->IsUnreachable () && msg->GetLength () < NTCP_MAX_MESSAGE_SIZE)
 					{	
 						auto s = new NTCPClient (m_Service, address->host, address->port, *r);

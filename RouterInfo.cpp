@@ -458,7 +458,7 @@ namespace data
 		addr.cost = 2;
 		addr.date = 0;
 		m_Addresses.push_back(addr);	
-		m_SupportedTransports |= eNTCPV4;
+		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eNTCPV4;
 	}	
 
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key)
@@ -471,7 +471,7 @@ namespace data
 		addr.date = 0;
 		memcpy (addr.key, key, 32);
 		m_Addresses.push_back(addr);	
-		m_SupportedTransports |= eSSUV4;
+		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eSSUV4;
 		m_Caps |= eSSUTesting; 
 		m_Caps |= eSSUIntroducer; 
 	}	
@@ -560,6 +560,34 @@ namespace data
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 
+	bool RouterInfo::IsV6 () const
+	{
+		return m_SupportedTransports & (eNTCPV6 | eSSUV6);
+	}
+
+	void RouterInfo::EnableV6 ()
+	{
+		if (!IsV6 ())
+			m_SupportedTransports |= eNTCPV6;
+	}
+		
+	void RouterInfo::DisableV6 ()
+	{		
+		if (IsV6 ())
+		{	
+			m_SupportedTransports &= ~eNTCPV6; 
+			for (size_t i = 0; i < m_Addresses.size (); i++)
+			{
+				if (m_Addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+					m_Addresses[i].host.is_v6 ())
+				{
+					m_Addresses.erase (m_Addresses.begin () + i);
+					break;
+				}
+			}	
+		}	
+	}
+		
 	bool RouterInfo::UsesIntroducer () const
 	{
 		return m_Caps & Caps::eUnreachable; // non-reachable

@@ -75,6 +75,12 @@ namespace data
 				// SSU only
 				Tag<32> key; // intro key for SSU
 				std::vector<Introducer> introducers;
+
+				bool IsCompatible (const boost::asio::ip::address& other) const 
+				{
+					return (host.is_v4 () && other.is_v4 ()) ||
+						(host.is_v6 () && other.is_v6 ());
+				}	
 			};
 			
 			RouterInfo (const std::string& fullPath);
@@ -102,6 +108,9 @@ namespace data
 			bool IsFloodfill () const;
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
+			bool IsV6 () const;
+			void EnableV6 ();
+			void DisableV6 ();
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
