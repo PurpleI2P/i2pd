@@ -138,6 +138,36 @@ namespace i2p
 		else
 			m_RouterInfo.DisableV6 ();
 	}	
+
+	void RouterContext::UpdateV6Address (const std::string& host)
+	{
+		bool updated = false, found = false;	
+		int port = 0;
+		auto newAddress = boost::asio::ip::address::from_string (host);
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (auto& addr : addresses)
+		{
+			if (addr.host.is_v6 ())
+			{
+				if (addr.host != newAddress)
+				{
+					addr.host = newAddress;
+					updated = true;
+				}
+				found = true;	
+			}	
+			else
+				port = addr.port;	
+		}	
+		if (!found)
+		{
+			// create new address
+			m_RouterInfo.AddNTCPAddress (host.c_str (), port);
+			updated = true;
+		}
+		if (updated)
+			UpdateRouterInfo ();
+	}
 		
 	bool RouterContext::Load ()
 	{

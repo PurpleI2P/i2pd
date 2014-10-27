@@ -51,6 +51,7 @@ Options
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
 * --unreachable=        - 1 if router is declared as unreachable and works through introducers.
+* --v6=        			- 1 if supports communication through ipv6, off by default
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
 * --ircport=      		- The local port of IRC tunnel to listen on. 6668 by default

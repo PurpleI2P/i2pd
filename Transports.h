@@ -76,6 +76,7 @@ namespace transport
 
 			void Run ();
 			void HandleAccept (NTCPServerConnection * conn, const boost::system::error_code& error);
+			void HandleAcceptV6 (NTCPServerConnection * conn, const boost::system::error_code& error);
 			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
 				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
@@ -89,7 +90,7 @@ namespace transport
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
-			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor;
+			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
 
 			std::map<i2p::data::IdentHash, NTCPSession *> m_NTCPSessions;
 			SSUServer * m_SSUServer;

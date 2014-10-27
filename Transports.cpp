@@ -96,7 +96,7 @@ namespace transport
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_Thread (nullptr), m_Work (m_Service), m_NTCPAcceptor (nullptr), 
+		m_Thread (nullptr), m_Work (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr), 
 		m_SSUServer (nullptr), m_DHKeysPairSupplier (5) // 5 pre-generated keys
 	{		
 	}
@@ -124,6 +124,17 @@ namespace transport
 				auto conn = new NTCPServerConnection (m_Service);
 				m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
 					conn, boost::asio::placeholders::error));
+
+				if (context.SupportsV6 ())
+				{
+					m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service,
+					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address.port));
+
+					LogPrint ("Start listening V6 TCP port ", address.port);	
+					auto conn = new NTCPServerConnection (m_Service);
+					m_NTCPV6Acceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAcceptV6,
+ 						this, conn, boost::asio::placeholders::error));
+				}				
 			}	
 			else if (address.transportStyle == RouterInfo::eTransportSSU)
 			{
@@ -154,6 +165,8 @@ namespace transport
 		m_NTCPSessions.clear ();
 		delete m_NTCPAcceptor;
 		m_NTCPAcceptor = nullptr;
+		delete m_NTCPV6Acceptor;
+		m_NTCPV6Acceptor = nullptr;
 
 		m_DHKeysPairSupplier.Stop ();
 		m_IsRunning = false;
@@ -207,6 +220,24 @@ namespace transport
 		{
     		conn = new NTCPServerConnection (m_Service);
 			m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
+				conn, boost::asio::placeholders::error));
+		}	
+	}
+
+	void Transports::HandleAcceptV6 (NTCPServerConnection * conn, const boost::system::error_code& error)
+	{		
+		if (!error)
+		{
+			LogPrint ("Connected from ", conn->GetSocket ().remote_endpoint().address ().to_string ());
+			conn->ServerLogin ();
+		}
+		else
+			delete conn;
+
+		if (error != boost::asio::error::operation_aborted)
+		{
+    		conn = new NTCPServerConnection (m_Service);
+			m_NTCPV6Acceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAcceptV6, this, 
 				conn, boost::asio::placeholders::error));
 		}	
 	}

@@ -644,7 +644,10 @@ namespace util
 			switch (address.transportStyle)
 			{
 				case i2p::data::RouterInfo::eTransportNTCP:
-					s << "NTCP&nbsp;&nbsp;";
+					if (address.host.is_v6 ())
+						s << "NTCP6&nbsp;&nbsp;";
+					else
+						s << "NTCP&nbsp;&nbsp;";
 				break;
 				case i2p::data::RouterInfo::eTransportSSU:
 					s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
