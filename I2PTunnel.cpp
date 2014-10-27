@@ -14,7 +14,7 @@ namespace client
 	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
 		m_Socket (socket), m_Owner (owner) 
 	{
-		m_Stream = m_Owner->GetLocalDestination ()->CreateNewOutgoingStream (*leaseSet);
+		m_Stream = m_Owner->GetLocalDestination ()->CreateStream (*leaseSet);
 		m_Stream->Send (m_Buffer, 0); // connect
 		StreamReceive ();
 		Receive ();
@@ -39,7 +39,7 @@ namespace client
 		if (m_Stream)
 		{
 			m_Stream->Close ();
-			m_Owner->GetLocalDestination ()->DeleteStream (m_Stream);
+			i2p::stream::DeleteStream (m_Stream);
 			m_Stream = nullptr;
 		}	
 		m_Socket->close ();
@@ -115,7 +115,7 @@ namespace client
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				if (m_Stream) m_Stream->Close ();
-				m_Owner->GetLocalDestination ()->DeleteStream (m_Stream);
+				i2p::stream::DeleteStream (m_Stream);
 				m_Stream = nullptr;
 			}	
 		}
@@ -145,7 +145,7 @@ namespace client
 	}	
 		
 	I2PClientTunnel::I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, 
-		int port, i2p::stream::StreamingDestination * localDestination): 
+		int port, ClientDestination * localDestination): 
 		I2PTunnel (service, localDestination ? localDestination : 
 			i2p::client::context.CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256)), 
 		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
@@ -162,7 +162,7 @@ namespace client
 	void I2PClientTunnel::Start ()
 	{
 		i2p::data::IdentHash identHash;
-		if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
+		if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 			m_DestinationIdentHash = new i2p::data::IdentHash (identHash);	
 		if (!m_DestinationIdentHash)
 			LogPrint ("I2PTunnel unknown destination ", m_Destination);
@@ -192,7 +192,7 @@ namespace client
 			if (!m_DestinationIdentHash)
 			{
 				i2p::data::IdentHash identHash;
-				if (i2p::data::netdb.GetAddressBook ().GetIdentHash (m_Destination, identHash))
+				if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 					m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
 			}	
 			if (m_DestinationIdentHash)
@@ -251,7 +251,7 @@ namespace client
 	}
 
 	I2PServerTunnel::I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-		i2p::stream::StreamingDestination * localDestination): I2PTunnel (service, localDestination),
+		ClientDestination * localDestination): I2PTunnel (service, localDestination),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
 	}
@@ -270,7 +270,7 @@ namespace client
 	{
 		auto localDestination = GetLocalDestination ();	
 		if (localDestination)
-			localDestination->SetAcceptor (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+			localDestination->AcceptStreams (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
 		else
 			LogPrint ("Local destination not set for server tunnel");
 	}

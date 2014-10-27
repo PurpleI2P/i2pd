@@ -59,7 +59,6 @@ namespace data
 	{	
 		m_RouterIdentity = identity;
 		m_IdentHash = m_RouterIdentity.Hash ();
-		UpdateIdentHashBase64 ();
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
 	}
 	
@@ -226,7 +225,6 @@ namespace data
 		}		
 		
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, (uint8_t *)&m_RouterIdentity, sizeof (m_RouterIdentity));
-		UpdateIdentHashBase64 ();
 
 		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))
 			SetUnreachable (true);
@@ -279,18 +277,9 @@ namespace data
 
 		SetProperty ("caps", caps.c_str ());
 	}
-
-	void RouterInfo::UpdateIdentHashBase64 ()
-	{
-		size_t l = i2p::data::ByteStreamToBase64 (m_IdentHash, 32, m_IdentHashBase64, 48);
-		m_IdentHashBase64[l] = 0;
-		memcpy (m_IdentHashAbbreviation, m_IdentHashBase64, 4);
-		m_IdentHashAbbreviation[4] = 0;
-	}	
 		
 	void RouterInfo::WriteToStream (std::ostream& s)
 	{
-		s.write ((char *)&m_RouterIdentity, sizeof (m_RouterIdentity));
 		uint64_t ts = htobe64 (m_Timestamp);
 		s.write ((char *)&ts, sizeof (ts));
 
@@ -410,7 +399,7 @@ namespace data
 		if (!m_Buffer)
 		{
 			if (LoadFile ())
-				LogPrint ("Buffer for ", m_IdentHashAbbreviation, " loaded from file");
+				LogPrint ("Buffer for ", GetIdentHashAbbreviation (), " loaded from file");
 		} 
 		return m_Buffer; 
 	}
@@ -419,6 +408,9 @@ namespace data
 	{
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
 		std::stringstream s;
+		uint8_t ident[1024];
+		auto identLen = privateKeys.GetPublic ().ToBuffer (ident, 1024);
+		s.write ((char *)ident, identLen);			
 		WriteToStream (s);
 		m_BufferLen = s.str ().size ();
 		if (!m_Buffer)
@@ -466,7 +458,7 @@ namespace data
 		addr.cost = 2;
 		addr.date = 0;
 		m_Addresses.push_back(addr);	
-		m_SupportedTransports |= eNTCPV4;
+		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eNTCPV4;
 	}	
 
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key)
@@ -479,7 +471,7 @@ namespace data
 		addr.date = 0;
 		memcpy (addr.key, key, 32);
 		m_Addresses.push_back(addr);	
-		m_SupportedTransports |= eSSUV4;
+		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eSSUV4;
 		m_Caps |= eSSUTesting; 
 		m_Caps |= eSSUIntroducer; 
 	}	
@@ -568,6 +560,34 @@ namespace data
 			return m_SupportedTransports & (eSSUV4 | eSSUV6);
 	}
 
+	bool RouterInfo::IsV6 () const
+	{
+		return m_SupportedTransports & (eNTCPV6 | eSSUV6);
+	}
+
+	void RouterInfo::EnableV6 ()
+	{
+		if (!IsV6 ())
+			m_SupportedTransports |= eNTCPV6;
+	}
+		
+	void RouterInfo::DisableV6 ()
+	{		
+		if (IsV6 ())
+		{	
+			m_SupportedTransports &= ~eNTCPV6; 
+			for (size_t i = 0; i < m_Addresses.size (); i++)
+			{
+				if (m_Addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+					m_Addresses[i].host.is_v6 ())
+				{
+					m_Addresses.erase (m_Addresses.begin () + i);
+					break;
+				}
+			}	
+		}	
+	}
+		
 	bool RouterInfo::UsesIntroducer () const
 	{
 		return m_Caps & Caps::eUnreachable; // non-reachable

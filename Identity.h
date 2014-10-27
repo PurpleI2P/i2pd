@@ -67,13 +67,6 @@ namespace data
 	typedef Tag<32> IdentHash;
 
 #pragma pack(1)
-
-	struct DHKeysPair // transient keys for transport sessions
-	{
-		uint8_t publicKey[256];
-		uint8_t privateKey[256];
-	};	
-
 	struct Keys
 	{
 		uint8_t privateKey[256];
@@ -81,7 +74,6 @@ namespace data
 		uint8_t publicKey[256];
 		uint8_t signingKey[128];
 	};
-	
 	
 	const uint8_t CERTIFICATE_TYPE_NULL = 0;
 	const uint8_t CERTIFICATE_TYPE_HASHCASH = 1;
@@ -105,7 +97,10 @@ namespace data
 		Identity& operator=(const Keys& keys);
 		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash () const;
-	};	
+	};
+#pragma pack()
+	Keys CreateRandomKeys ();
+	
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
 
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
@@ -183,11 +178,6 @@ namespace data
 			uint8_t m_SigningPrivateKey[128]; // assume private key doesn't exceed 128 bytes
 			i2p::crypto::Signer * m_Signer;
 	};
-	
-#pragma pack()
-		
-	Keys CreateRandomKeys ();
-	void CreateRandomDHKeysPair (DHKeysPair * keys); // for transport sessions
 
 	// kademlia
 	struct XORMetric

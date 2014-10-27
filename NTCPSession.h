@@ -11,10 +11,11 @@
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
+#include "TransportSession.h"
 
 namespace i2p
 {
-namespace ntcp
+namespace transport
 {
 
 #pragma pack(1)
@@ -65,16 +66,16 @@ namespace ntcp
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
 	const size_t NTCP_BUFFER_SIZE = 1040; // fits one tunnel message (1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
-	class NTCPSession
+
+	class NTCPSession: public TransportSession
 	{
 		public:
 
-			NTCPSession (boost::asio::io_service& service, i2p::data::RouterInfo& in_RemoteRouterInfo);
-			virtual ~NTCPSession ();
+			NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouter = nullptr);
+			~NTCPSession ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
-			i2p::data::RouterInfo& GetRemoteRouterInfo () { return m_RemoteRouterInfo; };
 			
 			void ClientLogin ();
 			void ServerLogin ();
@@ -127,13 +128,10 @@ namespace ntcp
 			boost::asio::ip::tcp::socket m_Socket;
 			boost::asio::deadline_timer m_TerminationTimer;
 			bool m_IsEstablished;
-			i2p::data::DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::Adler32 m_Adler;
-			
-			i2p::data::RouterInfo& m_RemoteRouterInfo;
 
 			struct Establisher
 			{	
@@ -157,7 +155,7 @@ namespace ntcp
 	{
 		public:
 
-			NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, int port, i2p::data::RouterInfo& in_RouterInfo);
+			NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, int port, const i2p::data::RouterInfo& in_RouterInfo);
 
 		private:
 
@@ -174,15 +172,11 @@ namespace ntcp
 		public:
 
 			NTCPServerConnection (boost::asio::io_service& service): 
-				NTCPSession (service, m_DummyRemoteRouterInfo) {};
+				NTCPSession (service) {};
 			
 		protected:
 
 			virtual void Connected ();
-			
-		private:	
-
-			i2p::data::RouterInfo m_DummyRemoteRouterInfo;
 	};	
 }	
 }	

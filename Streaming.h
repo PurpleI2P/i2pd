@@ -18,6 +18,10 @@
 
 namespace i2p
 {
+namespace client
+{
+	class ClientDestination;
+}
 namespace stream
 {
 	const uint16_t PACKET_FLAG_SYNCHRONIZE = 0x0001;
@@ -78,7 +82,8 @@ namespace stream
 	{	
 		public:
 
-			Stream (boost::asio::io_service& service, StreamingDestination& local, const i2p::data::LeaseSet& remote); // outgoing
+			Stream (boost::asio::io_service& service, StreamingDestination& local, 
+				const i2p::data::LeaseSet& remote, int port = 0); // outgoing
 			Stream (boost::asio::io_service& service, StreamingDestination& local); // incoming			
 
 			~Stream ();
@@ -122,6 +127,8 @@ namespace stream
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
+
+			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
 			
 		private:
 
@@ -139,7 +146,47 @@ namespace stream
 			std::set<Packet *, PacketCmp> m_SentPackets;
 			boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer, m_AckSendTimer;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
+			uint16_t m_Port;
 	};
+
+	class StreamingDestination
+	{
+		public:
+
+			StreamingDestination (i2p::client::ClientDestination& owner): m_Owner (owner) {};
+			~StreamingDestination () {};	
+
+			void Start ();
+			void Stop ();
+
+			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote, int port = 0);
+			void DeleteStream (Stream * stream);			
+			void SetAcceptor (const std::function<void (Stream *)>& acceptor) { m_Acceptor = acceptor; };
+			void ResetAcceptor () { m_Acceptor = nullptr; };
+			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
+			i2p::client::ClientDestination& GetOwner () { return m_Owner; };
+
+			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
+
+		private:		
+	
+			void HandleNextPacket (Packet * packet);
+			Stream * CreateNewIncomingStream ();
+
+		private:
+
+			i2p::client::ClientDestination& m_Owner;
+			std::mutex m_StreamsMutex;
+			std::map<uint32_t, Stream *> m_Streams;
+			std::function<void (Stream *)> m_Acceptor;
+			
+		public:
+
+			// for HTTP only
+			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
+	};		
+
+	void DeleteStream (Stream * stream);
 
 //-------------------------------------------------
 

@@ -75,10 +75,16 @@ namespace data
 				// SSU only
 				Tag<32> key; // intro key for SSU
 				std::vector<Introducer> introducers;
+
+				bool IsCompatible (const boost::asio::ip::address& other) const 
+				{
+					return (host.is_v4 () && other.is_v4 ()) ||
+						(host.is_v6 () && other.is_v6 ());
+				}	
 			};
 			
 			RouterInfo (const std::string& fullPath);
-			RouterInfo (): m_Buffer (nullptr) { m_IdentHashBase64[0] = 0; m_IdentHashAbbreviation[0] = 0; };
+			RouterInfo (): m_Buffer (nullptr) { };
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
@@ -86,8 +92,8 @@ namespace data
 			
 			const Identity& GetRouterIdentity () const { return m_RouterIdentity; };
 			void SetRouterIdentity (const Identity& identity);
-			const char * GetIdentHashBase64 () const { return m_IdentHashBase64; };
-			const char * GetIdentHashAbbreviation () const { return m_IdentHashAbbreviation; };
+			std::string GetIdentHashBase64 () const { return m_IdentHash.ToBase64 (); };
+			std::string GetIdentHashAbbreviation () const { return m_IdentHash.ToBase64 ().substr (0, 4); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			std::vector<Address>& GetAddresses () { return m_Addresses; };
 			const Address * GetNTCPAddress (bool v4only = true) const;
@@ -102,6 +108,9 @@ namespace data
 			bool IsFloodfill () const;
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
+			bool IsV6 () const;
+			void EnableV6 ();
+			void DisableV6 ();
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
@@ -143,7 +152,6 @@ namespace data
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
 			void ExtractCaps (const char * value);
-			void UpdateIdentHashBase64 ();
 			const Address * GetAddress (TransportStyle s, bool v4only) const;
 			void UpdateCapsProperty ();			
 
@@ -152,7 +160,6 @@ namespace data
 			std::string m_FullPath;
 			Identity m_RouterIdentity;
 			IdentHash m_IdentHash;
-			char m_IdentHashBase64[48], m_IdentHashAbbreviation[5];
 			uint8_t * m_Buffer;
 			int m_BufferLen;
 			uint64_t m_Timestamp;

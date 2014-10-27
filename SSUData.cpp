@@ -8,7 +8,7 @@
 
 namespace i2p
 {
-namespace ssu
+namespace transport
 {
 	SSUData::SSUData (SSUSession& session):
 		m_Session (session), m_ResendTimer (session.m_Server.GetService ())

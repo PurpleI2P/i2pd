@@ -9,11 +9,16 @@
 #include "LeaseSet.h"
 #include "Garlic.h"
 #include "Streaming.h"
+#include "Datagram.h"
 
 namespace i2p
 {
 namespace client
 {
+	const uint8_t PROTOCOL_TYPE_STREAMING = 6;
+	const uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
+	const uint8_t PROTOCOL_TYPE_RAW = 18;	
+
 	class ClientDestination: public i2p::garlic::GarlicDestination
 	{
 		public:
@@ -34,6 +39,17 @@ namespace client
 			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);
 			void SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs);
 
+			// streaming
+			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
+			i2p::stream::Stream * CreateStream (const i2p::data::LeaseSet& remote, int port = 0);
+			void AcceptStreams (const std::function<void (i2p::stream::Stream *)>& acceptor);
+			void StopAcceptingStreams ();
+			bool IsAcceptingStreams () const;
+
+			// datagram
+			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
+			void CreateDatagramDestination ();
+
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
@@ -50,11 +66,6 @@ namespace client
 
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
-			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
-
-		protected:
-
-			virtual void HandleNextPacket (i2p::stream::Packet * packet) = 0; // TODO	
 
 		private:
 				
@@ -77,55 +88,15 @@ namespace client
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;
 		
+			i2p::stream::StreamingDestination * m_StreamingDestination;
+			i2p::datagram::DatagramDestination * m_DatagramDestination;
+	
 		public:
 			
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 	};	
-}
-
-namespace stream
-{
-	class StreamingDestination: public i2p::client::ClientDestination 
-	{
-		public:
-
-			StreamingDestination (bool isPublic, i2p::data::SigningKeyType sigType):
-				ClientDestination (isPublic, sigType) {};
-			StreamingDestination (const std::string& fullPath, bool isPublic):
-				ClientDestination (fullPath, isPublic) {};
-			StreamingDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
-				ClientDestination (keys, isPublic) {};
-			~StreamingDestination () {};	
-
-			void Start ();
-			void Stop ();
-
-			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote);
-			void DeleteStream (Stream * stream);			
-			void SetAcceptor (const std::function<void (Stream *)>& acceptor) { m_Acceptor = acceptor; };
-			void ResetAcceptor () { m_Acceptor = nullptr; };
-			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
-
-			// ClientDestination
-			void HandleNextPacket (Packet * packet);
-
-		private:		
-	
-			Stream * CreateNewIncomingStream ();
-
-		private:
-
-			std::mutex m_StreamsMutex;
-			std::map<uint32_t, Stream *> m_Streams;
-			std::function<void (Stream *)> m_Acceptor;
-			
-		public:
-
-			// for HTTP only
-			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
-	};		
-}		
+}	
 }	
 
 #endif

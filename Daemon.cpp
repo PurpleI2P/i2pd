@@ -72,6 +72,8 @@ namespace i2p
 			if (i2p::util::config::GetArg("-unreachable", 0))
 				i2p::context.SetUnreachable ();
 
+			i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
+			
 			LogPrint("CMD parameters:");
 			for (int i = 0; i < argc; ++i)
 				LogPrint(i, "  ", argv[i]);
@@ -103,7 +105,7 @@ namespace i2p
 			LogPrint("HTTP Server started");
 			i2p::data::netdb.Start();
 			LogPrint("NetDB started");
-			i2p::transports.Start();
+			i2p::transport::transports.Start();
 			LogPrint("Transports started");
 			i2p::tunnel::tunnels.Start();
 			LogPrint("Tunnels started");
@@ -120,7 +122,7 @@ namespace i2p
 			LogPrint("Client stoped");
 			i2p::tunnel::tunnels.Stop();
 			LogPrint("Tunnels stoped");
-			i2p::transports.Stop();
+			i2p::transport::transports.Stop();
 			LogPrint("Transports stoped");
 			i2p::data::netdb.Stop();
 			LogPrint("NetDB stoped");

@@ -43,7 +43,8 @@ set (SOURCES
   "${CMAKE_SOURCE_DIR}/i2p.cpp"
   "${CMAKE_SOURCE_DIR}/util.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
-  "${CMAKE_SOURCE_DIR}/ClientContext.cpp"		
+  "${CMAKE_SOURCE_DIR}/ClientContext.cpp"
+  "${CMAKE_SOURCE_DIR}/Datagram.cpp"		
 )
 
 file (GLOB HEADERS "${CMAKE_SOURCE_DIR}/*.h")

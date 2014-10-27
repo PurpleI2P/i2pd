@@ -13,9 +13,10 @@
 #include "Garlic.h"
 #include "I2NPProtocol.h"
 
+using namespace i2p::transport;
+
 namespace i2p
 {
-
 	I2NPMessage * NewI2NPMessage ()
 	{
 		return new I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>();
@@ -289,7 +290,7 @@ namespace i2p
 			{	
 				LogPrint ("Record ",i," is ours");	
 			
-				i2p::crypto::ElGamalDecrypt (i2p::context.GetPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
+				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
 				// replace record to reply
 				I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);				
 				if (i2p::context.AcceptsTunnels ())
@@ -353,13 +354,13 @@ namespace i2p
 				if (clearText.flag & 0x40) // we are endpoint of outboud tunnel
 				{
 					// so we send it to reply tunnel 
-					i2p::transports.SendMessage (clearText.nextIdent, 
+					transports.SendMessage (clearText.nextIdent, 
 						CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
 							eI2NPVariableTunnelBuildReply, buf, len, 
 						    be32toh (clearText.nextMessageID)));                         
 				}	
 				else	
-					i2p::transports.SendMessage (clearText.nextIdent, 
+					transports.SendMessage (clearText.nextIdent, 
 						CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
 			}	
 		}	
@@ -373,13 +374,13 @@ namespace i2p
 			if (clearText.flag & 0x40) // we are endpoint of outbound tunnel
 			{
 				// so we send it to reply tunnel 
-				i2p::transports.SendMessage (clearText.nextIdent, 
+				transports.SendMessage (clearText.nextIdent, 
 					CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
 						eI2NPTunnelBuildReply, buf, len, 
 					    be32toh (clearText.nextMessageID)));                         
 			}	
 			else	
-				i2p::transports.SendMessage (clearText.nextIdent, 
+				transports.SendMessage (clearText.nextIdent, 
 					CreateI2NPMessage (eI2NPTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
 		} 
 	}

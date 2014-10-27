@@ -47,6 +47,7 @@
     <ClCompile Include="..\SOCKS.cpp" />
     <ClCompile Include="..\I2PTunnel.cpp" />
 	<ClCompile Include="..\ClientContext.cpp" />
+	<ClCompile Include="..\Datagram.cpp" />
     <ClCompile Include="Win32Service.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -91,6 +92,8 @@
     <ClInclude Include="..\version.h" />
     <ClInclude Include="..\Signature.h" />
     <ClInclude Include="..\ClientContext.h" />
+	<ClCompile Include="..\TransportSession.h" />
+	<ClCompile Include="..\Datagram.h" />	
     <ClInclude Include="Win32Service.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

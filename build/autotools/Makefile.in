@@ -325,7 +325,7 @@ i2p_SOURCES = AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  Transports.cpp Tunnel.cpp TunnelEndpoint.cpp		\
 		  TunnelGateway.cpp TunnelPool.cpp UPnP.cpp aes.cpp	\
 		  base64.cpp i2p.cpp util.cpp SAM.cpp Destination.cpp \
-		  ClientContext.cpp									  \		
+		  ClientContext.cpp	DataFram.cpp					  \		
 		  							\
 		  AddressBook.h CryptoConst.h Daemon.h ElGamal.h	\
 		  Garlic.h HTTPProxy.h HTTPServer.h I2NPProtocol.h	\
@@ -336,7 +336,8 @@ i2p_SOURCES = AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  TransitTunnel.h Transports.h Tunnel.h TunnelBase.h	\
 		  TunnelConfig.h TunnelEndpoint.h TunnelGateway.h	\
 		  TunnelPool.h UPnP.h aes.h base64.h config.h hmac.h	\
-		  util.h version.h Destination.h ClientContext.h
+		  util.h version.h Destination.h ClientContext.h	\
+		  TransportSession.h Datagram.h	
 
 AM_LDFLAGS = @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@		\
 		  @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_REGEX_LIB@		\
@@ -485,6 +486,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SAM.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ClientContext.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Datagram.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

@@ -11,15 +11,15 @@
 
 namespace i2p
 {
-namespace data
+namespace client
 {
 	class AddressBook
 	{
 		public:
 
 			AddressBook ();
-			bool GetIdentHash (const std::string& address, IdentHash& ident);
-			const IdentHash * FindAddress (const std::string& address);
+			bool GetIdentHash (const std::string& address, i2p::data::IdentHash& ident);
+			const i2p::data::IdentHash * FindAddress (const std::string& address);
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 		
 		private:
@@ -27,7 +27,7 @@ namespace data
 			void LoadHosts ();
 			void LoadHostsFromI2P ();
 
-			std::map<std::string, IdentHash>  m_Addresses;
+			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
 			bool m_IsLoaded, m_IsDowloading;
 	};
 }

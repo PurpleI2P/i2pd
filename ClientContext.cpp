@@ -27,7 +27,7 @@ namespace client
 	{
 		if (!m_SharedLocalDestination)
 		{	
-			m_SharedLocalDestination = new i2p::stream::StreamingDestination (false, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // non-public, DSA
+			m_SharedLocalDestination = new ClientDestination (false, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // non-public, DSA
 			m_Destinations[m_SharedLocalDestination->GetIdentity ().GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
@@ -41,7 +41,7 @@ namespace client
 		std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
 		if (ircDestination.length () > 0) // ircdest is presented
 		{
-			i2p::stream::StreamingDestination * localDestination = nullptr;
+			ClientDestination * localDestination = nullptr;
 			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 			if (ircKeys.length () > 0)
 				localDestination = i2p::client::context.LoadLocalDestination (ircKeys, false);
@@ -125,7 +125,7 @@ namespace client
 #else
 				it->path();
 #endif
-				auto localDestination = new i2p::stream::StreamingDestination (fullPath, true);
+				auto localDestination = new ClientDestination (fullPath, true);
 				m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 				numDestinations++;
 			}	
@@ -134,25 +134,25 @@ namespace client
 			LogPrint (numDestinations, " local destinations loaded");
 	}	
 	
-	i2p::stream::StreamingDestination * ClientContext::LoadLocalDestination (const std::string& filename, bool isPublic)
+	ClientDestination * ClientContext::LoadLocalDestination (const std::string& filename, bool isPublic)
 	{
-		auto localDestination = new i2p::stream::StreamingDestination (i2p::util::filesystem::GetFullPath (filename), isPublic);
+		auto localDestination = new ClientDestination (i2p::util::filesystem::GetFullPath (filename), isPublic);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);	
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
 	}
 
-	i2p::stream::StreamingDestination * ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
+	ClientDestination * ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
 	{
-		auto localDestination = new i2p::stream::StreamingDestination (isPublic, sigType);
+		auto localDestination = new ClientDestination (isPublic, sigType);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
 	}
 
-	void ClientContext::DeleteLocalDestination (i2p::stream::StreamingDestination * destination)
+	void ClientContext::DeleteLocalDestination (ClientDestination * destination)
 	{
 		if (!destination) return;
 		auto it = m_Destinations.find (destination->GetIdentHash ());
@@ -168,7 +168,7 @@ namespace client
 		}
 	}
 
-	i2p::stream::StreamingDestination * ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
+	ClientDestination * ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
 		if (it != m_Destinations.end ())
@@ -181,14 +181,14 @@ namespace client
 			}	
 			return nullptr;
 		}	
-		auto localDestination = new i2p::stream::StreamingDestination (keys, isPublic);
+		auto localDestination = new ClientDestination (keys, isPublic);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
 	}
 	
-	i2p::stream::StreamingDestination * ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
+	ClientDestination * ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
 	{
 		auto it = m_Destinations.find (destination);
 		if (it != m_Destinations.end ())

@@ -12,13 +12,13 @@
 
 namespace i2p
 {
-namespace ssu
+namespace transport
 {
 
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-		const i2p::data::RouterInfo * router, bool peerTest ): 
-		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_RemoteRouter (router), 
-		m_Timer (m_Server.GetService ()), m_DHKeysPair (nullptr), m_PeerTest (peerTest),
+		const i2p::data::RouterInfo * router, bool peerTest ): TransportSession (router), 
+		m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
+		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest),
  		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
 		m_Data (*this), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
@@ -28,8 +28,7 @@ namespace ssu
 	}
 
 	SSUSession::~SSUSession ()
-	{
-		delete m_DHKeysPair;		
+	{		
 	}	
 	
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey)
@@ -174,7 +173,7 @@ namespace ssu
 		LogPrint ("Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
 		if (!m_DHKeysPair)
-			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		CreateAESandMacKey (buf + sizeof (SSUHeader));
 		SendSessionCreated (buf + sizeof (SSUHeader));
 	}
@@ -215,10 +214,7 @@ namespace ssu
 		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
 		m_SessionKeyDecryption.Decrypt (payload, 48, payload);
 		// verify
-		CryptoPP::DSA::PublicKey pubKey;
-		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RemoteRouter->GetRouterIdentity ().signingKey, 128));
-		CryptoPP::DSA::Verifier verifier (pubKey);
-		if (!verifier.VerifyMessage (signedData, 532, payload, 40))
+		if (!m_RemoteIdentity.Verify (signedData, 532, payload))
 			LogPrint ("SSU signature verification failed");
 		
 		SendSessionConfirmed (y, ourAddress);
@@ -231,17 +227,15 @@ namespace ssu
 		payload++; // identity fragment info
 		uint16_t identitySize = be16toh (*(uint16_t *)payload);	
 		payload += 2; // size of identity fragment
-		if (identitySize == i2p::data::DEFAULT_IDENTITY_SIZE)
-		{
-			i2p::data::Identity ident;
-			ident.FromBuffer (payload, identitySize);
-			m_RemoteIdent = ident.Hash ();
-			m_Data.UpdatePacketSize (m_RemoteIdent);
-		}
-		else
-			LogPrint ("SSU unexpected identity size ", identitySize);
+		m_RemoteIdentity.FromBuffer (payload, identitySize);
+		m_Data.UpdatePacketSize (m_RemoteIdentity.GetIdentHash ());
 		payload += identitySize; // identity	
-		// TODO: verify signature
+		payload += 4; // signed-on time
+		size_t paddingSize = (payload - buf) + m_RemoteIdentity.GetSignatureLen ();
+		paddingSize >>= 4;  // %16
+		if (paddingSize > 0) paddingSize = 16 - paddingSize;
+		payload += paddingSize;
+		// TODO: verify signature (need data from session request), payload points to signature
 		SendI2NPMessage (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
@@ -360,10 +354,10 @@ namespace ssu
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 1; // 1 fragment
 		payload++; // info
-		size_t identLen = sizeof (i2p::context.GetRouterIdentity ()); // 387 bytes
+		size_t identLen = i2p::data::DEFAULT_IDENTITY_SIZE; // 387 bytes
 		*(uint16_t *)(payload) =  htobe16 (identLen);
 		payload += 2; // cursize
-		memcpy (payload, (uint8_t *)&i2p::context.GetRouterIdentity (), identLen);
+		memcpy (payload, (uint8_t *)&i2p::context.GetIdentity ().GetStandardIdentity (), identLen); // TODO
 		payload += identLen;
 		uint32_t signedOnTime = i2p::util::GetSecondsSinceEpoch ();
 		*(uint32_t *)(payload) = htobe32 (signedOnTime); // signed on time
@@ -609,7 +603,7 @@ namespace ssu
 		{	
 			// set connect timer
 			ScheduleConnectTimer ();
-			m_DHKeysPair = i2p::transports.GetNextDHKeysPair ();
+			m_DHKeysPair = transports.GetNextDHKeysPair ();
 			SendSessionRequest ();
 		}	
 	}

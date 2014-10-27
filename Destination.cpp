@@ -1,7 +1,6 @@
 #include <fstream>
 #include <algorithm>
 #include <cryptopp/dh.h>
-#include <cryptopp/gzip.h>
 #include "Log.h"
 #include "util.h"
 #include "NetDb.h"
@@ -13,7 +12,8 @@ namespace client
 {
 	ClientDestination::ClientDestination (bool isPublic, i2p::data::SigningKeyType sigType): 
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr), 
-		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic)
+		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic),
+		m_DatagramDestination (nullptr)
 	{		
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
@@ -21,11 +21,13 @@ namespace client
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
 		if (m_IsPublic)
 			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
+		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
 	ClientDestination::ClientDestination (const std::string& fullPath, bool isPublic):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),
-		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic) 
+		m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic),
+		m_DatagramDestination (nullptr)
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -56,17 +58,20 @@ namespace client
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
+		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),	
-		m_Keys (keys), m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic)
+		m_Keys (keys), m_CurrentOutboundTunnel (nullptr), m_LeaseSet (nullptr), m_IsPublic (isPublic),
+		m_DatagramDestination (nullptr)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
 		if (m_IsPublic)
 			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
+		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
 	ClientDestination::~ClientDestination ()
@@ -79,6 +84,8 @@ namespace client
 		delete m_LeaseSet;
 		delete m_Work;
 		delete m_Service;
+		delete m_StreamingDestination;
+		delete m_DatagramDestination;
 	}	
 
 	void ClientDestination::Run ()
@@ -94,10 +101,12 @@ namespace client
 		m_Pool->SetActive (true);
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
+		m_StreamingDestination->Start ();	
 	}
 		
 	void ClientDestination::Stop ()
 	{	
+		m_StreamingDestination->Stop ();	
 		if (m_Pool)
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		m_IsRunning = false;
@@ -238,135 +247,57 @@ namespace client
 		uint32_t length = be32toh (*(uint32_t *)buf);
 		buf += 4;
 		// we assume I2CP payload
-		if (buf[9] == 6) // streaming protocol
-		{	
-			// unzip it
-			CryptoPP::Gunzip decompressor;
-			decompressor.Put (buf, length);
-			decompressor.MessageEnd();
-			i2p::stream::Packet * uncompressed = new i2p::stream::Packet;
-			uncompressed->offset = 0;
-			uncompressed->len = decompressor.MaxRetrievable ();
-			if (uncompressed->len <= i2p::stream::MAX_PACKET_SIZE)
-			{
-				decompressor.Get (uncompressed->buf, uncompressed->len);
-				HandleNextPacket (uncompressed); 
-			}
-			else
-			{
-				LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size. Skipped");
-				decompressor.Skip ();
-				delete uncompressed;
-			}	
-		}	
-		else
-			LogPrint ("Data: unexpected protocol ", buf[9]);
-	}	
-	
-	I2NPMessage * ClientDestination::CreateDataMessage (const uint8_t * payload, size_t len)
-	{
-		I2NPMessage * msg = NewI2NPShortMessage ();
-		CryptoPP::Gzip compressor;
-		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
-			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
-		else
-			compressor.SetDeflateLevel (CryptoPP::Gzip::DEFAULT_DEFLATE_LEVEL);
-		compressor.Put (payload, len);
-		compressor.MessageEnd();
-		int size = compressor.MaxRetrievable ();
-		uint8_t * buf = msg->GetPayload ();
-		*(uint32_t *)buf = htobe32 (size); // length
-		buf += 4;
-		compressor.Get (buf, size);
-		memset (buf + 4, 0, 4); // source and destination ports. TODO: fill with proper values later
-		buf[9] = 6; // streaming protocol
-		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg, eI2NPData);
-		
-		return msg;
-	}				
-}
-
-namespace stream
-{
-
-	void StreamingDestination::Start ()
-	{	
-		ClientDestination::Start ();
-	}
-		
-	void StreamingDestination::Stop ()
-	{	
-		ResetAcceptor ();
+		switch (buf[9])
 		{
-			std::unique_lock<std::mutex> l(m_StreamsMutex);
-			for (auto it: m_Streams)
-				delete it.second;	
-			m_Streams.clear ();
-		}	
-		ClientDestination::Stop ();		
-	}	
-
-
-	void StreamingDestination::HandleNextPacket (Packet * packet)
-	{
-		uint32_t sendStreamID = packet->GetSendStreamID ();
-		if (sendStreamID)
-		{	
-			auto it = m_Streams.find (sendStreamID);
-			if (it != m_Streams.end ())
-				it->second->HandleNextPacket (packet);
-			else
-			{	
-				LogPrint ("Unknown stream ", sendStreamID);
-				delete packet;
-			}
-		}	
-		else // new incoming stream
-		{
-			auto incomingStream = CreateNewIncomingStream ();
-			incomingStream->HandleNextPacket (packet);
-			if (m_Acceptor != nullptr)
-				m_Acceptor (incomingStream);
-			else
-			{
-				LogPrint ("Acceptor for incoming stream is not set");
-				DeleteStream (incomingStream);
-			}
-		}	
-	}	
-
-	Stream * StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote)
-	{
-		Stream * s = new Stream (*GetService (), *this, remote);
-		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
-		return s;
-	}	
-
-	Stream * StreamingDestination::CreateNewIncomingStream ()
-	{
-		Stream * s = new Stream (*GetService (), *this);
-		std::unique_lock<std::mutex> l(m_StreamsMutex);
-		m_Streams[s->GetRecvStreamID ()] = s;
-		return s;
-	}
-
-	void StreamingDestination::DeleteStream (Stream * stream)
-	{
-		if (stream)
-		{	
-			std::unique_lock<std::mutex> l(m_StreamsMutex);
-			auto it = m_Streams.find (stream->GetRecvStreamID ());
-			if (it != m_Streams.end ())
-			{	
-				m_Streams.erase (it);
-				if (GetService ())
-					GetService ()->post ([stream](void) { delete stream; }); 
+			case PROTOCOL_TYPE_STREAMING:
+				// streaming protocol
+				if (m_StreamingDestination)
+					m_StreamingDestination->HandleDataMessagePayload (buf, length);
 				else
-					delete stream;
-			}	
-		}	
+					LogPrint ("Missing streaming destination");
+			break;
+			case PROTOCOL_TYPE_DATAGRAM:
+				// datagram protocol
+				if (m_DatagramDestination)
+					m_DatagramDestination->HandleDataMessagePayload (buf, length);
+				else
+					LogPrint ("Missing streaming destination");
+			break;
+			default:
+				LogPrint ("Data: unexpected protocol ", buf[9]);
+		}
 	}	
-}		
+
+	i2p::stream::Stream * ClientDestination::CreateStream (const i2p::data::LeaseSet& remote, int port)
+	{
+		if (m_StreamingDestination)
+			return m_StreamingDestination->CreateNewOutgoingStream (remote, port);
+		return nullptr;	
+	}		
+
+	void ClientDestination::AcceptStreams (const std::function<void (i2p::stream::Stream *)>& acceptor)
+	{
+		if (m_StreamingDestination)
+			m_StreamingDestination->SetAcceptor (acceptor);
+	}
+
+	void ClientDestination::StopAcceptingStreams ()
+	{
+		if (m_StreamingDestination)
+			m_StreamingDestination->ResetAcceptor ();
+	}
+
+	bool ClientDestination::IsAcceptingStreams () const
+	{
+		if (m_StreamingDestination)
+			return m_StreamingDestination->IsAcceptorSet ();
+		return false;
+	}	
+
+	void ClientDestination::CreateDatagramDestination ()
+	{
+		if (!m_DatagramDestination)
+			m_DatagramDestination = new i2p::datagram::DatagramDestination (*this);
+	}
+}
 }

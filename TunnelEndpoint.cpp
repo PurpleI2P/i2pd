@@ -235,7 +235,7 @@ namespace tunnel
 				i2p::HandleI2NPMessage (msg.data);
 			break;
 			case eDeliveryTypeTunnel:
-				i2p::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));
+				i2p::transport::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));
 			break;
 			case eDeliveryTypeRouter:
 				if (msg.hash == i2p::context.GetRouterInfo ().GetIdentHash ()) // check if message is sent to us
@@ -253,7 +253,7 @@ namespace tunnel
 							*ds = *(msg.data);
 							i2p::data::netdb.PostI2NPMsg (ds);
 						}
-						i2p::transports.SendMessage (msg.hash, msg.data);
+						i2p::transport::transports.SendMessage (msg.hash, msg.data);
 					}
 					else // we shouldn't send this message. possible leakage 
 					{

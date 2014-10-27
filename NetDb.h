@@ -15,7 +15,6 @@
 #include "LeaseSet.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"
-#include "AddressBook.h"
 
 namespace i2p
 {
@@ -67,7 +66,6 @@ namespace data
 			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, i2p::tunnel::InboundTunnel * from);
 			RouterInfo * FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
-			AddressBook& GetAddressBook () { return m_AddressBook; };// TODO: move AddressBook away from NetDb
 
 			void PublishLeaseSet (const LeaseSet * leaseSet, i2p::tunnel::TunnelPool * pool);
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false, 
@@ -80,7 +78,8 @@ namespace data
 			const RouterInfo * GetRandomRouter () const;
 			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith) const;
 			const RouterInfo * GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const;
-			
+			void SetUnreachable (const IdentHash& ident, bool unreachable);			
+
 			void PostI2NPMsg (I2NPMessage * msg);
 
 			// for web interface
@@ -120,7 +119,6 @@ namespace data
 			int m_ReseedRetries;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
-			AddressBook m_AddressBook;
 
 			static const char m_NetDbPath[];
 	};

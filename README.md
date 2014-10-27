@@ -35,10 +35,10 @@ $ ./i2p --host=YOUR_PUBLIC_IP
 The client should now reseed by itself.
 
 To visit an I2P page, you need to find the b32 address of your destination.
-After that, go to the webconsole and add it behind the url. (Remove http:// and b32.i2p from the address)
+After that, go to the webconsole and add it behind the url. (Remove http:// from the address)
 
 This should resulting in for example:
-http://localhost:7070/4oes3rlgrpbkmzv4lqcfili23h3cvpwslqcfjlk6vvguxyggspwa
+http://localhost:7070/4oes3rlgrpbkmzv4lqcfili23h3cvpwslqcfjlk6vvguxyggspwa.b32.i2p
 
 
 Options
@@ -51,6 +51,7 @@ Options
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
 * --unreachable=        - 1 if router is declared as unreachable and works through introducers.
+* --v6=        			- 1 if supports communication through ipv6, off by default
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
 * --ircport=      		- The local port of IRC tunnel to listen on. 6668 by default

@@ -1,7 +1,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 
-#include "NetDb.h"
+#include "ClientContext.h"
 #include "HTTPProxy.h"
 
 namespace i2p
@@ -52,10 +52,11 @@ namespace proxy
 			}
 			path=m[4].str();
 		}
-		LogPrint("server is: ",server, "\n path is: ",path);
+		LogPrint("server is: ",server, " port is: ", port, "\n path is: ",path);
 		r.uri = path;
 		r.method = method;
 		r.host = server;
+		r.port = boost::lexical_cast<int>(port);
 	}
 
 
@@ -73,12 +74,12 @@ namespace proxy
 			{
 				LogPrint ("Jump service for ", r.host, " found. Inserting to address book");
 				auto base64 = r.uri.substr (addressPos + 1);
-				i2p::data::netdb.GetAddressBook ().InsertAddress (r.host, base64);
+				i2p::client::context.GetAddressBook ().InsertAddress (r.host, base64);
 			}
 		}			
 	
-		LogPrint("Requesting ", r.host, " with path ", r.uri, " and method ", r.method);
-		SendToAddress (r.host, m_Buffer, m_BufferLen);
+		LogPrint("Requesting ", r.host, ":", r.port, " with path ", r.uri, " and method ", r.method);
+		SendToAddress (r.host, r.port,  m_Buffer, m_BufferLen);
 	}
 
 }

@@ -12,8 +12,12 @@ namespace tunnel
 {
 	void TunnelGatewayBuffer::PutI2NPMsg (const TunnelMessageBlock& block)
 	{
+		bool messageCreated = false;
 		if (!m_CurrentTunnelDataMsg)
+		{	
 			CreateCurrentTunnelDataMessage ();
+			messageCreated = true;
+		}	
 
 		// create delivery instructions
 		uint8_t di[43]; // max delivery instruction length is 43 for tunnel
@@ -33,7 +37,8 @@ namespace tunnel
 
 		// create fragments
 		I2NPMessage * msg = block.data;
-		if (diLen + msg->GetLength () + 2<= m_RemainingSize)
+		auto fullMsgLen = diLen + msg->GetLength () + 2; // delivery instructions + payload + 2 bytes length
+		if (fullMsgLen <= m_RemainingSize)
 		{
 			// message fits. First and last fragment
 			*(uint16_t *)(di + diLen) = htobe16 (msg->GetLength ());
@@ -48,6 +53,18 @@ namespace tunnel
 		}	
 		else
 		{
+			if (!messageCreated) // check if we should complete previous message
+			{	
+				auto numFollowOnFragments = fullMsgLen / TUNNEL_DATA_MAX_PAYLOAD_SIZE;
+				// length of bytes don't fit full tunnel message
+				// every follow-on fragment adds 7 bytes
+				auto nonFit = (fullMsgLen + numFollowOnFragments*7) % TUNNEL_DATA_MAX_PAYLOAD_SIZE; 
+				if (!nonFit || nonFit > m_RemainingSize)
+				{
+					CompleteCurrentTunnelDataMessage ();
+					CreateCurrentTunnelDataMessage ();
+				}	
+			}	
 			if (diLen + 6 <= m_RemainingSize)
 			{
 				// delivery instructions fit
@@ -169,7 +186,7 @@ namespace tunnel
 		{	
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg);
 			FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
-			i2p::transports.SendMessage (m_Tunnel->GetNextIdentHash (), tunnelMsg);
+			i2p::transport::transports.SendMessage (m_Tunnel->GetNextIdentHash (), tunnelMsg);
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}	
 		m_Buffer.ClearTunnelDataMsgs ();
