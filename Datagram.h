@@ -27,13 +27,11 @@ namespace datagram
 		private:
 
 			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
+			void SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote);
 
 		private:
 
 			i2p::client::ClientDestination& m_Owner;
-			uint8_t m_OutgoingBuffer[MAX_DATAGRAM_SIZE];
-			uint8_t * m_Signature, * m_Payload;
-			size_t m_HeaderLen;
 	};		
 }
 }

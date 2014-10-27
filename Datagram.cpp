@@ -15,41 +15,56 @@ namespace datagram
 	DatagramDestination::DatagramDestination (i2p::client::ClientDestination& owner): 
 		m_Owner (owner) 
 	{
-		auto identityLen = m_Owner.GetIdentity ().ToBuffer (m_OutgoingBuffer, MAX_DATAGRAM_SIZE);
-		m_Signature = m_OutgoingBuffer + identityLen;
-		auto signatureLen = m_Owner.GetIdentity ().GetSignatureLen ();
-		m_Payload = m_Signature + signatureLen;
-		m_HeaderLen = identityLen + signatureLen;
 	}
 
 	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::LeaseSet& remote)
 	{
+		uint8_t buf[MAX_DATAGRAM_SIZE];
+		auto identityLen = m_Owner.GetIdentity ().ToBuffer (buf, MAX_DATAGRAM_SIZE);
+		uint8_t * signature = buf + identityLen;
+		auto signatureLen = m_Owner.GetIdentity ().GetSignatureLen ();
+		uint8_t * buf1 = signature + signatureLen;
+		size_t headerLen = identityLen + signatureLen;
+		
+		memcpy (buf1, payload, len);	
+		if (m_Owner.GetIdentity ().GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		{
+			uint8_t hash[32];	
+			CryptoPP::SHA256().CalculateDigest (hash, buf1, len);
+			m_Owner.Sign (hash, 32, signature);
+		}
+		else
+			m_Owner.Sign (buf1, len, signature);
+		
+		auto service = m_Owner.GetService ();
+		if (service) 
+			service->post (boost::bind (&DatagramDestination::SendMsg, this, 
+				CreateDataMessage (buf, len + headerLen), remote));
+		else
+			LogPrint ("Failed to send datagram. Destination is not running");
+	}
+
+	void DatagramDestination::SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote)
+	{
 		auto leases = remote.GetNonExpiredLeases ();
 		if (!leases.empty ())
 		{
-			memcpy (m_Payload, payload, len);
-			if (m_Owner.GetIdentity ().GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
-			{
-				uint8_t hash[32];	
-				CryptoPP::SHA256().CalculateDigest (hash, m_Payload, len);
-				m_Owner.Sign (hash, 32, m_Signature);
-			}
-			else
-				m_Owner.Sign (m_Payload, len, m_Signature);
-
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
 			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-			auto msg = m_Owner.WrapMessage (remote, CreateDataMessage (m_OutgoingBuffer, len + m_HeaderLen), true);
+			auto garlic = m_Owner.WrapMessage (remote, msg, true);
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
 					leases[i].tunnelGateway, leases[i].tunnelID,
-					msg
+					garlic
 				});
 			m_Owner.SendTunnelDataMsgs (msgs);
 		}
 		else
-			LogPrint ("Failed to send datagram. All leases expired");	
+		{
+			LogPrint ("Failed to send datagram. All leases expired");
+			DeleteI2NPMessage (msg);	
+		}	
 	}
 
 	void DatagramDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len)
