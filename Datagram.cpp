@@ -67,6 +67,31 @@ namespace datagram
 		}	
 	}
 
+	void DatagramDestination::HandleDatagram (const uint8_t * buf, size_t len)
+	{
+		i2p::data::IdentityEx identity;
+		size_t identityLen = identity.FromBuffer (buf, len);
+		const uint8_t * signature = buf + identityLen;
+		size_t headerLen = identityLen + identity.GetSignatureLen ();
+
+		bool verified = false;
+		if (identity.GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		{
+			uint8_t hash[32];	
+			CryptoPP::SHA256().CalculateDigest (hash, buf + headerLen, len - headerLen);
+			verified = identity.Verify (hash, 32, signature);
+		}
+		else	
+			verified = identity.Verify (buf + headerLen, len - headerLen, signature);
+				
+		if (verified)
+		{
+			// TODO: invoke datagram handler
+		}
+		else
+			LogPrint ("Datagram signature verification failed");	
+	}
+
 	void DatagramDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len)
 	{
 		// unzip it
@@ -78,7 +103,7 @@ namespace datagram
 		if (uncompressedLen <= MAX_DATAGRAM_SIZE)
 		{
 			decompressor.Get (uncompressed, uncompressedLen);
-			//HandleNextPacket (uncompressed); 
+			HandleDatagram (uncompressed, uncompressedLen); 
 		}
 		else
 			LogPrint ("Received datagram size ", uncompressedLen,  " exceeds max size");

@@ -28,6 +28,7 @@ namespace datagram
 
 			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
 			void SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote);
+			void HandleDatagram (const uint8_t * buf, size_t len);
 
 		private:
 
