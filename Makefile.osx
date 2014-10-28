@@ -9,7 +9,7 @@ LIBS =
 # http://www.hutsby.net/2011/08/macs-with-aes-ni.html
 # Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
-CFLAGS += -DAESNI
+CFLAGS += -maes -DAESNI
 
 # Apple Mac OSX
 UNAME_S := $(shell uname -s)

@@ -1,5 +1,8 @@
 #include <string.h>
 #include <stdio.h>
+#ifdef _MSC_VER
+#include <stdlib.h>
+#endif
 #include <boost/bind.hpp>
 #include "base64.h"
 #include "Identity.h"
@@ -259,11 +262,11 @@ namespace client
 		size_t l = m_Session->localDestination->GetPrivateKeys ().ToBuffer (buf, 1024);
 		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
 		priv[l1] = 0;
-#ifdef _WIN32
+#ifdef _MSC_VER
 		size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
 #else		
 		size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
-#endif		
+#endif
 		SendMessageReply (m_Buffer, l2, false);
 	}
 
@@ -334,7 +337,11 @@ namespace client
 			else
 			{
 				LogPrint ("SAM name destination not found");
+#ifdef _MSC_VER
+				size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_KEY_NOT_FOUND, (ident.ToBase32 () + ".b32.i2p").c_str ());
+#else
 				size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_KEY_NOT_FOUND, (ident.ToBase32 () + ".b32.i2p").c_str ());
+#endif
 				SendMessageReply (m_Buffer, len, false);
 			}
 		}
@@ -381,11 +388,11 @@ namespace client
 			l = localDestination->GetIdentity ().ToBuffer (buf, 1024);
 			l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
 			pub[l1] = 0;
-#ifdef _WIN32
+#ifdef _MSC_VER
 			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, pub, priv);	
 #else			                        
 			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, pub, priv);
-#endif			                        
+#endif
 			SendMessageReply (m_Buffer, len, true);
 		}
 		else
@@ -416,11 +423,11 @@ namespace client
 		}
 		else
 		{
-#ifdef _WIN32
+#ifdef _MSC_VER
 			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #else				
 			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
-#endif			
+#endif
 			SendMessageReply (m_Buffer, len, false);
 		}
 	}	
@@ -433,11 +440,11 @@ namespace client
 		size_t l = identity.ToBuffer (buf, 1024);
 		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
 		pub[l1] = 0;
-#ifdef _WIN32
+#ifdef _MSC_VER
 		size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, pub); 	
 #else			
 		size_t l2 = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, pub);
-#endif		
+#endif
 		SendMessageReply (m_Buffer, l2, false);
 	}
 
