@@ -51,15 +51,6 @@ namespace transport
 		uint8_t signature[40];
 		uint8_t padding[8];
 	};
-
-	struct SignedData // used for signature in Phase3 and Phase4
-	{
-		uint8_t x[256];
-		uint8_t y[256];
-		uint8_t ident[32];
-		uint32_t tsA;
-		uint32_t tsB;
-	};	
 	
 #pragma pack()	
 

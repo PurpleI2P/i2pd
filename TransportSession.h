@@ -2,6 +2,7 @@
 #define TRANSPORT_SESSION_H__
 
 #include <inttypes.h>
+#include <iostream>
 #include "Identity.h"
 #include "RouterInfo.h"
 
@@ -14,6 +15,37 @@ namespace transport
 		uint8_t publicKey[256];
 		uint8_t privateKey[256];
 	};	
+
+	class SignedData
+	{
+		public:
+
+			SignedData () {};
+			void Insert (const uint8_t * buf, size_t len) 
+			{ 
+				m_Stream.write ((char *)buf, len); 
+			}			
+
+			template<typename T>
+			void Insert (T t)
+			{
+				m_Stream.write ((char *)&t, sizeof (T)); 
+			}
+
+			bool Verify (const i2p::data::IdentityEx& ident, const uint8_t * signature) const
+			{
+				return ident.Verify ((const uint8_t *)m_Stream.str ().c_str (), m_Stream.str ().size (), signature); 
+			}
+
+			void Sign (const i2p::data::PrivateKeys& keys, uint8_t * signature) const
+			{
+				keys.Sign ((const uint8_t *)m_Stream.str ().c_str (), m_Stream.str ().size (), signature); 
+			}	
+
+		private:
+		
+			std::stringstream m_Stream;
+	};		
 
 	class TransportSession
 	{

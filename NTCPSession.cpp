@@ -282,12 +282,11 @@ namespace transport
 		m_Establisher->phase3.timestamp = tsA;
 		
 		SignedData s;
-		memcpy (s.x, m_Establisher->phase1.pubKey, 256);
-		memcpy (s.y, m_Establisher->phase2.pubKey, 256);
-		memcpy (s.ident, m_RemoteIdentity.GetIdentHash (), 32);
-		s.tsA = tsA;
-		s.tsB = m_Establisher->phase2.encrypted.timestamp;
-		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Establisher->phase3.signature);
+		s.Insert (m_Establisher->phase1.pubKey, 256); // x
+		s.Insert (m_Establisher->phase2.pubKey, 256); // y
+		s.Insert (tsA);	// tsA
+		s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
+		s.Sign (i2p::context.GetPrivateKeys (), m_Establisher->phase3.signature);	
 
 		m_Encryption.Encrypt((uint8_t *)&m_Establisher->phase3, sizeof(NTCPPhase3), (uint8_t *)&m_Establisher->phase3);
 		        
@@ -327,13 +326,12 @@ namespace transport
 			m_RemoteIdentity = m_Establisher->phase3.ident;
 
 			SignedData s;
-			memcpy (s.x, m_Establisher->phase1.pubKey, 256);
-			memcpy (s.y, m_Establisher->phase2.pubKey, 256);
-			memcpy (s.ident, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
-			s.tsA = m_Establisher->phase3.timestamp;
-			s.tsB = tsB;
-			
-			if (!m_RemoteIdentity.Verify ((uint8_t *)&s, sizeof(s), m_Establisher->phase3.signature))
+			s.Insert (m_Establisher->phase1.pubKey, 256); // x
+			s.Insert (m_Establisher->phase2.pubKey, 256); // y
+			s.Insert (i2p::context.GetRouterInfo ().GetIdentHash (), 32); // ident
+			s.Insert (m_Establisher->phase3.timestamp); // tsA
+			s.Insert (tsB); // tsB			
+			if (!s.Verify (m_RemoteIdentity, m_Establisher->phase3.signature))
 			{	
 				LogPrint ("signature verification failed");
 				Terminate ();
@@ -347,12 +345,12 @@ namespace transport
 	void NTCPSession::SendPhase4 (uint32_t tsB)
 	{
 		SignedData s;
-		memcpy (s.x, m_Establisher->phase1.pubKey, 256);
-		memcpy (s.y, m_Establisher->phase2.pubKey, 256);
-		memcpy (s.ident, m_RemoteIdentity.GetIdentHash (), 32);
-		s.tsA = m_Establisher->phase3.timestamp;
-		s.tsB = tsB;
-		i2p::context.Sign ((uint8_t *)&s, sizeof (s), m_Establisher->phase4.signature);
+		s.Insert (m_Establisher->phase1.pubKey, 256); // x
+		s.Insert (m_Establisher->phase2.pubKey, 256); // y
+		s.Insert (m_RemoteIdentity.GetIdentHash (), 32); // ident
+		s.Insert (m_Establisher->phase3.timestamp); // tsA
+		s.Insert (tsB); // tsB
+		s.Sign (i2p::context.GetPrivateKeys (), m_Establisher->phase4.signature);
 		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase4, sizeof(NTCPPhase4), (uint8_t *)&m_Establisher->phase4);
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase4, sizeof (NTCPPhase4)), boost::asio::transfer_all (),
@@ -396,13 +394,13 @@ namespace transport
 
 			// verify signature
 			SignedData s;
-			memcpy (s.x, m_Establisher->phase1.pubKey, 256);
-			memcpy (s.y, m_Establisher->phase2.pubKey, 256);
-			memcpy (s.ident, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
-			s.tsA = tsA;
-			s.tsB = m_Establisher->phase2.encrypted.timestamp;
+			s.Insert (m_Establisher->phase1.pubKey, 256); // x
+			s.Insert (m_Establisher->phase2.pubKey, 256); // y
+			s.Insert (i2p::context.GetRouterInfo ().GetIdentHash (), 32); // ident
+			s.Insert (tsA); // tsA
+			s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
 
-			if (!m_RemoteIdentity.Verify ((uint8_t *)&s, sizeof(s), m_Establisher->phase4.signature))
+			if (!s.Verify (m_RemoteIdentity, m_Establisher->phase4.signature))
 			{	
 				LogPrint ("signature verification failed");
 				Terminate ();
