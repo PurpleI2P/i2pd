@@ -350,19 +350,20 @@ namespace transport
 
 	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress)
 	{
-		uint8_t buf[480 + 18];
+		uint8_t buf[512 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 1; // 1 fragment
 		payload++; // info
-		size_t identLen = i2p::data::DEFAULT_IDENTITY_SIZE; // 387 bytes
-		*(uint16_t *)(payload) =  htobe16 (identLen);
+		size_t identLen = i2p::context.GetIdentity ().GetFullLen (); // 387+ bytes
+		*(uint16_t *)(payload) = htobe16 (identLen);
 		payload += 2; // cursize
-		memcpy (payload, (uint8_t *)&i2p::context.GetIdentity ().GetStandardIdentity (), identLen); // TODO
+		i2p::context.GetIdentity ().ToBuffer (payload, identLen);
 		payload += identLen;
 		uint32_t signedOnTime = i2p::util::GetSecondsSinceEpoch ();
 		*(uint32_t *)(payload) = htobe32 (signedOnTime); // signed on time
 		payload += 4;
-		size_t paddingSize = ((payload - buf) + 40)%16;
+		auto signatureLen = i2p::context.GetIdentity ().GetSignatureLen ();
+		size_t paddingSize = ((payload - buf) + signatureLen)%16;
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		// TODO: fill padding	
 		payload += paddingSize; // padding size
@@ -377,13 +378,15 @@ namespace transport
 		s.Insert (htobe32 (m_RelayTag)); // relay tag
 		s.Insert (htobe32 (signedOnTime)); // signed on time
 		s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature	
-
+		payload += signatureLen;
+		
+		size_t msgLen = payload - buf;
 		uint8_t iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
 		// encrypt message with session key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CONFIRMED, buf, 480, m_SessionKey, iv, m_MacKey);
-		Send (buf, 480);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CONFIRMED, buf, msgLen, m_SessionKey, iv, m_MacKey);
+		Send (buf, msgLen);
 	}
 
 	void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
