@@ -284,7 +284,8 @@ namespace transport
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
-		s.Insert (tsA);	// tsA
+		s.Insert (m_RemoteIdentity.GetIdentHash (), 32); // ident
+ 		s.Insert (tsA);	// tsA
 		s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
 		s.Sign (i2p::context.GetPrivateKeys (), m_Establisher->phase3.signature);	
 
