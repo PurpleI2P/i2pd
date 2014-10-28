@@ -704,7 +704,7 @@ namespace util
 		s << "NTCP<br>";
 		for (auto it: i2p::transport::transports.GetNTCPSessions ())
 		{
-			if (it.second->IsEstablished ())
+			if (it.second && it.second->IsEstablished ())
 			{
 				// incoming connection doesn't have remote RI
 				bool outgoing = it.second->GetRemoteRouter ();

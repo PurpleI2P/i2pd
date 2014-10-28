@@ -115,7 +115,7 @@ namespace transport
 		auto addresses = context.GetRouterInfo ().GetAddresses ();
 		for (auto& address : addresses)
 		{
-			if (address.transportStyle == RouterInfo::eTransportNTCP)
+			if (address.transportStyle == RouterInfo::eTransportNTCP && address.host.is_v4 ())
 			{	
 				m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service,
 					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address.port));
@@ -123,18 +123,21 @@ namespace transport
 				LogPrint ("Start listening TCP port ", address.port);	
 				auto conn = new NTCPServerConnection (m_Service);
 				m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
-					conn, boost::asio::placeholders::error));
-
+					conn, boost::asio::placeholders::error));	
+				
 				if (context.SupportsV6 ())
 				{
-					m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service,
-					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address.port));
+					m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
+					m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
+					m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
+					m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address.port));
+					m_NTCPV6Acceptor->listen ();
 
 					LogPrint ("Start listening V6 TCP port ", address.port);	
 					auto conn = new NTCPServerConnection (m_Service);
 					m_NTCPV6Acceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAcceptV6,
- 						this, conn, boost::asio::placeholders::error));
-				}				
+						this, conn, boost::asio::placeholders::error));
+				}	
 			}	
 			else if (address.transportStyle == RouterInfo::eTransportSSU)
 			{
