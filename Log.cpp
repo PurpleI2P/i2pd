@@ -3,9 +3,18 @@
 
 Log * g_Log = nullptr;
 
+static const char * g_LogLevelStr[eNumLogLevels] =
+{
+	"error", // eLogError
+	"warn",  // eLogWarning
+	"info",  // eLogInfo
+	"debug"	 // eLogDebug 
+};
+
 void LogMsg::Process()
 {
-	output << boost::posix_time::second_clock::local_time().time_of_day () << " - ";
+	output << boost::posix_time::second_clock::local_time().time_of_day () <<  
+		"/" << g_LogLevelStr[level] << " - ";
 	output << s.str();
 }
 

@@ -8,12 +8,22 @@
 #include <functional>
 #include "Queue.h"
 
+enum LogLevel
+{
+	eLogError = 0,
+	eLogWarning,
+	eLogInfo,
+	eLogDebug,	
+	eNumLogLevels
+};
+
 struct LogMsg
 {
 	std::stringstream s;
 	std::ostream& output;	
+	LogLevel level;
 
-	LogMsg (std::ostream& o = std::cout): output (o) {};
+	LogMsg (std::ostream& o = std::cout, LogLevel l = eLogInfo): output (o), level (l) {};
 	
 	void Process();
 };
@@ -72,9 +82,10 @@ void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
 }
 
 template<typename... TArgs>
-void LogPrint (TArgs... args) 
+void LogPrint (LogLevel level, TArgs... args) 
 {
-	LogMsg * msg = (g_Log && g_Log->GetLogFile ()) ? new LogMsg (*g_Log->GetLogFile ()) : new LogMsg ();
+	LogMsg * msg = (g_Log && g_Log->GetLogFile ()) ? new LogMsg (*g_Log->GetLogFile (), level) : 
+		new LogMsg (std::cout, level);
 	LogPrint (msg->s, args...);
 	msg->s << std::endl;
 	if (g_Log)	
@@ -84,6 +95,12 @@ void LogPrint (TArgs... args)
 		msg->Process ();
 		delete msg;
 	}
+}
+
+template<typename... TArgs>
+void LogPrint (TArgs... args) 
+{
+	LogPrint (eLogInfo, args...);
 }	
 
 #endif
