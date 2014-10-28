@@ -188,12 +188,12 @@ namespace transport
 
 		LogPrint ("Session created received");	
 		m_Timer.cancel (); // connect timer
-		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
+		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
 		uint8_t * payload = buf + sizeof (SSUHeader);	
 		uint8_t * y = payload;
 		CreateAESandMacKey (y);
-		memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
-		memcpy (signedData + 256, y, 256); // y
+		s.Insert (m_DHKeysPair->publicKey, 256); // x
+		s.Insert (y, 256); // y
 		payload += 256;
 		payload += 1; // size, assume 4
 		uint8_t * ourAddress = payload;
@@ -201,12 +201,12 @@ namespace transport
 		payload += 4; // address
 		uint16_t ourPort = be16toh (*(uint16_t *)payload);
 		payload += 2; // port
-		memcpy (signedData + 512, ourAddress, 6); // our IP and port 
+		s.Insert (ourAddress, 6); // our IP and port 
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
-		*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
-		*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
-		memcpy (signedData + 524, payload, 8); // relayTag and signed on time 
+		s.Insert (htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ())); // remote IP
+		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
+		s.Insert (payload, 8); // relayTag and signed on time 
 		m_RelayTag = be32toh (*(uint32_t *)payload);
 		payload += 4; // relayTag
 		payload += 4; // signed on time
@@ -214,7 +214,7 @@ namespace transport
 		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
 		m_SessionKeyDecryption.Decrypt (payload, 48, payload);
 		// verify
-		if (!m_RemoteIdentity.Verify (signedData, 532, payload))
+		if (!s.Verify (m_RemoteIdentity, payload))
 			LogPrint ("SSU signature verification failed");
 		
 		SendSessionConfirmed (y, ourAddress);
@@ -305,13 +305,13 @@ namespace transport
 			return;
 		}
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		uint8_t signedData[532]; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
-		memcpy (signedData, x, 256); // x
+		SignedData s; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
+		s.Insert (x, 256); // x
 
 		uint8_t buf[368 + 18];	
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, m_DHKeysPair->publicKey, 256);
-		memcpy (signedData + 256, payload, 256); // y
+		s.Insert (payload, 256); // y
 		payload += 256;
 		*payload = 4; // we assume ipv4
 		payload++;
@@ -319,9 +319,9 @@ namespace transport
 		payload += 4;
 		*(uint16_t *)(payload) = htobe16 (m_RemoteEndpoint.port ());
 		payload += 2;
-		memcpy (signedData + 512, payload - 6, 6); // remote endpoint IP and port 
-		*(uint32_t *)(signedData + 518) = htobe32 (address->host.to_v4 ().to_ulong ()); // our IP
-		*(uint16_t *)(signedData + 522) = htobe16 (address->port); // our port
+		s.Insert (payload - 6, 6); // remote endpoint IP and port 
+		s.Insert (htobe32 (address->host.to_v4 ().to_ulong ())); // our IP
+		s.Insert (htobe16 (address->port)); // our port
 		uint32_t relayTag = 0;
 		if (i2p::context.GetRouterInfo ().IsIntroducer ())
 		{
@@ -333,8 +333,8 @@ namespace transport
 		payload += 4; // relay tag 
 		*(uint32_t *)(payload) = htobe32 (i2p::util::GetSecondsSinceEpoch ()); // signed on time
 		payload += 4;
-		memcpy (signedData + 524, payload - 8, 8); // relayTag and signed on time 
-		i2p::context.Sign (signedData, 532, payload); // DSA signature
+		s.Insert (payload - 8, 8); // relayTag and signed on time 
+		s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature
 		// TODO: fill padding with random data	
 
 		uint8_t iv[16];
@@ -368,15 +368,15 @@ namespace transport
 		payload += paddingSize; // padding size
 
 		// signature		
-		uint8_t signedData[532]; // x,y, our IP, our port, remote IP, remote port, relayTag, our signed on time 
-		memcpy (signedData, m_DHKeysPair->publicKey, 256); // x
-		memcpy (signedData + 256, y, 256); // y
-		memcpy (signedData + 512, ourAddress, 6); // our address/port as seem by party
-		*(uint32_t *)(signedData + 518) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); // remote IP
-		*(uint16_t *)(signedData + 522) = htobe16 (m_RemoteEndpoint.port ()); // remote port
-		*(uint32_t *)(signedData + 524) = htobe32 (m_RelayTag); // relay tag
-		*(uint32_t *)(signedData + 528) = htobe32 (signedOnTime); // signed on time
-		i2p::context.Sign (signedData, 532, payload); // DSA signature	
+		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, our signed on time 
+		s.Insert (m_DHKeysPair->publicKey, 256); // x
+		s.Insert (y, 256); // y
+		s.Insert (ourAddress, 6); // our address/port as seem by party
+		s.Insert (htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ())); // remote IP
+		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
+		s.Insert (htobe32 (m_RelayTag)); // relay tag
+		s.Insert (htobe32 (signedOnTime)); // signed on time
+		s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature	
 
 		uint8_t iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
