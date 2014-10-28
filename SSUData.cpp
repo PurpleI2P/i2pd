@@ -47,7 +47,7 @@ namespace transport
 			}
 			else
 			{	
-				LogPrint ("Unexpected MTU ", ssuAddress->mtu);
+				LogPrint (eLogWarning, "Unexpected MTU ", ssuAddress->mtu);
 				m_PacketSize = SSU_MAX_PACKET_SIZE;
 			}	
 		}		
@@ -143,7 +143,7 @@ namespace transport
 			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
 			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
-			LogPrint ("SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 		
+			LogPrint (eLogDebug, "SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 		
 
 			//  find message with msgID
 			I2NPMessage * msg = nullptr;
@@ -190,22 +190,22 @@ namespace transport
 							break;
 					}
 					if (isLast)
-						LogPrint ("Message ", msgID, " complete");
+						LogPrint (eLogDebug, "Message ", msgID, " complete");
 				}	
 			}	
 			else
 			{	
 				if (fragmentNum < incompleteMessage->nextFragmentNum)
 					// duplicate fragment
-					LogPrint ("Duplicate fragment ", (int)fragmentNum, " of message ", msgID, ". Ignored");	
+					LogPrint (eLogWarning, "Duplicate fragment ", (int)fragmentNum, " of message ", msgID, ". Ignored");	
 				else
 				{
 					// missing fragment
-					LogPrint ("Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
+					LogPrint (eLogWarning, "Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
 					auto savedFragment = new Fragment (fragmentNum, buf, fragmentSize, isLast);
 					if (!incompleteMessage->savedFragments.insert (savedFragment).second)
 					{
-						LogPrint ("Fragment ", (int)fragmentNum, " of message ", msgID, " already saved");
+						LogPrint (eLogWarning, "Fragment ", (int)fragmentNum, " of message ", msgID, " already saved");
 						delete savedFragment;
 					}	
 				}
@@ -230,7 +230,7 @@ namespace transport
 					}	
 					else
 					{
-						LogPrint ("SSU message ", msgID, " already received");						
+						LogPrint (eLogWarning, "SSU message ", msgID, " already received");						
 						i2p::DeleteI2NPMessage (msg);
 					}	
 				}	
@@ -243,7 +243,7 @@ namespace transport
 						m_Session.Established ();
 					}	
 					else
-						LogPrint ("SSU unexpected message ", (int)msg->GetHeader ()->typeID);
+						LogPrint (eLogError, "SSU unexpected message ", (int)msg->GetHeader ()->typeID);
 					DeleteI2NPMessage (msg);
 				}	
 			}	
@@ -258,7 +258,7 @@ namespace transport
 		//uint8_t * start = buf;
 		uint8_t flag = *buf;
 		buf++;
-		LogPrint ("Process SSU data flags=", (int)flag);
+		LogPrint (eLogDebug, "Process SSU data flags=", (int)flag);
 		// process acks if presented
 		if (flag & (DATA_FLAG_ACK_BITFIELDS_INCLUDED | DATA_FLAG_EXPLICIT_ACKS_INCLUDED))
 			ProcessAcks (buf, flag);
@@ -267,7 +267,7 @@ namespace transport
 		{
 			uint8_t extendedDataSize = *buf;
 			buf++; // size
-			LogPrint ("SSU extended data of ", extendedDataSize, " bytes presented");
+			LogPrint (eLogDebug, "SSU extended data of ", extendedDataSize, " bytes presented");
 			buf += extendedDataSize;
 		}
 		// process data
@@ -279,7 +279,7 @@ namespace transport
 		uint32_t msgID = msg->ToSSU ();
 		if (m_SentMessages.count (msgID) > 0)
 		{
-			LogPrint ("SSU message ", msgID, " already sent");
+			LogPrint (eLogWarning, "SSU message ", msgID, " already sent");
 			DeleteI2NPMessage (msg);
 			return;
 		}	
@@ -363,7 +363,7 @@ namespace transport
 	{
 		if (fragmentNum > 64)
 		{
-			LogPrint ("Fragment number ", fragmentNum, " exceeds 64");
+			LogPrint (eLogWarning, "Fragment number ", fragmentNum, " exceeds 64");
 			return;
 		}
 		uint8_t buf[64 + 18];
