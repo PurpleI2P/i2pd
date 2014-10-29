@@ -16,10 +16,13 @@ namespace i2p
 namespace transport
 {
 
-	const size_t SSU_MTU = 1484;
+	const size_t SSU_MTU_V4 = 1484;
+	const size_t SSU_MTU_V6 = 1472;
 	const size_t IPV4_HEADER_SIZE = 20;
+	const size_t IPV6_HEADER_SIZE = 40;	
 	const size_t UDP_HEADER_SIZE = 8;
-	const size_t SSU_MAX_PACKET_SIZE = SSU_MTU - IPV4_HEADER_SIZE - UDP_HEADER_SIZE; // 1456
+	const size_t SSU_V4_MAX_PACKET_SIZE = SSU_MTU_V4 - IPV4_HEADER_SIZE - UDP_HEADER_SIZE; // 1456
+	const size_t SSU_V6_MAX_PACKET_SIZE = SSU_MTU_V6 - IPV6_HEADER_SIZE - UDP_HEADER_SIZE; // 1424
 	const int RESEND_INTERVAL = 3; // in seconds
 	const int MAX_NUM_RESENDS = 5;
 	// data flags
@@ -35,7 +38,7 @@ namespace transport
 		int fragmentNum;
 		size_t len;
 		bool isLast;
-		uint8_t buf[SSU_MAX_PACKET_SIZE + 18];
+		uint8_t buf[SSU_V4_MAX_PACKET_SIZE + 18]; // use biggest
 
 		Fragment () = default;
 		Fragment (int n, const uint8_t * b, int l, bool last): 
@@ -102,7 +105,7 @@ namespace transport
 			std::map<uint32_t, SentMessage *> m_SentMessages;
 			std::set<uint32_t> m_ReceivedMessages;
 			boost::asio::deadline_timer m_ResendTimer;
-			int m_PacketSize;
+			int m_MaxPacketSize, m_PacketSize;
 	};	
 }
 }

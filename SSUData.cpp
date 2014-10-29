@@ -13,7 +13,8 @@ namespace transport
 	SSUData::SSUData (SSUSession& session):
 		m_Session (session), m_ResendTimer (session.m_Server.GetService ())
 	{
-		m_PacketSize = SSU_MAX_PACKET_SIZE;
+		m_MaxPacketSize = session.IsV6 () ? SSU_V6_MAX_PACKET_SIZE : SSU_V4_MAX_PACKET_SIZE;
+		m_PacketSize = m_MaxPacketSize;
 		auto remoteRouter = session.GetRemoteRouter ();
 		if (remoteRouter)
 			AdjustPacketSize (*remoteRouter);
@@ -36,19 +37,22 @@ namespace transport
 		auto ssuAddress = remoteRouter.GetSSUAddress ();
 		if (ssuAddress && ssuAddress->mtu)
 		{
-			m_PacketSize = ssuAddress->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
+			if (m_Session.IsV6 ())
+				m_PacketSize = ssuAddress->mtu - IPV6_HEADER_SIZE - UDP_HEADER_SIZE;
+			else
+				m_PacketSize = ssuAddress->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
 			if (m_PacketSize > 0)
 			{
 				// make sure packet size multiple of 16
 				m_PacketSize >>= 4;
 				m_PacketSize <<= 4;
-				if (m_PacketSize > (int)SSU_MAX_PACKET_SIZE) m_PacketSize = SSU_MAX_PACKET_SIZE;
+				if (m_PacketSize > m_MaxPacketSize) m_PacketSize = m_MaxPacketSize;
 				LogPrint ("MTU=", ssuAddress->mtu, " packet size=", m_PacketSize); 
 			}
 			else
 			{	
 				LogPrint (eLogWarning, "Unexpected MTU ", ssuAddress->mtu);
-				m_PacketSize = SSU_MAX_PACKET_SIZE;
+				m_PacketSize = m_MaxPacketSize;
 			}	
 		}		
 	}

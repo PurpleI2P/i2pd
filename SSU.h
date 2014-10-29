@@ -72,6 +72,7 @@ namespace transport
 			void WaitForIntroduction ();
 			void Close ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
+			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessage (I2NPMessage * msg);
 			void SendPeerTest (); // Alice			
 
@@ -188,7 +189,7 @@ namespace transport
 			boost::asio::ip::udp::endpoint m_SenderEndpoint;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
-			uint8_t m_ReceiveBuffer[2*SSU_MTU];
+			uint8_t m_ReceiveBuffer[2*SSU_MTU_V4]; 
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 
