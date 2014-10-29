@@ -147,7 +147,7 @@ namespace data
 			bool LoadFile ();
 			void ReadFromFile ();
 			void ReadFromStream (std::istream& s);
-			void ReadFromBuffer ();
+			void ReadFromBuffer (bool verifySignature);
 			void WriteToStream (std::ostream& s);
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);

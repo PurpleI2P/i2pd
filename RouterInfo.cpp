@@ -31,7 +31,7 @@ namespace data
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer ();
+		ReadFromBuffer (true);
 	}	
 
 	RouterInfo::~RouterInfo ()
@@ -51,7 +51,7 @@ namespace data
 		m_Properties.clear ();
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer ();
+		ReadFromBuffer (true);
 		// don't delete buffer until save to file
 	}	
 		
@@ -90,21 +90,24 @@ namespace data
 	void RouterInfo::ReadFromFile ()
 	{
 		if (LoadFile ())
-			ReadFromBuffer ();
+			ReadFromBuffer (false); 
 	}	
 
-	void RouterInfo::ReadFromBuffer ()
+	void RouterInfo::ReadFromBuffer (bool verifySignature)
 	{
 		std::stringstream str (std::string ((char *)m_Buffer, m_BufferLen));
 		ReadFromStream (str);
-		// verify signature
-		CryptoPP::DSA::PublicKey pubKey;
-		pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RouterIdentity.signingKey, 128));
-		CryptoPP::DSA::Verifier verifier (pubKey);
-		int l = m_BufferLen - 40;
-		if (!verifier.VerifyMessage ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l, 40))
+		if (verifySignature)
 		{	
-			LogPrint ("signature verification failed");
+			// verify signature
+			CryptoPP::DSA::PublicKey pubKey;
+			pubKey.Initialize (i2p::crypto::dsap, i2p::crypto::dsaq, i2p::crypto::dsag, CryptoPP::Integer (m_RouterIdentity.signingKey, 128));
+			CryptoPP::DSA::Verifier verifier (pubKey);
+			int l = m_BufferLen - 40;
+			if (!verifier.VerifyMessage ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l, 40))
+			{	
+				LogPrint ("signature verification failed");
+			}
 		}	
 	}	
 	
