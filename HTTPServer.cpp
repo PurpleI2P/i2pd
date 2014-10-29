@@ -650,7 +650,10 @@ namespace util
 						s << "NTCP&nbsp;&nbsp;";
 				break;
 				case i2p::data::RouterInfo::eTransportSSU:
-					s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+					if (address.host.is_v6 ())
+						s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+					else
+						s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 				break;
 				default:
 					s << "Unknown&nbsp;&nbsp;";

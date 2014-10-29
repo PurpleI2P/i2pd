@@ -577,7 +577,7 @@ namespace data
 	void RouterInfo::EnableV6 ()
 	{
 		if (!IsV6 ())
-			m_SupportedTransports |= eNTCPV6;
+			m_SupportedTransports |= eNTCPV6 | eSSUV6;
 	}
 		
 	void RouterInfo::DisableV6 ()

@@ -136,6 +136,7 @@ namespace i2p
 			m_RouterInfo.EnableV6 ();
 		else
 			m_RouterInfo.DisableV6 ();
+		UpdateRouterInfo ();
 	}	
 
 	void RouterContext::UpdateNTCPV6Address (const boost::asio::ip::address& host)
@@ -145,7 +146,7 @@ namespace i2p
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr : addresses)
 		{
-			if (addr.host.is_v6 ())
+			if (addr.host.is_v6 () && addr.transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 			{
 				if (addr.host != host)
 				{
@@ -161,6 +162,7 @@ namespace i2p
 		{
 			// create new address
 			m_RouterInfo.AddNTCPAddress (host.to_string ().c_str (), port);
+			m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash ()); // TODO
 			updated = true;
 		}
 		if (updated)

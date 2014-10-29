@@ -1086,7 +1086,10 @@ namespace transport
 
 	void SSUServer::Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
 	{
-		m_Socket.send_to (boost::asio::buffer (buf, len), to);
+		if (to.protocol () == boost::asio::ip::udp::v4()) 
+			m_Socket.send_to (boost::asio::buffer (buf, len), to);
+		else
+			m_SocketV6.send_to (boost::asio::buffer (buf, len), to);
 	}	
 
 	void SSUServer::Receive ()
@@ -1132,7 +1135,7 @@ namespace transport
 		if (!session)
 		{
 			session = new SSUSession (*this, from);
-			m_Sessions[m_SenderEndpoint] = session;
+			m_Sessions[from] = session;
 			LogPrint ("New SSU session from ", from.address ().to_string (), ":", from.port (), " created");
 		}
 		session->ProcessNextMessage (buf, bytes_transferred, from);
@@ -1160,7 +1163,7 @@ namespace transport
 		SSUSession * session = nullptr;
 		if (router)
 		{
-			auto address = router->GetSSUAddress ();
+			auto address = router->GetSSUAddress (!context.SupportsV6 ());
 			if (address)
 			{
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
