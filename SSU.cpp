@@ -237,7 +237,7 @@ namespace transport
 		if (!s.Verify (m_RemoteIdentity, payload))
 			LogPrint (eLogError, "SSU signature verification failed");
 		
-		SendSessionConfirmed (y, ourAddress);
+		SendSessionConfirmed (y, ourAddress, addressSize + 2);
 	}	
 
 	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
@@ -269,17 +269,26 @@ namespace transport
 			return;
 		}
 	
-		uint8_t buf[304 + 18]; // 304 bytes for ipv4 (320 for ipv6)
+		uint8_t buf[320 + 18]; // 304 bytes for ipv4, 320 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, m_DHKeysPair->publicKey, 256); // x
-		payload[256] = 4; // we assume ipv4
-		*(uint32_t *)(payload + 257) =  htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); 
+		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
+		if (isV4)
+		{
+			payload[256] = 4; 
+			memcpy (payload + 257, m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data(), 4); 
+		}
+		else
+		{
+			payload[256] = 16; 
+			memcpy (payload + 257, m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data(), 16); 
+		}	
 		
 		uint8_t iv[16];
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, 304, introKey, iv, introKey);
-		m_Server.Send (buf, 304, m_RemoteEndpoint);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, isV4 ? 304 : 320, introKey, iv, introKey);
+		m_Server.Send (buf, isV4 ? 304 : 320, m_RemoteEndpoint);
 	}
 
 	void SSUSession::SendRelayRequest (uint32_t iTag, const uint8_t * iKey)
@@ -333,14 +342,31 @@ namespace transport
 		memcpy (payload, m_DHKeysPair->publicKey, 256);
 		s.Insert (payload, 256); // y
 		payload += 256;
-		*payload = 4; // we assume ipv4
-		payload++;
-		*(uint32_t *)(payload) = htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ()); 
-		payload += 4;
+		if (m_RemoteEndpoint.address ().is_v4 ())
+		{
+			// ipv4
+			*payload = 4;
+			payload++;
+			memcpy (payload, m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data(), 4); 
+			s.Insert (payload, 4); // remote endpoint IP V4
+			payload += 4;
+		}
+		else
+		{
+			// ipv6
+			*payload = 16;
+			payload++;
+			memcpy (payload, m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data(), 16); 
+			s.Insert (payload, 16); // remote endpoint IP V6
+			payload += 16;
+		}
 		*(uint16_t *)(payload) = htobe16 (m_RemoteEndpoint.port ());
+		s.Insert (payload, 2); // remote port
 		payload += 2;
-		s.Insert (payload - 6, 6); // remote endpoint IP and port 
-		s.Insert (htobe32 (address->host.to_v4 ().to_ulong ())); // our IP
+		if (address->host.is_v4 ())
+			s.Insert (address->host.to_v4 ().to_bytes ().data (), 4); // our IP V4
+		else
+			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
 		s.Insert (htobe16 (address->port)); // our port
 		uint32_t relayTag = 0;
 		if (i2p::context.GetRouterInfo ().IsIntroducer ())
@@ -373,7 +399,7 @@ namespace transport
 		Send (buf, msgLen);
 	}
 
-	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress)
+	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen)
 	{
 		uint8_t buf[512 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
@@ -397,8 +423,11 @@ namespace transport
 		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, our signed on time 
 		s.Insert (m_DHKeysPair->publicKey, 256); // x
 		s.Insert (y, 256); // y
-		s.Insert (ourAddress, 6); // our address/port as seem by party
-		s.Insert (htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ())); // remote IP
+		s.Insert (ourAddress, ourAddressLen); // our address/port as seem by party
+		if (m_RemoteEndpoint.address ().is_v4 ())
+			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP V4
+		else
+			s.Insert (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), 16); // remote IP V6	
 		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
 		s.Insert (htobe32 (m_RelayTag)); // relay tag
 		s.Insert (htobe32 (signedOnTime)); // signed on time
@@ -439,9 +468,14 @@ namespace transport
 	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 		const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
 	{
-		uint8_t buf[64 + 18];
+		uint8_t buf[80 + 18]; // 64 Alice's ipv4 and 80 Alice's ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		// Charlie	
+		// Charlie's address always v4
+		if (!to.address ().is_v4 ())
+		{
+			LogPrint (eLogError, "Charlie's IP must be v4");
+			return;
+		}
 		*payload = 4;
 		payload++; // size
 		*(uint32_t *)payload = htobe32 (to.address ().to_v4 ().to_ulong ()); // Charlie's IP
@@ -449,10 +483,21 @@ namespace transport
 		*(uint16_t *)payload = htobe16 (to.port ()); // Charlie's port
 		payload += 2; // port
 		// Alice
-		*payload = 4;
-		payload++; // size
-		*(uint32_t *)payload = htobe32 (from.address ().to_v4 ().to_ulong ()); // Alice's IP
-		payload += 4; // address	
+		bool isV4 = from.address ().is_v4 (); // Alice's
+		if (isV4)
+		{
+			*payload = 4;
+			payload++; // size
+			memcpy (payload, from.address ().to_v4 ().to_bytes ().data (), 4); // Alice's IP V4
+			payload += 4; // address	
+		}
+		else
+		{
+			*payload = 16;
+			payload++; // size
+			memcpy (payload, from.address ().to_v6 ().to_bytes ().data (), 16); // Alice's IP V6
+			payload += 16; // address	
+		}
 		*(uint16_t *)payload = htobe16 (from.port ()); // Alice's port
 		payload += 2; // port
 		*(uint32_t *)payload = htobe32 (nonce);		
@@ -460,8 +505,8 @@ namespace transport
 		if (m_State == eSessionStateEstablished)
 		{	
 			// encrypt with session key
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64);
-			Send (buf, 64);
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, isV4 ? 64 : 80);
+			Send (buf, isV4 ? 64 : 80);
 		}	
 		else
 		{
@@ -469,8 +514,8 @@ namespace transport
 			uint8_t iv[16];
 			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 			rnd.GenerateBlock (iv, 16); // random iv
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, 64, introKey, iv, introKey);
-			m_Server.Send (buf, 64, from);
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, isV4 ? 64 : 80, introKey, iv, introKey);
+			m_Server.Send (buf, isV4 ? 64 : 80, from);
 		}	
 		LogPrint (eLogDebug, "SSU relay response sent");
 	}	
@@ -478,6 +523,12 @@ namespace transport
 	void SSUSession::SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from)
 	{
 		if (!session) return;	
+		// Alice's address always v4
+		if (!from.address ().is_v4 ())
+		{
+			LogPrint (eLogError, "Alice's IP must be v4");
+			return;
+		}	
 		uint8_t buf[48 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 4;
@@ -499,14 +550,28 @@ namespace transport
 	{
 		LogPrint (eLogDebug, "Relay response received");		
 		uint8_t * payload = buf + sizeof (SSUHeader);
+		uint8_t remoteSize = *payload; 
 		payload++; // remote size
 		//boost::asio::ip::address_v4 remoteIP (be32toh (*(uint32_t* )(payload)));
-		payload += 4; // remote address
+		payload += remoteSize; // remote address
 		//uint16_t remotePort = be16toh (*(uint16_t *)(payload));
 		payload += 2; // remote port
+		uint8_t ourSize = *payload; 
 		payload++; // our size
-		boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )(payload)));
-		payload += 4; // our address
+		boost::asio::ip::address ourIP;
+		if (ourSize == 4)
+		{
+			boost::asio::ip::address_v4::bytes_type bytes;
+			memcpy (bytes.data (), payload, 4);
+			ourIP = boost::asio::ip::address_v4 (bytes);
+		}
+		else
+		{
+			boost::asio::ip::address_v6::bytes_type bytes;
+			memcpy (bytes.data (), payload, 16);
+			ourIP = boost::asio::ip::address_v6 (bytes);
+		}
+		payload += ourSize; // our address
 		uint16_t ourPort = be16toh (*(uint16_t *)(payload));
 		payload += 2; // our port
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
@@ -924,9 +989,9 @@ namespace transport
 
 	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
 	{
-		uint8_t buf[SSU_MTU + 18];
+		uint8_t buf[SSU_MTU_V4 + 18];
 		size_t msgSize = len + sizeof (SSUHeader); 
-		if (msgSize > SSU_MTU)
+		if (msgSize > SSU_MTU_V4)
 		{
 			LogPrint (eLogWarning, "SSU payload size ", msgSize, " exceeds MTU");
 			return;
@@ -1016,7 +1081,7 @@ namespace transport
 
 	void SSUServer::Receive ()
 	{
-		m_Socket.async_receive_from (boost::asio::buffer (m_ReceiveBuffer, SSU_MTU), m_SenderEndpoint,
+		m_Socket.async_receive_from (boost::asio::buffer (m_ReceiveBuffer, SSU_MTU_V4), m_SenderEndpoint,
 			boost::bind (&SSUServer::HandleReceivedFrom, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
 	}
 

@@ -96,7 +96,7 @@ namespace transport
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
-			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress);
+			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen);
 			void ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);
 			void SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 				const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to);
