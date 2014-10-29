@@ -578,10 +578,23 @@ namespace data
 	{		
 		if (IsV6 ())
 		{	
+			// NTCP
 			m_SupportedTransports &= ~eNTCPV6; 
 			for (size_t i = 0; i < m_Addresses.size (); i++)
 			{
 				if (m_Addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+					m_Addresses[i].host.is_v6 ())
+				{
+					m_Addresses.erase (m_Addresses.begin () + i);
+					break;
+				}
+			}	
+			
+			// SSU
+			m_SupportedTransports &= ~eSSUV6; 
+			for (size_t i = 0; i < m_Addresses.size (); i++)
+			{
+				if (m_Addresses[i].transportStyle == i2p::data::RouterInfo::eTransportSSU &&
 					m_Addresses[i].host.is_v6 ())
 				{
 					m_Addresses.erase (m_Addresses.begin () + i);
