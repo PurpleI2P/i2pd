@@ -227,9 +227,12 @@ namespace transport
 		m_RelayTag = be32toh (*(uint32_t *)payload);
 		payload += 4; // relayTag
 		payload += 4; // signed on time
-		// decrypt DSA signature
+		// decrypt signature
+		size_t signatureLen = m_RemoteIdentity.GetSignatureLen ();
+		size_t paddingSize = signatureLen & 0x0F; // %16
+		if (paddingSize > 0) signatureLen += (16 - paddingSize);
 		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
-		m_SessionKeyDecryption.Decrypt (payload, 48, payload);
+		m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload);
 		// verify
 		if (!s.Verify (m_RemoteIdentity, payload))
 			LogPrint (eLogError, "SSU signature verification failed");
@@ -249,7 +252,7 @@ namespace transport
 		payload += identitySize; // identity	
 		payload += 4; // signed-on time
 		size_t paddingSize = (payload - buf) + m_RemoteIdentity.GetSignatureLen ();
-		paddingSize >>= 4;  // %16
+		paddingSize &= 0x0F;  // %16
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
 		// TODO: verify signature (need data from session request), payload points to signature
@@ -325,7 +328,7 @@ namespace transport
 		SignedData s; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
 		s.Insert (x, 256); // x
 
-		uint8_t buf[368 + 18];	
+		uint8_t buf[384 + 18];	
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, m_DHKeysPair->publicKey, 256);
 		s.Insert (payload, 256); // y
@@ -356,13 +359,18 @@ namespace transport
 
 		uint8_t iv[16];
 		rnd.GenerateBlock (iv, 16); // random iv
-		// encrypt signature and 8 bytes padding with newly created session key	
+		// encrypt signature and padding with newly created session key	
+		size_t signatureLen = i2p::context.GetIdentity ().GetSignatureLen ();
+		size_t paddingSize = signatureLen & 0x0F; // %16
+		if (paddingSize > 0) signatureLen += (16 - paddingSize);
 		m_SessionKeyEncryption.SetIV (iv);
-		m_SessionKeyEncryption.Encrypt (payload, 48, payload);
-
+		m_SessionKeyEncryption.Encrypt (payload, signatureLen, payload);
+		payload += signatureLen;
+		size_t msgLen = payload - buf;
+		
 		// encrypt message with intro key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, 368, introKey, iv, introKey);	
-		Send (buf, 368);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, msgLen, introKey, iv, introKey);	
+		Send (buf, msgLen);
 	}
 
 	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress)
