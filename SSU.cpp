@@ -208,7 +208,7 @@ namespace transport
 		else // v6
 		{
 			boost::asio::ip::address_v6::bytes_type bytes;
-			memcpy (bytes.data (), ourAddress, 6);
+			memcpy (bytes.data (), ourAddress, 16);
 			ourIP = boost::asio::ip::address_v6 (bytes);
 		}	
 		s.Insert (ourAddress, addressSize); // our IP 
@@ -221,7 +221,7 @@ namespace transport
 		if (m_RemoteEndpoint.address ().is_v4 ())
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
 		else
-			s.Insert (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), 6); // remote IP v6
+			s.Insert (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), 16); // remote IP v6
 		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
 		s.Insert (payload, 8); // relayTag and signed on time 
 		m_RelayTag = be32toh (*(uint32_t *)payload);
