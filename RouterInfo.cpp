@@ -71,7 +71,7 @@ namespace data
 			m_BufferLen = s.tellg ();
 			if (m_BufferLen < 40)
 			{
-				LogPrint("File", m_FullPath, " is malformed");
+				LogPrint(eLogError, "File", m_FullPath, " is malformed");
 				return false;
 			}
 			s.seekg(0, std::ios::beg);
@@ -81,7 +81,7 @@ namespace data
 		}	
 		else
 		{
-			LogPrint ("Can't open file ", m_FullPath);
+			LogPrint (eLogError, "Can't open file ", m_FullPath);
 			return false;		
 		}
 		return true;
@@ -106,14 +106,20 @@ namespace data
 			int l = m_BufferLen - 40;
 			if (!verifier.VerifyMessage ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l, 40))
 			{	
-				LogPrint ("signature verification failed");
+				LogPrint (eLogError, "signature verification failed");
 			}
 		}	
 	}	
 	
 	void RouterInfo::ReadFromStream (std::istream& s)
 	{
-		s.read ((char *)&m_RouterIdentity, sizeof (m_RouterIdentity));
+		s.read ((char *)&m_RouterIdentity, DEFAULT_IDENTITY_SIZE);
+		if (m_RouterIdentity.certificate.type != CERTIFICATE_TYPE_NULL)
+		{
+			LogPrint (eLogError, "Certificate type ", m_RouterIdentity.certificate.type, " is not supported");
+			SetUnreachable (true);
+			return;
+		}
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
@@ -153,7 +159,7 @@ namespace data
 					if (ecode)
 					{	
 						// TODO: we should try to resolve address here
-						LogPrint ("Unexpected address ", value);
+						LogPrint (eLogWarning, "Unexpected address ", value);
 						isValidAddress = false;
 					}	
 					else
@@ -433,7 +439,7 @@ namespace data
 			f.write ((char *)m_Buffer, m_BufferLen);
 		}	
 		else
-			LogPrint ("Can't save to file");
+			LogPrint (eLogError, "Can't save to file");
 	}
 	
 	size_t RouterInfo::ReadString (char * str, std::istream& s)
