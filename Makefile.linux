@@ -1,16 +1,15 @@
-CC = g++
-CFLAGS = -g -Wall
-CXXVER := $(shell ${CC} -dumpversion)
+CXXFLAGS = -g -Wall
+CXXVER := $(shell $(CXX) -dumpversion)
 
 FGREP = fgrep
 IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(FGREP) -c "64")
 
 ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # >= 4.10
-CFLAGS += -std=c++11
+CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7
-CFLAGS += -std=c++11
+CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
-CFLAGS += -std=c++0x
+CXXFLAGS += -std=c++0x
 else # not supported
 $(error Compiler too old)
 endif
