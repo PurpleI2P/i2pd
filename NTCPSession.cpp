@@ -623,7 +623,7 @@ namespace transport
 		{
 			LogPrint ("Connected");
 			if (GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
-				context.UpdateV6Address (GetSocket ().local_endpoint ().address ().to_string ());
+				context.UpdateNTCPV6Address (GetSocket ().local_endpoint ().address ());
 			ClientLogin ();
 		}	
 	}	

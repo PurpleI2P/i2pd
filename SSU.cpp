@@ -217,7 +217,7 @@ namespace transport
 		s.Insert (payload, 2); // our port
 		payload += 2; // port
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
-		i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
+		i2p::context.UpdateAddress (ourIP);
 		if (m_RemoteEndpoint.address ().is_v4 ())
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
 		else
@@ -575,7 +575,7 @@ namespace transport
 		uint16_t ourPort = be16toh (*(uint16_t *)(payload));
 		payload += 2; // our port
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
-		i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
+		i2p::context.UpdateAddress (ourIP);
 	}
 
 	void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t len)

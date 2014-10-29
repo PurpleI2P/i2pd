@@ -67,7 +67,7 @@ namespace i2p
 				i2p::context.UpdatePort (port);					
 			const char * host = i2p::util::config::GetCharArg("-host", "");
 			if (host && host[0])
-				i2p::context.UpdateAddress (host);	
+				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 
 			if (i2p::util::config::GetArg("-unreachable", 0))
 				i2p::context.SetUnreachable ();
