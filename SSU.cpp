@@ -195,16 +195,33 @@ namespace transport
 		s.Insert (m_DHKeysPair->publicKey, 256); // x
 		s.Insert (y, 256); // y
 		payload += 256;
-		payload += 1; // size, assume 4
+		uint8_t addressSize = *payload;
+		payload += 1; // size
 		uint8_t * ourAddress = payload;
-		boost::asio::ip::address_v4 ourIP (be32toh (*(uint32_t* )ourAddress));
-		payload += 4; // address
+		boost::asio::ip::address ourIP;
+		if (addressSize == 4) // v4
+		{	
+			boost::asio::ip::address_v4::bytes_type bytes;
+			memcpy (bytes.data (), ourAddress, 4);
+			ourIP = boost::asio::ip::address_v4 (bytes);
+		}	
+		else // v6
+		{
+			boost::asio::ip::address_v6::bytes_type bytes;
+			memcpy (bytes.data (), ourAddress, 6);
+			ourIP = boost::asio::ip::address_v6 (bytes);
+		}	
+		s.Insert (ourAddress, addressSize); // our IP 
+		payload += addressSize; // address
 		uint16_t ourPort = be16toh (*(uint16_t *)payload);
+		s.Insert (payload, 2); // our port
 		payload += 2; // port
-		s.Insert (ourAddress, 6); // our IP and port 
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP.to_string ().c_str ());
-		s.Insert (htobe32 (m_RemoteEndpoint.address ().to_v4 ().to_ulong ())); // remote IP
+		if (m_RemoteEndpoint.address ().is_v4 ())
+			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
+		else
+			s.Insert (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), 6); // remote IP v6
 		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
 		s.Insert (payload, 8); // relayTag and signed on time 
 		m_RelayTag = be32toh (*(uint32_t *)payload);
