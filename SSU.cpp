@@ -1010,11 +1010,19 @@ namespace transport
 
 
 	SSUServer::SSUServer (int port): m_Thread (nullptr), m_Work (m_Service),
-		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_Socket (m_Service, m_Endpoint),
-		m_IntroducersUpdateTimer (m_Service)	
+		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
+		m_Socket (m_Service, m_Endpoint), m_SocketV6 (m_Service), m_IntroducersUpdateTimer (m_Service)	
 	{
 		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
 		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		if (context.SupportsV6 ())
+		{
+			m_SocketV6.open (boost::asio::ip::udp::v6());
+			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
+			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (65535));
+			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (65535));
+			m_SocketV6.bind (m_EndpointV6);
+		}
 	}
 	
 	SSUServer::~SSUServer ()
@@ -1028,6 +1036,8 @@ namespace transport
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 		m_Service.post (boost::bind (&SSUServer::Receive, this));  
+		if (context.SupportsV6 ())
+			m_Service.post (boost::bind (&SSUServer::ReceiveV6, this));  
 		if (i2p::context.IsUnreachable ())
 			ScheduleIntroducersUpdateTimer ();
 	}
@@ -1085,25 +1095,47 @@ namespace transport
 			boost::bind (&SSUServer::HandleReceivedFrom, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
 	}
 
+	void SSUServer::ReceiveV6 ()
+	{
+		m_SocketV6.async_receive_from (boost::asio::buffer (m_ReceiveBufferV6, SSU_MTU_V6), m_SenderEndpointV6,
+			boost::bind (&SSUServer::HandleReceivedFromV6, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
+	}	
+
 	void SSUServer::HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (!ecode)
 		{
-			SSUSession * session = nullptr;
-			auto it = m_Sessions.find (m_SenderEndpoint);
-			if (it != m_Sessions.end ())
-				session = it->second;
-			if (!session)
-			{
-				session = new SSUSession (*this, m_SenderEndpoint);
-				m_Sessions[m_SenderEndpoint] = session;
-				LogPrint ("New SSU session from ", m_SenderEndpoint.address ().to_string (), ":", m_SenderEndpoint.port (), " created");
-			}
-			session->ProcessNextMessage (m_ReceiveBuffer, bytes_transferred, m_SenderEndpoint);
+			HandleReceivedBuffer (m_SenderEndpoint, m_ReceiveBuffer, bytes_transferred);
 			Receive ();
 		}
 		else
 			LogPrint ("SSU receive error: ", ecode.message ());
+	}
+
+	void SSUServer::HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	{
+		if (!ecode)
+		{
+			HandleReceivedBuffer (m_SenderEndpointV6, m_ReceiveBufferV6, bytes_transferred);
+			ReceiveV6 ();
+		}
+		else
+			LogPrint ("SSU V6 receive error: ", ecode.message ());
+	}
+
+	void SSUServer::HandleReceivedBuffer (boost::asio::ip::udp::endpoint& from, uint8_t * buf, std::size_t bytes_transferred)
+	{
+		SSUSession * session = nullptr;
+		auto it = m_Sessions.find (from);
+		if (it != m_Sessions.end ())
+			session = it->second;
+		if (!session)
+		{
+			session = new SSUSession (*this, from);
+			m_Sessions[m_SenderEndpoint] = session;
+			LogPrint ("New SSU session from ", from.address ().to_string (), ":", from.port (), " created");
+		}
+		session->ProcessNextMessage (buf, bytes_transferred, from);
 	}
 
 	SSUSession * SSUServer::FindSession (const i2p::data::RouterInfo * router)

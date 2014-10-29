@@ -139,7 +139,7 @@ namespace transport
 						this, conn, boost::asio::placeholders::error));
 				}	
 			}	
-			else if (address.transportStyle == RouterInfo::eTransportSSU)
+			else if (address.transportStyle == RouterInfo::eTransportSSU && address.host.is_v4 ())
 			{
 				if (!m_SSUServer)
 				{	
@@ -356,7 +356,7 @@ namespace transport
 		
 	void Transports::DetectExternalIP ()
 	{
-		for (int i = 0; i < 5; i ++)
+		for (int i = 0; i < 5; i++)
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			if (router && router->IsSSU () && m_SSUServer)

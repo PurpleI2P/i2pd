@@ -169,7 +169,10 @@ namespace transport
 
 			void Run ();
 			void Receive ();
-			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);	
+			void ReceiveV6 ();
+			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleReceivedBuffer (boost::asio::ip::udp::endpoint& from, uint8_t * buf, std::size_t bytes_transferred);
 
 			template<typename Filter>
 			SSUSession * GetRandomSession (Filter filter);
@@ -184,12 +187,12 @@ namespace transport
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
-			boost::asio::ip::udp::endpoint m_Endpoint;
-			boost::asio::ip::udp::socket m_Socket;
-			boost::asio::ip::udp::endpoint m_SenderEndpoint;
+			boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
+			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
+			boost::asio::ip::udp::endpoint m_SenderEndpoint, m_SenderEndpointV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
-			uint8_t m_ReceiveBuffer[2*SSU_MTU_V4]; 
+			uint8_t m_ReceiveBuffer[2*SSU_MTU_V4], m_ReceiveBufferV6[2*SSU_MTU_V6]; 
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 
