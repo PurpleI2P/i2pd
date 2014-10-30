@@ -10,6 +10,8 @@ else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7
 NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
 NEEDED_CXXFLAGS += -std=c++0x
+else ifeq ($(shell expr match $(CXX) 'clang'),5)
+NEEDED_CXXFLAGS += -std=c++11
 else # not supported
 $(error Compiler too old)
 endif
