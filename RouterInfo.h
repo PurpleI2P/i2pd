@@ -98,6 +98,7 @@ namespace data
 			std::vector<Address>& GetAddresses () { return m_Addresses; };
 			const Address * GetNTCPAddress (bool v4only = true) const;
 			const Address * GetSSUAddress (bool v4only = true) const;
+			const Address * GetSSUV6Address () const;
 			
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key);
@@ -152,7 +153,7 @@ namespace data
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
 			void ExtractCaps (const char * value);
-			const Address * GetAddress (TransportStyle s, bool v4only) const;
+			const Address * GetAddress (TransportStyle s, bool v4only, bool v6only = false) const;
 			void UpdateCapsProperty ();			
 
 		private:

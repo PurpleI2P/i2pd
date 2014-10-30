@@ -625,13 +625,18 @@ namespace data
 		return GetAddress (eTransportSSU, v4only);
 	}	
 
-	const RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only) const
+	const RouterInfo::Address * RouterInfo::GetSSUV6Address () const 
+	{
+		return GetAddress (eTransportSSU, false, true);
+	}	
+		
+	const RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
 	{
 		for (auto& address : m_Addresses)
 		{
 			if (address.transportStyle == s)
 			{	
-				if (!v4only || address.host.is_v4 ())
+				if ((!v4only || address.host.is_v4 ()) && (!v6only || address.host.is_v6 ()))
 					return &address;
 			}	
 		}	

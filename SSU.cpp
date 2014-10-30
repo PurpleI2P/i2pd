@@ -327,7 +327,8 @@ namespace transport
 	void SSUSession::SendSessionCreated (const uint8_t * x)
 	{
 		auto introKey = GetIntroKey ();
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
+			i2p::context.GetRouterInfo ().GetSSUAddress (true); //v4 only
 		if (!introKey || !address)
 		{
 			LogPrint (eLogError, "SSU is not supported");
