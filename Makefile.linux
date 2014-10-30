@@ -5,11 +5,11 @@ FGREP = fgrep
 IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(FGREP) -c "64")
 
 ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # >= 4.10
-CXXFLAGS += -std=c++11
+NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7
-CXXFLAGS += -std=c++11
+NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
-CXXFLAGS += -std=c++0x
+NEEDED_CXXFLAGS += -std=c++0x
 else # not supported
 $(error Compiler too old)
 endif

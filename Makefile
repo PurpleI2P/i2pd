@@ -17,7 +17,7 @@ i2p: $(OBJECTS:obj/%=obj/%)
 .SUFFIXES:	.c .cc .C .cpp .o
 
 obj/%.o : %.cpp
-	$(CXX) -o $@ $< -c $(CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS)
+	$(CXX) -o $@ $< -c $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS)
 
 obj:
 	mkdir -p obj
