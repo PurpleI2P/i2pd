@@ -11,7 +11,7 @@ endif
 all: obj i2p
 
 i2p: $(OBJECTS:obj/%=obj/%)
-	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
+	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LIBS)
 
 .SUFFIXES:
 .SUFFIXES:	.c .cc .C .cpp .o
