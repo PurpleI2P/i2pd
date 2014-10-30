@@ -6,7 +6,6 @@
 
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
-CFLAGS+=$(CPPFLAGS)
 CXXFLAGS+=$(CPPFLAGS)
 PREFIX=/usr
 

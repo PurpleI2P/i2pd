@@ -1,8 +1,6 @@
-diff --git a/Makefile b/Makefile
-index 9b9425b..84de72f 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -8,9 +8,9 @@ else
+@@ -10,9 +10,9 @@
  	include Makefile.linux
  endif
  
@@ -11,10 +9,10 @@ index 9b9425b..84de72f 100644
  
 -i2p: $(OBJECTS:obj/%=obj/%)
 +i2pd: $(OBJECTS:obj/%=obj/%)
- 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS)
+ 	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
  
  .SUFFIXES:
-@@ -23,7 +23,7 @@ obj:
+@@ -25,7 +25,7 @@
  	mkdir -p obj
  
  clean:
