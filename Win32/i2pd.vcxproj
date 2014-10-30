@@ -34,7 +34,9 @@
     <ClCompile Include="..\SAM.cpp" />
     <ClCompile Include="..\SSU.cpp" />
     <ClCompile Include="..\SSUData.cpp" />
+	<ClCompile Include="..\SSUSession.cpp" />
     <ClCompile Include="..\Streaming.cpp" />
+	<ClCompile Include="..\Datagram.cpp" />
 	<ClCompile Include="..\Destination.cpp" />
     <ClCompile Include="..\TransitTunnel.cpp" />
     <ClCompile Include="..\Transports.cpp" />
@@ -47,7 +49,6 @@
     <ClCompile Include="..\SOCKS.cpp" />
     <ClCompile Include="..\I2PTunnel.cpp" />
 	<ClCompile Include="..\ClientContext.cpp" />
-	<ClCompile Include="..\Datagram.cpp" />
     <ClCompile Include="Win32Service.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -74,7 +75,9 @@
     <ClInclude Include="..\SAM.h" />
     <ClInclude Include="..\SSU.h" />
     <ClInclude Include="..\SSUData.h" />
+	<ClInclude Include="..\SSUSession.h" />
     <ClInclude Include="..\Streaming.h" />
+	<ClInclude Include="..\Datagram.h" />
 	<ClInclude Include="..\Destination.h" />
     <ClInclude Include="..\Timestamp.h" />
     <ClInclude Include="..\TransitTunnel.h" />
@@ -92,8 +95,7 @@
     <ClInclude Include="..\version.h" />
     <ClInclude Include="..\Signature.h" />
     <ClInclude Include="..\ClientContext.h" />
-	<ClCompile Include="..\TransportSession.h" />
-	<ClCompile Include="..\Datagram.h" />	
+	<ClInclude Include="..\TransportSession.h" />	
     <ClInclude Include="Win32Service.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

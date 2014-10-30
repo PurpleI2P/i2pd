@@ -114,7 +114,8 @@ am_i2p_OBJECTS = AddressBook.$(OBJEXT) CryptoConst.$(OBJEXT) \
 	Transports.$(OBJEXT) Tunnel.$(OBJEXT) TunnelEndpoint.$(OBJEXT) \
 	TunnelGateway.$(OBJEXT) TunnelPool.$(OBJEXT) UPnP.$(OBJEXT) \
 	aes.$(OBJEXT) base64.$(OBJEXT) i2p.$(OBJEXT) util.$(OBJEXT) \
-	SAM.$(OBJEXT) Destination.$(OBJEXT)
+	SAM.$(OBJEXT) Destination.$(OBJEXT) ClientContext.$(OBJEXT) \
+	Datagram.$(OBJEXT) SSUSession.$(OBJEXT)  
 i2p_OBJECTS = $(am_i2p_OBJECTS)
 i2p_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -325,7 +326,7 @@ i2p_SOURCES = AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  Transports.cpp Tunnel.cpp TunnelEndpoint.cpp		\
 		  TunnelGateway.cpp TunnelPool.cpp UPnP.cpp aes.cpp	\
 		  base64.cpp i2p.cpp util.cpp SAM.cpp Destination.cpp \
-		  ClientContext.cpp	DataFram.cpp					  \		
+		  ClientContext.cpp	DataFram.cpp SSUSession.cpp					  \		
 		  							\
 		  AddressBook.h CryptoConst.h Daemon.h ElGamal.h	\
 		  Garlic.h HTTPProxy.h HTTPServer.h I2NPProtocol.h	\
@@ -337,7 +338,7 @@ i2p_SOURCES = AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  TunnelConfig.h TunnelEndpoint.h TunnelGateway.h	\
 		  TunnelPool.h UPnP.h aes.h base64.h config.h hmac.h	\
 		  util.h version.h Destination.h ClientContext.h	\
-		  TransportSession.h Datagram.h	
+		  TransportSession.h Datagram.h	SSUSession.h
 
 AM_LDFLAGS = @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@		\
 		  @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_REGEX_LIB@		\
@@ -487,6 +488,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SAM.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ClientContext.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Datagram.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SSUSession.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
