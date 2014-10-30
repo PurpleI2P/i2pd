@@ -1145,7 +1145,13 @@ namespace transport
 	SSUSession * SSUServer::FindSession (const i2p::data::RouterInfo * router)
 	{
 		if (!router) return nullptr;
-		auto address = router->GetSSUAddress ();
+		auto address = router->GetSSUAddress (true); // v4 only
+ 		if (!address) return nullptr;
+		auto session = FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
+		if (session || !context.SupportsV6 ())
+			return session;
+		// try v6
+		address = router->GetSSUV6Address (); 
 		if (!address) return nullptr;
 		return FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
 	}	
