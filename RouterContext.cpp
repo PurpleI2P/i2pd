@@ -162,7 +162,7 @@ namespace i2p
 		{
 			// create new address
 			m_RouterInfo.AddNTCPAddress (host.to_string ().c_str (), port);
-			m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash ()); // TODO
+			m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), 1472); // TODO
 			updated = true;
 		}
 		if (updated)

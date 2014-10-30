@@ -374,6 +374,14 @@ namespace data
 				value[l] = 0;
 				WriteString (value, properties);
 				properties << ';';
+				// write mtu
+				if (address.mtu)
+				{
+					WriteString ("mtu", properties);
+					properties << '=';
+					WriteString (boost::lexical_cast<std::string>(address.mtu), properties);
+					properties << ';';
+				}	
 			}	
 			WriteString ("port", properties);
 			properties << '=';
@@ -466,11 +474,12 @@ namespace data
 		addr.transportStyle = eTransportNTCP;
 		addr.cost = 2;
 		addr.date = 0;
+		addr.mtu = 0;
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eNTCPV4;
 	}	
 
-	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key)
+	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
 	{
 		Address addr;
 		addr.host = boost::asio::ip::address::from_string (host);
@@ -478,6 +487,7 @@ namespace data
 		addr.transportStyle = eTransportSSU;
 		addr.cost = 10; // NTCP should have priority over SSU
 		addr.date = 0;
+		addr.mtu = mtu; 
 		memcpy (addr.key, key, 32);
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eSSUV4;

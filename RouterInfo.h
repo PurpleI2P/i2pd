@@ -101,7 +101,7 @@ namespace data
 			const Address * GetSSUV6Address () const;
 			
 			void AddNTCPAddress (const char * host, int port);
-			void AddSSUAddress (const char * host, int port, const uint8_t * key);
+			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
 			bool AddIntroducer (const Address * address, uint32_t tag);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetProperty (const char * key, const char * value);
