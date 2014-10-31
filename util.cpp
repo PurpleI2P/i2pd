@@ -411,6 +411,7 @@ namespace net
 		// loook for interface matching local address	
 		for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) 
 		{
+			if (!ifa->ifa_addr) continue;
         	family = ifa->ifa_addr->sa_family;
 			if (family == AF_INET && localAddress.is_v4 ())
 			{
