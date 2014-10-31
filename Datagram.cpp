@@ -13,7 +13,7 @@ namespace i2p
 namespace datagram
 {
 	DatagramDestination::DatagramDestination (i2p::client::ClientDestination& owner): 
-		m_Owner (owner) 
+		m_Owner (owner), m_Receiver (nullptr)
 	{
 	}
 
@@ -41,7 +41,7 @@ namespace datagram
 			service->post (boost::bind (&DatagramDestination::SendMsg, this, 
 				CreateDataMessage (buf, len + headerLen), remote));
 		else
-			LogPrint ("Failed to send datagram. Destination is not running");
+			LogPrint (eLogWarning, "Failed to send datagram. Destination is not running");
 	}
 
 	void DatagramDestination::SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote)
@@ -62,7 +62,7 @@ namespace datagram
 		}
 		else
 		{
-			LogPrint ("Failed to send datagram. All leases expired");
+			LogPrint (eLogWarning, "Failed to send datagram. All leases expired");
 			DeleteI2NPMessage (msg);	
 		}	
 	}
@@ -86,10 +86,13 @@ namespace datagram
 				
 		if (verified)
 		{
-			// TODO: invoke datagram handler
+			if (m_Receiver != nullptr)
+				m_Receiver (identity, buf + headerLen, len -headerLen);
+			else
+				LogPrint (eLogWarning, "Receiver for datagram is not set");	
 		}
 		else
-			LogPrint ("Datagram signature verification failed");	
+			LogPrint (eLogWarning, "Datagram signature verification failed");	
 	}
 
 	void DatagramDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len)

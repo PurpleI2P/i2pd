@@ -107,6 +107,12 @@ namespace client
 	void ClientDestination::Stop ()
 	{	
 		m_StreamingDestination->Stop ();	
+		if (m_DatagramDestination)
+		{
+			auto d = m_DatagramDestination;
+			m_DatagramDestination = nullptr;
+			delete d;
+		}	
 		if (m_Pool)
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		m_IsRunning = false;
@@ -294,10 +300,11 @@ namespace client
 		return false;
 	}	
 
-	void ClientDestination::CreateDatagramDestination ()
+	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
 	{
 		if (!m_DatagramDestination)
 			m_DatagramDestination = new i2p::datagram::DatagramDestination (*this);
+		return m_DatagramDestination;	
 	}
 }
 }

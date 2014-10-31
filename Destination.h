@@ -48,7 +48,7 @@ namespace client
 
 			// datagram
 			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-			void CreateDatagramDestination ();
+			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };

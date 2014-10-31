@@ -226,7 +226,11 @@ namespace client
 			if (m_Session->localDestination->IsReady ())
 			{
 				if (style == SAM_VALUE_DATAGRAM)
-					m_Session->localDestination->CreateDatagramDestination ();
+				{
+					auto dest = m_Session->localDestination->CreateDatagramDestination ();
+					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, this, 
+						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+				}
 				SendSessionCreateReplyOk ();
 			}
 			else
@@ -547,6 +551,27 @@ namespace client
 			I2PReceive ();
 		}
 	}	
+
+	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& ident, const uint8_t * buf, size_t len)
+	{
+		uint8_t identBuf[1024];
+		size_t l = ident.ToBuffer (identBuf, 1024);
+		size_t l1 = i2p::data::ByteStreamToBase64 (identBuf, l, m_Buffer, SAM_SOCKET_BUFFER_SIZE);
+		m_Buffer[l1] = 0;
+#ifdef _MSC_VER
+		size_t l2 = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, m_Buffer, len); 	
+#else			
+		size_t l2 = snprintf ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, m_Buffer, len); 	
+#endif
+		if (len < SAM_SOCKET_BUFFER_SIZE - l2)	
+		{	
+			memcpy (m_StreamBuffer + l2, buf, len);
+			boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len + l2),
+        		boost::bind (&SAMSocket::HandleWriteI2PData, this, boost::asio::placeholders::error));
+		}
+		else
+			LogPrint (eLogWarning, "Datagram size ", len," exceeds buffer");
+	}
 
 	SAMBridge::SAMBridge (int port):
 		m_IsRunning (false), m_Thread (nullptr),
