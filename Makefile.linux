@@ -3,7 +3,7 @@ CXXVER := $(shell $(CXX) -dumpversion)
 
 FGREP = fgrep
 IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(FGREP) -c "64")
-
+USE_AESNI := yes
 ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # >= 4.10
 NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7
@@ -23,10 +23,12 @@ LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_
 LIBS =
 
 
+ifeq ($(USE_AESNI),yes)
 ifeq ($(IS_64),1)
 #check if AES-NI is supported by CPU
 ifneq ($(shell grep -c aes /proc/cpuinfo),0)
 	CPU_FLAGS = -maes -DAESNI
+endif
 endif
 endif
 
