@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 
@@ -48,6 +49,11 @@ namespace util
 				std::string user_;
 				std::string pass_;
 		};
+	}
+
+	namespace net
+	{
+		int GetMTU (const boost::asio::ip::address& localAddress);
 	}
 }
 }

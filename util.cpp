@@ -15,6 +15,11 @@
 #include "util.h"
 #include "Log.h"
 
+#if defined(__linux__) || defined(__FreeBSD_kernel__)
+#include <sys/types.h>
+#include <ifaddrs.h>
+#endif
+
 #ifdef WIN32
 #include <Windows.h>
 #include <shlobj.h>
@@ -390,9 +395,63 @@ namespace http
 	}
 
 }
-
-
-
-
 } // Namespace end
+
+namespace net
+{
+	int GetMTU (const boost::asio::ip::address& localAddress)
+	{
+#if defined(__linux__) || defined(__FreeBSD_kernel__)	
+		ifaddrs * ifaddr, * ifa = nullptr;
+		if (getifaddrs(&ifaddr) == -1) 
+		{
+        	LogPrint (eLogError, "Can't excute getifaddrs");
+            return 0;
+        }
+		int family = 0;
+		// loook for interface matching local address	
+		for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) 
+		{
+        	family = ifa->ifa_addr->sa_family;
+			if (family == AF_INET && localAddress.is_v4 ())
+			{
+				sockaddr_in * sa = (sockaddr_in *)ifa->ifa_addr;
+				if (!memcmp (&sa->sin_addr, localAddress.to_v4 ().to_bytes ().data (), 4))
+					break; // address matches
+			}
+			else if (family == AF_INET6 && localAddress.is_v6 ())
+			{
+				sockaddr_in6 * sa = (sockaddr_in6 *)ifa->ifa_addr;
+				if (!memcmp (&sa->sin6_addr, localAddress.to_v6 ().to_bytes ().data (), 16))
+					break; // address matches
+			}
+		}
+		int mtu = 0;
+		if (ifa && family) // interface found?
+		{
+			int fd = socket (family, SOCK_DGRAM, 0);
+			if (fd > 0)
+			{
+				ifreq ifr;
+				strncpy (ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
+				if (ioctl (fd, SIOCGIFMTU, &ifr) >= 0)	
+					mtu = ifr.ifr_mtu; // MTU
+				else
+					LogPrint (eLogError, "Failed to run ioctl");			
+				close (fd);
+			} 
+			else
+				LogPrint (eLogError, "Failed to create datagram socket");	
+		}		
+		else
+			LogPrint (eLogWarning, "Interface for local address", localAddress.to_string (), " not found");
+
+		freeifaddrs	(ifaddr);
+		return mtu;
+#else
+		return 0;
+#endif		
+	}
+} // namespace end
+
 }
