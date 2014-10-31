@@ -394,8 +394,7 @@ namespace http
 		query_.assign(query_i, url_s.end());
 	}
 
-}
-} // Namespace end
+} 
 
 namespace net
 {
@@ -452,6 +451,7 @@ namespace net
 		return 0;
 #endif		
 	}
-} // namespace end
+} 
 
-}
+} // util
+} // i2p
