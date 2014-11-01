@@ -2,7 +2,6 @@
 #include <cryptopp/dh.h>
 #include <cryptopp/sha.h>
 #include "CryptoConst.h"
-#include "hmac.h"
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
@@ -40,16 +39,17 @@ namespace transport
 			return;
 		};
 
+		uint8_t * sessionKey = m_SessionKey, * macKey = m_MacKey;
 		if (sharedKey[0] & 0x80)
 		{
-			m_SessionKey[0] = 0;
-			memcpy (m_SessionKey + 1, sharedKey, 31);
-			memcpy (m_MacKey, sharedKey + 31, 32);
+			sessionKey[0] = 0;
+			memcpy (sessionKey + 1, sharedKey, 31);
+			memcpy (macKey, sharedKey + 31, 32);
 		}	
 		else if (sharedKey[0])
 		{
-			memcpy (m_SessionKey, sharedKey, 32);
-			memcpy (m_MacKey, sharedKey + 32, 32);
+			memcpy (sessionKey, sharedKey, 32);
+			memcpy (macKey, sharedKey + 32, 32);
 		}	
 		else
 		{	
@@ -65,8 +65,8 @@ namespace transport
 				}	
 			}
 			
-			memcpy (m_SessionKey, nonZero, 32);
-			CryptoPP::SHA256().CalculateDigest(m_MacKey, nonZero, 64 - (nonZero - sharedKey));
+			memcpy (sessionKey, nonZero, 32);
+			CryptoPP::SHA256().CalculateDigest(macKey, nonZero, 64 - (nonZero - sharedKey));
 		}
 		m_IsSessionKey = true;
 		m_SessionKeyEncryption.SetKey (m_SessionKey);

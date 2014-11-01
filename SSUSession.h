@@ -6,6 +6,7 @@
 #include <list>
 #include <boost/asio.hpp>
 #include "aes.h"
+#include "hmac.h"
 #include "I2NPProtocol.h"
 #include "TransportSession.h"
 #include "SSUData.h"
@@ -128,7 +129,8 @@ namespace transport
 			std::set<uint32_t> m_PeerTestNonces;
 			i2p::crypto::CBCEncryption m_SessionKeyEncryption;
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
-			uint8_t m_SessionKey[32], m_MacKey[32];
+			i2p::crypto::AESKey m_SessionKey;
+			i2p::crypto::MACKey m_MacKey;
 			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			SSUData m_Data;
 			size_t m_NumSentBytes, m_NumReceivedBytes;

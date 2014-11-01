@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
+#include "Identity.h"
 
 namespace i2p
 {
@@ -21,6 +22,8 @@ namespace crypto
 		}	 
 	};
 
+	typedef i2p::data::Tag<32> AESKey;
+	
 #ifdef AESNI
 	class ECBCryptoAESNI
 	{	
