@@ -427,7 +427,7 @@ namespace transport
 		if (ecode)
         {
 			LogPrint ("Read error: ", ecode.message ());
-			if (ecode != boost::asio::error::operation_aborted)
+			//if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
@@ -589,7 +589,8 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			LogPrint ("No activity fo ", NTCP_TERMINATION_TIMEOUT, " seconds");
-			Terminate ();
+			//Terminate ();
+			m_Socket.close ();// invoke Terminate () from HandleReceive 
 		}	
 	}	
 		
