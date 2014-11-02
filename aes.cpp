@@ -40,7 +40,7 @@ namespace crypto
 		"pxor %%xmm2, %%xmm3 \n" \
 		"movaps	%%xmm3, "#round1"(%[sched]) \n" 
 
-	void ECBCryptoAESNI::ExpandKey (const uint8_t * key)
+	void ECBCryptoAESNI::ExpandKey (const AESKey& key)
 	{
 		__asm__
 		(
@@ -73,7 +73,7 @@ namespace crypto
 			"pxor %%xmm2, %%xmm1 \n"
 			"movups	%%xmm1, 224(%[sched]) \n"
 			: // output
-			: [key]"r"(key), [sched]"r"(m_KeySchedule) // input
+			: [key]"r"((const uint8_t *)key), [sched]"r"(m_KeySchedule) // input
 			: "%xmm1", "%xmm2", "%xmm3", "%xmm4" // clogged
 		);
 	}
@@ -139,7 +139,7 @@ namespace crypto
 		"aesimc %%xmm0, %%xmm0 \n" \
 		"movaps %%xmm0, "#offset"(%[shed]) \n" 
 
-	void ECBDecryptionAESNI::SetKey (const uint8_t * key)
+	void ECBDecryptionAESNI::SetKey (const AESKey& key)
 	{
 		ExpandKey (key); // expand encryption key first
 		// then  invert it using aesimc

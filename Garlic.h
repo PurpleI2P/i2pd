@@ -88,7 +88,7 @@ namespace garlic
 
 			GarlicDestination * m_Owner;
 			const i2p::data::RoutingDestination * m_Destination;
-			uint8_t m_SessionKey[32];
+			i2p::crypto::AESKey m_SessionKey;
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
 			std::map<uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;	

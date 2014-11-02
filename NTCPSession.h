@@ -84,7 +84,7 @@ namespace transport
 			
 		private:
 
-			void CreateAESKey (uint8_t * pubKey, uint8_t * aesKey);
+			void CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key);
 				
 			// client
 			void SendPhase3 ();
