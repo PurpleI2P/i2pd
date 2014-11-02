@@ -20,7 +20,7 @@ void LogMsg::Process()
 
 void Log::Flush ()
 {
-#ifdef _WIN32	
+#ifndef _WIN32	
 	if (m_LogFile)
 		m_LogFile->flush();
 #endif
