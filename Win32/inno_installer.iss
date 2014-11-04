@@ -1,6 +1,6 @@
 
 #define I2Pd_AppName "i2pd" 
-#define I2Pd_ver "0.1" 
+#define I2Pd_ver "0.2"
 
 [Setup]
 AppName={#I2Pd_AppName} 
@@ -13,12 +13,17 @@ SolidCompression=yes
 OutputDir=.
 LicenseFile=.\..\LICENSE
 OutputBaseFilename=setup_{#I2Pd_AppName}_v{#I2Pd_ver}
+ArchitecturesInstallIn64BitMode=x64
+
 
 [Files]
-Source: "i2pd.exe"; DestDir: "{app}"
+Source: "x64\Release\i2pd.exe"; DestDir: "{app}"; DestName: "i2pd.exe"; Check: Is64BitInstallMode
+Source: "Release\i2pd.exe"; DestDir: "{app}"; Check: not Is64BitInstallMode
+Source: "..\README.md"; DestDir: "{app}"; DestName: "Readme.txt"; AfterInstall: ConvertLineEndings
 
 [Icons]
 Name: "{group}\I2Pd"; Filename: "{app}\i2pd.exe"
+Name: "{group}\Readme"; Filename: "{app}\Readme.txt"
 
 [Code]
 
@@ -34,6 +39,20 @@ var
 
 const 
   LicenseHeight = 400;
+   LF = #10;
+   CR = #13;
+   CRLF = CR + LF;
+
+procedure ConvertLineEndings();
+  var
+     FilePath : String;
+     FileContents : String;
+begin
+   FilePath := ExpandConstant(CurrentFileName)
+   LoadStringFromFile(FilePath, FileContents);
+   StringChangeEx(FileContents, LF, CRLF, False);
+   SaveStringToFile(FilePath, FileContents, False);
+end;
 
 procedure InitializeWizard();
 begin
