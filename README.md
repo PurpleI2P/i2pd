@@ -1,21 +1,26 @@
 i2pd
 ====
 
-i2p router for Linux written on C++
+I2P router written in C++
 
-Requires gcc 4.6 and higher, boost 1.46 and higher, crypto++
+Requirements for Linux/FreeBSD/OSX
+----------------------------------
 
-on Windows
+GCC 4.6 or newer, Boost 1.46 or newer, crypto++. Clang can be used instead of
+GCC.
 
-Requires msvs2013 (require Visual C++ Compiler November 2013 CTP update), boost 1.46 and higher, crypto++
+Requirements for Windows
+------------------------
+
+VS2013 (known to work with 12.0.21005.1), Boost 1.46 or newer, crypto++.
 
 Build Statuses
 ---------------
 
 - Linux x64      - [![Build Status](https://jenkins.nordcloud.no/buildStatus/icon?job=i2pd-linux)](https://jenkins.nordcloud.no/job/i2pd-linux/)
-- Linux ARM      - Too be added
-- Mac OS X       - Too be added
-- Microsoft VC13 - Too be added
+- Linux ARM      - To be added
+- Mac OS X       - To be added
+- Microsoft VC13 - To be added
 
 
 Testing
@@ -51,14 +56,14 @@ Options
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
 * --unreachable=        - 1 if router is declared as unreachable and works through introducers.
-* --v6=        			- 1 if supports communication through ipv6, off by default
+* --v6=                 - 1 if supports communication through ipv6, off by default
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
-* --ircport=      		- The local port of IRC tunnel to listen on. 6668 by default
-* --ircdest=      		- I2P destination address of IRC server. For example irc.postman.i2p
-* --irckeys=      		- optional keys file for local destination
-* --eepkeys=      		- File name containing destination keys. For example privKeys.dat
-* --eephost=      		- Address incoming trafic forward to. 127.0.0.1 by default
-* --eepport=      		- Port incoming trafic forward to. 80 by default
-* --samport=      		- Port of SAM bridge. Usually 7656. SAM is off if not specified
+* --ircport=            - The local port of IRC tunnel to listen on. 6668 by default
+* --ircdest=            - I2P destination address of IRC server. For example irc.postman.i2p
+* --irckeys=            - optional keys file for local destination
+* --eepkeys=            - File name containing destination keys. For example privKeys.dat
+* --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default
+* --eepport=            - Port incoming trafic forward to. 80 by default
+* --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
 
