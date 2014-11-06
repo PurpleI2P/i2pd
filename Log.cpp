@@ -20,11 +20,8 @@ void LogMsg::Process()
 
 void Log::Flush ()
 {
-#ifndef _WIN32	
 	if (m_LogFile)
 		m_LogFile->flush();
-#endif
-// TODO: find out what's wrong with flush for Windows	
 }
 
 void Log::SetLogFile (const std::string& fullFilePath)
