@@ -16,6 +16,7 @@ else # not supported
 $(error Compiler too old)
 endif
 
+LIBDIR := /usr/lib
 
 include filelist.mk
 INCFLAGS =
