@@ -20,7 +20,15 @@ LIBDIR := /usr/lib
 
 include filelist.mk
 INCFLAGS =
+ifeq ($(STATIC),yes)
+LDLIBS += $(LIBDIR)/libcryptopp.a $(LIBDIR)/libboost_system.a
+LDLIBS += $(LIBDIR)/libboost_date_time.a $(LIBDIR)/libboost_filesystem.a
+LDLIBS += $(LIBDIR)/libboost_regex.a $(LIBDIR)/libboost_program_options.a
+LDLIBS += -lpthread -static-libstdc++ -static-libgcc
+USE_AESNI := no
+else
 LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
+endif
 LIBS =
 
 
