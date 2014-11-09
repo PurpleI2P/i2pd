@@ -65,7 +65,7 @@ For comparison, my file is reproduced below:
 	  </ImportGroup>
 	  <PropertyGroup Label="UserMacros" />
 	  <PropertyGroup>
-	    <LibraryPath>$(CRYPTOPP)\$(Platform)\Output\$(Configuration);$(CRYPTOPP)\$(Platform)\DLL_Output\$(Configuration);$(BOOST)\lib\$(Platform);$(LibraryPath)</LibraryPath>
+	    <LibraryPath>$(CRYPTOPP)\$(Platform)\Output\$(Configuration);$(BOOST)\lib\$(Platform);$(LibraryPath)</LibraryPath>
 	    <IncludePath>$(CRYPTOPP);$(BOOST)\include\boost-$(BOOSTVER);$(IncludePath)</IncludePath>
 	  </PropertyGroup>
 	  <ItemDefinitionGroup />
