@@ -104,7 +104,11 @@
     <ClInclude Include="..\Signature.h" />
     <ClInclude Include="..\ClientContext.h" />
     <ClInclude Include="..\TransportSession.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Win32Service.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{930568EC-31C9-406A-AD1C-9636DF5D8FAA}</ProjectGuid>
@@ -154,8 +158,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>./..;$(IncludePath);$(BOOST);$(CRYPTOPP)</IncludePath>
-    <LibraryPath>$(BOOST)\stage\lib;$(CRYPTOPP)\cryptopp\$(Platform)\Output\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>./..;$(IncludePath);$(BOOST);$(CRYPTOPP);C:\build-lib\cryptopp;C:\build-lib\boost_1_57_0\</IncludePath>
+    <LibraryPath>$(BOOST)\stage\lib;C:\build-lib\cryptopp;C:\build-lib\boost_1_57_0\stage\lib;$(CRYPTOPP)\cryptopp\$(Platform)\Output\$(Configuration);$(LibraryPath)</LibraryPath>
     <SourcePath>./..;$(VC_SourcePath);</SourcePath>
     <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
@@ -166,8 +170,8 @@
     <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>./..;$(IncludePath);$(BOOST);$(CRYPTOPP)</IncludePath>
-    <LibraryPath>$(BOOST)\stage\lib;$(CRYPTOPP)\cryptopp\$(Platform)\Output\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>./..;$(IncludePath);$(BOOST);C:\build-lib\boost_1_57_0\;C:\build-lib</IncludePath>
+    <LibraryPath>C:\build-lib\boost_1_57_0\stage\lib;C:\build-lib\cryptopp\$(Platform)\Output\$(Configuration);$(LibraryPath)</LibraryPath>
     <SourcePath>./..;$(VC_SourcePath);</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -211,7 +215,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level2</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
