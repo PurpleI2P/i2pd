@@ -18,14 +18,14 @@ namespace api
 
 	void InitI2P (int argc, char* argv[])
 	{
+		i2p::util::filesystem::SetAppName (argv[0]);
 		i2p::util::config::OptionParser(argc, argv);
 		i2p::context.Init ();	
 	}
 
 	void StartI2P ()
 	{
-		std::string logfilePath ("libi2pd.log");
-		StartLog (logfilePath);
+		StartLog (i2p::util::filesystem::GetAppName () + ".log");
 		i2p::data::netdb.Start();
 		LogPrint("NetDB started");
 		i2p::transport::transports.Start();

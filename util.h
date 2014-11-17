@@ -25,6 +25,9 @@ namespace util
 
 	namespace filesystem
 	{
+		void SetAppName (const std::string& name);
+		std::string GetAppName ();
+
 		const boost::filesystem::path &GetDataDir();
 		std::string GetFullPath (const std::string& filename);	
 		boost::filesystem::path GetDefaultDataDir();

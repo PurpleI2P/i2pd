@@ -101,6 +101,18 @@ namespace config
 
 namespace filesystem
 {
+	std::string appName ("i2pd");	
+
+	void SetAppName (const std::string& name)
+	{
+		appName = name;
+	}
+
+	std::string GetAppName ()
+	{
+		return appName;
+	}
+
 	const boost::filesystem::path &GetDataDir()
 	{
 		static boost::filesystem::path path;
@@ -178,10 +190,10 @@ namespace filesystem
 		// Windows
 		char localAppData[MAX_PATH];
 		SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
-		return boost::filesystem::path(std::string(localAppData) + "\\i2pd");
+		return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
 #else
 		if (i2p::util::config::GetArg("-service", 0)) // use system folder
-			return boost::filesystem::path("/var/lib/i2pd");
+			return boost::filesystem::path(std::string ("/var/lib/") + appName);
 		boost::filesystem::path pathRet;
 		char* pszHome = getenv("HOME");
 		if (pszHome == NULL || strlen(pszHome) == 0)
@@ -192,10 +204,10 @@ namespace filesystem
 		// Mac
 		pathRet /= "Library/Application Support";
 		boost::filesystem::create_directory(pathRet);
-		return pathRet / "i2pd";
+		return pathRet / appName;
 #else
 		// Unix
-		return pathRet / ".i2pd";
+		return pathRet / (std::string (".") + appName);
 #endif
 #endif
 	}
