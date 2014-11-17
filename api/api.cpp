@@ -18,7 +18,7 @@ namespace api
 
 	void InitI2P (int argc, char* argv[])
 	{
-		i2p::util::filesystem::SetAppName (argv[0]);
+		i2p::util::filesystem::SetAppName ("i2papi");
 		i2p::util::config::OptionParser(argc, argv);
 		i2p::context.Init ();	
 	}
@@ -52,6 +52,32 @@ namespace api
 		LogPrint("Local destinations deleted");
 
 		StopLog ();
+	}
+
+	i2p::client::ClientDestination * CreateLocalDestination (const i2p::data::PrivateKeys& keys)
+	{
+		auto localDestination = new i2p::client::ClientDestination (keys, true); // public
+		g_Destinations[localDestination->GetIdentHash ()] = localDestination;
+		localDestination->Start ();
+		return localDestination;
+	}
+
+	i2p::client::ClientDestination * CreateLocalDestination (i2p::data::SigningKeyType sigType)
+	{
+		auto localDestination = new i2p::client::ClientDestination (true, sigType); // public
+		g_Destinations[localDestination->GetIdentHash ()] = localDestination;
+		localDestination->Start ();
+		return localDestination;
+	}
+
+	void DestroyLocalDestination (i2p::client::ClientDestination * dest)
+	{
+		if (dest)
+		{
+			dest->Stop ();
+			g_Destinations.erase (dest->GetIdentHash ());
+			delete dest;
+		}
 	}
 }
 }
