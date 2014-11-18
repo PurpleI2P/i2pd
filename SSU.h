@@ -8,6 +8,7 @@
 #include <set>
 #include <thread>
 #include <boost/asio.hpp>
+#include "aes.h"
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -70,7 +71,8 @@ namespace transport
 			boost::asio::ip::udp::endpoint m_SenderEndpoint, m_SenderEndpointV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
-			uint8_t m_ReceiveBuffer[2*SSU_MTU_V4], m_ReceiveBufferV6[2*SSU_MTU_V6]; 
+			i2p::crypto::AESAlignedBuffer<2*SSU_MTU_V4> m_ReceiveBuffer;
+			i2p::crypto::AESAlignedBuffer<2*SSU_MTU_V6> m_ReceiveBufferV6; 
 			std::map<boost::asio::ip::udp::endpoint, SSUSession *> m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 
