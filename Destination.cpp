@@ -281,7 +281,7 @@ namespace client
 		return nullptr;	
 	}		
 
-	void ClientDestination::AcceptStreams (const std::function<void (i2p::stream::Stream *)>& acceptor)
+	void ClientDestination::AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor)
 	{
 		if (m_StreamingDestination)
 			m_StreamingDestination->SetAcceptor (acceptor);

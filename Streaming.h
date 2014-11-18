@@ -153,6 +153,8 @@ namespace stream
 	{
 		public:
 
+			typedef std::function<void (Stream *)> Acceptor;
+
 			StreamingDestination (i2p::client::ClientDestination& owner): m_Owner (owner) {};
 			~StreamingDestination () {};	
 
@@ -161,7 +163,7 @@ namespace stream
 
 			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote, int port = 0);
 			void DeleteStream (Stream * stream);			
-			void SetAcceptor (const std::function<void (Stream *)>& acceptor) { m_Acceptor = acceptor; };
+			void SetAcceptor (const Acceptor& acceptor) { m_Acceptor = acceptor; };
 			void ResetAcceptor () { m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
 			i2p::client::ClientDestination& GetOwner () { return m_Owner; };
@@ -178,7 +180,7 @@ namespace stream
 			i2p::client::ClientDestination& m_Owner;
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, Stream *> m_Streams;
-			std::function<void (Stream *)> m_Acceptor;
+			Acceptor m_Acceptor;
 			
 		public:
 
