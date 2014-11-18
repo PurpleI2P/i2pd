@@ -71,8 +71,6 @@ namespace data
 		Stop ();	
 		for (auto l:m_LeaseSets)
 			delete l.second;
-		for (auto r:m_RouterInfos)
-			delete r.second;
 		for (auto r:m_RequestedDestinations)
 			delete r.second;
 	}	
@@ -181,7 +179,7 @@ namespace data
 		else	
 		{	
 			LogPrint ("New RouterInfo added");
-			RouterInfo * r = new RouterInfo (buf, len);
+			auto r = std::make_shared<RouterInfo> (buf, len);
 			m_RouterInfos[r->GetIdentHash ()] = r;
 			if (r->IsFloodfill ())
 			{
@@ -215,7 +213,7 @@ namespace data
 	{
 		auto it = m_RouterInfos.find (ident);
 		if (it != m_RouterInfos.end ())
-			return it->second;
+			return it->second.get ();
 		else
 			return nullptr;
 	}
@@ -271,8 +269,6 @@ namespace data
 			if (!CreateNetDb(p)) return;
 		}
 		// make sure we cleanup netDb from previous attempts
-		for (auto r: m_RouterInfos)
-			delete r.second;
 		m_RouterInfos.clear ();	
 		m_Floodfills.clear ();	
 
@@ -291,7 +287,7 @@ namespace data
 #else
 					const std::string& fullPath = it1->path();
 #endif
-					RouterInfo * r = new RouterInfo(fullPath);
+					auto r = std::make_shared<RouterInfo>(fullPath);
 					if (!r->IsUnreachable () && (!r->UsesIntroducer () || ts < r->GetTimestamp () + 3600*1000LL)) // 1 hour
 					{	
 						r->DeleteBuffer ();
@@ -304,7 +300,6 @@ namespace data
 					{	
 						if (boost::filesystem::exists (fullPath))  
 							boost::filesystem::remove (fullPath);
-						delete r;
 					}	
 				}	
 			}	
@@ -341,7 +336,7 @@ namespace data
 		{	
 			if (it.second->IsUpdated ())
 			{
-				it.second->SaveToFile (GetFilePath(fullDirectory, it.second));
+				it.second->SaveToFile (GetFilePath(fullDirectory, it.second.get ()));
 				it.second->SetUpdated (false);
 				it.second->DeleteBuffer ();
 				count++;
@@ -359,9 +354,9 @@ namespace data
 				
 				if (it.second->IsUnreachable ())
 				{	
-					if (boost::filesystem::exists (GetFilePath (fullDirectory, it.second)))
+					if (boost::filesystem::exists (GetFilePath (fullDirectory, it.second.get ())))
 					{    
-						boost::filesystem::remove (GetFilePath (fullDirectory, it.second));
+						boost::filesystem::remove (GetFilePath (fullDirectory, it.second.get ()));
 						deletedCount++;
 					}	
 				}
@@ -824,8 +819,8 @@ namespace data
 			{	
 				if (i >= ind)
 				{	
-					if (!it.second->IsUnreachable () && filter (it.second))
-						return it.second;
+					if (!it.second->IsUnreachable () && filter (it.second.get ()))
+						return it.second.get ();
 				}	
 				else 
 					i++;
@@ -857,7 +852,7 @@ namespace data
 				if (m < minMetric)
 				{
 					minMetric = m;
-					r = it;
+					r = it.get ();
 				}
 			}	
 		}	
