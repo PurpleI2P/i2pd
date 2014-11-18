@@ -8,14 +8,6 @@ namespace crypto
 {
 
 #ifdef AESNI
-
-	ECBCryptoAESNI::ECBCryptoAESNI ()
-	{
-		m_KeySchedule = m_UnalignedBuffer;
-		uint8_t rem = ((uint64_t)m_KeySchedule) & 0x0f;
-		if (rem)
-			m_KeySchedule += (16 - rem);
-	}	
 	
 	#define KeyExpansion256(round0,round1) \
 		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
@@ -73,7 +65,7 @@ namespace crypto
 			"pxor %%xmm2, %%xmm1 \n"
 			"movups	%%xmm1, 224(%[sched]) \n"
 			: // output
-			: [key]"r"((const uint8_t *)key), [sched]"r"(m_KeySchedule) // input
+			: [key]"r"((const uint8_t *)key), [sched]"r"(GetKeySchedule ()) // input
 			: "%xmm1", "%xmm2", "%xmm3", "%xmm4" // clogged
 		);
 	}
@@ -102,7 +94,7 @@ namespace crypto
 			"movups	(%[in]), %%xmm0 \n"
 			EncryptAES256(sched)
 			"movups	%%xmm0, (%[out]) \n"	
-			: : [sched]"r"(m_KeySchedule), [in]"r"(in), [out]"r"(out) : "%xmm0"
+			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0"
 		);
 	}		
 
@@ -130,7 +122,7 @@ namespace crypto
 			"movups	(%[in]), %%xmm0 \n"
 			DecryptAES256(sched)
 			"movups	%%xmm0, (%[out]) \n"	
-			: : [sched]"r"(m_KeySchedule), [in]"r"(in), [out]"r"(out) : "%xmm0"
+			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0"
 		);		
 	}
 
@@ -158,7 +150,7 @@ namespace crypto
 			CallAESIMC(176)
 			CallAESIMC(192)
 			CallAESIMC(208)
-			: : [shed]"r"(m_KeySchedule) : "%xmm0"
+			: : [shed]"r"(GetKeySchedule ()) : "%xmm0"
 		);
 	}
 
