@@ -10,15 +10,28 @@ namespace i2p
 {
 namespace crypto
 {	
-	union ChipherBlock	
+	struct ChipherBlock	
 	{
 		uint8_t buf[16];
-		uint64_t ll[2];
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
-			ll[0] ^= other.ll[0];
-			ll[1] ^= other.ll[1];
+#if defined(__x86_64__) // for Intel x64 
+			__asm__
+			(
+				"movups	(%[buf]), %%xmm0 \n"	
+				"movups	(%[other]), %%xmm1 \n"	
+				"pxor %%xmm1, %%xmm0 \n"
+				"movups	%%xmm0, (%[buf]) \n"
+				: 
+				: [buf]"r"(buf), [other]"r"(other.buf) 
+				: "%xmm0", "%xmm1", "memory"
+			);			
+#else
+			// TODO: implement it better
+			for (int i = 0; i < 16; i++)
+				buf[i] ^= other.buf[i];
+#endif
 		}	 
 	};
 
