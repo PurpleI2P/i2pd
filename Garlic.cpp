@@ -272,6 +272,16 @@ namespace garlic
 				size += 4; 	
 				// create msg 
 				I2NPMessage * msg = CreateDeliveryStatusMsg (msgID);
+				if (m_Owner)
+				{
+					//encrypt 
+					uint8_t key[32], tag[32];
+					m_Rnd.GenerateBlock (key, 32); // random session key 
+					m_Rnd.GenerateBlock (tag, 32); // random session tag
+					m_Owner->AddSessionKey (key, tag);
+					GarlicRoutingSession garlic (key, tag);
+					msg = garlic.WrapSingleMessage (msg);		
+				}
 				memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
 				size += msg->GetLength ();
 				DeleteI2NPMessage (msg);
@@ -304,9 +314,10 @@ namespace garlic
 	{
 		if (key)
 		{
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 			auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
 			decryption->SetKey (key);
-			m_Tags[SessionTag(tag)] = decryption;
+			m_Tags[SessionTag(tag, ts)] = decryption;
 		}
 	}
 
@@ -314,7 +325,7 @@ namespace garlic
 	{
 		uint8_t * buf = msg->GetPayload ();
 		uint32_t length = be32toh (*(uint32_t *)buf);
-		buf += 4; // lentgh
+		buf += 4; // length
 		auto it = m_Tags.find (SessionTag(buf));
 		if (it != m_Tags.end ())
 		{
