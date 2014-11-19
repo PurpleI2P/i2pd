@@ -95,7 +95,16 @@ namespace data
 
 	void RouterInfo::ReadFromBuffer (bool verifySignature)
 	{
-		std::stringstream str (std::string ((char *)m_Buffer, m_BufferLen));
+		size_t identityLen = DEFAULT_IDENTITY_SIZE;
+		memcpy (&m_RouterIdentity, m_Buffer, DEFAULT_IDENTITY_SIZE);
+		if (m_RouterIdentity.certificate.type != CERTIFICATE_TYPE_NULL)
+		{
+			LogPrint (eLogError, "Certificate type ", m_RouterIdentity.certificate.type, " is not supported");
+			SetUnreachable (true);
+			return;
+		}
+
+		std::stringstream str (std::string ((char *)m_Buffer + identityLen, m_BufferLen - identityLen));
 		ReadFromStream (str);
 		if (verifySignature)
 		{	
@@ -113,13 +122,6 @@ namespace data
 	
 	void RouterInfo::ReadFromStream (std::istream& s)
 	{
-		s.read ((char *)&m_RouterIdentity, DEFAULT_IDENTITY_SIZE);
-		if (m_RouterIdentity.certificate.type != CERTIFICATE_TYPE_NULL)
-		{
-			LogPrint (eLogError, "Certificate type ", m_RouterIdentity.certificate.type, " is not supported");
-			SetUnreachable (true);
-			return;
-		}
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
