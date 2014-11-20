@@ -34,7 +34,7 @@ namespace i2p
 	void RouterContext::NewRouterInfo ()
 	{
 		i2p::data::RouterInfo routerInfo;
-		routerInfo.SetRouterIdentity (GetIdentity ().GetStandardIdentity ());
+		routerInfo.SetRouterIdentity (GetIdentity ());
 		int port = i2p::util::config::GetArg("-port", 0);
 		if (!port)
 			port = m_Rnd.GenerateWord32 (9111, 30777); // I2P network ports range

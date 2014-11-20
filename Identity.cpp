@@ -100,7 +100,7 @@ namespace data
 			m_ExtendedBuffer = nullptr;
 		
 		delete m_Verifier;
-		CreateVerifier ();
+		m_Verifier = nullptr;
 		
 		return *this;
 	}	
@@ -115,7 +115,7 @@ namespace data
 		m_ExtendedLen = 0;
 
 		delete m_Verifier;
-		CreateVerifier ();
+		m_Verifier = nullptr;
 		
 		return *this;
 	}	
@@ -139,7 +139,7 @@ namespace data
 		CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen ());
 		
 		delete m_Verifier;
-		CreateVerifier ();
+		m_Verifier = nullptr;
 		
 		return GetFullLen ();
 	}	
@@ -161,19 +161,22 @@ namespace data
 		
 	size_t IdentityEx::GetSigningPublicKeyLen () const
 	{
-		if (m_Verifier)
+		if (!m_Verifier) CreateVerifier ();
+		if (m_Verifier)	
 			return m_Verifier->GetPublicKeyLen ();
 		return 128;
 	}	
 
 	size_t IdentityEx::GetSignatureLen () const
-	{		
+	{	
+		if (!m_Verifier) CreateVerifier ();	
 		if (m_Verifier)
 			return m_Verifier->GetSignatureLen ();
 		return 40;
 	}	
 	bool IdentityEx::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const 
 	{
+		if (!m_Verifier) CreateVerifier ();
 		if (m_Verifier)
 			return m_Verifier->Verify (buf, len, signature);
 		return false;
@@ -186,7 +189,7 @@ namespace data
 		return SIGNING_KEY_TYPE_DSA_SHA1;
 	}	
 		
-	void IdentityEx::CreateVerifier () 
+	void IdentityEx::CreateVerifier () const 
 	{
 		auto keyType = GetSigningKeyType ();
 		switch (keyType)

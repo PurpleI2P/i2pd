@@ -90,10 +90,10 @@ namespace data
 			RouterInfo (const uint8_t * buf, int len);
 			~RouterInfo ();
 			
-			const Identity& GetRouterIdentity () const { return m_RouterIdentity; };
-			void SetRouterIdentity (const Identity& identity);
-			std::string GetIdentHashBase64 () const { return m_IdentHash.ToBase64 (); };
-			std::string GetIdentHashAbbreviation () const { return m_IdentHash.ToBase64 ().substr (0, 4); };
+			const IdentityEx& GetRouterIdentity () const { return m_RouterIdentity; };
+			void SetRouterIdentity (const IdentityEx& identity);
+			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
+			std::string GetIdentHashAbbreviation () const { return GetIdentHash ().ToBase64 ().substr (0, 4); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			std::vector<Address>& GetAddresses () { return m_Addresses; };
 			const Address * GetNTCPAddress (bool v4only = true) const;
@@ -138,8 +138,8 @@ namespace data
 			void DeleteBuffer () { delete m_Buffer; m_Buffer = nullptr; };
 			
 			// implements RoutingDestination
-			const IdentHash& GetIdentHash () const { return m_IdentHash; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.publicKey; };
+			const IdentHash& GetIdentHash () const { return m_RouterIdentity.GetIdentHash (); };
+			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.GetStandardIdentity ().publicKey; };
 			bool IsDestination () const { return false; };
 
 			
@@ -159,8 +159,7 @@ namespace data
 		private:
 
 			std::string m_FullPath;
-			Identity m_RouterIdentity;
-			IdentHash m_IdentHash;
+			IdentityEx m_RouterIdentity;
 			uint8_t * m_Buffer;
 			int m_BufferLen;
 			uint64_t m_Timestamp;

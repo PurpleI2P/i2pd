@@ -134,13 +134,13 @@ namespace data
 			
 		private:
 
-			void CreateVerifier ();
+			void CreateVerifier () const;
 			
 		private:
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			i2p::crypto::Verifier * m_Verifier;
+			mutable i2p::crypto::Verifier * m_Verifier; 
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};	
