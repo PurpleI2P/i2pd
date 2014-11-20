@@ -468,7 +468,7 @@ namespace tunnel
 			CreateTunnel<OutboundTunnel> (
 			  	new TunnelConfig (std::vector<const i2p::data::RouterInfo *> 
 				    { 
-						i2p::data::netdb.GetRandomRouter ()
+						i2p::data::netdb.GetRandomRouter ().get ()
 					},		
 		     		inboundTunnel->GetTunnelConfig ()));
 		}
@@ -521,7 +521,7 @@ namespace tunnel
 			CreateTunnel<InboundTunnel> (
 				new TunnelConfig (std::vector<const i2p::data::RouterInfo *>
 				    {              
-						i2p::data::netdb.GetRandomRouter ()
+						i2p::data::netdb.GetRandomRouter ().get ()
 					}));
 		}
 	}	

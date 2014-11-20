@@ -237,10 +237,10 @@ namespace tunnel
 
 	const i2p::data::RouterInfo * TunnelPool::SelectNextHop (const i2p::data::RouterInfo * prevHop) const
 	{
-		auto hop = m_NumHops >= 3 ? i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop) :
-			i2p::data::netdb.GetRandomRouter (prevHop);
+		auto hop = m_NumHops >= 3 ? i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop).get () :
+			i2p::data::netdb.GetRandomRouter (prevHop).get ();
 		if (!hop)
-			hop = i2p::data::netdb.GetRandomRouter ();
+			hop = i2p::data::netdb.GetRandomRouter ().get ();
 		return hop;	
 	}	
 		

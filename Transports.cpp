@@ -360,7 +360,7 @@ namespace transport
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			if (router && router->IsSSU () && m_SSUServer)
-				m_SSUServer->GetSession (router, true);  // peer test	
+				m_SSUServer->GetSession (router.get (), true);  // peer test	
 		}	
 	}
 			

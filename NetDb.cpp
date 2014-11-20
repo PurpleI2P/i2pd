@@ -778,37 +778,37 @@ namespace data
 		}	
 	}	
 
-	const RouterInfo * NetDb::GetRandomRouter () const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter () const
 	{
 		return GetRandomRouter (
-			[](const RouterInfo * router)->bool 
+			[](std::shared_ptr<const RouterInfo> router)->bool 
 			{ 
 				return !router->IsHidden (); 
 			});
 	}	
 	
-	const RouterInfo * NetDb::GetRandomRouter (const RouterInfo * compatibleWith) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (const RouterInfo * compatibleWith) const
 	{
 		return GetRandomRouter (
-			[compatibleWith](const RouterInfo * router)->bool 
+			[compatibleWith](std::shared_ptr<const RouterInfo> router)->bool 
 			{ 
-				return !router->IsHidden () && router != compatibleWith && 
+				return !router->IsHidden () && router.get () != compatibleWith && 
 					router->IsCompatible (*compatibleWith); 
 			});
 	}	
 
-	const RouterInfo * NetDb::GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const
+	std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const
 	{
 		return GetRandomRouter (
-			[compatibleWith](const RouterInfo * router)->bool 
+			[compatibleWith](std::shared_ptr<const RouterInfo> router)->bool 
 			{ 
-				return !router->IsHidden () && router != compatibleWith &&
+				return !router->IsHidden () && router.get () != compatibleWith &&
 					router->IsCompatible (*compatibleWith) && (router->GetCaps () & RouterInfo::eHighBandwidth); 
 			});
 	}	
 	
 	template<typename Filter>
-	const RouterInfo * NetDb::GetRandomRouter (Filter filter) const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (Filter filter) const
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1);	
@@ -819,8 +819,8 @@ namespace data
 			{	
 				if (i >= ind)
 				{	
-					if (!it.second->IsUnreachable () && filter (it.second.get ()))
-						return it.second.get ();
+					if (!it.second->IsUnreachable () && filter (it.second))
+						return it.second;
 				}	
 				else 
 					i++;

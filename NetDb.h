@@ -75,9 +75,9 @@ namespace data
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
 			void HandleDatabaseLookupMsg (I2NPMessage * msg);			
 
-			const RouterInfo * GetRandomRouter () const;
-			const RouterInfo * GetRandomRouter (const RouterInfo * compatibleWith) const;
-			const RouterInfo * GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const;
+			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
+			std::shared_ptr<const RouterInfo> GetRandomRouter (const RouterInfo * compatibleWith) const;
+			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (const RouterInfo * compatibleWith) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);			
 
 			void PostI2NPMsg (I2NPMessage * msg);
@@ -104,7 +104,7 @@ namespace data
 			void DeleteRequestedDestination (RequestedDestination * dest);
 
 			template<typename Filter>
-			const RouterInfo * GetRandomRouter (Filter filter) const;	
+			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		
 		private:
 
