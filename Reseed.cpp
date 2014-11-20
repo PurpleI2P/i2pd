@@ -2,6 +2,7 @@
 #include <fstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
+#include <cryptopp/gzip.h>
 #include "Reseed.h"
 #include "Log.h"
 #include "util.h"
@@ -118,6 +119,59 @@ namespace data
 		}
 		return false;
 	}	
+
+	void ProcessSU3File (const char * filename)
+	{
+		static uint32_t headerSignature = htole32 (0x04044B50);
+
+		std::ifstream s(filename, std::ifstream::binary);
+		if (s.is_open ())	
+		{	
+			while (!s.eof ())
+			{
+				uint32_t signature;
+				s.read ((char *)&signature, 4);
+				if (signature == headerSignature)
+				{
+					// next local file
+					s.seekg (14, std::ios::cur); // skip field we don't care about
+					uint32_t compressedSize, uncompressedSize; 
+					s.read ((char *)&compressedSize, 4);	
+					compressedSize = le32toh (compressedSize);	
+					s.read ((char *)&uncompressedSize, 4);
+					uncompressedSize = le32toh (uncompressedSize);	
+					uint16_t fileNameLength, extraFieldLength; 
+					s.read ((char *)&fileNameLength, 2);	
+					fileNameLength = le32toh (fileNameLength);
+					s.read ((char *)&extraFieldLength, 2);
+					extraFieldLength = le32toh (extraFieldLength);
+					char localFileName[255];
+					s.read (localFileName, fileNameLength);
+					localFileName[fileNameLength] = 0;
+					s.seekg (extraFieldLength, std::ios::cur);
+
+					uint8_t * compressed = new uint8_t[compressedSize];
+					s.read ((char *)compressed, compressedSize);
+					CryptoPP::Gunzip decompressor;
+					decompressor.Put (compressed, compressedSize);
+					delete[] compressed;	
+					if (decompressor.MaxRetrievable () <= uncompressedSize)
+					{
+						uint8_t * uncompressed = new uint8_t[uncompressedSize];	
+						decompressor.Get (uncompressed, decompressor.MaxRetrievable ());	
+						// TODO: save file		
+						delete[] uncompressed;
+					}
+					else
+						LogPrint (eLogError, "Actual uncompressed size ", decompressor.MaxRetrievable (), " exceed ", uncompressedSize, " from header");
+				}
+				else
+					break; // no more files
+			}
+		}
+		else
+			LogPrint (eLogError, "Can't open file ", filename);
+	}
 
 }
 }

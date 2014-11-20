@@ -17,6 +17,7 @@ namespace data
 			bool reseedNow();
 	};
 
+	void ProcessSU3File (const char * filename);	
 }
 }
 
