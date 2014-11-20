@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <string>
+#include <memory>
 #include <boost/asio.hpp>
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
@@ -24,6 +25,11 @@ namespace i2p
 			void Init ();
 
 			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
+			std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo () const 
+			{ 
+				return std::shared_ptr<const i2p::data::RouterInfo> (&m_RouterInfo, 
+					[](const i2p::data::RouterInfo *) {});
+			}
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 
 			void UpdatePort (int port); // called from Daemon
