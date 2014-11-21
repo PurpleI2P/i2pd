@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include <set>
 #include <map>
-#include <vector>
+#include <list>
 #include <string>
 #include <thread>
 #include <mutex>
@@ -111,7 +111,7 @@ namespace data
 			std::map<IdentHash, LeaseSet *> m_LeaseSets;
 			std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
 			mutable std::mutex m_FloodfillsMutex;
-			std::vector<std::shared_ptr<RouterInfo> > m_Floodfills;
+			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 			std::mutex m_RequestedDestinationsMutex;
 			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
 			

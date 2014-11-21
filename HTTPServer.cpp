@@ -710,7 +710,7 @@ namespace util
 			if (it.second && it.second->IsEstablished ())
 			{
 				// incoming connection doesn't have remote RI
-				bool outgoing = it.second->GetRemoteRouter ();
+				auto outgoing = it.second->GetRemoteRouter ();
 				if (outgoing) s << "-->";
 				s << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase64 ().substr (0, 4) <<  ": "
 					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
@@ -727,7 +727,7 @@ namespace util
 			for (auto it: ssuServer->GetSessions ())
 			{
 				// incoming connections don't have remote router
-				bool outgoing = it.second->GetRemoteRouter ();
+				auto outgoing = it.second->GetRemoteRouter ();
 				auto endpoint = it.second->GetRemoteEndpoint ();
 				if (outgoing) s << "-->";
 				s << endpoint.address ().to_string () << ":" << endpoint.port ();

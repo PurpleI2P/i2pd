@@ -354,11 +354,18 @@ namespace data
 				
 				if (it.second->IsUnreachable ())
 				{	
+					// delete RI file
 					if (boost::filesystem::exists (GetFilePath (fullDirectory, it.second.get ())))
 					{    
 						boost::filesystem::remove (GetFilePath (fullDirectory, it.second.get ()));
 						deletedCount++;
 					}	
+					// delete from floodfills list
+					if (it.second->IsFloodfill ())
+					{
+						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+						m_Floodfills.remove (it.second);
+					}
 				}
 			}	
 		}	
