@@ -3,6 +3,7 @@
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 #include <cryptopp/gzip.h>
+#include "I2PEndian.h"
 #include "Reseed.h"
 #include "Log.h"
 #include "util.h"
