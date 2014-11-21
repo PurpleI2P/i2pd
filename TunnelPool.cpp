@@ -235,12 +235,12 @@ namespace tunnel
 			m_LocalDestination.ProcessDeliveryStatusMessage (msg);
 	}
 
-	const i2p::data::RouterInfo * TunnelPool::SelectNextHop (const i2p::data::RouterInfo * prevHop) const
+	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const
 	{
-		auto hop = m_NumHops >= 3 ? i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop).get () :
-			i2p::data::netdb.GetRandomRouter (prevHop).get ();
+		auto hop = m_NumHops >= 3 ? i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop) :
+			i2p::data::netdb.GetRandomRouter (prevHop);
 		if (!hop)
-			hop = i2p::data::netdb.GetRandomRouter ().get ();
+			hop = i2p::data::netdb.GetRandomRouter ();
 		return hop;	
 	}	
 		
@@ -250,8 +250,8 @@ namespace tunnel
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Creating destination inbound tunnel...");
-		const i2p::data::RouterInfo * prevHop = &i2p::context.GetRouterInfo ();	
-		std::vector<const i2p::data::RouterInfo *> hops;
+		auto prevHop = i2p::context.GetSharedRouterInfo ();	
+		std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
 		int numHops = m_NumHops;
 		if (outboundTunnel)
 		{	
@@ -294,8 +294,8 @@ namespace tunnel
 		{	
 			LogPrint ("Creating destination outbound tunnel...");
 
-			const i2p::data::RouterInfo * prevHop = &i2p::context.GetRouterInfo ();
-			std::vector<const i2p::data::RouterInfo *> hops;
+			auto prevHop = i2p::context.GetSharedRouterInfo ();
+			std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
 			for (int i = 0; i < m_NumHops; i++)
 			{
 				auto hop = SelectNextHop (prevHop);

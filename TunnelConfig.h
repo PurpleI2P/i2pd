@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <sstream>
 #include <vector>
+#include <memory>
 #include "aes.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
@@ -14,7 +15,7 @@ namespace tunnel
 {
 	struct TunnelHopConfig
 	{
-		const i2p::data::RouterInfo * router, * nextRouter;
+		std::shared_ptr<const i2p::data::RouterInfo> router, nextRouter;
 		uint32_t tunnelID, nextTunnelID;
 		uint8_t layerKey[32];
 		uint8_t ivKey[32];
@@ -26,7 +27,7 @@ namespace tunnel
 		i2p::crypto::TunnelDecryption decryption;	
 		int recordIndex; // record # in tunnel build message
 		
-		TunnelHopConfig (const i2p::data::RouterInfo * r)
+		TunnelHopConfig (std::shared_ptr<const i2p::data::RouterInfo> r)
 		{
 			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 			rnd.GenerateBlock (layerKey, 32);
@@ -36,14 +37,14 @@ namespace tunnel
 			isGateway = true;
 			isEndpoint = true;
 			router = r; 
-			nextRouter = 0;
+			//nextRouter = nullptr; 
 			nextTunnelID = 0;
 
-			next = 0;
-			prev = 0;
+			next = nullptr;
+			prev = nullptr;
 		}	
 
-		void SetNextRouter (const i2p::data::RouterInfo * r)
+		void SetNextRouter (std::shared_ptr<const i2p::data::RouterInfo> r)
 		{
 			nextRouter = r;
 			isEndpoint = false;
@@ -88,7 +89,7 @@ namespace tunnel
 		public:			
 			
 
-			TunnelConfig (std::vector<const i2p::data::RouterInfo *> peers, 
+			TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers, 
 				const TunnelConfig * replyTunnelConfig = nullptr) // replyTunnelConfig=nullptr means inbound
 			{
 				TunnelHopConfig * prev = nullptr;
@@ -109,7 +110,7 @@ namespace tunnel
 					m_LastHop->SetReplyHop (replyTunnelConfig->GetFirstHop ());
 				}	
 				else // inbound
-					m_LastHop->SetNextRouter (&i2p::context.GetRouterInfo ());
+					m_LastHop->SetNextRouter (i2p::context.GetSharedRouterInfo ());
 			}
 			
 			~TunnelConfig ()
@@ -184,7 +185,7 @@ namespace tunnel
 						if (hop->isGateway) // inbound tunnel
 							newHop->SetReplyHop (m_FirstHop); // use it as reply tunnel
 						else
-							newHop->SetNextRouter (&i2p::context.GetRouterInfo ());
+							newHop->SetNextRouter (i2p::context.GetSharedRouterInfo ());
 					}	
 					if (!hop->next) newConfig->m_FirstHop = newHop; // last hop
 									
@@ -195,7 +196,7 @@ namespace tunnel
 
 			TunnelConfig * Clone (const TunnelConfig * replyTunnelConfig = nullptr) const
 			{
-				std::vector<const i2p::data::RouterInfo *> peers;
+				std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers;
 				TunnelHopConfig * hop = m_FirstHop;
 				while (hop)
 				{

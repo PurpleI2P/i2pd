@@ -61,7 +61,7 @@ namespace tunnel
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, 
 				typename TTunnels::value_type suggested = nullptr) const;
-			const i2p::data::RouterInfo * SelectNextHop (const i2p::data::RouterInfo * prevHop) const;
+			std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;
 			
 		private:
 

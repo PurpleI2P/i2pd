@@ -79,7 +79,7 @@ namespace tunnel
 
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
 			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
-			const i2p::data::RouterInfo * GetEndpointRouter () const 
+			std::shared_ptr<const i2p::data::RouterInfo> GetEndpointRouter () const 
 				{ return GetTunnelConfig ()->GetLastHop ()->router; }; 
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
 
