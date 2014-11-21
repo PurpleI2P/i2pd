@@ -62,7 +62,7 @@ namespace transport
 	{
 		public:
 
-			NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouter = nullptr);
+			NTCPSession (boost::asio::io_service& service, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
 			~NTCPSession ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
@@ -146,7 +146,7 @@ namespace transport
 	{
 		public:
 
-			NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, int port, const i2p::data::RouterInfo& in_RouterInfo);
+			NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, int port, std::shared_ptr<const i2p::data::RouterInfo> in_RouterInfo);
 
 		private:
 

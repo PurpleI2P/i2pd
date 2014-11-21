@@ -14,7 +14,7 @@ namespace i2p
 namespace transport
 {
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-		const i2p::data::RouterInfo * router, bool peerTest ): TransportSession (router), 
+		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): TransportSession (router), 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
 		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest),
  		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),

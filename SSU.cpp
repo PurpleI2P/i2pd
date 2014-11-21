@@ -141,7 +141,7 @@ namespace transport
 		session->ProcessNextMessage (buf, bytes_transferred, from);
 	}
 
-	SSUSession * SSUServer::FindSession (const i2p::data::RouterInfo * router)
+	SSUSession * SSUServer::FindSession (const i2p::data::RouterInfo * router) const
 	{
 		if (!router) return nullptr;
 		auto address = router->GetSSUAddress (true); // v4 only
@@ -155,7 +155,7 @@ namespace transport
 		return FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
 	}	
 
-	SSUSession * SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e)
+	SSUSession * SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e) const
 	{
 		auto it = m_Sessions.find (e);
 		if (it != m_Sessions.end ())
@@ -164,7 +164,7 @@ namespace transport
 			return nullptr;
 	}
 		
-	SSUSession * SSUServer::GetSession (const i2p::data::RouterInfo * router, bool peerTest)
+	SSUSession * SSUServer::GetSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
 	{
 		SSUSession * session = nullptr;
 		if (router)

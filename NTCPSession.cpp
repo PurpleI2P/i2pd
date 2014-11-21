@@ -19,7 +19,7 @@ namespace i2p
 {
 namespace transport
 {
-	NTCPSession::NTCPSession (boost::asio::io_service& service, const i2p::data::RouterInfo * in_RemoteRouter): 
+	NTCPSession::NTCPSession (boost::asio::io_service& service, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
 		TransportSession (in_RemoteRouter),	m_Socket (service), 
 		m_TerminationTimer (service), m_IsEstablished (false), m_ReceiveBufferOffset (0), 
 		m_NextMessage (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0)
@@ -597,8 +597,8 @@ namespace transport
 		
 		
 	NTCPClient::NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, 
-		int port, const i2p::data::RouterInfo& in_RouterInfo): 
-		NTCPSession (service, &in_RouterInfo), m_Endpoint (address, port)	
+		int port, std::shared_ptr<const i2p::data::RouterInfo> in_RouterInfo): 
+		NTCPSession (service, in_RouterInfo), m_Endpoint (address, port)	
 	{
 		Connect ();
 	}

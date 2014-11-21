@@ -290,14 +290,14 @@ namespace transport
 					auto address = r->GetNTCPAddress (!context.SupportsV6 ()); 
 					if (address && !r->UsesIntroducer () && !r->IsUnreachable () && msg->GetLength () < NTCP_MAX_MESSAGE_SIZE)
 					{	
-						auto s = new NTCPClient (m_Service, address->host, address->port, *r);
+						auto s = new NTCPClient (m_Service, address->host, address->port, r);
 						AddNTCPSession (s);
 						s->SendI2NPMessage (msg);
 					}	
 					else
 					{	
 						// then SSU					
-						auto s = m_SSUServer ? m_SSUServer->GetSession (r.get ()) : nullptr;
+						auto s = m_SSUServer ? m_SSUServer->GetSession (r) : nullptr;
 						if (s)
 							s->SendI2NPMessage (msg);
 						else
@@ -360,7 +360,7 @@ namespace transport
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			if (router && router->IsSSU () && m_SSUServer)
-				m_SSUServer->GetSession (router.get (), true);  // peer test	
+				m_SSUServer->GetSession (router, true);  // peer test	
 		}	
 	}
 			

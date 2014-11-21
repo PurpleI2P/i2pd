@@ -55,7 +55,7 @@ namespace transport
 		public:
 
 			SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-				const i2p::data::RouterInfo * router = nullptr, bool peerTest = false);
+				std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, bool peerTest = false);
 			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
 			~SSUSession ();
 			
