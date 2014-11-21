@@ -1,6 +1,6 @@
 # NSIS Installer script. (Tested with NSIS 2.64 on Windows 7)
 # Author: Mikal Villa (Meeh)
-# Version: 1.0
+# Version: 1.1
 Name PurpleI2P
 
 RequestExecutionLevel highest
@@ -9,7 +9,7 @@ ShowInstDetails show
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 0.2.0.0
+!define VERSION 0.3.0.0
 !define COMPANY "The Privacy Solutions Project"
 !define URL "https://i2p.io"
 
@@ -64,13 +64,13 @@ Var StartMenuGroup
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-OutFile PurpleI2P-0.2.0.0-win32-setup.exe
+OutFile PurpleI2P-0.3.0.0-win32-setup.exe
 InstallDir $PROGRAMFILES\PurpleI2P
 CRCCheck on
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-VIProductVersion 0.2.0.0
+VIProductVersion 0.3.0.0
 VIAddVersionKey ProductName PurpleI2P
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"
