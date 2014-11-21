@@ -167,24 +167,27 @@ namespace data
 	
 	void NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
-		DeleteRequestedDestination (ident);
-		auto it = m_RouterInfos.find(ident);
-		if (it != m_RouterInfos.end ())
+		DeleteRequestedDestination (ident);	
+		auto r = FindRouter (ident);
+		if (r)
 		{
-			auto ts = it->second->GetTimestamp ();
-			it->second->Update (buf, len);
-			if (it->second->GetTimestamp () > ts)
+			auto ts = r->GetTimestamp ();
+			r->Update (buf, len);
+			if (r->GetTimestamp () > ts)
 				LogPrint ("RouterInfo updated");
 		}	
 		else	
 		{	
 			LogPrint ("New RouterInfo added");
-			auto r = std::make_shared<RouterInfo> (buf, len);
-			m_RouterInfos[r->GetIdentHash ()] = r;
-			if (r->IsFloodfill ())
+			auto newRouter = std::make_shared<RouterInfo> (buf, len);
+			{
+				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+				m_RouterInfos[r->GetIdentHash ()] = newRouter;
+			}
+			if (newRouter->IsFloodfill ())
 			{
 				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-				m_Floodfills.push_back (r);
+				m_Floodfills.push_back (newRouter);
 			}	
 		}	
 	}	
@@ -211,6 +214,7 @@ namespace data
 
 	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
 	{
+		std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 		auto it = m_RouterInfos.find (ident);
 		if (it != m_RouterInfos.end ())
 			return it->second;
@@ -372,7 +376,18 @@ namespace data
 		if (count > 0)
 			LogPrint (count," new/updated routers saved");
 		if (deletedCount > 0)
+		{
 			LogPrint (deletedCount," routers deleted");
+			// clean up RouterInfos table
+			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+			for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
+			{
+				if (it->second->IsUnreachable ())
+					it = m_RouterInfos.erase (it);
+				else
+					it++;
+			}
+		}
 	}
 
 	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet, i2p::tunnel::TunnelPool * pool)
@@ -822,6 +837,7 @@ namespace data
 		for (int j = 0; j < 2; j++)
 		{	
 			uint32_t i = 0;
+			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 			for (auto it: m_RouterInfos)
 			{	
 				if (i >= ind)

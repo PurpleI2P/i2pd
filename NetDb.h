@@ -109,6 +109,7 @@ namespace data
 		private:
 
 			std::map<IdentHash, LeaseSet *> m_LeaseSets;
+			mutable std::mutex m_RouterInfosMutex;
 			std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
 			mutable std::mutex m_FloodfillsMutex;
 			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
