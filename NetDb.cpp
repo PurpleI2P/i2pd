@@ -21,7 +21,7 @@ namespace i2p
 {
 namespace data
 {		
-	I2NPMessage * RequestedDestination::CreateRequestMessage (const RouterInfo * router,
+	I2NPMessage * RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		const i2p::tunnel::InboundTunnel * replyTunnel)
 	{
 		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
@@ -209,11 +209,11 @@ namespace data
 		}	
 	}	
 
-	RouterInfo * NetDb::FindRouter (const IdentHash& ident) const
+	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
 	{
 		auto it = m_RouterInfos.find (ident);
 		if (it != m_RouterInfos.end ())
-			return it->second.get ();
+			return it->second;
 		else
 			return nullptr;
 	}
@@ -611,7 +611,7 @@ namespace data
 				LogPrint ("Requested RouterInfo ", key, " found");
 				router->LoadBuffer ();
 				if (router->GetBuffer ()) 
-					replyMsg = CreateDatabaseStoreMsg (router);
+					replyMsg = CreateDatabaseStoreMsg (router.get ());
 			}
 		}
 		if (!replyMsg)
@@ -633,7 +633,7 @@ namespace data
 				excludedRouters.insert (excluded);
 				excluded += 32;
 			}	
-			replyMsg = CreateDatabaseSearchReply (buf, GetClosestFloodfill (buf, excludedRouters));
+			replyMsg = CreateDatabaseSearchReply (buf, GetClosestFloodfill (buf, excludedRouters).get ());
 		}
 		else
 			excluded += numExcluded*32; // we don't care about exluded	
@@ -697,9 +697,9 @@ namespace data
 			rnd.GenerateBlock (randomHash, 32);
 			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true, exploratoryPool);
 			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
-			if (floodfill && !floodfills.count (floodfill)) // request floodfill only once
+			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
 			{	
-				floodfills.insert (floodfill);
+				floodfills.insert (floodfill.get ());
 				if (throughTunnels)
 				{	
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
@@ -836,10 +836,10 @@ namespace data
 		if (msg) m_Queue.Put (msg);	
 	}	
 
-	const RouterInfo * NetDb::GetClosestFloodfill (const IdentHash& destination, 
+	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination, 
 		const std::set<IdentHash>& excluded) const
 	{
-		RouterInfo * r = nullptr;
+		std::shared_ptr<const RouterInfo> r;
 		XORMetric minMetric;
 		IdentHash destKey = CreateRoutingKey (destination);
 		minMetric.SetMax ();
@@ -852,7 +852,7 @@ namespace data
 				if (m < minMetric)
 				{
 					minMetric = m;
-					r = it.get ();
+					r = it;
 				}
 			}	
 		}	

@@ -277,10 +277,10 @@ namespace transport
 			session->SendI2NPMessage (msg);
 		else
 		{
-			RouterInfo * r = netdb.FindRouter (ident);
+			auto r = netdb.FindRouter (ident);
 			if (r)
 			{	
-				auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (r) : nullptr;
+				auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (r.get ()) : nullptr;
 				if (ssuSession)
 					ssuSession->SendI2NPMessage (msg);
 				else
@@ -297,7 +297,7 @@ namespace transport
 					else
 					{	
 						// then SSU					
-						auto s = m_SSUServer ? m_SSUServer->GetSession (r) : nullptr;
+						auto s = m_SSUServer ? m_SSUServer->GetSession (r.get ()) : nullptr;
 						if (s)
 							s->SendI2NPMessage (msg);
 						else
@@ -323,7 +323,7 @@ namespace transport
 	void Transports::HandleResendTimer (const boost::system::error_code& ecode, 
 		boost::asio::deadline_timer * timer, const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
-		RouterInfo * r = netdb.FindRouter (ident);
+		auto r = netdb.FindRouter (ident);
 		if (r)
 		{
 			LogPrint ("Router found. Sending message");
