@@ -182,7 +182,7 @@ namespace data
 			auto newRouter = std::make_shared<RouterInfo> (buf, len);
 			{
 				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-				m_RouterInfos[r->GetIdentHash ()] = newRouter;
+				m_RouterInfos[newRouter->GetIdentHash ()] = newRouter;
 			}
 			if (newRouter->IsFloodfill ())
 			{
