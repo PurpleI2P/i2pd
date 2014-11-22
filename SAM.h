@@ -7,6 +7,7 @@
 #include <list>
 #include <thread>
 #include <mutex>
+#include <memory>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "LeaseSet.h"
@@ -39,7 +40,7 @@ namespace client
 	const char SAM_DEST_REPLY_I2P_ERROR[] = "DEST REPLY RESULT=I2P_ERROR\n";
 	const char SAM_NAMING_LOOKUP[] = "NAMING LOOKUP";
 	const char SAM_NAMING_REPLY[] = "NAMING REPLY RESULT=OK NAME=ME VALUE=%s\n";
-	const char SAM_DATAGRAM_RECEIVED[] = "DATAGRAM_RECEIVED DESTINATION=%s SIZE=%i\n";	
+	const char SAM_DATAGRAM_RECEIVED[] = "DATAGRAM_RECEIVED DESTINATION=%s SIZE=%lu\n";	
 	const char SAM_NAMING_REPLY_INVALID_KEY[] = "NAMING REPLY RESULT=INVALID_KEY NAME=%s\n";
 	const char SAM_NAMING_REPLY_KEY_NOT_FOUND[] = "NAMING REPLY RESULT=INVALID_KEY_NOT_FOUND NAME=%s\n";		
 	const char SAM_PARAM_STYLE[] = "STYLE";		
@@ -64,7 +65,7 @@ namespace client
 
 	class SAMBridge;
 	class SAMSession;
-	class SAMSocket
+	class SAMSocket: public std::enable_shared_from_this<SAMSocket>
 	{
 		public:
 
@@ -122,7 +123,7 @@ namespace client
 	struct SAMSession
 	{
 		ClientDestination * localDestination;
-		std::list<SAMSocket *> sockets;
+		std::list<std::shared_ptr<SAMSocket> > sockets;
 	};
 
 	class SAMBridge
@@ -145,7 +146,7 @@ namespace client
 			void Run ();
 
 			void Accept ();
-			void HandleAccept(const boost::system::error_code& ecode);
+			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<SAMSocket> socket);
 
 			void ReceiveDatagram ();
 			void HandleReceivedDatagram (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -158,7 +159,6 @@ namespace client
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;
-			SAMSocket * m_NewSocket;
 			std::mutex m_SessionsMutex;
 			std::map<std::string, SAMSession> m_Sessions;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
