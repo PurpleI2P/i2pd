@@ -12,6 +12,15 @@ LIBS =
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
 CXXFLAGS += -maes -DAESNI
 
+
+${PREFIX}:
+
+install: all
+	mkdir -p ${PREFIX}/
+	cp -r i2p ${PREFIX}/
+
+
+
 # Apple Mac OSX
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
