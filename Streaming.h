@@ -7,6 +7,7 @@
 #include <set>
 #include <queue>
 #include <functional>
+#include <memory>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include "I2PEndian.h"
@@ -78,7 +79,7 @@ namespace stream
 	};	
 	
 	class StreamingDestination;
-	class Stream
+	class Stream: public std::enable_shared_from_this<Stream>
 	{	
 		public:
 
@@ -153,7 +154,7 @@ namespace stream
 	{
 		public:
 
-			typedef std::function<void (Stream *)> Acceptor;
+			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
 			StreamingDestination (i2p::client::ClientDestination& owner): m_Owner (owner) {};
 			~StreamingDestination () {};	
@@ -161,8 +162,8 @@ namespace stream
 			void Start ();
 			void Stop ();
 
-			Stream * CreateNewOutgoingStream (const i2p::data::LeaseSet& remote, int port = 0);
-			void DeleteStream (Stream * stream);			
+			std::shared_ptr<Stream> CreateNewOutgoingStream (const i2p::data::LeaseSet& remote, int port = 0);
+			void DeleteStream (std::shared_ptr<Stream> stream);			
 			void SetAcceptor (const Acceptor& acceptor) { m_Acceptor = acceptor; };
 			void ResetAcceptor () { m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
@@ -173,13 +174,13 @@ namespace stream
 		private:		
 	
 			void HandleNextPacket (Packet * packet);
-			Stream * CreateNewIncomingStream ();
+			std::shared_ptr<Stream> CreateNewIncomingStream ();
 
 		private:
 
 			i2p::client::ClientDestination& m_Owner;
 			std::mutex m_StreamsMutex;
-			std::map<uint32_t, Stream *> m_Streams;
+			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams;
 			Acceptor m_Acceptor;
 			
 		public:
@@ -188,7 +189,7 @@ namespace stream
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
 	};		
 
-	void DeleteStream (Stream * stream);
+	void DeleteStream (std::shared_ptr<Stream> stream);
 
 //-------------------------------------------------
 
@@ -197,15 +198,17 @@ namespace stream
 	{
 		if (!m_ReceiveQueue.empty ())
 		{
-			m_Service.post ([=](void) { this->HandleReceiveTimer (
+			auto s = shared_from_this();
+			m_Service.post ([=](void) { s->HandleReceiveTimer (
 				boost::asio::error::make_error_code (boost::asio::error::operation_aborted),
 				buffer, handler); });
 		}
 		else
 		{
 			m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
+			auto s = shared_from_this();
 			m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
-				{ this->HandleReceiveTimer (ecode, buffer, handler); });
+				{ s->HandleReceiveTimer (ecode, buffer, handler); });
 		}
 	}
 

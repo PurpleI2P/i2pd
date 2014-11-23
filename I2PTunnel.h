@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string>
 #include <set>
+#include <memory>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "Destination.h"
@@ -24,7 +25,7 @@ namespace client
 
 			I2PTunnelConnection (I2PTunnel * owner, boost::asio::ip::tcp::socket * socket,
 				const i2p::data::LeaseSet * leaseSet);
-			I2PTunnelConnection (I2PTunnel * owner, i2p::stream::Stream * stream,  boost::asio::ip::tcp::socket * socket, 
+			I2PTunnelConnection (I2PTunnel * owner, std::shared_ptr<i2p::stream::Stream> stream,  boost::asio::ip::tcp::socket * socket, 
 				const boost::asio::ip::tcp::endpoint& target); 
 			~I2PTunnelConnection ();
 
@@ -44,7 +45,7 @@ namespace client
 
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
 			boost::asio::ip::tcp::socket * m_Socket;
-			i2p::stream::Stream * m_Stream;
+			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			I2PTunnel * m_Owner;
 	};	
 
@@ -111,7 +112,7 @@ namespace client
 		private:
 
 			void Accept ();
-			void HandleAccept (i2p::stream::Stream * stream);
+			void HandleAccept (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
 

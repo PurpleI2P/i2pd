@@ -518,7 +518,7 @@ namespace util
 		{
 			m_Stream->Close ();
 			i2p::stream::DeleteStream (m_Stream);
-			m_Stream = nullptr;
+			m_Stream.reset ();
 		}
 		m_Socket->close ();
 		//delete this;

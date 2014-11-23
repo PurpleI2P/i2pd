@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <thread>
+#include <memory>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include "LeaseSet.h"
@@ -79,7 +80,7 @@ namespace util
 
 			boost::asio::ip::tcp::socket * m_Socket;
 			boost::asio::deadline_timer m_Timer;
-			i2p::stream::Stream * m_Stream;
+			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1], m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
 			request m_Request;

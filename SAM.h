@@ -90,7 +90,7 @@ namespace client
 
 			void I2PReceive ();	
 			void HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleI2PAccept (i2p::stream::Stream * stream);
+			void HandleI2PAccept (std::shared_ptr<i2p::stream::Stream> stream);
 			void HandleWriteI2PData (const boost::system::error_code& ecode);
 			void HandleI2PDatagramReceive (const i2p::data::IdentityEx& ident, const uint8_t * buf, size_t len);
 
@@ -118,7 +118,7 @@ namespace client
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
 			bool m_IsSilent;
-			i2p::stream::Stream * m_Stream;
+			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			SAMSession * m_Session;
 	};	
 

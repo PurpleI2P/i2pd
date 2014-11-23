@@ -77,8 +77,7 @@ namespace proxy
 	{
 		if (m_stream) {
 			LogPrint("--- socks4a close stream");
-			delete m_stream;
-			m_stream = nullptr;
+			m_stream.reset ();
 		}
 	}
 

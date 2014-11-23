@@ -34,7 +34,7 @@ namespace client
 		{	
 			m_Stream->Close ();
 			i2p::stream::DeleteStream (m_Stream);
-			m_Stream = nullptr;
+			m_Stream.reset ();
 		}	
 	}	
 		
@@ -531,7 +531,7 @@ namespace client
 			I2PReceive ();
 	}
 
-	void SAMSocket::HandleI2PAccept (i2p::stream::Stream * stream)
+	void SAMSocket::HandleI2PAccept (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		if (stream)
 		{

@@ -5,7 +5,7 @@
 #include <boost/asio.hpp>
 #include <vector>
 #include <mutex>
-
+#include <memory>
 #include "Identity.h"
 #include "Streaming.h"
 
@@ -47,7 +47,7 @@ namespace proxy
             boost::asio::io_service * m_ios;
             boost::asio::ip::tcp::socket * m_sock;
             boost::asio::deadline_timer m_ls_timer;
-            i2p::stream::Stream * m_stream;
+            std::shared_ptr<i2p::stream::Stream> m_stream;
             i2p::data::LeaseSet * m_ls;
             i2p::data::IdentHash m_dest;
             state m_state;

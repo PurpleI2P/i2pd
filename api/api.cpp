@@ -73,7 +73,7 @@ namespace api
 			i2p::data::netdb.RequestDestination (remote, true, dest->GetTunnelPool ());
 	}
 
-	i2p::stream::Stream * CreateStream (i2p::client::ClientDestination * dest, const i2p::data::IdentHash& remote)
+	std::shared_ptr<i2p::stream::Stream> CreateStream (i2p::client::ClientDestination * dest, const i2p::data::IdentHash& remote)
 	{
 		auto leaseSet = i2p::data::netdb.FindLeaseSet (remote);
 		if (leaseSet)
@@ -95,7 +95,7 @@ namespace api
 			dest->AcceptStreams (acceptor);
 	}
 
-	void DestroyStream (i2p::stream::Stream * stream)
+	void DestroyStream (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		if (stream)
 		{

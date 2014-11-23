@@ -3,6 +3,7 @@
 
 #include <thread>
 #include <mutex>
+#include <memory>
 #include "Identity.h"
 #include "TunnelPool.h"
 #include "CryptoConst.h"
@@ -41,7 +42,7 @@ namespace client
 
 			// streaming
 			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
-			i2p::stream::Stream * CreateStream (const i2p::data::LeaseSet& remote, int port = 0);
+			std::shared_ptr<i2p::stream::Stream> CreateStream (const i2p::data::LeaseSet& remote, int port = 0);
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;

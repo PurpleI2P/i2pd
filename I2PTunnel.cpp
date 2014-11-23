@@ -20,7 +20,7 @@ namespace client
 		Receive ();
 	}	
 
-	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, i2p::stream::Stream * stream,  
+	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, std::shared_ptr<i2p::stream::Stream> stream,  
 	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target):
 		m_Socket (socket), m_Stream (stream), m_Owner (owner)
 	{
@@ -40,7 +40,7 @@ namespace client
 		{
 			m_Stream->Close ();
 			i2p::stream::DeleteStream (m_Stream);
-			m_Stream = nullptr;
+			m_Stream.reset ();
 		}	
 		m_Socket->close ();
 		if (m_Owner)
@@ -275,7 +275,7 @@ namespace client
 			LogPrint ("Local destination not set for server tunnel");
 	}
 
-	void I2PServerTunnel::HandleAccept (i2p::stream::Stream * stream)
+	void I2PServerTunnel::HandleAccept (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		if (stream)
 			new I2PTunnelConnection (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
