@@ -25,18 +25,22 @@ namespace client
 
 	SAMSocket::~SAMSocket ()
 	{
-		if (m_Stream)
-			i2p::stream::DeleteStream (m_Stream);
+		Terminate ();
 	}	
 
-	void SAMSocket::Terminate ()
+	void SAMSocket::CloseStream ()
 	{
 		if (m_Stream)
+		{	
 			m_Stream->Close ();
-
-		// TODO: make this swap atomic
-		auto session = m_Session;
-		m_Session = nullptr;
+			i2p::stream::DeleteStream (m_Stream);
+			m_Stream = nullptr;
+		}	
+	}	
+		
+	void SAMSocket::Terminate ()
+	{
+		CloseStream ();
 		
 		switch (m_SocketType)
 		{
@@ -45,22 +49,23 @@ namespace client
 			break;
 			case eSAMSocketTypeStream:
 			{
-				if (session)
-					session->sockets.remove (shared_from_this ());
+				if (m_Session)
+					m_Session->sockets.remove (shared_from_this ());
 				break;
 			}
 			case eSAMSocketTypeAcceptor:
 			{
-				if (session)
+				if (m_Session)
 				{
-					session->sockets.remove (shared_from_this ());
-					session->localDestination->StopAcceptingStreams ();
+					m_Session->sockets.remove (shared_from_this ());
+					m_Session->localDestination->StopAcceptingStreams ();
 				}
 				break;
 			}
 			default:
 				;
 		}
+		m_SocketType = eSAMSocketTypeTerminated;
 		m_Socket.close ();
 	}
 
@@ -670,6 +675,8 @@ namespace client
 		auto it = m_Sessions.find (id);
 		if (it != m_Sessions.end ())
 		{
+			for (auto it1: it->second.sockets)
+				it1->CloseStream ();
 			it->second.sockets.clear ();
 			it->second.localDestination->Stop ();
 			m_Sessions.erase (it);

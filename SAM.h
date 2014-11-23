@@ -60,7 +60,8 @@ namespace client
 		eSAMSocketTypeUnknown,
 		eSAMSocketTypeSession,
 		eSAMSocketTypeStream,
-		eSAMSocketTypeAcceptor	
+		eSAMSocketTypeAcceptor,
+		eSAMSocketTypeTerminated
 	};
 
 	class SAMBridge;
@@ -71,7 +72,8 @@ namespace client
 
 			SAMSocket (SAMBridge& owner);
 			~SAMSocket ();			
-
+			void CloseStream (); // TODO: implement it better
+			
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			void ReceiveHandshake ();
 
