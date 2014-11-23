@@ -38,7 +38,7 @@ namespace datagram
 		
 		auto service = m_Owner.GetService ();
 		if (service) 
-			service->post (boost::bind (&DatagramDestination::SendMsg, this, 
+			service->post (std::bind (&DatagramDestination::SendMsg, this, 
 				CreateDataMessage (buf, len + headerLen), remote));
 		else
 			LogPrint (eLogWarning, "Failed to send datagram. Destination is not running");

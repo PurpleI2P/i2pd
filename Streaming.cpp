@@ -102,8 +102,8 @@ namespace stream
 				{
 					m_IsAckSendScheduled = true;
 					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ACK_SEND_TIMEOUT));
-					m_AckSendTimer.async_wait (boost::bind (&Stream::HandleAckSendTimer,
-						shared_from_this (), boost::asio::placeholders::error));
+					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
+						shared_from_this (), std::placeholders::_1));
 				}
 			}	
 			else if (isSyn)
@@ -309,7 +309,7 @@ namespace stream
 				size += sentLen; // payload
 			}	
 			p->len = size;
-			m_Service.post (boost::bind (&Stream::SendPacket, this, p));
+			m_Service.post (std::bind (&Stream::SendPacket, this, p));
 		}
 
 		return len;
@@ -460,8 +460,8 @@ namespace stream
 	{
 		m_ResendTimer.cancel ();
 		m_ResendTimer.expires_from_now (boost::posix_time::seconds(RESEND_TIMEOUT));
-		m_ResendTimer.async_wait (boost::bind (&Stream::HandleResendTimer,
-			shared_from_this (), boost::asio::placeholders::error));
+		m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
+			shared_from_this (), std::placeholders::_1));
 	}
 		
 	void Stream::HandleResendTimer (const boost::system::error_code& ecode)

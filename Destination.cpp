@@ -190,12 +190,12 @@ namespace client
 
 	void ClientDestination::ProcessGarlicMessage (I2NPMessage * msg)
 	{
-		m_Service->post (boost::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
+		m_Service->post (std::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
 	}
 
 	void ClientDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
 	{
-		m_Service->post (boost::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
+		m_Service->post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
 	}
 
 	void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)

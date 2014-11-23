@@ -9,7 +9,6 @@
 #include <functional>
 #include <memory>
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "LeaseSet.h"
