@@ -21,8 +21,6 @@ namespace transport
 		m_Data (*this), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
-		if (!router) // incoming session
-			ScheduleConnectTimer ();
 	}
 
 	SSUSession::~SSUSession ()
@@ -699,6 +697,14 @@ namespace transport
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
 			SendSessionRequest ();
 		}	
+	}
+
+	void SSUSession::WaitForConnect ()
+	{
+		if (!m_RemoteRouter) // incoming session
+			ScheduleConnectTimer ();
+		else
+			LogPrint (eLogError, "SSU wait for connect for outgoing session");	
 	}
 
 	void SSUSession::ScheduleConnectTimer ()

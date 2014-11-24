@@ -135,6 +135,7 @@ namespace transport
 		if (!session)
 		{
 			session = new SSUSession (*this, from);
+			session->WaitForConnect ();
 			m_Sessions[from] = session;
 			LogPrint ("New SSU session from ", from.address ().to_string (), ":", from.port (), " created");
 		}

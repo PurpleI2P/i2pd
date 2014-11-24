@@ -60,6 +60,7 @@ namespace transport
 			~SSUSession ();
 			
 			void Connect ();
+			void WaitForConnect ();
 			void Introduce (uint32_t iTag, const uint8_t * iKey);
 			void WaitForIntroduction ();
 			void Close ();
