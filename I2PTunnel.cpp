@@ -1,4 +1,3 @@
-#include <boost/bind.hpp>
 #include "base64.h"
 #include "Log.h"
 #include "NetDb.h"
@@ -12,21 +11,15 @@ namespace client
 {
 	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, 
 	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
-		m_Socket (socket), m_Owner (owner) 
+		m_Socket (socket), m_Owner (owner), m_RemoteEndpoint (socket->remote_endpoint ())
 	{
 		m_Stream = m_Owner->GetLocalDestination ()->CreateStream (*leaseSet);
-		m_Stream->Send (m_Buffer, 0); // connect
-		StreamReceive ();
-		Receive ();
 	}	
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, std::shared_ptr<i2p::stream::Stream> stream,  
 	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target):
-		m_Socket (socket), m_Stream (stream), m_Owner (owner)
+		m_Socket (socket), m_Stream (stream), m_Owner (owner), m_RemoteEndpoint (target)
 	{
-		if (m_Socket)
-			m_Socket->async_connect (target, boost::bind (&I2PTunnelConnection::HandleConnect,
-				this, boost::asio::placeholders::error));
 	}
 
 	I2PTunnelConnection::~I2PTunnelConnection ()
@@ -34,6 +27,20 @@ namespace client
 		delete m_Socket;
 	}	
 
+	void I2PTunnelConnection::I2PConnect ()
+	{
+		m_Stream->Send (m_Buffer, 0); // connect
+		StreamReceive ();
+		Receive ();
+	}
+		
+	void I2PTunnelConnection::Connect ()
+	{
+		if (m_Socket)
+			m_Socket->async_connect (m_RemoteEndpoint, std::bind (&I2PTunnelConnection::HandleConnect,
+				shared_from_this (), std::placeholders::_1));
+	}	
+		
 	void I2PTunnelConnection::Terminate ()
 	{	
 		if (m_Stream)
@@ -44,15 +51,14 @@ namespace client
 		}	
 		m_Socket->close ();
 		if (m_Owner)
-			m_Owner->RemoveConnection (this);
-		//delete this;	
+			m_Owner->RemoveConnection (shared_from_this ());
 	}			
 
 	void I2PTunnelConnection::Receive ()
 	{
 		m_Socket->async_read_some (boost::asio::buffer(m_Buffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),                
-			boost::bind(&I2PTunnelConnection::HandleReceived, this, 
-			boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+			std::bind(&I2PTunnelConnection::HandleReceived, shared_from_this (), 
+			std::placeholders::_1, std::placeholders::_2));
 	}	
 	
 	void I2PTunnelConnection::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -87,8 +93,8 @@ namespace client
 	{
 		if (m_Stream)
 			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
-				boost::bind (&I2PTunnelConnection::HandleStreamReceive, this,
-					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
+				std::bind (&I2PTunnelConnection::HandleStreamReceive, shared_from_this (),
+					std::placeholders::_1, std::placeholders::_2),
 				I2P_TUNNEL_CONNECTION_MAX_IDLE);
 	}	
 
@@ -103,7 +109,7 @@ namespace client
 		else
 		{
 			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		boost::bind (&I2PTunnelConnection::HandleWrite, this, boost::asio::placeholders::error));
+        		std::bind (&I2PTunnelConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
 		}
 	}
 
@@ -112,12 +118,7 @@ namespace client
 		if (ecode)
 		{
 			LogPrint ("I2PTunnel connect error: ", ecode.message ());
-			if (ecode != boost::asio::error::operation_aborted)
-			{
-				if (m_Stream) m_Stream->Close ();
-				i2p::stream::DeleteStream (m_Stream);
-				m_Stream = nullptr;
-			}	
+			Terminate ();
 		}
 		else
 		{
@@ -127,20 +128,18 @@ namespace client
 		}
 	}
 
-	void I2PTunnel::AddConnection (I2PTunnelConnection * conn)
+	void I2PTunnel::AddConnection (std::shared_ptr<I2PTunnelConnection> conn)
 	{
 		m_Connections.insert (conn);
 	}
 		
-	void I2PTunnel::RemoveConnection (I2PTunnelConnection * conn)
+	void I2PTunnel::RemoveConnection (std::shared_ptr<I2PTunnelConnection> conn)
 	{
 		m_Connections.erase (conn);
 	}	
 	
 	void I2PTunnel::ClearConnections ()
 	{
-		for (auto it: m_Connections)
-			delete it;
 		m_Connections.clear ();
 	}	
 		
@@ -181,8 +180,8 @@ namespace client
 	void I2PClientTunnel::Accept ()
 	{
 		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
-		m_Acceptor.async_accept (*newSocket, boost::bind (&I2PClientTunnel::HandleAccept, this,
-			boost::asio::placeholders::error, newSocket));
+		m_Acceptor.async_accept (*newSocket, std::bind (&I2PClientTunnel::HandleAccept, this,
+			std::placeholders::_1, newSocket));
 	}	
 
 	void I2PClientTunnel::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
@@ -205,8 +204,8 @@ namespace client
 				{
 					i2p::data::netdb.RequestDestination (*m_DestinationIdentHash, true, GetLocalDestination ()->GetTunnelPool ());
 					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
-					m_Timer.async_wait (boost::bind (&I2PClientTunnel::HandleDestinationRequestTimer,
-						this, boost::asio::placeholders::error, socket));
+					m_Timer.async_wait (std::bind (&I2PClientTunnel::HandleDestinationRequestTimer,
+						this, std::placeholders::_1, socket));
 				}
 			}	
 			else
@@ -240,8 +239,9 @@ namespace client
 		if (m_RemoteLeaseSet) // leaseSet found
 		{	
 			LogPrint ("New I2PTunnel connection");
-			auto connection = new I2PTunnelConnection (this, socket, m_RemoteLeaseSet);
+			auto connection = std::make_shared<I2PTunnelConnection>(this, socket, m_RemoteLeaseSet);
 			AddConnection (connection);
+			connection->I2PConnect ();
 		}
 		else
 		{
@@ -278,7 +278,11 @@ namespace client
 	void I2PServerTunnel::HandleAccept (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		if (stream)
-			new I2PTunnelConnection (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
+		{	
+			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
+			AddConnection (conn);
+			conn->Connect ();
+		}	
 	}
 }		
 }	

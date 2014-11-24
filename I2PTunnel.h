@@ -19,7 +19,7 @@ namespace client
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 
 	class I2PTunnel;
-	class I2PTunnelConnection
+	class I2PTunnelConnection: public std::enable_shared_from_this<I2PTunnelConnection>
 	{
 		public:
 
@@ -29,6 +29,9 @@ namespace client
 				const boost::asio::ip::tcp::endpoint& target); 
 			~I2PTunnelConnection ();
 
+			void I2PConnect ();
+			void Connect ();
+			
 		private:
 
 			void Terminate ();	
@@ -47,6 +50,7 @@ namespace client
 			boost::asio::ip::tcp::socket * m_Socket;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			I2PTunnel * m_Owner;
+			boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
 	};	
 
 	class I2PTunnel
@@ -57,8 +61,8 @@ namespace client
 				m_Service (service), m_LocalDestination (localDestination) {};
 			virtual ~I2PTunnel () { ClearConnections (); }; 
 
-			void AddConnection (I2PTunnelConnection * conn);
-			void RemoveConnection (I2PTunnelConnection * conn);	
+			void AddConnection (std::shared_ptr<I2PTunnelConnection> conn);
+			void RemoveConnection (std::shared_ptr<I2PTunnelConnection> conn);	
 			void ClearConnections ();
 			ClientDestination * GetLocalDestination () { return m_LocalDestination; };
 			void SetLocalDestination (ClientDestination * dest) { m_LocalDestination = dest; }; 			
@@ -69,7 +73,7 @@ namespace client
 
 			boost::asio::io_service& m_Service;
 			ClientDestination * m_LocalDestination;
-			std::set<I2PTunnelConnection *> m_Connections;
+			std::set<std::shared_ptr<I2PTunnelConnection> > m_Connections;
 	};	
 	
 	class I2PClientTunnel: public I2PTunnel
