@@ -70,7 +70,7 @@ namespace transport
 			NTCPSession * FindNTCPSession (const i2p::data::IdentHash& ident);
 
 			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
-			void CloseSession (const i2p::data::RouterInfo * router);
+			void CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			
 		private:
 
@@ -80,7 +80,7 @@ namespace transport
 			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
 				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
-			void PostCloseSession (const i2p::data::RouterInfo * router);
+			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			
 			void DetectExternalIP ();
 			

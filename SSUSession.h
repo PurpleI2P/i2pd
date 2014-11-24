@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include <set>
 #include <list>
-#include <boost/asio.hpp>
+#include <memory>
 #include "aes.h"
 #include "hmac.h"
 #include "I2NPProtocol.h"
@@ -50,7 +50,7 @@ namespace transport
 	};	
 
 	class SSUServer;
-	class SSUSession: public TransportSession
+	class SSUSession: public TransportSession, public std::enable_shared_from_this<SSUSession>
 	{
 		public:
 

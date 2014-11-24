@@ -401,8 +401,9 @@ namespace transport
 	{		
 		m_ResendTimer.cancel ();
 		m_ResendTimer.expires_from_now (boost::posix_time::seconds(RESEND_INTERVAL));
-		m_ResendTimer.async_wait (boost::bind (&SSUData::HandleResendTimer,
-			this, boost::asio::placeholders::error));
+		auto s = m_Session.shared_from_this();
+		m_ResendTimer.async_wait ([s](const boost::system::error_code& ecode)
+			{ s->m_Data.HandleResendTimer (ecode); });
 	}
 		
 	void SSUData::HandleResendTimer (const boost::system::error_code& ecode)

@@ -280,7 +280,7 @@ namespace transport
 			auto r = netdb.FindRouter (ident);
 			if (r)
 			{	
-				auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (r.get ()) : nullptr;
+				auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (r) : nullptr;
 				if (ssuSession)
 					ssuSession->SendI2NPMessage (msg);
 				else
@@ -337,13 +337,13 @@ namespace transport
 		delete timer;
 	}	
 		
-	void Transports::CloseSession (const i2p::data::RouterInfo * router)
+	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
 	{
 		if (!router) return;
 		m_Service.post (boost::bind (&Transports::PostCloseSession, this, router));    
 	}	
 
-	void Transports::PostCloseSession (const i2p::data::RouterInfo * router)
+	void Transports::PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
 	{
 		auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (router) : nullptr;
 		if (ssuSession) // try SSU first

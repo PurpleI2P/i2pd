@@ -27,17 +27,15 @@ namespace transport
 	
 	SSUServer::~SSUServer ()
 	{
-		for (auto it: m_Sessions)
-			delete it.second;
 	}
 
 	void SSUServer::Start ()
 	{
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
-		m_Service.post (boost::bind (&SSUServer::Receive, this));  
+		m_Service.post (std::bind (&SSUServer::Receive, this));  
 		if (context.SupportsV6 ())
-			m_Service.post (boost::bind (&SSUServer::ReceiveV6, this));  
+			m_Service.post (std::bind (&SSUServer::ReceiveV6, this));  
 		if (i2p::context.IsUnreachable ())
 			ScheduleIntroducersUpdateTimer ();
 	}
@@ -76,7 +74,7 @@ namespace transport
 		m_Relays[tag] = relay;
 	}	
 
-	SSUSession * SSUServer::FindRelaySession (uint32_t tag)
+	std::shared_ptr<SSUSession> SSUServer::FindRelaySession (uint32_t tag)
 	{
 		auto it = m_Relays.find (tag);
 		if (it != m_Relays.end ())
@@ -128,13 +126,13 @@ namespace transport
 
 	void SSUServer::HandleReceivedBuffer (boost::asio::ip::udp::endpoint& from, uint8_t * buf, std::size_t bytes_transferred)
 	{
-		SSUSession * session = nullptr;
+		std::shared_ptr<SSUSession> session;
 		auto it = m_Sessions.find (from);
 		if (it != m_Sessions.end ())
 			session = it->second;
 		if (!session)
 		{
-			session = new SSUSession (*this, from);
+			session = std::make_shared<SSUSession> (*this, from);
 			session->WaitForConnect ();
 			m_Sessions[from] = session;
 			LogPrint ("New SSU session from ", from.address ().to_string (), ":", from.port (), " created");
@@ -142,7 +140,7 @@ namespace transport
 		session->ProcessNextMessage (buf, bytes_transferred, from);
 	}
 
-	SSUSession * SSUServer::FindSession (const i2p::data::RouterInfo * router) const
+	std::shared_ptr<SSUSession> SSUServer::FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const
 	{
 		if (!router) return nullptr;
 		auto address = router->GetSSUAddress (true); // v4 only
@@ -156,7 +154,7 @@ namespace transport
 		return FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
 	}	
 
-	SSUSession * SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e) const
+	std::shared_ptr<SSUSession> SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e) const
 	{
 		auto it = m_Sessions.find (e);
 		if (it != m_Sessions.end ())
@@ -165,9 +163,9 @@ namespace transport
 			return nullptr;
 	}
 		
-	SSUSession * SSUServer::GetSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
+	std::shared_ptr<SSUSession> SSUServer::GetSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
 	{
-		SSUSession * session = nullptr;
+		std::shared_ptr<SSUSession> session;
 		if (router)
 		{
 			auto address = router->GetSSUAddress (!context.SupportsV6 ());
@@ -180,7 +178,7 @@ namespace transport
 				else
 				{
 					// otherwise create new session					
-					session = new SSUSession (*this, remoteEndpoint, router, peerTest);
+					session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
 					m_Sessions[remoteEndpoint] = session;
 					
 					if (!router->UsesIntroducer ())
@@ -196,7 +194,7 @@ namespace transport
 						int numIntroducers = address->introducers.size ();
 						if (numIntroducers > 0)
 						{
-							SSUSession * introducerSession = nullptr;
+							std::shared_ptr<SSUSession> introducerSession;
 							const i2p::data::RouterInfo::Introducer * introducer = nullptr;
 							// we might have a session to introducer already
 							for (int i = 0; i < numIntroducers; i++)
@@ -217,7 +215,7 @@ namespace transport
 								LogPrint ("Creating new session to introducer");
 								introducer = &(address->introducers[0]); // TODO:
 								boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
-								introducerSession = new SSUSession (*this, introducerEndpoint, router);
+								introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
 								m_Sessions[introducerEndpoint] = introducerSession;													
 							}	
 							// introduce
@@ -232,8 +230,7 @@ namespace transport
 						{	
 							LogPrint (eLogWarning, "Can't connect to unreachable router. No introducers presented");
 							m_Sessions.erase (remoteEndpoint);
-							delete session;
-							session = nullptr;
+							session.reset ();
 						}	
 					}
 				}
@@ -244,30 +241,26 @@ namespace transport
 		return session;
 	}
 
-	void SSUServer::DeleteSession (SSUSession * session)
+	void SSUServer::DeleteSession (std::shared_ptr<SSUSession> session)
 	{
 		if (session)
 		{
 			session->Close ();
 			m_Sessions.erase (session->GetRemoteEndpoint ());
-			delete session;
 		}	
 	}	
 
 	void SSUServer::DeleteAllSessions ()
 	{
 		for (auto it: m_Sessions)
-		{
 			it.second->Close ();
-			delete it.second;			
-		}	
 		m_Sessions.clear ();
 	}
 
 	template<typename Filter>
-	SSUSession * SSUServer::GetRandomSession (Filter filter)
+	std::shared_ptr<SSUSession> SSUServer::GetRandomSession (Filter filter)
 	{
-		std::vector<SSUSession *> filteredSessions;
+		std::vector<std::shared_ptr<SSUSession> > filteredSessions;
 		for (auto s :m_Sessions)
 			if (filter (s.second)) filteredSessions.push_back (s.second);
 		if (filteredSessions.size () > 0)
@@ -278,10 +271,10 @@ namespace transport
 		return nullptr;	
 	}
 
-	SSUSession * SSUServer::GetRandomEstablishedSession (const SSUSession * excluded)
+	std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession (std::shared_ptr<const SSUSession> excluded)
 	{
 		return GetRandomSession (
-			[excluded](SSUSession * session)->bool 
+			[excluded](std::shared_ptr<SSUSession> session)->bool 
 			{ 
 				return session->GetState () == eSessionStateEstablished &&
 					session != excluded; 
@@ -296,16 +289,16 @@ namespace transport
 		for (int i = 0; i < maxNumIntroducers; i++)
 		{
 			auto session = GetRandomSession (
-				[&ret, ts](SSUSession * session)->bool 
+				[&ret, ts](std::shared_ptr<SSUSession> session)->bool 
 				{ 
-					return session->GetRelayTag () && !ret.count (session) &&
+					return session->GetRelayTag () && !ret.count (session.get ()) &&
 						session->GetState () == eSessionStateEstablished &&
 						ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION; 
 				}
 											);	
 			if (session)
 			{
-				ret.insert (session);
+				ret.insert (session.get ());
 				break;
 			}	
 		}
@@ -315,8 +308,8 @@ namespace transport
 	void SSUServer::ScheduleIntroducersUpdateTimer ()
 	{
 		m_IntroducersUpdateTimer.expires_from_now (boost::posix_time::seconds(SSU_KEEP_ALIVE_INTERVAL));
-		m_IntroducersUpdateTimer.async_wait (boost::bind (&SSUServer::HandleIntroducersUpdateTimer,
-			this, boost::asio::placeholders::error));	
+		m_IntroducersUpdateTimer.async_wait (std::bind (&SSUServer::HandleIntroducersUpdateTimer,
+			this, std::placeholders::_1));	
 	}
 
 	void SSUServer::HandleIntroducersUpdateTimer (const boost::system::error_code& ecode)

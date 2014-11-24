@@ -109,7 +109,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "MAC verification failed ", len, " bytes from ", senderEndpoint);
-						m_Server.DeleteSession (this); 
+						m_Server.DeleteSession (shared_from_this ()); 
 						return;
 					}	
 				}	
@@ -144,13 +144,13 @@ namespace transport
 			case PAYLOAD_TYPE_SESSION_DESTROYED:
 			{
 				LogPrint (eLogDebug, "SSU session destroy received");
-				m_Server.DeleteSession (this); // delete this 
+				m_Server.DeleteSession (shared_from_this ()); 
 				break;
 			}	
 			case PAYLOAD_TYPE_RELAY_RESPONSE:
 				ProcessRelayResponse (buf, len);
 				if (m_State != eSessionStateEstablished)
-					m_Server.DeleteSession (this);
+					m_Server.DeleteSession (shared_from_this ());
 			break;
 			case PAYLOAD_TYPE_RELAY_REQUEST:
 				LogPrint (eLogDebug, "SSU relay request received");
@@ -459,7 +459,7 @@ namespace transport
 			buf += 32; // introkey
 			uint32_t nonce = be32toh (*(uint32_t *)buf);
 			SendRelayResponse (nonce, from, introKey, session->m_RemoteEndpoint);
-			SendRelayIntro (session, from);
+			SendRelayIntro (session.get (), from);
 		}	
 	}
 
@@ -711,8 +711,8 @@ namespace transport
 	{
 		m_Timer.cancel ();
 		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-		m_Timer.async_wait (boost::bind (&SSUSession::HandleConnectTimer,
-			this, boost::asio::placeholders::error));	
+		m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
+			shared_from_this (), std::placeholders::_1));	
 }
 
 	void SSUSession::HandleConnectTimer (const boost::system::error_code& ecode)
@@ -731,8 +731,8 @@ namespace transport
 		{	
 			// set connect timer
 			m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-			m_Timer.async_wait (boost::bind (&SSUSession::HandleConnectTimer,
-				this, boost::asio::placeholders::error));
+			m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
+				shared_from_this (), std::placeholders::_1));
 		}	
 		SendRelayRequest (iTag, iKey);
 	}
@@ -742,8 +742,8 @@ namespace transport
 		m_State = eSessionStateIntroduced;
 		// set connect timer
 		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-		m_Timer.async_wait (boost::bind (&SSUSession::HandleConnectTimer,
-			this, boost::asio::placeholders::error));			
+		m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
+			shared_from_this (), std::placeholders::_1));			
 	}
 
 	void SSUSession::Close ()
@@ -782,7 +782,7 @@ namespace transport
 		if (m_State != eSessionStateFailed)
 		{	
 			m_State = eSessionStateFailed;
-			m_Server.DeleteSession (this); // delete this 
+			m_Server.DeleteSession (shared_from_this ());  
 		}	
 	}	
 
@@ -790,8 +790,8 @@ namespace transport
 	{
 		m_Timer.cancel ();
 		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_TIMEOUT));
-		m_Timer.async_wait (boost::bind (&SSUSession::HandleTerminationTimer,
-			this, boost::asio::placeholders::error));
+		m_Timer.async_wait (std::bind (&SSUSession::HandleTerminationTimer,
+			shared_from_this (), std::placeholders::_1));
 	}
 
 	void SSUSession::HandleTerminationTimer (const boost::system::error_code& ecode)
@@ -821,7 +821,7 @@ namespace transport
 
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
-		m_Server.GetService ().post (boost::bind (&SSUSession::PostI2NPMessage, this, msg));    
+		m_Server.GetService ().post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg));    
 	}	
 
 	void SSUSession::PostI2NPMessage (I2NPMessage * msg)
@@ -897,7 +897,7 @@ namespace transport
 				else
 				{
 					LogPrint (eLogDebug, "SSU peer test from Alice. We are Bob");
-					auto session = m_Server.GetRandomEstablishedSession (this); // charlie
+					auto session = m_Server.GetRandomEstablishedSession (shared_from_this ()); // charlie
 					if (session)
 						session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
 							senderEndpoint.port (), introKey, false); 		
