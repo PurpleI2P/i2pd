@@ -44,13 +44,6 @@ namespace transport
 		uint8_t padding[15];
 		uint8_t signature[40];
 	};
-
-
-	struct NTCPPhase4
-	{
-		uint8_t signature[40];
-		uint8_t padding[8];
-	};
 	
 #pragma pack()	
 
@@ -129,7 +122,8 @@ namespace transport
 				NTCPPhase1 phase1;
 				NTCPPhase2 phase2;
 				NTCPPhase3 phase3;
-				NTCPPhase4 phase4;
+				i2p::crypto::AESAlignedBuffer<64> phase4; // 64 bytes max signature len	
+				size_t phase4Len;
 			} * m_Establisher;	
 			
 			uint8_t m_ReceiveBuffer[NTCP_BUFFER_SIZE + 16], m_TimeSyncBuffer[16];
