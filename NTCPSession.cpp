@@ -658,40 +658,5 @@ namespace transport
 			m_Socket.close ();// invoke Terminate () from HandleReceive 
 		}	
 	}	
-		
-		
-	NTCPClient::NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, 
-		int port, std::shared_ptr<const i2p::data::RouterInfo> in_RouterInfo): 
-		NTCPSession (service, in_RouterInfo), m_Endpoint (address, port)	
-	{
-		Connect ();
-	}
-
-	void NTCPClient::Connect ()
-	{
-		LogPrint ("Connecting to ", m_Endpoint.address ().to_string (),":",  m_Endpoint.port ());
-		 GetSocket ().async_connect (m_Endpoint, boost::bind (&NTCPClient::HandleConnect,
-			this, boost::asio::placeholders::error));
-	}	
-
-	void NTCPClient::HandleConnect (const boost::system::error_code& ecode)
-	{
-		if (ecode)
-        {
-			LogPrint ("Connect error: ", ecode.message ());
-			if (ecode != boost::asio::error::operation_aborted)
-			{
-				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ().GetIdentHash (), true);
-				Terminate ();
-			}
-		}
-		else
-		{
-			LogPrint ("Connected");
-			if (GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
-				context.UpdateNTCPV6Address (GetSocket ().local_endpoint ().address ());
-			ClientLogin ();
-		}	
-	}	
 }	
 }	

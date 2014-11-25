@@ -82,6 +82,9 @@ namespace transport
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			
+			void Connect (const boost::asio::ip::address& address, int port, NTCPSession * conn);
+			void HandleConnect (const boost::system::error_code& ecode, NTCPSession * conn);
+
 			void DetectExternalIP ();
 			
 		private:

@@ -49,6 +49,7 @@ namespace transport
 
 			NTCPSession (boost::asio::io_service& service, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
 			~NTCPSession ();
+			void Terminate ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
@@ -62,8 +63,7 @@ namespace transport
 			
 		protected:
 
-			void Terminate ();
-			virtual void Connected ();
+			void Connected ();
 			void SendTimeSyncMessage ();
 			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }
 			
@@ -127,22 +127,6 @@ namespace transport
 
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};	
-
-	class NTCPClient: public NTCPSession
-	{
-		public:
-
-			NTCPClient (boost::asio::io_service& service, const boost::asio::ip::address& address, int port, std::shared_ptr<const i2p::data::RouterInfo> in_RouterInfo);
-
-		private:
-
-			void Connect ();
-			void HandleConnect (const boost::system::error_code& ecode);
-			
-		private:
-
-			boost::asio::ip::tcp::endpoint m_Endpoint;
-	};		
 }	
 }	
 

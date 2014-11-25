@@ -245,6 +245,33 @@ namespace transport
 		}	
 	}
 
+	void Transports::Connect (const boost::asio::ip::address& address, int port, NTCPSession * conn)
+	{
+		LogPrint ("Connecting to ", address ,":",  port);
+		conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), 
+			boost::bind (&Transports::HandleConnect, this, boost::asio::placeholders::error, conn));
+	}
+
+	void Transports::HandleConnect (const boost::system::error_code& ecode, NTCPSession * conn)
+	{
+		if (ecode)
+        {
+			LogPrint ("Connect error: ", ecode.message ());
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ().GetIdentHash (), true);
+				conn->Terminate ();
+			}
+		}
+		else
+		{
+			LogPrint ("Connected");
+			if (conn->GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
+				context.UpdateNTCPV6Address (conn->GetSocket ().local_endpoint ().address ());
+			conn->ClientLogin ();
+		}	
+	}	
+
 	NTCPSession * Transports::GetNextNTCPSession ()
 	{
 		for (auto session: m_NTCPSessions)
@@ -290,9 +317,10 @@ namespace transport
 					auto address = r->GetNTCPAddress (!context.SupportsV6 ()); 
 					if (address && !r->UsesIntroducer () && !r->IsUnreachable () && msg->GetLength () < NTCP_MAX_MESSAGE_SIZE)
 					{	
-						auto s = new NTCPClient (m_Service, address->host, address->port, r);
+						auto s = new NTCPSession (m_Service, r);
 						AddNTCPSession (s);
 						s->SendI2NPMessage (msg);
+						Connect (address->host, address->port, s);
 					}	
 					else
 					{	
