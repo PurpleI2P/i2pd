@@ -8,6 +8,7 @@
 #include <map>
 #include <queue>
 #include <string>
+#include <memory>
 #include <cryptopp/osrng.h>
 #include <boost/asio.hpp>
 #include "TransportSession.h"
@@ -63,11 +64,11 @@ namespace transport
 			i2p::transport::DHKeysPair * GetNextDHKeysPair ();	
 			void ReuseDHKeysPair (DHKeysPair * pair);
 
-			void AddNTCPSession (NTCPSession * session);
-			void RemoveNTCPSession (NTCPSession * session);
+			void AddNTCPSession (std::shared_ptr<NTCPSession> session);
+			void RemoveNTCPSession (std::shared_ptr<NTCPSession> session);
 			
-			NTCPSession * GetNextNTCPSession ();
-			NTCPSession * FindNTCPSession (const i2p::data::IdentHash& ident);
+			std::shared_ptr<NTCPSession> GetNextNTCPSession ();
+			std::shared_ptr<NTCPSession> FindNTCPSession (const i2p::data::IdentHash& ident);
 
 			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
@@ -75,15 +76,15 @@ namespace transport
 		private:
 
 			void Run ();
-			void HandleAccept (NTCPSession * conn, const boost::system::error_code& error);
-			void HandleAcceptV6 (NTCPSession * conn, const boost::system::error_code& error);
+			void HandleAccept (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
+			void HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
 			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
 				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			
-			void Connect (const boost::asio::ip::address& address, int port, NTCPSession * conn);
-			void HandleConnect (const boost::system::error_code& ecode, NTCPSession * conn);
+			void Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn);
+			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn);
 
 			void DetectExternalIP ();
 			
@@ -95,7 +96,7 @@ namespace transport
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
 
-			std::map<i2p::data::IdentHash, NTCPSession *> m_NTCPSessions;
+			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions;
 			SSUServer * m_SSUServer;
 
 			DHKeysPairSupplier m_DHKeysPairSupplier;

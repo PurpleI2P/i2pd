@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include <list>
-#include <boost/asio.hpp>
+#include <memory>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/adler32.h>
@@ -43,7 +43,7 @@ namespace transport
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
 
-	class NTCPSession: public TransportSession
+	class NTCPSession: public TransportSession, public std::enable_shared_from_this<NTCPSession>
 	{
 		public:
 
