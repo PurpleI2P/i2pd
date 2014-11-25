@@ -308,10 +308,10 @@ namespace transport
 		{	
 			LogPrint ("Phase 3 sent: ", bytes_transferred);
 			// wait for phase4 
-			m_Establisher->phase4Len = m_RemoteIdentity.GetSignatureLen ();
-			size_t paddingSize = m_Establisher->phase4Len & 0x0F; // %16
-			if (paddingSize > 0) m_Establisher->phase4Len += (16 - paddingSize);	
-			boost::asio::async_read (m_Socket, boost::asio::buffer(m_Establisher->phase4, m_Establisher->phase4Len), boost::asio::transfer_all (),                  
+			auto signatureLen = m_RemoteIdentity.GetSignatureLen ();
+			size_t paddingSize = signatureLen & 0x0F; // %16
+			if (paddingSize > 0) signatureLen += (16 - paddingSize);	
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer, signatureLen), boost::asio::transfer_all (),                  
 				boost::bind(&NTCPSession::HandlePhase4Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsA));
 		}	
@@ -357,19 +357,13 @@ namespace transport
 		s.Insert (m_Establisher->phase3.timestamp); // tsA
 		s.Insert (tsB); // tsB
 		auto keys = i2p::context.GetPrivateKeys ();
- 		m_Establisher->phase4Len = keys.GetPublic ().GetSignatureLen ();
-		if (m_Establisher->phase4Len > 64)
-		{
-			LogPrint (eLogError, "Signature length ", m_Establisher->phase4Len, " exceeds 64");
-			Terminate ();
-		}
-		s.Sign (keys, m_Establisher->phase4);
-		size_t paddingSize = m_Establisher->phase4Len & 0x0F; // %16
-		if (paddingSize > 0) m_Establisher->phase4Len += (16 - paddingSize);		
+ 		auto signatureLen = keys.GetPublic ().GetSignatureLen ();
+		s.Sign (keys, m_ReceiveBuffer);
+		size_t paddingSize = signatureLen & 0x0F; // %16
+		if (paddingSize > 0) signatureLen += (16 - paddingSize);		
+		m_Encryption.Encrypt (m_ReceiveBuffer, signatureLen, m_ReceiveBuffer);
 
-		m_Encryption.Encrypt (m_Establisher->phase4, m_Establisher->phase4Len, m_Establisher->phase4);
-
-		boost::asio::async_write (m_Socket, boost::asio::buffer (m_Establisher->phase4, m_Establisher->phase4Len), boost::asio::transfer_all (),
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_ReceiveBuffer, signatureLen), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase4Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}	
 
@@ -406,7 +400,7 @@ namespace transport
 		else
 		{	
 			LogPrint ("Phase 4 received: ", bytes_transferred);
-			m_Decryption.Decrypt(m_Establisher->phase4, m_Establisher->phase4Len, m_Establisher->phase4);
+			m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 
 			// verify signature
 			SignedData s;
@@ -416,7 +410,7 @@ namespace transport
 			s.Insert (tsA); // tsA
 			s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
 
-			if (!s.Verify (m_RemoteIdentity, m_Establisher->phase4))
+			if (!s.Verify (m_RemoteIdentity, m_ReceiveBuffer))
 			{	
 				LogPrint ("signature verification failed");
 				Terminate ();

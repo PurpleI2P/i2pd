@@ -122,11 +122,10 @@ namespace transport
 				NTCPPhase1 phase1;
 				NTCPPhase2 phase2;
 				NTCPPhase3 phase3;
-				i2p::crypto::AESAlignedBuffer<64> phase4; // 64 bytes max signature len	
-				size_t phase4Len;
 			} * m_Establisher;	
 			
-			uint8_t m_ReceiveBuffer[NTCP_BUFFER_SIZE + 16], m_TimeSyncBuffer[16];
+			i2p::crypto::AESAlignedBuffer<NTCP_BUFFER_SIZE + 16> m_ReceiveBuffer;
+			i2p::crypto::AESAlignedBuffer<16> m_TimeSyncBuffer;
 			int m_ReceiveBufferOffset; 
 
 			i2p::I2NPMessage * m_NextMessage;
