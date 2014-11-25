@@ -88,7 +88,7 @@ namespace transport
 
 			//server
 			void SendPhase2 ();
-			void SendPhase4 (uint32_t tsB);
+			void SendPhase4 (uint32_t tsA, uint32_t tsB);
 			void HandlePhase1Received (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB);
 			void HandlePhase3Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB);

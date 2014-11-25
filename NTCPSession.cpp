@@ -330,12 +330,13 @@ namespace transport
 			LogPrint ("Phase 3 received: ", bytes_transferred);
 			m_Decryption.Decrypt ((uint8_t *)&m_Establisher->phase3, sizeof(NTCPPhase3), (uint8_t *)&m_Establisher->phase3);
 			m_RemoteIdentity = m_Establisher->phase3.ident;
+			uint32_t tsA = m_Establisher->phase3.timestamp; 
 
 			SignedData s;
 			s.Insert (m_Establisher->phase1.pubKey, 256); // x
 			s.Insert (m_Establisher->phase2.pubKey, 256); // y
 			s.Insert (i2p::context.GetRouterInfo ().GetIdentHash (), 32); // ident
-			s.Insert (m_Establisher->phase3.timestamp); // tsA
+			s.Insert (tsA); // tsA
 			s.Insert (tsB); // tsB			
 			if (!s.Verify (m_RemoteIdentity, m_Establisher->phase3.signature))
 			{	
@@ -344,17 +345,17 @@ namespace transport
 				return;
 			}	
 
-			SendPhase4 (tsB);
+			SendPhase4 (tsA, tsB);
 		}	
 	}
 
-	void NTCPSession::SendPhase4 (uint32_t tsB)
+	void NTCPSession::SendPhase4 (uint32_t tsA, uint32_t tsB)
 	{
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
 		s.Insert (m_RemoteIdentity.GetIdentHash (), 32); // ident
-		s.Insert (m_Establisher->phase3.timestamp); // tsA
+		s.Insert (tsA); // tsA
 		s.Insert (tsB); // tsB
 		auto keys = i2p::context.GetPrivateKeys ();
  		auto signatureLen = keys.GetPublic ().GetSignatureLen ();
