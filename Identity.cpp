@@ -71,12 +71,11 @@ namespace data
 				default:
 					LogPrint ("Signing key type ", (int)type, " is not supported");
 			}	
-			memcpy (m_StandardIdentity.signingKey + 64, signingKey, 64);
+			m_ExtendedLen = 4 + excessLen; // 4 bytes extra + excess length
 			// fill certificate
 			m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
 			m_StandardIdentity.certificate.length = htobe16 (m_ExtendedLen); 
 			// fill extended buffer
-			m_ExtendedLen = 4 + excessLen; // 4 bytes extra + excess length
 			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
 			*(uint16_t *)m_ExtendedBuffer = htobe16 (type);
 			*(uint16_t *)(m_ExtendedBuffer + 2) = htobe16 (CRYPTO_KEY_TYPE_ELGAMAL);
@@ -86,9 +85,10 @@ namespace data
 				delete[] excessBuf;
 			}	
 			// calculate ident hash
-			uint8_t buf[DEFAULT_IDENTITY_SIZE + 4];
-			ToBuffer (buf, DEFAULT_IDENTITY_SIZE + 4);
+			uint8_t * buf = new uint8_t[GetFullLen ()];
+			ToBuffer (buf, GetFullLen ());
 			CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen ());
+			delete[] buf;
 		}
 		else // DSA-SHA1
 		{
@@ -362,13 +362,14 @@ namespace data
 					LogPrint ("Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 					return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
 			}	
-			keys.CreateSigner ();
 			// encryption
 			uint8_t publicKey[256];
 			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 			dh.GenerateKeyPair(rnd, keys.m_PrivateKey, publicKey);
 			// identity
 			keys.m_Public = IdentityEx (publicKey, signingPublicKey, type);
+
+			keys.CreateSigner ();
 			return keys;
 		}	
 		return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
