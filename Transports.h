@@ -75,8 +75,8 @@ namespace transport
 		private:
 
 			void Run ();
-			void HandleAccept (NTCPServerConnection * conn, const boost::system::error_code& error);
-			void HandleAcceptV6 (NTCPServerConnection * conn, const boost::system::error_code& error);
+			void HandleAccept (NTCPSession * conn, const boost::system::error_code& error);
+			void HandleAcceptV6 (NTCPSession * conn, const boost::system::error_code& error);
 			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
 				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);

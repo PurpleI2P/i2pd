@@ -121,7 +121,7 @@ namespace transport
 					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address.port));
 
 				LogPrint ("Start listening TCP port ", address.port);	
-				auto conn = new NTCPServerConnection (m_Service);
+				auto conn = new NTCPSession (m_Service);
 				m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
 					conn, boost::asio::placeholders::error));	
 				
@@ -134,7 +134,7 @@ namespace transport
 					m_NTCPV6Acceptor->listen ();
 
 					LogPrint ("Start listening V6 TCP port ", address.port);	
-					auto conn = new NTCPServerConnection (m_Service);
+					auto conn = new NTCPSession (m_Service);
 					m_NTCPV6Acceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAcceptV6,
 						this, conn, boost::asio::placeholders::error));
 				}	
@@ -209,7 +209,7 @@ namespace transport
 			m_NTCPSessions.erase (session->GetRemoteIdentity ().GetIdentHash ());
 	}	
 		
-	void Transports::HandleAccept (NTCPServerConnection * conn, const boost::system::error_code& error)
+	void Transports::HandleAccept (NTCPSession * conn, const boost::system::error_code& error)
 	{		
 		if (!error)
 		{
@@ -221,13 +221,13 @@ namespace transport
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-    		conn = new NTCPServerConnection (m_Service);
+    		conn = new NTCPSession (m_Service);
 			m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
 				conn, boost::asio::placeholders::error));
 		}	
 	}
 
-	void Transports::HandleAcceptV6 (NTCPServerConnection * conn, const boost::system::error_code& error)
+	void Transports::HandleAcceptV6 (NTCPSession *  conn, const boost::system::error_code& error)
 	{		
 		if (!error)
 		{
@@ -239,7 +239,7 @@ namespace transport
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-    		conn = new NTCPServerConnection (m_Service);
+    		conn = new NTCPSession (m_Service);
 			m_NTCPV6Acceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAcceptV6, this, 
 				conn, boost::asio::placeholders::error));
 		}	

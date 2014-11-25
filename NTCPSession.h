@@ -41,7 +41,7 @@ namespace transport
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
 	const size_t NTCP_BUFFER_SIZE = 1040; // fits one tunnel message (1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
-	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 428 	
+	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
 
 	class NTCPSession: public TransportSession
 	{
@@ -142,19 +142,7 @@ namespace transport
 		private:
 
 			boost::asio::ip::tcp::endpoint m_Endpoint;
-	};	
-
-	class NTCPServerConnection: public NTCPSession
-	{
-		public:
-
-			NTCPServerConnection (boost::asio::io_service& service): 
-				NTCPSession (service) {};
-			
-		protected:
-
-			virtual void Connected ();
-	};	
+	};		
 }	
 }	
 

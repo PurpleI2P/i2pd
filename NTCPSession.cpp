@@ -98,7 +98,6 @@ namespace transport
 
 	void NTCPSession::Connected ()
 	{
-		LogPrint ("NTCP session connected");
 		m_IsEstablished = true;
 
 		delete m_Establisher;
@@ -357,8 +356,8 @@ namespace transport
 				boost::bind(&NTCPSession::HandlePhase3ExtraReceived, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsB, paddingLen));
 			}
-
-			HandlePhase3 (tsB, paddingLen);
+			else
+				HandlePhase3 (tsB, paddingLen);
 		}	
 	}
 
@@ -431,6 +430,9 @@ namespace transport
 		else
 		{	
 			LogPrint (eLogDebug, "Phase 4 sent: ", bytes_transferred);
+			LogPrint ("NTCP server session connected");
+			transports.AddNTCPSession (this);
+
 			Connected ();
 			m_ReceiveBufferOffset = 0;
 			m_NextMessage = nullptr;
@@ -469,6 +471,7 @@ namespace transport
 				Terminate ();
 				return;
 			}	
+			LogPrint ("NTCP session connected");
 			Connected ();
 						
 			m_ReceiveBufferOffset = 0;
@@ -689,13 +692,6 @@ namespace transport
 				context.UpdateNTCPV6Address (GetSocket ().local_endpoint ().address ());
 			ClientLogin ();
 		}	
-	}	
-
-	void NTCPServerConnection::Connected ()
-	{
-		LogPrint ("NTCP server session connected");
-		transports.AddNTCPSession (this);
-		NTCPSession::Connected ();
 	}	
 }	
 }	
