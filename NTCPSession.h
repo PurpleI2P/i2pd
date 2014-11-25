@@ -35,21 +35,13 @@ namespace transport
 			uint8_t filler[12];
 		} encrypted;	
 	};	
-
-	struct NTCPPhase3
-	{
-		uint16_t size;
-		i2p::data::Identity ident;
-		uint32_t timestamp; 
-		uint8_t padding[15];
-		uint8_t signature[40];
-	};
 	
 #pragma pack()	
 
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
 	const size_t NTCP_BUFFER_SIZE = 1040; // fits one tunnel message (1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
+	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 428 	
 
 	class NTCPSession: public TransportSession
 	{
@@ -92,6 +84,8 @@ namespace transport
 			void HandlePhase1Received (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB);
 			void HandlePhase3Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB);
+			void HandlePhase3ExtraReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB, size_t paddingLen);
+			void HandlePhase3 (uint32_t tsB, size_t paddingLen);
 			void HandlePhase4Sent (const boost::system::error_code& ecode,  std::size_t bytes_transferred);
 			
 			// common
@@ -121,7 +115,6 @@ namespace transport
 			{	
 				NTCPPhase1 phase1;
 				NTCPPhase2 phase2;
-				NTCPPhase3 phase3;
 			} * m_Establisher;	
 			
 			i2p::crypto::AESAlignedBuffer<NTCP_BUFFER_SIZE + 16> m_ReceiveBuffer;

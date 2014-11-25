@@ -44,7 +44,7 @@ namespace transport
 		uint8_t sharedKey[256];
 		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
 		{    
-		    LogPrint ("Couldn't create shared key");
+		    LogPrint (eLogError, "Couldn't create shared key");
 			Terminate ();
 			return;
 		};
@@ -66,7 +66,7 @@ namespace transport
 				nonZero++;
 				if (nonZero - sharedKey > 32)
 				{
-					LogPrint ("First 32 bytes of shared key is all zeros. Ignored");
+					LogPrint (eLogWarning, "First 32 bytes of shared key is all zeros. Ignored");
 					return;
 				}	
 			}
@@ -89,7 +89,7 @@ namespace transport
 		}	
 		m_DelayedMessages.clear ();
 		if (numDelayed > 0)
-			LogPrint ("NTCP session ", numDelayed, " not sent");
+			LogPrint (eLogWarning, "NTCP session ", numDelayed, " not sent");
 		// TODO: notify tunnels
 		
 		delete this;
@@ -146,13 +146,13 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint ("Couldn't send Phase 1 message: ", ecode.message ());
+			LogPrint (eLogWarning, "Couldn't send Phase 1 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
 		{	
-			LogPrint ("Phase 1 sent: ", bytes_transferred);
+			LogPrint (eLogDebug, "Phase 1 sent: ", bytes_transferred);
 			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),                 
 				boost::bind(&NTCPSession::HandlePhase2Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
@@ -163,13 +163,13 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint ("Phase 1 read error: ", ecode.message ());
+			LogPrint (eLogError, "Phase 1 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
 		{	
-			LogPrint ("Phase 1 received: ", bytes_transferred);
+			LogPrint (eLogDebug, "Phase 1 received: ", bytes_transferred);
 			// verify ident
 			uint8_t digest[32];
 			CryptoPP::SHA256().CalculateDigest(digest, m_Establisher->phase1.pubKey, 256);
@@ -178,7 +178,7 @@ namespace transport
 			{	
 				if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i])
 				{
-					LogPrint ("Wrong ident");
+					LogPrint (eLogError, "Wrong ident");
 					Terminate ();
 					return;
 				}	
@@ -219,14 +219,14 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint ("Couldn't send Phase 2 message: ", ecode.message ());
+			LogPrint (eLogWarning, "Couldn't send Phase 2 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
 		{	
-			LogPrint ("Phase 2 sent: ", bytes_transferred);
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase3, sizeof (NTCPPhase3)), boost::asio::transfer_all (),                   
+			LogPrint (eLogDebug, "Phase 2 sent: ", bytes_transferred);
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer, NTCP_DEFAULT_PHASE3_SIZE), boost::asio::transfer_all (),                   
 				boost::bind(&NTCPSession::HandlePhase3Received, this, 
 					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsB));
 		}	
@@ -248,7 +248,7 @@ namespace transport
 		}
 		else
 		{	
-			LogPrint ("Phase 2 received: ", bytes_transferred);
+			LogPrint (eLogDebug, "Phase 2 received: ", bytes_transferred);
 		
 			i2p::crypto::AESKey aesKey;
 			CreateAESKey (m_Establisher->phase2.pubKey, aesKey);
@@ -265,7 +265,7 @@ namespace transport
 			CryptoPP::SHA256().CalculateDigest(hxy, xy, 512); 
 			if (memcmp (hxy, m_Establisher->phase2.encrypted.hxy, 32))
 			{
-				LogPrint ("Incorrect hash");
+				LogPrint (eLogError, "Incorrect hash");
 				transports.ReuseDHKeysPair (m_DHKeysPair);
 				m_DHKeysPair = nullptr;
 				Terminate ();
@@ -313,13 +313,13 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint ("Couldn't send Phase 3 message: ", ecode.message ());
+			LogPrint (eLogWarning, "Couldn't send Phase 3 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
 		{	
-			LogPrint ("Phase 3 sent: ", bytes_transferred);
+			LogPrint (eLogDebug, "Phase 3 sent: ", bytes_transferred);
 			// wait for phase4 
 			auto signatureLen = m_RemoteIdentity.GetSignatureLen ();
 			size_t paddingSize = signatureLen & 0x0F; // %16
@@ -334,32 +334,71 @@ namespace transport
 	{	
 		if (ecode)
         {
-			LogPrint ("Phase 3 read error: ", ecode.message ());
+			LogPrint (eLogError, "Phase 3 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
 		{	
-			LogPrint ("Phase 3 received: ", bytes_transferred);
-			m_Decryption.Decrypt ((uint8_t *)&m_Establisher->phase3, sizeof(NTCPPhase3), (uint8_t *)&m_Establisher->phase3);
-			m_RemoteIdentity = m_Establisher->phase3.ident;
-			uint32_t tsA = m_Establisher->phase3.timestamp; 
+			LogPrint (eLogDebug, "Phase 3 received: ", bytes_transferred);
+			m_Decryption.Decrypt (m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
+			uint8_t * buf = m_ReceiveBuffer;
+			uint16_t size = be16toh (*(uint16_t *)buf);
+			m_RemoteIdentity.FromBuffer (buf + 2, size);
+			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity.GetSignatureLen ();
+			size_t paddingLen = expectedSize & 0x0F;
+			if (paddingLen) paddingLen = (16 - paddingLen);	
+			if (expectedSize > NTCP_DEFAULT_PHASE3_SIZE)
+			{
+				// we need more bytes for Phase3
+				expectedSize += paddingLen;	
+				LogPrint (eLogDebug, "Wait for ", expectedSize, " more bytes for Phase3");
+				boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE, expectedSize), boost::asio::transfer_all (),                   
+				boost::bind(&NTCPSession::HandlePhase3ExtraReceived, this, 
+					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsB, paddingLen));
+			}
 
-			SignedData s;
-			s.Insert (m_Establisher->phase1.pubKey, 256); // x
-			s.Insert (m_Establisher->phase2.pubKey, 256); // y
-			s.Insert (i2p::context.GetRouterInfo ().GetIdentHash (), 32); // ident
-			s.Insert (tsA); // tsA
-			s.Insert (tsB); // tsB			
-			if (!s.Verify (m_RemoteIdentity, m_Establisher->phase3.signature))
-			{	
-				LogPrint ("signature verification failed");
-				Terminate ();
-				return;
-			}	
-
-			SendPhase4 (tsA, tsB);
+			HandlePhase3 (tsB, paddingLen);
 		}	
+	}
+
+	void NTCPSession::HandlePhase3ExtraReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB, size_t paddingLen)
+	{
+		if (ecode)
+        {
+			LogPrint (eLogError, "Phase 3 extra read error: ", ecode.message ());
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
+		}
+		else
+		{
+			LogPrint (eLogDebug, "Phase 3 extra received: ", bytes_transferred);
+			m_Decryption.Decrypt (m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE, bytes_transferred, m_ReceiveBuffer+ NTCP_DEFAULT_PHASE3_SIZE);
+			HandlePhase3 (tsB, paddingLen);
+		}		
+	}	
+
+	void NTCPSession::HandlePhase3 (uint32_t tsB, size_t paddingLen)
+	{
+		uint8_t * buf = m_ReceiveBuffer + m_RemoteIdentity.GetFullLen () + 2 /*size*/;
+		uint32_t tsA = *(uint32_t *)buf; 
+		buf += 4;
+		buf += paddingLen;	
+
+		SignedData s;
+		s.Insert (m_Establisher->phase1.pubKey, 256); // x
+		s.Insert (m_Establisher->phase2.pubKey, 256); // y
+		s.Insert (i2p::context.GetRouterInfo ().GetIdentHash (), 32); // ident
+		s.Insert (tsA); // tsA
+		s.Insert (tsB); // tsB			
+		if (!s.Verify (m_RemoteIdentity, buf))
+		{	
+			LogPrint (eLogError, "signature verification failed");
+			Terminate ();
+			return;
+		}	
+
+		SendPhase4 (tsA, tsB);
 	}
 
 	void NTCPSession::SendPhase4 (uint32_t tsA, uint32_t tsB)
@@ -385,13 +424,13 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint ("Couldn't send Phase 4 message: ", ecode.message ());
+			LogPrint (eLogWarning, "Couldn't send Phase 4 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
 		{	
-			LogPrint ("Phase 4 sent: ", bytes_transferred);
+			LogPrint (eLogDebug, "Phase 4 sent: ", bytes_transferred);
 			Connected ();
 			m_ReceiveBufferOffset = 0;
 			m_NextMessage = nullptr;
@@ -403,7 +442,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint ("Phase 4 read error: ", ecode.message ());
+			LogPrint (eLogError, "Phase 4 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				 // this router doesn't like us	
@@ -413,7 +452,7 @@ namespace transport
 		}
 		else
 		{	
-			LogPrint ("Phase 4 received: ", bytes_transferred);
+			LogPrint (eLogDebug, "Phase 4 received: ", bytes_transferred);
 			m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 
 			// verify signature
@@ -426,7 +465,7 @@ namespace transport
 
 			if (!s.Verify (m_RemoteIdentity, m_ReceiveBuffer))
 			{	
-				LogPrint ("signature verification failed");
+				LogPrint (eLogError, "signature verification failed");
 				Terminate ();
 				return;
 			}	
@@ -449,7 +488,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint ("Read error: ", ecode.message ());
+			LogPrint (eLogError, "Read error: ", ecode.message ());
 			//if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -494,7 +533,7 @@ namespace transport
 				// new message
 				if (dataSize > NTCP_MAX_MESSAGE_SIZE)
 				{
-					LogPrint ("NTCP data size ", dataSize, " exceeds max size");
+					LogPrint (eLogError, "NTCP data size ", dataSize, " exceeds max size");
 					i2p::DeleteI2NPMessage (m_NextMessage);
 					m_NextMessage = nullptr;
 					return false;
@@ -537,7 +576,7 @@ namespace transport
 			// regular I2NP
 			if (msg->offset < 2)
 			{
-				LogPrint ("Malformed I2NP message");
+				LogPrint (eLogError, "Malformed I2NP message");
 				i2p::DeleteI2NPMessage (msg);
 			}	
 			sendBuffer = msg->GetBuffer () - 2; 
@@ -571,7 +610,7 @@ namespace transport
 			i2p::DeleteI2NPMessage (msg);
 		if (ecode)
         {
-			LogPrint ("Couldn't send msg: ", ecode.message ());
+			LogPrint (eLogWarning, "Couldn't send msg: ", ecode.message ());
 			// we shouldn't call Terminate () here, because HandleReceive takes care
 			// TODO: 'delete this' statement in Terminate () must be eliminated later
 			// Terminate ();
