@@ -277,22 +277,35 @@ namespace transport
 
 	void NTCPSession::SendPhase3 ()
 	{
-		m_Establisher->phase3.size = htons (i2p::data::DEFAULT_IDENTITY_SIZE);
-		memcpy (&m_Establisher->phase3.ident, &i2p::context.GetIdentity ().GetStandardIdentity (), i2p::data::DEFAULT_IDENTITY_SIZE);	// TODO:	
+		auto keys = i2p::context.GetPrivateKeys ();
+		uint8_t * buf = m_ReceiveBuffer; 
+		*(uint16_t *)buf = htobe16 (keys.GetPublic ().GetFullLen ());
+		buf += 2;
+		buf += i2p::context.GetIdentity ().ToBuffer (buf, NTCP_BUFFER_SIZE);
 		uint32_t tsA = htobe32 (i2p::util::GetSecondsSinceEpoch ());
-		m_Establisher->phase3.timestamp = tsA;
-		
+		*(uint32_t *)buf = tsA;
+		buf += 4;		
+		size_t signatureLen = keys.GetPublic ().GetSignatureLen ();
+		size_t len = (buf - m_ReceiveBuffer) + signatureLen;
+		size_t paddingSize = len & 0x0F; // %16
+		if (paddingSize > 0) 
+		{
+			paddingSize = 16 - paddingSize;
+			// TODO: fill padding with random data
+			buf += paddingSize;
+			len += paddingSize;
+		}
+
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
 		s.Insert (m_RemoteIdentity.GetIdentHash (), 32); // ident
  		s.Insert (tsA);	// tsA
 		s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
-		s.Sign (i2p::context.GetPrivateKeys (), m_Establisher->phase3.signature);	
+		s.Sign (keys, buf);
 
-		m_Encryption.Encrypt((uint8_t *)&m_Establisher->phase3, sizeof(NTCPPhase3), (uint8_t *)&m_Establisher->phase3);
-		        
-		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase3, sizeof (NTCPPhase3)), boost::asio::transfer_all (),
+		m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);		        
+		boost::asio::async_write (m_Socket, boost::asio::buffer (m_ReceiveBuffer, len), boost::asio::transfer_all (),
         	boost::bind(&NTCPSession::HandlePhase3Sent, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, tsA));				
 	}	
 		
