@@ -102,11 +102,14 @@ namespace data
 	Keys CreateRandomKeys ();
 	
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
-
+	
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
 	const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
+	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
+	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA512_P521 = 3;
 	typedef uint16_t SigningKeyType;
+	typedef uint16_t CryptoKeyType;	
 	
 	class IdentityEx
 	{
@@ -131,6 +134,7 @@ namespace data
 			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			SigningKeyType GetSigningKeyType () const;
+			CryptoKeyType GetCryptoKeyType () const;
 			
 		private:
 

@@ -42,15 +42,50 @@ namespace data
 	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type)
 	{	
 		memcpy (m_StandardIdentity.publicKey, publicKey, sizeof (m_StandardIdentity.publicKey));
-		if (type == SIGNING_KEY_TYPE_ECDSA_SHA256_P256)
+		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
+			size_t excessLen = 0;
+			uint8_t * excessBuf = nullptr;
+			switch (type)
+			{
+				case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+				{	
+					size_t padding =  128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
+					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::ECDSAP256_KEY_LENGTH);
+					break;
+				}
+				case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+				{	
+					size_t padding = 128 - i2p::crypto::ECDSAP384_KEY_LENGTH; // 32 = 128 - 96
+					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::ECDSAP384_KEY_LENGTH);
+					break;
+				}	
+				case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+				{
+					memcpy (m_StandardIdentity.signingKey, signingKey, 128);
+					size_t excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128; // 4 = 132 - 128
+					excessBuf = new uint8_t[excessLen];
+					memcpy (excessBuf, signingKey + 128, excessLen);
+					break;
+				}	
+				default:
+					LogPrint ("Signing key type ", (int)type, " is not supported");
+			}	
 			memcpy (m_StandardIdentity.signingKey + 64, signingKey, 64);
+			// fill certificate
 			m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
-			m_ExtendedLen = 4; // 4 bytes extra
-			m_StandardIdentity.certificate.length = htobe16 (4); 
+			m_StandardIdentity.certificate.length = htobe16 (m_ExtendedLen); 
+			// fill extended buffer
+			m_ExtendedLen = 4 + excessLen; // 4 bytes extra + excess length
 			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
-			*(uint16_t *)m_ExtendedBuffer = htobe16 (SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+			*(uint16_t *)m_ExtendedBuffer = htobe16 (type);
 			*(uint16_t *)(m_ExtendedBuffer + 2) = htobe16 (CRYPTO_KEY_TYPE_ELGAMAL);
+			if (excessLen && excessBuf)
+			{
+				memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);
+				delete[] excessBuf;
+			}	
+			// calculate ident hash
 			uint8_t buf[DEFAULT_IDENTITY_SIZE + 4];
 			ToBuffer (buf, DEFAULT_IDENTITY_SIZE + 4);
 			CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen ());
@@ -188,6 +223,13 @@ namespace data
 			return be16toh (*(const uint16_t *)m_ExtendedBuffer); // signing key
 		return SIGNING_KEY_TYPE_DSA_SHA1;
 	}	
+
+	CryptoKeyType IdentityEx::GetCryptoKeyType () const
+	{
+		if (m_StandardIdentity.certificate.type == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
+			return be16toh (*(const uint16_t *)(m_ExtendedBuffer + 2)); // crypto key
+		return CRYPTO_KEY_TYPE_ELGAMAL;
+	}	
 		
 	void IdentityEx::CreateVerifier () const 
 	{
@@ -198,8 +240,26 @@ namespace data
 				m_Verifier = new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey);
 			break;
 			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-				m_Verifier = new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + 64);
-			break;	
+			{	
+				size_t padding =  128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
+				m_Verifier = new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + padding);
+				break;
+			}	
+			case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+			{	
+				size_t padding = 128 - i2p::crypto::ECDSAP384_KEY_LENGTH; // 32 = 128 - 96
+				m_Verifier = new i2p::crypto::ECDSAP384Verifier (m_StandardIdentity.signingKey + padding);
+				break;
+			}	
+			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+			{	
+				uint8_t signingKey[i2p::crypto::ECDSAP521_KEY_LENGTH];
+				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
+				size_t excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128; // 4 = 132- 128
+				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
+				m_Verifier = new i2p::crypto::ECDSAP521Verifier (signingKey);
+				break;
+			}		
 			default:
 				LogPrint ("Signing key type ", (int)keyType, " is not supported");
 		}			
@@ -211,6 +271,7 @@ namespace data
 		memcpy (m_PrivateKey, keys.privateKey, 256); // 256 
 		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, 20); // 20 - DSA
 		delete m_Signer;
+		m_Signer = nullptr;
 		CreateSigner ();
 		return *this;
 	}
@@ -221,6 +282,7 @@ namespace data
 		memcpy (m_PrivateKey, other.m_PrivateKey, 256); // 256 
 		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, 128); // 128
 		delete m_Signer;
+		m_Signer = nullptr;
 		CreateSigner ();
 		return *this;
 	}	
@@ -234,6 +296,7 @@ namespace data
 		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize); 
 		ret += signingPrivateKeySize;
 		delete m_Signer;
+		m_Signer = nullptr;
 		CreateSigner ();
 		return ret;
 	}
@@ -257,27 +320,55 @@ namespace data
 
 	void PrivateKeys::CreateSigner ()
 	{
-		if (m_Public.GetSigningKeyType () == SIGNING_KEY_TYPE_ECDSA_SHA256_P256)
-			m_Signer = new i2p::crypto::ECDSAP256Signer (m_SigningPrivateKey);
-		else
-			m_Signer = new i2p::crypto::DSASigner (m_SigningPrivateKey);
+		switch (m_Public.GetSigningKeyType ())
+		{	
+			case SIGNING_KEY_TYPE_DSA_SHA1:
+				m_Signer = new i2p::crypto::DSASigner (m_SigningPrivateKey);
+			break;	
+			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+				m_Signer = new i2p::crypto::ECDSAP256Signer (m_SigningPrivateKey);
+			break;
+			case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+				m_Signer = new i2p::crypto::ECDSAP384Signer (m_SigningPrivateKey);
+			break;	
+			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+				m_Signer = new i2p::crypto::ECDSAP521Signer (m_SigningPrivateKey);
+			break;	
+			default:
+				LogPrint ("Signing key type ", (int)m_Public.GetSigningKeyType (), " is not supported");
+		}
 	}	
 		
 	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type)
 	{
-		if (type == SIGNING_KEY_TYPE_ECDSA_SHA256_P256)
+		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			PrivateKeys keys;
 			auto& rnd = i2p::context.GetRandomNumberGenerator ();
+			// signature
+			uint8_t signingPublicKey[i2p::crypto::ECDSAP521_KEY_LENGTH]; // 132 bytes is max key size now
+			switch (type)
+			{	
+				case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+					i2p::crypto::CreateECDSAP256RandomKeys (rnd, keys.m_SigningPrivateKey, signingPublicKey);
+				break;	
+				case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+					i2p::crypto::CreateECDSAP384RandomKeys (rnd, keys.m_SigningPrivateKey, signingPublicKey);	
+				break;
+				case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+					i2p::crypto::CreateECDSAP521RandomKeys (rnd, keys.m_SigningPrivateKey, signingPublicKey);	
+				break;	
+				default:
+					LogPrint ("Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
+					return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
+			}	
+			keys.CreateSigner ();
 			// encryption
 			uint8_t publicKey[256];
 			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 			dh.GenerateKeyPair(rnd, keys.m_PrivateKey, publicKey);
-			// signature
-			uint8_t signingPublicKey[64];
-			i2p::crypto::CreateECDSAP256RandomKeys (rnd, keys.m_SigningPrivateKey, signingPublicKey);
-			keys.m_Public = IdentityEx (publicKey, signingPublicKey, SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-			keys.CreateSigner ();
+			// identity
+			keys.m_Public = IdentityEx (publicKey, signingPublicKey, type);
 			return keys;
 		}	
 		return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
