@@ -63,7 +63,7 @@ namespace data
 				case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
 				{
 					memcpy (m_StandardIdentity.signingKey, signingKey, 128);
-					size_t excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128; // 4 = 132 - 128
+					excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128; // 4 = 132 - 128
 					excessBuf = new uint8_t[excessLen];
 					memcpy (excessBuf, signingKey + 128, excessLen);
 					break;
