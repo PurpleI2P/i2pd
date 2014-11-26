@@ -98,6 +98,11 @@ namespace client
 		delete m_Storage;
 	}
 
+	AddressBookStorage * AddressBook::CreateStorage ()
+	{
+		return new AddressBookFilesystemStorage ();
+	}	
+
 	bool AddressBook::GetIdentHash (const std::string& address, i2p::data::IdentHash& ident)
 	{
 		auto pos = address.find(".b32.i2p");
@@ -139,15 +144,24 @@ namespace client
 	{
 		i2p::data::IdentityEx ident;
 		ident.FromBase64 (base64);
-		if (m_Storage) m_Storage->AddAddress (ident);
+		if (!m_Storage)
+			 m_Storage = CreateStorage ();
+		m_Storage->AddAddress (ident);
 		m_Addresses[address] = ident.GetIdentHash ();
 		LogPrint (address,"->",ident.GetIdentHash ().ToBase32 (), ".b32.i2p added");
+	}
+
+	void AddressBook::InsertAddress (const i2p::data::IdentityEx& address)
+	{
+		if (!m_Storage) 
+			m_Storage = CreateStorage ();
+		m_Storage->AddAddress (address);
 	}
 
 	bool AddressBook::GetAddress (const std::string& address, i2p::data::IdentityEx& identity)
 	{
 		if (!m_Storage) 
-			m_Storage = new AddressBookFilesystemStorage ();
+			m_Storage = CreateStorage ();
 		auto ident = FindAddress (address);
 		if (!ident) return false;
 		return m_Storage->GetAddress (*ident, identity);

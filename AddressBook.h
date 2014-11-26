@@ -33,10 +33,14 @@ namespace client
 			bool GetAddress (const std::string& address, i2p::data::IdentityEx& identity);
 			const i2p::data::IdentHash * FindAddress (const std::string& address);
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
-
+			void InsertAddress (const i2p::data::IdentityEx& address);
 		
 		private:
-	
+
+			AddressBookStorage * CreateStorage ();	
+
+		private:	
+
 			void LoadHosts ();
 			void LoadHostsFromI2P ();
 

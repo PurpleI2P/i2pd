@@ -410,8 +410,11 @@ namespace client
 		ExtractParams (buf, len, params);
 		std::string& name = params[SAM_PARAM_NAME];
 		i2p::data::IdentHash ident;
+		i2p::data::IdentityEx identity;
 		if (name == "ME")
 			SendNamingLookupReply (nullptr);
+		else if (context.GetAddressBook ().GetAddress (name, identity))
+			SendNamingLookupReply (identity);
 		else if (m_Session && context.GetAddressBook ().GetIdentHash (name, ident))
 		{
 			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
@@ -438,9 +441,17 @@ namespace client
 
 	void SAMSocket::SendNamingLookupReply (const i2p::data::LeaseSet * leaseSet)
 	{
+		const i2p::data::IdentityEx& identity = leaseSet ? leaseSet->GetIdentity () : m_Session->localDestination->GetIdentity ();
+		if (leaseSet)
+			// we found LeaseSet for our address, store it to addressbook
+			context.GetAddressBook ().InsertAddress (identity);
+		SendNamingLookupReply (identity);
+	}
+
+	void SAMSocket::SendNamingLookupReply (const i2p::data::IdentityEx& identity)
+	{
 		uint8_t buf[1024];
 		char pub[1024];
-		const i2p::data::IdentityEx& identity = leaseSet ? leaseSet->GetIdentity () : m_Session->localDestination->GetIdentity ();
 		size_t l = identity.ToBuffer (buf, 1024);
 		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, pub, 1024);
 		pub[l1] = 0;
