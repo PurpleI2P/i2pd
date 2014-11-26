@@ -122,7 +122,10 @@ namespace tunnel
 		{
 			size_t rem = ((size_t)GetBuffer ()) % alignment;
 			if (rem)
+			{
 				offset += (alignment - rem);
+				len += (alignment - rem);
+			}	
 		}
 
 		I2NPMessage& operator=(const I2NPMessage& other)
