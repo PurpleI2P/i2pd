@@ -35,10 +35,7 @@ namespace client
 			boost::asio::io_service * GetService () { return m_Service; };
 			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; }; 
 			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases (); };
-
-			void ResetCurrentOutboundTunnel () { m_CurrentOutboundTunnel = nullptr; };
 			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);
-			void SendTunnelDataMsgs (const std::vector<i2p::tunnel::TunnelMessageBlock>& msgs);
 
 			// streaming
 			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
@@ -85,7 +82,6 @@ namespace client
 			std::map<i2p::data::IdentHash, i2p::data::LeaseSet *> m_RemoteLeaseSets;
 
 			i2p::tunnel::TunnelPool * m_Pool;
-			i2p::tunnel::OutboundTunnel * m_CurrentOutboundTunnel;
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;
 		

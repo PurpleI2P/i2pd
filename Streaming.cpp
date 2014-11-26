@@ -15,9 +15,9 @@ namespace stream
 		const i2p::data::LeaseSet& remote, int port): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false), 
 		m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local), 
-		m_RemoteLeaseSet (&remote), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service),
-		m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0), 
-		m_NumReceivedBytes (0), m_Port (port)
+		m_RemoteLeaseSet (&remote), m_RoutingSession (nullptr), m_CurrentOutboundTunnel (nullptr),
+		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service), 
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -26,9 +26,9 @@ namespace stream
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
 		m_IsOpen (false), m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local),
-		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), m_ReceiveTimer (m_Service), 
-		m_ResendTimer (m_Service), m_AckSendTimer (m_Service), m_NumSentBytes (0), 
-		m_NumReceivedBytes (0), m_Port (0)
+		m_RemoteLeaseSet (nullptr), m_RoutingSession (nullptr), m_CurrentOutboundTunnel (nullptr),
+		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service), 
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}
@@ -116,7 +116,7 @@ namespace stream
 			{
 				// we have received duplicate. Most likely our outbound tunnel is dead
 				LogPrint ("Duplicate message ", receivedSeqn, " received");
-				m_LocalDestination.GetOwner ().ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
+				m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendQuickAck (); // resend ack for previous message again
 				delete packet; // packet dropped
@@ -432,6 +432,12 @@ namespace stream
 				return;
 			}
 		}
+		m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ().GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
+		if (!m_CurrentOutboundTunnel)
+		{
+			LogPrint ("No outbound tunnels in the pool");
+			return;
+		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		if (ts >= m_CurrentRemoteLease.endDate)
@@ -450,7 +456,7 @@ namespace stream
 							});	
 				m_NumSentBytes += it->GetLength ();
 			}
-			m_LocalDestination.GetOwner ().SendTunnelDataMsgs (msgs);
+			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
 		}	
 		else
 			LogPrint ("All leases are expired");
@@ -484,7 +490,7 @@ namespace stream
 			}	
 			if (packets.size () > 0)
 			{
-				m_LocalDestination.GetOwner ().ResetCurrentOutboundTunnel (); // pick another outbound tunnel 
+				m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
 				UpdateCurrentRemoteLease (); // pick another lease
 				SendPackets (packets);
 			}	

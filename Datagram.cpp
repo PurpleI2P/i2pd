@@ -46,8 +46,9 @@ namespace datagram
 
 	void DatagramDestination::SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote)
 	{
+		auto outboundTunnel = m_Owner.GetTunnelPool ()->GetNextOutboundTunnel ();
 		auto leases = remote.GetNonExpiredLeases ();
-		if (!leases.empty ())
+		if (!leases.empty () && outboundTunnel)
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
 			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
@@ -58,11 +59,14 @@ namespace datagram
 					leases[i].tunnelGateway, leases[i].tunnelID,
 					garlic
 				});
-			m_Owner.SendTunnelDataMsgs (msgs);
+			outboundTunnel->SendTunnelDataMsg (msgs);
 		}
 		else
 		{
-			LogPrint (eLogWarning, "Failed to send datagram. All leases expired");
+			if (outboundTunnel)
+				LogPrint (eLogWarning, "Failed to send datagram. All leases expired");
+			else
+				LogPrint (eLogWarning, "Failed to send datagram. No outbound tunnels");
 			DeleteI2NPMessage (msg);	
 		}	
 	}
