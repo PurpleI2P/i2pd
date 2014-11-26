@@ -1,21 +1,101 @@
 #include <string.h>
+#include <inttypes.h>
 #include <string>
 #include <map>
+#include <fstream>
+#include <boost/filesystem.hpp>
 #include "base64.h"
 #include "util.h"
 #include "Identity.h"
 #include "Log.h"
 #include "AddressBook.h"
 
-#include <boost/algorithm/string.hpp>
-
 namespace i2p
 {
 namespace client
 {
 
+	class AddressBookFilesystemStorage: public AddressBookStorage
+	{
+		public:
+
+			AddressBookFilesystemStorage ();
+			bool GetAddress (const i2p::data::IdentHash& ident, i2p::data::IdentityEx& address) const;
+			void AddAddress (const i2p::data::IdentityEx& address);
+			void RemoveAddress (const i2p::data::IdentHash& ident);
+
+		private:	
+			
+			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / "addressbook"; };
+	};
+
+
+	AddressBookFilesystemStorage::AddressBookFilesystemStorage ()
+	{
+		auto path = GetPath ();
+		if (!boost::filesystem::exists (path))
+		{
+			// Create directory is necessary
+			if (!boost::filesystem::create_directory (path))
+				LogPrint (eLogError, "Failed to create addressbook directory");
+		}
+	}
+
+	bool AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident, i2p::data::IdentityEx& address) const
+	{
+		auto filename = GetPath () / (ident.ToBase32() + ".b32");
+		std::ifstream f(filename.c_str (), std::ifstream::binary);
+		if (f.is_open ())	
+		{
+			f.seekg (0,std::ios::end);
+			size_t len = f.tellg ();
+			if (len < i2p::data::DEFAULT_IDENTITY_SIZE)
+			{
+				LogPrint (eLogError, "File ", filename, " is too short. ", len);
+				return false;
+			}
+			f.seekg(0, std::ios::beg);
+			uint8_t * buf = new uint8_t[len];
+			f.read((char *)buf, len);
+			address.FromBuffer (buf, len);
+			delete[] buf;
+			return true;
+		}
+		else
+			return false;
+	}
+
+	void AddressBookFilesystemStorage::AddAddress (const i2p::data::IdentityEx& address)
+	{
+		auto filename = GetPath () / (address.GetIdentHash ().ToBase32() + ".b32");
+		std::ofstream f (filename.c_str (), std::ofstream::binary | std::ofstream::out);
+		if (f.is_open ())	
+		{
+			size_t len = address.GetFullLen ();
+			uint8_t * buf = new uint8_t[len];
+			address.ToBuffer (buf, len);
+			f.write ((char *)buf, len);
+			delete[] buf;
+		}
+		else
+			LogPrint (eLogError, "Can't open file ", filename);	
+	}	
+
+	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
+	{
+		auto filename = GetPath () / (ident.ToBase32() + ".b32");
+		if (boost::filesystem::exists (filename))  
+			boost::filesystem::remove (filename);
+	}
+
+//---------------------------------------------------------------------
 	AddressBook::AddressBook (): m_IsLoaded (false), m_IsDowloading (false)
 	{
+	}
+
+	AddressBook::~AddressBook ()
+	{
+		delete m_Storage;
 	}
 
 	bool AddressBook::GetIdentHash (const std::string& address, i2p::data::IdentHash& ident)
@@ -59,9 +139,19 @@ namespace client
 	{
 		i2p::data::IdentityEx ident;
 		ident.FromBase64 (base64);
+		if (m_Storage) m_Storage->AddAddress (ident);
 		m_Addresses[address] = ident.GetIdentHash ();
 		LogPrint (address,"->",ident.GetIdentHash ().ToBase32 (), ".b32.i2p added");
 	}
+
+	bool AddressBook::GetAddress (const std::string& address, i2p::data::IdentityEx& identity)
+	{
+		if (!m_Storage) 
+			m_Storage = new AddressBookFilesystemStorage ();
+		auto ident = FindAddress (address);
+		if (!ident) return false;
+		return m_Storage->GetAddress (*ident, identity);
+	}	
 
 	void AddressBook::LoadHostsFromI2P ()
 	{
