@@ -45,7 +45,7 @@ namespace crypto
 			AESAlignedBuffer ()
 			{
 				m_Buf = m_UnalignedBuffer;
-				uint8_t rem = ((uint64_t)m_Buf) & 0x0f;
+				uint8_t rem = ((size_t)m_Buf) & 0x0f;
 				if (rem)
 					m_Buf += (16 - rem);
 			}

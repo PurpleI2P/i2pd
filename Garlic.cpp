@@ -83,6 +83,7 @@ namespace garlic
 	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
+		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		size_t len = 0;
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
 
