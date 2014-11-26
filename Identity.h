@@ -135,7 +135,8 @@ namespace data
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			SigningKeyType GetSigningKeyType () const;
 			CryptoKeyType GetCryptoKeyType () const;
-			
+			void DropVerifier (); // to save memory			
+
 		private:
 
 			void CreateVerifier () const;

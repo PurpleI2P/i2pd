@@ -101,8 +101,12 @@ namespace data
 		{	
 			// verify signature
 			int l = m_BufferLen - m_RouterIdentity.GetSignatureLen ();
-			if (!m_RouterIdentity.Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))	
-				LogPrint (eLogError, "signature verification failed");
+			if (!m_RouterIdentity.Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))
+			{	
+				LogPrint (eLogError, "signature verification failed");	
+				m_IsUnreachable = true;
+			}
+			m_RouterIdentity.DropVerifier ();
 		}	
 	}	
 	

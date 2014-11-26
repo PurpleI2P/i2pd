@@ -265,6 +265,13 @@ namespace data
 		}			
 	}	
 	
+	void IdentityEx::DropVerifier ()
+	{
+		auto verifier = m_Verifier;
+		m_Verifier = nullptr; // TODO: make this atomic
+		delete verifier;
+	}
+
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
 	{
 		m_Public = Identity (keys);
