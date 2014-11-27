@@ -112,6 +112,7 @@ namespace stream
 
 			void SendQuickAck ();
 			bool SendPacket (Packet * packet);
+			void PostPackets (const std::vector<Packet *> packets);
 			void SendPackets (const std::vector<Packet *>& packets);
 
 			void SavePacket (Packet * packet);

@@ -246,6 +246,7 @@ namespace stream
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
 		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
+		std::vector<Packet *> packets;
 		while (!m_IsOpen || len > 0)
 		{
 			Packet * p = new Packet ();
@@ -309,9 +310,10 @@ namespace stream
 				size += sentLen; // payload
 			}	
 			p->len = size;
-			m_Service.post (std::bind (&Stream::SendPacket, this, p));
+			packets.push_back (p);
 		}
-
+		if (packets.size () > 0)
+			m_Service.post (std::bind (&Stream::PostPackets, this, packets));
 		return len;
 	}	
 
@@ -420,7 +422,31 @@ namespace stream
 		else
 			return false;
 	}	
-	
+
+	void Stream::PostPackets (const std::vector<Packet *> packets)
+	{
+		if (m_IsOpen)
+		{	
+			if (packets.size () > 0)
+			{
+				m_IsAckSendScheduled = false;	
+				m_AckSendTimer.cancel ();
+			}
+			bool isEmpty = m_SentPackets.empty ();
+			for (auto it: packets)
+				m_SentPackets.insert (it);
+			SendPackets (packets);
+			if (isEmpty)
+				ScheduleResend ();
+		}
+		else
+		{
+			// delete 
+			for (auto it: packets)
+				delete it;	
+		}	
+	}	
+		
 	void Stream::SendPackets (const std::vector<Packet *>& packets)
 	{
 		if (!m_RemoteLeaseSet)
