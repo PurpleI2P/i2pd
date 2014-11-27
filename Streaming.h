@@ -45,8 +45,8 @@ namespace stream
 	
 	struct Packet
 	{
-		uint8_t buf[MAX_PACKET_SIZE];	
 		size_t len, offset;
+		uint8_t buf[MAX_PACKET_SIZE];	
 		int numResendAttempts;
 		
 		Packet (): len (0), offset (0), numResendAttempts (0) {};
