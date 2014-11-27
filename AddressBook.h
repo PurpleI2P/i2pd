@@ -19,8 +19,13 @@ namespace client
 
 			virtual ~AddressBookStorage () {};
 			virtual bool GetAddress (const i2p::data::IdentHash& ident, i2p::data::IdentityEx& address) const = 0;
+			virtual const i2p::data::IdentHash * FindAddress (const std::string& name) const = 0;	
+			virtual void AddAddress (std::string& name, const i2p::data::IdentHash& ident) = 0;		
 			virtual void AddAddress (const i2p::data::IdentityEx& address) = 0;
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;
+		
+			virtual int Load () = 0;
+			virtual int Save () = 0;
 	};			
 
 	class AddressBook
