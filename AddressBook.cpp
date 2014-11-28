@@ -21,23 +21,17 @@ namespace client
 
 			AddressBookFilesystemStorage ();
 			bool GetAddress (const i2p::data::IdentHash& ident, i2p::data::IdentityEx& address) const;
-			const i2p::data::IdentHash * FindAddress (const std::string& name) const;
 			void AddAddress (const i2p::data::IdentityEx& address);
-			void AddAddress (std::string& name, const i2p::data::IdentHash& ident);
 			void RemoveAddress (const i2p::data::IdentHash& ident);
 
-			int Load ();
-			int Save ();
+			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
+			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
 
 		private:	
 			
 			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / "addressbook"; };
 
-		private:
-
-			std::map<std::string, i2p::data::IdentHash> m_Addresses;
 	};
-
 
 	AddressBookFilesystemStorage::AddressBookFilesystemStorage ()
 	{
@@ -90,11 +84,6 @@ namespace client
 			LogPrint (eLogError, "Can't open file ", filename);	
 	}	
 
-	void AddressBookFilesystemStorage::AddAddress (std::string& name, const i2p::data::IdentHash& ident)
-	{
-		m_Addresses[name] = ident;
-	}
-
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
 		auto filename = GetPath () / (ident.ToBase32() + ".b32");
@@ -102,14 +91,14 @@ namespace client
 			boost::filesystem::remove (filename);
 	}
 
-	int AddressBookFilesystemStorage::Load ()
+	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
 		int num = 0;	
 		auto filename = GetPath () / "addresses.csv";
 		std::ifstream f (filename.c_str (), std::ofstream::in); // in text mode
 		if (f.is_open ())	
 		{
-			m_Addresses.clear ();
+			addresses.clear ();
 			while (!f.eof ())
 			{
 				std::string s;
@@ -125,7 +114,7 @@ namespace client
 
 					i2p::data::IdentHash ident;
 					ident.FromBase32 (addr);
-					m_Addresses[name] = ident;
+					addresses[name] = ident;
 					num++;
 				}		
 			}
@@ -136,14 +125,14 @@ namespace client
 		return num;
 	}
 
-	int AddressBookFilesystemStorage::Save ()
+	int AddressBookFilesystemStorage::Save (const std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
 		int num = 0;
 		auto filename = GetPath () / "addresses.csv";
 		std::ofstream f (filename.c_str (), std::ofstream::out); // in text mode
 		if (f.is_open ())	
 		{
-			for (auto it: m_Addresses)
+			for (auto it: addresses)
 			{
 				f << it.first << "," << it.second.ToBase32 () << std::endl;
 				num++;
@@ -153,14 +142,6 @@ namespace client
 		else	
 			LogPrint (eLogError, "Can't open file ", filename);	
 		return num;	
-	}	
-
-	const i2p::data::IdentHash * AddressBookFilesystemStorage::FindAddress (const std::string& name) const
-	{
-		auto it = m_Addresses.find (name);
-		if (it != m_Addresses.end ())
-			return &it->second;
-		return nullptr;
 	}	
 
 //---------------------------------------------------------------------
@@ -267,6 +248,16 @@ namespace client
 
 	void AddressBook::LoadHosts ()
 	{
+		if (!m_Storage)
+			 m_Storage = CreateStorage ();
+		int numAddresses = m_Storage->Load (m_Addresses);
+		if (numAddresses > 0)
+		{
+			m_IsLoaded = true;
+			return;
+		}
+	
+		// otherwise try hosts.txt
 		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
 		if (!f.is_open ())	
 		{
@@ -280,9 +271,6 @@ namespace client
 			return;
 		}
 
-		if (!m_Storage)
-			 m_Storage = CreateStorage ();
-		int numAddresses = 0;
 		std::string s;
 		while (!f.eof ())
 		{
@@ -302,12 +290,11 @@ namespace client
 				ident.FromBase64(addr);
 				m_Addresses[name] = ident.GetIdentHash ();
 				m_Storage->AddAddress (ident);
-				m_Storage->AddAddress (name, ident.GetIdentHash ());
 				numAddresses++;
 			}		
 		}
 		LogPrint (numAddresses, " addresses loaded");
-		m_Storage->Save ();
+		m_Storage->Save (m_Addresses);
 		m_IsLoaded = true;
 	}
 
