@@ -31,10 +31,6 @@ namespace client
 			ClientDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
-
-		private:	
-
-			void LoadLocalDestinations ();
 			
 		private:
 

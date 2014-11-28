@@ -1,4 +1,3 @@
-#include <fstream>
 #include <algorithm>
 #include <cryptopp/dh.h>
 #include "Log.h"
@@ -10,57 +9,6 @@ namespace i2p
 {
 namespace client
 {
-	ClientDestination::ClientDestination (bool isPublic, i2p::data::SigningKeyType sigType): 
-		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr), 
-		m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
-		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (nullptr)
-	{		
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel
-		if (m_IsPublic)
-			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
-		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
-	}
-
-	ClientDestination::ClientDestination (const std::string& fullPath, bool isPublic):
-		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),
-		m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
-		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (nullptr)
-	{
-		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
-		if (s.is_open ())	
-		{	
-			s.seekg (0, std::ios::end);
-			size_t len = s.tellg();
-			s.seekg (0, std::ios::beg);
-			uint8_t * buf = new uint8_t[len];
-			s.read ((char *)buf, len);
-			m_Keys.FromBuffer (buf, len);
-			delete[] buf;
-			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p loaded");
-		}	
-		else
-		{
-			LogPrint ("Can't open file ", fullPath, " Creating new one");
-			m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); 
-			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
-			size_t len = m_Keys.GetFullLen ();
-			uint8_t * buf = new uint8_t[len];
-			len = m_Keys.ToBuffer (buf, len);
-			f.write ((char *)buf, len);
-			delete[] buf;
-			
-			LogPrint ("New private keys file ", fullPath, " for ", m_Keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p created");
-		}	
-
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
-		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
-	}
-
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),	
 		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),

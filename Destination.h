@@ -25,8 +25,6 @@ namespace client
 	{
 		public:
 
-			ClientDestination (bool isPublic, i2p::data::SigningKeyType sigType);
-			ClientDestination (const std::string& fullPath, bool isPublic);
 			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
 			~ClientDestination ();	
 
