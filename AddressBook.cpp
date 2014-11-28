@@ -151,7 +151,11 @@ namespace client
 
 	AddressBook::~AddressBook ()
 	{
-		delete m_Storage;
+		if (m_Storage)
+		{
+			m_Storage->Save (m_Addresses);
+			delete m_Storage;
+		}
 	}
 
 	AddressBookStorage * AddressBook::CreateStorage ()
@@ -218,9 +222,9 @@ namespace client
 	{
 		if (!m_Storage) 
 			m_Storage = CreateStorage ();
-		auto ident = FindAddress (address);
-		if (!ident) return false;
-		return m_Storage->GetAddress (*ident, identity);
+		i2p::data::IdentHash ident;
+		if (!GetIdentHash (address, ident)) return false;
+		return m_Storage->GetAddress (ident, identity);
 	}	
 
 	void AddressBook::LoadHostsFromI2P ()

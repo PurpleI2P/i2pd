@@ -291,6 +291,7 @@ namespace client
 			size_t l = i2p::data::Base64ToByteStream (destination.c_str (), destination.length (), ident, 1024);
 			i2p::data::IdentityEx dest;
 			dest.FromBuffer (ident, l);
+			context.GetAddressBook ().InsertAddress (dest);
 			auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
 			if (leaseSet)
 				Connect (*leaseSet);
@@ -327,26 +328,6 @@ namespace client
 			{
 				LogPrint ("SAM destination to connect not found");
 				SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
-			}
-		}
-	}
-
-	void SAMSocket::HandleNamingLookupDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident)
-	{
-		if (!ecode) // timeout expired
-		{
-			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
-			if (leaseSet)
-				SendNamingLookupReply (leaseSet);
-			else
-			{
-				LogPrint ("SAM name destination not found");
-#ifdef _MSC_VER
-				size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_KEY_NOT_FOUND, (ident.ToBase32 () + ".b32.i2p").c_str ());
-#else
-				size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_KEY_NOT_FOUND, (ident.ToBase32 () + ".b32.i2p").c_str ());
-#endif
-				SendMessageReply (m_Buffer, len, false);
 			}
 		}
 	}
@@ -415,20 +396,7 @@ namespace client
 			SendNamingLookupReply (nullptr);
 		else if (context.GetAddressBook ().GetAddress (name, identity))
 			SendNamingLookupReply (identity);
-		else if (m_Session && context.GetAddressBook ().GetIdentHash (name, ident))
-		{
-			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
-			if (leaseSet)
-				SendNamingLookupReply (leaseSet);
-			else
-			{
-				i2p::data::netdb.RequestDestination (ident, true, m_Session->localDestination->GetTunnelPool ());
-				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_NAMING_LOOKUP_TIMEOUT));
-				m_Timer.async_wait (std::bind (&SAMSocket::HandleNamingLookupDestinationRequestTimer,
-					shared_from_this (), std::placeholders::_1, ident));
-			}	
-		}
-		else
+		else 
 		{
 #ifdef _MSC_VER
 			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
@@ -547,6 +515,7 @@ namespace client
 		{
 			LogPrint ("SAM incoming I2P connection for session ", m_ID);
 			m_Stream = stream;
+			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
 			if (session)	
 				session->localDestination->StopAcceptingStreams ();	
