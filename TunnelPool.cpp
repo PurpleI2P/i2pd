@@ -189,7 +189,8 @@ namespace tunnel
 					it.second.second->SetState (eTunnelStateTestFailed);
 			}	
 		}
-		m_Tests.clear ();	
+		m_Tests.clear ();
+		// new tests	
 		auto it1 = m_OutboundTunnels.begin ();
 		auto it2 = m_InboundTunnels.begin ();
 		while (it1 != m_OutboundTunnels.end () && it2 != m_InboundTunnels.end ())
@@ -207,10 +208,16 @@ namespace tunnel
 			}
 			if (!failed)
 			{
+				uint8_t key[32], tag[32];
+				rnd.GenerateBlock (key, 32); // random session key 
+				rnd.GenerateBlock (tag, 32); // random session tag
+				m_LocalDestination.AddSessionKey (key, tag);
+				i2p::garlic::GarlicRoutingSession garlic (key, tag);
+
 				uint32_t msgID = rnd.GenerateWord32 ();
 				m_Tests[msgID] = std::make_pair (*it1, *it2);
 				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
-					CreateDeliveryStatusMsg (msgID));
+					garlic.WrapSingleMessage (CreateDeliveryStatusMsg (msgID)));
 				it1++; it2++;
 			}	
 		}
