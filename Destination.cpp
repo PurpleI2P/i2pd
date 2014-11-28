@@ -12,7 +12,8 @@ namespace client
 {
 	ClientDestination::ClientDestination (bool isPublic, i2p::data::SigningKeyType sigType): 
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr), 
-		m_LeaseSet (nullptr), m_IsPublic (isPublic), m_DatagramDestination (nullptr)
+		m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
+		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (nullptr)
 	{		
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
@@ -25,7 +26,8 @@ namespace client
 
 	ClientDestination::ClientDestination (const std::string& fullPath, bool isPublic):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),
-		m_LeaseSet (nullptr), m_IsPublic (isPublic), m_DatagramDestination (nullptr)
+		m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
+		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (nullptr)
 	{
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -61,7 +63,8 @@ namespace client
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),	
-		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_DatagramDestination (nullptr)
+		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
+		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (nullptr)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
@@ -80,6 +83,7 @@ namespace client
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		delete m_LeaseSet;
 		delete m_Work;
+		delete m_PublishConfirmationTimer;
 		delete m_Service;
 		delete m_StreamingDestination;
 		delete m_DatagramDestination;
@@ -94,6 +98,7 @@ namespace client
 	void ClientDestination::Start ()
 	{	
 		m_Service = new boost::asio::io_service;
+		m_PublishConfirmationTimer = new boost::asio::deadline_timer (*m_Service);
 		m_Work = new boost::asio::io_service::work (*m_Service);
 		m_Pool->SetActive (true);
 		m_IsRunning = true;
@@ -113,6 +118,8 @@ namespace client
 		if (m_Pool)
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		m_IsRunning = false;
+		delete m_PublishConfirmationTimer;
+		m_PublishConfirmationTimer = nullptr;
 		if (m_Service)
 			m_Service->stop ();
 		if (m_Thread)
@@ -209,21 +216,35 @@ namespace client
 			offset += 36;
 		if (msg->type == 1) // LeaseSet
 		{
-			LogPrint ("Remote LeaseSet");
+			LogPrint (eLogDebug, "Remote LeaseSet");
 			auto it = m_RemoteLeaseSets.find (msg->key);
 			if (it != m_RemoteLeaseSets.end ())
 			{
 				it->second->Update (buf + offset, len - offset); 
-				LogPrint ("Remote LeaseSet updated");
+				LogPrint (eLogDebug, "Remote LeaseSet updated");
 			}
 			else
 			{	
-				LogPrint ("New remote LeaseSet added");
+				LogPrint (eLogDebug, "New remote LeaseSet added");
 				m_RemoteLeaseSets[msg->key] = new i2p::data::LeaseSet (buf + offset, len - offset);
 			}	
 		}	
 		else
-			LogPrint ("Unexpected client's DatabaseStore type ", msg->type, ". Dropped");
+			LogPrint (eLogError, "Unexpected client's DatabaseStore type ", msg->type, ". Dropped");
+	}	
+
+	void ClientDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
+	{
+		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
+		uint32_t msgID = be32toh (deliveryStatus->msgID);
+		if (msgID == m_PublishReplyToken)
+		{
+			LogPrint (eLogDebug, "Publishing confirmed");
+			m_PublishReplyToken = 0;
+			i2p::DeleteI2NPMessage (msg);
+		}
+		else
+			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msg);
 	}	
 
 	void ClientDestination::SetLeaseSetUpdated ()
@@ -231,7 +252,62 @@ namespace client
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();	
 		UpdateLeaseSet ();
 		if (m_IsPublic)
-			i2p::data::netdb.PublishLeaseSet (m_LeaseSet, m_Pool);
+			Publish ();
+	}
+
+	void ClientDestination::Publish ()
+	{	
+		if (!m_LeaseSet || !m_Pool) 
+		{
+			LogPrint (eLogError, "Can't publish non-existing LeaseSet");
+			return;
+		}
+		if (m_PublishReplyToken)
+		{
+			LogPrint (eLogInfo, "Publishing is pending");
+			return;
+		}
+		auto outbound = m_Pool->GetNextOutboundTunnel ();
+		if (!outbound)
+		{
+			LogPrint ("Can't publish LeaseSet. No outbound tunnels");
+			return;
+		}
+		std::set<i2p::data::IdentHash> excluded; 
+		auto floodfill = i2p::data::netdb.GetClosestFloodfill (m_LeaseSet->GetIdentHash (), excluded);	
+		if (!floodfill)
+		{
+			LogPrint ("Can't publish LeaseSet. No floodfills found");
+			return;
+		}	
+		LogPrint (eLogDebug, "Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
+		m_PublishReplyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+		auto msg = WrapMessage (*floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));	
+		if (m_PublishConfirmationTimer)
+		{
+			m_PublishConfirmationTimer->expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
+			m_PublishConfirmationTimer->async_wait (std::bind (&ClientDestination::HandlePublishConfirmationTimer,
+				this, std::placeholders::_1));
+		}
+		else
+		{
+			LogPrint (eLogWarning, "Destination's thread is not running");
+			m_PublishReplyToken = 0;
+		}		
+		outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);	
+	}
+
+	void ClientDestination::HandlePublishConfirmationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			if (m_PublishReplyToken)
+			{
+				LogPrint (eLogWarning, "Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT,  "seconds. Try again");
+				m_PublishReplyToken = 0;
+				Publish ();
+			}
+		}
 	}
 
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)

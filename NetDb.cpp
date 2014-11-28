@@ -896,26 +896,5 @@ namespace data
 				it++;
 		}
 	}
-
-	void NetDb::PublishLeaseSet (const LeaseSet * leaseSet, i2p::tunnel::TunnelPool * pool)
-	{
-		if (!leaseSet || !pool) return;
-		auto outbound = pool->GetNextOutboundTunnel ();
-		if (!outbound)
-		{
-			LogPrint ("Can't publish LeaseSet. No outbound tunnels");
-			return;
-		}
-		std::set<IdentHash> excluded; 
-		auto floodfill = GetClosestFloodfill (leaseSet->GetIdentHash (), excluded);	
-		if (!floodfill)
-		{
-			LogPrint ("Can't publish LeaseSet. No floodfills found");
-			return;
-		}	
-		uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-		auto msg = pool->GetGarlicDestination ().WrapMessage (*floodfill, i2p::CreateDatabaseStoreMsg (leaseSet, replyToken));	
-		outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);		
-	}
 }
 }

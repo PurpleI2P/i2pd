@@ -19,6 +19,7 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_STREAMING = 6;
 	const uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
 	const uint8_t PROTOCOL_TYPE_RAW = 18;	
+	const int PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 
 	class ClientDestination: public i2p::garlic::GarlicDestination
 	{
@@ -69,7 +70,10 @@ namespace client
 				
 			void Run ();			
 			void UpdateLeaseSet ();
-			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);			
+			void Publish ();
+			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
+			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);	
+			void HandleDeliveryStatusMessage (I2NPMessage * msg);		
 
 		private:
 
@@ -84,10 +88,13 @@ namespace client
 			i2p::tunnel::TunnelPool * m_Pool;
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;
-		
+			uint32_t m_PublishReplyToken;
+			
 			i2p::stream::StreamingDestination * m_StreamingDestination;
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
+			boost::asio::deadline_timer * m_PublishConfirmationTimer;
+
 		public:
 			
 			// for HTTP only

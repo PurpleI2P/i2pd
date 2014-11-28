@@ -67,7 +67,6 @@ namespace data
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 
-			void PublishLeaseSet (const LeaseSet * leaseSet, i2p::tunnel::TunnelPool * pool);
 			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false, 
 				i2p::tunnel::TunnelPool * pool = nullptr);			
 			
@@ -78,6 +77,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
+			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);			
 
 			void PostI2NPMsg (I2NPMessage * msg);
@@ -95,7 +95,6 @@ namespace data
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
 			void Publish ();
-			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			void ManageLeaseSets ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
