@@ -53,7 +53,8 @@ namespace api
 
 	i2p::client::ClientDestination * CreateLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
 	{
-		auto localDestination = new i2p::client::ClientDestination (isPublic, sigType);
+		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
+		auto localDestination = new i2p::client::ClientDestination (keys, isPublic);
 		localDestination->Start ();
 		return localDestination;
 	}
