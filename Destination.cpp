@@ -66,8 +66,6 @@ namespace client
 		if (m_Pool)
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		m_IsRunning = false;
-		delete m_PublishConfirmationTimer;
-		m_PublishConfirmationTimer = nullptr;
 		if (m_Service)
 			m_Service->stop ();
 		if (m_Thread)
@@ -76,6 +74,7 @@ namespace client
 			delete m_Thread;
 			m_Thread = 0;
 		}	
+		delete m_PublishConfirmationTimer; m_PublishConfirmationTimer = nullptr;
 		delete m_Work; m_Work = nullptr;
 		delete m_Service; m_Service = nullptr;
 	}	
