@@ -47,6 +47,7 @@ namespace transport
 		private:
 
 			void Run ();
+			void RunV6 ();
 			void Receive ();
 			void ReceiveV6 ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -63,9 +64,9 @@ namespace transport
 		private:
 
 			bool m_IsRunning;
-			std::thread * m_Thread;	
-			boost::asio::io_service m_Service;
-			boost::asio::io_service::work m_Work;
+			std::thread * m_Thread, * m_ThreadV6;	
+			boost::asio::io_service m_Service, m_ServiceV6;
+			boost::asio::io_service::work m_Work, m_WorkV6;
 			boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 			boost::asio::ip::udp::endpoint m_SenderEndpoint, m_SenderEndpointV6;

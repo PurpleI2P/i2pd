@@ -9,9 +9,10 @@ namespace i2p
 {
 namespace transport
 {
-	SSUServer::SSUServer (int port): m_Thread (nullptr), m_Work (m_Service),
-		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port),
-		m_Socket (m_Service, m_Endpoint), m_SocketV6 (m_Service), m_IntroducersUpdateTimer (m_Service)	
+	SSUServer::SSUServer (int port): m_Thread (nullptr), m_ThreadV6 (nullptr), m_Work (m_Service), 
+		m_WorkV6 (m_ServiceV6),m_Endpoint (boost::asio::ip::udp::v4 (), port), 
+		m_EndpointV6 (boost::asio::ip::udp::v6 (), port), m_Socket (m_Service, m_Endpoint), 
+		m_SocketV6 (m_ServiceV6), m_IntroducersUpdateTimer (m_Service)	
 	{
 		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
 		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
@@ -35,7 +36,10 @@ namespace transport
 		m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 		m_Service.post (std::bind (&SSUServer::Receive, this));  
 		if (context.SupportsV6 ())
-			m_Service.post (std::bind (&SSUServer::ReceiveV6, this));  
+		{	
+			m_ThreadV6 = new std::thread (std::bind (&SSUServer::RunV6, this));
+			m_ServiceV6.post (std::bind (&SSUServer::ReceiveV6, this));  
+		}	
 		if (i2p::context.IsUnreachable ())
 			ScheduleIntroducersUpdateTimer ();
 	}
@@ -46,12 +50,20 @@ namespace transport
 		m_IsRunning = false;
 		m_Service.stop ();
 		m_Socket.close ();
+		m_ServiceV6.stop ();
+		m_SocketV6.close ();
 		if (m_Thread)
 		{	
 			m_Thread->join (); 
 			delete m_Thread;
-			m_Thread = 0;
-		}	
+			m_Thread = nullptr;
+		}
+		if (m_ThreadV6)
+		{	
+			m_ThreadV6->join (); 
+			delete m_ThreadV6;
+			m_ThreadV6 = nullptr;
+		}
 	}
 
 	void SSUServer::Run () 
@@ -68,7 +80,22 @@ namespace transport
 			}	
 		}	
 	}
-		
+
+	void SSUServer::RunV6 () 
+	{ 
+		while (m_IsRunning)
+		{
+			try
+			{	
+				m_ServiceV6.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "SSU V6 server: ", ex.what ());
+			}	
+		}	
+	}	
+	
 	void SSUServer::AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay)
 	{
 		m_Relays[tag] = relay;
