@@ -514,6 +514,7 @@ namespace util
 
 	void HTTPConnection::Terminate ()
 	{
+		if (!m_Stream || !m_Stream->IsOpen ()) return;
 		if (m_Stream)
 			m_Stream->Close ();
 			
@@ -521,7 +522,7 @@ namespace util
 		m_Socket->get_io_service ().post ([=](void)
 			{
 				i2p::stream::DeleteStream (m_Stream);
-				delete this;
+				//delete this;
 			});
 	}
 
