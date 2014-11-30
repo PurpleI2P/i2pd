@@ -10,9 +10,9 @@ namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination& localDestination, int numHops, int numTunnels):
-		m_LocalDestination (localDestination), m_NumHops (numHops), m_NumTunnels (numTunnels),
-		m_IsActive (true)
+	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination& localDestination, int numInboundHops, int numOutboundHops, int numTunnels):
+		m_LocalDestination (localDestination), m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
+		m_NumTunnels (numTunnels), m_IsActive (true)
 	{
 	}
 
@@ -244,8 +244,10 @@ namespace tunnel
 
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const
 	{
-		auto hop = m_NumHops >= 3 ? i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop) :
-			i2p::data::netdb.GetRandomRouter (prevHop);
+		bool isExploratory = (&m_LocalDestination == &i2p::context); // TODO: implement it better
+		auto hop =  isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop): 
+			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
+			
 		if (!hop)
 			hop = i2p::data::netdb.GetRandomRouter ();
 		return hop;	
@@ -259,7 +261,7 @@ namespace tunnel
 		LogPrint ("Creating destination inbound tunnel...");
 		auto prevHop = i2p::context.GetSharedRouterInfo ();	
 		std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
-		int numHops = m_NumHops;
+		int numHops = m_NumInboundHops;
 		if (outboundTunnel)
 		{	
 			// last hop
@@ -303,7 +305,7 @@ namespace tunnel
 
 			auto prevHop = i2p::context.GetSharedRouterInfo ();
 			std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
-			for (int i = 0; i < m_NumHops; i++)
+			for (int i = 0; i < m_NumOutboundHops; i++)
 			{
 				auto hop = SelectNextHop (prevHop);
 				prevHop = hop;

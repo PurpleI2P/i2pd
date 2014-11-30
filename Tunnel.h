@@ -129,7 +129,7 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
-			TunnelPool * CreateTunnelPool (i2p::garlic::GarlicDestination& localDestination, int numHops);
+			TunnelPool * CreateTunnelPool (i2p::garlic::GarlicDestination& localDestination, int numInboundHops, int numOuboundHops);
 			void DeleteTunnelPool (TunnelPool * pool);
 			void StopTunnelPool (TunnelPool * pool);
 			

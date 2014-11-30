@@ -16,7 +16,7 @@ namespace client
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3); // 3-hops tunnel 
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3, 3); // 3-hops tunnel 
 		if (m_IsPublic)
 			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
 		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
