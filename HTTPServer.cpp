@@ -515,13 +515,14 @@ namespace util
 	void HTTPConnection::Terminate ()
 	{
 		if (m_Stream)
-		{
 			m_Stream->Close ();
-			i2p::stream::DeleteStream (m_Stream);
-			m_Stream.reset ();
-		}
+			
 		m_Socket->close ();
-		//delete this;
+		m_Socket->get_io_service ().post ([=](void)
+			{
+				i2p::stream::DeleteStream (m_Stream);
+				delete this;
+			});
 	}
 
 	void HTTPConnection::Receive ()
@@ -810,11 +811,21 @@ namespace util
 				for (auto it: pool->GetOutboundTunnels ())
 				{
 					it->GetTunnelConfig ()->Print (s);
+					auto state = it->GetState ();
+					if (state == i2p::tunnel::eTunnelStateFailed)
+						s << " " << "Failed";
+					else if (state == i2p::tunnel::eTunnelStateExpiring)
+						s << " " << "Exp";
 					s << "<br>" << std::endl;
 				}
 				for (auto it: pool->GetInboundTunnels ())
 				{
 					it->GetTunnelConfig ()->Print (s);
+					auto state = it->GetState ();
+					if (state == i2p::tunnel::eTunnelStateFailed)
+						s << " " << "Failed";
+					else if (state == i2p::tunnel::eTunnelStateExpiring)
+						s << " " << "Exp";
 					s << "<br>" << std::endl;
 				}
 			}	
