@@ -320,7 +320,7 @@ namespace stream
 			packets.push_back (p);
 		}
 		if (packets.size () > 0)
-			m_Service.post (std::bind (&Stream::PostPackets, this, packets));
+			m_Service.post (std::bind (&Stream::PostPackets, shared_from_this (), packets));
 		return len;
 	}	
 
@@ -369,7 +369,7 @@ namespace stream
 			}
 			packet[size] = numNacks; 
 			size++; // NACK count	
-			packet += numNacks*4; // NACKs
+			size += numNacks*4; // NACKs
 		}	
 		else
 		{
