@@ -139,7 +139,8 @@ namespace client
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
-			SAMSession * CreateSession (const std::string& id, const std::string& destination = ""); // empty string  means transient
+			SAMSession * CreateSession (const std::string& id, const std::string& destination = "", // empty string  means transient
+				const std::map<std::string, std::string> * params = nullptr);
 			void CloseSession (const std::string& id);
 			SAMSession * FindSession (const std::string& id);
 

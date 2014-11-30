@@ -219,7 +219,7 @@ namespace client
 			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), true);
 			return;
 		}
-		m_Session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination); 
+		m_Session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination, &params); 
 		if (m_Session)
 		{
 			m_SocketType = eSAMSocketTypeSession;
@@ -621,7 +621,8 @@ namespace client
 			Accept ();
 	}
 
-	SAMSession * SAMBridge::CreateSession (const std::string& id, const std::string& destination)
+	SAMSession * SAMBridge::CreateSession (const std::string& id, const std::string& destination, 
+		const std::map<std::string, std::string> * params)
 	{
 		ClientDestination * localDestination = nullptr; 
 		if (destination != "")
@@ -631,10 +632,10 @@ namespace client
 			i2p::data::PrivateKeys keys;
 			keys.FromBuffer (buf, l);
 			delete[] buf;
-			localDestination = i2p::client::context.CreateNewLocalDestination (keys);
+			localDestination = i2p::client::context.CreateNewLocalDestination (keys, true, params);
 		}
 		else // transient
-			localDestination = i2p::client::context.CreateNewLocalDestination (); 
+			localDestination = i2p::client::context.CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1, params); 
 		if (localDestination)
 		{
 			SAMSession session;

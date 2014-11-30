@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <boost/lexical_cast.hpp>
 #include <cryptopp/dh.h>
 #include "Log.h"
 #include "util.h"
@@ -9,16 +10,42 @@ namespace i2p
 {
 namespace client
 {
-	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic):
+	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, 
+			const std::map<std::string, std::string> * params):
 		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),	
 		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
 		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (nullptr)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, 3, 3); // 3-hops tunnel 
+		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
+		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
+		if (params)
+		{
+			auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
+			if (it != params->end ())
+			{	
+				int len = boost::lexical_cast<int>(it->second);
+				if (len > 0)
+				{
+					inboundTunnelLen = len;
+					LogPrint (eLogInfo, "Inbound tunnel length set to ", len);
+				}
+			}	
+			it = params->find (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
+			if (it != params->end ())
+			{
+				int len = boost::lexical_cast<int>(it->second);
+				if (len > 0)
+				{
+					outboundTunnelLen = len;
+					LogPrint (eLogInfo, "Outbound tunnel length set to ", len);
+				}
+			}	
+		}	
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, inboundTunnelLen, outboundTunnelLen);  
 		if (m_IsPublic)
-			LogPrint ("Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
+			LogPrint (eLogInfo, "Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
 		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
@@ -130,12 +157,22 @@ namespace client
 	{
 		if (m_Service)
 			m_Service->post (std::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
+		else
+		{	
+			LogPrint (eLogWarning, "Destination's thread is not running");
+			i2p::DeleteI2NPMessage (msg);
+		}	
 	}
 
 	void ClientDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
 	{
 		if (m_Service)
 			m_Service->post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
+		else
+		{	
+			LogPrint (eLogWarning, "Destination's thread is not running");
+			i2p::DeleteI2NPMessage (msg);
+		}	
 	}
 
 	void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)

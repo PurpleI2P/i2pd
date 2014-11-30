@@ -4,6 +4,8 @@
 #include <thread>
 #include <mutex>
 #include <memory>
+#include <map>
+#include <string>
 #include "Identity.h"
 #include "TunnelPool.h"
 #include "CryptoConst.h"
@@ -21,11 +23,17 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_RAW = 18;	
 	const int PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 
+	// I2CP
+	const char I2CP_PARAM_INBOUND_TUNNEL_LENGTH[] = "inbound.length";
+	const int DEFAULT_INBOUND_TUNNEL_LENGTH = 3;
+	const char I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH[] = "outbound.length";
+	const int DEFAULT_OUTBOUND_TUNNEL_LENGTH = 3;
+	
 	class ClientDestination: public i2p::garlic::GarlicDestination
 	{
 		public:
 
-			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic);
+			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();	
 
 			virtual void Start ();

@@ -29,7 +29,7 @@ namespace client
 	{
 		if (!m_SharedLocalDestination)
 		{	
-			m_SharedLocalDestination = CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); // non-public, DSA
+			m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
 			m_Destinations[m_SharedLocalDestination->GetIdentity ().GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
@@ -149,10 +149,11 @@ namespace client
 		return localDestination;
 	}
 
-	ClientDestination * ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
+	ClientDestination * ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
+		const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
-		auto localDestination = new ClientDestination (keys, isPublic);
+		auto localDestination = new ClientDestination (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
@@ -175,7 +176,8 @@ namespace client
 		}
 	}
 
-	ClientDestination * ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
+	ClientDestination * ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
+		const std::map<std::string, std::string> * params)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
 		if (it != m_Destinations.end ())
@@ -188,7 +190,7 @@ namespace client
 			}	
 			return nullptr;
 		}	
-		auto localDestination = new ClientDestination (keys, isPublic);
+		auto localDestination = new ClientDestination (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
 		localDestination->Start ();
