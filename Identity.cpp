@@ -193,7 +193,17 @@ namespace data
 		auto len = Base64ToByteStream (s.c_str(), s.length(), buf, 512);
 		return FromBuffer (buf, len);
 	}	
-		
+	
+	std::string IdentityEx::ToBase64 () const
+	{
+		uint8_t buf[512];
+		char str[1024];
+		size_t l = ToBuffer (buf, 512);
+		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, 1024);
+		str[l1] = 0;
+		return std::string (str);
+	}
+	
 	size_t IdentityEx::GetSigningPublicKeyLen () const
 	{
 		if (!m_Verifier) CreateVerifier ();
@@ -318,6 +328,27 @@ namespace data
 		ret += signingPrivateKeySize;
 		return ret;
 	}	
+
+	size_t PrivateKeys::FromBase64(const std::string& s)
+	{
+		uint8_t * buf = new uint8_t[s.length ()];
+		size_t l = i2p::data::Base64ToByteStream (s.c_str (), s.length (), buf, s.length ());
+		size_t ret = FromBuffer (buf, l);
+		delete[] buf;
+		return ret;
+	}	
+	
+	std::string PrivateKeys::ToBase64 () const
+	{
+		uint8_t * buf = new uint8_t[GetFullLen ()];
+		char * str = new char[GetFullLen ()*2];
+		size_t l = ToBuffer (buf, GetFullLen ());
+		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, GetFullLen ()*2);
+		str[l1] = 0;
+		delete[] buf;
+		delete[] str;
+		return std::string (str);
+	}
 
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{

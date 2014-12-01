@@ -129,9 +129,10 @@ namespace data
 			IdentityEx& operator=(const IdentityEx& other);
 			IdentityEx& operator=(const Identity& standard);
 
-			size_t FromBase64(const std::string& s);
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
+			size_t FromBase64(const std::string& s);
+			std::string ToBase64 () const;
 			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
@@ -174,6 +175,9 @@ namespace data
 			size_t GetFullLen () const { return m_Public.GetFullLen () + 256 + m_Public.GetSignatureLen ()/2; };			
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
+
+			size_t FromBase64(const std::string& s);
+			std::string ToBase64 () const;
 
 			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
 	
