@@ -514,15 +514,17 @@ namespace util
 
 	void HTTPConnection::Terminate ()
 	{
-		if (!m_Stream || !m_Stream->IsOpen ()) return;
-		if (m_Stream)
+		if (!m_Stream) return;
+		m_Socket->close ();
+		if (m_Stream->IsOpen ())
 			m_Stream->Close ();
 			
-		m_Socket->close ();
 		m_Socket->get_io_service ().post ([=](void)
 			{
 				i2p::stream::DeleteStream (m_Stream);
-				//delete this;
+				m_Stream.reset ();
+				m_Stream = nullptr;
+				// delete this
 			});
 	}
 
@@ -604,7 +606,10 @@ namespace util
 	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
+		{
+			m_Socket->close ();
 			Terminate ();
+		}	
 	}
 
 	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
