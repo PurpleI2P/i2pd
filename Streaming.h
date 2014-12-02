@@ -190,8 +190,6 @@ namespace stream
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
 	};		
 
-	void DeleteStream (std::shared_ptr<Stream> stream);
-
 //-------------------------------------------------
 
 	template<typename Buffer, typename ReceiveHandler>

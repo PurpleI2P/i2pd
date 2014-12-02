@@ -516,12 +516,10 @@ namespace util
 	{
 		if (!m_Stream) return;
 		m_Socket->close ();
-		if (m_Stream->IsOpen ())
-			m_Stream->Close ();
+		m_Stream->Close ();
 			
 		m_Socket->get_io_service ().post ([=](void)
 			{
-				i2p::stream::DeleteStream (m_Stream);
 				m_Stream.reset ();
 				m_Stream = nullptr;
 				// delete this

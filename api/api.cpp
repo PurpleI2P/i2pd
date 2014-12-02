@@ -99,10 +99,7 @@ namespace api
 	void DestroyStream (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		if (stream)
-		{
 			stream->Close ();
-			i2p::stream::DeleteStream (stream);
-		}
 	}
 }
 }

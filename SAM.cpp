@@ -32,7 +32,6 @@ namespace client
 		if (m_Stream)
 		{	
 			m_Stream->Close ();
-			i2p::stream::DeleteStream (m_Stream);
 			m_Stream.reset ();
 		}	
 	}	

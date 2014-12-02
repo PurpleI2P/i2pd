@@ -66,8 +66,18 @@ namespace client
 
 	void ClientDestination::Run ()
 	{
-		if (m_Service)
-			m_Service->run ();
+		while (m_IsRunning)
+		{
+			try
+			{	
+				if (m_Service)
+					m_Service->run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint ("Destination: ", ex.what ());
+			}	
+		}	
 	}	
 
 	void ClientDestination::Start ()

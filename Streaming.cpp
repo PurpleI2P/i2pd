@@ -207,6 +207,7 @@ namespace stream
 			m_IsOpen = false;
 			m_IsReset = true;
 			m_ReceiveTimer.cancel ();
+			m_LocalDestination.DeleteStream (shared_from_this ());
 		}
 	}	
 
@@ -549,9 +550,11 @@ namespace stream
 					packets.push_back (it);
 				else
 				{
-					Close ();
+					LogPrint (eLogWarning, "Packet ", it->GetSeqn (), "was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");
+					m_IsOpen = false;
 					m_IsReset = true;
 					m_ReceiveTimer.cancel ();
+					m_LocalDestination.DeleteStream (shared_from_this ());
 					return;
 				}	
 			}	
@@ -714,12 +717,6 @@ namespace stream
 			LogPrint ("Received packet size ", uncompressed->len,  " exceeds max packet size. Skipped");
 			delete uncompressed;
 		}	
-	}
-
-	void DeleteStream (std::shared_ptr<Stream> stream)
-	{
-		if (stream)
-			stream->GetLocalDestination ().DeleteStream (stream);
 	}
 }		
 }	
