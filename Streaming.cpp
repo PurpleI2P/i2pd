@@ -206,8 +206,6 @@ namespace stream
 			Close ();
 			m_IsOpen = false;
 			m_IsReset = true;
-			m_ReceiveTimer.cancel ();
-			m_LocalDestination.DeleteStream (shared_from_this ());
 		}
 	}	
 
@@ -418,6 +416,8 @@ namespace stream
 			p->len = size;
 			m_Service.post (std::bind (&Stream::SendPacket, shared_from_this (), p));
 			LogPrint ("FIN sent");
+			m_ReceiveTimer.cancel ();
+			m_LocalDestination.DeleteStream (shared_from_this ());
 		}	
 	}
 
@@ -554,7 +554,6 @@ namespace stream
 					m_IsOpen = false;
 					m_IsReset = true;
 					m_ReceiveTimer.cancel ();
-					m_LocalDestination.DeleteStream (shared_from_this ());
 					return;
 				}	
 			}	
