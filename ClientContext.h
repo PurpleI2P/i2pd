@@ -7,6 +7,7 @@
 #include "SOCKS.h"
 #include "I2PTunnel.h"
 #include "SAM.h"
+#include "BOB.h"
 #include "AddressBook.h"
 
 namespace i2p
@@ -47,6 +48,7 @@ namespace client
 			I2PClientTunnel * m_IrcTunnel;
 			I2PServerTunnel * m_ServerTunnel;
 			SAMBridge * m_SamBridge;
+			BOBCommandChannel * m_BOBCommandChannel;
 
 		public:
 			// for HTTP

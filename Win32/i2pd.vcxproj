@@ -22,6 +22,7 @@
     <ClCompile Include="..\AddressBook.cpp" />
     <ClCompile Include="..\aes.cpp" />
     <ClCompile Include="..\base64.cpp" />
+	<ClCompile Include="..\BOB.cpp" />
     <ClCompile Include="..\CryptoConst.cpp" />
     <ClCompile Include="..\Daemon.cpp" />
     <ClCompile Include="..\DaemonWin32.cpp" />
@@ -62,6 +63,7 @@
   <ItemGroup>
     <ClInclude Include="..\AddressBook.h" />
     <ClInclude Include="..\base64.h" />
+	<ClInclude Include="..\BOB.h" />
     <ClInclude Include="..\CryptoConst.h" />
     <ClInclude Include="..\Daemon.h" />
     <ClInclude Include="..\ElGamal.h" />

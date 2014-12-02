@@ -10,7 +10,7 @@ set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
 set (SOURCES
-  "${CMAKE_SOURCE_DIR}/AddressBook.cpp"
+  "${CMAKE_SOURCE_DIR}/AddressBook.cpp"	
   "${CMAKE_SOURCE_DIR}/CryptoConst.cpp"
   "${CMAKE_SOURCE_DIR}/Daemon.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
@@ -43,6 +43,7 @@ set (SOURCES
   "${CMAKE_SOURCE_DIR}/i2p.cpp"
   "${CMAKE_SOURCE_DIR}/util.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
+  "${CMAKE_SOURCE_DIR}/BOB.cpp"	
   "${CMAKE_SOURCE_DIR}/ClientContext.cpp"
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"		
 )
