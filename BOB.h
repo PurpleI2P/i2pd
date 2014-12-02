@@ -1,28 +1,45 @@
 #ifndef BOB_H__
 #define BOB_H__
 
+#include <inttypes.h>
 #include <thread>
 #include <memory>
-#include <list>
+#include <map>
+#include <string>
 #include <boost/asio.hpp>
-#include "Streaming.h"
+#include "I2PTunnel.h"
 
 namespace i2p
 {
 namespace client
 {
-	class BOBDataStream: public std::enable_shared_from_this<BOBDataStream>
+	const size_t BOB_COMMAND_BUFFER_SIZE = 1024;
+	const char BOB_COMMAND_ZAP[] = "zap";
+
+	class BOBCommandChannel;
+	class BOBCommandSession: public std::enable_shared_from_this<BOBCommandSession>
 	{
 		public:
 
-			BOBDataStream (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-				std::shared_ptr<i2p::stream::Stream> stream);
+			BOBCommandSession (BOBCommandChannel& owner);
+			~BOBCommandSession ();	
+
+			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
+			void Receive ();
+			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+
+			// command handlers
+			void ZapCommandHandler (const char * operand, size_t len);
 
 		private:
 
-			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
-			std::shared_ptr<i2p::stream::Stream> m_Stream;	
-	};	
+			BOBCommandChannel& m_Owner;
+			boost::asio::ip::tcp::socket m_Socket;
+			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1];
+			size_t m_ReceiveBufferOffset;
+			bool m_IsOpen;
+	};
+	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
 	class BOBCommandChannel
 	{
@@ -34,11 +51,14 @@ namespace client
 			void Start ();
 			void Stop ();
 
+			boost::asio::io_service& GetService () { return m_Service; };
+			std::map<std::string, BOBCommandHandler>& GetCommandHandlers () { return m_CommandHandlers; };
+
 		private:
 
 			void Run ();
 			void Accept ();
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<BOBCommandSession> session);
 
 		private:
 
@@ -46,7 +66,8 @@ namespace client
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
-			std::list<std::shared_ptr<BOBDataStream> > m_DataStreams;
+			std::map<std::string, I2PTunnel *> m_Tunnels;
+			std::map<std::string, BOBCommandHandler> m_CommandHandlers;
 	};	
 }
 }

@@ -70,6 +70,13 @@ namespace client
 			m_SamBridge->Start ();
 			LogPrint("SAM bridge started");
 		} 
+		int bobPort = i2p::util::config::GetArg("-bobport", 0);
+		if (bobPort)
+		{
+			m_BOBCommandChannel = new BOBCommandChannel (bobPort);
+			m_BOBCommandChannel->Start ();
+			LogPrint("BOB command channel started");
+		} 
 	}
 		
 	void ClientContext::Stop ()
@@ -103,7 +110,14 @@ namespace client
 			m_SamBridge = nullptr;
 			LogPrint("SAM brdige stoped");	
 		}		
-		
+		if (m_BOBCommandChannel)
+		{
+			m_BOBCommandChannel->Stop ();
+			delete m_BOBCommandChannel; 
+			m_BOBCommandChannel = nullptr;
+			LogPrint("BOB command channel stoped");	
+		}			
+
 		for (auto it: m_Destinations)
 		{	
 			it.second->Stop ();
