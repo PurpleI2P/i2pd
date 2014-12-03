@@ -61,6 +61,9 @@ namespace client
 				m_Service (service), m_LocalDestination (localDestination) {};
 			virtual ~I2PTunnel () { ClearConnections (); }; 
 
+			virtual void Start () {};
+			virtual void Stop () {};
+
 			void AddConnection (std::shared_ptr<I2PTunnelConnection> conn);
 			void RemoveConnection (std::shared_ptr<I2PTunnelConnection> conn);	
 			void ClearConnections ();

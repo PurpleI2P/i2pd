@@ -23,6 +23,8 @@ namespace client
 	const char BOB_COMMAND_NEWKEYS[] = "newkeys";	
 	const char BOB_COMMAND_OUTHOST[] = "outhost";	
 	const char BOB_COMMAND_OUTPORT[] = "outport";
+	const char BOB_COMMAND_INHOST[] = "inhost";	
+	const char BOB_COMMAND_INPORT[] = "inport";
 	
 	const char BOB_REPLY_OK[] = "OK %s\n";
 	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
@@ -77,7 +79,9 @@ namespace client
 			void NewkeysCommandHandler (const char * operand, size_t len);
 			void OuthostCommandHandler (const char * operand, size_t len);
 			void OutportCommandHandler (const char * operand, size_t len);
-			
+			void InhostCommandHandler (const char * operand, size_t len);
+			void InportCommandHandler (const char * operand, size_t len);			
+
 		private:
 
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -93,7 +97,7 @@ namespace client
 			boost::asio::ip::tcp::socket m_Socket;
 			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1], m_SendBuffer[BOB_COMMAND_BUFFER_SIZE + 1];
 			size_t m_ReceiveBufferOffset;
-			bool m_IsOpen, m_IsOutgoing;
+			bool m_IsOpen, m_IsOutbound;
 			std::string m_Nickname, m_Address;
 			int m_Port;
 			i2p::data::PrivateKeys m_Keys;

@@ -122,7 +122,7 @@ namespace client
 
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
-		m_IsOpen (true), m_IsOutgoing (false), m_Port (0)
+		m_IsOpen (true), m_IsOutbound (false), m_Port (0)
 	{
 	}
 
@@ -250,16 +250,20 @@ namespace client
 	void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
-		if (m_IsOutgoing)
-		{	
-			auto dest = context.CreateNewLocalDestination (m_Keys, true);
-			auto tunnel = new I2PServerTunnel (m_Owner.GetService (), m_Address, m_Port, dest);
+		auto dest = context.CreateNewLocalDestination (m_Keys, true);
+		I2PTunnel * tunnel = nullptr;
+		if (m_IsOutbound)
+			tunnel = new I2PServerTunnel (m_Owner.GetService (), m_Address, m_Port, dest);		
+		else
+			tunnel = new BOBI2PInboundTunnel (m_Owner.GetService (), m_Port, dest);
+		if (tunnel)
+		{
 			m_Owner.AddTunnel (m_Nickname, tunnel);
-			tunnel->Start ();
+			tunnel->Start ();	
 			SendReplyOK ("tunnel starting");
 		}
 		else
-			SendReplyError ("not implemented");
+			SendReplyError ("failed to create tunnel");	
 	}	
 		
 	void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
@@ -281,7 +285,7 @@ namespace client
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: outhost");
-		m_IsOutgoing = true;
+		m_IsOutbound = true;
 		m_Address = operand;
 		SendReplyOK ("outhost set");
 	}
@@ -289,10 +293,26 @@ namespace client
 	void BOBCommandSession::OutportCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: outport");
-		m_IsOutgoing = true;
+		m_IsOutbound = true;
 		m_Port = boost::lexical_cast<int>(operand);
 		SendReplyOK ("outbound port set");
 	}	
+
+	void BOBCommandSession::InhostCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: inhost");
+		m_IsOutbound = false;
+		m_Address = operand;
+		SendReplyOK ("inhost set");
+	}
+		
+	void BOBCommandSession::InportCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: inport");
+		m_IsOutbound = false;
+		m_Port = boost::lexical_cast<int>(operand);
+		SendReplyOK ("inbound port set");
+	}		
 		
 	BOBCommandChannel::BOBCommandChannel (int port):
 		m_IsRunning (false), m_Thread (nullptr),
@@ -306,6 +326,8 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_NEWKEYS] = &BOBCommandSession::NewkeysCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OUTHOST] = &BOBCommandSession::OuthostCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OUTPORT] = &BOBCommandSession::OutportCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_INHOST] = &BOBCommandSession::InhostCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_INPORT] = &BOBCommandSession::InportCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()
