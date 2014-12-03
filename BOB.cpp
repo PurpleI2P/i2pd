@@ -1,5 +1,7 @@
 #include <string.h>
+#include <boost/lexical_cast.hpp>
 #include "Log.h"
+#include "ClientContext.h"
 #include "BOB.h"
 
 namespace i2p
@@ -8,7 +10,7 @@ namespace client
 {
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
-		m_IsOpen (true)
+		m_IsOpen (true), m_IsOutgoing (false), m_Port (0)
 	{
 	}
 
@@ -45,14 +47,20 @@ namespace client
 			{
 				*eol = 0;
 				char * operand =  strchr (m_ReceiveBuffer, ' ');
-				if (operand) *operand = 0;	
+				if (operand)  
+				{	
+					*operand = 0;
+					operand++;
+				}	
+				else 
+					operand = eol;
 				// process command
-				auto handlers = m_Owner.GetCommandHandlers ();
+				auto& handlers = m_Owner.GetCommandHandlers ();
 				auto it = handlers.find (m_ReceiveBuffer);
 				if (it != handlers.end ())
-					(this->*(it->second))(operand, operand ? eol - operand : 0);
-				else
-					LogPrint (eLogError, "BOB unknown command", m_ReceiveBuffer);
+					(this->*(it->second))(operand, eol - operand);
+				else	
+					LogPrint (eLogError, "BOB unknown command ", m_ReceiveBuffer);
 
 				m_ReceiveBufferOffset = size - (eol - m_ReceiveBuffer) - 1;
 				memmove (m_ReceiveBuffer, eol + 1, m_ReceiveBufferOffset);
@@ -127,12 +135,64 @@ namespace client
 		SendReplyOK ("Bye!");
 	}
 
+	void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
+		if (m_IsOutgoing)
+		{	
+			auto dest = context.CreateNewLocalDestination (m_Keys, true);
+			I2PTunnel * tunnel = new I2PServerTunnel (m_Owner.GetService (), m_Address, m_Port, dest);
+			m_Owner.AddTunnel (m_Nickname, tunnel);
+			SendReplyOK ("tunnel starting");
+		}
+		else
+			SendReplyError ("not implemented");
+	}	
+		
+	void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: setnick");
+		m_Nickname = operand;
+		std::string msg ("Nickname set to");
+		msg += operand;
+		SendReplyOK (msg.c_str ());
+	}	
+
+	void BOBCommandSession::NewkeysCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: newkeys");
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys ();
+		SendReplyOK (m_Keys.ToBase64 ().c_str ());
+	}	
+
+	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: outhost");
+		m_IsOutgoing = true;
+		m_Address = operand;
+		SendReplyOK ("outhost set");
+	}
+		
+	void BOBCommandSession::OutportCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: outport");
+		m_IsOutgoing = true;
+		m_Port = boost::lexical_cast<int>(operand);
+		SendReplyOK ("outbound port set");
+	}	
+		
 	BOBCommandChannel::BOBCommandChannel (int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
 	{
+		// command -> handler
 		m_CommandHandlers[BOB_COMMAND_ZAP] = &BOBCommandSession::ZapCommandHandler; 
 		m_CommandHandlers[BOB_COMMAND_QUIT] = &BOBCommandSession::QuitCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_START] = &BOBCommandSession::StartCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_SETNICK] = &BOBCommandSession::SetNickCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_NEWKEYS] = &BOBCommandSession::NewkeysCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_OUTHOST] = &BOBCommandSession::OuthostCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_OUTPORT] = &BOBCommandSession::OutportCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()
@@ -177,6 +237,11 @@ namespace client
 		}	
 	}
 
+	void BOBCommandChannel::AddTunnel (const std::string& name, I2PTunnel * tunnel)
+	{
+		m_Tunnels[name] = tunnel;
+	}	
+		
 	void BOBCommandChannel::Accept ()
 	{
 		auto newSession = std::make_shared<BOBCommandSession> (*this);
