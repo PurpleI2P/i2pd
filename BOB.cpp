@@ -162,7 +162,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: newkeys");
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys ();
-		SendReplyOK (m_Keys.ToBase64 ().c_str ());
+		SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
 	}	
 
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
