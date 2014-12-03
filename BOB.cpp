@@ -265,7 +265,19 @@ namespace client
 		else
 			SendReplyError ("failed to create tunnel");	
 	}	
-		
+	
+	void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
+	{
+		auto tunnel = m_Owner.FindTunnel (m_Nickname);
+		if (tunnel)
+		{
+			tunnel->Stop ();
+			SendReplyOK ("tunnel stopping");
+		}
+		else
+			SendReplyError ("tunnel not found");
+	}	
+	
 	void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: setnick");
@@ -273,6 +285,20 @@ namespace client
 		std::string msg ("Nickname set to");
 		msg += operand;
 		SendReplyOK (msg.c_str ());
+	}	
+
+	void BOBCommandSession::GetNickCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: getnick");
+		if (m_Owner.FindTunnel (operand))
+		{
+			m_Nickname = operand;
+			std::string msg ("Nickname set to");
+			msg += operand;
+			SendReplyOK (msg.c_str ());
+		}
+		else
+			SendReplyError ("tunnel not found");	
 	}	
 
 	void BOBCommandSession::NewkeysCommandHandler (const char * operand, size_t len)
@@ -322,7 +348,9 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_ZAP] = &BOBCommandSession::ZapCommandHandler; 
 		m_CommandHandlers[BOB_COMMAND_QUIT] = &BOBCommandSession::QuitCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_START] = &BOBCommandSession::StartCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_STOP] = &BOBCommandSession::StopCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_SETNICK] = &BOBCommandSession::SetNickCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_GETNICK] = &BOBCommandSession::GetNickCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_NEWKEYS] = &BOBCommandSession::NewkeysCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OUTHOST] = &BOBCommandSession::OuthostCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OUTPORT] = &BOBCommandSession::OutportCommandHandler;
@@ -333,6 +361,8 @@ namespace client
 	BOBCommandChannel::~BOBCommandChannel ()
 	{
 		Stop ();
+		for (auto it: m_Tunnels)
+			delete it.second;
 	}
 
 	void BOBCommandChannel::Start ()
@@ -345,8 +375,7 @@ namespace client
 	void BOBCommandChannel::Stop ()
 	{
 		for (auto it: m_Tunnels)
-			delete it.second;
-		m_Tunnels.clear ();
+			it.second->Stop ();
 		m_IsRunning = false;
 		m_Service.stop ();
 		if (m_Thread)
@@ -376,6 +405,14 @@ namespace client
 	{
 		m_Tunnels[name] = tunnel;
 	}	
+
+	I2PTunnel * BOBCommandChannel::FindTunnel (const std::string& name)
+	{
+		auto it = m_Tunnels.find (name);
+		if (it != m_Tunnels.end ())
+			return it->second;
+		return nullptr;	
+	}
 		
 	void BOBCommandChannel::Accept ()
 	{

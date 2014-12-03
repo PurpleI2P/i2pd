@@ -19,7 +19,9 @@ namespace client
 	const char BOB_COMMAND_ZAP[] = "zap";
 	const char BOB_COMMAND_QUIT[] = "quit";
 	const char BOB_COMMAND_START[] = "start";
-	const char BOB_COMMAND_SETNICK[] = "setnick";	
+	const char BOB_COMMAND_STOP[] = "stop";	
+	const char BOB_COMMAND_SETNICK[] = "setnick";
+	const char BOB_COMMAND_GETNICK[] = "getnick";		
 	const char BOB_COMMAND_NEWKEYS[] = "newkeys";	
 	const char BOB_COMMAND_OUTHOST[] = "outhost";	
 	const char BOB_COMMAND_OUTPORT[] = "outport";
@@ -75,7 +77,9 @@ namespace client
 			void ZapCommandHandler (const char * operand, size_t len);
 			void QuitCommandHandler (const char * operand, size_t len);
 			void StartCommandHandler (const char * operand, size_t len);
+			void StopCommandHandler (const char * operand, size_t len);
 			void SetNickCommandHandler (const char * operand, size_t len);
+			void GetNickCommandHandler (const char * operand, size_t len);
 			void NewkeysCommandHandler (const char * operand, size_t len);
 			void OuthostCommandHandler (const char * operand, size_t len);
 			void OutportCommandHandler (const char * operand, size_t len);
@@ -117,6 +121,7 @@ namespace client
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::map<std::string, BOBCommandHandler>& GetCommandHandlers () { return m_CommandHandlers; };
 			void AddTunnel (const std::string& name, I2PTunnel * tunnel);
+			I2PTunnel * FindTunnel (const std::string& name);
 			
 		private:
 
