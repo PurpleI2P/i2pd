@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include "I2PTunnel.h"
 #include "Identity.h"
+#include "LeaseSet.h"
 
 namespace i2p
 {
@@ -25,6 +26,36 @@ namespace client
 	
 	const char BOB_REPLY_OK[] = "OK %s\n";
 	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
+
+	class BOBI2PInboundTunnel: public I2PTunnel
+	{
+		public:
+
+			BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination);
+			~BOBI2PInboundTunnel ();
+
+			void Start ();
+			void Stop ();
+
+		private:
+
+			void Accept ();
+			void HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+
+			void ReceiveAddress (boost::asio::ip::tcp::socket * socket);
+			void HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
+				boost::asio::ip::tcp::socket * socket);
+
+			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket, i2p::data::IdentHash ident);
+
+			void CreateConnection (boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet);
+
+		private:
+
+			boost::asio::ip::tcp::acceptor m_Acceptor;	
+			boost::asio::deadline_timer m_Timer;
+			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
+	};
 
 	class BOBCommandChannel;
 	class BOBCommandSession: public std::enable_shared_from_this<BOBCommandSession>

@@ -1,6 +1,7 @@
 #include <string.h>
 #include <boost/lexical_cast.hpp>
 #include "Log.h"
+#include "NetDb.h"
 #include "ClientContext.h"
 #include "BOB.h"
 
@@ -8,6 +9,117 @@ namespace i2p
 {
 namespace client
 {
+	BOBI2PInboundTunnel::BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination): 
+		I2PTunnel (service, localDestination), 
+		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+		m_Timer (service)
+	{
+	}
+
+	BOBI2PInboundTunnel::~BOBI2PInboundTunnel ()
+	{
+	}
+
+	void BOBI2PInboundTunnel::Start ()
+	{
+		m_Acceptor.listen ();
+		Accept ();
+	}
+
+	void BOBI2PInboundTunnel::Stop ()
+	{
+		m_Acceptor.close();
+		ClearConnections ();
+	}
+
+	void BOBI2PInboundTunnel::Accept ()
+	{
+		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
+		m_Acceptor.async_accept (*newSocket, std::bind (&BOBI2PInboundTunnel::HandleAccept, this,
+			std::placeholders::_1, newSocket));
+	}	
+
+	void BOBI2PInboundTunnel::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
+	{
+		if (!ecode)
+		{
+			Accept ();	
+			ReceiveAddress (socket);
+		}
+		else
+			delete socket;
+	}
+
+	void BOBI2PInboundTunnel::ReceiveAddress (boost::asio::ip::tcp::socket * socket)
+	{
+		socket->async_read_some (boost::asio::buffer(m_ReceiveBuffer, BOB_COMMAND_BUFFER_SIZE),                
+			std::bind(&BOBI2PInboundTunnel::HandleReceivedAddress, this, 
+			std::placeholders::_1, std::placeholders::_2, socket));
+	}
+	
+	void BOBI2PInboundTunnel::HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
+		boost::asio::ip::tcp::socket * socket)
+	{
+		if (ecode)
+		{
+			LogPrint ("BOB inbound tunnel read error: ", ecode.message ());
+			delete socket;
+		}	
+		else
+		{
+			m_ReceiveBuffer[bytes_transferred] = 0;
+			char * eol = strchr (m_ReceiveBuffer, '\n');
+			if (eol)
+			{
+				*eol = 0;
+				i2p::data::IdentHash ident;
+				i2p::data::IdentityEx dest;
+				dest.FromBase64 (m_ReceiveBuffer); // TODO: might be .i2p address
+				ident = dest.GetIdentHash ();
+				auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
+				if (leaseSet)
+					CreateConnection (socket, leaseSet);
+				else
+				{
+					i2p::data::netdb.RequestDestination (ident, true, GetLocalDestination ()->GetTunnelPool ());
+					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
+					m_Timer.async_wait (std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestTimer,
+						this, std::placeholders::_1, socket, ident));
+				}
+			}
+			else
+			{
+				LogPrint ("BOB missing inbound address ", ecode.message ());
+				delete socket;
+			}			
+		}
+	}
+
+	void BOBI2PInboundTunnel::HandleDestinationRequestTimer (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket, i2p::data::IdentHash ident)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
+			if (leaseSet)
+			{
+				CreateConnection (socket, leaseSet);
+				return;
+			}
+			else
+				LogPrint ("LeaseSet for BOB inbound destination not found");
+		}
+		delete socket;	
+	}	
+
+	void BOBI2PInboundTunnel::CreateConnection (boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet)
+	{
+		LogPrint ("New BOB inbound connection");
+		auto connection = std::make_shared<I2PTunnelConnection>(this, socket, leaseSet);
+		AddConnection (connection);
+		connection->I2PConnect ();
+		// TODO: send remaining buffer
+	}
+
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
 		m_IsOpen (true), m_IsOutgoing (false), m_Port (0)
@@ -141,8 +253,9 @@ namespace client
 		if (m_IsOutgoing)
 		{	
 			auto dest = context.CreateNewLocalDestination (m_Keys, true);
-			I2PTunnel * tunnel = new I2PServerTunnel (m_Owner.GetService (), m_Address, m_Port, dest);
+			auto tunnel = new I2PServerTunnel (m_Owner.GetService (), m_Address, m_Port, dest);
 			m_Owner.AddTunnel (m_Nickname, tunnel);
+			tunnel->Start ();
 			SendReplyOK ("tunnel starting");
 		}
 		else
