@@ -346,8 +346,9 @@ namespace data
 		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, GetFullLen ()*2);
 		str[l1] = 0;
 		delete[] buf;
+		std::string ret(str);
 		delete[] str;
-		return std::string (str);
+		return ret;
 	}
 
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
