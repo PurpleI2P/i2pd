@@ -310,6 +310,25 @@ namespace client
 		SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
 	}	
 
+	void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: setkeys");
+		m_Keys.FromBase64 (operand);
+		SendReplyOK ("keys set");
+	}
+		
+	void BOBCommandSession::GetkeysCommandHandler (const char * operand, size_t len)
+	{		
+		LogPrint (eLogDebug, "BOB: getkeys");
+		SendReplyOK (m_Keys.ToBase64 ().c_str ());
+	}	
+
+	void BOBCommandSession::GetdestCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: getdest");
+		SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
+	}	
+		
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: outhost");
@@ -354,6 +373,9 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_SETNICK] = &BOBCommandSession::SetNickCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_GETNICK] = &BOBCommandSession::GetNickCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_NEWKEYS] = &BOBCommandSession::NewkeysCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_GETKEYS] = &BOBCommandSession::GetkeysCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_SETKEYS] = &BOBCommandSession::SetkeysCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_GETDEST] = &BOBCommandSession::GetdestCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OUTHOST] = &BOBCommandSession::OuthostCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OUTPORT] = &BOBCommandSession::OutportCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_INHOST] = &BOBCommandSession::InhostCommandHandler;

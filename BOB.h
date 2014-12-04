@@ -22,7 +22,10 @@ namespace client
 	const char BOB_COMMAND_STOP[] = "stop";	
 	const char BOB_COMMAND_SETNICK[] = "setnick";
 	const char BOB_COMMAND_GETNICK[] = "getnick";		
-	const char BOB_COMMAND_NEWKEYS[] = "newkeys";	
+	const char BOB_COMMAND_NEWKEYS[] = "newkeys";
+	const char BOB_COMMAND_GETKEYS[] = "getkeys";
+	const char BOB_COMMAND_SETKEYS[] = "setkeys";
+	const char BOB_COMMAND_GETDEST[] = "getdest";
 	const char BOB_COMMAND_OUTHOST[] = "outhost";	
 	const char BOB_COMMAND_OUTPORT[] = "outport";
 	const char BOB_COMMAND_INHOST[] = "inhost";	
@@ -83,6 +86,9 @@ namespace client
 			void SetNickCommandHandler (const char * operand, size_t len);
 			void GetNickCommandHandler (const char * operand, size_t len);
 			void NewkeysCommandHandler (const char * operand, size_t len);
+			void SetkeysCommandHandler (const char * operand, size_t len);
+			void GetkeysCommandHandler (const char * operand, size_t len);
+			void GetdestCommandHandler (const char * operand, size_t len);
 			void OuthostCommandHandler (const char * operand, size_t len);
 			void OutportCommandHandler (const char * operand, size_t len);
 			void InhostCommandHandler (const char * operand, size_t len);
