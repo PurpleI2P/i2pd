@@ -72,14 +72,15 @@ namespace client
 
 			SAMSocket (SAMBridge& owner);
 			~SAMSocket ();			
-			void CloseStream (); // TODO: implement it better
-			
+			void CloseStream (); // TODO: implement it better	
+
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			void ReceiveHandshake ();
+			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 
 		private:
 
-			void Terminate ();
+			void Terminate ();	
 			void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -126,6 +127,12 @@ namespace client
 	{
 		ClientDestination * localDestination;
 		std::list<std::shared_ptr<SAMSocket> > sockets;
+				
+		~SAMSession ()
+		{
+			for (auto it: sockets)
+				it->SetSocketType (eSAMSocketTypeTerminated);
+		}		
 	};
 
 	class SAMBridge
