@@ -27,9 +27,12 @@ namespace client
 		delete m_Socket;
 	}	
 
-	void I2PTunnelConnection::I2PConnect ()
+	void I2PTunnelConnection::I2PConnect (const uint8_t * msg, size_t len)
 	{
-		m_Stream->Send (m_Buffer, 0); // connect
+		if (msg)
+			m_Stream->Send (msg, len); // connect and send
+		else	
+			m_Stream->Send (m_Buffer, 0); // connect
 		StreamReceive ();
 		Receive ();
 	}

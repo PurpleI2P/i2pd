@@ -29,7 +29,7 @@ namespace client
 				const boost::asio::ip::tcp::endpoint& target); 
 			~I2PTunnelConnection ();
 
-			void I2PConnect ();
+			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
 			void Connect ();
 			
 		private:

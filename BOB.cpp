@@ -12,7 +12,7 @@ namespace client
 	BOBI2PInboundTunnel::BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination): 
 		I2PTunnel (service, localDestination), 
 		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-		m_Timer (service)
+		m_Timer (service), m_ReceivedData (nullptr), m_ReceivedDataLen (0)
 	{
 	}
 
@@ -72,6 +72,9 @@ namespace client
 			if (eol)
 			{
 				*eol = 0;
+				
+				 m_ReceivedData = (uint8_t *)eol + 1;
+				 m_ReceivedDataLen = bytes_transferred - (eol - m_ReceiveBuffer + 1);
 				i2p::data::IdentHash ident;
 				i2p::data::IdentityEx dest;
 				dest.FromBase64 (m_ReceiveBuffer); // TODO: might be .i2p address
@@ -116,8 +119,7 @@ namespace client
 		LogPrint ("New BOB inbound connection");
 		auto connection = std::make_shared<I2PTunnelConnection>(this, socket, leaseSet);
 		AddConnection (connection);
-		connection->I2PConnect ();
-		// TODO: send remaining buffer
+		connection->I2PConnect (m_ReceivedData, m_ReceivedDataLen);
 	}
 
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 

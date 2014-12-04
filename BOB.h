@@ -59,6 +59,8 @@ namespace client
 			boost::asio::ip::tcp::acceptor m_Acceptor;	
 			boost::asio::deadline_timer m_Timer;
 			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
+			uint8_t * m_ReceivedData; 
+			size_t m_ReceivedDataLen; 
 	};
 
 	class BOBCommandChannel;
