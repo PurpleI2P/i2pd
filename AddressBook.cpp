@@ -182,9 +182,15 @@ namespace client
 					ident = *identHash;
 					return true;
 				}
+				else
+					return false;
 			}
 		}	
-		return false;
+		// if not .b32 we assume full base64 address
+		i2p::data::IdentityEx dest;
+		dest.FromBase64 (address); 
+		ident = dest.GetIdentHash ();
+		return true;
 	}
 	
 	const i2p::data::IdentHash * AddressBook::FindAddress (const std::string& address)

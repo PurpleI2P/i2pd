@@ -76,9 +76,12 @@ namespace client
 				 m_ReceivedData = (uint8_t *)eol + 1;
 				 m_ReceivedDataLen = bytes_transferred - (eol - m_ReceiveBuffer + 1);
 				i2p::data::IdentHash ident;
-				i2p::data::IdentityEx dest;
-				dest.FromBase64 (m_ReceiveBuffer); // TODO: might be .i2p address
-				ident = dest.GetIdentHash ();
+				if (!context.GetAddressBook ().GetIdentHash (m_ReceiveBuffer, ident)) 
+				{
+					LogPrint (eLogError, "BOB address ", m_ReceiveBuffer, " not found");
+					delete socket;
+					return;
+				}
 				auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
 				if (leaseSet)
 					CreateConnection (socket, leaseSet);
