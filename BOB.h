@@ -30,8 +30,10 @@ namespace client
 	const char BOB_COMMAND_OUTPORT[] = "outport";
 	const char BOB_COMMAND_INHOST[] = "inhost";	
 	const char BOB_COMMAND_INPORT[] = "inport";
-	const char BOB_COMMAND_QUIET[] = "quiet";		
+	const char BOB_COMMAND_QUIET[] = "quiet";
+	const char BOB_COMMAND_LOOKUP[] = "lookup";			
 
+	const char BOB_VERSION[] = "BOB 00.00.10\nOK\n";	
 	const char BOB_REPLY_OK[] = "OK %s\n";
 	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
 
@@ -100,7 +102,7 @@ namespace client
 			void Terminate ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
-			void Receive ();
+			void SendVersion ();
 
 			// command handlers
 			void ZapCommandHandler (const char * operand, size_t len);
@@ -118,15 +120,18 @@ namespace client
 			void InhostCommandHandler (const char * operand, size_t len);
 			void InportCommandHandler (const char * operand, size_t len);			
 			void QuietCommandHandler (const char * operand, size_t len);	
+			void LookupCommandHandler (const char * operand, size_t len);
 
 		private:
 
+			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 
 			void Send (size_t len);
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void SendReplyOK (const char * msg);
 			void SendReplyError (const char * msg);
+
 
 		private:
 

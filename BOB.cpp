@@ -281,6 +281,13 @@ namespace client
 		Send (len);	
 	}
 
+	void BOBCommandSession::SendVersion ()
+	{
+		size_t len = strlen (BOB_VERSION);
+		memcpy (m_SendBuffer, BOB_VERSION, len);
+		Send (len);
+	}
+
 	void BOBCommandSession::ZapCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: zap");
@@ -416,6 +423,19 @@ namespace client
 		SendReplyOK ("quiet");
 	}	
 	
+	void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: lookup");
+		i2p::data::IdentityEx addr;
+		if (!context.GetAddressBook ().GetAddress (operand, addr)) 
+		{
+			SendReplyError ("Address Not found");
+			return;
+		}		
+		SendReplyOK (addr.ToBase64 ().c_str ());
+	}
+
+
 	BOBCommandChannel::BOBCommandChannel (int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
@@ -436,6 +456,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_INHOST] = &BOBCommandSession::InhostCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_INPORT] = &BOBCommandSession::InportCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_QUIET] = &BOBCommandSession::QuietCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_LOOKUP] = &BOBCommandSession::LookupCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()
@@ -509,7 +530,7 @@ namespace client
 		if (!ecode)
 		{
 			LogPrint (eLogInfo, "New BOB command connection from ", session->GetSocket ().remote_endpoint ());
-			session->Receive ();	
+			session->SendVersion ();	
 		}
 		else
 			LogPrint (eLogError, "BOB accept error: ",  ecode.message ());
