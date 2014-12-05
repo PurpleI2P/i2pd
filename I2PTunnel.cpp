@@ -11,14 +11,15 @@ namespace client
 {
 	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, 
 	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
-		m_Socket (socket), m_Owner (owner), m_RemoteEndpoint (socket->remote_endpoint ())
+		m_Socket (socket), m_Owner (owner), m_RemoteEndpoint (socket->remote_endpoint ()),
+		m_IsQuiet (true)
 	{
 		m_Stream = m_Owner->GetLocalDestination ()->CreateStream (*leaseSet);
 	}	
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, std::shared_ptr<i2p::stream::Stream> stream,  
-	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target):
-		m_Socket (socket), m_Stream (stream), m_Owner (owner), m_RemoteEndpoint (target)
+	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target, bool quiet):
+		m_Socket (socket), m_Stream (stream), m_Owner (owner), m_RemoteEndpoint (target), m_IsQuiet (quiet)
 	{
 	}
 
@@ -125,7 +126,16 @@ namespace client
 		else
 		{
 			LogPrint ("I2PTunnel connected");
-			StreamReceive ();
+			if (m_IsQuiet)
+				StreamReceive ();
+			else
+			{
+				// send destination first like received from I2P
+				std::string dest = m_Stream->GetRemoteIdentity ().ToBase64 ();
+				dest += "\n";
+				memcpy (m_StreamBuffer, dest.c_str (), dest.size ());
+				HandleStreamReceive (boost::system::error_code (), dest.size ());
+			}	
 			Receive ();	
 		}
 	}

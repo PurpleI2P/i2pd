@@ -24,9 +24,9 @@ namespace client
 		public:
 
 			I2PTunnelConnection (I2PTunnel * owner, boost::asio::ip::tcp::socket * socket,
-				const i2p::data::LeaseSet * leaseSet);
+				const i2p::data::LeaseSet * leaseSet); // to I2P
 			I2PTunnelConnection (I2PTunnel * owner, std::shared_ptr<i2p::stream::Stream> stream,  boost::asio::ip::tcp::socket * socket, 
-				const boost::asio::ip::tcp::endpoint& target); 
+				const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
 			~I2PTunnelConnection ();
 
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
@@ -51,6 +51,7 @@ namespace client
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			I2PTunnel * m_Owner;
 			boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
+			bool m_IsQuiet; // don't send destination
 	};	
 
 	class I2PTunnel

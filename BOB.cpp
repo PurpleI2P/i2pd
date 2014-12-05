@@ -155,10 +155,9 @@ namespace client
 	{
 		if (stream)
 		{	
-			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
+			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint, m_IsQuiet);
 			AddConnection (conn);
 			conn->Connect ();
-			// TODO: 
 		}	
 	}
 
