@@ -126,9 +126,46 @@ namespace client
 		connection->I2PConnect (m_ReceivedData, m_ReceivedDataLen);
 	}
 
+	BOBI2POutboundTunnel::BOBI2POutboundTunnel (boost::asio::io_service& service, const std::string& address, int port, 
+		ClientDestination * localDestination, bool quiet): I2PTunnel (service, localDestination),
+		m_Endpoint (boost::asio::ip::address::from_string (address), port), m_IsQuiet (quiet)
+	{
+	}
+	
+	void BOBI2POutboundTunnel::Start ()
+	{
+		Accept ();
+	}
+
+	void BOBI2POutboundTunnel::Stop ()
+	{
+		ClearConnections ();
+	}	
+
+	void BOBI2POutboundTunnel::Accept ()
+	{
+		auto localDestination = GetLocalDestination ();	
+		if (localDestination)
+			localDestination->AcceptStreams (std::bind (&BOBI2POutboundTunnel::HandleAccept, this, std::placeholders::_1));
+		else
+			LogPrint ("Local destination not set for server tunnel");
+	}
+
+	void BOBI2POutboundTunnel::HandleAccept (std::shared_ptr<i2p::stream::Stream> stream)
+	{
+		if (stream)
+		{	
+			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
+			AddConnection (conn);
+			conn->Connect ();
+			// TODO: 
+		}	
+	}
+
+
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
-		m_IsOpen (true), m_IsOutbound (false), m_Port (0)
+		m_IsOpen (true), m_IsOutbound (false), m_IsQuiet (false), m_Port (0)
 	{
 	}
 
@@ -264,7 +301,7 @@ namespace client
 		auto dest = context.CreateNewLocalDestination (m_Keys, true);
 		I2PTunnel * tunnel = nullptr;
 		if (m_IsOutbound)
-			tunnel = new I2PServerTunnel (m_Owner.GetService (), m_Address, m_Port, dest);		
+			tunnel = new BOBI2POutboundTunnel (m_Owner.GetService (), m_Address, m_Port, dest, m_IsQuiet);		
 		else
 			tunnel = new BOBI2PInboundTunnel (m_Owner.GetService (), m_Port, dest);
 		if (tunnel)
@@ -372,7 +409,14 @@ namespace client
 		m_Port = boost::lexical_cast<int>(operand);
 		SendReplyOK ("inbound port set");
 	}		
-		
+
+	void BOBCommandSession::QuietCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: quiet");
+		m_IsQuiet = true;
+		SendReplyOK ("quiet");
+	}	
+	
 	BOBCommandChannel::BOBCommandChannel (int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
@@ -392,6 +436,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_OUTPORT] = &BOBCommandSession::OutportCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_INHOST] = &BOBCommandSession::InhostCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_INPORT] = &BOBCommandSession::InportCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_QUIET] = &BOBCommandSession::QuietCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()
