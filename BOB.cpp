@@ -18,6 +18,7 @@ namespace client
 
 	BOBI2PInboundTunnel::~BOBI2PInboundTunnel ()
 	{
+		Stop ();
 	}
 
 	void BOBI2PInboundTunnel::Start ()
@@ -153,7 +154,8 @@ namespace client
 		if (ecode)
 		{
 			LogPrint ("BOB command channel read error: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}	
 		else
 		{	
@@ -208,7 +210,8 @@ namespace client
 		if (ecode)
         {
 			LogPrint ("BOB command channel send error: ", ecode.message ());
-			Terminate ();
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate ();
 		}
 		else
 		{
@@ -277,6 +280,7 @@ namespace client
 		if (tunnel)
 		{
 			tunnel->Stop ();
+			tunnel->GetLocalDestination ()->Stop ();
 			SendReplyOK ("tunnel stopping");
 		}
 		else
@@ -287,7 +291,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: setnick");
 		m_Nickname = operand;
-		std::string msg ("Nickname set to");
+		std::string msg ("Nickname set to ");
 		msg += operand;
 		SendReplyOK (msg.c_str ());
 	}	
@@ -295,10 +299,12 @@ namespace client
 	void BOBCommandSession::GetNickCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: getnick");
-		if (m_Owner.FindTunnel (operand))
+		auto tunnel = m_Owner.FindTunnel (operand); 
+		if (tunnel)
 		{
+			m_Keys = tunnel->GetLocalDestination ()->GetPrivateKeys ();
 			m_Nickname = operand;
-			std::string msg ("Nickname set to");
+			std::string msg ("Nickname set to ");
 			msg += operand;
 			SendReplyOK (msg.c_str ());
 		}
