@@ -179,7 +179,10 @@ namespace client
 				if (it != handlers.end ())
 					(this->*(it->second))(operand, eol - operand);
 				else	
+				{
 					LogPrint (eLogError, "BOB unknown command ", m_ReceiveBuffer);
+					SendReplyError ("unknown command");
+				}
 
 				m_ReceiveBufferOffset = size - (eol - m_ReceiveBuffer) - 1;
 				memmove (m_ReceiveBuffer, eol + 1, m_ReceiveBufferOffset);
