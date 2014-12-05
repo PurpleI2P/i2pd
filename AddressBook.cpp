@@ -188,7 +188,8 @@ namespace client
 		}	
 		// if not .b32 we assume full base64 address
 		i2p::data::IdentityEx dest;
-		dest.FromBase64 (address); 
+		if (!dest.FromBase64 (address))
+			return false;
 		ident = dest.GetIdentHash ();
 		return true;
 	}

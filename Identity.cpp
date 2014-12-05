@@ -157,14 +157,27 @@ namespace data
 		
 	size_t IdentityEx::FromBuffer (const uint8_t * buf, size_t len)
 	{
+		if (len < DEFAULT_IDENTITY_SIZE)
+		{
+			LogPrint (eLogError, "Identity buffer length ", len, " is too small");
+			return 0;
+		}	
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
 
 		delete[] m_ExtendedBuffer;
 		if (m_StandardIdentity.certificate.length)
 		{
 			m_ExtendedLen = be16toh (m_StandardIdentity.certificate.length);
-			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
-			memcpy (m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
+			if (m_ExtendedLen + DEFAULT_IDENTITY_SIZE <= len)
+			{	
+				m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
+				memcpy (m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
+			}	
+			else
+			{
+				LogPrint (eLogError, "Certificate length ", m_ExtendedLen, " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
+				return 0;
+			}	
 		}		
 		else
 		{

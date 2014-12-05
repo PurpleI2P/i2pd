@@ -79,7 +79,7 @@ namespace data
 		     outCount = 4*n;
 		else
 		     outCount = 4*(n+1);
-		if (outCount > len) return -1;
+		if (outCount > len) return 0;
 		pd = (unsigned char *)OutBuffer;
 		for ( i = 0; i<n; i++ ){
 		     acc_1 = *ps++;
@@ -158,7 +158,7 @@ namespace data
 		     outCount = 3*n;
 		else {
 		     outCount = 0;
-		     return -1;
+		     return 0;
 		}
 		
 		ps = (unsigned char *)(InBuffer + InCount - 1);
