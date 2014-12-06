@@ -192,6 +192,7 @@ namespace client
 			std::placeholders::_1, std::placeholders::_2));
 	}
 
+
 	void BOBCommandSession::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)

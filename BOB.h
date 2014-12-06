@@ -162,6 +162,7 @@ namespace client
 			int m_Port;
 			i2p::data::PrivateKeys m_Keys;
 			std::map<std::string, std::string> m_Options; 
+
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
