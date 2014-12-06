@@ -435,6 +435,12 @@ namespace client
 		SendReplyOK (addr.ToBase64 ().c_str ());
 	}
 
+	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: clear");
+		// TODO
+		SendReplyOK ("cleared");
+	}	
 
 	BOBCommandChannel::BOBCommandChannel (int port):
 		m_IsRunning (false), m_Thread (nullptr),
@@ -457,6 +463,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_INPORT] = &BOBCommandSession::InportCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_QUIET] = &BOBCommandSession::QuietCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LOOKUP] = &BOBCommandSession::LookupCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()

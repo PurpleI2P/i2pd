@@ -31,7 +31,8 @@ namespace client
 	const char BOB_COMMAND_INHOST[] = "inhost";	
 	const char BOB_COMMAND_INPORT[] = "inport";
 	const char BOB_COMMAND_QUIET[] = "quiet";
-	const char BOB_COMMAND_LOOKUP[] = "lookup";			
+	const char BOB_COMMAND_LOOKUP[] = "lookup";	
+	const char BOB_COMMAND_CLEAR[] = "clear";	
 
 	const char BOB_VERSION[] = "BOB 00.00.10\nOK\n";	
 	const char BOB_REPLY_OK[] = "OK %s\n";
@@ -121,7 +122,8 @@ namespace client
 			void InportCommandHandler (const char * operand, size_t len);			
 			void QuietCommandHandler (const char * operand, size_t len);	
 			void LookupCommandHandler (const char * operand, size_t len);
-
+			void ClearCommandHandler (const char * operand, size_t len);
+			
 		private:
 
 			void Receive ();
