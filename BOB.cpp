@@ -10,7 +10,7 @@ namespace i2p
 namespace client
 {
 	BOBI2PInboundTunnel::BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination): 
-		I2PTunnel (service, localDestination), 
+		BOBI2PTunnel (service, localDestination), 
 		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_Timer (service), m_ReceivedData (nullptr), m_ReceivedDataLen (0)
 	{
@@ -96,7 +96,7 @@ namespace client
 			}
 			else
 			{
-				LogPrint ("BOB missing inbound address ", ecode.message ());
+				LogPrint ("BOB missing inbound address ", bytes_transferred);
 				delete socket;
 			}			
 		}
@@ -127,7 +127,7 @@ namespace client
 	}
 
 	BOBI2POutboundTunnel::BOBI2POutboundTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-		ClientDestination * localDestination, bool quiet): I2PTunnel (service, localDestination),
+		ClientDestination * localDestination, bool quiet): BOBI2PTunnel (service, localDestination),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port), m_IsQuiet (quiet)
 	{
 	}
@@ -280,7 +280,7 @@ namespace client
 #endif
 		Send (len);	
 	}
-
+		
 	void BOBCommandSession::SendVersion ()
 	{
 		size_t len = strlen (BOB_VERSION);
@@ -288,6 +288,16 @@ namespace client
 		Send (len);
 	}
 
+	void BOBCommandSession::SendData (const char * nickname)
+	{
+#ifdef _MSC_VER
+		size_t len = sprintf_s (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_DATA, nickname);
+#else		
+		size_t len = snprintf (m_SendBuffer, BOB_COMMAND_BUFFER_SIZE, BOB_DATA, nickname);
+#endif
+		Send (len);			
+	}
+		
 	void BOBCommandSession::ZapCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: zap");
@@ -305,7 +315,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
 		auto dest = context.CreateNewLocalDestination (m_Keys, true);
-		I2PTunnel * tunnel = nullptr;
+		BOBI2PTunnel * tunnel = nullptr;
 		if (m_IsOutbound)
 			tunnel = new BOBI2POutboundTunnel (m_Owner.GetService (), m_Address, m_Port, dest, m_IsQuiet);		
 		else
@@ -442,6 +452,21 @@ namespace client
 		SendReplyOK ("cleared");
 	}	
 
+	void BOBCommandSession::ListCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: list");
+		auto& tunnels = m_Owner.GetTunnels ();
+		for (auto it: tunnels)
+			SendData (it.first.c_str ());
+		SendReplyOK ("Listing done");
+	}	
+
+	void BOBCommandSession::OptionCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: option ", operand);
+		SendReplyOK ("option");
+	}	
+		
 	BOBCommandChannel::BOBCommandChannel (int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
@@ -464,6 +489,8 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_QUIET] = &BOBCommandSession::QuietCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LOOKUP] = &BOBCommandSession::LookupCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()
@@ -509,12 +536,12 @@ namespace client
 		}	
 	}
 
-	void BOBCommandChannel::AddTunnel (const std::string& name, I2PTunnel * tunnel)
+	void BOBCommandChannel::AddTunnel (const std::string& name, BOBI2PTunnel * tunnel)
 	{
 		m_Tunnels[name] = tunnel;
 	}	
 
-	I2PTunnel * BOBCommandChannel::FindTunnel (const std::string& name)
+	BOBI2PTunnel * BOBCommandChannel::FindTunnel (const std::string& name)
 	{
 		auto it = m_Tunnels.find (name);
 		if (it != m_Tunnels.end ())

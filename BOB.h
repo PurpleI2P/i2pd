@@ -32,13 +32,27 @@ namespace client
 	const char BOB_COMMAND_INPORT[] = "inport";
 	const char BOB_COMMAND_QUIET[] = "quiet";
 	const char BOB_COMMAND_LOOKUP[] = "lookup";	
-	const char BOB_COMMAND_CLEAR[] = "clear";	
-
+	const char BOB_COMMAND_CLEAR[] = "clear";
+	const char BOB_COMMAND_LIST[] = "list";
+	const char BOB_COMMAND_OPTION[] = "option";
+	
 	const char BOB_VERSION[] = "BOB 00.00.10\nOK\n";	
 	const char BOB_REPLY_OK[] = "OK %s\n";
 	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
+	const char BOB_DATA[] = "NICKNAME %s\n";
 
-	class BOBI2PInboundTunnel: public I2PTunnel
+	class BOBI2PTunnel: public I2PTunnel
+	{
+		public:
+
+			BOBI2PTunnel (boost::asio::io_service& service, ClientDestination * localDestination): 
+				I2PTunnel (service, localDestination) {};
+
+			virtual void Start () {};
+			virtual void Stop () {};				
+	};	
+	
+	class BOBI2PInboundTunnel: public BOBI2PTunnel
 	{
 		public:
 
@@ -70,7 +84,7 @@ namespace client
 			size_t m_ReceivedDataLen; 
 	};
 
-	class BOBI2POutboundTunnel: public I2PTunnel
+	class BOBI2POutboundTunnel: public BOBI2PTunnel
 	{
 		public:
 
@@ -123,6 +137,8 @@ namespace client
 			void QuietCommandHandler (const char * operand, size_t len);	
 			void LookupCommandHandler (const char * operand, size_t len);
 			void ClearCommandHandler (const char * operand, size_t len);
+			void ListCommandHandler (const char * operand, size_t len);
+			void OptionCommandHandler (const char * operand, size_t len);
 			
 		private:
 
@@ -133,7 +149,7 @@ namespace client
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void SendReplyOK (const char * msg);
 			void SendReplyError (const char * msg);
-
+			void SendData (const char * nickname);
 
 		private:
 
@@ -159,9 +175,8 @@ namespace client
 			void Stop ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
-			std::map<std::string, BOBCommandHandler>& GetCommandHandlers () { return m_CommandHandlers; };
-			void AddTunnel (const std::string& name, I2PTunnel * tunnel);
-			I2PTunnel * FindTunnel (const std::string& name);
+			void AddTunnel (const std::string& name, BOBI2PTunnel * tunnel);
+			BOBI2PTunnel * FindTunnel (const std::string& name);
 			
 		private:
 
@@ -175,8 +190,13 @@ namespace client
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
-			std::map<std::string, I2PTunnel *> m_Tunnels;
+			std::map<std::string, BOBI2PTunnel *> m_Tunnels;
 			std::map<std::string, BOBCommandHandler> m_CommandHandlers;
+
+		public:
+
+			const decltype(m_CommandHandlers)& GetCommandHandlers () const { return m_CommandHandlers; };
+			const decltype(m_Tunnels)& GetTunnels () const { return m_Tunnels; };
 	};	
 }
 }
