@@ -81,7 +81,7 @@ namespace client
 			boost::asio::deadline_timer m_Timer;
 			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
 			uint8_t * m_ReceivedData; 
-			size_t m_ReceivedDataLen; 
+			size_t m_ReceivedDataLen, m_ReceiveBufferOffset; 
 	};
 
 	class BOBI2POutboundTunnel: public BOBI2PTunnel
@@ -161,6 +161,7 @@ namespace client
 			std::string m_Nickname, m_Address;
 			int m_Port;
 			i2p::data::PrivateKeys m_Keys;
+			std::map<std::string, std::string> m_Options; 
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 

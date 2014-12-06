@@ -12,7 +12,7 @@ namespace client
 	BOBI2PInboundTunnel::BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination): 
 		BOBI2PTunnel (service, localDestination), 
 		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-		m_Timer (service), m_ReceivedData (nullptr), m_ReceivedDataLen (0)
+		m_Timer (service), m_ReceivedData (nullptr), m_ReceivedDataLen (0), m_ReceiveBufferOffset (0)
 	{
 	}
 
@@ -53,9 +53,10 @@ namespace client
 
 	void BOBI2PInboundTunnel::ReceiveAddress (boost::asio::ip::tcp::socket * socket)
 	{
-		socket->async_read_some (boost::asio::buffer(m_ReceiveBuffer, BOB_COMMAND_BUFFER_SIZE),                
+		socket->async_read_some (boost::asio::buffer(m_ReceiveBuffer + m_ReceiveBufferOffset, 
+				BOB_COMMAND_BUFFER_SIZE - m_ReceiveBufferOffset),                
 			std::bind(&BOBI2PInboundTunnel::HandleReceivedAddress, this, 
-			std::placeholders::_1, std::placeholders::_2, socket));
+				std::placeholders::_1, std::placeholders::_2, socket));
 	}
 	
 	void BOBI2PInboundTunnel::HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
@@ -68,14 +69,15 @@ namespace client
 		}	
 		else
 		{
-			m_ReceiveBuffer[bytes_transferred] = 0;
+			m_ReceiveBufferOffset += bytes_transferred;
+			m_ReceiveBuffer[m_ReceiveBufferOffset] = 0;
 			char * eol = strchr (m_ReceiveBuffer, '\n');
 			if (eol)
 			{
 				*eol = 0;
 				
 				 m_ReceivedData = (uint8_t *)eol + 1;
-				 m_ReceivedDataLen = bytes_transferred - (eol - m_ReceiveBuffer + 1);
+				 m_ReceivedDataLen = m_ReceiveBufferOffset - (eol - m_ReceiveBuffer + 1);
 				i2p::data::IdentHash ident;
 				if (!context.GetAddressBook ().GetIdentHash (m_ReceiveBuffer, ident)) 
 				{
@@ -96,8 +98,13 @@ namespace client
 			}
 			else
 			{
-				LogPrint ("BOB missing inbound address ", bytes_transferred);
-				delete socket;
+				if (m_ReceiveBufferOffset < BOB_COMMAND_BUFFER_SIZE)
+					ReceiveAddress (socket);
+				else
+				{	
+					LogPrint ("BOB missing inbound address ", bytes_transferred);
+					delete socket;
+				}	
 			}			
 		}
 	}
@@ -314,7 +321,7 @@ namespace client
 	void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
-		auto dest = context.CreateNewLocalDestination (m_Keys, true);
+		auto dest = context.CreateNewLocalDestination (m_Keys, true, &m_Options);
 		BOBI2PTunnel * tunnel = nullptr;
 		if (m_IsOutbound)
 			tunnel = new BOBI2POutboundTunnel (m_Owner.GetService (), m_Address, m_Port, dest, m_IsQuiet);		
@@ -464,7 +471,16 @@ namespace client
 	void BOBCommandSession::OptionCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: option ", operand);
-		SendReplyOK ("option");
+		const char * value = strchr (operand, '=');
+		if (value)
+		{	
+			*(const_cast<char *>(value)) = 0;
+			m_Options[operand] = value + 1; 
+			*(const_cast<char *>(value)) = '=';
+			SendReplyOK ("option");
+		}	
+		else
+			SendReplyError ("malformed");
 	}	
 		
 	BOBCommandChannel::BOBCommandChannel (int port):
