@@ -29,6 +29,7 @@ set (SOURCES
   "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
   "${CMAKE_SOURCE_DIR}/SSU.cpp"
   "${CMAKE_SOURCE_DIR}/SSUData.cpp"
+  "${CMAKE_SOURCE_DIR}/SSUSession.cpp" 
   "${CMAKE_SOURCE_DIR}/Streaming.cpp"
   "${CMAKE_SOURCE_DIR}/Destination.cpp"	
   "${CMAKE_SOURCE_DIR}/TransitTunnel.cpp"
