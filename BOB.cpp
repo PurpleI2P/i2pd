@@ -168,10 +168,44 @@ namespace client
 		}	
 	}
 
+	BOBDestination::BOBDestination (boost::asio::io_service& service, ClientDestination& localDestination):
+		m_Service (service), m_LocalDestination (localDestination), 
+		m_OutboundTunnel (nullptr), m_InboundTunnel (nullptr)
+	{
+	}
+		
+	BOBDestination::~BOBDestination ()
+	{
+		delete m_OutboundTunnel;
+		delete m_InboundTunnel;
+	}	
 
+	void BOBDestination::Start ()
+	{
+		if (m_OutboundTunnel) m_OutboundTunnel->Start ();
+		if (m_InboundTunnel) m_InboundTunnel->Start ();
+	}
+		
+	void BOBDestination::Stop ()
+	{		
+		if (m_OutboundTunnel) m_OutboundTunnel->Stop ();
+		if (m_InboundTunnel) m_InboundTunnel->Stop ();
+		m_LocalDestination.Stop ();
+	}	
+
+	void BOBDestination::CreateInboundTunnel (int port)
+	{
+		m_InboundTunnel = new BOBI2PInboundTunnel (m_Service, port, &m_LocalDestination);
+	}
+		
+	void BOBDestination::CreateOutboundTunnel (const std::string& address, int port, bool quiet)
+	{
+		m_OutboundTunnel = new BOBI2POutboundTunnel (m_Service, address, port, &m_LocalDestination, quiet);
+	}	
+		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
-		m_IsOpen (true), m_IsOutbound (false), m_IsQuiet (false), m_Port (0)
+		m_IsOpen (true), m_IsQuiet (false), m_InPort (0), m_OutPort (0) 
 	{
 	}
 
@@ -191,7 +225,6 @@ namespace client
 			std::bind(&BOBCommandSession::HandleReceived, shared_from_this (), 
 			std::placeholders::_1, std::placeholders::_2));
 	}
-
 
 	void BOBCommandSession::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
@@ -322,29 +355,23 @@ namespace client
 	void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
-		auto dest = context.CreateNewLocalDestination (m_Keys, true, &m_Options);
-		BOBI2PTunnel * tunnel = nullptr;
-		if (m_IsOutbound)
-			tunnel = new BOBI2POutboundTunnel (m_Owner.GetService (), m_Address, m_Port, dest, m_IsQuiet);		
-		else
-			tunnel = new BOBI2PInboundTunnel (m_Owner.GetService (), m_Port, dest);
-		if (tunnel)
-		{
-			m_Owner.AddTunnel (m_Nickname, tunnel);
-			tunnel->Start ();	
-			SendReplyOK ("tunnel starting");
-		}
-		else
-			SendReplyError ("failed to create tunnel");	
+		BOBDestination * dest = new BOBDestination (m_Owner.GetService (),
+			*context.CreateNewLocalDestination (m_Keys, true, &m_Options));
+		if (m_InPort)
+			dest->CreateInboundTunnel (m_InPort);
+		if (m_OutPort && !m_Address.empty ())
+			dest->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
+		m_Owner.AddDestination (m_Nickname, dest);
+		dest->Start ();	
+		SendReplyOK ("tunnel starting");	
 	}	
 	
 	void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
 	{
-		auto tunnel = m_Owner.FindTunnel (m_Nickname);
-		if (tunnel)
+		auto dest = m_Owner.FindDestination (m_Nickname);
+		if (dest)
 		{
-			tunnel->Stop ();
-			tunnel->GetLocalDestination ()->Stop ();
+			dest->Stop ();
 			SendReplyOK ("tunnel stopping");
 		}
 		else
@@ -353,7 +380,7 @@ namespace client
 	
 	void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: setnick");
+		LogPrint (eLogDebug, "BOB: setnick ", operand);
 		m_Nickname = operand;
 		std::string msg ("Nickname set to ");
 		msg += operand;
@@ -362,11 +389,11 @@ namespace client
 
 	void BOBCommandSession::GetNickCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: getnick");
-		auto tunnel = m_Owner.FindTunnel (operand); 
-		if (tunnel)
+		LogPrint (eLogDebug, "BOB: getnick ", operand);
+		auto dest = m_Owner.FindDestination (operand); 
+		if (dest)
 		{
-			m_Keys = tunnel->GetLocalDestination ()->GetPrivateKeys ();
+			m_Keys = dest->GetKeys ();
 			m_Nickname = operand;
 			std::string msg ("Nickname set to ");
 			msg += operand;
@@ -385,7 +412,7 @@ namespace client
 
 	void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: setkeys");
+		LogPrint (eLogDebug, "BOB: setkeys ", operand);
 		m_Keys.FromBase64 (operand);
 		SendReplyOK ("keys set");
 	}
@@ -404,33 +431,29 @@ namespace client
 		
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: outhost");
-		m_IsOutbound = true;
+		LogPrint (eLogDebug, "BOB: outhost ", operand);
 		m_Address = operand;
 		SendReplyOK ("outhost set");
 	}
 		
 	void BOBCommandSession::OutportCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: outport");
-		m_IsOutbound = true;
-		m_Port = boost::lexical_cast<int>(operand);
+		LogPrint (eLogDebug, "BOB: outport ", operand);
+		m_OutPort = boost::lexical_cast<int>(operand);
 		SendReplyOK ("outbound port set");
 	}	
 
 	void BOBCommandSession::InhostCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: inhost");
-		m_IsOutbound = false;
+		LogPrint (eLogDebug, "BOB: inhost ", operand);
 		m_Address = operand;
 		SendReplyOK ("inhost set");
 	}
 		
 	void BOBCommandSession::InportCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: inport");
-		m_IsOutbound = false;
-		m_Port = boost::lexical_cast<int>(operand);
+		LogPrint (eLogDebug, "BOB: inport ", operand);
+		m_InPort = boost::lexical_cast<int>(operand);
 		SendReplyOK ("inbound port set");
 	}		
 
@@ -443,7 +466,7 @@ namespace client
 	
 	void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: lookup");
+		LogPrint (eLogDebug, "BOB: lookup ", operand);
 		i2p::data::IdentityEx addr;
 		if (!context.GetAddressBook ().GetAddress (operand, addr)) 
 		{
@@ -463,8 +486,8 @@ namespace client
 	void BOBCommandSession::ListCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: list");
-		auto& tunnels = m_Owner.GetTunnels ();
-		for (auto it: tunnels)
+		auto& destinations = m_Owner.GetDestinations ();
+		for (auto it: destinations)
 			SendData (it.first.c_str ());
 		SendReplyOK ("Listing done");
 	}	
@@ -513,7 +536,7 @@ namespace client
 	BOBCommandChannel::~BOBCommandChannel ()
 	{
 		Stop ();
-		for (auto it: m_Tunnels)
+		for (auto it: m_Destinations)
 			delete it.second;
 	}
 
@@ -526,7 +549,7 @@ namespace client
 
 	void BOBCommandChannel::Stop ()
 	{
-		for (auto it: m_Tunnels)
+		for (auto it: m_Destinations)
 			it.second->Stop ();
 		m_IsRunning = false;
 		m_Service.stop ();
@@ -553,15 +576,15 @@ namespace client
 		}	
 	}
 
-	void BOBCommandChannel::AddTunnel (const std::string& name, BOBI2PTunnel * tunnel)
+	void BOBCommandChannel::AddDestination (const std::string& name, BOBDestination * dest)
 	{
-		m_Tunnels[name] = tunnel;
+		m_Destinations[name] = dest;
 	}	
 
-	BOBI2PTunnel * BOBCommandChannel::FindTunnel (const std::string& name)
+	BOBDestination * BOBCommandChannel::FindDestination (const std::string& name)
 	{
-		auto it = m_Tunnels.find (name);
-		if (it != m_Tunnels.end ())
+		auto it = m_Destinations.find (name);
+		if (it != m_Destinations.end ())
 			return it->second;
 		return nullptr;	
 	}

@@ -107,6 +107,28 @@ namespace client
 			bool m_IsQuiet;	
 	};
 
+
+	class BOBDestination
+	{
+		public:
+
+			BOBDestination (boost::asio::io_service& service, ClientDestination& localDestination);
+			~BOBDestination ();
+
+			void Start ();
+			void Stop ();
+			void CreateInboundTunnel (int port);
+			void CreateOutboundTunnel (const std::string& address, int port, bool quiet);
+			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination.GetPrivateKeys (); };
+			
+		private:	
+
+			boost::asio::io_service& m_Service;
+			ClientDestination& m_LocalDestination;
+			BOBI2POutboundTunnel * m_OutboundTunnel;
+			BOBI2PInboundTunnel * m_InboundTunnel;
+	};	
+	
 	class BOBCommandChannel;
 	class BOBCommandSession: public std::enable_shared_from_this<BOBCommandSession>
 	{
@@ -157,12 +179,11 @@ namespace client
 			boost::asio::ip::tcp::socket m_Socket;
 			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1], m_SendBuffer[BOB_COMMAND_BUFFER_SIZE + 1];
 			size_t m_ReceiveBufferOffset;
-			bool m_IsOpen, m_IsOutbound, m_IsQuiet;
+			bool m_IsOpen, m_IsQuiet;
 			std::string m_Nickname, m_Address;
-			int m_Port;
+			int m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;
 			std::map<std::string, std::string> m_Options; 
-
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
@@ -177,8 +198,8 @@ namespace client
 			void Stop ();
 
 			boost::asio::io_service& GetService () { return m_Service; };
-			void AddTunnel (const std::string& name, BOBI2PTunnel * tunnel);
-			BOBI2PTunnel * FindTunnel (const std::string& name);
+			void AddDestination (const std::string& name, BOBDestination * dest);
+			BOBDestination * FindDestination (const std::string& name);
 			
 		private:
 
@@ -192,13 +213,13 @@ namespace client
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
-			std::map<std::string, BOBI2PTunnel *> m_Tunnels;
+			std::map<std::string, BOBDestination *> m_Destinations;
 			std::map<std::string, BOBCommandHandler> m_CommandHandlers;
 
 		public:
 
 			const decltype(m_CommandHandlers)& GetCommandHandlers () const { return m_CommandHandlers; };
-			const decltype(m_Tunnels)& GetTunnels () const { return m_Tunnels; };
+			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
 	};	
 }
 }
