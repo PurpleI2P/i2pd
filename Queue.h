@@ -142,8 +142,8 @@ namespace util
 		private:
 			
 			volatile bool m_IsRunning;
-			std::thread m_Thread;	
 			OnEmpty m_OnEmpty;
+			std::thread m_Thread;	
 	};	
 }		
 }	
