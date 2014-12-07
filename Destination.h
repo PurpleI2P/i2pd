@@ -95,6 +95,7 @@ namespace client
 			i2p::data::LeaseSet * m_LeaseSet;
 			bool m_IsPublic;
 			uint32_t m_PublishReplyToken;
+			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
 			
 			i2p::stream::StreamingDestination * m_StreamingDestination;
 			i2p::datagram::DatagramDestination * m_DatagramDestination;

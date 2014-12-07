@@ -234,6 +234,7 @@ namespace client
 		if (msgID == m_PublishReplyToken)
 		{
 			LogPrint (eLogDebug, "Publishing confirmed");
+			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
 			i2p::DeleteI2NPMessage (msg);
 		}
@@ -268,12 +269,14 @@ namespace client
 			return;
 		}
 		std::set<i2p::data::IdentHash> excluded; 
-		auto floodfill = i2p::data::netdb.GetClosestFloodfill (m_LeaseSet->GetIdentHash (), excluded);	
+		auto floodfill = i2p::data::netdb.GetClosestFloodfill (m_LeaseSet->GetIdentHash (), m_ExcludedFloodfills);	
 		if (!floodfill)
 		{
-			LogPrint ("Can't publish LeaseSet. No floodfills found");
+			LogPrint ("Can't publish LeaseSet. No more floodfills found");
+			m_ExcludedFloodfills.clear ();
 			return;
 		}	
+		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		m_PublishReplyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		auto msg = WrapMessage (*floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));	
