@@ -424,7 +424,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: setkeys ", operand);
 		m_Keys.FromBase64 (operand);
-		SendReplyOK ("keys set");
+		SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
 	}
 		
 	void BOBCommandSession::GetkeysCommandHandler (const char * operand, size_t len)
