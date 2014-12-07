@@ -54,6 +54,16 @@ namespace client
 	
 	class BOBI2PInboundTunnel: public BOBI2PTunnel
 	{
+			struct AddressReceiver
+			{
+				boost::asio::ip::tcp::socket * socket;
+				char buffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
+				uint8_t * data; 
+				size_t dataLen, bufferOffset; 
+
+				AddressReceiver (): data (nullptr), dataLen (0), bufferOffset (0) {};
+			};	
+		
 		public:
 
 			BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination);
@@ -65,23 +75,20 @@ namespace client
 		private:
 
 			void Accept ();
-			void HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+			void HandleAccept (const boost::system::error_code& ecode, AddressReceiver * receiver);
 
-			void ReceiveAddress (boost::asio::ip::tcp::socket * socket);
+			void ReceiveAddress (AddressReceiver * receiver);
 			void HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-				boost::asio::ip::tcp::socket * socket);
+				AddressReceiver * receiver);
 
-			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket, i2p::data::IdentHash ident);
+			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, AddressReceiver * receiver, i2p::data::IdentHash ident);
 
-			void CreateConnection (boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet);
+			void CreateConnection (AddressReceiver * receiver, const i2p::data::LeaseSet * leaseSet);
 
 		private:
 
 			boost::asio::ip::tcp::acceptor m_Acceptor;	
 			boost::asio::deadline_timer m_Timer;
-			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
-			uint8_t * m_ReceivedData; 
-			size_t m_ReceivedDataLen, m_ReceiveBufferOffset; 
 	};
 
 	class BOBI2POutboundTunnel: public BOBI2PTunnel

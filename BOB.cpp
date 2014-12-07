@@ -12,7 +12,7 @@ namespace client
 	BOBI2PInboundTunnel::BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination): 
 		BOBI2PTunnel (service, localDestination), 
 		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-		m_Timer (service), m_ReceivedData (nullptr), m_ReceivedDataLen (0), m_ReceiveBufferOffset (0)
+		m_Timer (service)
 	{
 	}
 
@@ -35,102 +35,112 @@ namespace client
 
 	void BOBI2PInboundTunnel::Accept ()
 	{
-		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
-		m_Acceptor.async_accept (*newSocket, std::bind (&BOBI2PInboundTunnel::HandleAccept, this,
-			std::placeholders::_1, newSocket));
+		auto receiver = new AddressReceiver ();
+		receiver->socket = new boost::asio::ip::tcp::socket (GetService ());
+		m_Acceptor.async_accept (*receiver->socket, std::bind (&BOBI2PInboundTunnel::HandleAccept, this,
+			std::placeholders::_1, receiver));
 	}	
 
-	void BOBI2PInboundTunnel::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
+	void BOBI2PInboundTunnel::HandleAccept (const boost::system::error_code& ecode, AddressReceiver * receiver)
 	{
 		if (!ecode)
 		{
 			Accept ();	
-			ReceiveAddress (socket);
+			ReceiveAddress (receiver);
 		}
 		else
-			delete socket;
+		{	
+			delete receiver->socket;
+			delete receiver;
+		}	
 	}
 
-	void BOBI2PInboundTunnel::ReceiveAddress (boost::asio::ip::tcp::socket * socket)
+	void BOBI2PInboundTunnel::ReceiveAddress (AddressReceiver * receiver)
 	{
-		socket->async_read_some (boost::asio::buffer(m_ReceiveBuffer + m_ReceiveBufferOffset, 
-				BOB_COMMAND_BUFFER_SIZE - m_ReceiveBufferOffset),                
+		receiver->socket->async_read_some (boost::asio::buffer(
+		        receiver->buffer + receiver->bufferOffset, 
+				BOB_COMMAND_BUFFER_SIZE - receiver->bufferOffset),                
 			std::bind(&BOBI2PInboundTunnel::HandleReceivedAddress, this, 
-				std::placeholders::_1, std::placeholders::_2, socket));
+				std::placeholders::_1, std::placeholders::_2, receiver));
 	}
 	
 	void BOBI2PInboundTunnel::HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-		boost::asio::ip::tcp::socket * socket)
+		AddressReceiver * receiver)
 	{
 		if (ecode)
 		{
 			LogPrint ("BOB inbound tunnel read error: ", ecode.message ());
-			delete socket;
+			delete receiver->socket;
+			delete receiver;
 		}	
 		else
 		{
-			m_ReceiveBufferOffset += bytes_transferred;
-			m_ReceiveBuffer[m_ReceiveBufferOffset] = 0;
-			char * eol = strchr (m_ReceiveBuffer, '\n');
+			receiver->bufferOffset += bytes_transferred;
+			receiver->buffer[receiver->bufferOffset] = 0;
+			char * eol = strchr (receiver->buffer, '\n');
 			if (eol)
 			{
 				*eol = 0;
 				
-				 m_ReceivedData = (uint8_t *)eol + 1;
-				 m_ReceivedDataLen = m_ReceiveBufferOffset - (eol - m_ReceiveBuffer + 1);
+				receiver->data = (uint8_t *)eol + 1;
+				receiver->dataLen = receiver->bufferOffset - (eol - receiver->buffer + 1);
 				i2p::data::IdentHash ident;
-				if (!context.GetAddressBook ().GetIdentHash (m_ReceiveBuffer, ident)) 
+				if (!context.GetAddressBook ().GetIdentHash (receiver->buffer, ident)) 
 				{
-					LogPrint (eLogError, "BOB address ", m_ReceiveBuffer, " not found");
-					delete socket;
+					LogPrint (eLogError, "BOB address ", receiver->buffer, " not found");
+					delete receiver->socket;
+					delete receiver;
 					return;
 				}
 				auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
 				if (leaseSet)
-					CreateConnection (socket, leaseSet);
+					CreateConnection (receiver, leaseSet);
 				else
 				{
 					i2p::data::netdb.RequestDestination (ident, true, GetLocalDestination ()->GetTunnelPool ());
 					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
 					m_Timer.async_wait (std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestTimer,
-						this, std::placeholders::_1, socket, ident));
+						this, std::placeholders::_1, receiver, ident));
 				}
 			}
 			else
 			{
-				if (m_ReceiveBufferOffset < BOB_COMMAND_BUFFER_SIZE)
-					ReceiveAddress (socket);
+				if (receiver->bufferOffset < BOB_COMMAND_BUFFER_SIZE)
+					ReceiveAddress (receiver);
 				else
 				{	
-					LogPrint ("BOB missing inbound address ", bytes_transferred);
-					delete socket;
+					LogPrint ("BOB missing inbound address ");
+					delete receiver->socket;
+					delete receiver;
 				}	
 			}			
 		}
 	}
 
-	void BOBI2PInboundTunnel::HandleDestinationRequestTimer (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket, i2p::data::IdentHash ident)
+	void BOBI2PInboundTunnel::HandleDestinationRequestTimer (const boost::system::error_code& ecode, AddressReceiver * receiver, i2p::data::IdentHash ident)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
 			if (leaseSet)
 			{
-				CreateConnection (socket, leaseSet);
+				CreateConnection (receiver, leaseSet);
 				return;
 			}
 			else
 				LogPrint ("LeaseSet for BOB inbound destination not found");
 		}
-		delete socket;	
+		delete receiver->socket;
+		delete receiver;
 	}	
 
-	void BOBI2PInboundTunnel::CreateConnection (boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet)
+	void BOBI2PInboundTunnel::CreateConnection (AddressReceiver * receiver, const i2p::data::LeaseSet * leaseSet)
 	{
 		LogPrint ("New BOB inbound connection");
-		auto connection = std::make_shared<I2PTunnelConnection>(this, socket, leaseSet);
+		auto connection = std::make_shared<I2PTunnelConnection>(this, receiver->socket, leaseSet);
 		AddConnection (connection);
-		connection->I2PConnect (m_ReceivedData, m_ReceivedDataLen);
+		connection->I2PConnect (receiver->data, receiver->dataLen);
+		delete receiver;
 	}
 
 	BOBI2POutboundTunnel::BOBI2POutboundTunnel (boost::asio::io_service& service, const std::string& address, int port, 
