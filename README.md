@@ -68,4 +68,5 @@ Options
 * --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default
 * --eepport=            - Port incoming trafic forward to. 80 by default
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
+* --bobport=            - Port of BOB command channel. Usually 2827. BOB is off if not specified
 
