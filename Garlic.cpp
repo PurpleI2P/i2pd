@@ -384,18 +384,24 @@ namespace garlic
 		i2p::tunnel::InboundTunnel * from)
 	{
 		uint16_t tagCount = be16toh (*(uint16_t *)buf);
-		buf += 2;	
+		buf += 2; len -= 2;	
 		if (tagCount > 0)
 		{	
+			if (tagCount*32 > len) 
+			{
+				LogPrint (eLogWarning, "Tag count ", tagCount, " exceeds length ", len);
+				tagCount = len/32;
+			}	
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 			for (int i = 0; i < tagCount; i++)
 				m_Tags[SessionTag(buf + i*32, ts)] = decryption;	
 		}	
 		buf += tagCount*32;
+		len -= tagCount*32;
 		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
 		if (payloadSize > len)
 		{
-			LogPrint ("Unexpected payload size ", payloadSize);
+			LogPrint (eLogError, "Unexpected payload size ", payloadSize);
 			return;
 		}	
 		buf += 4;
