@@ -124,6 +124,7 @@ namespace client
 
 			void Start ();
 			void Stop ();
+			void StopTunnels ();
 			void CreateInboundTunnel (int port);
 			void CreateOutboundTunnel (const std::string& address, int port, bool quiet);
 			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination.GetPrivateKeys (); };
@@ -191,6 +192,7 @@ namespace client
 			int m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;
 			std::map<std::string, std::string> m_Options; 
+			BOBDestination * m_CurrentDestination;
 	};
 	typedef void (BOBCommandSession::*BOBCommandHandler)(const char * operand, size_t len);
 
@@ -206,6 +208,7 @@ namespace client
 
 			boost::asio::io_service& GetService () { return m_Service; };
 			void AddDestination (const std::string& name, BOBDestination * dest);
+			void DeleteDestination (const std::string& name);
 			BOBDestination * FindDestination (const std::string& name);
 			
 		private:

@@ -198,24 +198,42 @@ namespace client
 		
 	void BOBDestination::Stop ()
 	{		
-		if (m_OutboundTunnel) m_OutboundTunnel->Stop ();
-		if (m_InboundTunnel) m_InboundTunnel->Stop ();
+		StopTunnels ();
 		m_LocalDestination.Stop ();
 	}	
 
+	void BOBDestination::StopTunnels ()
+	{
+		if (m_OutboundTunnel)
+		{	
+			m_OutboundTunnel->Stop ();
+			delete m_OutboundTunnel;
+			m_OutboundTunnel = nullptr;
+		}	
+		if (m_InboundTunnel)
+		{	
+			m_InboundTunnel->Stop ();
+			delete m_InboundTunnel;
+			m_InboundTunnel = nullptr;
+		}	
+	}	
+		
 	void BOBDestination::CreateInboundTunnel (int port)
 	{
-		m_InboundTunnel = new BOBI2PInboundTunnel (m_Service, port, &m_LocalDestination);
+		if (!m_InboundTunnel)
+			m_InboundTunnel = new BOBI2PInboundTunnel (m_Service, port, &m_LocalDestination);
 	}
 		
 	void BOBDestination::CreateOutboundTunnel (const std::string& address, int port, bool quiet)
 	{
-		m_OutboundTunnel = new BOBI2POutboundTunnel (m_Service, address, port, &m_LocalDestination, quiet);
+		if (!m_OutboundTunnel)
+			m_OutboundTunnel = new BOBI2POutboundTunnel (m_Service, address, port, &m_LocalDestination, quiet);
 	}	
 		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
-		m_IsOpen (true), m_IsQuiet (false), m_InPort (0), m_OutPort (0) 
+		m_IsOpen (true), m_IsQuiet (false), m_InPort (0), m_OutPort (0),
+		m_CurrentDestination (nullptr)
 	{
 	}
 
@@ -365,14 +383,17 @@ namespace client
 	void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
-		BOBDestination * dest = new BOBDestination (m_Owner.GetService (),
-			*context.CreateNewLocalDestination (m_Keys, true, &m_Options));
+		if (!m_CurrentDestination)
+		{	
+			m_CurrentDestination = new BOBDestination (m_Owner.GetService (),
+				*context.CreateNewLocalDestination (m_Keys, true, &m_Options));
+			m_Owner.AddDestination (m_Nickname, m_CurrentDestination);
+		}	
 		if (m_InPort)
-			dest->CreateInboundTunnel (m_InPort);
+			m_CurrentDestination->CreateInboundTunnel (m_InPort);
 		if (m_OutPort && !m_Address.empty ())
-			dest->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
-		m_Owner.AddDestination (m_Nickname, dest);
-		dest->Start ();	
+			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
+		m_CurrentDestination->Start ();	
 		SendReplyOK ("tunnel starting");	
 	}	
 	
@@ -381,7 +402,7 @@ namespace client
 		auto dest = m_Owner.FindDestination (m_Nickname);
 		if (dest)
 		{
-			dest->Stop ();
+			dest->StopTunnels ();
 			SendReplyOK ("tunnel stopping");
 		}
 		else
@@ -400,10 +421,10 @@ namespace client
 	void BOBCommandSession::GetNickCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: getnick ", operand);
-		auto dest = m_Owner.FindDestination (operand); 
-		if (dest)
+		m_CurrentDestination = m_Owner.FindDestination (operand); 
+		if (m_CurrentDestination)
 		{
-			m_Keys = dest->GetKeys ();
+			m_Keys = m_CurrentDestination->GetKeys ();
 			m_Nickname = operand;
 			std::string msg ("Nickname set to ");
 			msg += operand;
@@ -489,7 +510,7 @@ namespace client
 	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: clear");
-		// TODO
+		m_Owner.DeleteDestination (m_Nickname);
 		SendReplyOK ("cleared");
 	}	
 
@@ -570,7 +591,7 @@ namespace client
 			m_Thread = nullptr;
 		}	
 	}
-
+		
 	void BOBCommandChannel::Run () 
 	{ 
 		while (m_IsRunning)
@@ -591,6 +612,17 @@ namespace client
 		m_Destinations[name] = dest;
 	}	
 
+	void BOBCommandChannel::DeleteDestination (const std::string& name)
+	{
+		auto it = m_Destinations.find (name);
+		if (it != m_Destinations.end ())
+		{
+			it->second->Stop ();
+			delete it->second;
+			m_Destinations.erase (it);
+		}	
+	}	
+		
 	BOBDestination * BOBCommandChannel::FindDestination (const std::string& name)
 	{
 		auto it = m_Destinations.find (name);
