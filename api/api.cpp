@@ -21,9 +21,12 @@ namespace api
 		i2p::context.Init ();	
 	}
 
-	void StartI2P ()
+	void StartI2P (std::ostream * logStream)
 	{
-		StartLog (i2p::util::filesystem::GetAppName () + ".log");
+		if (logStream)
+			StartLog (logStream);
+		else
+			StartLog (i2p::util::filesystem::GetAppName () + ".log");
 		i2p::data::netdb.Start();
 		LogPrint("NetDB started");
 		i2p::transport::transports.Start();

@@ -20,19 +20,24 @@ void LogMsg::Process()
 
 void Log::Flush ()
 {
-	if (m_LogFile)
-		m_LogFile->flush();
+	if (m_LogStream)
+		m_LogStream->flush();
 }
 
 void Log::SetLogFile (const std::string& fullFilePath)
 {
-	if (m_LogFile) delete m_LogFile;
-	m_LogFile = new std::ofstream (fullFilePath, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
-	if (m_LogFile->is_open ())
-		LogPrint("Logging to file ",  fullFilePath, " enabled.");
-	else
+	auto logFile = new std::ofstream (fullFilePath, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+	if (logFile->is_open ())
 	{
-		delete m_LogFile;
-		m_LogFile = nullptr;
-	}
+		SetLogStream (logFile);
+		LogPrint("Logging to file ",  fullFilePath, " enabled.");
+	}	
+	else
+		delete logFile;
+}
+
+void Log::SetLogStream (std::ostream * logStream)
+{
+	if (m_LogStream) delete m_LogStream;	
+	m_LogStream = logStream;
 }
