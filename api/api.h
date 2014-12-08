@@ -18,7 +18,7 @@ namespace api
 	// destinations
 	i2p::client::ClientDestination * CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true); 
 	i2p::client::ClientDestination * CreateLocalDestination (bool isPublic = false, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256); // transient destinations usually not published
-	void DestoroyLocalDestination (i2p::client::ClientDestination * dest);
+	void DestroyLocalDestination (i2p::client::ClientDestination * dest);
 
 	// streams
 	void RequestLeaseSet (i2p::client::ClientDestination * dest, const i2p::data::IdentHash& remote);
