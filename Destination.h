@@ -65,6 +65,7 @@ namespace client
 			void HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
 
 			// override GarlicDestination
+			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
 			void ProcessGarlicMessage (I2NPMessage * msg);
 			void ProcessDeliveryStatusMessage (I2NPMessage * msg);	
 			void SetLeaseSetUpdated ();

@@ -322,6 +322,12 @@ namespace garlic
 		}
 	}
 
+	bool GarlicDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag) 
+	{
+		AddSessionKey (key, tag);
+		return true;
+	}
+
 	void GarlicDestination::HandleGarlicMessage (I2NPMessage * msg)
 	{
 		uint8_t * buf = msg->GetPayload ();
@@ -389,8 +395,8 @@ namespace garlic
 		{	
 			if (tagCount*32 > len) 
 			{
-				LogPrint (eLogWarning, "Tag count ", tagCount, " exceeds length ", len);
-				tagCount = len/32;
+				LogPrint (eLogError, "Tag count ", tagCount, " exceeds length ", len);
+				return ;
 			}	
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 			for (int i = 0; i < tagCount; i++)

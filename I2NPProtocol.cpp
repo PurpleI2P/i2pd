@@ -161,7 +161,7 @@ namespace i2p
 			buf[32] = 1; // 1 tag
 			rnd.GenerateBlock (buf + 33, 32); // tag
 			if (pool)
-				pool->GetGarlicDestination ().AddSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
+				pool->GetGarlicDestination ().SubmitSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
 			else
 				LogPrint ("Destination for encrypteed reply not specified");
 			buf += 65;

@@ -110,6 +110,7 @@ namespace garlic
 			    I2NPMessage * msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
+			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID);
 			
 			virtual void ProcessGarlicMessage (I2NPMessage * msg);

@@ -163,6 +163,26 @@ namespace client
 		}	
 	}	
 
+	bool ClientDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)
+	{
+		if (m_Service)
+		{
+			uint8_t k[32], t[32];
+			memcpy (k, key, 32);
+			memcpy (t, tag, 32);
+			m_Service->post ([this,k,t](void)
+				{
+					this->AddSessionKey (k, t);
+				});
+			return true;
+		}
+		else
+		{
+			LogPrint (eLogWarning, "Destination's thread is not running");
+			return false;
+		}
+	}
+
 	void ClientDestination::ProcessGarlicMessage (I2NPMessage * msg)
 	{
 		if (m_Service)
