@@ -79,7 +79,8 @@ namespace api
 
 	std::shared_ptr<i2p::stream::Stream> CreateStream (i2p::client::ClientDestination * dest, const i2p::data::IdentHash& remote)
 	{
-		auto leaseSet = i2p::data::netdb.FindLeaseSet (remote);
+		if (!dest) return nullptr;
+		auto leaseSet = dest->FindLeaseSet (remote);
 		if (leaseSet)
 		{
 			auto stream = dest->CreateStream (*leaseSet);
