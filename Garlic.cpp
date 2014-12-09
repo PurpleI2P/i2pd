@@ -279,7 +279,7 @@ namespace garlic
 					uint8_t key[32], tag[32];
 					m_Rnd.GenerateBlock (key, 32); // random session key 
 					m_Rnd.GenerateBlock (tag, 32); // random session tag
-					m_Owner->AddSessionKey (key, tag);
+					m_Owner->SubmitSessionKey (key, tag);
 					GarlicRoutingSession garlic (key, tag);
 					msg = garlic.WrapSingleMessage (msg);		
 				}
