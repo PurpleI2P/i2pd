@@ -6,6 +6,7 @@
 #include "I2PEndian.h"
 #include "Reseed.h"
 #include "Log.h"
+#include "Identity.h"
 #include "util.h"
 
 
@@ -121,6 +122,8 @@ namespace data
 		return false;
 	}	
 
+	
+	const char SU3_MAGIC_NUMBER[]="I2Psu3";	
 	void ProcessSU3File (const char * filename)
 	{
 		static uint32_t headerSignature = htole32 (0x04044B50);
@@ -128,6 +131,50 @@ namespace data
 		std::ifstream s(filename, std::ifstream::binary);
 		if (s.is_open ())	
 		{	
+			char magicNumber[7];
+			s.read (magicNumber, 7); // magic number and zero byte 6
+			if (strcmp (magicNumber, SU3_MAGIC_NUMBER))
+			{
+				LogPrint (eLogError, "Unexpected SU3 magic number");	
+				return;
+			}			
+			SigningKeyType signatureType;
+			s.read ((char *)&signatureType, 2);  // signature type
+			signatureType = be16toh (signatureType);
+			uint16_t signatureLength;
+			s.read ((char *)&signatureLength, 2);  // signature length
+			signatureLength = be16toh (signatureLentgh);
+			s.seekg (1, std::ios::cur); // unused
+			uint8_t versionLength;
+			s.read ((char *)&versionLength, 1);  // version length	
+			s.seekg (1, std::ios::cur); // unused
+			uint8_t signerIDLength;
+			s.read ((char *)&signerIDLength, 1);  // signer ID length	
+			uint16_t contentLength;
+			s.read ((char *)&contentLength, 2);  // content length	
+			contentLength = be16toh (contentLength);
+			s.seekg (1, std::ios::cur); // unused
+			uint8_t fileType;
+			s.read ((char *)&fileType, 1);  // file type	
+			if (fileType != 0x00) //  zip file
+			{
+				LogPrint (eLogError, "Can't handle file type ", fileType);	
+				return;
+			}
+			s.seekg (1, std::ios::cur); // unused
+			uint8_t contentType;
+			s.read ((char *)&contentType, 1);  // content type	
+			if (contentType != 0x03) // reseed data
+			{
+				LogPrint (eLogError, "Unexpected content type ", contentType);	
+				return;
+			}
+			s.seekg (2, std::ios::cur); // unused
+
+			s.seek (versionLength, std::ios::cur); // skip version
+			s.seek (signerIDLength, std::ios::cur); // skip signer ID
+
+			// handle content
 			while (!s.eof ())
 			{
 				uint32_t signature;
