@@ -167,12 +167,15 @@ namespace client
 	{
 		if (m_Service)
 		{
-			uint8_t k[32], t[32];
-			memcpy (k, key, 32);
-			memcpy (t, tag, 32);
-			m_Service->post ([this,k,t](void)
+			struct
+			{
+				uint8_t k[32], t[32];
+			} data;	
+			memcpy (data.k, key, 32);
+			memcpy (data.t, tag, 32);
+			m_Service->post ([this,data](void)
 				{
-					this->AddSessionKey (k, t);
+					this->AddSessionKey (data.k, data.t);
 				});
 			return true;
 		}
