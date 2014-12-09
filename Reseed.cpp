@@ -143,7 +143,7 @@ namespace data
 			signatureType = be16toh (signatureType);
 			uint16_t signatureLength;
 			s.read ((char *)&signatureLength, 2);  // signature length
-			signatureLength = be16toh (signatureLentgh);
+			signatureLength = be16toh (signatureLength);
 			s.seekg (1, std::ios::cur); // unused
 			uint8_t versionLength;
 			s.read ((char *)&versionLength, 1);  // version length	
@@ -171,8 +171,8 @@ namespace data
 			}
 			s.seekg (2, std::ios::cur); // unused
 
-			s.seek (versionLength, std::ios::cur); // skip version
-			s.seek (signerIDLength, std::ios::cur); // skip signer ID
+			s.seekg (versionLength, std::ios::cur); // skip version
+			s.seekg (signerIDLength, std::ios::cur); // skip signer ID
 
 			// handle content
 			while (!s.eof ())
