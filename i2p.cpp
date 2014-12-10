@@ -5,5 +5,15 @@
 
 int main( int argc, char* argv[] )
 {
-	i2p::data::ProcessSU3File ("/home/roman/tmp/i2pseeds.su3");
+	Daemon.init(argc, argv);
+	if (Daemon.start())
+	{
+		while (Daemon.running)
+		{
+			//TODO Meeh: Find something better to do here.
+			std::this_thread::sleep_for (std::chrono::seconds(1));
+		}
+	}
+	Daemon.stop();
+	return EXIT_SUCCESS;
 }
