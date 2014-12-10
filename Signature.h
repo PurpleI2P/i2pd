@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <cryptopp/dsa.h>
+#include <cryptopp/rsa.h>
 #include <cryptopp/asn.h>
 #include <cryptopp/oids.h>
 #include <cryptopp/osrng.h>
@@ -230,7 +231,39 @@ namespace crypto
 	{
 		CreateECDSARandomKeys<CryptoPP::SHA512> (rnd, CryptoPP::ASN1::secp521r1(), ECDSAP521_KEY_LENGTH, signingPrivateKey, signingPublicKey);
 	}
-	
+
+// RSA
+	template<typename Hash, size_t keyLength>	
+	class RSAVerifier: public Verifier
+	{
+		public:
+
+			RSAVerifier (const uint8_t * signingKey)
+			{
+				// TODO
+			}
+
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const 
+			{
+				typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Verifier verifier (m_PublicKey);
+				return verifier.VerifyMessage (buf, len, signature, keyLength); // signature length
+			}
+			size_t GetPublicKeyLen () const { return keyLength; }
+			size_t GetSignatureLen () const { return keyLength; }	
+
+		private:
+			
+			CryptoPP::RSA::PublicKey m_PublicKey;			
+	};	
+
+//  RSA_SHA256_2048
+	const size_t RSASHA2562048_KEY_LENGTH =256;
+	class RSASHA2562048Verifier: public RSAVerifier<CryptoPP::SHA256, RSASHA2562048_KEY_LENGTH> 
+	{
+		public:
+
+			RSASHA2562048Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) {};
+	};
 }
 }
 

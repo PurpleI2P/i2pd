@@ -113,6 +113,9 @@ namespace data
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA512_P521 = 3;
+	const uint16_t SIGNING_KEY_TYPE_RSA_SHA256_2048 = 4;
+	const uint16_t SIGNING_KEY_TYPE_RSA_SHA384_3072 = 5;
+	const uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;	
 	
