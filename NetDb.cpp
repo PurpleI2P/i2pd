@@ -30,7 +30,7 @@ namespace data
 		if (m_IsLeaseSet) // wrap lookup message into garlic
 		{
 			if (m_Pool)
-				msg = m_Pool->GetGarlicDestination ().WrapMessage (*router, msg);
+				msg = m_Pool->GetLocalDestination ().WrapMessage (*router, msg);
 			else
 				LogPrint ("Can't create garlic message without destination");
 		}	

@@ -5,7 +5,6 @@
 #include "ClientContext.h"
 #include "BOB.h"
 
-
 namespace i2p
 {
 namespace client
