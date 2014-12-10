@@ -30,9 +30,8 @@ namespace tunnel
 			~TunnelPool ();
 
 			const uint8_t * GetEncryptionPrivateKey () const { return m_LocalDestination.GetEncryptionPrivateKey (); };
-			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };
-			const i2p::data::LocalDestination& GetLocalDestination () const { return m_LocalDestination; };			
-			i2p::garlic::GarlicDestination& GetGarlicDestination () const { return m_LocalDestination; };	
+			const uint8_t * GetEncryptionPublicKey () const { return m_LocalDestination.GetEncryptionPublicKey (); };		
+			i2p::garlic::GarlicDestination& GetLocalDestination () const { return m_LocalDestination; };	
 			bool IsExploratory () const { return GetIdentHash () == i2p::context.GetIdentHash (); };		
 
 			void CreateTunnels ();
