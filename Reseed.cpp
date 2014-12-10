@@ -126,7 +126,7 @@ namespace data
 	const char SU3_MAGIC_NUMBER[]="I2Psu3";	
 	void ProcessSU3File (const char * filename)
 	{
-		static uint32_t headerSignature = htole32 (0x04044B50);
+		static uint32_t headerSignature = htole32 (0x04034B50);
 
 		std::ifstream s(filename, std::ifstream::binary);
 		if (s.is_open ())	
@@ -150,9 +150,9 @@ namespace data
 			s.seekg (1, std::ios::cur); // unused
 			uint8_t signerIDLength;
 			s.read ((char *)&signerIDLength, 1);  // signer ID length	
-			uint16_t contentLength;
-			s.read ((char *)&contentLength, 2);  // content length	
-			contentLength = be16toh (contentLength);
+			uint64_t contentLength;
+			s.read ((char *)&contentLength, 8);  // content length	
+			contentLength = be64toh (contentLength);
 			s.seekg (1, std::ios::cur); // unused
 			uint8_t fileType;
 			s.read ((char *)&fileType, 1);  // file type	
@@ -169,14 +169,16 @@ namespace data
 				LogPrint (eLogError, "Unexpected content type ", contentType);	
 				return;
 			}
-			s.seekg (2, std::ios::cur); // unused
+			s.seekg (12, std::ios::cur); // unused
 
 			s.seekg (versionLength, std::ios::cur); // skip version
 			s.seekg (signerIDLength, std::ios::cur); // skip signer ID
 
+			size_t contentRead = 0;
 			// handle content
-			while (!s.eof ())
+			while (contentRead < contentLength && !s.eof ())
 			{
+				size_t start = s.tellg ();	
 				uint32_t signature;
 				s.read ((char *)&signature, 4);
 				if (signature == headerSignature)
@@ -200,6 +202,8 @@ namespace data
 
 					uint8_t * compressed = new uint8_t[compressedSize];
 					s.read ((char *)compressed, compressedSize);
+					contentRead = s.tellg () - start;
+
 					CryptoPP::Gunzip decompressor;
 					decompressor.Put (compressed, compressedSize);
 					delete[] compressed;	
