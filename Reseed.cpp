@@ -2,7 +2,7 @@
 #include <fstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
-#include <cryptopp/gzip.h>
+#include <cryptopp/zinflate.h>
 #include "I2PEndian.h"
 #include "Reseed.h"
 #include "Log.h"
@@ -138,6 +138,7 @@ namespace data
 				LogPrint (eLogError, "Unexpected SU3 magic number");	
 				return;
 			}			
+			s.seekg (1, std::ios::cur); // su3 file format version
 			SigningKeyType signatureType;
 			s.read ((char *)&signatureType, 2);  // signature type
 			signatureType = be16toh (signatureType);
@@ -158,7 +159,7 @@ namespace data
 			s.read ((char *)&fileType, 1);  // file type	
 			if (fileType != 0x00) //  zip file
 			{
-				LogPrint (eLogError, "Can't handle file type ", fileType);	
+				LogPrint (eLogError, "Can't handle file type ", (int)fileType);	
 				return;
 			}
 			s.seekg (1, std::ios::cur); // unused
@@ -166,7 +167,7 @@ namespace data
 			s.read ((char *)&contentType, 1);  // content type	
 			if (contentType != 0x03) // reseed data
 			{
-				LogPrint (eLogError, "Unexpected content type ", contentType);	
+				LogPrint (eLogError, "Unexpected content type ", (int)contentType);	
 				return;
 			}
 			s.seekg (12, std::ios::cur); // unused
@@ -174,11 +175,10 @@ namespace data
 			s.seekg (versionLength, std::ios::cur); // skip version
 			s.seekg (signerIDLength, std::ios::cur); // skip signer ID
 
-			size_t contentRead = 0;
 			// handle content
-			while (contentRead < contentLength && !s.eof ())
-			{
-				size_t start = s.tellg ();	
+			size_t contentPos = s.tellg ();
+			while (!s.eof ())
+			{	
 				uint32_t signature;
 				s.read ((char *)&signature, 4);
 				if (signature == headerSignature)
@@ -199,12 +199,11 @@ namespace data
 					s.read (localFileName, fileNameLength);
 					localFileName[fileNameLength] = 0;
 					s.seekg (extraFieldLength, std::ios::cur);
+					LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
 
 					uint8_t * compressed = new uint8_t[compressedSize];
 					s.read ((char *)compressed, compressedSize);
-					contentRead = s.tellg () - start;
-
-					CryptoPP::Gunzip decompressor;
+					CryptoPP::Inflator decompressor;
 					decompressor.Put (compressed, compressedSize);
 					delete[] compressed;	
 					if (decompressor.MaxRetrievable () <= uncompressedSize)
@@ -219,6 +218,9 @@ namespace data
 				}
 				else
 					break; // no more files
+				size_t end = s.tellg ();
+				if (end - contentPos >= contentLength)
+					break; // we are beyond contentLength
 			}
 		}
 		else
