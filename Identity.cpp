@@ -226,17 +226,17 @@ namespace data
 
 	size_t IdentityEx::FromBase64(const std::string& s)
 	{
-		uint8_t buf[512];
-		auto len = Base64ToByteStream (s.c_str(), s.length(), buf, 512);
+		uint8_t buf[1024];
+		auto len = Base64ToByteStream (s.c_str(), s.length(), buf, 1024);
 		return FromBuffer (buf, len);
 	}	
 	
 	std::string IdentityEx::ToBase64 () const
 	{
-		uint8_t buf[512];
-		char str[1024];
-		size_t l = ToBuffer (buf, 512);
-		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, 1024);
+		uint8_t buf[1024];
+		char str[1536];
+		size_t l = ToBuffer (buf, 1024);
+		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, 1536);
 		str[l1] = 0;
 		return std::string (str);
 	}
