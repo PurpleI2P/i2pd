@@ -1,4 +1,6 @@
 UNAME := $(shell uname -s)
+SHLIB := libi2pd.so
+I2PD  := i2p
 
 ifeq ($(UNAME),Darwin)
 	include Makefile.osx
@@ -8,22 +10,25 @@ else
 	include Makefile.linux
 endif
 
-all: obj i2p
-
-i2p: $(OBJECTS:obj/%=obj/%)
-	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LIBS)
+all: obj $(SHLIB) $(I2PD)
 
 .SUFFIXES:
 .SUFFIXES:	.c .cc .C .cpp .o
 
 obj/%.o : %.cpp
-	$(CXX) -o $@ $< -c $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS)
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 obj:
 	mkdir -p obj
 
+$(I2PD):  $(OBJECTS:obj/%=obj/%)
+	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LIBS)
+
+$(SHLIB): $(OBJECTS:obj/%=obj/%) api.cpp
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -shared -o $@ $^
+
 clean:
-	rm -fr obj i2p
+	rm -fr obj $(I2PD) $(SHLIB)
 
 .PHONY: all
 .PHONY: clean
