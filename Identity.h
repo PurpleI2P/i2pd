@@ -140,6 +140,7 @@ namespace data
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
+			size_t GetSigningPrivateKeyLen () const;
 			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			SigningKeyType GetSigningKeyType () const;
@@ -175,7 +176,7 @@ namespace data
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
-			size_t GetFullLen () const { return m_Public.GetFullLen () + 256 + m_Public.GetSignatureLen ()/2; };			
+			size_t GetFullLen () const { return m_Public.GetFullLen () + 256 + m_Public.GetSigningPrivateKeyLen (); }; 		
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 
@@ -192,7 +193,7 @@ namespace data
 
 			IdentityEx m_Public;
 			uint8_t m_PrivateKey[256];
-			uint8_t m_SigningPrivateKey[128]; // assume private key doesn't exceed 128 bytes
+			uint8_t m_SigningPrivateKey[1024]; // assume private key doesn't exceed 1024 bytes
 			i2p::crypto::Signer * m_Signer;
 	};
 

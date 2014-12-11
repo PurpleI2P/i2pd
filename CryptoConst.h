@@ -28,7 +28,10 @@ namespace crypto
 	// DSA
 	#define dsap GetCryptoConstants ().dsap	
 	#define dsaq GetCryptoConstants ().dsaq
-	#define dsag GetCryptoConstants ().dsag		
+	#define dsag GetCryptoConstants ().dsag	
+
+	// RSA
+	const int rsae = 65537;	
 }		
 }	
 

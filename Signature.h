@@ -22,6 +22,7 @@ namespace crypto
 			virtual bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const = 0;
 			virtual size_t GetPublicKeyLen () const = 0;
 			virtual size_t GetSignatureLen () const = 0;
+			virtual size_t GetPrivateKeyLen () const { return GetSignatureLen ()/2; };
 	};
 
 	class Signer
@@ -233,37 +234,128 @@ namespace crypto
 	}
 
 // RSA
-	template<typename Hash, size_t keyLength>	
+	template<typename Hash, size_t keyLen>	
 	class RSAVerifier: public Verifier
 	{
 		public:
 
 			RSAVerifier (const uint8_t * signingKey)
 			{
-				// TODO
+				m_PublicKey.Initialize (CryptoPP::Integer (signingKey, keyLen), CryptoPP::Integer (rsae));
 			}
 
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const 
 			{
 				typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Verifier verifier (m_PublicKey);
-				return verifier.VerifyMessage (buf, len, signature, keyLength); // signature length
+				return verifier.VerifyMessage (buf, len, signature, keyLen); // signature length
 			}
-			size_t GetPublicKeyLen () const { return keyLength; }
-			size_t GetSignatureLen () const { return keyLength; }	
+			size_t GetPublicKeyLen () const { return keyLen; }
+			size_t GetSignatureLen () const { return keyLen; }	
+			size_t GetPrivateKeyLen () const { return GetSignatureLen ()*2; };
 
 		private:
 			
 			CryptoPP::RSA::PublicKey m_PublicKey;			
 	};	
 
+	
+	template<typename Hash>
+	class RSASigner: public Signer
+	{
+		public:
+
+			RSASigner (const uint8_t * signingPrivateKey, size_t keyLen)
+			{
+				m_PrivateKey.Initialize (CryptoPP::Integer (signingPrivateKey, keyLen/2),
+				    rsae,                 			
+					CryptoPP::Integer (signingPrivateKey + keyLen/2, keyLen/2));
+			}
+
+			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const
+			{
+				typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Signer signer (m_PrivateKey);
+				signer.SignMessage (rnd, buf, len, signature);
+			}
+			
+		private:
+
+			CryptoPP::RSA::PrivateKey m_PrivateKey;
+	};		
+
+	inline void CreateRSARandomKeys (CryptoPP::RandomNumberGenerator& rnd, 
+		size_t publicKeyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		CryptoPP::RSA::PrivateKey privateKey;
+		privateKey.Initialize (rnd, publicKeyLen*8, rsae);
+		privateKey.GetModulus ().Encode (signingPrivateKey, publicKeyLen);	
+		privateKey.GetPrivateExponent ().Encode (signingPrivateKey + publicKeyLen, publicKeyLen);	
+		privateKey.GetModulus ().Encode (signingPublicKey, publicKeyLen);
+	}	
+
+	
 //  RSA_SHA256_2048
-	const size_t RSASHA2562048_KEY_LENGTH =256;
+	const size_t RSASHA2562048_KEY_LENGTH = 256;
 	class RSASHA2562048Verifier: public RSAVerifier<CryptoPP::SHA256, RSASHA2562048_KEY_LENGTH> 
 	{
 		public:
 
-			RSASHA2562048Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) {};
+			RSASHA2562048Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) 
+			{
+			}
 	};
+
+	class RSASHA2562048Signer: public RSASigner<CryptoPP::SHA256> 
+	{
+		public:
+
+			RSASHA2562048Signer (const uint8_t * signingPrivateKey): 
+				RSASigner (signingPrivateKey, RSASHA2562048_KEY_LENGTH*2) 
+			{
+			}
+	};
+
+//  RSA_SHA384_3072
+	const size_t RSASHA3843072_KEY_LENGTH = 384;
+	class RSASHA3843072Verifier: public RSAVerifier<CryptoPP::SHA384, RSASHA3843072_KEY_LENGTH> 
+	{
+		public:
+
+			RSASHA3843072Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) 
+			{
+			}
+	};
+
+	class RSASHA3843072Signer: public RSASigner<CryptoPP::SHA384> 
+	{
+		public:
+
+			RSASHA3843072Signer (const uint8_t * signingPrivateKey): 
+				RSASigner (signingPrivateKey, RSASHA3843072_KEY_LENGTH*2) 
+			{
+			}
+	};
+
+//  RSA_SHA512_4096
+	const size_t RSASHA5124096_KEY_LENGTH = 512;
+	class RSASHA5124096Verifier: public RSAVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH> 
+	{
+		public:
+
+			RSASHA5124096Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) 
+			{
+			}
+	};
+
+	class RSASHA5124096Signer: public RSASigner<CryptoPP::SHA512> 
+	{
+		public:
+
+			RSASHA5124096Signer (const uint8_t * signingPrivateKey): 
+				RSASigner (signingPrivateKey, RSASHA5124096_KEY_LENGTH*2) 
+			{
+			}
+	};
+	
 }
 }
 
