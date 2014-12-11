@@ -358,7 +358,7 @@ namespace data
 	{
 		m_Public = Identity (keys);
 		memcpy (m_PrivateKey, keys.privateKey, 256); // 256 
-		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, 20); // 20 - DSA
+		memcpy (m_SigningPrivateKey, keys.signingPrivateKey, m_Public.GetSigningPrivateKeyLen ());
 		delete m_Signer;
 		m_Signer = nullptr;
 		CreateSigner ();
@@ -369,7 +369,7 @@ namespace data
 	{		
 		m_Public = other.m_Public;
 		memcpy (m_PrivateKey, other.m_PrivateKey, 256); // 256 
-		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, 128); // 128
+		memcpy (m_SigningPrivateKey, other.m_SigningPrivateKey, m_Public.GetSigningPrivateKeyLen ()); 
 		delete m_Signer;
 		m_Signer = nullptr;
 		CreateSigner ();
