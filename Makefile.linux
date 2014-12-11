@@ -1,4 +1,4 @@
-CXXFLAGS = -g -Wall
+CXXFLAGS = -g -Wall -fPIC
 CXXVER := $(shell $(CXX) -dumpversion)
 
 FGREP = fgrep
