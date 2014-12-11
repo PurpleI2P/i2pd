@@ -64,18 +64,22 @@ Cmdline options
 * --ircport=            - The local port of IRC tunnel to listen on. 6668 by default
 * --ircdest=            - I2P destination address of IRC server. For example irc.postman.i2p
 * --irckeys=            - optional keys file for local destination
-* --eepkeys=            - File name containing destination keys. For example privKeys.dat
-                          Will be created if not exists (issue #110).
+* --eepkeys=            - File name containing destination keys, for example privKeys.dat.
+                          The file will be created if it does not already exist (issue #110).
 * --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default
 * --eepport=            - Port incoming trafic forward to. 80 by default
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
 * --bobport=            - Port of BOB command channel. Usually 2827. BOB is off if not specified
 * --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
-                          Will be silently ignored if not exists.
-                          Cmdline options has preference over config file.
+                          This parameter will be silently ignored if the specified config file does not exist.
+                          Options specified on the command line take precedence over those in the config file.
 
 Config file
 -----------
 
 INI-like, syntax is the following : <key> = <value>.
-Allowed keys are the same as cmdline options.
+All command-line parameters are allowed as keys, for example:
+
+	log = 1
+	v6 = 0
+	ircdest = irc.postman.i2p
