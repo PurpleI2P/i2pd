@@ -48,8 +48,8 @@ This should resulting in for example:
 http://localhost:7070/4oes3rlgrpbkmzv4lqcfili23h3cvpwslqcfjlk6vvguxyggspwa.b32.i2p
 
 
-Options
--------
+Cmdline options
+---------------
 
 * --host=               - The external IP
 * --port=               - The port to listen on
@@ -65,8 +65,17 @@ Options
 * --ircdest=            - I2P destination address of IRC server. For example irc.postman.i2p
 * --irckeys=            - optional keys file for local destination
 * --eepkeys=            - File name containing destination keys. For example privKeys.dat
+                          Will be created if not exists (issue #110).
 * --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default
 * --eepport=            - Port incoming trafic forward to. 80 by default
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
 * --bobport=            - Port of BOB command channel. Usually 2827. BOB is off if not specified
+* --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
+                          Will be silently ignored if not exists.
+                          Cmdline options has preference over config file.
 
+Config file
+-----------
+
+INI-like, syntax is the following : <key> = <value>.
+Allowed keys are the same as cmdline options.
