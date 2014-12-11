@@ -4,6 +4,7 @@ project ( "i2pd" )
 # configurale options
 option(WITH_AESNI     "Use AES-NI instructions set" OFF)
 option(WITH_HARDENING "Use hardening compiler flags" OFF)
+option(WITH_SHLIB     "Build shared library" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -117,7 +118,7 @@ if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
 endif()
 
 # load includes
-include_directories( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR})
+include_directories( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} "${CMAKE_SOURCE_DIR}/..")
 
 # show summary
 message(STATUS "---------------------------------------")
@@ -129,6 +130,7 @@ message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
+message(STATUS "  SHARED LIB       : ${WITH_SHLIB}")
 message(STATUS "---------------------------------------")
 
 add_executable ( ${PROJECT_NAME} ${SOURCES} )
@@ -140,3 +142,9 @@ endif ()
 target_link_libraries( ${PROJECT_NAME} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
 install(TARGETS i2pd RUNTIME DESTINATION "bin")
+
+if (WITH_SHLIB)
+  list(APPEND SOURCES "${CMAKE_SOURCE_DIR}/api.cpp")
+  add_library("lib${PROJECT_NAME}" SHARED ${SOURCES})
+  install(TARGETS "lib${PROJECT_NAME}" LIBRARY DESTINATION "lib")
+endif ()
