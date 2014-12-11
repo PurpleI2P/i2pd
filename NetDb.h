@@ -62,6 +62,7 @@ namespace data
 			void Start ();
 			void Stop ();
 			
+			void AddRouterInfo (const uint8_t * buf, int len);
 			void AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
 			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, i2p::tunnel::InboundTunnel * from);
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;

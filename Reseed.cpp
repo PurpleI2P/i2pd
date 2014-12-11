@@ -1,5 +1,5 @@
-#include <iostream>
 #include <fstream>
+#include <sstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 #include <cryptopp/zinflate.h>
@@ -7,6 +7,7 @@
 #include "Reseed.h"
 #include "Log.h"
 #include "Identity.h"
+#include "NetDb.h"
 #include "util.h"
 
 
@@ -122,111 +123,142 @@ namespace data
 		return false;
 	}	
 
+	int Reseeder::ReseedNowSU3 ()
+	{
+		std::string reseedHost = httpReseedHostList[(rand() % httpReseedHostList.size())];
+		return ReseedFromSU3 (reseedHost);
+	}
+
+	int Reseeder::ReseedFromSU3 (const std::string& host)
+	{
+		std::string url = host + "i2pseeds.su3";
+		LogPrint (eLogInfo, "Dowloading SU3 from ", host);
+		std::string su3 = i2p::util::http::httpRequest (url);
+		if (su3.length () > 0)
+		{
+			std::stringstream s(su3);
+			return ProcessSU3Stream (s);
+		}
+		else
+		{
+			LogPrint (eLogWarning, "SU3 download failed");
+			return 0;
+		}
+	}
 	
+	int ProcessSU3File (const char * filename)
+	{
+		std::ifstream s(filename, std::ifstream::binary);
+		if (s.is_open ())	
+			return ProcessSU3Stream (s);
+		else
+		{
+			LogPrint (eLogError, "Can't open file ", filename);
+			return 0;
+		}
+	}
+
 	const char SU3_MAGIC_NUMBER[]="I2Psu3";	
-	void ProcessSU3File (const char * filename)
+	int ProcessSU3Stream (std::istream& s)
 	{
 		static uint32_t headerSignature = htole32 (0x04034B50);
 
-		std::ifstream s(filename, std::ifstream::binary);
-		if (s.is_open ())	
+		char magicNumber[7];
+		s.read (magicNumber, 7); // magic number and zero byte 6
+		if (strcmp (magicNumber, SU3_MAGIC_NUMBER))
+		{
+			LogPrint (eLogError, "Unexpected SU3 magic number");	
+			return 0;
+		}			
+		s.seekg (1, std::ios::cur); // su3 file format version
+		SigningKeyType signatureType;
+		s.read ((char *)&signatureType, 2);  // signature type
+		signatureType = be16toh (signatureType);
+		uint16_t signatureLength;
+		s.read ((char *)&signatureLength, 2);  // signature length
+		signatureLength = be16toh (signatureLength);
+		s.seekg (1, std::ios::cur); // unused
+		uint8_t versionLength;
+		s.read ((char *)&versionLength, 1);  // version length	
+		s.seekg (1, std::ios::cur); // unused
+		uint8_t signerIDLength;
+		s.read ((char *)&signerIDLength, 1);  // signer ID length	
+		uint64_t contentLength;
+		s.read ((char *)&contentLength, 8);  // content length	
+		contentLength = be64toh (contentLength);
+		s.seekg (1, std::ios::cur); // unused
+		uint8_t fileType;
+		s.read ((char *)&fileType, 1);  // file type	
+		if (fileType != 0x00) //  zip file
+		{
+			LogPrint (eLogError, "Can't handle file type ", (int)fileType);	
+			return 0;
+		}
+		s.seekg (1, std::ios::cur); // unused
+		uint8_t contentType;
+		s.read ((char *)&contentType, 1);  // content type	
+		if (contentType != 0x03) // reseed data
+		{
+			LogPrint (eLogError, "Unexpected content type ", (int)contentType);	
+			return 0;
+		}
+		s.seekg (12, std::ios::cur); // unused
+
+		s.seekg (versionLength, std::ios::cur); // skip version
+		s.seekg (signerIDLength, std::ios::cur); // skip signer ID
+
+		// handle content
+		int numFiles = 0;
+		size_t contentPos = s.tellg ();
+		while (!s.eof ())
 		{	
-			char magicNumber[7];
-			s.read (magicNumber, 7); // magic number and zero byte 6
-			if (strcmp (magicNumber, SU3_MAGIC_NUMBER))
+			uint32_t signature;
+			s.read ((char *)&signature, 4);
+			if (signature == headerSignature)
 			{
-				LogPrint (eLogError, "Unexpected SU3 magic number");	
-				return;
-			}			
-			s.seekg (1, std::ios::cur); // su3 file format version
-			SigningKeyType signatureType;
-			s.read ((char *)&signatureType, 2);  // signature type
-			signatureType = be16toh (signatureType);
-			uint16_t signatureLength;
-			s.read ((char *)&signatureLength, 2);  // signature length
-			signatureLength = be16toh (signatureLength);
-			s.seekg (1, std::ios::cur); // unused
-			uint8_t versionLength;
-			s.read ((char *)&versionLength, 1);  // version length	
-			s.seekg (1, std::ios::cur); // unused
-			uint8_t signerIDLength;
-			s.read ((char *)&signerIDLength, 1);  // signer ID length	
-			uint64_t contentLength;
-			s.read ((char *)&contentLength, 8);  // content length	
-			contentLength = be64toh (contentLength);
-			s.seekg (1, std::ios::cur); // unused
-			uint8_t fileType;
-			s.read ((char *)&fileType, 1);  // file type	
-			if (fileType != 0x00) //  zip file
-			{
-				LogPrint (eLogError, "Can't handle file type ", (int)fileType);	
-				return;
-			}
-			s.seekg (1, std::ios::cur); // unused
-			uint8_t contentType;
-			s.read ((char *)&contentType, 1);  // content type	
-			if (contentType != 0x03) // reseed data
-			{
-				LogPrint (eLogError, "Unexpected content type ", (int)contentType);	
-				return;
-			}
-			s.seekg (12, std::ios::cur); // unused
+				// next local file
+				s.seekg (14, std::ios::cur); // skip field we don't care about
+				uint32_t compressedSize, uncompressedSize; 
+				s.read ((char *)&compressedSize, 4);	
+				compressedSize = le32toh (compressedSize);	
+				s.read ((char *)&uncompressedSize, 4);
+				uncompressedSize = le32toh (uncompressedSize);	
+				uint16_t fileNameLength, extraFieldLength; 
+				s.read ((char *)&fileNameLength, 2);	
+				fileNameLength = le32toh (fileNameLength);
+				s.read ((char *)&extraFieldLength, 2);
+				extraFieldLength = le32toh (extraFieldLength);
+				char localFileName[255];
+				s.read (localFileName, fileNameLength);
+				localFileName[fileNameLength] = 0;
+				s.seekg (extraFieldLength, std::ios::cur);
+				LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
 
-			s.seekg (versionLength, std::ios::cur); // skip version
-			s.seekg (signerIDLength, std::ios::cur); // skip signer ID
-
-			// handle content
-			size_t contentPos = s.tellg ();
-			while (!s.eof ())
-			{	
-				uint32_t signature;
-				s.read ((char *)&signature, 4);
-				if (signature == headerSignature)
+				uint8_t * compressed = new uint8_t[compressedSize];
+				s.read ((char *)compressed, compressedSize);
+				CryptoPP::Inflator decompressor;
+				decompressor.Put (compressed, compressedSize);
+				delete[] compressed;	
+				size_t len = decompressor.MaxRetrievable (); 
+				if (len <= uncompressedSize)
 				{
-					// next local file
-					s.seekg (14, std::ios::cur); // skip field we don't care about
-					uint32_t compressedSize, uncompressedSize; 
-					s.read ((char *)&compressedSize, 4);	
-					compressedSize = le32toh (compressedSize);	
-					s.read ((char *)&uncompressedSize, 4);
-					uncompressedSize = le32toh (uncompressedSize);	
-					uint16_t fileNameLength, extraFieldLength; 
-					s.read ((char *)&fileNameLength, 2);	
-					fileNameLength = le32toh (fileNameLength);
-					s.read ((char *)&extraFieldLength, 2);
-					extraFieldLength = le32toh (extraFieldLength);
-					char localFileName[255];
-					s.read (localFileName, fileNameLength);
-					localFileName[fileNameLength] = 0;
-					s.seekg (extraFieldLength, std::ios::cur);
-					LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
-
-					uint8_t * compressed = new uint8_t[compressedSize];
-					s.read ((char *)compressed, compressedSize);
-					CryptoPP::Inflator decompressor;
-					decompressor.Put (compressed, compressedSize);
-					delete[] compressed;	
-					if (decompressor.MaxRetrievable () <= uncompressedSize)
-					{
-						uint8_t * uncompressed = new uint8_t[uncompressedSize];	
-						decompressor.Get (uncompressed, decompressor.MaxRetrievable ());	
-						// TODO: save file		
-						delete[] uncompressed;
-					}
-					else
-						LogPrint (eLogError, "Actual uncompressed size ", decompressor.MaxRetrievable (), " exceed ", uncompressedSize, " from header");
+					uint8_t * uncompressed = new uint8_t[uncompressedSize];	
+					decompressor.Get (uncompressed, len);	
+					i2p::data::netdb.AddRouterInfo (uncompressed, len);
+					numFiles++;
+					delete[] uncompressed;
 				}
 				else
-					break; // no more files
-				size_t end = s.tellg ();
-				if (end - contentPos >= contentLength)
-					break; // we are beyond contentLength
+					LogPrint (eLogError, "Actual uncompressed size ", decompressor.MaxRetrievable (), " exceed ", uncompressedSize, " from header");
 			}
+			else
+				break; // no more files
+			size_t end = s.tellg ();
+			if (end - contentPos >= contentLength)
+				break; // we are beyond contentLength
 		}
-		else
-			LogPrint (eLogError, "Can't open file ", filename);
+		return numFiles;
 	}
-
 }
 }
 
