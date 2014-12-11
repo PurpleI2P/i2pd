@@ -47,17 +47,19 @@ namespace api
 		StopLog ();
 	}
 
-	i2p::client::ClientDestination * CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic)
+	i2p::client::ClientDestination * CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
+		const std::map<std::string, std::string> * params)
 	{
-		auto localDestination = new i2p::client::ClientDestination (keys, isPublic);
+		auto localDestination = new i2p::client::ClientDestination (keys, isPublic, params);
 		localDestination->Start ();
 		return localDestination;
 	}
 
-	i2p::client::ClientDestination * CreateLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType)
+	i2p::client::ClientDestination * CreateLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
+		const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
-		auto localDestination = new i2p::client::ClientDestination (keys, isPublic);
+		auto localDestination = new i2p::client::ClientDestination (keys, isPublic, params);
 		localDestination->Start ();
 		return localDestination;
 	}
