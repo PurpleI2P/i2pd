@@ -62,7 +62,7 @@ namespace data
 #endif			
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_ReseedRetries (0), m_Thread (0)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (0)
 	{
 	}
 	
@@ -78,11 +78,22 @@ namespace data
 	void NetDb::Start ()
 	{	
 		Load (m_NetDbPath);
-		while (m_RouterInfos.size () < 100 && m_ReseedRetries < 10)
+		// try SU3 first
+		int reseedRetries = 0;
+		while (m_RouterInfos.size () < 100 && reseedRetries < 10)
+		{
+			Reseeder reseeder;
+			reseeder.ReseedNowSU3();
+			reseedRetries++;
+		}	
+
+		// if still not enough download .dat files
+		reseedRetries = 0;
+		while (m_RouterInfos.size () < 100 && reseedRetries < 10)
 		{
 			Reseeder reseeder;
 			reseeder.reseedNow();
-			m_ReseedRetries++;
+			reseedRetries++;
 			Load (m_NetDbPath);
 		}	
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));

@@ -2,6 +2,7 @@
 #include <sstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
+#include <cryptopp/osrng.h>
 #include <cryptopp/zinflate.h>
 #include "I2PEndian.h"
 #include "Reseed.h"
@@ -125,7 +126,9 @@ namespace data
 
 	int Reseeder::ReseedNowSU3 ()
 	{
-		std::string reseedHost = httpReseedHostList[(rand() % httpReseedHostList.size())];
+		CryptoPP::AutoSeededRandomPool rnd;
+		auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1);
+		std::string reseedHost = httpReseedHostList[ind];
 		return ReseedFromSU3 (reseedHost);
 	}
 
