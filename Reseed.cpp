@@ -225,11 +225,6 @@ namespace data
 				uint16_t bitFlag;
 				s.read ((char *)&bitFlag, 2);	
 				bitFlag = le16toh (bitFlag);
-				if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
-				{
-					LogPrint (eLogError, "SU3 archives with data descriptors are not supported yet");
-					return numFiles;
-				}
 				uint16_t compressionMethod;
 				s.read ((char *)&compressionMethod, 2);	
 				compressionMethod = le16toh (compressionMethod);
@@ -248,6 +243,26 @@ namespace data
 				s.read (localFileName, fileNameLength);
 				localFileName[fileNameLength] = 0;
 				s.seekg (extraFieldLength, std::ios::cur);
+				// take care about data desriptor if presented
+				if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
+				{
+					size_t pos = s.tellg ();
+					if (!FindZipDataDescriptor (s))
+					{
+						LogPrint (eLogError, "SU3 archive data descriptor not found");
+						return numFiles;
+					}								
+	
+					s.seekg (4, std::ios::cur); // skip CRC-32
+					s.read ((char *)&compressedSize, 4);	
+					compressedSize = le32toh (compressedSize) + 4; // ??? we must consider signature as part of compressed data
+					s.read ((char *)&uncompressedSize, 4);
+					uncompressedSize = le32toh (uncompressedSize);	
+
+					// now we know compressed and uncompressed size
+					s.seekg (pos, std::ios::beg); // back to compressed data
+				}
+
 				LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
 				if (!compressedSize)
 				{
@@ -261,12 +276,12 @@ namespace data
 				{
 					CryptoPP::Inflator decompressor;
 					decompressor.Put (compressed, compressedSize);	
-					size_t len = decompressor.MaxRetrievable (); 
-					if (len <= uncompressedSize)
+					decompressor.MessageEnd();
+					if (decompressor.MaxRetrievable () <= uncompressedSize)
 					{
 						uint8_t * uncompressed = new uint8_t[uncompressedSize];	
-						decompressor.Get (uncompressed, len);	
-						i2p::data::netdb.AddRouterInfo (uncompressed, len);
+						decompressor.Get (uncompressed, uncompressedSize);	
+						i2p::data::netdb.AddRouterInfo (uncompressed, uncompressedSize);
 						numFiles++;
 						delete[] uncompressed;
 					}
@@ -279,6 +294,8 @@ namespace data
 					numFiles++;
 				}	
 				delete[] compressed;
+				if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
+					s.seekg (12, std::ios::cur); // skip data descriptor section if presented (12 = 16 - 4)
 			}
 			else
 				break; // no more files
@@ -288,6 +305,27 @@ namespace data
 		}
 		return numFiles;
 	}
+
+	const uint8_t ZIP_DATA_DESCRIPTOR_SIGNATURE[] = { 0x50, 0x4B, 0x07, 0x08 };	
+	bool Reseeder::FindZipDataDescriptor (std::istream& s)
+	{
+		size_t nextInd = 0;	
+		while (!s.eof ())
+		{
+			uint8_t nextByte;
+			s.read ((char *)&nextByte, 1);
+			if (nextByte == ZIP_DATA_DESCRIPTOR_SIGNATURE[nextInd])	
+			{
+				nextInd++;
+				if (nextInd >= sizeof (ZIP_DATA_DESCRIPTOR_SIGNATURE))
+					return true;
+			}
+			else
+				nextInd = 0;
+		}
+		return s;
+	}
+
 }
 }
 
