@@ -336,8 +336,12 @@ namespace data
 		std::ifstream s(filename, std::ifstream::binary);
 		if (s.is_open ())	
 		{
-			std::string cert;
-			s >> cert;
+			s.seekg (0, std::ios::end);
+			size_t len = s.tellg ();
+			s.seekg (0, std::ios::beg);
+			char buf[2048];
+			s.read (buf, len);
+			std::string cert (buf, len);
 			// assume file in pem format
 			auto pos1 = cert.find (CERTIFICATE_HEADER);	
 			auto pos2 = cert.find (CERTIFICATE_FOOTER);	
@@ -362,7 +366,8 @@ namespace data
 			// version
 			uint32_t ver;
 			CryptoPP::BERGeneralDecoder context (tbsCert, 0xa0);
-			CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER, 2, 2);	
+			CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER);
+			LogPrint (eLogInfo, ver);	
 			// serial
 			CryptoPP::Integer serial;
        		serial.BERDecode(tbsCert);	
