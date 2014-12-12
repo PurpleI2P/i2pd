@@ -19,19 +19,20 @@ endif
 
 all: obj $(SHLIB) $(I2PD)
 
-.SUFFIXES:
-.SUFFIXES:	.c .cc .C .cpp .o
-
-obj/%.o : %.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
-
 obj:
 	mkdir -p obj
 
-$(I2PD):  $(OBJECTS:obj/%=obj/%)
+# weaker rule for building files without headers
+obj/%.o : %.cpp
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+
+obj/%.o : %.cpp %.h
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+
+$(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LIBS)
 
-$(SHLIB): $(OBJECTS:obj/%=obj/%) api.cpp
+$(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -shared -o $@ $^
 
 clean:
