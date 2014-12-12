@@ -2,12 +2,19 @@ UNAME := $(shell uname -s)
 SHLIB := libi2pd.so
 I2PD  := i2p
 
+include filelist.mk
+
 ifeq ($(UNAME),Darwin)
+  DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.osx
-else ifeq ($(UNAME), FreeBSD)
+else ifeq ($(UNAME),FreeBSD)
+  DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.bsd
-else
+else ifeq ($(UNAME),Linux)
+  DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.linux
+else # win32
+  DAEMON_SRC += DaemonWin32.cpp
 endif
 
 all: obj $(SHLIB) $(I2PD)

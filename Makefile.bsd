@@ -1,7 +1,6 @@
 CXX = g++
 CXXFLAGS = -O2
 NEEDED_CXXFLAGS = -std=c++11
-include filelist.mk
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread

@@ -18,7 +18,6 @@ endif
 
 LIBDIR := /usr/lib
 
-include filelist.mk
 INCFLAGS =
 ifeq ($(STATIC),yes)
 LDLIBS += $(LIBDIR)/libcryptopp.a $(LIBDIR)/libboost_system.a
@@ -30,7 +29,6 @@ else
 LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 endif
 LIBS =
-
 
 ifeq ($(USE_AESNI),yes)
 ifeq ($(IS_64),1)
