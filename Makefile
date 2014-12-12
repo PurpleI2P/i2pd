@@ -33,10 +33,10 @@ obj/%.o : %.cpp %.h
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-	$(CXX) -o $@ $(LDLIBS) $(LDFLAGS) $^
+	$(CXX) -o $@ $^ $(LDFLAGS)  $(LDLIBS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
-	$(CXX) -o $@ -shared $(CXXFLAGS) $(INCFLAGS) $^
+	$(CXX) -o $@ $^ $(LDFLAGS)  $(LDLIBS)
 
 clean:
 	rm -fr obj $(I2PD) $(SHLIB)
