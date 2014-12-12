@@ -15,8 +15,7 @@ else # not supported
   $(error Compiler too old)
 endif
 
-USE_AESNI := yes
-ifeq ($(STATIC),yes)
+ifeq ($(USE_STATIC),yes)
   LIBDIR := /usr/lib
   LDLIBS  = $(LIBDIR)/libcryptopp.a
   LDLIBS += $(LIBDIR)/libboost_system.a
@@ -30,14 +29,15 @@ else
   LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 endif
 
-FGREP = fgrep
-IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(FGREP) -c "64")
+GREP = fgrep
+IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(GREP) -c "64")
 ifeq ($(USE_AESNI),yes)
 ifeq ($(IS_64),1)
 #check if AES-NI is supported by CPU
-ifneq ($(shell grep -c aes /proc/cpuinfo),0)
+ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),1)
   CXXFLAGS += -maes -DAESNI
+else
+  $(warning "AESNI support enabled requested but not supported by this CPU")
 endif
 endif
 endif
-

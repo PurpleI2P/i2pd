@@ -4,6 +4,9 @@ I2PD  := i2p
 
 include filelist.mk
 
+USE_AESNI  := yes
+USE_STATIC := no
+
 ifeq ($(UNAME),Darwin)
   DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.osx

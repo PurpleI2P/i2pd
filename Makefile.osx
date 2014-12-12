@@ -8,7 +8,9 @@ LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_
 # http://www.hutsby.net/2011/08/macs-with-aes-ni.html
 # Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
-CXXFLAGS += -maes -DAESNI
+ifeq ($(USE_AESNI),yes)
+  CXXFLAGS += -maes -DAESNI
+endif
 
 install: all
 	mkdir -p ${PREFIX}/
