@@ -4,21 +4,18 @@ project ( "i2pd" )
 # configurale options
 option(WITH_AESNI     "Use AES-NI instructions set" OFF)
 option(WITH_HARDENING "Use hardening compiler flags" OFF)
-option(WITH_SHLIB     "Build shared library" OFF)
+option(WITH_LIBRARY   "Build library" ON)
+option(WITH_STATIC    "Static build" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
-set (SOURCES
+set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/AddressBook.cpp"	
   "${CMAKE_SOURCE_DIR}/CryptoConst.cpp"
-  "${CMAKE_SOURCE_DIR}/Daemon.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
-  "${CMAKE_SOURCE_DIR}/HTTPProxy.cpp"
-  "${CMAKE_SOURCE_DIR}/HTTPServer.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
-  "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/Identity.cpp"
   "${CMAKE_SOURCE_DIR}/LeaseSet.cpp"
   "${CMAKE_SOURCE_DIR}/Log.cpp"
@@ -27,10 +24,9 @@ set (SOURCES
   "${CMAKE_SOURCE_DIR}/Reseed.cpp"
   "${CMAKE_SOURCE_DIR}/RouterContext.cpp"
   "${CMAKE_SOURCE_DIR}/RouterInfo.cpp"
-  "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
   "${CMAKE_SOURCE_DIR}/SSU.cpp"
   "${CMAKE_SOURCE_DIR}/SSUData.cpp"
-  "${CMAKE_SOURCE_DIR}/SSUSession.cpp" 
+  "${CMAKE_SOURCE_DIR}/SSUSession.cpp"
   "${CMAKE_SOURCE_DIR}/Streaming.cpp"
   "${CMAKE_SOURCE_DIR}/Destination.cpp"	
   "${CMAKE_SOURCE_DIR}/TransitTunnel.cpp"
@@ -39,22 +35,34 @@ set (SOURCES
   "${CMAKE_SOURCE_DIR}/Transports.cpp"
   "${CMAKE_SOURCE_DIR}/TunnelEndpoint.cpp"
   "${CMAKE_SOURCE_DIR}/TunnelPool.cpp"
-  "${CMAKE_SOURCE_DIR}/UPnP.cpp"
   "${CMAKE_SOURCE_DIR}/aes.cpp"
   "${CMAKE_SOURCE_DIR}/base64.cpp"
-  "${CMAKE_SOURCE_DIR}/i2p.cpp"
   "${CMAKE_SOURCE_DIR}/util.cpp"
-  "${CMAKE_SOURCE_DIR}/SAM.cpp"
+  "${CMAKE_SOURCE_DIR}/Datagram.cpp"		
+)
+
+set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/BOB.cpp"	
   "${CMAKE_SOURCE_DIR}/ClientContext.cpp"
-  "${CMAKE_SOURCE_DIR}/Datagram.cpp"		
+  "${CMAKE_SOURCE_DIR}/Daemon.cpp"
+  "${CMAKE_SOURCE_DIR}/HTTPProxy.cpp"
+  "${CMAKE_SOURCE_DIR}/HTTPServer.cpp"
+  "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
+  "${CMAKE_SOURCE_DIR}/SAM.cpp"
+  "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
+  "${CMAKE_SOURCE_DIR}/UPnP.cpp"
+  "${CMAKE_SOURCE_DIR}/i2p.cpp"
+)
+
+set (LIBRARY_SRC
+  "${CMAKE_SOURCE_DIR}/api.cpp"
 )
 
 file (GLOB HEADERS "${CMAKE_SOURCE_DIR}/*.h")
 
 # MSVS grouping
 source_group ("Header Files" FILES ${HEADERS})
-source_group ("Source Files" FILES ${SOURCES})
+source_group ("Source Files" FILES ${COMMON_SRC} ${DAEMON_SRC} ${LIBRARY_SRC})
 
 # Default build is Debug
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -64,7 +72,7 @@ else ()
 endif ()
 
 # compiler flags customization (by vendor)
-add_definitions ( "-Wall -Wextra" )
+add_definitions ( "-Wall -Wextra -fPIC" )
 
 # check for c++11 support
 include(CheckCXXCompilerFlag)
@@ -83,7 +91,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_definitions( "-D_FORTIFY_SOURCE=2" )
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security" )
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector --param ssp-buffer-size=4" )
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE -pie" )
   endif ()
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # more tweaks
@@ -91,13 +98,15 @@ endif ()
 
 # compiler flags customization (by system)
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  list (APPEND SOURCES "../DaemonLinux.cpp")
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  list (APPEND SOURCES "../DaemonLinux.cpp")
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
   # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
   add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  list (APPEND SOURCES "../DaemonWin32.cpp")
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonWin32.cpp")
 endif ()
 
 if (WITH_AESNI)
@@ -130,21 +139,26 @@ message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
-message(STATUS "  SHARED LIB       : ${WITH_SHLIB}")
+message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
+message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "---------------------------------------")
 
-add_executable ( ${PROJECT_NAME} ${SOURCES} )
+add_executable ( ${PROJECT_NAME} ${COMMON_SRC} ${DAEMON_SRC})
 
 if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-z relro -z now" )
+endif ()
+
+if (WITH_STATIC)
+  set(BUILD_SHARED_LIBS OFF)
+  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-static" )
 endif ()
 
 target_link_libraries( ${PROJECT_NAME} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
 install(TARGETS i2pd RUNTIME DESTINATION "bin")
 
-if (WITH_SHLIB)
-  list(APPEND SOURCES "${CMAKE_SOURCE_DIR}/api.cpp")
-  add_library("lib${PROJECT_NAME}" SHARED ${SOURCES})
+if (WITH_LIBRARY)
+  add_library("lib${PROJECT_NAME}" SHARED ${COMMON_SRC} ${LIBRARY_SRC})
   install(TARGETS "lib${PROJECT_NAME}" LIBRARY DESTINATION "lib")
 endif ()
