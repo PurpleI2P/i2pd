@@ -41,5 +41,12 @@ $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 clean:
 	rm -fr obj $(I2PD) $(SHLIB)
 
+LATEST_TAG=$(shell git describe --tags --abbrev=0 master)
+dist:
+	git archive --format=tar.gz -9 --worktree-attributes \
+	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz
+
+
 .PHONY: all
 .PHONY: clean
+.PHONY: dist
