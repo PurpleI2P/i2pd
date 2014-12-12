@@ -1,9 +1,8 @@
 CXXFLAGS = -g -Wall -fPIC
-CXXVER := $(shell $(CXX) -dumpversion)
+INCFLAGS =
 
-FGREP = fgrep
-IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(FGREP) -c "64")
-USE_AESNI := yes
+# detect proper flag for c++11 support by gcc
+CXXVER := $(shell $(CXX) -dumpversion)
 ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # >= 4.10
 CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7
@@ -18,7 +17,7 @@ endif
 
 LIBDIR := /usr/lib
 
-INCFLAGS =
+USE_AESNI := yes
 ifeq ($(STATIC),yes)
 LDLIBS += $(LIBDIR)/libcryptopp.a $(LIBDIR)/libboost_system.a
 LDLIBS += $(LIBDIR)/libboost_date_time.a $(LIBDIR)/libboost_filesystem.a
@@ -29,6 +28,8 @@ else
 LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 endif
 
+FGREP = fgrep
+IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(FGREP) -c "64")
 ifeq ($(USE_AESNI),yes)
 ifeq ($(IS_64),1)
 #check if AES-NI is supported by CPU
