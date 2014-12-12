@@ -217,7 +217,11 @@ namespace data
 			if (signature == headerSignature)
 			{
 				// next local file
-				s.seekg (14, std::ios::cur); // skip field we don't care about
+				s.seekg (4, std::ios::cur); // skip fields we don't care about
+				uint16_t compressionMethod;
+				s.read ((char *)&compressionMethod, 2);	
+				compressionMethod = le16toh (compressionMethod);
+				s.seekg (8, std::ios::cur); // skip fields we don't care about
 				uint32_t compressedSize, uncompressedSize; 
 				s.read ((char *)&compressedSize, 4);	
 				compressedSize = le32toh (compressedSize);	
@@ -225,31 +229,39 @@ namespace data
 				uncompressedSize = le32toh (uncompressedSize);	
 				uint16_t fileNameLength, extraFieldLength; 
 				s.read ((char *)&fileNameLength, 2);	
-				fileNameLength = le32toh (fileNameLength);
+				fileNameLength = le16toh (fileNameLength);
 				s.read ((char *)&extraFieldLength, 2);
-				extraFieldLength = le32toh (extraFieldLength);
+				extraFieldLength = le16toh (extraFieldLength);
 				char localFileName[255];
 				s.read (localFileName, fileNameLength);
 				localFileName[fileNameLength] = 0;
 				s.seekg (extraFieldLength, std::ios::cur);
 				LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
-
+		
 				uint8_t * compressed = new uint8_t[compressedSize];
 				s.read ((char *)compressed, compressedSize);
-				CryptoPP::Inflator decompressor;
-				decompressor.Put (compressed, compressedSize);
-				delete[] compressed;	
-				size_t len = decompressor.MaxRetrievable (); 
-				if (len <= uncompressedSize)
+				if (compressionMethod) // we assume Deflate
 				{
-					uint8_t * uncompressed = new uint8_t[uncompressedSize];	
-					decompressor.Get (uncompressed, len);	
-					i2p::data::netdb.AddRouterInfo (uncompressed, len);
+					CryptoPP::Inflator decompressor;
+					decompressor.Put (compressed, compressedSize);	
+					size_t len = decompressor.MaxRetrievable (); 
+					if (len <= uncompressedSize)
+					{
+						uint8_t * uncompressed = new uint8_t[uncompressedSize];	
+						decompressor.Get (uncompressed, len);	
+						i2p::data::netdb.AddRouterInfo (uncompressed, len);
+						numFiles++;
+						delete[] uncompressed;
+					}
+					else
+						LogPrint (eLogError, "Actual uncompressed size ", decompressor.MaxRetrievable (), " exceed ", uncompressedSize, " from header");
+				}	
+				else // no compression
+				{
+					i2p::data::netdb.AddRouterInfo (compressed, compressedSize);
 					numFiles++;
-					delete[] uncompressed;
-				}
-				else
-					LogPrint (eLogError, "Actual uncompressed size ", decompressor.MaxRetrievable (), " exceed ", uncompressedSize, " from header");
+				}	
+				delete[] compressed;
 			}
 			else
 				break; // no more files
