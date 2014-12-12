@@ -4,28 +4,30 @@ INCFLAGS =
 # detect proper flag for c++11 support by gcc
 CXXVER := $(shell $(CXX) -dumpversion)
 ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # >= 4.10
-CXXFLAGS += -std=c++11
+  CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7
-CXXFLAGS += -std=c++11
+  CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.6"),3) # = 4.6
-CXXFLAGS += -std=c++0x
+  CXXFLAGS += -std=c++0x
 else ifeq ($(shell expr match $(CXX) 'clang'),5)
-CXXFLAGS += -std=c++11
+  CXXFLAGS += -std=c++11
 else # not supported
-$(error Compiler too old)
+  $(error Compiler too old)
 endif
-
-LIBDIR := /usr/lib
 
 USE_AESNI := yes
 ifeq ($(STATIC),yes)
-LDLIBS += $(LIBDIR)/libcryptopp.a $(LIBDIR)/libboost_system.a
-LDLIBS += $(LIBDIR)/libboost_date_time.a $(LIBDIR)/libboost_filesystem.a
-LDLIBS += $(LIBDIR)/libboost_regex.a $(LIBDIR)/libboost_program_options.a
-LDLIBS += -lpthread -static-libstdc++ -static-libgcc
-USE_AESNI := no
+  LIBDIR := /usr/lib
+  LDLIBS  = $(LIBDIR)/libcryptopp.a
+  LDLIBS += $(LIBDIR)/libboost_system.a
+  LDLIBS += $(LIBDIR)/libboost_date_time.a
+  LDLIBS += $(LIBDIR)/libboost_filesystem.a
+  LDLIBS += $(LIBDIR)/libboost_regex.a
+  LDLIBS += $(LIBDIR)/libboost_program_options.a
+  LDLIBS += -lpthread -static-libstdc++ -static-libgcc
+  USE_AESNI := no
 else
-LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
+  LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 endif
 
 FGREP = fgrep
