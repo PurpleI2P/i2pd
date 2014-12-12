@@ -30,7 +30,7 @@ obj/%.o : %.cpp %.h
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-	$(CXX) -o $@ $(LDLIBS) $(LDFLAGS) $(LIBS) $^
+	$(CXX) -o $@ $(LDLIBS) $(LDFLAGS) $^
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 	$(CXX) -o $@ -shared $(CXXFLAGS) $(INCFLAGS) $^
