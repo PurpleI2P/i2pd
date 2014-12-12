@@ -179,8 +179,8 @@ namespace data
 	void NetDb::AddRouterInfo (const uint8_t * buf, int len)
 	{
 		IdentityEx identity;
-		identity.FromBuffer (buf, len);
-		AddRouterInfo (identity.GetIdentHash (), buf, len);	
+		if (identity.FromBuffer (buf, len))
+			AddRouterInfo (identity.GetIdentHash (), buf, len);	
 	}
 
 	void NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)

@@ -240,7 +240,12 @@ namespace data
 				localFileName[fileNameLength] = 0;
 				s.seekg (extraFieldLength, std::ios::cur);
 				LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
-		
+				if (!compressedSize)
+				{
+					LogPrint (eLogWarning, "Unexpected size 0. Skipped");
+					continue;
+				}	
+				
 				uint8_t * compressed = new uint8_t[compressedSize];
 				s.read ((char *)compressed, compressedSize);
 				if (compressionMethod) // we assume Deflate
