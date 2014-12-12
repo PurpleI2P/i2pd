@@ -1,8 +1,11 @@
+#include <string.h>
 #include <fstream>
 #include <sstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 #include <cryptopp/osrng.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/base64.h>
 #include <cryptopp/zinflate.h>
 #include "I2PEndian.h"
 #include "Reseed.h"
@@ -324,6 +327,66 @@ namespace data
 				nextInd = 0;
 		}
 		return s;
+	}
+
+	const char CERTIFICATE_HEADER[] = "-----BEGIN CERTIFICATE-----";
+	const char CERTIFICATE_FOOTER[] = "-----END CERTIFICATE-----";
+	void Reseeder::LoadCertificate (const std::string& filename)
+	{
+		std::ifstream s(filename, std::ifstream::binary);
+		if (s.is_open ())	
+		{
+			std::string cert;
+			s >> cert;
+			// assume file in pem format
+			auto pos1 = cert.find (CERTIFICATE_HEADER);	
+			auto pos2 = cert.find (CERTIFICATE_FOOTER);	
+			if (pos1 == std::string::npos || pos2 == std::string::npos)
+			{
+				LogPrint (eLogError, "Malformed certificate file");
+				return;
+			}	
+			pos1 += strlen (CERTIFICATE_HEADER);
+			pos2 -= pos1;
+			std::string base64 = cert.substr (pos1, pos2);
+
+			CryptoPP::ByteQueue queue;
+			CryptoPP::Base64Decoder decoder; // regular base64 rather than I2P 
+			decoder.Attach (new CryptoPP::Redirector (queue));
+			decoder.Put ((const uint8_t *)base64.data(), base64.length());
+			decoder.MessageEnd ();
+
+			// extract X.509
+			CryptoPP::BERSequenceDecoder x509Cert (queue);
+			CryptoPP::BERSequenceDecoder tbsCert (x509Cert);
+			// version
+			uint32_t ver;
+			CryptoPP::BERGeneralDecoder context (tbsCert, 0xa0);
+			CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER, 2, 2);	
+			// serial
+			CryptoPP::Integer serial;
+       		serial.BERDecode(tbsCert);	
+			// signature
+			CryptoPP::BERSequenceDecoder signature (tbsCert);
+       		signature.SkipAll();
+			// issuer
+			CryptoPP::BERSequenceDecoder issuer (tbsCert);
+       		issuer.SkipAll();
+			// validity
+			CryptoPP::BERSequenceDecoder validity (tbsCert);
+       		validity.SkipAll();
+			// subject
+			CryptoPP::BERSequenceDecoder subject (tbsCert);
+       		subject.SkipAll();
+			// public key
+			CryptoPP::BERSequenceDecoder publicKey (tbsCert);
+       		publicKey.SkipAll();
+			
+			tbsCert.SkipAll();
+			x509Cert.SkipAll();
+		}
+		else
+			LogPrint (eLogError, "Can't open certificate file ", filename);
 	}
 
 }

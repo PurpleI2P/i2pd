@@ -18,6 +18,8 @@ namespace data
 			~Reseeder();
 			bool reseedNow(); // depreacted
 			int ReseedNowSU3 ();
+
+			void LoadCertificate (const std::string& filename);
 		
 		private:
 
