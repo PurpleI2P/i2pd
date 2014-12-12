@@ -22,10 +22,9 @@ namespace data
 		private:
 
 			int ReseedFromSU3 (const std::string& host);
+			int ProcessSU3File (const char * filename);	
+			int ProcessSU3Stream (std::istream& s);	
 	};
-
-	int ProcessSU3File (const char * filename);	
-	int ProcessSU3Stream (std::istream& s);	
 }
 }
 

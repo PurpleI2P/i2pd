@@ -149,7 +149,7 @@ namespace data
 		}
 	}
 	
-	int ProcessSU3File (const char * filename)
+	int Reseeder::ProcessSU3File (const char * filename)
 	{
 		std::ifstream s(filename, std::ifstream::binary);
 		if (s.is_open ())	
@@ -162,10 +162,10 @@ namespace data
 	}
 
 	const char SU3_MAGIC_NUMBER[]="I2Psu3";	
-	int ProcessSU3Stream (std::istream& s)
+	const uint32_t ZIP_HEADER_SIGNATURE = 0x04034B50;
+	const uint16_t ZIP_BIT_FLAG_DATA_DESCRIPTOR = 0x0008;	
+	int Reseeder::ProcessSU3Stream (std::istream& s)
 	{
-		static uint32_t headerSignature = htole32 (0x04034B50);
-
 		char magicNumber[7];
 		s.read (magicNumber, 7); // magic number and zero byte 6
 		if (strcmp (magicNumber, SU3_MAGIC_NUMBER))
@@ -217,10 +217,19 @@ namespace data
 		{	
 			uint32_t signature;
 			s.read ((char *)&signature, 4);
-			if (signature == headerSignature)
+			signature = le32toh (signature);
+			if (signature == ZIP_HEADER_SIGNATURE)
 			{
 				// next local file
-				s.seekg (4, std::ios::cur); // skip fields we don't care about
+				s.seekg (2, std::ios::cur); // version
+				uint16_t bitFlag;
+				s.read ((char *)&bitFlag, 2);	
+				bitFlag = le16toh (bitFlag);
+				if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
+				{
+					LogPrint (eLogError, "SU3 archives with data descriptors are not supported yet");
+					return numFiles;
+				}
 				uint16_t compressionMethod;
 				s.read ((char *)&compressionMethod, 2);	
 				compressionMethod = le16toh (compressionMethod);
