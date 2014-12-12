@@ -24,16 +24,16 @@ obj:
 
 # weaker rule for building files without headers
 obj/%.o : %.cpp
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 obj/%.o : %.cpp %.h
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LIBS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -shared -o $@ $^
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) -shared -o $@ $^
 
 clean:
 	rm -fr obj $(I2PD) $(SHLIB)
