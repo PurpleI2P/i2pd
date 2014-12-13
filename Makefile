@@ -36,7 +36,7 @@ $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 	$(CXX) -o $@ $^ $(LDFLAGS)  $(LDLIBS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
-	$(CXX) -o $@ $^ $(LDFLAGS)  $(LDLIBS)
+	$(CXX) -o  $@ $^ $(LDFLAGS)  $(LDLIBS) -shared 
 
 clean:
 	rm -fr obj $(I2PD) $(SHLIB)

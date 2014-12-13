@@ -26,7 +26,7 @@ ifeq ($(USE_STATIC),yes)
   LDLIBS += -lpthread -static-libstdc++ -static-libgcc
   USE_AESNI := no
 else
-  LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread -shared
+  LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 endif
 
 GREP = fgrep
