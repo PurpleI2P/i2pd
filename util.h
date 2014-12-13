@@ -34,6 +34,7 @@ namespace util
 		boost::filesystem::path GetConfigFile();
 		void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
                 std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet);
+		boost::filesystem::path GetCertificatesDir();
 	}
 
 	namespace http

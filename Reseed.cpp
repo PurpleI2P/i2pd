@@ -11,6 +11,7 @@
 #include "Reseed.h"
 #include "Log.h"
 #include "Identity.h"
+#include "Signature.h"
 #include "NetDb.h"
 #include "util.h"
 
@@ -211,8 +212,37 @@ namespace data
 		s.seekg (12, std::ios::cur); // unused
 
 		s.seekg (versionLength, std::ios::cur); // skip version
-		s.seekg (signerIDLength, std::ios::cur); // skip signer ID
-
+		char signerID[256];
+		s.read (signerID, signerIDLength); // signerID
+		signerID[signerIDLength] = 0;
+		
+		//try to verify signature
+		auto it = m_SigningKeys.find (signerID);
+		if (it != m_SigningKeys.end ())
+		{
+			// TODO: implement all signature types
+			if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096)
+			{
+				i2p::crypto::RSASHA5124096Verifier verifier(it->second);
+				size_t pos = s.tellg ();
+				size_t tbsLen = pos + contentLength;
+				uint8_t * tbs = new uint8_t[tbsLen];
+				s.seekg (0, std::ios::beg);
+				s.read ((char *)tbs, tbsLen);
+				uint8_t * signature = new uint8_t[signatureLength];
+				s.read ((char *)signature, signatureLength);
+				if (!verifier.Verify (tbs, tbsLen, signature))
+					LogPrint (eLogWarning, "SU3 signature verification failed");
+				delete[] signature;
+				delete[] tbs;
+				s.seekg (pos, std::ios::beg);
+			}
+			else
+				LogPrint (eLogWarning, "Signature type ", signatureType, " is not supported");
+		}
+		else
+			LogPrint (eLogWarning, "Certificate for ", signerID, " not loaded");
+		
 		// handle content
 		int numFiles = 0;
 		size_t contentPos = s.tellg ();
@@ -428,6 +458,29 @@ namespace data
 			LogPrint (eLogError, "Can't open certificate file ", filename);
 	}
 
+	void Reseeder::LoadCertificates ()
+	{
+		boost::filesystem::path reseedDir = i2p::util::filesystem::GetCertificatesDir() / "reseed";
+		
+		if (!boost::filesystem::exists (reseedDir))
+		{
+			LogPrint (eLogWarning, "Reseed certificates not loaded. ", reseedDir, " doesn't exist");
+			return;
+		}
+
+		int numCertificates = 0;
+		boost::filesystem::directory_iterator end; // empty
+		for (boost::filesystem::directory_iterator it (reseedDir); it != end; ++it)
+		{
+			if (boost::filesystem::is_regular_file (it->status()) && it->path ().extension () == ".crt")
+			{	
+				LoadCertificate (it->path ().string ());
+				numCertificates++;
+			}	
+		}	
+		LogPrint (eLogInfo, numCertificates, " certificates loaded");
+	}	
+	
 }
 }
 

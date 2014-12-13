@@ -211,6 +211,11 @@ namespace filesystem
 #endif
 #endif
 	}
+
+	boost::filesystem::path GetCertificatesDir()
+	{
+		return GetDataDir () / "certificates";
+	}	
 }
 
 namespace http

@@ -23,10 +23,12 @@ namespace data
 			bool reseedNow(); // depreacted
 			int ReseedNowSU3 ();
 
-			void LoadCertificate (const std::string& filename);
+			void LoadCertificates ();
 		
 		private:
 
+			void LoadCertificate (const std::string& filename);
+			
 			int ReseedFromSU3 (const std::string& host);
 			int ProcessSU3File (const char * filename);	
 			int ProcessSU3Stream (std::istream& s);	
