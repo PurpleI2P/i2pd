@@ -375,6 +375,7 @@ namespace data
        		signature.SkipAll();
 			
 			// issuer
+			std::string name;
 			CryptoPP::BERSequenceDecoder issuer (tbsCert);
 			{
 				CryptoPP::BERSetDecoder c (issuer);	c.SkipAll();
@@ -388,9 +389,7 @@ namespace data
 					{			
 						CryptoPP::BERGeneralDecoder ident(attributes, CryptoPP::OBJECT_IDENTIFIER);
 						ident.SkipAll ();
-						std::string name;
 						CryptoPP::BERDecodeTextString (attributes, name, CryptoPP::UTF8_STRING);
-						LogPrint (eLogInfo, "Issuer name: ", name);
 					}	
 				}	
 			}	
@@ -403,6 +402,23 @@ namespace data
        		subject.SkipAll();
 			// public key
 			CryptoPP::BERSequenceDecoder publicKey (tbsCert);
+			{			
+				CryptoPP::BERSequenceDecoder ident (publicKey);
+				ident.SkipAll ();
+				CryptoPP::BERGeneralDecoder key (publicKey, CryptoPP::BIT_STRING);
+				key.Skip (1); // FIXME: probably bug in crypto++
+				CryptoPP::BERSequenceDecoder keyPair (key);
+				CryptoPP::Integer n;
+       			n.BERDecode (keyPair);
+				if (name.length () > 0) 
+				{	
+					PublicKey value;
+					n.Encode (value, 512);
+					m_SigningKeys[name] = value;
+				}		
+				else
+					LogPrint (eLogWarning, "Unknown issuer. Skipped");
+			}	
        		publicKey.SkipAll();
 			
 			tbsCert.SkipAll();

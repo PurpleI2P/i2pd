@@ -244,10 +244,6 @@ namespace crypto
 				m_PublicKey.Initialize (CryptoPP::Integer (signingKey, keyLen), CryptoPP::Integer (rsae));
 			}
 
-			RSAVerifier (const CryptoPP::RSA::PublicKey& publicKey): m_PublicKey (publicKey)
-			{
-			}
-
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const 
 			{
 				typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Verifier verifier (m_PublicKey);
@@ -306,10 +302,6 @@ namespace crypto
 			RSASHA2562048Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) 
 			{
 			}
-
-			RSASHA2562048Verifier (const CryptoPP::RSA::PublicKey& publicKey): RSAVerifier (publicKey)
-			{
-			}
 	};
 
 	class RSASHA2562048Signer: public RSASigner<CryptoPP::SHA256> 
@@ -331,10 +323,6 @@ namespace crypto
 			RSASHA3843072Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) 
 			{
 			}
-
-			RSASHA3843072Verifier (const CryptoPP::RSA::PublicKey& publicKey): RSAVerifier (publicKey)
-			{
-			}
 	};
 
 	class RSASHA3843072Signer: public RSASigner<CryptoPP::SHA384> 
@@ -354,10 +342,6 @@ namespace crypto
 		public:
 
 			RSASHA5124096Verifier (const uint8_t * signingKey): RSAVerifier (signingKey) 
-			{
-			}
-
-			RSASHA5124096Verifier (const CryptoPP::RSA::PublicKey& publicKey): RSAVerifier (publicKey)
 			{
 			}
 	};
