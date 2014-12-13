@@ -365,17 +365,35 @@ namespace data
 			CryptoPP::BERSequenceDecoder tbsCert (x509Cert);
 			// version
 			uint32_t ver;
-			CryptoPP::BERGeneralDecoder context (tbsCert, 0xa0);
+			CryptoPP::BERGeneralDecoder context (tbsCert, CryptoPP::CONTEXT_SPECIFIC | CryptoPP::CONSTRUCTED);
 			CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER);
-			LogPrint (eLogInfo, ver);	
 			// serial
 			CryptoPP::Integer serial;
        		serial.BERDecode(tbsCert);	
 			// signature
 			CryptoPP::BERSequenceDecoder signature (tbsCert);
        		signature.SkipAll();
+			
 			// issuer
 			CryptoPP::BERSequenceDecoder issuer (tbsCert);
+			{
+				CryptoPP::BERSetDecoder c (issuer);	c.SkipAll();
+				CryptoPP::BERSetDecoder st (issuer); st.SkipAll();
+				CryptoPP::BERSetDecoder l (issuer); l.SkipAll();
+				CryptoPP::BERSetDecoder o (issuer); o.SkipAll();
+				CryptoPP::BERSetDecoder ou (issuer); ou.SkipAll();
+				CryptoPP::BERSetDecoder cn (issuer);
+				{		
+					CryptoPP::BERSequenceDecoder attributes (cn);
+					{			
+						CryptoPP::BERGeneralDecoder ident(attributes, CryptoPP::OBJECT_IDENTIFIER);
+						ident.SkipAll ();
+						std::string name;
+						CryptoPP::BERDecodeTextString (attributes, name, CryptoPP::UTF8_STRING);
+						LogPrint (eLogInfo, "Issuer name: ", name);
+					}	
+				}	
+			}	
        		issuer.SkipAll();
 			// validity
 			CryptoPP::BERSequenceDecoder validity (tbsCert);
