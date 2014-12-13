@@ -25,11 +25,11 @@ all: obj $(SHLIB) $(I2PD)
 obj:
 	mkdir -p obj
 
-# weaker rule for building files without headers
-obj/%.o : %.cpp
+obj/%.o : %.cpp %.h
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
-obj/%.o : %.cpp %.h
+# weaker rule for building files without headers
+obj/%.o : %.cpp
 	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c -o $@ $<
 
 $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
