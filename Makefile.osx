@@ -1,27 +1,17 @@
 CXX = clang++
-CXXFLAGS = -g -Wall -std=c++11 -lstdc++ -I/usr/local/include
-include filelist.mk
-INCFLAGS = -DCRYPTOPP_DISABLE_ASM
+CXXFLAGS = -g -Wall -std=c++11 -lstdc++ -DCRYPTOPP_DISABLE_ASM
+INCFLAGS = -I/usr/local/include
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
-LIBS =
 
 # OSX Notes
 # http://www.hutsby.net/2011/08/macs-with-aes-ni.html
 # Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
-CXXFLAGS += -maes -DAESNI
-
-
-${PREFIX}:
+ifeq ($(USE_AESNI),yes)
+  CXXFLAGS += -maes -DAESNI
+endif
 
 install: all
 	mkdir -p ${PREFIX}/
 	cp -r i2p ${PREFIX}/
-
-
-
-# Apple Mac OSX
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-endif
