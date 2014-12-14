@@ -36,7 +36,7 @@ namespace data
 	
 #pragma pack()	
 
-	const int MAX_LS_BUFFER_SIZE = 2048;	
+	const int MAX_LS_BUFFER_SIZE = 3072;	
 	class LeaseSet: public RoutingDestination
 	{
 		public:
