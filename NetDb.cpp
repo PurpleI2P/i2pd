@@ -78,23 +78,27 @@ namespace data
 	void NetDb::Start ()
 	{	
 		Load (m_NetDbPath);
-		// try SU3 first
-		int reseedRetries = 0;
-		while (m_RouterInfos.size () < 100 && reseedRetries < 10)
-		{
+		if (m_RouterInfos.size () < 100) // reseed if # of router less than 100
+		{	
 			Reseeder reseeder;
-			reseeder.ReseedNowSU3();
-			reseedRetries++;
-		}	
+			reseeder.LoadCertificates (); // we need certificates for SU3 verification
 
-		// if still not enough download .dat files
-		reseedRetries = 0;
-		while (m_RouterInfos.size () < 100 && reseedRetries < 10)
-		{
-			Reseeder reseeder;
-			reseeder.reseedNow();
-			reseedRetries++;
-			Load (m_NetDbPath);
+			// try SU3 first
+			int reseedRetries = 0;
+			while (m_RouterInfos.size () < 100 && reseedRetries < 10)
+			{	
+				reseeder.ReseedNowSU3();
+				reseedRetries++;
+			}	
+
+			// if still not enough download .dat files
+			reseedRetries = 0;
+			while (m_RouterInfos.size () < 100 && reseedRetries < 10)
+			{
+				reseeder.reseedNow();
+				reseedRetries++;
+				Load (m_NetDbPath);
+			}
 		}	
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
