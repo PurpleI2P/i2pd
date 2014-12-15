@@ -11,7 +11,7 @@
 #include "Reseed.h"
 #include "Log.h"
 #include "Identity.h"
-#include "Signature.h"
+#include "CryptoConst.h"
 #include "NetDb.h"
 #include "util.h"
 
@@ -231,7 +231,14 @@ namespace data
 				s.read ((char *)tbs, tbsLen);
 				uint8_t * signature = new uint8_t[signatureLength];
 				s.read ((char *)signature, signatureLength);
-				if (!verifier.Verify (tbs, tbsLen, signature))
+				// RSA-raw
+				CryptoPP::Integer enSig (a_exp_b_mod_c (CryptoPP::Integer (signature, 512), 
+					CryptoPP::Integer (i2p::crypto::rsae), CryptoPP::Integer (it->second, 512)));
+				uint8_t enSigBuf[512];
+				enSig.Encode (enSigBuf, 512);
+				uint8_t hash[64];
+				CryptoPP::SHA512().CalculateDigest (hash, tbs, tbsLen); // TODO: implement in one pass
+				if (memcmp (enSigBuf + (512-64), hash, 64)) // TODO: use PKCS#1 v1.5 padding
 					LogPrint (eLogWarning, "SU3 signature verification failed");
 				delete[] signature;
 				delete[] tbs;
