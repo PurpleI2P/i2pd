@@ -223,7 +223,6 @@ namespace data
 			// TODO: implement all signature types
 			if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096)
 			{
-				i2p::crypto::RSASHA5124096Verifier verifier(it->second);
 				size_t pos = s.tellg ();
 				size_t tbsLen = pos + contentLength;
 				uint8_t * tbs = new uint8_t[tbsLen];
@@ -232,13 +231,9 @@ namespace data
 				uint8_t * signature = new uint8_t[signatureLength];
 				s.read ((char *)signature, signatureLength);
 				// RSA-raw
-				CryptoPP::Integer enSig (a_exp_b_mod_c (CryptoPP::Integer (signature, 512), 
-					CryptoPP::Integer (i2p::crypto::rsae), CryptoPP::Integer (it->second, 512)));
-				uint8_t enSigBuf[512];
-				enSig.Encode (enSigBuf, 512);
-				uint8_t hash[64];
-				CryptoPP::SHA512().CalculateDigest (hash, tbs, tbsLen); // TODO: implement in one pass
-				if (memcmp (enSigBuf + (512-64), hash, 64)) // TODO: use PKCS#1 v1.5 padding
+				i2p::crypto::RSASHA5124096RawVerifier verifier(it->second);
+				verifier.Update (tbs, tbsLen);
+				if (!verifier.Verify (signature))
 					LogPrint (eLogWarning, "SU3 signature verification failed");
 				delete[] signature;
 				delete[] tbs;

@@ -355,7 +355,61 @@ namespace crypto
 			{
 			}
 	};
-	
+
+// Raw verifiers	
+	class RawVerifier
+	{
+		public:
+			
+			virtual ~RawVerifier () {};
+			virtual void Update (const uint8_t * buf, size_t len) = 0;
+			virtual bool Verify (const uint8_t * signature) = 0;
+	};		
+
+	template<typename Hash, size_t keyLen>
+	class RSARawVerifier: public RawVerifier
+	{
+		public:
+
+			RSARawVerifier (const uint8_t * signingKey):
+				n (signingKey, keyLen)
+			{
+			}
+
+			void Update (const uint8_t * buf, size_t len)
+			{
+				m_Hash.Update (buf, len);
+			}
+			
+			bool Verify (const uint8_t * signature)
+			{
+				// RSA encryption first
+				CryptoPP::Integer enSig (a_exp_b_mod_c (CryptoPP::Integer (signature, keyLen), 
+					CryptoPP::Integer (i2p::crypto::rsae), n)); // s^e mod n 
+				uint8_t enSigBuf[keyLen];
+				enSig.Encode (enSigBuf, keyLen);
+
+				uint8_t digest[Hash::DIGESTSIZE];
+				m_Hash.Final (digest);
+				if (keyLen < Hash::DIGESTSIZE) return false; // can't verify digest longer than key
+				// we assume digest is right aligned, at least for PKCS#1 v1.5 padding 
+				return !memcmp (enSigBuf + (keyLen - Hash::DIGESTSIZE), digest, Hash::DIGESTSIZE); 				
+			}
+
+		private:
+
+			CryptoPP::Integer n; // RSA modulus	
+			Hash m_Hash;
+	};	
+
+	class RSASHA5124096RawVerifier: public RSARawVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH> 
+	{
+		public:
+
+			RSASHA5124096RawVerifier (const uint8_t * signingKey): RSARawVerifier (signingKey) 
+			{
+			}
+	};
 }
 }
 
