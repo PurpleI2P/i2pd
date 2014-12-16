@@ -86,12 +86,39 @@ namespace client
 		{	
 			m_Buffer[bytes_transferred] = 0;
 			LogPrint ("SAM handshake ", m_Buffer);
-			if (!memcmp (m_Buffer, SAM_HANDSHAKE, strlen (SAM_HANDSHAKE)))
+			char * separator = strchr (m_Buffer, ' ');
+			if (separator)
 			{
-				// TODO: check version
-				boost::asio::async_write (m_Socket, boost::asio::buffer (SAM_HANDSHAKE_REPLY, strlen (SAM_HANDSHAKE_REPLY)), boost::asio::transfer_all (),
-        			std::bind(&SAMSocket::HandleHandshakeReplySent, shared_from_this (), 
-					std::placeholders::_1, std::placeholders::_2));
+				separator = strchr (separator + 1, ' ');	
+				if (separator) 
+					*separator = 0;
+			}
+
+			if (!strcmp (m_Buffer, SAM_HANDSHAKE))
+			{
+				std::string version("3.0");
+				// try to find MIN and MAX, 3.0 if not found
+				if (separator)
+				{
+					separator++;
+					std::map<std::string, std::string> params;
+					ExtractParams (separator, bytes_transferred - (separator - m_Buffer), params);
+					auto it = params.find (SAM_PARAM_MAX);
+					// TODO: check MIN as well
+					if (it != params.end ())
+						version = it->second;
+				}
+				if (version[0] == '3') // we support v3 (3.0 and 3.1) only
+				{
+#ifdef _MSC_VER
+					size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
+#else		
+					size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
+#endif
+					SendMessageReply (m_Buffer, l, false);	
+				}	
+				else
+					SendMessageReply (SAM_HANDSHAKE_I2P_ERROR, strlen (SAM_HANDSHAKE_I2P_ERROR), true);
 			}
 			else
 			{
