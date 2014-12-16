@@ -12,9 +12,9 @@ namespace client
 {
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, 
 			const std::map<std::string, std::string> * params):
-		m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr), m_Work (nullptr),	
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),	
 		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
-		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (nullptr)
+		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service)
 	{
 		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
@@ -56,12 +56,6 @@ namespace client
 			delete it.second;
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
-		delete m_LeaseSet;
-		delete m_Work;
-		delete m_PublishConfirmationTimer;
-		delete m_Service;
-		delete m_StreamingDestination;
-		delete m_DatagramDestination;
 	}	
 
 	void ClientDestination::Run ()
@@ -70,8 +64,7 @@ namespace client
 		{
 			try
 			{	
-				if (m_Service)
-					m_Service->run ();
+				m_Service.run ();
 			}
 			catch (std::exception& ex)
 			{
@@ -82,9 +75,6 @@ namespace client
 
 	void ClientDestination::Start ()
 	{	
-		m_Service = new boost::asio::io_service;
-		m_PublishConfirmationTimer = new boost::asio::deadline_timer (*m_Service);
-		m_Work = new boost::asio::io_service::work (*m_Service);
 		m_Pool->SetLocalDestination (this);
 		m_Pool->SetActive (true);
 		m_IsRunning = true;
@@ -107,17 +97,13 @@ namespace client
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
 		}	
 		m_IsRunning = false;
-		if (m_Service)
-			m_Service->stop ();
+		m_Service.stop ();
 		if (m_Thread)
 		{	
 			m_Thread->join (); 
 			delete m_Thread;
 			m_Thread = 0;
 		}	
-		delete m_PublishConfirmationTimer; m_PublishConfirmationTimer = nullptr;
-		delete m_Work; m_Work = nullptr;
-		delete m_Service; m_Service = nullptr;
 	}	
 
 	const i2p::data::LeaseSet * ClientDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
@@ -169,47 +155,27 @@ namespace client
 
 	bool ClientDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)
 	{
-		if (m_Service)
+		struct
 		{
-			struct
+			uint8_t k[32], t[32];
+		} data;	
+		memcpy (data.k, key, 32);
+		memcpy (data.t, tag, 32);
+		m_Service.post ([this,data](void)
 			{
-				uint8_t k[32], t[32];
-			} data;	
-			memcpy (data.k, key, 32);
-			memcpy (data.t, tag, 32);
-			m_Service->post ([this,data](void)
-				{
-					this->AddSessionKey (data.k, data.t);
-				});
-			return true;
-		}
-		else
-		{
-			LogPrint (eLogWarning, "Destination's thread is not running");
-			return false;
-		}
+				this->AddSessionKey (data.k, data.t);
+			});
+		return true;
 	}
 
 	void ClientDestination::ProcessGarlicMessage (I2NPMessage * msg)
 	{
-		if (m_Service)
-			m_Service->post (std::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
-		else
-		{	
-			LogPrint (eLogWarning, "Destination's thread is not running");
-			i2p::DeleteI2NPMessage (msg);
-		}	
+		m_Service.post (std::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
 	}
 
 	void ClientDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
 	{
-		if (m_Service)
-			m_Service->post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
-		else
-		{	
-			LogPrint (eLogWarning, "Destination's thread is not running");
-			i2p::DeleteI2NPMessage (msg);
-		}	
+		m_Service.post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
 	}
 
 	void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)
@@ -306,18 +272,10 @@ namespace client
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		m_PublishReplyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-		auto msg = WrapMessage (*floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));	
-		if (m_PublishConfirmationTimer)
-		{
-			m_PublishConfirmationTimer->expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
-			m_PublishConfirmationTimer->async_wait (std::bind (&ClientDestination::HandlePublishConfirmationTimer,
-				this, std::placeholders::_1));
-		}
-		else
-		{
-			LogPrint (eLogWarning, "Destination's thread is not running");
-			m_PublishReplyToken = 0;
-		}		
+		auto msg = WrapMessage (*floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));			
+		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
+		m_PublishConfirmationTimer.async_wait (std::bind (&ClientDestination::HandlePublishConfirmationTimer,
+			this, std::placeholders::_1));	
 		outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);	
 	}
 

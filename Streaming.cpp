@@ -672,7 +672,7 @@ namespace stream
 
 	std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream (const i2p::data::LeaseSet& remote, int port)
 	{
-		auto s = std::make_shared<Stream> (*m_Owner.GetService (), *this, remote, port);
+		auto s = std::make_shared<Stream> (m_Owner.GetService (), *this, remote, port);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;
@@ -680,7 +680,7 @@ namespace stream
 
 	std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream ()
 	{
-		auto s = std::make_shared<Stream> (*m_Owner.GetService (), *this);
+		auto s = std::make_shared<Stream> (m_Owner.GetService (), *this);
 		std::unique_lock<std::mutex> l(m_StreamsMutex);
 		m_Streams[s->GetRecvStreamID ()] = s;
 		return s;

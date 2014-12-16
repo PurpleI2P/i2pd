@@ -39,7 +39,7 @@ namespace client
 			virtual void Start ();
 			virtual void Stop ();
 			bool IsRunning () const { return m_IsRunning; };
-			boost::asio::io_service * GetService () { return m_Service; };
+			boost::asio::io_service& GetService () { return m_Service; };
 			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; }; 
 			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases (); };
 			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);
@@ -86,8 +86,8 @@ namespace client
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			boost::asio::io_service * m_Service;
-			boost::asio::io_service::work * m_Work;
+			boost::asio::io_service m_Service;
+			boost::asio::io_service::work m_Work;
 			i2p::data::PrivateKeys m_Keys;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 			std::map<i2p::data::IdentHash, i2p::data::LeaseSet *> m_RemoteLeaseSets;
@@ -101,7 +101,7 @@ namespace client
 			i2p::stream::StreamingDestination * m_StreamingDestination;
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
-			boost::asio::deadline_timer * m_PublishConfirmationTimer;
+			boost::asio::deadline_timer m_PublishConfirmationTimer;
 
 		public:
 			

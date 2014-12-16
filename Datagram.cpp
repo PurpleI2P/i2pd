@@ -36,12 +36,8 @@ namespace datagram
 		else
 			m_Owner.Sign (buf1, len, signature);
 		
-		auto service = m_Owner.GetService ();
-		if (service) 
-			service->post (std::bind (&DatagramDestination::SendMsg, this, 
-				CreateDataMessage (buf, len + headerLen), remote));
-		else
-			LogPrint (eLogWarning, "Failed to send datagram. Destination is not running");
+		m_Owner.GetService ().post (std::bind (&DatagramDestination::SendMsg, this, 
+			CreateDataMessage (buf, len + headerLen), remote));
 	}
 
 	void DatagramDestination::SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote)
