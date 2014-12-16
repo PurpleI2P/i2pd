@@ -43,7 +43,7 @@ namespace client
 				}
 			}	
 		}	
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (*this, inboundTunnelLen, outboundTunnelLen);  
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen);  
 		if (m_IsPublic)
 			LogPrint (eLogInfo, "Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
 		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
@@ -85,6 +85,7 @@ namespace client
 		m_Service = new boost::asio::io_service;
 		m_PublishConfirmationTimer = new boost::asio::deadline_timer (*m_Service);
 		m_Work = new boost::asio::io_service::work (*m_Service);
+		m_Pool->SetLocalDestination (this);
 		m_Pool->SetActive (true);
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
@@ -101,7 +102,10 @@ namespace client
 			delete d;
 		}	
 		if (m_Pool)
+		{	
+			m_Pool->SetLocalDestination (nullptr);
 			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
+		}	
 		m_IsRunning = false;
 		if (m_Service)
 			m_Service->stop ();

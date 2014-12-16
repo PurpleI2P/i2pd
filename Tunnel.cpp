@@ -287,7 +287,7 @@ namespace tunnel
 		return tunnel;
 	}	
 
-	TunnelPool * Tunnels::CreateTunnelPool (i2p::garlic::GarlicDestination& localDestination, int numInboundHops, int numOutboundHops)
+	TunnelPool * Tunnels::CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops)
 	{
 		auto pool = new TunnelPool (localDestination, numInboundHops, numOutboundHops);
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
@@ -513,7 +513,7 @@ namespace tunnel
 			LogPrint ("Creating zero hops inbound tunnel...");
 			CreateZeroHopsInboundTunnel ();
 			if (!m_ExploratoryPool)
-				m_ExploratoryPool = CreateTunnelPool (i2p::context, 2, 2); // 2-hop exploratory
+				m_ExploratoryPool = CreateTunnelPool (&i2p::context, 2, 2); // 2-hop exploratory
 			return;
 		}
 		

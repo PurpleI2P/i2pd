@@ -160,8 +160,8 @@ namespace i2p
 			rnd.GenerateBlock (buf, 32); // key
 			buf[32] = 1; // 1 tag
 			rnd.GenerateBlock (buf + 33, 32); // tag
-			if (pool)
-				pool->GetLocalDestination ().SubmitSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
+			if (pool && pool->GetLocalDestination ())
+				pool->GetLocalDestination ()->SubmitSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
 			else
 				LogPrint ("Destination for encrypteed reply not specified");
 			buf += 65;
@@ -563,7 +563,7 @@ namespace i2p
 				case eI2NPGarlic:
 					LogPrint ("Garlic");
 					if (msg->from && msg->from->GetTunnelPool ())
-						msg->from->GetTunnelPool ()->GetLocalDestination ().ProcessGarlicMessage (msg);
+						msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
 					else
 						i2p::context.ProcessGarlicMessage (msg); 
 				break;

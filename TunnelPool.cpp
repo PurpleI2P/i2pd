@@ -10,7 +10,7 @@ namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination& localDestination, int numInboundHops, int numOutboundHops, int numTunnels):
+	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numTunnels):
 		m_LocalDestination (localDestination), m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumTunnels (numTunnels), m_IsActive (true)
 	{
@@ -45,7 +45,8 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.insert (createdTunnel);
 		}
-		m_LocalDestination.SetLeaseSetUpdated ();
+		if (m_LocalDestination)
+			m_LocalDestination->SetLeaseSetUpdated ();
 	}
 
 	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
@@ -183,7 +184,8 @@ namespace tunnel
 						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 						m_InboundTunnels.erase (it.second.second);
 					}
-					m_LocalDestination.SetLeaseSetUpdated ();
+					if (m_LocalDestination)
+						m_LocalDestination->SetLeaseSetUpdated ();
 				}	
 				else
 					it.second.second->SetState (eTunnelStateTestFailed);
@@ -217,6 +219,17 @@ namespace tunnel
 		}
 	}
 
+	void TunnelPool::ProcessGarlicMessage (I2NPMessage * msg)
+	{
+		if (m_LocalDestination)
+			m_LocalDestination->ProcessGarlicMessage (msg);
+		else
+		{
+			LogPrint (eLogWarning, "Local destination doesn't exist. Dropped");
+			DeleteI2NPMessage (msg);
+		}	
+	}	
+		
 	void TunnelPool::ProcessDeliveryStatus (I2NPMessage * msg)
 	{
 		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
@@ -233,12 +246,20 @@ namespace tunnel
 			DeleteI2NPMessage (msg);
 		}
 		else
-			m_LocalDestination.ProcessDeliveryStatusMessage (msg);
+		{
+			if (m_LocalDestination)
+				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
+			else
+			{	
+				LogPrint (eLogWarning, "Local destination doesn't exist. Dropped");
+				DeleteI2NPMessage (msg);
+			}	
+		}	
 	}
 
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const
 	{
-		bool isExploratory = (&m_LocalDestination == &i2p::context); // TODO: implement it better
+		bool isExploratory = (m_LocalDestination == &i2p::context); // TODO: implement it better
 		auto hop =  isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop): 
 			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
 			

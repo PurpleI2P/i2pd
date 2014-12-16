@@ -22,11 +22,17 @@ namespace data
 	LeaseSet::LeaseSet (const i2p::tunnel::TunnelPool& pool)
 	{	
 		// header
-		const i2p::data::LocalDestination& localDestination = pool.GetLocalDestination ();
-		m_BufferLen = localDestination.GetIdentity ().ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
-		memcpy (m_Buffer + m_BufferLen, localDestination.GetEncryptionPublicKey (), 256);
+		const i2p::data::LocalDestination * localDestination = pool.GetLocalDestination ();
+		if (!localDestination)
+		{
+			m_BufferLen = 0;
+			LogPrint (eLogError, "Destination for local LeaseSet doesn't exist");
+			return;
+		}	
+		m_BufferLen = localDestination->GetIdentity ().ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
+		memcpy (m_Buffer + m_BufferLen, localDestination->GetEncryptionPublicKey (), 256);
 		m_BufferLen += 256;
-		auto signingKeyLen = localDestination.GetIdentity ().GetSigningPublicKeyLen ();
+		auto signingKeyLen = localDestination->GetIdentity ().GetSigningPublicKeyLen ();
 		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
 		m_BufferLen += signingKeyLen;
 		auto tunnels = pool.GetInboundTunnels (5); // 5 tunnels maximum
@@ -44,8 +50,8 @@ namespace data
 			m_BufferLen += sizeof (Lease);
 		}	
 		// signature
-		localDestination.Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
-		m_BufferLen += localDestination.GetIdentity ().GetSignatureLen (); 
+		localDestination->Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
+		m_BufferLen += localDestination->GetIdentity ().GetSignatureLen (); 
 		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
 
 		ReadFromBuffer ();
