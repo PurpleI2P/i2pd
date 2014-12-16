@@ -391,7 +391,7 @@ namespace crypto
 
 				uint8_t digest[Hash::DIGESTSIZE];
 				m_Hash.Final (digest);
-				if (keyLen < Hash::DIGESTSIZE) return false; // can't verify digest longer than key
+				if ((int)keyLen < Hash::DIGESTSIZE) return false; // can't verify digest longer than key
 				// we assume digest is right aligned, at least for PKCS#1 v1.5 padding 
 				return !memcmp (enSigBuf + (keyLen - Hash::DIGESTSIZE), digest, Hash::DIGESTSIZE); 				
 			}
