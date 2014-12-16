@@ -749,8 +749,6 @@ namespace util
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
 		{
 			it->GetTunnelConfig ()->Print (s);
-			if (it->GetTunnelPool () && !it->GetTunnelPool ()->IsExploratory ())
-				s << " " << "Pool";
 			auto state = it->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
@@ -763,8 +761,6 @@ namespace util
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
 		{
 			it.second->GetTunnelConfig ()->Print (s);
-			if (it.second->GetTunnelPool () && !it.second->GetTunnelPool ()->IsExploratory ())
-				s << " " << "Pool";
 			auto state = it.second->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
