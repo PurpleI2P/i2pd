@@ -50,7 +50,8 @@ namespace client
 	const char SAM_PARAM_ID[] = "ID";	
 	const char SAM_PARAM_SILENT[] = "SILENT";
 	const char SAM_PARAM_DESTINATION[] = "DESTINATION";	
-	const char SAM_PARAM_NAME[] = "NAME";		
+	const char SAM_PARAM_NAME[] = "NAME";
+	const char SAM_PARAM_SIGNATURE_TYPE[] = "SIGNATURE_TYPE";		
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";	
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
@@ -149,8 +150,8 @@ namespace client
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
-			SAMSession * CreateSession (const std::string& id, const std::string& destination = "", // empty string  means transient
-				const std::map<std::string, std::string> * params = nullptr);
+			SAMSession * CreateSession (const std::string& id, const std::string& destination, // empty string  means transient
+				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
 			SAMSession * FindSession (const std::string& id);
 

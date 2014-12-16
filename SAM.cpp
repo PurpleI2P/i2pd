@@ -3,6 +3,7 @@
 #ifdef _MSC_VER
 #include <stdlib.h>
 #endif
+#include <boost/lexical_cast.hpp>
 #include "base64.h"
 #include "Identity.h"
 #include "Log.h"
@@ -238,13 +239,15 @@ namespace client
 		std::string& style = params[SAM_PARAM_STYLE]; 
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
-		m_ID = id;
+		m_ID = id; 
 		if (m_Owner.FindSession (id))
 		{
 			// session exists
 			SendMessageReply (SAM_SESSION_CREATE_DUPLICATED_ID, strlen(SAM_SESSION_CREATE_DUPLICATED_ID), true);
 			return;
 		}
+
+		// create destination	
 		m_Session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination, &params); 
 		if (m_Session)
 		{
@@ -642,7 +645,18 @@ namespace client
 			localDestination = i2p::client::context.CreateNewLocalDestination (keys, true, params);
 		}
 		else // transient
-			localDestination = i2p::client::context.CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1, params); 
+		{
+			// extract signature type
+			i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
+			if (params)
+			{
+				auto it = params->find (SAM_PARAM_SIGNATURE_TYPE);
+				if (it != params->end ())
+					// TODO: extract string values	
+					signatureType = boost::lexical_cast<int> (it->second);
+			}
+			localDestination = i2p::client::context.CreateNewLocalDestination (false, signatureType, params); 
+		}
 		if (localDestination)
 		{
 			SAMSession session;
