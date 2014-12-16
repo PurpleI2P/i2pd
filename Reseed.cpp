@@ -6,6 +6,7 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/asn.h>
 #include <cryptopp/base64.h>
+#include <cryptopp/crc.h>
 #include <cryptopp/zinflate.h>
 #include "I2PEndian.h"
 #include "Reseed.h"
@@ -167,6 +168,7 @@ namespace data
 
 	const char SU3_MAGIC_NUMBER[]="I2Psu3";	
 	const uint32_t ZIP_HEADER_SIGNATURE = 0x04034B50;
+	const uint32_t ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014B50;	
 	const uint16_t ZIP_BIT_FLAG_DATA_DESCRIPTOR = 0x0008;	
 	int Reseeder::ProcessSU3Stream (std::istream& s)
 	{
@@ -263,8 +265,10 @@ namespace data
 				uint16_t compressionMethod;
 				s.read ((char *)&compressionMethod, 2);	
 				compressionMethod = le16toh (compressionMethod);
-				s.seekg (8, std::ios::cur); // skip fields we don't care about
-				uint32_t compressedSize, uncompressedSize; 
+				s.seekg (4, std::ios::cur); // skip fields we don't care about
+				uint32_t crc32, compressedSize, uncompressedSize; 
+				s.read ((char *)&crc32, 4);	
+				crc32 = le32toh (crc32);	
 				s.read ((char *)&compressedSize, 4);	
 				compressedSize = le32toh (compressedSize);	
 				s.read ((char *)&uncompressedSize, 4);
@@ -288,7 +292,8 @@ namespace data
 						return numFiles;
 					}								
 	
-					s.seekg (4, std::ios::cur); // skip CRC-32
+					s.read ((char *)&crc32, 4);	
+					crc32 = le32toh (crc32);
 					s.read ((char *)&compressedSize, 4);	
 					compressedSize = le32toh (compressedSize) + 4; // ??? we must consider signature as part of compressed data
 					s.read ((char *)&uncompressedSize, 4);
@@ -316,8 +321,13 @@ namespace data
 					{
 						uint8_t * uncompressed = new uint8_t[uncompressedSize];	
 						decompressor.Get (uncompressed, uncompressedSize);	
-						i2p::data::netdb.AddRouterInfo (uncompressed, uncompressedSize);
-						numFiles++;
+						if (CryptoPP::CRC32().VerifyDigest ((uint8_t *)&crc32, uncompressed, uncompressedSize))
+						{
+							i2p::data::netdb.AddRouterInfo (uncompressed, uncompressedSize);
+							numFiles++;
+						}
+						else
+							LogPrint (eLogError, "CRC32 verification failed");
 						delete[] uncompressed;
 					}
 					else
@@ -333,7 +343,11 @@ namespace data
 					s.seekg (12, std::ios::cur); // skip data descriptor section if presented (12 = 16 - 4)
 			}
 			else
+			{
+				if (signature != ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE)
+					LogPrint (eLogWarning, "Missing zip central directory header");
 				break; // no more files
+			}
 			size_t end = s.tellg ();
 			if (end - contentPos >= contentLength)
 				break; // we are beyond contentLength
