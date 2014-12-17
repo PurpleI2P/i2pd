@@ -372,7 +372,7 @@ namespace data
 			else
 				nextInd = 0;
 		}
-		return s;
+		return false;
 	}
 
 	const char CERTIFICATE_HEADER[] = "-----BEGIN CERTIFICATE-----";
