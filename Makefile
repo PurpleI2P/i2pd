@@ -25,18 +25,18 @@ all: obj $(SHLIB) $(I2PD)
 obj:
 	mkdir -p obj
 
-obj/%.o : %.cpp %.h
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c -o $@ $<
-
 # weaker rule for building files without headers
 obj/%.o : %.cpp
-	$(CXX) $(CXXFLAGS) $(INCFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+
+obj/%.o : %.cpp %.h
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
-	$(CXX) -o $@ $^ $(LDFLAGS)  $(LDLIBS)
+	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
-	$(CXX) -o  $@ $^ $(LDFLAGS)  $(LDLIBS) -shared 
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -shared -o $@ $^
 
 clean:
 	rm -fr obj $(I2PD) $(SHLIB)
