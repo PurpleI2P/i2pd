@@ -116,7 +116,9 @@ namespace client
 #else		
 					size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
 #endif
-					SendMessageReply (m_Buffer, l, false);	
+					boost::asio::async_write (m_Socket, boost::asio::buffer (m_Buffer, l), boost::asio::transfer_all (),
+        				std::bind(&SAMSocket::HandleHandshakeReplySent, shared_from_this (), 
+						std::placeholders::_1, std::placeholders::_2));
 				}	
 				else
 					SendMessageReply (SAM_HANDSHAKE_I2P_ERROR, strlen (SAM_HANDSHAKE_I2P_ERROR), true);
