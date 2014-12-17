@@ -131,12 +131,11 @@ namespace client
 	{
 		ClientDestination * localDestination;
 		std::list<std::shared_ptr<SAMSocket> > sockets;
-				
-		~SAMSession ()
-		{
-			for (auto it: sockets)
-				it->SetSocketType (eSAMSocketTypeTerminated);
-		}		
+		
+		SAMSession (ClientDestination * localDestination);		
+		~SAMSession ();
+
+		void CloseStreams ();
 	};
 
 	class SAMBridge

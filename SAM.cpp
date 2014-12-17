@@ -568,6 +568,24 @@ namespace client
 			LogPrint (eLogWarning, "Datagram size ", len," exceeds buffer");
 	}
 
+	SAMSession::SAMSession (ClientDestination * localDestination)
+	{
+	}
+		
+	SAMSession::~SAMSession ()
+	{
+		for (auto it: sockets)
+			it->SetSocketType (eSAMSocketTypeTerminated);
+		i2p::client::context.DeleteLocalDestination (localDestination);
+	}
+
+	void SAMSession::CloseStreams ()
+	{
+		for (auto it: sockets)
+			it->CloseStream ();
+		sockets.clear ();
+	}
+
 	SAMBridge::SAMBridge (int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
@@ -591,6 +609,9 @@ namespace client
 	void SAMBridge::Stop ()
 	{
 		m_IsRunning = false;
+		m_Acceptor.cancel ();
+		m_DatagramSocket.cancel ();
+		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)
 		{	
@@ -661,10 +682,8 @@ namespace client
 		}
 		if (localDestination)
 		{
-			SAMSession session;
-			session.localDestination = localDestination;
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			auto ret = m_Sessions.insert (std::pair<std::string, SAMSession>(id, session));
+			auto ret = m_Sessions.insert (std::pair<std::string, SAMSession>(id, SAMSession (localDestination)));
 			if (!ret.second)
 				LogPrint ("Session ", id, " already exists");
 			return &(ret.first->second);
@@ -678,10 +697,7 @@ namespace client
 		auto it = m_Sessions.find (id);
 		if (it != m_Sessions.end ())
 		{
-			for (auto it1: it->second.sockets)
-				it1->CloseStream ();
-			it->second.sockets.clear ();
-			i2p::client::context.DeleteLocalDestination (it->second.localDestination);
+			it->second.CloseStreams ();
 			m_Sessions.erase (it);
 		}
 	}

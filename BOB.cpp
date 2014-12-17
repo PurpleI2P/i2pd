@@ -580,9 +580,10 @@ namespace client
 
 	void BOBCommandChannel::Stop ()
 	{
+		m_IsRunning = false;
 		for (auto it: m_Destinations)
 			it.second->Stop ();
-		m_IsRunning = false;
+		m_Acceptor.cancel ();	
 		m_Service.stop ();
 		if (m_Thread)
 		{	
