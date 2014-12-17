@@ -8,22 +8,29 @@ USE_AESNI  := yes
 USE_STATIC := no
 
 ifeq ($(UNAME),Darwin)
-  DAEMON_SRC += DaemonLinux.cpp
+	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.osx
 else ifeq ($(UNAME),FreeBSD)
-  DAEMON_SRC += DaemonLinux.cpp
+	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.bsd
 else ifeq ($(UNAME),Linux)
-  DAEMON_SRC += DaemonLinux.cpp
+	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.linux
 else # win32
-  DAEMON_SRC += DaemonWin32.cpp
+	DAEMON_SRC += DaemonWin32.cpp
 endif
 
 all: obj $(SHLIB) $(I2PD)
 
 obj:
 	mkdir -p obj
+
+## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
+## **without** overwriting the CXXFLAGS which we need in order to build.
+## For example, when adding 'hardening flags' to the build
+## (e.g. -fstack-protector-strong -Wformat -Werror=format-security), we do not want to remove
+## -std=c++11. If you want to remove this variable please do so in a way that allows setting
+## custom FLAGS to work at build-time.
 
 # weaker rule for building files without headers
 obj/%.o : %.cpp

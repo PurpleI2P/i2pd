@@ -1,5 +1,11 @@
 CXX = g++
 CXXFLAGS = -O2
+## NOTE: NEEDED_CXXFLAGS is here so that custom CXXFLAGS can be specified at build time
+## **without** overwriting the CXXFLAGS which we need in order to build.
+## For example, when adding 'hardening flags' to the build
+## (e.g. -fstack-protector-strong -Wformat -Werror=format-security), we do not want to remove
+## -std=c++11. If you want to remove this variable please do so in a way that allows setting
+## custom FLAGS to work at build-time.
 NEEDED_CXXFLAGS = -std=c++11
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
