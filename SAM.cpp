@@ -681,7 +681,7 @@ namespace client
 			for (auto it1: it->second.sockets)
 				it1->CloseStream ();
 			it->second.sockets.clear ();
-			it->second.localDestination->Stop ();
+			i2p::client::context.DeleteLocalDestination (it->second.localDestination);
 			m_Sessions.erase (it);
 		}
 	}
