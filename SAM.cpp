@@ -30,7 +30,6 @@ namespace client
 
 	void SAMSocket::CloseStream ()
 	{
-		m_SocketType = eSAMSocketTypeTerminated;
 		if (m_Stream)
 		{	
 			m_Stream->Close ();
@@ -584,7 +583,10 @@ namespace client
 	void SAMSession::CloseStreams ()
 	{
 		for (auto it: sockets)
+		{	
 			it->CloseStream ();
+			it->SetSocketType (eSAMSocketTypeTerminated);
+		}	
 		sockets.clear ();
 	}
 
