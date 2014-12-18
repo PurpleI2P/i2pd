@@ -1,6 +1,7 @@
 UNAME := $(shell uname -s)
 SHLIB := libi2pd.so
 I2PD  := i2p
+GREP := fgrep
 
 include filelist.mk
 
@@ -10,7 +11,7 @@ USE_STATIC := no
 ifeq ($(UNAME),Darwin)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.osx
-else ifeq ($(UNAME),FreeBSD)
+else ifeq ($(shell echo $(UNAME) | $(GREP) -c FreeBSD),1)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.bsd
 else ifeq ($(UNAME),Linux)
