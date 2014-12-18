@@ -173,7 +173,7 @@ namespace client
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;
 			std::mutex m_SessionsMutex;
-			std::map<std::string, SAMSession> m_Sessions;
+			std::map<std::string, SAMSession *> m_Sessions;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
 	};		
 }

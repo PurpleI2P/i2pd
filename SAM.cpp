@@ -30,6 +30,7 @@ namespace client
 
 	void SAMSocket::CloseStream ()
 	{
+		m_SocketType = eSAMSocketTypeTerminated;
 		if (m_Stream)
 		{	
 			m_Stream->Close ();
@@ -568,7 +569,8 @@ namespace client
 			LogPrint (eLogWarning, "Datagram size ", len," exceeds buffer");
 	}
 
-	SAMSession::SAMSession (ClientDestination * localDestination)
+	SAMSession::SAMSession (ClientDestination * dest):
+		localDestination (dest)
 	{
 	}
 		
@@ -595,7 +597,8 @@ namespace client
 
 	SAMBridge::~SAMBridge ()
 	{
-		Stop ();
+		if (m_IsRunning)
+			Stop ();
 	}	
 
 	void SAMBridge::Start ()
@@ -611,6 +614,8 @@ namespace client
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
 		m_DatagramSocket.cancel ();
+		for (auto it: m_Sessions)
+			delete it.second;
 		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)
@@ -683,10 +688,10 @@ namespace client
 		if (localDestination)
 		{
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			auto ret = m_Sessions.insert (std::pair<std::string, SAMSession>(id, SAMSession (localDestination)));
+			auto ret = m_Sessions.insert (std::pair<std::string, SAMSession *>(id, new SAMSession (localDestination)));
 			if (!ret.second)
 				LogPrint ("Session ", id, " already exists");
-			return &(ret.first->second);
+			return ret.first->second;
 		}
 		return nullptr;
 	}
@@ -697,8 +702,10 @@ namespace client
 		auto it = m_Sessions.find (id);
 		if (it != m_Sessions.end ())
 		{
-			it->second.CloseStreams ();
+			auto session = it->second;
+			session->CloseStreams ();
 			m_Sessions.erase (it);
+			delete session;
 		}
 	}
 
@@ -707,7 +714,7 @@ namespace client
 		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_Sessions.find (id);
 		if (it != m_Sessions.end ())
-			return &it->second;
+			return it->second;
 		return nullptr;
 	}
 
