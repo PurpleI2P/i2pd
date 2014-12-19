@@ -51,6 +51,23 @@ namespace client
 			AddressBookStorage * m_Storage;
 			bool m_IsLoaded, m_IsDowloading;
 	};
+
+	class AddressBookSubscription
+	{
+		public:
+
+			AddressBookSubscription (AddressBook& book, const std::string& link);
+			void CheckSubscription ();
+
+		private:
+
+			void Request ();
+		
+		private:
+
+			AddressBook& m_Book;
+			std::string m_Link;
+	};
 }
 }
 

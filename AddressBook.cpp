@@ -3,11 +3,16 @@
 #include <string>
 #include <map>
 #include <fstream>
+#include <chrono>
+#include <condition_variable>
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 #include "base64.h"
 #include "util.h"
 #include "Identity.h"
 #include "Log.h"
+#include "NetDb.h"
+#include "ClientContext.h"
 #include "AddressBook.h"
 
 namespace i2p
@@ -309,6 +314,68 @@ namespace client
 		m_IsLoaded = true;
 	}
 
+	AddressBookSubscription::AddressBookSubscription (AddressBook& book, const std::string& link):
+		m_Book (book), m_Link (link)
+	{
+	}
+
+	void AddressBookSubscription::CheckSubscription ()
+	{
+		std::thread load_hosts(&AddressBookSubscription::Request, this);
+		load_hosts.detach();
+	}
+
+	void AddressBookSubscription::Request ()
+	{
+		// must be run in separate thread	
+		i2p::util::http::url u (m_Link);
+		i2p::data::IdentHash ident;
+		if (m_Book.GetIdentHash (u.host_, ident))
+		{
+			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			if (!leaseSet)
+			{
+				i2p::data::netdb.RequestDestination (ident, true, i2p::client::context.GetSharedLocalDestination ()->GetTunnelPool ());
+				std::this_thread::sleep_for (std::chrono::seconds (5)); // wait for 5 seconds
+				leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			}
+			if (leaseSet)
+			{
+				std::stringstream request, response;
+				request << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
+				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";
+
+				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (*leaseSet, u.port_);
+				stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
+				
+				uint8_t buf[4095];
+				bool end = false;
+				while (!end)
+				{
+					std::condition_variable newDataReceived;
+					std::mutex newDataReceivedMutex;
+					stream->AsyncReceive (boost::asio::buffer (buf, 4096), 
+						[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+						{
+							if (!ecode)
+								response.write ((char *)buf, bytes_transferred);
+							else
+								end = true;	
+							newDataReceived.notify_one ();
+						},
+						30); // wait for 30 seconds
+					std::unique_lock<std::mutex> l(newDataReceivedMutex);
+					newDataReceived.wait (l);
+					if (!end)
+						end = !stream->IsOpen ();
+				}
+			}
+			else
+				LogPrint (eLogError, "Address ", u.host_, " not found");
+		}
+		else
+			LogPrint (eLogError, "Can't resolve ", u.host_);
+	}
 }
 }
 
