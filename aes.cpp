@@ -66,7 +66,7 @@ namespace crypto
 			"movups	%%xmm1, 224(%[sched]) \n"
 			: // output
 			: [key]"r"((const uint8_t *)key), [sched]"r"(GetKeySchedule ()) // input
-			: "%xmm1", "%xmm2", "%xmm3", "%xmm4" // clogged
+			: "%xmm1", "%xmm2", "%xmm3", "%xmm4", "memory" // clogged
 		);
 	}
 
@@ -94,7 +94,7 @@ namespace crypto
 			"movups	(%[in]), %%xmm0 \n"
 			EncryptAES256(sched)
 			"movups	%%xmm0, (%[out]) \n"	
-			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0"
+			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
 		);
 	}		
 
@@ -122,7 +122,7 @@ namespace crypto
 			"movups	(%[in]), %%xmm0 \n"
 			DecryptAES256(sched)
 			"movups	%%xmm0, (%[out]) \n"	
-			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0"
+			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
 		);		
 	}
 
@@ -150,7 +150,7 @@ namespace crypto
 			CallAESIMC(176)
 			CallAESIMC(192)
 			CallAESIMC(208)
-			: : [shed]"r"(GetKeySchedule ()) : "%xmm0"
+			: : [shed]"r"(GetKeySchedule ()) : "%xmm0", "memory"
 		);
 	}
 
