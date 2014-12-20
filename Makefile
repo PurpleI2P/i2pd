@@ -44,7 +44,9 @@ $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
+ifneq ($(USE_STATIC),yes)
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -shared -o $@ $^
+endif
 
 clean:
 	rm -fr obj $(I2PD) $(SHLIB)
