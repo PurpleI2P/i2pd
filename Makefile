@@ -34,9 +34,11 @@ api: $(SHLIB)
 
 # weaker rule for building files without headers
 obj/%.o : %.cpp
+	@test -d obj || mkdir obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 obj/%.o : %.cpp %.h
+	@test -d obj || mkdir obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
@@ -48,7 +50,8 @@ ifneq ($(USE_STATIC),yes)
 endif
 
 clean:
-	rm -fr obj $(I2PD) $(SHLIB)
+	test -d obj && $(RM) -rf obj
+	$(RM) -f $(I2PD) $(SHLIB)
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 master)
 dist:
