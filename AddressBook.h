@@ -4,6 +4,7 @@
 #include <string.h>
 #include <string>
 #include <map>
+#include <iostream>
 #include "base64.h"
 #include "util.h"
 #include "Identity.h"
@@ -26,6 +27,7 @@ namespace client
 			virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 	};			
 
+	class AddressBookSubscription;
 	class AddressBook
 	{
 		public:
@@ -37,16 +39,18 @@ namespace client
 			const i2p::data::IdentHash * FindAddress (const std::string& address);
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 			void InsertAddress (const i2p::data::IdentityEx& address);
-		
+
+			void LoadHostsFromStream (std::istream& f);
+			
 		private:
 
 			AddressBookStorage * CreateStorage ();	
 
-		private:	
-
 			void LoadHosts ();
 			void LoadHostsFromI2P ();
 
+		private:	
+			
 			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
 			AddressBookStorage * m_Storage;
 			bool m_IsLoaded, m_IsDowloading;

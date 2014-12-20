@@ -252,11 +252,11 @@ namespace client
 				f_save.close();
 			}
 			else
-				LogPrint("Can't write hosts.txt");
+				LogPrint (eLogError, "Can't write hosts.txt");
 			m_IsLoaded = false;
 		}	
 		else
-			LogPrint ("Failed to download hosts.txt");
+			LogPrint (eLogError, "Failed to download hosts.txt");
 		m_IsDowloading = false;	
 	
 		return;
@@ -266,8 +266,7 @@ namespace client
 	{
 		if (!m_Storage)
 			 m_Storage = CreateStorage ();
-		int numAddresses = m_Storage->Load (m_Addresses);
-		if (numAddresses > 0)
+		if (m_Storage->Load (m_Addresses) > 0)
 		{
 			m_IsLoaded = true;
 			return;
@@ -277,7 +276,7 @@ namespace client
 		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
 		if (!f.is_open ())	
 		{
-			LogPrint ("hosts.txt not found. Try to load...");
+			LogPrint (eLogInfo, "hosts.txt not found. Try to load...");
 			if (!m_IsDowloading)
 			{
 				m_IsDowloading = true;
@@ -287,6 +286,14 @@ namespace client
 			return;
 		}
 
+		LoadHostsFromStream (f);
+		m_Storage->Save (m_Addresses);
+		m_IsLoaded = true;
+	}
+
+	void AddressBook::LoadHostsFromStream (std::istream& f)
+	{
+		int numAddresses = 0;
 		std::string s;
 		while (!f.eof ())
 		{
@@ -309,11 +316,9 @@ namespace client
 				numAddresses++;
 			}		
 		}
-		LogPrint (numAddresses, " addresses loaded");
-		m_Storage->Save (m_Addresses);
-		m_IsLoaded = true;
-	}
-
+		LogPrint (eLogInfo, numAddresses, " addresses loaded");
+	}	
+	
 	AddressBookSubscription::AddressBookSubscription (AddressBook& book, const std::string& link):
 		m_Book (book), m_Link (link)
 	{
@@ -369,6 +374,23 @@ namespace client
 					if (!end)
 						end = !stream->IsOpen ();
 				}
+				// parse response
+				std::string version;
+				response >> version; // HTTP version
+				int status = 0;
+				response >> status; // status
+				if (status == 200) // OK
+				{
+					std::string header, statusMessage;
+					std::getline (response, statusMessage);
+					// read until new line meaning end of header
+					while (!response.eof () && header != "\r")
+						std::getline (response, header);
+					if (!response.eof ())
+						m_Book.LoadHostsFromStream (response);
+				}
+				else
+					LogPrint (eLogWarning, "Adressbook HTTP response ", status);
 			}
 			else
 				LogPrint (eLogError, "Address ", u.host_, " not found");
