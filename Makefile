@@ -21,10 +21,9 @@ else # win32
 	DAEMON_SRC += DaemonWin32.cpp
 endif
 
-all: obj $(SHLIB) $(I2PD)
+all: $(SHLIB) $(I2PD)
 
-obj:
-	mkdir -p obj
+api: $(SHLIB)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -60,3 +59,4 @@ dist:
 .PHONY: all
 .PHONY: clean
 .PHONY: dist
+.PHONY: api
