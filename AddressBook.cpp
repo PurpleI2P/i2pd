@@ -337,12 +337,12 @@ namespace client
 		i2p::data::IdentHash ident;
 		if (m_Book.GetIdentHash (u.host_, ident))
 		{
-			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			const i2p::data::LeasetSet * leaseSet = i2p::data::netdb.FindLeaseSet (ident);
 			if (!leaseSet)
 			{
 				i2p::data::netdb.RequestDestination (ident, true, i2p::client::context.GetSharedLocalDestination ()->GetTunnelPool ());
 				std::this_thread::sleep_for (std::chrono::seconds (5)); // wait for 5 seconds
-				leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+				leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
 			}
 			if (leaseSet)
 			{
@@ -359,6 +359,7 @@ namespace client
 				{
 					std::condition_variable newDataReceived;
 					std::mutex newDataReceivedMutex;
+					std::unique_lock<std::mutex> l(newDataReceivedMutex);
 					stream->AsyncReceive (boost::asio::buffer (buf, 4096), 
 						[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 						{
@@ -369,7 +370,6 @@ namespace client
 							newDataReceived.notify_one ();
 						},
 						30); // wait for 30 seconds
-					std::unique_lock<std::mutex> l(newDataReceivedMutex);
 					newDataReceived.wait (l);
 					if (!end)
 						end = !stream->IsOpen ();
