@@ -337,7 +337,7 @@ namespace client
 		i2p::data::IdentHash ident;
 		if (m_Book.GetIdentHash (u.host_, ident))
 		{
-			const i2p::data::LeasetSet * leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			const i2p::data::LeaseSet * leaseSet = i2p::data::netdb.FindLeaseSet (ident);
 			if (!leaseSet)
 			{
 				i2p::data::netdb.RequestDestination (ident, true, i2p::client::context.GetSharedLocalDestination ()->GetTunnelPool ());
