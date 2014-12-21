@@ -142,7 +142,7 @@ namespace client
 				f << it.first << "," << it.second.ToBase32 () << std::endl;
 				num++;
 			}
-			LogPrint (eLogInfo, num, " addresses save");
+			LogPrint (eLogInfo, num, " addresses saved");
 		}
 		else	
 			LogPrint (eLogError, "Can't open file ", filename);	
@@ -150,17 +150,33 @@ namespace client
 	}	
 
 //---------------------------------------------------------------------
-	AddressBook::AddressBook (): m_IsLoaded (false), m_IsDowloading (false)
+	AddressBook::AddressBook (): m_IsLoaded (false), m_IsDownloading (false), 
+		m_DefaultSubscription (nullptr)
 	{
 	}
 
 	AddressBook::~AddressBook ()
 	{
+		if (m_IsDownloading)
+		{
+			LogPrint (eLogInfo, "Subscription is downloading. Waiting for temination...");
+			for (int i = 0; i < 30; i++)
+			{
+				if (!m_IsDownloading)
+				{
+					LogPrint (eLogInfo, "Subscription download complete");
+					break;
+				}	
+				std::this_thread::sleep_for (std::chrono::seconds (1)); // wait for 1 seconds
+			}	
+			LogPrint (eLogError, "Subscription download hangs");
+		}	
 		if (m_Storage)
 		{
 			m_Storage->Save (m_Addresses);
 			delete m_Storage;
 		}
+		delete m_DefaultSubscription;
 	}
 
 	AddressBookStorage * AddressBook::CreateStorage ()
@@ -239,29 +255,6 @@ namespace client
 		return m_Storage->GetAddress (ident, identity);
 	}	
 
-	void AddressBook::LoadHostsFromI2P ()
-	{
-		std::string content;
-		int http_code = i2p::util::http::httpRequestViaI2pProxy("http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt", content);
-		if (http_code == 200)
-		{
-			std::ofstream f_save(i2p::util::filesystem::GetFullPath("hosts.txt").c_str(), std::ofstream::out);
-			if (f_save.is_open())
-			{
-				f_save << content;
-				f_save.close();
-			}
-			else
-				LogPrint (eLogError, "Can't write hosts.txt");
-			m_IsLoaded = false;
-		}	
-		else
-			LogPrint (eLogError, "Failed to download hosts.txt");
-		m_IsDowloading = false;	
-	
-		return;
-	}
-
 	void AddressBook::LoadHosts ()
 	{
 		if (!m_Storage)
@@ -272,27 +265,31 @@ namespace client
 			return;
 		}
 	
-		// otherwise try hosts.txt
+		// try hosts.txt first
 		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
-		if (!f.is_open ())	
+		if (f.is_open ())	
 		{
-			LogPrint (eLogInfo, "hosts.txt not found. Try to load...");
-			if (!m_IsDowloading)
-			{
-				m_IsDowloading = true;
-				std::thread load_hosts(&AddressBook::LoadHostsFromI2P, this);
-				load_hosts.detach();
-			}
-			return;
+			LoadHostsFromStream (f);
+			m_IsLoaded = true;
 		}
-
-		LoadHostsFromStream (f);
-		m_Storage->Save (m_Addresses);
-		m_IsLoaded = true;
+		else
+		{
+			// if not found download it from http://i2p-projekt.i2p/hosts.txt 
+			LogPrint (eLogInfo, "hosts.txt not found. Try to download it from default subscription...");
+			if (!m_IsDownloading)
+			{
+				m_IsDownloading = true;
+				if (!m_DefaultSubscription)
+					m_DefaultSubscription = new AddressBookSubscription (*this, DEFAULT_SUBSCRIPTION_ADDRESS);
+				m_DefaultSubscription->CheckSubscription ();
+			}
+		}	
+		
 	}
 
 	void AddressBook::LoadHostsFromStream (std::istream& f)
 	{
+		std::unique_lock<std::mutex> l(m_AddressBookMutex);
 		int numAddresses = 0;
 		std::string s;
 		while (!f.eof ())
@@ -316,7 +313,12 @@ namespace client
 				numAddresses++;
 			}		
 		}
-		LogPrint (eLogInfo, numAddresses, " addresses loaded");
+		LogPrint (eLogInfo, numAddresses, " addresses processed");
+		if (numAddresses > 0)
+		{	
+			m_IsLoaded = true;
+			m_Storage->Save (m_Addresses);
+		}	
 	}	
 	
 	AddressBookSubscription::AddressBookSubscription (AddressBook& book, const std::string& link):
@@ -327,7 +329,7 @@ namespace client
 	void AddressBookSubscription::CheckSubscription ()
 	{
 		std::thread load_hosts(&AddressBookSubscription::Request, this);
-		load_hosts.detach();
+		load_hosts.detach(); // TODO: use join
 	}
 
 	void AddressBookSubscription::Request ()
@@ -386,7 +388,7 @@ namespace client
 					// read until new line meaning end of header
 					while (!response.eof () && header != "\r")
 						std::getline (response, header);
-					if (!response.eof ())
+					if (!response.eof ())	
 						m_Book.LoadHostsFromStream (response);
 				}
 				else
@@ -397,6 +399,7 @@ namespace client
 		}
 		else
 			LogPrint (eLogError, "Can't resolve ", u.host_);
+		m_Book.SetIsDownloading (false);
 	}
 }
 }

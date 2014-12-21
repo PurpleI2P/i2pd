@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <mutex>
 #include "base64.h"
 #include "util.h"
 #include "Identity.h"
@@ -14,6 +15,8 @@ namespace i2p
 {
 namespace client
 {
+	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
+		
 	class AddressBookStorage // interface for storage
 	{
 		public:
@@ -41,19 +44,20 @@ namespace client
 			void InsertAddress (const i2p::data::IdentityEx& address);
 
 			void LoadHostsFromStream (std::istream& f);
+			void SetIsDownloading (bool isDownloading) {  m_IsDownloading = isDownloading; };
 			
 		private:
 
 			AddressBookStorage * CreateStorage ();	
-
 			void LoadHosts ();
-			void LoadHostsFromI2P ();
 
 		private:	
-			
+
+			std::mutex m_AddressBookMutex;
 			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
 			AddressBookStorage * m_Storage;
-			bool m_IsLoaded, m_IsDowloading;
+			volatile bool m_IsLoaded, m_IsDownloading;
+			AddressBookSubscription * m_DefaultSubscription; // in case if we don't know any addresses yet
 	};
 
 	class AddressBookSubscription
