@@ -51,7 +51,6 @@ namespace crypto
 
 			CryptoPP::AutoSeededRandomPool rnd;	
 			CryptoPP::Integer y, k, a, b1;	
-			bool m_ZeroPadding;	
 	};
 
 	inline bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
