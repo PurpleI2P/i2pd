@@ -17,10 +17,6 @@ namespace i2p
 namespace client
 {
 	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
-	// TODO: move http fields to common http code	
-	const char HTTP_FIELD_ETAG[] = "ETag";
-	const char HTTP_FIELD_IF_MODIFIED_SINCE[] = "If-Modified-Since";
-	const char HTTP_FIELD_LAST_MODIFIED[] = "Last-Modified";
 		
 	class AddressBookStorage // interface for storage
 	{
@@ -48,7 +44,7 @@ namespace client
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 			void InsertAddress (const i2p::data::IdentityEx& address);
 
-			void LoadHostsFromStream (std::istream& f);
+			void LoadHostsFromStream (std::istream& f, bool isChunked = false);
 			void SetIsDownloading (bool isDownloading) {  m_IsDownloading = isDownloading; };
 			
 		private:

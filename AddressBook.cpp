@@ -290,7 +290,7 @@ namespace client
 		
 	}
 
-	void AddressBook::LoadHostsFromStream (std::istream& f)
+	void AddressBook::LoadHostsFromStream (std::istream& f, bool isChunked)
 	{
 		std::unique_lock<std::mutex> l(m_AddressBookMutex);
 		int numAddresses = 0;
@@ -376,9 +376,9 @@ namespace client
 				request << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
 				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n";
 				if (m_Etag.length () > 0) // etag
-					request << HTTP_FIELD_ETAG << ": " << m_Etag << "\r\n";
+					request << i2p::util::http::ETAG << ": " << m_Etag << "\r\n";
 				if (m_LastModified.length () > 0) // if-modfief-since
-					request << HTTP_FIELD_IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
+					request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
 				request << "\r\n"; // end of header
 				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (*leaseSet, u.port_);
 				stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
@@ -411,13 +411,28 @@ namespace client
 				response >> status; // status
 				if (status == 200) // OK
 				{
+					bool isChunked = false;
 					std::string header, statusMessage;
 					std::getline (response, statusMessage);
 					// read until new line meaning end of header
 					while (!response.eof () && header != "\r")
+					{
 						std::getline (response, header);
+						auto colon = header.find (':');
+						if (colon != std::string::npos)
+						{
+							std::string field = header.substr (0, colon);
+							header.resize (header.length () - 1); // delete \r	
+							if (field == i2p::util::http::ETAG)
+								m_Etag = header.substr (colon + 1);
+							else if (field == i2p::util::http::LAST_MODIFIED)
+								m_LastModified = header.substr (colon + 1);
+							else if (field == i2p::util::http::TRANSFER_ENCODING)
+								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
+						}	
+					}
 					if (!response.eof ())	
-						m_Book.LoadHostsFromStream (response);
+						m_Book.LoadHostsFromStream (response, isChunked);
 				}
 				else
 					LogPrint (eLogWarning, "Adressbook HTTP response ", status);

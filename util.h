@@ -39,6 +39,11 @@ namespace util
 
 	namespace http
 	{
+		const char ETAG[] = "ETag";
+		const char IF_MODIFIED_SINCE[] = "If-Modified-Since";
+		const char LAST_MODIFIED[] = "Last-Modified";
+		const char TRANSFER_ENCODING[] = "Transfer-Encoding";
+
 		std::string httpRequest(const std::string& address);
 		int httpRequestViaI2pProxy(const std::string& address, std::string &content); // return http code
 		

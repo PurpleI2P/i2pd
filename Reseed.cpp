@@ -133,6 +133,7 @@ namespace data
 	{
 		CryptoPP::AutoSeededRandomPool rnd;
 		auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1);
+ind =5;
 		std::string reseedHost = httpReseedHostList[ind];
 		return ReseedFromSU3 (reseedHost);
 	}
