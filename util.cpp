@@ -239,7 +239,7 @@ namespace http
 			if (site)
 			{
 				// User-Agent is needed to get the server list routerInfo files.
-				site << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
+				site << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
 				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";
 				// read response
 				std::string version, statusMessage;
@@ -291,7 +291,7 @@ namespace http
 			{
 				i2p::util::http::url u(address);
 				std::stringstream ss;
-				ss << "GET " << address << " HTTP/1.0" << std::endl;
+				ss << "GET " << address << " HTTP/1.1" << std::endl;
 				ss << "Host: " << u.host_ << std::endl;
 				ss << "Accept: */*" << std::endl;
 				ss << "User - Agent: Wget / 1.11.4" << std::endl;

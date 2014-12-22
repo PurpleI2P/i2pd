@@ -349,7 +349,7 @@ namespace client
 			if (leaseSet)
 			{
 				std::stringstream request, response;
-				request << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
+				request << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
 				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";
 
 				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (*leaseSet, u.port_);
