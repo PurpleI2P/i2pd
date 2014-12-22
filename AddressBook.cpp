@@ -177,6 +177,9 @@ namespace client
 			delete m_Storage;
 		}
 		delete m_DefaultSubscription;
+		for (auto it: m_Subscriptions)
+			delete it;
+			
 	}
 
 	AddressBookStorage * AddressBook::CreateStorage ()
@@ -321,6 +324,26 @@ namespace client
 		}	
 	}	
 	
+	void AddressBook::LoadSubscriptions ()
+	{
+		if (!m_Subscriptions.size ())
+		{
+			std::ifstream f (i2p::util::filesystem::GetFullPath ("subscriptions.txt").c_str (), std::ofstream::in); // in text mode
+			if (f.is_open ())
+			{
+				std::string s;
+				while (!f.eof ())
+				{
+					getline(f, s);
+					if (!s.length()) continue; // skip empty line
+					m_Subscriptions.push_back (new AddressBookSubscription (*this, s));
+				}
+			}
+		}
+		else
+			LogPrint (eLogError, "Subscriptions already loaded");
+	}
+
 	AddressBookSubscription::AddressBookSubscription (AddressBook& book, const std::string& link):
 		m_Book (book), m_Link (link)
 	{
@@ -349,9 +372,14 @@ namespace client
 			if (leaseSet)
 			{
 				std::stringstream request, response;
+				// standard header
 				request << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
-				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";
-
+				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n";
+				if (m_Etag.length () > 0) // etag
+					request << HTTP_FIELD_ETAG << ": " << m_Etag << "\r\n";
+				if (m_LastModified.length () > 0) // if-modfief-since
+					request << HTTP_FIELD_IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
+				request << "\r\n"; // end of header
 				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (*leaseSet, u.port_);
 				stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
 				

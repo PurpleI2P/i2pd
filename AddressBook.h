@@ -4,6 +4,7 @@
 #include <string.h>
 #include <string>
 #include <map>
+#include <list>
 #include <iostream>
 #include <mutex>
 #include "base64.h"
@@ -16,6 +17,10 @@ namespace i2p
 namespace client
 {
 	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
+	// TODO: move http fields to common http code	
+	const char HTTP_FIELD_ETAG[] = "ETag";
+	const char HTTP_FIELD_IF_MODIFIED_SINCE[] = "If-Modified-Since";
+	const char HTTP_FIELD_LAST_MODIFIED[] = "Last-Modified";
 		
 	class AddressBookStorage // interface for storage
 	{
@@ -50,6 +55,7 @@ namespace client
 
 			AddressBookStorage * CreateStorage ();	
 			void LoadHosts ();
+			void LoadSubscriptions ();
 
 		private:	
 
@@ -57,6 +63,7 @@ namespace client
 			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
+			std::list<AddressBookSubscription *> m_Subscriptions;
 			AddressBookSubscription * m_DefaultSubscription; // in case if we don't know any addresses yet
 	};
 
@@ -74,7 +81,7 @@ namespace client
 		private:
 
 			AddressBook& m_Book;
-			std::string m_Link;
+			std::string m_Link, m_Etag, m_LastModified;
 	};
 }
 }
