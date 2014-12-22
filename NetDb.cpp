@@ -78,14 +78,14 @@ namespace data
 	void NetDb::Start ()
 	{	
 		Load (m_NetDbPath);
-		if (m_RouterInfos.size () < 100) // reseed if # of router less than 100
+		if (m_RouterInfos.size () < 50) // reseed if # of router less than 50
 		{	
 			Reseeder reseeder;
 			reseeder.LoadCertificates (); // we need certificates for SU3 verification
 
 			// try SU3 first
 			int reseedRetries = 0;
-			while (m_RouterInfos.size () < 100 && reseedRetries < 10)
+			while (m_RouterInfos.size () < 50 && reseedRetries < 10)
 			{	
 				reseeder.ReseedNowSU3();
 				reseedRetries++;
@@ -93,7 +93,7 @@ namespace data
 
 			// if still not enough download .dat files
 			reseedRetries = 0;
-			while (m_RouterInfos.size () < 100 && reseedRetries < 10)
+			while (m_RouterInfos.size () < 50 && reseedRetries < 10)
 			{
 				reseeder.reseedNow();
 				reseedRetries++;
