@@ -485,17 +485,17 @@ namespace util
 		{
 			switch (status)
 			{
-				case 105: buffers.push_back(boost::asio::buffer("HTTP/1.0 105 Name Not Resolved\r\n")); break;
-				case 200: buffers.push_back(boost::asio::buffer("HTTP/1.0 200 OK\r\n")); break;
-				case 400: buffers.push_back(boost::asio::buffer("HTTP/1.0 400 Bad Request\r\n")); break;
-				case 404: buffers.push_back(boost::asio::buffer("HTTP/1.0 404 Not Found\r\n")); break;
-				case 408: buffers.push_back(boost::asio::buffer("HTTP/1.0 408 Request Timeout\r\n")); break;
-				case 500: buffers.push_back(boost::asio::buffer("HTTP/1.0 500 Internal Server Error\r\n")); break;
-				case 502: buffers.push_back(boost::asio::buffer("HTTP/1.0 502 Bad Gateway\r\n")); break;
-				case 503: buffers.push_back(boost::asio::buffer("HTTP/1.0 503 Not Implemented\r\n")); break;
-				case 504: buffers.push_back(boost::asio::buffer("HTTP/1.0 504 Gateway Timeout\r\n")); break;
+				case 105: buffers.push_back(boost::asio::buffer("HTTP/1.1 105 Name Not Resolved\r\n")); break;
+				case 200: buffers.push_back(boost::asio::buffer("HTTP/1.1 200 OK\r\n")); break;
+				case 400: buffers.push_back(boost::asio::buffer("HTTP/1.1 400 Bad Request\r\n")); break;
+				case 404: buffers.push_back(boost::asio::buffer("HTTP/1.1 404 Not Found\r\n")); break;
+				case 408: buffers.push_back(boost::asio::buffer("HTTP/1.1 408 Request Timeout\r\n")); break;
+				case 500: buffers.push_back(boost::asio::buffer("HTTP/1.1 500 Internal Server Error\r\n")); break;
+				case 502: buffers.push_back(boost::asio::buffer("HTTP/1.1 502 Bad Gateway\r\n")); break;
+				case 503: buffers.push_back(boost::asio::buffer("HTTP/1.1 503 Not Implemented\r\n")); break;
+				case 504: buffers.push_back(boost::asio::buffer("HTTP/1.1 504 Gateway Timeout\r\n")); break;
 				default:
-					buffers.push_back(boost::asio::buffer("HTTP/1.0 200 OK\r\n"));
+					buffers.push_back(boost::asio::buffer("HTTP/1.1 200 OK\r\n"));
 			}
 
 			for (std::size_t i = 0; i < headers.size(); ++i)
