@@ -50,8 +50,8 @@ ifneq ($(USE_STATIC),yes)
 endif
 
 clean:
-	test -d obj && $(RM) -rf obj
-	$(RM) -f $(I2PD) $(SHLIB)
+	rm -rf obj
+	$(RM) $(I2PD) $(SHLIB)
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 master)
 dist:
