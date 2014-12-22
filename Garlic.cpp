@@ -418,9 +418,7 @@ namespace garlic
 		buf++; // flag
 
 		// payload
-		uint8_t hash[32];
-		CryptoPP::SHA256().CalculateDigest(hash, buf, payloadSize);
-		if (memcmp (hash, payloadHash, 32)) // payload hash doesn't match
+		if (!CryptoPP::SHA256().VerifyDigest (payloadHash, buf, payloadSize)) // payload hash doesn't match
 		{
 			LogPrint ("Wrong payload hash");
 			return;

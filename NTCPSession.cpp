@@ -255,11 +255,10 @@ namespace transport
 			
 			m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 			// verify
-			uint8_t xy[512], hxy[32];
+			uint8_t xy[512];
 			memcpy (xy, m_DHKeysPair->publicKey, 256);
 			memcpy (xy + 256, m_Establisher->phase2.pubKey, 256);
-			CryptoPP::SHA256().CalculateDigest(hxy, xy, 512); 
-			if (memcmp (hxy, m_Establisher->phase2.encrypted.hxy, 32))
+			if (!CryptoPP::SHA256().VerifyDigest(m_Establisher->phase2.encrypted.hxy, xy, 512)) 
 			{
 				LogPrint (eLogError, "Incorrect hash");
 				transports.ReuseDHKeysPair (m_DHKeysPair);
