@@ -4,9 +4,10 @@
 #include <string.h>
 #include <string>
 #include <map>
-#include <list>
+#include <vector>
 #include <iostream>
 #include <mutex>
+#include <boost/asio.hpp>
 #include "base64.h"
 #include "util.h"
 #include "Identity.h"
@@ -17,7 +18,11 @@ namespace i2p
 namespace client
 {
 	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
-		
+	const int INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT = 3; // in minutes	
+	const int INITIAL_SUBSCRIPTION_RETRY_TIMEOUT = 1; // in minutes			
+	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 240; // in minutes			
+	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes	
+
 	class AddressBookStorage // interface for storage
 	{
 		public:
@@ -44,8 +49,10 @@ namespace client
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 			void InsertAddress (const i2p::data::IdentityEx& address);
 
+			void StartSubscriptions ();
+			void StopSubscriptions ();
 			void LoadHostsFromStream (std::istream& f);
-			void SetIsDownloading (bool isDownloading) {  m_IsDownloading = isDownloading; };
+			void DownloadComplete (bool success);
 			
 		private:
 
@@ -53,14 +60,17 @@ namespace client
 			void LoadHosts ();
 			void LoadSubscriptions ();
 
+			void HandleSubscriptionsUpdateTimer (const boost::system::error_code& ecode);
+
 		private:	
 
 			std::mutex m_AddressBookMutex;
 			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
-			std::list<AddressBookSubscription *> m_Subscriptions;
+			std::vector<AddressBookSubscription *> m_Subscriptions;
 			AddressBookSubscription * m_DefaultSubscription; // in case if we don't know any addresses yet
+			boost::asio::deadline_timer * m_SubscriptionsUpdateTimer;
 	};
 
 	class AddressBookSubscription

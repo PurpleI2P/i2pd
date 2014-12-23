@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
+#include <cryptopp/osrng.h>
 #include "base64.h"
 #include "util.h"
 #include "Identity.h"
@@ -151,12 +152,12 @@ namespace client
 
 //---------------------------------------------------------------------
 	AddressBook::AddressBook (): m_IsLoaded (false), m_IsDownloading (false), 
-		m_DefaultSubscription (nullptr)
+		m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
 	{
 	}
 
 	AddressBook::~AddressBook ()
-	{
+	{	
 		if (m_IsDownloading)
 		{
 			LogPrint (eLogInfo, "Subscription is downloading. Waiting for temination...");
@@ -179,7 +180,7 @@ namespace client
 		delete m_DefaultSubscription;
 		for (auto it: m_Subscriptions)
 			delete it;
-			
+		delete m_SubscriptionsUpdateTimer;		
 	}
 
 	AddressBookStorage * AddressBook::CreateStorage ()
@@ -339,9 +340,69 @@ namespace client
 					m_Subscriptions.push_back (new AddressBookSubscription (*this, s));
 				}
 			}
+			else
+				LogPrint (eLogWarning, "subscriptions.txt not found");
 		}
 		else
 			LogPrint (eLogError, "Subscriptions already loaded");
+	}
+
+	void AddressBook::DownloadComplete (bool success)
+	{
+		m_IsDownloading = false;
+		m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(
+			success ? CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT : CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT));
+		m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
+			this, std::placeholders::_1));
+	}
+
+	void AddressBook::StartSubscriptions ()
+	{
+		LoadSubscriptions ();
+		if (!m_Subscriptions.size ()) return;	
+
+		auto dest = i2p::client::context.GetSharedLocalDestination ();
+		if (dest)
+		{
+			m_SubscriptionsUpdateTimer = new boost::asio::deadline_timer (dest->GetService ());
+			m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT));
+			m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
+				this, std::placeholders::_1));
+		}
+		else
+			LogPrint (eLogError, "Can't start subscriptions: missing shared local destination");
+	}
+
+	void AddressBook::StopSubscriptions ()
+	{
+		if (m_SubscriptionsUpdateTimer)
+			m_SubscriptionsUpdateTimer->cancel ();
+	}
+
+	void AddressBook::HandleSubscriptionsUpdateTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			auto dest = i2p::client::context.GetSharedLocalDestination ();
+			if (!dest) return;
+			if (m_IsLoaded && !m_IsDownloading && dest->IsReady ())
+			{
+				// pick random subscription
+				CryptoPP::AutoSeededRandomPool rnd;
+				auto ind = rnd.GenerateWord32 (0, m_Subscriptions.size() - 1);	
+				m_IsDownloading = true;	
+				m_Subscriptions[ind]->CheckSubscription ();		
+			}
+			else
+			{
+				if (!m_IsLoaded)
+					LoadHosts ();
+				// try it again later
+				m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(INITIAL_SUBSCRIPTION_RETRY_TIMEOUT));
+				m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
+					this, std::placeholders::_1));
+			}
+		}
 	}
 
 	AddressBookSubscription::AddressBookSubscription (AddressBook& book, const std::string& link):
@@ -358,6 +419,7 @@ namespace client
 	void AddressBookSubscription::Request ()
 	{
 		// must be run in separate thread	
+		bool success = false;	
 		i2p::util::http::url u (m_Link);
 		i2p::data::IdentHash ident;
 		if (m_Book.GetIdentHash (u.host_, ident))
@@ -433,6 +495,7 @@ namespace client
 					}
 					if (!response.eof ())	
 					{
+						success = true;
 						if (!isChunked)
 							m_Book.LoadHostsFromStream (response);
 						else
@@ -452,7 +515,7 @@ namespace client
 		}
 		else
 			LogPrint (eLogError, "Can't resolve ", u.host_);
-		m_Book.SetIsDownloading (false);
+		m_Book.DownloadComplete (success);
 	}
 }
 }

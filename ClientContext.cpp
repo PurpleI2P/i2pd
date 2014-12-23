@@ -77,10 +77,12 @@ namespace client
 			m_BOBCommandChannel->Start ();
 			LogPrint("BOB command channel started");
 		} 
+		m_AddressBook.StartSubscriptions ();
 	}
 		
 	void ClientContext::Stop ()
 	{
+		m_AddressBook.StopSubscriptions ();	
 		m_HttpProxy->Stop();
 		delete m_HttpProxy;
 		m_HttpProxy = nullptr;
