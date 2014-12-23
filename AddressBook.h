@@ -44,7 +44,7 @@ namespace client
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 			void InsertAddress (const i2p::data::IdentityEx& address);
 
-			void LoadHostsFromStream (std::istream& f, bool isChunked = false);
+			void LoadHostsFromStream (std::istream& f);
 			void SetIsDownloading (bool isDownloading) {  m_IsDownloading = isDownloading; };
 			
 		private:

@@ -239,7 +239,7 @@ namespace http
 			if (site)
 			{
 				// User-Agent is needed to get the server list routerInfo files.
-				site << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
+				site << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
 				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";
 				// read response
 				std::string version, statusMessage;
@@ -249,10 +249,25 @@ namespace http
 				std::getline (site, statusMessage);
 				if (status == 200) // OK
 				{
+					bool isChunked = false;
 					std::string header;
-					while (std::getline(site, header) && header != "\r"){}
+					while (!site.eof () && header != "\r")
+					{
+						std::getline(site, header);
+						auto colon = header.find (':');
+						if (colon != std::string::npos)
+						{
+							std::string field = header.substr (0, colon);
+							if (field == i2p::util::http::TRANSFER_ENCODING)
+								isChunked = (header.find ("chunked", colon + 1) != std::string::npos);
+						}	
+					}
+	
 					std::stringstream ss;
-					ss << site.rdbuf();
+					if (isChunked)
+						MergeChunkedResponse (site, ss);
+					else	
+						ss << site.rdbuf();
 					return ss.str();
 				}
 				else
@@ -274,6 +289,24 @@ namespace http
 		}
 	}
 
+	void MergeChunkedResponse (std::istream& response, std::ostream& merged)
+	{
+		while (!response.eof ())
+		{	
+			std::string hexLen;
+			int len;
+			std::getline (response, hexLen);
+			std::istringstream iss (hexLen);
+			iss >> std::hex >> len;
+			if (!len) break;
+			char * buf = new char[len];
+			response.read (buf, len);
+			merged.write (buf, len);
+			delete[] buf;
+			std::getline (response, hexLen); // read \r\n after chunk
+		}
+	}	
+	
 	int httpRequestViaI2pProxy(const std::string& address, std::string &content)
 	{
 		content = "";

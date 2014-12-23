@@ -290,7 +290,7 @@ namespace client
 		
 	}
 
-	void AddressBook::LoadHostsFromStream (std::istream& f, bool isChunked)
+	void AddressBook::LoadHostsFromStream (std::istream& f)
 	{
 		std::unique_lock<std::mutex> l(m_AddressBookMutex);
 		int numAddresses = 0;
@@ -432,7 +432,17 @@ namespace client
 						}	
 					}
 					if (!response.eof ())	
-						m_Book.LoadHostsFromStream (response, isChunked);
+					{
+						if (!isChunked)
+							m_Book.LoadHostsFromStream (response);
+						else
+						{
+							// merge chunks
+							std::stringstream merged;
+							i2p::util::http::MergeChunkedResponse (response, merged);
+							m_Book.LoadHostsFromStream (merged);
+						}	
+					}	
 				}
 				else
 					LogPrint (eLogWarning, "Adressbook HTTP response ", status);
