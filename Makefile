@@ -2,6 +2,7 @@ UNAME := $(shell uname -s)
 SHLIB := libi2pd.so
 I2PD  := i2p
 GREP := fgrep
+DEPS := obj/make.dep
 
 include filelist.mk
 
@@ -32,14 +33,17 @@ api: $(SHLIB)
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FLAGS to work at build-time.
 
-# weaker rule for building files without headers
+deps:
+	@test -d obj || mkdir obj
+	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
+	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
+
 obj/%.o : %.cpp
 	@test -d obj || mkdir obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
-obj/%.o : %.cpp %.h
-	@test -d obj || mkdir obj
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
+# '-' is 'ignore if missing' on first run
+-include $(DEPS)
 
 $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS)
@@ -58,8 +62,8 @@ dist:
 	git archive --format=tar.gz -9 --worktree-attributes \
 	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz
 
-
 .PHONY: all
 .PHONY: clean
+.PHONY: deps
 .PHONY: dist
 .PHONY: api
