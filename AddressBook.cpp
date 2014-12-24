@@ -339,6 +339,7 @@ namespace client
 					if (!s.length()) continue; // skip empty line
 					m_Subscriptions.push_back (new AddressBookSubscription (*this, s));
 				}
+				LogPrint (eLogInfo, m_Subscriptions.size (), " subscriptions loaded");
 			}
 			else
 				LogPrint (eLogWarning, "subscriptions.txt not found");
@@ -419,6 +420,7 @@ namespace client
 	void AddressBookSubscription::Request ()
 	{
 		// must be run in separate thread	
+		LogPrint (eLogInfo, "Downloading hosts from ", m_Link);
 		bool success = false;	
 		i2p::util::http::url u (m_Link);
 		i2p::data::IdentHash ident;
@@ -435,7 +437,7 @@ namespace client
 			{
 				std::stringstream request, response;
 				// standard header
-				request << "GET " << u.path_ << " HTTP/1.0\r\nHost: " << u.host_
+				request << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
 				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n";
 				if (m_Etag.length () > 0) // etag
 					request << i2p::util::http::ETAG << ": " << m_Etag << "\r\n";
@@ -493,6 +495,7 @@ namespace client
 								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
 						}	
 					}
+					LogPrint (eLogInfo, m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 					if (!response.eof ())	
 					{
 						success = true;
@@ -515,6 +518,7 @@ namespace client
 		}
 		else
 			LogPrint (eLogError, "Can't resolve ", u.host_);
+		LogPrint (eLogInfo, "Download complete ", success ? "Success" : "Failed");
 		m_Book.DownloadComplete (success);
 	}
 }
