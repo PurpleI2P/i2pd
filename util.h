@@ -41,6 +41,7 @@ namespace util
 	namespace http
 	{
 		const char ETAG[] = "ETag";
+		const char IF_NONE_MATCH[] = "If-None-Match";
 		const char IF_MODIFIED_SINCE[] = "If-Modified-Since";
 		const char LAST_MODIFIED[] = "Last-Modified";
 		const char TRANSFER_ENCODING[] = "Transfer-Encoding";
