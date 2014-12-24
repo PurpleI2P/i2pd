@@ -420,7 +420,7 @@ namespace client
 	void AddressBookSubscription::Request ()
 	{
 		// must be run in separate thread	
-		LogPrint (eLogInfo, "Downloading hosts from ", m_Link);
+		LogPrint (eLogInfo, "Downloading hosts from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 		bool success = false;	
 		i2p::util::http::url u (m_Link);
 		i2p::data::IdentHash ident;
@@ -510,6 +510,11 @@ namespace client
 						}	
 					}	
 				}
+				else if (status == 304)
+				{	
+					success = true;
+					LogPrint (eLogInfo, "No updates from ", m_Link);
+				}	
 				else
 					LogPrint (eLogWarning, "Adressbook HTTP response ", status);
 			}
