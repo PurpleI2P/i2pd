@@ -153,6 +153,7 @@ namespace data
 				{
 					if (!m_IsRunning) break;
 					// if no new DatabaseStore coming, explore it
+					ManageRequests ();
 					auto numRouters = m_RouterInfos.size ();
 					Explore (numRouters < 1500 ? 5 : 1);
 				}	
@@ -713,18 +714,6 @@ namespace data
 
 	void NetDb::Explore (int numDestinations)
 	{	
-		// clean up previous exploratories
-		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();	
-		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
-		{
-			if (it->second->IsExploratory () || ts > it->second->GetCreationTime () + 60) // no response for 1 minute
-			{
-				delete it->second;
-				it = m_RequestedDestinations.erase (it);
-			}
-			else
-				it++;
-		}	
 		// new requests
 		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
@@ -917,6 +906,55 @@ namespace data
 			else 
 				it++;
 		}
+	}
+
+	void NetDb::ManageRequests ()
+	{
+		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();	
+		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
+		{
+			auto dest = it->second;
+			bool done = false;
+			if (!dest->IsExploratory () && ts < dest->GetCreationTime () + 60) // request is worthless after 1 minute
+			{
+				if (ts > dest->GetCreationTime () + 5) // no response for 5 seconds
+				{
+					auto count = dest->GetExcludedPeers ().size ();
+					if (count < 7)
+					{
+						auto pool = dest->GetTunnelPool ();
+						auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
+						auto inbound = pool ? pool->GetNextInboundTunnel () : nullptr;	
+						auto nextFloodfill = GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
+						if (nextFloodfill && outbound && inbound)
+							outbound->SendTunnelDataMsg (nextFloodfill->GetIdentHash (), 0,
+								dest->CreateRequestMessage (nextFloodfill, inbound));
+						else
+						{
+							done = true;
+							if (!inbound) LogPrint (eLogWarning, "No inbound tunnels");	
+							if (!outbound) LogPrint (eLogWarning, "No outbound tunnels");
+							if (!nextFloodfill) LogPrint (eLogWarning, "No more floodfills");	
+						}
+					}	
+					else
+					{
+						LogPrint (eLogWarning, dest->GetDestination ().ToBase64 (), " not found after 7 attempts");	
+						done = true;
+					}	 
+				}	
+			}	
+			else // delete previous exploratory
+				done = true;
+
+			if (done)
+			{
+				delete it->second;
+				it = m_RequestedDestinations.erase (it);
+			}
+			else
+				it++;
+		}	
 	}
 }
 }

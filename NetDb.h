@@ -94,9 +94,10 @@ namespace data
 			void Load (const char * directory);
 			void SaveUpdated (const char * directory);
 			void Run (); // exploratory thread
-			void Explore (int numDestinations);
+			void Explore (int numDestinations);	
 			void Publish ();
 			void ManageLeaseSets ();
+			void ManageRequests ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
 				bool isLeaseSet, bool isExploratory = false, i2p::tunnel::TunnelPool * pool = nullptr);
