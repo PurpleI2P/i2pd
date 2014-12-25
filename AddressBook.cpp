@@ -433,7 +433,7 @@ namespace client
 			const i2p::data::LeaseSet * leaseSet = i2p::data::netdb.FindLeaseSet (ident);
 			if (!leaseSet)
 			{
-				i2p::data::netdb.RequestDestination (ident, true, i2p::client::context.GetSharedLocalDestination ()->GetTunnelPool ());
+				i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident);
 				std::this_thread::sleep_for (std::chrono::seconds (5)); // wait for 5 seconds
 				leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
 			}

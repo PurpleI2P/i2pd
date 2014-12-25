@@ -7,7 +7,6 @@
 #include "base64.h"
 #include "Identity.h"
 #include "Log.h"
-#include "NetDb.h"
 #include "Destination.h"
 #include "ClientContext.h"
 #include "SAM.h"
@@ -757,8 +756,7 @@ namespace client
 						else
 						{
 							LogPrint ("SAM datagram destination not found");
-							i2p::data::netdb.RequestDestination (dest.GetIdentHash (), true, 
-								session->localDestination->GetTunnelPool ());
+							session->localDestination->RequestDestination (dest.GetIdentHash ());
 						}	
 					}	
 					else

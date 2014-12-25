@@ -1,7 +1,6 @@
 #include <string.h>
 #include <boost/lexical_cast.hpp>
 #include "Log.h"
-#include "NetDb.h"
 #include "ClientContext.h"
 #include "BOB.h"
 
@@ -97,7 +96,7 @@ namespace client
 					CreateConnection (receiver, leaseSet);
 				else
 				{
-					i2p::data::netdb.RequestDestination (ident, true, GetLocalDestination ()->GetTunnelPool ());
+					GetLocalDestination ()->RequestDestination (ident);
 					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
 					m_Timer.async_wait (std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestTimer,
 						this, std::placeholders::_1, receiver, ident));

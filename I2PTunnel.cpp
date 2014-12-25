@@ -1,6 +1,5 @@
 #include "base64.h"
 #include "Log.h"
-#include "NetDb.h"
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PTunnel.h"
@@ -214,7 +213,7 @@ namespace client
 					CreateConnection (socket);
 				else
 				{
-					i2p::data::netdb.RequestDestination (*m_DestinationIdentHash, true, GetLocalDestination ()->GetTunnelPool ());
+					GetLocalDestination ()->RequestDestination (*m_DestinationIdentHash);
 					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
 					m_Timer.async_wait (std::bind (&I2PClientTunnel::HandleDestinationRequestTimer,
 						this, std::placeholders::_1, socket));
