@@ -465,8 +465,6 @@ namespace client
 						},
 						30); // wait for 30 seconds
 					newDataReceived.wait (l);
-					if (!end)
-						end = !stream->IsOpen ();
 				}
 				// parse response
 				std::string version;
