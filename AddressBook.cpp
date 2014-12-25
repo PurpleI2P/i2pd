@@ -311,10 +311,14 @@ namespace client
 				std::string addr = s.substr(pos);
 
 				i2p::data::IdentityEx ident;
-				ident.FromBase64(addr);
-				m_Addresses[name] = ident.GetIdentHash ();
-				m_Storage->AddAddress (ident);
-				numAddresses++;
+				if (ident.FromBase64(addr))
+				{	
+					m_Addresses[name] = ident.GetIdentHash ();
+					m_Storage->AddAddress (ident);
+					numAddresses++;
+				}	
+				else
+					LogPrint (eLogError, "Malformed address ", addr, " for ", name);
 			}		
 		}
 		LogPrint (eLogInfo, numAddresses, " addresses processed");
@@ -453,17 +457,20 @@ namespace client
 				{
 					std::condition_variable newDataReceived;
 					std::mutex newDataReceivedMutex;
-					std::unique_lock<std::mutex> l(newDataReceivedMutex);
 					stream->AsyncReceive (boost::asio::buffer (buf, 4096), 
 						[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 						{
-							if (!ecode)
+							if (bytes_transferred)
 								response.write ((char *)buf, bytes_transferred);
 							else
-								end = true;	
-							newDataReceived.notify_one ();
+							{	
+								if (ecode != boost::asio::error::timed_out || !stream->IsOpen ())
+									end = true;	
+							}	
+							newDataReceived.notify_all ();
 						},
 						30); // wait for 30 seconds
+					std::unique_lock<std::mutex> l(newDataReceivedMutex);
 					newDataReceived.wait (l);
 				}
 				// parse response
