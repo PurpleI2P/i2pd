@@ -26,14 +26,7 @@ namespace data
 	{
 		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 
-		    &m_ExcludedPeers, m_IsLeaseSet, m_Pool);
-		if (m_IsLeaseSet) // wrap lookup message into garlic
-		{
-			if (m_Pool && m_Pool->GetLocalDestination ())
-				msg = m_Pool->GetLocalDestination ()->WrapMessage (*router, msg);
-			else
-				LogPrint ("Can't create garlic message without destination");
-		}	
+		    &m_ExcludedPeers, false, m_Pool);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
@@ -62,7 +55,7 @@ namespace data
 #endif			
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (0)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
 	
@@ -413,46 +406,17 @@ namespace data
 		}
 	}
 
-	void NetDb::RequestDestination (const IdentHash& destination, bool isLeaseSet, i2p::tunnel::TunnelPool * pool)
+	void NetDb::RequestDestination (const IdentHash& destination, i2p::tunnel::TunnelPool * pool)
 	{
-		if (isLeaseSet) // we request LeaseSet through tunnels
-		{	
-			i2p::tunnel::OutboundTunnel * outbound = pool ? pool->GetNextOutboundTunnel () : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-			if (outbound)
-			{
-				i2p::tunnel::InboundTunnel * inbound = pool ? pool->GetNextInboundTunnel () :i2p::tunnel::tunnels.GetNextInboundTunnel ();
-				if (inbound)
-				{
-					RequestedDestination * dest = CreateRequestedDestination (destination, true, false, pool);
-					auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
-					if (floodfill)
-					{		
-						// DatabaseLookup message
-						outbound->SendTunnelDataMsg (
-						    {
-								i2p::tunnel::TunnelMessageBlock 
-								{ 
-									i2p::tunnel::eDeliveryTypeRouter,
-									floodfill->GetIdentHash (), 0,
-									dest->CreateRequestMessage (floodfill, inbound)
-								}
-							});	
-					}	
-					else
-						LogPrint ("No more floodfills found");
-				}	
-				else
-					LogPrint ("No inbound tunnels found");	
-			}
-			else
-				LogPrint ("No outbound tunnels found");
-		}	
-		else // RouterInfo is requested directly
+		// request RouterInfo directly
+		RequestedDestination * dest = CreateRequestedDestination (destination, false, pool);
+		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+		if (floodfill)
+			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));	
+		else
 		{
-			RequestedDestination * dest = CreateRequestedDestination (destination, false, false, pool);
-			auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
-			if (floodfill)
-				transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
+			LogPrint (eLogError, "No floodfills found");
+			DeleteRequestedDestination (dest);
 		}	
 	}	
 	
@@ -519,17 +483,14 @@ namespace data
 						{	
 							auto nextFloodfill = GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
 							if (nextFloodfill)
-							{
-								if (!dest->IsLeaseSet ())
-								{	
-									// tell floodfill about us 
-									msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-										{ 
-											i2p::tunnel::eDeliveryTypeRouter,
-											nextFloodfill->GetIdentHash (), 0,
-											CreateDatabaseStoreMsg () 
-										});  
-								}	
+							{	
+								// tell floodfill about us 
+								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+									{ 
+										i2p::tunnel::eDeliveryTypeRouter,
+										nextFloodfill->GetIdentHash (), 0,
+										CreateDatabaseStoreMsg () 
+									});  
 								
 								// request destination
 								LogPrint ("Try ", key, " at ", count, " floodfill ", nextFloodfill->GetIdentHash ().ToBase64 ()); 
@@ -564,7 +525,7 @@ namespace data
 							LogPrint ("Found new/outdated router. Requesting RouterInfo ...");
 							if (outbound && inbound && dest->GetLastRouter ())
 							{
-								RequestedDestination * d1 = CreateRequestedDestination (router, false, false, pool);
+								RequestedDestination * d1 = CreateRequestedDestination (router, false, pool);
 								auto msg = d1->CreateRequestMessage (dest->GetLastRouter (), inbound);
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
@@ -573,7 +534,7 @@ namespace data
 									});
 							}	
 							else
-								RequestDestination (router, false, pool);
+								RequestDestination (router, pool);
 						}
 						else
 							LogPrint ("Bayan");
@@ -586,7 +547,7 @@ namespace data
 						{	
 							// request router
 							LogPrint ("Found new floodfill. Request it");
-							RequestDestination (router, false, pool);
+							RequestDestination (router, pool);
 						}	
 					}						
 				}
@@ -728,7 +689,7 @@ namespace data
 		for (int i = 0; i < numDestinations; i++)
 		{	
 			rnd.GenerateBlock (randomHash, 32);
-			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), false, true, exploratoryPool);
+			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), true, exploratoryPool);
 			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
 			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
 			{	
@@ -774,13 +735,13 @@ namespace data
 	}	
 	
 	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest,
-		bool isLeaseSet, bool isExploratory, i2p::tunnel::TunnelPool * pool)
+		bool isExploratory, i2p::tunnel::TunnelPool * pool)
 	{
 		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		auto it = m_RequestedDestinations.find (dest);
 		if (it == m_RequestedDestinations.end ()) // not exist yet
 		{
-			RequestedDestination * d = new RequestedDestination (dest, isLeaseSet, isExploratory, pool);
+			RequestedDestination * d = new RequestedDestination (dest, isExploratory, pool);
 			m_RequestedDestinations[dest] = d;
 			return d;
 		}	

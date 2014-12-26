@@ -76,7 +76,7 @@ namespace api
 	void RequestLeaseSet (i2p::client::ClientDestination * dest, const i2p::data::IdentHash& remote)
 	{
 		if (dest)
-			i2p::data::netdb.RequestDestination (remote, true, dest->GetTunnelPool ());
+			dest->RequestDestination (remote);
 	}
 
 	std::shared_ptr<i2p::stream::Stream> CreateStream (i2p::client::ClientDestination * dest, const i2p::data::IdentHash& remote)

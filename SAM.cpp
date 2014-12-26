@@ -325,7 +325,7 @@ namespace client
 				Connect (*leaseSet);
 			else
 			{
-				i2p::data::netdb.RequestDestination (dest.GetIdentHash (), true, m_Session->localDestination->GetTunnelPool ());
+				m_Session->localDestination->RequestDestination (dest.GetIdentHash ());
 				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_CONNECT_TIMEOUT));
 				m_Timer.async_wait (std::bind (&SAMSocket::HandleStreamDestinationRequestTimer,
 					shared_from_this (), std::placeholders::_1, dest.GetIdentHash ()));	

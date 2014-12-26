@@ -124,7 +124,7 @@ namespace client
 			else
 			{
 				LogPrint ("All leases of remote LeaseSet expired. Request it");
-				i2p::data::netdb.RequestDestination (ident, true, m_Pool);
+				RequestDestination (ident);
 			}	
 		}	
 		else

@@ -24,9 +24,9 @@ namespace data
 	{
 		public:
 
-			RequestedDestination (const IdentHash& destination, bool isLeaseSet, 
-			    bool isExploratory = false, i2p::tunnel::TunnelPool * pool = nullptr):
-				m_Destination (destination), m_IsLeaseSet (isLeaseSet), m_IsExploratory (isExploratory), 
+			RequestedDestination (const IdentHash& destination, bool isExploratory = false, 
+				i2p::tunnel::TunnelPool * pool = nullptr):
+				m_Destination (destination), m_IsExploratory (isExploratory), 
 				m_Pool (pool), m_CreationTime (0) {};
 			
 			const IdentHash& GetDestination () const { return m_Destination; };
@@ -36,7 +36,6 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetLastRouter () const { return m_LastRouter; };
 			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; };
 			bool IsExploratory () const { return m_IsExploratory; };
-			bool IsLeaseSet () const { return m_IsLeaseSet; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
 			uint64_t GetCreationTime () const { return m_CreationTime; };
 			I2NPMessage * CreateRequestMessage (std::shared_ptr<const RouterInfo>, const i2p::tunnel::InboundTunnel * replyTunnel);
@@ -45,7 +44,7 @@ namespace data
 		private:
 
 			IdentHash m_Destination;
-			bool m_IsLeaseSet, m_IsExploratory;
+			bool m_IsExploratory;
 			i2p::tunnel::TunnelPool * m_Pool;
 			std::set<IdentHash> m_ExcludedPeers;
 			std::shared_ptr<const RouterInfo> m_LastRouter;
@@ -68,8 +67,7 @@ namespace data
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 
-			void RequestDestination (const IdentHash& destination, bool isLeaseSet = false, 
-				i2p::tunnel::TunnelPool * pool = nullptr);			
+			void RequestDestination (const IdentHash& destination, i2p::tunnel::TunnelPool * pool = nullptr);			
 			
 			void HandleDatabaseStoreMsg (I2NPMessage * msg);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
@@ -100,7 +98,7 @@ namespace data
 			void ManageRequests ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, 
-				bool isLeaseSet, bool isExploratory = false, i2p::tunnel::TunnelPool * pool = nullptr);
+				bool isExploratory = false, i2p::tunnel::TunnelPool * pool = nullptr);
 			bool DeleteRequestedDestination (const IdentHash& dest); // returns true if found
 			void DeleteRequestedDestination (RequestedDestination * dest);
 
