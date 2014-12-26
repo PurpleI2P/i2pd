@@ -100,7 +100,8 @@ namespace stream
 			
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
-
+			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
+			
 			void Close ();
 			void Cancel () { m_ReceiveTimer.cancel (); };
 
@@ -225,7 +226,7 @@ namespace stream
 			else
 				// socket closed
 				handler (m_IsReset ? boost::asio::error::make_error_code (boost::asio::error::connection_reset) :
-					boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0);
+					boost::asio::error::make_error_code (boost::asio::error::operation_aborted), received);
 		}	
 		else
 			// timeout expired

@@ -462,17 +462,18 @@ namespace client
 						{
 							if (bytes_transferred)
 								response.write ((char *)buf, bytes_transferred);
-							else
-							{	
-								if (ecode != boost::asio::error::timed_out || !stream->IsOpen ())
-									end = true;	
-							}	
+							if (ecode == boost::asio::error::timed_out || !stream->IsOpen ())
+								end = true;	
 							newDataReceived.notify_all ();
 						},
 						30); // wait for 30 seconds
 					std::unique_lock<std::mutex> l(newDataReceivedMutex);
 					newDataReceived.wait (l);
 				}
+				// process remaining buffer
+				while (size_t len = stream->ReadSome (buf, 4096))
+					response.write ((char *)buf, len);
+				
 				// parse response
 				std::string version;
 				response >> version; // HTTP version
