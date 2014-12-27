@@ -19,9 +19,7 @@ namespace i2p
 namespace client
 {
 	const size_t SAM_SOCKET_BUFFER_SIZE = 4096;
-	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds	
-	const int SAM_CONNECT_TIMEOUT = 5; // in seconds
-	const int SAM_NAMING_LOOKUP_TIMEOUT = 5; // in seconds
+	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 20; // in seconds	
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=%s\n";
@@ -107,7 +105,7 @@ namespace client
 			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
 
 			void Connect (const i2p::data::LeaseSet& remote);
-			void HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident);
+			void HandleLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident);
 			void SendNamingLookupReply (const i2p::data::LeaseSet * leaseSet);
 			void SendNamingLookupReply (const i2p::data::IdentityEx& identity);
 			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);

@@ -325,9 +325,8 @@ namespace client
 				Connect (*leaseSet);
 			else
 			{
-				m_Session->localDestination->RequestDestination (dest.GetIdentHash ());
-				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_CONNECT_TIMEOUT));
-				m_Timer.async_wait (std::bind (&SAMSocket::HandleStreamDestinationRequestTimer,
+				m_Session->localDestination->RequestDestination (dest.GetIdentHash (), 
+					std::bind (&SAMSocket::HandleLeaseSetRequestComplete,
 					shared_from_this (), std::placeholders::_1, dest.GetIdentHash ()));	
 			}
 		}
@@ -345,18 +344,17 @@ namespace client
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
 
-	void SAMSocket::HandleStreamDestinationRequestTimer (const boost::system::error_code& ecode, i2p::data::IdentHash ident)
+	void SAMSocket::HandleLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
 	{
-		if (!ecode) // timeout expired
+		const i2p::data::LeaseSet * leaseSet =  nullptr;
+		if (success) // timeout expired
+			leaseSet = m_Session->localDestination->FindLeaseSet (ident);
+		if (leaseSet)
+			Connect (*leaseSet);
+		else
 		{
-			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
-			if (leaseSet)
-				Connect (*leaseSet);
-			else
-			{
-				LogPrint ("SAM destination to connect not found");
-				SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
-			}
+			LogPrint ("SAM destination to connect not found");
+			SendMessageReply (SAM_STREAM_STATUS_CANT_REACH_PEER, strlen(SAM_STREAM_STATUS_CANT_REACH_PEER), true);
 		}
 	}
 
