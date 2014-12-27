@@ -211,8 +211,9 @@ namespace client
 		auto it1 = m_LeaseSetRequests.find (msg->key);
 		if (it1 != m_LeaseSetRequests.end ())
 		{
+			if (it1->second->requestComplete) it1->second->requestComplete (true);
 			delete it1->second;
-			 m_LeaseSetRequests.erase (it1);
+			m_LeaseSetRequests.erase (it1);
 		}	
 		size_t offset = sizeof (I2NPDatabaseStoreMsg);
 		if (msg->replyToken) // TODO:
@@ -242,10 +243,11 @@ namespace client
 		int num = buf[32]; // num
 		LogPrint ("DatabaseSearchReply for ", key.ToBase64 (), " num=", num);
 		auto it = m_LeaseSetRequests.find (key);
-		if (it !=  m_LeaseSetRequests.end ())
+		if (it != m_LeaseSetRequests.end ())
 		{
+			LeaseSetRequest * request = it->second;
 			bool found = false;
-			if (it->second->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
+			if (request->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
 			{	
 				for (int i = 0; i < num; i++)
 				{
@@ -253,8 +255,9 @@ namespace client
 					auto floodfill = i2p::data::netdb.FindRouter (peerHash);
 					if (floodfill)
 					{
-						found = true;
-						SendLeaseSetRequest (key, floodfill, it->second);
+						LogPrint (eLogInfo, "Requesting ", key.ToBase64 (), " at ", peerHash.ToBase64 ());
+						if (SendLeaseSetRequest (key, floodfill, request))
+							found = true;
 					}	
 					else
 					{	
@@ -262,14 +265,16 @@ namespace client
 						i2p::data::netdb.RequestDestination (peerHash);
 					}	
 				}
+				if (!found)
+					LogPrint (eLogError, "Suggested floodfills are not presented in netDb"); 
 			}	
 			else
 				LogPrint (eLogInfo, key.ToBase64 (), " was not found on ",  MAX_NUM_FLOODFILLS_PER_REQUEST," floodfills");
 			if (!found)
 			{
-				LogPrint (eLogError, "Suggested floodfills are not presented in netDb"); 
-				delete it->second;
-				m_LeaseSetRequests.erase (it);
+				if (request->requestComplete) request->requestComplete (false);
+				delete request;
+				m_LeaseSetRequests.erase (key);
 			}	
 		}	
 		else	
@@ -407,28 +412,35 @@ namespace client
 		return m_DatagramDestination;	
 	}
 
-	bool ClientDestination::RequestDestination (const i2p::data::IdentHash& dest)
+	bool ClientDestination::RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete)
 	{
 		if (!m_Pool || !IsReady ()) return false;
-		m_Service.post (std::bind (&ClientDestination::RequestLeaseSet, this, dest));
+		m_Service.post (std::bind (&ClientDestination::RequestLeaseSet, this, dest, requestComplete));
 		return true;
 	}
 
-	void ClientDestination::RequestLeaseSet (const i2p::data::IdentHash& dest)
+	void ClientDestination::RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete)
 	{
 		std::set<i2p::data::IdentHash> excluded;
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, excluded);
 		if (floodfill)
 		{
 			LeaseSetRequest * request = new LeaseSetRequest (m_Service);
+			request->requestComplete = requestComplete;
 			m_LeaseSetRequests[dest] = request;
-			SendLeaseSetRequest (dest, floodfill, request);
+			if (!SendLeaseSetRequest (dest, floodfill, request))
+			{
+				// request failed
+				if (request->requestComplete) request->requestComplete (false);
+				delete request;
+				m_LeaseSetRequests.erase (dest);
+			}		
 		}	
 		else
 			LogPrint (eLogError, "No floodfills found");	
 	}	
 		
-	void ClientDestination::SendLeaseSetRequest (const i2p::data::IdentHash& dest, 
+	bool ClientDestination::SendLeaseSetRequest (const i2p::data::IdentHash& dest, 
 		std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request)
 	{
 		auto replyTunnel = m_Pool->GetNextInboundTunnel ();
@@ -459,11 +471,8 @@ namespace client
 				this, std::placeholders::_1, dest));
 		}	
 		else
-		{
-			// request failed
-			delete request;
-			m_LeaseSetRequests.erase (dest);
-		}	
+			return false;
+		return true;
 	}	
 
 	void ClientDestination::HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest)
@@ -491,6 +500,7 @@ namespace client
 				
 				if (done)
 				{
+					if (it->second->requestComplete) it->second->requestComplete (false);
 					delete it->second;
 					m_LeaseSetRequests.erase (it);
 				}	

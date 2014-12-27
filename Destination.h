@@ -7,6 +7,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <functional>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
@@ -37,12 +38,14 @@ namespace client
 	
 	class ClientDestination: public i2p::garlic::GarlicDestination
 	{
+		typedef std::function<void (bool success)> RequestComplete;
 		struct LeaseSetRequest
 		{
 			LeaseSetRequest (boost::asio::io_service& service): requestTime (0), requestTimeoutTimer (service) {};
 			std::set<i2p::data::IdentHash> excluded;
 			uint64_t requestTime;
 			boost::asio::deadline_timer requestTimeoutTimer;
+			RequestComplete requestComplete;
 		};	
 		
 		public:
@@ -57,7 +60,7 @@ namespace client
 			i2p::tunnel::TunnelPool * GetTunnelPool () { return m_Pool; }; 
 			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases (); };
 			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);
-			bool RequestDestination (const i2p::data::IdentHash& dest);
+			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			
 			// streaming
 			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
@@ -98,8 +101,8 @@ namespace client
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
 			void HandleDeliveryStatusMessage (I2NPMessage * msg);		
 
-			void RequestLeaseSet (const i2p::data::IdentHash& dest);
-			void SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request);	
+			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete);
+			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request);	
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			
 		private:

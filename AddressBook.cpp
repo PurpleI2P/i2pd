@@ -430,12 +430,22 @@ namespace client
 		i2p::data::IdentHash ident;
 		if (m_Book.GetIdentHash (u.host_, ident))
 		{
+			std::condition_variable newDataReceived;
+			std::mutex newDataReceivedMutex;
 			const i2p::data::LeaseSet * leaseSet = i2p::data::netdb.FindLeaseSet (ident);
 			if (!leaseSet)
 			{
-				i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident);
-				std::this_thread::sleep_for (std::chrono::seconds (5)); // wait for 5 seconds
-				leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
+				bool found = false;
+				std::unique_lock<std::mutex> l(newDataReceivedMutex);
+				i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident,
+					[&newDataReceived, &found](bool success)
+				    {
+						found = success;
+						newDataReceived.notify_all ();
+					});
+				newDataReceived.wait (l);
+				if (found)
+					leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
 			}
 			if (leaseSet)
 			{
@@ -455,8 +465,6 @@ namespace client
 				bool end = false;
 				while (!end)
 				{
-					std::condition_variable newDataReceived;
-					std::mutex newDataReceivedMutex;
 					stream->AsyncReceive (boost::asio::buffer (buf, 4096), 
 						[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 						{
