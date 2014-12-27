@@ -213,9 +213,8 @@ namespace client
 					CreateConnection (socket);
 				else
 				{
-					GetLocalDestination ()->RequestDestination (*m_DestinationIdentHash);
-					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
-					m_Timer.async_wait (std::bind (&I2PClientTunnel::HandleDestinationRequestTimer,
+					GetLocalDestination ()->RequestDestination (*m_DestinationIdentHash,
+						std::bind (&I2PClientTunnel::HandleLeaseSetRequestComplete,
 						this, std::placeholders::_1, socket));
 				}
 			}	
@@ -231,9 +230,9 @@ namespace client
 			delete socket;
 	}
 
-	void I2PClientTunnel::HandleDestinationRequestTimer (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
+	void I2PClientTunnel::HandleLeaseSetRequestComplete (bool success, boost::asio::ip::tcp::socket * socket)
 	{
-		if (ecode != boost::asio::error::operation_aborted)
+		if (success)
 		{
 			if (m_DestinationIdentHash)
 			{
