@@ -211,6 +211,7 @@ namespace client
 		auto it1 = m_LeaseSetRequests.find (msg->key);
 		if (it1 != m_LeaseSetRequests.end ())
 		{
+			it1->second->requestTimeoutTimer.cancel ();
 			if (it1->second->requestComplete) it1->second->requestComplete (true);
 			delete it1->second;
 			m_LeaseSetRequests.erase (it1);
