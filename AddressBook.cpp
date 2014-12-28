@@ -443,9 +443,10 @@ namespace client
 						found = success;
 						newDataReceived.notify_all ();
 					});
-				newDataReceived.wait (l);
+				if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+					LogPrint (eLogError, "Subscription LeseseSet request timeout expired");
 				if (found)
-					leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
+					leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);	
 			}
 			if (leaseSet)
 			{
@@ -476,7 +477,8 @@ namespace client
 						},
 						30); // wait for 30 seconds
 					std::unique_lock<std::mutex> l(newDataReceivedMutex);
-					newDataReceived.wait (l);
+					if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+						LogPrint (eLogError, "Subscription timeout expired");
 				}
 				// process remaining buffer
 				while (size_t len = stream->ReadSome (buf, 4096))

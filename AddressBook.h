@@ -22,6 +22,7 @@ namespace client
 	const int INITIAL_SUBSCRIPTION_RETRY_TIMEOUT = 1; // in minutes			
 	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 240; // in minutes			
 	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes	
+	const int SUBSCRIPTION_REQUEST_TIMEOUT = 60; //in second
 
 	class AddressBookStorage // interface for storage
 	{

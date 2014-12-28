@@ -208,14 +208,6 @@ namespace client
 	void ClientDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
 	{
 		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;
-		auto it1 = m_LeaseSetRequests.find (msg->key);
-		if (it1 != m_LeaseSetRequests.end ())
-		{
-			it1->second->requestTimeoutTimer.cancel ();
-			if (it1->second->requestComplete) it1->second->requestComplete (true);
-			delete it1->second;
-			m_LeaseSetRequests.erase (it1);
-		}	
 		size_t offset = sizeof (I2NPDatabaseStoreMsg);
 		if (msg->replyToken) // TODO:
 			offset += 36;
@@ -236,6 +228,15 @@ namespace client
 		}	
 		else
 			LogPrint (eLogError, "Unexpected client's DatabaseStore type ", msg->type, ". Dropped");
+		
+		auto it1 = m_LeaseSetRequests.find (msg->key);
+		if (it1 != m_LeaseSetRequests.end ())
+		{
+			it1->second->requestTimeoutTimer.cancel ();
+			if (it1->second->requestComplete) it1->second->requestComplete (true);
+			delete it1->second;
+			m_LeaseSetRequests.erase (it1);
+		}	
 	}	
 
 	void ClientDestination::HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len)
