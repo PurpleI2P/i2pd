@@ -26,7 +26,7 @@ namespace data
 	{
 		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 
-		    &m_ExcludedPeers, false, m_Pool);
+		    &m_ExcludedPeers);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_LastRouter = router;
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
@@ -406,10 +406,10 @@ namespace data
 		}
 	}
 
-	void NetDb::RequestDestination (const IdentHash& destination, i2p::tunnel::TunnelPool * pool)
+	void NetDb::RequestDestination (const IdentHash& destination)
 	{
 		// request RouterInfo directly
-		RequestedDestination * dest = CreateRequestedDestination (destination, false, pool);
+		RequestedDestination * dest = CreateRequestedDestination (destination, false);
 		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
 			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));	
@@ -469,9 +469,9 @@ namespace data
 			bool deleteDest = true;
 			if (num > 0)
 			{	
-				auto pool = dest ? dest->GetTunnelPool () : nullptr;
-				auto outbound = pool ? pool->GetNextOutboundTunnel () : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-				auto inbound = pool ? pool->GetNextInboundTunnel () : i2p::tunnel::tunnels.GetNextInboundTunnel ();
+				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+				auto outbound = pool->GetNextOutboundTunnel ();
+				auto inbound = pool->GetNextInboundTunnel ();
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				if (!dest->IsExploratory ())
 				{
@@ -525,7 +525,7 @@ namespace data
 							LogPrint ("Found new/outdated router. Requesting RouterInfo ...");
 							if (outbound && inbound && dest->GetLastRouter ())
 							{
-								RequestedDestination * d1 = CreateRequestedDestination (router, false, pool);
+								RequestedDestination * d1 = CreateRequestedDestination (router, false);
 								auto msg = d1->CreateRequestMessage (dest->GetLastRouter (), inbound);
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
@@ -534,7 +534,7 @@ namespace data
 									});
 							}	
 							else
-								RequestDestination (router, pool);
+								RequestDestination (router);
 						}
 						else
 							LogPrint ("Bayan");
@@ -547,7 +547,7 @@ namespace data
 						{	
 							// request router
 							LogPrint ("Found new floodfill. Request it");
-							RequestDestination (router, pool);
+							RequestDestination (router);
 						}	
 					}						
 				}
@@ -689,7 +689,7 @@ namespace data
 		for (int i = 0; i < numDestinations; i++)
 		{	
 			rnd.GenerateBlock (randomHash, 32);
-			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), true, exploratoryPool);
+			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), true);
 			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
 			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
 			{	
@@ -734,14 +734,13 @@ namespace data
 		}	
 	}	
 	
-	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest,
-		bool isExploratory, i2p::tunnel::TunnelPool * pool)
+	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest, bool isExploratory)
 	{
 		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		auto it = m_RequestedDestinations.find (dest);
 		if (it == m_RequestedDestinations.end ()) // not exist yet
 		{
-			RequestedDestination * d = new RequestedDestination (dest, isExploratory, pool);
+			RequestedDestination * d = new RequestedDestination (dest, isExploratory);
 			m_RequestedDestinations[dest] = d;
 			return d;
 		}	
@@ -883,9 +882,9 @@ namespace data
 					auto count = dest->GetExcludedPeers ().size ();
 					if (count < 7)
 					{
-						auto pool = dest->GetTunnelPool ();
-						auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
-						auto inbound = pool ? pool->GetNextInboundTunnel () : nullptr;	
+						auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+						auto outbound = pool->GetNextOutboundTunnel ();
+						auto inbound = pool->GetNextInboundTunnel ();	
 						auto nextFloodfill = GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
 						if (nextFloodfill && outbound && inbound)
 							outbound->SendTunnelDataMsg (nextFloodfill->GetIdentHash (), 0,
