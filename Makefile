@@ -68,3 +68,4 @@ dist:
 .PHONY: deps
 .PHONY: dist
 .PHONY: api
+.PHONY: mk_build_dir
