@@ -5,6 +5,16 @@ COMMON_SRC = \
   TransitTunnel.cpp Transports.cpp Tunnel.cpp TunnelEndpoint.cpp TunnelPool.cpp \
   TunnelGateway.cpp Destination.cpp util.cpp aes.cpp base64.cpp
 
+
+ifeq ($(UNAME),Darwin)
+# This is needed on OS X for some reason I don't understand (yet).
+# Else will get linker error about unknown symbols. - torkel
+	COMMON_SRC += \
+	  BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp SAM.cpp SOCKS.cpp \
+	  UPnP.cpp HTTPServer.cpp HTTPProxy.cpp i2p.cpp DaemonLinux.cpp
+endif
+
+
 # also: Daemon{Linux,Win32}.cpp will be added later
 DAEMON_SRC = $(COMMON_SRC) \
   BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp SAM.cpp SOCKS.cpp UPnP.cpp \

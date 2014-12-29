@@ -22,7 +22,10 @@ else # win32
 	DAEMON_SRC += DaemonWin32.cpp
 endif
 
-all: $(SHLIB) $(I2PD)
+all: mk_build_dir $(SHLIB) $(I2PD)
+
+mk_build_dir:
+	test -d obj || mkdir obj
 
 api: $(SHLIB)
 
@@ -34,12 +37,10 @@ api: $(SHLIB)
 ## custom FLAGS to work at build-time.
 
 deps:
-	@test -d obj || mkdir obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
 obj/%.o : %.cpp
-	@test -d obj || mkdir obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
@@ -50,7 +51,7 @@ $(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 ifneq ($(USE_STATIC),yes)
-	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -shared -o $@ $^
+	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
 endif
 
 clean:

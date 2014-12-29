@@ -1,5 +1,6 @@
 CXX = clang++
-CXXFLAGS = -g -Wall -std=c++11 -lstdc++ -DCRYPTOPP_DISABLE_ASM
+CXXFLAGS = -g -Wall -std=c++11 -DCRYPTOPP_DISABLE_ASM
+#CXXFLAGS = -g -O2 -Wall -std=c++11 -DCRYPTOPP_DISABLE_ASM
 INCFLAGS = -I/usr/local/include
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
@@ -12,6 +13,8 @@ ifeq ($(USE_AESNI),yes)
   CXXFLAGS += -maes -DAESNI
 endif
 
-install: all
-	mkdir -p ${PREFIX}/
-	cp -r i2p ${PREFIX}/
+# Disabled, since it will be the default make rule. I think its better
+# to define the default rule in Makefile and not Makefile.<ostype> - torkel
+#install: all
+#	test -d ${PREFIX} || mkdir -p ${PREFIX}/
+#	cp -r i2p ${PREFIX}/

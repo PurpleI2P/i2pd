@@ -21,7 +21,7 @@ Build Statuses
 
 - Linux x64      - [![Build Status](https://jenkins.nordcloud.no/buildStatus/icon?job=i2pd-linux)](https://jenkins.nordcloud.no/job/i2pd-linux/)
 - Linux ARM      - To be added
-- Mac OS X       - To be added
+- Mac OS X       - Got it working, but not well tested. (Only works with clang, not GCC.)
 - Microsoft VC13 - To be added
 
 
