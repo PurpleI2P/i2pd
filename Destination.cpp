@@ -357,7 +357,7 @@ namespace client
 
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
-		uint32_t length = be32toh (*(uint32_t *)buf);
+		uint32_t length = bufbe32toh (buf);
 		buf += 4;
 		// we assume I2CP payload
 		switch (buf[9])

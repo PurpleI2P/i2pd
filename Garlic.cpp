@@ -331,7 +331,7 @@ namespace garlic
 	void GarlicDestination::HandleGarlicMessage (I2NPMessage * msg)
 	{
 		uint8_t * buf = msg->GetPayload ();
-		uint32_t length = be32toh (*(uint32_t *)buf);
+		uint32_t length = bufbe32toh (buf);
 		buf += 4; // length
 		auto it = m_Tags.find (SessionTag(buf));
 		if (it != m_Tags.end ())
@@ -389,7 +389,7 @@ namespace garlic
 	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption,
 		i2p::tunnel::InboundTunnel * from)
 	{
-		uint16_t tagCount = be16toh (*(uint16_t *)buf);
+		uint16_t tagCount = bufbe16toh (buf);
 		buf += 2; len -= 2;	
 		if (tagCount > 0)
 		{	
@@ -404,7 +404,7 @@ namespace garlic
 		}	
 		buf += tagCount*32;
 		len -= tagCount*32;
-		uint32_t payloadSize = be32toh (*(uint32_t *)buf);
+		uint32_t payloadSize = bufbe32toh (buf);
 		if (payloadSize > len)
 		{
 			LogPrint (eLogError, "Unexpected payload size ", payloadSize);
@@ -460,7 +460,7 @@ namespace garlic
 					// gwHash and gwTunnel sequence is reverted
 					uint8_t * gwHash = buf;
 					buf += 32;
-					uint32_t gwTunnel = be32toh (*(uint32_t *)buf);
+					uint32_t gwTunnel = bufbe32toh (buf);
 					buf += 4;
 					i2p::tunnel::OutboundTunnel * tunnel = nullptr;
 					if (from && from->GetTunnelPool ())

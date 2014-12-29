@@ -167,7 +167,7 @@ namespace stream
 
 		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
 		{
-			uint16_t maxPacketSize = be16toh (*(uint16_t *)optionData);
+			uint16_t maxPacketSize = bufbe16toh (optionData);
 			LogPrint (eLogDebug, "Max packet size ", maxPacketSize);
 			optionData += 2;
 		}	

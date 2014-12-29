@@ -5,6 +5,7 @@
 
 #include "LittleBigEndian.h"
 
+#ifdef NEEDS_LOCAL_ENDIAN
 uint16_t htobe16(uint16_t int16)
 {
 	BigEndian<uint16_t> u16(int16);
@@ -40,6 +41,7 @@ uint64_t be64toh(uint64_t big64)
 	LittleEndian<uint64_t> u64(big64);
 	return u64.raw_value;
 }
+#endif
 
 /* it can be used in Windows 8
 #include <Winsock2.h>

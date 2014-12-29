@@ -356,7 +356,7 @@ namespace tunnel
 				I2NPMessage * msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
 				while (msg)
 				{
-					uint32_t  tunnelID = be32toh (*(uint32_t *)msg->GetPayload ()); 
+					uint32_t  tunnelID = bufbe32toh (msg->GetPayload ()); 
 					InboundTunnel * tunnel = GetInboundTunnel (tunnelID);
 					if (tunnel)
 						tunnel->HandleTunnelDataMsg (msg);

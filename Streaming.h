@@ -53,15 +53,15 @@ namespace stream
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
 
-		uint32_t GetSendStreamID () const { return be32toh (*(uint32_t *)buf); };
-		uint32_t GetReceiveStreamID () const { return be32toh (*(uint32_t *)(buf + 4)); };
-		uint32_t GetSeqn () const { return be32toh (*(uint32_t *)(buf + 8)); };
-		uint32_t GetAckThrough () const { return be32toh (*(uint32_t *)(buf + 12)); };
+		uint32_t GetSendStreamID () const { return bufbe32toh (buf); };
+		uint32_t GetReceiveStreamID () const { return bufbe32toh (buf + 4); };
+		uint32_t GetSeqn () const { return bufbe32toh (buf + 8); };
+		uint32_t GetAckThrough () const { return bufbe32toh (buf + 12); };
 		uint8_t GetNACKCount () const { return buf[16]; };
-		uint32_t GetNACK (int i) const { return be32toh (((uint32_t *)(buf + 17))[i]); };
+		uint32_t GetNACK (int i) const { return bufbe32toh (buf + 17 + 4 * i); };
 		const uint8_t * GetOption () const { return buf + 17 + GetNACKCount ()*4 + 3; }; // 3 = resendDelay + flags
-		uint16_t GetFlags () const { return be16toh (*(uint16_t *)(GetOption () - 2)); };
-		uint16_t GetOptionSize () const { return be16toh (*(uint16_t *)GetOption ()); };
+		uint16_t GetFlags () const { return bufbe16toh (GetOption () - 2); };
+		uint16_t GetOptionSize () const { return bufbe16toh (GetOption ()); };
 		const uint8_t * GetOptionData () const { return GetOption () + 2; };
 		const uint8_t * GetPayload () const { return GetOptionData () + GetOptionSize (); };
 

@@ -338,7 +338,7 @@ namespace transport
 			LogPrint (eLogDebug, "Phase 3 received: ", bytes_transferred);
 			m_Decryption.Decrypt (m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 			uint8_t * buf = m_ReceiveBuffer;
-			uint16_t size = be16toh (*(uint16_t *)buf);
+			uint16_t size = bufbe16toh (buf);
 			m_RemoteIdentity.FromBuffer (buf + 2, size);
 			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity.GetSignatureLen ();
 			size_t paddingLen = expectedSize & 0x0F;
@@ -526,7 +526,7 @@ namespace transport
 			m_NextMessageOffset = 0;
 			
 			m_Decryption.Decrypt (encrypted, m_NextMessage->buf);
-			uint16_t dataSize = be16toh (*(uint16_t *)m_NextMessage->buf);
+			uint16_t dataSize = bufbe16toh (m_NextMessage->buf);
 			if (dataSize)
 			{
 				// new message

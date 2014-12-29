@@ -436,7 +436,7 @@ namespace data
 		else
 		{
 			LogPrint ("RouterInfo");
-			size_t size = be16toh (*(uint16_t *)(buf + offset));
+			size_t size = bufbe16toh (buf + offset);
 			if (size > 2048)
 			{
 				LogPrint ("Invalid RouterInfo length ", (int)size);
@@ -597,10 +597,10 @@ namespace data
 		uint32_t replyTunnelID = 0;
 		if (flag & 0x01) //reply to tunnel
 		{
-			replyTunnelID = be32toh (*(uint32_t *)(buf + 64));
+			replyTunnelID = bufbe32toh (buf + 64);
 			excluded += 4;
 		}
-		uint16_t numExcluded = be16toh (*(uint16_t *)excluded);	
+		uint16_t numExcluded = bufbe16toh (excluded);	
 		excluded += 2;
 		if (numExcluded > 512)
 		{

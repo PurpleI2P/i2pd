@@ -61,7 +61,7 @@ namespace tunnel
 						break;
 					  	case eDeliveryTypeTunnel: // 1
 							LogPrint ("Delivery type tunnel");	
-							m.tunnelID = be32toh (*(uint32_t *)fragment);
+							m.tunnelID = bufbe32toh (fragment);
 							fragment += 4; // tunnelID
 							m.hash = i2p::data::IdentHash (fragment);
 							fragment += 32; // hash
@@ -79,7 +79,7 @@ namespace tunnel
 					if (isFragmented)
 					{
 						// Message ID
-						msgID = be32toh (*(uint32_t *)fragment); 	
+						msgID = bufbe32toh (fragment); 	
 						fragment += 4;
 						LogPrint ("Fragmented message ", msgID);
 						isLastFragment = false;
@@ -88,14 +88,14 @@ namespace tunnel
 				else
 				{
 					// follow on
-					msgID = be32toh (*(uint32_t *)fragment); // MessageID			
+					msgID = bufbe32toh (fragment); // MessageID			
 					fragment += 4; 
 					fragmentNum = (flag >> 1) & 0x3F; // 6 bits
 					isLastFragment = flag & 0x01;
 					LogPrint ("Follow on fragment ", fragmentNum, " of message ", msgID, isLastFragment ? " last" : " non-last");
 				}	
 				
-				uint16_t size = be16toh (*(uint16_t *)fragment);
+				uint16_t size = bufbe16toh (fragment);
 				fragment += 2;
 				LogPrint ("Fragment size=", (int)size);
 

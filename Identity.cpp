@@ -275,14 +275,14 @@ namespace data
 	SigningKeyType IdentityEx::GetSigningKeyType () const
 	{
 		if (m_StandardIdentity.certificate.type == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
-			return be16toh (*(const uint16_t *)m_ExtendedBuffer); // signing key
+			return bufbe16toh (m_ExtendedBuffer); // signing key
 		return SIGNING_KEY_TYPE_DSA_SHA1;
 	}	
 
 	CryptoKeyType IdentityEx::GetCryptoKeyType () const
 	{
 		if (m_StandardIdentity.certificate.type == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
-			return be16toh (*(const uint16_t *)(m_ExtendedBuffer + 2)); // crypto key
+			return bufbe16toh (m_ExtendedBuffer + 2); // crypto key
 		return CRYPTO_KEY_TYPE_ELGAMAL;
 	}	
 		

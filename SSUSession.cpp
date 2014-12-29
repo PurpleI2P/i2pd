@@ -210,7 +210,7 @@ namespace transport
 		}	
 		s.Insert (ourAddress, addressSize); // our IP 
 		payload += addressSize; // address
-		uint16_t ourPort = be16toh (*(uint16_t *)payload);
+		uint16_t ourPort = bufbe16toh (payload);
 		s.Insert (payload, 2); // our port
 		payload += 2; // port
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
@@ -221,7 +221,7 @@ namespace transport
 			s.Insert (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), 16); // remote IP v6
 		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
 		s.Insert (payload, 8); // relayTag and signed on time 
-		m_RelayTag = be32toh (*(uint32_t *)payload);
+		m_RelayTag = bufbe32toh (payload);
 		payload += 4; // relayTag
 		payload += 4; // signed on time
 		// decrypt signature
@@ -242,7 +242,7 @@ namespace transport
 		LogPrint (eLogDebug, "Session confirmed received");	
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		payload++; // identity fragment info
-		uint16_t identitySize = be16toh (*(uint16_t *)payload);	
+		uint16_t identitySize = bufbe16toh (payload);	
 		payload += 2; // size of identity fragment
 		m_RemoteIdentity.FromBuffer (payload, identitySize);
 		m_Data.UpdatePacketSize (m_RemoteIdentity.GetIdentHash ());
@@ -443,7 +443,7 @@ namespace transport
 
 	void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
 	{
-		uint32_t relayTag = be32toh (*(uint32_t *)buf);
+		uint32_t relayTag = bufbe32toh (buf);
 		auto session = m_Server.FindRelaySession (relayTag);
 		if (session)
 		{
@@ -457,7 +457,7 @@ namespace transport
 			buf += challengeSize;
 			uint8_t * introKey = buf;
 			buf += 32; // introkey
-			uint32_t nonce = be32toh (*(uint32_t *)buf);
+			uint32_t nonce = bufbe32toh (buf);
 			SendRelayResponse (nonce, from, introKey, session->m_RemoteEndpoint);
 			SendRelayIntro (session.get (), from);
 		}	
@@ -550,9 +550,9 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		uint8_t remoteSize = *payload; 
 		payload++; // remote size
-		//boost::asio::ip::address_v4 remoteIP (be32toh (*(uint32_t* )(payload)));
+		//boost::asio::ip::address_v4 remoteIP (bufbe32toh (payload));
 		payload += remoteSize; // remote address
-		//uint16_t remotePort = be16toh (*(uint16_t *)(payload));
+		//uint16_t remotePort = bufbe16toh (payload);
 		payload += 2; // remote port
 		uint8_t ourSize = *payload; 
 		payload++; // our size
@@ -570,7 +570,7 @@ namespace transport
 			ourIP = boost::asio::ip::address_v6 (bytes);
 		}
 		payload += ourSize; // our address
-		uint16_t ourPort = be16toh (*(uint16_t *)(payload));
+		uint16_t ourPort = bufbe16toh (payload);
 		payload += 2; // our port
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
@@ -582,9 +582,9 @@ namespace transport
 		if (size == 4)
 		{
 			buf++; // size
-			boost::asio::ip::address_v4 address (be32toh (*(uint32_t* )buf));
+			boost::asio::ip::address_v4 address (bufbe32toh (buf));
 			buf += 4; // address
-			uint16_t port = be16toh (*(uint16_t *)buf);
+			uint16_t port = bufbe16toh (buf);
 			// send hole punch of 1 byte
 			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (address, port));
 		}
@@ -844,10 +844,11 @@ namespace transport
 	void SSUSession::ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		uint8_t * buf1 = buf;
-		uint32_t nonce = be32toh (*(uint32_t *)buf);
+		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce
 		uint8_t size = *buf;
 		buf++; // size
+		
 		uint32_t address = (size == 4) ? *(uint32_t *)buf : 0; // use it as is
 		buf += size; // address
 		uint16_t port = *(uint16_t *)buf; // use it as is

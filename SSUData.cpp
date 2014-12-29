@@ -84,7 +84,7 @@ namespace transport
 			uint8_t numAcks =*buf;
 			buf++;
 			for (int i = 0; i < numAcks; i++)
-				ProcessSentMessageAck (be32toh (((uint32_t *)buf)[i]));
+				ProcessSentMessageAck (bufbe32toh (buf+i*4));
 			buf += numAcks*4;
 		}
 		if (flag & DATA_FLAG_ACK_BITFIELDS_INCLUDED)
@@ -94,7 +94,7 @@ namespace transport
 			buf++;
 			for (int i = 0; i < numBitfields; i++)
 			{
-				uint32_t msgID = be32toh (*(uint32_t *)buf);
+				uint32_t msgID = bufbe32toh (buf);
 				buf += 4; // msgID
 				auto it = m_SentMessages.find (msgID);		
 				// process individual Ack bitfields
@@ -137,13 +137,13 @@ namespace transport
 		buf++;
 		for (int i = 0; i < numFragments; i++)
 		{	
-			uint32_t msgID = be32toh (*(uint32_t *)buf); // message ID
+			uint32_t msgID = bufbe32toh (buf); // message ID
 			buf += 4;
 			uint8_t frag[4];
 			frag[0] = 0;
 			memcpy (frag + 1, buf, 3);
 			buf += 3;
-			uint32_t fragmentInfo = be32toh (*(uint32_t *)frag); // fragment info
+			uint32_t fragmentInfo = bufbe32toh (frag); // fragment info
 			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
 			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17

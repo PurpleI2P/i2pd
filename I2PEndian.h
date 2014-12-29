@@ -1,5 +1,7 @@
 #ifndef I2PENDIAN_H__
 #define I2PENDIAN_H__
+#include <inttypes.h>
+#include <cstring>
 
 #if defined(__linux__) || defined(__FreeBSD_kernel__)
 #include <endian.h>
@@ -25,6 +27,7 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 
 #else
+#define NEEDS_LOCAL_ENDIAN
 #include <cstdint>
 uint16_t htobe16(uint16_t int16);
 uint32_t htobe32(uint32_t int32);
@@ -43,6 +46,28 @@ uint64_t be64toh(uint64_t big64);
 #define le64toh
 
 #endif
+
+inline uint16_t bufbe16toh(const uint8_t *buf)
+{
+	uint16_t big16;
+	memcpy(&big16, buf, sizeof(uint16_t));
+	return be16toh(big16);
+}
+
+inline uint32_t bufbe32toh(const uint8_t *buf)
+{
+	uint32_t big32;
+	memcpy(&big32, buf, sizeof(uint32_t));
+	return be32toh(big32);
+}
+
+inline uint64_t bufbe64toh(const uint8_t *buf)
+{
+	uint64_t big64;
+	memcpy(&big64, buf, sizeof(uint64_t));
+	return be64toh(big64);
+}
+
 
 #endif // I2PENDIAN_H__
 
