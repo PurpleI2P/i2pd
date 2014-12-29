@@ -8,10 +8,9 @@ namespace i2p
 {
 namespace client
 {
-	BOBI2PInboundTunnel::BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination): 
-		BOBI2PTunnel (service, localDestination), 
-		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-		m_Timer (service)
+	BOBI2PInboundTunnel::BOBI2PInboundTunnel (int port, ClientDestination * localDestination): 
+		BOBI2PTunnel (localDestination), 
+		m_Acceptor (localDestination->GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)), m_Timer (localDestination->GetService ())
 	{
 	}
 
@@ -142,8 +141,8 @@ namespace client
 		delete receiver;
 	}
 
-	BOBI2POutboundTunnel::BOBI2POutboundTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-		ClientDestination * localDestination, bool quiet): BOBI2PTunnel (service, localDestination),
+	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& address, int port, 
+		ClientDestination * localDestination, bool quiet): BOBI2PTunnel (localDestination),
 		m_Endpoint (boost::asio::ip::address::from_string (address), port), m_IsQuiet (quiet)
 	{
 	}
@@ -177,8 +176,8 @@ namespace client
 		}	
 	}
 
-	BOBDestination::BOBDestination (boost::asio::io_service& service, ClientDestination& localDestination):
-		m_Service (service), m_LocalDestination (localDestination), 
+	BOBDestination::BOBDestination (ClientDestination& localDestination):
+		m_LocalDestination (localDestination), 
 		m_OutboundTunnel (nullptr), m_InboundTunnel (nullptr)
 	{
 	}
@@ -220,13 +219,13 @@ namespace client
 	void BOBDestination::CreateInboundTunnel (int port)
 	{
 		if (!m_InboundTunnel)
-			m_InboundTunnel = new BOBI2PInboundTunnel (m_Service, port, &m_LocalDestination);
+			m_InboundTunnel = new BOBI2PInboundTunnel (port, &m_LocalDestination);
 	}
 		
 	void BOBDestination::CreateOutboundTunnel (const std::string& address, int port, bool quiet)
 	{
 		if (!m_OutboundTunnel)
-			m_OutboundTunnel = new BOBI2POutboundTunnel (m_Service, address, port, &m_LocalDestination, quiet);
+			m_OutboundTunnel = new BOBI2POutboundTunnel (address, port, &m_LocalDestination, quiet);
 	}	
 		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
@@ -384,8 +383,7 @@ namespace client
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
 		if (!m_CurrentDestination)
 		{	
-			m_CurrentDestination = new BOBDestination (m_Owner.GetService (),
-				*context.CreateNewLocalDestination (m_Keys, true, &m_Options));
+			m_CurrentDestination = new BOBDestination (*i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options));
 			m_Owner.AddDestination (m_Nickname, m_CurrentDestination);
 		}	
 		if (m_InPort)

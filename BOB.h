@@ -45,8 +45,8 @@ namespace client
 	{
 		public:
 
-			BOBI2PTunnel (boost::asio::io_service& service, ClientDestination * localDestination): 
-				I2PTunnel (service, localDestination) {};
+			BOBI2PTunnel (ClientDestination * localDestination): 
+				I2PTunnel (localDestination) {};
 
 			virtual void Start () {};
 			virtual void Stop () {};				
@@ -66,7 +66,7 @@ namespace client
 		
 		public:
 
-			BOBI2PInboundTunnel (boost::asio::io_service& service, int port, ClientDestination * localDestination);
+			BOBI2PInboundTunnel (int port, ClientDestination * localDestination);
 			~BOBI2PInboundTunnel ();
 
 			void Start ();
@@ -95,8 +95,7 @@ namespace client
 	{
 		public:
 
-			 BOBI2POutboundTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-				ClientDestination * localDestination, bool quiet);	
+			 BOBI2POutboundTunnel (const std::string& address, int port, ClientDestination * localDestination, bool quiet);	
 
 			void Start ();
 			void Stop ();
@@ -119,7 +118,7 @@ namespace client
 	{
 		public:
 
-			BOBDestination (boost::asio::io_service& service, ClientDestination& localDestination);
+			BOBDestination (ClientDestination& localDestination);
 			~BOBDestination ();
 
 			void Start ();
@@ -131,7 +130,6 @@ namespace client
 			
 		private:	
 
-			boost::asio::io_service& m_Service;
 			ClientDestination& m_LocalDestination;
 			BOBI2POutboundTunnel * m_OutboundTunnel;
 			BOBI2PInboundTunnel * m_InboundTunnel;

@@ -48,8 +48,7 @@ namespace client
 			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 			if (ircKeys.length () > 0)
 				localDestination = LoadLocalDestination (ircKeys, false);
-			m_IrcTunnel = new I2PClientTunnel (m_SocksProxy->GetService (), ircDestination,
-				i2p::util::config::GetArg("-ircport", 6668), localDestination);
+			m_IrcTunnel = new I2PClientTunnel (ircDestination, i2p::util::config::GetArg("-ircport", 6668), localDestination);
 			m_IrcTunnel->Start ();
 			LogPrint("IRC tunnel started");
 		}	
@@ -57,9 +56,8 @@ namespace client
 		if (eepKeys.length () > 0) // eepkeys file is presented
 		{
 			auto localDestination = LoadLocalDestination (eepKeys, true);
-			m_ServerTunnel = new I2PServerTunnel (m_SocksProxy->GetService (), 
-				i2p::util::config::GetArg("-eephost", "127.0.0.1"), i2p::util::config::GetArg("-eepport", 80),
-				localDestination);
+			m_ServerTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eephost", "127.0.0.1"),
+ 				i2p::util::config::GetArg("-eepport", 80), localDestination);
 			m_ServerTunnel->Start ();
 			LogPrint("Server tunnel started");
 		}

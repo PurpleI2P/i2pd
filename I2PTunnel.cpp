@@ -154,12 +154,11 @@ namespace client
 		m_Connections.clear ();
 	}	
 		
-	I2PClientTunnel::I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, 
-		int port, ClientDestination * localDestination): 
-		I2PTunnel (service, localDestination ? localDestination : 
+	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination): 
+		I2PTunnel (localDestination ? localDestination : 
 			i2p::client::context.CreateNewLocalDestination (false, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256)), 
-		m_Acceptor (service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-		m_Timer (service), m_Destination (destination), m_DestinationIdentHash (nullptr), 
+		m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+		m_Timer (GetService ()), m_Destination (destination), m_DestinationIdentHash (nullptr), 
 		m_RemoteLeaseSet (nullptr)
 	{
 	}	
@@ -260,9 +259,8 @@ namespace client
 		}	
 	}
 
-	I2PServerTunnel::I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-		ClientDestination * localDestination): I2PTunnel (service, localDestination),
-		m_Endpoint (boost::asio::ip::address::from_string (address), port)
+	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, ClientDestination * localDestination): 
+		I2PTunnel (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
 	}
 	

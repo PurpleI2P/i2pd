@@ -58,8 +58,8 @@ namespace client
 	{
 		public:
 
-			I2PTunnel (boost::asio::io_service& service, ClientDestination * localDestination): 
-				m_Service (service), m_LocalDestination (localDestination) {};
+			I2PTunnel (ClientDestination * localDestination): 
+				m_LocalDestination (localDestination) {};
 			virtual ~I2PTunnel () { ClearConnections (); }; 
 
 			void AddConnection (std::shared_ptr<I2PTunnelConnection> conn);
@@ -68,11 +68,10 @@ namespace client
 			ClientDestination * GetLocalDestination () { return m_LocalDestination; };
 			void SetLocalDestination (ClientDestination * dest) { m_LocalDestination = dest; }; 			
 
-			boost::asio::io_service& GetService () { return m_Service; };
+			boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); };
 			
 		private:
 
-			boost::asio::io_service& m_Service;
 			ClientDestination * m_LocalDestination;
 			std::set<std::shared_ptr<I2PTunnelConnection> > m_Connections;
 	};	
@@ -81,8 +80,7 @@ namespace client
 	{
 		public:
 
-			I2PClientTunnel (boost::asio::io_service& service, const std::string& destination, int port,
-				ClientDestination * localDestination = nullptr);
+			I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination = nullptr);
 			~I2PClientTunnel ();				
 	
 			void Start ();
@@ -108,8 +106,7 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnel (boost::asio::io_service& service, const std::string& address, int port, 
-				ClientDestination * localDestination);	
+			I2PServerTunnel (const std::string& address, int port, ClientDestination * localDestination);	
 
 			void Start ();
 			void Stop ();
