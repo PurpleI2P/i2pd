@@ -612,7 +612,6 @@ namespace client
 	{
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
-		m_DatagramSocket.cancel ();
 		for (auto it: m_Sessions)
 			delete it.second;
 		m_Sessions.clear ();
