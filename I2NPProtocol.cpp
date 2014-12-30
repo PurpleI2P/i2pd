@@ -149,7 +149,7 @@ namespace i2p
 			else
 			{	
 				// nothing to exclude
-				htobe16buf (buf, 0);
+				htobuf16 (buf, 0);
 				buf += 2;
 			}	
 		}	
