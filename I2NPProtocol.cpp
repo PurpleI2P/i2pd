@@ -115,7 +115,7 @@ namespace i2p
 		if (replyTunnelID)
 		{
 			*buf = encryption ? 0x03: 0x01; // set delivery flag
-			*(uint32_t *)(buf+1) = htobe32 (replyTunnelID);
+			htobe32buf (buf+1, replyTunnelID);
 			buf += 5;
 		}
 		else
@@ -127,7 +127,7 @@ namespace i2p
 		
 		if (exploratory)
 		{
-			*(uint16_t *)buf = htobe16 (1); // one exlude record
+			htobe16buf (buf,1); // one exlude record
 			buf += 2;
 			// reply with non-floodfill routers only
 			memset (buf, 0, 32);
@@ -138,7 +138,7 @@ namespace i2p
 			if (excludedPeers)
 			{
 				int cnt = excludedPeers->size ();
-				*(uint16_t *)buf = htobe16 (cnt);
+				htobe16buf (buf, cnt);
 				buf += 2;
 				for (auto& it: *excludedPeers)
 				{
@@ -149,7 +149,7 @@ namespace i2p
 			else
 			{	
 				// nothing to exclude
-				*(uint16_t *)buf = htobe16 (0);
+				htobe16buf (buf, 0);
 				buf += 2;
 			}	
 		}	
@@ -210,7 +210,7 @@ namespace i2p
 		compressor.MessageEnd();
 		auto size = compressor.MaxRetrievable ();
 		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
-		*(uint16_t *)buf = htobe16 (size); // size
+		htobe16buf (buf, size); // size
 		buf += 2;
 		// TODO: check if size doesn't exceed buffer
 		compressor.Get (buf, size); 
@@ -235,7 +235,7 @@ namespace i2p
 			auto leases = leaseSet->GetNonExpiredLeases ();
 			if (leases.size () > 0)
 			{
-				*(uint32_t *)(payload + size) = htobe32 (leases[0].tunnelID);
+				htobe32buf (payload + size, leases[0].tunnelID);
 				size += 4; // reply tunnelID
 				memcpy (payload + size, leases[0].tunnelGateway, 32);
 				size += 32; // reply tunnel gateway
@@ -422,7 +422,7 @@ namespace i2p
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		memcpy (msg->GetPayload () + 4, payload, i2p::tunnel::TUNNEL_DATA_MSG_SIZE - 4);
-		*(uint32_t *)(msg->GetPayload ()) = htobe32 (tunnelID);
+		htobe32buf (msg->GetPayload (), tunnelID);
 		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE; 
 		FillI2NPMessageHeader (msg, eI2NPTunnelData);
 		return msg;

@@ -101,8 +101,8 @@ namespace data
 			m_StandardIdentity.certificate.length = htobe16 (m_ExtendedLen); 
 			// fill extended buffer
 			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
-			*(uint16_t *)m_ExtendedBuffer = htobe16 (type);
-			*(uint16_t *)(m_ExtendedBuffer + 2) = htobe16 (CRYPTO_KEY_TYPE_ELGAMAL);
+			htobe16buf (m_ExtendedBuffer, type);
+			htobe16buf (m_ExtendedBuffer + 2, CRYPTO_KEY_TYPE_ELGAMAL);
 			if (excessLen && excessBuf)
 			{
 				memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);

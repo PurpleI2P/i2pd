@@ -117,7 +117,7 @@ namespace datagram
 		compressor.MessageEnd();
 		int size = compressor.MaxRetrievable ();
 		uint8_t * buf = msg->GetPayload ();
-		*(uint32_t *)buf = htobe32 (size); // length
+		htobe32buf (buf, size); // length
 		buf += 4;
 		compressor.Get (buf, size);
 		memset (buf + 4, 0, 4); // source and destination are zeroes
