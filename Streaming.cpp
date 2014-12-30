@@ -256,16 +256,16 @@ namespace stream
 			uint8_t * packet = p->GetBuffer ();
 			// TODO: implement setters
 			size_t size = 0;
-			*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
+			htobe32buf (packet + size, m_SendStreamID);
 			size += 4; // sendStreamID
-			*(uint32_t *)(packet + size) = htobe32 (m_RecvStreamID);
+			htobe32buf (packet + size, m_RecvStreamID);
 			size += 4; // receiveStreamID
-			*(uint32_t *)(packet + size) = htobe32 (m_SequenceNumber++);
+			htobe32buf (packet + size, m_SequenceNumber++);
 			size += 4; // sequenceNum
 			if (isNoAck)			
-				*(uint32_t *)(packet + size) = htobe32 (m_LastReceivedSequenceNumber);
+				htobe32buf (packet + size, m_LastReceivedSequenceNumber);
 			else
-				*(uint32_t *)(packet + size) = 0;
+				htobuf32 (packet + size, 0);
 			size += 4; // ack Through
 			packet[size] = 0; 
 			size++; // NACK count
@@ -277,15 +277,15 @@ namespace stream
 				uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED | 
 					PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
 				if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
-				*(uint16_t *)(packet + size) = htobe16 (flags);
+				htobe16buf (packet + size, flags);
 				size += 2; // flags
 				size_t identityLen = m_LocalDestination.GetOwner ().GetIdentity ().GetFullLen ();
 				size_t signatureLen = m_LocalDestination.GetOwner ().GetIdentity ().GetSignatureLen ();
-				*(uint16_t *)(packet + size) = htobe16 (identityLen + signatureLen + 2); // identity + signature + packet size
+				htobe16buf (packet + size, identityLen + signatureLen + 2); // identity + signature + packet size
 				size += 2; // options size
 				m_LocalDestination.GetOwner ().GetIdentity ().ToBuffer (packet + size, identityLen); 
 				size += identityLen; // from
-				*(uint16_t *)(packet + size) = htobe16 (STREAMING_MTU);
+				htobe16buf (packet + size, STREAMING_MTU);
 				size += 2; // max packet size
 				uint8_t * signature = packet + size; // set it later
 				memset (signature, 0, signatureLen); // zeroes for now
@@ -301,9 +301,9 @@ namespace stream
 			else
 			{
 				// follow on packet
-				*(uint16_t *)(packet + size) = 0;
+				htobuf16 (packet + size, 0);
 				size += 2; // flags
-				*(uint16_t *)(packet + size) = 0; // no options
+				htobuf16 (packet + size, 0); // no options
 				size += 2; // options size
 				size_t sentLen = STREAMING_MTU - size;
 				if (len < sentLen) sentLen = len;		
@@ -338,13 +338,13 @@ namespace stream
 		Packet p;
 		uint8_t * packet = p.GetBuffer ();	
 		size_t size = 0;
-		*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
+		htobe32buf (packet + size, m_SendStreamID);
 		size += 4; // sendStreamID
-		*(uint32_t *)(packet + size) = htobe32 (m_RecvStreamID);
+		htobe32buf (packet + size, m_RecvStreamID);
 		size += 4; // receiveStreamID
-		*(uint32_t *)(packet + size) = 0; // this is plain Ack message
+		htobuf32 (packet + size, 0); // this is plain Ack message
 		size += 4; // sequenceNum
-		*(uint32_t *)(packet + size) = htobe32 (lastReceivedSeqn);
+		htobe32buf (packet + size, lastReceivedSeqn);
 		size += 4; // ack Through
 		if (lastReceivedSeqn > m_LastReceivedSequenceNumber) 
 		{	
@@ -357,7 +357,7 @@ namespace stream
 				auto seqn = it->GetSeqn ();
 				for (uint32_t i = nextSeqn; i < seqn; i++)
 				{
-					*(uint32_t *)nacks = htobe32 (i);
+					htobe32buf (nacks, i);
 					nacks += 4;
 					numNacks++;
 				}	
@@ -374,9 +374,9 @@ namespace stream
 			size++; // NACK count		
 		}	
 		size++; // resend delay
-		*(uint16_t *)(packet + size) = 0; // nof flags set
+		htobuf16 (packet + size, 0); // nof flags set
 		size += 2; // flags
-		*(uint16_t *)(packet + size) = 0; // no options
+		htobuf16 (packet + size, 0); // no options
 		size += 2; // options size
 		p.len = size;		
 
@@ -392,21 +392,21 @@ namespace stream
 			Packet * p = new Packet ();
 			uint8_t * packet = p->GetBuffer ();
 			size_t size = 0;
-			*(uint32_t *)(packet + size) = htobe32 (m_SendStreamID);
+			htobe32buf (packet + size, m_SendStreamID);
 			size += 4; // sendStreamID
-			*(uint32_t *)(packet + size) = htobe32 (m_RecvStreamID);
+			htobe32buf (packet + size, m_RecvStreamID);
 			size += 4; // receiveStreamID
-			*(uint32_t *)(packet + size) = htobe32 (m_SequenceNumber++);
+			htobe32buf (packet + size, m_SequenceNumber++);
 			size += 4; // sequenceNum
-			*(uint32_t *)(packet + size) = htobe32 (m_LastReceivedSequenceNumber);
+			htobe32buf (packet + size, m_LastReceivedSequenceNumber);
 			size += 4; // ack Through
 			packet[size] = 0; 
 			size++; // NACK count
 			size++; // resend delay
-			*(uint16_t *)(packet + size) = htobe16 (PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
+			htobe16buf (packet + size, PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 			size += 2; // flags
 			size_t signatureLen = m_LocalDestination.GetOwner ().GetIdentity ().GetSignatureLen ();
-			*(uint16_t *)(packet + size) = htobe16 (signatureLen); // signature only
+			htobe16buf (packet + size, signatureLen); // signature only
 			size += 2; // options size
 			uint8_t * signature = packet + size;
 			memset (packet + size, 0, signatureLen);
@@ -617,11 +617,11 @@ namespace stream
 		compressor.MessageEnd();
 		int size = compressor.MaxRetrievable ();
 		uint8_t * buf = msg->GetPayload ();
-		*(uint32_t *)buf = htobe32 (size); // length
+		htobe32buf (buf, size); // length
 		buf += 4;
 		compressor.Get (buf, size);
-		*(uint16_t *)(buf + 4) = 0; // source port
-		*(uint16_t *)(buf + 6) = htobe16 (m_Port); // destination port 
+		htobuf16(buf + 4, 0); // source port
+		htobe16buf (buf + 6, m_Port); // destination port 
 		buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
 		msg->len += size + 4; 
 		FillI2NPMessageHeader (msg, eI2NPData);

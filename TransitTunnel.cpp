@@ -31,7 +31,7 @@ namespace tunnel
 		
 		LogPrint ("TransitTunnel: ",m_TunnelID,"->", m_NextTunnelID);
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
-		*(uint32_t *)(tunnelMsg->GetPayload ()) = htobe32 (m_NextTunnelID);
+		htobe32buf (tunnelMsg->GetPayload (), m_NextTunnelID);
 		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
 		
 		i2p::transport::transports.SendMessage (m_NextIdent, tunnelMsg);	

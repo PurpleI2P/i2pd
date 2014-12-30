@@ -26,7 +26,7 @@ namespace tunnel
 		{	
 			if (block.deliveryType == eDeliveryTypeTunnel)
 			{
-				*(uint32_t *)(di + diLen) = htobe32 (block.tunnelID);
+				htobe32buf (di + diLen, block.tunnelID);
 				diLen += 4; // tunnelID
 			}
 			
@@ -41,7 +41,7 @@ namespace tunnel
 		if (fullMsgLen <= m_RemainingSize)
 		{
 			// message fits. First and last fragment
-			*(uint16_t *)(di + diLen) = htobe16 (msg->GetLength ());
+			htobe16buf (di + diLen, msg->GetLength ());
 			diLen += 2; // size
 			memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len, di, diLen);
 			memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len + diLen, msg->GetBuffer (), msg->GetLength ());
@@ -73,9 +73,9 @@ namespace tunnel
 
 				// first fragment
 				di[0] |= 0x08; // fragmented
-				*(uint32_t *)(di + diLen) = msgID;
+				htobuf32 (di + diLen, msgID);
 				diLen += 4; // Message ID
-				*(uint16_t *)(di + diLen) = htobe16 (size);
+				htobe16buf (di + diLen, size);
 				diLen += 2; // size
 				memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len, di, diLen);
 				memcpy (m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len + diLen, msg->GetBuffer (), size);
@@ -96,9 +96,9 @@ namespace tunnel
 					{	
 						buf[0] |= 0x01;
 						isLastFragment = true;
-					}	
-					*(uint32_t *)(buf + 1) = msgID; //Message ID
-					*(uint16_t *)(buf + 5) = htobe16 (s); // size
+					}
+					htobuf32 (buf + 1, msgID); //Message ID
+					htobe16buf (buf + 5, s); // size
 					memcpy (buf + 7, msg->GetBuffer () + size, s);
 					m_CurrentTunnelDataMsg->len += s+7;
 					if (isLastFragment)
@@ -147,7 +147,7 @@ namespace tunnel
 		
 		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - sizeof (I2NPHeader);
 		uint8_t * buf = m_CurrentTunnelDataMsg->GetPayload ();
-		*(uint32_t *)(buf) = htobe32 (m_TunnelID);
+		htobe32buf (buf, m_TunnelID);
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (buf + 4, 16); // original IV	
 		memcpy (payload + size, buf + 4, 16); // copy IV for checksum 

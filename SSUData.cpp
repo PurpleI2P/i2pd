@@ -316,7 +316,7 @@ namespace transport
 			payload++;
 			*payload = 1; // always 1 message fragment per message
 			payload++;
-			*(uint32_t *)payload = msgID;
+			htobuf32(payload, msgID);
 			payload += 4;
 			bool isLast = (len <= payloadSize);
 			size_t size = isLast ? len : payloadSize;
@@ -359,7 +359,7 @@ namespace transport
 		payload++;
 		*payload = 1; // number of ACKs
 		payload++;
-		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
+		htobe32buf (payload, msgID); // msgID	
 		payload += 4;
 		*payload = 0; // number of fragments
 
@@ -382,7 +382,7 @@ namespace transport
 		*payload = 1; // number of ACK bitfields
 		payload++;
 		// one ack
-		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
+		htobe32buf (payload, msgID); // msgID	
 		payload += 4;
 		div_t d = div (fragmentNum, 7);
 		memset (payload, 0x80, d.quot); // 0x80 means non-last
