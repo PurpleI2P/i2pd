@@ -526,8 +526,7 @@ namespace garlic
 
 	void GarlicDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
 	{
-		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
-		uint32_t msgID = be32toh (deliveryStatus->msgID);
+		uint32_t msgID = bufbe32toh (msg->GetPayload ());
 		{
 			auto it = m_CreatedSessions.find (msgID);
 			if (it != m_CreatedSessions.end ())			

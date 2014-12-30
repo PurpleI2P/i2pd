@@ -232,8 +232,12 @@ namespace tunnel
 		
 	void TunnelPool::ProcessDeliveryStatus (I2NPMessage * msg)
 	{
-		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
-		auto it = m_Tests.find (be32toh (deliveryStatus->msgID));
+		const uint8_t * buf = msg->GetPayload ();
+		uint32_t msgID = bufbe32toh (buf);
+		buf += 4;	
+		uint64_t timestamp = bufbe64toh (buf);
+
+		auto it = m_Tests.find (msgID);
 		if (it != m_Tests.end ())
 		{
 			// restore from test failed state if any
@@ -241,7 +245,7 @@ namespace tunnel
 				it->second.first->SetState (eTunnelStateEstablished);
 			if (it->second.second->GetState () == eTunnelStateTestFailed)
 				it->second.second->SetState (eTunnelStateEstablished);
-			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - be64toh (deliveryStatus->timestamp), " milliseconds");
+			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
 			m_Tests.erase (it);
 			DeleteI2NPMessage (msg);
 		}
