@@ -171,6 +171,45 @@ namespace i2p
 		return m; 
 	}	
 
+	I2NPMessage * CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
+		const std::set<i2p::data::IdentHash>& excludedFloodfills,
+		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
+	{
+		I2NPMessage * m = NewI2NPMessage ();
+		uint8_t * buf = m->GetPayload ();
+		memcpy (buf, dest, 32); // key
+		buf += 32;
+		memcpy (buf, replyTunnel->GetNextIdentHash (), 32); // reply tunnel GW
+		buf += 32;
+		*buf = 7; // flags (01 - tunnel, 10 - encrypted, 0100 - LS lookup
+		htobe32buf (buf + 1, replyTunnel->GetNextTunnelID ()); // reply tunnel ID
+		buf += 5;
+		
+		// excluded
+		int cnt = excludedFloodfills.size ();
+		htobe16buf (buf, cnt);
+		buf += 2;
+		if (cnt > 0)
+		{
+			for (auto& it: excludedFloodfills)
+			{
+				memcpy (buf, it, 32);
+				buf += 32;
+			}
+		}	
+		// encryption
+		memcpy (buf, replyKey, 32);
+		buf[32] = 1; // 1 tag
+		memcpy (buf + 33, replyTag, 32);
+		buf += 65;
+
+		m->len += (buf - m->GetPayload ()); 
+		FillI2NPMessageHeader (m, eI2NPDatabaseLookup);
+		return m; 		  			
+	}		
+			
+	
+
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
 		const i2p::data::RouterInfo * floodfill)
 	{

@@ -5,6 +5,7 @@
 #include <set>
 #include <string.h>
 #include "I2PEndian.h"
+#include "Identity.h"
 #include "RouterInfo.h"
 #include "LeaseSet.h"
 
@@ -180,6 +181,9 @@ namespace tunnel
 		uint32_t replyTunnelID, bool exploratory = false, 
 	    std::set<i2p::data::IdentHash> * excludedPeers = nullptr, bool encryption = false,
 	    i2p::tunnel::TunnelPool * pool = nullptr);
+	I2NPMessage * CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
+		const std::set<i2p::data::IdentHash>& excludedFloodfills,
+		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag);
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, const i2p::data::RouterInfo * floodfill);
 	
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);

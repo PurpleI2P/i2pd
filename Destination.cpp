@@ -457,9 +457,15 @@ namespace client
 			request->requestTime = i2p::util::GetSecondsSinceEpoch ();
 			request->requestTimeoutTimer.cancel ();
 
+			CryptoPP::AutoSeededRandomPool rnd;
+			uint8_t replyKey[32], replyTag[32];
+			rnd.GenerateBlock (replyKey, 32); // random session key 
+			rnd.GenerateBlock (replyTag, 32); // random session tag
+			AddSessionKey (replyKey, replyTag);
+
 			I2NPMessage * msg = WrapMessage (*nextFloodfill,
-				CreateDatabaseLookupMsg (dest, replyTunnel->GetNextIdentHash (), 
-					replyTunnel->GetNextTunnelID (), false, &request->excluded, true, m_Pool));
+				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
+					replyTunnel, replyKey, replyTag));
 			outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock 
