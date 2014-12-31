@@ -5,6 +5,7 @@ project ( "i2pd" )
 option(WITH_AESNI     "Use AES-NI instructions set" OFF)
 option(WITH_HARDENING "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY   "Build library" ON)
+option(WITH_BINARY    "Build binary" ON)
 option(WITH_STATIC    "Static build" OFF)
 
 # paths
@@ -140,27 +141,30 @@ message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
+message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
 include(GNUInstallDirs)
 
-add_executable ( "${PROJECT_NAME}-bin" ${COMMON_SRC} ${DAEMON_SRC})
-set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
+if (WITH_BINARY)
+  add_executable ( "${PROJECT_NAME}-bin" ${COMMON_SRC} ${DAEMON_SRC})
+  set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
 
-if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-z relro -z now" )
+  if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-z relro -z now" )
+  endif ()
+
+  if (WITH_STATIC)
+    set(BUILD_SHARED_LIBS OFF)
+    set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
+  endif ()
+
+  target_link_libraries( "${PROJECT_NAME}-bin" ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+
+  install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 endif ()
-
-if (WITH_STATIC)
-  set(BUILD_SHARED_LIBS OFF)
-  set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
-endif ()
-
-target_link_libraries( "${PROJECT_NAME}-bin" ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
-
-install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 
 if (WITH_LIBRARY)
   add_library(${PROJECT_NAME} SHARED ${COMMON_SRC} ${LIBRARY_SRC})
