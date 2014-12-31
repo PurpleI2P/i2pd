@@ -162,7 +162,10 @@ namespace stream
 			optionData += m_RemoteIdentity.FromBuffer (optionData, packet->GetOptionSize ());
 			LogPrint (eLogInfo, "From identity ", m_RemoteIdentity.GetIdentHash ().ToBase64 ());		
 			if (!m_RemoteLeaseSet)
+			{	
 				LogPrint (eLogDebug, "Incoming stream from ", m_RemoteIdentity.GetIdentHash ().ToBase64 ());
+				m_LocalDestination.StreamAccepted (shared_from_this ());
+			}	
 		}	
 
 		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
@@ -642,6 +645,17 @@ namespace stream
 		}	
 	}	
 
+	void StreamingDestination::StreamAccepted (std::shared_ptr<Stream> stream)
+	{
+		if (m_Acceptor != nullptr)
+			m_Acceptor (stream);
+		else
+		{
+			LogPrint ("Acceptor for incoming stream is not set");
+			DeleteStream (stream);
+		}	
+	}	
+		
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
 		uint32_t sendStreamID = packet->GetSendStreamID ();
@@ -660,13 +674,6 @@ namespace stream
 		{
 			auto incomingStream = CreateNewIncomingStream ();
 			incomingStream->HandleNextPacket (packet);
-			if (m_Acceptor != nullptr)
-				m_Acceptor (incomingStream);
-			else
-			{
-				LogPrint ("Acceptor for incoming stream is not set");
-				DeleteStream (incomingStream);
-			}
 		}	
 	}	
 
