@@ -1,4 +1,4 @@
-cmake_minimum_required ( VERSION 2.8 )
+cmake_minimum_required ( VERSION 2.8.5 )
 project ( "i2pd" )
 
 # configurale options
@@ -143,6 +143,9 @@ message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "---------------------------------------")
 
+#Handle paths nicely
+include(GNUInstallDirs)
+
 add_executable ( "${PROJECT_NAME}-bin" ${COMMON_SRC} ${DAEMON_SRC})
 set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
 
@@ -157,9 +160,9 @@ endif ()
 
 target_link_libraries( "${PROJECT_NAME}-bin" ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
-install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION "bin")
+install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 
 if (WITH_LIBRARY)
   add_library(${PROJECT_NAME} SHARED ${COMMON_SRC} ${LIBRARY_SRC})
-  install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION "lib")
+  install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} )
 endif ()
