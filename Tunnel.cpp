@@ -1,3 +1,4 @@
+#include <string.h>
 #include "I2PEndian.h"
 #include <thread>
 #include <algorithm>
@@ -41,6 +42,7 @@ namespace tunnel
 		std::random_shuffle (recordIndicies.begin(), recordIndicies.end());
 
 		// create real records
+		//TODO: this is likely to arise alignment issues but I need to see how I fix it
 		I2NPBuildRequestRecordElGamalEncrypted * records = (I2NPBuildRequestRecordElGamalEncrypted *)(msg->GetPayload () + 1); 
 		TunnelHopConfig * hop = m_Config->GetFirstHop ();
 		int i = 0;
@@ -126,9 +128,10 @@ namespace tunnel
 		hop = m_Config->GetFirstHop ();
 		while (hop)
 		{			
-			I2NPBuildResponseRecord * record = (I2NPBuildResponseRecord *)(msg + 1 + hop->recordIndex*sizeof (I2NPBuildResponseRecord));
-			LogPrint ("Ret code=", (int)record->ret);
-			if (record->ret) 
+			I2NPBuildResponseRecord record;
+			memcpy (&record, msg + 1 + hop->recordIndex*sizeof (I2NPBuildResponseRecord), sizeof (I2NPBuildResponseRecord));
+			LogPrint ("Ret code=", (int)record.ret);
+			if (record.ret) 
 				// if any of participants declined the tunnel is not established
 				established = false; 
 			hop = hop->next;

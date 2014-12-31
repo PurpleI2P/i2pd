@@ -168,7 +168,7 @@ namespace garlic
 		buf[blockSize] = 0; // flag
 		blockSize++;
 		size_t len = CreateGarlicPayload (buf + blockSize, msg, newTags);
-		*payloadSize = htobe32 (len);
+		htobe32buf (payloadSize, len);
 		CryptoPP::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
 		blockSize += len;
 		size_t rem = blockSize % 16;
