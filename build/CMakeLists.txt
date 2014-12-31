@@ -143,22 +143,23 @@ message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "---------------------------------------")
 
-add_executable ( ${PROJECT_NAME} ${COMMON_SRC} ${DAEMON_SRC})
+add_executable ( "${PROJECT_NAME}-bin" ${COMMON_SRC} ${DAEMON_SRC})
+set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
 
 if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-z relro -z now" )
+  set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-z relro -z now" )
 endif ()
 
 if (WITH_STATIC)
   set(BUILD_SHARED_LIBS OFF)
-  set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-static" )
+  set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
 endif ()
 
-target_link_libraries( ${PROJECT_NAME} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+target_link_libraries( "${PROJECT_NAME}-bin" ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
-install(TARGETS i2pd RUNTIME DESTINATION "bin")
+install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION "bin")
 
 if (WITH_LIBRARY)
-  add_library("lib${PROJECT_NAME}" SHARED ${COMMON_SRC} ${LIBRARY_SRC})
-  install(TARGETS "lib${PROJECT_NAME}" LIBRARY DESTINATION "lib")
+  add_library(${PROJECT_NAME} SHARED ${COMMON_SRC} ${LIBRARY_SRC})
+  install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION "lib")
 endif ()
