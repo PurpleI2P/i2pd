@@ -121,6 +121,7 @@ namespace transport
 
 	void SSUSession::ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
+		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		SSUHeader * header = (SSUHeader *)buf;
 		switch (header->GetPayloadType ())
 		{
@@ -228,6 +229,7 @@ namespace transport
 		size_t signatureLen = m_RemoteIdentity.GetSignatureLen ();
 		size_t paddingSize = signatureLen & 0x0F; // %16
 		if (paddingSize > 0) signatureLen += (16 - paddingSize);
+		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
 		m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload);
 		// verify
@@ -600,10 +602,11 @@ namespace transport
 			LogPrint (eLogError, "Unexpected SSU packet length ", len);
 			return;
 		}
+		//TODO: we are using a dirty solution here but should work for now
 		SSUHeader * header = (SSUHeader *)buf;
 		memcpy (header->iv, iv, 16);
 		header->flag = payloadType << 4; // MSB is 0
-		header->time = htobe32 (i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (&(header->time), i2p::util::GetSecondsSinceEpoch ());
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
 		i2p::crypto::CBCEncryption encryption;
@@ -623,11 +626,12 @@ namespace transport
 			LogPrint (eLogError, "Unexpected SSU packet length ", len);
 			return;
 		}
+		//TODO: we are using a dirty solution here but should work for now
 		SSUHeader * header = (SSUHeader *)buf;
 		i2p::context.GetRandomNumberGenerator ().GenerateBlock (header->iv, 16); // random iv
 		m_SessionKeyEncryption.SetIV (header->iv);
 		header->flag = payloadType << 4; // MSB is 0
-		header->time = htobe32 (i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (&(header->time), i2p::util::GetSecondsSinceEpoch ());
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
 		m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
@@ -644,6 +648,7 @@ namespace transport
 			LogPrint (eLogError, "Unexpected SSU packet length ", len);
 			return;
 		}
+		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
@@ -660,6 +665,7 @@ namespace transport
 			LogPrint (eLogError, "Unexpected SSU packet length ", len);
 			return;
 		}
+		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
@@ -677,6 +683,7 @@ namespace transport
 			LogPrint (eLogError, "Unexpected SSU packet length ", len);
 			return false;
 		}
+		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);

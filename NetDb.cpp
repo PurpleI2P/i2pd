@@ -1,3 +1,4 @@
+#include <string.h>
 #include "I2PEndian.h"
 #include <fstream>
 #include <vector>
@@ -424,14 +425,15 @@ namespace data
 	{	
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = be16toh (m->GetHeader ()->size);		
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;
+		I2NPDatabaseStoreMsg msg;
+		memcpy (&msg, buf, sizeof (I2NPDatabaseStoreMsg));
 		size_t offset = sizeof (I2NPDatabaseStoreMsg);
-		if (msg->replyToken)
+		if (msg.replyToken)
 			offset += 36;
-		if (msg->type)
+		if (msg.type)
 		{
 			LogPrint ("LeaseSet");
-			AddLeaseSet (msg->key, buf + offset, len - offset, m->from);
+			AddLeaseSet (msg.key, buf + offset, len - offset, m->from);
 		}	
 		else
 		{
@@ -449,7 +451,7 @@ namespace data
 			uint8_t uncompressed[2048];
 			size_t uncomressedSize = decompressor.MaxRetrievable ();
 			decompressor.Get (uncompressed, uncomressedSize);
-			AddRouterInfo (msg->key, uncompressed, uncomressedSize);
+			AddRouterInfo (msg.key, uncompressed, uncomressedSize);
 		}	
 		i2p::DeleteI2NPMessage (m);
 	}	

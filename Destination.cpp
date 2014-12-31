@@ -188,6 +188,7 @@ namespace client
 
 	void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)
 	{
+		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		I2NPHeader * header = (I2NPHeader *)buf;
 		switch (header->typeID)
 		{	
@@ -207,14 +208,15 @@ namespace client
 
 	void ClientDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
 	{
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)buf;
+		I2NPDatabaseStoreMsg msg;
+		memcpy(&msg,buf,sizeof (I2NPDatabaseStoreMsg));
 		size_t offset = sizeof (I2NPDatabaseStoreMsg);
-		if (msg->replyToken) // TODO:
+		if (msg.replyToken) // TODO:
 			offset += 36;
-		if (msg->type == 1) // LeaseSet
+		if (msg.type == 1) // LeaseSet
 		{
 			LogPrint (eLogDebug, "Remote LeaseSet");
-			auto it = m_RemoteLeaseSets.find (msg->key);
+			auto it = m_RemoteLeaseSets.find (msg.key);
 			if (it != m_RemoteLeaseSets.end ())
 			{
 				it->second->Update (buf + offset, len - offset); 
@@ -223,13 +225,13 @@ namespace client
 			else
 			{	
 				LogPrint (eLogDebug, "New remote LeaseSet added");
-				m_RemoteLeaseSets[msg->key] = new i2p::data::LeaseSet (buf + offset, len - offset);
+				m_RemoteLeaseSets[msg.key] = new i2p::data::LeaseSet (buf + offset, len - offset);
 			}	
 		}	
 		else
-			LogPrint (eLogError, "Unexpected client's DatabaseStore type ", msg->type, ". Dropped");
+			LogPrint (eLogError, "Unexpected client's DatabaseStore type ", msg.type, ". Dropped");
 		
-		auto it1 = m_LeaseSetRequests.find (msg->key);
+		auto it1 = m_LeaseSetRequests.find (msg.key);
 		if (it1 != m_LeaseSetRequests.end ())
 		{
 			it1->second->requestTimeoutTimer.cancel ();
@@ -286,7 +288,7 @@ namespace client
 	void ClientDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
 	{
 		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
-		uint32_t msgID = be32toh (deliveryStatus->msgID);
+		uint32_t msgID = bufbe32toh (&(deliveryStatus->msgID));
 		if (msgID == m_PublishReplyToken)
 		{
 			LogPrint (eLogDebug, "Publishing confirmed");

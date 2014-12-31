@@ -1,3 +1,4 @@
+#include <string.h>
 #include "I2PEndian.h"
 #include <cryptopp/dsa.h>
 #include "CryptoConst.h"
@@ -41,14 +42,15 @@ namespace data
 		// leases
 		for (auto it: tunnels)
 		{	
-			Lease * lease = (Lease *)(m_Buffer + m_BufferLen);
-			memcpy (lease->tunnelGateway, it->GetNextIdentHash (), 32);
-			lease->tunnelID = htobe32 (it->GetNextTunnelID ());
+			Lease lease;
+			memcpy (lease.tunnelGateway, it->GetNextIdentHash (), 32);
+			lease.tunnelID = htobe32 (it->GetNextTunnelID ());
 			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - 60; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
-			lease->endDate = htobe64 (ts);
+			lease.endDate = htobe64 (ts);
+			memcpy(m_Buffer + m_BufferLen, &lease, sizeof(Lease));
 			m_BufferLen += sizeof (Lease);
-		}	
+		}
 		// signature
 		localDestination->Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
 		m_BufferLen += localDestination->GetIdentity ().GetSignatureLen (); 
@@ -79,7 +81,8 @@ namespace data
 		const uint8_t * leases = m_Buffer + size;
 		for (int i = 0; i < num; i++)
 		{
-			Lease lease = *(Lease *)leases;
+			Lease lease;
+			memcpy (&lease, leases, sizeof(Lease));
 			lease.tunnelID = be32toh (lease.tunnelID);
 			lease.endDate = be64toh (lease.endDate);
 			m_Leases.push_back (lease);
