@@ -114,6 +114,7 @@ namespace tunnel
 		I2NPMessage (): buf (nullptr),len (sizeof (I2NPHeader) + 2), 
 			offset(2), maxLen (0), from (nullptr) {}; 
 		// reserve 2 bytes for NTCP header
+		//TODO: This is VERY likely to cause alignment problems and I'm not willing to fix it now
 		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); };
 		uint8_t * GetPayload () { return GetBuffer () + sizeof(I2NPHeader); };
 		uint8_t * GetBuffer () { return buf + offset; };
@@ -138,6 +139,7 @@ namespace tunnel
 		}	
 
 		// for SSU only
+		//TODO: This is VERY likely to cause alignment problems and I'm not willing to fix it now
 		uint8_t * GetSSUHeader () { return buf + offset + sizeof(I2NPHeader) - sizeof(I2NPHeaderShort); };	
 		void FromSSU (uint32_t msgID) // we have received SSU message and convert it to regular
 		{
