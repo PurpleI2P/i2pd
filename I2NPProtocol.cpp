@@ -464,26 +464,26 @@ namespace i2p
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len)
 	{
 		I2NPMessage * msg = NewI2NPMessage (len);
-		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
-		header->tunnelID = htobe32 (tunnelID);
-		header->length = htobe16 (len);
-		memcpy (msg->GetPayload () + sizeof (TunnelGatewayHeader), buf, len);
-		msg->len += sizeof (TunnelGatewayHeader) + len;
+		uint8_t * payload = msg->GetPayload ();
+		htobe32buf (payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnelID);
+		htobe16buf (payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
+		memcpy (payload + TUNNEL_GATEWAY_HEADER_SIZE, buf, len);
+		msg->len += TUNNEL_GATEWAY_HEADER_SIZE + len;
 		FillI2NPMessageHeader (msg, eI2NPTunnelGateway);
 		return msg;
 	}	
 
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg)
 	{
-		if (msg->offset >= sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader))
+		if (msg->offset >= I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE)
 		{
 			// message is capable to be used without copying
-			TunnelGatewayHeader * header = (TunnelGatewayHeader *)(msg->GetBuffer () - sizeof (TunnelGatewayHeader));
-			header->tunnelID = htobe32 (tunnelID);
+			uint8_t * payload = msg->GetBuffer () - TUNNEL_GATEWAY_HEADER_SIZE;
+			htobe32buf (payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnelID);
 			int len = msg->GetLength ();
-			header->length = htobe16 (len);
-			msg->offset -= (sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader));
-			msg->len = msg->offset + sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader) +len;
+			htobe16buf (payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
+			msg->offset -= (I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE);
+			msg->len = msg->offset + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE +len;
 			FillI2NPMessageHeader (msg, eI2NPTunnelGateway);
 			return msg;
 		}
@@ -499,7 +499,7 @@ namespace i2p
 		const uint8_t * buf, size_t len, uint32_t replyMsgID)
 	{
 		I2NPMessage * msg = NewI2NPMessage (len);
-		size_t gatewayMsgOffset = sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
+		size_t gatewayMsgOffset = I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
 		msg->offset += gatewayMsgOffset;
 		msg->len += gatewayMsgOffset;
 		memcpy (msg->GetPayload (), buf, len);
@@ -507,24 +507,25 @@ namespace i2p
 		FillI2NPMessageHeader (msg, msgType, replyMsgID); // create content message
 		len = msg->GetLength ();
 		msg->offset -= gatewayMsgOffset;
-		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
-		header->tunnelID = htobe32 (tunnelID);
-		header->length = htobe16 (len);
+		uint8_t * payload = msg->GetPayload ();
+		htobe32buf (payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnelID);
+		htobe16buf (payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
 		FillI2NPMessageHeader (msg, eI2NPTunnelGateway); // gateway message
 		return msg;
 	}	
 	
 	void HandleTunnelGatewayMsg (I2NPMessage * msg)
 	{		
-		TunnelGatewayHeader * header = (TunnelGatewayHeader *)msg->GetPayload ();
-		uint32_t tunnelID = be32toh(header->tunnelID);
-		uint16_t len = be16toh(header->length);
+		const uint8_t * payload = msg->GetPayload ();
+		uint32_t tunnelID = bufbe32toh(payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET);
+		uint16_t len = bufbe16toh(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
 		// we make payload as new I2NP message to send
-		msg->offset += sizeof (I2NPHeader) + sizeof (TunnelGatewayHeader);
+		msg->offset += I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
 		msg->len = msg->offset + len;
-		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)msg->GetHeader()->typeID);
-		if (msg->GetHeader()->typeID == eI2NPDatabaseStore ||
-		    msg->GetHeader()->typeID == eI2NPDatabaseSearchReply)
+		auto typeID = msg->GetTypeID ();
+		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)typeID);
+			
+		if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply)
 		{
 			// transit DatabaseStore my contain new/updated RI 
 			// or DatabaseSearchReply with new routers

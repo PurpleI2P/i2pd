@@ -105,8 +105,8 @@ namespace tunnel
 				{
 					// this is not last message. we have to copy it
 					m.data = NewI2NPMessage ();
-					m.data->offset += sizeof (TunnelGatewayHeader); // reserve room for TunnelGateway header
-					m.data->len += sizeof (TunnelGatewayHeader);
+					m.data->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
+					m.data->len += TUNNEL_GATEWAY_HEADER_SIZE;
 					*(m.data) = *msg;
 				}
 				else

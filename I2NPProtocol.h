@@ -18,7 +18,13 @@ namespace i2p
 	const size_t I2NP_HEADER_EXPIRATION_OFFSET = I2NP_HEADER_MSGID_OFFSET + 4;
 	const size_t I2NP_HEADER_SIZE_OFFSET = I2NP_HEADER_EXPIRATION_OFFSET + 8;
 	const size_t I2NP_HEADER_CHKS_OFFSET = I2NP_HEADER_SIZE_OFFSET + 2;
-
+	const size_t I2NP_HEADER_SIZE = I2NP_HEADER_CHKS_OFFSET + 1;
+	
+	// Tunnel Gateway header
+	const size_t TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET = 0;
+	const size_t TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET = TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET + 4;
+	const size_t TUNNEL_GATEWAY_HEADER_SIZE = TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET + 2;
+	
 #pragma pack (1)
 
 	struct I2NPHeader
@@ -77,13 +83,6 @@ namespace i2p
 		uint8_t toPeer[16];
 		uint8_t encrypted[512];
 	};
-
-	struct TunnelGatewayHeader
-	{
-		uint32_t tunnelID;
-		uint16_t length;
-	};		
-
 	
 #pragma pack ()	
 
