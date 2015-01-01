@@ -186,6 +186,7 @@ namespace client
 	{
 		delete m_OutboundTunnel;
 		delete m_InboundTunnel;
+		i2p::client::context.DeleteLocalDestination (&m_LocalDestination);
 	}	
 
 	void BOBDestination::Start ()
