@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <set>
+#include <cryptopp/sha.h>
 #include <string.h>
 #include "I2PEndian.h"
 #include "Identity.h"
@@ -10,7 +11,14 @@
 #include "LeaseSet.h"
 
 namespace i2p
-{
+{	
+	// I2NP header
+	const size_t I2NP_HEADER_TYPEID_OFFSET = 0;
+	const size_t I2NP_HEADER_MSGID_OFFSET = I2NP_HEADER_TYPEID_OFFSET + 1;
+	const size_t I2NP_HEADER_EXPIRATION_OFFSET = I2NP_HEADER_MSGID_OFFSET + 4;
+	const size_t I2NP_HEADER_SIZE_OFFSET = I2NP_HEADER_EXPIRATION_OFFSET + 8;
+	const size_t I2NP_HEADER_CHKS_OFFSET = I2NP_HEADER_SIZE_OFFSET + 2;
+
 #pragma pack (1)
 
 	struct I2NPHeader
@@ -114,11 +122,32 @@ namespace tunnel
 		I2NPMessage (): buf (nullptr),len (sizeof (I2NPHeader) + 2), 
 			offset(2), maxLen (0), from (nullptr) {}; 
 		// reserve 2 bytes for NTCP header
-		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); };
+		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); }; // depricated
+		// header accessors
+		uint8_t * GetHeaderBuffer () { return GetBuffer (); };
+		const uint8_t * GetHeaderBuffer () const { return GetBuffer (); };
+		void SetTypeID (uint8_t typeID) { GetHeaderBuffer ()[I2NP_HEADER_TYPEID_OFFSET] = typeID; };
+		uint8_t GetTypeID () const { return GetHeaderBuffer ()[I2NP_HEADER_TYPEID_OFFSET]; };
+		void SetMsgID (uint32_t msgID) { htobe32buf (GetHeaderBuffer () + I2NP_HEADER_MSGID_OFFSET, msgID); };
+		uint32_t GetMsgID () const { return bufbe32toh (GetHeaderBuffer () + I2NP_HEADER_MSGID_OFFSET); };
+		void SetExpiration (uint64_t expiration) { htobe64buf (GetHeaderBuffer () + I2NP_HEADER_EXPIRATION_OFFSET, expiration); };
+		uint64_t GetExpiration () const { return bufbe64toh (GetHeaderBuffer () + I2NP_HEADER_EXPIRATION_OFFSET); };
+		uint16_t GetSize () const { return bufbe16toh (GetHeaderBuffer () + I2NP_HEADER_SIZE_OFFSET); };
+		void UpdateSize () { htobe16buf (GetHeaderBuffer () + I2NP_HEADER_SIZE_OFFSET, GetPayloadLength ()); };	
+		void UpdateChks () 
+		{
+			uint8_t hash[32];
+			CryptoPP::SHA256().CalculateDigest(hash, GetPayload (), GetPayloadLength ());
+			GetHeaderBuffer ()[I2NP_HEADER_CHKS_OFFSET] = hash[0];
+		}	
+		
+		// payload
 		uint8_t * GetPayload () { return GetBuffer () + sizeof(I2NPHeader); };
 		uint8_t * GetBuffer () { return buf + offset; };
 		const uint8_t * GetBuffer () const { return buf + offset; };
-		size_t GetLength () const { return len - offset; };
+		size_t GetLength () const { return len - offset; };	
+		size_t GetPayloadLength () const { return GetLength () - sizeof(I2NPHeader); };	
+			
 		void Align (size_t alignment) 
 		{
 			size_t rem = ((size_t)GetBuffer ()) % alignment;

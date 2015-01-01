@@ -1,7 +1,6 @@
 #include <string.h>
 #include <atomic>
 #include "I2PEndian.h"
-#include <cryptopp/sha.h>
 #include <cryptopp/gzip.h>
 #include "ElGamal.h"
 #include "Timestamp.h"
@@ -40,31 +39,26 @@ namespace i2p
 	static std::atomic<uint32_t> I2NPmsgID(0); // TODO: create class
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID)
 	{
-		I2NPHeader * header = msg->GetHeader ();
-		header->typeID = msgType;
+		msg->SetTypeID (msgType);
 		if (replyMsgID) // for tunnel creation
-			header->msgID = htobe32 (replyMsgID); 
+			msg->SetMsgID (replyMsgID); 
 		else
 		{	
-			header->msgID = htobe32 (I2NPmsgID);
+			msg->SetMsgID (I2NPmsgID);
 			I2NPmsgID++;
 		}	
-		header->expiration = htobe64 (i2p::util::GetMillisecondsSinceEpoch () + 5000); // TODO: 5 secs is a magic number
-		int len = msg->GetLength () - sizeof (I2NPHeader);
-		header->size = htobe16 (len);
-		uint8_t hash[32];
-		CryptoPP::SHA256().CalculateDigest(hash, msg->GetPayload (), len);
-		header->chks = hash[0];
-	}	
-
+		msg->SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); // TODO: 5 secs is a magic number
+		msg->UpdateSize ();
+		msg->UpdateChks ();
+	}		
+	
 	void RenewI2NPMessageHeader (I2NPMessage * msg)
 	{
 		if (msg)
 		{
-			I2NPHeader * header = msg->GetHeader ();
-			header->msgID = htobe32 (I2NPmsgID);
+			msg->SetMsgID (I2NPmsgID);
 			I2NPmsgID++;
-			header->expiration = htobe64 (i2p::util::GetMillisecondsSinceEpoch () + 5000); 		
+			msg->SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); 		
 		}
 	}
 
@@ -589,7 +583,7 @@ namespace i2p
 	{
 		if (msg)
 		{	
-			switch (msg->GetHeader ()->typeID)
+			switch (msg->GetTypeID ())
 			{	
 				case eI2NPTunnelData:
 					LogPrint ("TunnelData");
