@@ -272,6 +272,7 @@ namespace stream
 			size += 4; // ack Through
 			packet[size] = 0; 
 			size++; // NACK count
+			packet[size] = RESEND_TIMEOUT;
 			size++; // resend delay
 			if (!m_IsOpen)
 			{	
@@ -349,11 +350,11 @@ namespace stream
 		size += 4; // sequenceNum
 		htobe32buf (packet + size, lastReceivedSeqn);
 		size += 4; // ack Through
+		uint8_t numNacks = 0;
 		if (lastReceivedSeqn > m_LastReceivedSequenceNumber) 
 		{	
 			// fill NACKs
 			uint8_t * nacks = packet + size + 1;
-			uint8_t numNacks = 0;
 			auto nextSeqn = m_LastReceivedSequenceNumber + 1;
 			for (auto it: m_SavedPackets)
 			{
@@ -384,7 +385,7 @@ namespace stream
 		p.len = size;		
 
 		SendPackets (std::vector<Packet *> { &p });
-		LogPrint ("Quick Ack sent");
+		LogPrint ("Quick Ack sent. ", (int)numNacks, " NACKs");
 	}	
 
 	void Stream::Close ()
