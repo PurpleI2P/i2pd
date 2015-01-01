@@ -874,10 +874,12 @@ namespace util
 			SendToDestination (leaseSet, port, buf, len);
 		else
 		{
+			memcpy (m_Buffer, buf, len);
+			m_BufferLen = len;
 			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (destination);
 			m_Timer.expires_from_now (boost::posix_time::seconds(HTTP_DESTINATION_REQUEST_TIMEOUT));
 			m_Timer.async_wait (boost::bind (&HTTPConnection::HandleDestinationRequestTimeout,
-				this, boost::asio::placeholders::error, destination, port, buf, len));
+				this, boost::asio::placeholders::error, destination, port, m_Buffer, m_BufferLen));
 		}
 	}
 	
