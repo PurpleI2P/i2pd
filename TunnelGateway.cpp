@@ -68,7 +68,8 @@ namespace tunnel
 			if (diLen + 6 <= m_RemainingSize)
 			{
 				// delivery instructions fit
-				uint32_t msgID = msg->GetHeader ()->msgID; // in network bytes order
+				uint32_t msgID;
+				memcpy (&msgID, msg->GetHeaderBuffer () + I2NP_HEADER_MSGID_OFFSET, 4); // in network bytes order
 				size_t size = m_RemainingSize - diLen - 6; // 6 = 4 (msgID) + 2 (size)
 
 				// first fragment
@@ -134,7 +135,7 @@ namespace tunnel
 		m_CurrentTunnelDataMsg = NewI2NPMessage ();
 		m_CurrentTunnelDataMsg->Align (12);
 		// we reserve space for padding
-		m_CurrentTunnelDataMsg->offset += TUNNEL_DATA_MSG_SIZE + sizeof (I2NPHeader);
+		m_CurrentTunnelDataMsg->offset += TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE;
 		m_CurrentTunnelDataMsg->len = m_CurrentTunnelDataMsg->offset;
 		m_RemainingSize = TUNNEL_DATA_MAX_PAYLOAD_SIZE;
 	}	
@@ -145,7 +146,7 @@ namespace tunnel
 		uint8_t * payload = m_CurrentTunnelDataMsg->GetBuffer ();
 		size_t size = m_CurrentTunnelDataMsg->len - m_CurrentTunnelDataMsg->offset;
 		
-		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - sizeof (I2NPHeader);
+		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
 		uint8_t * buf = m_CurrentTunnelDataMsg->GetPayload ();
 		htobe32buf (buf, m_TunnelID);
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();

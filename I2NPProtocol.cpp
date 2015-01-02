@@ -545,19 +545,18 @@ namespace i2p
 
 	size_t GetI2NPMessageLength (const uint8_t * msg)
 	{
-		I2NPHeader * header = (I2NPHeader *)msg;
-		return be16toh (header->size) + sizeof (I2NPHeader);
+		return bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;
 	}	
 	
 	void HandleI2NPMessage (uint8_t * msg, size_t len)
 	{
-		I2NPHeader * header = (I2NPHeader *)msg;
-		uint32_t msgID = be32toh (header->msgID);	
-		LogPrint ("I2NP msg received len=", len,", type=", (int)header->typeID, ", msgID=", (unsigned int)msgID);
+		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
+		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);	
+		LogPrint ("I2NP msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
 
-		uint8_t * buf = msg + sizeof (I2NPHeader);
-		int size = be16toh (header->size);
-		switch (header->typeID)
+		uint8_t * buf = msg + I2NP_HEADER_SIZE;
+		int size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
+		switch (typeID)
 		{	
 			case eI2NPVariableTunnelBuild:
 				LogPrint ("VariableTunnelBuild");
@@ -576,7 +575,7 @@ namespace i2p
 				// TODO:
 			break;	
 			default:
-				LogPrint ("Unexpected message ", (int)header->typeID);
+				LogPrint ("Unexpected message ", (int)typeID);
 		}	
 	}
 

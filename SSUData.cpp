@@ -168,7 +168,7 @@ namespace transport
 			{
 				// create new message
 				msg = NewI2NPMessage ();
-				msg->len -= sizeof (I2NPHeaderShort);
+				msg->len -= I2NP_SHORT_HEADER_SIZE;
 				incompleteMessage = new IncompleteMessage (msg);
 				m_IncomleteMessages[msgID] = incompleteMessage;
 			}	
@@ -246,13 +246,13 @@ namespace transport
 				else
 				{
 					// we expect DeliveryStatus
-					if (msg->GetHeader ()->typeID == eI2NPDeliveryStatus)
+					if (msg->GetTypeID () == eI2NPDeliveryStatus)
 					{
 						LogPrint ("SSU session established");
 						m_Session.Established ();
 					}	
 					else
-						LogPrint (eLogError, "SSU unexpected message ", (int)msg->GetHeader ()->typeID);
+						LogPrint (eLogError, "SSU unexpected message ", (int)msg->GetTypeID ());
 					DeleteI2NPMessage (msg);
 				}	
 			}	
@@ -316,7 +316,7 @@ namespace transport
 			payload++;
 			*payload = 1; // always 1 message fragment per message
 			payload++;
-			htobuf32(payload, msgID);
+			*(uint32_t *)payload = msgID;
 			payload += 4;
 			bool isLast = (len <= payloadSize);
 			size_t size = isLast ? len : payloadSize;
@@ -359,7 +359,7 @@ namespace transport
 		payload++;
 		*payload = 1; // number of ACKs
 		payload++;
-		htobe32buf (payload, msgID); // msgID	
+		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
 		payload += 4;
 		*payload = 0; // number of fragments
 
@@ -382,7 +382,7 @@ namespace transport
 		*payload = 1; // number of ACK bitfields
 		payload++;
 		// one ack
-		htobe32buf (payload, msgID); // msgID	
+		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
 		payload += 4;
 		div_t d = div (fragmentNum, 7);
 		memset (payload, 0x80, d.quot); // 0x80 means non-last

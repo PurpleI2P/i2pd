@@ -228,7 +228,7 @@ namespace tunnel
 	
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
-		LogPrint ("TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes. Msg type ", (int)msg.data->GetHeader()->typeID);
+		LogPrint ("TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes. Msg type ", (int)msg.data->GetTypeID ());
 		switch (msg.deliveryType)
 		{
 			case eDeliveryTypeLocal:
@@ -245,8 +245,8 @@ namespace tunnel
 					// to somebody else
 					if (!m_IsInbound) // outbound transit tunnel
 					{
-						if (msg.data->GetHeader()->typeID == eI2NPDatabaseStore ||
-						    msg.data->GetHeader()->typeID == eI2NPDatabaseSearchReply )
+						auto typeID = msg.data->GetTypeID ();
+						if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply )
 						{
 							// catch RI or reply with new list of routers
 							auto ds = NewI2NPMessage ();

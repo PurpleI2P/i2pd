@@ -19,6 +19,11 @@ namespace i2p
 	const size_t I2NP_HEADER_SIZE_OFFSET = I2NP_HEADER_EXPIRATION_OFFSET + 8;
 	const size_t I2NP_HEADER_CHKS_OFFSET = I2NP_HEADER_SIZE_OFFSET + 2;
 	const size_t I2NP_HEADER_SIZE = I2NP_HEADER_CHKS_OFFSET + 1;
+
+	// I2NP short header
+	const size_t I2NP_SHORT_HEADER_TYPEID_OFFSET = 0;
+	const size_t I2NP_SHORT_HEADER_EXPIRATION_OFFSET = I2NP_SHORT_HEADER_TYPEID_OFFSET + 1;
+	const size_t I2NP_SHORT_HEADER_SIZE = I2NP_SHORT_HEADER_EXPIRATION_OFFSET + 4;
 	
 	// Tunnel Gateway header
 	const size_t TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET = 0;
@@ -26,21 +31,6 @@ namespace i2p
 	const size_t TUNNEL_GATEWAY_HEADER_SIZE = TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET + 2;
 	
 #pragma pack (1)
-
-	struct I2NPHeader
-	{
-		uint8_t typeID;
-		uint32_t msgID;
-		uint64_t expiration;
-		uint16_t size;
-		uint8_t chks;
-	};	
-
-	struct I2NPHeaderShort
-	{
-		uint8_t typeID;
-		uint32_t shortExpiration;
-	};	
 
 	struct I2NPDatabaseStoreMsg
 	{
@@ -118,10 +108,10 @@ namespace tunnel
 		size_t len, offset, maxLen;
 		i2p::tunnel::InboundTunnel * from;
 		
-		I2NPMessage (): buf (nullptr),len (sizeof (I2NPHeader) + 2), 
+		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2), 
 			offset(2), maxLen (0), from (nullptr) {}; 
 		// reserve 2 bytes for NTCP header
-		I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); }; // depricated
+	//	I2NPHeader * GetHeader () { return (I2NPHeader *)GetBuffer (); }; // depricated
 		// header accessors
 		uint8_t * GetHeaderBuffer () { return GetBuffer (); };
 		const uint8_t * GetHeaderBuffer () const { return GetBuffer (); };
@@ -131,8 +121,10 @@ namespace tunnel
 		uint32_t GetMsgID () const { return bufbe32toh (GetHeaderBuffer () + I2NP_HEADER_MSGID_OFFSET); };
 		void SetExpiration (uint64_t expiration) { htobe64buf (GetHeaderBuffer () + I2NP_HEADER_EXPIRATION_OFFSET, expiration); };
 		uint64_t GetExpiration () const { return bufbe64toh (GetHeaderBuffer () + I2NP_HEADER_EXPIRATION_OFFSET); };
+		void SetSize (uint16_t size) { htobe16buf (GetHeaderBuffer () + I2NP_HEADER_SIZE_OFFSET, size); };
 		uint16_t GetSize () const { return bufbe16toh (GetHeaderBuffer () + I2NP_HEADER_SIZE_OFFSET); };
-		void UpdateSize () { htobe16buf (GetHeaderBuffer () + I2NP_HEADER_SIZE_OFFSET, GetPayloadLength ()); };	
+		void UpdateSize () { SetSize (GetPayloadLength ()); };	
+		void SetChks (uint8_t chks) { GetHeaderBuffer ()[I2NP_HEADER_CHKS_OFFSET] = chks; };
 		void UpdateChks () 
 		{
 			uint8_t hash[32];
@@ -141,11 +133,11 @@ namespace tunnel
 		}	
 		
 		// payload
-		uint8_t * GetPayload () { return GetBuffer () + sizeof(I2NPHeader); };
+		uint8_t * GetPayload () { return GetBuffer () + I2NP_HEADER_SIZE; };
 		uint8_t * GetBuffer () { return buf + offset; };
 		const uint8_t * GetBuffer () const { return buf + offset; };
 		size_t GetLength () const { return len - offset; };	
-		size_t GetPayloadLength () const { return GetLength () - sizeof(I2NPHeader); };	
+		size_t GetPayloadLength () const { return GetLength () - I2NP_HEADER_SIZE; };	
 			
 		void Align (size_t alignment) 
 		{
@@ -166,25 +158,25 @@ namespace tunnel
 		}	
 
 		// for SSU only
-		uint8_t * GetSSUHeader () { return buf + offset + sizeof(I2NPHeader) - sizeof(I2NPHeaderShort); };	
+		uint8_t * GetSSUHeader () { return buf + offset + I2NP_HEADER_SIZE - I2NP_SHORT_HEADER_SIZE; };	
 		void FromSSU (uint32_t msgID) // we have received SSU message and convert it to regular
 		{
-			I2NPHeaderShort ssu = *(I2NPHeaderShort *)GetSSUHeader ();
-			I2NPHeader * header = GetHeader ();
-			header->typeID = ssu.typeID;
-			header->msgID = htobe32 (msgID);
-			header->expiration = htobe64 (be32toh (ssu.shortExpiration)*1000LL);
-			header->size = htobe16 (len - offset - sizeof (I2NPHeader));
-			header->chks = 0;
+			const uint8_t * ssu = GetSSUHeader ();
+			GetHeaderBuffer ()[I2NP_HEADER_TYPEID_OFFSET] = ssu[I2NP_SHORT_HEADER_TYPEID_OFFSET]; // typeid
+			SetMsgID (msgID);
+			SetExpiration (bufbe32toh (ssu + I2NP_SHORT_HEADER_EXPIRATION_OFFSET)*1000LL);
+			SetSize (len - offset - I2NP_HEADER_SIZE);
+			SetChks (0);
 		}
 		uint32_t ToSSU () // return msgID
 		{
-			I2NPHeader header = *GetHeader ();
-			I2NPHeaderShort * ssu = (I2NPHeaderShort *)GetSSUHeader ();
-			ssu->typeID = header.typeID;
-			ssu->shortExpiration = htobe32 (be64toh (header.expiration)/1000LL); 
-			len = offset + sizeof (I2NPHeaderShort) + be16toh (header.size);
-			return be32toh (header.msgID);
+			uint8_t header[I2NP_HEADER_SIZE];
+			memcpy (header, GetHeaderBuffer (), I2NP_HEADER_SIZE);
+			uint8_t * ssu = GetSSUHeader ();
+			ssu[I2NP_SHORT_HEADER_TYPEID_OFFSET] = header[I2NP_HEADER_TYPEID_OFFSET]; // typeid
+			htobe32buf (ssu + I2NP_SHORT_HEADER_EXPIRATION_OFFSET, bufbe64toh (header + I2NP_HEADER_EXPIRATION_OFFSET)/1000LL);
+			len = offset + I2NP_SHORT_HEADER_SIZE + bufbe16toh (header + I2NP_HEADER_SIZE_OFFSET);
+			return bufbe32toh (header + I2NP_HEADER_MSGID_OFFSET);
 		}	
 	};	
 

@@ -122,7 +122,7 @@ namespace data
 				{	
 					while (msg)
 					{
-						switch (msg->GetHeader ()->typeID) 
+						switch (msg->GetTypeID ()) 
 						{
 							case eI2NPDatabaseStore:	
 								LogPrint ("DatabaseStore");
@@ -137,7 +137,7 @@ namespace data
 								HandleDatabaseLookupMsg (msg);
 							break;	
 							default: // WTF?
-								LogPrint ("NetDb: unexpected message type ", msg->GetHeader ()->typeID);
+								LogPrint ("NetDb: unexpected message type ", msg->GetTypeID ());
 								i2p::HandleI2NPMessage (msg);
 						}	
 						msg = m_Queue.Get ();
@@ -424,7 +424,7 @@ namespace data
 	void NetDb::HandleDatabaseStoreMsg (I2NPMessage * m)
 	{	
 		const uint8_t * buf = m->GetPayload ();
-		size_t len = be16toh (m->GetHeader ()->size);		
+		size_t len = m->GetSize ();		
 		I2NPDatabaseStoreMsg msg;
 		memcpy (&msg, buf, sizeof (I2NPDatabaseStoreMsg));
 		size_t offset = sizeof (I2NPDatabaseStoreMsg);

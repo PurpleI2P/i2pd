@@ -190,18 +190,17 @@ namespace client
 
 	void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)
 	{
-		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
-		I2NPHeader * header = (I2NPHeader *)buf;
-		switch (header->typeID)
+		uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
+		switch (typeID)
 		{	
 			case eI2NPData:
-				HandleDataMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
+				HandleDataMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;
 			case eI2NPDatabaseStore:
-				HandleDatabaseStoreMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
+				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;
 			case eI2NPDatabaseSearchReply:
-				HandleDatabaseSearchReplyMessage (buf + sizeof (I2NPHeader), be16toh (header->size));
+				HandleDatabaseSearchReplyMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;	
 			default:
 				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
