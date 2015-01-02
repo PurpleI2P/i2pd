@@ -162,10 +162,7 @@ namespace stream
 			optionData += m_RemoteIdentity.FromBuffer (optionData, packet->GetOptionSize ());
 			LogPrint (eLogInfo, "From identity ", m_RemoteIdentity.GetIdentHash ().ToBase64 ());		
 			if (!m_RemoteLeaseSet)
-			{	
 				LogPrint (eLogDebug, "Incoming stream from ", m_RemoteIdentity.GetIdentHash ().ToBase64 ());
-				m_LocalDestination.StreamAccepted (shared_from_this ());
-			}	
 		}	
 
 		if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED)
@@ -645,17 +642,6 @@ namespace stream
 			m_Streams.clear ();
 		}	
 	}	
-
-	void StreamingDestination::StreamAccepted (std::shared_ptr<Stream> stream)
-	{
-		if (m_Acceptor != nullptr)
-			m_Acceptor (stream);
-		else
-		{
-			LogPrint ("Acceptor for incoming stream is not set");
-			DeleteStream (stream);
-		}	
-	}	
 		
 	void StreamingDestination::HandleNextPacket (Packet * packet)
 	{
@@ -667,14 +653,38 @@ namespace stream
 				it->second->HandleNextPacket (packet);
 			else
 			{	
-				LogPrint ("Unknown stream ", sendStreamID);
+				LogPrint ("Unknown stream sendStreamID=", sendStreamID);
 				delete packet;
 			}
 		}	
-		else // new incoming stream
+		else 
 		{
-			auto incomingStream = CreateNewIncomingStream ();
-			incomingStream->HandleNextPacket (packet);
+			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
+			{	
+				auto incomingStream = CreateNewIncomingStream ();
+				incomingStream->HandleNextPacket (packet);
+				if (m_Acceptor != nullptr)
+					m_Acceptor (incomingStream);
+				else
+				{
+					LogPrint ("Acceptor for incoming stream is not set");
+					DeleteStream (incomingStream);
+				}	
+			}	
+			else // follow on packet without SYN
+			{
+				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
+				for (auto it: m_Streams)
+					if (it.second->GetSendStreamID () == receiveStreamID)
+					{
+						// found
+						it.second->HandleNextPacket (packet);
+						return;
+					}
+				// TODO: should queue it up
+				LogPrint ("Unknown stream receiveStreamID=", receiveStreamID);
+				delete packet;
+			}	
 		}	
 	}	
 

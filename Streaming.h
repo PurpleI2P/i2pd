@@ -170,7 +170,6 @@ namespace stream
 			void SetAcceptor (const Acceptor& acceptor) { m_Acceptor = acceptor; };
 			void ResetAcceptor () { m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
-			void StreamAccepted (std::shared_ptr<Stream> stream);
 			i2p::client::ClientDestination& GetOwner () { return m_Owner; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
