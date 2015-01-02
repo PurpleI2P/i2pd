@@ -288,8 +288,7 @@ namespace client
 		
 	void ClientDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
 	{
-		I2NPDeliveryStatusMsg * deliveryStatus = (I2NPDeliveryStatusMsg *)msg->GetPayload ();
-		uint32_t msgID = bufbe32toh (&(deliveryStatus->msgID));
+		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
 		if (msgID == m_PublishReplyToken)
 		{
 			LogPrint (eLogDebug, "Publishing confirmed");

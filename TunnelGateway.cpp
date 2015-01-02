@@ -69,7 +69,7 @@ namespace tunnel
 			{
 				// delivery instructions fit
 				uint32_t msgID;
-				memcpy (&msgID, msg->GetHeaderBuffer () + I2NP_HEADER_MSGID_OFFSET, 4); // in network bytes order
+				memcpy (&msgID, msg->GetHeader () + I2NP_HEADER_MSGID_OFFSET, 4); // in network bytes order
 				size_t size = m_RemainingSize - diLen - 6; // 6 = 4 (msgID) + 2 (size)
 
 				// first fragment

@@ -82,18 +82,21 @@ namespace i2p
 	
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
-		I2NPDeliveryStatusMsg msg;
+		I2NPMessage * m = NewI2NPMessage ();
+		uint8_t * buf = m->GetPayload ();
 		if (msgID)
 		{
-			msg.msgID = htobe32 (msgID);
-			msg.timestamp = htobe64 (i2p::util::GetMillisecondsSinceEpoch ());
+			htobe32buf (buf + DELIVERY_STATUS_MSGID_OFFSET, msgID);
+			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, i2p::util::GetMillisecondsSinceEpoch ());
 		}
 		else // for SSU establishment
 		{
-			msg.msgID = htobe32 (i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
-			msg.timestamp = htobe64 (2); // netID = 2
- 		}
-		return CreateI2NPMessage (eI2NPDeliveryStatus, (uint8_t *)&msg, sizeof (msg));
+			htobe32buf (buf + DELIVERY_STATUS_MSGID_OFFSET, i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
+			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, 2); // netID = 2
+		}	
+		m->len += DELIVERY_STATUS_SIZE;
+		FillI2NPMessageHeader (m, eI2NPDeliveryStatus);
+		return m;
 	}
 
 	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
