@@ -17,6 +17,7 @@ namespace client
 	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds	
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
+	const uint16_t I2P_TUNNEL_DEFAULT_KEY_TYPE = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
 
 	class I2PTunnel;
 	class I2PTunnelConnection: public std::enable_shared_from_this<I2PTunnelConnection>
@@ -58,8 +59,7 @@ namespace client
 	{
 		public:
 
-			I2PTunnel (ClientDestination * localDestination): 
-				m_LocalDestination (localDestination) {};
+			I2PTunnel (ClientDestination * localDestination  = nullptr);
 			virtual ~I2PTunnel () { ClearConnections (); }; 
 
 			void AddConnection (std::shared_ptr<I2PTunnelConnection> conn);
