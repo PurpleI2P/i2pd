@@ -17,7 +17,7 @@ namespace client
 	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds	
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
-	const uint16_t I2P_TUNNEL_DEFAULT_KEY_TYPE = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+	const i2p::data::SigningKeyType I2P_TUNNEL_DEFAULT_KEY_TYPE = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
 
 	class I2PTunnel;
 	class I2PTunnelConnection: public std::enable_shared_from_this<I2PTunnelConnection>
