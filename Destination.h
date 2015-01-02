@@ -49,6 +49,8 @@ namespace client
 			RequestComplete requestComplete;
 		};	
 		
+		typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
+		
 		public:
 
 			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
@@ -65,8 +67,8 @@ namespace client
 			
 			// streaming
 			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
-			std::shared_ptr<i2p::stream::Stream> CreateStream (const std::string& dest, int port = 0);
-			std::shared_ptr<i2p::stream::Stream> CreateStream (const i2p::data::IdentHash& dest, int port = 0);
+			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
+			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
 			std::shared_ptr<i2p::stream::Stream> CreateStream (const i2p::data::LeaseSet& remote, int port = 0);
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			void StopAcceptingStreams ();

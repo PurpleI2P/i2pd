@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <mutex>
+#include <cassert>
 #include <boost/lexical_cast.hpp>
 #include <cryptopp/dh.h>
 #include "Log.h"
@@ -384,47 +384,48 @@ namespace client
 		}
 	}	
 
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const std::string& dest, int port) {
+	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
+		assert(streamRequestComplete);
 		i2p::data::IdentHash identHash;
 		if (i2p::client::context.GetAddressBook ().GetIdentHash (dest, identHash))
-			return CreateStream (identHash, port);
+			CreateStream (streamRequestComplete, identHash, port);
 		else
 		{
 			LogPrint (eLogWarning, "Remote destination ", dest, " not found");
-			return nullptr;
+			streamRequestComplete (nullptr);
 		}
 	}
 
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::IdentHash& dest, int port) {
+	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port) {
+		assert(streamRequestComplete);
 		const i2p::data::LeaseSet * leaseSet = FindLeaseSet (dest);
-		if (!leaseSet)
-		{
-			bool found = false;
-			std::condition_variable newDataReceived;
-			std::mutex newDataReceivedMutex;
-			std::unique_lock<std::mutex> l(newDataReceivedMutex);
-			RequestDestination (dest,
-				[&newDataReceived, &found](bool success)
-				{
-					found = success;
-					newDataReceived.notify_all ();
-				});
-			if (newDataReceived.wait_for (l, std::chrono::seconds (STREAM_REQUEST_TIMEOUT)) == std::cv_status::timeout)
-				LogPrint (eLogError, "Subscription LeseseSet request timeout expired");
-			if (found)
-				leaseSet = FindLeaseSet (dest);
-		}
 		if (leaseSet)
-			return CreateStream (*leaseSet, port);
+			streamRequestComplete(CreateStream (*leaseSet, port));
 		else
-			return nullptr;
+		{
+			RequestDestination (dest,
+				[this, streamRequestComplete, dest, port](bool success)
+				{
+					if (!success)
+						streamRequestComplete (nullptr);
+					else
+					{
+						const i2p::data::LeaseSet * leaseSet = FindLeaseSet (dest);
+						if (leaseSet)
+							streamRequestComplete(CreateStream (*leaseSet, port));
+						else
+							streamRequestComplete (nullptr);
+					}
+				});
+		}
 	}
 
 	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::LeaseSet& remote, int port)
 	{
 		if (m_StreamingDestination)
 			return m_StreamingDestination->CreateNewOutgoingStream (remote, port);
-		return nullptr;	
+		else
+			return nullptr;
 	}
 
 	void ClientDestination::AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor)
