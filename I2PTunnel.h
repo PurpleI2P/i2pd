@@ -101,7 +101,6 @@ namespace client
 			boost::asio::deadline_timer m_Timer;
 			std::string m_Destination;
 			const i2p::data::IdentHash * m_DestinationIdentHash;
-			const i2p::data::LeaseSet * m_RemoteLeaseSet;
 	};	
 
 	class I2PServerTunnel: public I2PTunnel
