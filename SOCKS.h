@@ -1,6 +1,7 @@
 #ifndef SOCKS4A_H__
 #define SOCKS4A_H__
 
+#include <climits>
 #include <memory>
 #include <boost/asio.hpp>
 #include "Identity.h"
@@ -18,39 +19,58 @@ namespace proxy
 	class SOCKS4AHandler {
 
 		private:
-            enum state {
-                    INITIAL,
-                    OKAY,
-                    END
-            };
+			enum state {
+				GET_VERSION,
+				SOCKS4A,
+				READY
+			};
+			enum parseState {
+				GET4A_COMMAND,
+				GET4A_PORT1,
+				GET4A_PORT2,
+				GET4A_IP1,
+				GET4A_IP2,
+				GET4A_IP3,
+				GET4A_IP4,
+				GET4A_IDENT,
+				GET4A_HOST,
+				DONE
+			};
 
-            void GotClientRequest(boost::system::error_code & ecode, std::string & host, uint16_t port);
-            void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
-            void Terminate();
-            void CloseSock();
-            void CloseStream();
-            void AsyncSockRead();
-            void SocksFailed();
-            void SentSocksFailed(const boost::system::error_code & ecode);
-            void SentConnectionSuccess(const boost::system::error_code & ecode);
-            void ConnectionSuccess();
-            void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
+			void GotClientRequest(boost::system::error_code & ecode, std::string & host, uint16_t port);
+			std::size_t HandleData(uint8_t *sock_buff, std::size_t len);
+			std::size_t HandleVersion(uint8_t *sock_buff);
+			std::size_t HandleSOCKS4A(uint8_t *sock_buff, std::size_t len);
+			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
+			void Terminate();
+			void CloseSock();
+			void CloseStream();
+			void AsyncSockRead();
+			void SocksFailed();
+			void SentSocksFailed(const boost::system::error_code & ecode);
+			void SentConnectionSuccess(const boost::system::error_code & ecode);
+			void ConnectionSuccess();
+			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
+
+			uint8_t m_sock_buff[socks_buffer_size];
             
-            uint8_t m_sock_buff[socks_buffer_size];
-            
-	    SOCKS4AServer * m_parent;
-            boost::asio::ip::tcp::socket * m_sock;
-            std::shared_ptr<i2p::stream::Stream> m_stream;
-            state m_state;
+			SOCKS4AServer * m_parent;
+			boost::asio::ip::tcp::socket * m_sock;
+			std::shared_ptr<i2p::stream::Stream> m_stream;
+			state m_state;
+			parseState m_pstate;
+			uint8_t m_command;
+			uint16_t m_port;
+			uint32_t m_ip;
+			std::string m_destination;
 		
             
 		public:
 			SOCKS4AHandler(SOCKS4AServer * parent, boost::asio::ip::tcp::socket * sock) : 
-				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(INITIAL)
-				{ AsyncSockRead(); }
+				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(GET_VERSION)
+				{ AsyncSockRead(); m_destination.reserve(HOST_NAME_MAX+1); }
 
 			~SOCKS4AHandler() { CloseSock(); CloseStream(); }
-			bool isComplete() { return m_state == END; }
 	};
 
 	class SOCKS4AServer: public i2p::client::I2PTunnel
