@@ -40,15 +40,17 @@ namespace i2p
 	const size_t DATABASE_STORE_TYPE_OFFSET = DATABASE_STORE_KEY_OFFSET + 32;
 	const size_t DATABASE_STORE_REPLY_TOKEN_OFFSET = DATABASE_STORE_TYPE_OFFSET + 1;
 	const size_t DATABASE_STORE_HEADER_SIZE = DATABASE_STORE_REPLY_TOKEN_OFFSET + 4;
-	
-#pragma pack (1)
 
-	/*struct I2NPDatabaseStoreMsg
-	{
-		uint8_t key[32];
-		uint8_t type;
-		uint32_t replyToken;	
-	};*/
+	// TunnelBuild	
+	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
+	
+	// BuildResponseRecord
+	const size_t BUILD_RESPONSE_RECORD_HASH_OFFSET = 0;
+	const size_t BUILD_RESPONSE_RECORD_PADDING_OFFSET = 32;
+	const size_t BUILD_RESPONSE_RECORD_PADDING_SIZE = 495;
+	const size_t BUILD_RESPONSE_RECORD_RET_OFFSET = BUILD_RESPONSE_RECORD_PADDING_OFFSET + BUILD_RESPONSE_RECORD_PADDING_SIZE;
+		
+#pragma pack (1)
 	
 	struct I2NPBuildRequestRecordClearText
 	{
@@ -65,13 +67,6 @@ namespace i2p
 		uint32_t nextMessageID;	
 		uint8_t filler[29];
 	};
-
-	struct I2NPBuildResponseRecord
-	{
-		uint8_t hash[32];
-		uint8_t padding[495];
-		uint8_t ret;
-	};	
 	
 	struct I2NPBuildRequestRecordElGamalEncrypted
 	{

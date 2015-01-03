@@ -327,7 +327,7 @@ namespace i2p
 			
 				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
 				// replace record to reply
-				I2NPBuildResponseRecord * reply = (I2NPBuildResponseRecord *)(records + i);				
+				uint8_t * reply = (uint8_t *)(records + i);				
 				if (i2p::context.AcceptsTunnels ())
 				{	
 					i2p::tunnel::TransitTunnel * transitTunnel = 
@@ -337,13 +337,14 @@ namespace i2p
 							clearText.layerKey, clearText.ivKey, 
 							clearText.flag & 0x80, clearText.flag & 0x40);
 					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
-					reply->ret = 0;
+					reply[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
 				}
 				else
-					reply->ret = 30; // always reject with bandwidth reason (30)
+					reply[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30; // always reject with bandwidth reason (30)
 				
 				//TODO: fill filler
-				CryptoPP::SHA256().CalculateDigest(reply->hash, reply->padding, sizeof (reply->padding) + 1); // + 1 byte of ret
+				CryptoPP::SHA256().CalculateDigest(reply + BUILD_RESPONSE_RECORD_HASH_OFFSET, 
+					reply + BUILD_RESPONSE_RECORD_PADDING_OFFSET, BUILD_RESPONSE_RECORD_PADDING_SIZE + 1); // + 1 byte of ret
 				// encrypt reply
 				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)

@@ -113,9 +113,9 @@ namespace tunnel
 				auto idx = hop1->recordIndex;
 				if (idx >= 0 && idx < msg[0])
 				{	
-					uint8_t * record = msg + 1 + idx*sizeof (I2NPBuildResponseRecord);
+					uint8_t * record = msg + 1 + idx*TUNNEL_BUILD_RECORD_SIZE;
 					decryption.SetIV (hop->replyIV);
-					decryption.Decrypt(record, sizeof (I2NPBuildResponseRecord), record);
+					decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
 				}	
 				else
 					LogPrint ("Tunnel hop index ", idx, " is out of range");
@@ -128,10 +128,10 @@ namespace tunnel
 		hop = m_Config->GetFirstHop ();
 		while (hop)
 		{			
-			I2NPBuildResponseRecord record;
-			memcpy (&record, msg + 1 + hop->recordIndex*sizeof (I2NPBuildResponseRecord), sizeof (I2NPBuildResponseRecord));
-			LogPrint ("Ret code=", (int)record.ret);
-			if (record.ret) 
+			const uint8_t * record = msg + 1 + hop->recordIndex*TUNNEL_BUILD_RECORD_SIZE;
+			uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
+			LogPrint ("Ret code=", (int)ret);
+			if (ret) 
 				// if any of participants declined the tunnel is not established
 				established = false; 
 			hop = hop->next;
