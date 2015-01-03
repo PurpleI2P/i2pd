@@ -16,6 +16,13 @@ namespace client
 		m_Stream = m_Owner->GetLocalDestination ()->CreateStream (*leaseSet);
 	}	
 
+	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner,
+	    boost::asio::ip::tcp::socket * socket, std::shared_ptr<i2p::stream::Stream> stream):
+		m_Socket (socket), m_Stream (stream), m_Owner (owner),
+		m_RemoteEndpoint (socket->remote_endpoint ()), m_IsQuiet (true)
+	{
+	}
+
 	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, std::shared_ptr<i2p::stream::Stream> stream,  
 	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target, bool quiet):
 		m_Socket (socket), m_Stream (stream), m_Owner (owner), m_RemoteEndpoint (target), m_IsQuiet (quiet)
@@ -198,7 +205,7 @@ namespace client
 			if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 				m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
 			else
-				LogPrint ("Remote destination ", m_Destination, " not found");
+				LogPrint (eLogWarning,"Remote destination ", m_Destination, " not found");
 		}
 		return m_DestinationIdentHash;
 	}
@@ -217,55 +224,37 @@ namespace client
 		{
 			const i2p::data::IdentHash *identHash = GetIdentHash();
 			if (identHash)
-			{
-				// try to get a LeaseSet
-				m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*identHash);
-				if (m_RemoteLeaseSet && m_RemoteLeaseSet->HasNonExpiredLeases ())
-					CreateConnection (socket);
-				else
-				{
-					GetLocalDestination ()->RequestDestination (*identHash,
-						std::bind (&I2PClientTunnel::HandleLeaseSetRequestComplete,
-						this, std::placeholders::_1, socket));
-				}
-			}
+				GetLocalDestination ()->CreateStream (
+					std::bind (&I2PClientTunnel::HandleStreamRequestComplete,
+					this, std::placeholders::_1, socket), *identHash);
 			else
+			{
+				LogPrint (eLogError,"Closing socket");
 				delete socket;
+			}
 			Accept ();
 		}
 		else
-			delete socket;
-	}
-
-	void I2PClientTunnel::HandleLeaseSetRequestComplete (bool success, boost::asio::ip::tcp::socket * socket)
-	{
-		if (success)
 		{
-			const i2p::data::IdentHash *identHash = GetIdentHash();
-			if (identHash)
-			{
-				m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*identHash);
-				CreateConnection (socket);
-				return;
-			}
+			LogPrint (eLogError,"Closing socket on accept because: ", ecode.message ());
+			delete socket;
 		}
-		delete socket;	
 	}
 
-	void I2PClientTunnel::CreateConnection (boost::asio::ip::tcp::socket * socket)
+	void I2PClientTunnel::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream, boost::asio::ip::tcp::socket * socket)
 	{
-		if (m_RemoteLeaseSet) // leaseSet found
-		{	
-			LogPrint ("New I2PTunnel connection");
-			auto connection = std::make_shared<I2PTunnelConnection>(this, socket, m_RemoteLeaseSet);
+		if (stream)
+		{
+			LogPrint (eLogInfo,"New I2PTunnel connection");
+			auto connection = std::make_shared<I2PTunnelConnection>(this, socket, stream);
 			AddConnection (connection);
 			connection->I2PConnect ();
 		}
 		else
 		{
-			LogPrint ("LeaseSet for I2PTunnel destination not found");
+			LogPrint (eLogError,"Issue when creating the stream, check the previous warnings for more info.");
 			delete socket;
-		}	
+		}
 	}
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, ClientDestination * localDestination): 
