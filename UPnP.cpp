@@ -1,68 +1,226 @@
+#ifdef USE_UPNP
 #include <string>
-#include <boost/lexical_cast.hpp>
+#include <thread>
+
+#include <boost/thread/thread.hpp>
+#include <boost/asio.hpp>
 #include <boost/bind.hpp>
+
 #include "Log.h"
+#include "RouterContext.h"
 #include "UPnP.h"
+#include "NetDb.h"
+#include "util.h"
+
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/upnpcommands.h>
+#include <dlfcn.h>
+
+#ifndef UPNPDISCOVER_SUCCESS
+/* miniupnpc 1.5 */
+typedef UPNPDev* (*upnp_upnpDiscoverFunc) (int, const char *, const char *, int);
+typedef int (*upnp_UPNP_AddPortMappingFunc) (const char *, const char *, const char *, const char *, 
+                                             const char *, const char *, const char *, const char *);
+#else
+/* miniupnpc 1.6 */
+typedef UPNPDev* (*upnp_upnpDiscoverFunc) (int, const char *, const char *, int, int, int *);
+typedef int (*upnp_UPNP_AddPortMappingFunc) (const char *, const char *, const char *, const char *, 
+                                             const char *, const char *, const char *, const char *, const char *);
+#endif
+typedef int (*upnp_UPNP_GetValidIGDFunc) (struct UPNPDev *, struct UPNPUrls *, struct IGDdatas *, char *, int);
+typedef int (*upnp_UPNP_GetExternalIPAddressFunc) (const char *, const char *, char *);
+typedef int (*upnp_UPNP_DeletePortMappingFunc) (const char *, const char *, const char *, const char *, const char *);
+typedef void (*upnp_freeUPNPDevlistFunc) (struct UPNPDev *);
+typedef void (*upnp_FreeUPNPUrlsFunc) (struct UPNPUrls *);
 
 namespace i2p
 {
-	UPnP::UPnP (): m_Timer (m_Service),
-		m_Endpoint (boost::asio::ip::udp::v4 (), UPNP_REPLY_PORT),
-		m_MulticastEndpoint (boost::asio::ip::address::from_string (UPNP_GROUP), UPNP_PORT),		
-		m_Socket (m_Service, m_Endpoint.protocol ())
-	{
-		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
-		m_Socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-	}
-	
-	UPnP::~UPnP ()
-	{
-	}	
+namespace UPnP
+{
+    UPnP upnpc;
 
-	void UPnP::Run ()
-	{
-		DiscoverRouter ();
-		m_Service.run ();
-	}	
-		
-	void UPnP::DiscoverRouter ()
-	{
-		m_Timer.expires_from_now (boost::posix_time::seconds(5)); // 5 seconds
-		m_Timer.async_wait (boost::bind (&UPnP::HandleTimer, this, boost::asio::placeholders::error));
+    UPnP::UPnP () : m_Thread (nullptr) , m_IsModuleLoaded (false)
+    {
+    }
 
-		std::string address = UPNP_GROUP;
-		address += ":" + boost::lexical_cast<std::string>(UPNP_PORT);
-		std::string request = "M-SEARCH * HTTP/1.1\r\n"
-			"HOST: " + address + "\r\n"
-			"ST:" + UPNP_ROUTER + "\r\n"
-			"MAN:\"ssdp:discover\"\r\n"
-			"MX:3\r\n"
-			"\r\n\r\n";
-		m_Socket.send_to (boost::asio::buffer (request.c_str (), request.length ()), m_MulticastEndpoint);
-		Receive ();
-	}	
+    void UPnP::Stop ()
+    {
+        if (m_Thread)
+        {   
+            m_Thread->join (); 
+            delete m_Thread;
+            m_Thread = nullptr;
+        }
+    }
 
-	void UPnP::Receive ()
-	{
-		m_Socket.async_receive_from (boost::asio::buffer (m_ReceiveBuffer, UPNP_MAX_PACKET_LEN), m_SenderEndpoint,
-			boost::bind (&UPnP::HandleReceivedFrom, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred)); 
-	}
-		
-	void UPnP::HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred)
-	{		
-		LogPrint ("UPnP: ", bytes_transferred, " received from ", m_SenderEndpoint.address ());
-		std::string str (m_ReceiveBuffer, bytes_transferred);
-		LogPrint (str);
-		m_Timer.cancel ();
-	}
+    void UPnP::Start()
+    {
+        m_Thread = new std::thread (std::bind (&UPnP::Run, this));
+    }
+    
+    UPnP::~UPnP ()
+    {
+    } 
 
-	void UPnP::HandleTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{
-			LogPrint ("UPnP: timeout expired");
-			m_Service.stop ();
-		}	
-	}	
+    void UPnP::Run ()
+    {
+#ifdef MAC_OSX
+        m_Module = dlopen ("libminiupnpc.dylib", RTLD_LAZY);
+#elif WIN32
+        m_Module = dlopen ("libminiupnpc.dll", RTLD_LAZY);
+#else
+        m_Module = dlopen ("libminiupnpc.so", RTLD_LAZY);
+#endif
+        if (!m_Module)
+        {
+            LogPrint ("no UPnP module available (", dlerror (), ")");
+            return;
+        }
+        else
+        {
+            m_IsModuleLoaded = true;
+        }
+        for (auto& address : context.GetRouterInfo ().GetAddresses ())
+        {
+            if (!address.host.is_v6 ())
+            {
+                m_Port = std::to_string (util::config::GetArg ("-port", address.port));
+                Discover ();
+                if (address.transportStyle == data::RouterInfo::eTransportSSU )
+                {
+                    TryPortMapping (I2P_UPNP_UDP);
+                }
+                else if (address.transportStyle == data::RouterInfo::eTransportNTCP )
+                {
+                    TryPortMapping (I2P_UPNP_TCP);
+                }
+            }
+        }
+    } 
+        
+    void UPnP::Discover ()
+    {
+        const char *error;
+        upnp_upnpDiscoverFunc upnpDiscoverFunc = (upnp_upnpDiscoverFunc) dlsym (m_Module, "upnpDiscover");
+        // reinterpret_cast<upnp_upnpDiscoverFunc> (dlsym(...));
+        if ( (error = dlerror ()))
+        {
+            LogPrint ("Error loading UPNP library. This often happens if there is version mismatch!");
+            return;
+        }
+#ifndef UPNPDISCOVER_SUCCESS
+        /* miniupnpc 1.5 */
+        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0);
+#else
+        /* miniupnpc 1.6 */
+        int nerror = 0;
+        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
+#endif
+        int r;
+        upnp_UPNP_GetValidIGDFunc UPNP_GetValidIGDFunc = (upnp_UPNP_GetValidIGDFunc) dlsym (m_Module, "UPNP_GetValidIGD");
+        r = (*UPNP_GetValidIGDFunc) (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
+        if (r == 1)
+        {
+            upnp_UPNP_GetExternalIPAddressFunc UPNP_GetExternalIPAddressFunc = (upnp_UPNP_GetExternalIPAddressFunc) dlsym (m_Module, "UPNP_GetExternalIPAddress");
+            r = UPNP_GetExternalIPAddressFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
+            if(r != UPNPCOMMAND_SUCCESS)
+            {
+                LogPrint ("UPnP: UPNP_GetExternalIPAddress () returned ", r);
+                return;
+            }
+            else
+            {
+                if (m_externalIPAddress[0])
+                {
+                    LogPrint ("UPnP: ExternalIPAddress = ", m_externalIPAddress);
+                    i2p::context.UpdateAddress (boost::asio::ip::address::from_string (m_externalIPAddress));
+                    return;
+                }
+                else
+                {
+                    LogPrint ("UPnP: GetExternalIPAddress failed.");
+                    return;
+                }
+            }
+        }
+    }
+
+    void UPnP::TryPortMapping (int type)
+    {
+        std::string strType;
+        switch (type)
+        {
+            case I2P_UPNP_TCP:
+                strType = "TCP";
+                break;
+            case I2P_UPNP_UDP:
+            default:
+                strType = "UDP";
+        }
+        int r;
+        std::string strDesc = "I2Pd";
+        try {
+            for (;;) {
+                upnp_UPNP_AddPortMappingFunc UPNP_AddPortMappingFunc = (upnp_UPNP_AddPortMappingFunc) dlsym(m_Module, "UPNP_AddPortMapping");
+#ifndef UPNPDISCOVER_SUCCESS
+                /* miniupnpc 1.5 */
+                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_Port.c_str (), m_Port.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
+#else
+                /* miniupnpc 1.6 */
+                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_Port.c_str (), m_Port.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
+#endif
+                if (r!=UPNPCOMMAND_SUCCESS)
+                {
+                    LogPrint ("AddPortMapping (", m_Port.c_str () ,", ", m_Port.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);
+                    return;
+                }
+                else
+                {
+                    LogPrint ("UPnP Port Mapping successful. (", m_NetworkAddr ,":", m_Port.c_str(), " type ", strType.c_str () ," -> ", m_externalIPAddress ,":", m_Port.c_str() ,")");
+                    return;
+                }
+                sleep(20*60);
+            }
+        }
+        catch (boost::thread_interrupted)
+        {
+            CloseMapping(type);
+            Close();
+            throw;
+        }
+    }
+
+    void UPnP::CloseMapping (int type)
+    {
+        std::string strType;
+        switch (type)
+        {
+            case I2P_UPNP_TCP:
+                strType = "TCP";
+                break;
+            case I2P_UPNP_UDP:
+            default:
+                strType = "UDP";
+        }
+        int r = 0;
+        upnp_UPNP_DeletePortMappingFunc UPNP_DeletePortMappingFunc = (upnp_UPNP_DeletePortMappingFunc) dlsym (m_Module, "UPNP_DeletePortMapping");
+        r = UPNP_DeletePortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_Port.c_str (), strType.c_str (), 0);
+        LogPrint ("UPNP_DeletePortMapping() returned : ", r, "\n");
+    }
+
+    void UPnP::Close ()
+    {
+        upnp_freeUPNPDevlistFunc freeUPNPDevlistFunc = (upnp_freeUPNPDevlistFunc) dlsym (m_Module, "freeUPNPDevlist");
+        freeUPNPDevlistFunc (m_Devlist);
+        m_Devlist = 0;
+        upnp_FreeUPNPUrlsFunc FreeUPNPUrlsFunc = (upnp_FreeUPNPUrlsFunc) dlsym (m_Module, "FreeUPNPUrlsFunc");
+        FreeUPNPUrlsFunc (&m_upnpUrls);
+        dlclose (m_Module);
+    }
+
 }
+}
+
+
+#endif
+

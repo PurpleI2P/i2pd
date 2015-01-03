@@ -36,6 +36,12 @@ else
   LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
 endif
 
+# UPNP Support (miniupnpc 1.5 or 1.6)
+ifeq ($(USE_UPNP),1)
+  LDFLAGS += -ldl
+  CXXFLAGS += -DUSE_UPNP
+endif
+
 IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(GREP) -c "64")
 ifeq ($(USE_AESNI),yes)
 ifeq ($(IS_64),1)
