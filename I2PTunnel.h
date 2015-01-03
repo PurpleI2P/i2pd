@@ -88,6 +88,7 @@ namespace client
 
 		private:
 
+			const i2p::data::IdentHash * GetIdentHash ();
 			void Accept ();
 			void HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
 			void HandleLeaseSetRequestComplete (bool success, boost::asio::ip::tcp::socket * socket);

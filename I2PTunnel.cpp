@@ -174,11 +174,7 @@ namespace client
 	
 	void I2PClientTunnel::Start ()
 	{
-		i2p::data::IdentHash identHash;
-		if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
-			m_DestinationIdentHash = new i2p::data::IdentHash (identHash);	
-		if (!m_DestinationIdentHash)
-			LogPrint ("I2PTunnel unknown destination ", m_Destination);
+		GetIdentHash();
 		m_Acceptor.listen ();
 		Accept ();
 	}
@@ -193,6 +189,21 @@ namespace client
 		delete originalIdentHash;
 	}
 
+	/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
+	const i2p::data::IdentHash * I2PClientTunnel::GetIdentHash ()
+	{
+		if (!m_DestinationIdentHash)
+		{
+			i2p::data::IdentHash identHash;
+			if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
+				m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
+			else
+				LogPrint ("Remote destination ", m_Destination, " not found");
+		}
+		return m_DestinationIdentHash;
+	}
+
+	
 	void I2PClientTunnel::Accept ()
 	{
 		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
@@ -204,31 +215,22 @@ namespace client
 	{
 		if (!ecode)
 		{
-			if (!m_DestinationIdentHash)
-			{
-				i2p::data::IdentHash identHash;
-				if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
-					m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
-			}	
-			if (m_DestinationIdentHash)
+			const i2p::data::IdentHash *identHash = GetIdentHash();
+			if (identHash)
 			{
 				// try to get a LeaseSet
-				m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*m_DestinationIdentHash);
+				m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*identHash);
 				if (m_RemoteLeaseSet && m_RemoteLeaseSet->HasNonExpiredLeases ())
 					CreateConnection (socket);
 				else
 				{
-					GetLocalDestination ()->RequestDestination (*m_DestinationIdentHash,
+					GetLocalDestination ()->RequestDestination (*identHash,
 						std::bind (&I2PClientTunnel::HandleLeaseSetRequestComplete,
 						this, std::placeholders::_1, socket));
 				}
-			}	
+			}
 			else
-			{
-				LogPrint ("Remote destination ", m_Destination, " not found");
 				delete socket;
-			}	
-				
 			Accept ();
 		}
 		else
@@ -239,9 +241,10 @@ namespace client
 	{
 		if (success)
 		{
-			if (m_DestinationIdentHash)
+			const i2p::data::IdentHash *identHash = GetIdentHash();
+			if (identHash)
 			{
-				m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*m_DestinationIdentHash);
+				m_RemoteLeaseSet = GetLocalDestination ()->FindLeaseSet (*identHash);
 				CreateConnection (socket);
 				return;
 			}
