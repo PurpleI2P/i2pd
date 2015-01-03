@@ -3,10 +3,8 @@
 #include "NetDb.h"
 #include "Destination.h"
 #include "ClientContext.h"
+#include "I2PEndian.h"
 #include <cstring>
-#include <stdexcept>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/bind.hpp>
 
 namespace i2p
 {
@@ -14,55 +12,38 @@ namespace proxy
 {
 	const uint8_t socks_leaseset_timeout = 10;
 	const uint8_t socks_timeout = 60;
-		
+
 	void SOCKS4AHandler::AsyncSockRead()
 	{
 		LogPrint("--- socks4a async sock read");
 		if(m_sock) {
 			if (m_state == INITIAL) {
 				m_sock->async_receive(boost::asio::buffer(m_sock_buff, socks_buffer_size),
-						      boost::bind(&SOCKS4AHandler::HandleSockRecv, this,
-								  boost::asio::placeholders::error,
-								  boost::asio::placeholders::bytes_transferred));
-			} else { 
-				m_sock->async_receive(boost::asio::buffer(m_sock_buff, socks_buffer_size),
-						      boost::bind(&SOCKS4AHandler::HandleSockForward, this,
-								  boost::asio::placeholders::error,
-								  boost::asio::placeholders::bytes_transferred));
+						      std::bind(&SOCKS4AHandler::HandleSockRecv, this,
+								 std::placeholders::_1, std::placeholders::_2));
+			} else {
+				LogPrint("--- socks4a state?? ", m_state);
 			}
 		} else {
 			LogPrint("--- socks4a no socket for read");
 		}
 	}
-	
-	void SOCKS4AHandler::AsyncStreamRead()
-	{
-		
-		LogPrint("--- socks4a async stream read");
-		if (m_stream) {
-			m_stream->AsyncReceive(
-				boost::asio::buffer(m_stream_buff, socks_buffer_size),
-				boost::bind(&SOCKS4AHandler::HandleStreamRecv, this,
-					    boost::asio::placeholders::error, 
-					    boost::asio::placeholders::bytes_transferred), socks_timeout);
-		} else {
-			LogPrint("--- socks4a no stream for read");
-		}
+
+	void SOCKS4AHandler::Terminate() {
+		CloseStream();
+		CloseSock();
+		delete this; // HACK: ew
 	}
 
-        void SOCKS4AHandler::Terminate() {
-                CloseStream();
-                CloseSock();
-                delete this; // ew
-        }
-	
 	void SOCKS4AHandler::SocksFailed()
 	{
 		LogPrint("--- socks4a failed");
-		m_sock->send(boost::asio::buffer("\x00\x5b 12345"));
-		Terminate();
+		//TODO: send the right response
+		boost::asio::async_write(*m_sock, boost::asio::buffer("\x00\x5b 12345"),
+					 std::bind(&SOCKS4AHandler::SentSocksFailed, this,
+						     std::placeholders::_1));
 	}
-	
+
 	void SOCKS4AHandler::CloseSock()
 	{
 		if (m_sock) {
@@ -73,211 +54,172 @@ namespace proxy
 		}
 	}
 
-	void SOCKS4AHandler::CloseStream()
-	{
-		if (m_stream) {
-			LogPrint("--- socks4a close stream");
-			m_stream.reset ();
-		}
-	}
+       void SOCKS4AHandler::CloseStream()
+       {
+               if (m_stream) {
+                       LogPrint("--- socks4a close stream");
+                       m_stream.reset ();
+               }
+       }
 
 	const size_t socks_hostname_size = 1024;
 	const size_t socks_ident_size = 1024;
 	const size_t destb32_len = 52;
-	
-	void SOCKS4AHandler::HandleSockForward(const boost::system::error_code & ecode, std::size_t len)
-	{
-		if(ecode) {
-			LogPrint("--- socks4a forward got error: ", ecode);
-			Terminate();
-			return;
-		}
-		
-		LogPrint("--- socks4a sock forward: ", len);
-		m_stream->Send(m_sock_buff, len);
-	}
 
 	void SOCKS4AHandler::HandleSockRecv(const boost::system::error_code & ecode, std::size_t len)
 	{
 		LogPrint("--- socks4a sock recv: ", len);
-		
+		//TODO: we may not have received all the data :(
 		if(ecode) {
 			LogPrint(" --- sock recv got error: ", ecode);
                         Terminate();
 			return;
 		}
 
-		if (m_state == INITIAL) {
+		char hostbuff[socks_hostname_size];
+		char identbuff[socks_ident_size];
+		std::memset(hostbuff, 0, sizeof(hostbuff));
+		std::memset(identbuff, 0, sizeof(hostbuff));
+		std::string dest;
 
-			char hostbuff[socks_hostname_size];
-			char identbuff[socks_ident_size];
-			std::memset(hostbuff, 0, sizeof(hostbuff));
-			std::memset(identbuff, 0, sizeof(hostbuff));
-			std::string dest;
-			// get port
-			uint16_t port = 0;
-			uint16_t idx1 = 0;
-			uint16_t idx2 = 0;
-				
-			LogPrint("--- socks4a state initial ", len);
+		uint16_t port = 0;
+		uint32_t address = 0;
+		uint16_t idx1 = 0;
+		uint16_t idx2 = 0;
 
-			// check valid request
-			if( m_sock_buff[0] != 4 || m_sock_buff[1] != 1 || m_sock_buff[len-1] ) {
-				LogPrint("--- socks4a rejected invalid");
-				SocksFailed();
-				return;
-			}
+		LogPrint(eLogDebug,"--- socks4a state initial ", len);
 
-			// get port
-			port = m_sock_buff[3] | m_sock_buff[2] << 8;
-
-			// read ident 
-			do {
-				LogPrint("--- socks4a ", (int) m_sock_buff[9+idx1]);
-				identbuff[idx1] = m_sock_buff[8+idx1];
-			} while( identbuff[idx1++] && idx1 < socks_ident_size );
-
-			LogPrint("--- socks4a ident ", identbuff);
-			// read hostname
-			do {
-				hostbuff[idx2] = m_sock_buff[8+idx1+idx2];
-			} while( hostbuff[idx2++] && idx2 < socks_hostname_size );
-
-			LogPrint("--- socks4a requested ", hostbuff, ":" , port);
-
-			dest = std::string(hostbuff);
-			if(dest.find(".b32.i2p") == std::string::npos) {
-				LogPrint("--- socks4a invalid hostname: ", dest);
-				SocksFailed();
-				return;
-			}
-				
-			if ( i2p::data::Base32ToByteStream(hostbuff, destb32_len, (uint8_t *) m_dest, 32) != 32 ) {
-				LogPrint("--- sock4a invalid b32: ", dest);
-			}
-			
-			LogPrint("--- sock4a find lease set");
-			m_ls = i2p::data::netdb.FindLeaseSet(m_dest);
-			if (!m_ls || m_ls->HasNonExpiredLeases()) {
-				i2p::client::context.GetSharedLocalDestination ()->RequestDestination (m_dest);
-				m_ls_timer.expires_from_now(boost::posix_time::seconds(socks_leaseset_timeout));
-				m_ls_timer.async_wait(boost::bind(&SOCKS4AHandler::LeaseSetTimeout, this, boost::asio::placeholders::error));
-			} else {
-				ConnectionSuccess();
-			}
-		} else {
-			LogPrint("--- socks4a state?? ", m_state);
+		// check valid request
+		if( m_sock_buff[0] != 4 || m_sock_buff[1] != 1 || m_sock_buff[len-1] ) {
+			LogPrint(eLogError,"--- socks4a rejected invalid");
+			SocksFailed();
+			return;
 		}
-	}
-	
-	void SOCKS4AHandler::HandleStreamRecv(const boost::system::error_code & ecode, std::size_t len)
-	{
-		if(ecode) { LogPrint("--- socks4a stream recv error: ", ecode); m_state = END; }
-		switch(m_state) {
-		case INITIAL:
-		case END:
-			Terminate();
-                        return;
-		case OKAY:
-			LogPrint("--- socks4a stream recv ", len);
-			boost::asio::async_write(*m_sock, boost::asio::buffer(m_stream_buff, len), 
-						 boost::bind(&SOCKS4AHandler::StreamWrote, this, 
-							     boost::asio::placeholders::error));
-		}
-	}
-	
-	void SOCKS4AHandler::SockWrote(const boost::system::error_code & ecode)
-	{
-		LogPrint("--- socks4a sock wrote");
-		if(ecode) { LogPrint("--- socks4a SockWrote error: ",ecode); }
-		else { AsyncSockRead(); }
-	}
 
-	void SOCKS4AHandler::StreamWrote(const boost::system::error_code & ecode)
-	{
+		// get port
+		port = bufbe16toh(m_sock_buff + 2);
 		
-		LogPrint("--- socks4a stream wrote");
-		if(ecode) { LogPrint("--- socks4a StreamWrote error: ",ecode); }
-		else { AsyncStreamRead(); }
+		// get address
+		address = bufbe32toh(m_sock_buff + 4);
+
+		// check valid request
+		if( address == 0 || address > 255 ) {
+			LogPrint(eLogError,"--- socks4a rejected because it's actually socks4");
+			SocksFailed();
+			return;
+		}
+
+		// read ident 
+		do {
+			LogPrint(eLogDebug,"--- socks4a ", (int) m_sock_buff[9+idx1]);
+			identbuff[idx1] = m_sock_buff[8+idx1];
+		} while( identbuff[idx1++] && idx1 < socks_ident_size );
+
+		LogPrint(eLogInfo,"--- socks4a ident ", identbuff);
+		// read hostname
+		do {
+			hostbuff[idx2] = m_sock_buff[8+idx1+idx2];
+		} while( hostbuff[idx2++] && idx2 < socks_hostname_size );
+
+		LogPrint(eLogInfo,"--- socks4a requested ", hostbuff, ":" , port);
+
+		dest = std::string(hostbuff);
+		if(dest.find(".i2p") == std::string::npos) {
+			LogPrint("--- socks4a invalid hostname: ", dest);
+			SocksFailed();
+			return;
+		}
+		
+		m_parent->GetLocalDestination ()->CreateStream (
+				std::bind (&SOCKS4AHandler::HandleStreamRequestComplete,
+				this, std::placeholders::_1), dest);
+	}
+	
+	void SOCKS4AHandler::ConnectionSuccess()
+	{
+		LogPrint(eLogInfo,"--- socks4a connection success");
+		//TODO: send the right response
+		boost::asio::async_write(*m_sock, boost::asio::buffer("\x00\x5a 12345"),
+					 std::bind(&SOCKS4AHandler::SentConnectionSuccess, this,
+						     std::placeholders::_1));
 	}
 
-	void SOCKS4AHandler::LeaseSetTimeout(const boost::system::error_code & ecode)
+	void SOCKS4AHandler::SentSocksFailed(const boost::system::error_code & ecode)
 	{
-		m_ls = i2p::data::netdb.FindLeaseSet(m_dest);
-		if(m_ls) {
+		if (!ecode) {
+			Terminate();
+		}
+		else
+		{
+			LogPrint (eLogError,"--- socks4a Closing socket after sending failure because: ", ecode.message ());
+			Terminate();
+		}
+	}
+	
+	void SOCKS4AHandler::SentConnectionSuccess(const boost::system::error_code & ecode)
+	{
+		if (!ecode) {
+			LogPrint (eLogInfo,"--- socks4a New I2PTunnel connection");
+			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>((i2p::client::I2PTunnel *)m_parent, m_sock, m_stream);
+			m_parent->AddConnection (connection);
+			connection->I2PConnect ();
+		}
+		else
+		{
+			LogPrint (eLogError,"--- socks4a Closing socket after sending success because: ", ecode.message ());
+			Terminate();
+		}
+	}
+	
+	void SOCKS4AHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
+	{
+		if (stream)
+		{
+			m_stream = stream;
 			ConnectionSuccess();
-		} else {
-			LogPrint("--- socks4a ls timeout");
+		}
+		else
+		{
+			LogPrint (eLogError,"--- socks4a Issue when creating the stream, check the previous warnings for more info.");
 			SocksFailed();
 		}
 	}
 
-	void SOCKS4AHandler::ConnectionSuccess()
+
+	void SOCKS4AServer::Start ()
 	{
-		LogPrint("--- socks4a connection success");
-		boost::asio::async_write(*m_sock, boost::asio::buffer("\x00\x5a 12345"),
-					 boost::bind(&SOCKS4AHandler::SentConnectionSuccess, this,
-						     boost::asio::placeholders::error));
+		m_Acceptor.listen ();
+		Accept ();
 	}
 
-	void SOCKS4AHandler::SentConnectionSuccess(const boost::system::error_code & ecode)
+	void SOCKS4AServer::Stop ()
 	{
-		LogPrint("--- socks4a making connection");
-		m_stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream(*m_ls);
-		m_state = OKAY;
-		LogPrint("--- socks4a state is ", m_state);
-		AsyncSockRead();
-		AsyncStreamRead();
+		m_Acceptor.close();
+		m_Timer.cancel ();
+		ClearConnections ();
 	}
 
-	void SOCKS4AServer::Run()
+	void SOCKS4AServer::Accept ()
 	{
-		LogPrint("--- socks4a run");
-		m_run = true;
-		while(m_run) {
-			try {
-				m_ios.run();
-			} catch (std::runtime_error & exc) {
-				LogPrint("--- socks4a exception: ", exc.what());
-			}
-		}
-	}
-	
-	void SOCKS4AServer::Accept()
-	{
-		m_new_sock = new boost::asio::ip::tcp::socket(m_ios);
-		m_acceptor.async_accept(*m_new_sock, 
-					boost::bind(
-						&SOCKS4AServer::HandleAccept, this, boost::asio::placeholders::error));
-	}
+		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
+		m_Acceptor.async_accept (*newSocket, std::bind (&SOCKS4AServer::HandleAccept, this,
+			std::placeholders::_1, newSocket));
+	}	
 
-	void SOCKS4AServer::Start()
+	void SOCKS4AServer::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
 	{
-                m_run = true;
-		m_thread = new std::thread(std::bind(&SOCKS4AServer::Run, this));
-		m_acceptor.listen();
-		Accept();
-	}
-	
-	void SOCKS4AServer::Stop()
-	{
-		m_acceptor.close();
-		m_run = false;
-		m_ios.stop();
-		if (m_thread) {
-			m_thread->join();
-			delete m_thread;
-			m_thread = nullptr;
-		}
-	}
-		
-	void SOCKS4AServer::HandleAccept(const boost::system::error_code & ecode)
-	{
-		if (!ecode) {
-			LogPrint("--- socks4a accepted");
-			new SOCKS4AHandler(&m_ios, m_new_sock);
+		if (!ecode)
+		{
+			LogPrint(eLogDebug,"--- socks4a accepted");
+			new SOCKS4AHandler(this, socket);
 			Accept();
 		}
+		else
+		{
+			LogPrint (eLogError,"--- socks4a Closing socket on accept because: ", ecode.message ());
+			delete socket;
+		}
 	}
+
 }
 }

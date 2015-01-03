@@ -73,7 +73,7 @@ namespace client
 	void I2PTunnelConnection::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
-        {
+		{
 			LogPrint ("I2PTunnel read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -169,8 +169,7 @@ namespace client
 	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination): 
 		I2PTunnel (localDestination),
 		m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-		m_Timer (GetService ()), m_Destination (destination), m_DestinationIdentHash (nullptr), 
-		m_RemoteLeaseSet (nullptr)
+		m_Timer (GetService ()), m_Destination (destination), m_DestinationIdentHash (nullptr)
 	{
 	}	
 
