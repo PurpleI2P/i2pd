@@ -85,34 +85,40 @@ namespace client
 
 	void ClientDestination::Start ()
 	{	
-		m_Pool->SetLocalDestination (this);
-		m_Pool->SetActive (true);
-		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
-		m_StreamingDestination->Start ();	
+		if (!m_IsRunning)
+		{	
+			m_IsRunning = true;
+			m_Pool->SetLocalDestination (this);
+			m_Pool->SetActive (true);
+			m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
+			m_StreamingDestination->Start ();	
+		}	
 	}
 		
 	void ClientDestination::Stop ()
 	{	
-		m_StreamingDestination->Stop ();	
-		if (m_DatagramDestination)
-		{
-			auto d = m_DatagramDestination;
-			m_DatagramDestination = nullptr;
-			delete d;
-		}	
-		if (m_Pool)
+		if (m_IsRunning)
 		{	
-			m_Pool->SetLocalDestination (nullptr);
-			i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
-		}	
-		m_IsRunning = false;
-		m_Service.stop ();
-		if (m_Thread)
-		{	
-			m_Thread->join (); 
-			delete m_Thread;
-			m_Thread = 0;
+			m_IsRunning = false;
+			m_StreamingDestination->Stop ();	
+			if (m_DatagramDestination)
+			{
+				auto d = m_DatagramDestination;
+				m_DatagramDestination = nullptr;
+				delete d;
+			}	
+			if (m_Pool)
+			{	
+				m_Pool->SetLocalDestination (nullptr);
+				i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
+			}	
+			m_Service.stop ();
+			if (m_Thread)
+			{	
+				m_Thread->join (); 
+				delete m_Thread;
+				m_Thread = 0;
+			}	
 		}	
 	}	
 

@@ -112,7 +112,7 @@ namespace client
 			
 		private:
 
-			bool m_IsRunning;
+			volatile bool m_IsRunning;
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
