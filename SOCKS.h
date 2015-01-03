@@ -18,7 +18,8 @@
  *  - 256 on mingw.
  *
  * */
-#define HOST_NAME_MAX 256
+#include <sys/param.h>
+#define HOST_NAME_MAX MAXHOSTNAMELEN
 #endif
 
 namespace i2p
