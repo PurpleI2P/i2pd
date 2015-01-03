@@ -188,7 +188,9 @@ namespace client
 		m_Acceptor.close();
 		m_Timer.cancel ();
 		ClearConnections ();
+		auto *originalIdentHash = m_DestinationIdentHash;
 		m_DestinationIdentHash = nullptr;
+		delete originalIdentHash;
 	}
 
 	void I2PClientTunnel::Accept ()
