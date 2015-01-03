@@ -8,6 +8,19 @@
 #include "Streaming.h"
 #include "I2PTunnel.h"
 
+#ifdef MAC_OSX
+ /*
+ *  - MAXHOSTNAMELEN from <sys/param.h>
+ *    on MacOS X 10.3, FreeBSD 6.0, NetBSD 3.0, OpenBSD 3.8, AIX 5.1, HP-UX 11,
+ *    IRIX 6.5, OSF/1 5.1, Interix 3.5, Haiku,
+ *  - MAXHOSTNAMELEN from <netdb.h>
+ *    on Solaris 10, Cygwin, BeOS,
+ *  - 256 on mingw.
+ *
+ * */
+#define HOST_NAME_MAX 256
+#endif
+
 namespace i2p
 {
 namespace proxy
