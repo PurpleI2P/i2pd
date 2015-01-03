@@ -454,7 +454,11 @@ namespace client
 
 	bool ClientDestination::RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete)
 	{
-		if (!m_Pool || !IsReady ()) return false;
+		if (!m_Pool || !IsReady ()) 
+		{	
+			if (requestComplete) requestComplete (false);
+			return false;
+		}	
 		m_Service.post (std::bind (&ClientDestination::RequestLeaseSet, this, dest, requestComplete));
 		return true;
 	}
