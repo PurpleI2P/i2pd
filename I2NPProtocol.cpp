@@ -235,22 +235,22 @@ namespace i2p
 			router = &context.GetRouterInfo ();
 
 		I2NPMessage * m = NewI2NPShortMessage ();
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)m->GetPayload ();		
+		uint8_t * payload = m->GetPayload ();		
 
-		memcpy (msg->key, router->GetIdentHash (), 32);
-		msg->type = 0;
-		msg->replyToken = 0;
+		memcpy (payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash (), 32);
+		payload[DATABASE_STORE_TYPE_OFFSET] = 0;
+		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
 		
 		CryptoPP::Gzip compressor;
 		compressor.Put (router->GetBuffer (), router->GetBufferLen ());
 		compressor.MessageEnd();
 		auto size = compressor.MaxRetrievable ();
-		uint8_t * buf = m->GetPayload () + sizeof (I2NPDatabaseStoreMsg);
+		uint8_t * buf = payload + DATABASE_STORE_HEADER_SIZE;
 		htobe16buf (buf, size); // size
 		buf += 2;
 		// TODO: check if size doesn't exceed buffer
 		compressor.Get (buf, size); 
-		m->len += sizeof (I2NPDatabaseStoreMsg) + 2 + size; // payload size
+		m->len += DATABASE_STORE_HEADER_SIZE + 2 + size; // payload size
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
 		
 		return m;
@@ -261,11 +261,10 @@ namespace i2p
 		if (!leaseSet) return nullptr;
 		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * payload = m->GetPayload ();	
-		I2NPDatabaseStoreMsg * msg = (I2NPDatabaseStoreMsg *)payload;
-		memcpy (msg->key, leaseSet->GetIdentHash (), 32);
-		msg->type = 1; // LeaseSet
-		msg->replyToken = htobe32 (replyToken);
-		size_t size = sizeof (I2NPDatabaseStoreMsg);
+		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash (), 32);
+		payload[DATABASE_STORE_TYPE_OFFSET] = 1; // LeaseSet
+		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, replyToken);
+		size_t size = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
 		{
 			auto leases = leaseSet->GetNonExpiredLeases ();
@@ -277,7 +276,7 @@ namespace i2p
 				size += 32; // reply tunnel gateway
 			}
 			else
-				msg->replyToken = 0;
+				htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
 		}
 		memcpy (payload + size, leaseSet->GetBuffer (), leaseSet->GetBufferLen ());
 		size += leaseSet->GetBufferLen ();

@@ -34,15 +34,21 @@ namespace i2p
 	const size_t DELIVERY_STATUS_MSGID_OFFSET = 0;
 	const size_t DELIVERY_STATUS_TIMESTAMP_OFFSET = DELIVERY_STATUS_MSGID_OFFSET + 4;
 	const size_t DELIVERY_STATUS_SIZE = DELIVERY_STATUS_TIMESTAMP_OFFSET + 8;
-		
+
+	// DatabaseStore
+	const size_t DATABASE_STORE_KEY_OFFSET = 0;
+	const size_t DATABASE_STORE_TYPE_OFFSET = DATABASE_STORE_KEY_OFFSET + 32;
+	const size_t DATABASE_STORE_REPLY_TOKEN_OFFSET = DATABASE_STORE_TYPE_OFFSET + 1;
+	const size_t DATABASE_STORE_HEADER_SIZE = DATABASE_STORE_REPLY_TOKEN_OFFSET + 4;
+	
 #pragma pack (1)
 
-	struct I2NPDatabaseStoreMsg
+	/*struct I2NPDatabaseStoreMsg
 	{
 		uint8_t key[32];
 		uint8_t type;
 		uint32_t replyToken;	
-	};
+	};*/
 	
 	struct I2NPBuildRequestRecordClearText
 	{

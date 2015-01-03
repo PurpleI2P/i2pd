@@ -209,15 +209,14 @@ namespace client
 
 	void ClientDestination::HandleDatabaseStoreMessage (const uint8_t * buf, size_t len)
 	{
-		I2NPDatabaseStoreMsg msg;
-		memcpy(&msg,buf,sizeof (I2NPDatabaseStoreMsg));
-		size_t offset = sizeof (I2NPDatabaseStoreMsg);
-		if (msg.replyToken) // TODO:
+		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
+		size_t offset = DATABASE_STORE_HEADER_SIZE;
+		if (replyToken) // TODO:
 			offset += 36;
-		if (msg.type == 1) // LeaseSet
+		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
 		{
 			LogPrint (eLogDebug, "Remote LeaseSet");
-			auto it = m_RemoteLeaseSets.find (msg.key);
+			auto it = m_RemoteLeaseSets.find (buf + DATABASE_STORE_KEY_OFFSET);
 			if (it != m_RemoteLeaseSets.end ())
 			{
 				it->second->Update (buf + offset, len - offset); 
@@ -226,13 +225,13 @@ namespace client
 			else
 			{	
 				LogPrint (eLogDebug, "New remote LeaseSet added");
-				m_RemoteLeaseSets[msg.key] = new i2p::data::LeaseSet (buf + offset, len - offset);
+				m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = new i2p::data::LeaseSet (buf + offset, len - offset);
 			}	
 		}	
 		else
-			LogPrint (eLogError, "Unexpected client's DatabaseStore type ", msg.type, ". Dropped");
+			LogPrint (eLogError, "Unexpected client's DatabaseStore type ", buf[DATABASE_STORE_TYPE_OFFSET], ". Dropped");
 		
-		auto it1 = m_LeaseSetRequests.find (msg.key);
+		auto it1 = m_LeaseSetRequests.find (buf + DATABASE_STORE_KEY_OFFSET);
 		if (it1 != m_LeaseSetRequests.end ())
 		{
 			it1->second->requestTimeoutTimer.cancel ();

@@ -425,15 +425,14 @@ namespace data
 	{	
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = m->GetSize ();		
-		I2NPDatabaseStoreMsg msg;
-		memcpy (&msg, buf, sizeof (I2NPDatabaseStoreMsg));
-		size_t offset = sizeof (I2NPDatabaseStoreMsg);
-		if (msg.replyToken)
+		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
+		size_t offset = DATABASE_STORE_HEADER_SIZE;
+		if (replyToken)
 			offset += 36;
-		if (msg.type)
+		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
 			LogPrint ("LeaseSet");
-			AddLeaseSet (msg.key, buf + offset, len - offset, m->from);
+			AddLeaseSet (buf + DATABASE_STORE_KEY_OFFSET, buf + offset, len - offset, m->from);
 		}	
 		else
 		{
@@ -451,7 +450,7 @@ namespace data
 			uint8_t uncompressed[2048];
 			size_t uncomressedSize = decompressor.MaxRetrievable ();
 			decompressor.Get (uncompressed, uncomressedSize);
-			AddRouterInfo (msg.key, uncompressed, uncomressedSize);
+			AddRouterInfo (buf + DATABASE_STORE_KEY_OFFSET, uncompressed, uncomressedSize);
 		}	
 		i2p::DeleteI2NPMessage (m);
 	}	
