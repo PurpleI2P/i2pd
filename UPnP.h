@@ -1,41 +1,61 @@
-#ifndef UPNP_H__
-#define UPNP_H__
+#ifndef __UPNP_H__
+#define __UPNP_H__
+
+#ifdef USE_UPNP
+#include <string>
+#include <thread>
+
+#include <miniupnpc/miniwget.h>
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnperrors.h>
 
 #include <boost/asio.hpp>
 
+#include "util.h"
+
+#define I2P_UPNP_TCP 1
+#define I2P_UPNP_UDP 2
+
 namespace i2p
 {
-	const int UPNP_MAX_PACKET_LEN = 1500;
-	const char UPNP_GROUP[] = "239.255.255.250";
-	const int UPNP_PORT = 1900;
-	const int UPNP_REPLY_PORT = 1901;
-	const char UPNP_ROUTER[] = "urn:schemas-upnp-org:device:InternetGatewayDevice:1";	
-	
+namespace UPnP
+{
 	class UPnP
 	{
-		public:
+	public:
 
-			UPnP ();
-			~UPnP ();
+		UPnP ();
+		~UPnP ();
+        void Close ();
 
-			void Run ();
-			
+        void Start ();
+        void Stop ();
 
-		private:
+		void Discover ();
+		void TryPortMapping (int type);
+		void CloseMapping (int type);
+	private:
+		void Run ();
 
-			void DiscoverRouter ();
-			void Receive ();
-			void HandleReceivedFrom (const boost::system::error_code& ecode, size_t bytes_transferred);
-			void HandleTimer (const boost::system::error_code& ecode);
-			
-		private:
+        std::thread * m_Thread;
+        struct UPNPUrls m_upnpUrls;
+        struct IGDdatas m_upnpData;
 
-			boost::asio::io_service m_Service;
-			boost::asio::deadline_timer m_Timer;
-			boost::asio::ip::udp::endpoint m_Endpoint, m_MulticastEndpoint, m_SenderEndpoint;
-			boost::asio::ip::udp::socket m_Socket;
-			char m_ReceiveBuffer[UPNP_MAX_PACKET_LEN];
-	};	
+        // For miniupnpc
+        char * m_MulticastIf = 0;
+        char * m_Minissdpdpath = 0;
+        struct UPNPDev * m_Devlist = 0;
+        char m_NetworkAddr[64];
+        char m_externalIPAddress[40];
+        bool m_IsModuleLoaded;
+        std::string m_Port = std::to_string (util::config::GetArg ("-port", 17070));
+        void *m_Module;
+	};
+	extern UPnP upnpc;
 }
+}
+
+#endif
 
 #endif

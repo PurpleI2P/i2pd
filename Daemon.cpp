@@ -18,6 +18,11 @@
 #include "HTTPServer.h"
 #include "ClientContext.h"
 
+#ifdef USE_UPNP
+#include "UPnP.h"
+#endif
+
+
 namespace i2p
 {
 	namespace util
@@ -89,11 +94,11 @@ namespace i2p
 				if (isDaemon)
 				{
 					std::string logfile_path = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
-	#ifndef _WIN32
+#ifndef _WIN32
 					logfile_path.append("/i2pd.log");
-	#else
+#else
 					logfile_path.append("\\i2pd.log");
-	#endif
+#endif
 					StartLog (logfile_path);
 				}
 				else
@@ -111,7 +116,10 @@ namespace i2p
 			LogPrint("Tunnels started");
 			i2p::client::context.Start ();
 			LogPrint("Client started");
-			
+#ifdef USE_UPNP
+            i2p::UPnP::upnpc.Start();
+            LogPrint("UPnP module loaded");
+#endif
 			return true;
 		}
 
@@ -128,6 +136,9 @@ namespace i2p
 			LogPrint("NetDB stoped");
 			d.httpServer->Stop();
 			LogPrint("HTTP Server stoped");
+#ifdef USE_UPNP
+			i2p::UPnP::upnpc.Stop();
+#endif
 			StopLog ();
 
 			delete d.httpServer; d.httpServer = nullptr;

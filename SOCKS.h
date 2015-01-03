@@ -1,8 +1,8 @@
-#ifndef SOCKS4A_H__
-#define SOCKS4A_H__
+#ifndef SOCKS_H__
+#define SOCKS_H__
 
-#include <climits>
 #include <memory>
+#include <vector>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "Streaming.h"
@@ -14,14 +14,18 @@ namespace proxy
 {
 
 	const size_t socks_buffer_size = 8192;
+	const size_t max_socks_hostname_size = 255; // Limit for socks5 and bad idea to traverse
 
-	class SOCKS4AServer;
-	class SOCKS4AHandler {
+	class SOCKSServer;
+	class SOCKSHandler {
 
 		private:
 			enum state {
 				GET_VERSION,
 				SOCKS4A,
+				SOCKS5_S1, //Authentication negotiation
+				SOCKS5_S2, //Authentication
+				SOCKS5_S3, //Request
 				READY
 			};
 			enum parseState {
@@ -34,6 +38,36 @@ namespace proxy
 				GET4A_IP4,
 				GET4A_IDENT,
 				GET4A_HOST,
+				GET5_AUTHNUM,
+				GET5_AUTH,
+				GET5_REQUESTV,
+				GET5_COMMAND,
+				GET5_GETRSV,
+				GET5_GETADDRTYPE,
+				GET5_IPV4_1,
+				GET5_IPV4_2,
+				GET5_IPV4_3,
+				GET5_IPV4_4,
+				GET5_IPV6_1,
+				GET5_IPV6_2,
+				GET5_IPV6_3,
+				GET5_IPV6_4,
+				GET5_IPV6_5,
+				GET5_IPV6_6,
+				GET5_IPV6_7,
+				GET5_IPV6_8,
+				GET5_IPV6_9,
+				GET5_IPV6_10,
+				GET5_IPV6_11,
+				GET5_IPV6_12,
+				GET5_IPV6_13,
+				GET5_IPV6_14,
+				GET5_IPV6_15,
+				GET5_IPV6_16,
+				GET5_HOST_SIZE,
+				GET5_HOST,
+				GET5_PORT1,
+				GET5_PORT2,
 				DONE
 			};
 
@@ -41,20 +75,25 @@ namespace proxy
 			std::size_t HandleData(uint8_t *sock_buff, std::size_t len);
 			std::size_t HandleVersion(uint8_t *sock_buff);
 			std::size_t HandleSOCKS4A(uint8_t *sock_buff, std::size_t len);
+			std::size_t HandleSOCKS5Step1(uint8_t *sock_buff, std::size_t len);
+			std::size_t HandleSOCKS5Step3(uint8_t *sock_buff, std::size_t len);
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void CloseSock();
 			void CloseStream();
 			void AsyncSockRead();
-			void SocksFailed();
+			void Socks5AuthNegoFailed();
+			void Socks5ChooseAuth();
+			void SocksRequestFailed();
+			void SocksRequestSuccess();
 			void SentSocksFailed(const boost::system::error_code & ecode);
-			void SentConnectionSuccess(const boost::system::error_code & ecode);
-			void ConnectionSuccess();
+			//HACK: we need to pass the shared_ptr to ensure the buffer will live enough
+			void SentSocksResponse(const boost::system::error_code & ecode, std::shared_ptr<std::vector<uint8_t>> response);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 
 			uint8_t m_sock_buff[socks_buffer_size];
             
-			SOCKS4AServer * m_parent;
+			SOCKSServer * m_parent;
 			boost::asio::ip::tcp::socket * m_sock;
 			std::shared_ptr<i2p::stream::Stream> m_stream;
 			state m_state;
@@ -63,23 +102,31 @@ namespace proxy
 			uint16_t m_port;
 			uint32_t m_ip;
 			std::string m_destination;
-		
-            
-		public:
-			SOCKS4AHandler(SOCKS4AServer * parent, boost::asio::ip::tcp::socket * sock) : 
-				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(GET_VERSION)
-				{ AsyncSockRead(); m_destination.reserve(HOST_NAME_MAX+1); }
+			uint8_t m_authleft; //Authentication methods left
+			//TODO: this will probably be more elegant as enums
+			uint8_t m_authchosen; //Authentication chosen
+			uint8_t m_addrtype; //Address type chosen
+			uint8_t m_addrleft; //Address type chosen
+			uint8_t m_error; //Address type chosen
+			uint8_t m_socksv; //Address type chosen
+			bool m_need_more; //Address type chosen
 
-			~SOCKS4AHandler() { CloseSock(); CloseStream(); }
+		public:
+			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) : 
+				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(GET_VERSION),
+				m_authchosen(0xff), m_addrtype(0x01), m_error(0x01)
+				{ AsyncSockRead(); m_destination.reserve(max_socks_hostname_size+1); }
+
+			~SOCKSHandler() { CloseSock(); CloseStream(); }
 	};
 
-	class SOCKS4AServer: public i2p::client::I2PTunnel
+	class SOCKSServer: public i2p::client::I2PTunnel
 	{
 		public:
-			SOCKS4AServer(int port) : I2PTunnel(nullptr),
+			SOCKSServer(int port) : I2PTunnel(nullptr),
 				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 				m_Timer (GetService ()) {};
-			~SOCKS4AServer() { Stop(); }
+			~SOCKSServer() { Stop(); }
 
 			void Start ();
 			void Stop ();
@@ -95,7 +142,7 @@ namespace proxy
 			boost::asio::deadline_timer m_Timer;
 	};	
 
-	typedef SOCKS4AServer SOCKSProxy;
+	typedef SOCKSServer SOCKSProxy;
 }
 }
 
