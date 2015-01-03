@@ -1,26 +1,12 @@
-#ifndef SOCKS4A_H__
-#define SOCKS4A_H__
+#ifndef SOCKS_H__
+#define SOCKS_H__
 
-#include <climits>
 #include <memory>
+#include <vector>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "Streaming.h"
 #include "I2PTunnel.h"
-
-#ifdef MAC_OSX
- /*
- *  - MAXHOSTNAMELEN from <sys/param.h>
- *    on MacOS X 10.3, FreeBSD 6.0, NetBSD 3.0, OpenBSD 3.8, AIX 5.1, HP-UX 11,
- *    IRIX 6.5, OSF/1 5.1, Interix 3.5, Haiku,
- *  - MAXHOSTNAMELEN from <netdb.h>
- *    on Solaris 10, Cygwin, BeOS,
- *  - 256 on mingw.
- *
- * */
-#include <sys/param.h>
-#define HOST_NAME_MAX MAXHOSTNAMELEN
-#endif
 
 namespace i2p
 {
@@ -28,6 +14,7 @@ namespace proxy
 {
 
 	const size_t socks_buffer_size = 8192;
+	const size_t max_socks_hostname_size = 255; // Limit for socks5 and bad idea to traverse
 
 	class SOCKSServer;
 	class SOCKSHandler {
@@ -128,7 +115,7 @@ namespace proxy
 			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) : 
 				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(GET_VERSION),
 				m_authchosen(0xff), m_addrtype(0x01), m_error(0x01)
-				{ AsyncSockRead(); m_destination.reserve(HOST_NAME_MAX+1); }
+				{ AsyncSockRead(); m_destination.reserve(max_socks_hostname_size+1); }
 
 			~SOCKSHandler() { CloseSock(); CloseStream(); }
 	};

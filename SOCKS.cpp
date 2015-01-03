@@ -4,17 +4,12 @@
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PEndian.h"
-#include <cstring>
 #include <cassert>
-#include <vector>
 
 namespace i2p
 {
 namespace proxy
 {
-	const uint8_t socks_leaseset_timeout = 10;
-	const uint8_t socks_timeout = 60;
-
 	void SOCKSHandler::AsyncSockRead()
 	{
 		LogPrint(eLogDebug,"--- SOCKS async sock read");
@@ -129,10 +124,6 @@ namespace proxy
                }
        }
 
-	const size_t socks_hostname_size = 1024;
-	const size_t socks_ident_size = 1024;
-	const size_t destb32_len = 52;
-
 	std::size_t SOCKSHandler::HandleData(uint8_t *sock_buff, std::size_t len)
 	{
 		assert(len); // This should always be called with a least a byte left to parse
@@ -228,7 +219,7 @@ namespace proxy
 						m_need_more = false;
 						return rv;
 					}
-					if (m_destination.size() > HOST_NAME_MAX) {
+					if (m_destination.size() > max_socks_hostname_size) {
 						LogPrint(eLogError,"--- SOCKS4a destination is too large ");
 						SocksRequestFailed();
 						return 0;
