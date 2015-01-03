@@ -101,6 +101,7 @@ namespace proxy
 			{
 				case GET4A_COMMAND:
 					if ( *sock_buff != 1 ) {
+						//TODO: we need to support binds and other shit!
 						LogPrint(eLogError,"--- SOCKS4a unsupported command", ((int)*sock_buff));
 						SocksFailed();
 						return 0;
@@ -194,10 +195,9 @@ namespace proxy
 				return;
 			}
 
-			// TODO: Pass port see m_port
 			m_parent->GetLocalDestination ()->CreateStream (
 					std::bind (&SOCKS4AHandler::HandleStreamRequestComplete,
-					this, std::placeholders::_1), m_destination);
+					this, std::placeholders::_1), m_destination, m_port);
 		}
 	}
 
