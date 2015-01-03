@@ -44,6 +44,10 @@ namespace i2p
 	// TunnelBuild	
 	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
 	
+	// BuildRequestRecordEncrypted	
+	const size_t BUILD_REQUEST_RECORD_TO_PEER_OFFSET = 0;
+	const size_t BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET = BUILD_REQUEST_RECORD_TO_PEER_OFFSET + 16;
+	
 	// BuildResponseRecord
 	const size_t BUILD_RESPONSE_RECORD_HASH_OFFSET = 0;
 	const size_t BUILD_RESPONSE_RECORD_PADDING_OFFSET = 32;
@@ -66,12 +70,6 @@ namespace i2p
 		uint32_t requestTime;
 		uint32_t nextMessageID;	
 		uint8_t filler[29];
-	};
-	
-	struct I2NPBuildRequestRecordElGamalEncrypted
-	{
-		uint8_t toPeer[16];
-		uint8_t encrypted[512];
 	};
 	
 #pragma pack ()	
@@ -215,10 +213,9 @@ namespace tunnel
 	    const uint8_t * replyKey, const uint8_t * replyIV, uint32_t nextMessageID,
 	          bool isGateway, bool isEndpoint);
 	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, 
-		const I2NPBuildRequestRecordClearText& clearText,
-	    I2NPBuildRequestRecordElGamalEncrypted& record);
+		const I2NPBuildRequestRecordClearText& clearText, uint8_t * record);
 	
-	bool HandleBuildRequestRecords (int num, I2NPBuildRequestRecordElGamalEncrypted * records, I2NPBuildRequestRecordClearText& clearText);
+	bool HandleBuildRequestRecords (int num, uint8_t * records, I2NPBuildRequestRecordClearText& clearText);
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len);	

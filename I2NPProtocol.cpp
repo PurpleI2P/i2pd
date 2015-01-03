@@ -310,24 +310,23 @@ namespace i2p
 	}	
 
 	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, 
-		const I2NPBuildRequestRecordClearText& clearText,
-	    I2NPBuildRequestRecordElGamalEncrypted& record)
+		const I2NPBuildRequestRecordClearText& clearText, uint8_t * record)
 	{
-		router.GetElGamalEncryption ()->Encrypt ((uint8_t *)&clearText, sizeof(clearText), record.encrypted);
-		memcpy (record.toPeer, (const uint8_t *)router.GetIdentHash (), 16);
+		router.GetElGamalEncryption ()->Encrypt ((uint8_t *)&clearText, sizeof(clearText), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
+		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)router.GetIdentHash (), 16);
 	}	
 	
-	bool HandleBuildRequestRecords (int num, I2NPBuildRequestRecordElGamalEncrypted * records, I2NPBuildRequestRecordClearText& clearText)
+	bool HandleBuildRequestRecords (int num, uint8_t * records, I2NPBuildRequestRecordClearText& clearText)
 	{
 		for (int i = 0; i < num; i++)
 		{	
-			if (!memcmp (records[i].toPeer, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
+			uint8_t * record = records + i*TUNNEL_BUILD_RECORD_SIZE;
+			if (!memcmp (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
 			{	
 				LogPrint ("Record ",i," is ours");	
 			
-				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), records[i].encrypted, (uint8_t *)&clearText);
-				// replace record to reply
-				uint8_t * reply = (uint8_t *)(records + i);				
+				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, (uint8_t *)&clearText);
+				// replace record to reply			
 				if (i2p::context.AcceptsTunnels ())
 				{	
 					i2p::tunnel::TransitTunnel * transitTunnel = 
@@ -337,21 +336,22 @@ namespace i2p
 							clearText.layerKey, clearText.ivKey, 
 							clearText.flag & 0x80, clearText.flag & 0x40);
 					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
-					reply[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
+					record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
 				}
 				else
-					reply[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30; // always reject with bandwidth reason (30)
+					record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30; // always reject with bandwidth reason (30)
 				
 				//TODO: fill filler
-				CryptoPP::SHA256().CalculateDigest(reply + BUILD_RESPONSE_RECORD_HASH_OFFSET, 
-					reply + BUILD_RESPONSE_RECORD_PADDING_OFFSET, BUILD_RESPONSE_RECORD_PADDING_SIZE + 1); // + 1 byte of ret
+				CryptoPP::SHA256().CalculateDigest(record + BUILD_RESPONSE_RECORD_HASH_OFFSET, 
+					record + BUILD_RESPONSE_RECORD_PADDING_OFFSET, BUILD_RESPONSE_RECORD_PADDING_SIZE + 1); // + 1 byte of ret
 				// encrypt reply
 				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)
 				{
 					encryption.SetKey (clearText.replyKey);
 					encryption.SetIV (clearText.replyIV);
-					encryption.Encrypt((uint8_t *)(records + j), sizeof (records[j]), (uint8_t *)(records + j)); 
+					uint8_t * reply = records + j*TUNNEL_BUILD_RECORD_SIZE;
+					encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply); 
 				}
 				return true;
 			}	
@@ -383,9 +383,8 @@ namespace i2p
 		}
 		else
 		{
-			I2NPBuildRequestRecordElGamalEncrypted * records = (I2NPBuildRequestRecordElGamalEncrypted *)(buf+1); 
 			I2NPBuildRequestRecordClearText clearText;	
-			if (HandleBuildRequestRecords (num, records, clearText))
+			if (HandleBuildRequestRecords (num, buf + 1, clearText))
 			{
 				if (clearText.flag & 0x40) // we are endpoint of outboud tunnel
 				{
@@ -405,7 +404,7 @@ namespace i2p
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
 	{
 		I2NPBuildRequestRecordClearText clearText;	
-		if (HandleBuildRequestRecords (NUM_TUNNEL_BUILD_RECORDS, (I2NPBuildRequestRecordElGamalEncrypted *)buf, clearText))
+		if (HandleBuildRequestRecords (NUM_TUNNEL_BUILD_RECORDS, buf, clearText))
 		{
 			if (clearText.flag & 0x40) // we are endpoint of outbound tunnel
 			{

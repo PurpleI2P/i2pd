@@ -34,7 +34,7 @@ namespace tunnel
 		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops; 
 		I2NPMessage * msg = NewI2NPMessage ();
 		*msg->GetPayload () = numRecords;
-		msg->len += numRecords*sizeof (I2NPBuildRequestRecordElGamalEncrypted) + 1;		
+		msg->len += numRecords*TUNNEL_BUILD_RECORD_SIZE + 1;		
 
 		// shuffle records
 		std::vector<int> recordIndicies;
@@ -42,8 +42,7 @@ namespace tunnel
 		std::random_shuffle (recordIndicies.begin(), recordIndicies.end());
 
 		// create real records
-		//TODO: this is likely to arise alignment issues but I need to see how I fix it
-		I2NPBuildRequestRecordElGamalEncrypted * records = (I2NPBuildRequestRecordElGamalEncrypted *)(msg->GetPayload () + 1); 
+		uint8_t * records = msg->GetPayload () + 1; 
 		TunnelHopConfig * hop = m_Config->GetFirstHop ();
 		int i = 0;
 		while (hop)
@@ -58,7 +57,7 @@ namespace tunnel
 					hop->replyKey, hop->replyIV,
 					hop->next ? rnd.GenerateWord32 () : replyMsgID, // we set replyMsgID for last hop only
 				    hop->isGateway, hop->isEndpoint), 
-		    	records[idx]);
+		    	records + idx*TUNNEL_BUILD_RECORD_SIZE);
 			hop->recordIndex = idx; 
 			i++;
 			hop = hop->next;
@@ -67,7 +66,7 @@ namespace tunnel
 		for (int i = numHops; i < numRecords; i++)
 		{
 			int idx = recordIndicies[i];
-			rnd.GenerateBlock ((uint8_t *)(records + idx), sizeof (records[idx])); 
+			rnd.GenerateBlock (records + idx*TUNNEL_BUILD_RECORD_SIZE, TUNNEL_BUILD_RECORD_SIZE); 
 		}	
 
 		// decrypt real records
@@ -81,9 +80,8 @@ namespace tunnel
 			while (hop1)
 			{	
 				decryption.SetIV (hop->replyIV);
-				decryption.Decrypt((uint8_t *)&records[hop1->recordIndex], 
-					sizeof (I2NPBuildRequestRecordElGamalEncrypted), 
-				    (uint8_t *)&records[hop1->recordIndex]);
+				uint8_t * record = records + hop1->recordIndex*TUNNEL_BUILD_RECORD_SIZE;
+				decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
 				hop1 = hop1->next;
 			}	
 			hop = hop->prev;
