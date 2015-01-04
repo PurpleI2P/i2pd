@@ -21,53 +21,26 @@ namespace proxy
 
 		private:
 			enum state {
-				GET_VERSION,
-				SOCKS4A,
-				SOCKS5_S1, //Authentication negotiation
-				SOCKS5_S2, //Authentication
-				SOCKS5_S3, //Request
-				READY
+				GET_VERSION, // Get SOCKS version
+				SOCKS5_AUTHNEGO, //Authentication negotiation
+				SOCKS5_AUTH, //Authentication
+				SOCKS_REQUEST, //Request
+				READY // Ready to connect
 			};
 			enum parseState {
-				GET4A_COMMAND,
-				GET4A_PORT1,
-				GET4A_PORT2,
-				GET4A_IP1,
-				GET4A_IP2,
-				GET4A_IP3,
-				GET4A_IP4,
-				GET4A_IDENT,
+				GET_COMMAND,
+				GET_PORT,
+				GET_IPV4,
+				GET4_IDENT,
 				GET4A_HOST,
 				GET5_AUTHNUM,
 				GET5_AUTH,
 				GET5_REQUESTV,
-				GET5_COMMAND,
 				GET5_GETRSV,
 				GET5_GETADDRTYPE,
-				GET5_IPV4_1,
-				GET5_IPV4_2,
-				GET5_IPV4_3,
-				GET5_IPV4_4,
-				GET5_IPV6_1,
-				GET5_IPV6_2,
-				GET5_IPV6_3,
-				GET5_IPV6_4,
-				GET5_IPV6_5,
-				GET5_IPV6_6,
-				GET5_IPV6_7,
-				GET5_IPV6_8,
-				GET5_IPV6_9,
-				GET5_IPV6_10,
-				GET5_IPV6_11,
-				GET5_IPV6_12,
-				GET5_IPV6_13,
-				GET5_IPV6_14,
-				GET5_IPV6_15,
-				GET5_IPV6_16,
+				GET5_IPV6,
 				GET5_HOST_SIZE,
 				GET5_HOST,
-				GET5_PORT1,
-				GET5_PORT2,
 				DONE
 			};
 			enum authMethods {
@@ -110,9 +83,9 @@ namespace proxy
 			void GotClientRequest(boost::system::error_code & ecode, std::string & host, uint16_t port);
 			std::size_t HandleData(uint8_t *sock_buff, std::size_t len);
 			std::size_t HandleVersion(uint8_t *sock_buff);
-			std::size_t HandleSOCKS4A(uint8_t *sock_buff, std::size_t len);
-			std::size_t HandleSOCKS5Step1(uint8_t *sock_buff, std::size_t len);
-			std::size_t HandleSOCKS5Step3(uint8_t *sock_buff, std::size_t len);
+			std::size_t HandleSOCKS5AuthNego(uint8_t *sock_buff, std::size_t len);
+			std::size_t HandleSOCKSRequest(uint8_t *sock_buff, std::size_t len);
+			bool ValidateSOCKSRequest();
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void CloseSock();
@@ -136,6 +109,7 @@ namespace proxy
 			uint8_t m_command;
 			uint16_t m_port;
 			uint32_t m_ip;
+			uint8_t m_ipv6[16];
 			std::string m_destination;
 			uint8_t m_authleft; //Authentication methods left
 			//TODO: this will probably be more elegant as enums
@@ -144,6 +118,7 @@ namespace proxy
 			uint8_t m_addrleft; //Octets of DNS address left
 			errTypes m_error; //Error cause
 			socksVersions m_socksv; //Socks version
+			cmdTypes m_cmd; // Command requested
 			bool m_need_more; //The parser still needs to receive more data
 
 		public:
