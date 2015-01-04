@@ -99,9 +99,8 @@ namespace i2p
 		return m;
 	}
 
-	I2NPMessage * CreateDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
-		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers,
-	    bool encryption, i2p::tunnel::TunnelPool * pool)
+	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
+		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
 		I2NPMessage * m = NewI2NPMessage ();
 		uint8_t * buf = m->GetPayload ();
@@ -109,60 +108,37 @@ namespace i2p
 		buf += 32;
 		memcpy (buf, from, 32); // from
 		buf += 32;
+		uint8_t flag = exploratory ? 0x0C : 0x08; // 1000 - RI, 1100 -exporatory	
 		if (replyTunnelID)
 		{
-			*buf = encryption ? 0x03: 0x01; // set delivery flag
+			*buf = flag | 0x01; // set delivery flag
 			htobe32buf (buf+1, replyTunnelID);
 			buf += 5;
 		}
 		else
 		{	
-			encryption = false; // encryption can we set for tunnels only
-			*buf = 0; // flag
+			*buf = flag; // flag
 			buf++;
 		}	
-		
-		if (exploratory)
+				
+		if (excludedPeers)
 		{
-			htobe16buf (buf,1); // one exlude record
+			int cnt = excludedPeers->size ();
+			htobe16buf (buf, cnt);
 			buf += 2;
-			// reply with non-floodfill routers only
-			memset (buf, 0, 32);
-			buf += 32;
+			for (auto& it: *excludedPeers)
+			{
+				memcpy (buf, it, 32);
+				buf += 32;
+			}	
 		}
 		else
-		{
-			if (excludedPeers)
-			{
-				int cnt = excludedPeers->size ();
-				htobe16buf (buf, cnt);
-				buf += 2;
-				for (auto& it: *excludedPeers)
-				{
-					memcpy (buf, it, 32);
-					buf += 32;
-				}	
-			}
-			else
-			{	
-				// nothing to exclude
-				htobuf16 (buf, 0);
-				buf += 2;
-			}	
-		}	
-		if (encryption)
-		{
-			// session key and tag for reply
-			auto& rnd = i2p::context.GetRandomNumberGenerator ();
-			rnd.GenerateBlock (buf, 32); // key
-			buf[32] = 1; // 1 tag
-			rnd.GenerateBlock (buf + 33, 32); // tag
-			if (pool && pool->GetLocalDestination ())
-				pool->GetLocalDestination ()->SubmitSessionKey (buf, buf + 33); // introduce new key-tag to garlic engine
-			else
-				LogPrint ("Destination for encrypteed reply not specified");
-			buf += 65;
-		}	
+		{	
+			// nothing to exclude
+			htobuf16 (buf, 0);
+			buf += 2;
+		}		
+		
 		m->len += (buf - m->GetPayload ()); 
 		FillI2NPMessageHeader (m, eI2NPDatabaseLookup);
 		return m; 

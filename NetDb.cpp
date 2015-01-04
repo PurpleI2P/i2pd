@@ -25,7 +25,7 @@ namespace data
 	I2NPMessage * RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		const i2p::tunnel::InboundTunnel * replyTunnel)
 	{
-		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
+		I2NPMessage * msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 
 		    &m_ExcludedPeers);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
@@ -36,7 +36,7 @@ namespace data
 
 	I2NPMessage * RequestedDestination::CreateRequestMessage (const IdentHash& floodfill)
 	{
-		I2NPMessage * msg = i2p::CreateDatabaseLookupMsg (m_Destination, 
+		I2NPMessage * msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
 		m_LastRouter = nullptr;
