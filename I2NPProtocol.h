@@ -68,26 +68,6 @@ namespace i2p
 	const size_t BUILD_RESPONSE_RECORD_PADDING_OFFSET = 32;
 	const size_t BUILD_RESPONSE_RECORD_PADDING_SIZE = 495;
 	const size_t BUILD_RESPONSE_RECORD_RET_OFFSET = BUILD_RESPONSE_RECORD_PADDING_OFFSET + BUILD_RESPONSE_RECORD_PADDING_SIZE;
-		
-#pragma pack (1)
-	
-	struct I2NPBuildRequestRecordClearText
-	{
-		uint32_t receiveTunnel;
-		uint8_t ourIdent[32];
-		uint32_t nextTunnel;
-		uint8_t nextIdent[32];
-		uint8_t layerKey[32];
-		uint8_t ivKey[32];
-		uint8_t replyKey[32];
-		uint8_t replyIV[16];
-		uint8_t flag;
-		uint32_t requestTime;
-		uint32_t nextMessageID;	
-		uint8_t filler[29];
-	};
-	
-#pragma pack ()	
 
 	enum I2NPMessageType
 	{
@@ -220,18 +200,8 @@ namespace tunnel
 	
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr);
 	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet, uint32_t replyToken = 0);		
-
-	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
-		const uint8_t * ourIdent, uint32_t receiveTunnelID, 
-	    const uint8_t * nextIdent, uint32_t nextTunnelID, 
-	    const uint8_t * layerKey,const uint8_t * ivKey,                                                                 
-	    const uint8_t * replyKey, const uint8_t * replyIV, uint32_t nextMessageID,
-	          bool isGateway, bool isEndpoint);
-	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, 
-		const I2NPBuildRequestRecordClearText& clearText, uint8_t * record);
-	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, const uint8_t * clearText, uint8_t * record);
-	
-	bool HandleBuildRequestRecords (int num, uint8_t * records, I2NPBuildRequestRecordClearText& clearText);
+		
+	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len);	

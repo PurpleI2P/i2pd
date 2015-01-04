@@ -48,9 +48,8 @@ namespace tunnel
 		while (hop)
 		{
 			int idx = recordIndicies[i];
-			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
-			hop->CreateBuildRequestRecord (clearText, hop->next ? rnd.GenerateWord32 () : replyMsgID); // we set replyMsgID for last hop only 
-			EncryptBuildRequestRecord (*hop->router, clearText, records + idx*TUNNEL_BUILD_RECORD_SIZE);
+			hop->CreateBuildRequestRecord (records + idx*TUNNEL_BUILD_RECORD_SIZE, 
+				hop->next ? rnd.GenerateWord32 () : replyMsgID); // we set replyMsgID for last hop only 
 			hop->recordIndex = idx; 
 			i++;
 			hop = hop->next;

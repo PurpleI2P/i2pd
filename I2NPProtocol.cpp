@@ -284,45 +284,8 @@ namespace i2p
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
 		return m;
 	}
-
-	I2NPBuildRequestRecordClearText CreateBuildRequestRecord (
-		const uint8_t * ourIdent, uint32_t receiveTunnelID, 
-	    const uint8_t * nextIdent, uint32_t nextTunnelID, 
-	    const uint8_t * layerKey,const uint8_t * ivKey,                                                                 
-	    const uint8_t * replyKey, const uint8_t * replyIV, uint32_t nextMessageID,
-	          bool isGateway, bool isEndpoint)
-	{
-		I2NPBuildRequestRecordClearText clearText;	
-		clearText.receiveTunnel = htobe32 (receiveTunnelID); 		
-		clearText.nextTunnel = htobe32(nextTunnelID);
-		memcpy (clearText.layerKey, layerKey, 32);
-		memcpy (clearText.ivKey, ivKey, 32);
-		memcpy (clearText.replyKey, replyKey, 32);
-		memcpy (clearText.replyIV, replyIV, 16);
-		clearText.flag = 0;
-		if (isGateway) clearText.flag |= 0x80;
-		if (isEndpoint) clearText.flag |= 0x40;
-		memcpy (clearText.ourIdent, ourIdent, 32);
-		memcpy (clearText.nextIdent, nextIdent, 32);
-		clearText.requestTime = htobe32 (i2p::util::GetHoursSinceEpoch ()); 
-		clearText.nextMessageID = htobe32(nextMessageID);
-		return clearText;
-	}	
-
-	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, 
-		const I2NPBuildRequestRecordClearText& clearText, uint8_t * record)
-	{
-		router.GetElGamalEncryption ()->Encrypt ((uint8_t *)&clearText, sizeof(clearText), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
-		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)router.GetIdentHash (), 16);
-	}
-
-	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, const uint8_t * clearText, uint8_t * record)
-	{
-		router.GetElGamalEncryption ()->Encrypt (clearText, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
-		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)router.GetIdentHash (), 16);
-	}
 	
-	bool HandleBuildRequestRecords (int num, uint8_t * records, I2NPBuildRequestRecordClearText& clearText)
+	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
 	{
 		for (int i = 0; i < num; i++)
 		{	
@@ -331,16 +294,19 @@ namespace i2p
 			{	
 				LogPrint ("Record ",i," is ours");	
 			
-				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, (uint8_t *)&clearText);
+				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText);
 				// replace record to reply			
 				if (i2p::context.AcceptsTunnels ())
 				{	
 					i2p::tunnel::TransitTunnel * transitTunnel = 
 						i2p::tunnel::CreateTransitTunnel (
-							be32toh (clearText.receiveTunnel), 
-							clearText.nextIdent, be32toh (clearText.nextTunnel),
-							clearText.layerKey, clearText.ivKey, 
-							clearText.flag & 0x80, clearText.flag & 0x40);
+							bufbe32toh (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET), 
+							clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 
+						    bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+							clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET, 
+						    clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET, 
+							clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80, 
+						    clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET ] & 0x40);
 					i2p::tunnel::tunnels.AddTransitTunnel (transitTunnel);
 					record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
 				}
@@ -354,8 +320,8 @@ namespace i2p
 				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)
 				{
-					encryption.SetKey (clearText.replyKey);
-					encryption.SetIV (clearText.replyIV);
+					encryption.SetKey (clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
+					encryption.SetIV (clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
 					uint8_t * reply = records + j*TUNNEL_BUILD_RECORD_SIZE;
 					encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply); 
 				}
@@ -389,40 +355,42 @@ namespace i2p
 		}
 		else
 		{
-			I2NPBuildRequestRecordClearText clearText;	
+			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];	
 			if (HandleBuildRequestRecords (num, buf + 1, clearText))
 			{
-				if (clearText.flag & 0x40) // we are endpoint of outboud tunnel
+				if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel
 				{
 					// so we send it to reply tunnel 
-					transports.SendMessage (clearText.nextIdent, 
-						CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
+					transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 
+						CreateTunnelGatewayMsg (bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
 							eI2NPVariableTunnelBuildReply, buf, len, 
-						    be32toh (clearText.nextMessageID)));                         
+						    bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));                         
 				}	
 				else	
-					transports.SendMessage (clearText.nextIdent, 
-						CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
+					transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 
+						CreateI2NPMessage (eI2NPVariableTunnelBuild, buf, len, 
+							bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 			}	
 		}	
 	}
 
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len)
 	{
-		I2NPBuildRequestRecordClearText clearText;	
+		uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];	
 		if (HandleBuildRequestRecords (NUM_TUNNEL_BUILD_RECORDS, buf, clearText))
 		{
-			if (clearText.flag & 0x40) // we are endpoint of outbound tunnel
+			if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outbound tunnel
 			{
 				// so we send it to reply tunnel 
-				transports.SendMessage (clearText.nextIdent, 
-					CreateTunnelGatewayMsg (be32toh (clearText.nextTunnel),
+				transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 
+					CreateTunnelGatewayMsg (bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
 						eI2NPTunnelBuildReply, buf, len, 
-					    be32toh (clearText.nextMessageID)));                         
+					    bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));                         
 			}	
 			else	
-				transports.SendMessage (clearText.nextIdent, 
-					CreateI2NPMessage (eI2NPTunnelBuild, buf, len, be32toh (clearText.nextMessageID)));
+				transports.SendMessage (clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 
+					CreateI2NPMessage (eI2NPTunnelBuild, buf, len, 
+						bufbe32toh (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET)));
 		} 
 	}
 
