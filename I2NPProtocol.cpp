@@ -314,7 +314,13 @@ namespace i2p
 	{
 		router.GetElGamalEncryption ()->Encrypt ((uint8_t *)&clearText, sizeof(clearText), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)router.GetIdentHash (), 16);
-	}	
+	}
+
+	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, const uint8_t * clearText, uint8_t * record)
+	{
+		router.GetElGamalEncryption ()->Encrypt (clearText, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
+		memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)router.GetIdentHash (), 16);
+	}
 	
 	bool HandleBuildRequestRecords (int num, uint8_t * records, I2NPBuildRequestRecordClearText& clearText)
 	{

@@ -43,6 +43,21 @@ namespace i2p
 
 	// TunnelBuild	
 	const size_t TUNNEL_BUILD_RECORD_SIZE = 528;
+
+	//BuildRequestRecordClearText
+	const size_t BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET = 0;
+	const size_t BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET = BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET + 4;
+	const size_t BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET = BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET + 32;
+	const size_t BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET = BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET + 4;
+	const size_t BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET = BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET + 32;
+	const size_t BUILD_REQUEST_RECORD_IV_KEY_OFFSET = BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET + 32;
+	const size_t BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET = BUILD_REQUEST_RECORD_IV_KEY_OFFSET + 32;
+	const size_t BUILD_REQUEST_RECORD_REPLY_IV_OFFSET = BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET + 32;
+	const size_t BUILD_REQUEST_RECORD_FLAG_OFFSET = BUILD_REQUEST_RECORD_REPLY_IV_OFFSET + 16;
+	const size_t BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET = BUILD_REQUEST_RECORD_FLAG_OFFSET + 1;
+	const size_t BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET = BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET + 4;
+	const size_t BUILD_REQUEST_RECORD_PADDING_OFFSET = BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET + 4;
+	const size_t BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE = 222;
 	
 	// BuildRequestRecordEncrypted	
 	const size_t BUILD_REQUEST_RECORD_TO_PEER_OFFSET = 0;
@@ -214,6 +229,7 @@ namespace tunnel
 	          bool isGateway, bool isEndpoint);
 	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, 
 		const I2NPBuildRequestRecordClearText& clearText, uint8_t * record);
+	void EncryptBuildRequestRecord (const i2p::data::RouterInfo& router, const uint8_t * clearText, uint8_t * record);
 	
 	bool HandleBuildRequestRecords (int num, uint8_t * records, I2NPBuildRequestRecordClearText& clearText);
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
