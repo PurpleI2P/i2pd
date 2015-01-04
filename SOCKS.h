@@ -70,6 +70,42 @@ namespace proxy
 				GET5_PORT2,
 				DONE
 			};
+			enum authMethods {
+				AUTH_NONE = 0, //No authentication, skip to next step
+				AUTH_GSSAPI = 1, //GSSAPI authentication
+				AUTH_USERPASSWD = 2, //Username and password
+				AUTH_UNACCEPTABLE = 0xff //No acceptable method found
+			};
+			enum addrTypes {
+				ADDR_IPV4 = 1, //IPv4 address (4 octets)
+				ADDR_DNS = 3, // DNS name (up to 255 octets)
+				ADDR_IPV6 = 4 //IPV6 address (16 octets)
+			};
+			enum errTypes {
+				SOCKS5_OK = 0, // No error for SOCKS5
+				SOCKS5_GEN_FAIL = 1, // General server failure
+				SOCKS5_RULE_DENIED = 2, // Connection disallowed by ruleset
+				SOCKS5_NET_UNREACH = 3, // Network unreachable
+				SOCKS5_HOST_UNREACH = 4, // Host unreachable
+				SOCKS5_CONN_REFUSED = 5, // Connection refused by the peer
+				SOCKS5_TTL_EXPIRED = 6, // TTL Expired
+				SOCKS5_CMD_UNSUP = 7, // Command unsuported
+				SOCKS5_ADDR_UNSUP = 8, // Address type unsuported
+				SOCKS4_OK = 90, // No error for SOCKS4
+				SOCKS4_FAIL = 91, // Failed establishing connecting or not allowed
+				SOCKS4_IDENTD_MISSING = 92, // Couldn't connect to the identd server
+				SOCKS4_IDENTD_DIFFER = 93 // The ID reported by the application and by identd differ
+			};
+			enum cmdTypes {
+				CMD_CONNECT = 1, // TCP Connect
+				CMD_BIND = 2, // TCP Bind
+				CMD_UDP = 3 // UDP associate
+			};
+			enum socksVersions {
+				SOCKS4 = 4, // SOCKS4
+				SOCKS5 = 5 // SOCKS5
+			};
+
 
 			void GotClientRequest(boost::system::error_code & ecode, std::string & host, uint16_t port);
 			std::size_t HandleData(uint8_t *sock_buff, std::size_t len);
@@ -92,7 +128,6 @@ namespace proxy
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 
 			uint8_t m_sock_buff[socks_buffer_size];
-            
 			SOCKSServer * m_parent;
 			boost::asio::ip::tcp::socket * m_sock;
 			std::shared_ptr<i2p::stream::Stream> m_stream;
@@ -104,19 +139,18 @@ namespace proxy
 			std::string m_destination;
 			uint8_t m_authleft; //Authentication methods left
 			//TODO: this will probably be more elegant as enums
-			uint8_t m_authchosen; //Authentication chosen
-			uint8_t m_addrtype; //Address type chosen
-			uint8_t m_addrleft; //Address type chosen
-			uint8_t m_error; //Address type chosen
-			uint8_t m_socksv; //Address type chosen
-			bool m_need_more; //Address type chosen
+			authMethods m_authchosen; //Authentication chosen
+			addrTypes m_addrtype; //Address type chosen
+			uint8_t m_addrleft; //Octets of DNS address left
+			errTypes m_error; //Error cause
+			socksVersions m_socksv; //Socks version
+			bool m_need_more; //The parser still needs to receive more data
 
 		public:
 			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) : 
 				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(GET_VERSION),
-				m_authchosen(0xff), m_addrtype(0x01), m_error(0x01)
+				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4), m_error(SOCKS5_GEN_FAIL)
 				{ AsyncSockRead(); m_destination.reserve(max_socks_hostname_size+1); }
-
 			~SOCKSHandler() { CloseSock(); CloseStream(); }
 	};
 

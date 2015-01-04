@@ -60,22 +60,18 @@ namespace proxy
 	void SOCKSHandler::SocksRequestFailed()
 	{
 		switch (m_socksv) {
-			case 4:
+			case SOCKS4:
 				LogPrint(eLogWarning,"--- SOCKS4 failed");
 				//TODO: send the right response
 				boost::asio::async_write(*m_sock, boost::asio::buffer("\x00\x5b\x00\x00\x00\x00\x00\x00",8),
 							std::bind(&SOCKSHandler::SentSocksFailed, this, std::placeholders::_1));
 				break;
-			case 5:
-				assert(m_error <= 8);
+			case SOCKS5:
+				assert(m_error <= SOCKS5_ADDR_UNSUP);
 				LogPrint(eLogWarning,"--- SOCKS5 failed");
 				//TODO: use error properly and address type m_error
 				boost::asio::async_write(*m_sock, boost::asio::buffer(socks5Replies[m_error],10),
 							std::bind(&SOCKSHandler::SentSocksFailed, this, std::placeholders::_1));
-				break;
-			default:
-				LogPrint (eLogError,"--- SOCKS had invalid version");
-				Terminate();
 				break;
 		}
 	}
@@ -84,23 +80,19 @@ namespace proxy
 	{
 		std::shared_ptr<std::vector<uint8_t>> response(new std::vector<uint8_t>);
 		switch (m_socksv) {
-			case 4:
+			case SOCKS4:
 				LogPrint(eLogInfo,"--- SOCKS4 connection success");
 				//TODO: send the right response
 				boost::asio::async_write(*m_sock, boost::asio::buffer("\x00\x5a\x00\x00\x00\x00\x00\x00",8),
 							std::bind(&SOCKSHandler::SentSocksResponse, this,
 								std::placeholders::_1, nullptr));
 				break;
-			case 5:
+			case SOCKS5:
 				LogPrint(eLogInfo,"--- SOCKS5 connection success");
 				//TODO: send the right response using the port? and the localside i2p address
 				boost::asio::async_write(*m_sock, boost::asio::buffer("\x05\x00\x00\x01\x00\x00\x00\x00\x00\x00",10),
 							std::bind(&SOCKSHandler::SentSocksResponse, this,
 								std::placeholders::_1, response));
-				break;
-			default:
-				LogPrint (eLogError,"--- SOCKS had invalid version");
-				Terminate();
 				break;
 		}
 	}
@@ -149,12 +141,12 @@ namespace proxy
 			case 4:
 				m_state = SOCKS4A; // Switch to the 4a handler
 				m_pstate = GET4A_COMMAND; //Initialize the parser at the right position
-				m_socksv = 4;
+				m_socksv = SOCKS4;
 				return 1;
 			case 5:
 				m_state = SOCKS5_S1; // Switch to the 4a handler
 				m_pstate = GET5_AUTHNUM; //Initialize the parser at the right position
-				m_socksv = 5;
+				m_socksv = SOCKS5;
 				return 1;
 			default:
 				LogPrint(eLogError,"--- SOCKS rejected invalid version", ((int)*sock_buff));
@@ -171,7 +163,7 @@ namespace proxy
 			switch (m_pstate)
 			{
 				case GET4A_COMMAND:
-					if ( *sock_buff != 1 ) {
+					if ( *sock_buff != CMD_CONNECT ) {
 						//TODO: we need to support binds and other shit!
 						LogPrint(eLogError,"--- SOCKS4a unsupported command", ((int)*sock_buff));
 						SocksRequestFailed();
@@ -250,10 +242,10 @@ namespace proxy
 					break;
 				case GET5_AUTH:
 					m_authleft --;
-					if (*sock_buff == 0)
-						m_authchosen = 0;
+					if (*sock_buff == AUTH_NONE)
+						m_authchosen = AUTH_NONE;
 					if ( m_authleft == 0 ) {
-						if (m_authchosen == 0xff) {
+						if (m_authchosen == AUTH_UNACCEPTABLE) {
 							//TODO: we maybe want support for other methods!
 							LogPrint(eLogError,"--- SOCKS5 couldn't negotiate authentication");
 							Socks5AuthNegoFailed();
@@ -286,19 +278,19 @@ namespace proxy
 			switch (m_pstate)
 			{
 				case GET5_REQUESTV:
-					if (*sock_buff != 5) {
+					if (*sock_buff != SOCKS5) {
 						LogPrint(eLogError,"--- SOCKS rejected unknown request version", ((int)*sock_buff));
-						m_error = 0x7;
+						m_error = SOCKS5_GEN_FAIL;
 						SocksRequestFailed();
 						return 0;
 					}
 					m_pstate = GET5_COMMAND;
 					break;
 				case GET5_COMMAND:
-					if ( *sock_buff != 1 ) {
+					if ( *sock_buff != CMD_CONNECT ) {
 						//TODO: we need to support binds and other shit!
 						LogPrint(eLogError,"--- SOCKS5 unsupported command", ((int)*sock_buff));
-						m_error = 0x7;
+						m_error = SOCKS5_CMD_UNSUP;
 						SocksRequestFailed();
 						return 0;
 					}
@@ -307,20 +299,21 @@ namespace proxy
 				case GET5_GETRSV:
 					if ( *sock_buff != 0 ) {
 						LogPrint(eLogError,"--- SOCKS5 unknown reserved field", ((int)*sock_buff));
-						m_error = 0x7;
+						m_error = SOCKS5_GEN_FAIL;
 						SocksRequestFailed();
 						return 0;
 					}
 					m_pstate = GET5_GETADDRTYPE;
 					break;
 				case GET5_GETADDRTYPE:
-					if ( *sock_buff != 0x3 ) {
+					if ( *sock_buff != ADDR_DNS ) {
 						//TODO: we may want to support other address types!
 						LogPrint(eLogError,"--- SOCKS5 unsupported address type", ((int)*sock_buff));
-						m_error = 0x8;
+						m_error = SOCKS5_ADDR_UNSUP;
 						SocksRequestFailed();
 						return 0;
 					}
+					m_addrtype = ADDR_DNS;
 					m_pstate = GET5_HOST_SIZE;
 					break;
 				case GET5_HOST_SIZE:
@@ -431,7 +424,7 @@ namespace proxy
 			m_stream = stream;
 			SocksRequestSuccess();
 		} else {
-			m_error = 0x4;
+			m_error = SOCKS5_HOST_UNREACH;
 			LogPrint (eLogError,"--- SOCKS Issue when creating the stream, check the previous warnings for more info.");
 			SocksRequestFailed();
 		}
