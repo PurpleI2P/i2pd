@@ -193,14 +193,14 @@ namespace proxy
 			switch (m_pstate)
 			{
 				case GET5_AUTHNUM:
-					m_authleft = *sock_buff;
+					m_parseleft = *sock_buff;
 					m_pstate = GET5_AUTH;
 					break;
 				case GET5_AUTH:
-					m_authleft --;
+					m_parseleft --;
 					if (*sock_buff == AUTH_NONE)
 						m_authchosen = AUTH_NONE;
-					if ( m_authleft == 0 ) {
+					if ( m_parseleft == 0 ) {
 						if (m_authchosen == AUTH_UNACCEPTABLE) {
 							//TODO: we maybe want support for other methods!
 							LogPrint(eLogError,"--- SOCKS5 couldn't negotiate authentication");
@@ -276,25 +276,25 @@ namespace proxy
 					m_cmd = (SOCKSHandler::cmdTypes)*sock_buff;
 					switch (m_socksv) {
 						case SOCKS5: m_pstate = GET5_GETRSV; break;
-						case SOCKS4: m_pstate = GET_PORT;  m_addrleft = 2; break;
+						case SOCKS4: m_pstate = GET_PORT;  m_parseleft = 2; break;
 					}
 					break;
 				case GET_PORT:
 					m_port = (m_port << 8)|((uint16_t)*sock_buff);
-					m_addrleft--;
-					if (m_addrleft == 0) {
+					m_parseleft--;
+					if (m_parseleft == 0) {
 						switch (m_socksv) {
 							case SOCKS5: m_pstate = DONE; break;
-							case SOCKS4: m_pstate = GET_IPV4; m_address.ip = 0; m_addrleft = 4; break;
+							case SOCKS4: m_pstate = GET_IPV4; m_address.ip = 0; m_parseleft = 4; break;
 						}
 					}
 					break;
 				case GET_IPV4:
 					m_address.ip = (m_address.ip << 8)|((uint32_t)*sock_buff);
-					m_addrleft--;
-					if (m_addrleft == 0) {
+					m_parseleft--;
+					if (m_parseleft == 0) {
 						switch (m_socksv) {
-							case SOCKS5: m_pstate = GET_PORT;  m_addrleft = 2; break;
+							case SOCKS5: m_pstate = GET_PORT;  m_parseleft = 2; break;
 							case SOCKS4: m_pstate = GET4_IDENT; m_4aip = m_address.ip; break;
 						}
 					}
@@ -341,8 +341,8 @@ namespace proxy
 					break;
 				case GET5_GETADDRTYPE:
 					switch (*sock_buff) {
-						case ADDR_IPV4: m_pstate = GET_IPV4; m_address.ip = 0; m_addrleft = 4; break;
-						case ADDR_IPV6: m_pstate = GET5_IPV6; m_addrleft = 16; break;
+						case ADDR_IPV4: m_pstate = GET_IPV4; m_address.ip = 0; m_parseleft = 4; break;
+						case ADDR_IPV6: m_pstate = GET5_IPV6; m_parseleft = 16; break;
 						case ADDR_DNS : m_pstate = GET5_HOST_SIZE; break;
 						default:
 							LogPrint(eLogError,"--- SOCKS5 unknown address type: ", ((int)*sock_buff));
@@ -352,24 +352,24 @@ namespace proxy
 					m_addrtype = (SOCKSHandler::addrTypes)*sock_buff;
 					break;
 				case GET5_IPV6:
-					m_address.ipv6[16-m_addrleft] = *sock_buff;
-					m_addrleft--;
-					if (m_addrleft == 0) {
+					m_address.ipv6[16-m_parseleft] = *sock_buff;
+					m_parseleft--;
+					if (m_parseleft == 0) {
 						m_pstate = GET_PORT;
-						m_addrleft = 2;
+						m_parseleft = 2;
 					}
 					break;
 				case GET5_HOST_SIZE:
-					m_addrleft = *sock_buff;
+					m_parseleft = *sock_buff;
 					m_address.dns.size = 0;
 					m_pstate = GET5_HOST;
 					break;
 				case GET5_HOST:
 					m_address.dns.push_back(*sock_buff);
-					m_addrleft--;
-					if (m_addrleft == 0) {
+					m_parseleft--;
+					if (m_parseleft == 0) {
 						m_pstate = GET_PORT;
-						m_addrleft = 2;
+						m_parseleft = 2;
 					}
 					break;
 				default:

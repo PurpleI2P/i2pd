@@ -123,19 +123,17 @@ namespace proxy
 			std::shared_ptr<i2p::stream::Stream> m_stream;
 			state m_state;
 			parseState m_pstate;
-			uint8_t m_command;
-			uint16_t m_port;
+			uint8_t response[7+max_socks_hostname_size];
+			address m_address; //Address
 			uint32_t m_4aip; //Used in 4a requests
-			uint8_t m_authleft; //Authentication methods left
-			//TODO: this will probably be more elegant as enums
+			uint16_t m_port;
+			uint8_t m_command;
+			uint8_t m_parseleft; //Octets left to parse
 			authMethods m_authchosen; //Authentication chosen
 			addrTypes m_addrtype; //Address type chosen
-			address m_address; //Address
-			uint8_t m_addrleft; //Octets of current address left
 			socksVersions m_socksv; //Socks version
 			cmdTypes m_cmd; // Command requested
 			bool m_need_more; //The parser still needs to receive more data
-			uint8_t response[7+max_socks_hostname_size];
 
 		public:
 			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) : 
