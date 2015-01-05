@@ -3,7 +3,10 @@
 
 #include <memory>
 #include <string>
+#include <set>
 #include <boost/asio.hpp>
+#include <mutex>
+#include <atomic>
 #include "Identity.h"
 #include "Streaming.h"
 #include "I2PTunnel.h"
@@ -29,16 +32,10 @@ namespace proxy
 	};
 
 	class SOCKSServer;
-	class SOCKSHandler {
+	class SOCKSHandler: public std::enable_shared_from_this<SOCKSHandler> {
 		private:
 			enum state {
-				GET_VERSION, // Get SOCKS version
-				SOCKS5_AUTHNEGO, //Authentication negotiation
-				SOCKS5_AUTH, //Authentication
-				SOCKS_REQUEST, //Request
-				READY // Ready to connect
-			};
-			enum parseState {
+				GET_SOCKSV,
 				GET_COMMAND,
 				GET_PORT,
 				GET_IPV4,
@@ -95,25 +92,21 @@ namespace proxy
 				uint8_t ipv6[16];
 			};
 
-			std::size_t HandleData(uint8_t *sock_buff, std::size_t len);
-			std::size_t HandleVersion(uint8_t *sock_buff);
-			std::size_t HandleSOCKS5AuthNego(uint8_t *sock_buff, std::size_t len);
-			std::size_t HandleSOCKSRequest(uint8_t *sock_buff, std::size_t len);
-			bool ValidateSOCKSRequest();
+			void EnterState(state nstate, uint8_t parseleft = 1);
+			bool HandleData(uint8_t *sock_buff, std::size_t len);
+			void ValidateSOCKSRequest();
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
+			void Done();
 			void Terminate();
-			void CloseSock();
-			void CloseStream();
 			void AsyncSockRead();
 			boost::asio::const_buffers_1 GenerateSOCKS5SelectAuth(authMethods method);
 			boost::asio::const_buffers_1 GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
 			boost::asio::const_buffers_1 GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
-			void Socks5AuthNegoFailed();
-			void Socks5ChooseAuth();
+			bool Socks5ChooseAuth();
 			void SocksRequestFailed(errTypes error);
 			void SocksRequestSuccess();
-			//HACK: we need to pass the shared_ptr to ensure the buffer will live enough
 			void SentSocksFailed(const boost::system::error_code & ecode);
+			void SentSocksDone(const boost::system::error_code & ecode);
 			void SentSocksResponse(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 
@@ -121,9 +114,7 @@ namespace proxy
 			SOCKSServer * m_parent;
 			boost::asio::ip::tcp::socket * m_sock;
 			std::shared_ptr<i2p::stream::Stream> m_stream;
-			state m_state;
-			parseState m_pstate;
-			uint8_t response[7+max_socks_hostname_size];
+			uint8_t m_response[7+max_socks_hostname_size];
 			address m_address; //Address
 			uint32_t m_4aip; //Used in 4a requests
 			uint16_t m_port;
@@ -133,18 +124,30 @@ namespace proxy
 			addrTypes m_addrtype; //Address type chosen
 			socksVersions m_socksv; //Socks version
 			cmdTypes m_cmd; // Command requested
-			bool m_need_more; //The parser still needs to receive more data
+			state m_state;
+			std::atomic<bool> dead; //To avoid cleaning up multiple times
 
 		public:
 			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) : 
-				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(GET_VERSION),
-				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4)
-				{ m_address.ip = 0; AsyncSockRead(); }
-			~SOCKSHandler() { CloseSock(); CloseStream(); }
+				m_parent(parent), m_sock(sock), m_stream(nullptr),
+				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4), dead(false)
+				{ m_address.ip = 0; AsyncSockRead(); EnterState(GET_SOCKSV); }
+			~SOCKSHandler() { Terminate(); }
 	};
 
 	class SOCKSServer: public i2p::client::I2PTunnel
 	{
+		private:
+			std::set<std::shared_ptr<SOCKSHandler> > m_Handlers;
+			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::deadline_timer m_Timer;
+			std::mutex m_HandlersMutex;
+
+		private:
+
+			void Accept();
+			void HandleAccept(const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+
 		public:
 			SOCKSServer(int port) : I2PTunnel(nullptr),
 				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
@@ -153,17 +156,10 @@ namespace proxy
 
 			void Start ();
 			void Stop ();
-
-		private:
-
-			void Accept();
-			void HandleAccept(const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
-
-		private:
-
-			boost::asio::ip::tcp::acceptor m_Acceptor;
-			boost::asio::deadline_timer m_Timer;
-	};	
+			void AddHandler (std::shared_ptr<SOCKSHandler> handler);
+			void RemoveHandler (std::shared_ptr<SOCKSHandler> handler);
+			void ClearHandlers ();
+	};
 
 	typedef SOCKSServer SOCKSProxy;
 }
