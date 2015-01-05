@@ -54,7 +54,9 @@ namespace client
 			void StopSubscriptions ();
 			void LoadHostsFromStream (std::istream& f);
 			void DownloadComplete (bool success);
-			
+			//This method returns the ".b32.i2p" address
+			std::string ToAddress(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
+			std::string ToAddress(const i2p::data::IdentityEx& ident) { return ToAddress(ident.GetIdentHash ()); }
 		private:
 
 			AddressBookStorage * CreateStorage ();	

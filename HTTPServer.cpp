@@ -792,7 +792,7 @@ namespace util
 			std::string b32 = it.first.ToBase32 (); 
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << b32 << ">"; 
-			s << b32 << ".b32.i2p</a><br>" << std::endl;
+			s << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetIdentHash()) << "</a><br>" << std::endl;
 		}
 	}	
 
@@ -832,7 +832,7 @@ namespace util
 			s << "<br><b>Streams:</b><br>";
 			for (auto it: dest->GetStreamingDestination ()->GetStreams ())
 			{	
-				s << it.first << "->" << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase32 () << ".b32.i2p ";
+				s << it.first << "->" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetRemoteIdentity ()) << " ";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << " [out:" << it.second->GetSendQueueSize () << "][in:" << it.second->GetReceiveQueueSize () << "]";
 				s << "<br>"<< std::endl; 
