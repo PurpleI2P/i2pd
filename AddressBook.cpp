@@ -240,7 +240,7 @@ namespace client
 			 m_Storage = CreateStorage ();
 		m_Storage->AddAddress (ident);
 		m_Addresses[address] = ident.GetIdentHash ();
-		LogPrint (address,"->",ident.GetIdentHash ().ToBase32 (), ".b32.i2p added");
+		LogPrint (address,"->", ToAddress(ident.GetIdentHash ()), " added");
 	}
 
 	void AddressBook::InsertAddress (const i2p::data::IdentityEx& address)

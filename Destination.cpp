@@ -48,7 +48,7 @@ namespace client
 		}	
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen);  
 		if (m_IsPublic)
-			LogPrint (eLogInfo, "Local address ", GetIdentHash ().ToBase32 (), ".b32.i2p created");
+			LogPrint (eLogInfo, "Local address ", i2p::client::context.GetAddressBook ().ToAddress(GetIdentHash()), " created");
 		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
@@ -245,7 +245,7 @@ namespace client
 			delete it1->second;
 			m_LeaseSetRequests.erase (it1);
 		}	
-	}	
+	}
 
 	void ClientDestination::HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len)
 	{

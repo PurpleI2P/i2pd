@@ -141,7 +141,7 @@ namespace client
 			s.read ((char *)buf, len);
 			keys.FromBuffer (buf, len);
 			delete[] buf;
-			LogPrint ("Local address ", keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p loaded");
+			LogPrint ("Local address ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " loaded");
 		}	
 		else
 		{
@@ -154,7 +154,7 @@ namespace client
 			f.write ((char *)buf, len);
 			delete[] buf;
 			
-			LogPrint ("New private keys file ", fullPath, " for ", keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p created");
+			LogPrint ("New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " created");
 		}	
 
 		auto localDestination = new ClientDestination (keys, isPublic);
@@ -197,7 +197,7 @@ namespace client
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
 		if (it != m_Destinations.end ())
 		{
-			LogPrint ("Local destination ", keys.GetPublic ().GetIdentHash ().ToBase32 (), ".b32.i2p exists");
+			LogPrint ("Local destination ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " exists");
 			if (!it->second->IsRunning ())
 			{	
 				it->second->Start ();
