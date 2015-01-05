@@ -2,7 +2,7 @@
 #define SOCKS_H__
 
 #include <memory>
-#include <vector>
+#include <string>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "Streaming.h"
@@ -16,9 +16,20 @@ namespace proxy
 	const size_t socks_buffer_size = 8192;
 	const size_t max_socks_hostname_size = 255; // Limit for socks5 and bad idea to traverse
 
+	struct SOCKSDnsAddress {
+		uint8_t size;
+		char value[max_socks_hostname_size];
+		void FromString (std::string str) {
+			size = str.length();
+			if (str.length() > max_socks_hostname_size) size = max_socks_hostname_size;
+			memcpy(value,str.c_str(),size);
+		}
+		std::string ToString() { return std::string(value, size); }
+		void push_back (char c) { value[size++] = c; }
+	};
+
 	class SOCKSServer;
 	class SOCKSHandler {
-
 		private:
 			enum state {
 				GET_VERSION, // Get SOCKS version
@@ -78,9 +89,12 @@ namespace proxy
 				SOCKS4 = 4, // SOCKS4
 				SOCKS5 = 5 // SOCKS5
 			};
+			union address {
+				uint32_t ip;
+				SOCKSDnsAddress dns;
+				uint8_t ipv6[16];
+			};
 
-
-			void GotClientRequest(boost::system::error_code & ecode, std::string & host, uint16_t port);
 			std::size_t HandleData(uint8_t *sock_buff, std::size_t len);
 			std::size_t HandleVersion(uint8_t *sock_buff);
 			std::size_t HandleSOCKS5AuthNego(uint8_t *sock_buff, std::size_t len);
@@ -91,13 +105,16 @@ namespace proxy
 			void CloseSock();
 			void CloseStream();
 			void AsyncSockRead();
+			boost::asio::const_buffers_1 GenerateSOCKS5SelectAuth(authMethods method);
+			boost::asio::const_buffers_1 GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
+			boost::asio::const_buffers_1 GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
 			void Socks5AuthNegoFailed();
 			void Socks5ChooseAuth();
-			void SocksRequestFailed();
+			void SocksRequestFailed(errTypes error);
 			void SocksRequestSuccess();
-			void SentSocksFailed(const boost::system::error_code & ecode);
 			//HACK: we need to pass the shared_ptr to ensure the buffer will live enough
-			void SentSocksResponse(const boost::system::error_code & ecode, std::shared_ptr<std::vector<uint8_t>> response);
+			void SentSocksFailed(const boost::system::error_code & ecode);
+			void SentSocksResponse(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 
 			uint8_t m_sock_buff[socks_buffer_size];
@@ -108,24 +125,23 @@ namespace proxy
 			parseState m_pstate;
 			uint8_t m_command;
 			uint16_t m_port;
-			uint32_t m_ip;
-			uint8_t m_ipv6[16];
-			std::string m_destination;
+			uint32_t m_4aip; //Used in 4a requests
 			uint8_t m_authleft; //Authentication methods left
 			//TODO: this will probably be more elegant as enums
 			authMethods m_authchosen; //Authentication chosen
 			addrTypes m_addrtype; //Address type chosen
-			uint8_t m_addrleft; //Octets of DNS address left
-			errTypes m_error; //Error cause
+			address m_address; //Address
+			uint8_t m_addrleft; //Octets of current address left
 			socksVersions m_socksv; //Socks version
 			cmdTypes m_cmd; // Command requested
 			bool m_need_more; //The parser still needs to receive more data
+			uint8_t response[7+max_socks_hostname_size];
 
 		public:
 			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) : 
 				m_parent(parent), m_sock(sock), m_stream(nullptr), m_state(GET_VERSION),
-				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4), m_error(SOCKS5_GEN_FAIL)
-				{ AsyncSockRead(); m_destination.reserve(max_socks_hostname_size+1); }
+				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4)
+				{ m_address.ip = 0; AsyncSockRead(); }
 			~SOCKSHandler() { CloseSock(); CloseStream(); }
 	};
 
