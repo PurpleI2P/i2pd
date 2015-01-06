@@ -1,11 +1,11 @@
+#include <cstring>
+#include <cassert>
 #include "SOCKS.h"
 #include "Identity.h"
 #include "NetDb.h"
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PEndian.h"
-#include <cstring>
-#include <cassert>
 
 namespace i2p
 {
