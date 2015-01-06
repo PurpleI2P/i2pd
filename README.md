@@ -30,6 +30,8 @@ Testing
 
 First, build it.
 
+On Ubuntu/Debian based
+* sudo apt-get install libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libcrypto++-dev libboost-date-time-dev
 * $ cd i2pd
 * $ make
 
