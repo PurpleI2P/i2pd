@@ -1,13 +1,13 @@
 #include <algorithm>
 #include <cassert>
 #include <boost/lexical_cast.hpp>
-#include <cryptopp/dh.h>
 #include "Log.h"
 #include "util.h"
+#include "ElGamal.h"
 #include "Timestamp.h"
 #include "NetDb.h"
-#include "Destination.h"
 #include "ClientContext.h"
+#include "Destination.h"
 
 namespace i2p
 {
@@ -19,8 +19,7 @@ namespace client
 		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
 		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service)
 	{
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		i2p::crypto::GenerateElGamalKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		if (params)

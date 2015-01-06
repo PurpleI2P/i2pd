@@ -5,6 +5,7 @@
 #include <cryptopp/dsa.h>
 #include "base64.h"
 #include "CryptoConst.h"
+#include "ElGamal.h"
 #include "RouterContext.h"
 #include "Identity.h"
 #include "I2PEndian.h"
@@ -509,8 +510,7 @@ namespace data
 		Keys keys;		
 		auto& rnd = i2p::context.GetRandomNumberGenerator ();
 		// encryption
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-		dh.GenerateKeyPair(rnd, keys.privateKey, keys.publicKey);
+		i2p::crypto::GenerateElGamalKeyPair(rnd, keys.privateKey, keys.publicKey);
 		// signing
 		i2p::crypto::CreateDSARandomKeys (rnd, keys.signingPrivateKey, keys.signingKey);	
 		return keys;

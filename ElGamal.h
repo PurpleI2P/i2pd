@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <cryptopp/integer.h>
 #include <cryptopp/osrng.h>
+#include <cryptopp/dh.h>
 #include <cryptopp/sha.h>
 #include "CryptoConst.h"
 #include "Log.h"
@@ -69,6 +70,17 @@ namespace crypto
 			}
 		memcpy (data, m + 33, 222);
 		return true;
+	}	
+
+	inline void GenerateElGamalKeyPair (CryptoPP::RandomNumberGenerator& rnd, uint8_t * priv, uint8_t * pub)
+	{
+#if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)	
+		rnd.GenerateBlock (priv, 256);
+		a_exp_b_mod_c (elgg, CryptoPP::Integer (priv, 256), elgp).Encode (pub, 256);
+#else
+		CryptoPP::DH dh (elgp, elgg);
+		dh.GenerateKeyPair(rnd, priv, pub);	
+#endif		
 	}	
 }
 }	
