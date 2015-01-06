@@ -149,12 +149,12 @@ namespace proxy
 		m_state = nstate;
 	}
 
-	void SOCKSHandler::ValidateSOCKSRequest() {
+	bool SOCKSHandler::ValidateSOCKSRequest() {
 		if ( m_cmd != CMD_CONNECT ) {
 			//TODO: we need to support binds and other shit!
 			LogPrint(eLogError,"--- SOCKS unsupported command: ", m_cmd);
 			SocksRequestFailed(SOCKS5_CMD_UNSUP);
-			return;
+			return false;
 		}
 		//TODO: we may want to support other address types!
 		if ( m_addrtype != ADDR_DNS ) {
@@ -167,14 +167,15 @@ namespace proxy
 					break;
 			}
 			SocksRequestFailed(SOCKS5_ADDR_UNSUP);
-			return;
+			return false;
 		}
 		//TODO: we may want to support other domains
 		if(m_addrtype == ADDR_DNS && m_address.dns.ToString().find(".i2p") == std::string::npos) {
 			LogPrint(eLogError,"--- SOCKS invalid hostname: ", m_address.dns.ToString());
 			SocksRequestFailed(SOCKS5_ADDR_UNSUP);
-			return;
+			return false;
 		}
+		return true;
 	}
 
 	bool SOCKSHandler::HandleData(uint8_t *sock_buff, std::size_t len)
@@ -315,10 +316,10 @@ namespace proxy
 			}
 			sock_buff++;
 			len--;
-			if (len && m_state == DONE) {
-				LogPrint(eLogError,"--- SOCKS rejected because we can't handle extra data");
-				SocksRequestFailed(SOCKS5_GEN_FAIL);
-				return false;
+			if (m_state == DONE) {
+				m_remaining_data_len = len;
+				m_remaining_data = sock_buff;
+				return ValidateSOCKSRequest();
 			}
 		}
 		return true;
@@ -363,7 +364,7 @@ namespace proxy
 			LogPrint (eLogInfo,"--- SOCKS New I2PTunnel connection");
 			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>((i2p::client::I2PTunnel *)m_parent, m_sock, m_stream);
 			m_parent->AddConnection (connection);
-			connection->I2PConnect ();
+			connection->I2PConnect (m_remaining_data,m_remaining_data_len);
 			Done();
 		}
 		else

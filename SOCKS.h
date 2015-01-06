@@ -94,7 +94,7 @@ namespace proxy
 
 			void EnterState(state nstate, uint8_t parseleft = 1);
 			bool HandleData(uint8_t *sock_buff, std::size_t len);
-			void ValidateSOCKSRequest();
+			bool ValidateSOCKSRequest();
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Done();
 			void Terminate();
@@ -114,8 +114,10 @@ namespace proxy
 			SOCKSServer * m_parent;
 			boost::asio::ip::tcp::socket * m_sock;
 			std::shared_ptr<i2p::stream::Stream> m_stream;
+			uint8_t *m_remaining_data; //Data left to be sent
 			uint8_t m_response[7+max_socks_hostname_size];
 			address m_address; //Address
+			std::size_t m_remaining_data_len; //Size of the data left to be sent
 			uint32_t m_4aip; //Used in 4a requests
 			uint16_t m_port;
 			uint8_t m_command;
