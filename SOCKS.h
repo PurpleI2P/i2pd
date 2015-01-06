@@ -133,7 +133,7 @@ namespace proxy
 			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) : 
 				m_parent(parent), m_sock(sock), m_stream(nullptr),
 				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4), dead(false)
-				{ m_address.ip = 0; AsyncSockRead(); EnterState(GET_SOCKSV); }
+				{ m_address.ip = 0; EnterState(GET_SOCKSV); AsyncSockRead(); }
 			~SOCKSHandler() { Terminate(); }
 	};
 
