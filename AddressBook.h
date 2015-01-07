@@ -23,6 +23,8 @@ namespace client
 	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 240; // in minutes			
 	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes	
 	const int SUBSCRIPTION_REQUEST_TIMEOUT = 60; //in second
+	
+	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
 
 	class AddressBookStorage // interface for storage
 	{
@@ -55,7 +57,7 @@ namespace client
 			void LoadHostsFromStream (std::istream& f);
 			void DownloadComplete (bool success);
 			//This method returns the ".b32.i2p" address
-			std::string ToAddress(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
+			std::string ToAddress(const i2p::data::IdentHash& ident) { return GetB32Address(ident); }
 			std::string ToAddress(const i2p::data::IdentityEx& ident) { return ToAddress(ident.GetIdentHash ()); }
 		private:
 
