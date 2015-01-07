@@ -74,8 +74,7 @@ namespace proxy
 	}
 
 	bool HTTPProxyHandler::ValidateHTTPRequest() {
-		if ( m_version != "HTTP/1.0" ) {
-			//TODO: we want to support 1.1 in the future
+		if ( m_version != "HTTP/1.0" && m_version != "HTTP/1.1" ) {
 			LogPrint(eLogError,"--- HTTP Proxy unsupported version: ", m_version);
 			HTTPRequestFailed(); //TODO: send right stuff
 			return false;
@@ -93,6 +92,7 @@ namespace proxy
 		m_request += m_version;
 		m_request.push_back('\r');
 		m_request.push_back('\n');
+		m_request.append("Connection: close\r\n");
 		m_request.append(reinterpret_cast<const char *>(http_buff),len);
 		return true;
 	}
