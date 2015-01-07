@@ -62,7 +62,7 @@ namespace proxy
 		LogPrint(eLogDebug,"--- HTTP Proxy async sock read");
 		if(m_sock) {
 			m_sock->async_receive(boost::asio::buffer(m_http_buff, http_buffer_size),
-						std::bind(&HTTPProxyHandler::HandleSockRecv, this,
+						std::bind(&HTTPProxyHandler::HandleSockRecv, shared_from_this(),
 								std::placeholders::_1, std::placeholders::_2));
 		} else {
 			LogPrint(eLogError,"--- HTTP Proxy no socket for read");
@@ -86,7 +86,7 @@ namespace proxy
 	{
 		std::string response = "HTTP/1.0 500 Internal Server Error\r\nContent-type: text/html\r\nContent-length: 0\r\n";
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response,response.size()),
-					 std::bind(&HTTPProxyHandler::SentHTTPFailed, this, std::placeholders::_1));
+					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
 	void HTTPProxyHandler::EnterState(HTTPProxyHandler::state nstate) {
@@ -197,7 +197,7 @@ namespace proxy
 			if (m_state == DONE) {
 				LogPrint(eLogInfo,"--- HTTP Proxy requested: ", m_url);
 				GetOwner()->CreateStream (std::bind (&HTTPProxyHandler::HandleStreamRequestComplete,
-						this, std::placeholders::_1), m_address, m_port);
+						shared_from_this(), std::placeholders::_1), m_address, m_port);
 			} else {
 				AsyncSockRead();
 			}
