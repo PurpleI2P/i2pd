@@ -9,24 +9,25 @@ namespace i2p
 {
 namespace client
 {
-	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, 
+	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, 
 	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
-		m_Socket (socket), m_Owner (owner), m_RemoteEndpoint (socket->remote_endpoint ()),
+		I2PServiceHandler(owner), m_Socket (socket), m_RemoteEndpoint (socket->remote_endpoint ()),
 		m_IsQuiet (true)
 	{
-		m_Stream = m_Owner->GetLocalDestination ()->CreateStream (*leaseSet);
+		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (*leaseSet);
 	}	
 
-	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner,
+	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner,
 	    boost::asio::ip::tcp::socket * socket, std::shared_ptr<i2p::stream::Stream> stream):
-		m_Socket (socket), m_Stream (stream), m_Owner (owner),
+		I2PServiceHandler(owner), m_Socket (socket), m_Stream (stream),
 		m_RemoteEndpoint (socket->remote_endpoint ()), m_IsQuiet (true)
 	{
 	}
 
-	I2PTunnelConnection::I2PTunnelConnection (I2PTunnel * owner, std::shared_ptr<i2p::stream::Stream> stream,  
+	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 	    boost::asio::ip::tcp::socket * socket, const boost::asio::ip::tcp::endpoint& target, bool quiet):
-		m_Socket (socket), m_Stream (stream), m_Owner (owner), m_RemoteEndpoint (target), m_IsQuiet (quiet)
+		I2PServiceHandler(owner), m_Socket (socket), m_Stream (stream),
+		m_RemoteEndpoint (target), m_IsQuiet (quiet)
 	{
 	}
 
@@ -56,15 +57,15 @@ namespace client
 	}	
 		
 	void I2PTunnelConnection::Terminate ()
-	{	
+	{
+		if (Kill()) return;
 		if (m_Stream)
 		{
 			m_Stream->Close ();
 			m_Stream.reset ();
 		}	
 		m_Socket->close ();
-		if (m_Owner)
-			m_Owner->RemoveConnection (shared_from_this ());
+		Done(shared_from_this ());
 	}			
 
 	void I2PTunnelConnection::Receive ()
@@ -150,28 +151,8 @@ namespace client
 		}
 	}
 
-	I2PTunnel::I2PTunnel (ClientDestination * localDestination) :
-		m_LocalDestination (localDestination ? localDestination :
-			i2p::client::context.CreateNewLocalDestination (false, I2P_TUNNEL_DEFAULT_KEY_TYPE))
-	{
-	}
-	void I2PTunnel::AddConnection (std::shared_ptr<I2PTunnelConnection> conn)
-	{
-		m_Connections.insert (conn);
-	}
-		
-	void I2PTunnel::RemoveConnection (std::shared_ptr<I2PTunnelConnection> conn)
-	{
-		m_Connections.erase (conn);
-	}	
-	
-	void I2PTunnel::ClearConnections ()
-	{
-		m_Connections.clear ();
-	}	
-		
 	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination): 
-		I2PTunnel (localDestination),
+		I2PService (localDestination),
 		m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 		m_Timer (GetService ()), m_Destination (destination), m_DestinationIdentHash (nullptr)
 	{
@@ -193,7 +174,7 @@ namespace client
 	{
 		m_Acceptor.close();
 		m_Timer.cancel ();
-		ClearConnections ();
+		ClearHandlers ();
 		auto *originalIdentHash = m_DestinationIdentHash;
 		m_DestinationIdentHash = nullptr;
 		delete originalIdentHash;
@@ -250,7 +231,7 @@ namespace client
 		{
 			LogPrint (eLogInfo,"New I2PTunnel connection");
 			auto connection = std::make_shared<I2PTunnelConnection>(this, socket, stream);
-			AddConnection (connection);
+			AddHandler (connection);
 			connection->I2PConnect ();
 		}
 		else
@@ -261,7 +242,7 @@ namespace client
 	}
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, ClientDestination * localDestination): 
-		I2PTunnel (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port)
+		I2PService (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
 	}
 	
@@ -272,7 +253,7 @@ namespace client
 
 	void I2PServerTunnel::Stop ()
 	{
-		ClearConnections ();
+		ClearHandlers ();
 	}	
 
 	void I2PServerTunnel::Accept ()
@@ -289,7 +270,7 @@ namespace client
 		if (stream)
 		{	
 			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
-			AddConnection (conn);
+			AddHandler (conn);
 			conn->Connect ();
 		}	
 	}

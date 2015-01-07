@@ -10,14 +10,14 @@ ifeq ($(UNAME),Darwin)
 # This is needed on OS X for some reason I don't understand (yet).
 # Else will get linker error about unknown symbols. - torkel
 	COMMON_SRC += \
-	  BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp SAM.cpp SOCKS.cpp \
+	  BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp I2PService.cpp SAM.cpp SOCKS.cpp \
 	  UPnP.cpp HTTPServer.cpp HTTPProxy.cpp i2p.cpp DaemonLinux.cpp
 endif
 
 
 # also: Daemon{Linux,Win32}.cpp will be added later
 DAEMON_SRC = $(COMMON_SRC) \
-  BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp SAM.cpp SOCKS.cpp UPnP.cpp \
+  BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp I2PService.cpp SAM.cpp SOCKS.cpp UPnP.cpp \
   HTTPServer.cpp HTTPProxy.cpp i2p.cpp
 
 LIB_SRC := $(COMMON_SRC) \

@@ -8,6 +8,7 @@
 #include <string>
 #include <boost/asio.hpp>
 #include "I2PTunnel.h"
+#include "I2PService.h"
 #include "Identity.h"
 #include "LeaseSet.h"
 
@@ -41,12 +42,12 @@ namespace client
 	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
 	const char BOB_DATA[] = "NICKNAME %s\n";
 
-	class BOBI2PTunnel: public I2PTunnel
+	class BOBI2PTunnel: public I2PService
 	{
 		public:
 
 			BOBI2PTunnel (ClientDestination * localDestination): 
-				I2PTunnel (localDestination) {};
+				I2PService (localDestination) {};
 
 			virtual void Start () {};
 			virtual void Stop () {};				
