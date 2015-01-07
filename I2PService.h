@@ -35,6 +35,7 @@ namespace client
 
 			inline ClientDestination * GetLocalDestination () { return m_LocalDestination; };
 			inline void SetLocalDestination (ClientDestination * dest) { m_LocalDestination = dest; };
+			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
 
 			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); };
 

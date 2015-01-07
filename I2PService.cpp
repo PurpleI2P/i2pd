@@ -15,5 +15,17 @@ namespace client
 					i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE))
 	{
 	}
+	
+	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
+		assert(streamRequestComplete);
+		i2p::data::IdentHash identHash;
+		if (i2p::client::context.GetAddressBook ().GetIdentHash (dest, identHash))
+			localDestination->CreateStream (streamRequestComplete, identHash, port);
+		else
+		{
+			LogPrint (eLogWarning, "Remote destination ", dest, " not found");
+			streamRequestComplete (nullptr);
+		}
+	}
 }
 }

@@ -196,8 +196,7 @@ namespace proxy
 		if (HandleData(m_http_buff, len)) {
 			if (m_state == DONE) {
 				LogPrint(eLogInfo,"--- HTTP Proxy requested: ", m_url);
-				GetOwner()->GetLocalDestination ()->CreateStream (
-						std::bind (&HTTPProxyHandler::HandleStreamRequestComplete,
+				GetOwner()->CreateStream (std::bind (&HTTPProxyHandler::HandleStreamRequestComplete,
 						this, std::placeholders::_1), m_address, m_port);
 			} else {
 				AsyncSockRead();

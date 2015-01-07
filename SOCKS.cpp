@@ -454,8 +454,7 @@ namespace proxy
 		if (HandleData(m_sock_buff, len)) {
 			if (m_state == DONE) {
 				LogPrint(eLogInfo,"--- SOCKS requested ", m_address.dns.ToString(), ":" , m_port);
-				GetOwner()->GetLocalDestination ()->CreateStream (
-						std::bind (&SOCKSHandler::HandleStreamRequestComplete,
+				GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
 						this, std::placeholders::_1), m_address.dns.ToString(), m_port);
 			} else {
 				AsyncSockRead();
