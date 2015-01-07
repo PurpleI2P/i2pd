@@ -57,6 +57,7 @@
     <ClCompile Include="..\util.cpp" />
     <ClCompile Include="..\SOCKS.cpp" />
     <ClCompile Include="..\I2PTunnel.cpp" />
+	<ClCompile Include="..\I2PControl.cpp" />
     <ClCompile Include="..\ClientContext.cpp" />
     <ClCompile Include="Win32Service.cpp" />
   </ItemGroup>
@@ -102,6 +103,7 @@
     <ClInclude Include="..\util.h" />
     <ClInclude Include="..\SOCKS.h" />
     <ClInclude Include="..\I2PTunnel.h" />
+	<ClInclude Include="..\I2PControl.h" />
     <ClInclude Include="..\version.h" />
     <ClInclude Include="..\Signature.h" />
     <ClInclude Include="..\ClientContext.h" />
