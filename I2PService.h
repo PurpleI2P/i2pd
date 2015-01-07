@@ -18,6 +18,7 @@ namespace client
 	{
 		public:
 			I2PService (ClientDestination * localDestination  = nullptr);
+			I2PService (i2p::data::SigningKeyType kt);
 			virtual ~I2PService () { ClearHandlers (); }
 
 			inline void AddHandler (std::shared_ptr<I2PServiceHandler> conn) {
@@ -53,7 +54,7 @@ namespace client
 	class I2PServiceHandler
 	{
 		public:
-			I2PServiceHandler(I2PService * parent) : m_Dead(false), m_Service(parent) { }
+			I2PServiceHandler(I2PService * parent) : m_Service(parent), m_Dead(false) { }
 			virtual ~I2PServiceHandler() { }
 		protected:
 			// Call when terminating or handing over to avoid race conditions

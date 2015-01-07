@@ -26,7 +26,7 @@ namespace proxy
 			void HandleAccept(const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
 
 		public:
-			HTTPProxyServer(int port) : I2PService(nullptr),
+			HTTPProxyServer(int port) : I2PService(i2p::data::SIGNING_KEY_TYPE_DSA_SHA1),
 				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 				m_Timer (GetService ()) {};
 			~HTTPProxyServer() { Stop(); }

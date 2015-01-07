@@ -16,11 +16,16 @@ namespace client
 	{
 	}
 	
-	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
+	I2PService::I2PService (i2p::data::SigningKeyType kt):
+		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt))
+	{
+	}
+	
+	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
 		assert(streamRequestComplete);
 		i2p::data::IdentHash identHash;
 		if (i2p::client::context.GetAddressBook ().GetIdentHash (dest, identHash))
-			localDestination->CreateStream (streamRequestComplete, identHash, port);
+			m_LocalDestination->CreateStream (streamRequestComplete, identHash, port);
 		else
 		{
 			LogPrint (eLogWarning, "Remote destination ", dest, " not found");

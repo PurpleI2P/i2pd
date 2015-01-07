@@ -172,7 +172,7 @@ namespace proxy
 	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(SOCKSHandler::errTypes error, SOCKSHandler::addrTypes type,
 								   const SOCKSHandler::address &addr, uint16_t port)
 	{
-		size_t size;
+		size_t size = 6;
 		assert(error <= SOCKS5_ADDR_UNSUP);
 		m_response[0] = '\x05'; //Version
 		m_response[1] = error; //Response code
