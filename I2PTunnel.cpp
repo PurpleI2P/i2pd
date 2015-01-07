@@ -1,3 +1,4 @@
+#include <cassert>
 #include "base64.h"
 #include "Log.h"
 #include "Destination.h"
@@ -36,10 +37,13 @@ namespace client
 
 	void I2PTunnelConnection::I2PConnect (const uint8_t * msg, size_t len)
 	{
-		if (msg)
-			m_Stream->Send (msg, len); // connect and send
-		else	
-			m_Stream->Send (m_Buffer, 0); // connect
+		if (m_Stream)
+		{
+			if (msg)
+				m_Stream->Send (msg, len); // connect and send
+			else	
+				m_Stream->Send (m_Buffer, 0); // connect
+		}
 		StreamReceive ();
 		Receive ();
 	}
