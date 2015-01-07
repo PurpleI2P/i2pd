@@ -48,7 +48,7 @@ namespace client
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;	
 
-			typedef void (I2PControlService::*MethodHandler)();
+			typedef void (I2PControlService::*MethodHandler)(const std::map<std::string, std::string>& params);
 			std::map<std::string, MethodHandler> m_MethodHanders;		
 	};
 }

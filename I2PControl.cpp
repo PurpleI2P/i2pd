@@ -106,7 +106,15 @@ namespace client
 			std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
 			auto it = m_MethodHanders.find (method);
 			if (it != m_MethodHanders.end ())
-				(this->*(it->second))();
+			{
+				std::map<std::string, std::string> params;
+				for (auto& v: pt.get_child (I2P_CONTROL_PROPERTY_PARAMS))
+				{
+					if (!v.first.empty())
+						params[v.first] = v.second.data ();
+				}
+				(this->*(it->second))(params);
+			}	
 			else
 				LogPrint (eLogWarning, "Unknown I2PControl method ", method);
 		}
