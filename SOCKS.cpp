@@ -137,7 +137,7 @@ namespace proxy
 		LogPrint(eLogDebug,"--- SOCKS async sock read");
 		if(m_sock) {
 			m_sock->async_receive(boost::asio::buffer(m_sock_buff, socks_buffer_size),
-						std::bind(&SOCKSHandler::HandleSockRecv, this,
+						std::bind(&SOCKSHandler::HandleSockRecv, shared_from_this(),
 								std::placeholders::_1, std::placeholders::_2));
 		} else {
 			LogPrint(eLogError,"--- SOCKS no socket for read");
@@ -204,11 +204,13 @@ namespace proxy
 		boost::asio::const_buffers_1 response(m_response,2);
 		if (m_authchosen == AUTH_UNACCEPTABLE) {
 			LogPrint(eLogWarning,"--- SOCKS5 authentication negotiation failed");
-			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed, this, std::placeholders::_1));
+			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed,
+									      shared_from_this(), std::placeholders::_1));
 			return false;
 		} else {
 			LogPrint(eLogDebug,"--- SOCKS5 choosing authentication method: ", m_authchosen);
-			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksResponse, this, std::placeholders::_1));
+			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksResponse,
+									      shared_from_this(), std::placeholders::_1));
 			return true;
 		}
 	}
@@ -229,7 +231,8 @@ namespace proxy
 				response = GenerateSOCKS5Response(error, m_addrtype, m_address, m_port);
 				break;
 		}
-		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed, this, std::placeholders::_1));
+		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed,
+								      shared_from_this(), std::placeholders::_1));
 	}
 
 	void SOCKSHandler::SocksRequestSuccess()
@@ -249,7 +252,8 @@ namespace proxy
 				response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream->GetRecvStreamID());
 				break;
 		}
-		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksDone, this, std::placeholders::_1));
+		boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksDone,
+								      shared_from_this(), std::placeholders::_1));
 	}
 
 	void SOCKSHandler::EnterState(SOCKSHandler::state nstate, uint8_t parseleft) {
@@ -455,7 +459,7 @@ namespace proxy
 			if (m_state == DONE) {
 				LogPrint(eLogInfo,"--- SOCKS requested ", m_address.dns.ToString(), ":" , m_port);
 				GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
-						this, std::placeholders::_1), m_address.dns.ToString(), m_port);
+						shared_from_this(), std::placeholders::_1), m_address.dns.ToString(), m_port);
 			} else {
 				AsyncSockRead();
 			}

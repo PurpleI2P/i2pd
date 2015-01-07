@@ -21,24 +21,27 @@ namespace client
 			I2PService (i2p::data::SigningKeyType kt);
 			virtual ~I2PService () { ClearHandlers (); }
 
-			inline void AddHandler (std::shared_ptr<I2PServiceHandler> conn) {
+			inline void AddHandler (std::shared_ptr<I2PServiceHandler> conn)
+			{
 				std::unique_lock<std::mutex> l(m_HandlersMutex);
 				m_Handlers.insert(conn);
 			}
-			inline void RemoveHandler (std::shared_ptr<I2PServiceHandler> conn) {
+			inline void RemoveHandler (std::shared_ptr<I2PServiceHandler> conn)
+			{
 				std::unique_lock<std::mutex> l(m_HandlersMutex);
 				m_Handlers.erase(conn);
 			}
-			inline void ClearHandlers () {
+			inline void ClearHandlers ()
+			{
 				std::unique_lock<std::mutex> l(m_HandlersMutex);
 				m_Handlers.clear();
 			}
 
-			inline ClientDestination * GetLocalDestination () { return m_LocalDestination; };
-			inline void SetLocalDestination (ClientDestination * dest) { m_LocalDestination = dest; };
+			inline ClientDestination * GetLocalDestination () { return m_LocalDestination; }
+			inline void SetLocalDestination (ClientDestination * dest) { m_LocalDestination = dest; }
 			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
 
-			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); };
+			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); }
 
 			virtual void Start () = 0;
 			virtual void Stop () = 0;
