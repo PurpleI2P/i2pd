@@ -53,8 +53,9 @@ namespace proxy
 		public:
 			HTTPProxyHandler(HTTPProxyServer * parent, boost::asio::ip::tcp::socket * sock) : 
 				I2PServiceHandler(parent), m_sock(sock)
-				{ AsyncSockRead(); EnterState(GET_METHOD); }
+				{ EnterState(GET_METHOD); }
 			~HTTPProxyHandler() { Terminate(); }
+			void Handle () { AsyncSockRead(); }
 	};
 
 	void HTTPProxyHandler::AsyncSockRead()
@@ -255,7 +256,9 @@ namespace proxy
 		if (!ecode)
 		{
 			LogPrint(eLogDebug,"--- HTTP Proxy accepted");
-			AddHandler(std::make_shared<HTTPProxyHandler> (this, socket));
+			auto handler = std::make_shared<HTTPProxyHandler> (this, socket);
+			AddHandler(handler);
+			handler->Handle();
 			Accept();
 		}
 		else

@@ -128,8 +128,9 @@ namespace proxy
 			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) :
 				I2PServiceHandler(parent), m_sock(sock), m_stream(nullptr),
 				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4)
-				{ m_address.ip = 0; EnterState(GET_SOCKSV); AsyncSockRead(); }
+				{ m_address.ip = 0; EnterState(GET_SOCKSV); }
 			~SOCKSHandler() { Terminate(); }
+			void Handle() { AsyncSockRead(); }
 	};
 
 	void SOCKSHandler::AsyncSockRead()
@@ -538,7 +539,9 @@ namespace proxy
 		if (!ecode)
 		{
 			LogPrint(eLogDebug,"--- SOCKS accepted");
-			AddHandler(std::make_shared<SOCKSHandler> (this, socket));
+			auto handle = std::make_shared<SOCKSHandler> (this, socket);
+			AddHandler(handle);
+			handle->Handle();
 			Accept();
 		}
 		else
