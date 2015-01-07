@@ -224,9 +224,19 @@ namespace stream
 				// no error
 				handler (boost::system::error_code (), received); 
 			else
-				// socket closed
-				handler (m_IsReset ? boost::asio::error::make_error_code (boost::asio::error::connection_reset) :
-					boost::asio::error::make_error_code (boost::asio::error::operation_aborted), received);
+			{	
+				// stream closed
+				if (m_IsReset)
+				{
+					// stream closed by peer
+					handler (received > 0 ? boost::system::error_code () : // we still have some data
+						boost::asio::error::make_error_code (boost::asio::error::connection_reset), // no more data
+						received);
+					
+				}
+				else // stream closed by us
+					handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), received); 
+			}	
 		}	
 		else
 			// timeout expired
