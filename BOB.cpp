@@ -28,7 +28,7 @@ namespace client
 	void BOBI2PInboundTunnel::Stop ()
 	{
 		m_Acceptor.close();
-		ClearConnections ();
+		ClearHandlers ();
 	}
 
 	void BOBI2PInboundTunnel::Accept ()
@@ -136,7 +136,7 @@ namespace client
 	{
 		LogPrint ("New BOB inbound connection");
 		auto connection = std::make_shared<I2PTunnelConnection>(this, receiver->socket, leaseSet);
-		AddConnection (connection);
+		AddHandler (connection);
 		connection->I2PConnect (receiver->data, receiver->dataLen);
 		delete receiver;
 	}
@@ -154,7 +154,7 @@ namespace client
 
 	void BOBI2POutboundTunnel::Stop ()
 	{
-		ClearConnections ();
+		ClearHandlers ();
 	}	
 
 	void BOBI2POutboundTunnel::Accept ()
@@ -171,7 +171,7 @@ namespace client
 		if (stream)
 		{	
 			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint, m_IsQuiet);
-			AddConnection (conn);
+			AddHandler (conn);
 			conn->Connect ();
 		}	
 	}

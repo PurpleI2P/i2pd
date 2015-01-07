@@ -36,7 +36,9 @@ namespace client
 	const char I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH[] = "outbound.length";
 	const int DEFAULT_OUTBOUND_TUNNEL_LENGTH = 3;
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
-	
+
+	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
+
 	class ClientDestination: public i2p::garlic::GarlicDestination
 	{
 		typedef std::function<void (bool success)> RequestComplete;
@@ -49,7 +51,6 @@ namespace client
 			RequestComplete requestComplete;
 		};	
 		
-		typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 		
 		public:
 
@@ -67,7 +68,6 @@ namespace client
 			
 			// streaming
 			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
-			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
 			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
 			std::shared_ptr<i2p::stream::Stream> CreateStream (const i2p::data::LeaseSet& remote, int port = 0);
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);

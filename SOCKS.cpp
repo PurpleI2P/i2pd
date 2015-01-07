@@ -1,15 +1,137 @@
 #include <cstring>
 #include <cassert>
+#include <string>
+#include <atomic>
 #include "SOCKS.h"
 #include "Identity.h"
+#include "Streaming.h"
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PEndian.h"
+#include "I2PTunnel.h"
 
 namespace i2p
 {
 namespace proxy
 {
+	static const size_t socks_buffer_size = 8192;
+	static const size_t max_socks_hostname_size = 255; // Limit for socks5 and bad idea to traverse
+
+	struct SOCKSDnsAddress {
+		uint8_t size;
+		char value[max_socks_hostname_size];
+		void FromString (std::string str) {
+			size = str.length();
+			if (str.length() > max_socks_hostname_size) size = max_socks_hostname_size;
+			memcpy(value,str.c_str(),size);
+		}
+		std::string ToString() { return std::string(value, size); }
+		void push_back (char c) { value[size++] = c; }
+	};
+
+	class SOCKSServer;
+	class SOCKSHandler: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<SOCKSHandler> {
+		private:
+			enum state {
+				GET_SOCKSV,
+				GET_COMMAND,
+				GET_PORT,
+				GET_IPV4,
+				GET4_IDENT,
+				GET4A_HOST,
+				GET5_AUTHNUM,
+				GET5_AUTH,
+				GET5_REQUESTV,
+				GET5_GETRSV,
+				GET5_GETADDRTYPE,
+				GET5_IPV6,
+				GET5_HOST_SIZE,
+				GET5_HOST,
+				DONE
+			};
+			enum authMethods {
+				AUTH_NONE = 0, //No authentication, skip to next step
+				AUTH_GSSAPI = 1, //GSSAPI authentication
+				AUTH_USERPASSWD = 2, //Username and password
+				AUTH_UNACCEPTABLE = 0xff //No acceptable method found
+			};
+			enum addrTypes {
+				ADDR_IPV4 = 1, //IPv4 address (4 octets)
+				ADDR_DNS = 3, // DNS name (up to 255 octets)
+				ADDR_IPV6 = 4 //IPV6 address (16 octets)
+			};
+			enum errTypes {
+				SOCKS5_OK = 0, // No error for SOCKS5
+				SOCKS5_GEN_FAIL = 1, // General server failure
+				SOCKS5_RULE_DENIED = 2, // Connection disallowed by ruleset
+				SOCKS5_NET_UNREACH = 3, // Network unreachable
+				SOCKS5_HOST_UNREACH = 4, // Host unreachable
+				SOCKS5_CONN_REFUSED = 5, // Connection refused by the peer
+				SOCKS5_TTL_EXPIRED = 6, // TTL Expired
+				SOCKS5_CMD_UNSUP = 7, // Command unsuported
+				SOCKS5_ADDR_UNSUP = 8, // Address type unsuported
+				SOCKS4_OK = 90, // No error for SOCKS4
+				SOCKS4_FAIL = 91, // Failed establishing connecting or not allowed
+				SOCKS4_IDENTD_MISSING = 92, // Couldn't connect to the identd server
+				SOCKS4_IDENTD_DIFFER = 93 // The ID reported by the application and by identd differ
+			};
+			enum cmdTypes {
+				CMD_CONNECT = 1, // TCP Connect
+				CMD_BIND = 2, // TCP Bind
+				CMD_UDP = 3 // UDP associate
+			};
+			enum socksVersions {
+				SOCKS4 = 4, // SOCKS4
+				SOCKS5 = 5 // SOCKS5
+			};
+			union address {
+				uint32_t ip;
+				SOCKSDnsAddress dns;
+				uint8_t ipv6[16];
+			};
+
+			void EnterState(state nstate, uint8_t parseleft = 1);
+			bool HandleData(uint8_t *sock_buff, std::size_t len);
+			bool ValidateSOCKSRequest();
+			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
+			void Terminate();
+			void AsyncSockRead();
+			boost::asio::const_buffers_1 GenerateSOCKS5SelectAuth(authMethods method);
+			boost::asio::const_buffers_1 GenerateSOCKS4Response(errTypes error, uint32_t ip, uint16_t port);
+			boost::asio::const_buffers_1 GenerateSOCKS5Response(errTypes error, addrTypes type, const address &addr, uint16_t port);
+			bool Socks5ChooseAuth();
+			void SocksRequestFailed(errTypes error);
+			void SocksRequestSuccess();
+			void SentSocksFailed(const boost::system::error_code & ecode);
+			void SentSocksDone(const boost::system::error_code & ecode);
+			void SentSocksResponse(const boost::system::error_code & ecode);
+			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
+
+			uint8_t m_sock_buff[socks_buffer_size];
+			boost::asio::ip::tcp::socket * m_sock;
+			std::shared_ptr<i2p::stream::Stream> m_stream;
+			uint8_t *m_remaining_data; //Data left to be sent
+			uint8_t m_response[7+max_socks_hostname_size];
+			address m_address; //Address
+			std::size_t m_remaining_data_len; //Size of the data left to be sent
+			uint32_t m_4aip; //Used in 4a requests
+			uint16_t m_port;
+			uint8_t m_command;
+			uint8_t m_parseleft; //Octets left to parse
+			authMethods m_authchosen; //Authentication chosen
+			addrTypes m_addrtype; //Address type chosen
+			socksVersions m_socksv; //Socks version
+			cmdTypes m_cmd; // Command requested
+			state m_state;
+
+		public:
+			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) :
+				I2PServiceHandler(parent), m_sock(sock), m_stream(nullptr),
+				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4)
+				{ m_address.ip = 0; EnterState(GET_SOCKSV); AsyncSockRead(); }
+			~SOCKSHandler() { Terminate(); }
+	};
+
 	void SOCKSHandler::AsyncSockRead()
 	{
 		LogPrint(eLogDebug,"--- SOCKS async sock read");
@@ -22,12 +144,8 @@ namespace proxy
 		}
 	}
 
-	void SOCKSHandler::Done() {
-		if (m_parent) m_parent->RemoveHandler (shared_from_this ());
-	}
-
 	void SOCKSHandler::Terminate() {
-		if (dead.exchange(true)) return;
+		if (Kill()) return;
 		if (m_sock) {
 			LogPrint(eLogDebug,"--- SOCKS close sock");
 			m_sock->close();
@@ -38,7 +156,7 @@ namespace proxy
 			LogPrint(eLogDebug,"--- SOCKS close stream");
 			m_stream.reset ();
 		}
-		Done();
+		Done(shared_from_this());
 	}
 
 	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS4Response(SOCKSHandler::errTypes error, uint32_t ip, uint16_t port)
@@ -54,7 +172,7 @@ namespace proxy
 	boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(SOCKSHandler::errTypes error, SOCKSHandler::addrTypes type,
 								   const SOCKSHandler::address &addr, uint16_t port)
 	{
-		size_t size;
+		size_t size = 6;
 		assert(error <= SOCKS5_ADDR_UNSUP);
 		m_response[0] = '\x05'; //Version
 		m_response[1] = error; //Response code
@@ -125,7 +243,7 @@ namespace proxy
 				break;
 			case SOCKS5:
 				LogPrint(eLogInfo,"--- SOCKS5 connection success");
-				auto s = i2p::client::context.GetAddressBook().ToAddress(m_parent->GetLocalDestination()->GetIdentHash());
+				auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
 				address ad; ad.dns.FromString(s);
 				//HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
 				response = GenerateSOCKS5Response(SOCKS5_OK, ADDR_DNS, ad, m_stream->GetRecvStreamID());
@@ -336,8 +454,7 @@ namespace proxy
 		if (HandleData(m_sock_buff, len)) {
 			if (m_state == DONE) {
 				LogPrint(eLogInfo,"--- SOCKS requested ", m_address.dns.ToString(), ":" , m_port);
-				m_parent->GetLocalDestination ()->CreateStream (
-						std::bind (&SOCKSHandler::HandleStreamRequestComplete,
+				GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
 						this, std::placeholders::_1), m_address.dns.ToString(), m_port);
 			} else {
 				AsyncSockRead();
@@ -359,12 +476,12 @@ namespace proxy
 	void SOCKSHandler::SentSocksDone(const boost::system::error_code & ecode)
 	{
 		if (!ecode) {
-			if (dead.exchange(true)) return;
+		if (Kill()) return;
 			LogPrint (eLogInfo,"--- SOCKS New I2PTunnel connection");
-			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>((i2p::client::I2PTunnel *)m_parent, m_sock, m_stream);
-			m_parent->AddConnection (connection);
+			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
+			GetOwner()->AddHandler (connection);
 			connection->I2PConnect (m_remaining_data,m_remaining_data_len);
-			Done();
+			Done(shared_from_this());
 		}
 		else
 		{
@@ -402,7 +519,6 @@ namespace proxy
 	{
 		m_Acceptor.close();
 		m_Timer.cancel ();
-		ClearConnections ();
 		ClearHandlers();
 	}
 
@@ -411,23 +527,6 @@ namespace proxy
 		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
 		m_Acceptor.async_accept (*newSocket, std::bind (&SOCKSServer::HandleAccept, this,
 			std::placeholders::_1, newSocket));
-	}
-
-	void  SOCKSServer::AddHandler (std::shared_ptr<SOCKSHandler> handler) {
-		std::unique_lock<std::mutex> l(m_HandlersMutex);
-		m_Handlers.insert (handler);
-	}
-
-	void  SOCKSServer::RemoveHandler (std::shared_ptr<SOCKSHandler> handler)
-	{
-		std::unique_lock<std::mutex> l(m_HandlersMutex);
-		m_Handlers.erase (handler);
-	}
-
-	void  SOCKSServer::ClearHandlers ()
-	{
-		std::unique_lock<std::mutex> l(m_HandlersMutex);
-		m_Handlers.clear ();
 	}
 
 	void SOCKSServer::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)

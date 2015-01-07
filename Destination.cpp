@@ -387,18 +387,6 @@ namespace client
 		}
 	}	
 
-	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
-		assert(streamRequestComplete);
-		i2p::data::IdentHash identHash;
-		if (i2p::client::context.GetAddressBook ().GetIdentHash (dest, identHash))
-			CreateStream (streamRequestComplete, identHash, port);
-		else
-		{
-			LogPrint (eLogWarning, "Remote destination ", dest, " not found");
-			streamRequestComplete (nullptr);
-		}
-	}
-
 	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port) {
 		assert(streamRequestComplete);
 		const i2p::data::LeaseSet * leaseSet = FindLeaseSet (dest);

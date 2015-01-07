@@ -8,7 +8,7 @@ i2p_SOURCES	= AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  SSUData.cpp Streaming.cpp TransitTunnel.cpp		\
 		  Transports.cpp Tunnel.cpp TunnelEndpoint.cpp		\
 		  TunnelGateway.cpp TunnelPool.cpp UPnP.cpp aes.cpp	\
-		  base64.cpp i2p.cpp util.cpp 		  		\
+		  base64.cpp i2p.cpp util.cpp I2PService.cpp  		\
 		  							\
 		  AddressBook.h CryptoConst.h Daemon.h ElGamal.h	\
 		  Garlic.h HTTPProxy.h HTTPServer.h I2NPProtocol.h	\
@@ -19,7 +19,7 @@ i2p_SOURCES	= AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  TransitTunnel.h Transports.h Tunnel.h TunnelBase.h	\
 		  TunnelConfig.h TunnelEndpoint.h TunnelGateway.h	\
 		  TunnelPool.h UPnP.h aes.h base64.h config.h hmac.h	\
-		  util.h version.h
+		  util.h version.h I2PService.h
 
 AM_LDFLAGS	= @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@		\
 		  @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_REGEX_LIB@		\

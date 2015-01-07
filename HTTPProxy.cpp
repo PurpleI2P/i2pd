@@ -2,16 +2,61 @@
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
+#include <string>
+#include <atomic>
 #include "HTTPProxy.h"
 #include "Identity.h"
+#include "Streaming.h"
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PEndian.h"
+#include "I2PTunnel.h"
 
 namespace i2p
 {
 namespace proxy
 {
+	static const size_t http_buffer_size = 8192;
+	class HTTPProxyHandler: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<HTTPProxyHandler> {
+		private:
+			enum state {
+				GET_METHOD,
+				GET_HOSTNAME,
+				GET_HTTPV,
+				GET_HTTPVNL, //TODO: fallback to finding HOst: header if needed
+				DONE
+			};
+
+			void EnterState(state nstate);
+			bool HandleData(uint8_t *http_buff, std::size_t len);
+			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
+			void Terminate();
+			void AsyncSockRead();
+			void HTTPRequestFailed(/*std::string message*/);
+			void ExtractRequest();
+			bool ValidateHTTPRequest();
+			bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
+			void SentHTTPFailed(const boost::system::error_code & ecode);
+			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
+
+			uint8_t m_http_buff[http_buffer_size];
+			boost::asio::ip::tcp::socket * m_sock;
+			std::string m_request; //Data left to be sent
+			std::string m_url; //URL
+			std::string m_method; //Method
+			std::string m_version; //HTTP version
+			std::string m_address; //Address
+			std::string m_path; //Path
+			int m_port; //Port
+			state m_state;//Parsing state
+
+		public:
+			HTTPProxyHandler(HTTPProxyServer * parent, boost::asio::ip::tcp::socket * sock) : 
+				I2PServiceHandler(parent), m_sock(sock)
+				{ AsyncSockRead(); EnterState(GET_METHOD); }
+			~HTTPProxyHandler() { Terminate(); }
+	};
+
 	void HTTPProxyHandler::AsyncSockRead()
 	{
 		LogPrint(eLogDebug,"--- HTTP Proxy async sock read");
@@ -24,19 +69,15 @@ namespace proxy
 		}
 	}
 
-	void HTTPProxyHandler::Done() {
-		if (m_parent) m_parent->RemoveHandler (shared_from_this ());
-	}
-
 	void HTTPProxyHandler::Terminate() {
-		if (dead.exchange(true)) return;
+		if (Kill()) return;
 		if (m_sock) {
 			LogPrint(eLogDebug,"--- HTTP Proxy close sock");
 			m_sock->close();
 			delete m_sock;
 			m_sock = nullptr;
 		}
-		Done();
+		Done(shared_from_this());
 	}
 
 	/* All hope is lost beyond this point */
@@ -155,8 +196,7 @@ namespace proxy
 		if (HandleData(m_http_buff, len)) {
 			if (m_state == DONE) {
 				LogPrint(eLogInfo,"--- HTTP Proxy requested: ", m_url);
-				m_parent->GetLocalDestination ()->CreateStream (
-						std::bind (&HTTPProxyHandler::HandleStreamRequestComplete,
+				GetOwner()->CreateStream (std::bind (&HTTPProxyHandler::HandleStreamRequestComplete,
 						this, std::placeholders::_1), m_address, m_port);
 			} else {
 				AsyncSockRead();
@@ -178,12 +218,12 @@ namespace proxy
 	void HTTPProxyHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		if (stream) {
-			if (dead.exchange(true)) return;
+			if (Kill()) return;
 			LogPrint (eLogInfo,"--- HTTP Proxy New I2PTunnel connection");
-			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>((i2p::client::I2PTunnel *)m_parent, m_sock, stream);
-			m_parent->AddConnection (connection);
+			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, stream);
+			GetOwner()->AddHandler (connection);
 			connection->I2PConnect (reinterpret_cast<const uint8_t*>(m_request.data()), m_request.size());
-			Done();
+			Done(shared_from_this());
 		} else {
 			LogPrint (eLogError,"--- HTTP Proxy Issue when creating the stream, check the previous warnings for more info.");
 			HTTPRequestFailed(); // TODO: Send correct error message host unreachable
@@ -200,7 +240,6 @@ namespace proxy
 	{
 		m_Acceptor.close();
 		m_Timer.cancel ();
-		ClearConnections ();
 		ClearHandlers();
 	}
 
@@ -209,23 +248,6 @@ namespace proxy
 		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
 		m_Acceptor.async_accept (*newSocket, std::bind (&HTTPProxyServer::HandleAccept, this,
 			std::placeholders::_1, newSocket));
-	}
-
-	void  HTTPProxyServer::AddHandler (std::shared_ptr<HTTPProxyHandler> handler) {
-		std::unique_lock<std::mutex> l(m_HandlersMutex);
-		m_Handlers.insert (handler);
-	}
-
-	void  HTTPProxyServer::RemoveHandler (std::shared_ptr<HTTPProxyHandler> handler)
-	{
-		std::unique_lock<std::mutex> l(m_HandlersMutex);
-		m_Handlers.erase (handler);
-	}
-
-	void  HTTPProxyServer::ClearHandlers ()
-	{
-		std::unique_lock<std::mutex> l(m_HandlersMutex);
-		m_Handlers.clear ();
 	}
 
 	void HTTPProxyServer::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
