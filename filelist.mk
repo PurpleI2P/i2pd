@@ -18,7 +18,7 @@ endif
 # also: Daemon{Linux,Win32}.cpp will be added later
 DAEMON_SRC = $(COMMON_SRC) \
   BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp I2PService.cpp SAM.cpp SOCKS.cpp UPnP.cpp \
-  HTTPServer.cpp HTTPProxy.cpp i2p.cpp
+  HTTPServer.cpp HTTPProxy.cpp I2PControl.cpp i2p.cpp
 
 LIB_SRC := $(COMMON_SRC) \
   api.cpp

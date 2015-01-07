@@ -49,6 +49,7 @@ set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/HTTPProxy.cpp"
   "${CMAKE_SOURCE_DIR}/HTTPServer.cpp"
   "${CMAKE_SOURCE_DIR}/I2PService.cpp"
+  "${CMAKE_SOURCE_DIR}/I2PControl.cpp"	
   "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
   "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
