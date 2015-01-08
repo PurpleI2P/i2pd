@@ -32,5 +32,49 @@ namespace client
 			streamRequestComplete (nullptr);
 		}
 	}
+
+	void TCPIPAcceptor::Start ()
+	{
+		m_Acceptor.listen ();
+		Accept ();
+	}
+
+	void TCPIPAcceptor::Stop ()
+	{
+		m_Acceptor.close();
+		m_Timer.cancel ();
+		ClearHandlers();
+	}
+
+	void TCPIPAcceptor::Accept ()
+	{
+		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
+		m_Acceptor.async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
+			std::placeholders::_1, newSocket));
+	}
+
+	void TCPIPAcceptor::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
+	{
+		if (!ecode)
+		{
+			LogPrint(eLogDebug,"--- ",GetName()," accepted");
+			auto handler = CreateHandler(socket);
+			if (handler) {
+				AddHandler(handler);
+				handler->Handle();
+			} else {
+				socket->close();
+				delete socket;
+			}
+			Accept();
+		}
+		else
+		{
+			if (ecode != boost::asio::error::operation_aborted)
+				LogPrint (eLogError,"--- ",GetName()," Closing socket on accept because: ", ecode.message ());
+			delete socket;
+		}
+	}
+
 }
 }
