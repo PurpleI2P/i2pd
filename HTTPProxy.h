@@ -12,27 +12,16 @@ namespace i2p
 namespace proxy
 {
 	class HTTPProxyHandler;
-	class HTTPProxyServer: public i2p::client::I2PService
+	class HTTPProxyServer: public i2p::client::TCPIPAcceptor
 	{
-		private:
-			std::set<std::shared_ptr<HTTPProxyHandler> > m_Handlers;
-			boost::asio::ip::tcp::acceptor m_Acceptor;
-			boost::asio::deadline_timer m_Timer;
-			std::mutex m_HandlersMutex;
-
-		private:
-
-			void Accept();
-			void HandleAccept(const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+		protected:
+			// Implements TCPIPAcceptor
+			std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(boost::asio::ip::tcp::socket * socket);
+			const char* GetName() { return "HTTP Proxy"; }
 
 		public:
-			HTTPProxyServer(int port) : I2PService(i2p::data::SIGNING_KEY_TYPE_DSA_SHA1),
-				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-				m_Timer (GetService ()) {};
-			~HTTPProxyServer() { Stop(); }
-
-			void Start ();
-			void Stop ();
+			HTTPProxyServer(int port) : TCPIPAcceptor(port, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {}
+			~HTTPProxyServer() {}
 	};
 
 	typedef HTTPProxyServer HTTPProxy;
