@@ -514,41 +514,9 @@ namespace proxy
 		}
 	}
 
-	void SOCKSServer::Start ()
+	std::shared_ptr<i2p::client::I2PServiceHandler> SOCKSServer::CreateHandler(boost::asio::ip::tcp::socket * socket)
 	{
-		m_Acceptor.listen ();
-		Accept ();
-	}
-
-	void SOCKSServer::Stop ()
-	{
-		m_Acceptor.close();
-		m_Timer.cancel ();
-		ClearHandlers();
-	}
-
-	void SOCKSServer::Accept ()
-	{
-		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
-		m_Acceptor.async_accept (*newSocket, std::bind (&SOCKSServer::HandleAccept, this,
-			std::placeholders::_1, newSocket));
-	}
-
-	void SOCKSServer::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
-	{
-		if (!ecode)
-		{
-			LogPrint(eLogDebug,"--- SOCKS accepted");
-			auto handle = std::make_shared<SOCKSHandler> (this, socket);
-			AddHandler(handle);
-			handle->Handle();
-			Accept();
-		}
-		else
-		{
-			LogPrint (eLogError,"--- SOCKS Closing socket on accept because: ", ecode.message ());
-			delete socket;
-		}
+		return std::make_shared<SOCKSHandler> (this, socket);
 	}
 
 }
