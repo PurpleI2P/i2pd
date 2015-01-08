@@ -70,7 +70,6 @@ namespace client
 			const i2p::data::IdentHash * GetIdentHash ();
 			void Accept ();
 			void HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
-			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream, boost::asio::ip::tcp::socket * socket);
 
 		private:
 

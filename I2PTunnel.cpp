@@ -151,6 +151,57 @@ namespace client
 		}
 	}
 
+	/* This handler tries to stablish a connection with the desired server and dies if it fails to do so */
+	class I2PClientTunnelHandler: public I2PServiceHandler, public std::enable_shared_from_this<I2PClientTunnelHandler>
+	{
+		public:
+			I2PClientTunnelHandler (I2PClientTunnel * parent, i2p::data::IdentHash destination,
+						boost::asio::ip::tcp::socket * socket):
+				I2PServiceHandler(parent), m_DestinationIdentHash(destination), m_Socket(socket) {}
+			void Handle();
+			void Terminate();
+		private:
+			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
+			i2p::data::IdentHash m_DestinationIdentHash;
+			boost::asio::ip::tcp::socket * m_Socket;
+	};
+
+	void I2PClientTunnelHandler::Handle()
+	{
+		GetOwner()->GetLocalDestination ()->CreateStream (std::bind (&I2PClientTunnelHandler::HandleStreamRequestComplete,
+								shared_from_this(), std::placeholders::_1), m_DestinationIdentHash);
+	}
+
+	void I2PClientTunnelHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
+	{
+		if (stream)
+		{
+			if (Kill()) return;
+			LogPrint (eLogInfo,"New I2PTunnel connection");
+			auto connection = std::make_shared<I2PTunnelConnection>(GetOwner(), m_Socket, stream);
+			GetOwner()->AddHandler (connection);
+			connection->I2PConnect ();
+			Done(shared_from_this());
+		}
+		else
+		{
+			LogPrint (eLogError,"I2P Client Tunnel Issue when creating the stream, check the previous warnings for more info.");
+			Terminate();
+		}
+	}
+
+	void I2PClientTunnelHandler::Terminate()
+	{
+		if (Kill()) return;
+		if (m_Socket)
+		{
+			m_Socket->close();
+			delete m_Socket;
+			m_Socket = nullptr;
+		}
+		Done(shared_from_this());
+	}
+
 	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination): 
 		I2PService (localDestination),
 		m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
@@ -208,12 +259,15 @@ namespace client
 		{
 			const i2p::data::IdentHash *identHash = GetIdentHash();
 			if (identHash)
-				GetLocalDestination ()->CreateStream (
-					std::bind (&I2PClientTunnel::HandleStreamRequestComplete,
-					this, std::placeholders::_1, socket), *identHash);
+			{
+				auto connection = std::make_shared<I2PClientTunnelHandler>(this, *identHash, socket);
+				AddHandler (connection);
+				connection->Handle ();
+			}
 			else
 			{
 				LogPrint (eLogError,"Closing socket");
+				socket->close();
 				delete socket;
 			}
 			Accept ();
@@ -221,22 +275,6 @@ namespace client
 		else
 		{
 			LogPrint (eLogError,"Closing socket on accept because: ", ecode.message ());
-			delete socket;
-		}
-	}
-
-	void I2PClientTunnel::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream, boost::asio::ip::tcp::socket * socket)
-	{
-		if (stream)
-		{
-			LogPrint (eLogInfo,"New I2PTunnel connection");
-			auto connection = std::make_shared<I2PTunnelConnection>(this, socket, stream);
-			AddHandler (connection);
-			connection->I2PConnect ();
-		}
-		else
-		{
-			LogPrint (eLogError,"Issue when creating the stream, check the previous warnings for more info.");
 			delete socket;
 		}
 	}
