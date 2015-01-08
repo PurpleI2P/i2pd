@@ -208,6 +208,7 @@ namespace client
 
 	void I2PClientTunnel::Start ()
 	{
+		TCPIPAcceptor::Start ();
 		GetIdentHash();
 	}
 
