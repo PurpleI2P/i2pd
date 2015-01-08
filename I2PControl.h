@@ -20,6 +20,10 @@ namespace client
 	const char I2P_CONTROL_PROPERTY_METHOD[] = "method";
 	const char I2P_CONTROL_PROPERTY_TOKEN[] = "Token";
 	const char I2P_CONTROL_PROPERTY_PARAMS[] = "params";
+	const char I2P_CONTROL_PROPERTY_RESULT[] = "result";
+
+	// methods	
+	const char I2P_CONTROL_METHOD_ROUTER_INFO[] = "RouterInfo";	
 
 	class I2PControlService
 	{
@@ -39,6 +43,15 @@ namespace client
 			void ReadRequest (std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			void HandleRequestReceived (const boost::system::error_code& ecode, size_t bytes_transferred, 
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
+			void SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+				std::shared_ptr<I2PControlBuffer> buf, const std::string& id, 
+				const std::map<std::string, std::string>& results);
+			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
+				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
+
+		private:
+
+			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
 
 		private:
 
@@ -48,7 +61,7 @@ namespace client
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;	
 
-			typedef void (I2PControlService::*MethodHandler)(const std::map<std::string, std::string>& params);
+			typedef void (I2PControlService::*MethodHandler)(const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
 			std::map<std::string, MethodHandler> m_MethodHanders;		
 	};
 }

@@ -12,6 +12,7 @@ namespace client
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
 	{
+		m_MethodHanders[I2P_CONTROL_METHOD_ROUTER_INFO] = &I2PControlService::RouterInfoHandler; 
 	}
 
 	I2PControlService::~I2PControlService ()
@@ -113,11 +114,48 @@ namespace client
 					if (!v.first.empty())
 						params[v.first] = v.second.data ();
 				}
-				(this->*(it->second))(params);
+				std::map<std::string, std::string> results;
+				(this->*(it->second))(params, results);
+				SendResponse (socket, buf, pt.get<std::string>(I2P_CONTROL_PROPERTY_ID), results);
 			}	
 			else
 				LogPrint (eLogWarning, "Unknown I2PControl method ", method);
 		}
+	}
+
+	void I2PControlService::SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+		std::shared_ptr<I2PControlBuffer> buf, const std::string& id, 
+		const std::map<std::string, std::string>& results)
+	{
+		boost::property_tree::ptree ptr;
+		for (auto& result: results)
+			ptr.put (result.first, result.second);
+
+		boost::property_tree::ptree pt;
+		pt.put (I2P_CONTROL_PROPERTY_ID, id);
+		pt.put_child (I2P_CONTROL_PROPERTY_RESULT, ptr);
+		pt.put ("jsonrpc", "2.0");		
+
+		std::ostringstream ss;
+		boost::property_tree::write_json (ss, pt, false);
+		size_t len = ss.str ().length ();
+		memcpy (buf->data (), ss.str ().c_str (), len);
+		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), len), 
+			boost::asio::transfer_all (),
+			std::bind(&I2PControlService::HandleResponseSent, this, 
+				std::placeholders::_1, std::placeholders::_2, socket, buf));
+	}
+
+	void I2PControlService::HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
+		std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf)
+	{
+		if (ecode)
+			LogPrint (eLogError, "I2PControl write error: ", ecode.message ());
+		socket->close ();
+	}
+
+	void I2PControlService::RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results)
+	{
 	}
 }
 }

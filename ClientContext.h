@@ -9,6 +9,7 @@
 #include "SAM.h"
 #include "BOB.h"
 #include "AddressBook.h"
+#include "I2PControl.h"
 
 namespace i2p
 {
@@ -49,6 +50,7 @@ namespace client
 			I2PServerTunnel * m_ServerTunnel;
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
+			I2PControlService * m_I2PControlService;
 
 		public:
 			// for HTTP

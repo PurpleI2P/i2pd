@@ -12,7 +12,8 @@ namespace client
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
 		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_IrcTunnel (nullptr),
-		m_ServerTunnel (nullptr), m_SamBridge (nullptr), m_BOBCommandChannel (nullptr)
+		m_ServerTunnel (nullptr), m_SamBridge (nullptr), m_BOBCommandChannel (nullptr),
+		m_I2PControlService (nullptr)
 	{
 	}
 	
@@ -24,6 +25,7 @@ namespace client
 		delete m_ServerTunnel;
 		delete m_SamBridge;
 		delete m_BOBCommandChannel;
+		delete m_I2PControlService;
 	}
 	
 	void ClientContext::Start ()
@@ -75,6 +77,13 @@ namespace client
 			m_BOBCommandChannel->Start ();
 			LogPrint("BOB command channel started");
 		} 
+		int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
+		if (i2pcontrolPort)
+		{
+			m_I2PControlService = new I2PControlService (i2pcontrolPort);
+			m_I2PControlService->Start ();
+			LogPrint("I2PControl started");
+		}
 		m_AddressBook.StartSubscriptions ();
 	}
 		
@@ -117,6 +126,13 @@ namespace client
 			m_BOBCommandChannel = nullptr;
 			LogPrint("BOB command channel stoped");	
 		}			
+		if (m_I2PControlService)
+		{
+			m_I2PControlService->Stop ();
+			delete m_I2PControlService; 
+			m_I2PControlService = nullptr;
+			LogPrint("I2PControl stoped");	
+		}	
 
 		for (auto it: m_Destinations)
 		{	
