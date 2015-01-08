@@ -18,12 +18,20 @@ namespace client
 
 	const char I2P_CONTROL_PROPERTY_ID[] = "id";
 	const char I2P_CONTROL_PROPERTY_METHOD[] = "method";
-	const char I2P_CONTROL_PROPERTY_TOKEN[] = "Token";
 	const char I2P_CONTROL_PROPERTY_PARAMS[] = "params";
 	const char I2P_CONTROL_PROPERTY_RESULT[] = "result";
 
 	// methods	
+	const char I2P_CONTROL_METHOD_AUTHENTICATE[] = "Authenticate";
+	const char I2P_CONTROL_METHOD_ECHO[] = "Echo";		
 	const char I2P_CONTROL_METHOD_ROUTER_INFO[] = "RouterInfo";	
+
+	// params
+	const char I2P_CONTROL_PARAM_API[] = "API";			
+	const char I2P_CONTROL_PARAM_PASSWORD[] = "Password";	
+	const char I2P_CONTROL_PARAM_TOKEN[] = "Token";	
+	const char I2P_CONTROL_PARAM_ECHO[] = "Echo";	
+	const char I2P_CONTROL_PARAM_RESULT[] = "Result";	
 
 	class I2PControlService
 	{
@@ -51,6 +59,8 @@ namespace client
 
 		private:
 
+			void AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
+			void EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
 			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
 
 		private:

@@ -1,7 +1,9 @@
 #include <sstream>
+#include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include "Log.h"
+#include "Timestamp.h"
 #include "I2PControl.h"
 
 namespace i2p
@@ -12,6 +14,8 @@ namespace client
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
 	{
+		m_MethodHanders[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 
+		m_MethodHanders[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
 		m_MethodHanders[I2P_CONTROL_METHOD_ROUTER_INFO] = &I2PControlService::RouterInfoHandler; 
 	}
 
@@ -100,26 +104,37 @@ namespace client
 		}
 		else
 		{
-			std::stringstream ss;
-			ss.write (buf->data (), bytes_transferred);
-			boost::property_tree::ptree pt;
-			boost::property_tree::read_json (ss, pt);
-			std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
-			auto it = m_MethodHanders.find (method);
-			if (it != m_MethodHanders.end ())
+			try
 			{
-				std::map<std::string, std::string> params;
-				for (auto& v: pt.get_child (I2P_CONTROL_PROPERTY_PARAMS))
+				std::stringstream ss;
+				ss.write (buf->data (), bytes_transferred);
+				boost::property_tree::ptree pt;
+				boost::property_tree::read_json (ss, pt);
+				std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
+				auto it = m_MethodHanders.find (method);
+				if (it != m_MethodHanders.end ())
 				{
-					if (!v.first.empty())
-						params[v.first] = v.second.data ();
-				}
-				std::map<std::string, std::string> results;
-				(this->*(it->second))(params, results);
-				SendResponse (socket, buf, pt.get<std::string>(I2P_CONTROL_PROPERTY_ID), results);
-			}	
-			else
-				LogPrint (eLogWarning, "Unknown I2PControl method ", method);
+					std::map<std::string, std::string> params;
+					for (auto& v: pt.get_child (I2P_CONTROL_PROPERTY_PARAMS))
+					{
+						if (!v.first.empty())
+							params[v.first] = v.second.data ();
+					}
+					std::map<std::string, std::string> results;
+					(this->*(it->second))(params, results);
+					SendResponse (socket, buf, pt.get<std::string>(I2P_CONTROL_PROPERTY_ID), results);
+				}	
+				else
+					LogPrint (eLogWarning, "Unknown I2PControl method ", method);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "I2PControl handle request: ", ex.what ());
+			}
+			catch (...)
+			{
+				LogPrint (eLogError, "I2PControl handle request unknown exception");
+			}
 		}
 	}
 
@@ -152,6 +167,24 @@ namespace client
 		if (ecode)
 			LogPrint (eLogError, "I2PControl write error: ", ecode.message ());
 		socket->close ();
+	}
+
+// handlers
+
+	void I2PControlService::AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results)
+	{
+		const std::string& api = params.at (I2P_CONTROL_PARAM_API);
+		const std::string& password = params.at (I2P_CONTROL_PARAM_PASSWORD);
+		LogPrint (eLogDebug, "I2PControl Authenticate API=", api, " Password=", password);
+		results[I2P_CONTROL_PARAM_API] = api;
+		results[I2P_CONTROL_PARAM_TOKEN] = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
+	}	
+
+	void I2PControlService::EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results)
+	{
+		const std::string& echo = params.at (I2P_CONTROL_PARAM_ECHO);
+		LogPrint (eLogDebug, "I2PControl Echo Echo=", echo);
+		results[I2P_CONTROL_PARAM_RESULT] = echo;	
 	}
 
 	void I2PControlService::RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results)
