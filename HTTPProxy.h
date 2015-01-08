@@ -11,7 +11,6 @@ namespace i2p
 {
 namespace proxy
 {
-	class HTTPProxyHandler;
 	class HTTPProxyServer: public i2p::client::TCPIPAcceptor
 	{
 		protected:

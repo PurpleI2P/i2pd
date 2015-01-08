@@ -76,6 +76,7 @@ namespace client
 			std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
 	};
 
+	/* TODO: support IPv6 too */
 	//This is a service that listens for connections on the IP network and interacts with I2P
 	class TCPIPAcceptor: public I2PService
 	{

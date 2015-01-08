@@ -203,29 +203,17 @@ namespace client
 	}
 
 	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination): 
-		I2PService (localDestination),
-		m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-		m_Timer (GetService ()), m_Destination (destination), m_DestinationIdentHash (nullptr)
-	{
-	}	
+		TCPIPAcceptor (port,localDestination), m_Destination (destination), m_DestinationIdentHash (nullptr)
+	{}	
 
-	I2PClientTunnel::~I2PClientTunnel ()
-	{
-		Stop ();
-	}
-	
 	void I2PClientTunnel::Start ()
 	{
 		GetIdentHash();
-		m_Acceptor.listen ();
-		Accept ();
 	}
 
 	void I2PClientTunnel::Stop ()
 	{
-		m_Acceptor.close();
-		m_Timer.cancel ();
-		ClearHandlers ();
+		TCPIPAcceptor::Stop();
 		auto *originalIdentHash = m_DestinationIdentHash;
 		m_DestinationIdentHash = nullptr;
 		delete originalIdentHash;
@@ -245,38 +233,13 @@ namespace client
 		return m_DestinationIdentHash;
 	}
 
-	
-	void I2PClientTunnel::Accept ()
+	std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(boost::asio::ip::tcp::socket * socket)
 	{
-		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
-		m_Acceptor.async_accept (*newSocket, std::bind (&I2PClientTunnel::HandleAccept, this,
-			std::placeholders::_1, newSocket));
-	}	
-
-	void I2PClientTunnel::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
-	{
-		if (!ecode)
-		{
-			const i2p::data::IdentHash *identHash = GetIdentHash();
-			if (identHash)
-			{
-				auto connection = std::make_shared<I2PClientTunnelHandler>(this, *identHash, socket);
-				AddHandler (connection);
-				connection->Handle ();
-			}
-			else
-			{
-				LogPrint (eLogError,"Closing socket");
-				socket->close();
-				delete socket;
-			}
-			Accept ();
-		}
+		const i2p::data::IdentHash *identHash = GetIdentHash();
+		if (identHash)
+			return  std::make_shared<I2PClientTunnelHandler>(this, *identHash, socket);
 		else
-		{
-			LogPrint (eLogError,"Closing socket on accept because: ", ecode.message ());
-			delete socket;
-		}
+			return nullptr;
 	}
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, ClientDestination * localDestination): 
