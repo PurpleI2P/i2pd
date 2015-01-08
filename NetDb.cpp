@@ -162,7 +162,7 @@ namespace data
 					}	
 					lastSave = ts;
 				}	
-				if (ts - lastPublish >= 600) // publish every 10 minutes
+				if (ts - lastPublish >= 2400) // publish every 40 minutes
 				{
 					Publish ();
 					lastPublish = ts;
