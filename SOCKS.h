@@ -11,28 +11,16 @@ namespace i2p
 {
 namespace proxy
 {
-	class SOCKSHandler;
-	class SOCKSServer: public i2p::client::I2PService
+	class SOCKSServer: public i2p::client::TCPIPAcceptor
 	{
-		private:
-			std::set<std::shared_ptr<SOCKSHandler> > m_Handlers;
-			boost::asio::ip::tcp::acceptor m_Acceptor;
-			boost::asio::deadline_timer m_Timer;
-			std::mutex m_HandlersMutex;
-
-		private:
-
-			void Accept();
-			void HandleAccept(const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+		protected:
+			// Implements TCPIPAcceptor
+			std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(boost::asio::ip::tcp::socket * socket);
+			const char* GetName() { return "SOCKS"; }
 
 		public:
-			SOCKSServer(int port) : I2PService(nullptr),
-				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
-				m_Timer (GetService ()) {};
-			~SOCKSServer() { Stop(); }
-
-			void Start ();
-			void Stop ();
+			SOCKSServer(int port) : TCPIPAcceptor(port) {}
+			~SOCKSServer() {}
 	};
 
 	typedef SOCKSServer SOCKSProxy;

@@ -46,6 +46,7 @@ namespace client
 			virtual void Start () = 0;
 			virtual void Stop () = 0;
 
+			virtual const char* GetName() { return "Generic I2P Service"; }
 		private:
 
 			ClientDestination * m_LocalDestination;
@@ -59,18 +60,48 @@ namespace client
 		public:
 			I2PServiceHandler(I2PService * parent) : m_Service(parent), m_Dead(false) { }
 			virtual ~I2PServiceHandler() { }
+			//If you override this make sure you call it from the children
+			virtual void Handle() {}; //Start handling the socket
 		protected:
 			// Call when terminating or handing over to avoid race conditions
-			inline bool Kill() { return m_Dead.exchange(true); }
+			inline bool Kill () { return m_Dead.exchange(true); }
 			// Call to know if the handler is dead
-			inline bool Dead() { return m_Dead; }
+			inline bool Dead () { return m_Dead; }
 			// Call when done to clean up (make sure Kill is called first)
-			inline void Done(std::shared_ptr<I2PServiceHandler> me) { if(m_Service) m_Service->RemoveHandler(me); }
+			inline void Done (std::shared_ptr<I2PServiceHandler> me) { if(m_Service) m_Service->RemoveHandler(me); }
 			// Call to talk with the owner
 			inline I2PService * GetOwner() { return m_Service; }
 		private:
 			I2PService *m_Service;
 			std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
+	};
+
+	/* TODO: support IPv6 too */
+	//This is a service that listens for connections on the IP network and interacts with I2P
+	class TCPIPAcceptor: public I2PService
+	{
+		public:
+			TCPIPAcceptor (int port, ClientDestination * localDestination = nullptr) :
+				I2PService(localDestination),
+				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+				m_Timer (GetService ()) {}
+			TCPIPAcceptor (int port, i2p::data::SigningKeyType kt) :
+				I2PService(kt),
+				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+				m_Timer (GetService ()) {}
+			virtual ~TCPIPAcceptor () { TCPIPAcceptor::Stop(); }
+			//If you override this make sure you call it from the children
+			void Start ();
+			//If you override this make sure you call it from the children
+			void Stop ();
+		protected:
+			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(boost::asio::ip::tcp::socket * socket) = 0;
+			virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
+		private:
+			void Accept();
+			void HandleAccept(const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::deadline_timer m_Timer;
 	};
 }
 }

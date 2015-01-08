@@ -231,41 +231,9 @@ namespace proxy
 		}
 	}
 
-	void HTTPProxyServer::Start ()
+	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(boost::asio::ip::tcp::socket * socket)
 	{
-		m_Acceptor.listen ();
-		Accept ();
-	}
-
-	void HTTPProxyServer::Stop ()
-	{
-		m_Acceptor.close();
-		m_Timer.cancel ();
-		ClearHandlers();
-	}
-
-	void HTTPProxyServer::Accept ()
-	{
-		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
-		m_Acceptor.async_accept (*newSocket, std::bind (&HTTPProxyServer::HandleAccept, this,
-			std::placeholders::_1, newSocket));
-	}
-
-	void HTTPProxyServer::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
-	{
-		if (!ecode)
-		{
-			LogPrint(eLogDebug,"--- HTTP Proxy accepted");
-			auto handler = std::make_shared<HTTPProxyHandler> (this, socket);
-			AddHandler(handler);
-			handler->Handle();
-			Accept();
-		}
-		else
-		{
-			LogPrint (eLogError,"--- HTTP Proxy Closing socket on accept because: ", ecode.message ());
-			delete socket;
-		}
+		return std::make_shared<HTTPProxyHandler> (this, socket);
 	}
 
 }

@@ -55,12 +55,18 @@ namespace client
 			bool m_IsQuiet; // don't send destination
 	};
 
-	class I2PClientTunnel: public I2PService
+	class I2PClientTunnel: public TCPIPAcceptor
 	{
+		protected:
+
+			// Implements TCPIPAcceptor
+			std::shared_ptr<I2PServiceHandler> CreateHandler(boost::asio::ip::tcp::socket * socket);
+			const char* GetName() { return "I2P Client Tunnel"; }
+
 		public:
 
 			I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination = nullptr);
-			~I2PClientTunnel ();				
+			~I2PClientTunnel () {}
 	
 			void Start ();
 			void Stop ();
@@ -68,14 +74,7 @@ namespace client
 		private:
 
 			const i2p::data::IdentHash * GetIdentHash ();
-			void Accept ();
-			void HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
-			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream, boost::asio::ip::tcp::socket * socket);
 
-		private:
-
-			boost::asio::ip::tcp::acceptor m_Acceptor;
-			boost::asio::deadline_timer m_Timer;
 			std::string m_Destination;
 			const i2p::data::IdentHash * m_DestinationIdentHash;
 	};	
