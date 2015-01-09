@@ -33,6 +33,10 @@ namespace client
 	const char I2P_CONTROL_PARAM_ECHO[] = "Echo";	
 	const char I2P_CONTROL_PARAM_RESULT[] = "Result";	
 
+	// RouterInfo params
+	const char I2P_CONTROL_PARAM_RI_NETDB_KNOWNPEERS[] = "i2p.router.netdb.knownpeers";
+			
+
 	class I2PControlService
 	{
 		public:

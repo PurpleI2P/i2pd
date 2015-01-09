@@ -3,6 +3,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include "Log.h"
+#include "NetDb.h"
 #include "Timestamp.h"
 #include "I2PControl.h"
 
@@ -117,6 +118,7 @@ namespace client
 					std::map<std::string, std::string> params;
 					for (auto& v: pt.get_child (I2P_CONTROL_PROPERTY_PARAMS))
 					{
+						LogPrint (eLogInfo, v.first);
 						if (!v.first.empty())
 							params[v.first] = v.second.data ();
 					}
@@ -189,6 +191,13 @@ namespace client
 
 	void I2PControlService::RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
 	{
+		LogPrint (eLogDebug, "I2PControl RouterInfo");
+		for (auto& it :params)
+		{
+			LogPrint (eLogDebug, it.first);
+			if (it.first == I2P_CONTROL_PARAM_RI_NETDB_KNOWNPEERS)
+				results[I2P_CONTROL_PARAM_RI_NETDB_KNOWNPEERS] = boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ());
+		}
 	}
 }
 }
