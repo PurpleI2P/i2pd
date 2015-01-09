@@ -464,14 +464,24 @@ namespace client
 		{
 			LeaseSetRequest * request = new LeaseSetRequest (m_Service);
 			request->requestComplete = requestComplete;
-			m_LeaseSetRequests[dest] = request;
-			if (!SendLeaseSetRequest (dest, floodfill, request))
+			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, LeaseSetRequest *>(dest,request));
+			if (ret.second) // inserted
 			{
-				// request failed
+				if (!SendLeaseSetRequest (dest, floodfill, request))
+				{
+					// request failed
+					if (request->requestComplete) request->requestComplete (false);
+					delete request;
+					m_LeaseSetRequests.erase (dest);
+				}
+			}	
+			else // duplicate
+			{
+				LogPrint (eLogError, "Request of ", dest.ToBase64 (), " is pending already");
+				// TODO: queue up requests
 				if (request->requestComplete) request->requestComplete (false);
 				delete request;
-				m_LeaseSetRequests.erase (dest);
-			}		
+			}	
 		}	
 		else
 			LogPrint (eLogError, "No floodfills found");	
