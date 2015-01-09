@@ -144,8 +144,7 @@ namespace client
 	{
 		boost::property_tree::ptree ptr;
 		for (auto& result: results)
-			ptr.put (result.first, result.second);
-		ptr.put (boost::property_tree::ptree::path_type ("xxx.yyy",'/'), "zzz");
+			ptr.put (boost::property_tree::ptree::path_type (result.first, '/'), result.second);
 
 		boost::property_tree::ptree pt;
 		pt.put (I2P_CONTROL_PROPERTY_ID, id);
