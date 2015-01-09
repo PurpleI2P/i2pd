@@ -59,9 +59,9 @@ namespace client
 
 		private:
 
-			void AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
-			void EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
-			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
+			void AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
+			void EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
+			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 
 		private:
 
@@ -71,7 +71,7 @@ namespace client
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;	
 
-			typedef void (I2PControlService::*MethodHandler)(const std::map<std::string, std::string>& params, std::map<std::string, std::string> results);
+			typedef void (I2PControlService::*MethodHandler)(const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			std::map<std::string, MethodHandler> m_MethodHanders;		
 	};
 }

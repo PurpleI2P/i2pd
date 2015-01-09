@@ -171,7 +171,7 @@ namespace client
 
 // handlers
 
-	void I2PControlService::AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results)
+	void I2PControlService::AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
 	{
 		const std::string& api = params.at (I2P_CONTROL_PARAM_API);
 		const std::string& password = params.at (I2P_CONTROL_PARAM_PASSWORD);
@@ -180,14 +180,14 @@ namespace client
 		results[I2P_CONTROL_PARAM_TOKEN] = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
 	}	
 
-	void I2PControlService::EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results)
+	void I2PControlService::EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
 	{
 		const std::string& echo = params.at (I2P_CONTROL_PARAM_ECHO);
 		LogPrint (eLogDebug, "I2PControl Echo Echo=", echo);
 		results[I2P_CONTROL_PARAM_RESULT] = echo;	
 	}
 
-	void I2PControlService::RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string> results)
+	void I2PControlService::RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
 	{
 	}
 }
