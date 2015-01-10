@@ -109,7 +109,7 @@ namespace data
 	
 	void NetDb::Run ()
 	{
-		uint32_t lastSave = 0, lastPublish = 0;
+		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0;
 		m_IsRunning = true;
 		while (m_IsRunning)
 		{	
@@ -144,11 +144,8 @@ namespace data
 				else 				
 				{
 					if (!m_IsRunning) break;
-					// if no new DatabaseStore coming, explore it
 					ManageRequests ();
-					auto numRouters = m_RouterInfos.size ();
-					Explore (numRouters < 1500 ? 5 : 1);
-				}	
+				}
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastSave >= 60) // save routers, manage leasesets and validate subscriptions every minute
@@ -164,6 +161,18 @@ namespace data
 				{
 					Publish ();
 					lastPublish = ts;
+				}	
+				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
+				{	
+					auto numRouters = m_RouterInfos.size ();
+					if (numRouters < 2500 || ts - lastExploratory >= 90)
+					{	
+						numRouters = 800/numRouters;
+						if (numRouters < 1) numRouters = 1;
+						if (numRouters > 9) numRouters = 9;						
+						Explore (numRouters);
+						lastExploratory = ts;
+					}	
 				}	
 			}
 			catch (std::exception& ex)
@@ -641,8 +650,8 @@ namespace data
 	{	
 		// new requests
 		auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
-		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : i2p::tunnel::tunnels.GetNextOutboundTunnel ();
-		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : i2p::tunnel::tunnels.GetNextInboundTunnel ();
+		auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
+		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
 		bool throughTunnels = outbound && inbound;
 		
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
