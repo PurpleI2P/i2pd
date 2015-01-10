@@ -610,5 +610,18 @@ namespace tunnel
 					i2p::context.GetSharedRouterInfo ()
 				}));
 	}	
+
+	int Tunnels::GetTransitTunnelsExpirationTimeout ()
+	{
+		int timeout = 0;
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
+		for (auto it: m_TransitTunnels)
+		{
+			int t = it.second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT - ts;
+			if (t > timeout) timeout = t;
+		}	
+		return timeout;
+	}	
 }
 }

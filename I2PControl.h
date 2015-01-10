@@ -25,7 +25,8 @@ namespace client
 	const char I2P_CONTROL_METHOD_AUTHENTICATE[] = "Authenticate";
 	const char I2P_CONTROL_METHOD_ECHO[] = "Echo";		
 	const char I2P_CONTROL_METHOD_ROUTER_INFO[] = "RouterInfo";	
-
+	const char I2P_CONTROL_METHOD_ROUTER_MANAGER[] = "RouterManager";	
+	
 	// params
 	const char I2P_CONTROL_PARAM_API[] = "API";			
 	const char I2P_CONTROL_PARAM_PASSWORD[] = "Password";	
@@ -36,7 +37,10 @@ namespace client
 	// RouterInfo params
 	const char I2P_CONTROL_PARAM_RI_NETDB_KNOWNPEERS[] = "i2p.router.netdb.knownpeers";
 			
-
+	// RouterManager params
+	const char I2P_CONTROL_PARAM_ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
+	const char I2P_CONTROL_PARAM_ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
+	
 	class I2PControlService
 	{
 		public:
@@ -66,14 +70,16 @@ namespace client
 			void AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
-
+			void RouterManagerHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
+			
 		private:
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 
 			boost::asio::io_service m_Service;
-			boost::asio::ip::tcp::acceptor m_Acceptor;	
+			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::deadline_timer m_ShutdownTimer;
 
 			typedef void (I2PControlService::*MethodHandler)(const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			std::map<std::string, MethodHandler> m_MethodHanders;		

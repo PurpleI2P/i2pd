@@ -123,6 +123,7 @@ namespace tunnel
 			OutboundTunnel * GetNextOutboundTunnel ();
 			TunnelPool * GetExploratoryPool () const { return m_ExploratoryPool; };
 			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
+			int GetTransitTunnelsExpirationTimeout ();
 			void AddTransitTunnel (TransitTunnel * tunnel);
 			void AddOutboundTunnel (OutboundTunnel * newTunnel);
 			void AddInboundTunnel (InboundTunnel * newTunnel);
