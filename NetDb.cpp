@@ -29,7 +29,6 @@ namespace data
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 
 		    &m_ExcludedPeers);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
-		m_LastRouter = router;
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}	
@@ -39,7 +38,6 @@ namespace data
 		I2NPMessage * msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
-		m_LastRouter = nullptr;
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}	
@@ -508,51 +506,7 @@ namespace data
 							LogPrint (key, " was not found on 7 floodfills");
 					}	
 				}	
-				
-				for (int i = 0; i < num; i++)
-				{
-					uint8_t * router = buf + 33 + i*32;
-					char peerHash[48];
-					int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
-					peerHash[l1] = 0;
-					LogPrint (i,": ", peerHash);
 
-					if (dest->IsExploratory ())
-					{	
-						auto r = FindRouter (router); 
-						if (!r || i2p::util::GetMillisecondsSinceEpoch () > r->GetTimestamp () + 3600*1000LL) 
-						{	
-							// router with ident not found or too old (1 hour)
-							LogPrint ("Found new/outdated router. Requesting RouterInfo ...");
-							if (outbound && inbound && dest->GetLastRouter ())
-							{
-								RequestedDestination * d1 = CreateRequestedDestination (router, false);
-								auto msg = d1->CreateRequestMessage (dest->GetLastRouter (), inbound);
-								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-									{ 
-										i2p::tunnel::eDeliveryTypeRouter,
-										dest->GetLastRouter ()->GetIdentHash (), 0, msg
-									});
-							}	
-							else
-								RequestDestination (router);
-						}
-						else
-							LogPrint ("Bayan");
-					}	
-					else
-					{		
-						auto r = FindRouter (router); 
-						// do we have that floodfill router in our database?
-						if (!r) 
-						{	
-							// request router
-							LogPrint ("Found new floodfill. Request it");
-							RequestDestination (router);
-						}	
-					}						
-				}
-				
 				if (outbound && msgs.size () > 0)
 					outbound->SendTunnelDataMsg (msgs);	
 				if (deleteDest)
@@ -569,20 +523,29 @@ namespace data
 				m_RequestedDestinations.erase (it);
 			}	
 		}
-		else
-		{	
+		else	
 			LogPrint ("Requested destination for ", key, " not found");
-			// it might contain new routers
-			for (int i = 0; i < num; i++)
-			{
-				IdentHash router (buf + 33 + i*32);
-				if (!FindRouter (router))
-				{	
-					LogPrint ("New router ", router.ToBase64 (), " found. Request it");
-					RequestDestination (router);
-				}	
-			}	
+
+		// try responses
+		for (int i = 0; i < num; i++)
+		{
+			uint8_t * router = buf + 33 + i*32;
+			char peerHash[48];
+			int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
+			peerHash[l1] = 0;
+			LogPrint (i,": ", peerHash);
+
+			auto r = FindRouter (router); 
+			if (!r || i2p::util::GetMillisecondsSinceEpoch () > r->GetTimestamp () + 3600*1000LL) 
+			{	
+				// router with ident not found or too old (1 hour)
+				LogPrint ("Found new/outdated router. Requesting RouterInfo ...");
+				RequestDestination (router);
+			}
+			else
+				LogPrint ("Bayan");	
 		}	
+		
 		i2p::DeleteI2NPMessage (msg);
 	}	
 	

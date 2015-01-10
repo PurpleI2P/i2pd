@@ -31,7 +31,6 @@ namespace data
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
 			const std::set<IdentHash>& GetExcludedPeers () { return m_ExcludedPeers; };
 			void ClearExcludedPeers ();
-			std::shared_ptr<const RouterInfo> GetLastRouter () const { return m_LastRouter; };
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
 			uint64_t GetCreationTime () const { return m_CreationTime; };
@@ -43,7 +42,6 @@ namespace data
 			IdentHash m_Destination;
 			bool m_IsExploratory;
 			std::set<IdentHash> m_ExcludedPeers;
-			std::shared_ptr<const RouterInfo> m_LastRouter;
 			uint64_t m_CreationTime;
 	};	
 	
