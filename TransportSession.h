@@ -6,6 +6,7 @@
 #include <memory>
 #include "Identity.h"
 #include "RouterInfo.h"
+#include "I2NPProtocol.h"
 
 namespace i2p
 {
@@ -64,6 +65,8 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo> GetRemoteRouter () { return m_RemoteRouter; };
 			const i2p::data::IdentityEx& GetRemoteIdentity () { return m_RemoteIdentity; };
 
+			virtual void SendI2NPMessage (I2NPMessage * msg) = 0;
+			
 		protected:
 
 			std::shared_ptr<const i2p::data::RouterInfo> m_RemoteRouter;

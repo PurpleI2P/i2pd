@@ -285,27 +285,26 @@ namespace transport
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
-		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
-			// we send it to ourself
-			i2p::HandleI2NPMessage (msg);
-		else
-			m_Service.post (boost::bind (&Transports::PostMessage, this, ident, msg));                             
+		m_Service.post (boost::bind (&Transports::PostMessage, this, ident, msg));                             
 	}	
 
 	void Transports::PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
-		auto session = FindNTCPSession (ident);
-		if (session)
-			session->SendI2NPMessage (msg);
-		else
+		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
+		{	
+			// we send it to ourself
+			i2p::HandleI2NPMessage (msg);
+			return;
+		}	
+		std::shared_ptr<TransportSession> session = FindNTCPSession (ident);
+		if (!session)
 		{
 			auto r = netdb.FindRouter (ident);
 			if (r)
 			{	
-				auto ssuSession = m_SSUServer ? m_SSUServer->FindSession (r) : nullptr;
-				if (ssuSession)
-					ssuSession->SendI2NPMessage (msg);
-				else
+				if (m_SSUServer)
+					session = m_SSUServer->FindSession (r);
+				if (!session)
 				{	
 					// existing session not found. create new 
 					// try NTCP first if message size < 16K
@@ -314,20 +313,19 @@ namespace transport
 					{	
 						auto s = std::make_shared<NTCPSession> (m_Service, r);
 						AddNTCPSession (s);
-						s->SendI2NPMessage (msg);
+						session = s;
 						Connect (address->host, address->port, s);
 					}	
 					else
 					{	
 						// then SSU					
-						auto s = m_SSUServer ? m_SSUServer->GetSession (r) : nullptr;
-						if (s)
-							s->SendI2NPMessage (msg);
-						else
+						if (m_SSUServer)
+							session = m_SSUServer->GetSession (r);
+						if (!session)
 						{
 							LogPrint ("No NTCP and SSU addresses available");
-							DeleteI2NPMessage (msg); 
-						}
+							DeleteI2NPMessage (msg);
+						}	
 					}
 				}	
 			}
@@ -341,6 +339,8 @@ namespace transport
 					this, boost::asio::placeholders::error, resendTimer, ident, msg));			
 			}	
 		}	
+		if (session)
+			session->SendI2NPMessage (msg);	
 	}	
 
 	void Transports::HandleResendTimer (const boost::system::error_code& ecode, 
