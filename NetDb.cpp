@@ -478,8 +478,8 @@ namespace data
 			if (num > 0)
 			{	
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
-				auto outbound = pool->GetNextOutboundTunnel ();
-				auto inbound = pool->GetNextInboundTunnel ();
+				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
+				auto inbound = pool ? pool->GetNextInboundTunnel () : nullptr;
 				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				if (!dest->IsExploratory ())
 				{
