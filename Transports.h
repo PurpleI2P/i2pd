@@ -64,27 +64,16 @@ namespace transport
 			i2p::transport::DHKeysPair * GetNextDHKeysPair ();	
 			void ReuseDHKeysPair (DHKeysPair * pair);
 
-			void AddNTCPSession (std::shared_ptr<NTCPSession> session);
-			void RemoveNTCPSession (std::shared_ptr<NTCPSession> session);
-			
-			std::shared_ptr<NTCPSession> GetNextNTCPSession ();
-			std::shared_ptr<NTCPSession> FindNTCPSession (const i2p::data::IdentHash& ident);
-
 			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			
 		private:
 
 			void Run ();
-			void HandleAccept (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
-			void HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
 			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
 				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
-			
-			void Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn);
-			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn);
 
 			void DetectExternalIP ();
 			
@@ -94,9 +83,8 @@ namespace transport
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
-			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
 
-			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions;
+			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;
 
 			DHKeysPairSupplier m_DHKeysPairSupplier;
@@ -104,7 +92,7 @@ namespace transport
 		public:
 
 			// for HTTP only
-			const decltype(m_NTCPSessions)& GetNTCPSessions () const { return m_NTCPSessions; };
+			const NTCPServer * GetNTCPServer () const { return m_NTCPServer; };
 			const SSUServer * GetSSUServer () const { return m_SSUServer; };
 	};	
 

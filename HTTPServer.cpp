@@ -709,22 +709,26 @@ namespace util
 
 	void HTTPConnection::ShowTransports (std::stringstream& s)
 	{
-		s << "NTCP<br>";
-		for (auto it: i2p::transport::transports.GetNTCPSessions ())
-		{
-			if (it.second && it.second->IsEstablished ())
+		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
+		if (ntcpServer)
+		{	
+			s << "NTCP<br>";
+			for (auto it: ntcpServer->GetNTCPSessions ())
 			{
-				// incoming connection doesn't have remote RI
-				auto outgoing = it.second->GetRemoteRouter ();
-				if (outgoing) s << "-->";
-				s << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase64 ().substr (0, 4) <<  ": "
-					<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
-				if (!outgoing) s << "-->";
-				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				s << "<br>";
+				if (it.second && it.second->IsEstablished ())
+				{
+					// incoming connection doesn't have remote RI
+					auto outgoing = it.second->GetRemoteRouter ();
+					if (outgoing) s << "-->";
+					s << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase64 ().substr (0, 4) <<  ": "
+						<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
+					if (!outgoing) s << "-->";
+					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+					s << "<br>";
+				}
+				s << std::endl;
 			}
-			s << std::endl;
-		}
+		}	
 		auto ssuServer = i2p::transport::transports.GetSSUServer ();
 		if (ssuServer)
 		{

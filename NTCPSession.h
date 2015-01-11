@@ -3,7 +3,10 @@
 
 #include <inttypes.h>
 #include <list>
+#include <map>
 #include <memory>
+#include <thread>
+#include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
 #include <cryptopp/adler32.h>
@@ -43,11 +46,12 @@ namespace transport
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
 
+	class NTCPServer;
 	class NTCPSession: public TransportSession, public std::enable_shared_from_this<NTCPSession>
 	{
 		public:
 
-			NTCPSession (boost::asio::io_service& service, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
+			NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
 			~NTCPSession ();
 			void Terminate ();
 
@@ -103,6 +107,7 @@ namespace transport
 			
 		private:
 
+			NTCPServer& m_Server;
 			boost::asio::ip::tcp::socket m_Socket;
 			boost::asio::deadline_timer m_TerminationTimer;
 			bool m_IsEstablished;
@@ -126,6 +131,47 @@ namespace transport
 			size_t m_NextMessageOffset;
 
 			size_t m_NumSentBytes, m_NumReceivedBytes;
+	};	
+
+	// TODO: move to NTCP.h/.cpp
+	class NTCPServer
+	{
+		public:
+
+			NTCPServer (int port);
+			~NTCPServer ();
+
+			void Start ();
+			void Stop ();
+
+			void AddNTCPSession (std::shared_ptr<NTCPSession> session);
+			void RemoveNTCPSession (std::shared_ptr<NTCPSession> session);
+			std::shared_ptr<NTCPSession> FindNTCPSession (const i2p::data::IdentHash& ident);
+			void Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn);
+			
+			boost::asio::io_service& GetService () { return m_Service; };
+			
+		private:
+
+			void Run ();
+			void HandleAccept (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
+			void HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
+
+			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn);
+			
+		private:	
+
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			boost::asio::io_service m_Service;
+			boost::asio::io_service::work m_Work;
+			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
+			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions;
+
+		public:
+
+			// for HTTP/I2PControl
+			const decltype(m_NTCPSessions)& GetNTCPSessions () const { return m_NTCPSessions; };
 	};	
 }	
 }	

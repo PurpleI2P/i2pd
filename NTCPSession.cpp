@@ -18,9 +18,9 @@ namespace i2p
 {
 namespace transport
 {
-	NTCPSession::NTCPSession (boost::asio::io_service& service, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-		TransportSession (in_RemoteRouter),	m_Socket (service), 
-		m_TerminationTimer (service), m_IsEstablished (false), m_ReceiveBufferOffset (0), 
+	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
+		TransportSession (in_RemoteRouter),	m_Server (server), m_Socket (m_Server.GetService ()), 
+		m_TerminationTimer (m_Server.GetService ()), m_IsEstablished (false), m_ReceiveBufferOffset (0), 
 		m_NextMessage (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
 		m_DHKeysPair = transports.GetNextDHKeysPair ();
@@ -89,7 +89,7 @@ namespace transport
 		if (numDelayed > 0)
 			LogPrint (eLogWarning, "NTCP session ", numDelayed, " not sent");
 		// TODO: notify tunnels
-		transports.RemoveNTCPSession (shared_from_this ());
+		m_Server.RemoveNTCPSession (shared_from_this ());
 		LogPrint ("NTCP session terminated");
 	}	
 
@@ -427,7 +427,7 @@ namespace transport
 		{	
 			LogPrint (eLogDebug, "Phase 4 sent: ", bytes_transferred);
 			LogPrint ("NTCP server session connected");
-			transports.AddNTCPSession (shared_from_this ());
+			m_Server.AddNTCPSession (shared_from_this ());
 
 			Connected ();
 			m_ReceiveBufferOffset = 0;
@@ -652,6 +652,178 @@ namespace transport
 			LogPrint ("No activity fo ", NTCP_TERMINATION_TIMEOUT, " seconds");
 			//Terminate ();
 			m_Socket.close ();// invoke Terminate () from HandleReceive 
+		}	
+	}	
+
+//-----------------------------------------
+	NTCPServer::NTCPServer (int port):
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
+		m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr)
+	{
+	}
+		
+	NTCPServer::~NTCPServer ()
+	{
+		Stop ();
+	}	
+
+	void NTCPServer::Start ()
+	{
+		if (!m_IsRunning)
+		{	
+			m_IsRunning = true;
+			m_Thread = new std::thread (std::bind (&NTCPServer::Run, this));
+			// create acceptors
+			auto addresses = context.GetRouterInfo ().GetAddresses ();
+			for (auto& address : addresses)
+			{
+				if (address.transportStyle == i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4 ())
+				{	
+					m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service,
+						boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address.port));
+
+					LogPrint ("Start listening TCP port ", address.port);	
+					auto conn = std::make_shared<NTCPSession>(*this);
+					m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, 
+						conn, std::placeholders::_1));	
+				
+					if (context.SupportsV6 ())
+					{
+						m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
+						m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
+						m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
+						m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address.port));
+						m_NTCPV6Acceptor->listen ();
+
+						LogPrint ("Start listening V6 TCP port ", address.port);	
+						auto conn = std::make_shared<NTCPSession> (*this);
+						m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6,
+							this, conn, std::placeholders::_1));
+					}	
+				}	
+			}	
+		}	
+	}
+		
+	void NTCPServer::Stop ()
+	{	
+		m_NTCPSessions.clear ();
+
+		if (m_IsRunning)
+		{	
+			m_IsRunning = false;
+			delete m_NTCPAcceptor;
+			m_NTCPAcceptor = nullptr;
+			delete m_NTCPV6Acceptor;
+			m_NTCPV6Acceptor = nullptr;
+
+			m_Service.stop ();
+			if (m_Thread)
+			{	
+				m_Thread->join (); 
+				delete m_Thread;
+				m_Thread = nullptr;
+			}	
+		}	
+	}	
+
+		
+	void NTCPServer::Run () 
+	{ 
+		while (m_IsRunning)
+		{
+			try
+			{	
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint ("NTCP server: ", ex.what ());
+			}	
+		}	
+	}	
+
+	void NTCPServer::AddNTCPSession (std::shared_ptr<NTCPSession> session)
+	{
+		if (session)
+			m_NTCPSessions[session->GetRemoteIdentity ().GetIdentHash ()] = session;
+	}	
+
+	void NTCPServer::RemoveNTCPSession (std::shared_ptr<NTCPSession> session)
+	{
+		if (session)
+			m_NTCPSessions.erase (session->GetRemoteIdentity ().GetIdentHash ());
+	}	
+
+	std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession (const i2p::data::IdentHash& ident)
+	{
+		auto it = m_NTCPSessions.find (ident);
+		if (it != m_NTCPSessions.end ())
+			return it->second;
+		return nullptr;
+	}	
+		
+	void NTCPServer::HandleAccept (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error)
+	{		
+		if (!error)
+		{
+			LogPrint ("Connected from ", conn->GetSocket ().remote_endpoint().address ().to_string ());
+			conn->ServerLogin ();
+		}
+		
+
+		if (error != boost::asio::error::operation_aborted)
+		{
+    		conn = std::make_shared<NTCPSession> (*this);
+			m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, 
+				conn, std::placeholders::_1));
+		}	
+	}
+
+	void NTCPServer::HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error)
+	{		
+		if (!error)
+		{
+			LogPrint ("Connected from ", conn->GetSocket ().remote_endpoint().address ().to_string ());
+			conn->ServerLogin ();
+		}
+
+		if (error != boost::asio::error::operation_aborted)
+		{
+    		conn = std::make_shared<NTCPSession> (*this);
+			m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, 
+				conn, std::placeholders::_1));
+		}	
+	}	
+
+	void NTCPServer::Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn)
+	{
+		LogPrint ("Connecting to ", address ,":",  port);
+		m_Service.post([conn, this]()
+			{           
+				this->AddNTCPSession (conn);
+			});	
+		conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), 
+			std::bind (&NTCPServer::HandleConnect, this, std::placeholders::_1, conn));
+	}
+
+	void NTCPServer::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn)
+	{
+		if (ecode)
+        {
+			LogPrint ("Connect error: ", ecode.message ());
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ().GetIdentHash (), true);
+				conn->Terminate ();
+			}
+		}
+		else
+		{
+			LogPrint ("Connected");
+			if (conn->GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
+				context.UpdateNTCPV6Address (conn->GetSocket ().local_endpoint ().address ());
+			conn->ClientLogin ();
 		}	
 	}	
 }	

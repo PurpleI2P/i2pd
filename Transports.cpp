@@ -96,8 +96,9 @@ namespace transport
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_Thread (nullptr), m_Work (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr), 
-		m_SSUServer (nullptr), m_DHKeysPairSupplier (5) // 5 pre-generated keys
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
+		m_NTCPServer (nullptr), m_SSUServer (nullptr), 
+		m_DHKeysPairSupplier (5) // 5 pre-generated keys
 	{		
 	}
 		
@@ -115,31 +116,13 @@ namespace transport
 		auto addresses = context.GetRouterInfo ().GetAddresses ();
 		for (auto& address : addresses)
 		{
-			if (address.transportStyle == RouterInfo::eTransportNTCP && address.host.is_v4 ())
+			if (!m_NTCPServer)
 			{	
-				m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service,
-					boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address.port));
-
-				LogPrint ("Start listening TCP port ", address.port);	
-				auto conn = std::make_shared<NTCPSession>(m_Service);
-				m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
-					conn, boost::asio::placeholders::error));	
-				
-				if (context.SupportsV6 ())
-				{
-					m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
-					m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
-					m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
-					m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address.port));
-					m_NTCPV6Acceptor->listen ();
-
-					LogPrint ("Start listening V6 TCP port ", address.port);	
-					auto conn = std::make_shared<NTCPSession> (m_Service);
-					m_NTCPV6Acceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAcceptV6,
-						this, conn, boost::asio::placeholders::error));
-				}	
+				m_NTCPServer = new NTCPServer (address.port);
+				m_NTCPServer->Start ();
 			}	
-			else if (address.transportStyle == RouterInfo::eTransportSSU && address.host.is_v4 ())
+			
+			if (address.transportStyle == RouterInfo::eTransportSSU && address.host.is_v4 ())
 			{
 				if (!m_SSUServer)
 				{	
@@ -162,12 +145,12 @@ namespace transport
 			delete m_SSUServer;
 			m_SSUServer = nullptr;
 		}	
-		m_NTCPSessions.clear ();
-		
-		delete m_NTCPAcceptor;
-		m_NTCPAcceptor = nullptr;
-		delete m_NTCPV6Acceptor;
-		m_NTCPV6Acceptor = nullptr;
+		if (m_NTCPServer)
+		{
+			m_NTCPServer->Stop ();
+			delete m_NTCPServer;
+			m_NTCPServer = nullptr;
+		}	
 
 		m_DHKeysPairSupplier.Stop ();
 		m_IsRunning = false;
@@ -195,93 +178,6 @@ namespace transport
 		}	
 	}
 		
-	void Transports::AddNTCPSession (std::shared_ptr<NTCPSession> session)
-	{
-		if (session)
-			m_NTCPSessions[session->GetRemoteIdentity ().GetIdentHash ()] = session;
-	}	
-
-	void Transports::RemoveNTCPSession (std::shared_ptr<NTCPSession> session)
-	{
-		if (session)
-			m_NTCPSessions.erase (session->GetRemoteIdentity ().GetIdentHash ());
-	}	
-		
-	void Transports::HandleAccept (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error)
-	{		
-		if (!error)
-		{
-			LogPrint ("Connected from ", conn->GetSocket ().remote_endpoint().address ().to_string ());
-			conn->ServerLogin ();
-		}
-		
-
-		if (error != boost::asio::error::operation_aborted)
-		{
-    		conn = std::make_shared<NTCPSession> (m_Service);
-			m_NTCPAcceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAccept, this, 
-				conn, boost::asio::placeholders::error));
-		}	
-	}
-
-	void Transports::HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error)
-	{		
-		if (!error)
-		{
-			LogPrint ("Connected from ", conn->GetSocket ().remote_endpoint().address ().to_string ());
-			conn->ServerLogin ();
-		}
-
-		if (error != boost::asio::error::operation_aborted)
-		{
-    		conn = std::make_shared<NTCPSession> (m_Service);
-			m_NTCPV6Acceptor->async_accept(conn->GetSocket (), boost::bind (&Transports::HandleAcceptV6, this, 
-				conn, boost::asio::placeholders::error));
-		}	
-	}
-
-	void Transports::Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn)
-	{
-		LogPrint ("Connecting to ", address ,":",  port);
-		conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), 
-			boost::bind (&Transports::HandleConnect, this, boost::asio::placeholders::error, conn));
-	}
-
-	void Transports::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn)
-	{
-		if (ecode)
-        {
-			LogPrint ("Connect error: ", ecode.message ());
-			if (ecode != boost::asio::error::operation_aborted)
-			{
-				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ().GetIdentHash (), true);
-				conn->Terminate ();
-			}
-		}
-		else
-		{
-			LogPrint ("Connected");
-			if (conn->GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
-				context.UpdateNTCPV6Address (conn->GetSocket ().local_endpoint ().address ());
-			conn->ClientLogin ();
-		}	
-	}	
-
-	std::shared_ptr<NTCPSession> Transports::GetNextNTCPSession ()
-	{
-		for (auto session: m_NTCPSessions)
-			if (session.second->IsEstablished ())
-				return session.second;
-		return 0;
-	}	
-
-	std::shared_ptr<NTCPSession> Transports::FindNTCPSession (const i2p::data::IdentHash& ident)
-	{
-		auto it = m_NTCPSessions.find (ident);
-		if (it != m_NTCPSessions.end ())
-			return it->second;
-		return 0;
-	}	
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
@@ -296,7 +192,7 @@ namespace transport
 			i2p::HandleI2NPMessage (msg);
 			return;
 		}	
-		std::shared_ptr<TransportSession> session = FindNTCPSession (ident);
+		std::shared_ptr<TransportSession> session = m_NTCPServer->FindNTCPSession (ident);
 		if (!session)
 		{
 			auto r = netdb.FindRouter (ident);
@@ -311,10 +207,9 @@ namespace transport
 					auto address = r->GetNTCPAddress (!context.SupportsV6 ()); 
 					if (address && !r->UsesIntroducer () && !r->IsUnreachable () && msg->GetLength () < NTCP_MAX_MESSAGE_SIZE)
 					{	
-						auto s = std::make_shared<NTCPSession> (m_Service, r);
-						AddNTCPSession (s);
+						auto s = std::make_shared<NTCPSession> (*m_NTCPServer, r);
 						session = s;
-						Connect (address->host, address->port, s);
+						m_NTCPServer->Connect (address->host, address->port, s);
 					}	
 					else
 					{	
