@@ -3,6 +3,12 @@ i2pd
 
 I2P router written in C++
 
+License
+-------
+
+This project is licensed under the BSD 3-clause license, which can be found in the file
+LICENSE in the root of the project source code.
+
 Requirements for Linux/FreeBSD/OSX
 ----------------------------------
 
