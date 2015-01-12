@@ -1,3 +1,5 @@
+#include "I2PControl.h"
+
 #include <sstream>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -8,7 +10,6 @@
 #include "Daemon.h"
 #include "Tunnel.h"
 #include "Timestamp.h"
-#include "I2PControl.h"
 
 namespace i2p
 {
