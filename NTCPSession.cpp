@@ -751,17 +751,24 @@ namespace transport
 	void NTCPServer::AddNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
 		if (session)
+		{
+			std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
 			m_NTCPSessions[session->GetRemoteIdentity ().GetIdentHash ()] = session;
+		}
 	}	
 
 	void NTCPServer::RemoveNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
 		if (session)
+		{
+			std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
 			m_NTCPSessions.erase (session->GetRemoteIdentity ().GetIdentHash ());
+		}
 	}	
 
 	std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession (const i2p::data::IdentHash& ident)
 	{
+		std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
 		auto it = m_NTCPSessions.find (ident);
 		if (it != m_NTCPSessions.end ())
 			return it->second;
