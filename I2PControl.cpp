@@ -20,10 +20,17 @@ namespace client
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
 		m_ShutdownTimer (m_Service)
 	{
-		m_MethodHanders[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 
-		m_MethodHanders[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
-		m_MethodHanders[I2P_CONTROL_METHOD_ROUTER_INFO] = &I2PControlService::RouterInfoHandler; 
-		m_MethodHanders[I2P_CONTROL_METHOD_ROUTER_MANAGER] = &I2PControlService::RouterManagerHandler; 
+		m_MethodHandlers[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 
+		m_MethodHandlers[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
+		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_INFO] = &I2PControlService::RouterInfoHandler; 
+		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_MANAGER] = &I2PControlService::RouterManagerHandler; 
+
+		// RouterInfo
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = &I2PControlService::NetDbKnownPeersHandler;
+
+		// RouterManager	
+		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN] = &I2PControlService::ShutdownHandler; 
+		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL] = &I2PControlService::ShutdownGracefulHandler;
 	}
 
 	I2PControlService::~I2PControlService ()
@@ -118,8 +125,8 @@ namespace client
 				boost::property_tree::ptree pt;
 				boost::property_tree::read_json (ss, pt);
 				std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
-				auto it = m_MethodHanders.find (method);
-				if (it != m_MethodHanders.end ())
+				auto it = m_MethodHandlers.find (method);
+				if (it != m_MethodHandlers.end ())
 				{
 					std::map<std::string, std::string> params;
 					for (auto& v: pt.get_child (I2P_CONTROL_PROPERTY_PARAMS))
@@ -195,48 +202,69 @@ namespace client
 		results[I2P_CONTROL_PARAM_RESULT] = echo;	
 	}
 
+// RouterInfo
+
 	void I2PControlService::RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
 	{
 		LogPrint (eLogDebug, "I2PControl RouterInfo");
 		for (auto& it: params)
 		{
 			LogPrint (eLogDebug, it.first);
-			if (it.first == I2P_CONTROL_PARAM_RI_NETDB_KNOWNPEERS)
-				results[I2P_CONTROL_PARAM_RI_NETDB_KNOWNPEERS] = boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ());
+			auto it1 = m_RouterInfoHandlers.find (it.first);
+			if (it1 != m_RouterInfoHandlers.end ())
+				(this->*(it1->second))(results);	
+			else
+				LogPrint (eLogError, "I2PControl RouterInfo unknown request ", it.first);
+				
 		}
 	}
 
+	void I2PControlService::NetDbKnownPeersHandler (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ());	
+	}
+
+// RouterManager
+	
 	void I2PControlService::RouterManagerHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
 	{
 		LogPrint (eLogDebug, "I2PControl RouterManager");
 		for (auto& it: params)
 		{
 			LogPrint (eLogDebug, it.first);
-			if (it.first == I2P_CONTROL_PARAM_ROUTER_MANAGER_SHUTDOWN)
-			{
-				LogPrint (eLogInfo, "Shutdown requested");
-				results[I2P_CONTROL_PARAM_ROUTER_MANAGER_SHUTDOWN] = "";
-				m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
-				m_ShutdownTimer.async_wait (
-					[](const boost::system::error_code& ecode)
-				    {
-						Daemon.running = 0; 
-					});
-			}	
-			else if (it.first == I2P_CONTROL_PARAM_ROUTER_MANAGER_SHUTDOWN_GRACEFUL)
-			{
-				i2p::context.SetAcceptsTunnels (false);
-				int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout ();
-				LogPrint (eLogInfo, "Graceful shutdown requested. Will shutdown after ", timeout, " seconds");
-				results[I2P_CONTROL_PARAM_ROUTER_MANAGER_SHUTDOWN_GRACEFUL] = "";
-				m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
-				m_ShutdownTimer.async_wait (
-					[](const boost::system::error_code& ecode)
-				    {
-						Daemon.running = 0; 
-					});
-			}					
+			auto it1 = m_RouterManagerHandlers.find (it.first);
+			if (it1 != m_RouterManagerHandlers.end ())
+				(this->*(it1->second))(results);	
+			else
+				LogPrint (eLogError, "I2PControl RouterManager unknown request ", it.first);			
 		}
 	}	
+
+
+	void I2PControlService::ShutdownHandler (std::map<std::string, std::string>& results)	
+	{
+		LogPrint (eLogInfo, "Shutdown requested");
+		results[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN] = "";
+		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
+		m_ShutdownTimer.async_wait (
+			[](const boost::system::error_code& ecode)
+		    {
+				Daemon.running = 0; 
+			});
+	}
+
+	void I2PControlService::ShutdownGracefulHandler (std::map<std::string, std::string>& results)
+	{
+		i2p::context.SetAcceptsTunnels (false);
+		int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout ();
+		LogPrint (eLogInfo, "Graceful shutdown requested. Will shutdown after ", timeout, " seconds");
+		results[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL] = "";
+		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
+		m_ShutdownTimer.async_wait (
+			[](const boost::system::error_code& ecode)
+		    {
+				Daemon.running = 0; 
+			});
+	}
 }
 }
