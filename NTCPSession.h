@@ -67,6 +67,7 @@ namespace transport
 			
 		protected:
 
+			void PostI2NPMessage (I2NPMessage * msg);
 			void Connected ();
 			void SendTimeSyncMessage ();
 			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }

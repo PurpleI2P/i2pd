@@ -38,7 +38,8 @@ namespace transport
 			void DeleteSession (std::shared_ptr<SSUSession> session);
 			void DeleteAllSessions ();			
 
-			boost::asio::io_service& GetService () { return m_Socket.get_io_service(); };
+			boost::asio::io_service& GetService () { return m_Service; };
+			boost::asio::io_service& GetServiceV6 () { return m_ServiceV6; };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);

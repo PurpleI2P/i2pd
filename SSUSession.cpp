@@ -828,7 +828,8 @@ namespace transport
 
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
-		m_Server.GetService ().post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg));    
+		boost::asio::io_service& service = IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService ();
+		service.post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg));    
 	}	
 
 	void SSUSession::PostI2NPMessage (I2NPMessage * msg)

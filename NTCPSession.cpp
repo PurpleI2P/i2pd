@@ -628,15 +628,20 @@ namespace transport
 
 	void NTCPSession::SendI2NPMessage (I2NPMessage * msg)
 	{
+		m_Server.GetService ().post (std::bind (&NTCPSession::PostI2NPMessage, shared_from_this (), msg));  
+	}	
+
+	void NTCPSession::PostI2NPMessage (I2NPMessage * msg)
+	{
 		if (msg)
 		{
 			if (m_IsEstablished)
 				Send (msg);
 			else
 				m_DelayedMessages.push_back (msg);	
-		}	
+		}
 	}	
-
+		
 	void NTCPSession::ScheduleTermination ()
 	{
 		m_TerminationTimer.cancel ();
