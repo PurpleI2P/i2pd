@@ -24,6 +24,7 @@ namespace client
 		m_MethodHandlers[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_INFO] = &I2PControlService::RouterInfoHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_MANAGER] = &I2PControlService::RouterManagerHandler; 
+		m_MethodHandlers[I2P_CONTROL_METHOD_NETWORK_SETTING] = &I2PControlService::NetworkSettingHandler; 
 
 		// RouterInfo
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = &I2PControlService::NetDbKnownPeersHandler;
@@ -272,5 +273,21 @@ namespace client
 				Daemon.running = 0; 
 			});
 	}
+
+	// network setting
+	void I2PControlService::NetworkSettingHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
+	{
+		LogPrint (eLogDebug, "I2PControl NetworkSetting");
+		for (auto& it: params)
+		{
+			LogPrint (eLogDebug, it.first);
+			auto it1 = m_NetworkSettingHandlers.find (it.first);
+			if (it1 != m_NetworkSettingHandlers.end ())
+				(this->*(it1->second))(it.second, results);	
+			else
+				LogPrint (eLogError, "I2PControl NetworkSetting unknown request ", it.first);			
+		}
+	}
+
 }
 }

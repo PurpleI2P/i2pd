@@ -26,7 +26,8 @@ namespace client
 	const char I2P_CONTROL_METHOD_ECHO[] = "Echo";		
 	const char I2P_CONTROL_METHOD_ROUTER_INFO[] = "RouterInfo";	
 	const char I2P_CONTROL_METHOD_ROUTER_MANAGER[] = "RouterManager";	
-	
+	const char I2P_CONTROL_METHOD_NETWORK_SETTING[] = "NetworkSetting";	
+
 	// params
 	const char I2P_CONTROL_PARAM_API[] = "API";			
 	const char I2P_CONTROL_PARAM_PASSWORD[] = "Password";	
@@ -75,7 +76,8 @@ namespace client
 			void EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void RouterManagerHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
-			
+			void NetworkSettingHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);			
+
 			// RouterInfo
 			typedef void (I2PControlService::*RouterInfoRequestHandler)(std::map<std::string, std::string>& results);
 			void NetDbKnownPeersHandler (std::map<std::string, std::string>& results);			
@@ -86,6 +88,9 @@ namespace client
 			void ShutdownHandler (std::map<std::string, std::string>& results);
 			void ShutdownGracefulHandler (std::map<std::string, std::string>& results);
 
+			// NetworkSetting
+			typedef void (I2PControlService::*NetworkSettingRequestHandler)(const std::string& value, std::map<std::string, std::string>& results);	
+
 		private:
 
 			bool m_IsRunning;
@@ -94,11 +99,11 @@ namespace client
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::deadline_timer m_ShutdownTimer;
-
 			
 			std::map<std::string, MethodHandler> m_MethodHandlers;
 			std::map<std::string, RouterInfoRequestHandler> m_RouterInfoHandlers;
 			std::map<std::string, RouterManagerRequestHandler> m_RouterManagerHandlers;
+			std::map<std::string, NetworkSettingRequestHandler> m_NetworkSettingHandlers;
 	};
 }
 }
