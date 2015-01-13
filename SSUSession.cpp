@@ -756,6 +756,7 @@ namespace transport
 	void SSUSession::Close ()
 	{
 		SendSesionDestroyed ();
+		transports.PeerDisconnected (shared_from_this ());
 		if (!m_DelayedMessages.empty ())
 		{
 			for (auto it :m_DelayedMessages)
@@ -773,6 +774,7 @@ namespace transport
 			m_DHKeysPair = nullptr;
 		}
 		SendI2NPMessage (CreateDatabaseStoreMsg ());
+		transports.PeerConnected (shared_from_this ());
 		if (!m_DelayedMessages.empty ())
 		{
 			for (auto it :m_DelayedMessages)

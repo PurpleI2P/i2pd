@@ -139,6 +139,7 @@ namespace transport
 		
 	void Transports::Stop ()
 	{	
+		m_Peers.clear ();
 		if (m_SSUServer)
 		{
 			m_SSUServer->Stop ();
@@ -291,6 +292,35 @@ namespace transport
 	{
 		m_DHKeysPairSupplier.Return (pair);
 	}
+
+	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
+	{
+		m_Service.post([session, this]()
+		{   
+			auto ident = session->GetRemoteIdentity ().GetIdentHash ();
+			auto it = m_Peers.find (ident);
+			if (it != m_Peers.end ())
+			{
+				it->second.session = session;
+				for (auto it1: it->second.delayedMessages)
+					session->SendI2NPMessage (it1);
+			}
+		/*	else // incoming connection
+				m_Peers[ident] = { nullptr, session };*/
+		});			
+	}
+		
+	void Transports::PeerDisconnected (std::shared_ptr<TransportSession> session)
+	{
+		m_Service.post([session, this]()
+		{  
+			auto ident = session->GetRemoteIdentity ().GetIdentHash ();
+			auto it = m_Peers.find (ident);
+			if (it != m_Peers.end ())
+				m_Peers.erase (it);
+			// TODO:: check for delayed messages
+		});	
+	}	
 }
 }
 

@@ -77,6 +77,7 @@ namespace transport
 	{
 		m_IsEstablished = false;
 		m_Socket.close ();
+		transports.PeerDisconnected (shared_from_this ());
 		int numDelayed = 0;
 		for (auto it :m_DelayedMessages)
 		{	
@@ -106,6 +107,8 @@ namespace transport
 		SendTimeSyncMessage ();
 		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 
+		transports.PeerConnected (shared_from_this ());
+		
 		if (!m_DelayedMessages.empty ())
 		{
 			for (auto it :m_DelayedMessages)

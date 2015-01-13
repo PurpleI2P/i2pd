@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <functional>
 #include <map>
+#include <list>
 #include <queue>
 #include <string>
 #include <memory>
@@ -50,6 +51,19 @@ namespace transport
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};
 
+	struct Peer
+	{
+		std::shared_ptr<const i2p::data::RouterInfo> router;
+		std::shared_ptr<TransportSession> session;
+		std::list<i2p::I2NPMessage *> delayedMessages;
+
+		~Peer ()
+		{
+			for (auto it :delayedMessages)
+				i2p::DeleteI2NPMessage (it);
+		}	
+	};	
+	
 	class Transports
 	{
 		public:
@@ -66,6 +80,9 @@ namespace transport
 
 			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
+
+			void PeerConnected (std::shared_ptr<TransportSession> session);
+			void PeerDisconnected (std::shared_ptr<TransportSession> session);
 			
 		private:
 
@@ -86,7 +103,8 @@ namespace transport
 
 			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;
-
+			std::map<i2p::data::IdentHash, Peer> m_Peers;
+			
 			DHKeysPairSupplier m_DHKeysPairSupplier;
 
 		public:
