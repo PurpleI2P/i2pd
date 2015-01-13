@@ -25,7 +25,7 @@ endif
 all: mk_build_dir $(SHLIB) $(I2PD)
 
 mk_build_dir:
-	test -d obj || mkdir obj
+	mkdir -p obj
 
 api: $(SHLIB)
 
@@ -37,12 +37,12 @@ api: $(SHLIB)
 ## custom FLAGS to work at build-time.
 
 deps:
-	@test -d obj || mkdir obj
+	@mkdir -p obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
 obj/%.o : %.cpp
-	@test -d obj || mkdir obj
+	@mkdir -p obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
