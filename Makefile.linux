@@ -1,4 +1,4 @@
-CXXFLAGS = -g -Wall -fPIC
+CXXFLAGS = -g -Wall
 INCFLAGS =
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
@@ -21,6 +21,8 @@ else ifeq ($(shell expr match $(CXX) 'clang'),5)
 else # not supported
 	$(error Compiler too old)
 endif
+
+NEEDED_CXXFLAGS += -fPIC
 
 ifeq ($(USE_STATIC),yes)
   LIBDIR := /usr/lib
