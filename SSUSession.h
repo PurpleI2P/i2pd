@@ -3,7 +3,6 @@
 
 #include <inttypes.h>
 #include <set>
-#include <list>
 #include <memory>
 #include "aes.h"
 #include "hmac.h"
@@ -132,7 +131,6 @@ namespace transport
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			i2p::crypto::AESKey m_SessionKey;
 			i2p::crypto::MACKey m_MacKey;
-			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			SSUData m_Data;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint32_t m_CreationTime; // seconds since epoch

@@ -32,9 +32,6 @@ namespace transport
 		delete m_Establisher;
 		if (m_NextMessage)	
 			i2p::DeleteI2NPMessage (m_NextMessage);
-		for (auto it :m_DelayedMessages)
-			i2p::DeleteI2NPMessage (it);
-		m_DelayedMessages.clear ();	
 	}
 
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key)
@@ -78,18 +75,6 @@ namespace transport
 		m_IsEstablished = false;
 		m_Socket.close ();
 		transports.PeerDisconnected (shared_from_this ());
-		int numDelayed = 0;
-		for (auto it :m_DelayedMessages)
-		{	
-			// try to send them again
-			if (m_RemoteRouter)
-				transports.SendMessage (m_RemoteRouter->GetIdentHash (), it);
-			numDelayed++;
-		}	
-		m_DelayedMessages.clear ();
-		if (numDelayed > 0)
-			LogPrint (eLogWarning, "NTCP session ", numDelayed, " not sent");
-		// TODO: notify tunnels
 		m_Server.RemoveNTCPSession (shared_from_this ());
 		LogPrint ("NTCP session terminated");
 	}	
@@ -108,13 +93,6 @@ namespace transport
 		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 
 		transports.PeerConnected (shared_from_this ());
-		
-		if (!m_DelayedMessages.empty ())
-		{
-			for (auto it :m_DelayedMessages)
-				SendI2NPMessage (it);
-			m_DelayedMessages.clear ();
-		}	
 	}	
 		
 	void NTCPSession::ClientLogin ()
@@ -637,12 +615,7 @@ namespace transport
 	void NTCPSession::PostI2NPMessage (I2NPMessage * msg)
 	{
 		if (msg)
-		{
-			if (m_IsEstablished)
-				Send (msg);
-			else
-				m_DelayedMessages.push_back (msg);	
-		}
+			Send (msg);
 	}	
 		
 	void NTCPSession::ScheduleTermination ()

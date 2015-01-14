@@ -757,12 +757,6 @@ namespace transport
 	{
 		SendSesionDestroyed ();
 		transports.PeerDisconnected (shared_from_this ());
-		if (!m_DelayedMessages.empty ())
-		{
-			for (auto it :m_DelayedMessages)
-				DeleteI2NPMessage (it);
-			m_DelayedMessages.clear ();
-		}	
 	}	
 
 	void SSUSession::Established ()
@@ -775,12 +769,6 @@ namespace transport
 		}
 		SendI2NPMessage (CreateDatabaseStoreMsg ());
 		transports.PeerConnected (shared_from_this ());
-		if (!m_DelayedMessages.empty ())
-		{
-			for (auto it :m_DelayedMessages)
-				m_Data.Send (it);
-			m_DelayedMessages.clear ();
-		}
 		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
 			SendPeerTest ();
 		ScheduleTermination ();
@@ -837,12 +825,7 @@ namespace transport
 	void SSUSession::PostI2NPMessage (I2NPMessage * msg)
 	{
 		if (msg)
-		{	
-			if (m_State == eSessionStateEstablished)
-				m_Data.Send (msg);
-			else
-				m_DelayedMessages.push_back (msg);
-		}	
+			m_Data.Send (msg);
 	}		
 		
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)

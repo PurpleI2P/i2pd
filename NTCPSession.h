@@ -2,7 +2,6 @@
 #define NTCP_SESSION_H__
 
 #include <inttypes.h>
-#include <list>
 #include <map>
 #include <memory>
 #include <thread>
@@ -129,7 +128,6 @@ namespace transport
 			int m_ReceiveBufferOffset; 
 
 			i2p::I2NPMessage * m_NextMessage;
-			std::list<i2p::I2NPMessage *> m_DelayedMessages;
 			size_t m_NextMessageOffset;
 
 			size_t m_NumSentBytes, m_NumReceivedBytes;
