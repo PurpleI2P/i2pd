@@ -230,12 +230,12 @@ namespace client
 
 	void I2PControlService::NetDbActivePeersHandler (std::map<std::string, std::string>& results)
 	{
-		results[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ());	
+		results[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = boost::lexical_cast<std::string>(i2p::transport::transports.GetPeers ().size ());	
 	}
 
 	void I2PControlService::TunnelsParticipatingHandler (std::map<std::string, std::string>& results)
 	{
-		results[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = boost::lexical_cast<std::string>(i2p::transport::transports.GetPeers ().size ());
+		results[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = boost::lexical_cast<std::string>(i2p::tunnel::tunnels.GetTransitTunnels ().size ());;
 	}
 
 // RouterManager
