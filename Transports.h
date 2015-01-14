@@ -53,6 +53,7 @@ namespace transport
 
 	struct Peer
 	{
+		int numAttempts;
 		std::shared_ptr<const i2p::data::RouterInfo> router;
 		std::shared_ptr<TransportSession> session;
 		std::list<i2p::I2NPMessage *> delayedMessages;
@@ -88,10 +89,11 @@ namespace transport
 
 			void Run ();
 			void HandleResendTimer (const boost::system::error_code& ecode, boost::asio::deadline_timer * timer,
-				const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
+				const i2p::data::IdentHash& ident);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
-
+			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
+			
 			void DetectExternalIP ();
 			
 		private:
