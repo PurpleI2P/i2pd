@@ -21,12 +21,15 @@ namespace i2p
 namespace data
 {		
 	class RequestedDestination
-	{
+	{	
 		public:
+
+			typedef std::function<void (std::shared_ptr<RouterInfo>)> RequestComplete;
 
 			RequestedDestination (const IdentHash& destination, bool isExploratory = false):
 				m_Destination (destination), m_IsExploratory (isExploratory), m_CreationTime (0) {};
-			
+			~RequestedDestination () { if (m_RequestComplete) m_RequestComplete (nullptr); };			
+
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
 			const std::set<IdentHash>& GetExcludedPeers () { return m_ExcludedPeers; };
@@ -36,13 +39,18 @@ namespace data
 			uint64_t GetCreationTime () const { return m_CreationTime; };
 			I2NPMessage * CreateRequestMessage (std::shared_ptr<const RouterInfo>, const i2p::tunnel::InboundTunnel * replyTunnel);
 			I2NPMessage * CreateRequestMessage (const IdentHash& floodfill);
-						
+			
+			void SetRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete = requestComplete; };
+			void Success (std::shared_ptr<RouterInfo> r);
+			void Fail ();
+			
 		private:
 
 			IdentHash m_Destination;
 			bool m_IsExploratory;
 			std::set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime;
+			RequestComplete m_RequestComplete;
 	};	
 	
 	class NetDb
@@ -61,7 +69,7 @@ namespace data
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
 			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
 
-			void RequestDestination (const IdentHash& destination);			
+			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);			
 			
 			void HandleDatabaseStoreMsg (I2NPMessage * msg);
 			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
@@ -92,7 +100,6 @@ namespace data
 			void ManageRequests ();
 
 			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, bool isExploratory = false);
-			bool DeleteRequestedDestination (const IdentHash& dest); // returns true if found
 			void DeleteRequestedDestination (RequestedDestination * dest);
 
 			template<typename Filter>

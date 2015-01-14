@@ -47,6 +47,24 @@ namespace data
 		m_ExcludedPeers.clear ();
 	}	
 	
+	void RequestedDestination::Success (std::shared_ptr<RouterInfo> r)
+	{
+		if (m_RequestComplete)
+		{
+			m_RequestComplete (r);
+			m_RequestComplete = nullptr;
+		}
+	}
+
+	void RequestedDestination::Fail ()
+	{
+		if (m_RequestComplete)
+		{
+			m_RequestComplete (nullptr);
+			m_RequestComplete = nullptr;
+		}
+	}
+
 #ifndef _WIN32		
 	const char NetDb::m_NetDbPath[] = "/netDb";
 #else
@@ -191,7 +209,6 @@ namespace data
 
 	void NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
-		DeleteRequestedDestination (ident);	
 		auto r = FindRouter (ident);
 		if (r)
 		{
@@ -203,23 +220,31 @@ namespace data
 		else	
 		{	
 			LogPrint ("New RouterInfo added");
-			auto newRouter = std::make_shared<RouterInfo> (buf, len);
+			auto r = std::make_shared<RouterInfo> (buf, len);
 			{
 				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-				m_RouterInfos[newRouter->GetIdentHash ()] = newRouter;
+				m_RouterInfos[r->GetIdentHash ()] = r;
 			}
-			if (newRouter->IsFloodfill ())
+			if (r->IsFloodfill ())
 			{
 				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-				m_Floodfills.push_back (newRouter);
+				m_Floodfills.push_back (r);
 			}	
+		}	
+		// take care about requested destination
+		auto it = m_RequestedDestinations.find (ident);
+		if (it != m_RequestedDestinations.end ())
+		{	
+			it->second->Success (r);
+			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
+			delete it->second;
+			m_RequestedDestinations.erase (it);
 		}	
 	}	
 
 	void NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
 		i2p::tunnel::InboundTunnel * from)
 	{
-		DeleteRequestedDestination (ident);
 		if (!from) // unsolicited LS must be received directly
 		{	
 			auto it = m_LeaseSets.find(ident);
@@ -414,16 +439,19 @@ namespace data
 		}
 	}
 
-	void NetDb::RequestDestination (const IdentHash& destination)
+	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete)
 	{
 		// request RouterInfo directly
 		RequestedDestination * dest = CreateRequestedDestination (destination, false);
+		if (requestComplete)
+			dest->SetRequestComplete (requestComplete);
 		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
 			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));	
 		else
 		{
 			LogPrint (eLogError, "No floodfills found");
+			dest->Fail ();
 			DeleteRequestedDestination (dest);
 		}	
 	}	
@@ -521,6 +549,7 @@ namespace data
 				if (deleteDest)
 				{
 					// no more requests for the destinationation. delete it
+					it->second->Fail ();
 					delete it->second;
 					m_RequestedDestinations.erase (it);
 				}	
@@ -528,6 +557,7 @@ namespace data
 			else
 			{
 				// no more requests for detination possible. delete it
+				it->second->Fail ();
 				delete it->second;
 				m_RequestedDestinations.erase (it);
 			}	
@@ -720,19 +750,6 @@ namespace data
 		else
 			return it->second;
 	}
-	
-	bool NetDb::DeleteRequestedDestination (const IdentHash& dest)
-	{
-		auto it = m_RequestedDestinations.find (dest);
-		if (it != m_RequestedDestinations.end ())
-		{	
-			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-			delete it->second;
-			m_RequestedDestinations.erase (it);
-			return true;
-		}	
-		return false;
-	}	
 
 	void NetDb::DeleteRequestedDestination (RequestedDestination * dest)
 	{
