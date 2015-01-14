@@ -114,6 +114,7 @@ namespace transport
 			// for HTTP only
 			const NTCPServer * GetNTCPServer () const { return m_NTCPServer; };
 			const SSUServer * GetSSUServer () const { return m_SSUServer; };
+			const decltype(m_Peers)& GetPeers () const { return m_Peers; };
 	};	
 
 	extern Transports transports;

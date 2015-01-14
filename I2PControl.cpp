@@ -10,6 +10,7 @@
 #include "Daemon.h"
 #include "Tunnel.h"
 #include "Timestamp.h"
+#include "Transports.h"
 
 namespace i2p
 {
@@ -28,6 +29,7 @@ namespace client
 
 		// RouterInfo
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = &I2PControlService::NetDbKnownPeersHandler;
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = &I2PControlService::NetDbActivePeersHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = &I2PControlService::TunnelsParticipatingHandler;
 
 		// RouterManager	
@@ -226,9 +228,14 @@ namespace client
 		results[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ());	
 	}
 
+	void I2PControlService::NetDbActivePeersHandler (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ());	
+	}
+
 	void I2PControlService::TunnelsParticipatingHandler (std::map<std::string, std::string>& results)
 	{
-		results[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = boost::lexical_cast<std::string>(i2p::tunnel::tunnels.GetTransitTunnels ().size ());
+		results[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = boost::lexical_cast<std::string>(i2p::transport::transports.GetPeers ().size ());
 	}
 
 // RouterManager
