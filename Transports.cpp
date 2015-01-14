@@ -242,22 +242,22 @@ namespace transport
 		else // otherwise request RI
 		{
 			LogPrint ("Router not found. Requested");
-			i2p::data::netdb.RequestDestination (ident);
-			auto resendTimer = new boost::asio::deadline_timer (m_Service);
-			resendTimer->expires_from_now (boost::posix_time::seconds(5)); // 5 seconds
-			resendTimer->async_wait (boost::bind (&Transports::HandleResendTimer,
-				this, boost::asio::placeholders::error, resendTimer, ident));	
+			i2p::data::netdb.RequestDestination (ident, std::bind (
+				&Transports::RequestComplete, this, std::placeholders::_1, ident));
 		}	
 		return true;
 	}	
-		
-	void Transports::HandleResendTimer (const boost::system::error_code& ecode, 
-		boost::asio::deadline_timer * timer, const i2p::data::IdentHash& ident)
+	
+	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
+	{
+		m_Service.post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
+	}		
+	
+	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
 	{
 		auto it = m_Peers.find (ident);
 		if (it != m_Peers.end ())
 		{	
-			auto r = netdb.FindRouter (ident);
 			if (r)
 			{
 				LogPrint ("Router found. Trying to connect");
@@ -270,7 +270,6 @@ namespace transport
 				m_Peers.erase (it);
 			}	
 		}	
-		delete timer;
 	}	
 		
 	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
