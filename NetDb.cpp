@@ -79,10 +79,6 @@ namespace data
 	NetDb::~NetDb ()
 	{
 		Stop ();	
-		for (auto l:m_LeaseSets)
-			delete l.second;
-		for (auto r:m_RequestedDestinations)
-			delete r.second;
 	}	
 
 	void NetDb::Start ()
@@ -110,6 +106,7 @@ namespace data
 				Load (m_NetDbPath);
 			}
 		}	
+		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
 	
@@ -122,13 +119,18 @@ namespace data
 			m_Thread->join (); 
 			delete m_Thread;
 			m_Thread = 0;
-		}	
+		}
+		for (auto l: m_LeaseSets)
+			delete l.second;
+		m_LeaseSets.clear();
+		for (auto r: m_RequestedDestinations)
+			delete r.second;
+		m_RequestedDestinations.clear ();
 	}	
 	
 	void NetDb::Run ()
 	{
 		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0;
-		m_IsRunning = true;
 		while (m_IsRunning)
 		{	
 			try
@@ -220,7 +222,7 @@ namespace data
 		else	
 		{	
 			LogPrint ("New RouterInfo added");
-			auto r = std::make_shared<RouterInfo> (buf, len);
+			r = std::make_shared<RouterInfo> (buf, len);
 			{
 				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 				m_RouterInfos[r->GetIdentHash ()] = r;
