@@ -17,12 +17,13 @@ namespace i2p
 namespace client
 {
 	I2PControlService::I2PControlService (int port):
-		m_IsRunning (false), m_Thread (nullptr),
+		m_Password (I2P_CONTROL_DEFAULT_PASSWORD), m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
 		m_ShutdownTimer (m_Service)
 	{
 		m_MethodHandlers[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
+		m_MethodHandlers[I2P_CONTROL_METHOD_I2PCONTROL] = &I2PControlService::I2PControlHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_INFO] = &I2PControlService::RouterInfoHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_MANAGER] = &I2PControlService::RouterManagerHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_NETWORK_SETTING] = &I2PControlService::NetworkSettingHandler; 
@@ -195,6 +196,8 @@ namespace client
 		const std::string& api = params.at (I2P_CONTROL_PARAM_API);
 		const std::string& password = params.at (I2P_CONTROL_PARAM_PASSWORD);
 		LogPrint (eLogDebug, "I2PControl Authenticate API=", api, " Password=", password);
+		if (password != m_Password)
+			LogPrint (eLogError, "I2PControl Authenticate Invalid password ", password, " expected ", m_Password);
 		results[I2P_CONTROL_PARAM_API] = api;
 		results[I2P_CONTROL_PARAM_TOKEN] = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
 	}	
@@ -204,6 +207,23 @@ namespace client
 		const std::string& echo = params.at (I2P_CONTROL_PARAM_ECHO);
 		LogPrint (eLogDebug, "I2PControl Echo Echo=", echo);
 		results[I2P_CONTROL_PARAM_RESULT] = echo;	
+	}
+
+
+// I2PControl
+
+	void I2PControlService::I2PControlHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
+	{
+		LogPrint (eLogDebug, "I2PControl I2PControl");
+		for (auto& it: params)
+		{
+			LogPrint (eLogDebug, it.first);
+			auto it1 = m_I2PControlHandlers.find (it.first);
+			if (it1 != m_I2PControlHandlers.end ())
+				(this->*(it1->second))(it.second);	
+			else
+				LogPrint (eLogError, "I2PControl NetworkSetting unknown request ", it.first);			
+		}	
 	}
 
 // RouterInfo

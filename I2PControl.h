@@ -16,6 +16,8 @@ namespace client
 	const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
 	typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;		
 
+	const char I2P_CONTROL_DEFAULT_PASSWORD[] = "itoopie";	
+
 	const char I2P_CONTROL_PROPERTY_ID[] = "id";
 	const char I2P_CONTROL_PROPERTY_METHOD[] = "method";
 	const char I2P_CONTROL_PROPERTY_PARAMS[] = "params";
@@ -23,7 +25,8 @@ namespace client
 
 	// methods	
 	const char I2P_CONTROL_METHOD_AUTHENTICATE[] = "Authenticate";
-	const char I2P_CONTROL_METHOD_ECHO[] = "Echo";		
+	const char I2P_CONTROL_METHOD_ECHO[] = "Echo";
+	const char I2P_CONTROL_METHOD_I2PCONTROL[] = "I2PControl";		
 	const char I2P_CONTROL_METHOD_ROUTER_INFO[] = "RouterInfo";	
 	const char I2P_CONTROL_METHOD_ROUTER_MANAGER[] = "RouterManager";	
 	const char I2P_CONTROL_METHOD_NETWORK_SETTING[] = "NetworkSetting";	
@@ -34,6 +37,11 @@ namespace client
 	const char I2P_CONTROL_PARAM_TOKEN[] = "Token";	
 	const char I2P_CONTROL_PARAM_ECHO[] = "Echo";	
 	const char I2P_CONTROL_PARAM_RESULT[] = "Result";	
+
+	// I2PControl
+	const char I2P_CONTROL_I2PCONTROL_ADDRESS[] = "i2pcontrol.address";		
+	const char I2P_CONTROL_I2PCONTROL_PASSWORD[] = "i2pcontrol.password";
+	const char I2P_CONTROL_I2PCONTROL_PORT[] = "i2pcontrol.port";		
 
 	// RouterInfo requests
 	const char I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS[] = "i2p.router.netdb.knownpeers";
@@ -75,9 +83,13 @@ namespace client
 
 			void AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
+			void I2PControlHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void RouterManagerHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
 			void NetworkSettingHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);			
+
+			// I2PControl
+			typedef void (I2PControlService::*I2PControlRequestHandler)(const std::string& value);
 
 			// RouterInfo
 			typedef void (I2PControlService::*RouterInfoRequestHandler)(std::map<std::string, std::string>& results);
@@ -95,6 +107,7 @@ namespace client
 
 		private:
 
+			std::string m_Password;
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 
@@ -103,6 +116,7 @@ namespace client
 			boost::asio::deadline_timer m_ShutdownTimer;
 			
 			std::map<std::string, MethodHandler> m_MethodHandlers;
+			std::map<std::string, I2PControlRequestHandler> m_I2PControlHandlers;
 			std::map<std::string, RouterInfoRequestHandler> m_RouterInfoHandlers;
 			std::map<std::string, RouterManagerRequestHandler> m_RouterManagerHandlers;
 			std::map<std::string, NetworkSettingRequestHandler> m_NetworkSettingHandlers;
