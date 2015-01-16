@@ -2,6 +2,8 @@
 
 #include <sstream>
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/local_time/local_time.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include "Log.h"
@@ -185,8 +187,23 @@ namespace client
 
 		std::ostringstream ss;
 		boost::property_tree::write_json (ss, pt, false);
-		size_t len = ss.str ().length ();
-		memcpy (buf->data (), ss.str ().c_str (), len);
+		size_t len = ss.str ().length (), offset = 0;
+		if (isHtml)
+		{
+			std::ostringstream header;
+			header << "HTTP/1.1 200 OK\r\n";
+			header << "Connection: close\r\n";
+			header << "Content-Length: " << boost::lexical_cast<std::string>(len) << "\r\n";
+			header << "Content-Type: application/json\r\n";
+			header << "Date: ";
+			auto facet = new boost::local_time::local_time_facet ("%a, %d %b %Y %H:%M:%S GMT");
+			header.imbue(std::locale (header.getloc(), facet));
+			header << boost::posix_time::second_clock::local_time() << "\r\n"; 
+			header << "\r\n";
+			offset = header.str ().size ();
+			memcpy (buf->data (), header.str ().c_str (), offset);
+		}	
+		memcpy (buf->data () + offset, ss.str ().c_str (), len);
 		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), len), 
 			boost::asio::transfer_all (),
 			std::bind(&I2PControlService::HandleResponseSent, this, 
