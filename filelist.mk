@@ -11,7 +11,7 @@ ifeq ($(UNAME),Darwin)
 # Else will get linker error about unknown symbols. - torkel
 	COMMON_SRC += \
 	  BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp I2PService.cpp SAM.cpp SOCKS.cpp \
-	  UPnP.cpp HTTPServer.cpp HTTPProxy.cpp i2p.cpp DaemonLinux.cpp
+	  UPnP.cpp HTTPServer.cpp HTTPProxy.cpp i2p.cpp DaemonLinux.cpp I2PControl.cpp
 endif
 
 
