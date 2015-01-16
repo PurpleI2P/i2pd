@@ -69,12 +69,16 @@ namespace data
 			{
 				TransportStyle transportStyle;
 				boost::asio::ip::address host;
+				char * addressString;
 				int port, mtu;
 				uint64_t date;
 				uint8_t cost;
 				// SSU only
 				Tag<32> key; // intro key for SSU
 				std::vector<Introducer> introducers;
+
+				Address (): addressString (nullptr) {};
+				~Address () { if (addressString) delete[] addressString; };
 
 				bool IsCompatible (const boost::asio::ip::address& other) const 
 				{

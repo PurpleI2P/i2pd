@@ -94,6 +94,10 @@ namespace transport
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
 			
+			void NTCPResolve (const char * addr, const i2p::data::IdentHash& ident);
+			void HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
+ 				const i2p::data::IdentHash& ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
+
 			void DetectExternalIP ();
 			
 		private:

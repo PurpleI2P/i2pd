@@ -96,7 +96,7 @@ namespace transport
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), 
 		m_DHKeysPairSupplier (5) // 5 pre-generated keys
 	{		
@@ -218,12 +218,27 @@ namespace transport
 			if (!peer.numAttempts) // NTCP
 			{
 				peer.numAttempts++;
-				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ()); 
-				if (address && !peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
-				{	
-					auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-					m_NTCPServer->Connect (address->host, address->port, s);
-					return true;
+				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
+				if (address)
+				{
+					if (!address->host.is_unspecified ()) // we have address now
+					{
+						if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
+						{	
+							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+							m_NTCPServer->Connect (address->host, address->port, s);
+							return true;
+						}
+					}
+					else // we don't have address
+					{
+						if (address->addressString) // trying to resolve
+						{
+							LogPrint (eLogInfo, "Resolving ", address->addressString);
+							NTCPResolve (address->addressString, ident);
+							return true;
+						}
+					}
 				}	
 			}
 			else  if (peer.numAttempts == 1)// SSU
@@ -271,7 +286,40 @@ namespace transport
 			}	
 		}	
 	}	
-		
+
+	void Transports::NTCPResolve (const char * addr, const i2p::data::IdentHash& ident)
+	{
+		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
+		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr), 
+			std::bind (&Transports::HandleNTCPResolve, this, 
+				std::placeholders::_1, std::placeholders::_2, ident, resolver));
+	}
+
+	void Transports::HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
+		const i2p::data::IdentHash& ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+	{
+		auto it1 = m_Peers.find (ident);
+		if (it1 != m_Peers.end () && it1->second.router)
+		{
+			auto& peer = it1->second;
+			if (!ecode)
+			{
+				auto address = (*it).endpoint ().address ();
+				LogPrint (eLogInfo, (*it).host_name (), " has been resolved to ", address);
+				auto addr = peer.router->GetNTCPAddress ();
+				if (addr)
+				{
+					auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+					m_NTCPServer->Connect (address, addr->port, s);
+					return;
+				}	
+			}
+		}
+
+		LogPrint (eLogError, "Unable to resolve NTCP address: ", ecode.message ());
+		m_Peers.erase (it1);
+	}
+
 	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
 	{
 		if (!router) return;
