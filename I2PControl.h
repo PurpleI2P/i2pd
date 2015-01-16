@@ -72,7 +72,7 @@ namespace client
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 			void SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<I2PControlBuffer> buf, const std::string& id, 
-				const std::map<std::string, std::string>& results);
+				const std::map<std::string, std::string>& results, bool isHtml);
 			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 

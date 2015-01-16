@@ -125,8 +125,20 @@ namespace client
 		{
 			try
 			{
+				bool isHtml = !memcmp (buf->data (), "POST", 4);
 				std::stringstream ss;
 				ss.write (buf->data (), bytes_transferred);
+				if (isHtml)
+				{
+					std::string header;
+					while (!ss.eof () && header != "\r")
+						std::getline(ss, header);
+					if (ss.eof ())
+					{
+						LogPrint (eLogError, "Malformed I2PControl request. HTTP header expected");
+						return; // TODO:
+					}
+				}
 				boost::property_tree::ptree pt;
 				boost::property_tree::read_json (ss, pt);
 				std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
@@ -142,7 +154,7 @@ namespace client
 					}
 					std::map<std::string, std::string> results;
 					(this->*(it->second))(params, results);
-					SendResponse (socket, buf, pt.get<std::string>(I2P_CONTROL_PROPERTY_ID), results);
+					SendResponse (socket, buf, pt.get<std::string>(I2P_CONTROL_PROPERTY_ID), results, isHtml);
 				}	
 				else
 					LogPrint (eLogWarning, "Unknown I2PControl method ", method);
@@ -160,7 +172,7 @@ namespace client
 
 	void I2PControlService::SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf, const std::string& id, 
-		const std::map<std::string, std::string>& results)
+		const std::map<std::string, std::string>& results, bool isHtml)
 	{
 		boost::property_tree::ptree ptr;
 		for (auto& result: results)
