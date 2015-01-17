@@ -1,5 +1,4 @@
 #include <cryptopp/dh.h>
-#include <boost/bind.hpp>
 #include "Log.h"
 #include "CryptoConst.h"
 #include "RouterContext.h"
@@ -182,7 +181,7 @@ namespace transport
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
-		m_Service.post (boost::bind (&Transports::PostMessage, this, ident, msg));                             
+		m_Service.post (std::bind (&Transports::PostMessage, this, ident, msg));                             
 	}	
 
 	void Transports::PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
@@ -290,7 +289,7 @@ namespace transport
 	void Transports::NTCPResolve (const std::string& addr, const i2p::data::IdentHash& ident)
 	{
 		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
-		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr), 
+		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr, ""), 
 			std::bind (&Transports::HandleNTCPResolve, this, 
 				std::placeholders::_1, std::placeholders::_2, ident, resolver));
 	}
@@ -323,7 +322,7 @@ namespace transport
 	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
 	{
 		if (!router) return;
-		m_Service.post (boost::bind (&Transports::PostCloseSession, this, router));    
+		m_Service.post (std::bind (&Transports::PostCloseSession, this, router));    
 	}	
 
 	void Transports::PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
