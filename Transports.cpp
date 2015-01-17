@@ -232,7 +232,7 @@ namespace transport
 					}
 					else // we don't have address
 					{
-						if (address->addressString) // trying to resolve
+						if (address->addressString.length () > 0) // trying to resolve
 						{
 							LogPrint (eLogInfo, "Resolving ", address->addressString);
 							NTCPResolve (address->addressString, ident);
@@ -287,7 +287,7 @@ namespace transport
 		}	
 	}	
 
-	void Transports::NTCPResolve (const char * addr, const i2p::data::IdentHash& ident)
+	void Transports::NTCPResolve (const std::string& addr, const i2p::data::IdentHash& ident)
 	{
 		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
 		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr), 

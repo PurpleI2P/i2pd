@@ -150,9 +150,17 @@ namespace data
 					address.host = boost::asio::ip::address::from_string (value, ecode);
 					if (ecode)
 					{	
-						// TODO: we should try to resolve address here
-						LogPrint (eLogWarning, "Unexpected address ", value);
-						isValidAddress = false;
+						if (address.transportStyle == eTransportNTCP)
+						{
+							m_SupportedTransports |= eNTCPV4; // TODO:
+							address.addressString = value;
+						}
+						else
+						{	
+							// TODO: resolve address for SSU
+							LogPrint (eLogWarning, "Unexpected SSU address ", value);
+							isValidAddress = false;
+						}	
 					}	
 					else
 					{
