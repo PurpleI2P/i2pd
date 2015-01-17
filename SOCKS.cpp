@@ -514,6 +514,11 @@ namespace proxy
 		}
 	}
 
+	SOCKSServer::SOCKSServer(int port) : 
+		TCPIPAcceptor (port, i2p::client::context.GetSharedLocalDestination ()) 
+	{
+	}
+	
 	std::shared_ptr<i2p::client::I2PServiceHandler> SOCKSServer::CreateHandler(boost::asio::ip::tcp::socket * socket)
 	{
 		return std::make_shared<SOCKSHandler> (this, socket);

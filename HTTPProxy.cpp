@@ -231,6 +231,11 @@ namespace proxy
 		}
 	}
 
+	HTTPProxyServer::HTTPProxyServer(int port): 
+		TCPIPAcceptor(port, i2p::client::context.GetSharedLocalDestination ()) 
+	{
+	}
+	
 	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(boost::asio::ip::tcp::socket * socket)
 	{
 		return std::make_shared<HTTPProxyHandler> (this, socket);

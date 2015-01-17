@@ -19,7 +19,7 @@ namespace proxy
 			const char* GetName() { return "SOCKS"; }
 
 		public:
-			SOCKSServer(int port) : TCPIPAcceptor(port) {}
+			SOCKSServer(int port);
 			~SOCKSServer() {}
 	};
 

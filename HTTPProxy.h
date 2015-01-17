@@ -19,7 +19,7 @@ namespace proxy
 			const char* GetName() { return "HTTP Proxy"; }
 
 		public:
-			HTTPProxyServer(int port) : TCPIPAcceptor(port, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {}
+			HTTPProxyServer(int port);
 			~HTTPProxyServer() {}
 	};
 
