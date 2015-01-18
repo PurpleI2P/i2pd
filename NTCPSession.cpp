@@ -90,7 +90,7 @@ namespace transport
 		m_DHKeysPair = nullptr;	
 
 		SendTimeSyncMessage ();
-		SendI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
+		PostI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 
 		transports.PeerConnected (shared_from_this ());
 	}	
