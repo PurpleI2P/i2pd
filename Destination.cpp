@@ -129,10 +129,7 @@ namespace client
 			if (it->second->HasNonExpiredLeases ())
 				return it->second;
 			else
-			{
-				LogPrint ("All leases of remote LeaseSet expired. Request it");
-				RequestDestination (ident);
-			}	
+				LogPrint ("All leases of remote LeaseSet expired");
 		}	
 		else
 		{	
