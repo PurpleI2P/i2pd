@@ -266,9 +266,9 @@ namespace data
 				s.read ((char *)&compressionMethod, 2);	
 				compressionMethod = le16toh (compressionMethod);
 				s.seekg (4, std::ios::cur); // skip fields we don't care about
-				uint32_t crc32, compressedSize, uncompressedSize; 
-				s.read ((char *)&crc32, 4);	
-				crc32 = le32toh (crc32);	
+				uint32_t compressedSize, uncompressedSize; 
+				uint8_t crc32[4];
+				s.read ((char *)crc32, 4);	
 				s.read ((char *)&compressedSize, 4);	
 				compressedSize = le32toh (compressedSize);	
 				s.read ((char *)&uncompressedSize, 4);
@@ -292,8 +292,7 @@ namespace data
 						return numFiles;
 					}								
 	
-					s.read ((char *)&crc32, 4);	
-					crc32 = le32toh (crc32);
+					s.read ((char *)crc32, 4);	
 					s.read ((char *)&compressedSize, 4);	
 					compressedSize = le32toh (compressedSize) + 4; // ??? we must consider signature as part of compressed data
 					s.read ((char *)&uncompressedSize, 4);
@@ -321,7 +320,7 @@ namespace data
 					{
 						uint8_t * uncompressed = new uint8_t[uncompressedSize];	
 						decompressor.Get (uncompressed, uncompressedSize);	
-						if (CryptoPP::CRC32().VerifyDigest ((uint8_t *)&crc32, uncompressed, uncompressedSize))
+						if (CryptoPP::CRC32().VerifyDigest (crc32, uncompressed, uncompressedSize))
 						{
 							i2p::data::netdb.AddRouterInfo (uncompressed, uncompressedSize);
 							numFiles++;
