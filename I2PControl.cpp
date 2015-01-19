@@ -38,6 +38,7 @@ namespace client
 		// RouterManager	
 		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN] = &I2PControlService::ShutdownHandler; 
 		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL] = &I2PControlService::ShutdownGracefulHandler;
+		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_RESEED] = &I2PControlService::ReseedHandler;
 	}
 
 	I2PControlService::~I2PControlService ()
@@ -330,7 +331,14 @@ namespace client
 			});
 	}
 
-	// network setting
+	void I2PControlService::ReseedHandler (std::map<std::string, std::string>& results)
+	{
+		LogPrint (eLogInfo, "Reseed requested");
+		results[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN] = "";	
+		i2p::data::netdb.Reseed ();
+	}
+
+// network setting
 	void I2PControlService::NetworkSettingHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)
 	{
 		LogPrint (eLogDebug, "I2PControl NetworkSetting");

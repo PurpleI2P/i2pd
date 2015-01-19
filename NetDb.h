@@ -15,6 +15,7 @@
 #include "LeaseSet.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"
+#include "Reseed.h"
 
 namespace i2p
 {
@@ -83,6 +84,8 @@ namespace data
 
 			void PostI2NPMsg (I2NPMessage * msg);
 
+			void Reseed ();
+
 			// for web interface
 			int GetNumRouters () const { return m_RouterInfos.size (); };
 			int GetNumFloodfills () const { return m_Floodfills.size (); };
@@ -118,6 +121,8 @@ namespace data
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			i2p::util::Queue<I2NPMessage> m_Queue; // of I2NPDatabaseStoreMsg
+
+			Reseeder * m_Reseeder;
 
 			static const char m_NetDbPath[];
 	};

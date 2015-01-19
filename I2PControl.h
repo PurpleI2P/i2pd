@@ -51,7 +51,8 @@ namespace client
 	// RouterManager requests
 	const char I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
 	const char I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
-	
+	const char I2P_CONTROL_ROUTER_MANAGER_RESEED[] = "Reseed";		
+
 	class I2PControlService
 	{
 		public:
@@ -101,6 +102,7 @@ namespace client
 			typedef void (I2PControlService::*RouterManagerRequestHandler)(std::map<std::string, std::string>& results);
 			void ShutdownHandler (std::map<std::string, std::string>& results);
 			void ShutdownGracefulHandler (std::map<std::string, std::string>& results);
+			void ReseedHandler (std::map<std::string, std::string>& results);
 
 			// NetworkSetting
 			typedef void (I2PControlService::*NetworkSettingRequestHandler)(const std::string& value, std::map<std::string, std::string>& results);	

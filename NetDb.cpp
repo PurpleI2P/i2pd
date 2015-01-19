@@ -13,7 +13,6 @@
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
-#include "Reseed.h"
 #include "util.h"
 
 using namespace i2p::transport;
@@ -72,13 +71,14 @@ namespace data
 #endif			
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr)
 	{
 	}
 	
 	NetDb::~NetDb ()
 	{
 		Stop ();	
+		delete m_Reseeder;
 	}	
 
 	void NetDb::Start ()
@@ -86,24 +86,20 @@ namespace data
 		Load (m_NetDbPath);
 		if (m_RouterInfos.size () < 50) // reseed if # of router less than 50
 		{	
-			Reseeder reseeder;
-			reseeder.LoadCertificates (); // we need certificates for SU3 verification
-
 			// try SU3 first
-			int reseedRetries = 0;
-			while (m_RouterInfos.size () < 50 && reseedRetries < 10)
-			{	
-				reseeder.ReseedNowSU3();
-				reseedRetries++;
-			}	
+			Reseed ();
 
-			// if still not enough download .dat files
-			reseedRetries = 0;
-			while (m_RouterInfos.size () < 50 && reseedRetries < 10)
+			// deprecated
+			if (m_Reseeder)
 			{
-				reseeder.reseedNow();
-				reseedRetries++;
-				Load (m_NetDbPath);
+				// if still not enough download .dat files
+				int reseedRetries = 0;
+				while (m_RouterInfos.size () < 50 && reseedRetries < 10)
+				{
+					m_Reseeder->reseedNow();
+					reseedRetries++;
+					Load (m_NetDbPath);
+				}
 			}
 		}	
 		m_IsRunning = true;
@@ -312,6 +308,20 @@ namespace data
 			if (!boost::filesystem::create_directory( boost::filesystem::path (directory / suffix) )) return false;
 		}
 		return true;
+	}
+
+	void NetDb::Reseed ()
+	{
+		if (!m_Reseeder)
+		{		
+			m_Reseeder = new Reseeder ();
+			m_Reseeder->LoadCertificates (); // we need certificates for SU3 verification
+		}
+		int reseedRetries = 0;	
+		while (reseedRetries < 10 && !m_Reseeder->ReseedNowSU3 ())
+			reseedRetries++;
+		if (reseedRetries >= 10)
+			LogPrint (eLogWarning, "Failed to reseed after 10 attempts");
 	}
 
 	void NetDb::Load (const char * directory)
