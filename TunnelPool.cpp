@@ -300,7 +300,7 @@ namespace tunnel
 		}		
 		std::reverse (hops.begin (), hops.end ());	
 		auto * tunnel = tunnels.CreateTunnel<InboundTunnel> (new TunnelConfig (hops), outboundTunnel);
-		tunnel->SetTunnelPool (this);
+		tunnel->SetTunnelPool (shared_from_this ());
 	}
 
 	void TunnelPool::RecreateInboundTunnel (InboundTunnel * tunnel)
@@ -310,7 +310,7 @@ namespace tunnel
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Re-creating destination inbound tunnel...");
 		auto * newTunnel = tunnels.CreateTunnel<InboundTunnel> (tunnel->GetTunnelConfig ()->Clone (), outboundTunnel);
-		newTunnel->SetTunnelPool (this);
+		newTunnel->SetTunnelPool (shared_from_this());
 	}	
 		
 	void TunnelPool::CreateOutboundTunnel ()
@@ -333,7 +333,7 @@ namespace tunnel
 				
 			auto * tunnel = tunnels.CreateTunnel<OutboundTunnel> (
 				new TunnelConfig (hops, inboundTunnel->GetTunnelConfig ()));
-			tunnel->SetTunnelPool (this);
+			tunnel->SetTunnelPool (shared_from_this ());
 		}	
 		else
 			LogPrint ("Can't create outbound tunnel. No inbound tunnels found");
@@ -349,7 +349,7 @@ namespace tunnel
 			LogPrint ("Re-creating destination outbound tunnel...");
 			auto * newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
 				tunnel->GetTunnelConfig ()->Clone (inboundTunnel->GetTunnelConfig ()));
-			newTunnel->SetTunnelPool (this);
+			newTunnel->SetTunnelPool (shared_from_this ());
 		}	
 		else
 			LogPrint ("Can't re-create outbound tunnel. No inbound tunnels found");

@@ -6,6 +6,7 @@
 #include <vector>
 #include <utility>
 #include <mutex>
+#include <memory>
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "RouterInfo.h"
@@ -22,7 +23,7 @@ namespace tunnel
 	class InboundTunnel;
 	class OutboundTunnel;
 
-	class TunnelPool // per local destination
+	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
 		public:
 

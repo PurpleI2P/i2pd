@@ -8,6 +8,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <memory>
 #include "Queue.h"
 #include "TunnelConfig.h"
 #include "TunnelPool.h"
@@ -54,8 +55,8 @@ namespace tunnel
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 
-			TunnelPool * GetTunnelPool () const { return m_Pool; };
-			void SetTunnelPool (TunnelPool * pool) { m_Pool = pool; };			
+			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
+			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };			
 			
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 			
@@ -67,7 +68,7 @@ namespace tunnel
 		private:
 
 			TunnelConfig * m_Config;
-			TunnelPool * m_Pool; // pool, tunnel belongs to, or null
+			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
 	};	
 
@@ -121,7 +122,7 @@ namespace tunnel
 			Tunnel * GetPendingTunnel (uint32_t replyMsgID);
 			InboundTunnel * GetNextInboundTunnel ();
 			OutboundTunnel * GetNextOutboundTunnel ();
-			TunnelPool * GetExploratoryPool () const { return m_ExploratoryPool; };
+			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
 			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
 			void AddTransitTunnel (TransitTunnel * tunnel);
@@ -130,9 +131,9 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
-			TunnelPool * CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops);
-			void DeleteTunnelPool (TunnelPool * pool);
-			void StopTunnelPool (TunnelPool * pool);
+			std::shared_ptr<TunnelPool> CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops);
+			void DeleteTunnelPool (std::shared_ptr<TunnelPool> pool);
+			void StopTunnelPool (std::shared_ptr<TunnelPool> pool);
 			
 		private:
 			
@@ -158,8 +159,8 @@ namespace tunnel
 			std::mutex m_TransitTunnelsMutex;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
 			std::mutex m_PoolsMutex;
-			std::list<TunnelPool *> m_Pools;
-			TunnelPool * m_ExploratoryPool;
+			std::list<std::shared_ptr<TunnelPool>> m_Pools;
+			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<I2NPMessage> m_Queue;
 
 		public:

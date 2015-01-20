@@ -191,7 +191,7 @@ namespace tunnel
 	
 	Tunnels tunnels;
 	
-	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr), m_ExploratoryPool (nullptr)
+	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
 	
@@ -213,9 +213,6 @@ namespace tunnel
 			delete it.second;
 		m_PendingTunnels.clear ();*/
 
-		for (auto& it: m_Pools)
-			delete it;
-		m_Pools.clear ();
 	}	
 	
 	InboundTunnel * Tunnels::GetInboundTunnel (uint32_t tunnelID)
@@ -280,15 +277,15 @@ namespace tunnel
 		return tunnel;
 	}	
 
-	TunnelPool * Tunnels::CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops)
+	std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops)
 	{
-		auto pool = new TunnelPool (localDestination, numInboundHops, numOutboundHops);
+		auto pool = std::make_shared<TunnelPool> (localDestination, numInboundHops, numOutboundHops);
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
 		m_Pools.push_back (pool);
 		return pool;
 	}	
 
-	void Tunnels::DeleteTunnelPool (TunnelPool * pool)
+	void Tunnels::DeleteTunnelPool (std::shared_ptr<TunnelPool> pool)
 	{
 		if (pool)
 		{	
@@ -297,14 +294,10 @@ namespace tunnel
 				std::unique_lock<std::mutex> l(m_PoolsMutex);
 				m_Pools.remove (pool);
 			}	
-			for (auto it: m_PendingTunnels)
-				if (it.second->GetTunnelPool () == pool)
-					it.second->SetTunnelPool (nullptr);
-			delete pool;
 		}	
 	}	
 
-	void Tunnels::StopTunnelPool (TunnelPool * pool)
+	void Tunnels::StopTunnelPool (std::shared_ptr<TunnelPool> pool)
 	{
 		if (pool)
 		{
@@ -547,8 +540,8 @@ namespace tunnel
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
 		for (auto it: m_Pools)
 		{	
-			TunnelPool * pool = it;
-			if (pool->IsActive ())
+			auto pool = it;
+			if (pool && pool->IsActive ())
 			{	
 				pool->CreateTunnels ();
 				pool->TestTunnels ();
