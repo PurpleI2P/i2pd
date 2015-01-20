@@ -209,7 +209,7 @@ namespace tunnel
 			delete it.second;
 		m_TransitTunnels.clear ();
 
-		/*for (auto& it : m_PendingTunnels)
+	/*	for (auto& it : m_PendingTunnels)
 			delete it.second;
 		m_PendingTunnels.clear ();*/
 
@@ -428,7 +428,6 @@ namespace tunnel
 				{
 					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
 					{
-						std::unique_lock<std::mutex> l(m_PoolsMutex);
 						auto pool = tunnel->GetTunnelPool ();
 						if (pool)
 							pool->TunnelExpired (tunnel);
@@ -474,7 +473,6 @@ namespace tunnel
 				{
 					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
 					{
-						std::unique_lock<std::mutex> l(m_PoolsMutex);
 						auto pool = tunnel->GetTunnelPool ();
 						if (pool)
 							pool->TunnelExpired (tunnel);
@@ -522,8 +520,8 @@ namespace tunnel
 		{
 			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
-				LogPrint ("Transit tunnel ", it->second->GetTunnelID (), " expired");
 				auto tmp = it->second;
+				LogPrint ("Transit tunnel ", tmp->GetTunnelID (), " expired");
 				{
 					std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
 					it = m_TransitTunnels.erase (it);
