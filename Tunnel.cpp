@@ -209,9 +209,10 @@ namespace tunnel
 			delete it.second;
 		m_TransitTunnels.clear ();
 
-	/*	for (auto& it : m_PendingTunnels)
+		ManagePendingTunnels ();
+		for (auto& it : m_PendingTunnels)
 			delete it.second;
-		m_PendingTunnels.clear ();*/
+		m_PendingTunnels.clear ();
 
 	}	
 	
