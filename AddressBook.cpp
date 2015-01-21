@@ -355,10 +355,13 @@ namespace client
 	void AddressBook::DownloadComplete (bool success)
 	{
 		m_IsDownloading = false;
-		m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(
-			success ? CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT : CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT));
-		m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
-			this, std::placeholders::_1));
+		if (m_SubscriptionsUpdateTimer)
+		{
+			m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(
+				success ? CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT : CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT));
+			m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
+				this, std::placeholders::_1));
+		}
 	}
 
 	void AddressBook::StartSubscriptions ()
