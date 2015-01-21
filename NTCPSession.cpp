@@ -76,7 +76,7 @@ namespace transport
 		m_Socket.close ();
 		transports.PeerDisconnected (shared_from_this ());
 		m_Server.RemoveNTCPSession (shared_from_this ());
-		LogPrint (eLogInfo, "NTCP session wiht ", m_Socket.remote_endpoint ()," terminated");
+		LogPrint (eLogInfo, "NTCP session terminated");
 	}	
 
 	void NTCPSession::Connected ()
