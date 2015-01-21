@@ -347,10 +347,16 @@ namespace tunnel
 			try
 			{	
 				I2NPMessage * msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
+				uint32_t prevTunnelID = 0;
+				TunnelBase * prevTunnel = nullptr;
 				while (msg)
 				{
-					uint32_t  tunnelID = bufbe32toh (msg->GetPayload ()); 
-					TunnelBase * tunnel = GetInboundTunnel (tunnelID);
+					uint32_t tunnelID = bufbe32toh (msg->GetPayload ()); 
+					TunnelBase * tunnel = nullptr;
+					if (tunnelID == prevTunnelID)
+						tunnel = prevTunnel;
+					if (!tunnel)
+						tunnel = GetInboundTunnel (tunnelID);
 					if (!tunnel)
 						tunnel = GetTransitTunnel (tunnelID);
 					if (tunnel)
@@ -362,6 +368,11 @@ namespace tunnel
 					}	
 
 					msg = m_Queue.Get ();
+					if (msg)
+					{
+						prevTunnelID = tunnelID;
+						prevTunnel = tunnel;
+					}
 				}	
 			
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
