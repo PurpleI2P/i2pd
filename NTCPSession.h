@@ -66,15 +66,13 @@ namespace transport
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
-		protected:
+		private:
 
 			void PostI2NPMessage (I2NPMessage * msg);
 			void PostI2NPMessages (std::vector<I2NPMessage *> msgs);
 			void Connected ();
 			void SendTimeSyncMessage ();
 			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }
-			
-		private:
 
 			void CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key);
 				
@@ -102,9 +100,8 @@ namespace transport
 		
 			void Send (i2p::I2NPMessage * msg);
 			boost::asio::const_buffers_1 CreateMsgBuffer (I2NPMessage * msg);
-			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg);
 			void Send (const std::vector<I2NPMessage *>& msgs);
-			void HandleBatchSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<I2NPMessage *> msgs);
+			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<I2NPMessage *> msgs);
 			
 			
 			// timer
