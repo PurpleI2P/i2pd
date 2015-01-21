@@ -189,6 +189,12 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}	
 	
+	void OutboundTunnel::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
+	{
+		LogPrint (eLogError, "Incoming message for outbound tunnel ", GetTunnelID ());
+		DeleteI2NPMessage (tunnelMsg);	
+	}
+
 	Tunnels tunnels;
 	
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr)
@@ -344,20 +350,17 @@ namespace tunnel
 				while (msg)
 				{
 					uint32_t  tunnelID = bufbe32toh (msg->GetPayload ()); 
-					InboundTunnel * tunnel = GetInboundTunnel (tunnelID);
+					TunnelBase * tunnel = GetInboundTunnel (tunnelID);
+					if (!tunnel)
+						tunnel = GetTransitTunnel (tunnelID);
 					if (tunnel)
 						tunnel->HandleTunnelDataMsg (msg);
-					else
+					else	
 					{	
-						TransitTunnel * transitTunnel = GetTransitTunnel (tunnelID);
-						if (transitTunnel)
-							transitTunnel->HandleTunnelDataMsg (msg);
-						else	
-						{	
-							LogPrint ("Tunnel ", tunnelID, " not found");
-							i2p::DeleteI2NPMessage (msg);
-						}	
+						LogPrint ("Tunnel ", tunnelID, " not found");
+						DeleteI2NPMessage (msg);
 					}	
+
 					msg = m_Queue.Get ();
 				}	
 			

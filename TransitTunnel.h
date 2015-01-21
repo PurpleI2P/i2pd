@@ -21,13 +21,13 @@ namespace tunnel
 			    const uint8_t * nextIdent, uint32_t nextTunnelID, 
 	    		const uint8_t * layerKey,const uint8_t * ivKey); 
 			
-			virtual void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
 			virtual void SendTunnelDataMsg (i2p::I2NPMessage * msg);
 			virtual size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
 			
 			uint32_t GetTunnelID () const { return m_TunnelID; };
 
 			// implements TunnelBase
+			void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
 			void EncryptTunnelMsg (I2NPMessage * tunnelMsg); 
 			uint32_t GetNextTunnelID () const { return m_NextTunnelID; };
 			const i2p::data::IdentHash& GetNextIdentHash () const { return m_NextIdent; };

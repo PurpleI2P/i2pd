@@ -85,6 +85,7 @@ namespace tunnel
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
 
 			// implements TunnelBase
+			void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
 			uint32_t GetTunnelID () const { return GetNextTunnelID (); };
 			
 		private:

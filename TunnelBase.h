@@ -36,6 +36,7 @@ namespace tunnel
 			TunnelBase (): m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
 			
+			virtual void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg) = 0;
 			virtual void EncryptTunnelMsg (I2NPMessage * tunnelMsg) = 0;
 			virtual uint32_t GetNextTunnelID () const = 0;
 			virtual const i2p::data::IdentHash& GetNextIdentHash () const = 0;
