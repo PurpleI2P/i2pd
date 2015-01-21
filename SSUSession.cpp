@@ -827,7 +827,19 @@ namespace transport
 		if (msg)
 			m_Data.Send (msg);
 	}		
-		
+
+	void SSUSession::SendI2NPMessages (const std::vector<I2NPMessage *>& msgs)
+	{
+		boost::asio::io_service& service = IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService ();
+		service.post (std::bind (&SSUSession::PostI2NPMessages, shared_from_this (), msgs));    
+	}
+
+	void SSUSession::PostI2NPMessages (std::vector<I2NPMessage *> msgs)
+	{
+		for (auto it: msgs)
+			if (it) m_Data.Send (it);
+	}	
+
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)
 	{
 		m_Data.ProcessMessage (buf, len);

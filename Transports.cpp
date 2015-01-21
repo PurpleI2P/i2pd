@@ -184,6 +184,11 @@ namespace transport
 		m_Service.post (std::bind (&Transports::PostMessage, this, ident, msg));                             
 	}	
 
+	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs)
+	{
+		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
+	}	
+		
 	void Transports::PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
@@ -210,6 +215,36 @@ namespace transport
 			it->second.delayedMessages.push_back (msg);
 	}	
 
+	void Transports::PostMessages (const i2p::data::IdentHash& ident, std::vector<i2p::I2NPMessage *> msgs)
+	{
+		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
+		{	
+			// we send it to ourself
+			for (auto it: msgs)
+				i2p::HandleI2NPMessage (it);
+			return;
+		}	
+		auto it = m_Peers.find (ident);
+		if (it == m_Peers.end ())
+		{
+			auto r = netdb.FindRouter (ident);
+			it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr})).first;
+			if (!ConnectToPeer (ident, it->second))
+			{
+				for (auto it1: msgs)
+					DeleteI2NPMessage (it1);
+				return;
+			}	
+		}	
+		if (it->second.session)
+			it->second.session->SendI2NPMessages (msgs);
+		else
+		{	
+			for (auto it1: msgs)
+				it->second.delayedMessages.push_back (it1);
+		}	
+	}	
+		
 	bool Transports::ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer)
 	{
 		if (peer.router) // we have RI already
@@ -365,8 +400,7 @@ namespace transport
 			if (it != m_Peers.end ())
 			{
 				it->second.session = session;
-				for (auto it1: it->second.delayedMessages)
-					session->SendI2NPMessage (it1);
+				session->SendI2NPMessages (it->second.delayedMessages);
 				it->second.delayedMessages.clear ();
 			}
 			else // incoming connection

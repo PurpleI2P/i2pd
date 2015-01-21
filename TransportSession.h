@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <iostream>
 #include <memory>
+#include <vector>
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
@@ -66,6 +67,7 @@ namespace transport
 			const i2p::data::IdentityEx& GetRemoteIdentity () { return m_RemoteIdentity; };
 
 			virtual void SendI2NPMessage (I2NPMessage * msg) = 0;
+			virtual void SendI2NPMessages (const std::vector<I2NPMessage *>& msgs) = 0;
 			
 		protected:
 

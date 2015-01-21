@@ -188,9 +188,9 @@ namespace tunnel
 		{	
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg);
 			FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
-			i2p::transport::transports.SendMessage (m_Tunnel->GetNextIdentHash (), tunnelMsg);
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}	
+		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), tunnelMsgs);
 		m_Buffer.ClearTunnelDataMsgs ();
 	}	
 }		

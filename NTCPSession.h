@@ -61,6 +61,7 @@ namespace transport
 			void ClientLogin ();
 			void ServerLogin ();
 			void SendI2NPMessage (I2NPMessage * msg);
+			void SendI2NPMessages (const std::vector<I2NPMessage *>& msgs);
 
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
@@ -68,6 +69,7 @@ namespace transport
 		protected:
 
 			void PostI2NPMessage (I2NPMessage * msg);
+			void PostI2NPMessages (std::vector<I2NPMessage *> msgs);
 			void Connected ();
 			void SendTimeSyncMessage ();
 			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }

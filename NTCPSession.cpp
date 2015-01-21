@@ -617,6 +617,17 @@ namespace transport
 		if (msg)
 			Send (msg);
 	}	
+
+	void NTCPSession::SendI2NPMessages (const std::vector<I2NPMessage *>& msgs)
+	{
+		m_Server.GetService ().post (std::bind (&NTCPSession::PostI2NPMessages, shared_from_this (), msgs));  
+	}	
+
+	void NTCPSession::PostI2NPMessages (std::vector<I2NPMessage *> msgs)
+	{
+		for (auto it: msgs)
+			if (it) Send (it);
+	}	
 		
 	void NTCPSession::ScheduleTermination ()
 	{

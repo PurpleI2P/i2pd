@@ -6,7 +6,7 @@
 #include <condition_variable>
 #include <functional>
 #include <map>
-#include <list>
+#include <vector>
 #include <queue>
 #include <string>
 #include <memory>
@@ -56,7 +56,7 @@ namespace transport
 		int numAttempts;
 		std::shared_ptr<const i2p::data::RouterInfo> router;
 		std::shared_ptr<TransportSession> session;
-		std::list<i2p::I2NPMessage *> delayedMessages;
+		std::vector<i2p::I2NPMessage *> delayedMessages;
 
 		~Peer ()
 		{
@@ -80,6 +80,7 @@ namespace transport
 			void ReuseDHKeysPair (DHKeysPair * pair);
 
 			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
+			void SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs);
 			void CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 
 			void PeerConnected (std::shared_ptr<TransportSession> session);
@@ -91,6 +92,7 @@ namespace transport
 			void RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
 			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
+			void PostMessages (const i2p::data::IdentHash& ident, std::vector<i2p::I2NPMessage *> msgs);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
 			
