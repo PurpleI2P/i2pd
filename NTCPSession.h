@@ -101,9 +101,12 @@ namespace transport
 			bool DecryptNextBlock (const uint8_t * encrypted);	
 		
 			void Send (i2p::I2NPMessage * msg);
+			boost::asio::const_buffers_1 CreateMsgBuffer (I2NPMessage * msg);
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, i2p::I2NPMessage * msg);
-
-
+			void Send (const std::vector<I2NPMessage *>& msgs);
+			void HandleBatchSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<I2NPMessage *> msgs);
+			
+			
 			// timer
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
