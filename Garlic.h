@@ -54,7 +54,7 @@ namespace garlic
 	};
 		
 	class GarlicDestination;
-	class GarlicRoutingSession
+	class GarlicRoutingSession: public std::enable_shared_from_this<GarlicRoutingSession>
 	{
 			struct UnconfirmedTags
 			{
@@ -105,13 +105,13 @@ namespace garlic
 			GarlicDestination (): m_LastTagsCleanupTime (0) {};
 			~GarlicDestination ();
 
-			GarlicRoutingSession * GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
+			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
 			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
 			    I2NPMessage * msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
-			void DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID);
+			void DeliveryStatusSent (std::shared_ptr<GarlicRoutingSession> session, uint32_t msgID);
 			
 			virtual void ProcessGarlicMessage (I2NPMessage * msg);
 			virtual void ProcessDeliveryStatusMessage (I2NPMessage * msg);			
@@ -135,12 +135,12 @@ namespace garlic
 			
 			// outgoing sessions
 			std::mutex m_SessionsMutex;
-			std::map<i2p::data::IdentHash, GarlicRoutingSession *> m_Sessions;
+			std::map<i2p::data::IdentHash, std::shared_ptr<GarlicRoutingSession> > m_Sessions;
 			// incoming
 			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
 			uint32_t m_LastTagsCleanupTime;
 			// DeliveryStatus
-			std::map<uint32_t, GarlicRoutingSession *> m_CreatedSessions; // msgID -> session
+			std::map<uint32_t, std::shared_ptr<GarlicRoutingSession> > m_CreatedSessions; // msgID -> session
 	};	
 }	
 }

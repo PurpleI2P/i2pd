@@ -142,7 +142,7 @@ namespace stream
 			StreamingDestination& m_LocalDestination;
 			i2p::data::IdentityEx m_RemoteIdentity;
 			const i2p::data::LeaseSet * m_RemoteLeaseSet;
-			i2p::garlic::GarlicRoutingSession * m_RoutingSession;
+			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			i2p::data::Lease m_CurrentRemoteLease;
 			i2p::tunnel::OutboundTunnel * m_CurrentOutboundTunnel;
 			std::queue<Packet *> m_ReceiveQueue;

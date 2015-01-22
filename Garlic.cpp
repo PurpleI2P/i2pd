@@ -197,7 +197,7 @@ namespace garlic
 				{
 					(*numCloves)++;
 					m_UnconfirmedTagsMsgs[msgID] = newTags;
-					m_Owner->DeliveryStatusSent (this, msgID);
+					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
 				}
 				else
 					LogPrint ("DeliveryStatus clove was not created");
@@ -306,9 +306,6 @@ namespace garlic
 	
 	GarlicDestination::~GarlicDestination ()
 	{
-		for (auto it: m_Sessions)
-			delete it.second;
-		m_Sessions.clear ();
 	}
 
 	void GarlicDestination::AddSessionKey (const uint8_t * key, const uint8_t * tag)
@@ -503,23 +500,23 @@ namespace garlic
 		}	
 	}
 
-	GarlicRoutingSession * GarlicDestination::GetRoutingSession (
+	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
 		const i2p::data::RoutingDestination& destination, int numTags)
 	{
 		auto it = m_Sessions.find (destination.GetIdentHash ());
-		GarlicRoutingSession * session = nullptr;
+		std::shared_ptr<GarlicRoutingSession> session;
 		if (it != m_Sessions.end ())
 			session = it->second;
 		if (!session)
 		{
-			session = new GarlicRoutingSession (this, &destination, numTags); 
+			session = std::make_shared<GarlicRoutingSession> (this, &destination, numTags); 
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			m_Sessions[destination.GetIdentHash ()] = session;
 		}	
 		return session;
 	}	
 		
-	void GarlicDestination::DeliveryStatusSent (GarlicRoutingSession * session, uint32_t msgID)
+	void GarlicDestination::DeliveryStatusSent (std::shared_ptr<GarlicRoutingSession> session, uint32_t msgID)
 	{
 		m_CreatedSessions[msgID] = session;
 	}		
@@ -533,7 +530,7 @@ namespace garlic
 			{
 				it->second->TagsConfirmed (msgID);
 				m_CreatedSessions.erase (it);
-				LogPrint ("Garlic message ", msgID, " acknowledged");
+				LogPrint (eLogInfo, "Garlic message ", msgID, " acknowledged");
 			}	
 		}
 		DeleteI2NPMessage (msg);	
