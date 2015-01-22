@@ -15,7 +15,7 @@ namespace tunnel
 	    const uint8_t * nextIdent, uint32_t nextTunnelID, 
 		const uint8_t * layerKey,const uint8_t * ivKey): 
 			m_TunnelID (receiveTunnelID),  m_NextTunnelID (nextTunnelID), 
-			m_NextIdent (nextIdent), m_NumTransmittedBytes (0)
+			m_NextIdent (nextIdent)
 	{	
 		m_Encryption.SetKeys (layerKey, ivKey);
 	}	
@@ -24,25 +24,46 @@ namespace tunnel
 	{		
 		m_Encryption.Encrypt (tunnelMsg->GetPayload () + 4); 
 	}	
-	
-	void TransitTunnel::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
+
+	TransitTunnelParticipant::~TransitTunnelParticipant ()
+	{
+		for (auto it: m_TunnelDataMsgs)
+			i2p::DeleteI2NPMessage (it);
+	}	
+		
+	void TransitTunnelParticipant::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
 	{
 		EncryptTunnelMsg (tunnelMsg);
 		
-		LogPrint ("TransitTunnel: ",m_TunnelID,"->", m_NextTunnelID);
+		LogPrint (eLogDebug, "TransitTunnel: ",GetTunnelID (),"->", GetNextTunnelID ());
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
-		htobe32buf (tunnelMsg->GetPayload (), m_NextTunnelID);
+		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
 		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
-		
-		i2p::transport::transports.SendMessage (m_NextIdent, tunnelMsg);	
+		m_TunnelDataMsgs.push_back (tunnelMsg);
 	}
 
+	void TransitTunnelParticipant::FlushTunnelDataMsgs ()
+	{
+		LogPrint (eLogDebug, "TransitTunnel: flush");
+		if (!m_TunnelDataMsgs.empty ())
+		{	
+			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs);
+			m_TunnelDataMsgs.clear ();
+		}	
+	}	
+		
 	void TransitTunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)
 	{	
-		LogPrint ("We are not a gateway for transit tunnel ", m_TunnelID);
+		LogPrint (eLogError, "We are not a gateway for transit tunnel ", m_TunnelID);
 		i2p::DeleteI2NPMessage (msg);	
 	}		
 
+	void TransitTunnel::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
+	{
+		LogPrint (eLogError, "Incoming tunnel message is not supported  ", m_TunnelID);
+		DeleteI2NPMessage (tunnelMsg);	
+	}	
+		
 	void TransitTunnelGateway::SendTunnelDataMsg (i2p::I2NPMessage * msg)
 	{
 		TunnelMessageBlock block;
@@ -56,7 +77,7 @@ namespace tunnel
 	{
 		EncryptTunnelMsg (tunnelMsg);
 		
-		LogPrint ("TransitTunnel endpoint for ", GetTunnelID ());
+		LogPrint (eLogDebug, "TransitTunnel endpoint for ", GetTunnelID ());
 		m_Endpoint.HandleDecryptedTunnelDataMsg (tunnelMsg); 
 	}
 		
@@ -67,18 +88,18 @@ namespace tunnel
 	{
 		if (isEndpoint)
 		{	
-			LogPrint ("TransitTunnel endpoint: ", receiveTunnelID, " created");
+			LogPrint (eLogInfo, "TransitTunnel endpoint: ", receiveTunnelID, " created");
 			return new TransitTunnelEndpoint (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 		else if (isGateway)
 		{	
-			LogPrint ("TransitTunnel gateway: ", receiveTunnelID, " created");
+			LogPrint (eLogInfo, "TransitTunnel gateway: ", receiveTunnelID, " created");
 			return new TransitTunnelGateway (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 		else	
 		{	
-			LogPrint ("TransitTunnel: ", receiveTunnelID, "->", nextTunnelID, " created");
-			return new TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
+			LogPrint (eLogInfo, "TransitTunnel: ", receiveTunnelID, "->", nextTunnelID, " created");
+			return new TransitTunnelParticipant (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 	}		
 }

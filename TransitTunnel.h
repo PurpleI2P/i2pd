@@ -2,6 +2,7 @@
 #define TRANSIT_TUNNEL_H__
 
 #include <inttypes.h>
+#include <vector>
 #include <mutex>
 #include "aes.h"
 #include "I2NPProtocol.h"
@@ -13,7 +14,7 @@ namespace i2p
 {
 namespace tunnel
 {	
-	class TransitTunnel: public TunnelBase // tunnel patricipant
+	class TransitTunnel: public TunnelBase 
 	{
 		public:
 
@@ -22,7 +23,7 @@ namespace tunnel
 	    		const uint8_t * layerKey,const uint8_t * ivKey); 
 			
 			virtual void SendTunnelDataMsg (i2p::I2NPMessage * msg);
-			virtual size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
+			virtual size_t GetNumTransmittedBytes () const { return 0; };
 			
 			uint32_t GetTunnelID () const { return m_TunnelID; };
 
@@ -36,11 +37,31 @@ namespace tunnel
 
 			uint32_t m_TunnelID, m_NextTunnelID;
 			i2p::data::IdentHash m_NextIdent;
-			size_t m_NumTransmittedBytes;
 			
 			i2p::crypto::TunnelEncryption m_Encryption;
 	};	
 
+	class TransitTunnelParticipant: public TransitTunnel
+	{
+		public:
+
+			TransitTunnelParticipant (uint32_t receiveTunnelID,
+			    const uint8_t * nextIdent, uint32_t nextTunnelID, 
+	    		const uint8_t * layerKey,const uint8_t * ivKey):
+				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, 
+				layerKey, ivKey), m_NumTransmittedBytes (0) {};
+			~TransitTunnelParticipant ();
+
+			size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
+			void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
+			void FlushTunnelDataMsgs ();
+
+		private:
+
+			size_t m_NumTransmittedBytes;
+			std::vector<i2p::I2NPMessage *> m_TunnelDataMsgs;
+	};	
+	
 	class TransitTunnelGateway: public TransitTunnel
 	{
 		public:
