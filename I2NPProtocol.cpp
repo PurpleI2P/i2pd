@@ -465,35 +465,6 @@ namespace i2p
 		FillI2NPMessageHeader (msg, eI2NPTunnelGateway); // gateway message
 		return msg;
 	}	
-	
-	void HandleTunnelGatewayMsg (I2NPMessage * msg)
-	{		
-		const uint8_t * payload = msg->GetPayload ();
-		uint32_t tunnelID = bufbe32toh(payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET);
-		uint16_t len = bufbe16toh(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
-		// we make payload as new I2NP message to send
-		msg->offset += I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
-		msg->len = msg->offset + len;
-		auto typeID = msg->GetTypeID ();
-		LogPrint ("TunnelGateway of ", (int)len, " bytes for tunnel ", (unsigned int)tunnelID, ". Msg type ", (int)typeID);
-			
-		if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply)
-		{
-			// transit DatabaseStore my contain new/updated RI 
-			// or DatabaseSearchReply with new routers
-			auto ds = NewI2NPMessage ();
-			*ds = *msg;
-			i2p::data::netdb.PostI2NPMsg (ds);
-		}	
-		i2p::tunnel::TransitTunnel * tunnel =  i2p::tunnel::tunnels.GetTransitTunnel (tunnelID);
-		if (tunnel)
-			tunnel->SendTunnelDataMsg (msg);
-		else
-		{	
-			LogPrint ("Tunnel ", (unsigned int)tunnelID, " not found");
-			i2p::DeleteI2NPMessage (msg);
-		}	
-	}	
 
 	size_t GetI2NPMessageLength (const uint8_t * msg)
 	{
@@ -543,7 +514,7 @@ namespace i2p
 				break;	
 				case eI2NPTunnelGateway:
 					LogPrint ("TunnelGateway");
-					HandleTunnelGatewayMsg (msg);
+					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				case eI2NPGarlic:
 					LogPrint ("Garlic");

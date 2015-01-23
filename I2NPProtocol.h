@@ -207,7 +207,6 @@ namespace tunnel
 	I2NPMessage * CreateTunnelDataMsg (const uint8_t * buf);	
 	I2NPMessage * CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);		
 	
-	void HandleTunnelGatewayMsg (I2NPMessage * msg);
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
 		const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);

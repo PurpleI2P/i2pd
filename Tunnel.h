@@ -61,6 +61,7 @@ namespace tunnel
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 			
 			// implements TunnelBase
+			void SendTunnelDataMsg (i2p::I2NPMessage * msg);
 			void EncryptTunnelMsg (I2NPMessage * tunnelMsg); 
 			uint32_t GetNextTunnelID () const { return m_Config->GetFirstHop ()->tunnelID; };
 			const i2p::data::IdentHash& GetNextIdentHash () const { return m_Config->GetFirstHop ()->router->GetIdentHash (); };
@@ -139,6 +140,8 @@ namespace tunnel
 			
 		private:
 			
+			void HandleTunnelGatewayMsg (TunnelBase * tunnel, I2NPMessage * msg);
+
 			void Run ();	
 			void ManageTunnels ();
 			void ManageOutboundTunnels ();

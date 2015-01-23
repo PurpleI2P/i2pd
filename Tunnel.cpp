@@ -150,7 +150,13 @@ namespace tunnel
 			hop = hop->prev;
 		}
 	}	
-	
+
+	void Tunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)
+	{
+		LogPrint (eLogInfo, "Can't send I2NP messages without delivery instructions");	
+		DeleteI2NPMessage (msg);
+	}	
+
 	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
 	{
 		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive			
@@ -349,6 +355,7 @@ namespace tunnel
 				I2NPMessage * msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
 				if (msg)
 				{	
+					uint8_t typeID = msg->GetTypeID ();
 					uint32_t prevTunnelID = 0;
 					TunnelBase * prevTunnel = nullptr;
 					do
@@ -360,12 +367,17 @@ namespace tunnel
 						else if (prevTunnel)
 							prevTunnel->FlushTunnelDataMsgs (); 
 						
-						if (!tunnel)
+						if (!tunnel && typeID == eI2NPTunnelData)
 							tunnel = GetInboundTunnel (tunnelID);
 						if (!tunnel)
 							tunnel = GetTransitTunnel (tunnelID);
 						if (tunnel)
-							tunnel->HandleTunnelDataMsg (msg);
+						{
+							if (typeID == eI2NPTunnelData)
+								tunnel->HandleTunnelDataMsg (msg);
+							else // tunnel gateway assumed
+								HandleTunnelGatewayMsg (tunnel, msg);
+						}
 						else	
 						{	
 							LogPrint ("Tunnel ", tunnelID, " not found");
@@ -397,6 +409,33 @@ namespace tunnel
 			}	
 		}	
 	}	
+
+	void Tunnels::HandleTunnelGatewayMsg (TunnelBase * tunnel, I2NPMessage * msg)
+	{
+		if (!tunnel)
+		{
+			LogPrint (eLogError, "Missing tunnel for TunnelGateway");
+			i2p::DeleteI2NPMessage (msg);
+			return;
+		}
+		const uint8_t * payload = msg->GetPayload ();
+		uint16_t len = bufbe16toh(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
+		// we make payload as new I2NP message to send
+		msg->offset += I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
+		msg->len = msg->offset + len;
+		auto typeID = msg->GetTypeID ();
+		LogPrint (eLogDebug, "TunnelGateway of ", (int)len, " bytes for tunnel ", tunnel->GetTunnelID (), ". Msg type ", (int)typeID);
+			
+		if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply)
+		{
+			// transit DatabaseStore my contain new/updated RI 
+			// or DatabaseSearchReply with new routers
+			auto ds = NewI2NPMessage ();
+			*ds = *msg;
+			i2p::data::netdb.PostI2NPMsg (ds);
+		}	
+		tunnel->SendTunnelDataMsg (msg);
+	}
 
 	void Tunnels::ManageTunnels ()
 	{

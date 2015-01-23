@@ -37,6 +37,7 @@ namespace tunnel
 			virtual ~TunnelBase () {};
 			
 			virtual void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg) = 0;
+			virtual void SendTunnelDataMsg (i2p::I2NPMessage * msg) = 0;
 			virtual void FlushTunnelDataMsgs () {};
 			virtual void EncryptTunnelMsg (I2NPMessage * tunnelMsg) = 0;
 			virtual uint32_t GetNextTunnelID () const = 0;
