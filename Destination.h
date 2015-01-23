@@ -29,6 +29,7 @@ namespace client
 	const int LEASESET_REQUEST_TIMEOUT = 5; // in seconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 40; // in seconds
 	const int MAX_NUM_FLOODFILLS_PER_REQUEST = 7;
+	const int DESTINATION_CLEANUP_TIMEOUT = 20; // in minutes 
 	
 	// I2CP
 	const char I2CP_PARAM_INBOUND_TUNNEL_LENGTH[] = "inbound.length";
@@ -109,6 +110,7 @@ namespace client
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request);	
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
+			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			
 		private:
 
@@ -130,7 +132,7 @@ namespace client
 			i2p::stream::StreamingDestination * m_StreamingDestination;
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
-			boost::asio::deadline_timer m_PublishConfirmationTimer;
+			boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;
 
 		public:
 			

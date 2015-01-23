@@ -17,7 +17,7 @@ namespace client
 			const std::map<std::string, std::string> * params):
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),	
 		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
-		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service)
+		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
 		i2p::crypto::GenerateElGamalKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
@@ -91,6 +91,10 @@ namespace client
 			m_Pool->SetActive (true);
 			m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
 			m_StreamingDestination->Start ();	
+
+			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
+			m_CleanupTimer.async_wait (std::bind (&ClientDestination::HandleCleanupTimer,
+				this, std::placeholders::_1));
 		}	
 	}
 		
@@ -98,6 +102,7 @@ namespace client
 	{	
 		if (m_IsRunning)
 		{	
+			m_CleanupTimer.cancel ();
 			m_IsRunning = false;
 			m_StreamingDestination->Stop ();	
 			if (m_DatagramDestination)
@@ -556,6 +561,17 @@ namespace client
 				}	
 			}	
 		}	
+	}
+
+	void ClientDestination::HandleCleanupTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			CleanupRoutingSessions ();
+			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
+			m_CleanupTimer.async_wait (std::bind (&ClientDestination::HandleCleanupTimer,
+				this, std::placeholders::_1));
+		}
 	}	
 }
 }

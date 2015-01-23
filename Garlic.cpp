@@ -538,7 +538,10 @@ namespace garlic
 		for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
 		{
 			if (!it->second->CleanupExpiredTags ())
+			{
+				LogPrint (eLogInfo, "Routing session to ", it->first.ToBase32 (), " deleted");
 				it = m_Sessions.erase (it);
+			}
 			else
 				it++;
 		}
