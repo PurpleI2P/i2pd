@@ -1,11 +1,11 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: i2pd
-Source: https://github.com/PrivacySolutions
+Source: https://github.com/PurpleI2P
 
 Files: *
-Copyright: 2013-2014 PrivacySolutions <press@privacysolutions.no>
+Copyright: 2013-2014 PurpleI2P
 License: BSD-3-clause
-Copyright (c) 2013-2015, The PrivacySolutions Project
+Copyright (c) 2013-2015, The PurpleI2P Project
 
 All rights reserved.
 
