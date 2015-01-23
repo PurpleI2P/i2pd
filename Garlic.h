@@ -72,6 +72,7 @@ namespace garlic
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
 			void TagsConfirmed (uint32_t msgID);
+			bool CleanupExpiredTags (); // returns true if something left 
 
 			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
 			
@@ -106,6 +107,8 @@ namespace garlic
 			~GarlicDestination ();
 
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
+			void CleanupRoutingSessions ();
+			void RemoveCreatedSession (uint32_t msgID);
 			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
 			    I2NPMessage * msg, bool attachLeaseSet = false);
 

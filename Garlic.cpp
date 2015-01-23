@@ -67,18 +67,34 @@ namespace garlic
 			m_UnconfirmedTagsMsgs.erase (it);
 			delete tags;
 		}
+		CleanupExpiredTags ();
+	}
+
+	bool GarlicRoutingSession::CleanupExpiredTags ()
+	{
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_SessionTags.begin (); it != m_SessionTags.end ();)
+		{
+			if (ts >= it->creationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+				it = m_SessionTags.erase (it);
+			else 
+				it++;
+		}
 		// delete expired unconfirmed tags
 		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
 			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
 			{
+				if (m_Owner)
+					m_Owner->RemoveCreatedSession (it->first);
 				delete it->second;
 				it = m_UnconfirmedTagsMsgs.erase (it);
 			}	
 			else
 				it++;
 		}	
-	}
+		return !m_SessionTags.empty () || m_UnconfirmedTagsMsgs.empty ();
+ 	}
 
 	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
 	{
@@ -149,7 +165,7 @@ namespace garlic
 	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, const I2NPMessage * msg)
 	{
 		size_t blockSize = 0;
-		bool createNewTags = m_Owner && m_NumTags && ((int)m_SessionTags.size () <= m_NumTags/2);
+		bool createNewTags = m_Owner && m_NumTags && ((int)m_SessionTags.size () <= m_NumTags*2/3);
 		UnconfirmedTags * newTags = createNewTags ? GenerateSessionTags () : nullptr;
 		htobuf16 (buf, newTags ? htobe16 (newTags->numTags) : 0); // tag count
 		blockSize += 2;
@@ -515,7 +531,24 @@ namespace garlic
 		}	
 		return session;
 	}	
-		
+	
+	void GarlicDestination::CleanupRoutingSessions ()
+	{
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
+		for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
+		{
+			if (!it->second->CleanupExpiredTags ())
+				it = m_Sessions.erase (it);
+			else
+				it++;
+		}
+	}
+	
+	void GarlicDestination::RemoveCreatedSession (uint32_t msgID)
+	{
+		m_CreatedSessions.erase (msgID);
+	}
+
 	void GarlicDestination::DeliveryStatusSent (std::shared_ptr<GarlicRoutingSession> session, uint32_t msgID)
 	{
 		m_CreatedSessions[msgID] = session;
