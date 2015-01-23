@@ -2,6 +2,7 @@
 #define QUEUE_H__
 
 #include <queue>
+#include <vector>
 #include <mutex>
 #include <thread>
 #include <condition_variable>
@@ -23,6 +24,17 @@ namespace util
 				m_NonEmpty.notify_one ();
 			}
 
+			void Put (const std::vector<Element *>& vec)
+			{
+				if (!vec.empty ())
+				{	
+					std::unique_lock<std::mutex>  l(m_QueueMutex);
+					for (auto it: vec)
+						m_Queue.push (it);	
+					m_NonEmpty.notify_one ();
+				}	
+			}
+			
 			Element * GetNext ()
 			{
 				std::unique_lock<std::mutex> l(m_QueueMutex);

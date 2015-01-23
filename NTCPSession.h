@@ -42,7 +42,7 @@ namespace transport
 #pragma pack()	
 
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
-	const size_t NTCP_BUFFER_SIZE = 1040; // fits one tunnel message (1028)
+	const size_t NTCP_BUFFER_SIZE = 4160; // fits 4 tunnel messages (4*1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
 
@@ -131,7 +131,8 @@ namespace transport
 
 			i2p::I2NPMessage * m_NextMessage;
 			size_t m_NextMessageOffset;
-
+			i2p::I2NPMessagesHandler m_Handler;
+			
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};	
 

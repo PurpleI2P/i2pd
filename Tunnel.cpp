@@ -576,6 +576,11 @@ namespace tunnel
 		if (msg) m_Queue.Put (msg);		
 	}	
 
+	void Tunnels::PostTunnelData (const std::vector<I2NPMessage *>& msgs)
+	{
+		m_Queue.Put (msgs);
+	}	
+		
 	template<class TTunnel>
 	TTunnel * Tunnels::CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel)
 	{

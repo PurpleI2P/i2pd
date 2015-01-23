@@ -481,6 +481,7 @@ namespace transport
 				}	
 				if (m_ReceiveBufferOffset > 0)
 					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
+				m_Handler.Flush ();
 			}	
 			
 			ScheduleTermination (); // reset termination timer
@@ -529,7 +530,7 @@ namespace transport
 		if (m_NextMessageOffset >= m_NextMessage->len + 4) // +checksum
 		{	
 			// we have a complete I2NP message
-			i2p::HandleI2NPMessage (m_NextMessage);	
+			m_Handler.PutNextMessage (m_NextMessage);
 			m_NextMessage = nullptr;
 		}
 		return true;	

@@ -216,6 +216,19 @@ namespace tunnel
 	size_t GetI2NPMessageLength (const uint8_t * msg);
 	void HandleI2NPMessage (uint8_t * msg, size_t len);
 	void HandleI2NPMessage (I2NPMessage * msg);
+
+	class I2NPMessagesHandler
+	{
+		public:
+
+			~I2NPMessagesHandler ();
+			void PutNextMessage (I2NPMessage * msg);
+			void Flush ();
+			
+		private:
+
+			std::vector<I2NPMessage *> m_TunnelMsgs;
+	};
 }	
 
 #endif

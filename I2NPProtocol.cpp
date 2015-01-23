@@ -579,4 +579,32 @@ namespace i2p
 			}	
 		}	
 	}	
+
+	I2NPMessagesHandler::~I2NPMessagesHandler ()
+	{
+		Flush ();
+	}
+	
+	void I2NPMessagesHandler::PutNextMessage (I2NPMessage * msg)
+	{
+		if (msg)
+		{
+			if (msg->GetTypeID () == eI2NPTunnelData)
+			{
+				LogPrint ("TunnelData");
+				m_TunnelMsgs.push_back (msg);
+			}	
+			else
+				HandleI2NPMessage (msg);
+		}	
+	}
+	
+	void I2NPMessagesHandler::Flush ()
+	{
+		if (!m_TunnelMsgs.empty ())
+		{	
+			i2p::tunnel::tunnels.PostTunnelData (m_TunnelMsgs);
+			m_TunnelMsgs.clear ();
+		}	
+	}	
 }

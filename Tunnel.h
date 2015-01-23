@@ -130,6 +130,7 @@ namespace tunnel
 			void AddOutboundTunnel (OutboundTunnel * newTunnel);
 			void AddInboundTunnel (InboundTunnel * newTunnel);
 			void PostTunnelData (I2NPMessage * msg);
+			void PostTunnelData (const std::vector<I2NPMessage *>& msgs);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
 			std::shared_ptr<TunnelPool> CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops);
