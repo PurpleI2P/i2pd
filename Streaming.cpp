@@ -417,9 +417,9 @@ namespace stream
 			p->len = size;
 			m_Service.post (std::bind (&Stream::SendPacket, shared_from_this (), p));
 			LogPrint ("FIN sent");
-			m_ReceiveTimer.cancel ();
-			m_LocalDestination.DeleteStream (shared_from_this ());
 		}	
+		m_ReceiveTimer.cancel ();
+		m_LocalDestination.DeleteStream (shared_from_this ());	
 	}
 
 	size_t Stream::ConcatenatePackets (uint8_t * buf, size_t len)
