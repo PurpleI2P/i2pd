@@ -73,6 +73,7 @@ namespace tunnel
 				layerKey, ivKey), m_Gateway(this) {};
 
 			void SendTunnelDataMsg (i2p::I2NPMessage * msg);
+			void FlushTunnelDataMsgs ();
 			size_t GetNumTransmittedBytes () const { return m_Gateway.GetNumSentBytes (); };
 			
 		private:

@@ -560,13 +560,17 @@ namespace i2p
 	{
 		if (msg)
 		{
-			if (msg->GetTypeID () == eI2NPTunnelData)
-			{
-				LogPrint ("TunnelData");
-				m_TunnelMsgs.push_back (msg);
-			}	
-			else
-				HandleI2NPMessage (msg);
+			switch (msg->GetTypeID ())
+			{	
+				case eI2NPTunnelData:
+					LogPrint ("TunnelData");
+					m_TunnelMsgs.push_back (msg);
+				break;
+					LogPrint ("TunnelGateway");
+					m_TunnelGatewayMsgs.push_back (msg);
+				default:
+					HandleI2NPMessage (msg);
+			}		
 		}	
 	}
 	
@@ -576,6 +580,11 @@ namespace i2p
 		{	
 			i2p::tunnel::tunnels.PostTunnelData (m_TunnelMsgs);
 			m_TunnelMsgs.clear ();
+		}	
+		if (!m_TunnelGatewayMsgs.empty ())
+		{	
+			i2p::tunnel::tunnels.PostTunnelData (m_TunnelMsgs);
+			m_TunnelGatewayMsgs.clear ();
 		}	
 	}	
 }

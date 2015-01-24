@@ -70,9 +70,15 @@ namespace tunnel
 		block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
 		std::unique_lock<std::mutex> l(m_SendMutex);
-		m_Gateway.SendTunnelDataMsg (block);
+		m_Gateway.PutTunnelDataMsg (block);
 	}		
 
+	void TransitTunnelGateway::FlushTunnelDataMsgs ()
+	{
+		LogPrint (eLogDebug, "TransitTunnel: gateway flush");
+		m_Gateway.SendBuffer ();
+	}	
+		
 	void TransitTunnelEndpoint::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
 	{
 		EncryptTunnelMsg (tunnelMsg);

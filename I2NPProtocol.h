@@ -226,7 +226,7 @@ namespace tunnel
 			
 		private:
 
-			std::vector<I2NPMessage *> m_TunnelMsgs;
+			std::vector<I2NPMessage *> m_TunnelMsgs, m_TunnelGatewayMsgs;
 	};
 }	
 
