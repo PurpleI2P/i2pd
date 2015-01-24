@@ -326,7 +326,7 @@ namespace client
 			else
 			{
 				m_Session->localDestination->RequestDestination (dest.GetIdentHash (), 
-					std::bind (&SAMSocket::HandleLeaseSetRequestComplete,
+					std::bind (&SAMSocket::HandleConnectLeaseSetRequestComplete,
 					shared_from_this (), std::placeholders::_1, dest.GetIdentHash ()));	
 			}
 		}
@@ -344,7 +344,7 @@ namespace client
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
 
-	void SAMSocket::HandleLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
+	void SAMSocket::HandleConnectLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
 	{
 		const i2p::data::LeaseSet * leaseSet =  nullptr;
 		if (success) // timeout expired
@@ -409,14 +409,25 @@ namespace client
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, len, params);
 		std::string& name = params[SAM_PARAM_NAME];
-		i2p::data::IdentHash ident;
 		i2p::data::IdentityEx identity;
+		i2p::data::IdentHash ident;
 		if (name == "ME")
-			SendNamingLookupReply (nullptr);
+			SendNamingLookupReply (m_Session->localDestination->GetIdentity ());
 		else if (context.GetAddressBook ().GetAddress (name, identity))
 			SendNamingLookupReply (identity);
+		else if (context.GetAddressBook ().GetIdentHash (name, ident))
+		{
+			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			if (leaseSet)
+				SendNamingLookupReply (leaseSet->GetIdentity ());
+			else
+				m_Session->localDestination->RequestDestination (ident, 
+					std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
+					shared_from_this (), std::placeholders::_1, ident));	
+		}	
 		else 
 		{
+			LogPrint ("SAM naming failed. Unknown address ", name);
 #ifdef _MSC_VER
 			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #else				
@@ -426,15 +437,30 @@ namespace client
 		}
 	}	
 
-	void SAMSocket::SendNamingLookupReply (const i2p::data::LeaseSet * leaseSet)
+	void  SAMSocket::HandleNamingLookupLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
 	{
-		const i2p::data::IdentityEx& identity = leaseSet ? leaseSet->GetIdentity () : m_Session->localDestination->GetIdentity ();
+		const i2p::data::LeaseSet * leaseSet =  nullptr;
+		if (success) 
+			leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 		if (leaseSet)
-			// we found LeaseSet for our address, store it to addressbook
-			context.GetAddressBook ().InsertAddress (identity);
-		SendNamingLookupReply (identity);
-	}
-
+		{	
+			context.GetAddressBook ().InsertAddress (leaseSet->GetIdentity ());
+			SendNamingLookupReply (leaseSet->GetIdentity ());
+		}	
+		else
+		{
+			LogPrint (eLogInfo, "SAM naming lookup failed. LeaseSet for ", ident.ToBase32 (), " not found");
+#ifdef _MSC_VER
+			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, 
+				context.GetAddressBook ().ToAddress (ident).c_str());
+#else				
+			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY,
+				context.GetAddressBook ().ToAddress (ident).c_str());
+#endif
+			SendMessageReply (m_Buffer, len, false);
+		}
+	}	
+		
 	void SAMSocket::SendNamingLookupReply (const i2p::data::IdentityEx& identity)
 	{
 		auto base64 = identity.ToBase64 ();
