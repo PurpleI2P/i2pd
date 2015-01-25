@@ -44,6 +44,7 @@ namespace stream
 	const int RESEND_TIMEOUT = 10; // in seconds
 	const int ACK_SEND_TIMEOUT = 200; // in milliseconds
 	const int MAX_NUM_RESEND_ATTEMPTS = 5;	
+	const int WINDOW_SIZE = 6; // in messages
 	
 	struct Packet
 	{
@@ -117,7 +118,6 @@ namespace stream
 			void SendBuffer ();
 			void SendQuickAck ();
 			bool SendPacket (Packet * packet);
-			void PostPackets (const std::vector<Packet *> packets);
 			void SendPackets (const std::vector<Packet *>& packets);
 
 			void SavePacket (Packet * packet);
