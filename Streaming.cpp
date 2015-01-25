@@ -248,7 +248,14 @@ namespace stream
 		
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
-		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
+		if (len > 0 && buf)
+		{
+			std::unique_lock<std::mutex> l(m_SendBufferMutex);
+			m_SendBuffer.clear ();
+			m_SendBuffer.write ((const char *)buf, len);
+		}	
+		m_Service.post (std::bind (&Stream::SendBuffer, shared_from_this ()));
+		/*bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
 		std::vector<Packet *> packets;
 		while (!m_IsOpen || len > 0)
 		{
@@ -317,10 +324,87 @@ namespace stream
 			packets.push_back (p);
 		}
 		if (packets.size () > 0)
-			m_Service.post (std::bind (&Stream::PostPackets, shared_from_this (), packets));
+			m_Service.post (std::bind (&Stream::PostPackets, shared_from_this (), packets));*/
 		return len;
 	}	
 
+	void Stream::SendBuffer ()
+	{		
+		bool isNoAck = m_LastReceivedSequenceNumber < 0; // first packet
+		std::vector<Packet *> packets;
+		{
+			std::unique_lock<std::mutex> l(m_SendBufferMutex);
+			while (!m_IsOpen || !m_SendBuffer.eof ())
+			{
+				Packet * p = new Packet ();
+				uint8_t * packet = p->GetBuffer ();
+				// TODO: implement setters
+				size_t size = 0;
+				htobe32buf (packet + size, m_SendStreamID);
+				size += 4; // sendStreamID
+				htobe32buf (packet + size, m_RecvStreamID);
+				size += 4; // receiveStreamID
+				htobe32buf (packet + size, m_SequenceNumber++);
+				size += 4; // sequenceNum
+				if (isNoAck)			
+					htobe32buf (packet + size, m_LastReceivedSequenceNumber);
+				else
+					htobuf32 (packet + size, 0);
+				size += 4; // ack Through
+				packet[size] = 0; 
+				size++; // NACK count
+				packet[size] = RESEND_TIMEOUT;
+				size++; // resend delay
+				if (!m_IsOpen)
+				{	
+					//  initial packet
+					m_IsOpen = true; m_IsReset = false;
+					uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED | 
+						PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
+					if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
+					htobe16buf (packet + size, flags);
+					size += 2; // flags
+					size_t identityLen = m_LocalDestination.GetOwner ().GetIdentity ().GetFullLen ();
+					size_t signatureLen = m_LocalDestination.GetOwner ().GetIdentity ().GetSignatureLen ();
+					htobe16buf (packet + size, identityLen + signatureLen + 2); // identity + signature + packet size
+					size += 2; // options size
+					m_LocalDestination.GetOwner ().GetIdentity ().ToBuffer (packet + size, identityLen); 
+					size += identityLen; // from
+					htobe16buf (packet + size, STREAMING_MTU);
+					size += 2; // max packet size
+					uint8_t * signature = packet + size; // set it later
+					memset (signature, 0, signatureLen); // zeroes for now
+					size += signatureLen; // signature
+					m_SendBuffer.read ((char *)(packet + size), STREAMING_MTU - size);
+					size += m_SendBuffer.gcount (); // payload
+					m_LocalDestination.GetOwner ().Sign (packet, size, signature);
+				}	
+				else
+				{
+					// follow on packet
+					htobuf16 (packet + size, 0);
+					size += 2; // flags
+					htobuf16 (packet + size, 0); // no options
+					size += 2; // options size
+					m_SendBuffer.read((char *)(packet + size), STREAMING_MTU - size);  
+					size += m_SendBuffer.gcount (); // payload
+				}	
+				p->len = size;
+				packets.push_back (p);
+			}
+		}	
+		if (packets.size () > 0)
+		{
+			m_IsAckSendScheduled = false;	
+			m_AckSendTimer.cancel ();
+			bool isEmpty = m_SentPackets.empty ();
+			for (auto it: packets)
+				m_SentPackets.insert (it);
+			SendPackets (packets);
+			if (isEmpty)
+				ScheduleResend ();
+		}	
+	}
 		
 	void Stream::SendQuickAck ()
 	{

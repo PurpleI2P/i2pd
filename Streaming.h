@@ -3,11 +3,13 @@
 
 #include <inttypes.h>
 #include <string>
+#include <sstream>
 #include <map>
 #include <set>
 #include <queue>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <boost/asio.hpp>
 #include "I2PEndian.h"
 #include "Identity.h"
@@ -112,6 +114,7 @@ namespace stream
 			
 		private:
 
+			void SendBuffer ();
 			void SendQuickAck ();
 			bool SendPacket (Packet * packet);
 			void PostPackets (const std::vector<Packet *> packets);
@@ -151,6 +154,9 @@ namespace stream
 			boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer, m_AckSendTimer;
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint16_t m_Port;
+
+			std::mutex m_SendBufferMutex;
+			std::stringstream m_SendBuffer;
 	};
 
 	class StreamingDestination
