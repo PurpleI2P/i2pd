@@ -566,8 +566,10 @@ namespace i2p
 					LogPrint ("TunnelData");
 					m_TunnelMsgs.push_back (msg);
 				break;
+				case eI2NPTunnelGateway:	
 					LogPrint ("TunnelGateway");
 					m_TunnelGatewayMsgs.push_back (msg);
+				break;	
 				default:
 					HandleI2NPMessage (msg);
 			}		
