@@ -585,7 +585,7 @@ namespace i2p
 		}	
 		if (!m_TunnelGatewayMsgs.empty ())
 		{	
-			i2p::tunnel::tunnels.PostTunnelData (m_TunnelMsgs);
+			i2p::tunnel::tunnels.PostTunnelData (m_TunnelGatewayMsgs);
 			m_TunnelGatewayMsgs.clear ();
 		}	
 	}	
