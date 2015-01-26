@@ -378,6 +378,12 @@ namespace stream
 			for (auto it: m_SavedPackets)
 			{
 				auto seqn = it->GetSeqn ();
+				if (numNacks + (seqn - nextSeqn) >= 256)
+				{
+					LogPrint (eLogError, "Number of NACKs exceeds 256");
+					htobe32buf (packet + 12, nextSeqn); // change ack Through
+					break;
+				}	
 				for (uint32_t i = nextSeqn; i < seqn; i++)
 				{
 					htobe32buf (nacks, i);
