@@ -222,10 +222,13 @@ namespace tunnel
 		m_TransitTunnels.clear ();
 
 		ManagePendingTunnels ();
-		for (auto& it : m_PendingTunnels)
+		for (auto& it : m_PendingInboundTunnels)
 			delete it.second;
-		m_PendingTunnels.clear ();
+		m_PendingInboundTunnels.clear ();
 
+		for (auto& it : m_PendingOutboundTunnels)
+			delete it.second;
+		m_PendingOutboundTunnels.clear ();
 	}	
 	
 	InboundTunnel * Tunnels::GetInboundTunnel (uint32_t tunnelID)
@@ -243,11 +246,22 @@ namespace tunnel
 			return it->second;
 		return nullptr;
 	}	
-		
-	Tunnel * Tunnels::GetPendingTunnel (uint32_t replyMsgID)
+	
+	InboundTunnel * Tunnels::GetPendingInboundTunnel (uint32_t replyMsgID)
 	{
-		auto it = m_PendingTunnels.find(replyMsgID);
-		if (it != m_PendingTunnels.end () && it->second->GetState () == eTunnelStatePending)
+		return GetPendingTunnel (replyMsgID, m_PendingInboundTunnels);	
+	}
+	
+	OutboundTunnel * Tunnels::GetPendingOutboundTunnel (uint32_t replyMsgID)
+	{
+		return GetPendingTunnel (replyMsgID, m_PendingOutboundTunnels);	
+	}		
+
+	template<class TTunnel>		
+	TTunnel * Tunnels::GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, TTunnel *>& pendingTunnels)
+	{
+		auto it = pendingTunnels.find(replyMsgID);
+		if (it != pendingTunnels.end () && it->second->GetState () == eTunnelStatePending)
 		{	
 			it->second->SetState (eTunnelStateBuildReplyReceived);	
 			return it->second;
@@ -448,9 +462,16 @@ namespace tunnel
 
 	void Tunnels::ManagePendingTunnels ()
 	{
+		ManagePendingTunnels (m_PendingInboundTunnels);
+		ManagePendingTunnels (m_PendingOutboundTunnels);
+	}
+
+	template<class PendingTunnels>
+	void Tunnels::ManagePendingTunnels (PendingTunnels& pendingTunnels)
+	{
 		// check pending tunnel. delete failed or timeout
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
-		for (auto it = m_PendingTunnels.begin (); it != m_PendingTunnels.end ();)
+		for (auto it = pendingTunnels.begin (); it != pendingTunnels.end ();)
 		{	
 			auto tunnel = it->second;
 			switch (tunnel->GetState ())
@@ -460,7 +481,7 @@ namespace tunnel
 					{
 						LogPrint ("Pending tunnel build request ", it->first, " timeout. Deleted");
 						delete tunnel;
-						it = m_PendingTunnels.erase (it);
+						it = pendingTunnels.erase (it);
 					}
 					else
 						it++;
@@ -468,14 +489,14 @@ namespace tunnel
 				case eTunnelStateBuildFailed:
 					LogPrint ("Pending tunnel build request ", it->first, " failed. Deleted");
 					delete tunnel;
-					it = m_PendingTunnels.erase (it);
+					it = pendingTunnels.erase (it);
 				break;
 				case eTunnelStateBuildReplyReceived:
 					// intermidiate state, will be either established of build failed
 					it++;
 				break;	
 				default:
-					it = m_PendingTunnels.erase (it);
+					it = pendingTunnels.erase (it);
 			}	
 		}	
 	}
@@ -625,10 +646,20 @@ namespace tunnel
 	{
 		TTunnel * newTunnel = new TTunnel (config);
 		uint32_t replyMsgID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-		m_PendingTunnels[replyMsgID] = newTunnel; 
+		AddPendingTunnel (replyMsgID, newTunnel); 
 		newTunnel->Build (replyMsgID, outboundTunnel);
 		return newTunnel;
 	}	
+
+	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, InboundTunnel * tunnel)
+	{
+		m_PendingInboundTunnels[replyMsgID] = tunnel; 
+	}
+
+	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, OutboundTunnel * tunnel)
+	{
+		m_PendingOutboundTunnels[replyMsgID] = tunnel; 
+	}
 
 	void Tunnels::AddOutboundTunnel (OutboundTunnel * newTunnel)
 	{

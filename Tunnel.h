@@ -121,7 +121,8 @@ namespace tunnel
 			void Stop ();		
 			
 			InboundTunnel * GetInboundTunnel (uint32_t tunnelID);
-			Tunnel * GetPendingTunnel (uint32_t replyMsgID);
+			InboundTunnel * GetPendingInboundTunnel (uint32_t replyMsgID);	
+			OutboundTunnel * GetPendingOutboundTunnel (uint32_t replyMsgID);			
 			InboundTunnel * GetNextInboundTunnel ();
 			OutboundTunnel * GetNextOutboundTunnel ();
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
@@ -134,12 +135,17 @@ namespace tunnel
 			void PostTunnelData (const std::vector<I2NPMessage *>& msgs);
 			template<class TTunnel>
 			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
+			void AddPendingTunnel (uint32_t replyMsgID, InboundTunnel * tunnel);
+			void AddPendingTunnel (uint32_t replyMsgID, OutboundTunnel * tunnel);
 			std::shared_ptr<TunnelPool> CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops);
 			void DeleteTunnelPool (std::shared_ptr<TunnelPool> pool);
 			void StopTunnelPool (std::shared_ptr<TunnelPool> pool);
 			
 		private:
-			
+		
+			template<class TTunnel>
+			TTunnel * GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, TTunnel *>& pendingTunnels);			
+
 			void HandleTunnelGatewayMsg (TunnelBase * tunnel, I2NPMessage * msg);
 
 			void Run ();	
@@ -148,6 +154,8 @@ namespace tunnel
 			void ManageInboundTunnels ();
 			void ManageTransitTunnels ();
 			void ManagePendingTunnels ();
+			template<class PendingTunnels>
+			void ManagePendingTunnels (PendingTunnels& pendingTunnels);
 			void ManageTunnelPools ();
 			
 			void CreateZeroHopsInboundTunnel ();
@@ -156,7 +164,8 @@ namespace tunnel
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			std::map<uint32_t, Tunnel *> m_PendingTunnels; // by replyMsgID
+			std::map<uint32_t, InboundTunnel *> m_PendingInboundTunnels; // by replyMsgID
+			std::map<uint32_t, OutboundTunnel *> m_PendingOutboundTunnels; // by replyMsgID
 			std::mutex m_InboundTunnelsMutex;
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
 			std::mutex m_OutboundTunnelsMutex;

@@ -312,7 +312,7 @@ namespace i2p
 		int num = buf[0];
 		LogPrint ("VariableTunnelBuild ", num, " records");
 
-		i2p::tunnel::Tunnel * tunnel =  i2p::tunnel::tunnels.GetPendingTunnel (replyMsgID);
+		auto tunnel =  i2p::tunnel::tunnels.GetPendingInboundTunnel (replyMsgID);
 		if (tunnel)
 		{
 			// endpoint of inbound tunnel
@@ -321,7 +321,7 @@ namespace i2p
 			{
 				LogPrint ("Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
 				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);	
-				i2p::tunnel::tunnels.AddInboundTunnel (static_cast<i2p::tunnel::InboundTunnel *>(tunnel));
+				i2p::tunnel::tunnels.AddInboundTunnel (tunnel);
 			}
 			else
 			{
@@ -373,7 +373,7 @@ namespace i2p
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
 	{	
 		LogPrint ("VariableTunnelBuildReplyMsg replyMsgID=", replyMsgID);
-		i2p::tunnel::Tunnel * tunnel = i2p::tunnel::tunnels.GetPendingTunnel (replyMsgID);
+		auto tunnel = i2p::tunnel::tunnels.GetPendingOutboundTunnel (replyMsgID);
 		if (tunnel)
 		{	
 			// reply for outbound tunnel
@@ -381,7 +381,7 @@ namespace i2p
 			{	
 				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been created");
 				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);	
-				i2p::tunnel::tunnels.AddOutboundTunnel (static_cast<i2p::tunnel::OutboundTunnel *>(tunnel));
+				i2p::tunnel::tunnels.AddOutboundTunnel (tunnel);
 			}	
 			else
 			{
