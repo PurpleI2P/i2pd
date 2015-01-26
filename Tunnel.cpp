@@ -401,6 +401,7 @@ namespace tunnel
 						msg = m_Queue.Get ();
 						if (msg)
 						{
+							typeID = msg->GetTypeID ();
 							prevTunnelID = tunnelID;
 							prevTunnel = tunnel;
 						}
