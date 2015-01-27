@@ -86,13 +86,13 @@ namespace stream
 		public:
 
 			Stream (boost::asio::io_service& service, StreamingDestination& local, 
-				const i2p::data::LeaseSet& remote, int port = 0); // outgoing
+				std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0); // outgoing
 			Stream (boost::asio::io_service& service, StreamingDestination& local); // incoming			
 
 			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
-			const i2p::data::LeaseSet * GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
+			std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
 			const i2p::data::IdentityEx& GetRemoteIdentity () const { return m_RemoteIdentity; };
 			bool IsOpen () const { return m_IsOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
@@ -144,7 +144,7 @@ namespace stream
 			bool m_IsOpen, m_IsReset, m_IsAckSendScheduled;
 			StreamingDestination& m_LocalDestination;
 			i2p::data::IdentityEx m_RemoteIdentity;
-			const i2p::data::LeaseSet * m_RemoteLeaseSet;
+			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			i2p::data::Lease m_CurrentRemoteLease;
 			i2p::tunnel::OutboundTunnel * m_CurrentOutboundTunnel;
@@ -171,7 +171,7 @@ namespace stream
 			void Start ();
 			void Stop ();
 
-			std::shared_ptr<Stream> CreateNewOutgoingStream (const i2p::data::LeaseSet& remote, int port = 0);
+			std::shared_ptr<Stream> CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
 			void DeleteStream (std::shared_ptr<Stream> stream);			
 			void SetAcceptor (const Acceptor& acceptor) { m_Acceptor = acceptor; };
 			void ResetAcceptor () { m_Acceptor = nullptr; };

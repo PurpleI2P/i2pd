@@ -64,13 +64,13 @@ namespace client
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; }; 
 			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases (); };
-			const i2p::data::LeaseSet * FindLeaseSet (const i2p::data::IdentHash& ident);
+			std::shared_ptr<const i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			
 			// streaming
 			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
 			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
-			std::shared_ptr<i2p::stream::Stream> CreateStream (const i2p::data::LeaseSet& remote, int port = 0);
+			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;
@@ -120,7 +120,7 @@ namespace client
 			boost::asio::io_service::work m_Work;
 			i2p::data::PrivateKeys m_Keys;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
-			std::map<i2p::data::IdentHash, i2p::data::LeaseSet *> m_RemoteLeaseSets;
+			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::map<i2p::data::IdentHash, LeaseSetRequest *> m_LeaseSetRequests;
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;

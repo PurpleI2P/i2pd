@@ -85,7 +85,7 @@ namespace api
 		auto leaseSet = dest->FindLeaseSet (remote);
 		if (leaseSet)
 		{
-			auto stream = dest->CreateStream (*leaseSet);
+			auto stream = dest->CreateStream (leaseSet);
 			stream->Send (nullptr, 0); // connect
 			return stream;
 		}

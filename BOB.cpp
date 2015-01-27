@@ -132,7 +132,7 @@ namespace client
 		delete receiver;
 	}	
 
-	void BOBI2PInboundTunnel::CreateConnection (AddressReceiver * receiver, const i2p::data::LeaseSet * leaseSet)
+	void BOBI2PInboundTunnel::CreateConnection (AddressReceiver * receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 	{
 		LogPrint ("New BOB inbound connection");
 		auto connection = std::make_shared<I2PTunnelConnection>(this, receiver->socket, leaseSet);

@@ -10,11 +10,11 @@ namespace i2p
 namespace client
 {
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, 
-	    boost::asio::ip::tcp::socket * socket, const i2p::data::LeaseSet * leaseSet): 
+	    boost::asio::ip::tcp::socket * socket, std::shared_ptr<const i2p::data::LeaseSet> leaseSet): 
 		I2PServiceHandler(owner), m_Socket (socket), m_RemoteEndpoint (socket->remote_endpoint ()),
 		m_IsQuiet (true)
 	{
-		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (*leaseSet);
+		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (leaseSet);
 	}	
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner,

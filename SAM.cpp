@@ -322,7 +322,7 @@ namespace client
 			context.GetAddressBook ().InsertAddress (dest);
 			auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
 			if (leaseSet)
-				Connect (*leaseSet);
+				Connect (leaseSet);
 			else
 			{
 				m_Session->localDestination->RequestDestination (dest.GetIdentHash (), 
@@ -334,7 +334,7 @@ namespace client
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);		
 	}
 
-	void SAMSocket::Connect (const i2p::data::LeaseSet& remote)
+	void SAMSocket::Connect (std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		m_SocketType = eSAMSocketTypeStream;
 		m_Session->sockets.push_back (shared_from_this ());
@@ -346,11 +346,11 @@ namespace client
 
 	void SAMSocket::HandleConnectLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
 	{
-		const i2p::data::LeaseSet * leaseSet =  nullptr;
+		std::shared_ptr<const i2p::data::LeaseSet> leaseSet;
 		if (success) // timeout expired
 			leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 		if (leaseSet)
-			Connect (*leaseSet);
+			Connect (leaseSet);
 		else
 		{
 			LogPrint ("SAM destination to connect not found");
@@ -418,7 +418,7 @@ namespace client
 		else if (m_Session && m_Session->localDestination &&
 			context.GetAddressBook ().GetIdentHash (name, ident))
 		{
-			auto leaseSet = i2p::data::netdb.FindLeaseSet (ident);
+			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 			if (leaseSet)
 				SendNamingLookupReply (leaseSet->GetIdentity ());
 			else
@@ -440,7 +440,7 @@ namespace client
 
 	void  SAMSocket::HandleNamingLookupLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
 	{
-		const i2p::data::LeaseSet * leaseSet =  nullptr;
+		std::shared_ptr<const i2p::data::LeaseSet> leaseSet;
 		if (success) 
 			leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 		if (leaseSet)

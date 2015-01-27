@@ -68,7 +68,7 @@ namespace data
 			void AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
 			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, i2p::tunnel::InboundTunnel * from);
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
-			LeaseSet * FindLeaseSet (const IdentHash& destination) const;
+			std::shared_ptr<LeaseSet> FindLeaseSet (const IdentHash& destination) const;
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);			
 			
@@ -110,7 +110,7 @@ namespace data
 		
 		private:
 
-			std::map<IdentHash, LeaseSet *> m_LeaseSets;
+			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
 			mutable std::mutex m_RouterInfosMutex;
 			std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
 			mutable std::mutex m_FloodfillsMutex;

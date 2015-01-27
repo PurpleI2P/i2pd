@@ -116,8 +116,6 @@ namespace data
 			delete m_Thread;
 			m_Thread = 0;
 		}
-		for (auto l: m_LeaseSets)
-			delete l.second;
 		m_LeaseSets.clear();
 		for (auto r: m_RequestedDestinations)
 			delete r.second;
@@ -254,7 +252,7 @@ namespace data
 			else
 			{	
 				LogPrint ("New LeaseSet added");
-				m_LeaseSets[ident] = new LeaseSet (buf, len);
+				m_LeaseSets[ident] = std::make_shared<LeaseSet> (buf, len);
 			}	
 		}	
 	}	
@@ -269,7 +267,7 @@ namespace data
 			return nullptr;
 	}
 
-	LeaseSet * NetDb::FindLeaseSet (const IdentHash& destination) const
+	std::shared_ptr<LeaseSet> NetDb::FindLeaseSet (const IdentHash& destination) const
 	{
 		auto it = m_LeaseSets.find (destination);
 		if (it != m_LeaseSets.end ())
@@ -641,7 +639,7 @@ namespace data
 			if (leaseSet) // we don't send back our LeaseSets
 			{
 				LogPrint ("Requested LeaseSet ", key, " found");
-				replyMsg = CreateDatabaseStoreMsg (leaseSet);
+				replyMsg = CreateDatabaseStoreMsg (leaseSet.get ());
 			}
 		}
 		if (!replyMsg)
@@ -862,7 +860,6 @@ namespace data
 			if (it->second->HasNonExpiredLeases ()) // all leases expired
 			{
 				LogPrint ("LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
-				delete it->second;
 				it = m_LeaseSets.erase (it);
 			}	
 			else 

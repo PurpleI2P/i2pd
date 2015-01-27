@@ -84,7 +84,7 @@ namespace client
 
 			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, AddressReceiver * receiver, i2p::data::IdentHash ident);
 
-			void CreateConnection (AddressReceiver * receiver, const i2p::data::LeaseSet * leaseSet);
+			void CreateConnection (AddressReceiver * receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet);
 
 		private:
 

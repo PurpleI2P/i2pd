@@ -25,7 +25,7 @@ namespace client
 		public:
 
 			I2PTunnelConnection (I2PService * owner, boost::asio::ip::tcp::socket * socket,
-				const i2p::data::LeaseSet * leaseSet); // to I2P
+				std::shared_ptr<const i2p::data::LeaseSet> leaseSet); // to I2P
 			I2PTunnelConnection (I2PService * owner, boost::asio::ip::tcp::socket * socket,
 				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API :)
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,  boost::asio::ip::tcp::socket * socket, 

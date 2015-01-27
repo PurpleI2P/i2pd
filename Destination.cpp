@@ -57,8 +57,6 @@ namespace client
 			Stop ();
 		for (auto it: m_LeaseSetRequests)
 			delete it.second;
-		for (auto it: m_RemoteLeaseSets)
-			delete it.second;
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		if (m_StreamingDestination)
@@ -126,7 +124,7 @@ namespace client
 		}	
 	}	
 
-	const i2p::data::LeaseSet * ClientDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
+	std::shared_ptr<const i2p::data::LeaseSet> ClientDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
 	{
 		auto it = m_RemoteLeaseSets.find (ident);
 		if (it != m_RemoteLeaseSets.end ())
@@ -141,7 +139,7 @@ namespace client
 			auto ls = i2p::data::netdb.FindLeaseSet (ident);
 			if (ls)
 			{
-				ls = new i2p::data::LeaseSet (*ls);
+				ls = std::make_shared<i2p::data::LeaseSet> (*ls);
 				m_RemoteLeaseSets[ident] = ls;			
 				return ls;
 			}	
@@ -232,7 +230,7 @@ namespace client
 			else
 			{	
 				LogPrint (eLogDebug, "New remote LeaseSet added");
-				m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = new i2p::data::LeaseSet (buf + offset, len - offset);
+				m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
 			}	
 		}	
 		else
@@ -391,9 +389,9 @@ namespace client
 
 	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port) {
 		assert(streamRequestComplete);
-		const i2p::data::LeaseSet * leaseSet = FindLeaseSet (dest);
+		auto leaseSet = FindLeaseSet (dest);
 		if (leaseSet)
-			streamRequestComplete(CreateStream (*leaseSet, port));
+			streamRequestComplete(CreateStream (leaseSet, port));
 		else
 		{
 			RequestDestination (dest,
@@ -403,9 +401,9 @@ namespace client
 						streamRequestComplete (nullptr);
 					else
 					{
-						const i2p::data::LeaseSet * leaseSet = FindLeaseSet (dest);
+						auto leaseSet = FindLeaseSet (dest);
 						if (leaseSet)
-							streamRequestComplete(CreateStream (*leaseSet, port));
+							streamRequestComplete(CreateStream (leaseSet, port));
 						else
 							streamRequestComplete (nullptr);
 					}
@@ -413,7 +411,7 @@ namespace client
 		}
 	}
 
-	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (const i2p::data::LeaseSet& remote, int port)
+	std::shared_ptr<i2p::stream::Stream> ClientDestination::CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port)
 	{
 		if (m_StreamingDestination)
 			return m_StreamingDestination->CreateNewOutgoingStream (remote, port);
