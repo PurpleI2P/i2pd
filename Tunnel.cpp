@@ -273,7 +273,6 @@ namespace tunnel
 	{
 		InboundTunnel * tunnel  = nullptr; 
 		size_t minReceived = 0;
-		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		for (auto it : m_InboundTunnels)
 		{
 			if (!it.second->IsEstablished ()) continue;
@@ -291,7 +290,6 @@ namespace tunnel
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_OutboundTunnels.size () - 1), i = 0;
 		OutboundTunnel * tunnel = nullptr;
-		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		for (auto it: m_OutboundTunnels)
 		{	
 			if (it->IsEstablished ())
@@ -369,39 +367,59 @@ namespace tunnel
 				I2NPMessage * msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
 				if (msg)
 				{	
-					uint8_t typeID = msg->GetTypeID ();
-					uint32_t prevTunnelID = 0;
-					TunnelBase * prevTunnel = nullptr;
+					uint32_t prevTunnelID = 0, tunnelID = 0;
+					TunnelBase * prevTunnel = nullptr, * tunnel = nullptr;
 					do
 					{
-						uint32_t tunnelID = bufbe32toh (msg->GetPayload ()); 
-						TunnelBase * tunnel = nullptr;
-						if (tunnelID == prevTunnelID)
-							tunnel = prevTunnel;
-						else if (prevTunnel)
-							prevTunnel->FlushTunnelDataMsgs (); 
+						uint8_t typeID = msg->GetTypeID ();
+						switch (typeID)
+						{									
+							case eI2NPTunnelData:
+							case eI2NPTunnelGateway:
+							{	
+								tunnelID = bufbe32toh (msg->GetPayload ()); 
+								if (tunnelID == prevTunnelID)
+									tunnel = prevTunnel;
+								else if (prevTunnel)
+									prevTunnel->FlushTunnelDataMsgs (); 
 						
-						if (!tunnel && typeID == eI2NPTunnelData)
-							tunnel = GetInboundTunnel (tunnelID);
-						if (!tunnel)
-							tunnel = GetTransitTunnel (tunnelID);
-						if (tunnel)
-						{
-							if (typeID == eI2NPTunnelData)
-								tunnel->HandleTunnelDataMsg (msg);
-							else // tunnel gateway assumed
-								HandleTunnelGatewayMsg (tunnel, msg);
+								if (!tunnel && typeID == eI2NPTunnelData)
+									tunnel = GetInboundTunnel (tunnelID);
+								if (!tunnel)
+									tunnel = GetTransitTunnel (tunnelID);
+								if (tunnel)
+								{
+									if (typeID == eI2NPTunnelData)
+										tunnel->HandleTunnelDataMsg (msg);
+									else // tunnel gateway assumed
+										HandleTunnelGatewayMsg (tunnel, msg);
+								}
+								else	
+								{	
+									LogPrint (eLogWarning, "Tunnel ", tunnelID, " not found");
+									DeleteI2NPMessage (msg);
+								}	
+								break;
+							}	
+							case eI2NPVariableTunnelBuild:		
+							case eI2NPVariableTunnelBuildReply:
+							case eI2NPTunnelBuild:
+							case eI2NPTunnelBuildReply:	
+							{
+								HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
+								DeleteI2NPMessage (msg);
+								break;
+							}	
+							default:
+							{
+								LogPrint (eLogError, "Unexpected  messsage type ", (int)typeID);
+								DeleteI2NPMessage (msg);
+							}	
 						}
-						else	
-						{	
-							LogPrint ("Tunnel ", tunnelID, " not found");
-							DeleteI2NPMessage (msg);
-						}	
-
+							
 						msg = m_Queue.Get ();
 						if (msg)
 						{
-							typeID = msg->GetTypeID ();
 							prevTunnelID = tunnelID;
 							prevTunnel = tunnel;
 						}
@@ -517,10 +535,7 @@ namespace tunnel
 						if (pool)
 							pool->TunnelExpired (tunnel);
 					}	
-					{
-						std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-						it = m_OutboundTunnels.erase (it);
-					}
+					it = m_OutboundTunnels.erase (it);
 					delete tunnel;
 				}	
 				else 
@@ -562,10 +577,7 @@ namespace tunnel
 						if (pool)
 							pool->TunnelExpired (tunnel);
 					}	
-					{
-						std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-						it = m_InboundTunnels.erase (it);
-					}
+					it = m_InboundTunnels.erase (it);
 					delete tunnel;
 				}	
 				else 
@@ -664,7 +676,6 @@ namespace tunnel
 
 	void Tunnels::AddOutboundTunnel (OutboundTunnel * newTunnel)
 	{
-		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		m_OutboundTunnels.push_back (newTunnel);
 		auto pool = newTunnel->GetTunnelPool ();
 		if (pool && pool->IsActive ())
@@ -675,7 +686,6 @@ namespace tunnel
 
 	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
 	{
-		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
 		auto pool = newTunnel->GetTunnelPool ();
 		if (!pool)

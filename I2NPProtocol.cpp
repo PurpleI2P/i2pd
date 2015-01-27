@@ -544,6 +544,13 @@ namespace i2p
 					else
 						i2p::context.ProcessDeliveryStatusMessage (msg);
 				break;	
+				case eI2NPVariableTunnelBuild:		
+				case eI2NPVariableTunnelBuildReply:
+				case eI2NPTunnelBuild:
+				case eI2NPTunnelBuildReply:	
+					// forward to tunnel thread
+					i2p::tunnel::tunnels.PostTunnelData (msg);
+				break;	
 				default:
 					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
 					DeleteI2NPMessage (msg);

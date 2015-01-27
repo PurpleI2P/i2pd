@@ -166,9 +166,7 @@ namespace tunnel
 			std::thread * m_Thread;	
 			std::map<uint32_t, InboundTunnel *> m_PendingInboundTunnels; // by replyMsgID
 			std::map<uint32_t, OutboundTunnel *> m_PendingOutboundTunnels; // by replyMsgID
-			std::mutex m_InboundTunnelsMutex;
 			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
-			std::mutex m_OutboundTunnelsMutex;
 			std::list<OutboundTunnel *> m_OutboundTunnels;
 			std::mutex m_TransitTunnelsMutex;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
