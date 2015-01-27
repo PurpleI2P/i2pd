@@ -2,6 +2,7 @@
 #define TUNNEL_BASE_H__
 
 #include <inttypes.h>
+#include <memory>
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Identity.h"
@@ -54,7 +55,7 @@ namespace tunnel
 
 	struct TunnelCreationTimeCmp
 	{
-		bool operator() (const TunnelBase * t1, const TunnelBase * t2) const
+		bool operator() (std::shared_ptr<const TunnelBase> t1, std::shared_ptr<const TunnelBase> t2) const
   		{	
 			if (t1->GetCreationTime () != t2->GetCreationTime ())
 				return t1->GetCreationTime () > t2->GetCreationTime (); 

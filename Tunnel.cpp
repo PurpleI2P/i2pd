@@ -27,7 +27,7 @@ namespace tunnel
 		delete m_Config;
 	}	
 
-	void Tunnel::Build (uint32_t replyMsgID, OutboundTunnel * outboundTunnel)
+	void Tunnel::Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		auto numHops = m_Config->GetNumHops ();
@@ -209,29 +209,12 @@ namespace tunnel
 	
 	Tunnels::~Tunnels ()	
 	{
-		for (auto& it : m_OutboundTunnels)
-			delete it;
-		m_OutboundTunnels.clear ();
-
-		for (auto& it : m_InboundTunnels)
-			delete it.second;
-		m_InboundTunnels.clear ();
-		
 		for (auto& it : m_TransitTunnels)
 			delete it.second;
 		m_TransitTunnels.clear ();
-
-		ManagePendingTunnels ();
-		for (auto& it : m_PendingInboundTunnels)
-			delete it.second;
-		m_PendingInboundTunnels.clear ();
-
-		for (auto& it : m_PendingOutboundTunnels)
-			delete it.second;
-		m_PendingOutboundTunnels.clear ();
 	}	
 	
-	InboundTunnel * Tunnels::GetInboundTunnel (uint32_t tunnelID)
+	std::shared_ptr<InboundTunnel> Tunnels::GetInboundTunnel (uint32_t tunnelID)
 	{
 		auto it = m_InboundTunnels.find(tunnelID);
 		if (it != m_InboundTunnels.end ())
@@ -247,18 +230,18 @@ namespace tunnel
 		return nullptr;
 	}	
 	
-	InboundTunnel * Tunnels::GetPendingInboundTunnel (uint32_t replyMsgID)
+	std::shared_ptr<InboundTunnel> Tunnels::GetPendingInboundTunnel (uint32_t replyMsgID)
 	{
 		return GetPendingTunnel (replyMsgID, m_PendingInboundTunnels);	
 	}
 	
-	OutboundTunnel * Tunnels::GetPendingOutboundTunnel (uint32_t replyMsgID)
+	std::shared_ptr<OutboundTunnel> Tunnels::GetPendingOutboundTunnel (uint32_t replyMsgID)
 	{
 		return GetPendingTunnel (replyMsgID, m_PendingOutboundTunnels);	
 	}		
 
 	template<class TTunnel>		
-	TTunnel * Tunnels::GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, TTunnel *>& pendingTunnels)
+	std::shared_ptr<TTunnel> Tunnels::GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, std::shared_ptr<TTunnel> >& pendingTunnels)
 	{
 		auto it = pendingTunnels.find(replyMsgID);
 		if (it != pendingTunnels.end () && it->second->GetState () == eTunnelStatePending)
@@ -269,9 +252,9 @@ namespace tunnel
 		return nullptr;
 	}	
 
-	InboundTunnel * Tunnels::GetNextInboundTunnel ()
+	std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel ()
 	{
-		InboundTunnel * tunnel  = nullptr; 
+		std::shared_ptr<InboundTunnel> tunnel; 
 		size_t minReceived = 0;
 		for (auto it : m_InboundTunnels)
 		{
@@ -285,11 +268,11 @@ namespace tunnel
 		return tunnel;
 	}
 	
-	OutboundTunnel * Tunnels::GetNextOutboundTunnel ()
+	std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel ()
 	{
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, m_OutboundTunnels.size () - 1), i = 0;
-		OutboundTunnel * tunnel = nullptr;
+		std::shared_ptr<OutboundTunnel> tunnel;
 		for (auto it: m_OutboundTunnels)
 		{	
 			if (it->IsEstablished ())
@@ -384,7 +367,7 @@ namespace tunnel
 									prevTunnel->FlushTunnelDataMsgs (); 
 						
 								if (!tunnel && typeID == eI2NPTunnelData)
-									tunnel = GetInboundTunnel (tunnelID);
+									tunnel = GetInboundTunnel (tunnelID).get ();
 								if (!tunnel)
 									tunnel = GetTransitTunnel (tunnelID);
 								if (tunnel)
@@ -499,7 +482,6 @@ namespace tunnel
 					if (ts > tunnel->GetCreationTime () + TUNNEL_CREATION_TIMEOUT)
 					{
 						LogPrint ("Pending tunnel build request ", it->first, " timeout. Deleted");
-						delete tunnel;
 						it = pendingTunnels.erase (it);
 					}
 					else
@@ -507,11 +489,10 @@ namespace tunnel
 				break;
 				case eTunnelStateBuildFailed:
 					LogPrint ("Pending tunnel build request ", it->first, " failed. Deleted");
-					delete tunnel;
 					it = pendingTunnels.erase (it);
 				break;
 				case eTunnelStateBuildReplyReceived:
-					// intermidiate state, will be either established of build failed
+					// intermediate state, will be either established of build failed
 					it++;
 				break;	
 				default:
@@ -536,7 +517,6 @@ namespace tunnel
 							pool->TunnelExpired (tunnel);
 					}	
 					it = m_OutboundTunnels.erase (it);
-					delete tunnel;
 				}	
 				else 
 				{
@@ -550,7 +530,7 @@ namespace tunnel
 		if (m_OutboundTunnels.size () < 5) 
 		{
 			// trying to create one more oubound tunnel
-			InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
+			auto inboundTunnel = GetNextInboundTunnel ();
 			if (!inboundTunnel) return;
 			LogPrint ("Creating one hop outbound tunnel...");
 			CreateTunnel<OutboundTunnel> (
@@ -578,7 +558,6 @@ namespace tunnel
 							pool->TunnelExpired (tunnel);
 					}	
 					it = m_InboundTunnels.erase (it);
-					delete tunnel;
 				}	
 				else 
 				{
@@ -655,26 +634,26 @@ namespace tunnel
 	}	
 		
 	template<class TTunnel>
-	TTunnel * Tunnels::CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel)
+	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (TunnelConfig * config, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
-		TTunnel * newTunnel = new TTunnel (config);
+		auto newTunnel = std::make_shared<TTunnel> (config);
 		uint32_t replyMsgID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		AddPendingTunnel (replyMsgID, newTunnel); 
 		newTunnel->Build (replyMsgID, outboundTunnel);
 		return newTunnel;
 	}	
 
-	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, InboundTunnel * tunnel)
+	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel)
 	{
 		m_PendingInboundTunnels[replyMsgID] = tunnel; 
 	}
 
-	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, OutboundTunnel * tunnel)
+	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel)
 	{
 		m_PendingOutboundTunnels[replyMsgID] = tunnel; 
 	}
 
-	void Tunnels::AddOutboundTunnel (OutboundTunnel * newTunnel)
+	void Tunnels::AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel)
 	{
 		m_OutboundTunnels.push_back (newTunnel);
 		auto pool = newTunnel->GetTunnelPool ();
@@ -684,7 +663,7 @@ namespace tunnel
 			newTunnel->SetTunnelPool (nullptr);
 	}	
 
-	void Tunnels::AddInboundTunnel (InboundTunnel * newTunnel)
+	void Tunnels::AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel)
 	{
 		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
 		auto pool = newTunnel->GetTunnelPool ();

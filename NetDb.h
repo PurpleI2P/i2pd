@@ -38,7 +38,7 @@ namespace data
 			bool IsExploratory () const { return m_IsExploratory; };
 			bool IsExcluded (const IdentHash& ident) const { return m_ExcludedPeers.count (ident); };
 			uint64_t GetCreationTime () const { return m_CreationTime; };
-			I2NPMessage * CreateRequestMessage (std::shared_ptr<const RouterInfo>, const i2p::tunnel::InboundTunnel * replyTunnel);
+			I2NPMessage * CreateRequestMessage (std::shared_ptr<const RouterInfo>, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel);
 			I2NPMessage * CreateRequestMessage (const IdentHash& floodfill);
 			
 			void SetRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete = requestComplete; };

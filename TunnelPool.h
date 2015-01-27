@@ -34,13 +34,13 @@ namespace tunnel
 			void SetLocalDestination (i2p::garlic::GarlicDestination * destination) { m_LocalDestination = destination; };
 
 			void CreateTunnels ();
-			void TunnelCreated (InboundTunnel * createdTunnel);
-			void TunnelExpired (InboundTunnel * expiredTunnel);
-			void TunnelCreated (OutboundTunnel * createdTunnel);
-			void TunnelExpired (OutboundTunnel * expiredTunnel);
-			std::vector<InboundTunnel *> GetInboundTunnels (int num) const;
-			OutboundTunnel * GetNextOutboundTunnel (OutboundTunnel * suggested = nullptr) const;
-			InboundTunnel * GetNextInboundTunnel (InboundTunnel * suggested = nullptr) const;		
+			void TunnelCreated (std::shared_ptr<InboundTunnel> createdTunnel);
+			void TunnelExpired (std::shared_ptr<InboundTunnel> expiredTunnel);
+			void TunnelCreated (std::shared_ptr<OutboundTunnel> createdTunnel);
+			void TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel);
+			std::vector<std::shared_ptr<InboundTunnel> > GetInboundTunnels (int num) const;
+			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> suggested = nullptr) const;
+			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> suggested = nullptr) const;		
 
 			void TestTunnels ();
 			void ProcessGarlicMessage (I2NPMessage * msg);
@@ -54,8 +54,8 @@ namespace tunnel
 
 			void CreateInboundTunnel ();	
 			void CreateOutboundTunnel ();
-			void RecreateInboundTunnel (InboundTunnel * tunnel);
-			void RecreateOutboundTunnel (OutboundTunnel * tunnel);
+			void RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel);
+			void RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel);
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, 
 				typename TTunnels::value_type suggested = nullptr) const;
@@ -66,10 +66,10 @@ namespace tunnel
 			i2p::garlic::GarlicDestination * m_LocalDestination;
 			int m_NumInboundHops, m_NumOutboundHops, m_NumTunnels;
 			mutable std::mutex m_InboundTunnelsMutex;
-			std::set<InboundTunnel *, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
+			std::set<std::shared_ptr<InboundTunnel>, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 			mutable std::mutex m_OutboundTunnelsMutex;
-			std::set<OutboundTunnel *, TunnelCreationTimeCmp> m_OutboundTunnels;
-			std::map<uint32_t, std::pair<OutboundTunnel *, InboundTunnel *> > m_Tests;
+			std::set<std::shared_ptr<OutboundTunnel>, TunnelCreationTimeCmp> m_OutboundTunnels;
+			std::map<uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
 			bool m_IsActive;
 
 		public:

@@ -38,7 +38,7 @@ namespace tunnel
 		m_Tests.clear ();
 	}	
 		
-	void TunnelPool::TunnelCreated (InboundTunnel * createdTunnel)
+	void TunnelPool::TunnelCreated (std::shared_ptr<InboundTunnel> createdTunnel)
 	{
 		if (!m_IsActive) return;
 		{
@@ -49,7 +49,7 @@ namespace tunnel
 			m_LocalDestination->SetLeaseSetUpdated ();
 	}
 
-	void TunnelPool::TunnelExpired (InboundTunnel * expiredTunnel)
+	void TunnelPool::TunnelExpired (std::shared_ptr<InboundTunnel> expiredTunnel)
 	{
 		if (expiredTunnel)
 		{	
@@ -63,14 +63,14 @@ namespace tunnel
 		}	
 	}	
 
-	void TunnelPool::TunnelCreated (OutboundTunnel * createdTunnel)
+	void TunnelPool::TunnelCreated (std::shared_ptr<OutboundTunnel> createdTunnel)
 	{
 		if (!m_IsActive) return;
 		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		m_OutboundTunnels.insert (createdTunnel);
 	}
 
-	void TunnelPool::TunnelExpired (OutboundTunnel * expiredTunnel)
+	void TunnelPool::TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel)
 	{
 		if (expiredTunnel)
 		{
@@ -84,9 +84,9 @@ namespace tunnel
 		}
 	}
 		
-	std::vector<InboundTunnel *> TunnelPool::GetInboundTunnels (int num) const
+	std::vector<std::shared_ptr<InboundTunnel> > TunnelPool::GetInboundTunnels (int num) const
 	{
-		std::vector<InboundTunnel *> v;
+		std::vector<std::shared_ptr<InboundTunnel> > v;
 		int i = 0;
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		for (auto it : m_InboundTunnels)
@@ -101,13 +101,13 @@ namespace tunnel
 		return v;
 	}
 
-	OutboundTunnel * TunnelPool::GetNextOutboundTunnel (OutboundTunnel * suggested) const
+	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> suggested) const
 	{
 		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
 		return GetNextTunnel (m_OutboundTunnels, suggested);
 	}	
 
-	InboundTunnel * TunnelPool::GetNextInboundTunnel (InboundTunnel * suggested) const
+	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> suggested) const
 	{
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
 		return GetNextTunnel (m_InboundTunnels, suggested);
@@ -274,7 +274,7 @@ namespace tunnel
 		
 	void TunnelPool::CreateInboundTunnel ()
 	{
-		OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
+		auto outboundTunnel = GetNextOutboundTunnel ();
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Creating destination inbound tunnel...");
@@ -299,23 +299,23 @@ namespace tunnel
 			hops.push_back (hop);
 		}		
 		std::reverse (hops.begin (), hops.end ());	
-		auto * tunnel = tunnels.CreateTunnel<InboundTunnel> (new TunnelConfig (hops), outboundTunnel);
+		auto tunnel = tunnels.CreateTunnel<InboundTunnel> (new TunnelConfig (hops), outboundTunnel);
 		tunnel->SetTunnelPool (shared_from_this ());
 	}
 
-	void TunnelPool::RecreateInboundTunnel (InboundTunnel * tunnel)
+	void TunnelPool::RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel)
 	{
-		OutboundTunnel * outboundTunnel = GetNextOutboundTunnel ();
+		auto outboundTunnel = GetNextOutboundTunnel ();
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Re-creating destination inbound tunnel...");
-		auto * newTunnel = tunnels.CreateTunnel<InboundTunnel> (tunnel->GetTunnelConfig ()->Clone (), outboundTunnel);
+		auto newTunnel = tunnels.CreateTunnel<InboundTunnel> (tunnel->GetTunnelConfig ()->Clone (), outboundTunnel);
 		newTunnel->SetTunnelPool (shared_from_this());
 	}	
 		
 	void TunnelPool::CreateOutboundTunnel ()
 	{
-		InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
+		auto inboundTunnel = GetNextInboundTunnel ();
 		if (!inboundTunnel)
 			inboundTunnel = tunnels.GetNextInboundTunnel ();
 		if (inboundTunnel)
@@ -331,7 +331,7 @@ namespace tunnel
 				hops.push_back (hop);
 			}	
 				
-			auto * tunnel = tunnels.CreateTunnel<OutboundTunnel> (
+			auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
 				new TunnelConfig (hops, inboundTunnel->GetTunnelConfig ()));
 			tunnel->SetTunnelPool (shared_from_this ());
 		}	
@@ -339,15 +339,15 @@ namespace tunnel
 			LogPrint ("Can't create outbound tunnel. No inbound tunnels found");
 	}	
 		
-	void TunnelPool::RecreateOutboundTunnel (OutboundTunnel * tunnel)
+	void TunnelPool::RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel)
 	{
-		InboundTunnel * inboundTunnel = GetNextInboundTunnel ();
+		auto inboundTunnel = GetNextInboundTunnel ();
 		if (!inboundTunnel)
 			inboundTunnel = tunnels.GetNextInboundTunnel ();
 		if (inboundTunnel)
 		{	
 			LogPrint ("Re-creating destination outbound tunnel...");
-			auto * newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
+			auto newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
 				tunnel->GetTunnelConfig ()->Clone (inboundTunnel->GetTunnelConfig ()));
 			newTunnel->SetTunnelPool (shared_from_this ());
 		}	

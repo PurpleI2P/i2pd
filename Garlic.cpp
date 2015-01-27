@@ -475,7 +475,7 @@ namespace garlic
 					buf += 32;
 					uint32_t gwTunnel = bufbe32toh (buf);
 					buf += 4;
-					i2p::tunnel::OutboundTunnel * tunnel = nullptr;
+					std::shared_ptr<i2p::tunnel::OutboundTunnel> tunnel;
 					if (from && from->GetTunnelPool ())
 						tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
 					if (tunnel) // we have send it through an outbound tunnel

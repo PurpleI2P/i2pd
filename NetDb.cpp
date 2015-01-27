@@ -22,7 +22,7 @@ namespace i2p
 namespace data
 {		
 	I2NPMessage * RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
-		const i2p::tunnel::InboundTunnel * replyTunnel)
+		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
 		I2NPMessage * msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 

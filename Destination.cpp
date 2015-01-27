@@ -510,7 +510,7 @@ namespace client
 
 			I2NPMessage * msg = WrapMessage (*nextFloodfill,
 				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
-					replyTunnel, replyKey, replyTag));
+					replyTunnel.get (), replyKey, replyTag));
 			outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock 

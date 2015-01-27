@@ -47,7 +47,7 @@ namespace tunnel
 			Tunnel (TunnelConfig * config);
 			~Tunnel ();
 
-			void Build (uint32_t replyMsgID, OutboundTunnel * outboundTunnel = 0);
+			void Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 			
 			TunnelConfig * GetTunnelConfig () const { return m_Config; }
 			TunnelState GetState () const { return m_State; };
@@ -120,23 +120,23 @@ namespace tunnel
 			void Start ();
 			void Stop ();		
 			
-			InboundTunnel * GetInboundTunnel (uint32_t tunnelID);
-			InboundTunnel * GetPendingInboundTunnel (uint32_t replyMsgID);	
-			OutboundTunnel * GetPendingOutboundTunnel (uint32_t replyMsgID);			
-			InboundTunnel * GetNextInboundTunnel ();
-			OutboundTunnel * GetNextOutboundTunnel ();
+			std::shared_ptr<InboundTunnel> GetInboundTunnel (uint32_t tunnelID);
+			std::shared_ptr<InboundTunnel> GetPendingInboundTunnel (uint32_t replyMsgID);	
+			std::shared_ptr<OutboundTunnel> GetPendingOutboundTunnel (uint32_t replyMsgID);			
+			std::shared_ptr<InboundTunnel> GetNextInboundTunnel ();
+			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
 			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
 			void AddTransitTunnel (TransitTunnel * tunnel);
-			void AddOutboundTunnel (OutboundTunnel * newTunnel);
-			void AddInboundTunnel (InboundTunnel * newTunnel);
+			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
+			void AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel);
 			void PostTunnelData (I2NPMessage * msg);
 			void PostTunnelData (const std::vector<I2NPMessage *>& msgs);
 			template<class TTunnel>
-			TTunnel * CreateTunnel (TunnelConfig * config, OutboundTunnel * outboundTunnel = 0);
-			void AddPendingTunnel (uint32_t replyMsgID, InboundTunnel * tunnel);
-			void AddPendingTunnel (uint32_t replyMsgID, OutboundTunnel * tunnel);
+			std::shared_ptr<TTunnel> CreateTunnel (TunnelConfig * config, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
+			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel);
+			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel);
 			std::shared_ptr<TunnelPool> CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops);
 			void DeleteTunnelPool (std::shared_ptr<TunnelPool> pool);
 			void StopTunnelPool (std::shared_ptr<TunnelPool> pool);
@@ -144,7 +144,7 @@ namespace tunnel
 		private:
 		
 			template<class TTunnel>
-			TTunnel * GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, TTunnel *>& pendingTunnels);			
+			std::shared_ptr<TTunnel> GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, std::shared_ptr<TTunnel> >& pendingTunnels);			
 
 			void HandleTunnelGatewayMsg (TunnelBase * tunnel, I2NPMessage * msg);
 
@@ -164,10 +164,10 @@ namespace tunnel
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			std::map<uint32_t, InboundTunnel *> m_PendingInboundTunnels; // by replyMsgID
-			std::map<uint32_t, OutboundTunnel *> m_PendingOutboundTunnels; // by replyMsgID
-			std::map<uint32_t, InboundTunnel *> m_InboundTunnels;
-			std::list<OutboundTunnel *> m_OutboundTunnels;
+			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels; // by replyMsgID
+			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
+			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
+			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
 			std::mutex m_TransitTunnelsMutex;
 			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
 			std::mutex m_PoolsMutex;
