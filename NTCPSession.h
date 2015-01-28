@@ -132,6 +132,9 @@ namespace transport
 			i2p::I2NPMessage * m_NextMessage;
 			size_t m_NextMessageOffset;
 			i2p::I2NPMessagesHandler m_Handler;
+
+			bool m_IsSending;
+			std::vector<I2NPMessage *> m_SendQueue;
 			
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};	
