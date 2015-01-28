@@ -13,7 +13,8 @@ namespace i2p
 	RouterContext context;
 
 	RouterContext::RouterContext ():
-		m_LastUpdateTime (0), m_IsUnreachable (false), m_AcceptsTunnels (true)
+		m_LastUpdateTime (0), m_IsUnreachable (false), m_AcceptsTunnels (true),
+		m_IsFloodfill (false)
 	{
 	}
 
@@ -107,6 +108,16 @@ namespace i2p
 			UpdateRouterInfo ();
 	}	
 	
+	void RouterContext::SetFloodfill (bool floodfill)
+	{
+		m_IsFloodfill = floodfill;
+		if (floodfill)
+			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eFloodfill);
+		else
+			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eFloodfill);
+		UpdateRouterInfo ();
+	}
+
 	void RouterContext::SetUnreachable ()
 	{
 		m_IsUnreachable = true;	

@@ -37,7 +37,9 @@ namespace i2p
 			bool AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const { return m_IsUnreachable; };
-			void SetUnreachable ();				
+			void SetUnreachable ();		
+			bool IsFloodfill () const { return m_IsFloodfill; };	
+			void SetFloodfill (bool floodfill);	
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
@@ -68,7 +70,7 @@ namespace i2p
 			i2p::data::PrivateKeys m_Keys; 
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			uint64_t m_LastUpdateTime;
-			bool m_IsUnreachable, m_AcceptsTunnels;
+			bool m_IsUnreachable, m_AcceptsTunnels, m_IsFloodfill;
 	};
 
 	extern RouterContext context;
