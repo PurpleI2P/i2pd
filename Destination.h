@@ -111,6 +111,7 @@ namespace client
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request);	
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
+			void CleanupRemoteLeaseSets ();
 			
 		private:
 

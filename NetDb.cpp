@@ -857,7 +857,7 @@ namespace data
 	{
 		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
 		{
-			if (it->second->HasNonExpiredLeases ()) // all leases expired
+			if (!it->second->HasNonExpiredLeases ()) // all leases expired
 			{
 				LogPrint ("LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_LeaseSets.erase (it);

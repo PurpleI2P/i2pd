@@ -566,10 +566,25 @@ namespace client
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			CleanupRoutingSessions ();
+			CleanupRemoteLeaseSets ();
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&ClientDestination::HandleCleanupTimer,
 				this, std::placeholders::_1));
 		}
 	}	
+
+	void ClientDestination::CleanupRemoteLeaseSets ()
+	{
+		for (auto it = m_RemoteLeaseSets.begin (); it != m_RemoteLeaseSets.end ();)
+		{
+			if (!it->second->HasNonExpiredLeases ()) // all leases expired
+			{
+				LogPrint ("Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				it = m_RemoteLeaseSets.erase (it);
+			}	
+			else 
+				it++;
+		}
+	}
 }
 }
