@@ -504,7 +504,8 @@ namespace stream
 				return;
 			}
 		}
-		m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ().GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel);
+		if (!m_CurrentOutboundTunnel || !m_CurrentOutboundTunnel->IsEstablished ())
+			m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ().GetTunnelPool ()->GetNextOutboundTunnel ();
 		if (!m_CurrentOutboundTunnel)
 		{
 			LogPrint ("No outbound tunnels in the pool");

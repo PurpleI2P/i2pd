@@ -101,26 +101,22 @@ namespace tunnel
 		return v;
 	}
 
-	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> suggested) const
+	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel () const
 	{
 		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
-		return GetNextTunnel (m_OutboundTunnels, suggested);
+		return GetNextTunnel (m_OutboundTunnels);
 	}	
 
-	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> suggested) const
+	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel () const
 	{
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
-		return GetNextTunnel (m_InboundTunnels, suggested);
+		return GetNextTunnel (m_InboundTunnels);
 	}
 
 	template<class TTunnels>
-	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels, 
-		typename TTunnels::value_type suggested) const
+	typename TTunnels::value_type TunnelPool::GetNextTunnel (TTunnels& tunnels) const
 	{
-		if (tunnels.empty ()) return nullptr;
-		if (suggested && tunnels.count (suggested) > 0 && suggested->IsEstablished ())
-				return suggested;
-		
+		if (tunnels.empty ()) return nullptr;		
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint32_t ind = rnd.GenerateWord32 (0, tunnels.size ()/2), i = 0;
 		typename TTunnels::value_type tunnel = nullptr;
