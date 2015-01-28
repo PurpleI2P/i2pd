@@ -205,7 +205,7 @@ namespace i2p
 		return m; 
 	}	
 	
-	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router)
+	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router, uint32_t replyToken)
 	{
 		if (!router) // we send own RouterInfo
 			router = &context.GetRouterInfo ();
@@ -214,19 +214,27 @@ namespace i2p
 		uint8_t * payload = m->GetPayload ();		
 
 		memcpy (payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash (), 32);
-		payload[DATABASE_STORE_TYPE_OFFSET] = 0;
-		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
-		
+		payload[DATABASE_STORE_TYPE_OFFSET] = 0; // RouterInfo
+		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, replyToken);
+		uint8_t * buf = payload + DATABASE_STORE_HEADER_SIZE;
+		if (replyToken)
+		{
+			memset (buf, 0, 4); // zero tunnelID means direct reply
+			buf += 4;
+			memcpy (buf, router->GetIdentHash (), 32);
+			buf += 32;
+		}		
+
 		CryptoPP::Gzip compressor;
 		compressor.Put (router->GetBuffer (), router->GetBufferLen ());
 		compressor.MessageEnd();
 		auto size = compressor.MaxRetrievable ();
-		uint8_t * buf = payload + DATABASE_STORE_HEADER_SIZE;
 		htobe16buf (buf, size); // size
 		buf += 2;
 		// TODO: check if size doesn't exceed buffer
 		compressor.Get (buf, size); 
-		m->len += DATABASE_STORE_HEADER_SIZE + 2 + size; // payload size
+		buf += size;
+		m->len += (buf - payload); // payload size
 		FillI2NPMessageHeader (m, eI2NPDatabaseStore);
 		
 		return m;
