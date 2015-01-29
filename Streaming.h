@@ -45,6 +45,9 @@ namespace stream
 	const int ACK_SEND_TIMEOUT = 200; // in milliseconds
 	const int MAX_NUM_RESEND_ATTEMPTS = 5;	
 	const int WINDOW_SIZE = 6; // in messages
+	const int MIN_WINDOW_SIZE = 1;
+	const int MAX_WINDOW_SIZE = 128;		
+	const int INITIAL_RTT = 8000; // in milliseconds
 	
 	struct Packet
 	{
@@ -157,6 +160,8 @@ namespace stream
 
 			std::mutex m_SendBufferMutex;
 			std::stringstream m_SendBuffer;
+			int m_WindowSize;
+			uint64_t m_LastWindowSizeIncreaseTime;
 	};
 
 	class StreamingDestination
