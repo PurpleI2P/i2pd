@@ -15,7 +15,7 @@ namespace i2p
 namespace garlic
 {
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
-	    const i2p::data::RoutingDestination * destination, int numTags):
+	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags):
 		m_Owner (owner), m_Destination (destination), m_NumTags (numTags), 
 		m_LeaseSetUpdated (numTags > 0)
 	{
@@ -501,7 +501,7 @@ namespace garlic
 		}	
 	}	
 	
-	I2NPMessage * GarlicDestination::WrapMessage (const i2p::data::RoutingDestination& destination, 
+	I2NPMessage * GarlicDestination::WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
 		I2NPMessage * msg, bool attachLeaseSet)	
 	{
 		if (attachLeaseSet) // we should maintain this session
@@ -511,23 +511,23 @@ namespace garlic
 		}
 		else // one time session
 		{
-			GarlicRoutingSession session (this, &destination, 0); // don't use tag if no LeaseSet
+			GarlicRoutingSession session (this, destination, 0); // don't use tag if no LeaseSet
 			return session.WrapSingleMessage (msg);
 		}	
 	}
 
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
-		const i2p::data::RoutingDestination& destination, int numTags)
+		std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags)
 	{
-		auto it = m_Sessions.find (destination.GetIdentHash ());
+		auto it = m_Sessions.find (destination->GetIdentHash ());
 		std::shared_ptr<GarlicRoutingSession> session;
 		if (it != m_Sessions.end ())
 			session = it->second;
 		if (!session)
 		{
-			session = std::make_shared<GarlicRoutingSession> (this, &destination, numTags); 
+			session = std::make_shared<GarlicRoutingSession> (this, destination, numTags); 
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			m_Sessions[destination.GetIdentHash ()] = session;
+			m_Sessions[destination->GetIdentHash ()] = session;
 		}	
 		return session;
 	}	

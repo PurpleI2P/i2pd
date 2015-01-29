@@ -2,6 +2,7 @@
 #define DATAGRAM_H__
 
 #include <inttypes.h>
+#include <memory>
 #include <functional>
 #include "Identity.h"
 #include "LeaseSet.h"
@@ -25,7 +26,7 @@ namespace datagram
 			DatagramDestination (i2p::client::ClientDestination& owner);
 			~DatagramDestination () {};				
 
-			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::LeaseSet& remote);
+			void SendDatagramTo (const uint8_t * payload, size_t len, std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
 
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
@@ -34,7 +35,7 @@ namespace datagram
 		private:
 
 			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
-			void SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote);
+			void SendMsg (I2NPMessage * msg, std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void HandleDatagram (const uint8_t * buf, size_t len);
 
 		private:

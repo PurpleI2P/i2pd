@@ -67,7 +67,7 @@ namespace garlic
 
 		public:
 
-			GarlicRoutingSession (GarlicDestination * owner, const i2p::data::RoutingDestination * destination, int numTags);
+			GarlicRoutingSession (GarlicDestination * owner, std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
@@ -88,7 +88,7 @@ namespace garlic
 		private:
 
 			GarlicDestination * m_Owner;
-			const i2p::data::RoutingDestination * m_Destination;
+			std::shared_ptr<const i2p::data::RoutingDestination> m_Destination;
 			i2p::crypto::AESKey m_SessionKey;
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
@@ -106,10 +106,10 @@ namespace garlic
 			GarlicDestination (): m_LastTagsCleanupTime (0) {};
 			~GarlicDestination ();
 
-			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (const i2p::data::RoutingDestination& destination, int numTags);	
+			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags);	
 			void CleanupRoutingSessions ();
 			void RemoveCreatedSession (uint32_t msgID);
-			I2NPMessage * WrapMessage (const i2p::data::RoutingDestination& destination, 
+			I2NPMessage * WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
 			    I2NPMessage * msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag

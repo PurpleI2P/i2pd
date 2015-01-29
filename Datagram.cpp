@@ -17,7 +17,7 @@ namespace datagram
 	{
 	}
 
-	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::LeaseSet& remote)
+	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		uint8_t buf[MAX_DATAGRAM_SIZE];
 		auto identityLen = m_Owner.GetIdentity ().ToBuffer (buf, MAX_DATAGRAM_SIZE);
@@ -40,10 +40,10 @@ namespace datagram
 			CreateDataMessage (buf, len + headerLen), remote));
 	}
 
-	void DatagramDestination::SendMsg (I2NPMessage * msg, const i2p::data::LeaseSet& remote)
+	void DatagramDestination::SendMsg (I2NPMessage * msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		auto outboundTunnel = m_Owner.GetTunnelPool ()->GetNextOutboundTunnel ();
-		auto leases = remote.GetNonExpiredLeases ();
+		auto leases = remote->GetNonExpiredLeases ();
 		if (!leases.empty () && outboundTunnel)
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			

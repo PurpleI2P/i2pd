@@ -776,7 +776,7 @@ namespace client
 						auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
 						if (leaseSet)
 							session->localDestination->GetDatagramDestination ()->
-								SendDatagramTo ((uint8_t *)eol, payloadLen, *leaseSet);
+								SendDatagramTo ((uint8_t *)eol, payloadLen, leaseSet);
 						else
 						{
 							LogPrint ("SAM datagram destination not found");
