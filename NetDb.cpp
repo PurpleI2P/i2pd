@@ -735,13 +735,14 @@ namespace data
 	void NetDb::Publish ()
 	{
 		std::set<IdentHash> excluded; // TODO: fill up later
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < 2; i++)
 		{	
 			auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
 			if (floodfill)
 			{
-				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation ());
-				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg ());	
+				uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation (), ". reply token=", replyToken);
+				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg ((RouterInfo *)nullptr, replyToken));	
 				excluded.insert (floodfill->GetIdentHash ());
 			}
 		}	
