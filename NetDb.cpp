@@ -473,7 +473,28 @@ namespace data
 		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
-			offset += 36;
+		{
+			auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
+			offset += 4;
+			uint32_t tunnelID = bufbe32toh (buf + offset);
+			offset += 32;
+			if (!tunnelID) // send response directly
+				transports.SendMessage (buf + offset, deliveryStatus);
+			else
+			{
+				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
+				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
+				if (outbound)
+					outbound->SendTunnelDataMsg (buf + offset, tunnelID, deliveryStatus);
+				else
+				{
+					LogPrint (eLogError, "No outbound tunnels for DatabaseStore reply found");
+					DeleteI2NPMessage (deliveryStatus);
+				}
+			}		
+
+			// TODO: flood in case of floodfill. replyToken must be set to zero
+		}
 		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
 			LogPrint ("LeaseSet");
