@@ -216,8 +216,11 @@ namespace client
 	{
 		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
-		if (replyToken) // TODO:
+		if (replyToken) 
+		{
+			LogPrint (eLogInfo, "Reply token is ignored for DatabaseStore");
 			offset += 36;
+		}
 		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
 		{
 			LogPrint (eLogDebug, "Remote LeaseSet");
