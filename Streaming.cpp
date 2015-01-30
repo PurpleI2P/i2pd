@@ -560,13 +560,14 @@ namespace stream
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			bool congesion = false;
+			bool congesion = false, first = true;
 			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
 			{
 				it->numResendAttempts++;
-				if (it->numResendAttempts == 1) // detect congesion at first attempt only
+				if (first && it->numResendAttempts == 1) // detect congesion at first attempt of first packet only
 					congesion = true;
+				first = false;
 				if (it->numResendAttempts <= MAX_NUM_RESEND_ATTEMPTS)
 					packets.push_back (it);
 				else
