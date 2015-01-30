@@ -114,10 +114,8 @@ namespace stream
 		{	
 			if (receivedSeqn <= m_LastReceivedSequenceNumber)
 			{
-				// we have received duplicate. Most likely our outbound tunnel is dead
+				// we have received duplicate
 				LogPrint (eLogWarning, "Duplicate message ", receivedSeqn, " received");
-				m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
-				UpdateCurrentRemoteLease (); // pick another lease
 				SendQuickAck (); // resend ack for previous message again
 				delete packet; // packet dropped
 			}	
@@ -258,12 +256,6 @@ namespace stream
 			else
 				break;
 		}
-		if (nackCount > 0)
-		{
-			// congesion avoidance
-			m_WindowSize -= nackCount;
-			if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE; 
-		}		
 		if (m_SentPackets.empty ())
 			m_ResendTimer.cancel ();
 		if (acknowledged)
@@ -568,10 +560,13 @@ namespace stream
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
+			bool congesion = false;
 			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
 			{
 				it->numResendAttempts++;
+				if (it->numResendAttempts == 1) // detect congesion at first attempt only
+					congesion = true;
 				if (it->numResendAttempts <= MAX_NUM_RESEND_ATTEMPTS)
 					packets.push_back (it);
 				else
@@ -585,8 +580,18 @@ namespace stream
 			}	
 			if (packets.size () > 0)
 			{
-				m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
-				UpdateCurrentRemoteLease (); // pick another lease
+				if (congesion)
+				{
+					// congesion avoidance
+					m_WindowSize /= 2;
+					if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE; 
+				}	
+				else
+				{	
+					// congesion avoidance didn't help
+					m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
+					UpdateCurrentRemoteLease (); // pick another lease
+				}	
 				SendPackets (packets);
 			}	
 			ScheduleResend ();
