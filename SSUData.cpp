@@ -235,7 +235,7 @@ namespace transport
 					{	
 						if (m_ReceivedMessages.size () > 100) m_ReceivedMessages.clear ();
 						m_ReceivedMessages.insert (msgID);
-						i2p::HandleI2NPMessage (msg);
+						m_Handler.PutNextMessage (msg);
 					}	
 					else
 					{
@@ -260,6 +260,8 @@ namespace transport
 				SendFragmentAck (msgID, fragmentNum);			
 			buf += fragmentSize;
 		}	
+		if (numFragments > 0)
+			m_Handler.Flush ();
 	}
 
 	void SSUData::ProcessMessage (uint8_t * buf, size_t len)

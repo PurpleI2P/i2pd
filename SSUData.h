@@ -106,6 +106,7 @@ namespace transport
 			std::set<uint32_t> m_ReceivedMessages;
 			boost::asio::deadline_timer m_ResendTimer;
 			int m_MaxPacketSize, m_PacketSize;
+			i2p::I2NPMessagesHandler m_Handler;
 	};	
 }
 }
