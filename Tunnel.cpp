@@ -351,9 +351,10 @@ namespace tunnel
 				if (msg)
 				{	
 					uint32_t prevTunnelID = 0, tunnelID = 0;
-					TunnelBase * prevTunnel = nullptr, * tunnel = nullptr;
+					TunnelBase * prevTunnel = nullptr; 
 					do
 					{
+						TunnelBase * tunnel = nullptr;
 						uint8_t typeID = msg->GetTypeID ();
 						switch (typeID)
 						{									

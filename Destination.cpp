@@ -139,7 +139,6 @@ namespace client
 			auto ls = i2p::data::netdb.FindLeaseSet (ident);
 			if (ls)
 			{
-				ls = std::make_shared<i2p::data::LeaseSet> (*ls);
 				m_RemoteLeaseSets[ident] = ls;			
 				return ls;
 			}	
