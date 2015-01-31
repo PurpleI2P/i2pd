@@ -115,10 +115,7 @@ namespace transport
 							if (bitfield & mask)
 							{
 								if (fragment < numSentFragments)
-								{
-									delete it->second->fragments[fragment];
-									it->second->fragments[fragment] = nullptr;
-								}	
+									it->second->fragments[fragment].reset (nullptr);
 							}				
 							fragment++;
 							mask <<= 1;
@@ -312,7 +309,6 @@ namespace transport
 			Fragment * fragment = new Fragment;
 			fragment->fragmentNum = fragmentNum;
 			uint8_t * buf = fragment->buf;
-			fragments.push_back (fragment);
 			uint8_t	* payload = buf + sizeof (SSUHeader);
 			*payload = DATA_FLAG_WANT_REPLY; // for compatibility
 			payload++;
@@ -336,6 +332,7 @@ namespace transport
 			if (size & 0x0F) // make sure 16 bytes boundary
 				size = ((size >> 4) + 1) << 4; // (/16 + 1)*16
 			fragment->len = size; 
+			fragments.push_back (std::unique_ptr<Fragment> (fragment));
 			
 			// encrypt message with session key
 			m_Session.FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, size);
@@ -417,7 +414,7 @@ namespace transport
 			{
 				if (ts >= it.second->nextResendTime && it.second->numResends < MAX_NUM_RESENDS)
 				{	
-					for (auto f: it.second->fragments)
+					for (auto& f: it.second->fragments)
 						if (f) m_Session.Send (f->buf, f->len); // resend
 
 					it.second->numResends++;
