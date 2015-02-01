@@ -543,7 +543,7 @@ namespace client
 				{
 					auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, it->second->excluded);
 					if (floodfill)
-						 SendLeaseSetRequest (dest, floodfill, it->second);
+						 done = !SendLeaseSetRequest (dest, floodfill, it->second);
 					else
 						done = true;
 				}
