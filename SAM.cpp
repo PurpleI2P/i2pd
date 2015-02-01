@@ -148,7 +148,7 @@ namespace client
 
 	void SAMSocket::SendMessageReply (const char * msg, size_t len, bool close)
 	{
-		if (!m_IsSilent || m_SocketType == eSAMSocketTypeAcceptor) 
+		if (!m_IsSilent) 
 			boost::asio::async_write (m_Socket, boost::asio::buffer (msg, len), boost::asio::transfer_all (),
 				std::bind(&SAMSocket::HandleMessageReplySent, shared_from_this (), 
 				std::placeholders::_1, std::placeholders::_2, close));
@@ -320,7 +320,7 @@ namespace client
 			i2p::data::IdentityEx dest;
 			dest.FromBase64 (destination);
 			context.GetAddressBook ().InsertAddress (dest);
-			auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
+			auto leaseSet = m_Session->localDestination->FindLeaseSet (dest.GetIdentHash ());
 			if (leaseSet)
 				Connect (leaseSet);
 			else
@@ -347,7 +347,7 @@ namespace client
 	void SAMSocket::HandleConnectLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
 	{
 		std::shared_ptr<const i2p::data::LeaseSet> leaseSet;
-		if (success) // timeout expired
+		if (success) 
 			leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 		if (leaseSet)
 			Connect (leaseSet);
@@ -566,11 +566,12 @@ namespace client
 				// send remote peer address
 				uint8_t ident[1024];
 				size_t l = stream->GetRemoteIdentity ().ToBuffer (ident, 1024);
-				size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, m_Buffer, SAM_SOCKET_BUFFER_SIZE);
-				m_Buffer[l1] = '\n';
-				SendMessageReply (m_Buffer, l1 + 1, false);
+				size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, (char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
+				m_StreamBuffer[l1] = '\n';
+				HandleI2PReceive (boost::system::error_code (), l1 +1); // we send identity like it has been received from stream
 			}	
-			I2PReceive ();
+			else
+				I2PReceive ();
 		}
 	}	
 
