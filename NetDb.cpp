@@ -493,8 +493,28 @@ namespace data
 				}
 			}		
 
-			// TODO: flood in case of floodfill. replyToken must be set to zero
+			if (context.IsFloodfill ())
+			{
+				// flood it
+				std::set<IdentHash> excluded;
+				for (int i = 0; i < 3; i++)
+				{
+					auto floodfill = GetClosestFloodfill (buf + DATABASE_STORE_KEY_OFFSET, excluded);
+					if (floodfill)
+					{
+						auto floodMsg = NewI2NPShortMessage ();
+						uint8_t * payload = floodMsg->GetPayload ();		
+						memcpy (payload, buf, 33); // key + type
+						htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
+						memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
+						floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
+						FillI2NPMessageHeader (floodMsg, eI2NPDatabaseStore);
+						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+					}	
+				}	
+			}	
 		}
+		
 		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
 			LogPrint ("LeaseSet");
