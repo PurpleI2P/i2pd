@@ -180,7 +180,7 @@ namespace stream
 			std::shared_ptr<Stream> CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
 			void DeleteStream (std::shared_ptr<Stream> stream);			
 			void SetAcceptor (const Acceptor& acceptor) { m_Acceptor = acceptor; };
-			void ResetAcceptor () { m_Acceptor = nullptr; };
+			void ResetAcceptor () { if (m_Acceptor) m_Acceptor (nullptr); m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
 			i2p::client::ClientDestination& GetOwner () { return m_Owner; };
 

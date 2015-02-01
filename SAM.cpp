@@ -573,6 +573,8 @@ namespace client
 			else
 				I2PReceive ();
 		}
+		else
+			LogPrint (eLogInfo, "SAM I2P acceptor has been reset");
 	}	
 
 	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& ident, const uint8_t * buf, size_t len)
@@ -709,7 +711,7 @@ namespace client
 					// TODO: extract string values	
 					signatureType = boost::lexical_cast<int> (it->second);
 			}
-			localDestination = i2p::client::context.CreateNewLocalDestination (false, signatureType, params); 
+			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, params); 
 		}
 		if (localDestination)
 		{
@@ -729,6 +731,7 @@ namespace client
 		if (it != m_Sessions.end ())
 		{
 			auto session = it->second;
+			session->localDestination->StopAcceptingStreams ();
 			session->CloseStreams ();
 			m_Sessions.erase (it);
 			delete session;
