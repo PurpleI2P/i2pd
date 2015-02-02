@@ -298,7 +298,6 @@ namespace transport
 		sentMessage->nextResendTime = i2p::util::GetSecondsSinceEpoch () + RESEND_INTERVAL;
 		sentMessage->numResends = 0;
 		auto& fragments = sentMessage->fragments;
-		msgID = htobe32 (msgID);	
 		size_t payloadSize = m_PacketSize - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
 		size_t len = msg->GetLength ();
 		uint8_t * msgBuf = msg->GetSSUHeader ();
@@ -314,7 +313,7 @@ namespace transport
 			payload++;
 			*payload = 1; // always 1 message fragment per message
 			payload++;
-			*(uint32_t *)payload = msgID;
+			htobe32buf (payload, msgID);
 			payload += 4;
 			bool isLast = (len <= payloadSize);
 			size_t size = isLast ? len : payloadSize;

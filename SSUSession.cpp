@@ -255,7 +255,7 @@ namespace transport
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
 		// TODO: verify signature (need data from session request), payload points to signature
-		SendI2NPMessage (CreateDeliveryStatusMsg (0));
+		m_Data.Send (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
 
@@ -767,7 +767,7 @@ namespace transport
 			delete m_DHKeysPair;
 			m_DHKeysPair = nullptr;
 		}
-		SendI2NPMessage (CreateDatabaseStoreMsg ());
+		m_Data.Send (CreateDatabaseStoreMsg ());
 		transports.PeerConnected (shared_from_this ());
 		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
 			SendPeerTest ();
