@@ -475,10 +475,9 @@ namespace data
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
 		{
-			auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);
-			offset += 4;
+			auto deliveryStatus = CreateDeliveryStatusMsg (replyToken);			
 			uint32_t tunnelID = bufbe32toh (buf + offset);
-			offset += 32;
+			offset += 4;
 			if (!tunnelID) // send response directly
 				transports.SendMessage (buf + offset, deliveryStatus);
 			else
@@ -493,6 +492,7 @@ namespace data
 					DeleteI2NPMessage (deliveryStatus);
 				}
 			}		
+			offset += 32;
 
 			if (context.IsFloodfill ())
 			{
