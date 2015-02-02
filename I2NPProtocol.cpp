@@ -108,10 +108,10 @@ namespace i2p
 		buf += 32;
 		memcpy (buf, from, 32); // from
 		buf += 32;
-		uint8_t flag = exploratory ? 0x0C : 0x08; // 1000 - RI, 1100 -exporatory	
+		uint8_t flag = exploratory ? DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP : DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP; 
 		if (replyTunnelID)
 		{
-			*buf = flag | 0x01; // set delivery flag
+			*buf = flag | DATABASE_LOOKUP_DELIVERY_FLAG; // set delivery flag
 			htobe32buf (buf+1, replyTunnelID);
 			buf += 5;
 		}
@@ -154,7 +154,7 @@ namespace i2p
 		buf += 32;
 		memcpy (buf, replyTunnel->GetNextIdentHash (), 32); // reply tunnel GW
 		buf += 32;
-		*buf = 7; // flags (01 - tunnel, 10 - encrypted, 0100 - LS lookup
+		*buf = DATABASE_LOOKUP_DELIVERY_FLAG | DATABASE_LOOKUP_ENCYPTION_FLAG | DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP; // flags 
 		htobe32buf (buf + 1, replyTunnel->GetNextTunnelID ()); // reply tunnel ID
 		buf += 5;
 		

@@ -87,6 +87,15 @@ namespace i2p
 
 	const int NUM_TUNNEL_BUILD_RECORDS = 8;	
 
+	// DatabaseLookup flags
+	const uint8_t DATABASE_LOOKUP_DELIVERY_FLAG = 0x01;
+	const uint8_t DATABASE_LOOKUP_ENCYPTION_FLAG = 0x02;	
+	const uint8_t DATABASE_LOOKUP_TYPE_FLAGS_MASK = 0x0C;
+	const uint8_t DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP = 0;
+	const uint8_t DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP = 0x04; // 0100
+	const uint8_t DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP = 0x08; // 1000			
+	const uint8_t DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP = 0x0C; // 1100
+
 namespace tunnel
 {		
 	class InboundTunnel;
