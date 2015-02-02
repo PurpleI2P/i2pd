@@ -91,8 +91,8 @@ namespace transport
 			void Run ();
 			void RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
-			void PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
-			void PostMessages (const i2p::data::IdentHash& ident, std::vector<i2p::I2NPMessage *> msgs);
+			void PostMessage (i2p::data::IdentHash ident, i2p::I2NPMessage * msg);
+			void PostMessages (i2p::data::IdentHash ident, std::vector<i2p::I2NPMessage *> msgs);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
 			

@@ -189,7 +189,7 @@ namespace transport
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}	
 		
-	void Transports::PostMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
+	void Transports::PostMessage (i2p::data::IdentHash ident, i2p::I2NPMessage * msg)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{	
@@ -215,7 +215,7 @@ namespace transport
 			it->second.delayedMessages.push_back (msg);
 	}	
 
-	void Transports::PostMessages (const i2p::data::IdentHash& ident, std::vector<i2p::I2NPMessage *> msgs)
+	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<i2p::I2NPMessage *> msgs)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{	
