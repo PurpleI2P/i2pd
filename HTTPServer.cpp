@@ -605,7 +605,8 @@ namespace util
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			m_Socket->close ();
+			boost::system::error_code ignored_ec;
+			m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 			Terminate ();
 		}	
 	}
