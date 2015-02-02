@@ -664,16 +664,15 @@ namespace data
 
 		I2NPMessage * replyMsg = nullptr;
 
+		auto router = FindRouter (buf);
+		if (router)
 		{
-			auto router = FindRouter (buf);
-			if (router)
-			{
-				LogPrint ("Requested RouterInfo ", key, " found");
-				router->LoadBuffer ();
-				if (router->GetBuffer ()) 
-					replyMsg = CreateDatabaseStoreMsg (router.get ());
-			}
+			LogPrint ("Requested RouterInfo ", key, " found");
+			router->LoadBuffer ();
+			if (router->GetBuffer ()) 
+				replyMsg = CreateDatabaseStoreMsg (router.get ());
 		}
+		
 		if (!replyMsg)
 		{
 			auto leaseSet = FindLeaseSet (buf);
@@ -693,7 +692,14 @@ namespace data
 				excludedRouters.insert (excluded);
 				excluded += 32;
 			}	
-			replyMsg = CreateDatabaseSearchReply (buf, GetClosestFloodfill (buf, excludedRouters).get ());
+			std::vector<IdentHash> routers;
+			for (int i = 0; i < 3; i++)
+			{
+				auto floodfill = GetClosestFloodfill (buf, excludedRouters);
+				if (floodfill)
+					routers.push_back (floodfill->GetIdentHash ());
+			}	
+			replyMsg = CreateDatabaseSearchReply (buf, routers);
 		}
 		else
 			excluded += numExcluded*32; // we don't care about exluded	

@@ -184,18 +184,18 @@ namespace i2p
 	
 
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
-		const i2p::data::RouterInfo * floodfill)
+		 std::vector<i2p::data::IdentHash> routers)
 	{
 		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		size_t len = 0;
 		memcpy (buf, ident, 32);
 		len += 32;
-		buf[len] = floodfill ? 1 : 0; // 1 router for now
+		buf[len] = routers.size (); 
 		len++;
-		if (floodfill)
+		for (auto it: routers)
 		{
-			memcpy (buf + len, floodfill->GetIdentHash (), 32);
+			memcpy (buf + len, it, 32);
 			len += 32;
 		}	
 		memcpy (buf + len, i2p::context.GetRouterInfo ().GetIdentHash (), 32);
