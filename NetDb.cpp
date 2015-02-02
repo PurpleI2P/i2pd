@@ -401,6 +401,7 @@ namespace data
 			{
 				it.second->SaveToFile (GetFilePath(fullDirectory, it.second.get ()));
 				it.second->SetUpdated (false);
+				it.second->SetUnreachable (false);
 				it.second->DeleteBuffer ();
 				count++;
 			}
