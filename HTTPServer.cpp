@@ -840,7 +840,8 @@ namespace util
 				s << it.first << "->" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetRemoteIdentity ()) << " ";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << " [out:" << it.second->GetSendQueueSize () << "][in:" << it.second->GetReceiveQueueSize () << "]";
-				s << " [buf:" << it.second->GetSendBufferSize () << "]";
+				s << "[buf:" << it.second->GetSendBufferSize () << "]";
+				s << "[RTT:" << it.second->GetRTT () << "]"; 
 				s << "<br>"<< std::endl; 
 			}	
 		}	

@@ -15,10 +15,9 @@ namespace stream
 		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service), m_SendStreamID (0), 
 		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false), 
 		m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local), 
-		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), 
-		m_ResendTimer (m_Service), m_AckSendTimer (m_Service), 
-		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port), 
-		m_WindowSize (MIN_WINDOW_SIZE), m_LastWindowSizeIncreaseTime (0)
+		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), 
+		m_AckSendTimer (m_Service),  m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port), 
+		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_LastWindowSizeIncreaseTime (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -28,8 +27,8 @@ namespace stream
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
 		m_IsOpen (false), m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service), 
-		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0), 
-		m_WindowSize (MIN_WINDOW_SIZE), m_LastWindowSizeIncreaseTime (0)
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE), 
+		m_RTT (INITIAL_RTT), m_LastWindowSizeIncreaseTime (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}
@@ -211,6 +210,7 @@ namespace stream
 	void Stream::ProcessAck (Packet * packet)
 	{
 		bool acknowledged = false;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t ackThrough = packet->GetAckThrough ();
 		int nackCount = packet->GetNACKCount ();
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
@@ -235,7 +235,9 @@ namespace stream
 					}	
 				}
 				auto sentPacket = *it;
-				LogPrint (eLogDebug, "Packet ", seqn, " acknowledged");
+				uint64_t rtt = ts - sentPacket->sendTime;
+				m_RTT = (m_RTT*seqn + rtt)/(seqn + 1);
+				LogPrint (eLogDebug, "Packet ", seqn, " acknowledged rtt=", rtt);
 				m_SentPackets.erase (it++);
 				delete sentPacket;	
 				acknowledged = true;
@@ -244,8 +246,7 @@ namespace stream
 				else
 				{
 					// linear growth
-					auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-					if (ts > m_LastWindowSizeIncreaseTime + INITIAL_RTT)
+					if (ts > m_LastWindowSizeIncreaseTime + m_RTT)
 					{
 						m_WindowSize++;
 						if (m_WindowSize > MAX_WINDOW_SIZE) m_WindowSize = MAX_WINDOW_SIZE;
@@ -348,8 +349,12 @@ namespace stream
 			m_IsAckSendScheduled = false;	
 			m_AckSendTimer.cancel ();
 			bool isEmpty = m_SentPackets.empty ();
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			for (auto it: packets)
+			{
+				it->sendTime = ts;
 				m_SentPackets.insert (it);
+			}
 			SendPackets (packets);
 			if (isEmpty)
 				ScheduleResend ();
@@ -560,6 +565,7 @@ namespace stream
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			bool congesion = false, first = true;
 			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
@@ -569,7 +575,10 @@ namespace stream
 					congesion = true;
 				first = false;
 				if (it->numResendAttempts <= MAX_NUM_RESEND_ATTEMPTS)
+				{
+					it->sendTime = ts;
 					packets.push_back (it);
+				}
 				else
 				{
 					LogPrint (eLogWarning, "Packet ", it->GetSeqn (), " was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");

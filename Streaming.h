@@ -54,8 +54,9 @@ namespace stream
 		size_t len, offset;
 		uint8_t buf[MAX_PACKET_SIZE];	
 		int numResendAttempts;
+		uint64_t sendTime;
 		
-		Packet (): len (0), offset (0), numResendAttempts (0) {};
+		Packet (): len (0), offset (0), numResendAttempts (0), sendTime (0) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
 
@@ -116,6 +117,8 @@ namespace stream
 			size_t GetSendQueueSize () const { return m_SentPackets.size (); };
 			size_t GetReceiveQueueSize () const { return m_ReceiveQueue.size (); };
 			size_t GetSendBufferSize () const { return m_SendBuffer.rdbuf ()->in_avail (); };
+			int GetWindowSize () const { return m_WindowSize; };
+			int GetRTT () const { return m_RTT; };
 			
 		private:
 
@@ -161,7 +164,7 @@ namespace stream
 
 			std::mutex m_SendBufferMutex;
 			std::stringstream m_SendBuffer;
-			int m_WindowSize;
+			int m_WindowSize, m_RTT;
 			uint64_t m_LastWindowSizeIncreaseTime;
 	};
 
