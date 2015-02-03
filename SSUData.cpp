@@ -266,7 +266,7 @@ namespace transport
 		//uint8_t * start = buf;
 		uint8_t flag = *buf;
 		buf++;
-		LogPrint (eLogDebug, "Process SSU data flags=", (int)flag);
+		LogPrint (eLogDebug, "Process SSU data flags=", (int)flag, " len=", len);
 		// process acks if presented
 		if (flag & (DATA_FLAG_ACK_BITFIELDS_INCLUDED | DATA_FLAG_EXPLICIT_ACKS_INCLUDED))
 			ProcessAcks (buf, flag);

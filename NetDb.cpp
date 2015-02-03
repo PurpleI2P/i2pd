@@ -525,12 +525,13 @@ namespace data
 		{
 			LogPrint ("RouterInfo");
 			size_t size = bufbe16toh (buf + offset);
-			if (size > 2048)
+			offset += 2;
+			if (size > 2048 || size > len - offset)
 			{
 				LogPrint ("Invalid RouterInfo length ", (int)size);
+				i2p::DeleteI2NPMessage (m);
 				return;
 			}	
-			offset += 2;
 			CryptoPP::Gunzip decompressor;
 			decompressor.Put (buf + offset, size);
 			decompressor.MessageEnd();
@@ -646,11 +647,11 @@ namespace data
 		char key[48];
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
-		LogPrint ("DatabaseLookup for ", key, " recieved");
 		uint8_t flag = buf[64];
+		LogPrint ("DatabaseLookup for ", key, " recieved flags=", (int)flag);
 		uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
-		if (flag & 0x01) //reply to tunnel
+		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
 		{
 			replyTunnelID = bufbe32toh (buf + 64);
 			excluded += 4;
@@ -710,7 +711,7 @@ namespace data
 			if (replyTunnelID)
 			{
 				// encryption might be used though tunnel only
-				if (flag & 0x02) // encrypted reply requested
+				if (flag & DATABASE_LOOKUP_ENCYPTION_FLAG) // encrypted reply requested
 				{
 					uint8_t * sessionKey = excluded;
 					uint8_t numTags = sessionKey[32];
