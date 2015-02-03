@@ -649,6 +649,7 @@ namespace data
 		key[l] = 0;
 		uint8_t flag = buf[64];
 		LogPrint ("DatabaseLookup for ", key, " recieved flags=", (int)flag);
+		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
 		uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
@@ -663,49 +664,72 @@ namespace data
 			LogPrint ("Number of excluded peers", numExcluded, " exceeds 512");
 			numExcluded = 0; // TODO:
 		} 
-
-		I2NPMessage * replyMsg = nullptr;
-
-		auto router = FindRouter (buf);
-		if (router)
-		{
-			LogPrint ("Requested RouterInfo ", key, " found");
-			router->LoadBuffer ();
-			if (router->GetBuffer ()) 
-				replyMsg = CreateDatabaseStoreMsg (router.get ());
-		}
 		
-		if (!replyMsg)
+		I2NPMessage * replyMsg = nullptr;
+		if (lookupType == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP)
 		{
-			auto leaseSet = FindLeaseSet (buf);
-			if (leaseSet) // we don't send back our LeaseSets
-			{
-				LogPrint ("Requested LeaseSet ", key, " found");
-				replyMsg = CreateDatabaseStoreMsg (leaseSet.get ());
-			}
-		}
-		if (!replyMsg)
-		{
-			LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
+			LogPrint ("Exploratory close to  ", key, " ", numExcluded, " excluded");
 			std::set<IdentHash> excludedRouters;
 			for (int i = 0; i < numExcluded; i++)
 			{
-				// TODO: check for all zeroes (exploratory)
 				excludedRouters.insert (excluded);
 				excluded += 32;
 			}	
 			std::vector<IdentHash> routers;
 			for (int i = 0; i < 3; i++)
 			{
-				auto floodfill = GetClosestFloodfill (buf, excludedRouters);
-				if (floodfill)
-					routers.push_back (floodfill->GetIdentHash ());
+				auto r = GetClosestNonFloodfill (buf, excludedRouters);
+				if (r)
+				{	
+					routers.push_back (r->GetIdentHash ());
+					excludedRouters.insert (r->GetIdentHash ());
+				}	
 			}	
 			replyMsg = CreateDatabaseSearchReply (buf, routers);
-		}
+		}	
 		else
-			excluded += numExcluded*32; // we don't care about exluded	
-
+		{	
+			auto router = FindRouter (buf);
+			if (router)
+			{
+				LogPrint ("Requested RouterInfo ", key, " found");
+				router->LoadBuffer ();
+				if (router->GetBuffer ()) 
+					replyMsg = CreateDatabaseStoreMsg (router.get ());
+			}
+		
+			if (!replyMsg)
+			{
+				auto leaseSet = FindLeaseSet (buf);
+				if (leaseSet) // we don't send back our LeaseSets
+				{
+					LogPrint ("Requested LeaseSet ", key, " found");
+					replyMsg = CreateDatabaseStoreMsg (leaseSet.get ());
+				}
+			}
+			if (!replyMsg)
+			{
+				LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
+				std::set<IdentHash> excludedRouters;
+				for (int i = 0; i < numExcluded; i++)
+				{
+					excludedRouters.insert (excluded);
+					excluded += 32;
+				}	
+				std::vector<IdentHash> routers;
+				for (int i = 0; i < 3; i++)
+				{
+					auto floodfill = GetClosestFloodfill (buf, excludedRouters);
+					if (floodfill)
+					{	
+						routers.push_back (floodfill->GetIdentHash ());
+						excludedRouters.insert (floodfill->GetIdentHash ());
+					}	
+				}	
+				replyMsg = CreateDatabaseSearchReply (buf, routers);
+			}
+		}
+		
 		if (replyMsg)
 		{	
 			if (replyTunnelID)
@@ -903,6 +927,29 @@ namespace data
 		return r;
 	}	
 
+	std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill (const IdentHash& destination, 
+		const std::set<IdentHash>& excluded) const
+	{
+		std::shared_ptr<const RouterInfo> r;
+		XORMetric minMetric;
+		IdentHash destKey = CreateRoutingKey (destination);
+		minMetric.SetMax ();
+		// must be called from NetDb thread only
+		for (auto it: m_RouterInfos)
+		{	
+			if (!it.second->IsFloodfill () && !excluded.count (it.first))
+			{	
+				XORMetric m = destKey ^ it.first;
+				if (m < minMetric)
+				{
+					minMetric = m;
+					r = it.second;
+				}
+			}	
+		}	
+		return r;
+	}	
+	
 	void NetDb::ManageLeaseSets ()
 	{
 		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
