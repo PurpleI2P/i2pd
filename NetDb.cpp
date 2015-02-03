@@ -455,7 +455,16 @@ namespace data
 		// request RouterInfo directly
 		RequestedDestination * dest = CreateRequestedDestination (destination, false);
 		if (requestComplete)
-			dest->SetRequestComplete (requestComplete);
+		{
+			if (dest->IsRequestComplete ()) // if set already
+			{
+				LogPrint (eLogWarning, "Destination ", destination.ToBase64(), " is requested already");
+				requestComplete (nullptr); // TODO: implement it better
+				return; 
+			}	
+			else
+				dest->SetRequestComplete (requestComplete);
+		}	
 		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
 			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));	
