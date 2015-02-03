@@ -76,7 +76,13 @@ namespace util
 				std::unique_lock<std::mutex> l(m_QueueMutex);
 				return m_Queue.empty ();
 			}
-			
+
+			int GetSize () 
+			{
+				std::unique_lock<std::mutex> l(m_QueueMutex);
+				return m_Queue.size ();
+			}			
+
 			void WakeUp () { m_NonEmpty.notify_all (); };
 
 			Element * Get ()

@@ -181,6 +181,7 @@ namespace tunnel
 			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
+			int GetQueueSize () { return m_Queue.GetSize (); };
 	};	
 
 	extern Tunnels tunnels;
