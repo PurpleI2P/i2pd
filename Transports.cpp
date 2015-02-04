@@ -255,7 +255,13 @@ namespace transport
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
 				if (address)
 				{
+#if BOOST_VERSION >= 104900
 					if (!address->host.is_unspecified ()) // we have address now
+#else
+					boost::system::error_code ecode;
+					address->host.to_string (ecode);
+					if (!ecode)
+#endif
 					{
 						if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
 						{	
