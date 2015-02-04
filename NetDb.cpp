@@ -124,7 +124,7 @@ namespace data
 	
 	void NetDb::Run ()
 	{
-		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0;
+		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0;
 		while (m_IsRunning)
 		{	
 			try
@@ -156,12 +156,14 @@ namespace data
 					}	
 				}
 				else 				
-				{
 					if (!m_IsRunning) break;
-					ManageRequests ();
-				}
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
+				if (ts - lastManageRequest >= 15) // manage requests every 15 seconds
+				{
+					ManageRequests ();
+					lastManageRequest = ts;
+				}	
 				if (ts - lastSave >= 60) // save routers, manage leasesets and validate subscriptions every minute
 				{
 					if (lastSave)
@@ -183,7 +185,8 @@ namespace data
 					{	
 						numRouters = 800/numRouters;
 						if (numRouters < 1) numRouters = 1;
-						if (numRouters > 9) numRouters = 9;						
+						if (numRouters > 9) numRouters = 9;	
+						ManageRequests ();					
 						Explore (numRouters);
 						lastExploratory = ts;
 					}	
@@ -976,16 +979,17 @@ namespace data
 	void NetDb::ManageRequests ()
 	{
 		uint64_t ts = i2p::util::GetSecondsSinceEpoch ();	
+		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);	
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
 			auto dest = it->second;
 			bool done = false;
-			if (!dest->IsExploratory () && ts < dest->GetCreationTime () + 60) // request is worthless after 1 minute
+			if (ts < dest->GetCreationTime () + 60) // request is worthless after 1 minute
 			{
 				if (ts > dest->GetCreationTime () + 5) // no response for 5 seconds
 				{
 					auto count = dest->GetExcludedPeers ().size ();
-					if (count < 7)
+					if (!dest->IsExploratory () && count < 7)
 					{
 						auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
 						auto outbound = pool->GetNextOutboundTunnel ();
@@ -1004,17 +1008,18 @@ namespace data
 					}	
 					else
 					{
-						LogPrint (eLogWarning, dest->GetDestination ().ToBase64 (), " not found after 7 attempts");	
+						if (!dest->IsExploratory ())
+							LogPrint (eLogWarning, dest->GetDestination ().ToBase64 (), " not found after 7 attempts");	
 						done = true;
 					}	 
 				}	
 			}	
-			else // delete previous exploratory
+			else // delete obsolete request
 				done = true;
 
 			if (done)
 			{
-				delete it->second;
+				delete dest;
 				it = m_RequestedDestinations.erase (it);
 			}
 			else
