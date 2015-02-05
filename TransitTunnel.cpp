@@ -44,7 +44,6 @@ namespace tunnel
 
 	void TransitTunnelParticipant::FlushTunnelDataMsgs ()
 	{
-		LogPrint (eLogDebug, "TransitTunnel: flush");
 		if (!m_TunnelDataMsgs.empty ())
 		{	
 			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs);
@@ -75,7 +74,6 @@ namespace tunnel
 
 	void TransitTunnelGateway::FlushTunnelDataMsgs ()
 	{
-		LogPrint (eLogDebug, "TransitTunnel: gateway flush");
 		m_Gateway.SendBuffer ();
 	}	
 		
