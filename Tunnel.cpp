@@ -160,7 +160,7 @@ namespace tunnel
 	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
 	{
 		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive			
-		msg->from = this;
+		msg->from = shared_from_this ();
 		EncryptTunnelMsg (msg);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
 	}	

@@ -239,7 +239,7 @@ namespace data
 	}	
 
 	void NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
-		i2p::tunnel::InboundTunnel * from)
+		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		if (!from) // unsolicited LS must be received directly
 		{	

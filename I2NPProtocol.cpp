@@ -71,7 +71,7 @@ namespace i2p
 		return msg;
 	}	
 
-	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len, i2p::tunnel::InboundTunnel * from)
+	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		memcpy (msg->GetBuffer (), buf, len);

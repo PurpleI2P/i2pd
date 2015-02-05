@@ -400,7 +400,7 @@ namespace garlic
 	}	
 
 	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption,
-		i2p::tunnel::InboundTunnel * from)
+		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		uint16_t tagCount = bufbe16toh (buf);
 		buf += 2; len -= 2;	
@@ -439,7 +439,7 @@ namespace garlic
 		HandleGarlicPayload (buf, payloadSize, from);
 	}	
 
-	void GarlicDestination::HandleGarlicPayload (uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from)
+	void GarlicDestination::HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		int numCloves = buf[0];
 		LogPrint (numCloves," cloves");

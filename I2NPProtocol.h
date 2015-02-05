@@ -2,9 +2,10 @@
 #define I2NP_PROTOCOL_H__
 
 #include <inttypes.h>
-#include <set>
-#include <cryptopp/sha.h>
 #include <string.h>
+#include <set>
+#include <memory>
+#include <cryptopp/sha.h>
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -108,7 +109,7 @@ namespace tunnel
 	{	
 		uint8_t * buf;	
 		size_t len, offset, maxLen;
-		i2p::tunnel::InboundTunnel * from;
+		std::shared_ptr<i2p::tunnel::InboundTunnel> from;
 		
 		I2NPMessage (): buf (nullptr),len (I2NP_HEADER_SIZE + 2), 
 			offset(2), maxLen (0), from (nullptr) {};  // reserve 2 bytes for NTCP header
@@ -195,7 +196,7 @@ namespace tunnel
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID = 0);
 	void RenewI2NPMessageHeader (I2NPMessage * msg);
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
-	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len, i2p::tunnel::InboundTunnel * from = nullptr);
+	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
 	
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID);
 	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 

@@ -95,7 +95,7 @@ namespace tunnel
 			TunnelGateway m_Gateway; 
 	};
 	
-	class InboundTunnel: public Tunnel 
+	class InboundTunnel: public Tunnel, public std::enable_shared_from_this<InboundTunnel>
 	{
 		public:
 

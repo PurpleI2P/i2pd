@@ -86,7 +86,7 @@ namespace client
 			
 			// implements GarlicDestination
 			const i2p::data::LeaseSet * GetLeaseSet ();
-			void HandleI2NPMessage (const uint8_t * buf, size_t len, i2p::tunnel::InboundTunnel * from);
+			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
 			// override GarlicDestination
 			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
