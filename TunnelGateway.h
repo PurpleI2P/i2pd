@@ -15,6 +15,7 @@ namespace tunnel
 		public:
 			TunnelGatewayBuffer (uint32_t tunnelID): m_TunnelID (tunnelID), 
 				m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0) {};
+			~TunnelGatewayBuffer ();
 			void PutI2NPMsg (const TunnelMessageBlock& block);	
 			const std::vector<I2NPMessage *>& GetTunnelDataMsgs () const { return m_TunnelDataMsgs; };
 			void ClearTunnelDataMsgs ();

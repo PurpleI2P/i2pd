@@ -10,6 +10,12 @@ namespace i2p
 {
 namespace tunnel
 {
+	TunnelGatewayBuffer::~TunnelGatewayBuffer ()
+	{
+		for (auto it: m_TunnelDataMsgs)
+			DeleteI2NPMessage (it);
+	}	
+	
 	void TunnelGatewayBuffer::PutI2NPMsg (const TunnelMessageBlock& block)
 	{
 		bool messageCreated = false;
