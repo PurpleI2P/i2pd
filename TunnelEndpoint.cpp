@@ -114,9 +114,14 @@ namespace tunnel
 						if (!isFollowOnFragment) // create new incomlete message
 						{
 							m.nextFragmentNum = 1;
-							auto& msg = m_IncompleteMessages[msgID];
-							msg = m;
-							HandleOutOfSequenceFragment (msgID, msg);
+							auto ret = m_IncompleteMessages.insert (std::pair<uint32_t, TunnelMessageBlockEx>(msgID, m));
+							if (ret.second)
+								HandleOutOfSequenceFragment (msgID, ret.first->second);
+							else
+							{
+								LogPrint (eLogError, "Incomplete message ", msgID, "already exists");
+								DeleteI2NPMessage (m.data);
+							}	
 						}
 						else
 						{
