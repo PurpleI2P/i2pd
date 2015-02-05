@@ -23,11 +23,7 @@ namespace transport
 	SSUData::~SSUData ()
 	{
 		for (auto it: m_IncomleteMessages)
-			if (it.second)
-			{
-				DeleteI2NPMessage (it.second->msg);
-				delete it.second;
-			}	
+			delete it.second;
 		for (auto it: m_SentMessages)
 			delete it.second;
 	}
@@ -182,7 +178,7 @@ namespace transport
 					// try saved fragments
 					for (auto it1 = incompleteMessage->savedFragments.begin (); it1 != incompleteMessage->savedFragments.end ();)
 					{
-						auto savedFragment = *it1;
+						auto& savedFragment = *it1;
 						if (savedFragment->fragmentNum == incompleteMessage->nextFragmentNum)
 						{
 							memcpy (msg->buf + msg->len, savedFragment->buf, savedFragment->len);
@@ -190,7 +186,6 @@ namespace transport
 							isLast = savedFragment->isLast;
 							incompleteMessage->nextFragmentNum++;
 							incompleteMessage->savedFragments.erase (it1++);
-							delete savedFragment;
 						}
 						else
 							break;
@@ -209,11 +204,8 @@ namespace transport
 					// missing fragment
 					LogPrint (eLogWarning, "Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
 					auto savedFragment = new Fragment (fragmentNum, buf, fragmentSize, isLast);
-					if (!incompleteMessage->savedFragments.insert (savedFragment).second)
-					{
+					if (!incompleteMessage->savedFragments.insert (std::unique_ptr<Fragment>(savedFragment)).second)
 						LogPrint (eLogWarning, "Fragment ", (int)fragmentNum, " of message ", msgID, " already saved");
-						delete savedFragment;
-					}	
 				}
 				isLast = false;
 			}	
@@ -221,6 +213,7 @@ namespace transport
 			if (isLast)
 			{
 				// delete incomplete message
+				incompleteMessage->msg = nullptr;
 				delete incompleteMessage;
 				m_IncomleteMessages.erase (msgID);				
 				// process message

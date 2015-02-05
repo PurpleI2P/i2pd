@@ -48,7 +48,7 @@ namespace transport
 
 	struct FragmentCmp
 	{
-		bool operator() (const Fragment * f1, const Fragment * f2) const
+		bool operator() (const std::unique_ptr<Fragment>& f1, const std::unique_ptr<Fragment>& f2) const
   		{	
 			return f1->fragmentNum < f2->fragmentNum; 
 		};
@@ -58,10 +58,10 @@ namespace transport
 	{
 		I2NPMessage * msg;
 		int nextFragmentNum;	
-		std::set<Fragment *, FragmentCmp> savedFragments;
+		std::set<std::unique_ptr<Fragment>, FragmentCmp> savedFragments;
 		
 		IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (0) {};
-		~IncompleteMessage () { for (auto it: savedFragments) { delete it; }; };
+		~IncompleteMessage () { if (msg) DeleteI2NPMessage (msg); };
 	};
 
 	struct SentMessage
