@@ -104,8 +104,8 @@ namespace data
 			void ManageLeaseSets ();
 			void ManageRequests ();
 
-			RequestedDestination * CreateRequestedDestination (const IdentHash& dest, bool isExploratory = false);
-			void DeleteRequestedDestination (RequestedDestination * dest);
+			std::unique_ptr<RequestedDestination>& CreateRequestedDestination (const IdentHash& dest, bool isExploratory = false);
+			void DeleteRequestedDestination (IdentHash ident);
 
 			template<typename Filter>
 			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
@@ -118,7 +118,7 @@ namespace data
 			mutable std::mutex m_FloodfillsMutex;
 			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 			std::mutex m_RequestedDestinationsMutex;
-			std::map<IdentHash, RequestedDestination *> m_RequestedDestinations;
+			std::map<IdentHash, std::unique_ptr<RequestedDestination> > m_RequestedDestinations;
 			
 			bool m_IsRunning;
 			std::thread * m_Thread;	

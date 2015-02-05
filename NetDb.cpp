@@ -117,8 +117,6 @@ namespace data
 			m_Thread = 0;
 		}
 		m_LeaseSets.clear();
-		for (auto r: m_RequestedDestinations)
-			delete r.second;
 		m_RequestedDestinations.clear ();
 	}	
 	
@@ -236,7 +234,6 @@ namespace data
 		{	
 			it->second->Success (r);
 			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-			delete it->second;
 			m_RequestedDestinations.erase (it);
 		}	
 	}	
@@ -456,7 +453,7 @@ namespace data
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete)
 	{
 		// request RouterInfo directly
-		RequestedDestination * dest = CreateRequestedDestination (destination, false);
+		auto& dest = CreateRequestedDestination (destination, false);
 		if (requestComplete)
 		{
 			if (dest->IsRequestComplete ()) // if set already
@@ -475,7 +472,7 @@ namespace data
 		{
 			LogPrint (eLogError, "No floodfills found");
 			dest->Fail ();
-			DeleteRequestedDestination (dest);
+			DeleteRequestedDestination (destination);
 		}	
 	}	
 	
@@ -566,7 +563,7 @@ namespace data
 		auto it = m_RequestedDestinations.find (IdentHash (buf));
 		if (it != m_RequestedDestinations.end ())
 		{	
-			RequestedDestination * dest = it->second;
+			auto& dest = it->second;
 			bool deleteDest = true;
 			if (num > 0)
 			{	
@@ -615,7 +612,6 @@ namespace data
 				{
 					// no more requests for the destinationation. delete it
 					it->second->Fail ();
-					delete it->second;
 					m_RequestedDestinations.erase (it);
 				}	
 			}
@@ -623,7 +619,6 @@ namespace data
 			{
 				// no more requests for detination possible. delete it
 				it->second->Fail ();
-				delete it->second;
 				m_RequestedDestinations.erase (it);
 			}	
 		}
@@ -787,7 +782,7 @@ namespace data
 		for (int i = 0; i < numDestinations; i++)
 		{	
 			rnd.GenerateBlock (randomHash, 32);
-			RequestedDestination * dest = CreateRequestedDestination (IdentHash (randomHash), true);
+			auto& dest = CreateRequestedDestination (IdentHash (randomHash), true);
 			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
 			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
 			{	
@@ -811,7 +806,7 @@ namespace data
 					i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
 			}	
 			else
-				DeleteRequestedDestination (dest);
+				DeleteRequestedDestination (dest->GetDestination ());
 		}	
 		if (throughTunnels && msgs.size () > 0)
 			outbound->SendTunnelDataMsg (msgs);		
@@ -833,28 +828,24 @@ namespace data
 		}	
 	}	
 	
-	RequestedDestination * NetDb::CreateRequestedDestination (const IdentHash& dest, bool isExploratory)
+	std::unique_ptr<RequestedDestination>& NetDb::CreateRequestedDestination (const IdentHash& dest, bool isExploratory)
 	{
 		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		auto it = m_RequestedDestinations.find (dest);
 		if (it == m_RequestedDestinations.end ()) // not exist yet
 		{
-			RequestedDestination * d = new RequestedDestination (dest, isExploratory);
-			m_RequestedDestinations[dest] = d;
-			return d;
+			auto d = new RequestedDestination (dest, isExploratory);
+			return m_RequestedDestinations.insert (std::make_pair (dest, 
+				std::unique_ptr<RequestedDestination> (d))).first->second;
 		}	
 		else
 			return it->second;
 	}
 
-	void NetDb::DeleteRequestedDestination (RequestedDestination * dest)
+	void NetDb::DeleteRequestedDestination (IdentHash ident)
 	{
-		if (dest)
-		{
-			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-			m_RequestedDestinations.erase (dest->GetDestination ());
-			delete dest;
-		}	
+		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
+		m_RequestedDestinations.erase (ident);
 	}	
 
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter () const
@@ -982,7 +973,7 @@ namespace data
 		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);	
 		for (auto it = m_RequestedDestinations.begin (); it != m_RequestedDestinations.end ();)
 		{
-			auto dest = it->second;
+			auto& dest = it->second;
 			bool done = false;
 			if (ts < dest->GetCreationTime () + 60) // request is worthless after 1 minute
 			{
@@ -1018,10 +1009,7 @@ namespace data
 				done = true;
 
 			if (done)
-			{
-				delete dest;
 				it = m_RequestedDestinations.erase (it);
-			}
 			else
 				it++;
 		}	
