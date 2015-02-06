@@ -62,6 +62,7 @@ namespace transport
 			}
 
 			virtual ~TransportSession () { delete m_DHKeysPair; };
+			virtual void Terminate () = 0;
 			
 			std::shared_ptr<const i2p::data::RouterInfo> GetRemoteRouter () { return m_RemoteRouter; };
 			const i2p::data::IdentityEx& GetRemoteIdentity () { return m_RemoteIdentity; };

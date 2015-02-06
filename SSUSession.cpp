@@ -759,6 +759,11 @@ namespace transport
 		transports.PeerDisconnected (shared_from_this ());
 	}	
 
+	void SSUSession::Terminate ()
+	{
+		m_Server.DeleteSession (shared_from_this ());
+	}
+
 	void SSUSession::Established ()
 	{
 		m_State = eSessionStateEstablished;

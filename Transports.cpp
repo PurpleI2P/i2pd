@@ -405,9 +405,17 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
-				it->second.session = session;
-				session->SendI2NPMessages (it->second.delayedMessages);
-				it->second.delayedMessages.clear ();
+				if (!it->second.session)
+				{
+					it->second.session = session;
+					session->SendI2NPMessages (it->second.delayedMessages);
+					it->second.delayedMessages.clear ();
+				}
+				else
+				{
+					LogPrint (eLogError, "Session for ", ident.ToBase64 ().substr (0, 4), " already exists");
+					session->Terminate ();
+				}
 			}
 			else // incoming connection
 				m_Peers[ident] = { 0, nullptr, session };
@@ -420,7 +428,7 @@ namespace transport
 		{  
 			auto ident = session->GetRemoteIdentity ().GetIdentHash ();
 			auto it = m_Peers.find (ident);
-			if (it != m_Peers.end ())
+			if (it != m_Peers.end () && it->second.session == session)
 			{
 				if (it->second.delayedMessages.size () > 0)
 					ConnectToPeer (ident, it->second);
