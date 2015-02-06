@@ -316,6 +316,11 @@ namespace transport
 			uint8_t * buf = m_ReceiveBuffer;
 			uint16_t size = bufbe16toh (buf);
 			m_RemoteIdentity.FromBuffer (buf + 2, size);
+			if (m_Server.FindNTCPSession (m_RemoteIdentity.GetIdentHash ()))
+			{
+				LogPrint (eLogError, "NTCP session already exists");
+				Terminate ();
+			}	
 			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity.GetSignatureLen ();
 			size_t paddingLen = expectedSize & 0x0F;
 			if (paddingLen) paddingLen = (16 - paddingLen);	
