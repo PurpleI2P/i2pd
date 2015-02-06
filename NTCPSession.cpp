@@ -792,8 +792,15 @@ namespace transport
 	{		
 		if (!error)
 		{
-			LogPrint (eLogInfo, "Connected from ", conn->GetSocket ().remote_endpoint());
-			conn->ServerLogin ();
+			boost::system::error_code ec;
+			auto ep = conn->GetSocket ().remote_endpoint(ec);	
+			if (!ec)
+			{
+				LogPrint (eLogInfo, "Connected from ", ep);
+				conn->ServerLogin ();
+			}
+			else
+				LogPrint (eLogError, "Connected from error ", ec.message ());
 		}
 		
 
@@ -809,8 +816,15 @@ namespace transport
 	{		
 		if (!error)
 		{
-			LogPrint (eLogInfo, "Connected from ", conn->GetSocket ().remote_endpoint());
-			conn->ServerLogin ();
+			boost::system::error_code ec;
+			auto ep = conn->GetSocket ().remote_endpoint(ec);	
+			if (!ec)
+			{
+				LogPrint (eLogInfo, "Connected from ", ep);
+				conn->ServerLogin ();
+			}
+			else
+				LogPrint (eLogError, "Connected from error ", ec.message ());
 		}
 
 		if (error != boost::asio::error::operation_aborted)
