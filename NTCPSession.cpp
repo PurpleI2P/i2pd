@@ -838,10 +838,8 @@ namespace transport
         {
 			LogPrint (eLogError, "Connect error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-			{
 				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ().GetIdentHash (), true);
-				conn->Terminate ();
-			}
+			conn->Terminate ();
 		}
 		else
 		{
