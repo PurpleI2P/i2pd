@@ -49,6 +49,7 @@ namespace util
 		std::string httpRequest(const std::string& address);
 		void MergeChunkedResponse (std::istream& response, std::ostream& merged);
 		int httpRequestViaI2pProxy(const std::string& address, std::string &content); // return http code
+		std::string urlDecode(const std::string& data);
 		
 		struct url {
     			url(const std::string& url_s); // omitted copy, ==, accessors, ...

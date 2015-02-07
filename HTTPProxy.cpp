@@ -5,6 +5,7 @@
 #include <string>
 #include <atomic>
 #include "HTTPProxy.h"
+#include "util.h"
 #include "Identity.h"
 #include "Streaming.h"
 #include "Destination.h"
@@ -148,6 +149,7 @@ namespace proxy
 				addressHelperPos = addressHelperPos2;
 		}
 		auto base64 = m_path.substr (addressHelperPos + strlen(helpermark1));
+		base64 = i2p::util::http::urlDecode(base64); //Some of the symbols may be urlencoded
 		LogPrint (eLogDebug,"Jump service for ", m_address, " found at ", base64, ". Inserting to address book");
 		//TODO: this is very dangerous and broken. We should ask the user before doing anything see http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
 		//TODO: we could redirect the user again to avoid dirtiness in the browser
