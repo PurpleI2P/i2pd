@@ -28,6 +28,11 @@ namespace transport
 			delete it.second;
 	}
 
+	void SSUData::Stop ()
+	{
+		m_ResendTimer.cancel ();
+	}	
+		
 	void SSUData::AdjustPacketSize (const i2p::data::RouterInfo& remoteRouter)
 	{
 		auto ssuAddress = remoteRouter.GetSSUAddress ();

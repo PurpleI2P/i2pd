@@ -743,6 +743,8 @@ namespace util
 				s << endpoint.address ().to_string () << ":" << endpoint.port ();
 				if (!outgoing) s << "-->";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				if (it.second->GetRelayTag ())
+					s << " [itag:" << it.second->GetRelayTag () << "]";
 				s << "<br>";
 				s << std::endl;
 			}

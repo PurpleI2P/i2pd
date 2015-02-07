@@ -763,6 +763,7 @@ namespace transport
 		m_State = eSessionStateClosed;
 		SendSesionDestroyed ();
 		transports.PeerDisconnected (shared_from_this ());
+		m_Data.Stop ();
 		m_Timer.cancel ();
 	}	
 

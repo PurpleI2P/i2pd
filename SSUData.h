@@ -78,7 +78,8 @@ namespace transport
 
 			SSUData (SSUSession& session);
 			~SSUData ();
-
+			void Stop ();	
+			
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void Send (i2p::I2NPMessage * msg);
 
