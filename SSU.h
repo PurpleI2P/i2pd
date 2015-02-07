@@ -7,6 +7,7 @@
 #include <list>
 #include <set>
 #include <thread>
+#include <mutex>
 #include <boost/asio.hpp>
 #include "aes.h"
 #include "I2PEndian.h"
@@ -75,6 +76,7 @@ namespace transport
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
 			i2p::crypto::AESAlignedBuffer<2*SSU_MTU_V4> m_ReceiveBuffer;
 			i2p::crypto::AESAlignedBuffer<2*SSU_MTU_V6> m_ReceiveBufferV6; 
+			std::mutex m_SessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 

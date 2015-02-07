@@ -45,6 +45,7 @@ namespace transport
 		eSessionStateUnknown,	
 		eSessionStateIntroduced,
 		eSessionStateEstablished,
+		eSessionStateClosed,
 		eSessionStateFailed
 	};	
 
@@ -80,6 +81,7 @@ namespace transport
 
 		private:
 
+			boost::asio::io_service& GetService ();
 			void CreateAESandMacKey (const uint8_t * pubKey); 
 
 			void PostI2NPMessage (I2NPMessage * msg);

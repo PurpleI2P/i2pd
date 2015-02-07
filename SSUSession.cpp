@@ -16,7 +16,7 @@ namespace transport
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): TransportSession (router), 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
-		m_Timer (m_Server.GetService ()), m_PeerTest (peerTest),
+		m_Timer (GetService ()), m_PeerTest (peerTest),
  		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
 		m_Data (*this), m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{
@@ -26,6 +26,11 @@ namespace transport
 	SSUSession::~SSUSession ()
 	{		
 	}	
+
+	boost::asio::io_service& SSUSession::GetService () 
+	{ 
+		return IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService (); 
+	}
 	
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey)
 	{
@@ -755,14 +760,15 @@ namespace transport
 
 	void SSUSession::Close ()
 	{
+		m_State = eSessionStateClosed;
 		SendSesionDestroyed ();
 		transports.PeerDisconnected (shared_from_this ());
+		m_Timer.cancel ();
 	}	
 
 	void SSUSession::Done ()
 	{
-		boost::asio::io_service& service = IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService ();
-		service.post (std::bind (&SSUSession::Failed, shared_from_this ()));
+		GetService ().post (std::bind (&SSUSession::Failed, shared_from_this ()));
 	}
 
 	void SSUSession::Established ()
@@ -824,8 +830,7 @@ namespace transport
 
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
-		boost::asio::io_service& service = IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService ();
-		service.post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg));    
+		GetService ().post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg));    
 	}	
 
 	void SSUSession::PostI2NPMessage (I2NPMessage * msg)
@@ -836,8 +841,7 @@ namespace transport
 
 	void SSUSession::SendI2NPMessages (const std::vector<I2NPMessage *>& msgs)
 	{
-		boost::asio::io_service& service = IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService ();
-		service.post (std::bind (&SSUSession::PostI2NPMessages, shared_from_this (), msgs));    
+		GetService ().post (std::bind (&SSUSession::PostI2NPMessages, shared_from_this (), msgs));    
 	}
 
 	void SSUSession::PostI2NPMessages (std::vector<I2NPMessage *> msgs)

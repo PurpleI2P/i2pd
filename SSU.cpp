@@ -161,7 +161,10 @@ namespace transport
 		{
 			session = std::make_shared<SSUSession> (*this, from);
 			session->WaitForConnect ();
-			m_Sessions[from] = session;
+			{
+				std::unique_lock<std::mutex> l(m_SessionsMutex);
+				m_Sessions[from] = session;
+			}	
 			LogPrint ("New SSU session from ", from.address ().to_string (), ":", from.port (), " created");
 		}
 		session->ProcessNextMessage (buf, bytes_transferred, from);
@@ -206,8 +209,10 @@ namespace transport
 				{
 					// otherwise create new session					
 					session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
-					m_Sessions[remoteEndpoint] = session;
-					
+					{
+						std::unique_lock<std::mutex> l(m_SessionsMutex);
+						m_Sessions[remoteEndpoint] = session;
+					}
 					if (!router->UsesIntroducer ())
 					{
 						// connect directly						
@@ -243,6 +248,7 @@ namespace transport
 								introducer = &(address->introducers[0]); // TODO:
 								boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
 								introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
+								std::unique_lock<std::mutex> l(m_SessionsMutex);
 								m_Sessions[introducerEndpoint] = introducerSession;													
 							}	
 							// introduce
@@ -256,6 +262,7 @@ namespace transport
 						else
 						{	
 							LogPrint (eLogWarning, "Can't connect to unreachable router. No introducers presented");
+							std::unique_lock<std::mutex> l(m_SessionsMutex);
 							m_Sessions.erase (remoteEndpoint);
 							session.reset ();
 						}	
@@ -273,12 +280,14 @@ namespace transport
 		if (session)
 		{
 			session->Close ();
+			std::unique_lock<std::mutex> l(m_SessionsMutex);	
 			m_Sessions.erase (session->GetRemoteEndpoint ());
 		}	
 	}	
 
 	void SSUServer::DeleteAllSessions ()
 	{
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		for (auto it: m_Sessions)
 			it.second->Close ();
 		m_Sessions.clear ();
