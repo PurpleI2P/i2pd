@@ -61,7 +61,7 @@ namespace transport
 		~Peer ()
 		{
 			for (auto it :delayedMessages)
-				i2p::DeleteI2NPMessage (it);
+				i2p::DeleteI2NPMessage (it);			
 		}	
 	};	
 	

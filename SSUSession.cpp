@@ -759,9 +759,10 @@ namespace transport
 		transports.PeerDisconnected (shared_from_this ());
 	}	
 
-	void SSUSession::Terminate ()
+	void SSUSession::Done ()
 	{
-		m_Server.DeleteSession (shared_from_this ());
+		boost::asio::io_service& service = IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService ();
+		service.post (std::bind (&SSUSession::Failed, shared_from_this ()));
 	}
 
 	void SSUSession::Established ()

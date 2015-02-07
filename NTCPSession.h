@@ -54,6 +54,7 @@ namespace transport
 			NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
 			~NTCPSession ();
 			void Terminate ();
+			void Done ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
@@ -113,7 +114,7 @@ namespace transport
 			NTCPServer& m_Server;
 			boost::asio::ip::tcp::socket m_Socket;
 			boost::asio::deadline_timer m_TerminationTimer;
-			bool m_IsEstablished;
+			bool m_IsEstablished, m_IsTerminated;
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;

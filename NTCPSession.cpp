@@ -20,8 +20,9 @@ namespace transport
 {
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
 		TransportSession (in_RemoteRouter),	m_Server (server), m_Socket (m_Server.GetService ()), 
-		m_TerminationTimer (m_Server.GetService ()), m_IsEstablished (false), m_ReceiveBufferOffset (0), 
-		m_NextMessage (nullptr), m_IsSending (false), m_NumSentBytes (0), m_NumReceivedBytes (0)
+		m_TerminationTimer (m_Server.GetService ()), m_IsEstablished (false), m_IsTerminated (false),
+		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false), 
+		m_NumSentBytes (0), m_NumReceivedBytes (0)
 	{		
 		m_DHKeysPair = transports.GetNextDHKeysPair ();
 		m_Establisher = new Establisher;
@@ -30,10 +31,6 @@ namespace transport
 	NTCPSession::~NTCPSession ()
 	{
 		delete m_Establisher;
-		if (m_NextMessage)	
-			i2p::DeleteI2NPMessage (m_NextMessage);
-		for (auto it: m_SendQueue)
-			DeleteI2NPMessage (it);
 	}
 
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key)
@@ -72,13 +69,30 @@ namespace transport
 		}
 	}	
 
+	void NTCPSession::Done ()
+	{
+		m_Server.GetService ().post (std::bind (&NTCPSession::Terminate, shared_from_this ()));  
+	}	
+		
 	void NTCPSession::Terminate ()
 	{
-		m_IsEstablished = false;
-		m_Socket.close ();
-		transports.PeerDisconnected (shared_from_this ());
-		m_Server.RemoveNTCPSession (shared_from_this ());
-		LogPrint (eLogInfo, "NTCP session terminated");
+		if (!m_IsTerminated)
+		{	
+			m_IsTerminated = true;
+			m_IsEstablished = false;
+			m_Socket.close ();
+			transports.PeerDisconnected (shared_from_this ());
+			m_Server.RemoveNTCPSession (shared_from_this ());
+			for (auto it: m_SendQueue)
+				DeleteI2NPMessage (it);
+			m_SendQueue.clear ();
+			if (m_NextMessage)	
+			{	
+				i2p::DeleteI2NPMessage (m_NextMessage);
+				m_NextMessage = nullptr;
+			}	
+			LogPrint (eLogInfo, "NTCP session terminated");
+		}	
 	}	
 
 	void NTCPSession::Connected ()

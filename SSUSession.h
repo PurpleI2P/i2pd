@@ -63,7 +63,7 @@ namespace transport
 			void Introduce (uint32_t iTag, const uint8_t * iKey);
 			void WaitForIntroduction ();
 			void Close ();
-			void Terminate ();
+			void Done ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessage (I2NPMessage * msg);

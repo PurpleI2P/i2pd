@@ -414,7 +414,7 @@ namespace transport
 				else
 				{
 					LogPrint (eLogError, "Session for ", ident.ToBase64 ().substr (0, 4), " already exists");
-					session->Terminate ();
+					session->Done ();
 				}
 			}
 			else // incoming connection
