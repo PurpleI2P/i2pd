@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <string>
 #include <algorithm>
 #include <cctype>
@@ -444,6 +445,16 @@ namespace http
 		query_.assign(query_i, url_s.end());
 	}
 
+	std::string urlDecode(const std::string& data)
+	{
+		std::string res(data);
+		for (size_t pos = res.find('%'); pos != std::string::npos; pos = res.find('%',pos+1))
+		{
+			char c = strtol(res.substr(pos+1,2).c_str(), NULL, 16);
+			res.replace(pos,3,1,c);
+		}
+		return res;
+	}
 } 
 
 namespace net

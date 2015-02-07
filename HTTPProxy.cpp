@@ -5,6 +5,7 @@
 #include <string>
 #include <atomic>
 #include "HTTPProxy.h"
+#include "util.h"
 #include "Identity.h"
 #include "Streaming.h"
 #include "Destination.h"
@@ -35,6 +36,7 @@ namespace proxy
 			void HTTPRequestFailed(/*std::string message*/);
 			void ExtractRequest();
 			bool ValidateHTTPRequest();
+			void HandleJumpServices();
 			bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
@@ -124,9 +126,41 @@ namespace proxy
 		return true;
 	}
 
+	void HTTPProxyHandler::HandleJumpServices() {
+		static const char * helpermark1 = "?i2paddresshelper=";
+		static const char * helpermark2 = "&i2paddresshelper=";
+		size_t addressHelperPos1 = m_path.rfind (helpermark1);
+		size_t addressHelperPos2 = m_path.rfind (helpermark2);
+		size_t addressHelperPos;
+		if (addressHelperPos1 == std::string::npos)
+		{
+			if (addressHelperPos2 == std::string::npos)
+				return; //Not a jump service
+			else
+				addressHelperPos = addressHelperPos2;
+		}
+		else
+		{
+			if (addressHelperPos2 == std::string::npos)
+				addressHelperPos = addressHelperPos1;
+			else if ( addressHelperPos1 > addressHelperPos2 )
+				addressHelperPos = addressHelperPos1;
+			else
+				addressHelperPos = addressHelperPos2;
+		}
+		auto base64 = m_path.substr (addressHelperPos + strlen(helpermark1));
+		base64 = i2p::util::http::urlDecode(base64); //Some of the symbols may be urlencoded
+		LogPrint (eLogDebug,"Jump service for ", m_address, " found at ", base64, ". Inserting to address book");
+		//TODO: this is very dangerous and broken. We should ask the user before doing anything see http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
+		//TODO: we could redirect the user again to avoid dirtiness in the browser
+		i2p::client::context.GetAddressBook ().InsertAddress (m_address, base64);
+		m_path.erase(addressHelperPos);
+	}
+
 	bool HTTPProxyHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len) {
 		ExtractRequest(); //TODO: parse earlier
 		if (!ValidateHTTPRequest()) return false;
+		HandleJumpServices();
 		m_request = m_method;
 		m_request.push_back(' ');
 		m_request += m_path;
