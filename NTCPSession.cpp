@@ -489,19 +489,48 @@ namespace transport
 
 			if (m_ReceiveBufferOffset >= 16)
 			{	
-				uint8_t * nextBlock = m_ReceiveBuffer;
-				while (m_ReceiveBufferOffset >= 16)
-				{
-					if (!DecryptNextBlock (nextBlock)) // 16 bytes
+				int numReloads = 0;
+				do
+				{	
+					uint8_t * nextBlock = m_ReceiveBuffer;
+					while (m_ReceiveBufferOffset >= 16)
 					{
-						Terminate ();
-						return; 
+						if (!DecryptNextBlock (nextBlock)) // 16 bytes
+						{
+							Terminate ();
+							return; 
+						}	
+						nextBlock += 16;
+						m_ReceiveBufferOffset -= 16;
 					}	
-					nextBlock += 16;
-					m_ReceiveBufferOffset -= 16;
+					if (m_ReceiveBufferOffset > 0)
+						memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
+
+					// try to read more
+					if (numReloads < 5)
+					{	
+						boost::asio::socket_base::bytes_readable command (true);
+						m_Socket.io_control (command);
+						size_t moreBytes = command.get();
+						if (moreBytes)
+						{
+							if (moreBytes > NTCP_BUFFER_SIZE - m_ReceiveBufferOffset)
+								moreBytes = NTCP_BUFFER_SIZE - m_ReceiveBufferOffset;
+							boost::system::error_code ec;
+							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes));
+							if (ec)
+							{
+								LogPrint (eLogError, "Read more bytes error: ", ec.message ());
+								Terminate ();
+								return;
+							}	
+							m_NumReceivedBytes += moreBytes;
+							m_ReceiveBufferOffset += moreBytes;
+							numReloads++;
+						}	
+					}	
 				}	
-				if (m_ReceiveBufferOffset > 0)
-					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
+				while (m_ReceiveBufferOffset >= 16);
 				m_Handler.Flush ();
 			}	
 			
