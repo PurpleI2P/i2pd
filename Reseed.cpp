@@ -23,29 +23,26 @@ namespace data
 {
 
 	static std::vector<std::string> httpReseedHostList = {
-				"http://193.150.121.66/netDb/",
-				"http://netdb.i2p2.no/",
-				"http://reseed.i2p-projekt.de/",
-				"http://cowpuncher.drollette.com/netdb/",
+				// "http://193.150.121.66/netDb/",  // unstable
+				// "http://us.reseed.i2p2.no/",     // misconfigured, not serving reseed data
+				// "http://jp.reseed.i2p2.no/",     // Really outdated RIs
+				"http://netdb.i2p2.no/",            // only SU3 (v2) support
 				"http://i2p.mooo.com/netDb/",
-				"http://reseed.info/",
 				"http://uk.reseed.i2p2.no/",
-				"http://us.reseed.i2p2.no/",
-				"http://jp.reseed.i2p2.no/",
-				"http://i2p-netdb.innovatio.no/",
-				"http://ieb9oopo.mooo.com"
+				"http://i2p-netdb.innovatio.no/"
 			};
 
 	//TODO: Remember to add custom port support. Not all serves on 443
 	static std::vector<std::string> httpsReseedHostList = {
-				"https://193.150.121.66/netDb/",
-				"https://netdb.i2p2.no/",
-				"https://reseed.i2p-projekt.de/",
-				"https://cowpuncher.drollette.com/netdb/",
+				// "https://193.150.121.66/netDb/",  // unstable
+				// "https://i2p-netdb.innovatio.no/",// Vuln to POODLE
+				"https://netdb.i2p2.no/",            // Only SU3 (v2) support
+				"https://reseed.i2p-projekt.de/",    // Only HTTPS
+				"https://cowpuncher.drollette.com/netdb/",  // Only HTTPS and SU3 (v2) support -- will move to a new location
 				"https://i2p.mooo.com/netDb/",
-				"https://reseed.info/",
-				"https://i2p-netdb.innovatio.no/",
-				"https://ieb9oopo.mooo.com/",
+				"https://link.mx24.eu/",             // Only HTTPS and SU3 (v2) support
+				"https://i2pseed.zarrenspry.info/",  // Only HTTPS and SU3 (v2) support
+				"https://ieb9oopo.mooo.com/",        // Only HTTPS and SU3 (v2) support
 				"https://ssl.webpack.de/ivae2he9.sg4.e-plaza.de/" // Only HTTPS and SU3 (v2) support
 			};
 	
