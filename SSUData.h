@@ -26,6 +26,9 @@ namespace transport
 	const size_t SSU_V6_MAX_PACKET_SIZE = SSU_MTU_V6 - IPV6_HEADER_SIZE - UDP_HEADER_SIZE; // 1424
 	const int RESEND_INTERVAL = 3; // in seconds
 	const int MAX_NUM_RESENDS = 5;
+	const int DECAY_INTERVAL = 20; // in seconds
+	const int MAX_NUM_RECEIVED_MESSAGES = 1000; // how many msgID we store for duplicates check
+	const int INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
 	// data flags
 	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
 	const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
@@ -58,9 +61,10 @@ namespace transport
 	{
 		I2NPMessage * msg;
 		int nextFragmentNum;	
+		uint32_t lastFragmentInsertTime; // in seconds
 		std::set<std::unique_ptr<Fragment>, FragmentCmp> savedFragments;
 		
-		IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (0) {};
+		IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (0), lastFragmentInsertTime (0) {};
 		~IncompleteMessage () { if (msg) DeleteI2NPMessage (msg); };
 	};
 
@@ -78,6 +82,8 @@ namespace transport
 
 			SSUData (SSUSession& session);
 			~SSUData ();
+
+			void Start ();
 			void Stop ();	
 			
 			void ProcessMessage (uint8_t * buf, size_t len);
@@ -95,6 +101,12 @@ namespace transport
 
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);	
+
+			void ScheduleDecay ();
+			void HandleDecayTimer (const boost::system::error_code& ecode);	
+
+			void ScheduleIncompleteMessagesCleanup ();
+			void HandleIncompleteMessagesCleanupTimer (const boost::system::error_code& ecode);	
 			
 			void AdjustPacketSize (const i2p::data::RouterInfo& remoteRouter);	
 			
@@ -104,7 +116,7 @@ namespace transport
 			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
 			std::map<uint32_t, SentMessage *> m_SentMessages;
 			std::set<uint32_t> m_ReceivedMessages;
-			boost::asio::deadline_timer m_ResendTimer;
+			boost::asio::deadline_timer m_ResendTimer, m_DecayTimer, m_IncompleteMessagesCleanupTimer;
 			int m_MaxPacketSize, m_PacketSize;
 			i2p::I2NPMessagesHandler m_Handler;
 	};	

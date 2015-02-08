@@ -15,10 +15,9 @@ namespace transport
 {
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): TransportSession (router), 
-		m_Server (server), m_RemoteEndpoint (remoteEndpoint), 
-		m_Timer (GetService ()), m_PeerTest (peerTest),
- 		m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
-		m_Data (*this), m_NumSentBytes (0), m_NumReceivedBytes (0)
+		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_Timer (GetService ()), 
+		m_PeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Data (*this)
 	{
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}
@@ -780,6 +779,7 @@ namespace transport
 			delete m_DHKeysPair;
 			m_DHKeysPair = nullptr;
 		}
+		m_Data.Start ();
 		m_Data.Send (CreateDatabaseStoreMsg ());
 		transports.PeerConnected (shared_from_this ());
 		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))

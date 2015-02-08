@@ -11,7 +11,8 @@ namespace i2p
 namespace transport
 {
 	SSUData::SSUData (SSUSession& session):
-		m_Session (session), m_ResendTimer (session.m_Server.GetService ())
+		m_Session (session), m_ResendTimer (session.GetService ()), m_DecayTimer (session.GetService ()),
+		m_IncompleteMessagesCleanupTimer (session.GetService ())
 	{
 		m_MaxPacketSize = session.IsV6 () ? SSU_V6_MAX_PACKET_SIZE : SSU_V4_MAX_PACKET_SIZE;
 		m_PacketSize = m_MaxPacketSize;
@@ -28,9 +29,16 @@ namespace transport
 			delete it.second;
 	}
 
+	void SSUData::Start ()
+	{
+		ScheduleIncompleteMessagesCleanup ();
+	}	
+		
 	void SSUData::Stop ()
 	{
 		m_ResendTimer.cancel ();
+		m_DecayTimer.cancel ();
+		m_IncompleteMessagesCleanupTimer.cancel ();
 	}	
 		
 	void SSUData::AdjustPacketSize (const i2p::data::RouterInfo& remoteRouter)
@@ -209,7 +217,9 @@ namespace transport
 					// missing fragment
 					LogPrint (eLogWarning, "Missing fragments from ", (int)incompleteMessage->nextFragmentNum, " to ", fragmentNum - 1, " of message ", msgID);	
 					auto savedFragment = new Fragment (fragmentNum, buf, fragmentSize, isLast);
-					if (!incompleteMessage->savedFragments.insert (std::unique_ptr<Fragment>(savedFragment)).second)
+					if (incompleteMessage->savedFragments.insert (std::unique_ptr<Fragment>(savedFragment)).second)
+						incompleteMessage->lastFragmentInsertTime = i2p::util::GetSecondsSinceEpoch ();
+					else	
 						LogPrint (eLogWarning, "Fragment ", (int)fragmentNum, " of message ", msgID, " already saved");
 				}
 				isLast = false;
@@ -228,7 +238,10 @@ namespace transport
 				{
 					if (!m_ReceivedMessages.count (msgID))
 					{	
-						if (m_ReceivedMessages.size () > 100) m_ReceivedMessages.clear ();
+						if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES)
+							m_ReceivedMessages.clear ();
+						else
+							ScheduleDecay ();
 						m_ReceivedMessages.insert (msgID);
 						m_Handler.PutNextMessage (msg);
 					}	
@@ -401,24 +414,80 @@ namespace transport
 		m_ResendTimer.async_wait ([s](const boost::system::error_code& ecode)
 			{ s->m_Data.HandleResendTimer (ecode); });
 	}
-		
+
 	void SSUData::HandleResendTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			for (auto it : m_SentMessages)
+			for (auto it = m_SentMessages.begin (); it != m_SentMessages.end ();)
 			{
-				if (ts >= it.second->nextResendTime && it.second->numResends < MAX_NUM_RESENDS)
+				if (ts >= it->second->nextResendTime)
 				{	
-					for (auto& f: it.second->fragments)
-						if (f) m_Session.Send (f->buf, f->len); // resend
+					if (it->second->numResends < MAX_NUM_RESENDS)
+					{	
+						for (auto& f: it->second->fragments)
+							if (f) m_Session.Send (f->buf, f->len); // resend
 
-					it.second->numResends++;
-					it.second->nextResendTime += it.second->numResends*RESEND_INTERVAL;
+						it->second->numResends++;
+						it->second->nextResendTime += it->second->numResends*RESEND_INTERVAL;
+						it++;
+					}	
+					else
+					{
+						LogPrint (eLogError, "SSU message has not been ACKed after ", MAX_NUM_RESENDS, " attempts. Deleted");
+						delete it->second;
+						it = m_SentMessages.erase (it);
+					}	
 				}	
+				else
+					it++;
 			}
 			ScheduleResend ();	
+		}	
+	}	
+
+	void SSUData::ScheduleDecay ()
+	{		
+		m_DecayTimer.cancel ();
+		m_DecayTimer.expires_from_now (boost::posix_time::seconds(DECAY_INTERVAL));
+		auto s = m_Session.shared_from_this();
+		m_ResendTimer.async_wait ([s](const boost::system::error_code& ecode)
+			{ s->m_Data.HandleDecayTimer (ecode); });
+	}	
+
+	void SSUData::HandleDecayTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+			m_ReceivedMessages.clear ();
+	}	
+
+	void SSUData::ScheduleIncompleteMessagesCleanup ()
+	{
+		m_IncompleteMessagesCleanupTimer.cancel ();
+		m_IncompleteMessagesCleanupTimer.expires_from_now (boost::posix_time::seconds(INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT));
+		auto s = m_Session.shared_from_this();
+		m_IncompleteMessagesCleanupTimer.async_wait ([s](const boost::system::error_code& ecode)
+			{ s->m_Data.HandleIncompleteMessagesCleanupTimer (ecode); });
+	}
+		
+	void SSUData::HandleIncompleteMessagesCleanupTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto it = m_IncomleteMessages.begin (); it != m_IncomleteMessages.end ();)
+			{
+				if (ts > it->second->lastFragmentInsertTime + INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT)
+				{
+					LogPrint (eLogError, "SSU message ", it->first, " was not completed  in ", INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " .Deleted");
+					delete it->second;
+					it = m_IncomleteMessages.erase (it);
+				}	
+				else
+					it++;
+			}	
+			ScheduleIncompleteMessagesCleanup ();
 		}	
 	}	
 }
