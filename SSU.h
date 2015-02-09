@@ -23,6 +23,13 @@ namespace transport
 	const int SSU_KEEP_ALIVE_INTERVAL = 30; // 30 seconds	
 	const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const size_t SSU_MAX_NUM_INTRODUCERS = 3;
+
+	struct SSUPacket
+	{
+		i2p::crypto::AESAlignedBuffer<1500> buf;
+		boost::asio::ip::udp::endpoint from;
+		size_t len;
+	};	
 	
 	class SSUServer
 	{
@@ -50,11 +57,12 @@ namespace transport
 
 			void Run ();
 			void RunV6 ();
+			void RunReceivers ();
 			void Receive ();
 			void ReceiveV6 ();
-			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleReceivedBuffer (boost::asio::ip::udp::endpoint& from, uint8_t * buf, std::size_t bytes_transferred);
+			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
+			void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
+			void HandleReceivedBuffer (SSUPacket * packet);
 
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomSession (Filter filter);
@@ -66,16 +74,13 @@ namespace transport
 		private:
 
 			bool m_IsRunning;
-			std::thread * m_Thread, * m_ThreadV6;	
-			boost::asio::io_service m_Service, m_ServiceV6;
-			boost::asio::io_service::work m_Work, m_WorkV6;
+			std::thread * m_Thread, * m_ThreadV6, * m_ReceiversThread;	
+			boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService;
+			boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork;
 			boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
-			boost::asio::ip::udp::endpoint m_SenderEndpoint, m_SenderEndpointV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
-			i2p::crypto::AESAlignedBuffer<2*SSU_MTU_V4> m_ReceiveBuffer;
-			i2p::crypto::AESAlignedBuffer<2*SSU_MTU_V6> m_ReceiveBufferV6; 
 			std::mutex m_SessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
