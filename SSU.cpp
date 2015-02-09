@@ -160,7 +160,19 @@ namespace transport
 		if (!ecode)
 		{
 			packet->len = bytes_transferred;
-			m_Service.post (std::bind (&SSUServer::HandleReceivedBuffer, this, packet));
+			std::vector<SSUPacket *> packets;
+			packets.push_back (packet);
+
+			size_t moreBytes = m_Socket.available();
+			while (moreBytes && packets.size () < 25)
+			{
+				packet = new SSUPacket ();
+				packet->len = m_Socket.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from);
+				packets.push_back (packet);
+				moreBytes = m_Socket.available();
+			}
+
+			m_Service.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets));
 			Receive ();
 		}
 		else
@@ -175,7 +187,19 @@ namespace transport
 		if (!ecode)
 		{
 			packet->len = bytes_transferred;
-			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedBuffer, this, packet));
+			std::vector<SSUPacket *> packets;
+			packets.push_back (packet);
+
+			size_t moreBytes = m_SocketV6.available ();
+			while (moreBytes && packets.size () < 25)
+			{
+				packet = new SSUPacket ();
+				packet->len = m_SocketV6.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from);
+				packets.push_back (packet);
+				moreBytes = m_SocketV6.available();
+			}
+
+			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets));
 			ReceiveV6 ();
 		}
 		else
@@ -185,24 +209,28 @@ namespace transport
 		}	
 	}
 
-	void SSUServer::HandleReceivedBuffer (SSUPacket * packet)
+	void SSUServer::HandleReceivedPackets (std::vector<SSUPacket *> packets)
 	{
-		std::shared_ptr<SSUSession> session;
-		auto it = m_Sessions.find (packet->from);
-		if (it != m_Sessions.end ())
-			session = it->second;
-		if (!session)
+		for (auto it1: packets)
 		{
-			session = std::make_shared<SSUSession> (*this, packet->from);
-			session->WaitForConnect ();
+			auto packet = it1;
+			std::shared_ptr<SSUSession> session;
+			auto it = m_Sessions.find (packet->from);
+			if (it != m_Sessions.end ())
+				session = it->second;
+			if (!session)
 			{
-				std::unique_lock<std::mutex> l(m_SessionsMutex);
-				m_Sessions[packet->from] = session;
-			}	
-			LogPrint ("New SSU session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+				session = std::make_shared<SSUSession> (*this, packet->from);
+				session->WaitForConnect ();
+				{
+					std::unique_lock<std::mutex> l(m_SessionsMutex);
+					m_Sessions[packet->from] = session;
+				}	
+				LogPrint ("New SSU session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+			}
+			session->ProcessNextMessage (packet->buf, packet->len, packet->from);
+			delete packet;
 		}
-		session->ProcessNextMessage (packet->buf, packet->len, packet->from);
-		delete packet;
 	}
 
 	std::shared_ptr<SSUSession> SSUServer::FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const

@@ -62,7 +62,7 @@ namespace transport
 			void ReceiveV6 ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
 			void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
-			void HandleReceivedBuffer (SSUPacket * packet);
+			void HandleReceivedPackets (std::vector<SSUPacket *> packets);
 
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomSession (Filter filter);
