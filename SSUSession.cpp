@@ -830,13 +830,18 @@ namespace transport
 
 	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
 	{
-		GetService ().post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg));    
+		GetService ().post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg)); 
 	}	
 
 	void SSUSession::PostI2NPMessage (I2NPMessage * msg)
 	{
 		if (msg)
-			m_Data.Send (msg);
+		{
+			if (m_State == eSessionStateEstablished)
+				m_Data.Send (msg);
+			else
+				DeleteI2NPMessage (msg);   
+		}
 	}		
 
 	void SSUSession::SendI2NPMessages (const std::vector<I2NPMessage *>& msgs)
@@ -846,8 +851,16 @@ namespace transport
 
 	void SSUSession::PostI2NPMessages (std::vector<I2NPMessage *> msgs)
 	{
-		for (auto it: msgs)
-			if (it) m_Data.Send (it);
+		if (m_State == eSessionStateEstablished)
+		{
+			for (auto it: msgs)
+				if (it) m_Data.Send (it);
+		}
+		else
+		{
+			for (auto it: msgs)
+				DeleteI2NPMessage (it);
+		}
 	}	
 
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)

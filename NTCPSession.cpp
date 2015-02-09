@@ -678,6 +678,11 @@ namespace transport
 	{
 		if (msg)
 		{
+			if (m_IsTerminated)
+			{
+				DeleteI2NPMessage (msg);
+				return;
+			}
 			if (m_IsSending)
 				m_SendQueue.push_back (msg);
 			else	
@@ -692,6 +697,12 @@ namespace transport
 
 	void NTCPSession::PostI2NPMessages (std::vector<I2NPMessage *> msgs)
 	{
+		if (m_IsTerminated)
+		{
+			for (auto it: msgs)
+				DeleteI2NPMessage (it);
+			return;
+		}	
 		if (m_IsSending)
 		{
 			for (auto it: msgs)
