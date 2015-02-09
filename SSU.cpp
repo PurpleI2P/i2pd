@@ -54,6 +54,7 @@ namespace transport
 		m_Socket.close ();
 		m_ServiceV6.stop ();
 		m_SocketV6.close ();
+		m_ReceiversService.stop ();
 		if (m_ReceiversThread)
 		{	
 			m_ReceiversThread->join (); 
