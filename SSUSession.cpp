@@ -130,7 +130,6 @@ namespace transport
 		switch (header->GetPayloadType ())
 		{
 			case PAYLOAD_TYPE_DATA:
-				LogPrint (eLogDebug, "SSU data received");
 				ProcessData (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
 			break;
 			case PAYLOAD_TYPE_SESSION_REQUEST:

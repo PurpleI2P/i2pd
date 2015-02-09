@@ -152,8 +152,7 @@ namespace transport
 			uint32_t fragmentInfo = bufbe32toh (frag); // fragment info
 			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
-			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17
-			LogPrint (eLogDebug, "SSU data fragment ", (int)fragmentNum, " of message ", msgID, " size=", (int)fragmentSize, isLast ? " last" : " non-last"); 		
+			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17 		
 			if (fragmentSize >= SSU_V4_MAX_PACKET_SIZE)
 			{
 				LogPrint (eLogError, "Fragment size ", fragmentSize, "exceeds max SSU packet size");
