@@ -215,7 +215,7 @@ namespace transport
 		for (auto it1: packets)
 		{
 			auto packet = it1;
-			if (session && session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
+			if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 			{
 				auto it = m_Sessions.find (packet->from);
 				if (it != m_Sessions.end ())
