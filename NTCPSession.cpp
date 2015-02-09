@@ -509,9 +509,7 @@ namespace transport
 					// try to read more
 					if (numReloads < 5)
 					{	
-						boost::asio::socket_base::bytes_readable command (true);
-						m_Socket.io_control (command);
-						size_t moreBytes = command.get();
+						size_t moreBytes = m_Socket.available();
 						if (moreBytes)
 						{
 							if (moreBytes > NTCP_BUFFER_SIZE - m_ReceiveBufferOffset)
