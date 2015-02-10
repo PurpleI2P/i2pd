@@ -104,9 +104,6 @@ namespace data
 			void ManageLeaseSets ();
 			void ManageRequests ();
 
-			std::unique_ptr<RequestedDestination>& CreateRequestedDestination (const IdentHash& dest, bool isExploratory = false);
-			void DeleteRequestedDestination (IdentHash ident);
-
 			template<typename Filter>
 			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		

@@ -453,18 +453,18 @@ namespace data
 	void NetDb::RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete)
 	{
 		// request RouterInfo directly
-		auto& dest = CreateRequestedDestination (destination, false);
-		if (requestComplete)
+		auto dest = new RequestedDestination (destination, false); // non-exploratory
+		dest->SetRequestComplete (requestComplete);
 		{
-			if (dest->IsRequestComplete ()) // if set already
-			{
+			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
+			if (!m_RequestedDestinations.insert (std::make_pair (destination, 
+				std::unique_ptr<RequestedDestination> (dest))).second) // not inserted
+			{	
 				LogPrint (eLogWarning, "Destination ", destination.ToBase64(), " is requested already");
-				requestComplete (nullptr); // TODO: implement it better
 				return; 
 			}	
-			else
-				dest->SetRequestComplete (requestComplete);
-		}	
+		}
+				
 		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
 			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));	
@@ -472,7 +472,8 @@ namespace data
 		{
 			LogPrint (eLogError, "No floodfills found");
 			dest->Fail ();
-			DeleteRequestedDestination (destination);
+			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
+			m_RequestedDestinations.erase (destination);
 		}	
 	}	
 	
@@ -782,7 +783,16 @@ namespace data
 		for (int i = 0; i < numDestinations; i++)
 		{	
 			rnd.GenerateBlock (randomHash, 32);
-			auto& dest = CreateRequestedDestination (IdentHash (randomHash), true);
+			auto dest = new RequestedDestination (randomHash, true); // exploratory
+			{
+				std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
+				if (!m_RequestedDestinations.insert (std::make_pair (randomHash, 
+					std::unique_ptr<RequestedDestination> (dest))).second) // not inserted
+				{	
+					LogPrint (eLogWarning, "Exploratory destination is requested already");
+					return; 
+				}	
+			}	
 			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
 			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
 			{	
@@ -806,7 +816,10 @@ namespace data
 					i2p::transport::transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));
 			}	
 			else
-				DeleteRequestedDestination (dest->GetDestination ());
+			{
+				std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
+				m_RequestedDestinations.erase (dest->GetDestination ());
+			}	
 		}	
 		if (throughTunnels && msgs.size () > 0)
 			outbound->SendTunnelDataMsg (msgs);		
@@ -826,27 +839,7 @@ namespace data
 				excluded.insert (floodfill->GetIdentHash ());
 			}
 		}	
-	}	
-	
-	std::unique_ptr<RequestedDestination>& NetDb::CreateRequestedDestination (const IdentHash& dest, bool isExploratory)
-	{
-		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-		auto it = m_RequestedDestinations.find (dest);
-		if (it == m_RequestedDestinations.end ()) // not exist yet
-		{
-			auto d = new RequestedDestination (dest, isExploratory);
-			return m_RequestedDestinations.insert (std::make_pair (dest, 
-				std::unique_ptr<RequestedDestination> (d))).first->second;
-		}	
-		else
-			return it->second;
-	}
-
-	void NetDb::DeleteRequestedDestination (IdentHash ident)
-	{
-		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-		m_RequestedDestinations.erase (ident);
-	}	
+	}		
 
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter () const
 	{
