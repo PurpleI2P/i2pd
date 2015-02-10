@@ -901,7 +901,20 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogInfo, "Connected from ", ep);
-				conn->ServerLogin ();
+				auto it = m_BanList.find (ep.address ());
+				if (it != m_BanList.end ())
+				{
+					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+					if (ts < it->second)
+					{
+						LogPrint (eLogInfo, ep.address (), " is banned for ", it->second - ts, " more seconds");
+						conn = nullptr;
+					}
+					else
+						m_BanList.erase (it);
+				}
+				if (conn)
+					conn->ServerLogin ();
 			}
 			else
 				LogPrint (eLogError, "Connected from error ", ec.message ());
