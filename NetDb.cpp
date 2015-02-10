@@ -130,7 +130,8 @@ namespace data
 				I2NPMessage * msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
 				if (msg)
 				{	
-					while (msg)
+					int numMsgs = 0;	
+					while (msg && numMsgs < 500)
 					{
 						switch (msg->GetTypeID ()) 
 						{
@@ -151,10 +152,10 @@ namespace data
 								i2p::HandleI2NPMessage (msg);
 						}	
 						msg = m_Queue.Get ();
+						numMsgs++;
 					}	
-				}
-				else 				
-					if (!m_IsRunning) break;
+				}			
+				if (!m_IsRunning) break;
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastManageRequest >= 15) // manage requests every 15 seconds
