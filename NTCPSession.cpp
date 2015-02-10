@@ -91,6 +91,7 @@ namespace transport
 				i2p::DeleteI2NPMessage (m_NextMessage);
 				m_NextMessage = nullptr;
 			}	
+			m_TerminationTimer.cancel ();
 			LogPrint (eLogInfo, "NTCP session terminated");
 		}	
 	}	
@@ -125,6 +126,7 @@ namespace transport
 		
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),
         	std::bind(&NTCPSession::HandlePhase1Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+		ScheduleTermination ();
 	}	
 
 	void NTCPSession::ServerLogin ()
@@ -133,6 +135,7 @@ namespace transport
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),                    
 			std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (), 
 				std::placeholders::_1, std::placeholders::_2));
+		ScheduleTermination ();	
 	}	
 		
 	void NTCPSession::HandlePhase1Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
