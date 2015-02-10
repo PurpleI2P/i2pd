@@ -418,7 +418,7 @@ namespace transport
 				}
 			}
 			else // incoming connection
-				m_Peers[ident] = { 0, nullptr, session };
+				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, session }));
 		});			
 	}
 		

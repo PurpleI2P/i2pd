@@ -60,7 +60,7 @@ namespace transport
 
 		~Peer ()
 		{
-			if (session) session->Done ();
+			//if (session) session->Done ();
 			for (auto it :delayedMessages)
 				i2p::DeleteI2NPMessage (it);			
 		}	
