@@ -291,6 +291,7 @@ namespace transport
 				}
 			}	
 			LogPrint (eLogError, "No NTCP and SSU addresses available");
+			if (peer.session) peer.session->Done ();
 			m_Peers.erase (ident);
 			return false;
 		}	
