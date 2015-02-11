@@ -74,6 +74,7 @@ namespace tunnel
 
 	void TransitTunnelGateway::FlushTunnelDataMsgs ()
 	{
+		std::unique_lock<std::mutex> l(m_SendMutex);
 		m_Gateway.SendBuffer ();
 	}	
 		
