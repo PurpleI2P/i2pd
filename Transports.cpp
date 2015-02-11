@@ -95,7 +95,7 @@ namespace transport
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), m_PeerCleanupTimer (m_Service),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), 
 		m_DHKeysPairSupplier (5) // 5 pre-generated keys
 	{		
@@ -134,10 +134,13 @@ namespace transport
 					LogPrint ("SSU server already exists");
 			}
 		}	
+		m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+		m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 	}
 		
 	void Transports::Stop ()
 	{	
+		m_PeerCleanupTimer.cancel ();	
 		m_Peers.clear ();
 		if (m_SSUServer)
 		{
@@ -202,7 +205,8 @@ namespace transport
 		if (it == m_Peers.end ())
 		{
 			auto r = netdb.FindRouter (ident);
-			it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr})).first;
+			it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
+				i2p::util::GetSecondsSinceEpoch () })).first;
 			if (!ConnectToPeer (ident, it->second))
 			{
 				DeleteI2NPMessage (msg);
@@ -228,7 +232,8 @@ namespace transport
 		if (it == m_Peers.end ())
 		{
 			auto r = netdb.FindRouter (ident);
-			it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr})).first;
+			it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
+				i2p::util::GetSecondsSinceEpoch () })).first;
 			if (!ConnectToPeer (ident, it->second))
 			{
 				for (auto it1: msgs)
@@ -419,7 +424,7 @@ namespace transport
 				}
 			}
 			else // incoming connection
-				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, session }));
+				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, session, i2p::util::GetSecondsSinceEpoch () }));
 		});			
 	}
 		
@@ -438,6 +443,23 @@ namespace transport
 			}
 		});	
 	}	
+
+	void Transports::HandlePeerCleanupTimer (const boost::system::error_code& ecode)
+	{
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_Peers.begin (); it != m_Peers.end (); )
+		{
+			if (!it->second.session && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
+			{
+				LogPrint (eLogError, "Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
+				it = m_Peers.erase (it);
+			}
+			else
+				it++;
+		}
+		m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+		m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
+	}
 }
 }
 
