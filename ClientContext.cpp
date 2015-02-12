@@ -93,45 +93,45 @@ namespace client
 		m_HttpProxy->Stop();
 		delete m_HttpProxy;
 		m_HttpProxy = nullptr;
-		LogPrint("HTTP Proxy stoped");
+		LogPrint("HTTP Proxy stopped");
 		m_SocksProxy->Stop();
 		delete m_SocksProxy;
 		m_SocksProxy = nullptr;
-		LogPrint("SOCKS Proxy stoped");
+		LogPrint("SOCKS Proxy stopped");
 		if (m_IrcTunnel)
 		{
 			m_IrcTunnel->Stop ();
 			delete m_IrcTunnel; 
 			m_IrcTunnel = nullptr;
-			LogPrint("IRC tunnel stoped");	
+			LogPrint("IRC tunnel stopped");	
 		}
 		if (m_ServerTunnel)
 		{
 			m_ServerTunnel->Stop ();
 			delete m_ServerTunnel; 
 			m_ServerTunnel = nullptr;
-			LogPrint("Server tunnel stoped");	
+			LogPrint("Server tunnel stopped");	
 		}			
 		if (m_SamBridge)
 		{
 			m_SamBridge->Stop ();
 			delete m_SamBridge; 
 			m_SamBridge = nullptr;
-			LogPrint("SAM brdige stoped");	
+			LogPrint("SAM brdige stopped");	
 		}		
 		if (m_BOBCommandChannel)
 		{
 			m_BOBCommandChannel->Stop ();
 			delete m_BOBCommandChannel; 
 			m_BOBCommandChannel = nullptr;
-			LogPrint("BOB command channel stoped");	
+			LogPrint("BOB command channel stopped");	
 		}			
 		if (m_I2PControlService)
 		{
 			m_I2PControlService->Stop ();
 			delete m_I2PControlService; 
 			m_I2PControlService = nullptr;
-			LogPrint("I2PControl stoped");	
+			LogPrint("I2PControl stopped");	
 		}	
 
 		for (auto it: m_Destinations)
