@@ -446,19 +446,22 @@ namespace transport
 
 	void Transports::HandlePeerCleanupTimer (const boost::system::error_code& ecode)
 	{
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
-		for (auto it = m_Peers.begin (); it != m_Peers.end (); )
+		if (ecode != boost::asio::error::operation_aborted)
 		{
-			if (!it->second.session && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto it = m_Peers.begin (); it != m_Peers.end (); )
 			{
-				LogPrint (eLogError, "Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
-				it = m_Peers.erase (it);
+				if (!it->second.session && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
+				{
+					LogPrint (eLogError, "Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
+					it = m_Peers.erase (it);
+				}
+				else
+					it++;
 			}
-			else
-				it++;
-		}
-		m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
-		m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
+			m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+			m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
+		}	
 	}
 }
 }
