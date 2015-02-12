@@ -128,15 +128,15 @@ namespace i2p
 		{
 			LogPrint("Shutdown started.");
 			i2p::client::context.Stop();
-			LogPrint("Client stoped");
+			LogPrint("Client stopped");
 			i2p::tunnel::tunnels.Stop();
-			LogPrint("Tunnels stoped");
+			LogPrint("Tunnels stopped");
 			i2p::transport::transports.Stop();
-			LogPrint("Transports stoped");
+			LogPrint("Transports stopped");
 			i2p::data::netdb.Stop();
-			LogPrint("NetDB stoped");
+			LogPrint("NetDB stopped");
 			d.httpServer->Stop();
-			LogPrint("HTTP Server stoped");
+			LogPrint("HTTP Server stopped");
 #ifdef USE_UPNP
 			i2p::UPnP::upnpc.Stop();
 #endif
