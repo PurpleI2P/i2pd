@@ -515,6 +515,7 @@ namespace data
 					auto floodfill = GetClosestFloodfill (buf + DATABASE_STORE_KEY_OFFSET, excluded);
 					if (floodfill)
 					{
+						excluded.insert (floodfill->GetIdentHash ());	
 						auto floodMsg = NewI2NPShortMessage ();
 						uint8_t * payload = floodMsg->GetPayload ();		
 						memcpy (payload, buf, 33); // key + type
@@ -544,13 +545,20 @@ namespace data
 				i2p::DeleteI2NPMessage (m);
 				return;
 			}	
-			CryptoPP::Gunzip decompressor;
-			decompressor.Put (buf + offset, size);
-			decompressor.MessageEnd();
-			uint8_t uncompressed[2048];
-			size_t uncomressedSize = decompressor.MaxRetrievable ();
-			decompressor.Get (uncompressed, uncomressedSize);
-			AddRouterInfo (buf + DATABASE_STORE_KEY_OFFSET, uncompressed, uncomressedSize);
+			try
+			{	
+				CryptoPP::Gunzip decompressor;
+				decompressor.Put (buf + offset, size);
+				decompressor.MessageEnd();
+				uint8_t uncompressed[2048];
+				size_t uncomressedSize = decompressor.MaxRetrievable ();
+				decompressor.Get (uncompressed, uncomressedSize);
+				AddRouterInfo (buf + DATABASE_STORE_KEY_OFFSET, uncompressed, uncomressedSize);
+			}
+			catch (CryptoPP::Exception& ex)
+			{
+				LogPrint (eLogError, "DatabaseStore: ", ex.what ());
+			}
 		}	
 		i2p::DeleteI2NPMessage (m);
 	}	
