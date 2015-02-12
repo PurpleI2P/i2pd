@@ -1,7 +1,9 @@
 #ifndef CLIENT_CONTEXT_H__
 #define CLIENT_CONTEXT_H__
 
+#include <list>
 #include <mutex>
+#include <memory>
 #include "Destination.h"
 #include "HTTPProxy.h"
 #include "SOCKS.h"
@@ -15,6 +17,12 @@ namespace i2p
 {
 namespace client
 {
+	const char I2P_CLIENT_TUNNEL_NAME[] = "client.name";
+	const char I2P_CLIENT_TUNNEL_PORT[] = "client.port";
+	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "client.destination";
+	const char I2P_CLIENT_TUNNEL_KEYS[] = "client.keys";
+	const char TUNNELS_CONFIG_FILENAME[] = "tunnels.cfg";
+
 	class ClientContext
 	{
 		public:
@@ -35,7 +43,11 @@ namespace client
 			ClientDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
-			
+		
+		private:
+
+			void ReadTunnels ();
+	
 		private:
 
 			std::mutex m_DestinationsMutex;
@@ -46,7 +58,7 @@ namespace client
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
-			I2PClientTunnel * m_IrcTunnel;
+			std::list<std::unique_ptr<I2PClientTunnel> > m_ClientTunnels;
 			I2PServerTunnel * m_ServerTunnel;
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;

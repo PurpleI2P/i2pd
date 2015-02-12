@@ -1,4 +1,7 @@
 #include <fstream>
+#include <iostream>
+#include <boost/program_options/parsers.hpp>
+#include <boost/program_options/variables_map.hpp>
 #include "util.h"
 #include "Log.h"
 #include "Identity.h"
@@ -11,9 +14,8 @@ namespace client
 	ClientContext context;	
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
-		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_IrcTunnel (nullptr),
-		m_ServerTunnel (nullptr), m_SamBridge (nullptr), m_BOBCommandChannel (nullptr),
-		m_I2PControlService (nullptr)
+		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_ServerTunnel (nullptr), 
+		m_SamBridge (nullptr), m_BOBCommandChannel (nullptr), m_I2PControlService (nullptr)
 	{
 	}
 	
@@ -21,7 +23,6 @@ namespace client
 	{
 		delete m_HttpProxy;
 		delete m_SocksProxy;
-		delete m_IrcTunnel;
 		delete m_ServerTunnel;
 		delete m_SamBridge;
 		delete m_BOBCommandChannel;
@@ -37,12 +38,15 @@ namespace client
 			m_SharedLocalDestination->Start ();
 		}
 
+		// proxies	
 		m_HttpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
 		m_HttpProxy->Start();
 		LogPrint("HTTP Proxy started");
 		m_SocksProxy = new i2p::proxy::SOCKSProxy(i2p::util::config::GetArg("-socksproxyport", 4447));
 		m_SocksProxy->Start();
 		LogPrint("SOCKS Proxy Started");
+	
+		// I2P tunnels
 		std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
 		if (ircDestination.length () > 0) // ircdest is presented
 		{
@@ -50,8 +54,9 @@ namespace client
 			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 			if (ircKeys.length () > 0)
 				localDestination = LoadLocalDestination (ircKeys, false);
-			m_IrcTunnel = new I2PClientTunnel (ircDestination, i2p::util::config::GetArg("-ircport", 6668), localDestination);
-			m_IrcTunnel->Start ();
+			auto ircTunnel = new I2PClientTunnel (ircDestination, i2p::util::config::GetArg("-ircport", 6668), localDestination);
+			ircTunnel->Start ();
+			m_ClientTunnels.push_back (std::unique_ptr<I2PClientTunnel>(ircTunnel));
 			LogPrint("IRC tunnel started");
 		}	
 		std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
@@ -63,6 +68,9 @@ namespace client
 			m_ServerTunnel->Start ();
 			LogPrint("Server tunnel started");
 		}
+		ReadTunnels ();
+
+		// SAM
 		int samPort = i2p::util::config::GetArg("-samport", 0);
 		if (samPort)
 		{
@@ -70,6 +78,8 @@ namespace client
 			m_SamBridge->Start ();
 			LogPrint("SAM bridge started");
 		} 
+
+		// BOB
 		int bobPort = i2p::util::config::GetArg("-bobport", 0);
 		if (bobPort)
 		{
@@ -77,6 +87,8 @@ namespace client
 			m_BOBCommandChannel->Start ();
 			LogPrint("BOB command channel started");
 		} 
+
+		// I2P Control
 		int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
 		if (i2pcontrolPort)
 		{
@@ -98,13 +110,12 @@ namespace client
 		delete m_SocksProxy;
 		m_SocksProxy = nullptr;
 		LogPrint("SOCKS Proxy stopped");
-		if (m_IrcTunnel)
+		for (auto& it: m_ClientTunnels)
 		{
-			m_IrcTunnel->Stop ();
-			delete m_IrcTunnel; 
-			m_IrcTunnel = nullptr;
-			LogPrint("IRC tunnel stopped");	
+			it->Stop ();
+			LogPrint("I2P client tunnel stopped");	
 		}
+		m_ClientTunnels.clear ();		
 		if (m_ServerTunnel)
 		{
 			m_ServerTunnel->Stop ();
@@ -235,5 +246,53 @@ namespace client
 			return it->second;
 		return nullptr;
 	}	
+
+	void ClientContext::ReadTunnels ()
+	{
+		std::ifstream ifs (i2p::util::filesystem::GetFullPath (TUNNELS_CONFIG_FILENAME));
+		if (ifs.good ())
+		{
+			boost::program_options::options_description params ("I2P tunnels parameters");
+			params.add_options ()
+				(I2P_CLIENT_TUNNEL_NAME, boost::program_options::value<std::string>()->default_value ("I2P Tunnel"), "tunnel name")	
+				(I2P_CLIENT_TUNNEL_PORT, boost::program_options::value<int>(), "Local port")
+				(I2P_CLIENT_TUNNEL_DESTINATION, boost::program_options::value<std::string>(), "destination")
+				(I2P_CLIENT_TUNNEL_KEYS, boost::program_options::value<std::string>()->default_value (""), "keys")	
+			;			
+
+
+			boost::program_options::variables_map vm;
+			try
+			{
+				boost::program_options::store (boost::program_options::parse_config_file (ifs, params), vm);
+				boost::program_options::notify (vm);
+			}
+			catch (boost::program_options::error& ex)
+			{
+				LogPrint (eLogError, "Can't parse ", TUNNELS_CONFIG_FILENAME,": ", ex.what ());
+				return;
+			}
+
+			int numClientTunnels = vm.count (I2P_CLIENT_TUNNEL_NAME);
+			if (numClientTunnels > 0)
+			{
+				// auto& names = vm[I2P_CLIENT_TUNNEL_NAME].as<std::vector<std::string> >();
+				auto& ports = vm[I2P_CLIENT_TUNNEL_PORT].as<std::vector<int> >();
+				auto& destinations = vm[I2P_CLIENT_TUNNEL_DESTINATION].as<std::vector<std::string> >();
+				auto& keys = vm[I2P_CLIENT_TUNNEL_KEYS].as<std::vector<std::string> >(); 
+				
+				for (int i = 0; i < numClientTunnels; i++)
+				{
+					ClientDestination * localDestination = nullptr;
+					if (keys[i].length () > 0)
+						localDestination = LoadLocalDestination (keys[i], false);
+					auto clientTunnel = new I2PClientTunnel (destinations[i], ports[i], localDestination);
+					clientTunnel->Start ();
+					m_ClientTunnels.push_back (std::unique_ptr<I2PClientTunnel>(clientTunnel));
+				}
+				LogPrint (eLogInfo, numClientTunnels, " I2P client tunnels created");
+			}
+		}
+	}
 }		
 }	
