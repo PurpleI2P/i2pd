@@ -131,7 +131,7 @@ namespace data
 				if (msg)
 				{	
 					int numMsgs = 0;	
-					while (msg && numMsgs < 500)
+					while (msg)
 					{
 						switch (msg->GetTypeID ()) 
 						{
@@ -151,6 +151,7 @@ namespace data
 								LogPrint ("NetDb: unexpected message type ", msg->GetTypeID ());
 								i2p::HandleI2NPMessage (msg);
 						}	
+						if (numMsgs > 100) break;
 						msg = m_Queue.Get ();
 						numMsgs++;
 					}	
@@ -572,12 +573,12 @@ namespace data
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
 				auto inbound = pool ? pool->GetNextInboundTunnel () : nullptr;
-				std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 				if (!dest->IsExploratory ())
 				{
 					// reply to our destination. Try other floodfills
 					if (outbound && inbound )
 					{
+						std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 						auto count = dest->GetExcludedPeers ().size ();
 						if (count < 7)
 						{	
@@ -605,11 +606,12 @@ namespace data
 						}
 						else
 							LogPrint (key, " was not found on 7 floodfills");
+
+						if (msgs.size () > 0)
+							outbound->SendTunnelDataMsg (msgs);	
 					}	
 				}	
 
-				if (outbound && msgs.size () > 0)
-					outbound->SendTunnelDataMsg (msgs);	
 				if (deleteDest)
 				{
 					// no more requests for the destinationation. delete it

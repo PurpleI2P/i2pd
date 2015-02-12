@@ -82,7 +82,7 @@ namespace i2p
 	
 	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
 	{
-		I2NPMessage * m = NewI2NPMessage ();
+		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		if (msgID)
 		{
