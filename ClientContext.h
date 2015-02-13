@@ -1,7 +1,7 @@
 #ifndef CLIENT_CONTEXT_H__
 #define CLIENT_CONTEXT_H__
 
-#include <list>
+#include <map>
 #include <mutex>
 #include <memory>
 #include "Destination.h"
@@ -58,7 +58,7 @@ namespace client
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
-			std::list<std::unique_ptr<I2PClientTunnel> > m_ClientTunnels;
+			std::map<int, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // port->tunnel
 			I2PServerTunnel * m_ServerTunnel;
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;

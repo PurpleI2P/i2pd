@@ -54,9 +54,10 @@ namespace client
 			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 			if (ircKeys.length () > 0)
 				localDestination = LoadLocalDestination (ircKeys, false);
-			auto ircTunnel = new I2PClientTunnel (ircDestination, i2p::util::config::GetArg("-ircport", 6668), localDestination);
+			auto ircPort = i2p::util::config::GetArg("-ircport", 6668);
+			auto ircTunnel = new I2PClientTunnel (ircDestination, ircPort, localDestination);
 			ircTunnel->Start ();
-			m_ClientTunnels.push_back (std::unique_ptr<I2PClientTunnel>(ircTunnel));
+			m_ClientTunnels.insert (std::make_pair(ircPort, std::unique_ptr<I2PClientTunnel>(ircTunnel)));
 			LogPrint("IRC tunnel started");
 		}	
 		std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
@@ -112,8 +113,8 @@ namespace client
 		LogPrint("SOCKS Proxy stopped");
 		for (auto& it: m_ClientTunnels)
 		{
-			it->Stop ();
-			LogPrint("I2P client tunnel stopped");	
+			it.second->Stop ();
+			LogPrint("I2P client tunnel on port ", it.first, " stopped");	
 		}
 		m_ClientTunnels.clear ();		
 		if (m_ServerTunnel)
@@ -287,8 +288,10 @@ namespace client
 					if (keys[i].length () > 0)
 						localDestination = LoadLocalDestination (keys[i], false);
 					auto clientTunnel = new I2PClientTunnel (destinations[i], ports[i], localDestination);
-					clientTunnel->Start ();
-					m_ClientTunnels.push_back (std::unique_ptr<I2PClientTunnel>(clientTunnel));
+					if (m_ClientTunnels.insert (std::make_pair (ports[i], std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
+						clientTunnel->Start ();
+					else
+						LogPrint (eLogError, "I2P client tunnel with port ", ports[i], " already exists");
 				}
 				LogPrint (eLogInfo, numClientTunnels, " I2P client tunnels created");
 			}
