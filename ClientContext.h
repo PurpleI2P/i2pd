@@ -21,6 +21,10 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_PORT[] = "client.port";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "client.destination";
 	const char I2P_CLIENT_TUNNEL_KEYS[] = "client.keys";
+	const char I2P_SERVER_TUNNEL_NAME[] = "server.name";
+	const char I2P_SERVER_TUNNEL_HOST[] = "server.host";	
+	const char I2P_SERVER_TUNNEL_PORT[] = "server.port";
+	const char I2P_SERVER_TUNNEL_KEYS[] = "server.keys";
 	const char TUNNELS_CONFIG_FILENAME[] = "tunnels.cfg";
 
 	class ClientContext
@@ -59,7 +63,7 @@ namespace client
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
 			std::map<int, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // port->tunnel
-			I2PServerTunnel * m_ServerTunnel;
+			std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // destination->tunnel
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
 			I2PControlService * m_I2PControlService;

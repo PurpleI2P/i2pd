@@ -14,8 +14,8 @@ namespace client
 	ClientContext context;	
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
-		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_ServerTunnel (nullptr), 
-		m_SamBridge (nullptr), m_BOBCommandChannel (nullptr), m_I2PControlService (nullptr)
+		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr), 
+		m_BOBCommandChannel (nullptr), m_I2PControlService (nullptr)
 	{
 	}
 	
@@ -23,7 +23,6 @@ namespace client
 	{
 		delete m_HttpProxy;
 		delete m_SocksProxy;
-		delete m_ServerTunnel;
 		delete m_SamBridge;
 		delete m_BOBCommandChannel;
 		delete m_I2PControlService;
@@ -64,9 +63,10 @@ namespace client
 		if (eepKeys.length () > 0) // eepkeys file is presented
 		{
 			auto localDestination = LoadLocalDestination (eepKeys, true);
-			m_ServerTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eephost", "127.0.0.1"),
+			auto serverTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eephost", "127.0.0.1"),
  				i2p::util::config::GetArg("-eepport", 80), localDestination);
-			m_ServerTunnel->Start ();
+			serverTunnel->Start ();
+			m_ServerTunnels.insert (std::make_pair(localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel)));
 			LogPrint("Server tunnel started");
 		}
 		ReadTunnels ();
@@ -116,14 +116,13 @@ namespace client
 			it.second->Stop ();
 			LogPrint("I2P client tunnel on port ", it.first, " stopped");	
 		}
-		m_ClientTunnels.clear ();		
-		if (m_ServerTunnel)
+		m_ClientTunnels.clear ();	
+		for (auto& it: m_ServerTunnels)
 		{
-			m_ServerTunnel->Stop ();
-			delete m_ServerTunnel; 
-			m_ServerTunnel = nullptr;
-			LogPrint("Server tunnel stopped");	
-		}			
+			it.second->Stop ();
+			LogPrint("I2P server tunnel stopped");	
+		}
+		m_ServerTunnels.clear ();	
 		if (m_SamBridge)
 		{
 			m_SamBridge->Stop ();
@@ -265,10 +264,16 @@ namespace client
 		{
 			boost::program_options::options_description params ("I2P tunnels parameters");
 			params.add_options ()
+				// client
 				(I2P_CLIENT_TUNNEL_NAME, boost::program_options::value<std::vector<std::string> >(), "tunnel name")	
 				(I2P_CLIENT_TUNNEL_PORT, boost::program_options::value<std::vector<int> >(), "Local port")
 				(I2P_CLIENT_TUNNEL_DESTINATION, boost::program_options::value<std::vector<std::string> >(), "destination")
 				(I2P_CLIENT_TUNNEL_KEYS, boost::program_options::value<std::vector<std::string> >(), "keys")	
+				// server
+				(I2P_SERVER_TUNNEL_NAME, boost::program_options::value<std::vector<std::string> >(), "tunnel name")
+				(I2P_SERVER_TUNNEL_HOST, boost::program_options::value<std::vector<std::string> >(), "host")
+				(I2P_SERVER_TUNNEL_PORT, boost::program_options::value<std::vector<int> >(), "port")
+				(I2P_SERVER_TUNNEL_KEYS, boost::program_options::value<std::vector<std::string> >(), "keys")
 			;			
 
 
@@ -304,6 +309,24 @@ namespace client
 						LogPrint (eLogError, "I2P client tunnel with port ", ports[i], " already exists");
 				}
 				LogPrint (eLogInfo, numClientTunnels, " I2P client tunnels created");
+			}
+
+			int numServerTunnels = vm.count (I2P_SERVER_TUNNEL_NAME);
+			if (numServerTunnels > 0)
+			{
+				auto hosts = vm[I2P_SERVER_TUNNEL_HOST].as<std::vector<std::string> >();
+				auto ports = vm[I2P_SERVER_TUNNEL_PORT].as<std::vector<int> >();
+				auto keys = vm[I2P_SERVER_TUNNEL_KEYS].as<std::vector<std::string> >();
+				for (int i = 0; i < numServerTunnels; i++)
+				{
+					auto localDestination = LoadLocalDestination (keys[i], true);
+					auto serverTunnel = new I2PServerTunnel (hosts[i], ports[i], localDestination);
+					if (m_ServerTunnels.insert (std::make_pair (localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
+						serverTunnel->Start ();
+					else
+						LogPrint (eLogError, "I2P server tunnel for destination ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), " already exists");
+				}
+				LogPrint (eLogInfo, numServerTunnels, " I2P server tunnels created");
 			}
 		}
 	}
