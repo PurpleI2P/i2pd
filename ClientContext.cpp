@@ -254,10 +254,10 @@ namespace client
 		{
 			boost::program_options::options_description params ("I2P tunnels parameters");
 			params.add_options ()
-				(I2P_CLIENT_TUNNEL_NAME, boost::program_options::value<std::string>()->default_value ("I2P Tunnel"), "tunnel name")	
-				(I2P_CLIENT_TUNNEL_PORT, boost::program_options::value<int>(), "Local port")
-				(I2P_CLIENT_TUNNEL_DESTINATION, boost::program_options::value<std::string>(), "destination")
-				(I2P_CLIENT_TUNNEL_KEYS, boost::program_options::value<std::string>()->default_value (""), "keys")	
+				(I2P_CLIENT_TUNNEL_NAME, boost::program_options::value<std::vector<std::string> >(), "tunnel name")	
+				(I2P_CLIENT_TUNNEL_PORT, boost::program_options::value<std::vector<int> >(), "Local port")
+				(I2P_CLIENT_TUNNEL_DESTINATION, boost::program_options::value<std::vector<std::string> >(), "destination")
+				(I2P_CLIENT_TUNNEL_KEYS, boost::program_options::value<std::vector<std::string> >(), "keys")	
 			;			
 
 
@@ -276,10 +276,10 @@ namespace client
 			int numClientTunnels = vm.count (I2P_CLIENT_TUNNEL_NAME);
 			if (numClientTunnels > 0)
 			{
-				// auto& names = vm[I2P_CLIENT_TUNNEL_NAME].as<std::vector<std::string> >();
-				auto& ports = vm[I2P_CLIENT_TUNNEL_PORT].as<std::vector<int> >();
-				auto& destinations = vm[I2P_CLIENT_TUNNEL_DESTINATION].as<std::vector<std::string> >();
-				auto& keys = vm[I2P_CLIENT_TUNNEL_KEYS].as<std::vector<std::string> >(); 
+				//auto names = vm[I2P_CLIENT_TUNNEL_NAME].as<std::vector<std::string> >();
+				auto ports = vm[I2P_CLIENT_TUNNEL_PORT].as<std::vector<int> >();
+				auto destinations = vm[I2P_CLIENT_TUNNEL_DESTINATION].as<std::vector<std::string> >();
+				auto keys = vm[I2P_CLIENT_TUNNEL_KEYS].as<std::vector<std::string> >(); 
 				
 				for (int i = 0; i < numClientTunnels; i++)
 				{
