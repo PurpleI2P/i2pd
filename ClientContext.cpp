@@ -185,10 +185,20 @@ namespace client
 			LogPrint ("New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " created");
 		}	
 
-		auto localDestination = new ClientDestination (keys, isPublic);
+		ClientDestination * localDestination = nullptr;	
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);	
-		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
-		localDestination->Start ();
+		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ()); 
+		if (it != m_Destinations.end ())
+		{
+			LogPrint (eLogWarning, "Local destination ",  m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " alreday exists");
+			localDestination = it->second;
+		}
+		else
+		{
+			localDestination = new ClientDestination (keys, isPublic);
+			m_Destinations[localDestination->GetIdentHash ()] = localDestination;
+			localDestination->Start ();
+		}
 		return localDestination;
 	}
 
