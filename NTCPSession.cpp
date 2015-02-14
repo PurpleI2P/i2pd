@@ -519,12 +519,12 @@ namespace transport
 					// try to read more
 					if (numReloads < 5)
 					{	
-						size_t moreBytes = m_Socket.available();
+						boost::system::error_code ec;
+						size_t moreBytes = m_Socket.available(ec);
 						if (moreBytes)
 						{
 							if (moreBytes > NTCP_BUFFER_SIZE - m_ReceiveBufferOffset)
 								moreBytes = NTCP_BUFFER_SIZE - m_ReceiveBufferOffset;
-							boost::system::error_code ec;
 							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes));
 							if (ec)
 							{

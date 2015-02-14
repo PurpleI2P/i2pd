@@ -163,7 +163,8 @@ namespace transport
 			std::vector<SSUPacket *> packets;
 			packets.push_back (packet);
 
-			size_t moreBytes = m_Socket.available();
+			boost::system::error_code ec;
+			size_t moreBytes = m_Socket.available(ec);
 			while (moreBytes && packets.size () < 25)
 			{
 				packet = new SSUPacket ();
