@@ -289,10 +289,10 @@ namespace client
 				return;
 			}
 
-			int numClientTunnels = vm.count (I2P_CLIENT_TUNNEL_NAME);
-			if (numClientTunnels > 0)
+			if (vm.count (I2P_CLIENT_TUNNEL_NAME) > 0)
 			{
-				//auto names = vm[I2P_CLIENT_TUNNEL_NAME].as<std::vector<std::string> >();
+				auto names = vm[I2P_CLIENT_TUNNEL_NAME].as<std::vector<std::string> >();
+				int numClientTunnels = names.size ();
 				auto ports = vm[I2P_CLIENT_TUNNEL_PORT].as<std::vector<int> >();
 				auto destinations = vm[I2P_CLIENT_TUNNEL_DESTINATION].as<std::vector<std::string> >();
 				auto keys = vm[I2P_CLIENT_TUNNEL_KEYS].as<std::vector<std::string> >(); 
@@ -311,9 +311,10 @@ namespace client
 				LogPrint (eLogInfo, numClientTunnels, " I2P client tunnels created");
 			}
 
-			int numServerTunnels = vm.count (I2P_SERVER_TUNNEL_NAME);
-			if (numServerTunnels > 0)
+			if (vm.count (I2P_SERVER_TUNNEL_NAME) > 0)
 			{
+				auto names = vm[I2P_SERVER_TUNNEL_NAME].as<std::vector<std::string> >();
+				int numServerTunnels = names.size ();
 				auto hosts = vm[I2P_SERVER_TUNNEL_HOST].as<std::vector<std::string> >();
 				auto ports = vm[I2P_SERVER_TUNNEL_PORT].as<std::vector<int> >();
 				auto keys = vm[I2P_SERVER_TUNNEL_KEYS].as<std::vector<std::string> >();
