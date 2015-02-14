@@ -345,8 +345,14 @@ namespace transport
 			
 			// encrypt message with session key
 			m_Session.FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, size);
-			m_Session.Send (buf, size);
-
+			try
+			{	
+				m_Session.Send (buf, size);
+			}
+			catch (boost::system::system_error& ec)
+			{
+				LogPrint (eLogError, "Can't send SSU fragment ", ec.what ());
+			}	
 			if (!isLast)
 			{	
 				len -= payloadSize;
@@ -426,7 +432,17 @@ namespace transport
 					if (it->second->numResends < MAX_NUM_RESENDS)
 					{	
 						for (auto& f: it->second->fragments)
-							if (f) m_Session.Send (f->buf, f->len); // resend
+							if (f) 
+							{
+								try
+								{	
+									m_Session.Send (f->buf, f->len); // resend
+								}
+								catch (boost::system::system_error& ec)
+								{
+									LogPrint (eLogError, "Can't resend SSU fragment ", ec.what ());
+								}
+							}	
 
 						it->second->numResends++;
 						it->second->nextResendTime += it->second->numResends*RESEND_INTERVAL;
