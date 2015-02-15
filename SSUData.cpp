@@ -258,10 +258,13 @@ namespace transport
 				SendFragmentAck (msgID, fragmentNum);			
 			buf += fragmentSize;
 		}	
-		if (numFragments > 0)
-			m_Handler.Flush ();
 	}
 
+	void SSUData::FlushReceivedMessage ()
+	{
+		m_Handler.Flush ();
+	}	
+		
 	void SSUData::ProcessMessage (uint8_t * buf, size_t len)
 	{
 		//uint8_t * start = buf;

@@ -218,6 +218,7 @@ namespace transport
 			auto packet = it1;
 			if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 			{
+				if (session) session->FlushData ();
 				auto it = m_Sessions.find (packet->from);
 				if (it != m_Sessions.end ())
 					session = it->second;
@@ -235,6 +236,7 @@ namespace transport
 			session->ProcessNextMessage (packet->buf, packet->len, packet->from);
 			delete packet;
 		}
+		if (session) session->FlushData ();
 	}
 
 	std::shared_ptr<SSUSession> SSUServer::FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const

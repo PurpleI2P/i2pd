@@ -79,6 +79,8 @@ namespace transport
 			uint32_t GetRelayTag () const { return m_RelayTag; };	
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 
+			void FlushData ();
+			
 		private:
 
 			boost::asio::io_service& GetService ();
@@ -139,6 +141,7 @@ namespace transport
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			uint32_t m_CreationTime; // seconds since epoch
 			SSUData m_Data;
+			bool m_IsDataReceived;
 	};
 
 

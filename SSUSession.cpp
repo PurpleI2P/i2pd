@@ -17,7 +17,7 @@ namespace transport
 		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): TransportSession (router), 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_Timer (GetService ()), 
 		m_PeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), m_RelayTag (0),
-		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Data (*this)
+		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Data (*this), m_IsDataReceived (false)
 	{
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}
@@ -866,8 +866,17 @@ namespace transport
 	void SSUSession::ProcessData (uint8_t * buf, size_t len)
 	{
 		m_Data.ProcessMessage (buf, len);
+		m_IsDataReceived = true;
 	}
 
+	void SSUSession::FlushData ()
+	{
+		if (m_IsDataReceived)
+		{	
+			m_Data.FlushReceivedMessage ();
+			m_IsDataReceived = false;
+		}		
+	}
 
 	void SSUSession::ProcessPeerTest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
