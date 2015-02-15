@@ -342,13 +342,13 @@ namespace transport
 	}
 
 	void Transports::HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
-		const i2p::data::IdentHash& ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+		i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
 	{
 		auto it1 = m_Peers.find (ident);
-		if (it1 != m_Peers.end () && it1->second.router)
+		if (it1 != m_Peers.end ())
 		{
 			auto& peer = it1->second;
-			if (!ecode)
+			if (!ecode && peer.router)
 			{
 				auto address = (*it).endpoint ().address ();
 				LogPrint (eLogInfo, (*it).host_name (), " has been resolved to ", address);
@@ -360,10 +360,9 @@ namespace transport
 					return;
 				}	
 			}
+			LogPrint (eLogError, "Unable to resolve NTCP address: ", ecode.message ());
+			m_Peers.erase (it1);
 		}
-
-		LogPrint (eLogError, "Unable to resolve NTCP address: ", ecode.message ());
-		m_Peers.erase (it1);
 	}
 
 	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
