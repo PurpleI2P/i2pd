@@ -113,8 +113,8 @@ namespace transport
 		private:	
 
 			SSUSession& m_Session;
-			std::map<uint32_t, IncompleteMessage *> m_IncomleteMessages;
-			std::map<uint32_t, SentMessage *> m_SentMessages;
+			std::map<uint32_t, std::unique_ptr<IncompleteMessage> > m_IncompleteMessages;
+			std::map<uint32_t, std::unique_ptr<SentMessage> > m_SentMessages;
 			std::set<uint32_t> m_ReceivedMessages;
 			boost::asio::deadline_timer m_ResendTimer, m_DecayTimer, m_IncompleteMessagesCleanupTimer;
 			int m_MaxPacketSize, m_PacketSize;

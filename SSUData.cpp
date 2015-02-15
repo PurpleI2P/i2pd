@@ -23,10 +23,6 @@ namespace transport
 
 	SSUData::~SSUData ()
 	{
-		for (auto it: m_IncomleteMessages)
-			delete it.second;
-		for (auto it: m_SentMessages)
-			delete it.second;
 	}
 
 	void SSUData::Start ()
@@ -78,7 +74,6 @@ namespace transport
 		auto it = m_SentMessages.find (msgID);
 		if (it != m_SentMessages.end ())
 		{
-			delete it->second;
 			m_SentMessages.erase (it);	
 			if (m_SentMessages.empty ())
 				m_ResendTimer.cancel ();
@@ -161,22 +156,19 @@ namespace transport
 
 			//  find message with msgID
 			I2NPMessage * msg = nullptr;
-			IncompleteMessage * incompleteMessage = nullptr;
-			auto it = m_IncomleteMessages.find (msgID);
-			if (it != m_IncomleteMessages.end ()) 
-			{	
+			auto it = m_IncompleteMessages.find (msgID);
+			if (it != m_IncompleteMessages.end ()) 
 				// message exists
-				incompleteMessage = it->second;
-				msg = incompleteMessage->msg;
-			}	
+				msg = it->second->msg;
 			else
 			{
 				// create new message
 				msg = NewI2NPMessage ();
 				msg->len -= I2NP_SHORT_HEADER_SIZE;
-				incompleteMessage = new IncompleteMessage (msg);
-				m_IncomleteMessages[msgID] = incompleteMessage;
-			}	
+				it = m_IncompleteMessages.insert (std::make_pair (msgID, 
+					std::unique_ptr<IncompleteMessage>(new IncompleteMessage (msg)))).first;
+			}
+			std::unique_ptr<IncompleteMessage>& incompleteMessage = it->second;
 
 			// handle current fragment
 			if (fragmentNum == incompleteMessage->nextFragmentNum)
@@ -228,8 +220,7 @@ namespace transport
 			{
 				// delete incomplete message
 				incompleteMessage->msg = nullptr;
-				delete incompleteMessage;
-				m_IncomleteMessages.erase (msgID);				
+				m_IncompleteMessages.erase (msgID);				
 				// process message
 				SendMsgAck (msgID);
 				msg->FromSSU (msgID);
@@ -303,10 +294,14 @@ namespace transport
 		}	
 		if (m_SentMessages.empty ()) // schedule resend at first message only
 			ScheduleResend ();
-		SentMessage * sentMessage = new SentMessage;
-		m_SentMessages[msgID] = sentMessage; 
-		sentMessage->nextResendTime = i2p::util::GetSecondsSinceEpoch () + RESEND_INTERVAL;
-		sentMessage->numResends = 0;
+		
+		auto ret = m_SentMessages.insert (std::make_pair (msgID, std::unique_ptr<SentMessage>(new SentMessage))); 
+		std::unique_ptr<SentMessage>& sentMessage = ret.first->second;
+		if (ret.second)	
+		{
+			sentMessage->nextResendTime = i2p::util::GetSecondsSinceEpoch () + RESEND_INTERVAL;
+			sentMessage->numResends = 0;
+		}	
 		auto& fragments = sentMessage->fragments;
 		size_t payloadSize = m_PacketSize - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
 		size_t len = msg->GetLength ();
@@ -451,7 +446,6 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "SSU message has not been ACKed after ", MAX_NUM_RESENDS, " attempts. Deleted");
-						delete it->second;
 						it = m_SentMessages.erase (it);
 					}	
 				}	
@@ -491,13 +485,12 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			for (auto it = m_IncomleteMessages.begin (); it != m_IncomleteMessages.end ();)
+			for (auto it = m_IncompleteMessages.begin (); it != m_IncompleteMessages.end ();)
 			{
 				if (ts > it->second->lastFragmentInsertTime + INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT)
 				{
 					LogPrint (eLogError, "SSU message ", it->first, " was not completed  in ", INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " seconds. Deleted");
-					delete it->second;
-					it = m_IncomleteMessages.erase (it);
+					it = m_IncompleteMessages.erase (it);
 				}	
 				else
 					it++;
