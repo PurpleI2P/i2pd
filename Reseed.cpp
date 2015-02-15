@@ -42,8 +42,7 @@ namespace data
 				"https://i2p.mooo.com/netDb/",
 				"https://link.mx24.eu/",             // Only HTTPS and SU3 (v2) support
 				"https://i2pseed.zarrenspry.info/",  // Only HTTPS and SU3 (v2) support
-				"https://ieb9oopo.mooo.com/",        // Only HTTPS and SU3 (v2) support
-				"https://ssl.webpack.de/ivae2he9.sg4.e-plaza.de/" // Only HTTPS and SU3 (v2) support
+				"https://ieb9oopo.mooo.com/"         // Only HTTPS and SU3 (v2) support
 			};
 	
 	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
