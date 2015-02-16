@@ -400,75 +400,80 @@ namespace data
 			decoder.Attach (new CryptoPP::Redirector (queue));
 			decoder.Put ((const uint8_t *)base64.data(), base64.length());
 			decoder.MessageEnd ();
-
-			// extract X.509
-			CryptoPP::BERSequenceDecoder x509Cert (queue);
-			CryptoPP::BERSequenceDecoder tbsCert (x509Cert);
-			// version
-			uint32_t ver;
-			CryptoPP::BERGeneralDecoder context (tbsCert, CryptoPP::CONTEXT_SPECIFIC | CryptoPP::CONSTRUCTED);
-			CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER);
-			// serial
-			CryptoPP::Integer serial;
-       		serial.BERDecode(tbsCert);	
-			// signature
-			CryptoPP::BERSequenceDecoder signature (tbsCert);
-       		signature.SkipAll();
 			
-			// issuer
-			std::string name;
-			CryptoPP::BERSequenceDecoder issuer (tbsCert);
-			{
-				CryptoPP::BERSetDecoder c (issuer);	c.SkipAll();
-				CryptoPP::BERSetDecoder st (issuer); st.SkipAll();
-				CryptoPP::BERSetDecoder l (issuer); l.SkipAll();
-				CryptoPP::BERSetDecoder o (issuer); o.SkipAll();
-				CryptoPP::BERSetDecoder ou (issuer); ou.SkipAll();
-				CryptoPP::BERSetDecoder cn (issuer);
-				{		
-					CryptoPP::BERSequenceDecoder attributes (cn);
-					{			
-						CryptoPP::BERGeneralDecoder ident(attributes, CryptoPP::OBJECT_IDENTIFIER);
-						ident.SkipAll ();
-						CryptoPP::BERDecodeTextString (attributes, name, CryptoPP::UTF8_STRING);
-					}	
-				}	
-			}	
-       		issuer.SkipAll();
-			// validity
-			CryptoPP::BERSequenceDecoder validity (tbsCert);
-       		validity.SkipAll();
-			// subject
-			CryptoPP::BERSequenceDecoder subject (tbsCert);
-       		subject.SkipAll();
-			// public key
-			CryptoPP::BERSequenceDecoder publicKey (tbsCert);
-			{			
-				CryptoPP::BERSequenceDecoder ident (publicKey);
-				ident.SkipAll ();
-				CryptoPP::BERGeneralDecoder key (publicKey, CryptoPP::BIT_STRING);
-				key.Skip (1); // FIXME: probably bug in crypto++
-				CryptoPP::BERSequenceDecoder keyPair (key);
-				CryptoPP::Integer n;
-       			n.BERDecode (keyPair);
-				if (name.length () > 0) 
-				{	
-					PublicKey value;
-					n.Encode (value, 512);
-					m_SigningKeys[name] = value;
-				}		
-				else
-					LogPrint (eLogWarning, "Unknown issuer. Skipped");
-			}	
-       		publicKey.SkipAll();
-			
-			tbsCert.SkipAll();
-			x509Cert.SkipAll();
+			LoadCertificate (queue);
 		}
 		else
 			LogPrint (eLogError, "Can't open certificate file ", filename);
 	}
 
+	void Reseeder::LoadCertificate (CryptoPP::ByteQueue& queue)
+	{
+		// extract X.509
+		CryptoPP::BERSequenceDecoder x509Cert (queue);
+		CryptoPP::BERSequenceDecoder tbsCert (x509Cert);
+		// version
+		uint32_t ver;
+		CryptoPP::BERGeneralDecoder context (tbsCert, CryptoPP::CONTEXT_SPECIFIC | CryptoPP::CONSTRUCTED);
+		CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER);
+		// serial
+		CryptoPP::Integer serial;
+   		serial.BERDecode(tbsCert);	
+		// signature
+		CryptoPP::BERSequenceDecoder signature (tbsCert);
+   		signature.SkipAll();
+		
+		// issuer
+		std::string name;
+		CryptoPP::BERSequenceDecoder issuer (tbsCert);
+		{
+			CryptoPP::BERSetDecoder c (issuer);	c.SkipAll();
+			CryptoPP::BERSetDecoder st (issuer); st.SkipAll();
+			CryptoPP::BERSetDecoder l (issuer); l.SkipAll();
+			CryptoPP::BERSetDecoder o (issuer); o.SkipAll();
+			CryptoPP::BERSetDecoder ou (issuer); ou.SkipAll();
+			CryptoPP::BERSetDecoder cn (issuer);
+			{		
+				CryptoPP::BERSequenceDecoder attributes (cn);
+				{			
+					CryptoPP::BERGeneralDecoder ident(attributes, CryptoPP::OBJECT_IDENTIFIER);
+					ident.SkipAll ();
+					CryptoPP::BERDecodeTextString (attributes, name, CryptoPP::UTF8_STRING);
+				}	
+			}	
+		}	
+   		issuer.SkipAll();
+		// validity
+		CryptoPP::BERSequenceDecoder validity (tbsCert);
+   		validity.SkipAll();
+		// subject
+		CryptoPP::BERSequenceDecoder subject (tbsCert);
+   		subject.SkipAll();
+		// public key
+		CryptoPP::BERSequenceDecoder publicKey (tbsCert);
+		{			
+			CryptoPP::BERSequenceDecoder ident (publicKey);
+			ident.SkipAll ();
+			CryptoPP::BERGeneralDecoder key (publicKey, CryptoPP::BIT_STRING);
+			key.Skip (1); // FIXME: probably bug in crypto++
+			CryptoPP::BERSequenceDecoder keyPair (key);
+			CryptoPP::Integer n;
+   			n.BERDecode (keyPair);
+			if (name.length () > 0) 
+			{	
+				PublicKey value;
+				n.Encode (value, 512);
+				m_SigningKeys[name] = value;
+			}		
+			else
+				LogPrint (eLogWarning, "Unknown issuer. Skipped");
+		}	
+   		publicKey.SkipAll();
+		
+		tbsCert.SkipAll();
+		x509Cert.SkipAll();
+	}	
+	
 	void Reseeder::LoadCertificates ()
 	{
 		boost::filesystem::path reseedDir = i2p::util::filesystem::GetCertificatesDir() / "reseed";
@@ -500,8 +505,8 @@ namespace data
 			0x03, 0x02, // version (TSL 1.2)
 			0x00, 0x2F, // length of handshake
 			// handshake
-			0x01, // client hello
-			0x00, 0x00, 0x2B, // length of client hello
+			0x01, // handshake type (client hello)
+			0x00, 0x00, 0x2B, // length of handshake payload 
 			// client hello
 			0x03, 0x02, // highest version supported (TSL 1.2)
 			0x01, 0x01, 0x01, 0x01, // date, can be anything
@@ -533,6 +538,27 @@ namespace data
 			char * serverHello = new char[length];
 			site.read (serverHello, length);
 			delete[] serverHello;
+			// read Certificate
+			site.read ((char *)&type, 1);
+			site.read ((char *)&version, 2);
+			site.read ((char *)&length, 2);
+			length = be16toh (length);
+			char * certificate = new char[length];
+			site.read (certificate, length);
+			// 0 - handshake type
+			// 1 - 3 - handshake payload length
+			// 4 - 6 - length of array of certificates
+			// 7 - 9 - length of certificate
+			if (certificate[0] == 0x0B) // handshake type certificate
+			{
+				CryptoPP::ByteQueue queue;
+				queue.Put ((uint8_t *)certificate + 10, length - 10);	
+				queue.MessageEnd ();
+				LoadCertificate (queue);
+			}	
+			else
+				LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
+			delete[] certificate;
 		}
 		else
 			LogPrint (eLogError, "Can't connect to ", address);
