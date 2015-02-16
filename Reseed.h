@@ -24,7 +24,9 @@ namespace data
 			int ReseedNowSU3 ();
 
 			void LoadCertificates ();
-		
+
+			std::string HttpsRequest (const std::string& address); // TODO: move to private section
+			
 		private:
 
 			void LoadCertificate (const std::string& filename);
@@ -34,7 +36,7 @@ namespace data
 			int ProcessSU3Stream (std::istream& s);	
 
 			bool FindZipDataDescriptor (std::istream& s);
-
+			
 		private:	
 
 			std::map<std::string, PublicKey> m_SigningKeys;

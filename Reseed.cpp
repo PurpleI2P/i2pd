@@ -491,6 +491,53 @@ namespace data
 		}	
 		LogPrint (eLogInfo, numCertificates, " certificates loaded");
 	}	
+
+	std::string Reseeder::HttpsRequest (const std::string& address)
+	{
+		static uint8_t clientHello[] = 
+		{
+			0x16, // handshake
+			0x03, 0x02, // version (TSL 1.2)
+			0x00, 0x2F, // length of handshake
+			// handshake
+			0x01, // client hello
+			0x00, 0x00, 0x2B, // length of client hello
+			// client hello
+			0x03, 0x02, // highest version supported (TSL 1.2)
+			0x01, 0x01, 0x01, 0x01, // date, can be anything
+			0x74, 0x55, 0x18, 0x36, 0x42, 0x05, 0xC1, 0xDD, 0x4A, 0x21, 0x80, 0x80, 0xEC, 0x37,
+			0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 0x12, 0x67, 0xAB, 0xBA, 0xFF, 0x29, 0x13, 0x9E, // 28 random bytes
+			0x00, // session id length
+			0x00, 0x04, // chiper suites length
+			0x00, 0x00, // NULL_WITH_NULL_NULL
+			0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
+			0x01, // compression methods length
+			0x00  // no complression
+		};	
+		
+		i2p::util::http::url u(address);
+		boost::asio::ip::tcp::iostream site;
+		site.connect(u.host_, "443");
+		if (site.good ())
+		{
+			// send ClientHello
+			site.write ((char *)clientHello, sizeof (clientHello));
+			// read ServerHello
+			uint8_t type;
+			site.read ((char *)&type, 1);
+			uint16_t version;
+			site.read ((char *)&version, 2);
+			uint16_t length;
+			site.read ((char *)&length, 2);
+			length = be16toh (length);
+			char * serverHello = new char[length];
+			site.read (serverHello, length);
+			delete[] serverHello;
+		}
+		else
+			LogPrint (eLogError, "Can't connect to ", address);
+		return "";
+	}	
 	
 }
 }
