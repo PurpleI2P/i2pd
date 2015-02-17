@@ -517,7 +517,7 @@ namespace data
 			0x00, // session id length
 			0x00, 0x04, // chiper suites length
 			0x00, 0x00, // NULL_WITH_NULL_NULL
-			0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
+			0x00, 0x3D, // RSA_WITH_AES_256_CBC_SHA256
 			0x01, // compression methods length
 			0x00  // no compression
 		};	
@@ -610,6 +610,16 @@ namespace data
 			memcpy (random, clientHello + 11, 32);
 			memcpy (random + 32, serverRandom, 32);
 			PRF (secret, "master secret", random, 48, masterSecret);
+			struct
+			{
+				uint8_t clientMACKey[32];
+				uint8_t serverMACKey[32];
+				uint8_t clientKey[32];
+				uint8_t serverKey[32];
+			} keys;
+			memcpy (random, serverRandom, 32);
+			memcpy (random + 32, clientHello + 11, 32);
+			PRF (masterSecret, "key expansion", random, 128, (uint8_t *)&keys); 
 		}
 		else
 			LogPrint (eLogError, "Can't connect to ", address);
