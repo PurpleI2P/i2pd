@@ -407,7 +407,7 @@ namespace data
 			LogPrint (eLogError, "Can't open certificate file ", filename);
 	}
 
-	void Reseeder::LoadCertificate (CryptoPP::ByteQueue& queue)
+	std::string Reseeder::LoadCertificate (CryptoPP::ByteQueue& queue)
 	{
 		// extract X.509
 		CryptoPP::BERSequenceDecoder x509Cert (queue);
@@ -472,6 +472,7 @@ namespace data
 		
 		tbsCert.SkipAll();
 		x509Cert.SkipAll();
+		return name;
 	}	
 	
 	void Reseeder::LoadCertificates ()
@@ -517,7 +518,19 @@ namespace data
 			0x00, 0x00, // NULL_WITH_NULL_NULL
 			0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
 			0x01, // compression methods length
-			0x00  // no complression
+			0x00  // no compression
+		};	
+
+		static uint8_t clientKeyExchange[] =
+		{
+			0x16, // handshake
+			0x03, 0x02, // version (TSL 1.2)
+			0x02, 0x04, // length of handshake
+			// handshake
+			0x10, // handshake type (client key exchange)
+			0x00, 0x02, 0x00, // length of handshake payload 
+			// client key exchange RSA
+			// 512 RSA encrypted 48 bytes ( 2 bytes version + 46 random bytes)
 		};	
 		
 		i2p::util::http::url u(address);
@@ -537,6 +550,11 @@ namespace data
 			length = be16toh (length);
 			char * serverHello = new char[length];
 			site.read (serverHello, length);
+			uint8_t serverRandom[32];
+			if (serverHello[0] == 0x02) // handshake type server hello
+				memcpy (serverRandom, serverHello + 6, 32);
+			else
+				LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
 			delete[] serverHello;
 			// read Certificate
 			site.read ((char *)&type, 1);
@@ -545,6 +563,7 @@ namespace data
 			length = be16toh (length);
 			char * certificate = new char[length];
 			site.read (certificate, length);
+			CryptoPP::RSA::PublicKey publicKey;
 			// 0 - handshake type
 			// 1 - 3 - handshake payload length
 			// 4 - 6 - length of array of certificates
@@ -554,11 +573,38 @@ namespace data
 				CryptoPP::ByteQueue queue;
 				queue.Put ((uint8_t *)certificate + 10, length - 10);	
 				queue.MessageEnd ();
-				LoadCertificate (queue);
+				auto issuer = LoadCertificate (queue);
+				auto it = m_SigningKeys.find (issuer);
+				if (it != m_SigningKeys.end ())
+					publicKey.Initialize (CryptoPP::Integer (it->second, 512), CryptoPP::Integer (i2p::crypto::rsae));
+				else
+					LogPrint (eLogError, "Can't find public key for ", issuer);
 			}	
 			else
 				LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
 			delete[] certificate;
+			// read ServerHelloDone
+			site.read ((char *)&type, 1);
+			site.read ((char *)&version, 2);
+			site.read ((char *)&length, 2);
+			length = be16toh (length);
+			char * serverHelloDone = new char[length];
+			site.read (serverHelloDone, length);
+			if (serverHelloDone[0] != 0x0E) // handshake type hello done
+				LogPrint (eLogError, "Unexpected handshake type ", (int)serverHelloDone[0]);
+			delete[] serverHelloDone;
+			// our turn now
+			// generate secret key
+			CryptoPP::AutoSeededRandomPool rnd;
+			CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
+			// encryptor.CiphertextLength (48);
+			uint8_t secret[48], encrypted[512];
+			secret[0] = clientKeyExchange[1]; secret[1] = clientKeyExchange[2]; // version
+			rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
+			encryptor.Encrypt (rnd, secret, 48, encrypted);
+			// send ClientKeyExchange
+			site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
+			site.write ((char *)encrypted, 512);
 		}
 		else
 			LogPrint (eLogError, "Can't connect to ", address);

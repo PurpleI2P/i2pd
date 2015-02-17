@@ -30,7 +30,7 @@ namespace data
 		private:
 
 			void LoadCertificate (const std::string& filename);
-			void LoadCertificate (CryptoPP::ByteQueue& queue);
+			std::string LoadCertificate (CryptoPP::ByteQueue& queue); // returns issuer's name
 			
 			int ReseedFromSU3 (const std::string& host);
 			int ProcessSU3File (const char * filename);	
