@@ -3,6 +3,7 @@
 #include <sstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
+#include <cryptopp/hmac.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/asn.h>
 #include <cryptopp/base64.h>
@@ -605,12 +606,40 @@ namespace data
 			// send ClientKeyExchange
 			site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
 			site.write ((char *)encrypted, 512);
+			uint8_t masterSecret[48], random[64];
+			memcpy (random, clientHello + 11, 32);
+			memcpy (random + 32, serverRandom, 32);
+			PRF (secret, "master secret", random, 48, masterSecret);
 		}
 		else
 			LogPrint (eLogError, "Can't connect to ", address);
 		return "";
 	}	
 	
+	void Reseeder::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t len, uint8_t * buf)
+	{
+		// secret is assumed 48 bytes	
+		// random is 64 bytes
+		// output is 48 bytes (buffer size should be 64)
+ 		CryptoPP::HMAC<CryptoPP::SHA256> hmac (secret, 48);	
+		uint8_t seed[96]; size_t seedLen;
+		seedLen = strlen (label);	
+		memcpy (seed, label, seedLen);
+		memcpy (seed + seedLen, random, 64);
+		seedLen += 64;
+
+		size_t offset = 0;
+		uint8_t a[128];
+		hmac.CalculateDigest (a, seed, seedLen);
+		while (offset < len)
+		{
+			memcpy (a + 32, seed, seedLen);
+			hmac.CalculateDigest (buf + offset, a, seedLen + 32);
+			offset += 32;
+			hmac.CalculateDigest (a, a, 32);
+		}
+	}
+
 }
 }
 

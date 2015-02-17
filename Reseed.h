@@ -38,6 +38,9 @@ namespace data
 
 			bool FindZipDataDescriptor (std::istream& s);
 			
+			// for HTTPS
+			void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t len, uint8_t * buf);
+
 		private:	
 
 			std::map<std::string, PublicKey> m_SigningKeys;
