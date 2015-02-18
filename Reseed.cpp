@@ -504,40 +504,42 @@ namespace data
 		static uint8_t clientHello[] = 
 		{
 			0x16, // handshake
-			0x03, 0x02, // version (TSL 1.2)
-			0x00, 0x2F, // length of handshake
+			0x03, 0x03, // version (TSL 1.2)
+			0x00, 0x31, // length of handshake
 			// handshake
 			0x01, // handshake type (client hello)
-			0x00, 0x00, 0x2B, // length of handshake payload 
+			0x00, 0x00, 0x2D, // length of handshake payload 
 			// client hello
-			0x03, 0x02, // highest version supported (TSL 1.2)
-			0x01, 0x01, 0x01, 0x01, // date, can be anything
-			0x74, 0x55, 0x18, 0x36, 0x42, 0x05, 0xC1, 0xDD, 0x4A, 0x21, 0x80, 0x80, 0xEC, 0x37,
-			0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 0x12, 0x67, 0xAB, 0xBA, 0xFF, 0x29, 0x13, 0x9E, // 28 random bytes
+			0x03, 0x03, // highest version supported (TSL 1.2)
+			0x45, 0xFA, 0x01, 0x19, 0x74, 0x55, 0x18, 0x36, 
+			0x42, 0x05, 0xC1, 0xDD, 0x4A, 0x21, 0x80, 0x80, 
+			0xEC, 0x37, 0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 
+			0x12, 0x67, 0xAB, 0xBA, 0xFF, 0x29, 0x13, 0x9E, // 32 random bytes
 			0x00, // session id length
 			0x00, 0x04, // chiper suites length
 			0x00, 0x00, // NULL_WITH_NULL_NULL
-			0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
+			0x00, 0x3D, // RSA_WITH_AES_256_CBC_SHA256
 			0x01, // compression methods length
-			0x00  // no compression
+			0x00,  // no compression
+			0x00, 0x00 // extensions length
 		};	
 
 		static uint8_t clientKeyExchange[] =
 		{
 			0x16, // handshake
-			0x03, 0x02, // version (TSL 1.2)
-			0x02, 0x04, // length of handshake
+			0x03, 0x03, // version (TSL 1.2)
+			0x01, 0x04, // length of handshake
 			// handshake
 			0x10, // handshake type (client key exchange)
-			0x00, 0x02, 0x00, // length of handshake payload 
+			0x00, 0x01, 0x00, // length of handshake payload 
 			// client key exchange RSA
-			// 512 RSA encrypted 48 bytes ( 2 bytes version + 46 random bytes)
+			// 256 RSA encrypted 48 bytes ( 2 bytes version + 46 random bytes)
 		};	
 
 		static uint8_t finished[] =
 		{
 			0x16, // handshake
-			0x03, 0x02, // version (TSL 1.2)
+			0x03, 0x03, // version (TSL 1.2)
 			0x00, 0x10, // length of handshake
 			// handshake
 			0x14, // handshake type (finished)
@@ -615,15 +617,15 @@ namespace data
 			CryptoPP::AutoSeededRandomPool rnd;
 			CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
 			// encryptor.CiphertextLength (48);
-			uint8_t secret[48], encrypted[512];
+			uint8_t secret[48], encrypted[256];
 			secret[0] = clientKeyExchange[1]; secret[1] = clientKeyExchange[2]; // version
 			rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
 			encryptor.Encrypt (rnd, secret, 48, encrypted);
 			// send ClientKeyExchange
 			site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
-			site.write ((char *)encrypted, 512);
+			site.write ((char *)encrypted, 256);
 			finishedHash.Update (clientKeyExchange, sizeof (clientKeyExchange));
-			finishedHash.Update (encrypted, 512);
+			finishedHash.Update (encrypted, 256);
 			uint8_t masterSecret[48], random[64];
 			memcpy (random, clientHello + 11, 32);
 			memcpy (random + 32, serverRandom, 32);
@@ -647,8 +649,8 @@ namespace data
 			
 			struct
 			{
-				uint8_t clientMACKey[20];
-				uint8_t serverMACKey[20];
+				uint8_t clientMACKey[32];
+				uint8_t serverMACKey[32];
 				uint8_t clientKey[32];
 				uint8_t serverKey[32];
 			} keys;
