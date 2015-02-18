@@ -517,7 +517,7 @@ namespace data
 			0x00, // session id length
 			0x00, 0x04, // chiper suites length
 			0x00, 0x00, // NULL_WITH_NULL_NULL
-			0x00, 0x3D, // RSA_WITH_AES_256_CBC_SHA256
+			0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
 			0x01, // compression methods length
 			0x00  // no compression
 		};	
@@ -533,24 +533,38 @@ namespace data
 			// client key exchange RSA
 			// 512 RSA encrypted 48 bytes ( 2 bytes version + 46 random bytes)
 		};	
+
+		static uint8_t finished[] =
+		{
+			0x16, // handshake
+			0x03, 0x02, // version (TSL 1.2)
+			0x00, 0x10, // length of handshake
+			// handshake
+			0x14, // handshake type (finished)
+			0x00, 0x00, 0x0C, // length of handshake payload 
+			// 12 bytes of verified data
+		};	
 		
 		i2p::util::http::url u(address);
 		boost::asio::ip::tcp::iostream site;
 		site.connect(u.host_, "443");
 		if (site.good ())
 		{
+			CryptoPP::SHA256 finishedHash;
 			// send ClientHello
 			site.write ((char *)clientHello, sizeof (clientHello));
+			finishedHash.Update (clientHello, sizeof (clientHello));
 			// read ServerHello
 			uint8_t type;
-			site.read ((char *)&type, 1);
+			site.read ((char *)&type, 1); finishedHash.Update ((uint8_t *)&type, 1);
 			uint16_t version;
-			site.read ((char *)&version, 2);
+			site.read ((char *)&version, 2); finishedHash.Update ((uint8_t *)&version, 2);
 			uint16_t length;
-			site.read ((char *)&length, 2);
+			site.read ((char *)&length, 2); finishedHash.Update ((uint8_t *)&length, 2);
 			length = be16toh (length);
 			char * serverHello = new char[length];
 			site.read (serverHello, length);
+			finishedHash.Update ((uint8_t *)serverHello, length);
 			uint8_t serverRandom[32];
 			if (serverHello[0] == 0x02) // handshake type server hello
 				memcpy (serverRandom, serverHello + 6, 32);
@@ -558,12 +572,13 @@ namespace data
 				LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
 			delete[] serverHello;
 			// read Certificate
-			site.read ((char *)&type, 1);
-			site.read ((char *)&version, 2);
-			site.read ((char *)&length, 2);
+			site.read ((char *)&type, 1); finishedHash.Update ((uint8_t *)&type, 1);
+			site.read ((char *)&version, 2); finishedHash.Update ((uint8_t *)&version, 2);
+			site.read ((char *)&length, 2); finishedHash.Update ((uint8_t *)&length, 2);
 			length = be16toh (length);
 			char * certificate = new char[length];
 			site.read (certificate, length);
+			finishedHash.Update ((uint8_t *)certificate, length);
 			CryptoPP::RSA::PublicKey publicKey;
 			// 0 - handshake type
 			// 1 - 3 - handshake payload length
@@ -585,12 +600,13 @@ namespace data
 				LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
 			delete[] certificate;
 			// read ServerHelloDone
-			site.read ((char *)&type, 1);
-			site.read ((char *)&version, 2);
-			site.read ((char *)&length, 2);
+			site.read ((char *)&type, 1); finishedHash.Update ((uint8_t *)&type, 1);
+			site.read ((char *)&version, 2); finishedHash.Update ((uint8_t *)&version, 2);
+			site.read ((char *)&length, 2); finishedHash.Update ((uint8_t *)&length, 2);
 			length = be16toh (length);
 			char * serverHelloDone = new char[length];
 			site.read (serverHelloDone, length);
+			finishedHash.Update ((uint8_t *)serverHelloDone, length);
 			if (serverHelloDone[0] != 0x0E) // handshake type hello done
 				LogPrint (eLogError, "Unexpected handshake type ", (int)serverHelloDone[0]);
 			delete[] serverHelloDone;
@@ -606,37 +622,56 @@ namespace data
 			// send ClientKeyExchange
 			site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
 			site.write ((char *)encrypted, 512);
+			finishedHash.Update (clientKeyExchange, sizeof (clientKeyExchange));
+			finishedHash.Update (encrypted, 512);
 			uint8_t masterSecret[48], random[64];
 			memcpy (random, clientHello + 11, 32);
 			memcpy (random + 32, serverRandom, 32);
-			PRF (secret, "master secret", random, 48, masterSecret);
+
+			// calculate master secret
+			PRF (secret, "master secret", random, 64, 48, masterSecret);
+			// send finished
+			uint8_t finishedHashDigest[32], verifyData[32];
+			finishedHash.Final (finishedHashDigest);
+			PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, verifyData);
+			site.write ((char *)finished, sizeof (finished));
+			site.write ((char *)finishedHashDigest, 12);	
+			// read finished
+			site.read ((char *)&type, 1); 
+			site.read ((char *)&version, 2); 
+			site.read ((char *)&length, 2); 
+			length = be16toh (length);
+			char * finished1 = new char[length];
+			site.read (finished1, length);
+			delete[] finished1;
+			
 			struct
 			{
-				uint8_t clientMACKey[32];
-				uint8_t serverMACKey[32];
+				uint8_t clientMACKey[20];
+				uint8_t serverMACKey[20];
 				uint8_t clientKey[32];
 				uint8_t serverKey[32];
 			} keys;
 			memcpy (random, serverRandom, 32);
 			memcpy (random + 32, clientHello + 11, 32);
-			PRF (masterSecret, "key expansion", random, 128, (uint8_t *)&keys); 
+			PRF (masterSecret, "key expansion", random, 64, sizeof (keys), (uint8_t *)&keys); 
 		}
 		else
 			LogPrint (eLogError, "Can't connect to ", address);
 		return "";
 	}	
 	
-	void Reseeder::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t len, uint8_t * buf)
+	void Reseeder::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
+		size_t len, uint8_t * buf)
 	{
 		// secret is assumed 48 bytes	
-		// random is 64 bytes
-		// output is 48 bytes (buffer size should be 64)
+		// random is not more than 64 bytes
  		CryptoPP::HMAC<CryptoPP::SHA256> hmac (secret, 48);	
 		uint8_t seed[96]; size_t seedLen;
 		seedLen = strlen (label);	
 		memcpy (seed, label, seedLen);
-		memcpy (seed + seedLen, random, 64);
-		seedLen += 64;
+		memcpy (seed + seedLen, random, randomLen);
+		seedLen += randomLen;
 
 		size_t offset = 0;
 		uint8_t a[128];
