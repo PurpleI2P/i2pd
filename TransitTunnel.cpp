@@ -35,7 +35,6 @@ namespace tunnel
 	{
 		EncryptTunnelMsg (tunnelMsg);
 		
-		LogPrint (eLogDebug, "TransitTunnel: ",GetTunnelID (),"->", GetNextTunnelID ());
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
 		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
@@ -46,6 +45,7 @@ namespace tunnel
 	{
 		if (!m_TunnelDataMsgs.empty ())
 		{	
+			LogPrint (eLogDebug, "TransitTunnel: ",GetTunnelID (),"->", GetNextTunnelID (), " ", m_TunnelDataMsgs.size ());
 			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs);
 			m_TunnelDataMsgs.clear ();
 		}	

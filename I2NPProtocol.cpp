@@ -578,11 +578,9 @@ namespace i2p
 			switch (msg->GetTypeID ())
 			{	
 				case eI2NPTunnelData:
-					LogPrint ("TunnelData");
 					m_TunnelMsgs.push_back (msg);
 				break;
 				case eI2NPTunnelGateway:	
-					LogPrint ("TunnelGateway");
 					m_TunnelGatewayMsgs.push_back (msg);
 				break;	
 				default:
