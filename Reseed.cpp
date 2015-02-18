@@ -4,7 +4,6 @@
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 #include <cryptopp/hmac.h>
-#include <cryptopp/osrng.h>
 #include <cryptopp/asn.h>
 #include <cryptopp/base64.h>
 #include <cryptopp/crc.h>
@@ -128,8 +127,7 @@ namespace data
 
 	int Reseeder::ReseedNowSU3 ()
 	{
-		CryptoPP::AutoSeededRandomPool rnd;
-		auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1);
+		auto ind = m_Rnd.GenerateWord32 (0, httpReseedHostList.size() - 1);
 		std::string reseedHost = httpReseedHostList[ind];
 		return ReseedFromSU3 (reseedHost);
 	}
@@ -528,11 +526,12 @@ namespace data
 		{
 			0x16, // handshake
 			0x03, 0x03, // version (TSL 1.2)
-			0x01, 0x04, // length of handshake
+			0x01, 0x06, // length of handshake
 			// handshake
 			0x10, // handshake type (client key exchange)
-			0x00, 0x01, 0x00, // length of handshake payload 
+			0x00, 0x01, 0x02, // length of handshake payload 
 			// client key exchange RSA
+			0x01, 0x00, // length of RSA encrypted
 			// 256 RSA encrypted 48 bytes ( 2 bytes version + 46 random bytes)
 		};	
 
@@ -548,8 +547,8 @@ namespace data
 		{
 			0x16, // handshake
 			0x03, 0x03, // version (TSL 1.2)
-			0x00, 0x10, // length of handshake
-			// handshake
+			0x00, 0x50, // length of handshake
+			// handshake (encrypted)
 			0x14, // handshake type (finished)
 			0x00, 0x00, 0x0C, // length of handshake payload 
 			// 12 bytes of verified data
@@ -627,7 +626,7 @@ namespace data
 			// encryptor.CiphertextLength (48);
 			uint8_t secret[48], encrypted[256];
 			secret[0] = clientKeyExchange[1]; secret[1] = clientKeyExchange[2]; // version
-			rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
+			m_Rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
 			encryptor.Encrypt (rnd, secret, 48, encrypted);
 			// send ClientKeyExchange
 			site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
@@ -640,9 +639,17 @@ namespace data
 			// send ChangeCipherSpecs
 			site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
 			finishedHash.Update (changeCipherSpecs, sizeof (changeCipherSpecs));
-
 			// calculate master secret
 			PRF (secret, "master secret", random, 64, 48, masterSecret);
+			// expand master secret			
+			uint8_t keys[128]; // clientMACKey, serverMACKey, clientKey, serverKey
+			memcpy (random, serverRandom, 32);
+			memcpy (random + 32, clientHello + 11, 32);
+			PRF (masterSecret, "key expansion", random, 64, sizeof (keys), keys); 
+			memcpy (m_MacKey, keys, 32);
+			m_Encryption.SetKey (keys + 64);
+			m_Decryption.SetKey (keys + 96);
+
 			// send finished
 			uint8_t finishedHashDigest[32], verifyData[32];
 			finishedHash.Final (finishedHashDigest);
@@ -660,17 +667,6 @@ namespace data
 			char * finished1 = new char[length];
 			site.read (finished1, length);
 			delete[] finished1;
-			
-			struct
-			{
-				uint8_t clientMACKey[32];
-				uint8_t serverMACKey[32];
-				uint8_t clientKey[32];
-				uint8_t serverKey[32];
-			} keys;
-			memcpy (random, serverRandom, 32);
-			memcpy (random + 32, clientHello + 11, 32);
-			PRF (masterSecret, "key expansion", random, 64, sizeof (keys), (uint8_t *)&keys); 
 		}
 		else
 			LogPrint (eLogError, "Can't connect to ", address);
@@ -701,6 +697,32 @@ namespace data
 		}
 	}
 
+	size_t Reseeder::Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
+	{
+		size_t size = 0;
+		m_Rnd.GenerateBlock (out, 16); // iv
+		size += 16;
+		m_Encryption.SetIV (out);
+		memcpy (out + size, in, len);
+		size += len;
+		memcpy (out + size, mac, 32);
+		size += 32;	
+		uint8_t paddingSize = len + 1;
+		paddingSize &= 0x0F;  // %16
+		if (paddingSize > 0) paddingSize = 16 - paddingSize;
+		memset (out + size, paddingSize, paddingSize + 1); // paddind and last byte are equal to padding size
+		size += paddingSize + 1;
+		m_Encryption.Encrypt (out + 16, size - 16, out + 16);
+		return size;	
+	}
+
+	size_t Reseeder::Decrypt (uint8_t * in, size_t len, uint8_t * out)
+	{
+		m_Decryption.SetIV (in);
+		m_Decryption.Decrypt (in + 16, len - 16, in + 16);
+		memcpy (out, in + 16, len - 48); // skip 32 bytes mac
+		return len - 48 - in[len -1] - 1;
+	}
 }
 }
 

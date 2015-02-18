@@ -5,7 +5,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cryptopp/osrng.h>
 #include "Identity.h"
+#include "aes.h"
 
 namespace i2p
 {
@@ -41,10 +43,19 @@ namespace data
 			// for HTTPS
 			void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
 				size_t len, uint8_t * buf);
+			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out);
+			size_t Decrypt (uint8_t * in, size_t len, uint8_t * out);
 
 		private:	
 
 			std::map<std::string, PublicKey> m_SigningKeys;
+
+			// for HTTPS
+			CryptoPP::AutoSeededRandomPool m_Rnd;
+			i2p::crypto::CBCEncryption m_Encryption;
+			i2p::crypto::CBCDecryption m_Decryption; 
+			uint8_t m_MacKey[32]; // client	
+
 	};
 }
 }
