@@ -536,6 +536,14 @@ namespace data
 			// 256 RSA encrypted 48 bytes ( 2 bytes version + 46 random bytes)
 		};	
 
+		static uint8_t changeCipherSpecs[] =
+		{
+			0x14, // change chiper specs
+			0x03, 0x03, // version (TSL 1.2)
+			0x00, 0x01, // length
+			0x01 // type
+		};
+
 		static uint8_t finished[] =
 		{
 			0x16, // handshake
@@ -629,6 +637,9 @@ namespace data
 			uint8_t masterSecret[48], random[64];
 			memcpy (random, clientHello + 11, 32);
 			memcpy (random + 32, serverRandom, 32);
+			// send ChangeCipherSpecs
+			site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
+			finishedHash.Update (changeCipherSpecs, sizeof (changeCipherSpecs));
 
 			// calculate master secret
 			PRF (secret, "master secret", random, 64, 48, masterSecret);
@@ -637,7 +648,10 @@ namespace data
 			finishedHash.Final (finishedHashDigest);
 			PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, verifyData);
 			site.write ((char *)finished, sizeof (finished));
-			site.write ((char *)finishedHashDigest, 12);	
+			site.write ((char *)finishedHashDigest, 12);
+			// read ChangeCipherSpecs
+			uint8_t changeCipherSpecs1[6];
+			site.read ((char *)changeCipherSpecs1, 6);	
 			// read finished
 			site.read ((char *)&type, 1); 
 			site.read ((char *)&version, 2); 
