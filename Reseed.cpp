@@ -633,10 +633,10 @@ namespace data
 			// calculate master secret
 			PRF (secret, "master secret", random, 64, 48, masterSecret);
 			// expand master secret			
-			uint8_t keys[128]; // clientMACKey, serverMACKey, clientKey, serverKey
+			uint8_t keys[256]; // clientMACKey, serverMACKey, clientKey, serverKey
 			memcpy (random, serverRandom, 32);
 			memcpy (random + 32, clientHello + 11, 32);
-			PRF (masterSecret, "key expansion", random, 64, sizeof (keys), keys); 
+			PRF (masterSecret, "key expansion", random, 64, 256, keys); 
 			memcpy (m_MacKey, keys, 32);
 			m_Encryption.SetKey (keys + 64);
 			m_Decryption.SetKey (keys + 96);
