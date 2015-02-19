@@ -7,6 +7,7 @@
 #include <map>
 #include <cryptopp/osrng.h>
 #include <cryptopp/rsa.h>
+#include <cryptopp/hmac.h>
 #include "Identity.h"
 #include "aes.h"
 
@@ -57,6 +58,7 @@ namespace data
 			CryptoPP::RSA::PublicKey ExtractPublicKey (const uint8_t * certificate, size_t len);
 			void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
 				size_t len, uint8_t * buf);
+			void CalculateMACKey (uint8_t type, uint64_t seqn, const uint8_t * buf, size_t len, uint8_t * mac);
 			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out);
 			size_t Decrypt (uint8_t * in, size_t len, uint8_t * out);		
 

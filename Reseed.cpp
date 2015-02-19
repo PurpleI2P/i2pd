@@ -3,7 +3,6 @@
 #include <sstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
-#include <cryptopp/hmac.h>
 #include <cryptopp/asn.h>
 #include <cryptopp/base64.h>
 #include <cryptopp/crc.h>
@@ -648,12 +647,14 @@ namespace data
 			finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
 			finishedHash.Final (finishedHashDigest);
 			PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
-			Encrypt (finishedPayload, 16, finishedHashDigest/*TODO*/, encryptedPayload);
+			uint8_t mac[32];
+			CalculateMACKey (0x16, 0, finishedPayload, 16, mac);
+			Encrypt (finishedPayload, 16, mac, encryptedPayload);
 			site.write ((char *)finished, sizeof (finished));
 			site.write ((char *)encryptedPayload, 80);
 			// read ChangeCipherSpecs
 			uint8_t changeCipherSpecs1[6];
-			site.read ((char *)changeCipherSpecs1, 6);	
+			site.read ((char *)changeCipherSpecs1, 6);
 			// read finished
 			site.read ((char *)&type, 1); 
 			site.read ((char *)&version, 2); 
@@ -716,6 +717,18 @@ namespace data
 		m_Decryption.Decrypt (in + 16, len - 16, in + 16);
 		memcpy (out, in + 16, len - 48); // skip 32 bytes mac
 		return len - 48 - in[len -1] - 1;
+	}
+
+	void TlsSession::CalculateMACKey (uint8_t type, uint64_t seqn, const uint8_t * buf, size_t len, uint8_t * mac)
+	{
+		uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
+		htobuf64 (header, seqn);
+		header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
+		htobuf16 (header + 11, len);
+		CryptoPP::HMAC<CryptoPP::SHA256> hmac (m_MacKey, 32);	
+		hmac.Update (header, 13);
+		hmac.Update (buf, len);
+		hmac.Final (mac);	
 	}
 
 	CryptoPP::RSA::PublicKey TlsSession::ExtractPublicKey (const uint8_t * certificate, size_t len)
