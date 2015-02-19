@@ -547,10 +547,11 @@ namespace data
 		{
 			0x16, // handshake
 			0x03, 0x03, // version (TSL 1.2)
-			0x00, 0x50, // length of handshake
+			0x00, 0x50, // length of handshake (80 bytes)
 			// handshake (encrypted)
-			0x14, // handshake type (finished)
-			0x00, 0x00, 0x0C, // length of handshake payload 
+			// unencrypted context
+			//  0x14 handshake type (finished)
+			// 0x00, 0x00, 0x0C  length of handshake payload 
 			// 12 bytes of verified data
 		};	
 		
@@ -651,11 +652,14 @@ namespace data
 			m_Decryption.SetKey (keys + 96);
 
 			// send finished
-			uint8_t finishedHashDigest[32], verifyData[32];
+			uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
+			finishedPayload[0] = 0x14; // handshake type (finished)
+			finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
 			finishedHash.Final (finishedHashDigest);
-			PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, verifyData);
+			PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
+			Encrypt (finishedPayload, 16, finishedHashDigest/*TODO*/, encryptedPayload);
 			site.write ((char *)finished, sizeof (finished));
-			site.write ((char *)finishedHashDigest, 12);
+			site.write ((char *)encryptedPayload, 80);
 			// read ChangeCipherSpecs
 			uint8_t changeCipherSpecs1[6];
 			site.read ((char *)changeCipherSpecs1, 6);	
