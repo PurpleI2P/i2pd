@@ -127,7 +127,8 @@ namespace data
 
 	int Reseeder::ReseedNowSU3 ()
 	{
-		auto ind = m_Rnd.GenerateWord32 (0, httpReseedHostList.size() - 1);
+		CryptoPP::AutoSeededRandomPool rnd;
+		auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1);
 		std::string reseedHost = httpReseedHostList[ind];
 		return ReseedFromSU3 (reseedHost);
 	}
@@ -497,7 +498,7 @@ namespace data
 		LogPrint (eLogInfo, numCertificates, " certificates loaded");
 	}	
 
-	std::string Reseeder::HttpsRequest (const std::string& address)
+	TlsSession::TlsSession (const std::string& address)
 	{
 		static uint8_t clientHello[] = 
 		{
@@ -595,17 +596,7 @@ namespace data
 			// 4 - 6 - length of array of certificates
 			// 7 - 9 - length of certificate
 			if (certificate[0] == 0x0B) // handshake type certificate
-			{
-				CryptoPP::ByteQueue queue;
-				queue.Put ((uint8_t *)certificate + 10, length - 10);	
-				queue.MessageEnd ();
-				auto issuer = LoadCertificate (queue);
-				auto it = m_SigningKeys.find (issuer);
-				if (it != m_SigningKeys.end ())
-					publicKey.Initialize (CryptoPP::Integer (it->second, 512), CryptoPP::Integer (i2p::crypto::rsae));
-				else
-					LogPrint (eLogError, "Can't find public key for ", issuer);
-			}	
+				publicKey = ExtractPublicKey ((uint8_t *)certificate + 10, length - 10);
 			else
 				LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
 			delete[] certificate;
@@ -674,10 +665,9 @@ namespace data
 		}
 		else
 			LogPrint (eLogError, "Can't connect to ", address);
-		return "";
 	}	
 	
-	void Reseeder::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
+	void TlsSession::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
 		size_t len, uint8_t * buf)
 	{
 		// secret is assumed 48 bytes	
@@ -701,7 +691,7 @@ namespace data
 		}
 	}
 
-	size_t Reseeder::Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
+	size_t TlsSession::Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
 	{
 		size_t size = 0;
 		m_Rnd.GenerateBlock (out, 16); // iv
@@ -720,13 +710,57 @@ namespace data
 		return size;	
 	}
 
-	size_t Reseeder::Decrypt (uint8_t * in, size_t len, uint8_t * out)
+	size_t TlsSession::Decrypt (uint8_t * in, size_t len, uint8_t * out)
 	{
 		m_Decryption.SetIV (in);
 		m_Decryption.Decrypt (in + 16, len - 16, in + 16);
 		memcpy (out, in + 16, len - 48); // skip 32 bytes mac
 		return len - 48 - in[len -1] - 1;
 	}
+
+	CryptoPP::RSA::PublicKey TlsSession::ExtractPublicKey (const uint8_t * certificate, size_t len)
+	{
+		CryptoPP::ByteQueue queue;
+		queue.Put (certificate, len);	
+		queue.MessageEnd ();
+		// extract X.509
+		CryptoPP::BERSequenceDecoder x509Cert (queue);
+		CryptoPP::BERSequenceDecoder tbsCert (x509Cert);
+		// version
+		uint32_t ver;
+		CryptoPP::BERGeneralDecoder context (tbsCert, CryptoPP::CONTEXT_SPECIFIC | CryptoPP::CONSTRUCTED);
+		CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER);
+		// serial
+		CryptoPP::Integer serial;
+   		serial.BERDecode(tbsCert);	
+		// signature
+		CryptoPP::BERSequenceDecoder signature (tbsCert);
+   		signature.SkipAll();
+		// issuer
+		CryptoPP::BERSequenceDecoder issuer (tbsCert);
+   		issuer.SkipAll();
+		// validity
+		CryptoPP::BERSequenceDecoder validity (tbsCert);
+   		validity.SkipAll();
+		// subject
+		CryptoPP::BERSequenceDecoder subject (tbsCert);
+   		subject.SkipAll();
+		// public key
+		CryptoPP::BERSequenceDecoder publicKey (tbsCert);			
+		CryptoPP::BERSequenceDecoder ident (publicKey);
+		ident.SkipAll ();
+		CryptoPP::BERGeneralDecoder key (publicKey, CryptoPP::BIT_STRING);
+		key.Skip (1); // FIXME: probably bug in crypto++
+		CryptoPP::BERSequenceDecoder keyPair (key);
+		CryptoPP::Integer n, e;
+		n.BERDecode (keyPair);
+		e.BERDecode (keyPair);
+
+		CryptoPP::RSA::PublicKey ret; 
+		ret.Initialize (n, e);
+		return ret;
+	}		
+
 }
 }
 
