@@ -648,7 +648,7 @@ namespace data
 			finishedHash.Final (finishedHashDigest);
 			PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
 			uint8_t mac[32];
-			CalculateMACKey (0x16, 0, finishedPayload, 16, mac);
+			CalculateMAC (0x16, 0, finishedPayload, 16, mac);
 			Encrypt (finishedPayload, 16, mac, encryptedPayload);
 			site.write ((char *)finished, sizeof (finished));
 			site.write ((char *)encryptedPayload, 80);
@@ -719,12 +719,12 @@ namespace data
 		return len - 48 - in[len -1] - 1;
 	}
 
-	void TlsSession::CalculateMACKey (uint8_t type, uint64_t seqn, const uint8_t * buf, size_t len, uint8_t * mac)
+	void TlsSession::CalculateMAC (uint8_t type, uint64_t seqn, const uint8_t * buf, size_t len, uint8_t * mac)
 	{
 		uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
-		htobuf64 (header, seqn);
+		htobe64buf (header, seqn);
 		header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
-		htobuf16 (header + 11, len);
+		htobe16buf (header + 11, len);
 		CryptoPP::HMAC<CryptoPP::SHA256> hmac (m_MacKey, 32);	
 		hmac.Update (header, 13);
 		hmac.Update (buf, len);
