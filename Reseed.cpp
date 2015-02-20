@@ -123,7 +123,7 @@ namespace data
 		auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1 +  httpsReseedHostList.size () - 1);
 		std::string reseedHost = (ind < httpReseedHostList.size()) ? httpReseedHostList[ind] : 
 			httpsReseedHostList[ind - httpReseedHostList.size()]; 
-		return ReseedFromSU3 (reseedHost);
+		return ReseedFromSU3 (reseedHost, ind >= httpReseedHostList.size());
 	}
 
 	int Reseeder::ReseedFromSU3 (const std::string& host, bool https)
