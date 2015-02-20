@@ -7,7 +7,7 @@
 #include <map>
 #include <cryptopp/osrng.h>
 #include <cryptopp/rsa.h>
-#include <cryptopp/hmac.h>
+#include <boost/asio.hpp>
 #include "Identity.h"
 #include "aes.h"
 
@@ -51,19 +51,24 @@ namespace data
 	{
 		public:
 
-			TlsSession (const std::string& address);
+			TlsSession (const std::string& host, int port);
+			void Send (const uint8_t * buf, size_t len);
+			std::string Receive ();
 
 		private:
 
+			void Handshake ();
 			CryptoPP::RSA::PublicKey ExtractPublicKey (const uint8_t * certificate, size_t len);
 			void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
 				size_t len, uint8_t * buf);
-			void CalculateMAC (uint8_t type, uint64_t seqn, const uint8_t * buf, size_t len, uint8_t * mac);
+			void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac);
 			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out);
-			size_t Decrypt (uint8_t * in, size_t len, uint8_t * out);		
+			size_t Decrypt (uint8_t * buf, size_t len); // pyaload is buf + 16		
 
 		private:
 
+			uint64_t m_Seqn;
+			boost::asio::ip::tcp::iostream m_Site;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			i2p::crypto::CBCEncryption m_Encryption;
 			i2p::crypto::CBCDecryption m_Decryption; 

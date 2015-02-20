@@ -3,9 +3,11 @@
 #include <sstream>
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 #include <cryptopp/asn.h>
 #include <cryptopp/base64.h>
 #include <cryptopp/crc.h>
+#include <cryptopp/hmac.h>
 #include <cryptopp/zinflate.h>
 #include "I2PEndian.h"
 #include "Reseed.h"
@@ -497,7 +499,30 @@ namespace data
 		LogPrint (eLogInfo, numCertificates, " certificates loaded");
 	}	
 
-	TlsSession::TlsSession (const std::string& address)
+	std::string Reseeder::HttpsRequest (const std::string& address)
+	{
+		i2p::util::http::url u(address);
+		TlsSession session (u.host_, 443);
+		std::stringstream ss;
+		ss << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
+		<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";	
+		session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
+		return "";
+	}	
+
+	TlsSession::TlsSession (const std::string& host, int port):
+		m_Seqn (0)
+	{
+		m_Site.connect(host, boost::lexical_cast<std::string>(port));
+		if (m_Site.good ())
+		{
+			Handshake ();
+		}
+		else
+			LogPrint (eLogError, "Can't connect to ", host, ":", port);
+	}	
+	
+	void TlsSession::Handshake ()
 	{
 		static uint8_t clientHello[] = 
 		{
@@ -553,120 +578,112 @@ namespace data
 			//  0x14 handshake type (finished)
 			// 0x00, 0x00, 0x0C  length of handshake payload 
 			// 12 bytes of verified data
-		};	
-		
-		i2p::util::http::url u(address);
-		boost::asio::ip::tcp::iostream site;
-		site.connect(u.host_, "443");
-		if (site.good ())
-		{
-			CryptoPP::SHA256 finishedHash;
-			// send ClientHello
-			site.write ((char *)clientHello, sizeof (clientHello));
-			finishedHash.Update (clientHello + 5, sizeof (clientHello) - 5);
-			// read ServerHello
-			uint8_t type;
-			site.read ((char *)&type, 1); 
-			uint16_t version;
-			site.read ((char *)&version, 2); 
-			uint16_t length;
-			site.read ((char *)&length, 2); 
-			length = be16toh (length);
-			char * serverHello = new char[length];
-			site.read (serverHello, length);
-			finishedHash.Update ((uint8_t *)serverHello, length);
-			uint8_t serverRandom[32];
-			if (serverHello[0] == 0x02) // handshake type server hello
-				memcpy (serverRandom, serverHello + 6, 32);
-			else
-				LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
-			delete[] serverHello;
-			// read Certificate
-			site.read ((char *)&type, 1); 
-			site.read ((char *)&version, 2); 
-			site.read ((char *)&length, 2); 
-			length = be16toh (length);
-			char * certificate = new char[length];
-			site.read (certificate, length);
-			finishedHash.Update ((uint8_t *)certificate, length);
-			CryptoPP::RSA::PublicKey publicKey;
-			// 0 - handshake type
-			// 1 - 3 - handshake payload length
-			// 4 - 6 - length of array of certificates
-			// 7 - 9 - length of certificate
-			if (certificate[0] == 0x0B) // handshake type certificate
-				publicKey = ExtractPublicKey ((uint8_t *)certificate + 10, length - 10);
-			else
-				LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
-			delete[] certificate;
-			// read ServerHelloDone
-			site.read ((char *)&type, 1); 
-			site.read ((char *)&version, 2); 
-			site.read ((char *)&length, 2); 
-			length = be16toh (length);
-			char * serverHelloDone = new char[length];
-			site.read (serverHelloDone, length);
-			finishedHash.Update ((uint8_t *)serverHelloDone, length);
-			if (serverHelloDone[0] != 0x0E) // handshake type hello done
-				LogPrint (eLogError, "Unexpected handshake type ", (int)serverHelloDone[0]);
-			delete[] serverHelloDone;
-			// our turn now
-			// generate secret key
-			CryptoPP::AutoSeededRandomPool rnd;
-			CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
-			// encryptor.CiphertextLength (48);
-			uint8_t secret[48], encrypted[256];
-			secret[0] = clientKeyExchange[1]; secret[1] = clientKeyExchange[2]; // version
-			m_Rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
-			encryptor.Encrypt (rnd, secret, 48, encrypted);
-			// send ClientKeyExchange
-			site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
-			site.write ((char *)encrypted, 256);
-			finishedHash.Update (clientKeyExchange + 5, sizeof (clientKeyExchange) - 5);
-			finishedHash.Update (encrypted, 256);
-			uint8_t masterSecret[48], random[64];
-			memcpy (random, clientHello + 11, 32);
-			memcpy (random + 32, serverRandom, 32);
-			// send ChangeCipherSpecs
-			site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
-			// calculate master secret
-			PRF (secret, "master secret", random, 64, 48, masterSecret);
-			// expand master secret			
-			uint8_t keys[256]; // clientMACKey, serverMACKey, clientKey, serverKey
-			memcpy (random, serverRandom, 32);
-			memcpy (random + 32, clientHello + 11, 32);
-			PRF (masterSecret, "key expansion", random, 64, 256, keys); 
-			memcpy (m_MacKey, keys, 32);
-			m_Encryption.SetKey (keys + 64);
-			m_Decryption.SetKey (keys + 96);
-
-			// send finished
-			uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
-			finishedPayload[0] = 0x14; // handshake type (finished)
-			finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
-			finishedHash.Final (finishedHashDigest);
-			PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
-			uint8_t mac[32];
-			CalculateMAC (0x16, 0, finishedPayload, 16, mac);
-			Encrypt (finishedPayload, 16, mac, encryptedPayload);
-			site.write ((char *)finished, sizeof (finished));
-			site.write ((char *)encryptedPayload, 80);
-			// read ChangeCipherSpecs
-			uint8_t changeCipherSpecs1[6];
-			site.read ((char *)changeCipherSpecs1, 6);
-			// read finished
-			site.read ((char *)&type, 1); 
-			site.read ((char *)&version, 2); 
-			site.read ((char *)&length, 2); 
-			length = be16toh (length);
-			char * finished1 = new char[length];
-			site.read (finished1, length);
-			delete[] finished1;
-		}
-		else
-			LogPrint (eLogError, "Can't connect to ", address);
-	}	
+		};
 	
+		CryptoPP::SHA256 finishedHash;
+		// send ClientHello
+		m_Site.write ((char *)clientHello, sizeof (clientHello));
+		finishedHash.Update (clientHello + 5, sizeof (clientHello) - 5);
+		// read ServerHello
+		uint8_t type;
+		m_Site.read ((char *)&type, 1); 
+		uint16_t version;
+		m_Site.read ((char *)&version, 2); 
+		uint16_t length;
+		m_Site.read ((char *)&length, 2); 
+		length = be16toh (length);
+		char * serverHello = new char[length];
+		m_Site.read (serverHello, length);
+		finishedHash.Update ((uint8_t *)serverHello, length);
+		uint8_t serverRandom[32];
+		if (serverHello[0] == 0x02) // handshake type server hello
+			memcpy (serverRandom, serverHello + 6, 32);
+		else
+			LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
+		delete[] serverHello;
+		// read Certificate
+		m_Site.read ((char *)&type, 1); 
+		m_Site.read ((char *)&version, 2); 
+		m_Site.read ((char *)&length, 2); 
+		length = be16toh (length);
+		char * certificate = new char[length];
+		m_Site.read (certificate, length);
+		finishedHash.Update ((uint8_t *)certificate, length);
+		CryptoPP::RSA::PublicKey publicKey;
+		// 0 - handshake type
+		// 1 - 3 - handshake payload length
+		// 4 - 6 - length of array of certificates
+		// 7 - 9 - length of certificate
+		if (certificate[0] == 0x0B) // handshake type certificate
+			publicKey = ExtractPublicKey ((uint8_t *)certificate + 10, length - 10);
+		else
+			LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
+		delete[] certificate;
+		// read ServerHelloDone
+		m_Site.read ((char *)&type, 1); 
+		m_Site.read ((char *)&version, 2); 
+		m_Site.read ((char *)&length, 2); 
+		length = be16toh (length);
+		char * serverHelloDone = new char[length];
+		m_Site.read (serverHelloDone, length);
+		finishedHash.Update ((uint8_t *)serverHelloDone, length);
+		if (serverHelloDone[0] != 0x0E) // handshake type hello done
+			LogPrint (eLogError, "Unexpected handshake type ", (int)serverHelloDone[0]);
+		delete[] serverHelloDone;
+		// our turn now
+		// generate secret key
+		CryptoPP::AutoSeededRandomPool rnd;
+		CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
+		// encryptor.CiphertextLength (48);
+		uint8_t secret[48], encrypted[256];
+		secret[0] = 3; secret[1] = 3; // version
+		m_Rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
+		encryptor.Encrypt (rnd, secret, 48, encrypted);
+		// send ClientKeyExchange
+		m_Site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
+		m_Site.write ((char *)encrypted, 256);
+		finishedHash.Update (clientKeyExchange + 5, sizeof (clientKeyExchange) - 5);
+		finishedHash.Update (encrypted, 256);
+		uint8_t masterSecret[48], random[64];
+		memcpy (random, clientHello + 11, 32);
+		memcpy (random + 32, serverRandom, 32);
+		// send ChangeCipherSpecs
+		m_Site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
+		// calculate master secret
+		PRF (secret, "master secret", random, 64, 48, masterSecret);
+		// expand master secret			
+		uint8_t keys[256]; // clientMACKey(32), serverMACKey(32), clientKey(32), serverKey(32)
+		memcpy (random, serverRandom, 32);
+		memcpy (random + 32, clientHello + 11, 32);
+		PRF (masterSecret, "key expansion", random, 64, 256, keys); 
+		memcpy (m_MacKey, keys, 32);
+		m_Encryption.SetKey (keys + 64);
+		m_Decryption.SetKey (keys + 96);
+
+		// send finished
+		uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
+		finishedPayload[0] = 0x14; // handshake type (finished)
+		finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
+		finishedHash.Final (finishedHashDigest);
+		PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
+		uint8_t mac[32];
+		CalculateMAC (0x16, finishedPayload, 16, mac);
+		Encrypt (finishedPayload, 16, mac, encryptedPayload);
+		m_Site.write ((char *)finished, sizeof (finished));
+		m_Site.write ((char *)encryptedPayload, 80);
+		// read ChangeCipherSpecs
+		uint8_t changeCipherSpecs1[6];
+		m_Site.read ((char *)changeCipherSpecs1, 6);
+		// read finished
+		m_Site.read ((char *)&type, 1); 
+		m_Site.read ((char *)&version, 2); 
+		m_Site.read ((char *)&length, 2); 
+		length = be16toh (length);
+		char * finished1 = new char[length];
+		m_Site.read (finished1, length);
+		delete[] finished1;
+	}
+
 	void TlsSession::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
 		size_t len, uint8_t * buf)
 	{
@@ -710,24 +727,24 @@ namespace data
 		return size;	
 	}
 
-	size_t TlsSession::Decrypt (uint8_t * in, size_t len, uint8_t * out)
+	size_t TlsSession::Decrypt (uint8_t * buf, size_t len)
 	{
-		m_Decryption.SetIV (in);
-		m_Decryption.Decrypt (in + 16, len - 16, in + 16);
-		memcpy (out, in + 16, len - 48); // skip 32 bytes mac
-		return len - 48 - in[len -1] - 1;
+		m_Decryption.SetIV (buf);
+		m_Decryption.Decrypt (buf + 16, len - 16, buf + 16);
+		return len - 48 - buf[len -1] - 1; // IV(16), mac(32) and padding
 	}
 
-	void TlsSession::CalculateMAC (uint8_t type, uint64_t seqn, const uint8_t * buf, size_t len, uint8_t * mac)
+	void TlsSession::CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac)
 	{
 		uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
-		htobe64buf (header, seqn);
+		htobe64buf (header, m_Seqn);
 		header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
 		htobe16buf (header + 11, len);
 		CryptoPP::HMAC<CryptoPP::SHA256> hmac (m_MacKey, 32);	
 		hmac.Update (header, 13);
 		hmac.Update (buf, len);
 		hmac.Final (mac);	
+		m_Seqn++;
 	}
 
 	CryptoPP::RSA::PublicKey TlsSession::ExtractPublicKey (const uint8_t * certificate, size_t len)
@@ -773,6 +790,34 @@ namespace data
 		return ret;
 	}		
 
+	void TlsSession::Send (const uint8_t * buf, size_t len)
+	{
+		uint8_t * out = new uint8_t[len + 64 + 5]; // 64 = 32 mac + 16 iv + upto 16 padding, 5 = header
+		out[0] = 0x17; // application data
+		out[1] = 0x03; out[2] = 0x03; // version
+		uint8_t mac[32];
+		CalculateMAC (0x17, buf, len, mac);
+		size_t encryptedLen = Encrypt (buf, len, mac, out);
+		htobe16buf (out + 3, encryptedLen);
+		m_Site.write ((char *)out, encryptedLen + 5);
+		delete[] out;
+	}
+
+	std::string TlsSession::Receive ()
+	{
+		if (m_Site.eof ()) return "";
+		uint8_t type; uint16_t version, length;
+		m_Site.read ((char *)&type, 1); 
+		m_Site.read ((char *)&version, 2); 
+		m_Site.read ((char *)&length, 2); 
+		length = be16toh (length);
+		uint8_t * buf = new uint8_t[length];
+		m_Site.read ((char *)buf, length);
+		size_t decryptedLen = Decrypt (buf, length);
+		std::string str ((char *)buf + 16, decryptedLen);
+		delete[] buf;
+		return str;
+	}
 }
 }
 
