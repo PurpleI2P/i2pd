@@ -28,20 +28,20 @@ namespace data
 			int ReseedNowSU3 ();
 
 			void LoadCertificates ();
-
-			std::string HttpsRequest (const std::string& address); // TODO: move to private section
 			
 		private:
 
 			void LoadCertificate (const std::string& filename);
 			std::string LoadCertificate (CryptoPP::ByteQueue& queue); // returns issuer's name
 			
-			int ReseedFromSU3 (const std::string& host);
+			int ReseedFromSU3 (const std::string& host, bool https = false);
 			int ProcessSU3File (const char * filename);	
 			int ProcessSU3Stream (std::istream& s);	
 
 			bool FindZipDataDescriptor (std::istream& s);
 			
+			std::string HttpsRequest (const std::string& address);
+
 		private:	
 
 			std::map<std::string, PublicKey> m_SigningKeys;

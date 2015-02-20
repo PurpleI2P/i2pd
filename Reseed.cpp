@@ -40,10 +40,11 @@ namespace data
 				"https://netdb.i2p2.no/",            // Only SU3 (v2) support
 				"https://reseed.i2p-projekt.de/",    // Only HTTPS
 				"https://cowpuncher.drollette.com/netdb/",  // Only HTTPS and SU3 (v2) support -- will move to a new location
-				"https://i2p.mooo.com/netDb/",
+				// following hosts are fine but don't support AES256 
+				/*"https://i2p.mooo.com/netDb/",
 				"https://link.mx24.eu/",             // Only HTTPS and SU3 (v2) support
 				"https://i2pseed.zarrenspry.info/",  // Only HTTPS and SU3 (v2) support
-				"https://ieb9oopo.mooo.com/"         // Only HTTPS and SU3 (v2) support
+				"https://ieb9oopo.mooo.com/"         // Only HTTPS and SU3 (v2) support*/
 			};
 	
 	Reseeder::Reseeder()
@@ -119,16 +120,17 @@ namespace data
 	int Reseeder::ReseedNowSU3 ()
 	{
 		CryptoPP::AutoSeededRandomPool rnd;
-		auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1);
-		std::string reseedHost = httpReseedHostList[ind];
+		auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1 +  httpsReseedHostList.size () - 1);
+		std::string reseedHost = (ind < httpReseedHostList.size()) ? httpReseedHostList[ind] : 
+			httpsReseedHostList[ind - httpReseedHostList.size()]; 
 		return ReseedFromSU3 (reseedHost);
 	}
 
-	int Reseeder::ReseedFromSU3 (const std::string& host)
+	int Reseeder::ReseedFromSU3 (const std::string& host, bool https)
 	{
 		std::string url = host + "i2pseeds.su3";
 		LogPrint (eLogInfo, "Dowloading SU3 from ", host);
-		std::string su3 = i2p::util::http::httpRequest (url);
+		std::string su3 = https ? HttpsRequest (url) : i2p::util::http::httpRequest (url);
 		if (su3.length () > 0)
 		{
 			std::stringstream s(su3);
