@@ -58,6 +58,7 @@ namespace data
 		private:
 
 			void Handshake ();
+			void SendHandshakeMsg (uint8_t handshakeType, uint8_t * data, size_t len);
 			CryptoPP::RSA::PublicKey ExtractPublicKey (const uint8_t * certificate, size_t len);
 			void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
 				size_t len, uint8_t * buf);
@@ -69,6 +70,7 @@ namespace data
 
 			uint64_t m_Seqn;
 			boost::asio::ip::tcp::iostream m_Site;
+			CryptoPP::SHA256 m_FinishedHash;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			i2p::crypto::CBCEncryption m_Encryption;
 			i2p::crypto::CBCDecryption m_Decryption; 

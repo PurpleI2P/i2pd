@@ -46,8 +46,6 @@ namespace data
 				"https://ieb9oopo.mooo.com/"         // Only HTTPS and SU3 (v2) support
 			};
 	
-	//TODO: Implement v2 reseeding. Lightweight zip library is needed.
-	//TODO: Implement SU3, utils.
 	Reseeder::Reseeder()
 	{
 	}
@@ -58,17 +56,9 @@ namespace data
 
 	bool Reseeder::reseedNow()
 	{
+		// This method is deprecated
 		try
 		{
-			// Seems like the best place to try to intercept with SSL
-			/*ssl_server = true;
-			try {
-				// SSL
-			}
-			catch (std::exception& e)
-			{
-				LogPrint("Exception in SSL: ", e.what());
-			}*/
 			std::string reseedHost = httpReseedHostList[(rand() % httpReseedHostList.size())];
 			LogPrint("Reseeding from ", reseedHost);
 			std::string content = i2p::util::http::httpRequest(reseedHost);
@@ -535,10 +525,10 @@ namespace data
 		{
 			0x16, // handshake
 			0x03, 0x03, // version (TSL 1.2)
-			0x00, 0x31, // length of handshake
+			0x00, 0x2F, // length of handshake
 			// handshake
 			0x01, // handshake type (client hello)
-			0x00, 0x00, 0x2D, // length of handshake payload 
+			0x00, 0x00, 0x2B, // length of handshake payload 
 			// client hello
 			0x03, 0x03, // highest version supported (TSL 1.2)
 			0x45, 0xFA, 0x01, 0x19, 0x74, 0x55, 0x18, 0x36, 
@@ -546,25 +536,11 @@ namespace data
 			0xEC, 0x37, 0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 
 			0x12, 0x67, 0xAB, 0xBA, 0xFF, 0x29, 0x13, 0x9E, // 32 random bytes
 			0x00, // session id length
-			0x00, 0x04, // chiper suites length
-			0x00, 0x00, // NULL_WITH_NULL_NULL
+			0x00, 0x02, // chiper suites length
 			0x00, 0x3D, // RSA_WITH_AES_256_CBC_SHA256
 			0x01, // compression methods length
 			0x00,  // no compression
 			0x00, 0x00 // extensions length
-		};	
-
-		static uint8_t clientKeyExchange[] =
-		{
-			0x16, // handshake
-			0x03, 0x03, // version (TSL 1.2)
-			0x01, 0x06, // length of handshake
-			// handshake
-			0x10, // handshake type (client key exchange)
-			0x00, 0x01, 0x02, // length of handshake payload 
-			// client key exchange RSA
-			0x01, 0x00, // length of RSA encrypted
-			// 256 RSA encrypted 48 bytes ( 2 bytes version + 46 random bytes)
 		};	
 
 		static uint8_t changeCipherSpecs[] =
@@ -587,10 +563,9 @@ namespace data
 			// 12 bytes of verified data
 		};
 	
-		CryptoPP::SHA256 finishedHash;
 		// send ClientHello
 		m_Site.write ((char *)clientHello, sizeof (clientHello));
-		finishedHash.Update (clientHello + 5, sizeof (clientHello) - 5);
+		m_FinishedHash.Update (clientHello + 5, sizeof (clientHello) - 5);
 		// read ServerHello
 		uint8_t type;
 		m_Site.read ((char *)&type, 1); 
@@ -601,7 +576,7 @@ namespace data
 		length = be16toh (length);
 		char * serverHello = new char[length];
 		m_Site.read (serverHello, length);
-		finishedHash.Update ((uint8_t *)serverHello, length);
+		m_FinishedHash.Update ((uint8_t *)serverHello, length);
 		uint8_t serverRandom[32];
 		if (serverHello[0] == 0x02) // handshake type server hello
 			memcpy (serverRandom, serverHello + 6, 32);
@@ -615,7 +590,7 @@ namespace data
 		length = be16toh (length);
 		char * certificate = new char[length];
 		m_Site.read (certificate, length);
-		finishedHash.Update ((uint8_t *)certificate, length);
+		m_FinishedHash.Update ((uint8_t *)certificate, length);
 		CryptoPP::RSA::PublicKey publicKey;
 		// 0 - handshake type
 		// 1 - 3 - handshake payload length
@@ -633,30 +608,31 @@ namespace data
 		length = be16toh (length);
 		char * serverHelloDone = new char[length];
 		m_Site.read (serverHelloDone, length);
-		finishedHash.Update ((uint8_t *)serverHelloDone, length);
+		m_FinishedHash.Update ((uint8_t *)serverHelloDone, length);
 		if (serverHelloDone[0] != 0x0E) // handshake type hello done
 			LogPrint (eLogError, "Unexpected handshake type ", (int)serverHelloDone[0]);
 		delete[] serverHelloDone;
 		// our turn now
 		// generate secret key
-		CryptoPP::AutoSeededRandomPool rnd;
-		CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
-		// encryptor.CiphertextLength (48);
-		uint8_t secret[48], encrypted[256];
+		uint8_t secret[48]; 
 		secret[0] = 3; secret[1] = 3; // version
 		m_Rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
-		encryptor.Encrypt (rnd, secret, 48, encrypted);
+		// encrypt RSA
+ 		CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
+		size_t encryptedLen = encryptor.CiphertextLength (48); // number of bytes for encrypted 48 bytes, usually 256 (2048 bits key)
+		uint8_t * encrypted = new uint8_t[encryptedLen + 2]; // + 2 bytes for length
+		htobe16buf (encrypted, encryptedLen); // first two bytes means length 
+		encryptor.Encrypt (m_Rnd, secret, 48, encrypted + 2);
 		// send ClientKeyExchange
-		m_Site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
-		m_Site.write ((char *)encrypted, 256);
-		finishedHash.Update (clientKeyExchange + 5, sizeof (clientKeyExchange) - 5);
-		finishedHash.Update (encrypted, 256);
-		uint8_t masterSecret[48], random[64];
-		memcpy (random, clientHello + 11, 32);
-		memcpy (random + 32, serverRandom, 32);
+		// 0x10 - handshake type "client key exchange"
+		SendHandshakeMsg (0x10, encrypted, encryptedLen + 2);
+		delete[] encrypted;
 		// send ChangeCipherSpecs
 		m_Site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
 		// calculate master secret
+		uint8_t masterSecret[48], random[64];
+		memcpy (random, clientHello + 11, 32);
+		memcpy (random + 32, serverRandom, 32);
 		PRF (secret, "master secret", random, 64, 48, masterSecret);
 		// expand master secret			
 		uint8_t keys[256]; // clientMACKey(32), serverMACKey(32), clientKey(32), serverKey(32)
@@ -671,7 +647,7 @@ namespace data
 		uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
 		finishedPayload[0] = 0x14; // handshake type (finished)
 		finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
-		finishedHash.Final (finishedHashDigest);
+		m_FinishedHash.Final (finishedHashDigest);
 		PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
 		uint8_t mac[32];
 		CalculateMAC (0x16, finishedPayload, 16, mac);
@@ -689,6 +665,22 @@ namespace data
 		char * finished1 = new char[length];
 		m_Site.read (finished1, length);
 		delete[] finished1;
+	}
+
+	void TlsSession::SendHandshakeMsg (uint8_t handshakeType, uint8_t * data, size_t len)
+	{
+		uint8_t handshakeHeader[9];
+		handshakeHeader[0] = 0x16; // handshake
+ 		handshakeHeader[1] = 0x03; handshakeHeader[2] = 0x03; // version is always TLS 1.2 (3,3) 
+		htobe16buf (handshakeHeader + 3, len + 4); // length of payload
+		//payload starts
+		handshakeHeader[5] = handshakeType; // handshake type
+		handshakeHeader[6] = 0; // highest byte of payload length is always zero
+		htobe16buf (handshakeHeader + 7, len); // length of data
+		m_Site.write ((char *)handshakeHeader, 9);
+		m_FinishedHash.Update (handshakeHeader + 5, 4); // only payload counts
+		m_Site.write ((char *)data, len);
+		m_FinishedHash.Update (data, len);
 	}
 
 	void TlsSession::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
