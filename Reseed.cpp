@@ -503,11 +503,18 @@ namespace data
 	{
 		i2p::util::http::url u(address);
 		TlsSession session (u.host_, 443);
+		
+		// send request		
 		std::stringstream ss;
 		ss << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
 		<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";	
 		session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
-		return "";
+
+		// read response
+		std::stringstream rs;
+		while (session.Receive (rs))
+			;
+		return i2p::util::http::GetHttpContent (rs);
 	}	
 
 	TlsSession::TlsSession (const std::string& host, int port):
@@ -797,15 +804,15 @@ namespace data
 		out[1] = 0x03; out[2] = 0x03; // version
 		uint8_t mac[32];
 		CalculateMAC (0x17, buf, len, mac);
-		size_t encryptedLen = Encrypt (buf, len, mac, out);
+		size_t encryptedLen = Encrypt (buf, len, mac, out + 5);
 		htobe16buf (out + 3, encryptedLen);
 		m_Site.write ((char *)out, encryptedLen + 5);
 		delete[] out;
 	}
 
-	std::string TlsSession::Receive ()
+	bool TlsSession::Receive (std::ostream& rs)
 	{
-		if (m_Site.eof ()) return "";
+		if (m_Site.eof ()) return false;
 		uint8_t type; uint16_t version, length;
 		m_Site.read ((char *)&type, 1); 
 		m_Site.read ((char *)&version, 2); 
@@ -814,9 +821,9 @@ namespace data
 		uint8_t * buf = new uint8_t[length];
 		m_Site.read ((char *)buf, length);
 		size_t decryptedLen = Decrypt (buf, length);
-		std::string str ((char *)buf + 16, decryptedLen);
+		rs.write ((char *)buf + 16, decryptedLen);
 		delete[] buf;
-		return str;
+		return true;
 	}
 }
 }

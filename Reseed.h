@@ -53,7 +53,7 @@ namespace data
 
 			TlsSession (const std::string& host, int port);
 			void Send (const uint8_t * buf, size_t len);
-			std::string Receive ();
+			bool Receive (std::ostream& rs);
 
 		private:
 
