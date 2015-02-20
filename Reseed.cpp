@@ -563,14 +563,14 @@ namespace data
 			CryptoPP::SHA256 finishedHash;
 			// send ClientHello
 			site.write ((char *)clientHello, sizeof (clientHello));
-			finishedHash.Update (clientHello, sizeof (clientHello));
+			finishedHash.Update (clientHello + 5, sizeof (clientHello) - 5);
 			// read ServerHello
 			uint8_t type;
-			site.read ((char *)&type, 1); finishedHash.Update ((uint8_t *)&type, 1);
+			site.read ((char *)&type, 1); 
 			uint16_t version;
-			site.read ((char *)&version, 2); finishedHash.Update ((uint8_t *)&version, 2);
+			site.read ((char *)&version, 2); 
 			uint16_t length;
-			site.read ((char *)&length, 2); finishedHash.Update ((uint8_t *)&length, 2);
+			site.read ((char *)&length, 2); 
 			length = be16toh (length);
 			char * serverHello = new char[length];
 			site.read (serverHello, length);
@@ -582,9 +582,9 @@ namespace data
 				LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
 			delete[] serverHello;
 			// read Certificate
-			site.read ((char *)&type, 1); finishedHash.Update ((uint8_t *)&type, 1);
-			site.read ((char *)&version, 2); finishedHash.Update ((uint8_t *)&version, 2);
-			site.read ((char *)&length, 2); finishedHash.Update ((uint8_t *)&length, 2);
+			site.read ((char *)&type, 1); 
+			site.read ((char *)&version, 2); 
+			site.read ((char *)&length, 2); 
 			length = be16toh (length);
 			char * certificate = new char[length];
 			site.read (certificate, length);
@@ -600,9 +600,9 @@ namespace data
 				LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
 			delete[] certificate;
 			// read ServerHelloDone
-			site.read ((char *)&type, 1); finishedHash.Update ((uint8_t *)&type, 1);
-			site.read ((char *)&version, 2); finishedHash.Update ((uint8_t *)&version, 2);
-			site.read ((char *)&length, 2); finishedHash.Update ((uint8_t *)&length, 2);
+			site.read ((char *)&type, 1); 
+			site.read ((char *)&version, 2); 
+			site.read ((char *)&length, 2); 
 			length = be16toh (length);
 			char * serverHelloDone = new char[length];
 			site.read (serverHelloDone, length);
@@ -622,14 +622,13 @@ namespace data
 			// send ClientKeyExchange
 			site.write ((char *)clientKeyExchange, sizeof (clientKeyExchange));
 			site.write ((char *)encrypted, 256);
-			finishedHash.Update (clientKeyExchange, sizeof (clientKeyExchange));
+			finishedHash.Update (clientKeyExchange + 5, sizeof (clientKeyExchange) - 5);
 			finishedHash.Update (encrypted, 256);
 			uint8_t masterSecret[48], random[64];
 			memcpy (random, clientHello + 11, 32);
 			memcpy (random + 32, serverRandom, 32);
 			// send ChangeCipherSpecs
 			site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
-			finishedHash.Update (changeCipherSpecs, sizeof (changeCipherSpecs));
 			// calculate master secret
 			PRF (secret, "master secret", random, 64, 48, masterSecret);
 			// expand master secret			
