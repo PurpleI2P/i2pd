@@ -79,6 +79,7 @@ namespace client
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			void ReceiveHandshake ();
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
+			SAMSocketType GetSocketType () const { return m_SocketType; };
 
 		private:
 
@@ -150,7 +151,7 @@ namespace client
 			SAMSession * CreateSession (const std::string& id, const std::string& destination, // empty string  means transient
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
-			SAMSession * FindSession (const std::string& id);
+			SAMSession * FindSession (const std::string& id) const;
 
 		private:
 
@@ -170,9 +171,14 @@ namespace client
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;
-			std::mutex m_SessionsMutex;
+			mutable std::mutex m_SessionsMutex;
 			std::map<std::string, SAMSession *> m_Sessions;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
+
+		public:
+
+			// for HTTP
+			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 	};		
 }
 }

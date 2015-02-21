@@ -738,7 +738,7 @@ namespace client
 		}
 	}
 
-	SAMSession * SAMBridge::FindSession (const std::string& id)
+	SAMSession * SAMBridge::FindSession (const std::string& id) const
 	{
 		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_Sessions.find (id);

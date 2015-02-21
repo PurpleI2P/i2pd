@@ -469,6 +469,9 @@ namespace util
 	const char HTTP_COMMAND_LOCAL_DESTINATIONS[] = "local_destinations";
 	const char HTTP_COMMAND_LOCAL_DESTINATION[] = "local_destination";
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
+	const char HTTP_COMMAND_SAM_SESSIONS[] = "sam_sessions";
+	const char HTTP_COMMAND_SAM_SESSION[] = "sam_session";
+	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	
 	namespace misc_strings
 	{
@@ -673,7 +676,10 @@ namespace util
 		s << "<br><b><a href=/?" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a></b>";
 		s << "<br><b><a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a></b>";
 		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a></b>";
-		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a></b><br>";
+		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a></b>";
+		if (i2p::client::context.GetSAMBridge ())
+			s << "<br><b><a href=/?" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a></b>";
+		s << "<br>";
 		
 		if (i2p::context.AcceptsTunnels ())
 			s << "<br><b><a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a></b><br>";
@@ -705,6 +711,15 @@ namespace util
 			ExtractParams (command.substr (paramsPos), params);
 			auto b32 = params[HTTP_PARAM_BASE32_ADDRESS];
 			ShowLocalDestination (b32, s);
+		}	
+		else if (cmd == HTTP_COMMAND_SAM_SESSIONS)
+			ShowSAMSessions (s);
+		else if (cmd == HTTP_COMMAND_SAM_SESSION)
+		{
+			std::map<std::string, std::string> params;
+			ExtractParams (command.substr (paramsPos), params);
+			auto id = params[HTTP_PARAM_SAM_SESSION_ID];
+			ShowSAMSession (id, s);
 		}	
 	}	
 
@@ -848,6 +863,51 @@ namespace util
 				s << "[RTT:" << it.second->GetRTT () << "]"; 
 				s << "<br>"<< std::endl; 
 			}	
+		}	
+	}	
+
+	void HTTPConnection::ShowSAMSessions (std::stringstream& s)
+	{
+		auto sam = i2p::client::context.GetSAMBridge ();
+		if (sam)
+		{	
+			for (auto& it: sam->GetSessions ())
+			{
+				s << "<a href=/?" << HTTP_COMMAND_SAM_SESSION;
+				s << "&" << HTTP_PARAM_SAM_SESSION_ID << "=" << it.first << ">";
+				s << it.first << "</a><br>" << std::endl;
+			}	
+		}	
+	}	
+
+	void HTTPConnection::ShowSAMSession (const std::string& id, std::stringstream& s)
+	{
+		auto sam = i2p::client::context.GetSAMBridge ();
+		if (sam)
+		{
+			auto session = sam->FindSession (id);
+			if (session)
+			{
+				for (auto it: session->sockets)
+				{
+					switch (it->GetSocketType ())
+					{
+						case i2p::client::eSAMSocketTypeSession:
+							s << "session";
+						break;	
+						case i2p::client::eSAMSocketTypeStream:
+							s << "stream";
+						break;	
+						case i2p::client::eSAMSocketTypeAcceptor:
+							s << "acceptor";
+						break;
+						default:
+							s << "unknown";
+					}
+					s << " [" << it->GetSocket ().remote_endpoint() << "]";
+					s << "<br>" << std::endl;
+				}	
+			}
 		}	
 	}	
 	

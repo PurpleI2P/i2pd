@@ -47,6 +47,7 @@ namespace client
 			ClientDestination * LoadLocalDestination (const std::string& filename, bool isPublic);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
+			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
 		
 		private:
 
