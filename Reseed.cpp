@@ -526,13 +526,13 @@ namespace data
 		static uint8_t clientHello[] = 
 		{
 			0x16, // handshake
-			0x03, 0x03, // version (TSL 1.2)
+			0x03, 0x03, // version (TLS 1.2)
 			0x00, 0x2F, // length of handshake
 			// handshake
 			0x01, // handshake type (client hello)
 			0x00, 0x00, 0x2B, // length of handshake payload 
 			// client hello
-			0x03, 0x03, // highest version supported (TSL 1.2)
+			0x03, 0x03, // highest version supported (TLS 1.2)
 			0x45, 0xFA, 0x01, 0x19, 0x74, 0x55, 0x18, 0x36, 
 			0x42, 0x05, 0xC1, 0xDD, 0x4A, 0x21, 0x80, 0x80, 
 			0xEC, 0x37, 0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 
@@ -547,8 +547,8 @@ namespace data
 
 		static uint8_t changeCipherSpecs[] =
 		{
-			0x14, // change chiper specs
-			0x03, 0x03, // version (TSL 1.2)
+			0x14, // change cipher specs
+			0x03, 0x03, // version (TLS 1.2)
 			0x00, 0x01, // length
 			0x01 // type
 		};
@@ -556,7 +556,7 @@ namespace data
 		static uint8_t finished[] =
 		{
 			0x16, // handshake
-			0x03, 0x03, // version (TSL 1.2)
+			0x03, 0x03, // version (TLS 1.2)
 			0x00, 0x50, // length of handshake (80 bytes)
 			// handshake (encrypted)
 			// unencrypted context
@@ -637,10 +637,10 @@ namespace data
 		memcpy (random + 32, serverRandom, 32);
 		PRF (secret, "master secret", random, 64, 48, masterSecret);
 		// expand master secret			
-		uint8_t keys[256]; // clientMACKey(32), serverMACKey(32), clientKey(32), serverKey(32)
+		uint8_t keys[128]; // clientMACKey(32), serverMACKey(32), clientKey(32), serverKey(32)
 		memcpy (random, serverRandom, 32);
 		memcpy (random + 32, clientHello + 11, 32);
-		PRF (masterSecret, "key expansion", random, 64, 256, keys); 
+		PRF (masterSecret, "key expansion", random, 64, 128, keys); 
 		memcpy (m_MacKey, keys, 32);
 		m_Encryption.SetKey (keys + 64);
 		m_Decryption.SetKey (keys + 96);
