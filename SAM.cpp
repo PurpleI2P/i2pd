@@ -680,8 +680,15 @@ namespace client
 	{
 		if (!ecode)
 		{
-			LogPrint ("New SAM connection from ", socket->GetSocket ().remote_endpoint ());
-			socket->ReceiveHandshake ();		
+			boost::system::error_code ec;
+			auto ep = socket->GetSocket ().remote_endpoint (ec);
+			if (!ec)
+			{	
+				LogPrint ("New SAM connection from ", ep);
+				socket->ReceiveHandshake ();
+			}
+			else
+				LogPrint (eLogError, "SAM connection from error ", ec.message ());
 		}
 		else
 			LogPrint ("SAM accept error: ",  ecode.message ());
