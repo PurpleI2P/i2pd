@@ -35,6 +35,7 @@ namespace client
 		m_MethodHandlers[I2P_CONTROL_METHOD_NETWORK_SETTING] = &I2PControlService::NetworkSettingHandler; 
 
 		// RouterInfo
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_UPTIME] = &I2PControlService::UptimeHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = &I2PControlService::NetDbKnownPeersHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = &I2PControlService::NetDbActivePeersHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = &I2PControlService::TunnelsParticipatingHandler;
@@ -289,6 +290,11 @@ namespace client
 				LogPrint (eLogError, "I2PControl RouterInfo unknown request ", it.first);
 				
 		}
+	}
+
+	void I2PControlService::UptimeHandler (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_UPTIME] = boost::lexical_cast<std::string>(i2p::context.GetUptime ()*1000);	
 	}
 
 	void I2PControlService::NetDbKnownPeersHandler (std::map<std::string, std::string>& results)
