@@ -97,6 +97,8 @@ namespace i2p
 	const uint8_t DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP = 0x08; // 1000			
 	const uint8_t DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP = 0x0C; // 1100
 
+	const int MAX_NUM_TRANSIT_TUNNELS = 1500;
+
 namespace tunnel
 {		
 	class InboundTunnel;
