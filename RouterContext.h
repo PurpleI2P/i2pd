@@ -31,6 +31,7 @@ namespace i2p
 					[](const i2p::data::RouterInfo *) {});
 			}
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
+			uint32_t GetUptime () const;
 
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
@@ -71,6 +72,7 @@ namespace i2p
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			uint64_t m_LastUpdateTime;
 			bool m_IsUnreachable, m_AcceptsTunnels, m_IsFloodfill;
+			uint64_t m_StartupTime; // in seconds since epoch
 	};
 
 	extern RouterContext context;

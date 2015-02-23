@@ -1,5 +1,6 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include "base64.h"
 #include "Log.h"
 #include "Tunnel.h"
@@ -646,8 +647,11 @@ namespace util
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
 		s << "<h2>Welcome to the Webconsole!</h2><br><br>";
+		s << "<b>Uptime:</b> " <<	
 		s << "<b>Data path:</b> " << i2p::util::filesystem::GetDataDir().string() << "<br>" << "<br>";
-		s << "<b>Our external address:</b>" << "<br>";
+		s << "<b>Our external address:</b>" << boost::posix_time::to_simple_string (
+			boost::posix_time::time_duration (boost::posix_time::seconds (
+			i2p::context.GetUptime ()))) << "<br><br>";
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{
 			switch (address.transportStyle)

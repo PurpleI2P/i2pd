@@ -14,12 +14,13 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_IsUnreachable (false), m_AcceptsTunnels (true),
-		m_IsFloodfill (false)
+		m_IsFloodfill (false), m_StartupTime (0)
 	{
 	}
 
 	void RouterContext::Init ()
 	{
+		m_StartupTime = i2p::util::GetSecondsSinceEpoch ();
 		if (!Load ())
 			CreateNewRouter ();
 		UpdateRouterInfo ();
@@ -218,5 +219,10 @@ namespace i2p
 	void RouterContext::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
+	}
+
+	uint32_t RouterContext::GetUptime () const
+	{
+		return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
 	}	
 }
