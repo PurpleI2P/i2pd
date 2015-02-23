@@ -646,12 +646,12 @@ namespace util
 
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
-		s << "<h2>Welcome to the Webconsole!</h2><br><br>";
-		s << "<b>Uptime:</b> " <<	
-		s << "<b>Data path:</b> " << i2p::util::filesystem::GetDataDir().string() << "<br>" << "<br>";
-		s << "<b>Our external address:</b>" << boost::posix_time::to_simple_string (
+		s << "<h2>Welcome to the Webconsole!</h2><br>";
+		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
 			boost::posix_time::time_duration (boost::posix_time::seconds (
-			i2p::context.GetUptime ()))) << "<br><br>";
+			i2p::context.GetUptime ()))) << "<br>";
+		s << "<b>Data path:</b> " << i2p::util::filesystem::GetDataDir().string() << "<br><br>";
+		s << "<b>Our external address:</b>" << "<br>" ;
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{
 			switch (address.transportStyle)
