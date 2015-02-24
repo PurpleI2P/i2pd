@@ -46,7 +46,7 @@ namespace client
 	{
 		public:
 
-			BOBI2PTunnel (ClientDestination * localDestination): 
+			BOBI2PTunnel (std::shared_ptr<ClientDestination> localDestination): 
 				I2PService (localDestination) {};
 
 			virtual void Start () {};
@@ -67,7 +67,7 @@ namespace client
 		
 		public:
 
-			BOBI2PInboundTunnel (int port, ClientDestination * localDestination);
+			BOBI2PInboundTunnel (int port, std::shared_ptr<ClientDestination> localDestination);
 			~BOBI2PInboundTunnel ();
 
 			void Start ();
@@ -96,7 +96,7 @@ namespace client
 	{
 		public:
 
-			 BOBI2POutboundTunnel (const std::string& address, int port, ClientDestination * localDestination, bool quiet);	
+			 BOBI2POutboundTunnel (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, bool quiet);	
 
 			void Start ();
 			void Stop ();
@@ -119,7 +119,7 @@ namespace client
 	{
 		public:
 
-			BOBDestination (ClientDestination& localDestination);
+			BOBDestination (std::shared_ptr<ClientDestination> localDestination);
 			~BOBDestination ();
 
 			void Start ();
@@ -127,11 +127,11 @@ namespace client
 			void StopTunnels ();
 			void CreateInboundTunnel (int port);
 			void CreateOutboundTunnel (const std::string& address, int port, bool quiet);
-			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination.GetPrivateKeys (); };
+			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
 			
 		private:	
 
-			ClientDestination& m_LocalDestination;
+			std::shared_ptr<ClientDestination> m_LocalDestination;
 			BOBI2POutboundTunnel * m_OutboundTunnel;
 			BOBI2PInboundTunnel * m_InboundTunnel;
 	};	

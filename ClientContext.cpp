@@ -49,7 +49,7 @@ namespace client
 		std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
 		if (ircDestination.length () > 0) // ircdest is presented
 		{
-			ClientDestination * localDestination = nullptr;
+			std::shared_ptr<ClientDestination> localDestination = nullptr;
 			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 			if (ircKeys.length () > 0)
 				localDestination = LoadLocalDestination (ircKeys, false);
@@ -146,15 +146,12 @@ namespace client
 		}	
 
 		for (auto it: m_Destinations)
-		{	
 			it.second->Stop ();
-			delete it.second;
-		}		
 		m_Destinations.clear ();
-		m_SharedLocalDestination = 0; // deleted through m_Destination
+		m_SharedLocalDestination = nullptr; 
 	}	
 	
-	ClientDestination * ClientContext::LoadLocalDestination (const std::string& filename, bool isPublic)
+	std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination (const std::string& filename, bool isPublic)
 	{
 		i2p::data::PrivateKeys keys;
 		std::string fullPath = i2p::util::filesystem::GetFullPath (filename);
@@ -184,7 +181,7 @@ namespace client
 			LogPrint ("New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " created");
 		}	
 
-		ClientDestination * localDestination = nullptr;	
+		std::shared_ptr<ClientDestination> localDestination = nullptr;	
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);	
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ()); 
 		if (it != m_Destinations.end ())
@@ -194,25 +191,25 @@ namespace client
 		}
 		else
 		{
-			localDestination = new ClientDestination (keys, isPublic);
+			localDestination = std::make_shared<ClientDestination> (keys, isPublic);
 			m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 			localDestination->Start ();
 		}
 		return localDestination;
 	}
 
-	ClientDestination * ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
 		const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
-		auto localDestination = new ClientDestination (keys, isPublic, params);
+		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
 	}
 
-	void ClientContext::DeleteLocalDestination (ClientDestination * destination)
+	void ClientContext::DeleteLocalDestination (std::shared_ptr<ClientDestination> destination)
 	{
 		if (!destination) return;
 		auto it = m_Destinations.find (destination->GetIdentHash ());
@@ -224,11 +221,10 @@ namespace client
 				m_Destinations.erase (it);
 			}	
 			d->Stop ();
-			delete d;
 		}
 	}
 
-	ClientDestination * ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
 		const std::map<std::string, std::string> * params)
 	{
 		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
@@ -242,14 +238,14 @@ namespace client
 			}	
 			return nullptr;
 		}	
-		auto localDestination = new ClientDestination (keys, isPublic, params);
+		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
 	}
 	
-	ClientDestination * ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
+	std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
 	{
 		auto it = m_Destinations.find (destination);
 		if (it != m_Destinations.end ())
@@ -299,7 +295,7 @@ namespace client
 				
 				for (int i = 0; i < numClientTunnels; i++)
 				{
-					ClientDestination * localDestination = nullptr;
+					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys[i].length () > 0)
 						localDestination = LoadLocalDestination (keys[i], false);
 					auto clientTunnel = new I2PClientTunnel (destinations[i], ports[i], localDestination);

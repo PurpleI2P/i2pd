@@ -128,10 +128,10 @@ namespace client
 
 	struct SAMSession
 	{
-		ClientDestination * localDestination;
+		std::shared_ptr<ClientDestination> localDestination;
 		std::list<std::shared_ptr<SAMSocket> > sockets;
 		
-		SAMSession (ClientDestination * localDestination);		
+		SAMSession (std::shared_ptr<ClientDestination> dest);		
 		~SAMSession ();
 
 		void CloseStreams ();

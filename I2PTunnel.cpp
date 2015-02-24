@@ -202,7 +202,7 @@ namespace client
 		Done(shared_from_this());
 	}
 
-	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, ClientDestination * localDestination): 
+	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, std::shared_ptr<ClientDestination> localDestination): 
 		TCPIPAcceptor (port,localDestination), m_Destination (destination), m_DestinationIdentHash (nullptr)
 	{}	
 
@@ -243,7 +243,7 @@ namespace client
 			return nullptr;
 	}
 
-	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, ClientDestination * localDestination): 
+	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination): 
 		I2PService (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
 	}

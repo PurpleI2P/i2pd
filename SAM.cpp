@@ -595,7 +595,7 @@ namespace client
 			LogPrint (eLogWarning, "Datagram size ", len," exceeds buffer");
 	}
 
-	SAMSession::SAMSession (ClientDestination * dest):
+	SAMSession::SAMSession (std::shared_ptr<ClientDestination> dest):
 		localDestination (dest)
 	{
 	}
@@ -700,7 +700,7 @@ namespace client
 	SAMSession * SAMBridge::CreateSession (const std::string& id, const std::string& destination, 
 		const std::map<std::string, std::string> * params)
 	{
-		ClientDestination * localDestination = nullptr; 
+		std::shared_ptr<ClientDestination> localDestination = nullptr; 
 		if (destination != "")
 		{
 			i2p::data::PrivateKeys keys;

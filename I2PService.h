@@ -17,7 +17,7 @@ namespace client
 	class I2PService
 	{
 		public:
-			I2PService (ClientDestination * localDestination  = nullptr);
+			I2PService (std::shared_ptr<ClientDestination> localDestination  = nullptr);
 			I2PService (i2p::data::SigningKeyType kt);
 			virtual ~I2PService () { ClearHandlers (); }
 
@@ -37,8 +37,8 @@ namespace client
 				m_Handlers.clear();
 			}
 
-			inline ClientDestination * GetLocalDestination () { return m_LocalDestination; }
-			inline void SetLocalDestination (ClientDestination * dest) { m_LocalDestination = dest; }
+			inline std::shared_ptr<ClientDestination> GetLocalDestination () { return m_LocalDestination; }
+			inline void SetLocalDestination (std::shared_ptr<ClientDestination> dest) { m_LocalDestination = dest; }
 			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
 
 			inline boost::asio::io_service& GetService () { return m_LocalDestination->GetService (); }
@@ -49,7 +49,7 @@ namespace client
 			virtual const char* GetName() { return "Generic I2P Service"; }
 		private:
 
-			ClientDestination * m_LocalDestination;
+			std::shared_ptr<ClientDestination> m_LocalDestination;
 			std::unordered_set<std::shared_ptr<I2PServiceHandler> > m_Handlers;
 			std::mutex m_HandlersMutex;
 	};
@@ -81,7 +81,7 @@ namespace client
 	class TCPIPAcceptor: public I2PService
 	{
 		public:
-			TCPIPAcceptor (int port, ClientDestination * localDestination = nullptr) :
+			TCPIPAcceptor (int port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
 				I2PService(localDestination),
 				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
 				m_Timer (GetService ()) {}
