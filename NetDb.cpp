@@ -410,16 +410,30 @@ namespace data
 			else 
 			{
 				// RouterInfo expires after 1 hour if uses introducer
-				if ((it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hour
-				// RouterInfo expires in 72 hours if more than 300
-					|| (total > 300 && ts > it.second->GetTimestamp () + 3*24*3600*1000LL)) // 3 days
-				{	
-					total--;
+				if (it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hour
 					it.second->SetUnreachable (true);
-				}	
+				else if (total > 25 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) // routers don't expire if less than 25 or uptime is less than 10 minutes
+				{
+					if (i2p::context.IsFloodfill ())
+					{
+						if (ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hours
+							it.second->SetUnreachable (true);
+					}
+					else if (total > 300)
+					{
+						if (ts > it.second->GetTimestamp () + 30*3600*1000LL) // 30 hours
+							it.second->SetUnreachable (true);
+					}
+					else if (total > 120)
+					{
+						if (ts > it.second->GetTimestamp () + 72*3600*1000LL) // 72 hours
+							it.second->SetUnreachable (true);
+					}
+				}
 				
 				if (it.second->IsUnreachable ())
 				{	
+					total--;
 					// delete RI file
 					if (boost::filesystem::exists (GetFilePath (fullDirectory, it.second.get ())))
 					{    

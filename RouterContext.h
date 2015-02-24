@@ -32,6 +32,7 @@ namespace i2p
 			}
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 			uint32_t GetUptime () const;
+			uint32_t GetStartupTime () const { return m_StartupTime; };
 
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
