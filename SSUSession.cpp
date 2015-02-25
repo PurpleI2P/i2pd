@@ -942,7 +942,10 @@ namespace transport
 				}
 			}
 			else
+			{
 				LogPrint (eLogDebug, "SSU peer test from Charlie. We are Alice");
+				m_Server.PeerTestComplete (nonce);
+			}
 		}	
 	}
 	
@@ -989,6 +992,7 @@ namespace transport
 
 	void SSUSession::SendPeerTest ()
 	{
+		// we are Alice
 		LogPrint (eLogDebug, "SSU sending peer test");
 		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 		if (!address)
@@ -999,6 +1003,7 @@ namespace transport
 		uint32_t nonce = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		if (!nonce) nonce = 1;
 		m_PeerTestNonces.insert (nonce);
+		m_Server.NewPeerTest (nonce);
 		SendPeerTest (nonce, 0, 0, address->key, false); // address and port always zero for Alice
 	}	
 

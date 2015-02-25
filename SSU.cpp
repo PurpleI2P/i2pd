@@ -461,6 +461,16 @@ namespace transport
 			m_Introducers = newList;
 			ScheduleIntroducersUpdateTimer ();
 		}	
+	}
+
+	void SSUServer::NewPeerTest (uint32_t nonce)
+	{
+		m_PeerTests[nonce] = i2p::util::GetMillisecondsSinceEpoch ();
+	}
+
+	void SSUServer::PeerTestComplete (uint32_t nonce)
+	{
+		m_PeerTests.erase (nonce);
 	}	
 }
 }

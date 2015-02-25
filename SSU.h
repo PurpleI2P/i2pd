@@ -53,6 +53,9 @@ namespace transport
 			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
 			std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
 
+			void NewPeerTest (uint32_t nonce);
+			void PeerTestComplete (uint32_t nonce);
+
 		private:
 
 			void Run ();
@@ -70,7 +73,7 @@ namespace transport
 			std::set<SSUSession *> FindIntroducers (int maxNumIntroducers);	
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode);
-			
+
 		private:
 
 			bool m_IsRunning;
@@ -84,6 +87,7 @@ namespace transport
 			std::mutex m_SessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
+			std::map<uint32_t, uint64_t> m_PeerTests; // nonce -> creation time in milliseconds
 
 		public:
 			// for HTTP only
