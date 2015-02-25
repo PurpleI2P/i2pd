@@ -223,7 +223,7 @@ namespace transport
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
 		else
 			s.Insert (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), 16); // remote IP v6
-		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
+		s.Insert<uint16_t> (htobe16 (m_RemoteEndpoint.port ())); // remote port
 		s.Insert (payload, 8); // relayTag and signed on time 
 		m_RelayTag = bufbe32toh (payload);
 		payload += 4; // relayTag
@@ -370,7 +370,7 @@ namespace transport
 			s.Insert (address->host.to_v4 ().to_bytes ().data (), 4); // our IP V4
 		else
 			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
-		s.Insert (htobe16 (address->port)); // our port
+		s.Insert<uint16_t> (htobe16 (address->port)); // our port
 		uint32_t relayTag = 0;
 		if (i2p::context.GetRouterInfo ().IsIntroducer ())
 		{
@@ -431,7 +431,7 @@ namespace transport
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP V4
 		else
 			s.Insert (m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data (), 16); // remote IP V6	
-		s.Insert (htobe16 (m_RemoteEndpoint.port ())); // remote port
+		s.Insert<uint16_t> (htobe16 (m_RemoteEndpoint.port ())); // remote port
 		s.Insert (htobe32 (m_RelayTag)); // relay tag
 		s.Insert (htobe32 (signedOnTime)); // signed on time
 		s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature	
