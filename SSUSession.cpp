@@ -898,26 +898,35 @@ namespace transport
 		}	
 		if (m_PeerTestNonces.count (nonce) > 0)
 		{
-			// existing test
-			if (m_PeerTest)
+			// existing test 
+			if (m_PeerTest) // Alice
 			{
-				LogPrint (eLogDebug, "SSU peer test from Bob. We are Alice");
-				m_PeerTestNonces.erase (nonce);
-				m_PeerTest = false;
+				if (m_State == eSessionStateEstablished)
+					LogPrint (eLogDebug, "SSU peer test from Bob. We are Alice");
+				else
+				{
+					LogPrint (eLogDebug, "SSU first peer test from Charlie. We are Alice");
+					m_PeerTest = false;
+					m_PeerTestNonces.erase (nonce); 
+					m_Server.PeerTestComplete (nonce);
+					SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (), 
+						senderEndpoint.port (), introKey, true, false); // to Charlie
+				}
 			}
-			else if (port)
+			else if (port) // Bob
 			{
 				LogPrint (eLogDebug, "SSU peer test from Charlie. We are Bob");
+				m_PeerTestNonces.erase (nonce); // nonce has been used
 				boost::asio::ip::udp::endpoint ep (boost::asio::ip::address_v4 (be32toh (address)), be16toh (port)); // Alice's address/port
 				auto session = m_Server.FindSession (ep); // find session with Alice
 				if (session)
 					session->Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Alice
 			}
-			else
+			else // Charlie
 			{
 				LogPrint (eLogDebug, "SSU peer test from Alice. We are Charlie");
 				SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
-						senderEndpoint.port (), introKey); // to Alice
+					senderEndpoint.port (), introKey); // to Alice with her actual address
 			}
 		}
 		else
@@ -930,34 +939,34 @@ namespace transport
 				{
 					LogPrint (eLogDebug, "SSU peer test from Bob. We are Charlie");
 					Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
-					SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice
+					SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice with her address received from Bob
 				}
 				else
 				{
 					LogPrint (eLogDebug, "SSU peer test from Alice. We are Bob");
-					auto session = m_Server.GetRandomEstablishedSession (shared_from_this ()); // charlie
+					auto session = m_Server.GetRandomEstablishedSession (shared_from_this ()); // Charlie
 					if (session)
 						session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
-							senderEndpoint.port (), introKey, false); 		
+							senderEndpoint.port (), introKey, false); // to Charlie with Alice's actual address 		
 				}
 			}
 			else
-			{
-				LogPrint (eLogDebug, "SSU peer test from Charlie. We are Alice");
-				m_Server.PeerTestComplete (nonce);
-			}
+				LogPrint (eLogDebug, "SSU second peer test from Charlie. We are Alice");	
 		}	
 	}
 	
 	void SSUSession::SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, 
-		const uint8_t * introKey, bool toAddress)
+		const uint8_t * introKey, bool toAddress, bool sendAddress)
+	// toAddress is true for Alice<->Chalie communications only
+	// sendAddress is false if message comes from Alice		
 	{
 		uint8_t buf[80 + 18];
 		uint8_t iv[16];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		htobe32buf (payload, nonce);
 		payload += 4; // nonce	
-		if (address)
+		// address and port
+		if (sendAddress && address)
 		{					
 			*payload = 4;
 			payload++; // size
@@ -971,8 +980,20 @@ namespace transport
 		}
 		htobe16buf (payload, port);
 		payload += 2; // port
-		memcpy (payload, introKey, 32); // intro key
+		// intro key
+		if (toAddress)
+		{
+			// send our intro key to address instead it's own
+			auto addr = i2p::context.GetRouterInfo ().GetSSUAddress ();
+			if (addr)
+				memcpy (payload, addr->key, 32); // intro key
+			else
+				LogPrint (eLogError, "SSU is not supported. Can't send peer test");	
+		}	
+		else	
+			memcpy (payload, introKey, 32); // intro key
 
+		// send	
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		rnd.GenerateBlock (iv, 16); // random iv
 		if (toAddress)
@@ -1004,7 +1025,7 @@ namespace transport
 		if (!nonce) nonce = 1;
 		m_PeerTestNonces.insert (nonce);
 		m_Server.NewPeerTest (nonce);
-		SendPeerTest (nonce, 0, 0, address->key, false); // address and port always zero for Alice
+		SendPeerTest (nonce, 0, 0, address->key, false, false); // address and port always zero for Alice
 	}	
 
 	void SSUSession::SendKeepAlive ()
