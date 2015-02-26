@@ -13,7 +13,7 @@ namespace transport
 		m_Work (m_Service), m_WorkV6 (m_ServiceV6), m_ReceiversWork (m_ReceiversService), 
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port), 
 		m_Socket (m_ReceiversService, m_Endpoint), m_SocketV6 (m_ReceiversService), 
-		m_IntroducersUpdateTimer (m_Service)	
+		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service)	
 	{
 		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
 		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
@@ -44,6 +44,7 @@ namespace transport
 		}	
 		if (i2p::context.IsUnreachable ())
 			ScheduleIntroducersUpdateTimer ();
+		SchedulePeerTestsCleanupTimer ();	
 	}
 
 	void SSUServer::Stop ()
@@ -488,6 +489,35 @@ namespace transport
 	{
 		m_PeerTests.erase (nonce);
 	}	
+
+	void SSUServer::SchedulePeerTestsCleanupTimer ()
+	{
+		m_PeerTestsCleanupTimer.expires_from_now (boost::posix_time::seconds(SSU_PEER_TEST_TIMEOUT));
+		m_PeerTestsCleanupTimer.async_wait (std::bind (&SSUServer::HandlePeerTestsCleanupTimer,
+			this, std::placeholders::_1));	
+	}
+
+	void SSUServer::HandlePeerTestsCleanupTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			int numDeleted = 0;	
+			uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();	
+			for (auto it = m_PeerTests.begin (); it != m_PeerTests.end ();)
+			{
+				if (ts > it->second.creationTime + SSU_PEER_TEST_TIMEOUT*1000LL)
+				{
+					numDeleted++;
+					it = m_PeerTests.erase (it);
+				}
+				else
+					it++;	 
+			}
+			if (numDeleted > 0)
+				LogPrint (eLogInfo, numDeleted, " peer tests have been expired");
+			SchedulePeerTestsCleanupTimer ();
+		}
+	}
 }
 }
 

@@ -21,6 +21,7 @@ namespace i2p
 namespace transport
 {
 	const int SSU_KEEP_ALIVE_INTERVAL = 30; // 30 seconds	
+	const int SSU_PEER_TEST_TIMEOUT = 60; // 60 seconds		
 	const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const size_t SSU_MAX_NUM_INTRODUCERS = 3;
 
@@ -76,6 +77,9 @@ namespace transport
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode);
 
+			void SchedulePeerTestsCleanupTimer ();
+			void HandlePeerTestsCleanupTimer (const boost::system::error_code& ecode);
+
 		private:
 
 			struct PeerTest
@@ -90,7 +94,7 @@ namespace transport
 			boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork;
 			boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
-			boost::asio::deadline_timer m_IntroducersUpdateTimer;
+			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
 			std::mutex m_SessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
