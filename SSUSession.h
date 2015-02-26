@@ -49,6 +49,15 @@ namespace transport
 		eSessionStateFailed
 	};	
 
+	enum PeerTestParticipant
+	{
+		ePeerTestParticipantUnknown = 0,
+		ePeerTestParticipantAlice1,
+		ePeerTestParticipantAlice2,
+		ePeerTestParticipantBob,
+		ePeerTestParticipantCharlie
+	};
+	
 	class SSUServer;
 	class SSUSession: public TransportSession, public std::enable_shared_from_this<SSUSession>
 	{
@@ -133,7 +142,6 @@ namespace transport
 			SessionState m_State;
 			bool m_IsSessionKey;
 			uint32_t m_RelayTag;	
-			std::set<uint32_t> m_PeerTestNonces;
 			i2p::crypto::CBCEncryption m_SessionKeyEncryption;
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			i2p::crypto::AESKey m_SessionKey;

@@ -896,62 +896,80 @@ namespace transport
 			LogPrint (eLogWarning, "Address of ", size, " bytes not supported");	
 			return;
 		}	
-		if (m_PeerTestNonces.count (nonce) > 0)
-		{
+		switch (m_Server.GetPeerTestParticipant (nonce))
+		{	
 			// existing test 
-			if (m_PeerTest) // Alice
-			{
+			case ePeerTestParticipantAlice1:
+			{			
 				if (m_State == eSessionStateEstablished)
 					LogPrint (eLogDebug, "SSU peer test from Bob. We are Alice");
 				else
 				{
 					LogPrint (eLogDebug, "SSU first peer test from Charlie. We are Alice");
-					m_PeerTest = false;
-					m_PeerTestNonces.erase (nonce); 
-					m_Server.PeerTestComplete (nonce);
+					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
 					SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (), 
 						senderEndpoint.port (), introKey, true, false); // to Charlie
 				}
-			}
-			else if (port) // Bob
+				break;
+			}	
+			case ePeerTestParticipantAlice2:
+			{
+				if (m_State == eSessionStateEstablished)
+					LogPrint (eLogDebug, "SSU peer test from Bob. We are Alice");
+				else
+				{
+					// peer test successive
+					LogPrint (eLogDebug, "SSU second peer test from Charlie. We are Alice");
+					m_Server.RemovePeerTest (nonce);
+				}
+				break;
+			}	
+			case ePeerTestParticipantBob: 
 			{
 				LogPrint (eLogDebug, "SSU peer test from Charlie. We are Bob");
-				m_PeerTestNonces.erase (nonce); // nonce has been used
+				m_Server.RemovePeerTest (nonce); // nonce has been used
 				boost::asio::ip::udp::endpoint ep (boost::asio::ip::address_v4 (be32toh (address)), be16toh (port)); // Alice's address/port
 				auto session = m_Server.FindSession (ep); // find session with Alice
 				if (session)
 					session->Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Alice
+				break;
 			}
-			else // Charlie
-			{
+			case ePeerTestParticipantCharlie:
+			{	
 				LogPrint (eLogDebug, "SSU peer test from Alice. We are Charlie");
+				m_Server.RemovePeerTest (nonce); // nonce has been used
 				SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
 					senderEndpoint.port (), introKey); // to Alice with her actual address
+				break;
 			}
-		}
-		else
-		{
-			if (m_State == eSessionStateEstablished)
+			// test not found	
+			case ePeerTestParticipantUnknown:
 			{
-				// new test
-				m_PeerTestNonces.insert (nonce);
-				if (port)
+				if (m_State == eSessionStateEstablished)
 				{
-					LogPrint (eLogDebug, "SSU peer test from Bob. We are Charlie");
-					Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
-					SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice with her address received from Bob
+					// new test
+					if (port)
+					{
+						LogPrint (eLogDebug, "SSU peer test from Bob. We are Charlie");
+						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
+						Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
+						SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice with her address received from Bob
+					}
+					else
+					{
+						LogPrint (eLogDebug, "SSU peer test from Alice. We are Bob");
+						auto session = m_Server.GetRandomEstablishedSession (shared_from_this ()); // Charlie
+						if (session)
+						{
+							m_Server.NewPeerTest (nonce, ePeerTestParticipantBob);
+							session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
+								senderEndpoint.port (), introKey, false); // to Charlie with Alice's actual address 	
+						}	
+					}
 				}
 				else
-				{
-					LogPrint (eLogDebug, "SSU peer test from Alice. We are Bob");
-					auto session = m_Server.GetRandomEstablishedSession (shared_from_this ()); // Charlie
-					if (session)
-						session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
-							senderEndpoint.port (), introKey, false); // to Charlie with Alice's actual address 		
-				}
+					LogPrint (eLogError, "SSU unexpected peer test");	
 			}
-			else
-				LogPrint (eLogDebug, "SSU second peer test from Charlie. We are Alice");	
 		}	
 	}
 	
@@ -1023,8 +1041,8 @@ namespace transport
 		}
 		uint32_t nonce = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		if (!nonce) nonce = 1;
-		m_PeerTestNonces.insert (nonce);
-		m_Server.NewPeerTest (nonce);
+		m_PeerTest = false;
+		m_Server.NewPeerTest (nonce, ePeerTestParticipantAlice1);
 		SendPeerTest (nonce, 0, 0, address->key, false, false); // address and port always zero for Alice
 	}	
 

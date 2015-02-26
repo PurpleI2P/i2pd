@@ -53,8 +53,10 @@ namespace transport
 			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
 			std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
 
-			void NewPeerTest (uint32_t nonce);
-			void PeerTestComplete (uint32_t nonce);
+			void NewPeerTest (uint32_t nonce, PeerTestParticipant role);
+			PeerTestParticipant GetPeerTestParticipant (uint32_t nonce);
+			void UpdatePeerTest (uint32_t nonce, PeerTestParticipant role);
+			void RemovePeerTest (uint32_t nonce);
 
 		private:
 
@@ -76,6 +78,12 @@ namespace transport
 
 		private:
 
+			struct PeerTest
+			{
+				uint64_t creationTime;
+				PeerTestParticipant role;
+			};	
+			
 			bool m_IsRunning;
 			std::thread * m_Thread, * m_ThreadV6, * m_ReceiversThread;	
 			boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService;
@@ -87,7 +95,7 @@ namespace transport
 			std::mutex m_SessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
-			std::map<uint32_t, uint64_t> m_PeerTests; // nonce -> creation time in milliseconds
+			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
 
 		public:
 			// for HTTP only

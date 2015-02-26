@@ -463,12 +463,28 @@ namespace transport
 		}	
 	}
 
-	void SSUServer::NewPeerTest (uint32_t nonce)
+	void SSUServer::NewPeerTest (uint32_t nonce, PeerTestParticipant role)
 	{
-		m_PeerTests[nonce] = i2p::util::GetMillisecondsSinceEpoch ();
+		m_PeerTests[nonce] = { i2p::util::GetMillisecondsSinceEpoch (), role };
 	}
 
-	void SSUServer::PeerTestComplete (uint32_t nonce)
+	PeerTestParticipant SSUServer::GetPeerTestParticipant (uint32_t nonce)
+	{
+		auto it = m_PeerTests.find (nonce);
+		if (it != m_PeerTests.end ())
+			return it->second.role;
+		else
+			return ePeerTestParticipantUnknown;
+	}	
+
+	void SSUServer::UpdatePeerTest (uint32_t nonce, PeerTestParticipant role)
+	{
+		auto it = m_PeerTests.find (nonce);
+		if (it != m_PeerTests.end ())
+			it->second.role = role;
+	}	
+	
+	void SSUServer::RemovePeerTest (uint32_t nonce)
 	{
 		m_PeerTests.erase (nonce);
 	}	
