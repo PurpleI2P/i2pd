@@ -384,13 +384,25 @@ namespace transport
 		
 	void Transports::DetectExternalIP ()
 	{
-		i2p::context.SetStatus (eRouterStatusTesting);
-		for (int i = 0; i < 5; i++)
+		if (m_SSUServer)
 		{
-			auto router = i2p::data::netdb.GetRandomRouter ();
-			if (router && router->IsSSU () && m_SSUServer)
-				m_SSUServer->GetSession (router, true);  // peer test	
-		}	
+			i2p::context.SetStatus (eRouterStatusTesting);
+			for (int i = 0; i < 5; i++)
+			{
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
+				if (router)
+					m_SSUServer->GetSession (router, true);  // peer test	
+				else
+				{
+					// if not peer test capable routers found pick any
+					router = i2p::data::netdb.GetRandomRouter ();
+					if (router && router->IsSSU ())
+						m_SSUServer->GetSession (router);  	// no peer test
+				}
+			}	
+		}
+		else
+			LogPrint (eLogError, "Can't detect external IP. SSU is not available");
 	}
 			
 	DHKeysPair * Transports::GetNextDHKeysPair ()
