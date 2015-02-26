@@ -14,7 +14,7 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_IsUnreachable (false), m_AcceptsTunnels (true),
-		m_IsFloodfill (false), m_StartupTime (0)
+		m_IsFloodfill (false), m_StartupTime (0), m_Status (eRouterStatusOK )
 	{
 	}
 

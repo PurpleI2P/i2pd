@@ -902,10 +902,15 @@ namespace transport
 			case ePeerTestParticipantAlice1:
 			{			
 				if (m_State == eSessionStateEstablished)
+				{
 					LogPrint (eLogDebug, "SSU peer test from Bob. We are Alice");
+					if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
+						i2p::context.SetStatus (eRouterStatusFirewalled);
+				}
 				else
 				{
 					LogPrint (eLogDebug, "SSU first peer test from Charlie. We are Alice");
+					i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
 					SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (), 
 						senderEndpoint.port (), introKey, true, false); // to Charlie
@@ -920,6 +925,7 @@ namespace transport
 				{
 					// peer test successive
 					LogPrint (eLogDebug, "SSU second peer test from Charlie. We are Alice");
+					i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.RemovePeerTest (nonce);
 				}
 				break;

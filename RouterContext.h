@@ -17,6 +17,13 @@ namespace i2p
 	const char ROUTER_KEYS[] = "router.keys";	
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 	
+	enum RouterStatus
+	{
+		eRouterStatusOK = 0,
+		eRouterStatusTesting = 1,
+		eRouterStatusFirewalled = 2
+	};	
+
 	class RouterContext: public i2p::garlic::GarlicDestination 
 	{
 		public:
@@ -33,12 +40,14 @@ namespace i2p
 			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };
+			RouterStatus GetStatus () const { return m_Status; };
+			void SetStatus (RouterStatus status) { m_Status = status; };
 
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
 			bool AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
-			bool IsUnreachable () const { return m_IsUnreachable; };
+			bool IsUnreachable () const { return m_IsUnreachable || m_Status == eRouterStatusFirewalled; };
 			void SetUnreachable ();		
 			bool IsFloodfill () const { return m_IsFloodfill; };	
 			void SetFloodfill (bool floodfill);	
@@ -74,6 +83,7 @@ namespace i2p
 			uint64_t m_LastUpdateTime;
 			bool m_IsUnreachable, m_AcceptsTunnels, m_IsFloodfill;
 			uint64_t m_StartupTime; // in seconds since epoch
+			RouterStatus m_Status;
 	};
 
 	extern RouterContext context;

@@ -384,6 +384,7 @@ namespace transport
 		
 	void Transports::DetectExternalIP ()
 	{
+		i2p::context.SetStatus (eRouterStatusTesting);
 		for (int i = 0; i < 5; i++)
 		{
 			auto router = i2p::data::netdb.GetRandomRouter ();

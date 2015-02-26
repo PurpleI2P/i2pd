@@ -650,6 +650,15 @@ namespace util
 		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
 			boost::posix_time::time_duration (boost::posix_time::seconds (
 			i2p::context.GetUptime ()))) << "<br>";
+		s << "<b>Status:</b> ";
+		switch (i2p::context.GetStatus ())
+		{
+			case eRouterStatusOK: s << "OK"; break;
+			case eRouterStatusTesting: s << "Testing"; break;
+			case eRouterStatusFirewalled: s << "Firewalled"; break; 
+			default: s << "Unknown";
+		} 
+		s << "<br>";
 		s << "<b>Data path:</b> " << i2p::util::filesystem::GetDataDir().string() << "<br><br>";
 		s << "<b>Our external address:</b>" << "<br>" ;
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
