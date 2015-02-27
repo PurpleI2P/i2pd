@@ -390,7 +390,7 @@ namespace transport
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
-				if (router)
+				if (router  && router->IsSSU ())
 					m_SSUServer->GetSession (router, true);  // peer test	
 				else
 				{
