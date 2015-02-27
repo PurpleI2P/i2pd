@@ -96,7 +96,7 @@ namespace transport
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
-			std::mutex m_SessionsMutex;
+			mutable std::mutex m_SessionsMutex;
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds

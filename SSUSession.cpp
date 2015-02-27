@@ -1076,7 +1076,14 @@ namespace transport
 			uint8_t buf[48 + 18];
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
-			Send (buf, 48);
+			try
+			{
+				Send (buf, 48);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "SSU send session destoriyed exception ", ex.what ()); 
+			}
 			LogPrint (eLogDebug, "SSU session destroyed sent");
 		}
 	}	

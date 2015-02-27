@@ -256,6 +256,7 @@ namespace transport
 
 	std::shared_ptr<SSUSession> SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e) const
 	{
+		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_Sessions.find (e);
 		if (it != m_Sessions.end ())
 			return it->second;
