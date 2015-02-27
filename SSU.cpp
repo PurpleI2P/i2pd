@@ -41,10 +41,9 @@ namespace transport
 		{	
 			m_ThreadV6 = new std::thread (std::bind (&SSUServer::RunV6, this));
 			m_ReceiversService.post (std::bind (&SSUServer::ReceiveV6, this));  
-		}	
-		if (i2p::context.IsUnreachable ())
-			ScheduleIntroducersUpdateTimer ();
+		}
 		SchedulePeerTestsCleanupTimer ();	
+		ScheduleIntroducersUpdateTimer (); // wait for 30 seconds and decide if we need introducers
 	}
 
 	void SSUServer::Stop ()
@@ -423,9 +422,10 @@ namespace transport
 
 	void SSUServer::HandleIntroducersUpdateTimer (const boost::system::error_code& ecode)
 	{
-		if (!ecode)
+		if (ecode != boost::asio::error::operation_aborted)
 		{
 			// timeout expired
+			if (!i2p::context.IsUnreachable ()) return; // we don't need introducers anymore
 			std::list<boost::asio::ip::udp::endpoint> newList;
 			size_t numIntroducers = 0;
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
