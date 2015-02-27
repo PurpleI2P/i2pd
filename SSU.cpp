@@ -3,6 +3,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
+#include "NetDb.h"
 #include "SSU.h"
 
 namespace i2p
@@ -460,6 +461,12 @@ namespace transport
 				}	
 			}	
 			m_Introducers = newList;
+			if (m_Introducers.empty ())
+			{
+				auto introducer = i2p::data::netdb.GetRandomIntroducer ();
+				if (introducer)
+					GetSession (introducer);
+			}	
 			ScheduleIntroducersUpdateTimer ();
 		}	
 	}
