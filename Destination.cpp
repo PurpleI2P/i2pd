@@ -6,7 +6,6 @@
 #include "ElGamal.h"
 #include "Timestamp.h"
 #include "NetDb.h"
-#include "AddressBook.h"
 #include "Destination.h"
 
 namespace i2p
@@ -47,7 +46,7 @@ namespace client
 		}	
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen);  
 		if (m_IsPublic)
-			LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
+			LogPrint (eLogInfo, "Local address ", GetIdentHash().ToBase32 (), ".b32.i2p created");
 		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
