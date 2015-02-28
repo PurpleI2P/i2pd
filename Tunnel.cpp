@@ -203,7 +203,8 @@ namespace tunnel
 
 	Tunnels tunnels;
 	
-	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr)
+	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
+		m_NumSuccesiveTunnelCreations (0), m_NumFailedTunnelCreations (0)
 	{
 	}
 	
@@ -488,6 +489,7 @@ namespace tunnel
 					{
 						LogPrint ("Pending tunnel build request ", it->first, " timeout. Deleted");
 						it = pendingTunnels.erase (it);
+						m_NumFailedTunnelCreations++;
 					}
 					else
 						it++;
@@ -495,13 +497,16 @@ namespace tunnel
 				case eTunnelStateBuildFailed:
 					LogPrint ("Pending tunnel build request ", it->first, " failed. Deleted");
 					it = pendingTunnels.erase (it);
+					m_NumFailedTunnelCreations++;
 				break;
 				case eTunnelStateBuildReplyReceived:
 					// intermediate state, will be either established of build failed
 					it++;
 				break;	
 				default:
+					// success
 					it = pendingTunnels.erase (it);
+					m_NumSuccesiveTunnelCreations++;
 			}	
 		}	
 	}

@@ -175,6 +175,9 @@ namespace tunnel
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
 			i2p::util::Queue<I2NPMessage> m_Queue;
 
+			// some stats
+			int m_NumSuccesiveTunnelCreations, m_NumFailedTunnelCreations;
+
 		public:
 
 			// for HTTP only
@@ -182,6 +185,11 @@ namespace tunnel
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
 			int GetQueueSize () { return m_Queue.GetSize (); };
+			int GetTunnelCreationSuccessRate () const // in percents
+			{ 
+				int totalNum = m_NumSuccesiveTunnelCreations + m_NumFailedTunnelCreations;
+				return totalNum ? m_NumSuccesiveTunnelCreations*100/totalNum : 0;
+			}		
 	};	
 
 	extern Tunnels tunnels;
