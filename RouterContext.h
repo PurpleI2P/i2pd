@@ -47,8 +47,9 @@ namespace i2p
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
 			bool AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
-			bool IsUnreachable () const { return m_IsUnreachable || m_Status == eRouterStatusFirewalled; };
+			bool IsUnreachable () const;
 			void SetUnreachable ();		
+			void SetReachable ();
 			bool IsFloodfill () const { return m_IsFloodfill; };	
 			void SetFloodfill (bool floodfill);	
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
@@ -81,7 +82,7 @@ namespace i2p
 			i2p::data::PrivateKeys m_Keys; 
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			uint64_t m_LastUpdateTime;
-			bool m_IsUnreachable, m_AcceptsTunnels, m_IsFloodfill;
+			bool m_AcceptsTunnels, m_IsFloodfill;
 			uint64_t m_StartupTime; // in seconds since epoch
 			RouterStatus m_Status;
 	};

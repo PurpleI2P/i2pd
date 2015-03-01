@@ -74,9 +74,6 @@ namespace i2p
 			if (host && host[0])
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 
-			if (i2p::util::config::GetArg("-unreachable", 0))
-				i2p::context.SetUnreachable ();
-
 			i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
 			i2p::context.SetFloodfill (i2p::util::config::GetArg("-floodfill", 0));
 			

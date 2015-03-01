@@ -72,7 +72,6 @@ Cmdline options
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
-* --unreachable=        - 1 if router is declared as unreachable and works through introducers.
 * --v6=                 - 1 if supports communication through ipv6, off by default
 * --floodfill=          - 1 if router is floodfill, off by default
 * --httpproxyport=      - The port to listen on (HTTP Proxy)

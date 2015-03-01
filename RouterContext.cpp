@@ -13,8 +13,8 @@ namespace i2p
 	RouterContext context;
 
 	RouterContext::RouterContext ():
-		m_LastUpdateTime (0), m_IsUnreachable (false), m_AcceptsTunnels (true),
-		m_IsFloodfill (false), m_StartupTime (0), m_Status (eRouterStatusOK )
+		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false), 
+		m_StartupTime (0), m_Status (eRouterStatusOK )
 	{
 	}
 
@@ -119,9 +119,13 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
+	bool RouterContext::IsUnreachable () const
+	{
+		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
+	}	
+		
 	void RouterContext::SetUnreachable ()
 	{
-		m_IsUnreachable = true;	
 		// set caps
 		m_RouterInfo.SetCaps (i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting); // LU, B
 		// remove NTCP address
@@ -137,11 +141,41 @@ namespace i2p
 		// delete previous introducers
 		for (auto& addr : addresses)
 			addr.introducers.clear ();
-		
+	
 		// update
 		UpdateRouterInfo ();
 	}
 
+	void RouterContext::SetReachable ()
+	{
+		// update caps
+		uint8_t caps = m_RouterInfo.GetCaps ();
+		caps &= ~i2p::data::RouterInfo::eUnreachable;
+		caps |= i2p::data::RouterInfo::eReachable;
+		caps |= i2p::data::RouterInfo::eSSUIntroducer;
+		if (m_IsFloodfill)
+			caps |= i2p::data::RouterInfo::eFloodfill;
+		m_RouterInfo.SetCaps (caps);
+		
+		// insert NTCP back
+		auto& addresses = m_RouterInfo.GetAddresses ();
+		for (size_t i = 0; i < addresses.size (); i++)
+		{
+			if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportSSU)
+			{
+				// insert NTCP address with host/port form SSU
+				m_RouterInfo.AddNTCPAddress (addresses[i].host.to_string ().c_str (), addresses[i].port);
+				break;
+			}
+		}		
+		// delete previous introducers
+		for (auto& addr : addresses)
+			addr.introducers.clear ();
+		
+		// update
+		UpdateRouterInfo ();
+	}	
+		
 	void RouterContext::SetSupportsV6 (bool supportsV6)
 	{
 		if (supportsV6)
@@ -200,6 +234,9 @@ namespace i2p
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 		m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
 		m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
+
+		if (IsUnreachable ())
+			SetReachable (); // we assume reachable until we discover firewall through peer tests
 		
 		return true;
 	}
