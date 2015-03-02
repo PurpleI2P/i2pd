@@ -68,7 +68,7 @@ namespace client
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			
 			// streaming
-			i2p::stream::StreamingDestination * GetStreamingDestination () const { return m_StreamingDestination; };
+			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination () const { return m_StreamingDestination; };
 			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
 			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
@@ -130,7 +130,7 @@ namespace client
 			uint32_t m_PublishReplyToken;
 			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
 			
-			i2p::stream::StreamingDestination * m_StreamingDestination;
+			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination;
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;

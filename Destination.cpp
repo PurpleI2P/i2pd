@@ -48,7 +48,7 @@ namespace client
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen);  
 		if (m_IsPublic)
 			LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
-		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
+		m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (*this); // TODO:
 	}
 
 	ClientDestination::~ClientDestination ()
@@ -59,8 +59,6 @@ namespace client
 			delete it.second;
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
-		if (m_StreamingDestination)
-			delete m_StreamingDestination;
 		if (m_DatagramDestination)
 			delete m_DatagramDestination;
 	}	
