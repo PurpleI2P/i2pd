@@ -371,11 +371,24 @@ namespace client
 		switch (buf[9])
 		{
 			case PROTOCOL_TYPE_STREAMING:
+			{
 				// streaming protocol
+				if (toPort) // not null
+				{
+					auto it = m_StreamingDestinationsByPorts.find (toPort);
+					if (it != m_StreamingDestinationsByPorts.end ())
+					{
+						// found destination for specific port
+						it->second->HandleDataMessagePayload (buf, length);
+						break;
+					}
+				}	
+				// if port is zero, or destination for port not found, use default
 				if (m_StreamingDestination)
 					m_StreamingDestination->HandleDataMessagePayload (buf, length);
 				else
 					LogPrint ("Missing streaming destination");
+			}
 			break;
 			case PROTOCOL_TYPE_DATAGRAM:
 				// datagram protocol

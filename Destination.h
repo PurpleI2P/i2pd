@@ -130,7 +130,8 @@ namespace client
 			uint32_t m_PublishReplyToken;
 			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
 			
-			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination;
+			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
+			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;
