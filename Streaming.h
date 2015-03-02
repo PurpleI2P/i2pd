@@ -174,7 +174,8 @@ namespace stream
 
 			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
-			StreamingDestination (i2p::client::ClientDestination& owner): m_Owner (owner) {};
+			StreamingDestination (i2p::client::ClientDestination& owner, uint16_t localPort = 0): 
+				m_Owner (owner), m_LocalPort (localPort) {};
 			~StreamingDestination () {};	
 
 			void Start ();
@@ -186,6 +187,7 @@ namespace stream
 			void ResetAcceptor () { if (m_Acceptor) m_Acceptor (nullptr); m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
 			i2p::client::ClientDestination& GetOwner () { return m_Owner; };
+			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
 
@@ -197,6 +199,7 @@ namespace stream
 		private:
 
 			i2p::client::ClientDestination& m_Owner;
+			uint16_t m_LocalPort;
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams;
 			Acceptor m_Acceptor;

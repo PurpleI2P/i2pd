@@ -6,6 +6,7 @@
 #include "ElGamal.h"
 #include "Timestamp.h"
 #include "NetDb.h"
+#include "AddressBook.h"
 #include "Destination.h"
 
 namespace i2p
@@ -46,7 +47,7 @@ namespace client
 		}	
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen);  
 		if (m_IsPublic)
-			LogPrint (eLogInfo, "Local address ", GetIdentHash().ToBase32 (), ".b32.i2p created");
+			LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
 		m_StreamingDestination = new i2p::stream::StreamingDestination (*this); // TODO:
 	}
 
@@ -367,6 +368,8 @@ namespace client
 		uint32_t length = bufbe32toh (buf);
 		buf += 4;
 		// we assume I2CP payload
+		uint16_t fromPort = bufbe16toh (buf + 4), // source
+			toPort = bufbe16toh (buf + 6); // destination 
 		switch (buf[9])
 		{
 			case PROTOCOL_TYPE_STREAMING:
@@ -379,7 +382,7 @@ namespace client
 			case PROTOCOL_TYPE_DATAGRAM:
 				// datagram protocol
 				if (m_DatagramDestination)
-					m_DatagramDestination->HandleDataMessagePayload (buf, length);
+					m_DatagramDestination->HandleDataMessagePayload (fromPort, toPort, buf, length);
 				else
 					LogPrint ("Missing streaming destination");
 			break;

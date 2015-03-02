@@ -27,7 +27,7 @@ namespace datagram
 			~DatagramDestination () {};				
 
 			void SendDatagramTo (const uint8_t * payload, size_t len, std::shared_ptr<const i2p::data::LeaseSet> remote);
-			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
+			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
 			void ResetReceiver () { m_Receiver = nullptr; };
@@ -36,7 +36,7 @@ namespace datagram
 
 			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
 			void SendMsg (I2NPMessage * msg, std::shared_ptr<const i2p::data::LeaseSet> remote);
-			void HandleDatagram (const uint8_t * buf, size_t len);
+			void HandleDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 		private:
 

@@ -67,7 +67,7 @@ namespace datagram
 		}	
 	}
 
-	void DatagramDestination::HandleDatagram (const uint8_t * buf, size_t len)
+	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
 		i2p::data::IdentityEx identity;
 		size_t identityLen = identity.FromBuffer (buf, len);
@@ -91,7 +91,7 @@ namespace datagram
 			LogPrint (eLogWarning, "Datagram signature verification failed");	
 	}
 
-	void DatagramDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len)
+	void DatagramDestination::HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
 		// unzip it
 		CryptoPP::Gunzip decompressor;
@@ -102,7 +102,7 @@ namespace datagram
 		if (uncompressedLen <= MAX_DATAGRAM_SIZE)
 		{
 			decompressor.Get (uncompressed, uncompressedLen);
-			HandleDatagram (uncompressed, uncompressedLen); 
+			HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen); 
 		}
 		else
 			LogPrint ("Received datagram size ", uncompressedLen,  " exceeds max size");

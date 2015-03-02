@@ -661,7 +661,7 @@ namespace stream
 		htobe32buf (buf, size); // length
 		buf += 4;
 		compressor.Get (buf, size);
-		htobuf16(buf + 4, 0); // source port
+		htobe16buf (buf + 4, m_LocalDestination.GetLocalPort ()); // source port
 		htobe16buf (buf + 6, m_Port); // destination port 
 		buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
 		msg->len += size + 4; 
