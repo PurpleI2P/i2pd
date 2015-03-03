@@ -246,6 +246,7 @@ namespace client
 	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination): 
 		I2PService (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
+		m_PortDestination = localDestination->CreateStreamingDestination (port);
 	}
 	
 	void I2PServerTunnel::Start ()
@@ -260,9 +261,15 @@ namespace client
 
 	void I2PServerTunnel::Accept ()
 	{
+		if (m_PortDestination)
+			m_PortDestination->SetAcceptor (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+
 		auto localDestination = GetLocalDestination ();	
 		if (localDestination)
-			localDestination->AcceptStreams (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+		{
+			if (!localDestination->IsAcceptingStreams ()) // set it as default if not set yet
+				localDestination->AcceptStreams (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
+		}
 		else
 			LogPrint ("Local destination not set for server tunnel");
 	}

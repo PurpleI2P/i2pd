@@ -95,7 +95,8 @@ namespace client
 
 		private:
 
-			boost::asio::ip::tcp::endpoint m_Endpoint;		
+			boost::asio::ip::tcp::endpoint m_Endpoint;	
+			std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;	
 	};
 }
 }	
