@@ -87,7 +87,9 @@ namespace client
 			m_Pool->SetActive (true);
 			m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
 			m_StreamingDestination->Start ();	
-
+			for (auto it: m_StreamingDestinationsByPorts)
+				it.second->Start ();
+			
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&ClientDestination::HandleCleanupTimer,
 				this, std::placeholders::_1));
@@ -101,6 +103,8 @@ namespace client
 			m_CleanupTimer.cancel ();
 			m_IsRunning = false;
 			m_StreamingDestination->Stop ();	
+			for (auto it: m_StreamingDestinationsByPorts)
+				it.second->Stop ();
 			if (m_DatagramDestination)
 			{
 				auto d = m_DatagramDestination;
@@ -373,19 +377,9 @@ namespace client
 			case PROTOCOL_TYPE_STREAMING:
 			{
 				// streaming protocol
-				if (toPort) // not null
-				{
-					auto it = m_StreamingDestinationsByPorts.find (toPort);
-					if (it != m_StreamingDestinationsByPorts.end ())
-					{
-						// found destination for specific port
-						it->second->HandleDataMessagePayload (buf, length);
-						break;
-					}
-				}	
-				// if port is zero, or destination for port not found, use default
-				if (m_StreamingDestination)
-					m_StreamingDestination->HandleDataMessagePayload (buf, length);
+				auto dest = GetStreamingDestination (toPort);
+				if (dest)
+					dest->HandleDataMessagePayload (buf, length);
 				else
 					LogPrint ("Missing streaming destination");
 			}
@@ -434,6 +428,18 @@ namespace client
 			return nullptr;
 	}
 
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::GetStreamingDestination (int port) const 
+	{ 
+		if (port) 
+		{
+			auto it = m_StreamingDestinationsByPorts.find (port);
+			if (it != m_StreamingDestinationsByPorts.end ())
+				return it->second;
+		}	
+		// if port is zero or not found, use default destination
+		return m_StreamingDestination; 
+	}
+		
 	void ClientDestination::AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor)
 	{
 		if (m_StreamingDestination)
@@ -445,7 +451,7 @@ namespace client
 		if (m_StreamingDestination)
 			m_StreamingDestination->ResetAcceptor ();
 	}
-
+		
 	bool ClientDestination::IsAcceptingStreams () const
 	{
 		if (m_StreamingDestination)
@@ -453,6 +459,16 @@ namespace client
 		return false;
 	}	
 
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (int port)
+	{
+		auto dest = std::make_shared<i2p::stream::StreamingDestination> (*this, port); 
+		if (port)
+			m_StreamingDestinationsByPorts[port] = dest;
+		else // update default 
+			m_StreamingDestination = dest;
+		return dest;
+	}	
+		
 	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
 	{
 		if (!m_DatagramDestination)
