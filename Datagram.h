@@ -19,7 +19,7 @@ namespace datagram
 	const size_t MAX_DATAGRAM_SIZE = 32768;
 	class DatagramDestination
 	{
-		typedef std::function<void (const i2p::data::IdentityEx& ident, const uint8_t *, size_t)> Receiver;
+		typedef std::function<void (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> Receiver;
 
 		public:
 

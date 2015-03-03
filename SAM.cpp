@@ -259,7 +259,7 @@ namespace client
 				{
 					auto dest = m_Session->localDestination->CreateDatagramDestination ();
 					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), 
-						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
 				}
 				SendSessionCreateReplyOk ();
 			}
@@ -577,9 +577,9 @@ namespace client
 			LogPrint (eLogInfo, "SAM I2P acceptor has been reset");
 	}	
 
-	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& ident, const uint8_t * buf, size_t len)
+	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
-		auto base64 = ident.ToBase64 ();
+		auto base64 = from.ToBase64 ();
 #ifdef _MSC_VER
 		size_t l = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), len); 	
 #else			

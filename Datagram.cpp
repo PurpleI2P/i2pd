@@ -83,7 +83,7 @@ namespace datagram
 		if (verified)
 		{
 			if (m_Receiver != nullptr)
-				m_Receiver (identity, buf + headerLen, len -headerLen);
+				m_Receiver (identity, fromPort, toPort, buf + headerLen, len -headerLen);
 			else
 				LogPrint (eLogWarning, "Receiver for datagram is not set");	
 		}
