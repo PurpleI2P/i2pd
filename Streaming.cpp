@@ -201,9 +201,9 @@ namespace stream
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint (eLogInfo, "Closed");
-			Close ();
 			m_IsOpen = false;
 			m_IsReset = true;
+			Close ();
 		}
 	}	
 
@@ -261,6 +261,8 @@ namespace stream
 			m_ResendTimer.cancel ();
 		if (acknowledged)
 			SendBuffer ();
+		if (!m_IsOpen)
+			Close (); // all outgoing messages have been sent
 	}		
 		
 	size_t Stream::Send (const uint8_t * buf, size_t len)
@@ -463,8 +465,15 @@ namespace stream
 			m_Service.post (std::bind (&Stream::SendPacket, shared_from_this (), p));
 			LogPrint ("FIN sent");
 		}	
-		m_ReceiveTimer.cancel ();
-		m_LocalDestination.DeleteStream (shared_from_this ());	
+		if (m_IsReset || (m_SentPackets.empty () && m_SendBuffer.eof ()))
+		{	
+			// no more outgoing data or closed by peer
+			m_ReceiveTimer.cancel ();
+			m_LocalDestination.DeleteStream (shared_from_this ());	
+		}	
+		else
+			LogPrint (eLogInfo, "Trying to send stream data before closing");
+			
 	}
 
 	size_t Stream::ConcatenatePackets (uint8_t * buf, size_t len)
@@ -584,7 +593,7 @@ namespace stream
 					LogPrint (eLogWarning, "Packet ", it->GetSeqn (), " was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");
 					m_IsOpen = false;
 					m_IsReset = true;
-					m_ReceiveTimer.cancel ();
+					Close ();
 					return;
 				}	
 			}	
