@@ -386,7 +386,7 @@ namespace transport
 		return GetRandomSession (
 			[excluded](std::shared_ptr<SSUSession> session)->bool 
 			{ 
-				return session->GetState () == eSessionStateEstablished &&
+				return session->GetState () == eSessionStateEstablished && !session->IsV6 () && 
 					session != excluded; 
 			}
 								);
