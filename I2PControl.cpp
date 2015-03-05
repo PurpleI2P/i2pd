@@ -38,6 +38,7 @@ namespace client
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_UPTIME] = &I2PControlService::UptimeHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = &I2PControlService::NetDbKnownPeersHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = &I2PControlService::NetDbActivePeersHandler;
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_STATUS] = &I2PControlService::StatusHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = &I2PControlService::TunnelsParticipatingHandler;
 
 		// RouterManager	
@@ -305,6 +306,11 @@ namespace client
 	void I2PControlService::NetDbActivePeersHandler (std::map<std::string, std::string>& results)
 	{
 		results[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = boost::lexical_cast<std::string>(i2p::transport::transports.GetPeers ().size ());	
+	}
+
+	void I2PControlService::StatusHandler (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_STATUS] = boost::lexical_cast<std::string>((int)i2p::context.GetStatus ());
 	}
 
 	void I2PControlService::TunnelsParticipatingHandler (std::map<std::string, std::string>& results)

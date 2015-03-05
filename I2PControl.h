@@ -47,6 +47,7 @@ namespace client
 	const char I2P_CONTROL_ROUTER_INFO_UPTIME[] = "i2p.router.uptime";
 	const char I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS[] = "i2p.router.netdb.knownpeers";
 	const char I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS[] = "i2p.router.netdb.activepeers";
+	const char I2P_CONTROL_ROUTER_INFO_STATUS[] = "i2p.router.net.status";	
 	const char I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING[] = "i2p.router.net.tunnels.participating";	
 		
 	// RouterManager requests
@@ -97,7 +98,8 @@ namespace client
 			typedef void (I2PControlService::*RouterInfoRequestHandler)(std::map<std::string, std::string>& results);
 			void UptimeHandler (std::map<std::string, std::string>& results);
 			void NetDbKnownPeersHandler (std::map<std::string, std::string>& results);
-			void NetDbActivePeersHandler (std::map<std::string, std::string>& results);			
+			void NetDbActivePeersHandler (std::map<std::string, std::string>& results);	
+			void StatusHandler (std::map<std::string, std::string>& results);		
 			void TunnelsParticipatingHandler (std::map<std::string, std::string>& results);
 
 			// RouterManager
