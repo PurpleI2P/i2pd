@@ -230,6 +230,7 @@ namespace stream
 					if (nacked)
 					{
 						LogPrint (eLogDebug, "Packet ", seqn, " NACK");
+						SendPackets (std::vector<Packet *> { *it });
 						it++;
 						continue;
 					}	
@@ -399,7 +400,7 @@ namespace stream
 				auto seqn = it->GetSeqn ();
 				if (numNacks + (seqn - nextSeqn) >= 256)
 				{
-					LogPrint (eLogError, "Number of NACKs exceeds 256");
+					LogPrint (eLogError, "Number of NACKs exceeds 256. seqn=", seqn, " nextSeqn=", nextSeqn);
 					htobe32buf (packet + 12, nextSeqn); // change ack Through
 					break;
 				}	
