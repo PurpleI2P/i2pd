@@ -168,7 +168,10 @@ namespace client
 					{
 						LogPrint (eLogInfo, v.first);
 						if (!v.first.empty())
-							params[v.first] = v.second.data ();
+						{
+							if (v.first != I2P_CONTROL_PARAM_TOKEN) // exclude Token. TODO: verify it
+								params[v.first] = v.second.data ();
+						}	
 					}
 					std::map<std::string, std::string> results;
 					(this->*(it->second))(params, results);
