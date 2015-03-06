@@ -169,7 +169,16 @@ namespace client
 						LogPrint (eLogInfo, v.first);
 						if (!v.first.empty())
 						{
-							if (v.first != I2P_CONTROL_PARAM_TOKEN) // exclude Token. TODO: verify it
+							if (v.first == I2P_CONTROL_PARAM_TOKEN)
+							{
+								if (!m_Tokens.count (v.second.data ()))
+								{
+									LogPrint (eLogWarning, "Unknown token ", v.second.data ());
+									return;
+								}
+				
+							}	
+							else
 								params[v.first] = v.second.data ();
 						}	
 					}
@@ -252,7 +261,9 @@ namespace client
 		if (password != m_Password)
 			LogPrint (eLogError, "I2PControl Authenticate Invalid password ", password, " expected ", m_Password);
 		results[I2P_CONTROL_PARAM_API] = api;
-		results[I2P_CONTROL_PARAM_TOKEN] = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
+		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
+		m_Tokens.insert (token);	
+		results[I2P_CONTROL_PARAM_TOKEN] = token;
 	}	
 
 	void I2PControlService::EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results)

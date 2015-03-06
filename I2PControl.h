@@ -7,6 +7,7 @@
 #include <array>
 #include <string>
 #include <map>
+#include <set>
 #include <boost/asio.hpp>
 
 namespace i2p
@@ -120,6 +121,7 @@ namespace client
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::deadline_timer m_ShutdownTimer;
+			std::set<std::string> m_Tokens;
 			
 			std::map<std::string, MethodHandler> m_MethodHandlers;
 			std::map<std::string, I2PControlRequestHandler> m_I2PControlHandlers;
