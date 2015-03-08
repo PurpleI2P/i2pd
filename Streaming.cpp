@@ -12,9 +12,9 @@ namespace i2p
 namespace stream
 {
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local, 
-		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service), m_SendStreamID (0), 
-		m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), m_IsOpen (false), 
-		m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local), 
+		std::shared_ptr<const i2p::data::LeaseSet> remote, int port): m_Service (service),
+		m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
+		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local), 
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), 
 		m_AckSendTimer (m_Service),  m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port), 
 		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_LastWindowSizeIncreaseTime (0)
@@ -25,7 +25,7 @@ namespace stream
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
 		m_Service (service), m_SendStreamID (0), m_SequenceNumber (0), m_LastReceivedSequenceNumber (-1), 
-		m_IsOpen (false), m_IsReset (false), m_IsAckSendScheduled (false), m_LocalDestination (local),
+		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service), 
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE), 
 		m_RTT (INITIAL_RTT), m_LastWindowSizeIncreaseTime (0)
@@ -95,7 +95,7 @@ namespace stream
 			}
 
 			// schedule ack for last message
-			if (m_IsOpen)
+			if (m_Status == eStreamStatusOpen)
 			{
 				if (!m_IsAckSendScheduled)
 				{
@@ -107,7 +107,7 @@ namespace stream
 			}	
 			else if (isSyn)
 				// we have to send SYN back to incoming connection
-				Send (nullptr, 0); // also sets m_IsOpen				
+				SendBuffer (); // also sets m_IsOpen				
 		}	
 		else 
 		{	
@@ -201,8 +201,7 @@ namespace stream
 		if (flags & PACKET_FLAG_CLOSE)
 		{
 			LogPrint (eLogInfo, "Closed");
-			m_IsOpen = false;
-			m_IsReset = true;
+			m_Status = eStreamStatusReset;
 			Close ();
 		}
 	}	
@@ -264,7 +263,7 @@ namespace stream
 			m_ResendTimer.cancel ();
 		if (acknowledged)
 			SendBuffer ();
-		if (!m_IsOpen)
+		if (m_Status == eStreamStatusClosing)
 			Close (); // all outgoing messages have been sent
 	}		
 		
@@ -289,7 +288,7 @@ namespace stream
 		std::vector<Packet *> packets;
 		{
 			std::unique_lock<std::mutex> l(m_SendBufferMutex);
-			while (!m_IsOpen || (IsEstablished () && !m_SendBuffer.eof () && numMsgs > 0))
+			while ((m_Status == eStreamStatusNew) || (IsEstablished () && !m_SendBuffer.eof () && numMsgs > 0))
 			{
 				Packet * p = new Packet ();
 				uint8_t * packet = p->GetBuffer ();
@@ -310,10 +309,10 @@ namespace stream
 				size++; // NACK count
 				packet[size] = RESEND_TIMEOUT;
 				size++; // resend delay
-				if (!m_IsOpen)
+				if (m_Status == eStreamStatusNew)
 				{	
 					//  initial packet
-					m_IsOpen = true; m_IsReset = false;
+					m_Status = eStreamStatusOpen;
 					uint16_t flags = PACKET_FLAG_SYNCHRONIZE | PACKET_FLAG_FROM_INCLUDED | 
 						PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
 					if (isNoAck) flags |= PACKET_FLAG_NO_ACK;
@@ -361,7 +360,7 @@ namespace stream
 				m_SentPackets.insert (it);
 			}
 			SendPackets (packets);
-			if (!m_IsOpen && m_SendBuffer.eof ())
+			if (m_Status == eStreamStatusClosing && m_SendBuffer.eof ())
 				SendClose ();
 			if (isEmpty)
 				ScheduleResend ();
@@ -439,15 +438,17 @@ namespace stream
 
 	void Stream::Close ()
 	{
-		if (m_IsOpen)
+		if (m_Status == eStreamStatusOpen)
 		{	
-			m_IsOpen = false;
+			m_Status = eStreamStatusClosing;
 			if (m_SendBuffer.eof ()) // nothing to send
 				SendClose ();
 		}	
-		if (m_IsReset || m_SentPackets.empty ()) 
+		if (m_Status == eStreamStatusReset || m_SentPackets.empty ()) 
 		{	
 			// closed by peer or everything has been acknowledged
+			if (m_Status == eStreamStatusClosing)
+				SendClose ();
 			m_ReceiveTimer.cancel ();
 			m_LocalDestination.DeleteStream (shared_from_this ());	
 		}	
@@ -458,6 +459,7 @@ namespace stream
 
 	void Stream::SendClose ()
 	{
+		m_Status = eStreamStatusClosed;
 		Packet * p = new Packet ();
 		uint8_t * packet = p->GetBuffer ();
 		size_t size = 0;
@@ -516,7 +518,7 @@ namespace stream
 				m_AckSendTimer.cancel ();
 			}
 			SendPackets (std::vector<Packet *> { packet });
-			if (m_IsOpen)
+			if (m_Status == eStreamStatusOpen)
 			{	
 				bool isEmpty = m_SentPackets.empty ();
 				m_SentPackets.insert (packet);
@@ -602,8 +604,7 @@ namespace stream
 				else
 				{
 					LogPrint (eLogWarning, "Packet ", it->GetSeqn (), " was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");
-					m_IsOpen = false;
-					m_IsReset = true;
+					m_Status = eStreamStatusReset;
 					Close ();
 					return;
 				}	
@@ -632,7 +633,7 @@ namespace stream
 	{
 		if (m_IsAckSendScheduled)
 		{
-			if (m_IsOpen)
+			if (m_Status == eStreamStatusOpen)
 				SendQuickAck ();
 			m_IsAckSendScheduled = false;
 		}	

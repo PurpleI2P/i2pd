@@ -83,6 +83,15 @@ namespace stream
 			return p1->GetSeqn () < p2->GetSeqn (); 
 		};
 	};	
+
+	enum StreamStatus
+	{
+		eStreamStatusNew,
+		eStreamStatusOpen,
+		eStreamStatusReset,
+		eStreamStatusClosing,
+		eStreamStatusClosed
+	};	
 	
 	class StreamingDestination;
 	class Stream: public std::enable_shared_from_this<Stream>
@@ -98,7 +107,7 @@ namespace stream
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 			std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
 			const i2p::data::IdentityEx& GetRemoteIdentity () const { return m_RemoteIdentity; };
-			bool IsOpen () const { return m_IsOpen; };
+			bool IsOpen () const { return m_Status ==  eStreamStatusOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
 			
@@ -149,7 +158,8 @@ namespace stream
 			boost::asio::io_service& m_Service;
 			uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
 			int32_t m_LastReceivedSequenceNumber;
-			bool m_IsOpen, m_IsReset, m_IsAckSendScheduled;
+			StreamStatus m_Status;
+			bool m_IsAckSendScheduled;
 			StreamingDestination& m_LocalDestination;
 			i2p::data::IdentityEx m_RemoteIdentity;
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
@@ -239,13 +249,13 @@ namespace stream
 		if (ecode == boost::asio::error::operation_aborted)
 		{	
 			// timeout not expired	
-			if (m_IsOpen)
+			if (m_Status == eStreamStatusOpen)
 				// no error
 				handler (boost::system::error_code (), received); 
 			else
 			{	
 				// stream closed
-				if (m_IsReset)
+				if (m_Status == eStreamStatusReset)
 				{
 					// stream closed by peer
 					handler (received > 0 ? boost::system::error_code () : // we still have some data
