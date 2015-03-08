@@ -230,6 +230,8 @@ namespace stream
 					if (nacked)
 					{
 						LogPrint (eLogDebug, "Packet ", seqn, " NACK");
+						(*it)->numResendAttempts++;
+						(*it)->sendTime = ts;
 						SendPackets (std::vector<Packet *> { *it });
 						it++;
 						continue;
