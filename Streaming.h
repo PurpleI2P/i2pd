@@ -131,6 +131,8 @@ namespace stream
 			
 		private:
 
+			void Terminate ();
+
 			void SendBuffer ();
 			void SendQuickAck ();
 			void SendClose ();

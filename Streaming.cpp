@@ -35,6 +35,12 @@ namespace stream
 
 	Stream::~Stream ()
 	{	
+		Terminate ();
+		LogPrint (eLogDebug, "Stream deleted");
+	}	
+
+	void Stream::Terminate ()
+	{
 		m_AckSendTimer.cancel ();
 		while (!m_ReceiveQueue.empty ())
 		{
@@ -52,7 +58,6 @@ namespace stream
 		for (auto it: m_SavedPackets)
 			delete it;
 		m_SavedPackets.clear ();
-		LogPrint (eLogDebug, "Stream deleted");
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
@@ -438,23 +443,34 @@ namespace stream
 
 	void Stream::Close ()
 	{
-		if (m_Status == eStreamStatusOpen)
-		{	
-			m_Status = eStreamStatusClosing;
-			if (m_SendBuffer.eof ()) // nothing to send
-				SendClose ();
-		}	
-		if (m_Status == eStreamStatusReset || m_SentPackets.empty ()) 
-		{	
-			// closed by peer or everything has been acknowledged
-			if (m_Status == eStreamStatusClosing)
-				SendClose ();
-			m_ReceiveTimer.cancel ();
-			m_LocalDestination.DeleteStream (shared_from_this ());	
-		}	
-		else
-			LogPrint (eLogInfo, "Trying to send stream data before closing");
-			
+		switch (m_Status)
+		{
+			case eStreamStatusOpen:
+				m_Status = eStreamStatusClosing;
+				Close (); // recursion
+				if (m_Status == eStreamStatusClosing) //still closing
+					LogPrint (eLogInfo, "Trying to send stream data before closing");
+			break;
+			case eStreamStatusReset:
+				Terminate ();
+				m_LocalDestination.DeleteStream (shared_from_this ());	
+			break;
+			case eStreamStatusClosing:
+				if (m_SentPackets.empty () && m_SendBuffer.eof ()) // nothing to send
+				{
+					SendClose ();
+					Terminate ();
+					m_LocalDestination.DeleteStream (shared_from_this ());	
+				}
+			break;
+			case eStreamStatusClosed:
+				// already closed
+				Terminate ();
+				m_LocalDestination.DeleteStream (shared_from_this ());		
+			break;				
+			default:
+				LogPrint (eLogWarning, "Unexpected stream status ", (int)m_Status);
+		};			
 	}
 
 	void Stream::SendClose ()
