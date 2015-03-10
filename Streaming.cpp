@@ -36,28 +36,29 @@ namespace stream
 	Stream::~Stream ()
 	{	
 		Terminate ();
+		while (!m_ReceiveQueue.empty ())
+		{
+			auto packet = m_ReceiveQueue.front ();
+			m_ReceiveQueue.pop ();
+			delete packet;
+		}
+		
+		for (auto it: m_SentPackets)
+			delete it;
+		m_SentPackets.clear ();
+		
+		for (auto it: m_SavedPackets)
+			delete it;
+		m_SavedPackets.clear ();
+			
 		LogPrint (eLogDebug, "Stream deleted");
 	}	
 
 	void Stream::Terminate ()
 	{
 		m_AckSendTimer.cancel ();
-		while (!m_ReceiveQueue.empty ())
-		{
-			auto packet = m_ReceiveQueue.front ();
-			m_ReceiveQueue.pop ();
-			delete packet;
-		}	
 		m_ReceiveTimer.cancel ();
-					
-		for (auto it: m_SentPackets)
-			delete it;
-		m_SentPackets.clear ();
 		m_ResendTimer.cancel ();
-
-		for (auto it: m_SavedPackets)
-			delete it;
-		m_SavedPackets.clear ();
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
