@@ -640,6 +640,7 @@ namespace stream
 					// congesion avoidance didn't help
 					m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
 					UpdateCurrentRemoteLease (); // pick another lease
+					m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
 				}	
 				SendPackets (packets);
 			}	
