@@ -18,10 +18,12 @@ namespace crypto
 	{
 		public:
 
-			ElGamalEncryption (const uint8_t * key):
-				y (key, 256), k (rnd, CryptoPP::Integer::One(), elgp-1),
-				a (a_exp_b_mod_c (elgg, k, elgp)), b1 (a_exp_b_mod_c (y, k, elgp))
+			ElGamalEncryption (const uint8_t * key)
 			{
+				CryptoPP::AutoSeededRandomPool rnd;	
+				CryptoPP::Integer y (key, 256), k (rnd, CryptoPP::Integer::One(), elgp-1);
+				a = a_exp_b_mod_c (elgg, k, elgp);
+				b1 = a_exp_b_mod_c (y, k, elgp);
 			}
 
 			void Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding = false)
@@ -50,8 +52,7 @@ namespace crypto
 
 		private:
 
-			CryptoPP::AutoSeededRandomPool rnd;	
-			CryptoPP::Integer y, k, a, b1;	
+			CryptoPP::Integer a, b1;	
 	};
 
 	inline bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
