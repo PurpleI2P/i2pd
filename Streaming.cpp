@@ -452,12 +452,14 @@ namespace stream
 					LogPrint (eLogInfo, "Trying to send stream data before closing");
 			break;
 			case eStreamStatusReset:
+				SendClose ();
 				Terminate ();
 				m_LocalDestination.DeleteStream (shared_from_this ());	
 			break;
 			case eStreamStatusClosing:
 				if (m_SentPackets.empty () && m_SendBuffer.eof ()) // nothing to send
 				{
+					m_Status = eStreamStatusClosed;
 					SendClose ();
 					Terminate ();
 					m_LocalDestination.DeleteStream (shared_from_this ());	
@@ -475,7 +477,6 @@ namespace stream
 
 	void Stream::SendClose ()
 	{
-		m_Status = eStreamStatusClosed;
 		Packet * p = new Packet ();
 		uint8_t * packet = p->GetBuffer ();
 		size_t size = 0;
