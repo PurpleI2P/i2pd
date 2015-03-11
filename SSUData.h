@@ -66,6 +66,7 @@ namespace transport
 		
 		IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (0), lastFragmentInsertTime (0) {};
 		~IncompleteMessage () { if (msg) DeleteI2NPMessage (msg); };
+		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);	
 	};
 
 	struct SentMessage

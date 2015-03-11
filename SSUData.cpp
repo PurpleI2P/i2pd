@@ -10,6 +10,21 @@ namespace i2p
 {
 namespace transport
 {
+	void IncompleteMessage::AttachNextFragment (const uint8_t * fragment, size_t fragmentSize)
+	{
+		if (msg->len + fragmentSize > msg->maxLen)
+		{
+			LogPrint (eLogInfo, "SSU I2NP message size ", msg->maxLen, " is not enough");
+			I2NPMessage * newMsg = NewI2NPMessage ();
+			*newMsg = *msg;
+			DeleteI2NPMessage (msg);
+			msg = newMsg;
+		}
+		memcpy (msg->buf + msg->len, fragment, fragmentSize);
+		msg->len += fragmentSize;
+		nextFragmentNum++;
+	}
+
 	SSUData::SSUData (SSUSession& session):
 		m_Session (session), m_ResendTimer (session.GetService ()), m_DecayTimer (session.GetService ()),
 		m_IncompleteMessagesCleanupTimer (session.GetService ())
@@ -155,15 +170,11 @@ namespace transport
 			}
 
 			//  find message with msgID
-			I2NPMessage * msg = nullptr;
 			auto it = m_IncompleteMessages.find (msgID);
-			if (it != m_IncompleteMessages.end ()) 
-				// message exists
-				msg = it->second->msg;
-			else
+			if (it == m_IncompleteMessages.end ()) 
 			{
 				// create new message
-				msg = NewI2NPShortMessage ();
+				auto msg = NewI2NPShortMessage ();
 				msg->len -= I2NP_SHORT_HEADER_SIZE;
 				it = m_IncompleteMessages.insert (std::make_pair (msgID, 
 					std::unique_ptr<IncompleteMessage>(new IncompleteMessage (msg)))).first;
@@ -174,18 +185,7 @@ namespace transport
 			if (fragmentNum == incompleteMessage->nextFragmentNum)
 			{
 				// expected fragment
-				if (msg->len + fragmentSize > msg->maxLen)
-				{
-					LogPrint (eLogInfo, "SSU I2NP message size ", msg->maxLen, " is not enough");
-					I2NPMessage * newMsg = NewI2NPMessage ();
-					*newMsg = *msg;
-					DeleteI2NPMessage (msg);
-					msg = newMsg;
-					it->second->msg = msg; 
-				}
-				memcpy (msg->buf + msg->len, buf, fragmentSize);
-				msg->len += fragmentSize;
-				incompleteMessage->nextFragmentNum++;
+				incompleteMessage->AttachNextFragment (buf, fragmentSize);
 				if (!isLast && !incompleteMessage->savedFragments.empty ())
 				{
 					// try saved fragments
@@ -194,10 +194,8 @@ namespace transport
 						auto& savedFragment = *it1;
 						if (savedFragment->fragmentNum == incompleteMessage->nextFragmentNum)
 						{
-							memcpy (msg->buf + msg->len, savedFragment->buf, savedFragment->len);
-							msg->len += savedFragment->len;
+							incompleteMessage->AttachNextFragment (savedFragment->buf, savedFragment->len);
 							isLast = savedFragment->isLast;
-							incompleteMessage->nextFragmentNum++;
 							incompleteMessage->savedFragments.erase (it1++);
 						}
 						else
@@ -228,6 +226,7 @@ namespace transport
 			if (isLast)
 			{
 				// delete incomplete message
+				auto msg = incompleteMessage->msg;
 				incompleteMessage->msg = nullptr;
 				m_IncompleteMessages.erase (msgID);				
 				// process message
