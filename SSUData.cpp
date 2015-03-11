@@ -163,7 +163,7 @@ namespace transport
 			else
 			{
 				// create new message
-				msg = NewI2NPMessage ();
+				msg = NewI2NPShortMessage ();
 				msg->len -= I2NP_SHORT_HEADER_SIZE;
 				it = m_IncompleteMessages.insert (std::make_pair (msgID, 
 					std::unique_ptr<IncompleteMessage>(new IncompleteMessage (msg)))).first;
@@ -174,6 +174,15 @@ namespace transport
 			if (fragmentNum == incompleteMessage->nextFragmentNum)
 			{
 				// expected fragment
+				if (msg->len + fragmentSize > msg->maxLen)
+				{
+					LogPrint (eLogInfo, "Short I2NP message of size ", msg->maxLen, " is not enough");
+					I2NPMessage * newMsg = NewI2NPMessage ();
+					*newMsg = *msg;
+					DeleteI2NPMessage (msg);
+					msg = newMsg;
+					it->second->msg = msg; 
+				}
 				memcpy (msg->buf + msg->len, buf, fragmentSize);
 				msg->len += fragmentSize;
 				incompleteMessage->nextFragmentNum++;
