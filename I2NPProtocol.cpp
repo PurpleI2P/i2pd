@@ -102,7 +102,7 @@ namespace i2p
 	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
-		I2NPMessage * m = NewI2NPMessage ();
+		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, key, 32); // key
 		buf += 32;
@@ -148,7 +148,7 @@ namespace i2p
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
 		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
 	{
-		I2NPMessage * m = NewI2NPMessage ();
+		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, dest, 32); // key
 		buf += 32;
@@ -405,7 +405,7 @@ namespace i2p
 
 	I2NPMessage * CreateTunnelDataMsg (const uint8_t * buf)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPShortMessage ();
 		memcpy (msg->GetPayload (), buf, i2p::tunnel::TUNNEL_DATA_MSG_SIZE);
 		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE; 
 		FillI2NPMessageHeader (msg, eI2NPTunnelData);
@@ -414,7 +414,7 @@ namespace i2p
 
 	I2NPMessage * CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload)	
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPShortMessage ();
 		memcpy (msg->GetPayload () + 4, payload, i2p::tunnel::TUNNEL_DATA_MSG_SIZE - 4);
 		htobe32buf (msg->GetPayload (), tunnelID);
 		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE; 

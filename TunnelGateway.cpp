@@ -138,7 +138,7 @@ namespace tunnel
 
 	void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage ()
 	{
-		m_CurrentTunnelDataMsg = NewI2NPMessage ();
+		m_CurrentTunnelDataMsg = NewI2NPShortMessage ();
 		m_CurrentTunnelDataMsg->Align (12);
 		// we reserve space for padding
 		m_CurrentTunnelDataMsg->offset += TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE;

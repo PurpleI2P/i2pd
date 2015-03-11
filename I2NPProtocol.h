@@ -106,7 +106,7 @@ namespace tunnel
 }
 
 	const size_t I2NP_MAX_MESSAGE_SIZE = 32768; 
-	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 2400; 
+	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096; 
 	struct I2NPMessage
 	{	
 		uint8_t * buf;	

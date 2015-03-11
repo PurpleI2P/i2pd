@@ -32,7 +32,7 @@ namespace tunnel
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		auto numHops = m_Config->GetNumHops ();
 		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops; 
-		I2NPMessage * msg = NewI2NPMessage ();
+		I2NPMessage * msg = NewI2NPShortMessage ();
 		*msg->GetPayload () = numRecords;
 		msg->len += numRecords*TUNNEL_BUILD_RECORD_SIZE + 1;		
 
