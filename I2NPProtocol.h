@@ -145,6 +145,7 @@ namespace tunnel
 			
 		void Align (size_t alignment) 
 		{
+			if (len + alignment > maxLen) return;
 			size_t rem = ((size_t)GetBuffer ()) % alignment;
 			if (rem)
 			{
