@@ -97,7 +97,7 @@ namespace tunnel
 				if (fragment + size < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 				{
 					// this is not last message. we have to copy it
-					m.data = NewI2NPMessage ();
+					m.data = NewI2NPShortMessage ();
 					m.data->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
 					m.data->len += TUNNEL_GATEWAY_HEADER_SIZE;
 					*(m.data) = *msg;
@@ -156,8 +156,16 @@ namespace tunnel
 			auto& msg = it->second;
 			if (m.nextFragmentNum == msg.nextFragmentNum)
 			{
-				if (msg.data->len + size < I2NP_MAX_MESSAGE_SIZE) // check if messega is not too long
+				if (msg.data->len + size < I2NP_MAX_MESSAGE_SIZE) // check if message is not too long
 				{	
+					if (msg.data->len + size > msg.data->maxLen)
+					{
+						LogPrint (eLogInfo, "Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
+						I2NPMessage * newMsg = NewI2NPMessage ();
+						*newMsg = *(msg.data);
+						DeleteI2NPMessage (msg.data);
+						msg.data = newMsg;
+					}
 					memcpy (msg.data->buf + msg.data->len, fragment, size); // concatenate fragment
 					msg.data->len += size;
 					if (isLastFragment)
@@ -211,6 +219,14 @@ namespace tunnel
 			{
 				LogPrint (eLogInfo, "Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
 				auto size = it->second.data->GetLength ();
+				if (msg.data->len + size > msg.data->maxLen)
+				{
+					LogPrint (eLogInfo, "Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
+					I2NPMessage * newMsg = NewI2NPMessage ();
+					*newMsg = *(msg.data);
+					DeleteI2NPMessage (msg.data);
+					msg.data = newMsg;
+				}
 				memcpy (msg.data->buf + msg.data->len, it->second.data->GetBuffer (), size); // concatenate out-of-sync fragment
 				msg.data->len += size;
 				if (it->second.isLastFragment)
@@ -250,7 +266,7 @@ namespace tunnel
 						if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply )
 						{
 							// catch RI or reply with new list of routers
-							auto ds = NewI2NPMessage ();
+							auto ds = NewI2NPShortMessage ();
 							*ds = *(msg.data);
 							i2p::data::netdb.PostI2NPMsg (ds);
 						}

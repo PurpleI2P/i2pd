@@ -176,7 +176,7 @@ namespace transport
 				// expected fragment
 				if (msg->len + fragmentSize > msg->maxLen)
 				{
-					LogPrint (eLogInfo, "Short I2NP message of size ", msg->maxLen, " is not enough");
+					LogPrint (eLogInfo, "SSU I2NP message size ", msg->maxLen, " is not enough");
 					I2NPMessage * newMsg = NewI2NPMessage ();
 					*newMsg = *msg;
 					DeleteI2NPMessage (msg);
