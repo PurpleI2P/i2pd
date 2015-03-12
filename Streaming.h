@@ -248,26 +248,15 @@ namespace stream
 	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler)
 	{
 		size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), boost::asio::buffer_size(buffer));
-		if (ecode == boost::asio::error::operation_aborted)
+		if (received > 0)
+			handler (boost::system::error_code (), received);
+		else if (ecode == boost::asio::error::operation_aborted)
 		{	
 			// timeout not expired	
-			if (m_Status == eStreamStatusOpen)
-				// no error
-				handler (boost::system::error_code (), received); 
+			if (m_Status == eStreamStatusReset)
+				handler (boost::asio::error::make_error_code (boost::asio::error::connection_reset), 0);
 			else
-			{	
-				// stream closed
-				if (m_Status == eStreamStatusReset)
-				{
-					// stream closed by peer
-					handler (received > 0 ? boost::system::error_code () : // we still have some data
-						boost::asio::error::make_error_code (boost::asio::error::connection_reset), // no more data
-						received);
-					
-				}
-				else // stream closed by us
-					handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), received); 
-			}	
+				handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0); 
 		}	
 		else
 			// timeout expired
