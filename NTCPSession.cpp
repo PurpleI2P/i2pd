@@ -394,6 +394,7 @@ namespace transport
 			Terminate ();
 			return;
 		}	
+		m_RemoteIdentity.DropVerifier (); 
 
 		SendPhase4 (tsA, tsB);
 	}
@@ -467,6 +468,7 @@ namespace transport
 				Terminate ();
 				return;
 			}	
+			m_RemoteIdentity.DropVerifier (); 
 			LogPrint (eLogInfo, "NTCP session to ", m_Socket.remote_endpoint (), " connected");
 			Connected ();
 						

@@ -238,6 +238,7 @@ namespace transport
 		// verify
 		if (!s.Verify (m_RemoteIdentity, payload))
 			LogPrint (eLogError, "SSU signature verification failed");
+		m_RemoteIdentity.DropVerifier ();	
 		
 		SendSessionConfirmed (y, ourAddress, addressSize + 2);
 	}	
