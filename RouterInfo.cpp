@@ -553,14 +553,6 @@ namespace data
 		m_Properties[key] = value;
 	}	
 
-	const char * RouterInfo::GetProperty (const char * key) const
-	{
-		auto it = m_Properties.find (key);
-		if (it != m_Properties.end ())
-			return it->second.c_str ();
-		return 0;
-	}	
-
 	bool RouterInfo::IsFloodfill () const
 	{
 		return m_Caps & Caps::eFloodfill;

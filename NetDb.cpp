@@ -356,6 +356,7 @@ namespace data
 					if (!r->IsUnreachable () && (!r->UsesIntroducer () || ts < r->GetTimestamp () + 3600*1000LL)) // 1 hour
 					{	
 						r->DeleteBuffer ();
+						r->ClearProperties (); // properties are not used for regular routers
 						m_RouterInfos[r->GetIdentHash ()] = r;
 						if (r->IsFloodfill ())
 							m_Floodfills.push_back (r);
@@ -566,8 +567,13 @@ namespace data
 				decompressor.MessageEnd();
 				uint8_t uncompressed[2048];
 				size_t uncomressedSize = decompressor.MaxRetrievable ();
-				decompressor.Get (uncompressed, uncomressedSize);
-				AddRouterInfo (buf + DATABASE_STORE_KEY_OFFSET, uncompressed, uncomressedSize);
+				if (uncomressedSize <= 2048)
+				{
+					decompressor.Get (uncompressed, uncomressedSize);
+					AddRouterInfo (buf + DATABASE_STORE_KEY_OFFSET, uncompressed, uncomressedSize);
+				}
+				else
+					LogPrint ("Invalid RouterInfo uncomressed length ", (int)uncomressedSize);
 			}
 			catch (CryptoPP::Exception& ex)
 			{
