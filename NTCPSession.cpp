@@ -553,22 +553,21 @@ namespace transport
 	{
 		if (!m_NextMessage) // new message, header expected
 		{	
-			m_NextMessage = i2p::NewI2NPMessage ();
-			m_NextMessageOffset = 0;
-			
-			m_Decryption.Decrypt (encrypted, m_NextMessage->buf);
-			uint16_t dataSize = bufbe16toh (m_NextMessage->buf);
+			// descrypt header and extract length
+			uint8_t buf[16];
+			m_Decryption.Decrypt (encrypted, buf);
+			uint16_t dataSize = bufbe16toh (buf);
 			if (dataSize)
 			{
 				// new message
 				if (dataSize > NTCP_MAX_MESSAGE_SIZE)
 				{
 					LogPrint (eLogError, "NTCP data size ", dataSize, " exceeds max size");
-					i2p::DeleteI2NPMessage (m_NextMessage);
-					m_NextMessage = nullptr;
 					return false;
 				}
-				m_NextMessageOffset += 16;
+				m_NextMessage = dataSize <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
+				memcpy (m_NextMessage->buf, buf, 16);
+				m_NextMessageOffset = 16;
 				m_NextMessage->offset = 2; // size field
 				m_NextMessage->len = dataSize + 2; 
 			}	
@@ -576,8 +575,6 @@ namespace transport
 			{	
 				// timestamp
 				LogPrint ("Timestamp");	
-				i2p::DeleteI2NPMessage (m_NextMessage);
-				m_NextMessage = nullptr;
 				return true;
 			}	
 		}	
