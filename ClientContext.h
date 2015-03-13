@@ -17,6 +17,13 @@ namespace i2p
 {
 namespace client
 {
+	const char I2P_TUNNELS_SECTION_CLIENT[] = "client";
+	const char I2P_TUNNELS_SECTION_SERVER[] = "server";	
+	const char I2P_CLIENT_TUNNEL_PORT1[] = "port";
+	const char I2P_CLIENT_TUNNEL_DESTINATION1[] = "destination";
+	const char I2P_CLIENT_TUNNEL_KEYS1[] = "keys";
+	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT1[] = "destinationport";	
+
 	const char I2P_CLIENT_TUNNEL_NAME[] = "client.name";
 	const char I2P_CLIENT_TUNNEL_PORT[] = "client.port";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "client.destination";
@@ -52,6 +59,7 @@ namespace client
 		private:
 
 			void ReadTunnels ();
+			void ReadTunnels1 (); // using propery tree
 	
 		private:
 

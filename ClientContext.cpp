@@ -2,6 +2,8 @@
 #include <iostream>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 #include "util.h"
 #include "Log.h"
 #include "Identity.h"
@@ -327,5 +329,58 @@ namespace client
 			}
 		}
 	}
+
+	void ClientContext::ReadTunnels1 ()
+	{
+		boost::property_tree::ptree pt;
+		try
+		{
+			boost::property_tree::read_ini (i2p::util::filesystem::GetFullPath (TUNNELS_CONFIG_FILENAME), pt);
+		}
+		catch (std::exception& ex)
+		{
+			LogPrint (eLogWarning, "Can't read ", TUNNELS_CONFIG_FILENAME, ": ", ex.what ());
+			return;
+		}
+			
+		int numClientTunnels = 0, numServerTunnels = 0;
+		for (auto& section: pt)
+		{
+			if (section.first == I2P_TUNNELS_SECTION_CLIENT)
+			{
+				try
+				{
+					// mandatory params
+					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION1);
+					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT1);
+					std::string keys = section.second.get<std::string> (I2P_CLIENT_TUNNEL_KEYS1);
+					// optional params
+					//int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT1, 0);
+
+					std::shared_ptr<ClientDestination> localDestination = nullptr;
+					if (keys.length () > 0)
+						localDestination = LoadLocalDestination (keys, false);
+					auto clientTunnel = new I2PClientTunnel (dest, port, localDestination);
+					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
+						clientTunnel->Start ();
+					else
+						LogPrint (eLogError, "I2P client tunnel with port ", port, " already exists");
+					numClientTunnels++;
+				}
+				catch (std::exception& ex)
+				{
+					LogPrint (eLogError, "Can't read client tunnel params: ", ex.what ());
+				}
+			}
+			else if (section.first == I2P_TUNNELS_SECTION_SERVER)
+			{
+				numServerTunnels++;
+			}
+			else
+				LogPrint (eLogWarning, "Unknown section ", section.first, " in ", TUNNELS_CONFIG_FILENAME);
+		}	
+		LogPrint (eLogInfo, numClientTunnels, " I2P client tunnels created");
+		LogPrint (eLogInfo, numServerTunnels, " I2P server tunnels created");
+	}	
 }		
 }	
