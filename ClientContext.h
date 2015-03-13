@@ -17,21 +17,16 @@ namespace i2p
 {
 namespace client
 {
-	const char I2P_TUNNELS_SECTION_CLIENT[] = "client";
-	const char I2P_TUNNELS_SECTION_SERVER[] = "server";	
-	const char I2P_CLIENT_TUNNEL_PORT1[] = "port";
-	const char I2P_CLIENT_TUNNEL_DESTINATION1[] = "destination";
-	const char I2P_CLIENT_TUNNEL_KEYS1[] = "keys";
-	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT1[] = "destinationport";	
-
-	const char I2P_CLIENT_TUNNEL_NAME[] = "client.name";
-	const char I2P_CLIENT_TUNNEL_PORT[] = "client.port";
-	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "client.destination";
-	const char I2P_CLIENT_TUNNEL_KEYS[] = "client.keys";
-	const char I2P_SERVER_TUNNEL_NAME[] = "server.name";
-	const char I2P_SERVER_TUNNEL_HOST[] = "server.host";	
-	const char I2P_SERVER_TUNNEL_PORT[] = "server.port";
-	const char I2P_SERVER_TUNNEL_KEYS[] = "server.keys";
+	const char I2P_TUNNELS_SECTION_TYPE[] = "type";
+	const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
+	const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
+	const char I2P_CLIENT_TUNNEL_PORT[] = "port";
+	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
+	const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
+	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";	
+	const char I2P_SERVER_TUNNEL_HOST[] = "host";	
+	const char I2P_SERVER_TUNNEL_PORT[] = "port";
+	const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 	const char TUNNELS_CONFIG_FILENAME[] = "tunnels.cfg";
 
 	class ClientContext
@@ -59,7 +54,6 @@ namespace client
 		private:
 
 			void ReadTunnels ();
-			void ReadTunnels1 (); // using propery tree
 	
 		private:
 

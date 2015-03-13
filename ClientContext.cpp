@@ -1,7 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "util.h"
@@ -255,7 +253,7 @@ namespace client
 		return nullptr;
 	}	
 
-	void ClientContext::ReadTunnels ()
+	/*void ClientContext::ReadTunnels ()
 	{
 		std::ifstream ifs (i2p::util::filesystem::GetFullPath (TUNNELS_CONFIG_FILENAME));
 		if (ifs.good ())
@@ -328,9 +326,9 @@ namespace client
 				LogPrint (eLogInfo, numServerTunnels, " I2P server tunnels created");
 			}
 		}
-	}
+	}*/
 
-	void ClientContext::ReadTunnels1 ()
+	void ClientContext::ReadTunnels ()
 	{
 		boost::property_tree::ptree pt;
 		try
@@ -346,16 +344,18 @@ namespace client
 		int numClientTunnels = 0, numServerTunnels = 0;
 		for (auto& section: pt)
 		{
-			if (section.first == I2P_TUNNELS_SECTION_CLIENT)
+			std::string name = section.first;			
+			try
 			{
-				try
+				std::string type = section.second.get<std::string> (I2P_TUNNELS_SECTION_TYPE);
+				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT)
 				{
 					// mandatory params
-					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION1);
-					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT1);
-					std::string keys = section.second.get<std::string> (I2P_CLIENT_TUNNEL_KEYS1);
+					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
+					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
+					std::string keys = section.second.get<std::string> (I2P_CLIENT_TUNNEL_KEYS);
 					// optional params
-					//int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT1, 0);
+					//int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
@@ -367,17 +367,30 @@ namespace client
 						LogPrint (eLogError, "I2P client tunnel with port ", port, " already exists");
 					numClientTunnels++;
 				}
-				catch (std::exception& ex)
-				{
-					LogPrint (eLogError, "Can't read client tunnel params: ", ex.what ());
+				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER)
+				{	
+					// mandatory params
+					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
+					int port = section.second.get<int> (I2P_SERVER_TUNNEL_PORT);
+					std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
+					// optional params
+
+					auto localDestination = LoadLocalDestination (keys, true);
+					auto serverTunnel = new I2PServerTunnel (host, port, localDestination);
+					if (m_ServerTunnels.insert (std::make_pair (localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
+						serverTunnel->Start ();
+					else
+						LogPrint (eLogError, "I2P server tunnel for destination ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), " already exists");	
+					numServerTunnels++;
 				}
+				else
+					LogPrint (eLogWarning, "Unknown section type=", type, " of ", name, " in ", TUNNELS_CONFIG_FILENAME);
+				
 			}
-			else if (section.first == I2P_TUNNELS_SECTION_SERVER)
+			catch (std::exception& ex)
 			{
-				numServerTunnels++;
+				LogPrint (eLogError, "Can't read tunnel ", name, " params: ", ex.what ());
 			}
-			else
-				LogPrint (eLogWarning, "Unknown section ", section.first, " in ", TUNNELS_CONFIG_FILENAME);
 		}	
 		LogPrint (eLogInfo, numClientTunnels, " I2P client tunnels created");
 		LogPrint (eLogInfo, numServerTunnels, " I2P server tunnels created");
