@@ -25,7 +25,7 @@ namespace client
 		public:
 
 			I2PTunnelConnection (I2PService * owner, boost::asio::ip::tcp::socket * socket,
-				std::shared_ptr<const i2p::data::LeaseSet> leaseSet); // to I2P
+				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
 			I2PTunnelConnection (I2PService * owner, boost::asio::ip::tcp::socket * socket,
 				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API :)
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,  boost::asio::ip::tcp::socket * socket, 
@@ -65,7 +65,7 @@ namespace client
 
 		public:
 
-			I2PClientTunnel (const std::string& destination, int port, std::shared_ptr<ClientDestination> localDestination = nullptr);
+			I2PClientTunnel (const std::string& destination, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort = 0);
 			~I2PClientTunnel () {}
 	
 			void Start ();
@@ -77,6 +77,7 @@ namespace client
 
 			std::string m_Destination;
 			const i2p::data::IdentHash * m_DestinationIdentHash;
+			int m_DestinationPort;	
 	};	
 
 	class I2PServerTunnel: public I2PService

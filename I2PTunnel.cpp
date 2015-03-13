@@ -9,12 +9,12 @@ namespace i2p
 {
 namespace client
 {
-	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, 
-	    boost::asio::ip::tcp::socket * socket, std::shared_ptr<const i2p::data::LeaseSet> leaseSet): 
+	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, boost::asio::ip::tcp::socket * socket,
+		std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port): 
 		I2PServiceHandler(owner), m_Socket (socket), m_RemoteEndpoint (socket->remote_endpoint ()),
 		m_IsQuiet (true)
 	{
-		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (leaseSet);
+		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (leaseSet, port);
 	}	
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner,
@@ -156,20 +156,23 @@ namespace client
 	{
 		public:
 			I2PClientTunnelHandler (I2PClientTunnel * parent, i2p::data::IdentHash destination,
-						boost::asio::ip::tcp::socket * socket):
-				I2PServiceHandler(parent), m_DestinationIdentHash(destination), m_Socket(socket) {}
+				int destinationPort, boost::asio::ip::tcp::socket * socket):
+				I2PServiceHandler(parent), m_DestinationIdentHash(destination), 
+				m_DestinationPort (destinationPort), m_Socket(socket) {};
 			void Handle();
 			void Terminate();
 		private:
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			i2p::data::IdentHash m_DestinationIdentHash;
+			int m_DestinationPort;
 			boost::asio::ip::tcp::socket * m_Socket;
 	};
 
 	void I2PClientTunnelHandler::Handle()
 	{
-		GetOwner()->GetLocalDestination ()->CreateStream (std::bind (&I2PClientTunnelHandler::HandleStreamRequestComplete,
-								shared_from_this(), std::placeholders::_1), m_DestinationIdentHash);
+		GetOwner()->GetLocalDestination ()->CreateStream ( 
+			std::bind (&I2PClientTunnelHandler::HandleStreamRequestComplete, shared_from_this(), std::placeholders::_1), 
+			m_DestinationIdentHash, m_DestinationPort);
 	}
 
 	void I2PClientTunnelHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
@@ -202,8 +205,8 @@ namespace client
 		Done(shared_from_this());
 	}
 
-	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, std::shared_ptr<ClientDestination> localDestination): 
-		TCPIPAcceptor (port,localDestination), m_Destination (destination), m_DestinationIdentHash (nullptr)
+	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort): 
+		TCPIPAcceptor (port,localDestination), m_Destination (destination), m_DestinationIdentHash (nullptr), m_DestinationPort (destinationPort)
 	{}	
 
 	void I2PClientTunnel::Start ()
@@ -238,7 +241,7 @@ namespace client
 	{
 		const i2p::data::IdentHash *identHash = GetIdentHash();
 		if (identHash)
-			return  std::make_shared<I2PClientTunnelHandler>(this, *identHash, socket);
+			return  std::make_shared<I2PClientTunnelHandler>(this, *identHash, m_DestinationPort, socket);
 		else
 			return nullptr;
 	}
