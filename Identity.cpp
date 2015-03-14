@@ -52,12 +52,14 @@ namespace data
 				case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 				{	
 					size_t padding =  128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
+					i2p::context.GetRandomNumberGenerator ().GenerateBlock (m_StandardIdentity.signingKey, padding);
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::ECDSAP256_KEY_LENGTH);
 					break;
 				}
 				case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
 				{	
 					size_t padding = 128 - i2p::crypto::ECDSAP384_KEY_LENGTH; // 32 = 128 - 96
+					i2p::context.GetRandomNumberGenerator ().GenerateBlock (m_StandardIdentity.signingKey, padding);
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::ECDSAP384_KEY_LENGTH);
 					break;
 				}	
