@@ -170,7 +170,7 @@ namespace client
 		else
 		{
 			LogPrint ("Can't open file ", fullPath, " Creating new one");
-			keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_DSA_SHA1); 
+			keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256); 
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
@@ -252,81 +252,6 @@ namespace client
 			return it->second;
 		return nullptr;
 	}	
-
-	/*void ClientContext::ReadTunnels ()
-	{
-		std::ifstream ifs (i2p::util::filesystem::GetFullPath (TUNNELS_CONFIG_FILENAME));
-		if (ifs.good ())
-		{
-			boost::program_options::options_description params ("I2P tunnels parameters");
-			params.add_options ()
-				// client
-				(I2P_CLIENT_TUNNEL_NAME, boost::program_options::value<std::vector<std::string> >(), "tunnel name")	
-				(I2P_CLIENT_TUNNEL_PORT, boost::program_options::value<std::vector<int> >(), "Local port")
-				(I2P_CLIENT_TUNNEL_DESTINATION, boost::program_options::value<std::vector<std::string> >(), "destination")
-				(I2P_CLIENT_TUNNEL_KEYS, boost::program_options::value<std::vector<std::string> >(), "keys")	
-				// server
-				(I2P_SERVER_TUNNEL_NAME, boost::program_options::value<std::vector<std::string> >(), "tunnel name")
-				(I2P_SERVER_TUNNEL_HOST, boost::program_options::value<std::vector<std::string> >(), "host")
-				(I2P_SERVER_TUNNEL_PORT, boost::program_options::value<std::vector<int> >(), "port")
-				(I2P_SERVER_TUNNEL_KEYS, boost::program_options::value<std::vector<std::string> >(), "keys")
-			;			
-
-
-			boost::program_options::variables_map vm;
-			try
-			{
-				boost::program_options::store (boost::program_options::parse_config_file (ifs, params), vm);
-				boost::program_options::notify (vm);
-			}
-			catch (boost::program_options::error& ex)
-			{
-				LogPrint (eLogError, "Can't parse ", TUNNELS_CONFIG_FILENAME,": ", ex.what ());
-				return;
-			}
-
-			if (vm.count (I2P_CLIENT_TUNNEL_NAME) > 0)
-			{
-				auto names = vm[I2P_CLIENT_TUNNEL_NAME].as<std::vector<std::string> >();
-				int numClientTunnels = names.size ();
-				auto ports = vm[I2P_CLIENT_TUNNEL_PORT].as<std::vector<int> >();
-				auto destinations = vm[I2P_CLIENT_TUNNEL_DESTINATION].as<std::vector<std::string> >();
-				auto keys = vm[I2P_CLIENT_TUNNEL_KEYS].as<std::vector<std::string> >(); 
-				
-				for (int i = 0; i < numClientTunnels; i++)
-				{
-					std::shared_ptr<ClientDestination> localDestination = nullptr;
-					if (keys[i].length () > 0)
-						localDestination = LoadLocalDestination (keys[i], false);
-					auto clientTunnel = new I2PClientTunnel (destinations[i], ports[i], localDestination);
-					if (m_ClientTunnels.insert (std::make_pair (ports[i], std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
-						clientTunnel->Start ();
-					else
-						LogPrint (eLogError, "I2P client tunnel with port ", ports[i], " already exists");
-				}
-				LogPrint (eLogInfo, numClientTunnels, " I2P client tunnels created");
-			}
-
-			if (vm.count (I2P_SERVER_TUNNEL_NAME) > 0)
-			{
-				auto names = vm[I2P_SERVER_TUNNEL_NAME].as<std::vector<std::string> >();
-				int numServerTunnels = names.size ();
-				auto hosts = vm[I2P_SERVER_TUNNEL_HOST].as<std::vector<std::string> >();
-				auto ports = vm[I2P_SERVER_TUNNEL_PORT].as<std::vector<int> >();
-				auto keys = vm[I2P_SERVER_TUNNEL_KEYS].as<std::vector<std::string> >();
-				for (int i = 0; i < numServerTunnels; i++)
-				{
-					auto localDestination = LoadLocalDestination (keys[i], true);
-					auto serverTunnel = new I2PServerTunnel (hosts[i], ports[i], localDestination);
-					if (m_ServerTunnels.insert (std::make_pair (localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
-						serverTunnel->Start ();
-					else
-						LogPrint (eLogError, "I2P server tunnel for destination ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), " already exists");
-				}
-				LogPrint (eLogInfo, numServerTunnels, " I2P server tunnels created");
-			}
-		}
-	}*/
 
 	void ClientContext::ReadTunnels ()
 	{
