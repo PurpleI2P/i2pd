@@ -84,7 +84,8 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnel (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination);	
+			I2PServerTunnel (const std::string& address, int port, 
+				std::shared_ptr<ClientDestination> localDestination, int inport = 0);	
 
 			void Start ();
 			void Stop ();

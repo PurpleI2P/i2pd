@@ -280,12 +280,12 @@ namespace client
 					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
 					std::string keys = section.second.get<std::string> (I2P_CLIENT_TUNNEL_KEYS);
 					// optional params
-					//int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
 						localDestination = LoadLocalDestination (keys, false);
-					auto clientTunnel = new I2PClientTunnel (dest, port, localDestination);
+					auto clientTunnel = new I2PClientTunnel (dest, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
 						clientTunnel->Start ();
 					else
@@ -299,9 +299,10 @@ namespace client
 					int port = section.second.get<int> (I2P_SERVER_TUNNEL_PORT);
 					std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
 					// optional params
-
+					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
+					
 					auto localDestination = LoadLocalDestination (keys, true);
-					auto serverTunnel = new I2PServerTunnel (host, port, localDestination);
+					auto serverTunnel = new I2PServerTunnel (host, port, localDestination, inPort);
 					if (m_ServerTunnels.insert (std::make_pair (localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
 						serverTunnel->Start ();
 					else

@@ -246,10 +246,11 @@ namespace client
 			return nullptr;
 	}
 
-	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination): 
+	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, 
+	    std::shared_ptr<ClientDestination> localDestination, int inport): 
 		I2PService (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port)
 	{
-		m_PortDestination = localDestination->CreateStreamingDestination (port);
+		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port);
 	}
 	
 	void I2PServerTunnel::Start ()
