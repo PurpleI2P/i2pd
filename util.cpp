@@ -550,115 +550,50 @@ namespace net
 		return mtu;
 #elif defined(WIN32)
 
-       	int result = 576; // fallback MTU
+		int result = 576; // fallback MTU
 
-    	DWORD dwRetVal = 0;
-    	ULONG outBufLen = 0;
-    	PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
-    	PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
-    	PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
+		DWORD dwRetVal = 0;
+		ULONG outBufLen = 0;
+		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
+		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
 
 #ifdef UNICODE
-    	string localAddress_temporary = localAddress.to_string();
-    	wstring localAddressUniversal (localAddress_temporary.begin(), localAddress_temporary.end());
+		string localAddress_temporary = localAddress.to_string();
+		wstring localAddressUniversal (localAddress_temporary.begin(), localAddress_temporary.end());
 #else
-    	std::string localAddressUniversal = localAddress.to_string();
+		std::string localAddressUniversal = localAddress.to_string();
 #endif
 
-	    if (localAddress.is_v4())
-        {
-		    struct sockaddr_in inputAddress;
+		if (localAddress.is_v4())
+		{
+			struct sockaddr_in inputAddress;
 			inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
 
-	    	if (GetAdaptersAddresses (AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
-    			== ERROR_BUFFER_OVERFLOW)
-            {
-	    		FREE (pAddresses);
-		    	pAddresses = (IP_ADAPTER_ADDRESSES *)MALLOC (outBufLen);
-    		}
-
-	    	dwRetVal = GetAdaptersAddresses (AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen);
-		    if (dwRetVal == NO_ERROR)
-            {
-			    pCurrAddresses = pAddresses;
-    			while (pCurrAddresses)
-                {
-	    			PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
-
-    				pUnicast = pCurrAddresses->FirstUnicastAddress;
-	    			if (pUnicast != nullptr)
-                    {
-		    			for (int i = 0; pUnicast != nullptr; ++i)
-                        {
-			    			LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
-				    		struct sockaddr_in *localInterfaceAddress = (struct sockaddr_in*) lpAddr;
-					    	if (localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
-                            {
-						    	result = pAddresses->Mtu;
-    							FREE (pAddresses);
-	    						pAddresses = nullptr;
-		    					return result;
-			    			}
-				    		pUnicast = pUnicast->Next;
-    					}
-	    			}
-		    		else
-                    {
-					LogPrint (eLogError, "GetMTU() has failed: not a unicast ipv4 address, this is not supported");
-				    }
-
-				pCurrAddresses = pCurrAddresses->Next;
-			}
-
-		}
-		else
-        {
-			LogPrint (eLogError, "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
-		}
-
-		}
-		else if (localAddress.is_v6())
-        {
-			struct sockaddr_in6 inputAddress;
-			inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
-
-			if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+			if (GetAdaptersAddresses (AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
 				== ERROR_BUFFER_OVERFLOW)
-            {
+			{
 				FREE (pAddresses);
-				pAddresses = (IP_ADAPTER_ADDRESSES *)MALLOC(outBufLen);
+				pAddresses = (IP_ADAPTER_ADDRESSES *)MALLOC (outBufLen);
 			}
 
-			dwRetVal = GetAdaptersAddresses (AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen);
+			dwRetVal = GetAdaptersAddresses (AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen);
 			if (dwRetVal == NO_ERROR)
-            {
-				bool found_address = false;
+			{
 				pCurrAddresses = pAddresses;
 				while (pCurrAddresses)
-                {
+				{
 					PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
 
 					pUnicast = pCurrAddresses->FirstUnicastAddress;
 					if (pUnicast != nullptr)
-                    {
+					{
 						for (int i = 0; pUnicast != nullptr; ++i)
-                        {
+						{
 							LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
-							struct sockaddr_in6 *localInterfaceAddress = (struct sockaddr_in6*) lpAddr;
-														
-							for (int j = 0; j != 8; ++j)
-                            {
-								if (localInterfaceAddress->sin6_addr.u.Word[j] != inputAddress.sin6_addr.u.Word[j])
-                                {
-									break;
-								}
-								else
-                                {
-									found_address = true;
-								}
-							}
-							if (found_address)
-                            {
+							struct sockaddr_in *localInterfaceAddress = (struct sockaddr_in*) lpAddr;
+							if (localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
+							{
 								result = pAddresses->Mtu;
 								FREE (pAddresses);
 								pAddresses = nullptr;
@@ -668,7 +603,72 @@ namespace net
 						}
 					}
 					else
-                    {
+					{
+						LogPrint (eLogError, "GetMTU() has failed: not a unicast ipv4 address, this is not supported");
+					}
+
+					pCurrAddresses = pCurrAddresses->Next;
+				}
+
+		}
+		else
+		{
+			LogPrint (eLogError, "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
+		}
+
+		}
+		else if (localAddress.is_v6())
+		{
+			struct sockaddr_in6 inputAddress;
+			inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+
+			if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+				== ERROR_BUFFER_OVERFLOW)
+			{
+				FREE (pAddresses);
+				pAddresses = (IP_ADAPTER_ADDRESSES *)MALLOC (outBufLen);
+			}
+
+			dwRetVal = GetAdaptersAddresses (AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen);
+			if (dwRetVal == NO_ERROR)
+			{
+				bool found_address = false;
+				pCurrAddresses = pAddresses;
+				while (pCurrAddresses)
+				{
+					PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
+
+					pUnicast = pCurrAddresses->FirstUnicastAddress;
+					if (pUnicast != nullptr)
+					{
+						for (int i = 0; pUnicast != nullptr; ++i)
+						{
+							LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
+							struct sockaddr_in6 *localInterfaceAddress = (struct sockaddr_in6*) lpAddr;
+
+							for (int j = 0; j != 8; ++j)
+							{
+								if (localInterfaceAddress->sin6_addr.u.Word[j] != inputAddress.sin6_addr.u.Word[j])
+								{
+									break;
+								}
+								else
+								{
+									found_address = true;
+								}
+							}
+							if (found_address)
+							{
+								result = pAddresses->Mtu;
+								FREE (pAddresses);
+								pAddresses = nullptr;
+								return result;
+							}
+							pUnicast = pUnicast->Next;
+						}
+					}
+					else
+					{
 						LogPrint (eLogError, "GetMTU() has failed: not a unicast ipv6 address, this is not supported");
 					}
 
@@ -677,20 +677,20 @@ namespace net
 
 			}
 			else
-            {
-                LogPrint (eLogError, "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
+			{
+				LogPrint (eLogError, "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
 			}
 		}
 		else
-        {
-            LogPrint (eLogError, "GetMTU() has failed: address family is not supported");
+		{
+			LogPrint (eLogError, "GetMTU() has failed: address family is not supported");
 		}
 
 	FREE (pAddresses);
 	pAddresses = nullptr;
 	LogPrint(eLogError, "GetMTU() error: control flow should never reach this line");
 	return result;
-#endif		
+#endif
 	}
 } 
 
