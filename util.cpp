@@ -19,11 +19,45 @@
 #if defined(__linux__) || defined(__FreeBSD_kernel__)
 #include <sys/types.h>
 #include <ifaddrs.h>
-#endif
-
-#ifdef WIN32
-#include <Windows.h>
+#elif defined(WIN32)
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>    
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
 #include <shlobj.h>
+
+#pragma comment(lib, "IPHLPAPI.lib")
+
+#define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
+#define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
+
+int inet_pton(int af, const char *src, void *dst)
+{ /* This function was written by Petar Korponai?. See
+http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
+	struct sockaddr_storage ss;
+	int size = sizeof (ss);
+	char src_copy[INET6_ADDRSTRLEN + 1];
+
+	ZeroMemory (&ss, sizeof (ss));
+	strncpy_s (src_copy, src, INET6_ADDRSTRLEN + 1);
+	src_copy[INET6_ADDRSTRLEN] = 0;
+
+	if (WSAStringToAddress (src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0)
+	{
+		switch (af)
+		{
+		case AF_INET:
+			*(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+			return 1;
+		case AF_INET6:
+			*(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+			return 1;
+		}
+	}
+	return 0;
+}
 #endif
 
 namespace i2p
@@ -514,9 +548,149 @@ namespace net
 
 		freeifaddrs	(ifaddr);
 		return mtu;
+#elif defined(WIN32)
+
+		int result = 576; // fallback MTU
+
+		DWORD dwRetVal = 0;
+		ULONG outBufLen = 0;
+		PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
+		PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
+		PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
+
+#ifdef UNICODE
+		string localAddress_temporary = localAddress.to_string();
+		wstring localAddressUniversal (localAddress_temporary.begin(), localAddress_temporary.end());
 #else
-		return 0;
-#endif		
+		std::string localAddressUniversal = localAddress.to_string();
+#endif
+
+		if (localAddress.is_v4())
+		{
+			struct sockaddr_in inputAddress;
+			inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
+
+			if (GetAdaptersAddresses (AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+				== ERROR_BUFFER_OVERFLOW)
+			{
+				FREE (pAddresses);
+				pAddresses = (IP_ADAPTER_ADDRESSES *)MALLOC (outBufLen);
+			}
+
+			dwRetVal = GetAdaptersAddresses (AF_INET, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen);
+			if (dwRetVal == NO_ERROR)
+			{
+				pCurrAddresses = pAddresses;
+				while (pCurrAddresses)
+				{
+					PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
+
+					pUnicast = pCurrAddresses->FirstUnicastAddress;
+					if (pUnicast != nullptr)
+					{
+						for (int i = 0; pUnicast != nullptr; ++i)
+						{
+							LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
+							struct sockaddr_in *localInterfaceAddress = (struct sockaddr_in*) lpAddr;
+							if (localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr)
+							{
+								result = pAddresses->Mtu;
+								FREE (pAddresses);
+								pAddresses = nullptr;
+								return result;
+							}
+							pUnicast = pUnicast->Next;
+						}
+					}
+					else
+					{
+						LogPrint (eLogError, "GetMTU() has failed: not a unicast ipv4 address, this is not supported");
+					}
+
+					pCurrAddresses = pCurrAddresses->Next;
+				}
+
+		}
+		else
+		{
+			LogPrint (eLogError, "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
+		}
+
+		}
+		else if (localAddress.is_v6())
+		{
+			struct sockaddr_in6 inputAddress;
+			inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
+
+			if (GetAdaptersAddresses(AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen)
+				== ERROR_BUFFER_OVERFLOW)
+			{
+				FREE (pAddresses);
+				pAddresses = (IP_ADAPTER_ADDRESSES *)MALLOC (outBufLen);
+			}
+
+			dwRetVal = GetAdaptersAddresses (AF_INET6, GAA_FLAG_INCLUDE_PREFIX, nullptr, pAddresses, &outBufLen);
+			if (dwRetVal == NO_ERROR)
+			{
+				bool found_address = false;
+				pCurrAddresses = pAddresses;
+				while (pCurrAddresses)
+				{
+					PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
+
+					pUnicast = pCurrAddresses->FirstUnicastAddress;
+					if (pUnicast != nullptr)
+					{
+						for (int i = 0; pUnicast != nullptr; ++i)
+						{
+							LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
+							struct sockaddr_in6 *localInterfaceAddress = (struct sockaddr_in6*) lpAddr;
+
+							for (int j = 0; j != 8; ++j)
+							{
+								if (localInterfaceAddress->sin6_addr.u.Word[j] != inputAddress.sin6_addr.u.Word[j])
+								{
+									break;
+								}
+								else
+								{
+									found_address = true;
+								}
+							}
+							if (found_address)
+							{
+								result = pAddresses->Mtu;
+								FREE (pAddresses);
+								pAddresses = nullptr;
+								return result;
+							}
+							pUnicast = pUnicast->Next;
+						}
+					}
+					else
+					{
+						LogPrint (eLogError, "GetMTU() has failed: not a unicast ipv6 address, this is not supported");
+					}
+
+					pCurrAddresses = pCurrAddresses->Next;
+				}
+
+			}
+			else
+			{
+				LogPrint (eLogError, "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
+			}
+		}
+		else
+		{
+			LogPrint (eLogError, "GetMTU() has failed: address family is not supported");
+		}
+
+	FREE (pAddresses);
+	pAddresses = nullptr;
+	LogPrint(eLogError, "GetMTU() error: control flow should never reach this line");
+	return result;
+#endif
 	}
 } 
 
