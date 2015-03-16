@@ -21,8 +21,7 @@ namespace transport
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
 		TransportSession (in_RemoteRouter),	m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_TerminationTimer (m_Server.GetService ()), m_IsEstablished (false), m_IsTerminated (false),
-		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false), 
-		m_NumSentBytes (0), m_NumReceivedBytes (0)
+		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
 	{		
 		m_DHKeysPair = transports.GetNextDHKeysPair ();
 		m_Establisher = new Establisher;

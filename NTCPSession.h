@@ -64,9 +64,6 @@ namespace transport
 			void ServerLogin ();
 			void SendI2NPMessage (I2NPMessage * msg);
 			void SendI2NPMessages (const std::vector<I2NPMessage *>& msgs);
-
-			size_t GetNumSentBytes () const { return m_NumSentBytes; };
-			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
 		private:
 
@@ -138,7 +135,6 @@ namespace transport
 			bool m_IsSending;
 			std::vector<I2NPMessage *> m_SendQueue;
 			
-			size_t m_NumSentBytes, m_NumReceivedBytes;
 			boost::asio::ip::address m_ConnectedFrom; // for ban
 	};	
 

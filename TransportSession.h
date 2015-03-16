@@ -55,7 +55,8 @@ namespace transport
 		public:
 
 			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-				m_RemoteRouter (in_RemoteRouter), m_DHKeysPair (nullptr) 
+				m_RemoteRouter (in_RemoteRouter), m_DHKeysPair (nullptr), 
+				m_NumSentBytes (0), m_NumReceivedBytes (0)
 			{
 				if (m_RemoteRouter)
 					m_RemoteIdentity = m_RemoteRouter->GetRouterIdentity ();
@@ -67,6 +68,9 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo> GetRemoteRouter () { return m_RemoteRouter; };
 			const i2p::data::IdentityEx& GetRemoteIdentity () { return m_RemoteIdentity; };
 
+			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			
 			virtual void SendI2NPMessage (I2NPMessage * msg) = 0;
 			virtual void SendI2NPMessages (const std::vector<I2NPMessage *>& msgs) = 0;
 			
@@ -75,6 +79,7 @@ namespace transport
 			std::shared_ptr<const i2p::data::RouterInfo> m_RemoteRouter;
 			i2p::data::IdentityEx m_RemoteIdentity; 
 			DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
+			size_t m_NumSentBytes, m_NumReceivedBytes;
 	};	
 }
 }
