@@ -496,6 +496,7 @@ namespace transport
 		else
 		{
 			m_NumReceivedBytes += bytes_transferred;
+			i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 			m_ReceiveBufferOffset += bytes_transferred;
 
 			if (m_ReceiveBufferOffset >= 16)
@@ -661,6 +662,7 @@ namespace transport
 		else
 		{	
 			m_NumSentBytes += bytes_transferred;
+			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 			if (!m_SendQueue.empty())
 			{
 				Send (m_SendQueue);

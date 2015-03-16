@@ -10,6 +10,7 @@
 #include <queue>
 #include <string>
 #include <memory>
+#include <atomic>
 #include <cryptopp/osrng.h>
 #include <boost/asio.hpp>
 #include "TransportSession.h"
@@ -87,6 +88,11 @@ namespace transport
 
 			void PeerConnected (std::shared_ptr<TransportSession> session);
 			void PeerDisconnected (std::shared_ptr<TransportSession> session);
+
+			void UpdateSentBytes (uint64_t numBytes) { m_TotalSentBytes += numBytes; };
+			void UpdateReceivedBytes (uint64_t numBytes) { m_TotalReceivedBytes += numBytes; };
+			uint64_t GetTotalSentBytes () const { return m_TotalSentBytes; };
+			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; };
 			
 		private:
 
@@ -118,7 +124,8 @@ namespace transport
 			std::map<i2p::data::IdentHash, Peer> m_Peers;
 			
 			DHKeysPairSupplier m_DHKeysPairSupplier;
-
+			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes;
+			
 		public:
 
 			// for HTTP only

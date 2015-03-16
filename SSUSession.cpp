@@ -78,6 +78,7 @@ namespace transport
 	void SSUSession::ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		m_NumReceivedBytes += len;
+		i2p::transport::transports.UpdateReceivedBytes (len);
 		if (m_State == eSessionStateIntroduced)
 		{
 			// HolePunch received
@@ -1107,6 +1108,7 @@ namespace transport
 	void SSUSession::Send (const uint8_t * buf, size_t size)
 	{
 		m_NumSentBytes += size;
+		i2p::transport::transports.UpdateSentBytes (size);
 		m_Server.Send (buf, size, m_RemoteEndpoint);
 	}	
 }
