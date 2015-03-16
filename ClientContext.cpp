@@ -300,9 +300,25 @@ namespace client
 					std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
 					// optional params
 					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
-					
+					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");					
+
 					auto localDestination = LoadLocalDestination (keys, true);
 					auto serverTunnel = new I2PServerTunnel (host, port, localDestination, inPort);
+					if (accessList.length () > 0)
+					{
+						std::set<i2p::data::IdentHash> idents;
+						size_t pos = 0, comma;
+						do
+						{
+							comma = accessList.find (',', pos);
+							i2p::data::IdentHash ident;
+							ident.FromBase32 (accessList.substr (pos, comma != std::string::npos ? comma - pos : std::string::npos));	
+							idents.insert (ident);
+							pos = comma + 1;
+						}
+						while (comma != std::string::npos);
+						serverTunnel->SetAccessList (idents);
+					}
 					if (m_ServerTunnels.insert (std::make_pair (localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
 						serverTunnel->Start ();
 					else

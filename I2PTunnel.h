@@ -90,6 +90,8 @@ namespace client
 			void Start ();
 			void Stop ();
 
+			void SetAccessList (const std::set<i2p::data::IdentHash>& accessList); 
+
 		private:
 
 			void Accept ();
@@ -98,7 +100,9 @@ namespace client
 		private:
 
 			boost::asio::ip::tcp::endpoint m_Endpoint;	
-			std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;	
+			std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;
+			std::set<i2p::data::IdentHash> m_AccessList;
+			bool m_IsAccessList;			
 	};
 }
 }	

@@ -248,7 +248,7 @@ namespace client
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, 
 	    std::shared_ptr<ClientDestination> localDestination, int inport): 
-		I2PService (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port)
+		I2PService (localDestination), m_Endpoint (boost::asio::ip::address::from_string (address), port),  m_IsAccessList (false)
 	{
 		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port);
 	}
@@ -262,6 +262,12 @@ namespace client
 	{
 		ClearHandlers ();
 	}	
+
+	void I2PServerTunnel::SetAccessList (const std::set<i2p::data::IdentHash>& accessList)
+	{
+		m_AccessList = accessList;
+		m_IsAccessList = true;		
+	}
 
 	void I2PServerTunnel::Accept ()
 	{
@@ -282,6 +288,15 @@ namespace client
 	{
 		if (stream)
 		{	
+			if (m_IsAccessList)
+			{
+				if (!m_AccessList.count (stream->GetRemoteIdentity ().GetIdentHash ()))
+				{
+					LogPrint (eLogWarning, "Address ", stream->GetRemoteIdentity ().GetIdentHash ().ToBase32 (), " is not in white list. Incoming connection dropped");
+					stream->Close ();
+					return;
+				}
+			}
 			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint);
 			AddHandler (conn);
 			conn->Connect ();
