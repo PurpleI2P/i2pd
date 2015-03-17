@@ -190,8 +190,8 @@ namespace transport
 			auto delta = ts - m_LastBandwidthUpdateTime;
 			if (delta > 0)
 			{
-				m_InBandwidth = (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes)*1000/ts; // per second 
-				m_OutBandwidth = (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes)*1000/ts; // per second 
+				m_InBandwidth = (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes)*1000/delta; // per second 
+				m_OutBandwidth = (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes)*1000/delta; // per second 
 			} 
 		}
 		m_LastBandwidthUpdateTime = ts;
