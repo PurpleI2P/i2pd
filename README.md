@@ -76,9 +76,10 @@ Cmdline options
 * --floodfill=          - 1 if router is floodfill, off by default
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
+* --proxykeys=          - optional keys file for proxy's local destination
 * --ircport=            - The local port of IRC tunnel to listen on. 6668 by default
 * --ircdest=            - I2P destination address of IRC server. For example irc.postman.i2p
-* --irckeys=            - optional keys file for local destination
+* --irckeys=            - optional keys file for tunnel's local destination 
 * --eepkeys=            - File name containing destination keys, for example privKeys.dat.
                           The file will be created if it does not already exist (issue #110).
 * --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default

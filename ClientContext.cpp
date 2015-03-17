@@ -37,11 +37,15 @@ namespace client
 			m_SharedLocalDestination->Start ();
 		}
 
+		std::shared_ptr<ClientDestination> localDestination;	
 		// proxies	
-		m_HttpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446));
+		std::string proxyKeys = i2p::util::config::GetArg("-proxykeys", "");
+		if (proxyKeys.length () > 0)
+			localDestination = LoadLocalDestination (proxyKeys, false);
+		m_HttpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyport", 4446), localDestination);
 		m_HttpProxy->Start();
 		LogPrint("HTTP Proxy started");
-		m_SocksProxy = new i2p::proxy::SOCKSProxy(i2p::util::config::GetArg("-socksproxyport", 4447));
+		m_SocksProxy = new i2p::proxy::SOCKSProxy(i2p::util::config::GetArg("-socksproxyport", 4447), localDestination);
 		m_SocksProxy->Start();
 		LogPrint("SOCKS Proxy Started");
 	
@@ -49,7 +53,7 @@ namespace client
 		std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
 		if (ircDestination.length () > 0) // ircdest is presented
 		{
-			std::shared_ptr<ClientDestination> localDestination = nullptr;
+			localDestination = nullptr;
 			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
 			if (ircKeys.length () > 0)
 				localDestination = LoadLocalDestination (ircKeys, false);
@@ -62,7 +66,7 @@ namespace client
 		std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
 		if (eepKeys.length () > 0) // eepkeys file is presented
 		{
-			auto localDestination = LoadLocalDestination (eepKeys, true);
+			localDestination = LoadLocalDestination (eepKeys, true);
 			auto serverTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eephost", "127.0.0.1"),
  				i2p::util::config::GetArg("-eepport", 80), localDestination);
 			serverTunnel->Start ();
