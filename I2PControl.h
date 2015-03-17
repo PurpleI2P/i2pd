@@ -49,8 +49,10 @@ namespace client
 	const char I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS[] = "i2p.router.netdb.knownpeers";
 	const char I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS[] = "i2p.router.netdb.activepeers";
 	const char I2P_CONTROL_ROUTER_INFO_STATUS[] = "i2p.router.net.status";	
-	const char I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING[] = "i2p.router.net.tunnels.participating";	
-		
+	const char I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING[] = "i2p.router.net.tunnels.participating";
+	const char I2P_CONTROL_ROUTER_INFO_BW_IB_1S[] = "i2p.router.net.bw.inbound.1s";			
+	const char I2P_CONTROL_ROUTER_INFO_BW_OB_1S[] = "i2p.router.net.bw.outbound.1s";		
+
 	// RouterManager requests
 	const char I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
 	const char I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
@@ -102,6 +104,8 @@ namespace client
 			void NetDbActivePeersHandler (std::map<std::string, std::string>& results);	
 			void StatusHandler (std::map<std::string, std::string>& results);		
 			void TunnelsParticipatingHandler (std::map<std::string, std::string>& results);
+			void InboundBandwidth1S (std::map<std::string, std::string>& results);
+			void OutboundBandwidth1S (std::map<std::string, std::string>& results);
 
 			// RouterManager
 			typedef void (I2PControlService::*RouterManagerRequestHandler)(std::map<std::string, std::string>& results);

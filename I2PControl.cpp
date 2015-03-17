@@ -40,6 +40,8 @@ namespace client
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = &I2PControlService::NetDbActivePeersHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_STATUS] = &I2PControlService::StatusHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = &I2PControlService::TunnelsParticipatingHandler;
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_BW_IB_1S] = &I2PControlService::InboundBandwidth1S ;
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_BW_OB_1S] = &I2PControlService::OutboundBandwidth1S ;
 
 		// RouterManager	
 		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN] = &I2PControlService::ShutdownHandler; 
@@ -330,6 +332,16 @@ namespace client
 	void I2PControlService::TunnelsParticipatingHandler (std::map<std::string, std::string>& results)
 	{
 		results[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = boost::lexical_cast<std::string>(i2p::tunnel::tunnels.GetTransitTunnels ().size ());
+	}
+
+	void I2PControlService::InboundBandwidth1S (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_BW_IB_1S] = boost::lexical_cast<std::string>(i2p::transport::transports.GetInBandwidth ());
+	}
+
+	void I2PControlService::OutboundBandwidth1S (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_BW_OB_1S] = boost::lexical_cast<std::string>(i2p::transport::transports.GetOutBandwidth ());
 	}
 
 // RouterManager
