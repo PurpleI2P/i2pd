@@ -660,8 +660,10 @@ namespace util
 		} 
 		s << "<br>";
 		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>";
-		s << "<b>Received:</b> " << i2p::transport::transports.GetTotalReceivedBytes ()/1000 << "K<br>";
-		s << "<b>Sent:</b> " << i2p::transport::transports.GetTotalSentBytes ()/1000 << "K<br>";
+		s << "<b>Received:</b> " << i2p::transport::transports.GetTotalReceivedBytes ()/1000 << "K";
+		s << " (" << i2p::transport::transports.GetInBandwidth () <<" Bps)<br>";
+		s << "<b>Sent:</b> " << i2p::transport::transports.GetTotalSentBytes ()/1000 << "K";
+		s << " (" << i2p::transport::transports.GetOutBandwidth () <<" Bps)<br>";
 		s << "<b>Data path:</b> " << i2p::util::filesystem::GetDataDir().string() << "<br><br>";
 		s << "<b>Our external address:</b>" << "<br>" ;
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
