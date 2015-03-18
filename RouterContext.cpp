@@ -56,12 +56,6 @@ namespace i2p
 
 	void RouterContext::UpdateRouterInfo ()
 	{
-		if (m_IsFloodfill)
-		{
-			// update routers and leasesets
-			m_RouterInfo.SetProperty (ROUTER_INFO_PROPERTY_LEASESETS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumLeaseSets ()));
-			m_RouterInfo.SetProperty (ROUTER_INFO_PROPERTY_ROUTERS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ()));
-		}
 		m_RouterInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
@@ -232,6 +226,17 @@ namespace i2p
 		}
 		if (updated)
 			UpdateRouterInfo ();
+	}
+
+	void RouterContext::UpdateStats ()
+	{
+		if (m_IsFloodfill)
+		{
+			// update routers and leasesets
+			m_RouterInfo.SetProperty (ROUTER_INFO_PROPERTY_LEASESETS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumLeaseSets ()));
+			m_RouterInfo.SetProperty (ROUTER_INFO_PROPERTY_ROUTERS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ()));
+			UpdateRouterInfo (); 
+		}
 	}
 		
 	bool RouterContext::Load ()

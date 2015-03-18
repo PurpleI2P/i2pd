@@ -60,7 +60,8 @@ namespace i2p
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
 			void SetSupportsV6 (bool supportsV6);
-			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session				
+			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session		
+			void UpdateStats ();		
 
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };

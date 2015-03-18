@@ -861,6 +861,7 @@ namespace data
 
 	void NetDb::Publish ()
 	{
+		i2p::context.UpdateStats ();
 		std::set<IdentHash> excluded; // TODO: fill up later
 		for (int i = 0; i < 2; i++)
 		{	
