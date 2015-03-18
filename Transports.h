@@ -88,7 +88,8 @@ namespace transport
 
 			void PeerConnected (std::shared_ptr<TransportSession> session);
 			void PeerDisconnected (std::shared_ptr<TransportSession> session);
-
+			bool IsConnected (const i2p::data::IdentHash& ident) const;
+			
 			void UpdateSentBytes (uint64_t numBytes) { m_TotalSentBytes += numBytes; };
 			void UpdateReceivedBytes (uint64_t numBytes) { m_TotalReceivedBytes += numBytes; };
 			uint64_t GetTotalSentBytes () const { return m_TotalSentBytes; };

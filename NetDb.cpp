@@ -828,6 +828,8 @@ namespace data
 			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
 			{	
 				floodfills.insert (floodfill.get ());
+				if (i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
+					throughTunnels = false;
 				if (throughTunnels)
 				{	
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 

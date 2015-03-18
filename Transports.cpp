@@ -474,6 +474,12 @@ namespace transport
 		});	
 	}	
 
+	bool Transports::IsConnected (const i2p::data::IdentHash& ident) const
+	{
+		auto it = m_Peers.find (ident);
+		return it != m_Peers.end ();
+	}	
+		
 	void Transports::HandlePeerCleanupTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
