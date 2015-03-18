@@ -3,6 +3,7 @@ obj/*.o
 router.info
 router.keys
 i2p
+libi2pd.so
 netDb
 
 # Autotools
