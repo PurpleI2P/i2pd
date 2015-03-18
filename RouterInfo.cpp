@@ -548,10 +548,15 @@ namespace data
 		ExtractCaps (caps);
 	}	
 		
-	void RouterInfo::SetProperty (const char * key, const char * value)
+	void RouterInfo::SetProperty (const std::string& key, const std::string& value)
 	{
 		m_Properties[key] = value;
 	}	
+
+	void RouterInfo::DeleteProperty (const std::string& key)
+	{
+		m_Properties.erase (key);
+	}
 
 	bool RouterInfo::IsFloodfill () const
 	{
