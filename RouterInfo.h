@@ -118,6 +118,7 @@ namespace data
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };
 			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };
 			bool IsHidden () const { return m_Caps & eHidden; };
+			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
 
 			uint8_t GetCaps () const { return m_Caps; };	
 			void SetCaps (uint8_t caps);

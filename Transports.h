@@ -68,6 +68,7 @@ namespace transport
 	};	
 	
 	const size_t SESSION_CREATION_TIMEOUT = 10; // in seconds
+	const uint32_t LOW_BANDWIDTH_LIMIT = 32*1024; // 32KBs
 	class Transports
 	{
 		public:
@@ -96,6 +97,7 @@ namespace transport
 			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; };		
 			uint32_t GetInBandwidth () const { return m_InBandwidth; }; // bytes per second
 			uint32_t GetOutBandwidth () const { return m_OutBandwidth; }; // bytes per second
+			bool IsBandwidthExceeded () const;
 
 		private:
 

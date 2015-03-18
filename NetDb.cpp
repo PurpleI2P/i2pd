@@ -917,7 +917,7 @@ namespace data
 			[compatibleWith](std::shared_ptr<const RouterInfo> router)->bool 
 			{ 
 				return !router->IsHidden () && router != compatibleWith &&
-					router->IsCompatible (*compatibleWith) && (router->GetCaps () & RouterInfo::eHighBandwidth); 
+					router->IsCompatible (*compatibleWith) && router->IsHighBandwidth (); 
 			});
 	}	
 	

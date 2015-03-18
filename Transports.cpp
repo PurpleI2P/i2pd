@@ -199,6 +199,11 @@ namespace transport
 		m_LastOutBandwidthUpdateBytes = m_TotalSentBytes;		
 	}
 
+	bool Transports::IsBandwidthExceeded () const
+	{
+		if (i2p::context.GetRouterInfo ().IsHighBandwidth ()) return false;
+		return std::max (m_InBandwidth, m_OutBandwidth) > LOW_BANDWIDTH_LIMIT;
+	}
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{

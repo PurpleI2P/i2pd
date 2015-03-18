@@ -281,7 +281,8 @@ namespace i2p
 				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText);
 				// replace record to reply			
 				if (i2p::context.AcceptsTunnels () && 
-					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= MAX_NUM_TRANSIT_TUNNELS)
+					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= MAX_NUM_TRANSIT_TUNNELS &&
+					!i2p::transport::transports.IsBandwidthExceeded ())
 				{	
 					i2p::tunnel::TransitTunnel * transitTunnel = 
 						i2p::tunnel::CreateTransitTunnel (
