@@ -282,7 +282,7 @@ namespace data
 			caps += CAPS_FLAG_FLOODFILL; // floodfill  
 		}	
 		else
-			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH1 : CAPS_FLAG_LOW_BANDWIDTH2; // bandwidth		
+			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 : CAPS_FLAG_LOW_BANDWIDTH2; // bandwidth		
 		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
 		if (m_Caps & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable
