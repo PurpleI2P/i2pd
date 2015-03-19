@@ -282,8 +282,8 @@ namespace client
 					// mandatory params
 					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
 					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
-					std::string keys = section.second.get<std::string> (I2P_CLIENT_TUNNEL_KEYS);
 					// optional params
+					std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
 					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
