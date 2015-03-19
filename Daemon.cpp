@@ -76,7 +76,15 @@ namespace i2p
 
 			i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
 			i2p::context.SetFloodfill (i2p::util::config::GetArg("-floodfill", 0));
-			
+			auto bandwidth = i2p::util::config::GetArg("-badnwidth", "");
+			if (bandwidth.length () > 0)
+			{
+				if (bandwidth[0] > 'L')
+					i2p::context.SetHighBandwidth ();
+				else
+					i2p::context.SetLowBandwidth ();
+			}	
+
 			LogPrint("CMD parameters:");
 			for (int i = 0; i < argc; ++i)
 				LogPrint(i, "  ", argv[i]);

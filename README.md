@@ -74,6 +74,7 @@ Cmdline options
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
 * --v6=                 - 1 if supports communication through ipv6, off by default
 * --floodfill=          - 1 if router is floodfill, off by default
+* --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O if not. Always O if floodfill, otherwise L by default.
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
 * --proxykeys=          - optional keys file for proxy's local destination

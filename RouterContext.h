@@ -56,6 +56,8 @@ namespace i2p
 			void SetReachable ();
 			bool IsFloodfill () const { return m_IsFloodfill; };	
 			void SetFloodfill (bool floodfill);	
+			void SetHighBandwidth ();
+			void SetLowBandwidth ();
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };

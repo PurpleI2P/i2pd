@@ -126,6 +126,24 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
+	void RouterContext::SetHighBandwidth ()
+	{
+		if (!m_RouterInfo.IsHighBandwidth ())
+		{
+			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eHighBandwidth);
+			UpdateRouterInfo ();
+		}
+	}
+
+	void RouterContext::SetLowBandwidth ()
+	{
+		if (m_RouterInfo.IsHighBandwidth ())
+		{
+			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eHighBandwidth);
+			UpdateRouterInfo ();
+		}
+	}
+
 	bool RouterContext::IsUnreachable () const
 	{
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
