@@ -82,14 +82,13 @@ namespace client
 			void HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				AddressReceiver * receiver);
 
-			void HandleDestinationRequestTimer (const boost::system::error_code& ecode, AddressReceiver * receiver, i2p::data::IdentHash ident);
+			void HandleDestinationRequestComplete (bool success, AddressReceiver * receiver, i2p::data::IdentHash ident);
 
 			void CreateConnection (AddressReceiver * receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet);
 
 		private:
 
 			boost::asio::ip::tcp::acceptor m_Acceptor;	
-			boost::asio::deadline_timer m_Timer;
 	};
 
 	class BOBI2POutboundTunnel: public BOBI2PTunnel

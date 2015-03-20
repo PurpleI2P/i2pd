@@ -10,7 +10,7 @@ namespace client
 {
 	BOBI2PInboundTunnel::BOBI2PInboundTunnel (int port, std::shared_ptr<ClientDestination> localDestination): 
 		BOBI2PTunnel (localDestination), 
-		m_Acceptor (localDestination->GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)), m_Timer (localDestination->GetService ())
+		m_Acceptor (localDestination->GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port))
 	{
 	}
 
@@ -94,12 +94,9 @@ namespace client
 				if (leaseSet)
 					CreateConnection (receiver, leaseSet);
 				else
-				{
-					GetLocalDestination ()->RequestDestination (ident);
-					m_Timer.expires_from_now (boost::posix_time::seconds (I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT));
-					m_Timer.async_wait (std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestTimer,
+					GetLocalDestination ()->RequestDestination (ident, 
+						std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestComplete,
 						this, std::placeholders::_1, receiver, ident));
-				}
 			}
 			else
 			{
@@ -115,9 +112,9 @@ namespace client
 		}
 	}
 
-	void BOBI2PInboundTunnel::HandleDestinationRequestTimer (const boost::system::error_code& ecode, AddressReceiver * receiver, i2p::data::IdentHash ident)
+	void BOBI2PInboundTunnel::HandleDestinationRequestComplete (bool success, AddressReceiver * receiver, i2p::data::IdentHash ident)
 	{
-		if (ecode != boost::asio::error::operation_aborted)
+		if (success)
 		{
 			auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
 			if (leaseSet)
