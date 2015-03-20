@@ -241,7 +241,7 @@ namespace client
 			memcpy (buf->data (), header.str ().c_str (), offset);
 		}	
 		memcpy (buf->data () + offset, ss.str ().c_str (), len);
-		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), len), 
+		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), offset + len), 
 			boost::asio::transfer_all (),
 			std::bind(&I2PControlService::HandleResponseSent, this, 
 				std::placeholders::_1, std::placeholders::_2, socket, buf));
