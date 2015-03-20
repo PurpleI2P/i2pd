@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
 #include <boost/asio.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 namespace i2p
 {
@@ -80,45 +81,48 @@ namespace client
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 			void SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<I2PControlBuffer> buf, const std::string& id, 
-				const std::map<std::string, std::string>& results, bool isHtml);
+				boost::property_tree::ptree& results, bool isHtml);
 			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 
 		private:
 
-			// methods
-			typedef void (I2PControlService::*MethodHandler)(const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
+			template<typename T>
+			void InsertParam (boost::property_tree::ptree& pt, const std::string& name, T value) const; 
 
-			void AuthenticateHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
-			void EchoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
-			void I2PControlHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
-			void RouterInfoHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
-			void RouterManagerHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);
-			void NetworkSettingHandler (const std::map<std::string, std::string>& params, std::map<std::string, std::string>& results);			
+			// methods
+			typedef void (I2PControlService::*MethodHandler)(const boost::property_tree::ptree& params, boost::property_tree::ptree& results);
+
+			void AuthenticateHandler (const boost::property_tree::ptree& params, boost::property_tree::ptree& results);
+			void EchoHandler (const boost::property_tree::ptree& params, boost::property_tree::ptree& results);
+			void I2PControlHandler (const boost::property_tree::ptree& params, boost::property_tree::ptree& results);
+			void RouterInfoHandler (const boost::property_tree::ptree& params, boost::property_tree::ptree& results);
+			void RouterManagerHandler (const boost::property_tree::ptree& params, boost::property_tree::ptree& results);
+			void NetworkSettingHandler (const boost::property_tree::ptree& params, boost::property_tree::ptree& results);			
 
 			// I2PControl
 			typedef void (I2PControlService::*I2PControlRequestHandler)(const std::string& value);
 
 			// RouterInfo
-			typedef void (I2PControlService::*RouterInfoRequestHandler)(std::map<std::string, std::string>& results);
-			void UptimeHandler (std::map<std::string, std::string>& results);
-			void VersionHandler (std::map<std::string, std::string>& results);
-			void StatusHandler (std::map<std::string, std::string>& results);
-			void NetDbKnownPeersHandler (std::map<std::string, std::string>& results);
-			void NetDbActivePeersHandler (std::map<std::string, std::string>& results);	
-			void NetStatusHandler (std::map<std::string, std::string>& results);		
-			void TunnelsParticipatingHandler (std::map<std::string, std::string>& results);
-			void InboundBandwidth1S (std::map<std::string, std::string>& results);
-			void OutboundBandwidth1S (std::map<std::string, std::string>& results);
+			typedef void (I2PControlService::*RouterInfoRequestHandler)(boost::property_tree::ptree& results);
+			void UptimeHandler (boost::property_tree::ptree& results);
+			void VersionHandler (boost::property_tree::ptree& results);
+			void StatusHandler (boost::property_tree::ptree& results);
+			void NetDbKnownPeersHandler (boost::property_tree::ptree& results);
+			void NetDbActivePeersHandler (boost::property_tree::ptree& results);	
+			void NetStatusHandler (boost::property_tree::ptree& results);		
+			void TunnelsParticipatingHandler (boost::property_tree::ptree& results);
+			void InboundBandwidth1S (boost::property_tree::ptree& results);
+			void OutboundBandwidth1S (boost::property_tree::ptree& results);
 
 			// RouterManager
-			typedef void (I2PControlService::*RouterManagerRequestHandler)(std::map<std::string, std::string>& results);
-			void ShutdownHandler (std::map<std::string, std::string>& results);
-			void ShutdownGracefulHandler (std::map<std::string, std::string>& results);
-			void ReseedHandler (std::map<std::string, std::string>& results);
+			typedef void (I2PControlService::*RouterManagerRequestHandler)(boost::property_tree::ptree& results);
+			void ShutdownHandler (boost::property_tree::ptree& results);
+			void ShutdownGracefulHandler (boost::property_tree::ptree& results);
+			void ReseedHandler (boost::property_tree::ptree& results);
 
 			// NetworkSetting
-			typedef void (I2PControlService::*NetworkSettingRequestHandler)(const std::string& value, std::map<std::string, std::string>& results);	
+			typedef void (I2PControlService::*NetworkSettingRequestHandler)(const std::string& value, boost::property_tree::ptree& results);	
 
 		private:
 
