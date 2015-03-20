@@ -17,6 +17,7 @@
 #include "Tunnel.h"
 #include "Timestamp.h"
 #include "Transports.h"
+#include "version.h"
 
 namespace i2p
 {
@@ -36,9 +37,11 @@ namespace client
 
 		// RouterInfo
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_UPTIME] = &I2PControlService::UptimeHandler;
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_VERSION] = &I2PControlService::VersionHandler;
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_STATUS] = &I2PControlService::StatusHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = &I2PControlService::NetDbKnownPeersHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = &I2PControlService::NetDbActivePeersHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_STATUS] = &I2PControlService::StatusHandler;
+		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NET_STATUS] = &I2PControlService::NetStatusHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = &I2PControlService::TunnelsParticipatingHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_BW_IB_1S] = &I2PControlService::InboundBandwidth1S ;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_BW_OB_1S] = &I2PControlService::OutboundBandwidth1S ;
@@ -110,6 +113,7 @@ namespace client
 		if (!ecode)
 		{
 			LogPrint (eLogInfo, "New I2PControl request from ", socket->remote_endpoint ());
+			std::this_thread::sleep_for (std::chrono::milliseconds(5));
 			ReadRequest (socket);	
 		}
 		else
@@ -168,17 +172,15 @@ namespace client
 					std::map<std::string, std::string> params;
 					for (auto& v: pt.get_child (I2P_CONTROL_PROPERTY_PARAMS))
 					{
-						LogPrint (eLogInfo, v.first);
 						if (!v.first.empty())
 						{
 							if (v.first == I2P_CONTROL_PARAM_TOKEN)
 							{
-								if (!m_Tokens.count (v.second.data ()))
+								if (!v.second.empty () && !m_Tokens.count (v.second.data ()))
 								{
 									LogPrint (eLogWarning, "Unknown token ", v.second.data ());
 									return;
-								}
-				
+								}				
 							}	
 							else
 								params[v.first] = v.second.data ();
@@ -314,6 +316,16 @@ namespace client
 		results[I2P_CONTROL_ROUTER_INFO_UPTIME] = boost::lexical_cast<std::string>(i2p::context.GetUptime ()*1000);	
 	}
 
+	void I2PControlService::VersionHandler (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_VERSION] = VERSION;	
+	}	
+
+	void I2PControlService::StatusHandler (std::map<std::string, std::string>& results)
+	{
+		results[I2P_CONTROL_ROUTER_INFO_STATUS] = "???"; // TODO:
+	}
+		
 	void I2PControlService::NetDbKnownPeersHandler (std::map<std::string, std::string>& results)
 	{
 		results[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ());	
@@ -324,9 +336,9 @@ namespace client
 		results[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = boost::lexical_cast<std::string>(i2p::transport::transports.GetPeers ().size ());	
 	}
 
-	void I2PControlService::StatusHandler (std::map<std::string, std::string>& results)
+	void I2PControlService::NetStatusHandler (std::map<std::string, std::string>& results)
 	{
-		results[I2P_CONTROL_ROUTER_INFO_STATUS] = boost::lexical_cast<std::string>((int)i2p::context.GetStatus ());
+		results[I2P_CONTROL_ROUTER_INFO_NET_STATUS] = boost::lexical_cast<std::string>((int)i2p::context.GetStatus ());
 	}
 
 	void I2PControlService::TunnelsParticipatingHandler (std::map<std::string, std::string>& results)
