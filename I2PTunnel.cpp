@@ -33,7 +33,6 @@ namespace client
 
 	I2PTunnelConnection::~I2PTunnelConnection ()
 	{
-		delete m_Socket;
 	}	
 
 	void I2PTunnelConnection::I2PConnect (const uint8_t * msg, size_t len)

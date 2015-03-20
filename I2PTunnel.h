@@ -49,7 +49,7 @@ namespace client
 		private:
 
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
-			boost::asio::ip::tcp::socket * m_Socket;
+			std::unique_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
 			bool m_IsQuiet; // don't send destination
