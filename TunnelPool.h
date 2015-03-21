@@ -39,8 +39,8 @@ namespace tunnel
 			void TunnelCreated (std::shared_ptr<OutboundTunnel> createdTunnel);
 			void TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel);
 			std::vector<std::shared_ptr<InboundTunnel> > GetInboundTunnels (int num) const;
-			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel () const;
-			std::shared_ptr<InboundTunnel> GetNextInboundTunnel () const;		
+			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded = nullptr) const;
+			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr) const;		
 
 			void TestTunnels ();
 			void ProcessGarlicMessage (I2NPMessage * msg);
@@ -57,7 +57,7 @@ namespace tunnel
 			void RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel);
 			void RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel);
 			template<class TTunnels>
-			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels) const;
+			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, typename TTunnels::value_type excluded) const;
 			std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;
 			
 		private:

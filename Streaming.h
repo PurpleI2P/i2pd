@@ -42,7 +42,7 @@ namespace stream
 	const size_t MAX_PACKET_SIZE = 4096;
 	const size_t COMPRESSION_THRESHOLD_SIZE = 66;	
 	const int ACK_SEND_TIMEOUT = 200; // in milliseconds
-	const int MAX_NUM_RESEND_ATTEMPTS = 5;	
+	const int MAX_NUM_RESEND_ATTEMPTS = 6;	
 	const int WINDOW_SIZE = 6; // in messages
 	const int MIN_WINDOW_SIZE = 1;
 	const int MAX_WINDOW_SIZE = 128;		
@@ -53,10 +53,9 @@ namespace stream
 	{
 		size_t len, offset;
 		uint8_t buf[MAX_PACKET_SIZE];	
-		int numResendAttempts;
 		uint64_t sendTime;
 		
-		Packet (): len (0), offset (0), numResendAttempts (0), sendTime (0) {};
+		Packet (): len (0), offset (0), sendTime (0) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
 
@@ -179,6 +178,7 @@ namespace stream
 			std::stringstream m_SendBuffer;
 			int m_WindowSize, m_RTT, m_RTO;
 			uint64_t m_LastWindowSizeIncreaseTime;
+			int m_NumResendAttempts;
 	};
 
 	class StreamingDestination

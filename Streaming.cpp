@@ -18,7 +18,7 @@ namespace stream
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), 
 		m_AckSendTimer (m_Service),  m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port), 
 		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO),
-		m_LastWindowSizeIncreaseTime (0)
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		UpdateCurrentRemoteLease ();
@@ -29,7 +29,7 @@ namespace stream
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service), 
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE), 
-		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_LastWindowSizeIncreaseTime (0)
+		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 	}
@@ -267,7 +267,10 @@ namespace stream
 		if (m_SentPackets.empty ())
 			m_ResendTimer.cancel ();
 		if (acknowledged)
+		{
+			m_NumResendAttempts = 0;
 			SendBuffer ();
+		}	
 		if (m_Status == eStreamStatusClosing)
 			Close (); // all outgoing messages have been sent
 	}		
@@ -602,45 +605,51 @@ namespace stream
 		
 	void Stream::HandleResendTimer (const boost::system::error_code& ecode)
 	{
-		if (ecode != boost::asio::error::operation_aborted)
+		if (ecode != boost::asio::error::operation_aborted) 
 		{	
+			// check for resend attempts
+			if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS)
+			{
+				LogPrint (eLogWarning, "Stream packet was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");
+				m_Status = eStreamStatusReset;
+				Close ();
+				return;
+			}	
+
+			// collect packets to resend
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			bool congesion = false, first = true;
 			std::vector<Packet *> packets;
 			for (auto it : m_SentPackets)
 			{
-				if (ts < it->sendTime + m_RTO) continue; // don't resend too early
-				it->numResendAttempts++;
-				if (first && it->numResendAttempts == 1) // detect congesion at first attempt of first packet only
-					congesion = true;
-				first = false;
-				if (it->numResendAttempts <= MAX_NUM_RESEND_ATTEMPTS)
+				if (ts >= it->sendTime + m_RTO)
 				{
 					it->sendTime = ts;
 					packets.push_back (it);
-				}
-				else
-				{
-					LogPrint (eLogWarning, "Packet ", it->GetSeqn (), " was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");
-					m_Status = eStreamStatusReset;
-					Close ();
-					return;
-				}	
+				}					
 			}	
+
+			// select tunnels if necessary and send
 			if (packets.size () > 0)
 			{
-				if (congesion)
-				{
-					// congesion avoidance
-					m_WindowSize /= 2;
-					if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE; 
-				}	
-				else
+				m_NumResendAttempts++;
+				switch (m_NumResendAttempts)
 				{	
-					// congesion avoidance didn't help
-					m_CurrentOutboundTunnel = nullptr; // pick another outbound tunnel 
-					UpdateCurrentRemoteLease (); // pick another lease
-					m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
+					case 1: // congesion avoidance
+						m_WindowSize /= 2;
+						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
+					break;
+					case 2:
+					case 4:	
+						UpdateCurrentRemoteLease (); // pick another lease
+						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
+						LogPrint (eLogWarning, "Another remote lease has been selected stream");
+					break;	
+					case 3:
+						// pick another outbound tunnel 
+						m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ().GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel); 
+						LogPrint (eLogWarning, "Another outbound tunnel has been selected for stream");
+					break;
+					default: ;	
 				}	
 				SendPackets (packets);
 			}	
