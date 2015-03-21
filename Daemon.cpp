@@ -76,7 +76,7 @@ namespace i2p
 
 			i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
 			i2p::context.SetFloodfill (i2p::util::config::GetArg("-floodfill", 0));
-			auto bandwidth = i2p::util::config::GetArg("-badnwidth", "");
+			auto bandwidth = i2p::util::config::GetArg("-bandwidth", "");
 			if (bandwidth.length () > 0)
 			{
 				if (bandwidth[0] > 'L')
