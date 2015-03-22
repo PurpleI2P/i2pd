@@ -560,7 +560,7 @@ namespace stream
 			UpdateCurrentRemoteLease ();	
 			if (!m_RemoteLeaseSet)
 			{
-				LogPrint ("Can't send packets. Missing remote LeaseSet");
+				LogPrint (eLogError, "Can't send packets. Missing remote LeaseSet");
 				return;
 			}
 		}
@@ -568,7 +568,7 @@ namespace stream
 			m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ().GetTunnelPool ()->GetNextOutboundTunnel ();
 		if (!m_CurrentOutboundTunnel)
 		{
-			LogPrint ("No outbound tunnels in the pool");
+			LogPrint (eLogError, "No outbound tunnels in the pool");
 			return;
 		}
 
@@ -582,17 +582,29 @@ namespace stream
 			{ 
 				auto msg = m_RoutingSession->WrapSingleMessage (CreateDataMessage (it->GetBuffer (), it->GetLength ()));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
-							{ 
-								i2p::tunnel::eDeliveryTypeTunnel,
-								m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
-								msg
-							});	
+					{ 
+						i2p::tunnel::eDeliveryTypeTunnel,
+						m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
+						msg
+					});	
 				m_NumSentBytes += it->GetLength ();
 			}
 			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
 		}	
 		else
-			LogPrint ("All leases are expired");
+		{	
+			LogPrint (eLogInfo, "All leases are expired. Trying to request");
+			m_RemoteLeaseSet = nullptr;
+			m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash (),
+				[packets, this](bool success)
+			    {
+					if (success)
+					{	
+						LogPrint (eLogInfo, "New LeaseSet found. Sending packets");
+						SendPackets (packets);
+					}	
+				});
+		}	
 	}
 
 	void Stream::ScheduleResend ()
@@ -642,7 +654,7 @@ namespace stream
 					case 4:	
 						UpdateCurrentRemoteLease (); // pick another lease
 						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
-						LogPrint (eLogWarning, "Another remote lease has been selected stream");
+						LogPrint (eLogWarning, "Another remote lease has been selected for stream");
 					break;	
 					case 3:
 						// pick another outbound tunnel 
