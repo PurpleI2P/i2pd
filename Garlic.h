@@ -39,6 +39,7 @@ namespace garlic
 
 	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 960; // 16 minutes			
 	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
+	const int LEASET_CONFIRMATION_TIMEOUT = 4000; // in milliseconds
 	
 	struct SessionTag: public i2p::data::Tag<32> 
 	{
@@ -56,6 +57,13 @@ namespace garlic
 	class GarlicDestination;
 	class GarlicRoutingSession: public std::enable_shared_from_this<GarlicRoutingSession>
 	{
+			enum LeaseSetUpdateStatus
+			{
+				eLeaseSetUpToDate = 0,
+				eLeaseSetUpdated,
+				eLeaseSetSubmitted 
+			};
+		
 			struct UnconfirmedTags
 			{
 				UnconfirmedTags (int n): numTags (n), tagsCreationTime (0) { sessionTags = new SessionTag[numTags]; };
@@ -71,10 +79,10 @@ namespace garlic
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
-			void TagsConfirmed (uint32_t msgID);
+			void MessageConfirmed (uint32_t msgID);
 			bool CleanupExpiredTags (); // returns true if something left 
 
-			void SetLeaseSetUpdated () { m_LeaseSetUpdated = true; };
+			void SetLeaseSetUpdated () { m_LeaseSetUpdateStatus = eLeaseSetUpdated; };
 			
 		private:
 
@@ -82,7 +90,8 @@ namespace garlic
 			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, UnconfirmedTags * newTags);
 			size_t CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination);
 			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
-			
+
+			void TagsConfirmed (uint32_t msgID);
 			UnconfirmedTags * GenerateSessionTags ();
 
 		private:
@@ -93,8 +102,11 @@ namespace garlic
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
 			std::map<uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;	
-			bool m_LeaseSetUpdated;
-
+			
+			LeaseSetUpdateStatus m_LeaseSetUpdateStatus;
+			uint32_t m_LeaseSetUpdateMsgID;
+			uint64_t m_LeaseSetSubmissionTime; // in milliseconds
+			
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};	

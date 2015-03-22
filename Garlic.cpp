@@ -17,7 +17,7 @@ namespace garlic
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
 	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags):
 		m_Owner (owner), m_Destination (destination), m_NumTags (numTags), 
-		m_LeaseSetUpdated (numTags > 0)
+		m_LeaseSetUpdateStatus (numTags > 0 ? eLeaseSetUpdated : eLeaseSetUpToDate)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -25,7 +25,7 @@ namespace garlic
 	}	
 
 	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
-		m_Owner (nullptr), m_Destination (nullptr), m_NumTags (1), m_LeaseSetUpdated (false)
+		m_Owner (nullptr), m_Destination (nullptr), m_NumTags (1), m_LeaseSetUpdateStatus (eLeaseSetUpToDate)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
@@ -51,13 +51,25 @@ namespace garlic
 		}			
 		return tags;	
 	}
-	
+
+	void GarlicRoutingSession::MessageConfirmed (uint32_t msgID)
+	{
+		TagsConfirmed (msgID);
+		if (msgID == m_LeaseSetUpdateMsgID)
+		{	
+			m_LeaseSetUpdateStatus = eLeaseSetUpToDate;
+			LogPrint (eLogInfo, "LeaseSet update confirmed");
+		}	
+		else
+			CleanupExpiredTags ();
+	}	
+		
 	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID) 
 	{ 
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		auto it = m_UnconfirmedTagsMsgs.find (msgID);	
 		if (it != m_UnconfirmedTagsMsgs.end ())
 		{
+			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 			UnconfirmedTags * tags = it->second;
 			if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
 			{	
@@ -67,7 +79,6 @@ namespace garlic
 			m_UnconfirmedTagsMsgs.erase (it);
 			delete tags;
 		}
-		CleanupExpiredTags ();
 	}
 
 	bool GarlicRoutingSession::CleanupExpiredTags ()
@@ -205,22 +216,32 @@ namespace garlic
 
 		if (m_Owner)
 		{	
-			if (newTags) // new session
+			// resubmit non-confirmed LeaseSet
+			if (m_LeaseSetUpdateStatus == eLeaseSetSubmitted && 
+			    i2p::util::GetMillisecondsSinceEpoch () > m_LeaseSetSubmissionTime + LEASET_CONFIRMATION_TIMEOUT)
+					m_LeaseSetUpdateStatus = eLeaseSetUpdated;
+
+			// attach DeviveryStatus if necessary
+			if (newTags || m_LeaseSetUpdateStatus == eLeaseSetUpdated) // new tags created or leaseset updated
 			{
 				// clove is DeliveryStatus 
 				size += CreateDeliveryStatusClove (payload + size, msgID);
 				if (size > 0) // successive?
 				{
 					(*numCloves)++;
-					m_UnconfirmedTagsMsgs[msgID] = newTags;
+					if (newTags) // new tags created
+						m_UnconfirmedTagsMsgs[msgID] = newTags;
 					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
 				}
 				else
 					LogPrint ("DeliveryStatus clove was not created");
 			}	
-			if (m_LeaseSetUpdated) 
+			// attach LeaseSet
+			if (m_LeaseSetUpdateStatus == eLeaseSetUpdated) 
 			{
-				m_LeaseSetUpdated = false;
+				m_LeaseSetUpdateStatus = eLeaseSetSubmitted;
+				m_LeaseSetUpdateMsgID = msgID;
+				m_LeaseSetSubmissionTime = i2p::util::GetMillisecondsSinceEpoch ();
 				// clove if our leaseSet must be attached
 				auto leaseSet = CreateDatabaseStoreMsg (m_Owner->GetLeaseSet ());
 				size += CreateGarlicClove (payload + size, leaseSet, false);
@@ -564,7 +585,7 @@ namespace garlic
 			auto it = m_CreatedSessions.find (msgID);
 			if (it != m_CreatedSessions.end ())			
 			{
-				it->second->TagsConfirmed (msgID);
+				it->second->MessageConfirmed (msgID);
 				m_CreatedSessions.erase (it);
 				LogPrint (eLogInfo, "Garlic message ", msgID, " acknowledged");
 			}	
