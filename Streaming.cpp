@@ -596,17 +596,20 @@ namespace stream
 			LogPrint (eLogInfo, "All leases are expired. Trying to request");
 			m_RemoteLeaseSet = nullptr;
 			m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash (),
-				[packets, this](bool success)
-			    {
-					if (success)
-					{	
-						LogPrint (eLogInfo, "New LeaseSet found. Sending packets");
-						SendPackets (packets);
-					}	
-				});
+				std::bind (&Stream::HandleLeaseSetRequestComplete, shared_from_this (), 
+					std::placeholders::_1, packets));
 		}	
 	}
 
+	void Stream::HandleLeaseSetRequestComplete (bool success, std::vector<Packet *> packets)
+	{
+		if (success)
+		{	
+			LogPrint (eLogInfo, "New LeaseSet found. Sending packets");
+			SendPackets (packets);
+		}	
+	}	
+		
 	void Stream::ScheduleResend ()
 	{
 		m_ResendTimer.cancel ();
