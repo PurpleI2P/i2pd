@@ -21,6 +21,7 @@ namespace stream
 		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+		m_RemoteIdentity = remote->GetIdentity ();
 		UpdateCurrentRemoteLease ();
 	}	
 
@@ -130,13 +131,24 @@ namespace stream
 				LogPrint (eLogWarning, "Missing messages from ", m_LastReceivedSequenceNumber + 1, " to ", receivedSeqn - 1);
 				// save message and wait for missing message again
 				SavePacket (packet);
-				// send NACKs for missing messages ASAP
-				if (m_IsAckSendScheduled)
+				if (m_LastReceivedSequenceNumber >= 0)
+				{	
+					// send NACKs for missing messages ASAP
+					if (m_IsAckSendScheduled)
+					{
+						m_IsAckSendScheduled = false;	
+						m_AckSendTimer.cancel ();
+					}
+					SendQuickAck ();
+				}	
+				else
 				{
-					m_IsAckSendScheduled = false;	
-					m_AckSendTimer.cancel ();
-				}
-				SendQuickAck ();
+					// wait for SYN
+					m_IsAckSendScheduled = true;
+					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ACK_SEND_TIMEOUT));
+					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
+						shared_from_this (), std::placeholders::_1));
+				}			
 			}	
 		}	
 	}	
@@ -676,6 +688,13 @@ namespace stream
 	{
 		if (m_IsAckSendScheduled)
 		{
+			if (m_LastReceivedSequenceNumber < 0)
+			{
+				LogPrint (eLogWarning, "SYN has not been recived after ", ACK_SEND_TIMEOUT, " milliseconds after follow on. Terminate");
+				m_Status = eStreamStatusReset;
+				Close ();
+				return;
+			}	
 			if (m_Status == eStreamStatusOpen)
 				SendQuickAck ();
 			m_IsAckSendScheduled = false;
