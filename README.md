@@ -48,11 +48,9 @@ On Ubuntu/Debian based
 * $ cd i2pd
 * $ make
 
-Next, find out your public ip. (find it for example at http://www.whatismyip.com/)
+Then, run it:
 
-Then, run it with:
-
-$ ./i2p --host=YOUR_PUBLIC_IP
+$ ./i2p
 
 The client should now reseed by itself.
 
