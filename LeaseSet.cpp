@@ -1,6 +1,7 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include <cryptopp/dsa.h>
+#include <cryptopp/osrng.h>
 #include "CryptoConst.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -40,6 +41,7 @@ namespace data
 		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
 		m_BufferLen++;
 		// leases
+		CryptoPP::AutoSeededRandomPool rnd;	
 		for (auto it: tunnels)
 		{	
 			memcpy (m_Buffer + m_BufferLen, it->GetNextIdentHash (), 32);
@@ -48,6 +50,7 @@ namespace data
 			m_BufferLen += 4; // tunnel id
 			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - 60; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
+			ts += rnd.GenerateWord32 (0, 5); // + random milliseconds
 			htobe64buf (m_Buffer + m_BufferLen, ts);
 			m_BufferLen += 8; // end date
 		}
