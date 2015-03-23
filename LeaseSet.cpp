@@ -42,14 +42,14 @@ namespace data
 		// leases
 		for (auto it: tunnels)
 		{	
-			Lease lease;
-			memcpy (lease.tunnelGateway, it->GetNextIdentHash (), 32);
-			lease.tunnelID = htobe32 (it->GetNextTunnelID ());
+			memcpy (m_Buffer + m_BufferLen, it->GetNextIdentHash (), 32);
+			m_BufferLen += 32; // gateway id
+			htobe32buf (m_Buffer + m_BufferLen, it->GetNextTunnelID ());
+			m_BufferLen += 4; // tunnel id
 			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - 60; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
-			lease.endDate = htobe64 (ts);
-			memcpy(m_Buffer + m_BufferLen, &lease, sizeof(Lease));
-			m_BufferLen += sizeof (Lease);
+			htobe64buf (m_Buffer + m_BufferLen, ts);
+			m_BufferLen += 8; // end date
 		}
 		// signature
 		localDestination->Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
@@ -82,11 +82,13 @@ namespace data
 		for (int i = 0; i < num; i++)
 		{
 			Lease lease;
-			memcpy (&lease, leases, sizeof(Lease));
-			lease.tunnelID = be32toh (lease.tunnelID);
-			lease.endDate = be64toh (lease.endDate);
+			lease.tunnelGateway = leases;
+			leases += 32; // gateway
+			lease.tunnelID = bufbe32toh (leases);
+			leases += 4; // tunnel ID
+			lease.endDate = bufbe64toh (leases);
+			leases += 8; // end date
 			m_Leases.push_back (lease);
-			leases += sizeof (Lease);
 
 			// check if lease's gateway is in our netDb
 			if (!netdb.FindRouter (lease.tunnelGateway))

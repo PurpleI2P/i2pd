@@ -16,12 +16,9 @@ namespace tunnel
 
 namespace data
 {	
-	
-#pragma pack(1)
-
 	struct Lease
 	{
-		uint8_t tunnelGateway[32];
+		IdentHash tunnelGateway;
 		uint32_t tunnelID;
 		uint64_t endDate;
 
@@ -33,8 +30,6 @@ namespace data
 				return tunnelID < other.tunnelID; 
 		}	
 	};	
-	
-#pragma pack()	
 
 	const int MAX_LS_BUFFER_SIZE = 3072;	
 	class LeaseSet: public RoutingDestination
