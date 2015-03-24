@@ -108,6 +108,9 @@ namespace data
 	
 	void NetDb::Stop ()
 	{
+		for (auto it: m_RouterInfos)
+			it.second->SaveProfile ();
+		m_RouterInfos.clear ();
 		if (m_Thread)
 		{	
 			m_IsRunning = false;
@@ -173,8 +176,7 @@ namespace data
 					}	
 					lastSave = ts;
 				}	
-				if (i2p::context.GetLastUpdateTime () > lastPublish ||  // our router has been updated 
-					ts - lastPublish >= 2400) // or publish every 40 minutes
+				if (ts - lastPublish >= 2400) // publish every 40 minutes
 				{
 					Publish ();
 					lastPublish = ts;
@@ -461,7 +463,10 @@ namespace data
 			for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
 			{
 				if (it->second->IsUnreachable ())
+				{	
+					it->second->SaveProfile ();
 					it = m_RouterInfos.erase (it);
+				}	
 				else
 					it++;
 			}
@@ -861,7 +866,6 @@ namespace data
 
 	void NetDb::Publish ()
 	{
-		i2p::context.UpdateStats ();
 		std::set<IdentHash> excluded; // TODO: fill up later
 		for (int i = 0; i < 2; i++)
 		{	
@@ -919,7 +923,7 @@ namespace data
 			[compatibleWith](std::shared_ptr<const RouterInfo> router)->bool 
 			{ 
 				return !router->IsHidden () && router != compatibleWith &&
-					router->IsCompatible (*compatibleWith) && router->IsHighBandwidth (); 
+					router->IsCompatible (*compatibleWith) && (router->GetCaps () & RouterInfo::eHighBandwidth); 
 			});
 	}	
 	

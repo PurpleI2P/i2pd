@@ -121,6 +121,7 @@ namespace tunnel
 			const uint8_t * record = msg + 1 + hop->recordIndex*TUNNEL_BUILD_RECORD_SIZE;
 			uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
 			LogPrint ("Ret code=", (int)ret);
+			hop->router->GetProfile ()->TunnelBuildResponse (ret);
 			if (ret) 
 				// if any of participants declined the tunnel is not established
 				established = false; 

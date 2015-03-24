@@ -7,12 +7,23 @@
 namespace i2p
 {
 namespace data
-{
+{	
+	const char PEER_PROFILES_DIRECTORY[] = "peerProfiles";
+	const char PEER_PROFILE_PREFIX[] = "profile-";
+	// sections
+	const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
+	// params	
+	const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
+	const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
+	
 	class RouterProfile
 	{
 		public:
 
 			RouterProfile (const IdentHash& identHash);
+			void Save ();
+			
+			void TunnelBuildResponse (uint8_t ret);
 			
 		private:	
 
@@ -22,7 +33,7 @@ namespace data
 			uint32_t m_NumTunnelsDeclined;			
 	};	
 
-	std::shared_ptr<RouterProfile> GetProfile (const IdentHash& identHash); 
+	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash); 
 }		
 }	
 

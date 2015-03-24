@@ -652,5 +652,12 @@ namespace data
 		}	
 		return nullptr;
 	}	
+
+	std::shared_ptr<RouterProfile> RouterInfo::GetProfile () const 
+	{
+		if (!m_Profile)
+			m_Profile = GetRouterProfile (GetIdentHash ());
+		return m_Profile;
+	}	
 }
 }

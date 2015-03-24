@@ -138,6 +138,9 @@ namespace data
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
 			void SaveToFile (const std::string& fullPath);
 
+			std::shared_ptr<RouterProfile> GetProfile () const;
+			void SaveProfile () { if (m_Profile) m_Profile->Save (); };
+			
 			void Update (const uint8_t * buf, int len);
 			void DeleteBuffer () { delete m_Buffer; m_Buffer = nullptr; };
 			
@@ -171,7 +174,7 @@ namespace data
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			uint8_t m_SupportedTransports, m_Caps;
-			std::shared_ptr<RouterProfile> m_Profile;
+			mutable std::shared_ptr<RouterProfile> m_Profile;
 	};	
 }	
 }
