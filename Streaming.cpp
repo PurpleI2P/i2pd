@@ -608,17 +608,16 @@ namespace stream
 			LogPrint (eLogInfo, "All leases are expired. Trying to request");
 			m_RemoteLeaseSet = nullptr;
 			m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash (),
-				std::bind (&Stream::HandleLeaseSetRequestComplete, shared_from_this (), 
-					std::placeholders::_1, packets));
+				std::bind (&Stream::HandleLeaseSetRequestComplete, shared_from_this (), std::placeholders::_1));
 		}	
 	}
 
-	void Stream::HandleLeaseSetRequestComplete (bool success, std::vector<Packet *> packets)
+	void Stream::HandleLeaseSetRequestComplete (bool success)
 	{
 		if (success)
 		{	
-			LogPrint (eLogInfo, "New LeaseSet found. Sending packets");
-			SendPackets (packets);
+			LogPrint (eLogInfo, "New LeaseSet found");
+			UpdateCurrentRemoteLease ();
 		}	
 	}	
 		
@@ -717,7 +716,10 @@ namespace stream
 			if (!leases.empty ())
 			{	
 				uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-				m_CurrentRemoteLease = leases[i];
+				if (m_CurrentRemoteLease.endDate && leases[i].tunnelID == m_CurrentRemoteLease.tunnelID)
+					// make sure we don't select previous 	
+					i = (i + 1) % leases.size (); // if so, pick next
+				m_CurrentRemoteLease = leases[i];		
 			}	
 			else
 			{	
