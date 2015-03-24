@@ -607,19 +607,10 @@ namespace stream
 		{	
 			LogPrint (eLogInfo, "All leases are expired. Trying to request");
 			m_RemoteLeaseSet = nullptr;
-			m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash (),
-				std::bind (&Stream::HandleLeaseSetRequestComplete, shared_from_this (), std::placeholders::_1));
+			m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash ());
 		}	
 	}
 
-	void Stream::HandleLeaseSetRequestComplete (bool success)
-	{
-		if (success)
-		{	
-			LogPrint (eLogInfo, "New LeaseSet found");
-			UpdateCurrentRemoteLease ();
-		}	
-	}	
 		
 	void Stream::ScheduleResend ()
 	{

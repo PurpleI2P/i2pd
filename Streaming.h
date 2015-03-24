@@ -147,7 +147,6 @@ namespace stream
 			
 			template<typename Buffer, typename ReceiveHandler>
 			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler);
-			void HandleLeaseSetRequestComplete (bool success);
 			
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
