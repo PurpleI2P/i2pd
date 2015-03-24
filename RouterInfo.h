@@ -8,6 +8,7 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include "Identity.h"
+#include "Profiling.h"
 
 namespace i2p
 {
@@ -170,6 +171,7 @@ namespace data
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			uint8_t m_SupportedTransports, m_Caps;
+			std::shared_ptr<RouterProfile> m_Profile;
 	};	
 }	
 }

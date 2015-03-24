@@ -22,6 +22,7 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/Log.cpp"
   "${CMAKE_SOURCE_DIR}/NTCPSession.cpp"
   "${CMAKE_SOURCE_DIR}/NetDb.cpp"
+  "${CMAKE_SOURCE_DIR}/Profiling.cpp"
   "${CMAKE_SOURCE_DIR}/Reseed.cpp"
   "${CMAKE_SOURCE_DIR}/RouterContext.cpp"
   "${CMAKE_SOURCE_DIR}/RouterInfo.cpp"

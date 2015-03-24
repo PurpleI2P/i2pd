@@ -38,6 +38,7 @@
     <ClCompile Include="..\Log.cpp" />
     <ClCompile Include="..\NetDb.cpp" />
     <ClCompile Include="..\NTCPSession.cpp" />
+	<ClCompile Include="..\Profiling.cpp" />
     <ClCompile Include="..\Reseed.cpp" />
     <ClCompile Include="..\RouterContext.cpp" />
     <ClCompile Include="..\RouterInfo.cpp" />
@@ -82,6 +83,7 @@
     <ClInclude Include="..\NetDb.h" />
     <ClInclude Include="..\NTCPSession.h" />
     <ClInclude Include="..\Queue.h" />
+	<ClInclude Include="..\Profiling.h" />
     <ClInclude Include="..\Reseed.h" />
     <ClInclude Include="..\RouterContext.h" />
     <ClInclude Include="..\RouterInfo.h" />
