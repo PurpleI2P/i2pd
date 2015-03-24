@@ -64,7 +64,7 @@ http://localhost:7070/4oes3rlgrpbkmzv4lqcfili23h3cvpwslqcfjlk6vvguxyggspwa.b32.i
 Cmdline options
 ---------------
 
-* --host=               - The external IP
+* --host=               - The external IP (deprecated). 
 * --port=               - The port to listen on
 * --httpport=           - The http port to listen on
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
