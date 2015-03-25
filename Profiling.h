@@ -21,7 +21,9 @@ namespace data
 		public:
 
 			RouterProfile (const IdentHash& identHash);
+			
 			void Save ();
+			void Load ();
 			
 			void TunnelBuildResponse (uint8_t ret);
 			

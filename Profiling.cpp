@@ -57,6 +57,38 @@ namespace data
 			LogPrint (eLogError, "Can't write ", filename, ": ", ex.what ());
 		}
 	}	
+
+	void RouterProfile::Load ()
+	{
+		std::string base64 = m_IdentHash.ToBase64 ();
+		auto path = i2p::util::filesystem::GetDefaultDataDir() / PEER_PROFILES_DIRECTORY;
+		path /= std::string ("p") + base64[0];
+		auto filename = path / (std::string (PEER_PROFILE_PREFIX) + base64 + ".txt");
+		if (boost::filesystem::exists (filename))
+		{	
+			boost::property_tree::ptree pt;
+			try
+			{
+				boost::property_tree::read_ini (filename.string (), pt);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "Can't read ", filename, ": ", ex.what ());
+				return;
+			}
+			try
+			{	
+				// read participations
+				auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
+				m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
+				m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
+			}	
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "Can't read profile ", base64, " :", ex.what ());
+			}	
+		}	
+	}	
 		
 	void RouterProfile::TunnelBuildResponse (uint8_t ret)
 	{
@@ -68,7 +100,9 @@ namespace data
 		
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
-		return std::make_shared<RouterProfile> (identHash);
+		auto profile = std::make_shared<RouterProfile> (identHash);
+		profile->Load (); // if possible
+		return profile;
 	}		
 }		
 }	
