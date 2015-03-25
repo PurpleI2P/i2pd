@@ -387,20 +387,15 @@ namespace client
 	void SAMSocket::ProcessDestGenerate ()
 	{
 		LogPrint ("SAM dest generate");
-		auto localDestination = i2p::client::context.CreateNewLocalDestination ();
-		if (localDestination)
-		{
-			auto priv = localDestination->GetPrivateKeys ().ToBase64 ();
-			auto pub = localDestination->GetIdentity ().ToBase64 ();
+		auto keys = i2p::data::PrivateKeys::CreateRandomKeys ();
 #ifdef _MSC_VER
-			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, pub.c_str (), priv.c_str ());	
+		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, 
+			keys.GetPublic ().ToBase64 ().c_str (), keys.ToBase64 ().c_str ());	
 #else			                        
-			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, pub.c_str (), priv.c_str ());
+		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, 
+		    keys.GetPublic ().ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #endif
-			SendMessageReply (m_Buffer, len, true);
-		}
-		else
-			SendMessageReply (SAM_DEST_REPLY_I2P_ERROR, strlen(SAM_DEST_REPLY_I2P_ERROR), true);
+		SendMessageReply (m_Buffer, len, false);
 	}
 
 	void SAMSocket::ProcessNamingLookup (char * buf, size_t len)
