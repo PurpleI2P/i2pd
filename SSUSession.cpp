@@ -1094,7 +1094,7 @@ namespace transport
 	{
 		uint8_t buf[SSU_MTU_V4 + 18];
 		size_t msgSize = len + sizeof (SSUHeader); 
-		size_t paddingSize = msgSize >> 4; // %16
+		size_t paddingSize = msgSize & 0x0F; // %16
 		if (paddingSize > 0) msgSize += (16 - paddingSize);
 		if (msgSize > SSU_MTU_V4)
 		{
