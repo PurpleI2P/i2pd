@@ -104,21 +104,21 @@ i2p.conf:
 
 tunnels.cfg (filename of this config is subject of change):
 
-   ; outgoing tunnel, to remote service    
-  [tunnel1]  
-  type = client      ; mandatory   
-  port = <integer>   ; mandatory, bind our side of tunnel to this local port  
-  keys = <filename>  ; optional  
-  destination     = <ident>    ; mandatory  
-  destinationport = <integer>  ; optional, port of remote i2p service  
-     
-   ; incoming tunnel, for local service(s)   
-  [tunnel2]   
-  type = server      ; mandatory   
-  host = <ident>     ; mandatory, hostname of our i2p service   
-  keys = <filename>  ; mandatory, hostname keys   
-  port = <integer>   ; mandatory, forward incoming connections from i2p to this port      
-  inport = <integer> ; optional, i2p service port   
-  accesslist = <ident>[,<ident>] ; optional, comma-separated list of i2p idents, allowed to connect to service  
+	 ; outgoing tunnel, to remote service    
+	[tunnel1]  
+	type = client      ; mandatory   
+	port = <integer>   ; mandatory, bind our side of tunnel to this local port  
+	keys = <filename>  ; optional  
+	destination     = <ident>    ; mandatory  
+	destinationport = <integer>  ; optional, port of remote i2p service  
+	   
+	 ; incoming tunnel, for local service(s)   
+	[tunnel2]   
+	type = server      ; mandatory   
+	host = <ident>     ; mandatory, hostname of our i2p service   
+	keys = <filename>  ; mandatory, hostname keys   
+	port = <integer>   ; mandatory, forward incoming connections from i2p to this port      
+	inport = <integer> ; optional, i2p service port   
+	accesslist = <ident>[,<ident>] ; optional, comma-separated list of i2p idents, allowed to connect to service  
 
 Note: '<ident>' type is a string like <hostname.i2p> or <abracadabra.b32.i2p>  
