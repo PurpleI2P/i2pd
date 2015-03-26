@@ -253,16 +253,15 @@ namespace client
 		if (m_Session)
 		{
 			m_SocketType = eSAMSocketTypeSession;
-			if (m_Session->localDestination->IsReady ())
+			if (style == SAM_VALUE_DATAGRAM)
 			{
-				if (style == SAM_VALUE_DATAGRAM)
-				{
-					auto dest = m_Session->localDestination->CreateDatagramDestination ();
-					dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), 
-						std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
-				}
-				SendSessionCreateReplyOk ();
+				auto dest = m_Session->localDestination->CreateDatagramDestination ();
+				dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), 
+					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
 			}
+
+			if (m_Session->localDestination->IsReady ())
+				SendSessionCreateReplyOk ();
 			else
 			{
 				m_Timer.expires_from_now (boost::posix_time::seconds(SAM_SESSION_READINESS_CHECK_INTERVAL));
