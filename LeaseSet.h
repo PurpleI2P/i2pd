@@ -49,7 +49,7 @@ namespace data
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_Identity.GetIdentHash (); };
 			const std::vector<Lease>& GetLeases () const { return m_Leases; };
-			const std::vector<Lease> GetNonExpiredLeases () const;
+			const std::vector<Lease> GetNonExpiredLeases (bool withThreshold = true) const;
 			bool HasExpiredLeases () const;
 			bool HasNonExpiredLeases () const;
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };

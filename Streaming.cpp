@@ -585,7 +585,7 @@ namespace stream
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		if (ts >= m_CurrentRemoteLease.endDate)
+		if (ts >= m_CurrentRemoteLease.endDate - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000)
 			UpdateCurrentRemoteLease ();
 		if (ts < m_CurrentRemoteLease.endDate)
 		{	
@@ -604,11 +604,7 @@ namespace stream
 			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
 		}	
 		else
-		{	
-			LogPrint (eLogInfo, "All leases are expired. Trying to request");
-			m_RemoteLeaseSet = nullptr;
-			m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash ());
-		}	
+			LogPrint (eLogWarning, "All leases are expired");
 	}
 
 		
@@ -703,7 +699,12 @@ namespace stream
 		{
 			if (!m_RoutingSession)
 				m_RoutingSession = m_LocalDestination.GetOwner ().GetRoutingSession (m_RemoteLeaseSet, 32);
-			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases ();
+			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (false); // try without threshold first
+			if (leases.empty ())
+			{
+				m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash ()); // time to re-request
+				leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // then with threshold
+			}
 			if (!leases.empty ())
 			{	
 				uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
@@ -714,8 +715,9 @@ namespace stream
 			}	
 			else
 			{	
-				m_RemoteLeaseSet = m_LocalDestination.GetOwner ().FindLeaseSet (m_RemoteIdentity.GetIdentHash ()); // re-request expired
+				m_RemoteLeaseSet = nullptr;
 				m_CurrentRemoteLease.endDate = 0;
+				// re-request expired
 			}	
 		}
 		else

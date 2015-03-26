@@ -48,7 +48,7 @@ namespace data
 			m_BufferLen += 32; // gateway id
 			htobe32buf (m_Buffer + m_BufferLen, it->GetNextTunnelID ());
 			m_BufferLen += 4; // tunnel id
-			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - 60; // 1 minute before expiration
+			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
 			ts += rnd.GenerateWord32 (0, 5); // + random milliseconds
 			htobe64buf (m_Buffer + m_BufferLen, ts);
@@ -107,13 +107,18 @@ namespace data
 			LogPrint ("LeaseSet verification failed");
 	}				
 	
-	const std::vector<Lease> LeaseSet::GetNonExpiredLeases () const
+	const std::vector<Lease> LeaseSet::GetNonExpiredLeases (bool withThreshold) const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		std::vector<Lease> leases;
 		for (auto& it: m_Leases)
-			if (ts < it.endDate)
+		{
+			auto endDate = it.endDate;
+			if (!withThreshold)
+				endDate -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000;
+			if (ts < endDate)
 				leases.push_back (it);
+		}	
 		return leases;	
 	}	
 
