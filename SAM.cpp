@@ -490,7 +490,7 @@ namespace client
 	void SAMSocket::Receive ()
 	{
 		m_Socket.async_read_some (boost::asio::buffer(m_Buffer, SAM_SOCKET_BUFFER_SIZE),                
-			std::bind((m_SocketType == eSAMSocketTypeSession) ? &SAMSocket::HandleMessage : &SAMSocket::HandleReceived,
+			std::bind((m_SocketType == eSAMSocketTypeStream) ? &SAMSocket::HandleReceived : &SAMSocket::HandleMessage,
 			shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
 
@@ -556,6 +556,7 @@ namespace client
 			auto session = m_Owner.FindSession (m_ID);
 			if (session)	
 				session->localDestination->StopAcceptingStreams ();	
+			m_SocketType = eSAMSocketTypeStream;
 			if (!m_IsSilent)
 			{
 				// send remote peer address
