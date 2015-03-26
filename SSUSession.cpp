@@ -882,17 +882,11 @@ namespace transport
 
 	void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		const uint8_t * buf1 = buf;
-		uint32_t nonce = bufbe32toh (buf);
-		buf += 4; // nonce
-		uint8_t size = *buf;
-		buf++; // size
-		
-		uint32_t address = (size == 4) ? buf32toh(buf) : 0; // use it as is
-		buf += size; // address
-		uint16_t port = buf16toh(buf); // use it as is
-		buf += 2; // port
-		const uint8_t * introKey = buf;
+		uint32_t nonce = bufbe32toh (buf); // 4 bytes
+		uint8_t size = buf[4];	// 1 byte	
+		uint32_t address = (size == 4) ? buf32toh(buf + 5) : 0; // big endian, size bytes
+		uint16_t port = buf16toh(buf + size + 5); // big endian, 2 bytes
+		const uint8_t * introKey = buf + size + 7;
 		if (port && !address)
 		{
 			LogPrint (eLogWarning, "Address of ", size, " bytes not supported");	
@@ -938,7 +932,7 @@ namespace transport
 				boost::asio::ip::udp::endpoint ep (boost::asio::ip::address_v4 (be32toh (address)), be16toh (port)); // Alice's address/port
 				auto session = m_Server.FindSession (ep); // find session with Alice
 				if (session)
-					session->Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Alice
+					session->Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Alice
 				m_Server.RemovePeerTest (nonce); // nonce has been used
 				break;
 			}
@@ -960,7 +954,7 @@ namespace transport
 					{
 						LogPrint (eLogDebug, "SSU peer test from Bob. We are Charlie");
 						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
-						Send (PAYLOAD_TYPE_PEER_TEST, buf1, len); // back to Bob
+						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
 						SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice with her address received from Bob
 					}
 					else
