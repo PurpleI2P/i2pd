@@ -929,9 +929,8 @@ namespace transport
 			case ePeerTestParticipantBob: 
 			{
 				LogPrint (eLogDebug, "SSU peer test from Charlie. We are Bob");
-				boost::asio::ip::udp::endpoint ep (boost::asio::ip::address_v4 (be32toh (address)), be16toh (port)); // Alice's address/port
-				auto session = m_Server.FindSession (ep); // find session with Alice
-				if (session)
+				auto session = m_Server.GetPeerTestSession (nonce); // session with Alice from PeerTest
+				if (session && session->m_State == eSessionStateEstablished)
 					session->Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Alice
 				m_Server.RemovePeerTest (nonce); // nonce has been used
 				break;
@@ -963,7 +962,7 @@ namespace transport
 						auto session = m_Server.GetRandomEstablishedSession (shared_from_this ()); // Charlie
 						if (session)
 						{
-							m_Server.NewPeerTest (nonce, ePeerTestParticipantBob);
+							m_Server.NewPeerTest (nonce, ePeerTestParticipantBob, shared_from_this ());
 							session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
 								senderEndpoint.port (), introKey, false); // to Charlie with Alice's actual address 	
 						}	

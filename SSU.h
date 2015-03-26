@@ -54,8 +54,9 @@ namespace transport
 			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
 			std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
 
-			void NewPeerTest (uint32_t nonce, PeerTestParticipant role);
+			void NewPeerTest (uint32_t nonce, PeerTestParticipant role, std::shared_ptr<SSUSession> session = nullptr);
 			PeerTestParticipant GetPeerTestParticipant (uint32_t nonce);
+			std::shared_ptr<SSUSession> GetPeerTestSession (uint32_t nonce);
 			void UpdatePeerTest (uint32_t nonce, PeerTestParticipant role);
 			void RemovePeerTest (uint32_t nonce);
 
@@ -86,6 +87,7 @@ namespace transport
 			{
 				uint64_t creationTime;
 				PeerTestParticipant role;
+				std::shared_ptr<SSUSession> session; // for Bob to Alice
 			};	
 			
 			bool m_IsRunning;

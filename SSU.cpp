@@ -256,7 +256,6 @@ namespace transport
 
 	std::shared_ptr<SSUSession> SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e) const
 	{
-		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_Sessions.find (e);
 		if (it != m_Sessions.end ())
 			return it->second;
@@ -473,9 +472,9 @@ namespace transport
 		}	
 	}
 
-	void SSUServer::NewPeerTest (uint32_t nonce, PeerTestParticipant role)
+	void SSUServer::NewPeerTest (uint32_t nonce, PeerTestParticipant role, std::shared_ptr<SSUSession> session)
 	{
-		m_PeerTests[nonce] = { i2p::util::GetMillisecondsSinceEpoch (), role };
+		m_PeerTests[nonce] = { i2p::util::GetMillisecondsSinceEpoch (), role, session };
 	}
 
 	PeerTestParticipant SSUServer::GetPeerTestParticipant (uint32_t nonce)
@@ -486,6 +485,15 @@ namespace transport
 		else
 			return ePeerTestParticipantUnknown;
 	}	
+
+	std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession (uint32_t nonce)
+	{
+		auto it = m_PeerTests.find (nonce);
+		if (it != m_PeerTests.end ())
+			return it->second.session;
+		else
+			return nullptr;
+	}
 
 	void SSUServer::UpdatePeerTest (uint32_t nonce, PeerTestParticipant role)
 	{
