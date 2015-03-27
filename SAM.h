@@ -34,6 +34,7 @@ namespace client
 	const char SAM_STREAM_STATUS_CANT_REACH_PEER[] = "STREAM STATUS RESULT=CANT_REACH_PEER\n";
 	const char SAM_STREAM_STATUS_I2P_ERROR[] = "STREAM STATUS RESULT=I2P_ERROR\n";
 	const char SAM_STREAM_ACCEPT[] = "STREAM ACCEPT";	
+	const char SAM_DATAGRAM_SEND[] = "DATAGRAM SEND";
 	const char SAM_DEST_GENERATE[] = "DEST GENERATE";
 	const char SAM_DEST_REPLY[] = "DEST REPLY PUB=%s PRIV=%s\n";	
 	const char SAM_DEST_REPLY_I2P_ERROR[] = "DEST REPLY RESULT=I2P_ERROR\n";
@@ -49,7 +50,8 @@ namespace client
 	const char SAM_PARAM_SILENT[] = "SILENT";
 	const char SAM_PARAM_DESTINATION[] = "DESTINATION";	
 	const char SAM_PARAM_NAME[] = "NAME";
-	const char SAM_PARAM_SIGNATURE_TYPE[] = "SIGNATURE_TYPE";		
+	const char SAM_PARAM_SIGNATURE_TYPE[] = "SIGNATURE_TYPE";	
+	const char SAM_PARAM_SIZE[] = "SIZE";
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";	
 	const char SAM_VALUE_STREAM[] = "STREAM";
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
@@ -101,9 +103,10 @@ namespace client
 			void ProcessSessionCreate (char * buf, size_t len);
 			void ProcessStreamConnect (char * buf, size_t len);
 			void ProcessStreamAccept (char * buf, size_t len);
+			void ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
 			void ProcessDestGenerate ();
 			void ProcessNamingLookup (char * buf, size_t len);
-			void ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params);
+			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
 
 			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote);
 			void HandleConnectLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident);

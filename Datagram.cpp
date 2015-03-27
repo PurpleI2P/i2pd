@@ -17,7 +17,7 @@ namespace datagram
 	{
 	}
 
-	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, std::shared_ptr<const i2p::data::LeaseSet> remote)
+	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident)
 	{
 		uint8_t buf[MAX_DATAGRAM_SIZE];
 		auto identityLen = m_Owner.GetIdentity ().ToBuffer (buf, MAX_DATAGRAM_SIZE);
@@ -35,11 +35,30 @@ namespace datagram
 		}
 		else
 			m_Owner.Sign (buf1, len, signature);
-		
-		m_Owner.GetService ().post (std::bind (&DatagramDestination::SendMsg, this, 
-			CreateDataMessage (buf, len + headerLen), remote));
+
+		auto msg = CreateDataMessage (buf, len + headerLen); 
+		auto remote = m_Owner.FindLeaseSet (ident);
+		if (remote)
+			m_Owner.GetService ().post (std::bind (&DatagramDestination::SendMsg, this, msg, remote));
+		else
+			m_Owner.RequestDestination (ident, std::bind (&DatagramDestination::HandleLeaseSetRequestComplete, 
+				this, std::placeholders::_1, msg, ident));
 	}
 
+	void DatagramDestination::HandleLeaseSetRequestComplete (bool success, I2NPMessage * msg, i2p::data::IdentHash ident)
+	{
+		if (success)
+		{
+			auto remote = m_Owner.FindLeaseSet (ident);
+			if (remote)
+			{
+				SendMsg (msg, remote);
+				return;
+			}	
+		}
+		DeleteI2NPMessage (msg);
+	}	
+		
 	void DatagramDestination::SendMsg (I2NPMessage * msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		auto outboundTunnel = m_Owner.GetTunnelPool ()->GetNextOutboundTunnel ();

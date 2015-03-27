@@ -102,7 +102,7 @@ namespace client
 				{
 					separator++;
 					std::map<std::string, std::string> params;
-					ExtractParams (separator, bytes_transferred - (separator - m_Buffer), params);
+					ExtractParams (separator, params);
 					auto it = params.find (SAM_PARAM_MAX);
 					// TODO: check MIN as well
 					if (it != params.end ())
@@ -208,6 +208,8 @@ namespace client
 						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
 						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND))
+						ProcessDatagramSend (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, eol + 1);
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
 						ProcessDestGenerate ();
 					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
@@ -236,7 +238,7 @@ namespace client
 	{
 		LogPrint ("SAM session create: ", buf);
 		std::map<std::string, std::string> params;
-		ExtractParams (buf, len, params);
+		ExtractParams (buf, params);
 		std::string& style = params[SAM_PARAM_STYLE]; 
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
@@ -307,7 +309,7 @@ namespace client
 	{
 		LogPrint ("SAM stream connect: ", buf);
 		std::map<std::string, std::string> params;
-		ExtractParams (buf, len, params);
+		ExtractParams (buf, params);
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
 		std::string& silent = params[SAM_PARAM_SILENT];
@@ -361,7 +363,7 @@ namespace client
 	{
 		LogPrint ("SAM stream accept: ", buf);
 		std::map<std::string, std::string> params;
-		ExtractParams (buf, len, params);
+		ExtractParams (buf, params);
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& silent = params[SAM_PARAM_SILENT];
 		if (silent == SAM_VALUE_TRUE) m_IsSilent = true;	
@@ -383,6 +385,35 @@ namespace client
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 	}
 
+	void SAMSocket::ProcessDatagramSend (char * buf, size_t len, const char * data)
+	{
+		LogPrint ("SAM datagram send: ", buf);
+		std::map<std::string, std::string> params;
+		ExtractParams (buf, params);
+		size_t size = boost::lexical_cast<int>(params[SAM_PARAM_SIZE]);
+		if (size < len)
+		{	
+			if (m_Session)
+			{	
+				auto d = m_Session->localDestination->GetDatagramDestination ();
+				if (d)
+				{
+					i2p::data::IdentityEx dest;
+					dest.FromBase64 (params[SAM_PARAM_DESTINATION]);
+					d->SendDatagramTo ((const uint8_t *)data, size, dest.GetIdentHash ());
+				}
+				else
+					LogPrint (eLogError, "SAM missing datagram destination");
+			}
+			else
+				LogPrint (eLogError, "SAM session is not created from DATAGRAM SEND");
+		}	
+		else
+			LogPrint (eLogError, "SAM datagram size ", size, " exceeds buffer");
+		// since it's SAM v1 reply is not expected
+		Receive ();
+	}	
+		
 	void SAMSocket::ProcessDestGenerate ()
 	{
 		LogPrint ("SAM dest generate");
@@ -401,7 +432,7 @@ namespace client
 	{
 		LogPrint ("SAM naming lookup: ", buf);
 		std::map<std::string, std::string> params;
-		ExtractParams (buf, len, params);
+		ExtractParams (buf, params);
 		std::string& name = params[SAM_PARAM_NAME];
 		i2p::data::IdentityEx identity;
 		i2p::data::IdentHash ident;
@@ -467,7 +498,7 @@ namespace client
 		SendMessageReply (m_Buffer, l, false);
 	}
 
-	void SAMSocket::ExtractParams (char * buf, size_t len, std::map<std::string, std::string>& params)
+	void SAMSocket::ExtractParams (char * buf, std::map<std::string, std::string>& params)
 	{
 		char * separator;	
 		do
@@ -779,15 +810,8 @@ namespace client
 					{	
 						i2p::data::IdentityEx dest;
 						dest.FromBase64 (destination);
-						auto leaseSet = i2p::data::netdb.FindLeaseSet (dest.GetIdentHash ());
-						if (leaseSet)
-							session->localDestination->GetDatagramDestination ()->
-								SendDatagramTo ((uint8_t *)eol, payloadLen, leaseSet);
-						else
-						{
-							LogPrint ("SAM datagram destination not found");
-							session->localDestination->RequestDestination (dest.GetIdentHash ());
-						}	
+						session->localDestination->GetDatagramDestination ()->
+							SendDatagramTo ((uint8_t *)eol, payloadLen, dest.GetIdentHash ());
 					}	
 					else
 						LogPrint ("Session ", sessionID, " not found");
