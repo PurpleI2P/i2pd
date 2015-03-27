@@ -103,9 +103,9 @@ namespace client
 			void ProcessSessionCreate (char * buf, size_t len);
 			void ProcessStreamConnect (char * buf, size_t len);
 			void ProcessStreamAccept (char * buf, size_t len);
-			void ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
 			void ProcessDestGenerate ();
 			void ProcessNamingLookup (char * buf, size_t len);
+			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0	
 			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
 
 			void Connect (std::shared_ptr<const i2p::data::LeaseSet> remote);
@@ -121,6 +121,7 @@ namespace client
 			boost::asio::ip::tcp::socket m_Socket;
 			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[SAM_SOCKET_BUFFER_SIZE + 1];
+			size_t m_BufferOffset;
 			uint8_t m_StreamBuffer[SAM_SOCKET_BUFFER_SIZE];
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
