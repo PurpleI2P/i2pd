@@ -191,7 +191,7 @@ namespace client
 			bytes_transferred += m_BufferOffset;
 			m_BufferOffset = 0;
 			m_Buffer[bytes_transferred] = 0;
-			char * eol = strchr (m_Buffer, '\n');
+			char * eol = (char *)memchr (m_Buffer, '\n', bytes_transferred);
 			if (eol)
 			{
 				*eol = 0;
@@ -240,7 +240,7 @@ namespace client
 			}
 			else
 			{	
-				LogPrint (eLogWarning, "SAM incomplete message ", m_Buffer);
+				LogPrint (eLogWarning, "SAM incomplete message ", bytes_transferred);
 				m_BufferOffset = bytes_transferred;
 				// try to receive remaining message
 				Receive ();
