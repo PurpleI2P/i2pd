@@ -220,7 +220,8 @@ namespace client
 						if (processed < bytes_transferred)
 						{
 							m_BufferOffset = bytes_transferred - processed;
-							memmove (m_Buffer, m_Buffer + processed, m_BufferOffset);
+							if (processed > 0)
+								memmove (m_Buffer, m_Buffer + processed, m_BufferOffset);
 						}	
 						// since it's SAM v1 reply is not expected
 						Receive ();
@@ -420,7 +421,10 @@ namespace client
 				LogPrint (eLogError, "SAM session is not created from DATAGRAM SEND");
 		}	
 		else
-			LogPrint (eLogError, "SAM sent datagram size ", size, " exceeds buffer");
+		{
+			LogPrint (eLogWarning, "SAM sent datagram size ", size, " exceeds buffer");
+			return 0; // try to receive more
+		}	
 		return offset + size;
 	}	
 		
@@ -529,6 +533,12 @@ namespace client
 
 	void SAMSocket::Receive ()
 	{
+		if (m_BufferOffset >= SAM_SOCKET_BUFFER_SIZE)
+		{
+			LogPrint (eLogError, "Buffer is full. Terminate");
+			Terminate ();
+			return;
+		}
 		m_Socket.async_read_some (boost::asio::buffer(m_Buffer + m_BufferOffset, SAM_SOCKET_BUFFER_SIZE - m_BufferOffset),                
 			std::bind((m_SocketType == eSAMSocketTypeStream) ? &SAMSocket::HandleReceived : &SAMSocket::HandleMessage,
 			shared_from_this (), std::placeholders::_1, std::placeholders::_2));
