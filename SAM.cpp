@@ -216,12 +216,13 @@ namespace client
 						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND))
 					{
-						size_t processed = ProcessDatagramSend (separator + 1, bytes_transferred, eol + 1);
-						if (processed < bytes_transferred)
+						size_t len = bytes_transferred - (separator - m_Buffer) - 1;
+						size_t processed = ProcessDatagramSend (separator + 1, len, eol + 1);
+						if (processed < len)
 						{
-							m_BufferOffset = bytes_transferred - processed;
+							m_BufferOffset = len - processed;
 							if (processed > 0)
-								memmove (m_Buffer, m_Buffer + processed, m_BufferOffset);
+								memmove (m_Buffer, separator + 1 + processed, m_BufferOffset);
 							else
 							{
 								// restore string back
