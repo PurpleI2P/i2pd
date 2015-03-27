@@ -18,7 +18,7 @@ namespace i2p
 {
 namespace client
 {
-	const size_t SAM_SOCKET_BUFFER_SIZE = 4096;
+	const size_t SAM_SOCKET_BUFFER_SIZE = 8192;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
 	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 20; // in seconds	
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
