@@ -50,7 +50,7 @@ On Ubuntu/Debian based
 
 Then, run it:
 
-$ ./i2p
+$ ./i2pd
 
 The client should now reseed by itself.
 
