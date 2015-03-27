@@ -216,7 +216,7 @@ namespace client
 						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND))
 					{
-						size_t processed = ProcessDatagramSend (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, eol + 1);
+						size_t processed = ProcessDatagramSend (separator + 1, bytes_transferred, eol + 1);
 						if (processed < bytes_transferred)
 						{
 							m_BufferOffset = bytes_transferred - processed;
@@ -407,7 +407,7 @@ namespace client
 
 	size_t SAMSocket::ProcessDatagramSend (char * buf, size_t len, const char * data)
 	{
-		LogPrint (eLogDebug, "SAM datagram send: ", buf);
+		LogPrint (eLogDebug, "SAM datagram send: ", buf, " ", len);
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
 		size_t size = boost::lexical_cast<int>(params[SAM_PARAM_SIZE]), offset = data - buf;
