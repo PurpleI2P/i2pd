@@ -411,7 +411,7 @@ namespace client
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
 		size_t size = boost::lexical_cast<int>(params[SAM_PARAM_SIZE]), offset = data - buf;
-		if (offset + size < len)
+		if (offset + size <= len)
 		{	
 			if (m_Session)
 			{	
