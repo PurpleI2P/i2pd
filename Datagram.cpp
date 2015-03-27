@@ -95,7 +95,11 @@ namespace datagram
 
 		bool verified = false;
 		if (identity.GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
-			verified = CryptoPP::SHA256().VerifyDigest (signature, buf + headerLen, len - headerLen);
+		{
+			uint8_t hash[32];
+			CryptoPP::SHA256().CalculateDigest (hash, buf + headerLen, len - headerLen);
+			verified = identity.Verify (hash, 32, signature);
+		}	
 		else	
 			verified = identity.Verify (buf + headerLen, len - headerLen, signature);
 				
