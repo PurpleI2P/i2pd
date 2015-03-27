@@ -222,6 +222,12 @@ namespace client
 							m_BufferOffset = bytes_transferred - processed;
 							if (processed > 0)
 								memmove (m_Buffer, m_Buffer + processed, m_BufferOffset);
+							else
+							{
+								// restore string back
+								*separator = ' ';
+								*eol = '\n';
+							}
 						}	
 						// since it's SAM v1 reply is not expected
 						Receive ();
