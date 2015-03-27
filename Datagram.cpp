@@ -17,7 +17,7 @@ namespace datagram
 	{
 	}
 
-	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident)
+	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort, uint16_t toPort)
 	{
 		uint8_t buf[MAX_DATAGRAM_SIZE];
 		auto identityLen = m_Owner.GetIdentity ().ToBuffer (buf, MAX_DATAGRAM_SIZE);
@@ -36,7 +36,7 @@ namespace datagram
 		else
 			m_Owner.Sign (buf1, len, signature);
 
-		auto msg = CreateDataMessage (buf, len + headerLen); 
+		auto msg = CreateDataMessage (buf, len + headerLen, fromPort, toPort); 
 		auto remote = m_Owner.FindLeaseSet (ident);
 		if (remote)
 			m_Owner.GetService ().post (std::bind (&DatagramDestination::SendMsg, this, msg, remote));
@@ -132,7 +132,7 @@ namespace datagram
 
 	}
 
-	I2NPMessage * DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len)
+	I2NPMessage * DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		CryptoPP::Gzip compressor; // default level
@@ -143,7 +143,8 @@ namespace datagram
 		htobe32buf (buf, size); // length
 		buf += 4;
 		compressor.Get (buf, size);
-		memset (buf + 4, 0, 4); // source and destination are zeroes
+		htobe16buf (buf + 4, fromPort); // source port
+		htobe16buf (buf + 6, toPort); // destination port 
 		buf[9] = i2p::client::PROTOCOL_TYPE_DATAGRAM; // datagram protocol
 		msg->len += size + 4; 
 		FillI2NPMessageHeader (msg, eI2NPData);
