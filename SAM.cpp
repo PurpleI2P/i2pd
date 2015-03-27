@@ -228,20 +228,22 @@ namespace client
 					}
 					else		
 					{	
-						LogPrint ("SAM unexpected message ", m_Buffer);		
+						LogPrint (eLogError, "SAM unexpected message ", m_Buffer);		
 						Terminate ();
 					}
 				}
 				else
 				{
-					LogPrint ("SAM malformed message ", m_Buffer);
+					LogPrint (eLogError, "SAM malformed message ", m_Buffer);
 					Terminate ();
 				}
 			}
 			else
 			{	
-				LogPrint ("SAM malformed message ", m_Buffer);
-				Terminate ();
+				LogPrint (eLogWarning, "SAM incomplete message ", m_Buffer);
+				m_BufferOffset = bytes_transferred;
+				// try to receive remaining message
+				Receive ();
 			}
 		}
 	}
@@ -422,7 +424,7 @@ namespace client
 		}	
 		else
 		{
-			LogPrint (eLogWarning, "SAM sent datagram size ", size, " exceeds buffer");
+			LogPrint (eLogWarning, "SAM sent datagram size ", size, " exceeds buffer ", len - offset);
 			return 0; // try to receive more
 		}	
 		return offset + size;
