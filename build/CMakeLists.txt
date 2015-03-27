@@ -103,6 +103,8 @@ endif ()
 # compiler flags customization (by system)
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
+  # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
+  add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
 elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
   # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
