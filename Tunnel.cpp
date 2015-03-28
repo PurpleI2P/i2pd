@@ -489,6 +489,19 @@ namespace tunnel
 					if (ts > tunnel->GetCreationTime () + TUNNEL_CREATION_TIMEOUT)
 					{
 						LogPrint ("Pending tunnel build request ", it->first, " timeout. Deleted");
+						// update stats
+						auto config = tunnel->GetTunnelConfig ();
+						if (config)
+						{
+							auto hop = config->GetFirstHop ();
+							while (hop)
+							{
+								if (hop->router) 
+									hop->router->GetProfile ()->TunnelNonReplied ();
+								hop = hop->next;
+							}	
+						}	
+						// delete
 						it = pendingTunnels.erase (it);
 						m_NumFailedTunnelCreations++;
 					}

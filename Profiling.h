@@ -15,6 +15,7 @@ namespace data
 	// params	
 	const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
 	const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
+	const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";	
 	
 	class RouterProfile
 	{
@@ -28,13 +29,15 @@ namespace data
 			bool IsBad () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
 			
 			void TunnelBuildResponse (uint8_t ret);
+			void TunnelNonReplied ();
 			
 		private:	
 
 			IdentHash m_IdentHash;
 			// participation
 			uint32_t m_NumTunnelsAgreed;
-			uint32_t m_NumTunnelsDeclined;			
+			uint32_t m_NumTunnelsDeclined;	
+			uint32_t m_NumTunnelsNonReplied;
 	};	
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash); 

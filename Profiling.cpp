@@ -10,7 +10,8 @@ namespace i2p
 namespace data
 {
 	RouterProfile::RouterProfile (const IdentHash& identHash):
-		m_IdentHash (identHash), m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0)
+		m_IdentHash (identHash), m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0),
+		m_NumTunnelsNonReplied (0)
 	{
 	}
 		
@@ -20,6 +21,7 @@ namespace data
 		boost::property_tree::ptree participation;
 		participation.put (PEER_PROFILE_PARTICIPATION_AGREED, m_NumTunnelsAgreed);
 		participation.put (PEER_PROFILE_PARTICIPATION_DECLINED, m_NumTunnelsDeclined);
+		participation.put (PEER_PROFILE_PARTICIPATION_NON_REPLIED, m_NumTunnelsNonReplied);
 		// fill property tree
 		boost::property_tree::ptree pt;
 		pt.put_child (PEER_PROFILE_SECTION_PARTICIPATION, participation);
@@ -82,6 +84,7 @@ namespace data
 				auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
 				m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
 				m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
+				m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
 			}	
 			catch (std::exception& ex)
 			{
@@ -96,6 +99,11 @@ namespace data
 			m_NumTunnelsDeclined++;
 		else
 			m_NumTunnelsAgreed++;
+	}	
+
+	void RouterProfile::TunnelNonReplied ()
+	{
+		m_NumTunnelsNonReplied++;
 	}	
 		
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
