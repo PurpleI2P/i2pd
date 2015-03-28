@@ -501,6 +501,8 @@ namespace transport
 					it++;
 			}
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
+			if (i2p::context.GetStatus () == eRouterStatusTesting) // if still testing,  repeat peer test
+				DetectExternalIP ();
 			m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 			m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 		}	
