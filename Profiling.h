@@ -24,6 +24,8 @@ namespace data
 			
 			void Save ();
 			void Load ();
+
+			bool IsBad () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
 			
 			void TunnelBuildResponse (uint8_t ret);
 			
