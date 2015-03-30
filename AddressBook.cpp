@@ -465,7 +465,7 @@ namespace client
 				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, u.port_);
 				stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
 				
-				uint8_t buf[4095];
+				uint8_t buf[4096];
 				bool end = false;
 				while (!end)
 				{
