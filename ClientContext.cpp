@@ -101,12 +101,11 @@ namespace client
 			m_I2PControlService->Start ();
 			LogPrint("I2PControl started");
 		}
-		m_AddressBook.StartSubscriptions ();
+		m_AddressBook.Start ();
 	}
 		
 	void ClientContext::Stop ()
 	{
-		m_AddressBook.StopSubscriptions ();	
 		m_HttpProxy->Stop();
 		delete m_HttpProxy;
 		m_HttpProxy = nullptr;
@@ -148,7 +147,7 @@ namespace client
 			m_I2PControlService = nullptr;
 			LogPrint("I2PControl stopped");	
 		}	
-
+		m_AddressBook.Stop ();		
 		for (auto it: m_Destinations)
 			it.second->Stop ();
 		m_Destinations.clear ();

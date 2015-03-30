@@ -46,14 +46,14 @@ namespace client
 
 			AddressBook ();
 			~AddressBook ();
+			void Start ();
+			void Stop ();
 			bool GetIdentHash (const std::string& address, i2p::data::IdentHash& ident);
 			bool GetAddress (const std::string& address, i2p::data::IdentityEx& identity);
 			const i2p::data::IdentHash * FindAddress (const std::string& address);
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 			void InsertAddress (const i2p::data::IdentityEx& address);
 
-			void StartSubscriptions ();
-			void StopSubscriptions ();
 			void LoadHostsFromStream (std::istream& f);
 			void DownloadComplete (bool success);
 			//This method returns the ".b32.i2p" address
@@ -61,6 +61,9 @@ namespace client
 			std::string ToAddress(const i2p::data::IdentityEx& ident) { return ToAddress(ident.GetIdentHash ()); }
 		private:
 
+			void StartSubscriptions ();
+			void StopSubscriptions ();
+			
 			AddressBookStorage * CreateStorage ();	
 			void LoadHosts ();
 			void LoadSubscriptions ();
