@@ -426,7 +426,14 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			// timeout expired
-			if (i2p::context.GetStatus () != eRouterStatusFirewalled) return; // we don't need introducers anymore
+			if (i2p::context.GetStatus () != eRouterStatusTesting)
+			{
+				// we still don't know if we need introducers
+				ScheduleIntroducersUpdateTimer ();
+				return;
+			}	
+			if (i2p::context.GetStatus () == eRouterStatusOK) return; // we don't need introducers anymore
+			// we are firewalled
 			if (!i2p::context.IsUnreachable ()) i2p::context.SetUnreachable ();
 			std::list<boost::asio::ip::udp::endpoint> newList;
 			size_t numIntroducers = 0;
