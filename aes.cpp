@@ -192,7 +192,9 @@ namespace crypto
 	void CBCEncryption::Encrypt (const uint8_t * in, std::size_t len, uint8_t * out)
 	{
 		// len/16
-		Encrypt (len >> 4, (const ChipherBlock *)in, (ChipherBlock *)out); 
+		int numBlocks = len >> 4;
+		if (numBlocks > 0)
+			Encrypt (numBlocks, (const ChipherBlock *)in, (ChipherBlock *)out); 
 	}
 
 	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
@@ -252,7 +254,9 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (const uint8_t * in, std::size_t len, uint8_t * out)
 	{
-		Decrypt (len >> 4, (const ChipherBlock *)in, (ChipherBlock *)out); 
+		int numBlocks = len >> 4;
+		if (numBlocks > 0)
+			Decrypt (numBlocks, (const ChipherBlock *)in, (ChipherBlock *)out); 
 	}
 
 	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
