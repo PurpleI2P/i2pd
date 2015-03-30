@@ -126,6 +126,8 @@ namespace transport
 
 	void SSUSession::ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
+		len -= (len & 0x0F); // %16, delete extra padding
+		if (len <= sizeof (SSUHeader)) return; // drop empty message
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		SSUHeader * header = (SSUHeader *)buf;
 		switch (header->GetPayloadType ())
