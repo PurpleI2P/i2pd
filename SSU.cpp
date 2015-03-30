@@ -426,7 +426,7 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			// timeout expired
-			if (i2p::context.GetStatus () != eRouterStatusTesting)
+			if (i2p::context.GetStatus () == eRouterStatusTesting)
 			{
 				// we still don't know if we need introducers
 				ScheduleIntroducersUpdateTimer ();
