@@ -16,9 +16,14 @@ namespace data
 	{
 	}
 
+	boost::posix_time::ptime RouterProfile::GetTime () const
+	{
+		return boost::posix_time::second_clock::local_time();
+	}	
+		
 	void RouterProfile::UpdateTime ()
 	{
-		m_LastUpdateTime = boost::posix_time::second_clock::local_time();
+		m_LastUpdateTime = GetTime ();
 	}	
 		
 	void RouterProfile::Save ()
@@ -90,11 +95,16 @@ namespace data
 				auto t = pt.get (PEER_PROFILE_LAST_UPDATE_TIME, "");
 				if (t.length () > 0)
 					m_LastUpdateTime = boost::posix_time::time_from_string (t);
-				// read participations
-				auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
-				m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
-				m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
-				m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
+				if ((GetTime () - m_LastUpdateTime).hours () < 72) // profile becomes obsolete after 3 days of inactivity
+				{	
+					// read participations
+					auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
+					m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
+					m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
+					m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
+				}	
+				else
+					*this = RouterProfile (m_IdentHash);
 			}	
 			catch (std::exception& ex)
 			{
@@ -117,6 +127,19 @@ namespace data
 		m_NumTunnelsNonReplied++;
 		UpdateTime ();
 	}	
+
+	bool RouterProfile::IsLowPartcipationRate () const
+	{
+		if ((GetTime () - m_LastUpdateTime).total_seconds () < 900) // if less than 15 minutes
+			return m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 50% rate
+		else
+			return 4*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 20% rate
+	}	
+		
+	bool RouterProfile::IsBad () const 
+	{ 
+		return IsAlwaysDeclining () || IsNonResponding () || IsLowPartcipationRate (); 
+	}
 		
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{

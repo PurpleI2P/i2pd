@@ -24,18 +24,24 @@ namespace data
 		public:
 
 			RouterProfile (const IdentHash& identHash);
+			RouterProfile& operator= (const RouterProfile& ) = default;
 			
 			void Save ();
 			void Load ();
 
-			bool IsBad () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
+			bool IsBad () const;
 			
 			void TunnelBuildResponse (uint8_t ret);
 			void TunnelNonReplied ();
 
 		private:
 
+			boost::posix_time::ptime GetTime () const;
 			void UpdateTime ();
+
+			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
+			bool IsNonResponding () const { return m_NumTunnelsNonReplied > 20 && !(m_NumTunnelsAgreed + m_NumTunnelsDeclined); };
+			bool IsLowPartcipationRate () const;
 			
 		private:	
 
