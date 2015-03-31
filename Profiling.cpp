@@ -10,10 +10,16 @@ namespace i2p
 namespace data
 {
 	RouterProfile::RouterProfile (const IdentHash& identHash):
-		m_IdentHash (identHash), m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0),
+		m_IdentHash (identHash), m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
+		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0),
 		m_NumTunnelsNonReplied (0)
 	{
 	}
+
+	void RouterProfile::UpdateTime ()
+	{
+		m_LastUpdateTime = boost::posix_time::second_clock::local_time();
+	}	
 		
 	void RouterProfile::Save ()
 	{
@@ -24,6 +30,7 @@ namespace data
 		participation.put (PEER_PROFILE_PARTICIPATION_NON_REPLIED, m_NumTunnelsNonReplied);
 		// fill property tree
 		boost::property_tree::ptree pt;
+		pt.put (PEER_PROFILE_LAST_UPDATE_TIME, boost::posix_time::to_simple_string (m_LastUpdateTime));
 		pt.put_child (PEER_PROFILE_SECTION_PARTICIPATION, participation);
 		
 		// save to file
@@ -80,6 +87,9 @@ namespace data
 			}
 			try
 			{	
+				auto t = pt.get (PEER_PROFILE_LAST_UPDATE_TIME, "");
+				if (t.length () > 0)
+					m_LastUpdateTime = boost::posix_time::time_from_string (t);
 				// read participations
 				auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
 				m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
@@ -99,11 +109,13 @@ namespace data
 			m_NumTunnelsDeclined++;
 		else
 			m_NumTunnelsAgreed++;
+		UpdateTime ();
 	}	
 
 	void RouterProfile::TunnelNonReplied ()
 	{
 		m_NumTunnelsNonReplied++;
+		UpdateTime ();
 	}	
 		
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
