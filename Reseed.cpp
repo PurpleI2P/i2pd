@@ -597,10 +597,10 @@ namespace data
 		{
 			0x16, // handshake
 			0x03, 0x03, // version (TLS 1.2)
-			0x00, 0x2F, // length of handshake
+			0x00, 0x31, // length of handshake
 			// handshake
 			0x01, // handshake type (client hello)
-			0x00, 0x00, 0x2B, // length of handshake payload 
+			0x00, 0x00, 0x2D, // length of handshake payload 
 			// client hello
 			0x03, 0x03, // highest version supported (TLS 1.2)
 			0x45, 0xFA, 0x01, 0x19, 0x74, 0x55, 0x18, 0x36, 
@@ -608,8 +608,9 @@ namespace data
 			0xEC, 0x37, 0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 
 			0x12, 0x67, 0xAB, 0xBA, 0xFF, 0x29, 0x13, 0x9E, // 32 random bytes
 			0x00, // session id length
-			0x00, 0x02, // chiper suites length
+			0x00, 0x04, // chiper suites length
 			0x00, 0x3D, // RSA_WITH_AES_256_CBC_SHA256
+			0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
 			0x01, // compression methods length
 			0x00,  // no compression
 			0x00, 0x00 // extensions length
@@ -642,7 +643,10 @@ namespace data
 			memcpy (serverRandom, serverHello + 6, 32);
 		else
 			LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
-		delete[] serverHello;
+		uint8_t sessionIDLen = serverHello[38]; // 6 + 32
+		char * cipherSuite = serverHello + 39 + sessionIDLen;
+		if (cipherSuite[1] != 0x3D && cipherSuite[1] != 0x35) 
+			LogPrint (eLogError, "Unsupported cipher ", (int)cipherSuite[0], ",", (int)cipherSuite[1]); 
 		// read Certificate
 		m_Site.read ((char *)&type, 1); 
 		m_Site.read ((char *)&version, 2); 
@@ -660,7 +664,6 @@ namespace data
 			publicKey = ExtractPublicKey ((uint8_t *)certificate + 10, length - 10);
 		else
 			LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
-		delete[] certificate;
 		// read ServerHelloDone
 		m_Site.read ((char *)&type, 1); 
 		m_Site.read ((char *)&version, 2); 
@@ -671,7 +674,6 @@ namespace data
 		m_FinishedHash.Update ((uint8_t *)serverHelloDone, length);
 		if (serverHelloDone[0] != 0x0E) // handshake type hello done
 			LogPrint (eLogError, "Unexpected handshake type ", (int)serverHelloDone[0]);
-		delete[] serverHelloDone;
 		// our turn now
 		// generate secret key
 		uint8_t secret[48]; 
@@ -699,7 +701,18 @@ namespace data
 		memcpy (random, serverRandom, 32);
 		memcpy (random + 32, clientHello + 11, 32);	
 		// create cipher
-		m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (m_MasterSecret, random);
+		if (cipherSuite[1] == 0x3D)
+		{
+			LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA256"); 
+			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (m_MasterSecret, random);
+		}
+		else
+		{
+			// TODO:
+			if (cipherSuite[1] == 0x35)
+				LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA"); 
+			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (m_MasterSecret, random);
+		}
 		// send finished
 		SendFinishedMsg ();
 		// read ChangeCipherSpecs
@@ -713,6 +726,10 @@ namespace data
 		char * finished1 = new char[length];
 		m_Site.read (finished1, length);
 		delete[] finished1;
+
+		delete[] serverHello;
+		delete[] certificate;
+		delete[] serverHelloDone;
 	}
 
 	void TlsSession::SendHandshakeMsg (uint8_t handshakeType, uint8_t * data, size_t len)
