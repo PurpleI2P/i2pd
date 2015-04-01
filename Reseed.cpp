@@ -39,7 +39,7 @@ namespace data
 				// "https://i2p-netdb.innovatio.no/",// Vuln to POODLE
 				"https://netdb.i2p2.no/",            // Only SU3 (v2) support
 				"https://reseed.i2p-projekt.de/",    // Only HTTPS
-				"https://cowpuncher.drollette.com/netdb/",  // Only HTTPS and SU3 (v2) support -- will move to a new location
+				//"https://cowpuncher.drollette.com/netdb/",  // returns error
 				"https://netdb.rows.io:444/"
 				// following hosts are fine but don't support AES256 
 				/*"https://i2p.mooo.com/netDb/",
@@ -713,7 +713,7 @@ namespace data
 			// TODO:
 			if (cipherSuite[1] == 0x35)
 				LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA"); 
-			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (m_MasterSecret, random);
+			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA1> (m_MasterSecret, random);
 		}
 		// send finished
 		SendFinishedMsg ();
