@@ -40,6 +40,7 @@ namespace data
 				"https://netdb.i2p2.no/",            // Only SU3 (v2) support
 				"https://reseed.i2p-projekt.de/",    // Only HTTPS
 				"https://cowpuncher.drollette.com/netdb/",  // Only HTTPS and SU3 (v2) support -- will move to a new location
+				"https://netdb.rows.io:444/"
 				// following hosts are fine but don't support AES256 
 				/*"https://i2p.mooo.com/netDb/",
 				"https://link.mx24.eu/",             // Only HTTPS and SU3 (v2) support
@@ -494,7 +495,8 @@ namespace data
 	std::string Reseeder::HttpsRequest (const std::string& address)
 	{
 		i2p::util::http::url u(address);
-		TlsSession session (u.host_, 443);
+		if (u.port_ == 80) u.port_ = 443; 
+		TlsSession session (u.host_, u.port_);
 		
 		// send request		
 		std::stringstream ss;
