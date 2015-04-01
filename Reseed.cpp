@@ -510,7 +510,7 @@ namespace data
 	}	
 
 	TlsSession::TlsSession (const std::string& host, int port):
-		m_Seqn (0)
+		m_Cipher (nullptr)
 	{
 		m_Site.connect(host, boost::lexical_cast<std::string>(port));
 		if (m_Site.good ())
@@ -521,6 +521,11 @@ namespace data
 			LogPrint (eLogError, "Can't connect to ", host, ":", port);
 	}	
 	
+	TlsSession::~TlsSession ()
+	{
+		delete m_Cipher;
+	}
+
 	void TlsSession::Handshake ()
 	{
 		static uint8_t clientHello[] = 
@@ -618,13 +623,14 @@ namespace data
 		// generate secret key
 		uint8_t secret[48]; 
 		secret[0] = 3; secret[1] = 3; // version
-		m_Rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
+		CryptoPP::AutoSeededRandomPool rnd;	
+		rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
 		// encrypt RSA
  		CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
 		size_t encryptedLen = encryptor.CiphertextLength (48); // number of bytes for encrypted 48 bytes, usually 256 (2048 bits key)
 		uint8_t * encrypted = new uint8_t[encryptedLen + 2]; // + 2 bytes for length
 		htobe16buf (encrypted, encryptedLen); // first two bytes means length 
-		encryptor.Encrypt (m_Rnd, secret, 48, encrypted + 2);
+		encryptor.Encrypt (rnd, secret, 48, encrypted + 2);
 		// send ClientKeyExchange
 		// 0x10 - handshake type "client key exchange"
 		SendHandshakeMsg (0x10, encrypted, encryptedLen + 2);
@@ -635,15 +641,12 @@ namespace data
 		uint8_t masterSecret[48], random[64];
 		memcpy (random, clientHello + 11, 32);
 		memcpy (random + 32, serverRandom, 32);
-		PRF (secret, "master secret", random, 64, 48, masterSecret);
-		// expand master secret			
-		uint8_t keys[128]; // clientMACKey(32), serverMACKey(32), clientKey(32), serverKey(32)
+		PRF (secret, "master secret", random, 64, 48, masterSecret);			
+		// invert random for keys
 		memcpy (random, serverRandom, 32);
-		memcpy (random + 32, clientHello + 11, 32);
-		PRF (masterSecret, "key expansion", random, 64, 128, keys); 
-		memcpy (m_MacKey, keys, 32);
-		m_Encryption.SetKey (keys + 64);
-		m_Decryption.SetKey (keys + 96);
+		memcpy (random + 32, clientHello + 11, 32);	
+		// create cipher
+		m_Cipher = new TlsCipher_AES_256_CBC_SHA256 (masterSecret, random);
 
 		// send finished
 		uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
@@ -652,10 +655,10 @@ namespace data
 		m_FinishedHash.Final (finishedHashDigest);
 		PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
 		uint8_t mac[32];
-		CalculateMAC (0x16, finishedPayload, 16, mac);
-		Encrypt (finishedPayload, 16, mac, encryptedPayload);
+		m_Cipher->CalculateMAC (0x16, finishedPayload, 16, mac);
+		size_t encryptedPayloadSize = m_Cipher->Encrypt (finishedPayload, 16, mac, encryptedPayload);
 		m_Site.write ((char *)finished, sizeof (finished));
-		m_Site.write ((char *)encryptedPayload, 80);
+		m_Site.write ((char *)encryptedPayload, encryptedPayloadSize);
 		// read ChangeCipherSpecs
 		uint8_t changeCipherSpecs1[6];
 		m_Site.read ((char *)changeCipherSpecs1, 6);
@@ -709,45 +712,6 @@ namespace data
 		}
 	}
 
-	size_t TlsSession::Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
-	{
-		size_t size = 0;
-		m_Rnd.GenerateBlock (out, 16); // iv
-		size += 16;
-		m_Encryption.SetIV (out);
-		memcpy (out + size, in, len);
-		size += len;
-		memcpy (out + size, mac, 32);
-		size += 32;	
-		uint8_t paddingSize = len + 1;
-		paddingSize &= 0x0F;  // %16
-		if (paddingSize > 0) paddingSize = 16 - paddingSize;
-		memset (out + size, paddingSize, paddingSize + 1); // paddind and last byte are equal to padding size
-		size += paddingSize + 1;
-		m_Encryption.Encrypt (out + 16, size - 16, out + 16);
-		return size;	
-	}
-
-	size_t TlsSession::Decrypt (uint8_t * buf, size_t len)
-	{
-		m_Decryption.SetIV (buf);
-		m_Decryption.Decrypt (buf + 16, len - 16, buf + 16);
-		return len - 48 - buf[len -1] - 1; // IV(16), mac(32) and padding
-	}
-
-	void TlsSession::CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac)
-	{
-		uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
-		htobe64buf (header, m_Seqn);
-		header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
-		htobe16buf (header + 11, len);
-		CryptoPP::HMAC<CryptoPP::SHA256> hmac (m_MacKey, 32);	
-		hmac.Update (header, 13);
-		hmac.Update (buf, len);
-		hmac.Final (mac);	
-		m_Seqn++;
-	}
-
 	CryptoPP::RSA::PublicKey TlsSession::ExtractPublicKey (const uint8_t * certificate, size_t len)
 	{
 		CryptoPP::ByteQueue queue;
@@ -797,8 +761,8 @@ namespace data
 		out[0] = 0x17; // application data
 		out[1] = 0x03; out[2] = 0x03; // version
 		uint8_t mac[32];
-		CalculateMAC (0x17, buf, len, mac);
-		size_t encryptedLen = Encrypt (buf, len, mac, out + 5);
+		m_Cipher->CalculateMAC (0x17, buf, len, mac);
+		size_t encryptedLen = m_Cipher->Encrypt (buf, len, mac, out + 5);
 		htobe16buf (out + 3, encryptedLen);
 		m_Site.write ((char *)out, encryptedLen + 5);
 		delete[] out;
@@ -814,10 +778,60 @@ namespace data
 		length = be16toh (length);
 		uint8_t * buf = new uint8_t[length];
 		m_Site.read ((char *)buf, length);
-		size_t decryptedLen = Decrypt (buf, length);
+		size_t decryptedLen = m_Cipher->Decrypt (buf, length);
 		rs.write ((char *)buf + 16, decryptedLen);
 		delete[] buf;
 		return true;
+	}
+
+	TlsCipher_AES_256_CBC_SHA256::TlsCipher_AES_256_CBC_SHA256 (uint8_t * masterSecret, uint8_t * random):
+		m_Seqn (0)
+	{
+		uint8_t keys[128]; // clientMACKey(32), serverMACKey(32), clientKey(32), serverKey(32)
+		// expand master secret
+		TlsSession::PRF (masterSecret, "key expansion", random, 64, 128, keys); 
+		memcpy (m_MacKey, keys, 32);
+		m_Encryption.SetKey (keys + 64);
+		m_Decryption.SetKey (keys + 96);
+	}
+
+	void TlsCipher_AES_256_CBC_SHA256::CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac)
+	{
+		uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
+		htobe64buf (header, m_Seqn);
+		header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
+		htobe16buf (header + 11, len);
+		CryptoPP::HMAC<CryptoPP::SHA256> hmac (m_MacKey, 32);	
+		hmac.Update (header, 13);
+		hmac.Update (buf, len);
+		hmac.Final (mac);	
+		m_Seqn++;
+	}
+
+	size_t TlsCipher_AES_256_CBC_SHA256::Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
+	{
+		size_t size = 0;
+		m_Rnd.GenerateBlock (out, 16); // iv
+		size += 16;
+		m_Encryption.SetIV (out);
+		memcpy (out + size, in, len);
+		size += len;
+		memcpy (out + size, mac, 32);
+		size += 32;	
+		uint8_t paddingSize = len + 1;
+		paddingSize &= 0x0F;  // %16
+		if (paddingSize > 0) paddingSize = 16 - paddingSize;
+		memset (out + size, paddingSize, paddingSize + 1); // paddind and last byte are equal to padding size
+		size += paddingSize + 1;
+		m_Encryption.Encrypt (out + 16, size - 16, out + 16);
+		return size;	
+	}
+
+	size_t TlsCipher_AES_256_CBC_SHA256::Decrypt (uint8_t * buf, size_t len)
+	{
+		m_Decryption.SetIV (buf);
+		m_Decryption.Decrypt (buf + 16, len - 16, buf + 16);
+		return len - 48 - buf[len -1] - 1; // IV(16), mac(32) and padding
 	}
 }
 }

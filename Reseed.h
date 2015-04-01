@@ -47,34 +47,50 @@ namespace data
 			std::map<std::string, PublicKey> m_SigningKeys;
 	};
 
+
+	class TlsCipher_AES_256_CBC_SHA256
+	{
+		public:
+
+			TlsCipher_AES_256_CBC_SHA256 (uint8_t * masterSecret, uint8_t * random); // master secret - 48 bytes, random - 64 bytes
+	
+			void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac);
+			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out);
+			size_t Decrypt (uint8_t * buf, size_t len); // payload is buf + 16		
+
+		private:
+
+			uint64_t m_Seqn;
+			CryptoPP::AutoSeededRandomPool m_Rnd;
+			i2p::crypto::CBCEncryption m_Encryption;
+			i2p::crypto::CBCDecryption m_Decryption; 
+			uint8_t m_MacKey[32]; // client	
+	};	
+
+
 	class TlsSession
 	{
 		public:
 
 			TlsSession (const std::string& host, int port);
+			~TlsSession ();
 			void Send (const uint8_t * buf, size_t len);
 			bool Receive (std::ostream& rs);
+
+			static void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
+				size_t len, uint8_t * buf);
 
 		private:
 
 			void Handshake ();
 			void SendHandshakeMsg (uint8_t handshakeType, uint8_t * data, size_t len);
 			CryptoPP::RSA::PublicKey ExtractPublicKey (const uint8_t * certificate, size_t len);
-			void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
-				size_t len, uint8_t * buf);
-			void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac);
-			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out);
-			size_t Decrypt (uint8_t * buf, size_t len); // pyaload is buf + 16		
 
 		private:
 
-			uint64_t m_Seqn;
 			boost::asio::ip::tcp::iostream m_Site;
 			CryptoPP::SHA256 m_FinishedHash;
-			CryptoPP::AutoSeededRandomPool m_Rnd;
-			i2p::crypto::CBCEncryption m_Encryption;
-			i2p::crypto::CBCDecryption m_Decryption; 
-			uint8_t m_MacKey[32]; // client	
+			TlsCipher_AES_256_CBC_SHA256 * m_Cipher;
 	};
 }
 }
