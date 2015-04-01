@@ -104,21 +104,34 @@ i2p.conf:
 
 tunnels.cfg (filename of this config is subject of change):
 
-	 ; outgoing tunnel, to remote service    
-	[tunnel1]  
-	type = client      ; mandatory   
-	port = <integer>   ; mandatory, bind our side of tunnel to this local port  
-	keys = <filename>  ; optional  
-	destination     = <ident>    ; mandatory  
-	destinationport = <integer>  ; optional, port of remote i2p service  
-	   
-	 ; incoming tunnel, for local service(s)   
-	[tunnel2]   
-	type = server      ; mandatory   
-	host = <ident>     ; mandatory, hostname of our i2p service   
-	keys = <filename>  ; mandatory, hostname keys   
-	port = <integer>   ; mandatory, forward incoming connections from i2p to this port      
-	inport = <integer> ; optional, i2p service port   
-	accesslist = <ident>[,<ident>] ; optional, comma-separated list of i2p idents, allowed to connect to service  
+  ; outgoing tunnel sample, to remote service
+  ; mandatory parameters:
+  ; * type -- always "client"
+  ; * port -- local port to listen to
+  ; * destination -- i2p hostname
+  ; optional parameters (may be omitted)
+  ; * keys -- our identity, if unset, will be generated on every startup,
+  ;     if set and file missing, keys will be generated and placed to this file
+	[IRC]
+	type = client
+	port = 6668
+	destination = irc.echelon.i2p
+	keys = irc-keys.dat
 
-Note: '<ident>' type is a string like <hostname.i2p> or <abracadabra.b32.i2p>  
+  ; incoming tunnel sample, for local service
+  ; mandatory parameters:
+  ; * type -- always "server"
+  ; * host -- ip address of our service
+  ; * port -- port of our service
+  ; * keys -- file with LeaseSet of address in i2p
+  ; optional parameters (may be omitted)
+  ; * inport -- optional, i2p service port, if unset - the same as 'port'
+  ; * accesslist -- comma-separated list of i2p addresses, allowed to connect
+  ;    every address is b32 without '.b32.i2p' part
+	[LOCALSITE]
+	type = server
+	host = 127.0.0.1
+	port = 80
+	keys = site-keys.dat
+	inport = 81
+	accesslist = <b32>[,<b32>]
