@@ -48,24 +48,16 @@ namespace data
 	};
 
 
-	class TlsCipher_AES_256_CBC_SHA256
+	class TlsCipher
 	{
 		public:
 
-			TlsCipher_AES_256_CBC_SHA256 (uint8_t * masterSecret, uint8_t * random); // master secret - 48 bytes, random - 64 bytes
-	
-			void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac);
-			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out);
-			size_t Decrypt (uint8_t * buf, size_t len); // payload is buf + 16		
+			virtual ~TlsCipher () {};
 
-		private:
-
-			uint64_t m_Seqn;
-			CryptoPP::AutoSeededRandomPool m_Rnd;
-			i2p::crypto::CBCEncryption m_Encryption;
-			i2p::crypto::CBCDecryption m_Decryption; 
-			uint8_t m_MacKey[32]; // client	
-	};	
+			virtual void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac) = 0;
+			virtual size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out) = 0;
+			virtual size_t Decrypt (uint8_t * buf, size_t len) = 0;
+	};
 
 
 	class TlsSession
@@ -90,7 +82,7 @@ namespace data
 
 			boost::asio::ip::tcp::iostream m_Site;
 			CryptoPP::SHA256 m_FinishedHash;
-			TlsCipher_AES_256_CBC_SHA256 * m_Cipher;
+			TlsCipher * m_Cipher;
 	};
 }
 }

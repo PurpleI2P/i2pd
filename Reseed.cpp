@@ -509,6 +509,71 @@ namespace data
 		return i2p::util::http::GetHttpContent (rs);
 	}	
 
+//-------------------------------------------------------------
+	template<class Hash>
+	class TlsCipher_AES_256_CBC: public TlsCipher
+	{
+		public:
+
+			TlsCipher_AES_256_CBC (uint8_t * masterSecret, uint8_t * random): // master secret - 48 bytes, random - 64 bytes
+				m_Seqn (0)
+			{
+				uint8_t keys[128]; // clientMACKey(32 or 20), serverMACKey(32 or 20), clientKey(32), serverKey(32)
+				// expand master secret
+				TlsSession::PRF (masterSecret, "key expansion", random, 64, 128, keys); 
+				memcpy (m_MacKey, keys, Hash::DIGESTSIZE);
+				m_Encryption.SetKey (keys + 2*Hash::DIGESTSIZE);
+				m_Decryption.SetKey (keys + 2*Hash::DIGESTSIZE + 32);
+			}
+	
+			void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac)
+			{
+				uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
+				htobe64buf (header, m_Seqn);
+				header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
+				htobe16buf (header + 11, len);
+				CryptoPP::HMAC<Hash> hmac (m_MacKey, Hash::DIGESTSIZE);	
+				hmac.Update (header, 13);
+				hmac.Update (buf, len);
+				hmac.Final (mac);	
+				m_Seqn++;
+			}
+
+			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
+			{
+				size_t size = 0;
+				m_Rnd.GenerateBlock (out, 16); // iv
+				size += 16;
+				m_Encryption.SetIV (out);
+				memcpy (out + size, in, len);
+				size += len;
+				memcpy (out + size, mac, Hash::DIGESTSIZE);
+				size += Hash::DIGESTSIZE;	
+				uint8_t paddingSize = size + 1;
+				paddingSize &= 0x0F;  // %16
+				if (paddingSize > 0) paddingSize = 16 - paddingSize;
+				memset (out + size, paddingSize, paddingSize + 1); // paddind and last byte are equal to padding size
+				size += paddingSize + 1;
+				m_Encryption.Encrypt (out + 16, size - 16, out + 16);
+				return size;	
+			}
+
+			size_t Decrypt (uint8_t * buf, size_t len) // payload is buf + 16	
+			{
+				m_Decryption.SetIV (buf);
+				m_Decryption.Decrypt (buf + 16, len - 16, buf + 16);
+				return len - 16 - Hash::DIGESTSIZE - buf[len -1] - 1; // IV(16), mac(32 or 20) and padding
+			}	
+
+		private:
+
+			uint64_t m_Seqn;
+			CryptoPP::AutoSeededRandomPool m_Rnd;
+			i2p::crypto::CBCEncryption m_Encryption;
+			i2p::crypto::CBCDecryption m_Decryption; 
+			uint8_t m_MacKey[Hash::DIGESTSIZE]; // client	
+	};	
+
 	TlsSession::TlsSession (const std::string& host, int port):
 		m_Cipher (nullptr)
 	{
@@ -646,7 +711,7 @@ namespace data
 		memcpy (random, serverRandom, 32);
 		memcpy (random + 32, clientHello + 11, 32);	
 		// create cipher
-		m_Cipher = new TlsCipher_AES_256_CBC_SHA256 (masterSecret, random);
+		m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (masterSecret, random);
 
 		// send finished
 		uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
@@ -782,56 +847,6 @@ namespace data
 		rs.write ((char *)buf + 16, decryptedLen);
 		delete[] buf;
 		return true;
-	}
-
-	TlsCipher_AES_256_CBC_SHA256::TlsCipher_AES_256_CBC_SHA256 (uint8_t * masterSecret, uint8_t * random):
-		m_Seqn (0)
-	{
-		uint8_t keys[128]; // clientMACKey(32), serverMACKey(32), clientKey(32), serverKey(32)
-		// expand master secret
-		TlsSession::PRF (masterSecret, "key expansion", random, 64, 128, keys); 
-		memcpy (m_MacKey, keys, 32);
-		m_Encryption.SetKey (keys + 64);
-		m_Decryption.SetKey (keys + 96);
-	}
-
-	void TlsCipher_AES_256_CBC_SHA256::CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac)
-	{
-		uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
-		htobe64buf (header, m_Seqn);
-		header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
-		htobe16buf (header + 11, len);
-		CryptoPP::HMAC<CryptoPP::SHA256> hmac (m_MacKey, 32);	
-		hmac.Update (header, 13);
-		hmac.Update (buf, len);
-		hmac.Final (mac);	
-		m_Seqn++;
-	}
-
-	size_t TlsCipher_AES_256_CBC_SHA256::Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
-	{
-		size_t size = 0;
-		m_Rnd.GenerateBlock (out, 16); // iv
-		size += 16;
-		m_Encryption.SetIV (out);
-		memcpy (out + size, in, len);
-		size += len;
-		memcpy (out + size, mac, 32);
-		size += 32;	
-		uint8_t paddingSize = len + 1;
-		paddingSize &= 0x0F;  // %16
-		if (paddingSize > 0) paddingSize = 16 - paddingSize;
-		memset (out + size, paddingSize, paddingSize + 1); // paddind and last byte are equal to padding size
-		size += paddingSize + 1;
-		m_Encryption.Encrypt (out + 16, size - 16, out + 16);
-		return size;	
-	}
-
-	size_t TlsCipher_AES_256_CBC_SHA256::Decrypt (uint8_t * buf, size_t len)
-	{
-		m_Decryption.SetIV (buf);
-		m_Decryption.Decrypt (buf + 16, len - 16, buf + 16);
-		return len - 48 - buf[len -1] - 1; // IV(16), mac(32) and padding
 	}
 }
 }
