@@ -622,18 +622,6 @@ namespace data
 			0x00, 0x01, // length
 			0x01 // type
 		};
-
-		static uint8_t finished[] =
-		{
-			0x16, // handshake
-			0x03, 0x03, // version (TLS 1.2)
-			0x00, 0x50, // length of handshake (80 bytes)
-			// handshake (encrypted)
-			// unencrypted context
-			//  0x14 handshake type (finished)
-			// 0x00, 0x00, 0x0C  length of handshake payload 
-			// 12 bytes of verified data
-		};
 	
 		// send ClientHello
 		m_Site.write ((char *)clientHello, sizeof (clientHello));
@@ -703,27 +691,17 @@ namespace data
 		// send ChangeCipherSpecs
 		m_Site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
 		// calculate master secret
-		uint8_t masterSecret[48], random[64];
+		uint8_t random[64];
 		memcpy (random, clientHello + 11, 32);
 		memcpy (random + 32, serverRandom, 32);
-		PRF (secret, "master secret", random, 64, 48, masterSecret);			
+		PRF (secret, "master secret", random, 64, 48, m_MasterSecret);			
 		// invert random for keys
 		memcpy (random, serverRandom, 32);
 		memcpy (random + 32, clientHello + 11, 32);	
 		// create cipher
-		m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (masterSecret, random);
-
+		m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (m_MasterSecret, random);
 		// send finished
-		uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
-		finishedPayload[0] = 0x14; // handshake type (finished)
-		finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
-		m_FinishedHash.Final (finishedHashDigest);
-		PRF (masterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
-		uint8_t mac[32];
-		m_Cipher->CalculateMAC (0x16, finishedPayload, 16, mac);
-		size_t encryptedPayloadSize = m_Cipher->Encrypt (finishedPayload, 16, mac, encryptedPayload);
-		m_Site.write ((char *)finished, sizeof (finished));
-		m_Site.write ((char *)encryptedPayload, encryptedPayloadSize);
+		SendFinishedMsg ();
 		// read ChangeCipherSpecs
 		uint8_t changeCipherSpecs1[6];
 		m_Site.read ((char *)changeCipherSpecs1, 6);
@@ -751,6 +729,33 @@ namespace data
 		m_FinishedHash.Update (handshakeHeader + 5, 4); // only payload counts
 		m_Site.write ((char *)data, len);
 		m_FinishedHash.Update (data, len);
+	}
+
+	void TlsSession::SendFinishedMsg ()
+	{
+		// 0x16  handshake
+		// 0x03, 0x03  version (TLS 1.2)
+		// 2 bytes length of handshake (80 or 64 bytes)
+		// handshake (encrypted)
+		// unencrypted context
+		// 0x14 handshake type (finished)
+		// 0x00, 0x00, 0x0C  length of handshake payload 
+		// 12 bytes of verified data
+
+		uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
+		finishedPayload[0] = 0x14; // handshake type (finished)
+		finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
+		m_FinishedHash.Final (finishedHashDigest);
+		PRF (m_MasterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
+		uint8_t mac[32];
+		m_Cipher->CalculateMAC (0x16, finishedPayload, 16, mac);
+		size_t encryptedPayloadSize = m_Cipher->Encrypt (finishedPayload, 16, mac, encryptedPayload);
+		uint8_t finished[5];
+		finished[0] = 0x16; // handshake
+ 		finished[1] = 0x03; finished[2] = 0x03; // version is always TLS 1.2 (3,3) 
+		htobe16buf (finished + 3, encryptedPayloadSize); // length of payload	
+		m_Site.write ((char *)finished, sizeof (finished));
+		m_Site.write ((char *)encryptedPayload, encryptedPayloadSize);
 	}
 
 	void TlsSession::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,

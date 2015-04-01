@@ -76,12 +76,14 @@ namespace data
 
 			void Handshake ();
 			void SendHandshakeMsg (uint8_t handshakeType, uint8_t * data, size_t len);
+			void SendFinishedMsg ();
 			CryptoPP::RSA::PublicKey ExtractPublicKey (const uint8_t * certificate, size_t len);
 
 		private:
 
 			boost::asio::ip::tcp::iostream m_Site;
 			CryptoPP::SHA256 m_FinishedHash;
+			uint8_t m_MasterSecret[64]; // actual size is 48, but must be multiple of 32
 			TlsCipher * m_Cipher;
 	};
 }
