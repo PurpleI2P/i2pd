@@ -228,20 +228,18 @@ namespace stream
 	template<typename Buffer, typename ReceiveHandler>
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
-		if (!m_ReceiveQueue.empty ())
+		auto s = shared_from_this();
+		m_Service.post ([=](void)
 		{
-			auto s = shared_from_this();
-			m_Service.post ([=](void) { s->HandleReceiveTimer (
-				boost::asio::error::make_error_code (boost::asio::error::operation_aborted),
-				buffer, handler); });
-		}
-		else
-		{
-			m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
-			auto s = shared_from_this();
-			m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
-				{ s->HandleReceiveTimer (ecode, buffer, handler); });
-		}
+			if (!m_ReceiveQueue.empty () || m_Status == eStreamStatusReset)
+				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler);
+			else
+			{
+				m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
+				m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
+					{ s->HandleReceiveTimer (ecode, buffer, handler); });
+			}
+		});	
 	}
 
 	template<typename Buffer, typename ReceiveHandler>
