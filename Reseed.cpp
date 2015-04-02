@@ -9,6 +9,8 @@
 #include <cryptopp/crc.h>
 #include <cryptopp/hmac.h>
 #include <cryptopp/zinflate.h>
+#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
+#include <cryptopp/arc4.h>
 #include "I2PEndian.h"
 #include "Reseed.h"
 #include "Log.h"
@@ -33,14 +35,14 @@ namespace data
 				"http://i2p-netdb.innovatio.no/"
 			};
 
-	//TODO: Remember to add custom port support. Not all serves on 443
 	static std::vector<std::string> httpsReseedHostList = {
 				// "https://193.150.121.66/netDb/",  // unstable
 				// "https://i2p-netdb.innovatio.no/",// Vuln to POODLE
 				"https://netdb.i2p2.no/",            // Only SU3 (v2) support
 				"https://reseed.i2p-projekt.de/",    // Only HTTPS
 				//"https://cowpuncher.drollette.com/netdb/",  // returns error
-				"https://netdb.rows.io:444/"
+				"https://netdb.rows.io:444/",
+				"https://uk.reseed.i2p2.no:444/"
 				// following hosts are fine but don't support AES256 
 				/*"https://i2p.mooo.com/netDb/",
 				"https://link.mx24.eu/",             // Only HTTPS and SU3 (v2) support
@@ -512,22 +514,17 @@ namespace data
 	}	
 
 //-------------------------------------------------------------
+
 	template<class Hash>
-	class TlsCipher_AES_256_CBC: public TlsCipher
+	class TlsCipherMAC: public TlsCipher
 	{
 		public:
 
-			TlsCipher_AES_256_CBC (uint8_t * masterSecret, uint8_t * random): // master secret - 48 bytes, random - 64 bytes
-				m_Seqn (0)
+			TlsCipherMAC (const uint8_t * keys):  m_Seqn (0)
 			{
-				uint8_t keys[128]; // clientMACKey(32 or 20), serverMACKey(32 or 20), clientKey(32), serverKey(32)
-				// expand master secret
-				TlsSession::PRF (masterSecret, "key expansion", random, 64, 128, keys); 
 				memcpy (m_MacKey, keys, Hash::DIGESTSIZE);
-				m_Encryption.SetKey (keys + 2*Hash::DIGESTSIZE);
-				m_Decryption.SetKey (keys + 2*Hash::DIGESTSIZE + 32);
 			}
-	
+			
 			void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac)
 			{
 				uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
@@ -539,6 +536,23 @@ namespace data
 				hmac.Update (buf, len);
 				hmac.Final (mac);	
 				m_Seqn++;
+			}
+			
+		private:
+
+			uint64_t m_Seqn;
+			uint8_t m_MacKey[Hash::DIGESTSIZE]; // client	
+	};	
+
+	template<class Hash>
+	class TlsCipher_AES_256_CBC: public TlsCipherMAC<Hash>
+	{
+		public:
+
+			TlsCipher_AES_256_CBC (const uint8_t * keys): TlsCipherMAC<Hash> (keys)
+			{
+				m_Encryption.SetKey (keys + 2*Hash::DIGESTSIZE);
+				m_Decryption.SetKey (keys + 2*Hash::DIGESTSIZE + 32);
 			}
 
 			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
@@ -567,15 +581,46 @@ namespace data
 				return len - 16 - Hash::DIGESTSIZE - buf[len -1] - 1; // IV(16), mac(32 or 20) and padding
 			}	
 
+			size_t GetIVSize () const { return 16; };
+			
 		private:
 
-			uint64_t m_Seqn;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 			i2p::crypto::CBCEncryption m_Encryption;
 			i2p::crypto::CBCDecryption m_Decryption; 
-			uint8_t m_MacKey[Hash::DIGESTSIZE]; // client	
 	};	
 
+
+	class TlsCipher_RC4_SHA: public TlsCipherMAC<CryptoPP::SHA1>
+	{
+		public:
+
+			TlsCipher_RC4_SHA (const uint8_t * keys): TlsCipherMAC (keys)
+			{
+				m_Encryption.SetKey (keys + 40, 16); // 20 + 20
+				m_Decryption.SetKey (keys + 56, 16); // 20 + 20 + 16
+			}
+
+			size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
+			{
+				memcpy (out, in, len);
+				memcpy (out + len, mac, 20);
+				m_Encryption.ProcessData (out, out, len + 20);
+				return len + 20;
+			}	
+			
+			size_t Decrypt (uint8_t * buf, size_t len) 
+			{
+				m_Decryption.ProcessData (buf, buf, len);
+				return len - 20; 
+			}	
+			
+		private:
+
+			CryptoPP::Weak1::ARC4 m_Encryption, m_Decryption;
+	};	
+
+	
 	TlsSession::TlsSession (const std::string& host, int port):
 		m_Cipher (nullptr)
 	{
@@ -599,10 +644,10 @@ namespace data
 		{
 			0x16, // handshake
 			0x03, 0x03, // version (TLS 1.2)
-			0x00, 0x31, // length of handshake
+			0x00, 0x33, // length of handshake
 			// handshake
 			0x01, // handshake type (client hello)
-			0x00, 0x00, 0x2D, // length of handshake payload 
+			0x00, 0x00, 0x2F, // length of handshake payload 
 			// client hello
 			0x03, 0x03, // highest version supported (TLS 1.2)
 			0x45, 0xFA, 0x01, 0x19, 0x74, 0x55, 0x18, 0x36, 
@@ -610,9 +655,10 @@ namespace data
 			0xEC, 0x37, 0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 
 			0x12, 0x67, 0xAB, 0xBA, 0xFF, 0x29, 0x13, 0x9E, // 32 random bytes
 			0x00, // session id length
-			0x00, 0x04, // chiper suites length
+			0x00, 0x06, // chiper suites length
 			0x00, 0x3D, // RSA_WITH_AES_256_CBC_SHA256
 			0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
+			0x00, 0x05, // RSA_WITH_RC4_128_SHA
 			0x01, // compression methods length
 			0x00,  // no compression
 			0x00, 0x00 // extensions length
@@ -647,7 +693,7 @@ namespace data
 			LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
 		uint8_t sessionIDLen = serverHello[38]; // 6 + 32
 		char * cipherSuite = serverHello + 39 + sessionIDLen;
-		if (cipherSuite[1] != 0x3D && cipherSuite[1] != 0x35) 
+		if (cipherSuite[1] != 0x3D && cipherSuite[1] != 0x35 && cipherSuite[1] != 0x05) 
 			LogPrint (eLogError, "Unsupported cipher ", (int)cipherSuite[0], ",", (int)cipherSuite[1]); 
 		// read Certificate
 		m_Site.read ((char *)&type, 1); 
@@ -699,21 +745,28 @@ namespace data
 		memcpy (random, clientHello + 11, 32);
 		memcpy (random + 32, serverRandom, 32);
 		PRF (secret, "master secret", random, 64, 48, m_MasterSecret);			
-		// invert random for keys
+		// create keys
 		memcpy (random, serverRandom, 32);
 		memcpy (random + 32, clientHello + 11, 32);	
+		uint8_t keys[128]; // clientMACKey(32 or 20), serverMACKey(32 or 20), clientKey(32), serverKey(32)
+		PRF (m_MasterSecret, "key expansion", random, 64, 128, keys); 
 		// create cipher
 		if (cipherSuite[1] == 0x3D)
 		{
 			LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA256"); 
-			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (m_MasterSecret, random);
+			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (keys);
 		}
+		else if (cipherSuite[1] == 0x35)
+		{
+			LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA"); 
+			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA1> (keys);
+		}	
 		else
 		{
 			// TODO:
-			if (cipherSuite[1] == 0x35)
-				LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA"); 
-			m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA1> (m_MasterSecret, random);
+			if (cipherSuite[1] == 0x05)
+				LogPrint (eLogInfo, "Chiper suite is RSA_WITH_RC4_128_SHA");
+			m_Cipher = new TlsCipher_RC4_SHA (keys);
 		}
 		// send finished
 		SendFinishedMsg ();
@@ -727,6 +780,7 @@ namespace data
 		length = be16toh (length);
 		char * finished1 = new char[length];
 		m_Site.read (finished1, length);
+		m_Cipher->Decrypt ((uint8_t *)finished1, length); // for streaming ciphers
 		delete[] finished1;
 
 		delete[] serverHello;
@@ -868,7 +922,7 @@ namespace data
 		uint8_t * buf = new uint8_t[length];
 		m_Site.read ((char *)buf, length);
 		size_t decryptedLen = m_Cipher->Decrypt (buf, length);
-		rs.write ((char *)buf + 16, decryptedLen);
+		rs.write ((char *)buf + m_Cipher->GetIVSize (), decryptedLen);
 		delete[] buf;
 		return true;
 	}
