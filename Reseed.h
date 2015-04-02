@@ -69,6 +69,7 @@ namespace data
 			~TlsSession ();
 			void Send (const uint8_t * buf, size_t len);
 			bool Receive (std::ostream& rs);
+			bool IsEstablished () const { return m_IsEstablished; };
 			
 		private:
 
@@ -82,6 +83,7 @@ namespace data
 
 		private:
 
+			bool m_IsEstablished;
 			boost::asio::ip::tcp::iostream m_Site;
 			CryptoPP::SHA256 m_FinishedHash;
 			uint8_t m_MasterSecret[64]; // actual size is 48, but must be multiple of 32

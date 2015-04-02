@@ -500,17 +500,22 @@ namespace data
 		if (u.port_ == 80) u.port_ = 443; 
 		TlsSession session (u.host_, u.port_);
 		
-		// send request		
-		std::stringstream ss;
-		ss << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
-		<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";	
-		session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
+		if (session.IsEstablished ())
+		{
+			// send request		
+			std::stringstream ss;
+			ss << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
+			<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";	
+			session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
 
-		// read response
-		std::stringstream rs;
-		while (session.Receive (rs))
-			;
-		return i2p::util::http::GetHttpContent (rs);
+			// read response
+			std::stringstream rs;
+			while (session.Receive (rs))
+				;
+			return i2p::util::http::GetHttpContent (rs);
+		}
+		else
+			return "";
 	}	
 
 //-------------------------------------------------------------
@@ -622,13 +627,11 @@ namespace data
 
 	
 	TlsSession::TlsSession (const std::string& host, int port):
-		m_Cipher (nullptr)
+		m_IsEstablished (false), m_Cipher (nullptr)
 	{
 		m_Site.connect(host, boost::lexical_cast<std::string>(port));
 		if (m_Site.good ())
-		{
 			Handshake ();
-		}
 		else
 			LogPrint (eLogError, "Can't connect to ", host, ":", port);
 	}	
@@ -693,7 +696,9 @@ namespace data
 			LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
 		uint8_t sessionIDLen = serverHello[38]; // 6 + 32
 		char * cipherSuite = serverHello + 39 + sessionIDLen;
-		if (cipherSuite[1] != 0x3D && cipherSuite[1] != 0x35 && cipherSuite[1] != 0x05) 
+		if (cipherSuite[1] == 0x3D || cipherSuite[1] == 0x35 || cipherSuite[1] == 0x05)
+			m_IsEstablished = true; 
+		else
 			LogPrint (eLogError, "Unsupported cipher ", (int)cipherSuite[0], ",", (int)cipherSuite[1]); 
 		// read Certificate
 		m_Site.read ((char *)&type, 1); 
