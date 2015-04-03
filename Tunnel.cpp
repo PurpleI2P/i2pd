@@ -555,14 +555,13 @@ namespace tunnel
 		{
 			// trying to create one more oubound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
-			if (!inboundTunnel) return;
+			auto router = i2p::data::netdb.GetRandomRouter ();
+			if (!inboundTunnel || !router) return;
 			LogPrint ("Creating one hop outbound tunnel...");
 			CreateTunnel<OutboundTunnel> (
-			  	new TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > 
-				    { 
-						i2p::data::netdb.GetRandomRouter ()
-					},		
-		     		inboundTunnel->GetTunnelConfig ()));
+			  	new TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router },		
+		     		inboundTunnel->GetTunnelConfig ())
+			                              );
 		}
 	}
 	
@@ -603,13 +602,12 @@ namespace tunnel
 		
 		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 5) 
 		{
-			// trying to create one more inbound tunnel			
+			// trying to create one more inbound tunnel		
+			auto router = i2p::data::netdb.GetRandomRouter ();
 			LogPrint ("Creating one hop inbound tunnel...");
 			CreateTunnel<InboundTunnel> (
-				new TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> >
-				    {              
-						i2p::data::netdb.GetRandomRouter ()
-					}));
+				new TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router })
+			                             );
 		}
 	}	
 

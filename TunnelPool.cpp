@@ -297,6 +297,11 @@ namespace tunnel
 		for (int i = 0; i < numHops; i++)
 		{
 			auto hop = SelectNextHop (prevHop);
+			if (!hop)
+			{
+				LogPrint (eLogError, "Can't select next hop for inbound tunnel");
+				return;
+			}	
 			prevHop = hop;
 			hops.push_back (hop);
 		}		
@@ -329,6 +334,11 @@ namespace tunnel
 			for (int i = 0; i < m_NumOutboundHops; i++)
 			{
 				auto hop = SelectNextHop (prevHop);
+				if (!hop)
+				{
+					LogPrint (eLogError, "Can't select next hop for outbound tunnel");
+					return;
+				}	
 				prevHop = hop;
 				hops.push_back (hop);
 			}	
@@ -338,7 +348,7 @@ namespace tunnel
 			tunnel->SetTunnelPool (shared_from_this ());
 		}	
 		else
-			LogPrint ("Can't create outbound tunnel. No inbound tunnels found");
+			LogPrint (eLogError, "Can't create outbound tunnel. No inbound tunnels found");
 	}	
 		
 	void TunnelPool::RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel)
