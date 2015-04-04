@@ -15,7 +15,7 @@ namespace util
 {
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
 	const int HTTP_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
-	class HTTPConnection
+	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
 		protected:
 
@@ -48,13 +48,13 @@ namespace util
 
 			HTTPConnection (boost::asio::ip::tcp::socket * socket): 
 				m_Socket (socket), m_Timer (socket->get_io_service ()), 
-				m_Stream (nullptr), m_BufferLen (0) { Receive (); };
-			virtual ~HTTPConnection() { delete m_Socket; }
-
+				m_Stream (nullptr), m_BufferLen (0) {};
+			~HTTPConnection() { delete m_Socket; }
+			void Receive ();
+			
 		private:
 
 			void Terminate ();
-			void Receive ();
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void AsyncStreamReceive ();
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);

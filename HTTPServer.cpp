@@ -526,15 +526,14 @@ namespace util
 			{
 				m_Stream.reset ();
 				m_Stream = nullptr;
-				// delete this
 			});
 	}
 
 	void HTTPConnection::Receive ()
 	{
 		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
-			 boost::bind(&HTTPConnection::HandleReceive, this,
-				 boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+			 std::bind(&HTTPConnection::HandleReceive, shared_from_this (),
+				 std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -968,8 +967,8 @@ namespace util
 			m_BufferLen = len;
 			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (destination);
 			m_Timer.expires_from_now (boost::posix_time::seconds(HTTP_DESTINATION_REQUEST_TIMEOUT));
-			m_Timer.async_wait (boost::bind (&HTTPConnection::HandleDestinationRequestTimeout,
-				this, boost::asio::placeholders::error, destination, port, m_Buffer, m_BufferLen));
+			m_Timer.async_wait (std::bind (&HTTPConnection::HandleDestinationRequestTimeout,
+				shared_from_this (), std::placeholders::_1, destination, port, m_Buffer, m_BufferLen));
 		}
 	}
 	
@@ -1002,8 +1001,8 @@ namespace util
 	{
 		if (m_Stream)
 			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-				boost::bind (&HTTPConnection::HandleStreamReceive, this,
-					boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred),
+				std::bind (&HTTPConnection::HandleStreamReceive, shared_from_this (),
+					std::placeholders::_1, std::placeholders::_2),
 				45); // 45 seconds timeout
 	}
 
@@ -1012,7 +1011,7 @@ namespace util
 		if (!ecode)
 		{
 			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		boost::bind (&HTTPConnection::HandleWrite, this, boost::asio::placeholders::error));
+        		std::bind (&HTTPConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
 		}
 		else
 		{
@@ -1033,8 +1032,7 @@ namespace util
 		m_Reply.headers[1].value = "text/html";
 
 		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
-			boost::bind (&HTTPConnection::HandleWriteReply, this,
-				boost::asio::placeholders::error));
+			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
 	}
 
 	HTTPServer::HTTPServer (int port):
@@ -1085,14 +1083,15 @@ namespace util
 	{
 		if (!ecode)
 		{
-			CreateConnection(m_NewSocket); // new HTTPConnection(m_NewSocket);
+			CreateConnection(m_NewSocket);
 			Accept ();
 		}
 	}
 
 	void HTTPServer::CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket)
 	{
-		new HTTPConnection (m_NewSocket);
+		auto conn = std::make_shared<HTTPConnection> (m_NewSocket);
+		conn->Receive ();
 	}
 }
 }
