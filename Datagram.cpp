@@ -16,7 +16,7 @@ namespace datagram
 		m_Owner (owner), m_Receiver (nullptr)
 	{
 	}
-
+		
 	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort, uint16_t toPort)
 	{
 		uint8_t buf[MAX_DATAGRAM_SIZE];
@@ -105,7 +105,10 @@ namespace datagram
 				
 		if (verified)
 		{
-			if (m_Receiver != nullptr)
+			auto it = m_ReceiversByPorts.find (toPort);
+			if (it != m_ReceiversByPorts.end ())
+				it->second (identity, fromPort, toPort, buf + headerLen, len -headerLen);
+			else if (m_Receiver != nullptr)
 				m_Receiver (identity, fromPort, toPort, buf + headerLen, len -headerLen);
 			else
 				LogPrint (eLogWarning, "Receiver for datagram is not set");	

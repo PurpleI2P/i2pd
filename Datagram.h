@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <memory>
 #include <functional>
+#include <map>
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"
@@ -32,6 +33,9 @@ namespace datagram
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
 			void ResetReceiver () { m_Receiver = nullptr; };
 
+			void SetReceiver (const Receiver& receiver, uint16_t port) { m_ReceiversByPorts[port] = receiver; };
+			void ResetReceiver (uint16_t port) { m_ReceiversByPorts.erase (port); };
+
 		private:
 
 			void HandleLeaseSetRequestComplete (bool success, I2NPMessage * msg, i2p::data::IdentHash ident);
@@ -43,7 +47,8 @@ namespace datagram
 		private:
 
 			i2p::client::ClientDestination& m_Owner;
-			Receiver m_Receiver;
+			Receiver m_Receiver; // default
+			std::map<uint16_t, Receiver> m_ReceiversByPorts;
 	};		
 }
 }
