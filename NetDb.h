@@ -90,7 +90,7 @@ namespace data
 
 			void Reseed ();
 
-			// for web interface and stats
+			// for web interface
 			int GetNumRouters () const { return m_RouterInfos.size (); };
 			int GetNumFloodfills () const { return m_Floodfills.size (); };
 			int GetNumLeaseSets () const { return m_LeaseSets.size (); };
