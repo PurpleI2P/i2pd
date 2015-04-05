@@ -297,16 +297,15 @@ namespace garlic
 		size_t size = 0;
 		if (m_Owner)
 		{
-			auto leases = m_Owner->GetLeaseSet ()->GetNonExpiredLeases ();
-			if (!leases.empty ())
+			auto inboundTunnel = m_Owner->GetTunnelPool ()->GetNextInboundTunnel ();
+			if (inboundTunnel)
 			{	
 				buf[size] = eGarlicDeliveryTypeTunnel << 5; // delivery instructions flag tunnel
 				size++;
-				uint32_t i = m_Rnd.GenerateWord32 (0, leases.size () - 1);
 				// hash and tunnelID sequence is reversed for Garlic 
-				memcpy (buf + size, leases[i].tunnelGateway, 32); // To Hash
+				memcpy (buf + size, inboundTunnel->GetNextIdentHash (), 32); // To Hash
 				size += 32;
-				htobe32buf (buf + size, leases[i].tunnelID); // tunnelID
+				htobe32buf (buf + size, inboundTunnel->GetNextTunnelID ()); // tunnelID
 				size += 4; 	
 				// create msg 
 				I2NPMessage * msg = CreateDeliveryStatusMsg (msgID);
@@ -333,7 +332,7 @@ namespace garlic
 				size += 3;
 			}
 			else	
-				LogPrint ("All tunnels of local LeaseSet expired");	
+				LogPrint (eLogError, "No inbound tunnels in the pool for DeliveryStatus");	
 		}
 		else
 			LogPrint ("Missing local LeaseSet");

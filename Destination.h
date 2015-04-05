@@ -88,6 +88,7 @@ namespace client
 			
 			// implements GarlicDestination
 			const i2p::data::LeaseSet * GetLeaseSet ();
+			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const { return m_Pool; }
 			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
 			// override GarlicDestination

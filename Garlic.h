@@ -110,7 +110,7 @@ namespace garlic
 			i2p::crypto::CBCEncryption m_Encryption;
 			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};	
-
+	
 	class GarlicDestination: public i2p::data::LocalDestination
 	{
 		public:
@@ -133,6 +133,7 @@ namespace garlic
 			virtual void SetLeaseSetUpdated ();
 			
 			virtual const i2p::data::LeaseSet * GetLeaseSet () = 0; // TODO
+			virtual std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const = 0;
 			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from) = 0;
 			
 		protected:
