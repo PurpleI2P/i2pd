@@ -15,9 +15,9 @@ namespace i2p
 namespace garlic
 {
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
-	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags):
+	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags, bool attachLeaseSet):
 		m_Owner (owner), m_Destination (destination), m_NumTags (numTags), 
-		m_LeaseSetUpdateStatus (numTags > 0 ? eLeaseSetUpdated : eLeaseSetUpToDate)
+		m_LeaseSetUpdateStatus (attachLeaseSet ? eLeaseSetUpdated : eLeaseSetDoNotSend)
 	{
 		// create new session tags and session key
 		m_Rnd.GenerateBlock (m_SessionKey, 32);
@@ -25,7 +25,7 @@ namespace garlic
 	}	
 
 	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
-		m_Owner (nullptr), m_Destination (nullptr), m_NumTags (1), m_LeaseSetUpdateStatus (eLeaseSetUpToDate)
+		m_Owner (nullptr), m_Destination (nullptr), m_NumTags (1), m_LeaseSetUpdateStatus (eLeaseSetDoNotSend)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
@@ -524,20 +524,12 @@ namespace garlic
 	I2NPMessage * GarlicDestination::WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
 		I2NPMessage * msg, bool attachLeaseSet)	
 	{
-		if (attachLeaseSet) // we should maintain this session
-		{	
-			auto session = GetRoutingSession (destination, 32);  // 32 tags by default
-			return session->WrapSingleMessage (msg);	
-		}
-		else // one time session
-		{
-			GarlicRoutingSession session (this, destination, 0); // don't use tag if no LeaseSet
-			return session.WrapSingleMessage (msg);
-		}	
+		auto session = GetRoutingSession (destination, attachLeaseSet);  // 32 tags by default
+		return session->WrapSingleMessage (msg);	
 	}
 
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
-		std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags)
+		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
 		auto it = m_Sessions.find (destination->GetIdentHash ());
 		std::shared_ptr<GarlicRoutingSession> session;
@@ -545,7 +537,8 @@ namespace garlic
 			session = it->second;
 		if (!session)
 		{
-			session = std::make_shared<GarlicRoutingSession> (this, destination, numTags); 
+			session = std::make_shared<GarlicRoutingSession> (this, destination, 
+				attachLeaseSet ? 40 : 4, attachLeaseSet); // 40 tags for connections and 4 for LS requests
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			m_Sessions[destination->GetIdentHash ()] = session;
 		}	

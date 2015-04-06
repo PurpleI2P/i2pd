@@ -61,7 +61,8 @@ namespace garlic
 			{
 				eLeaseSetUpToDate = 0,
 				eLeaseSetUpdated,
-				eLeaseSetSubmitted 
+				eLeaseSetSubmitted,
+				eLeaseSetDoNotSend
 			};
 		
 			struct UnconfirmedTags
@@ -75,14 +76,18 @@ namespace garlic
 
 		public:
 
-			GarlicRoutingSession (GarlicDestination * owner, std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags);
+			GarlicRoutingSession (GarlicDestination * owner, std::shared_ptr<const i2p::data::RoutingDestination> destination, 
+				int numTags, bool attachLeaseSet);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
 			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
 			void MessageConfirmed (uint32_t msgID);
 			bool CleanupExpiredTags (); // returns true if something left 
 
-			void SetLeaseSetUpdated () { m_LeaseSetUpdateStatus = eLeaseSetUpdated; };
+			void SetLeaseSetUpdated () 
+			{ 
+				if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend) m_LeaseSetUpdateStatus = eLeaseSetUpdated; 
+			};
 			
 		private:
 
@@ -118,7 +123,7 @@ namespace garlic
 			GarlicDestination (): m_LastTagsCleanupTime (0) {};
 			~GarlicDestination ();
 
-			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags);	
+			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);	
 			void CleanupRoutingSessions ();
 			void RemoveCreatedSession (uint32_t msgID);
 			I2NPMessage * WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
