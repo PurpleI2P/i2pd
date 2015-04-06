@@ -33,24 +33,22 @@ namespace client
 
 	void BOBI2PInboundTunnel::Accept ()
 	{
-		auto receiver = new AddressReceiver ();
+		auto receiver = std::make_shared<AddressReceiver> ();
 		receiver->socket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
 		m_Acceptor.async_accept (*receiver->socket, std::bind (&BOBI2PInboundTunnel::HandleAccept, this,
 			std::placeholders::_1, receiver));
 	}	
 
-	void BOBI2PInboundTunnel::HandleAccept (const boost::system::error_code& ecode, AddressReceiver * receiver)
+	void BOBI2PInboundTunnel::HandleAccept (const boost::system::error_code& ecode, std::shared_ptr<AddressReceiver> receiver)
 	{
 		if (!ecode)
 		{
 			Accept ();	
 			ReceiveAddress (receiver);
 		}
-		else
-			delete receiver;
 	}
 
-	void BOBI2PInboundTunnel::ReceiveAddress (AddressReceiver * receiver)
+	void BOBI2PInboundTunnel::ReceiveAddress (std::shared_ptr<AddressReceiver> receiver)
 	{
 		receiver->socket->async_read_some (boost::asio::buffer(
 		        receiver->buffer + receiver->bufferOffset, 
@@ -60,13 +58,10 @@ namespace client
 	}
 	
 	void BOBI2PInboundTunnel::HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-		AddressReceiver * receiver)
+		std::shared_ptr<AddressReceiver> receiver)
 	{
 		if (ecode)
-		{
 			LogPrint ("BOB inbound tunnel read error: ", ecode.message ());
-			delete receiver;
-		}	
 		else
 		{
 			receiver->bufferOffset += bytes_transferred;
@@ -82,7 +77,6 @@ namespace client
 				if (!context.GetAddressBook ().GetIdentHash (receiver->buffer, ident)) 
 				{
 					LogPrint (eLogError, "BOB address ", receiver->buffer, " not found");
-					delete receiver;
 					return;
 				}
 				auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
@@ -98,37 +92,29 @@ namespace client
 				if (receiver->bufferOffset < BOB_COMMAND_BUFFER_SIZE)
 					ReceiveAddress (receiver);
 				else
-				{	
 					LogPrint ("BOB missing inbound address ");
-					delete receiver;
-				}	
 			}			
 		}
 	}
 
-	void BOBI2PInboundTunnel::HandleDestinationRequestComplete (bool success, AddressReceiver * receiver, i2p::data::IdentHash ident)
+	void BOBI2PInboundTunnel::HandleDestinationRequestComplete (bool success, std::shared_ptr<AddressReceiver> receiver, i2p::data::IdentHash ident)
 	{
 		if (success)
 		{
 			auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
 			if (leaseSet)
-			{
 				CreateConnection (receiver, leaseSet);
-				return;
-			}
 			else
 				LogPrint ("LeaseSet for BOB inbound destination not found");
 		}
-		delete receiver;
 	}	
 
-	void BOBI2PInboundTunnel::CreateConnection (AddressReceiver * receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
+	void BOBI2PInboundTunnel::CreateConnection (std::shared_ptr<AddressReceiver> receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 	{
 		LogPrint ("New BOB inbound connection");
 		auto connection = std::make_shared<I2PTunnelConnection>(this, receiver->socket, leaseSet);
 		AddHandler (connection);
 		connection->I2PConnect (receiver->data, receiver->dataLen);
-		delete receiver;
 	}
 
 	BOBI2POutboundTunnel::BOBI2POutboundTunnel (const std::string& address, int port, 
