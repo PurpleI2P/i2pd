@@ -48,31 +48,30 @@ namespace client
 
 	void TCPIPAcceptor::Accept ()
 	{
-		auto newSocket = new boost::asio::ip::tcp::socket (GetService ());
+		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
 		m_Acceptor.async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
 			std::placeholders::_1, newSocket));
 	}
 
-	void TCPIPAcceptor::HandleAccept (const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket)
+	void TCPIPAcceptor::HandleAccept (const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
 		if (!ecode)
 		{
 			LogPrint(eLogDebug,"--- ",GetName()," accepted");
 			auto handler = CreateHandler(socket);
-			if (handler) {
+			if (handler) 
+			{
 				AddHandler(handler);
 				handler->Handle();
-			} else {
+			} 
+			else 
 				socket->close();
-				delete socket;
-			}
 			Accept();
 		}
 		else
 		{
 			if (ecode != boost::asio::error::operation_aborted)
 				LogPrint (eLogError,"--- ",GetName()," Closing socket on accept because: ", ecode.message ());
-			delete socket;
 		}
 	}
 

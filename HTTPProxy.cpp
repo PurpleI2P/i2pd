@@ -44,7 +44,7 @@ namespace proxy
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 
 			uint8_t m_http_buff[http_buffer_size];
-			boost::asio::ip::tcp::socket * m_sock;
+			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 			std::string m_request; //Data left to be sent
 			std::string m_url; //URL
 			std::string m_method; //Method
@@ -56,7 +56,7 @@ namespace proxy
 
 		public:
 
-			HTTPProxyHandler(HTTPProxyServer * parent, boost::asio::ip::tcp::socket * sock) : 
+			HTTPProxyHandler(HTTPProxyServer * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) : 
 				I2PServiceHandler(parent), m_sock(sock)
 				{ EnterState(GET_METHOD); }
 			~HTTPProxyHandler() { Terminate(); }
@@ -77,10 +77,10 @@ namespace proxy
 
 	void HTTPProxyHandler::Terminate() {
 		if (Kill()) return;
-		if (m_sock) {
+		if (m_sock) 
+		{
 			LogPrint(eLogDebug,"--- HTTP Proxy close sock");
 			m_sock->close();
-			delete m_sock;
 			m_sock = nullptr;
 		}
 		Done(shared_from_this());
@@ -290,7 +290,7 @@ namespace proxy
 	{
 	}
 	
-	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(boost::asio::ip::tcp::socket * socket)
+	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
 		return std::make_shared<HTTPProxyHandler> (this, socket);
 	}

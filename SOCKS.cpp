@@ -118,7 +118,7 @@ namespace proxy
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 
 			uint8_t m_sock_buff[socks_buffer_size];
-			boost::asio::ip::tcp::socket * m_sock;
+			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 			std::shared_ptr<i2p::stream::Stream> m_stream;
 			uint8_t *m_remaining_data; //Data left to be sent
 			uint8_t m_response[7+max_socks_hostname_size];
@@ -135,7 +135,7 @@ namespace proxy
 			state m_state;
 
 		public:
-			SOCKSHandler(SOCKSServer * parent, boost::asio::ip::tcp::socket * sock) :
+			SOCKSHandler(SOCKSServer * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) :
 				I2PServiceHandler(parent), m_sock(sock), m_stream(nullptr),
 				m_authchosen(AUTH_UNACCEPTABLE), m_addrtype(ADDR_IPV4)
 				{ m_address.ip = 0; EnterState(GET_SOCKSV); }
@@ -161,7 +161,6 @@ namespace proxy
 		{
 			LogPrint(eLogDebug,"--- SOCKS close sock");
 			m_sock->close();
-			delete m_sock;
 			m_sock = nullptr;
 		}
 		if (m_stream) 
@@ -566,7 +565,7 @@ namespace proxy
 	{
 	}
 	
-	std::shared_ptr<i2p::client::I2PServiceHandler> SOCKSServer::CreateHandler(boost::asio::ip::tcp::socket * socket)
+	std::shared_ptr<i2p::client::I2PServiceHandler> SOCKSServer::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
 		return std::make_shared<SOCKSHandler> (this, socket);
 	}

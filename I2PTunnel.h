@@ -24,11 +24,11 @@ namespace client
 	{
 		public:
 
-			I2PTunnelConnection (I2PService * owner, boost::asio::ip::tcp::socket * socket,
+			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
-			I2PTunnelConnection (I2PService * owner, boost::asio::ip::tcp::socket * socket,
+			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API :)
-			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,  boost::asio::ip::tcp::socket * socket, 
+			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,  std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 				const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
 			~I2PTunnelConnection ();
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
@@ -49,7 +49,7 @@ namespace client
 		private:
 
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
-			std::unique_ptr<boost::asio::ip::tcp::socket> m_Socket;
+			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
 			bool m_IsQuiet; // don't send destination
@@ -60,7 +60,7 @@ namespace client
 		protected:
 
 			// Implements TCPIPAcceptor
-			std::shared_ptr<I2PServiceHandler> CreateHandler(boost::asio::ip::tcp::socket * socket);
+			std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			const char* GetName() { return "I2P Client Tunnel"; }
 
 		public:

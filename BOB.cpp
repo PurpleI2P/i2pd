@@ -34,7 +34,7 @@ namespace client
 	void BOBI2PInboundTunnel::Accept ()
 	{
 		auto receiver = new AddressReceiver ();
-		receiver->socket = new boost::asio::ip::tcp::socket (GetService ());
+		receiver->socket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
 		m_Acceptor.async_accept (*receiver->socket, std::bind (&BOBI2PInboundTunnel::HandleAccept, this,
 			std::placeholders::_1, receiver));
 	}	
@@ -47,10 +47,7 @@ namespace client
 			ReceiveAddress (receiver);
 		}
 		else
-		{	
-			delete receiver->socket;
 			delete receiver;
-		}	
 	}
 
 	void BOBI2PInboundTunnel::ReceiveAddress (AddressReceiver * receiver)
@@ -68,7 +65,6 @@ namespace client
 		if (ecode)
 		{
 			LogPrint ("BOB inbound tunnel read error: ", ecode.message ());
-			delete receiver->socket;
 			delete receiver;
 		}	
 		else
@@ -86,7 +82,6 @@ namespace client
 				if (!context.GetAddressBook ().GetIdentHash (receiver->buffer, ident)) 
 				{
 					LogPrint (eLogError, "BOB address ", receiver->buffer, " not found");
-					delete receiver->socket;
 					delete receiver;
 					return;
 				}
@@ -105,7 +100,6 @@ namespace client
 				else
 				{	
 					LogPrint ("BOB missing inbound address ");
-					delete receiver->socket;
 					delete receiver;
 				}	
 			}			
@@ -125,7 +119,6 @@ namespace client
 			else
 				LogPrint ("LeaseSet for BOB inbound destination not found");
 		}
-		delete receiver->socket;
 		delete receiver;
 	}	
 
@@ -167,7 +160,7 @@ namespace client
 	{
 		if (stream)
 		{	
-			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, new boost::asio::ip::tcp::socket (GetService ()), m_Endpoint, m_IsQuiet);
+			auto conn = std::make_shared<I2PTunnelConnection> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), m_Endpoint, m_IsQuiet);
 			AddHandler (conn);
 			conn->Connect ();
 		}	

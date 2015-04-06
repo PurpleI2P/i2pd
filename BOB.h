@@ -57,7 +57,7 @@ namespace client
 	{
 			struct AddressReceiver
 			{
-				boost::asio::ip::tcp::socket * socket;
+				std::shared_ptr<boost::asio::ip::tcp::socket> socket;
 				char buffer[BOB_COMMAND_BUFFER_SIZE + 1]; // for destination base64 address
 				uint8_t * data; 
 				size_t dataLen, bufferOffset; 

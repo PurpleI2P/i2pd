@@ -95,11 +95,11 @@ namespace client
 			//If you override this make sure you call it from the children
 			void Stop ();
 		protected:
-			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(boost::asio::ip::tcp::socket * socket) = 0;
+			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
 			virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
 		private:
 			void Accept();
-			void HandleAccept(const boost::system::error_code& ecode, boost::asio::ip::tcp::socket * socket);
+			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 			boost::asio::deadline_timer m_Timer;
 	};
