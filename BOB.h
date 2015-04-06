@@ -127,6 +127,7 @@ namespace client
 			void CreateInboundTunnel (int port);
 			void CreateOutboundTunnel (const std::string& address, int port, bool quiet);
 			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
+			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDestination; };
 			
 		private:	
 

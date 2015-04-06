@@ -493,13 +493,35 @@ namespace client
 	void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: lookup ", operand);
-		i2p::data::IdentityEx addr;
-		if (!context.GetAddressBook ().GetAddress (operand, addr)) 
+		i2p::data::IdentHash ident;
+		if (!context.GetAddressBook ().GetIdentHash (operand, ident) && !m_CurrentDestination) 
 		{
 			SendReplyError ("Address Not found");
 			return;
-		}		
-		SendReplyOK (addr.ToBase64 ().c_str ());
+		}	
+		auto localDestination = m_CurrentDestination->GetLocalDestination ();
+		auto leaseSet = localDestination->FindLeaseSet (ident);
+		if (leaseSet)
+			SendReplyOK (leaseSet->GetIdentity ().ToBase64 ().c_str ());
+		else
+		{
+			auto s = shared_from_this ();
+			m_CurrentDestination->GetLocalDestination ()->RequestDestination (ident, 
+				[s, ident, localDestination](bool success)
+				{
+					if (success)
+					{
+						auto leaseSet = localDestination->FindLeaseSet (ident);
+						if (leaseSet)
+							s->SendReplyOK (leaseSet->GetIdentity ().ToBase64 ().c_str ());
+						else
+							s->SendReplyError ("Missing LeaseSet");	
+					}	
+					else	
+						s->SendReplyError ("LeaseSet Not found");
+				}	
+			);
+		}
 	}
 
 	void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)
