@@ -16,7 +16,7 @@ namespace client
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, 
 			const std::map<std::string, std::string> * params):
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),	
-		m_Keys (keys), m_LeaseSet (nullptr), m_IsPublic (isPublic), m_PublishReplyToken (0),
+		m_Keys (keys), m_IsPublic (isPublic), m_PublishReplyToken (0),
 		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
 		i2p::crypto::GenerateElGamalKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
@@ -148,7 +148,7 @@ namespace client
 		return nullptr;
 	}	
 
-	const i2p::data::LeaseSet * ClientDestination::GetLeaseSet ()
+	std::shared_ptr<const i2p::data::LeaseSet> ClientDestination::GetLeaseSet ()
 	{
 		if (!m_Pool) return nullptr;
 		if (!m_LeaseSet)
@@ -158,15 +158,7 @@ namespace client
 
 	void ClientDestination::UpdateLeaseSet ()
 	{
-		auto newLeaseSet = new i2p::data::LeaseSet (*m_Pool);
-		if (!m_LeaseSet)
-			m_LeaseSet = newLeaseSet;
-		else
-		{	
-			// TODO: implement it better
-			*m_LeaseSet = *newLeaseSet;
-			delete newLeaseSet;
-		}	
+		m_LeaseSet.reset (new i2p::data::LeaseSet (*m_Pool));
 	}	
 
 	bool ClientDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)

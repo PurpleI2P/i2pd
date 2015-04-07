@@ -749,7 +749,7 @@ namespace data
 				if (leaseSet) // we don't send back our LeaseSets
 				{
 					LogPrint ("Requested LeaseSet ", key, " found");
-					replyMsg = CreateDatabaseStoreMsg (leaseSet.get ());
+					replyMsg = CreateDatabaseStoreMsg (leaseSet);
 				}
 			}
 			if (!replyMsg)

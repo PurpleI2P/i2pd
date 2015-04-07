@@ -240,7 +240,7 @@ namespace i2p
 		return m;
 	}	
 
-	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::LeaseSet * leaseSet,  uint32_t replyToken)
+	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet,  uint32_t replyToken)
 	{
 		if (!leaseSet) return nullptr;
 		I2NPMessage * m = NewI2NPShortMessage ();
