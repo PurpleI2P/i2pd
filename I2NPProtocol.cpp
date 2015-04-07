@@ -205,10 +205,10 @@ namespace i2p
 		return m; 
 	}	
 	
-	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router, uint32_t replyToken)
+	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, uint32_t replyToken)
 	{
 		if (!router) // we send own RouterInfo
-			router = &context.GetRouterInfo ();
+			router = context.GetSharedRouterInfo ();
 
 		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * payload = m->GetPayload ();		

@@ -209,7 +209,7 @@ namespace tunnel
 		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag);
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, std::vector<i2p::data::IdentHash> routers);
 	
-	I2NPMessage * CreateDatabaseStoreMsg (const i2p::data::RouterInfo * router = nullptr, uint32_t replyToken = 0);
+	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, uint32_t replyToken = 0);
 	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint32_t replyToken = 0);		
 		
 	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
