@@ -142,7 +142,7 @@ namespace data
 			void SaveProfile () { if (m_Profile) m_Profile->Save (); };
 			
 			void Update (const uint8_t * buf, int len);
-			void DeleteBuffer () { delete m_Buffer; m_Buffer = nullptr; };
+			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
 			
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_RouterIdentity.GetIdentHash (); };
