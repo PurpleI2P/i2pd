@@ -26,7 +26,7 @@ namespace crypto
 				b1 = a_exp_b_mod_c (y, k, elgp);
 			}
 
-			void Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding = false)
+			void Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding = false) const
 			{
 				// calculate b = b1*m mod p
 				uint8_t m[255];

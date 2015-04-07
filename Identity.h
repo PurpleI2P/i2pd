@@ -226,7 +226,7 @@ namespace data
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
 			virtual bool IsDestination () const = 0; // for garlic 
 
-			i2p::crypto::ElGamalEncryption * GetElGamalEncryption () const
+			const i2p::crypto::ElGamalEncryption * GetElGamalEncryption () const
 			{
 				if (!m_ElGamalEncryption)
 					m_ElGamalEncryption = new i2p::crypto::ElGamalEncryption (GetEncryptionPublicKey ());
