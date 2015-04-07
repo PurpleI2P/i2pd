@@ -42,7 +42,8 @@ namespace client
 
 	class ClientDestination: public i2p::garlic::GarlicDestination
 	{
-		typedef std::function<void (bool success)> RequestComplete;
+		typedef std::function<void (std::shared_ptr<i2p::data::LeaseSet> leaseSet)> RequestComplete;
+		// leaseSet = nullptr means not found
 		struct LeaseSetRequest
 		{
 			LeaseSetRequest (boost::asio::io_service& service): requestTime (0), requestTimeoutTimer (service) {};

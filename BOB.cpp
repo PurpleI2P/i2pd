@@ -85,7 +85,7 @@ namespace client
 				else
 					GetLocalDestination ()->RequestDestination (ident, 
 						std::bind (&BOBI2PInboundTunnel::HandleDestinationRequestComplete,
-						this, std::placeholders::_1, receiver, ident));
+						this, std::placeholders::_1, receiver));
 			}
 			else
 			{
@@ -97,16 +97,12 @@ namespace client
 		}
 	}
 
-	void BOBI2PInboundTunnel::HandleDestinationRequestComplete (bool success, std::shared_ptr<AddressReceiver> receiver, i2p::data::IdentHash ident)
+	void BOBI2PInboundTunnel::HandleDestinationRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::shared_ptr<AddressReceiver> receiver)
 	{
-		if (success)
-		{
-			auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
-			if (leaseSet)
-				CreateConnection (receiver, leaseSet);
-			else
-				LogPrint ("LeaseSet for BOB inbound destination not found");
-		}
+		if (leaseSet)
+			CreateConnection (receiver, leaseSet);
+		else
+			LogPrint ("LeaseSet for BOB inbound destination not found");
 	}	
 
 	void BOBI2PInboundTunnel::CreateConnection (std::shared_ptr<AddressReceiver> receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
@@ -486,16 +482,10 @@ namespace client
 		{
 			auto s = shared_from_this ();
 			m_CurrentDestination->GetLocalDestination ()->RequestDestination (ident, 
-				[s, ident, localDestination](bool success)
+				[s, localDestination](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
-					if (success)
-					{
-						auto leaseSet = localDestination->FindLeaseSet (ident);
-						if (leaseSet)
-							s->SendReplyOK (leaseSet->GetIdentity ().ToBase64 ().c_str ());
-						else
-							s->SendReplyError ("Missing LeaseSet");	
-					}	
+					if (ls)
+						s->SendReplyOK (ls->GetIdentity ().ToBase64 ().c_str ());
 					else	
 						s->SendReplyError ("LeaseSet Not found");
 				}	

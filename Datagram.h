@@ -38,7 +38,7 @@ namespace datagram
 
 		private:
 
-			void HandleLeaseSetRequestComplete (bool success, I2NPMessage * msg, i2p::data::IdentHash ident);
+			void HandleLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, I2NPMessage * msg);
 			
 			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
 			void SendMsg (I2NPMessage * msg, std::shared_ptr<const i2p::data::LeaseSet> remote);

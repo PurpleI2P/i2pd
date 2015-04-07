@@ -460,18 +460,15 @@ namespace client
 			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
 			if (!leaseSet)
 			{
-				bool found = false;
 				std::unique_lock<std::mutex> l(newDataReceivedMutex);
 				i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident,
-					[&newDataReceived, &found](bool success)
+					[&newDataReceived, &leaseSet](std::shared_ptr<i2p::data::LeaseSet> ls)
 				    {
-						found = success;
+						leaseSet = ls;
 						newDataReceived.notify_all ();
 					});
 				if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
 					LogPrint (eLogError, "Subscription LeseseSet request timeout expired");
-				if (found)
-					leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);	
 			}
 			if (leaseSet)
 			{

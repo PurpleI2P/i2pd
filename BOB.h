@@ -82,7 +82,7 @@ namespace client
 			void HandleReceivedAddress (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				std::shared_ptr<AddressReceiver> receiver);
 
-			void HandleDestinationRequestComplete (bool success, std::shared_ptr<AddressReceiver> receiver, i2p::data::IdentHash ident);
+			void HandleDestinationRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, std::shared_ptr<AddressReceiver> receiver);
 
 			void CreateConnection (std::shared_ptr<AddressReceiver> receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet);
 

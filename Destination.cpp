@@ -222,19 +222,22 @@ namespace client
 			LogPrint (eLogInfo, "Reply token is ignored for DatabaseStore");
 			offset += 36;
 		}
+		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
 		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
 		{
 			LogPrint (eLogDebug, "Remote LeaseSet");
 			auto it = m_RemoteLeaseSets.find (buf + DATABASE_STORE_KEY_OFFSET);
 			if (it != m_RemoteLeaseSets.end ())
 			{
-				it->second->Update (buf + offset, len - offset); 
+				leaseSet = it->second;
+				leaseSet->Update (buf + offset, len - offset); 
 				LogPrint (eLogDebug, "Remote LeaseSet updated");
 			}
 			else
 			{	
 				LogPrint (eLogDebug, "New remote LeaseSet added");
-				m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
+				leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
+				m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
 			}	
 		}	
 		else
@@ -244,7 +247,7 @@ namespace client
 		if (it1 != m_LeaseSetRequests.end ())
 		{
 			it1->second->requestTimeoutTimer.cancel ();
-			if (it1->second->requestComplete) it1->second->requestComplete (true);
+			if (it1->second->requestComplete) it1->second->requestComplete (leaseSet);
 			delete it1->second;
 			m_LeaseSetRequests.erase (it1);
 		}	
@@ -285,7 +288,7 @@ namespace client
 				LogPrint (eLogInfo, key.ToBase64 (), " was not found on ",  MAX_NUM_FLOODFILLS_PER_REQUEST," floodfills");
 			if (!found)
 			{
-				if (request->requestComplete) request->requestComplete (false);
+				if (request->requestComplete) request->requestComplete (nullptr);
 				delete request;
 				m_LeaseSetRequests.erase (key);
 			}	
@@ -404,18 +407,12 @@ namespace client
 		else
 		{
 			RequestDestination (dest,
-				[this, streamRequestComplete, dest, port](bool success)
+				[this, streamRequestComplete, port](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
-					if (!success)
-						streamRequestComplete (nullptr);
+					if (ls)
+						streamRequestComplete(CreateStream (ls, port));
 					else
-					{
-						auto leaseSet = FindLeaseSet (dest);
-						if (leaseSet)
-							streamRequestComplete(CreateStream (leaseSet, port));
-						else
-							streamRequestComplete (nullptr);
-					}
+						streamRequestComplete (nullptr);
 				});
 		}
 	}
@@ -501,7 +498,7 @@ namespace client
 				if (!SendLeaseSetRequest (dest, floodfill, request))
 				{
 					// request failed
-					if (request->requestComplete) request->requestComplete (false);
+					if (request->requestComplete) request->requestComplete (nullptr);
 					delete request;
 					m_LeaseSetRequests.erase (dest);
 				}
@@ -510,7 +507,7 @@ namespace client
 			{
 				LogPrint (eLogError, "Request of ", dest.ToBase64 (), " is pending already");
 				// TODO: queue up requests
-				if (request->requestComplete) request->requestComplete (false);
+				if (request->requestComplete) request->requestComplete (nullptr);
 				delete request;
 			}	
 		}	

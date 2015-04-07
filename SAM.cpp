@@ -349,7 +349,7 @@ namespace client
 			{
 				m_Session->localDestination->RequestDestination (dest.GetIdentHash (), 
 					std::bind (&SAMSocket::HandleConnectLeaseSetRequestComplete,
-					shared_from_this (), std::placeholders::_1, dest.GetIdentHash ()));	
+					shared_from_this (), std::placeholders::_1));	
 			}
 		}
 		else	
@@ -366,11 +366,8 @@ namespace client
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
 
-	void SAMSocket::HandleConnectLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
+	void SAMSocket::HandleConnectLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 	{
-		std::shared_ptr<const i2p::data::LeaseSet> leaseSet;
-		if (success) 
-			leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 		if (leaseSet)
 			Connect (leaseSet);
 		else
@@ -486,11 +483,8 @@ namespace client
 		}
 	}	
 
-	void  SAMSocket::HandleNamingLookupLeaseSetRequestComplete (bool success, i2p::data::IdentHash ident)
+	void  SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, i2p::data::IdentHash ident)
 	{
-		std::shared_ptr<const i2p::data::LeaseSet> leaseSet;
-		if (success) 
-			leaseSet = m_Session->localDestination->FindLeaseSet (ident);
 		if (leaseSet)
 		{	
 			context.GetAddressBook ().InsertAddress (leaseSet->GetIdentity ());
