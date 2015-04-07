@@ -874,7 +874,7 @@ namespace data
 			{
 				uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation (), ". reply token=", replyToken);
-				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (std::make_shared<RouterInfo>(nullptr), replyToken));	
+				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));	
 				excluded.insert (floodfill->GetIdentHash ());
 			}
 		}	
