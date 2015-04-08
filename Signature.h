@@ -412,21 +412,21 @@ namespace crypto
 	};
 
 	// EdDSA
-	const size_t EDDSA_PUBLIC_KEY_LENGTH = 32;
-	const size_t EDDSA_SIGNATURE_LENGTH = 64;
-	const size_t EDDSA_PRIVATE_KEY_LENGTH = 32;		
-	class EDDSAVerifier: public Verifier
+	const size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
+	const size_t EDDSA25519_SIGNATURE_LENGTH = 64;
+	const size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;		
+	class EDDSA25519Verifier: public Verifier
 	{
 		public:
 
-			EDDSAVerifier (const uint8_t * signingKey)
+			EDDSA25519Verifier (const uint8_t * signingKey)
 			{
 			}
 	
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 
-			size_t GetPublicKeyLen () const { return EDDSA_PUBLIC_KEY_LENGTH; };
-			size_t GetSignatureLen () const { return EDDSA_SIGNATURE_LENGTH; };	
+			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; };
+			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };	
 	};
 }
 }

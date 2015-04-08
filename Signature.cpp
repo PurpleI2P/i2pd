@@ -79,7 +79,7 @@ namespace crypto
 			CryptoPP::Integer q, l, d, I; 
 	};
 
-	bool EDDSAVerifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
 		return true; // TODO:	
 	}	

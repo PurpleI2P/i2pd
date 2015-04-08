@@ -95,11 +95,11 @@ namespace data
 					memcpy (excessBuf, signingKey + 128, excessLen);
 					break;
 				}	
-				case SIGNING_KEY_TYPE_EDDSA_SHA512:
+				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				{
-					size_t padding =  128 - i2p::crypto::EDDSA_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
+					size_t padding =  128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
 					i2p::context.GetRandomNumberGenerator ().GenerateBlock (m_StandardIdentity.signingKey, padding);
-					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA_PUBLIC_KEY_LENGTH);
+					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
 					break;
 				}	
 				default:
@@ -352,10 +352,10 @@ namespace data
 				m_Verifier = new i2p::crypto:: RSASHA5124096Verifier (signingKey);
 				break;
 			}	
-			case SIGNING_KEY_TYPE_EDDSA_SHA512:
+			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 			{
-				size_t padding =  128 - i2p::crypto::EDDSA_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
-				m_Verifier = new i2p::crypto::EDDSAVerifier (m_StandardIdentity.signingKey + padding);
+				size_t padding =  128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
+				m_Verifier = new i2p::crypto::EDDSA25519Verifier (m_StandardIdentity.signingKey + padding);
 				break;
 			}	
 			default:
