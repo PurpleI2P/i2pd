@@ -116,7 +116,7 @@ am_i2p_OBJECTS = AddressBook.$(OBJEXT) CryptoConst.$(OBJEXT) \
 	aes.$(OBJEXT) base64.$(OBJEXT) i2p.$(OBJEXT) util.$(OBJEXT) \
 	SAM.$(OBJEXT) Destination.$(OBJEXT) ClientContext.$(OBJEXT) \
 	Datagram.$(OBJEXT) SSUSession.$(OBJEXT) BOB.$(OBJEXT) \
-	I2PControl.$(OBJEXT) Profiling.$(OBJEXT) 
+	I2PControl.$(OBJEXT) Profiling.$(OBJEXT) Signature.$(OBJEXT)
 i2p_OBJECTS = $(am_i2p_OBJECTS)
 i2p_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -328,7 +328,7 @@ i2p_SOURCES = AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  TunnelGateway.cpp TunnelPool.cpp UPnP.cpp aes.cpp	\
 		  base64.cpp i2p.cpp util.cpp SAM.cpp Destination.cpp \
 		  ClientContext.cpp	DataFram.cpp SSUSession.cpp	BOB.cpp	\
-		  I2PControl.cpp Profiling.cpp \ 			
+		  I2PControl.cpp Profiling.cpp Signature.cpp \ 			
 		  							\
 		  AddressBook.h CryptoConst.h Daemon.h ElGamal.h	\
 		  Garlic.h HTTPProxy.h HTTPServer.h I2NPProtocol.h	\
@@ -493,6 +493,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ClientContext.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Datagram.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SSUSession.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Profiling.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Signature.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

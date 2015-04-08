@@ -40,7 +40,8 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/aes.cpp"
   "${CMAKE_SOURCE_DIR}/base64.cpp"
   "${CMAKE_SOURCE_DIR}/util.cpp"
-  "${CMAKE_SOURCE_DIR}/Datagram.cpp"		
+  "${CMAKE_SOURCE_DIR}/Datagram.cpp"
+  "${CMAKE_SOURCE_DIR}/Signature.cpp"		
 )
 
 set (DAEMON_SRC

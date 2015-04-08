@@ -42,6 +42,7 @@
     <ClCompile Include="..\Reseed.cpp" />
     <ClCompile Include="..\RouterContext.cpp" />
     <ClCompile Include="..\RouterInfo.cpp" />
+	<ClCompile Include="..\Signature.cpp" />	
     <ClCompile Include="..\SAM.cpp" />
     <ClCompile Include="..\SSU.cpp" />
     <ClCompile Include="..\SSUData.cpp" />
