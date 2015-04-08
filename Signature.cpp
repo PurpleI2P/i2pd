@@ -20,7 +20,7 @@ namespace crypto
 
 		private:
 
-			CryptoPP::ECP::Point Sum (CryptoPP::ECP::Point p1, CryptoPP::ECP::Point p2)
+			CryptoPP::ECP::Point Sum (const CryptoPP::ECP::Point& p1, const CryptoPP::ECP::Point& p2)
 			{
 				CryptoPP::Integer m = d*p1.x*p2.x*p1.y*p2.y,
 				x = a_times_b_mod_c (p1.x*p2.y + p2.x*p1.y, (CryptoPP::Integer::One() + m).InverseMod (q), q),
@@ -28,10 +28,19 @@ namespace crypto
 				return CryptoPP::ECP::Point {x, y};
 			}
 
-			CryptoPP::ECP::Point Mul (CryptoPP::ECP::Point p, CryptoPP::Integer e)
+			CryptoPP::ECP::Point Mul (const CryptoPP::ECP::Point& p, const CryptoPP::Integer& e)
 			{
-				if (e.IsZero ()) return CryptoPP::ECP::Point {0, 1};
-				return p; // TODO
+				CryptoPP::ECP::Point res {0, 1};
+				if (!e.IsZero ())
+				{
+					auto bitCount = e.BitCount ();
+					for (int i = bitCount - 1; i >= 0; i--)
+					{
+						res = Sum (res, res);
+						if (e.GetBit (i)) res = Sum (res, p);
+					}
+				}	
+				return res;
 			} 
 
 		private:
