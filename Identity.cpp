@@ -94,7 +94,14 @@ namespace data
 					excessBuf = new uint8_t[excessLen];
 					memcpy (excessBuf, signingKey + 128, excessLen);
 					break;
-				}		
+				}	
+				case SIGNING_KEY_TYPE_EDDSA_SHA512:
+				{
+					size_t padding =  128 - i2p::crypto::EDDSA_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
+					i2p::context.GetRandomNumberGenerator ().GenerateBlock (m_StandardIdentity.signingKey, padding);
+					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA_PUBLIC_KEY_LENGTH);
+					break;
+				}	
 				default:
 					LogPrint ("Signing key type ", (int)type, " is not supported");
 			}	
@@ -344,7 +351,13 @@ namespace data
 				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
 				m_Verifier = new i2p::crypto:: RSASHA5124096Verifier (signingKey);
 				break;
-			}		
+			}	
+			case SIGNING_KEY_TYPE_EDDSA_SHA512:
+			{
+				size_t padding =  128 - i2p::crypto::EDDSA_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
+				m_Verifier = new i2p::crypto::EDDSAVerifier (m_StandardIdentity.signingKey + padding);
+				break;
+			}	
 			default:
 				LogPrint ("Signing key type ", (int)keyType, " is not supported");
 		}			
