@@ -1,5 +1,6 @@
 #include <cryptopp/integer.h>
 #include <cryptopp/eccrypto.h>
+#include "Log.h"
 #include "Signature.h"
 
 namespace i2p
@@ -10,12 +11,13 @@ namespace crypto
 	{
 		public:
 
-			Ed25519 (): b(256)
+			Ed25519 ()
 			{
 				q = CryptoPP::Integer::Power2 (255) - CryptoPP::Integer (19); // 2^255-19
 				l = CryptoPP::Integer::Power2 (252) + CryptoPP::Integer ("27742317777372353535851937790883648493");
 				// 2^252 + 27742317777372353535851937790883648493
 				d = CryptoPP::Integer (-121665) * CryptoPP::Integer (121666).InverseMod (q); // -121665/121666
+				I = a_exp_b_mod_c (CryptoPP::Integer::Two (), (q - CryptoPP::Integer::One ()).DividedBy (4), q);
 			}
 
 		private:
@@ -49,9 +51,32 @@ namespace crypto
 				return  (y2 - x2 - CryptoPP::Integer::One() - d*x2*y2).Modulo (q).IsZero ();
 			}	
 
+			CryptoPP::Integer RecoverX (const CryptoPP::Integer& y)
+			{
+				auto y2 = y.Squared ();
+				auto xx = (y2 - CryptoPP::Integer::One())*(d*y2 + CryptoPP::Integer::One()).InverseMod (q); 
+				auto x = a_exp_b_mod_c (xx, (q + CryptoPP::Integer (3)).DividedBy (8), q);
+				if (!(x.Squared () - xx).Modulo (q).IsZero ())
+					x = a_times_b_mod_c (x, I, q);
+				if (x.IsOdd ()) x = q - x;
+				return x;
+			}
+
+			CryptoPP::ECP::Point DecodePoint (const CryptoPP::Integer& y)
+			{
+				auto x = RecoverX (y);
+				CryptoPP::ECP::Point p {x, y};
+				if (!IsOnCurve (p)) 
+				{
+					LogPrint (eLogError, "Decoded point is not on 25519");
+					return CryptoPP::ECP::Point {0, 1};
+				}
+				return p;
+			}
+
 		private:
 
-			CryptoPP::Integer b, q, l, d; 
+			CryptoPP::Integer q, l, d, I; 
 	};	
 }
 }
