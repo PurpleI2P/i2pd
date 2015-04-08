@@ -43,6 +43,12 @@ namespace crypto
 				return res;
 			} 
 
+			bool IsOnCurve (const CryptoPP::ECP::Point& p)
+			{
+				auto x2 = p.x.Squared(), y2 = p.y.Squared ();
+				return  (y2 - x2 - CryptoPP::Integer::One() - d*x2*y2).Modulo (q).IsZero ();
+			}	
+
 		private:
 
 			CryptoPP::Integer b, q, l, d; 
