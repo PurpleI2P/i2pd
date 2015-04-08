@@ -36,7 +36,7 @@ namespace data
 			LogPrint (eLogError, "Destination for local LeaseSet doesn't exist");
 			return;
 		}	
-		m_Buffer = new uint8_t[localDestination->GetIdentity ().GetFullLen ()];
+		m_Buffer = new uint8_t[MAX_LS_BUFFER_SIZE];
 		m_BufferLen = localDestination->GetIdentity ().ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
 		memcpy (m_Buffer + m_BufferLen, localDestination->GetEncryptionPublicKey (), 256);
 		m_BufferLen += 256;
