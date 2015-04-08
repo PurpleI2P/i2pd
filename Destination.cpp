@@ -223,13 +223,28 @@ namespace client
 			{
 				leaseSet = it->second;
 				leaseSet->Update (buf + offset, len - offset); 
-				LogPrint (eLogDebug, "Remote LeaseSet updated");
+				if (leaseSet->IsValid ())
+					LogPrint (eLogDebug, "Remote LeaseSet updated");
+				else
+				{
+					LogPrint (eLogDebug, "Remote LeaseSet update failed");
+					m_RemoteLeaseSets.erase (it);
+					leaseSet = nullptr;
+				}
 			}
 			else
 			{	
-				LogPrint (eLogDebug, "New remote LeaseSet added");
 				leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
-				m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
+				if (leaseSet->IsValid ())
+				{
+					LogPrint (eLogDebug, "New remote LeaseSet added");
+					m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
+				}
+				else
+				{
+					LogPrint (eLogError, "New remote LeaseSet verification failed");
+					leaseSet = nullptr;
+				}
 			}	
 		}	
 		else

@@ -252,12 +252,24 @@ namespace data
 			if (it != m_LeaseSets.end ())
 			{
 				it->second->Update (buf, len); 
-				LogPrint ("LeaseSet updated");
+				if (it->second->IsValid ())
+					LogPrint (eLogInfo, "LeaseSet updated");
+				else
+				{
+					LogPrint (eLogInfo, "LeaseSet update failed");
+					m_LeaseSets.erase (it);
+				}	
 			}
 			else
 			{	
-				LogPrint ("New LeaseSet added");
-				m_LeaseSets[ident] = std::make_shared<LeaseSet> (buf, len);
+				auto leaseSet = std::make_shared<LeaseSet> (buf, len);
+				if (leaseSet->IsValid ())
+				{
+					LogPrint (eLogInfo, "New LeaseSet added");
+					m_LeaseSets[ident] = leaseSet;
+				}
+				else
+					LogPrint (eLogError, "New LeaseSet validation failed");
 			}	
 		}	
 	}	

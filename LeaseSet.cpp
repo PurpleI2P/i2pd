@@ -14,7 +14,8 @@ namespace i2p
 namespace data
 {
 	
-	LeaseSet::LeaseSet (const uint8_t * buf, size_t len)
+	LeaseSet::LeaseSet (const uint8_t * buf, size_t len):
+		m_IsValid (true)
 	{
 		m_Buffer = new uint8_t[len];
 		memcpy (m_Buffer, buf, len);
@@ -22,7 +23,8 @@ namespace data
 		ReadFromBuffer ();
 	}
 
-	LeaseSet::LeaseSet (const i2p::tunnel::TunnelPool& pool)
+	LeaseSet::LeaseSet (const i2p::tunnel::TunnelPool& pool):
+		m_IsValid (true)
 	{	
 		// header
 		const i2p::data::LocalDestination * localDestination = pool.GetLocalDestination ();
@@ -30,6 +32,7 @@ namespace data
 		{
 			m_Buffer = nullptr;
 			m_BufferLen = 0;
+			m_IsValid = false;
 			LogPrint (eLogError, "Destination for local LeaseSet doesn't exist");
 			return;
 		}	
@@ -88,6 +91,7 @@ namespace data
 		uint8_t num = m_Buffer[size];
 		size++; // num
 		LogPrint ("LeaseSet num=", (int)num);
+		if (!num)  m_IsValid = false;
 
 		// process leases
 		const uint8_t * leases = m_Buffer + size;
@@ -106,14 +110,17 @@ namespace data
 			if (!netdb.FindRouter (lease.tunnelGateway))
 			{
 				// if not found request it
-				LogPrint ("Lease's tunnel gateway not found. Requested");
+				LogPrint (eLogInfo, "Lease's tunnel gateway not found. Requested");
 				netdb.RequestDestination (lease.tunnelGateway);
 			}	
 		}	
 		
 		// verify
 		if (!m_Identity.Verify (m_Buffer, leases - m_Buffer, leases))
-			LogPrint ("LeaseSet verification failed");
+		{
+			LogPrint (eLogWarning, "LeaseSet verification failed");
+			m_IsValid = false;
+		}
 	}				
 	
 	const std::vector<Lease> LeaseSet::GetNonExpiredLeases (bool withThreshold) const

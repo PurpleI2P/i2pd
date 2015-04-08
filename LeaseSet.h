@@ -44,6 +44,7 @@ namespace data
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			size_t GetBufferLen () const { return m_BufferLen; };	
+			bool IsValid () const { return m_IsValid; };
 
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_Identity.GetIdentHash (); };
@@ -60,6 +61,7 @@ namespace data
 			
 		private:
 
+			bool m_IsValid;
 			std::vector<Lease> m_Leases;
 			IdentityEx m_Identity;
 			uint8_t m_EncryptionKey[256];
