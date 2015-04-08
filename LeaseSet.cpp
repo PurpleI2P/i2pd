@@ -14,8 +14,9 @@ namespace i2p
 namespace data
 {
 	
-	LeaseSet::LeaseSet (const uint8_t * buf, int len)
+	LeaseSet::LeaseSet (const uint8_t * buf, size_t len)
 	{
+		m_Buffer = new uint8_t[len];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
 		ReadFromBuffer ();
@@ -27,10 +28,12 @@ namespace data
 		const i2p::data::LocalDestination * localDestination = pool.GetLocalDestination ();
 		if (!localDestination)
 		{
+			m_Buffer = nullptr;
 			m_BufferLen = 0;
 			LogPrint (eLogError, "Destination for local LeaseSet doesn't exist");
 			return;
 		}	
+		m_Buffer = new uint8_t[localDestination->GetIdentity ().GetFullLen ()];
 		m_BufferLen = localDestination->GetIdentity ().ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
 		memcpy (m_Buffer + m_BufferLen, localDestination->GetEncryptionPublicKey (), 256);
 		m_BufferLen += 256;
@@ -62,9 +65,15 @@ namespace data
 		ReadFromBuffer ();
 	}
 
-	void LeaseSet::Update (const uint8_t * buf, int len)
+	void LeaseSet::Update (const uint8_t * buf, size_t len)
 	{	
 		m_Leases.clear ();
+		if (len > m_BufferLen)
+		{
+			auto oldBuffer = m_Buffer;
+			m_Buffer = new uint8_t[len];
+			delete[] oldBuffer;
+		}	
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
 		ReadFromBuffer ();
