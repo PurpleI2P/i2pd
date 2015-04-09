@@ -328,7 +328,8 @@ i2p_SOURCES = AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  TunnelGateway.cpp TunnelPool.cpp UPnP.cpp aes.cpp	\
 		  base64.cpp i2p.cpp util.cpp SAM.cpp Destination.cpp \
 		  ClientContext.cpp	DataFram.cpp SSUSession.cpp	BOB.cpp	\
-		  I2PControl.cpp Profiling.cpp Signature.cpp \ 			
+		  I2PControl.cpp Profiling.cpp Signature.cpp \
+		  NetDbRequests.cpp \	 			
 		  							\
 		  AddressBook.h CryptoConst.h Daemon.h ElGamal.h	\
 		  Garlic.h HTTPProxy.h HTTPServer.h I2NPProtocol.h	\
@@ -341,7 +342,7 @@ i2p_SOURCES = AddressBook.cpp CryptoConst.cpp Daemon.cpp		\
 		  TunnelPool.h UPnP.h aes.h base64.h config.h hmac.h	\
 		  util.h version.h Destination.h ClientContext.h	\
 		  TransportSession.h Datagram.h	SSUSession.h BOB.h \
-		  I2PControl.h Profiling.h
+		  I2PControl.h Profiling.h NetDbRequests.h
 
 AM_LDFLAGS = @BOOST_DATE_TIME_LIB@ @BOOST_FILESYSTEM_LIB@		\
 		  @BOOST_PROGRAM_OPTIONS_LIB@ @BOOST_REGEX_LIB@		\
@@ -495,6 +496,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SSUSession.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Profiling.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Signature.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/NetDbRequests.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
