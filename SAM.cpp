@@ -558,8 +558,17 @@ namespace client
 		else
 		{
 			if (m_Stream)
-				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
-			Receive ();
+			{	
+				auto s = shared_from_this ();
+				m_Stream->AsyncSend ((uint8_t *)m_Buffer, bytes_transferred,
+					[s](const boost::system::error_code& ecode)
+				    {
+						if (!ecode)
+							s->Receive ();
+						else
+							s->Terminate ();
+					});
+			}	
 		}
 	}
 
