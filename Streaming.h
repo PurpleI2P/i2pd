@@ -97,6 +97,8 @@ namespace stream
 	{	
 		public:
 
+			typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
+
 			Stream (boost::asio::io_service& service, StreamingDestination& local, 
 				std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0); // outgoing
 			Stream (boost::asio::io_service& service, StreamingDestination& local); // incoming			
@@ -112,6 +114,7 @@ namespace stream
 			
 			void HandleNextPacket (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
+			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
 			
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
@@ -179,6 +182,7 @@ namespace stream
 			int m_WindowSize, m_RTT, m_RTO;
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
+			SendHandler m_SendHandler;
 	};
 
 	class StreamingDestination

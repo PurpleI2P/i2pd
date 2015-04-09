@@ -61,6 +61,11 @@ namespace stream
 		m_AckSendTimer.cancel ();
 		m_ReceiveTimer.cancel ();
 		m_ResendTimer.cancel ();
+		if (m_SendHandler) 
+		{
+			m_SendHandler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted));
+			m_SendHandler = nullptr;
+		}
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
@@ -299,6 +304,15 @@ namespace stream
 		return len;
 	}	
 
+	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
+	{
+		if (m_SendHandler) 
+			handler (boost::asio::error::make_error_code (boost::asio::error::in_progress));
+		else
+			m_SendHandler = handler;
+		Send (buf, len);
+	}
+
 	void Stream::SendBuffer ()
 	{	
 		int numMsgs = m_WindowSize - m_SentPackets.size ();
@@ -366,6 +380,11 @@ namespace stream
 				p->len = size;
 				packets.push_back (p);
 				numMsgs--;
+			}
+			if (m_SendBuffer.eof () && m_SendHandler)
+			{
+				m_SendHandler (boost::system::error_code ());
+				m_SendHandler = nullptr;
 			}
 		}	
 		if (packets.size () > 0)
