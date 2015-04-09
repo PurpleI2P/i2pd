@@ -419,14 +419,24 @@ namespace crypto
 	{
 		public:
 
-			EDDSA25519Verifier (const uint8_t * signingKey)
-			{
-			}
-	
+			EDDSA25519Verifier (const uint8_t * signingKey);
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 
 			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; };
-			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };	
+			size_t GetSignatureLen () const { return EDDSA25519_SIGNATURE_LENGTH; };
+
+		private:
+	
+			CryptoPP::ECP::Point m_PublicKey;	
+	};
+
+	class EDDSA25519Signer: public Signer
+	{
+		public:
+
+			EDDSA25519Signer (const uint8_t * signingPrivateKey) {}; 
+
+			void Sign (CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const; 
 	};
 }
 }

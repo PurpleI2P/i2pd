@@ -470,6 +470,9 @@ namespace data
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
 				m_Signer = new i2p::crypto::RSASHA5124096Signer (m_SigningPrivateKey);
 			break;	
+			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+				m_Signer = new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey);
+			break;
 			default:
 				LogPrint ("Signing key type ", (int)m_Public.GetSigningKeyType (), " is not supported");
 		}
