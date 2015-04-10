@@ -878,7 +878,9 @@ namespace util
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				s << " [out:" << it.second->GetSendQueueSize () << "][in:" << it.second->GetReceiveQueueSize () << "]";
 				s << "[buf:" << it.second->GetSendBufferSize () << "]";
-				s << "[RTT:" << it.second->GetRTT () << "]"; 
+				s << "[RTT:" << it.second->GetRTT () << "]";
+				s << "[Window:" << it.second->GetWindowSize () << "]";
+				s << "[Status:" << (int)it.second->GetStatus () << "]"; 
 				s << "<br>"<< std::endl; 
 			}	
 		}	

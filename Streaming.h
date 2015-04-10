@@ -85,7 +85,7 @@ namespace stream
 
 	enum StreamStatus
 	{
-		eStreamStatusNew,
+		eStreamStatusNew = 0,
 		eStreamStatusOpen,
 		eStreamStatusReset,
 		eStreamStatusClosing,
@@ -108,8 +108,9 @@ namespace stream
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 			std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
 			const i2p::data::IdentityEx& GetRemoteIdentity () const { return m_RemoteIdentity; };
-			bool IsOpen () const { return m_Status ==  eStreamStatusOpen; };
+			bool IsOpen () const { return m_Status == eStreamStatusOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
+			StreamStatus GetStatus () const { return m_Status; };
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
 			
 			void HandleNextPacket (Packet * packet);
