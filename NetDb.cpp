@@ -922,6 +922,50 @@ namespace data
 		return r;
 	}	
 
+	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num) const
+	{
+		struct Sorted
+		{
+			std::shared_ptr<const RouterInfo> r;
+			XORMetric metric;
+			bool operator< (const Sorted& other) const { return metric < other.metric; };
+		};
+
+		std::set<Sorted> sorted;
+		IdentHash destKey = CreateRoutingKey (destination);
+		{
+			std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+			for (auto it: m_Floodfills)
+			{
+				if (!it->IsUnreachable ())
+				{	
+					XORMetric m = destKey ^ it->GetIdentHash ();
+					if (sorted.size () < num)
+						sorted.insert ({it, m});
+					else if (m < sorted.rbegin ()->metric)
+					{
+						sorted.insert ({it, m});
+						sorted.erase (std::prev (sorted.end ()));
+					}
+				}
+			}
+		}
+
+		std::vector<IdentHash> res;	
+		size_t i = 0;			
+		for (auto it: sorted)
+		{
+			if (i < num)
+			{
+				res.push_back (it.r->GetIdentHash ());
+				i++;
+			}
+			else
+				break;
+		}	
+		return res;
+	}
+
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill (const IdentHash& destination, 
 		const std::set<IdentHash>& excluded) const
 	{
