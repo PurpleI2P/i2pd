@@ -830,17 +830,17 @@ namespace util
 	{
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
-			std::string b32 = it.first.ToBase32 (); 
+			auto ident = it.second->GetIdentHash ();; 
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << b32 << ">"; 
-			s << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetIdentHash()) << "</a><br>" << std::endl;
+			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>" << std::endl;
 		}
 	}	
 
 	void  HTTPConnection::ShowLocalDestination (const std::string& b32, std::stringstream& s)
 	{
 		i2p::data::IdentHash ident;
-		i2p::data::Base32ToByteStream (b32.c_str (), b32.length (), ident, 32);
+		ident.FromBase32 (b32);
 		auto dest = i2p::client::context.FindLocalDestination (ident);
 		if (dest)
 		{
@@ -908,6 +908,11 @@ namespace util
 			auto session = sam->FindSession (id);
 			if (session)
 			{
+				auto& ident = session->localDestination->GetIdentHash();
+				s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
+				s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>" << std::endl;
+				s << "<b>Streams:</b><br>";
 				for (auto it: session->sockets)
 				{
 					switch (it->GetSocketType ())
