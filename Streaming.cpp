@@ -63,8 +63,9 @@ namespace stream
 		m_ResendTimer.cancel ();
 		if (m_SendHandler) 
 		{
-			m_SendHandler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted));
+			auto handler = m_SendHandler;
 			m_SendHandler = nullptr;
+			handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted));
 		}
 	}	
 		
