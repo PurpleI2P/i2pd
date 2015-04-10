@@ -45,7 +45,9 @@ namespace tunnel
 	{
 		if (!m_TunnelDataMsgs.empty ())
 		{	
-			LogPrint (eLogDebug, "TransitTunnel: ",GetTunnelID (),"->", GetNextTunnelID (), " ", m_TunnelDataMsgs.size ());
+			auto num = m_TunnelDataMsgs.size ();
+			if (num > 1)
+				LogPrint (eLogDebug, "TransitTunnel: ",GetTunnelID (),"->", GetNextTunnelID (), " ", num);
 			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs);
 			m_TunnelDataMsgs.clear ();
 		}	
