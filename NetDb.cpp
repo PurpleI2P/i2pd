@@ -445,7 +445,7 @@ namespace data
 			return;			
 		}
 
-		auto floodfill = netdb.GetClosestFloodfill (destination, dest->GetExcludedPeers ());
+		auto floodfill = GetClosestFloodfill (destination, dest->GetExcludedPeers ());
 		if (floodfill)
 			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));	
 		else
@@ -914,10 +914,10 @@ namespace data
 		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 		for (auto it: m_Floodfills)
 		{	
-			if (!it->IsUnreachable () && !excluded.count (it->GetIdentHash ()))
+			if (!it->IsUnreachable ())
 			{	
 				XORMetric m = destKey ^ it->GetIdentHash ();
-				if (m < minMetric)
+				if (m < minMetric && !excluded.count (it->GetIdentHash ()))
 				{
 					minMetric = m;
 					r = it;
@@ -981,10 +981,10 @@ namespace data
 		// must be called from NetDb thread only
 		for (auto it: m_RouterInfos)
 		{	
-			if (!it.second->IsFloodfill () && !excluded.count (it.first))
+			if (!it.second->IsFloodfill ())
 			{	
 				XORMetric m = destKey ^ it.first;
-				if (m < minMetric)
+				if (m < minMetric && !excluded.count (it.first))
 				{
 					minMetric = m;
 					r = it.second;
