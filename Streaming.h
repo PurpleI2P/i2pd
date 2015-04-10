@@ -137,7 +137,7 @@ namespace stream
 
 			void SendBuffer ();
 			void SendQuickAck ();
-			void SendClose ();
+			void SendClose (bool reset = false);
 			bool SendPacket (Packet * packet);
 			void SendPackets (const std::vector<Packet *>& packets);
 
