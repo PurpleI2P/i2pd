@@ -704,22 +704,27 @@ namespace data
 			if (!replyMsg)
 			{
 				LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
-				std::set<IdentHash> excludedRouters;
-				for (int i = 0; i < numExcluded; i++)
-				{
-					excludedRouters.insert (excluded);
-					excluded += 32;
-				}	
 				std::vector<IdentHash> routers;
-				for (int i = 0; i < 3; i++)
-				{
-					auto floodfill = GetClosestFloodfill (buf, excludedRouters);
-					if (floodfill)
-					{	
-						routers.push_back (floodfill->GetIdentHash ());
-						excludedRouters.insert (floodfill->GetIdentHash ());
+				if (numExcluded > 0)
+				{	
+					std::set<IdentHash> excludedRouters;
+					for (int i = 0; i < numExcluded; i++)
+					{
+						excludedRouters.insert (excluded);
+						excluded += 32;
+					}		
+					for (int i = 0; i < 3; i++)
+					{
+						auto floodfill = GetClosestFloodfill (buf, excludedRouters);
+						if (floodfill)
+						{	
+							routers.push_back (floodfill->GetIdentHash ());
+							excludedRouters.insert (floodfill->GetIdentHash ());
+						}	
 					}	
 				}	
+				else
+					routers = GetClosestFloodfills (buf, 3);
 				replyMsg = CreateDatabaseSearchReply (buf, routers);
 			}
 		}
