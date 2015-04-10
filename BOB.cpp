@@ -469,7 +469,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: lookup ", operand);
 		i2p::data::IdentHash ident;
-		if (!context.GetAddressBook ().GetIdentHash (operand, ident) && !m_CurrentDestination) 
+		if (!context.GetAddressBook ().GetIdentHash (operand, ident) || !m_CurrentDestination) 
 		{
 			SendReplyError ("Address Not found");
 			return;
@@ -481,8 +481,8 @@ namespace client
 		else
 		{
 			auto s = shared_from_this ();
-			m_CurrentDestination->GetLocalDestination ()->RequestDestination (ident, 
-				[s, localDestination](std::shared_ptr<i2p::data::LeaseSet> ls)
+			localDestination->RequestDestination (ident, 
+				[s](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
 					if (ls)
 						s->SendReplyOK (ls->GetIdentity ().ToBase64 ().c_str ());
