@@ -18,6 +18,8 @@ namespace data
 	const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
 	const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
 	const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";	
+
+	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72; // in hours (3 days)
 	
 	class RouterProfile
 	{
@@ -54,6 +56,7 @@ namespace data
 	};	
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash); 
+	void DeleteObsoleteProfiles ();
 }		
 }	
 

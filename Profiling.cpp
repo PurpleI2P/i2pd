@@ -95,7 +95,7 @@ namespace data
 				auto t = pt.get (PEER_PROFILE_LAST_UPDATE_TIME, "");
 				if (t.length () > 0)
 					m_LastUpdateTime = boost::posix_time::time_from_string (t);
-				if ((GetTime () - m_LastUpdateTime).hours () < 72) // profile becomes obsolete after 3 days of inactivity
+				if ((GetTime () - m_LastUpdateTime).hours () < PEER_PROFILE_EXPIRATION_TIMEOUT) 
 				{	
 					// read participations
 					auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
@@ -133,7 +133,7 @@ namespace data
 		if ((GetTime () - m_LastUpdateTime).total_seconds () < 900) // if less than 15 minutes
 			return m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 50% rate
 		else
-			return 4*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 20% rate
+			return 3*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 25% rate
 	}	
 		
 	bool RouterProfile::IsBad () const 
@@ -147,5 +147,32 @@ namespace data
 		profile->Load (); // if possible
 		return profile;
 	}		
+
+	void DeleteObsoleteProfiles ()
+	{
+		int num = 0;
+		auto ts = boost::posix_time::second_clock::local_time();
+		boost::filesystem::path p (i2p::util::filesystem::GetDataDir()/PEER_PROFILES_DIRECTORY);
+		if (boost::filesystem::exists (p))
+		{
+			boost::filesystem::directory_iterator end;
+			for (boost::filesystem::directory_iterator it (p); it != end; ++it)
+			{
+				if (boost::filesystem::is_directory (it->status()))
+				{
+					for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
+					{
+						auto lastModified = boost::posix_time::from_time_t (boost::filesystem::last_write_time (it1->path ()));
+						if ((ts - lastModified).hours () >= PEER_PROFILE_EXPIRATION_TIMEOUT)
+						{	
+							boost::filesystem::remove (it1->path ());
+							num++;
+						}	
+					}	
+				}
+			}	
+		}
+		LogPrint (eLogInfo, num, " obsolete profiles deleted");
+	}	
 }		
 }	

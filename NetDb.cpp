@@ -65,19 +65,24 @@ namespace data
 	
 	void NetDb::Stop ()
 	{
-		for (auto it: m_RouterInfos)
-			it.second->SaveProfile ();
-		m_RouterInfos.clear ();
-		if (m_Thread)
+		if (m_IsRunning)
 		{	
-			m_IsRunning = false;
-			m_Queue.WakeUp ();
-			m_Thread->join (); 
-			delete m_Thread;
-			m_Thread = 0;
-		}
-		m_LeaseSets.clear();
-		m_Requests.Stop ();
+			for (auto it: m_RouterInfos)
+				it.second->SaveProfile ();
+			DeleteObsoleteProfiles ();
+			m_RouterInfos.clear ();
+			m_Floodfills.clear ();
+			if (m_Thread)
+			{	
+				m_IsRunning = false;
+				m_Queue.WakeUp ();
+				m_Thread->join (); 
+				delete m_Thread;
+				m_Thread = 0;
+			}
+			m_LeaseSets.clear();
+			m_Requests.Stop ();
+		}	
 	}	
 	
 	void NetDb::Run ()
