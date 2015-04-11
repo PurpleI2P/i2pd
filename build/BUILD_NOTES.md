@@ -24,6 +24,7 @@ Required "-dev" packages:
 * libboost-program-options-dev
 * libboost-regex-dev
 * libboost-system-dev
+* libboost-date-time-dev
 * libcrypto++-dev
 
 FreeBSD
