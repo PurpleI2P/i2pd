@@ -464,6 +464,13 @@ namespace data
 	{	
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = m->GetSize ();		
+		IdentHash ident (buf + DATABASE_STORE_KEY_OFFSET);
+		if (ident.IsZero ())
+		{
+			LogPrint (eLogError, "Database store with zero ident. Dropped");
+			i2p::DeleteI2NPMessage (m);
+			return;
+		}	
 		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken)
@@ -493,7 +500,7 @@ namespace data
 				std::set<IdentHash> excluded;
 				for (int i = 0; i < 3; i++)
 				{
-					auto floodfill = GetClosestFloodfill (buf + DATABASE_STORE_KEY_OFFSET, excluded);
+					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
 					{
 						excluded.insert (floodfill->GetIdentHash ());	
@@ -513,7 +520,7 @@ namespace data
 		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
 			LogPrint ("LeaseSet");
-			AddLeaseSet (buf + DATABASE_STORE_KEY_OFFSET, buf + offset, len - offset, m->from);
+			AddLeaseSet (ident, buf + offset, len - offset, m->from);
 		}	
 		else
 		{
@@ -536,7 +543,7 @@ namespace data
 				if (uncomressedSize <= 2048)
 				{
 					decompressor.Get (uncompressed, uncomressedSize);
-					AddRouterInfo (buf + DATABASE_STORE_KEY_OFFSET, uncompressed, uncomressedSize);
+					AddRouterInfo (ident, uncompressed, uncomressedSize);
 				}
 				else
 					LogPrint ("Invalid RouterInfo uncomressed length ", (int)uncomressedSize);
@@ -643,6 +650,13 @@ namespace data
 	void NetDb::HandleDatabaseLookupMsg (I2NPMessage * msg)
 	{
 		uint8_t * buf = msg->GetPayload ();
+		IdentHash ident (buf);
+		if (ident.IsZero ())
+		{
+			LogPrint (eLogError, "DatabaseLookup for zero ident. Ignored");
+			i2p::DeleteI2NPMessage (msg);
+			return;
+		}	
 		char key[48];
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
@@ -677,21 +691,21 @@ namespace data
 			std::vector<IdentHash> routers;
 			for (int i = 0; i < 3; i++)
 			{
-				auto r = GetClosestNonFloodfill (buf, excludedRouters);
+				auto r = GetClosestNonFloodfill (ident, excludedRouters);
 				if (r)
 				{	
 					routers.push_back (r->GetIdentHash ());
 					excludedRouters.insert (r->GetIdentHash ());
 				}	
 			}	
-			replyMsg = CreateDatabaseSearchReply (buf, routers);
+			replyMsg = CreateDatabaseSearchReply (ident, routers);
 		}	
 		else
 		{	
 			if (lookupType == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP  ||
 			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)
 			{	
-				auto router = FindRouter (buf);
+				auto router = FindRouter (ident);
 				if (router)
 				{
 					LogPrint ("Requested RouterInfo ", key, " found");
@@ -704,7 +718,7 @@ namespace data
 			if (!replyMsg && (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP  ||
 			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
 			{
-				auto leaseSet = FindLeaseSet (buf);
+				auto leaseSet = FindLeaseSet (ident);
 				if (leaseSet) // we don't send back our LeaseSets
 				{
 					LogPrint ("Requested LeaseSet ", key, " found");
@@ -726,7 +740,7 @@ namespace data
 					}		
 					for (int i = 0; i < 3; i++)
 					{
-						auto floodfill = GetClosestFloodfill (buf, excludedRouters);
+						auto floodfill = GetClosestFloodfill (ident, excludedRouters);
 						if (floodfill)
 						{	
 							routers.push_back (floodfill->GetIdentHash ());
@@ -735,8 +749,8 @@ namespace data
 					}	
 				}	
 				else
-					routers = GetClosestFloodfills (buf, 3);
-				replyMsg = CreateDatabaseSearchReply (buf, routers);
+					routers = GetClosestFloodfills (ident, 3);
+				replyMsg = CreateDatabaseSearchReply (ident, routers);
 			}
 		}
 		

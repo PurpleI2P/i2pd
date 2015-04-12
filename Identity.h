@@ -41,6 +41,13 @@ namespace data
 			bool operator== (const Tag<sz>& other) const { return !memcmp (m_Buf, other.m_Buf, sz); };
 			bool operator< (const Tag<sz>& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; };
 
+			bool IsZero () const
+			{
+				for (int i = 0; i < sz/8; i++)
+					if (ll[i]) return false;
+				return true;
+			}
+			
 			std::string ToBase64 () const
 			{
 				char str[sz*2];
