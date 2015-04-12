@@ -688,16 +688,21 @@ namespace data
 		}	
 		else
 		{	
-			auto router = FindRouter (buf);
-			if (router)
-			{
-				LogPrint ("Requested RouterInfo ", key, " found");
-				router->LoadBuffer ();
-				if (router->GetBuffer ()) 
-					replyMsg = CreateDatabaseStoreMsg (router);
+			if (lookupType == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP  ||
+			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)
+			{	
+				auto router = FindRouter (buf);
+				if (router)
+				{
+					LogPrint ("Requested RouterInfo ", key, " found");
+					router->LoadBuffer ();
+					if (router->GetBuffer ()) 
+						replyMsg = CreateDatabaseStoreMsg (router);
+				}
 			}
-		
-			if (!replyMsg)
+			
+			if (!replyMsg && (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP  ||
+			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
 			{
 				auto leaseSet = FindLeaseSet (buf);
 				if (leaseSet) // we don't send back our LeaseSets
@@ -706,6 +711,7 @@ namespace data
 					replyMsg = CreateDatabaseStoreMsg (leaseSet);
 				}
 			}
+			
 			if (!replyMsg)
 			{
 				LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
