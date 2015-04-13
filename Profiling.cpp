@@ -128,17 +128,27 @@ namespace data
 		UpdateTime ();
 	}	
 
-	bool RouterProfile::IsLowPartcipationRate () const
+	bool RouterProfile::IsLowPartcipationRate (int elapsedTime) const
 	{
-		if ((GetTime () - m_LastUpdateTime).total_seconds () < 900) // if less than 15 minutes
+		if (elapsedTime < 900) // if less than 15 minutes
 			return m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 50% rate
 		else
 			return 3*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 25% rate
 	}	
+
+	bool RouterProfile::IsLowReplyRate (int elapsedTime) const
+	{
+		auto total = m_NumTunnelsAgreed + m_NumTunnelsDeclined;
+		if (elapsedTime < 300) // if less than 5 minutes
+			return m_NumTunnelsNonReplied > 10*total;
+		else
+			return !total && m_NumTunnelsNonReplied > 20;
+	}	
 		
 	bool RouterProfile::IsBad () const 
 	{ 
-		return IsAlwaysDeclining () || IsNonResponding () || IsLowPartcipationRate (); 
+		auto elapsedTime = (GetTime () - m_LastUpdateTime).total_seconds ();
+		return IsAlwaysDeclining () || IsLowPartcipationRate (elapsedTime) || IsLowReplyRate (elapsedTime); 
 	}
 		
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)

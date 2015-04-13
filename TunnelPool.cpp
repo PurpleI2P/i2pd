@@ -263,11 +263,6 @@ namespace tunnel
 		bool isExploratory = (m_LocalDestination == &i2p::context); // TODO: implement it better
 		auto hop = isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop): 
 			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
-		if (!isExploratory && hop && hop->GetProfile ()->IsBad ())
-		{
-			LogPrint (eLogInfo, "Selected peer for tunnel has bad profile. Selecting another"); 
-			hop = i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
-		}	
 			
 		if (!hop)
 			hop = i2p::data::netdb.GetRandomRouter ();

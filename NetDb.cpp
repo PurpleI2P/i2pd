@@ -912,7 +912,8 @@ namespace data
 			{	
 				if (i >= ind)
 				{	
-					if (!it.second->IsUnreachable () && filter (it.second))
+					if (!it.second->IsUnreachable () && filter (it.second) && 
+					    (j || !it.second->GetProfile ()->IsBad ()))
 						return it.second;
 				}	
 				else 
