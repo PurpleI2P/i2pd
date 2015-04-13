@@ -487,7 +487,7 @@ namespace stream
 					LogPrint (eLogInfo, "Trying to send stream data before closing");
 			break;
 			case eStreamStatusReset:
-				SendClose (true); // send reset
+				SendClose (); 
 				Terminate ();
 				m_LocalDestination.DeleteStream (shared_from_this ());	
 			break;
@@ -510,7 +510,7 @@ namespace stream
 		};			
 	}
 
-	void Stream::SendClose (bool reset)
+	void Stream::SendClose ()
 	{
 		Packet * p = new Packet ();
 		uint8_t * packet = p->GetBuffer ();
@@ -526,7 +526,7 @@ namespace stream
 		packet[size] = 0; 
 		size++; // NACK count
 		size++; // resend delay
-		htobe16buf (packet + size, (reset ? PACKET_FLAG_RESET : PACKET_FLAG_CLOSE) | PACKET_FLAG_SIGNATURE_INCLUDED);
+		htobe16buf (packet + size, PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
 		size += 2; // flags
 		size_t signatureLen = m_LocalDestination.GetOwner ().GetIdentity ().GetSignatureLen ();
 		htobe16buf (packet + size, signatureLen); // signature only
