@@ -895,7 +895,9 @@ namespace data
 			[compatibleWith](std::shared_ptr<const RouterInfo> router)->bool 
 			{ 
 				return !router->IsHidden () && router != compatibleWith &&
-					router->IsCompatible (*compatibleWith) && (router->GetCaps () & RouterInfo::eHighBandwidth); 
+					router->IsCompatible (*compatibleWith) && 
+					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
+					!router->GetProfile ()->IsBad (); 
 			});
 	}	
 	
@@ -912,8 +914,7 @@ namespace data
 			{	
 				if (i >= ind)
 				{	
-					if (!it.second->IsUnreachable () && filter (it.second) && 
-					    (j || !it.second->GetProfile ()->IsBad ()))
+					if (!it.second->IsUnreachable () && filter (it.second))
 						return it.second;
 				}	
 				else 
