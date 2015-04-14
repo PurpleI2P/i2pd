@@ -207,48 +207,12 @@ namespace transport
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
-		m_Service.post (std::bind (&Transports::PostMessage, this, ident, msg));                             
+		m_Service.post (std::bind (&Transports::PostMessages, this, ident, std::vector<i2p::I2NPMessage *> {msg}));                             
 	}	
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs)
 	{
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
-	}	
-		
-	void Transports::PostMessage (i2p::data::IdentHash ident, i2p::I2NPMessage * msg)
-	{
-		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
-		{	
-			// we send it to ourself
-			i2p::HandleI2NPMessage (msg);
-			return;
-		}	
-
-		auto it = m_Peers.find (ident);
-		if (it == m_Peers.end ())
-		{
-			bool connected = false; 
-			try
-			{
-				auto r = netdb.FindRouter (ident);
-				it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
-					i2p::util::GetSecondsSinceEpoch () })).first;			
-				connected= ConnectToPeer (ident, it->second);
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "Transports::PostMessage ", ex.what ());
-			}
-			if (!connected)	
-			{
-				DeleteI2NPMessage (msg);
-				return;
-			}	
-		}	
-		if (it->second.session)
-			it->second.session->SendI2NPMessage (msg);
-		else
-			it->second.delayedMessages.push_back (msg);
 	}	
 
 	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<i2p::I2NPMessage *> msgs)
