@@ -227,10 +227,19 @@ namespace transport
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
-			auto r = netdb.FindRouter (ident);
-			it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
-				i2p::util::GetSecondsSinceEpoch () })).first;
-			if (!ConnectToPeer (ident, it->second))
+			bool connected = false; 
+			try
+			{
+				auto r = netdb.FindRouter (ident);
+				it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
+					i2p::util::GetSecondsSinceEpoch () })).first;			
+				connected= ConnectToPeer (ident, it->second);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "Transports::PostMessage ", ex.what ());
+			}
+			if (!connected)	
 			{
 				DeleteI2NPMessage (msg);
 				return;
@@ -254,10 +263,19 @@ namespace transport
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
-			auto r = netdb.FindRouter (ident);
-			it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
-				i2p::util::GetSecondsSinceEpoch () })).first;
-			if (!ConnectToPeer (ident, it->second))
+			bool connected = false; 
+			try
+			{
+				auto r = netdb.FindRouter (ident);
+				it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
+					i2p::util::GetSecondsSinceEpoch () })).first;
+				connected = ConnectToPeer (ident, it->second);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "Transports::PostMessages ", ex.what ());
+			}
+			if (!connected)
 			{
 				for (auto it1: msgs)
 					DeleteI2NPMessage (it1);
