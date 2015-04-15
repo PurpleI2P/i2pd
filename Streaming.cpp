@@ -665,6 +665,7 @@ namespace stream
 			if (packets.size () > 0)
 			{
 				m_NumResendAttempts++;
+				m_RTO *= 2;
 				switch (m_NumResendAttempts)
 				{	
 					case 1: // congesion avoidance
@@ -672,9 +673,10 @@ namespace stream
 						if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
 					break;
 					case 2:
+						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
+						// no break here
 					case 4:	
 						UpdateCurrentRemoteLease (); // pick another lease
-						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change
 						LogPrint (eLogWarning, "Another remote lease has been selected for stream");
 					break;	
 					case 3:
