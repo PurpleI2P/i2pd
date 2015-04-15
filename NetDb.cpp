@@ -41,7 +41,7 @@ namespace data
 	void NetDb::Start ()
 	{	
 		Load (m_NetDbPath);
-		if (m_RouterInfos.size () < 50) // reseed if # of router less than 50
+		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
 		{	
 			// try SU3 first
 			Reseed ();
@@ -51,7 +51,7 @@ namespace data
 			{
 				// if still not enough download .dat files
 				int reseedRetries = 0;
-				while (m_RouterInfos.size () < 50 && reseedRetries < 10)
+				while (m_RouterInfos.size () < 25 && reseedRetries < 5)
 				{
 					m_Reseeder->reseedNow();
 					reseedRetries++;
@@ -384,22 +384,31 @@ namespace data
 				// RouterInfo expires after 1 hour if uses introducer
 				if (it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hour
 					it.second->SetUnreachable (true);
-				else if (total > 25 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) // routers don't expire if less than 25 or uptime is less than 10 minutes
+				else if (total > 75 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) // routers don't expire if less than 25 or uptime is less than 10 minutes
 				{
 					if (i2p::context.IsFloodfill ())
 					{
 						if (ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hours
+						{	
 							it.second->SetUnreachable (true);
+							total--;
+						}	
 					}
 					else if (total > 300)
 					{
 						if (ts > it.second->GetTimestamp () + 30*3600*1000LL) // 30 hours
+						{	
 							it.second->SetUnreachable (true);
+							total--;
+						}	
 					}
 					else if (total > 120)
 					{
 						if (ts > it.second->GetTimestamp () + 72*3600*1000LL) // 72 hours
+						{	
 							it.second->SetUnreachable (true);
+							total--;
+						}	
 					}
 				}
 				
