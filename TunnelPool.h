@@ -38,6 +38,8 @@ namespace tunnel
 			void TunnelExpired (std::shared_ptr<InboundTunnel> expiredTunnel);
 			void TunnelCreated (std::shared_ptr<OutboundTunnel> createdTunnel);
 			void TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel);
+			void RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel);
+			void RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel);
 			std::vector<std::shared_ptr<InboundTunnel> > GetInboundTunnels (int num) const;
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded = nullptr) const;
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr) const;		
@@ -54,8 +56,6 @@ namespace tunnel
 
 			void CreateInboundTunnel ();	
 			void CreateOutboundTunnel ();
-			void RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel);
-			void RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel);
 			template<class TTunnels>
 			typename TTunnels::value_type GetNextTunnel (TTunnels& tunnels, typename TTunnels::value_type excluded) const;
 			std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;

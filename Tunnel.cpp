@@ -535,17 +535,20 @@ namespace tunnel
 				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
 					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
-					{
-						auto pool = tunnel->GetTunnelPool ();
-						if (pool)
-							pool->TunnelExpired (tunnel);
-					}	
+					auto pool = tunnel->GetTunnelPool ();
+					if (pool)
+						pool->TunnelExpired (tunnel);
 					it = m_OutboundTunnels.erase (it);
 				}	
 				else 
 				{
 					if (tunnel->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+					{	
 						tunnel->SetState (eTunnelStateExpiring);
+						auto pool = tunnel->GetTunnelPool ();
+						if (pool)
+							pool->RecreateOutboundTunnel (tunnel);
+					}	
 					it++;
 				}
 			}
@@ -575,17 +578,20 @@ namespace tunnel
 				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
 					LogPrint ("Tunnel ", tunnel->GetTunnelID (), " expired");
-					{
-						auto pool = tunnel->GetTunnelPool ();
-						if (pool)
-							pool->TunnelExpired (tunnel);
-					}	
+					auto pool = tunnel->GetTunnelPool ();
+					if (pool)
+						pool->TunnelExpired (tunnel);
 					it = m_InboundTunnels.erase (it);
 				}	
 				else 
 				{
 					if (tunnel->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+					{	
 						tunnel->SetState (eTunnelStateExpiring);
+						auto pool = tunnel->GetTunnelPool ();
+						if (pool)
+							pool->RecreateInboundTunnel (tunnel);
+					}	
 					it++;
 				}
 			}
