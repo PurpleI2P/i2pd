@@ -147,7 +147,7 @@ namespace stream
 			void ProcessAck (Packet * packet);
 			size_t ConcatenatePackets (uint8_t * buf, size_t len);
 
-			void UpdateCurrentRemoteLease ();
+			void UpdateCurrentRemoteLease (bool expired = false);
 			
 			template<typename Buffer, typename ReceiveHandler>
 			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler);

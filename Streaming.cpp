@@ -606,7 +606,7 @@ namespace stream
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		if (ts >= m_CurrentRemoteLease.endDate - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000)
-			UpdateCurrentRemoteLease ();
+			UpdateCurrentRemoteLease (true);
 		if (ts < m_CurrentRemoteLease.endDate)
 		{	
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
@@ -709,7 +709,7 @@ namespace stream
 		}	
 	}
 
-	void Stream::UpdateCurrentRemoteLease ()
+	void Stream::UpdateCurrentRemoteLease (bool expired)
 	{
 		if (!m_RemoteLeaseSet)
 		{
@@ -724,16 +724,31 @@ namespace stream
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (false); // try without threshold first
 			if (leases.empty ())
 			{
+				expired = false;
 				m_LocalDestination.GetOwner ().RequestDestination (m_RemoteIdentity.GetIdentHash ()); // time to re-request
 				leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // then with threshold
 			}
 			if (!leases.empty ())
 			{	
-				uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-				if (m_CurrentRemoteLease.endDate && leases[i].tunnelID == m_CurrentRemoteLease.tunnelID)
-					// make sure we don't select previous 	
-					i = (i + 1) % leases.size (); // if so, pick next
-				m_CurrentRemoteLease = leases[i];		
+				bool updated = false;	
+				if (expired)
+				{
+					for (auto it: leases)
+						if ((it.tunnelGateway == m_CurrentRemoteLease.tunnelGateway) && (it.tunnelID != m_CurrentRemoteLease.tunnelID))
+						{
+							m_CurrentRemoteLease = it;
+							updated = true;
+							break;
+						} 
+				}
+				if (!updated)
+				{
+					uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
+					if (m_CurrentRemoteLease.endDate && leases[i].tunnelID == m_CurrentRemoteLease.tunnelID)
+						// make sure we don't select previous 	
+						i = (i + 1) % leases.size (); // if so, pick next
+					m_CurrentRemoteLease = leases[i];		
+				}
 			}	
 			else
 			{	
