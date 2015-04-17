@@ -131,6 +131,23 @@ namespace tunnel
 		return tunnel;
 	}
 
+	std::shared_ptr<OutboundTunnel> TunnelPool::GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const
+	{
+		if (old && old->IsEstablished ()) return old;
+		std::shared_ptr<OutboundTunnel> tunnel;	
+		if (old)
+		{
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
+			for (auto it: m_OutboundTunnels)
+				if (it->IsEstablished () && old->GetEndpointRouter ()->GetIdentHash () == it->GetEndpointRouter ()->GetIdentHash ())
+					tunnel = it;
+		}
+	
+		if (!tunnel)
+			tunnel = GetNextOutboundTunnel ();		
+		return tunnel;
+	}
+
 	void TunnelPool::CreateTunnels ()
 	{
 		int num = 0;

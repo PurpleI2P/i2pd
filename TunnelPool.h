@@ -43,6 +43,7 @@ namespace tunnel
 			std::vector<std::shared_ptr<InboundTunnel> > GetInboundTunnels (int num) const;
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded = nullptr) const;
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded = nullptr) const;		
+			std::shared_ptr<OutboundTunnel> GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const;
 
 			void TestTunnels ();
 			void ProcessGarlicMessage (I2NPMessage * msg);
