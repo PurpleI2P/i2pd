@@ -24,6 +24,7 @@ namespace tunnel
 {	
 	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes	
 	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute	
+	const int TUNNEL_RECREATION_THRESHOLD = 90; // 1.5 minutes	
 	const int TUNNEL_CREATION_TIMEOUT = 30; // 30 seconds
 	const int STANDARD_NUM_RECORDS = 5; // in VariableTunnelBuild message
 
@@ -54,6 +55,8 @@ namespace tunnel
 			void SetState (TunnelState state)  { m_State = state; };
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
+			bool IsRecreated () const { return m_IsRecreated; };
+			void SetIsRecreated () { m_IsRecreated = true; };
 
 			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
 			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };			
@@ -71,6 +74,7 @@ namespace tunnel
 			TunnelConfig * m_Config;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
+			bool m_IsRecreated;
 	};	
 
 	class OutboundTunnel: public Tunnel 

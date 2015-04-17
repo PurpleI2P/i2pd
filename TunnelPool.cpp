@@ -140,7 +140,10 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
 			for (auto it: m_OutboundTunnels)
 				if (it->IsEstablished () && old->GetEndpointRouter ()->GetIdentHash () == it->GetEndpointRouter ()->GetIdentHash ())
+				{
 					tunnel = it;
+					break;
+				}
 		}
 	
 		if (!tunnel)

@@ -18,7 +18,7 @@ namespace tunnel
 {		
 	
 	Tunnel::Tunnel (TunnelConfig * config): 
-		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending)
+		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending), m_IsRecreated (false)
 	{
 	}	
 
@@ -542,12 +542,17 @@ namespace tunnel
 				}	
 				else 
 				{
-					if (tunnel->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+					if (tunnel->IsEstablished ())
 					{	
-						tunnel->SetState (eTunnelStateExpiring);
-						auto pool = tunnel->GetTunnelPool ();
-						if (pool)
-							pool->RecreateOutboundTunnel (tunnel);
+						if (!tunnel->IsRecreated () && ts + TUNNEL_RECREATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						{
+							tunnel->SetIsRecreated ();	
+							auto pool = tunnel->GetTunnelPool ();
+							if (pool)
+								pool->RecreateOutboundTunnel (tunnel);
+						}
+						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+							tunnel->SetState (eTunnelStateExpiring);
 					}	
 					it++;
 				}
@@ -585,12 +590,18 @@ namespace tunnel
 				}	
 				else 
 				{
-					if (tunnel->IsEstablished () && ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+					if (tunnel->IsEstablished ())
 					{	
-						tunnel->SetState (eTunnelStateExpiring);
-						auto pool = tunnel->GetTunnelPool ();
-						if (pool)
-							pool->RecreateInboundTunnel (tunnel);
+						if (!tunnel->IsRecreated () && ts + TUNNEL_RECREATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+						{
+							tunnel->SetIsRecreated ();	
+							auto pool = tunnel->GetTunnelPool ();
+							if (pool)
+								pool->RecreateInboundTunnel (tunnel);
+						}
+	
+						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+							tunnel->SetState (eTunnelStateExpiring);
 					}	
 					it++;
 				}
