@@ -217,24 +217,33 @@ namespace transport
 		for (auto it1: packets)
 		{
 			auto packet = it1;
-			if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
-			{
-				if (session) session->FlushData ();
-				auto it = m_Sessions.find (packet->from);
-				if (it != m_Sessions.end ())
-					session = it->second;
-				if (!session)
+			try
+			{	
+				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 				{
-					session = std::make_shared<SSUSession> (*this, packet->from);
-					session->WaitForConnect ();
+					if (session) session->FlushData ();
+					auto it = m_Sessions.find (packet->from);
+					if (it != m_Sessions.end ())
+						session = it->second;
+					if (!session)
 					{
-						std::unique_lock<std::mutex> l(m_SessionsMutex);
-						m_Sessions[packet->from] = session;
-					}	
-					LogPrint ("New SSU session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+						session = std::make_shared<SSUSession> (*this, packet->from);
+						session->WaitForConnect ();
+						{
+							std::unique_lock<std::mutex> l(m_SessionsMutex);
+							m_Sessions[packet->from] = session;
+						}	
+						LogPrint (eLogInfo, "New SSU session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+					}
 				}
-			}
-			session->ProcessNextMessage (packet->buf, packet->len, packet->from);
+				session->ProcessNextMessage (packet->buf, packet->len, packet->from);
+			}	
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "SSU: HandleReceivedPackets ", ex.what ());
+				if (session) session->FlushData ();
+				session = nullptr;
+			}	
 			delete packet;
 		}
 		if (session) session->FlushData ();
