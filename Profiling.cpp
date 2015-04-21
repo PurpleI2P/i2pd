@@ -140,9 +140,9 @@ namespace data
 	{
 		auto total = m_NumTunnelsAgreed + m_NumTunnelsDeclined;
 		if (elapsedTime < 300) // if less than 5 minutes
-			return m_NumTunnelsNonReplied > 10*total;
+			return m_NumTunnelsNonReplied > 5*(total + 1);
 		else
-			return !total && m_NumTunnelsNonReplied > 20;
+			return !total && m_NumTunnelsNonReplied*15 > elapsedTime;
 	}	
 		
 	bool RouterProfile::IsBad () const 
