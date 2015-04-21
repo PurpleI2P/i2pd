@@ -461,6 +461,7 @@ namespace garlic
 
 	void GarlicDestination::HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
+		const uint8_t * buf1 = buf;
 		int numCloves = buf[0];
 		LogPrint (numCloves," cloves");
 		buf++;
@@ -518,6 +519,11 @@ namespace garlic
 			buf += 4; // CloveID
 			buf += 8; // Date
 			buf += 3; // Certificate
+			if (buf - buf1  > (int)len)
+			{
+				LogPrint (eLogError, "Gralic clove is too long");
+				break;
+			}	
 		}	
 	}	
 	
