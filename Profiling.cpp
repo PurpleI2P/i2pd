@@ -128,7 +128,7 @@ namespace data
 		UpdateTime ();
 	}	
 
-	bool RouterProfile::IsLowPartcipationRate (int elapsedTime) const
+	bool RouterProfile::IsLowPartcipationRate (uint32_t elapsedTime) const
 	{
 		if (elapsedTime < 900) // if less than 15 minutes
 			return m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 50% rate
@@ -136,7 +136,7 @@ namespace data
 			return 3*m_NumTunnelsAgreed < m_NumTunnelsDeclined; // 25% rate
 	}	
 
-	bool RouterProfile::IsLowReplyRate (int elapsedTime) const
+	bool RouterProfile::IsLowReplyRate (uint32_t elapsedTime) const
 	{
 		auto total = m_NumTunnelsAgreed + m_NumTunnelsDeclined;
 		if (elapsedTime < 300) // if less than 5 minutes

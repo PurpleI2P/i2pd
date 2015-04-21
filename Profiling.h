@@ -42,8 +42,8 @@ namespace data
 			void UpdateTime ();
 
 			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
-			bool IsLowPartcipationRate (int elapsedTime) const;
-			bool IsLowReplyRate (int elapsedTime) const;
+			bool IsLowPartcipationRate (uint32_t elapsedTime) const;
+			bool IsLowReplyRate (uint32_t elapsedTime) const;
 			
 		private:	
 
