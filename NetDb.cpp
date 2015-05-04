@@ -905,8 +905,7 @@ namespace data
 			{ 
 				return !router->IsHidden () && router != compatibleWith &&
 					router->IsCompatible (*compatibleWith) && 
-					(router->GetCaps () & RouterInfo::eHighBandwidth) &&
-					!router->GetProfile ()->IsBad (); 
+					(router->GetCaps () & RouterInfo::eHighBandwidth);
 			});
 	}	
 	

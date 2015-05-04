@@ -281,8 +281,8 @@ namespace tunnel
 		bool isExploratory = (m_LocalDestination == &i2p::context); // TODO: implement it better
 		auto hop = isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop): 
 			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
-			
-		if (!hop)
+
+		if (!hop || hop->GetProfile ()->IsBad ())
 			hop = i2p::data::netdb.GetRandomRouter ();
 		return hop;	
 	}	
