@@ -11,9 +11,9 @@ namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numTunnels):
+	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
 		m_LocalDestination (localDestination), m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
-		m_NumTunnels (numTunnels), m_IsActive (true)
+		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true)
 	{
 	}
 
@@ -160,7 +160,7 @@ namespace tunnel
 			for (auto it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		for (int i = num; i < m_NumTunnels; i++)
+		for (int i = num; i < m_NumInboundTunnels; i++)
 			CreateInboundTunnel ();	
 		
 		num = 0;
@@ -169,7 +169,7 @@ namespace tunnel
 			for (auto it : m_OutboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
-		for (int i = num; i < m_NumTunnels; i++)
+		for (int i = num; i < m_NumOutboundTunnels; i++)
 			CreateOutboundTunnel ();	
 	}
 

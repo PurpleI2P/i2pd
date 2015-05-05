@@ -287,9 +287,9 @@ namespace tunnel
 		return tunnel;
 	}	
 
-	std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops)
+	std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels)
 	{
-		auto pool = std::make_shared<TunnelPool> (localDestination, numInboundHops, numOutboundHops);
+		auto pool = std::make_shared<TunnelPool> (localDestination, numInboundHops, numOutboundHops, numInboundTunnels, numOutboundTunnels);
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
 		m_Pools.push_back (pool);
 		return pool;
@@ -613,7 +613,7 @@ namespace tunnel
 			LogPrint ("Creating zero hops inbound tunnel...");
 			CreateZeroHopsInboundTunnel ();
 			if (!m_ExploratoryPool)
-				m_ExploratoryPool = CreateTunnelPool (&i2p::context, 2, 2); // 2-hop exploratory
+				m_ExploratoryPool = CreateTunnelPool (&i2p::context, 2, 2, 5, 5); // 2-hop exploratory, 5 tunnels
 			return;
 		}
 		

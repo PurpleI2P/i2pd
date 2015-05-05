@@ -22,6 +22,8 @@ namespace client
 		i2p::crypto::GenerateElGamalKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
+		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
+		int outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
 		if (params)
 		{
 			auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
@@ -44,8 +46,28 @@ namespace client
 					LogPrint (eLogInfo, "Outbound tunnel length set to ", len);
 				}
 			}	
+			it = params->find (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
+			if (it != params->end ())
+			{
+				int quantity = boost::lexical_cast<int>(it->second);
+				if (quantity > 0)
+				{
+					inboundTunnelsQuantity = quantity;
+					LogPrint (eLogInfo, "Inbound tunnels quantity set to ", quantity);
+				}	
+			}
+			it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
+			if (it != params->end ())
+			{
+				int quantity = boost::lexical_cast<int>(it->second);
+				if (quantity > 0)
+				{
+					outboundTunnelsQuantity = quantity;
+					LogPrint (eLogInfo, "Outbound tunnels quantity set to ", quantity);
+				}	
+			}
 		}	
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen);  
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
 		if (m_IsPublic)
 			LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
 		m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (*this); // TODO:

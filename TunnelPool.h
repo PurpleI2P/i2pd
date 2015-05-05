@@ -27,7 +27,7 @@ namespace tunnel
 	{
 		public:
 
-			TunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numTunnels = 5);
+			TunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels);
 			~TunnelPool ();
 		
 			i2p::garlic::GarlicDestination * GetLocalDestination () const { return m_LocalDestination; };
@@ -64,7 +64,7 @@ namespace tunnel
 		private:
 
 			i2p::garlic::GarlicDestination * m_LocalDestination;
-			int m_NumInboundHops, m_NumOutboundHops, m_NumTunnels;
+			int m_NumInboundHops, m_NumOutboundHops, m_NumInboundTunnels, m_NumOutboundTunnels;
 			mutable std::mutex m_InboundTunnelsMutex;
 			std::set<std::shared_ptr<InboundTunnel>, TunnelCreationTimeCmp> m_InboundTunnels; // recent tunnel appears first
 			mutable std::mutex m_OutboundTunnelsMutex;

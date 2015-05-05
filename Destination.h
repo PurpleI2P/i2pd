@@ -36,6 +36,10 @@ namespace client
 	const int DEFAULT_INBOUND_TUNNEL_LENGTH = 3;
 	const char I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH[] = "outbound.length";
 	const int DEFAULT_OUTBOUND_TUNNEL_LENGTH = 3;
+	const char I2CP_PARAM_INBOUND_TUNNELS_QUANTITY[] = "inbound.quantity";
+	const int DEFAULT_INBOUND_TUNNELS_QUANTITY = 5;
+	const char I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY[] = "outbound.quantity";
+	const int DEFAULT_OUTBOUND_TUNNELS_QUANTITY = 5;
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;

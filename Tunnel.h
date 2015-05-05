@@ -141,7 +141,7 @@ namespace tunnel
 			std::shared_ptr<TTunnel> CreateTunnel (TunnelConfig * config, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel);
-			std::shared_ptr<TunnelPool> CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops);
+			std::shared_ptr<TunnelPool> CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops, int numInboundTunnels, int numOutboundTunnels);
 			void DeleteTunnelPool (std::shared_ptr<TunnelPool> pool);
 			void StopTunnelPool (std::shared_ptr<TunnelPool> pool);
 			
