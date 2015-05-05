@@ -4,6 +4,7 @@
 #include "NetDb.h"
 #include "Timestamp.h"
 #include "Garlic.h"
+#include "Transports.h"
 #include "TunnelPool.h"
 
 namespace i2p
@@ -341,10 +342,20 @@ namespace tunnel
 		if (inboundTunnel)
 		{	
 			LogPrint ("Creating destination outbound tunnel...");
-
+			int numHops = m_NumOutboundHops;
 			auto prevHop = i2p::context.GetSharedRouterInfo ();
 			std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
-			for (int i = 0; i < m_NumOutboundHops; i++)
+			if (i2p::transport::transports.GetNumPeers () > 25)
+			{
+				auto r = i2p::transport::transports.GetRandomPeer ();
+				if (r)
+				{
+					prevHop = r;
+					hops.push_back (r);
+					numHops--;
+				}
+			}
+			for (int i = 0; i < numHops; i++)
 			{
 				auto hop = SelectNextHop (prevHop);
 				if (!hop)

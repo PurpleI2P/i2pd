@@ -98,6 +98,8 @@ namespace transport
 			uint32_t GetInBandwidth () const { return m_InBandwidth; }; // bytes per second
 			uint32_t GetOutBandwidth () const { return m_OutBandwidth; }; // bytes per second
 			bool IsBandwidthExceeded () const;
+			size_t GetNumPeers () const { return m_Peers.size (); };
+			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
 
 		private:
 
