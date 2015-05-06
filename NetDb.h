@@ -92,7 +92,7 @@ namespace data
 
 			Reseeder * m_Reseeder;
 
-			friend NetDbRequests; 
+			friend class NetDbRequests; 
 			NetDbRequests m_Requests;
 
 			static const char m_NetDbPath[];

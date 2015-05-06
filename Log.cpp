@@ -24,7 +24,11 @@ void LogMsg::Process()
 
 const std::string& Log::GetTimestamp ()
 {
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6)	
+	auto ts = std::chrono::monotonic_clock::now ();	
+#else	
 	auto ts = std::chrono::steady_clock::now ();	
+#endif	
 	if (ts > m_LastTimestampUpdate + std::chrono::milliseconds (500)) // 0.5 second
 	{
 		m_LastTimestampUpdate = ts;
