@@ -39,10 +39,8 @@ typedef void (*upnp_FreeUPNPUrlsFunc) (struct UPNPUrls *);
 
 namespace i2p
 {
-namespace UPnP
+namespace transport
 {
-    UPnP upnpc;
-
     UPnP::UPnP () : m_Thread (nullptr) , m_IsModuleLoaded (false)
     {
     }
@@ -99,15 +97,14 @@ namespace UPnP
         {
             if (!address.host.is_v6 ())
             {
-                m_Port = std::to_string (util::config::GetArg ("-port", address.port));
                 Discover ();
                 if (address.transportStyle == data::RouterInfo::eTransportSSU )
                 {
-                    TryPortMapping (I2P_UPNP_UDP);
+                    TryPortMapping (I2P_UPNP_UDP, address.port);
                 }
                 else if (address.transportStyle == data::RouterInfo::eTransportNTCP )
                 {
-                    TryPortMapping (I2P_UPNP_TCP);
+                    TryPortMapping (I2P_UPNP_TCP, address.port);
                 }
             }
         }
@@ -169,9 +166,9 @@ namespace UPnP
         }
     }
 
-    void UPnP::TryPortMapping (int type)
+    void UPnP::TryPortMapping (int type, int port)
     {
-        std::string strType;
+        std::string strType, strPort (std::to_string (port));
         switch (type)
         {
             case I2P_UPNP_TCP:
@@ -192,19 +189,19 @@ namespace UPnP
 #endif
 #ifndef UPNPDISCOVER_SUCCESS
                 /* miniupnpc 1.5 */
-                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_Port.c_str (), m_Port.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
+                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
 #else
                 /* miniupnpc 1.6 */
-                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_Port.c_str (), m_Port.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
+                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
 #endif
                 if (r!=UPNPCOMMAND_SUCCESS)
                 {
-                    LogPrint ("AddPortMapping (", m_Port.c_str () ,", ", m_Port.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);
+                    LogPrint ("AddPortMapping (", strPort.c_str () ,", ", strPort.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);
                     return;
                 }
                 else
                 {
-                    LogPrint ("UPnP Port Mapping successful. (", m_NetworkAddr ,":", m_Port.c_str(), " type ", strType.c_str () ," -> ", m_externalIPAddress ,":", m_Port.c_str() ,")");
+                    LogPrint ("UPnP Port Mapping successful. (", m_NetworkAddr ,":", strPort.c_str(), " type ", strType.c_str () ," -> ", m_externalIPAddress ,":", strPort.c_str() ,")");
                     return;
                 }
                 sleep(20*60);
@@ -212,15 +209,15 @@ namespace UPnP
         }
         catch (boost::thread_interrupted)
         {
-            CloseMapping(type);
+            CloseMapping(type, port);
             Close();
             throw;
         }
     }
 
-    void UPnP::CloseMapping (int type)
+    void UPnP::CloseMapping (int type, int port)
     {
-        std::string strType;
+        std::string strType, strPort (std::to_string (port));
         switch (type)
         {
             case I2P_UPNP_TCP:
@@ -236,7 +233,7 @@ namespace UPnP
 #else
         upnp_UPNP_DeletePortMappingFunc UPNP_DeletePortMappingFunc = (upnp_UPNP_DeletePortMappingFunc) dlsym (m_Module, "UPNP_DeletePortMapping");
 #endif
-        r = UPNP_DeletePortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_Port.c_str (), strType.c_str (), 0);
+        r = UPNP_DeletePortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strType.c_str (), 0);
         LogPrint ("UPNP_DeletePortMapping() returned : ", r, "\n");
     }
 

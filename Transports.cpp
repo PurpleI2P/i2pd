@@ -109,6 +109,10 @@ namespace transport
 
 	void Transports::Start ()
 	{
+#ifdef USE_UPNP
+		m_UPnP.Start ();
+		LogPrint(eLogInfo, "UPnP started");
+#endif
 		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
@@ -141,6 +145,10 @@ namespace transport
 		
 	void Transports::Stop ()
 	{	
+#ifdef USE_UPNP
+		m_UPnP.Stop ();
+		LogPrint(eLogInfo, "UPnP stopped");
+#endif
 		m_PeerCleanupTimer.cancel ();	
 		m_Peers.clear ();
 		if (m_SSUServer)

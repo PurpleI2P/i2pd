@@ -18,11 +18,6 @@
 #include "HTTPServer.h"
 #include "ClientContext.h"
 
-#ifdef USE_UPNP
-#include "UPnP.h"
-#endif
-
-
 namespace i2p
 {
 	namespace util
@@ -122,10 +117,6 @@ namespace i2p
 			LogPrint("Tunnels started");
 			i2p::client::context.Start ();
 			LogPrint("Client started");
-#ifdef USE_UPNP
-            i2p::UPnP::upnpc.Start();
-            LogPrint("UPnP module loaded");
-#endif
 			return true;
 		}
 
@@ -142,9 +133,7 @@ namespace i2p
 			LogPrint("NetDB stopped");
 			d.httpServer->Stop();
 			LogPrint("HTTP Server stopped");
-#ifdef USE_UPNP
-			i2p::UPnP::upnpc.Stop();
-#endif
+
 			StopLog ();
 
 			delete d.httpServer; d.httpServer = nullptr;

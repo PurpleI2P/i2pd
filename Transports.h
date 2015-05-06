@@ -20,6 +20,10 @@
 #include "I2NPProtocol.h"
 #include "Identity.h"
 
+#ifdef USE_UPNP
+#include "UPnP.h"
+#endif
+
 namespace i2p
 {
 namespace transport
@@ -136,6 +140,10 @@ namespace transport
 			uint32_t m_InBandwidth, m_OutBandwidth;
 			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;	
 			uint64_t m_LastBandwidthUpdateTime;		
+
+#ifdef USE_UPNP
+			UPnP m_UPnP;
+#endif
 
 		public:
 
