@@ -320,7 +320,7 @@ namespace tunnel
 			hops.push_back (hop);
 		}		
 		std::reverse (hops.begin (), hops.end ());	
-		auto tunnel = tunnels.CreateTunnel<InboundTunnel> (new TunnelConfig (hops), outboundTunnel);
+		auto tunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig> (hops), outboundTunnel);
 		tunnel->SetTunnelPool (shared_from_this ());
 	}
 
@@ -368,7 +368,7 @@ namespace tunnel
 			}	
 				
 			auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
-				new TunnelConfig (hops, inboundTunnel->GetTunnelConfig ()));
+				std::make_shared<TunnelConfig> (hops, inboundTunnel->GetTunnelConfig ()));
 			tunnel->SetTunnelPool (shared_from_this ());
 		}	
 		else

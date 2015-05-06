@@ -17,14 +17,13 @@ namespace i2p
 namespace tunnel
 {		
 	
-	Tunnel::Tunnel (TunnelConfig * config): 
+	Tunnel::Tunnel (std::shared_ptr<const TunnelConfig> config): 
 		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending), m_IsRecreated (false)
 	{
 	}	
 
 	Tunnel::~Tunnel ()
 	{
-		delete m_Config;
 	}	
 
 	void Tunnel::Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel)
@@ -567,7 +566,7 @@ namespace tunnel
 			if (!inboundTunnel || !router) return;
 			LogPrint ("Creating one hop outbound tunnel...");
 			CreateTunnel<OutboundTunnel> (
-			  	new TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router },		
+				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router },		
 		     		inboundTunnel->GetTunnelConfig ())
 			                              );
 		}
@@ -623,7 +622,7 @@ namespace tunnel
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			LogPrint ("Creating one hop inbound tunnel...");
 			CreateTunnel<InboundTunnel> (
-				new TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router })
+				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router })
 			                             );
 		}
 	}	
@@ -673,7 +672,7 @@ namespace tunnel
 	}	
 		
 	template<class TTunnel>
-	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (TunnelConfig * config, std::shared_ptr<OutboundTunnel> outboundTunnel)
+	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		auto newTunnel = std::make_shared<TTunnel> (config);
 		uint32_t replyMsgID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
@@ -724,7 +723,7 @@ namespace tunnel
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
 		CreateTunnel<InboundTunnel> (
-			new TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> >
+			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::RouterInfo> >
 			    { 
 					i2p::context.GetSharedRouterInfo ()
 				}));

@@ -45,12 +45,12 @@ namespace tunnel
 	{
 		public:
 
-			Tunnel (TunnelConfig * config);
+			Tunnel (std::shared_ptr<const TunnelConfig> config);
 			~Tunnel ();
 
 			void Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 			
-			TunnelConfig * GetTunnelConfig () const { return m_Config; }
+			std::shared_ptr<const TunnelConfig> GetTunnelConfig () const { return m_Config; }
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state)  { m_State = state; };
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
@@ -71,7 +71,7 @@ namespace tunnel
 			
 		private:
 
-			TunnelConfig * m_Config;
+			std::shared_ptr<const TunnelConfig> m_Config;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
 			bool m_IsRecreated;
@@ -81,7 +81,7 @@ namespace tunnel
 	{
 		public:
 
-			OutboundTunnel (TunnelConfig * config): Tunnel (config), m_Gateway (this) {};
+			OutboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Gateway (this) {};
 
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
 			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
@@ -103,7 +103,7 @@ namespace tunnel
 	{
 		public:
 
-			InboundTunnel (TunnelConfig * config): Tunnel (config), m_Endpoint (true) {};
+			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (I2NPMessage * msg);
 			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 
@@ -138,7 +138,7 @@ namespace tunnel
 			void PostTunnelData (I2NPMessage * msg);
 			void PostTunnelData (const std::vector<I2NPMessage *>& msgs);
 			template<class TTunnel>
-			std::shared_ptr<TTunnel> CreateTunnel (TunnelConfig * config, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
+			std::shared_ptr<TTunnel> CreateTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel);
 			void AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> tunnel);
 			std::shared_ptr<TunnelPool> CreateTunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOuboundHops, int numInboundTunnels, int numOutboundTunnels);

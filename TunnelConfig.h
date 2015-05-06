@@ -84,7 +84,7 @@ namespace tunnel
 			}	
 		}
 
-		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID)
+		void CreateBuildRequestRecord (uint8_t * record, uint32_t replyMsgID) const
 		{
 			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];
 			htobe32buf (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET, tunnelID); 
@@ -113,7 +113,7 @@ namespace tunnel
 			
 
 			TunnelConfig (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers, 
-				const TunnelConfig * replyTunnelConfig = nullptr) // replyTunnelConfig=nullptr means inbound
+				std::shared_ptr<const TunnelConfig> replyTunnelConfig = nullptr) // replyTunnelConfig=nullptr means inbound
 			{
 				TunnelHopConfig * prev = nullptr;
 				for (auto it: peers)
@@ -189,9 +189,9 @@ namespace tunnel
 				s << ":me";	
 			}
 
-			TunnelConfig * Invert () const
+			std::shared_ptr<TunnelConfig> Invert () const
 			{
-				TunnelConfig * newConfig = new TunnelConfig ();
+				auto newConfig = new TunnelConfig ();
 				TunnelHopConfig * hop = m_FirstHop, * nextNewHop = nullptr;
 				while (hop)
 				{
@@ -214,10 +214,10 @@ namespace tunnel
 									
 					hop = hop->next;
 				}	
-				return newConfig;
+				return std::shared_ptr<TunnelConfig>(newConfig);
 			}
 
-			TunnelConfig * Clone (const TunnelConfig * replyTunnelConfig = nullptr) const
+			std::shared_ptr<TunnelConfig> Clone (std::shared_ptr<const TunnelConfig> replyTunnelConfig = nullptr) const
 			{
 				std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers;
 				TunnelHopConfig * hop = m_FirstHop;
@@ -226,7 +226,7 @@ namespace tunnel
 					peers.push_back (hop->router);
 					hop = hop->next;
 				}	
-				return new TunnelConfig (peers, replyTunnelConfig);
+				return std::make_shared<TunnelConfig> (peers, replyTunnelConfig);
 			}	
 			
 		private:
