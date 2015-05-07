@@ -66,8 +66,11 @@ namespace tunnel
 	void TunnelPool::TunnelCreated (std::shared_ptr<OutboundTunnel> createdTunnel)
 	{
 		if (!m_IsActive) return;
-		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-		m_OutboundTunnels.insert (createdTunnel);
+		{
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			m_OutboundTunnels.insert (createdTunnel);
+		}
+		CreatePairedInboundTunnel (createdTunnel);
 	}
 
 	void TunnelPool::TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel)
@@ -389,6 +392,13 @@ namespace tunnel
 		}	
 		else
 			LogPrint ("Can't re-create outbound tunnel. No inbound tunnels found");
-	}			
+	}		
+
+	void TunnelPool::CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel)
+	{
+		LogPrint (eLogInfo, "Creating paired inbound tunnel...");
+		auto tunnel = tunnels.CreateTunnel<InboundTunnel> (outboundTunnel->GetTunnelConfig ()->Invert (), outboundTunnel);
+		tunnel->SetTunnelPool (shared_from_this ());
+	}	
 }
 }
