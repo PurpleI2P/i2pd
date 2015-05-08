@@ -107,7 +107,7 @@ namespace tunnel
 		}	
 	};	
 
-	class TunnelConfig
+	class TunnelConfig: public std::enable_shared_from_this<TunnelConfig>
 	{
 		public:			
 			
@@ -170,10 +170,24 @@ namespace tunnel
 				return num;
 			}
 
+			bool IsInbound () const { return m_FirstHop->isGateway; }
+
+			std::vector<std::shared_ptr<const i2p::data::RouterInfo> > GetPeers () const
+			{
+				std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers;
+				TunnelHopConfig * hop = m_FirstHop;		
+				while (hop)
+				{
+					peers.push_back (hop->router);
+					hop = hop->next;
+				}	
+				return peers;
+			}
+
 			void Print (std::stringstream& s) const
 			{
 				TunnelHopConfig * hop = m_FirstHop;
-				if (!m_FirstHop->isGateway)
+				if (!IsInbound ()) // outbound
 					s << "me";
 				s << "-->" << m_FirstHop->tunnelID;
 				while (hop)
@@ -191,42 +205,15 @@ namespace tunnel
 
 			std::shared_ptr<TunnelConfig> Invert () const
 			{
-				auto newConfig = new TunnelConfig ();
-				TunnelHopConfig * hop = m_FirstHop, * nextNewHop = nullptr;
-				while (hop)
-				{
-					TunnelHopConfig * newHop = new TunnelHopConfig (hop->router);
-					if (nextNewHop)
-						newHop->SetNext (nextNewHop);
-					nextNewHop = newHop;
-					newHop->isEndpoint = hop->isGateway;
-					newHop->isGateway = hop->isEndpoint;
-					
-					if (!hop->prev) // first hop
-					{	
-						newConfig->m_LastHop = newHop; 
-						if (hop->isGateway) // inbound tunnel
-							newHop->SetReplyHop (m_FirstHop); // use it as reply tunnel
-						else
-							newHop->SetNextRouter (i2p::context.GetSharedRouterInfo ());
-					}	
-					if (!hop->next) newConfig->m_FirstHop = newHop; // last hop
-									
-					hop = hop->next;
-				}	
-				return std::shared_ptr<TunnelConfig>(newConfig);
+				auto peers = GetPeers ();
+				std::reverse (peers.begin (), peers.end ());	
+				// we use ourself as reply tunnel for outbound tunnel
+				return IsInbound () ? std::make_shared<TunnelConfig>(peers, shared_from_this ()) : std::make_shared<TunnelConfig>(peers);
 			}
 
 			std::shared_ptr<TunnelConfig> Clone (std::shared_ptr<const TunnelConfig> replyTunnelConfig = nullptr) const
 			{
-				std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers;
-				TunnelHopConfig * hop = m_FirstHop;
-				while (hop)
-				{
-					peers.push_back (hop->router);
-					hop = hop->next;
-				}	
-				return std::make_shared<TunnelConfig> (peers, replyTunnelConfig);
+				return std::make_shared<TunnelConfig> (GetPeers (), replyTunnelConfig);
 			}	
 			
 		private:
