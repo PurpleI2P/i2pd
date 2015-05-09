@@ -521,7 +521,7 @@ namespace garlic
 			buf += 3; // Certificate
 			if (buf - buf1  > (int)len)
 			{
-				LogPrint (eLogError, "Gralic clove is too long");
+				LogPrint (eLogError, "Garlic clove is too long");
 				break;
 			}	
 		}	
