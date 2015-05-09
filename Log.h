@@ -63,9 +63,10 @@ inline void StartLog (const std::string& fullFilePath)
 {
 	if (!g_Log)
 	{	
-		g_Log = new Log ();
+		auto log = new Log ();
 		if (fullFilePath.length () > 0)
-			g_Log->SetLogFile (fullFilePath);
+			log->SetLogFile (fullFilePath);
+		g_Log = log;
 	}	
 }
 
@@ -73,9 +74,10 @@ inline void StartLog (std::ostream * s)
 {
 	if (!g_Log)
 	{	
-		g_Log = new Log ();
+		auto log = new Log ();
 		if (s)
-			g_Log->SetLogStream (s);
+			log->SetLogStream (s);
+		g_Log = log;
 	}	
 }
 
@@ -83,8 +85,10 @@ inline void StopLog ()
 {
 	if (g_Log)
 	{
-		delete g_Log;
+		auto log = g_Log;
 		g_Log = nullptr;
+		log->Stop ();
+		delete log;
 	}		
 }
 
