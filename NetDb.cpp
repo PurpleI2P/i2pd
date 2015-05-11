@@ -102,18 +102,18 @@ namespace data
 						{
 							case eI2NPDatabaseStore:	
 								LogPrint ("DatabaseStore");
-								HandleDatabaseStoreMsg (msg);
+								HandleDatabaseStoreMsg (ToSharedI2NPMessage (msg));
 							break;
 							case eI2NPDatabaseSearchReply:
 								LogPrint ("DatabaseSearchReply");
-								HandleDatabaseSearchReplyMsg (msg);
+								HandleDatabaseSearchReplyMsg (ToSharedI2NPMessage (msg));
 							break;
 							case eI2NPDatabaseLookup:
 								LogPrint ("DatabaseLookup");
-								HandleDatabaseLookupMsg (msg);
+								HandleDatabaseLookupMsg (ToSharedI2NPMessage (msg));
 							break;	
 							default: // WTF?
-								LogPrint ("NetDb: unexpected message type ", msg->GetTypeID ());
+								LogPrint (eLogError, "NetDb: unexpected message type ", msg->GetTypeID ());
 								i2p::HandleI2NPMessage (msg);
 						}	
 						if (numMsgs > 100) break;
@@ -469,7 +469,7 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::HandleDatabaseStoreMsg (I2NPMessage * m)
+	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<I2NPMessage> m)
 	{	
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = m->GetSize ();		
@@ -477,7 +477,6 @@ namespace data
 		if (ident.IsZero ())
 		{
 			LogPrint (eLogError, "Database store with zero ident. Dropped");
-			i2p::DeleteI2NPMessage (m);
 			return;
 		}	
 		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
@@ -539,7 +538,6 @@ namespace data
 			if (size > 2048 || size > len - offset)
 			{
 				LogPrint ("Invalid RouterInfo length ", (int)size);
-				i2p::DeleteI2NPMessage (m);
 				return;
 			}	
 			try
@@ -562,10 +560,9 @@ namespace data
 				LogPrint (eLogError, "DatabaseStore: ", ex.what ());
 			}
 		}	
-		i2p::DeleteI2NPMessage (m);
 	}	
 
-	void NetDb::HandleDatabaseSearchReplyMsg (I2NPMessage * msg)
+	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint8_t * buf = msg->GetPayload ();
 		char key[48];
@@ -652,18 +649,15 @@ namespace data
 			else
 				LogPrint ("Bayan");	
 		}	
-		
-		i2p::DeleteI2NPMessage (msg);
 	}	
 	
-	void NetDb::HandleDatabaseLookupMsg (I2NPMessage * msg)
+	void NetDb::HandleDatabaseLookupMsg (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint8_t * buf = msg->GetPayload ();
 		IdentHash ident (buf);
 		if (ident.IsZero ())
 		{
 			LogPrint (eLogError, "DatabaseLookup for zero ident. Ignored");
-			i2p::DeleteI2NPMessage (msg);
 			return;
 		}	
 		char key[48];
@@ -789,7 +783,6 @@ namespace data
 			else
 				transports.SendMessage (buf+32, replyMsg);
 		}
-		i2p::DeleteI2NPMessage (msg);
 	}	
 
 	void NetDb::Explore (int numDestinations)

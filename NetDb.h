@@ -41,9 +41,9 @@ namespace data
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);			
 			
-			void HandleDatabaseStoreMsg (I2NPMessage * msg);
-			void HandleDatabaseSearchReplyMsg (I2NPMessage * msg);
-			void HandleDatabaseLookupMsg (I2NPMessage * msg);			
+			void HandleDatabaseStoreMsg (std::shared_ptr<I2NPMessage> msg);
+			void HandleDatabaseSearchReplyMsg (std::shared_ptr<I2NPMessage> msg);
+			void HandleDatabaseLookupMsg (std::shared_ptr<I2NPMessage> msg);			
 
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;

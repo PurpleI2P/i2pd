@@ -36,6 +36,11 @@ namespace i2p
 		delete msg;
 	}	
 
+	std::shared_ptr<I2NPMessage> ToSharedI2NPMessage (I2NPMessage * msg)
+	{
+		return std::shared_ptr<I2NPMessage>(msg, DeleteI2NPMessage);
+	}
+
 	static std::atomic<uint32_t> I2NPmsgID(0); // TODO: create class
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID)
 	{
