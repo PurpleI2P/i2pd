@@ -42,8 +42,10 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/base64.cpp"
   "${CMAKE_SOURCE_DIR}/util.cpp"
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"
-  "${CMAKE_SOURCE_DIR}/Signature.cpp"		
+  "${CMAKE_SOURCE_DIR}/Signature.cpp"
 )
+
+add_library(common ${COMMON_SRC})
 
 set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/BOB.cpp"	
@@ -156,7 +158,7 @@ message(STATUS "---------------------------------------")
 include(GNUInstallDirs)
 
 if (WITH_BINARY)
-  add_executable ( "${PROJECT_NAME}-bin" ${COMMON_SRC} ${DAEMON_SRC})
+  add_executable ( "${PROJECT_NAME}-bin" ${DAEMON_SRC} )
   set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
 
   if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -168,12 +170,13 @@ if (WITH_BINARY)
     set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
   endif ()
 
-  target_link_libraries( "${PROJECT_NAME}-bin" ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+  target_link_libraries( "${PROJECT_NAME}-bin" common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
   install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 endif ()
 
 if (WITH_LIBRARY)
-  add_library(${PROJECT_NAME} SHARED ${COMMON_SRC} ${LIBRARY_SRC})
+  add_library(${PROJECT_NAME} SHARED ${LIBRARY_SRC})
+  target_link_libraries( ${PROJECT_NAME} common )
   install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} )
 endif ()
