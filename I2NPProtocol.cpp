@@ -65,8 +65,13 @@ namespace i2p
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID)
 	{
 		I2NPMessage * msg = NewI2NPMessage (len);
-		memcpy (msg->GetPayload (), buf, len);
-		msg->len += len;
+		if (msg->len + len < msg->maxLen)
+		{
+			memcpy (msg->GetPayload (), buf, len);
+			msg->len += len;
+		}
+		else
+			LogPrint (eLogError, "I2NP message length ", len, " exceeds max length");
 		FillI2NPMessageHeader (msg, msgType, replyMsgID);
 		return msg;
 	}	
@@ -74,9 +79,14 @@ namespace i2p
 	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
-		memcpy (msg->GetBuffer (), buf, len);
-		msg->len = msg->offset + len;
-		msg->from = from;
+		if (msg->offset + len < msg->maxLen)
+		{
+			memcpy (msg->GetBuffer (), buf, len);
+			msg->len = msg->offset + len;
+			msg->from = from;
+		}
+		else
+			LogPrint (eLogError, "I2NP message length ", len, " exceeds max length");
 		return msg;
 	}	
 	
