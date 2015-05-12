@@ -13,7 +13,7 @@ static const char * g_LogLevelStr[eNumLogLevels] =
 
 void LogMsg::Process()
 {
-	auto& output = (log && log->GetLogStream ()) ? *log->GetLogStream () : std::cout;	
+	auto& output = (log && log->GetLogStream ()) ? *log->GetLogStream () : std::cerr;	
 	if (log)	
 		output << log->GetTimestamp ();
 	else
