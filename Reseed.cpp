@@ -26,12 +26,7 @@ namespace data
 {
 
 	static std::vector<std::string> httpReseedHostList = {
-				// "http://193.150.121.66/netDb/",  // unstable
-				// "http://us.reseed.i2p2.no/",     // misconfigured, not serving reseed data
-				// "http://jp.reseed.i2p2.no/",     // Really outdated RIs
 				"http://netdb.i2p2.no/",            // only SU3 (v2) support
-				"http://i2p.mooo.com/netDb/",
-				"http://uk.reseed.i2p2.no/",
 				"http://i2p-netdb.innovatio.no/"
 			};
 
