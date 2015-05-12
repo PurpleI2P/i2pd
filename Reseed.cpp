@@ -27,7 +27,8 @@ namespace data
 
 	static std::vector<std::string> httpReseedHostList = {
 				"http://netdb.i2p2.no/",            // only SU3 (v2) support
-				"http://i2p-netdb.innovatio.no/"
+				"http://i2p-netdb.innovatio.no/",
+				"http://193.150.121.66/netDb/"
 			};
 
 	static std::vector<std::string> httpsReseedHostList = {
