@@ -3,8 +3,8 @@ Building i2pd for Windows
 
 Requirements for building:
 
-* Visual Studio 2013 (tested with VS2013 Update 1, Update 3, and Update 4 RC)
-* Boost (tested with 1.56 and 1.57)
+* Visual Studio 2013 (tested with VS2013 Update 1, Update 3, and Update 4)
+* Boost (tested with 1.56, 1.57, and 1.58)
 * Crypto++ (tested with 5.6.2)
 
 
@@ -31,7 +31,7 @@ After Boost is compiled, set the environment variable `BOOST` to the directory
 Boost was installed to. If you followed the instructions outlined here, you
 should set it to `C:\Boost`. Additionally, set the BOOSTVER variable to the
 version of Boost that you're using, but instead of a '.' use a '_'. For
-example, I have `BOOSTVER` set to `1_57`.
+example, I have `BOOSTVER` set to `1_58`.
 
 Building Crypto++
 -----------------
