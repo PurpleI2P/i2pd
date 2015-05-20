@@ -309,5 +309,10 @@ namespace client
 			conn->Connect ();
 		}	
 	}
+
+	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& host, int port, std::shared_ptr<ClientDestination> localDestination, int inport):
+		I2PServerTunnel (host, port, localDestination, inport)
+	{
+	}
 }		
 }	

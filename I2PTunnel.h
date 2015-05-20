@@ -104,6 +104,14 @@ namespace client
 			std::set<i2p::data::IdentHash> m_AccessList;
 			bool m_IsAccessList;			
 	};
+
+	class I2PServerTunnelHTTP: public I2PServerTunnel
+	{
+		public:
+
+			I2PServerTunnelHTTP (const std::string& host, int port, 
+				std::shared_ptr<ClientDestination> localDestination, int inport = 0);	
+	};
 }
 }	
 
