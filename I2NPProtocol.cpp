@@ -41,17 +41,13 @@ namespace i2p
 		return std::shared_ptr<I2NPMessage>(msg, DeleteI2NPMessage);
 	}
 
-	static std::atomic<uint32_t> I2NPmsgID(0); // TODO: create class
 	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID)
 	{
 		msg->SetTypeID (msgType);
 		if (replyMsgID) // for tunnel creation
 			msg->SetMsgID (replyMsgID); 
-		else
-		{	
-			msg->SetMsgID (I2NPmsgID);
-			I2NPmsgID++;
-		}	
+		else	
+			msg->SetMsgID (i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
 		msg->SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); // TODO: 5 secs is a magic number
 		msg->UpdateSize ();
 		msg->UpdateChks ();
@@ -61,8 +57,7 @@ namespace i2p
 	{
 		if (msg)
 		{
-			msg->SetMsgID (I2NPmsgID);
-			I2NPmsgID++;
+			msg->SetMsgID (i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
 			msg->SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); 		
 		}
 	}
