@@ -108,6 +108,9 @@ namespace client
 
 		private:
 
+			void HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
+				std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
+
 			void Accept ();
 			void HandleAccept (std::shared_ptr<i2p::stream::Stream> stream);
 			virtual void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);

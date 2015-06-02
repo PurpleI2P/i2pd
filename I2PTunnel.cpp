@@ -272,15 +272,41 @@ namespace client
 	
 	void I2PServerTunnel::Start ()
 	{
-		m_Endpoint.address (boost::asio::ip::address::from_string (m_Address));
-		m_Endpoint.port (m_Port);
-		Accept ();
+		m_Endpoint.port (m_Port);	
+		boost::system::error_code ec;
+		auto addr = boost::asio::ip::address::from_string (m_Address, ec);
+		if (!ec)	
+		{
+			m_Endpoint.address (addr);
+			Accept ();
+		}
+		else
+		{
+			auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(GetService ());
+			resolver->async_resolve (boost::asio::ip::tcp::resolver::query (m_Address, ""), 
+				std::bind (&I2PServerTunnel::HandleResolve, this, 
+					std::placeholders::_1, std::placeholders::_2, resolver));
+		}	
 	}
 
 	void I2PServerTunnel::Stop ()
 	{
 		ClearHandlers ();
 	}	
+
+	void I2PServerTunnel::HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
+		std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+	{	
+		if (!ecode)
+		{	
+			auto addr = (*it).endpoint ().address ();
+			LogPrint (eLogInfo, "server tunnel ", (*it).host_name (), " has been resolved to ", addr);	
+			m_Endpoint.address (addr);
+			Accept ();	
+		}	
+		else
+			LogPrint (eLogError, "Unable to resolve server tunnel address: ", ecode.message ());
+	}
 
 	void I2PServerTunnel::SetAccessList (const std::set<i2p::data::IdentHash>& accessList)
 	{
