@@ -165,8 +165,20 @@ namespace client
 	I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host):
-		I2PTunnelConnection (owner, stream, socket, target)
+		I2PTunnelConnection (owner, stream, socket, target), m_HeaderSent (false)
 	{
+	}
+
+	void I2PTunnelConnectionHTTP::Write (const uint8_t * buf, size_t len)
+	{
+		if (m_HeaderSent)
+			I2PTunnelConnection::Write (buf, len);
+		else
+		{
+			m_Header.write ((const char *)buf, len);
+			I2PTunnelConnection::Write ((uint8_t *)m_Header.str ().c_str (), m_Header.str ().length ());
+			m_HeaderSent = true;
+		}	
 	}
 
 	/* This handler tries to stablish a connection with the desired server and dies if it fails to do so */

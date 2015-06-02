@@ -5,6 +5,7 @@
 #include <string>
 #include <set>
 #include <memory>
+#include <sstream>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "Destination.h"
@@ -63,6 +64,15 @@ namespace client
 			I2PTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 				const boost::asio::ip::tcp::endpoint& target, const std::string& host); 
+
+		protected:
+
+			void Write (const uint8_t * buf, size_t len);
+
+		private:
+		
+			std::stringstream m_Header;
+			bool m_HeaderSent;
 	};
 
 	class I2PClientTunnel: public TCPIPAcceptor
