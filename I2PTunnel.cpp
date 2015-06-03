@@ -165,7 +165,7 @@ namespace client
 	I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host):
-		I2PTunnelConnection (owner, stream, socket, target), m_HeaderSent (false)
+		I2PTunnelConnection (owner, stream, socket, target), m_Host (host), m_HeaderSent (false)
 	{
 	}
 
@@ -174,10 +174,32 @@ namespace client
 		if (m_HeaderSent)
 			I2PTunnelConnection::Write (buf, len);
 		else
-		{
-			m_Header.write ((const char *)buf, len);
-			I2PTunnelConnection::Write ((uint8_t *)m_Header.str ().c_str (), m_Header.str ().length ());
-			m_HeaderSent = true;
+		{	
+			m_InHeader.clear ();
+			m_InHeader.write ((const char *)buf, len);
+			std::string line;
+			bool endOfHeader = false;
+			while (!endOfHeader)
+			{
+				std::getline(m_InHeader, line);
+				if (!m_InHeader.fail ())
+				{
+					if (line.find ("Host:") != std::string::npos)
+						m_OutHeader << "Host: " << m_Host << "\r\n";
+					else
+						m_OutHeader << line << "\n";
+					if (line == "\r") endOfHeader = true;
+				}
+				else
+					break;
+			}
+
+			if (endOfHeader)
+			{
+				m_OutHeader << m_InHeader.str (); // data right after header
+				m_HeaderSent = true;
+				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+			}
 		}	
 	}
 

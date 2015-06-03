@@ -71,7 +71,8 @@ namespace client
 
 		private:
 		
-			std::stringstream m_Header;
+			std::string m_Host;
+			std::stringstream m_InHeader, m_OutHeader;
 			bool m_HeaderSent;
 	};
 
