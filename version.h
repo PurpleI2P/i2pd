@@ -3,6 +3,6 @@
 
 #define CODENAME "Purple"
 #define VERSION "0.9.0"
-#define I2P_VERSION "0.9.19"
+#define I2P_VERSION "0.9.20"
 
 #endif
