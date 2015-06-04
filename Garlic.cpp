@@ -225,9 +225,10 @@ namespace garlic
 			if (newTags || m_LeaseSetUpdateStatus == eLeaseSetUpdated) // new tags created or leaseset updated
 			{
 				// clove is DeliveryStatus 
-				size += CreateDeliveryStatusClove (payload + size, msgID);
-				if (size > 0) // successive?
+				auto cloveSize = CreateDeliveryStatusClove (payload + size, msgID);
+				if (cloveSize > 0) // successive?
 				{
+					size += cloveSize;
 					(*numCloves)++;
 					if (newTags) // new tags created
 						m_UnconfirmedTagsMsgs[msgID] = newTags;
