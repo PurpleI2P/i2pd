@@ -13,11 +13,14 @@ namespace data
 	const char PEER_PROFILE_PREFIX[] = "profile-";
 	// sections
 	const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
+	const char PEER_PROFILE_SECTION_USAGE[] = "usage";
 	// params	
 	const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime";
 	const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
 	const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
 	const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";	
+	const char PEER_PROFILE_USAGE_TAKEN[] = "taken";
+	const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
 
 	const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72; // in hours (3 days)
 	
@@ -31,7 +34,7 @@ namespace data
 			void Save ();
 			void Load ();
 
-			bool IsBad () const;
+			bool IsBad ();
 			
 			void TunnelBuildResponse (uint8_t ret);
 			void TunnelNonReplied ();
@@ -42,8 +45,8 @@ namespace data
 			void UpdateTime ();
 
 			bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
-			bool IsLowPartcipationRate (uint32_t elapsedTime) const;
-			bool IsLowReplyRate (uint32_t elapsedTime) const;
+			bool IsLowPartcipationRate () const;
+			bool IsLowReplyRate () const;
 			
 		private:	
 
@@ -53,6 +56,9 @@ namespace data
 			uint32_t m_NumTunnelsAgreed;
 			uint32_t m_NumTunnelsDeclined;	
 			uint32_t m_NumTunnelsNonReplied;
+			// usage
+			uint32_t m_NumTimesTaken;
+			uint32_t m_NumTimesRejected;	
 	};	
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash); 
