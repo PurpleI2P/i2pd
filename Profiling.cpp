@@ -101,15 +101,29 @@ namespace data
 					m_LastUpdateTime = boost::posix_time::time_from_string (t);
 				if ((GetTime () - m_LastUpdateTime).hours () < PEER_PROFILE_EXPIRATION_TIMEOUT) 
 				{	
-					// read participations
-					auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
-					m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
-					m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
-					m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
-					// read usage
-					auto usage = pt.get_child (PEER_PROFILE_SECTION_USAGE);
-					m_NumTimesTaken = usage.get (PEER_PROFILE_USAGE_TAKEN, 0);
-					m_NumTimesRejected = usage.get (PEER_PROFILE_USAGE_REJECTED, 0);
+					try
+					{	
+						// read participations
+						auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
+						m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
+						m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
+						m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
+					}	
+					catch (boost::property_tree::ptree_bad_path& ex)
+					{
+						LogPrint (eLogWarning, "Missing section ", PEER_PROFILE_SECTION_PARTICIPATION);
+					}	
+					try
+					{	
+						// read usage
+						auto usage = pt.get_child (PEER_PROFILE_SECTION_USAGE);
+						m_NumTimesTaken = usage.get (PEER_PROFILE_USAGE_TAKEN, 0);
+						m_NumTimesRejected = usage.get (PEER_PROFILE_USAGE_REJECTED, 0);
+					}	
+					catch (boost::property_tree::ptree_bad_path& ex)
+					{
+						LogPrint (eLogWarning, "Missing section ", PEER_PROFILE_SECTION_USAGE);
+					}	
 				}	
 				else
 					*this = RouterProfile (m_IdentHash);
