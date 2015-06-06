@@ -51,7 +51,7 @@ namespace data
 		private:	
 
 			IdentHash m_IdentHash;
-			boost::posix_time::ptime m_LastUpdateTime;
+			boost::posix_time::ptime m_LastUpdateTime, m_LastDeclinedTime;
 			// participation
 			uint32_t m_NumTunnelsAgreed;
 			uint32_t m_NumTunnelsDeclined;	
