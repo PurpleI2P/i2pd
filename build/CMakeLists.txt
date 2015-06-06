@@ -7,6 +7,7 @@ option(WITH_HARDENING "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY   "Build library" ON)
 option(WITH_BINARY    "Build binary" ON)
 option(WITH_STATIC    "Static build" OFF)
+option(WITH_UPNP "Include support for UPnP client" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -43,6 +44,7 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/util.cpp"
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
+  "${CMAKE_SOURCE_DIR}/UPnP.cpp"
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -62,9 +64,12 @@ set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
   "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
-  "${CMAKE_SOURCE_DIR}/UPnP.cpp"
   "${CMAKE_SOURCE_DIR}/i2p.cpp"
 )
+
+if (WITH_UPNP)
+  add_definitions(-DUSE_UPNP)
+endif ()
 
 set (LIBRARY_SRC
   "${CMAKE_SOURCE_DIR}/api.cpp"
@@ -137,7 +142,7 @@ if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
 endif ()
 
-find_package ( Boost COMPONENTS system filesystem regex program_options date_time REQUIRED )
+find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
   message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
 endif()
@@ -145,6 +150,11 @@ endif()
 find_package ( CryptoPP REQUIRED )
 if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
   message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+endif()
+
+find_package ( MiniUPnPc )
+if (NOT ${MINIUPNPC_FOUND})
+  set(WITH_UPNP OFF)
 endif()
 
 # load includes
@@ -163,6 +173,7 @@ message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
+message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
