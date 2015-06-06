@@ -33,14 +33,16 @@ else(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
           set(PLATFORM Win32)
       endif()
       find_library(CRYPTO++_LIBRARIES_RELEASE NAMES cryptlib cryptopp
+          HINTS
+          ${PROJECT_SOURCE_DIR}/../../cryptopp/${PLATFORM}/Output/Release
           PATHS
           $ENV{CRYPTOPP}/Win32/Output/Release
-          ${PROJECT_SOURCE_DIR}/../../cryptopp/${PLATFORM}/Output/Release
       )
       find_library(CRYPTO++_LIBRARIES_DEBUG NAMES cryptlib cryptopp
+          HINTS
+          ${PROJECT_SOURCE_DIR}/../../cryptopp/${PLATFORM}/Output/Debug
           PATHS
           $ENV{CRYPTOPP}/Win32/Output/Debug
-          ${PROJECT_SOURCE_DIR}/../../cryptopp/${PLATFORM}/Output/Debug
       )
       set(CRYPTO++_LIBRARIES
           debug ${CRYPTO++_LIBRARIES_DEBUG}
