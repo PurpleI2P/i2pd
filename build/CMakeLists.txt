@@ -45,6 +45,10 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
 )
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  list (APPEND COMMON_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
+endif ()
+
 add_library(common ${COMMON_SRC})
 
 set (DAEMON_SRC
@@ -80,7 +84,9 @@ else ()
 endif ()
 
 # compiler flags customization (by vendor)
+if (NOT MSVC)
 add_definitions ( "-Wall -Wextra -fPIC" )
+endif ()
 
 # check for c++11 support
 include(CheckCXXCompilerFlag)
@@ -90,7 +96,7 @@ if (CXX11_SUPPORTED)
   add_definitions( "-std=c++11" )
 elseif (CXX0X_SUPPORTED) # gcc 4.6
   add_definitions( "-std=c++0x" )
-else ()
+elseif (NOT MSVC)
   message(SEND_ERROR "C++11 standart not seems to be supported by compiler. Too old version?")
 endif ()
 
@@ -117,6 +123,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonWin32.cpp")
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32Service.cpp")
 endif ()
 
 if (WITH_AESNI)
@@ -125,6 +132,10 @@ endif()
 
 # libraries
 find_package ( Threads REQUIRED )
+
+if (WITH_STATIC)
+  set(Boost_USE_STATIC_LIBS ON)
+endif ()
 
 find_package ( Boost COMPONENTS system filesystem regex program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -159,7 +170,9 @@ include(GNUInstallDirs)
 
 if (WITH_BINARY)
   add_executable ( "${PROJECT_NAME}-bin" ${DAEMON_SRC} )
+ if(NOT MSVC) # FIXME: incremental linker file name (.ilk) collision for dll & exe
   set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
+ endif()
 
   if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-z relro -z now" )
@@ -168,15 +181,23 @@ if (WITH_BINARY)
   if (WITH_STATIC)
     set(BUILD_SHARED_LIBS OFF)
     set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
+  else()
+    add_definitions(-DBOOST_ALL_DYN_LINK)
   endif ()
 
   target_link_libraries( "${PROJECT_NAME}-bin" common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
   install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+  install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}-bin> DESTINATION "bin" CONFIGURATIONS DEBUG)
 endif ()
 
 if (WITH_LIBRARY)
+ if (MSVC)
+  # FIXME: DLL would not have any symbols unless we use __declspec(dllexport) through out the code
+  add_library(${PROJECT_NAME} ${LIBRARY_SRC})
+ else ()
   add_library(${PROJECT_NAME} SHARED ${LIBRARY_SRC})
-  target_link_libraries( ${PROJECT_NAME} common )
-  install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+  target_link_libraries( ${PROJECT_NAME} common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES})
+ endif ()
+  install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif ()
