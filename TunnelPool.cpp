@@ -70,7 +70,7 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.insert (createdTunnel);
 		}
-		CreatePairedInboundTunnel (createdTunnel);
+		//CreatePairedInboundTunnel (createdTunnel);
 	}
 
 	void TunnelPool::TunnelExpired (std::shared_ptr<OutboundTunnel> expiredTunnel)
@@ -290,6 +290,35 @@ namespace tunnel
 			hop = i2p::data::netdb.GetRandomRouter ();
 		return hop;	
 	}	
+
+	bool TunnelPool::SelectPeers (std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops)
+	{
+		auto prevHop = i2p::context.GetSharedRouterInfo ();	
+		int numHops = m_NumInboundHops;
+		if (i2p::transport::transports.GetNumPeers () > 25)
+		{
+			auto r = i2p::transport::transports.GetRandomPeer ();
+			if (r && !r->GetProfile ()->IsBad ())
+			{
+				prevHop = r;
+				hops.push_back (r);
+				numHops--;
+			}
+		}
+		
+		for (int i = 0; i < numHops; i++)
+		{
+			auto hop = SelectNextHop (prevHop);
+			if (!hop)
+			{
+				LogPrint (eLogError, "Can't select next hop");
+				return false;
+			}	
+			prevHop = hop;
+			hops.push_back (hop);
+		}		
+		return true;
+	}	
 		
 	void TunnelPool::CreateInboundTunnel ()
 	{
@@ -297,34 +326,15 @@ namespace tunnel
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint ("Creating destination inbound tunnel...");
-		auto prevHop = i2p::context.GetSharedRouterInfo ();	
 		std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
-		int numHops = m_NumInboundHops;
-		if (outboundTunnel)
-		{	
-			// last hop
-			auto hop = outboundTunnel->GetTunnelConfig ()->GetFirstHop ()->router;
-			if (hop->GetIdentHash () != i2p::context.GetIdentHash ()) // outbound shouldn't be zero-hop tunnel
-			{	
-				prevHop = hop;
-				hops.push_back (prevHop);
-				numHops--;
-			}
-		}
-		for (int i = 0; i < numHops; i++)
+		if (SelectPeers (hops))
 		{
-			auto hop = SelectNextHop (prevHop);
-			if (!hop)
-			{
-				LogPrint (eLogError, "Can't select next hop for inbound tunnel");
-				return;
-			}	
-			prevHop = hop;
-			hops.push_back (hop);
-		}		
-		std::reverse (hops.begin (), hops.end ());	
-		auto tunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig> (hops), outboundTunnel);
-		tunnel->SetTunnelPool (shared_from_this ());
+			std::reverse (hops.begin (), hops.end ());	
+			auto tunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig> (hops), outboundTunnel);
+			tunnel->SetTunnelPool (shared_from_this ());
+		}	
+		else
+			LogPrint (eLogError, "Can't create inbound tunnel. No peers available");
 	}
 
 	void TunnelPool::RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel)
@@ -345,34 +355,15 @@ namespace tunnel
 		if (inboundTunnel)
 		{	
 			LogPrint ("Creating destination outbound tunnel...");
-			int numHops = m_NumOutboundHops;
-			auto prevHop = i2p::context.GetSharedRouterInfo ();
 			std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
-			if (i2p::transport::transports.GetNumPeers () > 25)
-			{
-				auto r = i2p::transport::transports.GetRandomPeer ();
-				if (r)
-				{
-					prevHop = r;
-					hops.push_back (r);
-					numHops--;
-				}
-			}
-			for (int i = 0; i < numHops; i++)
-			{
-				auto hop = SelectNextHop (prevHop);
-				if (!hop)
-				{
-					LogPrint (eLogError, "Can't select next hop for outbound tunnel");
-					return;
-				}	
-				prevHop = hop;
-				hops.push_back (hop);
+			if (SelectPeers (hops))
+			{	
+				auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
+					std::make_shared<TunnelConfig> (hops, inboundTunnel->GetTunnelConfig ()));
+				tunnel->SetTunnelPool (shared_from_this ());
 			}	
-				
-			auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
-				std::make_shared<TunnelConfig> (hops, inboundTunnel->GetTunnelConfig ()));
-			tunnel->SetTunnelPool (shared_from_this ());
+			else
+				LogPrint (eLogError, "Can't create outbound tunnel. No peers available");
 		}	
 		else
 			LogPrint (eLogError, "Can't create outbound tunnel. No inbound tunnels found");
