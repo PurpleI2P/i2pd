@@ -52,7 +52,7 @@ namespace transport
 #ifndef _WIN32
         void *m_Module;
 #else
-        HINSTANCE *m_Module;
+        HINSTANCE m_Module;
 #endif
 	};
 }
