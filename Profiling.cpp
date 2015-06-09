@@ -11,7 +11,6 @@ namespace data
 {
 	RouterProfile::RouterProfile (const IdentHash& identHash):
 		m_IdentHash (identHash), m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
-		m_LastDeclinedTime (boost::posix_time::min_date_time),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
 		m_NumTimesTaken (0), m_NumTimesRejected (0) 
 	{
@@ -140,10 +139,7 @@ namespace data
 	{
 		UpdateTime ();
 		if (ret > 0)
-		{
-			m_LastDeclinedTime = m_LastUpdateTime;
 			m_NumTunnelsDeclined++;
-		}	
 		else
 			m_NumTunnelsAgreed++;
 	}	
@@ -167,19 +163,15 @@ namespace data
 		
 	bool RouterProfile::IsBad ()
 	{ 
-		auto t = GetTime ();
-		auto elapsedTime = (t - m_LastUpdateTime).total_seconds ();
-		if (elapsedTime > 1800) 
+		auto isBad = IsAlwaysDeclining () || IsLowPartcipationRate () /*|| IsLowReplyRate ()*/;
+		if (isBad && m_NumTimesRejected > 10*(m_NumTimesTaken + 1)) 
 		{
-			m_NumTunnelsNonReplied = 0; // drop non-replied after 30 minutes of inactivity
-			if (elapsedTime > 14400) // drop agreed and declined after 4 hours of inactivity 
-			{
-				m_NumTunnelsAgreed = 0;
-				m_NumTunnelsDeclined = 0;
-			}
-		}
-		auto isBad = IsAlwaysDeclining () || IsLowPartcipationRate () || IsLowReplyRate () ||
-		    ((t - m_LastDeclinedTime).total_seconds () < 300); // declined in last 5 minutes 
+			// reset profile
+			m_NumTunnelsAgreed = 0;
+			m_NumTunnelsDeclined = 0;
+			m_NumTunnelsNonReplied = 0;
+			isBad = false;
+		}		
 		if (isBad) m_NumTimesRejected++; else m_NumTimesTaken++;
 		return isBad;	
 	}
