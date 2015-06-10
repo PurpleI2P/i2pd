@@ -69,6 +69,11 @@ namespace data
 				i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
 			}
 
+			void FromBase64 (const std::string& s)
+			{
+				i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+			}
+
 		private:
 
 			union // 8 bytes alignment

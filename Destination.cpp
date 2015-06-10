@@ -24,6 +24,7 @@ namespace client
 		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
 		int outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
 		if (params)
 		{
 			auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
@@ -66,8 +67,24 @@ namespace client
 					LogPrint (eLogInfo, "Outbound tunnels quantity set to ", quantity);
 				}	
 			}
+			it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
+			if (it != params->end ())
+			{
+				explicitPeers = std::make_shared<std::vector<i2p::data::IdentHash> >();
+				std::stringstream ss(it->second);
+				std::string b64;
+				while (std::getline (ss, b64, ','))
+				{
+					i2p::data::IdentHash ident;
+					ident.FromBase64 (b64);
+					explicitPeers->push_back (ident);
+				}
+				LogPrint (eLogInfo, "Explicit peers set to ", it->second);
+			}
 		}	
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
+		if (explicitPeers)
+			m_Pool->SetExplicitPeers (explicitPeers);
 		if (m_IsPublic)
 			LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
 		m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (*this); // TODO:
