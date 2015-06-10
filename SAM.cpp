@@ -101,6 +101,9 @@ namespace client
 				if (separator)
 				{
 					separator++;
+					char *eol = strchr (separator, '\n');
+					if (eol)
+						*eol = 0;
 					std::map<std::string, std::string> params;
 					ExtractParams (separator, params);
 					auto it = params.find (SAM_PARAM_MAX);
