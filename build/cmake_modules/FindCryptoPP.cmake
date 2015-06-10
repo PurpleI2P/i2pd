@@ -4,17 +4,14 @@ if(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
    set(CRYPTO++_FOUND TRUE)
 
 else(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
-  find_path(CRYPTO++_INCLUDE_DIR cryptlib.h
-      /usr/include/crypto++
-      /usr/include/cryptopp
-      /usr/local/include/crypto++
-      /usr/local/include/cryptopp
-      /opt/local/include/crypto++
-      /opt/local/include/cryptopp
+  find_path(CRYPTO++_INCLUDE_DIR cryptopp/cryptlib.h
+      /usr/include
+      /usr/local/include
       $ENV{SystemDrive}/Crypto++/include
       $ENV{CRYPTOPP}
+      $ENV{CRYPTOPP}/..
       $ENV{CRYPTOPP}/include
-      ${PROJECT_SOURCE_DIR}/../../cryptopp
+      ${PROJECT_SOURCE_DIR}/../..
       )
 
   find_library(CRYPTO++_LIBRARIES NAMES cryptopp

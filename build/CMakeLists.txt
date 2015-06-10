@@ -195,7 +195,7 @@ if (NOT ${MINIUPNPC_FOUND})
 endif()
 
 # load includes
-include_directories( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} "${CMAKE_SOURCE_DIR}/..")
+include_directories( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} )
 
 # show summary
 message(STATUS "---------------------------------------")
