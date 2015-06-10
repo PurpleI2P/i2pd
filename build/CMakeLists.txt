@@ -1,4 +1,4 @@
-cmake_minimum_required ( VERSION 2.8.5 )
+cmake_minimum_required ( VERSION 2.8.12 )
 project ( "i2pd" )
 
 # configurale options
@@ -8,6 +8,7 @@ option(WITH_LIBRARY   "Build library" ON)
 option(WITH_BINARY    "Build binary" ON)
 option(WITH_STATIC    "Static build" OFF)
 option(WITH_UPNP "Include support for UPnP client" OFF)
+option(WITH_PCH "Use precompiled header" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -88,7 +89,7 @@ endif ()
 
 # compiler flags customization (by vendor)
 if (NOT MSVC)
-  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra" )
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch" )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic" )
   # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
   # Multiple definitions of __stack_chk_fail (libssp & libc)
@@ -179,6 +180,30 @@ else()
   add_definitions(-DBOOST_ALL_DYN_LINK)
 endif ()
 
+if (WITH_PCH)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+  add_library(stdafx STATIC "${CMAKE_SOURCE_DIR}/stdafx.cpp")
+  if(MSVC)
+    target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm135)
+    add_custom_command(TARGET stdafx POST_BUILD
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb common.dir\\$<CONFIG>\\
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pd-bin.dir\\$<CONFIG>\\
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pd.dir\\$<CONFIG>\\
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      )
+    target_compile_options(common PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+  else()
+    string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
+    get_directory_property(DEFS DEFINITIONS)
+    string(REPLACE " " ";" FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BTU}} ${DEFS}")
+    add_custom_command(TARGET stdafx PRE_BUILD
+      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../stdafx.h
+    )
+    target_compile_options(common PRIVATE -include stdafx.h)
+  endif()
+  target_link_libraries(common stdafx)
+endif()
+
 find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
   message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
@@ -211,6 +236,7 @@ message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
+message(STATUS "  PCH              : ${WITH_PCH}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
@@ -224,6 +250,14 @@ if (WITH_BINARY)
     set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
   endif ()
  endif()
+
+  if (WITH_PCH)
+    if (MSVC)
+      target_compile_options("${PROJECT_NAME}-bin" PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    else()
+      target_compile_options("${PROJECT_NAME}-bin" PRIVATE -include stdafx.h)
+    endif()
+  endif()
 
   if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-z relro -z now" )
@@ -250,5 +284,13 @@ if (WITH_LIBRARY)
   add_library(${PROJECT_NAME} ${LIBRARY_SRC})
   target_link_libraries( ${PROJECT_NAME} common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES})
  endif ()
+  if (WITH_PCH)
+    if (MSVC)
+      add_dependencies(${PROJECT_NAME} stdafx)
+      target_compile_options(${PROJECT_NAME} PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    else()
+      target_compile_options(${PROJECT_NAME} PRIVATE -include stdafx.h)
+    endif()
+  endif()
   install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif ()
