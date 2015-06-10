@@ -82,15 +82,18 @@ source_group ("Header Files" FILES ${HEADERS})
 source_group ("Source Files" FILES ${COMMON_SRC} ${DAEMON_SRC} ${LIBRARY_SRC})
 
 # Default build is Debug
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-  add_definitions( "-pedantic" )
-else ()
+if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif ()
 
 # compiler flags customization (by vendor)
 if (NOT MSVC)
-add_definitions ( "-Wall -Wextra -fPIC" )
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra" )
+  set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic" )
+  # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
+  # Multiple definitions of __stack_chk_fail (libssp & libc)
+  set( CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections" )
+  set( CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections" ) # -flto is added from above
 endif ()
 
 # check for c++11 support
@@ -136,10 +139,44 @@ if (WITH_AESNI)
 endif()
 
 # libraries
+# TODO: once CMake 3.1+ becomes mainstream, see e.g. http://stackoverflow.com/a/29871891/673826
+# use imported Threads::Threads instead
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package ( Threads REQUIRED )
+if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+endif()
 
 if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
+  set(Boost_USE_STATIC_RUNTIME ON)
+  if (WIN32)
+    # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
+    # Note that you might need to rebuild Crypto++
+    foreach(flag_var
+            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+      if(${flag_var} MATCHES "/MD")
+        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+      endif(${flag_var} MATCHES "/MD")
+    endforeach(flag_var)
+  else ()
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  endif ()
+  set(BUILD_SHARED_LIBS OFF)
+  if (${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread" )
+    # set( CMAKE_THREAD_LIBS_INIT "gcc_eh -Wl,--whole-archive -lpthread -Wl,--no-whole-archive" )
+    set( CMAKE_THREAD_LIBS_INIT "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel" )
+  endif ()
+else()
+  if (NOT WIN32)
+    # TODO: Consider separate compilation for COMMON_SRC for library.
+    # No need in -fPIC overhead for binary if not interested in library
+    # HINT: revert c266cff CMakeLists.txt: compilation speed up
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
+  endif ()
+  add_definitions(-DBOOST_ALL_DYN_LINK)
 endif ()
 
 find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
@@ -183,19 +220,20 @@ if (WITH_BINARY)
   add_executable ( "${PROJECT_NAME}-bin" ${DAEMON_SRC} )
  if(NOT MSVC) # FIXME: incremental linker file name (.ilk) collision for dll & exe
   set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
+  if (WITH_STATIC)
+    set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
+  endif ()
  endif()
 
   if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-z relro -z now" )
   endif ()
 
-  if (WITH_STATIC)
-    set(BUILD_SHARED_LIBS OFF)
-    set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
-  else()
-    add_definitions(-DBOOST_ALL_DYN_LINK)
-  endif ()
-
+  # FindBoost pulls pthread for thread which is broken for static linking at least on Ubuntu 15.04
+  list(GET Boost_LIBRARIES -1 LAST_Boost_LIBRARIES)
+  if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
+    list(REMOVE_AT Boost_LIBRARIES -1)
+  endif()
   target_link_libraries( "${PROJECT_NAME}-bin" common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
   install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
@@ -207,9 +245,9 @@ endif ()
 if (WITH_LIBRARY)
  if (MSVC)
   # FIXME: DLL would not have any symbols unless we use __declspec(dllexport) through out the code
-  add_library(${PROJECT_NAME} ${LIBRARY_SRC})
+  add_library(${PROJECT_NAME} STATIC ${LIBRARY_SRC})
  else ()
-  add_library(${PROJECT_NAME} SHARED ${LIBRARY_SRC})
+  add_library(${PROJECT_NAME} ${LIBRARY_SRC})
   target_link_libraries( ${PROJECT_NAME} common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES})
  endif ()
   install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
