@@ -732,28 +732,13 @@ namespace data
 			if (!replyMsg)
 			{
 				LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
-				std::vector<IdentHash> routers;
-				if (numExcluded > 0)
-				{	
-					std::set<IdentHash> excludedRouters;
-					for (int i = 0; i < numExcluded; i++)
-					{
-						excludedRouters.insert (excluded);
-						excluded += 32;
-					}		
-					for (int i = 0; i < 3; i++)
-					{
-						auto floodfill = GetClosestFloodfill (ident, excludedRouters);
-						if (floodfill)
-						{	
-							routers.push_back (floodfill->GetIdentHash ());
-							excludedRouters.insert (floodfill->GetIdentHash ());
-						}	
-					}	
-				}	
-				else
-					routers = GetClosestFloodfills (ident, 3);
-				replyMsg = CreateDatabaseSearchReply (ident, routers);
+				std::set<IdentHash> excludedRouters;	
+				for (int i = 0; i < numExcluded; i++)
+				{
+					excludedRouters.insert (excluded);
+					excluded += 32;
+				}
+				replyMsg = CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters));
 			}
 		}
 		
@@ -955,7 +940,8 @@ namespace data
 		return r;
 	}	
 
-	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num) const
+	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num,
+		std::set<IdentHash>& excluded) const
 	{
 		struct Sorted
 		{
@@ -990,8 +976,12 @@ namespace data
 		{
 			if (i < num)
 			{
-				res.push_back (it.r->GetIdentHash ());
-				i++;
+				auto& ident = it.r->GetIdentHash ();
+				if (!excluded.count (ident))
+				{	
+					res.push_back (ident);
+					i++;
+				}
 			}
 			else
 				break;

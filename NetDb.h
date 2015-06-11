@@ -51,7 +51,8 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomIntroducer () const;
 			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
-			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num) const;
+			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
+				std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);			
 
