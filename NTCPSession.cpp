@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "I2PEndian.h"
 #include <cryptopp/dh.h>
+#include <cryptopp/adler32.h>
 #include "base64.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -587,7 +588,13 @@ namespace transport
 		if (m_NextMessageOffset >= m_NextMessage->len + 4) // +checksum
 		{	
 			// we have a complete I2NP message
-			m_Handler.PutNextMessage (m_NextMessage);
+			if (CryptoPP::Adler32().VerifyDigest (m_NextMessage->buf + m_NextMessageOffset - 4, m_NextMessage->buf, m_NextMessageOffset - 4))	
+				m_Handler.PutNextMessage (m_NextMessage);
+			else
+			{
+				LogPrint (eLogWarning, "Incorrect adler checksum of NTCP message. Dropped");
+				DeleteI2NPMessage (m_NextMessage);
+			}	
 			m_NextMessage = nullptr;
 		}
 		return true;	
@@ -629,7 +636,7 @@ namespace transport
 		int padding = 0;
 		if (rem > 0) padding = 16 - rem;
 		// TODO: fill padding 
-		m_Adler.CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
+		CryptoPP::Adler32().CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
 
 		int l = len + padding + 6;
 		m_Encryption.Encrypt(sendBuffer, l, sendBuffer);	

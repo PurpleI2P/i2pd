@@ -9,7 +9,6 @@
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
-#include <cryptopp/adler32.h>
 #include "aes.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -116,7 +115,6 @@ namespace transport
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;
-			CryptoPP::Adler32 m_Adler;
 
 			struct Establisher
 			{	
