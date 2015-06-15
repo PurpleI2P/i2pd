@@ -85,6 +85,9 @@ namespace client
 		else
 		{	
 			m_Buffer[bytes_transferred] = 0;
+			char * eol = (char *)memchr (m_Buffer, '\n', bytes_transferred);
+			if (eol)
+				*eol = 0;
 			LogPrint ("SAM handshake ", m_Buffer);
 			char * separator = strchr (m_Buffer, ' ');
 			if (separator)
@@ -101,9 +104,6 @@ namespace client
 				if (separator)
 				{
 					separator++;
-					char *eol = strchr (separator, '\n');
-					if (eol)
-						*eol = 0;
 					std::map<std::string, std::string> params;
 					ExtractParams (separator, params);
 					auto it = params.find (SAM_PARAM_MAX);
