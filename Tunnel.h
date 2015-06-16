@@ -177,7 +177,7 @@ namespace tunnel
 			std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
-			i2p::util::Queue<I2NPMessage> m_Queue;
+			i2p::util::Queue<I2NPMessage *> m_Queue;
 
 			// some stats
 			int m_NumSuccesiveTunnelCreations, m_NumFailedTunnelCreations;
