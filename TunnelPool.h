@@ -47,8 +47,8 @@ namespace tunnel
 			std::shared_ptr<OutboundTunnel> GetNewOutboundTunnel (std::shared_ptr<OutboundTunnel> old) const;
 
 			void TestTunnels ();
-			void ProcessGarlicMessage (I2NPMessage * msg);
-			void ProcessDeliveryStatus (I2NPMessage * msg);
+			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			void ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg);
 
 			bool IsActive () const { return m_IsActive; };
 			void SetActive (bool isActive) { m_IsActive = isActive; };

@@ -260,18 +260,15 @@ namespace tunnel
 		}
 	}
 
-	void TunnelPool::ProcessGarlicMessage (I2NPMessage * msg)
+	void TunnelPool::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (m_LocalDestination)
 			m_LocalDestination->ProcessGarlicMessage (msg);
 		else
-		{
 			LogPrint (eLogWarning, "Local destination doesn't exist. Dropped");
-			DeleteI2NPMessage (msg);
-		}	
 	}	
 		
-	void TunnelPool::ProcessDeliveryStatus (I2NPMessage * msg)
+	void TunnelPool::ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg)
 	{
 		const uint8_t * buf = msg->GetPayload ();
 		uint32_t msgID = bufbe32toh (buf);
@@ -288,17 +285,13 @@ namespace tunnel
 				it->second.second->SetState (eTunnelStateEstablished);
 			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
 			m_Tests.erase (it);
-			DeleteI2NPMessage (msg);
 		}
 		else
 		{
 			if (m_LocalDestination)
 				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
 			else
-			{	
 				LogPrint (eLogWarning, "Local destination doesn't exist. Dropped");
-				DeleteI2NPMessage (msg);
-			}	
 		}	
 	}
 

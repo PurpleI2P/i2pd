@@ -215,12 +215,12 @@ namespace client
 		return true;
 	}
 
-	void ClientDestination::ProcessGarlicMessage (I2NPMessage * msg)
+	void ClientDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		m_Service.post (std::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
 	}
 
-	void ClientDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
+	void ClientDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		m_Service.post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
 	}
@@ -343,7 +343,7 @@ namespace client
 			LogPrint ("Request for ", key.ToBase64 (), " not found");
 	}	
 		
-	void ClientDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
+	void ClientDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
 		if (msgID == m_PublishReplyToken)
@@ -351,7 +351,6 @@ namespace client
 			LogPrint (eLogDebug, "Publishing confirmed");
 			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
-			i2p::DeleteI2NPMessage (msg);
 		}
 		else
 			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msg);

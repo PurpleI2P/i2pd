@@ -133,8 +133,8 @@ namespace garlic
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (std::shared_ptr<GarlicRoutingSession> session, uint32_t msgID);
 			
-			virtual void ProcessGarlicMessage (I2NPMessage * msg);
-			virtual void ProcessDeliveryStatusMessage (I2NPMessage * msg);			
+			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);			
 			virtual void SetLeaseSetUpdated ();
 			
 			virtual std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet () = 0; // TODO
@@ -143,8 +143,8 @@ namespace garlic
 			
 		protected:
 
-			void HandleGarlicMessage (I2NPMessage * msg);
-			void HandleDeliveryStatusMessage (I2NPMessage * msg);			
+			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);			
 	
 		private:
 

@@ -78,8 +78,8 @@ namespace i2p
 			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
 			// override GarlicDestination
-			void ProcessGarlicMessage (I2NPMessage * msg);
-			void ProcessDeliveryStatusMessage (I2NPMessage * msg);	
+			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);	
 			
 		private:
 

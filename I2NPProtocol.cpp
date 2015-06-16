@@ -537,20 +537,20 @@ namespace i2p
 					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				case eI2NPGarlic:
+				{
 					LogPrint ("Garlic");
+					auto sharedMsg = ToSharedI2NPMessage (msg);
 					if (msg->from)
 					{
 						if (msg->from->GetTunnelPool ())
-							msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
+							msg->from->GetTunnelPool ()->ProcessGarlicMessage (sharedMsg);
 						else
-						{
 							LogPrint (eLogInfo, "Local destination for garlic doesn't exist anymore");
-							DeleteI2NPMessage (msg);
-						}	
 					}
 					else
-						i2p::context.ProcessGarlicMessage (msg); 
-				break;
+						i2p::context.ProcessGarlicMessage (sharedMsg); 
+					break;
+				}
 				case eI2NPDatabaseStore:
 				case eI2NPDatabaseSearchReply:
 				case eI2NPDatabaseLookup:
@@ -558,12 +558,15 @@ namespace i2p
 					i2p::data::netdb.PostI2NPMsg (msg);
 				break;
 				case eI2NPDeliveryStatus:
+				{
 					LogPrint ("DeliveryStatus");
+					auto sharedMsg = ToSharedI2NPMessage (msg);
 					if (msg->from && msg->from->GetTunnelPool ())
-						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (msg);
+						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (sharedMsg);
 					else
-						i2p::context.ProcessDeliveryStatusMessage (msg);
-				break;	
+						i2p::context.ProcessDeliveryStatusMessage (sharedMsg);
+					break;	
+				}
 				case eI2NPVariableTunnelBuild:		
 				case eI2NPVariableTunnelBuildReply:
 				case eI2NPTunnelBuild:

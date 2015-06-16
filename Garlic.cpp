@@ -362,14 +362,13 @@ namespace garlic
 		return true;
 	}
 
-	void GarlicDestination::HandleGarlicMessage (I2NPMessage * msg)
+	void GarlicDestination::HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint8_t * buf = msg->GetPayload ();
 		uint32_t length = bufbe32toh (buf);
 		if (length > msg->GetLength ())
 		{
 			LogPrint (eLogError, "Garlic message length ", length, " exceeds I2NP message length ", msg->GetLength ());
-			DeleteI2NPMessage (msg);
 			return;
 		}	
 		buf += 4; // length
@@ -406,7 +405,6 @@ namespace garlic
 			else
 				LogPrint (eLogError, "Failed to decrypt garlic");
 		}
-		DeleteI2NPMessage (msg);
 
 		// cleanup expired tags
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
@@ -588,7 +586,7 @@ namespace garlic
 		m_CreatedSessions[msgID] = session;
 	}		
 
-	void GarlicDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
+	void GarlicDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint32_t msgID = bufbe32toh (msg->GetPayload ());
 		{
@@ -600,7 +598,6 @@ namespace garlic
 				LogPrint (eLogInfo, "Garlic message ", msgID, " acknowledged");
 			}	
 		}
-		DeleteI2NPMessage (msg);	
 	}
 
 	void GarlicDestination::SetLeaseSetUpdated ()
@@ -610,12 +607,12 @@ namespace garlic
 			it.second->SetLeaseSetUpdated ();
 	}
 
-	void GarlicDestination::ProcessGarlicMessage (I2NPMessage * msg)
+	void GarlicDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		HandleGarlicMessage (msg);
 	}
 
-	void GarlicDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
+	void GarlicDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		HandleDeliveryStatusMessage (msg);
 	}

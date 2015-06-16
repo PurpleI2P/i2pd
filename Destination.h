@@ -99,8 +99,8 @@ namespace client
 
 			// override GarlicDestination
 			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
-			void ProcessGarlicMessage (I2NPMessage * msg);
-			void ProcessDeliveryStatusMessage (I2NPMessage * msg);	
+			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);	
 			void SetLeaseSetUpdated ();
 
 			// I2CP
@@ -114,7 +114,7 @@ namespace client
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
 			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
-			void HandleDeliveryStatusMessage (I2NPMessage * msg);		
+			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);		
 
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request);	
