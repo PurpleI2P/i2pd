@@ -453,8 +453,8 @@ namespace tunnel
 			// transit DatabaseStore my contain new/updated RI 
 			// or DatabaseSearchReply with new routers
 			auto ds = NewI2NPMessage ();
-			*ds = *msg;
-			i2p::data::netdb.PostI2NPMsg (ds);
+			*ds = *msg; // TODO: don't copy once msg is shared_ptr
+			i2p::data::netdb.PostI2NPMsg (ToSharedI2NPMessage (ds));
 		}	
 		tunnel->SendTunnelDataMsg (msg);
 	}

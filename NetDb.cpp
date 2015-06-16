@@ -92,7 +92,7 @@ namespace data
 		{	
 			try
 			{	
-				I2NPMessage * msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
+				auto msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
 				if (msg)
 				{	
 					int numMsgs = 0;	
@@ -102,19 +102,19 @@ namespace data
 						{
 							case eI2NPDatabaseStore:	
 								LogPrint ("DatabaseStore");
-								HandleDatabaseStoreMsg (ToSharedI2NPMessage (msg));
+								HandleDatabaseStoreMsg (msg);
 							break;
 							case eI2NPDatabaseSearchReply:
 								LogPrint ("DatabaseSearchReply");
-								HandleDatabaseSearchReplyMsg (ToSharedI2NPMessage (msg));
+								HandleDatabaseSearchReplyMsg (msg);
 							break;
 							case eI2NPDatabaseLookup:
 								LogPrint ("DatabaseLookup");
-								HandleDatabaseLookupMsg (ToSharedI2NPMessage (msg));
+								HandleDatabaseLookupMsg (msg);
 							break;	
 							default: // WTF?
 								LogPrint (eLogError, "NetDb: unexpected message type ", msg->GetTypeID ());
-								i2p::HandleI2NPMessage (msg);
+								//i2p::HandleI2NPMessage (msg);
 						}	
 						if (numMsgs > 100) break;
 						msg = m_Queue.Get ();
@@ -912,7 +912,7 @@ namespace data
 		return nullptr; // seems we have too few routers
 	}	
 	
-	void NetDb::PostI2NPMsg (I2NPMessage * msg)
+	void NetDb::PostI2NPMsg (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (msg) m_Queue.Put (msg);	
 	}	

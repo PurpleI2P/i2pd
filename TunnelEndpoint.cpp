@@ -267,8 +267,8 @@ namespace tunnel
 						{
 							// catch RI or reply with new list of routers
 							auto ds = NewI2NPShortMessage ();
-							*ds = *(msg.data);
-							i2p::data::netdb.PostI2NPMsg (ds);
+							*ds = *(msg.data); // TODO: don't copy once msg.data is shared_ptr
+							i2p::data::netdb.PostI2NPMsg (ToSharedI2NPMessage (ds));
 						}
 						i2p::transport::transports.SendMessage (msg.hash, msg.data);
 					}

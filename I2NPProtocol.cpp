@@ -555,7 +555,7 @@ namespace i2p
 				case eI2NPDatabaseSearchReply:
 				case eI2NPDatabaseLookup:
 					// forward to netDb
-					i2p::data::netdb.PostI2NPMsg (msg);
+					i2p::data::netdb.PostI2NPMsg (ToSharedI2NPMessage (msg));
 				break;
 				case eI2NPDeliveryStatus:
 				{

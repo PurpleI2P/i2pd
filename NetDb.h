@@ -56,7 +56,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);			
 
-			void PostI2NPMsg (I2NPMessage * msg);
+			void PostI2NPMsg (std::shared_ptr<I2NPMessage> msg);
 
 			void Reseed ();
 
@@ -89,7 +89,7 @@ namespace data
 			
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			i2p::util::Queue<I2NPMessage *> m_Queue; // of I2NPDatabaseStoreMsg
+			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
 
 			Reseeder * m_Reseeder;
 
