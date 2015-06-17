@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <vector>
 #include <mutex>
+#include <memory>
 #include "aes.h"
 #include "I2NPProtocol.h"
 #include "TunnelEndpoint.h"
@@ -59,7 +60,7 @@ namespace tunnel
 		private:
 
 			size_t m_NumTransmittedBytes;
-			std::vector<i2p::I2NPMessage *> m_TunnelDataMsgs;
+			std::vector<std::shared_ptr<i2p::I2NPMessage> > m_TunnelDataMsgs;
 	};	
 	
 	class TransitTunnelGateway: public TransitTunnel

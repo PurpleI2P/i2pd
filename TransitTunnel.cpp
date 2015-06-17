@@ -27,8 +27,6 @@ namespace tunnel
 
 	TransitTunnelParticipant::~TransitTunnelParticipant ()
 	{
-		for (auto it: m_TunnelDataMsgs)
-			i2p::DeleteI2NPMessage (it);
 	}	
 		
 	void TransitTunnelParticipant::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
@@ -38,7 +36,7 @@ namespace tunnel
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
 		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
-		m_TunnelDataMsgs.push_back (tunnelMsg);
+		m_TunnelDataMsgs.push_back (ToSharedI2NPMessage (tunnelMsg));
 	}
 
 	void TransitTunnelParticipant::FlushTunnelDataMsgs ()
