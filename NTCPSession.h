@@ -61,13 +61,13 @@ namespace transport
 			
 			void ClientLogin ();
 			void ServerLogin ();
-			void SendI2NPMessage (I2NPMessage * msg);
-			void SendI2NPMessages (const std::vector<I2NPMessage *>& msgs);
+			void SendI2NPMessage (std::shared_ptr<I2NPMessage> msg);
+			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			
 		private:
 
-			void PostI2NPMessage (I2NPMessage * msg);
-			void PostI2NPMessages (std::vector<I2NPMessage *> msgs);
+			void PostI2NPMessage (std::shared_ptr<I2NPMessage> msg);
+			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void Connected ();
 			void SendTimeSyncMessage ();
 			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }
@@ -96,10 +96,10 @@ namespace transport
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			bool DecryptNextBlock (const uint8_t * encrypted);	
 		
-			void Send (i2p::I2NPMessage * msg);
-			boost::asio::const_buffers_1 CreateMsgBuffer (I2NPMessage * msg);
-			void Send (const std::vector<I2NPMessage *>& msgs);
-			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<I2NPMessage *> msgs);
+			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
+			boost::asio::const_buffers_1 CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg);
+			void Send (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
+			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			
 			
 			// timer
@@ -131,7 +131,7 @@ namespace transport
 			i2p::I2NPMessagesHandler m_Handler;
 
 			bool m_IsSending;
-			std::vector<I2NPMessage *> m_SendQueue;
+			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			
 			boost::asio::ip::address m_ConnectedFrom; // for ban
 	};	

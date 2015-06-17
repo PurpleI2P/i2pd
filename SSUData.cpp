@@ -294,13 +294,12 @@ namespace transport
 		ProcessFragments (buf);
 	}
 
-	void SSUData::Send (i2p::I2NPMessage * msg)
+	void SSUData::Send (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		uint32_t msgID = msg->ToSSU ();
 		if (m_SentMessages.count (msgID) > 0)
 		{
 			LogPrint (eLogWarning, "SSU message ", msgID, " already sent");
-			DeleteI2NPMessage (msg);
 			return;
 		}	
 		if (m_SentMessages.empty ()) // schedule resend at first message only
@@ -368,7 +367,6 @@ namespace transport
 				len = 0;
 			fragmentNum++;
 		}	
-		DeleteI2NPMessage (msg);
 	}		
 
 	void SSUData::SendMsgAck (uint32_t msgID)

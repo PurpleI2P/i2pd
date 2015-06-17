@@ -62,18 +62,12 @@ namespace transport
 		std::shared_ptr<const i2p::data::RouterInfo> router;
 		std::list<std::shared_ptr<TransportSession> > sessions;
 		uint64_t creationTime;
-		std::vector<i2p::I2NPMessage *> delayedMessages;
+		std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
 
 		void Done ()
 		{
 			for (auto it: sessions)
 				it->Done ();
-		}	
-
-		~Peer ()
-		{
-			for (auto it :delayedMessages)
-				i2p::DeleteI2NPMessage (it);			
 		}	
 	};	
 	

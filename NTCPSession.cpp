@@ -83,8 +83,6 @@ namespace transport
 			m_Socket.close ();
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCPSession (shared_from_this ());
-			for (auto it: m_SendQueue)
-				DeleteI2NPMessage (it);
 			m_SendQueue.clear ();
 			if (m_NextMessage)	
 			{	
@@ -107,7 +105,7 @@ namespace transport
 		m_DHKeysPair = nullptr;	
 
 		SendTimeSyncMessage ();
-		PostI2NPMessage (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
+		PostI2NPMessage (ToSharedI2NPMessage(CreateDatabaseStoreMsg ())); // we tell immediately who we are		
 
 		transports.PeerConnected (shared_from_this ());
 	}	
@@ -600,14 +598,14 @@ namespace transport
 		return true;	
  	}	
 
-	void NTCPSession::Send (i2p::I2NPMessage * msg)
+	void NTCPSession::Send (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		m_IsSending = true;
 		boost::asio::async_write (m_Socket, CreateMsgBuffer (msg), boost::asio::transfer_all (),                      
-        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, std::vector<I2NPMessage *>{ msg }));	
+        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, std::vector<std::shared_ptr<I2NPMessage> >{ msg }));	
 	}
 
-	boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer (I2NPMessage * msg)
+	boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint8_t * sendBuffer;
 		int len;
@@ -616,10 +614,7 @@ namespace transport
 		{	
 			// regular I2NP
 			if (msg->offset < 2)
-			{
-				LogPrint (eLogError, "Malformed I2NP message");
-				i2p::DeleteI2NPMessage (msg);
-			}	
+				LogPrint (eLogError, "Malformed I2NP message"); // TODO:
 			sendBuffer = msg->GetBuffer () - 2; 
 			len = msg->GetLength ();
 			htobe16buf (sendBuffer, len);
@@ -644,7 +639,7 @@ namespace transport
 	}	
 
 
-	void NTCPSession::Send (const std::vector<I2NPMessage *>& msgs)
+	void NTCPSession::Send (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		m_IsSending = true;
 		std::vector<boost::asio::const_buffer> bufs;
@@ -654,11 +649,9 @@ namespace transport
         	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
 	}
 		
-	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<I2NPMessage *> msgs)
+	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
 		m_IsSending = false;
-		for (auto it: msgs)
-			if (it) i2p::DeleteI2NPMessage (it);
 		if (ecode)
         {
 			LogPrint (eLogWarning, "Couldn't send msgs: ", ecode.message ());
@@ -686,20 +679,16 @@ namespace transport
 		Send (nullptr);
 	}	
 
-	void NTCPSession::SendI2NPMessage (I2NPMessage * msg)
+	void NTCPSession::SendI2NPMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		m_Server.GetService ().post (std::bind (&NTCPSession::PostI2NPMessage, shared_from_this (), msg));  
 	}	
 
-	void NTCPSession::PostI2NPMessage (I2NPMessage * msg)
+	void NTCPSession::PostI2NPMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (msg)
 		{
-			if (m_IsTerminated)
-			{
-				DeleteI2NPMessage (msg);
-				return;
-			}
+			if (m_IsTerminated) return;
 			if (m_IsSending)
 				m_SendQueue.push_back (msg);
 			else	
@@ -707,19 +696,14 @@ namespace transport
 		}	
 	}	
 
-	void NTCPSession::SendI2NPMessages (const std::vector<I2NPMessage *>& msgs)
+	void NTCPSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		m_Server.GetService ().post (std::bind (&NTCPSession::PostI2NPMessages, shared_from_this (), msgs));  
 	}	
 
-	void NTCPSession::PostI2NPMessages (std::vector<I2NPMessage *> msgs)
+	void NTCPSession::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
-		if (m_IsTerminated)
-		{
-			for (auto it: msgs)
-				DeleteI2NPMessage (it);
-			return;
-		}	
+		if (m_IsTerminated) return;
 		if (m_IsSending)
 		{
 			for (auto it: msgs)

@@ -89,7 +89,7 @@ namespace transport
 			
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void FlushReceivedMessage ();
-			void Send (i2p::I2NPMessage * msg);
+			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
 
 			void UpdatePacketSize (const i2p::data::IdentHash& remoteIdent);
 

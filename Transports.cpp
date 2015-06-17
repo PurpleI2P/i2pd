@@ -255,11 +255,17 @@ namespace transport
 			}	
 		}	
 		if (!it->second.sessions.empty ())
-			it->second.sessions.front ()->SendI2NPMessages (msgs);
+		{
+			// TODO: remove this copy operation later
+			std::vector<std::shared_ptr<i2p::I2NPMessage> >  msgs1; 
+			for (auto it1: msgs)
+				msgs1.push_back (ToSharedI2NPMessage(it1));	
+			it->second.sessions.front ()->SendI2NPMessages (msgs1);
+		}
 		else
 		{	
 			for (auto it1: msgs)
-				it->second.delayedMessages.push_back (it1);
+				it->second.delayedMessages.push_back (ToSharedI2NPMessage(it1));
 		}	
 	}	
 		
