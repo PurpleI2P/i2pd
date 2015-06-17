@@ -87,8 +87,10 @@ namespace transport
 			i2p::transport::DHKeysPair * GetNextDHKeysPair ();	
 			void ReuseDHKeysPair (DHKeysPair * pair);
 
-			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg);
-			void SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs);
+			void SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg); // deprecated
+			void SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs); // deprecated
+			void SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg);
+			void SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs);
 			void CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 
 			void PeerConnected (std::shared_ptr<TransportSession> session);
@@ -110,7 +112,7 @@ namespace transport
 			void Run ();
 			void RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
 			void HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident);
-			void PostMessages (i2p::data::IdentHash ident, std::vector<i2p::I2NPMessage *> msgs);
+			void PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);			

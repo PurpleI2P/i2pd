@@ -215,21 +215,39 @@ namespace transport
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
 	{
-		m_Service.post (std::bind (&Transports::PostMessages, this, ident, std::vector<i2p::I2NPMessage *> {msg}));                             
+		SendMessage (ident, ToSharedI2NPMessage (msg));                             
 	}	
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs)
 	{
+		std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs1;
+		for (auto it: msgs)
+			msgs1.push_back (ToSharedI2NPMessage (it));
+		SendMessages (ident, msgs1);
+	}	
+
+	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
+	{
+		m_Service.post (std::bind (&Transports::PostMessages, this, ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg }));                             
+	}	
+
+	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
+	{
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}	
 
-	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<i2p::I2NPMessage *> msgs)
+	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{	
 			// we send it to ourself
 			for (auto it: msgs)
-				i2p::HandleI2NPMessage (it);
+			{
+				// TODO:
+				auto m = NewI2NPMessage ();
+				*m = *(it);
+				i2p::HandleI2NPMessage (m);
+			}
 			return;
 		}	
 		auto it = m_Peers.find (ident);
@@ -247,25 +265,14 @@ namespace transport
 			{
 				LogPrint (eLogError, "Transports::PostMessages ", ex.what ());
 			}
-			if (!connected)
-			{
-				for (auto it1: msgs)
-					DeleteI2NPMessage (it1);
-				return;
-			}	
+			if (!connected) return;
 		}	
 		if (!it->second.sessions.empty ())
-		{
-			// TODO: remove this copy operation later
-			std::vector<std::shared_ptr<i2p::I2NPMessage> >  msgs1; 
-			for (auto it1: msgs)
-				msgs1.push_back (ToSharedI2NPMessage(it1));	
-			it->second.sessions.front ()->SendI2NPMessages (msgs1);
-		}
+			it->second.sessions.front ()->SendI2NPMessages (msgs);
 		else
 		{	
 			for (auto it1: msgs)
-				it->second.delayedMessages.push_back (ToSharedI2NPMessage(it1));
+				it->second.delayedMessages.push_back (it1);
 		}	
 	}	
 		
