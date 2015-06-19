@@ -62,7 +62,7 @@ namespace i2p
 					LogPrint("Error, could not create process group.");
 					return false;
 				}
-				std::string d(i2p::util::filesystem::GetDataDir()); // make a copy
+				std::string d(i2p::util::filesystem::GetDataDir().string ()); // make a copy
 				chdir(d.c_str());
 
 				// close stdin/stdout/stderr descriptors
