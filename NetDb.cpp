@@ -21,11 +21,7 @@ namespace i2p
 {
 namespace data
 {		
-#ifndef _WIN32		
-	const char NetDb::m_NetDbPath[] = "/netDb";
-#else
-	const char NetDb::m_NetDbPath[] = "\\netDb";
-#endif			
+	const char NetDb::m_NetDbPath[] = "netDb";
 	NetDb netdb;
 
 	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr)
@@ -40,7 +36,7 @@ namespace data
 
 	void NetDb::Start ()
 	{	
-		Load (m_NetDbPath);
+		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
 		{	
 			// try SU3 first
@@ -55,7 +51,7 @@ namespace data
 				{
 					m_Reseeder->reseedNow();
 					reseedRetries++;
-					Load (m_NetDbPath);
+					Load ();
 				}
 			}
 		}	
@@ -133,7 +129,7 @@ namespace data
 				{
 					if (lastSave)
 					{
-						SaveUpdated (m_NetDbPath);
+						SaveUpdated ();
 						ManageLeaseSets ();
 					}	
 					lastSave = ts;
@@ -295,10 +291,9 @@ namespace data
 			LogPrint (eLogWarning, "Failed to reseed after 10 attempts");
 	}
 
-	void NetDb::Load (const char * directory)
+	void NetDb::Load ()
 	{
-		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
-		p /= (directory);
+		boost::filesystem::path p(i2p::util::filesystem::GetDataDir() / m_NetDbPath);
 		if (!boost::filesystem::exists (p))
 		{
 			// seems netDb doesn't exist yet
@@ -345,27 +340,15 @@ namespace data
 		LogPrint (m_Floodfills.size (), " floodfills loaded");	
 	}	
 
-	void NetDb::SaveUpdated (const char * directory)
+	void NetDb::SaveUpdated ()
 	{	
-		auto GetFilePath = [](const char * directory, const RouterInfo * routerInfo)
+		auto GetFilePath = [](const boost::filesystem::path& directory, const RouterInfo * routerInfo)
 		{
-#ifndef _WIN32
-			return std::string (directory) + "/r" +
-				routerInfo->GetIdentHashBase64 ()[0] + "/routerInfo-" +
-#else
-			return std::string (directory) + "\\r" +
-				routerInfo->GetIdentHashBase64 ()[0] + "\\routerInfo-" +
-#endif
-				routerInfo->GetIdentHashBase64 () + ".dat";
+			std::string s(routerInfo->GetIdentHashBase64());
+			return directory / (std::string("r") + s[0]) / ("routerInfo-" + s + ".dat");
 		};	
 
-		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
-		p /= (directory);
-#if BOOST_VERSION > 10500		
-		const char * fullDirectory = p.string().c_str ();
-#else
-		const char * fullDirectory = p.c_str ();
-#endif		
+		boost::filesystem::path fullDirectory (i2p::util::filesystem::GetDataDir() / m_NetDbPath);
 		int count = 0, deletedCount = 0;
 		auto total = m_RouterInfos.size ();
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -373,7 +356,8 @@ namespace data
 		{	
 			if (it.second->IsUpdated ())
 			{
-				it.second->SaveToFile (GetFilePath(fullDirectory, it.second.get ()));
+				std::string f = GetFilePath(fullDirectory, it.second.get()).string();
+				it.second->SaveToFile (f);
 				it.second->SetUpdated (false);
 				it.second->SetUnreachable (false);
 				it.second->DeleteBuffer ();

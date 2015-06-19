@@ -68,8 +68,8 @@ namespace data
 		private:
 
 			bool CreateNetDb(boost::filesystem::path directory);
-			void Load (const char * directory);
-			void SaveUpdated (const char * directory);
+			void Load ();
+			void SaveUpdated ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);	
 			void Publish ();
