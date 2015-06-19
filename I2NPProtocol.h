@@ -225,11 +225,11 @@ namespace tunnel
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
 		const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
-	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
+	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, std::shared_ptr<I2NPMessage> msg);
 
 	size_t GetI2NPMessageLength (const uint8_t * msg);
 	void HandleI2NPMessage (uint8_t * msg, size_t len);
-	void HandleI2NPMessage (I2NPMessage * msg);
+	void HandleI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 
 	class I2NPMessagesHandler
 	{
@@ -241,7 +241,7 @@ namespace tunnel
 			
 		private:
 
-			std::vector<I2NPMessage *> m_TunnelMsgs, m_TunnelGatewayMsgs;
+			std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs, m_TunnelGatewayMsgs;
 	};
 }	
 

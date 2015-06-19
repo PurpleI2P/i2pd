@@ -617,7 +617,7 @@ namespace stream
 					{ 
 						i2p::tunnel::eDeliveryTypeTunnel,
 						m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
-						msg
+						ToSharedI2NPMessage (msg)
 					});	
 				m_NumSentBytes += it->GetLength ();
 			}

@@ -40,7 +40,7 @@ namespace tunnel
 		di[0] = block.deliveryType << 5; // set delivery type
 
 		// create fragments
-		I2NPMessage * msg = block.data;
+		std::shared_ptr<I2NPMessage> msg = block.data;
 		auto fullMsgLen = diLen + msg->GetLength () + 2; // delivery instructions + payload + 2 bytes length
 		if (fullMsgLen <= m_RemainingSize)
 		{
@@ -53,7 +53,6 @@ namespace tunnel
 			m_RemainingSize -= diLen + msg->GetLength ();
 			if (!m_RemainingSize)
 				CompleteCurrentTunnelDataMessage ();
-			DeleteI2NPMessage (msg);
 		}	
 		else
 		{
@@ -117,7 +116,6 @@ namespace tunnel
 					size += s;
 					fragmentNumber++;
 				}
-				DeleteI2NPMessage (msg);
 			}	
 			else
 			{
@@ -190,7 +188,7 @@ namespace tunnel
 		auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto tunnelMsg : tunnelMsgs)
 		{	
-			m_Tunnel->EncryptTunnelMsg (tunnelMsg.get ()); // TODO:
+			m_Tunnel->EncryptTunnelMsg (tunnelMsg); 
 			FillI2NPMessageHeader (tunnelMsg.get (), eI2NPTunnelData); // TODO:
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}	

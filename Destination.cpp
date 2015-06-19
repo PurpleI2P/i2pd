@@ -240,7 +240,7 @@ namespace client
 				HandleDatabaseSearchReplyMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;	
 			default:
-				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
+				i2p::HandleI2NPMessage (ToSharedI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from)));
 		}		
 	}	
 
@@ -589,7 +589,7 @@ namespace client
 					i2p::tunnel::TunnelMessageBlock 
 					{ 
 						i2p::tunnel::eDeliveryTypeRouter,
-						nextFloodfill->GetIdentHash (), 0, msg
+						nextFloodfill->GetIdentHash (), 0, ToSharedI2NPMessage (msg)
 					}
 				});	
 			request->requestTimeoutTimer.expires_from_now (boost::posix_time::seconds(LEASESET_REQUEST_TIMEOUT));

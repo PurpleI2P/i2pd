@@ -445,7 +445,7 @@ namespace i2p
 		return msg;
 	}	
 
-	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg)
+	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, std::shared_ptr<I2NPMessage> msg)
 	{
 		if (msg->offset >= I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE)
 		{
@@ -456,14 +456,13 @@ namespace i2p
 			htobe16buf (payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
 			msg->offset -= (I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE);
 			msg->len = msg->offset + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE +len;
-			FillI2NPMessageHeader (msg, eI2NPTunnelGateway);
+			FillI2NPMessageHeader (msg.get(), eI2NPTunnelGateway); // TODO
 			return msg;
 		}
 		else
 		{	
 			I2NPMessage * msg1 = CreateTunnelGatewayMsg (tunnelID, msg->GetBuffer (), msg->GetLength ());
-			DeleteI2NPMessage (msg);
-			return msg1;
+			return ToSharedI2NPMessage (msg1);
 		}	                               
 	}
 
@@ -522,7 +521,7 @@ namespace i2p
 		}	
 	}
 
-	void HandleI2NPMessage (I2NPMessage * msg)
+	void HandleI2NPMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (msg)
 		{	
@@ -539,32 +538,30 @@ namespace i2p
 				case eI2NPGarlic:
 				{
 					LogPrint ("Garlic");
-					auto sharedMsg = ToSharedI2NPMessage (msg);
 					if (msg->from)
 					{
 						if (msg->from->GetTunnelPool ())
-							msg->from->GetTunnelPool ()->ProcessGarlicMessage (sharedMsg);
+							msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
 						else
 							LogPrint (eLogInfo, "Local destination for garlic doesn't exist anymore");
 					}
 					else
-						i2p::context.ProcessGarlicMessage (sharedMsg); 
+						i2p::context.ProcessGarlicMessage (msg); 
 					break;
 				}
 				case eI2NPDatabaseStore:
 				case eI2NPDatabaseSearchReply:
 				case eI2NPDatabaseLookup:
 					// forward to netDb
-					i2p::data::netdb.PostI2NPMsg (ToSharedI2NPMessage (msg));
+					i2p::data::netdb.PostI2NPMsg (msg);
 				break;
 				case eI2NPDeliveryStatus:
 				{
 					LogPrint ("DeliveryStatus");
-					auto sharedMsg = ToSharedI2NPMessage (msg);
 					if (msg->from && msg->from->GetTunnelPool ())
-						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (sharedMsg);
+						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (msg);
 					else
-						i2p::context.ProcessDeliveryStatusMessage (sharedMsg);
+						i2p::context.ProcessDeliveryStatusMessage (msg);
 					break;	
 				}
 				case eI2NPVariableTunnelBuild:		
@@ -576,7 +573,6 @@ namespace i2p
 				break;	
 				default:
 					HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
-					DeleteI2NPMessage (msg);
 			}	
 		}	
 	}	
@@ -586,20 +582,20 @@ namespace i2p
 		Flush ();
 	}
 	
-	void I2NPMessagesHandler::PutNextMessage (I2NPMessage * msg)
+	void I2NPMessagesHandler::PutNextMessage (I2NPMessage *  msg)
 	{
 		if (msg)
 		{
 			switch (msg->GetTypeID ())
 			{	
 				case eI2NPTunnelData:
-					m_TunnelMsgs.push_back (msg);
+					m_TunnelMsgs.push_back (ToSharedI2NPMessage (msg));
 				break;
 				case eI2NPTunnelGateway:	
-					m_TunnelGatewayMsgs.push_back (msg);
+					m_TunnelGatewayMsgs.push_back (ToSharedI2NPMessage (msg));
 				break;	
 				default:
-					HandleI2NPMessage (msg);
+					HandleI2NPMessage (ToSharedI2NPMessage (msg));
 			}		
 		}	
 	}

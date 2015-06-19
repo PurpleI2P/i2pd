@@ -20,7 +20,7 @@ namespace tunnel
 		m_Encryption.SetKeys (layerKey, ivKey);
 	}	
 
-	void TransitTunnel::EncryptTunnelMsg (I2NPMessage * tunnelMsg)
+	void TransitTunnel::EncryptTunnelMsg (std::shared_ptr<I2NPMessage> tunnelMsg)
 	{		
 		m_Encryption.Encrypt (tunnelMsg->GetPayload () + 4); 
 	}	
@@ -29,14 +29,14 @@ namespace tunnel
 	{
 	}	
 		
-	void TransitTunnelParticipant::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
+	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
 	{
 		EncryptTunnelMsg (tunnelMsg);
 		
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
-		FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
-		m_TunnelDataMsgs.push_back (ToSharedI2NPMessage (tunnelMsg));
+		FillI2NPMessageHeader (tunnelMsg.get (), eI2NPTunnelData); // TODO
+		m_TunnelDataMsgs.push_back (tunnelMsg);
 	}
 
 	void TransitTunnelParticipant::FlushTunnelDataMsgs ()
@@ -51,19 +51,17 @@ namespace tunnel
 		}	
 	}	
 		
-	void TransitTunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)
+	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{	
 		LogPrint (eLogError, "We are not a gateway for transit tunnel ", m_TunnelID);
-		i2p::DeleteI2NPMessage (msg);	
 	}		
 
-	void TransitTunnel::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
+	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
 	{
 		LogPrint (eLogError, "Incoming tunnel message is not supported  ", m_TunnelID);
-		DeleteI2NPMessage (tunnelMsg);	
 	}	
 		
-	void TransitTunnelGateway::SendTunnelDataMsg (i2p::I2NPMessage * msg)
+	void TransitTunnelGateway::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
 		block.deliveryType = eDeliveryTypeLocal;
@@ -78,7 +76,7 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}	
 		
-	void TransitTunnelEndpoint::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
+	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
 	{
 		EncryptTunnelMsg (tunnelMsg);
 		

@@ -26,7 +26,7 @@ namespace tunnel
 		TunnelDeliveryType deliveryType;
 		i2p::data::IdentHash hash;	
 		uint32_t tunnelID;
-		I2NPMessage * data;
+		std::shared_ptr<I2NPMessage> data;
 	};
 
 	class TunnelBase
@@ -37,10 +37,10 @@ namespace tunnel
 			TunnelBase (): m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
 			
-			virtual void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg) = 0;
-			virtual void SendTunnelDataMsg (i2p::I2NPMessage * msg) = 0;
+			virtual void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg) = 0;
+			virtual void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) = 0;
 			virtual void FlushTunnelDataMsgs () {};
-			virtual void EncryptTunnelMsg (I2NPMessage * tunnelMsg) = 0;
+			virtual void EncryptTunnelMsg (std::shared_ptr<I2NPMessage> tunnelMsg) = 0;
 			virtual uint32_t GetNextTunnelID () const = 0;
 			virtual const i2p::data::IdentHash& GetNextIdentHash () const = 0;
 			virtual uint32_t GetTunnelID () const = 0; // as known at our side

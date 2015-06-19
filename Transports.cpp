@@ -242,12 +242,7 @@ namespace transport
 		{	
 			// we send it to ourself
 			for (auto it: msgs)
-			{
-				// TODO:
-				auto m = NewI2NPMessage ();
-				*m = *(it);
-				i2p::HandleI2NPMessage (m);
-			}
+				i2p::HandleI2NPMessage (it);
 			return;
 		}	
 		auto it = m_Peers.find (ident);

@@ -597,7 +597,7 @@ namespace data
 									{ 
 										i2p::tunnel::eDeliveryTypeRouter,
 										nextFloodfill->GetIdentHash (), 0,
-										CreateDatabaseStoreMsg () 
+										ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) 
 									});  
 								
 								// request destination
@@ -606,7 +606,7 @@ namespace data
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
 										i2p::tunnel::eDeliveryTypeRouter,
-										nextFloodfill->GetIdentHash (), 0, msg
+										nextFloodfill->GetIdentHash (), 0, ToSharedI2NPMessage (msg)
 									});
 								deleteDest = false;
 							}	
@@ -763,7 +763,7 @@ namespace data
 				if (outbound)
 					outbound->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
 				else
-					transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
+					transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, ToSharedI2NPMessage(replyMsg)));
 			}
 			else
 				transports.SendMessage (buf+32, replyMsg);
@@ -804,13 +804,13 @@ namespace data
 						{ 
 							i2p::tunnel::eDeliveryTypeRouter,
 							floodfill->GetIdentHash (), 0,
-							CreateDatabaseStoreMsg () // tell floodfill about us 
+							ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) // tell floodfill about us 
 						});  
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 						{ 
 							i2p::tunnel::eDeliveryTypeRouter,
 							floodfill->GetIdentHash (), 0, 
-							dest->CreateRequestMessage (floodfill, inbound) // explore
+							ToSharedI2NPMessage (dest->CreateRequestMessage (floodfill, inbound)) // explore
 						}); 
 				}	
 				else

@@ -65,7 +65,7 @@ namespace datagram
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
 					leases[i].tunnelGateway, leases[i].tunnelID,
-					garlic
+					ToSharedI2NPMessage (garlic)
 				});
 			outboundTunnel->SendTunnelDataMsg (msgs);
 		}
