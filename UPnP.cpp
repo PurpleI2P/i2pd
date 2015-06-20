@@ -42,8 +42,8 @@ void (*freeUPNPDevlistFunc) (struct UPNPDev *);
 void (*FreeUPNPUrlsFunc) (struct UPNPUrls *);
 
 // Nice approach http://stackoverflow.com/a/21517513/673826
-template<typename F>
-F GetKnownProcAddressImpl(HMODULE hmod, const char *name, F) {
+template<class M, typename F>
+F GetKnownProcAddressImpl(M hmod, const char *name, F) {
     auto proc = reinterpret_cast<F>(dlsym(hmod, name));
     if (!proc) {
         LogPrint("Error resolving ", name, " from UPNP library. This often happens if there is version mismatch!");
