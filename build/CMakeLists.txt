@@ -70,6 +70,9 @@ set (DAEMON_SRC
 
 if (WITH_UPNP)
   add_definitions(-DUSE_UPNP)
+  if (NOT MSVC)
+    set(DL_LIB ${CMAKE_DL_LIBS})
+  endif ()
 endif ()
 
 set (LIBRARY_SRC
@@ -268,7 +271,7 @@ if (WITH_BINARY)
   if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
-  target_link_libraries( "${PROJECT_NAME}-bin" common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+  target_link_libraries( "${PROJECT_NAME}-bin" common ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 
   install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
   if (MSVC)
