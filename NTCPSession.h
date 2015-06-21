@@ -126,7 +126,7 @@ namespace transport
 			i2p::crypto::AESAlignedBuffer<16> m_TimeSyncBuffer;
 			int m_ReceiveBufferOffset; 
 
-			i2p::I2NPMessage * m_NextMessage;
+			std::shared_ptr<I2NPMessage> m_NextMessage;
 			size_t m_NextMessageOffset;
 			i2p::I2NPMessagesHandler m_Handler;
 

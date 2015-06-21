@@ -582,20 +582,20 @@ namespace i2p
 		Flush ();
 	}
 	
-	void I2NPMessagesHandler::PutNextMessage (I2NPMessage *  msg)
+	void I2NPMessagesHandler::PutNextMessage (std::shared_ptr<I2NPMessage>  msg)
 	{
 		if (msg)
 		{
 			switch (msg->GetTypeID ())
 			{	
 				case eI2NPTunnelData:
-					m_TunnelMsgs.push_back (ToSharedI2NPMessage (msg));
+					m_TunnelMsgs.push_back (msg);
 				break;
 				case eI2NPTunnelGateway:	
-					m_TunnelGatewayMsgs.push_back (ToSharedI2NPMessage (msg));
+					m_TunnelGatewayMsgs.push_back (msg);
 				break;	
 				default:
-					HandleI2NPMessage (ToSharedI2NPMessage (msg));
+					HandleI2NPMessage (msg);
 			}		
 		}	
 	}

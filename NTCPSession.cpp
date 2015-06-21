@@ -84,11 +84,7 @@ namespace transport
 			transports.PeerDisconnected (shared_from_this ());
 			m_Server.RemoveNTCPSession (shared_from_this ());
 			m_SendQueue.clear ();
-			if (m_NextMessage)	
-			{	
-				i2p::DeleteI2NPMessage (m_NextMessage);
-				m_NextMessage = nullptr;
-			}	
+			m_NextMessage = nullptr;
 			m_TerminationTimer.cancel ();
 			LogPrint (eLogInfo, "NTCP session terminated");
 		}	
@@ -564,7 +560,8 @@ namespace transport
 					LogPrint (eLogError, "NTCP data size ", dataSize, " exceeds max size");
 					return false;
 				}
-				m_NextMessage = dataSize <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
+				auto msg = dataSize <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
+				m_NextMessage = ToSharedI2NPMessage (msg);	
 				memcpy (m_NextMessage->buf, buf, 16);
 				m_NextMessageOffset = 16;
 				m_NextMessage->offset = 2; // size field
@@ -589,10 +586,7 @@ namespace transport
 			if (CryptoPP::Adler32().VerifyDigest (m_NextMessage->buf + m_NextMessageOffset - 4, m_NextMessage->buf, m_NextMessageOffset - 4))	
 				m_Handler.PutNextMessage (m_NextMessage);
 			else
-			{
 				LogPrint (eLogWarning, "Incorrect adler checksum of NTCP message. Dropped");
-				DeleteI2NPMessage (m_NextMessage);
-			}	
 			m_NextMessage = nullptr;
 		}
 		return true;	
