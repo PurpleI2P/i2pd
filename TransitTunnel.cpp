@@ -22,7 +22,7 @@ namespace tunnel
 
 	void TransitTunnel::EncryptTunnelMsg (std::shared_ptr<I2NPMessage> tunnelMsg)
 	{		
-		m_Encryption.Encrypt (tunnelMsg->GetPayload () + 4); 
+		m_Encryption.Encrypt (tunnelMsg->GetPayload () + 4, tunnelMsg->GetPayload () + 4); 
 	}	
 
 	TransitTunnelParticipant::~TransitTunnelParticipant ()

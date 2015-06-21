@@ -146,7 +146,7 @@ namespace tunnel
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
 		while (hop)
 		{	
-			hop->decryption.Decrypt (payload);
+			hop->decryption.Decrypt (payload, payload);
 			hop = hop->prev;
 		}
 	}	

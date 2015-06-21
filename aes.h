@@ -185,7 +185,7 @@ namespace crypto
 				m_IVEncryption.SetKey (ivKey);
 			}	
 
-			void Encrypt (uint8_t * payload); // 1024 bytes (16 IV + 1008 data)		
+			void Encrypt (const uint8_t * in, uint8_t * out); // 1024 bytes (16 IV + 1008 data)		
 
 		private:
 
@@ -207,7 +207,7 @@ namespace crypto
 				m_IVDecryption.SetKey (ivKey);
 			}			
 
-			void Decrypt (uint8_t * payload); // 1024 bytes (16 IV + 1008 data)	
+			void Decrypt (const uint8_t * in, uint8_t * out); // 1024 bytes (16 IV + 1008 data)	
 
 		private:
 
