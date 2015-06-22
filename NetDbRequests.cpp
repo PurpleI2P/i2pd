@@ -118,7 +118,7 @@ namespace data
 						auto nextFloodfill = netdb.GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
 						if (nextFloodfill && outbound && inbound)
 							outbound->SendTunnelDataMsg (nextFloodfill->GetIdentHash (), 0,
-								dest->CreateRequestMessage (nextFloodfill, inbound));
+								ToSharedI2NPMessage (dest->CreateRequestMessage (nextFloodfill, inbound)));
 						else
 						{
 							done = true;

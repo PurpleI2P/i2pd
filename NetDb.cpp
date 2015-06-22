@@ -477,7 +477,7 @@ namespace data
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
 				if (outbound)
-					outbound->SendTunnelDataMsg (buf + offset, tunnelID, deliveryStatus);
+					outbound->SendTunnelDataMsg (buf + offset, tunnelID, ToSharedI2NPMessage (deliveryStatus));
 				else
 				{
 					LogPrint (eLogError, "No outbound tunnels for DatabaseStore reply found");
@@ -665,7 +665,7 @@ namespace data
 			numExcluded = 0; // TODO:
 		} 
 		
-		I2NPMessage * replyMsg = nullptr;
+		std::shared_ptr<I2NPMessage> replyMsg;
 		if (lookupType == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP)
 		{
 			LogPrint ("Exploratory close to  ", key, " ", numExcluded, " excluded");
@@ -685,7 +685,7 @@ namespace data
 					excludedRouters.insert (r->GetIdentHash ());
 				}	
 			}	
-			replyMsg = CreateDatabaseSearchReply (ident, routers);
+			replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, routers));
 		}	
 		else
 		{	
@@ -698,7 +698,7 @@ namespace data
 					LogPrint ("Requested RouterInfo ", key, " found");
 					router->LoadBuffer ();
 					if (router->GetBuffer ()) 
-						replyMsg = CreateDatabaseStoreMsg (router);
+						replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (router));
 				}
 			}
 			
@@ -709,7 +709,7 @@ namespace data
 				if (leaseSet) // we don't send back our LeaseSets
 				{
 					LogPrint ("Requested LeaseSet ", key, " found");
-					replyMsg = CreateDatabaseStoreMsg (leaseSet);
+					replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (leaseSet));
 				}
 			}
 			
@@ -722,7 +722,7 @@ namespace data
 					excludedRouters.insert (excluded);
 					excluded += 32;
 				}
-				replyMsg = CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters));
+				replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters)));
 			}
 		}
 		
@@ -747,7 +747,7 @@ namespace data
 				if (outbound)
 					outbound->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
 				else
-					transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, ToSharedI2NPMessage(replyMsg)));
+					transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
 			}
 			else
 				transports.SendMessage (buf+32, replyMsg);

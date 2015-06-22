@@ -393,7 +393,7 @@ namespace client
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		m_PublishReplyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));			
+		auto msg = WrapMessage (floodfill, ToSharedI2NPMessage (i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken)));			
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&ClientDestination::HandlePublishConfirmationTimer,
 			this, std::placeholders::_1));	
@@ -581,15 +581,15 @@ namespace client
 			rnd.GenerateBlock (replyTag, 32); // random session tag
 			AddSessionKey (replyKey, replyTag);
 
-			I2NPMessage * msg = WrapMessage (nextFloodfill,
-				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
-					replyTunnel.get (), replyKey, replyTag));
+			auto msg = WrapMessage (nextFloodfill,
+				ToSharedI2NPMessage (CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
+					replyTunnel.get (), replyKey, replyTag)));
 			outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock 
 					{ 
 						i2p::tunnel::eDeliveryTypeRouter,
-						nextFloodfill->GetIdentHash (), 0, ToSharedI2NPMessage (msg)
+						nextFloodfill->GetIdentHash (), 0, msg
 					}
 				});	
 			request->requestTimeoutTimer.expires_from_now (boost::posix_time::seconds(LEASESET_REQUEST_TIMEOUT));

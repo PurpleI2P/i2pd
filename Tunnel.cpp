@@ -81,7 +81,7 @@ namespace tunnel
 
 		// send message
 		if (outboundTunnel)
-			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);	
+			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, ToSharedI2NPMessage (msg));	
 		else
 			i2p::transport::transports.SendMessage (GetNextIdentHash (), ToSharedI2NPMessage (msg));
 	}	
@@ -164,7 +164,7 @@ namespace tunnel
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
 	}	
 
-	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
+	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
 		if (gwHash)
@@ -180,7 +180,7 @@ namespace tunnel
 		}	
 		else	
 			block.deliveryType = eDeliveryTypeLocal;
-		block.data = ToSharedI2NPMessage (msg);
+		block.data = msg;
 		
 		std::unique_lock<std::mutex> l(m_SendMutex);
 		m_Gateway.SendTunnelDataMsg (block);

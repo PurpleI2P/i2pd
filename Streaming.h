@@ -156,7 +156,7 @@ namespace stream
 			void HandleResendTimer (const boost::system::error_code& ecode);
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
 
-			I2NPMessage * CreateDataMessage (const uint8_t * payload, size_t len);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len);
 			
 		private:
 

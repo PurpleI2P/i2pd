@@ -60,12 +60,12 @@ namespace datagram
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
 			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-			auto garlic = m_Owner.WrapMessage (remote, msg, true);
+			auto garlic = m_Owner.WrapMessage (remote, ToSharedI2NPMessage (msg), true);
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
 					leases[i].tunnelGateway, leases[i].tunnelID,
-					ToSharedI2NPMessage (garlic)
+					garlic
 				});
 			outboundTunnel->SendTunnelDataMsg (msgs);
 		}

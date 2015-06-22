@@ -83,7 +83,7 @@ namespace tunnel
 
 			OutboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Gateway (this) {};
 
-			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg);
+			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
 			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
 			std::shared_ptr<const i2p::data::RouterInfo> GetEndpointRouter () const 
 				{ return GetTunnelConfig ()->GetLastHop ()->router; }; 

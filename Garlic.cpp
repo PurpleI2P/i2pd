@@ -107,9 +107,9 @@ namespace garlic
 		return !m_SessionTags.empty () || m_UnconfirmedTagsMsgs.empty ();
  	}
 
-	I2NPMessage * GarlicRoutingSession::WrapSingleMessage (I2NPMessage * msg)
+	std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		I2NPMessage * m = NewI2NPMessage ();
+		auto m = ToSharedI2NPMessage(NewI2NPMessage ());
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
 		size_t len = 0;
 		uint8_t * buf = m->GetPayload () + 4; // 4 bytes for length
@@ -164,12 +164,10 @@ namespace garlic
 			len += 32;		
 		}	
 		// AES block
-		len += CreateAESBlock (buf, msg);
+		len += CreateAESBlock (buf, msg.get ()); // TODO
 		htobe32buf (m->GetPayload (), len);
 		m->len += len + 4;
-		FillI2NPMessageHeader (m, eI2NPGarlic);
-		if (msg)
-			DeleteI2NPMessage (msg);
+		FillI2NPMessageHeader (m.get (), eI2NPGarlic); // TODO
 		return m;
 	}	
 
@@ -309,7 +307,7 @@ namespace garlic
 				htobe32buf (buf + size, inboundTunnel->GetNextTunnelID ()); // tunnelID
 				size += 4; 	
 				// create msg 
-				I2NPMessage * msg = CreateDeliveryStatusMsg (msgID);
+				auto msg = ToSharedI2NPMessage (CreateDeliveryStatusMsg (msgID));
 				if (m_Owner)
 				{
 					//encrypt 
@@ -322,7 +320,6 @@ namespace garlic
 				}
 				memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
 				size += msg->GetLength ();
-				DeleteI2NPMessage (msg);
 				// fill clove
 				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 				htobe32buf (buf + size, m_Rnd.GenerateWord32 ()); // CloveID
@@ -512,7 +509,7 @@ namespace garlic
 					if (tunnel) // we have send it through an outbound tunnel
 					{	
 						I2NPMessage * msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
-						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
+						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, ToSharedI2NPMessage (msg));
 					}	
 					else
 						LogPrint ("No outbound tunnels available for garlic clove");
@@ -537,8 +534,8 @@ namespace garlic
 		}	
 	}	
 	
-	I2NPMessage * GarlicDestination::WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
-		I2NPMessage * msg, bool attachLeaseSet)	
+	std::shared_ptr<I2NPMessage> GarlicDestination::WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
+		std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet)	
 	{
 		auto session = GetRoutingSession (destination, attachLeaseSet);  // 32 tags by default
 		return session->WrapSingleMessage (msg);	

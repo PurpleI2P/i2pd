@@ -254,7 +254,7 @@ namespace tunnel
  				uint32_t msgID = rnd.GenerateWord32 ();
  				m_Tests[msgID] = std::make_pair (*it1, *it2);
  				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
-					CreateDeliveryStatusMsg (msgID));
+					ToSharedI2NPMessage (CreateDeliveryStatusMsg (msgID)));
 				it1++; it2++;
 			}	
 		}
