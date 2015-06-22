@@ -590,7 +590,7 @@ namespace data
 								msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 									{ 
 										i2p::tunnel::eDeliveryTypeRouter,
-										nextFloodfill->GetIdentHash (), 0, ToSharedI2NPMessage (msg)
+										nextFloodfill->GetIdentHash (), 0, msg
 									});
 								deleteDest = false;
 							}	
@@ -794,7 +794,7 @@ namespace data
 						{ 
 							i2p::tunnel::eDeliveryTypeRouter,
 							floodfill->GetIdentHash (), 0, 
-							ToSharedI2NPMessage (dest->CreateRequestMessage (floodfill, inbound)) // explore
+							dest->CreateRequestMessage (floodfill, inbound) // explore
 						}); 
 				}	
 				else

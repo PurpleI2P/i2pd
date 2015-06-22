@@ -8,7 +8,7 @@ namespace i2p
 {
 namespace data
 {
-	I2NPMessage * RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
+	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
 		I2NPMessage * msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
@@ -16,7 +16,7 @@ namespace data
 		    &m_ExcludedPeers);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
-		return msg;
+		return ToSharedI2NPMessage (msg);
 	}	
 
 	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (const IdentHash& floodfill)
@@ -118,7 +118,7 @@ namespace data
 						auto nextFloodfill = netdb.GetClosestFloodfill (dest->GetDestination (), dest->GetExcludedPeers ());
 						if (nextFloodfill && outbound && inbound)
 							outbound->SendTunnelDataMsg (nextFloodfill->GetIdentHash (), 0,
-								ToSharedI2NPMessage (dest->CreateRequestMessage (nextFloodfill, inbound)));
+								dest->CreateRequestMessage (nextFloodfill, inbound));
 						else
 						{
 							done = true;
