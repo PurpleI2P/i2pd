@@ -262,7 +262,7 @@ namespace transport
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
 		// TODO: verify signature (need data from session request), payload points to signature
-		m_Data.Send (ToSharedI2NPMessage(CreateDeliveryStatusMsg (0)));
+		m_Data.Send (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
 

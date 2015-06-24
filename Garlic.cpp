@@ -307,7 +307,7 @@ namespace garlic
 				htobe32buf (buf + size, inboundTunnel->GetNextTunnelID ()); // tunnelID
 				size += 4; 	
 				// create msg 
-				auto msg = ToSharedI2NPMessage (CreateDeliveryStatusMsg (msgID));
+				auto msg = CreateDeliveryStatusMsg (msgID);
 				if (m_Owner)
 				{
 					//encrypt 

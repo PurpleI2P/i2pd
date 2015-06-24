@@ -471,18 +471,15 @@ namespace data
 			uint32_t tunnelID = bufbe32toh (buf + offset);
 			offset += 4;
 			if (!tunnelID) // send response directly
-				transports.SendMessage (buf + offset, ToSharedI2NPMessage (deliveryStatus));
+				transports.SendMessage (buf + offset, deliveryStatus);
 			else
 			{
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = pool ? pool->GetNextOutboundTunnel () : nullptr;
 				if (outbound)
-					outbound->SendTunnelDataMsg (buf + offset, tunnelID, ToSharedI2NPMessage (deliveryStatus));
+					outbound->SendTunnelDataMsg (buf + offset, tunnelID, deliveryStatus);
 				else
-				{
 					LogPrint (eLogError, "No outbound tunnels for DatabaseStore reply found");
-					DeleteI2NPMessage (deliveryStatus);
-				}
 			}		
 			offset += 32;
 

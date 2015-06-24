@@ -90,7 +90,7 @@ namespace i2p
 		return msg;
 	}	
 	
-	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID)
+	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID)
 	{
 		I2NPMessage * m = NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
@@ -106,7 +106,7 @@ namespace i2p
 		}	
 		m->len += DELIVERY_STATUS_SIZE;
 		FillI2NPMessageHeader (m, eI2NPDeliveryStatus);
-		return m;
+		return ToSharedI2NPMessage (m);
 	}
 
 	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
