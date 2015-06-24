@@ -471,7 +471,7 @@ namespace data
 			uint32_t tunnelID = bufbe32toh (buf + offset);
 			offset += 4;
 			if (!tunnelID) // send response directly
-				transports.SendMessage (buf + offset, deliveryStatus);
+				transports.SendMessage (buf + offset, ToSharedI2NPMessage (deliveryStatus));
 			else
 			{
 				auto pool = i2p::tunnel::tunnels.GetExploratoryPool ();
@@ -503,7 +503,7 @@ namespace data
 						memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
 						floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
 						FillI2NPMessageHeader (floodMsg, eI2NPDatabaseStore);
-						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+						transports.SendMessage (floodfill->GetIdentHash (), ToSharedI2NPMessage (floodMsg));
 					}	
 				}	
 			}	
@@ -817,7 +817,7 @@ namespace data
 			{
 				uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation (), ". reply token=", replyToken);
-				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));	
+				transports.SendMessage (floodfill->GetIdentHash (), ToSharedI2NPMessage (CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken)));	
 				excluded.insert (floodfill->GetIdentHash ());
 			}
 		}	

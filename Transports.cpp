@@ -213,19 +213,6 @@ namespace transport
 		return std::max (m_InBandwidth, m_OutBandwidth) > LOW_BANDWIDTH_LIMIT;
 	}
 
-	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
-	{
-		SendMessage (ident, ToSharedI2NPMessage (msg));                             
-	}	
-
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs)
-	{
-		std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs1;
-		for (auto it: msgs)
-			msgs1.push_back (ToSharedI2NPMessage (it));
-		SendMessages (ident, msgs1);
-	}	
-
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg }));                             
