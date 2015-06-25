@@ -40,7 +40,7 @@ namespace tunnel
 			virtual void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg) = 0;
 			virtual void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) = 0;
 			virtual void FlushTunnelDataMsgs () {};
-			virtual void EncryptTunnelMsg (std::shared_ptr<I2NPMessage> tunnelMsg) = 0;
+			virtual void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) = 0;
 			virtual uint32_t GetNextTunnelID () const = 0;
 			virtual const i2p::data::IdentHash& GetNextIdentHash () const = 0;
 			virtual uint32_t GetTunnelID () const = 0; // as known at our side

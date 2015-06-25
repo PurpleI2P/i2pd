@@ -140,14 +140,16 @@ namespace tunnel
 		return established;
 	}	
 
-	void Tunnel::EncryptTunnelMsg (std::shared_ptr<I2NPMessage> tunnelMsg)
+	void Tunnel::EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out)
 	{
-		uint8_t * payload = tunnelMsg->GetPayload () + 4;
+		const uint8_t * inPayload = in->GetPayload () + 4;
+		uint8_t * outPayload = out->GetPayload () + 4;
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
 		while (hop)
 		{	
-			hop->decryption.Decrypt (payload, payload);
+			hop->decryption.Decrypt (inPayload, outPayload);
 			hop = hop->prev;
+			inPayload = outPayload;	
 		}
 	}	
 
@@ -160,7 +162,7 @@ namespace tunnel
 	{
 		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive			
 		msg->from = shared_from_this ();
-		EncryptTunnelMsg (msg);
+		EncryptTunnelMsg (msg, msg);
 		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
 	}	
 

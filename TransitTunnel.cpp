@@ -20,9 +20,9 @@ namespace tunnel
 		m_Encryption.SetKeys (layerKey, ivKey);
 	}	
 
-	void TransitTunnel::EncryptTunnelMsg (std::shared_ptr<I2NPMessage> tunnelMsg)
+	void TransitTunnel::EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out)
 	{		
-		m_Encryption.Encrypt (tunnelMsg->GetPayload () + 4, tunnelMsg->GetPayload () + 4); 
+		m_Encryption.Encrypt (in->GetPayload () + 4, out->GetPayload () + 4); 
 	}	
 
 	TransitTunnelParticipant::~TransitTunnelParticipant ()
@@ -31,7 +31,7 @@ namespace tunnel
 		
 	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
 	{
-		EncryptTunnelMsg (tunnelMsg);
+		EncryptTunnelMsg (tunnelMsg, tunnelMsg);
 		
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
@@ -78,7 +78,7 @@ namespace tunnel
 		
 	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
 	{
-		EncryptTunnelMsg (tunnelMsg);
+		EncryptTunnelMsg (tunnelMsg, tunnelMsg);
 		
 		LogPrint (eLogDebug, "TransitTunnel endpoint for ", GetTunnelID ());
 		m_Endpoint.HandleDecryptedTunnelDataMsg (tunnelMsg); 

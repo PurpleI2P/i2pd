@@ -30,7 +30,7 @@ namespace tunnel
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
 			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg);
-			void EncryptTunnelMsg (std::shared_ptr<I2NPMessage> tunnelMsg); 
+			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 
 			uint32_t GetNextTunnelID () const { return m_NextTunnelID; };
 			const i2p::data::IdentHash& GetNextIdentHash () const { return m_NextIdent; };
 			

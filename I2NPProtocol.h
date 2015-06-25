@@ -138,6 +138,7 @@ namespace tunnel
 		
 		// payload
 		uint8_t * GetPayload () { return GetBuffer () + I2NP_HEADER_SIZE; };
+		const uint8_t * GetPayload () const { return GetBuffer () + I2NP_HEADER_SIZE; };
 		uint8_t * GetBuffer () { return buf + offset; };
 		const uint8_t * GetBuffer () const { return buf + offset; };
 		size_t GetLength () const { return len - offset; };	
