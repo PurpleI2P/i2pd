@@ -10,6 +10,14 @@ namespace i2p
 {
 namespace tunnel
 {
+	TunnelGatewayBuffer::TunnelGatewayBuffer (uint32_t tunnelID): m_TunnelID (tunnelID), 
+				m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0) 
+	{
+		context.GetRandomNumberGenerator ().GenerateBlock (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
+		for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
+			if (!m_NonZeroRandomBuffer[i]) m_NonZeroRandomBuffer[i] = 1;
+	}
+
 	TunnelGatewayBuffer::~TunnelGatewayBuffer ()
 	{
 	}	
@@ -160,13 +168,17 @@ namespace tunnel
 		payload[-1] = 0; // zero	
 		ptrdiff_t paddingSize = payload - buf - 25; // 25  = 24 + 1 
 		if (paddingSize > 0)
-			memset (buf + 24, 1, paddingSize); // padding TODO: fill with random data
+		{
+			// non-zero padding 
+			auto randomOffset = rnd.GenerateWord32 (0, TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize);
+			memcpy (buf + 24, m_NonZeroRandomBuffer + randomOffset, paddingSize); 
+		}
 
 		// we can't fill message header yet because encryption is required
 		m_TunnelDataMsgs.push_back (m_CurrentTunnelDataMsg);
 		m_CurrentTunnelDataMsg = nullptr;
 	}	
-	
+
 	void TunnelGateway::SendTunnelDataMsg (const TunnelMessageBlock& block)
 	{
 		if (block.data)
