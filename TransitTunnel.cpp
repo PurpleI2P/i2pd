@@ -29,14 +29,15 @@ namespace tunnel
 	{
 	}	
 		
-	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnelParticipant::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
-		EncryptTunnelMsg (tunnelMsg, tunnelMsg);
+		auto newMsg = CreateEmptyTunnelDataMsg ();
+		EncryptTunnelMsg (tunnelMsg, newMsg);
 		
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
-		htobe32buf (tunnelMsg->GetPayload (), GetNextTunnelID ());
-		FillI2NPMessageHeader (tunnelMsg.get (), eI2NPTunnelData); // TODO
-		m_TunnelDataMsgs.push_back (tunnelMsg);
+		htobe32buf (newMsg->GetPayload (), GetNextTunnelID ());
+		FillI2NPMessageHeader (newMsg.get (), eI2NPTunnelData); // TODO
+		m_TunnelDataMsgs.push_back (newMsg);
 	}
 
 	void TransitTunnelParticipant::FlushTunnelDataMsgs ()
@@ -56,7 +57,7 @@ namespace tunnel
 		LogPrint (eLogError, "We are not a gateway for transit tunnel ", m_TunnelID);
 	}		
 
-	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
 		LogPrint (eLogError, "Incoming tunnel message is not supported  ", m_TunnelID);
 	}	
@@ -76,12 +77,13 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}	
 		
-	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnelEndpoint::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
-		EncryptTunnelMsg (tunnelMsg, tunnelMsg);
+		auto newMsg = CreateEmptyTunnelDataMsg ();
+		EncryptTunnelMsg (tunnelMsg, newMsg);
 		
 		LogPrint (eLogDebug, "TransitTunnel endpoint for ", GetTunnelID ());
-		m_Endpoint.HandleDecryptedTunnelDataMsg (tunnelMsg); 
+		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg); 
 	}
 		
 	TransitTunnel * CreateTransitTunnel (uint32_t receiveTunnelID,

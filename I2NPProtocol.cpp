@@ -432,6 +432,13 @@ namespace i2p
 		FillI2NPMessageHeader (msg, eI2NPTunnelData);
 		return msg;
 	}	
+
+	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ()
+	{
+		I2NPMessage * msg = NewI2NPShortMessage ();
+		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE; 
+		return ToSharedI2NPMessage (msg);
+	}	
 	
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len)
 	{

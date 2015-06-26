@@ -158,12 +158,13 @@ namespace tunnel
 		LogPrint (eLogInfo, "Can't send I2NP messages without delivery instructions");	
 	}	
 
-	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<I2NPMessage> msg)
+	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
-		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive			
-		msg->from = shared_from_this ();
-		EncryptTunnelMsg (msg, msg);
-		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
+		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive	
+		auto newMsg = CreateEmptyTunnelDataMsg ();
+		EncryptTunnelMsg (msg, newMsg);
+		newMsg->from = shared_from_this ();
+		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);	
 	}	
 
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
@@ -196,7 +197,7 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}	
 	
-	void OutboundTunnel::HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg)
+	void OutboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
 		LogPrint (eLogError, "Incoming message for outbound tunnel ", GetTunnelID ());
 	}

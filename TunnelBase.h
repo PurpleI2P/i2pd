@@ -37,7 +37,7 @@ namespace tunnel
 			TunnelBase (): m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
 			
-			virtual void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg) = 0;
+			virtual void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg) = 0;
 			virtual void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) = 0;
 			virtual void FlushTunnelDataMsgs () {};
 			virtual void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out) = 0;

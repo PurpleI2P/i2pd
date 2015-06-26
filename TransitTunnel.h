@@ -29,7 +29,7 @@ namespace tunnel
 
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 
 			uint32_t GetNextTunnelID () const { return m_NextTunnelID; };
 			const i2p::data::IdentHash& GetNextIdentHash () const { return m_NextIdent; };
@@ -54,7 +54,7 @@ namespace tunnel
 			~TransitTunnelParticipant ();
 
 			size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
 			void FlushTunnelDataMsgs ();
 
 		private:
@@ -93,7 +93,7 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
 				m_Endpoint (false) {}; // transit endpoint is always outbound
 
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
 			size_t GetNumTransmittedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 			
 		private:

@@ -90,7 +90,7 @@ namespace tunnel
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
 
 			// implements TunnelBase
-			void HandleTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
 			uint32_t GetTunnelID () const { return GetNextTunnelID (); };
 			
 		private:
@@ -104,7 +104,7 @@ namespace tunnel
 		public:
 
 			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
-			void HandleTunnelDataMsg (std::shared_ptr<I2NPMessage> msg);
+			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
 			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 
 			// implements TunnelBase
