@@ -440,13 +440,9 @@ namespace tunnel
 		LogPrint (eLogDebug, "TunnelGateway of ", (int)len, " bytes for tunnel ", tunnel->GetTunnelID (), ". Msg type ", (int)typeID);
 			
 		if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply)
-		{
 			// transit DatabaseStore my contain new/updated RI 
 			// or DatabaseSearchReply with new routers
-			auto ds = NewI2NPMessage ();
-			*ds = *msg; // TODO: don't copy once msg is shared_ptr
-			i2p::data::netdb.PostI2NPMsg (ToSharedI2NPMessage (ds));
-		}	
+			i2p::data::netdb.PostI2NPMsg (msg);	
 		tunnel->SendTunnelDataMsg (msg);
 	}
 
