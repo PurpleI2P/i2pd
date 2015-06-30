@@ -296,7 +296,7 @@ namespace i2p
 		
 	void RouterContext::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
-		i2p::HandleI2NPMessage (ToSharedI2NPMessage(CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from)));
+		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
 	}
 
 	void RouterContext::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)

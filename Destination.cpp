@@ -233,6 +233,10 @@ namespace client
 			case eI2NPData:
 				HandleDataMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;
+			case eI2NPDeliveryStatus:
+				// we assume tunnel tests non-encrypted
+				HandleDeliveryStatusMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
+			break;	
 			case eI2NPDatabaseStore:
 				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;
@@ -240,7 +244,7 @@ namespace client
 				HandleDatabaseSearchReplyMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;	
 			default:
-				i2p::HandleI2NPMessage (ToSharedI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from)));
+				i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
 		}		
 	}	
 

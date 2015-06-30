@@ -76,7 +76,7 @@ namespace i2p
 		return msg;
 	}	
 
-	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		I2NPMessage * msg = NewI2NPMessage ();
 		if (msg->offset + len < msg->maxLen)
@@ -87,7 +87,7 @@ namespace i2p
 		}
 		else
 			LogPrint (eLogError, "I2NP message length ", len, " exceeds max length");
-		return msg;
+		return ToSharedI2NPMessage(msg);
 	}	
 	
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID)

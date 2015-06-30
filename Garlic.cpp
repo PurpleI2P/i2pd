@@ -508,8 +508,8 @@ namespace garlic
 						tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
 					if (tunnel) // we have send it through an outbound tunnel
 					{	
-						I2NPMessage * msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
-						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, ToSharedI2NPMessage (msg));
+						auto msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
+						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
 					}	
 					else
 						LogPrint ("No outbound tunnels available for garlic clove");
