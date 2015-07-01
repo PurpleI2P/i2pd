@@ -486,22 +486,19 @@ namespace data
 			if (context.IsFloodfill ())
 			{
 				// flood it
+				auto floodMsg = ToSharedI2NPMessage (NewI2NPShortMessage ());
+				uint8_t * payload = floodMsg->GetPayload ();		
+				memcpy (payload, buf, 33); // key + type
+				htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
+				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
+				floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
+				FillI2NPMessageHeader (floodMsg.get (), eI2NPDatabaseStore); // TODO
 				std::set<IdentHash> excluded;
 				for (int i = 0; i < 3; i++)
 				{
 					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
-					{
-						excluded.insert (floodfill->GetIdentHash ());	
-						auto floodMsg = NewI2NPShortMessage ();
-						uint8_t * payload = floodMsg->GetPayload ();		
-						memcpy (payload, buf, 33); // key + type
-						htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
-						memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
-						floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
-						FillI2NPMessageHeader (floodMsg, eI2NPDatabaseStore);
-						transports.SendMessage (floodfill->GetIdentHash (), ToSharedI2NPMessage (floodMsg));
-					}	
+						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
 				}	
 			}	
 		}
