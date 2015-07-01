@@ -22,7 +22,7 @@ namespace stream
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		m_RemoteIdentity = remote->GetIdentity ();
-		UpdateCurrentRemoteLease ();
+		m_CurrentRemoteLease.endDate = 0;
 	}	
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
