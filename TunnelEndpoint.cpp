@@ -241,10 +241,10 @@ namespace tunnel
 					// to somebody else
 					if (!m_IsInbound) // outbound transit tunnel
 					{
-						auto typeID = msg.data->GetTypeID ();
+					/*	auto typeID = msg.data->GetTypeID ();
 						if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply )
 							// catch RI or reply with new list of routers
-							i2p::data::netdb.PostI2NPMsg (msg.data);
+							i2p::data::netdb.PostI2NPMsg (msg.data);*/
 						i2p::transport::transports.SendMessage (msg.hash, msg.data);
 					}
 					else // we shouldn't send this message. possible leakage 
