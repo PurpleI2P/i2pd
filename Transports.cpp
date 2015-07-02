@@ -215,7 +215,7 @@ namespace transport
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&Transports::PostMessages, this, ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg }));                             
+		SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });                             
 	}	
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
