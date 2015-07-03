@@ -36,7 +36,7 @@ namespace tunnel
 		
 		m_NumTransmittedBytes += tunnelMsg->GetLength ();
 		htobe32buf (newMsg->GetPayload (), GetNextTunnelID ());
-		FillI2NPMessageHeader (newMsg.get (), eI2NPTunnelData); // TODO
+		newMsg->FillI2NPMessageHeader (eI2NPTunnelData); 
 		m_TunnelDataMsgs.push_back (newMsg);
 	}
 

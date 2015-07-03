@@ -201,7 +201,7 @@ namespace tunnel
 		for (auto tunnelMsg : tunnelMsgs)
 		{	
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg, tunnelMsg); 
-			FillI2NPMessageHeader (tunnelMsg.get (), eI2NPTunnelData); // TODO:
+			tunnelMsg->FillI2NPMessageHeader (eI2NPTunnelData); 
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}	
 		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), tunnelMsgs);

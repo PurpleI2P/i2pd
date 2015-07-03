@@ -167,7 +167,7 @@ namespace garlic
 		len += CreateAESBlock (buf, msg.get ()); // TODO
 		htobe32buf (m->GetPayload (), len);
 		m->len += len + 4;
-		FillI2NPMessageHeader (m.get (), eI2NPGarlic); // TODO
+		m->FillI2NPMessageHeader (eI2NPGarlic);
 		return m;
 	}	
 

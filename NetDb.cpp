@@ -492,7 +492,7 @@ namespace data
 				htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
 				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
 				floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
-				FillI2NPMessageHeader (floodMsg.get (), eI2NPDatabaseStore); // TODO
+				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
 				std::set<IdentHash> excluded;
 				for (int i = 0; i < 3; i++)
 				{

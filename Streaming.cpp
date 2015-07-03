@@ -780,7 +780,7 @@ namespace stream
 		htobe16buf (buf + 6, m_Port); // destination port 
 		buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
 		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg.get (), eI2NPData); // TODO:
+		msg->FillI2NPMessageHeader (eI2NPData);
 		
 		return msg;
 	}	

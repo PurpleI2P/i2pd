@@ -184,6 +184,9 @@ namespace tunnel
 			len = offset + I2NP_SHORT_HEADER_SIZE + bufbe16toh (header + I2NP_HEADER_SIZE_OFFSET);
 			return bufbe32toh (header + I2NP_HEADER_MSGID_OFFSET);
 		}	
+
+		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0);
+		void RenewI2NPMessageHeader ();
 	};	
 
 	template<int sz>
@@ -199,8 +202,6 @@ namespace tunnel
 	void DeleteI2NPMessage (I2NPMessage * msg);
 	std::shared_ptr<I2NPMessage> ToSharedI2NPMessage (I2NPMessage * msg);
 	
-	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID = 0);
-	void RenewI2NPMessageHeader (I2NPMessage * msg);
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
 	

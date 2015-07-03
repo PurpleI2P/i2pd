@@ -143,7 +143,7 @@ namespace datagram
 		htobe16buf (buf + 6, toPort); // destination port 
 		buf[9] = i2p::client::PROTOCOL_TYPE_DATAGRAM; // datagram protocol
 		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg, eI2NPData);
+		msg->FillI2NPMessageHeader (eI2NPData);
 		return msg;
 	}	
 }

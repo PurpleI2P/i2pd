@@ -77,7 +77,7 @@ namespace tunnel
 			}	
 			hop = hop->prev;
 		}	
-		FillI2NPMessageHeader (msg, eI2NPVariableTunnelBuild);
+		msg->FillI2NPMessageHeader (eI2NPVariableTunnelBuild);
 
 		// send message
 		if (outboundTunnel)
