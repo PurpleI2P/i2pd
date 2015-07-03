@@ -61,12 +61,10 @@ namespace transport
 			
 			void ClientLogin ();
 			void ServerLogin ();
-			void SendI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			
 		private:
 
-			void PostI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void Connected ();
 			void SendTimeSyncMessage ();

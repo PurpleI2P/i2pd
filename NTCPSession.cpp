@@ -101,7 +101,7 @@ namespace transport
 		m_DHKeysPair = nullptr;	
 
 		SendTimeSyncMessage ();
-		PostI2NPMessage (ToSharedI2NPMessage(CreateDatabaseStoreMsg ())); // we tell immediately who we are		
+		Send (ToSharedI2NPMessage(CreateDatabaseStoreMsg ())); // we tell immediately who we are		
 
 		transports.PeerConnected (shared_from_this ());
 	}	
@@ -673,22 +673,6 @@ namespace transport
 		Send (nullptr);
 	}	
 
-	void NTCPSession::SendI2NPMessage (std::shared_ptr<I2NPMessage> msg)
-	{
-		m_Server.GetService ().post (std::bind (&NTCPSession::PostI2NPMessage, shared_from_this (), msg));  
-	}	
-
-	void NTCPSession::PostI2NPMessage (std::shared_ptr<I2NPMessage> msg)
-	{
-		if (msg)
-		{
-			if (m_IsTerminated) return;
-			if (m_IsSending)
-				m_SendQueue.push_back (msg);
-			else	
-				Send (msg);
-		}	
-	}	
 
 	void NTCPSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{

@@ -832,17 +832,6 @@ namespace transport
 		}
 	}	
 
-	void SSUSession::SendI2NPMessage (std::shared_ptr<I2NPMessage> msg)
-	{
-		GetService ().post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg)); 
-	}	
-
-	void SSUSession::PostI2NPMessage (std::shared_ptr<I2NPMessage> msg)
-	{
-		if (msg &&m_State == eSessionStateEstablished)
-			m_Data.Send (msg);
-	}		
-
 	void SSUSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		GetService ().post (std::bind (&SSUSession::PostI2NPMessages, shared_from_this (), msgs));    

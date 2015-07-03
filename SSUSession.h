@@ -76,7 +76,6 @@ namespace transport
 			void Done ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
-			void SendI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void SendPeerTest (); // Alice			
 
@@ -95,7 +94,6 @@ namespace transport
 			boost::asio::io_service& GetService ();
 			void CreateAESandMacKey (const uint8_t * pubKey); 
 
-			void PostI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
