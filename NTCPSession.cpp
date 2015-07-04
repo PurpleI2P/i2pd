@@ -101,7 +101,7 @@ namespace transport
 		m_DHKeysPair = nullptr;	
 
 		SendTimeSyncMessage ();
-		Send (ToSharedI2NPMessage(CreateDatabaseStoreMsg ())); // we tell immediately who we are		
+		m_SendQueue.push_back (ToSharedI2NPMessage(CreateDatabaseStoreMsg ())); // we tell immediately who we are		
 
 		transports.PeerConnected (shared_from_this ());
 	}	
