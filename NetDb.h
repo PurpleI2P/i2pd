@@ -41,9 +41,9 @@ namespace data
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);			
 			
-			void HandleDatabaseStoreMsg (std::shared_ptr<I2NPMessage> msg);
-			void HandleDatabaseSearchReplyMsg (std::shared_ptr<I2NPMessage> msg);
-			void HandleDatabaseLookupMsg (std::shared_ptr<I2NPMessage> msg);			
+			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
+			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
+			void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);			
 
 			std::shared_ptr<const RouterInfo> GetRandomRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
@@ -56,7 +56,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);			
 
-			void PostI2NPMsg (std::shared_ptr<I2NPMessage> msg);
+			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
 			void Reseed ();
 
@@ -89,7 +89,7 @@ namespace data
 			
 			bool m_IsRunning;
 			std::thread * m_Thread;	
-			i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
+			i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
 
 			Reseeder * m_Reseeder;
 

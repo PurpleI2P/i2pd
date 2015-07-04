@@ -453,7 +453,7 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<I2NPMessage> m)
+	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> m)
 	{	
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = m->GetSize ();		
@@ -540,9 +540,9 @@ namespace data
 		}	
 	}	
 
-	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<I2NPMessage> msg)
+	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
-		uint8_t * buf = msg->GetPayload ();
+		const uint8_t * buf = msg->GetPayload ();
 		char key[48];
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
@@ -611,7 +611,7 @@ namespace data
 		// try responses
 		for (int i = 0; i < num; i++)
 		{
-			uint8_t * router = buf + 33 + i*32;
+			const uint8_t * router = buf + 33 + i*32;
 			char peerHash[48];
 			int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
 			peerHash[l1] = 0;
@@ -629,9 +629,9 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::HandleDatabaseLookupMsg (std::shared_ptr<I2NPMessage> msg)
+	void NetDb::HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
-		uint8_t * buf = msg->GetPayload ();
+		const uint8_t * buf = msg->GetPayload ();
 		IdentHash ident (buf);
 		if (ident.IsZero ())
 		{
@@ -644,7 +644,7 @@ namespace data
 		uint8_t flag = buf[64];
 		LogPrint ("DatabaseLookup for ", key, " recieved flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
-		uint8_t * excluded = buf + 65;		
+		const uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
 		{
@@ -727,11 +727,11 @@ namespace data
 				// encryption might be used though tunnel only
 				if (flag & DATABASE_LOOKUP_ENCYPTION_FLAG) // encrypted reply requested
 				{
-					uint8_t * sessionKey = excluded;
+					const uint8_t * sessionKey = excluded;
 					uint8_t numTags = sessionKey[32];
 					if (numTags > 0) 
 					{
-						uint8_t * sessionTag = sessionKey + 33; // take first tag
+						const uint8_t * sessionTag = sessionKey + 33; // take first tag
 						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
 						replyMsg = garlic.WrapSingleMessage (replyMsg);
 					}
@@ -890,7 +890,7 @@ namespace data
 		return nullptr; // seems we have too few routers
 	}	
 	
-	void NetDb::PostI2NPMsg (std::shared_ptr<I2NPMessage> msg)
+	void NetDb::PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		if (msg) m_Queue.Put (msg);	
 	}	
