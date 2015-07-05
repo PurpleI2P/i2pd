@@ -109,7 +109,7 @@ namespace i2p
 	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
-		I2NPMessage * m = NewI2NPShortMessage ();
+		I2NPMessage * m = excludedPeers ? NewI2NPMessage () : NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, key, 32); // key
 		buf += 32;
@@ -155,7 +155,8 @@ namespace i2p
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
 		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
 	{
-		I2NPMessage * m = NewI2NPShortMessage ();
+		int cnt = excludedFloodfills.size ();
+		I2NPMessage * m = cnt > 0 ? NewI2NPMessage () : NewI2NPShortMessage ();
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, dest, 32); // key
 		buf += 32;
@@ -166,7 +167,6 @@ namespace i2p
 		buf += 5;
 		
 		// excluded
-		int cnt = excludedFloodfills.size ();
 		htobe16buf (buf, cnt);
 		buf += 2;
 		if (cnt > 0)
@@ -186,9 +186,7 @@ namespace i2p
 		m->len += (buf - m->GetPayload ()); 
 		m->FillI2NPMessageHeader (eI2NPDatabaseLookup);
 		return m; 		  			
-	}		
-			
-	
+	}			
 
 	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
 		 std::vector<i2p::data::IdentHash> routers)
@@ -238,10 +236,18 @@ namespace i2p
 		auto size = compressor.MaxRetrievable ();
 		htobe16buf (buf, size); // size
 		buf += 2;
-		// TODO: check if size doesn't exceed buffer
-		compressor.Get (buf, size); 
-		buf += size;
 		m->len += (buf - payload); // payload size
+		if (m->len + size > m->maxLen)
+		{	
+			LogPrint (eLogInfo, "DatabaseStore message size is not enough for ", m->len + size);
+			auto newMsg = NewI2NPMessage ();
+			*newMsg = *m;
+			DeleteI2NPMessage (m);
+			m = newMsg;
+			buf = m->buf + m->len;
+		}	
+		compressor.Get (buf, size); 
+		m->len += size;
 		m->FillI2NPMessageHeader (eI2NPDatabaseStore);
 		
 		return m;
