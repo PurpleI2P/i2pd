@@ -1044,7 +1044,7 @@ namespace util
 
 	HTTPServer::HTTPServer (int port):
 		m_Thread (nullptr), m_Work (m_Service),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string("127.0.0.1"), port)),
 		m_NewSocket (nullptr)
 	{
 
