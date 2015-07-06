@@ -8,7 +8,7 @@ namespace i2p
 {
 namespace data
 {
-	I2NPMessage * RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
+	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
 		I2NPMessage * msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
@@ -16,16 +16,16 @@ namespace data
 		    &m_ExcludedPeers);
 		m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
-		return msg;
+		return ToSharedI2NPMessage (msg);
 	}	
 
-	I2NPMessage * RequestedDestination::CreateRequestMessage (const IdentHash& floodfill)
+	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (const IdentHash& floodfill)
 	{
 		I2NPMessage * msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
 			i2p::context.GetRouterInfo ().GetIdentHash () , 0, false, &m_ExcludedPeers);
 		m_ExcludedPeers.insert (floodfill);
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
-		return msg;
+		return ToSharedI2NPMessage (msg);
 	}	
 
 	void RequestedDestination::ClearExcludedPeers ()

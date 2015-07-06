@@ -60,7 +60,7 @@ namespace datagram
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
 			uint32_t i = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, leases.size () - 1);
-			auto garlic = m_Owner.WrapMessage (remote, msg, true);
+			auto garlic = m_Owner.WrapMessage (remote, ToSharedI2NPMessage (msg), true);
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
@@ -143,7 +143,7 @@ namespace datagram
 		htobe16buf (buf + 6, toPort); // destination port 
 		buf[9] = i2p::client::PROTOCOL_TYPE_DATAGRAM; // datagram protocol
 		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg, eI2NPData);
+		msg->FillI2NPMessageHeader (eI2NPData);
 		return msg;
 	}	
 }

@@ -213,17 +213,17 @@ namespace transport
 		return std::max (m_InBandwidth, m_OutBandwidth) > LOW_BANDWIDTH_LIMIT;
 	}
 
-	void Transports::SendMessage (const i2p::data::IdentHash& ident, i2p::I2NPMessage * msg)
+	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&Transports::PostMessages, this, ident, std::vector<i2p::I2NPMessage *> {msg}));                             
+		SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });                             
 	}	
 
-	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<i2p::I2NPMessage *>& msgs)
+	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}	
 
-	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<i2p::I2NPMessage *> msgs)
+	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs)
 	{
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{	
@@ -239,7 +239,7 @@ namespace transport
 			try
 			{
 				auto r = netdb.FindRouter (ident);
-				it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, nullptr,
+				it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
 					i2p::util::GetSecondsSinceEpoch () })).first;
 				connected = ConnectToPeer (ident, it->second);
 			}
@@ -247,15 +247,10 @@ namespace transport
 			{
 				LogPrint (eLogError, "Transports::PostMessages ", ex.what ());
 			}
-			if (!connected)
-			{
-				for (auto it1: msgs)
-					DeleteI2NPMessage (it1);
-				return;
-			}	
+			if (!connected) return;
 		}	
-		if (it->second.session)
-			it->second.session->SendI2NPMessages (msgs);
+		if (!it->second.sessions.empty ())
+			it->second.sessions.front ()->SendI2NPMessages (msgs);
 		else
 		{	
 			for (auto it1: msgs)
@@ -309,7 +304,7 @@ namespace transport
 				}
 			}	
 			LogPrint (eLogError, "No NTCP and SSU addresses available");
-			if (peer.session) peer.session->Done ();
+			peer.Done ();
 			m_Peers.erase (ident);
 			return false;
 		}	
@@ -436,20 +431,12 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
-				if (!it->second.session)
-				{
-					it->second.session = session;
-					session->SendI2NPMessages (it->second.delayedMessages);
-					it->second.delayedMessages.clear ();
-				}
-				else
-				{
-					LogPrint (eLogError, "Session for ", ident.ToBase64 ().substr (0, 4), " already exists");
-					session->Done ();
-				}
+				it->second.sessions.push_back (session);
+				session->SendI2NPMessages (it->second.delayedMessages);
+				it->second.delayedMessages.clear ();
 			}
 			else // incoming connection
-				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, session, i2p::util::GetSecondsSinceEpoch () }));
+				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch () }));
 		});			
 	}
 		
@@ -459,12 +446,16 @@ namespace transport
 		{  
 			auto ident = session->GetRemoteIdentity ().GetIdentHash ();
 			auto it = m_Peers.find (ident);
-			if (it != m_Peers.end () && (!it->second.session || it->second.session == session))
+			if (it != m_Peers.end ())
 			{
-				if (it->second.delayedMessages.size () > 0)
-					ConnectToPeer (ident, it->second);
-				else
-					m_Peers.erase (it);
+				it->second.sessions.remove (session);
+				if (it->second.sessions.empty ()) // TODO: why?
+				{	
+					if (it->second.delayedMessages.size () > 0)
+						ConnectToPeer (ident, it->second);
+					else
+						m_Peers.erase (it);
+				}
 			}
 		});	
 	}	
@@ -482,7 +473,7 @@ namespace transport
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Peers.begin (); it != m_Peers.end (); )
 			{
-				if (!it->second.session && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
+				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogError, "Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
 					it = m_Peers.erase (it);

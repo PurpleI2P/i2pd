@@ -80,7 +80,7 @@ namespace garlic
 				int numTags, bool attachLeaseSet);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
-			I2NPMessage * WrapSingleMessage (I2NPMessage * msg);
+			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<I2NPMessage> msg);
 			void MessageConfirmed (uint32_t msgID);
 			bool CleanupExpiredTags (); // returns true if something left 
 
@@ -126,15 +126,15 @@ namespace garlic
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);	
 			void CleanupRoutingSessions ();
 			void RemoveCreatedSession (uint32_t msgID);
-			I2NPMessage * WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
-			    I2NPMessage * msg, bool attachLeaseSet = false);
+			std::shared_ptr<I2NPMessage> WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
+			    std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
 			void DeliveryStatusSent (std::shared_ptr<GarlicRoutingSession> session, uint32_t msgID);
 			
-			virtual void ProcessGarlicMessage (I2NPMessage * msg);
-			virtual void ProcessDeliveryStatusMessage (I2NPMessage * msg);			
+			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);			
 			virtual void SetLeaseSetUpdated ();
 			
 			virtual std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet () = 0; // TODO
@@ -143,8 +143,8 @@ namespace garlic
 			
 		protected:
 
-			void HandleGarlicMessage (I2NPMessage * msg);
-			void HandleDeliveryStatusMessage (I2NPMessage * msg);			
+			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);			
 	
 		private:
 

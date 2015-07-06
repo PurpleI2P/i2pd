@@ -85,6 +85,9 @@ namespace client
 		else
 		{	
 			m_Buffer[bytes_transferred] = 0;
+			char * eol = (char *)memchr (m_Buffer, '\n', bytes_transferred);
+			if (eol)
+				*eol = 0;
 			LogPrint ("SAM handshake ", m_Buffer);
 			char * separator = strchr (m_Buffer, ' ');
 			if (separator)
@@ -340,19 +343,24 @@ namespace client
 		if (m_Session)
 		{
 			i2p::data::IdentityEx dest;
-			dest.FromBase64 (destination);
-			context.GetAddressBook ().InsertAddress (dest);
-			auto leaseSet = m_Session->localDestination->FindLeaseSet (dest.GetIdentHash ());
-			if (leaseSet)
-				Connect (leaseSet);
-			else
+			size_t len = dest.FromBase64(destination);
+			if (len > 0)
 			{
-				m_Session->localDestination->RequestDestination (dest.GetIdentHash (), 
-					std::bind (&SAMSocket::HandleConnectLeaseSetRequestComplete,
-					shared_from_this (), std::placeholders::_1));	
+				context.GetAddressBook().InsertAddress(dest);
+				auto leaseSet = m_Session->localDestination->FindLeaseSet(dest.GetIdentHash());
+				if (leaseSet)
+					Connect(leaseSet);
+				else
+				{
+					m_Session->localDestination->RequestDestination(dest.GetIdentHash(),
+						std::bind(&SAMSocket::HandleConnectLeaseSetRequestComplete,
+						shared_from_this(), std::placeholders::_1));
+				}
 			}
+			else
+				SendMessageReply(SAM_SESSION_STATUS_INVALID_KEY, strlen(SAM_SESSION_STATUS_INVALID_KEY), true);
 		}
-		else	
+		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);		
 	}
 

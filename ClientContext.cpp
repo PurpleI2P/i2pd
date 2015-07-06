@@ -295,7 +295,7 @@ namespace client
 						LogPrint (eLogError, "I2P client tunnel with port ", port, " already exists");
 					numClientTunnels++;
 				}
-				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER)
+				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP)
 				{	
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
@@ -306,7 +306,7 @@ namespace client
 					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");					
 
 					auto localDestination = LoadLocalDestination (keys, true);
-					auto serverTunnel = new I2PServerTunnel (host, port, localDestination, inPort);
+					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? new I2PServerTunnelHTTP (host, port, localDestination, inPort) : new I2PServerTunnel (host, port, localDestination, inPort);
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;

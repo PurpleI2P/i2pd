@@ -40,6 +40,7 @@ namespace client
 	const int DEFAULT_INBOUND_TUNNELS_QUANTITY = 5;
 	const char I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY[] = "outbound.quantity";
 	const int DEFAULT_OUTBOUND_TUNNELS_QUANTITY = 5;
+	const char I2CP_PARAM_EXPLICIT_PEERS[] = "explicitPeers";
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
@@ -98,8 +99,8 @@ namespace client
 
 			// override GarlicDestination
 			bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag);
-			void ProcessGarlicMessage (I2NPMessage * msg);
-			void ProcessDeliveryStatusMessage (I2NPMessage * msg);	
+			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
+			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);	
 			void SetLeaseSetUpdated ();
 
 			// I2CP
@@ -113,7 +114,7 @@ namespace client
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
 			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
-			void HandleDeliveryStatusMessage (I2NPMessage * msg);		
+			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);		
 
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request);	

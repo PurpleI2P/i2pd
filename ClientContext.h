@@ -20,6 +20,7 @@ namespace client
 	const char I2P_TUNNELS_SECTION_TYPE[] = "type";
 	const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
 	const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
+	const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
 	const char I2P_CLIENT_TUNNEL_PORT[] = "port";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
 	const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";

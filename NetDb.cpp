@@ -21,11 +21,7 @@ namespace i2p
 {
 namespace data
 {		
-#ifndef _WIN32		
-	const char NetDb::m_NetDbPath[] = "/netDb";
-#else
-	const char NetDb::m_NetDbPath[] = "\\netDb";
-#endif			
+	const char NetDb::m_NetDbPath[] = "netDb";
 	NetDb netdb;
 
 	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr)
@@ -40,7 +36,7 @@ namespace data
 
 	void NetDb::Start ()
 	{	
-		Load (m_NetDbPath);
+		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
 		{	
 			// try SU3 first
@@ -55,7 +51,7 @@ namespace data
 				{
 					m_Reseeder->reseedNow();
 					reseedRetries++;
-					Load (m_NetDbPath);
+					Load ();
 				}
 			}
 		}	
@@ -92,7 +88,7 @@ namespace data
 		{	
 			try
 			{	
-				I2NPMessage * msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
+				auto msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
 				if (msg)
 				{	
 					int numMsgs = 0;	
@@ -102,19 +98,19 @@ namespace data
 						{
 							case eI2NPDatabaseStore:	
 								LogPrint ("DatabaseStore");
-								HandleDatabaseStoreMsg (ToSharedI2NPMessage (msg));
+								HandleDatabaseStoreMsg (msg);
 							break;
 							case eI2NPDatabaseSearchReply:
 								LogPrint ("DatabaseSearchReply");
-								HandleDatabaseSearchReplyMsg (ToSharedI2NPMessage (msg));
+								HandleDatabaseSearchReplyMsg (msg);
 							break;
 							case eI2NPDatabaseLookup:
 								LogPrint ("DatabaseLookup");
-								HandleDatabaseLookupMsg (ToSharedI2NPMessage (msg));
+								HandleDatabaseLookupMsg (msg);
 							break;	
 							default: // WTF?
 								LogPrint (eLogError, "NetDb: unexpected message type ", msg->GetTypeID ());
-								i2p::HandleI2NPMessage (msg);
+								//i2p::HandleI2NPMessage (msg);
 						}	
 						if (numMsgs > 100) break;
 						msg = m_Queue.Get ();
@@ -133,7 +129,7 @@ namespace data
 				{
 					if (lastSave)
 					{
-						SaveUpdated (m_NetDbPath);
+						SaveUpdated ();
 						ManageLeaseSets ();
 					}	
 					lastSave = ts;
@@ -295,10 +291,9 @@ namespace data
 			LogPrint (eLogWarning, "Failed to reseed after 10 attempts");
 	}
 
-	void NetDb::Load (const char * directory)
+	void NetDb::Load ()
 	{
-		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
-		p /= (directory);
+		boost::filesystem::path p(i2p::util::filesystem::GetDataDir() / m_NetDbPath);
 		if (!boost::filesystem::exists (p))
 		{
 			// seems netDb doesn't exist yet
@@ -345,27 +340,15 @@ namespace data
 		LogPrint (m_Floodfills.size (), " floodfills loaded");	
 	}	
 
-	void NetDb::SaveUpdated (const char * directory)
+	void NetDb::SaveUpdated ()
 	{	
-		auto GetFilePath = [](const char * directory, const RouterInfo * routerInfo)
+		auto GetFilePath = [](const boost::filesystem::path& directory, const RouterInfo * routerInfo)
 		{
-#ifndef _WIN32
-			return std::string (directory) + "/r" +
-				routerInfo->GetIdentHashBase64 ()[0] + "/routerInfo-" +
-#else
-			return std::string (directory) + "\\r" +
-				routerInfo->GetIdentHashBase64 ()[0] + "\\routerInfo-" +
-#endif
-				routerInfo->GetIdentHashBase64 () + ".dat";
+			std::string s(routerInfo->GetIdentHashBase64());
+			return directory / (std::string("r") + s[0]) / ("routerInfo-" + s + ".dat");
 		};	
 
-		boost::filesystem::path p (i2p::util::filesystem::GetDataDir());
-		p /= (directory);
-#if BOOST_VERSION > 10500		
-		const char * fullDirectory = p.string().c_str ();
-#else
-		const char * fullDirectory = p.c_str ();
-#endif		
+		boost::filesystem::path fullDirectory (i2p::util::filesystem::GetDataDir() / m_NetDbPath);
 		int count = 0, deletedCount = 0;
 		auto total = m_RouterInfos.size ();
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -373,7 +356,8 @@ namespace data
 		{	
 			if (it.second->IsUpdated ())
 			{
-				it.second->SaveToFile (GetFilePath(fullDirectory, it.second.get ()));
+				std::string f = GetFilePath(fullDirectory, it.second.get()).string();
+				it.second->SaveToFile (f);
 				it.second->SetUpdated (false);
 				it.second->SetUnreachable (false);
 				it.second->DeleteBuffer ();
@@ -469,7 +453,7 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<I2NPMessage> m)
+	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> m)
 	{	
 		const uint8_t * buf = m->GetPayload ();
 		size_t len = m->GetSize ();		
@@ -495,32 +479,26 @@ namespace data
 				if (outbound)
 					outbound->SendTunnelDataMsg (buf + offset, tunnelID, deliveryStatus);
 				else
-				{
 					LogPrint (eLogError, "No outbound tunnels for DatabaseStore reply found");
-					DeleteI2NPMessage (deliveryStatus);
-				}
 			}		
 			offset += 32;
 
 			if (context.IsFloodfill ())
 			{
 				// flood it
+				auto floodMsg = ToSharedI2NPMessage (NewI2NPShortMessage ());
+				uint8_t * payload = floodMsg->GetPayload ();		
+				memcpy (payload, buf, 33); // key + type
+				htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
+				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
+				floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
+				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
 				std::set<IdentHash> excluded;
 				for (int i = 0; i < 3; i++)
 				{
 					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
-					{
-						excluded.insert (floodfill->GetIdentHash ());	
-						auto floodMsg = NewI2NPShortMessage ();
-						uint8_t * payload = floodMsg->GetPayload ();		
-						memcpy (payload, buf, 33); // key + type
-						htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
-						memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
-						floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
-						FillI2NPMessageHeader (floodMsg, eI2NPDatabaseStore);
 						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
-					}	
 				}	
 			}	
 		}
@@ -562,9 +540,9 @@ namespace data
 		}	
 	}	
 
-	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<I2NPMessage> msg)
+	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
-		uint8_t * buf = msg->GetPayload ();
+		const uint8_t * buf = msg->GetPayload ();
 		char key[48];
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
@@ -597,7 +575,7 @@ namespace data
 									{ 
 										i2p::tunnel::eDeliveryTypeRouter,
 										nextFloodfill->GetIdentHash (), 0,
-										CreateDatabaseStoreMsg () 
+										ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) 
 									});  
 								
 								// request destination
@@ -633,7 +611,7 @@ namespace data
 		// try responses
 		for (int i = 0; i < num; i++)
 		{
-			uint8_t * router = buf + 33 + i*32;
+			const uint8_t * router = buf + 33 + i*32;
 			char peerHash[48];
 			int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
 			peerHash[l1] = 0;
@@ -651,9 +629,9 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::HandleDatabaseLookupMsg (std::shared_ptr<I2NPMessage> msg)
+	void NetDb::HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
-		uint8_t * buf = msg->GetPayload ();
+		const uint8_t * buf = msg->GetPayload ();
 		IdentHash ident (buf);
 		if (ident.IsZero ())
 		{
@@ -666,7 +644,7 @@ namespace data
 		uint8_t flag = buf[64];
 		LogPrint ("DatabaseLookup for ", key, " recieved flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
-		uint8_t * excluded = buf + 65;		
+		const uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
 		{
@@ -681,7 +659,7 @@ namespace data
 			numExcluded = 0; // TODO:
 		} 
 		
-		I2NPMessage * replyMsg = nullptr;
+		std::shared_ptr<I2NPMessage> replyMsg;
 		if (lookupType == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP)
 		{
 			LogPrint ("Exploratory close to  ", key, " ", numExcluded, " excluded");
@@ -701,7 +679,7 @@ namespace data
 					excludedRouters.insert (r->GetIdentHash ());
 				}	
 			}	
-			replyMsg = CreateDatabaseSearchReply (ident, routers);
+			replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, routers));
 		}	
 		else
 		{	
@@ -714,7 +692,7 @@ namespace data
 					LogPrint ("Requested RouterInfo ", key, " found");
 					router->LoadBuffer ();
 					if (router->GetBuffer ()) 
-						replyMsg = CreateDatabaseStoreMsg (router);
+						replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (router));
 				}
 			}
 			
@@ -725,35 +703,20 @@ namespace data
 				if (leaseSet) // we don't send back our LeaseSets
 				{
 					LogPrint ("Requested LeaseSet ", key, " found");
-					replyMsg = CreateDatabaseStoreMsg (leaseSet);
+					replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (leaseSet));
 				}
 			}
 			
 			if (!replyMsg)
 			{
 				LogPrint ("Requested ", key, " not found. ", numExcluded, " excluded");
-				std::vector<IdentHash> routers;
-				if (numExcluded > 0)
-				{	
-					std::set<IdentHash> excludedRouters;
-					for (int i = 0; i < numExcluded; i++)
-					{
-						excludedRouters.insert (excluded);
-						excluded += 32;
-					}		
-					for (int i = 0; i < 3; i++)
-					{
-						auto floodfill = GetClosestFloodfill (ident, excludedRouters);
-						if (floodfill)
-						{	
-							routers.push_back (floodfill->GetIdentHash ());
-							excludedRouters.insert (floodfill->GetIdentHash ());
-						}	
-					}	
-				}	
-				else
-					routers = GetClosestFloodfills (ident, 3);
-				replyMsg = CreateDatabaseSearchReply (ident, routers);
+				std::set<IdentHash> excludedRouters;	
+				for (int i = 0; i < numExcluded; i++)
+				{
+					excludedRouters.insert (excluded);
+					excluded += 32;
+				}
+				replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters)));
 			}
 		}
 		
@@ -764,11 +727,11 @@ namespace data
 				// encryption might be used though tunnel only
 				if (flag & DATABASE_LOOKUP_ENCYPTION_FLAG) // encrypted reply requested
 				{
-					uint8_t * sessionKey = excluded;
+					const uint8_t * sessionKey = excluded;
 					uint8_t numTags = sessionKey[32];
 					if (numTags > 0) 
 					{
-						uint8_t * sessionTag = sessionKey + 33; // take first tag
+						const uint8_t * sessionTag = sessionKey + 33; // take first tag
 						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
 						replyMsg = garlic.WrapSingleMessage (replyMsg);
 					}
@@ -819,7 +782,7 @@ namespace data
 						{ 
 							i2p::tunnel::eDeliveryTypeRouter,
 							floodfill->GetIdentHash (), 0,
-							CreateDatabaseStoreMsg () // tell floodfill about us 
+							ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) // tell floodfill about us 
 						});  
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 						{ 
@@ -848,7 +811,7 @@ namespace data
 			{
 				uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation (), ". reply token=", replyToken);
-				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));	
+				transports.SendMessage (floodfill->GetIdentHash (), ToSharedI2NPMessage (CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken)));	
 				excluded.insert (floodfill->GetIdentHash ());
 			}
 		}	
@@ -927,7 +890,7 @@ namespace data
 		return nullptr; // seems we have too few routers
 	}	
 	
-	void NetDb::PostI2NPMsg (I2NPMessage * msg)
+	void NetDb::PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		if (msg) m_Queue.Put (msg);	
 	}	
@@ -955,7 +918,8 @@ namespace data
 		return r;
 	}	
 
-	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num) const
+	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num,
+		std::set<IdentHash>& excluded) const
 	{
 		struct Sorted
 		{
@@ -990,8 +954,12 @@ namespace data
 		{
 			if (i < num)
 			{
-				res.push_back (it.r->GetIdentHash ());
-				i++;
+				auto& ident = it.r->GetIdentHash ();
+				if (!excluded.count (ident))
+				{	
+					res.push_back (ident);
+					i++;
+				}
 			}
 			else
 				break;

@@ -783,7 +783,7 @@ namespace transport
 			m_DHKeysPair = nullptr;
 		}
 		m_Data.Start ();
-		m_Data.Send (CreateDatabaseStoreMsg ());
+		m_Data.Send (ToSharedI2NPMessage(CreateDatabaseStoreMsg ()));
 		transports.PeerConnected (shared_from_this ());
 		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
 			SendPeerTest ();
@@ -832,38 +832,17 @@ namespace transport
 		}
 	}	
 
-	void SSUSession::SendI2NPMessage (I2NPMessage * msg)
-	{
-		GetService ().post (std::bind (&SSUSession::PostI2NPMessage, shared_from_this (), msg)); 
-	}	
-
-	void SSUSession::PostI2NPMessage (I2NPMessage * msg)
-	{
-		if (msg)
-		{
-			if (m_State == eSessionStateEstablished)
-				m_Data.Send (msg);
-			else
-				DeleteI2NPMessage (msg);   
-		}
-	}		
-
-	void SSUSession::SendI2NPMessages (const std::vector<I2NPMessage *>& msgs)
+	void SSUSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		GetService ().post (std::bind (&SSUSession::PostI2NPMessages, shared_from_this (), msgs));    
 	}
 
-	void SSUSession::PostI2NPMessages (std::vector<I2NPMessage *> msgs)
+	void SSUSession::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
 		if (m_State == eSessionStateEstablished)
 		{
 			for (auto it: msgs)
 				if (it) m_Data.Send (it);
-		}
-		else
-		{
-			for (auto it: msgs)
-				DeleteI2NPMessage (it);
 		}
 	}	
 

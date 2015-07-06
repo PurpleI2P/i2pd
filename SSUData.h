@@ -59,13 +59,12 @@ namespace transport
 	
 	struct IncompleteMessage
 	{
-		I2NPMessage * msg;
+		std::shared_ptr<I2NPMessage> msg;
 		int nextFragmentNum;	
 		uint32_t lastFragmentInsertTime; // in seconds
 		std::set<std::unique_ptr<Fragment>, FragmentCmp> savedFragments;
 		
-		IncompleteMessage (I2NPMessage * m): msg (m), nextFragmentNum (0), lastFragmentInsertTime (0) {};
-		~IncompleteMessage () { if (msg) DeleteI2NPMessage (msg); };
+		IncompleteMessage (std::shared_ptr<I2NPMessage> m): msg (m), nextFragmentNum (0), lastFragmentInsertTime (0) {};
 		void AttachNextFragment (const uint8_t * fragment, size_t fragmentSize);	
 	};
 
@@ -89,7 +88,7 @@ namespace transport
 			
 			void ProcessMessage (uint8_t * buf, size_t len);
 			void FlushReceivedMessage ();
-			void Send (i2p::I2NPMessage * msg);
+			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
 
 			void UpdatePacketSize (const i2p::data::IdentHash& remoteIdent);
 

@@ -71,8 +71,7 @@ namespace transport
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
-			virtual void SendI2NPMessage (I2NPMessage * msg) = 0;
-			virtual void SendI2NPMessages (const std::vector<I2NPMessage *>& msgs) = 0;
+			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			
 		protected:
 

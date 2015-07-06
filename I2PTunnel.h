@@ -5,6 +5,7 @@
 #include <string>
 #include <set>
 #include <memory>
+#include <sstream>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "Destination.h"
@@ -27,19 +28,20 @@ namespace client
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API :)
+				std::shared_ptr<i2p::stream::Stream> stream); // to I2P using simplified API 
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,  std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 				const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
 			~I2PTunnelConnection ();
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
 			void Connect ();
 			
-		private:
+		protected:
 
 			void Terminate ();	
 
 			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);	
+			virtual void Write (const uint8_t * buf, size_t len); // can be overloaded
 			void HandleWrite (const boost::system::error_code& ecode);	
 
 			void StreamReceive ();
@@ -53,6 +55,25 @@ namespace client
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
 			bool m_IsQuiet; // don't send destination
+	};
+
+	class I2PTunnelConnectionHTTP: public I2PTunnelConnection
+	{
+		public:
+			
+			I2PTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+				std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
+				const boost::asio::ip::tcp::endpoint& target, const std::string& host); 
+
+		protected:
+
+			void Write (const uint8_t * buf, size_t len);
+
+		private:
+		
+			std::string m_Host;
+			std::stringstream m_InHeader, m_OutHeader;
+			bool m_HeaderSent;
 	};
 
 	class I2PClientTunnel: public TCPIPAcceptor
@@ -92,17 +113,39 @@ namespace client
 
 			void SetAccessList (const std::set<i2p::data::IdentHash>& accessList); 
 
+			const std::string& GetAddress() const { return m_Address; }
+			int GetPort () const { return m_Port; };
+			const boost::asio::ip::tcp::endpoint& GetEndpoint () const { return m_Endpoint; }
+
 		private:
+
+			void HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
+				std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
 
 			void Accept ();
 			void HandleAccept (std::shared_ptr<i2p::stream::Stream> stream);
+			virtual void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
 
+			std::string m_Address;
+			int m_Port;
 			boost::asio::ip::tcp::endpoint m_Endpoint;	
 			std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;
 			std::set<i2p::data::IdentHash> m_AccessList;
 			bool m_IsAccessList;			
+	};
+
+	class I2PServerTunnelHTTP: public I2PServerTunnel
+	{
+		public:
+
+			I2PServerTunnelHTTP (const std::string& address, int port, 
+				std::shared_ptr<ClientDestination> localDestination, int inport = 0);	
+
+		private:
+
+			void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);	
 	};
 }
 }	

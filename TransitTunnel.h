@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <vector>
 #include <mutex>
+#include <memory>
 #include "aes.h"
 #include "I2NPProtocol.h"
 #include "TunnelEndpoint.h"
@@ -27,9 +28,9 @@ namespace tunnel
 			uint32_t GetTunnelID () const { return m_TunnelID; };
 
 			// implements TunnelBase
-			void SendTunnelDataMsg (i2p::I2NPMessage * msg);
-			void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
-			void EncryptTunnelMsg (I2NPMessage * tunnelMsg); 
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
+			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 
 			uint32_t GetNextTunnelID () const { return m_NextTunnelID; };
 			const i2p::data::IdentHash& GetNextIdentHash () const { return m_NextIdent; };
 			
@@ -53,13 +54,13 @@ namespace tunnel
 			~TransitTunnelParticipant ();
 
 			size_t GetNumTransmittedBytes () const { return m_NumTransmittedBytes; };
-			void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
 			void FlushTunnelDataMsgs ();
 
 		private:
 
 			size_t m_NumTransmittedBytes;
-			std::vector<i2p::I2NPMessage *> m_TunnelDataMsgs;
+			std::vector<std::shared_ptr<i2p::I2NPMessage> > m_TunnelDataMsgs;
 	};	
 	
 	class TransitTunnelGateway: public TransitTunnel
@@ -72,7 +73,7 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, 
 				layerKey, ivKey), m_Gateway(this) {};
 
-			void SendTunnelDataMsg (i2p::I2NPMessage * msg);
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
 			void FlushTunnelDataMsgs ();
 			size_t GetNumTransmittedBytes () const { return m_Gateway.GetNumSentBytes (); };
 			
@@ -92,7 +93,7 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
 				m_Endpoint (false) {}; // transit endpoint is always outbound
 
-			void HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg);
+			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
 			size_t GetNumTransmittedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 			
 		private:

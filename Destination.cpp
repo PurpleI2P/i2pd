@@ -24,6 +24,7 @@ namespace client
 		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
 		int outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
 		if (params)
 		{
 			auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
@@ -66,8 +67,24 @@ namespace client
 					LogPrint (eLogInfo, "Outbound tunnels quantity set to ", quantity);
 				}	
 			}
+			it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
+			if (it != params->end ())
+			{
+				explicitPeers = std::make_shared<std::vector<i2p::data::IdentHash> >();
+				std::stringstream ss(it->second);
+				std::string b64;
+				while (std::getline (ss, b64, ','))
+				{
+					i2p::data::IdentHash ident;
+					ident.FromBase64 (b64);
+					explicitPeers->push_back (ident);
+				}
+				LogPrint (eLogInfo, "Explicit peers set to ", it->second);
+			}
 		}	
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
+		if (explicitPeers)
+			m_Pool->SetExplicitPeers (explicitPeers);
 		if (m_IsPublic)
 			LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
 		m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (*this); // TODO:
@@ -198,12 +215,12 @@ namespace client
 		return true;
 	}
 
-	void ClientDestination::ProcessGarlicMessage (I2NPMessage * msg)
+	void ClientDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		m_Service.post (std::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
 	}
 
-	void ClientDestination::ProcessDeliveryStatusMessage (I2NPMessage * msg)
+	void ClientDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		m_Service.post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
 	}
@@ -216,6 +233,10 @@ namespace client
 			case eI2NPData:
 				HandleDataMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;
+			case eI2NPDeliveryStatus:
+				// we assume tunnel tests non-encrypted
+				HandleDeliveryStatusMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
+			break;	
 			case eI2NPDatabaseStore:
 				HandleDatabaseStoreMessage (buf + I2NP_HEADER_SIZE, bufbe16toh (buf + I2NP_HEADER_SIZE_OFFSET));
 			break;
@@ -326,7 +347,7 @@ namespace client
 			LogPrint ("Request for ", key.ToBase64 (), " not found");
 	}	
 		
-	void ClientDestination::HandleDeliveryStatusMessage (I2NPMessage * msg)
+	void ClientDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
 		if (msgID == m_PublishReplyToken)
@@ -334,7 +355,6 @@ namespace client
 			LogPrint (eLogDebug, "Publishing confirmed");
 			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
-			i2p::DeleteI2NPMessage (msg);
 		}
 		else
 			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msg);
@@ -377,7 +397,7 @@ namespace client
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		m_PublishReplyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));			
+		auto msg = WrapMessage (floodfill, ToSharedI2NPMessage (i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken)));			
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&ClientDestination::HandlePublishConfirmationTimer,
 			this, std::placeholders::_1));	
@@ -565,9 +585,9 @@ namespace client
 			rnd.GenerateBlock (replyTag, 32); // random session tag
 			AddSessionKey (replyKey, replyTag);
 
-			I2NPMessage * msg = WrapMessage (nextFloodfill,
-				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
-					replyTunnel.get (), replyKey, replyTag));
+			auto msg = WrapMessage (nextFloodfill,
+				ToSharedI2NPMessage (CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
+					replyTunnel.get (), replyKey, replyTag)));
 			outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock 

@@ -22,7 +22,7 @@ namespace stream
 	{
 		m_RecvStreamID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 		m_RemoteIdentity = remote->GetIdentity ();
-		UpdateCurrentRemoteLease ();
+		m_CurrentRemoteLease.endDate = 0;
 	}	
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
@@ -761,9 +761,9 @@ namespace stream
 			m_CurrentRemoteLease.endDate = 0;
 	}	
 
-	I2NPMessage * Stream::CreateDataMessage (const uint8_t * payload, size_t len)
+	std::shared_ptr<I2NPMessage> Stream::CreateDataMessage (const uint8_t * payload, size_t len)
 	{
-		I2NPMessage * msg = NewI2NPShortMessage ();
+		auto msg = ToSharedI2NPMessage (NewI2NPShortMessage ());
 		CryptoPP::Gzip compressor;
 		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
 			compressor.SetDeflateLevel (CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
@@ -780,7 +780,7 @@ namespace stream
 		htobe16buf (buf + 6, m_Port); // destination port 
 		buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
 		msg->len += size + 4; 
-		FillI2NPMessageHeader (msg, eI2NPData);
+		msg->FillI2NPMessageHeader (eI2NPData);
 		
 		return msg;
 	}	

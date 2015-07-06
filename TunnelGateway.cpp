@@ -10,10 +10,16 @@ namespace i2p
 {
 namespace tunnel
 {
+	TunnelGatewayBuffer::TunnelGatewayBuffer (uint32_t tunnelID): m_TunnelID (tunnelID), 
+				m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0) 
+	{
+		context.GetRandomNumberGenerator ().GenerateBlock (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
+		for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
+			if (!m_NonZeroRandomBuffer[i]) m_NonZeroRandomBuffer[i] = 1;
+	}
+
 	TunnelGatewayBuffer::~TunnelGatewayBuffer ()
 	{
-		for (auto it: m_TunnelDataMsgs)
-			DeleteI2NPMessage (it);
 	}	
 	
 	void TunnelGatewayBuffer::PutI2NPMsg (const TunnelMessageBlock& block)
@@ -42,7 +48,7 @@ namespace tunnel
 		di[0] = block.deliveryType << 5; // set delivery type
 
 		// create fragments
-		I2NPMessage * msg = block.data;
+		std::shared_ptr<I2NPMessage> msg = block.data;
 		auto fullMsgLen = diLen + msg->GetLength () + 2; // delivery instructions + payload + 2 bytes length
 		if (fullMsgLen <= m_RemainingSize)
 		{
@@ -55,7 +61,6 @@ namespace tunnel
 			m_RemainingSize -= diLen + msg->GetLength ();
 			if (!m_RemainingSize)
 				CompleteCurrentTunnelDataMessage ();
-			DeleteI2NPMessage (msg);
 		}	
 		else
 		{
@@ -119,7 +124,6 @@ namespace tunnel
 					size += s;
 					fragmentNumber++;
 				}
-				DeleteI2NPMessage (msg);
 			}	
 			else
 			{
@@ -138,7 +142,7 @@ namespace tunnel
 
 	void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage ()
 	{
-		m_CurrentTunnelDataMsg = NewI2NPShortMessage ();
+		m_CurrentTunnelDataMsg = ToSharedI2NPMessage (NewI2NPShortMessage ());
 		m_CurrentTunnelDataMsg->Align (12);
 		// we reserve space for padding
 		m_CurrentTunnelDataMsg->offset += TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE;
@@ -164,13 +168,17 @@ namespace tunnel
 		payload[-1] = 0; // zero	
 		ptrdiff_t paddingSize = payload - buf - 25; // 25  = 24 + 1 
 		if (paddingSize > 0)
-			memset (buf + 24, 1, paddingSize); // padding TODO: fill with random data
+		{
+			// non-zero padding 
+			auto randomOffset = rnd.GenerateWord32 (0, TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize);
+			memcpy (buf + 24, m_NonZeroRandomBuffer + randomOffset, paddingSize); 
+		}
 
 		// we can't fill message header yet because encryption is required
 		m_TunnelDataMsgs.push_back (m_CurrentTunnelDataMsg);
 		m_CurrentTunnelDataMsg = nullptr;
 	}	
-	
+
 	void TunnelGateway::SendTunnelDataMsg (const TunnelMessageBlock& block)
 	{
 		if (block.data)
@@ -192,8 +200,8 @@ namespace tunnel
 		auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto tunnelMsg : tunnelMsgs)
 		{	
-			m_Tunnel->EncryptTunnelMsg (tunnelMsg);
-			FillI2NPMessageHeader (tunnelMsg, eI2NPTunnelData);
+			m_Tunnel->EncryptTunnelMsg (tunnelMsg, tunnelMsg); 
+			tunnelMsg->FillI2NPMessageHeader (eI2NPTunnelData); 
 			m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
 		}	
 		i2p::transport::transports.SendMessages (m_Tunnel->GetNextIdentHash (), tunnelMsgs);

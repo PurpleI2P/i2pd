@@ -9,7 +9,6 @@
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
-#include <cryptopp/adler32.h>
 #include "aes.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -62,13 +61,11 @@ namespace transport
 			
 			void ClientLogin ();
 			void ServerLogin ();
-			void SendI2NPMessage (I2NPMessage * msg);
-			void SendI2NPMessages (const std::vector<I2NPMessage *>& msgs);
+			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			
 		private:
 
-			void PostI2NPMessage (I2NPMessage * msg);
-			void PostI2NPMessages (std::vector<I2NPMessage *> msgs);
+			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void Connected ();
 			void SendTimeSyncMessage ();
 			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }
@@ -97,10 +94,10 @@ namespace transport
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			bool DecryptNextBlock (const uint8_t * encrypted);	
 		
-			void Send (i2p::I2NPMessage * msg);
-			boost::asio::const_buffers_1 CreateMsgBuffer (I2NPMessage * msg);
-			void Send (const std::vector<I2NPMessage *>& msgs);
-			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<I2NPMessage *> msgs);
+			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
+			boost::asio::const_buffers_1 CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg);
+			void Send (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
+			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			
 			
 			// timer
@@ -116,7 +113,6 @@ namespace transport
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;
-			CryptoPP::Adler32 m_Adler;
 
 			struct Establisher
 			{	
@@ -128,12 +124,12 @@ namespace transport
 			i2p::crypto::AESAlignedBuffer<16> m_TimeSyncBuffer;
 			int m_ReceiveBufferOffset; 
 
-			i2p::I2NPMessage * m_NextMessage;
+			std::shared_ptr<I2NPMessage> m_NextMessage;
 			size_t m_NextMessageOffset;
 			i2p::I2NPMessagesHandler m_Handler;
 
 			bool m_IsSending;
-			std::vector<I2NPMessage *> m_SendQueue;
+			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
 			
 			boost::asio::ip::address m_ConnectedFrom; // for ban
 	};	

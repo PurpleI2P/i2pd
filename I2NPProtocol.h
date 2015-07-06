@@ -138,6 +138,7 @@ namespace tunnel
 		
 		// payload
 		uint8_t * GetPayload () { return GetBuffer () + I2NP_HEADER_SIZE; };
+		const uint8_t * GetPayload () const { return GetBuffer () + I2NP_HEADER_SIZE; };
 		uint8_t * GetBuffer () { return buf + offset; };
 		const uint8_t * GetBuffer () const { return buf + offset; };
 		size_t GetLength () const { return len - offset; };	
@@ -183,6 +184,9 @@ namespace tunnel
 			len = offset + I2NP_SHORT_HEADER_SIZE + bufbe16toh (header + I2NP_HEADER_SIZE_OFFSET);
 			return bufbe32toh (header + I2NP_HEADER_MSGID_OFFSET);
 		}	
+
+		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0);
+		void RenewI2NPMessageHeader ();
 	};	
 
 	template<int sz>
@@ -198,12 +202,10 @@ namespace tunnel
 	void DeleteI2NPMessage (I2NPMessage * msg);
 	std::shared_ptr<I2NPMessage> ToSharedI2NPMessage (I2NPMessage * msg);
 	
-	void FillI2NPMessageHeader (I2NPMessage * msg, I2NPMessageType msgType, uint32_t replyMsgID = 0);
-	void RenewI2NPMessageHeader (I2NPMessage * msg);
 	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
-	I2NPMessage * CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
+	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
 	
-	I2NPMessage * CreateDeliveryStatusMsg (uint32_t msgID);
+	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID);
 	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
 	I2NPMessage * CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
@@ -221,27 +223,28 @@ namespace tunnel
 
 	I2NPMessage * CreateTunnelDataMsg (const uint8_t * buf);	
 	I2NPMessage * CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);		
+	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ();
 	
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
 	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
 		const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
-	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessage * msg);
+	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, std::shared_ptr<I2NPMessage> msg);
 
 	size_t GetI2NPMessageLength (const uint8_t * msg);
 	void HandleI2NPMessage (uint8_t * msg, size_t len);
-	void HandleI2NPMessage (I2NPMessage * msg);
+	void HandleI2NPMessage (std::shared_ptr<I2NPMessage> msg);
 
 	class I2NPMessagesHandler
 	{
 		public:
 
 			~I2NPMessagesHandler ();
-			void PutNextMessage (I2NPMessage * msg);
+			void PutNextMessage (std::shared_ptr<I2NPMessage> msg);
 			void Flush ();
 			
 		private:
 
-			std::vector<I2NPMessage *> m_TunnelMsgs, m_TunnelGatewayMsgs;
+			std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs, m_TunnelGatewayMsgs;
 	};
 }	
 

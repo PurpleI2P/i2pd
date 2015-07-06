@@ -31,7 +31,7 @@ namespace tunnel
 		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		auto numHops = m_Config->GetNumHops ();
 		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops; 
-		I2NPMessage * msg = NewI2NPShortMessage ();
+		auto msg = NewI2NPShortMessage ();
 		*msg->GetPayload () = numRecords;
 		msg->len += numRecords*TUNNEL_BUILD_RECORD_SIZE + 1;		
 
@@ -77,13 +77,13 @@ namespace tunnel
 			}	
 			hop = hop->prev;
 		}	
-		FillI2NPMessageHeader (msg, eI2NPVariableTunnelBuild);
+		msg->FillI2NPMessageHeader (eI2NPVariableTunnelBuild);
 
 		// send message
 		if (outboundTunnel)
-			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);	
+			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, ToSharedI2NPMessage (msg));	
 		else
-			i2p::transport::transports.SendMessage (GetNextIdentHash (), msg);
+			i2p::transport::transports.SendMessage (GetNextIdentHash (), ToSharedI2NPMessage (msg));
 	}	
 		
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
@@ -140,32 +140,34 @@ namespace tunnel
 		return established;
 	}	
 
-	void Tunnel::EncryptTunnelMsg (I2NPMessage * tunnelMsg)
+	void Tunnel::EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out)
 	{
-		uint8_t * payload = tunnelMsg->GetPayload () + 4;
+		const uint8_t * inPayload = in->GetPayload () + 4;
+		uint8_t * outPayload = out->GetPayload () + 4;
 		TunnelHopConfig * hop = m_Config->GetLastHop (); 
 		while (hop)
 		{	
-			hop->decryption.Decrypt (payload);
+			hop->decryption.Decrypt (inPayload, outPayload);
 			hop = hop->prev;
+			inPayload = outPayload;	
 		}
 	}	
 
-	void Tunnel::SendTunnelDataMsg (i2p::I2NPMessage * msg)
+	void Tunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		LogPrint (eLogInfo, "Can't send I2NP messages without delivery instructions");	
-		DeleteI2NPMessage (msg);
 	}	
 
-	void InboundTunnel::HandleTunnelDataMsg (I2NPMessage * msg)
+	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
-		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive			
-		msg->from = shared_from_this ();
-		EncryptTunnelMsg (msg);
-		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);	
+		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive	
+		auto newMsg = CreateEmptyTunnelDataMsg ();
+		EncryptTunnelMsg (msg, newMsg);
+		newMsg->from = shared_from_this ();
+		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);	
 	}	
 
-	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, i2p::I2NPMessage * msg)
+	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
 		if (gwHash)
@@ -195,10 +197,9 @@ namespace tunnel
 		m_Gateway.SendBuffer ();
 	}	
 	
-	void OutboundTunnel::HandleTunnelDataMsg (i2p::I2NPMessage * tunnelMsg)
+	void OutboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
 		LogPrint (eLogError, "Incoming message for outbound tunnel ", GetTunnelID ());
-		DeleteI2NPMessage (tunnelMsg);	
 	}
 
 	Tunnels tunnels;
@@ -352,7 +353,7 @@ namespace tunnel
 		{
 			try
 			{	
-				I2NPMessage * msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
+				auto msg = m_Queue.GetNextWithTimeout (1000); // 1 sec
 				if (msg)
 				{	
 					uint32_t prevTunnelID = 0, tunnelID = 0;
@@ -383,27 +384,18 @@ namespace tunnel
 									else // tunnel gateway assumed
 										HandleTunnelGatewayMsg (tunnel, msg);
 								}
-								else	
-								{	
+								else		
 									LogPrint (eLogWarning, "Tunnel ", tunnelID, " not found");
-									DeleteI2NPMessage (msg);
-								}	
 								break;
 							}	
 							case eI2NPVariableTunnelBuild:		
 							case eI2NPVariableTunnelBuildReply:
 							case eI2NPTunnelBuild:
 							case eI2NPTunnelBuildReply:	
-							{
 								HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
-								DeleteI2NPMessage (msg);
-								break;
-							}	
+							break;	
 							default:
-							{
 								LogPrint (eLogError, "Unexpected  messsage type ", (int)typeID);
-								DeleteI2NPMessage (msg);
-							}	
 						}
 							
 						msg = m_Queue.Get ();
@@ -432,12 +424,11 @@ namespace tunnel
 		}	
 	}	
 
-	void Tunnels::HandleTunnelGatewayMsg (TunnelBase * tunnel, I2NPMessage * msg)
+	void Tunnels::HandleTunnelGatewayMsg (TunnelBase * tunnel, std::shared_ptr<I2NPMessage> msg)
 	{
 		if (!tunnel)
 		{
 			LogPrint (eLogError, "Missing tunnel for TunnelGateway");
-			i2p::DeleteI2NPMessage (msg);
 			return;
 		}
 		const uint8_t * payload = msg->GetPayload ();
@@ -449,13 +440,9 @@ namespace tunnel
 		LogPrint (eLogDebug, "TunnelGateway of ", (int)len, " bytes for tunnel ", tunnel->GetTunnelID (), ". Msg type ", (int)typeID);
 			
 		if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply)
-		{
 			// transit DatabaseStore my contain new/updated RI 
 			// or DatabaseSearchReply with new routers
-			auto ds = NewI2NPMessage ();
-			*ds = *msg;
-			i2p::data::netdb.PostI2NPMsg (ds);
-		}	
+			i2p::data::netdb.PostI2NPMsg (msg);	
 		tunnel->SendTunnelDataMsg (msg);
 	}
 
@@ -661,12 +648,12 @@ namespace tunnel
 		}
 	}	
 	
-	void Tunnels::PostTunnelData (I2NPMessage * msg)
+	void Tunnels::PostTunnelData (std::shared_ptr<I2NPMessage> msg)
 	{
 		if (msg) m_Queue.Put (msg);		
 	}	
 
-	void Tunnels::PostTunnelData (const std::vector<I2NPMessage *>& msgs)
+	void Tunnels::PostTunnelData (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
 		m_Queue.Put (msgs);
 	}	

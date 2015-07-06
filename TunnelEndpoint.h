@@ -22,7 +22,7 @@ namespace tunnel
 		{
 			uint8_t fragmentNum;
 			bool isLastFragment;
-			I2NPMessage * data;
+			std::shared_ptr<I2NPMessage> data;
 		};	
 		
 		public:
@@ -31,14 +31,14 @@ namespace tunnel
 			~TunnelEndpoint ();
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			
-			void HandleDecryptedTunnelDataMsg (I2NPMessage * msg);
+			void HandleDecryptedTunnelDataMsg (std::shared_ptr<I2NPMessage> msg);
 
 		private:
 
 			void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, const TunnelMessageBlockEx& m);
 			void HandleNextMessage (const TunnelMessageBlock& msg);
 
-			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, I2NPMessage * data);
+			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, std::shared_ptr<I2NPMessage> data);
 			void HandleOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg);
 			
 		private:			

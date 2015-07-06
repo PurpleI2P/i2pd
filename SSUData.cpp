@@ -15,9 +15,8 @@ namespace transport
 		if (msg->len + fragmentSize > msg->maxLen)
 		{
 			LogPrint (eLogInfo, "SSU I2NP message size ", msg->maxLen, " is not enough");
-			I2NPMessage * newMsg = NewI2NPMessage ();
+			auto newMsg = ToSharedI2NPMessage(NewI2NPMessage ());
 			*newMsg = *msg;
-			DeleteI2NPMessage (msg);
 			msg = newMsg;
 		}
 		memcpy (msg->buf + msg->len, fragment, fragmentSize);
@@ -174,7 +173,7 @@ namespace transport
 			if (it == m_IncompleteMessages.end ()) 
 			{
 				// create new message
-				auto msg = NewI2NPShortMessage ();
+				auto msg = ToSharedI2NPMessage (NewI2NPShortMessage ());
 				msg->len -= I2NP_SHORT_HEADER_SIZE;
 				it = m_IncompleteMessages.insert (std::make_pair (msgID, 
 					std::unique_ptr<IncompleteMessage>(new IncompleteMessage (msg)))).first;
@@ -244,10 +243,7 @@ namespace transport
 						m_Handler.PutNextMessage (msg);
 					}	
 					else
-					{
 						LogPrint (eLogWarning, "SSU message ", msgID, " already received");						
-						i2p::DeleteI2NPMessage (msg);
-					}	
 				}	
 				else
 				{
@@ -259,7 +255,6 @@ namespace transport
 					}	
 					else
 						LogPrint (eLogError, "SSU unexpected message ", (int)msg->GetTypeID ());
-					DeleteI2NPMessage (msg);
 				}	
 			}	
 			else
@@ -294,13 +289,12 @@ namespace transport
 		ProcessFragments (buf);
 	}
 
-	void SSUData::Send (i2p::I2NPMessage * msg)
+	void SSUData::Send (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		uint32_t msgID = msg->ToSSU ();
 		if (m_SentMessages.count (msgID) > 0)
 		{
 			LogPrint (eLogWarning, "SSU message ", msgID, " already sent");
-			DeleteI2NPMessage (msg);
 			return;
 		}	
 		if (m_SentMessages.empty ()) // schedule resend at first message only
@@ -368,7 +362,6 @@ namespace transport
 				len = 0;
 			fragmentNum++;
 		}	
-		DeleteI2NPMessage (msg);
 	}		
 
 	void SSUData::SendMsgAck (uint32_t msgID)
