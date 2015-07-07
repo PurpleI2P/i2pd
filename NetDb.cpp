@@ -575,7 +575,7 @@ namespace data
 									{ 
 										i2p::tunnel::eDeliveryTypeRouter,
 										nextFloodfill->GetIdentHash (), 0,
-										ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) 
+										CreateDatabaseStoreMsg () 
 									});  
 								
 								// request destination
@@ -679,7 +679,7 @@ namespace data
 					excludedRouters.insert (r->GetIdentHash ());
 				}	
 			}	
-			replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, routers));
+			replyMsg = CreateDatabaseSearchReply (ident, routers);
 		}	
 		else
 		{	
@@ -692,7 +692,7 @@ namespace data
 					LogPrint ("Requested RouterInfo ", key, " found");
 					router->LoadBuffer ();
 					if (router->GetBuffer ()) 
-						replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (router));
+						replyMsg = CreateDatabaseStoreMsg (router);
 				}
 			}
 			
@@ -703,7 +703,7 @@ namespace data
 				if (leaseSet) // we don't send back our LeaseSets
 				{
 					LogPrint ("Requested LeaseSet ", key, " found");
-					replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (leaseSet));
+					replyMsg = CreateDatabaseStoreMsg (leaseSet);
 				}
 			}
 			
@@ -716,7 +716,7 @@ namespace data
 					excludedRouters.insert (excluded);
 					excluded += 32;
 				}
-				replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters)));
+				replyMsg = CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters));
 			}
 		}
 		
@@ -782,7 +782,7 @@ namespace data
 						{ 
 							i2p::tunnel::eDeliveryTypeRouter,
 							floodfill->GetIdentHash (), 0,
-							ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) // tell floodfill about us 
+							CreateDatabaseStoreMsg () // tell floodfill about us 
 						});  
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 						{ 
@@ -811,7 +811,7 @@ namespace data
 			{
 				uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
 				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation (), ". reply token=", replyToken);
-				transports.SendMessage (floodfill->GetIdentHash (), ToSharedI2NPMessage (CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken)));	
+				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));	
 				excluded.insert (floodfill->GetIdentHash ());
 			}
 		}	

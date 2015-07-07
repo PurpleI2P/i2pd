@@ -243,8 +243,7 @@ namespace garlic
 				m_LeaseSetSubmissionTime = i2p::util::GetMillisecondsSinceEpoch ();
 				// clove if our leaseSet must be attached
 				auto leaseSet = CreateDatabaseStoreMsg (m_Owner->GetLeaseSet ());
-				size += CreateGarlicClove (payload + size, leaseSet, false);
-				DeleteI2NPMessage (leaseSet);
+				size += CreateGarlicClove (payload + size, leaseSet.get (), false); //TODO
 				(*numCloves)++;
 			}
 		}	

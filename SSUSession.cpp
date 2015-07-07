@@ -783,7 +783,7 @@ namespace transport
 			m_DHKeysPair = nullptr;
 		}
 		m_Data.Start ();
-		m_Data.Send (ToSharedI2NPMessage(CreateDatabaseStoreMsg ()));
+		m_Data.Send (CreateDatabaseStoreMsg ());
 		transports.PeerConnected (shared_from_this ());
 		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
 			SendPeerTest ();

@@ -106,10 +106,10 @@ namespace i2p
 		return ToSharedI2NPMessage (m);
 	}
 
-	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
+	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
-		I2NPMessage * m = excludedPeers ? NewI2NPMessage () : NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (excludedPeers ? NewI2NPMessage () : NewI2NPShortMessage ());
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, key, 32); // key
 		buf += 32;
@@ -151,12 +151,12 @@ namespace i2p
 		return m; 
 	}	
 
-	I2NPMessage * CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
+	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
 		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
 	{
 		int cnt = excludedFloodfills.size ();
-		I2NPMessage * m = cnt > 0 ? NewI2NPMessage () : NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (cnt > 0 ? NewI2NPMessage () : NewI2NPShortMessage ());
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, dest, 32); // key
 		buf += 32;
@@ -188,10 +188,10 @@ namespace i2p
 		return m; 		  			
 	}			
 
-	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
+	std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
 		 std::vector<i2p::data::IdentHash> routers)
 	{
-		I2NPMessage * m = NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (NewI2NPShortMessage ());
 		uint8_t * buf = m->GetPayload ();
 		size_t len = 0;
 		memcpy (buf, ident, 32);
@@ -210,12 +210,12 @@ namespace i2p
 		return m; 
 	}	
 	
-	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, uint32_t replyToken)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, uint32_t replyToken)
 	{
 		if (!router) // we send own RouterInfo
 			router = context.GetSharedRouterInfo ();
 
-		I2NPMessage * m = NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (NewI2NPShortMessage ());
 		uint8_t * payload = m->GetPayload ();		
 
 		memcpy (payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash (), 32);
@@ -240,9 +240,8 @@ namespace i2p
 		if (m->len + size > m->maxLen)
 		{	
 			LogPrint (eLogInfo, "DatabaseStore message size is not enough for ", m->len + size);
-			auto newMsg = NewI2NPMessage ();
+			auto newMsg =  ToSharedI2NPMessage (NewI2NPMessage ());
 			*newMsg = *m;
-			DeleteI2NPMessage (m);
 			m = newMsg;
 			buf = m->buf + m->len;
 		}	
@@ -253,10 +252,10 @@ namespace i2p
 		return m;
 	}	
 
-	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet,  uint32_t replyToken)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet,  uint32_t replyToken)
 	{
 		if (!leaseSet) return nullptr;
-		I2NPMessage * m = NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (NewI2NPShortMessage ());
 		uint8_t * payload = m->GetPayload ();	
 		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash (), 32);
 		payload[DATABASE_STORE_TYPE_OFFSET] = 1; // LeaseSet
