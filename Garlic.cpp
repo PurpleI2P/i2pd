@@ -107,7 +107,7 @@ namespace garlic
 		return !m_SessionTags.empty () || m_UnconfirmedTagsMsgs.empty ();
  	}
 
-	std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage (std::shared_ptr<I2NPMessage> msg)
+	std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
 		auto m = ToSharedI2NPMessage(NewI2NPMessage ());
 		m->Align (12); // in order to get buf aligned to 16 (12 + 4)
@@ -164,14 +164,14 @@ namespace garlic
 			len += 32;		
 		}	
 		// AES block
-		len += CreateAESBlock (buf, msg.get ()); // TODO
+		len += CreateAESBlock (buf, msg);
 		htobe32buf (m->GetPayload (), len);
 		m->len += len + 4;
 		m->FillI2NPMessageHeader (eI2NPGarlic);
 		return m;
 	}	
 
-	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, const I2NPMessage * msg)
+	size_t GarlicRoutingSession::CreateAESBlock (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg)
 	{
 		size_t blockSize = 0;
 		bool createNewTags = m_Owner && m_NumTags && ((int)m_SessionTags.size () <= m_NumTags*2/3);
@@ -203,7 +203,7 @@ namespace garlic
 		return blockSize;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, UnconfirmedTags * newTags)
+	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, std::shared_ptr<const I2NPMessage> msg, UnconfirmedTags * newTags)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		uint32_t msgID = m_Rnd.GenerateWord32 ();	
@@ -243,7 +243,7 @@ namespace garlic
 				m_LeaseSetSubmissionTime = i2p::util::GetMillisecondsSinceEpoch ();
 				// clove if our leaseSet must be attached
 				auto leaseSet = CreateDatabaseStoreMsg (m_Owner->GetLeaseSet ());
-				size += CreateGarlicClove (payload + size, leaseSet.get (), false); //TODO
+				size += CreateGarlicClove (payload + size, leaseSet, false); 
 				(*numCloves)++;
 			}
 		}	
@@ -262,7 +262,7 @@ namespace garlic
 		return size;
 	}	
 
-	size_t GarlicRoutingSession::CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination)
+	size_t GarlicRoutingSession::CreateGarlicClove (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg, bool isDestination)
 	{
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
 		size_t size = 0;

@@ -80,7 +80,7 @@ namespace garlic
 				int numTags, bool attachLeaseSet);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
-			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<I2NPMessage> msg);
+			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 			void MessageConfirmed (uint32_t msgID);
 			bool CleanupExpiredTags (); // returns true if something left 
 
@@ -91,9 +91,9 @@ namespace garlic
 			
 		private:
 
-			size_t CreateAESBlock (uint8_t * buf, const I2NPMessage * msg);
-			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, UnconfirmedTags * newTags);
-			size_t CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination);
+			size_t CreateAESBlock (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg);
+			size_t CreateGarlicPayload (uint8_t * payload, std::shared_ptr<const I2NPMessage> msg, UnconfirmedTags * newTags);
+			size_t CreateGarlicClove (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg, bool isDestination);
 			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
 
 			void TagsConfirmed (uint32_t msgID);
