@@ -1,6 +1,7 @@
 UNAME := $(shell uname -s)
 SHLIB := libi2pd.so
 I2PD  := i2p
+TESTS := tests/tests
 GREP := fgrep
 DEPS := obj/make.dep
 
@@ -22,10 +23,11 @@ else # win32
 	DAEMON_SRC += DaemonWin32.cpp
 endif
 
-all: mk_build_dir $(SHLIB) $(I2PD)
+all: mk_build_dir $(SHLIB) $(I2PD) $(TESTS)
 
 mk_build_dir:
 	mkdir -p obj
+	mkdir -p obj/tests
 
 api: $(SHLIB)
 
@@ -38,11 +40,13 @@ api: $(SHLIB)
 
 deps:
 	@mkdir -p obj
+	@mkdir -p obj/tests
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
 obj/%.o : %.cpp
 	@mkdir -p obj
+	@mkdir -p obj/tests
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
@@ -56,9 +60,13 @@ ifneq ($(USE_STATIC),yes)
 	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
 endif
 
+$(TESTS): $(patsubst %.cpp,obj/%.o,$(TESTS_SRC))
+	$(CXX) -o $@ $^ $(LDLIBS) $(LDTESTLIBS) $(LDFLAGS)
+
+
 clean:
 	rm -rf obj
-	$(RM) $(I2PD) $(SHLIB)
+	$(RM) $(I2PD) $(SHLIB) $(TESTS)
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 master)
 dist:
