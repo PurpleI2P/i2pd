@@ -5,6 +5,7 @@ router.keys
 i2p
 libi2pd.so
 netDb
+tunnels.cfg
 
 # Autotools
 autom4te.cache

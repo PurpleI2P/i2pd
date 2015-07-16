@@ -15,6 +15,8 @@ namespace i2p
 namespace transport
 {
 #pragma pack(1)
+    // Warning: do not change the order of these variables
+    // (or fix the unsafe casts in SSU.h)
 	struct SSUHeader
 	{
 		uint8_t mac[16];

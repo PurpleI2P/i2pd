@@ -353,7 +353,7 @@ namespace i2p
 		}
 		else
 		{
-			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE];	
+			uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE] = {};
 			if (HandleBuildRequestRecords (num, buf + 1, clearText))
 			{
 				if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) // we are endpoint of outboud tunnel

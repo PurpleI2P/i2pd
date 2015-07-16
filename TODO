@@ -1,0 +1,9 @@
+Short-term refactoring:
+    - SSUSession:637, SSUSession:635 get rid of casting to SSUHeader
+
+Long-term refactoring:
+    - Rely on a library for TLS and SSL.
+
+Additions:
+    - Write tests.
+    - Add documentation.

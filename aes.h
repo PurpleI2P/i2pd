@@ -140,7 +140,13 @@ namespace crypto
 	{
 		public:
 	
-			CBCEncryption () { memset (m_LastBlock.buf, 0, 16); };
+		    CBCEncryption () { memset (m_LastBlock.buf, 0, 16); };
+			CBCEncryption(const AESKey& key, const uint8_t* iv)
+                : CBCEncryption()
+            {
+                SetKey(key);
+                SetIV(iv);
+            };
 
 			void SetKey (const AESKey& key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
 			void SetIV (const uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
