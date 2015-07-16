@@ -87,6 +87,7 @@ namespace data
 			
 			RouterInfo (const std::string& fullPath);
 			RouterInfo (): m_Buffer (nullptr) { };
+
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);

@@ -287,7 +287,7 @@ namespace data
 		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
 		if (m_Caps & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable
 
-		SetProperty ("caps", caps.c_str ());
+		SetProperty ("caps", caps);
 	}
 		
 	void RouterInfo::WriteToStream (std::ostream& s)

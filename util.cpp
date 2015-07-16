@@ -472,7 +472,7 @@ namespace http
 			try{
 				port_ = boost::lexical_cast<decltype(port_)>(portstr_);
 			}
-			catch (std::exception e) {
+			catch (const std::exception& e) {
 				port_ = 80;
 			}
 		}

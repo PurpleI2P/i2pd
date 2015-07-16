@@ -53,6 +53,8 @@ namespace i2p
 		class DaemonLinux : public Daemon_Singleton
 		{
 		public:
+            DeamonLinux() = default;
+
 			static DaemonLinux& Instance()
 			{
 				static DaemonLinux instance;
@@ -61,9 +63,9 @@ namespace i2p
 
 			virtual bool start();
 			virtual bool stop();
-                private:
-                       std::string pidfile;
-                       int pidFilehandle;
+         private:
+                std::string pidfile;
+                int pidFilehandle;
 
 		};
 #endif
