@@ -52,16 +52,22 @@ namespace util
         int httpRequestViaI2pProxy(const std::string& address, std::string &content); // return http code
         std::string urlDecode(const std::string& data);
         
+        /**
+         * Provides functionality for parsing URLs.
+         */
         struct url {
-                url(const std::string& url_s); // omitted copy, ==, accessors, ...
-            private:
-                void parse(const std::string& url_s);
-            public:
-                std::string protocol_, host_, path_, query_;
-                std::string portstr_;
-                unsigned int port_;
-                std::string user_;
-                std::string pass_;
+            /**
+             * Parse a url given as a string.
+             */
+            url(const std::string& url_s);
+        private:
+            void parse(const std::string& url_s);
+        public:
+            std::string protocol_, host_, path_, query_;
+            std::string portstr_;
+            unsigned int port_;
+            std::string user_;
+            std::string pass_;
         };
     }
 

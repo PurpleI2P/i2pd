@@ -48,12 +48,12 @@ http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
     {
         switch (af)
         {
-        case AF_INET:
-            *(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
-            return 1;
-        case AF_INET6:
-            *(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
-            return 1;
+            case AF_INET:
+                *(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+                return 1;
+            case AF_INET6:
+                *(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+                return 1;
         }
     }
     return 0;
@@ -62,15 +62,15 @@ http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
 
 namespace i2p
 {
-namespace util
-{
+    namespace util
+    {
 
-namespace config
-{
-    std::map<std::string, std::string> mapArgs;
-    std::map<std::string, std::vector<std::string> > mapMultiArgs;
+        namespace config
+        {
+            std::map<std::string, std::string> mapArgs;
+            std::map<std::string, std::vector<std::string> > mapMultiArgs;
 
-    void OptionParser(int argc, const char* const argv[])
+            void OptionParser(int argc, const char* const argv[])
     {
         mapArgs.clear();
         mapMultiArgs.clear();
