@@ -1,9 +1,12 @@
 Short-term refactoring:
     - SSUSession:637, SSUSession:635 get rid of casting to SSUHeader
-    - Idenity.cpp:156 check for self asignment
+    - Identity.cpp:156 check for self asignment
 
 Long-term refactoring:
     - Rely on a library for TLS and SSL.
+    - Move parsing code out of networking code, to allow better testing. 
+    - Separate front-end code (SAM, BOB, ...) from the back-end.
+
 
 Additions:
     - Write tests.
