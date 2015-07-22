@@ -43,8 +43,8 @@ const std::string& Log::GetTimestamp ()
 
 void Log::Flush ()
 {
-	if (m_LogStream)
-		m_LogStream->flush();
+    if (m_LogStream)
+        m_LogStream->flush();
 }
 
 void Log::SetLogFile (const std::string& fullFilePath)

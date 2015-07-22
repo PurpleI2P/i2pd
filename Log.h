@@ -32,19 +32,19 @@ struct LogMsg
 
 class Log: public i2p::util::MsgQueue<LogMsg>
 {
-	public:
+    public:
 
-		Log (): m_LogStream (nullptr) { SetOnEmpty (std::bind (&Log::Flush, this)); };
-		~Log () { delete m_LogStream; };
+        Log (): m_LogStream (nullptr) { SetOnEmpty (std::bind (&Log::Flush, this)); };
+        ~Log () { delete m_LogStream; };
 
 		void SetLogFile (const std::string& fullFilePath);
 		void SetLogStream (std::ostream * logStream);
 		std::ostream * GetLogStream () const { return m_LogStream; };
 		const std::string& GetTimestamp ();
 
-	private:
+    private:
 
-		void Flush ();
+        void Flush ();
 
 	private:
 
@@ -99,14 +99,14 @@ inline void StopLog ()
 template<typename TValue>
 void LogPrint (std::stringstream& s, TValue arg)
 {
-	s << arg;
+    s << arg;
 }
 
 template<typename TValue, typename... TArgs>
 void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
 {
-	LogPrint (s, arg);
-	LogPrint (s, args...);
+    LogPrint (s, arg);
+    LogPrint (s, args...);
 }
 
 template<typename... TArgs>

@@ -21,22 +21,22 @@ namespace i2p
 {
 namespace transport
 {
-	class UPnP
-	{
-	public:
+    class UPnP
+    {
+    public:
 
-		UPnP ();
-		~UPnP ();
+        UPnP ();
+        ~UPnP ();
         void Close ();
 
         void Start ();
         void Stop ();
 
-		void Discover ();
-		void TryPortMapping (int type, int port);
-		void CloseMapping (int type, int port);
-	private:
-		void Run ();
+        void Discover ();
+        void TryPortMapping (int type, int port);
+        void CloseMapping (int type, int port);
+    private:
+        void Run ();
 
         std::thread * m_Thread;
         struct UPNPUrls m_upnpUrls;
@@ -54,7 +54,7 @@ namespace transport
 #else
         HINSTANCE m_Module;
 #endif
-	};
+    };
 }
 }
 

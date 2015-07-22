@@ -23,3 +23,6 @@ DAEMON_SRC = $(COMMON_SRC) \
 
 LIB_SRC := $(COMMON_SRC) \
   api.cpp
+
+TESTS_SRC := $(COMMON_SRC)  \
+	tests/Utility.cpp tests/Identity.cpp

@@ -11,20 +11,20 @@ namespace i2p
 {
 namespace proxy
 {
-	class SOCKSServer: public i2p::client::TCPIPAcceptor
-	{
-		public:
+    class SOCKSServer: public i2p::client::TCPIPAcceptor
+    {
+        public:
 
-			SOCKSServer(int port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
-			~SOCKSServer() {};
+            SOCKSServer(int port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
+            ~SOCKSServer() {};
 
-		protected:
-			// Implements TCPIPAcceptor
-			std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			const char* GetName() { return "SOCKS"; }
-	};
+        protected:
+            // Implements TCPIPAcceptor
+            std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+            const char* GetName() { return "SOCKS"; }
+    };
 
-	typedef SOCKSServer SOCKSProxy;
+    typedef SOCKSServer SOCKSProxy;
 }
 }
 

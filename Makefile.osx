@@ -4,6 +4,7 @@ CXXFLAGS = -g -Wall -std=c++11 -DCRYPTOPP_DISABLE_ASM -DMAC_OSX
 INCFLAGS = -I/usr/local/include
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 LDLIBS = -lcryptopp -lboost_system -lboost_date_time -lboost_filesystem -lboost_regex -lboost_program_options -lpthread
+LDTESTLIBS = -lboost_unit_test_framework
 
 ifeq ($(USE_UPNP),1)
   LDFLAGS += -ldl

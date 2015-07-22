@@ -59,12 +59,12 @@ struct LittleEndian
         return t;
     }
 
-	const T operator = (const T t)
-	{
-		for (unsigned i = 0; i < sizeof(T); i++)
-			bytes[sizeof(T)-1 - i] = static_cast<unsigned char>(t >> (i << 3));
-		return t;
-	}
+    const T operator = (const T t)
+    {
+        for (unsigned i = 0; i < sizeof(T); i++)
+            bytes[sizeof(T)-1 - i] = static_cast<unsigned char>(t >> (i << 3));
+        return t;
+    }
 
     // operators
 

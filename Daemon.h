@@ -9,63 +9,65 @@
 
 namespace i2p
 {
-	namespace util
-	{
-		class Daemon_Singleton_Private;
-		class Daemon_Singleton
-		{
-		public:
-			virtual bool init(int argc, char* argv[]);
-			virtual bool start();
-			virtual bool stop();
+    namespace util
+    {
+        class Daemon_Singleton_Private;
+        class Daemon_Singleton
+        {
+        public:
+            virtual bool init(int argc, char* argv[]);
+            virtual bool start();
+            virtual bool stop();
 
-			int isLogging;
-			int isDaemon;
-			
-			int running;
+            int isLogging;
+            int isDaemon;
+            
+            int running;
 
-		protected:
-			Daemon_Singleton();
-			virtual ~Daemon_Singleton();
+        protected:
+            Daemon_Singleton();
+            virtual ~Daemon_Singleton();
 
-			bool IsService () const;				
+            bool IsService () const;                
 
-			// d-pointer for httpServer, httpProxy, etc.
-			class Daemon_Singleton_Private;
-			Daemon_Singleton_Private &d;
-		};
+            // d-pointer for httpServer, httpProxy, etc.
+            class Daemon_Singleton_Private;
+            Daemon_Singleton_Private &d;
+        };
 
 #ifdef _WIN32
-		class DaemonWin32 : public Daemon_Singleton
-		{
-		public:
-			static DaemonWin32& Instance()
-			{
-				static DaemonWin32 instance;
-				return instance;
-			}
+        class DaemonWin32 : public Daemon_Singleton
+        {
+        public:
+            static DaemonWin32& Instance()
+            {
+                static DaemonWin32 instance;
+                return instance;
+            }
 
-			virtual bool init(int argc, char* argv[]);
-			virtual bool start();
-			virtual bool stop();
-		};
+            virtual bool init(int argc, char* argv[]);
+            virtual bool start();
+            virtual bool stop();
+        };
 #else
-		class DaemonLinux : public Daemon_Singleton
-		{
-		public:
-			static DaemonLinux& Instance()
-			{
-				static DaemonLinux instance;
-				return instance;
-			}
+        class DaemonLinux : public Daemon_Singleton
+        {
+        public:
+            DaemonLinux() = default;
 
-			virtual bool start();
-			virtual bool stop();
-                private:
-                       std::string pidfile;
-                       int pidFilehandle;
+            static DaemonLinux& Instance()
+            {
+                static DaemonLinux instance;
+                return instance;
+            }
 
-		};
+            virtual bool start();
+            virtual bool stop();
+         private:
+                std::string pidfile;
+                int pidFilehandle;
+
+        };
 #endif
-	}
+    }
 }
