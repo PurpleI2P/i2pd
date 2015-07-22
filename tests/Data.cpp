@@ -1,0 +1,49 @@
+#define BOOST_TEST_DYN_LINK
+
+#include <boost/test/unit_test.hpp>
+#include "../Identity.h"
+
+BOOST_AUTO_TEST_SUITE(DataTests)
+
+using namespace i2p::data;
+
+BOOST_AUTO_TEST_CASE(Base64EncodeEmpty)
+{
+    ByteStreamToBase64(nullptr, 0, nullptr, 0);
+}
+
+BOOST_AUTO_TEST_CASE(Base64DecodeEmpty)
+{
+    Base64ToByteStream(nullptr, 0, nullptr, 0);
+}
+
+BOOST_AUTO_TEST_CASE(Base64Encode)
+{
+    const uint8_t input[] = {
+        0x53, 0xd3, 0x60, 0xfa, 0xf9, 0x58, 0xd0, 0x5e, 0x41, 0xa9, 0x6c,
+        0xf1, 0x9f, 0xc4, 0xe, 0x23, 0x9b, 0xca, 0xb1, 0x61, 0xa7, 0x33, 0xcf,
+        0x1f, 0x30
+    };
+    const char* output = "U9Ng-vlY0F5BqWzxn8QOI5vKsWGnM88fMA==";
+    char result[36];
+    ByteStreamToBase64(input, 25, result, 36);
+    BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 36, output, output + 36);
+}
+
+BOOST_AUTO_TEST_CASE(Base64Decode)
+{
+    const char* input = "U9Ng-vlY0F5BqWzxn8QOI5vKsWGnM88fMA==";
+    const uint8_t output[] = {
+        0x53, 0xd3, 0x60, 0xfa, 0xf9, 0x58, 0xd0, 0x5e, 0x41, 0xa9, 0x6c,
+        0xf1, 0x9f, 0xc4, 0xe, 0x23, 0x9b, 0xca, 0xb1, 0x61, 0xa7, 0x33, 0xcf,
+        0x1f, 0x30
+    };
+    uint8_t result[25];
+    Base64ToByteStream(input, 36, result, 25);
+    BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 25, output, output + 25);
+}
+
+
+
+
+BOOST_AUTO_TEST_SUITE_END()
