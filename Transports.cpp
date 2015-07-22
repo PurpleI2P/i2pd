@@ -491,10 +491,14 @@ namespace transport
 
     std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
     {
-        CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-        auto it = m_Peers.begin ();
-        std::advance (it, rnd.GenerateWord32 (0, m_Peers.size () - 1)); 
-        return it != m_Peers.end () ? it->second.router : nullptr;
+        if(m_Peers.empty()) // ensure m.Peers.size() >= 1
+            return nullptr;
+
+        CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator();
+        auto it = m_Peers.begin();
+        std::advance(it, rnd.GenerateWord32(0, m_Peers.size () - 1));
+
+        return it->second.router;
     }
 }
 }
