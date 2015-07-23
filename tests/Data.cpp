@@ -26,8 +26,10 @@ BOOST_AUTO_TEST_CASE(Base64Encode)
     };
     const char* output = "U9Ng-vlY0F5BqWzxn8QOI5vKsWGnM88fMA==";
     char result[36];
-    ByteStreamToBase64(input, 25, result, 36);
+    const size_t size = ByteStreamToBase64(input, 25, result, 36);
+
     BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 36, output, output + 36);
+    BOOST_CHECK_EQUAL(size, 36);
 }
 
 BOOST_AUTO_TEST_CASE(Base64Decode)
@@ -39,8 +41,10 @@ BOOST_AUTO_TEST_CASE(Base64Decode)
         0x1f, 0x30
     };
     uint8_t result[25];
-    Base64ToByteStream(input, 36, result, 25);
+    const size_t size = Base64ToByteStream(input, 36, result, 25);
+
     BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 25, output, output + 25);
+    BOOST_CHECK_EQUAL(size, 25);
 }
 
 BOOST_AUTO_TEST_CASE(Base32EncodeEmpty)
@@ -62,8 +66,10 @@ BOOST_AUTO_TEST_CASE(Base32Encode)
     };
     const char* output = "kpjwb6xzldif4qnjntyz7raoeon4vmlbu4z46hzq";
     char result[40];
-    ByteStreamToBase32(input, 25, result, 40);
+    const size_t size = ByteStreamToBase32(input, 25, result, 40);
+
     BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 40, output, output + 40);
+    BOOST_CHECK_EQUAL(size, 40);
 }
 
 BOOST_AUTO_TEST_CASE(Base32Decode)
@@ -75,8 +81,9 @@ BOOST_AUTO_TEST_CASE(Base32Decode)
         0x1f, 0x30
     };
     uint8_t result[25];
-    Base32ToByteStream(input, 40, result, 25);
+    const size_t size = Base32ToByteStream(input, 40, result, 25);
     BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 25, output, output + 25);
+    BOOST_CHECK_EQUAL(size, 25);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
