@@ -33,16 +33,14 @@ namespace data
     }   
     
     /*
-    * Reverse Substitution Table (built in run time)
-    */
-
+     * Reverse Substitution Table (built in run time)
+     */
     static char iT64[256];
     static int isFirstTime = 1;
 
     /*
     * Padding 
     */
-
     static char P64 = '='; 
 
 
@@ -168,7 +166,6 @@ namespace data
     *
     *
     */
-
     static void iT64Build()
     {
         int  i;
@@ -208,6 +205,9 @@ namespace data
 
     size_t ByteStreamToBase32 (const uint8_t * inBuf, size_t len, char * outBuf, size_t outLen)
     {
+        if(!len)
+            return 0; // No data given
+
         size_t ret = 0, pos = 1;
         int bits = 8, tmp = inBuf[0];
         while (ret < outLen && (bits > 0 || pos < len))
