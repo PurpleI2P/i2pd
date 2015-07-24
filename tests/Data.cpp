@@ -47,6 +47,20 @@ BOOST_AUTO_TEST_CASE(Base64Decode)
     BOOST_CHECK_EQUAL(size, 25);
 }
 
+BOOST_AUTO_TEST_CASE(Base64EncodeBufferTooSmall)
+{
+    const uint8_t input[] = {0x53, 0xd3};
+    char result[3];
+    BOOST_CHECK_EQUAL(ByteStreamToBase64(input, 2, result, 3), 0);
+}
+
+BOOST_AUTO_TEST_CASE(Base64DecodeBufferTooSmall)
+{
+    const char* input = "U9M=";
+    uint8_t result[1];
+    BOOST_CHECK_EQUAL(Base64ToByteStream(input, 4, result, 1), 0);
+}
+
 BOOST_AUTO_TEST_CASE(Base32EncodeEmpty)
 {
     BOOST_CHECK_EQUAL(ByteStreamToBase32(nullptr, 0, nullptr, 0), 0);
@@ -84,6 +98,20 @@ BOOST_AUTO_TEST_CASE(Base32Decode)
     const size_t size = Base32ToByteStream(input, 40, result, 25);
     BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 25, output, output + 25);
     BOOST_CHECK_EQUAL(size, 25);
+}
+
+BOOST_AUTO_TEST_CASE(Base32EncodeBufferTooSmall)
+{
+    const uint8_t input[] = {0x53, 0xd3};
+    char result[3];
+    BOOST_CHECK_EQUAL(ByteStreamToBase64(input, 2, result, 3), 0);
+}
+
+BOOST_AUTO_TEST_CASE(Base32DecodeBufferTooSmall)
+{
+    const char* input = "kpjq";
+    uint8_t result[1];
+    BOOST_CHECK_EQUAL(Base64ToByteStream(input, 4, result, 1), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
