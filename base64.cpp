@@ -33,35 +33,18 @@ namespace data
     }   
     
     /*
-    * Reverse Substitution Table (built in run time)
-    */
-
+     * Reverse Substitution Table (built in run time)
+     */
     static char iT64[256];
     static int isFirstTime = 1;
 
     /*
     * Padding 
     */
-
     static char P64 = '='; 
 
-    /*
-    *
-    * ByteStreamToBase64
-    * ------------------
-    *
-    * Converts binary encoded data to BASE64 format.
-    *
-    */
 
-    size_t                                /* Number of bytes in the encoded buffer */
-    ByteStreamToBase64 ( 
-            const uint8_t * InBuffer,           /* Input buffer, binary data */
-            size_t    InCount,              /* Number of bytes in the input buffer */ 
-            char  * OutBuffer,          /* output buffer */
-        size_t len             /* length of output buffer */                 
-    )
-
+    size_t ByteStreamToBase64(const uint8_t* InBuffer, size_t InCount, char* OutBuffer, size_t len)
     {
         unsigned char * ps;
         unsigned char * pd;
@@ -124,23 +107,8 @@ namespace data
         return outCount;
     }
 
-    /*
-    *
-    * Base64ToByteStream
-    * ------------------
-    *
-    * Converts BASE64 encoded data to binary format. If input buffer is
-    * not properly padded, buffer of negative length is returned
-    *
-    */
 
-    size_t                              /* Number of output bytes */
-    Base64ToByteStream ( 
-              const char * InBuffer,           /* BASE64 encoded buffer */
-              size_t    InCount,          /* Number of input bytes */
-              uint8_t  * OutBuffer, /* output buffer length */  
-          size_t len            /* length of output buffer */
-    )
+    size_t Base64ToByteStream(const char * InBuffer, size_t InCount, uint8_t* OutBuffer, size_t len)
     {
         unsigned char * ps;
         unsigned char * pd;
@@ -154,7 +122,7 @@ namespace data
         if (isFirstTime) iT64Build();
         n = InCount/4;
         m = InCount%4;
-        if (!m) 
+        if(InCount && !m) 
              outCount = 3*n;
         else {
              outCount = 0;
@@ -165,7 +133,7 @@ namespace data
         while ( *ps-- == P64 ) outCount--;
         ps = (unsigned char *)InBuffer;
         
-        if (outCount > len) return -1;
+        if (outCount > len) return 0;
         pd = OutBuffer;
         auto endOfOutBuffer = OutBuffer + outCount;     
         for ( i = 0; i < n; i++ ){
@@ -198,7 +166,6 @@ namespace data
     *
     *
     */
-
     static void iT64Build()
     {
         int  i;
@@ -238,6 +205,9 @@ namespace data
 
     size_t ByteStreamToBase32 (const uint8_t * inBuf, size_t len, char * outBuf, size_t outLen)
     {
+        if(!len)
+            return 0; // No data given
+
         size_t ret = 0, pos = 1;
         int bits = 8, tmp = inBuf[0];
         while (ret < outLen && (bits > 0 || pos < len))
