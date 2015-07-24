@@ -133,7 +133,7 @@ namespace data
         while ( *ps-- == P64 ) outCount--;
         ps = (unsigned char *)InBuffer;
         
-        if (outCount > len) return -1;
+        if (outCount > len) return 0;
         pd = OutBuffer;
         auto endOfOutBuffer = OutBuffer + outCount;     
         for ( i = 0; i < n; i++ ){
