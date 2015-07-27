@@ -5,7 +5,7 @@
 #include "NetDb.h"
 #include "Timestamp.h"
 #include "Garlic.h"
-#include "Transports.h"
+#include "transport/Transports.h"
 #include "TunnelPool.h"
 
 namespace i2p

@@ -15,7 +15,7 @@
 #include "Daemon.h"
 #include "Tunnel.h"
 #include "Timestamp.h"
-#include "Transports.h"
+#include "transport/Transports.h"
 #include "version.h"
 
 namespace i2p
