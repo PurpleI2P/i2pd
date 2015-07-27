@@ -66,6 +66,18 @@ After that, go to the webconsole and add it behind the url. (Remove http:// from
 This should resulting in for example:
 http://localhost:7070/4oes3rlgrpbkmzv4lqcfili23h3cvpwslqcfjlk6vvguxyggspwa.b32.i2p
 
+Building Unit Tests
+-------------------
+
+To build unit tests, you'll need to install the boost unit test framework.
+
+On Ubuntu/Debian based
+ * sudo apt-get install libboost-test-dev
+ 
+To build the tests, run
+
+$ make tests
+
 
 Cmdline options
 ---------------
@@ -73,6 +85,7 @@ Cmdline options
 * --host=               - The external IP (deprecated). 
 * --port=               - The port to listen on
 * --httpport=           - The http port to listen on
+* --httpaddress=        - The ip address for the HTTP server, 127.0.0.1 by default
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
@@ -80,9 +93,12 @@ Cmdline options
 * --floodfill=          - 1 if router is floodfill, off by default
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O if not. Always O if floodfill, otherwise L by default.
 * --httpproxyport=      - The port to listen on (HTTP Proxy)
+* --httpproxyaddress=   - The address to listen on (HTTP Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy)
+* --socksproxyaddress=  - The address to listen on (SOCKS Proxy)
 * --proxykeys=          - optional keys file for proxy's local destination
 * --ircport=            - The local port of IRC tunnel to listen on. 6668 by default
+* --irchost=            - The adddress of IRC tunnel to listen on, 127.0.0.1 by default
 * --ircdest=            - I2P destination address of IRC server. For example irc.postman.i2p
 * --irckeys=            - optional keys file for tunnel's local destination 
 * --eepkeys=            - File name containing destination keys, for example privKeys.dat.
@@ -90,8 +106,11 @@ Cmdline options
 * --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default
 * --eepport=            - Port incoming trafic forward to. 80 by default
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
+* --samhost=            - Address of SAM bridge, 127.0.0.1 by default (only used if SAM is on)
 * --bobport=            - Port of BOB command channel. Usually 2827. BOB is off if not specified
+* --bobaddress=         - Address of BOB service, 127.0.0.1 by default (only used if BOB is on)
 * --i2pcontrolport=     - Port of I2P control service. Usually 7650. I2PControl is off if not specified
+* --i2pcontroladdress=  - Address of I2P control service, 127.0.0.1 by default (only used if I2PControl is on)
 * --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
@@ -110,34 +129,35 @@ i2p.conf:
 
 tunnels.cfg (filename of this config is subject of change):
 
-  ; outgoing tunnel sample, to remote service   
-  ; mandatory parameters:   
-  ; * type -- always "client"  
-  ; * port -- local port to listen to   
-  ; * destination -- i2p hostname   
-  ; optional parameters (may be omitted)   
-  ; * keys -- our identity, if unset, will be generated on every startup,   
-  ;     if set and file missing, keys will be generated and placed to this file   
-	[IRC]   
-	type = client   
-	port = 6668   
-	destination = irc.echelon.i2p   
-	keys = irc-keys.dat   
-   
-  ; incoming tunnel sample, for local service   
-  ; mandatory parameters:   
-  ; * type -- always "server"   
-  ; * host -- ip address of our service   
-  ; * port -- port of our service   
-  ; * keys -- file with LeaseSet of address in i2p   
-  ; optional parameters (may be omitted)   
-  ; * inport -- optional, i2p service port, if unset - the same as 'port'   
-  ; * accesslist -- comma-separated list of i2p addresses, allowed to connect   
-  ;    every address is b32 without '.b32.i2p' part   
-	[LOCALSITE]   
-	type = server   
-	host = 127.0.0.1   
-	port = 80   
-	keys = site-keys.dat   
-	inport = 81   
-	accesslist = <b32>[,<b32>]   
+    ; outgoing tunnel sample, to remote service
+    ; mandatory parameters:
+    ; * type -- always "client"
+    ; * port -- local port to listen to
+    ; * destination -- i2p hostname
+    ; optional parameters (may be omitted)
+    ; * keys -- our identity, if unset, will be generated on every startup,
+    ;     if set and file missing, keys will be generated and placed to this file
+    ; * address -- address to listen on, 127.0.0.1 by default
+    [IRC]
+    type = client
+    port = 6668
+    destination = irc.echelon.i2p
+    keys = irc-keys.dat
+     
+    ; incoming tunnel sample, for local service
+    ; mandatory parameters:
+    ; * type -- always "server"
+    ; * host -- ip address of our service
+    ; * port -- port of our service
+    ; * keys -- file with LeaseSet of address in i2p
+    ; optional parameters (may be omitted)
+    ; * inport -- optional, i2p service port, if unset - the same as 'port'
+    ; * accesslist -- comma-separated list of i2p addresses, allowed to connect
+    ;    every address is b32 without '.b32.i2p' part
+    [LOCALSITE]   
+    type = server   
+    host = 127.0.0.1   
+    port = 80   
+    keys = site-keys.dat   
+    inport = 81   
+    accesslist = <b32>[,<b32>]   

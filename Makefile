@@ -23,10 +23,12 @@ else # win32
 	DAEMON_SRC += DaemonWin32.cpp
 endif
 
-all: mk_build_dir $(SHLIB) $(I2PD) $(TESTS)
+all: mk_build_dir $(SHLIB) $(I2PD)
+tests: mk_build_test_dir $(TESTS)
 
 mk_build_dir:
 	mkdir -p obj
+mk_build_test_dir:
 	mkdir -p obj/tests
 
 api: $(SHLIB)
@@ -74,8 +76,10 @@ dist:
 	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz
 
 .PHONY: all
+.PHONY: tests
 .PHONY: clean
 .PHONY: deps
 .PHONY: dist
 .PHONY: api
 .PHONY: mk_build_dir
+.PHONY: mk_build_test_dir
