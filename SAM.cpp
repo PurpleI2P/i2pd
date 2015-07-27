@@ -684,10 +684,13 @@ namespace client
         sockets.clear ();
     }
 
-    SAMBridge::SAMBridge (int port):
-        m_IsRunning (false), m_Thread (nullptr),
-        m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-        m_DatagramEndpoint (boost::asio::ip::udp::v4 (), port-1), m_DatagramSocket (m_Service, m_DatagramEndpoint)
+    SAMBridge::SAMBridge(const std::string& address, int port)
+        : m_IsRunning (false), m_Thread (nullptr),
+          m_Acceptor(m_Service, boost::asio::ip::tcp::endpoint(
+            boost::asio::ip::address::from_string(address), port)
+          ),
+          m_DatagramEndpoint(boost::asio::ip::address::from_string(address), port - 1),
+          m_DatagramSocket(m_Service, m_DatagramEndpoint)
     {
     }
 

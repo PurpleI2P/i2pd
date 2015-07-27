@@ -16,7 +16,7 @@ namespace proxy
     {
         public:
 
-            HTTPProxyServer(int port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
+            HTTPProxyServer(const std::string& address, int port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
             ~HTTPProxyServer() {};
 
         protected:

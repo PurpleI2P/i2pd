@@ -81,14 +81,12 @@ namespace client
     class TCPIPAcceptor: public I2PService
     {
         public:
-            TCPIPAcceptor (int port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
-                I2PService(localDestination),
-          m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4 (), port)),
-                m_Timer (GetService ()) {}
-            TCPIPAcceptor (int port, i2p::data::SigningKeyType kt) :
-                I2PService(kt),
-                m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4 (), port)),
-                m_Timer (GetService ()) {}
+            TCPIPAcceptor(const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination = nullptr)
+                : I2PService(localDestination), m_Acceptor(GetService(), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
+                  m_Timer (GetService()) {}
+            TCPIPAcceptor(const std::string& address, int port, i2p::data::SigningKeyType kt)
+                : I2PService(kt), m_Acceptor(GetService(), boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
+                  m_Timer(GetService()) {}
             virtual ~TCPIPAcceptor () { TCPIPAcceptor::Stop(); }
             //If you override this make sure you call it from the children
             void Start ();

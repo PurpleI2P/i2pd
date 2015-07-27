@@ -524,9 +524,11 @@ namespace client
             SendReplyError ("malformed");
     }   
         
-    BOBCommandChannel::BOBCommandChannel (int port):
-        m_IsRunning (false), m_Thread (nullptr),
-        m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
+    BOBCommandChannel::BOBCommandChannel(const std::string& address, int port)
+        : m_IsRunning (false), m_Thread (nullptr),
+          m_Acceptor(m_Service, boost::asio::ip::tcp::endpoint(
+            boost::asio::ip::address::from_string(address), port)
+          )
     {
         // command -> handler
         m_CommandHandlers[BOB_COMMAND_ZAP] = &BOBCommandSession::ZapCommandHandler; 
