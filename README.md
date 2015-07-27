@@ -73,6 +73,7 @@ Cmdline options
 * --host=               - The external IP (deprecated). 
 * --port=               - The port to listen on
 * --httpport=           - The http port to listen on
+* --httpaddress=        - The ip address for the HTTP server, 127.0.0.1 by default
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).

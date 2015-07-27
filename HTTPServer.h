@@ -107,7 +107,7 @@ namespace util
     {
         public:
 
-            HTTPServer (int port);
+            HTTPServer (const std::string& address, int port);
             virtual ~HTTPServer ();
 
             void Start ();

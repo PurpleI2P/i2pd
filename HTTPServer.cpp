@@ -1042,9 +1042,9 @@ namespace util
             std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
     }
 
-    HTTPServer::HTTPServer (int port):
+    HTTPServer::HTTPServer (const std::string& address, int port):
         m_Thread (nullptr), m_Work (m_Service),
-        m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4 (), port)),
+        m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
         m_NewSocket (nullptr)
     {
 
