@@ -526,7 +526,7 @@ namespace client
     {
         if (!m_Pool || !IsReady ()) 
         {   
-            if (requestComplete) requestComplete (false);
+            if (requestComplete) requestComplete (nullptr);
             return false;
         }   
         m_Service.post (std::bind (&ClientDestination::RequestLeaseSet, this, dest, requestComplete));
@@ -630,7 +630,7 @@ namespace client
                 
                 if (done)
                 {
-                    if (it->second->requestComplete) it->second->requestComplete (false);
+                    if (it->second->requestComplete) it->second->requestComplete (nullptr);
                     delete it->second;
                     m_LeaseSetRequests.erase (it);
                 }   
