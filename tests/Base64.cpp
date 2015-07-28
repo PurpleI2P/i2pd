@@ -1,11 +1,11 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "../Identity.h"
+#include "util/base64.h"
 
-BOOST_AUTO_TEST_SUITE(DataTests)
+BOOST_AUTO_TEST_SUITE(Base64and32Tests)
 
-using namespace i2p::data;
+using namespace i2p::util;
 
 BOOST_AUTO_TEST_CASE(Base64EncodeEmpty)
 {
