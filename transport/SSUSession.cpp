@@ -1,7 +1,7 @@
 #include <boost/bind.hpp>
 #include <cryptopp/dh.h>
 #include <cryptopp/sha.h>
-#include "CryptoConst.h"
+#include "crypto/CryptoConst.h"
 #include "Log.h"
 #include "util/Timestamp.h"
 #include "RouterContext.h"

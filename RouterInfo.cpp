@@ -5,7 +5,7 @@
 #include <boost/lexical_cast.hpp>
 #include <cryptopp/sha.h>
 #include <cryptopp/dsa.h>
-#include "CryptoConst.h"
+#include "crypto/CryptoConst.h"
 #include "util/base64.h"
 #include "util/Timestamp.h"
 #include "Log.h"

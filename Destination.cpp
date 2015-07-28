@@ -3,7 +3,7 @@
 #include <boost/lexical_cast.hpp>
 #include "Log.h"
 #include "util/util.h"
-#include "ElGamal.h"
+#include "crypto/ElGamal.h"
 #include "util/Timestamp.h"
 #include "NetDb.h"
 #include "AddressBook.h"

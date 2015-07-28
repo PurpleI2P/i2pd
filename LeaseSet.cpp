@@ -2,7 +2,7 @@
 #include "I2PEndian.h"
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
-#include "CryptoConst.h"
+#include "crypto/CryptoConst.h"
 #include "Log.h"
 #include "util/Timestamp.h"
 #include "NetDb.h"

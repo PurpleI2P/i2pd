@@ -6,7 +6,7 @@
 #include "util/base64.h"
 #include "Log.h"
 #include "util/Timestamp.h"
-#include "CryptoConst.h"
+#include "crypto/CryptoConst.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "Transports.h"

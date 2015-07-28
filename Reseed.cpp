@@ -15,7 +15,7 @@
 #include "Reseed.h"
 #include "Log.h"
 #include "Identity.h"
-#include "CryptoConst.h"
+#include "crypto/CryptoConst.h"
 #include "NetDb.h"
 #include "util/util.h"
 

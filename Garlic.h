@@ -9,7 +9,7 @@
 #include <mutex>
 #include <memory>
 #include <cryptopp/osrng.h>
-#include "aes.h"
+#include "crypto/aes.h"
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
 #include "util/Queue.h"

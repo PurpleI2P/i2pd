@@ -9,7 +9,7 @@
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
-#include "aes.h"
+#include "crypto/aes.h"
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"

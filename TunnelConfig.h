@@ -5,7 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <memory>
-#include "aes.h"
+#include "crypto/aes.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
 #include "util/Timestamp.h"

@@ -4,8 +4,8 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/dsa.h>
 #include "util/base64.h"
-#include "CryptoConst.h"
-#include "ElGamal.h"
+#include "crypto/CryptoConst.h"
+#include "crypto/ElGamal.h"
 #include "RouterContext.h"
 #include "Identity.h"
 #include "I2PEndian.h"

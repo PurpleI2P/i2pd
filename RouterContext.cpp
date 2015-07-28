@@ -2,7 +2,7 @@
 #include <cryptopp/dh.h>
 #include <cryptopp/dsa.h>
 #include <boost/lexical_cast.hpp>
-#include "CryptoConst.h"
+#include "crypto/CryptoConst.h"
 #include "RouterContext.h"
 #include "util/Timestamp.h"
 #include "I2NPProtocol.h"

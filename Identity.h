@@ -6,8 +6,8 @@
 #include <string>
 #include <memory>
 #include "util/base64.h"
-#include "ElGamal.h"
-#include "Signature.h"
+#include "crypto/ElGamal.h"
+#include "crypto/Signature.h"
 
 namespace i2p
 {

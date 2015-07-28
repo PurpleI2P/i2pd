@@ -9,7 +9,7 @@
 #include <thread>
 #include <mutex>
 #include <boost/asio.hpp>
-#include "aes.h"
+#include "crypto/aes.h"
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"

@@ -9,7 +9,7 @@
 #include <cryptopp/rsa.h>
 #include <boost/asio.hpp>
 #include "Identity.h"
-#include "aes.h"
+#include "crypto/aes.h"
 
 namespace i2p
 {

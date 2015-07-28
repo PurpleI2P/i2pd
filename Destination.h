@@ -11,7 +11,7 @@
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
-#include "CryptoConst.h"
+#include "crypto/CryptoConst.h"
 #include "LeaseSet.h"
 #include "Garlic.h"
 #include "NetDb.h"

@@ -5,7 +5,7 @@
 #include <vector>
 #include <mutex>
 #include <memory>
-#include "aes.h"
+#include "crypto/aes.h"
 #include "I2NPProtocol.h"
 #include "TunnelEndpoint.h"
 #include "TunnelGateway.h"
