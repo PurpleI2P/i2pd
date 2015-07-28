@@ -8,7 +8,7 @@
 #include "crypto/ElGamal.h"
 #include "RouterContext.h"
 #include "Identity.h"
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 
 namespace i2p
 {

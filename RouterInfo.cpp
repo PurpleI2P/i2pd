@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 #include <cryptopp/sha.h>

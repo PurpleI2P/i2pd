@@ -11,7 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <boost/asio.hpp>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "I2NPProtocol.h"

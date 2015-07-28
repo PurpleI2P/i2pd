@@ -1,5 +1,5 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>

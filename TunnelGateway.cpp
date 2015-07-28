@@ -1,5 +1,5 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/sha.h>
 #include "Log.h"
 #include "RouterContext.h"

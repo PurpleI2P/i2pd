@@ -1,5 +1,5 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include "Log.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"

@@ -1,5 +1,5 @@
 #include <algorithm>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include "crypto/CryptoConst.h"
 #include "Tunnel.h"
 #include "NetDb.h"

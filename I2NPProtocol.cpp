@@ -1,6 +1,6 @@
 #include <string.h>
 #include <atomic>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/gzip.h>
 #include "crypto/ElGamal.h"
 #include "util/Timestamp.h"

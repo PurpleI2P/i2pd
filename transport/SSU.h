@@ -10,7 +10,7 @@
 #include <mutex>
 #include <boost/asio.hpp>
 #include "crypto/aes.h"
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"

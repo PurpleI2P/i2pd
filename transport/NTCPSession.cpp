@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/dh.h>
 #include <cryptopp/adler32.h>
 #include "util/base64.h"

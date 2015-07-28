@@ -1,5 +1,5 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
 #include "crypto/CryptoConst.h"

@@ -1,7 +1,7 @@
 COMMON_SRC = \
   transport/NTCPSession.cpp transport/SSU.cpp transport/SSUSession.cpp \
   transport/SSUData.cpp transport/Transports.cpp \
-  util/util.cpp util/base64.cpp \
+  util/util.cpp util/base64.cpp\
   crypto/CryptoConst.cpp crypto/aes.cpp crypto/Signature.cpp \
   Datagram.cpp Garlic.cpp I2NPProtocol.cpp LeaseSet.cpp \
   Log.cpp NetDb.cpp NetDbRequests.cpp Profiling.cpp Reseed.cpp \

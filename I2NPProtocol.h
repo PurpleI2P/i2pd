@@ -6,7 +6,7 @@
 #include <set>
 #include <memory>
 #include <cryptopp/sha.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "LeaseSet.h"
