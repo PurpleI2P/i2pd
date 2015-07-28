@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #endif
 #include <boost/lexical_cast.hpp>
-#include "base64.h"
+#include "util/base64.h"
 #include "Identity.h"
 #include "Log.h"
 #include "Destination.h"
@@ -319,7 +319,7 @@ namespace client
         uint8_t buf[1024];
         char priv[1024];
         size_t l = m_Session->localDestination->GetPrivateKeys ().ToBuffer (buf, 1024);
-        size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, priv, 1024);
+        size_t l1 = i2p::util::ByteStreamToBase64 (buf, l, priv, 1024);
         priv[l1] = 0;
 #ifdef _MSC_VER
         size_t l2 = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_CREATE_REPLY_OK, priv);
@@ -632,7 +632,7 @@ namespace client
                 // send remote peer address
                 uint8_t ident[1024];
                 size_t l = stream->GetRemoteIdentity ().ToBuffer (ident, 1024);
-                size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, (char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
+                size_t l1 = i2p::util::ByteStreamToBase64 (ident, l, (char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
                 m_StreamBuffer[l1] = '\n';
                 HandleI2PReceive (boost::system::error_code (), l1 +1); // we send identity like it has been received from stream
             }   

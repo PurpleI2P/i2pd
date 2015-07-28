@@ -1,7 +1,7 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "base64.h"
+#include "util/base64.h"
 #include "Log.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"

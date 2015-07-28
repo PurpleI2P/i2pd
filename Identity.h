@@ -5,7 +5,7 @@
 #include <string.h>
 #include <string>
 #include <memory>
-#include "base64.h"
+#include "util/base64.h"
 #include "ElGamal.h"
 #include "Signature.h"
 
@@ -51,7 +51,7 @@ namespace data
             std::string ToBase64 () const
             {
                 char str[sz*2];
-                int l = i2p::data::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
+                int l = i2p::util::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
                 str[l] = 0;
                 return std::string (str);
             }
@@ -59,19 +59,19 @@ namespace data
             std::string ToBase32 () const
             {
                 char str[sz*2];
-                int l = i2p::data::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
+                int l = i2p::util::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
                 str[l] = 0;
                 return std::string (str);
             }   
 
             void FromBase32 (const std::string& s)
             {
-                i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+                i2p::util::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
             }
 
             void FromBase64 (const std::string& s)
             {
-                i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+                i2p::util::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
             }
 
         private:

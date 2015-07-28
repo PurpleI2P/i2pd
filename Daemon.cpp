@@ -3,7 +3,6 @@
 #include "Daemon.h"
 
 #include "Log.h"
-#include "base64.h"
 #include "version.h"
 #include "transport/Transports.h"
 #include "transport/NTCPSession.h"

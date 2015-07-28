@@ -3,7 +3,7 @@
 
 namespace i2p
 {
-namespace data
+namespace util
 {
 
     static void iT64Build(void);

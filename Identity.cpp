@@ -3,7 +3,7 @@
 #include <cryptopp/sha.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/dsa.h>
-#include "base64.h"
+#include "util/base64.h"
 #include "CryptoConst.h"
 #include "ElGamal.h"
 #include "RouterContext.h"
@@ -237,7 +237,7 @@ namespace data
     size_t IdentityEx::FromBase64(const std::string& s)
     {
         uint8_t buf[1024];
-        auto len = Base64ToByteStream (s.c_str(), s.length(), buf, 1024);
+        auto len = i2p::util::Base64ToByteStream (s.c_str(), s.length(), buf, 1024);
         return FromBuffer (buf, len);
     }   
     
@@ -246,7 +246,7 @@ namespace data
         uint8_t buf[1024];
         char str[1536];
         size_t l = ToBuffer (buf, 1024);
-        size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, 1536);
+        size_t l1 = i2p::util::ByteStreamToBase64 (buf, l, str, 1536);
         str[l1] = 0;
         return std::string (str);
     }
@@ -420,7 +420,7 @@ namespace data
     size_t PrivateKeys::FromBase64(const std::string& s)
     {
         uint8_t * buf = new uint8_t[s.length ()];
-        size_t l = i2p::data::Base64ToByteStream (s.c_str (), s.length (), buf, s.length ());
+        size_t l = i2p::util::Base64ToByteStream (s.c_str (), s.length (), buf, s.length ());
         size_t ret = FromBuffer (buf, l);
         delete[] buf;
         return ret;
@@ -431,7 +431,7 @@ namespace data
         uint8_t * buf = new uint8_t[GetFullLen ()];
         char * str = new char[GetFullLen ()*2];
         size_t l = ToBuffer (buf, GetFullLen ());
-        size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, GetFullLen ()*2);
+        size_t l1 = i2p::util::ByteStreamToBase64 (buf, l, str, GetFullLen ()*2);
         str[l1] = 0;
         delete[] buf;
         std::string ret(str);
