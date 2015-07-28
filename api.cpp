@@ -7,7 +7,7 @@
 #include "RouterContext.h"
 #include "Identity.h"
 #include "Destination.h"
-#include "util.h"
+#include "util/util.h"
 #include "api.h"
 
 namespace i2p

@@ -4,10 +4,10 @@
 #include <boost/lexical_cast.hpp>
 #include "CryptoConst.h"
 #include "RouterContext.h"
-#include "Timestamp.h"
+#include "util/Timestamp.h"
 #include "I2NPProtocol.h"
 #include "NetDb.h"
-#include "util.h"
+#include "util/util.h"
 #include "version.h"
 
 namespace i2p

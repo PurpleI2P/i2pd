@@ -3,7 +3,7 @@
 #include "I2PEndian.h"
 #include <cryptopp/gzip.h>
 #include "ElGamal.h"
-#include "Timestamp.h"
+#include "util/Timestamp.h"
 #include "RouterContext.h"
 #include "NetDb.h"
 #include "Tunnel.h"

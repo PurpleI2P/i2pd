@@ -6,14 +6,14 @@
 #include <cryptopp/gzip.h>
 #include "base64.h"
 #include "Log.h"
-#include "Timestamp.h"
+#include "util/Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
 #include "transport/Transports.h"
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
-#include "util.h"
+#include "util/util.h"
 
 using namespace i2p::transport;
 

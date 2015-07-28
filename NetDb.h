@@ -9,7 +9,7 @@
 #include <thread>
 #include <mutex>
 #include <boost/filesystem.hpp>
-#include "Queue.h"
+#include "util/Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
 #include "LeaseSet.h"

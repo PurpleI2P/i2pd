@@ -17,7 +17,7 @@
 #include "Identity.h"
 #include "CryptoConst.h"
 #include "NetDb.h"
-#include "util.h"
+#include "util/util.h"
 
 
 namespace i2p

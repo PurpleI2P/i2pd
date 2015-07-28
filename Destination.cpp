@@ -2,9 +2,9 @@
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 #include "Log.h"
-#include "util.h"
+#include "util/util.h"
 #include "ElGamal.h"
-#include "Timestamp.h"
+#include "util/Timestamp.h"
 #include "NetDb.h"
 #include "AddressBook.h"
 #include "Destination.h"

@@ -12,7 +12,7 @@
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "Garlic.h"
-#include "util.h"
+#include "util/util.h"
 #include "Streaming.h"
 #include "Destination.h"
 #include "HTTPServer.h"

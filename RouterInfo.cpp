@@ -7,7 +7,7 @@
 #include <cryptopp/dsa.h>
 #include "CryptoConst.h"
 #include "base64.h"
-#include "Timestamp.h"
+#include "util/Timestamp.h"
 #include "Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"

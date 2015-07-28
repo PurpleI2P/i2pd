@@ -9,7 +9,7 @@
 #include <thread>
 #include <mutex>
 #include <memory>
-#include "Queue.h"
+#include "util/Queue.h"
 #include "TunnelConfig.h"
 #include "TunnelPool.h"
 #include "TransitTunnel.h"

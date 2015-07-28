@@ -12,7 +12,7 @@
 #include "aes.h"
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
-#include "Queue.h"
+#include "util/Queue.h"
 #include "Identity.h"
 
 namespace i2p
