@@ -6,7 +6,7 @@
 
 namespace i2p
 {
-namespace data
+namespace util
 {
 
     

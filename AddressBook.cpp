@@ -8,10 +8,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <cryptopp/osrng.h>
-#include "base64.h"
-#include "util.h"
+#include "util/base64.h"
+#include "util/util.h"
 #include "Identity.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "NetDb.h"
 #include "ClientContext.h"
 #include "AddressBook.h"
@@ -215,7 +215,7 @@ namespace client
         auto pos = address.find(".b32.i2p");
         if (pos != std::string::npos)
         {
-            Base32ToByteStream (address.c_str(), pos, ident, 32);
+            i2p::util::Base32ToByteStream (address.c_str(), pos, ident, 32);
             return true;
         }
         else

@@ -1,6 +1,5 @@
 #include <cassert>
-#include "base64.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "Destination.h"
 #include "ClientContext.h"
 #include "I2PTunnel.h"

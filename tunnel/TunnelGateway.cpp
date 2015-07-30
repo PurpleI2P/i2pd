@@ -1,9 +1,9 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/sha.h>
-#include "Log.h"
+#include "util/Log.h"
 #include "RouterContext.h"
-#include "Transports.h"
+#include "transport/Transports.h"
 #include "TunnelGateway.h"
 
 namespace i2p

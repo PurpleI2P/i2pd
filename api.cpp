@@ -1,13 +1,13 @@
 #include <string>
 #include <map>
-#include "Log.h"
+#include "util/Log.h"
 #include "NetDb.h"
-#include "Transports.h"
-#include "Tunnel.h"
+#include "transport/Transports.h"
+#include "tunnel/Tunnel.h"
 #include "RouterContext.h"
 #include "Identity.h"
 #include "Destination.h"
-#include "util.h"
+#include "util/util.h"
 #include "api.h"
 
 namespace i2p

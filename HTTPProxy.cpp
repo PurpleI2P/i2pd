@@ -5,12 +5,12 @@
 #include <string>
 #include <atomic>
 #include "HTTPProxy.h"
-#include "util.h"
+#include "util/util.h"
 #include "Identity.h"
 #include "Streaming.h"
 #include "Destination.h"
 #include "ClientContext.h"
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include "I2PTunnel.h"
 
 namespace i2p

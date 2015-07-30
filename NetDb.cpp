@@ -1,19 +1,19 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
 #include <cryptopp/gzip.h>
-#include "base64.h"
-#include "Log.h"
-#include "Timestamp.h"
+#include "util/base64.h"
+#include "util/Log.h"
+#include "util/Timestamp.h"
 #include "I2NPProtocol.h"
-#include "Tunnel.h"
-#include "Transports.h"
+#include "tunnel/Tunnel.h"
+#include "transport/Transports.h"
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
-#include "util.h"
+#include "util/util.h"
 
 using namespace i2p::transport;
 
@@ -263,7 +263,7 @@ namespace data
         }
 
         // list of chars might appear in base64 string
-        const char * chars = GetBase64SubstitutionTable (); // 64 bytes
+        const char * chars = i2p::util::GetBase64SubstitutionTable (); // 64 bytes
         boost::filesystem::path suffix;
         for (int i = 0; i < 64; i++)
         {
@@ -544,7 +544,7 @@ namespace data
     {
         const uint8_t * buf = msg->GetPayload ();
         char key[48];
-        int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
+        int l = i2p::util::ByteStreamToBase64 (buf, 32, key, 48);
         key[l] = 0;
         int num = buf[32]; // num
         LogPrint ("DatabaseSearchReply for ", key, " num=", num);
@@ -613,7 +613,7 @@ namespace data
         {
             const uint8_t * router = buf + 33 + i*32;
             char peerHash[48];
-            int l1 = i2p::data::ByteStreamToBase64 (router, 32, peerHash, 48);
+            int l1 = i2p::util::ByteStreamToBase64 (router, 32, peerHash, 48);
             peerHash[l1] = 0;
             LogPrint (i,": ", peerHash);
 
@@ -639,7 +639,7 @@ namespace data
             return;
         }   
         char key[48];
-        int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
+        int l = i2p::util::ByteStreamToBase64 (buf, 32, key, 48);
         key[l] = 0;
         uint8_t flag = buf[64];
         LogPrint ("DatabaseLookup for ", key, " recieved flags=", (int)flag);

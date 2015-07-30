@@ -1,11 +1,11 @@
 #include <algorithm>
-#include "I2PEndian.h"
-#include "CryptoConst.h"
+#include "util/I2PEndian.h"
+#include "crypto/CryptoConst.h"
 #include "Tunnel.h"
 #include "NetDb.h"
-#include "Timestamp.h"
+#include "util/Timestamp.h"
 #include "Garlic.h"
-#include "Transports.h"
+#include "transport/Transports.h"
 #include "TunnelPool.h"
 
 namespace i2p

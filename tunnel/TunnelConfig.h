@@ -5,10 +5,10 @@
 #include <sstream>
 #include <vector>
 #include <memory>
-#include "aes.h"
+#include "TunnelCrypto.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
-#include "Timestamp.h"
+#include "util/Timestamp.h"
 
 namespace i2p
 {

@@ -1,6 +1,6 @@
 #include "Daemon.h"
-#include "util.h"
-#include "Log.h"
+#include "util/util.h"
+#include "util/Log.h"
 
 #ifdef _WIN32
 

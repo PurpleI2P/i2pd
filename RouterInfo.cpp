@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 #include <cryptopp/sha.h>
 #include <cryptopp/dsa.h>
-#include "CryptoConst.h"
-#include "base64.h"
-#include "Timestamp.h"
-#include "Log.h"
+#include "crypto/CryptoConst.h"
+#include "util/base64.h"
+#include "util/Timestamp.h"
+#include "util/Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
 
@@ -176,7 +176,7 @@ namespace data
                 else if (!strcmp (key, "mtu"))
                     address.mtu = boost::lexical_cast<int>(value);
                 else if (!strcmp (key, "key"))
-                    Base64ToByteStream (value, strlen (value), address.key, 32);
+                    i2p::util::Base64ToByteStream (value, strlen (value), address.key, 32);
                 else if (!strcmp (key, "caps"))
                     ExtractCaps (value);
                 else if (key[0] == 'i')
@@ -199,7 +199,7 @@ namespace data
                     else if (!strcmp (key, "itag"))
                         introducer.iTag = boost::lexical_cast<uint32_t>(value);
                     else if (!strcmp (key, "ikey"))
-                        Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
+                        i2p::util::Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
                 }
             }   
             if (isValidAddress)
@@ -344,7 +344,7 @@ namespace data
                         WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
                         properties << '=';
                         char value[64];
-                        size_t l = ByteStreamToBase64 (introducer.iKey, 32, value, 64);
+                        size_t l = i2p::util::ByteStreamToBase64 (introducer.iKey, 32, value, 64);
                         value[l] = 0;
                         WriteString (value, properties);
                         properties << ';';
@@ -373,7 +373,7 @@ namespace data
                 WriteString ("key", properties);
                 properties << '=';
                 char value[64];
-                size_t l = ByteStreamToBase64 (address.key, 32, value, 64);
+                size_t l = i2p::util::ByteStreamToBase64 (address.key, 32, value, 64);
                 value[l] = 0;
                 WriteString (value, properties);
                 properties << ';';

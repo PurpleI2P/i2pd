@@ -2,8 +2,8 @@
 #include <vector>
 #include <cryptopp/sha.h>
 #include <cryptopp/gzip.h>
-#include "Log.h"
-#include "TunnelBase.h"
+#include "util/Log.h"
+#include "tunnel/TunnelBase.h"
 #include "RouterContext.h"
 #include "Destination.h"
 #include "Datagram.h"

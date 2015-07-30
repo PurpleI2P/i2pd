@@ -1,12 +1,12 @@
 #include <string.h>
 #include <stdlib.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/dh.h>
 #include <cryptopp/adler32.h>
-#include "base64.h"
-#include "Log.h"
-#include "Timestamp.h"
-#include "CryptoConst.h"
+#include "util/base64.h"
+#include "util/Log.h"
+#include "util/Timestamp.h"
+#include "crypto/CryptoConst.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "Transports.h"

@@ -1,6 +1,6 @@
-#include "Log.h"
+#include "util/Log.h"
 #include "I2NPProtocol.h"
-#include "Transports.h"
+#include "transport/Transports.h"
 #include "NetDb.h"
 #include "NetDbRequests.h"
 

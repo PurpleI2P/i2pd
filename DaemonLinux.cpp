@@ -8,8 +8,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include "Log.h"
-#include "util.h"
+#include "util/Log.h"
+#include "util/util.h"
 
 
 void handle_signal(int sig)

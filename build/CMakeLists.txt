@@ -15,41 +15,42 @@ set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
 set (COMMON_SRC
+  "${CMAKE_SOURCE_DIR}/transport/NTCPSession.cpp"
+  "${CMAKE_SOURCE_DIR}/transport/SSU.cpp"
+  "${CMAKE_SOURCE_DIR}/transport/SSUData.cpp"
+  "${CMAKE_SOURCE_DIR}/transport/SSUSession.cpp"
+  "${CMAKE_SOURCE_DIR}/transport/Transports.cpp"
+  "${CMAKE_SOURCE_DIR}/crypto/CryptoConst.cpp"
+  "${CMAKE_SOURCE_DIR}/crypto/aes.cpp"
+  "${CMAKE_SOURCE_DIR}/crypto/Signature.cpp"
+  "${CMAKE_SOURCE_DIR}/util/base64.cpp"
+  "${CMAKE_SOURCE_DIR}/util/util.cpp"
+  "${CMAKE_SOURCE_DIR}/util/Log.cpp"
+  "${CMAKE_SOURCE_DIR}/tunnel/TransitTunnel.cpp"
+  "${CMAKE_SOURCE_DIR}/tunnel/Tunnel.cpp"
+  "${CMAKE_SOURCE_DIR}/tunnel/TunnelGateway.cpp"
+  "${CMAKE_SOURCE_DIR}/tunnel/TunnelEndpoint.cpp"
+  "${CMAKE_SOURCE_DIR}/tunnel/TunnelPool.cpp"
+  "${CMAKE_SOURCE_DIR}/tunnel/TunnelCrypto.cpp"
   "${CMAKE_SOURCE_DIR}/AddressBook.cpp"	
-  "${CMAKE_SOURCE_DIR}/CryptoConst.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
   "${CMAKE_SOURCE_DIR}/Identity.cpp"
   "${CMAKE_SOURCE_DIR}/LeaseSet.cpp"
-  "${CMAKE_SOURCE_DIR}/Log.cpp"
-  "${CMAKE_SOURCE_DIR}/NTCPSession.cpp"
   "${CMAKE_SOURCE_DIR}/NetDbRequests.cpp"	
   "${CMAKE_SOURCE_DIR}/NetDb.cpp"
   "${CMAKE_SOURCE_DIR}/Profiling.cpp"
   "${CMAKE_SOURCE_DIR}/Reseed.cpp"
   "${CMAKE_SOURCE_DIR}/RouterContext.cpp"
   "${CMAKE_SOURCE_DIR}/RouterInfo.cpp"
-  "${CMAKE_SOURCE_DIR}/SSU.cpp"
-  "${CMAKE_SOURCE_DIR}/SSUData.cpp"
-  "${CMAKE_SOURCE_DIR}/SSUSession.cpp"
   "${CMAKE_SOURCE_DIR}/Streaming.cpp"
   "${CMAKE_SOURCE_DIR}/Destination.cpp"	
-  "${CMAKE_SOURCE_DIR}/TransitTunnel.cpp"
-  "${CMAKE_SOURCE_DIR}/Tunnel.cpp"
-  "${CMAKE_SOURCE_DIR}/TunnelGateway.cpp"
-  "${CMAKE_SOURCE_DIR}/Transports.cpp"
-  "${CMAKE_SOURCE_DIR}/TunnelEndpoint.cpp"
-  "${CMAKE_SOURCE_DIR}/TunnelPool.cpp"
-  "${CMAKE_SOURCE_DIR}/aes.cpp"
-  "${CMAKE_SOURCE_DIR}/base64.cpp"
-  "${CMAKE_SOURCE_DIR}/util.cpp"
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"
-  "${CMAKE_SOURCE_DIR}/Signature.cpp"
   "${CMAKE_SOURCE_DIR}/UPnP.cpp"
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  list (APPEND COMMON_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
+  list (APPEND COMMON_SRC "${CMAKE_SOURCE_DIR}/util/I2PEndian.cpp")
 endif ()
 
 add_library(common ${COMMON_SRC})
@@ -223,7 +224,7 @@ if (NOT ${MINIUPNPC_FOUND})
 endif()
 
 # load includes
-include_directories( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} )
+include_directories( ${CMAKE_SOURCE_DIR}  ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} )
 
 # show summary
 message(STATUS "---------------------------------------")

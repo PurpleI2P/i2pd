@@ -1,8 +1,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
-#include "base64.h"
-#include "util.h"
+#include "util/base64.h"
+#include "util/util.h"
 #include "Profiling.h"
 
 namespace i2p
@@ -52,7 +52,7 @@ namespace data
                 LogPrint (eLogError, "Failed to create directory ", path);
                 return;
             }           
-            const char * chars = GetBase64SubstitutionTable (); // 64 bytes
+            const char * chars = i2p::util::GetBase64SubstitutionTable (); // 64 bytes
             for (int i = 0; i < 64; i++)
             {
                 auto path1 = path / (std::string ("p") + chars[i]);

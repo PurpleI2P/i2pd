@@ -1,10 +1,10 @@
 #include <string.h>
-#include "I2PEndian.h"
-#include "Log.h"
+#include "util/I2PEndian.h"
+#include "util/Log.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
-#include "Transports.h"
+#include "transport/Transports.h"
 #include "TransitTunnel.h"
 
 namespace i2p

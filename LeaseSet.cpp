@@ -1,12 +1,12 @@
 #include <string.h>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
-#include "CryptoConst.h"
-#include "Log.h"
-#include "Timestamp.h"
+#include "crypto/CryptoConst.h"
+#include "util/Log.h"
+#include "util/Timestamp.h"
 #include "NetDb.h"
-#include "TunnelPool.h"
+#include "tunnel/TunnelPool.h"
 #include "LeaseSet.h"
 
 namespace i2p

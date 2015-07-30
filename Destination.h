@@ -10,8 +10,8 @@
 #include <functional>
 #include <boost/asio.hpp>
 #include "Identity.h"
-#include "TunnelPool.h"
-#include "CryptoConst.h"
+#include "tunnel/TunnelPool.h"
+#include "crypto/CryptoConst.h"
 #include "LeaseSet.h"
 #include "Garlic.h"
 #include "NetDb.h"

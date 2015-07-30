@@ -4,8 +4,8 @@
 #include <inttypes.h>
 #include <set>
 #include <memory>
-#include "aes.h"
-#include "hmac.h"
+#include "crypto/aes.h"
+#include "crypto/hmac.h"
 #include "I2NPProtocol.h"
 #include "TransportSession.h"
 #include "SSUData.h"

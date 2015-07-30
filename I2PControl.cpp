@@ -9,13 +9,13 @@
 #if !GCC47_BOOST149
 #include <boost/property_tree/json_parser.hpp>
 #endif
-#include "Log.h"
+#include "util/Log.h"
 #include "NetDb.h"
 #include "RouterContext.h"
 #include "Daemon.h"
-#include "Tunnel.h"
-#include "Timestamp.h"
-#include "Transports.h"
+#include "tunnel/Tunnel.h"
+#include "util/Timestamp.h"
+#include "transport/Transports.h"
 #include "version.h"
 
 namespace i2p

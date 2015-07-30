@@ -1,14 +1,13 @@
 #include <string.h>
 #include <atomic>
-#include "I2PEndian.h"
+#include "util/I2PEndian.h"
 #include <cryptopp/gzip.h>
-#include "ElGamal.h"
-#include "Timestamp.h"
+#include "crypto/ElGamal.h"
+#include "util/Timestamp.h"
 #include "RouterContext.h"
 #include "NetDb.h"
-#include "Tunnel.h"
-#include "base64.h"
-#include "Transports.h"
+#include "tunnel/Tunnel.h"
+#include "transport/Transports.h"
 #include "Garlic.h"
 #include "I2NPProtocol.h"
 

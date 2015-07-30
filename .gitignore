@@ -8,6 +8,15 @@ netDb
 tunnels.cfg
 tests/tests
 
+# Build files
+build/CMakeCache.txt
+build/CMakeFiles/*
+build/cmake_install.cmake
+build/i2pd
+build/libcommon.a
+build/libi2pd.a
+
+
 # Autotools
 autom4te.cache
 .deps

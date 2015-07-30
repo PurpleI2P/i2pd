@@ -9,8 +9,8 @@
 #include <thread>
 #include <mutex>
 #include <boost/asio.hpp>
-#include "aes.h"
-#include "I2PEndian.h"
+#include "crypto/aes.h"
+#include "util/I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
