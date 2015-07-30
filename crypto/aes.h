@@ -10,11 +10,11 @@ namespace i2p
 {
 namespace crypto
 {   
-    struct ChipherBlock 
+    struct CipherBlock 
     {
         uint8_t buf[16];
 
-        void operator^=(const ChipherBlock& other) // XOR
+        void operator^=(const CipherBlock& other) // XOR
         {
 #if defined(__x86_64__) // for Intel x64 
             __asm__
@@ -81,7 +81,7 @@ namespace crypto
         public:
         
             void SetKey (const AESKey& key) { ExpandKey (key); };
-            void Encrypt (const ChipherBlock * in, ChipherBlock * out); 
+            void Encrypt (const CipherBlock * in, CipherBlock * out); 
     };  
 
     class ECBDecryptionAESNI: public ECBCryptoAESNI
@@ -89,7 +89,7 @@ namespace crypto
         public:
         
             void SetKey (const AESKey& key);
-            void Decrypt (const ChipherBlock * in, ChipherBlock * out);     
+            void Decrypt (const CipherBlock * in, CipherBlock * out);     
     };  
 
     typedef ECBEncryptionAESNI ECBEncryption;
@@ -105,7 +105,7 @@ namespace crypto
             { 
                 m_Encryption.SetKey (key, 32); 
             }
-            void Encrypt (const ChipherBlock * in, ChipherBlock * out)
+            void Encrypt (const CipherBlock * in, CipherBlock * out)
             {
                 m_Encryption.ProcessData (out->buf, in->buf, 16);
             }   
@@ -123,7 +123,7 @@ namespace crypto
             { 
                 m_Decryption.SetKey (key, 32); 
             }
-            void Decrypt (const ChipherBlock * in, ChipherBlock * out)
+            void Decrypt (const CipherBlock * in, CipherBlock * out)
             {
                 m_Decryption.ProcessData (out->buf, in->buf, 16);
             }   
@@ -151,13 +151,13 @@ namespace crypto
             void SetKey (const AESKey& key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
             void SetIV (const uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
 
-            void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
+            void Encrypt (int numBlocks, const CipherBlock * in, CipherBlock * out);
             void Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
             void Encrypt (const uint8_t * in, uint8_t * out); // one block
 
         private:
 
-            ChipherBlock m_LastBlock;
+            CipherBlock m_LastBlock;
             
             ECBEncryption m_ECBEncryption;
     };
@@ -171,13 +171,13 @@ namespace crypto
             void SetKey (const AESKey& key) { m_ECBDecryption.SetKey (key); }; // 32 bytes
             void SetIV (const uint8_t * iv) { memcpy (m_IV.buf, iv, 16); }; // 16 bytes
 
-            void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
+            void Decrypt (int numBlocks, const CipherBlock * in, CipherBlock * out);
             void Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
             void Decrypt (const uint8_t * in, uint8_t * out); // one block
 
         private:
 
-            ChipherBlock m_IV;
+            CipherBlock m_IV;
             ECBDecryption m_ECBDecryption;
     };  
 
