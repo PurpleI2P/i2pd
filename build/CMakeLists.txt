@@ -31,6 +31,7 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/tunnel/TunnelGateway.cpp"
   "${CMAKE_SOURCE_DIR}/tunnel/TunnelEndpoint.cpp"
   "${CMAKE_SOURCE_DIR}/tunnel/TunnelPool.cpp"
+  "${CMAKE_SOURCE_DIR}/tunnel/TunnelCrypto.cpp"
   "${CMAKE_SOURCE_DIR}/AddressBook.cpp"	
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"

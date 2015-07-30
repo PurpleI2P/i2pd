@@ -5,7 +5,7 @@ COMMON_SRC = \
   crypto/CryptoConst.cpp crypto/aes.cpp crypto/Signature.cpp \
   tunnel/Tunnel.cpp tunnel/TransitTunnel.cpp tunnel/TunnelEndpoint.cpp \
   tunnel/TunnelEndpoint.cpp tunnel/TunnelPool.cpp tunnel/TunnelGateway.cpp \
-  Datagram.cpp Garlic.cpp I2NPProtocol.cpp LeaseSet.cpp \
+  tunnel/TunnelCrypto.cpp Datagram.cpp Garlic.cpp I2NPProtocol.cpp LeaseSet.cpp \
   NetDb.cpp NetDbRequests.cpp Profiling.cpp Reseed.cpp \
   RouterContext.cpp RouterInfo.cpp Streaming.cpp Identity.cpp \
   Destination.cpp UPnP.cpp
