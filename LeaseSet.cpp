@@ -6,7 +6,7 @@
 #include "util/Log.h"
 #include "util/Timestamp.h"
 #include "NetDb.h"
-#include "TunnelPool.h"
+#include "tunnel/TunnelPool.h"
 #include "LeaseSet.h"
 
 namespace i2p

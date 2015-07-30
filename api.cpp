@@ -3,7 +3,7 @@
 #include "util/Log.h"
 #include "NetDb.h"
 #include "transport/Transports.h"
-#include "Tunnel.h"
+#include "tunnel/Tunnel.h"
 #include "RouterContext.h"
 #include "Identity.h"
 #include "Destination.h"

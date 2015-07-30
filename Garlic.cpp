@@ -4,8 +4,8 @@
 #include <string>
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
-#include "Tunnel.h"
-#include "TunnelPool.h"
+#include "tunnel/Tunnel.h"
+#include "tunnel/TunnelPool.h"
 #include "util/Timestamp.h"
 #include "Destination.h"
 #include "Garlic.h"

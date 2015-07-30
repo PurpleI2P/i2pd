@@ -8,7 +8,7 @@
 #include "transport/NTCPSession.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
-#include "Tunnel.h"
+#include "tunnel/Tunnel.h"
 #include "NetDb.h"
 #include "Garlic.h"
 #include "util/util.h"

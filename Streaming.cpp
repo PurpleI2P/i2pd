@@ -2,7 +2,7 @@
 #include "util/Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
-#include "Tunnel.h"
+#include "tunnel/Tunnel.h"
 #include "util/Timestamp.h"
 #include "Destination.h"
 #include "Streaming.h"

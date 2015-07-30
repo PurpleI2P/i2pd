@@ -3,11 +3,12 @@ COMMON_SRC = \
   transport/SSUData.cpp transport/Transports.cpp \
   util/util.cpp util/base64.cpp util/Log.cpp \
   crypto/CryptoConst.cpp crypto/aes.cpp crypto/Signature.cpp \
+  tunnel/Tunnel.cpp tunnel/TransitTunnel.cpp tunnel/TunnelEndpoint.cpp \
+  tunnel/TunnelEndpoint.cpp tunnel/TunnelPool.cpp tunnel/TunnelGateway.cpp \
   Datagram.cpp Garlic.cpp I2NPProtocol.cpp LeaseSet.cpp \
   NetDb.cpp NetDbRequests.cpp Profiling.cpp Reseed.cpp \
   RouterContext.cpp RouterInfo.cpp Streaming.cpp Identity.cpp \
-  TransitTunnel.cpp Tunnel.cpp TunnelEndpoint.cpp TunnelPool.cpp \
-  TunnelGateway.cpp Destination.cpp UPnP.cpp
+  Destination.cpp UPnP.cpp
 
 
 ifeq ($(UNAME),Darwin)

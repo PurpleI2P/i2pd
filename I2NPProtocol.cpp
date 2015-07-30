@@ -6,7 +6,7 @@
 #include "util/Timestamp.h"
 #include "RouterContext.h"
 #include "NetDb.h"
-#include "Tunnel.h"
+#include "tunnel/Tunnel.h"
 #include "transport/Transports.h"
 #include "Garlic.h"
 #include "I2NPProtocol.h"

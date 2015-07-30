@@ -3,8 +3,8 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "util/base64.h"
 #include "util/Log.h"
-#include "Tunnel.h"
-#include "TransitTunnel.h"
+#include "tunnel/Tunnel.h"
+#include "tunnel/TransitTunnel.h"
 #include "transport/Transports.h"
 #include "NetDb.h"
 #include "util/I2PEndian.h"

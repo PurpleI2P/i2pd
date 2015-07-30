@@ -13,8 +13,8 @@
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
 #include "LeaseSet.h"
-#include "Tunnel.h"
-#include "TunnelPool.h"
+#include "tunnel/Tunnel.h"
+#include "tunnel/TunnelPool.h"
 #include "Reseed.h"
 #include "NetDbRequests.h"
 

@@ -3,7 +3,7 @@
 #include <cryptopp/sha.h>
 #include <cryptopp/gzip.h>
 #include "util/Log.h"
-#include "TunnelBase.h"
+#include "tunnel/TunnelBase.h"
 #include "RouterContext.h"
 #include "Destination.h"
 #include "Datagram.h"

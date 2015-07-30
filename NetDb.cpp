@@ -8,7 +8,7 @@
 #include "util/Log.h"
 #include "util/Timestamp.h"
 #include "I2NPProtocol.h"
-#include "Tunnel.h"
+#include "tunnel/Tunnel.h"
 #include "transport/Transports.h"
 #include "RouterContext.h"
 #include "Garlic.h"
