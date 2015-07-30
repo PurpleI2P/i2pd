@@ -8,7 +8,7 @@
 #include "crypto/CryptoConst.h"
 #include "util/base64.h"
 #include "util/Timestamp.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "RouterInfo.h"
 #include "RouterContext.h"
 

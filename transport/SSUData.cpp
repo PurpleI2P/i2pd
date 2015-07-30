@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <boost/bind.hpp>
-#include "Log.h"
+#include "util/Log.h"
 #include "util/Timestamp.h"
 #include "NetDb.h"
 #include "SSU.h"

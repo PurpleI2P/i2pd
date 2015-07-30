@@ -5,7 +5,7 @@
 #include <vector> 
 #include <cryptopp/sha.h>
 #include "RouterContext.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "util/Timestamp.h"
 #include "I2NPProtocol.h"
 #include "transport/Transports.h"

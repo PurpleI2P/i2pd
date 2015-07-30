@@ -1,6 +1,6 @@
 #include "util/I2PEndian.h"
 #include <string.h>
-#include "Log.h"
+#include "util/Log.h"
 #include "NetDb.h"
 #include "I2NPProtocol.h"
 #include "transport/Transports.h"

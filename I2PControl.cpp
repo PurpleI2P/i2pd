@@ -9,7 +9,7 @@
 #if !GCC47_BOOST149
 #include <boost/property_tree/json_parser.hpp>
 #endif
-#include "Log.h"
+#include "util/Log.h"
 #include "NetDb.h"
 #include "RouterContext.h"
 #include "Daemon.h"

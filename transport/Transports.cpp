@@ -1,5 +1,5 @@
 #include <cryptopp/dh.h>
-#include "Log.h"
+#include "util/Log.h"
 #include "crypto/CryptoConst.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"

@@ -13,7 +13,7 @@
 #include <cryptopp/arc4.h>
 #include "util/I2PEndian.h"
 #include "Reseed.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "Identity.h"
 #include "crypto/CryptoConst.h"
 #include "NetDb.h"

@@ -1,10 +1,10 @@
 COMMON_SRC = \
   transport/NTCPSession.cpp transport/SSU.cpp transport/SSUSession.cpp \
   transport/SSUData.cpp transport/Transports.cpp \
-  util/util.cpp util/base64.cpp\
+  util/util.cpp util/base64.cpp util/Log.cpp \
   crypto/CryptoConst.cpp crypto/aes.cpp crypto/Signature.cpp \
   Datagram.cpp Garlic.cpp I2NPProtocol.cpp LeaseSet.cpp \
-  Log.cpp NetDb.cpp NetDbRequests.cpp Profiling.cpp Reseed.cpp \
+  NetDb.cpp NetDbRequests.cpp Profiling.cpp Reseed.cpp \
   RouterContext.cpp RouterInfo.cpp Streaming.cpp Identity.cpp \
   TransitTunnel.cpp Tunnel.cpp TunnelEndpoint.cpp TunnelPool.cpp \
   TunnelGateway.cpp Destination.cpp UPnP.cpp

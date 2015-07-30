@@ -11,7 +11,7 @@
 #include "util/base64.h"
 #include "util/util.h"
 #include "Identity.h"
-#include "Log.h"
+#include "util/Log.h"
 
 namespace i2p
 {

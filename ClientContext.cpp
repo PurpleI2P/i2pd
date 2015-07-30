@@ -3,7 +3,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "util/util.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "Identity.h"
 #include "ClientContext.h"
 

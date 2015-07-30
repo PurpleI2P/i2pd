@@ -7,7 +7,7 @@
 #include <cryptopp/dh.h>
 #include <cryptopp/sha.h>
 #include "CryptoConst.h"
-#include "Log.h"
+#include "util/Log.h"
 
 namespace i2p
 {

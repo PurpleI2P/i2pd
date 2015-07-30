@@ -5,7 +5,7 @@
 #include <boost/asio.hpp>
 #include <cryptopp/gzip.h>
 #include "util/base64.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "util/Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"

@@ -2,7 +2,7 @@
 #include <cryptopp/dh.h>
 #include <cryptopp/sha.h>
 #include "crypto/CryptoConst.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "util/Timestamp.h"
 #include "RouterContext.h"
 #include "Transports.h"

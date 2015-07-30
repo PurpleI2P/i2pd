@@ -1,6 +1,6 @@
 #include <string.h>
 #include <boost/lexical_cast.hpp>
-#include "Log.h"
+#include "util/Log.h"
 #include "ClientContext.h"
 #include "BOB.h"
 

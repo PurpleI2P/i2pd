@@ -3,7 +3,7 @@
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
 #include "crypto/CryptoConst.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "util/Timestamp.h"
 #include "NetDb.h"
 #include "TunnelPool.h"

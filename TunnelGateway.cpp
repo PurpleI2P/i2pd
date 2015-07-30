@@ -1,7 +1,7 @@
 #include <string.h>
 #include "util/I2PEndian.h"
 #include <cryptopp/sha.h>
-#include "Log.h"
+#include "util/Log.h"
 #include "RouterContext.h"
 #include "transport/Transports.h"
 #include "TunnelGateway.h"

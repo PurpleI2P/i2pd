@@ -4,7 +4,7 @@
 #include <cryptopp/dh.h>
 #include <cryptopp/adler32.h>
 #include "util/base64.h"
-#include "Log.h"
+#include "util/Log.h"
 #include "util/Timestamp.h"
 #include "crypto/CryptoConst.h"
 #include "I2NPProtocol.h"

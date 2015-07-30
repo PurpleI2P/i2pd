@@ -13,7 +13,7 @@
 #include <dlfcn.h>
 #endif
 
-#include "Log.h"
+#include "util/Log.h"
 
 #include "RouterContext.h"
 #include "UPnP.h"

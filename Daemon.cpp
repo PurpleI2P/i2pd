@@ -2,7 +2,7 @@
 
 #include "Daemon.h"
 
-#include "Log.h"
+#include "util/Log.h"
 #include "version.h"
 #include "transport/Transports.h"
 #include "transport/NTCPSession.h"

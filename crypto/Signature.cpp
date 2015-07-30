@@ -1,7 +1,7 @@
 #include <memory>
 #include <cryptopp/integer.h>
 #include <cryptopp/eccrypto.h>
-#include "Log.h"
+#include "util/Log.h"
 #include "Signature.h"
 
 namespace i2p

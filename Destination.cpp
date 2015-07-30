@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <boost/lexical_cast.hpp>
-#include "Log.h"
+#include "util/Log.h"
 #include "util/util.h"
 #include "crypto/ElGamal.h"
 #include "util/Timestamp.h"
