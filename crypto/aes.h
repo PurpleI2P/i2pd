@@ -146,7 +146,7 @@ namespace crypto
             {
                 SetKey(key);
                 SetIV(iv);
-            };
+            }
 
             void SetKey (const AESKey& key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
             void SetIV (const uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
@@ -167,6 +167,13 @@ namespace crypto
         public:
     
             CBCDecryption () { memset (m_IV.buf, 0, 16); };
+
+            CBCDecryption(const AESKey& key, const uint8_t* iv)
+                : CBCDecryption()
+            {
+                SetKey(key);
+                SetIV(iv);
+            }
 
             void SetKey (const AESKey& key) { m_ECBDecryption.SetKey (key); }; // 32 bytes
             void SetIV (const uint8_t * iv) { memcpy (m_IV.buf, iv, 16); }; // 16 bytes

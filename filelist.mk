@@ -30,4 +30,4 @@ LIB_SRC := $(COMMON_SRC) \
   api.cpp
 
 TESTS_SRC := $(COMMON_SRC)  \
-  tests/Utility.cpp tests/Identity.cpp tests/Base64.cpp
+  tests/Utility.cpp tests/Identity.cpp tests/Base64.cpp tests/Crypto.cpp
