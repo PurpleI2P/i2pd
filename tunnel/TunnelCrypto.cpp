@@ -1,6 +1,6 @@
 #include "TunnelCrypto.h"
 #include "TunnelBase.h"
-#include "AESNIMacros.h" 
+#include "crypto/AESNIMacros.h" 
 
 namespace i2p {
 namespace crypto {
