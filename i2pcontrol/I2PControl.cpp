@@ -17,8 +17,8 @@
 namespace i2p {
 namespace client {
 
-I2PControlSession::Response::Response(const std::string& id, const std::string& version)
-    : id(id), version(version), parameters()
+I2PControlSession::Response::Response(const std::string& version)
+    : id(), version(version), error(ErrorCode::None), parameters()
 {
 
 }
@@ -32,8 +32,40 @@ std::string I2PControlSession::Response::toJsonString() const
             oss << ',';
         oss << '"' << it->first << "\":" << it->second;
     }
-    oss << "},\"jsonrpc\":\"" << version << "\"}";
+    oss << "},\"jsonrpc\":\"" << version << '"';
+    if(error != ErrorCode::None)
+        oss << ",\"error\":{\"code\":" << static_cast<int>(error)
+            << ",\"message\":\"" << getErrorMsg() << "\"" << "}";
+    oss << "}";
     return oss.str();
+}
+
+std::string I2PControlSession::Response::getErrorMsg() const
+{
+    switch(error) {
+        case ErrorCode::MethodNotFound:
+            return "Method not found.";
+        case ErrorCode::InvalidParameters:
+            return "Invalid parameters.";
+        case ErrorCode::InvalidRequest:
+            return "Invalid request.";
+        case ErrorCode::ParseError:
+            return "Json parse error.";
+        case ErrorCode::InvalidPassword:
+            return "Invalid password.";
+        case ErrorCode::NoToken:
+            return "No authentication token given.";
+        case ErrorCode::NonexistantToken:
+            return "Nonexistant authentication token given.";
+        case ErrorCode::ExpiredToken:
+            return "Exipred authentication token given.";
+        case ErrorCode::UnspecifiedVersion:
+            return "Version not specified.";
+        case ErrorCode::UnsupportedVersion:
+            return "Version not supported.";
+        default:
+            return "";
+    };
 }
 
 void I2PControlSession::Response::setParam(const std::string& param, const std::string& value)
@@ -53,8 +85,18 @@ void I2PControlSession::Response::setParam(const std::string& param, double valu
     parameters[param] = oss.str();
 }
 
+void I2PControlSession::Response::setError(ErrorCode code)
+{
+    error = code;
+}
+
+void I2PControlSession::Response::setId(const std::string& identifier)
+{
+    id = identifier;
+}
+
 I2PControlSession::I2PControlSession(boost::asio::io_service& ios)
-    : password(I2P_CONTROL_DEFAULT_PASSWORD), service(ios), shutdownTimer(ios)
+    : password(I2P_CONTROL_DEFAULT_PASSWORD), tokens(), service(ios), shutdownTimer(ios)
 {
     // Method handlers
     methodHandlers[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlSession::handleAuthenticate; 
@@ -85,22 +127,54 @@ I2PControlSession::Response I2PControlSession::handleRequest(std::stringstream& 
     boost::property_tree::ptree pt;
     boost::property_tree::read_json(request, pt);
 
-    std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
-    auto it = methodHandlers.find(method);
-    if(it == methodHandlers.end()) { // Not found
-        LogPrint(eLogWarning, "Unknown I2PControl method ", method);
-        return Response("error"); // TODO: indicate the error through i2pcontrol 
+    Response response;
+    try { 
+        response.setId(pt.get<std::string>(I2P_CONTROL_PROPERTY_ID));
+
+        std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
+        auto it = methodHandlers.find(method);
+        if(it == methodHandlers.end()) { // Not found
+            LogPrint(eLogWarning, "Unknown I2PControl method ", method);
+            response.setError(ErrorCode::MethodNotFound);
+            return response;
+        }
+
+        PropertyTree params = pt.get_child(I2P_CONTROL_PROPERTY_PARAMS);
+        if(method != I2P_CONTROL_METHOD_AUTHENTICATE && !authenticate(params, response)) {
+            LogPrint(eLogWarning, "I2PControl invalid token presented");
+            return response;
+        }
+        // Call the appropriate handler
+        (this->*(it->second))(params, response);
+
+    } catch(const boost::property_tree::ptree_error& error) {
+        response.setError(ErrorCode::ParseError);
+    } catch(...) {
+        response.setError(ErrorCode::InternalError);
     }
 
-    Response response(pt.get<std::string>(I2P_CONTROL_PROPERTY_ID));
-    // Call the appropriate handler
-    (this->*(it->second))(pt.get_child(I2P_CONTROL_PROPERTY_PARAMS), response);
     return response;
+}
+
+bool I2PControlSession::authenticate(const PropertyTree& pt, Response& response)
+{
+    try {
+        std::string token = pt.get<std::string>(I2P_CONTROL_PARAM_TOKEN); 
+        if(tokens.find(token) == tokens.end()) {
+            response.setError(ErrorCode::NonexistantToken);
+            return false;
+        }
+    } catch(const boost::property_tree::ptree_error& error) {
+        response.setError(ErrorCode::NoToken);
+        return false;
+    }
+
+    return true;
 }
 
 void I2PControlSession::handleAuthenticate(const PropertyTree& pt, Response& response)
 {
-    int api = pt.get<int>(I2P_CONTROL_PARAM_API);
+    const int api = pt.get<int>(I2P_CONTROL_PARAM_API);
     const std::string given_pass = pt.get<std::string>(I2P_CONTROL_PARAM_PASSWORD);
     LogPrint(eLogDebug, "I2PControl Authenticate API = ", api, " Password = ", password);
     if(given_pass != password) {
@@ -108,12 +182,14 @@ void I2PControlSession::handleAuthenticate(const PropertyTree& pt, Response& res
             eLogError, "I2PControl Authenticate Invalid password ", password,
             " expected ", password
         );
+        response.setError(ErrorCode::InvalidPassword);
         return;
     }
+    // TODO: generate a secure token
     const std::string token = std::to_string(i2p::util::GetSecondsSinceEpoch());
     response.setParam(I2P_CONTROL_PARAM_API, api);
     response.setParam(I2P_CONTROL_PARAM_TOKEN, token);
-    // TODO: store tokens to do something useful with them
+    tokens.insert(token);
 }
 
 void I2PControlSession::handleEcho(const PropertyTree& pt, Response& response)
@@ -134,13 +210,16 @@ void I2PControlSession::handleRouterInfo(const PropertyTree& pt, Response& respo
 {
     LogPrint(eLogDebug, "I2PControl RouterInfo");
     for(const auto& pair : pt) {
+        if(pair.first == I2P_CONTROL_PARAM_TOKEN)
+            continue;
         LogPrint(eLogDebug, pair.first);
         auto it = routerInfoHandlers.find(pair.first);
-        LogPrint(eLogDebug, "Still going");
-        if(it != routerInfoHandlers.end())
+        if(it != routerInfoHandlers.end()) {
             (this->*(it->second))(response);
-        else
+        } else {
             LogPrint(eLogError, "I2PControl RouterInfo unknown request ", pair.first);
+            response.setError(ErrorCode::InvalidRequest);
+        }
     }
 }
 
@@ -148,12 +227,16 @@ void I2PControlSession::handleRouterManager(const PropertyTree& pt, Response& re
 {
     LogPrint(eLogDebug, "I2PControl RouterManager");
     for(const auto& pair : pt) {
+        if(pair.first == I2P_CONTROL_PARAM_TOKEN)
+            continue;
         LogPrint(eLogDebug, pair.first);
         auto it = routerManagerHandlers.find(pair.first);
-        if(it != routerManagerHandlers.end())
+        if(it != routerManagerHandlers.end()) {
             (this->*(it->second))(response);
-        else
+        } else {
             LogPrint(eLogError, "I2PControl RouterManager unknown request ", pair.first);
+            response.setError(ErrorCode::InvalidRequest);
+        }
     }
 }
 

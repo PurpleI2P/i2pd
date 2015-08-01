@@ -4,6 +4,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <string>
 #include <map>
+#include <set>
 #include <functional>
 #include <boost/asio.hpp>
 
@@ -55,16 +56,36 @@ const char I2P_CONTROL_ROUTER_MANAGER_RESEED[] = "Reseed";
 
 /**
  * "Null" I2P control implementation, does not do actual networking.
+ * @note authentication tokens are per-session
  */
 class I2PControlSession {
     
 public:
+    enum class ErrorCode {
+        None = 0,
+        // JSON-RPC2
+        MethodNotFound = 32601,
+        InvalidParameters = 32602,
+        InvalidRequest = 32600,
+        InternalError = 32603,
+        ParseError = 32700,
+        // I2PControl specific
+        InvalidPassword = 32001,
+        NoToken = 32002,
+        NonexistantToken = 32003,
+        ExpiredToken = 32004,
+        UnspecifiedVersion = 32005,
+        UnsupportedVersion = 32006
+    };
+
     class Response {
         std::string id;
         std::string version;
+        ErrorCode error;
         std::map<std::string, std::string> parameters;
+
     public:
-        Response(const std::string& id, const std::string& version = "2.0");
+        Response(const std::string& version = "2.0");
         std::string toJsonString() const;
 
         /**
@@ -74,6 +95,11 @@ public:
         void setParam(const std::string& param, const std::string& value);
         void setParam(const std::string& param, int value);
         void setParam(const std::string& param, double value);
+
+        void setError(ErrorCode code);
+        void setId(const std::string& identifier);
+
+        std::string getErrorMsg() const;
     };
 
     /**
@@ -94,6 +120,13 @@ private:
         const PropertyTree& pt, Response& results
     );
     typedef void (I2PControlSession::*RequestHandler)(Response& results);
+
+    
+    /**
+     * Tries to authenticate by checking whether the given token is valid. 
+     * Sets the appropriate error code in the given response.
+     */
+    bool authenticate(const PropertyTree& pt, Response& response);
 
     // Method handlers
     void handleAuthenticate(const PropertyTree& pt, Response& response);
@@ -120,6 +153,7 @@ private:
     void handleReseed(Response& response);
 
     std::string password;
+    std::set<std::string> tokens;
 
     std::map<std::string, MethodHandler> methodHandlers;
     std::map<std::string, RequestHandler> routerInfoHandlers;
