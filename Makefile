@@ -32,6 +32,7 @@ mk_build_dir:
 	mkdir -p obj/util
 	mkdir -p obj/crypto
 	mkdir -p obj/tunnel
+	mkdir -p obj/i2pcontrol
 mk_build_test_dir:
 	mkdir -p obj/tests
 
@@ -51,6 +52,7 @@ deps:
 	@mkdir -p obj/util
 	@mkdir -p obj/crypto
 	@mkdir -p obj/tunnel
+	@mkdir -p obj/i2pcontrol
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
@@ -61,6 +63,7 @@ obj/%.o : %.cpp
 	@mkdir -p obj/util
 	@mkdir -p obj/crypto
 	@mkdir -p obj/tunnel
+	@mkdir -p obj/i2pcontrol
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
