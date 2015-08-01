@@ -27,15 +27,18 @@ std::string I2PControlSession::Response::toJsonString() const
 {
     std::ostringstream oss;
     oss << "{\"id\":" << id << ",\"result\":{";                  
+    for(auto it = parameters.begin(); it != parameters.end(); ++it) {
+        if(it != parameters.begin())
+            oss << ',';
+        oss << '"' << it->first << "\":" << it->second;
+    }
     oss << "},\"jsonrpc\":\"" << version << "\"}";
-    for(auto& pair : parameters)
-        oss << '"' << pair.first << "\":" << pair.second << ", ";
     return oss.str();
 }
 
 void I2PControlSession::Response::setParam(const std::string& param, const std::string& value)
 {
-    parameters[param] = value.empty() ? "\"" + value + "\"" : "null";
+    parameters[param] = value.empty() ? "null" : "\"" + value + "\"";
 }
 
 void I2PControlSession::Response::setParam(const std::string& param, int value)
@@ -130,26 +133,27 @@ void I2PControlSession::handleI2PControl(const PropertyTree& pt, Response& respo
 void I2PControlSession::handleRouterInfo(const PropertyTree& pt, Response& response)
 {
     LogPrint(eLogDebug, "I2PControl RouterInfo");
-    for(auto pair : pt) {
+    for(const auto& pair : pt) {
         LogPrint(eLogDebug, pair.first);
         auto it = routerInfoHandlers.find(pair.first);
+        LogPrint(eLogDebug, "Still going");
         if(it != routerInfoHandlers.end())
             (this->*(it->second))(response);
         else
-            LogPrint(eLogError, "I2PControl RouterInfo unknown request ", it->first);
+            LogPrint(eLogError, "I2PControl RouterInfo unknown request ", pair.first);
     }
 }
 
 void I2PControlSession::handleRouterManager(const PropertyTree& pt, Response& response)
 {
     LogPrint(eLogDebug, "I2PControl RouterManager");
-    for(auto pair : pt) {
+    for(const auto& pair : pt) {
         LogPrint(eLogDebug, pair.first);
         auto it = routerManagerHandlers.find(pair.first);
         if(it != routerManagerHandlers.end())
             (this->*(it->second))(response);
         else
-            LogPrint(eLogError, "I2PControl RouterManager unknown request ", it->first);
+            LogPrint(eLogError, "I2PControl RouterManager unknown request ", pair.first);
     }
 }
 
