@@ -214,10 +214,10 @@ void I2PControlSession::handleAuthenticate(const PropertyTree& pt, Response& res
 {
     const int api = pt.get<int>(I2P_CONTROL_PARAM_API);
     const std::string given_pass = pt.get<std::string>(I2P_CONTROL_PARAM_PASSWORD);
-    LogPrint(eLogDebug, "I2PControl Authenticate API = ", api, " Password = ", password);
+    LogPrint(eLogDebug, "I2PControl Authenticate API = ", api, " Password = ", given_pass);
     if(given_pass != password) {
         LogPrint(
-            eLogError, "I2PControl Authenticate Invalid password ", password,
+            eLogError, "I2PControl Authenticate Invalid password ", given_pass,
             " expected ", password
         );
         response.setError(ErrorCode::InvalidPassword);
