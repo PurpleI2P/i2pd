@@ -199,14 +199,12 @@ bool I2PControlSession::authenticate(const PropertyTree& pt, Response& response)
 
 std::string I2PControlSession::generateToken() const
 {
-    const std::size_t token_size = 8; // 64 bits of security
-
-    byte random_data[token_size] = {};
+    byte random_data[I2P_CONTROL_TOKEN_SIZE] = {};
     CryptoPP::AutoSeededRandomPool rng;
-    rng.GenerateBlock(random_data, token_size);
+    rng.GenerateBlock(random_data, I2P_CONTROL_TOKEN_SIZE);
     std::string token;
     CryptoPP::StringSource ss(
-        random_data, token_size, true,
+        random_data, I2P_CONTROL_TOKEN_SIZE, true,
         new CryptoPP::HexEncoder(new CryptoPP::StringSink(token))
     );
     return token;

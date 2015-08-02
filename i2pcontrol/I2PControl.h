@@ -13,6 +13,7 @@ namespace client {
 
 const char I2P_CONTROL_DEFAULT_PASSWORD[] = "itoopie";  
 const uint64_t I2P_CONTROL_TOKEN_LIFETIME = 600; // Token lifetime in seconds
+const std::size_t I2P_CONTROL_TOKEN_SIZE = 8; // Token size in bytes
 
 const char I2P_CONTROL_PROPERTY_ID[] = "id";
 const char I2P_CONTROL_PROPERTY_METHOD[] = "method";
