@@ -538,17 +538,10 @@ namespace util
 
     void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
     {
-        if (!ecode)
-        {
-            if (!m_Stream) // new request
-            {
-                m_Buffer[bytes_transferred] = 0;
-                m_BufferLen = bytes_transferred;
-                RunRequest();
-            }
-            else // follow-on
-                m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
-            Receive ();
+        if(!ecode) {
+            m_Buffer[bytes_transferred] = 0;
+            m_BufferLen = bytes_transferred;
+            RunRequest();
         }
         else if (ecode != boost::asio::error::operation_aborted)
             Terminate ();
@@ -558,21 +551,9 @@ namespace util
     {
         auto address = ExtractAddress ();
         if (address.length () > 1 && address[1] != '?') // not just '/' or '/?'
-        {
-            std::string uri ("/"), b32;
-            size_t pos = address.find ('/', 1);
-            if (pos == std::string::npos)
-                b32 = address.substr (1); // excluding leading '/' to end of line
-            else
-            {
-                b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
-                uri = address.substr (pos); // rest of line
-            }
+            return; // TODO: error handling
 
-            HandleDestinationRequest (b32, uri);
-        }
-        else
-            HandleRequest (address);
+        HandleRequest (address);
     }
 
     std::string HTTPConnection::ExtractAddress ()
@@ -612,17 +593,6 @@ namespace util
             m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
             Terminate ();
         }   
-    }
-
-    void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
-    {
-        if (ecode || (m_Stream && !m_Stream->IsOpen ()))
-        {
-            if (ecode != boost::asio::error::operation_aborted)
-                Terminate ();
-        }   
-        else // data keeps coming
-            AsyncStreamReceive ();
     }
 
     void HTTPConnection::HandleRequest (const std::string& address)
@@ -946,87 +916,6 @@ namespace util
     {
         i2p::context.SetAcceptsTunnels (false);
         s << "Accepting tunnels stopped" <<  std::endl;
-    }
-
-    void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
-    {
-        std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n";
-        LogPrint("HTTP Client Request: ", request);
-        SendToAddress (address, 80, request.c_str (), request.size ());     
-    }
-
-    void HTTPConnection::SendToAddress (const std::string& address, int port, const char * buf, size_t len)
-    {   
-        i2p::data::IdentHash destination;
-        if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
-        {
-            LogPrint ("Unknown address ", address);
-            SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 404);
-            return;
-        }       
-
-        auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-        if (leaseSet && leaseSet->HasNonExpiredLeases ())
-            SendToDestination (leaseSet, port, buf, len);
-        else
-        {
-            memcpy (m_Buffer, buf, len);
-            m_BufferLen = len;
-            i2p::client::context.GetSharedLocalDestination ()->RequestDestination (destination);
-            m_Timer.expires_from_now (boost::posix_time::seconds(HTTP_DESTINATION_REQUEST_TIMEOUT));
-            m_Timer.async_wait (std::bind (&HTTPConnection::HandleDestinationRequestTimeout,
-                shared_from_this (), std::placeholders::_1, destination, port, m_Buffer, m_BufferLen));
-        }
-    }
-    
-    void HTTPConnection::HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
-        i2p::data::IdentHash destination, int port, const char * buf, size_t len)
-    {   
-        if (ecode != boost::asio::error::operation_aborted)
-        {   
-            auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-            if (leaseSet && leaseSet->HasNonExpiredLeases ())
-                SendToDestination (leaseSet, port, buf, len);
-            else
-                // still no LeaseSet
-                SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
-        }
-    }   
-    
-    void HTTPConnection::SendToDestination (std::shared_ptr<const i2p::data::LeaseSet> remote, int port, const char * buf, size_t len)
-    {
-        if (!m_Stream)
-            m_Stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (remote, port);
-        if (m_Stream)
-        {
-            m_Stream->Send ((uint8_t *)buf, len);
-            AsyncStreamReceive ();
-        }
-    }
-
-    void HTTPConnection::AsyncStreamReceive ()
-    {
-        if (m_Stream)
-            m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-                std::bind (&HTTPConnection::HandleStreamReceive, shared_from_this (),
-                    std::placeholders::_1, std::placeholders::_2),
-                45); // 45 seconds timeout
-    }
-
-    void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
-    {
-        if (!ecode)
-        {
-            boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-                std::bind (&HTTPConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
-        }
-        else
-        {
-            if (ecode == boost::asio::error::timed_out)
-                SendReply ("<html>" + itoopieImage + "<br>Not responding</html>", 504);
-            else if (ecode != boost::asio::error::operation_aborted)
-                Terminate ();
-        }
     }
 
     void HTTPConnection::SendReply (const std::string& content, int status)
