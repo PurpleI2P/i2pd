@@ -108,10 +108,12 @@ public:
 
     /**
      * Sets up the appropriate handlers.
+     * @param pass the password required to authenticate (i.e. obtains a token)
      * @param ios the parent io_service object, must remain valid throughout
      *  the lifetime of this I2PControlSession.
      */
-    I2PControlSession(boost::asio::io_service& ios);
+    I2PControlSession(boost::asio::io_service& ios,
+        const std::string& pass = I2P_CONTROL_DEFAULT_PASSWORD);
 
     /**
      * Starts the I2PControlSession.

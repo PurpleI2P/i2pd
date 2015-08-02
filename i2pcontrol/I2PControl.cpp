@@ -100,8 +100,8 @@ void I2PControlSession::Response::setId(const std::string& identifier)
     id = identifier;
 }
 
-I2PControlSession::I2PControlSession(boost::asio::io_service& ios)
-    : password(I2P_CONTROL_DEFAULT_PASSWORD), tokens(), tokensMutex(),
+I2PControlSession::I2PControlSession(boost::asio::io_service& ios, const std::string& pass)
+    : password(pass), tokens(), tokensMutex(),
       service(ios), shutdownTimer(ios), expireTokensTimer(ios)
 {
     // Method handlers
