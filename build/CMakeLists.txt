@@ -63,7 +63,7 @@ set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/HTTPServer.cpp"
   "${CMAKE_SOURCE_DIR}/I2PService.cpp"
   "${CMAKE_SOURCE_DIR}/i2pcontrol/I2PControl.cpp"	
-  "${CMAKE_SOURCE_DIR}/i2pcontrol/I2PServer.cpp"	
+  "${CMAKE_SOURCE_DIR}/i2pcontrol/I2PControlServer.cpp"	
   "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
   "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
