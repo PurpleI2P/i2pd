@@ -60,8 +60,8 @@ std::string I2PControlSession::Response::getErrorMsg() const
             return "Invalid password.";
         case ErrorCode::NoToken:
             return "No authentication token given.";
-        case ErrorCode::NonexistantToken:
-            return "Nonexistant authentication token given.";
+        case ErrorCode::NonexistentToken:
+            return "Nonexistent authentication token given.";
         case ErrorCode::ExpiredToken:
             return "Exipred authentication token given.";
         case ErrorCode::UnspecifiedVersion:
@@ -182,7 +182,7 @@ bool I2PControlSession::authenticate(const PropertyTree& pt, Response& response)
         std::lock_guard<std::mutex> lock(tokensMutex);
         auto it = tokens.find(token);
         if(it == tokens.end()) {
-            response.setError(ErrorCode::NonexistantToken);
+            response.setError(ErrorCode::NonexistentToken);
             return false;
         } else if(util::GetSecondsSinceEpoch() - it->second > I2P_CONTROL_TOKEN_LIFETIME) {
             response.setError(ErrorCode::ExpiredToken);
