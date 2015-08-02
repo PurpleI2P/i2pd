@@ -8,8 +8,6 @@
 #include <array>
 #include <string>
 #include <sstream>
-#include <map>
-#include <set>
 #include <boost/asio.hpp>
 
 namespace i2p {
@@ -22,22 +20,22 @@ class I2PControlService {
 public:
 
     I2PControlService(const std::string& address, int port, const std::string& pass);
-    ~I2PControlService ();
+    ~I2PControlService();
 
-    void Start ();
-    void Stop ();
+    void Start();
+    void Stop();
 
 private:
 
-    void Run ();
-    void Accept ();
+    void Run();
+    void Accept();
     void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);    
-    void ReadRequest (std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-    void HandleRequestReceived (const boost::system::error_code& ecode, size_t bytes_transferred, 
+    void ReadRequest(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+    void HandleRequestReceived(const boost::system::error_code& ecode, size_t bytes_transferred, 
         std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
-    void SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+    void SendResponse(std::shared_ptr<boost::asio::ip::tcp::socket> socket,
         std::shared_ptr<I2PControlBuffer> buf, const std::string& response, bool isHtml);
-    void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
+    void HandleResponseSent(const boost::system::error_code& ecode, std::size_t bytes_transferred,
         std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 
 private:
