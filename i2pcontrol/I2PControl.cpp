@@ -122,6 +122,17 @@ I2PControlSession::I2PControlSession(boost::asio::io_service& ios)
     routerManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_RESEED] = &I2PControlSession::handleReseed;
 }
 
+I2PControlSession::~I2PControlSession()
+{
+    stop();
+}
+
+void I2PControlSession::stop()
+{
+    boost::system::error_code e; // Make sure this doesn't throw
+    shutdownTimer.cancel(e);
+}
+
 I2PControlSession::Response I2PControlSession::handleRequest(std::stringstream& request)
 {
     boost::property_tree::ptree pt;
