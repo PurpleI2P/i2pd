@@ -11,7 +11,8 @@ namespace i2p
 namespace client
 {
     I2PControlService::I2PControlService(const std::string& address, int port)
-        : m_Session(new I2PControlSession(m_Service)), m_IsRunning(false), m_Thread(nullptr),
+        : m_Session(std::make_shared<I2PControlSession>(m_Service)),
+          m_IsRunning(false), m_Thread(nullptr),
           m_Acceptor(m_Service, boost::asio::ip::tcp::endpoint(
             boost::asio::ip::address::from_string(address), port)
           )
@@ -29,6 +30,7 @@ namespace client
         if (!m_IsRunning)
         {
             Accept ();
+            m_Session->start();
             m_IsRunning = true;
             m_Thread = new std::thread (std::bind (&I2PControlService::Run, this));
         }
@@ -40,8 +42,9 @@ namespace client
         {
             m_IsRunning = false;
             m_Acceptor.cancel ();   
-            // Delete the session before the io_service is stopped and destroyed
-            delete m_Session;
+            m_Session->stop();
+            // Release ownership before the io_service is stopped and destroyed
+            m_Session.reset();
             m_Service.stop ();
             if (m_Thread)
             {   
