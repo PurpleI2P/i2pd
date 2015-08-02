@@ -137,6 +137,12 @@ private:
      */
     bool authenticate(const PropertyTree& pt, Response& response);
 
+    /**
+     * Generate a random authentication token.
+     * @return 8 random bytes as a hexadecimal string
+     */
+    std::string generateToken() const;
+
     // Method handlers
     void handleAuthenticate(const PropertyTree& pt, Response& response);
     void handleEcho(const PropertyTree& pt, Response& response);

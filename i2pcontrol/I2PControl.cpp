@@ -3,11 +3,16 @@
 // TODO: handle this somewhere, but definitely not here
 
 #include "I2PControl.h"
-#include "util/Log.h"
 #include <iomanip>
 #include <sstream>
-#include "util/Timestamp.h"
+
+#include <cryptopp/osrng.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/filters.h>
+
 #include <boost/property_tree/json_parser.hpp>
+#include "util/Log.h"
+#include "util/Timestamp.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "NetDb.h"
@@ -183,6 +188,21 @@ bool I2PControlSession::authenticate(const PropertyTree& pt, Response& response)
     return true;
 }
 
+std::string I2PControlSession::generateToken() const
+{
+    const std::size_t token_size = 8; // 64 bits of security
+
+    byte random_data[token_size] = {};
+    CryptoPP::AutoSeededRandomPool rng;
+    rng.GenerateBlock(random_data, token_size);
+    std::string token;
+    CryptoPP::StringSource ss(
+        random_data, token_size, true,
+        new CryptoPP::HexEncoder(new CryptoPP::StringSink(token))
+    );
+    return token;
+}
+
 void I2PControlSession::handleAuthenticate(const PropertyTree& pt, Response& response)
 {
     const int api = pt.get<int>(I2P_CONTROL_PARAM_API);
@@ -196,8 +216,7 @@ void I2PControlSession::handleAuthenticate(const PropertyTree& pt, Response& res
         response.setError(ErrorCode::InvalidPassword);
         return;
     }
-    // TODO: generate a secure token
-    const std::string token = std::to_string(i2p::util::GetSecondsSinceEpoch());
+    const std::string token = generateToken();
     response.setParam(I2P_CONTROL_PARAM_API, api);
     response.setParam(I2P_CONTROL_PARAM_TOKEN, token);
     tokens.insert(token);
