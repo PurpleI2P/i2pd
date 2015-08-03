@@ -16,7 +16,8 @@ ifeq ($(UNAME),Darwin)
 # Else will get linker error about unknown symbols. - torkel
 	COMMON_SRC += \
 	  AddressBook.cpp BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp I2PService.cpp \
-	  SAM.cpp SOCKS.cpp UPnP.cpp HTTPProxy.cpp i2p.cpp DaemonLinux.cpp I2PControl.cpp \
+	  SAM.cpp SOCKS.cpp UPnP.cpp HTTPProxy.cpp i2p.cpp DaemonLinux.cpp \
+	  i2pcontrol/I2PControlServer.cpp i2pcontrol/I2PControl.cpp \
 	  HTTPServer.cpp
 endif
 
@@ -24,10 +25,11 @@ endif
 # also: Daemon{Linux,Win32}.cpp will be added later
 DAEMON_SRC = $(COMMON_SRC) \
   AddressBook.cpp BOB.cpp ClientContext.cpp Daemon.cpp I2PTunnel.cpp I2PService.cpp \
-  SAM.cpp SOCKS.cpp HTTPServer.cpp HTTPProxy.cpp I2PControl.cpp i2p.cpp
+  SAM.cpp SOCKS.cpp HTTPServer.cpp HTTPProxy.cpp i2pcontrol/I2PControl.cpp \
+  i2pcontrol/I2PControlServer.cpp i2p.cpp
 
 LIB_SRC := $(COMMON_SRC) \
   api.cpp
 
 TESTS_SRC := $(COMMON_SRC)  \
-  tests/Utility.cpp tests/Identity.cpp tests/Base64.cpp
+  tests/Utility.cpp tests/Identity.cpp tests/Base64.cpp tests/Crypto.cpp
