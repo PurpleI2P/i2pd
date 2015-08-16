@@ -15,7 +15,7 @@
 #include "util.h"
 #include "Log.h"
 
-#if defined(__linux__) || defined(__FreeBSD_kernel__)
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__)
 #include <sys/types.h>
 #include <ifaddrs.h>
 #elif defined(WIN32)
@@ -455,7 +455,7 @@ namespace http
 
 namespace net {
 
-#if defined(__linux__) || defined(__FreeBSD_kernel__)   
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__)
     
     int GetMTUUnix(const boost::asio::ip::address& localAddress, int fallback)
     {
@@ -655,11 +655,12 @@ namespace net {
     {
         const int fallback = 576; // fallback MTU
 
-#if defined(__linux__) || defined(__FreeBSD_kernel__)
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__)
         return GetMTUUnix(localAddress, fallback);
 #elif defined(WIN32)
         return GetMTUWindows(localAddress, fallback);
 #endif
+        return fallback;
     }
 } 
 
