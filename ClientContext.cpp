@@ -81,7 +81,7 @@ namespace client
         if (eepKeys.length () > 0) // eepkeys file is presented
         {
             localDestination = LoadLocalDestination (eepKeys, true);
-            auto serverTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eephost", "127.0.0.1"),
+            auto serverTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eepaddress", "127.0.0.1"),
                 i2p::util::config::GetArg("-eepport", 80), localDestination);
             serverTunnel->Start ();
             m_ServerTunnels.insert (std::make_pair(localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel)));
@@ -280,13 +280,14 @@ namespace client
     void ClientContext::ReadTunnels ()
     {
         boost::property_tree::ptree pt;
+        std::string pathTunnelsConfigFile = i2p::util::filesystem::GetTunnelsConfigFile().string();
         try {
             boost::property_tree::read_ini(
-                i2p::util::filesystem::GetFullPath(TUNNELS_CONFIG_FILENAME),
+                pathTunnelsConfigFile,
                 pt
             );
         } catch(const std::exception& ex) {
-            LogPrint(eLogWarning, "Can't read ", TUNNELS_CONFIG_FILENAME, ": ", ex.what ());
+            LogPrint(eLogWarning, "Can't read ", pathTunnelsConfigFile, ": ", ex.what ());
             return;
         }
             
@@ -349,7 +350,7 @@ namespace client
                         LogPrint (eLogError, "I2P server tunnel for destination ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), " already exists");    
                     numServerTunnels++;
                 } else
-                    LogPrint (eLogWarning, "Unknown section type=", type, " of ", name, " in ", TUNNELS_CONFIG_FILENAME);
+                    LogPrint (eLogWarning, "Unknown section type=", type, " of ", name, " in ", pathTunnelsConfigFile);
                 
             } catch (const std::exception& ex) {
                 LogPrint (eLogError, "Can't read tunnel ", name, " params: ", ex.what ());

@@ -518,15 +518,7 @@ namespace util
 
     void HTTPConnection::Terminate ()
     {
-        if (!m_Stream) return;
         m_Socket->close ();
-        m_Stream->Close ();
-            
-        m_Socket->get_io_service ().post ([=](void)
-            {
-                m_Stream.reset ();
-                m_Stream = nullptr;
-            });
     }
 
     void HTTPConnection::Receive ()

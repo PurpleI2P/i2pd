@@ -98,20 +98,21 @@ Cmdline options
 * --socksproxyaddress=  - The address to listen on (SOCKS Proxy)
 * --proxykeys=          - optional keys file for proxy's local destination
 * --ircport=            - The local port of IRC tunnel to listen on. 6668 by default
-* --irchost=            - The adddress of IRC tunnel to listen on, 127.0.0.1 by default
+* --ircaddress=         - The adddress of IRC tunnel to listen on, 127.0.0.1 by default
 * --ircdest=            - I2P destination address of IRC server. For example irc.postman.i2p
 * --irckeys=            - optional keys file for tunnel's local destination 
 * --eepkeys=            - File name containing destination keys, for example privKeys.dat.
                           The file will be created if it does not already exist (issue #110).
-* --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default
+* --eepaddress=         - Address incoming trafic forward to. 127.0.0.1 by default
 * --eepport=            - Port incoming trafic forward to. 80 by default
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
-* --samhost=            - Address of SAM bridge, 127.0.0.1 by default (only used if SAM is on)
+* --samaddress=         - Address of SAM bridge, 127.0.0.1 by default (only used if SAM is on)
 * --bobport=            - Port of BOB command channel. Usually 2827. BOB is off if not specified
 * --bobaddress=         - Address of BOB service, 127.0.0.1 by default (only used if BOB is on)
 * --i2pcontrolport=     - Port of I2P control service. Usually 7650. I2PControl is off if not specified
 * --i2pcontroladdress=  - Address of I2P control service, 127.0.0.1 by default (only used if I2PControl is on)
 * --i2pcontrolpassword= - I2P control service password, "itoopie" by default
+* --tunnelscfg=         - Tunnels Config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
 * --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.

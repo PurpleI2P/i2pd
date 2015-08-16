@@ -40,10 +40,10 @@ void TunnelEncryption::Encrypt (const uint8_t * in, uint8_t * out)
         : "%xmm0", "%xmm1", "cc", "memory"
     );
 #else
-    m_IVEncryption.Encrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
+    m_IVEncryption.Encrypt ((const CipherBlock *)in, (CipherBlock *)out); // iv
     m_LayerEncryption.SetIV (out);
     m_LayerEncryption.Encrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
-    m_IVEncryption.Encrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
+    m_IVEncryption.Encrypt ((CipherBlock *)out, (CipherBlock *)out); // double iv
 #endif
     }
 
@@ -77,10 +77,10 @@ void TunnelDecryption::Decrypt (const uint8_t * in, uint8_t * out)
         : "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
     );
 #else
-    m_IVDecryption.Decrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
+    m_IVDecryption.Decrypt ((const CipherBlock *)in, (CipherBlock *)out); // iv
     m_LayerDecryption.SetIV (out);  
     m_LayerDecryption.Decrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
-    m_IVDecryption.Decrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
+    m_IVDecryption.Decrypt ((CipherBlock *)out, (CipherBlock *)out); // double iv
 #endif
 }
 
