@@ -71,6 +71,11 @@ namespace util
         boost::filesystem::path GetConfigFile();
 
         /**
+         * @return the path of the tunnels configuration file
+         */
+        boost::filesystem::path GetTunnelsConfigFile();
+
+        /**
          * @return the default directory for i2pd data
          */
         boost::filesystem::path GetDefaultDataDir();

@@ -185,6 +185,14 @@ namespace filesystem
         return pathConfigFile;
     }
 
+    boost::filesystem::path GetTunnelsConfigFile()
+    {
+        boost::filesystem::path pathTunnelsConfigFile(i2p::util::config::GetArg("-tunnelscfg", "tunnels.cfg"));
+        if(!pathTunnelsConfigFile.is_complete())
+            pathTunnelsConfigFile = GetDataDir() / pathTunnelsConfigFile;
+        return pathTunnelsConfigFile;
+    }
+
     boost::filesystem::path GetDefaultDataDir()
     {
         // Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd
