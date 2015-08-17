@@ -2,7 +2,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <ctime>
-#include <iomanip>
 #include "util/base64.h"
 #include "util/Log.h"
 #include "tunnel/Tunnel.h"
@@ -492,7 +491,7 @@ namespace util
             buffers.push_back(boost::asio::buffer("HTTP/1.1 ", 9));
             buffers.push_back(boost::asio::buffer(boost::lexical_cast<std::string>(status), 3));
             buffers.push_back(boost::asio::buffer(" ", 1));
-            std::string status_string = "WTF";
+            std::string status_string;
             switch (status)
             {
                 case 105: status_string = "Name Not Resolved"; break;
@@ -917,7 +916,7 @@ namespace util
     {
         m_Reply.content = content;
         m_Reply.headers.resize(3);
-        // we need the date header to be complaint with http 1.1
+        // we need the date header to be compliant with HTTP 1.1
         std::time_t time_now = std::time(nullptr);
         char time_buff[128];
         if ( std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now)) ) {
