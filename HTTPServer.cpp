@@ -669,8 +669,6 @@ namespace util
             s << "<br><b><a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a></b><br>";
         else    
             s << "<br><b><a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a></b><br>";
-
-        s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
     }
 
     void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
