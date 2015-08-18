@@ -309,16 +309,15 @@ void I2PControlSession::handleNetDbKnownPeers(Response& response)
 void I2PControlSession::handleNetDbActivePeers(Response& response)
 {
     response.setParam(
-        I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS,
-        i2p::data::netdb.GetNumRouters()
+        I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS,
+        (int)i2p::transport::transports.GetPeers().size()
     );
 }
 
 void I2PControlSession::handleNetStatus(Response& response)
 {
     response.setParam(
-        I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS,
-        (int)i2p::transport::transports.GetPeers().size()
+        I2P_CONTROL_ROUTER_INFO_NET_STATUS, (int)i2p::context.GetStatus()
     );  
 }
 
