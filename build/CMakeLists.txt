@@ -7,8 +7,9 @@ option(WITH_HARDENING "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY   "Build library" ON)
 option(WITH_BINARY    "Build binary" ON)
 option(WITH_STATIC    "Static build" OFF)
-option(WITH_UPNP "Include support for UPnP client" OFF)
-option(WITH_PCH "Use precompiled header" OFF)
+option(WITH_UPNP      "Include support for UPnP client" OFF)
+option(WITH_PCH       "Use precompiled header" OFF)
+option(WITH_TESTS     "Build unit tests" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -68,6 +69,13 @@ set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
   "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
   "${CMAKE_SOURCE_DIR}/i2p.cpp"
+)
+
+set (TESTS_SRC
+  "${CMAKE_SOURCE_DIR}/tests/Base64.cpp"
+  "${CMAKE_SOURCE_DIR}/tests/Crypto.cpp"
+  "${CMAKE_SOURCE_DIR}/tests/Identity.cpp"
+  "${CMAKE_SOURCE_DIR}/tests/Utility.cpp"
 )
 
 if (WITH_UPNP)
@@ -242,6 +250,7 @@ message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  PCH              : ${WITH_PCH}")
+message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
@@ -298,4 +307,14 @@ if (WITH_LIBRARY)
     endif()
   endif()
   install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif ()
+
+if (WITH_TESTS)
+  find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono unit_test_framework REQUIRED )
+  
+  add_executable(i2pd_tests ${TESTS_SRC})
+  target_link_libraries(i2pd_tests common ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
+  enable_testing()
+  add_test(i2pdTest i2pd_tests)
 endif ()
