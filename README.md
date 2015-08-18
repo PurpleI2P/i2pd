@@ -60,11 +60,7 @@ $ ./i2pd
 
 The client should now reseed by itself.
 
-To visit an I2P page, you need to find the b32 address of your destination.
-After that, go to the webconsole and add it behind the url. (Remove http:// from the address)
-
-This should resulting in for example:
-http://localhost:7070/4oes3rlgrpbkmzv4lqcfili23h3cvpwslqcfjlk6vvguxyggspwa.b32.i2p
+By default, the web console is located at http://localhost:7070/.
 
 Building Unit Tests
 -------------------

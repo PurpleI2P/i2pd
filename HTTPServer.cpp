@@ -1,6 +1,7 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <ctime>
 #include "util/base64.h"
 #include "util/Log.h"
 #include "tunnel/Tunnel.h"
@@ -487,21 +488,24 @@ namespace util
         std::vector<boost::asio::const_buffer> buffers;
         if (headers.size () > 0)
         {
+            buffers.push_back(boost::asio::buffer("HTTP/1.1 ", 9));
+            buffers.push_back(boost::asio::buffer(boost::lexical_cast<std::string>(status), 3));
+            buffers.push_back(boost::asio::buffer(" ", 1));
+            std::string status_string;
             switch (status)
             {
-                case 105: buffers.push_back(boost::asio::buffer("HTTP/1.1 105 Name Not Resolved\r\n")); break;
-                case 200: buffers.push_back(boost::asio::buffer("HTTP/1.1 200 OK\r\n")); break;
-                case 400: buffers.push_back(boost::asio::buffer("HTTP/1.1 400 Bad Request\r\n")); break;
-                case 404: buffers.push_back(boost::asio::buffer("HTTP/1.1 404 Not Found\r\n")); break;
-                case 408: buffers.push_back(boost::asio::buffer("HTTP/1.1 408 Request Timeout\r\n")); break;
-                case 500: buffers.push_back(boost::asio::buffer("HTTP/1.1 500 Internal Server Error\r\n")); break;
-                case 502: buffers.push_back(boost::asio::buffer("HTTP/1.1 502 Bad Gateway\r\n")); break;
-                case 503: buffers.push_back(boost::asio::buffer("HTTP/1.1 503 Not Implemented\r\n")); break;
-                case 504: buffers.push_back(boost::asio::buffer("HTTP/1.1 504 Gateway Timeout\r\n")); break;
-                default:
-                    buffers.push_back(boost::asio::buffer("HTTP/1.1 200 OK\r\n"));
+                case 105: status_string = "Name Not Resolved"; break;
+                case 200: status_string = "OK"; break;
+                case 400: status_string = "Bad Request"; break;
+                case 404: status_string = "Not Found"; break;
+                case 408: status_string = "Request Timeout"; break;
+                case 500: status_string = "Internal Server Error"; break;
+                case 502: status_string = "Bad Gateway"; break;
+                case 503: status_string = "Not Implemented"; break;
+                case 504: status_string = "Gateway Timeout"; break;
             }
-
+            buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
+            buffers.push_back(boost::asio::buffer(misc_strings::crlf));
             for (std::size_t i = 0; i < headers.size(); ++i)
             {
                 header& h = headers[i];
@@ -518,15 +522,7 @@ namespace util
 
     void HTTPConnection::Terminate ()
     {
-        if (!m_Stream) return;
         m_Socket->close ();
-        m_Stream->Close ();
-            
-        m_Socket->get_io_service ().post ([=](void)
-            {
-                m_Stream.reset ();
-                m_Stream = nullptr;
-            });
     }
 
     void HTTPConnection::Receive ()
@@ -538,17 +534,10 @@ namespace util
 
     void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
     {
-        if (!ecode)
-        {
-            if (!m_Stream) // new request
-            {
-                m_Buffer[bytes_transferred] = 0;
-                m_BufferLen = bytes_transferred;
-                RunRequest();
-            }
-            else // follow-on
-                m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
-            Receive ();
+        if(!ecode) {
+            m_Buffer[bytes_transferred] = 0;
+            m_BufferLen = bytes_transferred;
+            RunRequest();
         }
         else if (ecode != boost::asio::error::operation_aborted)
             Terminate ();
@@ -558,21 +547,9 @@ namespace util
     {
         auto address = ExtractAddress ();
         if (address.length () > 1 && address[1] != '?') // not just '/' or '/?'
-        {
-            std::string uri ("/"), b32;
-            size_t pos = address.find ('/', 1);
-            if (pos == std::string::npos)
-                b32 = address.substr (1); // excluding leading '/' to end of line
-            else
-            {
-                b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
-                uri = address.substr (pos); // rest of line
-            }
+            return; // TODO: error handling
 
-            HandleDestinationRequest (b32, uri);
-        }
-        else
-            HandleRequest (address);
+        HandleRequest (address);
     }
 
     std::string HTTPConnection::ExtractAddress ()
@@ -612,17 +589,6 @@ namespace util
             m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
             Terminate ();
         }   
-    }
-
-    void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
-    {
-        if (ecode || (m_Stream && !m_Stream->IsOpen ()))
-        {
-            if (ecode != boost::asio::error::operation_aborted)
-                Terminate ();
-        }   
-        else // data keeps coming
-            AsyncStreamReceive ();
     }
 
     void HTTPConnection::HandleRequest (const std::string& address)
@@ -702,8 +668,6 @@ namespace util
             s << "<br><b><a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a></b><br>";
         else    
             s << "<br><b><a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a></b><br>";
-
-        s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
     }
 
     void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
@@ -948,96 +912,21 @@ namespace util
         s << "Accepting tunnels stopped" <<  std::endl;
     }
 
-    void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
-    {
-        std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n";
-        LogPrint("HTTP Client Request: ", request);
-        SendToAddress (address, 80, request.c_str (), request.size ());     
-    }
-
-    void HTTPConnection::SendToAddress (const std::string& address, int port, const char * buf, size_t len)
-    {   
-        i2p::data::IdentHash destination;
-        if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
-        {
-            LogPrint ("Unknown address ", address);
-            SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 404);
-            return;
-        }       
-
-        auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-        if (leaseSet && leaseSet->HasNonExpiredLeases ())
-            SendToDestination (leaseSet, port, buf, len);
-        else
-        {
-            memcpy (m_Buffer, buf, len);
-            m_BufferLen = len;
-            i2p::client::context.GetSharedLocalDestination ()->RequestDestination (destination);
-            m_Timer.expires_from_now (boost::posix_time::seconds(HTTP_DESTINATION_REQUEST_TIMEOUT));
-            m_Timer.async_wait (std::bind (&HTTPConnection::HandleDestinationRequestTimeout,
-                shared_from_this (), std::placeholders::_1, destination, port, m_Buffer, m_BufferLen));
-        }
-    }
-    
-    void HTTPConnection::HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
-        i2p::data::IdentHash destination, int port, const char * buf, size_t len)
-    {   
-        if (ecode != boost::asio::error::operation_aborted)
-        {   
-            auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-            if (leaseSet && leaseSet->HasNonExpiredLeases ())
-                SendToDestination (leaseSet, port, buf, len);
-            else
-                // still no LeaseSet
-                SendReply (leaseSet ? "<html>" + itoopieImage + "<br>Leases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
-        }
-    }   
-    
-    void HTTPConnection::SendToDestination (std::shared_ptr<const i2p::data::LeaseSet> remote, int port, const char * buf, size_t len)
-    {
-        if (!m_Stream)
-            m_Stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (remote, port);
-        if (m_Stream)
-        {
-            m_Stream->Send ((uint8_t *)buf, len);
-            AsyncStreamReceive ();
-        }
-    }
-
-    void HTTPConnection::AsyncStreamReceive ()
-    {
-        if (m_Stream)
-            m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-                std::bind (&HTTPConnection::HandleStreamReceive, shared_from_this (),
-                    std::placeholders::_1, std::placeholders::_2),
-                45); // 45 seconds timeout
-    }
-
-    void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
-    {
-        if (!ecode)
-        {
-            boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-                std::bind (&HTTPConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
-        }
-        else
-        {
-            if (ecode == boost::asio::error::timed_out)
-                SendReply ("<html>" + itoopieImage + "<br>Not responding</html>", 504);
-            else if (ecode != boost::asio::error::operation_aborted)
-                Terminate ();
-        }
-    }
-
     void HTTPConnection::SendReply (const std::string& content, int status)
     {
         m_Reply.content = content;
-        m_Reply.headers.resize(2);
-        m_Reply.headers[0].name = "Content-Length";
-        m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
-        m_Reply.headers[1].name = "Content-Type";
-        m_Reply.headers[1].value = "text/html";
-
+        m_Reply.headers.resize(3);
+        // we need the date header to be compliant with HTTP 1.1
+        std::time_t time_now = std::time(nullptr);
+        char time_buff[128];
+        if ( std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now)) ) {
+            m_Reply.headers[0].name = "Date";
+            m_Reply.headers[0].value = std::string(time_buff);
+            m_Reply.headers[1].name = "Content-Length";
+            m_Reply.headers[1].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+            m_Reply.headers[2].name = "Content-Type";
+            m_Reply.headers[2].value = "text/html";
+        }
         boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
             std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
     }

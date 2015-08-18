@@ -6,8 +6,6 @@
 #include <memory>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
-#include "LeaseSet.h"
-#include "Streaming.h"
 
 namespace i2p
 {
@@ -48,7 +46,7 @@ namespace util
 
             HTTPConnection (boost::asio::ip::tcp::socket * socket): 
                 m_Socket (socket), m_Timer (socket->get_io_service ()), 
-                m_Stream (nullptr), m_BufferLen (0) {};
+                m_BufferLen (0) {};
             ~HTTPConnection() { delete m_Socket; }
             void Receive ();
             
@@ -56,10 +54,7 @@ namespace util
 
             void Terminate ();
             void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-            void AsyncStreamReceive ();
-            void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
             void HandleWriteReply(const boost::system::error_code& ecode);
-            void HandleWrite (const boost::system::error_code& ecode);
             void SendReply (const std::string& content, int status = 200);
 
             void HandleRequest (const std::string& address);
@@ -82,7 +77,6 @@ namespace util
 
             boost::asio::ip::tcp::socket * m_Socket;
             boost::asio::deadline_timer m_Timer;
-            std::shared_ptr<i2p::stream::Stream> m_Stream;
             char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1], m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
             size_t m_BufferLen;
             request m_Request;
@@ -91,11 +85,6 @@ namespace util
         protected:
     
             virtual void RunRequest ();
-            void HandleDestinationRequest(const std::string& address, const std::string& uri);
-            void SendToAddress (const std::string& address, int port, const char * buf, size_t len);
-            void HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
-                i2p::data::IdentHash destination, int port, const char * buf, size_t len);
-            void SendToDestination (std::shared_ptr<const i2p::data::LeaseSet> remote, int port, const char * buf, size_t len);
 
         public:
 
