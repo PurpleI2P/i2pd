@@ -39,6 +39,7 @@ namespace client
             virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
     };          
 
+    class ClientDestination;
     class AddressBookSubscription;
     class AddressBook
     {
@@ -46,11 +47,14 @@ namespace client
 
             AddressBook ();
             ~AddressBook ();
-            void Start ();
+            void Start (ClientDestination* local_destination);
             void Stop ();
             bool GetIdentHash (const std::string& address, i2p::data::IdentHash& ident);
             bool GetAddress (const std::string& address, i2p::data::IdentityEx& identity);
             const i2p::data::IdentHash * FindAddress (const std::string& address);
+
+            ClientDestination* getSharedLocalDestination() const;
+
             void InsertAddress (const std::string& address, const std::string& base64); // for jump service
             void InsertAddress (const i2p::data::IdentityEx& address);
 
@@ -79,6 +83,7 @@ namespace client
             std::vector<AddressBookSubscription *> m_Subscriptions;
             AddressBookSubscription * m_DefaultSubscription; // in case if we don't know any addresses yet
             boost::asio::deadline_timer * m_SubscriptionsUpdateTimer;
+            ClientDestination* m_SharedLocalDestination;
     };
 
     class AddressBookSubscription

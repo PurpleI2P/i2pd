@@ -13,8 +13,8 @@
 #include "Identity.h"
 #include "util/Log.h"
 #include "NetDb.h"
-#include "ClientContext.h"
 #include "AddressBook.h"
+#include "Destination.h"
 
 namespace i2p
 {
@@ -151,8 +151,10 @@ namespace client
     }   
 
 //---------------------------------------------------------------------
-    AddressBook::AddressBook (): m_Storage (nullptr), m_IsLoaded (false), m_IsDownloading (false), 
-        m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
+    AddressBook::AddressBook ()
+        : m_Storage (nullptr), m_IsLoaded (false), m_IsDownloading (false), 
+        m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr),
+        m_SharedLocalDestination(nullptr)
     {
     }
 
@@ -161,8 +163,9 @@ namespace client
         Stop ();
     }
 
-    void AddressBook::Start ()
+    void AddressBook::Start (ClientDestination* local_destination)
     {
+        m_SharedLocalDestination = local_destination;
         StartSubscriptions ();
     }
     
@@ -252,6 +255,11 @@ namespace client
                 return &it->second;
         }
         return nullptr; 
+    }
+
+    ClientDestination* AddressBook::getSharedLocalDestination() const
+    {
+        return m_SharedLocalDestination;
     }
 
     void AddressBook::InsertAddress (const std::string& address, const std::string& base64)
@@ -391,13 +399,18 @@ namespace client
         LoadSubscriptions ();
         if (!m_Subscriptions.size ()) return;   
 
-        auto dest = i2p::client::context.GetSharedLocalDestination ();
-        if (dest)
+        if (m_SharedLocalDestination)
         {
-            m_SubscriptionsUpdateTimer = new boost::asio::deadline_timer (dest->GetService ());
-            m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT));
-            m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
-                this, std::placeholders::_1));
+            m_SubscriptionsUpdateTimer = new boost::asio::deadline_timer(
+                m_SharedLocalDestination->GetService()
+            );
+            m_SubscriptionsUpdateTimer->expires_from_now(
+                boost::posix_time::minutes(INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT)
+            );
+            m_SubscriptionsUpdateTimer->async_wait(std::bind(
+                &AddressBook::HandleSubscriptionsUpdateTimer,
+                this, std::placeholders::_1
+            ));
         }
         else
             LogPrint (eLogError, "Can't start subscriptions: missing shared local destination");
@@ -413,9 +426,9 @@ namespace client
     {
         if (ecode != boost::asio::error::operation_aborted)
         {
-            auto dest = i2p::client::context.GetSharedLocalDestination ();
-            if (!dest) return;
-            if (m_IsLoaded && !m_IsDownloading && dest->IsReady ())
+            if (!m_SharedLocalDestination)
+                return; // TODO: error handling
+            if (m_IsLoaded && !m_IsDownloading && m_SharedLocalDestination->IsReady ())
             {
                 // pick random subscription
                 CryptoPP::AutoSeededRandomPool rnd;
@@ -457,11 +470,11 @@ namespace client
         {
             std::condition_variable newDataReceived;
             std::mutex newDataReceivedMutex;
-            auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
+            auto leaseSet = m_Book.getSharedLocalDestination()->FindLeaseSet (ident);
             if (!leaseSet)
             {
                 std::unique_lock<std::mutex> l(newDataReceivedMutex);
-                i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident,
+                m_Book.getSharedLocalDestination()->RequestDestination (ident,
                     [&newDataReceived, &leaseSet](std::shared_ptr<i2p::data::LeaseSet> ls)
                     {
                         leaseSet = ls;
@@ -481,7 +494,7 @@ namespace client
                 if (m_LastModified.length () > 0) // if-modfief-since
                     request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
                 request << "\r\n"; // end of header
-                auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, u.port_);
+                auto stream = m_Book.getSharedLocalDestination()->CreateStream (leaseSet, u.port_);
                 stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
                 
                 uint8_t buf[4096];
