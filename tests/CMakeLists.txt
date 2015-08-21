@@ -12,12 +12,15 @@ if(WITH_TESTS)
         unit_test_framework REQUIRED
     )
   
-    add_executable(i2pd_tests ${TESTS_SRC})
+    add_executable(${TESTS_NAME} ${TESTS_SRC})
     target_link_libraries(
-      i2pd_tests core ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES}
-      ${CMAKE_THREAD_LIBS_INIT}
+        ${TESTS_NAME} ${CORE_NAME} ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES}
+        ${CMAKE_THREAD_LIBS_INIT}
     )
 
     enable_testing()
-    add_test(i2pdTest i2pd_tests)
+    add_test(i2pdTest ${TESTS_NAME})
+    install(TARGETS
+        ${TESTS_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 endif()

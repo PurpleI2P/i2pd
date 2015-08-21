@@ -11,6 +11,9 @@ option(WITH_UPNP      "Include support for UPnP client" OFF)
 option(WITH_TESTS     "Build unit tests" OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake_modules")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Default build is Debug
 if(NOT CMAKE_BUILD_TYPE)
@@ -167,6 +170,7 @@ include(GNUInstallDirs)
 
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(CLIENT_NAME "${PROJECT_NAME}-client")
+set(TESTS_NAME "${PROJECT_NAME}-tests")
 add_subdirectory(core)
 add_subdirectory(client)
 add_subdirectory(tests)

@@ -2,7 +2,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "../Identity.h"
+#include "Identity.h"
 
 BOOST_AUTO_TEST_SUITE(IdentityTests)
 
