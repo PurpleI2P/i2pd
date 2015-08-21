@@ -63,6 +63,8 @@ The client should now reseed by itself.
 
 By default, the web console is located at http://localhost:7070/.
 
+For a list of cmake options, see build/BUILD_NOTES.md
+
 Building Unit Tests
 -------------------
 
@@ -73,7 +75,7 @@ On Ubuntu/Debian based
  
 To build the tests, run
 
-$ make tests
+$ cmake .. -DWITH_TESTS=ON 
 
 
 Cmdline options
