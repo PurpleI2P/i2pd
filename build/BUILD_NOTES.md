@@ -1,14 +1,6 @@
 Build notes
 ===========
 
-Common build/install process:
-
-* git clone https://github.com/PrivacySolutions/i2pd.git
-* cd i2pd/build
-* cmake -DCMAKE_BUILD_TYPE=Release <more options> .
-* make
-* make install
-
 Available cmake options:
 
 * CMAKE_BUILD_TYPE -- build profile (Debug/Release)
@@ -26,6 +18,9 @@ Required "-dev" packages:
 * libboost-system-dev
 * libboost-date-time-dev
 * libcrypto++-dev
+
+Optional packages:
+* libboost-test-dev
 
 FreeBSD
 -------
@@ -45,7 +40,3 @@ To use newer compiler you should set these variables:
   export CXX=/usr/local/bin/g++47
 
 Replace "47" with your actual gcc version
-
-Branch 10.X has more reliable clang version, that can finally build i2pd,
-but i still recommend to use gcc, otherwise you will fight it's bugs by
-your own.

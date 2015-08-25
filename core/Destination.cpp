@@ -6,8 +6,8 @@
 #include "crypto/ElGamal.h"
 #include "util/Timestamp.h"
 #include "NetDb.h"
-#include "AddressBook.h"
 #include "Destination.h"
+#include "AddressBook.h"
 
 namespace i2p
 {

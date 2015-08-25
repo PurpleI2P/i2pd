@@ -122,7 +122,7 @@ namespace client
             m_I2PControlService->Start();
             LogPrint("I2PControl started");
         }
-        m_AddressBook.Start ();
+        m_AddressBook.Start (m_SharedLocalDestination.get());
     }
         
     void ClientContext::Stop ()

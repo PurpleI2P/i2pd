@@ -1,5 +1,4 @@
 # i2pd
-obj/*.o
 router.info
 router.keys
 i2p
@@ -9,14 +8,16 @@ tunnels.cfg
 tests/tests
 
 # Build files
-build/CMakeCache.txt
+CMakeCache.txt
 build/CMakeFiles/*
-build/cmake_install.cmake
+build/tests
+build/client
+build/core
 build/i2pd
-build/libcommon.a
-build/libi2pd.a
-build/CTestTestfile.cmake
-build/i2pd_tests
+build/i2pd-tests
+*.cmake
+*.a
+*.o
 
 
 # Autotools
