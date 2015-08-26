@@ -1,3 +1,8 @@
+/**
+ * @note This file is named NetworkDatabase.h instead of NetDb.h to avoid
+ *  a possible nameclash with a file included by boost on case insensitive
+ *  filesystems.
+ */
 #ifndef NETDB_H__
 #define NETDB_H__
 

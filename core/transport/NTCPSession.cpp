@@ -10,7 +10,7 @@
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "Transports.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "NTCPSession.h"
 
 using namespace i2p::crypto;

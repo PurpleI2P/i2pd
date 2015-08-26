@@ -14,7 +14,7 @@
 #include "crypto/CryptoConst.h"
 #include "LeaseSet.h"
 #include "Garlic.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "Streaming.h"
 #include "Datagram.h"
 

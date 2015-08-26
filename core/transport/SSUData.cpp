@@ -2,7 +2,7 @@
 #include <boost/bind.hpp>
 #include "util/Log.h"
 #include "util/Timestamp.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "SSU.h"
 #include "SSUData.h"
 

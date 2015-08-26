@@ -1,7 +1,7 @@
 #include <string>
 #include <map>
 #include "util/Log.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "RouterContext.h"
