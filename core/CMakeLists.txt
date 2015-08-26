@@ -22,7 +22,7 @@ set(CORE_SRC
   "Identity.cpp"
   "LeaseSet.cpp"
   "NetDbRequests.cpp"	
-  "NetDb.cpp"
+  "NetworkDatabase.cpp"
   "Profiling.cpp"
   "RouterContext.cpp"
   "RouterInfo.cpp"

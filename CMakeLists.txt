@@ -60,7 +60,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         )
     endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # TODO: more tweaks
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -undefined dynamic_lookup")
 endif()
 
 # Compiler flags customization (by system)

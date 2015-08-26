@@ -7,7 +7,7 @@
 #include "tunnel/Tunnel.h"
 #include "tunnel/TransitTunnel.h"
 #include "transport/Transports.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "util/I2PEndian.h"
 #include "Streaming.h"
 #include "Destination.h"

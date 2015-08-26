@@ -3,7 +3,7 @@
 #include "crypto/CryptoConst.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "Transports.h"
 
 using namespace i2p::data;

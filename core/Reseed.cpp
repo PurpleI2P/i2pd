@@ -16,7 +16,7 @@
 #include "util/Log.h"
 #include "Identity.h"
 #include "crypto/CryptoConst.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "util/util.h"
 
 

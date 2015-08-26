@@ -12,7 +12,7 @@
 #include "util/util.h"
 #include "Identity.h"
 #include "util/Log.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "AddressBook.h"
 #include "Destination.h"
 

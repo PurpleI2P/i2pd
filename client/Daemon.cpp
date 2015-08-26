@@ -9,7 +9,7 @@
 #include "RouterInfo.h"
 #include "RouterContext.h"
 #include "tunnel/Tunnel.h"
-#include "NetDb.h"
+#include "NetworkDatabase.h"
 #include "Garlic.h"
 #include "util/util.h"
 #include "Streaming.h"
