@@ -40,5 +40,13 @@ void EDDSA25519Signer::Sign(CryptoPP::RandomNumberGenerator& rnd, const uint8_t*
     ed25519_ref10_sign(signature, buf, len, m_PrivateKey, m_PublicKey);
 }
 
+void CreateEDDSARandomKeys(CryptoPP::RandomNumberGenerator& rnd, uint8_t* privateKey,
+    uint8_t* publicKey)
+{
+    rnd.GenerateBlock(privateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
+    ed25519_ref10_pubkey(publicKey, privateKey);
+}
+
+
 }
 }
