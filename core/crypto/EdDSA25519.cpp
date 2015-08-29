@@ -14,7 +14,7 @@ EDDSA25519Verifier::EDDSA25519Verifier(const uint8_t* signingKey)
 
 bool EDDSA25519Verifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const
 {
-    return ed25519_ref10_open(signature, buf, len, m_PublicKey) > 0;
+    return ed25519_ref10_open(signature, buf, len, m_PublicKey) >= 0;
 }
 
 size_t EDDSA25519Verifier::GetPublicKeyLen() const
@@ -35,7 +35,7 @@ EDDSA25519Signer::EDDSA25519Signer(const uint8_t* signingPrivateKey)
     ed25519_ref10_pubkey(m_PublicKey, m_PrivateKey);
 }
 
-void EDDSA25519Signer::Sign(CryptoPP::RandomNumberGenerator& rnd, const uint8_t* buf, int len, uint8_t* signature) const
+void EDDSA25519Signer::Sign(CryptoPP::RandomNumberGenerator&, const uint8_t* buf, int len, uint8_t* signature) const
 {
     ed25519_ref10_sign(signature, buf, len, m_PrivateKey, m_PublicKey);
 }

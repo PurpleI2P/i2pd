@@ -33,7 +33,6 @@ int crypto_sign_open(
   ge_tobytes(rcheck,&R);
   if (crypto_verify_32(rcheck,rcopy) == 0)
     return 0;
-  
 
 badsig:
   return -1;

@@ -37,7 +37,7 @@ public:
      * @todo do not pass random number generator, EdDSA does not require a random
      *  source
      */
-    void Sign(CryptoPP::RandomNumberGenerator& rnd, const uint8_t* buf, int len, uint8_t* signature) const; 
+    void Sign(CryptoPP::RandomNumberGenerator&, const uint8_t* buf, int len, uint8_t* signature) const; 
 
     uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
     uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
