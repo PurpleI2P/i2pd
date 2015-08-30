@@ -9,12 +9,6 @@ License
 This project is licensed under the BSD 3-clause license, which can be found in the file
 LICENSE in the root of the project source code.
 
-Donations
----------
-
-BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY   
-LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59   
-
 Requirements for Linux/FreeBSD/OSX
 ----------------------------------
 
@@ -25,8 +19,7 @@ Requirements for Windows
 ------------------------
 
 VS2013 (known to work with 12.0.21005.1 or newer), Boost 1.46 or newer,
-crypto++ 5.62. See Win32/README-Build.txt for instructions on how to build i2pd
-and its dependencies.
+crypto++ 5.62.
 
 Downloads
 ------------
@@ -162,3 +155,8 @@ tunnels.cfg (filename of this config is subject of change):
     keys = site-keys.dat   
     inport = 81   
     accesslist = <b32>[,<b32>]   
+
+Acknowledgment
+--------------
+
+The ed25519/ folder is based on the [ref10 implementation from SUPERCOP](http://bench.cr.yp.to/supercop.html).
