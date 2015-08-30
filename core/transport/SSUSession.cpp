@@ -172,7 +172,7 @@ namespace transport
         }
     }
 
-    void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
+    void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t, const boost::asio::ip::udp::endpoint& senderEndpoint)
     {
         LogPrint (eLogDebug, "Session request received");   
         m_RemoteEndpoint = senderEndpoint;
@@ -182,7 +182,7 @@ namespace transport
         SendSessionCreated (buf + sizeof (SSUHeader));
     }
 
-    void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
+    void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t)
     {
         if (!m_RemoteRouter || !m_DHKeysPair)
         {
@@ -246,7 +246,7 @@ namespace transport
         SendSessionConfirmed (y, ourAddress, addressSize + 2);
     }   
 
-    void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
+    void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t)
     {
         LogPrint (eLogDebug, "Session confirmed received"); 
         uint8_t * payload = buf + sizeof (SSUHeader);
@@ -450,7 +450,7 @@ namespace transport
         Send (buf, msgLen);
     }
 
-    void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
+    void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t, const boost::asio::ip::udp::endpoint& from)
     {
         uint32_t relayTag = bufbe32toh (buf);
         auto session = m_Server.FindRelaySession (relayTag);
@@ -553,7 +553,7 @@ namespace transport
         LogPrint (eLogDebug, "SSU relay intro sent");
     }
     
-    void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t len)
+    void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t)
     {
         LogPrint (eLogDebug, "Relay response received");        
         uint8_t * payload = buf + sizeof (SSUHeader);
@@ -585,7 +585,7 @@ namespace transport
         i2p::context.UpdateAddress (ourIP);
     }
 
-    void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t len)
+    void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t)
     {
         uint8_t size = *buf;
         if (size == 4)

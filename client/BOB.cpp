@@ -284,7 +284,7 @@ namespace client
                 std::placeholders::_1, std::placeholders::_2));
     }
 
-    void BOBCommandSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+    void BOBCommandSession::HandleSent (const boost::system::error_code& ecode, std::size_t)
     {
         if (ecode)
         {
@@ -338,20 +338,20 @@ namespace client
         Send (len);         
     }
         
-    void BOBCommandSession::ZapCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::ZapCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: zap");
         Terminate ();
     }
 
-    void BOBCommandSession::QuitCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::QuitCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: quit");
         m_IsOpen = false;
         SendReplyOK ("Bye!");
     }
 
-    void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::StartCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: start ", m_Nickname);
         if (!m_CurrentDestination)
@@ -367,7 +367,7 @@ namespace client
         SendReplyOK ("tunnel starting");    
     }   
     
-    void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::StopCommandHandler (const char*, size_t)
     {
         auto dest = m_Owner.FindDestination (m_Nickname);
         if (dest)
@@ -379,7 +379,7 @@ namespace client
             SendReplyError ("tunnel not found");
     }   
     
-    void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: setnick ", operand);
         m_Nickname = operand;
@@ -388,7 +388,7 @@ namespace client
         SendReplyOK (msg.c_str ());
     }   
 
-    void BOBCommandSession::GetNickCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::GetNickCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: getnick ", operand);
         m_CurrentDestination = m_Owner.FindDestination (operand); 
@@ -404,68 +404,68 @@ namespace client
             SendReplyError ("tunnel not found");    
     }   
 
-    void BOBCommandSession::NewkeysCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::NewkeysCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: newkeys");
         m_Keys = i2p::data::PrivateKeys::CreateRandomKeys ();
         SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
     }   
 
-    void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: setkeys ", operand);
         m_Keys.FromBase64 (operand);
         SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
     }
         
-    void BOBCommandSession::GetkeysCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::GetkeysCommandHandler (const char *, size_t)
     {       
         LogPrint (eLogDebug, "BOB: getkeys");
         SendReplyOK (m_Keys.ToBase64 ().c_str ());
     }   
 
-    void BOBCommandSession::GetdestCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::GetdestCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: getdest");
         SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
     }   
         
-    void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: outhost ", operand);
         m_Address = operand;
         SendReplyOK ("outhost set");
     }
         
-    void BOBCommandSession::OutportCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::OutportCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: outport ", operand);
         m_OutPort = boost::lexical_cast<int>(operand);
         SendReplyOK ("outbound port set");
     }   
 
-    void BOBCommandSession::InhostCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::InhostCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: inhost ", operand);
         m_Address = operand;
         SendReplyOK ("inhost set");
     }
         
-    void BOBCommandSession::InportCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::InportCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: inport ", operand);
         m_InPort = boost::lexical_cast<int>(operand);
         SendReplyOK ("inbound port set");
     }       
 
-    void BOBCommandSession::QuietCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::QuietCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: quiet");
         m_IsQuiet = true;
         SendReplyOK ("quiet");
     }   
     
-    void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::LookupCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: lookup ", operand);
         i2p::data::IdentHash ident;
@@ -493,14 +493,14 @@ namespace client
         }
     }
 
-    void BOBCommandSession::ClearCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::ClearCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: clear");
         m_Owner.DeleteDestination (m_Nickname);
         SendReplyOK ("cleared");
     }   
 
-    void BOBCommandSession::ListCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::ListCommandHandler (const char*, size_t)
     {
         LogPrint (eLogDebug, "BOB: list");
         auto& destinations = m_Owner.GetDestinations ();
@@ -509,7 +509,7 @@ namespace client
         SendReplyOK ("Listing done");
     }   
 
-    void BOBCommandSession::OptionCommandHandler (const char * operand, size_t len)
+    void BOBCommandSession::OptionCommandHandler (const char * operand, size_t)
     {
         LogPrint (eLogDebug, "BOB: option ", operand);
         const char * value = strchr (operand, '=');

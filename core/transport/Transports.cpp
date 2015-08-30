@@ -350,7 +350,7 @@ namespace transport
     }
 
     void Transports::HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
-        i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+        i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver>)
     {
         auto it1 = m_Peers.find (ident);
         if (it1 != m_Peers.end ())
