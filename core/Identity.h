@@ -7,12 +7,16 @@
 #include <memory>
 #include "util/base64.h"
 #include "crypto/ElGamal.h"
-#include "crypto/Signature.h"
 
-namespace i2p
-{
-namespace data
-{
+namespace i2p {
+
+// Forward declaration to avoid include
+namespace crypto {
+    class Signer;
+    class Verifier;
+}
+
+namespace data {
     template<int sz>
     class Tag
     {
@@ -183,7 +187,7 @@ namespace data
             PrivateKeys (const Keys& keys): m_Signer (nullptr) { *this = keys; };
             PrivateKeys& operator=(const Keys& keys);
             PrivateKeys& operator=(const PrivateKeys& other);
-            ~PrivateKeys () { delete m_Signer; };
+            ~PrivateKeys ();
             
             const IdentityEx& GetPublic () const { return m_Public; };
             const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
