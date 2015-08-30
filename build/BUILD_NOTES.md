@@ -8,7 +8,7 @@ Available cmake options:
 * WITH_HARDENING -- enable hardening features (ON/OFF) (gcc only)
 * WITH_TESTS -- build tests (ON/OFF)
 * WITH_BENCHMARK -- build bechmarking code (ON/OFF)
-* WITH_OPTIMIZE -- enable optimization flags (ON/OFF)
+* WITH_OPTIMIZE -- enable optimization flags (ON/OFF) (not for MSVC)
 
 Debian
 ------
@@ -28,7 +28,7 @@ Optional packages:
 FreeBSD
 -------
 
-Branch 9.X has gcc v4.2, that knows nothing about required c++11 standart.
+Branch 9.X has gcc v4.2, that knows nothing about required c++11 standard.
 
 Required ports:
 

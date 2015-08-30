@@ -10,7 +10,7 @@ option(WITH_STATIC    "Static build" OFF)
 option(WITH_UPNP      "Include support for UPnP client" OFF)
 option(WITH_TESTS     "Build unit tests" OFF)
 option(WITH_BENCHMARK "Build benchmarking code" OFF)
-option(WITH_OPTIMIZE  "Optmizeation flags" OFF)
+option(WITH_OPTIMIZE  "Optimization flags" OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake_modules")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
