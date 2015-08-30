@@ -29,9 +29,15 @@ class EDDSA25519Signer : public Signer {
 public:
 
     /**
-     * @todo allow passing the public key too as an optimization
+     * Construct from a key pair.
      */
-    EDDSA25519Signer(const uint8_t * signingPrivateKey);
+    EDDSA25519Signer(const uint8_t* signingPrivateKey, const uint8_t* signingPublicKey);
+
+    /**
+     * Construct from a private key.
+     * The corresponding public key will be computed from it.
+     */
+    EDDSA25519Signer(const uint8_t* signingPrivateKey);
 
     /**
      * @todo do not pass random number generator, EdDSA does not require a random

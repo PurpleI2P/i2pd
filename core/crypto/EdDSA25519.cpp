@@ -28,6 +28,11 @@ size_t EDDSA25519Verifier::GetSignatureLen() const
     return EDDSA25519_SIGNATURE_LENGTH;
 }
 
+EDDSA25519Signer::EDDSA25519Signer(const uint8_t* signingPrivateKey, const uint8_t* signingPublicKey)
+{
+    std::memcpy(m_PrivateKey, signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH);
+    std::memcpy(m_PublicKey, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH);
+}
 
 EDDSA25519Signer::EDDSA25519Signer(const uint8_t* signingPrivateKey)
 {
