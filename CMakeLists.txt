@@ -9,6 +9,8 @@ option(WITH_BINARY    "Build binary" ON)
 option(WITH_STATIC    "Static build" OFF)
 option(WITH_UPNP      "Include support for UPnP client" OFF)
 option(WITH_TESTS     "Build unit tests" OFF)
+option(WITH_BENCHMARK "Build benchmarking code" OFF)
+option(WITH_OPTIMIZE  "Optmizeation flags" OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake_modules")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -80,6 +82,9 @@ if(WITH_AESNI)
     add_definitions( "-maes -DAESNI")
 endif()
 
+if(WITH_OPTIMIZE AND (NOT MSVC))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif()
 
 # Libraries
 # TODO: once CMake 3.1+ becomes mainstream, see e.g.
@@ -163,6 +168,8 @@ message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
+message(STATUS "  BENCHMARKING     : ${WITH_BENCHMARK}")
+message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "---------------------------------------")
 
 # Handle paths nicely
@@ -171,6 +178,8 @@ include(GNUInstallDirs)
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(CLIENT_NAME "${PROJECT_NAME}-client")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
+set(BENCHMARK_NAME "${PROJECT_NAME}-benchmark")
 add_subdirectory(core)
 add_subdirectory(client)
 add_subdirectory(tests)
+add_subdirectory(benchmark)
