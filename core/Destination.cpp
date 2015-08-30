@@ -225,7 +225,7 @@ namespace client
         m_Service.post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
     }
 
-    void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+    void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
     {
         uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
         switch (typeID)
@@ -303,7 +303,7 @@ namespace client
         }   
     }
 
-    void ClientDestination::HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len)
+    void ClientDestination::HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t)
     {
         i2p::data::IdentHash key (buf);
         int num = buf[32]; // num
@@ -417,7 +417,7 @@ namespace client
         }
     }
 
-    void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
+    void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t)
     {
         uint32_t length = bufbe32toh (buf);
         buf += 4;

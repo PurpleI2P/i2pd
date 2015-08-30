@@ -692,7 +692,7 @@ namespace stream
         }   
     }   
         
-    void Stream::HandleAckSendTimer (const boost::system::error_code& ecode)
+    void Stream::HandleAckSendTimer (const boost::system::error_code&)
     {
         if (m_IsAckSendScheduled)
         {

@@ -5,6 +5,7 @@
 #include <cryptopp/dsa.h>
 #include "util/base64.h"
 #include "crypto/CryptoConst.h"
+#include "crypto/Signature.h"
 #include "crypto/ElGamal.h"
 #include "RouterContext.h"
 #include "Identity.h"
@@ -22,7 +23,7 @@ namespace data
         return *this;
     }
 
-    size_t Identity::FromBuffer (const uint8_t * buf, size_t len)
+    size_t Identity::FromBuffer (const uint8_t * buf, size_t)
     {
         memcpy (publicKey, buf, DEFAULT_IDENTITY_SIZE);
         return DEFAULT_IDENTITY_SIZE;
@@ -226,7 +227,7 @@ namespace data
         return GetFullLen ();
     }   
 
-    size_t IdentityEx::ToBuffer (uint8_t * buf, size_t len) const
+    size_t IdentityEx::ToBuffer (uint8_t * buf, size_t) const
     {       
         memcpy (buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
         if (m_ExtendedLen > 0 && m_ExtendedBuffer)
@@ -370,6 +371,7 @@ namespace data
         delete verifier;
     }
 
+
     PrivateKeys& PrivateKeys::operator=(const Keys& keys)
     {
         m_Public = Identity (keys);
@@ -391,6 +393,11 @@ namespace data
         CreateSigner ();
         return *this;
     }   
+
+    PrivateKeys::~PrivateKeys()
+    {
+        delete m_Signer;
+    }
         
     size_t PrivateKeys::FromBuffer (const uint8_t * buf, size_t len)
     {

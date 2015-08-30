@@ -3,35 +3,34 @@
 
 #include <cryptopp/integer.h>
 
-namespace i2p
-{
-namespace crypto
-{
-    struct CryptoConstants
-    {
-        // DH/ElGamal
-        const CryptoPP::Integer elgp;
-        const CryptoPP::Integer elgg; 
+namespace i2p {
+namespace crypto {
 
-        // DSA
-        const CryptoPP::Integer dsap;       
-        const CryptoPP::Integer dsaq;
-        const CryptoPP::Integer dsag;           
-    };  
-    
-    const CryptoConstants& GetCryptoConstants ();
-    
-    // DH/ElGamal   
-    #define elgp GetCryptoConstants ().elgp
-    #define elgg GetCryptoConstants ().elgg
+struct CryptoConstants {
+
+    // DH/ElGamal
+    const CryptoPP::Integer elgp;
+    const CryptoPP::Integer elgg; 
 
     // DSA
-    #define dsap GetCryptoConstants ().dsap 
-    #define dsaq GetCryptoConstants ().dsaq
-    #define dsag GetCryptoConstants ().dsag 
+    const CryptoPP::Integer dsap;       
+    const CryptoPP::Integer dsaq;
+    const CryptoPP::Integer dsag;           
+};  
 
-    // RSA
-    const int rsae = 65537; 
+const CryptoConstants& GetCryptoConstants ();
+
+// DH/ElGamal   
+#define elgp GetCryptoConstants ().elgp
+#define elgg GetCryptoConstants ().elgg
+
+// DSA
+#define dsap GetCryptoConstants ().dsap 
+#define dsaq GetCryptoConstants ().dsaq
+#define dsag GetCryptoConstants ().dsag 
+
+// RSA
+const int rsae = 65537; 
 }       
 }   
 

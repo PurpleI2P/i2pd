@@ -138,7 +138,7 @@ namespace transport
         }
     }   
         
-    void NTCPSession::HandlePhase1Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+    void NTCPSession::HandlePhase1Sent (const boost::system::error_code& ecode, std::size_t)
     {
         if (ecode)
         {
@@ -154,7 +154,7 @@ namespace transport
         }   
     }   
 
-    void NTCPSession::HandlePhase1Received (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+    void NTCPSession::HandlePhase1Received (const boost::system::error_code& ecode, std::size_t)
     {
         if (ecode)
         {
@@ -209,7 +209,7 @@ namespace transport
 
     }   
         
-    void NTCPSession::HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB)
+    void NTCPSession::HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t, uint32_t tsB)
     {
         if (ecode)
         {
@@ -225,7 +225,7 @@ namespace transport
         }   
     }   
         
-    void NTCPSession::HandlePhase2Received (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+    void NTCPSession::HandlePhase2Received (const boost::system::error_code& ecode, std::size_t)
     {
         if (ecode)
         {
@@ -299,7 +299,7 @@ namespace transport
             std::bind(&NTCPSession::HandlePhase3Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsA));             
     }   
         
-    void NTCPSession::HandlePhase3Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA)
+    void NTCPSession::HandlePhase3Sent (const boost::system::error_code& ecode, std::size_t, uint32_t tsA)
     {
         if (ecode)
         {
@@ -412,7 +412,7 @@ namespace transport
             std::bind(&NTCPSession::HandlePhase4Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
     }   
 
-    void NTCPSession::HandlePhase4Sent (const boost::system::error_code& ecode,  std::size_t bytes_transferred)
+    void NTCPSession::HandlePhase4Sent (const boost::system::error_code& ecode,  std::size_t)
     {
         if (ecode)
         {
@@ -643,7 +643,7 @@ namespace transport
             std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
     }
         
-    void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs)
+    void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> >)
     {
         m_IsSending = false;
         if (ecode)
@@ -710,7 +710,7 @@ namespace transport
     }   
 
 //-----------------------------------------
-    NTCPServer::NTCPServer (int port):
+    NTCPServer::NTCPServer (int):
         m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
         m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr)
     {

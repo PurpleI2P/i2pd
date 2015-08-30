@@ -86,7 +86,7 @@ namespace tunnel
             i2p::transport::transports.SendMessage (GetNextIdentHash (), ToSharedI2NPMessage (msg));
     }   
         
-    bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)
+    bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t)
     {
         LogPrint ("TunnelBuildResponse ", (int)msg[0], " records.");
         
@@ -153,7 +153,7 @@ namespace tunnel
         }
     }   
 
-    void Tunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+    void Tunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage>)
     {
         LogPrint (eLogInfo, "Can't send I2NP messages without delivery instructions");  
     }   
@@ -197,7 +197,7 @@ namespace tunnel
         m_Gateway.SendBuffer ();
     }   
     
-    void OutboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+    void OutboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage>)
     {
         LogPrint (eLogError, "Incoming message for outbound tunnel ", GetTunnelID ());
     }

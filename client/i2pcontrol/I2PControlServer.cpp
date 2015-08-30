@@ -158,8 +158,8 @@ void I2PControlService::SendResponse(std::shared_ptr<boost::asio::ip::tcp::socke
     );
 }
 
-void I2PControlService::HandleResponseSent(const boost::system::error_code& ecode, std::size_t bytes_transferred,
-    std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf)
+void I2PControlService::HandleResponseSent(const boost::system::error_code& ecode, std::size_t,
+    std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer>)
 {
     if(ecode)
         LogPrint(eLogError, "I2PControl write error: ", ecode.message());

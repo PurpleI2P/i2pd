@@ -332,7 +332,7 @@ namespace client
     }   
 
     void I2PServerTunnel::HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
-        std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+        std::shared_ptr<boost::asio::ip::tcp::resolver> )
     {   
         if (!ecode)
         {   
