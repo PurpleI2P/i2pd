@@ -7,7 +7,7 @@
 
 int crypto_sign_open(
   const unsigned char* sig,
-  const unsigned char* m, unsigned long long mlen,
+  const unsigned char* m, size_t mlen,
   const unsigned char* pk
 )
 {

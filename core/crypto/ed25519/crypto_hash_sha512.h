@@ -4,15 +4,15 @@
 #include <cryptopp/sha.h>
 
 inline void crypto_hash_sha512(unsigned char* output, const unsigned char* input,
- unsigned long long len)
+ size_t len)
 {
     CryptoPP::SHA512 hash;
     hash.CalculateDigest(output, input, len);
 }
 
 inline void crypto_hash_sha512_2(unsigned char* out,
-    const unsigned char* in1, unsigned long long len1, 
-    const unsigned char* in2, unsigned long long len2
+    const unsigned char* in1, size_t len1, 
+    const unsigned char* in2, size_t len2
 )
 {
     CryptoPP::SHA512 hash;
@@ -22,10 +22,10 @@ inline void crypto_hash_sha512_2(unsigned char* out,
 }
 
 inline void crypto_hash_sha512_3(unsigned char* out,
-    const unsigned char* in1, unsigned long long len1, 
-    const unsigned char* in2, unsigned long long len2,
-    const unsigned char* in3, unsigned long long len3
-    )
+    const unsigned char* in1, size_t len1, 
+    const unsigned char* in2, size_t len2,
+    const unsigned char* in3, size_t len3
+)
 {
     CryptoPP::SHA512 hash;
     hash.Update(in1, len1);
