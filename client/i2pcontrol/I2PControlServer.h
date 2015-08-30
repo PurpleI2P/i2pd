@@ -40,13 +40,13 @@ private:
 
 private:
 
+    std::shared_ptr<I2PControlSession> m_Session;
+
     bool m_IsRunning;
     std::thread * m_Thread; 
 
     boost::asio::io_service m_Service;
     boost::asio::ip::tcp::acceptor m_Acceptor;
-
-    std::shared_ptr<I2PControlSession> m_Session;
     
 };
 }
