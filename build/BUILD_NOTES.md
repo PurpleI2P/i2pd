@@ -9,6 +9,7 @@ Available cmake options:
 * WITH_TESTS -- build tests (ON/OFF)
 * WITH_BENCHMARK -- build bechmarking code (ON/OFF)
 * WITH_OPTIMIZE -- enable optimization flags (ON/OFF) (not for MSVC)
+* I2PD_DATA_DIR -- directory where i2pd will store data
 
 Debian
 ------

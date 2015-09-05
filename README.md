@@ -37,8 +37,8 @@ Build Statuses
 - Microsoft VC13 - To be added
 
 
-Testing
--------
+Building from source
+--------------------
 
 First, build it.
 
@@ -57,6 +57,10 @@ The client should now reseed by itself.
 By default, the web console is located at http://localhost:7070/.
 
 For a list of cmake options, see build/BUILD_NOTES.md
+
+Note that cmake will automatically create a directory for storing configuration files.
+To change the location of this directory, you must set the I2PD_DATA_DIR flag.
+This does not apply to core-only builds.
 
 Building Unit Tests
 -------------------

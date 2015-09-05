@@ -195,23 +195,24 @@ namespace filesystem
 
     boost::filesystem::path GetDefaultDataDir()
     {
+        // Custom path, or default path:
         // Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd
         // Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd
         // Mac: ~/Library/Application Support/i2pd
-        // Unix: ~/.i2pd or /var/lib/i2pd is system=1
-
+        // Unix: ~/.i2pd
+#ifdef I2PD_CUSTOM_DATA_PATH
+        return boost::filesystem::path(std::string(I2PD_CUSTOM_DATA_PATH));
+#else
 #ifdef WIN32
         // Windows
         char localAppData[MAX_PATH];
         SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
         return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
 #else
-        if(i2p::util::config::GetArg("-service", 0)) // use system folder
-            return boost::filesystem::path(std::string ("/var/lib/") + appName);
         boost::filesystem::path pathRet;
         char* pszHome = getenv("HOME");
         if(pszHome == NULL || strlen(pszHome) == 0)
-            pathRet = boost::filesystem::path("/");
+            pathRet = boost::filesystem::path("/"); 
         else
             pathRet = boost::filesystem::path(pszHome);
 #ifdef MAC_OSX
@@ -222,6 +223,7 @@ namespace filesystem
 #else
         // Unix
         return pathRet / (std::string (".") + appName);
+#endif
 #endif
 #endif
     }
