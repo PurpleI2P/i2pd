@@ -193,6 +193,11 @@ namespace filesystem
         return pathTunnelsConfigFile;
     }
 
+    boost::filesystem::path GetWebuiDataDir()
+    {
+        return GetDataDir() / "webui";
+    }
+
     boost::filesystem::path GetDefaultDataDir()
     {
         // Custom path, or default path:

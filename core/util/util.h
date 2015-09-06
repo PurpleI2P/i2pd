@@ -80,6 +80,10 @@ namespace util
          */
         boost::filesystem::path GetDefaultDataDir();
 
+        /**
+         * @return the default directory for webui data
+         */
+        boost::filesystem::path GetWebuiDataDir();
         
         /**
          * Read a configuration file and store its contents in the given maps.

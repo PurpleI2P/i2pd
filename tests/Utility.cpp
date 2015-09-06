@@ -1,5 +1,6 @@
 #include <boost/test/unit_test.hpp>
 #include "util/util.h"
+#include "util/HTTP.h"
 
 BOOST_AUTO_TEST_SUITE(UtilityTests)
 
@@ -87,5 +88,30 @@ BOOST_AUTO_TEST_CASE(ParseUrlPassword)
     BOOST_CHECK_EQUAL(url("SSH://:password@localhost:123").pass_, "password");
     BOOST_CHECK_EQUAL(url("").pass_, "");
 }
+
+BOOST_AUTO_TEST_CASE(ParseHTTPRequestNoHeaders)
+{
+    Request req1("GET /index.html HTTP/1.1");
+    Request req2("POST / HTTP/1.0\r\n");
+    BOOST_CHECK_EQUAL(req1.getMethod(), "GET");
+    BOOST_CHECK_EQUAL(req1.getUri(), "/index.html");
+    BOOST_CHECK_EQUAL(req2.getMethod(), "POST");
+    BOOST_CHECK_EQUAL(req2.getUri(), "/");
+}
+
+BOOST_AUTO_TEST_CASE(ParseHTTPRequestWithHeaders)
+{
+    Request req1(
+        "GET /index.html HTTP/1.1\r\n"
+        "Host: localhost\r\n"
+    );
+    Request req2(
+        "POST / HTTP/1.1\r\n"
+        "Host: localhost:123        \r\n"
+    );
+    BOOST_CHECK_EQUAL(req1.getHeader("Host"), "localhost");
+    BOOST_CHECK_EQUAL(req2.getHeader("Host"), "localhost:123");
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
