@@ -55,6 +55,50 @@ std::string Request::getHeader(const std::string& name) const
     return headers.at(name);
 }
 
+Response::Response(int status)
+    : status(status), headers()
+{
+
+}
+
+void Response::setHeader(const std::string& name, const std::string& value)
+{
+    headers[name] = value;
+}
+
+std::string Response::toString() const
+{
+    std::stringstream ss;
+    ss << "HTTP/1.1 " << status << ' ' << getStatusMessage() << "\r\n";
+    for(auto& pair : headers)
+        ss << pair.first << ": " << pair.second << "\r\n";
+    ss << "\r\n"; 
+    return ss.str();
+}
+
+std::string Response::getStatusMessage() const
+{
+    switch(status) {
+        case 105:
+            return "Name Not Resolved";
+        case 200:
+            return "OK";
+        case 400:
+            return "Bad Request";
+        case 404:
+            return "Not Found";
+        case 408:
+            return "Request Timeout";
+        case 500:
+            return "Internal Server Error";
+        case 502:
+            return "Not Implemented";
+        case 504:
+            return "Gateway Timeout";
+        default:
+            return std::string();
+    }
+}
 }
 }
 }

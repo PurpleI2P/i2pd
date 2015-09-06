@@ -113,5 +113,28 @@ BOOST_AUTO_TEST_CASE(ParseHTTPRequestWithHeaders)
     BOOST_CHECK_EQUAL(req2.getHeader("Host"), "localhost:123");
 }
 
+BOOST_AUTO_TEST_CASE(HTTPResponseStatusMessage)
+{
+    BOOST_CHECK_EQUAL(Response(0).getStatusMessage(), "");
+    BOOST_CHECK_EQUAL(Response(105).getStatusMessage(), "Name Not Resolved");
+    BOOST_CHECK_EQUAL(Response(200).getStatusMessage(), "OK");
+    BOOST_CHECK_EQUAL(Response(400).getStatusMessage(), "Bad Request");
+    BOOST_CHECK_EQUAL(Response(404).getStatusMessage(), "Not Found");
+    BOOST_CHECK_EQUAL(Response(408).getStatusMessage(), "Request Timeout");
+    BOOST_CHECK_EQUAL(Response(500).getStatusMessage(), "Internal Server Error");
+    BOOST_CHECK_EQUAL(Response(502).getStatusMessage(), "Not Implemented");
+    BOOST_CHECK_EQUAL(Response(504).getStatusMessage(), "Gateway Timeout");
+}
+BOOST_AUTO_TEST_CASE(WriteHTTPResponse)
+{
+    Response rsp(200);
+    rsp.setHeader("Connection", "close");
+    BOOST_CHECK_EQUAL(
+        rsp.toString(),
+        "HTTP/1.1 200 OK\r\n"
+        "Connection: close\r\n\r\n"
+    );
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
