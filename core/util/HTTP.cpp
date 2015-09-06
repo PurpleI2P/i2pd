@@ -55,8 +55,8 @@ std::string Request::getHeader(const std::string& name) const
     return headers.at(name);
 }
 
-Response::Response(int status)
-    : status(status), headers()
+Response::Response(int status, const std::string& content)
+    : status(status), content(content), headers()
 {
 
 }
@@ -72,7 +72,7 @@ std::string Response::toString() const
     ss << "HTTP/1.1 " << status << ' ' << getStatusMessage() << "\r\n";
     for(auto& pair : headers)
         ss << pair.first << ": " << pair.second << "\r\n";
-    ss << "\r\n"; 
+    ss << "\r\n" << content; 
     return ss.str();
 }
 
@@ -99,6 +99,12 @@ std::string Response::getStatusMessage() const
             return std::string();
     }
 }
+
+void Response::setContentLength()
+{
+    setHeader("Content-Length", std::to_string(content.size()));
+}
+
 }
 }
 }

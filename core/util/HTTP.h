@@ -14,9 +14,9 @@ class Request {
 
     void parseHeaderLine(const std::string& line);
 public:
-    Request(const std::string& data);
+    Request() = default;
 
-    Request();
+    Request(const std::string& data);
 
     std::string getMethod() const;
 
@@ -41,8 +41,9 @@ private:
 
 class Response {
 public:
+    Response() = default;
 
-    Response(int status);
+    Response(int status, const std::string& content = "");
 
     /**
      * @note overrides existing header values with the same name
@@ -57,8 +58,11 @@ public:
      */
     std::string getStatusMessage() const;
 
+    void setContentLength();
+
 private:
     int status;
+    std::string content;
     std::map<std::string, std::string> headers;
 };
 

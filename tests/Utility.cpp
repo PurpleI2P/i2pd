@@ -125,6 +125,7 @@ BOOST_AUTO_TEST_CASE(HTTPResponseStatusMessage)
     BOOST_CHECK_EQUAL(Response(502).getStatusMessage(), "Not Implemented");
     BOOST_CHECK_EQUAL(Response(504).getStatusMessage(), "Gateway Timeout");
 }
+
 BOOST_AUTO_TEST_CASE(WriteHTTPResponse)
 {
     Response rsp(200);
@@ -136,5 +137,16 @@ BOOST_AUTO_TEST_CASE(WriteHTTPResponse)
     );
 }
 
+BOOST_AUTO_TEST_CASE(WriteHTTPResponseWithContent)
+{
+    Response rsp(200, "Test content.");
+    rsp.setHeader("Connection", "close");
+    BOOST_CHECK_EQUAL(
+        rsp.toString(),
+        "HTTP/1.1 200 OK\r\n"
+        "Connection: close\r\n\r\n"
+        "Test content."
+    );
+}
 
 BOOST_AUTO_TEST_SUITE_END()
