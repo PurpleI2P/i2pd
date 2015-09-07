@@ -113,6 +113,21 @@ BOOST_AUTO_TEST_CASE(ParseHTTPRequestWithHeaders)
     BOOST_CHECK_EQUAL(req2.getHeader("Host"), "localhost:123");
 }
 
+BOOST_AUTO_TEST_CASE(ParseHTTPRequestWithContent)
+{
+    Request req1(
+        "GET /index.html HTTP/1.1\r\n"
+        "Host: localhost\r\n\r\n"
+        "Random content."
+    );
+    Request req2(
+        "GET /index.html HTTP/1.0\r\n\r\n"
+        "Random content.\r\nTest content."
+    );
+    BOOST_CHECK_EQUAL(req1.getContent(), "Random content.");
+    BOOST_CHECK_EQUAL(req2.getContent(), "Random content.\r\nTest content.");
+}
+
 BOOST_AUTO_TEST_CASE(HTTPResponseStatusMessage)
 {
     BOOST_CHECK_EQUAL(Response(0).getStatusMessage(), "");

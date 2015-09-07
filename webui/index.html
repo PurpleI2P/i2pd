@@ -4,8 +4,94 @@
 <title>Purple I2P 0.10.0 Webconsole</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/main.css">
+<script type="text/javascript" src="javascript/I2PControl.js"></script>
+<script type="text/javascript">
+function updateRouterInfo(result, session) {
+    if(session.error)
+        alert("Error: " + result["error"]);
+    I2PControl.updateDocument({
+        "version" : result["i2p.router.version"],
+        "status" : I2PControl.statusToString(result["i2p.router.net.status"]),
+    });
+
+}
+window.onload = function() {
+    var session = new I2PControl.Session("itoopie");
+    session.start(function() {
+        session.request("RouterInfo", {
+            "i2p.router.version" : "", "i2p.router.net.status" : ""
+        }, updateRouterInfo);
+    });
+};
+</script>
 </head>
+
 <body>
-    <p>Nothing here yet.</p>
+<div class="header">
+    <h1>i2pd router console</h1>
+    <h2>Version: <span id="version"></span>, uptime: <span id="uptime"></span></h2>
+    <h2>Network status: <span id="status"></span></h2>
+    <p>
+        <button id="shutdown">shutdown</button>
+        <button id="restart" disabled>restart</button>
+        <button id="reseed">reseed</button>
+    </p>
+</div>
+
+<div class="content">
+    <h2 class="content-subhead">Tunnels participating: <span id="tunnels-participating"></span></h2>
+    <h2 class="content-subhead">Active peers: <span id="activepeers"></span></h2>
+    <h2 class="content-subhead">Known peers: <span id="knownpeers"></span></h2>
+    <h2 class="content-subhead">Bandwidth: 
+        in <span id="bw-in"></span> Bps /
+        out <span id="bw-out"></span> Bps 
+    </h2>
+</div>
+
+<div class="header">
+    <h1>I2P configuration</h1>
+</div>
+
+<div class="content">
+    <h2 class="content-subhead">Not yet implemented :)</h2>
+</div>
+
+<script type="text/html" id="help">
+    <div class="header">
+        <h1>I2P help</h1>
+    </div>
+
+    <div class="content">
+        <h2 class="content-subhead">Need help? Join us at IRC: #i2pd-dev at irc.freenode.net</h2>
+        <h2 class="content-subhead">
+            <a href="https://github.com/PurpleI2P/i2pd">i2pd at GitHub</a>
+        </h2>
+        <h2 class="content-subhead"><a href="https://geti2p.net/en/">I2P Project</a> </h2>
+    </div>
+</script>
+<div id="layout">
+    <a href="#menu" id="menuLink" class="menu-link">
+        <span></span>
+    </a>
+
+    <div id="menu">
+        <div class="pure-menu">
+        <span class="pure-menu-heading">i2pd</span>
+
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item"><a href="#/" class="pure-menu-link">Home</a></li>
+                <li class="pure-menu-item"><a href="#/config" class="pure-menu-link">Configure</a></li>
+                <li class="pure-menu-item"><a href="#/help" class="pure-menu-link">Help</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="main">
+        <noscript>
+            <div class="header"><h1>Please, enable JavaScript!</h1></div>
+        </noscript>
+    </div>
+</div>
 </body>
 </html>

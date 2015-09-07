@@ -26,8 +26,13 @@ Request::Request(const std::string& data)
     std::getline(ss, line);
     parseRequestLine(line);
 
-    while(std::getline(ss, line))
+    while(std::getline(ss, line) && !boost::trim_copy(line).empty())
         parseHeaderLine(line);
+
+    if(ss) {
+        const std::string current = ss.str();
+        content = current.substr(ss.tellg());
+    }
 }
 
 std::string Request::getMethod() const
@@ -53,6 +58,11 @@ int Request::getPort() const
 std::string Request::getHeader(const std::string& name) const
 {
     return headers.at(name);
+}
+
+std::string Request::getContent() const
+{
+    return content;
 }
 
 Response::Response(int status, const std::string& content)

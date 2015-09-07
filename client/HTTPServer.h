@@ -6,6 +6,7 @@
 #include <memory>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
+#include "i2pcontrol/I2PControl.h"
 #include "util/HTTP.h"
 
 namespace i2p {
@@ -17,9 +18,9 @@ const int HTTP_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 class HTTPConnection: public std::enable_shared_from_this<HTTPConnection> {
 public:
 
-    HTTPConnection(boost::asio::ip::tcp::socket * socket)
-        : m_Socket(socket), m_Timer(socket->get_io_service()), 
-        m_BufferLen(0) {};
+    HTTPConnection(boost::asio::ip::tcp::socket* socket,
+        std::shared_ptr<i2p::client::I2PControlSession> session);
+
     ~HTTPConnection() { delete m_Socket; }
     void Receive();
     
@@ -32,6 +33,7 @@ private:
     void SendReply();
 
     void HandleRequest();
+    void HandleI2PControlRequest();
     void ExtractParams(const std::string& str, std::map<std::string, std::string>& params);
     
     bool isAllowed(const std::string& address);
@@ -43,6 +45,7 @@ private:
     size_t m_BufferLen;
     util::http::Request m_Request;
     util::http::Response m_Reply;
+    std::shared_ptr<i2p::client::I2PControlSession> m_Session;
 };
 
 class HTTPServer {
@@ -67,9 +70,10 @@ private:
     boost::asio::io_service::work m_Work;
     boost::asio::ip::tcp::acceptor m_Acceptor;
     boost::asio::ip::tcp::socket * m_NewSocket;
+    std::shared_ptr<i2p::client::I2PControlSession> m_Session;
 
 protected:
-    virtual void CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket);
+    void CreateConnection(boost::asio::ip::tcp::socket* m_NewSocket);
 };
 }
 }
