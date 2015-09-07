@@ -13,6 +13,12 @@ function updateRouterInfo(result, session) {
     I2PControl.updateDocument({
         "version" : result["i2p.router.version"],
         "status" : I2PControl.statusToString(result["i2p.router.net.status"]),
+        "uptime" : I2PControl.msToString(result["i2p.router.uptime"]),
+        "knownpeers" : result["i2p.router.netdb.knownpeers"],
+        "activepeers" : result["i2p.router.netdb.activepeers"],
+        "tunnels-participating" : result["i2p.router.net.tunnels.participating"],
+        "bw-in" : result["i2p.router.net.bw.inbound.1s"],
+        "bw-out" : result["i2p.router.net.bw.outbound.1s"]
     });
 
 }
@@ -20,7 +26,14 @@ window.onload = function() {
     var session = new I2PControl.Session("itoopie");
     session.start(function() {
         session.request("RouterInfo", {
-            "i2p.router.version" : "", "i2p.router.net.status" : ""
+            "i2p.router.version" : "",
+            "i2p.router.net.status" : "",
+            "i2p.router.uptime" : "",
+            "i2p.router.netdb.knownpeers" : "",
+            "i2p.router.netdb.activepeers" : "",
+            "i2p.router.net.tunnels.participating" : "",
+            "i2p.router.net.bw.inbound.1s" : "",
+            "i2p.router.net.bw.outbound.1s" : ""
         }, updateRouterInfo);
     });
 };

@@ -74,6 +74,16 @@ I2PControl.statusToString = function(status) {
     }
 };
 
+I2PControl.msToString = function(mseconds) {
+    var seconds = mseconds / 1000;
+    var numdays = Math.floor(seconds / 86400);
+    var numhours = Math.floor((seconds % 86400) / 3600);
+    var numminutes = Math.floor(((seconds % 86400) % 3600) / 60);
+    var numseconds = ((seconds % 86400) % 3600) % 60;
+
+    return numdays + "d " + numhours + "h " + numminutes + "m " + numseconds + "s";
+}
+
 I2PControl.updateDocument = function(values) {
 
     for(id in values) {
