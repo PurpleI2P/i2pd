@@ -8,8 +8,10 @@
 <script type="text/javascript" src="javascript/I2PControl.js"></script>
 <script type="text/javascript">
 function updateRouterInfo(result, session) {
-    if(session.error)
+    if(session.error) {
         alert("Error: " + result["error"]);
+        return; // TODO: try to recover
+    }
     I2PControl.updateDocument({
         "version" : result["i2p.router.version"],
         "status" : I2PControl.statusToString(result["i2p.router.net.status"]),
@@ -20,23 +22,28 @@ function updateRouterInfo(result, session) {
         "bw-in" : result["i2p.router.net.bw.inbound.1s"],
         "bw-out" : result["i2p.router.net.bw.outbound.1s"]
     });
-
+    
+    window.setTimeout(function() { requestRouterInfo(session); }, 5000);
 }
+
+function requestRouterInfo(session) {
+    session.request("RouterInfo", {
+        "i2p.router.version" : "",
+        "i2p.router.net.status" : "",
+        "i2p.router.uptime" : "",
+        "i2p.router.netdb.knownpeers" : "",
+        "i2p.router.netdb.activepeers" : "",
+        "i2p.router.net.tunnels.participating" : "",
+        "i2p.router.net.bw.inbound.1s" : "",
+        "i2p.router.net.bw.outbound.1s" : ""
+    }, updateRouterInfo);
+}
+
 window.onload = function() {
     var session = new I2PControl.Session("itoopie");
-    session.start(function() {
-        session.request("RouterInfo", {
-            "i2p.router.version" : "",
-            "i2p.router.net.status" : "",
-            "i2p.router.uptime" : "",
-            "i2p.router.netdb.knownpeers" : "",
-            "i2p.router.netdb.activepeers" : "",
-            "i2p.router.net.tunnels.participating" : "",
-            "i2p.router.net.bw.inbound.1s" : "",
-            "i2p.router.net.bw.outbound.1s" : ""
-        }, updateRouterInfo);
-    });
+    session.start(function() { requestRouterInfo(session); });
 };
+
 </script>
 </head>
 
@@ -70,7 +77,7 @@ window.onload = function() {
     <h2 class="content-subhead">Not yet implemented :)</h2>
 </div>
 
-<script type="text/html" id="help">
+<div id="helpPage" style="display:hidden">
     <div class="header">
         <h1>I2P help</h1>
     </div>
@@ -82,29 +89,28 @@ window.onload = function() {
         </h2>
         <h2 class="content-subhead"><a href="https://geti2p.net/en/">I2P Project</a> </h2>
     </div>
-</script>
-<div id="layout">
-    <a href="#menu" id="menuLink" class="menu-link">
-        <span></span>
-    </a>
+</div>
 
-    <div id="menu">
-        <div class="pure-menu">
-        <span class="pure-menu-heading">i2pd</span>
+<div id="menu">
+    <span class="menu-heading">i2pd</span>
+    <ul class="menu-list">
+        <li class="menu-item">
+            <a href="#/" class="menu-link">Home</a>
+        </li>
+        <li class="menu-item">
+            <a href="#/config" class="menu-link">Configure</a>
+        </li>
+        <li class="menu-item">
+            <a href="#/help" class="menu-link">Help</a>
+        </li>
+    </ul>
+</div>
 
-            <ul class="pure-menu-list">
-                <li class="pure-menu-item"><a href="#/" class="pure-menu-link">Home</a></li>
-                <li class="pure-menu-item"><a href="#/config" class="pure-menu-link">Configure</a></li>
-                <li class="pure-menu-item"><a href="#/help" class="pure-menu-link">Help</a></li>
-            </ul>
-        </div>
-    </div>
-
-    <div id="main">
-        <noscript>
-            <div class="header"><h1>Please, enable JavaScript!</h1></div>
-        </noscript>
-    </div>
+<div id="main">
+    <noscript>
+        <div class="header"><h1>Please enable JavaScript!</h1></div>
+    </noscript>
+</div>
 </div>
 </body>
 </html>
