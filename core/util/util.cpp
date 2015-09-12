@@ -208,7 +208,7 @@ namespace filesystem
 #ifdef I2PD_CUSTOM_DATA_PATH
         return boost::filesystem::path(std::string(I2PD_CUSTOM_DATA_PATH));
 #else
-#ifdef WIN32
+#ifdef _WIN32
         // Windows
         char localAppData[MAX_PATH];
         SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
@@ -220,7 +220,7 @@ namespace filesystem
             pathRet = boost::filesystem::path("/"); 
         else
             pathRet = boost::filesystem::path(pszHome);
-#ifdef MAC_OSX
+#ifdef __APPLE__
         // Mac
         pathRet /= "Library/Application Support";
         boost::filesystem::create_directory(pathRet);
