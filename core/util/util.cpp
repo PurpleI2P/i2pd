@@ -18,7 +18,7 @@
 #if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
 #include <sys/types.h>
 #include <ifaddrs.h>
-#elif defined(WIN32)
+#elif defined(_WIN32)
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>    
@@ -79,7 +79,7 @@ namespace config {
                 strKey = strKey.substr(0, has_data);
             }
 
-#ifdef WIN32
+#ifdef _WIN32
             boost::to_lower(strKey);
             if(boost::algorithm::starts_with(strKey, "/"))
                 strKey = "-" + strKey.substr(1);
@@ -522,7 +522,7 @@ namespace net {
         return mtu;
     }
 
-#elif defined(WIN32)
+#elif defined(_WIN32)
     int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
     {
         ULONG outBufLen = 0;
