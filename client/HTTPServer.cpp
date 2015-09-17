@@ -63,7 +63,18 @@ void HTTPConnection::HandleReceive(const boost::system::error_code& e, std::size
     if(!e) {
         m_Buffer[nb_bytes] = 0;
         m_BufferLen = nb_bytes;
-        RunRequest();
+        const std::string data = std::string(m_Buffer, m_Buffer + m_BufferLen);
+        if(!m_Request.hasData()) // New request
+            m_Request = i2p::util::http::Request(data);
+        else 
+            m_Request.update(data);
+
+        if(m_Request.isComplete()) {
+            RunRequest();
+            m_Request.clear();
+        } else {
+            Receive();
+        }
     } else if(e != boost::asio::error::operation_aborted)
         Terminate();
 }
@@ -71,13 +82,13 @@ void HTTPConnection::HandleReceive(const boost::system::error_code& e, std::size
 void HTTPConnection::RunRequest()
 {
     try {
-      m_Request = i2p::util::http::Request(std::string(m_Buffer, m_Buffer + m_BufferLen));
       if(m_Request.getMethod() == "GET")
           return HandleRequest();
       if(m_Request.getHeader("Content-Type").find("application/json") != std::string::npos)
           return HandleI2PControlRequest();
     } catch(...) {
         // Ignore the error for now, probably Content-Type doesn't exist
+        // Could also be invalid json data
     }
     // Unsupported method
     m_Reply = i2p::util::http::Response(502, "");
@@ -118,13 +129,15 @@ void HTTPConnection::HandleRequest()
     if(uri == "/")
         uri = "index.html";
 
-    // Use cannonical to avoid .. or . in path
-    const std::string address = boost::filesystem::canonical(
+    // Use canonical to avoid .. or . in path
+    const boost::filesystem::path address = boost::filesystem::canonical(
         i2p::util::filesystem::GetWebuiDataDir() / uri, e
-    ).string();
+    );
+
+    const std::string address_str = address.string();
     
-    std::ifstream ifs(address);
-    if(e || !ifs || !isAllowed(address)) {
+    std::ifstream ifs(address_str);
+    if(e || !ifs || !isAllowed(address_str)) {
         m_Reply = i2p::util::http::Response(404, "");
         return SendReply();
     }
@@ -136,12 +149,13 @@ void HTTPConnection::HandleRequest()
     ifs.read(&str[0], str.size());
     ifs.close();
     
+    str = i2p::util::http::preprocessContent(str, address.parent_path().string());
     m_Reply = i2p::util::http::Response(200, str);
 
     // TODO: get rid of this hack, actually determine the MIME type
-    if(address.substr(address.find_last_of(".")) == ".css")
+    if(address_str.substr(address_str.find_last_of(".")) == ".css")
         m_Reply.setHeader("Content-Type", "text/css");
-    else if(address.substr(address.find_last_of(".")) == ".js")
+    else if(address_str.substr(address_str.find_last_of(".")) == ".js")
         m_Reply.setHeader("Content-Type", "text/javascript");
     else
         m_Reply.setHeader("Content-Type", "text/html");

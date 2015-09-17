@@ -128,6 +128,43 @@ BOOST_AUTO_TEST_CASE(ParseHTTPRequestWithContent)
     BOOST_CHECK_EQUAL(req2.getContent(), "Random content.\r\nTest content.");
 }
 
+BOOST_AUTO_TEST_CASE(ParseHTTPRequestWithPartialHeaders)
+{
+    Request req(
+        "GET /index.html HTTP/1.1\r\n"
+        "Host: local"
+    );
+    BOOST_CHECK(req.hasData());
+    BOOST_CHECK(!req.isComplete());
+    BOOST_CHECK_EQUAL(req.getMethod(), "GET");
+    req.update("host\r\n");
+    BOOST_CHECK(req.isComplete());
+    BOOST_CHECK_EQUAL(req.getHeader("Host"), "localhost");
+    req.clear();
+    BOOST_CHECK(!req.hasData());
+}
+
+BOOST_AUTO_TEST_CASE(ParseHTTPRequestHeadersFirst)
+{
+    Request req(
+        "GET /index.html HTTP/1.1\r\n"
+        "Content-Length: 5\r\n"
+        "Host: localhost\r\n\r\n"
+    );
+
+    BOOST_CHECK_EQUAL(req.getMethod(), "GET");
+    BOOST_CHECK_EQUAL(req.getHeader("Content-Length"), "5");
+    BOOST_CHECK_EQUAL(req.getHeader("Host"), "localhost");
+
+    BOOST_CHECK(!req.isComplete());
+    req.update("ab");
+    BOOST_CHECK(!req.isComplete());
+    req.update("cde");
+    BOOST_CHECK(req.isComplete());
+
+    BOOST_CHECK_EQUAL(req.getContent(), "abcde");
+}
+
 BOOST_AUTO_TEST_CASE(HTTPResponseStatusMessage)
 {
     BOOST_CHECK_EQUAL(Response(0).getStatusMessage(), "");

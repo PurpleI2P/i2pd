@@ -1,6 +1,10 @@
 #include "HTTP.h"
 #include <boost/algorithm/string.hpp>
-#include <sstream>
+#include <iostream>
+#include <regex>
+#include <fstream>
+#include <boost/filesystem.hpp>
+#include "Log.h"
 
 namespace i2p {
 namespace util {
@@ -19,20 +23,54 @@ void Request::parseHeaderLine(const std::string& line)
     headers[boost::trim_copy(line.substr(0, pos))] = boost::trim_copy(line.substr(pos + 1));
 }
 
-Request::Request(const std::string& data)
+void Request::parseHeader(std::stringstream& ss)
 {
-    std::stringstream ss(data);
     std::string line;
-    std::getline(ss, line);
-    parseRequestLine(line);
-
     while(std::getline(ss, line) && !boost::trim_copy(line).empty())
         parseHeaderLine(line);
 
-    if(ss) {
+    has_header = boost::trim_copy(line).empty();
+    if(!has_header)
+        header_part = line;
+    else
+        header_part = "";
+}
+
+void Request::setIsComplete()
+{
+    auto it = headers.find("Content-Length");
+    if(it == headers.end()) {
+        // If Content-Length is not set, assume there is no more content 
+        // TODO: Support chunked transfer, or explictly reject it
+        is_complete = true;
+        return;
+    }
+    const std::size_t length = std::stoi(it->second);
+    is_complete = content.size() >= length;
+}
+
+Request::Request(const std::string& data)
+{
+    if(!data.empty())
+        has_data = true;
+
+    std::stringstream ss(data);
+
+    std::string line;
+    std::getline(ss, line);
+
+    // Assume the request line is always passed in one go
+    parseRequestLine(line);
+
+    parseHeader(ss);
+
+    if(has_header && ss) {
         const std::string current = ss.str();
         content = current.substr(ss.tellg());
     }
+
+    if(has_header)
+        setIsComplete();
 }
 
 std::string Request::getMethod() const
@@ -63,6 +101,38 @@ std::string Request::getHeader(const std::string& name) const
 std::string Request::getContent() const
 {
     return content;
+}
+
+bool Request::hasData() const
+{
+    return has_data; 
+}
+
+bool Request::isComplete() const
+{
+    return is_complete;
+}
+
+void Request::clear()
+{
+    has_data = false;
+    has_header = false;
+    is_complete = false;
+}
+
+void Request::update(const std::string& data)
+{
+    std::stringstream ss(header_part + data);
+    if(!has_header)
+        parseHeader(ss);
+
+    if(has_header && ss) {
+        const std::string current = ss.str();
+        content += current.substr(ss.tellg());
+    }
+
+    if(has_header)
+        setIsComplete();
 }
 
 Response::Response(int status, const std::string& content)
@@ -113,6 +183,48 @@ std::string Response::getStatusMessage() const
 void Response::setContentLength()
 {
     setHeader("Content-Length", std::to_string(content.size()));
+}
+
+std::string preprocessContent(const std::string& content, const std::string& path)
+{
+    const boost::filesystem::path directory(path); // Given path is assumed to be clean
+
+    static const std::regex re(
+        "<\\!\\-\\-\\s*#include\\s+virtual\\s*\\=\\s*\"([^\"]*)\"\\s*\\-\\->"
+    );
+
+    boost::system::error_code e;
+
+    std::string result;
+
+    std::smatch match;
+    auto it = content.begin();
+    while(std::regex_search(it, content.end(), match, re)) {
+        const auto last = it;
+        std::advance(it, match.position());
+        result.append(last, it);
+        std::advance(it, match.length());
+
+        // Read the contents of the included file
+        std::ifstream ifs(
+            boost::filesystem::canonical(directory / std::string(match[1]), e).string()
+        );
+        if(e || !ifs)
+            continue;
+
+        std::string data;
+        ifs.seekg(0, ifs.end);
+        data.resize(ifs.tellg());
+        ifs.seekg(0, ifs.beg);
+        ifs.read(&data[0], data.size());
+        
+        result += data; 
+    }
+
+    // Append all of the remaining content
+    result.append(it, content.end());
+
+    return result;
 }
 
 }

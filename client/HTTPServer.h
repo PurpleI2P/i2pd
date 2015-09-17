@@ -41,7 +41,6 @@ private:
     boost::asio::ip::tcp::socket* m_Socket;
     boost::asio::deadline_timer m_Timer;
     char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
-    char m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
     size_t m_BufferLen;
     util::http::Request m_Request;
     util::http::Response m_Reply;

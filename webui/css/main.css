@@ -1,5 +1,7 @@
-html {
+body {
     font-family: sans-serif;
+    margin: 0px;
+    padding: 0px;
 }
 
 .header {
@@ -41,6 +43,8 @@ h2 {
     background: #191818 none repeat scroll 0% 0%;
     overflow-y: auto;
     display: block;
+    margin: 0px;
+    padding: 0px;
 }
 
 .menu-heading {
