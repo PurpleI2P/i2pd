@@ -9,8 +9,8 @@
 <script type="text/javascript">
 function updateRouterInfo(result, session) {
     if(session.error) {
-        alert("Error: " + result["error"]);
-        return; // TODO: try to recover
+        alert("Error: " + session.error["message"]);
+        return;
     }
     I2PControl.updateDocument({
         "version" : result["i2p.router.version"],

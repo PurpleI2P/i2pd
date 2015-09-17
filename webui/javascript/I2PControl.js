@@ -16,11 +16,19 @@ I2PControl.Session.prototype = {
         var self = this;
         request.onreadystatechange = function() {
             if(this.readyState == 4 && this.status == "200" && this.responseText != "") {
-                var result = JSON.parse(this.responseText).result;
-                if(result.hasOwnProperty("error")) {
-                    self.error = true;
+                var data = JSON.parse(this.responseText);
+                if(data.hasOwnProperty("error")) {
+                    if(data["error"]["code"] == -32003 || data["error"]["code"] == -32004) {
+                        // Get a new token and resend the request
+                        self.start(function() {
+                            self.request(method, params, handler);
+                        }); 
+                        return;
+                    }
+                    // Cannot fix the error, report it
+                    self.error = data["error"];
                 }
-                handler(result, self);
+                handler(data.result, self);
             }
         };
         if(this.token != "")
