@@ -1,16 +1,3 @@
-Build notes
-===========
-
-Available cmake options:
-
-* CMAKE_BUILD_TYPE -- build profile (Debug/Release)
-* WITH_AESNI -- AES-NI support (ON/OFF)
-* WITH_HARDENING -- enable hardening features (ON/OFF) (gcc only)
-* WITH_TESTS -- build tests (ON/OFF)
-* WITH_BENCHMARK -- build bechmarking code (ON/OFF)
-* WITH_OPTIMIZE -- enable optimization flags (ON/OFF) (not for MSVC)
-* I2PD_DATA_DIR -- directory where i2pd will store data
-
 Debian
 ------
 
