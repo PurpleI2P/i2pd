@@ -19,6 +19,7 @@ function updateRouterInfo(result, session) {
         "knownpeers" : result["i2p.router.netdb.knownpeers"],
         "activepeers" : result["i2p.router.netdb.activepeers"],
         "tunnels-participating" : result["i2p.router.net.tunnels.participating"],
+        "tunnels-successrate" : result["i2p.router.net.tunnels.creationsuccessrate"] + "&#37",
         "bw-in" : result["i2p.router.net.bw.inbound.1s"],
         "bw-out" : result["i2p.router.net.bw.outbound.1s"]
     });
@@ -34,6 +35,7 @@ function requestRouterInfo(session) {
         "i2p.router.netdb.knownpeers" : "",
         "i2p.router.netdb.activepeers" : "",
         "i2p.router.net.tunnels.participating" : "",
+        "i2p.router.net.tunnels.creationsuccessrate" : "",
         "i2p.router.net.bw.inbound.1s" : "",
         "i2p.router.net.bw.outbound.1s" : ""
     }, updateRouterInfo);
@@ -60,21 +62,27 @@ window.onload = function() {
 </div>
 
 <div class="content">
-    <h2 class="content-subhead">Tunnels participating: <span id="tunnels-participating"></span></h2>
-    <h2 class="content-subhead">Active peers: <span id="activepeers"></span></h2>
-    <h2 class="content-subhead">Known peers: <span id="knownpeers"></span></h2>
-    <h2 class="content-subhead">Bandwidth: 
+    <h2 class="content-subhead">
+        Tunnels participating: <span id="tunnels-participating"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Tunnel create success rate: <span id="tunnels-successrate"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Active peers: <span id="activepeers"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Known peers: <span id="knownpeers"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Bandwidth: 
         in <span id="bw-in"></span> Bps /
         out <span id="bw-out"></span> Bps 
     </h2>
 </div>
 
 <!--#include virtual="menu.html" -->
+<!--#include virtual="footer.html" -->
 
-<div id="main">
-    <noscript>
-        <div class="header"><h1>Please enable JavaScript!</h1></div>
-    </noscript>
-</div>
 </body>
 </html>

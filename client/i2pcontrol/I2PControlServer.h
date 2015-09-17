@@ -12,6 +12,7 @@
 
 namespace i2p {
 namespace client {
+namespace i2pcontrol {
 
 const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
 typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;        
@@ -49,6 +50,7 @@ private:
     boost::asio::ip::tcp::acceptor m_Acceptor;
     
 };
+}
 }
 }
 

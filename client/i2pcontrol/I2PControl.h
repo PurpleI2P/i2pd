@@ -10,51 +10,60 @@
 
 namespace i2p {
 namespace client {
+namespace i2pcontrol {
 
-const char I2P_CONTROL_DEFAULT_PASSWORD[] = "itoopie";  
-const uint64_t I2P_CONTROL_TOKEN_LIFETIME = 600; // Token lifetime in seconds
-const std::size_t I2P_CONTROL_TOKEN_SIZE = 8; // Token size in bytes
+namespace constants {
 
-const char I2P_CONTROL_PROPERTY_ID[] = "id";
-const char I2P_CONTROL_PROPERTY_METHOD[] = "method";
-const char I2P_CONTROL_PROPERTY_PARAMS[] = "params";
-const char I2P_CONTROL_PROPERTY_RESULT[] = "result";
+const char DEFAULT_PASSWORD[] = "itoopie";  
+const uint64_t TOKEN_LIFETIME = 600; // Token lifetime in seconds
+const std::size_t TOKEN_SIZE = 8; // Token size in bytes
+
+const char PROPERTY_ID[] = "id";
+const char PROPERTY_METHOD[] = "method";
+const char PROPERTY_PARAMS[] = "params";
+const char PROPERTY_RESULT[] = "result";
 
 // methods  
-const char I2P_CONTROL_METHOD_AUTHENTICATE[] = "Authenticate";
-const char I2P_CONTROL_METHOD_ECHO[] = "Echo";
-const char I2P_CONTROL_METHOD_I2PCONTROL[] = "I2PControl";      
-const char I2P_CONTROL_METHOD_ROUTER_INFO[] = "RouterInfo"; 
-const char I2P_CONTROL_METHOD_ROUTER_MANAGER[] = "RouterManager";   
-const char I2P_CONTROL_METHOD_NETWORK_SETTING[] = "NetworkSetting"; 
+const char METHOD_AUTHENTICATE[] = "Authenticate";
+const char METHOD_ECHO[] = "Echo";
+const char METHOD_I2PCONTROL[] = "I2PControl";      
+const char METHOD_ROUTER_INFO[] = "RouterInfo"; 
+const char METHOD_ROUTER_MANAGER[] = "RouterManager";   
+const char METHOD_NETWORK_SETTING[] = "NetworkSetting"; 
 
 // params
-const char I2P_CONTROL_PARAM_API[] = "API";         
-const char I2P_CONTROL_PARAM_PASSWORD[] = "Password";   
-const char I2P_CONTROL_PARAM_TOKEN[] = "Token"; 
-const char I2P_CONTROL_PARAM_ECHO[] = "Echo";   
-const char I2P_CONTROL_PARAM_RESULT[] = "Result";   
+const char PARAM_API[] = "API";         
+const char PARAM_PASSWORD[] = "Password";   
+const char PARAM_TOKEN[] = "Token"; 
+const char PARAM_ECHO[] = "Echo";   
+const char PARAM_RESULT[] = "Result";   
 
 // I2PControl
-const char I2P_CONTROL_I2PCONTROL_ADDRESS[] = "i2pcontrol.address";     
-const char I2P_CONTROL_I2PCONTROL_PASSWORD[] = "i2pcontrol.password";
-const char I2P_CONTROL_I2PCONTROL_PORT[] = "i2pcontrol.port";       
+const char I2PCONTROL_ADDRESS[] = "i2pcontrol.address";     
+const char I2PCONTROL_PASSWORD[] = "i2pcontrol.password";
+const char I2PCONTROL_PORT[] = "i2pcontrol.port";       
 
 // RouterInfo requests
-const char I2P_CONTROL_ROUTER_INFO_UPTIME[] = "i2p.router.uptime";
-const char I2P_CONTROL_ROUTER_INFO_VERSION[] = "i2p.router.version";
-const char I2P_CONTROL_ROUTER_INFO_STATUS[] = "i2p.router.status";  
-const char I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS[] = "i2p.router.netdb.knownpeers";
-const char I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS[] = "i2p.router.netdb.activepeers";
-const char I2P_CONTROL_ROUTER_INFO_NET_STATUS[] = "i2p.router.net.status";  
-const char I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING[] = "i2p.router.net.tunnels.participating";
-const char I2P_CONTROL_ROUTER_INFO_BW_IB_1S[] = "i2p.router.net.bw.inbound.1s";         
-const char I2P_CONTROL_ROUTER_INFO_BW_OB_1S[] = "i2p.router.net.bw.outbound.1s";        
+const char ROUTER_INFO_UPTIME[] = "i2p.router.uptime";
+const char ROUTER_INFO_VERSION[] = "i2p.router.version";
+const char ROUTER_INFO_STATUS[] = "i2p.router.status";  
+const char ROUTER_INFO_DATAPATH[] = "i2p.router.datapath";
+const char ROUTER_INFO_NETDB_KNOWNPEERS[] = "i2p.router.netdb.knownpeers";
+const char ROUTER_INFO_NETDB_ACTIVEPEERS[] = "i2p.router.netdb.activepeers";
+const char ROUTER_INFO_NETDB_FLOODFILLS[] = "i2p.router.netdb.floodfills";        
+const char ROUTER_INFO_NETDB_LEASESETS[] = "i2p.router.netdb.leasesets";        
+const char ROUTER_INFO_NET_STATUS[] = "i2p.router.net.status";  
+const char ROUTER_INFO_TUNNELS_PARTICIPATING[] = "i2p.router.net.tunnels.participating";
+const char ROUTER_INFO_TUNNELS_CREATION_SUCCESS[] = "i2p.router.net.tunnels.creationsuccessrate";
+const char ROUTER_INFO_BW_IB_1S[] = "i2p.router.net.bw.inbound.1s";
+const char ROUTER_INFO_BW_OB_1S[] = "i2p.router.net.bw.outbound.1s";
 
 // RouterManager requests
-const char I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
-const char I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
-const char I2P_CONTROL_ROUTER_MANAGER_RESEED[] = "Reseed";      
+const char ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
+const char ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
+const char ROUTER_MANAGER_RESEED[] = "Reseed";      
+
+} // constants
 
 /**
  * "Null" I2P control implementation, does not do actual networking.
@@ -113,7 +122,7 @@ public:
      *  the lifetime of this I2PControlSession.
      */
     I2PControlSession(boost::asio::io_service& ios,
-        const std::string& pass = I2P_CONTROL_DEFAULT_PASSWORD);
+        const std::string& pass = constants::DEFAULT_PASSWORD);
 
     /**
      * Starts the I2PControlSession.
@@ -172,10 +181,14 @@ private:
     void handleUptime(Response& response);
     void handleVersion(Response& response);
     void handleStatus(Response& response);
+    void handleDatapath(Response& response);
     void handleNetDbKnownPeers(Response& response);
     void handleNetDbActivePeers(Response& response);
+    void handleNetDbFloodfills(Response& response);
+    void handleNetDbLeaseSets(Response& response);
     void handleNetStatus(Response& response);
     void handleTunnelsParticipating(Response& response);
+    void handleTunnelsCreationSuccess(Response& response);
     void handleInBandwidth1S(Response& response);
     void handleOutBandwidth1S(Response& response);
 
@@ -198,6 +211,7 @@ private:
     boost::asio::deadline_timer expireTokensTimer;
 };
 
+}
 }
 }
 

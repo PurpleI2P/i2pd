@@ -114,10 +114,12 @@ namespace client
         // I2P Control
         int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
         if(i2pcontrolPort) {
-            m_I2PControlService = new I2PControlService(
+            m_I2PControlService = new i2pcontrol::I2PControlService(
                 i2p::util::config::GetArg("-i2pcontroladdress", "127.0.0.1"),
                 i2pcontrolPort,
-                i2p::util::config::GetArg("-i2pcontrolpassword", I2P_CONTROL_DEFAULT_PASSWORD)
+                i2p::util::config::GetArg(
+                    "-i2pcontrolpassword", i2pcontrol::constants::DEFAULT_PASSWORD
+                )
             );
             m_I2PControlService->Start();
             LogPrint("I2PControl started");
