@@ -152,13 +152,7 @@ void HTTPConnection::HandleRequest()
     str = i2p::util::http::preprocessContent(str, address.parent_path().string());
     m_Reply = i2p::util::http::Response(200, str);
 
-    // TODO: get rid of this hack, actually determine the MIME type
-    if(address_str.substr(address_str.find_last_of(".")) == ".css")
-        m_Reply.setHeader("Content-Type", "text/css");
-    else if(address_str.substr(address_str.find_last_of(".")) == ".js")
-        m_Reply.setHeader("Content-Type", "text/javascript");
-    else
-        m_Reply.setHeader("Content-Type", "text/html");
+    m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(address_str));
     SendReply();
 }
 

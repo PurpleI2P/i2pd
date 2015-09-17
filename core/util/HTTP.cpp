@@ -227,6 +227,19 @@ std::string preprocessContent(const std::string& content, const std::string& pat
     return result;
 }
 
+std::string getMimeType(const std::string& filename)
+{
+    const std::string ext = filename.substr(filename.find_last_of("."));
+    if(ext == ".css")
+        return "text/css";
+    else if(ext == ".css")
+        return "text/javascript";
+    else if(ext == ".html" || ext == ".htm")
+        return "text/html";
+    else
+        return "application/octet-stream";
+}
+
 }
 }
 }
