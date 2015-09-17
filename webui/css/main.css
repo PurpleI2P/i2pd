@@ -5,7 +5,7 @@ body {
 }
 
 .header {
-    margin: 0px;
+    margin: 0px 150px;
     text-align: center;
     padding: 2.5em 2em 0px;
     border-bottom: 1px solid #EEE;
@@ -22,9 +22,8 @@ h2 {
 }
 
 .content {
-    margin: 0px auto 50px;
+    margin: 0px 150px auto;
     padding: 0px 2em;
-    max-width: 800px;
     line-height: 1.6em;
 }
 
