@@ -17,6 +17,21 @@ By default, the web console is located at http://localhost:7070/.
 
 For a list of cmake options, see BUILD_NOTES.md
 
+Installing the webui
+====================
+
+If you build from source the webui files will automatically be copied to your
+ i2pd data path.
+In some cases (such as when using binaries), you may have to manually install the
+ webui.
+For this, run:
+
+$ ./i2pd --install=/path/to/webui
+
+Or, if the current directory contains a folder named "webui":
+
+$ ./i2pd --install
+
 Building Unit Tests
 ===================
 

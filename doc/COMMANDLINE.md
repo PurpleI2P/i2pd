@@ -35,3 +35,4 @@ Cmdline options
 * --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
+* --install=            - Installs the webui files, see BUILDING.md for details.
