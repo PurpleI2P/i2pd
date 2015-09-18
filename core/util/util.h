@@ -41,6 +41,11 @@ namespace util
          * @param nDefault the default value to be returned
          */
         const char* GetCharArg(const std::string& strArg, const std::string& nDefault);
+
+        /**
+         * @return true if the argument is set, false otherwise
+         */
+        bool HasArg(const std::string& strArg);
     }
 
     namespace filesystem
@@ -95,6 +100,18 @@ namespace util
          * @return the path of the certificates directory
          */
         boost::filesystem::path GetCertificatesDir();
+
+        /**
+         * Installs the webui files.
+         * @throw std::runtime_error when installation fails
+         */
+        void InstallFiles();
+
+        /**
+         * Copies all files and directories in src to dest.
+         * @warning overrides existing files
+         */
+        void CopyDir(const boost::filesystem::path& src, const boost::filesystem::path& dest);
     }
 
     namespace http

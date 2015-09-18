@@ -125,6 +125,11 @@ namespace config {
         return nDefault;
     }
 
+    bool HasArg(const std::string& strArg)
+    {
+       return mapArgs.count(strArg); 
+    }
+
 }
 
 namespace filesystem
@@ -257,6 +262,46 @@ namespace filesystem
     boost::filesystem::path GetCertificatesDir()
     {
         return GetDataDir () / "certificates";
+    }
+
+    void InstallFiles()
+    {
+        namespace bfs = boost::filesystem;
+        boost::system::error_code e;
+        const bfs::path source = bfs::canonical(
+            config::GetArg("-install", "webui"), e
+        );
+
+        const bfs::path destination = GetWebuiDataDir();
+
+        if(e || !bfs::is_directory(source))
+            throw std::runtime_error("Given directory is invalid or does not exist");
+
+        // TODO: check that destination is not in source
+
+        try {
+            CopyDir(source, destination);
+        } catch(...) {
+            throw std::runtime_error("Could not copy webui folder to i2pd folder.");
+        }
+    }
+    
+    void CopyDir(const boost::filesystem::path& src, const boost::filesystem::path& dest)
+    {
+        namespace bfs = boost::filesystem;
+
+        bfs::create_directory(dest);
+        
+        for(bfs::directory_iterator file(src); file != bfs::directory_iterator(); ++file) {
+            const bfs::path current(file->path());
+            if(bfs::is_directory(current))
+                CopyDir(current, dest / current.filename());
+            else
+                bfs::copy_file(
+                    current, dest / current.filename(),
+                    bfs::copy_option::overwrite_if_exists
+                );
+        }
     }
 }
 

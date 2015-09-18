@@ -56,7 +56,19 @@ namespace i2p
             LogPrint("\n\n\n\ni2pd starting\n");
             LogPrint("Version ", VERSION);
             LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
-            i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+            i2p::util::filesystem::ReadConfigFile(
+                i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs
+            );
+
+            if(i2p::util::config::HasArg("-install")) {
+                try {
+                    i2p::util::filesystem::InstallFiles();
+                    LogPrint("Succesfully installed all files.");
+                } catch(const std::runtime_error& e) {
+                    LogPrint(eLogError, "Failed to install: ", e.what());
+                    return false;
+                }
+            }
 
             isDaemon = i2p::util::config::GetArg("-daemon", 0);
             isLogging = i2p::util::config::GetArg("-log", 1);
@@ -104,7 +116,6 @@ namespace i2p
                 else
                     StartLog (""); // write to stdout
             }
-
             d.httpServer = new i2p::util::HTTPServer(
                 i2p::util::config::GetArg("-httpaddress", "127.0.0.1"),
                 i2p::util::config::GetArg("-httpport", 7070)

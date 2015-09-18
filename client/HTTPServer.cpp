@@ -107,7 +107,9 @@ void HTTPConnection::Send404Reply()
             "<head><title>Error: 404 - webui not installed</title></head><body>"
                 "<p>It looks like your webui installation is broken.</p>"
                 "<p>Run the following command to (re)install it:</p>"
-                "<pre>./i2pd --install /path/to/webui</pre>"
+                "<pre>./i2pd --install=/path/to/webui</pre>"
+                "<p>Or from a directory containing a folder named webui:</p>"
+                "<pre>./i2pd --install</pre>"
                 "<p>The webui folder should come with the binaries.</p>"
             "</body></html>"
         );
