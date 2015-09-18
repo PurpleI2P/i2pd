@@ -9,6 +9,10 @@
 #include <boost/asio.hpp>
 
 namespace i2p {
+
+// Forward declaration
+namespace tunnel { class Tunnel; }
+
 namespace client {
 namespace i2pcontrol {
 
@@ -54,7 +58,10 @@ const char ROUTER_INFO_NETDB_FLOODFILLS[] = "i2p.router.netdb.floodfills";
 const char ROUTER_INFO_NETDB_LEASESETS[] = "i2p.router.netdb.leasesets";        
 const char ROUTER_INFO_NET_STATUS[] = "i2p.router.net.status";  
 const char ROUTER_INFO_TUNNELS_PARTICIPATING[] = "i2p.router.net.tunnels.participating";
+// TODO: Probably better to use the standard GetRate instead
 const char ROUTER_INFO_TUNNELS_CREATION_SUCCESS[] = "i2p.router.net.tunnels.creationsuccessrate";
+const char ROUTER_INFO_TUNNELS_IN_LIST[] = "i2p.router.net.tunnels.inbound.list";
+const char ROUTER_INFO_TUNNELS_OUT_LIST[] = "i2p.router.net.tunnels.outbound.list";
 const char ROUTER_INFO_BW_IB_1S[] = "i2p.router.net.bw.inbound.1s";
 const char ROUTER_INFO_BW_OB_1S[] = "i2p.router.net.bw.outbound.1s";
 
@@ -64,6 +71,32 @@ const char ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
 const char ROUTER_MANAGER_RESEED[] = "Reseed";      
 
 } // constants
+
+/**
+ * Represents a Json object, provides functionality to convert to string.
+ */
+class JsonObject {
+
+public:
+    JsonObject() = default;
+
+    JsonObject(const std::string& value);
+
+    JsonObject(int value);
+
+    JsonObject(double value);
+
+    JsonObject& operator[](const std::string& key); 
+
+    std::string toString() const;
+
+private:
+    std::map<std::string, JsonObject> children;
+    std::string value;
+};
+
+
+JsonObject tunnelToJsonObject(i2p::tunnel::Tunnel* tunnel);
 
 /**
  * "Null" I2P control implementation, does not do actual networking.
@@ -106,8 +139,21 @@ public:
          * @todo escape quotes 
          */
         void setParam(const std::string& param, const std::string& value);
+
+        /**
+         * Set an ouptut parameter to a specified integer.
+         */
         void setParam(const std::string& param, int value);
+
+        /**
+         * Set an ouptut parameter to a specified double.
+         */
         void setParam(const std::string& param, double value);
+
+        /**
+         * Set an ouptut parameter to a specified Json object.
+         */
+        void setParam(const std::string& param, const JsonObject& value);
 
         void setError(ErrorCode code);
         void setId(const std::string& identifier);
@@ -187,8 +233,12 @@ private:
     void handleNetDbFloodfills(Response& response);
     void handleNetDbLeaseSets(Response& response);
     void handleNetStatus(Response& response);
+
     void handleTunnelsParticipating(Response& response);
     void handleTunnelsCreationSuccess(Response& response);
+    void handleTunnelsInList(Response& response);
+    void handleTunnelsOutList(Response& response);
+
     void handleInBandwidth1S(Response& response);
     void handleOutBandwidth1S(Response& response);
 
