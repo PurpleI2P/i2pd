@@ -22,7 +22,7 @@ function updateNetDbInfo(result, session) {
 
         var row = table.insertRow(table.rows.length);
         row.insertCell(0).appendChild(document.createTextNode(id));
-        row.insertCell(1).appendChild(document.createTextNode(tunnel["status"] ? tunnel["status"] : "running"));
+        row.insertCell(1).appendChild(document.createTextNode(tunnel["state"] ? tunnel["state"] : "running"));
         row.insertCell(2).appendChild(document.createTextNode(tunnel["layout"]));
     }
 }
