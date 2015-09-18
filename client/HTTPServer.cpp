@@ -94,26 +94,41 @@ void HTTPConnection::HandleWriteReply(const boost::system::error_code& e)
     }
 }
 
-void HTTPConnection::HandleRequest()
+void HTTPConnection::Send404Reply()
+{
+    try {
+        const std::string error_page = "404.html";
+        m_Reply = i2p::util::http::Response(404, GetFileContents(error_page, true));
+        m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(error_page));
+    } catch(const std::runtime_error&) {
+        // Failed to load 404.html, assume the webui is incorrectly installed
+        m_Reply = i2p::util::http::Response(404,
+            "<!DOCTYPE HTML><html>"
+            "<head><title>Error: 404 - webui not installed</title></head><body>"
+                "<p>It looks like your webui installation is broken.</p>"
+                "<p>Run the following command to (re)install it:</p>"
+                "<pre>./i2pd --install /path/to/webui</pre>"
+                "<p>The webui folder should come with the binaries.</p>"
+            "</body></html>"
+        );
+    }
+    SendReply();
+}
+
+std::string HTTPConnection::GetFileContents(const std::string& filename, bool preprocess) const
 {
     boost::system::error_code e;
 
-    std::string uri = m_Request.getUri();
-    if(uri == "/")
-        uri = "index.html";
-
-    // Use canonical to avoid .. or . in path
+     // Use canonical to avoid .. or . in path
     const boost::filesystem::path address = boost::filesystem::canonical(
-        i2p::util::filesystem::GetWebuiDataDir() / uri, e
+        i2p::util::filesystem::GetWebuiDataDir() / filename, e
     );
 
     const std::string address_str = address.string();
     
     std::ifstream ifs(address_str);
-    if(e || !ifs || !isAllowed(address_str)) {
-        m_Reply = i2p::util::http::Response(404, "");
-        return SendReply();
-    }
+    if(e || !ifs || !isAllowed(address_str))
+        throw std::runtime_error("Cannot load " + address_str + ".");
 
     std::string str;
     ifs.seekg(0, ifs.end);
@@ -122,11 +137,27 @@ void HTTPConnection::HandleRequest()
     ifs.read(&str[0], str.size());
     ifs.close();
     
-    str = i2p::util::http::preprocessContent(str, address.parent_path().string());
-    m_Reply = i2p::util::http::Response(200, str);
+    if(preprocess)
+        return i2p::util::http::preprocessContent(str, address.parent_path().string());
+    else
+        return str;
+}
 
-    m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(address_str));
-    SendReply();
+void HTTPConnection::HandleRequest()
+{
+
+    std::string uri = m_Request.getUri();
+    if(uri == "/")
+        uri = "index.html";
+
+    try {
+        m_Reply = i2p::util::http::Response(200, GetFileContents(uri, true));
+        m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(uri));
+        SendReply();
+    } catch(const std::runtime_error&) {
+        // Cannot open the file for some reason, send 404
+        Send404Reply();
+    }
 }
 
 void HTTPConnection::HandleI2PControlRequest()
@@ -138,7 +169,7 @@ void HTTPConnection::HandleI2PControlRequest()
     SendReply();
 }
 
-bool HTTPConnection::isAllowed(const std::string& address)
+bool HTTPConnection::isAllowed(const std::string& address) const
 {
     const std::size_t pos_dot = address.find_last_of('.');
     const std::size_t pos_slash = address.find_last_of('/');

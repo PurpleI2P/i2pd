@@ -19,7 +19,7 @@ function updateNetDbInfo(result, session) {
         "leasesets" : result["i2p.router.netdb.leasesets"],
     });
     
-    window.setTimeout(function() { requestNetDbInfo(session); }, 5000);
+    window.setTimeout(function() { requestNetDbInfo(session); }, 10000);
 }
 
 function requestNetDbInfo(session) {

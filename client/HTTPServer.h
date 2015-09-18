@@ -32,11 +32,18 @@ private:
     void HandleWriteReply(const boost::system::error_code& ecode);
     void SendReply();
 
+    void Send404Reply();
+
+    /*
+     * @throw std::runtime_error when the file is not accessible
+     */
+    std::string GetFileContents(const std::string& filename, bool preprocess) const;
+
     void HandleRequest();
     void HandleI2PControlRequest();
     void ExtractParams(const std::string& str, std::map<std::string, std::string>& params);
     
-    bool isAllowed(const std::string& address);
+    bool isAllowed(const std::string& address) const;
 private:
     boost::asio::ip::tcp::socket* m_Socket;
     char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
