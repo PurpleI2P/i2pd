@@ -7,35 +7,45 @@
 <link rel="stylesheet" href="css/main.css">
 <script type="text/javascript" src="javascript/I2PControl.js"></script>
 <script type="text/javascript">
-function updateNetDbInfo(result, session) {
-    if(session.error) {
-        alert("Error: " + session.error["message"]);
-        return;
-    }
 
-    var table = document.getElementById("tunnels").getElementsByTagName("tbody")[0];
+function buildTable(direction, result) {
+    var table = document.getElementById(direction + "-tunnels").getElementsByTagName("tbody")[0];
 
-    for(id in result["i2p.router.net.tunnels.inbound.list"]) {
-        if(!result["i2p.router.net.tunnels.inbound.list"].hasOwnProperty(id))
+    var cmd = "i2p.router.net.tunnels." + direction + ".list";
+    for(id in result[cmd]) {
+        if(!result[cmd].hasOwnProperty(id))
             continue;
-        var tunnel = result["i2p.router.net.tunnels.inbound.list"][id];
+        var tunnel = result[cmd][id];
 
         var row = table.insertRow(table.rows.length);
         row.insertCell(0).appendChild(document.createTextNode(id));
         row.insertCell(1).appendChild(document.createTextNode(tunnel["state"] ? tunnel["state"] : "running"));
         row.insertCell(2).appendChild(document.createTextNode(tunnel["layout"]));
     }
+
+
 }
 
-function requestNetDbInfo(session) {
+function updateTunnelInfo(result, session) {
+    if(session.error) {
+        alert("Error: " + session.error["message"]);
+        return;
+    }
+
+    buildTable("inbound", result);
+    buildTable("outbound", result);
+}
+
+function requestTunnelInfo(session) {
     session.request("RouterInfo", {
         "i2p.router.net.tunnels.inbound.list" : "",
-    }, updateNetDbInfo);
+        "i2p.router.net.tunnels.outbound.list" : "",
+    }, updateTunnelInfo);
 }
 
 window.onload = function() {
     var session = new I2PControl.Session("itoopie");
-    session.start(function() { requestNetDbInfo(session); });
+    session.start(function() { requestTunnelInfo(session); });
 };
 </script>
 </head>
@@ -43,12 +53,23 @@ window.onload = function() {
 <body>
 <div class="header">
     <h1>i2pd router console</h1>
-    <h2>Tunnel List</h2>
+    <h2>Tunnel Information</h2>
 </div>
 
 <div class="content">
 
-<table id="tunnels">
+<h2 class="content-subhead">Inbound Tunnels</h2>
+<table id="inbound-tunnels">
+    <thead>
+        <th>Tunnel ID</th>
+        <th>Status</th>
+        <th>Overview</th>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+<h2 class="content-subhead">Outbound Tunnels</h2>
+<table id="outbound-tunnels">
     <thead>
         <th>Tunnel ID</th>
         <th>Status</th>
