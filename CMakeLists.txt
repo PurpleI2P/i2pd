@@ -159,7 +159,7 @@ if(I2PD_DATA_PATH)
     # Using custom path, make sure the code knows about this
     add_definitions(-DI2PD_CUSTOM_DATA_PATH="${I2PD_DATA_PATH}")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(I2PD_DATA_DIR "$ENV{APPDATA}\i2pd")
+    set(I2PD_DATA_DIR "$ENV{APPDATA}\\i2pd")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(I2PD_DATA_DIR "$ENV{HOME}/Library/Application Support/i2pd")
 else()
