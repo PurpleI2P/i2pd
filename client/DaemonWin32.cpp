@@ -4,7 +4,7 @@
 
 #ifdef _WIN32
 
-#include "./Win32/Win32Service.h"
+#include "Win32Service.h"
 
 namespace i2p
 {

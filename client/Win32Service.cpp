@@ -8,7 +8,7 @@
 #include <windows.h>
 
 #include "Daemon.h"
-#include "Log.h"
+#include "util/Log.h"
 
 I2PService *I2PService::s_service = NULL;
 
