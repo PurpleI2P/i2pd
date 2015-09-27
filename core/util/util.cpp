@@ -18,7 +18,7 @@
 #if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
 #include <sys/types.h>
 #include <ifaddrs.h>
-#elif defined(WIN32)
+#elif defined(_WIN32)
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>    
@@ -79,7 +79,7 @@ namespace config {
                 strKey = strKey.substr(0, has_data);
             }
 
-#ifdef WIN32
+#ifdef _WIN32
             boost::to_lower(strKey);
             if(boost::algorithm::starts_with(strKey, "/"))
                 strKey = "-" + strKey.substr(1);
@@ -123,6 +123,11 @@ namespace config {
         if(mapArgs.count(strArg))
             return stoi(mapArgs[strArg]);
         return nDefault;
+    }
+
+    bool HasArg(const std::string& strArg)
+    {
+       return mapArgs.count(strArg); 
     }
 
 }
@@ -193,28 +198,34 @@ namespace filesystem
         return pathTunnelsConfigFile;
     }
 
+    boost::filesystem::path GetWebuiDataDir()
+    {
+        return GetDataDir() / "webui";
+    }
+
     boost::filesystem::path GetDefaultDataDir()
     {
+        // Custom path, or default path:
         // Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd
         // Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd
         // Mac: ~/Library/Application Support/i2pd
-        // Unix: ~/.i2pd or /var/lib/i2pd is system=1
-
-#ifdef WIN32
+        // Unix: ~/.i2pd
+#ifdef I2PD_CUSTOM_DATA_PATH
+        return boost::filesystem::path(std::string(I2PD_CUSTOM_DATA_PATH));
+#else
+#ifdef _WIN32
         // Windows
         char localAppData[MAX_PATH];
         SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
         return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
 #else
-        if(i2p::util::config::GetArg("-service", 0)) // use system folder
-            return boost::filesystem::path(std::string ("/var/lib/") + appName);
         boost::filesystem::path pathRet;
         char* pszHome = getenv("HOME");
         if(pszHome == NULL || strlen(pszHome) == 0)
-            pathRet = boost::filesystem::path("/");
+            pathRet = boost::filesystem::path("/"); 
         else
             pathRet = boost::filesystem::path(pszHome);
-#ifdef MAC_OSX
+#ifdef __APPLE__
         // Mac
         pathRet /= "Library/Application Support";
         boost::filesystem::create_directory(pathRet);
@@ -222,6 +233,7 @@ namespace filesystem
 #else
         // Unix
         return pathRet / (std::string (".") + appName);
+#endif
 #endif
 #endif
     }
@@ -250,6 +262,46 @@ namespace filesystem
     boost::filesystem::path GetCertificatesDir()
     {
         return GetDataDir () / "certificates";
+    }
+
+    void InstallFiles()
+    {
+        namespace bfs = boost::filesystem;
+        boost::system::error_code e;
+        const bfs::path source = bfs::canonical(
+            config::GetArg("-install", "webui"), e
+        );
+
+        const bfs::path destination = GetWebuiDataDir();
+
+        if(e || !bfs::is_directory(source))
+            throw std::runtime_error("Given directory is invalid or does not exist");
+
+        // TODO: check that destination is not in source
+
+        try {
+            CopyDir(source, destination);
+        } catch(...) {
+            throw std::runtime_error("Could not copy webui folder to i2pd folder.");
+        }
+    }
+    
+    void CopyDir(const boost::filesystem::path& src, const boost::filesystem::path& dest)
+    {
+        namespace bfs = boost::filesystem;
+
+        bfs::create_directory(dest);
+        
+        for(bfs::directory_iterator file(src); file != bfs::directory_iterator(); ++file) {
+            const bfs::path current(file->path());
+            if(bfs::is_directory(current))
+                CopyDir(current, dest / current.filename());
+            else
+                bfs::copy_file(
+                    current, dest / current.filename(),
+                    bfs::copy_option::overwrite_if_exists
+                );
+        }
     }
 }
 
@@ -515,7 +567,7 @@ namespace net {
         return mtu;
     }
 
-#elif defined(WIN32)
+#elif defined(_WIN32)
     int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
     {
         ULONG outBufLen = 0;
@@ -556,7 +608,7 @@ namespace net {
                 LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
                 sockaddr_in* localInterfaceAddress = (sockaddr_in*) lpAddr;
                 if(localInterfaceAddress->sin_addr.S_un.S_addr == inputAddress.sin_addr.S_un.S_addr) {
-                    result = pAddresses->Mtu;
+                    auto result = pAddresses->Mtu;
                     FREE(pAddresses);
                     return result;
                 }
@@ -618,7 +670,7 @@ namespace net {
                         found_address = true;
                     }
                 } if (found_address) {
-                    result = pAddresses->Mtu;
+                    auto result = pAddresses->Mtu;
                     FREE(pAddresses);
                     pAddresses = nullptr;
                     return result;

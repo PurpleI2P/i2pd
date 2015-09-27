@@ -13,8 +13,10 @@ build/CMakeFiles/*
 build/tests
 build/client
 build/core
+build/benchmark
 build/i2pd
 build/i2pd-tests
+build/i2pd-benchmark
 *.cmake
 *.a
 *.o

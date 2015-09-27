@@ -9,6 +9,9 @@ option(WITH_BINARY    "Build binary" ON)
 option(WITH_STATIC    "Static build" OFF)
 option(WITH_UPNP      "Include support for UPnP client" OFF)
 option(WITH_TESTS     "Build unit tests" OFF)
+option(WITH_BENCHMARK "Build benchmarking code" OFF)
+option(WITH_OPTIMIZE  "Optimization flags" OFF)
+option(I2PD_DATA_PATH "The path to the i2pd data folder")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake_modules")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -80,6 +83,9 @@ if(WITH_AESNI)
     add_definitions( "-maes -DAESNI")
 endif()
 
+if(WITH_OPTIMIZE AND (NOT MSVC))
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif()
 
 # Libraries
 # TODO: once CMake 3.1+ becomes mainstream, see e.g.
@@ -93,17 +99,8 @@ endif()
 
 if(WITH_STATIC)
     set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
-    if(WIN32)
-        # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
-        # Note that you might need to rebuild Crypto++
-        foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-         CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-            if(${flag_var} MATCHES "/MD")
-                string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-            endif(${flag_var} MATCHES "/MD")
-        endforeach(flag_var)
-    else()
+    set(Boost_USE_STATIC_RUNTIME OFF)
+    if(NOT WIN32)
         set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
     endif()
 
@@ -120,9 +117,9 @@ elseif(NOT WIN32)
     # No need in -fPIC overhead for binary if not interested in library
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+else() # Not a static build
+    add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
-
-add_definitions(-DBOOST_ALL_DYN_LINK)
 
 find_package(
     Boost COMPONENTS
@@ -148,6 +145,18 @@ include_directories(
     "core/"
 )
 
+if(I2PD_DATA_PATH)
+    set(I2PD_DATA_DIR ${I2PD_DATA_PATH})
+    # Using custom path, make sure the code knows about this
+    add_definitions(-DI2PD_CUSTOM_DATA_PATH="${I2PD_DATA_PATH}")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(I2PD_DATA_DIR "$ENV{APPDATA}\\i2pd")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(I2PD_DATA_DIR "$ENV{HOME}/Library/Application Support/i2pd")
+else()
+    set(I2PD_DATA_DIR "$ENV{HOME}/.i2pd")
+endif()
+
 # Show summary
 message(STATUS "---------------------------------------")
 message(STATUS "Build type         : ${CMAKE_BUILD_TYPE}")
@@ -155,6 +164,7 @@ message(STATUS "Compiler vendor    : ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Compiler version   : ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "I2PD data directory: ${I2PD_DATA_DIR}")
 message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
@@ -163,6 +173,8 @@ message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
+message(STATUS "  BENCHMARKING     : ${WITH_BENCHMARK}")
+message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "---------------------------------------")
 
 # Handle paths nicely
@@ -171,6 +183,13 @@ include(GNUInstallDirs)
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(CLIENT_NAME "${PROJECT_NAME}-client")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
+set(BENCHMARK_NAME "${PROJECT_NAME}-benchmark")
 add_subdirectory(core)
 add_subdirectory(client)
 add_subdirectory(tests)
+add_subdirectory(benchmark)
+
+if(WITH_BINARY)
+    file(MAKE_DIRECTORY "${I2PD_DATA_DIR}/webui")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/webui" DESTINATION "${I2PD_DATA_DIR}")
+endif()

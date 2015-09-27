@@ -8,6 +8,7 @@
 
 namespace i2p {
 namespace client {
+namespace i2pcontrol {
 
 I2PControlService::I2PControlService(const std::string& address, int port, const std::string& pass)
     : m_Session(std::make_shared<I2PControlSession>(m_Service, pass)),
@@ -166,5 +167,6 @@ void I2PControlService::HandleResponseSent(const boost::system::error_code& ecod
     socket->close();
 }
 
+}
 }
 }

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Purple I2P 0.10.0 Webconsole</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/main.css">
+<script type="text/javascript" src="javascript/I2PControl.js"></script>
+<script type="text/javascript">
+function updateNetDbInfo(result, session) {
+    if(session.error) {
+        alert("Error: " + session.error["message"]);
+        return;
+    }
+    I2PControl.updateDocument({
+        "knownpeers" : result["i2p.router.netdb.knownpeers"],
+        "activepeers" : result["i2p.router.netdb.activepeers"],
+        "floodfills" : result["i2p.router.netdb.floodfills"],
+        "leasesets" : result["i2p.router.netdb.leasesets"],
+    });
+    
+    window.setTimeout(function() { requestNetDbInfo(session); }, 10000);
+}
+
+function requestNetDbInfo(session) {
+    session.request("RouterInfo", {
+        "i2p.router.netdb.knownpeers" : "",
+        "i2p.router.netdb.activepeers" : "",
+        "i2p.router.netdb.floodfills" : "",
+        "i2p.router.netdb.leasesets" : "",
+    }, updateNetDbInfo);
+}
+
+window.onload = function() {
+    var session = new I2PControl.Session("itoopie");
+    session.start(function() { requestNetDbInfo(session); });
+};
+</script>
+</head>
+
+<body>
+<div class="header">
+    <h1>i2pd router console</h1>
+    <h2>Network Database Information</h2>
+</div>
+
+<div class="content">
+    <h2 class="content-subhead">Active peers: <span id="activepeers"></span></h2>
+    <h2 class="content-subhead">Known peers: <span id="knownpeers"></span></h2>
+    <h2 class="content-subhead">Floodfills: <span id="floodfills"></span></h2>
+    </br>
+    <h2 class="content-subhead">LeaseSets: <span id="leasesets"></span></h2>
+</div>
+
+<!--#include virtual="menu.html" -->
+<!--#include virtual="footer.html" -->
+
+</body>
+</html>

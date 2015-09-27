@@ -15,13 +15,7 @@ http://download.i2p.io/purplei2p/i2pd/releases/
 Build Statuses
 ---------------
 
-- Linux x64      - Maintaince
-- Linux ARM      - Maintaince
-- Mac OS X       - Maintaince
+- Linux x64      - Maintenance
+- Linux ARM      - Maintenance
+- Mac OS X       - Maintenance
 - Microsoft VC13 - To be added
-
-
-License
--------
-
-This project is licensed under the BSD 3-clause license, which can be found in the doc directory.

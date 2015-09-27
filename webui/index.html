@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Purple I2P 0.10.0 Webconsole</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/main.css">
+<script type="text/javascript" src="javascript/I2PControl.js"></script>
+<script type="text/javascript">
+function updateRouterInfo(result, session) {
+    if(session.error) {
+        alert("Error: " + session.error["message"]);
+        return;
+    }
+    I2PControl.updateDocument({
+        "version" : result["i2p.router.version"],
+        "status" : I2PControl.statusToString(result["i2p.router.net.status"]),
+        "uptime" : I2PControl.msToString(result["i2p.router.uptime"]),
+        "knownpeers" : result["i2p.router.netdb.knownpeers"],
+        "activepeers" : result["i2p.router.netdb.activepeers"],
+        "tunnels-participating" : result["i2p.router.net.tunnels.participating"],
+        "tunnels-successrate" : result["i2p.router.net.tunnels.creationsuccessrate"] + "&#37",
+        "bw-in" : result["i2p.router.net.bw.inbound.1s"],
+        "bw-out" : result["i2p.router.net.bw.outbound.1s"]
+    });
+    
+    window.setTimeout(function() { requestRouterInfo(session); }, 5000);
+}
+
+function requestRouterInfo(session) {
+    session.request("RouterInfo", {
+        "i2p.router.version" : "",
+        "i2p.router.net.status" : "",
+        "i2p.router.uptime" : "",
+        "i2p.router.netdb.knownpeers" : "",
+        "i2p.router.netdb.activepeers" : "",
+        "i2p.router.net.tunnels.participating" : "",
+        "i2p.router.net.tunnels.creationsuccessrate" : "",
+        "i2p.router.net.bw.inbound.1s" : "",
+        "i2p.router.net.bw.outbound.1s" : ""
+    }, updateRouterInfo);
+}
+
+window.onload = function() {
+    var session = new I2PControl.Session("itoopie");
+    session.start(function() { requestRouterInfo(session); });
+    document.getElementById("shutdown").onclick = function() { 
+        session.request("RouterManager", {"Shutdown" : ""}, function() {});
+        this.disabled = true;
+    };
+    document.getElementById("shutdown-graceful").onclick = function() { 
+        session.request("RouterManager", {"ShutdownGraceful" : ""}, function() {});
+        this.disabled = true;
+    };
+    document.getElementById("reseed").onclick = function() { 
+        session.request("RouterManager", {"Reseed" : ""}, function() {});
+        this.disabled = true;
+    };
+};
+
+</script>
+</head>
+
+<body>
+<div class="header">
+    <h1>i2pd router console</h1>
+    <h2>Version: <span id="version"></span>, uptime: <span id="uptime"></span></h2>
+    <h2>Network status: <span id="status"></span></h2>
+    <p>
+        <button id="shutdown-graceful">graceful shutdown</button>
+        <button id="shutdown">force shutdown</button>
+        <button id="restart" disabled>restart</button>
+        <button id="reseed">reseed</button>
+    </p>
+</div>
+
+<div class="content">
+    <h2 class="content-subhead">
+        Tunnels participating: <span id="tunnels-participating"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Tunnel create success rate: <span id="tunnels-successrate"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Active peers: <span id="activepeers"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Known peers: <span id="knownpeers"></span>
+    </h2>
+    <h2 class="content-subhead">
+        Bandwidth: 
+        in <span id="bw-in"></span> Bps /
+        out <span id="bw-out"></span> Bps 
+    </h2>
+</div>
+
+<!--#include virtual="menu.html" -->
+<!--#include virtual="footer.html" -->
+
+</body>
+</html>

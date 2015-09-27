@@ -72,7 +72,7 @@ namespace client
             std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // destination->tunnel
             SAMBridge * m_SamBridge;
             BOBCommandChannel * m_BOBCommandChannel;
-            I2PControlService * m_I2PControlService;
+            i2pcontrol::I2PControlService * m_I2PControlService;
 
         public:
             // for HTTP

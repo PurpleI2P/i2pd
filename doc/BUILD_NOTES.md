@@ -1,12 +1,3 @@
-Build notes
-===========
-
-Available cmake options:
-
-* CMAKE_BUILD_TYPE -- build profile (Debug/Release)
-* WITH_AESNI -- AES-NI support (ON/OFF)
-* WITH_HARDENING -- enable hardening features (ON/OFF) (gcc only)
-
 Debian
 ------
 
@@ -25,7 +16,7 @@ Optional packages:
 FreeBSD
 -------
 
-Branch 9.X has gcc v4.2, that knows nothing about required c++11 standart.
+Branch 9.X has gcc v4.2, that knows nothing about required c++11 standard.
 
 Required ports:
 

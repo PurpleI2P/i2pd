@@ -11,6 +11,7 @@ set(CORE_SRC
     "util/base64.cpp"
     "util/util.cpp"
     "util/Log.cpp"
+    "util/HTTP.cpp"
     "tunnel/TransitTunnel.cpp"
     "tunnel/Tunnel.cpp"
     "tunnel/TunnelGateway.cpp"
