@@ -99,17 +99,8 @@ endif()
 
 if(WITH_STATIC)
     set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
-    if(WIN32)
-        # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
-        # Note that you might need to rebuild Crypto++
-        foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-         CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-            if(${flag_var} MATCHES "/MD")
-                string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-            endif(${flag_var} MATCHES "/MD")
-        endforeach(flag_var)
-    else()
+    set(Boost_USE_STATIC_RUNTIME OFF)
+    if(NOT WIN32)
         set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
     endif()
 
@@ -126,9 +117,9 @@ elseif(NOT WIN32)
     # No need in -fPIC overhead for binary if not interested in library
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+else() # Not a static build
+    add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
-
-add_definitions(-DBOOST_ALL_DYN_LINK)
 
 find_package(
     Boost COMPONENTS
