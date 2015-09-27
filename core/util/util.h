@@ -1,6 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#define BOOST_NO_CXX11_SCOPED_ENUMS // Workaround for issue #272
+
 #include <map>
 #include <string>
 #include <iostream>
