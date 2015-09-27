@@ -11,7 +11,7 @@ namespace util {
 
 HTTPConnection::HTTPConnection(boost::asio::ip::tcp::socket* socket,
  std::shared_ptr<client::i2pcontrol::I2PControlSession> session)
-    : m_Socket(socket), m_BufferLen(0), m_Session(session)
+    : m_Socket(socket), m_BufferLen(0), m_Request(), m_Reply(), m_Session(session)
 {
     
 }
@@ -128,7 +128,7 @@ std::string HTTPConnection::GetFileContents(const std::string& filename, bool pr
 
     const std::string address_str = address.string();
     
-    std::ifstream ifs(address_str);
+    std::ifstream ifs(address_str, std::ios_base::in | std::ios_base::binary);
     if(e || !ifs || !isAllowed(address_str))
         throw std::runtime_error("Cannot load " + address_str + ".");
 
@@ -154,7 +154,7 @@ void HTTPConnection::HandleRequest()
 
     try {
         m_Reply = i2p::util::http::Response(200, GetFileContents(uri, true));
-        m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(uri));
+        m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(uri) + "; charset=UTF-8");
         SendReply();
     } catch(const std::runtime_error&) {
         // Cannot open the file for some reason, send 404
