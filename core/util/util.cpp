@@ -1,3 +1,4 @@
+#include "util.h"
 #include <cstdlib>
 #include <string>
 #include <algorithm>
@@ -12,7 +13,6 @@
 #include <boost/program_options/detail/config_file.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/algorithm/string.hpp>
-#include "util.h"
 #include "Log.h"
 
 #if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
