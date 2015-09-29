@@ -53,10 +53,13 @@ namespace client
     const char SAM_PARAM_NAME[] = "NAME";
     const char SAM_PARAM_SIGNATURE_TYPE[] = "SIGNATURE_TYPE";   
     const char SAM_PARAM_SIZE[] = "SIZE";
+    const char SAM_PARAM_FORWARD[] = "FORWARD";
+    const char SAM_PARAM_HOST[] = "HOST";
+    const char SAM_PARAM_PORT[] = "PORT";
     const char SAM_VALUE_TRANSIENT[] = "TRANSIENT"; 
     const char SAM_VALUE_STREAM[] = "STREAM";
     const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
-    const char SAM_VALUE_RAW[] = "RAW"; 
+    const char SAM_VALUE_RAW[] = "RAW";
     const char SAM_VALUE_TRUE[] = "true";   
     const char SAM_VALUE_FALSE[] = "false"; 
 
@@ -66,7 +69,8 @@ namespace client
         eSAMSocketTypeSession,
         eSAMSocketTypeStream,
         eSAMSocketTypeAcceptor,
-        eSAMSocketTypeTerminated
+        eSAMSocketTypeUDPForward,
+        eSAMSocketTypeTerminated,
     };
 
     class SAMBridge;
@@ -119,6 +123,7 @@ namespace client
         private:
 
             SAMBridge& m_Owner;
+            boost::asio::ip::udp::endpoint m_udpForward;
             boost::asio::ip::tcp::socket m_Socket;
             boost::asio::deadline_timer m_Timer;
             char m_Buffer[SAM_SOCKET_BUFFER_SIZE + 1];
@@ -158,6 +163,9 @@ namespace client
             void CloseSession (const std::string& id);
             SAMSession * FindSession (const std::string& id) const;
 
+            // forward a datagran to a udp endpoint
+            void ForwardUDP(const boost::asio::ip::udp::endpoint & to_ep, const i2p::data::IdentityEx& from, const uint8_t * buff, size_t bufflen);
+      
         private:
 
             void Run ();
@@ -167,7 +175,8 @@ namespace client
 
             void ReceiveDatagram ();
             void HandleReceivedDatagram (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-
+            void HandleForwardedUDP(const boost::system::error_code& ecode, std::size_t bytes_transferrted);
+      
         private:
 
             bool m_IsRunning;
@@ -179,7 +188,7 @@ namespace client
             mutable std::mutex m_SessionsMutex;
             std::map<std::string, SAMSession *> m_Sessions;
             uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
-
+            uint8_t * m_Forward; // current buffer to forward or nullptr if there is none to forward now
         public:
 
             // for HTTP
