@@ -924,8 +924,12 @@ namespace client
             
     }
 
-    void SAMBridge::HandleForwardedUDP(const boost::system::error_code& ecode, std::size_t bytes_transferrted)
+    void SAMBridge::HandleForwardedUDP(const boost::system::error_code& ecode, std::size_t bytes_transferred)
     {
+        if(!ecode)
+        {
+            LogPrint("Forwarded ", bytes_transferred, "B");
+        }
         if(m_Forward)
         {
             delete [] m_Forward;
