@@ -3,7 +3,6 @@
 #ifdef _MSC_VER
 #include <stdlib.h>
 #endif
-#include <sstream>
 #include <boost/lexical_cast.hpp>
 #include "util/base64.h"
 #include "Identity.h"
