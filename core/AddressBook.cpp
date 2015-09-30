@@ -466,7 +466,7 @@ namespace client
         bool success = false;   
         i2p::util::http::url u (m_Link);
         i2p::data::IdentHash ident;
-        if (m_Book.GetIdentHash (u.host_, ident))
+        if (m_Book.GetIdentHash (u.host_, ident) && m_Book.getSharedLocalDestination())
         {
             std::condition_variable newDataReceived;
             std::mutex newDataReceivedMutex;
