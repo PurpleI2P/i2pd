@@ -42,6 +42,7 @@ namespace client
         
         switch (m_SocketType)
         {
+            case eSAMSocketTypeUDPForward:
             case eSAMSocketTypeSession:
                 m_Owner.CloseSession (m_ID);
             break;
@@ -282,8 +283,27 @@ namespace client
             if (style == SAM_VALUE_DATAGRAM)
             {
                 auto dest = m_Session->localDestination->CreateDatagramDestination ();
+                auto portitr = params.find(SAM_PARAM_PORT);
+                
+                if ( portitr != params.end() ) {
+                    // port parameter set, this means they want to do UDP forward
+                    auto port = boost::lexical_cast<int> (portitr->second);
+                    // XXX: have default host configurable?
+                    std::string host = "127.0.0.1";
+                    
+                    auto hostitr = params.find(SAM_PARAM_HOST);
+                    if ( hostitr != params.end() ) {
+                        // host parameter set use that instead of loopback
+                        host = hostitr->second;
+                    }
+                    // set forward addresss
+                    m_udpForward = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(host), port);
+                    // we are now a udp forward socket
+                    m_SocketType = eSAMSocketTypeUDPForward;
+                }
                 dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), 
-                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+                                              std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+                 
             }
 
             if (m_Session->localDestination->IsReady ())
@@ -646,20 +666,27 @@ namespace client
     void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t, uint16_t, const uint8_t * buf, size_t len)
     {
         LogPrint (eLogDebug, "SAM datagram received ", len);
-        auto base64 = from.ToBase64 ();
+        if (m_SocketType == eSAMSocketTypeUDPForward)
+        {
+            // use the bridge to forward it via udp
+            m_Owner.ForwardUDP(m_udpForward, from, buf, len); 
+        } else {
+            auto base64 = from.ToBase64 ();
+            // use the session socket
 #ifdef _MSC_VER
-        size_t l = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), len);     
+            size_t l = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), len);     
 #else           
-        size_t l = snprintf ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), len);  
+            size_t l = snprintf ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), len);  
 #endif
-        if (len < SAM_SOCKET_BUFFER_SIZE - l)   
-        {   
-            memcpy (m_StreamBuffer + l, buf, len);
-            boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len + l),
-                std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+            if (len < SAM_SOCKET_BUFFER_SIZE - l)   
+            {   
+                memcpy (m_StreamBuffer + l, buf, len);
+                boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len + l),
+                                          std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+            }
+            else
+                LogPrint (eLogWarning, "SAM received datagram size ", len," exceeds buffer");
         }
-        else
-            LogPrint (eLogWarning, "SAM received datagram size ", len," exceeds buffer");
     }
 
     SAMSession::SAMSession (std::shared_ptr<ClientDestination> dest):
@@ -690,7 +717,8 @@ namespace client
             boost::asio::ip::address::from_string(address), port)
           ),
           m_DatagramEndpoint(boost::asio::ip::address::from_string(address), port - 1),
-          m_DatagramSocket(m_Service, m_DatagramEndpoint)
+          m_DatagramSocket(m_Service, m_DatagramEndpoint),
+          m_Forward(nullptr)
     {
     }
 
@@ -870,5 +898,44 @@ namespace client
         else
             LogPrint ("SAM datagram receive error: ", ecode.message ());
     }
+
+    void SAMBridge::ForwardUDP(const boost::asio::ip::udp::endpoint & to_ep, const i2p::data::IdentityEx& from, const uint8_t * buff, size_t bufflen)
+    {
+
+        if (m_Forward)
+        {
+            // drop, we are already trying to send
+            LogPrint(eLogWarning, "Dropping a forwarded datagram");
+        } else {
+            auto base64 = from.ToBase64();
+            auto b64_size = base64.size();
+            std::size_t forward_len = bufflen + sizeof(char) + b64_size;
+            m_Forward = new uint8_t[forward_len];
+            // make datagram
+            memcpy(m_Forward, base64.c_str(), b64_size);
+            memset(m_Forward + b64_size, 10, 1);
+            memcpy(m_Forward + b64_size + 1, buff, bufflen);
+            // async sendto
+            m_DatagramSocket.async_send_to(
+                boost::asio::buffer(m_Forward, forward_len),
+                to_ep,
+                std::bind(&SAMBridge::HandleForwardedUDP, this, std::placeholders::_1, std::placeholders::_2));
+        }
+            
+    }
+
+    void SAMBridge::HandleForwardedUDP(const boost::system::error_code& ecode, std::size_t bytes_transferred)
+    {
+        if(!ecode)
+        {
+            LogPrint("Forwarded ", bytes_transferred, "B");
+        }
+        if(m_Forward)
+        {
+            delete [] m_Forward;
+            m_Forward = nullptr;
+        }
+    }
+    
 }
 }
