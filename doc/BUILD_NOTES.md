@@ -13,6 +13,14 @@ Required "-dev" packages:
 Optional packages:
 * libboost-test-dev
 
+Arch
+----
+
+Required packages:
+*cmake
+*boost
+*crypto++
+
 FreeBSD
 -------
 

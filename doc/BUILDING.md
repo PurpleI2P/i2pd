@@ -3,9 +3,15 @@ Building
 
 On Ubuntu/Debian based
 * sudo apt-get install libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libcrypto++-dev libboost-date-time-dev
-* $ cd i2pd/build
-* $ cmake ..
-* $ make
+
+On Arch Linux
+* sudo pacman -Syu cmake boost crypto++
+
+Then, build:
+
+$ cd i2pd/build
+$ cmake ../
+$ make
 
 Then, run it:
 
