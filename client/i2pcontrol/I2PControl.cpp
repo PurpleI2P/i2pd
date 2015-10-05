@@ -123,7 +123,7 @@ std::string I2PControlSession::Response::getErrorMsg() const
         case ErrorCode::NonexistentToken:
             return "Nonexistent authentication token given.";
         case ErrorCode::ExpiredToken:
-            return "Exipred authentication token given.";
+            return "Expired authentication token given.";
         case ErrorCode::UnspecifiedVersion:
             return "Version not specified.";
         case ErrorCode::UnsupportedVersion:

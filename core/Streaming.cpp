@@ -466,7 +466,7 @@ namespace stream
             size++; // NACK count       
         }   
         size++; // resend delay
-        htobuf16 (packet + size, 0); // nof flags set
+        htobuf16 (packet + size, 0); // no flags set
         size += 2; // flags
         htobuf16 (packet + size, 0); // no options
         size += 2; // options size
@@ -668,7 +668,7 @@ namespace stream
                 m_RTO *= 2;
                 switch (m_NumResendAttempts)
                 {   
-                    case 1: // congesion avoidance
+                    case 1: // congestion avoidance
                         m_WindowSize /= 2;
                         if (m_WindowSize < MIN_WINDOW_SIZE) m_WindowSize = MIN_WINDOW_SIZE;
                     break;
@@ -698,7 +698,7 @@ namespace stream
         {
             if (m_LastReceivedSequenceNumber < 0)
             {
-                LogPrint (eLogWarning, "SYN has not been recived after ", ACK_SEND_TIMEOUT, " milliseconds after follow on. Terminate");
+                LogPrint (eLogWarning, "SYN has not been received after ", ACK_SEND_TIMEOUT, " milliseconds after follow on. Terminate");
                 m_Status = eStreamStatusReset;
                 Close ();
                 return;

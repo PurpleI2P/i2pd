@@ -232,7 +232,7 @@ namespace data {
     IdentHash CreateRoutingKey (const IdentHash& ident);
     XORMetric operator^(const IdentHash& key1, const IdentHash& key2);  
     
-    // destination for delivery instuctions
+    // destination for delivery instructions
     class RoutingDestination
     {
         public:

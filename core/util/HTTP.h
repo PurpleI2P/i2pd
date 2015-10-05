@@ -74,7 +74,7 @@ public:
     std::string toString() const;
 
     /**
-     * @return the message associated with the satus of this response, or the
+     * @return the message associated with the status of this response, or the
      *  empty string if the status number is invalid
      */
     std::string getStatusMessage() const;

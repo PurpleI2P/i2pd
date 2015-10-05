@@ -24,7 +24,7 @@ namespace data
         
             Reseeder();
             ~Reseeder();
-            bool reseedNow(); // depreacted
+            bool reseedNow(); // deprecated 
             int ReseedNowSU3 ();
 
             void LoadCertificates ();

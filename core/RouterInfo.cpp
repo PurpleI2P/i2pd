@@ -52,7 +52,7 @@ namespace data
         memcpy (m_Buffer, buf, len);
         m_BufferLen = len;
         ReadFromBuffer (true);
-        // don't delete buffer until save to file
+        // don't delete buffer until saved to file
     }   
         
     void RouterInfo::SetRouterIdentity (const IdentityEx& identity)

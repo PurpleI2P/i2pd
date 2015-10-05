@@ -163,7 +163,7 @@ namespace client
             void CloseSession (const std::string& id);
             SAMSession * FindSession (const std::string& id) const;
 
-            // forward a datagran to a udp endpoint
+            // forward a datagram to a udp endpoint
             void ForwardUDP(const boost::asio::ip::udp::endpoint & to_ep, const i2p::data::IdentityEx& from, const uint8_t * buff, size_t bufflen);
       
         private:
