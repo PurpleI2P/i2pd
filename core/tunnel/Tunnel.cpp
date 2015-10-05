@@ -547,7 +547,7 @@ namespace tunnel
     
         if (m_OutboundTunnels.size () < 5) 
         {
-            // trying to create one more oubound tunnel
+            // trying to create one more outbound tunnel
             auto inboundTunnel = GetNextInboundTunnel ();
             auto router = i2p::data::netdb.GetRandomRouter ();
             if (!inboundTunnel || !router) return;

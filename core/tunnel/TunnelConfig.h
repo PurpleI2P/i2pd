@@ -199,7 +199,7 @@ namespace tunnel
                         return;
                     hop = hop->next;
                 }   
-                // we didn't reach enpoint that mean we are last hop
+                // we didn't reach endpoint that mean we are last hop
                 s << ":me"; 
             }
 

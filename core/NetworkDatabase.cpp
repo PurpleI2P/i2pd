@@ -531,7 +531,7 @@ namespace data
                     AddRouterInfo (ident, uncompressed, uncomressedSize);
                 }
                 else
-                    LogPrint ("Invalid RouterInfo uncomressed length ", (int)uncomressedSize);
+                    LogPrint ("Invalid RouterInfo uncompressed length ", (int)uncomressedSize);
             }
             catch (CryptoPP::Exception& ex)
             {
@@ -598,11 +598,11 @@ namespace data
                 }   
 
                 if (deleteDest)
-                    // no more requests for the destinationation. delete it
+                    // no more requests for the destination. delete it
                     m_Requests.RequestComplete (ident, nullptr);
             }
             else
-                // no more requests for detination possible. delete it
+                // no more requests for destination possible. delete it
                 m_Requests.RequestComplete (ident, nullptr);
         }
         else    
@@ -642,7 +642,7 @@ namespace data
         int l = i2p::util::ByteStreamToBase64 (buf, 32, key, 48);
         key[l] = 0;
         uint8_t flag = buf[64];
-        LogPrint ("DatabaseLookup for ", key, " recieved flags=", (int)flag);
+        LogPrint ("DatabaseLookup for ", key, " received flags=", (int)flag);
         uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
         const uint8_t * excluded = buf + 65;        
         uint32_t replyTunnelID = 0;

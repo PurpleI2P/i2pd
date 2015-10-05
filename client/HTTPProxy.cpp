@@ -26,7 +26,7 @@ namespace proxy
                 GET_METHOD,
                 GET_HOSTNAME,
                 GET_HTTPV,
-                GET_HTTPVNL, //TODO: fallback to finding HOst: header if needed
+                GET_HTTPVNL, //TODO: fallback to finding Host: header if needed
                 DONE
             };
 
@@ -87,7 +87,7 @@ namespace proxy
     }
 
     /* All hope is lost beyond this point */
-    //TODO: handle this apropriately
+    //TODO: handle this appropriately
     void HTTPProxyHandler::HTTPRequestFailed(/*HTTPProxyHandler::errTypes error*/)
     {
         static std::string response = "HTTP/1.0 500 Internal Server Error\r\nContent-type: text/html\r\nContent-length: 0\r\n";
@@ -185,7 +185,7 @@ namespace proxy
         assert(len); // This should always be called with a least a byte left to parse
         while (len > 0) 
         {
-            //TODO: fallback to finding HOst: header if needed
+            //TODO: fallback to finding Host: header if needed
             switch (m_state) 
             {
                 case GET_METHOD:

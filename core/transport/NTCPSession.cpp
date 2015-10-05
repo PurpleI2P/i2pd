@@ -548,7 +548,7 @@ namespace transport
     {
         if (!m_NextMessage) // new message, header expected
         {   
-            // descrypt header and extract length
+            // decrypt header and extract length
             uint8_t buf[16];
             m_Decryption.Decrypt (encrypted, buf);
             uint16_t dataSize = bufbe16toh (buf);
@@ -586,7 +586,7 @@ namespace transport
             if (CryptoPP::Adler32().VerifyDigest (m_NextMessage->buf + m_NextMessageOffset - 4, m_NextMessage->buf, m_NextMessageOffset - 4))   
                 m_Handler.PutNextMessage (m_NextMessage);
             else
-                LogPrint (eLogWarning, "Incorrect adler checksum of NTCP message. Dropped");
+                LogPrint (eLogWarning, "Incorrect Adler checksum of NTCP message. Dropped");
             m_NextMessage = nullptr;
         }
         return true;    
@@ -703,7 +703,7 @@ namespace transport
     {
         if (ecode != boost::asio::error::operation_aborted)
         {   
-            LogPrint ("No activity fo ", NTCP_TERMINATION_TIMEOUT, " seconds");
+            LogPrint ("No activity for ", NTCP_TERMINATION_TIMEOUT, " seconds");
             //Terminate ();
             m_Socket.close ();// invoke Terminate () from HandleReceive 
         }   

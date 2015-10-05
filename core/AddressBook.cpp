@@ -179,7 +179,7 @@ namespace client
         }   
         if (m_IsDownloading)
         {
-            LogPrint (eLogInfo, "Subscription is downloading. Waiting for temination...");
+            LogPrint (eLogInfo, "Subscription is downloading. Waiting for termination...");
             for (int i = 0; i < 30; i++)
             {
                 if (!m_IsDownloading)
@@ -567,7 +567,7 @@ namespace client
                     LogPrint (eLogInfo, "No updates from ", m_Link);
                 }   
                 else
-                    LogPrint (eLogWarning, "Adressbook HTTP response ", status);
+                    LogPrint (eLogWarning, "Addressbook HTTP response ", status);
             }
             else
                 LogPrint (eLogError, "Address ", u.host_, " not found");

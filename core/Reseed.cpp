@@ -129,7 +129,7 @@ namespace data
     int Reseeder::ReseedFromSU3 (const std::string& host, bool https)
     {
         std::string url = host + "i2pseeds.su3";
-        LogPrint (eLogInfo, "Dowloading SU3 from ", host);
+        LogPrint (eLogInfo, "Downloading SU3 from ", host);
         std::string su3 = https ? HttpsRequest (url) : i2p::util::http::httpRequest (url);
         if (su3.length () > 0)
         {
@@ -271,7 +271,7 @@ namespace data
                 s.read (localFileName, fileNameLength);
                 localFileName[fileNameLength] = 0;
                 s.seekg (extraFieldLength, std::ios::cur);
-                // take care about data desriptor if presented
+                // take care about data descriptor if presented
                 if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
                 {
                     size_t pos = s.tellg ();
@@ -291,7 +291,7 @@ namespace data
                     s.seekg (pos, std::ios::beg); // back to compressed data
                 }
 
-                LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
+                LogPrint (eLogDebug, "Processing file ", localFileName, " ", compressedSize, " bytes");
                 if (!compressedSize)
                 {
                     LogPrint (eLogWarning, "Unexpected size 0. Skipped");
@@ -570,7 +570,7 @@ namespace data
                 uint8_t paddingSize = size + 1;
                 paddingSize &= 0x0F;  // %16
                 if (paddingSize > 0) paddingSize = 16 - paddingSize;
-                memset (out + size, paddingSize, paddingSize + 1); // paddind and last byte are equal to padding size
+                memset (out + size, paddingSize, paddingSize + 1); // padding and last byte are equal to padding size
                 size += paddingSize + 1;
                 m_Encryption.Encrypt (out + 16, size - 16, out + 16);
                 return size;    
@@ -755,19 +755,19 @@ namespace data
         // create cipher
         if (cipherSuite[1] == 0x3D)
         {
-            LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA256"); 
+            LogPrint (eLogInfo, "Cipher suite is RSA_WITH_AES_256_CBC_SHA256"); 
             m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (keys);
         }
         else if (cipherSuite[1] == 0x35)
         {
-            LogPrint (eLogInfo, "Chiper suite is RSA_WITH_AES_256_CBC_SHA"); 
+            LogPrint (eLogInfo, "Cipher suite is RSA_WITH_AES_256_CBC_SHA"); 
             m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA1> (keys);
         }   
         else
         {
             // TODO:
             if (cipherSuite[1] == 0x05)
-                LogPrint (eLogInfo, "Chiper suite is RSA_WITH_RC4_128_SHA");
+                LogPrint (eLogInfo, "Cipher suite is RSA_WITH_RC4_128_SHA");
             m_Cipher = new TlsCipher_RC4_SHA (keys);
         }
         // send finished

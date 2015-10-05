@@ -517,7 +517,7 @@ namespace transport
         }   
         else
         {
-            // ecrypt with Alice's intro key
+            // encrypt with Alice's intro key
             uint8_t iv[16];
             CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
             rnd.GenerateBlock (iv, 16); // random iv
@@ -809,7 +809,7 @@ namespace transport
     {
         if (ecode != boost::asio::error::operation_aborted)
         {   
-            LogPrint ("SSU no activity fo ", SSU_TERMINATION_TIMEOUT, " seconds");
+            LogPrint ("SSU no activity for ", SSU_TERMINATION_TIMEOUT, " seconds");
             Failed ();
         }   
     }   
@@ -955,7 +955,7 @@ namespace transport
     
     void SSUSession::SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, 
         const uint8_t * introKey, bool toAddress, bool sendAddress)
-    // toAddress is true for Alice<->Chalie communications only
+    // toAddress is true for Alice<->Charlie communications only
     // sendAddress is false if message comes from Alice     
     {
         uint8_t buf[80 + 18] = {};
@@ -1056,7 +1056,7 @@ namespace transport
             }
             catch (std::exception& ex)
             {
-                LogPrint (eLogError, "SSU send session destoriyed exception ", ex.what ()); 
+                LogPrint (eLogError, "SSU send session destroyed exception ", ex.what ()); 
             }
             LogPrint (eLogDebug, "SSU session destroyed sent");
         }

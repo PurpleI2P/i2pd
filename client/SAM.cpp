@@ -296,7 +296,7 @@ namespace client
                         // host parameter set use that instead of loopback
                         host = hostitr->second;
                     }
-                    // set forward addresss
+                    // set forward address
                     m_udpForward = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string(host), port);
                     // we are now a udp forward socket
                     m_SocketType = eSAMSocketTypeUDPForward;

@@ -154,7 +154,7 @@ namespace client
             m_SamBridge->Stop ();
             delete m_SamBridge; 
             m_SamBridge = nullptr;
-            LogPrint("SAM brdige stopped"); 
+            LogPrint("SAM bridge stopped"); 
         }       
         if (m_BOBCommandChannel)
         {
@@ -316,7 +316,7 @@ namespace client
                     auto clientTunnel = new I2PClientTunnel(
                         dest, address, port, localDestination, destinationPort
                     );
-                    // TODO: allow muliple tunnels on the same port (but on a different address)
+                    // TODO: allow multiple tunnels on the same port (but on a different address)
                     if(m_ClientTunnels.insert(std::make_pair(port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
                         clientTunnel->Start ();
                     else

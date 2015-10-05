@@ -135,23 +135,23 @@ public:
         std::string toJsonString() const;
 
         /**
-         * Set an ouptut parameter to a specified string.
+         * Set an output parameter to a specified string.
          * @todo escape quotes 
          */
         void setParam(const std::string& param, const std::string& value);
 
         /**
-         * Set an ouptut parameter to a specified integer.
+         * Set an output parameter to a specified integer.
          */
         void setParam(const std::string& param, int value);
 
         /**
-         * Set an ouptut parameter to a specified double.
+         * Set an output parameter to a specified double.
          */
         void setParam(const std::string& param, double value);
 
         /**
-         * Set an ouptut parameter to a specified Json object.
+         * Set an output parameter to a specified Json object.
          */
         void setParam(const std::string& param, const JsonObject& value);
 

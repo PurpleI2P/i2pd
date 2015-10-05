@@ -106,7 +106,7 @@ namespace tunnel
                 {
                     if (msgID) // msgID is presented, assume message is fragmented
                     {
-                        if (!isFollowOnFragment) // create new incomlete message
+                        if (!isFollowOnFragment) // create new incomplete message
                         {
                             m.nextFragmentNum = 1;
                             auto ret = m_IncompleteMessages.insert (std::pair<uint32_t, TunnelMessageBlockEx>(msgID, m));
