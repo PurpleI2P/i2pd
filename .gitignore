@@ -63,6 +63,14 @@ local.properties
 # PDT-specific
 .buildpath
 
+#################
+## Netbeans
+#################
+
+# CMake: if "Project with Existing Sources" is properly setup, then only the following needs to be ignored:
+# (e.g., don't select "Automatic" but instead select "Run Configure Script in Subfolder:" into ./build/)
+build/compile_commands.json
+nbproject/
 
 #################
 ## Visual Studio
