@@ -136,11 +136,19 @@ namespace transport
 
     void SSUServer::Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to)
     {
-        if (to.protocol () == boost::asio::ip::udp::v4()) 
-            m_Socket.send_to (boost::asio::buffer (buf, len), to);
+        if (to.protocol () == boost::asio::ip::udp::v4())
+            try {
+                m_Socket.send_to (boost::asio::buffer (buf, len), to);
+            } catch (const std::exception& ex) {
+                LogPrint (eLogError, "SSUServer send error: ", ex.what());
+            }
         else
-            m_SocketV6.send_to (boost::asio::buffer (buf, len), to);
-    }   
+            try {
+                m_SocketV6.send_to (boost::asio::buffer (buf, len), to);
+            } catch (const std::exception& ex) {
+                LogPrint (eLogError, "SSUServer V6 send error: ", ex.what());
+            }
+    }
 
     void SSUServer::Receive ()
     {
