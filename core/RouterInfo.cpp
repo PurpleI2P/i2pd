@@ -426,7 +426,7 @@ namespace data
 
     void RouterInfo::CreateBuffer (const PrivateKeys& privateKeys)
     {
-        m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
+        m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timestamp
         std::stringstream s;
         uint8_t ident[1024];
         auto identLen = privateKeys.GetPublic ().ToBuffer (ident, 1024);
