@@ -124,6 +124,18 @@ namespace util
         const char LAST_MODIFIED[] = "Last-Modified";
         const char TRANSFER_ENCODING[] = "Transfer-Encoding";
 
+	 /**
+         * Header for HTTP/S requests.
+         * @return a string of the complete header
+         */
+	std::string httpHeader(const std::string& path, const std::string& host, const std::string& version);
+
+        /**
+         * Perform an HTTPS request.
+         * @return the result of the request, or an empty string if it fails
+         */
+        std::string httpsRequest(const std::string& address);
+
         /**
          * Perform an HTTP request.
          * @return the result of the request, or an empty string if it fails

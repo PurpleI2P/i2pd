@@ -39,8 +39,6 @@ namespace data
             int ProcessSU3Stream (std::istream& s); 
 
             bool FindZipDataDescriptor (std::istream& s);
-            
-            std::string HttpsRequest (const std::string& address);
 
         private:    
 

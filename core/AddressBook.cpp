@@ -487,11 +487,10 @@ namespace client
             {
                 std::stringstream request, response;
                 // standard header
-                request << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
-                << "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n";
+		request << i2p::util::http::httpHeader(u.path_, u.host_, "1.1");
                 if (m_Etag.length () > 0) // etag
                     request << i2p::util::http::IF_NONE_MATCH << ": \"" << m_Etag << "\"\r\n";
-                if (m_LastModified.length () > 0) // if-modfief-since
+                if (m_LastModified.length () > 0) // if modified since
                     request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
                 request << "\r\n"; // end of header
                 auto stream = m_Book.getSharedLocalDestination()->CreateStream (leaseSet, u.port_);

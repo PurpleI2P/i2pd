@@ -14,6 +14,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/algorithm/string.hpp>
 #include "Log.h"
+#include "Reseed.h"
 
 #if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
 #include <sys/types.h>
@@ -305,12 +306,46 @@ namespace filesystem
     }
 }
 
-namespace http
+namespace http // also provides https
 {
+    std::string httpHeader (const std::string& path, const std::string& host, const std::string& version)
+    {
+	std::string header =
+		"GET " + path + " HTTP/" + version + "\r\n" +
+		"Host: " + host + "\r\n" +
+                "Accept: */*\r\n" +
+		"User-Agent: Wget/1.11.4\r\n" +
+		"Connection: close\r\n\r\n";
+	return header;
+    }
+
+    std::string httpsRequest (const std::string& address)
+    {
+        url u(address);
+        if (u.port_ == 80) u.port_ = 443;
+        i2p::data::TlsSession session (u.host_, u.port_);
+
+        if (session.IsEstablished ())
+        {
+            // send request
+            std::stringstream ss;
+	    ss << httpHeader(u.path_, u.host_, "1.1");
+            session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
+
+            // read response
+            std::stringstream rs;
+            while (session.Receive (rs))
+                ;
+            return GetHttpContent (rs);
+        }
+        else
+            return "";
+    }
+
     std::string httpRequest(const std::string& address)
     {
         try {
-            i2p::util::http::url u(address);
+            url u(address);
             boost::asio::ip::tcp::iostream site;
             // please don't uncomment following line because it's not compatible with boost 1.46
             // 1.46 is default boost for Ubuntu 12.04 LTS
@@ -323,9 +358,7 @@ namespace http
             }
             if(site) {
                 // User-Agent is needed to get the server list routerInfo files.
-                site << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
-                     << "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n"
-                     << "Connection: close\r\n\r\n";
+		site << httpHeader(u.path_, u.host_, "1.1");
                 // read response and extract content                
                 return GetHttpContent(site);
             } else {
@@ -353,7 +386,7 @@ namespace http
                 auto colon = header.find (':');
                 if(colon != std::string::npos) {
                     std::string field = header.substr (0, colon);
-                    if(field == i2p::util::http::TRANSFER_ENCODING)
+                    if(field == TRANSFER_ENCODING)
                         isChunked = (header.find("chunked", colon + 1) != std::string::npos);
                 }
             }
@@ -402,14 +435,11 @@ namespace http
                 site.connect("127.0.0.1", ss.str());
             }
             if(site) {
-                i2p::util::http::url u(address);
+                url u(address);
                 std::stringstream ss;
-                ss << "GET " << address << " HTTP/1.0" << std::endl;
-                ss << "Host: " << u.host_ << std::endl;
-                ss << "Accept: */*" << std::endl;
-                ss << "User - Agent: Wget / 1.11.4" << std::endl;
-                ss << "Connection: close" << std::endl;
-                ss << std::endl;
+
+		// set header
+		ss << httpHeader(u.path_, u.host_, "1.0");
                 site << ss.str();
 
                 // read response

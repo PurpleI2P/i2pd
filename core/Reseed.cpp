@@ -130,7 +130,7 @@ namespace data
     {
         std::string url = host + "i2pseeds.su3";
         LogPrint (eLogInfo, "Downloading SU3 from ", host);
-        std::string su3 = https ? HttpsRequest (url) : i2p::util::http::httpRequest (url);
+        std::string su3 = https ? i2p::util::http::httpsRequest (url) : i2p::util::http::httpRequest (url);
         if (su3.length () > 0)
         {
             std::stringstream s(su3);
@@ -489,30 +489,6 @@ namespace data
             }   
         }   
         LogPrint (eLogInfo, numCertificates, " certificates loaded");
-    }   
-
-    std::string Reseeder::HttpsRequest (const std::string& address)
-    {
-        i2p::util::http::url u(address);
-        if (u.port_ == 80) u.port_ = 443; 
-        TlsSession session (u.host_, u.port_);
-        
-        if (session.IsEstablished ())
-        {
-            // send request     
-            std::stringstream ss;
-            ss << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
-            << "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";   
-            session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
-
-            // read response
-            std::stringstream rs;
-            while (session.Receive (rs))
-                ;
-            return i2p::util::http::GetHttpContent (rs);
-        }
-        else
-            return "";
     }   
 
 //-------------------------------------------------------------
