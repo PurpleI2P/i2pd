@@ -491,7 +491,11 @@ namespace data
         LogPrint (eLogInfo, numCertificates, " certificates loaded");
     }   
 
-//-------------------------------------------------------------
+/*------------------------------------------------------------------
+    TLS has nothing to do with the reseed process (except for HTTPS)
+    Once #244 is resolved, this will all be axed - so moving the
+    following to util.cpp is not worth the effort for now.
+/------------------------------------------------------------------*/
 
     template<class Hash>
     class TlsCipherMAC: public TlsCipher
