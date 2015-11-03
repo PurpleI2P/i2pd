@@ -408,14 +408,14 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: newkeys");
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys ();
-		SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
+		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
 	}	
 
 	void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: setkeys ", operand);
 		m_Keys.FromBase64 (operand);
-		SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
+		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
 	}
 		
 	void BOBCommandSession::GetkeysCommandHandler (const char * operand, size_t len)
@@ -427,7 +427,7 @@ namespace client
 	void BOBCommandSession::GetdestCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: getdest");
-		SendReplyOK (m_Keys.GetPublic ().ToBase64 ().c_str ());
+		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
 	}	
 		
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
@@ -477,7 +477,7 @@ namespace client
 		auto localDestination = m_CurrentDestination->GetLocalDestination ();
 		auto leaseSet = localDestination->FindLeaseSet (ident);
 		if (leaseSet)
-			SendReplyOK (leaseSet->GetIdentity ().ToBase64 ().c_str ());
+			SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
 		else
 		{
 			auto s = shared_from_this ();
@@ -485,7 +485,7 @@ namespace client
 				[s](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
 					if (ls)
-						s->SendReplyOK (ls->GetIdentity ().ToBase64 ().c_str ());
+						s->SendReplyOK (ls->GetIdentity ()->ToBase64 ().c_str ());
 					else	
 						s->SendReplyError ("LeaseSet Not found");
 				}	

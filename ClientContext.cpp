@@ -15,7 +15,7 @@ namespace client
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
 		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr), 
-		m_BOBCommandChannel (nullptr), m_I2PControlService (nullptr)
+		m_BOBCommandChannel (nullptr)
 	{
 	}
 	
@@ -25,7 +25,6 @@ namespace client
 		delete m_SocksProxy;
 		delete m_SamBridge;
 		delete m_BOBCommandChannel;
-		delete m_I2PControlService;
 	}
 	
 	void ClientContext::Start ()
@@ -33,7 +32,7 @@ namespace client
 		if (!m_SharedLocalDestination)
 		{	
 			m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
-			m_Destinations[m_SharedLocalDestination->GetIdentity ().GetIdentHash ()] = m_SharedLocalDestination;
+			m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
 
@@ -93,14 +92,6 @@ namespace client
 			LogPrint("BOB command channel started");
 		} 
 
-		// I2P Control
-		int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
-		if (i2pcontrolPort)
-		{
-			m_I2PControlService = new I2PControlService (i2pcontrolPort);
-			m_I2PControlService->Start ();
-			LogPrint("I2PControl started");
-		}
 		m_AddressBook.Start ();
 	}
 		
@@ -140,13 +131,6 @@ namespace client
 			m_BOBCommandChannel = nullptr;
 			LogPrint("BOB command channel stopped");	
 		}			
-		if (m_I2PControlService)
-		{
-			m_I2PControlService->Stop ();
-			delete m_I2PControlService; 
-			m_I2PControlService = nullptr;
-			LogPrint("I2PControl stopped");	
-		}	
 		m_AddressBook.Stop ();		
 		for (auto it: m_Destinations)
 			it.second->Stop ();
@@ -168,7 +152,7 @@ namespace client
 			s.read ((char *)buf, len);
 			keys.FromBuffer (buf, len);
 			delete[] buf;
-			LogPrint ("Local address ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " loaded");
+			LogPrint ("Local address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " loaded");
 		}	
 		else
 		{
@@ -181,15 +165,15 @@ namespace client
 			f.write ((char *)buf, len);
 			delete[] buf;
 			
-			LogPrint ("New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " created");
+			LogPrint ("New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
 		}	
 
 		std::shared_ptr<ClientDestination> localDestination = nullptr;	
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);	
-		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ()); 
+		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ()); 
 		if (it != m_Destinations.end ())
 		{
-			LogPrint (eLogWarning, "Local destination ",  m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " alreday exists");
+			LogPrint (eLogWarning, "Local destination ",  m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " alreday exists");
 			localDestination = it->second;
 		}
 		else
@@ -230,10 +214,10 @@ namespace client
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
 		const std::map<std::string, std::string> * params)
 	{
-		auto it = m_Destinations.find (keys.GetPublic ().GetIdentHash ());
+		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ());
 		if (it != m_Destinations.end ())
 		{
-			LogPrint ("Local destination ", m_AddressBook.ToAddress(keys.GetPublic ().GetIdentHash ()), " exists");
+			LogPrint ("Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
 			if (!it->second->IsRunning ())
 			{	
 				it->second->Start ();
@@ -243,7 +227,7 @@ namespace client
 		}	
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
-		m_Destinations[keys.GetPublic ().GetIdentHash ()] = localDestination;
+		m_Destinations[keys.GetPublic ()->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
 	}

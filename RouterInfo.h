@@ -58,11 +58,12 @@ namespace data
 				eTransportSSU
 			};
 
+			typedef Tag<32> IntroKey; // should be castable to MacKey and AESKey
 			struct Introducer			
 			{
 				boost::asio::ip::address iHost;
 				int iPort;
-				Tag<32> iKey;
+				IntroKey iKey;
 				uint32_t iTag;
 			};
 
@@ -75,13 +76,23 @@ namespace data
 				uint64_t date;
 				uint8_t cost;
 				// SSU only
-				Tag<32> key; // intro key for SSU
+				IntroKey key; // intro key for SSU
 				std::vector<Introducer> introducers;
 
 				bool IsCompatible (const boost::asio::ip::address& other) const 
 				{
 					return (host.is_v4 () && other.is_v4 ()) ||
 						(host.is_v6 () && other.is_v6 ());
+				}	
+
+				bool operator==(const Address& other) const
+				{
+					return transportStyle == other.transportStyle && host == other.host && port == other.port;
+				}	
+
+				bool operator!=(const Address& other) const
+				{
+					return !(*this == other);
 				}	
 			};
 			
@@ -92,10 +103,9 @@ namespace data
 			RouterInfo (const uint8_t * buf, int len);
 			~RouterInfo ();
 			
-			const IdentityEx& GetRouterIdentity () const { return m_RouterIdentity; };
-			void SetRouterIdentity (const IdentityEx& identity);
+			std::shared_ptr<const IdentityEx> GetRouterIdentity () const { return m_RouterIdentity; };
+			void SetRouterIdentity (std::shared_ptr<const IdentityEx> identity);
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
-			std::string GetIdentHashAbbreviation () const { return GetIdentHash ().ToBase64 ().substr (0, 4); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
 			std::vector<Address>& GetAddresses () { return m_Addresses; };
 			const Address * GetNTCPAddress (bool v4only = true) const;
@@ -104,7 +114,7 @@ namespace data
 			
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
-			bool AddIntroducer (const Address * address, uint32_t tag);
+			bool AddIntroducer (const Introducer& introducer);
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only
 			void DeleteProperty (const std::string& key); // called from RouterContext only
@@ -145,8 +155,8 @@ namespace data
 			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
 			
 			// implements RoutingDestination
-			const IdentHash& GetIdentHash () const { return m_RouterIdentity.GetIdentHash (); };
-			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity.GetStandardIdentity ().publicKey; };
+			const IdentHash& GetIdentHash () const { return m_RouterIdentity->GetIdentHash (); };
+			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; };
 			bool IsDestination () const { return false; };
 
 			
@@ -166,7 +176,7 @@ namespace data
 		private:
 
 			std::string m_FullPath;
-			IdentityEx m_RouterIdentity;
+			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			uint8_t * m_Buffer;
 			int m_BufferLen;
 			uint64_t m_Timestamp;

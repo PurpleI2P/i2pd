@@ -26,13 +26,10 @@ namespace transport
 
 	SSUData::SSUData (SSUSession& session):
 		m_Session (session), m_ResendTimer (session.GetService ()), m_DecayTimer (session.GetService ()),
-		m_IncompleteMessagesCleanupTimer (session.GetService ())
+		m_IncompleteMessagesCleanupTimer (session.GetService ()), 
+		m_MaxPacketSize (session.IsV6 () ? SSU_V6_MAX_PACKET_SIZE : SSU_V4_MAX_PACKET_SIZE), 
+		m_PacketSize (m_MaxPacketSize)
 	{
-		m_MaxPacketSize = session.IsV6 () ? SSU_V6_MAX_PACKET_SIZE : SSU_V4_MAX_PACKET_SIZE;
-		m_PacketSize = m_MaxPacketSize;
-		auto remoteRouter = session.GetRemoteRouter ();
-		if (remoteRouter)
-			AdjustPacketSize (*remoteRouter);
 	}
 
 	SSUData::~SSUData ()
@@ -51,9 +48,10 @@ namespace transport
 		m_IncompleteMessagesCleanupTimer.cancel ();
 	}	
 		
-	void SSUData::AdjustPacketSize (const i2p::data::RouterInfo& remoteRouter)
+	void SSUData::AdjustPacketSize (std::shared_ptr<const i2p::data::RouterInfo> remoteRouter)
 	{
-		auto ssuAddress = remoteRouter.GetSSUAddress ();
+		if (remoteRouter) return;
+		auto ssuAddress = remoteRouter->GetSSUAddress ();
 		if (ssuAddress && ssuAddress->mtu)
 		{
 			if (m_Session.IsV6 ())
@@ -80,7 +78,7 @@ namespace transport
 	{
  		auto routerInfo = i2p::data::netdb.FindRouter (remoteIdent);
 		if (routerInfo)
-			AdjustPacketSize (*routerInfo);
+			AdjustPacketSize (routerInfo);
 	}
 
 	void SSUData::ProcessSentMessageAck (uint32_t msgID)
@@ -372,7 +370,7 @@ namespace transport
 		payload++;
 		*payload = 1; // number of ACKs
 		payload++;
-		*(uint32_t *)(payload) = htobe32 (msgID); // msgID	
+		htobe32buf (payload, msgID); // msgID
 		payload += 4;
 		*payload = 0; // number of fragments
 

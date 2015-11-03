@@ -73,6 +73,7 @@ namespace util
 			void ShowSAMSession (const std::string& id, std::stringstream& s);
 			void StartAcceptingTunnels (std::stringstream& s);
 			void StopAcceptingTunnels (std::stringstream& s);
+			void RunPeerTest (std::stringstream& s);
 			void FillContent (std::stringstream& s);
 			std::string ExtractAddress ();
 			void ExtractParams (const std::string& str, std::map<std::string, std::string>& params);

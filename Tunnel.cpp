@@ -3,7 +3,7 @@
 #include <thread>
 #include <algorithm>
 #include <vector> 
-#include <cryptopp/sha.h>
+#include <openssl/rand.h>
 #include "RouterContext.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -18,6 +18,7 @@ namespace tunnel
 {		
 	
 	Tunnel::Tunnel (std::shared_ptr<const TunnelConfig> config): 
+		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
 		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending), m_IsRecreated (false)
 	{
 	}	
@@ -28,7 +29,6 @@ namespace tunnel
 
 	void Tunnel::Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		auto numHops = m_Config->GetNumHops ();
 		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops; 
 		auto msg = NewI2NPShortMessage ();
@@ -46,9 +46,13 @@ namespace tunnel
 		int i = 0;
 		while (hop)
 		{
+			uint32_t msgID;
+			if (hop->next) // we set replyMsgID for last hop only 
+				RAND_bytes ((uint8_t *)&msgID, 4);
+			else
+				msgID = replyMsgID;
 			int idx = recordIndicies[i];
-			hop->CreateBuildRequestRecord (records + idx*TUNNEL_BUILD_RECORD_SIZE, 
-				hop->next ? rnd.GenerateWord32 () : replyMsgID); // we set replyMsgID for last hop only 
+			hop->CreateBuildRequestRecord (records + idx*TUNNEL_BUILD_RECORD_SIZE, msgID); 
 			hop->recordIndex = idx; 
 			i++;
 			hop = hop->next;
@@ -57,7 +61,7 @@ namespace tunnel
 		for (int i = numHops; i < numRecords; i++)
 		{
 			int idx = recordIndicies[i];
-			rnd.GenerateBlock (records + idx*TUNNEL_BUILD_RECORD_SIZE, TUNNEL_BUILD_RECORD_SIZE); 
+			RAND_bytes (records + idx*TUNNEL_BUILD_RECORD_SIZE, TUNNEL_BUILD_RECORD_SIZE); 
 		}	
 
 		// decrypt real records
@@ -120,7 +124,9 @@ namespace tunnel
 			const uint8_t * record = msg + 1 + hop->recordIndex*TUNNEL_BUILD_RECORD_SIZE;
 			uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
 			LogPrint ("Ret code=", (int)ret);
-			hop->router->GetProfile ()->TunnelBuildResponse (ret);
+			auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
+			if (profile)
+				profile->TunnelBuildResponse (ret);
 			if (ret) 
 				// if any of participants declined the tunnel is not established
 				established = false; 
@@ -128,13 +134,16 @@ namespace tunnel
 		}
 		if (established) 
 		{
-			// change reply keys to layer keys
-			hop = m_Config->GetFirstHop ();
+			// create tunnel decryptions from layer and iv keys in reverse order
+			hop = m_Config->GetLastHop ();
 			while (hop)
 			{
-				hop->decryption.SetKeys (hop->layerKey, hop->ivKey);
-				hop = hop->next;
+				auto tunnelHop = new TunnelHop{ .ident = hop->ident };
+				tunnelHop->decryption.SetKeys (hop->layerKey, hop->ivKey);
+				m_Hops.push_back (std::unique_ptr<TunnelHop>(tunnelHop));
+				hop = hop->prev;
 			}	
+			m_Config = nullptr;
 		}	
 		if (established) m_State = eTunnelStateEstablished;
 		return established;
@@ -144,13 +153,11 @@ namespace tunnel
 	{
 		const uint8_t * inPayload = in->GetPayload () + 4;
 		uint8_t * outPayload = out->GetPayload () + 4;
-		TunnelHopConfig * hop = m_Config->GetLastHop (); 
-		while (hop)
-		{	
-			hop->decryption.Decrypt (inPayload, outPayload);
-			hop = hop->prev;
+		for (auto& it: m_Hops)
+		{
+			it->decryption.Decrypt (inPayload, outPayload);
 			inPayload = outPayload;	
-		}
+		}	
 	}	
 
 	void Tunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
@@ -158,6 +165,22 @@ namespace tunnel
 		LogPrint (eLogInfo, "Can't send I2NP messages without delivery instructions");	
 	}	
 
+	std::vector<std::shared_ptr<const i2p::data::IdentityEx> > Tunnel::GetPeers () const
+	{
+		auto peers = GetInvertedPeers ();
+		std::reverse (peers.begin (), peers.end ());	
+		return peers;
+	}	
+
+	std::vector<std::shared_ptr<const i2p::data::IdentityEx> > Tunnel::GetInvertedPeers () const
+	{
+		// hops are in inverted order
+		std::vector<std::shared_ptr<const i2p::data::IdentityEx> > ret;
+		for (auto& it: m_Hops)
+			ret.push_back (it->ident);
+		return ret;	
+	}	
+		
 	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
 		if (IsFailed ()) SetState (eTunnelStateEstablished); // incoming messages means a tunnel is alive	
@@ -167,6 +190,13 @@ namespace tunnel
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);	
 	}	
 
+	void InboundTunnel::Print (std::stringstream& s) const
+	{
+		s << "-->" << i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ()) << ":" << GetNextTunnelID ();
+		s << "-->" << (GetNumHops () - 1) << " hops ";
+		s << GetTunnelID () << ":me";
+	}	
+		
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		TunnelMessageBlock block;
@@ -202,6 +232,12 @@ namespace tunnel
 		LogPrint (eLogError, "Incoming message for outbound tunnel ", GetTunnelID ());
 	}
 
+	void OutboundTunnel::Print (std::stringstream& s) const
+	{
+		s << "me-->" << i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ()) << ":" << GetNextTunnelID ();
+		s << "-->" << (GetNumHops () - 1) << " hops-->";
+	}	
+		
 	Tunnels tunnels;
 	
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
@@ -272,8 +308,8 @@ namespace tunnel
 	
 	std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel ()
 	{
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		uint32_t ind = rnd.GenerateWord32 (0, m_OutboundTunnels.size () - 1), i = 0;
+		if (!m_OutboundTunnels.size ()) return nullptr;
+		uint32_t ind = rand () % m_OutboundTunnels.size (), i = 0;
 		std::shared_ptr<OutboundTunnel> tunnel;
 		for (auto it: m_OutboundTunnels)
 		{	
@@ -482,8 +518,12 @@ namespace tunnel
 							auto hop = config->GetFirstHop ();
 							while (hop)
 							{
-								if (hop->router) 
-									hop->router->GetProfile ()->TunnelNonReplied ();
+								if (hop->ident)
+								{
+									auto profile = i2p::data::netdb.FindRouterProfile (hop->ident->GetIdentHash ());
+									if (profile)
+										profile->TunnelNonReplied ();
+								}
 								hop = hop->next;
 							}	
 						}	
@@ -553,8 +593,8 @@ namespace tunnel
 			if (!inboundTunnel || !router) return;
 			LogPrint ("Creating one hop outbound tunnel...");
 			CreateTunnel<OutboundTunnel> (
-				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router },		
-		     		inboundTunnel->GetTunnelConfig ())
+				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () },		
+		     		inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ())
 			                              );
 		}
 	}
@@ -609,7 +649,7 @@ namespace tunnel
 			auto router = i2p::data::netdb.GetRandomRouter ();
 			LogPrint ("Creating one hop inbound tunnel...");
 			CreateTunnel<InboundTunnel> (
-				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router })
+				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () })
 			                             );
 		}
 	}	
@@ -662,7 +702,8 @@ namespace tunnel
 	std::shared_ptr<TTunnel> Tunnels::CreateTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		auto newTunnel = std::make_shared<TTunnel> (config);
-		uint32_t replyMsgID = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+		uint32_t replyMsgID;
+		RAND_bytes ((uint8_t *)&replyMsgID, 4);
 		AddPendingTunnel (replyMsgID, newTunnel); 
 		newTunnel->Build (replyMsgID, outboundTunnel);
 		return newTunnel;
@@ -695,7 +736,9 @@ namespace tunnel
 		if (!pool)
 		{		
 			// build symmetric outbound tunnel
-			CreateTunnel<OutboundTunnel> (newTunnel->GetTunnelConfig ()->Invert (), GetNextOutboundTunnel ());		
+			CreateTunnel<OutboundTunnel> (std::make_shared<TunnelConfig>(newTunnel->GetInvertedPeers (),
+					newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash ()), 
+				GetNextOutboundTunnel ());		
 		}
 		else
 		{
@@ -710,9 +753,9 @@ namespace tunnel
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
 		CreateTunnel<InboundTunnel> (
-			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::RouterInfo> >
+			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >
 			    { 
-					i2p::context.GetSharedRouterInfo ()
+					i2p::context.GetIdentity ()
 				}));
 	}	
 

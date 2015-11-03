@@ -9,6 +9,7 @@
 #include <thread>
 #include <mutex>
 #include <boost/filesystem.hpp>
+#include "Base.h"
 #include "Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
@@ -38,6 +39,7 @@ namespace data
 			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
 			std::shared_ptr<LeaseSet> FindLeaseSet (const IdentHash& destination) const;
+			std::shared_ptr<RouterProfile> FindRouterProfile (const IdentHash& ident) const;
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);			
 			
@@ -91,6 +93,7 @@ namespace data
 			std::thread * m_Thread;	
 			i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
 
+			GzipInflator m_Inflator;
 			Reseeder * m_Reseeder;
 
 			friend class NetDbRequests; 

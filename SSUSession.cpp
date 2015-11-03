@@ -1,7 +1,7 @@
 #include <boost/bind.hpp>
-#include <cryptopp/dh.h>
-#include <cryptopp/sha.h>
-#include "CryptoConst.h"
+#include <openssl/dh.h>
+#include <openssl/sha.h>
+#include <openssl/rand.h>
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
@@ -16,9 +16,22 @@ namespace transport
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): TransportSession (router), 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_Timer (GetService ()), 
-		m_PeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), 
+		m_IsPeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), 
 		m_RelayTag (0),m_Data (*this), m_IsDataReceived (false)
-	{
+	{	
+		if (router)
+		{
+			// we are client
+			auto address = router->GetSSUAddress ();
+			if (address) m_IntroKey = address->key;
+			m_Data.AdjustPacketSize (router); // mtu
+		}
+		else
+		{
+			// we are server
+			auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+			if (address) m_IntroKey = address->key;
+		}
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}
 
@@ -33,13 +46,8 @@ namespace transport
 	
 	void SSUSession::CreateAESandMacKey (const uint8_t * pubKey)
 	{
-		CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
 		uint8_t sharedKey[256];
-		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
-		{    
-		    LogPrint (eLogError, "Couldn't create shared key");
-			return;
-		};
+		m_DHKeysPair->Agree (pubKey, sharedKey);
 
 		uint8_t * sessionKey = m_SessionKey, * macKey = m_MacKey;
 		if (sharedKey[0] & 0x80)
@@ -68,7 +76,7 @@ namespace transport
 			}
 			
 			memcpy (sessionKey, nonZero, 32);
-			CryptoPP::SHA256().CalculateDigest(macKey, nonZero, 64 - (nonZero - sharedKey));
+			SHA256(nonZero, 64 - (nonZero - sharedKey), macKey);
 		}
 		m_IsSessionKey = true;
 		m_SessionKeyEncryption.SetKey (m_SessionKey);
@@ -97,9 +105,8 @@ namespace transport
 			else 
 			{
 				// try intro key depending on side
-				auto introKey = GetIntroKey ();
-				if (introKey && Validate (buf, len, introKey))
-					Decrypt (buf, len, introKey);
+				if (Validate (buf, len, m_IntroKey))
+					Decrypt (buf, len, m_IntroKey);
 				else
 				{    
 					// try own intro key
@@ -184,7 +191,7 @@ namespace transport
 
 	void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
 	{
-		if (!m_RemoteRouter || !m_DHKeysPair)
+		if (!IsOutgoing () || !m_DHKeysPair)
 		{
 			LogPrint (eLogWarning, "Unsolicited session created message");
 			return;
@@ -196,7 +203,7 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);	
 		uint8_t * y = payload;
 		CreateAESandMacKey (y);
-		s.Insert (m_DHKeysPair->publicKey, 256); // x
+		s.Insert (m_DHKeysPair->GetPublicKey (), 256); // x
 		s.Insert (y, 256); // y
 		payload += 256;
 		uint8_t addressSize = *payload;
@@ -232,7 +239,7 @@ namespace transport
 		payload += 4; // relayTag
 		payload += 4; // signed on time
 		// decrypt signature
-		size_t signatureLen = m_RemoteIdentity.GetSignatureLen ();
+		size_t signatureLen = m_RemoteIdentity->GetSignatureLen ();
 		size_t paddingSize = signatureLen & 0x0F; // %16
 		if (paddingSize > 0) signatureLen += (16 - paddingSize);
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
@@ -240,8 +247,7 @@ namespace transport
 		m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload);
 		// verify
 		if (!s.Verify (m_RemoteIdentity, payload))
-			LogPrint (eLogError, "SSU signature verification failed");
-		m_RemoteIdentity.DropVerifier ();	
+			LogPrint (eLogError, "Session created SSU signature verification failed");
 		
 		SendSessionConfirmed (y, ourAddress, addressSize + 2);
 	}	
@@ -253,31 +259,28 @@ namespace transport
 		payload++; // identity fragment info
 		uint16_t identitySize = bufbe16toh (payload);	
 		payload += 2; // size of identity fragment
-		m_RemoteIdentity.FromBuffer (payload, identitySize);
-		m_Data.UpdatePacketSize (m_RemoteIdentity.GetIdentHash ());
+		SetRemoteIdentity (std::make_shared<i2p::data::IdentityEx> (payload, identitySize));
+		m_Data.UpdatePacketSize (m_RemoteIdentity->GetIdentHash ());
 		payload += identitySize; // identity	
+		if (m_SignedData)
+			m_SignedData->Insert (payload, 4); // insert Alice's signed on time
 		payload += 4; // signed-on time
-		size_t paddingSize = (payload - buf) + m_RemoteIdentity.GetSignatureLen ();
+		size_t paddingSize = (payload - buf) + m_RemoteIdentity->GetSignatureLen ();
 		paddingSize &= 0x0F;  // %16
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
-		// TODO: verify signature (need data from session request), payload points to signature
+		// verify
+		if (m_SignedData && !m_SignedData->Verify (m_RemoteIdentity, payload))
+			LogPrint (eLogError, "Session confirmed SSU signature verification failed");
 		m_Data.Send (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
 
 	void SSUSession::SendSessionRequest ()
-	{
-		auto introKey = GetIntroKey ();
-		if (!introKey)
-		{
-			LogPrint (eLogError, "SSU is not supported");
-			return;
-		}
-	
+	{	
 		uint8_t buf[320 + 18]; // 304 bytes for ipv4, 320 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		memcpy (payload, m_DHKeysPair->publicKey, 256); // x
+		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256); // x
 		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
 		if (isV4)
 		{
@@ -291,13 +294,12 @@ namespace transport
 		}	
 		
 		uint8_t iv[16];
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, isV4 ? 304 : 320, introKey, iv, introKey);
+		RAND_bytes (iv, 16); // random iv
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, isV4 ? 304 : 320, m_IntroKey, iv, m_IntroKey);
 		m_Server.Send (buf, isV4 ? 304 : 320, m_RemoteEndpoint);
 	}
 
-	void SSUSession::SendRelayRequest (uint32_t iTag, const uint8_t * iKey)
+	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer)
 	{
 		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 		if (!address)
@@ -308,7 +310,7 @@ namespace transport
 	
 		uint8_t buf[96 + 18]; 
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		htobe32buf (payload, iTag);
+		htobe32buf (payload, introducer.iTag);
 		payload += 4;
 		*payload = 0; // no address
 		payload++;
@@ -318,35 +320,32 @@ namespace transport
 		payload++;	
 		memcpy (payload, (const uint8_t *)address->key, 32);
 		payload += 32;
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		htobe32buf (payload, rnd.GenerateWord32 ()); // nonce	
+		RAND_bytes (payload, 4); // nonce	
 
 		uint8_t iv[16];
-		rnd.GenerateBlock (iv, 16); // random iv
+		RAND_bytes (iv, 16); // random iv
 		if (m_State == eSessionStateEstablished)
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, m_SessionKey, iv, m_MacKey);
 		else
-			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, iKey, iv, iKey);			
+			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, introducer.iKey, iv, introducer.iKey);			
 		m_Server.Send (buf, 96, m_RemoteEndpoint);
 	}
 
 	void SSUSession::SendSessionCreated (const uint8_t * x)
 	{
-		auto introKey = GetIntroKey ();
 		auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
 			i2p::context.GetRouterInfo ().GetSSUAddress (true); //v4 only
-		if (!introKey || !address)
+		if (!address)
 		{
 			LogPrint (eLogError, "SSU is not supported");
 			return;
 		}
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		SignedData s; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
 		s.Insert (x, 256); // x
 
 		uint8_t buf[384 + 18];	
 		uint8_t * payload = buf + sizeof (SSUHeader);
-		memcpy (payload, m_DHKeysPair->publicKey, 256);
+		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256);
 		s.Insert (payload, 256); // y
 		payload += 256;
 		if (m_RemoteEndpoint.address ().is_v4 ())
@@ -378,7 +377,7 @@ namespace transport
 		uint32_t relayTag = 0;
 		if (i2p::context.GetRouterInfo ().IsIntroducer ())
 		{
-			relayTag = rnd.GenerateWord32 ();
+			RAND_bytes((uint8_t *)&relayTag, 4);
 			if (!relayTag) relayTag = 1;
 			m_Server.AddRelay (relayTag, m_RemoteEndpoint);
 		}
@@ -386,14 +385,18 @@ namespace transport
 		payload += 4; // relay tag 
 		htobe32buf (payload, i2p::util::GetSecondsSinceEpoch ()); // signed on time
 		payload += 4;
-		s.Insert (payload - 8, 8); // relayTag and signed on time 
+		s.Insert (payload - 8, 4); // relayTag	
+		// we have to store this signed data for session confirmed
+		// same data but signed on time, it will Alice's there	
+		m_SignedData = std::unique_ptr<SignedData>(new SignedData (s)); 	
+		s.Insert (payload - 4, 4); // BOB's signed on time 
 		s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature
 		// TODO: fill padding with random data	
 
 		uint8_t iv[16];
-		rnd.GenerateBlock (iv, 16); // random iv
+		RAND_bytes (iv, 16); // random iv
 		// encrypt signature and padding with newly created session key	
-		size_t signatureLen = i2p::context.GetIdentity ().GetSignatureLen ();
+		size_t signatureLen = i2p::context.GetIdentity ()->GetSignatureLen ();
 		size_t paddingSize = signatureLen & 0x0F; // %16
 		if (paddingSize > 0) signatureLen += (16 - paddingSize);
 		m_SessionKeyEncryption.SetIV (iv);
@@ -402,7 +405,7 @@ namespace transport
 		size_t msgLen = payload - buf;
 		
 		// encrypt message with intro key
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, msgLen, introKey, iv, introKey);	
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, msgLen, m_IntroKey, iv, m_IntroKey);	
 		Send (buf, msgLen);
 	}
 
@@ -412,15 +415,15 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 1; // 1 fragment
 		payload++; // info
-		size_t identLen = i2p::context.GetIdentity ().GetFullLen (); // 387+ bytes
+		size_t identLen = i2p::context.GetIdentity ()->GetFullLen (); // 387+ bytes
 		htobe16buf (payload, identLen);
 		payload += 2; // cursize
-		i2p::context.GetIdentity ().ToBuffer (payload, identLen);
+		i2p::context.GetIdentity ()->ToBuffer (payload, identLen);
 		payload += identLen;
 		uint32_t signedOnTime = i2p::util::GetSecondsSinceEpoch ();
 		htobe32buf (payload, signedOnTime); // signed on time
 		payload += 4;
-		auto signatureLen = i2p::context.GetIdentity ().GetSignatureLen ();
+		auto signatureLen = i2p::context.GetIdentity ()->GetSignatureLen ();
 		size_t paddingSize = ((payload - buf) + signatureLen)%16;
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		// TODO: fill padding	
@@ -428,7 +431,7 @@ namespace transport
 
 		// signature		
 		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, our signed on time 
-		s.Insert (m_DHKeysPair->publicKey, 256); // x
+		s.Insert (m_DHKeysPair->GetPublicKey (), 256); // x
 		s.Insert (y, 256); // y
 		s.Insert (ourAddress, ourAddressLen); // our address/port as seem by party
 		if (m_RemoteEndpoint.address ().is_v4 ())
@@ -443,8 +446,7 @@ namespace transport
 		
 		size_t msgLen = payload - buf;
 		uint8_t iv[16];
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
+		RAND_bytes (iv, 16); // random iv
 		// encrypt message with session key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CONFIRMED, buf, msgLen, m_SessionKey, iv, m_MacKey);
 		Send (buf, msgLen);
@@ -519,8 +521,7 @@ namespace transport
 		{
 			// ecrypt with Alice's intro key
 			uint8_t iv[16];
-			CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-			rnd.GenerateBlock (iv, 16); // random iv
+			RAND_bytes (iv, 16); // random iv
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, isV4 ? 64 : 80, introKey, iv, introKey);
 			m_Server.Send (buf, isV4 ? 64 : 80, from);
 		}	
@@ -546,8 +547,7 @@ namespace transport
 		payload += 2; // port
 		*payload = 0; // challenge size	
 		uint8_t iv[16];
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
+		RAND_bytes (iv, 16); // random iv
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, 48, session->m_SessionKey, iv, session->m_MacKey);
 		m_Server.Send (buf, 48, session->m_RemoteEndpoint);
 		LogPrint (eLogDebug, "SSU relay intro sent");
@@ -602,7 +602,7 @@ namespace transport
 	}		
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, 
-		const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey)
+		const i2p::crypto::AESKey& aesKey, const uint8_t * iv, const i2p::crypto::MACKey& macKey)
 	{	
 		if (len < sizeof (SSUHeader))
 		{
@@ -635,7 +635,7 @@ namespace transport
 		}
 		//TODO: we are using a dirty solution here but should work for now
 		SSUHeader * header = (SSUHeader *)buf;
-		i2p::context.GetRandomNumberGenerator ().GenerateBlock (header->iv, 16); // random iv
+		RAND_bytes (header->iv, 16); // random iv
 		m_SessionKeyEncryption.SetIV (header->iv);
 		header->flag = payloadType << 4; // MSB is 0
 		htobe32buf (&(header->time), i2p::util::GetSecondsSinceEpoch ());
@@ -648,7 +648,7 @@ namespace transport
 		i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, m_MacKey, header->mac);
 	}	
 		
-	void SSUSession::Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey)
+	void SSUSession::Decrypt (uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey)
 	{
 		if (len < sizeof (SSUHeader))
 		{
@@ -683,7 +683,7 @@ namespace transport
 		}	
 	}	
 		
-	bool SSUSession::Validate (uint8_t * buf, size_t len, const uint8_t * macKey)
+	bool SSUSession::Validate (uint8_t * buf, size_t len, const i2p::crypto::MACKey& macKey)
 	{
 		if (len < sizeof (SSUHeader))
 		{
@@ -715,7 +715,7 @@ namespace transport
 
 	void SSUSession::WaitForConnect ()
 	{
-		if (!m_RemoteRouter) // incoming session
+		if (!IsOutgoing ()) // incoming session
 			ScheduleConnectTimer ();
 		else
 			LogPrint (eLogError, "SSU wait for connect for outgoing session");	
@@ -739,7 +739,7 @@ namespace transport
 		}	
 	}	
 	
-	void SSUSession::Introduce (uint32_t iTag, const uint8_t * iKey)
+	void SSUSession::Introduce (const i2p::data::RouterInfo::Introducer& introducer)
 	{
 		if (m_State == eSessionStateUnknown)
 		{	
@@ -748,7 +748,7 @@ namespace transport
 			m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
 				shared_from_this (), std::placeholders::_1));
 		}	
-		SendRelayRequest (iTag, iKey);
+		SendRelayRequest (introducer);
 	}
 
 	void SSUSession::WaitForIntroduction ()
@@ -777,15 +777,12 @@ namespace transport
 	void SSUSession::Established ()
 	{
 		m_State = eSessionStateEstablished;
-		if (m_DHKeysPair)
-		{
-			delete m_DHKeysPair;
-			m_DHKeysPair = nullptr;
-		}
+		m_DHKeysPair = nullptr;
+		m_SignedData = nullptr;
 		m_Data.Start ();
-		m_Data.Send (ToSharedI2NPMessage(CreateDatabaseStoreMsg ()));
+		m_Data.Send (CreateDatabaseStoreMsg ());
 		transports.PeerConnected (shared_from_this ());
-		if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
+		if (m_IsPeerTest)
 			SendPeerTest ();
 		ScheduleTermination ();
 	}	
@@ -816,21 +813,6 @@ namespace transport
 		}	
 	}	
 	
-	const uint8_t * SSUSession::GetIntroKey () const
-	{
-		if (m_RemoteRouter)
-		{
-			// we are client
-			auto address = m_RemoteRouter->GetSSUAddress ();
-			return address ? (const uint8_t *)address->key : nullptr;
-		}
-		else
-		{
-			// we are server
-			auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
-			return address ? (const uint8_t *)address->key : nullptr;
-		}
-	}	
 
 	void SSUSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
@@ -994,8 +976,7 @@ namespace transport
 			memcpy (payload, introKey, 32); // intro key
 
 		// send	
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (iv, 16); // random iv
+		RAND_bytes (iv, 16); // random iv
 		if (toAddress)
 		{	
 			// encrypt message with specified intro key
@@ -1021,9 +1002,10 @@ namespace transport
 			LogPrint (eLogError, "SSU is not supported. Can't send peer test");
 			return;
 		}
-		uint32_t nonce = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
+		uint32_t nonce;
+		RAND_bytes ((uint8_t *)&nonce, 4);
 		if (!nonce) nonce = 1;
-		m_PeerTest = false;
+		m_IsPeerTest = false;
 		m_Server.NewPeerTest (nonce, ePeerTestParticipantAlice1);
 		SendPeerTest (nonce, 0, 0, address->key, false, false); // address and port always zero for Alice
 	}	

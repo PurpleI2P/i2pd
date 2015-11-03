@@ -1,14 +1,13 @@
 #include <fstream>
-#include <cryptopp/dh.h>
-#include <cryptopp/dsa.h>
 #include <boost/lexical_cast.hpp>
-#include "CryptoConst.h"
-#include "RouterContext.h"
+#include "Crypto.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "NetDb.h"
 #include "util.h"
 #include "version.h"
+#include "Log.h"
+#include "RouterContext.h"
 
 namespace i2p
 {
@@ -22,6 +21,7 @@ namespace i2p
 
 	void RouterContext::Init ()
 	{
+		srand (i2p::util::GetMillisecondsSinceEpoch () % 1000);
 		m_StartupTime = i2p::util::GetSecondsSinceEpoch ();
 		if (!Load ())
 			CreateNewRouter ();
@@ -41,7 +41,7 @@ namespace i2p
 		routerInfo.SetRouterIdentity (GetIdentity ());
 		int port = i2p::util::config::GetArg("-port", 0);
 		if (!port)
-			port = m_Rnd.GenerateWord32 (9111, 30777); // I2P network ports range
+			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		routerInfo.AddSSUAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"), port, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress (i2p::util::config::GetCharArg("-host", "127.0.0.1"), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
@@ -51,6 +51,7 @@ namespace i2p
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.SetProperty ("stat_uptime", "90m");
 		routerInfo.CreateBuffer (m_Keys);
+		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 	}
 
@@ -61,6 +62,25 @@ namespace i2p
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}	
 
+	void RouterContext::SetStatus (RouterStatus status) 
+	{ 
+		if (status != m_Status)
+		{	
+			m_Status = status;
+			switch (m_Status)
+			{	
+				case eRouterStatusOK:
+					SetReachable ();
+				break;
+				case eRouterStatusFirewalled:
+					SetUnreachable ();
+				break;	
+				default:
+					;
+			}
+		}	
+	}
+		
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;
@@ -92,16 +112,11 @@ namespace i2p
 			UpdateRouterInfo ();
 	}
 
-	bool RouterContext::AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag)
+	bool RouterContext::AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer)
 	{
-		bool ret = false;
-		auto address = routerInfo.GetSSUAddress ();
-		if (address)
-		{	
-			ret = m_RouterInfo.AddIntroducer (address, tag);
-			if (ret)
-				UpdateRouterInfo ();
-		}	
+		bool ret = m_RouterInfo.AddIntroducer (introducer);
+		if (ret)
+			UpdateRouterInfo ();	
 		return ret;
 	}	
 
@@ -188,7 +203,7 @@ namespace i2p
 		{
 			if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportSSU)
 			{
-				// insert NTCP address with host/port form SSU
+				// insert NTCP address with host/port from SSU
 				m_RouterInfo.AddNTCPAddress (addresses[i].host.to_string ().c_str (), addresses[i].port);
 				break;
 			}
@@ -267,6 +282,7 @@ namespace i2p
 		m_Keys = keys;
 
 		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
+		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 		m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
 		m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
@@ -283,7 +299,7 @@ namespace i2p
 		i2p::data::Keys keys;
 		memcpy (keys.privateKey, m_Keys.GetPrivateKey (), sizeof (keys.privateKey));
 		memcpy (keys.signingPrivateKey, m_Keys.GetSigningPrivateKey (), sizeof (keys.signingPrivateKey));
-		auto& ident = GetIdentity ().GetStandardIdentity ();	
+		auto& ident = GetIdentity ()->GetStandardIdentity ();	
 		memcpy (keys.publicKey, ident.publicKey, sizeof (keys.publicKey));
 		memcpy (keys.signingKey, ident.signingKey, sizeof (keys.signingKey));
 		fk.write ((char *)&keys, sizeof (keys));	

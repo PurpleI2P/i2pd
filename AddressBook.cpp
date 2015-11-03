@@ -7,8 +7,7 @@
 #include <condition_variable>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
-#include <cryptopp/osrng.h>
-#include "base64.h"
+#include "Base.h"
 #include "util.h"
 #include "Identity.h"
 #include "Log.h"
@@ -26,8 +25,8 @@ namespace client
 		public:
 
 			AddressBookFilesystemStorage ();
-			bool GetAddress (const i2p::data::IdentHash& ident, i2p::data::IdentityEx& address) const;
-			void AddAddress (const i2p::data::IdentityEx& address);
+			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
+			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 			void RemoveAddress (const i2p::data::IdentHash& ident);
 
 			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
@@ -50,7 +49,7 @@ namespace client
 		}
 	}
 
-	bool AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident, i2p::data::IdentityEx& address) const
+	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
 		auto filename = GetPath () / (ident.ToBase32() + ".b32");
 		std::ifstream f(filename.c_str (), std::ifstream::binary);
@@ -61,28 +60,28 @@ namespace client
 			if (len < i2p::data::DEFAULT_IDENTITY_SIZE)
 			{
 				LogPrint (eLogError, "File ", filename, " is too short. ", len);
-				return false;
+				return nullptr;
 			}
 			f.seekg(0, std::ios::beg);
 			uint8_t * buf = new uint8_t[len];
 			f.read((char *)buf, len);
-			address.FromBuffer (buf, len);
+			auto address = std::make_shared<i2p::data::IdentityEx>(buf, len);
 			delete[] buf;
-			return true;
+			return address;
 		}
 		else
-			return false;
+			return nullptr;
 	}
 
-	void AddressBookFilesystemStorage::AddAddress (const i2p::data::IdentityEx& address)
+	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
-		auto filename = GetPath () / (address.GetIdentHash ().ToBase32() + ".b32");
+		auto filename = GetPath () / (address->GetIdentHash ().ToBase32() + ".b32");
 		std::ofstream f (filename.c_str (), std::ofstream::binary | std::ofstream::out);
 		if (f.is_open ())	
 		{
-			size_t len = address.GetFullLen ();
+			size_t len = address->GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
-			address.ToBuffer (buf, len);
+			address->ToBuffer (buf, len);
 			f.write ((char *)buf, len);
 			delete[] buf;
 		}
@@ -256,29 +255,29 @@ namespace client
 
 	void AddressBook::InsertAddress (const std::string& address, const std::string& base64)
 	{
-		i2p::data::IdentityEx ident;
-		ident.FromBase64 (base64);
+		auto ident = std::make_shared<i2p::data::IdentityEx>();
+		ident->FromBase64 (base64);
 		if (!m_Storage)
 			 m_Storage = CreateStorage ();
 		m_Storage->AddAddress (ident);
-		m_Addresses[address] = ident.GetIdentHash ();
-		LogPrint (address,"->", ToAddress(ident.GetIdentHash ()), " added");
+		m_Addresses[address] = ident->GetIdentHash ();
+		LogPrint (address,"->", ToAddress(ident->GetIdentHash ()), " added");
 	}
 
-	void AddressBook::InsertAddress (const i2p::data::IdentityEx& address)
+	void AddressBook::InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
 		if (!m_Storage) 
 			m_Storage = CreateStorage ();
 		m_Storage->AddAddress (address);
 	}
 
-	bool AddressBook::GetAddress (const std::string& address, i2p::data::IdentityEx& identity)
+	std::shared_ptr<const i2p::data::IdentityEx> AddressBook::GetAddress (const std::string& address)
 	{
 		if (!m_Storage) 
 			m_Storage = CreateStorage ();
 		i2p::data::IdentHash ident;
-		if (!GetIdentHash (address, ident)) return false;
-		return m_Storage->GetAddress (ident, identity);
+		if (!GetIdentHash (address, ident)) return nullptr;
+		return m_Storage->GetAddress (ident);
 	}	
 
 	void AddressBook::LoadHosts ()
@@ -332,10 +331,10 @@ namespace client
 				std::string name = s.substr(0, pos++);
 				std::string addr = s.substr(pos);
 
-				i2p::data::IdentityEx ident;
-				if (ident.FromBase64(addr))
+				auto ident = std::make_shared<i2p::data::IdentityEx> ();
+				if (ident->FromBase64(addr))
 				{	
-					m_Addresses[name] = ident.GetIdentHash ();
+					m_Addresses[name] = ident->GetIdentHash ();
 					m_Storage->AddAddress (ident);
 					numAddresses++;
 				}	
@@ -415,11 +414,10 @@ namespace client
 		{
 			auto dest = i2p::client::context.GetSharedLocalDestination ();
 			if (!dest) return;
-			if (m_IsLoaded && !m_IsDownloading && dest->IsReady ())
+			if (m_IsLoaded && !m_IsDownloading && dest->IsReady () && !m_Subscriptions.empty ())
 			{
 				// pick random subscription
-				CryptoPP::AutoSeededRandomPool rnd;
-				auto ind = rnd.GenerateWord32 (0, m_Subscriptions.size() - 1);	
+				auto ind = rand () % m_Subscriptions.size();	
 				m_IsDownloading = true;	
 				m_Subscriptions[ind]->CheckSubscription ();		
 			}

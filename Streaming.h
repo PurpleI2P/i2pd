@@ -11,6 +11,7 @@
 #include <memory>
 #include <mutex>
 #include <boost/asio.hpp>
+#include "Base.h"
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "LeaseSet.h"
@@ -107,7 +108,7 @@ namespace stream
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
 			uint32_t GetRecvStreamID () const { return m_RecvStreamID; };
 			std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet () const { return m_RemoteLeaseSet; };
-			const i2p::data::IdentityEx& GetRemoteIdentity () const { return m_RemoteIdentity; };
+			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () const { return m_RemoteIdentity; };
 			bool IsOpen () const { return m_Status == eStreamStatusOpen; };
 			bool IsEstablished () const { return m_SendStreamID; };
 			StreamStatus GetStatus () const { return m_Status; };
@@ -166,7 +167,7 @@ namespace stream
 			StreamStatus m_Status;
 			bool m_IsAckSendScheduled;
 			StreamingDestination& m_LocalDestination;
-			i2p::data::IdentityEx m_RemoteIdentity;
+			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
 			i2p::data::Lease m_CurrentRemoteLease;
@@ -192,9 +193,8 @@ namespace stream
 
 			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
-			StreamingDestination (i2p::client::ClientDestination& owner, uint16_t localPort = 0): 
-				m_Owner (owner), m_LocalPort (localPort) {};
-			~StreamingDestination () {};	
+			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0);
+			~StreamingDestination ();	
 
 			void Start ();
 			void Stop ();
@@ -204,7 +204,7 @@ namespace stream
 			void SetAcceptor (const Acceptor& acceptor) { m_Acceptor = acceptor; };
 			void ResetAcceptor () { if (m_Acceptor) m_Acceptor (nullptr); m_Acceptor = nullptr; };
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
-			i2p::client::ClientDestination& GetOwner () { return m_Owner; };
+			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
@@ -216,7 +216,7 @@ namespace stream
 
 		private:
 
-			i2p::client::ClientDestination& m_Owner;
+			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
 			uint16_t m_LocalPort;
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams;
@@ -224,6 +224,9 @@ namespace stream
 			
 		public:
 
+			i2p::data::GzipInflator m_Inflator;
+			i2p::data::GzipDeflator m_Deflator;
+			
 			// for HTTP only
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
 	};		

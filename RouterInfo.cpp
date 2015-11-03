@@ -3,15 +3,11 @@
 #include "I2PEndian.h"
 #include <fstream>
 #include <boost/lexical_cast.hpp>
-#include <cryptopp/sha.h>
-#include <cryptopp/dsa.h>
-#include "CryptoConst.h"
-#include "base64.h"
+#include "Crypto.h"
+#include "Base.h"
 #include "Timestamp.h"
 #include "Log.h"
 #include "RouterInfo.h"
-#include "RouterContext.h"
-
 
 namespace i2p
 {
@@ -41,21 +37,38 @@ namespace data
 		
 	void RouterInfo::Update (const uint8_t * buf, int len)
 	{
-		if (!m_Buffer)	
-			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-		m_IsUpdated = true;
-		m_IsUnreachable = false;
-		m_SupportedTransports = 0;
-		m_Caps = 0;
-		m_Addresses.clear ();
-		m_Properties.clear ();
-		memcpy (m_Buffer, buf, len);
-		m_BufferLen = len;
-		ReadFromBuffer (true);
-		// don't delete buffer until save to file
+		// verify signature since we have indentity already
+		int l = len - m_RouterIdentity->GetSignatureLen ();
+		if (m_RouterIdentity->Verify (buf, l, buf + l))
+		{
+			// clean up
+			m_IsUpdated = true;
+			m_IsUnreachable = false;
+			m_SupportedTransports = 0;
+			m_Caps = 0;
+			m_Addresses.clear ();
+			m_Properties.clear ();
+			// copy buffer
+			if (!m_Buffer)	
+				m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+			memcpy (m_Buffer, buf, len);
+			m_BufferLen = len;
+			// skip identity
+			size_t identityLen = m_RouterIdentity->GetFullLen ();
+			// read new RI	
+			std::stringstream str (std::string ((char *)m_Buffer + identityLen, m_BufferLen - identityLen));
+			ReadFromStream (str);
+			// don't delete buffer until saved to the file
+		}
+		else
+		{	
+			LogPrint (eLogError, "RouterInfo signature verification failed");	
+			m_IsUnreachable = true;
+		}
+		m_RouterIdentity->DropVerifier ();
 	}	
 		
-	void RouterInfo::SetRouterIdentity (const IdentityEx& identity)
+	void RouterInfo::SetRouterIdentity (std::shared_ptr<const IdentityEx> identity)
 	{	
 		m_RouterIdentity = identity;
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch ();
@@ -94,19 +107,20 @@ namespace data
 
 	void RouterInfo::ReadFromBuffer (bool verifySignature)
 	{
-		size_t identityLen = m_RouterIdentity.FromBuffer (m_Buffer, m_BufferLen);
+		m_RouterIdentity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
+		size_t identityLen = m_RouterIdentity->GetFullLen ();
 		std::stringstream str (std::string ((char *)m_Buffer + identityLen, m_BufferLen - identityLen));
 		ReadFromStream (str);
 		if (verifySignature)
 		{	
 			// verify signature
-			int l = m_BufferLen - m_RouterIdentity.GetSignatureLen ();
-			if (!m_RouterIdentity.Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))
+			int l = m_BufferLen - m_RouterIdentity->GetSignatureLen ();
+			if (!m_RouterIdentity->Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))
 			{	
-				LogPrint (eLogError, "signature verification failed");	
+				LogPrint (eLogError, "RouterInfo signature verification failed");	
 				m_IsUnreachable = true;
 			}
-			m_RouterIdentity.DropVerifier ();
+			m_RouterIdentity->DropVerifier ();
 		}	
 	}	
 	
@@ -419,7 +433,7 @@ namespace data
 		if (!m_Buffer)
 		{
 			if (LoadFile ())
-				LogPrint ("Buffer for ", GetIdentHashAbbreviation (), " loaded from file");
+				LogPrint ("Buffer for ", GetIdentHashAbbreviation (GetIdentHash ()), " loaded from file");
 		} 
 		return m_Buffer; 
 	}
@@ -429,7 +443,7 @@ namespace data
 		m_Timestamp = i2p::util::GetMillisecondsSinceEpoch (); // refresh timstamp
 		std::stringstream s;
 		uint8_t ident[1024];
-		auto identLen = privateKeys.GetPublic ().ToBuffer (ident, 1024);
+		auto identLen = privateKeys.GetPublic ()->ToBuffer (ident, 1024);
 		s.write ((char *)ident, identLen);			
 		WriteToStream (s);
 		m_BufferLen = s.str ().size ();
@@ -438,7 +452,7 @@ namespace data
 		memcpy (m_Buffer, s.str ().c_str (), m_BufferLen);
 		// signature
 		privateKeys.Sign ((uint8_t *)m_Buffer, m_BufferLen, (uint8_t *)m_Buffer + m_BufferLen);
-		m_BufferLen += privateKeys.GetPublic ().GetSignatureLen ();
+		m_BufferLen += privateKeys.GetPublic ()->GetSignatureLen ();
 	}	
 
 	void RouterInfo::SaveToFile (const std::string& fullPath)
@@ -481,6 +495,8 @@ namespace data
 		addr.cost = 2;
 		addr.date = 0;
 		addr.mtu = 0;
+		for (auto it: m_Addresses) // don't insert same address twice
+			if (it == addr) return;
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eNTCPV4;
 	}	
@@ -495,26 +511,23 @@ namespace data
 		addr.date = 0;
 		addr.mtu = mtu; 
 		memcpy (addr.key, key, 32);
+		for (auto it: m_Addresses) // don't insert same address twice
+			if (it == addr) return;
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eSSUV4;
 		m_Caps |= eSSUTesting; 
 		m_Caps |= eSSUIntroducer; 
 	}	
 
-	bool RouterInfo::AddIntroducer (const Address * address, uint32_t tag)
+	bool RouterInfo::AddIntroducer (const Introducer& introducer)
 	{
 		for (auto& addr : m_Addresses)
 		{
 			if (addr.transportStyle == eTransportSSU && addr.host.is_v4 ())
 			{	
 				for (auto intro: addr.introducers)
-					if (intro.iTag == tag) return false; // already presented
-				Introducer x;
-				x.iHost = address->host;
-				x.iPort = address->port;
-				x.iTag = tag;
-				memcpy (x.iKey, address->key, 32); // TODO: replace to Tag<32>
-				addr.introducers.push_back (x);
+					if (intro.iTag == introducer.iTag) return false; // already presented
+				addr.introducers.push_back (introducer);
 				return true;
 			}	
 		}	

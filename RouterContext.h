@@ -6,8 +6,6 @@
 #include <memory>
 #include <mutex>
 #include <boost/asio.hpp>
-#include <cryptopp/dsa.h>
-#include <cryptopp/osrng.h>
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "Garlic.h"
@@ -41,16 +39,15 @@ namespace i2p
 				return std::shared_ptr<const i2p::data::RouterInfo> (&m_RouterInfo, 
 					[](const i2p::data::RouterInfo *) {});
 			}
-			CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator () { return m_Rnd; };	
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			RouterStatus GetStatus () const { return m_Status; };
-			void SetStatus (RouterStatus status) { m_Status = status; };
+			void SetStatus (RouterStatus status);
 
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
-			bool AddIntroducer (const i2p::data::RouterInfo& routerInfo, uint32_t tag);
+			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const;
 			void SetUnreachable ();		
@@ -69,7 +66,7 @@ namespace i2p
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_Keys.GetPrivateKey (); };
-			const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ().GetStandardIdentity ().publicKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ()->GetStandardIdentity ().publicKey; };
 			void SetLeaseSetUpdated () {};
 
 			// implements GarlicDestination
@@ -93,7 +90,6 @@ namespace i2p
 
 			i2p::data::RouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys; 
-			CryptoPP::AutoSeededRandomPool m_Rnd;
 			uint64_t m_LastUpdateTime;
 			bool m_AcceptsTunnels, m_IsFloodfill;
 			uint64_t m_StartupTime; // in seconds since epoch

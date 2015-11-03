@@ -5,7 +5,7 @@
 #include <vector>
 #include <mutex>
 #include <memory>
-#include "aes.h"
+#include "Crypto.h"
 #include "I2NPProtocol.h"
 #include "TunnelEndpoint.h"
 #include "TunnelGateway.h"
@@ -24,20 +24,12 @@ namespace tunnel
 	    		const uint8_t * layerKey,const uint8_t * ivKey); 
 			
 			virtual size_t GetNumTransmittedBytes () const { return 0; };
-			
-			uint32_t GetTunnelID () const { return m_TunnelID; };
 
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
 			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
-			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 
-			uint32_t GetNextTunnelID () const { return m_NextTunnelID; };
-			const i2p::data::IdentHash& GetNextIdentHash () const { return m_NextIdent; };
-			
+			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 			
 		private:
-
-			uint32_t m_TunnelID, m_NextTunnelID;
-			i2p::data::IdentHash m_NextIdent;
 			
 			i2p::crypto::TunnelEncryption m_Encryption;
 	};	

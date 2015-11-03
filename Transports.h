@@ -11,7 +11,6 @@
 #include <string>
 #include <memory>
 #include <atomic>
-#include <cryptopp/osrng.h>
 #include <boost/asio.hpp>
 #include "TransportSession.h"
 #include "NTCPSession.h"
@@ -19,10 +18,6 @@
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 #include "Identity.h"
-
-#ifdef USE_UPNP
-#include "UPnP.h"
-#endif
 
 namespace i2p
 {
@@ -36,8 +31,8 @@ namespace transport
 			~DHKeysPairSupplier ();
 			void Start ();
 			void Stop ();
-			DHKeysPair * Acquire ();
-			void Return (DHKeysPair * pair);
+			std::shared_ptr<i2p::crypto::DHKeys> Acquire ();
+			void Return (std::shared_ptr<i2p::crypto::DHKeys> pair);
 
 		private:
 
@@ -47,13 +42,12 @@ namespace transport
 		private:
 
 			const int m_QueueSize;
-			std::queue<DHKeysPair *> m_Queue;
+			std::queue<std::shared_ptr<i2p::crypto::DHKeys> > m_Queue;
 
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			std::condition_variable m_Acquired;
 			std::mutex m_AcquiredMutex;
-			CryptoPP::AutoSeededRandomPool m_Rnd;
 	};
 
 	struct Peer
@@ -84,8 +78,8 @@ namespace transport
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
-			i2p::transport::DHKeysPair * GetNextDHKeysPair ();	
-			void ReuseDHKeysPair (DHKeysPair * pair);
+			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();	
+			void ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair);
 
 			void SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg);
 			void SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs);
@@ -105,6 +99,8 @@ namespace transport
 			size_t GetNumPeers () const { return m_Peers.size (); };
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
 
+			void PeerTest ();
+			
 		private:
 
 			void Run ();
@@ -140,10 +136,6 @@ namespace transport
 			uint32_t m_InBandwidth, m_OutBandwidth;
 			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;	
 			uint64_t m_LastBandwidthUpdateTime;		
-
-#ifdef USE_UPNP
-			UPnP m_UPnP;
-#endif
 
 		public:
 

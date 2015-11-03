@@ -1,7 +1,7 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include "base64.h"
+#include "Base.h"
 #include "Log.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"
@@ -466,7 +466,8 @@ namespace util
 	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
 	const char HTTP_COMMAND_TRANSPORTS[] = "transports";	
 	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
-	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";		
+	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";	
+	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";	
 	const char HTTP_COMMAND_LOCAL_DESTINATIONS[] = "local_destinations";
 	const char HTTP_COMMAND_LOCAL_DESTINATION[] = "local_destination";
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
@@ -702,6 +703,7 @@ namespace util
 			s << "<br><b><a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a></b><br>";
 		else	
 			s << "<br><b><a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a></b><br>";
+		s << "<br><b><a href=/?" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a></b><br>";	
 
 		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
 	}
@@ -720,6 +722,8 @@ namespace util
 			StartAcceptingTunnels (s);
 		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
 			StopAcceptingTunnels (s);
+		else if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
+			RunPeerTest (s);
 		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATIONS)
 			ShowLocalDestinations (s);	
 		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATION)
@@ -751,11 +755,10 @@ namespace util
 				if (it.second && it.second->IsEstablished ())
 				{
 					// incoming connection doesn't have remote RI
-					auto outgoing = it.second->GetRemoteRouter ();
-					if (outgoing) s << "-->";
-					s << it.second->GetRemoteIdentity ().GetIdentHash ().ToBase64 ().substr (0, 4) <<  ": "
+					if (it.second->IsOutgoing ()) s << "-->";
+					s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) <<  ": "
 						<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
-					if (!outgoing) s << "-->";
+					if (!it.second->IsOutgoing ()) s << "-->";
 					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 					s << "<br>";
 				}
@@ -769,11 +772,10 @@ namespace util
 			for (auto it: ssuServer->GetSessions ())
 			{
 				// incoming connections don't have remote router
-				auto outgoing = it.second->GetRemoteRouter ();
 				auto endpoint = it.second->GetRemoteEndpoint ();
-				if (outgoing) s << "-->";
+				if (it.second->IsOutgoing ()) s << "-->";
 				s << endpoint.address ().to_string () << ":" << endpoint.port ();
-				if (!outgoing) s << "-->";
+				if (!it.second->IsOutgoing ()) s << "-->";
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				if (it.second->GetRelayTag ())
 					s << " [itag:" << it.second->GetRelayTag () << "]";
@@ -789,7 +791,7 @@ namespace util
 
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
 		{
-			it->GetTunnelConfig ()->Print (s);
+			it->Print (s);
 			auto state = it->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
@@ -801,7 +803,7 @@ namespace util
 
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
 		{
-			it.second->GetTunnelConfig ()->Print (s);
+			it.second->Print (s);
 			auto state = it.second->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
@@ -844,7 +846,7 @@ namespace util
 		auto dest = i2p::client::context.FindLocalDestination (ident);
 		if (dest)
 		{
-			s << "<b>Base64:</b><br>" << dest->GetIdentity ().ToBase64 () << "<br><br>";
+			s << "<b>Base64:</b><br>" << dest->GetIdentity ()->ToBase64 () << "<br><br>";
 			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>";
 			auto pool = dest->GetTunnelPool ();
 			if (pool)
@@ -852,7 +854,7 @@ namespace util
 				s << "<b>Tunnels:</b><br>";
 				for (auto it: pool->GetOutboundTunnels ())
 				{
-					it->GetTunnelConfig ()->Print (s);
+					it->Print (s);
 					auto state = it->GetState ();
 					if (state == i2p::tunnel::eTunnelStateFailed)
 						s << " " << "Failed";
@@ -862,7 +864,7 @@ namespace util
 				}
 				for (auto it: pool->GetInboundTunnels ())
 				{
-					it->GetTunnelConfig ()->Print (s);
+					it->Print (s);
 					auto state = it->GetState ();
 					if (state == i2p::tunnel::eTunnelStateFailed)
 						s << " " << "Failed";
@@ -946,6 +948,12 @@ namespace util
 	{
 		i2p::context.SetAcceptsTunnels (false);
 		s << "Accepting tunnels stopped" <<  std::endl;
+	}
+
+	void HTTPConnection::RunPeerTest (std::stringstream& s)
+	{
+		i2p::transport::transports.PeerTest ();
+		s << "Peer test" <<  std::endl;
 	}
 
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
@@ -1044,7 +1052,7 @@ namespace util
 
 	HTTPServer::HTTPServer (int port):
 		m_Thread (nullptr), m_Work (m_Service),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port)),
+		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4 (), port)),
 		m_NewSocket (nullptr)
 	{
 

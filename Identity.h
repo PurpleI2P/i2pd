@@ -5,84 +5,18 @@
 #include <string.h>
 #include <string>
 #include <memory>
-#include "base64.h"
-#include "ElGamal.h"
+#include "Base.h"
 #include "Signature.h"
 
 namespace i2p
 {
 namespace data
 {
-	template<int sz>
-	class Tag
-	{
-		public:
-
-			Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); };
-			Tag (const Tag<sz>& ) = default;
-#ifndef _WIN32 // FIXME!!! msvs 2013 can't compile it
-			Tag (Tag<sz>&& ) = default;
-#endif
-			Tag () = default;
-			
-			Tag<sz>& operator= (const Tag<sz>& ) = default;
-#ifndef _WIN32
-			Tag<sz>& operator= (Tag<sz>&& ) = default;
-#endif
-			
-			uint8_t * operator()() { return m_Buf; };
-			const uint8_t * operator()() const { return m_Buf; };
-
-			operator uint8_t * () { return m_Buf; };
-			operator const uint8_t * () const { return m_Buf; };
-			
-			const uint64_t * GetLL () const { return ll; };
-
-			bool operator== (const Tag<sz>& other) const { return !memcmp (m_Buf, other.m_Buf, sz); };
-			bool operator< (const Tag<sz>& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; };
-
-			bool IsZero () const
-			{
-				for (int i = 0; i < sz/8; i++)
-					if (ll[i]) return false;
-				return true;
-			}
-			
-			std::string ToBase64 () const
-			{
-				char str[sz*2];
-				int l = i2p::data::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
-				str[l] = 0;
-				return std::string (str);
-			}
-
-			std::string ToBase32 () const
-			{
-				char str[sz*2];
-				int l = i2p::data::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
-				str[l] = 0;
-				return std::string (str);
-			}	
-
-			void FromBase32 (const std::string& s)
-			{
-				i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
-			}
-
-			void FromBase64 (const std::string& s)
-			{
-				i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
-			}
-
-		private:
-
-			union // 8 bytes alignment
-			{	
-				uint8_t m_Buf[sz];
-				uint64_t ll[sz/8];
-			};		
-	};	
 	typedef Tag<32> IdentHash;
+	inline std::string GetIdentHashAbbreviation (const IdentHash& ident) 
+	{ 
+		return ident.ToBase64 ().substr (0, 4); 
+	}
 
 #pragma pack(1)
 	struct Keys
@@ -142,6 +76,7 @@ namespace data
 				SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
 			IdentityEx (const uint8_t * buf, size_t len);
 			IdentityEx (const IdentityEx& other);
+			IdentityEx (const Identity& standard);
 			~IdentityEx ();
 			IdentityEx& operator=(const IdentityEx& other);
 			IdentityEx& operator=(const Identity& standard);
@@ -152,6 +87,7 @@ namespace data
 			std::string ToBase64 () const;
 			const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
 			size_t GetSigningPrivateKeyLen () const;
@@ -159,7 +95,7 @@ namespace data
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			SigningKeyType GetSigningKeyType () const;
 			CryptoKeyType GetCryptoKeyType () const;
-			void DropVerifier (); // to save memory			
+			void DropVerifier () const; // to save memory			
 
 		private:
 
@@ -169,7 +105,7 @@ namespace data
 
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
-			mutable i2p::crypto::Verifier * m_Verifier; 
+			mutable std::unique_ptr<i2p::crypto::Verifier> m_Verifier; 
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};	
@@ -178,19 +114,19 @@ namespace data
 	{
 		public:
 			
-			PrivateKeys (): m_Signer (nullptr) {};
-			PrivateKeys (const PrivateKeys& other): m_Signer (nullptr) { *this = other; };
-			PrivateKeys (const Keys& keys): m_Signer (nullptr) { *this = keys; };
+			PrivateKeys () = default;
+			PrivateKeys (const PrivateKeys& other) { *this = other; };
+			PrivateKeys (const Keys& keys) { *this = keys; };
 			PrivateKeys& operator=(const Keys& keys);
 			PrivateKeys& operator=(const PrivateKeys& other);
-			~PrivateKeys () { delete m_Signer; };
+			~PrivateKeys () = default;
 			
-			const IdentityEx& GetPublic () const { return m_Public; };
+			std::shared_ptr<const IdentityEx> GetPublic () const { return m_Public; };
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
-			size_t GetFullLen () const { return m_Public.GetFullLen () + 256 + m_Public.GetSigningPrivateKeyLen (); }; 		
+			size_t GetFullLen () const { return m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen (); }; 		
 			size_t FromBuffer (const uint8_t * buf, size_t len);
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 
@@ -205,10 +141,10 @@ namespace data
 			
 		private:
 
-			IdentityEx m_Public;
+			std::shared_ptr<IdentityEx> m_Public;
 			uint8_t m_PrivateKey[256];
 			uint8_t m_SigningPrivateKey[1024]; // assume private key doesn't exceed 1024 bytes
-			i2p::crypto::Signer * m_Signer;
+			std::unique_ptr<i2p::crypto::Signer> m_Signer;
 	};
 
 	// kademlia
@@ -239,17 +175,6 @@ namespace data
 			virtual const IdentHash& GetIdentHash () const = 0;
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
 			virtual bool IsDestination () const = 0; // for garlic 
-
-			std::unique_ptr<const i2p::crypto::ElGamalEncryption>& GetElGamalEncryption () const
-			{
-				if (!m_ElGamalEncryption)
-					m_ElGamalEncryption.reset (new i2p::crypto::ElGamalEncryption (GetEncryptionPublicKey ()));
-				return m_ElGamalEncryption;
-			}
-			
-		private:
-
-			mutable std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption; // use lazy initialization
 	};	
 
 	class LocalDestination 
@@ -261,8 +186,8 @@ namespace data
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
 
-			const IdentityEx& GetIdentity () const { return GetPrivateKeys ().GetPublic (); };
-			const IdentHash& GetIdentHash () const { return GetIdentity ().GetIdentHash (); };  
+			std::shared_ptr<const IdentityEx> GetIdentity () const { return GetPrivateKeys ().GetPublic (); };
+			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };  
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const 
 			{ 
 				GetPrivateKeys ().Sign (buf, len, signature); 

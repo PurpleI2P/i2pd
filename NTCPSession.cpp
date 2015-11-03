@@ -1,12 +1,13 @@
 #include <string.h>
 #include <stdlib.h>
+#include <openssl/dh.h>
+#include <openssl/sha.h>
+#include <zlib.h>
 #include "I2PEndian.h"
-#include <cryptopp/dh.h>
-#include <cryptopp/adler32.h>
-#include "base64.h"
+#include "Base.h"
 #include "Log.h"
 #include "Timestamp.h"
-#include "CryptoConst.h"
+#include "Crypto.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "Transports.h"
@@ -35,15 +36,9 @@ namespace transport
 
 	void NTCPSession::CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key)
 	{
-		CryptoPP::DH dh (elgp, elgg);
 		uint8_t sharedKey[256];
-		if (!dh.Agree (sharedKey, m_DHKeysPair->privateKey, pubKey))
-		{    
-		    LogPrint (eLogError, "Couldn't create shared key");
-			Terminate ();
-			return;
-		};
-
+		m_DHKeysPair->Agree (pubKey, sharedKey);
+		
 		uint8_t * aesKey = key;
 		if (sharedKey[0] & 0x80)
 		{
@@ -97,11 +92,10 @@ namespace transport
 		delete m_Establisher;
 		m_Establisher = nullptr;
 		
-		delete m_DHKeysPair;
 		m_DHKeysPair = nullptr;	
 
 		SendTimeSyncMessage ();
-		m_SendQueue.push_back (ToSharedI2NPMessage(CreateDatabaseStoreMsg ())); // we tell immediately who we are		
+		m_SendQueue.push_back (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
 
 		transports.PeerConnected (shared_from_this ());
 	}	
@@ -111,10 +105,10 @@ namespace transport
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		// send Phase1
-		const uint8_t * x = m_DHKeysPair->publicKey;
+		const uint8_t * x = m_DHKeysPair->GetPublicKey ();
 		memcpy (m_Establisher->phase1.pubKey, x, 256);
-		CryptoPP::SHA256().CalculateDigest(m_Establisher->phase1.HXxorHI, x, 256);
-		const uint8_t * ident = m_RemoteIdentity.GetIdentHash ();
+		SHA256(x, 256, m_Establisher->phase1.HXxorHI);
+		const uint8_t * ident = m_RemoteIdentity->GetIdentHash ();
 		for (int i = 0; i < 32; i++)
 			m_Establisher->phase1.HXxorHI[i] ^= ident[i];
 		
@@ -166,8 +160,8 @@ namespace transport
 		{	
 			// verify ident
 			uint8_t digest[32];
-			CryptoPP::SHA256().CalculateDigest(digest, m_Establisher->phase1.pubKey, 256);
-			const uint8_t * ident = i2p::context.GetRouterInfo ().GetIdentHash ();
+			SHA256(m_Establisher->phase1.pubKey, 256, digest);
+			const uint8_t * ident = i2p::context.GetIdentHash ();
 			for (int i = 0; i < 32; i++)
 			{	
 				if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i])
@@ -186,12 +180,12 @@ namespace transport
 	{
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
-		const uint8_t * y = m_DHKeysPair->publicKey;
+		const uint8_t * y = m_DHKeysPair->GetPublicKey ();
 		memcpy (m_Establisher->phase2.pubKey, y, 256);
 		uint8_t xy[512];
 		memcpy (xy, m_Establisher->phase1.pubKey, 256);
 		memcpy (xy + 256, y, 256);
-		CryptoPP::SHA256().CalculateDigest(m_Establisher->phase2.encrypted.hxy, xy, 512); 
+		SHA256(xy, 512, m_Establisher->phase2.encrypted.hxy); 
 		uint32_t tsB = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		m_Establisher->phase2.encrypted.timestamp = tsB;
 		// TODO: fill filler
@@ -233,7 +227,7 @@ namespace transport
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				// this RI is not valid
-				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ().GetIdentHash (), true);
+				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);
 				transports.ReuseDHKeysPair (m_DHKeysPair);
 				m_DHKeysPair = nullptr;
 				Terminate ();
@@ -251,9 +245,11 @@ namespace transport
 			m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 			// verify
 			uint8_t xy[512];
-			memcpy (xy, m_DHKeysPair->publicKey, 256);
+			memcpy (xy, m_DHKeysPair->GetPublicKey (), 256);
 			memcpy (xy + 256, m_Establisher->phase2.pubKey, 256);
-			if (!CryptoPP::SHA256().VerifyDigest(m_Establisher->phase2.encrypted.hxy, xy, 512)) 
+			uint8_t digest[32];
+			SHA256 (xy, 512, digest);
+			if (memcmp(m_Establisher->phase2.encrypted.hxy, digest, 32)) 
 			{
 				LogPrint (eLogError, "Incorrect hash");
 				transports.ReuseDHKeysPair (m_DHKeysPair);
@@ -269,13 +265,13 @@ namespace transport
 	{
 		auto keys = i2p::context.GetPrivateKeys ();
 		uint8_t * buf = m_ReceiveBuffer; 
-		htobe16buf (buf, keys.GetPublic ().GetFullLen ());
+		htobe16buf (buf, keys.GetPublic ()->GetFullLen ());
 		buf += 2;
-		buf += i2p::context.GetIdentity ().ToBuffer (buf, NTCP_BUFFER_SIZE);
+		buf += i2p::context.GetIdentity ()->ToBuffer (buf, NTCP_BUFFER_SIZE);
 		uint32_t tsA = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		htobuf32(buf,tsA);
 		buf += 4;		
-		size_t signatureLen = keys.GetPublic ().GetSignatureLen ();
+		size_t signatureLen = keys.GetPublic ()->GetSignatureLen ();
 		size_t len = (buf - m_ReceiveBuffer) + signatureLen;
 		size_t paddingSize = len & 0x0F; // %16
 		if (paddingSize > 0) 
@@ -289,7 +285,7 @@ namespace transport
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
-		s.Insert (m_RemoteIdentity.GetIdentHash (), 32); // ident
+		s.Insert (m_RemoteIdentity->GetIdentHash (), 32); // ident
  		s.Insert (tsA);	// tsA
 		s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
 		s.Sign (keys, buf);
@@ -310,7 +306,7 @@ namespace transport
 		else
 		{	
 			// wait for phase4 
-			auto signatureLen = m_RemoteIdentity.GetSignatureLen ();
+			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
 			size_t paddingSize = signatureLen & 0x0F; // %16
 			if (paddingSize > 0) signatureLen += (16 - paddingSize);	
 			boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer, signatureLen), boost::asio::transfer_all (),                  
@@ -332,20 +328,20 @@ namespace transport
 			m_Decryption.Decrypt (m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 			uint8_t * buf = m_ReceiveBuffer;
 			uint16_t size = bufbe16toh (buf);
-			m_RemoteIdentity.FromBuffer (buf + 2, size);
-			if (m_Server.FindNTCPSession (m_RemoteIdentity.GetIdentHash ()))
+			SetRemoteIdentity (std::make_shared<i2p::data::IdentityEx> (buf + 2, size));
+			if (m_Server.FindNTCPSession (m_RemoteIdentity->GetIdentHash ()))
 			{
 				LogPrint (eLogError, "NTCP session already exists");
 				Terminate ();
 			}	
-			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity.GetSignatureLen ();
+			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity->GetSignatureLen ();
 			size_t paddingLen = expectedSize & 0x0F;
 			if (paddingLen) paddingLen = (16 - paddingLen);	
 			if (expectedSize > NTCP_DEFAULT_PHASE3_SIZE)
 			{
 				// we need more bytes for Phase3
 				expectedSize += paddingLen;	
-				boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE, expectedSize), boost::asio::transfer_all (),                   
+				boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE, expectedSize - NTCP_DEFAULT_PHASE3_SIZE), boost::asio::transfer_all (),                   
 				std::bind(&NTCPSession::HandlePhase3ExtraReceived, shared_from_this (), 
 					std::placeholders::_1, std::placeholders::_2, tsB, paddingLen));
 			}
@@ -371,7 +367,7 @@ namespace transport
 
 	void NTCPSession::HandlePhase3 (uint32_t tsB, size_t paddingLen)
 	{
-		uint8_t * buf = m_ReceiveBuffer + m_RemoteIdentity.GetFullLen () + 2 /*size*/;
+		uint8_t * buf = m_ReceiveBuffer + m_RemoteIdentity->GetFullLen () + 2 /*size*/;
 		uint32_t tsA = buf32toh(buf); 
 		buf += 4;
 		buf += paddingLen;	
@@ -388,7 +384,6 @@ namespace transport
 			Terminate ();
 			return;
 		}	
-		m_RemoteIdentity.DropVerifier (); 
 
 		SendPhase4 (tsA, tsB);
 	}
@@ -398,11 +393,11 @@ namespace transport
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
-		s.Insert (m_RemoteIdentity.GetIdentHash (), 32); // ident
+		s.Insert (m_RemoteIdentity->GetIdentHash (), 32); // ident
 		s.Insert (tsA); // tsA
 		s.Insert (tsB); // tsB
 		auto keys = i2p::context.GetPrivateKeys ();
- 		auto signatureLen = keys.GetPublic ().GetSignatureLen ();
+ 		auto signatureLen = keys.GetPublic ()->GetSignatureLen ();
 		s.Sign (keys, m_ReceiveBuffer);
 		size_t paddingSize = signatureLen & 0x0F; // %16
 		if (paddingSize > 0) signatureLen += (16 - paddingSize);		
@@ -440,7 +435,7 @@ namespace transport
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				 // this router doesn't like us	
-				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ().GetIdentHash (), true);
+				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);
 				Terminate ();
 			}	
 		}
@@ -452,7 +447,7 @@ namespace transport
 			SignedData s;
 			s.Insert (m_Establisher->phase1.pubKey, 256); // x
 			s.Insert (m_Establisher->phase2.pubKey, 256); // y
-			s.Insert (i2p::context.GetRouterInfo ().GetIdentHash (), 32); // ident
+			s.Insert (i2p::context.GetIdentHash (), 32); // ident
 			s.Insert (tsA); // tsA
 			s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
 
@@ -462,7 +457,6 @@ namespace transport
 				Terminate ();
 				return;
 			}	
-			m_RemoteIdentity.DropVerifier (); 
 			LogPrint (eLogInfo, "NTCP session to ", m_Socket.remote_endpoint (), " connected");
 			Connected ();
 						
@@ -583,7 +577,9 @@ namespace transport
 		if (m_NextMessageOffset >= m_NextMessage->len + 4) // +checksum
 		{	
 			// we have a complete I2NP message
-			if (CryptoPP::Adler32().VerifyDigest (m_NextMessage->buf + m_NextMessageOffset - 4, m_NextMessage->buf, m_NextMessageOffset - 4))	
+			uint8_t checksum[4];
+			htobe32buf (checksum, adler32 (adler32 (0, Z_NULL, 0), m_NextMessage->buf, m_NextMessageOffset - 4));
+			if (!memcmp (m_NextMessage->buf + m_NextMessageOffset - 4, checksum, 4))	
 				m_Handler.PutNextMessage (m_NextMessage);
 			else
 				LogPrint (eLogWarning, "Incorrect adler checksum of NTCP message. Dropped");
@@ -625,7 +621,7 @@ namespace transport
 		int padding = 0;
 		if (rem > 0) padding = 16 - rem;
 		// TODO: fill padding 
-		CryptoPP::Adler32().CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
+		htobe32buf (sendBuffer + len + 2 + padding, adler32 (adler32 (0, Z_NULL, 0), sendBuffer, len + 2+ padding));
 
 		int l = len + padding + 6;
 		m_Encryption.Encrypt(sendBuffer, l, sendBuffer);	
@@ -799,19 +795,19 @@ namespace transport
 
 	void NTCPServer::AddNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
-		if (session)
+		if (session && session->GetRemoteIdentity ())
 		{
 			std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
-			m_NTCPSessions[session->GetRemoteIdentity ().GetIdentHash ()] = session;
+			m_NTCPSessions[session->GetRemoteIdentity ()->GetIdentHash ()] = session;
 		}
 	}	
 
 	void NTCPServer::RemoveNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
-		if (session)
+		if (session && session->GetRemoteIdentity ())
 		{
 			std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
-			m_NTCPSessions.erase (session->GetRemoteIdentity ().GetIdentHash ());
+			m_NTCPSessions.erase (session->GetRemoteIdentity ()->GetIdentHash ());
 		}
 	}	
 
@@ -914,7 +910,7 @@ namespace transport
         {
 			LogPrint (eLogError, "Connect error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ().GetIdentHash (), true);
+				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 			conn->Terminate ();
 		}
 		else

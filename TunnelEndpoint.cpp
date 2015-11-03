@@ -1,5 +1,6 @@
 #include "I2PEndian.h"
 #include <string.h>
+#include <openssl/sha.h>
 #include "Log.h"
 #include "NetDb.h"
 #include "I2NPProtocol.h"
@@ -27,7 +28,7 @@ namespace tunnel
 			// verify checksum
 			memcpy (msg->GetPayload () + TUNNEL_DATA_MSG_SIZE, msg->GetPayload () + 4, 16); // copy iv to the end
 			uint8_t hash[32];
-			CryptoPP::SHA256().CalculateDigest (hash, fragment, TUNNEL_DATA_MSG_SIZE -(fragment - msg->GetPayload ()) + 16); // payload + iv
+			SHA256(fragment, TUNNEL_DATA_MSG_SIZE -(fragment - msg->GetPayload ()) + 16, hash); // payload + iv
 			if (memcmp (hash, decrypted, 4))
 			{
 				LogPrint (eLogError, "TunnelMessage: checksum verification failed");

@@ -11,7 +11,6 @@
 #include "SAM.h"
 #include "BOB.h"
 #include "AddressBook.h"
-#include "I2PControl.h"
 
 namespace i2p
 {
@@ -72,7 +71,6 @@ namespace client
 			std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // destination->tunnel
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
-			I2PControlService * m_I2PControlService;
 
 		public:
 			// for HTTP

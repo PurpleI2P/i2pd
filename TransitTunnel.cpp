@@ -14,8 +14,7 @@ namespace tunnel
 	TransitTunnel::TransitTunnel (uint32_t receiveTunnelID, 
 	    const uint8_t * nextIdent, uint32_t nextTunnelID, 
 		const uint8_t * layerKey,const uint8_t * ivKey): 
-			m_TunnelID (receiveTunnelID),  m_NextTunnelID (nextTunnelID), 
-			m_NextIdent (nextIdent)
+			TunnelBase (receiveTunnelID, nextTunnelID, nextIdent)
 	{	
 		m_Encryption.SetKeys (layerKey, ivKey);
 	}	
@@ -54,12 +53,12 @@ namespace tunnel
 		
 	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{	
-		LogPrint (eLogError, "We are not a gateway for transit tunnel ", m_TunnelID);
+		LogPrint (eLogError, "We are not a gateway for transit tunnel ", GetTunnelID ());
 	}		
 
 	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
-		LogPrint (eLogError, "Incoming tunnel message is not supported  ", m_TunnelID);
+		LogPrint (eLogError, "Incoming tunnel message is not supported  ", GetTunnelID ());
 	}	
 		
 	void TransitTunnelGateway::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)

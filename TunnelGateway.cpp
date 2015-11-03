@@ -1,6 +1,7 @@
 #include <string.h>
+#include <openssl/rand.h>
+#include <openssl/sha.h>
 #include "I2PEndian.h"
-#include <cryptopp/sha.h>
 #include "Log.h"
 #include "RouterContext.h"
 #include "Transports.h"
@@ -13,7 +14,7 @@ namespace tunnel
 	TunnelGatewayBuffer::TunnelGatewayBuffer (uint32_t tunnelID): m_TunnelID (tunnelID), 
 				m_CurrentTunnelDataMsg (nullptr), m_RemainingSize (0) 
 	{
-		context.GetRandomNumberGenerator ().GenerateBlock (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
+		RAND_bytes (m_NonZeroRandomBuffer, TUNNEL_DATA_MAX_PAYLOAD_SIZE);
 		for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
 			if (!m_NonZeroRandomBuffer[i]) m_NonZeroRandomBuffer[i] = 1;
 	}
@@ -159,18 +160,17 @@ namespace tunnel
 		m_CurrentTunnelDataMsg->offset = m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
 		uint8_t * buf = m_CurrentTunnelDataMsg->GetPayload ();
 		htobe32buf (buf, m_TunnelID);
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		rnd.GenerateBlock (buf + 4, 16); // original IV	
+		RAND_bytes (buf + 4, 16); // original IV	
 		memcpy (payload + size, buf + 4, 16); // copy IV for checksum 
 		uint8_t hash[32];
-		CryptoPP::SHA256().CalculateDigest (hash, payload, size+16);
+		SHA256(payload, size+16, hash);
 		memcpy (buf+20, hash, 4); // checksum		
 		payload[-1] = 0; // zero	
 		ptrdiff_t paddingSize = payload - buf - 25; // 25  = 24 + 1 
 		if (paddingSize > 0)
 		{
 			// non-zero padding 
-			auto randomOffset = rnd.GenerateWord32 (0, TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize);
+			auto randomOffset = rand () % (TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize + 1);
 			memcpy (buf + 24, m_NonZeroRandomBuffer + randomOffset, paddingSize); 
 		}
 

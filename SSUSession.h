@@ -4,8 +4,7 @@
 #include <inttypes.h>
 #include <set>
 #include <memory>
-#include "aes.h"
-#include "hmac.h"
+#include "Crypto.h"
 #include "I2NPProtocol.h"
 #include "TransportSession.h"
 #include "SSUData.h"
@@ -70,7 +69,7 @@ namespace transport
 			
 			void Connect ();
 			void WaitForConnect ();
-			void Introduce (uint32_t iTag, const uint8_t * iKey);
+			void Introduce (const i2p::data::RouterInfo::Introducer& introducer);
 			void WaitForIntroduction ();
 			void Close ();
 			void Done ();
@@ -85,6 +84,7 @@ namespace transport
 			
 			void SendKeepAlive ();	
 			uint32_t GetRelayTag () const { return m_RelayTag; };	
+			const i2p::data::RouterInfo::IntroKey& GetIntroKey () const { return m_IntroKey; };
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 
 			void FlushData ();
@@ -98,7 +98,7 @@ namespace transport
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
-			void SendRelayRequest (uint32_t iTag, const uint8_t * iKey);
+			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
@@ -120,12 +120,11 @@ namespace transport
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			void Send (const uint8_t * buf, size_t size); 
 			
-			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey);
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey, const uint8_t * iv, const i2p::crypto::MACKey& macKey);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len); // with session key 
-			void Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey);
+			void Decrypt (uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey);
 			void DecryptSessionKey (uint8_t * buf, size_t len);
-			bool Validate (uint8_t * buf, size_t len, const uint8_t * macKey);			
-			const uint8_t * GetIntroKey () const; 
+			bool Validate (uint8_t * buf, size_t len, const i2p::crypto::MACKey& macKey);			
 
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
@@ -136,7 +135,7 @@ namespace transport
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			boost::asio::deadline_timer m_Timer;
-			bool m_PeerTest;
+			bool m_IsPeerTest;
 			SessionState m_State;
 			bool m_IsSessionKey;
 			uint32_t m_RelayTag;	
@@ -144,9 +143,11 @@ namespace transport
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			i2p::crypto::AESKey m_SessionKey;
 			i2p::crypto::MACKey m_MacKey;
+			i2p::data::RouterInfo::IntroKey m_IntroKey;
 			uint32_t m_CreationTime; // seconds since epoch
 			SSUData m_Data;
 			bool m_IsDataReceived;
+			std::unique_ptr<SignedData> m_SignedData; // we need it for SessionConfirmed only
 	};
 
 

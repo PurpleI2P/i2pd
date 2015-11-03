@@ -11,7 +11,7 @@
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
-#include "CryptoConst.h"
+#include "Crypto.h"
 #include "LeaseSet.h"
 #include "Garlic.h"
 #include "NetDb.h"
@@ -45,7 +45,8 @@ namespace client
 
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
-	class ClientDestination: public i2p::garlic::GarlicDestination
+	class ClientDestination: public i2p::garlic::GarlicDestination,
+		public std::enable_shared_from_this<ClientDestination>
 	{
 		typedef std::function<void (std::shared_ptr<i2p::data::LeaseSet> leaseSet)> RequestComplete;
 		// leaseSet = nullptr means not found

@@ -7,8 +7,9 @@
 #include <vector>
 #include <iostream>
 #include <mutex>
+#include <memory>
 #include <boost/asio.hpp>
-#include "base64.h"
+#include "Base.h"
 #include "util.h"
 #include "Identity.h"
 #include "Log.h"
@@ -31,8 +32,8 @@ namespace client
 		public:
 
 			virtual ~AddressBookStorage () {};
-			virtual bool GetAddress (const i2p::data::IdentHash& ident, i2p::data::IdentityEx& address) const = 0;	
-			virtual void AddAddress (const i2p::data::IdentityEx& address) = 0;
+			virtual std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const = 0;	
+			virtual void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) = 0;
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;
 		
 			virtual int Load (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
@@ -49,16 +50,16 @@ namespace client
 			void Start ();
 			void Stop ();
 			bool GetIdentHash (const std::string& address, i2p::data::IdentHash& ident);
-			bool GetAddress (const std::string& address, i2p::data::IdentityEx& identity);
+			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const std::string& address);
 			const i2p::data::IdentHash * FindAddress (const std::string& address);
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
-			void InsertAddress (const i2p::data::IdentityEx& address);
+			void InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
 			void LoadHostsFromStream (std::istream& f);
 			void DownloadComplete (bool success);
 			//This method returns the ".b32.i2p" address
 			std::string ToAddress(const i2p::data::IdentHash& ident) { return GetB32Address(ident); }
-			std::string ToAddress(const i2p::data::IdentityEx& ident) { return ToAddress(ident.GetIdentHash ()); }
+			std::string ToAddress(std::shared_ptr<const i2p::data::IdentityEx> ident) { return ToAddress(ident->GetIdentHash ()); }
 		private:
 
 			void StartSubscriptions ();

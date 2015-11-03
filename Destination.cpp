@@ -1,12 +1,12 @@
 #include <algorithm>
 #include <cassert>
 #include <boost/lexical_cast.hpp>
+#include <openssl/rand.h>
 #include "Log.h"
 #include "util.h"
-#include "ElGamal.h"
+#include "Crypto.h"
 #include "Timestamp.h"
 #include "NetDb.h"
-#include "AddressBook.h"
 #include "Destination.h"
 
 namespace i2p
@@ -19,7 +19,7 @@ namespace client
 		m_Keys (keys), m_IsPublic (isPublic), m_PublishReplyToken (0),
 		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
-		i2p::crypto::GenerateElGamalKeyPair(i2p::context.GetRandomNumberGenerator (), m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
@@ -86,8 +86,7 @@ namespace client
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
 		if (m_IsPublic)
-			LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
-		m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (*this); // TODO:
+			LogPrint (eLogInfo, "Local address ", GetIdentHash().ToBase32 (), " created");		
 	}
 
 	ClientDestination::~ClientDestination ()
@@ -123,8 +122,9 @@ namespace client
 		{	
 			m_IsRunning = true;
 			m_Pool->SetLocalDestination (this);
-			m_Pool->SetActive (true);
+			m_Pool->SetActive (true);			
 			m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
+			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this ()); // TODO:
 			m_StreamingDestination->Start ();	
 			for (auto it: m_StreamingDestinationsByPorts)
 				it.second->Start ();
@@ -141,7 +141,8 @@ namespace client
 		{	
 			m_CleanupTimer.cancel ();
 			m_IsRunning = false;
-			m_StreamingDestination->Stop ();	
+			m_StreamingDestination->Stop ();
+			m_StreamingDestination = nullptr;
 			for (auto it: m_StreamingDestinationsByPorts)
 				it.second->Stop ();
 			if (m_DatagramDestination)
@@ -396,8 +397,8 @@ namespace client
 		}	
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
-		m_PublishReplyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-		auto msg = WrapMessage (floodfill, ToSharedI2NPMessage (i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken)));			
+		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
+		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));			
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&ClientDestination::HandlePublishConfirmationTimer,
 			this, std::placeholders::_1));	
@@ -507,7 +508,7 @@ namespace client
 
 	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (int port)
 	{
-		auto dest = std::make_shared<i2p::stream::StreamingDestination> (*this, port); 
+		auto dest = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this (), port); 
 		if (port)
 			m_StreamingDestinationsByPorts[port] = dest;
 		else // update default 
@@ -518,7 +519,7 @@ namespace client
 	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
 	{
 		if (!m_DatagramDestination)
-			m_DatagramDestination = new i2p::datagram::DatagramDestination (*this);
+			m_DatagramDestination = new i2p::datagram::DatagramDestination (shared_from_this ());
 		return m_DatagramDestination;	
 	}
 
@@ -529,7 +530,7 @@ namespace client
 			if (requestComplete) requestComplete (false);
 			return false;
 		}	
-		m_Service.post (std::bind (&ClientDestination::RequestLeaseSet, this, dest, requestComplete));
+		m_Service.post (std::bind (&ClientDestination::RequestLeaseSet, shared_from_this (), dest, requestComplete));
 		return true;
 	}
 
@@ -579,15 +580,14 @@ namespace client
 			request->requestTime = i2p::util::GetSecondsSinceEpoch ();
 			request->requestTimeoutTimer.cancel ();
 
-			CryptoPP::AutoSeededRandomPool rnd;
 			uint8_t replyKey[32], replyTag[32];
-			rnd.GenerateBlock (replyKey, 32); // random session key 
-			rnd.GenerateBlock (replyTag, 32); // random session tag
+			RAND_bytes (replyKey, 32); // random session key 
+			RAND_bytes (replyTag, 32); // random session tag
 			AddSessionKey (replyKey, replyTag);
 
 			auto msg = WrapMessage (nextFloodfill,
-				ToSharedI2NPMessage (CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
-					replyTunnel.get (), replyKey, replyTag)));
+				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
+					replyTunnel.get (), replyKey, replyTag));
 			outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock 
@@ -646,7 +646,7 @@ namespace client
 			CleanupRemoteLeaseSets ();
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&ClientDestination::HandleCleanupTimer,
-				this, std::placeholders::_1));
+				shared_from_this (), std::placeholders::_1));
 		}
 	}	
 

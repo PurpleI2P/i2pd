@@ -1,9 +1,11 @@
 #include <thread>
+#include <memory>
+#include <openssl/ssl.h>
 
 #include "Daemon.h"
 
 #include "Log.h"
-#include "base64.h"
+#include "Base.h"
 #include "version.h"
 #include "Transports.h"
 #include "NTCPSession.h"
@@ -16,7 +18,12 @@
 #include "Streaming.h"
 #include "Destination.h"
 #include "HTTPServer.h"
+#include "I2PControl.h"
 #include "ClientContext.h"
+
+#ifdef USE_UPNP
+#include "UPnP.h"
+#endif
 
 namespace i2p
 {
@@ -25,14 +32,15 @@ namespace i2p
 		class Daemon_Singleton::Daemon_Singleton_Private
 		{
 		public:
-			Daemon_Singleton_Private() : httpServer(nullptr)
-			{};
-			~Daemon_Singleton_Private() 
-			{
-				delete httpServer;
-			};
+			Daemon_Singleton_Private() {};
+			~Daemon_Singleton_Private() {};
 
-			i2p::util::HTTPServer *httpServer;
+			std::unique_ptr<i2p::util::HTTPServer> httpServer;
+			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
+
+#ifdef USE_UPNP
+			UPnP m_UPnP;
+#endif	
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
@@ -51,6 +59,7 @@ namespace i2p
 
 		bool Daemon_Singleton::init(int argc, char* argv[])
 		{
+			SSL_library_init ();
 			i2p::util::config::OptionParser(argc, argv);
 			i2p::context.Init ();
 
@@ -106,17 +115,29 @@ namespace i2p
 					StartLog (""); // write to stdout
 			}
 
-			d.httpServer = new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070));
+			d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070)));
 			d.httpServer->Start();
 			LogPrint("HTTP Server started");
 			i2p::data::netdb.Start();
 			LogPrint("NetDB started");
+#ifdef USE_UPNP
+			d.m_UPnP.Start ();
+			LogPrint(eLogInfo, "UPnP started");
+#endif			
 			i2p::transport::transports.Start();
 			LogPrint("Transports started");
 			i2p::tunnel::tunnels.Start();
 			LogPrint("Tunnels started");
 			i2p::client::context.Start ();
 			LogPrint("Client started");
+			// I2P Control
+			int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
+			if (i2pcontrolPort)
+			{
+				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcontrolPort));
+				d.m_I2PControlService->Start ();
+				LogPrint("I2PControl started");
+			}
 			return true;
 		}
 
@@ -127,16 +148,24 @@ namespace i2p
 			LogPrint("Client stopped");
 			i2p::tunnel::tunnels.Stop();
 			LogPrint("Tunnels stopped");
+#ifdef USE_UPNP
+			d.m_UPnP.Stop ();
+			LogPrint(eLogInfo, "UPnP stopped");
+#endif			
 			i2p::transport::transports.Stop();
 			LogPrint("Transports stopped");
 			i2p::data::netdb.Stop();
 			LogPrint("NetDB stopped");
 			d.httpServer->Stop();
+			d.httpServer = nullptr;
 			LogPrint("HTTP Server stopped");
-
+			if (d.m_I2PControlService)
+			{
+				d.m_I2PControlService->Stop ();
+				d.m_I2PControlService = nullptr;
+				LogPrint("I2PControl stopped");	
+			}	
 			StopLog ();
-
-			delete d.httpServer; d.httpServer = nullptr;
 
 			return true;
 		}

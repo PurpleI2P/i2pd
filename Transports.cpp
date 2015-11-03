@@ -1,6 +1,6 @@
-#include <cryptopp/dh.h>
+#include <openssl/dh.h>
 #include "Log.h"
-#include "CryptoConst.h"
+#include "Crypto.h"
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "NetDb.h"
@@ -56,18 +56,18 @@ namespace transport
 	{
 		if (num > 0)
 		{
-			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
+			i2p::crypto::DHKeys dh;
 			for (int i = 0; i < num; i++)
 			{
-				i2p::transport::DHKeysPair * pair = new i2p::transport::DHKeysPair ();
-				dh.GenerateKeyPair(m_Rnd, pair->privateKey, pair->publicKey);
+				auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+				pair->GenerateKeys ();
 				std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 				m_Queue.push (pair);
 			}
 		}
 	}
 
-	DHKeysPair * DHKeysPairSupplier::Acquire ()
+	std::shared_ptr<i2p::crypto::DHKeys> DHKeysPairSupplier::Acquire ()
 	{
 		if (!m_Queue.empty ())
 		{
@@ -78,15 +78,14 @@ namespace transport
 			return pair;
 		}	
 		else // queue is empty, create new
-		{
-			DHKeysPair * pair = new DHKeysPair ();
-			CryptoPP::DH dh (i2p::crypto::elgp, i2p::crypto::elgg);
-			dh.GenerateKeyPair(m_Rnd, pair->privateKey, pair->publicKey);
+		{	
+			auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+			pair->GenerateKeys ();
 			return pair;
 		}
 	}
 
-	void DHKeysPairSupplier::Return (DHKeysPair * pair)
+	void DHKeysPairSupplier::Return (std::shared_ptr<i2p::crypto::DHKeys> pair)
 	{
 		std::unique_lock<std::mutex>  l(m_AcquiredMutex);
 		m_Queue.push (pair);
@@ -109,10 +108,6 @@ namespace transport
 
 	void Transports::Start ()
 	{
-#ifdef USE_UPNP
-		m_UPnP.Start ();
-		LogPrint(eLogInfo, "UPnP started");
-#endif
 		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
@@ -145,10 +140,6 @@ namespace transport
 		
 	void Transports::Stop ()
 	{	
-#ifdef USE_UPNP
-		m_UPnP.Stop ();
-		LogPrint(eLogInfo, "UPnP stopped");
-#endif
 		m_PeerCleanupTimer.cancel ();	
 		m_Peers.clear ();
 		if (m_SSUServer)
@@ -412,13 +403,34 @@ namespace transport
 		else
 			LogPrint (eLogError, "Can't detect external IP. SSU is not available");
 	}
-			
-	DHKeysPair * Transports::GetNextDHKeysPair ()
+
+	void Transports::PeerTest ()
+	{
+		if (m_SSUServer)
+		{
+			bool statusChanged = false;
+			for (int i = 0; i < 5; i++)
+			{
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
+				if (router && router->IsSSU ())
+				{	
+					if (!statusChanged)
+					{	
+						statusChanged = true;
+						i2p::context.SetStatus (eRouterStatusTesting); // first time only
+					}	
+					m_SSUServer->GetSession (router, true);  // peer test	
+				}	
+			}	
+		}
+	}	
+		
+	std::shared_ptr<i2p::crypto::DHKeys> Transports::GetNextDHKeysPair ()
 	{
 		return m_DHKeysPairSupplier.Acquire ();
 	}
 
-	void Transports::ReuseDHKeysPair (DHKeysPair * pair)
+	void Transports::ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair)
 	{
 		m_DHKeysPairSupplier.Return (pair);
 	}
@@ -427,7 +439,8 @@ namespace transport
 	{
 		m_Service.post([session, this]()
 		{   
-			auto ident = session->GetRemoteIdentity ().GetIdentHash ();
+			if (!session->GetRemoteIdentity ()) return;
+			auto ident = session->GetRemoteIdentity ()->GetIdentHash ();
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
@@ -444,7 +457,8 @@ namespace transport
 	{
 		m_Service.post([session, this]()
 		{  
-			auto ident = session->GetRemoteIdentity ().GetIdentHash ();
+			if (!session->GetRemoteIdentity ()) return;
+			auto ident = session->GetRemoteIdentity ()->GetIdentHash ();
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
@@ -491,9 +505,9 @@ namespace transport
 
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
 	{
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
+		if (!m_Peers.size ()) return nullptr;
 		auto it = m_Peers.begin ();
-		std::advance (it, rnd.GenerateWord32 (0, m_Peers.size () - 1));	
+		std::advance (it, rand () % m_Peers.size ());	
 		return it != m_Peers.end () ? it->second.router : nullptr;
 	}
 }

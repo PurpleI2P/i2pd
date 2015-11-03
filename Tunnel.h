@@ -10,6 +10,7 @@
 #include <mutex>
 #include <memory>
 #include "Queue.h"
+#include "Crypto.h"
 #include "TunnelConfig.h"
 #include "TunnelPool.h"
 #include "TransitTunnel.h"
@@ -43,6 +44,12 @@ namespace tunnel
 	class InboundTunnel;
 	class Tunnel: public TunnelBase
 	{
+		struct TunnelHop
+		{
+			std::shared_ptr<const i2p::data::IdentityEx> ident;
+			i2p::crypto::TunnelDecryption decryption;
+		};	
+		
 		public:
 
 			Tunnel (std::shared_ptr<const TunnelConfig> config);
@@ -51,8 +58,11 @@ namespace tunnel
 			void Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
 			
 			std::shared_ptr<const TunnelConfig> GetTunnelConfig () const { return m_Config; }
+			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const; 
+			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const; 
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state)  { m_State = state; };
+			int GetNumHops () const { return m_Hops.size (); }
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
@@ -66,12 +76,11 @@ namespace tunnel
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 
-			uint32_t GetNextTunnelID () const { return m_Config->GetFirstHop ()->tunnelID; };
-			const i2p::data::IdentHash& GetNextIdentHash () const { return m_Config->GetFirstHop ()->router->GetIdentHash (); };
-			
+					
 		private:
 
 			std::shared_ptr<const TunnelConfig> m_Config;
+			std::vector<std::unique_ptr<TunnelHop> > m_Hops;
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
 			bool m_IsRecreated;
@@ -81,22 +90,23 @@ namespace tunnel
 	{
 		public:
 
-			OutboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Gateway (this) {};
+			OutboundTunnel (std::shared_ptr<const TunnelConfig> config): 
+				Tunnel (config), m_Gateway (this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
 
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
 			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
-			std::shared_ptr<const i2p::data::RouterInfo> GetEndpointRouter () const 
-				{ return GetTunnelConfig ()->GetLastHop ()->router; }; 
+			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; }; 
 			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
-
+			void Print (std::stringstream& s) const;
+			
 			// implements TunnelBase
 			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
-			uint32_t GetTunnelID () const { return GetNextTunnelID (); };
 			
 		private:
 
 			std::mutex m_SendMutex;
 			TunnelGateway m_Gateway; 
+			i2p::data::IdentHash m_EndpointIdentHash;
 	};
 	
 	class InboundTunnel: public Tunnel, public std::enable_shared_from_this<InboundTunnel>
@@ -106,9 +116,8 @@ namespace tunnel
 			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
 			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
-
-			// implements TunnelBase
-			uint32_t GetTunnelID () const { return GetTunnelConfig ()->GetLastHop ()->nextTunnelID; };
+			void Print (std::stringstream& s) const;
+			
 		private:
 
 			TunnelEndpoint m_Endpoint; 

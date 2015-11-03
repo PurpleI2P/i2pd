@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include "Identity.h"
+#include "Crypto.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 
@@ -13,17 +14,15 @@ namespace i2p
 {
 namespace transport
 {
-	struct DHKeysPair // transient keys for transport sessions
-	{
-		uint8_t publicKey[256];
-		uint8_t privateKey[256];
-	};	
-
 	class SignedData
 	{
 		public:
 
-			SignedData () {};
+			SignedData () {}
+			SignedData (const SignedData& other) 
+			{
+				m_Stream << other.m_Stream.rdbuf ();
+			}	
 			void Insert (const uint8_t * buf, size_t len) 
 			{ 
 				m_Stream.write ((char *)buf, len); 
@@ -35,9 +34,9 @@ namespace transport
 				m_Stream.write ((char *)&t, sizeof (T)); 
 			}
 
-			bool Verify (const i2p::data::IdentityEx& ident, const uint8_t * signature) const
+			bool Verify (std::shared_ptr<const i2p::data::IdentityEx> ident, const uint8_t * signature) const
 			{
-				return ident.Verify ((const uint8_t *)m_Stream.str ().c_str (), m_Stream.str ().size (), signature); 
+				return ident->Verify ((const uint8_t *)m_Stream.str ().c_str (), m_Stream.str ().size (), signature); 
 			}
 
 			void Sign (const i2p::data::PrivateKeys& keys, uint8_t * signature) const
@@ -54,31 +53,31 @@ namespace transport
 	{
 		public:
 
-			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-				m_RemoteRouter (in_RemoteRouter), m_DHKeysPair (nullptr), 
-				m_NumSentBytes (0), m_NumReceivedBytes (0)
+			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> router): 
+				m_DHKeysPair (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0), m_IsOutgoing (router)
 			{
-				if (m_RemoteRouter)
-					m_RemoteIdentity = m_RemoteRouter->GetRouterIdentity ();
+				if (router)
+					m_RemoteIdentity = router->GetRouterIdentity ();
 			}
 
-			virtual ~TransportSession () { delete m_DHKeysPair; };
+			virtual ~TransportSession () {};
 			virtual void Done () = 0;
 			
-			std::shared_ptr<const i2p::data::RouterInfo> GetRemoteRouter () { return m_RemoteRouter; };
-			const i2p::data::IdentityEx& GetRemoteIdentity () { return m_RemoteIdentity; };
-
+			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () { return m_RemoteIdentity; };
+			void SetRemoteIdentity (std::shared_ptr<const i2p::data::IdentityEx> ident) { m_RemoteIdentity = ident; };
+			
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			bool IsOutgoing () const { return m_IsOutgoing; };
 			
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			
 		protected:
 
-			std::shared_ptr<const i2p::data::RouterInfo> m_RemoteRouter;
-			i2p::data::IdentityEx m_RemoteIdentity; 
-			DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
+			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity; 
+			std::shared_ptr<i2p::crypto::DHKeys> m_DHKeysPair; // X - for client and Y - for server
 			size_t m_NumSentBytes, m_NumReceivedBytes;
+			bool m_IsOutgoing;
 	};	
 }
 }

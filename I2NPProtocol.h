@@ -5,7 +5,7 @@
 #include <string.h>
 #include <set>
 #include <memory>
-#include <cryptopp/sha.h>
+#include <openssl/sha.h>
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -132,7 +132,7 @@ namespace tunnel
 		void UpdateChks () 
 		{
 			uint8_t hash[32];
-			CryptoPP::SHA256().CalculateDigest(hash, GetPayload (), GetPayloadLength ());
+			SHA256(GetPayload (), GetPayloadLength (), hash);
 			GetHeader ()[I2NP_HEADER_CHKS_OFFSET] = hash[0];
 		}	
 		
@@ -206,15 +206,15 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
 	
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID);
-	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
+	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);
-	I2NPMessage * CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
+	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
 		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag);
-	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, std::vector<i2p::data::IdentHash> routers);
+	std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, std::vector<i2p::data::IdentHash> routers);
 	
-	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, uint32_t replyToken = 0);
-	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint32_t replyToken = 0);		
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, uint32_t replyToken = 0);
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet, uint32_t replyToken = 0);		
 		
 	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText);
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);

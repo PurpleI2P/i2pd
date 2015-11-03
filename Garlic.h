@@ -8,8 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <memory>
-#include <cryptopp/osrng.h>
-#include "aes.h"
+#include "Crypto.h"
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
 #include "Queue.h"
@@ -80,7 +79,7 @@ namespace garlic
 				int numTags, bool attachLeaseSet);
 			GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag); // one time encryption
 			~GarlicRoutingSession ();
-			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<I2NPMessage> msg);
+			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 			void MessageConfirmed (uint32_t msgID);
 			bool CleanupExpiredTags (); // returns true if something left 
 
@@ -91,9 +90,9 @@ namespace garlic
 			
 		private:
 
-			size_t CreateAESBlock (uint8_t * buf, const I2NPMessage * msg);
-			size_t CreateGarlicPayload (uint8_t * payload, const I2NPMessage * msg, UnconfirmedTags * newTags);
-			size_t CreateGarlicClove (uint8_t * buf, const I2NPMessage * msg, bool isDestination);
+			size_t CreateAESBlock (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg);
+			size_t CreateGarlicPayload (uint8_t * payload, std::shared_ptr<const I2NPMessage> msg, UnconfirmedTags * newTags);
+			size_t CreateGarlicClove (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg, bool isDestination);
 			size_t CreateDeliveryStatusClove (uint8_t * buf, uint32_t msgID);
 
 			void TagsConfirmed (uint32_t msgID);
@@ -113,7 +112,7 @@ namespace garlic
 			uint64_t m_LeaseSetSubmissionTime; // in milliseconds
 			
 			i2p::crypto::CBCEncryption m_Encryption;
-			CryptoPP::AutoSeededRandomPool m_Rnd;
+			std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption; 
 	};	
 	
 	class GarlicDestination: public i2p::data::LocalDestination

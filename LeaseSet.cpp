@@ -1,8 +1,6 @@
 #include <string.h>
 #include "I2PEndian.h"
-#include <cryptopp/dsa.h>
-#include <cryptopp/osrng.h>
-#include "CryptoConst.h"
+#include "Crypto.h"
 #include "Log.h"
 #include "Timestamp.h"
 #include "NetDb.h"
@@ -37,17 +35,16 @@ namespace data
 			return;
 		}	
 		m_Buffer = new uint8_t[MAX_LS_BUFFER_SIZE];
-		m_BufferLen = localDestination->GetIdentity ().ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
+		m_BufferLen = localDestination->GetIdentity ()->ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
 		memcpy (m_Buffer + m_BufferLen, localDestination->GetEncryptionPublicKey (), 256);
 		m_BufferLen += 256;
-		auto signingKeyLen = localDestination->GetIdentity ().GetSigningPublicKeyLen ();
+		auto signingKeyLen = localDestination->GetIdentity ()->GetSigningPublicKeyLen ();
 		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
 		m_BufferLen += signingKeyLen;
 		auto tunnels = pool.GetInboundTunnels (5); // 5 tunnels maximum
 		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
 		m_BufferLen++;
 		// leases
-		CryptoPP::AutoSeededRandomPool rnd;	
 		for (auto it: tunnels)
 		{	
 			memcpy (m_Buffer + m_BufferLen, it->GetNextIdentHash (), 32);
@@ -56,13 +53,13 @@ namespace data
 			m_BufferLen += 4; // tunnel id
 			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
-			ts += rnd.GenerateWord32 (0, 5); // + random milliseconds
+			ts += rand () % 6; // + random milliseconds 0-5
 			htobe64buf (m_Buffer + m_BufferLen, ts);
 			m_BufferLen += 8; // end date
 		}
 		// signature
 		localDestination->Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
-		m_BufferLen += localDestination->GetIdentity ().GetSignatureLen (); 
+		m_BufferLen += localDestination->GetIdentity ()->GetSignatureLen (); 
 		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
 
 		ReadFromBuffer ();
@@ -79,15 +76,17 @@ namespace data
 		}	
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer ();
+		ReadFromBuffer (false);
 	}
 	
-	void LeaseSet::ReadFromBuffer ()	
+	void LeaseSet::ReadFromBuffer (bool readIdentity)	
 	{	
-		size_t size = m_Identity.FromBuffer (m_Buffer, m_BufferLen);
+		if (readIdentity || !m_Identity)
+			m_Identity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
+		size_t size = m_Identity->GetFullLen ();
 		memcpy (m_EncryptionKey, m_Buffer + size, 256);
 		size += 256; // encryption key
-		size += m_Identity.GetSigningPublicKeyLen (); // unused signing key
+		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
 		uint8_t num = m_Buffer[size];
 		size++; // num
 		LogPrint ("LeaseSet num=", (int)num);
@@ -116,7 +115,7 @@ namespace data
 		}	
 		
 		// verify
-		if (!m_Identity.Verify (m_Buffer, leases - m_Buffer, leases))
+		if (!m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
 		{
 			LogPrint (eLogWarning, "LeaseSet verification failed");
 			m_IsValid = false;

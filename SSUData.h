@@ -80,7 +80,7 @@ namespace transport
 	{
 		public:
 
-			SSUData (SSUSession& session);
+			SSUData (SSUSession& session); 
 			~SSUData ();
 
 			void Start ();
@@ -90,6 +90,7 @@ namespace transport
 			void FlushReceivedMessage ();
 			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
 
+			void AdjustPacketSize (std::shared_ptr<const i2p::data::RouterInfo> remoteRouter);	
 			void UpdatePacketSize (const i2p::data::IdentHash& remoteIdent);
 
 		private:
@@ -109,7 +110,6 @@ namespace transport
 			void ScheduleIncompleteMessagesCleanup ();
 			void HandleIncompleteMessagesCleanupTimer (const boost::system::error_code& ecode);	
 			
-			void AdjustPacketSize (const i2p::data::RouterInfo& remoteRouter);	
 			
 		private:	
 

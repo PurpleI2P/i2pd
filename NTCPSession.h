@@ -7,9 +7,7 @@
 #include <thread>
 #include <mutex>
 #include <boost/asio.hpp>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
-#include "aes.h"
+#include "Crypto.h"
 #include "Identity.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"

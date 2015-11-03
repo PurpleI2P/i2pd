@@ -1,13 +1,15 @@
 #include <string.h>
 #include <atomic>
+#include <openssl/rand.h>
+#include <openssl/sha.h>
+#include "Base.h"
+#include "Log.h"
+#include "Crypto.h"
 #include "I2PEndian.h"
-#include <cryptopp/gzip.h>
-#include "ElGamal.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
 #include "NetDb.h"
 #include "Tunnel.h"
-#include "base64.h"
 #include "Transports.h"
 #include "Garlic.h"
 #include "I2NPProtocol.h"
@@ -44,10 +46,8 @@ namespace i2p
 	void I2NPMessage::FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID)
 	{
 		SetTypeID (msgType);
-		if (replyMsgID) // for tunnel creation
-			SetMsgID (replyMsgID); 
-		else	
-			SetMsgID (i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
+		if (!replyMsgID) RAND_bytes ((uint8_t *)&replyMsgID, 4);
+		SetMsgID (replyMsgID); 
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); // TODO: 5 secs is a magic number
 		UpdateSize ();
 		UpdateChks ();
@@ -55,7 +55,9 @@ namespace i2p
 	
 	void I2NPMessage::RenewI2NPMessageHeader ()
 	{
-		SetMsgID (i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
+		uint32_t msgID;
+		RAND_bytes ((uint8_t *)&msgID, 4);
+		SetMsgID (msgID);
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); 		
 	}
 
@@ -98,7 +100,8 @@ namespace i2p
 		}
 		else // for SSU establishment
 		{
-			htobe32buf (buf + DELIVERY_STATUS_MSGID_OFFSET, i2p::context.GetRandomNumberGenerator ().GenerateWord32 ());
+			RAND_bytes ((uint8_t *)&msgID, 4);
+			htobe32buf (buf + DELIVERY_STATUS_MSGID_OFFSET, msgID);
 			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, 2); // netID = 2
 		}	
 		m->len += DELIVERY_STATUS_SIZE;
@@ -106,10 +109,10 @@ namespace i2p
 		return ToSharedI2NPMessage (m);
 	}
 
-	I2NPMessage * CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
+	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory, std::set<i2p::data::IdentHash> * excludedPeers)
 	{
-		I2NPMessage * m = excludedPeers ? NewI2NPMessage () : NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (excludedPeers ? NewI2NPMessage () : NewI2NPShortMessage ());
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, key, 32); // key
 		buf += 32;
@@ -151,12 +154,12 @@ namespace i2p
 		return m; 
 	}	
 
-	I2NPMessage * CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
+	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
 		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
 	{
 		int cnt = excludedFloodfills.size ();
-		I2NPMessage * m = cnt > 0 ? NewI2NPMessage () : NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (cnt > 0 ? NewI2NPMessage () : NewI2NPShortMessage ());
 		uint8_t * buf = m->GetPayload ();
 		memcpy (buf, dest, 32); // key
 		buf += 32;
@@ -188,10 +191,10 @@ namespace i2p
 		return m; 		  			
 	}			
 
-	I2NPMessage * CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
+	std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply (const i2p::data::IdentHash& ident, 
 		 std::vector<i2p::data::IdentHash> routers)
 	{
-		I2NPMessage * m = NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (NewI2NPShortMessage ());
 		uint8_t * buf = m->GetPayload ();
 		size_t len = 0;
 		memcpy (buf, ident, 32);
@@ -210,12 +213,12 @@ namespace i2p
 		return m; 
 	}	
 	
-	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, uint32_t replyToken)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::RouterInfo> router, uint32_t replyToken)
 	{
 		if (!router) // we send own RouterInfo
 			router = context.GetSharedRouterInfo ();
 
-		I2NPMessage * m = NewI2NPShortMessage ();
+		auto m = ToSharedI2NPMessage (NewI2NPShortMessage ());
 		uint8_t * payload = m->GetPayload ();		
 
 		memcpy (payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash (), 32);
@@ -230,33 +233,27 @@ namespace i2p
 			buf += 32;
 		}		
 
-		CryptoPP::Gzip compressor;
-		compressor.Put (router->GetBuffer (), router->GetBufferLen ());
-		compressor.MessageEnd();
-		auto size = compressor.MaxRetrievable ();
-		htobe16buf (buf, size); // size
+		uint8_t * sizePtr = buf;
 		buf += 2;
 		m->len += (buf - payload); // payload size
-		if (m->len + size > m->maxLen)
+		i2p::data::GzipDeflator deflator;
+		size_t size = deflator.Deflate (router->GetBuffer (), router->GetBufferLen (), buf, m->maxLen -m->len);
+		if (size)
 		{	
-			LogPrint (eLogInfo, "DatabaseStore message size is not enough for ", m->len + size);
-			auto newMsg = NewI2NPMessage ();
-			*newMsg = *m;
-			DeleteI2NPMessage (m);
-			m = newMsg;
-			buf = m->buf + m->len;
+			htobe16buf (sizePtr, size); // size
+			m->len += size;
 		}	
-		compressor.Get (buf, size); 
-		m->len += size;
-		m->FillI2NPMessageHeader (eI2NPDatabaseStore);
-		
+		else
+			m = nullptr;
+		if (m)
+			m->FillI2NPMessageHeader (eI2NPDatabaseStore);
 		return m;
 	}	
 
-	I2NPMessage * CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet,  uint32_t replyToken)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet,  uint32_t replyToken)
 	{
 		if (!leaseSet) return nullptr;
-		I2NPMessage * m = NewI2NPShortMessage ();
+		auto m =  ToSharedI2NPMessage (NewI2NPShortMessage ());
 		uint8_t * payload = m->GetPayload ();	
 		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash (), 32);
 		payload[DATABASE_STORE_TYPE_OFFSET] = 1; // LeaseSet
@@ -313,8 +310,8 @@ namespace i2p
 					record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30; // always reject with bandwidth reason (30)
 				
 				//TODO: fill filler
-				CryptoPP::SHA256().CalculateDigest(record + BUILD_RESPONSE_RECORD_HASH_OFFSET, 
-					record + BUILD_RESPONSE_RECORD_PADDING_OFFSET, BUILD_RESPONSE_RECORD_PADDING_SIZE + 1); // + 1 byte of ret
+				SHA256 (record + BUILD_RESPONSE_RECORD_PADDING_OFFSET, BUILD_RESPONSE_RECORD_PADDING_SIZE + 1, // + 1 byte of ret
+					record + BUILD_RESPONSE_RECORD_HASH_OFFSET);       
 				// encrypt reply
 				i2p::crypto::CBCEncryption encryption;
 				for (int j = 0; j < num; j++)

@@ -3,8 +3,9 @@
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
-#include <cryptopp/gzip.h>
-#include "base64.h"
+#include <openssl/rand.h>
+#include <zlib.h>
+#include "Base.h"
 #include "Log.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
@@ -38,23 +39,8 @@ namespace data
 	{	
 		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
-		{	
-			// try SU3 first
 			Reseed ();
 
-			// deprecated
-			if (m_Reseeder)
-			{
-				// if still not enough download .dat files
-				int reseedRetries = 0;
-				while (m_RouterInfos.size () < 25 && reseedRetries < 5)
-				{
-					m_Reseeder->reseedNow();
-					reseedRetries++;
-					Load ();
-				}
-			}
-		}	
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
 	}
@@ -245,6 +231,12 @@ namespace data
 			return nullptr;
 	}
 
+	std::shared_ptr<RouterProfile> NetDb::FindRouterProfile (const IdentHash& ident) const
+	{
+		auto router = FindRouter (ident);
+		return router ? router->GetProfile () : nullptr;
+	}	
+	
 	void NetDb::SetUnreachable (const IdentHash& ident, bool unreachable)
 	{
 		auto it = m_RouterInfos.find (ident);
@@ -518,25 +510,10 @@ namespace data
 				LogPrint ("Invalid RouterInfo length ", (int)size);
 				return;
 			}	
-			try
-			{	
-				CryptoPP::Gunzip decompressor;
-				decompressor.Put (buf + offset, size);
-				decompressor.MessageEnd();
-				uint8_t uncompressed[2048];
-				size_t uncomressedSize = decompressor.MaxRetrievable ();
-				if (uncomressedSize <= 2048)
-				{
-					decompressor.Get (uncompressed, uncomressedSize);
-					AddRouterInfo (ident, uncompressed, uncomressedSize);
-				}
-				else
-					LogPrint ("Invalid RouterInfo uncomressed length ", (int)uncomressedSize);
-			}
-			catch (CryptoPP::Exception& ex)
-			{
-				LogPrint (eLogError, "DatabaseStore: ", ex.what ());
-			}
+			uint8_t uncompressed[2048];
+			size_t uncompressedSize = m_Inflator.Inflate (buf + offset, size, uncompressed, 2048);
+			if (uncompressedSize)
+				AddRouterInfo (ident, uncompressed, uncompressedSize);
 		}	
 	}	
 
@@ -575,7 +552,7 @@ namespace data
 									{ 
 										i2p::tunnel::eDeliveryTypeRouter,
 										nextFloodfill->GetIdentHash (), 0,
-										ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) 
+										CreateDatabaseStoreMsg () 
 									});  
 								
 								// request destination
@@ -679,7 +656,7 @@ namespace data
 					excludedRouters.insert (r->GetIdentHash ());
 				}	
 			}	
-			replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, routers));
+			replyMsg = CreateDatabaseSearchReply (ident, routers);
 		}	
 		else
 		{	
@@ -692,7 +669,7 @@ namespace data
 					LogPrint ("Requested RouterInfo ", key, " found");
 					router->LoadBuffer ();
 					if (router->GetBuffer ()) 
-						replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (router));
+						replyMsg = CreateDatabaseStoreMsg (router);
 				}
 			}
 			
@@ -703,7 +680,7 @@ namespace data
 				if (leaseSet) // we don't send back our LeaseSets
 				{
 					LogPrint ("Requested LeaseSet ", key, " found");
-					replyMsg = ToSharedI2NPMessage (CreateDatabaseStoreMsg (leaseSet));
+					replyMsg = CreateDatabaseStoreMsg (leaseSet);
 				}
 			}
 			
@@ -716,7 +693,7 @@ namespace data
 					excludedRouters.insert (excluded);
 					excluded += 32;
 				}
-				replyMsg = ToSharedI2NPMessage (CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters)));
+				replyMsg = CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters));
 			}
 		}
 		
@@ -756,14 +733,13 @@ namespace data
 		auto inbound = exploratoryPool ? exploratoryPool->GetNextInboundTunnel () : nullptr;
 		bool throughTunnels = outbound && inbound;
 		
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
 		uint8_t randomHash[32];
 		std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 		std::set<const RouterInfo *> floodfills;
 		LogPrint ("Exploring new ", numDestinations, " routers ...");
 		for (int i = 0; i < numDestinations; i++)
 		{	
-			rnd.GenerateBlock (randomHash, 32);
+			RAND_bytes (randomHash, 32);
 			auto dest = m_Requests.CreateRequest (randomHash, true); // exploratory
 			if (!dest)
 			{	
@@ -782,7 +758,7 @@ namespace data
 						{ 
 							i2p::tunnel::eDeliveryTypeRouter,
 							floodfill->GetIdentHash (), 0,
-							ToSharedI2NPMessage (CreateDatabaseStoreMsg ()) // tell floodfill about us 
+							CreateDatabaseStoreMsg () // tell floodfill about us 
 						});  
 					msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 						{ 
@@ -809,9 +785,10 @@ namespace data
 			auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);
 			if (floodfill)
 			{
-				uint32_t replyToken = i2p::context.GetRandomNumberGenerator ().GenerateWord32 ();
-				LogPrint ("Publishing our RouterInfo to ", floodfill->GetIdentHashAbbreviation (), ". reply token=", replyToken);
-				transports.SendMessage (floodfill->GetIdentHash (), ToSharedI2NPMessage (CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken)));	
+				uint32_t replyToken;
+				RAND_bytes ((uint8_t *)&replyToken, 4);
+				LogPrint ("Publishing our RouterInfo to ", i2p::data::GetIdentHashAbbreviation(floodfill->GetIdentHash ()), ". reply token=", replyToken);
+				transports.SendMessage (floodfill->GetIdentHash (), CreateDatabaseStoreMsg (i2p::context.GetSharedRouterInfo (), replyToken));	
 				excluded.insert (floodfill->GetIdentHash ());
 			}
 		}	
@@ -868,8 +845,8 @@ namespace data
 	template<typename Filter>
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (Filter filter) const
 	{
-		CryptoPP::RandomNumberGenerator& rnd = i2p::context.GetRandomNumberGenerator ();
-		uint32_t ind = rnd.GenerateWord32 (0, m_RouterInfos.size () - 1);	
+		if (!m_RouterInfos.size ()) return 0;
+		uint32_t ind = rand () % m_RouterInfos.size ();	
 		for (int j = 0; j < 2; j++)
 		{	
 			uint32_t i = 0;

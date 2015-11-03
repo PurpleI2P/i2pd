@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #endif
 #include <boost/lexical_cast.hpp>
-#include "base64.h"
+#include "Base.h"
 #include "Identity.h"
 #include "Log.h"
 #include "Destination.h"
@@ -189,6 +189,8 @@ namespace client
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
+		else if (m_SocketType == eSAMSocketTypeStream)
+			HandleReceived (ecode, bytes_transferred);
 		else
 		{
 			bytes_transferred += m_BufferOffset;
@@ -342,17 +344,17 @@ namespace client
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
 		{
-			i2p::data::IdentityEx dest;
-			size_t len = dest.FromBase64(destination);
+			auto dest = std::make_shared<i2p::data::IdentityEx> ();
+			size_t len = dest->FromBase64(destination);
 			if (len > 0)
 			{
 				context.GetAddressBook().InsertAddress(dest);
-				auto leaseSet = m_Session->localDestination->FindLeaseSet(dest.GetIdentHash());
+				auto leaseSet = m_Session->localDestination->FindLeaseSet(dest->GetIdentHash());
 				if (leaseSet)
 					Connect(leaseSet);
 				else
 				{
-					m_Session->localDestination->RequestDestination(dest.GetIdentHash(),
+					m_Session->localDestination->RequestDestination(dest->GetIdentHash(),
 						std::bind(&SAMSocket::HandleConnectLeaseSetRequestComplete,
 						shared_from_this(), std::placeholders::_1));
 				}
@@ -451,7 +453,7 @@ namespace client
 			keys.GetPublic ().ToBase64 ().c_str (), keys.ToBase64 ().c_str ());	
 #else			                        
 		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, 
-		    keys.GetPublic ().ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
+		    keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #endif
 		SendMessageReply (m_Buffer, len, false);
 	}
@@ -462,11 +464,11 @@ namespace client
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
 		std::string& name = params[SAM_PARAM_NAME];
-		i2p::data::IdentityEx identity;
+		std::shared_ptr<const i2p::data::IdentityEx> identity;
 		i2p::data::IdentHash ident;
 		if (name == "ME")
 			SendNamingLookupReply (m_Session->localDestination->GetIdentity ());
-		else if (context.GetAddressBook ().GetAddress (name, identity))
+		else if ((identity = context.GetAddressBook ().GetAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
 		else if (m_Session && m_Session->localDestination &&
 			context.GetAddressBook ().GetIdentHash (name, ident))
@@ -512,9 +514,9 @@ namespace client
 		}
 	}	
 		
-	void SAMSocket::SendNamingLookupReply (const i2p::data::IdentityEx& identity)
+	void SAMSocket::SendNamingLookupReply (std::shared_ptr<const i2p::data::IdentityEx> identity)
 	{
-		auto base64 = identity.ToBase64 ();
+		auto base64 = identity->ToBase64 ();
 #ifdef _MSC_VER
 		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY, base64.c_str ()); 	
 #else			
@@ -631,7 +633,7 @@ namespace client
 			{
 				// send remote peer address
 				uint8_t ident[1024];
-				size_t l = stream->GetRemoteIdentity ().ToBuffer (ident, 1024);
+				size_t l = stream->GetRemoteIdentity ()->ToBuffer (ident, 1024);
 				size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, (char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
 				m_StreamBuffer[l1] = '\n';
 				HandleI2PReceive (boost::system::error_code (), l1 +1); // we send identity like it has been received from stream

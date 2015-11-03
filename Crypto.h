@@ -1,15 +1,113 @@
-#ifndef AES_H__
-#define AES_H__
+#ifndef CRYPTO_H__
+#define CRYPTO_H__
 
 #include <inttypes.h>
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
-#include "Identity.h"
+#include <string>
+#include <openssl/bn.h>
+#include <openssl/dh.h>
+#include <openssl/aes.h>
+#include "Base.h"
 
 namespace i2p
 {
 namespace crypto
-{	
+{
+	struct CryptoConstants
+	{
+		// DH/ElGamal
+		BIGNUM * elgp;
+		BIGNUM * elgg; 
+
+		// DSA
+		BIGNUM * dsap;		
+		BIGNUM * dsaq;
+		BIGNUM * dsag;
+
+		// RSA
+		BIGNUM * rsae;
+		
+		CryptoConstants (const uint8_t * elgp_, int elgg_, const uint8_t * dsap_, 
+			const uint8_t * dsaq_, const uint8_t * dsag_, int rsae_)
+		{
+			elgp = BN_new ();
+			BN_bin2bn (elgp_, 256, elgp);
+			elgg = BN_new ();
+			BN_set_word (elgg, elgg_);
+			dsap = BN_new ();
+			BN_bin2bn (dsap_, 128, dsap);
+			dsaq = BN_new ();
+			BN_bin2bn (dsaq_, 20, dsaq);
+			dsag = BN_new ();
+			BN_bin2bn (dsag_, 128, dsag);
+			rsae = BN_new ();
+			BN_set_word (rsae, rsae_);
+		}
+		
+		~CryptoConstants ()
+		{
+			BN_free (elgp);  BN_free (elgg); BN_free (dsap); BN_free (dsaq); BN_free (dsag); BN_free (rsae);
+		}	
+	};	
+	
+	const CryptoConstants& GetCryptoConstants ();
+	
+	// DH/ElGamal	
+	#define elgp GetCryptoConstants ().elgp
+	#define elgg GetCryptoConstants ().elgg
+
+	// DSA
+	#define dsap GetCryptoConstants ().dsap	
+	#define dsaq GetCryptoConstants ().dsaq
+	#define dsag GetCryptoConstants ().dsag	
+
+	// RSA
+	#define rsae GetCryptoConstants ().rsae	
+
+	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len);
+
+	// DH
+	class DHKeys
+	{
+		public:
+			
+			DHKeys ();
+			~DHKeys ();
+
+			void GenerateKeys (uint8_t * priv = nullptr, uint8_t * pub = nullptr);
+			const uint8_t * GetPublicKey ();
+			void Agree (const uint8_t * pub, uint8_t * shared);
+			
+		private:
+
+			DH * m_DH;
+			uint8_t m_PublicKey[256];
+			bool m_IsUpdated;
+	};	
+	
+	// ElGamal
+	class ElGamalEncryption
+	{
+		public:
+
+			ElGamalEncryption (const uint8_t * key);
+			~ElGamalEncryption ();
+			
+			void Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding = false) const;
+
+		private:
+
+			BN_CTX * ctx;
+			BIGNUM * a, * b1;
+	};
+
+	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, bool zeroPadding = false);
+	void GenerateElGamalKeyPair (uint8_t * priv, uint8_t * pub);
+
+	// HMAC
+	typedef i2p::data::Tag<32> MACKey;		
+	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest);
+
+	// AES
 	struct ChipherBlock	
 	{
 		uint8_t buf[16];
@@ -95,7 +193,7 @@ namespace crypto
 	typedef ECBEncryptionAESNI ECBEncryption;
 	typedef ECBDecryptionAESNI ECBDecryption;
 
-#else // use crypto++
+#else // use openssl
 
 	class ECBEncryption
 	{
@@ -103,16 +201,16 @@ namespace crypto
 		
 			void SetKey (const AESKey& key) 
 			{ 
-				m_Encryption.SetKey (key, 32); 
+				AES_set_encrypt_key (key, 256, &m_Key);
 			}
 			void Encrypt (const ChipherBlock * in, ChipherBlock * out)
 			{
-				m_Encryption.ProcessData (out->buf, in->buf, 16);
+				AES_encrypt (in->buf, out->buf, &m_Key);
 			}	
 
 		private:
 
-			CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption m_Encryption;
+			AES_KEY m_Key;
 	};	
 
 	class ECBDecryption
@@ -121,16 +219,16 @@ namespace crypto
 		
 			void SetKey (const AESKey& key) 
 			{ 
-				m_Decryption.SetKey (key, 32); 
+				AES_set_decrypt_key (key, 256, &m_Key); 
 			}
 			void Decrypt (const ChipherBlock * in, ChipherBlock * out)
 			{
-				m_Decryption.ProcessData (out->buf, in->buf, 16);
+				AES_decrypt (in->buf, out->buf, &m_Key);
 			}	
 
 		private:
 
-			CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_Decryption;
+			AES_KEY m_Key;
 	};		
 
 
@@ -217,9 +315,8 @@ namespace crypto
 #else
 			CBCDecryption m_LayerDecryption;
 #endif
-	};
-}
-}
+	};	
+}		
+}	
 
 #endif
-

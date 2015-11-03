@@ -283,7 +283,11 @@ namespace transport
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 				auto it = m_Sessions.find (remoteEndpoint);
 				if (it != m_Sessions.end ())
+				{	
 					session = it->second;
+					if (peerTest && session->GetState () == eSessionStateEstablished)
+						session->SendPeerTest ();
+				}	
 				else
 				{
 					// otherwise create new session					
@@ -295,7 +299,7 @@ namespace transport
 					if (!router->UsesIntroducer ())
 					{
 						// connect directly						
-						LogPrint ("Creating new SSU session to [", router->GetIdentHashAbbreviation (), "] ",
+						LogPrint ("Creating new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
 							remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
 						session->Connect ();
 					}
@@ -331,7 +335,7 @@ namespace transport
 								m_Sessions[introducerEndpoint] = introducerSession;													
 							}	
 							// introduce
-							LogPrint ("Introduce new SSU session to [", router->GetIdentHashAbbreviation (), 
+							LogPrint ("Introduce new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), 
 									"] through introducer ", introducer->iHost, ":", introducer->iPort);
 							session->WaitForIntroduction ();	
 							if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
@@ -339,7 +343,7 @@ namespace transport
 								uint8_t buf[1];
 								Send (buf, 0, remoteEndpoint); // send HolePunch
 							}	
-							introducerSession->Introduce (introducer->iTag, introducer->iKey);
+							introducerSession->Introduce (*introducer);
 						}
 						else
 						{	
@@ -352,7 +356,7 @@ namespace transport
 				}
 			}
 			else
-				LogPrint (eLogWarning, "Router ", router->GetIdentHashAbbreviation (), " doesn't have SSU address");
+				LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
 		}
 		return session;
 	}
@@ -383,7 +387,7 @@ namespace transport
 			if (filter (s.second)) filteredSessions.push_back (s.second);
 		if (filteredSessions.size () > 0)
 		{
-			auto ind = i2p::context.GetRandomNumberGenerator ().GenerateWord32 (0, filteredSessions.size ()-1);
+			auto ind = rand () % filteredSessions.size ();
 			return filteredSessions[ind];
 		}
 		return nullptr;	
@@ -468,10 +472,15 @@ namespace transport
 				{
 					for (auto it1: introducers)
 					{
-						auto router = it1->GetRemoteRouter ();
-						if (router && i2p::context.AddIntroducer (*router, it1->GetRelayTag ()))
+						auto& ep = it1->GetRemoteEndpoint ();
+						i2p::data::RouterInfo::Introducer introducer;
+						introducer.iHost = ep.address ();
+						introducer.iPort = ep.port ();
+						introducer.iTag = it1->GetRelayTag ();
+						introducer.iKey = it1->GetIntroKey ();
+						if (i2p::context.AddIntroducer (introducer))
 						{	
-							newList.push_back (it1->GetRemoteEndpoint ());
+							newList.push_back (ep);
 							if (newList.size () >= SSU_MAX_NUM_INTRODUCERS) break;
 						}	
 					}	
