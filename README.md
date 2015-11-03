@@ -2,6 +2,7 @@ i2pd
 ====
 
 I2P router written in C++
+Mirror of https://bitbucket.org/orignal/i2pd/src
 
 License
 -------
@@ -14,11 +15,12 @@ Donations
 
 BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY   
 LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59   
+ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z
 
 Requirements for Linux/FreeBSD/OSX
 ----------------------------------
 
-GCC 4.6 or newer, Boost 1.46 or newer, crypto++. Clang can be used instead of
+GCC 4.6 or newer, Boost 1.46 or newer, openssl, zlib. Clang can be used instead of
 GCC.
 
 Requirements for Windows
@@ -50,7 +52,7 @@ Testing
 First, build it.
 
 On Ubuntu/Debian based
-* sudo apt-get install libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libcrypto++-dev libboost-date-time-dev
+* sudo apt-get install libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-date-time-dev libssl-dev zlib1g-dev 
 * $ cd i2pd
 * $ make
 
