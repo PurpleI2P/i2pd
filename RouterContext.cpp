@@ -30,7 +30,7 @@ namespace i2p
 
 	void RouterContext::CreateNewRouter ()
 	{
-		m_Keys = i2p::data::CreateRandomKeys ();
+		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 		SaveKeys ();
 		NewRouterInfo ();
 	}
@@ -276,10 +276,23 @@ namespace i2p
 	{
 		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ofstream::in);
 		if (!fk.is_open ())	return false;
-		
-		i2p::data::Keys keys;	
-		fk.read ((char *)&keys, sizeof (keys));
-		m_Keys = keys;
+		fk.seekg (0, std::ios::end);
+		size_t len = fk.tellg();
+		fk.seekg (0, std::ios::beg);		
+
+		if (len == sizeof (i2p::data::Keys)) // old keys file format
+		{
+			i2p::data::Keys keys;	
+			fk.read ((char *)&keys, sizeof (keys));
+			m_Keys = keys;
+		}
+		else // new keys file format
+		{
+			uint8_t * buf = new uint8_t[len];
+			fk.read ((char *)buf, len);
+			m_Keys.FromBuffer (buf, len);
+			delete[] buf;
+		}
 
 		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
@@ -295,14 +308,13 @@ namespace i2p
 
 	void RouterContext::SaveKeys ()
 	{	
+		// save in the same format as .dat files
 		std::ofstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ofstream::binary | std::ofstream::out);
-		i2p::data::Keys keys;
-		memcpy (keys.privateKey, m_Keys.GetPrivateKey (), sizeof (keys.privateKey));
-		memcpy (keys.signingPrivateKey, m_Keys.GetSigningPrivateKey (), sizeof (keys.signingPrivateKey));
-		auto& ident = GetIdentity ()->GetStandardIdentity ();	
-		memcpy (keys.publicKey, ident.publicKey, sizeof (keys.publicKey));
-		memcpy (keys.signingKey, ident.signingKey, sizeof (keys.signingKey));
-		fk.write ((char *)&keys, sizeof (keys));	
+		size_t len = m_Keys.GetFullLen ();
+		uint8_t * buf = new uint8_t[len];
+		m_Keys.ToBuffer (buf, len);
+		fk.write ((char *)buf, len);
+		delete[] buf;
 	}
 
 	std::shared_ptr<i2p::tunnel::TunnelPool> RouterContext::GetTunnelPool () const
