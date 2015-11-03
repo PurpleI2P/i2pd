@@ -2,7 +2,7 @@ i2pd
 ====
 
 I2P router written in C++
-Mirror of https://bitbucket.org/orignal/i2pd/src
+Contains all ongoing changes from https://bitbucket.org/orignal/i2pd/src
 
 License
 -------
