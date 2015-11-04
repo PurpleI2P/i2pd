@@ -377,7 +377,7 @@ namespace crypto
 		EDDSAPoint (BIGNUM * x1, BIGNUM * y1): x(x1), y(y1) {};	
 		~EDDSAPoint () { BN_free (x); BN_free (y); };
 
-		EDDSAPoint& operator= (EDDSAPoint&& other) 
+		EDDSAPoint& operator=(EDDSAPoint&& other) 
 		{
 			if (x) BN_free (x);
 			if (y) BN_free (y);
@@ -386,9 +386,17 @@ namespace crypto
 			return *this;
 		} 	
 
-		bool operator== (const EDDSAPoint& other) const
+		bool operator==(const EDDSAPoint& other) const
 		{
 			return !BN_cmp (x, other.x) && !BN_cmp (y, other.y);
+		}
+
+		EDDSAPoint operator-() const
+		{
+			BIGNUM * x1 = NULL, * y1 = NULL;
+			if (x) { x1 = BN_dup (x); BN_set_negative (x1, !BN_is_negative (x)); };
+			if (y) y1 = BN_dup (y);
+			return EDDSAPoint {x1, y1};
 		}
 	};	
 

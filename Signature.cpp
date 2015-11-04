@@ -39,7 +39,7 @@ namespace crypto
 				BN_set_word (tmp, 121666);
 				Inv (tmp, ctx);	
 				BN_set_word (d, 121665);
-				BN_set_negative (d, -1);							
+				BN_set_negative (d, 1);							
 				BN_mul (d, d, tmp, ctx);
 
 				// 2^((q-1)/4)
@@ -63,10 +63,14 @@ namespace crypto
 				BN_free (two);
 				BN_free (tmp);
 			
-				// precalculate Bi
-				Bi[0] = { BN_dup (Bx), BN_dup (By) }; 	
-				for (int i = 1; i < 256; i++)
-					Bi[i] = Double (Bi[i-1], ctx);
+				// precalculate Bi16 table
+				Bi16[0][0] = { BN_dup (Bx), BN_dup (By) }; 
+				for (int i = 0; i < 64; i++)
+				{
+					if (i) Bi16[i][0] = Sum (Bi16[i-1][14], Bi16[i-1][0], ctx); 
+					for (int j = 1; j < 15; j++)
+						Bi16[i][j] = Sum (Bi16[i][j-1], Bi16[i][0], ctx); // (16+j+1)^i*B
+				}
 
 				BN_CTX_free (ctx);
 			}
@@ -101,8 +105,13 @@ namespace crypto
 			{
 				BIGNUM * h = DecodeBN (digest, 64);
 				// signature 0..31 - R, 32..63 - S 
-				bool passed = MulB (signature + EDDSA25519_SIGNATURE_LENGTH/2, ctx) /*S*/ ==  
-					Sum (DecodePoint (signature, ctx) /*R*/, Mul (publicKey, h, ctx), ctx); 
+				// B*S = R + PK*h => R = B*S - PK*h
+				// we don't decode R, but encode (B*S - PK*h)
+				auto Bs = MulB (signature + EDDSA25519_SIGNATURE_LENGTH/2, ctx); // B*S;
+				auto PKh = Mul (publicKey, h, ctx); // PK*h
+				uint8_t diff[32];
+				EncodePoint (Sum (Bs, -PKh, ctx), diff); // Bs - PKh encoded
+				bool passed = !memcmp (signature, diff, 32); // R
 				BN_free (h); 
 				if (!passed)
 					LogPrint (eLogError, "25519 signature verification failed");
@@ -243,9 +252,12 @@ namespace crypto
 				EDDSAPoint res {zero, one};
 				for (int i = 0; i < 32; i++)
 				{
-					for (int j = 0; j < 8; j++) 
-						if (e[i] & (1 << j)) // from lowest to highest bit
-							res = Sum (res, Bi[i*8 + j], ctx);   
+					uint8_t x = e[i] & 0x0F; // 4 low bits
+					if (x > 0)
+						res = Sum (res, Bi16[i*2][x-1], ctx);
+					x = e[i] >> 4; // 4 high bits
+					if (x > 0)
+						res = Sum (res, Bi16[i*2+1][x-1], ctx);
 				}
 				return res;
 			}
@@ -365,7 +377,7 @@ namespace crypto
 			// transient values
 			BIGNUM * q_2; // q-2
 			BIGNUM * two_252_2; // 2^252-2
-			EDDSAPoint Bi[256]; // m_Bi[i] = 2^i*B for i-th bit 
+			EDDSAPoint Bi16[64][15]; // per 4-bits, Bi16[i][j] = (16+j+1)^i*B, we don't store zeroes
 	};
 
 	static std::unique_ptr<Ed25519> g_Ed25519;
