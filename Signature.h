@@ -371,32 +371,34 @@ namespace crypto
 	struct EDDSAPoint
 	{
 		BIGNUM * x, * y;
-		EDDSAPoint (): x(nullptr), y(nullptr) {};
-		EDDSAPoint (EDDSAPoint&& other): x(nullptr), y(nullptr)  
+		BIGNUM * z, * t; // projective coordinates
+		EDDSAPoint (): x(nullptr), y(nullptr), z(nullptr), t(nullptr) {};
+		EDDSAPoint (EDDSAPoint&& other): x(nullptr), y(nullptr), z(nullptr), t(nullptr)  
 		{ *this = std::move (other); };	
-		EDDSAPoint (BIGNUM * x1, BIGNUM * y1): x(x1), y(y1) {};	
-		~EDDSAPoint () { BN_free (x); BN_free (y); };
+		EDDSAPoint (BIGNUM * x1, BIGNUM * y1, BIGNUM * z1 = nullptr, BIGNUM * t1 = nullptr): x(x1), y(y1), z(z1), t(t1) {};	
+		~EDDSAPoint () { BN_free (x); BN_free (y); BN_free(z); BN_free(t); };
 
 		EDDSAPoint& operator=(EDDSAPoint&& other) 
 		{
 			if (x) BN_free (x);
 			if (y) BN_free (y);
+			if (z) BN_free (z);
+			if (t) BN_free (t);
 			x = other.x; other.x = nullptr;
 			y = other.y; other.y = nullptr;
+			z = other.z; other.z = nullptr;
+			t = other.t; other.t = nullptr;
 			return *this;
 		} 	
 
-		bool operator==(const EDDSAPoint& other) const
-		{
-			return !BN_cmp (x, other.x) && !BN_cmp (y, other.y);
-		}
-
 		EDDSAPoint operator-() const
 		{
-			BIGNUM * x1 = NULL, * y1 = NULL;
+			BIGNUM * x1 = NULL, * y1 = NULL, * z1 = NULL, * t1 = NULL;
 			if (x) { x1 = BN_dup (x); BN_set_negative (x1, !BN_is_negative (x)); };
 			if (y) y1 = BN_dup (y);
-			return EDDSAPoint {x1, y1};
+			if (z) z1 = BN_dup (z);
+			if (t) { t1 = BN_dup (t); BN_set_negative (t1, !BN_is_negative (t)); };
+			return EDDSAPoint {x1, y1, z1, t1};
 		}
 	};	
 

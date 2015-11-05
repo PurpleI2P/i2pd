@@ -21,9 +21,6 @@ namespace crypto
 				BN_set_word (tmp, 255);
 				BN_exp (q, two, tmp, ctx);
 				BN_sub_word (q, 19);
-				// q_2 = q-2
-				q_2 = BN_dup (q);
-				BN_sub_word (q_2, 2);
 				
 				l = BN_new ();
 				// 2^252 + 27742317777372353535851937790883648493
@@ -37,7 +34,7 @@ namespace crypto
 				 // -121665*inv(121666)
 				d = BN_new ();
 				BN_set_word (tmp, 121666);
-				Inv (tmp, ctx);	
+				BN_mod_inverse (tmp, tmp, q, ctx);	
 				BN_set_word (d, 121665);
 				BN_set_negative (d, 1);							
 				BN_mul (d, d, tmp, ctx);
@@ -53,7 +50,7 @@ namespace crypto
 				// 4*inv(5)	
 				BIGNUM * By = BN_new ();		
 				BN_set_word (By, 5);
-				Inv (By, ctx);	
+				BN_mod_inverse (By, By, q, ctx);	
 				BN_mul_word (By, 4);
 				BIGNUM * Bx = RecoverX (By, ctx);	
 				BN_mod (Bx, Bx, q, ctx); // % q
@@ -81,7 +78,6 @@ namespace crypto
 				BN_free (l);
 				BN_free (d);
 				BN_free (I);
-				BN_free (q_2);
 				BN_free (two_252_2);
 			}
 
@@ -96,9 +92,9 @@ namespace crypto
 				return DecodePoint (buf, ctx);
 			}
 
-			void EncodePublicKey (const EDDSAPoint& publicKey, uint8_t * buf) const
+			void EncodePublicKey (const EDDSAPoint& publicKey, uint8_t * buf, BN_CTX * ctx) const
 			{
-				EncodePoint (publicKey, buf);
+				EncodePoint (Normalize (publicKey, ctx), buf);
 			}
 
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature, BN_CTX * ctx) const
@@ -110,7 +106,7 @@ namespace crypto
 				auto Bs = MulB (signature + EDDSA25519_SIGNATURE_LENGTH/2, ctx); // B*S;
 				auto PKh = Mul (publicKey, h, ctx); // PK*h
 				uint8_t diff[32];
-				EncodePoint (Sum (Bs, -PKh, ctx), diff); // Bs - PKh encoded
+				EncodePoint (Normalize (Sum (Bs, -PKh, ctx), ctx), diff); // Bs - PKh encoded
 				bool passed = !memcmp (signature, diff, 32); // R
 				BN_free (h); 
 				if (!passed)
@@ -131,7 +127,7 @@ namespace crypto
 				BIGNUM * r = DecodeBN (digest, 32); // DecodeBN (digest, 64); // for test vectors
 				// calculate R
 				uint8_t R[EDDSA25519_SIGNATURE_LENGTH/2]; // we must use separate buffer because signature might be inside buf
-				EncodePoint (MulB (digest, bnCtx), R); // EncodePoint (Mul (B, r, bnCtx), R); // for test vectors 
+				EncodePoint (Normalize (MulB (digest, bnCtx), bnCtx), R); // EncodePoint (Mul (B, r, bnCtx), R); // for test vectors 
 				// calculate S
 				SHA512_Init (&ctx);
 				SHA512_Update (&ctx, R, EDDSA25519_SIGNATURE_LENGTH/2); // R
@@ -153,79 +149,86 @@ namespace crypto
 
 			EDDSAPoint Sum (const EDDSAPoint& p1, const EDDSAPoint& p2, BN_CTX * ctx) const
 			{
-				BIGNUM * xx = BN_new (), * yy = BN_new ();
-				// m = d*p1.x*p2.x*p1.y*p2.y
-				BN_mul (xx, p1.x, p2.x, ctx);
-				BN_mul (yy, p1.y, p2.y, ctx);
-				BIGNUM * m = BN_dup (d);
-				BN_mul (m, m, xx, ctx);
-				BN_mul (m, m, yy, ctx);
-				// x = (p1.x*p2.y + p2.x*p1.y)*inv(1 + m)
-				// y = (p1.y*p2.y + p1.x*p2.x)*inv(1 - m)
+				// x3 = (x1*y2+y1*x2)*(z1*z2-d*t1*t2)
+				// y3 = (y1*y2+x1*x2)*(z1*z2+d*t1*t2)
+				// z3 = (z1*z2-d*t1*t2)*(z1*z2+d*t1*t2)
+				// t3 = (y1*y2+x1*x2)*(x1*y2+y1*x2)
+				BIGNUM * x3 = BN_new (), * y3 = BN_new (), * z3 = BN_new (), * t3 = BN_new ();
+				BIGNUM * z1 = p1.z, * t1 = p1.t;
+				if (!z1) { z1 = BN_new (); BN_one (z1); }
+				if (!t1) { t1 = BN_new (); BN_mul (t1, p1.x, p1.y, ctx); }
 				
-				// use one inversion instead two
-				// m1 = 1-m
-				BIGNUM * m1 = BN_new ();		
-				BN_one (m1);
-				BN_sub (m1, m1, m);
-				// m = m+1
-				BN_add_word (m, 1);		
-				// y = (p1.y*p2.y + p1.x*p2.x)*m
-				BIGNUM * y = BN_new ();		
-				BN_add (y, xx, yy);
-				BN_mod_mul (y, y, m, q, ctx);		
-				// x = (p1.x*p2.y + p2.x*p1.y)*m1
-				BIGNUM * x = BN_new ();	
-				BN_mul (yy, p1.x, p2.y, ctx);
-				BN_mul (xx, p2.x, p1.y, ctx);
-				BN_add (x, xx, yy);
-				BN_mod_mul (x, x, m1, q, ctx);	
-				// denominator m = m*m1	
-				BN_mod_mul (m, m, m1, q, ctx);
-				Inv (m, ctx); 	
-				BN_mod_mul (x, x, m, q, ctx); // x = x/m
-				BN_mod_mul (y, y, m, q, ctx); // y = y/m
+				BIGNUM * z2 = p2.z, * t2 = p2.t;
+				if (!z2) { z2 = BN_new (); BN_one (z2); }
+				if (!t2) { t2 = BN_new (); BN_mul (t2, p2.x, p2.y, ctx); }
+				
+				BIGNUM * A = BN_new (), * B = BN_new (), * C = BN_new (), * D = BN_new ();
+				BN_mul (A, p1.x, p2.x, ctx); // A = x1*x2		
+				BN_mul (B, p1.y, p2.y, ctx); // B = y1*y2	
+				BN_mul (C, t1, t2, ctx);
+				BN_mul (C, C, d, ctx);  // C = d*t1*t2
+				BN_mul (D, z1, z2, ctx); // D = z1*z2	
 
-				BN_free (xx);BN_free (yy); BN_free (m); BN_free (m1);
-				return EDDSAPoint {x, y};
+				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
+				BN_add (x3, p1.x, p1.y);				
+				BN_add (y3, p2.x, p2.y);
+				BN_mul (E, x3, y3, ctx); // (x1 + y1)*(x2 + y2)
+				BN_sub (E, E, A);
+				BN_sub (E, E, B); // E = (x1 + y1)*(x2 + y2) - A - B
+				BN_sub (F, D, C); // F = D - C
+				BN_add (G, D, C); // G = D + C
+				BN_add (H, B, A); // H = B + A
+
+				BN_free (A); BN_free (B); BN_free (C); BN_free (D);	
+				if (!p1.z) BN_free (z1);
+				if (!p1.t) BN_free (t1);
+				if (!p2.z) BN_free (z2);
+				if (!p2.t) BN_free (t2);
+
+				BN_mod_mul (x3, E, F, q, ctx); // x3 = E*F
+				BN_mod_mul (y3, G, H, q, ctx); // y3 = G*H	
+				BN_mod_mul (z3, F, G, q, ctx); // z3 = F*G	
+				BN_mod_mul (t3, E, H, q, ctx); // t3 = E*H	
+
+				BN_free (E); BN_free (F); BN_free (G); BN_free (H);
+
+				return EDDSAPoint {x3, y3, z3, t3};
 			}
 
 			EDDSAPoint Double (const EDDSAPoint& p, BN_CTX * ctx) const
 			{
-				BIGNUM * pxy = BN_new ();
-				BN_mul (pxy, p.x, p.y, ctx);
-				// m = d*(p.x*p.y)^2
-				BIGNUM * m = BN_new ();
-				BN_sqr (m, pxy, ctx);
-				BN_mul (m, m, d, ctx);
-				// x = (2*p.x*p.y)*inv(1 + m)
-				// y = (p.x^2 + p.y^2)*inv(1 - m)
+				BIGNUM * x2 = BN_new (), * y2 = BN_new (), * z2 = BN_new (), * t2 = BN_new ();
+				BIGNUM * z = p.z, * t = p.t;
+				if (!z) { z = BN_new (); BN_one (z); }
+				BN_sqr (z, z, ctx); // z^2 (D)
+				if (!t) { t = BN_new (); BN_mul (t, p.x, p.y, ctx); }	
+				BN_sqr (t, t, ctx);
+				BN_mul (t, t, d, ctx);  // d*t^2 (C)			
 				
-				// use one inversion instead two
-				// m1 = 1-m
-				BIGNUM * m1 = BN_new ();		
-				BN_one (m1);
-				BN_sub (m1, m1, m);
-				// m = m+1
-				BN_add_word (m, 1);								
-				// x = 2*p.x*p.y*m1
-				BN_mul_word (pxy, 2);
-				BIGNUM * x = BN_new ();
-				BN_mod_mul (x, pxy, m1, q, ctx);
-				// y = (p.x^2 + p.y^2)*m
-				BIGNUM * y = BN_new ();
-				BN_sqr (pxy, p.x, ctx);
-				BN_sqr (y, p.y, ctx);
-				BN_add (pxy, pxy, y);
-				BN_mod_mul (y, pxy, m, q, ctx);
-				// denominator m = m*m1	
-				BN_mod_mul (m, m, m1, q, ctx);
-				Inv (m, ctx); 	
-				BN_mod_mul (x, x, m, q, ctx); // x = x/m
-				BN_mod_mul (y, y, m, q, ctx); // y = y/m
+				BIGNUM * A = BN_new (), * B = BN_new ();
+				BN_sqr (A, p.x, ctx); // A = x^2		
+				BN_sqr (B, p.y, ctx); // B = y^2			
 
-				BN_free (pxy); BN_free (m); BN_free (m1);
-				return EDDSAPoint {x, y};
+				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
+				// E = (x+y)*(x+y)-A-B = x^2+y^2+2xy-A-B = 2xy
+				BN_mul (E, p.x, p.y, ctx);
+				BN_mul_word (E, 2);	// E =2*x*y							
+				BN_sub (F, z, t); // F = D - C = z - t
+				BN_add (G, z, t); // G = D + C = z + t
+				BN_add (H, B, A); // H = B + A
+
+				BN_free (A); BN_free (B);
+				if (!p.z) BN_free (z);
+				if (!p.t) BN_free (t);
+
+				BN_mod_mul (x2, E, F, q, ctx); // x2 = E*F
+				BN_mod_mul (y2, G, H, q, ctx); // y2 = G*H	
+				BN_mod_mul (z2, F, G, q, ctx); // z2 = F*G	
+				BN_mod_mul (t2, E, H, q, ctx); // t2 = E*H	
+
+				BN_free (E); BN_free (F); BN_free (G); BN_free (H);
+
+				return EDDSAPoint {x2, y2, z2, t2};
 			}
 			
 			EDDSAPoint Mul (const EDDSAPoint& p, const BIGNUM * e, BN_CTX * ctx) const
@@ -262,9 +265,18 @@ namespace crypto
 				return res;
 			}
 
-			void Inv (BIGNUM * x, BN_CTX * ctx) const
+			EDDSAPoint Normalize (const EDDSAPoint& p, BN_CTX * ctx) const
 			{
-				BN_mod_exp (x, x, q_2, q, ctx);
+				if (p.z)
+				{
+					BIGNUM * x = BN_new (), * y = BN_new ();
+					BN_mod_inverse (y, p.z, q, ctx);
+					BN_mod_mul (x, p.x, y, q, ctx); // x = x/z
+					BN_mod_mul (y, p.y, y, q, ctx); // y = y/z
+					return  EDDSAPoint{x, y};
+				}
+				else
+					return EDDSAPoint{BN_dup (p.x), BN_dup (p.y)};
 			}
 
 			bool IsOnCurve (const EDDSAPoint& p, BN_CTX * ctx) const
@@ -296,7 +308,7 @@ namespace crypto
 				BIGNUM * xx = BN_new ();
 				BN_mul (xx, d, y2, ctx);
 				BN_add_word (xx, 1);
-				Inv (xx, ctx);
+				BN_mod_inverse (xx, xx, q, ctx);
 				BN_sub_word (y2, 1);
 				BN_mul (xx, y2, xx, ctx);
 				// x = srqt(xx) = xx^(2^252-2)		
@@ -375,7 +387,6 @@ namespace crypto
 			BIGNUM * q, * l, * d, * I; 
 			EDDSAPoint B; // base point
 			// transient values
-			BIGNUM * q_2; // q-2
 			BIGNUM * two_252_2; // 2^252-2
 			EDDSAPoint Bi16[64][15]; // per 4-bits, Bi16[i][j] = (16+j+1)^i*B, we don't store zeroes
 	};
@@ -418,7 +429,7 @@ namespace crypto
 		m_ExpandedPrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] |= 0x40; // set second bit
 		// generate and encode public key
 		auto publicKey = GetEd25519 ()->GeneratePublicKey (m_ExpandedPrivateKey, m_Ctx);
-		GetEd25519 ()->EncodePublicKey (publicKey, m_PublicKeyEncoded);	
+		GetEd25519 ()->EncodePublicKey (publicKey, m_PublicKeyEncoded, m_Ctx);	
 	} 
 		
 	void EDDSA25519Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
