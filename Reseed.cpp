@@ -372,7 +372,7 @@ namespace data
 			 boost::asio::ip::tcp::resolver::query (u.host_, std::to_string (u.port_)), ecode);
 		if (!ecode)
 		{
-			boost::asio::ssl::context ctx(service, boost::asio::ssl::context::tlsv12);
+			boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);
 			ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 			boost::asio::ssl::stream<boost::asio::ip::tcp::socket> s(service, ctx);
 			s.lowest_layer().connect (*it, ecode);

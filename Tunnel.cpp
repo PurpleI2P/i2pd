@@ -138,7 +138,8 @@ namespace tunnel
 			hop = m_Config->GetLastHop ();
 			while (hop)
 			{
-				auto tunnelHop = new TunnelHop{ .ident = hop->ident };
+				auto tunnelHop = new TunnelHop;
+				tunnelHop->ident = hop->ident;
 				tunnelHop->decryption.SetKeys (hop->layerKey, hop->ivKey);
 				m_Hops.push_back (std::unique_ptr<TunnelHop>(tunnelHop));
 				hop = hop->prev;
