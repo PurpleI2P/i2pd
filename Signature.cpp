@@ -104,6 +104,7 @@ namespace crypto
 				// B*S = R + PK*h => R = B*S - PK*h
 				// we don't decode R, but encode (B*S - PK*h)
 				auto Bs = MulB (signature + EDDSA25519_SIGNATURE_LENGTH/2, ctx); // B*S;
+				BN_mod (h, h, l, ctx); // public key is multiple of B, but B%l = 0
 				auto PKh = Mul (publicKey, h, ctx); // PK*h
 				uint8_t diff[32];
 				EncodePoint (Normalize (Sum (Bs, -PKh, ctx), ctx), diff); // Bs - PKh encoded
