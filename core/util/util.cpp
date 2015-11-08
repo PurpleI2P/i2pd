@@ -122,7 +122,7 @@ namespace config {
     int GetArg(const std::string& strArg, int nDefault)
     {
         if(mapArgs.count(strArg))
-            return stoi(mapArgs[strArg]);
+            return std::stoi(mapArgs[strArg]);
         return nDefault;
     }
 
@@ -322,14 +322,14 @@ namespace http // also provides https
     std::string httpsRequest (const std::string& address)
     {
         url u(address);
-        if (u.port_ == 80) u.port_ = 443;
-        i2p::data::TlsSession session (u.host_, u.port_);
+        if (u.m_port == 80) u.m_port = 443;
+        i2p::data::TlsSession session (u.m_host, u.m_port);
 
         if (session.IsEstablished ())
         {
             // send request
             std::stringstream ss;
-	    ss << httpHeader(u.path_, u.host_, "1.1");
+	    ss << httpHeader(u.m_path, u.m_host, "1.1");
             session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
 
             // read response
@@ -350,15 +350,15 @@ namespace http // also provides https
             // please don't uncomment following line because it's not compatible with boost 1.46
             // 1.46 is default boost for Ubuntu 12.04 LTS
             //site.expires_from_now (boost::posix_time::seconds(30));
-            if(u.port_ == 80)
-                site.connect(u.host_, "http");
+            if(u.m_port == 80)
+                site.connect(u.m_host, "http");
             else {
-                std::stringstream ss; ss << u.port_;
-                site.connect(u.host_, ss.str());
+                std::stringstream ss; ss << u.m_port;
+                site.connect(u.m_host, ss.str());
             }
             if(site) {
                 // User-Agent is needed to get the server list routerInfo files.
-		site << httpHeader(u.path_, u.host_, "1.1");
+		site << httpHeader(u.m_path, u.m_host, "1.1");
                 // read response and extract content                
                 return GetHttpContent(site);
             } else {
@@ -439,7 +439,7 @@ namespace http // also provides https
                 std::stringstream ss;
 
 		// set header
-		ss << httpHeader(u.path_, u.host_, "1.0");
+		ss << httpHeader(u.m_path, u.m_host, "1.0");
                 site << ss.str();
 
                 // read response
@@ -469,67 +469,85 @@ namespace http // also provides https
         }
     }
     
-    url::url(const std::string& url_s)
+    url::url(const std::string& url)
     {
-        portstr_ = "80";
-        port_ = 80;
-        user_ = "";
-        pass_ = "";
+        m_portstr = "80";
+        m_port = 80;
+        m_user = "";
+        m_pass = "";
 
-        parse(url_s);
+        parse(url);
     }
 
-
-    void url::parse(const std::string& url_s)
+    void url::parse(const std::string& url)
     {
-        const std::string prot_end("://");
-        std::string::const_iterator prot_i = search(
-            url_s.begin(), url_s.end(), prot_end.begin(), prot_end.end()
-        );
-        protocol_.reserve(distance(url_s.begin(), prot_i));
-        // Make portocol lowercase
-        transform(
-            url_s.begin(), prot_i, back_inserter(protocol_), std::ptr_fun<int, int>(std::tolower)
-        ); 
-        if(prot_i == url_s.end())
-            return;
-        advance(prot_i, prot_end.length());
-        std::string::const_iterator path_i = find(prot_i, url_s.end(), '/');
-        host_.reserve(distance(prot_i, path_i));
-        // Make host lowerase
-        transform(prot_i, path_i, back_inserter(host_), std::ptr_fun<int, int>(std::tolower));
+        using namespace std;
 
-        // parse user/password
-        auto user_pass_i = find(host_.begin(), host_.end(), '@');
-        if(user_pass_i != host_.end()) {
-            std::string user_pass = std::string(host_.begin(), user_pass_i);
+	/**
+	 * This is a hack since colons are a part of the URI scheme
+	 * and slashes aren't always needed. See RFC 7595.
+	 * */
+        const string prot_end("://");
+
+	// Separate scheme from authority
+        string::const_iterator prot_i = search(
+            url.begin(), url.end(), prot_end.begin(), prot_end.end()
+        );
+
+	// Prepare for lowercase result and transform to lowercase
+        m_protocol.reserve(distance(url.begin(), prot_i));
+        transform(
+            url.begin(), prot_i,
+	    back_inserter(m_protocol), ptr_fun<int, int>(tolower)
+        ); 
+
+	// TODO: better error checking and handling
+        if(prot_i == url.end())
+            return;
+
+	// Move onto authority. We assume it's valid and don't bother checking.
+        advance(prot_i, prot_end.length());
+        string::const_iterator path_i = find(prot_i, url.end(), '/');
+
+	// Prepare for lowercase result and transform to lowercase
+        m_host.reserve(distance(prot_i, path_i));
+        transform(
+	    prot_i, path_i,
+	    back_inserter(m_host), ptr_fun<int, int>(tolower)
+	);
+
+        // Parse user/password, assuming it's valid input
+        auto user_pass_i = find(m_host.begin(), m_host.end(), '@');
+        if(user_pass_i != m_host.end()) {
+            string user_pass = string(m_host.begin(), user_pass_i);
             auto pass_i = find(user_pass.begin(), user_pass.end(), ':');
             if (pass_i != user_pass.end()) {
-                user_ = std::string(user_pass.begin(), pass_i);
-                pass_ = std::string(pass_i + 1, user_pass.end());
+                m_user = string(user_pass.begin(), pass_i);
+                m_pass = string(pass_i + 1, user_pass.end());
             } else
-                user_ = user_pass;
+                m_user = user_pass;
 
-            host_.assign(user_pass_i + 1, host_.end());
+            m_host.assign(user_pass_i + 1, m_host.end());
         }
 
-        // parse port
-        auto port_i = find(host_.begin(), host_.end(), ':');
-        if(port_i != host_.end()) {
-            portstr_ = std::string(port_i + 1, host_.end());
-            host_.assign(host_.begin(), port_i);
+        // Parse port, assuming it's valid input
+        auto port_i = find(m_host.begin(), m_host.end(), ':');
+        if(port_i != m_host.end()) {
+            m_portstr = string(port_i + 1, m_host.end());
+            m_host.assign(m_host.begin(), port_i);
             try {
-                port_ = boost::lexical_cast<decltype(port_)>(portstr_);
-            } catch(const std::exception& e) {
-                port_ = 80;
+                m_port = boost::lexical_cast<decltype(m_port)>(m_portstr);
+            } catch(const exception& e) {
+                m_port = 80;
             }
         }
 
-        std::string::const_iterator query_i = find(path_i, url_s.end(), '?');
-        path_.assign(path_i, query_i);
-        if( query_i != url_s.end() )
+	// Parse query, assuming it's valid input
+        string::const_iterator query_i = find(path_i, url.end(), '?');
+        m_path.assign(path_i, query_i);
+        if( query_i != url.end() )
             ++query_i;
-        query_.assign(query_i, url_s.end());
+        m_query.assign(query_i, url.end());
     }
 
     std::string urlDecode(const std::string& data)

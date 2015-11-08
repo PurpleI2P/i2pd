@@ -167,19 +167,29 @@ namespace util
         /**
          * Provides functionality for parsing URLs.
          */
-        struct url {
-            /**
-             * Parse a url given as a string.
+        class url {
+	    /**
+	     * The code for parse() was originally copied/pasted from
+	     * https://stackoverflow.com/questions/2616011/easy-way-to-parse-a-url-in-c-cross-platform
+	     *
+	     * This function is a URI parser (not a URL parser) and is hack at best.
+	     * See cpp-netlib for a better URI parsing implementation with Boost.
+	     *
+	     * Note: fragments are not parsed by this function (if they should
+	     * ever be needed in the future).
+	     *
+             * @param string url
              */
-            url(const std::string& url_s);
-        private:
-            void parse(const std::string& url_s);
+            void parse(const std::string& url);
+	public:
+	     /**
+             * Parse a URI given as a string.
+             */
+            url(const std::string& url);
         public:
-            std::string protocol_, host_, path_, query_;
-            std::string portstr_;
-            unsigned int port_;
-            std::string user_;
-            std::string pass_;
+            std::string m_protocol, m_host, m_path, m_query, m_portstr;
+            unsigned int m_port;
+            std::string m_user, m_pass;
         };
     }
 
