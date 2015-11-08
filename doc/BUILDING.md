@@ -9,9 +9,7 @@ On Arch Linux
 
 Then, build:
 
-$ cd i2pd/build
-$ cmake ../
-$ make
+$ cd i2pd/build && cmake ../ && make
 
 Then, run it:
 

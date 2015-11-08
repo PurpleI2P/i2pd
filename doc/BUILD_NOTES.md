@@ -17,9 +17,9 @@ Arch
 ----
 
 Required packages:
-*cmake
-*boost
-*crypto++
+* cmake
+* boost
+* crypto++
 
 FreeBSD
 -------
