@@ -135,15 +135,14 @@ namespace crypto
 				SHA512_Update (&ctx, publicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
 				SHA512_Update (&ctx, buf, len); // data
 				SHA512_Final (digest, &ctx);
-				BIGNUM * s = DecodeBN (digest, 64);			
-				// S = (r + s*a) % l
+				BIGNUM * h = DecodeBN (digest, 64);			
+				// S = (r + h*a) % l
 				BIGNUM * a = DecodeBN (expandedPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH); // left half of expanded key
-				BN_mul (s, s, a, bnCtx);
-				BN_add (s, s, r);
-				BN_mod (s, s, l, bnCtx); // % l
+				BN_mod_mul (h, h, a, l, bnCtx); // %l
+				BN_mod_add (h, h, r, l, bnCtx); // %l
 				memcpy (signature, R, EDDSA25519_SIGNATURE_LENGTH/2);
-				EncodeBN (s, signature + EDDSA25519_SIGNATURE_LENGTH/2, EDDSA25519_SIGNATURE_LENGTH/2); // S
-				BN_free (r); BN_free (s); BN_free (a);
+				EncodeBN (h, signature + EDDSA25519_SIGNATURE_LENGTH/2, EDDSA25519_SIGNATURE_LENGTH/2); // S
+				BN_free (r); BN_free (h); BN_free (a);
 			}
 
 		private:		
