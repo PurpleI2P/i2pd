@@ -202,22 +202,20 @@ namespace crypto
 				if (!z) { z = BN_new (); BN_one (z); }
 				if (!t) { t = BN_new (); BN_mul (t, p.x, p.y, ctx); }		
 				
-				BIGNUM * A = BN_new (), * B = BN_new (), * C = BN_new (), * D = BN_new ();
-				BN_sqr (A, p.x, ctx); // A = x^2		
-				BN_sqr (B, p.y, ctx); // B = y^2	
-				BN_sqr (C, t, ctx);
-				BN_mul (C, C, d, ctx);  // C = d*t^2 		
-				BN_sqr (D, z, ctx); // D = z^2 		
+				BN_sqr (x2, p.x, ctx); // x2 = A = x^2		
+				BN_sqr (y2, p.y, ctx); // y2 = B = y^2	
+				BN_sqr (t2, t, ctx);
+				BN_mul (t2, t2, d, ctx);  // t2 = C = d*t^2 		
+				BN_sqr (z2, z, ctx); // z2 = D = z^2 		
 
 				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
 				// E = (x+y)*(x+y)-A-B = x^2+y^2+2xy-A-B = 2xy
 				BN_mul (E, p.x, p.y, ctx);
 				BN_mul_word (E, 2);	// E =2*x*y							
-				BN_sub (F, D, C); // F = D - C
-				BN_add (G, D, C); // G = D + C 
-				BN_add (H, B, A); // H = B + A
+				BN_sub (F, z2, t2); // F = D - C
+				BN_add (G, z2, t2); // G = D + C 
+				BN_add (H, y2, x2); // H = B + A
 
-				BN_free (A); BN_free (B); BN_free (C); BN_free (D);
 				if (!p.z) BN_free (z);
 				if (!p.t) BN_free (t);
 
