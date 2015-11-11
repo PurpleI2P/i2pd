@@ -450,7 +450,7 @@ namespace client
 		auto keys = i2p::data::PrivateKeys::CreateRandomKeys ();
 #ifdef _MSC_VER
 		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, 
-			keys.GetPublic ().ToBase64 ().c_str (), keys.ToBase64 ().c_str ());	
+			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #else			                        
 		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY, 
 		    keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());

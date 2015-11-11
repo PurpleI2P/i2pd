@@ -2,7 +2,6 @@
 #define WIN_32_SERVICE_H__
 
 #include <thread>
-#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 

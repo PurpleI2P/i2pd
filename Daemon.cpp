@@ -1,6 +1,5 @@
 #include <thread>
 #include <memory>
-#include <openssl/ssl.h>
 
 #include "Daemon.h"
 
@@ -20,6 +19,8 @@
 #include "HTTPServer.h"
 #include "I2PControl.h"
 #include "ClientContext.h"
+// ssl.h somehow pulls Windows.h stuff that has to go after asio
+#include <openssl/ssl.h>
 
 #ifdef USE_UPNP
 #include "UPnP.h"
@@ -39,7 +40,7 @@ namespace i2p
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 
 #ifdef USE_UPNP
-			UPnP m_UPnP;
+			i2p::transport::UPnP m_UPnP;
 #endif	
 		};
 
