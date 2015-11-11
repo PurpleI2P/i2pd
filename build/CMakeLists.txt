@@ -16,7 +16,7 @@ set ( CMAKE_SOURCE_DIR ".." )
 
 set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/AddressBook.cpp"	
-  "${CMAKE_SOURCE_DIR}/CryptoConst.cpp"
+  "${CMAKE_SOURCE_DIR}/Crypto.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
   "${CMAKE_SOURCE_DIR}/Identity.cpp"
@@ -40,8 +40,7 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/Transports.cpp"
   "${CMAKE_SOURCE_DIR}/TunnelEndpoint.cpp"
   "${CMAKE_SOURCE_DIR}/TunnelPool.cpp"
-  "${CMAKE_SOURCE_DIR}/aes.cpp"
-  "${CMAKE_SOURCE_DIR}/base64.cpp"
+  "${CMAKE_SOURCE_DIR}/Base.cpp"
   "${CMAKE_SOURCE_DIR}/util.cpp"
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
@@ -65,7 +64,7 @@ set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
   "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
-  "${CMAKE_SOURCE_DIR}/i2p.cpp"
+  "${CMAKE_SOURCE_DIR}/i2pd.cpp"
 )
 
 if (WITH_UPNP)
@@ -91,7 +90,9 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 # compiler flags customization (by vendor)
-if (NOT MSVC)
+if (MSVC)
+  add_definitions( -D_WIN32_WINNT=_WIN32_WINNT_WINXP -DWIN32_LEAN_AND_MEAN -DNOMINMAX ) #-DOPENSSL_NO_SSL2 -DOPENSSL_USE_DEPRECATED
+else()
   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch" )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic" )
   # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
@@ -212,18 +213,34 @@ if(NOT DEFINED Boost_INCLUDE_DIRS)
   message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
 endif()
 
-find_package ( CryptoPP REQUIRED )
-if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
-  message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+find_package ( OpenSSL REQUIRED )
+if(NOT DEFINED OPENSSL_INCLUDE_DIR)
+  message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 endif()
 
 find_package ( MiniUPnPc )
-if (NOT ${MINIUPNPC_FOUND})
+if (MINIUPNPC_FOUND)
+  include_directories( ${MINIUPNPC_INCLUDE_DIR} )
+else ()
   set(WITH_UPNP OFF)
 endif()
 
+find_package ( ZLIB )
+if (NOT DEFINED ZLIB-FOUND )
+  include( ExternalProject )
+  ExternalProject_Add(zlib
+    URL http://zlib.net/zlib-1.2.8.tar.gz
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  )
+  add_dependencies( common zlib )
+  ExternalProject_Get_Property(zlib install_dir)
+  set (ZLIB_ROOT ${install_dir} )
+  find_package ( ZLIB REQUIRED )
+endif ()
+
 # load includes
-include_directories( ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} )
+include_directories( ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
 
 # show summary
 message(STATUS "---------------------------------------")
@@ -271,7 +288,7 @@ if (WITH_BINARY)
   if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
-  target_link_libraries( "${PROJECT_NAME}-bin" common ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
+  target_link_libraries( "${PROJECT_NAME}-bin" common ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} )
 
   install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
   if (MSVC)
@@ -285,7 +302,7 @@ if (WITH_LIBRARY)
   add_library(${PROJECT_NAME} STATIC ${LIBRARY_SRC})
  else ()
   add_library(${PROJECT_NAME} ${LIBRARY_SRC})
-  target_link_libraries( ${PROJECT_NAME} common ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES})
+  target_link_libraries( ${PROJECT_NAME} common ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
  endif ()
   if (WITH_PCH)
     if (MSVC)
