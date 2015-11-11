@@ -48,20 +48,20 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <cryptopp/aes.h>
-#include <cryptopp/adler32.h>
-#include <cryptopp/asn.h>
-#include <cryptopp/base64.h>
-#include <cryptopp/crc.h>
-#include <cryptopp/dh.h>
-#include <cryptopp/dsa.h>
-#include <cryptopp/eccrypto.h>
-#include <cryptopp/gzip.h>
-#include <cryptopp/hmac.h>
-#include <cryptopp/integer.h>
-#include <cryptopp/modes.h>
-#include <cryptopp/osrng.h>
-#include <cryptopp/sha.h>
-#include <cryptopp/zinflate.h>
+#include <zlib.h>
+
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/bn.h>
+#include <openssl/dh.h>
+#include <openssl/aes.h>
+#include <openssl/sha.h>
+#include <openssl/md5.h>
+#include <openssl/rand.h>
+#include <openssl/dsa.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/rsa.h>
+#include <openssl/evp.h>
 
 #endif
