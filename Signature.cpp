@@ -99,7 +99,7 @@ namespace crypto
 
 			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature, BN_CTX * ctx) const
 			{
-				BIGNUM * h = DecodeBN (digest, 64);
+				BIGNUM * h = DecodeBN<64> (digest);
 				// signature 0..31 - R, 32..63 - S 
 				// B*S = R + PK*h => R = B*S - PK*h
 				// we don't decode R, but encode (B*S - PK*h)
@@ -125,7 +125,7 @@ namespace crypto
 				SHA512_Update (&ctx, buf, len); // data
 				uint8_t digest[64];
 				SHA512_Final (digest, &ctx);
-				BIGNUM * r = DecodeBN (digest, 32); // DecodeBN (digest, 64); // for test vectors
+				BIGNUM * r = DecodeBN<32> (digest); // DecodeBN<64> (digest); // for test vectors
 				// calculate R
 				uint8_t R[EDDSA25519_SIGNATURE_LENGTH/2]; // we must use separate buffer because signature might be inside buf
 				EncodePoint (Normalize (MulB (digest, bnCtx), bnCtx), R); // EncodePoint (Mul (B, r, bnCtx), R); // for test vectors 
@@ -135,9 +135,9 @@ namespace crypto
 				SHA512_Update (&ctx, publicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
 				SHA512_Update (&ctx, buf, len); // data
 				SHA512_Final (digest, &ctx);
-				BIGNUM * h = DecodeBN (digest, 64);			
+				BIGNUM * h = DecodeBN<64> (digest);			
 				// S = (r + h*a) % l
-				BIGNUM * a = DecodeBN (expandedPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH); // left half of expanded key
+				BIGNUM * a = DecodeBN<EDDSA25519_PRIVATE_KEY_LENGTH> (expandedPrivateKey); // left half of expanded key
 				BN_mod_mul (h, h, a, l, bnCtx); // %l
 				BN_mod_add (h, h, r, l, bnCtx); // %l
 				memcpy (signature, R, EDDSA25519_SIGNATURE_LENGTH/2);
@@ -356,7 +356,8 @@ namespace crypto
 					buf[EDDSA25519_PUBLIC_KEY_LENGTH - 1] |= 0x80; // set highest bit
 			}
 
-			BIGNUM * DecodeBN (const uint8_t * buf, size_t len) const
+			template<int len>
+			BIGNUM * DecodeBN (const uint8_t * buf) const
 			{
 				// buf is Little Endian convert it to Big Endian
 				uint8_t buf1[len];
