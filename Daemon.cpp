@@ -39,7 +39,7 @@ namespace i2p
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 
 #ifdef USE_UPNP
-			UPnP m_UPnP;
+			i2p::transport::UPnP m_UPnP;
 #endif	
 		};
 
