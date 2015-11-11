@@ -4,12 +4,12 @@ if(MINIUPNPC_INCLUDE_DIR)
    set(MINIUPNPC_FOUND TRUE)
 
 else()
-  find_path(MINIUPNPC_INCLUDE_DIR miniupnpc.h
-      /usr/include/miniupnpc
-      /usr/local/include/miniupnpc
-      /opt/local/include/miniupnpc
-      $ENV{SystemDrive}/miniupnpc
-      ${PROJECT_SOURCE_DIR}/../../miniupnpc
+  find_path(MINIUPNPC_INCLUDE_DIR miniupnpc/miniupnpc.h
+      /usr/include
+      /usr/local/include
+      /opt/local/include
+      $ENV{SystemDrive}
+      ${PROJECT_SOURCE_DIR}/../..
       )
   
   if(MINIUPNPC_INCLUDE_DIR)
