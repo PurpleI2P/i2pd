@@ -1,5 +1,5 @@
 // There is bug in boost 1.49 with gcc 4.7 coming with Debian Wheezy
-#define GCC47_BOOST149 ((BOOST_VERSION == 104900) && (__GNUC__ == 4) && (__GNUC_MINOR__ == 7))
+#define GCC47_BOOST149 ((BOOST_VERSION == 104900) && (__GNUC__ == 4) && (__GNUC_MINOR__ >= 7))
 
 #include "I2PControl.h"
 #include <sstream>
