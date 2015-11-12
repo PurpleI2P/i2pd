@@ -14,8 +14,7 @@ option(WITH_PCH "Use precompiled header" OFF)
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
-set (COMMON_SRC
-  "${CMAKE_SOURCE_DIR}/AddressBook.cpp"	
+set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Crypto.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
@@ -44,27 +43,34 @@ set (COMMON_SRC
   "${CMAKE_SOURCE_DIR}/util.cpp"
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
-  "${CMAKE_SOURCE_DIR}/UPnP.cpp"
+  "${CMAKE_SOURCE_DIR}/api.cpp"
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  list (APPEND COMMON_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
+  list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
 endif ()
 
-add_library(common ${COMMON_SRC})
+add_library(libi2pd ${LIBI2PD_SRC})
 
-set (DAEMON_SRC
+set (CLIENT_SRC
+  "${CMAKE_SOURCE_DIR}/AddressBook.cpp"
   "${CMAKE_SOURCE_DIR}/BOB.cpp"	
   "${CMAKE_SOURCE_DIR}/ClientContext.cpp"
-  "${CMAKE_SOURCE_DIR}/Daemon.cpp"
-  "${CMAKE_SOURCE_DIR}/HTTPProxy.cpp"
-  "${CMAKE_SOURCE_DIR}/HTTPServer.cpp"
-  "${CMAKE_SOURCE_DIR}/I2PService.cpp"
-  "${CMAKE_SOURCE_DIR}/I2PControl.cpp"	
   "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
+  "${CMAKE_SOURCE_DIR}/I2PService.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
   "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
+  "${CMAKE_SOURCE_DIR}/HTTPProxy.cpp"
+  )
+
+add_library(i2pdclient ${CLIENT_SRC})
+
+set (DAEMON_SRC
+  "${CMAKE_SOURCE_DIR}/Daemon.cpp"
+  "${CMAKE_SOURCE_DIR}/HTTPServer.cpp"
+  "${CMAKE_SOURCE_DIR}/I2PControl.cpp"
   "${CMAKE_SOURCE_DIR}/i2pd.cpp"
+  "${CMAKE_SOURCE_DIR}/UPnP.cpp"
 )
 
 if (WITH_UPNP)
@@ -73,16 +79,6 @@ if (WITH_UPNP)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif ()
 endif ()
-
-set (LIBRARY_SRC
-  "${CMAKE_SOURCE_DIR}/api.cpp"
-)
-
-file (GLOB HEADERS "${CMAKE_SOURCE_DIR}/*.h")
-
-# MSVS grouping
-source_group ("Header Files" FILES ${HEADERS})
-source_group ("Source Files" FILES ${COMMON_SRC} ${DAEMON_SRC} ${LIBRARY_SRC})
 
 # Default build is Debug
 if (NOT CMAKE_BUILD_TYPE)
@@ -176,7 +172,7 @@ if (WITH_STATIC)
   endif ()
 else()
   if (NOT WIN32)
-    # TODO: Consider separate compilation for COMMON_SRC for library.
+    # TODO: Consider separate compilation for LIBI2PD_SRC for library.
     # No need in -fPIC overhead for binary if not interested in library
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
@@ -190,12 +186,13 @@ if (WITH_PCH)
   if(MSVC)
     target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm135)
     add_custom_command(TARGET stdafx POST_BUILD
-      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb common.dir\\$<CONFIG>\\
-      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pd-bin.dir\\$<CONFIG>\\
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb libi2pd.dir\\$<CONFIG>\\
+      COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pdclient.dir\\$<CONFIG>\\
       COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pd.dir\\$<CONFIG>\\
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       )
-    target_compile_options(common PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(i2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
   else()
     string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
     get_directory_property(DEFS DEFINITIONS)
@@ -203,9 +200,11 @@ if (WITH_PCH)
     add_custom_command(TARGET stdafx PRE_BUILD
       COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../stdafx.h
     )
-    target_compile_options(common PRIVATE -include stdafx.h)
+    target_compile_options(libi2pd PRIVATE -include stdafx.h)
+    target_compile_options(i2pdclient PRIVATE -include stdafx.h)
   endif()
-  target_link_libraries(common stdafx)
+  target_link_libraries(libi2pd stdafx)
+  target_link_libraries(i2pdclient stdafx)
 endif()
 
 find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
@@ -226,18 +225,24 @@ else ()
 endif()
 
 find_package ( ZLIB )
-if (NOT DEFINED ZLIB-FOUND )
+if (NOT ZLIB_FOUND )
+  # We are probably on Windows
   include( ExternalProject )
-  ExternalProject_Add(zlib
+  ExternalProject_Add(zlib-project
     URL http://zlib.net/zlib-1.2.8.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-  )
-  add_dependencies( common zlib )
-  ExternalProject_Get_Property(zlib install_dir)
-  set (ZLIB_ROOT ${install_dir} )
-  find_package ( ZLIB REQUIRED )
+    )
+  if (WITH_PCH)
+    add_dependencies( stdafx zlib-project )
+  else ()
+    add_dependencies( libi2pd zlib-project )
+  endif ()
+  # ExternalProject_Get_Property(zlib-project install_dir)
+  set ( ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/zlib/include" CACHE FILEPATH "zlib include dir" FORCE)
+  set ( ZLIB_LIBRARY debug zlibd optimized zlib CACHE STRING "zlib libraries" FORCE)
 endif ()
+link_directories("${CMAKE_CURRENT_BINARY_DIR}/zlib/lib")
 
 # load includes
 include_directories( ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
@@ -263,24 +268,23 @@ message(STATUS "---------------------------------------")
 include(GNUInstallDirs)
 
 if (WITH_BINARY)
-  add_executable ( "${PROJECT_NAME}-bin" ${DAEMON_SRC} )
+  add_executable ( "${PROJECT_NAME}" ${DAEMON_SRC} )
  if(NOT MSVC) # FIXME: incremental linker file name (.ilk) collision for dll & exe
-  set_target_properties("${PROJECT_NAME}-bin" PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
   if (WITH_STATIC)
-    set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-static" )
+    set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static" )
   endif ()
  endif()
 
   if (WITH_PCH)
     if (MSVC)
-      target_compile_options("${PROJECT_NAME}-bin" PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+      target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
     else()
-      target_compile_options("${PROJECT_NAME}-bin" PRIVATE -include stdafx.h)
+      target_compile_options("${PROJECT_NAME}" PRIVATE -include stdafx.h)
     endif()
   endif()
 
   if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set_target_properties("${PROJECT_NAME}-bin" PROPERTIES LINK_FLAGS "-z relro -z now" )
+    set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-z relro -z now" )
   endif ()
 
   # FindBoost pulls pthread for thread which is broken for static linking at least on Ubuntu 15.04
@@ -288,29 +292,10 @@ if (WITH_BINARY)
   if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
-  target_link_libraries( "${PROJECT_NAME}-bin" common ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} )
+  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} )
 
-  install(TARGETS "${PROJECT_NAME}-bin" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+  install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
   if (MSVC)
-    install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}-bin> DESTINATION "bin" CONFIGURATIONS DEBUG)
+    install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION "bin" CONFIGURATIONS DEBUG)
   endif ()
-endif ()
-
-if (WITH_LIBRARY)
- if (MSVC)
-  # FIXME: DLL would not have any symbols unless we use __declspec(dllexport) through out the code
-  add_library(${PROJECT_NAME} STATIC ${LIBRARY_SRC})
- else ()
-  add_library(${PROJECT_NAME} ${LIBRARY_SRC})
-  target_link_libraries( ${PROJECT_NAME} common ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
- endif ()
-  if (WITH_PCH)
-    if (MSVC)
-      add_dependencies(${PROJECT_NAME} stdafx)
-      target_compile_options(${PROJECT_NAME} PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
-    else()
-      target_compile_options(${PROJECT_NAME} PRIVATE -include stdafx.h)
-    endif()
-  endif()
-  install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif ()
