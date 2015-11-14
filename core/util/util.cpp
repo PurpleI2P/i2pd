@@ -63,6 +63,7 @@ http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
 namespace i2p {
 namespace util {
 
+// TODO: this will be replaced by a real option parser soon.
 namespace config {
     std::map<std::string, std::string> mapArgs;
     std::map<std::string, std::vector<std::string> > mapMultiArgs;

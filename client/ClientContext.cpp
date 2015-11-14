@@ -71,7 +71,7 @@ namespace client
                 ircPort, localDestination
             );
             ircTunnel->Start ();
-            // TODO: allow muliple tunnels on the same port (but on a different address)
+            // TODO: allow multiple tunnels on the same port (but on a different address)
             m_ClientTunnels.insert(std::make_pair(
                 ircPort, std::unique_ptr<I2PClientTunnel>(ircTunnel)
             ));

@@ -76,9 +76,11 @@ namespace i2p
             int port = i2p::util::config::GetArg("-port", 0);
             if (port)
                 i2p::context.UpdatePort (port);                 
-            const char * host = i2p::util::config::GetCharArg("-host", "");
-            if (host && host[0])
-                i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));  
+            const std::string host = i2p::util::config::GetArg("-host", "");
+            // The host option is deprecated, so this was always true.
+            // Because of -Waddress, it's now exposed as the hack it was.
+            if (&host && host[0])
+                i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));
 
             i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
             i2p::context.SetFloodfill (i2p::util::config::GetArg("-floodfill", 0));

@@ -103,8 +103,8 @@ namespace data
             const Address * GetSSUAddress (bool v4only = true) const;
             const Address * GetSSUV6Address () const;
             
-            void AddNTCPAddress (const char * host, int port);
-            void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
+            void AddNTCPAddress (const std::string& host, int port);
+            void AddSSUAddress (const std::string& host, int port, const uint8_t * key, int mtu = 0);
             bool AddIntroducer (const Address * address, uint32_t tag);
             bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
             void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only

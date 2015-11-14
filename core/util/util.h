@@ -39,12 +39,6 @@ namespace util
         std::string GetArg(const std::string& strArg, const std::string& strDefault);
 
         /**
-         * @return a command line argument from config::mapArgs as a C-style string
-         * @param nDefault the default value to be returned
-         */
-        const char* GetCharArg(const std::string& strArg, const std::string& nDefault);
-
-        /**
          * @return true if the argument is set, false otherwise
          */
         bool HasArg(const std::string& strArg);

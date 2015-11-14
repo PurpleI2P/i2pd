@@ -10,7 +10,7 @@ i2p.conf:
 	v6 = 0
 	ircdest = irc.postman.i2p
 
-tunnels.cfg (filename of this config is subject of change):
+tunnels.cfg (filename of this config is subject to change):
 
     ; outgoing tunnel sample, to remote service
     ; mandatory parameters:

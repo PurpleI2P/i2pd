@@ -472,7 +472,7 @@ namespace data
         s.write (str.c_str (), len);
     }   
 
-    void RouterInfo::AddNTCPAddress (const char * host, int port)
+    void RouterInfo::AddNTCPAddress (const std::string& host, int port)
     {
         Address addr;
         addr.host = boost::asio::ip::address::from_string (host);
@@ -485,7 +485,7 @@ namespace data
         m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eNTCPV4;
     }   
 
-    void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
+    void RouterInfo::AddSSUAddress (const std::string& host, int port, const uint8_t * key, int mtu)
     {
         Address addr;
         addr.host = boost::asio::ip::address::from_string (host);
