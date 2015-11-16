@@ -13,6 +13,7 @@ namespace i2p
 {
 namespace transport
 {
+	const uint8_t SSU_HEADER_EXTENDED_OPTIONS_INCLUDED = 0x04;
 #pragma pack(1)
 	struct SSUHeader
 	{
@@ -22,6 +23,7 @@ namespace transport
 		uint32_t time;	
 
 		uint8_t GetPayloadType () const { return flag >> 4; };
+		bool IsExtendedOptions () const { return flag & SSU_HEADER_EXTENDED_OPTIONS_INCLUDED; };	
 	};
 #pragma pack()
 
@@ -93,7 +95,7 @@ namespace transport
 
 			boost::asio::io_service& GetService ();
 			void CreateAESandMacKey (const uint8_t * pubKey); 
-
+			size_t GetSSUHeaderSize (uint8_t * buf) const;
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);

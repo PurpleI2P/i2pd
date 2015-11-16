@@ -131,16 +131,25 @@ namespace transport
 		}	
 	}
 
+	size_t SSUSession::GetSSUHeaderSize (uint8_t * buf) const
+	{
+		size_t s = sizeof (SSUHeader);
+		if (((SSUHeader *)buf)->IsExtendedOptions ())
+			s += buf[s] + 1; // byte right after header is extended options length
+		return s;
+	}
+
 	void SSUSession::ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		len -= (len & 0x0F); // %16, delete extra padding
 		if (len <= sizeof (SSUHeader)) return; // drop empty message
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
+		auto headerSize = GetSSUHeaderSize (buf);
 		SSUHeader * header = (SSUHeader *)buf;
 		switch (header->GetPayloadType ())
 		{
 			case PAYLOAD_TYPE_DATA:
-				ProcessData (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+				ProcessData (buf + headerSize, len - headerSize);
 			break;
 			case PAYLOAD_TYPE_SESSION_REQUEST:
 				ProcessSessionRequest (buf, len, senderEndpoint);				
@@ -153,7 +162,7 @@ namespace transport
 			break;	
 			case PAYLOAD_TYPE_PEER_TEST:
 				LogPrint (eLogDebug, "SSU peer test received");
-				ProcessPeerTest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
+				ProcessPeerTest (buf + headerSize, len - headerSize, senderEndpoint);
 			break;
 			case PAYLOAD_TYPE_SESSION_DESTROYED:
 			{
@@ -168,11 +177,11 @@ namespace transport
 			break;
 			case PAYLOAD_TYPE_RELAY_REQUEST:
 				LogPrint (eLogDebug, "SSU relay request received");
-				ProcessRelayRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
+				ProcessRelayRequest (buf + headerSize, len - headerSize, senderEndpoint);
 			break;
 			case PAYLOAD_TYPE_RELAY_INTRO:
 				LogPrint (eLogDebug, "SSU relay intro received");
-				ProcessRelayIntro (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+				ProcessRelayIntro (buf + headerSize, len - headerSize);
 			break;
 			default:
 				LogPrint (eLogWarning, "Unexpected SSU payload type ", (int)header->GetPayloadType ());
