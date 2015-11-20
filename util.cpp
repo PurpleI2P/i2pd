@@ -41,7 +41,7 @@ http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
 	char src_copy[INET6_ADDRSTRLEN + 1];
 
 	ZeroMemory (&ss, sizeof (ss));
-	strncpy_s (src_copy, src, INET6_ADDRSTRLEN + 1);
+	strncpy (src_copy, src, INET6_ADDRSTRLEN + 1);
 	src_copy[INET6_ADDRSTRLEN] = 0;
 
 	if (WSAStringToAddress (src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0)
