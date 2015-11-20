@@ -52,7 +52,7 @@ namespace client
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
 		auto filename = GetPath () / (ident.ToBase32() + ".b32");
-		std::ifstream f(filename.c_str (), std::ifstream::binary);
+		std::ifstream f(filename.string (), std::ifstream::binary);
 		if (f.is_open ())	
 		{
 			f.seekg (0,std::ios::end);
@@ -76,7 +76,7 @@ namespace client
 	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
 		auto filename = GetPath () / (address->GetIdentHash ().ToBase32() + ".b32");
-		std::ofstream f (filename.c_str (), std::ofstream::binary | std::ofstream::out);
+		std::ofstream f (filename.string (), std::ofstream::binary | std::ofstream::out);
 		if (f.is_open ())	
 		{
 			size_t len = address->GetFullLen ();
@@ -100,7 +100,7 @@ namespace client
 	{
 		int num = 0;	
 		auto filename = GetPath () / "addresses.csv";
-		std::ifstream f (filename.c_str (), std::ofstream::in); // in text mode
+		std::ifstream f (filename.string (), std::ofstream::in); // in text mode
 		if (f.is_open ())	
 		{
 			addresses.clear ();
@@ -134,7 +134,7 @@ namespace client
 	{
 		int num = 0;
 		auto filename = GetPath () / "addresses.csv";
-		std::ofstream f (filename.c_str (), std::ofstream::out); // in text mode
+		std::ofstream f (filename.string (), std::ofstream::out); // in text mode
 		if (f.is_open ())	
 		{
 			for (auto it: addresses)
