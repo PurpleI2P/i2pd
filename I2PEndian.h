@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-#if defined(__linux__) || defined(__FreeBSD_kernel__)
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)
 #include <endian.h>
 #elif __FreeBSD__
 #include <sys/endian.h>

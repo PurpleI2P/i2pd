@@ -16,7 +16,7 @@
 #include "util.h"
 #include "Log.h"
 
-#if defined(__linux__) || defined(__FreeBSD_kernel__)
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
 #include <sys/types.h>
 #include <ifaddrs.h>
 #elif defined(WIN32)
@@ -508,7 +508,7 @@ namespace net
 {
 	int GetMTU (const boost::asio::ip::address& localAddress)
 	{
-#if defined(__linux__) || defined(__FreeBSD_kernel__)	
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)	
 		ifaddrs * ifaddr, * ifa = nullptr;
 		if (getifaddrs(&ifaddr) == -1) 
 		{
