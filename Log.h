@@ -50,7 +50,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		
 		std::ostream * m_LogStream;
 		std::string m_Timestamp;
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6) // gcc 4.6
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6) && !defined(__clang__) // gcc 4.6
 		std::chrono::monotonic_clock::time_point m_LastTimestampUpdate;
 #else		
 		std::chrono::steady_clock::time_point m_LastTimestampUpdate;	
