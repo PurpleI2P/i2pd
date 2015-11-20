@@ -154,7 +154,7 @@ namespace data
 		if (isFirstTime) iT64Build();
 		n = InCount/4;
 		m = InCount%4;
-		if (!m) 
+		if (InCount && !m) 
 		     outCount = 3*n;
 		else {
 		     outCount = 0;
