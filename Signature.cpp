@@ -47,6 +47,9 @@ namespace crypto
 				BN_div_word (tmp, 4);	
 				BN_mod_exp (I, two, tmp, q, ctx);
 
+				BN_free (two);
+				BN_free (tmp);	
+				
 				// 4*inv(5)	
 				BIGNUM * By = BN_new ();		
 				BN_set_word (By, 5);
@@ -54,14 +57,10 @@ namespace crypto
 				BN_mul_word (By, 4);
 				BIGNUM * Bx = RecoverX (By, ctx);	
 				BN_mod (Bx, Bx, q, ctx); // % q
-				BN_mod (By, By, q, ctx); // % q								
-				B = {Bx, By};
-
-				BN_free (two);
-				BN_free (tmp);
+				BN_mod (By, By, q, ctx); // % q										
 			
 				// precalculate Bi16 table
-				Bi16[0][0] = { BN_dup (Bx), BN_dup (By) }; 
+				Bi16[0][0] = { Bx, By };  // B
 				for (int i = 0; i < 64; i++)
 				{
 					if (i) Bi16[i][0] = Sum (Bi16[i-1][14], Bi16[i-1][0], ctx); 
@@ -384,10 +383,10 @@ namespace crypto
 		private:
 			
 			BIGNUM * q, * l, * d, * I; 
-			EDDSAPoint B; // base point
 			// transient values
 			BIGNUM * two_252_2; // 2^252-2
 			EDDSAPoint Bi16[64][15]; // per 4-bits, Bi16[i][j] = (16+j+1)^i*B, we don't store zeroes
+			// Bi16[0][0] = B, base point
 	};
 
 	static std::unique_ptr<Ed25519> g_Ed25519;
