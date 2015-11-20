@@ -29,7 +29,6 @@ namespace client
 	const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 	const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 	const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";		
-	const char TUNNELS_CONFIG_FILENAME[] = "tunnels.cfg";
 
 	class ClientContext
 	{

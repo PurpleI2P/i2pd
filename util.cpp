@@ -193,6 +193,14 @@ namespace filesystem
 		return pathConfigFile;
 	}
 
+	boost::filesystem::path GetTunnelsConfigFile()
+	{
+	  boost::filesystem::path pathTunnelsConfigFile(i2p::util::config::GetArg("-tunnelscfg", "tunnels.cfg"));
+		if (!pathTunnelsConfigFile.is_complete())
+		  pathTunnelsConfigFile = GetDataDir() / pathTunnelsConfigFile;
+		return pathTunnelsConfigFile;
+	}
+
 	void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
 						std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet)
 	{

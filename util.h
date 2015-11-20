@@ -33,6 +33,7 @@ namespace util
 		std::string GetFullPath (const std::string& filename);	
 		boost::filesystem::path GetDefaultDataDir();
 		boost::filesystem::path GetConfigFile();
+		boost::filesystem::path GetTunnelsConfigFile();
 		void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
                 std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet);
 		boost::filesystem::path GetCertificatesDir();
