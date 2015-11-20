@@ -94,6 +94,7 @@ Cmdline options
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
 * --bobport=            - Port of BOB command channel. Usually 2827. BOB is off if not specified
 * --i2pcontrolport=     - Port of I2P control service. Usually 7650. I2PControl is off if not specified
+* --tunnelscfg=         - Tunnels Config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
 * --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
