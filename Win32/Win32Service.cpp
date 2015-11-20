@@ -76,7 +76,7 @@ I2PService::I2PService(PSTR pszServiceName,
 	BOOL fCanShutdown,
 	BOOL fCanPauseContinue)
 {
-	m_name = (pszServiceName == NULL) ? "" : pszServiceName;
+	m_name = (pszServiceName == NULL) ? (PSTR)"" : pszServiceName;
 
 	m_statusHandle = NULL;
 
