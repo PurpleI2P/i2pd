@@ -1,6 +1,7 @@
 CXX = g++
 CXXFLAGS = -O2 -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
+BOOST_SUFFIX = -mgw48-mt-1_59
 INCFLAGS = -I/usr/include/ -I/usr/local/include/ -I/c/dev/openssl/include -I/c/dev/boost/include/boost-1_59 
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -L/c/dev/openssl -L/c/dev/boost/lib
-LDLIBS = -lboost_system-mgw48-mt-1_59 -lboost_date_time-mgw48-mt-1_59 -lboost_filesystem-mgw48-mt-1_59 -lboost_regex-mgw48-mt-1_59 -lboost_program_options-mgw48-mt-1_59 -lssl -lcrypto -lz -lpthread -lwsock32 -lws2_32 -lgdi32 -liphlpapi
+LDLIBS = -lboost_system$(BOOST_SUFFIX) -lboost_date_time$(BOOST_SUFFIX) -lboost_filesystem$(BOOST_SUFFIX) -lboost_regex$(BOOST_SUFFIX) -lboost_program_options$(BOOST_SUFFIX) -lssl -lcrypto -lz -lpthread -lwsock32 -lws2_32 -lgdi32 -liphlpapi

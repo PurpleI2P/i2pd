@@ -21,16 +21,18 @@ else ifeq ($(shell echo $(UNAME) | $(GREP) -c FreeBSD),1)
 else ifeq ($(UNAME),Linux)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.linux
-else # win32
-	DAEMON_SRC += DaemonWin32.cpp
+else # win32 mingw
+	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp
+	include Makefile.mingw
 endif
 
-all: mk_build_dir $(SHLIB) $(SHLIB_CLIENT) $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
+all: mk_build_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 
 mk_build_dir:
 	mkdir -p obj
 
-api: $(SHLIB) $(ARLIB)
+api: mk_build_dir $(SHLIB) $(ARLIB)
+api_client: mk_build_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -82,4 +84,5 @@ dist:
 .PHONY: deps
 .PHONY: dist
 .PHONY: api
+.PHONY: api_client
 .PHONY: mk_build_dir
