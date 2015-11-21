@@ -1,3 +1,5 @@
+#include <ctime>
+#include <iomanip>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -488,21 +490,26 @@ namespace util
 		std::vector<boost::asio::const_buffer> buffers;
 		if (headers.size () > 0)
 		{
+			buffers.push_back(boost::asio::buffer("HTTP/1.1 ", 9));
+            buffers.push_back(boost::asio::buffer(boost::lexical_cast<std::string>(status), 3));
+			buffers.push_back(boost::asio::buffer(" ", 1));
+			std::string status_string;
 			switch (status)
 			{
-				case 105: buffers.push_back(boost::asio::buffer("HTTP/1.1 105 Name Not Resolved\r\n")); break;
-				case 200: buffers.push_back(boost::asio::buffer("HTTP/1.1 200 OK\r\n")); break;
-				case 400: buffers.push_back(boost::asio::buffer("HTTP/1.1 400 Bad Request\r\n")); break;
-				case 404: buffers.push_back(boost::asio::buffer("HTTP/1.1 404 Not Found\r\n")); break;
-				case 408: buffers.push_back(boost::asio::buffer("HTTP/1.1 408 Request Timeout\r\n")); break;
-				case 500: buffers.push_back(boost::asio::buffer("HTTP/1.1 500 Internal Server Error\r\n")); break;
-				case 502: buffers.push_back(boost::asio::buffer("HTTP/1.1 502 Bad Gateway\r\n")); break;
-				case 503: buffers.push_back(boost::asio::buffer("HTTP/1.1 503 Not Implemented\r\n")); break;
-				case 504: buffers.push_back(boost::asio::buffer("HTTP/1.1 504 Gateway Timeout\r\n")); break;
-				default:
-					buffers.push_back(boost::asio::buffer("HTTP/1.1 200 OK\r\n"));
+				case 105: status_string = "Name Not Resolved"; break;
+                case 200: status_string = "OK"; break;
+                case 400: status_string = "Bad Request"; break;
+                case 404: status_string = "Not Found"; break;
+                case 408: status_string = "Request Timeout"; break;
+                case 500: status_string = "Internal Server Error"; break;
+                case 502: status_string = "Bad Gateway"; break;
+                case 503: status_string = "Not Implemented"; break;
+                case 504: status_string = "Gateway Timeout"; break;
+				default: status_string = "WTF";
 			}
-
+			buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
+            buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+			
 			for (std::size_t i = 0; i < headers.size(); ++i)
 			{
 				header& h = headers[i];
@@ -1040,12 +1047,20 @@ namespace util
 	void HTTPConnection::SendReply (const std::string& content, int status)
 	{
 		m_Reply.content = content;
-		m_Reply.headers.resize(2);
-		m_Reply.headers[0].name = "Content-Length";
-		m_Reply.headers[0].value = boost::lexical_cast<std::string>(m_Reply.content.size());
-		m_Reply.headers[1].name = "Content-Type";
-		m_Reply.headers[1].value = "text/html";
-
+		m_Reply.headers.resize(3);
+        // we need the date header to be complaint with http 1.1
+        std::time_t time_now = std::time(nullptr);
+        char time_buff[128];
+        if (std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now))) 
+		{
+            m_Reply.headers[0].name = "Date";
+            m_Reply.headers[0].value = std::string(time_buff);
+            m_Reply.headers[1].name = "Content-Length";
+            m_Reply.headers[1].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+            m_Reply.headers[2].name = "Content-Type";
+            m_Reply.headers[2].value = "text/html";
+        }
+		
 		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
 			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
 	}
