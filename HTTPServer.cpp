@@ -1066,10 +1066,8 @@ namespace util
 
 	HTTPServer::HTTPServer (int port):
 		m_Thread (nullptr), m_Work (m_Service),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4 (), port)),
-		m_NewSocket (nullptr)
+		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4 (), port))
 	{
-
 	}
 
 	HTTPServer::~HTTPServer ()
@@ -1079,7 +1077,7 @@ namespace util
 
 	void HTTPServer::Start ()
 	{
-		m_Thread = new std::thread (std::bind (&HTTPServer::Run, this));
+		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
 		m_Acceptor.listen ();
 		Accept ();
 	}
@@ -1091,7 +1089,6 @@ namespace util
 		if (m_Thread)
         {
             m_Thread->join ();
-            delete m_Thread;
             m_Thread = nullptr;
         }
 	}
@@ -1103,23 +1100,24 @@ namespace util
 
 	void HTTPServer::Accept ()
 	{
-		m_NewSocket = new boost::asio::ip::tcp::socket (m_Service);
-		m_Acceptor.async_accept (*m_NewSocket, boost::bind (&HTTPServer::HandleAccept, this,
-			boost::asio::placeholders::error));
+		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (m_Service);
+		m_Acceptor.async_accept (*newSocket, boost::bind (&HTTPServer::HandleAccept, this,
+			boost::asio::placeholders::error, newSocket));
 	}
 
-	void HTTPServer::HandleAccept(const boost::system::error_code& ecode)
+	void HTTPServer::HandleAccept(const boost::system::error_code& ecode, 
+		std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
 		if (!ecode)
 		{
-			CreateConnection(m_NewSocket);
+			CreateConnection(newSocket);
 			Accept ();
 		}
 	}
 
-	void HTTPServer::CreateConnection(boost::asio::ip::tcp::socket * m_NewSocket)
+	void HTTPServer::CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
-		auto conn = std::make_shared<HTTPConnection> (m_NewSocket);
+		auto conn = std::make_shared<HTTPConnection> (newSocket);
 		conn->Receive ();
 	}
 }
