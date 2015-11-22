@@ -62,7 +62,7 @@ $ ./i2p
 
 The client should now reseed by itself.
 To visit an eepsite use HTTP proxy port 4446.
-For tunnels follow [intructions](https://github.com/PurpleI2P/i2pd/wiki/tunnels.cfg)
+For tunnels follow [instructions](https://github.com/PurpleI2P/i2pd/wiki/tunnels.cfg)
 
 
 Cmdline options
