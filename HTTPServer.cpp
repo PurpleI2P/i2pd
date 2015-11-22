@@ -490,22 +490,21 @@ namespace util
 		std::vector<boost::asio::const_buffer> buffers;
 		if (headers.size () > 0)
 		{
-			buffers.push_back(boost::asio::buffer("HTTP/1.1 ", 9));
-            buffers.push_back(boost::asio::buffer(boost::lexical_cast<std::string>(status), 3));
-			buffers.push_back(boost::asio::buffer(" ", 1));
-			std::string status_string;
+			status_string = "HTTP/1.1 ";
+			status_string += std::to_string (status);
+			status_string += " ";
 			switch (status)
 			{
-				case 105: status_string = "Name Not Resolved"; break;
-                case 200: status_string = "OK"; break;
-                case 400: status_string = "Bad Request"; break;
-                case 404: status_string = "Not Found"; break;
-                case 408: status_string = "Request Timeout"; break;
-                case 500: status_string = "Internal Server Error"; break;
-                case 502: status_string = "Bad Gateway"; break;
-                case 503: status_string = "Not Implemented"; break;
-                case 504: status_string = "Gateway Timeout"; break;
-				default: status_string = "WTF";
+				case 105: status_string += "Name Not Resolved"; break;
+                case 200: status_string += "OK"; break;
+                case 400: status_string += "Bad Request"; break;
+                case 404: status_string += "Not Found"; break;
+                case 408: status_string += "Request Timeout"; break;
+                case 500: status_string += "Internal Server Error"; break;
+                case 502: status_string += "Bad Gateway"; break;
+                case 503: status_string += "Not Implemented"; break;
+                case 504: status_string += "Gateway Timeout"; break;
+				default: status_string += "WTF";
 			}
 			buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
             buffers.push_back(boost::asio::buffer(misc_strings::crlf));

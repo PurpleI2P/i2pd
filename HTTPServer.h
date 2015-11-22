@@ -39,8 +39,7 @@ namespace util
 			struct reply
 			{
 				std::vector<header> headers;
-				std::string content;
-
+				std::string status_string, content;
 				std::vector<boost::asio::const_buffer> to_buffers (int status);
 			};
 
