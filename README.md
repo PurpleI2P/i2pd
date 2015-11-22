@@ -61,12 +61,8 @@ Then, run it:
 $ ./i2p
 
 The client should now reseed by itself.
-
-To visit an I2P page, you need to find the b32 address of your destination.
-After that, go to the webconsole and add it behind the url. (Remove http:// from the address)
-
-This should resulting in for example:
-http://localhost:7070/4oes3rlgrpbkmzv4lqcfili23h3cvpwslqcfjlk6vvguxyggspwa.b32.i2p
+To visit an eepsite use HTTP proxy port 4446.
+For tunnels follow [intructions](https://github.com/PurpleI2P/i2pd/wiki/tunnels.cfg)
 
 
 Cmdline options
