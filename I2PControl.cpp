@@ -151,7 +151,7 @@ namespace client
 	void I2PControlService::ReadRequest (std::shared_ptr<ssl_socket> socket)
 	{
 		auto request = std::make_shared<I2PControlBuffer>();
-		socket->async_read_some (
+		boost::asio::async_read (*socket,
 #if BOOST_VERSION >= 104900
 			boost::asio::buffer (*request),  
 #else
