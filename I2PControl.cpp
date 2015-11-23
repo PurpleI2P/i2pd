@@ -39,9 +39,13 @@ namespace client
 		}	
 		if (!boost::filesystem::exists (path / I2P_CONTROL_KEY_FILE) ||
 			!boost::filesystem::exists (path / I2P_CONTROL_CERT_FILE))
+		{
 			// create new certificate
 			CreateCertificate ();
-		m_SSLContext.use_certificate_chain_file ((path / I2P_CONTROL_CERT_FILE).string ());
+			LogPrint (eLogInfo, "I2PControl certificates created");
+		}
+		m_SSLContext.set_options (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::single_dh_use);
+		m_SSLContext.use_certificate_file ((path / I2P_CONTROL_CERT_FILE).string (), boost::asio::ssl::context::pem);
 		m_SSLContext.use_private_key_file ((path / I2P_CONTROL_KEY_FILE).string (), boost::asio::ssl::context::pem);
 
 		// handlers
@@ -131,14 +135,14 @@ namespace client
 		{
 			LogPrint (eLogInfo, "New I2PControl request from ", socket->lowest_layer ().remote_endpoint ());
 			boost::system::error_code ec;
-			socket->handshake (boost::asio::ssl::stream_base::client, ec);
+			socket->handshake (boost::asio::ssl::stream_base::server, ec);
 			if (!ec)
 			{
 				std::this_thread::sleep_for (std::chrono::milliseconds(5));
 				ReadRequest (socket);
 			}
 			else
- 				LogPrint (eLogError, "I2PControl handshake error: ",  ecode.message ());	
+ 				LogPrint (eLogError, "I2PControl handshake error: ",  ec.message ());	
 		}
 		else
 			LogPrint (eLogError, "I2PControl accept error: ",  ecode.message ());
@@ -440,7 +444,8 @@ namespace client
 	void I2PControlService::CreateCertificate ()
 	{
 		EVP_PKEY * pkey = EVP_PKEY_new ();
-		RSA * rsa = RSA_generate_key (4096, RSA_F4, NULL, NULL);
+		RSA * rsa = RSA_new ();
+		RSA_generate_key_ex (rsa, 4096, i2p::crypto::rsae, NULL);
 		if (rsa)
 		{
 			EVP_PKEY_assign_RSA (pkey, rsa);
@@ -478,9 +483,9 @@ namespace client
 				LogPrint (eLogError, "Can't open file ", filename);
 
 			X509_free (x509);		
-			RSA_free (rsa);
 		}
-		LogPrint (eLogError, "Couldn't create RSA key for certificate");
+		else
+			LogPrint (eLogError, "Couldn't create RSA key for certificate");
 		EVP_PKEY_free (pkey);
 	}
 
