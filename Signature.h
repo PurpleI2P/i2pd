@@ -410,7 +410,6 @@ namespace crypto
 		public:
 
 			EDDSA25519Verifier (const uint8_t * signingKey);
-			~EDDSA25519Verifier () { BN_CTX_free (m_Ctx); };
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 
 			size_t GetPublicKeyLen () const { return EDDSA25519_PUBLIC_KEY_LENGTH; };
@@ -418,7 +417,6 @@ namespace crypto
 
 		private:
 
-			BN_CTX * m_Ctx;
 			EDDSAPoint m_PublicKey;	
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 	};
@@ -428,13 +426,11 @@ namespace crypto
 		public:
 
 			EDDSA25519Signer (const uint8_t * signingPrivateKey); 
-			~EDDSA25519Signer () { BN_CTX_free (m_Ctx); };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const; 
 			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; };
 			
 		private:
 
-			BN_CTX * m_Ctx;
 			uint8_t m_ExpandedPrivateKey[64]; 
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 	};
