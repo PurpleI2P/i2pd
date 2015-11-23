@@ -11,6 +11,8 @@
 #include <set>
 #include <boost/asio.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/filesystem.hpp>
+#include "util.h"
 
 namespace i2p
 {
@@ -19,6 +21,9 @@ namespace client
 	const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
 	typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;		
 
+	const char I2P_CONTROL_PATH[] = "ipcontrol";
+	const char I2P_CONTROL_KEY_FILE[] = "key.pem";
+	const char I2P_CONTROL_CERT_FILE[] = "cert.pem";
 	const char I2P_CONTROL_DEFAULT_PASSWORD[] = "itoopie";	
 
 	const char I2P_CONTROL_PROPERTY_ID[] = "id";
@@ -62,6 +67,11 @@ namespace client
 	const char I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
 	const char I2P_CONTROL_ROUTER_MANAGER_RESEED[] = "Reseed";		
 
+	// Certificate	
+	const long I2P_CONTROL_CERTIFICATE_VALIDITY = 365*10; // 10 years
+	const char I2P_CONTROL_CERTIFICATE_COMMON_NAME[] = "i2pd.i2pcontrol";
+	const char I2P_CONTROL_CERTIFICATE_ORGANIZATION[] = "Purple I2P";
+
 	class I2PControlService
 	{
 		public:
@@ -84,6 +94,10 @@ namespace client
 				std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml);
 			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
+
+			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / I2P_CONTROL_PATH; };
+			void CreateCertificate ();
+			
 
 		private:
 

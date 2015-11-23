@@ -1,8 +1,9 @@
 // There is bug in boost 1.49 with gcc 4.7 coming with Debian Wheezy
 #define GCC47_BOOST149 ((BOOST_VERSION == 104900) && (__GNUC__ == 4) && (__GNUC_MINOR__ >= 7))
-
-#include "I2PControl.h"
+#include <stdio.h>
 #include <sstream>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -17,6 +18,7 @@
 #include "Timestamp.h"
 #include "Transports.h"
 #include "version.h"
+#include "I2PControl.h"
 
 namespace i2p
 {
@@ -27,6 +29,13 @@ namespace client
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
 		m_ShutdownTimer (m_Service)
 	{
+		auto path = GetPath ();
+		if (!boost::filesystem::exists (path))
+		{
+			if (!boost::filesystem::create_directory (path))
+				LogPrint (eLogError, "Failed to create i2pcontrol directory");
+		}	
+
 		m_MethodHandlers[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_I2PCONTROL] = &I2PControlService::I2PControlHandler; 
@@ -410,6 +419,54 @@ namespace client
 			else
 				LogPrint (eLogError, "I2PControl NetworkSetting unknown request ", it->first);			
 		}
+	}
+
+	// certificate	
+	void I2PControlService::CreateCertificate ()
+	{
+		EVP_PKEY * pkey = EVP_PKEY_new ();
+		RSA * rsa = RSA_generate_key (4096, RSA_F4, NULL, NULL);
+		if (rsa)
+		{
+			EVP_PKEY_assign_RSA (pkey, rsa);
+			X509 * x509 = X509_new ();
+			ASN1_INTEGER_set (X509_get_serialNumber (x509), 1);
+			X509_gmtime_adj (X509_get_notBefore (x509), 0);
+			X509_gmtime_adj (X509_get_notAfter (x509), I2P_CONTROL_CERTIFICATE_VALIDITY*24*60*60); // expiration		
+			X509_set_pubkey (x509, pkey); // public key			
+			X509_NAME * name = X509_get_subject_name (x509);
+			X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"RU", -1, -1, 0); // country (Russia by default)
+			X509_NAME_add_entry_by_txt (name, "O",  MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_ORGANIZATION, -1, -1, 0); // organization
+			X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
+			X509_set_issuer_name (x509, name); // set issuer to ourselves
+			X509_sign (x509, pkey, EVP_sha1 ()); // sign
+			// save key and certificate
+			// keys
+			auto filename = GetPath () / I2P_CONTROL_KEY_FILE; 
+			FILE * f= fopen (filename.string ().c_str (), "wb");
+			if (f)
+			{
+				PEM_write_PrivateKey (f, pkey, NULL, NULL, 0, NULL, NULL);
+				fclose (f);
+			}
+			else
+				LogPrint (eLogError, "Can't open file ", filename);
+			// certificate			
+			filename = GetPath () / I2P_CONTROL_CERT_FILE;
+			f= fopen (filename.string ().c_str (), "wb");
+			if (f)
+			{
+				PEM_write_X509 (f, x509);
+				fclose (f);
+			}
+			else
+				LogPrint (eLogError, "Can't open file ", filename);
+
+			X509_free (x509);		
+			RSA_free (rsa);
+		}
+		LogPrint (eLogError, "Couldn't create RSA key for certificate");
+		EVP_PKEY_free (pkey);
 	}
 
 }
