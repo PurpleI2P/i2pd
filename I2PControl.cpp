@@ -27,15 +27,24 @@ namespace client
 	I2PControlService::I2PControlService (int port):
 		m_Password (I2P_CONTROL_DEFAULT_PASSWORD), m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
+		m_SSLContext (m_Service, boost::asio::ssl::context::sslv23),
 		m_ShutdownTimer (m_Service)
 	{
+		// certificate				
 		auto path = GetPath ();
 		if (!boost::filesystem::exists (path))
 		{
 			if (!boost::filesystem::create_directory (path))
 				LogPrint (eLogError, "Failed to create i2pcontrol directory");
 		}	
+		if (!boost::filesystem::exists (path / I2P_CONTROL_KEY_FILE) ||
+			!boost::filesystem::exists (path / I2P_CONTROL_CERT_FILE))
+			// create new certificate
+			CreateCertificate ();
+		m_SSLContext.use_certificate_chain_file ((path / I2P_CONTROL_CERT_FILE).string ());
+		m_SSLContext.use_private_key_file ((path / I2P_CONTROL_KEY_FILE).string (), boost::asio::ssl::context::pem);
 
+		// handlers
 		m_MethodHandlers[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_I2PCONTROL] = &I2PControlService::I2PControlHandler; 
@@ -108,27 +117,34 @@ namespace client
 
 	void I2PControlService::Accept ()
 	{
-		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (m_Service);
-		m_Acceptor.async_accept (*newSocket, std::bind (&I2PControlService::HandleAccept, this,
+		auto newSocket = std::make_shared<ssl_socket> (m_Service, m_SSLContext);
+		m_Acceptor.async_accept (newSocket->lowest_layer(), std::bind (&I2PControlService::HandleAccept, this,
 			std::placeholders::_1, newSocket));
 	}
 
-	void I2PControlService::HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+	void I2PControlService::HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 			Accept ();
 
 		if (!ecode)
 		{
-			LogPrint (eLogInfo, "New I2PControl request from ", socket->remote_endpoint ());
-			std::this_thread::sleep_for (std::chrono::milliseconds(5));
-			ReadRequest (socket);	
+			LogPrint (eLogInfo, "New I2PControl request from ", socket->lowest_layer ().remote_endpoint ());
+			boost::system::error_code ec;
+			socket->handshake (boost::asio::ssl::stream_base::client, ec);
+			if (!ec)
+			{
+				std::this_thread::sleep_for (std::chrono::milliseconds(5));
+				ReadRequest (socket);
+			}
+			else
+ 				LogPrint (eLogError, "I2PControl handshake error: ",  ecode.message ());	
 		}
 		else
 			LogPrint (eLogError, "I2PControl accept error: ",  ecode.message ());
 	}
 
-	void I2PControlService::ReadRequest (std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+	void I2PControlService::ReadRequest (std::shared_ptr<ssl_socket> socket)
 	{
 		auto request = std::make_shared<I2PControlBuffer>();
 		socket->async_read_some (
@@ -142,7 +158,7 @@ namespace client
 	}
 
 	void I2PControlService::HandleRequestReceived (const boost::system::error_code& ecode,
- 		size_t bytes_transferred, std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
+ 		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket, 
 		std::shared_ptr<I2PControlBuffer> buf)
 	{
 		if (ecode)
@@ -218,7 +234,7 @@ namespace client
 		ss << "\"" << name << "\":" << std::fixed << std::setprecision(2) << value;
 	}	
 
-	void I2PControlService::SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml)
 	{
 		size_t len = response.str ().length (), offset = 0;
@@ -245,11 +261,10 @@ namespace client
 	}
 
 	void I2PControlService::HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-		std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf)
+		std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf)
 	{
 		if (ecode)
 			LogPrint (eLogError, "I2PControl write error: ", ecode.message ());
-		socket->close ();
 	}
 
 // handlers

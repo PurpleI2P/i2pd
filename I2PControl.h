@@ -10,6 +10,7 @@
 #include <map>
 #include <set>
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/filesystem.hpp>
 #include "util.h"
@@ -74,6 +75,7 @@ namespace client
 
 	class I2PControlService
 	{
+		typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
 		public:
 
 			I2PControlService (int port);
@@ -86,14 +88,14 @@ namespace client
 
 			void Run ();
 			void Accept ();
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);	
-			void ReadRequest (std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket);	
+			void ReadRequest (std::shared_ptr<ssl_socket> socket);
 			void HandleRequestReceived (const boost::system::error_code& ecode, size_t bytes_transferred, 
-				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
-			void SendResponse (std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
+			void SendResponse (std::shared_ptr<ssl_socket> socket,
 				std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml);
 			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-				std::shared_ptr<boost::asio::ip::tcp::socket> socket, std::shared_ptr<I2PControlBuffer> buf);
+				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 
 			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / I2P_CONTROL_PATH; };
 			void CreateCertificate ();
@@ -147,6 +149,7 @@ namespace client
 
 			boost::asio::io_service m_Service;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::ssl::context m_SSLContext;
 			boost::asio::deadline_timer m_ShutdownTimer;
 			std::set<std::string> m_Tokens;
 			
