@@ -526,14 +526,9 @@ namespace util
 	void HTTPConnection::Terminate ()
 	{
 		if (!m_Stream) return;
-		m_Socket->close ();
 		m_Stream->Close ();
-			
-		m_Socket->get_io_service ().post ([=](void)
-			{
-				m_Stream.reset ();
-				m_Stream = nullptr;
-			});
+		m_Stream = nullptr;
+		m_Socket->close ();
 	}
 
 	void HTTPConnection::Receive ()
@@ -964,7 +959,7 @@ namespace util
 
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
-		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n";
+		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n\r\n";
 		LogPrint("HTTP Client Request: ", request);
 		SendToAddress (address, 80, request.c_str (), request.size ());		
 	}
