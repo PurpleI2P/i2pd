@@ -93,7 +93,7 @@ namespace tunnel
 				if (fragment + size < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 				{
 					// this is not last message. we have to copy it
-					m.data = ToSharedI2NPMessage (NewI2NPShortMessage ());
+					m.data = NewI2NPShortMessage ();
 					m.data->offset += TUNNEL_GATEWAY_HEADER_SIZE; // reserve room for TunnelGateway header
 					m.data->len += TUNNEL_GATEWAY_HEADER_SIZE;
 					*(m.data) = *msg;
@@ -148,7 +148,7 @@ namespace tunnel
 					if (msg.data->len + size > msg.data->maxLen)
 					{
 						LogPrint (eLogInfo, "Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
-						auto newMsg = ToSharedI2NPMessage (NewI2NPMessage ());
+						auto newMsg = NewI2NPMessage ();
 						*newMsg = *(msg.data);
 						msg.data = newMsg;
 					}
@@ -204,7 +204,7 @@ namespace tunnel
 				if (msg.data->len + size > msg.data->maxLen)
 				{
 					LogPrint (eLogInfo, "Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
-					auto newMsg = ToSharedI2NPMessage (NewI2NPMessage ());
+					auto newMsg = NewI2NPMessage ();
 					*newMsg = *(msg.data);
 					msg.data = newMsg;
 				}

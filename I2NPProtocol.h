@@ -196,13 +196,11 @@ namespace tunnel
 		uint8_t m_Buffer[sz + 16];
 	};
 
-	I2NPMessage * NewI2NPMessage ();
-	I2NPMessage * NewI2NPShortMessage ();
-	I2NPMessage * NewI2NPMessage (size_t len);
-	void DeleteI2NPMessage (I2NPMessage * msg);
-	std::shared_ptr<I2NPMessage> ToSharedI2NPMessage (I2NPMessage * msg);
+	std::shared_ptr<I2NPMessage> NewI2NPMessage ();
+	std::shared_ptr<I2NPMessage> NewI2NPShortMessage ();
+	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len);
 	
-	I2NPMessage * CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
+	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
 	
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID);
@@ -221,12 +219,12 @@ namespace tunnel
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len);
 	void HandleTunnelBuildMsg (uint8_t * buf, size_t len);	
 
-	I2NPMessage * CreateTunnelDataMsg (const uint8_t * buf);	
-	I2NPMessage * CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);		
+	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf);	
+	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload);		
 	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ();
 	
-	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
-	I2NPMessage * CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
+	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, const uint8_t * buf, size_t len);
+	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, I2NPMessageType msgType, 
 		const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);
 	std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg (uint32_t tunnelID, std::shared_ptr<I2NPMessage> msg);
 

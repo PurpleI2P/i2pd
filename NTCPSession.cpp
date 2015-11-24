@@ -555,7 +555,7 @@ namespace transport
 					return false;
 				}
 				auto msg = dataSize <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
-				m_NextMessage = ToSharedI2NPMessage (msg);	
+				m_NextMessage = msg;	
 				memcpy (m_NextMessage->buf, buf, 16);
 				m_NextMessageOffset = 16;
 				m_NextMessage->offset = 2; // size field

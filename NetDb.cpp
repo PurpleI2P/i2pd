@@ -478,7 +478,7 @@ namespace data
 			if (context.IsFloodfill ())
 			{
 				// flood it
-				auto floodMsg = ToSharedI2NPMessage (NewI2NPShortMessage ());
+				auto floodMsg = NewI2NPShortMessage ();
 				uint8_t * payload = floodMsg->GetPayload ();		
 				memcpy (payload, buf, 33); // key + type
 				htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token

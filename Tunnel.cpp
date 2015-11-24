@@ -85,9 +85,9 @@ namespace tunnel
 
 		// send message
 		if (outboundTunnel)
-			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, ToSharedI2NPMessage (msg));	
+			outboundTunnel->SendTunnelDataMsg (GetNextIdentHash (), 0, msg);	
 		else
-			i2p::transport::transports.SendMessage (GetNextIdentHash (), ToSharedI2NPMessage (msg));
+			i2p::transport::transports.SendMessage (GetNextIdentHash (), msg);
 	}	
 		
 	bool Tunnel::HandleTunnelBuildResponse (uint8_t * msg, size_t len)

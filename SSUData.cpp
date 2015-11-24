@@ -15,7 +15,7 @@ namespace transport
 		if (msg->len + fragmentSize > msg->maxLen)
 		{
 			LogPrint (eLogInfo, "SSU I2NP message size ", msg->maxLen, " is not enough");
-			auto newMsg = ToSharedI2NPMessage(NewI2NPMessage ());
+			auto newMsg = NewI2NPMessage ();
 			*newMsg = *msg;
 			msg = newMsg;
 		}
@@ -171,7 +171,7 @@ namespace transport
 			if (it == m_IncompleteMessages.end ()) 
 			{
 				// create new message
-				auto msg = ToSharedI2NPMessage (NewI2NPShortMessage ());
+				auto msg = NewI2NPShortMessage ();
 				msg->len -= I2NP_SHORT_HEADER_SIZE;
 				it = m_IncompleteMessages.insert (std::make_pair (msgID, 
 					std::unique_ptr<IncompleteMessage>(new IncompleteMessage (msg)))).first;

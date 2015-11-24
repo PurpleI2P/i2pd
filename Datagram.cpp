@@ -48,15 +48,13 @@ namespace datagram
 			m_Owner->RequestDestination (ident, std::bind (&DatagramDestination::HandleLeaseSetRequestComplete, this, std::placeholders::_1, msg));
 	}
 
-	void DatagramDestination::HandleLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> remote, I2NPMessage * msg)
+	void DatagramDestination::HandleLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> remote, std::shared_ptr<I2NPMessage> msg)
 	{
 		if (remote)
 			SendMsg (msg, remote);
-		else
-			DeleteI2NPMessage (msg);
 	}	
 		
-	void DatagramDestination::SendMsg (I2NPMessage * msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
+	void DatagramDestination::SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		auto outboundTunnel = m_Owner->GetTunnelPool ()->GetNextOutboundTunnel ();
 		auto leases = remote->GetNonExpiredLeases ();
@@ -64,7 +62,7 @@ namespace datagram
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
 			uint32_t i = rand () % leases.size ();
-			auto garlic = m_Owner->WrapMessage (remote, ToSharedI2NPMessage (msg), true);
+			auto garlic = m_Owner->WrapMessage (remote, msg, true);
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
@@ -79,7 +77,6 @@ namespace datagram
 				LogPrint (eLogWarning, "Failed to send datagram. All leases expired");
 			else
 				LogPrint (eLogWarning, "Failed to send datagram. No outbound tunnels");
-			DeleteI2NPMessage (msg);	
 		}	
 	}
 
@@ -123,9 +120,9 @@ namespace datagram
 			HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen); 
 	}
 
-	I2NPMessage * DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
+	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
 	{
-		I2NPMessage * msg = NewI2NPMessage ();
+		auto msg = NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
 		buf += 4; // reserve for length
 		size_t size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
@@ -139,10 +136,7 @@ namespace datagram
 			msg->FillI2NPMessageHeader (eI2NPData);
 		}	
 		else
-		{
-			DeleteI2NPMessage (msg);
 			msg = nullptr;
-		}	
 		return msg;
 	}	
 }

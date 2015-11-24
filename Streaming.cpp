@@ -764,7 +764,7 @@ namespace stream
 
 	std::shared_ptr<I2NPMessage> Stream::CreateDataMessage (const uint8_t * payload, size_t len)
 	{
-		auto msg = ToSharedI2NPMessage (NewI2NPShortMessage ());
+		auto msg = NewI2NPShortMessage ();
 		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
 			m_LocalDestination.m_Deflator.SetCompressionLevel (Z_NO_COMPRESSION);
 		else
