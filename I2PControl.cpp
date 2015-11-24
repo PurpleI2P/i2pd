@@ -151,7 +151,7 @@ namespace client
 	void I2PControlService::ReadRequest (std::shared_ptr<ssl_socket> socket)
 	{
 		auto request = std::make_shared<I2PControlBuffer>();
-		boost::asio::async_read (*socket,
+		socket->async_read_some (
 #if BOOST_VERSION >= 104900
 			boost::asio::buffer (*request),  
 #else
@@ -179,13 +179,25 @@ namespace client
 				if (isHtml)
 				{
 					std::string header;
+					size_t contentLength = 0;
 					while (!ss.eof () && header != "\r")
+					{	
 						std::getline(ss, header);
+						auto colon = header.find (':');
+						if (colon != std::string::npos && header.substr (0, colon) == "Content-Length")
+							contentLength = std::stoi (header.substr (colon + 1));
+					}	
 					if (ss.eof ())
 					{
 						LogPrint (eLogError, "Malformed I2PControl request. HTTP header expected");
 						return; // TODO:
 					}
+					ssize_t rem = contentLength + ss.tellg () - bytes_transferred; // more bytes to read
+					if (rem > 0)
+					{	
+						bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), rem));
+						ss.write (buf->data (), bytes_transferred);
+					}	
 				}
 #if GCC47_BOOST149
 				LogPrint (eLogError, "json_read is not supported due bug in boost 1.49 with gcc 4.7");
