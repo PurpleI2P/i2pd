@@ -240,6 +240,7 @@ if (NOT ZLIB_FOUND )
     URL http://zlib.net/zlib-1.2.8.tar.gz
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+      -DAMD64=ON -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh"
     )
   if (WITH_PCH)
     add_dependencies( stdafx zlib-project )
