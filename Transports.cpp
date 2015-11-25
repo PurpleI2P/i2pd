@@ -290,8 +290,11 @@ namespace transport
 				peer.numAttempts++;
 				if (m_SSUServer)
 				{	
-					if (m_SSUServer->GetSession (peer.router))
+					if (peer.router->IsSSU (!context.SupportsV6 ()))
+					{
+						m_SSUServer->CreateSession (peer.router);
 						return true;
+					}
 				}
 			}	
 			LogPrint (eLogError, "No NTCP and SSU addresses available");
@@ -389,14 +392,14 @@ namespace transport
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
-				if (router  && router->IsSSU ())
-					m_SSUServer->GetSession (router, true);  // peer test	
+				if (router  && router->IsSSU (!context.SupportsV6 ()))
+					m_SSUServer->CreateSession (router, true);  // peer test	
 				else
 				{
 					// if not peer test capable routers found pick any
 					router = i2p::data::netdb.GetRandomRouter ();
 					if (router && router->IsSSU ())
-						m_SSUServer->GetSession (router);  	// no peer test
+						m_SSUServer->CreateSession (router);  	// no peer test
 				}
 			}	
 		}
@@ -412,14 +415,14 @@ namespace transport
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
-				if (router && router->IsSSU ())
+				if (router && router->IsSSU (!context.SupportsV6 ()))
 				{	
 					if (!statusChanged)
 					{	
 						statusChanged = true;
 						i2p::context.SetStatus (eRouterStatusTesting); // first time only
 					}	
-					m_SSUServer->GetSession (router, true);  // peer test	
+					m_SSUServer->CreateSession (router, true);  // peer test	
 				}	
 			}	
 		}

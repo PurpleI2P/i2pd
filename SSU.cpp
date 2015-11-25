@@ -272,7 +272,7 @@ namespace transport
 			return nullptr;
 	}
 		
-	std::shared_ptr<SSUSession> SSUServer::GetSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
+	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
 	{
 		std::shared_ptr<SSUSession> session;
 		if (router)
@@ -350,7 +350,6 @@ namespace transport
 							LogPrint (eLogWarning, "Can't connect to unreachable router. No introducers presented");
 							std::unique_lock<std::mutex> l(m_SessionsMutex);
 							m_Sessions.erase (remoteEndpoint);
-							session.reset ();
 						}	
 					}
 				}
@@ -358,7 +357,6 @@ namespace transport
 			else
 				LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
 		}
-		return session;
 	}
 
 	void SSUServer::DeleteSession (std::shared_ptr<SSUSession> session)
@@ -491,7 +489,7 @@ namespace transport
 			{
 				auto introducer = i2p::data::netdb.GetRandomIntroducer ();
 				if (introducer)
-					GetSession (introducer);
+					CreateSession (introducer);
 			}	
 			ScheduleIntroducersUpdateTimer ();
 		}	
