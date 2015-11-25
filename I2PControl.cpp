@@ -134,18 +134,27 @@ namespace client
 		if (!ecode)
 		{
 			LogPrint (eLogInfo, "New I2PControl request from ", socket->lowest_layer ().remote_endpoint ());
-			boost::system::error_code ec;
-			socket->handshake (boost::asio::ssl::stream_base::server, ec);
-			if (!ec)
-			{
-				std::this_thread::sleep_for (std::chrono::milliseconds(5));
-				ReadRequest (socket);
-			}
-			else
- 				LogPrint (eLogError, "I2PControl handshake error: ",  ec.message ());	
+			Handshake (socket);	
 		}
 		else
 			LogPrint (eLogError, "I2PControl accept error: ",  ecode.message ());
+	}
+
+	void I2PControlService::Handshake (std::shared_ptr<ssl_socket> socket)
+	{
+		socket->async_handshake(boost::asio::ssl::stream_base::server,
+        	std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
+	}
+
+	void I2PControlService::HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)
+	{
+		if (!ecode)
+		{
+			//std::this_thread::sleep_for (std::chrono::milliseconds(5));
+			ReadRequest (socket);
+		}	
+		else
+			LogPrint (eLogError, "I2PControl handshake error: ",  ecode.message ());
 	}
 
 	void I2PControlService::ReadRequest (std::shared_ptr<ssl_socket> socket)

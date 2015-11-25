@@ -89,6 +89,8 @@ namespace client
 			void Run ();
 			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket);	
+			void Handshake (std::shared_ptr<ssl_socket> socket);
+			void HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket);
 			void ReadRequest (std::shared_ptr<ssl_socket> socket);
 			void HandleRequestReceived (const boost::system::error_code& ecode, size_t bytes_transferred, 
 				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
