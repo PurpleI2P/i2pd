@@ -793,27 +793,28 @@ namespace transport
 		}	
 	}	
 
-	void NTCPServer::AddNTCPSession (std::shared_ptr<NTCPSession> session)
+	bool NTCPServer::AddNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
-		if (session && session->GetRemoteIdentity ())
+		if (!session || !session->GetRemoteIdentity ()) return false;
+		auto& ident = session->GetRemoteIdentity ()->GetIdentHash ();
+		auto it = m_NTCPSessions.find (ident);
+		if (it != m_NTCPSessions.end ())
 		{
-			std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
-			m_NTCPSessions[session->GetRemoteIdentity ()->GetIdentHash ()] = session;
+			LogPrint (eLogWarning, "NTCP session to ", ident.ToBase64 (), " already exists"); 
+			return false;
 		}
+		m_NTCPSessions.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<NTCPSession> >(ident, session));
+		return true;
 	}	
 
 	void NTCPServer::RemoveNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
 		if (session && session->GetRemoteIdentity ())
-		{
-			std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
 			m_NTCPSessions.erase (session->GetRemoteIdentity ()->GetIdentHash ());
-		}
 	}	
 
 	std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession (const i2p::data::IdentHash& ident)
 	{
-		std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);	
 		auto it = m_NTCPSessions.find (ident);
 		if (it != m_NTCPSessions.end ())
 			return it->second;
@@ -896,12 +897,12 @@ namespace transport
 	void NTCPServer::Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn)
 	{
 		LogPrint (eLogInfo, "Connecting to ", address ,":",  port);
-		m_Service.post([conn, this]()
-			{           
-				this->AddNTCPSession (conn);
-			});	
-		conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), 
-			std::bind (&NTCPServer::HandleConnect, this, std::placeholders::_1, conn));
+		m_Service.post([=]()
+		{           
+			if (this->AddNTCPSession (conn))
+				conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), 
+					std::bind (&NTCPServer::HandleConnect, this, std::placeholders::_1, conn));	
+		});	
 	}
 
 	void NTCPServer::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn)

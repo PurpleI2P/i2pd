@@ -143,7 +143,7 @@ namespace transport
 			void Start ();
 			void Stop ();
 
-			void AddNTCPSession (std::shared_ptr<NTCPSession> session);
+			bool AddNTCPSession (std::shared_ptr<NTCPSession> session);
 			void RemoveNTCPSession (std::shared_ptr<NTCPSession> session);
 			std::shared_ptr<NTCPSession> FindNTCPSession (const i2p::data::IdentHash& ident);
 			void Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn);
@@ -166,8 +166,7 @@ namespace transport
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
-			std::mutex m_NTCPSessionsMutex;
-			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions;
+			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions; // access from m_Thread only
 			std::map<boost::asio::ip::address, uint32_t> m_BanList; // IP -> ban expiration time in seconds
 
 		public:
