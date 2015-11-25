@@ -1,4 +1,6 @@
 cmake_minimum_required ( VERSION 2.8.12 )
+# this addresses CMP0059 with CMake > 3.3 for PCH flags
+cmake_policy( VERSION 2.8.12 )
 project ( "i2pd" )
 
 # configurale options
@@ -46,7 +48,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/api.cpp"
 )
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
 endif ()
 
@@ -75,7 +77,7 @@ set (DAEMON_SRC
 
 if (WITH_UPNP)
   add_definitions(-DUSE_UPNP)
-  if (NOT MSVC)
+  if (NOT MSVC AND NOT MSYS)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif ()
 endif ()
@@ -110,6 +112,7 @@ elseif (NOT MSVC)
 endif ()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe")
   if (WITH_HARDENING)
     add_definitions( "-D_FORTIFY_SOURCE=2" )
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security" )
@@ -132,7 +135,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonWin32.cpp")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32Service.cpp")
 endif ()
@@ -153,7 +156,7 @@ endif()
 if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
-  if (WIN32)
+  if (WIN32 OR MSYS)
     # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
     # Note that you might need to rebuild Crypto++
     foreach(flag_var
@@ -173,7 +176,7 @@ if (WITH_STATIC)
     set( CMAKE_THREAD_LIBS_INIT "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel" )
   endif ()
 else()
-  if (NOT WIN32)
+  if (NOT WIN32 AND NOT MSYS)
     # TODO: Consider separate compilation for LIBI2PD_SRC for library.
     # No need in -fPIC overhead for binary if not interested in library
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
@@ -206,8 +209,9 @@ if (WITH_PCH)
     target_compile_options(i2pdclient PRIVATE -include stdafx.h)
   endif()
   target_link_libraries(libi2pd stdafx)
-  target_link_libraries(i2pdclient stdafx)
 endif()
+
+target_link_libraries(i2pdclient libi2pd)
 
 find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -294,7 +298,11 @@ if (WITH_BINARY)
   if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
-  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} )
+
+  if (MSYS OR MINGW)
+    set (MINGW_EXTRA -lws2_32 -lmswsock -liphlpapi )
+  endif ()
+  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} )
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
   if (MSVC)
