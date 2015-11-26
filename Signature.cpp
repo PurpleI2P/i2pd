@@ -67,6 +67,14 @@ namespace crypto
 				BN_CTX_free (ctx);
 			}
 
+			Ed25519 (const Ed25519& other): q (BN_dup (other.q)), l (BN_dup (other.l)), 
+				d (BN_dup (other.d)), I (BN_dup (other.I)), two_252_2 (BN_dup (other.two_252_2)) 
+			{
+				for (int i = 0; i < 64; i++)
+					for (int j = 0; j < 15; j++)
+						Bi16[i][j] = other.Bi16[i][j];
+			}
+
 			~Ed25519 ()
 			{
 				BN_free (q);
@@ -387,7 +395,7 @@ namespace crypto
 			// Bi16[0][0] = B, base point
 	};
 
-	static thread_local std::unique_ptr<Ed25519> g_Ed25519;
+	static std::unique_ptr<Ed25519> g_Ed25519;
 	std::unique_ptr<Ed25519>& GetEd25519 ()
 	{
 		if (!g_Ed25519)

@@ -373,6 +373,8 @@ namespace crypto
 		BIGNUM * x, * y;
 		BIGNUM * z, * t; // projective coordinates
 		EDDSAPoint (): x(nullptr), y(nullptr), z(nullptr), t(nullptr) {};
+		EDDSAPoint (const EDDSAPoint& other): x(nullptr), y(nullptr), z(nullptr), t(nullptr) 
+		{ *this = other; };	
 		EDDSAPoint (EDDSAPoint&& other): x(nullptr), y(nullptr), z(nullptr), t(nullptr)  
 		{ *this = std::move (other); };	
 		EDDSAPoint (BIGNUM * x1, BIGNUM * y1, BIGNUM * z1 = nullptr, BIGNUM * t1 = nullptr): x(x1), y(y1), z(z1), t(t1) {};	
@@ -380,16 +382,21 @@ namespace crypto
 
 		EDDSAPoint& operator=(EDDSAPoint&& other) 
 		{
-			if (x) BN_free (x);
-			if (y) BN_free (y);
-			if (z) BN_free (z);
-			if (t) BN_free (t);
-			x = other.x; other.x = nullptr;
-			y = other.y; other.y = nullptr;
-			z = other.z; other.z = nullptr;
-			t = other.t; other.t = nullptr;
+			if (x) BN_free (x); x = other.x; other.x = nullptr;
+			if (y) BN_free (y); y = other.y; other.y = nullptr;
+			if (z) BN_free (z); z = other.z; other.z = nullptr;
+			if (t) BN_free (t); t = other.t; other.t = nullptr;
 			return *this;
 		} 	
+
+		EDDSAPoint& operator=(const EDDSAPoint& other) 
+		{
+			if (x) BN_free (x); x = other.x ? BN_dup (other.x) : nullptr;
+			if (y) BN_free (y); y = other.y ? BN_dup (other.y) : nullptr;
+			if (z) BN_free (z); z = other.z ? BN_dup (other.z) : nullptr;
+			if (t) BN_free (t); t = other.t ? BN_dup (other.t) : nullptr;
+			return *this;
+		}
 
 		EDDSAPoint operator-() const
 		{
