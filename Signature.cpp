@@ -92,8 +92,9 @@ namespace crypto
 				EncodePoint (Normalize (publicKey, ctx), buf);
 			}
 
-			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature, BN_CTX * ctx) const
+			bool Verify (const EDDSAPoint& publicKey, const uint8_t * digest, const uint8_t * signature) const
 			{
+				BN_CTX * ctx = BN_CTX_new ();	
 				BIGNUM * h = DecodeBN<64> (digest);
 				// signature 0..31 - R, 32..63 - S 
 				// B*S = R + PK*h => R = B*S - PK*h
@@ -105,14 +106,16 @@ namespace crypto
 				EncodePoint (Normalize (Sum (Bs, -PKh, ctx), ctx), diff); // Bs - PKh encoded
 				bool passed = !memcmp (signature, diff, 32); // R
 				BN_free (h); 
+				BN_CTX_free (ctx);
 				if (!passed)
 					LogPrint (eLogError, "25519 signature verification failed");
 				return passed; 
 			}
 
 			void Sign (const uint8_t * expandedPrivateKey, const uint8_t * publicKeyEncoded, const uint8_t * buf, size_t len, 
-				uint8_t * signature, BN_CTX * bnCtx) const
+				uint8_t * signature) const
 			{
+				BN_CTX * bnCtx = BN_CTX_new ();
 				// calculate r
 				SHA512_CTX ctx;
 				SHA512_Init (&ctx);
@@ -138,6 +141,7 @@ namespace crypto
 				memcpy (signature, R, EDDSA25519_SIGNATURE_LENGTH/2);
 				EncodeBN (h, signature + EDDSA25519_SIGNATURE_LENGTH/2, EDDSA25519_SIGNATURE_LENGTH/2); // S
 				BN_free (r); BN_free (h); BN_free (a);
+				BN_CTX_free (bnCtx);
 			}
 
 		private:		
@@ -403,18 +407,14 @@ namespace crypto
 	bool EDDSA25519Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 	{
 		uint8_t digest[64];
-		{
-			SHA512_CTX ctx;
-			SHA512_Init (&ctx);
-			SHA512_Update (&ctx, signature, EDDSA25519_SIGNATURE_LENGTH/2); // R
-			SHA512_Update (&ctx, m_PublicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
-			SHA512_Update (&ctx, buf, len); // data	
-			SHA512_Final (digest, &ctx);
-		}
-		BN_CTX * ctx = BN_CTX_new ();	
-		bool passed = GetEd25519 ()->Verify (m_PublicKey, digest, signature, ctx);
-		BN_CTX_free (ctx);
-		return passed;
+		SHA512_CTX ctx;
+		SHA512_Init (&ctx);
+		SHA512_Update (&ctx, signature, EDDSA25519_SIGNATURE_LENGTH/2); // R
+		SHA512_Update (&ctx, m_PublicKeyEncoded, EDDSA25519_PUBLIC_KEY_LENGTH); // public key
+		SHA512_Update (&ctx, buf, len); // data	
+		SHA512_Final (digest, &ctx);
+		
+		return GetEd25519 ()->Verify (m_PublicKey, digest, signature);
 	}
 
 	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey)
@@ -433,9 +433,7 @@ namespace crypto
 		
 	void EDDSA25519Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		BN_CTX * ctx = BN_CTX_new ();
-		GetEd25519 ()->Sign (m_ExpandedPrivateKey, m_PublicKeyEncoded, buf, len, signature, ctx);
-		BN_CTX_free (ctx);
+		GetEd25519 ()->Sign (m_ExpandedPrivateKey, m_PublicKeyEncoded, buf, len, signature);
 	}	
 }
 }
