@@ -13,19 +13,16 @@ namespace crypto
 			Ed25519 ()
 			{
 				BN_CTX * ctx = BN_CTX_new ();
-				BIGNUM * two = BN_new (), * tmp = BN_new ();
-				BN_set_word (two, 2);
+				BIGNUM * tmp = BN_new ();
 
 				q = BN_new ();
 				// 2^255-19				
-				BN_set_word (tmp, 255);
-				BN_exp (q, two, tmp, ctx);
+				BN_set_bit (q, 255); // 2^255 
 				BN_sub_word (q, 19);
 				
 				l = BN_new ();
 				// 2^252 + 27742317777372353535851937790883648493
-				BN_set_word (tmp, 252);
-				BN_exp (l, two, tmp, ctx);
+				BN_set_bit (l, 252);
 				two_252_2 = BN_dup (l);
 				BN_dec2bn (&tmp, "27742317777372353535851937790883648493");
 				BN_add (l, l, tmp);		
@@ -45,9 +42,8 @@ namespace crypto
 				tmp = BN_dup (q);
 				BN_sub_word (tmp, 1);
 				BN_div_word (tmp, 4);	
-				BN_mod_exp (I, two, tmp, q, ctx);
-
-				BN_free (two);
+				BN_set_word (I, 2);
+				BN_mod_exp (I, I, tmp, q, ctx);
 				BN_free (tmp);	
 				
 				// 4*inv(5)	
@@ -208,7 +204,7 @@ namespace crypto
 				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
 				// E = (x+y)*(x+y)-A-B = x^2+y^2+2xy-A-B = 2xy
 				BN_mul (E, p.x, p.y, ctx);
-				BN_mul_word (E, 2);	// E =2*x*y							
+				BN_lshift1 (E, E);	// E =2*x*y							
 				BN_sub (F, z2, t2); // F = D - C
 				BN_add (G, z2, t2); // G = D + C 
 				BN_add (H, y2, x2); // H = B + A
@@ -387,7 +383,7 @@ namespace crypto
 			// Bi16[0][0] = B, base point
 	};
 
-	static std::unique_ptr<Ed25519> g_Ed25519;
+	static thread_local std::unique_ptr<Ed25519> g_Ed25519;
 	std::unique_ptr<Ed25519>& GetEd25519 ()
 	{
 		if (!g_Ed25519)
