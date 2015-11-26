@@ -1,23 +1,13 @@
+diff --git a/Makefile b/Makefile
+index f65d7a1..6f998bf 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -10,9 +10,9 @@
- 	include Makefile.linux
- endif
+@@ -3,7 +3,7 @@ SHLIB := libi2pd.so
+ ARLIB := libi2pd.a
+ SHLIB_CLIENT := libi2pdclient.so
+ ARLIB_CLIENT := libi2pdclient.a
+-I2PD  := i2p
++I2PD  := i2pd
+ GREP := fgrep
+ DEPS := obj/make.dep
  
--all: obj i2p
-+all: obj i2pd
- 
--i2p: $(OBJECTS:obj/%=obj/%)
-+i2pd: $(OBJECTS:obj/%=obj/%)
- 	$(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
- 
- .SUFFIXES:
-@@ -25,7 +25,7 @@
- 	mkdir -p obj
- 
- clean:
--	rm -fr obj i2p
-+	rm -fr obj i2pd
- 
- .PHONY: all
- .PHONY: clean

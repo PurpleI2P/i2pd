@@ -3,7 +3,7 @@ Build notes
 
 Common build/install process:
 
-* git clone https://github.com/PrivacySolutions/i2pd.git
+* git clone https://github.com/PurpleI2P/i2pd.git
 * cd i2pd/build
 * cmake -DCMAKE_BUILD_TYPE=Release <more options> .
 * make
@@ -19,13 +19,13 @@ Debian
 ------
 
 Required "-dev" packages:
-* cmake
+
 * libboost-filesystem-dev
 * libboost-program-options-dev
 * libboost-regex-dev
 * libboost-system-dev
 * libboost-date-time-dev
-* libcrypto++-dev
+* libssl-dev
 
 FreeBSD
 -------
@@ -37,12 +37,11 @@ Required ports:
 * devel/cmake
 * devel/boost-libs
 * lang/gcc47 # or later version
-* security/cryptopp
 
 To use newer compiler you should set these variables:
 
-  export CC=/usr/local/bin/gcc47
-  export CXX=/usr/local/bin/g++47
+    export CC=/usr/local/bin/gcc47
+    export CXX=/usr/local/bin/g++47
 
 Replace "47" with your actual gcc version
 

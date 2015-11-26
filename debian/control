@@ -3,17 +3,17 @@ Section: net
 Priority: extra
 Maintainer: hagen <hagen@i2pmail.org>
 Build-Depends: debhelper (>= 8.0.0), dpkg-dev (>= 1.16.1~),
- cmake (>= 2.8), gcc (>= 4.6) | clang (>= 3.3),
+ gcc (>= 4.6) | clang (>= 3.3),
  libboost-regex-dev,
  libboost-system-dev (>= 1.46),
  libboost-date-time-dev,
  libboost-filesystem-dev,
  libboost-program-options-dev,
- libcrypto++-dev
+ libssl-dev
 Standards-Version: 3.9.3
-Homepage: https://github.com/PrivacySolutions/i2pd
-Vcs-Git: git://github.com/PrivacySolutions/i2pd.git
-Vcs-Browser: https://github.com/PrivacySolutions/i2pd.git
+Homepage: https://github.com/PurpleI2P/i2pd
+Vcs-Git: git://github.com/PurpleI2P/i2pd.git
+Vcs-Browser: https://github.com/PurpleI2P/i2pd.git
 
 Package: i2pd
 Architecture: any
