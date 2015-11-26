@@ -274,12 +274,17 @@ namespace transport
 		
 	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
 	{
-		std::shared_ptr<SSUSession> session;
 		if (router)
 		{
+			if (router->UsesIntroducer ())
+			{
+				CreateSessionThroughIntroducer (router, peerTest);
+				return;
+			}
 			auto address = router->GetSSUAddress (!context.SupportsV6 ());
 			if (address)
 			{
+				std::shared_ptr<SSUSession> session;
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 				auto it = m_Sessions.find (remoteEndpoint);
 				if (it != m_Sessions.end ())
@@ -296,63 +301,82 @@ namespace transport
 						std::unique_lock<std::mutex> l(m_SessionsMutex);
 						m_Sessions[remoteEndpoint] = session;
 					}
-					if (!router->UsesIntroducer ())
-					{
-						// connect directly						
-						LogPrint ("Creating new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
-							remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
-						session->Connect ();
-					}
-					else
-					{
-						// connect through introducer
-						int numIntroducers = address->introducers.size ();
-						if (numIntroducers > 0)
-						{
-							std::shared_ptr<SSUSession> introducerSession;
-							const i2p::data::RouterInfo::Introducer * introducer = nullptr;
-							// we might have a session to introducer already
-							for (int i = 0; i < numIntroducers; i++)
-							{
-								introducer = &(address->introducers[i]);
-								it = m_Sessions.find (boost::asio::ip::udp::endpoint (introducer->iHost, introducer->iPort));
-								if (it != m_Sessions.end ())
-								{
-									introducerSession = it->second;
-									break; 
-								}	
-							}
+					// connect 					
+					LogPrint ("Creating new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
+						remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
+					session->Connect ();
+				}
+			}
+			else
+				LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
+		}
+	}
 
-							if (introducerSession) // session found 
-								LogPrint ("Session to introducer already exists");
-							else // create new
-							{
-								LogPrint ("Creating new session to introducer");
-								introducer = &(address->introducers[0]); // TODO:
-								boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
-								introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
-								std::unique_lock<std::mutex> l(m_SessionsMutex);
-								m_Sessions[introducerEndpoint] = introducerSession;													
-							}	
-							// introduce
-							LogPrint ("Introduce new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), 
-									"] through introducer ", introducer->iHost, ":", introducer->iPort);
-							session->WaitForIntroduction ();	
-							if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
-							{
-								uint8_t buf[1];
-								Send (buf, 0, remoteEndpoint); // send HolePunch
-							}	
-							introducerSession->Introduce (*introducer);
-						}
-						else
-						{	
-							LogPrint (eLogWarning, "Can't connect to unreachable router. No introducers presented");
-							std::unique_lock<std::mutex> l(m_SessionsMutex);
-							m_Sessions.erase (remoteEndpoint);
+	void SSUServer::CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
+	{
+		if (router && router->UsesIntroducer ())
+		{
+			auto address = router->GetSSUAddress (!context.SupportsV6 ());
+			if (address)
+			{
+				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
+				auto it = m_Sessions.find (remoteEndpoint);
+				// check if session if presented alredy
+				if (it != m_Sessions.end ())
+				{	
+					auto session = it->second;
+					if (peerTest && session->GetState () == eSessionStateEstablished)
+						session->SendPeerTest ();
+					return; 
+				}		
+				// create new session					
+				int numIntroducers = address->introducers.size ();
+				if (numIntroducers > 0)
+				{
+					std::shared_ptr<SSUSession> introducerSession;
+					const i2p::data::RouterInfo::Introducer * introducer = nullptr;
+					// we might have a session to introducer already
+					for (int i = 0; i < numIntroducers; i++)
+					{
+						introducer = &(address->introducers[i]);
+						it = m_Sessions.find (boost::asio::ip::udp::endpoint (introducer->iHost, introducer->iPort));
+						if (it != m_Sessions.end ())
+						{
+							introducerSession = it->second;
+							break; 
 						}	
 					}
+
+					if (introducerSession) // session found 
+						LogPrint ("Session to introducer already exists");
+					else // create new
+					{
+						LogPrint ("Creating new session to introducer");
+						introducer = &(address->introducers[0]); // TODO:
+						boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
+						introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
+						std::unique_lock<std::mutex> l(m_SessionsMutex);
+						m_Sessions[introducerEndpoint] = introducerSession;													
+					}
+					// create session	
+					auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
+					{
+						std::unique_lock<std::mutex> l(m_SessionsMutex);
+						m_Sessions[remoteEndpoint] = session;
+					}
+					// introduce
+					LogPrint ("Introduce new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), 
+							"] through introducer ", introducer->iHost, ":", introducer->iPort);
+					session->WaitForIntroduction ();	
+					if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+					{
+						uint8_t buf[1];
+						Send (buf, 0, remoteEndpoint); // send HolePunch
+					}	
+					introducerSession->Introduce (*introducer);
 				}
+				else	
+					LogPrint (eLogWarning, "Can't connect to unreachable router. No introducers presented");				
 			}
 			else
 				LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
