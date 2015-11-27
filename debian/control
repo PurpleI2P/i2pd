@@ -33,7 +33,7 @@ Package: i2pd-dbg
 Architecture: any
 Priority: extra
 Section: debug
-Depends: ${shlibs:Depends}, ${misc:Depends}, i2pd (= ${binary:Version})
+Depends: i2pd (= ${binary:Version}), ${misc:Depends}
 Description: i2pd debugging symbols
  I2P is an anonymizing network, offering a simple layer that identity-sensitive
  applications can use to securely communicate. All data is wrapped with several
