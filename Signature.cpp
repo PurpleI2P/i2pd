@@ -421,26 +421,13 @@ namespace crypto
 			EDDSAPoint Bi16Carry; // Bi16[64][0]
 	};
 
-	static std::shared_ptr<Ed25519> g_Ed25519;
-#if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) // gcc 4.8 and higer
-	static thread_local std::shared_ptr<Ed25519> g_Ed25519ThisThread; 
-#else
-	static std::shared_ptr<Ed25519> g_Ed25519ThisThread;
-#endif
-	std::shared_ptr<Ed25519>& GetEd25519 ()
+	static std::unique_ptr<Ed25519> g_Ed25519;
+	std::unique_ptr<Ed25519>& GetEd25519 ()
 	{
-		// TODO: implement it better	
-		if (!g_Ed25519ThisThread)
-		{
-			if (!g_Ed25519)
-			{
-				g_Ed25519 = std::make_shared<Ed25519>();
-				g_Ed25519ThisThread = g_Ed25519;
-			}	
-			else
-				g_Ed25519ThisThread = std::make_shared<Ed25519>(*g_Ed25519);
-		}	
-		return g_Ed25519ThisThread; 
+		if (!g_Ed25519)
+			g_Ed25519.reset (new Ed25519());
+			
+		return g_Ed25519; 
 	}	
 	
 
