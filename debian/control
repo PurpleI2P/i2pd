@@ -18,5 +18,26 @@ Vcs-Browser: https://github.com/PurpleI2P/i2pd.git
 Package: i2pd
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: i2p router written in C++
- Mainly runs on linux, but also supports OSX, BSD and Windows
+Recommends: privoxy
+Suggests: tor
+Description: load-balanced unspoofable packet switching network - C++ port
+ I2P is an anonymizing network, offering a simple layer that identity-sensitive
+ applications can use to securely communicate. All data is wrapped with several
+ layers of encryption, and the network is both distributed and dynamic, with no
+ trusted parties.
+ .
+ This package contains the port of the I2P router to C++. Unless willing
+ to test and report problems, you should install the 'i2p' package instead.
+
+Package: i2pd-dbg
+Architecture: any
+Priority: extra
+Section: debug
+Depends: ${shlibs:Depends}, ${misc:Depends}, i2pd (= ${binary:Version})
+Description: i2pd debugging symbols
+ I2P is an anonymizing network, offering a simple layer that identity-sensitive
+ applications can use to securely communicate. All data is wrapped with several
+ layers of encryption, and the network is both distributed and dynamic, with no
+ trusted parties.
+ .
+ This package contains symbols required for debugging.
