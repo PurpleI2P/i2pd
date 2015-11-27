@@ -1,5 +1,6 @@
-CXXFLAGS = -g -Wall
-INCFLAGS =
+# set defaults instead redefine
+CXXFLAGS ?= -g -Wall
+INCFLAGS ?=
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that custom CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
