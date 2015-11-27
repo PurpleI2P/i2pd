@@ -11,3 +11,6 @@ PREFIX=/usr
 
 %:
 	dh $@ 
+
+override_dh_strip:
+	dh_strip --dbg-package=i2pd-dbg
