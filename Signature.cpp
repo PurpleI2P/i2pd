@@ -56,22 +56,26 @@ namespace crypto
 				BN_mod (By, By, q, ctx); // % q										
 			
 				// precalculate Bi16 table
-				Bi16[0][0] = { Bx, By };  // B
+				Bi16Carry = { Bx, By };  // B
 				for (int i = 0; i < 64; i++)
 				{
-					if (i) Bi16[i][0] = Sum (Bi16[i-1][14], Bi16[i-1][0], ctx); 
-					for (int j = 1; j < 15; j++)
+					Bi16[i][0] = Bi16Carry;
+					for (int j = 1; j < 8; j++)
 						Bi16[i][j] = Sum (Bi16[i][j-1], Bi16[i][0], ctx); // (16+j+1)^i*B
+					Bi16Carry = Bi16[i][7];
+					for (int j = 8; j < 16; j++)
+						Bi16Carry = Sum (Bi16Carry, Bi16[i][0], ctx);
 				}
 
 				BN_CTX_free (ctx);
 			}
 
 			Ed25519 (const Ed25519& other): q (BN_dup (other.q)), l (BN_dup (other.l)), 
-				d (BN_dup (other.d)), I (BN_dup (other.I)), two_252_2 (BN_dup (other.two_252_2)) 
+				d (BN_dup (other.d)), I (BN_dup (other.I)), two_252_2 (BN_dup (other.two_252_2)),
+				Bi16Carry (other.Bi16Carry)
 			{
 				for (int i = 0; i < 64; i++)
-					for (int j = 0; j < 15; j++)
+					for (int j = 0; j < 8; j++)
 						Bi16[i][j] = other.Bi16[i][j];
 			}
 
@@ -251,20 +255,40 @@ namespace crypto
 				return res;
 			} 
 			
-			EDDSAPoint MulB (const uint8_t * e, BN_CTX * ctx) const // B*e. e is 32 bytes Little Endian
+			EDDSAPoint MulB (const uint8_t * e, BN_CTX * ctx) const // B*e, e is 32 bytes Little Endian
 			{
 				BIGNUM * zero = BN_new (), * one = BN_new ();
 				BN_zero (zero); BN_one (one);
 				EDDSAPoint res {zero, one};
+				bool carry = false;
 				for (int i = 0; i < 32; i++)
 				{
 					uint8_t x = e[i] & 0x0F; // 4 low bits
+					if (carry) { x++; if (x <= 15) carry = false; else x = 0; };
 					if (x > 0)
-						res = Sum (res, Bi16[i*2][x-1], ctx);
+					{
+						if (x <= 8)
+							res = Sum (res, Bi16[i*2][x-1], ctx);
+						else
+						{
+							res = Sum (res, -Bi16[i*2][15-x], ctx); // -Bi[16-x]
+							carry = true;
+						}		
+					}
 					x = e[i] >> 4; // 4 high bits
+					if (carry) { x++; if (x <= 15) carry = false; else x = 0; };
 					if (x > 0)
-						res = Sum (res, Bi16[i*2+1][x-1], ctx);
+					{
+						if (x <= 8)
+							res = Sum (res, Bi16[i*2+1][x-1], ctx);
+						else 
+						{
+							res = Sum (res, -Bi16[i*2+1][15-x], ctx); // -Bi[16-x]
+							carry = true;
+						}
+					}
 				}
+				if (carry) res = Sum (res, Bi16Carry, ctx);
 				return res;
 			}
 
@@ -391,8 +415,10 @@ namespace crypto
 			BIGNUM * q, * l, * d, * I; 
 			// transient values
 			BIGNUM * two_252_2; // 2^252-2
-			EDDSAPoint Bi16[64][15]; // per 4-bits, Bi16[i][j] = (16+j+1)^i*B, we don't store zeroes
+			EDDSAPoint Bi16[64][8]; // per 4-bits, Bi16[i][j] = (16+j+1)^i*B, we don't store zeroes
+			// if j > 8 we use 16 - j and carry 1 to next 4-bits 
 			// Bi16[0][0] = B, base point
+			EDDSAPoint Bi16Carry; // Bi16[64][0]
 	};
 
 	static std::shared_ptr<Ed25519> g_Ed25519;
