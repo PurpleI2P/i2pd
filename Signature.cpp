@@ -59,11 +59,11 @@ namespace crypto
 				Bi256Carry = { Bx, By };  // B
 				for (int i = 0; i < 32; i++)
 				{
-					Bi256[i][0] = Bi256Carry;
+					Bi256[i][0] = Bi256Carry; // first point
 					for (int j = 1; j < 128; j++)
 						Bi256[i][j] = Sum (Bi256[i][j-1], Bi256[i][0], ctx); // (256+j+1)^i*B
 					Bi256Carry = Bi256[i][127];
-					for (int j = 128; j < 256; j++)
+					for (int j = 0; j < 128; j++) // add first point 128 more times
 						Bi256Carry = Sum (Bi256Carry, Bi256[i][0], ctx);
 				}
 
@@ -165,19 +165,32 @@ namespace crypto
 				// z3 = (z1*z2-d*t1*t2)*(z1*z2+d*t1*t2)
 				// t3 = (y1*y2+x1*x2)*(x1*y2+y1*x2)
 				BIGNUM * x3 = BN_new (), * y3 = BN_new (), * z3 = BN_new (), * t3 = BN_new ();
-				BIGNUM * z1 = p1.z, * t1 = p1.t;
-				if (!z1) { z1 = BN_new (); BN_one (z1); }
-				if (!t1) { t1 = BN_new (); BN_mul (t1, p1.x, p1.y, ctx); }
-				
-				BIGNUM * z2 = p2.z, * t2 = p2.t;
-				if (!z2) { z2 = BN_new (); BN_one (z2); }
-				if (!t2) { t2 = BN_new (); BN_mul (t2, p2.x, p2.y, ctx); }
 				
 				BN_mul (x3, p1.x, p2.x, ctx); // A = x1*x2		
 				BN_mul (y3, p1.y, p2.y, ctx); // B = y1*y2	
+				
+				BIGNUM * t1 = p1.t, * t2 = p2.t;
+				if (!t1) { t1 = BN_new (); BN_mul (t1, p1.x, p1.y, ctx); }
+				if (!t2) { t2 = BN_new (); BN_mul (t2, p2.x, p2.y, ctx); }
 				BN_mul (t3, t1, t2, ctx);
 				BN_mul (t3, t3, d, ctx);  // C = d*t1*t2
-				BN_mul (z3, z1, z2, ctx); // D = z1*z2	
+				if (!p1.t) BN_free (t1);
+				if (!p2.t) BN_free (t2);
+
+				if (p1.z)
+				{
+					if (p2.z)
+						BN_mul (z3, p1.z, p2.z, ctx); // D = z1*z2
+					else
+						BN_copy (z3, p1.z); // D = z1
+				}
+				else
+				{
+					if (p2.z)
+						BN_copy (z3, p2.z); // D = z2
+					else
+						BN_one (z3); // D = 1
+				}	
 
 				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
 				BN_add (E, p1.x, p1.y);				
@@ -188,11 +201,6 @@ namespace crypto
 				BN_sub (F, z3, t3); // F = D - C
 				BN_add (G, z3, t3); // G = D + C
 				BN_add (H, y3, x3); // H = B + A
-
-				if (!p1.z) BN_free (z1);
-				if (!p1.t) BN_free (t1);
-				if (!p2.z) BN_free (z2);
-				if (!p2.t) BN_free (t2);
 
 				BN_mod_mul (x3, E, F, q, ctx); // x3 = E*F
 				BN_mod_mul (y3, G, H, q, ctx); // y3 = G*H	
@@ -207,15 +215,21 @@ namespace crypto
 			EDDSAPoint Double (const EDDSAPoint& p, BN_CTX * ctx) const
 			{
 				BIGNUM * x2 = BN_new (), * y2 = BN_new (), * z2 = BN_new (), * t2 = BN_new ();
-				BIGNUM * z = p.z, * t = p.t;
-				if (!z) { z = BN_new (); BN_one (z); }
-				if (!t) { t = BN_new (); BN_mul (t, p.x, p.y, ctx); }		
 				
 				BN_sqr (x2, p.x, ctx); // x2 = A = x^2		
 				BN_sqr (y2, p.y, ctx); // y2 = B = y^2	
-				BN_sqr (t2, t, ctx);
-				BN_mul (t2, t2, d, ctx);  // t2 = C = d*t^2 		
-				BN_sqr (z2, z, ctx); // z2 = D = z^2 		
+				if (p.t)
+					BN_sqr (t2, p.t, ctx); // t2 = t^2
+				else
+				{
+					BN_mul (t2, p.x, p.y, ctx); // t = x*y
+					BN_sqr (t2, t2, ctx);  // t2 = t^2
+				}	
+				BN_mul (t2, t2, d, ctx);  // t2 = C = d*t^2 	
+				if (p.z)
+					BN_sqr (z2, p.z, ctx); // z2 = D = z^2 		
+				else
+					BN_one (z2); // z2 = 1
 
 				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
 				// E = (x+y)*(x+y)-A-B = x^2+y^2+2xy-A-B = 2xy
@@ -224,9 +238,6 @@ namespace crypto
 				BN_sub (F, z2, t2); // F = D - C
 				BN_add (G, z2, t2); // G = D + C 
 				BN_add (H, y2, x2); // H = B + A
-
-				if (!p.z) BN_free (z);
-				if (!p.t) BN_free (t);
 
 				BN_mod_mul (x2, E, F, q, ctx); // x2 = E*F
 				BN_mod_mul (y2, G, H, q, ctx); // y2 = G*H	
