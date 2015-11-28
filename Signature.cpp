@@ -55,16 +55,16 @@ namespace crypto
 				BN_mod (Bx, Bx, q, ctx); // % q
 				BN_mod (By, By, q, ctx); // % q										
 			
-				// precalculate Bi16 table
-				Bi16Carry = { Bx, By };  // B
-				for (int i = 0; i < 64; i++)
+				// precalculate Bi256 table
+				Bi256Carry = { Bx, By };  // B
+				for (int i = 0; i < 32; i++)
 				{
-					Bi16[i][0] = Bi16Carry;
-					for (int j = 1; j < 8; j++)
-						Bi16[i][j] = Sum (Bi16[i][j-1], Bi16[i][0], ctx); // (16+j+1)^i*B
-					Bi16Carry = Bi16[i][7];
-					for (int j = 8; j < 16; j++)
-						Bi16Carry = Sum (Bi16Carry, Bi16[i][0], ctx);
+					Bi256[i][0] = Bi256Carry;
+					for (int j = 1; j < 128; j++)
+						Bi256[i][j] = Sum (Bi256[i][j-1], Bi256[i][0], ctx); // (256+j+1)^i*B
+					Bi256Carry = Bi256[i][127];
+					for (int j = 128; j < 256; j++)
+						Bi256Carry = Sum (Bi256Carry, Bi256[i][0], ctx);
 				}
 
 				BN_CTX_free (ctx);
@@ -72,11 +72,11 @@ namespace crypto
 
 			Ed25519 (const Ed25519& other): q (BN_dup (other.q)), l (BN_dup (other.l)), 
 				d (BN_dup (other.d)), I (BN_dup (other.I)), two_252_2 (BN_dup (other.two_252_2)),
-				Bi16Carry (other.Bi16Carry)
+				Bi256Carry (other.Bi256Carry)
 			{
-				for (int i = 0; i < 64; i++)
-					for (int j = 0; j < 8; j++)
-						Bi16[i][j] = other.Bi16[i][j];
+				for (int i = 0; i < 32; i++)
+					for (int j = 0; j < 128; j++)
+						Bi256[i][j] = other.Bi256[i][j];
 			}
 
 			~Ed25519 ()
@@ -263,32 +263,29 @@ namespace crypto
 				bool carry = false;
 				for (int i = 0; i < 32; i++)
 				{
-					uint8_t x = e[i] & 0x0F; // 4 low bits
-					if (carry) { x++; if (x <= 15) carry = false; else x = 0; };
+					uint8_t x = e[i];
+					if (carry) 
+					{ 
+						if (x < 255) 
+						{ 
+							x++; 
+							carry = false;
+						} 
+						else 
+							x = 0; 
+					}
 					if (x > 0)
 					{
-						if (x <= 8)
-							res = Sum (res, Bi16[i*2][x-1], ctx);
+						if (x <= 128)
+							res = Sum (res, Bi256[i][x-1], ctx);
 						else
 						{
-							res = Sum (res, -Bi16[i*2][15-x], ctx); // -Bi[16-x]
+							res = Sum (res, -Bi256[i][255-x], ctx); // -Bi[256-x]
 							carry = true;
 						}		
 					}
-					x = e[i] >> 4; // 4 high bits
-					if (carry) { x++; if (x <= 15) carry = false; else x = 0; };
-					if (x > 0)
-					{
-						if (x <= 8)
-							res = Sum (res, Bi16[i*2+1][x-1], ctx);
-						else 
-						{
-							res = Sum (res, -Bi16[i*2+1][15-x], ctx); // -Bi[16-x]
-							carry = true;
-						}
-					}
 				}
-				if (carry) res = Sum (res, Bi16Carry, ctx);
+				if (carry) res = Sum (res, Bi256Carry, ctx);
 				return res;
 			}
 
@@ -415,10 +412,10 @@ namespace crypto
 			BIGNUM * q, * l, * d, * I; 
 			// transient values
 			BIGNUM * two_252_2; // 2^252-2
-			EDDSAPoint Bi16[64][8]; // per 4-bits, Bi16[i][j] = (16+j+1)^i*B, we don't store zeroes
-			// if j > 8 we use 16 - j and carry 1 to next 4-bits 
-			// Bi16[0][0] = B, base point
-			EDDSAPoint Bi16Carry; // Bi16[64][0]
+			EDDSAPoint Bi256[32][128]; // per byte, Bi256[i][j] = (256+j+1)^i*B, we don't store zeroes
+			// if j > 128 we use 256 - j and carry 1 to next byte
+			// Bi256[0][0] = B, base point
+			EDDSAPoint Bi256Carry; // Bi256[32][0]
 	};
 
 	static std::unique_ptr<Ed25519> g_Ed25519;
