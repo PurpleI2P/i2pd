@@ -514,7 +514,7 @@ namespace transport
 				}	
 			}	
 			m_Introducers = newList;
-			if (m_Introducers.empty ())
+			if (m_Introducers.size () < SSU_MAX_NUM_INTRODUCERS)
 			{
 				auto introducer = i2p::data::netdb.GetRandomIntroducer ();
 				if (introducer)
