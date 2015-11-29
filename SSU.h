@@ -41,7 +41,6 @@ namespace transport
 			void Start ();
 			void Stop ();
 			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
-			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
 			std::shared_ptr<SSUSession> FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const;
 			std::shared_ptr<SSUSession> FindSession (const boost::asio::ip::udp::endpoint& e) const;
 			std::shared_ptr<SSUSession> GetRandomEstablishedSession (std::shared_ptr<const SSUSession> excluded);
@@ -72,6 +71,8 @@ namespace transport
 			void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
 			void HandleReceivedPackets (std::vector<SSUPacket *> packets);
 
+			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
+			void CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest);
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomSession (Filter filter);
 			

@@ -284,34 +284,39 @@ namespace transport
 			auto address = router->GetSSUAddress (!context.SupportsV6 ());
 			if (address)
 			{
-				std::shared_ptr<SSUSession> session;
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
-				auto it = m_Sessions.find (remoteEndpoint);
-				if (it != m_Sessions.end ())
-				{	
-					session = it->second;
-					if (peerTest && session->GetState () == eSessionStateEstablished)
-						session->SendPeerTest ();
-				}	
-				else
-				{
-					// otherwise create new session					
-					session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
-					{
-						std::unique_lock<std::mutex> l(m_SessionsMutex);
-						m_Sessions[remoteEndpoint] = session;
-					}
-					// connect 					
-					LogPrint ("Creating new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
-						remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
-					session->Connect ();
-				}
+				auto& s = remoteEndpoint.address ().is_v6 () ? m_ServiceV6 : m_Service;
+				s.post (std::bind (&SSUServer::CreateDirectSession, this, router, remoteEndpoint, peerTest));
 			}
 			else
 				LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
 		}
 	}
 
+	void SSUServer::CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest)
+	{	
+		auto it = m_Sessions.find (remoteEndpoint);
+		if (it != m_Sessions.end ())
+		{	
+			auto session = it->second;
+			if (peerTest && session->GetState () == eSessionStateEstablished)
+				session->SendPeerTest ();
+		}	
+		else
+		{
+			// otherwise create new session					
+			auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
+			{
+				std::unique_lock<std::mutex> l(m_SessionsMutex);
+				m_Sessions[remoteEndpoint] = session;
+			}
+			// connect 					
+			LogPrint ("Creating new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
+				remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
+			session->Connect ();
+		}
+	}
+	
 	void SSUServer::CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
 	{
 		if (router && router->UsesIntroducer ())
