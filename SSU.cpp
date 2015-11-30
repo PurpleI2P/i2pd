@@ -278,7 +278,7 @@ namespace transport
 		{
 			if (router->UsesIntroducer ())
 			{
-				CreateSessionThroughIntroducer (router, peerTest);
+				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, peerTest)); // always V4 thread
 				return;
 			}
 			auto address = router->GetSSUAddress (!context.SupportsV6 ());
@@ -321,7 +321,7 @@ namespace transport
 	{
 		if (router && router->UsesIntroducer ())
 		{
-			auto address = router->GetSSUAddress (!context.SupportsV6 ());
+			auto address = router->GetSSUAddress (true); // v4 only for now
 			if (address)
 			{
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
