@@ -35,8 +35,8 @@ Available cmake options:
 * WITH_UPNP    -- build with UPnP support (requires libupnp)
 * WITH_PCH     -- use pre-compiled header (experimental, speeds up build)
 
-Debian
-------
+Debian/Ubuntu
+-------------
 
 For building from source on debian system you will need the following "-dev" packages:
 
@@ -50,6 +50,12 @@ For building from source on debian system you will need the following "-dev" pac
 * libssl-dev (e.g. openssl)
 * zlib1g-dev (libssl-dev already depends on it)
 * libminiupnpc-dev (optional, if WITH_UPNP=ON)
+
+You may also build deb-package with the following:
+
+    apt-get install build-essential fakeroot devscripts
+    cd i2pd
+    debuild --no-tgz-check # building from git repo
 
 FreeBSD
 -------
