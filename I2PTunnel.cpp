@@ -256,9 +256,8 @@ namespace client
 		Done(shared_from_this());
 	}
 
-	I2PClientTunnel::I2PClientTunnel (const std::string& destination, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort): 
-		TCPIPAcceptor (port,localDestination), m_Destination (destination), m_DestinationIdentHash (nullptr), m_DestinationPort (destinationPort)
-	{}	
+	I2PClientTunnel::I2PClientTunnel (const std::string& destination, const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort): 
+		TCPIPAcceptor (address, port, localDestination), m_Destination (destination), m_DestinationIdentHash (nullptr), m_DestinationPort (destinationPort) {}	
 
 	void I2PClientTunnel::Start ()
 	{

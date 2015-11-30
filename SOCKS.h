@@ -15,7 +15,7 @@ namespace proxy
 	{
 		public:
 
-			SOCKSServer(int port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
+			SOCKSServer(const std::string& address, int port, std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
 			~SOCKSServer() {};
 
 		protected:
