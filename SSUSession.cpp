@@ -479,7 +479,7 @@ namespace transport
 			buf += 32; // introkey
 			uint32_t nonce = bufbe32toh (buf);
 			SendRelayResponse (nonce, from, introKey, session->m_RemoteEndpoint);
-			SendRelayIntro (session.get (), from);
+			SendRelayIntro (session, from);
 		}	
 	}
 
@@ -537,7 +537,7 @@ namespace transport
 		LogPrint (eLogDebug, "SSU relay response sent");
 	}	
 
-	void SSUSession::SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from)
+	void SSUSession::SendRelayIntro (std::shared_ptr<SSUSession> session, const boost::asio::ip::udp::endpoint& from)
 	{
 		if (!session) return;	
 		// Alice's address always v4

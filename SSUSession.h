@@ -108,7 +108,7 @@ namespace transport
 			void ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);
 			void SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 				const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to);
-			void SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from);
+			void SendRelayIntro (std::shared_ptr<SSUSession> session, const boost::asio::ip::udp::endpoint& from);
 			void ProcessRelayResponse (uint8_t * buf, size_t len);
 			void ProcessRelayIntro (uint8_t * buf, size_t len);
 			void Established ();
