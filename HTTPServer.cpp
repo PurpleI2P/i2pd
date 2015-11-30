@@ -772,7 +772,6 @@ namespace util
 			s << "<br>SSU<br>";
 			for (auto it: ssuServer->GetSessions ())
 			{
-				// incoming connections don't have remote router
 				auto endpoint = it.second->GetRemoteEndpoint ();
 				if (it.second->IsOutgoing ()) s << "-->";
 				s << endpoint.address ().to_string () << ":" << endpoint.port ();
@@ -780,8 +779,17 @@ namespace util
 				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
 				if (it.second->GetRelayTag ())
 					s << " [itag:" << it.second->GetRelayTag () << "]";
-				s << "<br>";
-				s << std::endl;
+				s << "<br>" << std::endl;
+			}
+			s << "<br>SSU6<br>";
+			for (auto it: ssuServer->GetSessionsV6 ())
+			{
+				auto endpoint = it.second->GetRemoteEndpoint ();
+				if (it.second->IsOutgoing ()) s << "-->";
+				s << endpoint.address ().to_string () << ":" << endpoint.port ();
+				if (!it.second->IsOutgoing ()) s << "-->";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				s << "<br>" << std::endl;
 			}
 		}
 	}

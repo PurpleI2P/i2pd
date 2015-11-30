@@ -174,7 +174,7 @@ namespace transport
 				moreBytes = m_Socket.available();
 			}
 
-			m_Service.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets));
+			m_Service.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, m_Sessions));
 			Receive ();
 		}
 		else
@@ -201,7 +201,7 @@ namespace transport
 				moreBytes = m_SocketV6.available();
 			}
 
-			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets));
+			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, m_SessionsV6));
 			ReceiveV6 ();
 		}
 		else
@@ -211,7 +211,8 @@ namespace transport
 		}	
 	}
 
-	void SSUServer::HandleReceivedPackets (std::vector<SSUPacket *> packets)
+	void SSUServer::HandleReceivedPackets (std::vector<SSUPacket *> packets, 
+		std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> >& sessions)
 	{
 		std::shared_ptr<SSUSession> session;	
 		for (auto it1: packets)
@@ -222,17 +223,14 @@ namespace transport
 				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 				{
 					if (session) session->FlushData ();
-					auto it = m_Sessions.find (packet->from);
-					if (it != m_Sessions.end ())
+					auto it = sessions.find (packet->from);
+					if (it != sessions.end ())
 						session = it->second;
 					if (!session)
 					{
 						session = std::make_shared<SSUSession> (*this, packet->from);
 						session->WaitForConnect ();
-						{
-							std::unique_lock<std::mutex> l(m_SessionsMutex);
-							m_Sessions[packet->from] = session;
-						}	
+						sessions[packet->from] = session;
 						LogPrint (eLogInfo, "New SSU session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
 					}
 				}
@@ -265,8 +263,9 @@ namespace transport
 
 	std::shared_ptr<SSUSession> SSUServer::FindSession (const boost::asio::ip::udp::endpoint& e) const
 	{
-		auto it = m_Sessions.find (e);
-		if (it != m_Sessions.end ())
+		auto& sessions = e.address ().is_v6 () ?  m_SessionsV6 : m_Sessions; 
+		auto it = sessions.find (e);
+		if (it != sessions.end ())
 			return it->second;
 		else
 			return nullptr;
@@ -295,8 +294,9 @@ namespace transport
 
 	void SSUServer::CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest)
 	{	
-		auto it = m_Sessions.find (remoteEndpoint);
-		if (it != m_Sessions.end ())
+		auto& sessions = remoteEndpoint.address ().is_v6 () ? m_SessionsV6 : m_Sessions;	
+		auto it = sessions.find (remoteEndpoint);
+		if (it != sessions.end ())
 		{	
 			auto session = it->second;
 			if (peerTest && session->GetState () == eSessionStateEstablished)
@@ -306,10 +306,7 @@ namespace transport
 		{
 			// otherwise create new session					
 			auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
-			{
-				std::unique_lock<std::mutex> l(m_SessionsMutex);
-				m_Sessions[remoteEndpoint] = session;
-			}
+			sessions[remoteEndpoint] = session;
 			// connect 					
 			LogPrint ("Creating new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
 				remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
@@ -360,15 +357,11 @@ namespace transport
 						introducer = &(address->introducers[0]); // TODO:
 						boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
 						introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
-						std::unique_lock<std::mutex> l(m_SessionsMutex);
 						m_Sessions[introducerEndpoint] = introducerSession;													
 					}
 					// create session	
 					auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
-					{
-						std::unique_lock<std::mutex> l(m_SessionsMutex);
-						m_Sessions[remoteEndpoint] = session;
-					}
+					m_Sessions[remoteEndpoint] = session;
 					// introduce
 					LogPrint ("Introduce new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), 
 							"] through introducer ", introducer->iHost, ":", introducer->iPort);
@@ -393,21 +386,27 @@ namespace transport
 		if (session)
 		{
 			session->Close ();
-			std::unique_lock<std::mutex> l(m_SessionsMutex);	
-			m_Sessions.erase (session->GetRemoteEndpoint ());
+			auto& ep = session->GetRemoteEndpoint ();
+			if (ep.address ().is_v6 ())
+				m_SessionsV6.erase (ep);
+			else
+				m_Sessions.erase (ep);
 		}	
 	}	
 
 	void SSUServer::DeleteAllSessions ()
 	{
-		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		for (auto it: m_Sessions)
 			it.second->Close ();
 		m_Sessions.clear ();
+
+		for (auto it: m_SessionsV6)
+			it.second->Close ();
+		m_SessionsV6.clear ();
 	}
 
 	template<typename Filter>
-	std::shared_ptr<SSUSession> SSUServer::GetRandomSession (Filter filter)
+	std::shared_ptr<SSUSession> SSUServer::GetRandomV4Session (Filter filter) // v4 only
 	{
 		std::vector<std::shared_ptr<SSUSession> > filteredSessions;
 		for (auto s :m_Sessions)
@@ -420,9 +419,9 @@ namespace transport
 		return nullptr;	
 	}
 
-	std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession (std::shared_ptr<const SSUSession> excluded)
+	std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedV4Session (std::shared_ptr<const SSUSession> excluded) // v4 only
 	{
-		return GetRandomSession (
+		return GetRandomV4Session (
 			[excluded](std::shared_ptr<SSUSession> session)->bool 
 			{ 
 				return session->GetState () == eSessionStateEstablished && !session->IsV6 () && 
@@ -437,7 +436,7 @@ namespace transport
 		std::set<SSUSession *> ret;
 		for (int i = 0; i < maxNumIntroducers; i++)
 		{
-			auto session = GetRandomSession (
+			auto session = GetRandomV4Session (
 				[&ret, ts](std::shared_ptr<SSUSession> session)->bool 
 				{ 
 					return session->GetRelayTag () && !ret.count (session.get ()) &&

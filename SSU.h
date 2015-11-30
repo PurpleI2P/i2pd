@@ -43,7 +43,7 @@ namespace transport
 			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
 			std::shared_ptr<SSUSession> FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const;
 			std::shared_ptr<SSUSession> FindSession (const boost::asio::ip::udp::endpoint& e) const;
-			std::shared_ptr<SSUSession> GetRandomEstablishedSession (std::shared_ptr<const SSUSession> excluded);
+			std::shared_ptr<SSUSession> GetRandomEstablishedV4Session (std::shared_ptr<const SSUSession> excluded);
 			void DeleteSession (std::shared_ptr<SSUSession> session);
 			void DeleteAllSessions ();			
 
@@ -69,12 +69,13 @@ namespace transport
 			void ReceiveV6 ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
 			void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
-			void HandleReceivedPackets (std::vector<SSUPacket *> packets);
+			void HandleReceivedPackets (std::vector<SSUPacket *> packets,
+				std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> >& sessions);
 
 			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
 			void CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest);
 			template<typename Filter>
-			std::shared_ptr<SSUSession> GetRandomSession (Filter filter);
+			std::shared_ptr<SSUSession> GetRandomV4Session (Filter filter);
 			
 			std::set<SSUSession *> FindIntroducers (int maxNumIntroducers);	
 			void ScheduleIntroducersUpdateTimer ();
@@ -100,14 +101,14 @@ namespace transport
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
-			mutable std::mutex m_SessionsMutex;
-			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
+			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions, m_SessionsV6;
 			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
 			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
 
 		public:
 			// for HTTP only
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
+			const decltype(m_SessionsV6)& GetSessionsV6 () const { return m_SessionsV6; };
 	};
 }
 }
