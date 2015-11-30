@@ -116,7 +116,7 @@ namespace i2p
 					StartLog (""); // write to stdout
 			}
 
-			d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpport", 7070)));
+			d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpaddress", "127.0.0.1"), i2p::util::config::GetArg("-httpport", 7070)));
 			d.httpServer->Start();
 			LogPrint("HTTP Server started");
 			i2p::data::netdb.Start();
@@ -135,7 +135,7 @@ namespace i2p
 			int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
 			if (i2pcontrolPort)
 			{
-				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcontrolPort));
+				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2p::util::config::GetArg("-i2pcontroladdress", "127.0.0.1"), i2pcontrolPort));
 				d.m_I2PControlService->Start ();
 				LogPrint("I2PControl started");
 			}

@@ -560,8 +560,8 @@ namespace proxy
 		}
 	}
 
-	SOCKSServer::SOCKSServer(int port, std::shared_ptr<i2p::client::ClientDestination> localDestination) : 
-		TCPIPAcceptor (port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()) 
+	SOCKSServer::SOCKSServer(const std::string& address, int port, std::shared_ptr<i2p::client::ClientDestination> localDestination) : 
+		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()) 
 	{
 	}
 	

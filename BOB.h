@@ -199,7 +199,7 @@ namespace client
 	{
 		public:
 
-			BOBCommandChannel (int port);
+			BOBCommandChannel (const std::string& address, int port);
 			~BOBCommandChannel ();
 
 			void Start ();

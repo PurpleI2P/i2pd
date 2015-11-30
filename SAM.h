@@ -146,7 +146,7 @@ namespace client
 	{
 		public:
 
-			SAMBridge (int port);
+			SAMBridge (const std::string& address, int port);
 			~SAMBridge ();
 
 			void Start ();
