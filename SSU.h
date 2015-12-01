@@ -70,7 +70,7 @@ namespace transport
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
 			void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
 			void HandleReceivedPackets (std::vector<SSUPacket *> packets,
-				std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> >& sessions);
+				std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> >* sessions);
 
 			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
 			void CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest);

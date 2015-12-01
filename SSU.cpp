@@ -174,7 +174,7 @@ namespace transport
 				moreBytes = m_Socket.available();
 			}
 
-			m_Service.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, m_Sessions));
+			m_Service.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, &m_Sessions));
 			Receive ();
 		}
 		else
@@ -201,7 +201,7 @@ namespace transport
 				moreBytes = m_SocketV6.available();
 			}
 
-			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, m_SessionsV6));
+			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, &m_SessionsV6));
 			ReceiveV6 ();
 		}
 		else
@@ -212,7 +212,7 @@ namespace transport
 	}
 
 	void SSUServer::HandleReceivedPackets (std::vector<SSUPacket *> packets, 
-		std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> >& sessions)
+		std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > * sessions)
 	{
 		std::shared_ptr<SSUSession> session;	
 		for (auto it1: packets)
@@ -223,14 +223,14 @@ namespace transport
 				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
 				{
 					if (session) session->FlushData ();
-					auto it = sessions.find (packet->from);
-					if (it != sessions.end ())
+					auto it = sessions->find (packet->from);
+					if (it != sessions->end ())
 						session = it->second;
 					if (!session)
 					{
 						session = std::make_shared<SSUSession> (*this, packet->from);
 						session->WaitForConnect ();
-						sessions[packet->from] = session;
+						(*sessions)[packet->from] = session;
 						LogPrint (eLogInfo, "New SSU session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
 					}
 				}
