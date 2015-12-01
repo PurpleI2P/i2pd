@@ -340,21 +340,30 @@ namespace transport
 					// we might have a session to introducer already
 					for (int i = 0; i < numIntroducers; i++)
 					{
-						introducer = &(address->introducers[i]);
-						it = m_Sessions.find (boost::asio::ip::udp::endpoint (introducer->iHost, introducer->iPort));
-						if (it != m_Sessions.end ())
-						{
-							introducerSession = it->second;
-							break; 
-						}	
+						auto intr = &(address->introducers[i]);
+						boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
+						if (ep.address ().is_v4 ()) // ipv4 only
+						{	
+							if (!introducer) introducer = intr; // we pick first one for now
+							it = m_Sessions.find (ep); 
+							if (it != m_Sessions.end ())
+							{
+								introducerSession = it->second;
+								break; 
+							}	
+						}
 					}
+					if (!introducer)
+					{
+						LogPrint (eLogWarning, "Can't connect to unreachable router. No ipv4 introducers presented");		
+						return;
+					}				
 
 					if (introducerSession) // session found 
-						LogPrint ("Session to introducer already exists");
+						LogPrint (eLogInfo, "Session to introducer already exists");
 					else // create new
 					{
-						LogPrint ("Creating new session to introducer");
-						introducer = &(address->introducers[0]); // TODO:
+						LogPrint (eLogInfo, "Creating new session to introducer");
 						boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
 						introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
 						m_Sessions[introducerEndpoint] = introducerSession;													

@@ -384,7 +384,7 @@ namespace transport
 			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
 		s.Insert<uint16_t> (htobe16 (address->port)); // our port
 		uint32_t relayTag = 0;
-		if (i2p::context.GetRouterInfo ().IsIntroducer ())
+		if (i2p::context.GetRouterInfo ().IsIntroducer () && !IsV6 ())
 		{
 			RAND_bytes((uint8_t *)&relayTag, 4);
 			if (!relayTag) relayTag = 1;
