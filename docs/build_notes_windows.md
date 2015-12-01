@@ -1,6 +1,8 @@
 Building i2pd for Windows
 =========================
 
+!!! WARNING  This file may be outdated.
+
 Requirements for building:
 
 * Visual Studio 2013 (tested with VS2013 Update 1, Update 3, and Update 4)
