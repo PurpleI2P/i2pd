@@ -270,25 +270,29 @@ namespace transport
 		else
 			return nullptr;
 	}
-		
+	
 	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
+	{
+		auto address = router->GetSSUAddress (!context.SupportsV6 ());
+		if (address)
+			CreateSession (router, address->host, address->port, peerTest);
+		else
+			LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
+	}
+	
+	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
+		const boost::asio::ip::address& addr, int port, bool peerTest)
 	{
 		if (router)
 		{
 			if (router->UsesIntroducer ())
-			{
 				m_Service.post (std::bind (&SSUServer::CreateSessionThroughIntroducer, this, router, peerTest)); // always V4 thread
-				return;
-			}
-			auto address = router->GetSSUAddress (!context.SupportsV6 ());
-			if (address)
+			else
 			{
-				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
-				auto& s = remoteEndpoint.address ().is_v6 () ? m_ServiceV6 : m_Service;
+				boost::asio::ip::udp::endpoint remoteEndpoint (addr, port);
+				auto& s = addr.is_v6 () ? m_ServiceV6 : m_Service;
 				s.post (std::bind (&SSUServer::CreateDirectSession, this, router, remoteEndpoint, peerTest));
 			}
-			else
-				LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
 		}
 	}
 

@@ -284,15 +284,24 @@ namespace transport
 						}
 					}
 				}	
+				else
+					LogPrint (eLogInfo, "NTCP address is not presented. Trying SSU");
 			}
-			else  if (peer.numAttempts == 1)// SSU
+			if (peer.numAttempts == 1)// SSU
 			{
 				peer.numAttempts++;
-				if (m_SSUServer)
-				{	
-					if (peer.router->IsSSU (!context.SupportsV6 ()))
+				if (m_SSUServer && peer.router->IsSSU (!context.SupportsV6 ()))
+				{
+					auto address = peer.router->GetSSUAddress (!context.SupportsV6 ());
+#if BOOST_VERSION >= 104900
+					if (!address->host.is_unspecified ()) // we have address now
+#else
+					boost::system::error_code ecode;
+					address->host.to_string (ecode);
+					if (!ecode)
+#endif
 					{
-						m_SSUServer->CreateSession (peer.router);
+						m_SSUServer->CreateSession (peer.router, address->host, address->port);
 						return true;
 					}
 				}
