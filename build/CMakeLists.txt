@@ -191,21 +191,21 @@ if (WITH_PCH)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
   add_library(stdafx STATIC "${CMAKE_SOURCE_DIR}/stdafx.cpp")
   if(MSVC)
-    target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm135)
+    target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm155)
     add_custom_command(TARGET stdafx POST_BUILD
       COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb libi2pd.dir\\$<CONFIG>\\
       COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pdclient.dir\\$<CONFIG>\\
       COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pd.dir\\$<CONFIG>\\
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       )
-    target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
-    target_compile_options(i2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(i2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
   else()
     string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
     get_directory_property(DEFS DEFINITIONS)
     string(REPLACE " " ";" FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BTU}} ${DEFS}")
     add_custom_command(TARGET stdafx PRE_BUILD
-      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../stdafx.h
+      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
     )
     target_compile_options(libi2pd PRIVATE -include stdafx.h)
     target_compile_options(i2pdclient PRIVATE -include stdafx.h)
@@ -286,7 +286,7 @@ if (WITH_BINARY)
 
   if (WITH_PCH)
     if (MSVC)
-      target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+      target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
     else()
       target_compile_options("${PROJECT_NAME}" PRIVATE -include stdafx.h)
     endif()
