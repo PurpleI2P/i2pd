@@ -278,7 +278,7 @@ namespace transport
 					{
 						if (address->addressString.length () > 0) // trying to resolve
 						{
-							LogPrint (eLogInfo, "Resolving ", address->addressString);
+							LogPrint (eLogInfo, "Resolving NTCP ", address->addressString);
 							NTCPResolve (address->addressString, ident);
 							return true;
 						}
@@ -303,6 +303,15 @@ namespace transport
 					{
 						m_SSUServer->CreateSession (peer.router, address->host, address->port);
 						return true;
+					}
+					else // we don't have address
+					{
+						if (address->addressString.length () > 0) // trying to resolve
+						{
+							LogPrint (eLogInfo, "Resolving SSU ", address->addressString);
+							SSUResolve (address->addressString, ident);
+							return true;
+						}
 					}
 				}
 			}	
@@ -372,6 +381,37 @@ namespace transport
 				}	
 			}
 			LogPrint (eLogError, "Unable to resolve NTCP address: ", ecode.message ());
+			m_Peers.erase (it1);
+		}
+	}
+
+	void Transports::SSUResolve (const std::string& addr, const i2p::data::IdentHash& ident)
+	{
+		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
+		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr, ""), 
+			std::bind (&Transports::HandleSSUResolve, this, 
+				std::placeholders::_1, std::placeholders::_2, ident, resolver));
+	}
+
+	void Transports::HandleSSUResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
+		i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+	{
+		auto it1 = m_Peers.find (ident);
+		if (it1 != m_Peers.end ())
+		{
+			auto& peer = it1->second;
+			if (!ecode && peer.router)
+			{
+				auto address = (*it).endpoint ().address ();
+				LogPrint (eLogInfo, (*it).host_name (), " has been resolved to ", address);
+				auto addr = peer.router->GetSSUAddress (!context.SupportsV6 ());;
+				if (addr)
+				{
+					m_SSUServer->CreateSession (peer.router, address, addr->port);
+					return;
+				}	
+			}
+			LogPrint (eLogError, "Unable to resolve SSU address: ", ecode.message ());
 			m_Peers.erase (it1);
 		}
 	}

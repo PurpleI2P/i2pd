@@ -171,9 +171,8 @@ namespace data
 						}
 						else
 						{	
-							// TODO: resolve address for SSU
-							LogPrint (eLogWarning, "Unexpected SSU address ", value);
-							isValidAddress = false;
+							m_SupportedTransports |= eSSUV4; // TODO:
+							address.addressString = value;
 						}	
 					}	
 					else
