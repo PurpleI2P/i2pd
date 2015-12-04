@@ -250,21 +250,20 @@ namespace data
 		LogPrint (directory.string(), " doesn't exist, trying to create it.");
 		if (!boost::filesystem::create_directory (directory))
 		{
-			LogPrint("Failed to create directory ", directory.string());
+			LogPrint (eLogError, "Failed to create directory ", directory);
 			return false;
 		}
 
 		// list of chars might appear in base64 string
 		const char * chars = GetBase64SubstitutionTable (); // 64 bytes
-		boost::filesystem::path suffix;
 		for (int i = 0; i < 64; i++)
 		{
-#ifndef _WIN32
-			suffix = std::string ("/r") + chars[i];
-#else
-			suffix = std::string ("\\r") + chars[i];
-#endif
-			if (!boost::filesystem::create_directory( boost::filesystem::path (directory / suffix) )) return false;
+			auto p = directory / (std::string ("r") + chars[i]);
+			if (!boost::filesystem::exists (p) && !boost::filesystem::create_directory (p)) 
+			{
+				LogPrint (eLogError, "Failed to create directory ", p);
+				return false;
+			}
 		}
 		return true;
 	}

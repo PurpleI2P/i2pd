@@ -57,7 +57,7 @@ namespace data
 			for (int i = 0; i < 64; i++)
 			{
 				auto path1 = path / (std::string ("p") + chars[i]);
-				if (!boost::filesystem::create_directory (path1)) 
+				if (!boost::filesystem::exists (path1) && !boost::filesystem::create_directory (path1)) 
 				{
 					LogPrint (eLogError, "Failed to create directory ", path1);
 					return;
