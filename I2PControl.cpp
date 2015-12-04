@@ -201,7 +201,7 @@ namespace client
 						LogPrint (eLogError, "Malformed I2PControl request. HTTP header expected");
 						return; // TODO:
 					}
-					ssize_t rem = contentLength + ss.tellg () - bytes_transferred; // more bytes to read
+					std::streamoff rem = contentLength + ss.tellg () - bytes_transferred; // more bytes to read
 					if (rem > 0)
 					{	
 						bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), rem));

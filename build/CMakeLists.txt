@@ -1,4 +1,6 @@
 cmake_minimum_required ( VERSION 2.8.12 )
+# this addresses CMP0059 with CMake > 3.3 for PCH flags
+cmake_policy( VERSION 2.8.12 )
 project ( "i2pd" )
 
 # configurale options
@@ -46,7 +48,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/api.cpp"
 )
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
 endif ()
 
@@ -75,7 +77,7 @@ set (DAEMON_SRC
 
 if (WITH_UPNP)
   add_definitions(-DUSE_UPNP)
-  if (NOT MSVC)
+  if (NOT MSVC AND NOT MSYS)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif ()
 endif ()
@@ -102,14 +104,15 @@ include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" CXX0X_SUPPORTED)
 if (CXX11_SUPPORTED)
-  add_definitions( "-std=c++11" )
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11" )
 elseif (CXX0X_SUPPORTED) # gcc 4.6
-  add_definitions( "-std=c++0x" )
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x" )
 elseif (NOT MSVC)
   message(SEND_ERROR "C++11 standart not seems to be supported by compiler. Too old version?")
 endif ()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe")
   if (WITH_HARDENING)
     add_definitions( "-D_FORTIFY_SOURCE=2" )
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security" )
@@ -132,13 +135,15 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonWin32.cpp")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32Service.cpp")
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Resource.rc")
 endif ()
 
 if (WITH_AESNI)
-  add_definitions ( "-maes -DAESNI" )
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes" )
+  add_definitions ( -DAESNI )
 endif()
 
 # libraries
@@ -153,7 +158,7 @@ endif()
 if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
-  if (WIN32)
+  if (WIN32 OR MSYS)
     # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
     # Note that you might need to rebuild Crypto++
     foreach(flag_var
@@ -173,7 +178,7 @@ if (WITH_STATIC)
     set( CMAKE_THREAD_LIBS_INIT "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel" )
   endif ()
 else()
-  if (NOT WIN32)
+  if (NOT WIN32 AND NOT MSYS)
     # TODO: Consider separate compilation for LIBI2PD_SRC for library.
     # No need in -fPIC overhead for binary if not interested in library
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
@@ -186,28 +191,29 @@ if (WITH_PCH)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
   add_library(stdafx STATIC "${CMAKE_SOURCE_DIR}/stdafx.cpp")
   if(MSVC)
-    target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm135)
+    target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm155)
     add_custom_command(TARGET stdafx POST_BUILD
       COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb libi2pd.dir\\$<CONFIG>\\
       COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pdclient.dir\\$<CONFIG>\\
       COMMAND xcopy /y stdafx.dir\\$<CONFIG>\\*.pdb i2pd.dir\\$<CONFIG>\\
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       )
-    target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
-    target_compile_options(i2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(i2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
   else()
     string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
     get_directory_property(DEFS DEFINITIONS)
     string(REPLACE " " ";" FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BTU}} ${DEFS}")
     add_custom_command(TARGET stdafx PRE_BUILD
-      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../stdafx.h
+      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
     )
     target_compile_options(libi2pd PRIVATE -include stdafx.h)
     target_compile_options(i2pdclient PRIVATE -include stdafx.h)
   endif()
   target_link_libraries(libi2pd stdafx)
-  target_link_libraries(i2pdclient stdafx)
 endif()
+
+target_link_libraries(i2pdclient libi2pd)
 
 find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -232,8 +238,13 @@ if (NOT ZLIB_FOUND )
   include( ExternalProject )
   ExternalProject_Add(zlib-project
     URL http://zlib.net/zlib-1.2.8.tar.gz
+    URL_MD5 44d667c142d7cda120332623eab69f40
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
+    # patch on Windows might be found in C:/Program Files/Git/usr/bin
+    PATCH_COMMAND patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+      -DWITH_STATIC=${WITH_STATIC}
+      -DAMD64=ON -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh"
     )
   if (WITH_PCH)
     add_dependencies( stdafx zlib-project )
@@ -242,9 +253,14 @@ if (NOT ZLIB_FOUND )
   endif ()
   # ExternalProject_Get_Property(zlib-project install_dir)
   set ( ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/zlib/include" CACHE FILEPATH "zlib include dir" FORCE)
-  set ( ZLIB_LIBRARY debug zlibd optimized zlib CACHE STRING "zlib libraries" FORCE)
+  if (NOT WITH_STATIC)
+    set ( ZLIB_LIBRARY debug zlibd optimized zlib CACHE STRING "zlib libraries" FORCE)
+  endif ()
 endif ()
-link_directories("${CMAKE_CURRENT_BINARY_DIR}/zlib/lib")
+if (WITH_STATIC AND (MSVC OR MSYS))
+  set ( ZLIB_LIBRARY debug zlibstaticd optimized zlibstatic CACHE STRING "zlib libraries" FORCE)
+endif ()
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib ${ZLIB_ROOT}/lib)
 
 # load includes
 include_directories( ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
@@ -279,7 +295,7 @@ if (WITH_BINARY)
 
   if (WITH_PCH)
     if (MSVC)
-      target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm135 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+      target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
     else()
       target_compile_options("${PROJECT_NAME}" PRIVATE -include stdafx.h)
     endif()
@@ -294,7 +310,11 @@ if (WITH_BINARY)
   if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
     list(REMOVE_AT Boost_LIBRARIES -1)
   endif()
-  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} )
+
+  if (MSYS OR MINGW)
+    set (MINGW_EXTRA -lws2_32 -lmswsock -liphlpapi )
+  endif ()
+  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} )
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
   if (MSVC)
