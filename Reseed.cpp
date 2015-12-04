@@ -30,6 +30,7 @@ namespace data
         "https://netdb.i2p2.no/", // Only SU3 (v3) support, SNI required
 		"https://us.reseed.i2p2.no:444/",	
         "https://uk.reseed.i2p2.no:444/",
+		"https://www.torontocrypto.org:8443/"
         "https://reseed.i2p.vzaws.com:8443/", // Only SU3 (v3) support
         "https://user.mx24.eu/", // Only HTTPS and SU3 (v3) support
         "https://ieb9oopo.mooo.com/" // Only HTTPS and SU3 (v3) support
