@@ -1,5 +1,7 @@
 i2pd
 ====
+[![Build status](https://ci.appveyor.com/api/projects/status/458fhbki14gaplyj/branch/openssl?svg=true)](https://ci.appveyor.com/project/mlt/i2pd/branch/openssl)
+
 
 I2P router written in C++
 Contains all ongoing changes from https://bitbucket.org/orignal/i2pd/src
