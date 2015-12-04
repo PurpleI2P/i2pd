@@ -238,8 +238,12 @@ if (NOT ZLIB_FOUND )
   include( ExternalProject )
   ExternalProject_Add(zlib-project
     URL http://zlib.net/zlib-1.2.8.tar.gz
+    URL_MD5 44d667c142d7cda120332623eab69f40
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
+    # patch on Windows might be found in C:/Program Files/Git/usr/bin
+    PATCH_COMMAND patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+      -DWITH_STATIC=${WITH_STATIC}
       -DAMD64=ON -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh"
     )
   if (WITH_PCH)
@@ -249,9 +253,14 @@ if (NOT ZLIB_FOUND )
   endif ()
   # ExternalProject_Get_Property(zlib-project install_dir)
   set ( ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/zlib/include" CACHE FILEPATH "zlib include dir" FORCE)
-  set ( ZLIB_LIBRARY debug zlibd optimized zlib CACHE STRING "zlib libraries" FORCE)
+  if (NOT WITH_STATIC)
+    set ( ZLIB_LIBRARY debug zlibd optimized zlib CACHE STRING "zlib libraries" FORCE)
+  endif ()
 endif ()
-link_directories("${CMAKE_CURRENT_BINARY_DIR}/zlib/lib")
+if (WITH_STATIC AND (MSVC OR MSYS))
+  set ( ZLIB_LIBRARY debug zlibstaticd optimized zlibstatic CACHE STRING "zlib libraries" FORCE)
+endif ()
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib ${ZLIB_ROOT}/lib)
 
 # load includes
 include_directories( ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
