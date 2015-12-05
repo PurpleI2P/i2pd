@@ -1,1 +1,3 @@
 i2pd usr/sbin/
+debian/i2pd.conf    etc/i2pd/
+debian/tunnels.conf etc/i2pd/
