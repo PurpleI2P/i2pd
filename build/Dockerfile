@@ -8,4 +8,4 @@ RUN git clone https://github.com/PurpleI2P/i2pd.git
 WORKDIR /i2pd 
 RUN make
 
-CMD ./i2p 
+CMD ./i2pd

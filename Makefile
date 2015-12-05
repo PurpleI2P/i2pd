@@ -3,7 +3,7 @@ SHLIB := libi2pd.so
 ARLIB := libi2pd.a
 SHLIB_CLIENT := libi2pdclient.so
 ARLIB_CLIENT := libi2pdclient.a
-I2PD  := i2p
+I2PD  := i2pd
 GREP := fgrep
 DEPS := obj/make.dep
 
