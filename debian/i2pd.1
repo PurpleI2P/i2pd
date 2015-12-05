@@ -1,0 +1,119 @@
+.TH I2PD "1" "March 31, 2015"
+
+.SH NAME
+i2pd \- Load-balanced unspoofable packet switching network
+
+.SH SYNOPSIS
+.B i2pd
+[\fIOPTION1\fR) [\fIOPTION2\fR]...
+
+.SH DESCRIPTION
+i2pd
+is a C++ implementation of the router for the I2P anonymizing network, offering
+a simple layer that identity-sensitive applications can use to securely
+communicate. All data is wrapped with several layers of encryption, and the
+network is both distributed and dynamic, with no trusted parties.
+
+.PP
+Any of the configuration options below can be used in the \fBDAEMON_ARGS\fR variable in \fI/etc/default/i2pd\fR.
+.BR
+.TP
+\fB\-\-host=\fR
+The external IP (deprecated)
+.TP
+\fB\-\-port=\fR
+The external port to listen on
+.TP
+\fB\-\-httpport=\fR
+The HTTP port to listen on
+.TP
+\fB\-\-log=\fR[\fI1\fR|\fI0\fR]
+.br
+Enable of disable logging to a file. \fI1\fR for yes, \fI0\fR for no. (default: \fI0\fR, off)
+.TP
+\fB\-\-daemon=\fR[\fI1\fR|\fI0\fR]
+Enable or disable daemon mode. Daemon mode is enabled with \fI1\fR  and disabled with \fI0\fR. (default: \fI0\fR, off)
+.TP
+\fB\-\-service=\fR[\fI1\fR|\fI0\fR]
+If enabled, system folders (\fB/var/run/i2pd.pid\fR, \fB/var/log/i2pd.log\fR, \fB/var/lib/i2pd\fR) will be used. If off, \fB$HOME/.i2pd\fR will be used instead. (default: \fI0\fR, off).
+.TP
+\fB\-\-unreachable=\fR[\fI1\fR|\fI0\fR]
+\fI1\fR if router is declared as unreachable and works through introducers. (default: \fI0\fR, off)
+.TP
+\fB\-\-v6=\fR[\fI1\fR|\fI0\fR]
+\fI1\fR if \fBi2pd\fR should communicate via IPv6. (default: \fI0\fR, off)
+.TP
+\fB\-\-floodfill=\fR[\fI1\fR|\fI0\fR]
+\fI1\fR if \fBi2pd\fR should become a floodfill. (default: \fI0\fR, off)
+.TP
+\fB\-\-bandwidth=\fR[\fI1\fR|\fI0\fR]
+\fIL\fR if \fBi2pd\fR should be limited to 32KiB/s. Enabling floodfill will automatically set this to \fI0\fR (default: \fI0\fR, no limit)
+.TP
+\fB\-\-httpproxyport=\fR
+The local port for the HTTP Proxy to listen on (default: \fI4446\fR)
+.TP
+\fB\-\-socksproxyport=\fR
+The local port for the SOCKS proxy to listen on (default: \fI4447\fR)
+.TP
+\fB\-\-proxykeys=\fR
+An optional keys file for tunnel's local destination
+.TP
+\fB\-\-ircport=\fR
+The local port of IRC tunnel to listen on. (default: \fI6668\fR)
+.TP
+\fB\-\-ircdest=\fR
+I2P destination address of an IRC server to connect to, e.g. \fIirc.postman.i2p\fR
+.TP
+\fB\-\-irckeys=\fR
+optional keys file for local destination
+.TP
+\fB\-\-eepkeys=\fR
+File name containing destination keys. For example \fIprivKeys.dat\fR
+.TP
+\fB\-\-eephost=\fR
+Address incoming trafic is forwarded to, \fI127.0.0.1\fR by default
+.TP
+\fB\-\-eepport=\fR
+Port incoming trafic forward to. \fI80\fR by default
+.TP
+\fB\-\-samport=\fR
+Port of SAM bridge. Usually \fI7656\fR. SAM will not be enabled if this is not set. (default: unset)
+.TP
+\fB\-\-bobport=\fR
+Port of BOB command channel. Usually \fI2827\fR. BOB will not be enabled if this is not set. (default: unset)
+.TP
+\fB\-\-i2pcontrolport=\fR
+Port of I2P control service. Usually \fI7650\fR. I2PControl will not be enabled if this is not set. (default: unset)
+.TP
+\fB\-\-conf=\fR
+Config file (default: \fI~/.i2pd/i2p.conf\fR or \fI/var/lib/i2pd/i2p.conf\fR)
+This parameter will be silently ignored if the specified config file does not exist.
+Options specified on the command line take precedence over those in the config file.
+
+.SH FILES
+.PP
+/etc/i2pd/i2pd.conf, /etc/i2pd/tunnels.conf, /etc/default/i2pd
+.RS 4
+i2pd configuration files (when running as a system service)
+
+.RE
+.PP
+/var/lib/i2pd/
+.RS 4
+i2pd profile directory (when running as a system service, see \fB\-\-service=\fR above)
+.RE
+.PP
+$HOME/.i2pd
+.RS 4
+i2pd profile directory (when running as a normal user)
+.RE
+.PP
+/usr/share/doc/i2pd/examples/hosts.txt.gz
+.RS 4
+default I2P hosts file
+.SH AUTHOR
+This manual page was written by kytv <killyourtv@i2pmail.org> for the Debian system (but may be used by others).
+.BR
+Permission is granted to copy, distribute and/or modify this document under the terms of the GNU General Public License, Version 2 or any later version published by the Free Software Foundation
+.BR
+On Debian systems, the complete text of the GNU General Public License can be found in /usr/share/common-licenses/GPL
