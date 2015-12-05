@@ -1,7 +1,11 @@
 # Defaults for i2pd initscript
 # sourced by /etc/init.d/i2pd
 # installed at /etc/default/i2pd by the maintainer scripts
+I2PD_ENABLED="yes"
+
+# port to listen for incoming connections
+I2PD_PORT="4567"
 
 # Additional options that are passed to the Daemon.
-DAEMON_OPTS="--host=1.2.3.4 --port=4567 --ircdest=irc.postman.i2p"
-# change ip and port above to your external address and port
+# see possible switches in /usr/share/doc/i2pd/configuration.md.gz
+DAEMON_OPTS=""
