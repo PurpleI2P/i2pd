@@ -239,13 +239,13 @@ endif()
 find_package ( ZLIB )
 if (NOT ZLIB_FOUND )
   # We are probably on Windows
+  find_program( PATCH patch C:/Program Files/Git/usr/bin C:/msys64/usr/bin C:/msys32/usr/bin C:/Strawberry/c/bin )
   include( ExternalProject )
   ExternalProject_Add(zlib-project
     URL http://zlib.net/zlib-1.2.8.tar.gz
     URL_MD5 44d667c142d7cda120332623eab69f40
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
-    # patch on Windows might be found in C:/Program Files/Git/usr/bin
-    PATCH_COMMAND patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
+    PATCH_COMMAND "${PATCH}" -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
       -DWITH_STATIC=${WITH_STATIC}
       -DAMD64=ON -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh"
