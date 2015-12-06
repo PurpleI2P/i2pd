@@ -1,0 +1,47 @@
+//
+// Resource.RC2 - resources Microsoft Visual C++ does not edit directly
+//
+
+#ifdef APSTUDIO_INVOKED
+#error this file is not editable by Microsoft Visual C++
+#endif //APSTUDIO_INVOKED
+
+#include "../version.h"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION I2PD_VERSION_MAJOR,I2PD_VERSION_MINOR,I2PD_VERSION_MICRO,I2PD_VERSION_PATCH
+ PRODUCTVERSION I2P_VERSION_MAJOR,I2P_VERSION_MINOR,I2P_VERSION_MICRO,I2P_VERSION_PATCH
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Purple I2P"
+            VALUE "FileDescription", "C++ I2P daemon"
+            VALUE "FileVersion", I2PD_VERSION
+            VALUE "InternalName", CODENAME
+            VALUE "LegalCopyright", "Copyright (C) 2013-2015, The PurpleI2P Project"
+            VALUE "OriginalFilename", "i2pd"
+            VALUE "ProductName", "Purple I2P"
+            VALUE "ProductVersion", I2P_VERSION
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
