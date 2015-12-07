@@ -250,14 +250,19 @@ if (NOT ZLIB_FOUND )
   # We are probably on Windows
   find_program( PATCH patch C:/Program Files/Git/usr/bin C:/msys64/usr/bin C:/msys32/usr/bin C:/Strawberry/c/bin )
   include( ExternalProject )
+  if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set( ZLIB_EXTRA -DAMD64=ON )
+  else()
+    set( ZLIB_EXTRA -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh" )
+  endif()
   ExternalProject_Add(zlib-project
     URL http://zlib.net/zlib-1.2.8.tar.gz
     URL_MD5 44d667c142d7cda120332623eab69f40
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
     PATCH_COMMAND "${PATCH}" -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
+      && "${PATCH}" -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-amd64.patch
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-      -DWITH_STATIC=${WITH_STATIC}
-      -DAMD64=ON -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh"
+      -DWITH_STATIC=${WITH_STATIC} ${ZLIB_EXTRA}
     )
   if (WITH_PCH)
     add_dependencies( stdafx zlib-project )
