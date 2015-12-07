@@ -92,6 +92,10 @@ if (MSVC)
   add_definitions( -D_WIN32_WINNT=_WIN32_WINNT_WINXP -DWIN32_LEAN_AND_MEAN -DNOMINMAX ) #-DOPENSSL_NO_SSL2 -DOPENSSL_USE_DEPRECATED
   # TODO Check & report to Boost dev, there should be no need for these two
   add_definitions( -DBOOST_THREAD_NO_LIB -DBOOST_CHRONO_NO_LIB )
+  set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL" )
+  set( CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /INCREMENTAL:NO /LTCG" )
+  set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} /GL" )
+  set( CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO /LTCG" )
 else()
   if (MSYS OR MINGW)
     add_definitions( -DWIN32_LEAN_AND_MEAN )
@@ -125,6 +129,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif ()
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # more tweaks
+endif ()
+
+if (WITH_HARDENING AND MSVC)
+  # Most security options like dynamic base, buffer & stack checks are ON by default
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /guard:cf" )
 endif ()
 
 # compiler flags customization (by system)
