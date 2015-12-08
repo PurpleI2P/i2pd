@@ -1,7 +1,5 @@
 i2pd
 ====
-[![Build status](https://ci.appveyor.com/api/projects/status/458fhbki14gaplyj/branch/openssl?svg=true)](https://ci.appveyor.com/project/mlt/i2pd/branch/openssl)
-
 
 I2P router written in C++
 Contains all ongoing changes from https://bitbucket.org/orignal/i2pd/src
@@ -27,14 +25,14 @@ http://i2pd.website/releases/
 older releases
 http://download.i2p.io/purplei2p/i2pd/releases/
 
+Supported OS
+------------
 
-Build Statuses
----------------
+[![Build status](https://ci.appveyor.com/api/projects/status/458fhbki14gaplyj/branch/openssl?svg=true)](https://ci.appveyor.com/project/mlt/i2pd/branch/openssl)
 
-- Linux x64      - [![Build Status](https://jenkins.greyhat.no/buildStatus/icon?job=i2pd-linux)](https://jenkins.nordcloud.no/job/i2pd-linux/)
-- Linux ARM      - To be added
-- Mac OS X       - Got it working, but not well tested. (Only works with clang, not GCC.)
-- Microsoft VC13 - To be added
+-- Linux x86/x64  - Proved working.
+-- Mac OS X       - Not well tested. (Only works with clang, not GCC)
+-- Windows        - At least builds and runs.
 
 More documentation
 ------------------
