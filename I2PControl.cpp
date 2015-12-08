@@ -7,6 +7,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 #if !GCC47_BOOST149
 #include <boost/property_tree/json_parser.hpp>
 #endif
@@ -30,6 +31,7 @@ namespace client
 		m_SSLContext (m_Service, boost::asio::ssl::context::sslv23),
 		m_ShutdownTimer (m_Service)
 	{
+		LoadConfig ();
 		// certificate				
 		auto path = GetPath ();
 		if (!boost::filesystem::exists (path))
@@ -56,6 +58,9 @@ namespace client
 		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_MANAGER] = &I2PControlService::RouterManagerHandler; 
 		m_MethodHandlers[I2P_CONTROL_METHOD_NETWORK_SETTING] = &I2PControlService::NetworkSettingHandler; 
 
+		// I2PControl
+		m_I2PControlHandlers[I2P_CONTROL_I2PCONTROL_PASSWORD] = &I2PControlService::PasswordHandler; 
+
 		// RouterInfo
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_UPTIME] = &I2PControlService::UptimeHandler;
 		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_VERSION] = &I2PControlService::VersionHandler;
@@ -76,6 +81,49 @@ namespace client
 	I2PControlService::~I2PControlService ()
 	{
 		Stop ();
+	}
+
+	void I2PControlService::LoadConfig ()
+	{
+		auto path = GetPath ();
+		if (!boost::filesystem::exists (path))
+		{
+			if (!boost::filesystem::create_directory (path))
+				LogPrint (eLogError, "Failed to create i2pcontrol directory");
+		}	
+		boost::property_tree::ptree pt;
+		auto filename = path / I2P_CONTROL_CONFIG_FILE;
+		bool isNew = true;
+		if (boost::filesystem::exists (filename))
+		{	
+			try
+			{
+				boost::property_tree::read_ini (filename.string (), pt);
+				isNew = false;
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "Can't read ", filename, ": ", ex.what ());
+			}	
+		}
+		m_Password = pt.get (I2P_CONTROL_I2PCONTROL_PASSWORD, I2P_CONTROL_DEFAULT_PASSWORD);
+		if (isNew) SaveConfig ();	
+	}
+
+	void I2PControlService::SaveConfig ()
+	{
+		boost::property_tree::ptree pt;
+		pt.put (I2P_CONTROL_I2PCONTROL_PASSWORD, m_Password);
+		auto filename = GetPath () / I2P_CONTROL_CONFIG_FILE;
+		// we take care about directory in LoadConfig	
+		try
+		{
+			boost::property_tree::write_ini (filename.string (), pt);
+		}	
+		catch (std::exception& ex)
+		{
+			LogPrint (eLogError, "Can't write ", filename, ": ", ex.what ());
+		}	
 	}
 
 	void I2PControlService::Start ()
@@ -326,10 +374,21 @@ namespace client
 			LogPrint (eLogDebug, it.first);
 			auto it1 = m_I2PControlHandlers.find (it.first);
 			if (it1 != m_I2PControlHandlers.end ())
+			{
 				(this->*(it1->second))(it.second.data ());	
+				InsertParam (results, it.first, ""); 
+			}
 			else
-				LogPrint (eLogError, "I2PControl NetworkSetting unknown request ", it.first);			
+				LogPrint (eLogError, "I2PControl I2PControl unknown request ", it.first);			
 		}	
+	}
+
+	void I2PControlService::PasswordHandler (const std::string& value)
+	{
+		LogPrint (eLogDebug, "I2PControl new password=", value);
+		m_Password = value;
+		m_Tokens.clear ();
+		SaveConfig ();
 	}
 
 // RouterInfo

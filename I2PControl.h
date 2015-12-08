@@ -25,6 +25,7 @@ namespace client
 	const char I2P_CONTROL_PATH[] = "ipcontrol";
 	const char I2P_CONTROL_KEY_FILE[] = "key.pem";
 	const char I2P_CONTROL_CERT_FILE[] = "cert.pem";
+	const char I2P_CONTROL_CONFIG_FILE[] = "i2pcontrol.conf";
 	const char I2P_CONTROL_DEFAULT_PASSWORD[] = "itoopie";	
 
 	const char I2P_CONTROL_PROPERTY_ID[] = "id";
@@ -86,6 +87,9 @@ namespace client
 
 		private:
 
+			void LoadConfig ();
+			void SaveConfig ();
+
 			void Run ();
 			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket);	
@@ -121,6 +125,7 @@ namespace client
 
 			// I2PControl
 			typedef void (I2PControlService::*I2PControlRequestHandler)(const std::string& value);
+			void PasswordHandler (const std::string& value);
 
 			// RouterInfo
 			typedef void (I2PControlService::*RouterInfoRequestHandler)(std::ostringstream& results);
