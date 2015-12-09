@@ -800,7 +800,7 @@ namespace util
 
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
 		{
-			it->GetTunnelConfig ()->Print (s);
+			it->Print (s);
 			auto state = it->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
@@ -812,7 +812,7 @@ namespace util
 
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
 		{
-			it.second->GetTunnelConfig ()->Print (s);
+			it.second->Print (s);
 			auto state = it.second->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << " " << "Failed";
@@ -863,7 +863,7 @@ namespace util
 				s << "<b>Tunnels:</b><br>";
 				for (auto it: pool->GetOutboundTunnels ())
 				{
-					it->GetTunnelConfig ()->Print (s);
+					it->Print (s);
 					auto state = it->GetState ();
 					if (state == i2p::tunnel::eTunnelStateFailed)
 						s << " " << "Failed";
@@ -873,7 +873,7 @@ namespace util
 				}
 				for (auto it: pool->GetInboundTunnels ())
 				{
-					it->GetTunnelConfig ()->Print (s);
+					it->Print (s);
 					auto state = it->GetState ();
 					if (state == i2p::tunnel::eTunnelStateFailed)
 						s << " " << "Failed";

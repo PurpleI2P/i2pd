@@ -190,6 +190,13 @@ namespace tunnel
 		newMsg->from = shared_from_this ();
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);	
 	}	
+
+	void InboundTunnel::Print (std::stringstream& s) const
+	{
+		s << "-->" << i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ()) << ":" << GetNextTunnelID ();
+		s << "-->" << (GetNumHops () - 1) << " hops ";
+		s << GetTunnelID () << ":me";
+	}	
 		
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
@@ -225,6 +232,12 @@ namespace tunnel
 	{
 		LogPrint (eLogError, "Incoming message for outbound tunnel ", GetTunnelID ());
 	}
+
+	void OutboundTunnel::Print (std::stringstream& s) const
+	{
+		s << "me-->" << i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ()) << ":" << GetNextTunnelID ();
+		s << "-->" << (GetNumHops () - 1) << " hops-->";
+	}	
 		
 	Tunnels tunnels;
 	
