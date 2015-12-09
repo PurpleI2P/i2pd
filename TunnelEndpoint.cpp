@@ -225,36 +225,32 @@ namespace tunnel
 	
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
-		LogPrint (eLogInfo, "TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes. Msg type ", (int)msg.data->GetTypeID ());
+		auto typeID = msg.data->GetTypeID ();
+		LogPrint (eLogInfo, "TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes. Msg type ", (int)typeID);
 		switch (msg.deliveryType)
 		{
 			case eDeliveryTypeLocal:
 				i2p::HandleI2NPMessage (msg.data);
 			break;
 			case eDeliveryTypeTunnel:
-				i2p::transport::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));
-			break;
-			case eDeliveryTypeRouter:
-				if (msg.hash == i2p::context.GetRouterInfo ().GetIdentHash ()) // check if message is sent to us
-					i2p::HandleI2NPMessage (msg.data);
+				if (!m_IsInbound) // outbound transit tunnel
+					i2p::transport::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));
 				else
-				{	
-					// to somebody else
-					if (!m_IsInbound) // outbound transit tunnel
-					{
-					/*	auto typeID = msg.data->GetTypeID ();
-						if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply )
-							// catch RI or reply with new list of routers
-							i2p::data::netdb.PostI2NPMsg (msg.data);*/
-						i2p::transport::transports.SendMessage (msg.hash, msg.data);
-					}
-					else // we shouldn't send this message. possible leakage 
-						LogPrint (eLogError, "Message to another router arrived from an inbound tunnel. Dropped");
-				}
+					LogPrint (eLogError, "Delivery type tunnel arrived from an inbound tunnel. Dropped");
+			break;
+			case eDeliveryTypeRouter:				
+				if (!m_IsInbound) // outbound transit tunnel
+					i2p::transport::transports.SendMessage (msg.hash, msg.data);
+				else // we shouldn't send this message. possible leakage 
+					LogPrint (eLogError, "Delivery type router arrived from an inbound tunnel. Dropped");
 			break;
 			default:
 				LogPrint (eLogError, "TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);
 		};	
+		// catch RI or reply with new list of routers	
+		if ((typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply) &&
+			!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)
+			i2p::data::netdb.PostI2NPMsg (msg.data);
 	}	
 }		
 }
