@@ -181,6 +181,15 @@ namespace tunnel
 			ret.push_back (it->ident);
 		return ret;	
 	}	
+
+	void Tunnel::PrintHops (std::stringstream& s) const
+	{
+		for (auto& it: m_Hops)
+		{	
+			s << "-->";
+			s << i2p::data::GetIdentHashAbbreviation (it->ident->GetIdentHash ());
+		}	
+	}	
 		
 	void InboundTunnel::HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg)
 	{
@@ -193,9 +202,8 @@ namespace tunnel
 
 	void InboundTunnel::Print (std::stringstream& s) const
 	{
-		s << "-->" << i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ()) << ":" << GetNextTunnelID ();
-		s << "-->" << (GetNumHops () - 1) << " hops ";
-		s << GetTunnelID () << ":me";
+		PrintHops (s);
+		s << "-->" << GetTunnelID () << ":me";
 	}	
 		
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
@@ -235,8 +243,9 @@ namespace tunnel
 
 	void OutboundTunnel::Print (std::stringstream& s) const
 	{
-		s << "me-->" << i2p::data::GetIdentHashAbbreviation (GetNextIdentHash ()) << ":" << GetNextTunnelID ();
-		s << "-->" << (GetNumHops () - 1) << " hops-->";
+		s << GetTunnelID () << ":me";
+		PrintHops (s);
+		s << "-->";
 	}	
 		
 	Tunnels tunnels;

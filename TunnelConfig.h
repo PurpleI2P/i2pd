@@ -194,25 +194,6 @@ namespace tunnel
 				}	
 				return peers;
 			}
-
-			void Print (std::stringstream& s) const
-			{
-				TunnelHopConfig * hop = m_FirstHop;
-				if (!IsInbound ()) // outbound
-					s << "me";
-				s << "-->" << m_FirstHop->tunnelID;
-				while (hop)
-				{
-					s << ":" << GetIdentHashAbbreviation (hop->ident->GetIdentHash ()) << "-->"; 
-					if (!hop->isEndpoint)
-						s << hop->nextTunnelID;
-					else
-						return;
-					hop = hop->next;
-				}	
-				// we didn't reach enpoint that mean we are last hop
-				s << ":me";	
-			}
 			
 		private:
 

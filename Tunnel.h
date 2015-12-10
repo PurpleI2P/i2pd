@@ -62,7 +62,6 @@ namespace tunnel
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const; 
 			TunnelState GetState () const { return m_State; };
 			void SetState (TunnelState state)  { m_State = state; };
-			int GetNumHops () const { return m_Hops.size (); }
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
@@ -76,7 +75,11 @@ namespace tunnel
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 
-					
+
+		protected:
+
+			void PrintHops (std::stringstream& s) const;
+			
 		private:
 
 			std::shared_ptr<const TunnelConfig> m_Config;
