@@ -384,7 +384,7 @@ namespace transport
 						uint8_t buf[1];
 						Send (buf, 0, remoteEndpoint); // send HolePunch
 					}	
-					introducerSession->Introduce (*introducer);
+					introducerSession->Introduce (*introducer, router);
 				}
 				else	
 					LogPrint (eLogWarning, "Can't connect to unreachable router. No introducers presented");				

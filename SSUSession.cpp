@@ -308,7 +308,7 @@ namespace transport
 		m_Server.Send (buf, isV4 ? 304 : 320, m_RemoteEndpoint);
 	}
 
-	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer)
+	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce)
 	{
 		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 		if (!address)
@@ -329,7 +329,7 @@ namespace transport
 		payload++;	
 		memcpy (payload, (const uint8_t *)address->key, 32);
 		payload += 32;
-		RAND_bytes (payload, 4); // nonce	
+		htobe32buf (payload, nonce); // nonce	
 
 		uint8_t iv[16];
 		RAND_bytes (iv, 16); // random iv
@@ -568,9 +568,9 @@ namespace transport
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		uint8_t remoteSize = *payload; 
 		payload++; // remote size
-		//boost::asio::ip::address_v4 remoteIP (bufbe32toh (payload));
+		boost::asio::ip::address_v4 remoteIP (bufbe32toh (payload));
 		payload += remoteSize; // remote address
-		//uint16_t remotePort = bufbe16toh (payload);
+		uint16_t remotePort = bufbe16toh (payload);
 		payload += 2; // remote port
 		uint8_t ourSize = *payload; 
 		payload++; // our size
@@ -592,6 +592,27 @@ namespace transport
 		payload += 2; // our port
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
+		uint32_t nonce = bufbe32toh (payload);
+		payload += 4; // nonce
+		auto it = m_RelayRequests.find (nonce);
+		if (it != m_RelayRequests.end ())
+		{	
+			// check if we are waiting for introduction
+			boost::asio::ip::udp::endpoint remoteEndpoint (remoteIP, remotePort);
+			if (!m_Server.FindSession (remoteEndpoint))
+			{
+				// we didn't have correct endpoint when sent relay request
+				// now we do
+				LogPrint (eLogInfo, "RelayReponse connecting to endpoint ", remoteEndpoint);
+				if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
+				m_Server.CreateDirectSession (it->second, remoteEndpoint, false);
+			}	
+			// delete request
+			m_RelayRequests.erase (it);
+		}	
+		else
+			LogPrint (eLogError, "Unsolicited RelayResponse, nonce=", nonce);
 	}
 
 	void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t len)
@@ -748,7 +769,8 @@ namespace transport
 		}	
 	}	
 	
-	void SSUSession::Introduce (const i2p::data::RouterInfo::Introducer& introducer)
+	void SSUSession::Introduce (const i2p::data::RouterInfo::Introducer& introducer,
+		std::shared_ptr<const i2p::data::RouterInfo> to)
 	{
 		if (m_State == eSessionStateUnknown)
 		{	
@@ -756,8 +778,11 @@ namespace transport
 			m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
 			m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
 				shared_from_this (), std::placeholders::_1));
-		}	
-		SendRelayRequest (introducer);
+		}
+		uint32_t nonce;
+		RAND_bytes ((uint8_t *)&nonce, 4);
+		m_RelayRequests[nonce] = to;
+		SendRelayRequest (introducer, nonce);
 	}
 
 	void SSUSession::WaitForIntroduction ()

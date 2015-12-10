@@ -71,7 +71,8 @@ namespace transport
 			
 			void Connect ();
 			void WaitForConnect ();
-			void Introduce (const i2p::data::RouterInfo::Introducer& introducer);
+			void Introduce (const i2p::data::RouterInfo::Introducer& introducer, 
+				std::shared_ptr<const i2p::data::RouterInfo> to); // Alice to Charlie
 			void WaitForIntroduction ();
 			void Close ();
 			void Done ();
@@ -100,7 +101,7 @@ namespace transport
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
 			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
-			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer);
+			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
 			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
@@ -150,6 +151,7 @@ namespace transport
 			SSUData m_Data;
 			bool m_IsDataReceived;
 			std::unique_ptr<SignedData> m_SignedData; // we need it for SessionConfirmed only
+			std::map<uint32_t, std::shared_ptr<const i2p::data::RouterInfo> > m_RelayRequests; // nonce->Charlie
 	};
 
 
