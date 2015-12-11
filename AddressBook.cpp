@@ -34,8 +34,15 @@ namespace client
 
 		private:	
 			
-			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / "addressbook"; };
-
+			boost::filesystem::path GetPath () const 
+			{ 
+				return i2p::util::filesystem::GetDefaultDataDir() / "addressbook"; 
+			}
+			boost::filesystem::path GetAddressPath (const i2p::data::IdentHash& ident) const 
+			{
+				auto b32 = ident.ToBase32();
+				return GetPath () / (std::string ("b") + b32[0]) / (b32 + ".b32");
+			}
 	};
 
 	AddressBookFilesystemStorage::AddressBookFilesystemStorage ()
@@ -47,11 +54,27 @@ namespace client
 			if (!boost::filesystem::create_directory (path))
 				LogPrint (eLogError, "Failed to create addressbook directory");
 		}
+		
 	}
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
-		auto filename = GetPath () / (ident.ToBase32() + ".b32");
+		auto filename = GetAddressPath (ident);
+		if (!boost::filesystem::exists (filename))
+		{
+			boost::filesystem::create_directory (filename.parent_path ());
+			// try to find in main folder
+			auto filename1 = GetPath () / (ident.ToBase32 () + ".b32");			
+			if (!boost::filesystem::exists (filename1))
+			{
+				boost::system::error_code ec;
+				boost::filesystem::rename (filename1, filename, ec);
+				if (ec)
+					LogPrint (eLogError, "Couldn't move file ", ec.message ());
+			}
+			else 
+				return nullptr; // address doesn't exist
+		}	
 		std::ifstream f(filename.string (), std::ifstream::binary);
 		if (f.is_open ())	
 		{
@@ -75,8 +98,14 @@ namespace client
 
 	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
-		auto filename = GetPath () / (address->GetIdentHash ().ToBase32() + ".b32");
+		auto filename = GetAddressPath (address->GetIdentHash ());
 		std::ofstream f (filename.string (), std::ofstream::binary | std::ofstream::out);
+		if (!f.is_open ())
+		{
+			// create subdirectory
+			if (boost::filesystem::create_directory (filename.parent_path ()))
+				f.open (filename.string (), std::ofstream::binary | std::ofstream::out); // and try to open again
+		}		
 		if (f.is_open ())	
 		{
 			size_t len = address->GetFullLen ();
@@ -91,7 +120,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
-		auto filename = GetPath () / (ident.ToBase32() + ".b32");
+		auto filename = GetAddressPath (ident);
 		if (boost::filesystem::exists (filename))  
 			boost::filesystem::remove (filename);
 	}
