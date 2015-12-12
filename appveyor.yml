@@ -174,7 +174,7 @@ build_script:
     cd \projects\build
     && cmake ..\i2pd\build -G "%generator%" -DWITH_UPNP=ON %cmake% -DWITH_STATIC=%static% -DZLIB_ROOT=%zlib_root% -DBoost_LIBRARY_DIR:PATH=%BOOST_ROOT%/stage%bitness%/lib -DCMAKE_INSTALL_PREFIX:PATH=c:/projects/instdir
     && cmake --build . %cmake_build% --target install
-    && 7z a -tzip -mx9 -mmt C:\projects\i2pd\i2pd-vc%msvc%-win%bitness%-%type%.zip C:\projects\instdir\bin\*.exe %zlib_root%\bin\*.dll %BOOST_ROOT%\stage%bitness%\lib\*.dll %APPVEYOR_BUILD_FOLDER%\LICENSE
+    && 7z a -tzip -mx9 -mmt C:\projects\i2pd\i2pd-vc%msvc%-win%bitness%-%type%.zip C:\projects\instdir\*
     && cmake --build . %cmake_build% --target package
     && xcopy i2pd*win*.exe ..\i2pd\
   )

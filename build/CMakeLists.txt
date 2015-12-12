@@ -53,6 +53,13 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
 endif ()
 
 add_library(libi2pd ${LIBI2PD_SRC})
+install(TARGETS libi2pd
+  EXPORT libi2pd
+  ARCHIVE DESTINATION lib
+  COMPONENT Libraries)
+# TODO Make libi2pd available to 3rd party projects via CMake as imported target
+# FIXME This pulls stdafx
+# install(EXPORT libi2pd DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 set (CLIENT_SRC
   "${CMAKE_SOURCE_DIR}/AddressBook.cpp"
@@ -334,9 +341,16 @@ if (WITH_BINARY)
   endif ()
   target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} )
 
-  install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+  install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
+  set (APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
+  set (DIRS "${Boost_LIBRARY_DIR};${OPENSSL_INCLUDE_DIR}/../bin;${ZLIB_INCLUDE_DIR}/../bin;/mingw32/bin")
   if (MSVC)
-    install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION "bin" CONFIGURATIONS DEBUG)
+    install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_BINDIR} CONFIGURATIONS DEBUG RELWITHDEBINFO COMPONENT Symbols)
+    # TODO Somehow this picks lots of unrelevant stuff with MSYS. OS X testing needed.
+    INSTALL(CODE "
+      include(BundleUtilities)
+      fixup_bundle(\"${APPS}\"   \"\"   \"${DIRS}\")
+      " COMPONENT Runtime)
   endif ()
 endif ()
 
@@ -351,3 +365,79 @@ install(FILES "C:/projects/openssl-$ENV{OPENSSL}/LICENSE"
   RENAME LICENSE_OPENSSL
   OPTIONAL                      # for local builds only!
   )
+
+file(GLOB_RECURSE I2PD_SOURCES "../*.cpp" "../build" "../Win32" "../Makefile*")
+install(FILES ${I2PD_SOURCES} DESTINATION src/ COMPONENT Source)
+# install(DIRECTORY ../ DESTINATION src/
+#   # OPTIONAL
+#   COMPONENT Source FILES_MATCHING
+#   PATTERN .git EXCLUDE
+#   PATTERN "*.cpp"
+#   )
+
+file(GLOB I2PD_HEADERS "../*.h")
+install(FILES ${I2PD_HEADERS} DESTINATION src/ COMPONENT Headers)
+# install(DIRECTORY ../ DESTINATION src/
+#   # OPTIONAL
+#   COMPONENT Headers FILES_MATCHING
+#   PATTERN .git EXCLUDE
+#   PATTERN "*.h"
+#   )
+
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Purple I2P, a C++ I2P daemon")
+set(CPACK_PACKAGE_VENDOR "Purple I2P")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE")
+file(READ ../version.h version_h)
+string(REGEX REPLACE ".*I2PD_VERSION_MAJOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MAJOR "${version_h}")
+string(REGEX REPLACE ".*I2PD_VERSION_MINOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MINOR "${version_h}")
+string(REGEX REPLACE ".*I2PD_VERSION_MICRO ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MICRO "${version_h}")
+string(REGEX REPLACE ".*I2PD_VERSION_PATCH ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_PATCH "${version_h}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Purple I2P")# ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}")
+include(CPackComponent)
+cpack_add_component(Runtime
+  DESCRIPTION "Main files"
+  REQUIRED INSTALL_TYPES minimal)
+cpack_add_component(Symbols
+  DISPLAY_NAME "Debug symbols"
+  DESCRIPTION "Debug symbols for use with WinDbg or Visual Studio"
+  INSTALL_TYPES recommended full
+  )
+cpack_add_component(Libraries
+  DESCRIPTION "Binary libraries for development"
+  INSTALL_TYPES full dev3rd
+  )
+cpack_add_component(Source
+  DISPLAY_NAME "Source code"
+  DESCRIPTION "I2pd source code"
+  INSTALL_TYPES full
+  )
+cpack_add_component(Headers
+  DISPLAY_NAME "Header files"
+  DESCRIPTION "I2pd header files for development"
+  INSTALL_TYPES full dev3rd
+  )
+cpack_add_install_type(recommended DISPLAY_NAME Recommended)
+cpack_add_install_type(dev3rd DISPLAY_NAME "Third party development")
+cpack_add_install_type(full DISPLAY_NAME Full)
+cpack_add_install_type(minimal DISPLAY_NAME Minimal)
+if((WIN32 OR MSYS) AND NOT UNIX)
+  # There is a bug in NSI that does not handle full unix paths properly. Make
+  # sure there is at least one set of four (4) backlasshes.
+  set(CPACK_NSIS_DEFINES "RequestExecutionLevel user")
+  set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/../Win32\\\\ictoopie.bmp")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "bin/i2pd.exe")
+  SET(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
+  set(CPACK_NSIS_HELP_LINK "https:\\\\\\\\github.com\\\\PurpleI2P\\\\i2pd\\\\issues")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https:\\\\\\\\github.com\\\\PurpleI2P\\\\i2pd")
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Install i2pd as windows service.lnk' '$INSTDIR\\\\bin\\\\i2pd.exe' '--service=install'
+CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Remove i2pd windows service.lnk' '$INSTDIR\\\\bin\\\\i2pd.exe' '--service=remove'")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$START_MENU\\\\Install i2pd as windows service.lnk'
+Delete '$SMPROGRAMS\\\\$START_MENU\\\\Remove i2pd windows service.lnk'")
+else()
+  set(CPACK_STRIP_FILES "bin/i2pd")
+  set(CPACK_SOURCE_STRIP_FILES "")
+endif()
+set(CPACK_PACKAGE_EXECUTABLES "i2pd" "C++ I2P daemon")
+set(CPACK_SOURCE_GENERATOR "TGZ")
+include(CPack)
