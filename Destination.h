@@ -118,7 +118,7 @@ namespace client
 			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);		
 
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete);
-			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request);	
+			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request);	
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
@@ -132,7 +132,7 @@ namespace client
 			i2p::data::PrivateKeys m_Keys;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
-			std::map<i2p::data::IdentHash, LeaseSetRequest *> m_LeaseSetRequests;
+			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
 			std::shared_ptr<i2p::data::LeaseSet> m_LeaseSet;

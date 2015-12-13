@@ -94,7 +94,8 @@ namespace client
 		if (m_IsRunning)	
 			Stop ();
 		for (auto it: m_LeaseSetRequests)
-			delete it.second;
+			if (it.second->requestComplete) it.second->requestComplete (nullptr);
+		m_LeaseSetRequests.clear ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 		if (m_DatagramDestination)
@@ -299,7 +300,6 @@ namespace client
 		{
 			it1->second->requestTimeoutTimer.cancel ();
 			if (it1->second->requestComplete) it1->second->requestComplete (leaseSet);
-			delete it1->second;
 			m_LeaseSetRequests.erase (it1);
 		}	
 	}
@@ -312,7 +312,7 @@ namespace client
 		auto it = m_LeaseSetRequests.find (key);
 		if (it != m_LeaseSetRequests.end ())
 		{
-			LeaseSetRequest * request = it->second;
+			auto request = it->second;
 			bool found = false;
 			if (request->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
 			{	
@@ -340,7 +340,6 @@ namespace client
 			if (!found)
 			{
 				if (request->requestComplete) request->requestComplete (nullptr);
-				delete request;
 				m_LeaseSetRequests.erase (key);
 			}	
 		}	
@@ -540,16 +539,15 @@ namespace client
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, excluded);
 		if (floodfill)
 		{
-			LeaseSetRequest * request = new LeaseSetRequest (m_Service);
+			auto request = std::make_shared<LeaseSetRequest> (m_Service);
 			request->requestComplete = requestComplete;
-			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, LeaseSetRequest *>(dest,request));
+			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> >(dest,request));
 			if (ret.second) // inserted
 			{
 				if (!SendLeaseSetRequest (dest, floodfill, request))
 				{
 					// request failed
 					if (request->requestComplete) request->requestComplete (nullptr);
-					delete request;
 					m_LeaseSetRequests.erase (dest);
 				}
 			}	
@@ -558,7 +556,6 @@ namespace client
 				LogPrint (eLogError, "Request of ", dest.ToBase64 (), " is pending already");
 				// TODO: queue up requests
 				if (request->requestComplete) request->requestComplete (nullptr);
-				delete request;
 			}	
 		}	
 		else
@@ -566,7 +563,7 @@ namespace client
 	}	
 		
 	bool ClientDestination::SendLeaseSetRequest (const i2p::data::IdentHash& dest, 
-		std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, LeaseSetRequest * request)
+		std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request)
 	{
 		auto replyTunnel = m_Pool->GetNextInboundTunnel ();
 		if (!replyTunnel) LogPrint (eLogError, "No inbound tunnels found");	
@@ -631,7 +628,6 @@ namespace client
 				if (done)
 				{
 					if (it->second->requestComplete) it->second->requestComplete (nullptr);
-					delete it->second;
 					m_LeaseSetRequests.erase (it);
 				}	
 			}	
