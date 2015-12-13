@@ -28,7 +28,9 @@
 #include <iphlpapi.h>
 #include <shlobj.h>
 
+#ifdef _MSC_VER
 #pragma comment(lib, "IPHLPAPI.lib")
+#endif
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))

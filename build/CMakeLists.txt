@@ -93,6 +93,9 @@ if (MSVC)
   # TODO Check & report to Boost dev, there should be no need for these two
   add_definitions( -DBOOST_THREAD_NO_LIB -DBOOST_CHRONO_NO_LIB )
 else()
+  if (MSYS OR MINGW)
+    add_definitions( -DWIN32_LEAN_AND_MEAN )
+  endif ()
   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch" )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic" )
   # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
@@ -160,9 +163,8 @@ endif()
 if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
-  if (WIN32 OR MSYS)
+  if (WIN32 AND NOT MSYS AND NOT MINGW)
     # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
-    # Note that you might need to rebuild Crypto++
     foreach(flag_var
             CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
             CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
@@ -303,7 +305,7 @@ if (WITH_BINARY)
     endif()
   endif()
 
-  if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT MSYS AND NOT MINGW)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-z relro -z now" )
   endif ()
 
