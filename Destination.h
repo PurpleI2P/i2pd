@@ -73,6 +73,7 @@ namespace client
 			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases () && m_Pool->GetOutboundTunnels ().size () > 0; };
 			std::shared_ptr<const i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
+			void CancelDestinationRequest (const i2p::data::IdentHash& dest);	
 			
 			// streaming
 			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port); // additional

@@ -495,7 +495,10 @@ namespace client
 						newDataReceived.notify_all ();
 					});
 				if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+				{	
 					LogPrint (eLogError, "Subscription LeseseSet request timeout expired");
+					i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (ident);
+				}	
 			}
 			if (leaseSet)
 			{

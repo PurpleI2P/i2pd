@@ -533,6 +533,17 @@ namespace client
 		return true;
 	}
 
+	void ClientDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest)
+	{
+		auto s = shared_from_this ();
+		m_Service.post ([dest, s](void)
+			{
+				auto it = s->m_LeaseSetRequests.find (dest);
+				if (it != s->m_LeaseSetRequests.end ())
+					 s->m_LeaseSetRequests.erase (it);
+			});				
+	}
+		
 	void ClientDestination::RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete)
 	{
 		std::set<i2p::data::IdentHash> excluded;
