@@ -90,6 +90,8 @@ endif ()
 # compiler flags customization (by vendor)
 if (MSVC)
   add_definitions( -D_WIN32_WINNT=_WIN32_WINNT_WINXP -DWIN32_LEAN_AND_MEAN -DNOMINMAX ) #-DOPENSSL_NO_SSL2 -DOPENSSL_USE_DEPRECATED
+  # TODO Check & report to Boost dev, there should be no need for these two
+  add_definitions( -DBOOST_THREAD_NO_LIB -DBOOST_CHRONO_NO_LIB )
 else()
   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch" )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic" )
@@ -184,7 +186,7 @@ else()
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
   endif ()
-  add_definitions(-DBOOST_ALL_DYN_LINK)
+  add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_REGEX_DYN_LINK)
 endif ()
 
 if (WITH_PCH)
@@ -215,7 +217,7 @@ endif()
 
 target_link_libraries(i2pdclient libi2pd)
 
-find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
+find_package ( Boost COMPONENTS system filesystem regex program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
   message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
 endif()
