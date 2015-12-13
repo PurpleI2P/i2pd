@@ -417,6 +417,22 @@ cpack_add_component(Headers
   DESCRIPTION "I2pd header files for development"
   INSTALL_TYPES full dev3rd
   )
+install(FILES ${MINIUPNPC_INCLUDE_DIR}/miniupnpc/miniupnpc.dll
+  DESTINATION bin
+  COMPONENT MiniUPnPc
+  OPTIONAL
+  )
+install(FILES ${MINIUPNPC_INCLUDE_DIR}/miniupnpc/LICENSE
+  DESTINATION .
+  COMPONENT MiniUPnPc
+  RENAME LICENSE_MINIUPNPC
+  OPTIONAL
+  )
+cpack_add_component(MiniUPnPc
+  INSTALL_TYPES full recommended
+  # DOWNLOADED
+  # ARCHIVE_FILE miniupnpc-win32.zip
+  )
 cpack_add_install_type(recommended DISPLAY_NAME Recommended)
 cpack_add_install_type(dev3rd DISPLAY_NAME "Third party development")
 cpack_add_install_type(full DISPLAY_NAME Full)
