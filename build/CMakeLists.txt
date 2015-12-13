@@ -321,3 +321,15 @@ if (WITH_BINARY)
     install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION "bin" CONFIGURATIONS DEBUG)
   endif ()
 endif ()
+
+install(FILES ../LICENSE
+  DESTINATION .
+  COMPONENT Runtime
+  )
+# Take a copy on Appveyor
+install(FILES "C:/projects/openssl-$ENV{OPENSSL}/LICENSE"
+  DESTINATION .
+  COMPONENT Runtime
+  RENAME LICENSE_OPENSSL
+  OPTIONAL                      # for local builds only!
+  )
