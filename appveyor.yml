@@ -83,6 +83,7 @@ install:
     && set "openssl_target=VC-WIN32"
     && set "zlib_asm=-DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh""
   )
+- C:\msys64\usr\bin\bash -lc "export PATH=/mingw%bitness%/bin:/usr/bin:. && cd /c/projects/miniupnpc && CC=gcc make -f Makefile.mingw init miniupnpc.dll > c:\projects\instdir\build_miniupnpc.log 2>&1 || cat c:\projects\instdir\build_miniupnpc.log"
 - set /a generator=%msvc%+2001
 - if defined msvc (
     (
