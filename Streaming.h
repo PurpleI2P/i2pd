@@ -49,6 +49,8 @@ namespace stream
 	const int MAX_WINDOW_SIZE = 128;		
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
+	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
+	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 	
 	struct Packet
 	{
@@ -201,8 +203,8 @@ namespace stream
 
 			std::shared_ptr<Stream> CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
 			void DeleteStream (std::shared_ptr<Stream> stream);			
-			void SetAcceptor (const Acceptor& acceptor) { m_Acceptor = acceptor; };
-			void ResetAcceptor () { if (m_Acceptor) m_Acceptor (nullptr); m_Acceptor = nullptr; };
+			void SetAcceptor (const Acceptor& acceptor);
+			void ResetAcceptor ();
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
@@ -213,6 +215,7 @@ namespace stream
 	
 			void HandleNextPacket (Packet * packet);
 			std::shared_ptr<Stream> CreateNewIncomingStream ();
+			void HandlePendingIncomingTimer (const boost::system::error_code& ecode);
 
 		private:
 
@@ -221,6 +224,8 @@ namespace stream
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams;
 			Acceptor m_Acceptor;
+			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
+			boost::asio::deadline_timer m_PendingIncomingTimer;
 			
 		public:
 

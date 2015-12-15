@@ -787,7 +787,7 @@ namespace stream
 	}	
 
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort): 
-		m_Owner (owner), m_LocalPort (localPort) 
+		m_Owner (owner), m_LocalPort (localPort), m_PendingIncomingTimer (m_Owner->GetService ())
 	{
 	}
 		
@@ -802,6 +802,7 @@ namespace stream
 	void StreamingDestination::Stop ()
 	{	
 		ResetAcceptor ();
+		m_PendingIncomingTimer.cancel ();
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.clear ();
@@ -832,8 +833,21 @@ namespace stream
 					m_Acceptor (incomingStream);
 				else
 				{
-					LogPrint ("Acceptor for incoming stream is not set");
-					DeleteStream (incomingStream);
+					LogPrint (eLogInfo, "Acceptor for incoming stream is not set");
+					if (m_PendingIncomingStreams.size () < MAX_PENDING_INCOMING_BACKLOG)
+					{
+						m_PendingIncomingStreams.push_back (incomingStream);
+						m_PendingIncomingTimer.cancel ();
+						m_PendingIncomingTimer.expires_from_now (boost::posix_time::seconds(PENDING_INCOMING_TIMEOUT));
+						m_PendingIncomingTimer.async_wait (std::bind (&StreamingDestination::HandlePendingIncomingTimer, 
+							this, std::placeholders::_1));
+						LogPrint (eLogInfo, "Pending incoming stream added");
+					}
+					else
+					{	
+						LogPrint (eLogError, "Pending incoming streams backlog exceeds ", MAX_PENDING_INCOMING_BACKLOG);
+						incomingStream->Close ();
+					}	
 				}	
 			}	
 			else // follow on packet without SYN
@@ -852,7 +866,7 @@ namespace stream
 			}	
 		}	
 	}	
-
+		
 	std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port)
 	{
 		auto s = std::make_shared<Stream> (m_Owner->GetService (), *this, remote, port);
@@ -880,6 +894,39 @@ namespace stream
 		}	
 	}		
 
+	void StreamingDestination::SetAcceptor (const Acceptor& acceptor) 
+	{ 
+		m_Owner->GetService ().post([acceptor, this](void)
+			{                            
+				m_Acceptor = acceptor;
+				for (auto it: m_PendingIncomingStreams)
+					if (it->GetStatus () == eStreamStatusOpen) // still open?
+						m_Acceptor (it);
+				m_PendingIncomingStreams.clear ();
+				m_PendingIncomingTimer.cancel ();
+			});	
+	}
+
+	void StreamingDestination::ResetAcceptor () 
+	{ 
+		m_Owner->GetService ().post([this](void)
+			{                           
+				if (m_Acceptor) m_Acceptor (nullptr); 
+				m_Acceptor = nullptr; 
+			});	
+	}
+
+	void StreamingDestination::HandlePendingIncomingTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			LogPrint (eLogInfo, "Pending incoming timeout expired");
+			for (auto it: m_PendingIncomingStreams)
+				it->Close ();
+			m_PendingIncomingStreams.clear ();
+		}	
+	}	
+		
 	void StreamingDestination::HandleDataMessagePayload (const uint8_t * buf, size_t len)
 	{
 		// unzip it
