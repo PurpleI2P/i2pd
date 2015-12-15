@@ -908,12 +908,9 @@ namespace stream
 	}
 
 	void StreamingDestination::ResetAcceptor () 
-	{ 
-		m_Owner->GetService ().post([this](void)
-			{                           
-				if (m_Acceptor) m_Acceptor (nullptr); 
-				m_Acceptor = nullptr; 
-			});	
+	{                
+		if (m_Acceptor) m_Acceptor (nullptr); 
+		m_Acceptor = nullptr; 
 	}
 
 	void StreamingDestination::HandlePendingIncomingTimer (const boost::system::error_code& ecode)
