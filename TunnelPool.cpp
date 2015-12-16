@@ -14,8 +14,8 @@ namespace i2p
 {
 namespace tunnel
 {
-	TunnelPool::TunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
-		m_LocalDestination (localDestination), m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
+	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
+		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true)
 	{
 	}
@@ -298,7 +298,7 @@ namespace tunnel
 
 	std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const
 	{
-		bool isExploratory = (m_LocalDestination == &i2p::context); // TODO: implement it better
+		bool isExploratory = (i2p::tunnel::tunnels.GetExploratoryPool () == shared_from_this ());
 		auto hop = isExploratory ? i2p::data::netdb.GetRandomRouter (prevHop): 
 			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
 

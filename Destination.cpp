@@ -82,7 +82,7 @@ namespace client
 				LogPrint (eLogInfo, "Explicit peers set to ", it->second);
 			}
 		}	
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (this, inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
 		if (m_IsPublic)
@@ -122,7 +122,7 @@ namespace client
 		if (!m_IsRunning)
 		{	
 			m_IsRunning = true;
-			m_Pool->SetLocalDestination (this);
+			m_Pool->SetLocalDestination (shared_from_this ());
 			m_Pool->SetActive (true);			
 			m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
 			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this ()); // TODO:
@@ -199,7 +199,7 @@ namespace client
 
 	void ClientDestination::UpdateLeaseSet ()
 	{
-		m_LeaseSet.reset (new i2p::data::LeaseSet (*m_Pool));
+		m_LeaseSet.reset (new i2p::data::LeaseSet (m_Pool));
 	}	
 
 	bool ClientDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)

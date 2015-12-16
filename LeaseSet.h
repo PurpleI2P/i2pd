@@ -37,7 +37,7 @@ namespace data
 		public:
 
 			LeaseSet (const uint8_t * buf, size_t len);
-			LeaseSet (const i2p::tunnel::TunnelPool& pool);
+			LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool);
 			~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len);
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };			

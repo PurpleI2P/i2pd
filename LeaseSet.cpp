@@ -21,11 +21,12 @@ namespace data
 		ReadFromBuffer ();
 	}
 
-	LeaseSet::LeaseSet (const i2p::tunnel::TunnelPool& pool):
+	LeaseSet::LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool):
 		m_IsValid (true)
 	{	
+		if (!pool) return;
 		// header
-		const i2p::data::LocalDestination * localDestination = pool.GetLocalDestination ();
+		auto localDestination = pool->GetLocalDestination ();
 		if (!localDestination)
 		{
 			m_Buffer = nullptr;
@@ -41,7 +42,7 @@ namespace data
 		auto signingKeyLen = localDestination->GetIdentity ()->GetSigningPublicKeyLen ();
 		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
 		m_BufferLen += signingKeyLen;
-		auto tunnels = pool.GetInboundTunnels (5); // 5 tunnels maximum
+		auto tunnels = pool->GetInboundTunnels (5); // 5 tunnels maximum
 		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
 		m_BufferLen++;
 		// leases

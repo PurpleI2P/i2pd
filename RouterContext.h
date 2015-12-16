@@ -39,6 +39,12 @@ namespace i2p
 				return std::shared_ptr<const i2p::data::RouterInfo> (&m_RouterInfo, 
 					[](const i2p::data::RouterInfo *) {});
 			}
+			std::shared_ptr<i2p::garlic::GarlicDestination> GetSharedDestination () 
+			{
+				return std::shared_ptr<i2p::garlic::GarlicDestination> (this, 
+					[](i2p::garlic::GarlicDestination *) {});
+			}
+
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };

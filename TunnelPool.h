@@ -27,11 +27,11 @@ namespace tunnel
 	{
 		public:
 
-			TunnelPool (i2p::garlic::GarlicDestination * localDestination, int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels);
+			TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels);
 			~TunnelPool ();
 		
-			i2p::garlic::GarlicDestination * GetLocalDestination () const { return m_LocalDestination; };
-			void SetLocalDestination (i2p::garlic::GarlicDestination * destination) { m_LocalDestination = destination; };
+			std::shared_ptr<i2p::garlic::GarlicDestination> GetLocalDestination () const { return m_LocalDestination; };
+			void SetLocalDestination (std::shared_ptr<i2p::garlic::GarlicDestination> destination) { m_LocalDestination = destination; };
 			void SetExplicitPeers (std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers);
 
 			void CreateTunnels ();
@@ -67,7 +67,7 @@ namespace tunnel
 
 		private:
 
-			i2p::garlic::GarlicDestination * m_LocalDestination;
+			std::shared_ptr<i2p::garlic::GarlicDestination> m_LocalDestination;
 			int m_NumInboundHops, m_NumOutboundHops, m_NumInboundTunnels, m_NumOutboundTunnels;
 			std::shared_ptr<std::vector<i2p::data::IdentHash> > m_ExplicitPeers;	
 			mutable std::mutex m_InboundTunnelsMutex;
