@@ -1,2 +1,3 @@
 etc/i2pd/i2pd.conf    var/lib/i2pd/i2p.conf
 etc/i2pd/tunnels.conf var/lib/i2pd/tunnels.cfg
+etc/i2pd/subscriptions.txt var/lib/i2pd/subscriptions.txt
