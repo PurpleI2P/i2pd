@@ -30,9 +30,9 @@ Supported OS
 
 [![Build status](https://ci.appveyor.com/api/projects/status/458fhbki14gaplyj/branch/openssl?svg=true)](https://ci.appveyor.com/project/mlt/i2pd/branch/openssl)
 
--- Linux x86/x64  - Proved working.
--- Mac OS X       - Not well tested. (Only works with clang, not GCC)
--- Windows        - At least builds and runs.
+* Linux x86/x64  - Proved working.
+* Mac OS X       - Not well tested. (Only works with clang, not GCC)
+* Windows        - At least builds and runs.
 
 More documentation
 ------------------
