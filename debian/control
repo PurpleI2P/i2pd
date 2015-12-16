@@ -17,6 +17,7 @@ Vcs-Browser: https://github.com/PurpleI2P/i2pd.git
 
 Package: i2pd
 Architecture: any
+Pre-Depends: adduser
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: privoxy
 Suggests: tor

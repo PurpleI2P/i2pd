@@ -16,9 +16,9 @@ NAME=i2pd                 # Introduce the short server's name here
 DAEMON=/usr/sbin/$NAME    # Introduce the server's location here
 DAEMON_OPTS=""            # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
 I2PCONF=/etc/$NAME/i2pd.conf
 TUNCONF=/etc/$NAME/tunnels.conf
+USER="i2pd"
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -36,16 +36,20 @@ do_start()
   #   2 if daemon could not be started
 
   if [ "x$I2PD_ENABLED" != "xyes" ]; then
-    log_warning_msg "disabled in config"
+    log_warning_msg "$NAME disabled in config"
     return 2
   fi
 
-  start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
+  touch "$PIDFILE"
+  chown -f $USER:adm "$PIDFILE"
+
+  start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" --test > /dev/null \
     || return 1
-  start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- \
+  start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" -- \
     --service=1 --daemon=1 --log=1 --conf=$I2PCONF --tunnelscfg=$TUNCONF \
-    --port=$I2PD_PORT $DAEMON_OPTS \
+    --port=$I2PD_PORT $DAEMON_OPTS > /dev/null 2>&1 \
     || return 2
+  return $?
 }
 
 # Function that stops the daemon/service
@@ -115,7 +119,7 @@ case "$1" in
   esac
   ;;
   *)
-    echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+    echo "Usage: $0 {start|stop|status|restart|force-reload}" >&2
     exit 3
   ;;
 esac

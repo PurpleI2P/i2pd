@@ -1,0 +1,36 @@
+#!/bin/sh
+
+I2PDHOME='/var/lib/i2pd'
+I2PDUSER='i2pd'
+
+case "$1" in
+  configure|reconfigure)
+    # Older versions of adduser created the home directory.
+    # The version of adduser in Debian unstable does not.
+    # Create user and group as a system user.
+    getent passwd ${I2PDUSER} > /dev/null 2>&1
+    if [ $? -eq 2 ]; then
+      adduser --system --quiet --group --home $I2PDHOME $I2PDUSER
+    else
+      groupadd -f $I2PDUSER || true
+      usermod -s "/bin/false" -e 1 $I2PDUSER > /dev/null || true
+    fi
+
+    touch /var/log/i2pd.log
+    chown -f ${I2PDUSER}:adm /var/log/i2pd.log
+    mkdir -p -m0750 $I2PDHOME
+    chown -f -R ${I2PDUSER}:${I2PDUSER} ${I2PDHOME}
+  ;;
+  abort-upgrade|abort-remove|abort-deconfigure)
+    echo "Aborting upgrade"
+    exit 0
+  ;;
+  *)
+    echo "postinst called with unknown argument '$1'" >&2
+    exit 0
+  ;;
+esac
+
+#DEBHELPER#
+
+exit 0
