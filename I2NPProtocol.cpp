@@ -60,7 +60,7 @@ namespace i2p
 			msg->len += len;
 		}
 		else
-			LogPrint (eLogError, "I2NP message length ", len, " exceeds max length");
+			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length");
 		msg->FillI2NPMessageHeader (msgType, replyMsgID);
 		return msg;
 	}	
@@ -75,7 +75,7 @@ namespace i2p
 			msg->from = from;
 		}
 		else
-			LogPrint (eLogError, "I2NP message length ", len, " exceeds max length");
+			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length");
 		return msg;
 	}	
 	
@@ -276,7 +276,7 @@ namespace i2p
 			uint8_t * record = records + i*TUNNEL_BUILD_RECORD_SIZE;
 			if (!memcmp (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
 			{	
-				LogPrint ("Record ",i," is ours");	
+				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
 			
 				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText);
 				// replace record to reply			
@@ -320,22 +320,22 @@ namespace i2p
 	void HandleVariableTunnelBuildMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
 	{	
 		int num = buf[0];
-		LogPrint ("VariableTunnelBuild ", num, " records");
+		LogPrint (eLogDebug, "I2NP: VariableTunnelBuild ", num, " records");
 
 		auto tunnel =  i2p::tunnel::tunnels.GetPendingInboundTunnel (replyMsgID);
 		if (tunnel)
 		{
 			// endpoint of inbound tunnel
-			LogPrint ("VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
+			LogPrint (eLogDebug, "I2NP: VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID ());
 			if (tunnel->HandleTunnelBuildResponse (buf, len))
 			{
-				LogPrint ("Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been created");
 				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);	
 				i2p::tunnel::tunnels.AddInboundTunnel (tunnel);
 			}
 			else
 			{
-				LogPrint ("Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				LogPrint (eLogInfo, "I2NP: Inbound tunnel ", tunnel->GetTunnelID (), " has been declined");
 				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);	
 			}
 		}
@@ -382,25 +382,25 @@ namespace i2p
 
 	void HandleVariableTunnelBuildReplyMsg (uint32_t replyMsgID, uint8_t * buf, size_t len)
 	{	
-		LogPrint ("VariableTunnelBuildReplyMsg replyMsgID=", replyMsgID);
+		LogPrint (eLogDebug, "I2NP: VariableTunnelBuildReplyMsg replyMsgID=", replyMsgID);
 		auto tunnel = i2p::tunnel::tunnels.GetPendingOutboundTunnel (replyMsgID);
 		if (tunnel)
 		{	
 			// reply for outbound tunnel
 			if (tunnel->HandleTunnelBuildResponse (buf, len))
 			{	
-				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been created");
+				LogPrint (eLogInfo, "I2NP: Outbound tunnel ", tunnel->GetTunnelID (), " has been created");
 				tunnel->SetState (i2p::tunnel::eTunnelStateEstablished);	
 				i2p::tunnel::tunnels.AddOutboundTunnel (tunnel);
 			}	
 			else
 			{
-				LogPrint ("Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
+				LogPrint (eLogInfo, "I2NP: Outbound tunnel ", tunnel->GetTunnelID (), " has been declined");
 				tunnel->SetState (i2p::tunnel::eTunnelStateBuildFailed);	
 			}
 		}	
 		else
-			LogPrint ("Pending tunnel for message ", replyMsgID, " not found");
+			LogPrint (eLogWarning, "I2NP: Pending tunnel for message ", replyMsgID, " not found");
 	}
 
 
@@ -488,30 +488,26 @@ namespace i2p
 	{
 		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
 		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);	
-		LogPrint ("I2NP msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
+		LogPrint (eLogDebug, "I2NP: msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
 
 		uint8_t * buf = msg + I2NP_HEADER_SIZE;
 		int size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
 		switch (typeID)
 		{	
 			case eI2NPVariableTunnelBuild:
-				LogPrint ("VariableTunnelBuild");
 				HandleVariableTunnelBuildMsg  (msgID, buf, size);
 			break;	
 			case eI2NPVariableTunnelBuildReply:
-				LogPrint ("VariableTunnelBuildReply");
 				HandleVariableTunnelBuildReplyMsg (msgID, buf, size);
 			break;	
 			case eI2NPTunnelBuild:
-				LogPrint ("TunnelBuild");
 				HandleTunnelBuildMsg  (buf, size);
 			break;	
 			case eI2NPTunnelBuildReply:
-				LogPrint ("TunnelBuildReply");
 				// TODO:
 			break;	
 			default:
-				LogPrint ("Unexpected message ", (int)typeID);
+				LogPrint (eLogWarning, "I2NP: Unexpected message ", (int)typeID);
 		}	
 	}
 
@@ -519,25 +515,24 @@ namespace i2p
 	{
 		if (msg)
 		{	
-			switch (msg->GetTypeID ())
+			uint8_t typeID = msg->GetTypeID ();
+			LogPrint (eLogDebug, "I2NP: Got message with type ", (int)typeID);
+			switch (typeID)
 			{	
 				case eI2NPTunnelData:
-					LogPrint ("TunnelData");
 					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;	
 				case eI2NPTunnelGateway:
-					LogPrint ("TunnelGateway");
 					i2p::tunnel::tunnels.PostTunnelData (msg);
 				break;
 				case eI2NPGarlic:
 				{
-					LogPrint ("Garlic");
 					if (msg->from)
 					{
 						if (msg->from->GetTunnelPool ())
 							msg->from->GetTunnelPool ()->ProcessGarlicMessage (msg);
 						else
-							LogPrint (eLogInfo, "Local destination for garlic doesn't exist anymore");
+							LogPrint (eLogInfo, "I2NP: Local destination for garlic doesn't exist anymore");
 					}
 					else
 						i2p::context.ProcessGarlicMessage (msg); 
@@ -551,7 +546,6 @@ namespace i2p
 				break;
 				case eI2NPDeliveryStatus:
 				{
-					LogPrint ("DeliveryStatus");
 					if (msg->from && msg->from->GetTunnelPool ())
 						msg->from->GetTunnelPool ()->ProcessDeliveryStatus (msg);
 					else
