@@ -27,8 +27,8 @@ namespace transport
 	const int RESEND_INTERVAL = 3; // in seconds
 	const int MAX_NUM_RESENDS = 5;
 	const int DECAY_INTERVAL = 20; // in seconds
-	const int MAX_NUM_RECEIVED_MESSAGES = 1000; // how many msgID we store for duplicates check
 	const int INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30; // in seconds
+	const unsigned int MAX_NUM_RECEIVED_MESSAGES = 1000; // how many msgID we store for duplicates check
 	// data flags
 	const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
 	const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
