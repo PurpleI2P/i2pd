@@ -27,23 +27,23 @@ namespace api
 			StartLog (logStream);
 		else
 			StartLog (i2p::util::filesystem::GetFullPath (i2p::util::filesystem::GetAppName () + ".log"));
+		LogPrint(eLogInfo, "API: starting NetDB");
 		i2p::data::netdb.Start();
-		LogPrint("NetDB started");
+		LogPrint(eLogInfo, "API: starting Transports");
 		i2p::transport::transports.Start();
-		LogPrint("Transports started");
+		LogPrint(eLogInfo, "API: starting Tunnels");
 		i2p::tunnel::tunnels.Start();
-		LogPrint("Tunnels started");
 	}
 
 	void StopI2P ()
 	{
-		LogPrint("Shutdown started.");
+		LogPrint(eLogInfo, "API: shutting down");
+		LogPrint(eLogInfo, "API: stopping Tunnels");
 		i2p::tunnel::tunnels.Stop();
-		LogPrint("Tunnels stopped");
+		LogPrint(eLogInfo, "API: stopping Transports");
 		i2p::transport::transports.Stop();
-		LogPrint("Transports stopped");
+		LogPrint(eLogInfo, "API: stopping NetDB");
 		i2p::data::netdb.Stop();
-		LogPrint("NetDB stopped");
 		StopLog ();
 	}
 
