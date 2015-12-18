@@ -86,7 +86,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU server: ", ex.what ());
+				LogPrint (eLogError, "SSU: server runtime exception: ", ex.what ());
 			}	
 		}	
 	}
@@ -101,7 +101,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU V6 server: ", ex.what ());
+				LogPrint (eLogError, "SSU: v6 server runtime exception: ", ex.what ());
 			}	
 		}	
 	}	
@@ -116,7 +116,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU receivers: ", ex.what ());
+				LogPrint (eLogError, "SSU: receivers runtime exception: ", ex.what ());
 			}	
 		}	
 	}	
@@ -179,7 +179,7 @@ namespace transport
 		}
 		else
 		{	
-			LogPrint ("SSU receive error: ", ecode.message ());
+			LogPrint (eLogError, "SSU: receive error: ", ecode.message ());
 			delete packet;
 		}	
 	}
@@ -206,7 +206,7 @@ namespace transport
 		}
 		else
 		{	
-			LogPrint ("SSU V6 receive error: ", ecode.message ());
+			LogPrint (eLogError, "SSU: v6 receive error: ", ecode.message ());
 			delete packet;
 		}	
 	}
@@ -277,7 +277,7 @@ namespace transport
 		if (address)
 			CreateSession (router, address->host, address->port, peerTest);
 		else
-			LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
+			LogPrint (eLogWarning, "SSU: Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
 	}
 	
 	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router,
@@ -312,7 +312,7 @@ namespace transport
 			auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
 			sessions[remoteEndpoint] = session;
 			// connect 					
-			LogPrint ("Creating new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
+			LogPrint (eLogInfo, "SSU: Creating new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
 				remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
 			session->Connect ();
 		}
@@ -359,15 +359,15 @@ namespace transport
 					}
 					if (!introducer)
 					{
-						LogPrint (eLogWarning, "Can't connect to unreachable router. No ipv4 introducers presented");		
+						LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no ipv4 introducers present");
 						return;
 					}				
 
 					if (introducerSession) // session found 
-						LogPrint (eLogInfo, "Session to introducer already exists");
+						LogPrint (eLogInfo, "SSU: Session to introducer already exists");
 					else // create new
 					{
-						LogPrint (eLogInfo, "Creating new session to introducer");
+						LogPrint (eLogInfo, "SSU: Creating new session to introducer");
 						boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
 						introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
 						m_Sessions[introducerEndpoint] = introducerSession;													
@@ -376,7 +376,7 @@ namespace transport
 					auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
 					m_Sessions[remoteEndpoint] = session;
 					// introduce
-					LogPrint ("Introduce new SSU session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), 
+					LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
 							"] through introducer ", introducer->iHost, ":", introducer->iPort);
 					session->WaitForIntroduction ();	
 					if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
@@ -387,10 +387,10 @@ namespace transport
 					introducerSession->Introduce (*introducer, router);
 				}
 				else	
-					LogPrint (eLogWarning, "Can't connect to unreachable router. No introducers presented");				
+					LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no introducers present");
 			}
 			else
-				LogPrint (eLogWarning, "Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
+				LogPrint (eLogWarning, "SSU: Router ", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), " doesn't have SSU address");
 		}
 	}
 
@@ -595,7 +595,7 @@ namespace transport
 					it++;	 
 			}
 			if (numDeleted > 0)
-				LogPrint (eLogInfo, numDeleted, " peer tests have been expired");
+				LogPrint (eLogDebug, "SSU: ", numDeleted, " peer tests have been expired");
 			SchedulePeerTestsCleanupTimer ();
 		}
 	}
