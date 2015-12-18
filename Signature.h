@@ -44,11 +44,7 @@ namespace crypto
 
 			DSAVerifier (const uint8_t * signingKey)
 			{
-				m_PublicKey = DSA_new ();
-				m_PublicKey->p = BN_dup (dsap);
-				m_PublicKey->q = BN_dup (dsaq);
-				m_PublicKey->g = BN_dup (dsag);
-				m_PublicKey->priv_key = NULL;
+				m_PublicKey = CreateDSA ();
 				m_PublicKey->pub_key = BN_bin2bn (signingKey, DSA_PUBLIC_KEY_LENGTH, NULL);
 			}
 
@@ -86,12 +82,8 @@ namespace crypto
 
 			DSASigner (const uint8_t * signingPrivateKey)
 			{
-				m_PrivateKey = DSA_new ();
-				m_PrivateKey->p = BN_dup (dsap);
-				m_PrivateKey->q = BN_dup (dsaq);
-				m_PrivateKey->g = BN_dup (dsag);
+				m_PrivateKey = CreateDSA ();
 				m_PrivateKey->priv_key = BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL);
-				m_PrivateKey->pub_key = NULL;
 			}
 
 			~DSASigner ()
@@ -116,12 +108,7 @@ namespace crypto
 
 	inline void CreateDSARandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
-		DSA * dsa = DSA_new ();
-		dsa->p = BN_dup (dsap);
-		dsa->q = BN_dup (dsaq);
-		dsa->g = BN_dup (dsag);
-		dsa->priv_key = NULL;
-		dsa->pub_key = NULL;
+		DSA * dsa = CreateDSA ();
 		DSA_generate_key (dsa);
 		bn2buf (dsa->priv_key, signingPrivateKey, DSA_PRIVATE_KEY_LENGTH);
 		bn2buf (dsa->pub_key, signingPublicKey, DSA_PUBLIC_KEY_LENGTH);
@@ -285,7 +272,7 @@ namespace crypto
 			{
 				m_PublicKey = RSA_new ();
 				memset (m_PublicKey, 0, sizeof (RSA));
-				m_PublicKey->e = BN_dup (rsae);
+				m_PublicKey->e = BN_dup (GetRSAE ());
 				m_PublicKey->n = BN_bin2bn (signingKey, keyLen, NULL);
 			}
 
@@ -319,7 +306,7 @@ namespace crypto
 			{
 				m_PrivateKey = RSA_new ();
 				memset (m_PrivateKey, 0, sizeof (RSA));
-				m_PrivateKey->e = BN_dup (rsae);
+				m_PrivateKey->e = BN_dup (GetRSAE ());
 				m_PrivateKey->n = BN_bin2bn (signingPrivateKey, keyLen, NULL);
 				m_PrivateKey->d = BN_bin2bn (signingPrivateKey + keyLen, keyLen, NULL);
 			}
@@ -345,10 +332,12 @@ namespace crypto
 	inline void CreateRSARandomKeys (size_t publicKeyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 		RSA * rsa = RSA_new ();
-		RSA_generate_key_ex (rsa, publicKeyLen*8, rsae, NULL);
+		BIGNUM * e = BN_dup (GetRSAE ()); // make it non-const
+		RSA_generate_key_ex (rsa, publicKeyLen*8, e, NULL);
 		bn2buf (rsa->n, signingPrivateKey, publicKeyLen);
 		bn2buf (rsa->d, signingPrivateKey + publicKeyLen, publicKeyLen);
 		bn2buf (rsa->n, signingPublicKey, publicKeyLen);
+		BN_free (e); // this e is not assigned to rsa->e
 		RSA_free (rsa);
 	}	
 	

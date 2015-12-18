@@ -66,7 +66,44 @@ namespace crypto
 
 	const int rsae_ = 65537;	
 	
-	const CryptoConstants& GetCryptoConstants ()
+	struct CryptoConstants
+	{
+		// DH/ElGamal
+		BIGNUM * elgp;
+		BIGNUM * elgg; 
+
+		// DSA
+		BIGNUM * dsap;		
+		BIGNUM * dsaq;
+		BIGNUM * dsag;
+
+		// RSA
+		BIGNUM * rsae;
+		
+		CryptoConstants (const uint8_t * elgp_, int elgg_, const uint8_t * dsap_, 
+			const uint8_t * dsaq_, const uint8_t * dsag_, int rsae_)
+		{
+			elgp = BN_new ();
+			BN_bin2bn (elgp_, 256, elgp);
+			elgg = BN_new ();
+			BN_set_word (elgg, elgg_);
+			dsap = BN_new ();
+			BN_bin2bn (dsap_, 128, dsap);
+			dsaq = BN_new ();
+			BN_bin2bn (dsaq_, 20, dsaq);
+			dsag = BN_new ();
+			BN_bin2bn (dsag_, 128, dsag);
+			rsae = BN_new ();
+			BN_set_word (rsae, rsae_);
+		}
+		
+		~CryptoConstants ()
+		{
+			BN_free (elgp);  BN_free (elgg); BN_free (dsap); BN_free (dsaq); BN_free (dsag); BN_free (rsae);
+		}	
+	};	
+
+	static const CryptoConstants& GetCryptoConstants ()
 	{
 		static CryptoConstants cryptoConstants (elgp_, elgg_, dsap_, dsaq_, dsag_, rsae_);		                                        
 		return cryptoConstants;
@@ -80,6 +117,32 @@ namespace crypto
 		memset (buf, 0, offset);
 		return true;
 	}	
+
+// RSA
+	#define rsae GetCryptoConstants ().rsae		
+	const BIGNUM * GetRSAE ()
+	{
+		return rsae;
+	}	
+
+// DSA
+	#define dsap GetCryptoConstants ().dsap	
+	#define dsaq GetCryptoConstants ().dsaq
+	#define dsag GetCryptoConstants ().dsag	
+	DSA * CreateDSA ()
+	{
+		DSA * dsa = DSA_new ();
+		dsa->p = BN_dup (dsap);
+		dsa->q = BN_dup (dsaq);
+		dsa->g = BN_dup (dsag);
+		dsa->priv_key = NULL;
+		dsa->pub_key = NULL;
+		return dsa;
+	}
+
+// DH/ElGamal	
+	#define elgp GetCryptoConstants ().elgp
+	#define elgg GetCryptoConstants ().elgg
 
 // DH
 	

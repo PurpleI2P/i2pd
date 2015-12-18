@@ -525,7 +525,9 @@ namespace client
 	{
 		EVP_PKEY * pkey = EVP_PKEY_new ();
 		RSA * rsa = RSA_new ();
-		RSA_generate_key_ex (rsa, 4096, i2p::crypto::rsae, NULL);
+		BIGNUM * e = BN_dup (i2p::crypto::GetRSAE ());
+		RSA_generate_key_ex (rsa, 4096, e, NULL);
+		BN_free (e);
 		if (rsa)
 		{
 			EVP_PKEY_assign_RSA (pkey, rsa);

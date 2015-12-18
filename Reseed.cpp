@@ -156,7 +156,7 @@ namespace data
 					BIGNUM * s = BN_new (), * n = BN_new ();
 					BN_bin2bn (signature, signatureLength, s);
 					BN_bin2bn (it->second, i2p::crypto::RSASHA5124096_KEY_LENGTH, n);
-					BN_mod_exp (s, s, i2p::crypto::rsae, n, bnctx); // s = s^e mod n 
+					BN_mod_exp (s, s, i2p::crypto::GetRSAE (), n, bnctx); // s = s^e mod n 
 					uint8_t * enSigBuf = new uint8_t[signatureLength];
 					i2p::crypto::bn2buf (s, enSigBuf, signatureLength);
 					// digest is right aligned

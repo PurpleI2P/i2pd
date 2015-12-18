@@ -6,64 +6,20 @@
 #include <openssl/bn.h>
 #include <openssl/dh.h>
 #include <openssl/aes.h>
+#include <openssl/dsa.h>
 #include "Base.h"
 
 namespace i2p
 {
 namespace crypto
 {
-	struct CryptoConstants
-	{
-		// DH/ElGamal
-		BIGNUM * elgp;
-		BIGNUM * elgg; 
-
-		// DSA
-		BIGNUM * dsap;		
-		BIGNUM * dsaq;
-		BIGNUM * dsag;
-
-		// RSA
-		BIGNUM * rsae;
-		
-		CryptoConstants (const uint8_t * elgp_, int elgg_, const uint8_t * dsap_, 
-			const uint8_t * dsaq_, const uint8_t * dsag_, int rsae_)
-		{
-			elgp = BN_new ();
-			BN_bin2bn (elgp_, 256, elgp);
-			elgg = BN_new ();
-			BN_set_word (elgg, elgg_);
-			dsap = BN_new ();
-			BN_bin2bn (dsap_, 128, dsap);
-			dsaq = BN_new ();
-			BN_bin2bn (dsaq_, 20, dsaq);
-			dsag = BN_new ();
-			BN_bin2bn (dsag_, 128, dsag);
-			rsae = BN_new ();
-			BN_set_word (rsae, rsae_);
-		}
-		
-		~CryptoConstants ()
-		{
-			BN_free (elgp);  BN_free (elgg); BN_free (dsap); BN_free (dsaq); BN_free (dsag); BN_free (rsae);
-		}	
-	};	
-	
-	const CryptoConstants& GetCryptoConstants ();
-	
-	// DH/ElGamal	
-	#define elgp GetCryptoConstants ().elgp
-	#define elgg GetCryptoConstants ().elgg
+	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len);
 
 	// DSA
-	#define dsap GetCryptoConstants ().dsap	
-	#define dsaq GetCryptoConstants ().dsaq
-	#define dsag GetCryptoConstants ().dsag	
+	DSA * CreateDSA ();	
 
 	// RSA
-	#define rsae GetCryptoConstants ().rsae	
-
-	bool bn2buf (const BIGNUM * bn, uint8_t * buf, size_t len);
+	const BIGNUM * GetRSAE ();
 
 	// DH
 	class DHKeys
