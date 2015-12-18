@@ -597,7 +597,7 @@ namespace util
 		{
 			end = str.find ('&', pos);
 			std::string param = str.substr (pos, end - pos);
-			LogPrint (param);
+			LogPrint (eLogDebug, "HTTPServer: extracted parameters: ", param);
 			size_t e = param.find ('=');
 			if (e != std::string::npos)
 				params[param.substr(0, e)] = param.substr(e+1);
@@ -968,7 +968,7 @@ namespace util
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
 		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n\r\n";
-		LogPrint("HTTP Client Request: ", request);
+		LogPrint(eLogDebug, "HTTPServer: client request: ", request);
 		SendToAddress (address, 80, request.c_str (), request.size ());		
 	}
 
@@ -977,7 +977,7 @@ namespace util
 		i2p::data::IdentHash destination;
 		if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
 		{
-			LogPrint ("Unknown address ", address);
+			LogPrint (eLogWarning, "HTTPServer: Unknown address ", address);
 			SendReply ("<html>" + itoopieImage + "<br>Unknown address " + address + "</html>", 404);
 			return;
 		}		
