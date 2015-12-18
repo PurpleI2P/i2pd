@@ -26,7 +26,7 @@ void handle_signal(int sig)
 				return;
 			}
 		}
-		LogPrint("Reloading config.");
+		LogPrint(eLogInfo, "Daemon: Got SIGHUP, reloading config.");
 		i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 		break;
 	case SIGABRT:
@@ -59,7 +59,7 @@ namespace i2p
 				int sid = setsid();
 				if (sid < 0)
 				{
-					LogPrint("Error, could not create process group.");
+					LogPrint(eLogError, "Daemon: could not create process group.");
 					return false;
 				}
 				std::string d(i2p::util::filesystem::GetDataDir().string ()); // make a copy
@@ -80,12 +80,12 @@ namespace i2p
 			pidFilehandle = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
 			if (pidFilehandle == -1)
 			{
-				LogPrint("Error, could not create pid file (", pidfile, ")\nIs an instance already running?");
+				LogPrint(eLogError, "Daemon: could not create pid file ", pidfile, ": ", strerror(errno));
 				return false;
 			}
 			if (lockf(pidFilehandle, F_TLOCK, 0) == -1)
 			{
-				LogPrint("Error, could not lock pid file (", pidfile, ")\nIs an instance already running?");
+				LogPrint(eLogError, "Daemon: could not lock pid file ", pidfile, ": ", strerror(errno));
 				return false;
 			}
 			char pid[10];
