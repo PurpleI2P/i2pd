@@ -96,22 +96,22 @@ namespace transport
 
 			boost::asio::io_service& GetService ();
 			void CreateAESandMacKey (const uint8_t * pubKey); 
-			size_t GetSSUHeaderSize (uint8_t * buf) const;
+			size_t GetSSUHeaderSize (const uint8_t * buf) const;
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
-			void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+			void ProcessSessionRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendSessionRequest ();
 			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
 			void SendSessionCreated (const uint8_t * x);
-			void ProcessSessionConfirmed (uint8_t * buf, size_t len);
+			void ProcessSessionConfirmed (const uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen);
-			void ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);
+			void ProcessRelayRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);
 			void SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 				const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to);
 			void SendRelayIntro (std::shared_ptr<SSUSession> session, const boost::asio::ip::udp::endpoint& from);
-			void ProcessRelayResponse (uint8_t * buf, size_t len);
-			void ProcessRelayIntro (uint8_t * buf, size_t len);
+			void ProcessRelayResponse (const uint8_t * buf, size_t len);
+			void ProcessRelayIntro (const uint8_t * buf, size_t len);
 			void Established ();
 			void Failed ();
 			void ScheduleConnectTimer ();

@@ -131,10 +131,10 @@ namespace transport
 		}	
 	}
 
-	size_t SSUSession::GetSSUHeaderSize (uint8_t * buf) const
+	size_t SSUSession::GetSSUHeaderSize (const uint8_t * buf) const
 	{
 		size_t s = sizeof (SSUHeader);
-		if (((SSUHeader *)buf)->IsExtendedOptions ())
+		if (((const SSUHeader *)buf)->IsExtendedOptions ())
 			s += buf[s] + 1; // byte right after header is extended options length
 		return s;
 	}
@@ -145,6 +145,11 @@ namespace transport
 		if (len <= sizeof (SSUHeader)) return; // drop empty message
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		auto headerSize = GetSSUHeaderSize (buf);
+		if (headerSize >= len)
+		{
+			LogPrint (eLogError, "SSU header size ", headerSize, " exceeds packet length ", len);
+			return;
+		}
 		SSUHeader * header = (SSUHeader *)buf;
 		switch (header->GetPayloadType ())
 		{
@@ -152,13 +157,13 @@ namespace transport
 				ProcessData (buf + headerSize, len - headerSize);
 			break;
 			case PAYLOAD_TYPE_SESSION_REQUEST:
-				ProcessSessionRequest (buf, len, senderEndpoint);				
+				ProcessSessionRequest (buf + headerSize, len - headerSize, senderEndpoint);				
 			break;
 			case PAYLOAD_TYPE_SESSION_CREATED:
-				ProcessSessionCreated (buf, len);
+				ProcessSessionCreated (buf, len); // buf with header
 			break;
 			case PAYLOAD_TYPE_SESSION_CONFIRMED:
-				ProcessSessionConfirmed (buf, len);
+				ProcessSessionConfirmed (buf, len); // buf with header
 			break;	
 			case PAYLOAD_TYPE_PEER_TEST:
 				LogPrint (eLogDebug, "SSU peer test received");
@@ -171,7 +176,7 @@ namespace transport
 				break;
 			}	
 			case PAYLOAD_TYPE_RELAY_RESPONSE:
-				ProcessRelayResponse (buf, len);
+				ProcessRelayResponse (buf + headerSize, len - headerSize);
 				if (m_State != eSessionStateEstablished)
 					m_Server.DeleteSession (shared_from_this ());
 			break;
@@ -188,14 +193,14 @@ namespace transport
 		}
 	}
 
-	void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
+	void SSUSession::ProcessSessionRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		LogPrint (eLogDebug, "Session request received");	
 		m_RemoteEndpoint = senderEndpoint;
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
-		CreateAESandMacKey (buf + sizeof (SSUHeader));
-		SendSessionCreated (buf + sizeof (SSUHeader));
+		CreateAESandMacKey (buf);
+		SendSessionCreated (buf);
 	}
 
 	void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
@@ -209,7 +214,13 @@ namespace transport
 		LogPrint (eLogDebug, "Session created received");	
 		m_Timer.cancel (); // connect timer
 		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
-		uint8_t * payload = buf + sizeof (SSUHeader);	
+		auto headerSize = GetSSUHeaderSize (buf);	
+		if (headerSize >= len)
+		{
+			LogPrint (eLogError, "Session created header size ", headerSize, " exceeds packet length ", len);
+			return;	
+		}	
+		uint8_t * payload = buf + headerSize; 
 		uint8_t * y = payload;
 		CreateAESandMacKey (y);
 		s.Insert (m_DHKeysPair->GetPublicKey (), 256); // x
@@ -253,7 +264,7 @@ namespace transport
 		if (paddingSize > 0) signatureLen += (16 - paddingSize);
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
-		m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload);
+		m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload); // TODO: non-const payload
 		// verify
 		if (!s.Verify (m_RemoteIdentity, payload))
 			LogPrint (eLogError, "Session created SSU signature verification failed");
@@ -261,10 +272,16 @@ namespace transport
 		SendSessionConfirmed (y, ourAddress, addressSize + 2);
 	}	
 
-	void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t len)
+	void SSUSession::ProcessSessionConfirmed (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "Session confirmed received");	
-		uint8_t * payload = buf + sizeof (SSUHeader);
+		auto headerSize = GetSSUHeaderSize (buf);	
+		if (headerSize >= len)
+		{
+			LogPrint (eLogError, "Session confirmed header size ", len, " exceeds packet length ", len);
+			return;	
+		}	
+		const uint8_t * payload = buf + headerSize;
 		payload++; // identity fragment info
 		uint16_t identitySize = bufbe16toh (payload);	
 		payload += 2; // size of identity fragment
@@ -461,7 +478,7 @@ namespace transport
 		Send (buf, msgLen);
 	}
 
-	void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
+	void SSUSession::ProcessRelayRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
 	{
 		uint32_t relayTag = bufbe32toh (buf);
 		auto session = m_Server.FindRelaySession (relayTag);
@@ -475,7 +492,7 @@ namespace transport
 			uint8_t challengeSize = *buf;
 			buf++; // challenge size
 			buf += challengeSize;
-			uint8_t * introKey = buf;
+			const uint8_t * introKey = buf;
 			buf += 32; // introkey
 			uint32_t nonce = bufbe32toh (buf);
 			SendRelayResponse (nonce, from, introKey, session->m_RemoteEndpoint);
@@ -562,38 +579,37 @@ namespace transport
 		LogPrint (eLogDebug, "SSU relay intro sent");
 	}
 	
-	void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t len)
+	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "Relay response received");		
-		uint8_t * payload = buf + sizeof (SSUHeader);
-		uint8_t remoteSize = *payload; 
-		payload++; // remote size
-		boost::asio::ip::address_v4 remoteIP (bufbe32toh (payload));
-		payload += remoteSize; // remote address
-		uint16_t remotePort = bufbe16toh (payload);
-		payload += 2; // remote port
-		uint8_t ourSize = *payload; 
-		payload++; // our size
+		uint8_t remoteSize = *buf; 
+		buf++; // remote size
+		boost::asio::ip::address_v4 remoteIP (bufbe32toh (buf));
+		buf += remoteSize; // remote address
+		uint16_t remotePort = bufbe16toh (buf);
+		buf += 2; // remote port
+		uint8_t ourSize = *buf; 
+		buf++; // our size
 		boost::asio::ip::address ourIP;
 		if (ourSize == 4)
 		{
 			boost::asio::ip::address_v4::bytes_type bytes;
-			memcpy (bytes.data (), payload, 4);
+			memcpy (bytes.data (), buf, 4);
 			ourIP = boost::asio::ip::address_v4 (bytes);
 		}
 		else
 		{
 			boost::asio::ip::address_v6::bytes_type bytes;
-			memcpy (bytes.data (), payload, 16);
+			memcpy (bytes.data (), buf, 16);
 			ourIP = boost::asio::ip::address_v6 (bytes);
 		}
-		payload += ourSize; // our address
-		uint16_t ourPort = bufbe16toh (payload);
-		payload += 2; // our port
+		buf += ourSize; // our address
+		uint16_t ourPort = bufbe16toh (buf);
+		buf += 2; // our port
 		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
-		uint32_t nonce = bufbe32toh (payload);
-		payload += 4; // nonce
+		uint32_t nonce = bufbe32toh (buf);
+		buf += 4; // nonce
 		auto it = m_RelayRequests.find (nonce);
 		if (it != m_RelayRequests.end ())
 		{	
@@ -615,7 +631,7 @@ namespace transport
 			LogPrint (eLogError, "Unsolicited RelayResponse, nonce=", nonce);
 	}
 
-	void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t len)
+	void SSUSession::ProcessRelayIntro (const uint8_t * buf, size_t len)
 	{
 		uint8_t size = *buf;
 		if (size == 4)
@@ -624,7 +640,7 @@ namespace transport
 			boost::asio::ip::address_v4 address (bufbe32toh (buf));
 			buf += 4; // address
 			uint16_t port = bufbe16toh (buf);
-			// send hole punch of 1 byte
+			// send hole punch of 0 bytes
 			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (address, port));
 		}
 		else
