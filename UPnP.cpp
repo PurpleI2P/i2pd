@@ -46,7 +46,7 @@ template<class M, typename F>
 F GetKnownProcAddressImpl(M hmod, const char *name, F) {
     auto proc = reinterpret_cast<F>(dlsym(hmod, name));
     if (!proc) {
-        LogPrint("Error resolving ", name, " from UPNP library. This often happens if there is version mismatch!");
+        LogPrint(eLogError, "UPnP: Error resolving ", name, " from library, version mismatch?");
     }
     return proc;
 }
@@ -83,7 +83,7 @@ namespace transport
 #endif
             if (m_Module == NULL)
             {
-                LogPrint ("Error loading UPNP library. This often happens if there is version mismatch!");
+                LogPrint (eLogError, "UPnP: Error loading UPNP library, version mismatch?");
                 return;
             }
             else
@@ -144,20 +144,20 @@ namespace transport
             r = UPNP_GetExternalIPAddressFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
             if(r != UPNPCOMMAND_SUCCESS)
             {
-                LogPrint ("UPnP: UPNP_GetExternalIPAddress () returned ", r);
+                LogPrint (eLogError, "UPnP: UPNP_GetExternalIPAddress () returned ", r);
                 return;
             }
             else
             {
                 if (m_externalIPAddress[0])
                 {
-                    LogPrint ("UPnP: ExternalIPAddress = ", m_externalIPAddress);
+                    LogPrint (eLogInfo, "UPnP: ExternalIPAddress = ", m_externalIPAddress);
                     i2p::context.UpdateAddress (boost::asio::ip::address::from_string (m_externalIPAddress));
                     return;
                 }
                 else
                 {
-                    LogPrint ("UPnP: GetExternalIPAddress failed.");
+                    LogPrint (eLogError, "UPnP: GetExternalIPAddress failed.");
                     return;
                 }
             }
@@ -189,12 +189,12 @@ namespace transport
 #endif
                 if (r!=UPNPCOMMAND_SUCCESS)
                 {
-                    LogPrint ("AddPortMapping (", strPort.c_str () ,", ", strPort.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);
+                    LogPrint (eLogError, "UPnP: AddPortMapping (", strPort.c_str () ,", ", strPort.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);
                     return;
                 }
                 else
                 {
-                    LogPrint ("UPnP Port Mapping successful. (", m_NetworkAddr ,":", strPort.c_str(), " type ", strType.c_str () ," -> ", m_externalIPAddress ,":", strPort.c_str() ,")");
+                    LogPrint (eLogDebug, "UPnP: Port Mapping successful. (", m_NetworkAddr ,":", strPort.c_str(), " type ", strType.c_str () ," -> ", m_externalIPAddress ,":", strPort.c_str() ,")");
                     return;
                 }
                 std::this_thread::sleep_for(std::chrono::minutes(20)); // c++11
@@ -224,7 +224,7 @@ namespace transport
         }
         int r = 0;
         r = UPNP_DeletePortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strType.c_str (), 0);
-        LogPrint ("UPNP_DeletePortMapping() returned : ", r, "\n");
+        LogPrint (eLogError, "UPnP: DeletePortMapping() returned : ", r, "\n");
     }
 
     void UPnP::Close ()
