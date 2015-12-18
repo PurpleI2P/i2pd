@@ -34,12 +34,12 @@ namespace tunnel
 			if (m_NumInboundHops > size) 
 			{
 				m_NumInboundHops = size;
-				LogPrint (eLogInfo, "Inbound tunnel length has beed adjusted to ", size, " for explicit peers");
+				LogPrint (eLogInfo, "Tunnels: Inbound tunnel length has beed adjusted to ", size, " for explicit peers");
 			} 
 			if (m_NumOutboundHops > size) 
 			{
 				m_NumOutboundHops = size;
-				LogPrint (eLogInfo, "Outbound tunnel length has beed adjusted to ", size, " for explicit peers");
+				LogPrint (eLogInfo, "Tunnels: Outbound tunnel length has beed adjusted to ", size, " for explicit peers");
 			} 
 			m_NumInboundTunnels = 1;
 			m_NumOutboundTunnels = 1;
@@ -203,7 +203,7 @@ namespace tunnel
 	{
 		for (auto it: m_Tests)
 		{
-			LogPrint ("Tunnel test ", (int)it.first, " failed"); 
+			LogPrint (eLogWarning, "Tunnels: test of ", (int)it.first, " failed");
 			// if test failed again with another tunnel we consider it failed
 			if (it.second.first)
 			{	
@@ -266,7 +266,7 @@ namespace tunnel
 		if (m_LocalDestination)
 			m_LocalDestination->ProcessGarlicMessage (msg);
 		else
-			LogPrint (eLogWarning, "Local destination doesn't exist. Dropped");
+			LogPrint (eLogWarning, "Tunnels: local destination doesn't exist, dropped");
 	}	
 		
 	void TunnelPool::ProcessDeliveryStatus (std::shared_ptr<I2NPMessage> msg)
@@ -284,7 +284,7 @@ namespace tunnel
 				it->second.first->SetState (eTunnelStateEstablished);
 			if (it->second.second->GetState () == eTunnelStateTestFailed)
 				it->second.second->SetState (eTunnelStateEstablished);
-			LogPrint ("Tunnel test ", it->first, " successive. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
+			LogPrint (eLogDebug, "Tunnels: test of ", it->first, " successful. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
 			m_Tests.erase (it);
 		}
 		else
@@ -292,7 +292,7 @@ namespace tunnel
 			if (m_LocalDestination)
 				m_LocalDestination->ProcessDeliveryStatusMessage (msg);
 			else
-				LogPrint (eLogWarning, "Local destination doesn't exist. Dropped");
+				LogPrint (eLogWarning, "Tunnels: Local destination doesn't exist, dropped");
 		}	
 	}
 
@@ -328,7 +328,7 @@ namespace tunnel
 			auto hop = SelectNextHop (prevHop);
 			if (!hop)
 			{
-				LogPrint (eLogError, "Can't select next hop");
+				LogPrint (eLogError, "Tunnels: Can't select next hop for ", prevHop->GetIdentHashBase64 ());
 				return false;
 			}	
 			prevHop = hop;
@@ -353,7 +353,7 @@ namespace tunnel
 				peers.push_back (r->GetRouterIdentity ());
 			else
 			{
-				LogPrint (eLogInfo, "Can't find router for ", ident.ToBase64 ());
+				LogPrint (eLogInfo, "Tunnels: Can't find router for ", ident.ToBase64 ());
 				i2p::data::netdb.RequestDestination (ident);
 				return false;
 			}
@@ -366,7 +366,7 @@ namespace tunnel
 		auto outboundTunnel = GetNextOutboundTunnel ();
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
-		LogPrint ("Creating destination inbound tunnel...");
+		LogPrint (eLogDebug, "Tunnels: Creating destination inbound tunnel...");
 		std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers;
 		if (SelectPeers (peers, true))
 		{
@@ -375,7 +375,7 @@ namespace tunnel
 			tunnel->SetTunnelPool (shared_from_this ());
 		}	
 		else
-			LogPrint (eLogError, "Can't create inbound tunnel. No peers available");
+			LogPrint (eLogError, "Tunnels: Can't create inbound tunnel, no peers available");
 	}
 
 	void TunnelPool::RecreateInboundTunnel (std::shared_ptr<InboundTunnel> tunnel)
@@ -383,7 +383,7 @@ namespace tunnel
 		auto outboundTunnel = GetNextOutboundTunnel ();
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
-		LogPrint ("Re-creating destination inbound tunnel...");
+		LogPrint (eLogDebug, "Tunnels: Re-creating destination inbound tunnel...");
 		auto newTunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig>(tunnel->GetPeers ()), outboundTunnel);
 		newTunnel->SetTunnelPool (shared_from_this());
 	}	
@@ -395,7 +395,7 @@ namespace tunnel
 			inboundTunnel = tunnels.GetNextInboundTunnel ();
 		if (inboundTunnel)
 		{	
-			LogPrint ("Creating destination outbound tunnel...");
+			LogPrint (eLogDebug, "Tunnels: Creating destination outbound tunnel...");
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers;
 			if (SelectPeers (peers, false))
 			{	
@@ -404,10 +404,10 @@ namespace tunnel
 				tunnel->SetTunnelPool (shared_from_this ());
 			}	
 			else
-				LogPrint (eLogError, "Can't create outbound tunnel. No peers available");
+				LogPrint (eLogError, "Tunnels: Can't create outbound tunnel, no peers available");
 		}	
 		else
-			LogPrint (eLogError, "Can't create outbound tunnel. No inbound tunnels found");
+			LogPrint (eLogError, "Tunnels: Can't create outbound tunnel, no inbound tunnels found");
 	}	
 		
 	void TunnelPool::RecreateOutboundTunnel (std::shared_ptr<OutboundTunnel> tunnel)
@@ -417,19 +417,19 @@ namespace tunnel
 			inboundTunnel = tunnels.GetNextInboundTunnel ();
 		if (inboundTunnel)
 		{	
-			LogPrint ("Re-creating destination outbound tunnel...");
+			LogPrint (eLogDebug, "Tunnels: Re-creating destination outbound tunnel...");
 			auto newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
 				std::make_shared<TunnelConfig> (tunnel->GetPeers (),
 					inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()));
 			newTunnel->SetTunnelPool (shared_from_this ());
 		}	
 		else
-			LogPrint ("Can't re-create outbound tunnel. No inbound tunnels found");
+			LogPrint (eLogDebug, "Tunnels: Can't re-create outbound tunnel, no inbound tunnels found");
 	}		
 
 	void TunnelPool::CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
-		LogPrint (eLogInfo, "Creating paired inbound tunnel...");
+		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
 		auto tunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()), outboundTunnel);
 		tunnel->SetTunnelPool (shared_from_this ());
 	}	
