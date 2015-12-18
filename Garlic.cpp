@@ -61,7 +61,7 @@ namespace garlic
 		if (msgID == m_LeaseSetUpdateMsgID)
 		{	
 			m_LeaseSetUpdateStatus = eLeaseSetUpToDate;
-			LogPrint (eLogInfo, "LeaseSet update confirmed");
+			LogPrint (eLogInfo, "Garlic: LeaseSet update confirmed");
 		}	
 		else
 			CleanupExpiredTags ();
@@ -139,10 +139,10 @@ namespace garlic
 		// create message
 		if (!tagFound) // new session
 		{
-			LogPrint ("No garlic tags available. Use ElGamal");
+			LogPrint (eLogWarning, "Garlic: No tags available. Use ElGamal");
 			if (!m_Destination)
 			{
-				LogPrint ("Can't use ElGamal for unknown destination");
+				LogPrint (eLogError, "Garlic: Can't use ElGamal for unknown destination");
 				return nullptr;
 			}
 			// create ElGamal block
@@ -237,7 +237,7 @@ namespace garlic
 					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
 				}
 				else
-					LogPrint ("DeliveryStatus clove was not created");
+					LogPrint (eLogWarning, "Garlic: DeliveryStatus clove was not created");
 			}	
 			// attach LeaseSet
 			if (m_LeaseSetUpdateStatus == eLeaseSetUpdated) 
@@ -337,10 +337,10 @@ namespace garlic
 				size += 3;
 			}
 			else	
-				LogPrint (eLogError, "No inbound tunnels in the pool for DeliveryStatus");	
+				LogPrint (eLogError, "Garlic: No inbound tunnels in the pool for DeliveryStatus");
 		}
 		else
-			LogPrint ("Missing local LeaseSet");
+			LogPrint (eLogWarning, "Garlic: Missing local LeaseSet");
 
 		return size;
 	}
@@ -372,7 +372,7 @@ namespace garlic
 		uint32_t length = bufbe32toh (buf);
 		if (length > msg->GetLength ())
 		{
-			LogPrint (eLogError, "Garlic message length ", length, " exceeds I2NP message length ", msg->GetLength ());
+			LogPrint (eLogWarning, "Garlic: message length ", length, " exceeds I2NP message length ", msg->GetLength ());
 			return;
 		}	
 		buf += 4; // length
@@ -389,7 +389,7 @@ namespace garlic
 				HandleAESBlock (buf + 32, length - 32, it->second, msg->from);
 			}	
 			else
-				LogPrint (eLogError, "Garlic message length ", length, " is less than 32 bytes");
+				LogPrint (eLogWarning, "Garlic: message length ", length, " is less than 32 bytes");
 			m_Tags.erase (it); // tag might be used only once	
 		}
 		else
@@ -407,7 +407,7 @@ namespace garlic
 				HandleAESBlock (buf + 514, length - 514, decryption, msg->from);
 			}	
 			else
-				LogPrint (eLogError, "Failed to decrypt garlic");
+				LogPrint (eLogError, "Garlic: Failed to decrypt message");
 		}
 
 		// cleanup expired tags
@@ -427,7 +427,7 @@ namespace garlic
 					else
 						it++;
 				}
-				LogPrint (numExpiredTags, " tags expired for ", GetIdentHash().ToBase64 ());
+				LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " tags expired for ", GetIdentHash().ToBase64 ());
 			}	
 			m_LastTagsCleanupTime = ts;
 		}	
@@ -442,7 +442,7 @@ namespace garlic
 		{	
 			if (tagCount*32 > len) 
 			{
-				LogPrint (eLogError, "Tag count ", tagCount, " exceeds length ", len);
+				LogPrint (eLogError, "Garlic: Tag count ", tagCount, " exceeds length ", len);
 				return ;
 			}	
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
@@ -454,7 +454,7 @@ namespace garlic
 		uint32_t payloadSize = bufbe32toh (buf);
 		if (payloadSize > len)
 		{
-			LogPrint (eLogError, "Unexpected payload size ", payloadSize);
+			LogPrint (eLogError, "Garlic: Unexpected payload size ", payloadSize);
 			return;
 		}	
 		buf += 4;
@@ -469,7 +469,7 @@ namespace garlic
 		SHA256 (buf, payloadSize, digest);
 		if (memcmp (payloadHash, digest, 32)) // payload hash doesn't match
 		{
-			LogPrint ("Wrong payload hash");
+			LogPrint (eLogError, "Garlic: wrong payload hash");
 			return;
 		}		    
 		HandleGarlicPayload (buf, payloadSize, from);
@@ -479,7 +479,7 @@ namespace garlic
 	{
 		const uint8_t * buf1 = buf;
 		int numCloves = buf[0];
-		LogPrint (numCloves," cloves");
+		LogPrint (eLogDebug, "Garlic: ", numCloves," cloves");
 		buf++;
 		for (int i = 0; i < numCloves; i++)
 		{
@@ -489,24 +489,24 @@ namespace garlic
 			if (flag & 0x80) // encrypted?
 			{
 				// TODO: implement
-				LogPrint ("Clove encrypted");
+				LogPrint (eLogWarning, "Garlic: clove encrypted");
 				buf += 32; 
 			}	
 			GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
 			switch (deliveryType)
 			{
 				case eGarlicDeliveryTypeLocal:
-					LogPrint ("Garlic type local");
+					LogPrint (eLogDebug, "Garlic: type local");
 					HandleI2NPMessage (buf, len, from);
 				break;	
 				case eGarlicDeliveryTypeDestination:	
-					LogPrint ("Garlic type destination");
+					LogPrint (eLogDebug, "Garlic: type destination");
 					buf += 32; // destination. check it later or for multiple destinations
 					HandleI2NPMessage (buf, len, from);
 				break;
 				case eGarlicDeliveryTypeTunnel:
 				{	
-					LogPrint ("Garlic type tunnel");
+					LogPrint (eLogDebug, "Garlic: type tunnel");
 					// gwHash and gwTunnel sequence is reverted
 					uint8_t * gwHash = buf;
 					buf += 32;
@@ -521,15 +521,15 @@ namespace garlic
 						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
 					}	
 					else
-						LogPrint ("No outbound tunnels available for garlic clove");
+						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
 					break;
 				}
 				case eGarlicDeliveryTypeRouter:
-					LogPrint ("Garlic type router not supported");
+					LogPrint (eLogWarning, "Garlic: type router not supported");
 					buf += 32;
 				break;	
 				default:
-					LogPrint ("Unknow garlic delivery type ", (int)deliveryType);
+					LogPrint (eLogWarning, "Garlic: unknown delivery type ", (int)deliveryType);
 			}
 			buf += GetI2NPMessageLength (buf); //  I2NP
 			buf += 4; // CloveID
@@ -537,7 +537,7 @@ namespace garlic
 			buf += 3; // Certificate
 			if (buf - buf1  > (int)len)
 			{
-				LogPrint (eLogError, "Garlic clove is too long");
+				LogPrint (eLogError, "Garlic: clove is too long");
 				break;
 			}	
 		}	
@@ -601,7 +601,7 @@ namespace garlic
 			{
 				it->second->MessageConfirmed (msgID);
 				m_CreatedSessions.erase (it);
-				LogPrint (eLogInfo, "Garlic message ", msgID, " acknowledged");
+				LogPrint (eLogDebug, "Garlic: message ", msgID, " acknowledged");
 			}	
 		}
 	}
