@@ -78,7 +78,7 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint ("I2PTunnel read error: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -103,7 +103,7 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint ("I2PTunnel write error: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: write error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -124,7 +124,7 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint ("I2PTunnel stream read error: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: stream read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -142,12 +142,12 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint ("I2PTunnel connect error: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: connect error: ", ecode.message ());
 			Terminate ();
 		}
 		else
 		{
-			LogPrint ("I2PTunnel connected");
+			LogPrint (eLogDebug, "I2PTunnel: connected");
 			if (m_IsQuiet)
 				StreamReceive ();
 			else
@@ -232,7 +232,7 @@ namespace client
 		if (stream)
 		{
 			if (Kill()) return;
-			LogPrint (eLogInfo,"New I2PTunnel connection");
+			LogPrint (eLogDebug, "I2PTunnel: new connection");
 			auto connection = std::make_shared<I2PTunnelConnection>(GetOwner(), m_Socket, stream);
 			GetOwner()->AddHandler (connection);
 			connection->I2PConnect ();
@@ -240,7 +240,7 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogError,"I2P Client Tunnel Issue when creating the stream, check the previous warnings for more info.");
+			LogPrint (eLogError, "I2PTunnel: Client Tunnel Issue when creating the stream, check the previous warnings for more info.");
 			Terminate();
 		}
 	}
@@ -282,7 +282,7 @@ namespace client
 			if (i2p::client::context.GetAddressBook ().GetIdentHash (m_Destination, identHash))
 				m_DestinationIdentHash = new i2p::data::IdentHash (identHash);
 			else
-				LogPrint (eLogWarning,"Remote destination ", m_Destination, " not found");
+				LogPrint (eLogWarning, "I2PTunnel: Remote destination ", m_Destination, " not found");
 		}
 		return m_DestinationIdentHash;
 	}
@@ -333,12 +333,12 @@ namespace client
 		if (!ecode)
 		{	
 			auto addr = (*it).endpoint ().address ();
-			LogPrint (eLogInfo, "server tunnel ", (*it).host_name (), " has been resolved to ", addr);	
+			LogPrint (eLogInfo, "I2PTunnel: server tunnel ", (*it).host_name (), " has been resolved to ", addr);
 			m_Endpoint.address (addr);
 			Accept ();	
 		}	
 		else
-			LogPrint (eLogError, "Unable to resolve server tunnel address: ", ecode.message ());
+			LogPrint (eLogError, "I2PTunnel: Unable to resolve server tunnel address: ", ecode.message ());
 	}
 
 	void I2PServerTunnel::SetAccessList (const std::set<i2p::data::IdentHash>& accessList)
@@ -359,7 +359,7 @@ namespace client
 				localDestination->AcceptStreams (std::bind (&I2PServerTunnel::HandleAccept, this, std::placeholders::_1));
 		}
 		else
-			LogPrint ("Local destination not set for server tunnel");
+			LogPrint (eLogError, "I2PTunnel: Local destination not set for server tunnel");
 	}
 
 	void I2PServerTunnel::HandleAccept (std::shared_ptr<i2p::stream::Stream> stream)
@@ -370,7 +370,7 @@ namespace client
 			{
 				if (!m_AccessList.count (stream->GetRemoteIdentity ()->GetIdentHash ()))
 				{
-					LogPrint (eLogWarning, "Address ", stream->GetRemoteIdentity ()->GetIdentHash ().ToBase32 (), " is not in white list. Incoming connection dropped");
+					LogPrint (eLogWarning, "I2PTunnel: Address ", stream->GetRemoteIdentity ()->GetIdentHash ().ToBase32 (), " is not in white list. Incoming connection dropped");
 					stream->Close ();
 					return;
 				}
