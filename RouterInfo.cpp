@@ -62,7 +62,7 @@ namespace data
 		}
 		else
 		{	
-			LogPrint (eLogError, "RouterInfo signature verification failed");	
+			LogPrint (eLogError, "RouterInfo: signature verification failed");
 			m_IsUnreachable = true;
 		}
 		m_RouterIdentity->DropVerifier ();
@@ -83,7 +83,7 @@ namespace data
 			m_BufferLen = s.tellg ();
 			if (m_BufferLen < 40)
 			{
-				LogPrint(eLogError, "File", m_FullPath, " is malformed");
+				LogPrint(eLogError, "RouterInfo: File", m_FullPath, " is malformed");
 				return false;
 			}
 			s.seekg(0, std::ios::beg);
@@ -93,7 +93,7 @@ namespace data
 		}	
 		else
 		{
-			LogPrint (eLogError, "Can't open file ", m_FullPath);
+			LogPrint (eLogError, "RouterInfo: Can't open file ", m_FullPath);
 			return false;		
 		}
 		return true;
@@ -117,7 +117,7 @@ namespace data
 			int l = m_BufferLen - m_RouterIdentity->GetSignatureLen ();
 			if (!m_RouterIdentity->Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))
 			{	
-				LogPrint (eLogError, "RouterInfo signature verification failed");	
+				LogPrint (eLogError, "RouterInfo: signature verification failed");
 				m_IsUnreachable = true;
 			}
 			m_RouterIdentity->DropVerifier ();
@@ -432,7 +432,7 @@ namespace data
 		if (!m_Buffer)
 		{
 			if (LoadFile ())
-				LogPrint ("Buffer for ", GetIdentHashAbbreviation (GetIdentHash ()), " loaded from file");
+				LogPrint (eLogDebug, "RouterInfo: Buffer for ", GetIdentHashAbbreviation (GetIdentHash ()), " loaded from file");
 		} 
 		return m_Buffer; 
 	}
@@ -463,10 +463,10 @@ namespace data
 			if (f.is_open ())
 				f.write ((char *)m_Buffer, m_BufferLen);
 			else
-				LogPrint(eLogError, "Can't save RouterInfo to ", fullPath);
+				LogPrint(eLogError, "RouterInfo: Can't save to ", fullPath);
 		}
 		else
-			LogPrint (eLogError, "Can't save RouterInfo m_Buffer==NULL");
+			LogPrint (eLogError, "RouterInfo: Can't save, m_Buffer == NULL");
 	}
 	
 	size_t RouterInfo::ReadString (char * str, std::istream& s)
