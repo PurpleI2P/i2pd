@@ -101,7 +101,7 @@ namespace data
 					break;
 				}	
 				default:
-					LogPrint ("Signing key type ", (int)type, " is not supported");
+					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported");
 			}	
 			m_ExtendedLen = 4 + excessLen; // 4 bytes extra + excess length
 			// fill certificate
@@ -194,7 +194,7 @@ namespace data
 	{
 		if (len < DEFAULT_IDENTITY_SIZE)
 		{
-			LogPrint (eLogError, "Identity buffer length ", len, " is too small");
+			LogPrint (eLogError, "Identity: buffer length ", len, " is too small");
 			return 0;
 		}	
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
@@ -210,7 +210,7 @@ namespace data
 			}	
 			else
 			{
-				LogPrint (eLogError, "Certificate length ", m_ExtendedLen, " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
+				LogPrint (eLogError, "Identity: Certificate length ", m_ExtendedLen, " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
 				return 0;
 			}	
 		}		
@@ -359,7 +359,7 @@ namespace data
 				break;
 			}	
 			default:
-				LogPrint ("Signing key type ", (int)keyType, " is not supported");
+				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}			
 	}	
 	
@@ -470,7 +470,7 @@ namespace data
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey));
 			break;
 			default:
-				LogPrint ("Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
+				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
 		}
 	}	
 		
@@ -505,7 +505,7 @@ namespace data
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
 				default:
-					LogPrint ("Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
+					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 					return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
 			}	
 			// encryption
