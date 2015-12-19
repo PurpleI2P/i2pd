@@ -28,11 +28,9 @@ http://download.i2p.io/purplei2p/i2pd/releases/
 Supported OS
 ------------
 
-[![Build status](https://ci.appveyor.com/api/projects/status/458fhbki14gaplyj/branch/openssl?svg=true)](https://ci.appveyor.com/project/mlt/i2pd/branch/openssl)
-
 * Linux x86/x64  - Proved working.
 * Mac OS X       - Not well tested. (Only works with clang, not GCC)
-* Windows        - At least builds and runs.
+* Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
 
 More documentation
 ------------------
