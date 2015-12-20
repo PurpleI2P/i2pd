@@ -53,6 +53,13 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
 endif ()
 
 add_library(libi2pd ${LIBI2PD_SRC})
+install(TARGETS libi2pd
+  EXPORT libi2pd
+  ARCHIVE DESTINATION lib
+  COMPONENT Libraries)
+# TODO Make libi2pd available to 3rd party projects via CMake as imported target
+# FIXME This pulls stdafx
+# install(EXPORT libi2pd DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 set (CLIENT_SRC
   "${CMAKE_SOURCE_DIR}/AddressBook.cpp"
@@ -90,7 +97,16 @@ endif ()
 # compiler flags customization (by vendor)
 if (MSVC)
   add_definitions( -D_WIN32_WINNT=_WIN32_WINNT_WINXP -DWIN32_LEAN_AND_MEAN -DNOMINMAX ) #-DOPENSSL_NO_SSL2 -DOPENSSL_USE_DEPRECATED
+  # TODO Check & report to Boost dev, there should be no need for these two
+  add_definitions( -DBOOST_THREAD_NO_LIB -DBOOST_CHRONO_NO_LIB )
+  set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL" )
+  set( CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /INCREMENTAL:NO /LTCG" )
+  set( CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} /GL" )
+  set( CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO /LTCG" )
 else()
+  if (MSYS OR MINGW)
+    add_definitions( -DWIN32_LEAN_AND_MEAN )
+  endif ()
   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch" )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic" )
   # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
@@ -120,6 +136,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif ()
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # more tweaks
+endif ()
+
+if (WITH_HARDENING AND MSVC)
+  # Most security options like dynamic base, buffer & stack checks are ON by default
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /guard:cf" )
 endif ()
 
 # compiler flags customization (by system)
@@ -158,9 +179,8 @@ endif()
 if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
-  if (WIN32 OR MSYS)
+  if (WIN32 AND NOT MSYS AND NOT MINGW)
     # http://www.cmake.org/Wiki/CMake_FAQ#Dynamic_Replace
-    # Note that you might need to rebuild Crypto++
     foreach(flag_var
             CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
             CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
@@ -184,11 +204,11 @@ else()
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" )
   endif ()
-  add_definitions(-DBOOST_ALL_DYN_LINK)
+  add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_FILESYSTEM_DYN_LINK -DBOOST_PROGRAM_OPTIONS_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_REGEX_DYN_LINK)
 endif ()
 
 if (WITH_PCH)
-  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+  include_directories(${CMAKE_BINARY_DIR})
   add_library(stdafx STATIC "${CMAKE_SOURCE_DIR}/stdafx.cpp")
   if(MSVC)
     target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm155)
@@ -215,7 +235,7 @@ endif()
 
 target_link_libraries(i2pdclient libi2pd)
 
-find_package ( Boost COMPONENTS system filesystem regex program_options date_time thread chrono REQUIRED )
+find_package ( Boost COMPONENTS system filesystem regex program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
   message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
 endif()
@@ -235,16 +255,21 @@ endif()
 find_package ( ZLIB )
 if (NOT ZLIB_FOUND )
   # We are probably on Windows
+  find_program( PATCH patch C:/Program Files/Git/usr/bin C:/msys64/usr/bin C:/msys32/usr/bin C:/Strawberry/c/bin )
   include( ExternalProject )
+  if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set( ZLIB_EXTRA -DAMD64=ON )
+  else()
+    set( ZLIB_EXTRA -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh" )
+  endif()
   ExternalProject_Add(zlib-project
     URL http://zlib.net/zlib-1.2.8.tar.gz
     URL_MD5 44d667c142d7cda120332623eab69f40
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/zlib
-    # patch on Windows might be found in C:/Program Files/Git/usr/bin
-    PATCH_COMMAND patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
+    PATCH_COMMAND "${PATCH}" -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-static.patch
+      && "${PATCH}" -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake-zlib-amd64.patch
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-      -DWITH_STATIC=${WITH_STATIC}
-      -DAMD64=ON -DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh"
+      -DWITH_STATIC=${WITH_STATIC} ${ZLIB_EXTRA}
     )
   if (WITH_PCH)
     add_dependencies( stdafx zlib-project )
@@ -301,7 +326,7 @@ if (WITH_BINARY)
     endif()
   endif()
 
-  if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT MSYS AND NOT MINGW)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-z relro -z now" )
   endif ()
 
@@ -316,8 +341,119 @@ if (WITH_BINARY)
   endif ()
   target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} )
 
-  install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+  install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
+  set (APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
+  set (DIRS "${Boost_LIBRARY_DIR};${OPENSSL_INCLUDE_DIR}/../bin;${ZLIB_INCLUDE_DIR}/../bin;/mingw32/bin")
   if (MSVC)
-    install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION "bin" CONFIGURATIONS DEBUG)
+    install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION ${CMAKE_INSTALL_BINDIR} CONFIGURATIONS DEBUG RELWITHDEBINFO COMPONENT Symbols)
+    # TODO Somehow this picks lots of unrelevant stuff with MSYS. OS X testing needed.
+    INSTALL(CODE "
+      include(BundleUtilities)
+      fixup_bundle(\"${APPS}\"   \"\"   \"${DIRS}\")
+      " COMPONENT Runtime)
   endif ()
 endif ()
+
+install(FILES ../LICENSE
+  DESTINATION .
+  COMPONENT Runtime
+  )
+# Take a copy on Appveyor
+install(FILES "C:/projects/openssl-$ENV{OPENSSL}/LICENSE"
+  DESTINATION .
+  COMPONENT Runtime
+  RENAME LICENSE_OPENSSL
+  OPTIONAL                      # for local builds only!
+  )
+
+file(GLOB_RECURSE I2PD_SOURCES "../*.cpp" "../build" "../Win32" "../Makefile*")
+install(FILES ${I2PD_SOURCES} DESTINATION src/ COMPONENT Source)
+# install(DIRECTORY ../ DESTINATION src/
+#   # OPTIONAL
+#   COMPONENT Source FILES_MATCHING
+#   PATTERN .git EXCLUDE
+#   PATTERN "*.cpp"
+#   )
+
+file(GLOB I2PD_HEADERS "../*.h")
+install(FILES ${I2PD_HEADERS} DESTINATION src/ COMPONENT Headers)
+# install(DIRECTORY ../ DESTINATION src/
+#   # OPTIONAL
+#   COMPONENT Headers FILES_MATCHING
+#   PATTERN .git EXCLUDE
+#   PATTERN "*.h"
+#   )
+
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Purple I2P, a C++ I2P daemon")
+set(CPACK_PACKAGE_VENDOR "Purple I2P")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE")
+file(READ ../version.h version_h)
+string(REGEX REPLACE ".*I2PD_VERSION_MAJOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MAJOR "${version_h}")
+string(REGEX REPLACE ".*I2PD_VERSION_MINOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MINOR "${version_h}")
+string(REGEX REPLACE ".*I2PD_VERSION_MICRO ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MICRO "${version_h}")
+string(REGEX REPLACE ".*I2PD_VERSION_PATCH ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_PATCH "${version_h}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Purple I2P")# ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}")
+include(CPackComponent)
+cpack_add_component(Runtime
+  DESCRIPTION "Main files"
+  REQUIRED INSTALL_TYPES minimal)
+cpack_add_component(Symbols
+  DISPLAY_NAME "Debug symbols"
+  DESCRIPTION "Debug symbols for use with WinDbg or Visual Studio"
+  INSTALL_TYPES recommended full
+  )
+cpack_add_component(Libraries
+  DESCRIPTION "Binary libraries for development"
+  INSTALL_TYPES full dev3rd
+  )
+cpack_add_component(Source
+  DISPLAY_NAME "Source code"
+  DESCRIPTION "I2pd source code"
+  INSTALL_TYPES full
+  )
+cpack_add_component(Headers
+  DISPLAY_NAME "Header files"
+  DESCRIPTION "I2pd header files for development"
+  INSTALL_TYPES full dev3rd
+  )
+install(FILES ${MINIUPNPC_INCLUDE_DIR}/miniupnpc/miniupnpc.dll
+  DESTINATION bin
+  COMPONENT MiniUPnPc
+  OPTIONAL
+  )
+install(FILES ${MINIUPNPC_INCLUDE_DIR}/miniupnpc/LICENSE
+  DESTINATION .
+  COMPONENT MiniUPnPc
+  RENAME LICENSE_MINIUPNPC
+  OPTIONAL
+  )
+cpack_add_component(MiniUPnPc
+  INSTALL_TYPES full recommended
+  # DOWNLOADED
+  # ARCHIVE_FILE miniupnpc-win32.zip
+  )
+cpack_add_install_type(recommended DISPLAY_NAME Recommended)
+cpack_add_install_type(dev3rd DISPLAY_NAME "Third party development")
+cpack_add_install_type(full DISPLAY_NAME Full)
+cpack_add_install_type(minimal DISPLAY_NAME Minimal)
+if((WIN32 OR MSYS) AND NOT UNIX)
+  # There is a bug in NSI that does not handle full unix paths properly. Make
+  # sure there is at least one set of four (4) backlasshes.
+  set(CPACK_NSIS_DEFINES "RequestExecutionLevel user")
+  set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/../Win32\\\\ictoopie.bmp")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "bin/i2pd.exe")
+  SET(CPACK_NSIS_DISPLAY_NAME "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
+  set(CPACK_NSIS_HELP_LINK "https:\\\\\\\\github.com\\\\PurpleI2P\\\\i2pd\\\\issues")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https:\\\\\\\\github.com\\\\PurpleI2P\\\\i2pd")
+  set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Install i2pd as windows service.lnk' '$INSTDIR\\\\bin\\\\i2pd.exe' '--service=install'
+CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Remove i2pd windows service.lnk' '$INSTDIR\\\\bin\\\\i2pd.exe' '--service=remove'")
+  set(CPACK_NSIS_DELETE_ICONS_EXTRA "Delete '$SMPROGRAMS\\\\$START_MENU\\\\Install i2pd as windows service.lnk'
+Delete '$SMPROGRAMS\\\\$START_MENU\\\\Remove i2pd windows service.lnk'")
+else()
+  set(CPACK_STRIP_FILES "bin/i2pd")
+  set(CPACK_SOURCE_STRIP_FILES "")
+endif()
+set(CPACK_PACKAGE_EXECUTABLES "i2pd" "C++ I2P daemon")
+set(CPACK_SOURCE_GENERATOR "TGZ")
+include(CPack)
