@@ -123,7 +123,8 @@ namespace client
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
-			
+			void PersistTemporaryKeys ();			
+
 		private:
 
 			volatile bool m_IsRunning;

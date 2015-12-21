@@ -19,7 +19,10 @@ namespace client
 		m_Keys (keys), m_IsPublic (isPublic), m_PublishReplyToken (0),
 		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
-		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		if (m_IsPublic)	
+			PersistTemporaryKeys ();
+		else
+			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
@@ -669,6 +672,34 @@ namespace client
 			else 
 				it++;
 		}
+	}
+
+	void ClientDestination::PersistTemporaryKeys ()
+	{
+		auto path = i2p::util::filesystem::GetDefaultDataDir() / "destinations"; 
+		auto filename = path / (GetIdentHash ().ToBase32 () + ".dat");				
+		std::ifstream f(filename.string (), std::ifstream::binary);
+		if (f)	
+		{
+			f.read ((char *)m_EncryptionPublicKey, 256);
+			f.read ((char *)m_EncryptionPrivateKey, 256);
+		}
+		if (!f)
+		{
+			LogPrint (eLogInfo, "Creating new temporary keys for address ", GetIdentHash ().ToBase32 ());
+			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+			if (!boost::filesystem::exists (path))
+			{
+				if (!boost::filesystem::create_directory (path))
+					LogPrint (eLogError, "Failed to create destinations directory");
+			}
+			std::ofstream f1 (filename.string (), std::ofstream::binary | std::ofstream::out);
+			if (f1)
+			{
+				f1.write ((char *)m_EncryptionPublicKey, 256);
+				f1.write ((char *)m_EncryptionPrivateKey, 256);
+			}
+		}	
 	}
 }
 }
