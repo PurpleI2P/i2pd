@@ -135,9 +135,9 @@ install:
     && perl Configure %openssl_target% no-rc2 no-rc4 no-rc5 no-idea no-bf no-cast no-whirlpool no-md2 no-md4 no-ripemd no-mdc2 no-camellia no-seed no-comp no-krb5 no-gmp no-rfc3779 no-ec2m no-ssl2 no-jpake no-srp no-sctp no-srtp --prefix=c:\stage\OpenSSL-Win%bitness%-vc%msvc%-%type% > c:\projects\instdir\build_openssl.log
     && ( if "%x64%" == "1" ( ms\do_win64a >> c:\projects\instdir\build_openssl.log ) else ( ms\do_nasm >> c:\projects\instdir\build_openssl.log ) )
     && nmake -f ms\nt%dll%.mak install >> c:\projects\instdir\build_openssl.log 2>&1
-    && mklink /J \OpenSSL \stage\OpenSSL-Win%bitness%-vc%msvc%-%type%
     || type c:\projects\instdir\build_openssl.log
   )
+- mklink /J \OpenSSL \stage\OpenSSL-Win%bitness%-vc%msvc%-%type%
 - rem already there: mingw-w64-i686-openssl mingw-w64-i686-gcc cmake
 - if not defined msvc (
     C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -Sy bash pacman pacman-mirrors msys2-runtime msys2-runtime-devel"
