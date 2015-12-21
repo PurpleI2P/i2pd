@@ -47,10 +47,8 @@ namespace util
 		const char LAST_MODIFIED[] = "Last-Modified";
 		const char TRANSFER_ENCODING[] = "Transfer-Encoding";
 
-		std::string httpRequest(const std::string& address);
 		std::string GetHttpContent (std::istream& response);
 		void MergeChunkedResponse (std::istream& response, std::ostream& merged);
-		int httpRequestViaI2pProxy(const std::string& address, std::string &content); // return http code
 		std::string urlDecode(const std::string& data);
 		
 		struct url {

@@ -265,43 +265,6 @@ namespace filesystem
 
 namespace http
 {
-	std::string httpRequest(const std::string& address)
-	{
-		try
-		{
-			i2p::util::http::url u(address);
-			boost::asio::ip::tcp::iostream site;
-			// please don't uncomment following line because it's not compatible with boost 1.46
-			// 1.46 is default boost for Ubuntu 12.04 LTS
-			//site.expires_from_now (boost::posix_time::seconds(30));
-			if (u.port_ == 80)
-				site.connect(u.host_, "http");
-			else
-			{
-				std::stringstream ss; ss << u.port_;
-				site.connect(u.host_, ss.str());
-			}
-			if (site)
-			{
-				// User-Agent is needed to get the server list routerInfo files.
-				site << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
-				<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";
-				// read response and extract content				
-				return GetHttpContent (site);
-			}
-			else
-			{
-				LogPrint ("Can't connect to ", address);
-				return "";
-			}
-		}
-		catch (std::exception& ex)
-		{
-			LogPrint ("Failed to download ", address, " : ", ex.what ());
-			return "";
-		}
-	}
-
 	std::string GetHttpContent (std::istream& response)
 	{
 		std::string version, statusMessage;
@@ -356,65 +319,6 @@ namespace http
 			std::getline (response, hexLen); // read \r\n after chunk
 		}
 	}	
-	
-	int httpRequestViaI2pProxy(const std::string& address, std::string &content)
-	{
-		content = "";
-		try
-		{
-			boost::asio::ip::tcp::iostream site;
-			// please don't uncomment following line because it's not compatible with boost 1.46
-			// 1.46 is default boost for Ubuntu 12.04 LTS
-			//site.expires_from_now (boost::posix_time::seconds(30));
-			{
-				std::stringstream ss; ss << i2p::util::config::GetArg("-httpproxyport", 4446);
-				site.connect("127.0.0.1", ss.str());
-			}
-			if (site)
-			{
-				i2p::util::http::url u(address);
-				std::stringstream ss;
-				ss << "GET " << address << " HTTP/1.0" << std::endl;
-				ss << "Host: " << u.host_ << std::endl;
-				ss << "Accept: */*" << std::endl;
-				ss << "User - Agent: Wget / 1.11.4" << std::endl;
-				ss << "Connection: close" << std::endl;
-				ss << std::endl;
-				site << ss.str();
-
-				// read response
-				std::string version, statusMessage;
-				site >> version; // HTTP version
-				int status;
-				site >> status; // status
-				std::getline(site, statusMessage);
-				if (status == 200) // OK
-				{
-					std::string header;
-					while (std::getline(site, header) && header != "\r"){}
-					std::stringstream ss;
-					ss << site.rdbuf();
-					content = ss.str();
-					return status;
-				}
-				else
-				{
-					LogPrint("HTTP response ", status);
-					return status;
-				}
-			}
-			else
-			{
-				LogPrint("Can't connect to proxy");
-				return 408;
-			}
-		}
-		catch (std::exception& ex)
-		{
-			LogPrint("Failed to download ", address, " : ", ex.what());
-			return 408;
-		}
-	}
 	
 	url::url(const std::string& url_s)
 	{

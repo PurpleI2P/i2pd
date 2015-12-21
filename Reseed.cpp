@@ -55,7 +55,7 @@ namespace data
 	{
 		std::string url = host + "i2pseeds.su3";
 		LogPrint (eLogInfo, "Dowloading SU3 from ", host);
-		std::string su3 = https ? HttpsRequest (url) : i2p::util::http::httpRequest (url);
+		std::string su3 = HttpsRequest (url);
 		if (su3.length () > 0)
 		{
 			std::stringstream s(su3);
