@@ -48,10 +48,10 @@ namespace data
 	{
 		auto ind = rand () % httpsReseedHostList.size ();
 		std::string& reseedHost = httpsReseedHostList[ind];
-		return ReseedFromSU3 (reseedHost, true);
+		return ReseedFromSU3 (reseedHost);
 	}
 
-	int Reseeder::ReseedFromSU3 (const std::string& host, bool https)
+	int Reseeder::ReseedFromSU3 (const std::string& host)
 	{
 		std::string url = host + "i2pseeds.su3";
 		LogPrint (eLogInfo, "Dowloading SU3 from ", host);
