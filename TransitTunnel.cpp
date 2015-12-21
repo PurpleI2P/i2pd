@@ -45,7 +45,7 @@ namespace tunnel
 		{	
 			auto num = m_TunnelDataMsgs.size ();
 			if (num > 1)
-				LogPrint (eLogDebug, "TransitTunnel: ",GetTunnelID (),"->", GetNextTunnelID (), " ", num);
+				LogPrint (eLogDebug, "TransitTunnel: ", GetTunnelID (), "->", GetNextTunnelID (), " ", num);
 			i2p::transport::transports.SendMessages (GetNextIdentHash (), m_TunnelDataMsgs);
 			m_TunnelDataMsgs.clear ();
 		}	
@@ -53,12 +53,12 @@ namespace tunnel
 		
 	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{	
-		LogPrint (eLogError, "We are not a gateway for transit tunnel ", GetTunnelID ());
+		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
 	}		
 
 	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
 	{
-		LogPrint (eLogError, "Incoming tunnel message is not supported  ", GetTunnelID ());
+		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
 	}	
 		
 	void TransitTunnelGateway::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
@@ -81,7 +81,7 @@ namespace tunnel
 		auto newMsg = CreateEmptyTunnelDataMsg ();
 		EncryptTunnelMsg (tunnelMsg, newMsg);
 		
-		LogPrint (eLogDebug, "TransitTunnel endpoint for ", GetTunnelID ());
+		LogPrint (eLogDebug, "TransitTunnel: handle msg for endpoint ", GetTunnelID ());
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg); 
 	}
 		
@@ -92,12 +92,12 @@ namespace tunnel
 	{
 		if (isEndpoint)
 		{	
-			LogPrint (eLogInfo, "TransitTunnel endpoint: ", receiveTunnelID, " created");
+			LogPrint (eLogInfo, "TransitTunnel: endpoint ", receiveTunnelID, " created");
 			return new TransitTunnelEndpoint (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 		else if (isGateway)
 		{	
-			LogPrint (eLogInfo, "TransitTunnel gateway: ", receiveTunnelID, " created");
+			LogPrint (eLogInfo, "TransitTunnel: gateway ", receiveTunnelID, " created");
 			return new TransitTunnelGateway (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 		else	
