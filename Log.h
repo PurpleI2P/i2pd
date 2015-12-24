@@ -120,10 +120,4 @@ void LogPrint (LogLevel level, TArgs... args)
 	}
 }
 
-template<typename... TArgs>
-void LogPrint (TArgs... args) 
-{
-	LogPrint (eLogInfo, args...);
-}	
-
 #endif

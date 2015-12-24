@@ -61,7 +61,7 @@ namespace client
 		std::shared_ptr<AddressReceiver> receiver)
 	{
 		if (ecode)
-			LogPrint ("BOB inbound tunnel read error: ", ecode.message ());
+			LogPrint (eLogError, "BOB: inbound tunnel read error: ", ecode.message ());
 		else
 		{
 			receiver->bufferOffset += bytes_transferred;
@@ -76,7 +76,7 @@ namespace client
 				i2p::data::IdentHash ident;
 				if (!context.GetAddressBook ().GetIdentHash (receiver->buffer, ident)) 
 				{
-					LogPrint (eLogError, "BOB address ", receiver->buffer, " not found");
+					LogPrint (eLogError, "BOB: address ", receiver->buffer, " not found");
 					return;
 				}
 				auto leaseSet = GetLocalDestination ()->FindLeaseSet (ident);
@@ -92,7 +92,7 @@ namespace client
 				if (receiver->bufferOffset < BOB_COMMAND_BUFFER_SIZE)
 					ReceiveAddress (receiver);
 				else
-					LogPrint ("BOB missing inbound address ");
+					LogPrint (eLogError, "BOB: missing inbound address");
 			}			
 		}
 	}
@@ -102,12 +102,12 @@ namespace client
 		if (leaseSet)
 			CreateConnection (receiver, leaseSet);
 		else
-			LogPrint ("LeaseSet for BOB inbound destination not found");
+			LogPrint (eLogError, "BOB: LeaseSet for inbound destination not found");
 	}	
 
 	void BOBI2PInboundTunnel::CreateConnection (std::shared_ptr<AddressReceiver> receiver, std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
 	{
-		LogPrint ("New BOB inbound connection");
+		LogPrint (eLogDebug, "BOB: New inbound connection");
 		auto connection = std::make_shared<I2PTunnelConnection>(this, receiver->socket, leaseSet);
 		AddHandler (connection);
 		connection->I2PConnect (receiver->data, receiver->dataLen);
@@ -135,7 +135,7 @@ namespace client
 		if (localDestination)
 			localDestination->AcceptStreams (std::bind (&BOBI2POutboundTunnel::HandleAccept, this, std::placeholders::_1));
 		else
-			LogPrint ("Local destination not set for server tunnel");
+			LogPrint (eLogError, "BOB: Local destination not set for server tunnel");
 	}
 
 	void BOBI2POutboundTunnel::HandleAccept (std::shared_ptr<i2p::stream::Stream> stream)
@@ -229,7 +229,7 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint ("BOB command channel read error: ", ecode.message ());
+			LogPrint (eLogError, "BOB: command channel read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}	
@@ -256,7 +256,7 @@ namespace client
 					(this->*(it->second))(operand, eol - operand);
 				else	
 				{
-					LogPrint (eLogError, "BOB unknown command ", m_ReceiveBuffer);
+					LogPrint (eLogError, "BOB: unknown command ", m_ReceiveBuffer);
 					SendReplyError ("unknown command");
 				}
 
@@ -269,7 +269,7 @@ namespace client
 					m_ReceiveBufferOffset = size;
 				else
 				{
-					LogPrint (eLogError, "Malformed input of the BOB command channel");
+					LogPrint (eLogError, "BOB: Malformed input of the command channel");
 					Terminate ();
 				}
 			}	
@@ -288,7 +288,7 @@ namespace client
 	{
 		if (ecode)
         {
-			LogPrint ("BOB command channel send error: ", ecode.message ());
+			LogPrint (eLogError, "BOB: command channel send error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -589,7 +589,7 @@ namespace client
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "BOB: ", ex.what ());
+				LogPrint (eLogError, "BOB: runtime exception: ", ex.what ());
 			}	
 		}	
 	}
@@ -632,11 +632,11 @@ namespace client
 
 		if (!ecode)
 		{
-			LogPrint (eLogInfo, "New BOB command connection from ", session->GetSocket ().remote_endpoint ());
+			LogPrint (eLogInfo, "BOB: New command connection from ", session->GetSocket ().remote_endpoint ());
 			session->SendVersion ();	
 		}
 		else
-			LogPrint (eLogError, "BOB accept error: ",  ecode.message ());
+			LogPrint (eLogError, "BOB: accept error: ",  ecode.message ());
 	}
 }
 }

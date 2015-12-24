@@ -255,8 +255,11 @@ namespace i2p
 			auto mtu = i2p::util::net::GetMTU (host);
 			if (mtu)
 			{	
-				LogPrint ("Our v6 MTU=", mtu);
-				if (mtu > 1472) mtu = 1472; 
+				LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
+				if (mtu > 1472) { // TODO: magic constant
+					mtu = 1472;
+					LogPrint(eLogWarning, "Router: MTU dropped to upper limit of 1472 bytes");
+				}
 			}	
 			m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu ? mtu : 1472); // TODO
 			updated = true;

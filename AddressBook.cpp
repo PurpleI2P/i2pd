@@ -152,10 +152,10 @@ namespace client
 					num++;
 				}		
 			}
-			LogPrint (eLogInfo, num, " addresses loaded");
+			LogPrint (eLogInfo, "Addressbook: ", num, " addresses loaded");
 		}
 		else
-			LogPrint (eLogWarning, filename, " not found");
+			LogPrint (eLogWarning, "Addressbook: ", filename, " not found");
 		return num;
 	}
 
@@ -171,7 +171,7 @@ namespace client
 				f << it.first << "," << it.second.ToBase32 () << std::endl;
 				num++;
 			}
-			LogPrint (eLogInfo, num, " addresses saved");
+			LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		}
 		else	
 			LogPrint (eLogError, "Can't open file ", filename);	
@@ -290,7 +290,7 @@ namespace client
 			 m_Storage = CreateStorage ();
 		m_Storage->AddAddress (ident);
 		m_Addresses[address] = ident->GetIdentHash ();
-		LogPrint (address,"->", ToAddress(ident->GetIdentHash ()), " added");
+		LogPrint (eLogInfo, "Addressbook: ", address,"->", ToAddress(ident->GetIdentHash ()), " added");
 	}
 
 	void AddressBook::InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
@@ -476,7 +476,7 @@ namespace client
 	void AddressBookSubscription::Request ()
 	{
 		// must be run in separate thread	
-		LogPrint (eLogInfo, "Downloading hosts from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+		LogPrint (eLogInfo, "Downloading hosts database from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 		bool success = false;	
 		i2p::util::http::url u (m_Link);
 		i2p::data::IdentHash ident;
@@ -591,7 +591,10 @@ namespace client
 		}
 		else
 			LogPrint (eLogError, "Can't resolve ", u.host_);
-		LogPrint (eLogInfo, "Download complete ", success ? "Success" : "Failed");
+
+		if (!success)
+			LogPrint (eLogError, "Addressbook download failed");
+
 		m_Book.DownloadComplete (success);
 	}
 }

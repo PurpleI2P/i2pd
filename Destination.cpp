@@ -37,7 +37,7 @@ namespace client
 				if (len > 0)
 				{
 					inboundTunnelLen = len;
-					LogPrint (eLogInfo, "Inbound tunnel length set to ", len);
+					LogPrint (eLogInfo, "Destination: Inbound tunnel length set to ", len);
 				}
 			}	
 			it = params->find (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
@@ -47,7 +47,7 @@ namespace client
 				if (len > 0)
 				{
 					outboundTunnelLen = len;
-					LogPrint (eLogInfo, "Outbound tunnel length set to ", len);
+					LogPrint (eLogInfo, "Destination: Outbound tunnel length set to ", len);
 				}
 			}	
 			it = params->find (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
@@ -57,7 +57,7 @@ namespace client
 				if (quantity > 0)
 				{
 					inboundTunnelsQuantity = quantity;
-					LogPrint (eLogInfo, "Inbound tunnels quantity set to ", quantity);
+					LogPrint (eLogInfo, "Destination: Inbound tunnels quantity set to ", quantity);
 				}	
 			}
 			it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
@@ -67,7 +67,7 @@ namespace client
 				if (quantity > 0)
 				{
 					outboundTunnelsQuantity = quantity;
-					LogPrint (eLogInfo, "Outbound tunnels quantity set to ", quantity);
+					LogPrint (eLogInfo, "Destination: Outbound tunnels quantity set to ", quantity);
 				}	
 			}
 			it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
@@ -82,14 +82,14 @@ namespace client
 					ident.FromBase64 (b64);
 					explicitPeers->push_back (ident);
 				}
-				LogPrint (eLogInfo, "Explicit peers set to ", it->second);
+				LogPrint (eLogInfo, "Destination: Explicit peers set to ", it->second);
 			}
 		}	
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
 		if (m_IsPublic)
-			LogPrint (eLogInfo, "Local address ", GetIdentHash().ToBase32 (), " created");		
+			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 	}
 
 	ClientDestination::~ClientDestination ()
@@ -115,7 +115,7 @@ namespace client
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint ("Destination: ", ex.what ());
+				LogPrint (eLogError, "Destination: runtime exception: ", ex.what ());
 			}	
 		}	
 	}	
@@ -178,7 +178,7 @@ namespace client
 			if (it->second->HasNonExpiredLeases ())
 				return it->second;
 			else
-				LogPrint ("All leases of remote LeaseSet expired");
+				LogPrint (eLogWarning, "Destination: All leases of remote LeaseSet expired");
 		}	
 		else
 		{	
@@ -259,7 +259,7 @@ namespace client
 		size_t offset = DATABASE_STORE_HEADER_SIZE;
 		if (replyToken) 
 		{
-			LogPrint (eLogInfo, "Reply token is ignored for DatabaseStore");
+			LogPrint (eLogInfo, "Destination: Reply token is ignored for DatabaseStore");
 			offset += 36;
 		}
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
@@ -296,7 +296,7 @@ namespace client
 			}	
 		}	
 		else
-			LogPrint (eLogError, "Unexpected client's DatabaseStore type ", buf[DATABASE_STORE_TYPE_OFFSET], ". Dropped");
+			LogPrint (eLogError, "Destination: Unexpected client's DatabaseStore type ", buf[DATABASE_STORE_TYPE_OFFSET], ", dropped");
 		
 		auto it1 = m_LeaseSetRequests.find (buf + DATABASE_STORE_KEY_OFFSET);
 		if (it1 != m_LeaseSetRequests.end ())
@@ -311,7 +311,7 @@ namespace client
 	{
 		i2p::data::IdentHash key (buf);
 		int num = buf[32]; // num
-		LogPrint ("DatabaseSearchReply for ", key.ToBase64 (), " num=", num);
+		LogPrint (eLogDebug, "Destination: DatabaseSearchReply for ", key.ToBase64 (), " num=", num);
 		auto it = m_LeaseSetRequests.find (key);
 		if (it != m_LeaseSetRequests.end ())
 		{
@@ -325,21 +325,21 @@ namespace client
 					auto floodfill = i2p::data::netdb.FindRouter (peerHash);
 					if (floodfill)
 					{
-						LogPrint (eLogInfo, "Requesting ", key.ToBase64 (), " at ", peerHash.ToBase64 ());
+						LogPrint (eLogInfo, "Destination: Requesting ", key.ToBase64 (), " at ", peerHash.ToBase64 ());
 						if (SendLeaseSetRequest (key, floodfill, request))
 							found = true;
 					}	
 					else
 					{	
-						LogPrint (eLogInfo, "Found new floodfill. Request it");
+						LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); // TODO: recheck this message
 						i2p::data::netdb.RequestDestination (peerHash);
 					}	
 				}
 				if (!found)
-					LogPrint (eLogError, "Suggested floodfills are not presented in netDb"); 
+					LogPrint (eLogError, "Destination: Suggested floodfills are not presented in netDb");
 			}	
 			else
-				LogPrint (eLogInfo, key.ToBase64 (), " was not found on ",  MAX_NUM_FLOODFILLS_PER_REQUEST," floodfills");
+				LogPrint (eLogInfo, "Destination: ", key.ToBase64 (), " was not found on ", MAX_NUM_FLOODFILLS_PER_REQUEST, " floodfills");
 			if (!found)
 			{
 				if (request->requestComplete) request->requestComplete (nullptr);
@@ -347,7 +347,7 @@ namespace client
 			}	
 		}	
 		else	
-			LogPrint ("Request for ", key.ToBase64 (), " not found");
+			LogPrint (eLogWarning, "Destination: Request for ", key.ToBase64 (), " not found");
 	}	
 		
 	void ClientDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
@@ -355,7 +355,7 @@ namespace client
 		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
 		if (msgID == m_PublishReplyToken)
 		{
-			LogPrint (eLogDebug, "Publishing confirmed");
+			LogPrint (eLogDebug, "Destination: Publishing LeaseSet confirmed");
 			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
 		}
@@ -375,30 +375,30 @@ namespace client
 	{	
 		if (!m_LeaseSet || !m_Pool) 
 		{
-			LogPrint (eLogError, "Can't publish non-existing LeaseSet");
+			LogPrint (eLogError, "Destination: Can't publish non-existing LeaseSet");
 			return;
 		}
 		if (m_PublishReplyToken)
 		{
-			LogPrint (eLogInfo, "Publishing is pending");
+			LogPrint (eLogDebug, "Destination: Publishing LeaseSet is pending");
 			return;
 		}
 		auto outbound = m_Pool->GetNextOutboundTunnel ();
 		if (!outbound)
 		{
-			LogPrint ("Can't publish LeaseSet. No outbound tunnels");
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
 			return;
 		}
 		std::set<i2p::data::IdentHash> excluded; 
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (m_LeaseSet->GetIdentHash (), m_ExcludedFloodfills);	
 		if (!floodfill)
 		{
-			LogPrint ("Can't publish LeaseSet. No more floodfills found");
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet, no more floodfills found");
 			m_ExcludedFloodfills.clear ();
 			return;
 		}	
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
-		LogPrint (eLogDebug, "Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
+		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
 		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));			
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
@@ -413,7 +413,7 @@ namespace client
 		{	
 			if (m_PublishReplyToken)
 			{
-				LogPrint (eLogWarning, "Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT,  "seconds. Try again");
+				LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT,  " seconds, will try again");
 				m_PublishReplyToken = 0;
 				Publish ();
 			}
@@ -436,7 +436,7 @@ namespace client
 				if (dest)
 					dest->HandleDataMessagePayload (buf, length);
 				else
-					LogPrint ("Missing streaming destination");
+					LogPrint (eLogError, "Destination: Missing streaming destination");
 			}
 			break;
 			case PROTOCOL_TYPE_DATAGRAM:
@@ -444,10 +444,10 @@ namespace client
 				if (m_DatagramDestination)
 					m_DatagramDestination->HandleDataMessagePayload (fromPort, toPort, buf, length);
 				else
-					LogPrint ("Missing streaming destination");
+					LogPrint (eLogError, "Destination: Missing datagram destination");
 			break;
 			default:
-				LogPrint ("Data: unexpected protocol ", buf[9]);
+				LogPrint (eLogError, "Destination: Data: unexpected protocol ", buf[9]);
 		}
 	}	
 
@@ -567,23 +567,23 @@ namespace client
 			}	
 			else // duplicate
 			{
-				LogPrint (eLogError, "Request of ", dest.ToBase64 (), " is pending already");
+				LogPrint (eLogWarning, "Destination: Request of LeaseSet ", dest.ToBase64 (), " is pending already");
 				// TODO: queue up requests
 				if (request->requestComplete) request->requestComplete (nullptr);
 			}	
 		}	
 		else
-			LogPrint (eLogError, "No floodfills found");	
+			LogPrint (eLogError, "Destination: Can't request LeaseSet, no floodfills found");
 	}	
 		
 	bool ClientDestination::SendLeaseSetRequest (const i2p::data::IdentHash& dest, 
 		std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request)
 	{
 		auto replyTunnel = m_Pool->GetNextInboundTunnel ();
-		if (!replyTunnel) LogPrint (eLogError, "No inbound tunnels found");	
+		if (!replyTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no inbound tunnels found");
 		
 		auto outboundTunnel = m_Pool->GetNextOutboundTunnel ();
-		if (!outboundTunnel) LogPrint (eLogError, "No outbound tunnels found");		
+		if (!outboundTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no outbound tunnels found");
 			
 		if (replyTunnel && outboundTunnel)
 		{	
@@ -635,7 +635,7 @@ namespace client
 				}
 				else
 				{	
-					LogPrint (eLogInfo, dest.ToBase64 (), " was not found within ",  MAX_LEASESET_REQUEST_TIMEOUT, " seconds");
+					LogPrint (eLogWarning, "Destination: ", dest.ToBase64 (), " was not found within ",  MAX_LEASESET_REQUEST_TIMEOUT, " seconds");
 					done = true;
 				}
 				
@@ -666,7 +666,7 @@ namespace client
 		{
 			if (!it->second->HasNonExpiredLeases ()) // all leases expired
 			{
-				LogPrint ("Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				LogPrint (eLogWarning, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_RemoteLeaseSets.erase (it);
 			}	
 			else 

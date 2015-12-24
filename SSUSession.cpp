@@ -70,7 +70,7 @@ namespace transport
 				nonZero++;
 				if (nonZero - sharedKey > 32)
 				{
-					LogPrint ("First 32 bytes of shared key is all zeros. Ignored");
+					LogPrint (eLogWarning, "SSU: first 32 bytes of shared key is all zeros. Ignored");
 					return;
 				}	
 			}
@@ -90,7 +90,7 @@ namespace transport
 		if (m_State == eSessionStateIntroduced)
 		{
 			// HolePunch received
-			LogPrint ("SSU HolePunch of ", len, " bytes received");
+			LogPrint (eLogDebug, "SSU: HolePunch of ", len, " bytes received");
 			m_State = eSessionStateUnknown;
 			Connect ();
 		}
@@ -120,7 +120,7 @@ namespace transport
 						Decrypt (buf, len, address->key);
 					else
 					{
-						LogPrint (eLogError, "MAC verification failed ", len, " bytes from ", senderEndpoint);
+						LogPrint (eLogError, "SSU: MAC verification failed ", len, " bytes from ", senderEndpoint);
 						m_Server.DeleteSession (shared_from_this ()); 
 						return;
 					}	
@@ -166,12 +166,12 @@ namespace transport
 				ProcessSessionConfirmed (buf, len); // buf with header
 			break;	
 			case PAYLOAD_TYPE_PEER_TEST:
-				LogPrint (eLogDebug, "SSU peer test received");
+				LogPrint (eLogDebug, "SSU: peer test received");
 				ProcessPeerTest (buf + headerSize, len - headerSize, senderEndpoint);
 			break;
 			case PAYLOAD_TYPE_SESSION_DESTROYED:
 			{
-				LogPrint (eLogDebug, "SSU session destroy received");
+				LogPrint (eLogDebug, "SSU: session destroy received");
 				m_Server.DeleteSession (shared_from_this ()); 
 				break;
 			}	
@@ -181,21 +181,21 @@ namespace transport
 					m_Server.DeleteSession (shared_from_this ());
 			break;
 			case PAYLOAD_TYPE_RELAY_REQUEST:
-				LogPrint (eLogDebug, "SSU relay request received");
+				LogPrint (eLogDebug, "SSU: relay request received");
 				ProcessRelayRequest (buf + headerSize, len - headerSize, senderEndpoint);
 			break;
 			case PAYLOAD_TYPE_RELAY_INTRO:
-				LogPrint (eLogDebug, "SSU relay intro received");
+				LogPrint (eLogDebug, "SSU: relay intro received");
 				ProcessRelayIntro (buf + headerSize, len - headerSize);
 			break;
 			default:
-				LogPrint (eLogWarning, "Unexpected SSU payload type ", (int)header->GetPayloadType ());
+				LogPrint (eLogWarning, "SSU: Unexpected payload type ", (int)header->GetPayloadType ());
 		}
 	}
 
 	void SSUSession::ProcessSessionRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
-		LogPrint (eLogDebug, "Session request received");	
+		LogPrint (eLogDebug, "SSU message: session request");
 		m_RemoteEndpoint = senderEndpoint;
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
@@ -207,11 +207,11 @@ namespace transport
 	{
 		if (!IsOutgoing () || !m_DHKeysPair)
 		{
-			LogPrint (eLogWarning, "Unsolicited session created message");
+			LogPrint (eLogWarning, "SSU: Unsolicited session created message");
 			return;
 		}
 
-		LogPrint (eLogDebug, "Session created received");	
+		LogPrint (eLogDebug, "SSU message: session created");
 		m_Timer.cancel (); // connect timer
 		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
 		auto headerSize = GetSSUHeaderSize (buf);	
@@ -247,7 +247,7 @@ namespace transport
 		uint16_t ourPort = bufbe16toh (payload);
 		s.Insert (payload, 2); // our port
 		payload += 2; // port
-		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
+		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
 		if (m_RemoteEndpoint.address ().is_v4 ())
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
@@ -267,18 +267,18 @@ namespace transport
 		m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload); // TODO: non-const payload
 		// verify
 		if (!s.Verify (m_RemoteIdentity, payload))
-			LogPrint (eLogError, "Session created SSU signature verification failed");
+			LogPrint (eLogError, "SSU: message 'created' signature verification failed");
 		
 		SendSessionConfirmed (y, ourAddress, addressSize + 2);
 	}	
 
 	void SSUSession::ProcessSessionConfirmed (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "Session confirmed received");	
+		LogPrint (eLogDebug, "SSU: Session confirmed received");	
 		auto headerSize = GetSSUHeaderSize (buf);	
 		if (headerSize >= len)
 		{
-			LogPrint (eLogError, "Session confirmed header size ", len, " exceeds packet length ", len);
+			LogPrint (eLogError, "SSU: Session confirmed header size ", len, " exceeds packet length ", len);
 			return;	
 		}	
 		const uint8_t * payload = buf + headerSize;
@@ -297,7 +297,7 @@ namespace transport
 		payload += paddingSize;
 		// verify
 		if (m_SignedData && !m_SignedData->Verify (m_RemoteIdentity, payload))
-			LogPrint (eLogError, "Session confirmed SSU signature verification failed");
+			LogPrint (eLogError, "SSU message 'confirmed' signature verification failed");
 		m_Data.Send (CreateDeliveryStatusMsg (0));
 		Established ();
 	}
@@ -508,7 +508,7 @@ namespace transport
 		// Charlie's address always v4
 		if (!to.address ().is_v4 ())
 		{
-			LogPrint (eLogError, "Charlie's IP must be v4");
+			LogPrint (eLogError, "SSU: Charlie's IP must be v4");
 			return;
 		}
 		*payload = 4;
@@ -551,7 +551,7 @@ namespace transport
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_RESPONSE, buf, isV4 ? 64 : 80, introKey, iv, introKey);
 			m_Server.Send (buf, isV4 ? 64 : 80, from);
 		}	
-		LogPrint (eLogDebug, "SSU relay response sent");
+		LogPrint (eLogDebug, "SSU: relay response sent");
 	}	
 
 	void SSUSession::SendRelayIntro (std::shared_ptr<SSUSession> session, const boost::asio::ip::udp::endpoint& from)
@@ -560,7 +560,7 @@ namespace transport
 		// Alice's address always v4
 		if (!from.address ().is_v4 ())
 		{
-			LogPrint (eLogError, "Alice's IP must be v4");
+			LogPrint (eLogError, "SSU: Alice's IP must be v4");
 			return;
 		}	
 		uint8_t buf[48 + 18];
@@ -576,12 +576,12 @@ namespace transport
 		RAND_bytes (iv, 16); // random iv
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, 48, session->m_SessionKey, iv, session->m_MacKey);
 		m_Server.Send (buf, 48, session->m_RemoteEndpoint);
-		LogPrint (eLogDebug, "SSU relay intro sent");
+		LogPrint (eLogDebug, "SSU: relay intro sent");
 	}
 	
 	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t len)
 	{
-		LogPrint (eLogDebug, "Relay response received");		
+		LogPrint (eLogDebug, "SSU message: Relay response received");		
 		uint8_t remoteSize = *buf; 
 		buf++; // remote size
 		boost::asio::ip::address_v4 remoteIP (bufbe32toh (buf));
@@ -606,7 +606,7 @@ namespace transport
 		buf += ourSize; // our address
 		uint16_t ourPort = bufbe16toh (buf);
 		buf += 2; // our port
-		LogPrint ("Our external address is ", ourIP.to_string (), ":", ourPort);
+		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
 		i2p::context.UpdateAddress (ourIP);
 		uint32_t nonce = bufbe32toh (buf);
 		buf += 4; // nonce
@@ -619,7 +619,7 @@ namespace transport
 			{
 				// we didn't have correct endpoint when sent relay request
 				// now we do
-				LogPrint (eLogInfo, "RelayReponse connecting to endpoint ", remoteEndpoint);
+				LogPrint (eLogInfo, "SSU: RelayReponse connecting to endpoint ", remoteEndpoint);
 				if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
 					m_Server.Send (buf, 0, remoteEndpoint); // send HolePunch
 				m_Server.CreateDirectSession (it->second, remoteEndpoint, false);
@@ -628,7 +628,7 @@ namespace transport
 			m_RelayRequests.erase (it);
 		}	
 		else
-			LogPrint (eLogError, "Unsolicited RelayResponse, nonce=", nonce);
+			LogPrint (eLogError, "SSU: Unsolicited RelayResponse, nonce=", nonce);
 	}
 
 	void SSUSession::ProcessRelayIntro (const uint8_t * buf, size_t len)
@@ -644,7 +644,7 @@ namespace transport
 			m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (address, port));
 		}
 		else
-			LogPrint (eLogWarning, "Address size ", size, " is not supported"); 	
+			LogPrint (eLogWarning, "SSU: Address size ", size, " is not supported");
 	}		
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, 
@@ -652,7 +652,7 @@ namespace transport
 	{	
 		if (len < sizeof (SSUHeader))
 		{
-			LogPrint (eLogError, "Unexpected SSU packet length ", len);
+			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
 		}
 		//TODO: we are using a dirty solution here but should work for now
@@ -676,7 +676,7 @@ namespace transport
 	{
 		if (len < sizeof (SSUHeader))
 		{
-			LogPrint (eLogError, "Unexpected SSU packet length ", len);
+			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
 		}
 		//TODO: we are using a dirty solution here but should work for now
@@ -698,7 +698,7 @@ namespace transport
 	{
 		if (len < sizeof (SSUHeader))
 		{
-			LogPrint (eLogError, "Unexpected SSU packet length ", len);
+			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
 		}
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
@@ -715,7 +715,7 @@ namespace transport
 	{
 		if (len < sizeof (SSUHeader))
 		{
-			LogPrint (eLogError, "Unexpected SSU packet length ", len);
+			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
 		}
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
@@ -733,7 +733,7 @@ namespace transport
 	{
 		if (len < sizeof (SSUHeader))
 		{
-			LogPrint (eLogError, "Unexpected SSU packet length ", len);
+			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return false;
 		}
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
@@ -764,7 +764,7 @@ namespace transport
 		if (!IsOutgoing ()) // incoming session
 			ScheduleConnectTimer ();
 		else
-			LogPrint (eLogError, "SSU wait for connect for outgoing session");	
+			LogPrint (eLogError, "SSU: wait for connect for outgoing session");
 	}
 
 	void SSUSession::ScheduleConnectTimer ()
@@ -780,7 +780,7 @@ namespace transport
 		if (!ecode)
 		{
 			// timeout expired
-			LogPrint ("SSU session was not established after ", SSU_CONNECT_TIMEOUT, " second");
+			LogPrint (eLogWarning, "SSU: session was not established after ", SSU_CONNECT_TIMEOUT, " seconds");
 			Failed ();
 		}	
 	}	
@@ -858,7 +858,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint ("SSU no activity fo ", SSU_TERMINATION_TIMEOUT, " seconds");
+			LogPrint (eLogInfo, "SSU: no activity for", SSU_TERMINATION_TIMEOUT, " seconds");
 			Failed ();
 		}	
 	}	
@@ -902,7 +902,7 @@ namespace transport
 		const uint8_t * introKey = buf + size + 7;
 		if (port && !address)
 		{
-			LogPrint (eLogWarning, "Address of ", size, " bytes not supported");	
+			LogPrint (eLogWarning, "SSU: Address of ", size, " bytes not supported");
 			return;
 		}	
 		switch (m_Server.GetPeerTestParticipant (nonce))
@@ -912,13 +912,13 @@ namespace transport
 			{			
 				if (m_State == eSessionStateEstablished)
 				{
-					LogPrint (eLogDebug, "SSU peer test from Bob. We are Alice");
+					LogPrint (eLogDebug, "SSU: peer test from Bob. We are Alice");
 					if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
 						i2p::context.SetStatus (eRouterStatusFirewalled);
 				}
 				else
 				{
-					LogPrint (eLogDebug, "SSU first peer test from Charlie. We are Alice");
+					LogPrint (eLogDebug, "SSU: first peer test from Charlie. We are Alice");
 					i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
 					SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (), 
@@ -929,11 +929,11 @@ namespace transport
 			case ePeerTestParticipantAlice2:
 			{
 				if (m_State == eSessionStateEstablished)
-					LogPrint (eLogDebug, "SSU peer test from Bob. We are Alice");
+					LogPrint (eLogDebug, "SSU: peer test from Bob. We are Alice");
 				else
 				{
 					// peer test successive
-					LogPrint (eLogDebug, "SSU second peer test from Charlie. We are Alice");
+					LogPrint (eLogDebug, "SSU: second peer test from Charlie. We are Alice");
 					i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.RemovePeerTest (nonce);
 				}
@@ -941,7 +941,7 @@ namespace transport
 			}	
 			case ePeerTestParticipantBob: 
 			{
-				LogPrint (eLogDebug, "SSU peer test from Charlie. We are Bob");
+				LogPrint (eLogDebug, "SSU: peer test from Charlie. We are Bob");
 				auto session = m_Server.GetPeerTestSession (nonce); // session with Alice from PeerTest
 				if (session && session->m_State == eSessionStateEstablished)
 					session->Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Alice
@@ -950,7 +950,7 @@ namespace transport
 			}
 			case ePeerTestParticipantCharlie:
 			{	
-				LogPrint (eLogDebug, "SSU peer test from Alice. We are Charlie");
+				LogPrint (eLogDebug, "SSU: peer test from Alice. We are Charlie");
 				SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
 					senderEndpoint.port (), introKey); // to Alice with her actual address
 				m_Server.RemovePeerTest (nonce); // nonce has been used
@@ -964,14 +964,14 @@ namespace transport
 					// new test
 					if (port)
 					{
-						LogPrint (eLogDebug, "SSU peer test from Bob. We are Charlie");
+						LogPrint (eLogDebug, "SSU: peer test from Bob. We are Charlie");
 						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
 						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
 						SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice with her address received from Bob
 					}
 					else
 					{
-						LogPrint (eLogDebug, "SSU peer test from Alice. We are Bob");
+						LogPrint (eLogDebug, "SSU: peer test from Alice. We are Bob");
 						auto session = m_Server.GetRandomEstablishedV4Session (shared_from_this ()); // Charlie, TODO: implement v6 support
 						if (session)
 						{
@@ -982,7 +982,7 @@ namespace transport
 					}
 				}
 				else
-					LogPrint (eLogError, "SSU unexpected peer test");	
+					LogPrint (eLogError, "SSU: unexpected peer test");
 			}
 		}	
 	}
@@ -1045,7 +1045,7 @@ namespace transport
 	void SSUSession::SendPeerTest ()
 	{
 		// we are Alice
-		LogPrint (eLogDebug, "SSU sending peer test");
+		LogPrint (eLogDebug, "SSU: sending peer test");
 		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 		if (!address)
 		{
@@ -1072,7 +1072,7 @@ namespace transport
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
 			Send (buf, 48);
-			LogPrint (eLogDebug, "SSU keep-alive sent");
+			LogPrint (eLogDebug, "SSU: keep-alive sent");
 			ScheduleTermination ();
 		}	
 	}
@@ -1090,9 +1090,9 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU send session destoriyed exception ", ex.what ()); 
+				LogPrint (eLogError, "SSU: exception while send session destoriyed: ", ex.what ());
 			}
-			LogPrint (eLogDebug, "SSU session destroyed sent");
+			LogPrint (eLogDebug, "SSU: session destroyed sent");
 		}
 	}	
 
@@ -1104,7 +1104,7 @@ namespace transport
 		if (paddingSize > 0) msgSize += (16 - paddingSize);
 		if (msgSize > SSU_MTU_V4)
 		{
-			LogPrint (eLogWarning, "SSU payload size ", msgSize, " exceeds MTU");
+			LogPrint (eLogWarning, "SSU: payload size ", msgSize, " exceeds MTU");
 			return;
 		} 
 		memcpy (buf + sizeof (SSUHeader), payload, len);

@@ -49,7 +49,7 @@ void Log::SetLogFile (const std::string& fullFilePath)
 	if (logFile->is_open ())
 	{
 		SetLogStream (logFile);
-		LogPrint("Logging to file ",  fullFilePath, " enabled.");
+		LogPrint(eLogInfo, "Log: will send messages to ",  fullFilePath);
 	}	
 	else
 		delete logFile;

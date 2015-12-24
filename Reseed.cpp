@@ -54,7 +54,7 @@ namespace data
 	int Reseeder::ReseedFromSU3 (const std::string& host)
 	{
 		std::string url = host + "i2pseeds.su3";
-		LogPrint (eLogInfo, "Dowloading SU3 from ", host);
+		LogPrint (eLogInfo, "Reseed: Downloading SU3 from ", host);
 		std::string su3 = HttpsRequest (url);
 		if (su3.length () > 0)
 		{
@@ -63,7 +63,7 @@ namespace data
 		}
 		else
 		{
-			LogPrint (eLogWarning, "SU3 download failed");
+			LogPrint (eLogWarning, "Reseed: SU3 download failed");
 			return 0;
 		}
 	}
@@ -75,7 +75,7 @@ namespace data
 			return ProcessSU3Stream (s);
 		else
 		{
-			LogPrint (eLogError, "Can't open file ", filename);
+			LogPrint (eLogError, "Reseed: Can't open file ", filename);
 			return 0;
 		}
 	}
@@ -90,7 +90,7 @@ namespace data
 		s.read (magicNumber, 7); // magic number and zero byte 6
 		if (strcmp (magicNumber, SU3_MAGIC_NUMBER))
 		{
-			LogPrint (eLogError, "Unexpected SU3 magic number");	
+			LogPrint (eLogError, "Reseed: Unexpected SU3 magic number");
 			return 0;
 		}			
 		s.seekg (1, std::ios::cur); // su3 file format version
@@ -114,7 +114,7 @@ namespace data
 		s.read ((char *)&fileType, 1);  // file type	
 		if (fileType != 0x00) //  zip file
 		{
-			LogPrint (eLogError, "Can't handle file type ", (int)fileType);	
+			LogPrint (eLogError, "Reseed: Can't handle file type ", (int)fileType);
 			return 0;
 		}
 		s.seekg (1, std::ios::cur); // unused
@@ -122,7 +122,7 @@ namespace data
 		s.read ((char *)&contentType, 1);  // content type	
 		if (contentType != 0x03) // reseed data
 		{
-			LogPrint (eLogError, "Unexpected content type ", (int)contentType);	
+			LogPrint (eLogError, "Reseed: Unexpected content type ", (int)contentType);
 			return 0;
 		}
 		s.seekg (12, std::ios::cur); // unused
@@ -162,7 +162,7 @@ namespace data
 					// digest is right aligned
 					// we can't use RSA_verify due wrong padding in SU3
 					if (memcmp (enSigBuf + (signatureLength - 64), digest, 64))
-						LogPrint (eLogWarning, "SU3 signature verification failed");
+						LogPrint (eLogWarning, "Reseed: SU3 signature verification failed");
 					delete[] enSigBuf;
 					BN_free (s); BN_free (n);
 					BN_CTX_free (bnctx);
@@ -173,10 +173,10 @@ namespace data
 				s.seekg (pos, std::ios::beg);
 			}
 			else
-				LogPrint (eLogWarning, "Signature type ", signatureType, " is not supported");
+				LogPrint (eLogWarning, "Reseed: Signature type ", signatureType, " is not supported");
 		}
 		else
-			LogPrint (eLogWarning, "Certificate for ", signerID, " not loaded");
+			LogPrint (eLogWarning, "Reseed: Certificate for ", signerID, " not loaded");
 		
 		// handle content
 		int numFiles = 0;
@@ -220,7 +220,7 @@ namespace data
 					size_t pos = s.tellg ();
 					if (!FindZipDataDescriptor (s))
 					{
-						LogPrint (eLogError, "SU3 archive data descriptor not found");
+						LogPrint (eLogError, "Reseed: SU3 archive data descriptor not found");
 						return numFiles;
 					}									
 					s.read ((char *)&crc_32, 4);	
@@ -234,10 +234,10 @@ namespace data
 					s.seekg (pos, std::ios::beg); // back to compressed data
 				}
 
-				LogPrint (eLogDebug, "Proccessing file ", localFileName, " ", compressedSize, " bytes");
+				LogPrint (eLogDebug, "Reseed: Proccessing file ", localFileName, " ", compressedSize, " bytes");
 				if (!compressedSize)
 				{
-					LogPrint (eLogWarning, "Unexpected size 0. Skipped");
+					LogPrint (eLogWarning, "Reseed: Unexpected size 0. Skipped");
 					continue;
 				}	
 				
@@ -263,10 +263,10 @@ namespace data
 							numFiles++;
 						}	
 						else
-							LogPrint (eLogError, "CRC32 verification failed");
+							LogPrint (eLogError, "Reseed: CRC32 verification failed");
 					}	
 					else
-						LogPrint (eLogError, "decompression error ", err);    
+						LogPrint (eLogError, "Reseed: SU3 decompression error ", err);
 					delete[] uncompressed;      
 					inflateEnd (&inflator);
 				}
@@ -282,7 +282,7 @@ namespace data
 			else
 			{
 				if (signature != ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE)
-					LogPrint (eLogWarning, "Missing zip central directory header");
+					LogPrint (eLogWarning, "Reseed: Missing zip central directory header");
 				break; // no more files
 			}
 			size_t end = s.tellg ();
@@ -335,7 +335,7 @@ namespace data
 			SSL_free (ssl);			
 		}	
 		else
-			LogPrint (eLogError, "Can't open certificate file ", filename);
+			LogPrint (eLogError, "Reseed: Can't open certificate file ", filename);
 		SSL_CTX_free (ctx);		
 	}
 
@@ -345,7 +345,7 @@ namespace data
 		
 		if (!boost::filesystem::exists (reseedDir))
 		{
-			LogPrint (eLogWarning, "Reseed certificates not loaded. ", reseedDir, " doesn't exist");
+			LogPrint (eLogWarning, "Reseed: certificates not loaded, ", reseedDir, " doesn't exist");
 			return;
 		}
 
@@ -359,7 +359,7 @@ namespace data
 				numCertificates++;
 			}	
 		}	
-		LogPrint (eLogInfo, numCertificates, " certificates loaded");
+		LogPrint (eLogInfo, "Reseed: ", numCertificates, " certificates loaded");
 	}	
 
 	std::string Reseeder::HttpsRequest (const std::string& address)
@@ -382,7 +382,7 @@ namespace data
 				s.handshake (boost::asio::ssl::stream_base::client, ecode);
 				if (!ecode)
 				{
-					LogPrint (eLogInfo, "Connected to ", u.host_, ":", u.port_);
+					LogPrint (eLogInfo, "Reseed: Connected to ", u.host_, ":", u.port_);
 					// send request		
 					std::stringstream ss;
 					ss << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
@@ -401,13 +401,13 @@ namespace data
 					return i2p::util::http::GetHttpContent (rs);
 				}
 				else
-					LogPrint (eLogError, "SSL handshake failed: ", ecode.message ());
+					LogPrint (eLogError, "Reseed: SSL handshake failed: ", ecode.message ());
 			}
 			else
-				LogPrint (eLogError, "Couldn't connect to ", u.host_, ": ", ecode.message ());
+				LogPrint (eLogError, "Reseed: Couldn't connect to ", u.host_, ": ", ecode.message ());
 		}
 		else
-			LogPrint (eLogError, "Couldn't resolve address ", u.host_, ": ", ecode.message ()); 
+			LogPrint (eLogError, "Reseed: Couldn't resolve address ", u.host_, ": ", ecode.message ());
 		return "";
 	}	
 }

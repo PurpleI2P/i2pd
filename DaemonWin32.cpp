@@ -49,17 +49,17 @@ namespace i2p
 			
 			if (isDaemon == 1)
 			{
-				LogPrint("Service session");
+				LogPrint(eLogDebug, "Daemon: running as service");
 				I2PService service(SERVICE_NAME);
 				if (!I2PService::Run(service))
 				{
-					LogPrint("Service failed to run w/err 0x%08lx\n", GetLastError());
+					LogPrint(eLogError, "Daemon: Service failed to run w/err 0x%08lx\n", GetLastError());
 					exit(EXIT_FAILURE);
 				}
 				exit(EXIT_SUCCESS);
 			}
 			else
-				LogPrint("User session");
+				LogPrint(eLogDebug, "Daemon: running as user");
 
 			return true;
 		}

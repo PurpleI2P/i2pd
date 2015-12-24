@@ -166,7 +166,7 @@ namespace filesystem
 			// Create data directory
 			if (!boost::filesystem::create_directory( path ))
 			{
-				LogPrint("Failed to create data directory!");
+				LogPrint(eLogError, "FS: Failed to create data directory!");
 				path = "";
 				return path;
 			}
@@ -297,7 +297,7 @@ namespace http
 		}
 		else
 		{
-			LogPrint ("HTTP response ", status);
+			LogPrint (eLogError, "HTTPClient: error, server responds ", status);
 			return "";
 		}
 	}
@@ -419,7 +419,7 @@ namespace net
         ifaddrs* ifaddr, *ifa = nullptr;
         if(getifaddrs(&ifaddr) == -1) 
 		{
-            LogPrint(eLogError, "Can't excute getifaddrs");
+            LogPrint(eLogError, "NetIface: Can't call getifaddrs(): ", strerror(errno));
             return fallback;
         }
 
@@ -455,14 +455,14 @@ namespace net
                 if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)  
                     mtu = ifr.ifr_mtu; // MTU
                 else
-                    LogPrint (eLogError, "Failed to run ioctl");            
+                    LogPrint (eLogError, "NetIface: Failed to run ioctl: ", strerror(errno));
                 close(fd);
             } 
 			else
-                LogPrint(eLogError, "Failed to create datagram socket");   
+                LogPrint(eLogError, "NetIface: Failed to create datagram socket");
         } 
 		else 
-            LogPrint(eLogWarning, "Interface for local address", localAddress.to_string(), " not found");
+            LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
        freeifaddrs(ifaddr);
 
        return mtu;
@@ -488,9 +488,7 @@ namespace net
         );
 
         if(dwRetVal != NO_ERROR) {
-            LogPrint(
-                eLogError, "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed"
-            );
+            LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
             FREE(pAddresses);
             return fallback;
         }
@@ -501,9 +499,7 @@ namespace net
 
             pUnicast = pCurrAddresses->FirstUnicastAddress;
             if(pUnicast == nullptr) {
-                LogPrint(
-                    eLogError, "GetMTU() has failed: not a unicast ipv4 address, this is not supported"
-                );
+                LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv4 address, this is not supported");
             }
             for(int i = 0; pUnicast != nullptr; ++i) {
                 LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
@@ -518,7 +514,7 @@ namespace net
             pCurrAddresses = pCurrAddresses->Next;
         }
 
-        LogPrint(eLogError, "GetMTU() error: no usable unicast ipv4 addresses found");
+        LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv4 addresses found");
         FREE(pAddresses);
         return fallback;
     }
@@ -541,10 +537,7 @@ namespace net
         );
 
         if(dwRetVal != NO_ERROR) {
-            LogPrint(
-                eLogError,
-                "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed"
-            );
+            LogPrint(eLogError, "NetIface: GetMTU(): enclosed GetAdaptersAddresses() call has failed");
             FREE(pAddresses);
             return fallback;
         }
@@ -555,10 +548,7 @@ namespace net
             PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress = pCurrAddresses->FirstUnicastAddress;
             pUnicast = pCurrAddresses->FirstUnicastAddress;
             if(pUnicast == nullptr) {
-                LogPrint(
-                    eLogError,
-                    "GetMTU() has failed: not a unicast ipv6 address, this is not supported"
-                );
+                LogPrint(eLogError, "NetIface: GetMTU(): not a unicast ipv6 address, this is not supported");
             }
             for(int i = 0; pUnicast != nullptr; ++i) {
                 LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
@@ -582,7 +572,7 @@ namespace net
             pCurrAddresses = pCurrAddresses->Next;
         }
 
-        LogPrint(eLogError, "GetMTU() error: no usable unicast ipv6 addresses found");
+        LogPrint(eLogError, "NetIface: GetMTU(): no usable unicast ipv6 addresses found");
         FREE(pAddresses);
         return fallback;
     }
@@ -605,7 +595,7 @@ namespace net
             inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr)); 
             return GetMTUWindowsIpv6(inputAddress, fallback);
         } else {
-            LogPrint(eLogError, "GetMTU() has failed: address family is not supported");
+            LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
             return fallback;
         }
 

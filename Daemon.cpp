@@ -64,9 +64,8 @@ namespace i2p
 			i2p::util::config::OptionParser(argc, argv);
 			i2p::context.Init ();
 
-			LogPrint("\n\n\n\ni2pd starting\n");
-			LogPrint("Version ", VERSION);
-			LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
+			LogPrint(eLogInfo, "\n\n\n\ni2pd v", VERSION, " starting\n");
+			LogPrint(eLogDebug, "data directory: ", i2p::util::filesystem::GetDataDir().string());
 			i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
 			isDaemon = i2p::util::config::GetArg("-daemon", 0);
@@ -90,9 +89,9 @@ namespace i2p
 					i2p::context.SetLowBandwidth ();
 			}	
 
-			LogPrint("CMD parameters:");
+			LogPrint(eLogDebug, "Daemon: CMD parameters:");
 			for (int i = 0; i < argc; ++i)
-				LogPrint(i, "  ", argv[i]);
+				LogPrint(eLogDebug, i, ":  ", argv[i]);
 
 			return true;
 		}
@@ -116,55 +115,60 @@ namespace i2p
 					StartLog (""); // write to stdout
 			}
 
+			LogPrint(eLogInfo, "Daemon: staring HTTP Server");
 			d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpaddress", "127.0.0.1"), i2p::util::config::GetArg("-httpport", 7070)));
 			d.httpServer->Start();
-			LogPrint("HTTP Server started");
+
+			LogPrint(eLogInfo, "Daemon: starting NetDB");
 			i2p::data::netdb.Start();
-			LogPrint("NetDB started");
+
 #ifdef USE_UPNP
+			LogPrint(eLogInfo, "Daemon: starting UPnP");
 			d.m_UPnP.Start ();
-			LogPrint(eLogInfo, "UPnP started");
 #endif			
+			LogPrint(eLogInfo, "Daemon: starting Transports");
 			i2p::transport::transports.Start();
-			LogPrint("Transports started");
+
+			LogPrint(eLogInfo, "Daemon: starting Tunnels");
 			i2p::tunnel::tunnels.Start();
-			LogPrint("Tunnels started");
+
+			LogPrint(eLogInfo, "Daemon: starting Client");
 			i2p::client::context.Start ();
-			LogPrint("Client started");
+
 			// I2P Control
 			int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
 			if (i2pcontrolPort)
 			{
+				LogPrint(eLogInfo, "Daemon: starting I2PControl");
 				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2p::util::config::GetArg("-i2pcontroladdress", "127.0.0.1"), i2pcontrolPort));
 				d.m_I2PControlService->Start ();
-				LogPrint("I2PControl started");
 			}
 			return true;
 		}
 
 		bool Daemon_Singleton::stop()
 		{
-			LogPrint("Shutdown started.");
+			LogPrint(eLogInfo, "Daemon: shutting down");
+			LogPrint(eLogInfo, "Daemon: stopping Client");
 			i2p::client::context.Stop();
-			LogPrint("Client stopped");
+			LogPrint(eLogInfo, "Daemon: stopping Tunnels");
 			i2p::tunnel::tunnels.Stop();
-			LogPrint("Tunnels stopped");
 #ifdef USE_UPNP
+			LogPrint(eLogInfo, "Daemon: stopping UPnP");
 			d.m_UPnP.Stop ();
-			LogPrint(eLogInfo, "UPnP stopped");
 #endif			
+			LogPrint(eLogInfo, "Daemon: stopping Transports");
 			i2p::transport::transports.Stop();
-			LogPrint("Transports stopped");
+			LogPrint(eLogInfo, "Daemon: stopping NetDB");
 			i2p::data::netdb.Stop();
-			LogPrint("NetDB stopped");
+			LogPrint(eLogInfo, "Daemon: stopping HTTP Server");
 			d.httpServer->Stop();
 			d.httpServer = nullptr;
-			LogPrint("HTTP Server stopped");
 			if (d.m_I2PControlService)
 			{
+				LogPrint(eLogInfo, "Daemon: stopping I2PControl");
 				d.m_I2PControlService->Stop ();
 				d.m_I2PControlService = nullptr;
-				LogPrint("I2PControl stopped");	
 			}	
 			StopLog ();
 

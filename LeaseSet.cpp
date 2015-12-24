@@ -32,7 +32,7 @@ namespace data
 			m_Buffer = nullptr;
 			m_BufferLen = 0;
 			m_IsValid = false;
-			LogPrint (eLogError, "Destination for local LeaseSet doesn't exist");
+			LogPrint (eLogError, "LeaseSet: Destination for local LeaseSet doesn't exist");
 			return;
 		}	
 		m_Buffer = new uint8_t[MAX_LS_BUFFER_SIZE];
@@ -61,7 +61,7 @@ namespace data
 		// signature
 		localDestination->Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
 		m_BufferLen += localDestination->GetIdentity ()->GetSignatureLen (); 
-		LogPrint ("Local LeaseSet of ", tunnels.size (), " leases created");
+		LogPrint (eLogDebug, "LeaseSet: Local LeaseSet of ", tunnels.size (), " leases created");
 
 		ReadFromBuffer ();
 	}
@@ -90,7 +90,7 @@ namespace data
 		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
 		uint8_t num = m_Buffer[size];
 		size++; // num
-		LogPrint ("LeaseSet num=", (int)num);
+		LogPrint (eLogDebug, "LeaseSet: read num=", (int)num);
 		if (!num)  m_IsValid = false;
 
 		// process leases
@@ -110,7 +110,7 @@ namespace data
 			if (!netdb.FindRouter (lease.tunnelGateway))
 			{
 				// if not found request it
-				LogPrint (eLogInfo, "Lease's tunnel gateway not found. Requested");
+				LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
 				netdb.RequestDestination (lease.tunnelGateway);
 			}	
 		}	
@@ -118,7 +118,7 @@ namespace data
 		// verify
 		if (!m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
 		{
-			LogPrint (eLogWarning, "LeaseSet verification failed");
+			LogPrint (eLogWarning, "LeaseSet: verification failed");
 			m_IsValid = false;
 		}
 	}				
