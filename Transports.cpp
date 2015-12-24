@@ -231,7 +231,7 @@ namespace transport
 			{
 				auto r = netdb.FindRouter (ident);
 				it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
-					i2p::util::GetSecondsSinceEpoch () })).first;
+					i2p::util::GetSecondsSinceEpoch (), {} })).first;
 				connected = ConnectToPeer (ident, it->second);
 			}
 			catch (std::exception& ex)
@@ -501,7 +501,7 @@ namespace transport
 				it->second.delayedMessages.clear ();
 			}
 			else // incoming connection
-				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch () }));
+				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
 		});			
 	}
 		
