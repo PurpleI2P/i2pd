@@ -398,11 +398,13 @@ namespace client
 		LogPrint (eLogDebug, "I2PControl RouterInfo");
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
-			if (it != params.begin ()) results << ",";	
 			LogPrint (eLogDebug, it->first);
 			auto it1 = m_RouterInfoHandlers.find (it->first);
 			if (it1 != m_RouterInfoHandlers.end ())
+			{
+				if (it != params.begin ()) results << ",";	
 				(this->*(it1->second))(results);	
+			}	
 			else
 				LogPrint (eLogError, "I2PControl RouterInfo unknown request ", it->first);
 		}
