@@ -516,7 +516,7 @@ namespace i2p
 		if (msg)
 		{	
 			uint8_t typeID = msg->GetTypeID ();
-			LogPrint (eLogDebug, "I2NP: Got message with type ", (int)typeID);
+			LogPrint (eLogDebug, "I2NP: Handling message with type ", (int)typeID);
 			switch (typeID)
 			{	
 				case eI2NPTunnelData:
