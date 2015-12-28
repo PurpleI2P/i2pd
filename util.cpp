@@ -405,63 +405,7 @@ namespace http
 
 namespace net
 {
-#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
-    
-	int GetMTUUnix(const boost::asio::ip::address& localAddress, int fallback)
-    {
-        ifaddrs* ifaddr, *ifa = nullptr;
-        if(getifaddrs(&ifaddr) == -1) 
-		{
-            LogPrint(eLogError, "NetIface: Can't call getifaddrs(): ", strerror(errno));
-            return fallback;
-        }
-
-        int family = 0;
-        // look for interface matching local address   
-        for(ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) 
-		{
-            if(!ifa->ifa_addr)
-                continue;
-
-            family = ifa->ifa_addr->sa_family;
-            if(family == AF_INET && localAddress.is_v4()) 
-			{
-                sockaddr_in* sa = (sockaddr_in*) ifa->ifa_addr;
-                if(!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
-                    break; // address matches
-            } 
-			else if(family == AF_INET6 && localAddress.is_v6()) 
-			{
-                sockaddr_in6* sa = (sockaddr_in6*) ifa->ifa_addr;
-                if(!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
-                    break; // address matches
-            }
-        }
-        int mtu = fallback;
-        if(ifa && family) 
-		{ // interface found?
-            int fd = socket(family, SOCK_DGRAM, 0);
-            if(fd > 0) 
-			{
-                ifreq ifr;
-                strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
-                if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)  
-                    mtu = ifr.ifr_mtu; // MTU
-                else
-                    LogPrint (eLogError, "NetIface: Failed to run ioctl: ", strerror(errno));
-                close(fd);
-            } 
-			else
-                LogPrint(eLogError, "NetIface: Failed to create datagram socket");
-        } 
-		else 
-            LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
-       freeifaddrs(ifaddr);
-
-       return mtu;
-    }
-
-#elif defined(_WIN32)
+#ifdef WIN32
     int GetMTUWindowsIpv4(sockaddr_in inputAddress, int fallback)
     {
         ULONG outBufLen = 0;
@@ -593,6 +537,60 @@ namespace net
         }
 
     }
+#else // assume unix
+	int GetMTUUnix(const boost::asio::ip::address& localAddress, int fallback)
+    {
+        ifaddrs* ifaddr, *ifa = nullptr;
+        if(getifaddrs(&ifaddr) == -1) 
+		{
+            LogPrint(eLogError, "NetIface: Can't call getifaddrs(): ", strerror(errno));
+            return fallback;
+        }
+
+        int family = 0;
+        // look for interface matching local address   
+        for(ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) 
+		{
+            if(!ifa->ifa_addr)
+                continue;
+
+            family = ifa->ifa_addr->sa_family;
+            if(family == AF_INET && localAddress.is_v4()) 
+			{
+                sockaddr_in* sa = (sockaddr_in*) ifa->ifa_addr;
+                if(!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
+                    break; // address matches
+            } 
+			else if(family == AF_INET6 && localAddress.is_v6()) 
+			{
+                sockaddr_in6* sa = (sockaddr_in6*) ifa->ifa_addr;
+                if(!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
+                    break; // address matches
+            }
+        }
+        int mtu = fallback;
+        if(ifa && family) 
+		{ // interface found?
+            int fd = socket(family, SOCK_DGRAM, 0);
+            if(fd > 0) 
+			{
+                ifreq ifr;
+                strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
+                if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)  
+                    mtu = ifr.ifr_mtu; // MTU
+                else
+                    LogPrint (eLogError, "NetIface: Failed to run ioctl: ", strerror(errno));
+                close(fd);
+            } 
+			else
+                LogPrint(eLogError, "NetIface: Failed to create datagram socket");
+        } 
+		else 
+            LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
+       freeifaddrs(ifaddr);
+
+       return mtu;
+    }	
 #endif // WIN32
 
     int GetMTU(const boost::asio::ip::address& localAddress)
