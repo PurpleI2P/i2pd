@@ -114,13 +114,6 @@ namespace config
 		}
 	}
 
-	const char* GetCharArg(const std::string& strArg, const std::string& nDefault)
-	{
-		if (mapArgs.count(strArg))
-			return mapArgs[strArg].c_str();
-		return nDefault.c_str();
-	}
-
 	std::string GetArg(const std::string& strArg, const std::string& strDefault)
 	{
 		if (mapArgs.count(strArg))

@@ -74,8 +74,8 @@ namespace i2p
 			int port = i2p::util::config::GetArg("-port", 0);
 			if (port)
 				i2p::context.UpdatePort (port);					
-			const char * host = i2p::util::config::GetCharArg("-host", "");
-			if (host && host[0])
+			std::string host = i2p::util::config::GetArg("-host", "");
+			if (host != "")
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 
 			i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
