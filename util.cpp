@@ -16,10 +16,7 @@
 #include "util.h"
 #include "Log.h"
 
-#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
-#include <sys/types.h>
-#include <ifaddrs.h>
-#elif defined(WIN32)
+#ifdef WIN32
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>    
@@ -30,7 +27,7 @@
 
 #ifdef _MSC_VER
 #pragma comment(lib, "IPHLPAPI.lib")
-#endif
+#endif // _MSC_VER
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
@@ -60,6 +57,9 @@ http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
 	}
 	return 0;
 }
+#else /* !WIN32 => UNIX */
+#include <sys/types.h>
+#include <ifaddrs.h>
 #endif
 
 namespace i2p
@@ -229,7 +229,7 @@ namespace filesystem
 		char localAppData[MAX_PATH];
 		SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
 		return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
-#else
+#else /* UNIX */
 		if (i2p::util::config::GetArg("-service", 0)) // use system folder
 			return boost::filesystem::path(std::string ("/var/lib/") + appName);
 		boost::filesystem::path pathRet;
@@ -243,11 +243,11 @@ namespace filesystem
 		pathRet /= "Library/Application Support";
 		boost::filesystem::create_directory(pathRet);
 		return pathRet / appName;
-#else
+#else /* Other Unix */
 		// Unix
 		return pathRet / (std::string (".") + appName);
 #endif
-#endif
+#endif /* UNIX */
 	}
 
 	boost::filesystem::path GetCertificatesDir()
