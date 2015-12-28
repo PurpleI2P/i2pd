@@ -55,6 +55,19 @@ void Log::SetLogFile (const std::string& fullFilePath)
 		delete logFile;
 }
 
+void Log::SetLogLevel (const std::string& level)
+{
+  if      (level == "error") { m_MinLevel = eLogError; }
+  else if (level == "warn")  { m_MinLevel = eLogWarning;  }
+  else if (level == "info")  { m_MinLevel = eLogInfo;  }
+  else if (level == "debug") { m_MinLevel = eLogDebug; }
+  else {
+		LogPrint(eLogError, "Log: Unknown loglevel: ", level);
+		return;
+  }
+  LogPrint(eLogInfo, "Log: min msg level set to ", level);
+}
+
 void Log::SetLogStream (std::ostream * logStream)
 {
 	if (m_LogStream) delete m_LogStream;	

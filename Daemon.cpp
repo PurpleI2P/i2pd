@@ -110,9 +110,10 @@ namespace i2p
 					logfile_path.append("\\i2pd.log");
 #endif
 					StartLog (logfile_path);
-				}
-				else
+				} else {
 					StartLog (""); // write to stdout
+				}
+				g_Log->SetLogLevel(i2p::util::config::GetArg("-loglevel", "info"));
 			}
 
 			LogPrint(eLogInfo, "Daemon: staring HTTP Server");

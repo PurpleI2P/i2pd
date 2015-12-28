@@ -38,9 +38,11 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		~Log () { delete m_LogStream; };
 
 		void SetLogFile (const std::string& fullFilePath);
+		void SetLogLevel (const std::string& level);
 		void SetLogStream (std::ostream * logStream);
 		std::ostream * GetLogStream () const { return m_LogStream; };	
 		const std::string& GetTimestamp ();
+		LogLevel GetLogLevel () { return m_MinLevel; };
 
 	private:
 
@@ -49,6 +51,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 	private:
 		
 		std::ostream * m_LogStream;
+		enum LogLevel m_MinLevel;
 		std::string m_Timestamp;
 #if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6) && !defined(__clang__) // gcc 4.6
 		std::chrono::monotonic_clock::time_point m_LastTimestampUpdate;
@@ -108,13 +111,14 @@ void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
 template<typename... TArgs>
 void LogPrint (LogLevel level, TArgs... args) 
 {
+	if (g_Log && level > g_Log->GetLogLevel ())
+		return;
 	LogMsg * msg = new LogMsg (g_Log, level);
 	LogPrint (msg->s, args...);
 	msg->s << std::endl;
-	if (g_Log)	
+	if (g_Log) {
 		g_Log->Put (msg);
-	else
-	{
+	} else {
 		msg->Process ();
 		delete msg;
 	}
