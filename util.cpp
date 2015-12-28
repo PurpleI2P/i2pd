@@ -599,10 +599,10 @@ namespace net
     {
         const int fallback = 576; // fallback MTU
 
-#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__APPLE__) || defined(__OpenBSD__)
-        return GetMTUUnix(localAddress, fallback);
-#elif defined(WIN32)
+#ifdef WIN32
         return GetMTUWindows(localAddress, fallback);
+#else
+        return GetMTUUnix(localAddress, fallback);
 #endif
         return fallback;
     }	
