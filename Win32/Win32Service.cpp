@@ -138,7 +138,7 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 	}
 	catch (...)
 	{
-		LogPrint("Win32Service failed to start.", EVENTLOG_ERROR_TYPE);
+		LogPrint(eLogError, "Win32Service failed to start.", EVENTLOG_ERROR_TYPE);
 
 		SetServiceStatus(SERVICE_STOPPED);
 	}
