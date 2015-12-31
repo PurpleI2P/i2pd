@@ -478,16 +478,22 @@ namespace data
 				uint8_t * payload = floodMsg->GetPayload ();		
 				memcpy (payload, buf, 33); // key + type
 				htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
-				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
-				floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
-				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
-				std::set<IdentHash> excluded;
-				for (int i = 0; i < 3; i++)
-				{
-					auto floodfill = GetClosestFloodfill (ident, excluded);
-					if (floodfill)
-						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+				auto msgLen = len - offset;
+				floodMsg->len += DATABASE_STORE_HEADER_SIZE + msgLen;
+				if (floodMsg->len < floodMsg->maxLen)
+				{	
+					memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, msgLen);
+					floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
+					std::set<IdentHash> excluded;
+					for (int i = 0; i < 3; i++)
+					{
+						auto floodfill = GetClosestFloodfill (ident, excluded);
+						if (floodfill)
+							transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+					}	
 				}	
+				else
+					LogPrint (eLogError, "Database store message is too long ", floodMsg->len);
 			}	
 		}
 		
