@@ -334,7 +334,7 @@ namespace transport
 		m_Service.post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
 	}		
 	
-	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
+	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident)
 	{
 		auto it = m_Peers.find (ident);
 		if (it != m_Peers.end ())
