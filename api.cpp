@@ -7,6 +7,7 @@
 #include "RouterContext.h"
 #include "Identity.h"
 #include "Destination.h"
+#include "Crypto.h"
 #include "util.h"
 #include "api.h"
 
@@ -18,9 +19,15 @@ namespace api
 	{
 		i2p::util::filesystem::SetAppName (appName);
 		i2p::util::config::OptionParser(argc, argv);
+		i2p::crypto::InitCrypto ();
 		i2p::context.Init ();	
 	}
 
+	void TerminateI2P ()
+	{
+		i2p::crypto::TerminateCrypto ();
+	}	
+	
 	void StartI2P (std::ostream * logStream)
 	{
 		if (logStream)

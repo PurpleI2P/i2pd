@@ -272,6 +272,9 @@ namespace crypto
 			CBCDecryption m_LayerDecryption;
 #endif
 	};	
+
+	void InitCrypto ();
+	void TerminateCrypto ();
 }		
 }	
 

@@ -19,8 +19,7 @@
 #include "HTTPServer.h"
 #include "I2PControl.h"
 #include "ClientContext.h"
-// ssl.h somehow pulls Windows.h stuff that has to go after asio
-#include <openssl/ssl.h>
+#include "Crypto.h"
 
 #ifdef USE_UPNP
 #include "UPnP.h"
@@ -60,7 +59,7 @@ namespace i2p
 
 		bool Daemon_Singleton::init(int argc, char* argv[])
 		{
-			SSL_library_init ();
+			i2p::crypto::InitCrypto ();
 			i2p::util::config::OptionParser(argc, argv);
 			i2p::context.Init ();
 
@@ -171,6 +170,7 @@ namespace i2p
 				d.m_I2PControlService->Stop ();
 				d.m_I2PControlService = nullptr;
 			}	
+			i2p::crypto::TerminateCrypto ();
 			StopLog ();
 
 			return true;

@@ -13,6 +13,7 @@ namespace api
 {
 	// initialization start and stop	
 	void InitI2P (int argc, char* argv[], const char * appName);
+	void TerminateI2P ();
 	void StartI2P (std::ostream * logStream = nullptr);
 	// write system log to logStream, if not specified to <appName>.log in application's folder
 	void StopI2P ();
