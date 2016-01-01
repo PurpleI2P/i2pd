@@ -549,12 +549,12 @@ namespace transport
 			if (dataSize)
 			{
 				// new message
-				if (dataSize > NTCP_MAX_MESSAGE_SIZE)
+				if (dataSize + 16U > NTCP_MAX_MESSAGE_SIZE - 2) // + 6 + padding
 				{
 					LogPrint (eLogError, "NTCP: data size ", dataSize, " exceeds max size");
 					return false;
 				}
-				auto msg = dataSize <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
+				auto msg = (dataSize + 16U) <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
 				m_NextMessage = msg;	
 				memcpy (m_NextMessage->buf, buf, 16);
 				m_NextMessageOffset = 16;
