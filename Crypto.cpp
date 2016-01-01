@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <memory>
 #include <openssl/sha.h>
 #include <openssl/dh.h>
 #include <openssl/md5.h>
@@ -9,7 +10,7 @@
 #include <openssl/ssl.h>
 #include <openssl/crypto.h>
 #include "Log.h"
-//#include "TunnelBase.h"
+#include "TunnelBase.h"
 #include "Crypto.h"
 
 namespace i2p
@@ -640,7 +641,7 @@ namespace crypto
 #else
 		m_IVEncryption.Encrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
 		m_LayerEncryption.SetIV (out);
-		m_LayerEncryption.Encrypt (in + 16, /*i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE*/1008, out + 16); // data
+		m_LayerEncryption.Encrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
 		m_IVEncryption.Encrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
 #endif
 	}
@@ -677,7 +678,7 @@ namespace crypto
 #else
 		m_IVDecryption.Decrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
 		m_LayerDecryption.SetIV (out);	
-		m_LayerDecryption.Decrypt (in + 16, /*i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE*/1008, out + 16); // data
+		m_LayerDecryption.Decrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
 		m_IVDecryption.Decrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
 #endif
 	}	
