@@ -193,7 +193,7 @@ namespace tunnel
 	struct I2NPMessageBuffer: public I2NPMessage
 	{
 		I2NPMessageBuffer () { buf = m_Buffer; maxLen = sz; };
-		uint8_t m_Buffer[sz + 16];
+		uint8_t m_Buffer[sz + 32]; // 16 alignment + 16 padding
 	};
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage ();
