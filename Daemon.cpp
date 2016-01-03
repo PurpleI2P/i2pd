@@ -78,16 +78,20 @@ namespace i2p
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 
 			i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
-			i2p::context.SetFloodfill (i2p::util::config::GetArg("-floodfill", 0));
+			bool isFloodfill = i2p::util::config::GetArg("-floodfill", 0);
+			i2p::context.SetFloodfill (isFloodfill);
 			auto bandwidth = i2p::util::config::GetArg("-bandwidth", "");
 			if (bandwidth.length () > 0)
 			{
-				if (bandwidth[0] > 'L')
+				if (bandwidth[0] > 'O')
+					i2p::context.SetExtraBandwidth ();
+				else if (bandwidth[0] > 'L')
 					i2p::context.SetHighBandwidth ();
 				else
 					i2p::context.SetLowBandwidth ();
 			}	
-
+			else if (isFloodfill)
+				i2p::context.SetExtraBandwidth ();
 			LogPrint(eLogDebug, "Daemon: CMD parameters:");
 			for (int i = 0; i < argc; ++i)
 				LogPrint(eLogDebug, i, ":  ", argv[i]);

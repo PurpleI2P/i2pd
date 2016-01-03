@@ -149,7 +149,7 @@ namespace i2p
 	{
 		if (!m_RouterInfo.IsHighBandwidth ())
 		{
-			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eHighBandwidth);
+			m_RouterInfo.SetCaps ((m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eHighBandwidth) & ~i2p::data::RouterInfo::eExtraBandwidth);
 			UpdateRouterInfo ();
 		}
 	}
@@ -158,11 +158,20 @@ namespace i2p
 	{
 		if (m_RouterInfo.IsHighBandwidth ())
 		{
-			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eHighBandwidth);
+			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eHighBandwidth & ~i2p::data::RouterInfo::eExtraBandwidth);
 			UpdateRouterInfo ();
 		}
 	}
 
+	void RouterContext::SetExtraBandwidth ()
+	{	
+		if (!m_RouterInfo.IsExtraBandwidth ())
+		{
+			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eExtraBandwidth | i2p::data::RouterInfo::eHighBandwidth);
+			UpdateRouterInfo ();
+		}
+	}
+		
 	bool RouterContext::IsUnreachable () const
 	{
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;

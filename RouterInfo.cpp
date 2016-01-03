@@ -265,6 +265,10 @@ namespace data
 				case CAPS_FLAG_HIGH_BANDWIDTH3:
 					m_Caps |= Caps::eHighBandwidth;
 				break;
+				case CAPS_FLAG_EXTRA_BANDWIDTH1:
+				case CAPS_FLAG_EXTRA_BANDWIDTH2:
+					m_Caps |= Caps::eExtraBandwidth;
+				break;	
 				case CAPS_FLAG_HIDDEN:
 					m_Caps |= Caps::eHidden;
 				break;	
@@ -291,11 +295,15 @@ namespace data
 		std::string caps;
 		if (m_Caps & eFloodfill) 
 		{
-			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // highest bandwidth
+			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill  
 		}	
 		else
-			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 : CAPS_FLAG_LOW_BANDWIDTH2; // bandwidth		
+		{
+			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1;
+			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 : CAPS_FLAG_LOW_BANDWIDTH2; // bandwidth	
+		}	
 		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
 		if (m_Caps & eUnreachable) caps += CAPS_FLAG_UNREACHABLE; // unreachable

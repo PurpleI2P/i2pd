@@ -23,7 +23,9 @@ namespace data
 	const char CAPS_FLAG_HIGH_BANDWIDTH1 = 'M';	
 	const char CAPS_FLAG_HIGH_BANDWIDTH2 = 'N';
 	const char CAPS_FLAG_HIGH_BANDWIDTH3 = 'O';
-
+	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P';
+	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X';
+	
 	const char CAPS_FLAG_SSU_TESTING = 'B';
 	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
 
@@ -44,11 +46,12 @@ namespace data
 			{
 				eFloodfill = 0x01,
 				eHighBandwidth = 0x02,
-				eReachable = 0x04,
-				eSSUTesting = 0x08,
-				eSSUIntroducer = 0x10,
-				eHidden = 0x20,
-				eUnreachable = 0x40
+				eExtraBandwidth = 0x04,
+				eReachable = 0x08,
+				eSSUTesting = 0x10,
+				eSSUIntroducer = 0x20,
+				eHidden = 0x40,
+				eUnreachable = 0x80
 			};
 
 			enum TransportStyle
@@ -131,7 +134,8 @@ namespace data
 			bool IsPeerTesting () const { return m_Caps & eSSUTesting; };
 			bool IsHidden () const { return m_Caps & eHidden; };
 			bool IsHighBandwidth () const { return m_Caps & RouterInfo::eHighBandwidth; };
-
+			bool IsExtraBandwidth () const { return m_Caps & RouterInfo::eExtraBandwidth; };	
+			
 			uint8_t GetCaps () const { return m_Caps; };	
 			void SetCaps (uint8_t caps);
 			void SetCaps (const char * caps);

@@ -62,6 +62,7 @@ namespace i2p
 			void SetFloodfill (bool floodfill);	
 			void SetHighBandwidth ();
 			void SetLowBandwidth ();
+			void SetExtraBandwidth ();
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };

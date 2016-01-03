@@ -67,6 +67,7 @@ namespace transport
 	
 	const size_t SESSION_CREATION_TIMEOUT = 10; // in seconds
 	const uint32_t LOW_BANDWIDTH_LIMIT = 32*1024; // 32KBs
+	const uint32_t HIGH_BANDWIDTH_LIMIT = 256*1024; // 256KBs
 	class Transports
 	{
 		public:
