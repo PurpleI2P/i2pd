@@ -147,7 +147,7 @@ namespace i2p
 
 	void RouterContext::SetHighBandwidth ()
 	{
-		if (!m_RouterInfo.IsHighBandwidth ())
+		if (!m_RouterInfo.IsHighBandwidth () || m_RouterInfo.IsExtraBandwidth ())
 		{
 			m_RouterInfo.SetCaps ((m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eHighBandwidth) & ~i2p::data::RouterInfo::eExtraBandwidth);
 			UpdateRouterInfo ();
@@ -156,7 +156,7 @@ namespace i2p
 
 	void RouterContext::SetLowBandwidth ()
 	{
-		if (m_RouterInfo.IsHighBandwidth ())
+		if (m_RouterInfo.IsHighBandwidth () || m_RouterInfo.IsExtraBandwidth ())
 		{
 			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eHighBandwidth & ~i2p::data::RouterInfo::eExtraBandwidth);
 			UpdateRouterInfo ();
@@ -165,7 +165,7 @@ namespace i2p
 
 	void RouterContext::SetExtraBandwidth ()
 	{	
-		if (!m_RouterInfo.IsExtraBandwidth ())
+		if (!m_RouterInfo.IsExtraBandwidth () || !m_RouterInfo.IsHighBandwidth ())
 		{
 			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eExtraBandwidth | i2p::data::RouterInfo::eHighBandwidth);
 			UpdateRouterInfo ();
