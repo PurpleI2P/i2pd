@@ -24,10 +24,12 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
 	const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
+	const char I2P_CLIENT_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";	
 	const char I2P_SERVER_TUNNEL_HOST[] = "host";	
 	const char I2P_SERVER_TUNNEL_PORT[] = "port";
 	const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
+	const char I2P_SERVER_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 	const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";		
 
@@ -48,7 +50,8 @@ namespace client
 				const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;		
-			std::shared_ptr<ClientDestination> LoadLocalDestination (const std::string& filename, bool isPublic);
+			std::shared_ptr<ClientDestination> LoadLocalDestination (const std::string& filename, bool isPublic, 
+				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
