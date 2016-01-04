@@ -11,7 +11,7 @@ i2pd cmdline options
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
 * --v6=                 - 1 if supports communication through ipv6, off by default
 * --floodfill=          - 1 if router is floodfill, off by default
-* --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O if not. Always O if floodfill, otherwise L by default.
+* --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
 * --httpproxyaddress=   - The address to listen on (HTTP Proxy)
 * --httpproxyport=      - The port to listen on (HTTP Proxy) 4446 by default
 * --socksproxyaddress=  - The address to listen on (SOCKS Proxy)
