@@ -155,6 +155,15 @@ namespace tunnel
 			}	
 		}
 
+		size_t Concat (const uint8_t * buf1, size_t len1)
+		{
+			// make sure with don't write beyond maxLen
+			if (len + len1 > maxLen) len1 = maxLen - len;
+			memcpy (buf + len, buf1, len1);
+			len += len1;
+			return len1;
+		}
+
 		I2NPMessage& operator=(const I2NPMessage& other)
 		{
 			memcpy (buf + offset, other.buf + other.offset, other.GetLength ());
@@ -200,8 +209,8 @@ namespace tunnel
 	std::shared_ptr<I2NPMessage> NewI2NPShortMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len);
 	
-	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID = 0);	
-	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
+	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);	
+	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
 	
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID);
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 

@@ -51,21 +51,16 @@ namespace i2p
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); 		
 	}
 
-	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, int len, uint32_t replyMsgID)
+	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID)
 	{
 		auto msg = NewI2NPMessage (len);
-		if (msg->len + len < msg->maxLen)
-		{
-			memcpy (msg->GetPayload (), buf, len);
-			msg->len += len;
-		}
-		else
-			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length");
+		if (msg->Concat (buf, len) < len)
+			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length ", msg->maxLen);
 		msg->FillI2NPMessageHeader (msgType, replyMsgID);
 		return msg;
 	}	
 
-	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		auto msg = NewI2NPMessage ();
 		if (msg->offset + len < msg->maxLen)
@@ -413,8 +408,7 @@ namespace i2p
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf)
 	{
 		auto msg = NewI2NPShortMessage ();
-		memcpy (msg->GetPayload (), buf, i2p::tunnel::TUNNEL_DATA_MSG_SIZE);
-		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE; 
+		msg->Concat (buf, i2p::tunnel::TUNNEL_DATA_MSG_SIZE);	
 		msg->FillI2NPMessageHeader (eI2NPTunnelData);
 		return msg;
 	}	
@@ -422,9 +416,9 @@ namespace i2p
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload)	
 	{
 		auto msg = NewI2NPShortMessage ();
-		memcpy (msg->GetPayload () + 4, payload, i2p::tunnel::TUNNEL_DATA_MSG_SIZE - 4);
 		htobe32buf (msg->GetPayload (), tunnelID);
-		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE; 
+		msg->len += 4; // tunnelID
+		msg->Concat (payload, i2p::tunnel::TUNNEL_DATA_MSG_SIZE - 4);
 		msg->FillI2NPMessageHeader (eI2NPTunnelData);
 		return msg;
 	}	
@@ -442,8 +436,9 @@ namespace i2p
 		uint8_t * payload = msg->GetPayload ();
 		htobe32buf (payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnelID);
 		htobe16buf (payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
-		memcpy (payload + TUNNEL_GATEWAY_HEADER_SIZE, buf, len);
-		msg->len += TUNNEL_GATEWAY_HEADER_SIZE + len;
+		msg->len += TUNNEL_GATEWAY_HEADER_SIZE;
+		if (msg->Concat (buf, len) < len)
+			LogPrint (eLogError, "I2NP: tunnel gateway buffer overflow ", msg->maxLen);	
 		msg->FillI2NPMessageHeader (eI2NPTunnelGateway);
 		return msg;
 	}	
@@ -473,8 +468,8 @@ namespace i2p
 		size_t gatewayMsgOffset = I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
 		msg->offset += gatewayMsgOffset;
 		msg->len += gatewayMsgOffset;
-		memcpy (msg->GetPayload (), buf, len);
-		msg->len += len;
+		if (msg->Concat (buf, len) < len)
+			LogPrint (eLogError, "I2NP: tunnel gateway buffer overflow ", msg->maxLen);
 		msg->FillI2NPMessageHeader (msgType, replyMsgID); // create content message
 		len = msg->GetLength ();
 		msg->offset -= gatewayMsgOffset;

@@ -152,8 +152,8 @@ namespace tunnel
 						*newMsg = *(msg.data);
 						msg.data = newMsg;
 					}
-					memcpy (msg.data->buf + msg.data->len, fragment, size); // concatenate fragment
-					msg.data->len += size;
+					if (msg.data->Concat (fragment, size) < size) // concatenate fragment
+						LogPrint (eLogError, "Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
 					if (isLastFragment)
 					{
 						// message complete
@@ -208,8 +208,8 @@ namespace tunnel
 					*newMsg = *(msg.data);
 					msg.data = newMsg;
 				}
-				memcpy (msg.data->buf + msg.data->len, it->second.data->GetBuffer (), size); // concatenate out-of-sync fragment
-				msg.data->len += size;
+				if (msg.data->Concat (it->second.data->GetBuffer (), size) < size) // concatenate out-of-sync fragment
+					LogPrint (eLogError, "Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
 				if (it->second.isLastFragment)
 				{
 					// message complete

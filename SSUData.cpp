@@ -19,8 +19,8 @@ namespace transport
 			*newMsg = *msg;
 			msg = newMsg;
 		}
-		memcpy (msg->buf + msg->len, fragment, fragmentSize);
-		msg->len += fragmentSize;
+		if (msg->Concat (fragment, fragmentSize) < fragmentSize)
+			LogPrint (eLogError, "SSU: I2NP buffer overflow ", msg->maxLen);
 		nextFragmentNum++;
 	}
 
