@@ -248,7 +248,7 @@ namespace tunnel
 				LogPrint (eLogError, "TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);
 		};	
 		// catch RI or reply with new list of routers	
-		if ((typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply) &&
+		if ((IsRouterInfoMsg (msg.data) || typeID == eI2NPDatabaseSearchReply) &&
 			!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)
 			i2p::data::netdb.PostI2NPMsg (msg.data);
 	}	

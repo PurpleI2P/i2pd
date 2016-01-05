@@ -268,6 +268,12 @@ namespace i2p
 		m->FillI2NPMessageHeader (eI2NPDatabaseStore);
 		return m;
 	}
+
+	bool IsRouterInfoMsg (std::shared_ptr<I2NPMessage> msg)
+	{
+		if (!msg || msg->GetTypeID () != eI2NPDatabaseStore) return false;
+		return !msg->GetPayload ()[DATABASE_STORE_TYPE_OFFSET]; // 0- RouterInfo
+	}	
 	
 	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
 	{

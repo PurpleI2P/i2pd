@@ -486,7 +486,7 @@ namespace tunnel
 		auto typeID = msg->GetTypeID ();
 		LogPrint (eLogDebug, "TunnelGateway of ", (int)len, " bytes for tunnel ", tunnel->GetTunnelID (), ". Msg type ", (int)typeID);
 			
-		if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply)
+		if (IsRouterInfoMsg (msg) || typeID == eI2NPDatabaseSearchReply)
 			// transit DatabaseStore my contain new/updated RI 
 			// or DatabaseSearchReply with new routers
 			i2p::data::netdb.PostI2NPMsg (msg);	
