@@ -378,7 +378,9 @@ namespace crypto
 				auto x = RecoverX (y, ctx);
 				if (BN_is_bit_set (x, 0) != isHighestBitSet)
 					BN_sub (x, q, x); // x = q - x 
-				EDDSAPoint p {x, y};
+				BIGNUM * z = BN_new (), * t = BN_new (); 
+				BN_one (z); BN_mod_mul (t, x, y, q, ctx); // pre-calculate t
+				EDDSAPoint p {x, y, z, t};
 				if (!IsOnCurve (p, ctx)) 
 					LogPrint (eLogError, "Decoded point is not on 25519");
 				return p;
