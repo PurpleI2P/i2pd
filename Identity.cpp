@@ -16,7 +16,7 @@ namespace data
 	{
 		// copy public and signing keys together
 		memcpy (publicKey, keys.publicKey, sizeof (publicKey) + sizeof (signingKey));
-		memset (&certificate, 0, sizeof (certificate));		
+		memset (certificate, 0, sizeof (certificate));		
 		return *this;
 	}
 
@@ -105,8 +105,8 @@ namespace data
 			}	
 			m_ExtendedLen = 4 + excessLen; // 4 bytes extra + excess length
 			// fill certificate
-			m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
-			m_StandardIdentity.certificate.length = htobe16 (m_ExtendedLen); 
+			m_StandardIdentity.certificate[0] = CERTIFICATE_TYPE_KEY;
+			htobe16buf (m_StandardIdentity.certificate + 1, m_ExtendedLen); 
 			// fill extended buffer
 			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
 			htobe16buf (m_ExtendedBuffer, type);
@@ -125,7 +125,7 @@ namespace data
 		else // DSA-SHA1
 		{
 			memcpy (m_StandardIdentity.signingKey, signingKey, sizeof (m_StandardIdentity.signingKey));
-			memset (&m_StandardIdentity.certificate, 0, sizeof (m_StandardIdentity.certificate));
+			memset (m_StandardIdentity.certificate, 0, sizeof (m_StandardIdentity.certificate));
 			m_IdentHash = m_StandardIdentity.Hash ();
 			m_ExtendedLen = 0;
 			m_ExtendedBuffer = nullptr;
@@ -200,9 +200,9 @@ namespace data
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
 
 		delete[] m_ExtendedBuffer;
-		if (m_StandardIdentity.certificate.length)
+		m_ExtendedLen = bufbe16toh (m_StandardIdentity.certificate + 1);
+		if (m_ExtendedLen)
 		{
-			m_ExtendedLen = be16toh (m_StandardIdentity.certificate.length);
 			if (m_ExtendedLen + DEFAULT_IDENTITY_SIZE <= len)
 			{	
 				m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
@@ -272,7 +272,7 @@ namespace data
 		if (!m_Verifier) CreateVerifier ();	
 		if (m_Verifier)
 			return m_Verifier->GetSignatureLen ();
-		return 40;
+		return i2p::crypto::DSA_SIGNATURE_LENGTH;
 	}	
 	bool IdentityEx::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const 
 	{
@@ -284,14 +284,14 @@ namespace data
 
 	SigningKeyType IdentityEx::GetSigningKeyType () const
 	{
-		if (m_StandardIdentity.certificate.type == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
+		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
 			return bufbe16toh (m_ExtendedBuffer); // signing key
 		return SIGNING_KEY_TYPE_DSA_SHA1;
 	}	
 
 	CryptoKeyType IdentityEx::GetCryptoKeyType () const
 	{
-		if (m_StandardIdentity.certificate.type == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
+		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
 			return bufbe16toh (m_ExtendedBuffer + 2); // crypto key
 		return CRYPTO_KEY_TYPE_ELGAMAL;
 	}	

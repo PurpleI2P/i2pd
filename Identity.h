@@ -18,7 +18,6 @@ namespace data
 		return ident.ToBase64 ().substr (0, 4); 
 	}
 
-#pragma pack(1)
 	struct Keys
 	{
 		uint8_t privateKey[256];
@@ -38,11 +37,7 @@ namespace data
 	{
 		uint8_t publicKey[256];
 		uint8_t signingKey[128];
-		struct
-		{
-			uint8_t type;
-			uint16_t length;
-		} certificate;	
+		uint8_t certificate[3];	// byte 1 - type, bytes 2-3 - length
 
 		Identity () = default;
 		Identity (const Keys& keys) { *this = keys; };
@@ -50,7 +45,7 @@ namespace data
 		size_t FromBuffer (const uint8_t * buf, size_t len);
 		IdentHash Hash () const;
 	};
-#pragma pack()
+
 	Keys CreateRandomKeys ();
 	
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
