@@ -65,7 +65,6 @@ namespace data
 			LogPrint (eLogError, "RouterInfo: signature verification failed");
 			m_IsUnreachable = true;
 		}
-		m_RouterIdentity->DropVerifier ();
 	}	
 		
 	void RouterInfo::SetRouterIdentity (std::shared_ptr<const IdentityEx> identity)

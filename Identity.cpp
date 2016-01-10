@@ -365,6 +365,7 @@ namespace data
 	
 	void IdentityEx::DropVerifier () const
 	{
+		// TODO: potential race condition with Verify
 		m_Verifier = nullptr; 
 	}
 
