@@ -14,18 +14,16 @@ namespace i2p
 namespace transport
 {
 	const uint8_t SSU_HEADER_EXTENDED_OPTIONS_INCLUDED = 0x04;
-#pragma pack(1)
 	struct SSUHeader
 	{
 		uint8_t mac[16];
 		uint8_t iv[16];
 		uint8_t flag;
-		uint32_t time;	
+		uint8_t time[4];	
 
 		uint8_t GetPayloadType () const { return flag >> 4; };
 		bool IsExtendedOptions () const { return flag & SSU_HEADER_EXTENDED_OPTIONS_INCLUDED; };	
 	};
-#pragma pack()
 
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes

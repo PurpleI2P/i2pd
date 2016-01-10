@@ -655,11 +655,10 @@ namespace transport
 			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
 		}
-		//TODO: we are using a dirty solution here but should work for now
 		SSUHeader * header = (SSUHeader *)buf;
 		memcpy (header->iv, iv, 16);
 		header->flag = payloadType << 4; // MSB is 0
-		htobe32buf (&(header->time), i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (header->time, i2p::util::GetSecondsSinceEpoch ());
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
 		i2p::crypto::CBCEncryption encryption;
@@ -679,12 +678,11 @@ namespace transport
 			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
 		}
-		//TODO: we are using a dirty solution here but should work for now
 		SSUHeader * header = (SSUHeader *)buf;
 		RAND_bytes (header->iv, 16); // random iv
 		m_SessionKeyEncryption.SetIV (header->iv);
 		header->flag = payloadType << 4; // MSB is 0
-		htobe32buf (&(header->time), i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (header->time, i2p::util::GetSecondsSinceEpoch ());
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
 		m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
@@ -700,8 +698,7 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
-		}
-		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
+		}		
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
@@ -717,8 +714,7 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return;
-		}
-		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
+		}		
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);	
@@ -735,8 +731,7 @@ namespace transport
 		{
 			LogPrint (eLogError, "SSU: Unexpected packet length ", len);
 			return false;
-		}
-		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
+		}		
 		SSUHeader * header = (SSUHeader *)buf;
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
