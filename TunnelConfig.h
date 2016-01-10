@@ -33,6 +33,7 @@ namespace tunnel
 		{
 			RAND_bytes (layerKey, 32);
 			RAND_bytes (ivKey, 32);
+			RAND_bytes (replyKey, 32);
 			RAND_bytes (replyIV, 16);
 			RAND_bytes ((uint8_t *)&tunnelID, 4);
 			isGateway = true;
@@ -100,7 +101,7 @@ namespace tunnel
 			clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
 			htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ()); 
 			htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID); 
-			// TODO: fill padding
+			RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
 			i2p::crypto::ElGamalEncryption elGamalEncryption (ident->GetEncryptionPublicKey ());
 			elGamalEncryption.Encrypt (clearText, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 			memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
