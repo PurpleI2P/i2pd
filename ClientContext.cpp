@@ -48,32 +48,7 @@ namespace client
 		m_SocksProxy = new i2p::proxy::SOCKSProxy(i2p::util::config::GetArg("-socksproxyaddress", "127.0.0.1"), i2p::util::config::GetArg("-socksproxyport", 4447), localDestination);
 		m_SocksProxy->Start();
 	
-		// I2P tunnels: IRC
-		std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
-		if (ircDestination.length () > 0) // ircdest is presented
-		{
-			LogPrint(eLogInfo, "Clients: starting IRC tunnel");
-			localDestination = nullptr;
-			std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");	
-			if (ircKeys.length () > 0)
-				localDestination = LoadLocalDestination (ircKeys, false);
-			auto ircPort = i2p::util::config::GetArg("-ircport", 6668);
-			auto ircTunnel = new I2PClientTunnel (ircDestination, i2p::util::config::GetArg("-ircaddress", "127.0.0.1"), ircPort, localDestination);
-			ircTunnel->Start ();
-			m_ClientTunnels.insert (std::make_pair(ircPort, std::unique_ptr<I2PClientTunnel>(ircTunnel)));
-		}	
-
-		// I2P tunnels: local site
-		std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
-		if (eepKeys.length () > 0) // eepkeys file is presented
-		{
-			LogPrint(eLogInfo, "Clients: starting server tunnel for eepsite");
-			localDestination = LoadLocalDestination (eepKeys, true);
-			auto serverTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eephost", "127.0.0.1"),
- 				i2p::util::config::GetArg("-eepport", 80), localDestination);
-			serverTunnel->Start ();
-			m_ServerTunnels.insert (std::make_pair(localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel)));
-		}
+		// I2P tunnels
 		ReadTunnels ();
 
 		// SAM

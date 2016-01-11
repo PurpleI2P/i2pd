@@ -17,14 +17,6 @@ i2pd cmdline options
 * --socksproxyaddress=  - The address to listen on (SOCKS Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy). 4447 by default
 * --proxykeys=          - optional keys file for proxy's local destination
-* --ircaddress=         - The address to listen on (IRC tunnel)
-* --ircport=            - The port listen on (IRC tunnel). 6668 by default
-* --ircdest=            - I2P destination address of IRC server. For example irc.postman.i2p
-* --irckeys=            - optional keys file for tunnel's local destination 
-* --eepkeys=            - File name containing destination keys, for example privKeys.dat.
-                          The file will be created if it does not already exist (issue #110).
-* --eephost=            - Address incoming trafic forward to. 127.0.0.1 by default
-* --eepport=            - Port incoming trafic forward to. 80 by default
 * --samaddress=         - The address to listen on (SAM bridge)
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
 * --bobaddress=         - The address to listen on (BOB command channel)
