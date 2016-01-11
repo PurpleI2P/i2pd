@@ -66,7 +66,11 @@ namespace i2p
 					return false;
 				}
 				std::string d(i2p::util::filesystem::GetDataDir().string ()); // make a copy
-				chdir(d.c_str());
+				if (chdir(d.c_str()) != 0)
+				{
+					LogPrint(eLogError, "Daemon: could not chdir: ", strerror(errno));
+					return false;
+				}
 
 				// close stdin/stdout/stderr descriptors
 				::close (0);
@@ -95,7 +99,11 @@ namespace i2p
 				char pid[10];
 				sprintf(pid, "%d\n", getpid());
 				ftruncate(pidFH, 0);
-				write(pidFH, pid, strlen(pid));
+				if (write(pidFH, pid, strlen(pid)) < 0)
+				{
+					LogPrint(eLogError, "Daemon: could not write pidfile: ", strerror(errno));
+					return false;
+				}
 			}
 
 			// Signal handler
