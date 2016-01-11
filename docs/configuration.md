@@ -7,6 +7,7 @@ i2pd cmdline options
 * --httpport=           - The port to listen on (HTTP server)
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --loglevel=           - Log messages above this level (debug, *info, warn, error)
+* --pidfile=            - Where to write pidfile (dont write by default)
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
 * --v6=                 - 1 if supports communication through ipv6, off by default

@@ -78,22 +78,25 @@ namespace i2p
 			}
 
 			// Pidfile
-			pidfile = IsService () ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
-			pidfile.append("/i2pd.pid");
-			pidFilehandle = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
-			if (pidFilehandle == -1)
-			{
-				LogPrint(eLogError, "Daemon: could not create pid file ", pidfile, ": ", strerror(errno));
-				return false;
+			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
+			pidfile = i2p::util::config::GetArg("pidfile", "");
+			if (pidfile != "") {
+				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
+				if (pidFH < 0)
+				{
+					LogPrint(eLogError, "Daemon: could not create pid file ", pidfile, ": ", strerror(errno));
+					return false;
+				}
+				if (lockf(pidFH, F_TLOCK, 0) != 0)
+				{
+					LogPrint(eLogError, "Daemon: could not lock pid file ", pidfile, ": ", strerror(errno));
+					return false;
+				}
+				char pid[10];
+				sprintf(pid, "%d\n", getpid());
+				ftruncate(pidFH, 0);
+				write(pidFH, pid, strlen(pid));
 			}
-			if (lockf(pidFilehandle, F_TLOCK, 0) == -1)
-			{
-				LogPrint(eLogError, "Daemon: could not lock pid file ", pidfile, ": ", strerror(errno));
-				return false;
-			}
-			char pid[10];
-			sprintf(pid, "%d\n", getpid());
-			write(pidFilehandle, pid, strlen(pid));
 
 			// Signal handler
 			struct sigaction sa;
@@ -110,7 +113,6 @@ namespace i2p
 
 		bool DaemonLinux::stop()
 		{
-			close(pidFilehandle);
 			unlink(pidfile.c_str());
 
 			return Daemon_Singleton::stop();			
