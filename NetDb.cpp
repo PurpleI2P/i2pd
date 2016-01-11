@@ -126,6 +126,11 @@ namespace data
 				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
 				{	
 					auto numRouters = m_RouterInfos.size ();
+					if (numRouters == 0)
+					{
+						LogPrint(eLogError, "NetDb: no known routers, reseed seems to be totally failed");
+						break;
+					}
 					if (numRouters < 2500 || ts - lastExploratory >= 90)
 					{	
 						numRouters = 800/numRouters;
