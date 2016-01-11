@@ -58,7 +58,7 @@ namespace i2p
 				}
 
 				// child
-				umask(0);
+				umask(S_IWGRP | S_IRWXO); // 0027
 				int sid = setsid();
 				if (sid < 0)
 				{
