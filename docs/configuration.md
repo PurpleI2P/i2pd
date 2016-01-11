@@ -13,6 +13,7 @@ i2pd cmdline options
 * --v6=                 - 1 if supports communication through ipv6, off by default
 * --floodfill=          - 1 if router is floodfill, off by default
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
+* --notransit=          - 1 if router doesn't accept transit tunnels at startup. 0 by default
 * --httpproxyaddress=   - The address to listen on (HTTP Proxy)
 * --httpproxyport=      - The port to listen on (HTTP Proxy) 4446 by default
 * --socksproxyaddress=  - The address to listen on (SOCKS Proxy)

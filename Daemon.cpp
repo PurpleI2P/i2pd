@@ -78,6 +78,7 @@ namespace i2p
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 
 			i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
+			i2p::context.SetAcceptsTunnels (!i2p::util::config::GetArg("-notransit", 0));
 			bool isFloodfill = i2p::util::config::GetArg("-floodfill", 0);
 			i2p::context.SetFloodfill (isFloodfill);
 			auto bandwidth = i2p::util::config::GetArg("-bandwidth", "");
