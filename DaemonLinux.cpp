@@ -52,7 +52,10 @@ namespace i2p
 					::exit (EXIT_SUCCESS);
 
 				if (pid < 0) // error
+				{
+					LogPrint(eLogError, "Daemon: could not fork: ", strerror(errno));
 					return false;
+				}
 
 				// child
 				umask(0);
