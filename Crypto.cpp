@@ -683,7 +683,7 @@ namespace crypto
 #endif
 	}	
 
-	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
+/*	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
 	static void OpensslLockingCallback(int mode, int type, const char * file, int line)
 	{
 		if (type > 0 && (size_t)type < m_OpenSSLMutexes.size ())
@@ -693,21 +693,21 @@ namespace crypto
 			else
 				m_OpenSSLMutexes[type]->unlock ();
 		}	
-	}
+	}*/
 	
 	void InitCrypto ()
 	{
 		SSL_library_init ();
-		auto numLocks = CRYPTO_num_locks();
+/*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)
 		     m_OpenSSLMutexes.emplace_back (new std::mutex);
-		CRYPTO_set_locking_callback (OpensslLockingCallback);
+		CRYPTO_set_locking_callback (OpensslLockingCallback);*/
 	}
 	
 	void TerminateCrypto ()
 	{
-		CRYPTO_set_locking_callback (nullptr);
-		m_OpenSSLMutexes.clear ();
+/*		CRYPTO_set_locking_callback (nullptr);
+		m_OpenSSLMutexes.clear ();*/
 	}	
 }
 }
