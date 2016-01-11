@@ -19,7 +19,10 @@ namespace client
 	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds	
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
-
+	// for HTTP tunnels		
+	const char X_I2P_DEST_HASH[] = "X-I2P-DestHash"; // hash  in base64
+	//const char X_I2P_DEST_B64[] = "X-I2P-DestB64"; // full address in base64
+	//const char X_I2P_DEST_B32[] = "X-I2P-DestB32"; // full address in base32
 
 	class I2PTunnelConnection: public I2PServiceHandler, public std::enable_shared_from_this<I2PTunnelConnection>
 	{
@@ -74,6 +77,7 @@ namespace client
 			std::string m_Host;
 			std::stringstream m_InHeader, m_OutHeader;
 			bool m_HeaderSent;
+			std::shared_ptr<const i2p::data::IdentityEx> m_From;
 	};
 
 	class I2PClientTunnel: public TCPIPAcceptor

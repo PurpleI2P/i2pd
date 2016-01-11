@@ -165,7 +165,7 @@ namespace client
 	I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host):
-		I2PTunnelConnection (owner, stream, socket, target), m_Host (host), m_HeaderSent (false)
+		I2PTunnelConnection (owner, stream, socket, target), m_Host (host), m_HeaderSent (false), m_From (stream->GetRemoteIdentity ())
 	{
 	}
 
@@ -192,6 +192,12 @@ namespace client
 				}
 				else
 					break;
+			}
+			// add X-I2P fields
+			if (m_From)
+			{
+				m_OutHeader << X_I2P_DEST_HASH << ": " << m_From->GetIdentHash ().ToBase64 () << "\r\n";
+			//	m_OutHeader << X_I2P_DEST_B64 << ": " << m_From->ToBase64 () << "\r\n";
 			}
 
 			if (endOfHeader)
