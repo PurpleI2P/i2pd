@@ -16,7 +16,7 @@ i2pd cmdline options
 * --httpproxyport=      - The port to listen on (HTTP Proxy) 4446 by default
 * --socksproxyaddress=  - The address to listen on (SOCKS Proxy)
 * --socksproxyport=     - The port to listen on (SOCKS Proxy). 4447 by default
-* --proxykeys=          - optional keys file for proxy's local destination
+* --proxykeys=          - optional keys file for proxy local destination (both HTTP and SOCKS)
 * --samaddress=         - The address to listen on (SAM bridge)
 * --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
 * --bobaddress=         - The address to listen on (BOB command channel)
@@ -39,7 +39,6 @@ i2p.conf:
 
     log = 1
     v6 = 0
-    ircdest = irc.postman.i2p
 
 tunnels.cfg (filename of this config is subject of change):
 
@@ -54,7 +53,7 @@ tunnels.cfg (filename of this config is subject of change):
     [IRC]
     type = client
     port = 6668
-    destination = irc.echelon.i2p
+    destination = irc.postman.i2p
     keys = irc-keys.dat
     #
     # incoming tunnel sample, for local service
