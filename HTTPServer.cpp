@@ -635,7 +635,20 @@ namespace util
 		s << "<head><meta charset=\"utf-8\" />"; // TODO: Find something to parse html/template system. This is horrible.
 		s << "<link rel='shortcut icon' href='";
 		s << itoopieFavicon;
-		s << "' /><title>Purple I2P " << VERSION " Webconsole</title></head>";
+		s << "' /><title>Purple I2P " << VERSION " Webconsole</title>";
+		s << "<style>";
+		s << "html,body { background-color: #fffdf7; }";
+		s << "a { color: #181818; }";
+		s << "body, html { background-color: #fffdf7; color: #181818; font-family: Segoe UI,";
+		s << "Helvetica, Droid Sans, Roboto, DejaVu Sans, sans-serif;";
+		s << "font-size: 16px; margin: 0; padding: 0; }";
+		s << "p { margin: 0; padding: 0; }";
+		s << ".header { border-style: none; font-size: 36px; height: 90px; margin-left: 60px; margin-top: 90px; }";
+		s << ".wrapper { border-style: none; margin-left: 60px; margin-top: 3px; padding-left: 0px; line-height: 23px; }";
+		s << ".left_block { width: 520px; float:left; }";
+		s << ".right_block { }";
+		s << "</style>";
+		s << "</head>";
 		// Head end
 		if (address.length () > 1)
 			HandleCommand (address.substr (2), s);
@@ -647,7 +660,11 @@ namespace util
 
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
-		s << "<h2>Welcome to the Webconsole!</h2><br>";
+		s << "<div class=header>";
+		s << "<p><b>i2pd </b>webconsole</p>";
+		s << "</div>";
+		s << "<div class=wrapper>";
+		s << "<div class=left_block><p>";
 		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
 			boost::posix_time::time_duration (boost::posix_time::seconds (
 			i2p::context.GetUptime ()))) << "<br>";
@@ -688,25 +705,22 @@ namespace util
 			}
 			s << address.host.to_string() << ":" << address.port << "<br>";
 		}
-		s << "<br><b>Routers:</b> <i>" << i2p::data::netdb.GetNumRouters () << "</i> ";
-		s << "<b>Floodfills:</b> <i>" << i2p::data::netdb.GetNumFloodfills () << "</i> ";
-		s << "<b>LeaseSets:</b> <i>" << i2p::data::netdb.GetNumLeaseSets () << "</i><br>";
-
-		s << "<br><b><a href=/?" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a></b>";
-		s << "<br><b><a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a></b>";
-		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a></b>";
-		s << "<br><b><a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a></b>";
+		s << "<br><b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
+		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
+		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>";
+		s << "</div><div class=right_block>";		
+		s << "<p>[ <a href=/?" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a> ]<br>";
+		s << "[ <a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a> ]<br>";
+		s << "[ <a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a> ]<br>";
+		s << "[ <a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a> ]<br>";
 		if (i2p::client::context.GetSAMBridge ())
-			s << "<br><b><a href=/?" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a></b>";
-		s << "<br>";
-		
+			s << "[ <a href=/?" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a> ]<br><br>";
 		if (i2p::context.AcceptsTunnels ())
-			s << "<br><b><a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a></b><br>";
+			s << "[ <a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a> ]<br><br>";
 		else	
-			s << "<br><b><a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a></b><br>";
-		s << "<br><b><a href=/?" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a></b><br>";	
-
-		s << "<p><a href=\"zmw2cyw2vj7f6obx3msmdvdepdhnw2ctc4okza2zjxlukkdfckhq.b32.i2p\">Flibusta</a></p>";
+			s << "[ <a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a> ]<br><br>";
+		s << "[ <a href=/?" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a> ]<br><br></p>";
+		s << "</div></div></body>";
 	}
 
 	void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
