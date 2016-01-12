@@ -1,4 +1,4 @@
-Building i2pd on Windows
+Building on Windows
 =========================
 
 There are two approaches available to build i2pd on Windows. The best

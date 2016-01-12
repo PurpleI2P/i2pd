@@ -1,4 +1,7 @@
-i2pd cmdline options
+i2pd configuration
+==================
+
+Command line options
 --------------------
 
 * --host=               - The external IP (deprecated). 
