@@ -175,8 +175,19 @@ namespace util
 		"+mHGvzKrRS0R/yqsZq++6BRshpPMUDQcfzHFrIsqZHhWqasAtHc6b/D3cbSAuGcmWdAAAAAElFTkSuQmCC\" />";
 
 	const std::string HTTPConnection::itoopieFavicon =
-		"data:image/vnd.microsoft.icon;base64,"
-		"";		 
+		"data:image/png;base64,"
+		"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv"
+		"8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My4wOGVynO"
+		"EAAAIzSURBVDhPjZNdSFNhGMf3nm3n7OzMs+8JtfJGzdlgoPtoWBrkqc1OsLTMKEY3eZOQbbS6aBVYO"
+		"oO8CKSLXEulQtZNahAM9Cq6lS533UUaeDEEKcN/79x7kbQT/eDhfPB7/u/7Poej08JqtXoEQbhoMpmG"
+		"ZFn2stf/h8nEZ4aHue1SiWBlhSCV4n41NBifBINBjina8DyfzOUIVlcJtrYINjcJ3rw1oFAg4HnjHaZ"
+		"p4/Ppv8zPH0G5XKZNPZibO4lKpYJ8vgOqqv+uKMq/d9Hfz/0sFr3w+/3IZt2YnbWhszOAxUUv0mkCs9"
+		"ncyNT6hEL6dYBgY4Ngd5eger+zU7sODHA/mpubzUytj9FofLa0VGv4s9bWCCTJUGSaNvSzXT3stuHDM"
+		"rc3xEqF4N2CERciURyyHfgqSZKPqfuxUMyC+OKcL4YHyl28nDFAPdqDZMcQ7tPnSfURUt0jMBgMH1nL"
+		"fkRRDPvcLds3otfhbRTwasaE8b6He43VSrT3QW3tBT3iPdbyN3T7Ibsor988H8OxtiaMx2sB1aBbCRW"
+		"R1hbQhbqYXh+6QkaJn8DZyzF09x6HeiaOTC6NK9cSsFqkb3aH3cLU+tCAx9l8FoXPBUy9n8LgyCCmS9"
+		"MYez0Gm9P2iWna0GOcDp8KY2JhAsnbSQS6Ahh9OgrlklINeM40bWhAkBd4SLIEh8cBURLhOeiBIArVA"
+		"U4yTRvJItk5PRehQVFaYfpbt9PBtTmdziaXyyUzjaHT/QZBQuKHAA0UxAAAAABJRU5ErkJggg==";
 
 	const char HTTP_COMMAND_TUNNELS[] = "tunnels";
 	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
@@ -347,12 +358,12 @@ namespace util
 		// Html5 head start
 		s << "<!DOCTYPE html>\n<html lang=\"en\">"; // TODO: Add support for locale.
 		s << "<head><meta charset=\"utf-8\">"; // TODO: Find something to parse html/template system. This is horrible.
-		// s << "<link rel='shortcut icon' href='";
-		// s << itoopieFavicon;
-		// s << "' />";
+		s << "<link rel='shortcut icon' href='";
+		s << itoopieFavicon;
+		s << "' />";
 		s << "<title>Purple I2P " << VERSION " Webconsole</title>";
 		s << "<style>";
-		s << "body {font: 100%/1.5em sans-serif; margin: 0; padding: 0; background: #FAFAFA;}";
+		s << "body {font: 100%/1.5em sans-serif; margin: 0; padding: 1em; background: #FAFAFA;}";
 		s << "a {text-decoration: none;}";
 		s << "body, a {color: #103456}";
 		s << ".header {font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84;}";
@@ -848,5 +859,4 @@ namespace util
 	}
 }
 }
-
 
