@@ -75,6 +75,10 @@ namespace i2p
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
 			pidfile = i2p::util::config::GetArg("-pidfile", "");
+			if (pidfile == "") {
+				pidfile = IsService () ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
+				pidfile.append("/i2pd.pid");
+			}
 			if (pidfile != "") {
 				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
 				if (pidFH < 0)
