@@ -22,6 +22,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   build_requirements
    build_notes_unix
    build_notes_windows
    configuration
