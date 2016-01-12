@@ -52,7 +52,7 @@ namespace client
 		{
 			// Create directory is necessary
 			if (!boost::filesystem::create_directory (path))
-				LogPrint (eLogError, "Failed to create addressbook directory");
+				LogPrint (eLogError, "Addressbook: failed to create addressbook directory");
 		}
 		
 	}
@@ -70,7 +70,7 @@ namespace client
 				boost::system::error_code ec;
 				boost::filesystem::rename (filename1, filename, ec);
 				if (ec)
-					LogPrint (eLogError, "Couldn't move file ", ec.message ());
+					LogPrint (eLogError, "Addresbook: couldn't move file ", ec.message ());
 			}
 			else 
 				return nullptr; // address doesn't exist
@@ -82,7 +82,7 @@ namespace client
 			size_t len = f.tellg ();
 			if (len < i2p::data::DEFAULT_IDENTITY_SIZE)
 			{
-				LogPrint (eLogError, "File ", filename, " is too short. ", len);
+				LogPrint (eLogError, "Addresbook: File ", filename, " is too short. ", len);
 				return nullptr;
 			}
 			f.seekg(0, std::ios::beg);
@@ -115,7 +115,7 @@ namespace client
 			delete[] buf;
 		}
 		else
-			LogPrint (eLogError, "Can't open file ", filename);	
+			LogPrint (eLogError, "Addresbook: can't open file ", filename);
 	}	
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
@@ -174,7 +174,7 @@ namespace client
 			LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		}
 		else	
-			LogPrint (eLogError, "Can't open file ", filename);	
+			LogPrint (eLogError, "Addresbook: can't open file ", filename);
 		return num;	
 	}	
 
@@ -204,17 +204,17 @@ namespace client
 		}	
 		if (m_IsDownloading)
 		{
-			LogPrint (eLogInfo, "Subscription is downloading. Waiting for temination...");
+			LogPrint (eLogInfo, "Addresbook: subscriptions is downloading, abort");
 			for (int i = 0; i < 30; i++)
 			{
 				if (!m_IsDownloading)
 				{
-					LogPrint (eLogInfo, "Subscription download complete");
+					LogPrint (eLogInfo, "Addresbook: subscriptions download complete");
 					break;
 				}	
 				std::this_thread::sleep_for (std::chrono::seconds (1)); // wait for 1 seconds
 			}	
-			LogPrint (eLogError, "Subscription download hangs");
+			LogPrint (eLogError, "Addresbook: subscription download timeout");
 			m_IsDownloading = false;
 		}	
 		if (m_Storage)
@@ -290,7 +290,7 @@ namespace client
 			 m_Storage = CreateStorage ();
 		m_Storage->AddAddress (ident);
 		m_Addresses[address] = ident->GetIdentHash ();
-		LogPrint (eLogInfo, "Addressbook: ", address,"->", ToAddress(ident->GetIdentHash ()), " added");
+		LogPrint (eLogInfo, "Addressbook: added ", address," -> ", ToAddress(ident->GetIdentHash ()));
 	}
 
 	void AddressBook::InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
@@ -329,7 +329,7 @@ namespace client
 		else
 		{
 			// if not found download it from http://i2p-projekt.i2p/hosts.txt 
-			LogPrint (eLogInfo, "hosts.txt not found. Try to download it from default subscription...");
+			LogPrint (eLogInfo, "Addressbook: hosts.txt not found, trying to download it from default subscription.");
 			if (!m_IsDownloading)
 			{
 				m_IsDownloading = true;
@@ -368,10 +368,10 @@ namespace client
 					numAddresses++;
 				}	
 				else
-					LogPrint (eLogError, "Malformed address ", addr, " for ", name);
+					LogPrint (eLogError, "Addresbook: malformed address ", addr, " for ", name);
 			}		
 		}
-		LogPrint (eLogInfo, numAddresses, " addresses processed");
+		LogPrint (eLogInfo, "Addresbook: ", numAddresses, " addresses processed");
 		if (numAddresses > 0)
 		{	
 			m_IsLoaded = true;
@@ -393,13 +393,13 @@ namespace client
 					if (!s.length()) continue; // skip empty line
 					m_Subscriptions.push_back (new AddressBookSubscription (*this, s));
 				}
-				LogPrint (eLogInfo, m_Subscriptions.size (), " subscriptions loaded");
+				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions loaded");
 			}
 			else
-				LogPrint (eLogWarning, "subscriptions.txt not found");
+				LogPrint (eLogWarning, "Addresbook: subscriptions.txt not found");
 		}
 		else
-			LogPrint (eLogError, "Subscriptions already loaded");
+			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
 	}
 
 	void AddressBook::DownloadComplete (bool success)
@@ -428,7 +428,7 @@ namespace client
 				this, std::placeholders::_1));
 		}
 		else
-			LogPrint (eLogError, "Can't start subscriptions: missing shared local destination");
+			LogPrint (eLogError, "Addresbook: can't start subscriptions: missing shared local destination");
 	}
 
 	void AddressBook::StopSubscriptions ()
@@ -476,7 +476,7 @@ namespace client
 	void AddressBookSubscription::Request ()
 	{
 		// must be run in separate thread	
-		LogPrint (eLogInfo, "Downloading hosts database from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+		LogPrint (eLogInfo, "Addresbook: Downloading hosts database from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 		bool success = false;	
 		i2p::util::http::url u (m_Link);
 		i2p::data::IdentHash ident;
@@ -530,7 +530,7 @@ namespace client
 						30); // wait for 30 seconds
 					std::unique_lock<std::mutex> l(newDataReceivedMutex);
 					if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
-						LogPrint (eLogError, "Subscription timeout expired");
+						LogPrint (eLogError, "Addresbook: subscriptions request timeout expired");
 				}
 				// process remaining buffer
 				while (size_t len = stream->ReadSome (buf, 4096))
@@ -563,7 +563,7 @@ namespace client
 								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
 						}	
 					}
-					LogPrint (eLogInfo, m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+					LogPrint (eLogInfo, "Addressbook: ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 					if (!response.eof ())	
 					{
 						success = true;
@@ -581,19 +581,19 @@ namespace client
 				else if (status == 304)
 				{	
 					success = true;
-					LogPrint (eLogInfo, "No updates from ", m_Link);
+					LogPrint (eLogInfo, "Addressbook: no updates from ", m_Link);
 				}	
 				else
-					LogPrint (eLogWarning, "Adressbook HTTP response ", status);
+					LogPrint (eLogWarning, "Adressbook: HTTP response ", status);
 			}
 			else
-				LogPrint (eLogError, "Address ", u.host_, " not found");
+				LogPrint (eLogError, "Addressbook: address ", u.host_, " not found");
 		}
 		else
-			LogPrint (eLogError, "Can't resolve ", u.host_);
+			LogPrint (eLogError, "Addressbook: Can't resolve ", u.host_);
 
 		if (!success)
-			LogPrint (eLogError, "Addressbook download failed");
+			LogPrint (eLogError, "Addressbook: download failed");
 
 		m_Book.DownloadComplete (success);
 	}
