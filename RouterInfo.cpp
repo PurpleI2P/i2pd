@@ -520,7 +520,7 @@ namespace data
 		for (auto it: m_Addresses) // don't insert same address twice
 			if (it == addr) return;
 		m_Addresses.push_back(addr);	
-		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eSSUV4;
+		m_SupportedTransports |= addr.host.is_v6 () ? eSSUV6 : eSSUV4;
 		m_Caps |= eSSUTesting; 
 		m_Caps |= eSSUIntroducer; 
 	}	
