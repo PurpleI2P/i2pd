@@ -187,8 +187,8 @@ namespace transport
 		memcpy (xy + 256, y, 256);
 		SHA256(xy, 512, m_Establisher->phase2.encrypted.hxy); 
 		uint32_t tsB = htobe32 (i2p::util::GetSecondsSinceEpoch ());
-		m_Establisher->phase2.encrypted.timestamp = tsB;
-		// TODO: fill filler
+		memcpy (m_Establisher->phase2.encrypted.timestamp, &tsB, 4);
+		RAND_bytes (m_Establisher->phase2.encrypted.filler, 12);
 
 		i2p::crypto::AESKey aesKey;
 		CreateAESKey (m_Establisher->phase1.pubKey, aesKey);
@@ -287,7 +287,7 @@ namespace transport
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
 		s.Insert (m_RemoteIdentity->GetIdentHash (), 32); // ident
  		s.Insert (tsA);	// tsA
-		s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
+		s.Insert (m_Establisher->phase2.encrypted.timestamp, 4); // tsB
 		s.Sign (keys, buf);
 
 		m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);		        
@@ -449,7 +449,7 @@ namespace transport
 			s.Insert (m_Establisher->phase2.pubKey, 256); // y
 			s.Insert (i2p::context.GetIdentHash (), 32); // ident
 			s.Insert (tsA); // tsA
-			s.Insert (m_Establisher->phase2.encrypted.timestamp); // tsB
+			s.Insert (m_Establisher->phase2.encrypted.timestamp, 4); // tsB
 
 			if (!s.Verify (m_RemoteIdentity, m_ReceiveBuffer))
 			{	

@@ -17,8 +17,6 @@ namespace i2p
 {
 namespace transport
 {
-
-#pragma pack(1)
 	struct NTCPPhase1
 	{
 		uint8_t pubKey[256];
@@ -31,12 +29,10 @@ namespace transport
 		struct
 		{
 			uint8_t hxy[32];
-			uint32_t timestamp;
+			uint8_t timestamp[4];
 			uint8_t filler[12];
 		} encrypted;	
 	};	
-	
-#pragma pack()	
 
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
 	const size_t NTCP_BUFFER_SIZE = 4160; // fits 4 tunnel messages (4*1028)
