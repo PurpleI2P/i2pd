@@ -17,17 +17,8 @@ void handle_signal(int sig)
 	switch (sig)
 	{
 	case SIGHUP:
-		if (i2p::util::config::GetArg("daemon", 0) == 1)
-		{
-			static bool first=true;
-			if (first)
-			{
-				first=false;
-				return;
-			}
-		}
-		LogPrint(eLogInfo, "Daemon: Got SIGHUP, reloading config.");
-		i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+		LogPrint(eLogInfo, "Daemon: Got SIGHUP, doing nothing");
+		// TODO:
 		break;
 	case SIGABRT:
 	case SIGTERM:
