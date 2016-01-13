@@ -55,8 +55,11 @@ tunnels.cfg (filename of this config is subject of change):
     # optional parameters (may be omitted)
     # * keys -- our identity, if unset, will be generated on every startup,
     #     if set and file missing, keys will be generated and placed to this file
+    # * address -- local interface to bind
+    # * signaturetype -- signature type for new destination. 0,1 or 7
     [IRC]
     type = client
+    address = 127.0.0.1
     port = 6668
     destination = irc.postman.i2p
     keys = irc-keys.dat
