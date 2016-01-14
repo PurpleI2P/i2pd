@@ -28,7 +28,7 @@ http://download.i2p.io/purplei2p/i2pd/releases/
 Supported OS
 ------------
 
-* Linux x86/x64  - [![Build Status](https://travis-ci.org/purplei2p/i2pd.svg?branch=master)](https://travis-ci.org/purplei2p/i2pd)
+* Linux x86/x64  - [![Build Status](https://travis-ci.org/purplei2p/i2pd.svg?branch=openssl)](https://travis-ci.org/purplei2p/i2pd)
 * Mac OS X       - Not well tested. (Only works with clang, not GCC)
 * Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
 
