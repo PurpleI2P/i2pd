@@ -261,7 +261,7 @@ namespace client
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
 						localDestination = LoadLocalDestination (keys, false, sigType);
-					auto clientTunnel = new I2PClientTunnel (dest, address, port, localDestination, destinationPort);
+					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
 						clientTunnel->Start ();
 					else
@@ -280,7 +280,9 @@ namespace client
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					
 					auto localDestination = LoadLocalDestination (keys, true, sigType);
-					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? new I2PServerTunnelHTTP (host, port, localDestination, inPort) : new I2PServerTunnel (host, port, localDestination, inPort);
+					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
+						new I2PServerTunnelHTTP (name, host, port, localDestination, inPort) : 
+						new I2PServerTunnel (name, host, port, localDestination, inPort);
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;

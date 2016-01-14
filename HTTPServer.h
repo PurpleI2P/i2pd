@@ -69,6 +69,7 @@ namespace util
 			void ShowLocalDestination (const std::string& b32, std::stringstream& s);
 			void ShowSAMSessions (std::stringstream& s);
 			void ShowSAMSession (const std::string& id, std::stringstream& s);
+			void ShowI2PTunnels (std::stringstream& s);
 			void StartAcceptingTunnels (std::stringstream& s);
 			void StopAcceptingTunnels (std::stringstream& s);
 			void RunPeerTest (std::stringstream& s);

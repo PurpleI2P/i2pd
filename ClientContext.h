@@ -78,6 +78,8 @@ namespace client
 		public:
 			// for HTTP
 			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
+			const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; };
+			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
 	};
 	
 	extern ClientContext context;	

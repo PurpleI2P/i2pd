@@ -262,8 +262,12 @@ namespace client
 		Done(shared_from_this());
 	}
 
-	I2PClientTunnel::I2PClientTunnel (const std::string& destination, const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort): 
-		TCPIPAcceptor (address, port, localDestination), m_Destination (destination), m_DestinationIdentHash (nullptr), m_DestinationPort (destinationPort) {}	
+	I2PClientTunnel::I2PClientTunnel (const std::string& name, const std::string& destination, 
+	    const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort): 
+		TCPIPAcceptor (address, port, localDestination), m_Name (name), m_Destination (destination), 
+		m_DestinationIdentHash (nullptr), m_DestinationPort (destinationPort) 
+	{
+	}	
 
 	void I2PClientTunnel::Start ()
 	{
@@ -302,9 +306,9 @@ namespace client
 			return nullptr;
 	}
 
-	I2PServerTunnel::I2PServerTunnel (const std::string& address, int port, 
-	    std::shared_ptr<ClientDestination> localDestination, int inport): 
-		I2PService (localDestination), m_Address (address), m_Port (port), m_IsAccessList (false)
+	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address, 
+	    int port, std::shared_ptr<ClientDestination> localDestination, int inport): 
+		I2PService (localDestination), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
 		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port);
 	}
@@ -392,8 +396,9 @@ namespace client
 		conn->Connect ();
 	}
 
-	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int inport):
-		I2PServerTunnel (address, port, localDestination, inport)
+	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& name, const std::string& address, 
+	    int port, std::shared_ptr<ClientDestination> localDestination, int inport):
+		I2PServerTunnel (name, address, port, localDestination, inport)
 	{
 	}
 

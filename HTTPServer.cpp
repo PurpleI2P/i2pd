@@ -201,6 +201,7 @@ namespace util
 	const char HTTP_COMMAND_SAM_SESSIONS[] = "sam_sessions";
 	const char HTTP_COMMAND_SAM_SESSION[] = "sam_session";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
+	const char HTTP_COMMAND_I2P_TUNNELS[] = "i2p_tunnels";
 	
 	namespace misc_strings
 	{
@@ -385,6 +386,7 @@ namespace util
 		s << "<a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a><br>";
 		s << "<a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a><br>";
 		s << "<a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a><br><br>";
+		s << "<a href=/?" << HTTP_COMMAND_I2P_TUNNELS << ">I2P tunnels</a><br>";
 		if (i2p::client::context.GetSAMBridge ())
 			s << "<a href=/?" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a><br><br>";
 		if (i2p::context.AcceptsTunnels ())
@@ -482,6 +484,8 @@ namespace util
 			auto id = params[HTTP_PARAM_SAM_SESSION_ID];
 			ShowSAMSession (id, s);
 		}	
+		else if (cmd == HTTP_COMMAND_I2P_TUNNELS)
+			ShowI2PTunnels (s);
 	}	
 
 	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
@@ -691,6 +695,30 @@ namespace util
 		}	
 	}	
 
+	void HTTPConnection::ShowI2PTunnels (std::stringstream& s)
+	{
+		s << "<b>Client Tunnels:</b><br><br>";
+		for (auto& it: i2p::client::context.GetClientTunnels ())
+		{
+			s << it.second->GetName () << "<--";
+			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
+			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << "</a><br>"<< std::endl;
+		}	
+		s << "<br><b>Server Tunnels:</b><br><br>";
+		for (auto& it: i2p::client::context.GetServerTunnels ())
+		{
+			s << it.second->GetName () << "-->";
+			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
+			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << "</a><br>"<< std::endl;
+		}	
+	}	
+	
 	void HTTPConnection::StopAcceptingTunnels (std::stringstream& s)
 	{
 		s << "<b>Stop Accepting Tunnels:</b><br><br>";

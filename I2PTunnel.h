@@ -86,21 +86,25 @@ namespace client
 
 			// Implements TCPIPAcceptor
 			std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			const char* GetName() { return "I2P Client Tunnel"; }
 
 		public:
 
-			I2PClientTunnel (const std::string& destination, const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort = 0);
+			I2PClientTunnel (const std::string& name, const std::string& destination, 
+				const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort = 0);
 			~I2PClientTunnel () {}
 	
 			void Start ();
 			void Stop ();
 
+			const char* GetName() { return m_Name.c_str (); }	
+			
 		private:
 
 			const i2p::data::IdentHash * GetIdentHash ();
 
-			std::string m_Destination;
+		private:
+			
+			std::string m_Name, m_Destination;
 			const i2p::data::IdentHash * m_DestinationIdentHash;
 			int m_DestinationPort;	
 	};	
@@ -109,7 +113,7 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnel (const std::string& address, int port, 
+			I2PServerTunnel (const std::string& name, const std::string& address, int port, 
 				std::shared_ptr<ClientDestination> localDestination, int inport = 0);	
 
 			void Start ();
@@ -121,6 +125,8 @@ namespace client
 			int GetPort () const { return m_Port; };
 			const boost::asio::ip::tcp::endpoint& GetEndpoint () const { return m_Endpoint; }
 
+			const char* GetName() { return m_Name.c_str (); }	
+			
 		private:
 
 			void HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
@@ -132,7 +138,7 @@ namespace client
 
 		private:
 
-			std::string m_Address;
+			std::string m_Name, m_Address;
 			int m_Port;
 			boost::asio::ip::tcp::endpoint m_Endpoint;	
 			std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;
@@ -144,7 +150,7 @@ namespace client
 	{
 		public:
 
-			I2PServerTunnelHTTP (const std::string& address, int port, 
+			I2PServerTunnelHTTP (const std::string& name, const std::string& address, int port, 
 				std::shared_ptr<ClientDestination> localDestination, int inport = 0);	
 
 		private:
