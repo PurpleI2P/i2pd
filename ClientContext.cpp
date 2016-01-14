@@ -123,7 +123,7 @@ namespace client
 	}	
 	
 	std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination (const std::string& filename, 
-		bool isPublic, i2p::data::SigningKeyType sigType)
+		bool isPublic, i2p::data::SigningKeyType sigType, const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys;
 		std::string fullPath = i2p::util::filesystem::GetFullPath (filename);
@@ -163,7 +163,7 @@ namespace client
 		}
 		else
 		{
-			localDestination = std::make_shared<ClientDestination> (keys, isPublic);
+			localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 			m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 			localDestination->Start ();
 		}
@@ -257,10 +257,16 @@ namespace client
 					std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
 					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+					// I2CP
+					std::map<std::string, std::string> options;					
+					options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, DEFAULT_INBOUND_TUNNEL_LENGTH);
+					options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
+					options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
+					options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
-						localDestination = LoadLocalDestination (keys, false, sigType);
+						localDestination = LoadLocalDestination (keys, false, sigType, &options);
 					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
 						clientTunnel->Start ();
@@ -278,8 +284,14 @@ namespace client
 					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
 					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");					
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-					
-					auto localDestination = LoadLocalDestination (keys, true, sigType);
+					// I2CP
+					std::map<std::string, std::string> options;					
+					options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, DEFAULT_INBOUND_TUNNEL_LENGTH);
+					options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
+					options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
+					options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);					
+
+					auto localDestination = LoadLocalDestination (keys, true, sigType, &options);
 					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
 						new I2PServerTunnelHTTP (name, host, port, localDestination, inPort) : 
 						new I2PServerTunnel (name, host, port, localDestination, inPort);
