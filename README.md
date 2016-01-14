@@ -13,22 +13,22 @@ LICENSE in the root of the project source code.
 Donations
 ---------
 
-BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY   
-LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59   
+BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY
+LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59
 ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z
 
 Downloads
 ------------
 
 Official binary releases could be found at:
-http://i2pd.website/releases/   
+http://i2pd.website/releases/
 older releases
 http://download.i2p.io/purplei2p/i2pd/releases/
 
 Supported OS
 ------------
 
-* Linux x86/x64  - Proved working.
+* Linux x86/x64  - [![Build Status](https://travis-ci.org/purplei2p/i2pd.svg?branch=master)](https://travis-ci.org/purplei2p/i2pd)
 * Mac OS X       - Not well tested. (Only works with clang, not GCC)
 * Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
 

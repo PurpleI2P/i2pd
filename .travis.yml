@@ -1,0 +1,31 @@
+language: cpp
+cache:
+  apt: true
+os:
+  - linux
+sudo: required
+dist: trusty
+addons:
+  apt:
+    packages:
+      - build-essential
+      - cmake
+      - g++
+      - clang
+      - libboost-chrono-dev
+      - libboost-date-time-dev
+      - libboost-filesystem-dev
+      - libboost-program-options-dev
+      - libboost-regex-dev
+      - libboost-system-dev
+      - libboost-thread-dev
+      - libminiupnpc-dev
+      - libssl-dev
+compiler:
+  - gcc
+env:
+  matrix:
+    - BUILD_TYPE=Release UPNP=ON
+    - BUILD_TYPE=Release UPNP=OFF
+script:
+  - cd build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_UPNP=${UPNP} && make
