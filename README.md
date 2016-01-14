@@ -13,9 +13,9 @@ LICENSE in the root of the project source code.
 Donations
 ---------
 
-BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY
-LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59
-ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z
+BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY  
+LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59  
+ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z  
 
 Downloads
 ------------
