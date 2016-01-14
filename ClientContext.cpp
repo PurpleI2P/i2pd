@@ -259,10 +259,10 @@ namespace client
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					// I2CP
 					std::map<std::string, std::string> options;					
-					options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, DEFAULT_INBOUND_TUNNEL_LENGTH);
-					options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
-					options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
-					options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
+					options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, '/'), std::to_string (DEFAULT_INBOUND_TUNNEL_LENGTH));
+					options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, '/'), std::to_string (DEFAULT_OUTBOUND_TUNNEL_LENGTH));
+					options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, '/'), std::to_string (DEFAULT_INBOUND_TUNNELS_QUANTITY));
+					options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, '/'), std::to_string (DEFAULT_OUTBOUND_TUNNELS_QUANTITY));
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
@@ -285,11 +285,11 @@ namespace client
 					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");					
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					// I2CP
-					std::map<std::string, std::string> options;					
-					options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, DEFAULT_INBOUND_TUNNEL_LENGTH);
-					options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
-					options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
-					options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = section.second.get (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);					
+					std::map<std::string, std::string> options;							 
+					options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_INBOUND_TUNNEL_LENGTH, '/'), std::to_string (DEFAULT_INBOUND_TUNNEL_LENGTH));
+					options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, '/'), std::to_string (DEFAULT_OUTBOUND_TUNNEL_LENGTH));
+					options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, '/'), std::to_string (DEFAULT_INBOUND_TUNNELS_QUANTITY));
+					options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = section.second.get (decltype (pt)::path_type (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, '/'), std::to_string (DEFAULT_OUTBOUND_TUNNELS_QUANTITY));					
 
 					auto localDestination = LoadLocalDestination (keys, true, sigType, &options);
 					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
