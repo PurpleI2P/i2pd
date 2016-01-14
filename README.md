@@ -20,22 +20,22 @@ ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z
 Downloads
 ------------
 
-Official binary releases could be found at:
-http://i2pd.website/releases/
-older releases
-http://download.i2p.io/purplei2p/i2pd/releases/
+Official binary releases could be found at:  
+http://i2pd.website/releases/  
+older releases  
+http://download.i2p.io/purplei2p/i2pd/releases/  
 
 Supported OS
 ------------
 
-* Linux x86/x64  - [![Build Status](https://travis-ci.org/purplei2p/i2pd.svg?branch=openssl)](https://travis-ci.org/purplei2p/i2pd)
-* Mac OS X       - Not well tested. (Only works with clang, not GCC)
-* Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
+* Linux x86/x64  - [![Build Status](https://travis-ci.org/purplei2p/i2pd.svg?branch=openssl)](https://travis-ci.org/purplei2p/i2pd)  
+* Mac OS X       - Not well tested. (Only works with clang, not GCC)  
+* Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)  
 
 More documentation
 ------------------
 
-* [Building from source / unix](docs/build_notes_unix.md)
-* [Building from source / windows](docs/build_notes_windows.md)
-* [Configuring your i2pd](docs/configuration.md)
-* [Github wiki](https://github.com/PurpleI2P/i2pd/wiki/)
+* [Building from source / unix](docs/build_notes_unix.md)  
+* [Building from source / windows](docs/build_notes_windows.md)  
+* [Configuring your i2pd](docs/configuration.md)  
+* [Github wiki](https://github.com/PurpleI2P/i2pd/wiki/)  
