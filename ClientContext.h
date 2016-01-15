@@ -60,7 +60,11 @@ namespace client
 		private:
 
 			void ReadTunnels ();
-	
+			template<typename Section, typename Type>
+			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
+			template<typename Section>
+			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const;	
+
 		private:
 
 			std::mutex m_DestinationsMutex;
