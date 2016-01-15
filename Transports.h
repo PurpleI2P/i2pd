@@ -132,6 +132,7 @@ namespace transport
 
 			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;
+			mutable std::mutex m_PeersMutex;
 			std::map<i2p::data::IdentHash, Peer> m_Peers;
 			
 			DHKeysPairSupplier m_DHKeysPairSupplier;
