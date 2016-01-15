@@ -40,7 +40,11 @@ namespace client
 		// proxies	
 		std::string proxyKeys = i2p::util::config::GetArg("-proxykeys", "");
 		if (proxyKeys.length () > 0)
-			localDestination = LoadLocalDestination (proxyKeys, false);
+		{
+			i2p::data::PrivateKeys keys;
+			LoadPrivateKeys (keys, proxyKeys);
+			localDestination = CreateNewLocalDestination (keys, false);
+		}
 		LogPrint(eLogInfo, "Clients: starting HTTP Proxy");
 		m_HttpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyaddress", "127.0.0.1"), i2p::util::config::GetArg("-httpproxyport", 4446), localDestination);
 		m_HttpProxy->Start();
@@ -122,10 +126,8 @@ namespace client
 		m_SharedLocalDestination = nullptr; 
 	}	
 	
-	std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination (const std::string& filename, 
-		bool isPublic, i2p::data::SigningKeyType sigType, const std::map<std::string, std::string> * params)
+	void ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,  i2p::data::SigningKeyType sigType)
 	{
-		i2p::data::PrivateKeys keys;
 		std::string fullPath = i2p::util::filesystem::GetFullPath (filename);
 		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
 		if (s.is_open ())	
@@ -152,22 +154,6 @@ namespace client
 			
 			LogPrint (eLogInfo, "Clients: New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
 		}	
-
-		std::shared_ptr<ClientDestination> localDestination = nullptr;	
-		std::unique_lock<std::mutex> l(m_DestinationsMutex);	
-		auto it = m_Destinations.find (keys.GetPublic ()->GetIdentHash ()); 
-		if (it != m_Destinations.end ())
-		{
-			LogPrint (eLogWarning, "Clients: Local destination ",  m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " already exists");
-			localDestination = it->second;
-		}
-		else
-		{
-			localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
-			m_Destinations[localDestination->GetIdentHash ()] = localDestination;
-			localDestination->Start ();
-		}
-		return localDestination;
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
@@ -277,7 +263,11 @@ namespace client
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
-						localDestination = LoadLocalDestination (keys, false, sigType, &options);
+					{
+						i2p::data::PrivateKeys k;
+						LoadPrivateKeys (k, keys, sigType);
+						localDestination = CreateNewLocalDestination (k, false, &options);
+					}
 					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
 						clientTunnel->Start ();
@@ -299,7 +289,9 @@ namespace client
 					std::map<std::string, std::string> options;							 
 					ReadI2CPOptions (section, options);				
 
-					auto localDestination = LoadLocalDestination (keys, true, sigType, &options);
+					i2p::data::PrivateKeys k;
+					LoadPrivateKeys (k, keys, sigType);
+					auto localDestination = CreateNewLocalDestination (k, true, &options);
 					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
 						new I2PServerTunnelHTTP (name, host, port, localDestination, inPort) : 
 						new I2PServerTunnel (name, host, port, localDestination, inPort);
