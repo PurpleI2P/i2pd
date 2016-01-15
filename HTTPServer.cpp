@@ -358,27 +358,23 @@ namespace util
 		std::stringstream s;
 		// Html5 head start
 		s << "<!DOCTYPE html>\n<html lang=\"en\">"; // TODO: Add support for locale.
-		s << "<head><meta charset=\"utf-8\" />"; // TODO: Find something to parse html/template system. This is horrible.
-		s << "<link rel='shortcut icon' href='";
-		s << itoopieFavicon;
-		s << "' /><title>Purple I2P " << VERSION " Webconsole</title>";
+		s << "<head><meta charset=\"utf-8\">"; // TODO: Find something to parse html/template system. This is horrible.
+		s << "<link rel='shortcut icon' href='" + itoopieFavicon + "'>";
+		s << "<title>Purple I2P " << VERSION " Webconsole</title>";
 		s << "<style>";
-		s << "body {font: 100%/1.5em sans-serif; margin-left: 8em; background: #FAFAFA; color: #103456;}";
+		s << "body {font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456;}";
 		s << "a {text-decoration: none; color: #894C84;}";
 		s << "a:hover {color: #FAFAFA; background: #894C84;}";
-		s << ".header {font-size: 2.5em; margin-top: 2.4em; color: #894C84;}";
-		s << ".wrapper {margin-top: 6em;}";
+		s << ".header {font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84;}";
+		s << ".wrapper {margin: 0 auto; padding: 1em; max-width: 48em;}";
 		s << ".left {float: left; position: absolute;}";
-		s << ".right {font-size: 1em; margin-left: 15em; float: left; width: 35em;}";
+		s << ".right {font-size: 1em; margin-left: 13em; float: left; max-width: 34em; overflow: auto;}";
 		s << ".established_tunnel {color: #56b734;}";
 		s << ".expiring_tunnel {color: #d3ae3f;}";
 		s << ".failed_tunnel {color: #d33f3f;}";
 		s << ".another_tunnel {color: #434343;}";
-		s << "</style>";
-		s << "</head><body>";
-		s << "<div class=header>";
-		s << "<p><a href=/><b>i2pd </b>webconsole</a></p>";
-		s << "</div>";
+		s << "</style></head><body>";
+		s << "<div class=header><b>i2pd </b>webconsole</div>";
 		s << "<div class=wrapper>";
 		s << "<div class=left>";
 		s << "<a href=/>Main page</a><br><br>";
@@ -611,8 +607,8 @@ namespace util
 						<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
 					if (!it.second->IsOutgoing ()) s << "-->";
 					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+					s << "<br>" << std::endl;
 				}
-				s << "<br>" << std::endl;
 			}
 		}	
 		auto ssuServer = i2p::transport::transports.GetSSUServer ();
@@ -900,4 +896,5 @@ namespace util
 	}
 }
 }
+
 
