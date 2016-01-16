@@ -231,8 +231,11 @@ namespace transport
 			try
 			{
 				auto r = netdb.FindRouter (ident);
-				it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
-					i2p::util::GetSecondsSinceEpoch (), {} })).first;
+				{
+					std::unique_lock<std::mutex>  l(m_PeersMutex);	
+					it = m_Peers.insert (std::pair<i2p::data::IdentHash, Peer>(ident, { 0, r, {},
+						i2p::util::GetSecondsSinceEpoch (), {} })).first;
+				}
 				connected = ConnectToPeer (ident, it->second);
 			}
 			catch (std::exception& ex)
@@ -318,6 +321,7 @@ namespace transport
 			}	
 			LogPrint (eLogError, "Transports: No NTCP or SSU addresses available");
 			peer.Done ();
+			std::unique_lock<std::mutex>  l(m_PeersMutex);	
 			m_Peers.erase (ident);
 			return false;
 		}	
@@ -349,6 +353,7 @@ namespace transport
 			else
 			{
 				LogPrint (eLogError, "Transports: RouterInfo not found, Failed to send messages");
+				std::unique_lock<std::mutex>  l(m_PeersMutex);	
 				m_Peers.erase (it);
 			}	
 		}	
@@ -382,6 +387,7 @@ namespace transport
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve NTCP address: ", ecode.message ());
+			std::unique_lock<std::mutex>  l(m_PeersMutex);		
 			m_Peers.erase (it1);
 		}
 	}
@@ -413,6 +419,7 @@ namespace transport
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve SSU address: ", ecode.message ());
+			std::unique_lock<std::mutex>  l(m_PeersMutex);	
 			m_Peers.erase (it1);
 		}
 	}
@@ -502,7 +509,10 @@ namespace transport
 				it->second.delayedMessages.clear ();
 			}
 			else // incoming connection
+			{
+				std::unique_lock<std::mutex>  l(m_PeersMutex);	
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
+			}
 		});			
 	}
 		
@@ -521,14 +531,18 @@ namespace transport
 					if (it->second.delayedMessages.size () > 0)
 						ConnectToPeer (ident, it->second);
 					else
+					{
+						std::unique_lock<std::mutex>  l(m_PeersMutex);	
 						m_Peers.erase (it);
+					}
 				}
 			}
 		});	
 	}	
 
 	bool Transports::IsConnected (const i2p::data::IdentHash& ident) const
-	{
+	{	
+		std::unique_lock<std::mutex> l(m_PeersMutex);		
 		auto it = m_Peers.find (ident);
 		return it != m_Peers.end ();
 	}	
@@ -543,6 +557,7 @@ namespace transport
 				if (it->second.sessions.empty () && ts > it->second.creationTime + SESSION_CREATION_TIMEOUT)
 				{
 					LogPrint (eLogWarning, "Transports: Session to peer ", it->first.ToBase64 (), " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
+					std::unique_lock<std::mutex>  l(m_PeersMutex);	
 					it = m_Peers.erase (it);
 				}
 				else
@@ -559,6 +574,7 @@ namespace transport
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
 	{
 		if (!m_Peers.size ()) return nullptr;
+		std::unique_lock<std::mutex> l(m_PeersMutex);	
 		auto it = m_Peers.begin ();
 		std::advance (it, rand () % m_Peers.size ());	
 		return it != m_Peers.end () ? it->second.router : nullptr;
