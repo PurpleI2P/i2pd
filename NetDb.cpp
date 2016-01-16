@@ -168,16 +168,19 @@ namespace data
 		}	
 		else	
 		{	
-			LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase32());
 			r = std::make_shared<RouterInfo> (buf, len);
+			if (!r->IsUnreachable ())
 			{
-				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-				m_RouterInfos[r->GetIdentHash ()] = r;
-			}
-			if (r->IsFloodfill ())
-			{
-				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-				m_Floodfills.push_back (r);
+				LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase32());
+				{
+					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+					m_RouterInfos[r->GetIdentHash ()] = r;
+				}
+				if (r->IsFloodfill ())
+				{
+					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+					m_Floodfills.push_back (r);
+				}
 			}	
 		}	
 		// take care about requested destination
