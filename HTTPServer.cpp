@@ -368,7 +368,7 @@ namespace util
 		s << ".header {font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84;}";
 		s << ".wrapper {margin: 0 auto; padding: 1em; max-width: 48em;}";
 		s << ".left {float: left; position: absolute;}";
-		s << ".right {font-size: 1em; margin-left: 13em; float: left; max-width: 34em; overflow: auto;}";
+		s << ".right {font-size: 1em; margin-left: 13em; float: left; max-width: 34em; word-break: break-all;}";
 		s << ".established_tunnel {color: #56b734;}";
 		s << ".expiring_tunnel {color: #d3ae3f;}";
 		s << ".failed_tunnel {color: #d33f3f;}";
