@@ -580,7 +580,7 @@ namespace util
 	void HTTPConnection::ShowTunnels (std::stringstream& s)
 	{
 		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
-		s << "<b>Queue size:</b>" << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
+		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
 		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
 		{
 			it->Print (s);
