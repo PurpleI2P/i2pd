@@ -310,7 +310,9 @@ namespace client
 						while (comma != std::string::npos);
 						serverTunnel->SetAccessList (idents);
 					}
-					if (m_ServerTunnels.insert (std::make_pair (localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
+					if (m_ServerTunnels.insert (std::make_pair (
+							std::make_tuple (localDestination->GetIdentHash (), inPort), 
+					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
 						serverTunnel->Start ();
 					else
 						LogPrint (eLogError, "Clients: I2P server tunnel for destination ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), " already exists");

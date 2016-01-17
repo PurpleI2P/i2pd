@@ -742,6 +742,7 @@ namespace util
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << ":" << it.second->GetLocalPort ();
 			s << "</a><br>\r\n"<< std::endl;
 		}	
 	}	
