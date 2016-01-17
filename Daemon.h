@@ -1,4 +1,6 @@
-#pragma once
+#ifndef DAEMON_H__
+#define DAEMON_H__
+
 #include <string>
 
 #ifdef _WIN32
@@ -69,3 +71,5 @@ namespace i2p
 #endif
 	}
 }
+
+#endif // DAEMON_H__
