@@ -45,31 +45,38 @@ namespace client
 			LoadPrivateKeys (keys, proxyKeys);
 			localDestination = CreateNewLocalDestination (keys, false);
 		}
-		LogPrint(eLogInfo, "Clients: starting HTTP Proxy");
-		m_HttpProxy = new i2p::proxy::HTTPProxy(i2p::util::config::GetArg("-httpproxyaddress", "127.0.0.1"), i2p::util::config::GetArg("-httpproxyport", 4446), localDestination);
+		std::string httpProxyAddr = i2p::util::config::GetArg("-httpproxyaddress", "127.0.0.1");
+		uint16_t    httpProxyPort = i2p::util::config::GetArg("-httpproxyport", 4446);
+		LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
+		m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
 		m_HttpProxy->Start();
-		LogPrint(eLogInfo, "Clients: starting SOCKS Proxy");
-		m_SocksProxy = new i2p::proxy::SOCKSProxy(i2p::util::config::GetArg("-socksproxyaddress", "127.0.0.1"), i2p::util::config::GetArg("-socksproxyport", 4447), localDestination);
+
+		std::string socksProxyAddr = i2p::util::config::GetArg("-socksproxyaddress", "127.0.0.1");
+		uint16_t    socksProxyPort = i2p::util::config::GetArg("-socksproxyport",    4447);
+		LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
+		m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, localDestination);
 		m_SocksProxy->Start();
 	
 		// I2P tunnels
 		ReadTunnels ();
 
 		// SAM
-		int samPort = i2p::util::config::GetArg("-samport", 0);
+		std::string samAddr = i2p::util::config::GetArg("-samaddress", "127.0.0.1");
+		uint16_t    samPort = i2p::util::config::GetArg("-samport", 0);
 		if (samPort)
 		{
-			LogPrint(eLogInfo, "Clients: starting SAM bridge");
-			m_SamBridge = new SAMBridge (i2p::util::config::GetArg("-samaddress", "127.0.0.1"), samPort);
+			LogPrint(eLogInfo, "Clients: starting SAM bridge at", samAddr, ":", samPort);
+			m_SamBridge = new SAMBridge (samAddr, samPort);
 			m_SamBridge->Start ();
 		} 
 
 		// BOB
-		int bobPort = i2p::util::config::GetArg("-bobport", 0);
+		std::string bobAddr = i2p::util::config::GetArg("-bobaddress", "127.0.0.1");
+		uint16_t    bobPort = i2p::util::config::GetArg("-bobport", 0);
 		if (bobPort)
 		{
-			LogPrint(eLogInfo, "Clients: starting BOB command channel");
-			m_BOBCommandChannel = new BOBCommandChannel (i2p::util::config::GetArg("-bobaddress", "127.0.0.1"), bobPort);
+			LogPrint(eLogInfo, "Clients: starting BOB command channel at ", bobAddr, ":", bobPort);
+			m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
 			m_BOBCommandChannel->Start ();
 		} 
 
