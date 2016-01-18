@@ -20,7 +20,6 @@ namespace util
 		void OptionParser(int argc, const char* const argv[]);
 		int GetArg(const std::string& strArg, int nDefault);
 		std::string GetArg(const std::string& strArg, const std::string& strDefault);
-		const char* GetCharArg(const std::string& strArg, const std::string& nDefault);
 	}
 
 	namespace filesystem
