@@ -123,6 +123,7 @@ namespace client
 
 			const std::string& GetAddress() const { return m_Address; }
 			int GetPort () const { return m_Port; };
+			uint16_t GetLocalPort () const { return m_PortDestination->GetLocalPort (); };
 			const boost::asio::ip::tcp::endpoint& GetEndpoint () const { return m_Endpoint; }
 
 			const char* GetName() { return m_Name.c_str (); }	

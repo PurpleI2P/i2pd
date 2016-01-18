@@ -145,13 +145,14 @@ namespace proxy
 
 	void SOCKSHandler::AsyncSockRead()
 	{
-		LogPrint(eLogDebug,"--- SOCKS async sock read");
-		if(m_sock)
+		LogPrint(eLogDebug, "SOCKS: async sock read");
+		if (m_sock) {
 			m_sock->async_receive(boost::asio::buffer(m_sock_buff, socks_buffer_size),
 						std::bind(&SOCKSHandler::HandleSockRecv, shared_from_this(),
 								std::placeholders::_1, std::placeholders::_2));
-		else 
-			LogPrint(eLogError,"--- SOCKS no socket for read");
+		} else {
+			LogPrint(eLogError,"SOCKS: no socket for read");
+		}
 	}
 
 	void SOCKSHandler::Terminate() 
@@ -159,13 +160,13 @@ namespace proxy
 		if (Kill()) return;
 		if (m_sock) 
 		{
-			LogPrint(eLogDebug,"--- SOCKS close sock");
+			LogPrint(eLogDebug, "SOCKS: closing socket");
 			m_sock->close();
 			m_sock = nullptr;
 		}
 		if (m_stream) 
 		{
-			LogPrint(eLogDebug,"--- SOCKS close stream");
+			LogPrint(eLogDebug, "SOCKS: closing stream");
 			m_stream.reset ();
 		}
 		Done(shared_from_this());
@@ -216,14 +217,14 @@ namespace proxy
 		boost::asio::const_buffers_1 response(m_response,2);
 		if (m_authchosen == AUTH_UNACCEPTABLE) 
 		{
-			LogPrint(eLogWarning,"--- SOCKS5 authentication negotiation failed");
+			LogPrint(eLogWarning, "SOCKS: v5 authentication negotiation failed");
 			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksFailed,
 									      shared_from_this(), std::placeholders::_1));
 			return false;
 		} 
 		else 
 		{
-			LogPrint(eLogDebug,"--- SOCKS5 choosing authentication method: ", m_authchosen);
+			LogPrint(eLogDebug, "SOCKS: v5 choosing authentication method: ", m_authchosen);
 			boost::asio::async_write(*m_sock, response, std::bind(&SOCKSHandler::SentSocksResponse,
 									      shared_from_this(), std::placeholders::_1));
 			return true;
@@ -238,12 +239,12 @@ namespace proxy
 		switch (m_socksv) 
 		{
 			case SOCKS4:
-				LogPrint(eLogWarning,"--- SOCKS4 failed: ", error);
+				LogPrint(eLogWarning, "SOCKS: v4 request failed: ", error);
 				if (error < SOCKS4_OK) error = SOCKS4_FAIL; //Transparently map SOCKS5 errors
 				response = GenerateSOCKS4Response(error, m_4aip, m_port);
 			break;
 			case SOCKS5:
-				LogPrint(eLogWarning,"--- SOCKS5 failed: ", error);
+				LogPrint(eLogWarning, "SOCKS: v5 request failed: ", error);
 				response = GenerateSOCKS5Response(error, m_addrtype, m_address, m_port);
 			break;
 		}
@@ -258,11 +259,11 @@ namespace proxy
 		switch (m_socksv) 
 		{
 			case SOCKS4:
-				LogPrint(eLogInfo,"--- SOCKS4 connection success");
+				LogPrint(eLogInfo, "SOCKS: v4 connection success");
 				response = GenerateSOCKS4Response(SOCKS4_OK, m_4aip, m_port);
 			break;
 			case SOCKS5:
-				LogPrint(eLogInfo,"--- SOCKS5 connection success");
+				LogPrint(eLogInfo, "SOCKS: v5 connection success");
 				auto s = i2p::client::context.GetAddressBook().ToAddress(GetOwner()->GetLocalDestination()->GetIdentHash());
 				address ad; ad.dns.FromString(s);
 				//HACK only 16 bits passed in port as SOCKS5 doesn't allow for more
@@ -293,7 +294,7 @@ namespace proxy
 		if ( m_cmd != CMD_CONNECT ) 
 		{
 			//TODO: we need to support binds and other shit!
-			LogPrint(eLogError,"--- SOCKS unsupported command: ", m_cmd);
+			LogPrint(eLogError, "SOCKS: unsupported command: ", m_cmd);
 			SocksRequestFailed(SOCKS5_CMD_UNSUP);
 			return false;
 		}
@@ -303,10 +304,10 @@ namespace proxy
 			switch (m_socksv) 
 			{
 				case SOCKS5:
-					LogPrint(eLogError,"--- SOCKS5 unsupported address type: ", m_addrtype);
+					LogPrint(eLogError, "SOCKS: v5 unsupported address type: ", m_addrtype);
 				break;
 				case SOCKS4:
-					LogPrint(eLogError,"--- SOCKS4a rejected because it's actually SOCKS4");
+					LogPrint(eLogError, "SOCKS: request with v4a rejected because it's actually SOCKS4");
 				break;
 			}
 			SocksRequestFailed(SOCKS5_ADDR_UNSUP);
@@ -315,7 +316,7 @@ namespace proxy
 		//TODO: we may want to support other domains
 		if(m_addrtype == ADDR_DNS && m_address.dns.ToString().find(".i2p") == std::string::npos) 
 		{
-			LogPrint(eLogError,"--- SOCKS invalid hostname: ", m_address.dns.ToString());
+			LogPrint(eLogError, "SOCKS: invalid hostname: ", m_address.dns.ToString());
 			SocksRequestFailed(SOCKS5_ADDR_UNSUP);
 			return false;
 		}
@@ -340,7 +341,7 @@ namespace proxy
 							EnterState(GET5_AUTHNUM); //Initialize the parser at the right position
 						break;
 						default:
-							LogPrint(eLogError,"--- SOCKS rejected invalid version: ", ((int)*sock_buff));
+							LogPrint(eLogError, "SOCKS: rejected invalid version: ", ((int)*sock_buff));
 							Terminate();
 							return false;
 					}
@@ -367,7 +368,7 @@ namespace proxy
 						case CMD_UDP:
 							if (m_socksv == SOCKS5) break;
 						default:
-							LogPrint(eLogError,"--- SOCKS invalid command: ", ((int)*sock_buff));
+							LogPrint(eLogError, "SOCKS: invalid command: ", ((int)*sock_buff));
 							SocksRequestFailed(SOCKS5_GEN_FAIL);
 							return false;
 					}
@@ -419,7 +420,7 @@ namespace proxy
 					}
 					if (m_address.dns.size >= max_socks_hostname_size) 
 					{
-						LogPrint(eLogError,"--- SOCKS4a destination is too large");
+						LogPrint(eLogError, "SOCKS: v4a req failed: destination is too large");
 						SocksRequestFailed(SOCKS4_FAIL);
 						return false;
 					}
@@ -428,7 +429,7 @@ namespace proxy
 				case GET5_REQUESTV:
 					if (*sock_buff != SOCKS5) 
 					{
-						LogPrint(eLogError,"--- SOCKS5 rejected unknown request version: ", ((int)*sock_buff));
+						LogPrint(eLogError,"SOCKS: v5 rejected unknown request version: ", ((int)*sock_buff));
 						SocksRequestFailed(SOCKS5_GEN_FAIL);
 						return false;
 					}
@@ -437,7 +438,7 @@ namespace proxy
 				case GET5_GETRSV:
 					if ( *sock_buff != 0 ) 
 					{
-						LogPrint(eLogError,"--- SOCKS5 unknown reserved field: ", ((int)*sock_buff));
+						LogPrint(eLogError, "SOCKS: v5 unknown reserved field: ", ((int)*sock_buff));
 						SocksRequestFailed(SOCKS5_GEN_FAIL);
 						return false;
 					}
@@ -450,7 +451,7 @@ namespace proxy
 						case ADDR_IPV6: EnterState(GET5_IPV6); break;
 						case ADDR_DNS : EnterState(GET5_HOST_SIZE); break;
 						default:
-							LogPrint(eLogError,"--- SOCKS5 unknown address type: ", ((int)*sock_buff));
+							LogPrint(eLogError, "SOCKS: v5 unknown address type: ", ((int)*sock_buff));
 							SocksRequestFailed(SOCKS5_GEN_FAIL);
 							return false;
 					}
@@ -469,7 +470,7 @@ namespace proxy
 					if (m_parseleft == 0) EnterState(GET_PORT);
 				break;
 				default:
-					LogPrint(eLogError,"--- SOCKS parse state?? ", m_state);
+					LogPrint(eLogError, "SOCKS: parse state?? ", m_state);
 					Terminate();
 					return false;
 			}
@@ -487,11 +488,11 @@ namespace proxy
 
 	void SOCKSHandler::HandleSockRecv(const boost::system::error_code & ecode, std::size_t len)
 	{
-		LogPrint(eLogDebug,"--- SOCKS sock recv: ", len);
+		LogPrint(eLogDebug, "SOCKS: recieved ", len, " bytes");
 		if(ecode) 
 		{
-			LogPrint(eLogWarning," --- SOCKS sock recv got error: ", ecode);
-            Terminate();
+			LogPrint(eLogWarning, "SOCKS: recv got error: ", ecode);
+			Terminate();
 			return;
 		}
 
@@ -499,7 +500,7 @@ namespace proxy
 		{
 			if (m_state == DONE) 
 			{
-				LogPrint(eLogInfo,"--- SOCKS requested ", m_address.dns.ToString(), ":" , m_port);
+				LogPrint(eLogInfo, "SOCKS: requested ", m_address.dns.ToString(), ":" , m_port);
 				GetOwner()->CreateStream ( std::bind (&SOCKSHandler::HandleStreamRequestComplete,
 						shared_from_this(), std::placeholders::_1), m_address.dns.ToString(), m_port);
 			} 
@@ -510,13 +511,9 @@ namespace proxy
 
 	void SOCKSHandler::SentSocksFailed(const boost::system::error_code & ecode)
 	{
-		if (!ecode) 
-			Terminate();
-		else 
-		{
-			LogPrint (eLogError,"--- SOCKS Closing socket after sending failure because: ", ecode.message ());
-			Terminate();
-		}
+		if (ecode)
+			LogPrint (eLogError, "SOCKS: closing socket after sending failure because: ", ecode.message ());
+		Terminate();
 	}
 
 	void SOCKSHandler::SentSocksDone(const boost::system::error_code & ecode)
@@ -524,7 +521,7 @@ namespace proxy
 		if (!ecode) 
 		{
 			if (Kill()) return;
-			LogPrint (eLogInfo,"--- SOCKS New I2PTunnel connection");
+			LogPrint (eLogInfo, "SOCKS: new I2PTunnel connection");
 			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, m_stream);
 			GetOwner()->AddHandler (connection);
 			connection->I2PConnect (m_remaining_data,m_remaining_data_len);
@@ -532,7 +529,7 @@ namespace proxy
 		}
 		else
 		{
-			LogPrint (eLogError,"--- SOCKS Closing socket after completion reply because: ", ecode.message ());
+			LogPrint (eLogError, "SOCKS: closing socket after completion reply because: ", ecode.message ());
 			Terminate();
 		}
 	}
@@ -541,7 +538,7 @@ namespace proxy
 	{
 		if (ecode) 
 		{
-			LogPrint (eLogError,"--- SOCKS Closing socket after sending reply because: ", ecode.message ());
+			LogPrint (eLogError, "SOCKS: closing socket after sending reply because: ", ecode.message ());
 			Terminate();
 		}
 	}
@@ -555,7 +552,7 @@ namespace proxy
 		} 
 		else 
 		{
-			LogPrint (eLogError,"--- SOCKS Issue when creating the stream, check the previous warnings for more info.");
+			LogPrint (eLogError, "SOCKS: error when creating the stream, check the previous warnings for more info");
 			SocksRequestFailed(SOCKS5_HOST_UNREACH);
 		}
 	}

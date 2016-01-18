@@ -63,9 +63,9 @@ namespace i2p
 			i2p::util::config::OptionParser(argc, argv);
 			i2p::context.Init ();
 
-			LogPrint(eLogInfo, "\n\n\n\ni2pd v", VERSION, " starting\n");
-			LogPrint(eLogDebug, "data directory: ", i2p::util::filesystem::GetDataDir().string());
-			i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+			LogPrint(eLogInfo, "i2pd v", VERSION, " starting");
+			LogPrint(eLogDebug, "FS: data directory: ", i2p::util::filesystem::GetDataDir().string());
+			i2p::util::config::ReadConfigFile(i2p::util::filesystem::GetConfigFile());
 
 			isDaemon = i2p::util::config::GetArg("-daemon", 0);
 			isLogging = i2p::util::config::GetArg("-log", 1);
@@ -120,8 +120,10 @@ namespace i2p
 				g_Log->SetLogLevel(i2p::util::config::GetArg("-loglevel", "info"));
 			}
 
-			LogPrint(eLogInfo, "Daemon: staring HTTP Server");
-			d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(i2p::util::config::GetArg("-httpaddress", "127.0.0.1"), i2p::util::config::GetArg("-httpport", 7070)));
+			std::string httpAddr = i2p::util::config::GetArg("-httpaddress", "127.0.0.1");
+			uint16_t    httpPort = i2p::util::config::GetArg("-httpport", 7070);
+			LogPrint(eLogInfo, "Daemon: staring HTTP Server at ", httpAddr, ":", httpPort);
+			d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(httpAddr, httpPort));
 			d.httpServer->Start();
 
 			LogPrint(eLogInfo, "Daemon: starting NetDB");
@@ -140,12 +142,13 @@ namespace i2p
 			LogPrint(eLogInfo, "Daemon: starting Client");
 			i2p::client::context.Start ();
 
-			// I2P Control
-			int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
-			if (i2pcontrolPort)
+			// I2P Control Protocol
+			std::string i2pcpAddr = i2p::util::config::GetArg("-i2pcontroladdress", "127.0.0.1");
+			uint16_t    i2pcpPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
+			if (i2pcpPort)
 			{
-				LogPrint(eLogInfo, "Daemon: starting I2PControl");
-				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2p::util::config::GetArg("-i2pcontroladdress", "127.0.0.1"), i2pcontrolPort));
+				LogPrint(eLogInfo, "Daemon: starting I2PControl at ", i2pcpAddr, ":", i2pcpPort);
+				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
 				d.m_I2PControlService->Start ();
 			}
 			return true;

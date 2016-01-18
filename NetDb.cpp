@@ -164,20 +164,23 @@ namespace data
 			auto ts = r->GetTimestamp ();
 			r->Update (buf, len);
 			if (r->GetTimestamp () > ts)
-				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase32());
+				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
 		}	
 		else	
 		{	
-			LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase32());
 			r = std::make_shared<RouterInfo> (buf, len);
+			if (!r->IsUnreachable ())
 			{
-				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-				m_RouterInfos[r->GetIdentHash ()] = r;
-			}
-			if (r->IsFloodfill ())
-			{
-				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-				m_Floodfills.push_back (r);
+				LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
+				{
+					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+					m_RouterInfos[r->GetIdentHash ()] = r;
+				}
+				if (r->IsFloodfill ())
+				{
+					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+					m_Floodfills.push_back (r);
+				}
 			}	
 		}	
 		// take care about requested destination
@@ -194,10 +197,10 @@ namespace data
 			{
 				it->second->Update (buf, len); 
 				if (it->second->IsValid ())
-					LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
+					LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase64());
 				else
 				{
-					LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase32());
+					LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase64());
 					m_LeaseSets.erase (it);
 				}	
 			}
@@ -206,11 +209,11 @@ namespace data
 				auto leaseSet = std::make_shared<LeaseSet> (buf, len);
 				if (leaseSet->IsValid ())
 				{
-					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase32());
+					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase64());
 					m_LeaseSets[ident] = leaseSet;
 				}
 				else
-					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase32());
+					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase64());
 			}	
 		}	
 	}	
@@ -432,7 +435,7 @@ namespace data
 		auto dest = m_Requests.CreateRequest (destination, false, requestComplete); // non-exploratory
 		if (!dest)
 		{
-			LogPrint (eLogWarning, "NetDb: destination ", destination.ToBase32(), " is requested already");
+			LogPrint (eLogWarning, "NetDb: destination ", destination.ToBase64(), " is requested already");
 			return;			
 		}
 
@@ -441,7 +444,7 @@ namespace data
 			transports.SendMessage (floodfill->GetIdentHash (), dest->CreateRequestMessage (floodfill->GetIdentHash ()));	
 		else
 		{
-			LogPrint (eLogError, "NetDb: ", destination.ToBase32(), " destination requested, but no floodfills found");
+			LogPrint (eLogError, "NetDb: ", destination.ToBase64(), " destination requested, but no floodfills found");
 			m_Requests.RequestComplete (destination, nullptr);
 		}	
 	}	

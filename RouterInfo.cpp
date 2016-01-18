@@ -3,6 +3,7 @@
 #include "I2PEndian.h"
 #include <fstream>
 #include <boost/lexical_cast.hpp>
+#include "version.h"
 #include "Crypto.h"
 #include "Base.h"
 #include "Timestamp.h"
@@ -243,6 +244,12 @@ namespace data
 			// extract caps	
 			if (!strcmp (key, "caps"))
 				ExtractCaps (value);
+			// check netId
+			if (!strcmp (key, "netId") && atoi (value) != I2PD_NET_ID)
+			{
+				LogPrint (eLogError, "Unexpected netid=", value);
+				m_IsUnreachable = true;		
+			}	
 		}		
 
 		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))

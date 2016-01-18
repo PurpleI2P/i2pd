@@ -70,12 +70,10 @@ namespace util
 namespace config
 {
 	std::map<std::string, std::string> mapArgs;
-	std::map<std::string, std::vector<std::string> > mapMultiArgs;
 
 	void OptionParser(int argc, const char* const argv[])
 	{
 		mapArgs.clear();
-		mapMultiArgs.clear();
 		for (int i = 1; i < argc; i++)
 		{
 			std::string strKey (argv[i]);
@@ -96,7 +94,6 @@ namespace config
 				break;
 
 			mapArgs[strKey] = strValue;
-			mapMultiArgs[strKey].push_back(strValue);
 		}
 
 		BOOST_FOREACH(PAIRTYPE(const std::string,std::string)& entry, mapArgs)
@@ -126,6 +123,26 @@ namespace config
 		if (mapArgs.count(strArg))
 			return atoi(mapArgs[strArg].c_str());
 		return nDefault;
+	}
+
+	void ReadConfigFile(boost::filesystem::path path)
+	{
+		boost::filesystem::ifstream streamConfig(path);
+		if (!streamConfig.good())
+			return; // No i2pd.conf file is OK
+
+		std::set<std::string> setOptions;
+		setOptions.insert("*");
+
+		for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
+		{
+			// Don't overwrite existing settings so command line settings override i2pd.conf
+			std::string strKey = std::string("-") + it->string_key;
+			if (mapArgs.count(strKey) == 0)
+			{
+				mapArgs[strKey] = it->value[0];
+			}
+		}
 	}
 }
 
@@ -194,28 +211,6 @@ namespace filesystem
 		if (!pathTunnelsConfigFile.is_complete())
 		  pathTunnelsConfigFile = GetDataDir() / pathTunnelsConfigFile;
 		return pathTunnelsConfigFile;
-	}
-
-	void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
-						std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet)
-	{
-		boost::filesystem::ifstream streamConfig(GetConfigFile());
-		if (!streamConfig.good())
-			return; // No i2pd.conf file is OK
-
-		std::set<std::string> setOptions;
-		setOptions.insert("*");
-
-		for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
-		{
-			// Don't overwrite existing settings so command line settings override i2pd.conf
-			std::string strKey = std::string("-") + it->string_key;
-			if (mapSettingsRet.count(strKey) == 0)
-			{
-				mapSettingsRet[strKey] = it->value[0];
-			}
-			mapMultiSettingsRet[strKey].push_back(it->value[0]);
-		}
 	}
 
 	boost::filesystem::path GetDefaultDataDir()

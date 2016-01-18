@@ -38,7 +38,7 @@ namespace i2p
 		SetTypeID (msgType);
 		if (!replyMsgID) RAND_bytes ((uint8_t *)&replyMsgID, 4);
 		SetMsgID (replyMsgID); 
-		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); // TODO: 5 secs is a magic number
+		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 8000); // 8 secs means initial RTT
 		UpdateSize ();
 		UpdateChks ();
 	}		
@@ -48,7 +48,7 @@ namespace i2p
 		uint32_t msgID;
 		RAND_bytes ((uint8_t *)&msgID, 4);
 		SetMsgID (msgID);
-		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 5000); 		
+		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 8000); 		
 	}
 
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID)
