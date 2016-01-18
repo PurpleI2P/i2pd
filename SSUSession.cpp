@@ -853,7 +853,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint (eLogInfo, "SSU: no activity for", SSU_TERMINATION_TIMEOUT, " seconds");
+			LogPrint (eLogWarning, "SSU: no activity for ", SSU_TERMINATION_TIMEOUT, " seconds");
 			Failed ();
 		}	
 	}	

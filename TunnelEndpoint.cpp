@@ -226,7 +226,7 @@ namespace tunnel
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
 		auto typeID = msg.data->GetTypeID ();
-		LogPrint (eLogInfo, "TunnelMessage: handle fragment of ", msg.data->GetLength ()," bytes. Msg type ", (int)typeID);
+		LogPrint (eLogDebug, "TunnelMessage: handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
 		switch (msg.deliveryType)
 		{
 			case eDeliveryTypeLocal:

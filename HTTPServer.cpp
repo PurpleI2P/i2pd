@@ -771,7 +771,7 @@ namespace util
 	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
 	{
 		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n\r\n";
-		LogPrint(eLogDebug, "HTTPServer: client request: ", request);
+		LogPrint(eLogInfo, "HTTPServer: client request: ", request);
 		SendToAddress (address, 80, request.c_str (), request.size ());		
 	}
 

@@ -393,7 +393,7 @@ namespace client
 					if (!s.length()) continue; // skip empty line
 					m_Subscriptions.push_back (new AddressBookSubscription (*this, s));
 				}
-				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions loaded");
+				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
 			}
 			else
 				LogPrint (eLogWarning, "Addresbook: subscriptions.txt not found");

@@ -203,7 +203,7 @@ namespace tunnel
 	{
 		for (auto it: m_Tests)
 		{
-			LogPrint (eLogWarning, "Tunnels: test of ", (int)it.first, " failed");
+			LogPrint (eLogWarning, "Tunnels: test of tunnel ", it.first, " failed");
 			// if test failed again with another tunnel we consider it failed
 			if (it.second.first)
 			{	

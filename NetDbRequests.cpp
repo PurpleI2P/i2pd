@@ -122,15 +122,15 @@ namespace data
 						else
 						{
 							done = true;
-							if (!inbound) LogPrint (eLogWarning, "No inbound tunnels");	
-							if (!outbound) LogPrint (eLogWarning, "No outbound tunnels");
-							if (!nextFloodfill) LogPrint (eLogWarning, "No more floodfills");	
+							if (!inbound) LogPrint (eLogWarning, "NetDbReq: No inbound tunnels");
+							if (!outbound) LogPrint (eLogWarning, "NetDbReq: No outbound tunnels");
+							if (!nextFloodfill) LogPrint (eLogWarning, "NetDbReq: No more floodfills");
 						}
 					}	
 					else
 					{
 						if (!dest->IsExploratory ())
-							LogPrint (eLogWarning, dest->GetDestination ().ToBase64 (), " not found after 7 attempts");	
+							LogPrint (eLogWarning, "NetDbReq: ", dest->GetDestination ().ToBase64 (), " not found after 7 attempts");
 						done = true;
 					}	 
 				}	

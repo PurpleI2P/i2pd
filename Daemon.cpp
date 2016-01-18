@@ -63,8 +63,8 @@ namespace i2p
 			i2p::util::config::OptionParser(argc, argv);
 			i2p::context.Init ();
 
-			LogPrint(eLogInfo, "\n\n\n\ni2pd v", VERSION, " starting\n");
-			LogPrint(eLogDebug, "data directory: ", i2p::util::filesystem::GetDataDir().string());
+			LogPrint(eLogInfo, "i2pd v", VERSION, " starting");
+			LogPrint(eLogDebug, "FS: data directory: ", i2p::util::filesystem::GetDataDir().string());
 			i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 
 			isDaemon = i2p::util::config::GetArg("-daemon", 0);

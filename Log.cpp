@@ -65,7 +65,7 @@ void Log::SetLogLevel (const std::string& level)
 		LogPrint(eLogError, "Log: Unknown loglevel: ", level);
 		return;
   }
-  LogPrint(eLogInfo, "Log: min msg level set to ", level);
+  LogPrint(eLogInfo, "Log: min messages level set to ", level);
 }
 
 void Log::SetLogStream (std::ostream * logStream)
