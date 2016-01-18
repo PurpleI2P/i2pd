@@ -124,6 +124,26 @@ namespace config
 			return atoi(mapArgs[strArg].c_str());
 		return nDefault;
 	}
+
+	void ReadConfigFile(boost::filesystem::path path)
+	{
+		boost::filesystem::ifstream streamConfig(path);
+		if (!streamConfig.good())
+			return; // No i2pd.conf file is OK
+
+		std::set<std::string> setOptions;
+		setOptions.insert("*");
+
+		for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
+		{
+			// Don't overwrite existing settings so command line settings override i2pd.conf
+			std::string strKey = std::string("-") + it->string_key;
+			if (mapArgs.count(strKey) == 0)
+			{
+				mapArgs[strKey] = it->value[0];
+			}
+		}
+	}
 }
 
 namespace filesystem
@@ -191,26 +211,6 @@ namespace filesystem
 		if (!pathTunnelsConfigFile.is_complete())
 		  pathTunnelsConfigFile = GetDataDir() / pathTunnelsConfigFile;
 		return pathTunnelsConfigFile;
-	}
-
-	void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet)
-	{
-		boost::filesystem::ifstream streamConfig(GetConfigFile());
-		if (!streamConfig.good())
-			return; // No i2pd.conf file is OK
-
-		std::set<std::string> setOptions;
-		setOptions.insert("*");
-
-		for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
-		{
-			// Don't overwrite existing settings so command line settings override i2pd.conf
-			std::string strKey = std::string("-") + it->string_key;
-			if (mapSettingsRet.count(strKey) == 0)
-			{
-				mapSettingsRet[strKey] = it->value[0];
-			}
-		}
 	}
 
 	boost::filesystem::path GetDefaultDataDir()

@@ -16,10 +16,10 @@ namespace util
 {
 	namespace config
 	{
-		extern std::map<std::string, std::string> mapArgs;
 		void OptionParser(int argc, const char* const argv[]);
 		int GetArg(const std::string& strArg, int nDefault);
 		std::string GetArg(const std::string& strArg, const std::string& strDefault);
+		void ReadConfigFile(boost::filesystem::path path);
 	}
 
 	namespace filesystem
@@ -32,7 +32,6 @@ namespace util
 		boost::filesystem::path GetDefaultDataDir();
 		boost::filesystem::path GetConfigFile();
 		boost::filesystem::path GetTunnelsConfigFile();
-		void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet);
 		boost::filesystem::path GetCertificatesDir();
 	}
 
