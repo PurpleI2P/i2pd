@@ -208,7 +208,7 @@ namespace garlic
 
 	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, std::shared_ptr<const I2NPMessage> msg, UnconfirmedTags * newTags)
 	{
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
 		uint32_t msgID;
 		RAND_bytes ((uint8_t *)&msgID, 4);
 		size_t size = 0;
@@ -268,7 +268,7 @@ namespace garlic
 
 	size_t GarlicRoutingSession::CreateGarlicClove (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg, bool isDestination)
 	{
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
 		size_t size = 0;
 		if (isDestination && m_Destination)
 		{
@@ -326,7 +326,7 @@ namespace garlic
 				memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
 				size += msg->GetLength ();
 				// fill clove
-				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 5000; // 5 sec
+				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
 				uint32_t cloveID;
 				RAND_bytes ((uint8_t *)&cloveID, 4);
 				htobe32buf (buf + size, cloveID); // CloveID
