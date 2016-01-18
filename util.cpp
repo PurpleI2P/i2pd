@@ -70,12 +70,10 @@ namespace util
 namespace config
 {
 	std::map<std::string, std::string> mapArgs;
-	std::map<std::string, std::vector<std::string> > mapMultiArgs;
 
 	void OptionParser(int argc, const char* const argv[])
 	{
 		mapArgs.clear();
-		mapMultiArgs.clear();
 		for (int i = 1; i < argc; i++)
 		{
 			std::string strKey (argv[i]);
@@ -96,7 +94,6 @@ namespace config
 				break;
 
 			mapArgs[strKey] = strValue;
-			mapMultiArgs[strKey].push_back(strValue);
 		}
 
 		BOOST_FOREACH(PAIRTYPE(const std::string,std::string)& entry, mapArgs)
@@ -196,8 +193,7 @@ namespace filesystem
 		return pathTunnelsConfigFile;
 	}
 
-	void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
-						std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet)
+	void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet)
 	{
 		boost::filesystem::ifstream streamConfig(GetConfigFile());
 		if (!streamConfig.good())
@@ -214,7 +210,6 @@ namespace filesystem
 			{
 				mapSettingsRet[strKey] = it->value[0];
 			}
-			mapMultiSettingsRet[strKey].push_back(it->value[0]);
 		}
 	}
 

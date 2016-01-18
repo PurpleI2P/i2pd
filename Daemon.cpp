@@ -65,7 +65,7 @@ namespace i2p
 
 			LogPrint(eLogInfo, "i2pd v", VERSION, " starting");
 			LogPrint(eLogDebug, "FS: data directory: ", i2p::util::filesystem::GetDataDir().string());
-			i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+			i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs);
 
 			isDaemon = i2p::util::config::GetArg("-daemon", 0);
 			isLogging = i2p::util::config::GetArg("-log", 1);
