@@ -23,9 +23,10 @@ namespace i2p
 			else
 				isDaemon = 0;
 
-			std::string serviceControl = i2p::util::config::GetArg("-service", "none");
+			std::string serviceControl = i2p::util::config::GetArg("-svcctl", "");
 			if (serviceControl == "install")
 			{
+				LogPrint(eLogInfo, "WinSVC: installing ", SERVICE_NAME, " as service");
 				InstallService(
 					SERVICE_NAME,               // Name of service
 					SERVICE_DISPLAY_NAME,       // Name to display
@@ -38,13 +39,9 @@ namespace i2p
 			}
 			else if (serviceControl == "remove")
 			{
+				LogPrint(eLogInfo, "WinSVC: uninstalling ", SERVICE_NAME, " service");
 				UninstallService(SERVICE_NAME);
 				exit(0);
-			}
-			else if (serviceControl != "none")
-			{
-				printf(" --service=install  to install the service.\n");
-				printf(" --service=remove   to remove the service.\n");
 			}
 			
 			if (isDaemon == 1)
