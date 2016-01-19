@@ -21,10 +21,10 @@ namespace i2p
 			virtual bool start();
 			virtual bool stop();
 
-			int isLogging;
-			int isDaemon;
+			bool isLogging;
+			bool isDaemon;
 			
-			int running;
+			bool running;
 
 		protected:
 			Daemon_Singleton();
