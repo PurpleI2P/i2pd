@@ -579,8 +579,13 @@ namespace transport
 			// we have a complete I2NP message
 			uint8_t checksum[4];
 			htobe32buf (checksum, adler32 (adler32 (0, Z_NULL, 0), m_NextMessage->buf, m_NextMessageOffset - 4));
-			if (!memcmp (m_NextMessage->buf + m_NextMessageOffset - 4, checksum, 4))	
-				m_Handler.PutNextMessage (m_NextMessage);
+			if (!memcmp (m_NextMessage->buf + m_NextMessageOffset - 4, checksum, 4))
+			{
+				if (!m_NextMessage->IsExpired ())
+					m_Handler.PutNextMessage (m_NextMessage);
+				else
+					LogPrint (eLogInfo, "NTCP: message expired");
+			}	
 			else
 				LogPrint (eLogWarning, "NTCP: Incorrect adler checksum of message, dropped");
 			m_NextMessage = nullptr;

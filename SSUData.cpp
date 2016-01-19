@@ -238,7 +238,10 @@ namespace transport
 						else
 							ScheduleDecay ();
 						m_ReceivedMessages.insert (msgID);
-						m_Handler.PutNextMessage (msg);
+						if (!msg->IsExpired ())
+							m_Handler.PutNextMessage (msg);
+						else
+							LogPrint (eLogInfo, "SSU: message expired");
 					}	
 					else
 						LogPrint (eLogWarning, "SSU: Message ", msgID, " already received");

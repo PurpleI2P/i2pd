@@ -225,6 +225,11 @@ namespace tunnel
 	
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
+		if (msg.data->IsExpired ())
+		{
+			LogPrint (eLogInfo, "TunnelMessage: message expired");
+			return;
+		}	
 		auto typeID = msg.data->GetTypeID ();
 		LogPrint (eLogDebug, "TunnelMessage: handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
 		switch (msg.deliveryType)

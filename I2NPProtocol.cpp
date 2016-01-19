@@ -51,6 +51,11 @@ namespace i2p
 		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 8000); 		
 	}
 
+	bool I2NPMessage::IsExpired () const
+	{
+		return i2p::util::GetMillisecondsSinceEpoch () > GetExpiration ();
+	}	
+	
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID)
 	{
 		auto msg = NewI2NPMessage (len);

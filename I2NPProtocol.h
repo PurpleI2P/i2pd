@@ -196,6 +196,7 @@ namespace tunnel
 
 		void FillI2NPMessageHeader (I2NPMessageType msgType, uint32_t replyMsgID = 0);
 		void RenewI2NPMessageHeader ();
+		bool IsExpired () const;
 	};	
 
 	template<int sz>
