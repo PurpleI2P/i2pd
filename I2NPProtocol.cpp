@@ -38,7 +38,7 @@ namespace i2p
 		SetTypeID (msgType);
 		if (!replyMsgID) RAND_bytes ((uint8_t *)&replyMsgID, 4);
 		SetMsgID (replyMsgID); 
-		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 8000); // 8 secs means initial RTT
+		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT); 
 		UpdateSize ();
 		UpdateChks ();
 	}		
@@ -48,12 +48,14 @@ namespace i2p
 		uint32_t msgID;
 		RAND_bytes ((uint8_t *)&msgID, 4);
 		SetMsgID (msgID);
-		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + 8000); 		
+		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT); 		
 	}
 
 	bool I2NPMessage::IsExpired () const
 	{
-		return i2p::util::GetMillisecondsSinceEpoch () > GetExpiration ();
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		auto exp = GetExpiration ();  	
+		return (ts > exp + I2NP_MESSAGE_CLOCK_SKEW) || (ts < exp - 3*I2NP_MESSAGE_CLOCK_SKEW); // check if expired or too far in future
 	}	
 	
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID)

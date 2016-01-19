@@ -225,7 +225,7 @@ namespace tunnel
 	
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
 	{
-		if (msg.data->IsExpired ())
+		if (!m_IsInbound && msg.data->IsExpired ())
 		{
 			LogPrint (eLogInfo, "TunnelMessage: message expired");
 			return;

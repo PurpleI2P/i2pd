@@ -107,6 +107,9 @@ namespace tunnel
 
 	const size_t I2NP_MAX_MESSAGE_SIZE = 32768; 
 	const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096; 
+	const unsigned int I2NP_MESSAGE_EXPIRATION_TIMEOUT = 8000; // in milliseconds (as initial RTT)
+	const unsigned int I2NP_MESSAGE_CLOCK_SKEW = 60*1000; // 1 minute in milliseconds 
+
 	struct I2NPMessage
 	{	
 		uint8_t * buf;	
