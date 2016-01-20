@@ -14,14 +14,6 @@ namespace i2p
 {
 namespace util
 {
-	namespace config
-	{
-		void OptionParser(int argc, const char* const argv[]);
-		int GetArg(const std::string& strArg, int nDefault);
-		std::string GetArg(const std::string& strArg, const std::string& strDefault);
-		void ReadConfigFile(boost::filesystem::path path);
-	}
-
 	namespace filesystem
 	{
 		void SetAppName (const std::string& name);
