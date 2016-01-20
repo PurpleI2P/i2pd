@@ -1,5 +1,5 @@
-#ifndef CONFIG_H__
-#define CONFIG_H__
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #include <string>
 #include <boost/program_options/options_description.hpp>
@@ -97,4 +97,4 @@ namespace config {
 }
 }
 
-#endif // CONFIG_H__
+#endif // CONFIG_H

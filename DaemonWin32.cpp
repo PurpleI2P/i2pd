@@ -1,3 +1,4 @@
+#include "Config.h"
 #include "Daemon.h"
 #include "util.h"
 #include "Log.h"
@@ -23,7 +24,7 @@ namespace i2p
 			else
 				isDaemon = 0;
 
-			std::string serviceControl = i2p::util::config::GetArg("-svcctl", "");
+			std::string serviceControl; i2p::config::GetOption("svcctl", serviceControl);
 			if (serviceControl == "install")
 			{
 				LogPrint(eLogInfo, "WinSVC: installing ", SERVICE_NAME, " as service");

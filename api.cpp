@@ -1,5 +1,6 @@
 #include <string>
 #include <map>
+#include "Config.h"
 #include "Log.h"
 #include "NetDb.h"
 #include "Transports.h"
@@ -18,7 +19,9 @@ namespace api
 	void InitI2P (int argc, char* argv[], const char * appName)
 	{
 		i2p::util::filesystem::SetAppName (appName);
-		i2p::util::config::OptionParser(argc, argv);
+		i2p::config::Init ();
+		i2p::config::ParseCmdline (argc, argv);
+		i2p::config::Finalize ();
 		i2p::crypto::InitCrypto ();
 		i2p::context.Init ();	
 	}

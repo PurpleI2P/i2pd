@@ -13,6 +13,7 @@
 #include <boost/program_options/detail/config_file.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/algorithm/string.hpp>
+#include "Config.h"
 #include "util.h"
 #include "Log.h"
 
@@ -166,8 +167,10 @@ namespace filesystem
 
 		// TODO: datadir parameter is useless because GetDataDir is called before OptionParser
 		// and mapArgs is not initialized yet
-		/*if (i2p::util::config::mapArgs.count("-datadir")) 
-			path = boost::filesystem::system_complete(i2p::util::config::mapArgs["-datadir"]);
+		/*
+		std::string datadir; i2p::config::GetOption("datadir", datadir);
+		if (datadir != "")
+			path = boost::filesystem::system_complete(datadir);
 		else */
 			path = GetDefaultDataDir();
 
@@ -200,14 +203,17 @@ namespace filesystem
 
 	boost::filesystem::path GetConfigFile()
 	{
-		boost::filesystem::path pathConfigFile(i2p::util::config::GetArg("-conf", "i2p.conf"));
-		if (!pathConfigFile.is_complete()) pathConfigFile = GetDataDir() / pathConfigFile;
+		std::string config; i2p::config::GetOption("conf", config);
+		boost::filesystem::path pathConfigFile(config);
+		if (!pathConfigFile.is_complete())
+			pathConfigFile = GetDataDir() / pathConfigFile;
 		return pathConfigFile;
 	}
 
 	boost::filesystem::path GetTunnelsConfigFile()
 	{
-	  boost::filesystem::path pathTunnelsConfigFile(i2p::util::config::GetArg("-tunnelscfg", "tunnels.cfg"));
+		std::string tunconf; i2p::config::GetOption("tunconf", tunconf);
+		boost::filesystem::path pathTunnelsConfigFile(tunconf);
 		if (!pathTunnelsConfigFile.is_complete())
 		  pathTunnelsConfigFile = GetDataDir() / pathTunnelsConfigFile;
 		return pathTunnelsConfigFile;
@@ -225,7 +231,8 @@ namespace filesystem
 		SHGetFolderPath(NULL, CSIDL_PROFILE, 0, 0, localAppData);
 		return boost::filesystem::path(std::string(localAppData) + "\\" + "." + appName);
 #else /* UNIX */
-		if (i2p::util::config::GetArg("-service", 0)) // use system folder
+		bool service; i2p::config::GetOption("service", service);
+		if (service) // use system folder
 			return boost::filesystem::path(std::string ("/var/lib/") + appName);
 		boost::filesystem::path pathRet;
 		char* pszHome = getenv("HOME");
