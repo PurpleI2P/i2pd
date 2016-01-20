@@ -231,7 +231,7 @@ namespace transport
 						session = std::make_shared<SSUSession> (*this, packet->from);
 						session->WaitForConnect ();
 						(*sessions)[packet->from] = session;
-						LogPrint (eLogInfo, "New SSU session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+						LogPrint (eLogInfo, "SSU: new session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
 					}
 				}
 				session->ProcessNextMessage (packet->buf, packet->len, packet->from);

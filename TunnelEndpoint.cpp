@@ -114,7 +114,7 @@ namespace tunnel
 							if (ret.second)
 								HandleOutOfSequenceFragment (msgID, ret.first->second);
 							else
-								LogPrint (eLogError, "Incomplete message ", msgID, "already exists");
+								LogPrint (eLogError, "TunnelMessage: Incomplete message ", msgID, "already exists");
 						}
 						else
 						{
@@ -123,7 +123,7 @@ namespace tunnel
 						}	
 					}
 					else	
-						LogPrint (eLogError, "Message is fragmented, but msgID is not presented");
+						LogPrint (eLogError, "TunnelMessage: Message is fragmented, but msgID is not presented");
 				}	
 					
 				fragment += size;
@@ -147,13 +147,13 @@ namespace tunnel
 				{	
 					if (msg.data->len + size > msg.data->maxLen)
 					{
-						LogPrint (eLogInfo, "Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
+						LogPrint (eLogWarning, "TunnelMessage: I2NP message size ", msg.data->maxLen, " is not enough");
 						auto newMsg = NewI2NPMessage ();
 						*newMsg = *(msg.data);
 						msg.data = newMsg;
 					}
 					if (msg.data->Concat (fragment, size) < size) // concatenate fragment
-						LogPrint (eLogError, "Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
+						LogPrint (eLogError, "TunnelMessage: I2NP buffer overflow ", msg.data->maxLen);
 					if (isLastFragment)
 					{
 						// message complete
@@ -168,19 +168,19 @@ namespace tunnel
 				}
 				else
 				{
-					LogPrint (eLogError, "Fragment ", m.nextFragmentNum, " of message ", msgID, "exceeds max I2NP message size. Message dropped");
+					LogPrint (eLogError, "TunnelMessage: Fragment ", m.nextFragmentNum, " of message ", msgID, "exceeds max I2NP message size, message dropped");
 					m_IncompleteMessages.erase (it);
 				}
 			}
 			else
 			{	
-				LogPrint (eLogInfo, "Unexpected fragment ", (int)m.nextFragmentNum, " instead ", (int)msg.nextFragmentNum, " of message ", msgID, ". Saved");
+				LogPrint (eLogWarning, "TunnelMessage: Unexpected fragment ", (int)m.nextFragmentNum, " instead ", (int)msg.nextFragmentNum, " of message ", msgID, ", saved");
 				AddOutOfSequenceFragment (msgID, m.nextFragmentNum, isLastFragment, m.data);
 			}
 		}
 		else
 		{	
-			LogPrint (eLogInfo, "First fragment of message ", msgID, " not found. Saved");
+			LogPrint (eLogWarning, "TunnelMessage: First fragment of message ", msgID, " not found, saved");
 			AddOutOfSequenceFragment (msgID, m.nextFragmentNum, isLastFragment, m.data);
 		}	
 	}	
@@ -199,11 +199,11 @@ namespace tunnel
 		{
 			if (it->second.fragmentNum == msg.nextFragmentNum)
 			{
-				LogPrint (eLogInfo, "Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
+				LogPrint (eLogWarning, "TunnelMessage: Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
 				auto size = it->second.data->GetLength ();
 				if (msg.data->len + size > msg.data->maxLen)
 				{
-					LogPrint (eLogInfo, "Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
+					LogPrint (eLogWarning, "TunnelMessage: Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
 					auto newMsg = NewI2NPMessage ();
 					*newMsg = *(msg.data);
 					msg.data = newMsg;
@@ -241,13 +241,13 @@ namespace tunnel
 				if (!m_IsInbound) // outbound transit tunnel
 					i2p::transport::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));
 				else
-					LogPrint (eLogError, "Delivery type tunnel arrived from an inbound tunnel. Dropped");
+					LogPrint (eLogError, "TunnelMessage: Delivery type 'tunnel' arrived from an inbound tunnel, dropped");
 			break;
 			case eDeliveryTypeRouter:				
 				if (!m_IsInbound) // outbound transit tunnel
 					i2p::transport::transports.SendMessage (msg.hash, msg.data);
 				else // we shouldn't send this message. possible leakage 
-					LogPrint (eLogError, "Delivery type router arrived from an inbound tunnel. Dropped");
+					LogPrint (eLogError, "TunnelMessage: Delivery type 'router' arrived from an inbound tunnel, dropped");
 			break;
 			default:
 				LogPrint (eLogError, "TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);
