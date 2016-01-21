@@ -347,8 +347,10 @@ namespace client
 		int api = params.get<int> (I2P_CONTROL_PARAM_API);
 		auto password = params.get<std::string> (I2P_CONTROL_PARAM_PASSWORD);
 		LogPrint (eLogDebug, "I2PControl Authenticate API=", api, " Password=", password);
-		if (password != m_Password)
-			LogPrint (eLogError, "I2PControl Authenticate Invalid password ", password, " expected ", m_Password);
+		if (password != m_Password) {
+			LogPrint (eLogError, "I2PControl: Authenticate - Invalid password: ", password);
+			return;
+		}
 		InsertParam (results, I2P_CONTROL_PARAM_API, api);
 		results << ",";
 		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
