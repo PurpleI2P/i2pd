@@ -81,9 +81,6 @@ namespace client
 
 		private:
 
-			void LoadConfig ();
-			void SaveConfig ();
-
 			void Run ();
 			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket);	
@@ -99,7 +96,6 @@ namespace client
 
 			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / I2P_CONTROL_PATH; };
 			void CreateCertificate ();
-			
 
 		private:
 

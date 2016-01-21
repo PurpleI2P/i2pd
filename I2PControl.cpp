@@ -35,7 +35,7 @@ namespace client
 		m_ShutdownTimer (m_Service)
 	{
 		GetOption("i2pcontrol.password", m_Password);
-		LoadConfig ();
+
 		// certificate				
 		auto path = GetPath ();
 		if (!boost::filesystem::exists (path))
@@ -85,32 +85,6 @@ namespace client
 	I2PControlService::~I2PControlService ()
 	{
 		Stop ();
-	}
-
-	void I2PControlService::LoadConfig ()
-	{
-		auto path = GetPath ();
-		if (!boost::filesystem::exists (path))
-		{
-			if (!boost::filesystem::create_directory (path))
-				LogPrint (eLogError, "Failed to create i2pcontrol directory");
-		}	
-		boost::property_tree::ptree pt;
-		auto filename = path / I2P_CONTROL_CONFIG_FILE;
-		bool isNew = true;
-		if (boost::filesystem::exists (filename))
-		{	
-			try
-			{
-				boost::property_tree::read_ini (filename.string (), pt);
-				isNew = false;
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "Can't read ", filename, ": ", ex.what ());
-			}	
-		}
-		GetOption("i2pcontrol.password", m_Password);
 	}
 
 	void I2PControlService::Start ()
