@@ -1,5 +1,3 @@
-// There is bug in boost 1.49 with gcc 4.7 coming with Debian Wheezy
-#define GCC47_BOOST149 ((BOOST_VERSION == 104900) && (__GNUC__ == 4) && (__GNUC_MINOR__ >= 7))
 #include <stdio.h>
 #include <sstream>
 #include <openssl/x509.h>
@@ -8,9 +6,13 @@
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ini_parser.hpp>
+
+// There is bug in boost 1.49 with gcc 4.7 coming with Debian Wheezy
+#define GCC47_BOOST149 ((BOOST_VERSION == 104900) && (__GNUC__ == 4) && (__GNUC_MINOR__ >= 7))
 #if !GCC47_BOOST149
 #include <boost/property_tree/json_parser.hpp>
 #endif
+
 #include "Log.h"
 #include "Config.h"
 #include "NetDb.h"
