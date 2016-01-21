@@ -34,7 +34,7 @@ namespace client
 		m_SSLContext (m_Service, boost::asio::ssl::context::sslv23),
 		m_ShutdownTimer (m_Service)
 	{
-		GetOption("i2pcontrol.password", m_Password);
+		i2p::config::GetOption("i2pcontrol.password", m_Password);
 
 		// certificate				
 		auto path = GetPath ();

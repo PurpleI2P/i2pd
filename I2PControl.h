@@ -47,6 +47,8 @@ namespace client
 	const char I2P_CONTROL_PARAM_ECHO[] = "Echo";	
 	const char I2P_CONTROL_PARAM_RESULT[] = "Result";	
 
+	const char I2P_CONTROL_I2PCONTROL_PASSWORD[] = "i2pcontrol.password";
+
 	// RouterInfo requests
 	const char I2P_CONTROL_ROUTER_INFO_UPTIME[] = "i2p.router.uptime";
 	const char I2P_CONTROL_ROUTER_INFO_VERSION[] = "i2p.router.version";
