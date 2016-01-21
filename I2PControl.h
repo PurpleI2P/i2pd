@@ -26,7 +26,6 @@ namespace client
 	const char I2P_CONTROL_KEY_FILE[] = "key.pem";
 	const char I2P_CONTROL_CERT_FILE[] = "cert.pem";
 	const char I2P_CONTROL_CONFIG_FILE[] = "i2pcontrol.conf";
-	const char I2P_CONTROL_DEFAULT_PASSWORD[] = "itoopie";	
 
 	const char I2P_CONTROL_PROPERTY_ID[] = "id";
 	const char I2P_CONTROL_PROPERTY_METHOD[] = "method";
@@ -47,11 +46,6 @@ namespace client
 	const char I2P_CONTROL_PARAM_TOKEN[] = "Token";	
 	const char I2P_CONTROL_PARAM_ECHO[] = "Echo";	
 	const char I2P_CONTROL_PARAM_RESULT[] = "Result";	
-
-	// I2PControl
-	const char I2P_CONTROL_I2PCONTROL_ADDRESS[] = "i2pcontrol.address";		
-	const char I2P_CONTROL_I2PCONTROL_PASSWORD[] = "i2pcontrol.password";
-	const char I2P_CONTROL_I2PCONTROL_PORT[] = "i2pcontrol.port";		
 
 	// RouterInfo requests
 	const char I2P_CONTROL_ROUTER_INFO_UPTIME[] = "i2p.router.uptime";

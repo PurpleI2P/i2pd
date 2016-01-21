@@ -12,6 +12,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #endif
 #include "Log.h"
+#include "Config.h"
 #include "NetDb.h"
 #include "RouterContext.h"
 #include "Daemon.h"
@@ -26,11 +27,12 @@ namespace i2p
 namespace client
 {
 	I2PControlService::I2PControlService (const std::string& address, int port):
-		m_Password (I2P_CONTROL_DEFAULT_PASSWORD), m_IsRunning (false), m_Thread (nullptr),
+		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(address), port)),
 		m_SSLContext (m_Service, boost::asio::ssl::context::sslv23),
 		m_ShutdownTimer (m_Service)
 	{
+		GetOption("i2pcontrol.password", m_Password);
 		LoadConfig ();
 		// certificate				
 		auto path = GetPath ();
@@ -385,7 +387,7 @@ namespace client
 
 	void I2PControlService::PasswordHandler (const std::string& value)
 	{
-		LogPrint (eLogDebug, "I2PControl new password=", value);
+		LogPrint (eLogDebug, "I2PControl: new password=", value, ", to make it persistent you should update your config!");
 		m_Password = value;
 		m_Tokens.clear ();
 		SaveConfig ();
