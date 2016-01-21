@@ -273,7 +273,9 @@ namespace client
 					{
 						i2p::data::PrivateKeys k;
 						LoadPrivateKeys (k, keys, sigType);
-						localDestination = CreateNewLocalDestination (k, false, &options);
+						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+						if (!localDestination)
+							localDestination = CreateNewLocalDestination (k, false, &options);
 					}
 					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
@@ -296,9 +298,12 @@ namespace client
 					std::map<std::string, std::string> options;							 
 					ReadI2CPOptions (section, options);				
 
+					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
 					LoadPrivateKeys (k, keys, sigType);
-					auto localDestination = CreateNewLocalDestination (k, true, &options);
+					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+					if (!localDestination)		
+						localDestination = CreateNewLocalDestination (k, true, &options);
 					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
 						new I2PServerTunnelHTTP (name, host, port, localDestination, inPort) : 
 						new I2PServerTunnel (name, host, port, localDestination, inPort);
