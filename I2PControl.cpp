@@ -110,24 +110,7 @@ namespace client
 				LogPrint (eLogError, "Can't read ", filename, ": ", ex.what ());
 			}	
 		}
-		m_Password = pt.get (I2P_CONTROL_I2PCONTROL_PASSWORD, I2P_CONTROL_DEFAULT_PASSWORD);
-		if (isNew) SaveConfig ();	
-	}
-
-	void I2PControlService::SaveConfig ()
-	{
-		boost::property_tree::ptree pt;
-		pt.put (I2P_CONTROL_I2PCONTROL_PASSWORD, m_Password);
-		auto filename = GetPath () / I2P_CONTROL_CONFIG_FILE;
-		// we take care about directory in LoadConfig	
-		try
-		{
-			boost::property_tree::write_ini (filename.string (), pt);
-		}	
-		catch (std::exception& ex)
-		{
-			LogPrint (eLogError, "Can't write ", filename, ": ", ex.what ());
-		}	
+		GetOption("i2pcontrol.password", m_Password);
 	}
 
 	void I2PControlService::Start ()
@@ -392,7 +375,6 @@ namespace client
 		LogPrint (eLogDebug, "I2PControl: new password=", value, ", to make it persistent you should update your config!");
 		m_Password = value;
 		m_Tokens.clear ();
-		SaveConfig ();
 	}
 
 // RouterInfo
