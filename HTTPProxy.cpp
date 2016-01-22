@@ -185,13 +185,16 @@ namespace proxy
 		assert(len); // This should always be called with a least a byte left to parse
 
 		// remove "Referer" from http requst
-		http_buff[len] = '\0';
-		char *start = strstr((char *)http_buff, "\nReferer:");
-		if (start!=0) 
+		http_buff[len] = 0;
+		auto start = strstr((char *)http_buff, "\nReferer:");
+		if (start) 
 		{
-			char *end = strstr(start+1, "\n");
-			strncpy(start, end, (char*)(http_buff + len) - end);
-			len = len - (end - start);
+			auto end = strchr (start + 1, '\n');
+			if (end)
+			{
+				strncpy(start, end, (char *)(http_buff + len) - end);
+				len -= (end - start);
+			}
 		}
 	
 		while (len > 0) 
