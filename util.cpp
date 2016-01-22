@@ -215,15 +215,15 @@ namespace filesystem
 
 	boost::filesystem::path GetDefaultDataDir()
 	{
-		// Windows < Vista: C:\Documents and Settings\Username\.i2pd
-		// Windows >= Vista: C:\Users\Username\.i2pd
+		// Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd
+		// Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd
 		// Mac: ~/Library/Application Support/i2pd
 		// Unix: ~/.i2pd or /var/lib/i2pd is system=1
 #ifdef WIN32
 		// Windows
 		char localAppData[MAX_PATH];
-		SHGetFolderPath(NULL, CSIDL_PROFILE, 0, 0, localAppData);
-		return boost::filesystem::path(std::string(localAppData) + "\\" + "." + appName);
+		SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
+		return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
 #else /* UNIX */
 		if (i2p::util::config::GetArg("-service", 0)) // use system folder
 			return boost::filesystem::path(std::string ("/var/lib/") + appName);
