@@ -483,8 +483,9 @@ namespace client
 	}
 
 	// certificate	
-	void I2PControlService::CreateCertificate ()
+	void I2PControlService::CreateCertificate (const char *crt_path, const char *key_path)
 	{
+		FILE *f = NULL;
 		EVP_PKEY * pkey = EVP_PKEY_new ();
 		RSA * rsa = RSA_new ();
 		BIGNUM * e = BN_dup (i2p::crypto::GetRSAE ());
@@ -504,34 +505,30 @@ namespace client
 			X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
 			X509_set_issuer_name (x509, name); // set issuer to ourselves
 			X509_sign (x509, pkey, EVP_sha1 ()); // sign
-			// save key and certificate
-			// keys
-			auto filename = GetPath () / I2P_CONTROL_KEY_FILE; 
-			FILE * f= fopen (filename.string ().c_str (), "wb");
-			if (f)
-			{
-				PEM_write_PrivateKey (f, pkey, NULL, NULL, 0, NULL, NULL);
-				fclose (f);
-			}
-			else
-				LogPrint (eLogError, "Can't open file ", filename);
-			// certificate			
-			filename = GetPath () / I2P_CONTROL_CERT_FILE;
-			f= fopen (filename.string ().c_str (), "wb");
-			if (f)
-			{
+
+			// save cert
+			if ((f = fopen (crt_path, "wb")) != NULL) {
+				LogPrint (eLogInfo, "I2PControl: saving new cert to ", crt_path);
 				PEM_write_X509 (f, x509);
 				fclose (f);
+			} else {
+				LogPrint (eLogError, "I2PControl: can't write cert: ", strerror(errno));
 			}
-			else
-				LogPrint (eLogError, "Can't open file ", filename);
 
-			X509_free (x509);		
+			// save key
+			if ((f = fopen (key_path, "wb")) != NULL) {
+				LogPrint (eLogInfo, "I2PControl: saving cert key to : ", key_path);
+				PEM_write_PrivateKey (f, pkey, NULL, NULL, 0, NULL, NULL);
+				fclose (f);
+			} else {
+				LogPrint (eLogError, "I2PControl: can't write key: ", strerror(errno));
+			}
+
+			X509_free (x509);
+		} else {
+			LogPrint (eLogError, "I2PControl: can't create RSA key for certificate");
 		}
-		else
-			LogPrint (eLogError, "Couldn't create RSA key for certificate");
 		EVP_PKEY_free (pkey);
 	}
-
 }
 }
