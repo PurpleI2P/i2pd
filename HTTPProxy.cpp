@@ -184,7 +184,6 @@ namespace proxy
 	{
 		assert(len); // This should always be called with a least a byte left to parse
 
-
 		// remove "Referer" from http requst
 		http_buff[len] = '\0';
 		char *start = strstr((char *)http_buff, "\nReferer:");
@@ -194,7 +193,6 @@ namespace proxy
 			strncpy(start, end, (char*)(http_buff + len) - end);
 			len = len - (end - start);
 		}
-		
 	
 		while (len > 0) 
 		{
