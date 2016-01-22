@@ -87,6 +87,8 @@ namespace config {
       ("i2pcontrol.address",  value<std::string>()->default_value("127.0.0.1"),           "I2PCP listen address")
       ("i2pcontrol.port",     value<uint16_t>()->default_value(7650),                     "I2PCP listen port")
       ("i2pcontrol.password", value<std::string>()->default_value("itoopie"),             "I2PCP access password")
+      ("i2pcontrol.cert",     value<std::string>()->default_value("i2pcontrol.crt.pem"),  "I2PCP connection cerificate")
+      ("i2pcontrol.key",      value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
       ;
 
     m_OptionsDesc

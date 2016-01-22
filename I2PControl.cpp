@@ -36,23 +36,20 @@ namespace client
 	{
 		i2p::config::GetOption("i2pcontrol.password", m_Password);
 
-		// certificate				
+		// certificate / keys
+		std::string i2pcp_crt; i2p::config::GetOption("i2pcontrol.cert", i2pcp_crt);
+		std::string i2pcp_key; i2p::config::GetOption("i2pcontrol.key",  i2pcp_key);
+		// TODO: properly handle absolute paths
 		auto path = GetPath ();
-		if (!boost::filesystem::exists (path))
+		if (!boost::filesystem::exists (path / i2pcp_crt) ||
+		    !boost::filesystem::exists (path / i2pcp_key))
 		{
-			if (!boost::filesystem::create_directory (path))
-				LogPrint (eLogError, "Failed to create i2pcontrol directory");
-		}	
-		if (!boost::filesystem::exists (path / I2P_CONTROL_KEY_FILE) ||
-			!boost::filesystem::exists (path / I2P_CONTROL_CERT_FILE))
-		{
-			// create new certificate
-			CreateCertificate ();
-			LogPrint (eLogInfo, "I2PControl certificates created");
+			LogPrint (eLogInfo, "I2PControl: creating new certificate for control connection");
+			CreateCertificate (i2pcp_crt.c_str(), i2pcp_key.c_str());
 		}
 		m_SSLContext.set_options (boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 | boost::asio::ssl::context::single_dh_use);
-		m_SSLContext.use_certificate_file ((path / I2P_CONTROL_CERT_FILE).string (), boost::asio::ssl::context::pem);
-		m_SSLContext.use_private_key_file ((path / I2P_CONTROL_KEY_FILE).string (), boost::asio::ssl::context::pem);
+		m_SSLContext.use_certificate_file ((path / i2pcp_crt).string (), boost::asio::ssl::context::pem);
+		m_SSLContext.use_private_key_file ((path / i2pcp_crt).string (), boost::asio::ssl::context::pem);
 
 		// handlers
 		m_MethodHandlers[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 

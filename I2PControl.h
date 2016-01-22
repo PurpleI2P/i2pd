@@ -22,11 +22,6 @@ namespace client
 	const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
 	typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;		
 
-	const char I2P_CONTROL_PATH[] = "ipcontrol";
-	const char I2P_CONTROL_KEY_FILE[] = "key.pem";
-	const char I2P_CONTROL_CERT_FILE[] = "cert.pem";
-	const char I2P_CONTROL_CONFIG_FILE[] = "i2pcontrol.conf";
-
 	const char I2P_CONTROL_PROPERTY_ID[] = "id";
 	const char I2P_CONTROL_PROPERTY_METHOD[] = "method";
 	const char I2P_CONTROL_PROPERTY_PARAMS[] = "params";
@@ -96,7 +91,7 @@ namespace client
 			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 
-			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / I2P_CONTROL_PATH; };
+			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir(); };
 			void CreateCertificate (const char *crt_path, const char *key_path);
 
 		private:
