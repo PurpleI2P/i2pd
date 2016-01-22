@@ -114,13 +114,10 @@ namespace client
 	{ 
 		while (m_IsRunning)
 		{
-			try
-			{	
+			try {
 				m_Service.run ();
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "I2PControl: ", ex.what ());
+			} catch (std::exception& ex) {
+				LogPrint (eLogError, "I2PControl: runtime exception: ", ex.what ());
 			}	
 		}	
 	}
@@ -137,13 +134,12 @@ namespace client
 		if (ecode != boost::asio::error::operation_aborted)
 			Accept ();
 
-		if (!ecode)
-		{
-			LogPrint (eLogInfo, "New I2PControl request from ", socket->lowest_layer ().remote_endpoint ());
-			Handshake (socket);	
+		if (ecode) {
+			LogPrint (eLogError, "I2PControl: accept error: ",  ecode.message ());
+			return;
 		}
-		else
-			LogPrint (eLogError, "I2PControl accept error: ",  ecode.message ());
+		LogPrint (eLogDebug, "I2PControl: new request from ", socket->lowest_layer ().remote_endpoint ());
+		Handshake (socket);
 	}
 
 	void I2PControlService::Handshake (std::shared_ptr<ssl_socket> socket)
@@ -154,13 +150,12 @@ namespace client
 
 	void I2PControlService::HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)
 	{
-		if (!ecode)
-		{
-			//std::this_thread::sleep_for (std::chrono::milliseconds(5));
-			ReadRequest (socket);
+		if (ecode) {
+			LogPrint (eLogError, "I2PControl: handshake error: ", ecode.message ());
+			return;
 		}	
-		else
-			LogPrint (eLogError, "I2PControl handshake error: ",  ecode.message ());
+		//std::this_thread::sleep_for (std::chrono::milliseconds(5));
+		ReadRequest (socket);
 	}
 
 	void I2PControlService::ReadRequest (std::shared_ptr<ssl_socket> socket)
@@ -180,12 +175,10 @@ namespace client
  		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket, 
 		std::shared_ptr<I2PControlBuffer> buf)
 	{
-		if (ecode)
-		{
-			LogPrint (eLogError, "I2PControl read error: ", ecode.message ());
-		}
-		else
-		{
+		if (ecode) {
+			LogPrint (eLogError, "I2PControl: read error: ", ecode.message ());
+			return;
+		} else {
 			try
 			{
 				bool isHtml = !memcmp (buf->data (), "POST", 4);
@@ -294,8 +287,9 @@ namespace client
 	void I2PControlService::HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 		std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf)
 	{
-		if (ecode)
-			LogPrint (eLogError, "I2PControl write error: ", ecode.message ());
+		if (ecode) {
+			LogPrint (eLogError, "I2PControl: write error: ", ecode.message ());
+		}
 	}
 
 // handlers
@@ -304,9 +298,11 @@ namespace client
 	{
 		int api       = params.get<int> ("API");
 		auto password = params.get<std::string> ("Password");
-		LogPrint (eLogDebug, "I2PControl Authenticate API=", api, " Password=", password);
-		if (password != m_Password)
-			LogPrint (eLogError, "I2PControl Authenticate Invalid password ", password, " expected ", m_Password);
+		LogPrint (eLogDebug, "I2PControl: Authenticate API=", api, " Password=", password);
+		if (password != m_Password) {
+			LogPrint (eLogError, "I2PControl: Authenticate Invalid password: ", password);
+			return;
+		}
 		InsertParam (results, "API", api);
 		results << ",";
 		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
@@ -326,10 +322,9 @@ namespace client
 
 	void I2PControlService::I2PControlHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		LogPrint (eLogDebug, "I2PControl I2PControl");
 		for (auto& it: params)
 		{
-			LogPrint (eLogDebug, it.first);
+			LogPrint (eLogDebug, "I2PControl: I2PControl request: ", it.first);
 			auto it1 = m_I2PControlHandlers.find (it.first);
 			if (it1 != m_I2PControlHandlers.end ())
 			{
@@ -337,13 +332,13 @@ namespace client
 				InsertParam (results, it.first, ""); 
 			}
 			else
-				LogPrint (eLogError, "I2PControl I2PControl unknown request ", it.first);			
+				LogPrint (eLogError, "I2PControl: I2PControl unknown request: ", it.first);
 		}	
 	}
 
 	void I2PControlService::PasswordHandler (const std::string& value)
 	{
-		LogPrint (eLogDebug, "I2PControl: new password=", value, ", to make it persistent you should update your config!");
+		LogPrint (eLogWarning, "I2PControl: new password=", value, ", to make it persistent you should update your config!");
 		m_Password = value;
 		m_Tokens.clear ();
 	}
@@ -352,10 +347,9 @@ namespace client
 
 	void I2PControlService::RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		LogPrint (eLogDebug, "I2PControl RouterInfo");
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
-			LogPrint (eLogDebug, it->first);
+			LogPrint (eLogDebug, "I2PControl: RouterInfo request: ", it->first);
 			auto it1 = m_RouterInfoHandlers.find (it->first);
 			if (it1 != m_RouterInfoHandlers.end ())
 			{
@@ -363,7 +357,7 @@ namespace client
 				(this->*(it1->second))(results);	
 			}	
 			else
-				LogPrint (eLogError, "I2PControl RouterInfo unknown request ", it->first);
+				LogPrint (eLogError, "I2PControl: RouterInfo unknown request ", it->first);
 		}
 	}
 
@@ -419,23 +413,22 @@ namespace client
 	
 	void I2PControlService::RouterManagerHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		LogPrint (eLogDebug, "I2PControl RouterManager");
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
 			if (it != params.begin ()) results << ",";	
-			LogPrint (eLogDebug, it->first);
+			LogPrint (eLogDebug, "I2PControl: RouterManager request: ", it->first);
 			auto it1 = m_RouterManagerHandlers.find (it->first);
-			if (it1 != m_RouterManagerHandlers.end ())
+			if (it1 != m_RouterManagerHandlers.end ()) {
 				(this->*(it1->second))(results);	
-			else
-				LogPrint (eLogError, "I2PControl RouterManager unknown request ", it->first);			
+			} else
+				LogPrint (eLogError, "I2PControl: RouterManager unknown request: ", it->first);
 		}
 	}	
 
 
 	void I2PControlService::ShutdownHandler (std::ostringstream& results)	
 	{
-		LogPrint (eLogInfo, "Shutdown requested");
+		LogPrint (eLogInfo, "I2PControl: Shutdown requested");
 		InsertParam (results, "Shutdown", "");
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
 		m_ShutdownTimer.async_wait (
@@ -449,7 +442,7 @@ namespace client
 	{
 		i2p::context.SetAcceptsTunnels (false);
 		int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout ();
-		LogPrint (eLogInfo, "Graceful shutdown requested. Will shutdown after ", timeout, " seconds");
+		LogPrint (eLogInfo, "I2PControl: Graceful shutdown requested, ", timeout, " seconds remains");
 		InsertParam (results, "ShutdownGraceful", "");
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
 		m_ShutdownTimer.async_wait (
@@ -461,7 +454,7 @@ namespace client
 
 	void I2PControlService::ReseedHandler (std::ostringstream& results)
 	{
-		LogPrint (eLogInfo, "Reseed requested");
+		LogPrint (eLogInfo, "I2PControl: Reseed requested");
 		InsertParam (results, "Reseed", "");
 		i2p::data::netdb.Reseed ();
 	}
@@ -469,16 +462,15 @@ namespace client
 // network setting
 	void I2PControlService::NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		LogPrint (eLogDebug, "I2PControl NetworkSetting");
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
 			if (it != params.begin ()) results << ",";	
-			LogPrint (eLogDebug, it->first);
+			LogPrint (eLogDebug, "I2PControl: NetworkSetting request: ", it->first);
 			auto it1 = m_NetworkSettingHandlers.find (it->first);
-			if (it1 != m_NetworkSettingHandlers.end ())
+			if (it1 != m_NetworkSettingHandlers.end ()) {
 				(this->*(it1->second))(it->second.data (), results);	
-			else
-				LogPrint (eLogError, "I2PControl NetworkSetting unknown request ", it->first);			
+			} else
+				LogPrint (eLogError, "I2PControl NetworkSetting unknown request: ", it->first);
 		}
 	}
 
