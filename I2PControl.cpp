@@ -52,31 +52,31 @@ namespace client
 		m_SSLContext.use_private_key_file ((path / i2pcp_crt).string (), boost::asio::ssl::context::pem);
 
 		// handlers
-		m_MethodHandlers[I2P_CONTROL_METHOD_AUTHENTICATE] = &I2PControlService::AuthenticateHandler; 
-		m_MethodHandlers[I2P_CONTROL_METHOD_ECHO] = &I2PControlService::EchoHandler; 
-		m_MethodHandlers[I2P_CONTROL_METHOD_I2PCONTROL] = &I2PControlService::I2PControlHandler; 
-		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_INFO] = &I2PControlService::RouterInfoHandler; 
-		m_MethodHandlers[I2P_CONTROL_METHOD_ROUTER_MANAGER] = &I2PControlService::RouterManagerHandler; 
-		m_MethodHandlers[I2P_CONTROL_METHOD_NETWORK_SETTING] = &I2PControlService::NetworkSettingHandler; 
+		m_MethodHandlers["Authenticate"]   = &I2PControlService::AuthenticateHandler;
+		m_MethodHandlers["Echo"]           = &I2PControlService::EchoHandler;
+		m_MethodHandlers["I2PControl"]     = &I2PControlService::I2PControlHandler;
+		m_MethodHandlers["RouterInfo"]     = &I2PControlService::RouterInfoHandler;
+		m_MethodHandlers["RouterManager"]  = &I2PControlService::RouterManagerHandler;
+		m_MethodHandlers["NetworkSetting"] = &I2PControlService::NetworkSettingHandler;
 
 		// I2PControl
-		m_I2PControlHandlers[I2P_CONTROL_I2PCONTROL_PASSWORD] = &I2PControlService::PasswordHandler; 
+		m_I2PControlHandlers["i2pcontrol.password"] = &I2PControlService::PasswordHandler; 
 
 		// RouterInfo
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_UPTIME] = &I2PControlService::UptimeHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_VERSION] = &I2PControlService::VersionHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_STATUS] = &I2PControlService::StatusHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS] = &I2PControlService::NetDbKnownPeersHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS] = &I2PControlService::NetDbActivePeersHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_NET_STATUS] = &I2PControlService::NetStatusHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING] = &I2PControlService::TunnelsParticipatingHandler;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_BW_IB_1S] = &I2PControlService::InboundBandwidth1S ;
-		m_RouterInfoHandlers[I2P_CONTROL_ROUTER_INFO_BW_OB_1S] = &I2PControlService::OutboundBandwidth1S ;
+		m_RouterInfoHandlers["i2p.router.uptime"]  = &I2PControlService::UptimeHandler;
+		m_RouterInfoHandlers["i2p.router.version"] = &I2PControlService::VersionHandler;
+		m_RouterInfoHandlers["i2p.router.status"]  = &I2PControlService::StatusHandler;
+		m_RouterInfoHandlers["i2p.router.netdb.knownpeers"]   = &I2PControlService::NetDbKnownPeersHandler;
+		m_RouterInfoHandlers["i2p.router.netdb.activepeers"]  = &I2PControlService::NetDbActivePeersHandler;
+		m_RouterInfoHandlers["i2p.router.net.bw.inbound.1s"]  = &I2PControlService::InboundBandwidth1S;
+		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"] = &I2PControlService::OutboundBandwidth1S;
+		m_RouterInfoHandlers["i2p.router.net.status"]         = &I2PControlService::NetStatusHandler;
+		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlService::TunnelsParticipatingHandler;
 
 		// RouterManager	
-		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN] = &I2PControlService::ShutdownHandler; 
-		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL] = &I2PControlService::ShutdownGracefulHandler;
-		m_RouterManagerHandlers[I2P_CONTROL_ROUTER_MANAGER_RESEED] = &I2PControlService::ReseedHandler;
+		m_RouterManagerHandlers["Reseed"]           = &I2PControlService::ReseedHandler;
+		m_RouterManagerHandlers["Shutdown"]         = &I2PControlService::ShutdownHandler; 
+		m_RouterManagerHandlers["ShutdownGraceful"] = &I2PControlService::ShutdownGracefulHandler;
 	}
 
 	I2PControlService::~I2PControlService ()
@@ -220,14 +220,14 @@ namespace client
 				boost::property_tree::ptree pt;
 				boost::property_tree::read_json (ss, pt);
 
-				std::string method = pt.get<std::string>(I2P_CONTROL_PROPERTY_METHOD);
+				std::string id     = pt.get<std::string>("id");
+				std::string method = pt.get<std::string>("method");
 				auto it = m_MethodHandlers.find (method);
 				if (it != m_MethodHandlers.end ())
 				{
 					std::ostringstream response;
-					response << "{\"id\":" << pt.get<std::string>(I2P_CONTROL_PROPERTY_ID) << ",\"result\":{";					
-
-					(this->*(it->second))(pt.get_child (I2P_CONTROL_PROPERTY_PARAMS), response);
+					response << "{\"id\":" << id << ",\"result\":{";
+					(this->*(it->second))(pt.get_child ("params"), response);
 					response << "},\"jsonrpc\":\"2.0\"}";
 					SendResponse (socket, buf, response, isHtml);
 				}	
@@ -302,23 +302,23 @@ namespace client
 
 	void I2PControlService::AuthenticateHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		int api = params.get<int> (I2P_CONTROL_PARAM_API);
-		auto password = params.get<std::string> (I2P_CONTROL_PARAM_PASSWORD);
+		int api       = params.get<int> ("API");
+		auto password = params.get<std::string> ("Password");
 		LogPrint (eLogDebug, "I2PControl Authenticate API=", api, " Password=", password);
 		if (password != m_Password)
 			LogPrint (eLogError, "I2PControl Authenticate Invalid password ", password, " expected ", m_Password);
-		InsertParam (results, I2P_CONTROL_PARAM_API, api);
+		InsertParam (results, "API", api);
 		results << ",";
 		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
 		m_Tokens.insert (token);	
-		InsertParam (results, I2P_CONTROL_PARAM_TOKEN, token);
+		InsertParam (results, "Token", token);
 	}	
 
 	void I2PControlService::EchoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		auto echo = params.get<std::string> (I2P_CONTROL_PARAM_ECHO);
+		auto echo = params.get<std::string> ("Echo");
 		LogPrint (eLogDebug, "I2PControl Echo Echo=", echo);
-		InsertParam (results, I2P_CONTROL_PARAM_RESULT, echo);	
+		InsertParam (results, "Result", echo);
 	}
 
 
@@ -369,47 +369,50 @@ namespace client
 
 	void I2PControlService::UptimeHandler (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_UPTIME, (int)i2p::context.GetUptime ()*1000);	
+		InsertParam (results, "i2p.router.uptime", (int)i2p::context.GetUptime ()*1000);	
 	}
 
 	void I2PControlService::VersionHandler (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_VERSION, VERSION);	
+		InsertParam (results, "i2p.router.version", VERSION);
 	}	
 
 	void I2PControlService::StatusHandler (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_STATUS, "???"); // TODO:
+		InsertParam (results, "i2p.router.status", "???"); // TODO:
 	}
 		
 	void I2PControlService::NetDbKnownPeersHandler (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_NETDB_KNOWNPEERS, i2p::data::netdb.GetNumRouters ());	
+		InsertParam (results, "i2p.router.netdb.knownpeers", i2p::data::netdb.GetNumRouters ());	
 	}
 
 	void I2PControlService::NetDbActivePeersHandler (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_NETDB_ACTIVEPEERS, (int)i2p::transport::transports.GetPeers ().size ());	
+		InsertParam (results, "i2p.router.netdb.activepeers", (int)i2p::transport::transports.GetPeers ().size ());	
 	}
 
 	void I2PControlService::NetStatusHandler (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_NET_STATUS, (int)i2p::context.GetStatus ());
+		InsertParam (results, "i2p.router.net.status", (int)i2p::context.GetStatus ());
 	}
 
 	void I2PControlService::TunnelsParticipatingHandler (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_TUNNELS_PARTICIPATING, (int)i2p::tunnel::tunnels.GetTransitTunnels ().size ());
+		int transit = i2p::tunnel::tunnels.GetTransitTunnels ().size ();
+		InsertParam (results, "i2p.router.net.tunnels.participating", transit);
 	}
 
 	void I2PControlService::InboundBandwidth1S (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_BW_IB_1S, (double)i2p::transport::transports.GetInBandwidth ());
+		double bw = i2p::transport::transports.GetInBandwidth ();
+		InsertParam (results, "i2p.router.net.bw.inbound.1s", bw);
 	}
 
 	void I2PControlService::OutboundBandwidth1S (std::ostringstream& results)
 	{
-		InsertParam (results, I2P_CONTROL_ROUTER_INFO_BW_OB_1S, (double)i2p::transport::transports.GetOutBandwidth ());
+		double bw = i2p::transport::transports.GetOutBandwidth ();
+		InsertParam (results, "i2p.router.net.bw.outbound.1s", bw);
 	}
 
 // RouterManager
@@ -433,7 +436,7 @@ namespace client
 	void I2PControlService::ShutdownHandler (std::ostringstream& results)	
 	{
 		LogPrint (eLogInfo, "Shutdown requested");
-		InsertParam (results, I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN, "");
+		InsertParam (results, "Shutdown", "");
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
@@ -447,7 +450,7 @@ namespace client
 		i2p::context.SetAcceptsTunnels (false);
 		int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout ();
 		LogPrint (eLogInfo, "Graceful shutdown requested. Will shutdown after ", timeout, " seconds");
-		InsertParam (results, I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN_GRACEFUL, "");
+		InsertParam (results, "ShutdownGraceful", "");
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
 		m_ShutdownTimer.async_wait (
 			[](const boost::system::error_code& ecode)
@@ -459,7 +462,7 @@ namespace client
 	void I2PControlService::ReseedHandler (std::ostringstream& results)
 	{
 		LogPrint (eLogInfo, "Reseed requested");
-		InsertParam (results, I2P_CONTROL_ROUTER_MANAGER_SHUTDOWN, "");	
+		InsertParam (results, "Reseed", "");
 		i2p::data::netdb.Reseed ();
 	}
 
