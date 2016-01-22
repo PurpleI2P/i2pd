@@ -183,6 +183,19 @@ namespace proxy
 	bool HTTPProxyHandler::HandleData(uint8_t *http_buff, std::size_t len)
 	{
 		assert(len); // This should always be called with a least a byte left to parse
+
+
+		// remove "Referer" from http requst
+		http_buff[len] = '\0';
+		char *start = strstr((char *)http_buff, "\nReferer:");
+		if (start!=0) 
+		{
+			char *end = strstr(start+1, "\n");
+			strncpy(start, end, (char*)(http_buff + len) - end);
+			len = len - (end - start);
+		}
+		
+	
 		while (len > 0) 
 		{
 			//TODO: fallback to finding HOst: header if needed
