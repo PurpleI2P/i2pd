@@ -209,7 +209,7 @@ namespace client
 	{
 		auto request = std::make_shared<I2PControlBuffer>();
 		socket->async_read_some (
-#if BOOST_VERSION >= 104900
+#if defined(BOOST_ASIO_HAS_STD_ARRAY)
 			boost::asio::buffer (*request),  
 #else
 			boost::asio::buffer (request->data (), request->size ()), 
