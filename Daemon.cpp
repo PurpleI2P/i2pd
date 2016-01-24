@@ -129,7 +129,7 @@ namespace i2p
 			if (http) {
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 				uint16_t    httpPort; i2p::config::GetOption("http.port",    httpPort);
-				LogPrint(eLogInfo, "Daemon: staring HTTP Server at ", httpAddr, ":", httpPort);
+				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
 				d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(httpAddr, httpPort));
 				d.httpServer->Start();
 			}

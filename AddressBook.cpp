@@ -396,7 +396,7 @@ namespace client
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
 			}
 			else
-				LogPrint (eLogWarning, "Addresbook: subscriptions.txt not found");
+				LogPrint (eLogWarning, "Addresbook: subscriptions.txt not found in datadir");
 		}
 		else
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
