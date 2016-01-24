@@ -182,7 +182,8 @@ namespace proxy
 
 	bool HTTPProxyHandler::HandleData(uint8_t *http_buff, std::size_t len)
 	{
-		assert(len); // This should always be called with a least a byte left to parse
+		// TODO: we should srtrip 'Referer' better, because it might be inside message body
+		/*assert(len); // This should always be called with a least a byte left to parse
 
 		// remove "Referer" from http requst
 		http_buff[len] = 0;
@@ -195,7 +196,7 @@ namespace proxy
 				strncpy(start, end, (char *)(http_buff + len) - end);
 				len -= (end - start);
 			}
-		}
+		}*/
 	
 		while (len > 0) 
 		{

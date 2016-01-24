@@ -53,8 +53,10 @@ namespace client
 
 		std::string socksProxyAddr = i2p::util::config::GetArg("-socksproxyaddress", "127.0.0.1");
 		uint16_t    socksProxyPort = i2p::util::config::GetArg("-socksproxyport",    4447);
+		std::string socksOutProxyAddr = i2p::util::config::GetArg("-socksoutproxyaddress", "");
+		uint16_t    socksOutProxyPort = i2p::util::config::GetArg("-socksoutproxyport", 0);
 		LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
-		m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, localDestination);
+		m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxyAddr, socksOutProxyPort, localDestination);
 		m_SocksProxy->Start();
 	
 		// I2P tunnels
