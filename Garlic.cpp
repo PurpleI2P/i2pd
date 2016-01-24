@@ -546,7 +546,7 @@ namespace garlic
 	std::shared_ptr<I2NPMessage> GarlicDestination::WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
 		std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet)	
 	{
-		auto session = GetRoutingSession (destination, attachLeaseSet);  // 32 tags by default
+		auto session = GetRoutingSession (destination, attachLeaseSet);  
 		return session->WrapSingleMessage (msg);	
 	}
 
@@ -560,7 +560,7 @@ namespace garlic
 		if (!session)
 		{
 			session = std::make_shared<GarlicRoutingSession> (this, destination, 
-				attachLeaseSet ? 40 : 4, attachLeaseSet); // 40 tags for connections and 4 for LS requests
+				attachLeaseSet ? m_NumTags : 4, attachLeaseSet); // specified num tags for connections and 4 for LS requests
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			m_Sessions[destination->GetIdentHash ()] = session;
 		}	
