@@ -60,16 +60,22 @@ namespace i2p
 
 		bool Daemon_Singleton::init(int argc, char* argv[])
 		{
+			std::string config  = i2p::util::filesystem::GetConfigFile().string();
+			std::string tunconf = i2p::util::filesystem::GetTunnelsConfigFile().string();
+			std::string datadir = i2p::util::filesystem::GetDataDir().string();
+
+			LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
+			LogPrint(eLogDebug, "FS: main config file: ", config);
+			LogPrint(eLogDebug, "FS: tunnels config: ",   tunconf);
+			LogPrint(eLogDebug, "FS: data directory: ", datadir);
+
 			i2p::config::Init();
 			i2p::config::ParseCmdline(argc, argv);
-			i2p::config::ParseConfig(i2p::util::filesystem::GetConfigFile().string());
+			i2p::config::ParseConfig(config);
 			i2p::config::Finalize();
 
 			i2p::crypto::InitCrypto ();
 			i2p::context.Init ();
-
-			LogPrint(eLogInfo, "i2pd v", VERSION, " starting");
-			LogPrint(eLogDebug, "FS: data directory: ", i2p::util::filesystem::GetDataDir().string());
 
 			i2p::config::GetOption("daemon", isDaemon);
 			i2p::config::GetOption("log",    isLogging);
