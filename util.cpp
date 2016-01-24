@@ -124,19 +124,33 @@ namespace filesystem
 	boost::filesystem::path GetConfigFile()
 	{
 		std::string config; i2p::config::GetOption("conf", config);
-		boost::filesystem::path pathConfigFile(config);
-		if (!pathConfigFile.is_complete())
-			pathConfigFile = GetDataDir() / pathConfigFile;
-		return pathConfigFile;
+		if (config != "") {
+			/* config file set with cmdline */
+			boost::filesystem::path path(config);
+			return path;
+		}
+		/* else - try autodetect */
+		boost::filesystem::path path("i2p.conf");
+		path = GetDataDir() / path;
+		if (!boost::filesystem::exists(path))
+			path = ""; /* reset */
+		return path;
 	}
 
 	boost::filesystem::path GetTunnelsConfigFile()
 	{
 		std::string tunconf; i2p::config::GetOption("tunconf", tunconf);
-		boost::filesystem::path pathTunnelsConfigFile(tunconf);
-		if (!pathTunnelsConfigFile.is_complete())
-		  pathTunnelsConfigFile = GetDataDir() / pathTunnelsConfigFile;
-		return pathTunnelsConfigFile;
+		if (tunconf != "") {
+			/* config file set with cmdline */
+			boost::filesystem::path path(tunconf);
+			return path;
+		}
+		/* else - try autodetect */
+		boost::filesystem::path path("tunnels.cfg");
+		path = GetDataDir() / path;
+		if (!boost::filesystem::exists(path))
+			path = ""; /* reset */
+		return path;
 	}
 
 	boost::filesystem::path GetDefaultDataDir()
