@@ -81,11 +81,14 @@ namespace i2p
 			i2p::config::GetOption("log",    isLogging);
 
 			uint16_t port; i2p::config::GetOption("port", port);
-			if (port)
-				i2p::context.UpdatePort (port);					
+			LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
+			i2p::context.UpdatePort (port);
+
 			std::string host; i2p::config::GetOption("host", host);
-			if (host != "")
+			if (host != "") {
+				LogPrint(eLogInfo, "Daemon: address for incoming connections is ", host);
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
+			}
 
 			bool ipv6;    i2p::config::GetOption("ipv6", ipv6);
 			bool transit; i2p::config::GetOption("notransit", transit);
