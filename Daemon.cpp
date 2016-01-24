@@ -93,19 +93,20 @@ namespace i2p
 			i2p::context.SetAcceptsTunnels (!transit);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
-			i2p::context.SetFloodfill (isFloodfill);
+			char bandwidth;   i2p::config::GetOption("bandwidth", bandwidth);
 
-			char bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
-			if (bandwidth != '-')
-			{
+			if (isFloodfill) {
+				LogPrint(eLogInfo, "Daemon: router will be floodfill, bandwidth set to 'extra'");
+				i2p::context.SetFloodfill (true);
+				i2p::context.SetExtraBandwidth ();
+			} else if (bandwidth != '-') {
+				LogPrint(eLogInfo, "Daemon: bandwidth set to ", bandwidth);
 				switch (bandwidth) {
 					case 'P' : i2p::context.SetExtraBandwidth (); break;
 					case 'L' : i2p::context.SetHighBandwidth  (); break;
 					default  : i2p::context.SetLowBandwidth   (); break;
 				}
 			}	
-			else if (isFloodfill)
-				i2p::context.SetExtraBandwidth ();
 
 			return true;
 		}
