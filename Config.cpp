@@ -36,12 +36,12 @@ namespace config {
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
       ("host",      value<std::string>()->default_value(""),     "External IP (deprecated)")
       ("port,p",    value<uint16_t>()->default_value(4567),      "Port to listen for incoming connections")
-      ("ipv6,6",    value<bool>()->zero_tokens(),      "Enable communication through ipv6")
-      ("daemon",    value<bool>()->zero_tokens(),      "Router will go to background after start")
-      ("service",   value<bool>()->zero_tokens(),      "Router will use system folders like '/var/lib/i2pd'")
-      ("notransit", value<bool>()->zero_tokens(),      "Router will not forward transit traffic")
-      ("floodfill", value<bool>()->zero_tokens(),      "Router will try to become floodfill")
-      ("bandwidth", value<char>()->default_value('O'), "Bandwidth limiting: L - 32kbps, O - 256Kbps, P - unlimited")
+      ("ipv6,6",    value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
+      ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
+      ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")
+      ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not forward transit traffic")
+      ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will try to become floodfill")
+      ("bandwidth", value<char>()->default_value('O'), "Bandwidth limiting: L - 32kbps, O - 256Kbps, P - unlimited (ignored if floodfill)")
       ;
 
     options_description httpserver("HTTP Server options");
