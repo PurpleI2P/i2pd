@@ -118,6 +118,9 @@ namespace config {
   }
 
   void ParseConfig(const std::string& path) {
+    if (path == "")
+      return;
+
     std::ifstream config(path, std::ios::in);
 
     if (!config.is_open()) {
