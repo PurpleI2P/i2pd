@@ -534,6 +534,13 @@ namespace util
 					s << "<br>\r\n" << std::endl;
 				}
 			}	
+			s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
+			for (auto it: dest->GetSessions ())
+			{
+				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " ";
+				s << it.second->GetNumOutgoingTags () << "<br>" << std::endl;
+			}	
+			s << "<br>" << std::endl;
 			// s << "<br>\r\n<b>Streams:</b><br>\r\n";
 			// for (auto it: dest->GetStreamingDestination ()->GetStreams ())
 			// {	

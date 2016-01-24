@@ -113,6 +113,10 @@ namespace garlic
 			
 			i2p::crypto::CBCEncryption m_Encryption;
 			std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption; 
+
+		public:
+			// for HTTP only
+			size_t GetNumOutgoingTags () const { return m_SessionTags.size (); };
 	};	
 	
 	class GarlicDestination: public i2p::data::LocalDestination
@@ -163,6 +167,12 @@ namespace garlic
 			uint32_t m_LastTagsCleanupTime;
 			// DeliveryStatus
 			std::map<uint32_t, std::shared_ptr<GarlicRoutingSession> > m_CreatedSessions; // msgID -> session
+			
+		public:
+
+			// for HTTP only
+			size_t GetNumIncomingTags () const { return m_Tags.size (); }	
+			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 	};	
 }	
 }
