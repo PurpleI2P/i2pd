@@ -20,6 +20,7 @@ Command line options
 * --notransit           - Router will not accept transit tunnels at startup. 0 by default
 * --floodfill           - Router will be floodfill, off by default
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
+                          This option will be ignored if --floodfill given
 
 * --http.address=       - The address to listen on (HTTP server)
 * --http.port=          - The port to listen on (HTTP server)
