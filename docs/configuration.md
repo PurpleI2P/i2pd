@@ -67,7 +67,7 @@ tunnels.cfg (filename of this config is subject of change):
     #
     # incoming tunnel sample, for local service
     # mandatory parameters:
-    # * type -- always "server"
+    # * type -- "server" or "http"
     # * host -- ip address of our service
     # * port -- port of our service
     # * keys -- file with LeaseSet of address in i2p
@@ -76,11 +76,14 @@ tunnels.cfg (filename of this config is subject of change):
     # * accesslist -- comma-separated list of i2p addresses, allowed to connect
     #    every address is b32 without '.b32.i2p' part
     [LOCALSITE]
-    type = server
+    type = http
     host = 127.0.0.1
     port = 80
     keys = site-keys.dat
-    inport = 81
-    accesslist = <b32>[,<b32>]
+    [IRC-SERVER]
+    type = server
+    host = 127.0.0.1
+    port = 6667
+    keys = irc.dat
 
 Also see [this page](https://github.com/PurpleI2P/i2pd/wiki/tunnels.cfg) for more tunnel examples.
