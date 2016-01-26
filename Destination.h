@@ -28,7 +28,7 @@ namespace client
 	const int PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int LEASESET_REQUEST_TIMEOUT = 5; // in seconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 40; // in seconds
-	const int DESTINATION_CLEANUP_TIMEOUT = 20; // in minutes 
+	const int DESTINATION_CLEANUP_TIMEOUT = 3; // in minutes 
 	const unsigned int MAX_NUM_FLOODFILLS_PER_REQUEST = 7;
 	
 	// I2CP

@@ -38,6 +38,7 @@ namespace garlic
 
 	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 960; // 16 minutes			
 	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
+	const int OUTGOING_TAGS_CONFIRMATION_TIMEOUT = 10; // 10 seconds 
 	const int LEASET_CONFIRMATION_TIMEOUT = 4000; // in milliseconds
 	
 	struct SessionTag: public i2p::data::Tag<32> 

@@ -97,7 +97,7 @@ namespace garlic
 		// delete expired unconfirmed tags
 		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
-			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
 			{
 				if (m_Owner)
 					m_Owner->RemoveDeliveryStatusSession (it->first);
@@ -107,7 +107,7 @@ namespace garlic
 			else
 				it++;
 		}	
-		return !m_SessionTags.empty () || m_UnconfirmedTagsMsgs.empty ();
+		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
  	}
 
 	std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
