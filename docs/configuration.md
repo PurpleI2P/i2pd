@@ -32,6 +32,8 @@ Command line options
 * --socksproxy.address= - The address to listen on (SOCKS Proxy)
 * --socksproxy.port=    - The port to listen on (SOCKS Proxy). 4447 by default
 * --socksproxy.keys=    - optional keys file for proxy local destination (both HTTP and SOCKS)
+* --socksproxy.outproxy=      - Address of outproxy. requests outside i2p will go there
+* --socksproxy.outproxyport=  - Outproxy remote port
 
 * --sam.address=        - The address to listen on (SAM bridge)
 * --sam.port=           - Port of SAM bridge. Usually 7656. SAM is off if not specified
