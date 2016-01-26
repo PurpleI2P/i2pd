@@ -13,7 +13,7 @@ Command line options
 * --pidfile=            - Where to write pidfile (dont write by default)
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
 * --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
-* --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
+* --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd/i2pd.log, /var/lib/i2pd).
 * --v6=                 - 1 if supports communication through ipv6, off by default
 * --floodfill=          - 1 if router is floodfill, off by default
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
