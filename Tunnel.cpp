@@ -482,6 +482,11 @@ namespace tunnel
 		uint16_t len = bufbe16toh(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
 		// we make payload as new I2NP message to send
 		msg->offset += I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
+		if (msg->offset + len > msg->len)
+		{
+			LogPrint (eLogError, "Tunnel: gateway payload ", (int)len, " exceeds message length ", (int)msg->len);
+			return;
+		}
 		msg->len = msg->offset + len;
 		auto typeID = msg->GetTypeID ();
 		LogPrint (eLogDebug, "Tunnel: gateway of ", (int) len, " bytes for tunnel ", tunnel->GetTunnelID (), ", msg type ", (int)typeID);

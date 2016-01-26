@@ -90,6 +90,11 @@ namespace tunnel
 
 				msg->offset = fragment - msg->buf;
 				msg->len = msg->offset + size;
+				if (msg->len > msg->maxLen)
+				{
+					LogPrint (eLogError, "TunnelMessage: fragment is too long ", (int)size);
+					return;
+				}
 				if (fragment + size < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE)
 				{
 					// this is not last message. we have to copy it

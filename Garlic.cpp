@@ -100,7 +100,7 @@ namespace garlic
 			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
 			{
 				if (m_Owner)
-					m_Owner->RemoveCreatedSession (it->first);
+					m_Owner->RemoveDeliveryStatusSession (it->first);
 				delete it->second;
 				it = m_UnconfirmedTagsMsgs.erase (it);
 			}	
@@ -546,21 +546,24 @@ namespace garlic
 	std::shared_ptr<I2NPMessage> GarlicDestination::WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
 		std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet)	
 	{
-		auto session = GetRoutingSession (destination, attachLeaseSet);  // 32 tags by default
+		auto session = GetRoutingSession (destination, attachLeaseSet);  
 		return session->WrapSingleMessage (msg);	
 	}
 
 	std::shared_ptr<GarlicRoutingSession> GarlicDestination::GetRoutingSession (
 		std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet)
 	{
-		auto it = m_Sessions.find (destination->GetIdentHash ());
-		std::shared_ptr<GarlicRoutingSession> session;
-		if (it != m_Sessions.end ())
-			session = it->second;
+		GarlicRoutingSessionPtr session;
+		{	
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			auto it = m_Sessions.find (destination->GetIdentHash ());
+			if (it != m_Sessions.end ())
+				session = it->second;
+		}
 		if (!session)
 		{
 			session = std::make_shared<GarlicRoutingSession> (this, destination, 
-				attachLeaseSet ? 40 : 4, attachLeaseSet); // 40 tags for connections and 4 for LS requests
+				attachLeaseSet ? m_NumTags : 4, attachLeaseSet); // specified num tags for connections and 4 for LS requests
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			m_Sessions[destination->GetIdentHash ()] = session;
 		}	
@@ -582,25 +585,25 @@ namespace garlic
 		}
 	}
 	
-	void GarlicDestination::RemoveCreatedSession (uint32_t msgID)
+	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
 	{
-		m_CreatedSessions.erase (msgID);
+		m_DeliveryStatusSessions.erase (msgID);
 	}
 
-	void GarlicDestination::DeliveryStatusSent (std::shared_ptr<GarlicRoutingSession> session, uint32_t msgID)
+	void GarlicDestination::DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID)
 	{
-		m_CreatedSessions[msgID] = session;
+		m_DeliveryStatusSessions[msgID] = session;
 	}		
 
 	void GarlicDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint32_t msgID = bufbe32toh (msg->GetPayload ());
 		{
-			auto it = m_CreatedSessions.find (msgID);
-			if (it != m_CreatedSessions.end ())			
+			auto it = m_DeliveryStatusSessions.find (msgID);
+			if (it != m_DeliveryStatusSessions.end ())			
 			{
 				it->second->MessageConfirmed (msgID);
-				m_CreatedSessions.erase (it);
+				m_DeliveryStatusSessions.erase (it);
 				LogPrint (eLogDebug, "Garlic: message ", msgID, " acknowledged");
 			}	
 		}

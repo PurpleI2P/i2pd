@@ -23,6 +23,7 @@ else ifeq ($(UNAME),Linux)
 	include Makefile.linux
 else # win32 mingw
 	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp
+	WINDIR := True
 	include Makefile.mingw
 endif
 
@@ -30,6 +31,9 @@ all: mk_build_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 
 mk_build_dir:
 	mkdir -p obj
+     ifeq ($(WINDIR),True)
+	mkdir -p obj/Win32
+     endif
 
 api: mk_build_dir $(SHLIB) $(ARLIB)
 api_client: mk_build_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)

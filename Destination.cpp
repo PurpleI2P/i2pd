@@ -27,6 +27,7 @@ namespace client
 		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
 		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
 		int outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+		int numTags = DEFAULT_TAGS_TO_SEND;
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
 		if (params)
 		{
@@ -70,6 +71,16 @@ namespace client
 					LogPrint (eLogInfo, "Destination: Outbound tunnels quantity set to ", quantity);
 				}	
 			}
+			it = params->find (I2CP_PARAM_TAGS_TO_SEND);
+			if (it != params->end ())
+			{
+				int tagsToSend = boost::lexical_cast<int>(it->second);
+				if (tagsToSend > 0)
+				{
+					numTags = tagsToSend;
+					LogPrint (eLogInfo, "Destination: Tags to send set to  ", tagsToSend);
+				}	
+			}	
 			it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
 			if (it != params->end ())
 			{
@@ -85,6 +96,7 @@ namespace client
 				LogPrint (eLogInfo, "Destination: Explicit peers set to ", it->second);
 			}
 		}	
+		SetNumTags (numTags);
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);

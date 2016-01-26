@@ -113,24 +113,30 @@ namespace garlic
 			
 			i2p::crypto::CBCEncryption m_Encryption;
 			std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption; 
+
+		public:
+			// for HTTP only
+			size_t GetNumOutgoingTags () const { return m_SessionTags.size (); };
 	};	
-	
+	using GarlicRoutingSessionPtr = std::shared_ptr<GarlicRoutingSession>;
+
 	class GarlicDestination: public i2p::data::LocalDestination
 	{
 		public:
 
-			GarlicDestination (): m_LastTagsCleanupTime (0) {};
+			GarlicDestination (): m_NumTags (32), m_LastTagsCleanupTime (0) {}; // 32 tags by default
 			~GarlicDestination ();
 
+			void SetNumTags (int numTags) { m_NumTags = numTags; };		
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);	
 			void CleanupRoutingSessions ();
-			void RemoveCreatedSession (uint32_t msgID);
+			void RemoveDeliveryStatusSession (uint32_t msgID);
 			std::shared_ptr<I2NPMessage> WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
 			    std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet = false);
 
 			void AddSessionKey (const uint8_t * key, const uint8_t * tag); // one tag
 			virtual bool SubmitSessionKey (const uint8_t * key, const uint8_t * tag); // from different thread
-			void DeliveryStatusSent (std::shared_ptr<GarlicRoutingSession> session, uint32_t msgID);
+			void DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID);
 			
 			virtual void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);			
@@ -154,13 +160,20 @@ namespace garlic
 		private:
 			
 			// outgoing sessions
+			int m_NumTags;
 			std::mutex m_SessionsMutex;
-			std::map<i2p::data::IdentHash, std::shared_ptr<GarlicRoutingSession> > m_Sessions;
+			std::map<i2p::data::IdentHash, GarlicRoutingSessionPtr> m_Sessions;
 			// incoming
 			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
 			uint32_t m_LastTagsCleanupTime;
 			// DeliveryStatus
-			std::map<uint32_t, std::shared_ptr<GarlicRoutingSession> > m_CreatedSessions; // msgID -> session
+			std::map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
+			
+		public:
+
+			// for HTTP only
+			size_t GetNumIncomingTags () const { return m_Tags.size (); }	
+			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 	};	
 }	
 }

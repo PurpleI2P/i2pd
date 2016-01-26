@@ -59,6 +59,8 @@ namespace client
 			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",    socksProxyKeys);
 			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address", socksProxyAddr);
 			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",    socksProxyPort);
+			std::string socksOutProxyAddr; i2p::config::GetOption("socksproxy.outproxy",     socksOutProxyAddr);
+			uint16_t    socksOutProxyPort; i2p::config::GetOption("socksproxy.outproxyport", socksOutProxyPort);
 			LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
 			if (socksProxyKeys.length () > 0)
 			{
@@ -66,7 +68,7 @@ namespace client
 				LoadPrivateKeys (keys, socksProxyKeys);
 				localDestination = CreateNewLocalDestination (keys, false);
 			}
-			m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, localDestination);
+			m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxyAddr, socksOutProxyPort, localDestination);
 			m_SocksProxy->Start();
 		}
 	
@@ -244,6 +246,7 @@ namespace client
 		options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, DEFAULT_OUTBOUND_TUNNEL_LENGTH);
 		options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
 		options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
+		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
 	}	
 
 	void ClientContext::ReadTunnels ()
@@ -286,7 +289,9 @@ namespace client
 					{
 						i2p::data::PrivateKeys k;
 						LoadPrivateKeys (k, keys, sigType);
-						localDestination = CreateNewLocalDestination (k, false, &options);
+						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+						if (!localDestination)
+							localDestination = CreateNewLocalDestination (k, false, &options);
 					}
 					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
@@ -309,9 +314,12 @@ namespace client
 					std::map<std::string, std::string> options;							 
 					ReadI2CPOptions (section, options);				
 
+					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
 					LoadPrivateKeys (k, keys, sigType);
-					auto localDestination = CreateNewLocalDestination (k, true, &options);
+					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+					if (!localDestination)		
+						localDestination = CreateNewLocalDestination (k, true, &options);
 					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
 						new I2PServerTunnelHTTP (name, host, port, localDestination, inPort) : 
 						new I2PServerTunnel (name, host, port, localDestination, inPort);

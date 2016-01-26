@@ -162,7 +162,7 @@ namespace client
 	{
 		auto request = std::make_shared<I2PControlBuffer>();
 		socket->async_read_some (
-#if BOOST_VERSION >= 104900
+#if defined(BOOST_ASIO_HAS_STD_ARRAY)
 			boost::asio::buffer (*request),  
 #else
 			boost::asio::buffer (request->data (), request->size ()), 
@@ -300,7 +300,7 @@ namespace client
 		auto password = params.get<std::string> ("Password");
 		LogPrint (eLogDebug, "I2PControl: Authenticate API=", api, " Password=", password);
 		if (password != m_Password) {
-			LogPrint (eLogError, "I2PControl: Authenticate Invalid password: ", password);
+			LogPrint (eLogError, "I2PControl: Authenticate - Invalid password: ", password);
 			return;
 		}
 		InsertParam (results, "API", api);
