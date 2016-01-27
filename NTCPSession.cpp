@@ -372,6 +372,17 @@ namespace transport
 		buf += 4;
 		buf += paddingLen;	
 
+		// check timestamp
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t tsA1 = be32toh (tsA);
+		if (tsA1 < ts - NTCP_CLOCK_SKEW || tsA1 > ts + NTCP_CLOCK_SKEW)
+		{
+			LogPrint (eLogError, "NTCP: Phase3 time difference ", ts - tsA1, " exceeds clock skew"); 
+			Terminate ();
+			return;
+		}	
+
+		// check signature
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
@@ -443,6 +454,16 @@ namespace transport
 		{	
 			m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 
+			// check timestamp
+			uint32_t tsB = bufbe32toh (m_Establisher->phase2.encrypted.timestamp);
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			if (tsB < ts - NTCP_CLOCK_SKEW || tsB > ts + NTCP_CLOCK_SKEW)
+			{
+				LogPrint (eLogError, "NTCP: Phase4 time difference ", ts - tsB, " exceeds clock skew"); 
+				Terminate ();
+				return;
+			}	
+			
 			// verify signature
 			SignedData s;
 			s.Insert (m_Establisher->phase1.pubKey, 256); // x
