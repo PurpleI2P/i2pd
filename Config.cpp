@@ -11,6 +11,7 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <boost/program_options/cmdline.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
@@ -24,6 +25,83 @@ namespace i2p {
 namespace config {
   options_description m_OptionsDesc;
   variables_map       m_Options;
+
+  /* list of renamed options */
+  std::map<std::string, std::string> remapped_options = {
+    { "tunnelscfg",          "tunconf" },
+    { "v6",                  "ipv6" },
+    { "httpaddress",         "http.address" },
+    { "httpport",            "http.port"    },
+    { "httpproxyaddress",    "httpproxy.address"  },
+    { "httpproxyport",       "httpproxy.port"     },
+    { "socksproxyaddress",   "socksproxy.address" },
+    { "socksproxyport",      "socksproxy.port"    },
+    { "samaddress",          "sam.address" },
+    { "samport",             "sam.port"    },
+    { "bobaddress",          "bob.address" },
+    { "bobport",             "bob.port"    },
+    { "i2pcontroladdress",   "i2pcontrol.address" },
+    { "i2pcontroladdress",   "i2pcontrol.port"    },
+    { "proxykeys",           "httpproxy.keys" },
+  };
+  /* list of options, that loose their argument and become simple switch */
+  std::set<std::string> boolean_options = {
+    "daemon", "log", "floodfill", "notransit", "service", "ipv6"
+  };
+
+  /* this function is a solid piece of shit, remove it after 2.6.0 */
+  std::pair<std::string, std::string> old_syntax_parser(const std::string& s) {
+    std::string name  = "";
+    std::string value = "";
+    std::size_t pos = 0;
+    /* shortcuts -- -h */
+    if (s.length() == 2 && s.at(0) == '-' && s.at(1) != '-')
+      return make_pair(s.substr(1), "");
+    /* old-style -- -log, /log, etc */
+    if (s.at(0) == '/' || (s.at(0) == '-' && s.at(1) != '-')) {
+      if ((pos = s.find_first_of("= ")) != std::string::npos) {
+        name  = s.substr(1, pos - 1);
+        value = s.substr(pos + 1);
+      } else {
+        name  = s.substr(1, pos);
+        value = "";
+      }
+      if (boolean_options.count(name) > 0 && value != "")
+        std::cerr << "args: don't give an argument to switch option: " << s << std::endl;
+      if (m_OptionsDesc.find_nothrow(name, false)) {
+        std::cerr << "args: option " << s << " style is DEPRECATED, use --" << name << " instead" << std::endl;
+        return std::make_pair(name, value);
+      }
+      if (remapped_options.count(name) > 0) {
+        name = remapped_options[name];
+        std::cerr << "args: option " << s << " is DEPRECATED, use --" << name << " instead" << std::endl;
+        return std::make_pair(name, value);
+      } /* else */
+    }
+    /* long options -- --help */
+    if (s.substr(0, 2) == "--") {
+      if ((pos = s.find_first_of("= ")) != std::string::npos) {
+        name  = s.substr(2, pos - 2);
+        value = s.substr(pos + 1);
+      } else {
+        name  = s.substr(2, pos);
+        value = "";
+      }
+      if (boolean_options.count(name) > 0 && value != "") {
+        std::cerr << "args: don't give an argument to switch option: " << s << std::endl;
+        value = "";
+      }
+      if (m_OptionsDesc.find_nothrow(name, false))
+        return std::make_pair(name, value);
+      if (remapped_options.count(name) > 0) {
+        name = remapped_options[name];
+        std::cerr << "args: option " << s << " is DEPRECATED, use --" << name << " instead" << std::endl;
+        return std::make_pair(name, value);
+      } /* else */
+    }
+    std::cerr << "args: unknown option -- " << s << std::endl;
+    return std::make_pair("", "");
+  }
 
   void Init() {
     options_description general("General options");
@@ -104,13 +182,16 @@ namespace config {
 
   void ParseCmdline(int argc, char* argv[]) {
     try {
-      store(parse_command_line(argc, argv, m_OptionsDesc), m_Options);
+      auto style = boost::program_options::command_line_style::unix_style
+                 | boost::program_options::command_line_style::allow_long_disguise;
+      style &=   ~ boost::program_options::command_line_style::allow_guessing;
+      store(parse_command_line(argc, argv, m_OptionsDesc, style, old_syntax_parser), m_Options);
     } catch (boost::program_options::error e) {
       std::cerr << "args: " << e.what() << std::endl;
       exit(EXIT_FAILURE);
     }
 
-    if (m_Options.count("help")) {
+    if (m_Options.count("help") || m_Options.count("h")) {
       std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
       std::cout << m_OptionsDesc;
       exit(EXIT_SUCCESS);
