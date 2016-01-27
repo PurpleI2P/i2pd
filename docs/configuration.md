@@ -4,14 +4,13 @@ i2pd configuration
 Command line options
 --------------------
 
-* --host=               - The external IP (deprecated). 
 * --port=               - The port to listen on
 * --httpaddress=        - The address to listen on (HTTP server)
 * --httpport=           - The port to listen on (HTTP server)
-* --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --loglevel=           - Log messages above this level (debug, *info, warn, error)
 * --pidfile=            - Where to write pidfile (dont write by default)
-* --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
+* --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no. 0 by default
+* --log=                - Enable or disable logging to the file. 1 for daemon, 0 for non-daemon by default
 * --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
 * --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd/i2pd.log, /var/lib/i2pd).
 * --v6=                 - 1 if supports communication through ipv6, off by default

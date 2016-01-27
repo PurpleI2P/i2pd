@@ -68,7 +68,7 @@ namespace i2p
 			i2p::util::config::ReadConfigFile(i2p::util::filesystem::GetConfigFile());
 
 			isDaemon = i2p::util::config::GetArg("-daemon", 0);
-			isLogging = i2p::util::config::GetArg("-log", 1);
+			isLogging = i2p::util::config::GetArg("-log", (int)isDaemon);
 
 			int port = i2p::util::config::GetArg("-port", 0);
 			if (port)
@@ -104,22 +104,19 @@ namespace i2p
 		{
 			// initialize log			
 			if (isLogging)
-			{
-				if (isDaemon)
-				{
-					std::string logfile_path = IsService () ? "/var/log/i2pd" : i2p::util::filesystem::GetDataDir().string();
+			{				
+				std::string logfile_path = IsService () ? "/var/log/i2pd" : i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
-					logfile_path.append("/i2pd.log");
+				logfile_path.append("/i2pd.log");
 #else
-					logfile_path.append("\\i2pd.log");
+				logfile_path.append("\\i2pd.log");
 #endif
-					StartLog (logfile_path);
-				} else {
-					StartLog (""); // write to stdout
-				}
-				g_Log->SetLogLevel(i2p::util::config::GetArg("-loglevel", "info"));
+				StartLog (logfile_path);
 			}
-
+			else
+				StartLog (""); // write to stdout
+			g_Log->SetLogLevel(i2p::util::config::GetArg("-loglevel", "info"));
+			
 			std::string httpAddr = i2p::util::config::GetArg("-httpaddress", "127.0.0.1");
 			uint16_t    httpPort = i2p::util::config::GetArg("-httpport", 7070);
 			LogPrint(eLogInfo, "Daemon: staring HTTP Server at ", httpAddr, ":", httpPort);
