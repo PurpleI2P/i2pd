@@ -352,7 +352,7 @@ namespace transport
 			}
 			catch (boost::system::system_error& ec)
 			{
-				LogPrint (eLogError, "SSU: Can't send data fragment ", ec.what ());
+				LogPrint (eLogWarning, "SSU: Can't send data fragment ", ec.what ());
 			}	
 			if (!isLast)
 			{	
@@ -440,7 +440,7 @@ namespace transport
 								}
 								catch (boost::system::system_error& ec)
 								{
-									LogPrint (eLogError, "SSU: Can't resend data fragment ", ec.what ());
+									LogPrint (eLogWarning, "SSU: Can't resend data fragment ", ec.what ());
 								}
 							}	
 
@@ -450,7 +450,7 @@ namespace transport
 					}	
 					else
 					{
-						LogPrint (eLogError, "SSU: message has not been ACKed after ", MAX_NUM_RESENDS, " attempts, deleted");
+						LogPrint (eLogInfo, "SSU: message has not been ACKed after ", MAX_NUM_RESENDS, " attempts, deleted");
 						it = m_SentMessages.erase (it);
 					}	
 				}	

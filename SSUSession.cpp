@@ -113,14 +113,14 @@ namespace transport
 					auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 					if (!address)
 					{
-						LogPrint (eLogError, "SSU is not supported");
+						LogPrint (eLogInfo, "SSU is not supported");
 						return;
 					}	
 					if (Validate (buf, len, address->key))
 						Decrypt (buf, len, address->key);
 					else
 					{
-						LogPrint (eLogError, "SSU: MAC verification failed ", len, " bytes from ", senderEndpoint);
+						LogPrint (eLogWarning, "SSU: MAC verification failed ", len, " bytes from ", senderEndpoint);
 						m_Server.DeleteSession (shared_from_this ()); 
 						return;
 					}	
@@ -330,7 +330,7 @@ namespace transport
 		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 		if (!address)
 		{
-			LogPrint (eLogError, "SSU is not supported");
+			LogPrint (eLogInfo, "SSU is not supported");
 			return;
 		}
 	
@@ -363,7 +363,7 @@ namespace transport
 			i2p::context.GetRouterInfo ().GetSSUAddress (true); //v4 only
 		if (!address)
 		{
-			LogPrint (eLogError, "SSU is not supported");
+			LogPrint (eLogInfo, "SSU is not supported");
 			return;
 		}
 		SignedData s; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
@@ -508,7 +508,7 @@ namespace transport
 		// Charlie's address always v4
 		if (!to.address ().is_v4 ())
 		{
-			LogPrint (eLogError, "SSU: Charlie's IP must be v4");
+			LogPrint (eLogWarning, "SSU: Charlie's IP must be v4");
 			return;
 		}
 		*payload = 4;
@@ -560,7 +560,7 @@ namespace transport
 		// Alice's address always v4
 		if (!from.address ().is_v4 ())
 		{
-			LogPrint (eLogError, "SSU: Alice's IP must be v4");
+			LogPrint (eLogWarning, "SSU: Alice's IP must be v4");
 			return;
 		}	
 		uint8_t buf[48 + 18];
@@ -1015,7 +1015,7 @@ namespace transport
 			if (addr)
 				memcpy (payload, addr->key, 32); // intro key
 			else
-				LogPrint (eLogError, "SSU is not supported. Can't send peer test");	
+				LogPrint (eLogInfo, "SSU is not supported. Can't send peer test");	
 		}	
 		else	
 			memcpy (payload, introKey, 32); // intro key
@@ -1044,7 +1044,7 @@ namespace transport
 		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
 		if (!address)
 		{
-			LogPrint (eLogError, "SSU is not supported. Can't send peer test");
+			LogPrint (eLogInfo, "SSU is not supported. Can't send peer test");
 			return;
 		}
 		uint32_t nonce;
@@ -1085,7 +1085,7 @@ namespace transport
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "SSU: exception while send session destoriyed: ", ex.what ());
+				LogPrint (eLogWarning, "SSU: exception while sending session destoroyed: ", ex.what ());
 			}
 			LogPrint (eLogDebug, "SSU: session destroyed sent");
 		}

@@ -134,7 +134,7 @@ namespace transport
 	{
 		public:
 
-			NTCPServer (int port);
+			NTCPServer ();
 			~NTCPServer ();
 
 			void Start ();

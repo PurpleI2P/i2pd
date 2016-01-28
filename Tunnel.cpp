@@ -442,7 +442,7 @@ namespace tunnel
 								HandleI2NPMessage (msg->GetBuffer (), msg->GetLength ());
 							break;	
 							default:
-								LogPrint (eLogError, "Tunnel: unexpected messsage type ", (int) typeID);
+								LogPrint (eLogWarning, "Tunnel: unexpected messsage type ", (int) typeID);
 						}
 							
 						msg = m_Queue.Get ();
@@ -551,7 +551,7 @@ namespace tunnel
 						it++;
 				break;
 				case eTunnelStateBuildFailed:
-					LogPrint (eLogError, "Tunnel: pending build request ", it->first, " failed, deleted");
+					LogPrint (eLogWarning, "Tunnel: pending build request ", it->first, " failed, deleted");
 					it = pendingTunnels.erase (it);
 					m_NumFailedTunnelCreations++;
 				break;

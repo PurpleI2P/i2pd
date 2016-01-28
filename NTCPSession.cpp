@@ -136,7 +136,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: couldn't send Phase 1 message: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: couldn't send Phase 1 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -152,7 +152,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: phase 1 read error: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: phase 1 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -207,7 +207,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Couldn't send Phase 2 message: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 2 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -223,7 +223,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
+			LogPrint (eLogInfo, "NTCP: Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				// this RI is not valid
@@ -299,7 +299,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Couldn't send Phase 3 message: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 3 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -319,7 +319,7 @@ namespace transport
 	{	
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Phase 3 read error: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: Phase 3 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -331,7 +331,7 @@ namespace transport
 			SetRemoteIdentity (std::make_shared<i2p::data::IdentityEx> (buf + 2, size));
 			if (m_Server.FindNTCPSession (m_RemoteIdentity->GetIdentHash ()))
 			{
-				LogPrint (eLogError, "NTCP: session already exists");
+				LogPrint (eLogInfo, "NTCP: session already exists");
 				Terminate ();
 			}	
 			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity->GetSignatureLen ();
@@ -354,7 +354,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Phase 3 extra read error: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: Phase 3 extra read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -498,7 +498,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Read error: ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: Read error: ", ecode.message ());
 			if (!m_NumReceivedBytes) m_Server.Ban (m_ConnectedFrom);
 			//if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -540,7 +540,7 @@ namespace transport
 							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes));
 							if (ec)
 							{
-								LogPrint (eLogError, "NTCP: Read more bytes error: ", ec.message ());
+								LogPrint (eLogInfo, "NTCP: Read more bytes error: ", ec.message ());
 								Terminate ();
 								return;
 							}	
@@ -732,7 +732,7 @@ namespace transport
 	}	
 
 //-----------------------------------------
-	NTCPServer::NTCPServer (int port):
+	NTCPServer::NTCPServer ():
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
 		m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr)
 	{

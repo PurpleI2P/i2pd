@@ -117,7 +117,7 @@ namespace transport
 		{
 			if (!m_NTCPServer)
 			{	
-				m_NTCPServer = new NTCPServer (address.port);
+				m_NTCPServer = new NTCPServer ();
 				m_NTCPServer->Start ();
 			}	
 			
