@@ -69,20 +69,20 @@ namespace transport
 
 	std::shared_ptr<i2p::crypto::DHKeys> DHKeysPairSupplier::Acquire ()
 	{
-		if (!m_Queue.empty ())
 		{
 			std::unique_lock<std::mutex>  l(m_AcquiredMutex);
-			auto pair = m_Queue.front ();
-			m_Queue.pop ();
-			m_Acquired.notify_one ();
-			return pair;
+			if (!m_Queue.empty ())
+			{
+				auto pair = m_Queue.front ();
+				m_Queue.pop ();
+				m_Acquired.notify_one ();
+				return pair;
+			}	
 		}	
-		else // queue is empty, create new
-		{	
-			auto pair = std::make_shared<i2p::crypto::DHKeys> ();
-			pair->GenerateKeys ();
-			return pair;
-		}
+		// queue is empty, create new
+		auto pair = std::make_shared<i2p::crypto::DHKeys> ();
+		pair->GenerateKeys ();
+		return pair;
 	}
 
 	void DHKeysPairSupplier::Return (std::shared_ptr<i2p::crypto::DHKeys> pair)
