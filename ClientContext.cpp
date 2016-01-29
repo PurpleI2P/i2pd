@@ -46,7 +46,7 @@ namespace client
 			localDestination = CreateNewLocalDestination (keys, false);
 		}
 		std::string httpProxyAddr = i2p::util::config::GetArg("-httpproxyaddress", "127.0.0.1");
-		uint16_t    httpProxyPort = i2p::util::config::GetArg("-httpproxyport", 4446);
+		uint16_t    httpProxyPort = i2p::util::config::GetArg("-httpproxyport", 4444);
 		LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 		m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
 		m_HttpProxy->Start();
