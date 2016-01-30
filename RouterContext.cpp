@@ -314,6 +314,10 @@ namespace i2p
 		m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
 		m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
 
+		// Migration to 0.9.24. TODO: remove later
+		m_RouterInfo.DeleteProperty ("coreVersion");
+		m_RouterInfo.DeleteProperty ("stat_uptime");
+		
 		if (IsUnreachable ())
 			SetReachable (); // we assume reachable until we discover firewall through peer tests
 		
