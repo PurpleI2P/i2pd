@@ -50,10 +50,8 @@ namespace i2p
 		routerInfo.AddNTCPAddress (i2p::util::config::GetArg("-host", "127.0.0.1").c_str (), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
-		routerInfo.SetProperty ("coreVersion", I2P_VERSION);
 		routerInfo.SetProperty ("netId", std::to_string (I2PD_NET_ID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
-		routerInfo.SetProperty ("stat_uptime", "90m");
 		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
