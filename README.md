@@ -1,8 +1,7 @@
 i2pd
 ====
 
-I2P router written in C++
-Contains all ongoing changes from https://bitbucket.org/orignal/i2pd/src
+Independent C++ implementation of I2P router
 
 License
 -------
@@ -29,8 +28,9 @@ Supported OS
 ------------
 
 * Linux x86/x64  - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)  
-* Mac OS X       - Not well tested. (Only works with clang, not GCC)  
 * Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)  
+* Mac OS X
+* FreeBSD
 
 More documentation
 ------------------
