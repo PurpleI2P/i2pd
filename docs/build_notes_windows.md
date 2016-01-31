@@ -23,105 +23,24 @@ paths like /c/dev/ for C:\dev\.
 msys2
 -----
 
-Get it from https://msys2.github.io and update it as described
-there. Use the installer appropriate for the bitness of your Windows
-OS. You will be able to build 32-bit applications if you install
-64-bit version of msys2. For 64-bit, use *mingw-w64-x86_64* prefix
-instead of *mingw-w64-i686* for the packages mentioned below, and use
-*/mingw64* as CMake find root.
-
+Get install file msys2-i686-20150916.exe from https://msys2.github.io.
+open MSys2Shell (from Start menu).
 Install all prerequisites and download i2pd source:
 
 ```bash
-pacman -S mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-gcc mingw-w64-i686-miniupnpc cmake git
+pacman -S mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-gcc git make
 mkdir -p /c/dev/i2pd
 cd /c/dev/i2pd
 git clone https://github.com/PurpleI2P/i2pd.git
 cd i2pd
-```
-
-Check with `git status` that you are on *openssl* branch. If it is not
-the case, do `git checkout openssl`.
-
-```sh
-git pull origin openssl --ff-only # to update sources if you are rebuilding after a while
-mkdir -p mingw32.build            # CMake build folder
-cd mingw32.build
 export PATH=/mingw32/bin:/usr/bin # we need compiler on PATH which is usually heavily cluttered on Windows
-cmake ../build -G "Unix Makefiles" -DWITH_UPNP=ON -DWITH_PCH=ON \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX:PATH=../mingw32.stage -DCMAKE_FIND_ROOT_PATH=/mingw32
+make
 ```
 
 If your processor has
 [AES instruction set](https://en.wikipedia.org/wiki/AES_instruction_set),
 you may try adding `-DWITH_AESNI=ON`. No check is done however, it
 will compile but will crash with `Illegal instruction` if not supported.
-
-Make sure CMake found proper libraries and compiler. This might be the
-case if you have Strawberry Perl installed as it alters PATH and you
-failed to override it like mentioned above. You should see something
-like
-
-```
--- The C compiler identification is GNU 5.2.0
--- The CXX compiler identification is GNU 5.2.0
--- Check for working C compiler: /mingw32/bin/gcc.exe
--- Check for working C compiler: /mingw32/bin/gcc.exe -- works
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Detecting C compile features
--- Detecting C compile features - done
--- Check for working CXX compiler: /mingw32/bin/c++.exe
--- Check for working CXX compiler: /mingw32/bin/c++.exe -- works
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Detecting CXX compile features
--- Detecting CXX compile features - done
--- Performing Test CXX11_SUPPORTED
--- Performing Test CXX11_SUPPORTED - Success
--- Performing Test CXX0X_SUPPORTED
--- Performing Test CXX0X_SUPPORTED - Success
--- Looking for include file pthread.h
--- Looking for include file pthread.h - found
--- Looking for pthread_create
--- Looking for pthread_create - found
--- Found Threads: TRUE
--- Boost version: 1.59.0
--- Found the following Boost libraries:
---   system
---   filesystem
---   regex
---   program_options
---   date_time
---   thread
---   chrono
--- Found OpenSSL: /mingw32/lib/libssl.dll.a;/mingw32/lib/libcrypto.dll.a (found version "1.0.2d")
--- Found MiniUPnP headers: /mingw32/include
--- Found ZLIB: /mingw32/lib/libz.dll.a (found version "1.2.8")
--- ---------------------------------------
--- Build type         : RelWithDebInfo
--- Compiler vendor    : GNU
--- Compiler version   : 5.2.0
--- Compiler path      : /mingw32/bin/c++.exe
--- Install prefix:    : ../mingw32.stage
--- Options:
---   AESNI            : OFF
---   HARDENING        : OFF
---   LIBRARY          : ON
---   BINARY           : ON
---   STATIC BUILD     : OFF
---   UPnP             : ON
---   PCH              : ON
--- ---------------------------------------
--- Configuring done
--- Generating done
--- Build files have been written to: /c/dev/i2pd/i2pd/mingw32.build
-```
-
-Now it is time to compile everything. If you have a multicore processor
-you can add `-j` flag.
-
-    make -j4 install
 
 You should be able to run ./i2pd . If you need to start from the new
 shell, consider starting *MinGW-w64 Win32 Shell* instead of *MSYS2 Shell* as
