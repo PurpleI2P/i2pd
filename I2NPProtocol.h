@@ -174,7 +174,7 @@ namespace tunnel
 			from = other.from;
 			return *this;
 		}	
-
+		
 		// for SSU only
 		uint8_t * GetSSUHeader () { return buf + offset + I2NP_HEADER_SIZE - I2NP_SHORT_HEADER_SIZE; };	
 		void FromSSU (uint32_t msgID) // we have received SSU message and convert it to regular
@@ -215,7 +215,8 @@ namespace tunnel
 	
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);	
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
-	
+	std::shared_ptr<I2NPMessage> CopyI2NPMessage (std::shared_ptr<I2NPMessage> msg);
+
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID);
 	std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg (const uint8_t * key, const uint8_t * from, 
 		uint32_t replyTunnelID, bool exploratory = false, std::set<i2p::data::IdentHash> * excludedPeers = nullptr);

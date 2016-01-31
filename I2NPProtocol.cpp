@@ -80,6 +80,15 @@ namespace i2p
 			LogPrint (eLogError, "I2NP: message length ", len, " exceeds max length");
 		return msg;
 	}	
+
+	std::shared_ptr<I2NPMessage> CopyI2NPMessage (std::shared_ptr<I2NPMessage> msg)
+	{
+		if (!msg) return nullptr;
+		auto newMsg = NewI2NPMessage (msg->len);
+		newMsg->offset = msg->offset;
+		*newMsg = *msg;
+		return newMsg;
+	}	
 	
 	std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg (uint32_t msgID)
 	{

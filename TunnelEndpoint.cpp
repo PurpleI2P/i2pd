@@ -237,6 +237,11 @@ namespace tunnel
 		}	
 		auto typeID = msg.data->GetTypeID ();
 		LogPrint (eLogDebug, "TunnelMessage: handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
+		// catch RI or reply with new list of routers	
+		if ((IsRouterInfoMsg (msg.data) || typeID == eI2NPDatabaseSearchReply) &&
+			!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)
+			i2p::data::netdb.PostI2NPMsg (CopyI2NPMessage (msg.data));
+
 		switch (msg.deliveryType)
 		{
 			case eDeliveryTypeLocal:
@@ -257,10 +262,6 @@ namespace tunnel
 			default:
 				LogPrint (eLogError, "TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);
 		};	
-		// catch RI or reply with new list of routers	
-		if ((IsRouterInfoMsg (msg.data) || typeID == eI2NPDatabaseSearchReply) &&
-			!m_IsInbound && msg.deliveryType != eDeliveryTypeLocal)
-			i2p::data::netdb.PostI2NPMsg (msg.data);
 	}	
 }		
 }

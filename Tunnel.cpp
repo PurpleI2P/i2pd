@@ -494,7 +494,7 @@ namespace tunnel
 		if (IsRouterInfoMsg (msg) || typeID == eI2NPDatabaseSearchReply)
 			// transit DatabaseStore my contain new/updated RI 
 			// or DatabaseSearchReply with new routers
-			i2p::data::netdb.PostI2NPMsg (msg);	
+			i2p::data::netdb.PostI2NPMsg (CopyI2NPMessage (msg));	
 		tunnel->SendTunnelDataMsg (msg);
 	}
 
