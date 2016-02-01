@@ -116,22 +116,25 @@ namespace i2p
 			
 		bool Daemon_Singleton::start()
 		{
-			// initialize log			
 			if (isLogging)
 			{
-				if (isDaemon)
-				{
-					std::string logfile_path = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
+				// set default to stdout
+				std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
+				std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
+				if (isDaemon && logfile == "") {
+					// can't log to stdout, use autodetect of logfile
+					if (IsService ()) {
+					  logfile = "/var/log";
+					} else {
+					  logfile = i2p::util::filesystem::GetDataDir().string();
+					}
 #ifndef _WIN32
-					logfile_path.append("/i2pd.log");
+					logfile.append("/i2pd.log");
 #else
-					logfile_path.append("\\i2pd.log");
+					logfile.append("\\i2pd.log");
 #endif
-					StartLog (logfile_path);
-				} else {
-					StartLog (""); // write to stdout
 				}
-				std::string loglevel; i2p::config::GetOption("loglevel", loglevel);
+				StartLog (logfile);
 				g_Log->SetLogLevel(loglevel);
 			}
 
