@@ -499,8 +499,9 @@ namespace transport
 	{
 		m_Service.post([session, this]()
 		{   
-			if (!session->GetRemoteIdentity ()) return;
-			auto ident = session->GetRemoteIdentity ()->GetIdentHash ();
+			auto remoteIdentity = session->GetRemoteIdentity (); 
+			if (!remoteIdentity) return;
+			auto ident = remoteIdentity->GetIdentHash ();
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
@@ -520,8 +521,9 @@ namespace transport
 	{
 		m_Service.post([session, this]()
 		{  
-			if (!session->GetRemoteIdentity ()) return;
-			auto ident = session->GetRemoteIdentity ()->GetIdentHash ();
+			auto remoteIdentity = session->GetRemoteIdentity (); 
+			if (!remoteIdentity) return;
+			auto ident = remoteIdentity->GetIdentHash ();
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
