@@ -86,11 +86,15 @@ namespace i2p
 				isLogging = true;
 
 			uint16_t port; i2p::config::GetOption("port", port);
-			LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
-			i2p::context.UpdatePort (port);
+			if (port)
+			{	
+				LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
+				i2p::context.UpdatePort (port);
+			}	
 
 			std::string host; i2p::config::GetOption("host", host);
-			if (host != "") {
+			if (host != "") 
+			{
 				LogPrint(eLogInfo, "Daemon: address for incoming connections is ", host);
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 			}
@@ -103,18 +107,28 @@ namespace i2p
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
 			char bandwidth;   i2p::config::GetOption("bandwidth", bandwidth);
 
-			if (isFloodfill) {
-				LogPrint(eLogInfo, "Daemon: router will be floodfill, bandwidth set to 'extra'");
+			if (isFloodfill) 
+			{
+				LogPrint(eLogInfo, "Daemon: router will be floodfill");
 				i2p::context.SetFloodfill (true);
-				i2p::context.SetExtraBandwidth ();
-			} else if (bandwidth != '-') {
-				LogPrint(eLogInfo, "Daemon: bandwidth set to ", bandwidth);
-				switch (bandwidth) {
-					case 'P' : i2p::context.SetExtraBandwidth (); break;
-					case 'L' : i2p::context.SetHighBandwidth  (); break;
-					default  : i2p::context.SetLowBandwidth   (); break;
-				}
 			}	
+			if (bandwidth != '-')
+			{
+				LogPrint(eLogInfo, "Daemon: bandwidth set to ", bandwidth);
+				if (bandwidth > 'O') 
+					i2p::context.SetExtraBandwidth (); 
+				else if (bandwidth > 'L')
+					i2p::context.SetHighBandwidth (); 
+				else 
+					i2p::context.SetLowBandwidth ();
+			}	
+			else if (isFloodfill) 
+			{
+				LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
+				i2p::context.SetExtraBandwidth ();
+			} 
+			else
+				i2p::context.SetLowBandwidth ();
 
 			return true;
 		}

@@ -114,13 +114,13 @@ namespace config {
       ("logfile",   value<std::string>()->default_value(""),     "Path to logfile (stdout if not set, autodetect if daemon)")
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
       ("host",      value<std::string>()->default_value(""),     "External IP (deprecated)")
-      ("port",      value<uint16_t>()->default_value(4567),      "Port to listen for incoming connections")
+      ("port",      value<uint16_t>()->default_value(0),      "Port to listen for incoming connections")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
       ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
       ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not forward transit traffic")
       ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will try to become floodfill")
-      ("bandwidth", value<char>()->default_value('O'), "Bandwidth limiting: L - 32kbps, O - 256Kbps, P - unlimited (ignored if floodfill)")
+      ("bandwidth", value<char>()->default_value('-'), "Bandwidth limiting: L - 32kbps, O - 256Kbps, P - unlimited")
       ;
 
     options_description httpserver("HTTP Server options");
