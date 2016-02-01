@@ -10,6 +10,7 @@ Command line options
 * --tunconf=            - Tunnels Config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
 * --pidfile=            - Where to write pidfile (dont write by default)
 * --log                 - Enable or disable logging to file. 1 for yes, 0 for no.
+* --logfile=            - Path to logfile (stdout if not set, autodetect if daemon)
 * --loglevel=           - Log messages above this level (debug, *info, warn, error)
 * --host=               - The external IP (deprecated)
 * --port=               - The port to listen on
