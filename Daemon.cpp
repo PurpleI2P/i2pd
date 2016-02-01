@@ -78,7 +78,11 @@ namespace i2p
 			i2p::context.Init ();
 
 			i2p::config::GetOption("daemon", isDaemon);
-			i2p::config::GetOption("log",    isLogging);
+			// temporary hack
+			std::string logs = "";
+			i2p::config::GetOption("log",    logs);
+			if (logs != "")
+				isLogging = true;
 
 			uint16_t port; i2p::config::GetOption("port", port);
 			LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);

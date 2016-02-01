@@ -46,7 +46,7 @@ namespace config {
   };
   /* list of options, that loose their argument and become simple switch */
   std::set<std::string> boolean_options = {
-    "daemon", "log", "floodfill", "notransit", "service", "ipv6"
+    "daemon", "floodfill", "notransit", "service", "ipv6"
   };
 
   /* this function is a solid piece of shit, remove it after 2.6.0 */
@@ -110,7 +110,7 @@ namespace config {
       ("conf",      value<std::string>()->default_value(""),     "Path to main i2pd config file (default: try ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)")
       ("tunconf",   value<std::string>()->default_value(""),     "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)")
       ("pidfile",   value<std::string>()->default_value(""),     "Write pidfile to given path")
-      ("log",       value<bool>()->zero_tokens(),                "Write logs to file instead stdout")
+      ("log",       value<std::string>()->default_value(""),     "Write logs to file instead stdout")
       ("logfile",   value<std::string>()->default_value(""),     "Path to logfile (stdout if not set, autodetect if daemon)")
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
       ("host",      value<std::string>()->default_value(""),     "External IP (deprecated)")
