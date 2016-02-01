@@ -133,7 +133,7 @@ namespace config {
     httpproxy.add_options()
       ("httpproxy.enabled",   value<bool>()->default_value(true),                         "Enable or disable HTTP Proxy")
       ("httpproxy.address",   value<std::string>()->default_value("127.0.0.1"),           "HTTP Proxy listen address")
-      ("httpproxy.port",      value<uint16_t>()->default_value(4446),                     "HTTP Proxy listen port")
+      ("httpproxy.port",      value<uint16_t>()->default_value(4444),                     "HTTP Proxy listen port")
       ("httpproxy.keys",      value<std::string>()->default_value("httpproxy-keys.dat"),  "HTTP Proxy encryption keys")
       ;
 
