@@ -8,9 +8,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "Config.h"
 #include "Log.h"
 #include "util.h"
-
 
 void handle_signal(int sig)
 {
@@ -27,7 +27,6 @@ void handle_signal(int sig)
 		break;
 	}
 }
-
 
 namespace i2p
 {
@@ -74,7 +73,7 @@ namespace i2p
 
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
-			pidfile = i2p::util::config::GetArg("-pidfile", "");
+			std::string pidfile; i2p::config::GetOption("pidfile", pidfile);
 			if (pidfile == "") {
 				pidfile = IsService () ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
 				pidfile.append("/i2pd.pid");
@@ -120,7 +119,6 @@ namespace i2p
 
 			return Daemon_Singleton::stop();			
 		}
-
 	}
 }
 

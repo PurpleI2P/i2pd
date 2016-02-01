@@ -1,5 +1,6 @@
 #include <fstream>
 #include <boost/lexical_cast.hpp>
+#include "Config.h"
 #include "Crypto.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
@@ -43,11 +44,12 @@ namespace i2p
 	{
 		i2p::data::RouterInfo routerInfo;
 		routerInfo.SetRouterIdentity (GetIdentity ());
-		int port = i2p::util::config::GetArg("-port", 0);
+		uint16_t port; i2p::config::GetOption("port", port);
 		if (!port)
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-		routerInfo.AddSSUAddress (i2p::util::config::GetArg("-host", "127.0.0.1").c_str (), port, routerInfo.GetIdentHash ());
-		routerInfo.AddNTCPAddress (i2p::util::config::GetArg("-host", "127.0.0.1").c_str (), port);
+		std::string host; i2p::config::GetOption("host", host);
+		routerInfo.AddSSUAddress  (host.c_str(), port, routerInfo.GetIdentHash ());
+		routerInfo.AddNTCPAddress (host.c_str(), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
 		routerInfo.SetProperty ("netId", std::to_string (I2PD_NET_ID));

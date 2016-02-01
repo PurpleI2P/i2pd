@@ -4,46 +4,68 @@ i2pd configuration
 Command line options
 --------------------
 
-* --port=               - The port to listen on
-* --httpaddress=        - The address to listen on (HTTP server)
-* --httpport=           - The port to listen on (HTTP server)
-* --loglevel=           - Log messages above this level (debug, *info, warn, error)
-* --pidfile=            - Where to write pidfile (dont write by default)
-* --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no. 0 by default
-* --log=                - Enable or disable logging to the file. 1 for daemon, 0 for non-daemon by default
-* --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
-* --service=            - 1 if uses system folders (/var/run/i2pd.pid, /var/log/i2pd/i2pd.log, /var/lib/i2pd).
-* --v6=                 - 1 if supports communication through ipv6, off by default
-* --floodfill=          - 1 if router is floodfill, off by default
-* --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
-* --notransit=          - 1 if router doesn't accept transit tunnels at startup. 0 by default
-* --httpproxyaddress=   - The address to listen on (HTTP Proxy)
-* --httpproxyport=      - The port to listen on (HTTP Proxy) 4446 by default
-* --socksproxyaddress=  - The address to listen on (SOCKS Proxy)
-* --socksproxyport=     - The port to listen on (SOCKS Proxy). 4447 by default
-* --proxykeys=          - optional keys file for proxy local destination (both HTTP and SOCKS)
-* --samaddress=         - The address to listen on (SAM bridge)
-* --samport=            - Port of SAM bridge. Usually 7656. SAM is off if not specified
-* --bobaddress=         - The address to listen on (BOB command channel)
-* --bobport=            - Port of BOB command channel. Usually 2827. BOB is off if not specified
-* --i2pcontroladdress=  - The address to listen on (I2P control service)
-* --i2pcontrolport=     - Port of I2P control service. Usually 7650. I2PControl is off if not specified
-* --tunnelscfg=         - Tunnels Config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
 * --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
+* --tunconf=            - Tunnels Config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
+* --pidfile=            - Where to write pidfile (dont write by default)
+* --log                 - Enable or disable logging to file. 1 for yes, 0 for no.
+* --logfile=            - Path to logfile (stdout if not set, autodetect if daemon)
+* --loglevel=           - Log messages above this level (debug, *info, warn, error)
+* --host=               - The external IP (deprecated)
+* --port=               - The port to listen on
+* --daemon              - Enable or disable daemon mode. 1 for yes, 0 for no.
+* --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
+* --service             - Use system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
+* --ipv6                - Enable communication through ipv6, off by default
+* --notransit           - Router will not accept transit tunnels at startup. 0 by default
+* --floodfill           - Router will be floodfill, off by default
+* --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
+                          This option will be ignored if --floodfill given
+
+* --http.address=       - The address to listen on (HTTP server)
+* --http.port=          - The port to listen on (HTTP server)
+
+* --httpproxy.address=  - The address to listen on (HTTP Proxy)
+* --httpproxy.port=     - The port to listen on (HTTP Proxy) 4446 by default
+* --httpproxy.keys=     - optional keys file for proxy local destination (both HTTP and SOCKS)
+
+* --socksproxy.address= - The address to listen on (SOCKS Proxy)
+* --socksproxy.port=    - The port to listen on (SOCKS Proxy). 4447 by default
+* --socksproxy.keys=    - optional keys file for proxy local destination (both HTTP and SOCKS)
+* --socksproxy.outproxy=      - Address of outproxy. requests outside i2p will go there
+* --socksproxy.outproxyport=  - Outproxy remote port
+
+* --sam.address=        - The address to listen on (SAM bridge)
+* --sam.port=           - Port of SAM bridge. Usually 7656. SAM is off if not specified
+
+* --bob.address=        - The address to listen on (BOB command channel)
+* --bob.port=           - Port of BOB command channel. Usually 2827. BOB is off if not specified
+
+* --i2pcontrol.address= - The address to listen on (I2P control service)
+* --i2pcontrol.port=    - Port of I2P control service. Usually 7650. I2PControl is off if not specified
 
 Config files
 ------------
 
 INI-like, syntax is the following : <key> = <value>.
 Comments are "#", not ";" as you may expect. See [boost ticket](https://svn.boost.org/trac/boost/ticket/808)
-All command-line parameters are allowed as keys, for example:
+All command-line parameters are allowed as keys, but note for those which contains dot (.).
+
+For example:
 
 i2p.conf:
 
-    log = 1
-    v6 = 0
+    # comment
+    log = yes
+    ipv6 = yes
+    # settings for specific module
+    [httpproxy]
+    port = 4444
+    # ^^ this will be --httproxy.port= in cmdline
+    # another one
+    [sam]
+    enabled = yes
 
 tunnels.cfg (filename of this config is subject of change):
 

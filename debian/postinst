@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+LOGFILE='/var/log/i2pd.log'
 I2PDHOME='/var/lib/i2pd'
 I2PDUSER='i2pd'
 
@@ -16,8 +17,9 @@ case "$1" in
       adduser --system --quiet --group --home $I2PDHOME $I2PDUSER
     fi
 
-    touch /var/log/i2pd.log
-    chown -f ${I2PDUSER}:adm /var/log/i2pd.log
+    touch $LOGFILE
+    chmod 640 $LOGFILE
+    chown -f ${I2PDUSER}:adm $LOGFILE
     mkdir -p -m0750 $I2PDHOME
     chown -f -R -P ${I2PDUSER}:${I2PDUSER} ${I2PDHOME}
   ;;
