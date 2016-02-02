@@ -81,9 +81,8 @@ namespace i2p
 
 			// temporary hack
 			std::string logs = "";
-			i2p::config::GetOption("log",    logs);
-			if (logs != "")
-				isLogging = true;
+			i2p::config::GetOption("log", logs);
+			if (isDaemon || logs != "") isLogging = true;
 
 			uint16_t port; i2p::config::GetOption("port", port);
 			if (port)
@@ -135,18 +134,17 @@ namespace i2p
 			
 		bool Daemon_Singleton::start()
 		{
+			std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
+			
 			if (isLogging)
 			{
 				// set default to stdout
 				std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
-				std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
-				if (isDaemon && logfile == "") {
+				
+				if (logfile == "")
+				{
 					// can't log to stdout, use autodetect of logfile
-					if (IsService ()) {
-					  logfile = "/var/log";
-					} else {
-					  logfile = i2p::util::filesystem::GetDataDir().string();
-					}
+					logfile = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
 					logfile.append("/i2pd.log");
 #else
@@ -154,9 +152,9 @@ namespace i2p
 #endif
 				}
 				StartLog (logfile);
-				g_Log->SetLogLevel(loglevel);
 			}
-
+			g_Log->SetLogLevel(loglevel);
+			
 			bool http; i2p::config::GetOption("http.enabled", http);
 			if (http) {
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
