@@ -153,7 +153,9 @@ namespace i2p
 				}
 				StartLog (logfile);
 			}
-			g_Log->SetLogLevel(loglevel);
+			else
+				StartLog ("");
+			SetLogLevel(loglevel);
 			
 			bool http; i2p::config::GetOption("http.enabled", http);
 			if (http) {
