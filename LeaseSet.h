@@ -31,7 +31,8 @@ namespace data
 		}	
 	};	
 
-	const int MAX_LS_BUFFER_SIZE = 3072;	
+	const int MAX_LS_BUFFER_SIZE = 3072;
+	const uint8_t MAX_NUM_LEASES = 16;		
 	class LeaseSet: public RoutingDestination
 	{
 		public:
