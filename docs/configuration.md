@@ -7,21 +7,20 @@ Command line options
 * --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
-* --tunconf=            - Tunnels Config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
+* --tunconf=            - Tunnels config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
 * --pidfile=            - Where to write pidfile (dont write by default)
-* --log                 - Enable or disable logging to file. 1 for yes, 0 for no.
-* --logfile=            - Path to logfile (stdout if not set, autodetect if daemon)
+* --log=                - Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)
+* --logfile=            - Path to logfile (default - autodetect)
 * --loglevel=           - Log messages above this level (debug, *info, warn, error)
-* --host=               - The external IP (deprecated)
+* --host=               - The external IP
 * --port=               - The port to listen on
-* --daemon              - Enable or disable daemon mode. 1 for yes, 0 for no.
-* --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
-* --service             - Use system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
-* --ipv6                - Enable communication through ipv6, off by default
-* --notransit           - Router will not accept transit tunnels at startup. 0 by default
-* --floodfill           - Router will be floodfill, off by default
+* --daemon              - Router will go to background after start
+* --service             - Router will use system folders like '/var/lib/i2pd'
+* --ipv6                - Enable communication through ipv6
+* --notransit           - Router will not accept transit tunnels at startup
+* --floodfill           - Router will be floodfill
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
-                          This option will be ignored if --floodfill given
+* --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
 
 * --http.address=       - The address to listen on (HTTP server)
 * --http.port=          - The port to listen on (HTTP server)

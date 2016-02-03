@@ -109,18 +109,21 @@ namespace config {
       ("help",     "Show this message")
       ("conf",      value<std::string>()->default_value(""),     "Path to main i2pd config file (default: try ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)")
       ("tunconf",   value<std::string>()->default_value(""),     "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)")
-      ("pidfile",   value<std::string>()->default_value(""),     "Write pidfile to given path")
-      ("log",       value<std::string>()->default_value(""),     "Write logs to file instead stdout")
+      ("pidfile",   value<std::string>()->default_value(""),     "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
+      ("log",       value<std::string>()->default_value(""),     "Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)")
       ("logfile",   value<std::string>()->default_value(""),     "Path to logfile (stdout if not set, autodetect if daemon)")
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
-      ("host",      value<std::string>()->default_value(""),     "External IP (deprecated)")
-      ("port",      value<uint16_t>()->default_value(0),      "Port to listen for incoming connections")
+      ("host",      value<std::string>()->default_value(""),     "External IP")
+      ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
       ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
       ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")
-      ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not forward transit traffic")
-      ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will try to become floodfill")
+      ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
+      ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will be floodfill")
       ("bandwidth", value<char>()->default_value('-'), "Bandwidth limiting: L - 32kbps, O - 256Kbps, P - unlimited")
+#ifdef _WIN32
+      ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
+#endif
       ;
 
     options_description httpserver("HTTP Server options");
