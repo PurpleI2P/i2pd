@@ -60,6 +60,9 @@ namespace i2p
 
 		bool Daemon_Singleton::init(int argc, char* argv[])
 		{
+			i2p::config::Init();
+			i2p::config::ParseCmdline(argc, argv);
+
 			std::string config  = i2p::util::filesystem::GetConfigFile().string();
 			std::string tunconf = i2p::util::filesystem::GetTunnelsConfigFile().string();
 			std::string datadir = i2p::util::filesystem::GetDataDir().string();
@@ -69,8 +72,6 @@ namespace i2p
 			LogPrint(eLogDebug, "FS: tunnels config: ",   tunconf);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
-			i2p::config::Init();
-			i2p::config::ParseCmdline(argc, argv);
 			i2p::config::ParseConfig(config);
 			i2p::config::Finalize();
 
