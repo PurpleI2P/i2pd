@@ -39,8 +39,8 @@ make
 
 If your processor has
 [AES instruction set](https://en.wikipedia.org/wiki/AES_instruction_set),
-you may try adding `-DWITH_AESNI=ON`. No check is done however, it
-will compile but will crash with `Illegal instruction` if not supported.
+you use `make USE_AESNI=yes`. No check is done however, it
+will compile, but it might crash with `Illegal instruction` if not supported.
 
 You should be able to run ./i2pd . If you need to start from the new
 shell, consider starting *MinGW-w64 Win32 Shell* instead of *MSYS2 Shell* as
