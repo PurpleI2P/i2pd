@@ -90,9 +90,9 @@ namespace i2p
 			}	
 
 			std::string host; i2p::config::GetOption("host", host);
-			if (host != "") 
+			if (host != "0.0.0.0")
 			{
-				LogPrint(eLogInfo, "Daemon: address for incoming connections is ", host);
+				LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 			}
 

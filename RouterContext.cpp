@@ -48,6 +48,8 @@ namespace i2p
 		if (!port)
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		std::string host; i2p::config::GetOption("host", host);
+		if (host == "0.0.0.0")
+			host = "127.0.0.1"; // replace default address with safe value
 		routerInfo.AddSSUAddress  (host.c_str(), port, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress (host.c_str(), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
