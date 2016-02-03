@@ -39,7 +39,7 @@ make
 
 If your processor has
 [AES instruction set](https://en.wikipedia.org/wiki/AES_instruction_set),
-you use `make USE_AESNI=yes`. No check is done however, it
+you use `make USE_AESNI=1`. No check is done however, it
 will compile, but it might crash with `Illegal instruction` if not supported.
 
 You should be able to run ./i2pd . If you need to start from the new
