@@ -113,7 +113,7 @@ namespace config {
       ("log",       value<std::string>()->default_value(""),     "Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)")
       ("logfile",   value<std::string>()->default_value(""),     "Path to logfile (stdout if not set, autodetect if daemon)")
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
-      ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
+      ("host",      value<std::string>()->default_value(""),     "External IP")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
       ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
@@ -138,7 +138,7 @@ namespace config {
       ("httpproxy.enabled",   value<bool>()->default_value(true),                         "Enable or disable HTTP Proxy")
       ("httpproxy.address",   value<std::string>()->default_value("127.0.0.1"),           "HTTP Proxy listen address")
       ("httpproxy.port",      value<uint16_t>()->default_value(4444),                     "HTTP Proxy listen port")
-      ("httpproxy.keys",      value<std::string>()->default_value("httpproxy-keys.dat"),  "HTTP Proxy encryption keys")
+      ("httpproxy.keys",      value<std::string>()->default_value(""),  "File to persist HTTP Proxy keys")
       ;
 
     options_description socksproxy("SOCKS Proxy options");
@@ -146,7 +146,7 @@ namespace config {
       ("socksproxy.enabled",  value<bool>()->default_value(true),                         "Enable or disable SOCKS Proxy")
       ("socksproxy.address",  value<std::string>()->default_value("127.0.0.1"),           "SOCKS Proxy listen address")
       ("socksproxy.port",     value<uint16_t>()->default_value(4447),                     "SOCKS Proxy listen port")
-      ("socksproxy.keys",     value<std::string>()->default_value("socksproxy-keys.dat"), "SOCKS Proxy encryption keys")
+      ("socksproxy.keys",     value<std::string>()->default_value(""), "File to persist SOCKS Proxy keys")
       ;
 
     options_description sam("SAM bridge options");
