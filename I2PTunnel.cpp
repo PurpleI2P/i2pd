@@ -207,7 +207,7 @@ namespace client
 			if (endOfHeader)
 			{
 				m_OutHeader << "\r\n"; // end of header
-				m_OutHeader << m_InHeader.str (); // data right after header
+				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}
