@@ -135,11 +135,11 @@ namespace i2p
 			std::string logs     = ""; i2p::config::GetOption("log",      logs);
 			std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
 			std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
-			
-			// temporary hack
-			if (isDaemon || logs != "") isLogging = true;
 
-			if (isLogging)
+			if (isDaemon && (logs == "" || logs == "stdout"))
+				logs = "file";
+
+			if (logs == "file")
 			{
 				if (logfile == "")
 				{
