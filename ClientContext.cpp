@@ -100,15 +100,19 @@ namespace client
 		
 	void ClientContext::Stop ()
 	{
-		LogPrint(eLogInfo, "Clients: stopping HTTP Proxy");
-		m_HttpProxy->Stop();
-		delete m_HttpProxy;
-		m_HttpProxy = nullptr;
+		if (m_HttpProxy) {
+			LogPrint(eLogInfo, "Clients: stopping HTTP Proxy");
+			m_HttpProxy->Stop();
+			delete m_HttpProxy;
+			m_HttpProxy = nullptr;
+		}
 
-		LogPrint(eLogInfo, "Clients: stopping SOCKS Proxy");
-		m_SocksProxy->Stop();
-		delete m_SocksProxy;
-		m_SocksProxy = nullptr;
+		if (m_SocksProxy) {
+			LogPrint(eLogInfo, "Clients: stopping SOCKS Proxy");
+			m_SocksProxy->Stop();
+			delete m_SocksProxy;
+			m_SocksProxy = nullptr;
+		}
 
 		for (auto& it: m_ClientTunnels)
 		{

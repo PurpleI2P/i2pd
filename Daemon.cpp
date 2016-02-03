@@ -210,9 +210,11 @@ namespace i2p
 			i2p::transport::transports.Stop();
 			LogPrint(eLogInfo, "Daemon: stopping NetDB");
 			i2p::data::netdb.Stop();
-			LogPrint(eLogInfo, "Daemon: stopping HTTP Server");
-			d.httpServer->Stop();
-			d.httpServer = nullptr;
+			if (d.httpServer) {
+				LogPrint(eLogInfo, "Daemon: stopping HTTP Server");
+				d.httpServer->Stop();
+				d.httpServer = nullptr;
+			}
 			if (d.m_I2PControlService)
 			{
 				LogPrint(eLogInfo, "Daemon: stopping I2PControl");
