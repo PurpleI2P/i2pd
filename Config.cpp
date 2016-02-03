@@ -113,7 +113,7 @@ namespace config {
       ("log",       value<std::string>()->default_value(""),     "Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)")
       ("logfile",   value<std::string>()->default_value(""),     "Path to logfile (stdout if not set, autodetect if daemon)")
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
-      ("host",      value<std::string>()->default_value(""),     "External IP")
+      ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
       ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
