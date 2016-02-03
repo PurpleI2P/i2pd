@@ -67,11 +67,6 @@ namespace i2p
 			std::string tunconf = i2p::util::filesystem::GetTunnelsConfigFile().string();
 			std::string datadir = i2p::util::filesystem::GetDataDir().string();
 
-			LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
-			LogPrint(eLogDebug, "FS: main config file: ", config);
-			LogPrint(eLogDebug, "FS: tunnels config: ",   tunconf);
-			LogPrint(eLogDebug, "FS: data directory: ", datadir);
-
 			i2p::config::ParseConfig(config);
 			i2p::config::Finalize();
 
@@ -80,10 +75,12 @@ namespace i2p
 
 			i2p::config::GetOption("daemon", isDaemon);
 
-			// temporary hack
-			std::string logs = "";
-			i2p::config::GetOption("log", logs);
-			if (isDaemon || logs != "") isLogging = true;
+			// TODO: move log init here
+
+			LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
+			LogPrint(eLogDebug, "FS: main config file: ", config);
+			LogPrint(eLogDebug, "FS: tunnels config: ",   tunconf);
+			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
 			uint16_t port; i2p::config::GetOption("port", port);
 			if (port)
@@ -135,16 +132,18 @@ namespace i2p
 			
 		bool Daemon_Singleton::start()
 		{
+			std::string logs     = ""; i2p::config::GetOption("log",      logs);
+			std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
 			std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
 			
+			// temporary hack
+			if (isDaemon || logs != "") isLogging = true;
+
 			if (isLogging)
 			{
-				// set default to stdout
-				std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
-				
 				if (logfile == "")
 				{
-					// can't log to stdout, use autodetect of logfile
+					// use autodetect of logfile
 					logfile = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
 					logfile.append("/i2pd.log");
@@ -153,9 +152,10 @@ namespace i2p
 #endif
 				}
 				StartLog (logfile);
-			}
-			else
+			} else {
+				// use stdout
 				StartLog ("");
+			}
 			SetLogLevel(loglevel);
 			
 			bool http; i2p::config::GetOption("http.enabled", http);
