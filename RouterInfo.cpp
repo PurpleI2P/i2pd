@@ -81,7 +81,7 @@ namespace data
 		{	
 			s.seekg (0,std::ios::end);
 			m_BufferLen = s.tellg ();
-			if (m_BufferLen < 40)
+			if (m_BufferLen < 40 || m_BufferLen > MAX_RI_BUFFER_SIZE)
 			{
 				LogPrint(eLogError, "RouterInfo: File", m_FullPath, " is malformed");
 				return false;
@@ -109,13 +109,25 @@ namespace data
 	{
 		m_RouterIdentity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
 		size_t identityLen = m_RouterIdentity->GetFullLen ();
+		if (identityLen >= m_BufferLen)
+		{
+			LogPrint (eLogError, "RouterInfo: identity length ", identityLen, " exceeds buffer size ", m_BufferLen);
+			m_IsUnreachable = true;
+			return;
+		}
 		std::stringstream str (std::string ((char *)m_Buffer + identityLen, m_BufferLen - identityLen));
 		ReadFromStream (str);
+		if (!str)
+		{
+			LogPrint (eLogError, "RouterInfo: malformed message");
+			m_IsUnreachable = true;
+			return;
+		}
 		if (verifySignature)
 		{	
 			// verify signature
-			int l = m_BufferLen - m_RouterIdentity->GetSignatureLen ();
-			if (!m_RouterIdentity->Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))
+			int l = m_BufferLen - m_RouterIdentity->GetSignatureLen ();	
+			if (l < 0 || !m_RouterIdentity->Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))
 			{	
 				LogPrint (eLogError, "RouterInfo: signature verification failed");
 				m_IsUnreachable = true;
@@ -130,7 +142,7 @@ namespace data
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
 		uint8_t numAddresses;
-		s.read ((char *)&numAddresses, sizeof (numAddresses));
+		s.read ((char *)&numAddresses, sizeof (numAddresses)); if (!s) return;	
 		bool introducers = false;
 		for (int i = 0; i < numAddresses; i++)
 		{
@@ -149,7 +161,7 @@ namespace data
 			address.port = 0;
 			address.mtu = 0;
 			uint16_t size, r = 0;
-			s.read ((char *)&size, sizeof (size));
+			s.read ((char *)&size, sizeof (size)); if (!s) return;
 			size = be16toh (size);
 			while (r < size)
 			{
@@ -214,17 +226,18 @@ namespace data
 					else if (!strcmp (key, "ikey"))
 						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
 				}
+				if (!s) return;
 			}	
 			if (isValidAddress)
 				m_Addresses.push_back(address);
 		}	
 		// read peers
 		uint8_t numPeers;
-		s.read ((char *)&numPeers, sizeof (numPeers));
+		s.read ((char *)&numPeers, sizeof (numPeers)); if (!s) return;
 		s.seekg (numPeers*32, std::ios_base::cur); // TODO: read peers
 		// read properties
 		uint16_t size, r = 0;
-		s.read ((char *)&size, sizeof (size));
+		s.read ((char *)&size, sizeof (size)); if (!s) return;
 		size = be16toh (size);
 		while (r < size)
 		{
@@ -250,6 +263,7 @@ namespace data
 				LogPrint (eLogError, "Unexpected netid=", value);
 				m_IsUnreachable = true;		
 			}	
+			if (!s) return;
 		}		
 
 		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))

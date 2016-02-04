@@ -17,6 +17,7 @@ set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
 set (LIBI2PD_SRC
+  "${CMAKE_SOURCE_DIR}/Config.cpp"
   "${CMAKE_SOURCE_DIR}/Crypto.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
@@ -88,11 +89,6 @@ if (WITH_UPNP)
   if (NOT MSVC AND NOT MSYS)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif ()
-endif ()
-
-# Default build is Debug
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
 endif ()
 
 # compiler flags customization (by vendor)
@@ -209,7 +205,7 @@ else()
 endif ()
 
 if (WITH_PCH)
-  include_directories(${CMAKE_BINARY_DIR})
+  include_directories(BEFORE ${CMAKE_BINARY_DIR})
   add_library(stdafx STATIC "${CMAKE_SOURCE_DIR}/stdafx.cpp")
   if(MSVC)
     target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm155)
@@ -246,11 +242,9 @@ if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 endif()
 
-find_package ( MiniUPnPc )
-if (MINIUPNPC_FOUND)
-  include_directories( ${MINIUPNPC_INCLUDE_DIR} )
-else ()
-  set(WITH_UPNP OFF)
+if (WITH_UPNP)
+  find_package ( MiniUPnPc REQUIRED )
+  include_directories( SYSTEM ${MINIUPNPC_INCLUDE_DIR} )
 endif()
 
 find_package ( ZLIB )
@@ -289,7 +283,7 @@ endif ()
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib ${ZLIB_ROOT}/lib)
 
 # load includes
-include_directories( ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
+include_directories( SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
 
 # show summary
 message(STATUS "---------------------------------------")

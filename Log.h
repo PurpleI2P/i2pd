@@ -95,6 +95,12 @@ inline void StopLog ()
 	}		
 }
 
+inline void SetLogLevel (const std::string& level)
+{
+	if (g_Log)	
+		g_Log->SetLogLevel(level);
+}
+
 template<typename TValue>
 void LogPrint (std::stringstream& s, TValue arg) 
 {

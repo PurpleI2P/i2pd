@@ -157,7 +157,7 @@ namespace transport
 			memcpy (frag + 1, buf, 3);
 			buf += 3;
 			uint32_t fragmentInfo = bufbe32toh (frag); // fragment info
-			uint16_t fragmentSize = fragmentInfo & 0x1FFF; // bits 0 - 13
+			uint16_t fragmentSize = fragmentInfo & 0x3FFF; // bits 0 - 13
 			bool isLast = fragmentInfo & 0x010000; // bit 16	
 			uint8_t fragmentNum = fragmentInfo >> 17; // bits 23 - 17 		
 			if (fragmentSize >= SSU_V4_MAX_PACKET_SIZE)

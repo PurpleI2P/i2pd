@@ -46,7 +46,7 @@ do_start()
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" --test > /dev/null \
     || return 1
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" -- \
-    --service=1 --daemon=1 --log=1 --conf=$I2PCONF --tunnelscfg=$TUNCONF \
+    --service --daemon --log --conf=$I2PCONF --tunconf=$TUNCONF \
     --port=$I2PD_PORT $DAEMON_OPTS > /dev/null 2>&1 \
     || return 2
   return $?

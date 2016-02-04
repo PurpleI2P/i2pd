@@ -13,6 +13,7 @@
 #include <boost/program_options/detail/config_file.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/algorithm/string.hpp>
+#include "Config.h"
 #include "util.h"
 #include "Log.h"
 
@@ -66,86 +67,6 @@ namespace i2p
 {
 namespace util
 {
-
-namespace config
-{
-	std::map<std::string, std::string> mapArgs;
-
-	void OptionParser(int argc, const char* const argv[])
-	{
-		mapArgs.clear();
-		for (int i = 1; i < argc; i++)
-		{
-			std::string strKey (argv[i]);
-			std::string strValue;
-			size_t has_data = strKey.find('=');
-			if (has_data != std::string::npos)
-			{
-				strValue = strKey.substr(has_data+1);
-				strKey = strKey.substr(0, has_data);
-			}
-
-#ifdef WIN32
-			boost::to_lower(strKey);
-			if (boost::algorithm::starts_with(strKey, "/"))
-				strKey = "-" + strKey.substr(1);
-#endif
-			if (strKey[0] != '-')
-				break;
-
-			mapArgs[strKey] = strValue;
-		}
-
-		BOOST_FOREACH(PAIRTYPE(const std::string,std::string)& entry, mapArgs)
-		{
-			std::string name = entry.first;
-
-			//  interpret --foo as -foo (as long as both are not set)
-			if (name.find("--") == 0)
-			{
-				std::string singleDash(name.begin()+1, name.end());
-				if (mapArgs.count(singleDash) == 0)
-					mapArgs[singleDash] = entry.second;
-				name = singleDash;
-			}
-		}
-	}
-
-	std::string GetArg(const std::string& strArg, const std::string& strDefault)
-	{
-		if (mapArgs.count(strArg))
-			return mapArgs[strArg];
-		return strDefault;
-	}
-
-	int GetArg(const std::string& strArg, int nDefault)
-	{
-		if (mapArgs.count(strArg))
-			return atoi(mapArgs[strArg].c_str());
-		return nDefault;
-	}
-
-	void ReadConfigFile(boost::filesystem::path path)
-	{
-		boost::filesystem::ifstream streamConfig(path);
-		if (!streamConfig.good())
-			return; // No i2pd.conf file is OK
-
-		std::set<std::string> setOptions;
-		setOptions.insert("*");
-
-		for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
-		{
-			// Don't overwrite existing settings so command line settings override i2pd.conf
-			std::string strKey = std::string("-") + it->string_key;
-			if (mapArgs.count(strKey) == 0)
-			{
-				mapArgs[strKey] = it->value[0];
-			}
-		}
-	}
-}
-
 namespace filesystem
 {
 	std::string appName ("i2pd");	
@@ -166,8 +87,10 @@ namespace filesystem
 
 		// TODO: datadir parameter is useless because GetDataDir is called before OptionParser
 		// and mapArgs is not initialized yet
-		/*if (i2p::util::config::mapArgs.count("-datadir")) 
-			path = boost::filesystem::system_complete(i2p::util::config::mapArgs["-datadir"]);
+		/*
+		std::string datadir; i2p::config::GetOption("datadir", datadir);
+		if (datadir != "")
+			path = boost::filesystem::system_complete(datadir);
 		else */
 			path = GetDefaultDataDir();
 
@@ -200,17 +123,34 @@ namespace filesystem
 
 	boost::filesystem::path GetConfigFile()
 	{
-		boost::filesystem::path pathConfigFile(i2p::util::config::GetArg("-conf", "i2p.conf"));
-		if (!pathConfigFile.is_complete()) pathConfigFile = GetDataDir() / pathConfigFile;
-		return pathConfigFile;
+		std::string config; i2p::config::GetOption("conf", config);
+		if (config != "") {
+			/* config file set with cmdline */
+			boost::filesystem::path path(config);
+			return path;
+		}
+		/* else - try autodetect */
+		boost::filesystem::path path("i2p.conf");
+		path = GetDataDir() / path;
+		if (!boost::filesystem::exists(path))
+			path = ""; /* reset */
+		return path;
 	}
 
 	boost::filesystem::path GetTunnelsConfigFile()
 	{
-	  boost::filesystem::path pathTunnelsConfigFile(i2p::util::config::GetArg("-tunnelscfg", "tunnels.cfg"));
-		if (!pathTunnelsConfigFile.is_complete())
-		  pathTunnelsConfigFile = GetDataDir() / pathTunnelsConfigFile;
-		return pathTunnelsConfigFile;
+		std::string tunconf; i2p::config::GetOption("tunconf", tunconf);
+		if (tunconf != "") {
+			/* config file set with cmdline */
+			boost::filesystem::path path(tunconf);
+			return path;
+		}
+		/* else - try autodetect */
+		boost::filesystem::path path("tunnels.cfg");
+		path = GetDataDir() / path;
+		if (!boost::filesystem::exists(path))
+			path = ""; /* reset */
+		return path;
 	}
 
 	boost::filesystem::path GetDefaultDataDir()
@@ -225,7 +165,8 @@ namespace filesystem
 		SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
 		return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
 #else /* UNIX */
-		if (i2p::util::config::GetArg("-service", 0)) // use system folder
+		bool service; i2p::config::GetOption("service", service);
+		if (service) // use system folder
 			return boost::filesystem::path(std::string ("/var/lib/") + appName);
 		boost::filesystem::path pathRet;
 		char* pszHome = getenv("HOME");

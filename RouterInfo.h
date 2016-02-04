@@ -182,7 +182,7 @@ namespace data
 			std::string m_FullPath;
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			uint8_t * m_Buffer;
-			int m_BufferLen;
+			size_t m_BufferLen;
 			uint64_t m_Timestamp;
 			std::vector<Address> m_Addresses;
 			std::map<std::string, std::string> m_Properties;

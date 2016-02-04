@@ -134,7 +134,7 @@ namespace client
 
 	void I2PTunnelConnection::Write (const uint8_t * buf, size_t len)
 	{
-		m_Socket->async_send (boost::asio::buffer (buf, len),
+		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, len), boost::asio::transfer_all (),
         	std::bind (&I2PTunnelConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
 	}
 
@@ -184,11 +184,14 @@ namespace client
 				std::getline(m_InHeader, line);
 				if (!m_InHeader.fail ())
 				{
-					if (line.find ("Host:") != std::string::npos)
-						m_OutHeader << "Host: " << m_Host << "\r\n";
-					else
-						m_OutHeader << line << "\n";
 					if (line == "\r") endOfHeader = true;
+					else
+					{	
+						if (line.find ("Host:") != std::string::npos)
+							m_OutHeader << "Host: " << m_Host << "\r\n";
+						else
+							m_OutHeader << line << "\n";
+					}	
 				}
 				else
 					break;
@@ -203,7 +206,8 @@ namespace client
 
 			if (endOfHeader)
 			{
-				m_OutHeader << m_InHeader.str (); // data right after header
+				m_OutHeader << "\r\n"; // end of header
+				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}

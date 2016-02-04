@@ -199,7 +199,7 @@ namespace data
 		}	
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
 
-		delete[] m_ExtendedBuffer;
+		delete[] m_ExtendedBuffer; m_ExtendedBuffer = nullptr;
 		m_ExtendedLen = bufbe16toh (m_StandardIdentity.certificate + 1);
 		if (m_ExtendedLen)
 		{
@@ -211,6 +211,7 @@ namespace data
 			else
 			{
 				LogPrint (eLogError, "Identity: Certificate length ", m_ExtendedLen, " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
+				m_ExtendedLen = 0;
 				return 0;
 			}	
 		}		

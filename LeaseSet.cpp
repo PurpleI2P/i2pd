@@ -85,13 +85,24 @@ namespace data
 		if (readIdentity || !m_Identity)
 			m_Identity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
 		size_t size = m_Identity->GetFullLen ();
+		if (size > m_BufferLen)
+		{
+			LogPrint (eLogError, "LeaseSet: identity length ", size, " exceeds buffer size ", m_BufferLen);
+			m_IsValid = false;
+			return;
+		}
 		memcpy (m_EncryptionKey, m_Buffer + size, 256);
 		size += 256; // encryption key
 		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
 		uint8_t num = m_Buffer[size];
 		size++; // num
 		LogPrint (eLogDebug, "LeaseSet: read num=", (int)num);
-		if (!num)  m_IsValid = false;
+		if (!num || num > MAX_NUM_LEASES)
+		{	  
+			LogPrint (eLogError, "LeaseSet: incorrect number of leases", (int)num);
+			m_IsValid = false;
+			return;
+		}	
 
 		// process leases
 		const uint8_t * leases = m_Buffer + size;
