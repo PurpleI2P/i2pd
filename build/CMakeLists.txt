@@ -91,11 +91,6 @@ if (WITH_UPNP)
   endif ()
 endif ()
 
-# Default build is Debug
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
-endif ()
-
 # compiler flags customization (by vendor)
 if (MSVC)
   add_definitions( -D_WIN32_WINNT=_WIN32_WINNT_WINXP -DWIN32_LEAN_AND_MEAN -DNOMINMAX ) #-DOPENSSL_NO_SSL2 -DOPENSSL_USE_DEPRECATED
