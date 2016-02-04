@@ -210,7 +210,7 @@ else()
 endif ()
 
 if (WITH_PCH)
-  include_directories(${CMAKE_BINARY_DIR})
+  include_directories(BEFORE ${CMAKE_BINARY_DIR})
   add_library(stdafx STATIC "${CMAKE_SOURCE_DIR}/stdafx.cpp")
   if(MSVC)
     target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm155)
