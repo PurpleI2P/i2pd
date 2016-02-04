@@ -119,7 +119,8 @@ namespace garlic
 			// for HTTP only
 			size_t GetNumOutgoingTags () const { return m_SessionTags.size (); };
 	};	
-	using GarlicRoutingSessionPtr = std::shared_ptr<GarlicRoutingSession>;
+	//using GarlicRoutingSessionPtr = std::shared_ptr<GarlicRoutingSession>;
+	typedef std::shared_ptr<GarlicRoutingSession> GarlicRoutingSessionPtr; // TODO: replace to using after switch to 4.8	
 
 	class GarlicDestination: public i2p::data::LocalDestination
 	{
