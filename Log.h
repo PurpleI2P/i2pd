@@ -7,6 +7,7 @@
 #include <fstream>
 #include <functional>
 #include <chrono>
+#include <memory>
 #include "Queue.h"
 
 enum LogLevel
@@ -34,13 +35,13 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 {
 	public:
 
-		Log (): m_LogStream (nullptr) { SetOnEmpty (std::bind (&Log::Flush, this)); };
-		~Log () { delete m_LogStream; };
+		Log () { SetOnEmpty (std::bind (&Log::Flush, this)); };
+		~Log () {};
 
 		void SetLogFile (const std::string& fullFilePath);
 		void SetLogLevel (const std::string& level);
-		void SetLogStream (std::ostream * logStream);
-		std::ostream * GetLogStream () const { return m_LogStream; };	
+		void SetLogStream (std::shared_ptr<std::ostream> logStream);
+		std::shared_ptr<std::ostream> GetLogStream () const { return m_LogStream; };	
 		const std::string& GetTimestamp ();
 		LogLevel GetLogLevel () { return m_MinLevel; };
 
@@ -50,7 +51,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 
 	private:
 		
-		std::ostream * m_LogStream;
+		std::shared_ptr<std::ostream> m_LogStream;
 		enum LogLevel m_MinLevel;
 		std::string m_Timestamp;
 #if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6) && !defined(__clang__) // gcc 4.6
@@ -73,7 +74,7 @@ inline void StartLog (const std::string& fullFilePath)
 	}	
 }
 
-inline void StartLog (std::ostream * s)
+inline void StartLog (std::shared_ptr<std::ostream> s)
 {
 	if (!g_Log)
 	{	
