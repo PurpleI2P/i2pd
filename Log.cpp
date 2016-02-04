@@ -46,6 +46,7 @@ void Log::Flush ()
 
 void Log::SetLogFile (const std::string& fullFilePath)
 {
+	m_FullFilePath = fullFilePath;	
 	auto logFile = std::make_shared<std::ofstream> (fullFilePath, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
 	if (logFile->is_open ())
 	{
@@ -53,6 +54,16 @@ void Log::SetLogFile (const std::string& fullFilePath)
 		LogPrint(eLogInfo, "Log: will send messages to ",  fullFilePath);
 	}	
 }
+
+void Log::ReopenLogFile ()
+{
+	if (m_FullFilePath.length () > 0)
+	{
+		SetLogFile (m_FullFilePath);
+		LogPrint(eLogInfo, "Log: file ", m_FullFilePath,  " reopen");
+	}
+}
+
 
 void Log::SetLogLevel (const std::string& level)
 {

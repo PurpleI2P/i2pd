@@ -39,6 +39,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		~Log () {};
 
 		void SetLogFile (const std::string& fullFilePath);
+		void ReopenLogFile ();
 		void SetLogLevel (const std::string& level);
 		void SetLogStream (std::shared_ptr<std::ostream> logStream);
 		std::shared_ptr<std::ostream> GetLogStream () const { return m_LogStream; };	
@@ -51,6 +52,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 
 	private:
 		
+		std::string m_FullFilePath; // empty if stream
 		std::shared_ptr<std::ostream> m_LogStream;
 		enum LogLevel m_MinLevel;
 		std::string m_Timestamp;
@@ -100,6 +102,12 @@ inline void SetLogLevel (const std::string& level)
 {
 	if (g_Log)	
 		g_Log->SetLogLevel(level);
+}
+
+inline void ReopenLogFile ()
+{
+	if (g_Log)	
+		g_Log->ReopenLogFile ();
 }
 
 template<typename TValue>

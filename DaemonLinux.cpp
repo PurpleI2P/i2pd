@@ -17,9 +17,9 @@ void handle_signal(int sig)
 	switch (sig)
 	{
 	case SIGHUP:
-		LogPrint(eLogInfo, "Daemon: Got SIGHUP, doing nothing");
-		// TODO:
-		break;
+		LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening log...");
+		ReopenLogFile ();
+	break;
 	case SIGABRT:
 	case SIGTERM:
 	case SIGINT:
