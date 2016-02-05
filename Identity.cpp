@@ -228,26 +228,35 @@ namespace data
 	}	
 
 	size_t IdentityEx::ToBuffer (uint8_t * buf, size_t len) const
-	{		
+	{
+		size_t fullLen = GetFullLen();
+		if (fullLen > len) {
+			// buffer is too small and may overflow somewhere else
+			return 0;
+		}
 		memcpy (buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
 		if (m_ExtendedLen > 0 && m_ExtendedBuffer)
 			memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
-		return GetFullLen ();
+		return fullLen;
 	}
 
 	size_t IdentityEx::FromBase64(const std::string& s)
 	{
-		uint8_t buf[1024];
-		auto len = Base64ToByteStream (s.c_str(), s.length(), buf, 1024);
+    const size_t slen = s.length();
+    const size_t bufLen = Base64EncodingBufferSize(slen);
+		uint8_t buf[bufLen];
+		auto len = Base64ToByteStream (s.c_str(), slen, buf, 1024);
 		return FromBuffer (buf, len);
 	}	
 	
 	std::string IdentityEx::ToBase64 () const
 	{
-		uint8_t buf[1024];
-		char str[1536];
-		size_t l = ToBuffer (buf, 1024);
-		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, 1536);
+    const size_t bufLen = GetFullLen();
+    const size_t strLen = Base64EncodingBufferSize(bufLen);
+		uint8_t buf[bufLen];
+		char str[strLen];
+		size_t l = ToBuffer (buf, bufLen);
+		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, strLen);
 		str[l1] = 0;
 		return std::string (str);
 	}
