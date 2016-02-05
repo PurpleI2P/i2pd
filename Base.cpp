@@ -327,7 +327,14 @@ namespace data
 			LogPrint (eLogError, "Compression error ", err);
 			return 0;
 		}	
-	}	
+	}
+
+	// from https://stackoverflow.com/questions/1533113/calculate-the-size-to-a-base-64-encoded-message
+	size_t Base64EncodingBufferSize(const size_t input_size) {
+		const size_t code_size		= ((input_size * 4) / 3);
+		const size_t padding_size = (input_size % 3) ? (3 - (input_size % 3)) : 0;
+		return code_size + padding_size;
+	}
 }
 }
 
