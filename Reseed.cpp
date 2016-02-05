@@ -208,6 +208,11 @@ namespace data
 				uint16_t fileNameLength, extraFieldLength; 
 				s.read ((char *)&fileNameLength, 2);	
 				fileNameLength = le16toh (fileNameLength);
+				if ( fileNameLength > 255 ) {
+					// too big
+					LogPrint(eLogError, "Reseed: SU3 fileNameLength too large: ", fileNameLength);
+					return numFiles;
+				}
 				s.read ((char *)&extraFieldLength, 2);
 				extraFieldLength = le16toh (extraFieldLength);
 				char localFileName[255];
