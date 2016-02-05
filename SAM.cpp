@@ -633,12 +633,12 @@ namespace client
 			{
 				// get remote peer address
 				auto ident_ptr = stream->GetRemoteIdentity();
-				size_t ident_len = ident_ptr->GetFullLen();
+				const size_t ident_len = ident_ptr->GetFullLen();
 				uint8_t* ident = new uint8_t[ident_len];
 
 				// send remote peer address as base64 
-				size_t l = ident_ptr->ToBuffer (ident, ident_len);
-				size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, (char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
+				const size_t l = ident_ptr->ToBuffer (ident, ident_len);
+				const size_t l1 = i2p::data::ByteStreamToBase64 (ident, l, (char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
 				delete[] ident;
 				m_StreamBuffer[l1] = '\n';
 				HandleI2PReceive (boost::system::error_code (), l1 +1); // we send identity like it has been received from stream
