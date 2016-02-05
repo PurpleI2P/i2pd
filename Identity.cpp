@@ -233,7 +233,7 @@ namespace data
 
 	size_t IdentityEx::ToBuffer (uint8_t * buf, size_t len) const
 	{
-		size_t fullLen = GetFullLen();
+		const size_t fullLen = GetFullLen();
 		if (fullLen > len) {
 			// buffer is too small and may overflow somewhere else
 			return 0;
