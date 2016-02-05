@@ -20,11 +20,15 @@ development location for the sake of convenience. Adjust paths
 accordingly if it is not the case. Note that msys uses unix-alike
 paths like /c/dev/ for C:\dev\.
 
+
+
 msys2
 -----
 
+### x86 (32-bit architecture)
+
 Get install file msys2-i686-20150916.exe from https://msys2.github.io.
-open MSys2Shell (from Start menu).
+open MSYS2 Shell (from Start menu).
 Install all prerequisites and download i2pd source:
 
 ```bash
@@ -37,14 +41,23 @@ export PATH=/mingw32/bin:/usr/bin # we need compiler on PATH which is usually he
 make
 ```
 
-If your processor has
-[AES instruction set](https://en.wikipedia.org/wiki/AES_instruction_set),
-you use `make USE_AESNI=1`. No check is done however, it
-will compile, but it might crash with `Illegal instruction` if not supported.
 
-You should be able to run ./i2pd . If you need to start from the new
-shell, consider starting *MinGW-w64 Win32 Shell* instead of *MSYS2 Shell* as
-it adds`/minw32/bin` to the PATH.
+### x64 (64-bit architecture)
+
+Get install file msys2-x86_64-20150916.exe from https://msys2.github.io.
+open MSYS2 Shell (from Start menu).
+Install all prerequisites and download i2pd source:
+
+```bash
+pacman -S mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-gcc git make
+mkdir -p /c/dev/i2pd
+cd /c/dev/i2pd
+git clone https://github.com/PurpleI2P/i2pd.git
+cd i2pd
+export PATH=/mingw64/bin:/usr/bin # we need compiler on PATH which is usually heavily cluttered on Windows
+make
+```
+
 
 ### Caveats
 
@@ -63,6 +76,19 @@ home page, otherwise you might end up with DLLs incompatibility
 problems.
 
 
+### AES-NI
+
+If your processor has
+[AES instruction set](https://en.wikipedia.org/wiki/AES_instruction_set),
+you use `make USE_AESNI=1`. No check is done however, it
+will compile, but it might crash with `Illegal instruction` if not supported.
+
+You should be able to run ./i2pd . If you need to start from the new
+shell, consider starting *MinGW-w64 Win32 Shell* instead of *MSYS2 Shell* as
+it adds`/minw32/bin` to the PATH.
+
+
+
 Using Visual Studio
 -------------------
 
@@ -77,7 +103,7 @@ Requirements for building:
 	* Strawberry Perl or ActiveState Perl, do NOT try msys2 perl, it won't work
 
 
-## Building Boost
+### Building Boost
 
 Open a Command Prompt (there is no need to start Visual Studio command
 prompt to build Boost) and run the following:
@@ -98,8 +124,8 @@ only and static linking, and/or you are out of space/time, you might
 consider `--build-type=minimal`. Take a look at
 [appveyor.yml](../appveyor.yml) for details on how test builds are done.
 
-Building OpenSSL
------------------
+
+### Building OpenSSL
 
 Download OpenSSL, e.g. with git
 
@@ -123,8 +149,8 @@ maintaining multiple versions, e.g. 64 bit and/or
 static/shared. Consult `C:\Program Files
 (x86)\CMake\share\cmake-3.3\Modules\FindOpenSSL.cmake` for details.
 
-Get miniupnpc
--------------
+
+### Get miniupnpc
 
 If you are behind a UPnP enabled router and don't feel like manually
 configuring port forwarding, you should consider using
@@ -139,8 +165,7 @@ Note that you might need to build DLL yourself for 64-bit systems
 using msys2 as 64-bit DLLs are not provided by the project.
 
 
-Creating Visual Studio project
-------------------------------
+### Creating Visual Studio project
 
 Start CMake GUI, navigate to i2pd directory, choose building directory,  e.g. ./out, and configure options.
 
@@ -155,8 +180,8 @@ cmake ..\build -G "Visual Studio 12 2013" -DWITH_UPNP=ON -DWITH_PCH=ON -DCMAKE_I
 
 WITH_UPNP will stay off, if necessary files are not found.
 
-Building i2pd
--------------
+
+### Building i2pd
 
 You can open generated solution/project with Visual Studio and build
 from there, alternatively you can use `cmake --build . --config Release --target install` or
