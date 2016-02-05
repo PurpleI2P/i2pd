@@ -31,7 +31,7 @@ namespace api
 		i2p::crypto::TerminateCrypto ();
 	}	
 	
-	void StartI2P (std::ostream * logStream)
+	void StartI2P (std::shared_ptr<std::ostream> logStream)
 	{
 		if (logStream)
 			StartLog (logStream);
