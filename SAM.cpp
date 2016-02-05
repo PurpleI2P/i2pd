@@ -468,6 +468,8 @@ namespace client
 		i2p::data::IdentHash ident;
 		if (name == "ME")
 			SendNamingLookupReply (m_Session->localDestination->GetIdentity ());
+		else if (name.rfind(".b32.i2p") == 52)
+			ident.FromBase32(name.substr(0, 52));
 		else if ((identity = context.GetAddressBook ().GetAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
 		else if (m_Session && m_Session->localDestination &&
