@@ -316,7 +316,8 @@ namespace data
 					const std::string& fullPath = it1->path();
 #endif
 					auto r = std::make_shared<RouterInfo>(fullPath);
-					if (!r->IsUnreachable () && (!r->UsesIntroducer () || ts < r->GetTimestamp () + 3600*1000LL)) // 1 hour
+					if (r->GetRouterIdentity () && !r->IsUnreachable () && 
+					    (!r->UsesIntroducer () || ts < r->GetTimestamp () + 3600*1000LL)) // 1 hour
 					{	
 						r->DeleteBuffer ();
 						r->ClearProperties (); // properties are not used for regular routers
