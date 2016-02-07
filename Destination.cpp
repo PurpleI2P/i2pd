@@ -664,7 +664,7 @@ namespace client
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{
-			CleanupRoutingSessions ();
+			CleanupExpiredTags ();
 			CleanupRemoteLeaseSets ();
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&ClientDestination::HandleCleanupTimer,

@@ -409,28 +409,6 @@ namespace garlic
 			else
 				LogPrint (eLogError, "Garlic: Failed to decrypt message");
 		}
-
-		// cleanup expired tags
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		if (ts > m_LastTagsCleanupTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
-		{
-			if (m_LastTagsCleanupTime)
-			{
-				int numExpiredTags = 0;
-				for (auto it = m_Tags.begin (); it != m_Tags.end ();)
-				{
-					if (ts > it->first.creationTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
-					{
-						numExpiredTags++;
-						it = m_Tags.erase (it);
-					}	
-					else
-						it++;
-				}
-				LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " tags expired for ", GetIdentHash().ToBase64 ());
-			}	
-			m_LastTagsCleanupTime = ts;
-		}	
 	}	
 
 	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption,
@@ -570,8 +548,25 @@ namespace garlic
 		return session;
 	}	
 	
-	void GarlicDestination::CleanupRoutingSessions ()
+	void GarlicDestination::CleanupExpiredTags ()
 	{
+		// incoming
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		int numExpiredTags = 0;
+		for (auto it = m_Tags.begin (); it != m_Tags.end ();)
+		{
+			if (ts > it->first.creationTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+			{
+				numExpiredTags++;
+				it = m_Tags.erase (it);
+			}	
+			else
+				it++;
+		}
+		if (numExpiredTags > 0)
+			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " tags expired for ", GetIdentHash().ToBase64 ());
+
+		// outgoing
 		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
 		{
