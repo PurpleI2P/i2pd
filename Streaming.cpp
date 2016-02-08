@@ -885,7 +885,7 @@ namespace stream
 					auto s = shared_from_this ();
 					timer->async_wait ([s,timer,receiveStreamID](const boost::system::error_code& ecode)
 					{
-						if (ecode == boost::asio::error::operation_aborted)
+						if (ecode != boost::asio::error::operation_aborted)
 						{
 							auto it = s->m_SavedPackets.find (receiveStreamID);
 							if (it != s->m_SavedPackets.end ())
