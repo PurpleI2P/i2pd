@@ -12,8 +12,8 @@ namespace i2p
 namespace data
 {
 	
-	LeaseSet::LeaseSet (const uint8_t * buf, size_t len):
-		m_IsValid (true)
+	LeaseSet::LeaseSet (const uint8_t * buf, size_t len, bool storeLeases):
+		m_IsValid (true), m_StoreLeases (storeLeases), m_ExpirationTime (0)
 	{
 		m_Buffer = new uint8_t[len];
 		memcpy (m_Buffer, buf, len);
@@ -22,7 +22,7 @@ namespace data
 	}
 
 	LeaseSet::LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool):
-		m_IsValid (true)
+		m_IsValid (true), m_StoreLeases (true), m_ExpirationTime (0)
 	{	
 		if (!pool) return;
 		// header
@@ -55,6 +55,7 @@ namespace data
 			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
 			ts += rand () % 6; // + random milliseconds 0-5
+			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
 			htobe64buf (m_Buffer + m_BufferLen, ts);
 			m_BufferLen += 8; // end date
 		}
@@ -79,7 +80,14 @@ namespace data
 		m_BufferLen = len;
 		ReadFromBuffer (false);
 	}
-	
+
+	void LeaseSet::PopulateLeases ()
+	{
+		m_StoreLeases = true;
+		m_Leases.clear ();
+		ReadFromBuffer (false);
+	}	
+		
 	void LeaseSet::ReadFromBuffer (bool readIdentity)	
 	{	
 		if (readIdentity || !m_Identity)
@@ -105,6 +113,7 @@ namespace data
 		}	
 
 		// process leases
+		m_ExpirationTime = 0;
 		const uint8_t * leases = m_Buffer + size;
 		for (int i = 0; i < num; i++)
 		{
@@ -113,16 +122,20 @@ namespace data
 			leases += 32; // gateway
 			lease.tunnelID = bufbe32toh (leases);
 			leases += 4; // tunnel ID
-			lease.endDate = bufbe64toh (leases);
+			lease.endDate = bufbe64toh (leases); 
 			leases += 8; // end date
-			m_Leases.push_back (lease);
-
-			// check if lease's gateway is in our netDb
-			if (!netdb.FindRouter (lease.tunnelGateway))
-			{
-				// if not found request it
-				LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
-				netdb.RequestDestination (lease.tunnelGateway);
+			if (lease.endDate > m_ExpirationTime)
+				m_ExpirationTime = lease.endDate;
+			if (m_StoreLeases)
+			{	
+				m_Leases.push_back (lease);
+				// check if lease's gateway is in our netDb
+				if (!netdb.FindRouter (lease.tunnelGateway))
+				{
+					// if not found request it
+					LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
+					netdb.RequestDestination (lease.tunnelGateway);
+				}
 			}	
 		}	
 		
@@ -150,19 +163,17 @@ namespace data
 	}	
 
 	bool LeaseSet::HasExpiredLeases () const
-	{
+ 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto& it: m_Leases)
 			if (ts >= it.endDate) return true;
 		return false;
-	}	
+ 	}	
 
-	bool LeaseSet::HasNonExpiredLeases () const
+	bool LeaseSet::IsExpired () const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		for (auto& it: m_Leases)
-			if (ts < it.endDate) return true;
-		return false;
+		return ts > m_ExpirationTime;
 	}	
 }		
 }	

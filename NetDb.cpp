@@ -206,7 +206,7 @@ namespace data
 			}
 			else
 			{	
-				auto leaseSet = std::make_shared<LeaseSet> (buf, len);
+				auto leaseSet = std::make_shared<LeaseSet> (buf, len, false); // we don't need leases in netdb 
 				if (leaseSet->IsValid ())
 				{
 					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase64());
@@ -981,9 +981,10 @@ namespace data
 	
 	void NetDb::ManageLeaseSets ()
 	{
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
 		{
-			if (!it->second->HasNonExpiredLeases ()) // all leases expired
+			if (ts > it->second->GetExpirationTime ()) 
 			{
 				LogPrint (eLogWarning, "NetDb: LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_LeaseSets.erase (it);

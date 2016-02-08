@@ -187,16 +187,17 @@ namespace client
 		auto it = m_RemoteLeaseSets.find (ident);
 		if (it != m_RemoteLeaseSets.end ())
 		{	
-			if (it->second->HasNonExpiredLeases ())
+			if (!it->second->IsExpired ())
 				return it->second;
 			else
-				LogPrint (eLogWarning, "Destination: All leases of remote LeaseSet expired");
+				LogPrint (eLogWarning, "Destination: remote LeaseSet expired");
 		}	
 		else
 		{	
 			auto ls = i2p::data::netdb.FindLeaseSet (ident);
 			if (ls)
 			{
+				ls->PopulateLeases (); // since we don't store them in netdb
 				m_RemoteLeaseSets[ident] = ls;			
 				return ls;
 			}	
@@ -674,9 +675,10 @@ namespace client
 
 	void ClientDestination::CleanupRemoteLeaseSets ()
 	{
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it = m_RemoteLeaseSets.begin (); it != m_RemoteLeaseSets.end ();)
 		{
-			if (!it->second->HasNonExpiredLeases ()) // all leases expired
+			if (ts > it->second->GetExpirationTime ()) // leaseset expired
 			{
 				LogPrint (eLogWarning, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_RemoteLeaseSets.erase (it);
