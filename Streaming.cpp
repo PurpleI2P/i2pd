@@ -897,10 +897,6 @@ namespace stream
 						}
 					});
 				}
-				
-				// TODO: should queue it up
-				LogPrint (eLogError, "Streaming: Unknown stream receiveStreamID=", receiveStreamID);
-				delete packet;
 			}	
 		}	
 	}	
