@@ -70,7 +70,7 @@ namespace crypto
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
-#if defined(__x86_64__) // for Intel x64 
+#if defined(__x86_64__) || defined(__SSE__) // for Intel x84 or with SSE
 			__asm__
 			(
 				"movups	(%[buf]), %%xmm0 \n"	

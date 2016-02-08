@@ -134,6 +134,7 @@ namespace transport
 		
 	void NTCPSession::HandlePhase1Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		(void) bytes_transferred;
 		if (ecode)
         {
 			LogPrint (eLogInfo, "NTCP: couldn't send Phase 1 message: ", ecode.message ());
@@ -150,6 +151,7 @@ namespace transport
 
 	void NTCPSession::HandlePhase1Received (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		(void) bytes_transferred;
 		if (ecode)
         {
 			LogPrint (eLogInfo, "NTCP: phase 1 read error: ", ecode.message ());
@@ -205,6 +207,7 @@ namespace transport
 		
 	void NTCPSession::HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB)
 	{
+		(void) bytes_transferred;
 		if (ecode)
         {
 			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 2 message: ", ecode.message ());
@@ -221,6 +224,7 @@ namespace transport
 		
 	void NTCPSession::HandlePhase2Received (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
+		(void) bytes_transferred;
 		if (ecode)
         {
 			LogPrint (eLogInfo, "NTCP: Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
@@ -277,7 +281,8 @@ namespace transport
 		if (paddingSize > 0) 
 		{
 			paddingSize = 16 - paddingSize;
-			// TODO: fill padding with random data
+			// fill padding with random data
+			RAND_bytes(buf, paddingSize);
 			buf += paddingSize;
 			len += paddingSize;
 		}
@@ -297,6 +302,7 @@ namespace transport
 		
 	void NTCPSession::HandlePhase3Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA)
 	{
+		(void) bytes_transferred; 
 		if (ecode)
         {
 			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 3 message: ", ecode.message ());
@@ -420,6 +426,7 @@ namespace transport
 
 	void NTCPSession::HandlePhase4Sent (const boost::system::error_code& ecode,  std::size_t bytes_transferred)
 	{
+		(void) bytes_transferred;
 		if (ecode)
         {
 			LogPrint (eLogWarning, "NTCP: Couldn't send Phase 4 message: ", ecode.message ());
@@ -645,8 +652,11 @@ namespace transport
 		}	
 		int rem = (len + 6) & 0x0F; // %16
 		int padding = 0;
-		if (rem > 0) padding = 16 - rem;
-		// TODO: fill padding 
+		if (rem > 0) {
+			padding = 16 - rem;
+			// fill with random padding
+			RAND_bytes(sendBuffer + len + 2, padding);
+		}
 		htobe32buf (sendBuffer + len + 2 + padding, adler32 (adler32 (0, Z_NULL, 0), sendBuffer, len + 2+ padding));
 
 		int l = len + padding + 6;
@@ -667,6 +677,7 @@ namespace transport
 		
 	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
+		(void) msgs;
 		m_IsSending = false;
 		if (ecode)
         {

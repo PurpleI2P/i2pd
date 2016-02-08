@@ -72,7 +72,7 @@ namespace client
 			bool IsRunning () const { return m_IsRunning; };
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; }; 
-			bool IsReady () const { return m_LeaseSet && m_LeaseSet->HasNonExpiredLeases () && m_Pool->GetOutboundTunnels ().size () > 0; };
+			bool IsReady () const { return m_LeaseSet && !m_LeaseSet->IsExpired () && m_Pool->GetOutboundTunnels ().size () > 0; };
 			std::shared_ptr<const i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			void CancelDestinationRequest (const i2p::data::IdentHash& dest);	

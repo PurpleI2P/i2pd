@@ -190,6 +190,13 @@ namespace data
 		return outCount;
 	}
 
+	size_t Base64EncodingBufferSize (const size_t input_size) 
+	{
+		auto d = div (input_size, 3);
+		if (d.rem) d.quot++;
+		return 4*d.quot;
+	}
+	
 	/*
 	*
 	* iT64
@@ -327,7 +334,7 @@ namespace data
 			LogPrint (eLogError, "Compression error ", err);
 			return 0;
 		}	
-	}	
+	}
 }
 }
 

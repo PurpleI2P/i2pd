@@ -13,7 +13,8 @@ static const char * g_LogLevelStr[eNumLogLevels] =
 
 void LogMsg::Process()
 {
-	auto& output = (log && log->GetLogStream ()) ? *log->GetLogStream () : std::cerr;	
+	auto stream = log ? log->GetLogStream () : nullptr;
+	auto& output = stream ? *stream : std::cout;	
 	if (log)	
 		output << log->GetTimestamp ();
 	else
@@ -45,15 +46,24 @@ void Log::Flush ()
 
 void Log::SetLogFile (const std::string& fullFilePath)
 {
-	auto logFile = new std::ofstream (fullFilePath, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+	m_FullFilePath = fullFilePath;	
+	auto logFile = std::make_shared<std::ofstream> (fullFilePath, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
 	if (logFile->is_open ())
 	{
 		SetLogStream (logFile);
 		LogPrint(eLogInfo, "Log: will send messages to ",  fullFilePath);
 	}	
-	else
-		delete logFile;
 }
+
+void Log::ReopenLogFile ()
+{
+	if (m_FullFilePath.length () > 0)
+	{
+		SetLogFile (m_FullFilePath);
+		LogPrint(eLogInfo, "Log: file ", m_FullFilePath,  " reopen");
+	}
+}
+
 
 void Log::SetLogLevel (const std::string& level)
 {
@@ -65,11 +75,10 @@ void Log::SetLogLevel (const std::string& level)
 		LogPrint(eLogError, "Log: Unknown loglevel: ", level);
 		return;
   }
-  LogPrint(eLogInfo, "Log: min messages level set to ", level);
+  LogPrint(eLogInfo, "Log: min msg level set to ", level);
 }
 
-void Log::SetLogStream (std::ostream * logStream)
+void Log::SetLogStream (std::shared_ptr<std::ostream> logStream)
 {
-	if (m_LogStream) delete m_LogStream;	
 	m_LogStream = logStream;
 }

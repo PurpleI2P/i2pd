@@ -793,7 +793,7 @@ namespace util
 		}		
 
 		auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-		if (leaseSet && leaseSet->HasNonExpiredLeases ())
+		if (leaseSet && !leaseSet->IsExpired ())
 			SendToDestination (leaseSet, port, buf, len);
 		else
 		{
@@ -812,7 +812,7 @@ namespace util
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-			if (leaseSet && leaseSet->HasNonExpiredLeases ())
+			if (leaseSet && !leaseSet->IsExpired ())
 				SendToDestination (leaseSet, port, buf, len);
 			else
 				// still no LeaseSet

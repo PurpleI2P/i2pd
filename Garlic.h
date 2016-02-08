@@ -119,18 +119,19 @@ namespace garlic
 			// for HTTP only
 			size_t GetNumOutgoingTags () const { return m_SessionTags.size (); };
 	};	
-	using GarlicRoutingSessionPtr = std::shared_ptr<GarlicRoutingSession>;
+	//using GarlicRoutingSessionPtr = std::shared_ptr<GarlicRoutingSession>;
+	typedef std::shared_ptr<GarlicRoutingSession> GarlicRoutingSessionPtr; // TODO: replace to using after switch to 4.8	
 
 	class GarlicDestination: public i2p::data::LocalDestination
 	{
 		public:
 
-			GarlicDestination (): m_NumTags (32), m_LastTagsCleanupTime (0) {}; // 32 tags by default
+			GarlicDestination (): m_NumTags (32) {}; // 32 tags by default
 			~GarlicDestination ();
 
 			void SetNumTags (int numTags) { m_NumTags = numTags; };		
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);	
-			void CleanupRoutingSessions ();
+			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
 			std::shared_ptr<I2NPMessage> WrapMessage (std::shared_ptr<const i2p::data::RoutingDestination> destination, 
 			    std::shared_ptr<I2NPMessage> msg, bool attachLeaseSet = false);
@@ -166,7 +167,6 @@ namespace garlic
 			std::map<i2p::data::IdentHash, GarlicRoutingSessionPtr> m_Sessions;
 			// incoming
 			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
-			uint32_t m_LastTagsCleanupTime;
 			// DeliveryStatus
 			std::map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
 			
