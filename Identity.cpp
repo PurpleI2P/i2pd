@@ -234,10 +234,7 @@ namespace data
 	size_t IdentityEx::ToBuffer (uint8_t * buf, size_t len) const
 	{
 		const size_t fullLen = GetFullLen();
-		if (fullLen > len) {
-			// buffer is too small and may overflow somewhere else
-			return 0;
-		}
+		if (fullLen > len) return 0; // buffer is too small and may overflow somewhere else
 		memcpy (buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
 		if (m_ExtendedLen > 0 && m_ExtendedBuffer)
 			memcpy (buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
@@ -247,9 +244,8 @@ namespace data
 	size_t IdentityEx::FromBase64(const std::string& s)
 	{
 		const size_t slen = s.length();
-		const size_t bufLen = Base64EncodingBufferSize(slen);
-		uint8_t buf[bufLen];
-		const size_t len = Base64ToByteStream (s.c_str(), slen, buf, bufLen);
+		uint8_t buf[slen]; // binary data can't exceed base64
+		const size_t len = Base64ToByteStream (s.c_str(), slen, buf, slen);
 		return FromBuffer (buf, len);
 	}	
 	
