@@ -69,7 +69,6 @@ namespace data
 
 	void LeaseSet::Update (const uint8_t * buf, size_t len)
 	{	
-		m_Leases.clear ();
 		if (len > m_BufferLen)
 		{
 			auto oldBuffer = m_Buffer;
@@ -84,7 +83,6 @@ namespace data
 	void LeaseSet::PopulateLeases ()
 	{
 		m_StoreLeases = true;
-		m_Leases.clear ();
 		ReadFromBuffer (false);
 	}	
 		
@@ -112,6 +110,13 @@ namespace data
 			return;
 		}	
 
+		// reset existing leases	
+		if (m_StoreLeases)
+			for (auto it: m_Leases)
+				it->isUpdated = false;		
+		else	
+			m_Leases.clear ();
+
 		// process leases
 		m_ExpirationTime = 0;
 		const uint8_t * leases = m_Buffer + size;
@@ -128,9 +133,9 @@ namespace data
 				m_ExpirationTime = lease.endDate;
 			if (m_StoreLeases)
 			{	
-				auto l = std::make_shared<Lease>();
-				*l = lease;	
-				m_Leases.push_back (l);
+				auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
+				if (!ret.second) *(*ret.first) = lease; // update existing
+				(*ret.first)->isUpdated = true;
 				// check if lease's gateway is in our netDb
 				if (!netdb.FindRouter (lease.tunnelGateway))
 				{
@@ -140,7 +145,21 @@ namespace data
 				}
 			}	
 		}	
-		
+		// delete old leases	
+		if (m_StoreLeases)
+		{	
+			for (auto it = m_Leases.begin (); it != m_Leases.end ();)
+			{	
+				if (!(*it)->isUpdated)
+				{
+					(*it)->endDate = 0; // somebody might still hold it
+					m_Leases.erase (it++);
+				}	
+				else
+					it++;
+			}
+		}
+
 		// verify
 		if (!m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
 		{
@@ -153,7 +172,7 @@ namespace data
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		std::vector<std::shared_ptr<Lease> > leases;
-		for (auto& it: m_Leases)
+		for (auto it: m_Leases)
 		{
 			auto endDate = it->endDate;
 			if (!withThreshold)
@@ -167,7 +186,7 @@ namespace data
 	bool LeaseSet::HasExpiredLeases () const
  	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		for (auto& it: m_Leases)
+		for (auto it: m_Leases)
 			if (ts >= it->endDate) return true;
 		return false;
  	}	
