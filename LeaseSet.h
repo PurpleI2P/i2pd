@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
+#include <memory>
 #include "Identity.h"
 
 namespace i2p
@@ -21,14 +22,6 @@ namespace data
 		IdentHash tunnelGateway;
 		uint32_t tunnelID;
 		uint64_t endDate;
-
-		bool operator< (const Lease& other) const 
-		{
-			if (endDate != other.endDate)
-				return endDate > other.endDate;
-			else
-				return tunnelID < other.tunnelID; 
-		}	
 	};	
 
 	const int MAX_LS_BUFFER_SIZE = 3072;
@@ -48,13 +41,14 @@ namespace data
 			size_t GetBufferLen () const { return m_BufferLen; };	
 			bool IsValid () const { return m_IsValid; };
 
-			// implements RoutingDestination
-			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
-			const std::vector<Lease>& GetLeases () const { return m_Leases; };
-			const std::vector<Lease> GetNonExpiredLeases (bool withThreshold = true) const;
+			const std::vector<std::shared_ptr<Lease> >& GetLeases () const { return m_Leases; };
+			const std::vector<std::shared_ptr<Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
 			bool HasExpiredLeases () const;
 			bool IsExpired () const;
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
+
+			// implements RoutingDestination
+			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };
 			bool IsDestination () const { return true; };
 
@@ -65,7 +59,7 @@ namespace data
 		private:
 
 			bool m_IsValid, m_StoreLeases; // we don't need to store leases for floodfill
-			std::vector<Lease> m_Leases;
+			std::vector<std::shared_ptr<Lease> > m_Leases;
 			uint64_t m_ExpirationTime; // in milliseconds
 			std::shared_ptr<const IdentityEx> m_Identity;
 			uint8_t m_EncryptionKey[256];

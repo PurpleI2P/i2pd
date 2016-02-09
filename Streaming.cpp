@@ -22,7 +22,6 @@ namespace stream
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 		m_RemoteIdentity = remote->GetIdentity ();
-		m_CurrentRemoteLease.endDate = 0;
 	}	
 
 	Stream::Stream (boost::asio::io_service& service, StreamingDestination& local):
@@ -599,9 +598,9 @@ namespace stream
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();		
-		if (!m_CurrentRemoteLease.endDate || ts >= m_CurrentRemoteLease.endDate - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000)
+		if (m_CurrentRemoteLease || ts >= m_CurrentRemoteLease->endDate - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000)
 			UpdateCurrentRemoteLease (true);
-		if (ts < m_CurrentRemoteLease.endDate)
+		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate)
 		{	
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 			for (auto it: packets)
@@ -610,7 +609,7 @@ namespace stream
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 					{ 
 						i2p::tunnel::eDeliveryTypeTunnel,
-						m_CurrentRemoteLease.tunnelGateway, m_CurrentRemoteLease.tunnelID,
+						m_CurrentRemoteLease->tunnelGateway, m_CurrentRemoteLease->tunnelID,
 						msg
 					});	
 				m_NumSentBytes += it->GetLength ();
@@ -725,10 +724,10 @@ namespace stream
 			if (!leases.empty ())
 			{	
 				bool updated = false;	
-				if (expired)
+				if (expired && m_CurrentRemoteLease)
 				{
 					for (auto it: leases)
-						if ((it.tunnelGateway == m_CurrentRemoteLease.tunnelGateway) && (it.tunnelID != m_CurrentRemoteLease.tunnelID))
+						if ((it->tunnelGateway == m_CurrentRemoteLease->tunnelGateway) && (it->tunnelID != m_CurrentRemoteLease->tunnelID))
 						{
 							m_CurrentRemoteLease = it;
 							updated = true;
@@ -738,7 +737,7 @@ namespace stream
 				if (!updated)
 				{
 					uint32_t i = rand () % leases.size ();
-					if (m_CurrentRemoteLease.endDate && leases[i].tunnelID == m_CurrentRemoteLease.tunnelID)
+					if (m_CurrentRemoteLease && leases[i]->tunnelID == m_CurrentRemoteLease->tunnelID)
 						// make sure we don't select previous 	
 						i = (i + 1) % leases.size (); // if so, pick next
 					m_CurrentRemoteLease = leases[i];		
@@ -747,12 +746,12 @@ namespace stream
 			else
 			{	
 				m_RemoteLeaseSet = nullptr;
-				m_CurrentRemoteLease.endDate = 0;
+				m_CurrentRemoteLease = nullptr;
 				// re-request expired
 			}	
 		}
 		else
-			m_CurrentRemoteLease.endDate = 0;
+			m_CurrentRemoteLease = nullptr;
 	}	
 
 	std::shared_ptr<I2NPMessage> Stream::CreateDataMessage (const uint8_t * payload, size_t len)

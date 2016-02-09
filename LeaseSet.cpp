@@ -128,7 +128,9 @@ namespace data
 				m_ExpirationTime = lease.endDate;
 			if (m_StoreLeases)
 			{	
-				m_Leases.push_back (lease);
+				auto l = std::make_shared<Lease>();
+				*l = lease;	
+				m_Leases.push_back (l);
 				// check if lease's gateway is in our netDb
 				if (!netdb.FindRouter (lease.tunnelGateway))
 				{
@@ -147,13 +149,13 @@ namespace data
 		}
 	}				
 	
-	const std::vector<Lease> LeaseSet::GetNonExpiredLeases (bool withThreshold) const
+	const std::vector<std::shared_ptr<Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		std::vector<Lease> leases;
+		std::vector<std::shared_ptr<Lease> > leases;
 		for (auto& it: m_Leases)
 		{
-			auto endDate = it.endDate;
+			auto endDate = it->endDate;
 			if (!withThreshold)
 				endDate -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000;
 			if (ts < endDate)
@@ -166,7 +168,7 @@ namespace data
  	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto& it: m_Leases)
-			if (ts >= it.endDate) return true;
+			if (ts >= it->endDate) return true;
 		return false;
  	}	
 

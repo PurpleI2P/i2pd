@@ -265,9 +265,9 @@ namespace i2p
 			auto leases = leaseSet->GetNonExpiredLeases ();
 			if (leases.size () > 0)
 			{
-				htobe32buf (payload + size, leases[0].tunnelID);
+				htobe32buf (payload + size, leases[0]->tunnelID);
 				size += 4; // reply tunnelID
-				memcpy (payload + size, leases[0].tunnelGateway, 32);
+				memcpy (payload + size, leases[0]->tunnelGateway, 32);
 				size += 32; // reply tunnel gateway
 			}
 			else
