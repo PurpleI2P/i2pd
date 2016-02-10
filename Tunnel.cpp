@@ -666,6 +666,10 @@ namespace tunnel
 		{
 			// trying to create one more inbound tunnel		
 			auto router = i2p::data::netdb.GetRandomRouter ();
+			if (!router) {
+				LogPrint (eLogWarning, "Tunnel: can't find any router, skip creating tunnel");
+				return;
+			}
 			LogPrint (eLogDebug, "Tunnel: creating one hop inbound tunnel");
 			CreateTunnel<InboundTunnel> (
 				std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> > { router->GetRouterIdentity () })
