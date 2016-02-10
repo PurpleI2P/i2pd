@@ -66,7 +66,7 @@ namespace datagram
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
-					leases[i].tunnelGateway, leases[i].tunnelID,
+					leases[i]->tunnelGateway, leases[i]->tunnelID,
 					garlic
 				});
 			outboundTunnel->SendTunnelDataMsg (msgs);

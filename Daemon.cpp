@@ -83,14 +83,14 @@ namespace i2p
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
 			uint16_t port; i2p::config::GetOption("port", port);
-			if (port)
+			if (!i2p::config::IsDefault("port"))
 			{	
 				LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
 				i2p::context.UpdatePort (port);
 			}	
 
 			std::string host; i2p::config::GetOption("host", host);
-			if (host != "0.0.0.0")
+			if (!i2p::config::IsDefault("host"))
 			{
 				LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
@@ -125,7 +125,10 @@ namespace i2p
 				i2p::context.SetExtraBandwidth ();
 			} 
 			else
+			{
+				LogPrint(eLogInfo, "Daemon: bandwidth set to 'low'");
 				i2p::context.SetLowBandwidth ();
+			}
 
 			return true;
 		}

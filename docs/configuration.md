@@ -12,6 +12,7 @@ Command line options
 * --log=                - Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)
 * --logfile=            - Path to logfile (default - autodetect)
 * --loglevel=           - Log messages above this level (debug, *info, warn, error)
+* --datadir=            - Path to storage of i2pd data (RI, keys, peer profiles, ...)
 * --host=               - The external IP
 * --port=               - The port to listen on
 * --daemon              - Router will go to background after start

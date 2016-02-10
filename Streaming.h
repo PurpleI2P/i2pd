@@ -172,7 +172,7 @@ namespace stream
 			std::shared_ptr<const i2p::data::IdentityEx> m_RemoteIdentity;
 			std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
 			std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
-			i2p::data::Lease m_CurrentRemoteLease;
+			std::shared_ptr<i2p::data::Lease> m_CurrentRemoteLease;
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
 			std::queue<Packet *> m_ReceiveQueue;
 			std::set<Packet *, PacketCmp> m_SavedPackets;

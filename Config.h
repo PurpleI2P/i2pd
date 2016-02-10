@@ -94,6 +94,13 @@ namespace config {
     notify(m_Options);
     return true;
   }
+
+  /**
+   * @brief  Check is value explicitly given or default
+   * @param  name  Name of checked parameter
+   * @return true if value set to default, false othervise
+   */
+  bool IsDefault(const char *name);
 }
 }
 

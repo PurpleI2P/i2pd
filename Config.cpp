@@ -113,6 +113,7 @@ namespace config {
       ("log",       value<std::string>()->default_value(""),     "Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)")
       ("logfile",   value<std::string>()->default_value(""),     "Path to logfile (stdout if not set, autodetect if daemon)")
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
+      ("datadir",   value<std::string>()->default_value(""),     "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
       ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
@@ -223,6 +224,15 @@ namespace config {
 
   void Finalize() {
     notify(m_Options);
-  };
+  }
+
+  bool IsDefault(const char *name) {
+    if (!m_Options.count(name))
+      throw "try to check non-existent option";
+
+    if (m_Options[name].defaulted())
+      return true;
+    return false;
+  }
 } // namespace config
 } // namespace i2p
