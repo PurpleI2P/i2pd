@@ -704,11 +704,11 @@ namespace stream
 
 	void Stream::UpdateCurrentRemoteLease (bool expired)
 	{
-		if (!m_RemoteLeaseSet)
+		if (!m_RemoteLeaseSet || m_RemoteLeaseSet->IsExpired ()) 
 		{
 			m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
-			if (!m_RemoteLeaseSet)		
-				LogPrint (eLogError, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " not found");
+			if (!m_RemoteLeaseSet)	
+				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " not found");
 		}
 		if (m_RemoteLeaseSet)
 		{

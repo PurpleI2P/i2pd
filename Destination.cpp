@@ -303,7 +303,7 @@ namespace client
 				}
 				else
 				{
-					LogPrint (eLogError, "New remote LeaseSet verification failed");
+					LogPrint (eLogError, "New remote LeaseSet failed");
 					leaseSet = nullptr;
 				}
 			}	
@@ -678,7 +678,7 @@ namespace client
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it = m_RemoteLeaseSets.begin (); it != m_RemoteLeaseSets.end ();)
 		{
-			if (ts > it->second->GetExpirationTime ()) // leaseset expired
+			if (it->second->IsEmpty () || ts > it->second->GetExpirationTime ()) // leaseset expired
 			{
 				LogPrint (eLogWarning, "Destination: Remote LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_RemoteLeaseSets.erase (it);

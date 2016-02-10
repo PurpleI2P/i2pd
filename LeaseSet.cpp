@@ -119,6 +119,7 @@ namespace data
 
 		// process leases
 		m_ExpirationTime = 0;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		const uint8_t * leases = m_Buffer + size;
 		for (int i = 0; i < num; i++)
 		{
@@ -129,21 +130,32 @@ namespace data
 			leases += 4; // tunnel ID
 			lease.endDate = bufbe64toh (leases); 
 			leases += 8; // end date
-			if (lease.endDate > m_ExpirationTime)
-				m_ExpirationTime = lease.endDate;
-			if (m_StoreLeases)
+			if (ts < lease.endDate)
 			{	
-				auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
-				if (!ret.second) *(*ret.first) = lease; // update existing
-				(*ret.first)->isUpdated = true;
-				// check if lease's gateway is in our netDb
-				if (!netdb.FindRouter (lease.tunnelGateway))
-				{
-					// if not found request it
-					LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
-					netdb.RequestDestination (lease.tunnelGateway);
-				}
-			}	
+				if (lease.endDate > m_ExpirationTime)
+					m_ExpirationTime = lease.endDate;
+				if (m_StoreLeases)
+				{	
+					auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
+					if (!ret.second) *(*ret.first) = lease; // update existing
+					(*ret.first)->isUpdated = true;
+					// check if lease's gateway is in our netDb
+					if (!netdb.FindRouter (lease.tunnelGateway))
+					{
+						// if not found request it
+						LogPrint (eLogInfo, "LeaseSet: Lease's tunnel gateway not found, requesting");
+						netdb.RequestDestination (lease.tunnelGateway);
+					}
+				}	
+			}
+			else
+				LogPrint (eLogWarning, "LeaseSet: Lease is expired already ");
+		}	
+		if (!m_ExpirationTime)
+		{
+			LogPrint (eLogWarning, "LeaseSet: all leases are expired. Dropped");
+			m_IsValid = false;
+			return;
 		}	
 		// delete old leases	
 		if (m_StoreLeases)
@@ -193,6 +205,7 @@ namespace data
 
 	bool LeaseSet::IsExpired () const
 	{
+		if (IsEmpty ()) return true;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		return ts > m_ExpirationTime;
 	}	

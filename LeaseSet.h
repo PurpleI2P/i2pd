@@ -55,6 +55,7 @@ namespace data
 			const std::vector<std::shared_ptr<Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
 			bool HasExpiredLeases () const;
 			bool IsExpired () const;
+			bool IsEmpty () const { return m_Leases.empty (); };
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
 
 			// implements RoutingDestination
