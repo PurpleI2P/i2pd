@@ -878,7 +878,7 @@ namespace stream
 					it->second.push_back (packet);
 				else
 				{
-					m_SavedPackets.emplace (receiveStreamID, std::list<Packet *>{ packet });
+					m_SavedPackets[receiveStreamID] = std::list<Packet *>{ packet };
 					auto timer = std::make_shared<boost::asio::deadline_timer> (m_Owner->GetService ());
 					timer->expires_from_now (boost::posix_time::seconds(PENDING_INCOMING_TIMEOUT));
 					auto s = shared_from_this ();
