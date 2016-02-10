@@ -125,7 +125,10 @@ namespace i2p
 				i2p::context.SetExtraBandwidth ();
 			} 
 			else
+			{
+				LogPrint(eLogInfo, "Daemon: bandwidth set to 'low'");
 				i2p::context.SetLowBandwidth ();
+			}
 
 			return true;
 		}
