@@ -223,6 +223,15 @@ namespace config {
 
   void Finalize() {
     notify(m_Options);
-  };
+  }
+
+  bool IsDefault(const char *name) {
+    if (!m_Options.count(name))
+      throw "try to check non-existent option";
+
+    if (m_Options[name].defaulted())
+      return true;
+    return false;
+  }
 } // namespace config
 } // namespace i2p
