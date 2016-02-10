@@ -18,6 +18,7 @@ DAEMON_OPTS=""            # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME.pid
 I2PCONF=/etc/$NAME/i2pd.conf
 TUNCONF=/etc/$NAME/tunnels.conf
+LOGFILE=/var/log/$NAME.log
 USER="i2pd"
 
 # Exit if the package is not installed
@@ -43,10 +44,13 @@ do_start()
   touch "$PIDFILE"
   chown -f $USER:adm "$PIDFILE"
 
+  touch "$LOGFILE"
+  chown -f $USER:adm "$LOGFILE"
+
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" --test > /dev/null \
     || return 1
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" -- \
-    --service --daemon --log --conf=$I2PCONF --tunconf=$TUNCONF \
+    --service --daemon --log=file --logfile=$LOGFILE --conf=$I2PCONF --tunconf=$TUNCONF \
     --port=$I2PD_PORT $DAEMON_OPTS > /dev/null 2>&1 \
     || return 2
   return $?
