@@ -736,7 +736,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint (eLogWarning, "NTCP: No activity fo ", NTCP_TERMINATION_TIMEOUT, " seconds");
+			LogPrint (eLogWarning, "NTCP: No activity for ", NTCP_TERMINATION_TIMEOUT, " seconds");
 			//Terminate ();
 			m_Socket.close ();// invoke Terminate () from HandleReceive 
 		}	
