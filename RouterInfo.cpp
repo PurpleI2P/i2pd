@@ -146,6 +146,7 @@ namespace data
 		bool introducers = false;
 		for (int i = 0; i < numAddresses; i++)
 		{
+			uint8_t supportedTransports = 0;
 			bool isValidAddress = true;
 			Address address;
 			s.read ((char *)&address.cost, sizeof (address.cost));
@@ -178,12 +179,12 @@ namespace data
 					{	
 						if (address.transportStyle == eTransportNTCP)
 						{
-							m_SupportedTransports |= eNTCPV4; // TODO:
+							supportedTransports |= eNTCPV4; // TODO:
 							address.addressString = value;
 						}
 						else
 						{	
-							m_SupportedTransports |= eSSUV4; // TODO:
+							supportedTransports |= eSSUV4; // TODO:
 							address.addressString = value;
 						}	
 					}	
@@ -191,9 +192,9 @@ namespace data
 					{
 						// add supported protocol
 						if (address.host.is_v4 ())
-							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;	
+							supportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;	
 						else
-							m_SupportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+							supportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
  					}	
 				}	
 				else if (!strcmp (key, "port"))
@@ -229,7 +230,10 @@ namespace data
 				if (!s) return;
 			}	
 			if (isValidAddress)
+			{
 				m_Addresses.push_back(address);
+				m_SupportedTransports |= supportedTransports;
+			}
 		}	
 		// read peers
 		uint8_t numPeers;
