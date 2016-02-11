@@ -196,6 +196,7 @@ namespace client
 
 	void AddressBook::Start ()
 	{
+		LoadHosts (); /* try storage, then hosts.txt, then download */
 		StartSubscriptions ();
 	}
 	
@@ -276,14 +277,9 @@ namespace client
 	
 	const i2p::data::IdentHash * AddressBook::FindAddress (const std::string& address)
 	{
-		if (!m_IsLoaded)
-			LoadHosts ();
-		if (m_IsLoaded)
-		{
-			auto it = m_Addresses.find (address);
-			if (it != m_Addresses.end ())
-				return &it->second;
-		}
+		auto it = m_Addresses.find (address);
+		if (it != m_Addresses.end ())
+			return &it->second;
 		return nullptr;	
 	}
 
@@ -457,8 +453,6 @@ namespace client
 			}
 			else
 			{
-				if (!m_IsLoaded)
-					LoadHosts ();
 				// try it again later
 				m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(INITIAL_SUBSCRIPTION_RETRY_TIMEOUT));
 				m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
