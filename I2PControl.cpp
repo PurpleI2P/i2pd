@@ -205,7 +205,7 @@ namespace client
 					}
 					if (ss.eof ())
 					{
-						LogPrint (eLogError, "Malformed I2PControl request. HTTP header expected");
+						LogPrint (eLogError, "I2PControl: malformed request, HTTP header expected");
 						return; // TODO:
 					}
 					std::streamoff rem = contentLength + ss.tellg () - bytes_transferred; // more bytes to read
@@ -216,7 +216,7 @@ namespace client
 					}
 				}
 #if GCC47_BOOST149
-				LogPrint (eLogError, "json_read is not supported due bug in boost 1.49 with gcc 4.7");
+				LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
 #else
 				boost::property_tree::ptree pt;
 				boost::property_tree::read_json (ss, pt);
@@ -233,16 +233,16 @@ namespace client
 					SendResponse (socket, buf, response, isHtml);
 				}
 				else
-					LogPrint (eLogWarning, "Unknown I2PControl method ", method);
+					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
 #endif
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError, "I2PControl handle request: ", ex.what ());
+				LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
 			}
 			catch (...)
 			{
-				LogPrint (eLogError, "I2PControl handle request unknown exception");
+				LogPrint (eLogError, "I2PControl: handle request unknown exception");
 			}
 		}
 	}
@@ -527,7 +527,7 @@ namespace client
 
 			// save key
 			if ((f = fopen (key_path, "wb")) != NULL) {
-				LogPrint (eLogInfo, "I2PControl: saving cert key to : ", key_path);
+				LogPrint (eLogInfo, "I2PControl: saving cert key to ", key_path);
 				PEM_write_PrivateKey (f, pkey, NULL, NULL, 0, NULL, NULL);
 				fclose (f);
 			} else {

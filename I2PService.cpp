@@ -28,7 +28,7 @@ namespace client
 			m_LocalDestination->CreateStream (streamRequestComplete, identHash, port);
 		else
 		{
-			LogPrint (eLogWarning, "Remote destination ", dest, " not found");
+			LogPrint (eLogWarning, "I2PService: Remote destination ", dest, " not found");
 			streamRequestComplete (nullptr);
 		}
 	}
@@ -57,7 +57,7 @@ namespace client
 	{
 		if (!ecode)
 		{
-			LogPrint(eLogDebug,"--- ",GetName()," accepted");
+			LogPrint(eLogDebug, "I2PService: ", GetName(), " accepted");
 			auto handler = CreateHandler(socket);
 			if (handler) 
 			{
@@ -71,7 +71,7 @@ namespace client
 		else
 		{
 			if (ecode != boost::asio::error::operation_aborted)
-				LogPrint (eLogError,"--- ",GetName()," Closing socket on accept because: ", ecode.message ());
+				LogPrint (eLogError, "I2PService: ", GetName(), " closing socket on accept because: ", ecode.message ());
 		}
 	}
 
