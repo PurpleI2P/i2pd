@@ -215,8 +215,12 @@ namespace client
 						ss.write (buf->data (), bytes_transferred);
 					}
 				}
+				std::ostringstream response;
 #if GCC47_BOOST149
 				LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
+				response << "{\"id\":null,\"error\":";
+				response << "{\"code\":-32603,\"message\":\"JSON requests is not supported with this version of boost\"},";
+				response << "\"jsonrpc\":\"2.0\"}";
 #else
 				boost::property_tree::ptree pt;
 				boost::property_tree::read_json (ss, pt);
@@ -226,15 +230,17 @@ namespace client
 				auto it = m_MethodHandlers.find (method);
 				if (it != m_MethodHandlers.end ())
 				{
-					std::ostringstream response;
 					response << "{\"id\":" << id << ",\"result\":{";
 					(this->*(it->second))(pt.get_child ("params"), response);
 					response << "},\"jsonrpc\":\"2.0\"}";
-					SendResponse (socket, buf, response, isHtml);
-				}
-				else
+				} else {
 					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
+					response << "{\"id\":null,\"error\":";
+					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
+					response << "\"jsonrpc\":\"2.0\"}";
+				}
 #endif
+				SendResponse (socket, buf, response, isHtml);
 			}
 			catch (std::exception& ex)
 			{
