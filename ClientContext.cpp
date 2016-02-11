@@ -3,7 +3,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Config.h"
-#include "util.h"
+#include "FS.h"
 #include "Log.h"
 #include "Identity.h"
 #include "ClientContext.h"
@@ -152,10 +152,10 @@ namespace client
 		m_SharedLocalDestination = nullptr; 
 	}	
 	
-	void ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,  i2p::data::SigningKeyType sigType)
+	void ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
 	{
-		std::string fullPath = i2p::util::filesystem::GetFullPath (filename);
-		std::ifstream s(fullPath.c_str (), std::ifstream::binary);
+		std::string fullPath = i2p::fs::DataDirPath (filename);
+		std::ifstream s(fullPath, std::ifstream::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0, std::ios::end);
@@ -256,14 +256,14 @@ namespace client
 	void ClientContext::ReadTunnels ()
 	{
 		boost::property_tree::ptree pt;
-		std::string pathTunnelsConfigFile = i2p::util::filesystem::GetTunnelsConfigFile().string();
-		try
-		{
-			boost::property_tree::read_ini (pathTunnelsConfigFile, pt);
-		}
-		catch (std::exception& ex)
-		{
-			LogPrint (eLogWarning, "Clients: Can't read ", pathTunnelsConfigFile, ": ", ex.what ());
+		std::string pathTunConf;
+		i2p::config::GetOption("tunconf", pathTunConf);
+		if (pathTunConf == "")
+			return;
+		try {
+			boost::property_tree::read_ini (pathTunConf, pt);
+		} catch (std::exception& ex) {
+			LogPrint (eLogWarning, "Clients: Can't read ", pathTunConf, ": ", ex.what ());
 			return;
 		}
 			
@@ -351,7 +351,7 @@ namespace client
 					numServerTunnels++;
 				}
 				else
-					LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", pathTunnelsConfigFile);
+					LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", pathTunConf);
 				
 			}
 			catch (std::exception& ex)

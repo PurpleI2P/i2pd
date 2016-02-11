@@ -5,6 +5,7 @@
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "NetDb.h"
+#include "FS.h"
 #include "util.h"
 #include "version.h"
 #include "Log.h"
@@ -64,7 +65,7 @@ namespace i2p
 	void RouterContext::UpdateRouterInfo ()
 	{
 		m_RouterInfo.CreateBuffer (m_Keys);
-		m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
+		m_RouterInfo.SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
 	}	
 
@@ -292,7 +293,7 @@ namespace i2p
 		
 	bool RouterContext::Load ()
 	{
-		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ifstream::in);
+		std::ifstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ifstream::in | std::ifstream::binary);
 		if (!fk.is_open ())	return false;
 		fk.seekg (0, std::ios::end);
 		size_t len = fk.tellg();
@@ -312,7 +313,7 @@ namespace i2p
 			delete[] buf;
 		}
 
-		i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
+		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
 		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
 		m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
@@ -331,7 +332,7 @@ namespace i2p
 	void RouterContext::SaveKeys ()
 	{	
 		// save in the same format as .dat files
-		std::ofstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ofstream::binary | std::ofstream::out);
+		std::ofstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ofstream::binary | std::ofstream::out);
 		size_t len = m_Keys.GetFullLen ();
 		uint8_t * buf = new uint8_t[len];
 		m_Keys.ToBuffer (buf, len);

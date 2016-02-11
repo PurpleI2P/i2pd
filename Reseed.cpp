@@ -2,15 +2,16 @@
 #include <fstream>
 #include <sstream>
 #include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <openssl/bn.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <zlib.h>
+
 #include "I2PEndian.h"
 #include "Reseed.h"
+#include "FS.h"
 #include "Log.h"
 #include "Identity.h"
 #include "Crypto.h"
@@ -346,23 +347,22 @@ namespace data
 
 	void Reseeder::LoadCertificates ()
 	{
-		boost::filesystem::path reseedDir = i2p::util::filesystem::GetCertificatesDir() / "reseed";
-		
-		if (!boost::filesystem::exists (reseedDir))
-		{
-			LogPrint (eLogWarning, "Reseed: certificates not loaded, ", reseedDir, " doesn't exist");
+		std::string certDir = i2p::fs::DataDirPath("certificates", "reseed");
+		std::vector<std::string> files;
+		int numCertificates = 0;
+
+		if (!i2p::fs::ReadDir(certDir, files)) {
+			LogPrint(eLogWarning, "Reseed: Can't load reseed certificates from ", certDir);
 			return;
 		}
 
-		int numCertificates = 0;
-		boost::filesystem::directory_iterator end; // empty
-		for (boost::filesystem::directory_iterator it (reseedDir); it != end; ++it)
-		{
-			if (boost::filesystem::is_regular_file (it->status()) && it->path ().extension () == ".crt")
-			{	
-				LoadCertificate (it->path ().string ());
-				numCertificates++;
-			}	
+		for (const std::string & file : files) {
+			if (file.compare(file.size() - 4, 4, ".crt") != 0) {
+				LogPrint(eLogWarning, "Reseed: ignoring file ", file);
+				continue;
+			}
+			LoadCertificate (file);
+			numCertificates++;
 		}	
 		LogPrint (eLogInfo, "Reseed: ", numCertificates, " certificates loaded");
 	}	
