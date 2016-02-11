@@ -191,7 +191,7 @@ namespace config {
                  | boost::program_options::command_line_style::allow_long_disguise;
       style &=   ~ boost::program_options::command_line_style::allow_guessing;
       store(parse_command_line(argc, argv, m_OptionsDesc, style, old_syntax_parser), m_Options);
-    } catch (boost::program_options::error e) {
+    } catch (boost::program_options::error& e) {
       std::cerr << "args: " << e.what() << std::endl;
       exit(EXIT_FAILURE);
     }
