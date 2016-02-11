@@ -161,6 +161,11 @@ namespace client
 
 	int AddressBookFilesystemStorage::Save (const std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
+		if (addresses.size() == 0) {
+			LogPrint(eLogWarning, "Addressbook: not saving empty addressbook");
+			return 0;
+		}
+
 		int num = 0;
 		auto filename = GetPath () / "addresses.csv";
 		std::ofstream f (filename.string (), std::ofstream::out); // in text mode
