@@ -5,28 +5,11 @@
 #include <string>
 #include <iostream>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
-
-#define PAIRTYPE(t1, t2)    std::pair<t1, t2>
 
 namespace i2p
 {
 namespace util
 {
-	namespace filesystem
-	{
-		void SetAppName (const std::string& name);
-		std::string GetAppName ();
-
-		const boost::filesystem::path &GetDataDir();
-		std::string GetFullPath (const std::string& filename);	
-		boost::filesystem::path GetDefaultDataDir();
-		boost::filesystem::path GetConfigFile();
-		boost::filesystem::path GetTunnelsConfigFile();
-		boost::filesystem::path GetCertificatesDir();
-	}
-
 	namespace http
 	{
 		const char ETAG[] = "ETag";
