@@ -503,12 +503,13 @@ namespace transport
 		
 	void NTCPSession::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode)
-        {
-			LogPrint (eLogInfo, "NTCP: Read error: ", ecode.message ());
-			if (!m_NumReceivedBytes) m_Server.Ban (m_ConnectedFrom);
+		if (ecode) {
+			if (ecode != boost::asio::error::operation_aborted)
+				LogPrint (eLogDebug, "NTCP: Read error: ", ecode.message ());
+			if (!m_NumReceivedBytes)
+				m_Server.Ban (m_ConnectedFrom);
 			//if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+			Terminate ();
 		}
 		else
 		{
@@ -736,7 +737,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint (eLogWarning, "NTCP: No activity for ", NTCP_TERMINATION_TIMEOUT, " seconds");
+			LogPrint (eLogDebug, "NTCP: No activity for ", NTCP_TERMINATION_TIMEOUT, " seconds");
 			//Terminate ();
 			m_Socket.close ();// invoke Terminate () from HandleReceive 
 		}	

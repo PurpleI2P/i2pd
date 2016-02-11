@@ -180,10 +180,10 @@ namespace data
 		}
 	}				
 	
-	const std::vector<std::shared_ptr<Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
+	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		std::vector<std::shared_ptr<Lease> > leases;
+		std::vector<std::shared_ptr<const Lease> > leases;
 		for (auto it: m_Leases)
 		{
 			auto endDate = it->endDate;

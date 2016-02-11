@@ -129,7 +129,7 @@ namespace client
 	{
 		int num = 0;	
 		auto filename = GetPath () / "addresses.csv";
-		std::ifstream f (filename.string (), std::ofstream::in); // in text mode
+		std::ifstream f (filename.string (), std::ifstream::in); // in text mode
 		if (f.is_open ())	
 		{
 			addresses.clear ();
@@ -161,6 +161,11 @@ namespace client
 
 	int AddressBookFilesystemStorage::Save (const std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
+		if (addresses.size() == 0) {
+			LogPrint(eLogWarning, "Addressbook: not saving empty addressbook");
+			return 0;
+		}
+
 		int num = 0;
 		auto filename = GetPath () / "addresses.csv";
 		std::ofstream f (filename.string (), std::ofstream::out); // in text mode
@@ -191,6 +196,7 @@ namespace client
 
 	void AddressBook::Start ()
 	{
+		LoadHosts (); /* try storage, then hosts.txt, then download */
 		StartSubscriptions ();
 	}
 	
@@ -271,14 +277,9 @@ namespace client
 	
 	const i2p::data::IdentHash * AddressBook::FindAddress (const std::string& address)
 	{
-		if (!m_IsLoaded)
-			LoadHosts ();
-		if (m_IsLoaded)
-		{
-			auto it = m_Addresses.find (address);
-			if (it != m_Addresses.end ())
-				return &it->second;
-		}
+		auto it = m_Addresses.find (address);
+		if (it != m_Addresses.end ())
+			return &it->second;
 		return nullptr;	
 	}
 
@@ -320,7 +321,7 @@ namespace client
 		}
 	
 		// try hosts.txt first
-		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
+		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ifstream::in); // in text mode
 		if (f.is_open ())	
 		{
 			LoadHostsFromStream (f);
@@ -383,7 +384,7 @@ namespace client
 	{
 		if (!m_Subscriptions.size ())
 		{
-			std::ifstream f (i2p::util::filesystem::GetFullPath ("subscriptions.txt").c_str (), std::ofstream::in); // in text mode
+			std::ifstream f (i2p::util::filesystem::GetFullPath ("subscriptions.txt").c_str (), std::ifstream::in); // in text mode
 			if (f.is_open ())
 			{
 				std::string s;
@@ -452,8 +453,6 @@ namespace client
 			}
 			else
 			{
-				if (!m_IsLoaded)
-					LoadHosts ();
 				// try it again later
 				m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(INITIAL_SUBSCRIPTION_RETRY_TIMEOUT));
 				m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,

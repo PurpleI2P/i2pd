@@ -78,6 +78,9 @@ clean:
 	rm -rf obj
 	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 
+strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
+	strip $^
+
 LATEST_TAG=$(shell git describe --tags --abbrev=0 master)
 dist:
 	git archive --format=tar.gz -9 --worktree-attributes \

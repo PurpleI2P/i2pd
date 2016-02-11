@@ -15,7 +15,12 @@
 #include "Identity.h"
 
 namespace i2p
-{	
+{
+namespace tunnel
+{		
+	class OutboundTunnel;
+}
+	
 namespace garlic
 {
 	
@@ -27,19 +32,18 @@ namespace garlic
 		eGarlicDeliveryTypeTunnel = 3
 	};	
 
-#pragma pack(1)
 	struct ElGamalBlock
 	{
 		uint8_t sessionKey[32];
 		uint8_t preIV[32];
 		uint8_t padding[158];
 	};		
-#pragma pack()	
 
 	const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 960; // 16 minutes			
 	const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720; // 12 minutes
 	const int OUTGOING_TAGS_CONFIRMATION_TIMEOUT = 10; // 10 seconds 
 	const int LEASET_CONFIRMATION_TIMEOUT = 4000; // in milliseconds
+	const int ROUTING_PATH_EXPIRATION_TIMEOUT = 30; // 30 seconds 
 	
 	struct SessionTag: public i2p::data::Tag<32> 
 	{
@@ -53,7 +57,14 @@ namespace garlic
 #endif
 		uint32_t creationTime; // seconds since epoch	
 	};
-		
+
+	struct GarlicRoutingPath
+	{
+		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
+		std::shared_ptr<const i2p::data::Lease> remoteLease;
+		uint32_t updateTime; // seconds since epoch
+	};	
+	
 	class GarlicDestination;
 	class GarlicRoutingSession: public std::enable_shared_from_this<GarlicRoutingSession>
 	{
@@ -88,6 +99,9 @@ namespace garlic
 			{ 
 				if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend) m_LeaseSetUpdateStatus = eLeaseSetUpdated; 
 			};
+
+			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
+			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);
 			
 		private:
 
@@ -115,6 +129,8 @@ namespace garlic
 			i2p::crypto::CBCEncryption m_Encryption;
 			std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption; 
 
+			std::shared_ptr<GarlicRoutingPath> m_SharedRoutingPath;
+			
 		public:
 			// for HTTP only
 			size_t GetNumOutgoingTags () const { return m_SessionTags.size (); };

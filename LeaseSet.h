@@ -52,7 +52,7 @@ namespace data
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			size_t GetBufferLen () const { return m_BufferLen; };	
 			bool IsValid () const { return m_IsValid; };
-			const std::vector<std::shared_ptr<Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
+			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
 			bool HasExpiredLeases () const;
 			bool IsExpired () const;
 			bool IsEmpty () const { return m_Leases.empty (); };
