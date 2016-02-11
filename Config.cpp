@@ -204,19 +204,22 @@ namespace config {
   }
 
   void ParseConfig(const std::string& path) {
-    if (path == "")
-      return;
+    if (path == "") return;
 
     std::ifstream config(path, std::ios::in);
 
-    if (!config.is_open()) {
+    if (!config.is_open()) 
+	{
       std::cerr << "missing/unreadable config file: " << path << std::endl;
       exit(EXIT_FAILURE);
     }
 
-    try {
-      store(boost::program_options::parse_config_file(config, m_OptionsDesc), m_Options);
-    } catch (boost::program_options::error e) {
+    try 
+	{
+		store(boost::program_options::parse_config_file(config, m_OptionsDesc), m_Options);
+    } 
+	catch (boost::program_options::error& e) 
+	{
       std::cerr << e.what() << std::endl;
       exit(EXIT_FAILURE);
     };
