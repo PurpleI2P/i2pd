@@ -129,7 +129,7 @@ namespace client
 	{
 		int num = 0;	
 		auto filename = GetPath () / "addresses.csv";
-		std::ifstream f (filename.string (), std::ofstream::in); // in text mode
+		std::ifstream f (filename.string (), std::ifstream::in); // in text mode
 		if (f.is_open ())	
 		{
 			addresses.clear ();
@@ -321,7 +321,7 @@ namespace client
 		}
 	
 		// try hosts.txt first
-		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ofstream::in); // in text mode
+		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ifstream::in); // in text mode
 		if (f.is_open ())	
 		{
 			LoadHostsFromStream (f);
@@ -384,7 +384,7 @@ namespace client
 	{
 		if (!m_Subscriptions.size ())
 		{
-			std::ifstream f (i2p::util::filesystem::GetFullPath ("subscriptions.txt").c_str (), std::ofstream::in); // in text mode
+			std::ifstream f (i2p::util::filesystem::GetFullPath ("subscriptions.txt").c_str (), std::ifstream::in); // in text mode
 			if (f.is_open ())
 			{
 				std::string s;

@@ -292,7 +292,7 @@ namespace i2p
 		
 	bool RouterContext::Load ()
 	{
-		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ofstream::in);
+		std::ifstream fk (i2p::util::filesystem::GetFullPath (ROUTER_KEYS).c_str (), std::ifstream::binary | std::ifstream::in);
 		if (!fk.is_open ())	return false;
 		fk.seekg (0, std::ios::end);
 		size_t len = fk.tellg();
