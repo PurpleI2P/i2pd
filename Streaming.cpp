@@ -271,6 +271,10 @@ namespace stream
 						m_LastWindowSizeIncreaseTime = ts;
 					}
 				}
+				if (!seqn && m_RoutingSession) // first message confirmed
+					m_RoutingSession->SetSharedRoutingPath (
+						std::make_shared<i2p::garlic::GarlicRoutingPath> (
+							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, 0}));
 			}
 			else
 				break;
@@ -589,6 +593,21 @@ namespace stream
 				return;
 			}
 		}
+		if (!m_CurrentOutboundTunnel) // first message to send
+		{
+			// try to get shared path first
+			if (!m_RoutingSession)
+				m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
+			if (m_RoutingSession)
+			{	
+				auto routingPath = m_RoutingSession->GetSharedRoutingPath ();
+				if (routingPath)
+				{
+					m_CurrentOutboundTunnel = routingPath->outboundTunnel;
+					m_CurrentRemoteLease = routingPath->remoteLease;
+				}
+			}	
+		}	
 		if (!m_CurrentOutboundTunnel || !m_CurrentOutboundTunnel->IsEstablished ())
 			m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
 		if (!m_CurrentOutboundTunnel)
@@ -668,12 +687,14 @@ namespace stream
 					case 2:
 						m_RTO = INITIAL_RTO; // drop RTO to initial upon tunnels pair change first time
 						// no break here
-					case 4:	
+					case 4:
+						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 						UpdateCurrentRemoteLease (); // pick another lease
 						LogPrint (eLogWarning, "Streaming: Another remote lease has been selected for stream");
 					break;	
 					case 3:
 						// pick another outbound tunnel 
+						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 						m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel (m_CurrentOutboundTunnel); 
 						LogPrint (eLogWarning, "Streaming: Another outbound tunnel has been selected for stream");
 					break;

@@ -42,7 +42,27 @@ namespace garlic
 			delete it.second;
 		m_UnconfirmedTagsMsgs.clear ();
 	}
-	
+
+	std::shared_ptr<GarlicRoutingPath> GarlicRoutingSession::GetSharedRoutingPath ()
+	{
+		if (!m_SharedRoutingPath) return nullptr;
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		if (!m_SharedRoutingPath->outboundTunnel->IsEstablished () ||
+			ts*1000LL > m_SharedRoutingPath->remoteLease->endDate ||
+		    ts > m_SharedRoutingPath->updateTime + ROUTING_PATH_EXPIRATION_TIMEOUT)
+				m_SharedRoutingPath = nullptr;
+		return m_SharedRoutingPath;
+	}
+		
+	void GarlicRoutingSession::SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path)
+	{	
+		if (path && path->outboundTunnel && path->remoteLease) 
+			path->updateTime = i2p::util::GetSecondsSinceEpoch ();
+		else
+			path = nullptr;
+		m_SharedRoutingPath = path;
+	}
+		
 	GarlicRoutingSession::UnconfirmedTags * GarlicRoutingSession::GenerateSessionTags ()
 	{
 		auto tags = new UnconfirmedTags (m_NumTags);
@@ -570,6 +590,7 @@ namespace garlic
 		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
 		{
+			it->second->GetSharedRoutingPath (); // delete shared path if necessary
 			if (!it->second->CleanupExpiredTags ())
 			{
 				LogPrint (eLogInfo, "Routing session to ", it->first.ToBase32 (), " deleted");
