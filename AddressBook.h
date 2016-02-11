@@ -10,7 +10,6 @@
 #include <memory>
 #include <boost/asio.hpp>
 #include "Base.h"
-#include "util.h"
 #include "Identity.h"
 #include "Log.h"
 
@@ -65,7 +64,6 @@ namespace client
 			void StartSubscriptions ();
 			void StopSubscriptions ();
 			
-			AddressBookStorage * CreateStorage ();	
 			void LoadHosts ();
 			void LoadSubscriptions ();
 
