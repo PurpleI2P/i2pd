@@ -12,8 +12,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/filesystem.hpp>
-#include "util.h"
 
 namespace i2p
 {
@@ -52,7 +50,6 @@ namespace client
 			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 
-			boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir(); };
 			void CreateCertificate (const char *crt_path, const char *key_path);
 
 		private:

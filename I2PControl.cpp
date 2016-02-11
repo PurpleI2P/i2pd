@@ -13,6 +13,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #endif
 
+#include "FS.h"
 #include "Log.h"
 #include "Config.h"
 #include "NetDb.h"
@@ -39,15 +40,12 @@ namespace client
 		// certificate / keys
 		std::string i2pcp_crt; i2p::config::GetOption("i2pcontrol.cert", i2pcp_crt);
 		std::string i2pcp_key; i2p::config::GetOption("i2pcontrol.key",  i2pcp_key);
-		auto path = GetPath ();
-		// TODO: move this to i2p::fs::expand
+
 		if (i2pcp_crt.at(0) != '/')
-			i2pcp_crt.insert(0, (path / "/").string());
+			i2pcp_crt = i2p::fs::DataDirPath(i2pcp_crt);
 		if (i2pcp_key.at(0) != '/')
-			i2pcp_key.insert(0, (path / "/").string());
-		if (!boost::filesystem::exists (i2pcp_crt) ||
-		    !boost::filesystem::exists (i2pcp_key))
-		{
+			i2pcp_key = i2p::fs::DataDirPath(i2pcp_key);
+		if (!i2p::fs::Exists (i2pcp_crt) || !i2p::fs::Exists (i2pcp_key)) {
 			LogPrint (eLogInfo, "I2PControl: creating new certificate for control connection");
 			CreateCertificate (i2pcp_crt.c_str(), i2pcp_key.c_str());
 		} else {
