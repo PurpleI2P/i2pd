@@ -109,6 +109,8 @@ namespace i2p
 				LogPrint(eLogInfo, "Daemon: router will be floodfill");
 				i2p::context.SetFloodfill (true);
 			}	
+			else
+				i2p::context.SetFloodfill (false);
 			if (bandwidth != '-')
 			{
 				LogPrint(eLogInfo, "Daemon: bandwidth set to ", bandwidth);
