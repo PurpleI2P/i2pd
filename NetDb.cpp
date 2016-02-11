@@ -496,9 +496,11 @@ namespace data
 					std::set<IdentHash> excluded;
 					for (int i = 0; i < 3; i++)
 					{
-						auto floodfill = GetClosestFloodfill (ident, excluded);
+						auto floodfill = GetClosestFloodfill (ident, excluded, true); // we need a floodfill close than us only
 						if (floodfill)
 							transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+						else
+							break;
 					}	
 				}	
 				else
@@ -885,12 +887,15 @@ namespace data
 	}	
 
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill (const IdentHash& destination, 
-		const std::set<IdentHash>& excluded) const
+		const std::set<IdentHash>& excluded, bool closeThanUsOnly) const
 	{
 		std::shared_ptr<const RouterInfo> r;
 		XORMetric minMetric;
 		IdentHash destKey = CreateRoutingKey (destination);
-		minMetric.SetMax ();
+		if (closeThanUsOnly)
+			minMetric = destKey ^ i2p::context.GetIdentHash ();
+		else	
+			minMetric.SetMax ();
 		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 		for (auto it: m_Floodfills)
 		{	
