@@ -26,6 +26,8 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
 	const uint8_t PROTOCOL_TYPE_RAW = 18;	
 	const int PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
+	const int PUBLISH_VERIFICATION_TIMEOUT = 10; // in seconds after successfull publish
+	const int PUBLISH_REGULAR_VERIFICATION_INTERNAL = 100; // in seconds periodically	
 	const int LEASESET_REQUEST_TIMEOUT = 5; // in seconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 40; // in seconds
 	const int DESTINATION_CLEANUP_TIMEOUT = 3; // in minutes 
@@ -116,6 +118,7 @@ namespace client
 			void UpdateLeaseSet ();
 			void Publish ();
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
+			void HandlePublishVerificationTimer (const boost::system::error_code& ecode);
 			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
 			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);		
@@ -148,7 +151,7 @@ namespace client
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
 			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
-			boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;
+			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer, m_CleanupTimer;
 
 		public:
 			

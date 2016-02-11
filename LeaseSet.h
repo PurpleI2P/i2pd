@@ -57,6 +57,8 @@ namespace data
 			bool IsExpired () const;
 			bool IsEmpty () const { return m_Leases.empty (); };
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
+			bool operator== (const LeaseSet& other) const 
+			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }; 
 
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };

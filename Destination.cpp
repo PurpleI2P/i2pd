@@ -17,7 +17,8 @@ namespace client
 			const std::map<std::string, std::string> * params):
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),	
 		m_Keys (keys), m_IsPublic (isPublic), m_PublishReplyToken (0),
-		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service), m_CleanupTimer (m_Service)
+		m_DatagramDestination (nullptr), m_PublishConfirmationTimer (m_Service), 
+		m_PublishVerificationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
 		if (m_IsPublic)	
 			PersistTemporaryKeys ();
@@ -156,6 +157,8 @@ namespace client
 		if (m_IsRunning)
 		{	
 			m_CleanupTimer.cancel ();
+			m_PublishConfirmationTimer.cancel ();
+			m_PublishVerificationTimer.cancel ();
 			m_IsRunning = false;
 			m_StreamingDestination->Stop ();
 			m_StreamingDestination = nullptr;
@@ -298,8 +301,13 @@ namespace client
 				leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
 				if (leaseSet->IsValid ())
 				{
-					LogPrint (eLogDebug, "New remote LeaseSet added");
-					m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
+					if (leaseSet->GetIdentHash () != GetIdentHash ())
+					{
+						LogPrint (eLogDebug, "New remote LeaseSet added");
+						m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
+					}
+					else
+						LogPrint (eLogDebug, "Own remote LeaseSet dropped");
 				}
 				else
 				{
@@ -371,6 +379,10 @@ namespace client
 			LogPrint (eLogDebug, "Destination: Publishing LeaseSet confirmed");
 			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
+			// schedule verification
+			m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
+			m_PublishVerificationTimer.async_wait (std::bind (&ClientDestination::HandlePublishVerificationTimer,
+			shared_from_this (), std::placeholders::_1));	
 		}
 		else
 			i2p::garlic::GarlicDestination::HandleDeliveryStatusMessage (msg);
@@ -381,7 +393,10 @@ namespace client
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();	
 		UpdateLeaseSet ();
 		if (m_IsPublic)
+		{
+			m_PublishVerificationTimer.cancel ();
 			Publish ();
+		}
 	}
 		
 	void ClientDestination::Publish ()
@@ -402,7 +417,6 @@ namespace client
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
 			return;
 		}
-		std::set<i2p::data::IdentHash> excluded; 
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (m_LeaseSet->GetIdentHash (), m_ExcludedFloodfills);	
 		if (!floodfill)
 		{
@@ -416,7 +430,7 @@ namespace client
 		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));			
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&ClientDestination::HandlePublishConfirmationTimer,
-			this, std::placeholders::_1));	
+			shared_from_this (), std::placeholders::_1));	
 		outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);	
 	}
 
@@ -430,6 +444,34 @@ namespace client
 				m_PublishReplyToken = 0;
 				Publish ();
 			}
+		}
+	}
+
+	void ClientDestination::HandlePublishVerificationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			auto s = shared_from_this ();
+			RequestLeaseSet (GetIdentHash (), 
+				[s](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+				{
+					if (leaseSet)
+					{
+						if (s->m_LeaseSet && *s->m_LeaseSet == *leaseSet)
+						{
+							// we got latest LeasetSet
+							LogPrint (eLogDebug, "Destination: published LeaseSet verified");
+							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
+		s->m_PublishVerificationTimer.async_wait (std::bind (&ClientDestination::HandlePublishVerificationTimer,
+			s, std::placeholders::_1));	
+							return;
+						}		
+					}	
+					else
+						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet");
+					// we have to publish again
+					s->Publish ();	
+				});
 		}
 	}
 
@@ -622,7 +664,7 @@ namespace client
 				});	
 			request->requestTimeoutTimer.expires_from_now (boost::posix_time::seconds(LEASESET_REQUEST_TIMEOUT));
 			request->requestTimeoutTimer.async_wait (std::bind (&ClientDestination::HandleRequestTimoutTimer,
-				this, std::placeholders::_1, dest));
+				shared_from_this (), std::placeholders::_1, dest));
 		}	
 		else
 			return false;
