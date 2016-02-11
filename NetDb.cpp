@@ -1,12 +1,13 @@
 #include <string.h>
-#include "I2PEndian.h"
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
 #include <openssl/rand.h>
 #include <zlib.h>
+#include "I2PEndian.h"
 #include "Base.h"
 #include "Log.h"
+#include "FS.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
@@ -22,7 +23,6 @@ namespace i2p
 {
 namespace data
 {		
-	const char NetDb::m_NetDbPath[] = "netDb";
 	NetDb netdb;
 
 	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr)
@@ -250,30 +250,6 @@ namespace data
 			return it->second->SetUnreachable (unreachable);
 	}
 
-	// TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
-	bool NetDb::CreateNetDb(boost::filesystem::path directory)
-	{
-		LogPrint (eLogInfo, "NetDb: storage directory doesn't exist, trying to create it.");
-		if (!boost::filesystem::create_directory (directory))
-		{
-			LogPrint (eLogError, "NetDb: failed to create directory ", directory);
-			return false;
-		}
-
-		// list of chars might appear in base64 string
-		const char * chars = GetBase64SubstitutionTable (); // 64 bytes
-		for (int i = 0; i < 64; i++)
-		{
-			auto p = directory / (std::string ("r") + chars[i]);
-			if (!boost::filesystem::exists (p) && !boost::filesystem::create_directory (p)) 
-			{
-				LogPrint (eLogError, "NetDb: failed to create directory ", p);
-				return false;
-			}
-		}
-		return true;
-	}
-
 	void NetDb::Reseed ()
 	{
 		if (!m_Reseeder)
@@ -288,145 +264,108 @@ namespace data
 			LogPrint (eLogWarning, "NetDb: failed to reseed after 10 attempts");
 	}
 
+	bool NetDb::LoadRouterInfo (const std::string & path)
+	{
+		auto r = std::make_shared<RouterInfo>(path);
+		if (r->GetRouterIdentity () && !r->IsUnreachable () &&
+				(!r->UsesIntroducer () || m_LastLoad < r->GetTimestamp () + 3600*1000LL)) // 1 hour
+		{
+			r->DeleteBuffer ();
+			r->ClearProperties (); // properties are not used for regular routers
+			m_RouterInfos[r->GetIdentHash ()] = r;
+			if (r->IsFloodfill ())
+				m_Floodfills.push_back (r);
+		}	else {
+			LogPrint(eLogWarning, "NetDb: Can't load RI from ", path, ", delete");
+			i2p::fs::Remove(path);
+		}
+		return true;
+	}
+
 	void NetDb::Load ()
 	{
-		boost::filesystem::path p(i2p::util::filesystem::GetDataDir() / m_NetDbPath);
-		if (!boost::filesystem::exists (p))
-		{
-			// seems netDb doesn't exist yet
-			if (!CreateNetDb(p)) return;
-		}
 		// make sure we cleanup netDb from previous attempts
 		m_RouterInfos.clear ();	
 		m_Floodfills.clear ();	
 
-		// load routers now
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();	
-		int numRouters = 0;
-		boost::filesystem::directory_iterator end;
-		for (boost::filesystem::directory_iterator it (p); it != end; ++it)
-		{
-			if (boost::filesystem::is_directory (it->status()))
-			{
-				for (boost::filesystem::directory_iterator it1 (it->path ()); it1 != end; ++it1)
-				{
-#if BOOST_VERSION > 10500
-					const std::string& fullPath = it1->path().string();
-#else
-					const std::string& fullPath = it1->path();
-#endif
-					auto r = std::make_shared<RouterInfo>(fullPath);
-					if (r->GetRouterIdentity () && !r->IsUnreachable () && 
-					    (!r->UsesIntroducer () || ts < r->GetTimestamp () + 3600*1000LL)) // 1 hour
-					{	
-						r->DeleteBuffer ();
-						r->ClearProperties (); // properties are not used for regular routers
-						m_RouterInfos[r->GetIdentHash ()] = r;
-						if (r->IsFloodfill ())
-							m_Floodfills.push_back (r);
-						numRouters++;
-					}	
-					else
-					{	
-						if (boost::filesystem::exists (fullPath))  
-							boost::filesystem::remove (fullPath);
-					}	
-				}	
-			}	
-		}
-		LogPrint (eLogInfo, "NetDb: ", numRouters, " routers loaded (", m_Floodfills.size (), " floodfils)");
+		m_LastLoad = i2p::util::GetSecondsSinceEpoch();
+		std::vector<std::string> files;
+		i2p::fs::GetNetDB().Traverse(files);
+		for (auto path : files)
+			LoadRouterInfo(path);
+
+		LogPrint (eLogInfo, "NetDb: ", m_RouterInfos.size(), " routers loaded (", m_Floodfills.size (), " floodfils)");
 	}	
 
 	void NetDb::SaveUpdated ()
 	{	
-		auto GetFilePath = [](const boost::filesystem::path& directory, const RouterInfo * routerInfo)
-		{
-			std::string s(routerInfo->GetIdentHashBase64());
-			return directory / (std::string("r") + s[0]) / ("routerInfo-" + s + ".dat");
-		};	
-
-		boost::filesystem::path fullDirectory (i2p::util::filesystem::GetDataDir() / m_NetDbPath);
-		int count = 0, deletedCount = 0;
+		int updatedCount = 0, deletedCount = 0;
 		auto total = m_RouterInfos.size ();
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+
 		for (auto it: m_RouterInfos)
 		{	
-			if (it.second->IsUpdated ())
-			{
-				std::string f = GetFilePath(fullDirectory, it.second.get()).string();
-				it.second->SaveToFile (f);
+			std::string ident = it.second->GetIdentHashBase64();
+			std::string path  = i2p::fs::GetNetDB().Path(ident);
+			if (it.second->IsUpdated ()) {
+				it.second->SaveToFile (path);
 				it.second->SetUpdated (false);
 				it.second->SetUnreachable (false);
 				it.second->DeleteBuffer ();
-				count++;
+				updatedCount++;
+				continue;
 			}
-			else 
-			{
+			// find & mark unreachable routers
+			if (it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) {
 				// RouterInfo expires after 1 hour if uses introducer
-				if (it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hour
-					it.second->SetUnreachable (true);
-				else if (total > 75 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) // routers don't expire if less than 25 or uptime is less than 10 minutes
-				{
-					if (i2p::context.IsFloodfill ())
-					{
-						if (ts > it.second->GetTimestamp () + 3600*1000LL) // 1 hours
-						{	
-							it.second->SetUnreachable (true);
-							total--;
-						}	
+				it.second->SetUnreachable (true);
+			} else if (total > 75 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) {
+				// routers don't expire if less than 25 or uptime is less than 10 minutes
+				if (i2p::context.IsFloodfill ()) {
+					if (ts > it.second->GetTimestamp () + 3600*1000LL) { // 1 hour
+						it.second->SetUnreachable (true);
+						total--;
 					}
-					else if (total > 300)
-					{
-						if (ts > it.second->GetTimestamp () + 30*3600*1000LL) // 30 hours
-						{	
-							it.second->SetUnreachable (true);
-							total--;
-						}	
+				} else if (total > 300) {
+					if (ts > it.second->GetTimestamp () + 30*3600*1000LL) { // 30 hours
+						it.second->SetUnreachable (true);
+						total--;
 					}
-					else if (total > 120)
-					{
-						if (ts > it.second->GetTimestamp () + 72*3600*1000LL) // 72 hours
-						{	
-							it.second->SetUnreachable (true);
-							total--;
-						}	
+				} else if (total > 120) {
+					if (ts > it.second->GetTimestamp () + 72*3600*1000LL) { // 72 hours
+						it.second->SetUnreachable (true);
+						total--;
 					}
 				}
-				
-				if (it.second->IsUnreachable ())
-				{	
-					total--;
-					// delete RI file
-					if (boost::filesystem::exists (GetFilePath (fullDirectory, it.second.get ())))
-					{    
-						boost::filesystem::remove (GetFilePath (fullDirectory, it.second.get ()));
-						deletedCount++;
-					}	
-					// delete from floodfills list
-					if (it.second->IsFloodfill ())
-					{
-						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-						m_Floodfills.remove (it.second);
-					}
+			}
+
+			if (it.second->IsUnreachable ()) {
+				total--;
+				// delete RI file
+				i2p::fs::GetNetDB().Remove(ident);
+				deletedCount++;
+				// delete from floodfills list
+				if (it.second->IsFloodfill ()) {
+					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+					m_Floodfills.remove (it.second);
 				}
-			}	
-		}	
-		if (count > 0)
-			LogPrint (eLogInfo, "NetDb: ", count, " new/updated routers saved");
+			}
+		} // m_RouterInfos iteration
+		if (updatedCount > 0)
+			LogPrint (eLogInfo, "NetDb: saved ", updatedCount, " new/updated routers");
 		if (deletedCount > 0)
 		{
-			LogPrint (eLogDebug, "NetDb: ", deletedCount, " routers deleted");
+			LogPrint (eLogInfo, "NetDb: deleting ", deletedCount, " unreachable routers");
 			// clean up RouterInfos table
 			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 			for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
 			{
-				if (it->second->IsUnreachable ())
-				{	
+				if (it->second->IsUnreachable ()) {
 					it->second->SaveProfile ();
 					it = m_RouterInfos.erase (it);
+					continue;
 				}	
-				else
-					it++;
+				it++;
 			}
 		}
 	}

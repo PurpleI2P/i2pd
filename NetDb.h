@@ -8,7 +8,6 @@
 #include <string>
 #include <thread>
 #include <mutex>
-#include <boost/filesystem.hpp>
 #include "Base.h"
 #include "Queue.h"
 #include "I2NPProtocol.h"
@@ -23,7 +22,6 @@ namespace i2p
 {
 namespace data
 {		
-	
 	class NetDb
 	{
 		public:
@@ -69,8 +67,8 @@ namespace data
 			
 		private:
 
-			bool CreateNetDb(boost::filesystem::path directory);
 			void Load ();
+			bool LoadRouterInfo (const std::string & path);
 			void SaveUpdated ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);	
@@ -90,6 +88,7 @@ namespace data
 			std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 			
 			bool m_IsRunning;
+			uint64_t m_LastLoad;
 			std::thread * m_Thread;	
 			i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
 
