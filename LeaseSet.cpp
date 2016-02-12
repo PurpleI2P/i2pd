@@ -130,7 +130,7 @@ namespace data
 			leases += 4; // tunnel ID
 			lease.endDate = bufbe64toh (leases); 
 			leases += 8; // end date
-			if (ts < lease.endDate)
+			if (ts < lease.endDate + LEASE_ENDDATE_THRESHOLD)
 			{	
 				if (lease.endDate > m_ExpirationTime)
 					m_ExpirationTime = lease.endDate;
@@ -151,7 +151,7 @@ namespace data
 			else
 				LogPrint (eLogWarning, "LeaseSet: Lease is expired already ");
 		}	
-		if (!m_ExpirationTime)
+		if (!m_ExpirationTime && m_Leases.empty ())
 		{
 			LogPrint (eLogWarning, "LeaseSet: all leases are expired. Dropped");
 			m_IsValid = false;
@@ -191,6 +191,12 @@ namespace data
 				endDate -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000;
 			if (ts < endDate)
 				leases.push_back (it);
+		}	
+		if (leases.empty () && withThreshold)
+		{
+			for (auto it: m_Leases)
+				if (ts < it->endDate + LEASE_ENDDATE_THRESHOLD)
+					leases.push_back (it);
 		}	
 		return leases;	
 	}	
