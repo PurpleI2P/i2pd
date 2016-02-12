@@ -690,7 +690,7 @@ namespace data
 			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
 			{
 				auto leaseSet = FindLeaseSet (ident);
-				if (leaseSet) // we don't send back our LeaseSets
+				if (leaseSet && !leaseSet->IsExpired ()) // we don't send back our LeaseSets
 				{
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
 					replyMsg = CreateDatabaseStoreMsg (leaseSet);
