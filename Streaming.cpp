@@ -274,7 +274,7 @@ namespace stream
 				if (!seqn && m_RoutingSession) // first message confirmed
 					m_RoutingSession->SetSharedRoutingPath (
 						std::make_shared<i2p::garlic::GarlicRoutingPath> (
-							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, 0}));
+							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, m_RTT, 0}));
 			}
 			else
 				break;
@@ -605,6 +605,8 @@ namespace stream
 				{
 					m_CurrentOutboundTunnel = routingPath->outboundTunnel;
 					m_CurrentRemoteLease = routingPath->remoteLease;
+					m_RTT = routingPath->rtt;
+					m_RTO = m_RTT*1.5; // TODO: implement it better
 				}
 			}	
 		}	
@@ -727,7 +729,8 @@ namespace stream
 	{
 		if (!m_RemoteLeaseSet || m_RemoteLeaseSet->IsExpired ()) 
 		{
-			m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+			auto remoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
+			if (remoteLeaseSet) m_RemoteLeaseSet = remoteLeaseSet; // renew if possible
 			if (!m_RemoteLeaseSet)	
 				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " not found");
 		}
