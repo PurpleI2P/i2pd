@@ -62,6 +62,7 @@ namespace garlic
 	{
 		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
 		std::shared_ptr<const i2p::data::Lease> remoteLease;
+		int rtt; // RTT
 		uint32_t updateTime; // seconds since epoch
 	};	
 	

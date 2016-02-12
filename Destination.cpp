@@ -462,8 +462,7 @@ namespace client
 							// we got latest LeasetSet
 							LogPrint (eLogDebug, "Destination: published LeaseSet verified");
 							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
-		s->m_PublishVerificationTimer.async_wait (std::bind (&ClientDestination::HandlePublishVerificationTimer,
-			s, std::placeholders::_1));	
+							s->m_PublishVerificationTimer.async_wait (std::bind (&ClientDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));	
 							return;
 						}		
 					}	
