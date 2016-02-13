@@ -198,7 +198,7 @@ namespace client
 		else
 		{	
 			auto ls = i2p::data::netdb.FindLeaseSet (ident);
-			if (ls)
+			if (ls && !ls->IsExpired ())
 			{
 				ls->PopulateLeases (); // since we don't store them in netdb
 				m_RemoteLeaseSets[ident] = ls;			

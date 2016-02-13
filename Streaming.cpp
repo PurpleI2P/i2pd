@@ -621,7 +621,7 @@ namespace stream
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();		
 		if (!m_CurrentRemoteLease || ts >= m_CurrentRemoteLease->endDate - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000)
 			UpdateCurrentRemoteLease (true);
-		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate)
+		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{	
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 			for (auto it: packets)
