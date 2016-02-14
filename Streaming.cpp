@@ -113,7 +113,9 @@ namespace stream
 				if (!m_IsAckSendScheduled)
 				{
 					m_IsAckSendScheduled = true;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTT/10));
+					auto ackTimeout = m_RTT/10;
+					if (ackTimeout > ACK_SEND_TIMEOUT) ackTimeout = ACK_SEND_TIMEOUT;
+					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ackTimeout));
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
 				}
