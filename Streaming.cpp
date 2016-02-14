@@ -113,7 +113,7 @@ namespace stream
 				if (!m_IsAckSendScheduled)
 				{
 					m_IsAckSendScheduled = true;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ACK_SEND_TIMEOUT));
+					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTT/10));
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
 				}
@@ -274,7 +274,7 @@ namespace stream
 				if (!seqn && m_RoutingSession) // first message confirmed
 					m_RoutingSession->SetSharedRoutingPath (
 						std::make_shared<i2p::garlic::GarlicRoutingPath> (
-							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, m_RTT, 0}));
+							i2p::garlic::GarlicRoutingPath{m_CurrentOutboundTunnel, m_CurrentRemoteLease, m_RTT, 0, 0}));
 			}
 			else
 				break;

@@ -505,18 +505,24 @@ namespace client
 		}
 	}	
 
-	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port) {
-		assert(streamRequestComplete);
+	void ClientDestination::CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port) 
+	{
+		if (!streamRequestComplete) 
+		{
+			LogPrint (eLogError, "Destination: request callback is not specified in CreateStream");
+			return;
+		}	
 		auto leaseSet = FindLeaseSet (dest);
 		if (leaseSet)
 			streamRequestComplete(CreateStream (leaseSet, port));
 		else
 		{
+			auto s = shared_from_this ();
 			RequestDestination (dest,
-				[this, streamRequestComplete, port](std::shared_ptr<i2p::data::LeaseSet> ls)
+				[s, streamRequestComplete, port](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
 					if (ls)
-						streamRequestComplete(CreateStream (ls, port));
+						streamRequestComplete(s->CreateStream (ls, port));
 					else
 						streamRequestComplete (nullptr);
 				});
@@ -597,7 +603,11 @@ namespace client
 			{
 				auto it = s->m_LeaseSetRequests.find (dest);
 				if (it != s->m_LeaseSetRequests.end ())
-					 s->m_LeaseSetRequests.erase (it);
+				{	
+					auto requestComplete = it->second->requestComplete; 
+					s->m_LeaseSetRequests.erase (it);
+					if (requestComplete) requestComplete (nullptr);
+				}	
 			});				
 	}
 		
@@ -615,8 +625,8 @@ namespace client
 				if (!SendLeaseSetRequest (dest, floodfill, request))
 				{
 					// request failed
-					if (request->requestComplete) request->requestComplete (nullptr);
 					m_LeaseSetRequests.erase (dest);
+					if (request->requestComplete) request->requestComplete (nullptr);
 				}
 			}	
 			else // duplicate
@@ -627,7 +637,10 @@ namespace client
 			}	
 		}	
 		else
+		{	
 			LogPrint (eLogError, "Destination: Can't request LeaseSet, no floodfills found");
+			if (requestComplete) requestComplete (nullptr);
+		}	
 	}	
 		
 	bool ClientDestination::SendLeaseSetRequest (const i2p::data::IdentHash& dest, 
@@ -695,8 +708,9 @@ namespace client
 				
 				if (done)
 				{
-					if (it->second->requestComplete) it->second->requestComplete (nullptr);
+					auto requestComplete = it->second->requestComplete; 
 					m_LeaseSetRequests.erase (it);
+					if (requestComplete) requestComplete (nullptr);
 				}	
 			}	
 		}	
