@@ -42,7 +42,9 @@ namespace data
 		auto signingKeyLen = localDestination->GetIdentity ()->GetSigningPublicKeyLen ();
 		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
 		m_BufferLen += signingKeyLen;
-		auto tunnels = pool->GetInboundTunnels (5); // 5 tunnels maximum
+		int numTunnels = pool->GetNumInboundTunnels () + 2; // 2 backup tunnels 
+		if (numTunnels > 16) numTunnels = 16; // 16 tunnels maximum 
+		auto tunnels = pool->GetInboundTunnels (numTunnels);
 		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
 		m_BufferLen++;
 		// leases
@@ -151,12 +153,13 @@ namespace data
 			else
 				LogPrint (eLogWarning, "LeaseSet: Lease is expired already ");
 		}	
-		if (!m_ExpirationTime && m_Leases.empty ())
+		if (!m_ExpirationTime)
 		{
 			LogPrint (eLogWarning, "LeaseSet: all leases are expired. Dropped");
 			m_IsValid = false;
 			return;
 		}	
+		m_ExpirationTime += LEASE_ENDDATE_THRESHOLD;
 		// delete old leases	
 		if (m_StoreLeases)
 		{	
@@ -187,16 +190,12 @@ namespace data
 		for (auto it: m_Leases)
 		{
 			auto endDate = it->endDate;
-			if (!withThreshold)
-				endDate -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000;
+			if (withThreshold)
+				endDate += LEASE_ENDDATE_THRESHOLD;
+			else
+				endDate -= LEASE_ENDDATE_THRESHOLD;
 			if (ts < endDate)
 				leases.push_back (it);
-		}	
-		if (leases.empty () && withThreshold)
-		{
-			for (auto it: m_Leases)
-				if (ts < it->endDate + LEASE_ENDDATE_THRESHOLD)
-					leases.push_back (it);
 		}	
 		return leases;	
 	}	

@@ -176,28 +176,39 @@ namespace proxy
 		m_request.push_back('\r');
 		m_request.push_back('\n');
 		m_request.append("Connection: close\r\n");
-		m_request.append(reinterpret_cast<const char *>(http_buff),len);
+		// TODO: temporary shortcut. Must be implemented properly
+		uint8_t * eol = nullptr;
+		bool isEndOfHeader = false;
+		while (!isEndOfHeader && len && (eol = (uint8_t *)memchr (http_buff, '\r', len)))
+		{
+			if (eol)
+			{
+				*eol = 0; eol++;			
+				if (strncmp ((const char *)http_buff, "Referer", 7)) // strip out referer
+				{
+					if (!strncmp ((const char *)http_buff, "User-Agent", 10)) // replace UserAgent
+						m_request.append("User-Agent: MYOB/6.66 (AN/ON)");
+					else
+						m_request.append ((const char *)http_buff);
+					m_request.append ("\r\n");
+				}
+				isEndOfHeader = !http_buff[0];
+				auto l = eol - http_buff;
+				http_buff = eol;
+				len -= l;
+				if (len > 0) // \r
+				{
+					http_buff++;
+					len--;
+				}	
+			}
+		}	
+		m_request.append(reinterpret_cast<const char *>(http_buff),len);	
 		return true;
 	}
 
 	bool HTTPProxyHandler::HandleData(uint8_t *http_buff, std::size_t len)
 	{
-		// TODO: we should srtrip 'Referer' better, because it might be inside message body
-		/*assert(len); // This should always be called with a least a byte left to parse
-
-		// remove "Referer" from http requst
-		http_buff[len] = 0;
-		auto start = strstr((char *)http_buff, "\nReferer:");
-		if (start) 
-		{
-			auto end = strchr (start + 1, '\n');
-			if (end)
-			{
-				strncpy(start, end, (char *)(http_buff + len) - end);
-				len -= (end - start);
-			}
-		}*/
-	
 		while (len > 0) 
 		{
 			//TODO: fallback to finding HOst: header if needed

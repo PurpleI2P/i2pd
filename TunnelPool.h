@@ -53,6 +53,9 @@ namespace tunnel
 			bool IsActive () const { return m_IsActive; };
 			void SetActive (bool isActive) { m_IsActive = isActive; };
 			void DetachTunnels ();
+
+			int GetNumInboundTunnels () const { return m_NumInboundTunnels; };
+			int GetNumOutboundTunnels () const { return m_NumOutboundTunnels; };
 			
 		private:
 
