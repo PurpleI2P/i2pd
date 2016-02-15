@@ -229,11 +229,7 @@ namespace client
 			delete m_Storage;
 			m_Storage = nullptr;
 		}
-		if (m_DefaultSubscription)
-		{	
-			delete m_DefaultSubscription;
-			m_DefaultSubscription = nullptr;
-		}	
+		m_DefaultSubscription = nullptr;	
 		for (auto it: m_Subscriptions)
 			delete it;
 		m_Subscriptions.clear ();	
@@ -327,19 +323,6 @@ namespace client
 			LoadHostsFromStream (f);
 			m_IsLoaded = true;
 		}
-		else
-		{
-			// if not found download it from http://i2p-projekt.i2p/hosts.txt 
-			LogPrint (eLogInfo, "Addressbook: hosts.txt not found, trying to download it from default subscription.");
-			if (!m_IsDownloading)
-			{
-				m_IsDownloading = true;
-				if (!m_DefaultSubscription)
-					m_DefaultSubscription = new AddressBookSubscription (*this, DEFAULT_SUBSCRIPTION_ADDRESS);
-				m_DefaultSubscription->CheckSubscription ();
-			}
-		}	
-		
 	}
 
 	void AddressBook::LoadHostsFromStream (std::istream& f)
@@ -406,6 +389,11 @@ namespace client
 	void AddressBook::DownloadComplete (bool success)
 	{
 		m_IsDownloading = false;
+		if (success && m_DefaultSubscription)
+		{	
+			m_DefaultSubscription.reset (nullptr);
+			m_IsLoaded = true;
+		}	
 		if (m_SubscriptionsUpdateTimer)
 		{
 			m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(
@@ -418,8 +406,8 @@ namespace client
 	void AddressBook::StartSubscriptions ()
 	{
 		LoadSubscriptions ();
-		if (!m_Subscriptions.size ()) return;	
-
+		if (m_IsLoaded && m_Subscriptions.empty ()) return;
+		
 		auto dest = i2p::client::context.GetSharedLocalDestination ();
 		if (dest)
 		{
@@ -444,12 +432,24 @@ namespace client
 		{
 			auto dest = i2p::client::context.GetSharedLocalDestination ();
 			if (!dest) return;
-			if (m_IsLoaded && !m_IsDownloading && dest->IsReady () && !m_Subscriptions.empty ())
+			if (!m_IsDownloading && dest->IsReady ())
 			{
-				// pick random subscription
-				auto ind = rand () % m_Subscriptions.size();	
-				m_IsDownloading = true;	
-				m_Subscriptions[ind]->CheckSubscription ();		
+				if (!m_IsLoaded)
+				{
+					// download it from http://i2p-projekt.i2p/hosts.txt 
+					LogPrint (eLogInfo, "Addressbook: trying to download it from default subscription.");
+					if (!m_DefaultSubscription)
+						m_DefaultSubscription.reset (new AddressBookSubscription (*this, DEFAULT_SUBSCRIPTION_ADDRESS));
+					m_IsDownloading = true;	
+					m_DefaultSubscription->CheckSubscription ();
+				}	
+				else if (!m_Subscriptions.empty ())
+				{	
+					// pick random subscription
+					auto ind = rand () % m_Subscriptions.size();	
+					m_IsDownloading = true;	
+					m_Subscriptions[ind]->CheckSubscription ();
+				}	
 			}
 			else
 			{
