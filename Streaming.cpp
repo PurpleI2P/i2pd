@@ -88,7 +88,7 @@ namespace stream
 		}
 
 		LogPrint (eLogDebug, "Streaming: Received seqn=", receivedSeqn);
-		if (isSyn || receivedSeqn == m_LastReceivedSequenceNumber + 1)
+		if (receivedSeqn == m_LastReceivedSequenceNumber + 1)
 		{			
 			// we have received next in sequence message
 			ProcessPacket (packet);
