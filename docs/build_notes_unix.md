@@ -23,6 +23,13 @@ After successfull build i2pd could be installed with:
 ```bash
 make install
 ```
+or you can just use 'make' once you have all dependacies (boost and opensll) installed 
+
+```bash
+git clone https://github.com/PurpleI2P/i2pd.git
+cd i2pd
+make
+```
 
 Debian/Ubuntu
 -------------
