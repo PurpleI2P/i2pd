@@ -375,6 +375,14 @@ namespace data
 							total--;
 						}	
 					}
+					else if (total > 2500)
+					{
+						if (ts > it.second->GetTimestamp () + 12*3600*1000LL) // 12 hours
+						{	
+							it.second->SetUnreachable (true);
+							total--;
+						}	
+					}	
 					else if (total > 300)
 					{
 						if (ts > it.second->GetTimestamp () + 30*3600*1000LL) // 30 hours
