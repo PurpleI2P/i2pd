@@ -182,7 +182,35 @@ namespace data
 			m_IsValid = false;
 		}
 	}				
-	
+
+	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len) const 
+	{
+		if (!m_Identity) return 0;
+		size_t size = m_Identity->GetFullLen ();
+		if (size > len) return 0;
+		size += 256; // encryption key
+		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
+		if (size > len) return 0;
+		uint8_t num = buf[size];
+		size++; // num
+		if (size + num*44 > len) return 0;
+		uint64_t timestamp= 0 ;
+		for (int i = 0; i < num; i++)
+		{
+			size += 36; // gateway (32) + tunnelId(4)
+			auto endDate = bufbe64toh (buf + size); 
+			size += 8; // end date
+			if (!timestamp || endDate < timestamp)
+				timestamp = endDate;
+		}	
+		return timestamp;
+	}	
+
+	bool LeaseSet::IsNewer (const uint8_t * buf, size_t len) const
+	{
+		return true; //ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
+	}	
+		
 	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
