@@ -48,6 +48,7 @@ namespace data
 		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
 		m_BufferLen++;
 		// leases
+		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: tunnels)
 		{	
 			memcpy (m_Buffer + m_BufferLen, it->GetNextIdentHash (), 32);
@@ -56,8 +57,9 @@ namespace data
 			m_BufferLen += 4; // tunnel id
 			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
-			ts += rand () % 6; // + random milliseconds 0-5
 			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
+			// make sure leaseset is newer than previous, but adding some time to expiration date
+			ts += (currentTime - it->GetCreationTime ())*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2000 millisecond
 			htobe64buf (m_Buffer + m_BufferLen, ts);
 			m_BufferLen += 8; // end date
 		}
@@ -208,7 +210,7 @@ namespace data
 
 	bool LeaseSet::IsNewer (const uint8_t * buf, size_t len) const
 	{
-		return true; //ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
+		return ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
 	}	
 		
 	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
