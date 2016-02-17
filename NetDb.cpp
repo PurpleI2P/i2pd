@@ -149,22 +149,30 @@ namespace data
 		}	
 	}	
 	
-	void NetDb::AddRouterInfo (const uint8_t * buf, int len)
+	bool NetDb::AddRouterInfo (const uint8_t * buf, int len)
 	{
 		IdentityEx identity;
 		if (identity.FromBuffer (buf, len))
-			AddRouterInfo (identity.GetIdentHash (), buf, len);	
+			return AddRouterInfo (identity.GetIdentHash (), buf, len);	
+		return false;
 	}
 
-	void NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
+	bool NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
+		bool updated = true;	
 		auto r = FindRouter (ident);
 		if (r)
 		{
-			auto ts = r->GetTimestamp ();
-			r->Update (buf, len);
-			if (r->GetTimestamp () > ts)
+			if (r->IsNewer (buf, len))
+			{
+				r->Update (buf, len);
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
+			}
+			else
+			{
+				LogPrint (eLogDebug, "NetDb: RouterInfo is older: ", ident.ToBase64());
+				updated = false;
+			}
 		}	
 		else	
 		{	
@@ -182,27 +190,39 @@ namespace data
 					m_Floodfills.push_back (r);
 				}
 			}	
+			else
+				updated = false;
 		}	
 		// take care about requested destination
 		m_Requests.RequestComplete (ident, r);
+		return updated;
 	}	
 
-	void NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
+	bool NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
+		bool updated = false;
 		if (!from) // unsolicited LS must be received directly
 		{	
 			auto it = m_LeaseSets.find(ident);
 			if (it != m_LeaseSets.end ())
 			{
-				it->second->Update (buf, len); 
-				if (it->second->IsValid ())
-					LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase64());
-				else
+				if (it->second->IsNewer (buf, len))
 				{
-					LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase64());
-					m_LeaseSets.erase (it);
-				}	
+					it->second->Update (buf, len); 
+					if (it->second->IsValid ())
+					{
+						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase64());
+						updated = true;	
+					}
+					else
+					{
+						LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase64());
+						m_LeaseSets.erase (it);
+					}	
+				}
+				else
+					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase64());
 			}
 			else
 			{	
@@ -211,11 +231,13 @@ namespace data
 				{
 					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase64());
 					m_LeaseSets[ident] = leaseSet;
+					updated = true;
 				}
 				else
 					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase64());
 			}	
 		}	
+		return updated;
 	}	
 
 	std::shared_ptr<RouterInfo> NetDb::FindRouter (const IdentHash& ident) const
@@ -487,39 +509,14 @@ namespace data
 					LogPrint (eLogError, "NetDb: no outbound tunnels for DatabaseStore reply found");
 			}		
 			offset += 32;
-
-			if (context.IsFloodfill ())
-			{
-				// flood it
-				auto floodMsg = NewI2NPShortMessage ();
-				uint8_t * payload = floodMsg->GetPayload ();		
-				memcpy (payload, buf, 33); // key + type
-				htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
-				auto msgLen = len - offset;
-				floodMsg->len += DATABASE_STORE_HEADER_SIZE + msgLen;
-				if (floodMsg->len < floodMsg->maxLen)
-				{	
-					memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + offset, msgLen);
-					floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
-					std::set<IdentHash> excluded;
-					for (int i = 0; i < 3; i++)
-					{
-						auto floodfill = GetClosestFloodfill (ident, excluded, true); // we need a floodfill close than us only
-						if (floodfill)
-							transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
-						else
-							break;
-					}	
-				}	
-				else
-					LogPrint (eLogError, "Database store message is too long ", floodMsg->len);
-			}	
 		}
-		
+		size_t payloadOffset = offset;		
+
+		bool updated = false;
 		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
 			LogPrint (eLogDebug, "NetDb: store request: LeaseSet");
-			AddLeaseSet (ident, buf + offset, len - offset, m->from);
+			updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
 		}	
 		else
 		{
@@ -534,7 +531,34 @@ namespace data
 			uint8_t uncompressed[2048];
 			size_t uncompressedSize = m_Inflator.Inflate (buf + offset, size, uncompressed, 2048);
 			if (uncompressedSize)
-				AddRouterInfo (ident, uncompressed, uncompressedSize);
+				updated = AddRouterInfo (ident, uncompressed, uncompressedSize);
+		}	
+
+		if (replyToken && context.IsFloodfill () && updated)
+		{
+			// flood updated
+			auto floodMsg = NewI2NPShortMessage ();
+			uint8_t * payload = floodMsg->GetPayload ();		
+			memcpy (payload, buf, 33); // key + type
+			htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
+			auto msgLen = len - payloadOffset;
+			floodMsg->len += DATABASE_STORE_HEADER_SIZE + msgLen;
+			if (floodMsg->len < floodMsg->maxLen)
+			{	
+				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + payloadOffset, msgLen);
+				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
+				std::set<IdentHash> excluded;
+				for (int i = 0; i < 3; i++)
+				{
+					auto floodfill = GetClosestFloodfill (ident, excluded, true); // we need a floodfill close than us only
+					if (floodfill)
+						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+					else
+						break;
+				}	
+			}	
+			else
+				LogPrint (eLogError, "Database store message is too long ", floodMsg->len);
 		}	
 	}	
 
