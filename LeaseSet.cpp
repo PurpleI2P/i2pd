@@ -59,7 +59,7 @@ namespace data
 			ts *= 1000; // in milliseconds
 			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
 			// make sure leaseset is newer than previous, but adding some time to expiration date
-			ts += (currentTime - it->GetCreationTime ())*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2000 millisecond
+			ts += (currentTime - it->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
 			htobe64buf (m_Buffer + m_BufferLen, ts);
 			m_BufferLen += 8; // end date
 		}
