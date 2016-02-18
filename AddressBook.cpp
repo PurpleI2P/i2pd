@@ -22,8 +22,12 @@ namespace client
 	// TODO: this is actually proxy class
 	class AddressBookFilesystemStorage: public AddressBookStorage
 	{
+		private:
+			i2p::fs::HashedStorage storage;
+			std::string indexPath;
+
 		public:
-			AddressBookFilesystemStorage () {};
+			AddressBookFilesystemStorage ();
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 			void RemoveAddress (const i2p::data::IdentHash& ident);
@@ -32,9 +36,17 @@ namespace client
 			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
 	};
 
+	AddressBookFilesystemStorage::AddressBookFilesystemStorage():
+		storage("addressbook", "b", "", "b32")
+	{
+		storage.SetPlace(i2p::fs::GetDataDir());
+		storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
+		indexPath = storage.GetRoot() + i2p::fs::dirSep + "addresses.csv";
+	}
+
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
-		std::string filename = i2p::fs::GetAddressBook().Path(ident.ToBase32());
+		std::string filename = storage.Path(ident.ToBase32());
 		std::ifstream f(filename, std::ifstream::binary);
 		if (!f.is_open ()) {
 			LogPrint(eLogDebug, "Addressbook: Requested, but not found: ", filename);
@@ -57,7 +69,7 @@ namespace client
 
 	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
-		std::string path = i2p::fs::GetAddressBook().Path( address->GetIdentHash().ToBase32() );
+		std::string path = storage.Path( address->GetIdentHash().ToBase32() );
 		std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
 		if (!f.is_open ())	{
 			LogPrint (eLogError, "Addresbook: can't open file ", path);
@@ -72,20 +84,19 @@ namespace client
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
-		i2p::fs::GetAddressBook().Remove( ident.ToBase32() );
+		storage.Remove( ident.ToBase32() );
 	}
 
 	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
 		int num = 0;	
 		std::string s;
-		std::string index = i2p::fs::GetAddressBook().IndexPath();
-		std::ifstream f (index, std::ifstream::in); // in text mode
+		std::ifstream f (indexPath, std::ifstream::in); // in text mode
 
 		if (f.is_open ()) {
-			LogPrint(eLogInfo, "Addressbook: using index file ", index);
+			LogPrint(eLogInfo, "Addressbook: using index file ", indexPath);
 		} else {
-			LogPrint(eLogWarning, "Addressbook: Can't open ", index);
+			LogPrint(eLogWarning, "Addressbook: Can't open ", indexPath);
 			return 0;
 		}
 
@@ -120,11 +131,10 @@ namespace client
 		}
 
 		int num = 0;
-		std::string index = i2p::fs::GetAddressBook().IndexPath();
-		std::ofstream f (index, std::ofstream::out); // in text mode
+		std::ofstream f (indexPath, std::ofstream::out); // in text mode
 
 		if (!f.is_open ()) {
-			LogPrint (eLogWarning, "Addressbook: Can't open ", index);
+			LogPrint (eLogWarning, "Addressbook: Can't open ", indexPath);
 			return 0;
 		}
 
