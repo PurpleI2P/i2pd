@@ -45,6 +45,7 @@ namespace data
 					default:
 						LogPrint (eLogWarning, "Family: Certificate key type ", keyType, " is not supported");
 				}
+				EVP_PKEY_free (pkey);
 			}	
 			SSL_free (ssl);			
 		}	
