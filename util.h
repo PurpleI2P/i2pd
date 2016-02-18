@@ -34,6 +34,7 @@ namespace util
 		const char IF_MODIFIED_SINCE[] = "If-Modified-Since";
 		const char LAST_MODIFIED[] = "Last-Modified";
 		const char TRANSFER_ENCODING[] = "Transfer-Encoding";
+		const char CONTENT_ENCODING[] = "Content-Encoding";
 
 		std::string GetHttpContent (std::istream& response);
 		void MergeChunkedResponse (std::istream& response, std::ostream& merged);

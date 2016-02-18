@@ -5,6 +5,8 @@
 #include <string.h>
 #include <string>
 #include <zlib.h>
+#include <iostream>
+#include <sstream>
 
 namespace i2p
 {
@@ -92,6 +94,7 @@ namespace data
 			};		
 	};
 
+	const size_t GZIP_CHUNK_SIZE = 16384;
 	class GzipInflator
 	{
 		public:
@@ -100,7 +103,10 @@ namespace data
 			~GzipInflator ();
 
 			size_t Inflate (const uint8_t * in, size_t inLen, uint8_t * out, size_t outLen);
-			
+			bool Inflate (const uint8_t * in, size_t inLen, std::ostream& s); 
+			// return true when finshed or error, s failbit will be set in case of error
+			void Inflate (const std::stringstream& in, std::ostream& out); 			
+
 		private:
 
 			z_stream m_Inflator;
