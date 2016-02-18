@@ -23,6 +23,8 @@ namespace fs {
    * const char alphabet[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
    * auto h = HashedStorage("name", "y", "z-", ".txt");
    * h.SetRoot("/tmp/hs-test");
+   * h.GetName()          -> gives "name"
+   * h.GetRoot()          -> gives "/tmp/hs-test/name"
    * h.Init(alphabet, 8); <- creates needed dirs, 8 is size of alphabet
    * h.Path("abcd");      <- returns /tmp/hs-test/name/ya/z-abcd.txt
    * h.Remove("abcd");    <- removes /tmp/hs-test/name/ya/z-abcd.txt, if it exists
@@ -31,21 +33,27 @@ namespace fs {
    */
   class HashedStorage {
     protected:
-      std::string root;
-      std::string name;
-      std::string prefix1;
-      std::string prefix2;
-      std::string suffix;
+      std::string root;    /**< path to storage with it's name included */
+      std::string name;    /**< name of the storage */
+      std::string prefix1; /**< hashed directory prefix */
+      std::string prefix2; /**< prefix of file in storage */
+      std::string suffix;  /**< suffix of file in storage (extension) */
 
     public:
       HashedStorage(const char *n, const char *p1, const char *p2, const char *s):
         name(n), prefix1(p1), prefix2(p2), suffix(s) {};
 
+      /** create subdirs in storage */
       bool Init(const char* chars, size_t cnt);
       const std::string & GetRoot() { return this->root; }
+      const std::string & GetName() { return this->name; }
+      /** set directory where to place storage directory */
       void SetRoot(const std::string & path);
+      /** path to file with given ident */
       std::string Path(const std::string & ident);
+      /** remove file by ident */
       void Remove(const std::string & ident);
+      /** find all files in storage and store list in provided vector */
       void Traverse(std::vector<std::string> & files);
   };
 
