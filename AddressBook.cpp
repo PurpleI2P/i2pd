@@ -27,21 +27,21 @@ namespace client
 			std::string indexPath;
 
 		public:
-			AddressBookFilesystemStorage ();
+			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") {};
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 			void RemoveAddress (const i2p::data::IdentHash& ident);
 
+			bool Init ();
 			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
 			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
 	};
 
-	AddressBookFilesystemStorage::AddressBookFilesystemStorage():
-		storage("addressbook", "b", "", "b32")
+	bool AddressBookFilesystemStorage::Init()
 	{
 		storage.SetPlace(i2p::fs::GetDataDir());
-		storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
 		indexPath = storage.GetRoot() + i2p::fs::dirSep + "addresses.csv";
+		return storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
 	}
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
@@ -159,6 +159,7 @@ namespace client
 
 	void AddressBook::Start ()
 	{
+		m_Storage->Init();
 		LoadHosts (); /* try storage, then hosts.txt, then download */
 		StartSubscriptions ();
 	}

@@ -35,6 +35,7 @@ namespace client
 			virtual void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) = 0;
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;
 		
+			virtual bool Init () = 0;
 			virtual int Load (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 			virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 	};			
