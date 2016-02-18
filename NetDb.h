@@ -18,6 +18,7 @@
 #include "TunnelPool.h"
 #include "Reseed.h"
 #include "NetDbRequests.h"
+#include "Family.h"
 
 namespace i2p
 {
@@ -95,6 +96,7 @@ namespace data
 
 			GzipInflator m_Inflator;
 			Reseeder * m_Reseeder;
+			Families m_Families;
 
 			friend class NetDbRequests; 
 			NetDbRequests m_Requests;

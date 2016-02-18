@@ -4,7 +4,8 @@ LIB_SRC = \
   Reseed.cpp RouterContext.cpp RouterInfo.cpp Signature.cpp SSU.cpp \
   SSUSession.cpp SSUData.cpp Streaming.cpp Identity.cpp TransitTunnel.cpp \
   Transports.cpp Tunnel.cpp TunnelEndpoint.cpp TunnelPool.cpp TunnelGateway.cpp \
-  Destination.cpp Base.cpp I2PEndian.cpp Config.cpp util.cpp api.cpp
+  Destination.cpp Base.cpp I2PEndian.cpp Config.cpp Family.cpp util.cpp \
+  api.cpp
 
 LIB_CLIENT_SRC = \
 	AddressBook.cpp BOB.cpp ClientContext.cpp I2PTunnel.cpp I2PService.cpp \
