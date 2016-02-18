@@ -550,7 +550,7 @@ namespace data
 				std::set<IdentHash> excluded;
 				for (int i = 0; i < 3; i++)
 				{
-					auto floodfill = GetClosestFloodfill (ident, excluded, true); // we need a floodfill close than us only
+					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
 						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
 					else
