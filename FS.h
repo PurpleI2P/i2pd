@@ -45,12 +45,12 @@ namespace fs {
 
       /** create subdirs in storage */
       bool Init(const char* chars, size_t cnt);
-      const std::string & GetRoot() { return this->root; }
-      const std::string & GetName() { return this->name; }
+      const std::string & GetRoot() const { return this->root; }
+      const std::string & GetName() const { return this->name; }
       /** set directory where to place storage directory */
       void SetPlace(const std::string & path);
       /** path to file with given ident */
-      std::string Path(const std::string & ident);
+      std::string Path(const std::string & ident) const;
       /** remove file by ident */
       void Remove(const std::string & ident);
       /** find all files in storage and store list in provided vector */
