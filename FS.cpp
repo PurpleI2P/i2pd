@@ -24,24 +24,6 @@ namespace fs {
 #endif
   HashedStorage NetDB("netDb",        "r", "routerInfo-", "dat");
   HashedStorage Peers("peerProfiles", "p", "profile-",    "txt");
-  ABookStorage  ABook("addressbook",  "b", "",            "b32");
-
-  static const char T32[32] = {
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
-    'i', 'k', 'k', 'l', 'm', 'n', 'o', 'p',
-    'q', 'r', 't', 't', 'u', 'v', 'w', 'x',
-    'y', 'z', '2', '3', '4', '5', '6', '7',
-  };
-  static const char T64[64] = {
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-    'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-    'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-    'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-    'w', 'x', 'y', 'z', '0', '1', '2', '3',
-    '4', '5', '6', '7', '8', '9', '-', '~'
-  };
 
   const std::string & GetAppName () {
     return appName;
@@ -90,12 +72,10 @@ namespace fs {
     if (boost::filesystem::exists(destinations))
       boost::filesystem::create_directory(destinations);
 
-    NetDB.SetRoot(dataDir);
-    NetDB.Init(T64, 64);
-    Peers.SetRoot(dataDir);
-    Peers.Init(T64, 64);
-    ABook.SetRoot(dataDir);
-    ABook.Init(T32, 32);
+    NetDB.SetPlace(dataDir);
+    NetDB.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+    Peers.SetPlace(dataDir);
+    Peers.Init(i2p::data::GetBase64SubstitutionTable(), 64);
     return true;
   }
 
@@ -177,13 +157,7 @@ namespace fs {
     }
   }
 
-  std::string ABookStorage::IndexPath() {
-    std::string path = root + i2p::fs::dirSep + "addresses.csv";
-    return path;
-  }
-
   HashedStorage & GetNetDB()        { return NetDB; } 
   HashedStorage & GetPeerProfiles() { return Peers; }
-  ABookStorage  & GetAddressBook()  { return ABook; }
 } // fs
 } // i2p

@@ -49,15 +49,6 @@ namespace fs {
       void Traverse(std::vector<std::string> & files);
   };
 
-  /** @brief Slightly extended HashedStorage */
-  class ABookStorage : public HashedStorage {
-    public:
-      ABookStorage(const char *n, const char *p1, const char *p2, const char *s):
-        HashedStorage(n, p1, p2, s) {};
-
-      std::string IndexPath();
-  };
-
   /** @brief Returns current application name, default 'i2pd' */
 	const std::string & GetAppName ();
   /** @brief Set applicaton name, affects autodetection of datadir */
@@ -138,6 +129,5 @@ namespace fs {
   /* accessors */
   HashedStorage & GetNetDB();
   HashedStorage & GetPeerProfiles();
-  ABookStorage  & GetAddressBook();
 } // fs
 } // i2p
