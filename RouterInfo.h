@@ -157,7 +157,8 @@ namespace data
 			
 			void Update (const uint8_t * buf, int len);
 			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
-			
+			bool IsNewer (const uint8_t * buf, size_t len) const;			
+
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_RouterIdentity->GetIdentHash (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; };

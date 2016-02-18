@@ -47,6 +47,7 @@ namespace data
 			LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool);
 			~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len);
+			bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };			
 
@@ -69,6 +70,7 @@ namespace data
 		private:
 
 			void ReadFromBuffer (bool readIdentity = true);
+			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // min expiration time
 			
 		private:
 

@@ -140,7 +140,7 @@ namespace client
 			m_IsRunning = true;
 			m_Pool->SetLocalDestination (shared_from_this ());
 			m_Pool->SetActive (true);			
-			m_Thread = new std::thread (std::bind (&ClientDestination::Run, this));
+			m_Thread = new std::thread (std::bind (&ClientDestination::Run, shared_from_this ()));
 			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this ()); // TODO:
 			m_StreamingDestination->Start ();	
 			for (auto it: m_StreamingDestinationsByPorts)
@@ -148,7 +148,7 @@ namespace client
 			
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&ClientDestination::HandleCleanupTimer,
-				this, std::placeholders::_1));
+				shared_from_this (), std::placeholders::_1));
 		}	
 	}
 		
@@ -229,21 +229,22 @@ namespace client
 		} data;	
 		memcpy (data.k, key, 32);
 		memcpy (data.t, tag, 32);
-		m_Service.post ([this,data](void)
+		auto s = shared_from_this ();
+		m_Service.post ([s,data](void)
 			{
-				this->AddSessionKey (data.k, data.t);
+				s->AddSessionKey (data.k, data.t);
 			});
 		return true;
 	}
 
 	void ClientDestination::ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&ClientDestination::HandleGarlicMessage, this, msg)); 
+		m_Service.post (std::bind (&ClientDestination::HandleGarlicMessage, shared_from_this (), msg)); 
 	}
 
 	void ClientDestination::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
-		m_Service.post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, this, msg)); 
+		m_Service.post (std::bind (&ClientDestination::HandleDeliveryStatusMessage, shared_from_this (), msg)); 
 	}
 
 	void ClientDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
@@ -286,15 +287,20 @@ namespace client
 			if (it != m_RemoteLeaseSets.end ())
 			{
 				leaseSet = it->second;
-				leaseSet->Update (buf + offset, len - offset); 
-				if (leaseSet->IsValid ())
-					LogPrint (eLogDebug, "Remote LeaseSet updated");
-				else
-				{
-					LogPrint (eLogDebug, "Remote LeaseSet update failed");
-					m_RemoteLeaseSets.erase (it);
-					leaseSet = nullptr;
+				if (leaseSet->IsNewer (buf + offset, len - offset))
+				{	
+					leaseSet->Update (buf + offset, len - offset); 
+					if (leaseSet->IsValid ())
+						LogPrint (eLogDebug, "Remote LeaseSet updated");
+					else
+					{
+						LogPrint (eLogDebug, "Remote LeaseSet update failed");
+						m_RemoteLeaseSets.erase (it);
+						leaseSet = nullptr;
+					}
 				}
+				else
+					LogPrint (eLogDebug, "Remote LeaseSet is older. Not updated");
 			}
 			else
 			{	

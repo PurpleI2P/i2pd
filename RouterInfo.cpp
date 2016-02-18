@@ -459,6 +459,14 @@ namespace data
 		s.write (properties.str ().c_str (), properties.str ().size ());
 	}	
 
+	bool RouterInfo::IsNewer (const uint8_t * buf, size_t len) const
+	{
+		if (!m_RouterIdentity) return false;
+		size_t size = m_RouterIdentity->GetFullLen ();
+		if (size + 8 > len) return false;
+		return bufbe64toh (buf + size) > m_Timestamp; 
+	}
+
 	const uint8_t * RouterInfo::LoadBuffer ()
 	{
 		if (!m_Buffer)
