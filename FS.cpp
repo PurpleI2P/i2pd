@@ -104,7 +104,7 @@ namespace fs {
     return boost::filesystem::remove(path);
   }
 
-  void HashedStorage::SetRoot(const std::string &path) {
+  void HashedStorage::SetPlace(const std::string &path) {
     root = path + i2p::fs::dirSep + name;
   }
 

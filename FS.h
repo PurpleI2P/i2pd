@@ -22,7 +22,7 @@ namespace fs {
    *
    * const char alphabet[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
    * auto h = HashedStorage("name", "y", "z-", ".txt");
-   * h.SetRoot("/tmp/hs-test");
+   * h.SetPlace("/tmp/hs-test");
    * h.GetName()          -> gives "name"
    * h.GetRoot()          -> gives "/tmp/hs-test/name"
    * h.Init(alphabet, 8); <- creates needed dirs, 8 is size of alphabet
@@ -48,7 +48,7 @@ namespace fs {
       const std::string & GetRoot() { return this->root; }
       const std::string & GetName() { return this->name; }
       /** set directory where to place storage directory */
-      void SetRoot(const std::string & path);
+      void SetPlace(const std::string & path);
       /** path to file with given ident */
       std::string Path(const std::string & ident);
       /** remove file by ident */
