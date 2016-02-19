@@ -105,7 +105,7 @@ namespace data
 			size_t Inflate (const uint8_t * in, size_t inLen, uint8_t * out, size_t outLen);
 			bool Inflate (const uint8_t * in, size_t inLen, std::ostream& s); 
 			// return true when finshed or error, s failbit will be set in case of error
-			void Inflate (const std::stringstream& in, std::ostream& out); 			
+			void Inflate (std::stringstream& in, std::ostream& out); 			
 
 		private:
 

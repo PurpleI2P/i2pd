@@ -329,9 +329,10 @@ namespace data
 		return ret == Z_STREAM_END || ret < 0;
 	}
 
-	void GzipInflator::Inflate (const std::stringstream& in, std::ostream& out)
+	void GzipInflator::Inflate (std::stringstream& in, std::ostream& out)
 	{
-		Inflate ((const uint8_t *)in.str ().c_str (), in.str ().length (), out); 
+		auto str = in.str ().substr (in.tellg ());
+		Inflate ((const uint8_t *)str.c_str (), str.length (), out); 
 	}
 
 	GzipDeflator::GzipDeflator (): m_IsDirty (false)

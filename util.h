@@ -35,7 +35,8 @@ namespace util
 		const char LAST_MODIFIED[] = "Last-Modified";
 		const char TRANSFER_ENCODING[] = "Transfer-Encoding";
 		const char CONTENT_ENCODING[] = "Content-Encoding";
-
+		const char CONTENT_ENCODING1[] = "Content-encoding";
+		
 		std::string GetHttpContent (std::istream& response);
 		void MergeChunkedResponse (std::istream& response, std::ostream& merged);
 		std::string urlDecode(const std::string& data);

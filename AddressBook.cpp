@@ -508,6 +508,7 @@ namespace client
 				        << "Accept: */*\r\n"
 				        << "User-Agent: Wget/1.11.4\r\n"
 						//<< "Accept-Encoding: gzip\r\n"
+						<< "X-Accept-Encoding: x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n"
 				        << "Connection: close\r\n";
 				if (m_Etag.length () > 0) // etag
 					request << i2p::util::http::IF_NONE_MATCH << ": \"" << m_Etag << "\"\r\n";
@@ -557,6 +558,7 @@ namespace client
 						if (colon != std::string::npos)
 						{
 							std::string field = header.substr (0, colon);
+							colon++;
 							header.resize (header.length () - 1); // delete \r	
 							if (field == i2p::util::http::ETAG)
 								m_Etag = header.substr (colon + 1);
@@ -566,6 +568,8 @@ namespace client
 								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
 							else if (field == i2p::util::http::CONTENT_ENCODING)
 								isGzip = !header.compare (colon + 1, std::string::npos, "gzip");
+							else if (field == i2p::util::http::CONTENT_ENCODING1) // Content-encoding
+								isGzip = !header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
 						}	
 					}
 					LogPrint (eLogInfo, "Addressbook: ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
