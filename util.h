@@ -29,14 +29,15 @@ namespace util
 
 	namespace http
 	{
-		const char ETAG[] = "ETag";
+		// in (lower case)
+		const char ETAG[] = "etag"; // ETag
+		const char LAST_MODIFIED[] = "last-modified"; // Last-Modified
+		const char TRANSFER_ENCODING[] = "transfer-encoding"; // Transfer-Encoding
+		const char CONTENT_ENCODING[] = "content-encoding"; // Content-Encoding
+		// out
 		const char IF_NONE_MATCH[] = "If-None-Match";
-		const char IF_MODIFIED_SINCE[] = "If-Modified-Since";
-		const char LAST_MODIFIED[] = "Last-Modified";
-		const char TRANSFER_ENCODING[] = "Transfer-Encoding";
-		const char CONTENT_ENCODING[] = "Content-Encoding";
-		const char CONTENT_ENCODING1[] = "Content-encoding";
-		
+		const char IF_MODIFIED_SINCE[] = "If-Modified-Since";	
+	
 		std::string GetHttpContent (std::istream& response);
 		void MergeChunkedResponse (std::istream& response, std::ostream& merged);
 		std::string urlDecode(const std::string& data);

@@ -558,6 +558,7 @@ namespace client
 						if (colon != std::string::npos)
 						{
 							std::string field = header.substr (0, colon);
+							boost::to_lower (field); // field are not case-sensitive
 							colon++;
 							header.resize (header.length () - 1); // delete \r	
 							if (field == i2p::util::http::ETAG)
@@ -567,9 +568,8 @@ namespace client
 							else if (field == i2p::util::http::TRANSFER_ENCODING)
 								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
 							else if (field == i2p::util::http::CONTENT_ENCODING)
-								isGzip = !header.compare (colon + 1, std::string::npos, "gzip");
-							else if (field == i2p::util::http::CONTENT_ENCODING1) // Content-encoding
-								isGzip = !header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
+								isGzip = !header.compare (colon + 1, std::string::npos, "gzip") ||
+									!header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
 						}	
 					}
 					LogPrint (eLogInfo, "Addressbook: ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
