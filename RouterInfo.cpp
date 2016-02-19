@@ -8,6 +8,7 @@
 #include "Base.h"
 #include "Timestamp.h"
 #include "Log.h"
+#include "NetDb.h"
 #include "RouterInfo.h"
 
 namespace i2p
@@ -262,11 +263,26 @@ namespace data
 			if (!strcmp (key, "caps"))
 				ExtractCaps (value);
 			// check netId
-			if (!strcmp (key, "netId") && atoi (value) != I2PD_NET_ID)
+			else if (!strcmp (key, "netId") && atoi (value) != I2PD_NET_ID)
 			{
 				LogPrint (eLogError, "Unexpected netid=", value);
 				m_IsUnreachable = true;		
 			}	
+			// family
+			else if (!strcmp (key, "family"))
+			{
+				m_Family = value;
+				boost::to_lower (m_Family);
+			}
+			else if (!strcmp (key, "family.sig"))
+			{
+				if (!netdb.GetFamilies ().VerifyFamily (m_Family, GetIdentHash (), value))
+				{
+					LogPrint (eLogWarning, "RouterInfo: family signature verification failed");
+					m_Family.clear ();
+				}
+			}				
+
 			if (!s) return;
 		}		
 

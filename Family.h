@@ -18,8 +18,8 @@ namespace data
 			Families ();
 			~Families ();
 			void LoadCertificates ();
-			bool VerifyFamily (const char * family, const IdentHash& ident, 
-				const char * signature, const char * key);
+			bool VerifyFamily (const std::string& family, const IdentHash& ident, 
+				const char * signature, const char * key = nullptr);
 
 		private:
 

@@ -101,12 +101,12 @@ namespace data
 			LogPrint (eLogInfo, "Family: ", numCertificates, " certificates loaded");
 	}
 
-	bool Families::VerifyFamily (const char * family, const IdentHash& ident, 
+	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident, 
 		const char * signature, const char * key)
 	{
 		uint8_t buf[50], signatureBuf[64];
-		size_t len = strlen (family), signatureLen = strlen (signature);
-		memcpy (buf, family, len);
+		size_t len = family.length (), signatureLen = strlen (signature);
+		memcpy (buf, family.c_str (), len);
 		memcpy (buf + len, (const uint8_t *)ident, 32);
 		len += 32;	
 		Base64ToByteStream (signature, signatureLen, signatureBuf, 64);	

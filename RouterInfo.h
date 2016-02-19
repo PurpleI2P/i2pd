@@ -180,7 +180,7 @@ namespace data
 
 		private:
 
-			std::string m_FullPath;
+			std::string m_FullPath, m_Family;
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
