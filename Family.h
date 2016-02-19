@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include "Signature.h"
+#include "Identity.h"
 
 namespace i2p
 {
@@ -17,6 +18,8 @@ namespace data
 			Families ();
 			~Families ();
 			void LoadCertificates ();
+			bool VerifyFamily (const char * family, const IdentHash& ident, 
+				const char * signature, const char * key);
 
 		private:
 
