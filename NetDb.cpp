@@ -37,6 +37,7 @@ namespace data
 
 	void NetDb::Start ()
 	{	
+		m_Families.LoadCertificates ();	
 		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
 			Reseed ();

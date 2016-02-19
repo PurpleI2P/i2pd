@@ -507,6 +507,8 @@ namespace client
 				        << "Host: " << u.host_ << "\r\n"
 				        << "Accept: */*\r\n"
 				        << "User-Agent: Wget/1.11.4\r\n"
+						//<< "Accept-Encoding: gzip\r\n"
+						<< "X-Accept-Encoding: x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n"
 				        << "Connection: close\r\n";
 				if (m_Etag.length () > 0) // etag
 					request << i2p::util::http::IF_NONE_MATCH << ": \"" << m_Etag << "\"\r\n";
@@ -545,7 +547,7 @@ namespace client
 				response >> status; // status
 				if (status == 200) // OK
 				{
-					bool isChunked = false;
+					bool isChunked = false, isGzip = false;
 					std::string header, statusMessage;
 					std::getline (response, statusMessage);
 					// read until new line meaning end of header
@@ -556,6 +558,8 @@ namespace client
 						if (colon != std::string::npos)
 						{
 							std::string field = header.substr (0, colon);
+							boost::to_lower (field); // field are not case-sensitive
+							colon++;
 							header.resize (header.length () - 1); // delete \r	
 							if (field == i2p::util::http::ETAG)
 								m_Etag = header.substr (colon + 1);
@@ -563,6 +567,9 @@ namespace client
 								m_LastModified = header.substr (colon + 1);
 							else if (field == i2p::util::http::TRANSFER_ENCODING)
 								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
+							else if (field == i2p::util::http::CONTENT_ENCODING)
+								isGzip = !header.compare (colon + 1, std::string::npos, "gzip") ||
+									!header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
 						}	
 					}
 					LogPrint (eLogInfo, "Addressbook: ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
@@ -570,13 +577,13 @@ namespace client
 					{
 						success = true;
 						if (!isChunked)
-							m_Book.LoadHostsFromStream (response);
+							success = ProcessResponse (response, isGzip);
 						else
 						{
 							// merge chunks
 							std::stringstream merged;
 							i2p::util::http::MergeChunkedResponse (response, merged);
-							m_Book.LoadHostsFromStream (merged);
+							success = ProcessResponse (merged, isGzip);
 						}	
 					}	
 				}
@@ -598,6 +605,23 @@ namespace client
 			LogPrint (eLogError, "Addressbook: download failed");
 
 		m_Book.DownloadComplete (success);
+	}
+
+	bool AddressBookSubscription::ProcessResponse (std::stringstream& s, bool isGzip)
+	{
+		if (isGzip)
+		{
+			std::stringstream uncompressed;
+			i2p::data::GzipInflator inflator;
+			inflator.Inflate (s, uncompressed);
+			if (!uncompressed.fail ())
+				m_Book.LoadHostsFromStream (uncompressed);
+			else
+				return false;
+		}	
+		else
+			m_Book.LoadHostsFromStream (s);
+		return true;	
 	}
 }
 }

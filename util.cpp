@@ -212,6 +212,7 @@ namespace http
 				if (colon != std::string::npos)
 				{
 					std::string field = header.substr (0, colon);
+					boost::to_lower (field);
 					if (field == i2p::util::http::TRANSFER_ENCODING)
 						isChunked = (header.find ("chunked", colon + 1) != std::string::npos);
 				}	
