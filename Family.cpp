@@ -32,8 +32,13 @@ namespace data
 				// extract issuer name
 				char name[100];
 				X509_NAME_oneline (X509_get_issuer_name(cert), name, 100);
-				char * family = strstr (name, ".family");
-				if (family) family[0] = 0;
+				char * cn = strstr (name, "CN=");
+				if (cn)
+				{	
+					cn += 3;
+					char * family = strstr (cn, ".family");
+					if (family) family[0] = 0;
+				}	
 				auto pkey = X509_get_pubkey (cert);
 				int keyType = EVP_PKEY_type(pkey->type);
 				switch (keyType)
@@ -72,8 +77,8 @@ namespace data
 						LogPrint (eLogWarning, "Family: Certificate key type ", keyType, " is not supported");
 				}
 				EVP_PKEY_free (pkey);
-				if (verifier)
-					m_SigningKeys[name] = verifier;
+				if (verifier && cn)
+					m_SigningKeys[cn] = verifier;
 			}	
 			SSL_free (ssl);			
 		}	
