@@ -460,7 +460,7 @@ namespace client
 		{	
 			auto s = shared_from_this ();
 			RequestLeaseSet (GetIdentHash (), 
-				[s](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+				[s,this](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 				{
 					if (leaseSet)
 					{
