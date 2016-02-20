@@ -17,6 +17,7 @@
 #include "TunnelPool.h"
 #include "Reseed.h"
 #include "NetDbRequests.h"
+#include "Family.h"
 
 namespace i2p
 {
@@ -32,9 +33,9 @@ namespace data
 			void Start ();
 			void Stop ();
 			
-			void AddRouterInfo (const uint8_t * buf, int len);
-			void AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
-			void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+			bool AddRouterInfo (const uint8_t * buf, int len);
+			bool AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
+			bool AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 			std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
 			std::shared_ptr<LeaseSet> FindLeaseSet (const IdentHash& destination) const;
 			std::shared_ptr<RouterProfile> FindRouterProfile (const IdentHash& ident) const;
@@ -50,7 +51,7 @@ namespace data
 			std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
 			std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter () const;
 			std::shared_ptr<const RouterInfo> GetRandomIntroducer () const;
-			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
+			std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded) const;
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
@@ -59,6 +60,7 @@ namespace data
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
 			void Reseed ();
+			Families& GetFamilies () { return m_Families; };
 
 			// for web interface
 			int GetNumRouters () const { return m_RouterInfos.size (); };
@@ -94,6 +96,7 @@ namespace data
 
 			GzipInflator m_Inflator;
 			Reseeder * m_Reseeder;
+			Families m_Families;
 
 			friend class NetDbRequests; 
 			NetDbRequests m_Requests;

@@ -42,10 +42,13 @@ namespace data
 		auto signingKeyLen = localDestination->GetIdentity ()->GetSigningPublicKeyLen ();
 		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
 		m_BufferLen += signingKeyLen;
-		auto tunnels = pool->GetInboundTunnels (5); // 5 tunnels maximum
+		int numTunnels = pool->GetNumInboundTunnels () + 2; // 2 backup tunnels 
+		if (numTunnels > 16) numTunnels = 16; // 16 tunnels maximum 
+		auto tunnels = pool->GetInboundTunnels (numTunnels);
 		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
 		m_BufferLen++;
 		// leases
+		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it: tunnels)
 		{	
 			memcpy (m_Buffer + m_BufferLen, it->GetNextIdentHash (), 32);
@@ -54,8 +57,9 @@ namespace data
 			m_BufferLen += 4; // tunnel id
 			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
 			ts *= 1000; // in milliseconds
-			ts += rand () % 6; // + random milliseconds 0-5
 			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
+			// make sure leaseset is newer than previous, but adding some time to expiration date
+			ts += (currentTime - it->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
 			htobe64buf (m_Buffer + m_BufferLen, ts);
 			m_BufferLen += 8; // end date
 		}
@@ -130,7 +134,7 @@ namespace data
 			leases += 4; // tunnel ID
 			lease.endDate = bufbe64toh (leases); 
 			leases += 8; // end date
-			if (ts < lease.endDate)
+			if (ts < lease.endDate + LEASE_ENDDATE_THRESHOLD)
 			{	
 				if (lease.endDate > m_ExpirationTime)
 					m_ExpirationTime = lease.endDate;
@@ -157,6 +161,7 @@ namespace data
 			m_IsValid = false;
 			return;
 		}	
+		m_ExpirationTime += LEASE_ENDDATE_THRESHOLD;
 		// delete old leases	
 		if (m_StoreLeases)
 		{	
@@ -179,7 +184,35 @@ namespace data
 			m_IsValid = false;
 		}
 	}				
-	
+
+	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len) const 
+	{
+		if (!m_Identity) return 0;
+		size_t size = m_Identity->GetFullLen ();
+		if (size > len) return 0;
+		size += 256; // encryption key
+		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
+		if (size > len) return 0;
+		uint8_t num = buf[size];
+		size++; // num
+		if (size + num*44 > len) return 0;
+		uint64_t timestamp= 0 ;
+		for (int i = 0; i < num; i++)
+		{
+			size += 36; // gateway (32) + tunnelId(4)
+			auto endDate = bufbe64toh (buf + size); 
+			size += 8; // end date
+			if (!timestamp || endDate < timestamp)
+				timestamp = endDate;
+		}	
+		return timestamp;
+	}	
+
+	bool LeaseSet::IsNewer (const uint8_t * buf, size_t len) const
+	{
+		return ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
+	}	
+		
 	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
@@ -187,8 +220,10 @@ namespace data
 		for (auto it: m_Leases)
 		{
 			auto endDate = it->endDate;
-			if (!withThreshold)
-				endDate -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD*1000;
+			if (withThreshold)
+				endDate += LEASE_ENDDATE_THRESHOLD;
+			else
+				endDate -= LEASE_ENDDATE_THRESHOLD;
 			if (ts < endDate)
 				leases.push_back (it);
 		}	

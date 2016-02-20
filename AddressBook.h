@@ -77,7 +77,7 @@ namespace client
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
 			std::vector<AddressBookSubscription *> m_Subscriptions;
-			AddressBookSubscription * m_DefaultSubscription; // in case if we don't know any addresses yet
+			std::unique_ptr<AddressBookSubscription> m_DefaultSubscription; // in case if we don't know any addresses yet
 			boost::asio::deadline_timer * m_SubscriptionsUpdateTimer;
 	};
 
@@ -91,6 +91,7 @@ namespace client
 		private:
 
 			void Request ();
+			bool ProcessResponse (std::stringstream& s, bool isGzip = false);
 		
 		private:
 

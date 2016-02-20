@@ -37,6 +37,8 @@ namespace client
 			m_SharedLocalDestination->Start ();
 		}
 
+		m_AddressBook.Start ();	
+		
 		std::shared_ptr<ClientDestination> localDestination;	
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
 		if (httproxy) {
@@ -94,25 +96,19 @@ namespace client
 			m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
 			m_BOBCommandChannel->Start ();
 		} 
-
-		m_AddressBook.Start ();
 	}
 		
 	void ClientContext::Stop ()
 	{
-		if (m_HttpProxy) {
-			LogPrint(eLogInfo, "Clients: stopping HTTP Proxy");
-			m_HttpProxy->Stop();
-			delete m_HttpProxy;
-			m_HttpProxy = nullptr;
-		}
+		LogPrint(eLogInfo, "Clients: stopping HTTP Proxy");
+		m_HttpProxy->Stop();
+		delete m_HttpProxy;
+		m_HttpProxy = nullptr;
 
-		if (m_SocksProxy) {
-			LogPrint(eLogInfo, "Clients: stopping SOCKS Proxy");
-			m_SocksProxy->Stop();
-			delete m_SocksProxy;
-			m_SocksProxy = nullptr;
-		}
+		LogPrint(eLogInfo, "Clients: stopping SOCKS Proxy");
+		m_SocksProxy->Stop();
+		delete m_SocksProxy;
+		m_SocksProxy = nullptr;
 
 		for (auto& it: m_ClientTunnels)
 		{

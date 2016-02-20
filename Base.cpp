@@ -314,6 +314,44 @@ namespace data
 		}	
 	}	
 
+	bool GzipInflator::Inflate (const uint8_t * in, size_t inLen, std::ostream& s)
+	{
+		m_IsDirty = true;
+		uint8_t * out = new uint8_t[GZIP_CHUNK_SIZE];
+		m_Inflator.next_in = const_cast<uint8_t *>(in);
+		m_Inflator.avail_in = inLen;	
+		int ret;
+		do
+		{
+			m_Inflator.next_out = out;
+			m_Inflator.avail_out = GZIP_CHUNK_SIZE;
+			ret = inflate (&m_Inflator, Z_NO_FLUSH);
+			if (ret < 0)
+			{
+				LogPrint (eLogError, "Decompression error ", ret);
+				inflateEnd (&m_Inflator);
+				s.setstate(std::ios_base::failbit);
+				break;
+			}	
+			else
+				s.write ((char *)out, GZIP_CHUNK_SIZE - m_Inflator.avail_out);
+		}
+		while (!m_Inflator.avail_out); // more data to read
+		delete[] out;
+		return ret == Z_STREAM_END || ret < 0;
+	}
+
+	void GzipInflator::Inflate (std::istream& in, std::ostream& out)
+	{
+		uint8_t * buf = new uint8_t[GZIP_CHUNK_SIZE];
+		while (!in.eof ())
+		{
+			in.read ((char *)buf, GZIP_CHUNK_SIZE);
+			Inflate (buf, in.gcount (), out); 
+		}	
+		delete[] buf;
+	}
+
 	GzipDeflator::GzipDeflator (): m_IsDirty (false)
 	{
 		memset (&m_Deflator, 0, sizeof (m_Deflator));

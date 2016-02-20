@@ -193,11 +193,7 @@ namespace client
 			delete m_Storage;
 			m_Storage = nullptr;
 		}
-		if (m_DefaultSubscription)
-		{	
-			delete m_DefaultSubscription;
-			m_DefaultSubscription = nullptr;
-		}	
+		m_DefaultSubscription = nullptr;	
 		for (auto it: m_Subscriptions)
 			delete it;
 		m_Subscriptions.clear ();	
@@ -278,19 +274,6 @@ namespace client
 			LoadHostsFromStream (f);
 			m_IsLoaded = true;
 		}
-		else
-		{
-			// if not found download it from http://i2p-projekt.i2p/hosts.txt 
-			LogPrint (eLogInfo, "Addressbook: hosts.txt not found, trying to download it from default subscription.");
-			if (!m_IsDownloading)
-			{
-				m_IsDownloading = true;
-				if (!m_DefaultSubscription)
-					m_DefaultSubscription = new AddressBookSubscription (*this, DEFAULT_SUBSCRIPTION_ADDRESS);
-				m_DefaultSubscription->CheckSubscription ();
-			}
-		}	
-		
 	}
 
 	void AddressBook::LoadHostsFromStream (std::istream& f)
@@ -357,6 +340,11 @@ namespace client
 	void AddressBook::DownloadComplete (bool success)
 	{
 		m_IsDownloading = false;
+		if (success && m_DefaultSubscription)
+		{	
+			m_DefaultSubscription.reset (nullptr);
+			m_IsLoaded = true;
+		}	
 		if (m_SubscriptionsUpdateTimer)
 		{
 			m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(
@@ -369,8 +357,8 @@ namespace client
 	void AddressBook::StartSubscriptions ()
 	{
 		LoadSubscriptions ();
-		if (!m_Subscriptions.size ()) return;	
-
+		if (m_IsLoaded && m_Subscriptions.empty ()) return;
+		
 		auto dest = i2p::client::context.GetSharedLocalDestination ();
 		if (dest)
 		{
@@ -398,12 +386,24 @@ namespace client
 				LogPrint(eLogWarning, "Addressbook: missing local destination, skip subscription update");
 				return;
 			}
-			if (m_IsLoaded && !m_IsDownloading && dest->IsReady () && !m_Subscriptions.empty ())
+			if (!m_IsDownloading && dest->IsReady ())
 			{
-				// pick random subscription
-				auto ind = rand () % m_Subscriptions.size();	
-				m_IsDownloading = true;	
-				m_Subscriptions[ind]->CheckSubscription ();		
+				if (!m_IsLoaded)
+				{
+					// download it from http://i2p-projekt.i2p/hosts.txt 
+					LogPrint (eLogInfo, "Addressbook: trying to download it from default subscription.");
+					if (!m_DefaultSubscription)
+						m_DefaultSubscription.reset (new AddressBookSubscription (*this, DEFAULT_SUBSCRIPTION_ADDRESS));
+					m_IsDownloading = true;	
+					m_DefaultSubscription->CheckSubscription ();
+				}	
+				else if (!m_Subscriptions.empty ())
+				{	
+					// pick random subscription
+					auto ind = rand () % m_Subscriptions.size();	
+					m_IsDownloading = true;	
+					m_Subscriptions[ind]->CheckSubscription ();
+				}	
 			}
 			else
 			{
@@ -461,6 +461,8 @@ namespace client
 				        << "Host: " << u.host_ << "\r\n"
 				        << "Accept: */*\r\n"
 				        << "User-Agent: Wget/1.11.4\r\n"
+						//<< "Accept-Encoding: gzip\r\n"
+						<< "X-Accept-Encoding: x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n"
 				        << "Connection: close\r\n";
 				if (m_Etag.length () > 0) // etag
 					request << i2p::util::http::IF_NONE_MATCH << ": \"" << m_Etag << "\"\r\n";
@@ -499,7 +501,7 @@ namespace client
 				response >> status; // status
 				if (status == 200) // OK
 				{
-					bool isChunked = false;
+					bool isChunked = false, isGzip = false;
 					std::string header, statusMessage;
 					std::getline (response, statusMessage);
 					// read until new line meaning end of header
@@ -510,6 +512,8 @@ namespace client
 						if (colon != std::string::npos)
 						{
 							std::string field = header.substr (0, colon);
+							boost::to_lower (field); // field are not case-sensitive
+							colon++;
 							header.resize (header.length () - 1); // delete \r	
 							if (field == i2p::util::http::ETAG)
 								m_Etag = header.substr (colon + 1);
@@ -517,6 +521,9 @@ namespace client
 								m_LastModified = header.substr (colon + 1);
 							else if (field == i2p::util::http::TRANSFER_ENCODING)
 								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
+							else if (field == i2p::util::http::CONTENT_ENCODING)
+								isGzip = !header.compare (colon + 1, std::string::npos, "gzip") ||
+									!header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
 						}	
 					}
 					LogPrint (eLogInfo, "Addressbook: ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
@@ -524,13 +531,13 @@ namespace client
 					{
 						success = true;
 						if (!isChunked)
-							m_Book.LoadHostsFromStream (response);
+							success = ProcessResponse (response, isGzip);
 						else
 						{
 							// merge chunks
 							std::stringstream merged;
 							i2p::util::http::MergeChunkedResponse (response, merged);
-							m_Book.LoadHostsFromStream (merged);
+							success = ProcessResponse (merged, isGzip);
 						}	
 					}	
 				}
@@ -552,6 +559,23 @@ namespace client
 			LogPrint (eLogError, "Addressbook: download hosts.txt from ", m_Link, " failed");
 
 		m_Book.DownloadComplete (success);
+	}
+
+	bool AddressBookSubscription::ProcessResponse (std::stringstream& s, bool isGzip)
+	{
+		if (isGzip)
+		{
+			std::stringstream uncompressed;
+			i2p::data::GzipInflator inflator;
+			inflator.Inflate (s, uncompressed);
+			if (!uncompressed.fail ())
+				m_Book.LoadHostsFromStream (uncompressed);
+			else
+				return false;
+		}	
+		else
+			m_Book.LoadHostsFromStream (s);
+		return true;	
 	}
 }
 }

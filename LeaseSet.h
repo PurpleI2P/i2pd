@@ -17,6 +17,7 @@ namespace tunnel
 
 namespace data
 {	
+	const int LEASE_ENDDATE_THRESHOLD = 31000; // in milliseconds
 	struct Lease
 	{
 		IdentHash tunnelGateway;
@@ -46,6 +47,7 @@ namespace data
 			LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool);
 			~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len);
+			bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };			
 
@@ -57,6 +59,8 @@ namespace data
 			bool IsExpired () const;
 			bool IsEmpty () const { return m_Leases.empty (); };
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
+			bool operator== (const LeaseSet& other) const 
+			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }; 
 
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
@@ -66,6 +70,7 @@ namespace data
 		private:
 
 			void ReadFromBuffer (bool readIdentity = true);
+			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // min expiration time
 			
 		private:
 

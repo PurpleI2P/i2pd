@@ -114,10 +114,25 @@ namespace client
 	void I2PTunnelConnection::StreamReceive ()
 	{
 		if (m_Stream)
-			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
-				std::bind (&I2PTunnelConnection::HandleStreamReceive, shared_from_this (),
-					std::placeholders::_1, std::placeholders::_2),
-				I2P_TUNNEL_CONNECTION_MAX_IDLE);
+		{
+			if (m_Stream->GetStatus () == i2p::stream::eStreamStatusNew ||
+			    m_Stream->GetStatus () == i2p::stream::eStreamStatusOpen) // regular
+			{	
+				m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
+					std::bind (&I2PTunnelConnection::HandleStreamReceive, shared_from_this (),
+						std::placeholders::_1, std::placeholders::_2),
+					I2P_TUNNEL_CONNECTION_MAX_IDLE);
+			}	
+			else // closed by peer
+			{
+				// get remaning data
+				auto len = m_Stream->ReadSome (m_StreamBuffer, I2P_TUNNEL_CONNECTION_BUFFER_SIZE);
+				if (len > 0) // still some data
+					Write (m_StreamBuffer, len);
+				else // no more data
+					Terminate (); 
+			}		
+		}	
 	}	
 
 	void I2PTunnelConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -126,7 +141,12 @@ namespace client
 		{
 			LogPrint (eLogError, "I2PTunnel: stream read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+			{
+				if (bytes_transferred > 0)
+					Write (m_StreamBuffer, bytes_transferred); // postpone termination
+				else	
+					Terminate ();
+			}	
 		}
 		else
 			Write (m_StreamBuffer, bytes_transferred);

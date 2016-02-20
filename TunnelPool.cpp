@@ -201,7 +201,14 @@ namespace tunnel
 
 	void TunnelPool::TestTunnels ()
 	{
-		for (auto it: m_Tests)
+		decltype(m_Tests) tests;
+		{
+			std::unique_lock<std::mutex> l(m_TestsMutex);
+			tests = m_Tests;
+			m_Tests.clear ();
+		}
+
+		for (auto it: tests)
 		{
 			LogPrint (eLogWarning, "Tunnels: test of tunnel ", it.first, " failed");
 			// if test failed again with another tunnel we consider it failed
@@ -232,7 +239,7 @@ namespace tunnel
 					it.second.second->SetState (eTunnelStateTestFailed);
 			}	
 		}
-		m_Tests.clear ();
+	
 		// new tests	
 		auto it1 = m_OutboundTunnels.begin ();
 		auto it2 = m_InboundTunnels.begin ();
@@ -253,7 +260,10 @@ namespace tunnel
 			{
  				uint32_t msgID;
 				RAND_bytes ((uint8_t *)&msgID, 4);
- 				m_Tests[msgID] = std::make_pair (*it1, *it2);
+				{
+					std::unique_lock<std::mutex> l(m_TestsMutex);
+ 					m_Tests[msgID] = std::make_pair (*it1, *it2);
+				}
  				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
 					CreateDeliveryStatusMsg (msgID));
 				it1++; it2++;
@@ -276,16 +286,26 @@ namespace tunnel
 		buf += 4;	
 		uint64_t timestamp = bufbe64toh (buf);
 
-		auto it = m_Tests.find (msgID);
-		if (it != m_Tests.end ())
+		decltype(m_Tests)::mapped_type test;
+		bool found = false;	
+		{
+			std::unique_lock<std::mutex> l(m_TestsMutex);
+			auto it = m_Tests.find (msgID);
+			if (it != m_Tests.end ())
+			{
+				found = true;
+				test = it->second; 
+				m_Tests.erase (it);
+			}
+		}
+		if (found)
 		{
 			// restore from test failed state if any
-			if (it->second.first->GetState () == eTunnelStateTestFailed)
-				it->second.first->SetState (eTunnelStateEstablished);
-			if (it->second.second->GetState () == eTunnelStateTestFailed)
-				it->second.second->SetState (eTunnelStateEstablished);
-			LogPrint (eLogDebug, "Tunnels: test of ", it->first, " successful. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
-			m_Tests.erase (it);
+			if (test.first->GetState () == eTunnelStateTestFailed)
+				test.first->SetState (eTunnelStateEstablished);
+			if (test.second->GetState () == eTunnelStateTestFailed)
+				test.second->SetState (eTunnelStateEstablished);
+			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
 		}
 		else
 		{
