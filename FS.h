@@ -6,6 +6,9 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#ifndef FS_H__
+#define FS_H__
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -139,3 +142,5 @@ namespace fs {
   HashedStorage & GetPeerProfiles();
 } // fs
 } // i2p
+
+#endif // /* FS_H__ */
