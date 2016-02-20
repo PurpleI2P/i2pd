@@ -22,7 +22,6 @@ namespace fs {
 #else
   std::string dirSep = "/";
 #endif
-  HashedStorage Peers("peerProfiles", "p", "profile-",    "txt");
 
   const std::string & GetAppName () {
     return appName;
@@ -71,8 +70,6 @@ namespace fs {
     if (boost::filesystem::exists(destinations))
       boost::filesystem::create_directory(destinations);
 
-    Peers.SetPlace(dataDir);
-    Peers.Init(i2p::data::GetBase64SubstitutionTable(), 64);
     return true;
   }
 
@@ -153,7 +150,5 @@ namespace fs {
       files.push_back(t);
     }
   }
-
-  HashedStorage & GetPeerProfiles() { return Peers; }
 } // fs
 } // i2p

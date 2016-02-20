@@ -38,6 +38,7 @@ namespace data
 	{	
 		m_Storage.SetPlace(i2p::fs::GetDataDir());
 		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+		InitProfilesStorage ();
 		m_Families.LoadCertificates ();	
 		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50

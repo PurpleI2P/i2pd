@@ -10,6 +10,8 @@ namespace i2p
 {
 namespace data
 {
+	i2p::fs::HashedStorage m_ProfilesStorage("peerProfiles", "p", "profile-", "txt");
+
 	RouterProfile::RouterProfile (const IdentHash& identHash):
 		m_IdentHash (identHash), m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
@@ -45,7 +47,7 @@ namespace data
 
 		// save to file
 		std::string ident = m_IdentHash.ToBase64 ();
-		std::string path = i2p::fs::GetPeerProfiles().Path(ident);
+		std::string path = m_ProfilesStorage.Path(ident);
 
 		try {
 			boost::property_tree::write_ini (path, pt);
@@ -58,7 +60,7 @@ namespace data
 	void RouterProfile::Load ()
 	{
 		std::string ident = m_IdentHash.ToBase64 ();
-		std::string path = i2p::fs::GetPeerProfiles().Path(ident);
+		std::string path = m_ProfilesStorage.Path(ident);
 		boost::property_tree::ptree pt;
 
 		if (!i2p::fs::Exists(path)) {
@@ -152,13 +154,19 @@ namespace data
 		return profile;
 	}		
 
+	void InitProfilesStorage ()
+	{
+		m_ProfilesStorage.SetPlace(i2p::fs::GetDataDir());
+		m_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+	}
+
 	void DeleteObsoleteProfiles ()
 	{
 		struct stat st;
 		std::time_t now = std::time(nullptr);
 
 		std::vector<std::string> files;
-		i2p::fs::GetPeerProfiles().Traverse(files);
+		m_ProfilesStorage.Traverse(files);
 		for (auto path: files) {
 			if (stat(path.c_str(), &st) != 0) {
 				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);

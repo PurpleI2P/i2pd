@@ -136,9 +136,6 @@ namespace fs {
 
     return s.str();
   }
-
-  /* accessors */
-  HashedStorage & GetPeerProfiles();
 } // fs
 } // i2p
 

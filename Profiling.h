@@ -60,6 +60,7 @@ namespace data
 	};	
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash); 
+	void InitProfilesStorage ();
 	void DeleteObsoleteProfiles ();
 }		
 }	
