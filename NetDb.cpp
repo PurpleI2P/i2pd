@@ -7,7 +7,6 @@
 #include "I2PEndian.h"
 #include "Base.h"
 #include "Log.h"
-#include "FS.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
@@ -25,7 +24,7 @@ namespace data
 {		
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat")
 	{
 	}
 	
@@ -37,6 +36,8 @@ namespace data
 
 	void NetDb::Start ()
 	{	
+		m_Storage.SetPlace(i2p::fs::GetDataDir());
+		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
 		m_Families.LoadCertificates ();	
 		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
@@ -313,7 +314,7 @@ namespace data
 
 		m_LastLoad = i2p::util::GetSecondsSinceEpoch();
 		std::vector<std::string> files;
-		i2p::fs::GetNetDB().Traverse(files);
+		m_Storage.Traverse(files);
 		for (auto path : files)
 			LoadRouterInfo(path);
 
@@ -329,7 +330,7 @@ namespace data
 		for (auto it: m_RouterInfos)
 		{	
 			std::string ident = it.second->GetIdentHashBase64();
-			std::string path  = i2p::fs::GetNetDB().Path(ident);
+			std::string path  = m_Storage.Path(ident);
 			if (it.second->IsUpdated ()) {
 				it.second->SaveToFile (path);
 				it.second->SetUpdated (false);
@@ -376,7 +377,7 @@ namespace data
 			if (it.second->IsUnreachable ()) {
 				total--;
 				// delete RI file
-				i2p::fs::GetNetDB().Remove(ident);
+				m_Storage.Remove(ident);
 				deletedCount++;
 				// delete from floodfills list
 				if (it.second->IsFloodfill ()) {

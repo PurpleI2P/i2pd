@@ -22,7 +22,6 @@ namespace fs {
 #else
   std::string dirSep = "/";
 #endif
-  HashedStorage NetDB("netDb",        "r", "routerInfo-", "dat");
   HashedStorage Peers("peerProfiles", "p", "profile-",    "txt");
 
   const std::string & GetAppName () {
@@ -72,8 +71,6 @@ namespace fs {
     if (boost::filesystem::exists(destinations))
       boost::filesystem::create_directory(destinations);
 
-    NetDB.SetPlace(dataDir);
-    NetDB.Init(i2p::data::GetBase64SubstitutionTable(), 64);
     Peers.SetPlace(dataDir);
     Peers.Init(i2p::data::GetBase64SubstitutionTable(), 64);
     return true;
@@ -157,7 +154,6 @@ namespace fs {
     }
   }
 
-  HashedStorage & GetNetDB()        { return NetDB; } 
   HashedStorage & GetPeerProfiles() { return Peers; }
 } // fs
 } // i2p

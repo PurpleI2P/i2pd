@@ -138,7 +138,6 @@ namespace fs {
   }
 
   /* accessors */
-  HashedStorage & GetNetDB();
   HashedStorage & GetPeerProfiles();
 } // fs
 } // i2p

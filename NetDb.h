@@ -9,6 +9,7 @@
 #include <thread>
 #include <mutex>
 #include "Base.h"
+#include "FS.h"
 #include "Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
@@ -97,11 +98,10 @@ namespace data
 			GzipInflator m_Inflator;
 			Reseeder * m_Reseeder;
 			Families m_Families;
+			i2p::fs::HashedStorage m_Storage;
 
 			friend class NetDbRequests; 
 			NetDbRequests m_Requests;
-
-			static const char m_NetDbPath[];
 	};
 
 	extern NetDb netdb;
