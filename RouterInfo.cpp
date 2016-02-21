@@ -263,18 +263,18 @@ namespace data
 			if (!strcmp (key, "caps"))
 				ExtractCaps (value);
 			// check netId
-			else if (!strcmp (key, "netId") && atoi (value) != I2PD_NET_ID)
+			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID) && atoi (value) != I2PD_NET_ID)
 			{
-				LogPrint (eLogError, "Unexpected netid=", value);
+				LogPrint (eLogError, "Unexpected ", ROUTER_INFO_PROPERTY_NETID, "=", value);
 				m_IsUnreachable = true;		
 			}	
 			// family
-			else if (!strcmp (key, "family"))
+			else if (!strcmp (key, ROUTER_INFO_PROPERTY_FAMILY))
 			{
 				m_Family = value;
 				boost::to_lower (m_Family);
 			}
-			else if (!strcmp (key, "family.sig"))
+			else if (!strcmp (key, ROUTER_INFO_PROPERTY_FAMILY_SIG))
 			{
 				if (!netdb.GetFamilies ().VerifyFamily (m_Family, GetIdentHash (), value))
 				{

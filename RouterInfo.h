@@ -14,6 +14,12 @@ namespace i2p
 {
 namespace data
 {
+	const char ROUTER_INFO_PROPERTY_LEASESETS[] = "netdb.knownLeaseSets";
+	const char ROUTER_INFO_PROPERTY_ROUTERS[] = "netdb.knownRouters";	
+	const char ROUTER_INFO_PROPERTY_NETID[] = "netId";
+	const char ROUTER_INFO_PROPERTY_FAMILY[] = "family";	
+	const char ROUTER_INFO_PROPERTY_FAMILY_SIG[] = "family.sig";
+	
 	const char CAPS_FLAG_FLOODFILL = 'f';
 	const char CAPS_FLAG_HIDDEN = 'H';
 	const char CAPS_FLAG_REACHABLE = 'R';

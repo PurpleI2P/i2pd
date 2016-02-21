@@ -122,6 +122,51 @@ namespace data
 		return true;
 	}
 
+	std::string CreateFamilySignature (const std::string& family, const IdentHash& ident)
+	{
+		std::string sig;
+		auto filename = i2p::util::filesystem::GetDefaultDataDir() / "family" / (family + ".key");	
+		SSL_CTX * ctx = SSL_CTX_new (TLSv1_method ());
+		int ret = SSL_CTX_use_PrivateKey_file (ctx, filename.string ().c_str (), SSL_FILETYPE_PEM); 
+		if (ret)
+		{
+			SSL * ssl = SSL_new (ctx);
+			EVP_PKEY * pkey = SSL_get_privatekey (ssl);
+			EC_KEY * ecKey = EVP_PKEY_get1_EC_KEY (pkey);
+			if (ecKey)
+			{
+				auto group = EC_KEY_get0_group (ecKey);
+				if (group)
+				{
+					int curve = EC_GROUP_get_curve_name (group);
+					if (curve == NID_X9_62_prime256v1)
+					{
+						uint8_t signingPrivateKey[32], buf[50], signature[64];
+						i2p::crypto::bn2buf (EC_KEY_get0_private_key (ecKey), signingPrivateKey, 32);
+						i2p::crypto::ECDSAP256Signer signer (signingPrivateKey);
+						size_t len = family.length ();
+						memcpy (buf, family.c_str (), len);
+						memcpy (buf + len, (const uint8_t *)ident, 32);
+						len += 32;
+						signer.Sign (buf, len, signature);
+						len = Base64EncodingBufferSize (64);
+						char * b64 = new char[len+1];
+						len = ByteStreamToBase64 (signature, 64, b64, len);
+						b64[len] = 0;
+						sig = b64;
+						delete[] b64;
+					}
+					else
+						LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
+				}	
+			}	
+			SSL_free (ssl);		
+		}	
+		else
+			LogPrint (eLogError, "Family: Can't open keys file ", filename.string ());
+		SSL_CTX_free (ctx);	
+		return sig;
+	}	
 }
 }
 

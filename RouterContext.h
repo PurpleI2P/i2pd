@@ -15,9 +15,6 @@ namespace i2p
 	const char ROUTER_INFO[] = "router.info";
 	const char ROUTER_KEYS[] = "router.keys";	
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
-	
-	const char ROUTER_INFO_PROPERTY_LEASESETS[] = "netdb.knownLeaseSets";
-	const char ROUTER_INFO_PROPERTY_ROUTERS[] = "netdb.knownRouters";		
 
 	enum RouterStatus
 	{
@@ -60,6 +57,7 @@ namespace i2p
 			void SetReachable ();
 			bool IsFloodfill () const { return m_IsFloodfill; };	
 			void SetFloodfill (bool floodfill);	
+			void SetFamily (const std::string& family);
 			void SetHighBandwidth ();
 			void SetLowBandwidth ();
 			void SetExtraBandwidth ();

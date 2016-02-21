@@ -8,6 +8,7 @@
 #include "util.h"
 #include "version.h"
 #include "Log.h"
+#include "Family.h"
 #include "RouterContext.h"
 
 namespace i2p
@@ -141,12 +142,29 @@ namespace i2p
 		{
 			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eFloodfill);
 			// we don't publish number of routers and leaseset for non-floodfill
-			m_RouterInfo.DeleteProperty (ROUTER_INFO_PROPERTY_LEASESETS);
-			m_RouterInfo.DeleteProperty (ROUTER_INFO_PROPERTY_ROUTERS);
+			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS);
+			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS);
 		}
 		UpdateRouterInfo ();
 	}
 
+	void RouterContext::SetFamily (const std::string& family)
+	{
+		std::string signature;
+		if (family.length () > 0)
+			signature = i2p::data::CreateFamilySignature (family, GetIdentHash ());
+		if (signature.length () > 0)
+		{
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY, family);
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY_SIG, signature);
+		}	
+		else
+		{
+			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY);
+			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY_SIG);
+		}	
+	}	
+		
 	void RouterContext::SetHighBandwidth ()
 	{
 		if (!m_RouterInfo.IsHighBandwidth () || m_RouterInfo.IsExtraBandwidth ())
@@ -284,8 +302,8 @@ namespace i2p
 		if (m_IsFloodfill)
 		{
 			// update routers and leasesets
-			m_RouterInfo.SetProperty (ROUTER_INFO_PROPERTY_LEASESETS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumLeaseSets ()));
-			m_RouterInfo.SetProperty (ROUTER_INFO_PROPERTY_ROUTERS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ()));
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumLeaseSets ()));
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ()));
 			UpdateRouterInfo (); 
 		}
 	}
