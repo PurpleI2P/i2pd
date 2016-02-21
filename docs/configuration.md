@@ -21,6 +21,7 @@ Command line options
 * --notransit           - Router will not accept transit tunnels at startup
 * --floodfill           - Router will be floodfill
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
+* --family=             - Name of a family, router belongs to
 * --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
 
 * --http.address=       - The address to listen on (HTTP server)
