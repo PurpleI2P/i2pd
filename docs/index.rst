@@ -26,4 +26,5 @@ Contents:
    build_notes_unix
    build_notes_windows
    configuration
+   family
 
