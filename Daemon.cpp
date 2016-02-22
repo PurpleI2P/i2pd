@@ -71,7 +71,11 @@ namespace i2p
 
 			datadir = i2p::fs::GetDataDir();
 			if (config  == "")
-				config  = i2p::fs::DataDirPath("i2p.conf");
+			{
+				config = i2p::fs::DataDirPath("i2p.conf");
+				// use i2p.cong only if exists
+				if (!i2p::fs::Exists (config)) config = ""; /* reset */
+			}
 			if (tunconf == "")
 				tunconf = i2p::fs::DataDirPath("tunnels.cfg");
 
