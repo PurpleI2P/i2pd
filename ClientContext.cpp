@@ -252,14 +252,17 @@ namespace client
 	void ClientContext::ReadTunnels ()
 	{
 		boost::property_tree::ptree pt;
-		std::string pathTunConf;
-		i2p::config::GetOption("tunconf", pathTunConf);
-		if (pathTunConf == "")
-			return;
-		try {
-			boost::property_tree::read_ini (pathTunConf, pt);
-		} catch (std::exception& ex) {
-			LogPrint (eLogWarning, "Clients: Can't read ", pathTunConf, ": ", ex.what ());
+		std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
+		if (tunConf == "")
+			tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
+		LogPrint(eLogDebug, "FS: tunnels config file: ", tunConf);
+		try 
+		{
+			boost::property_tree::read_ini (tunConf, pt);
+		} 
+		catch (std::exception& ex) 
+		{
+			LogPrint (eLogWarning, "Clients: Can't read ", tunConf, ": ", ex.what ());
 			return;
 		}
 			
@@ -347,7 +350,7 @@ namespace client
 					numServerTunnels++;
 				}
 				else
-					LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", pathTunConf);
+					LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", tunConf);
 				
 			}
 			catch (std::exception& ex)

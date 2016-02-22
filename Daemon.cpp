@@ -64,7 +64,6 @@ namespace i2p
 			i2p::config::ParseCmdline(argc, argv);
 
 			std::string config;  i2p::config::GetOption("conf",    config);
-			std::string tunconf; i2p::config::GetOption("tunconf", tunconf);
 			std::string datadir; i2p::config::GetOption("datadir", datadir);
 			i2p::fs::DetectDataDir(datadir, IsService());
 			i2p::fs::Init();
@@ -76,8 +75,6 @@ namespace i2p
 				// use i2p.cong only if exists
 				if (!i2p::fs::Exists (config)) config = ""; /* reset */
 			}
-			if (tunconf == "")
-				tunconf = i2p::fs::DataDirPath("tunnels.cfg");
 
 			i2p::config::ParseConfig(config);
 			i2p::config::Finalize();
@@ -91,7 +88,6 @@ namespace i2p
 
 			LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
 			LogPrint(eLogDebug, "FS: main config file: ", config);
-			LogPrint(eLogDebug, "FS: tunnels config: ",   tunconf);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
 			uint16_t port; i2p::config::GetOption("port", port);
