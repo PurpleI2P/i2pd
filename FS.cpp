@@ -9,6 +9,10 @@
 #include <algorithm>
 #include <boost/filesystem.hpp>
 
+#ifdef WIN32
+#include <shlobj.h>
+#endif
+
 #include "Base.h"
 #include "FS.h"
 #include "Log.h"
