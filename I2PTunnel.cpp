@@ -234,6 +234,44 @@ namespace client
 		}	
 	}
 
+	I2PTunnelConnectionIRC::I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+        std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
+       	const boost::asio::ip::tcp::endpoint& target, const std::string& host):
+        I2PTunnelConnection (owner, stream, socket, target), m_Host (host), m_From (stream->GetRemoteIdentity ())
+    {
+    }
+
+    void I2PTunnelConnectionIRC::Write (const uint8_t * buf, size_t len)
+    {
+        std::string line;
+        m_OutPacket.str ("");
+        m_InPacket.write ((const char *)buf, len);
+        
+        while (!m_InPacket.eof () && !m_InPacket.fail ())
+        {
+                std::getline (m_InPacket, line);
+                auto pos = line.find ("USER");
+                if (pos != std::string::npos && pos == 0)
+                {
+                        pos = line.find (" ");
+                        pos++;
+                        pos = line.find (" ", pos);
+                        pos++;
+                        pos = line.find (" ", pos);
+                        pos++;
+                        auto nextpos = line.find (" ", pos);
+
+                        m_OutPacket << line.substr (0, pos);
+                        m_OutPacket << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ());
+                        m_OutPacket << line.substr (nextpos) << '\n';
+                } else {
+                        m_OutPacket << line << '\n';
+                }
+        }
+        I2PTunnelConnection::Write ((uint8_t *)m_OutPacket.str ().c_str (), m_OutPacket.str ().length ());
+    }
+
+
 	/* This handler tries to stablish a connection with the desired server and dies if it fails to do so */
 	class I2PClientTunnelHandler: public I2PServiceHandler, public std::enable_shared_from_this<I2PClientTunnelHandler>
 	{
@@ -436,5 +474,18 @@ namespace client
 		AddHandler (conn);
 		conn->Connect ();
 	}
+
+    I2PServerTunnelIRC::I2PServerTunnelIRC (const std::string& name, const std::string& address, 
+        int port, std::shared_ptr<ClientDestination> localDestination, int inport):
+            I2PServerTunnel (name, address, port, localDestination, inport)
+    {
+    }
+
+    void I2PServerTunnelIRC::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
+    {
+            auto conn = std::make_shared<I2PTunnelConnectionIRC> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint (), GetAddress ());
+            AddHandler (conn);
+            conn->Connect ();
+    }
 }		
 }	

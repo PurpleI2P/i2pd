@@ -303,7 +303,7 @@ namespace client
 						LogPrint (eLogError, "Clients: I2P client tunnel with port ", port, " already exists");
 					numClientTunnels++;
 				}
-				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP)
+				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC)
 				{	
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
@@ -324,9 +324,16 @@ namespace client
 					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
-					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
-						new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort) : 
-						new I2PServerTunnel (name, host, port, localDestination, inPort);
+
+					I2PServerTunnel * serverTunnel;
+					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
+                        serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, inPort);
+               		} else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER) {
+                       	serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort);
+               		} else if (type == I2P_TUNNELS_SECTION_TYPE_IRC) {
+                       	serverTunnel = new I2PServerTunnelIRC (name, host, port, localDestination, inPort);
+               		}
+
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;

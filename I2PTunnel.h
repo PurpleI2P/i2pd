@@ -80,6 +80,26 @@ namespace client
 			std::shared_ptr<const i2p::data::IdentityEx> m_From;
 	};
 
+	class I2PTunnelConnectionIRC: public I2PTunnelConnection
+    {
+        public:
+                
+            I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+                std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
+                const boost::asio::ip::tcp::endpoint& target, const std::string& host); 
+
+        protected:
+
+            void Write (const uint8_t * buf, size_t len);
+
+        private:
+                
+            std::string m_Host;
+            std::shared_ptr<const i2p::data::IdentityEx> m_From;
+            std::stringstream m_OutPacket, m_InPacket;
+    };
+
+
 	class I2PClientTunnel: public TCPIPAcceptor
 	{
 		protected:
@@ -163,6 +183,19 @@ namespace client
 
 			std::string m_Host;
 	};
+	
+    class I2PServerTunnelIRC: public I2PServerTunnel
+    {
+        public:
+
+            I2PServerTunnelIRC (const std::string& name, const std::string& address, int port, 
+                std::shared_ptr<ClientDestination> localDestination, int inport = 0);   
+
+        private:
+
+            void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream); 
+    };
+
 }
 }	
 
