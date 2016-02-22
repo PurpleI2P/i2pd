@@ -460,6 +460,7 @@ namespace client
 		{	
 			auto s = shared_from_this ();
 			RequestLeaseSet (GetIdentHash (), 
+				// "this" added due to bug in gcc 4.7-4.8
 				[s,this](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 				{
 					if (leaseSet)
