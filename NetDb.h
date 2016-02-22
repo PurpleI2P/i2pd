@@ -62,6 +62,7 @@ namespace data
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
 			void Reseed ();
+			Families& GetFamilies () { return m_Families; };
 
 			// for web interface
 			int GetNumRouters () const { return m_RouterInfos.size (); };

@@ -14,6 +14,12 @@ namespace i2p
 {
 namespace data
 {
+	const char ROUTER_INFO_PROPERTY_LEASESETS[] = "netdb.knownLeaseSets";
+	const char ROUTER_INFO_PROPERTY_ROUTERS[] = "netdb.knownRouters";	
+	const char ROUTER_INFO_PROPERTY_NETID[] = "netId";
+	const char ROUTER_INFO_PROPERTY_FAMILY[] = "family";	
+	const char ROUTER_INFO_PROPERTY_FAMILY_SIG[] = "family.sig";
+	
 	const char CAPS_FLAG_FLOODFILL = 'f';
 	const char CAPS_FLAG_HIDDEN = 'H';
 	const char CAPS_FLAG_REACHABLE = 'R';
@@ -180,7 +186,7 @@ namespace data
 
 		private:
 
-			std::string m_FullPath;
+			std::string m_FullPath, m_Family;
 			std::shared_ptr<const IdentityEx> m_RouterIdentity;
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;

@@ -120,7 +120,7 @@ namespace i2p
 					i2p::context.SetHighBandwidth (); 
 				else 
 					i2p::context.SetLowBandwidth ();
-			}	
+			}
 			else if (isFloodfill) 
 			{
 				LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
@@ -132,6 +132,11 @@ namespace i2p
 				i2p::context.SetLowBandwidth ();
 			}
 
+			std::string family; i2p::config::GetOption("family", family);
+			i2p::context.SetFamily (family);
+			if (family.length () > 0)
+				LogPrint(eLogInfo, "Daemon: family set to ", family);	
+			
 			return true;
 		}
 			
