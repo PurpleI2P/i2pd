@@ -9,8 +9,6 @@ namespace i2p
 {
 namespace data
 {	
-	const char PEER_PROFILES_DIRECTORY[] = "peerProfiles";
-	const char PEER_PROFILE_PREFIX[] = "profile-";
 	// sections
 	const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
 	const char PEER_PROFILE_SECTION_USAGE[] = "usage";
@@ -62,6 +60,7 @@ namespace data
 	};	
 
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash); 
+	void InitProfilesStorage ();
 	void DeleteObsoleteProfiles ();
 }		
 }	

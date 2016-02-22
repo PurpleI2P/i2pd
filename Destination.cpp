@@ -2,8 +2,9 @@
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 #include <openssl/rand.h>
+
 #include "Log.h"
-#include "util.h"
+#include "FS.h"
 #include "Crypto.h"
 #include "Timestamp.h"
 #include "NetDb.h"
@@ -459,7 +460,8 @@ namespace client
 		{	
 			auto s = shared_from_this ();
 			RequestLeaseSet (GetIdentHash (), 
-				[s](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+				// "this" added due to bug in gcc 4.7-4.8
+				[s,this](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 				{
 					if (leaseSet)
 					{
@@ -751,30 +753,26 @@ namespace client
 
 	void ClientDestination::PersistTemporaryKeys ()
 	{
-		auto path = i2p::util::filesystem::GetDefaultDataDir() / "destinations"; 
-		auto filename = path / (GetIdentHash ().ToBase32 () + ".dat");				
-		std::ifstream f(filename.string (), std::ifstream::binary);
-		if (f)	
-		{
-			f.read ((char *)m_EncryptionPublicKey, 256);
+		std::string ident = GetIdentHash().ToBase32();
+		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
+		std::ifstream f(path, std::ifstream::binary);
+
+		if (f) {
+			f.read ((char *)m_EncryptionPublicKey,  256);
 			f.read ((char *)m_EncryptionPrivateKey, 256);
+			return;
 		}
-		if (!f)
-		{
-			LogPrint (eLogInfo, "Creating new temporary keys for address ", GetIdentHash ().ToBase32 ());
-			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
-			if (!boost::filesystem::exists (path))
-			{
-				if (!boost::filesystem::create_directory (path))
-					LogPrint (eLogError, "Failed to create destinations directory");
-			}
-			std::ofstream f1 (filename.string (), std::ofstream::binary | std::ofstream::out);
-			if (f1)
-			{
-				f1.write ((char *)m_EncryptionPublicKey, 256);
-				f1.write ((char *)m_EncryptionPrivateKey, 256);
-			}
-		}	
+
+		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
+		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+
+		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
+		if (f1) {
+			f1.write ((char *)m_EncryptionPublicKey,  256);
+			f1.write ((char *)m_EncryptionPrivateKey, 256);
+			return;
+		}
+		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
 	}
 }
 }

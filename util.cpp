@@ -6,13 +6,7 @@
 #include <fstream>
 #include <set>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/program_options/detail/config_file.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/algorithm/string.hpp>
 #include "Config.h"
 #include "util.h"
 #include "Log.h"
@@ -67,131 +61,6 @@ namespace i2p
 {
 namespace util
 {
-namespace filesystem
-{
-	std::string appName ("i2pd");	
-
-	void SetAppName (const std::string& name)
-	{
-		appName = name;
-	}
-
-	std::string GetAppName ()
-	{
-		return appName;
-	}
-
-	const boost::filesystem::path &GetDataDir()
-	{
-		static boost::filesystem::path path;
-
-		// TODO: datadir parameter is useless because GetDataDir is called before OptionParser
-		// and mapArgs is not initialized yet
-		/*
-		std::string datadir; i2p::config::GetOption("datadir", datadir);
-		if (datadir != "")
-			path = boost::filesystem::system_complete(datadir);
-		else */
-			path = GetDefaultDataDir();
-
-		if (!boost::filesystem::exists( path ))
-		{
-			// Create data directory
-			if (!boost::filesystem::create_directory( path ))
-			{
-				LogPrint(eLogError, "FS: Failed to create data directory!");
-				path = "";
-				return path;
-			}
-		}
-		if (!boost::filesystem::is_directory(path)) 
-			path = GetDefaultDataDir();
-		return path;
-	}
-
-	std::string GetFullPath (const std::string& filename)
-	{
-		std::string fullPath = GetDataDir ().string ();
-#ifndef _WIN32
-		fullPath.append ("/");
-#else
-		fullPath.append ("\\");
-#endif
-		fullPath.append (filename);
-		return fullPath;
-	}		
-
-	boost::filesystem::path GetConfigFile()
-	{
-		std::string config; i2p::config::GetOption("conf", config);
-		if (config != "") {
-			/* config file set with cmdline */
-			boost::filesystem::path path(config);
-			return path;
-		}
-		/* else - try autodetect */
-		boost::filesystem::path path("i2p.conf");
-		path = GetDataDir() / path;
-		if (!boost::filesystem::exists(path))
-			path = ""; /* reset */
-		return path;
-	}
-
-	boost::filesystem::path GetTunnelsConfigFile()
-	{
-		std::string tunconf; i2p::config::GetOption("tunconf", tunconf);
-		if (tunconf != "") {
-			/* config file set with cmdline */
-			boost::filesystem::path path(tunconf);
-			return path;
-		}
-		/* else - try autodetect */
-		boost::filesystem::path path("tunnels.cfg");
-		path = GetDataDir() / path;
-		if (!boost::filesystem::exists(path))
-			path = ""; /* reset */
-		return path;
-	}
-
-	boost::filesystem::path GetDefaultDataDir()
-	{
-		// Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd
-		// Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd
-		// Mac: ~/Library/Application Support/i2pd
-		// Unix: ~/.i2pd or /var/lib/i2pd is system=1
-#ifdef WIN32
-		// Windows
-		char localAppData[MAX_PATH];
-		SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
-		return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
-#else /* UNIX */
-		bool service; i2p::config::GetOption("service", service);
-		if (service) // use system folder
-			return boost::filesystem::path(std::string ("/var/lib/") + appName);
-		boost::filesystem::path pathRet;
-		char* pszHome = getenv("HOME");
-		if (pszHome == NULL || strlen(pszHome) == 0)
-			pathRet = boost::filesystem::path("/");
-		else
-			pathRet = boost::filesystem::path(pszHome);
-#ifdef MAC_OSX
-		// Mac
-		pathRet /= "Library/Application Support";
-		boost::filesystem::create_directory(pathRet);
-		return pathRet / appName;
-#else /* Other Unix */
-		// Unix
-		return pathRet / (std::string (".") + appName);
-#endif
-#endif /* UNIX */
-	}
-
-	boost::filesystem::path GetCertificatesDir()
-	{
-		return GetDataDir () / "certificates";
-	}	
-}
-
 namespace http
 {
 	std::string GetHttpContent (std::istream& response)
@@ -212,7 +81,7 @@ namespace http
 				if (colon != std::string::npos)
 				{
 					std::string field = header.substr (0, colon);
-					boost::to_lower (field);
+					std::transform(field.begin(), field.end(), field.begin(), ::tolower);
 					if (field == i2p::util::http::TRANSFER_ENCODING)
 						isChunked = (header.find ("chunked", colon + 1) != std::string::npos);
 				}	

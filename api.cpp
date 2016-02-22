@@ -9,7 +9,7 @@
 #include "Identity.h"
 #include "Destination.h"
 #include "Crypto.h"
-#include "util.h"
+#include "FS.h"
 #include "api.h"
 
 namespace i2p
@@ -18,10 +18,16 @@ namespace api
 {
 	void InitI2P (int argc, char* argv[], const char * appName)
 	{
-		i2p::util::filesystem::SetAppName (appName);
 		i2p::config::Init ();
 		i2p::config::ParseCmdline (argc, argv);
 		i2p::config::Finalize ();
+
+		std::string datadir; i2p::config::GetOption("datadir", datadir);
+
+		i2p::fs::SetAppName (appName);
+		i2p::fs::DetectDataDir(datadir, false);
+		i2p::fs::Init();
+
 		i2p::crypto::InitCrypto ();
 		i2p::context.Init ();	
 	}
@@ -36,7 +42,7 @@ namespace api
 		if (logStream)
 			StartLog (logStream);
 		else
-			StartLog (i2p::util::filesystem::GetFullPath (i2p::util::filesystem::GetAppName () + ".log"));
+			StartLog (i2p::fs::DataDirPath (i2p::fs::GetAppName () + ".log"));
 		LogPrint(eLogInfo, "API: starting NetDB");
 		i2p::data::netdb.Start();
 		LogPrint(eLogInfo, "API: starting Transports");

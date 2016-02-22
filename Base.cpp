@@ -6,6 +6,18 @@ namespace i2p
 {
 namespace data
 {
+	static const char T32[32] = {
+		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+		'i', 'k', 'k', 'l', 'm', 'n', 'o', 'p',
+		'q', 'r', 't', 't', 'u', 'v', 'w', 'x',
+		'y', 'z', '2', '3', '4', '5', '6', '7',
+	};
+
+	const char * GetBase32SubstitutionTable ()
+	{
+		return T32;
+	}
+
 	static void iT64Build(void);
 
 	/*
@@ -16,7 +28,7 @@ namespace data
 	* Direct Substitution Table
 	*/
 
-	static char T64[64] = { 
+	static const char T64[64] = {
 		       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 		       'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 		       'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',

@@ -5,6 +5,7 @@
 
 #include "Config.h"
 #include "Log.h"
+#include "FS.h"
 #include "Base.h"
 #include "version.h"
 #include "Transports.h"
@@ -14,7 +15,6 @@
 #include "Tunnel.h"
 #include "NetDb.h"
 #include "Garlic.h"
-#include "util.h"
 #include "Streaming.h"
 #include "Destination.h"
 #include "HTTPServer.h"
@@ -63,9 +63,17 @@ namespace i2p
 			i2p::config::Init();
 			i2p::config::ParseCmdline(argc, argv);
 
-			std::string config  = i2p::util::filesystem::GetConfigFile().string();
-			std::string tunconf = i2p::util::filesystem::GetTunnelsConfigFile().string();
-			std::string datadir = i2p::util::filesystem::GetDataDir().string();
+			std::string config;  i2p::config::GetOption("conf",    config);
+			std::string tunconf; i2p::config::GetOption("tunconf", tunconf);
+			std::string datadir; i2p::config::GetOption("datadir", datadir);
+			i2p::fs::DetectDataDir(datadir, IsService());
+			i2p::fs::Init();
+
+			datadir = i2p::fs::GetDataDir();
+			if (config  == "")
+				config  = i2p::fs::DataDirPath("i2p.conf");
+			if (tunconf == "")
+				tunconf = i2p::fs::DataDirPath("tunnels.cfg");
 
 			i2p::config::ParseConfig(config);
 			i2p::config::Finalize();
@@ -149,18 +157,9 @@ namespace i2p
 			if (isDaemon && (logs == "" || logs == "stdout"))
 				logs = "file";
 
-			if (logs == "file")
-			{
+			if (logs == "file") {
 				if (logfile == "")
-				{
-					// use autodetect of logfile
-					logfile = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
-#ifndef _WIN32
-					logfile.append("/i2pd.log");
-#else
-					logfile.append("\\i2pd.log");
-#endif
-				}
+					logfile = i2p::fs::DataDirPath("i2pd.log");
 				StartLog (logfile);
 			} else {
 				// use stdout
