@@ -170,6 +170,7 @@ namespace data
 			{
 				r->Update (buf, len);
 				LogPrint (eLogInfo, "NetDb: RouterInfo updated: ", ident.ToBase64());
+				// TODO: check if floodfill has been changed
 			}
 			else
 			{
@@ -187,7 +188,7 @@ namespace data
 					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
 					m_RouterInfos[r->GetIdentHash ()] = r;
 				}
-				if (r->IsFloodfill ())
+				if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
 				{
 					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 					m_Floodfills.push_back (r);
@@ -298,9 +299,11 @@ namespace data
 			r->DeleteBuffer ();
 			r->ClearProperties (); // properties are not used for regular routers
 			m_RouterInfos[r->GetIdentHash ()] = r;
-			if (r->IsFloodfill ())
+			if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
 				m_Floodfills.push_back (r);
-		}	else {
+		}	
+		else 
+		{
 			LogPrint(eLogWarning, "NetDb: Can't load RI from ", path, ", delete");
 			i2p::fs::Remove(path);
 		}
