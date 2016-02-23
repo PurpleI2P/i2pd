@@ -304,7 +304,7 @@ namespace data
 		}	
 		else 
 		{
-			LogPrint(eLogWarning, "NetDb: Can't load RI from ", path, ", delete");
+			LogPrint(eLogWarning, "NetDb: RI from ", path, " is invalid. Delete");
 			i2p::fs::Remove(path);
 		}
 		return true;
@@ -335,7 +335,8 @@ namespace data
 		{	
 			std::string ident = it.second->GetIdentHashBase64();
 			std::string path  = m_Storage.Path(ident);
-			if (it.second->IsUpdated ()) {
+			if (it.second->IsUpdated ()) 
+			{
 				it.second->SaveToFile (path);
 				it.second->SetUpdated (false);
 				it.second->SetUnreachable (false);
@@ -344,68 +345,86 @@ namespace data
 				continue;
 			}
 			// find & mark unreachable routers
-			if (it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) {
+			if (it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) 
+			{
 				// RouterInfo expires after 1 hour if uses introducer
 				it.second->SetUnreachable (true);
-			} else if (total > 75 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) {
+			} 
+			else if (total > 75 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) 
+			{
 				// routers don't expire if less than 25 or uptime is less than 10 minutes
-				if (i2p::context.IsFloodfill ()) {
-					if (ts > it.second->GetTimestamp () + 3600*1000LL) { // 1 hour
+				if (i2p::context.IsFloodfill ()) 
+				{
+					if (ts > it.second->GetTimestamp () + 3600*1000LL) 
+					{ // 1 hour
 						it.second->SetUnreachable (true);
 						total--;
 					}
-					else if (total > 2500)
-					{
-						if (ts > it.second->GetTimestamp () + 12*3600*1000LL) // 12 hours
-						{	
-							it.second->SetUnreachable (true);
-							total--;
-						}	
+				}	
+				else if (total > 2500)
+				{
+					if (ts > it.second->GetTimestamp () + 12*3600*1000LL) // 12 hours
+					{	
+						it.second->SetUnreachable (true);
+						total--;
 					}	
-					else if (total > 300)
-					{
-						if (ts > it.second->GetTimestamp () + 30*3600*1000LL) // 30 hours
-						{	
-							it.second->SetUnreachable (true);
-							total--;
-						}	
-					}
-				} else if (total > 120) {
-					if (ts > it.second->GetTimestamp () + 72*3600*1000LL) { // 72 hours
+				}	
+				else if (total > 300)
+				{
+					if (ts > it.second->GetTimestamp () + 30*3600*1000LL) // 30 hours
+					{	
+						it.second->SetUnreachable (true);
+						total--;
+					}	
+				}
+				else if (total > 120) 
+				{
+					if (ts > it.second->GetTimestamp () + 72*3600*1000LL) 
+					{ 
+						// 72 hours
 						it.second->SetUnreachable (true);
 						total--;
 					}
 				}
 			}
 
-			if (it.second->IsUnreachable ()) {
+			if (it.second->IsUnreachable ()) 
+			{
 				total--;
 				// delete RI file
 				m_Storage.Remove(ident);
 				deletedCount++;
-				// delete from floodfills list
-				if (it.second->IsFloodfill ()) {
-					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-					m_Floodfills.remove (it.second);
-				}
 			}
 		} // m_RouterInfos iteration
+		
 		if (updatedCount > 0)
 			LogPrint (eLogInfo, "NetDb: saved ", updatedCount, " new/updated routers");
 		if (deletedCount > 0)
 		{
 			LogPrint (eLogInfo, "NetDb: deleting ", deletedCount, " unreachable routers");
 			// clean up RouterInfos table
-			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-			for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
 			{
-				if (it->second->IsUnreachable ()) {
-					it->second->SaveProfile ();
-					it = m_RouterInfos.erase (it);
-					continue;
-				}	
-				it++;
-			}
+				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+				for (auto it = m_RouterInfos.begin (); it != m_RouterInfos.end ();)
+				{
+					if (it->second->IsUnreachable ()) 
+					{
+						it->second->SaveProfile ();
+						it = m_RouterInfos.erase (it);
+						continue;
+					}	
+					it++;
+				}
+			}	
+			// clean up expired floodfiils
+			{
+				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+				for (auto it = m_Floodfills.begin (); it != m_Floodfills.end ();)
+					if ((*it)->IsUnreachable ())
+						it = m_Floodfills.erase (it);
+					else
+						it++;
+			}	
 		}
 	}
 
