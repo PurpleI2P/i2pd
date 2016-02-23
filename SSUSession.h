@@ -39,6 +39,9 @@ namespace transport
 	const uint8_t PAYLOAD_TYPE_PEER_TEST = 7;
 	const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
 
+	// extended options
+	const uint16_t EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG = 0x0001;
+
 	enum SessionState
 	{
 		eSessionStateUnknown,	
@@ -101,7 +104,7 @@ namespace transport
 			void SendSessionRequest ();
 			void SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce);
 			void ProcessSessionCreated (uint8_t * buf, size_t len);
-			void SendSessionCreated (const uint8_t * x);
+			void SendSessionCreated (const uint8_t * x, bool sendRelayTag = true);
 			void ProcessSessionConfirmed (const uint8_t * buf, size_t len);
 			void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen);
 			void ProcessRelayRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);

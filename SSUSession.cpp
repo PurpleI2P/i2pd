@@ -157,7 +157,7 @@ namespace transport
 				ProcessData (buf + headerSize, len - headerSize);
 			break;
 			case PAYLOAD_TYPE_SESSION_REQUEST:
-				ProcessSessionRequest (buf + headerSize, len - headerSize, senderEndpoint);				
+				ProcessSessionRequest (buf, len, senderEndpoint); // buf with header				
 			break;
 			case PAYLOAD_TYPE_SESSION_CREATED:
 				ProcessSessionCreated (buf, len); // buf with header
@@ -196,11 +196,29 @@ namespace transport
 	void SSUSession::ProcessSessionRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
 	{
 		LogPrint (eLogDebug, "SSU message: session request");
+		bool sendRelayTag = true; 
+		auto headerSize = sizeof (SSUHeader);
+		if (((SSUHeader *)buf)->IsExtendedOptions ())
+		{
+			uint8_t extendedOptionsLen = buf[headerSize];
+			headerSize++;
+			if (extendedOptionsLen >= 3) // options are presented
+			{
+				uint16_t flags = bufbe16toh (buf + headerSize);
+				sendRelayTag = flags & EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG; 
+			}
+			headerSize += extendedOptionsLen;
+		}			
+		if (headerSize >= len)
+		{
+			LogPrint (eLogError, "Session reaquest header size ", headerSize, " exceeds packet length ", len);
+			return;	
+		}
 		m_RemoteEndpoint = senderEndpoint;
 		if (!m_DHKeysPair)
 			m_DHKeysPair = transports.GetNextDHKeysPair ();
-		CreateAESandMacKey (buf);
-		SendSessionCreated (buf);
+		CreateAESandMacKey (buf + headerSize);
+		SendSessionCreated (buf + headerSize, sendRelayTag);
 	}
 
 	void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t len)
@@ -357,7 +375,7 @@ namespace transport
 		m_Server.Send (buf, 96, m_RemoteEndpoint);
 	}
 
-	void SSUSession::SendSessionCreated (const uint8_t * x)
+	void SSUSession::SendSessionCreated (const uint8_t * x, bool sendRelayTag)
 	{
 		auto address = IsV6 () ? i2p::context.GetRouterInfo ().GetSSUV6Address () :
 			i2p::context.GetRouterInfo ().GetSSUAddress (true); //v4 only
@@ -401,7 +419,7 @@ namespace transport
 			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
 		s.Insert<uint16_t> (htobe16 (address->port)); // our port
 		uint32_t relayTag = 0;
-		if (i2p::context.GetRouterInfo ().IsIntroducer () && !IsV6 ())
+		if (sendRelayTag && i2p::context.GetRouterInfo ().IsIntroducer () && !IsV6 ())
 		{
 			RAND_bytes((uint8_t *)&relayTag, 4);
 			if (!relayTag) relayTag = 1;
