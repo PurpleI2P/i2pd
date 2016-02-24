@@ -329,13 +329,13 @@ namespace data
 	{	
 		int updatedCount = 0, deletedCount = 0;
 		auto total = m_RouterInfos.size ();
-		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;	
+		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL; 
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
 		// routers don't expire if less than 90 or uptime is less than 1 hour	
-		bool checkForExpiration = total > NETDB_MIN_ROUTERS && ts > (i2p::context.GetStartupTime () + 3600)*1000LL; 	
-		if (checkForExpiration)
+		bool checkForExpiration = total > NETDB_MIN_ROUTERS && ts > (i2p::context.GetStartupTime () + 600)*1000LL; // 10 minutes	
+		if (checkForExpiration && ts > (i2p::context.GetStartupTime () + 3600)*1000LL) // 1 hour			
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
-				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;	
+					NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;	
 
 		for (auto it: m_RouterInfos)
 		{	
@@ -365,6 +365,7 @@ namespace data
 				// delete RI file
 				m_Storage.Remove(ident);
 				deletedCount++;
+				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}
 		} // m_RouterInfos iteration
 		
