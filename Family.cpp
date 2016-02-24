@@ -1,7 +1,7 @@
 #include <string.h>
-#include "util.h"
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
+#include "FS.h"
 #include "Log.h"
 #include "Crypto.h"
 #include "Family.h"
@@ -89,21 +89,24 @@ namespace data
 
 	void Families::LoadCertificates ()
 	{
-		boost::filesystem::path familyDir = i2p::util::filesystem::GetCertificatesDir() / "family";
-		
-		if (!boost::filesystem::exists (familyDir)) return;
+		std::string certDir = i2p::fs::DataDirPath("certificates", "family");
+		std::vector<std::string> files;
 		int numCertificates = 0;
-		boost::filesystem::directory_iterator end; // empty
-		for (boost::filesystem::directory_iterator it (familyDir); it != end; ++it)
-		{
-			if (boost::filesystem::is_regular_file (it->status()) && it->path ().extension () == ".crt")
-			{	
-				LoadCertificate (it->path ().string ());
-				numCertificates++;
-			}	
+
+		if (!i2p::fs::ReadDir(certDir, files)) {
+			LogPrint(eLogWarning, "Reseed: Can't load reseed certificates from ", certDir);
+			return;
+		}
+
+		for (const std::string & file : files) {
+			if (file.compare(file.size() - 4, 4, ".crt") != 0) {
+				LogPrint(eLogWarning, "Family: ignoring file ", file);
+				continue;
+			}
+			LoadCertificate (file);
+			numCertificates++;
 		}	
-		if (numCertificates > 0)
-			LogPrint (eLogInfo, "Family: ", numCertificates, " certificates loaded");
+		LogPrint (eLogInfo, "Family: ", numCertificates, " certificates loaded");
 	}
 
 	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident, 
@@ -124,10 +127,10 @@ namespace data
 
 	std::string CreateFamilySignature (const std::string& family, const IdentHash& ident)
 	{
+		auto filename = i2p::fs::DataDirPath("family", (family + ".key"));
 		std::string sig;
-		auto filename = i2p::util::filesystem::GetDefaultDataDir() / "family" / (family + ".key");	
 		SSL_CTX * ctx = SSL_CTX_new (TLSv1_method ());
-		int ret = SSL_CTX_use_PrivateKey_file (ctx, filename.string ().c_str (), SSL_FILETYPE_PEM); 
+		int ret = SSL_CTX_use_PrivateKey_file (ctx, filename.c_str (), SSL_FILETYPE_PEM); 
 		if (ret)
 		{
 			SSL * ssl = SSL_new (ctx);
@@ -163,7 +166,7 @@ namespace data
 			SSL_free (ssl);		
 		}	
 		else
-			LogPrint (eLogError, "Family: Can't open keys file ", filename.string ());
+			LogPrint (eLogError, "Family: Can't open keys file: ", filename);
 		SSL_CTX_free (ctx);	
 		return sig;
 	}	

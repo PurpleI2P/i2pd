@@ -629,11 +629,6 @@ namespace data
 		m_Properties.erase (key);
 	}
 
-	bool RouterInfo::IsFloodfill () const
-	{
-		return m_Caps & Caps::eFloodfill;
-	}	
-
 	bool RouterInfo::IsNTCP (bool v4only) const
 	{
 		if (v4only)

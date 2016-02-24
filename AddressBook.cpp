@@ -5,11 +5,11 @@
 #include <fstream>
 #include <chrono>
 #include <condition_variable>
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include "Base.h"
 #include "util.h"
 #include "Identity.h"
+#include "FS.h"
 #include "Log.h"
 #include "NetDb.h"
 #include "ClientContext.h"
@@ -19,143 +19,107 @@ namespace i2p
 {
 namespace client
 {
-
+	// TODO: this is actually proxy class
 	class AddressBookFilesystemStorage: public AddressBookStorage
 	{
-		public:
+		private:
+			i2p::fs::HashedStorage storage;
+			std::string indexPath;
 
-			AddressBookFilesystemStorage ();
+		public:
+			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") {};
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const;
 			void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 			void RemoveAddress (const i2p::data::IdentHash& ident);
 
+			bool Init ();
 			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
 			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
-
-		private:	
-			
-			boost::filesystem::path GetPath () const 
-			{ 
-				return i2p::util::filesystem::GetDefaultDataDir() / "addressbook"; 
-			}
-			boost::filesystem::path GetAddressPath (const i2p::data::IdentHash& ident) const 
-			{
-				auto b32 = ident.ToBase32();
-				return GetPath () / (std::string ("b") + b32[0]) / (b32 + ".b32");
-			}
 	};
 
-	AddressBookFilesystemStorage::AddressBookFilesystemStorage ()
+	bool AddressBookFilesystemStorage::Init()
 	{
-		auto path = GetPath ();
-		if (!boost::filesystem::exists (path))
-		{
-			// Create directory is necessary
-			if (!boost::filesystem::create_directory (path))
-				LogPrint (eLogError, "Addressbook: failed to create addressbook directory");
-		}
-		
+		storage.SetPlace(i2p::fs::GetDataDir());
+		indexPath = storage.GetRoot() + i2p::fs::dirSep + "addresses.csv";
+		return storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
 	}
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
 	{
-		auto filename = GetAddressPath (ident);
-		if (!boost::filesystem::exists (filename))
-		{
-			boost::filesystem::create_directory (filename.parent_path ());
-			// try to find in main folder
-			auto filename1 = GetPath () / (ident.ToBase32 () + ".b32");			
-			if (!boost::filesystem::exists (filename1))
-			{
-				boost::system::error_code ec;
-				boost::filesystem::rename (filename1, filename, ec);
-				if (ec)
-					LogPrint (eLogError, "Addresbook: couldn't move file ", ec.message ());
-			}
-			else 
-				return nullptr; // address doesn't exist
-		}	
-		std::ifstream f(filename.string (), std::ifstream::binary);
-		if (f.is_open ())	
-		{
-			f.seekg (0,std::ios::end);
-			size_t len = f.tellg ();
-			if (len < i2p::data::DEFAULT_IDENTITY_SIZE)
-			{
-				LogPrint (eLogError, "Addresbook: File ", filename, " is too short. ", len);
-				return nullptr;
-			}
-			f.seekg(0, std::ios::beg);
-			uint8_t * buf = new uint8_t[len];
-			f.read((char *)buf, len);
-			auto address = std::make_shared<i2p::data::IdentityEx>(buf, len);
-			delete[] buf;
-			return address;
-		}
-		else
+		std::string filename = storage.Path(ident.ToBase32());
+		std::ifstream f(filename, std::ifstream::binary);
+		if (!f.is_open ()) {
+			LogPrint(eLogDebug, "Addressbook: Requested, but not found: ", filename);
 			return nullptr;
+		}
+
+		f.seekg (0,std::ios::end);
+		size_t len = f.tellg ();
+		if (len < i2p::data::DEFAULT_IDENTITY_SIZE) {
+			LogPrint (eLogError, "Addresbook: File ", filename, " is too short: ", len);
+			return nullptr;
+		}
+		f.seekg(0, std::ios::beg);
+		uint8_t * buf = new uint8_t[len];
+		f.read((char *)buf, len);
+		auto address = std::make_shared<i2p::data::IdentityEx>(buf, len);
+		delete[] buf;
+		return address;
 	}
 
 	void AddressBookFilesystemStorage::AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
-		auto filename = GetAddressPath (address->GetIdentHash ());
-		std::ofstream f (filename.string (), std::ofstream::binary | std::ofstream::out);
-		if (!f.is_open ())
-		{
-			// create subdirectory
-			if (boost::filesystem::create_directory (filename.parent_path ()))
-				f.open (filename.string (), std::ofstream::binary | std::ofstream::out); // and try to open again
-		}		
-		if (f.is_open ())	
-		{
-			size_t len = address->GetFullLen ();
-			uint8_t * buf = new uint8_t[len];
-			address->ToBuffer (buf, len);
-			f.write ((char *)buf, len);
-			delete[] buf;
+		std::string path = storage.Path( address->GetIdentHash().ToBase32() );
+		std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
+		if (!f.is_open ())	{
+			LogPrint (eLogError, "Addresbook: can't open file ", path);
+			return;
 		}
-		else
-			LogPrint (eLogError, "Addresbook: can't open file ", filename);
+		size_t len = address->GetFullLen ();
+		uint8_t * buf = new uint8_t[len];
+		address->ToBuffer (buf, len);
+		f.write ((char *)buf, len);
+		delete[] buf;
 	}	
 
 	void AddressBookFilesystemStorage::RemoveAddress (const i2p::data::IdentHash& ident)
 	{
-		auto filename = GetAddressPath (ident);
-		if (boost::filesystem::exists (filename))  
-			boost::filesystem::remove (filename);
+		storage.Remove( ident.ToBase32() );
 	}
 
 	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
 		int num = 0;	
-		auto filename = GetPath () / "addresses.csv";
-		std::ifstream f (filename.string (), std::ifstream::in); // in text mode
-		if (f.is_open ())	
-		{
-			addresses.clear ();
-			while (!f.eof ())
-			{
-				std::string s;
-				getline(f, s);
-				if (!s.length())
-					continue; // skip empty line
+		std::string s;
+		std::ifstream f (indexPath, std::ifstream::in); // in text mode
 
-				size_t pos = s.find(',');
-				if (pos != std::string::npos)
-				{
-					std::string name = s.substr(0, pos++);
-					std::string addr = s.substr(pos);
-
-					i2p::data::IdentHash ident;
-					ident.FromBase32 (addr);
-					addresses[name] = ident;
-					num++;
-				}		
-			}
-			LogPrint (eLogInfo, "Addressbook: ", num, " addresses loaded");
+		if (f.is_open ()) {
+			LogPrint(eLogInfo, "Addressbook: using index file ", indexPath);
+		} else {
+			LogPrint(eLogWarning, "Addressbook: Can't open ", indexPath);
+			return 0;
 		}
-		else
-			LogPrint (eLogWarning, "Addressbook: ", filename, " not found");
+
+		addresses.clear ();
+		while (!f.eof ()) {
+			getline(f, s);
+			if (!s.length())
+				continue; // skip empty line
+
+			std::size_t pos = s.find(',');
+			if (pos != std::string::npos)
+			{
+				std::string name = s.substr(0, pos++);
+				std::string addr = s.substr(pos);
+
+				i2p::data::IdentHash ident;
+				ident.FromBase32 (addr);
+				addresses[name] = ident;
+				num++;
+			}		
+		}
+
+		LogPrint (eLogInfo, "Addressbook: ", num, " addresses loaded from storage");
 		return num;
 	}
 
@@ -167,24 +131,23 @@ namespace client
 		}
 
 		int num = 0;
-		auto filename = GetPath () / "addresses.csv";
-		std::ofstream f (filename.string (), std::ofstream::out); // in text mode
-		if (f.is_open ())	
-		{
-			for (auto it: addresses)
-			{
-				f << it.first << "," << it.second.ToBase32 () << std::endl;
-				num++;
-			}
-			LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
+		std::ofstream f (indexPath, std::ofstream::out); // in text mode
+
+		if (!f.is_open ()) {
+			LogPrint (eLogWarning, "Addressbook: Can't open ", indexPath);
+			return 0;
 		}
-		else	
-			LogPrint (eLogError, "Addresbook: can't open file ", filename);
+
+		for (auto it: addresses) {
+			f << it.first << "," << it.second.ToBase32 () << std::endl;
+			num++;
+		}
+		LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		return num;	
 	}	
 
 //---------------------------------------------------------------------
-	AddressBook::AddressBook (): m_Storage (nullptr), m_IsLoaded (false), m_IsDownloading (false), 
+	AddressBook::AddressBook (): m_Storage(new AddressBookFilesystemStorage), m_IsLoaded (false), m_IsDownloading (false), 
 		m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
 	{
 	}
@@ -196,6 +159,7 @@ namespace client
 
 	void AddressBook::Start ()
 	{
+		m_Storage->Init();
 		LoadHosts (); /* try storage, then hosts.txt, then download */
 		StartSubscriptions ();
 	}
@@ -235,11 +199,6 @@ namespace client
 		m_Subscriptions.clear ();	
 	}	
 	
-	AddressBookStorage * AddressBook::CreateStorage ()
-	{
-		return new AddressBookFilesystemStorage ();
-	}	
-
 	bool AddressBook::GetIdentHash (const std::string& address, i2p::data::IdentHash& ident)
 	{
 		auto pos = address.find(".b32.i2p");
@@ -283,8 +242,6 @@ namespace client
 	{
 		auto ident = std::make_shared<i2p::data::IdentityEx>();
 		ident->FromBase64 (base64);
-		if (!m_Storage)
-			 m_Storage = CreateStorage ();
 		m_Storage->AddAddress (ident);
 		m_Addresses[address] = ident->GetIdentHash ();
 		LogPrint (eLogInfo, "Addressbook: added ", address," -> ", ToAddress(ident->GetIdentHash ()));
@@ -292,15 +249,11 @@ namespace client
 
 	void AddressBook::InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address)
 	{
-		if (!m_Storage) 
-			m_Storage = CreateStorage ();
 		m_Storage->AddAddress (address);
 	}
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBook::GetAddress (const std::string& address)
 	{
-		if (!m_Storage) 
-			m_Storage = CreateStorage ();
 		i2p::data::IdentHash ident;
 		if (!GetIdentHash (address, ident)) return nullptr;
 		return m_Storage->GetAddress (ident);
@@ -308,16 +261,14 @@ namespace client
 
 	void AddressBook::LoadHosts ()
 	{
-		if (!m_Storage)
-			 m_Storage = CreateStorage ();
 		if (m_Storage->Load (m_Addresses) > 0)
 		{
 			m_IsLoaded = true;
 			return;
 		}
 	
-		// try hosts.txt first
-		std::ifstream f (i2p::util::filesystem::GetFullPath ("hosts.txt").c_str (), std::ifstream::in); // in text mode
+		// then try hosts.txt
+		std::ifstream f (i2p::fs::DataDirPath("hosts.txt"), std::ifstream::in); // in text mode
 		if (f.is_open ())	
 		{
 			LoadHostsFromStream (f);
@@ -367,7 +318,7 @@ namespace client
 	{
 		if (!m_Subscriptions.size ())
 		{
-			std::ifstream f (i2p::util::filesystem::GetFullPath ("subscriptions.txt").c_str (), std::ifstream::in); // in text mode
+			std::ifstream f (i2p::fs::DataDirPath ("subscriptions.txt"), std::ifstream::in); // in text mode
 			if (f.is_open ())
 			{
 				std::string s;
@@ -431,7 +382,10 @@ namespace client
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			auto dest = i2p::client::context.GetSharedLocalDestination ();
-			if (!dest) return;
+			if (!dest) {
+				LogPrint(eLogWarning, "Addressbook: missing local destination, skip subscription update");
+				return;
+			}
 			if (!m_IsDownloading && dest->IsReady ())
 			{
 				if (!m_IsLoaded)
@@ -495,7 +449,7 @@ namespace client
 					});
 				if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
 				{	
-					LogPrint (eLogError, "Subscription LeaseSet request timeout expired");
+					LogPrint (eLogError, "Addressbook: Subscription LeaseSet request timeout expired");
 					i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (ident);
 				}	
 			}
@@ -602,7 +556,7 @@ namespace client
 			LogPrint (eLogError, "Addressbook: Can't resolve ", u.host_);
 
 		if (!success)
-			LogPrint (eLogError, "Addressbook: download failed");
+			LogPrint (eLogError, "Addressbook: download hosts.txt from ", m_Link, " failed");
 
 		m_Book.DownloadComplete (success);
 	}

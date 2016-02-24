@@ -23,6 +23,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
   "${CMAKE_SOURCE_DIR}/Identity.cpp"
   "${CMAKE_SOURCE_DIR}/LeaseSet.cpp"
+  "${CMAKE_SOURCE_DIR}/FS.cpp"
   "${CMAKE_SOURCE_DIR}/Log.cpp"
   "${CMAKE_SOURCE_DIR}/NTCPSession.cpp"
   "${CMAKE_SOURCE_DIR}/NetDbRequests.cpp"	

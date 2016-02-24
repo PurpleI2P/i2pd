@@ -4,6 +4,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Base.h"
+#include "FS.h"
 #include "Log.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"
@@ -420,7 +421,7 @@ namespace util
 		s << " (" << i2p::transport::transports.GetInBandwidth () <<" Bps)<br>\r\n";
 		s << "<b>Sent:</b> " << i2p::transport::transports.GetTotalSentBytes ()/1000 << "K";
 		s << " (" << i2p::transport::transports.GetOutBandwidth () <<" Bps)<br>\r\n";
-		s << "<b>Data path:</b> " << i2p::util::filesystem::GetDataDir().string() << "<br>\r\n<br>\r\n";
+		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
 		s << "<b>Our external address:</b>" << "<br>\r\n" ;
 		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{

@@ -9,8 +9,8 @@
 #include <sys/stat.h>
 
 #include "Config.h"
+#include "FS.h"
 #include "Log.h"
-#include "util.h"
 
 void handle_signal(int sig)
 {
@@ -55,7 +55,7 @@ namespace i2p
 					LogPrint(eLogError, "Daemon: could not create process group.");
 					return false;
 				}
-				std::string d(i2p::util::filesystem::GetDataDir().string ()); // make a copy
+				std::string d = i2p::fs::GetDataDir();
 				if (chdir(d.c_str()) != 0)
 				{
 					LogPrint(eLogError, "Daemon: could not chdir: ", strerror(errno));
@@ -75,8 +75,7 @@ namespace i2p
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
 			std::string pidfile; i2p::config::GetOption("pidfile", pidfile);
 			if (pidfile == "") {
-				pidfile = IsService () ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
-				pidfile.append("/i2pd.pid");
+				pidfile = i2p::fs::DataDirPath("i2pd.pid");
 			}
 			if (pidfile != "") {
 				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
@@ -115,7 +114,7 @@ namespace i2p
 
 		bool DaemonLinux::stop()
 		{
-			unlink(pidfile.c_str());
+			i2p::fs::Remove(pidfile);
 
 			return Daemon_Singleton::stop();			
 		}

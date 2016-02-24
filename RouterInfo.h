@@ -128,7 +128,8 @@ namespace data
 			void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only
 			void DeleteProperty (const std::string& key); // called from RouterContext only
 			void ClearProperties () { m_Properties.clear (); };
-			bool IsFloodfill () const;
+			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
+			bool IsReachable () const { return m_Caps & Caps::eReachable; };
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
 			bool IsV6 () const;
