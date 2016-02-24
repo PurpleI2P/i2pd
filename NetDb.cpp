@@ -294,7 +294,7 @@ namespace data
 	{
 		auto r = std::make_shared<RouterInfo>(path);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () &&
-				(!r->UsesIntroducer () || m_LastLoad < r->GetTimestamp () + 3600*1000LL)) // 1 hour
+				(!r->UsesIntroducer () || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
 		{
 			r->DeleteBuffer ();
 			r->ClearProperties (); // properties are not used for regular routers
@@ -329,7 +329,13 @@ namespace data
 	{	
 		int updatedCount = 0, deletedCount = 0;
 		auto total = m_RouterInfos.size ();
+		uint64_t expirationTimeout = NETDB_MAX_EXPIRATION_TIMEOUT*1000LL;	
 		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+		// routers don't expire if less than 90 or uptime is less than 1 hour	
+		bool checkForExpiration = total > NETDB_MIN_ROUTERS && ts > (i2p::context.GetStartupTime () + 3600)*1000LL; 	
+		if (checkForExpiration)
+			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
+				NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;	
 
 		for (auto it: m_RouterInfos)
 		{	
@@ -344,53 +350,18 @@ namespace data
 				updatedCount++;
 				continue;
 			}
-			// find & mark unreachable routers
-			if (it.second->UsesIntroducer () && ts > it.second->GetTimestamp () + 3600*1000LL) 
+			// find & mark expired routers
+			if (it.second->UsesIntroducer ())
 			{
+				 if (ts > it.second->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL) 
 				// RouterInfo expires after 1 hour if uses introducer
-				it.second->SetUnreachable (true);
-			} 
-			else if (total > 75 && ts > (i2p::context.GetStartupTime () + 600)*1000LL) 
-			{
-				// routers don't expire if less than 25 or uptime is less than 10 minutes
-				if (i2p::context.IsFloodfill ()) 
-				{
-					if (ts > it.second->GetTimestamp () + 3600*1000LL) 
-					{ // 1 hour
-						it.second->SetUnreachable (true);
-						total--;
-					}
-				}	
-				else if (total > 2500)
-				{
-					if (ts > it.second->GetTimestamp () + 12*3600*1000LL) // 12 hours
-					{	
-						it.second->SetUnreachable (true);
-						total--;
-					}	
-				}	
-				else if (total > 300)
-				{
-					if (ts > it.second->GetTimestamp () + 30*3600*1000LL) // 30 hours
-					{	
-						it.second->SetUnreachable (true);
-						total--;
-					}	
-				}
-				else if (total > 120) 
-				{
-					if (ts > it.second->GetTimestamp () + 72*3600*1000LL) 
-					{ 
-						// 72 hours
-						it.second->SetUnreachable (true);
-						total--;
-					}
-				}
+					it.second->SetUnreachable (true);
 			}
+			else if (checkForExpiration && ts > it.second->GetTimestamp () + expirationTimeout) 
+					it.second->SetUnreachable (true);
 
 			if (it.second->IsUnreachable ()) 
 			{
-				total--;
 				// delete RI file
 				m_Storage.Remove(ident);
 				deletedCount++;
