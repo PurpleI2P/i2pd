@@ -324,6 +324,17 @@ namespace transport
 	{	
 		uint8_t buf[320 + 18]; // 304 bytes for ipv4, 320 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
+		// fill extended options, 3 bytes extended options don't change message size
+		if (i2p::context.GetStatus () == eRouterStatusOK) // we don't need relays
+		{	
+			// tell out peer to now assign relay tag
+			((SSUHeader *)buf)->flag |= SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
+			*payload = 2; payload++; //  1 byte length
+			uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
+			htobe16buf (payload, flags); 
+			payload += 2;
+		}		
+		// fill payload
 		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256); // x
 		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
 		if (isV4)
@@ -336,7 +347,7 @@ namespace transport
 			payload[256] = 16; 
 			memcpy (payload + 257, m_RemoteEndpoint.address ().to_v6 ().to_bytes ().data(), 16); 
 		}	
-		
+		// encrypt and send
 		uint8_t iv[16];
 		RAND_bytes (iv, 16); // random iv
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, isV4 ? 304 : 320, m_IntroKey, iv, m_IntroKey);
