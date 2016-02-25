@@ -324,16 +324,17 @@ namespace transport
 	{	
 		uint8_t buf[320 + 18]; // 304 bytes for ipv4, 320 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
+		uint8_t flag = 0;
 		// fill extended options, 3 bytes extended options don't change message size
 		if (i2p::context.GetStatus () == eRouterStatusOK) // we don't need relays
 		{	
 			// tell out peer to now assign relay tag
-			((SSUHeader *)buf)->flag |= SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
+			flag = SSU_HEADER_EXTENDED_OPTIONS_INCLUDED;
 			*payload = 2; payload++; //  1 byte length
 			uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
 			htobe16buf (payload, flags); 
 			payload += 2;
-		}		
+		}	
 		// fill payload
 		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256); // x
 		bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
@@ -350,7 +351,7 @@ namespace transport
 		// encrypt and send
 		uint8_t iv[16];
 		RAND_bytes (iv, 16); // random iv
-		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, isV4 ? 304 : 320, m_IntroKey, iv, m_IntroKey);
+		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, isV4 ? 304 : 320, m_IntroKey, iv, m_IntroKey, flag);
 		m_Server.Send (buf, isV4 ? 304 : 320, m_RemoteEndpoint);
 	}
 
@@ -677,7 +678,7 @@ namespace transport
 	}		
 
 	void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, 
-		const i2p::crypto::AESKey& aesKey, const uint8_t * iv, const i2p::crypto::MACKey& macKey)
+		const i2p::crypto::AESKey& aesKey, const uint8_t * iv, const i2p::crypto::MACKey& macKey, uint8_t flag)
 	{	
 		if (len < sizeof (SSUHeader))
 		{
@@ -686,7 +687,7 @@ namespace transport
 		}
 		SSUHeader * header = (SSUHeader *)buf;
 		memcpy (header->iv, iv, 16);
-		header->flag = payloadType << 4; // MSB is 0
+		header->flag = flag | (payloadType << 4); // MSB is 0
 		htobe32buf (header->time, i2p::util::GetSecondsSinceEpoch ());
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
