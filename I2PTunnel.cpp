@@ -422,14 +422,17 @@ namespace client
 	}
 
 	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& name, const std::string& address, 
-	    int port, std::shared_ptr<ClientDestination> localDestination, int inport):
-		I2PServerTunnel (name, address, port, localDestination, inport)
+	    int port, std::shared_ptr<ClientDestination> localDestination, 
+	    const std::string& host, int inport):
+		I2PServerTunnel (name, address, port, localDestination, inport), 
+		m_Host (host.length () > 0 ? host : address)
 	{
 	}
 
 	void I2PServerTunnelHTTP::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		auto conn = std::make_shared<I2PTunnelConnectionHTTP> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint (), GetAddress ());
+		auto conn = std::make_shared<I2PTunnelConnectionHTTP> (this, stream, 
+			std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint (), m_Host);
 		AddHandler (conn);
 		conn->Connect ();
 	}

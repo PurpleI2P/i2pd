@@ -124,7 +124,8 @@ namespace transport
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			void Send (const uint8_t * buf, size_t size); 
 			
-			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey, const uint8_t * iv, const i2p::crypto::MACKey& macKey);
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey, 
+				const uint8_t * iv, const i2p::crypto::MACKey& macKey, uint8_t flag = 0);
 			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len); // with session key 
 			void Decrypt (uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey);
 			void DecryptSessionKey (uint8_t * buf, size_t len);

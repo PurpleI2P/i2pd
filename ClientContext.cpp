@@ -311,7 +311,8 @@ namespace client
 					std::string keys = section.second.get<std::string> (I2P_SERVER_TUNNEL_KEYS);
 					// optional params
 					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
-					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");					
+					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+					std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					// I2CP
 					std::map<std::string, std::string> options;							 
@@ -324,7 +325,7 @@ namespace client
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
 					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
-						new I2PServerTunnelHTTP (name, host, port, localDestination, inPort) : 
+						new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort) : 
 						new I2PServerTunnel (name, host, port, localDestination, inPort);
 					if (accessList.length () > 0)
 					{
