@@ -149,6 +149,8 @@ namespace config {
       ("socksproxy.address",  value<std::string>()->default_value("127.0.0.1"),           "SOCKS Proxy listen address")
       ("socksproxy.port",     value<uint16_t>()->default_value(4447),                     "SOCKS Proxy listen port")
       ("socksproxy.keys",     value<std::string>()->default_value(""), "File to persist SOCKS Proxy keys")
+      ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
+      ("socksproxy.outproxyport", value<uint16_t>()->default_value(9050), "Upstream outproxy port for SOCKS Proxy")
       ;
 
     options_description sam("SAM bridge options");
