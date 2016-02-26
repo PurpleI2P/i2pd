@@ -152,11 +152,16 @@ namespace client
 		public:
 
 			I2PServerTunnelHTTP (const std::string& name, const std::string& address, int port, 
-				std::shared_ptr<ClientDestination> localDestination, int inport = 0);	
+				std::shared_ptr<ClientDestination> localDestination, const std::string& host,
+			    int inport = 0);	
 
 		private:
 
-			void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);	
+			void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
+
+		private:
+
+			std::string m_Host;
 	};
 }
 }	
