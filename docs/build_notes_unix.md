@@ -96,6 +96,9 @@ miniupnpc-devel
 FreeBSD
 -------
 
+For 10.X  use clang. You would also need boost and openssl ports.
+Type gmake, it invokes Makefile.bsd, make necessary changes there is required.
+
 Branch 9.X has gcc v4.2, that knows nothing about required c++11 standart.
 
 Required ports:
@@ -109,10 +112,6 @@ To use newer compiler you should set these variables(replace "47" with your actu
 export CC=/usr/local/bin/gcc47
 export CXX=/usr/local/bin/g++47
 ```
-
-Branch 10.X has more reliable clang version, that can finally build i2pd,
-but I still recommend to use gcc, otherwise you will fight it's bugs by
-your own.
 
 CMake Options
 -------------
