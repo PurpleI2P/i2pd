@@ -76,6 +76,30 @@ namespace client
 			std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
 	};
 
+	const size_t TCP_IP_PIPE_BUFFER_SIZE = 8192;
+
+	// bidirectional pipe for 2 tcp/ip sockets
+	class TCPIPPipe: public I2PServiceHandler, public std::enable_shared_from_this<TCPIPPipe> {
+	public:
+		TCPIPPipe(I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> upstream, std::shared_ptr<boost::asio::ip::tcp::socket> downstream);
+		~TCPIPPipe();
+		void Start();
+	protected:
+		void Terminate();
+		void AsyncReceiveUpstream();
+		void AsyncReceiveDownstream();
+		void HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transferred);
+		void HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transferred);
+		void HandleUpstreamWrite(const boost::system::error_code & ecode);
+		void HandleDownstreamWrite(const boost::system::error_code & ecode);
+		void UpstreamWrite(const uint8_t * buf, size_t len);
+		void DownstreamWrite(const uint8_t * buf, size_t len);
+	private:
+		uint8_t m_upstream_to_down_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[TCP_IP_PIPE_BUFFER_SIZE];
+		uint8_t m_upstream_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_buf[TCP_IP_PIPE_BUFFER_SIZE];
+		std::shared_ptr<boost::asio::ip::tcp::socket> m_up, m_down;
+	};
+	
 	/* TODO: support IPv6 too */
 	//This is a service that listens for connections on the IP network and interacts with I2P
 	class TCPIPAcceptor: public I2PService
