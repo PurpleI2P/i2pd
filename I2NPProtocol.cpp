@@ -157,7 +157,7 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg (const i2p::data::IdentHash& dest, 
 		const std::set<i2p::data::IdentHash>& excludedFloodfills,
-		const i2p::tunnel::InboundTunnel * replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
+		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel, const uint8_t * replyKey, const uint8_t * replyTag)
 	{
 		int cnt = excludedFloodfills.size ();
 		auto m = cnt > 0 ? NewI2NPMessage () : NewI2NPShortMessage ();

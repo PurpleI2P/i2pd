@@ -654,13 +654,14 @@ namespace client
 	bool ClientDestination::SendLeaseSetRequest (const i2p::data::IdentHash& dest, 
 		std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request)
 	{
-		auto replyTunnel = m_Pool->GetNextInboundTunnel ();
-		if (!replyTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no inbound tunnels found");
-		
-		auto outboundTunnel = m_Pool->GetNextOutboundTunnel ();
-		if (!outboundTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no outbound tunnels found");
+		if (!request->replyTunnel || !request->replyTunnel->IsEstablished ())
+			request->replyTunnel = m_Pool->GetNextInboundTunnel ();
+		if (!request->replyTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no inbound tunnels found");
+		if (!request->outboundTunnel || !request->outboundTunnel->IsEstablished ())
+			request->outboundTunnel = m_Pool->GetNextOutboundTunnel ();
+		if (!request->outboundTunnel) LogPrint (eLogError, "Destination: Can't send LeaseSet request, no outbound tunnels found");
 			
-		if (replyTunnel && outboundTunnel)
+		if (request->replyTunnel && request->outboundTunnel)
 		{	
 			request->excluded.insert (nextFloodfill->GetIdentHash ());
 			request->requestTime = i2p::util::GetSecondsSinceEpoch ();
@@ -673,8 +674,8 @@ namespace client
 
 			auto msg = WrapMessage (nextFloodfill,
 				CreateLeaseSetDatabaseLookupMsg (dest, request->excluded, 
-					replyTunnel.get (), replyKey, replyTag));
-			outboundTunnel->SendTunnelDataMsg (
+					request->replyTunnel, replyKey, replyTag));
+			request->outboundTunnel->SendTunnelDataMsg (
 				{
 					i2p::tunnel::TunnelMessageBlock 
 					{ 
@@ -704,7 +705,12 @@ namespace client
 				{
 					auto floodfill = i2p::data::netdb.GetClosestFloodfill (dest, it->second->excluded);
 					if (floodfill)
-						 done = !SendLeaseSetRequest (dest, floodfill, it->second);
+					{
+						// reset tunnels, because one them might fail
+						it->second->outboundTunnel = nullptr;
+						it->second->replyTunnel = nullptr;		
+						done = !SendLeaseSetRequest (dest, floodfill, it->second);
+					}
 					else
 						done = true;
 				}

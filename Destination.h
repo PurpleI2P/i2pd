@@ -61,6 +61,8 @@ namespace client
 			uint64_t requestTime;
 			boost::asio::deadline_timer requestTimeoutTimer;
 			RequestComplete requestComplete;
+			std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
+			std::shared_ptr<i2p::tunnel::InboundTunnel> replyTunnel;
 		};	
 		
 		
