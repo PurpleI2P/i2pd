@@ -327,7 +327,7 @@ namespace client
 
 					I2PServerTunnel * serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
-                        serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, inPort);
+                        serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort);
                		} else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER) {
                        	serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort);
                		} else if (type == I2P_TUNNELS_SECTION_TYPE_IRC) {
