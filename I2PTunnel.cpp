@@ -245,12 +245,11 @@ namespace client
     {
     	char *p = (char*)(buf + len);
     	*p = '\0';
-    	LogPrint (eLogError, "======= packet received =====\n", buf, "==============\n");
-        std::string line;
+    	std::string line;
         m_OutPacket.str ("");
+        m_InPacket.str ("");
         m_InPacket.clear ();
         m_InPacket.write ((const char *)buf, len);
-        LogPrint (eLogError, "======= inpacket =====\n", m_InPacket.str ().c_str (), "==============\n");
         
         while (!m_InPacket.eof () && !m_InPacket.fail ())
         {
@@ -272,7 +271,6 @@ namespace client
                 m_OutPacket << line << '\n';
             }
         }
-        LogPrint (eLogError,  "======= outpacket =====\n", m_OutPacket.str ().substr (0, m_OutPacket.str ().length ()),  "============\n");
         I2PTunnelConnection::Write ((uint8_t *)m_OutPacket.str ().c_str (), m_OutPacket.str ().length ());
     }
 
