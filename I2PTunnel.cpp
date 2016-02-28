@@ -243,23 +243,21 @@ namespace client
 
     void I2PTunnelConnectionIRC::Write (const uint8_t * buf, size_t len)
     {
-    	char *p = (char*)(buf + len);
-    	*p = '\0';
     	std::string line;
         m_OutPacket.str ("");
-        m_InPacket.str ("");
         m_InPacket.clear ();
         m_InPacket.write ((const char *)buf, len);
         
         while (!m_InPacket.eof () && !m_InPacket.fail ())
         {
             std::getline (m_InPacket, line);
+            if (line.length () == 0 && m_InPacket.eof ()) {
+            	m_InPacket.str ("");
+            }
             auto pos = line.find ("USER");
             if (pos != std::string::npos && pos == 0)
             {
                 pos = line.find (" ");
-                pos++;
-                pos = line.find (" ", pos);
                 pos++;
                 pos = line.find (" ", pos);
                 pos++;
