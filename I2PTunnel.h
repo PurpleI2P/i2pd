@@ -134,7 +134,7 @@ namespace client
 		public:
 
 			I2PServerTunnel (const std::string& name, const std::string& address, int port, 
-				std::shared_ptr<ClientDestination> localDestination, int inport = 0);	
+				std::shared_ptr<ClientDestination> localDestination, int inport = 0, bool gzip = true);	
 
 			void Start ();
 			void Stop ();
@@ -173,7 +173,7 @@ namespace client
 
 			I2PServerTunnelHTTP (const std::string& name, const std::string& address, int port, 
 				std::shared_ptr<ClientDestination> localDestination, const std::string& host,
-			    int inport = 0);	
+			    int inport = 0, bool gzip = true);	
 
 		private:
 
@@ -189,7 +189,7 @@ namespace client
         public:
 
             I2PServerTunnelIRC (const std::string& name, const std::string& address, int port, 
-                std::shared_ptr<ClientDestination> localDestination, int inport = 0);   
+                std::shared_ptr<ClientDestination> localDestination, int inport = 0, bool gzip = true);   
 
         private:
 

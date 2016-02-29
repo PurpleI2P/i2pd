@@ -628,7 +628,7 @@ namespace stream
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 			for (auto it: packets)
 			{ 
-				auto msg = m_RoutingSession->WrapSingleMessage (CreateDataMessage (it->GetBuffer (), it->GetLength ()));
+				auto msg = m_RoutingSession->WrapSingleMessage (m_LocalDestination.CreateDataMessage (it->GetBuffer (), it->GetLength (), m_Port));
 				msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 					{ 
 						i2p::tunnel::eDeliveryTypeTunnel,
@@ -779,33 +779,9 @@ namespace stream
 			m_CurrentRemoteLease = nullptr;
 	}	
 
-	std::shared_ptr<I2NPMessage> Stream::CreateDataMessage (const uint8_t * payload, size_t len)
-	{
-		auto msg = NewI2NPShortMessage ();
-		if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
-			m_LocalDestination.m_Deflator.SetCompressionLevel (Z_NO_COMPRESSION);
-		else
-			m_LocalDestination.m_Deflator.SetCompressionLevel (Z_DEFAULT_COMPRESSION);
-		uint8_t * buf = msg->GetPayload ();
-		buf += 4; // reserve for lengthlength
-		msg->len += 4;
-		size_t size = m_LocalDestination.m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
-		if (size)
-		{
-			htobe32buf (msg->GetPayload (), size); // length
-			htobe16buf (buf + 4, m_LocalDestination.GetLocalPort ()); // source port
-			htobe16buf (buf + 6, m_Port); // destination port 
-			buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
-			msg->len += size; 
-			msg->FillI2NPMessageHeader (eI2NPData);
-		}	
-		else
-			msg = nullptr;
-		return msg;
-	}	
-
-	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort): 
-		m_Owner (owner), m_LocalPort (localPort), m_PendingIncomingTimer (m_Owner->GetService ())
+	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip): 
+		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip), 
+		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
 	}
 		
@@ -993,5 +969,30 @@ namespace stream
 		else
 			delete uncompressed;
 	}
+
+	std::shared_ptr<I2NPMessage> StreamingDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort)
+	{
+		auto msg = NewI2NPShortMessage ();
+		if (!m_Gzip || len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
+			m_Deflator.SetCompressionLevel (Z_NO_COMPRESSION);
+		else
+			m_Deflator.SetCompressionLevel (Z_DEFAULT_COMPRESSION);
+		uint8_t * buf = msg->GetPayload ();
+		buf += 4; // reserve for lengthlength
+		msg->len += 4;
+		size_t size = m_Deflator.Deflate (payload, len, buf, msg->maxLen - msg->len);
+		if (size)
+		{
+			htobe32buf (msg->GetPayload (), size); // length
+			htobe16buf (buf + 4, m_LocalPort); // source port
+			htobe16buf (buf + 6, toPort); // destination port 
+			buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING; // streaming protocol
+			msg->len += size; 
+			msg->FillI2NPMessageHeader (eI2NPData);
+		}	
+		else
+			msg = nullptr;
+		return msg;
+	}	
 }		
 }	

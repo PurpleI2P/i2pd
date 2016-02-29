@@ -35,6 +35,7 @@ namespace client
 	const char I2P_SERVER_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
 	const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 	const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";		
+	const char I2P_SERVER_TUNNEL_GZIP[] = "gzip";	
 
 	class ClientContext
 	{

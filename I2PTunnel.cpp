@@ -371,10 +371,10 @@ namespace client
 	}
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address, 
-	    int port, std::shared_ptr<ClientDestination> localDestination, int inport): 
+	    int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip): 
 		I2PService (localDestination), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
-		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port);
+		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port, gzip);
 	}
 	
 	void I2PServerTunnel::Start ()
@@ -462,8 +462,8 @@ namespace client
 
 	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& name, const std::string& address, 
 	    int port, std::shared_ptr<ClientDestination> localDestination, 
-	    const std::string& host, int inport):
-		I2PServerTunnel (name, address, port, localDestination, inport), 
+	    const std::string& host, int inport, bool gzip):
+		I2PServerTunnel (name, address, port, localDestination, inport, gzip), 
 		m_Host (host.length () > 0 ? host : address)
 	{
 	}
@@ -477,8 +477,8 @@ namespace client
 	}
 
     I2PServerTunnelIRC::I2PServerTunnelIRC (const std::string& name, const std::string& address, 
-        int port, std::shared_ptr<ClientDestination> localDestination, int inport):
-        I2PServerTunnel (name, address, port, localDestination, inport)
+        int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip):
+        I2PServerTunnel (name, address, port, localDestination, inport, gzip)
     {
     }
 

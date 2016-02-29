@@ -158,8 +158,6 @@ namespace stream
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
-
-			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len);
 			
 		private:
 
@@ -195,7 +193,7 @@ namespace stream
 
 			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
-			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0);
+			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0, bool gzip = true);
 			~StreamingDestination ();	
 
 			void Start ();
@@ -210,6 +208,7 @@ namespace stream
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
+			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort);
 
 		private:		
 	
@@ -221,6 +220,7 @@ namespace stream
 
 			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
 			uint16_t m_LocalPort;
+			bool m_Gzip; // gzip compression of data messages
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
 			Acceptor m_Acceptor;
