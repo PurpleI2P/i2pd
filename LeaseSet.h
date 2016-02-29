@@ -17,7 +17,7 @@ namespace tunnel
 
 namespace data
 {	
-	const int LEASE_ENDDATE_THRESHOLD = 31000; // in milliseconds
+	const int LEASE_ENDDATE_THRESHOLD = 51000; // in milliseconds
 	struct Lease
 	{
 		IdentHash tunnelGateway;
