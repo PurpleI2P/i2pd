@@ -44,10 +44,12 @@ void Log::Flush ()
 		m_LogStream->flush();
 }
 
-void Log::SetLogFile (const std::string& fullFilePath)
+void Log::SetLogFile (const std::string& fullFilePath, bool truncate)
 {
 	m_FullFilePath = fullFilePath;	
-	auto logFile = std::make_shared<std::ofstream> (fullFilePath, std::ofstream::out | std::ofstream::binary | std::ofstream::trunc);
+	auto mode = std::ofstream::out | std::ofstream::binary;
+	mode |= truncate ? std::ofstream::trunc : std::ofstream::app;
+	auto logFile = std::make_shared<std::ofstream> (fullFilePath, mode);
 	if (logFile->is_open ())
 	{
 		SetLogStream (logFile);
@@ -59,7 +61,7 @@ void Log::ReopenLogFile ()
 {
 	if (m_FullFilePath.length () > 0)
 	{
-		SetLogFile (m_FullFilePath);
+		SetLogFile (m_FullFilePath, false); // don't truncate
 		LogPrint(eLogInfo, "Log: file ", m_FullFilePath,  " reopen");
 	}
 }
