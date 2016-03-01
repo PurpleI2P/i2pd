@@ -303,7 +303,7 @@ namespace client
 						LogPrint (eLogError, "Clients: I2P client tunnel with port ", port, " already exists");
 					numClientTunnels++;
 				}
-				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP)
+				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC)
 				{	
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
@@ -313,6 +313,7 @@ namespace client
 					int inPort = section.second.get (I2P_SERVER_TUNNEL_INPORT, 0);
 					std::string accessList = section.second.get (I2P_SERVER_TUNNEL_ACCESS_LIST, "");
 					std::string hostOverride = section.second.get (I2P_SERVER_TUNNEL_HOST_OVERRIDE, "");
+					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					// I2CP
 					std::map<std::string, std::string> options;							 
@@ -324,9 +325,15 @@ namespace client
 					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
-					I2PServerTunnel * serverTunnel = (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ? 
-						new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort) : 
-						new I2PServerTunnel (name, host, port, localDestination, inPort);
+
+					I2PServerTunnel * serverTunnel;
+					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
+                    	serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
+               		else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
+                    	serverTunnel = new I2PServerTunnelIRC (name, host, port, localDestination, inPort, gzip);
+					else // regular server tunnel by default
+                   		serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
+
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;

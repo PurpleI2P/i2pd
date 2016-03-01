@@ -46,7 +46,7 @@ namespace client
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
 	const int DEFAULT_TAGS_TO_SEND = 40;
-	
+
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
 	class ClientDestination: public i2p::garlic::GarlicDestination,
@@ -82,7 +82,7 @@ namespace client
 			void CancelDestinationRequest (const i2p::data::IdentHash& dest);	
 			
 			// streaming
-			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port); // additional
+			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional
 			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination (int port = 0) const;
 			// following methods operate with default streaming destination
 			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);

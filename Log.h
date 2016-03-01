@@ -38,7 +38,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		Log () { SetOnEmpty (std::bind (&Log::Flush, this)); };
 		~Log () {};
 
-		void SetLogFile (const std::string& fullFilePath);
+		void SetLogFile (const std::string& fullFilePath, bool truncate = true);
 		void ReopenLogFile ();
 		void SetLogLevel (const std::string& level);
 		void SetLogStream (std::shared_ptr<std::ostream> logStream);

@@ -576,9 +576,9 @@ namespace client
 		return false;
 	}	
 
-	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (int port)
+	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (int port, bool gzip)
 	{
-		auto dest = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this (), port); 
+		auto dest = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this (), port, gzip); 
 		if (port)
 			m_StreamingDestinationsByPorts[port] = dest;
 		else // update default 
