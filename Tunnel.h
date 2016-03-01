@@ -142,9 +142,9 @@ namespace tunnel
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel ();
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
-			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
+			std::shared_ptr<TransitTunnel> GetTransitTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
-			void AddTransitTunnel (TransitTunnel * tunnel);
+			void AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
 			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
 			void AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel);
 			void PostTunnelData (std::shared_ptr<I2NPMessage> msg);
@@ -163,7 +163,7 @@ namespace tunnel
 			template<class TTunnel>
 			std::shared_ptr<TTunnel> GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, std::shared_ptr<TTunnel> >& pendingTunnels);			
 
-			void HandleTunnelGatewayMsg (TunnelBase * tunnel, std::shared_ptr<I2NPMessage> msg);
+			void HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg);
 
 			void Run ();	
 			void ManageTunnels ();
@@ -186,7 +186,7 @@ namespace tunnel
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
 			std::mutex m_TransitTunnelsMutex;
-			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
+			std::map<uint32_t, std::shared_ptr<TransitTunnel> > m_TransitTunnels;
 			std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;

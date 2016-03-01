@@ -93,7 +93,7 @@ namespace tunnel
 			TunnelEndpoint m_Endpoint;
 	};
 	
-	TransitTunnel * CreateTransitTunnel (uint32_t receiveTunnelID,
+	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
 		const uint8_t * nextIdent, uint32_t nextTunnelID, 
 	    const uint8_t * layerKey,const uint8_t * ivKey, 
 		bool isGateway, bool isEndpoint);

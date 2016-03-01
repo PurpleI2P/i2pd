@@ -257,9 +257,6 @@ namespace tunnel
 	
 	Tunnels::~Tunnels ()	
 	{
-		for (auto& it : m_TransitTunnels)
-			delete it.second;
-		m_TransitTunnels.clear ();
 	}	
 	
 	std::shared_ptr<InboundTunnel> Tunnels::GetInboundTunnel (uint32_t tunnelID)
@@ -270,7 +267,7 @@ namespace tunnel
 		return nullptr;
 	}	
 	
-	TransitTunnel * Tunnels::GetTransitTunnel (uint32_t tunnelID)
+	std::shared_ptr<TransitTunnel> Tunnels::GetTransitTunnel (uint32_t tunnelID)
 	{
 		auto it = m_TransitTunnels.find(tunnelID);
 		if (it != m_TransitTunnels.end ())
@@ -363,14 +360,11 @@ namespace tunnel
 		}	
 	}	
 		
-	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
+	void Tunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
 	{
 		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
 		if (!m_TransitTunnels.insert (std::make_pair (tunnel->GetTunnelID (), tunnel)).second)
-		{	
 			LogPrint (eLogError, "Tunnel: transit tunnel with id ", tunnel->GetTunnelID (), " already exists");
-			delete tunnel;
-		}
 	}	
 
 	void Tunnels::Start ()
@@ -404,10 +398,10 @@ namespace tunnel
 				if (msg)
 				{	
 					uint32_t prevTunnelID = 0, tunnelID = 0;
-					TunnelBase * prevTunnel = nullptr; 
+					std::shared_ptr<TunnelBase> prevTunnel; 
 					do
 					{
-						TunnelBase * tunnel = nullptr;
+						std::shared_ptr<TunnelBase> tunnel;
 						uint8_t typeID = msg->GetTypeID ();
 						switch (typeID)
 						{									
@@ -421,7 +415,7 @@ namespace tunnel
 									prevTunnel->FlushTunnelDataMsgs (); 
 						
 								if (!tunnel && typeID == eI2NPTunnelData)
-									tunnel = GetInboundTunnel (tunnelID).get ();
+									tunnel = GetInboundTunnel (tunnelID);
 								if (!tunnel)
 									tunnel = GetTransitTunnel (tunnelID);
 								if (tunnel)
@@ -471,7 +465,7 @@ namespace tunnel
 		}	
 	}	
 
-	void Tunnels::HandleTunnelGatewayMsg (TunnelBase * tunnel, std::shared_ptr<I2NPMessage> msg)
+	void Tunnels::HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg)
 	{
 		if (!tunnel)
 		{
@@ -690,7 +684,6 @@ namespace tunnel
 					std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
 					it = m_TransitTunnels.erase (it);
 				}	
-				delete tmp;
 			}	
 			else 
 				it++;
