@@ -202,10 +202,10 @@ namespace tunnel
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
 
-      size_t CountTransitTunnels();
-      size_t CountInboundTunnels();
-      size_t CountOutboundTunnels();
-      
+			size_t CountTransitTunnels();
+			size_t CountInboundTunnels();
+			size_t CountOutboundTunnels();
+			
 			int GetQueueSize () { return m_Queue.GetSize (); };
 			int GetTunnelCreationSuccessRate () const // in percents
 			{ 
