@@ -452,7 +452,7 @@ namespace util
     clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
     size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
     
-    s << "<b>Client Tunnels</b> " << std::to_string(clientTunnelCount) << " ";
+    s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
     s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
