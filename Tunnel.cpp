@@ -793,7 +793,22 @@ namespace tunnel
 			if (t > timeout) timeout = t;
 		}	
 		return timeout;
-	}	
+	}
+
+  size_t Tunnels::CountTransitTunnels() {
+    // TODO: locking
+    return m_TransitTunnels.size();
+  }
+
+  size_t Tunnels::CountInboundTunnels() {
+    // TODO: locking
+    return m_InboundTunnels.size();
+  }
+
+  size_t Tunnels::CountOutboundTunnels() {
+    // TODO: locking
+    return m_OutboundTunnels.size();
+  }
 }
 }
 

@@ -447,6 +447,13 @@ namespace util
 		s << "<br>\r\n<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
+
+    size_t clientTunnelCount = i2p::tunnel::tunnels.CountOutboundTunnels();
+    clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
+    size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
+    
+    s << "<b>Client Tunnels</b> " << std::to_string(clientTunnelCount) << " ";
+    s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
 	void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
