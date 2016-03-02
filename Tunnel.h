@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <map>
+#include <unordered_map>
 #include <list>
 #include <vector>
 #include <string>
@@ -142,7 +143,7 @@ namespace tunnel
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel ();
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
-			std::shared_ptr<TransitTunnel> GetTransitTunnel (uint32_t tunnelID);
+			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
 			void AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
 			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
@@ -185,8 +186,8 @@ namespace tunnel
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
-			std::mutex m_TransitTunnelsMutex;
-			std::map<uint32_t, std::shared_ptr<TransitTunnel> > m_TransitTunnels;
+			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
+			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
 			std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;

@@ -619,13 +619,13 @@ namespace util
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
 		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
 		{
-			if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it.second))
-				s << it.second->GetTunnelID () << " ⇒ ";
-			else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it.second))
-				s << " ⇒ " << it.second->GetTunnelID ();
+			if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
+				s << it->GetTunnelID () << " ⇒ ";
+			else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
+				s << " ⇒ " << it->GetTunnelID ();
 			else
-				s << " ⇒ " << it.second->GetTunnelID () << " ⇒ ";
-			s << " " << it.second->GetNumTransmittedBytes () << "<br>\r\n";
+				s << " ⇒ " << it->GetTunnelID () << " ⇒ ";
+			s << " " << it->GetNumTransmittedBytes () << "<br>\r\n";
 		}
 	}
 
