@@ -137,7 +137,6 @@ namespace tunnel
 			void Start ();
 			void Stop ();		
 			
-			std::shared_ptr<InboundTunnel> GetInboundTunnel (uint32_t tunnelID);
 			std::shared_ptr<InboundTunnel> GetPendingInboundTunnel (uint32_t replyMsgID);	
 			std::shared_ptr<OutboundTunnel> GetPendingOutboundTunnel (uint32_t replyMsgID);			
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel ();
@@ -184,7 +183,7 @@ namespace tunnel
 			std::thread * m_Thread;	
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels; // by replyMsgID
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
-			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
+			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
 			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
 			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
@@ -203,9 +202,9 @@ namespace tunnel
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
 
-			size_t CountTransitTunnels();
-			size_t CountInboundTunnels();
-			size_t CountOutboundTunnels();
+			size_t CountTransitTunnels() const;
+			size_t CountInboundTunnels() const;
+			size_t CountOutboundTunnels() const;
 			
 			int GetQueueSize () { return m_Queue.GetSize (); };
 			int GetTunnelCreationSuccessRate () const // in percents

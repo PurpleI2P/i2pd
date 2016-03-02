@@ -610,13 +610,13 @@ namespace util
 
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
 		{
-			it.second->Print (s);
-			auto state = it.second->GetState ();
+			it->Print (s);
+			auto state = it->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << "<span class=failed_tunnel> " << "Failed</span>";
 			else if (state == i2p::tunnel::eTunnelStateExpiring)
 				s << "<span class=expiring_tunnel> " << "Exp</span>";
-			s << " " << (int)it.second->GetNumReceivedBytes () << "<br>\r\n";
+			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
 			s << std::endl;
 		}
 	}	

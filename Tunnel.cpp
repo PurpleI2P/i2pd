@@ -258,14 +258,6 @@ namespace tunnel
 	Tunnels::~Tunnels ()	
 	{
 	}	
-	
-	std::shared_ptr<InboundTunnel> Tunnels::GetInboundTunnel (uint32_t tunnelID)
-	{
-		auto it = m_InboundTunnels.find(tunnelID);
-		if (it != m_InboundTunnels.end ())
-			return it->second;
-		return nullptr;
-	}	
 
 	std::shared_ptr<TunnelBase> Tunnels::GetTunnel (uint32_t tunnelID)
 	{
@@ -303,11 +295,11 @@ namespace tunnel
 		size_t minReceived = 0;
 		for (auto it : m_InboundTunnels)
 		{
-			if (!it.second->IsEstablished ()) continue;
-			if (!tunnel || it.second->GetNumReceivedBytes () < minReceived)
+			if (!it->IsEstablished ()) continue;
+			if (!tunnel || it->GetNumReceivedBytes () < minReceived)
 			{
-				tunnel = it.second;
-				minReceived = it.second->GetNumReceivedBytes ();
+				tunnel = it;
+				minReceived = it->GetNumReceivedBytes ();
 			}
 		}			
 		return tunnel;
@@ -615,7 +607,7 @@ namespace tunnel
 		{
 			for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 			{
-				auto tunnel = it->second;
+				auto tunnel = *it;
 				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
 					LogPrint (eLogDebug, "Tunnel: tunnel with id ", tunnel->GetTunnelID (), " expired");
@@ -749,7 +741,7 @@ namespace tunnel
 	{
 		if (m_Tunnels.emplace (newTunnel->GetTunnelID (), newTunnel).second)
 		{	
-			m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
+			m_InboundTunnels.push_back (newTunnel);
 			auto pool = newTunnel->GetTunnelPool ();
 			if (!pool)
 			{		
@@ -793,17 +785,20 @@ namespace tunnel
 		return timeout;
 	}
 
-	size_t Tunnels::CountTransitTunnels() {
+	size_t Tunnels::CountTransitTunnels() const
+	{
 		// TODO: locking
 		return m_TransitTunnels.size();
 	}
 
-	size_t Tunnels::CountInboundTunnels() {
+	size_t Tunnels::CountInboundTunnels() const
+	{
 		// TODO: locking
 		return m_InboundTunnels.size();
 	}
 
-	size_t Tunnels::CountOutboundTunnels() {
+	size_t Tunnels::CountOutboundTunnels() const
+	{
 		// TODO: locking
 		return m_OutboundTunnels.size();
 	}
