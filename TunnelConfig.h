@@ -108,7 +108,7 @@ namespace tunnel
 		}	
 	};	
 
-	class TunnelConfig: public std::enable_shared_from_this<TunnelConfig>
+	class TunnelConfig
 	{
 		public:			
 			
@@ -160,26 +160,26 @@ namespace tunnel
 				return num;
 			}
 
-			bool IsInbound () const { return m_FirstHop->isGateway; }
+			virtual bool IsInbound () const { return m_FirstHop->isGateway; }
 
-			uint32_t GetTunnelID () const 
+			virtual uint32_t GetTunnelID () const 
 			{	
 				if (!m_FirstHop) return 0;
 				return IsInbound () ? m_LastHop->nextTunnelID : m_FirstHop->tunnelID; 
 			}
 
-			uint32_t GetNextTunnelID () const 
+			virtual uint32_t GetNextTunnelID () const 
 			{	
 				if (!m_FirstHop) return 0;
 				return m_FirstHop->tunnelID; 
 			}
 
-			const i2p::data::IdentHash& GetNextIdentHash () const 
+			virtual const i2p::data::IdentHash& GetNextIdentHash () const 
 			{ 
 				return m_FirstHop->ident->GetIdentHash (); 
 			}	
 
-			const i2p::data::IdentHash& GetLastIdentHash () const 
+			virtual const i2p::data::IdentHash& GetLastIdentHash () const 
 			{ 
 				return m_LastHop->ident->GetIdentHash (); 
 			}	
@@ -196,12 +196,14 @@ namespace tunnel
 				return peers;
 			}
 			
-		private:
+		protected:
 
 			// this constructor can't be called from outside
 			TunnelConfig (): m_FirstHop (nullptr), m_LastHop (nullptr)
 			{
 			}
+	
+		private:
 
 			template<class Peers>
 			void CreatePeers (const Peers& peers)
@@ -222,6 +224,25 @@ namespace tunnel
 		private:
 
 			TunnelHopConfig * m_FirstHop, * m_LastHop;
+	};
+
+	class ZeroHopTunnelConfig: public TunnelConfig
+	{
+		public:
+
+			ZeroHopTunnelConfig (uint32_t tunnelID = 0):  // 0 means outbound
+				m_TunnelID (tunnelID) {};
+
+			bool IsInbound () const { return m_TunnelID; };		
+			uint32_t GetTunnelID () const { return m_TunnelID; };
+			uint32_t GetNextTunnelID () const { return m_TunnelID; };
+			const i2p::data::IdentHash& GetNextIdentHash () const { return i2p::context.GetIdentHash (); };
+			const i2p::data::IdentHash& GetLastIdentHash () const { return i2p::context.GetIdentHash (); };
+
+
+		private:
+		
+			uint32_t m_TunnelID;	
 	};	
 }		
 }	

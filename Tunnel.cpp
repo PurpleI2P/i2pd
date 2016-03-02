@@ -200,6 +200,12 @@ namespace tunnel
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);	
 	}	
 
+	void InboundTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	{
+		// assume zero-hops tunnel
+		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
+	}
+
 	void InboundTunnel::Print (std::stringstream& s) const
 	{
 		PrintHops (s);

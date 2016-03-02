@@ -119,6 +119,7 @@ namespace tunnel
 
 			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg); // for zero-hops only
 			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			void Print (std::stringstream& s) const;
 			
