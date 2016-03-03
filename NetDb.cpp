@@ -677,7 +677,7 @@ namespace data
 					excludedRouters.insert (excluded);
 					excluded += 32;
 				}
-				replyMsg = CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters));
+				replyMsg = CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters, true));
 			}
 		}
 		
@@ -884,7 +884,7 @@ namespace data
 	}	
 
 	std::vector<IdentHash> NetDb::GetClosestFloodfills (const IdentHash& destination, size_t num,
-		std::set<IdentHash>& excluded) const
+		std::set<IdentHash>& excluded, bool closeThanUsOnly) const
 	{
 		struct Sorted
 		{
@@ -895,6 +895,8 @@ namespace data
 
 		std::set<Sorted> sorted;
 		IdentHash destKey = CreateRoutingKey (destination);
+		XORMetric ourMetric;
+		if (closeThanUsOnly) ourMetric = destKey ^ i2p::context.GetIdentHash ();
 		{
 			std::unique_lock<std::mutex> l(m_FloodfillsMutex);
 			for (auto it: m_Floodfills)
@@ -902,6 +904,7 @@ namespace data
 				if (!it->IsUnreachable ())
 				{	
 					XORMetric m = destKey ^ it->GetIdentHash ();
+					if (closeThanUsOnly && ourMetric < m) continue;
 					if (sorted.size () < num)
 						sorted.insert ({it, m});
 					else if (m < sorted.rbegin ()->metric)
@@ -960,9 +963,9 @@ namespace data
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (auto it = m_LeaseSets.begin (); it != m_LeaseSets.end ();)
 		{
-			if (ts > it->second->GetExpirationTime ()) 
+			if (ts > it->second->GetExpirationTime () - LEASE_ENDDATE_THRESHOLD) 
 			{
-				LogPrint (eLogWarning, "NetDb: LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
+				LogPrint (eLogInfo, "NetDb: LeaseSet ", it->second->GetIdentHash ().ToBase64 (), " expired");
 				it = m_LeaseSets.erase (it);
 			}	
 			else 
