@@ -226,14 +226,13 @@ namespace tunnel
 			TunnelHopConfig * m_FirstHop, * m_LastHop;
 	};
 
-	class ZeroHopTunnelConfig: public TunnelConfig
+	class ZeroHopsTunnelConfig: public TunnelConfig
 	{
 		public:
 
-			ZeroHopTunnelConfig (uint32_t tunnelID = 0):  // 0 means outbound
-				m_TunnelID (tunnelID) {};
+			ZeroHopsTunnelConfig () { RAND_bytes ((uint8_t *)&m_TunnelID, 4);};
 
-			bool IsInbound () const { return m_TunnelID; };		
+			bool IsInbound () const { return true; }; // TODO:		
 			uint32_t GetTunnelID () const { return m_TunnelID; };
 			uint32_t GetNextTunnelID () const { return m_TunnelID; };
 			const i2p::data::IdentHash& GetNextIdentHash () const { return i2p::context.GetIdentHash (); };

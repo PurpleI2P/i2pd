@@ -200,15 +200,25 @@ namespace tunnel
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg);	
 	}	
 
-	void InboundTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
-	{
-		// assume zero-hops tunnel
-		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
-	}
-
 	void InboundTunnel::Print (std::stringstream& s) const
 	{
 		PrintHops (s);
+		s << " ⇒ " << GetTunnelID () << ":me";
+	}	
+
+	ZeroHopsInboundTunnel::ZeroHopsInboundTunnel ():
+		InboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ())
+	{
+	}	
+		
+	void ZeroHopsInboundTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	{
+		msg->from = shared_from_this ();
+		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
+	}	
+
+	void ZeroHopsInboundTunnel::Print (std::stringstream& s) const
+	{
 		s << " ⇒ " << GetTunnelID () << ":me";
 	}	
 		
@@ -771,11 +781,21 @@ namespace tunnel
 	
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
-		CreateTunnel<InboundTunnel> (
+		/*CreateTunnel<InboundTunnel> (
 			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >
 			    { 
 					i2p::context.GetIdentity ()
-				}));
+				}));*/
+		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
+		m_InboundTunnels.push_back (inboundTunnel);
+		m_Tunnels[inboundTunnel->GetTunnelID ()] = inboundTunnel;
+
+		// create paired outbound tunnel, TODO: move to separate function
+		CreateTunnel<OutboundTunnel> (
+			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >
+			    { 
+					i2p::context.GetIdentity ()
+				}, inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()));
 	}	
 
 	int Tunnels::GetTransitTunnelsExpirationTimeout ()
