@@ -207,14 +207,18 @@ namespace tunnel
 	}	
 
 	ZeroHopsInboundTunnel::ZeroHopsInboundTunnel ():
-		InboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ())
+		InboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ()),
+		m_NumReceivedBytes (0)
 	{
 	}	
 		
 	void ZeroHopsInboundTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
-		msg->from = shared_from_this ();
-		m_Endpoint.HandleDecryptedTunnelDataMsg (msg);
+		if (msg)
+		{	
+			m_NumReceivedBytes += msg->GetLength ();
+			HandleI2NPMessage (msg);
+		}	
 	}	
 
 	void ZeroHopsInboundTunnel::Print (std::stringstream& s) const
