@@ -818,13 +818,16 @@ namespace tunnel
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
 		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
+		inboundTunnel->SetState (eTunnelStateEstablished);
 		m_InboundTunnels.push_back (inboundTunnel);
 		m_Tunnels[inboundTunnel->GetTunnelID ()] = inboundTunnel;
 	}	
 
 	void Tunnels::CreateZeroHopsOutboundTunnel ()
 	{
-		m_OutboundTunnels.push_back (std::make_shared<ZeroHopsOutboundTunnel> ());
+		auto outboundTunnel = std::make_shared<ZeroHopsOutboundTunnel> ();
+		outboundTunnel->SetState (eTunnelStateEstablished);
+		m_OutboundTunnels.push_back (outboundTunnel);
 		// we don't insert into m_Tunnels
 	}
 
