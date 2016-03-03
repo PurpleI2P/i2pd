@@ -301,8 +301,7 @@ namespace i2p
 					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= MAX_NUM_TRANSIT_TUNNELS &&
 					!i2p::transport::transports.IsBandwidthExceeded ())
 				{	
-					i2p::tunnel::TransitTunnel * transitTunnel = 
-						i2p::tunnel::CreateTransitTunnel (
+					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET), 
 							clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET, 
 						    bufbe32toh (clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),

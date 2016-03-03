@@ -205,6 +205,26 @@ namespace tunnel
 		PrintHops (s);
 		s << " ⇒ " << GetTunnelID () << ":me";
 	}	
+
+	ZeroHopsInboundTunnel::ZeroHopsInboundTunnel ():
+		InboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ()),
+		m_NumReceivedBytes (0)
+	{
+	}	
+		
+	void ZeroHopsInboundTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	{
+		if (msg)
+		{	
+			m_NumReceivedBytes += msg->GetLength ();
+			HandleI2NPMessage (msg);
+		}	
+	}	
+
+	void ZeroHopsInboundTunnel::Print (std::stringstream& s) const
+	{
+		s << " ⇒ " << GetTunnelID () << ":me";
+	}	
 		
 	void OutboundTunnel::SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
@@ -257,27 +277,16 @@ namespace tunnel
 	
 	Tunnels::~Tunnels ()	
 	{
-		for (auto& it : m_TransitTunnels)
-			delete it.second;
-		m_TransitTunnels.clear ();
 	}	
-	
-	std::shared_ptr<InboundTunnel> Tunnels::GetInboundTunnel (uint32_t tunnelID)
+
+	std::shared_ptr<TunnelBase> Tunnels::GetTunnel (uint32_t tunnelID)
 	{
-		auto it = m_InboundTunnels.find(tunnelID);
-		if (it != m_InboundTunnels.end ())
+		auto it = m_Tunnels.find(tunnelID);
+		if (it != m_Tunnels.end ())
 			return it->second;
 		return nullptr;
 	}	
-	
-	TransitTunnel * Tunnels::GetTransitTunnel (uint32_t tunnelID)
-	{
-		auto it = m_TransitTunnels.find(tunnelID);
-		if (it != m_TransitTunnels.end ())
-			return it->second;
-		return nullptr;
-	}	
-	
+		
 	std::shared_ptr<InboundTunnel> Tunnels::GetPendingInboundTunnel (uint32_t replyMsgID)
 	{
 		return GetPendingTunnel (replyMsgID, m_PendingInboundTunnels);	
@@ -306,11 +315,11 @@ namespace tunnel
 		size_t minReceived = 0;
 		for (auto it : m_InboundTunnels)
 		{
-			if (!it.second->IsEstablished ()) continue;
-			if (!tunnel || it.second->GetNumReceivedBytes () < minReceived)
+			if (!it->IsEstablished ()) continue;
+			if (!tunnel || it->GetNumReceivedBytes () < minReceived)
 			{
-				tunnel = it.second;
-				minReceived = it.second->GetNumReceivedBytes ();
+				tunnel = it;
+				minReceived = it->GetNumReceivedBytes ();
 			}
 		}			
 		return tunnel;
@@ -363,14 +372,12 @@ namespace tunnel
 		}	
 	}	
 		
-	void Tunnels::AddTransitTunnel (TransitTunnel * tunnel)
+	void Tunnels::AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel)
 	{
-		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
-		if (!m_TransitTunnels.insert (std::make_pair (tunnel->GetTunnelID (), tunnel)).second)
-		{	
-			LogPrint (eLogError, "Tunnel: transit tunnel with id ", tunnel->GetTunnelID (), " already exists");
-			delete tunnel;
-		}
+		if (m_Tunnels.emplace (tunnel->GetTunnelID (), tunnel).second)
+			m_TransitTunnels.push_back (tunnel);
+		else
+			LogPrint (eLogError, "Tunnel: tunnel with id ", tunnel->GetTunnelID (), " already exists");
 	}	
 
 	void Tunnels::Start ()
@@ -404,10 +411,10 @@ namespace tunnel
 				if (msg)
 				{	
 					uint32_t prevTunnelID = 0, tunnelID = 0;
-					TunnelBase * prevTunnel = nullptr; 
+					std::shared_ptr<TunnelBase> prevTunnel; 
 					do
 					{
-						TunnelBase * tunnel = nullptr;
+						std::shared_ptr<TunnelBase> tunnel;
 						uint8_t typeID = msg->GetTypeID ();
 						switch (typeID)
 						{									
@@ -420,10 +427,8 @@ namespace tunnel
 								else if (prevTunnel)
 									prevTunnel->FlushTunnelDataMsgs (); 
 						
-								if (!tunnel && typeID == eI2NPTunnelData)
-									tunnel = GetInboundTunnel (tunnelID).get ();
 								if (!tunnel)
-									tunnel = GetTransitTunnel (tunnelID);
+									tunnel = GetTunnel (tunnelID);
 								if (tunnel)
 								{
 									if (typeID == eI2NPTunnelData)
@@ -471,7 +476,7 @@ namespace tunnel
 		}	
 	}	
 
-	void Tunnels::HandleTunnelGatewayMsg (TunnelBase * tunnel, std::shared_ptr<I2NPMessage> msg)
+	void Tunnels::HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg)
 	{
 		if (!tunnel)
 		{
@@ -580,6 +585,7 @@ namespace tunnel
 					auto pool = tunnel->GetTunnelPool ();
 					if (pool)
 						pool->TunnelExpired (tunnel);
+					// we don't have outbound tunnels in m_Tunnels
 					it = m_OutboundTunnels.erase (it);
 				}	
 				else 
@@ -621,13 +627,14 @@ namespace tunnel
 		{
 			for (auto it = m_InboundTunnels.begin (); it != m_InboundTunnels.end ();)
 			{
-				auto tunnel = it->second;
+				auto tunnel = *it;
 				if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 				{
 					LogPrint (eLogDebug, "Tunnel: tunnel with id ", tunnel->GetTunnelID (), " expired");
 					auto pool = tunnel->GetTunnelPool ();
 					if (pool)
 						pool->TunnelExpired (tunnel);
+					m_Tunnels.erase (tunnel->GetTunnelID ());
 					it = m_InboundTunnels.erase (it);
 				}	
 				else 
@@ -682,15 +689,12 @@ namespace tunnel
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_TransitTunnels.begin (); it != m_TransitTunnels.end ();)
 		{
-			if (ts > it->second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
+			auto tunnel = *it;
+			if (ts > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 			{
-				auto tmp = it->second;
-				LogPrint (eLogDebug, "Tunnel: Transit tunnel with id ", tmp->GetTunnelID (), " expired");
-				{
-					std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
-					it = m_TransitTunnels.erase (it);
-				}	
-				delete tmp;
+				LogPrint (eLogDebug, "Tunnel: Transit tunnel with id ", tunnel->GetTunnelID (), " expired");
+				m_Tunnels.erase (tunnel->GetTunnelID ());
+				it = m_TransitTunnels.erase (it);
 			}	
 			else 
 				it++;
@@ -744,6 +748,7 @@ namespace tunnel
 
 	void Tunnels::AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel)
 	{
+		// we don't need to insert it to m_Tunnels
 		m_OutboundTunnels.push_back (newTunnel);
 		auto pool = newTunnel->GetTunnelPool ();
 		if (pool && pool->IsActive ())
@@ -754,46 +759,79 @@ namespace tunnel
 
 	void Tunnels::AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel)
 	{
-		m_InboundTunnels[newTunnel->GetTunnelID ()] = newTunnel;
-		auto pool = newTunnel->GetTunnelPool ();
-		if (!pool)
-		{		
-			// build symmetric outbound tunnel
-			CreateTunnel<OutboundTunnel> (std::make_shared<TunnelConfig>(newTunnel->GetInvertedPeers (),
-					newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash ()), 
-				GetNextOutboundTunnel ());		
+		if (m_Tunnels.emplace (newTunnel->GetTunnelID (), newTunnel).second)
+		{	
+			m_InboundTunnels.push_back (newTunnel);
+			auto pool = newTunnel->GetTunnelPool ();
+			if (!pool)
+			{		
+				// build symmetric outbound tunnel
+				CreateTunnel<OutboundTunnel> (std::make_shared<TunnelConfig>(newTunnel->GetInvertedPeers (),
+						newTunnel->GetNextTunnelID (), newTunnel->GetNextIdentHash ()), 
+					GetNextOutboundTunnel ());		
+			}
+			else
+			{
+				if (pool->IsActive ())
+					pool->TunnelCreated (newTunnel);
+				else
+					newTunnel->SetTunnelPool (nullptr);
+			}
 		}
 		else
-		{
-			if (pool->IsActive ())
-				pool->TunnelCreated (newTunnel);
-			else
-				newTunnel->SetTunnelPool (nullptr);
-		}	
+			LogPrint (eLogError, "Tunnel: tunnel with id ", newTunnel->GetTunnelID (), " already exists");
 	}	
 
 	
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
-		CreateTunnel<InboundTunnel> (
+		/*CreateTunnel<InboundTunnel> (
 			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >
 			    { 
 					i2p::context.GetIdentity ()
-				}));
+				}));*/
+		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
+		m_InboundTunnels.push_back (inboundTunnel);
+		m_Tunnels[inboundTunnel->GetTunnelID ()] = inboundTunnel;
+
+		// create paired outbound tunnel, TODO: move to separate function
+		CreateTunnel<OutboundTunnel> (
+			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >
+			    { 
+					i2p::context.GetIdentity ()
+				}, inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()));
 	}	
 
 	int Tunnels::GetTransitTunnelsExpirationTimeout ()
 	{
 		int timeout = 0;
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
+		// TODO: possible race condition with I2PControl
 		for (auto it: m_TransitTunnels)
 		{
-			int t = it.second->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT - ts;
+			int t = it->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT - ts;
 			if (t > timeout) timeout = t;
 		}	
 		return timeout;
-	}	
+	}
+
+	size_t Tunnels::CountTransitTunnels() const
+	{
+		// TODO: locking
+		return m_TransitTunnels.size();
+	}
+
+	size_t Tunnels::CountInboundTunnels() const
+	{
+		// TODO: locking
+		return m_InboundTunnels.size();
+	}
+
+	size_t Tunnels::CountOutboundTunnels() const
+	{
+		// TODO: locking
+		return m_OutboundTunnels.size();
+	}
 }
 }
 

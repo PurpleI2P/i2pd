@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <map>
+#include <unordered_map>
 #include <list>
 #include <vector>
 #include <string>
@@ -71,6 +72,8 @@ namespace tunnel
 			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };			
 			
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
+
+			virtual void Print (std::stringstream& s) const {};	
 			
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
@@ -111,21 +114,34 @@ namespace tunnel
 			TunnelGateway m_Gateway; 
 			i2p::data::IdentHash m_EndpointIdentHash;
 	};
-	
+
 	class InboundTunnel: public Tunnel, public std::enable_shared_from_this<InboundTunnel>
 	{
 		public:
 
 			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
 			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
-			size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
+			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			void Print (std::stringstream& s) const;
 			
 		private:
 
 			TunnelEndpoint m_Endpoint; 
 	};	
+	
+	class ZeroHopsInboundTunnel: public InboundTunnel
+	{
+		public:
 
+			ZeroHopsInboundTunnel ();
+			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg); 
+			void Print (std::stringstream& s) const;
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			
+		private:
+
+			size_t m_NumReceivedBytes;
+	};		
 	
 	class Tunnels
 	{	
@@ -136,15 +152,14 @@ namespace tunnel
 			void Start ();
 			void Stop ();		
 			
-			std::shared_ptr<InboundTunnel> GetInboundTunnel (uint32_t tunnelID);
 			std::shared_ptr<InboundTunnel> GetPendingInboundTunnel (uint32_t replyMsgID);	
 			std::shared_ptr<OutboundTunnel> GetPendingOutboundTunnel (uint32_t replyMsgID);			
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel ();
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
 			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
-			TransitTunnel * GetTransitTunnel (uint32_t tunnelID);
+			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
-			void AddTransitTunnel (TransitTunnel * tunnel);
+			void AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
 			void AddOutboundTunnel (std::shared_ptr<OutboundTunnel> newTunnel);
 			void AddInboundTunnel (std::shared_ptr<InboundTunnel> newTunnel);
 			void PostTunnelData (std::shared_ptr<I2NPMessage> msg);
@@ -163,7 +178,7 @@ namespace tunnel
 			template<class TTunnel>
 			std::shared_ptr<TTunnel> GetPendingTunnel (uint32_t replyMsgID, const std::map<uint32_t, std::shared_ptr<TTunnel> >& pendingTunnels);			
 
-			void HandleTunnelGatewayMsg (TunnelBase * tunnel, std::shared_ptr<I2NPMessage> msg);
+			void HandleTunnelGatewayMsg (std::shared_ptr<TunnelBase> tunnel, std::shared_ptr<I2NPMessage> msg);
 
 			void Run ();	
 			void ManageTunnels ();
@@ -183,10 +198,10 @@ namespace tunnel
 			std::thread * m_Thread;	
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels; // by replyMsgID
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
-			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
+			std::list<std::shared_ptr<InboundTunnel> > m_InboundTunnels;
 			std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
-			std::mutex m_TransitTunnelsMutex;
-			std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
+			std::list<std::shared_ptr<TransitTunnel> > m_TransitTunnels;
+			std::unordered_map<uint32_t, std::shared_ptr<TunnelBase> > m_Tunnels; // tunnelID->tunnel known by this id
 			std::mutex m_PoolsMutex;
 			std::list<std::shared_ptr<TunnelPool>> m_Pools;
 			std::shared_ptr<TunnelPool> m_ExploratoryPool;
@@ -201,6 +216,11 @@ namespace tunnel
 			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
 			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
 			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
+
+			size_t CountTransitTunnels() const;
+			size_t CountInboundTunnels() const;
+			size_t CountOutboundTunnels() const;
+			
 			int GetQueueSize () { return m_Queue.GetSize (); };
 			int GetTunnelCreationSuccessRate () const // in percents
 			{ 

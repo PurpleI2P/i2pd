@@ -447,6 +447,13 @@ namespace util
 		s << "<br>\r\n<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
+
+		size_t clientTunnelCount = i2p::tunnel::tunnels.CountOutboundTunnels();
+		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
+		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
+		
+		s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
+		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
 	void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
@@ -603,13 +610,13 @@ namespace util
 
 		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
 		{
-			it.second->Print (s);
-			auto state = it.second->GetState ();
+			it->Print (s);
+			auto state = it->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
 				s << "<span class=failed_tunnel> " << "Failed</span>";
 			else if (state == i2p::tunnel::eTunnelStateExpiring)
 				s << "<span class=expiring_tunnel> " << "Exp</span>";
-			s << " " << (int)it.second->GetNumReceivedBytes () << "<br>\r\n";
+			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
 			s << std::endl;
 		}
 	}	
@@ -619,13 +626,13 @@ namespace util
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
 		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
 		{
-			if (dynamic_cast<i2p::tunnel::TransitTunnelGateway *>(it.second))
-				s << it.second->GetTunnelID () << " ⇒ ";
-			else if (dynamic_cast<i2p::tunnel::TransitTunnelEndpoint *>(it.second))
-				s << " ⇒ " << it.second->GetTunnelID ();
+			if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
+				s << it->GetTunnelID () << " ⇒ ";
+			else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
+				s << " ⇒ " << it->GetTunnelID ();
 			else
-				s << " ⇒ " << it.second->GetTunnelID () << " ⇒ ";
-			s << " " << it.second->GetNumTransmittedBytes () << "<br>\r\n";
+				s << " ⇒ " << it->GetTunnelID () << " ⇒ ";
+			s << " " << it->GetNumTransmittedBytes () << "<br>\r\n";
 		}
 	}
 

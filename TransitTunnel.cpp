@@ -85,7 +85,7 @@ namespace tunnel
 		m_Endpoint.HandleDecryptedTunnelDataMsg (newMsg); 
 	}
 		
-	TransitTunnel * CreateTransitTunnel (uint32_t receiveTunnelID,
+	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
 		const uint8_t * nextIdent, uint32_t nextTunnelID, 
 	    const uint8_t * layerKey,const uint8_t * ivKey, 
 		bool isGateway, bool isEndpoint)
@@ -93,17 +93,17 @@ namespace tunnel
 		if (isEndpoint)
 		{	
 			LogPrint (eLogInfo, "TransitTunnel: endpoint ", receiveTunnelID, " created");
-			return new TransitTunnelEndpoint (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
+			return std::make_shared<TransitTunnelEndpoint> (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 		else if (isGateway)
 		{	
 			LogPrint (eLogInfo, "TransitTunnel: gateway ", receiveTunnelID, " created");
-			return new TransitTunnelGateway (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
+			return std::make_shared<TransitTunnelGateway> (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 		else	
 		{	
 			LogPrint (eLogInfo, "TransitTunnel: ", receiveTunnelID, "->", nextTunnelID, " created");
-			return new TransitTunnelParticipant (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
+			return std::make_shared<TransitTunnelParticipant> (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 	}		
 }
