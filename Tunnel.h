@@ -100,9 +100,9 @@ namespace tunnel
 				Tunnel (config), m_Gateway (this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
 
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
-			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
+			virtual void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
 			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; }; 
-			size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
+			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
 			void Print (std::stringstream& s) const;
 			
 			// implements TunnelBase
@@ -143,6 +143,20 @@ namespace tunnel
 			size_t m_NumReceivedBytes;
 	};		
 	
+	class ZeroHopsOutboundTunnel: public OutboundTunnel
+	{
+		public:
+
+			ZeroHopsOutboundTunnel ();
+			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs);
+			void Print (std::stringstream& s) const;
+			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			
+		private:
+
+			size_t m_NumSentBytes;
+	};	
+
 	class Tunnels
 	{	
 		public:
@@ -191,7 +205,8 @@ namespace tunnel
 			void ManageTunnelPools ();
 			
 			void CreateZeroHopsInboundTunnel ();
-			
+			void CreateZeroHopsOutboundTunnel ();			
+
 		private:
 
 			bool m_IsRunning;

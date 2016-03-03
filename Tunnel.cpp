@@ -244,8 +244,7 @@ namespace tunnel
 			block.deliveryType = eDeliveryTypeLocal;
 		block.data = msg;
 		
-		std::unique_lock<std::mutex> l(m_SendMutex);
-		m_Gateway.SendTunnelDataMsg (block);
+		SendTunnelDataMsg ({block});
 	}
 		
 	void OutboundTunnel::SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs)
@@ -268,6 +267,38 @@ namespace tunnel
 		s << " ⇒ ";
 	}	
 		
+	ZeroHopsOutboundTunnel::ZeroHopsOutboundTunnel ():
+		OutboundTunnel (std::make_shared<ZeroHopsTunnelConfig> ()),
+		m_NumSentBytes (0)
+	{
+	}
+
+	void ZeroHopsOutboundTunnel::SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs)
+	{
+		for (auto& msg : msgs)
+		{
+			switch (msg.deliveryType)
+			{
+				case eDeliveryTypeLocal:
+					i2p::HandleI2NPMessage (msg.data);
+				break;
+				case eDeliveryTypeTunnel:
+					i2p::transport::transports.SendMessage (msg.hash, i2p::CreateTunnelGatewayMsg (msg.tunnelID, msg.data));
+				break;
+				case eDeliveryTypeRouter:				
+					i2p::transport::transports.SendMessage (msg.hash, msg.data);
+				break;
+				default:
+					LogPrint (eLogError, "Tunnel: Unknown delivery type ", (int)msg.deliveryType);
+			}	
+		}
+	}
+
+	void ZeroHopsOutboundTunnel::Print (std::stringstream& s) const
+	{
+		s << GetTunnelID () << ":me ⇒ ";
+	}
+
 	Tunnels tunnels;
 	
 	Tunnels::Tunnels (): m_IsRunning (false), m_Thread (nullptr),
@@ -661,6 +692,7 @@ namespace tunnel
 		{
 			LogPrint (eLogDebug, "Tunnel: Creating zero hops inbound tunnel");
 			CreateZeroHopsInboundTunnel ();
+			CreateZeroHopsOutboundTunnel ();
 			if (!m_ExploratoryPool)
 			{
 				m_ExploratoryPool = CreateTunnelPool (2, 2, 5, 5); // 2-hop exploratory, 5 tunnels
@@ -785,22 +817,16 @@ namespace tunnel
 	
 	void Tunnels::CreateZeroHopsInboundTunnel ()
 	{
-		/*CreateTunnel<InboundTunnel> (
-			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >
-			    { 
-					i2p::context.GetIdentity ()
-				}));*/
 		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
 		m_InboundTunnels.push_back (inboundTunnel);
 		m_Tunnels[inboundTunnel->GetTunnelID ()] = inboundTunnel;
-
-		// create paired outbound tunnel, TODO: move to separate function
-		CreateTunnel<OutboundTunnel> (
-			std::make_shared<TunnelConfig> (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >
-			    { 
-					i2p::context.GetIdentity ()
-				}, inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()));
 	}	
+
+	void Tunnels::CreateZeroHopsOutboundTunnel ()
+	{
+		m_OutboundTunnels.push_back (std::make_shared<ZeroHopsOutboundTunnel> ());
+		// we don't insert into m_Tunnels
+	}
 
 	int Tunnels::GetTransitTunnelsExpirationTimeout ()
 	{
