@@ -238,14 +238,14 @@ namespace client
         std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
        	const boost::asio::ip::tcp::endpoint& target, const std::string& webircpass):
         I2PTunnelConnection (owner, stream, socket, target), m_From (stream->GetRemoteIdentity ()), 
-        m_isWebIrced (webircpass.length() ? false : true), m_WebircPass (webircpass)
+        m_NeedsWebIrc (webircpass.length() ? true : false), m_WebircPass (webircpass)
     {
     }
 
     void I2PTunnelConnectionIRC::Write (const uint8_t * buf, size_t len)
     {
-    	if (!m_isWebIrced) {
-        	m_isWebIrced = true;
+    	if (m_NeedsWebIrc) {
+        	m_NeedsWebIrc = false;
         	m_OutPacket.str ("");
             m_OutPacket << "WEBIRC " << this->m_WebircPass << " cgiirc " << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ()) << " 127.0.0.1\n";
             I2PTunnelConnection::Write ((uint8_t *)m_OutPacket.str ().c_str (), m_OutPacket.str ().length ());

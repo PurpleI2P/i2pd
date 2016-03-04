@@ -97,7 +97,7 @@ namespace client
             std::string m_WebircPass;    
             std::shared_ptr<const i2p::data::IdentityEx> m_From;
             std::stringstream m_OutPacket, m_InPacket;
-            bool m_isWebIrced;
+            bool m_NeedsWebIrc;
             
     };
 
