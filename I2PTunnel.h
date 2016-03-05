@@ -93,12 +93,11 @@ namespace client
             void Write (const uint8_t * buf, size_t len);
 
         private:
-            
-            std::string m_WebircPass;    
+   
             std::shared_ptr<const i2p::data::IdentityEx> m_From;
             std::stringstream m_OutPacket, m_InPacket;
-            bool m_NeedsWebIrc;
-            
+			bool m_NeedsWebIrc;
+            std::string m_WebircPass; 
     };
 
 
