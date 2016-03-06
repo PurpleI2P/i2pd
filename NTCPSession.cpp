@@ -25,7 +25,6 @@ namespace transport
 		m_TerminationTimer (m_Server.GetService ()), m_IsEstablished (false), m_IsTerminated (false),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
 	{		
-		m_DHKeysPair = transports.GetNextDHKeysPair ();
 		m_Establisher = new Establisher;
 	}
 	
