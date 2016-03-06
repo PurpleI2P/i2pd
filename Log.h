@@ -45,6 +45,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		std::shared_ptr<std::ostream> GetLogStream () const { return m_LogStream; };	
 		const std::string& GetTimestamp ();
 		LogLevel GetLogLevel () { return m_MinLevel; };
+		const std::string& GetFullFilePath () const { return m_FullFilePath; };
 
 	private:
 
@@ -109,6 +110,11 @@ inline void ReopenLogFile ()
 	if (g_Log)	
 		g_Log->ReopenLogFile ();
 }
+
+inline bool IsLogToFile ()
+{
+	return g_Log ? !g_Log->GetFullFilePath ().empty () : false;
+}	
 
 template<typename TValue>
 void LogPrint (std::stringstream& s, TValue arg) 
