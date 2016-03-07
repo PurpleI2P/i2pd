@@ -1,6 +1,7 @@
 #include <string.h>
 #include <windows.h>
 #include <shellapi.h>
+#include "../Daemon.h"
 #include "Win32App.h"
 
 #define ID_ABOUT 2000
@@ -130,10 +131,8 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
     }
 
     // init
-    int argc;
-    auto argv = CommandLineToArgvW (cmdline, &argc)
-    Daemon.init(argc, argv);
-    LocalFree (argv);
+    char * argv[] = { (char *)"i2pd" };
+    Daemon.init(sizeof (argv)/sizeof (argv[0]), argv);
     // start
     Daemon.start ();
     // main loop
