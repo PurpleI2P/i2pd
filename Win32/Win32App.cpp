@@ -129,7 +129,13 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         return 1;
     }
 
+    // init
+    int argc;
+    auto argv = CommandLineToArgvW (cmdline, &argc)
+    Daemon.init(argc, argv);
+    LocalFree (argv);
     // start
+    Daemon.start ();
     // main loop
     MSG msg;
     while (GetMessage (&msg, NULL, 0, 0 ))
@@ -138,6 +144,7 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         DispatchMessage (&msg);
     }
     // atop
+    Daemon.stop ();
     // terminate
     UnregisterClass (I2PD_WIN32_CLASSNAME, hInst);
     return msg.wParam;
