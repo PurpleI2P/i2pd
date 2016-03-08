@@ -68,7 +68,14 @@ namespace i2p
 			SetConsoleOutputCP(1251);
 			setlocale(LC_ALL, "Russian");
 
-			return Daemon_Singleton::start();
+			bool ret = Daemon_Singleton::start();
+			if (ret && IsLogToFile ())
+			{	
+				// TODO: find out where this garbage to console comes from
+				SetStdHandle(STD_OUTPUT_HANDLE, INVALID_HANDLE_VALUE);
+				SetStdHandle(STD_ERROR_HANDLE, INVALID_HANDLE_VALUE);
+			}
+			return ret;
 		}
 
 		bool DaemonWin32::stop()

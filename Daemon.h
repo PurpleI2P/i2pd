@@ -20,6 +20,7 @@ namespace i2p
 			virtual bool init(int argc, char* argv[]);
 			virtual bool start();
 			virtual bool stop();
+			virtual void run () {};
 
 			bool isLogging;
 			bool isDaemon;
@@ -61,8 +62,10 @@ namespace i2p
 				return instance;
 			}
 
-			virtual bool start();
-			virtual bool stop();
+			bool start();
+			bool stop();
+;			void run ();
+
                 private:
                        std::string pidfile;
                        int pidFH;

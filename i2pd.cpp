@@ -1,4 +1,3 @@
-#include <thread>
 #include <stdlib.h>
 #include "Daemon.h"
 
@@ -6,12 +5,7 @@ int main( int argc, char* argv[] )
 {
 	Daemon.init(argc, argv);
 	if (Daemon.start())
-	{
-		while (Daemon.running)
-		{
-			std::this_thread::sleep_for (std::chrono::seconds(1));
-		}
-	}
+		Daemon.run ();
 	Daemon.stop();
 	return EXIT_SUCCESS;
 }

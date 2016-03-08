@@ -22,7 +22,8 @@ else ifeq ($(UNAME),Linux)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.linux
 else # win32 mingw
-	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp
+	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
+	DAEMON_RC += Win32/Resource.rc
 	WINDIR := True
 	include Makefile.mingw
 endif
@@ -54,10 +55,15 @@ obj/%.o : %.cpp
 	@mkdir -p obj
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
+obj/%.o : %.rc 
+	$(WINDRES) -i $< -o $@
+
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-$(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC)) $(ARLIB) $(ARLIB_CLIENT)
+DAEMON_OBJS = $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC)) 
+DAEMON_RES_OBJS = $(patsubst %.rc,obj/%.o,$(DAEMON_RC)) 
+$(I2PD): $(DAEMON_OBJS) $(DAEMON_RES_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
