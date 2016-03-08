@@ -1,11 +1,15 @@
 #include <string.h>
 #include <windows.h>
 #include <shellapi.h>
-#include "../Daemon.h"
+//#include "../Daemon.h"
+#include "resource.h"
 #include "Win32App.h"
 
 #define ID_ABOUT 2000
 #define ID_EXIT 2001
+
+#define ID_TRAY_ICON 2050
+#define WM_TRAYICON (WM_USER + 1)
 
 void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
 {
@@ -29,23 +33,36 @@ void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
     DestroyMenu(hPopup);
 }
 
-void AddTrayIcon (HWND hWnd, UINT uID, UINT uCallbackMsg, UINT uIcon)
+void AddTrayIcon (HWND hWnd)
 {
     NOTIFYICONDATA nid;
+    memset(&nid, 0, sizeof(nid));
+    nid.cbSize = sizeof(nid);
     nid.hWnd = hWnd;
-    nid.uID = uID;
+    nid.uID = ID_TRAY_ICON;
     nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-    nid.uCallbackMessage = uCallbackMsg;
-    nid.hIcon = LoadIcon (GetModuleHandle(NULL), IDI_APPLICATION);
+    nid.uCallbackMessage = WM_TRAYICON;
+    // TODO: must set correct icon
+   // nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (IDI_ICON1));
+    {
+        char    szIconFile[512];
+
+        GetSystemDirectory( szIconFile, sizeof( szIconFile ) );
+        if ( szIconFile[ strlen( szIconFile ) - 1 ] != '\\' )
+            strcat( szIconFile, "\\" );
+        strcat( szIconFile, "shell32.dll" );
+        //  Icon #23 (0-indexed) in shell32.dll is a "help" icon.
+        ExtractIconEx( szIconFile, 23, NULL, &(nid.hIcon), 1 );
+    }
     strcpy (nid.szTip, "i2pd");
     Shell_NotifyIcon(NIM_ADD, &nid );
 }
 
-void RemoveTrayIcon (HWND hWnd, UINT uID)
+void RemoveTrayIcon (HWND hWnd)
 {
     NOTIFYICONDATA nid;
     nid.hWnd = hWnd;
-    nid.uID = uID;
+    nid.uID = ID_TRAY_ICON;
     Shell_NotifyIcon (NIM_DELETE, &nid);
 }
 
@@ -55,14 +72,14 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
     {
         case WM_CREATE:
         {
-            AddTrayIcon (hWnd, 1, WM_APP, 0);
-            return 0;
+            AddTrayIcon (hWnd);
+            break;
         }
         case WM_CLOSE:
         {
-            RemoveTrayIcon (hWnd, 1);
+            RemoveTrayIcon (hWnd);
             PostQuitMessage (0);
-            return DefWindowProc (hWnd, uMsg, wParam, lParam);
+            break;
         }
         case WM_COMMAND:
         {
@@ -81,8 +98,9 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
             }
             break;
         }
-        case WM_APP:
+        case WM_TRAYICON:
         {
+            SetForegroundWindow (hWnd);
             switch (lParam)
             {
                 case WM_RBUTTONUP:
@@ -90,7 +108,7 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
                     SetForegroundWindow (hWnd);
                     ShowPopupMenu(hWnd, NULL, -1);
                     PostMessage (hWnd, WM_APP + 1, 0, 0);
-                    return 0;
+                    break;
                 }
             }
             break;
@@ -112,12 +130,12 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
     memset (&wclx, 0, sizeof(wclx));
     wclx.cbSize = sizeof(wclx);
     wclx.style = 0;
-    wclx.lpfnWndProc = &WndProc;
+    wclx.lpfnWndProc = WndProc;
     wclx.cbClsExtra = 0;
     wclx.cbWndExtra = 0;
     wclx.hInstance = hInst;
-    wclx.hIcon = LoadIcon (hInst, IDI_APPLICATION);
-    wclx.hIconSm = LoadIcon (hInst, IDI_APPLICATION);
+    wclx.hIcon = LoadIcon (hInst, MAKEINTRESOURCE (IDI_ICON1));
+    wclx.hIconSm = LoadIcon (hInst, MAKEINTRESOURCE (IDI_ICON1));
     wclx.hCursor = LoadCursor (NULL, IDC_ARROW);
     wclx.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wclx.lpszMenuName = NULL;
@@ -130,11 +148,11 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         return 1;
     }
 
-    // init
+  /*  // init
     char * argv[] = { (char *)"i2pd" };
     Daemon.init(sizeof (argv)/sizeof (argv[0]), argv);
     // start
-    Daemon.start ();
+    Daemon.start ();*/
     // main loop
     MSG msg;
     while (GetMessage (&msg, NULL, 0, 0 ))
@@ -142,8 +160,8 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         TranslateMessage (&msg);
         DispatchMessage (&msg);
     }
-    // atop
-    Daemon.stop ();
+   /* // atop
+    Daemon.stop ();*/
     // terminate
     UnregisterClass (I2PD_WIN32_CLASSNAME, hInst);
     return msg.wParam;
