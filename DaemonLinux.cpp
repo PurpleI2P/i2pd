@@ -4,6 +4,7 @@
 
 #include <signal.h>
 #include <stdlib.h>
+#include <thread>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -117,6 +118,14 @@ namespace i2p
 			i2p::fs::Remove(pidfile);
 
 			return Daemon_Singleton::stop();			
+		}
+
+		void DaemonLinux::run ()
+		{
+			while (running)
+			{
+				std::this_thread::sleep_for (std::chrono::seconds(1));
+			}
 		}
 	}
 }
