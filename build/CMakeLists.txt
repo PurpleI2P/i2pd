@@ -56,7 +56,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
 endif ()
 
 add_library(libi2pd ${LIBI2PD_SRC})
-set_target_properties(libi2pd PROPERTIES OUTPUT_NAME "i2pd")
+set_target_properties(libi2pd PROPERTIES PREFIX "")
 install(TARGETS libi2pd
   EXPORT libi2pd
   ARCHIVE DESTINATION lib
