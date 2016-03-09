@@ -19,6 +19,7 @@
 #include "UPnP.h"
 #include "NetDb.h"
 #include "util.h"
+#include "RouterInfo.h"
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
@@ -100,7 +101,8 @@ namespace transport
 
     void UPnP::Run ()
     {
-        for (auto& address : context.GetRouterInfo ().GetAddresses ())
+        std::vector<data::RouterInfo::Address> a = context.GetRouterInfo().GetAddresses();
+        for (auto& address : a)
         {
             if (!address.host.is_v6 ())
             {
