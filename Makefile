@@ -22,21 +22,18 @@ else ifeq ($(UNAME),Linux)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.linux
 else # win32 mingw
-	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp
-	WINDIR := True
+	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
 	include Makefile.mingw
 endif
 
-all: mk_build_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
+all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 
-mk_build_dir:
-	mkdir -p obj
-     ifeq ($(WINDIR),True)
-	mkdir -p obj/Win32
-     endif
+mk_obj_dir:
+	@mkdir -p obj
+	@mkdir -p obj/Win32
 
-api: mk_build_dir $(SHLIB) $(ARLIB)
-api_client: mk_build_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
+api: mk_obj_dir $(SHLIB) $(ARLIB)
+api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 
 ## NOTE: The NEEDED_CXXFLAGS are here so that CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
@@ -45,19 +42,18 @@ api_client: mk_build_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 ## -std=c++11. If you want to remove this variable please do so in a way that allows setting
 ## custom FLAGS to work at build-time.
 
-deps:
-	@mkdir -p obj
+deps: mk_obj_dir
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) -MM *.cpp > $(DEPS)
 	@sed -i -e '/\.o:/ s/^/obj\//' $(DEPS)
 
-obj/%.o : %.cpp
-	@mkdir -p obj
+obj/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(NEEDED_CXXFLAGS) $(INCFLAGS) $(CPU_FLAGS) -c -o $@ $<
 
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-$(I2PD):  $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC)) $(ARLIB) $(ARLIB_CLIENT)
+DAEMON_OBJS += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC)) 
+$(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
@@ -92,4 +88,4 @@ dist:
 .PHONY: dist
 .PHONY: api
 .PHONY: api_client
-.PHONY: mk_build_dir
+.PHONY: mk_obj_dir
