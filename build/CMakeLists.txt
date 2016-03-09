@@ -95,7 +95,7 @@ endif ()
 
 # compiler flags customization (by vendor)
 if (MSVC)
-  add_definitions( -D_WIN32_WINNT=_WIN32_WINNT_WINXP -DWIN32_LEAN_AND_MEAN -DNOMINMAX ) #-DOPENSSL_NO_SSL2 -DOPENSSL_USE_DEPRECATED
+  add_definitions( -DWIN32_LEAN_AND_MEAN -DNOMINMAX )
   # TODO Check & report to Boost dev, there should be no need for these two
   add_definitions( -DBOOST_THREAD_NO_LIB -DBOOST_CHRONO_NO_LIB )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL" )
