@@ -42,18 +42,7 @@ void AddTrayIcon (HWND hWnd)
     nid.uID = ID_TRAY_ICON;
     nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     nid.uCallbackMessage = WM_TRAYICON;
-    // TODO: must set correct icon
-   // nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (IDI_ICON1));
-    {
-        char    szIconFile[512];
-
-        GetSystemDirectory( szIconFile, sizeof( szIconFile ) );
-        if ( szIconFile[ strlen( szIconFile ) - 1 ] != '\\' )
-            strcat( szIconFile, "\\" );
-        strcat( szIconFile, "shell32.dll" );
-        //  Icon #23 (0-indexed) in shell32.dll is a "help" icon.
-        ExtractIconEx( szIconFile, 23, NULL, &(nid.hIcon), 1 );
-    }
+    nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (IDI_ICON1));
     strcpy (nid.szTip, "i2pd");
     Shell_NotifyIcon(NIM_ADD, &nid );
 }
@@ -134,8 +123,8 @@ static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
     wclx.cbClsExtra = 0;
     wclx.cbWndExtra = 0;
     wclx.hInstance = hInst;
-    wclx.hIcon = LoadIcon (hInst, MAKEINTRESOURCE (IDI_ICON1));
-    wclx.hIconSm = LoadIcon (hInst, MAKEINTRESOURCE (IDI_ICON1));
+    wclx.hIcon = LoadIcon (hInst, IDI_APPLICATION);
+    wclx.hIconSm = LoadIcon (hInst, IDI_APPLICATION);
     wclx.hCursor = LoadCursor (NULL, IDC_ARROW);
     wclx.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wclx.lpszMenuName = NULL;
