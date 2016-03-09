@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <boost/filesystem.hpp>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <shlobj.h>
 #endif
 
