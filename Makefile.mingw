@@ -27,11 +27,12 @@ LDLIBS = \
 DAEMON_RC += Win32/Resource.rc
 DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 
-obj/%.o : %.rc
-	$(WINDRES) -i $< -o $@
-
 ifeq ($(USE_AESNI),1)
 	CPU_FLAGS = -maes -DAESNI
 else
 	CPU_FLAGS = -msse
 endif
+
+obj/%.o : %.rc
+	$(WINDRES) -i $< -o $@
+
