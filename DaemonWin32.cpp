@@ -28,6 +28,8 @@ namespace i2p
 			setlocale(LC_ALL, "Russian");
             if (!i2p::win32::StartWin32App ()) return false;
 
+            // override log
+            i2p::config::SetOption("log", std::string ("file"));
 			bool ret = Daemon_Singleton::start();
 			if (ret && IsLogToFile ())
 			{
