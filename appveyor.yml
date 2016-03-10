@@ -142,9 +142,9 @@ install:
 - if not defined msvc (
     C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -Sy bash pacman pacman-mirrors msys2-runtime msys2-runtime-devel"
     && if "%x64%" == "1" (
-      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc"
+      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-openssl mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc"
     ) else (
-      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-boost mingw-w64-i686-miniupnpc"
+      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-openssl mingw-w64-i686-boost mingw-w64-i686-miniupnpc"
     )
   )
 cache:
@@ -167,7 +167,7 @@ build_script:
 
     echo "bitness=%bitness%; static=%static%; dll=%dll%; type=%type%; generator=%generator%; variant=%variant%; cmake=%cmake%; cmake_extra=%cmake_extra%"
 - if not defined msvc (
-    C:\msys64\usr\bin\bash -lc "export PATH=/mingw%bitness%/bin:/usr/bin && cd /c/projects/build && cmake /c/projects/i2pd/build -G 'Unix Makefiles' -DWITH_AESNI=ON -DWITH_UPNP=ON %cmake% %cmake_extra% -DWITH_STATIC=%static% -DWITH_HARDENING=ON -DCMAKE_INSTALL_PREFIX:PATH=/c/projects/instdir -DCMAKE_FIND_ROOT_PATH=/mingw%bitness% && make install"
+    C:\msys64\usr\bin\bash -lc "export PATH=/mingw%bitness%/bin:/usr/bin && cd /c/projects/build && CC=/mingw%bitness%/bin/gcc.exe CXX=/mingw%bitness%/bin/g++.exe /usr/bin/cmake /c/projects/i2pd/build -G 'Unix Makefiles' -DWITH_AESNI=ON -DWITH_UPNP=ON %cmake% %cmake_extra% -DWITH_STATIC=%static% -DWITH_HARDENING=ON -DCMAKE_INSTALL_PREFIX:PATH=/c/projects/instdir -DCMAKE_FIND_ROOT_PATH=/mingw%bitness% && make install"
     && 7z a -tzip -mx9 -mmt C:\projects\i2pd\i2pd-mingw-win%bitness%-%type%.zip C:\projects\instdir\* C:\msys64\mingw%bitness%\bin\zlib1.dll C:\msys64\mingw%bitness%\bin\*eay32.dll
   )
 - rem We are fine with multiple generated configurations in MS solution. Will use later

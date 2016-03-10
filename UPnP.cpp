@@ -19,27 +19,19 @@
 #include "UPnP.h"
 #include "NetDb.h"
 #include "util.h"
+#include "RouterInfo.h"
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 
 // These are per-process and are safe to reuse for all threads
-#ifndef UPNPDISCOVER_SUCCESS
-/* miniupnpc 1.5 */
-UPNPDev* (*upnpDiscoverFunc) (int, const char *, const char *, int);
-int (*UPNP_AddPortMappingFunc) (const char *, const char *, const char *, const char *,
-                                             const char *, const char *, const char *, const char *);
-#else
-/* miniupnpc 1.6 */
-UPNPDev* (*upnpDiscoverFunc) (int, const char *, const char *, int, int, int *);
-int (*UPNP_AddPortMappingFunc) (const char *, const char *, const char *, const char *,
-                                             const char *, const char *, const char *, const char *, const char *);
-#endif
-int (*UPNP_GetValidIGDFunc) (struct UPNPDev *, struct UPNPUrls *, struct IGDdatas *, char *, int);
-int (*UPNP_GetExternalIPAddressFunc) (const char *, const char *, char *);
-int (*UPNP_DeletePortMappingFunc) (const char *, const char *, const char *, const char *, const char *);
-void (*freeUPNPDevlistFunc) (struct UPNPDev *);
-void (*FreeUPNPUrlsFunc) (struct UPNPUrls *);
+decltype(upnpDiscover) *upnpDiscoverFunc;
+decltype(UPNP_AddPortMapping) *UPNP_AddPortMappingFunc;
+decltype(UPNP_GetValidIGD) *UPNP_GetValidIGDFunc;
+decltype(UPNP_GetExternalIPAddress) *UPNP_GetExternalIPAddressFunc;
+decltype(UPNP_DeletePortMapping) *UPNP_DeletePortMappingFunc;
+decltype(freeUPNPDevlist) *freeUPNPDevlistFunc;
+decltype(FreeUPNPUrls) *FreeUPNPUrlsFunc;
 
 // Nice approach http://stackoverflow.com/a/21517513/673826
 template<class M, typename F>
@@ -109,7 +101,8 @@ namespace transport
 
     void UPnP::Run ()
     {
-        for (auto& address : context.GetRouterInfo ().GetAddresses ())
+        std::vector<data::RouterInfo::Address> a = context.GetRouterInfo().GetAddresses();
+        for (auto& address : a)
         {
             if (!address.host.is_v6 ())
             {
@@ -134,7 +127,11 @@ namespace transport
 #else
         /* miniupnpc 1.6 */
         int nerror = 0;
-        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
+#if MINIUPNPC_API_VERSION >= 15
+        m_Devlist = upnpDiscoverFunc(2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 0, &nerror);
+#else
+        m_Devlist = upnpDiscoverFunc(2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
+#endif
 #endif
 
         int r;

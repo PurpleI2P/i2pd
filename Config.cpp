@@ -125,6 +125,7 @@ namespace config {
       ("bandwidth", value<char>()->default_value('-'), "Bandwidth limiting: L - 32kbps, O - 256Kbps, P - unlimited")
 #ifdef _WIN32
       ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
+      ("insomnia", value<bool>()->zero_tokens()->default_value(false), "Prevent system from sleeping")
 #endif
       ;
 
