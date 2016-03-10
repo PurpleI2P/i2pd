@@ -1,10 +1,10 @@
 CXX = g++
 WINDRES = windres
-CXXFLAGS = -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
+CXXFLAGS = -Os -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
 BOOST_SUFFIX = -mt
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
-LDFLAGS = -mwindows -Wl,-rpath,/usr/local/lib \
+LDFLAGS = -mwindows -s -Wl,-rpath,/usr/local/lib \
   -L/usr/local/lib \
   -L/c/dev/openssl \
   -L/c/dev/boost/lib
