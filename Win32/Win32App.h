@@ -3,4 +3,13 @@
 
 #define I2PD_WIN32_CLASSNAME "i2pd main window"
 
+namespace i2p
+{
+namespace win32
+{
+    bool StartWin32App ();
+    void StopWin32App ();
+    int RunWin32App ();
+}
+}
 #endif // WIN32APP_H__

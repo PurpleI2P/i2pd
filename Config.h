@@ -30,7 +30,7 @@ namespace config {
   /**
    * @brief  Parse cmdline parameters, and show help if requested
    * @param  argc  Cmdline arguments count, should be passed from main().
-   * @param  argv  Cmdline parameters array, should be passed from main() 
+   * @param  argv  Cmdline parameters array, should be passed from main()
    *
    * If --help is given in parameters, shows it's list with description
    * terminates the program with exitcode 0.
@@ -90,7 +90,7 @@ namespace config {
   bool SetOption(const char *name, const T& value) {
     if (!m_Options.count(name))
       return false;
-    m_Options[name] = value;
+    m_Options.at(name).value() = value;
     notify(m_Options);
     return true;
   }

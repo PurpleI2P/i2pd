@@ -68,10 +68,10 @@ namespace fs {
   }
 
   bool Init() {
-    if (boost::filesystem::exists(dataDir))
+    if (!boost::filesystem::exists(dataDir))
       boost::filesystem::create_directory(dataDir);
     std::string destinations = DataDirPath("destinations");
-    if (boost::filesystem::exists(destinations))
+    if (!boost::filesystem::exists(destinations))
       boost::filesystem::create_directory(destinations);
 
     return true;

@@ -22,7 +22,7 @@ else ifeq ($(UNAME),Linux)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.linux
 else # win32 mingw
-	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
+	DAEMON_SRC += DaemonWin32.cpp Win32/Win32App.cpp
 	include Makefile.mingw
 endif
 
@@ -52,7 +52,7 @@ obj/%.o: %.cpp
 # '-' is 'ignore if missing' on first run
 -include $(DEPS)
 
-DAEMON_OBJS += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC)) 
+DAEMON_OBJS += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
 	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS)
 

@@ -24,14 +24,14 @@ namespace i2p
 
 			bool isLogging;
 			bool isDaemon;
-			
+
 			bool running;
 
 		protected:
 			Daemon_Singleton();
 			virtual ~Daemon_Singleton();
 
-			bool IsService () const;				
+			bool IsService () const;
 
 			// d-pointer for httpServer, httpProxy, etc.
 			class Daemon_Singleton_Private;
@@ -48,9 +48,10 @@ namespace i2p
 				return instance;
 			}
 
-			virtual bool init(int argc, char* argv[]);
-			virtual bool start();
-			virtual bool stop();
+			bool init(int argc, char* argv[]);
+			bool start();
+			bool stop();
+			void run ();
 		};
 #else
 		class DaemonLinux : public Daemon_Singleton
