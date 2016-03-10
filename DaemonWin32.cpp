@@ -76,6 +76,9 @@ namespace i2p
 				SetStdHandle(STD_OUTPUT_HANDLE, INVALID_HANDLE_VALUE);
 				SetStdHandle(STD_ERROR_HANDLE, INVALID_HANDLE_VALUE);
 			}
+			bool insomnia; i2p::config::GetOption("insomnia", insomnia);
+			if (insomnia)
+				SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
 			return ret;
 		}
 
