@@ -340,15 +340,18 @@ namespace client
 	void AddressBook::DownloadComplete (bool success)
 	{
 		m_IsDownloading = false;
-		if (success && m_DefaultSubscription)
+		int nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
+		if (success)
 		{	
-			m_DefaultSubscription.reset (nullptr);
-			m_IsLoaded = true;
+			if (m_DefaultSubscription) m_DefaultSubscription.reset (nullptr);
+			if (m_IsLoaded)
+				nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT; 
+			else
+				m_IsLoaded = true;
 		}	
 		if (m_SubscriptionsUpdateTimer)
 		{
-			m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(
-				success ? CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT : CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT));
+			m_SubscriptionsUpdateTimer->expires_from_now (boost::posix_time::minutes(nextUpdateTimeout));
 			m_SubscriptionsUpdateTimer->async_wait (std::bind (&AddressBook::HandleSubscriptionsUpdateTimer,
 				this, std::placeholders::_1));
 		}
