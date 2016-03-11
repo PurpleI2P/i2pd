@@ -56,7 +56,7 @@ namespace client
 		f.seekg (0,std::ios::end);
 		size_t len = f.tellg ();
 		if (len < i2p::data::DEFAULT_IDENTITY_SIZE) {
-			LogPrint (eLogError, "Addresbook: File ", filename, " is too short: ", len);
+			LogPrint (eLogError, "Addressbook: File ", filename, " is too short: ", len);
 			return nullptr;
 		}
 		f.seekg(0, std::ios::beg);
@@ -72,7 +72,7 @@ namespace client
 		std::string path = storage.Path( address->GetIdentHash().ToBase32() );
 		std::ofstream f (path, std::ofstream::binary | std::ofstream::out);
 		if (!f.is_open ())	{
-			LogPrint (eLogError, "Addresbook: can't open file ", path);
+			LogPrint (eLogError, "Addressbook: can't open file ", path);
 			return;
 		}
 		size_t len = address->GetFullLen ();
@@ -174,17 +174,17 @@ namespace client
 		}	
 		if (m_IsDownloading)
 		{
-			LogPrint (eLogInfo, "Addresbook: subscriptions is downloading, abort");
+			LogPrint (eLogInfo, "Addressbook: subscriptions is downloading, abort");
 			for (int i = 0; i < 30; i++)
 			{
 				if (!m_IsDownloading)
 				{
-					LogPrint (eLogInfo, "Addresbook: subscriptions download complete");
+					LogPrint (eLogInfo, "Addressbook: subscriptions download complete");
 					break;
 				}	
 				std::this_thread::sleep_for (std::chrono::seconds (1)); // wait for 1 seconds
 			}	
-			LogPrint (eLogError, "Addresbook: subscription download timeout");
+			LogPrint (eLogError, "Addressbook: subscription download timeout");
 			m_IsDownloading = false;
 		}	
 		if (m_Storage)
@@ -303,10 +303,10 @@ namespace client
 					numAddresses++;
 				}	
 				else
-					LogPrint (eLogError, "Addresbook: malformed address ", addr, " for ", name);
+					LogPrint (eLogError, "Addressbook: malformed address ", addr, " for ", name);
 			}		
 		}
-		LogPrint (eLogInfo, "Addresbook: ", numAddresses, " addresses processed");
+		LogPrint (eLogInfo, "Addressbook: ", numAddresses, " addresses processed");
 		if (numAddresses > 0)
 		{	
 			m_IsLoaded = true;
@@ -331,7 +331,7 @@ namespace client
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
 			}
 			else
-				LogPrint (eLogWarning, "Addresbook: subscriptions.txt not found in datadir");
+				LogPrint (eLogWarning, "Addressbook: subscriptions.txt not found in datadir");
 		}
 		else
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
@@ -368,7 +368,7 @@ namespace client
 				this, std::placeholders::_1));
 		}
 		else
-			LogPrint (eLogError, "Addresbook: can't start subscriptions: missing shared local destination");
+			LogPrint (eLogError, "Addressbook: can't start subscriptions: missing shared local destination");
 	}
 
 	void AddressBook::StopSubscriptions ()
@@ -429,7 +429,7 @@ namespace client
 	void AddressBookSubscription::Request ()
 	{
 		// must be run in separate thread	
-		LogPrint (eLogInfo, "Addresbook: Downloading hosts database from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 		bool success = false;	
 		i2p::util::http::url u (m_Link);
 		i2p::data::IdentHash ident;
@@ -488,7 +488,7 @@ namespace client
 						30); // wait for 30 seconds
 					std::unique_lock<std::mutex> l(newDataReceivedMutex);
 					if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
-						LogPrint (eLogError, "Addresbook: subscriptions request timeout expired");
+						LogPrint (eLogError, "Addressbook: subscriptions request timeout expired");
 				}
 				// process remaining buffer
 				while (size_t len = stream->ReadSome (buf, 4096))
