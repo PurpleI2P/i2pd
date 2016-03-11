@@ -62,6 +62,7 @@ namespace util
 
 			void HandleRequest (const std::string& address);
 			void HandleCommand (const std::string& command, std::stringstream& s);
+			void ShowJumpServices (const std::string& address, std::stringstream& s);
 			void ShowTransports (std::stringstream& s);
 			void ShowTunnels (std::stringstream& s);
 			void ShowTransitTunnels (std::stringstream& s);
