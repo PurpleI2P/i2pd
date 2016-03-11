@@ -203,6 +203,9 @@ namespace util
 	const char HTTP_COMMAND_SAM_SESSION[] = "sam_session";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_COMMAND_I2P_TUNNELS[] = "i2p_tunnels";
+	const char HTTP_COMMAND_JUMPSERVICES[] = "jumpservices=";
+	const char HTTP_PARAM_ADDRESS[] = "address";
+
 	
 	namespace misc_strings
 	{
@@ -393,6 +396,7 @@ namespace util
 		else	
 			s << "<a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n<br>\r\n";
 		s << "<a href=/?" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n<br>\r\n";
+		s << "<a href=/?" << HTTP_COMMAND_JUMPSERVICES << "&address=example.i2p>Jump services</a><br>\r\n<br>\r\n";
 		s << "</div><div class=right>";
 		if (address.length () > 1)
 			HandleCommand (address.substr (2), s);
@@ -464,7 +468,13 @@ namespace util
 			ShowTransports (s);
 		else if (cmd == HTTP_COMMAND_TUNNELS)
 			ShowTunnels (s);
-		else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
+		else if (cmd == HTTP_COMMAND_JUMPSERVICES)
+        {
+			std::map<std::string, std::string> params;
+			ExtractParams (command.substr (paramsPos), params);
+			auto address = params[HTTP_PARAM_ADDRESS];
+			ShowJumpServices (address, s);
+		} else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
 		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
 			StartAcceptingTunnels (s);
@@ -493,6 +503,16 @@ namespace util
 		else if (cmd == HTTP_COMMAND_I2P_TUNNELS)
 			ShowI2PTunnels (s);
 	}	
+
+	void HTTPConnection::ShowJumpServices (const std::string& address, std::stringstream& s)
+	{
+		s << "<form type=\"get\" action=\"/\">";
+		s << "<input type=\"hidden\" name=\"jumpservices\">";
+		s << "<input type=\"text\" value=\"" << address << "\" name=\"address\"> </form><br>\r\n";
+		s << "<b>Jump services for " << address << "</b>";
+		s << "<ul><li><a href=\"http://inr.i2p/search/?q=" << address << "\">Slow jump service</a> <br>\r\n";
+		s << "<li><a href=\"http://stats.i2p/cgi-bin/jump.cgi?a=" << address << "\">zzz jump service</a></ul>";
+    }
 
 	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
 	{
