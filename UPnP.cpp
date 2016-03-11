@@ -121,17 +121,11 @@ namespace transport
         
     void UPnP::Discover ()
     {
-#ifndef UPNPDISCOVER_SUCCESS
-        /* miniupnpc 1.5 */
-        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0);
-#else
-        /* miniupnpc 1.6 */
         int nerror = 0;
-#if MINIUPNPC_API_VERSION >= 15
-        m_Devlist = upnpDiscoverFunc(2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 0, &nerror);
+#if MINIUPNPC_API_VERSION >= 14
+        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 2, &nerror);
 #else
-        m_Devlist = upnpDiscoverFunc(2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
-#endif
+        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
 #endif
 
         int r;
@@ -177,13 +171,7 @@ namespace transport
         std::string strDesc = "I2Pd";
         try {
             for (;;) {
-#ifndef UPNPDISCOVER_SUCCESS
-                /* miniupnpc 1.5 */
-                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
-#else
-                /* miniupnpc 1.6 */
                 r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
-#endif
                 if (r!=UPNPCOMMAND_SUCCESS)
                 {
                     LogPrint (eLogError, "UPnP: AddPortMapping (", strPort.c_str () ,", ", strPort.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);
