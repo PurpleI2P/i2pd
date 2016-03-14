@@ -108,6 +108,8 @@ namespace fs {
    * @return true if file exists, false otherwise
    */
   bool Exists(const std::string & path);
+ 
+  bool CreateDirectory (const std::string& path);	
 
   template<typename T>
   void _ExpandPath(std::stringstream & path, T c) {

@@ -24,7 +24,7 @@ namespace client
 	{
 		private:
 			i2p::fs::HashedStorage storage;
-			std::string indexPath;
+			std::string etagsPath, indexPath;
 
 		public:
 			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") {};
@@ -35,11 +35,18 @@ namespace client
 			bool Init ();
 			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
 			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
+
+			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
 	};
 
 	bool AddressBookFilesystemStorage::Init()
-	{
+	{	
 		storage.SetPlace(i2p::fs::GetDataDir());
+		// init ETags
+		etagsPath = storage.GetRoot() + i2p::fs::dirSep + "etags";
+		if (!i2p::fs::Exists (etagsPath))
+			i2p::fs::CreateDirectory (etagsPath);
+		// init storage
 		indexPath = storage.GetRoot() + i2p::fs::dirSep + "addresses.csv";
 		return storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
 	}
@@ -145,6 +152,14 @@ namespace client
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		return num;	
 	}	
+
+	void AddressBookFilesystemStorage::SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
+	{
+		std::string fname = etagsPath + i2p::fs::dirSep + subscription.ToBase32 () + ".txt";
+		std::ofstream f (fname, std::ofstream::out | std::ofstream::trunc);
+		if (f)
+			f << etag << lastModified;
+	}
 
 //---------------------------------------------------------------------
 	AddressBook::AddressBook (): m_Storage(new AddressBookFilesystemStorage), m_IsLoaded (false), m_IsDownloading (false), 
@@ -337,7 +352,7 @@ namespace client
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
 	}
 
-	void AddressBook::DownloadComplete (bool success)
+	void AddressBook::DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
 	{
 		m_IsDownloading = false;
 		int nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
@@ -561,7 +576,7 @@ namespace client
 		if (!success)
 			LogPrint (eLogError, "Addressbook: download hosts.txt from ", m_Link, " failed");
 
-		m_Book.DownloadComplete (success);
+		m_Book.DownloadComplete (success, ident, m_Etag, m_LastModified);
 	}
 
 	bool AddressBookSubscription::ProcessResponse (std::stringstream& s, bool isGzip)
