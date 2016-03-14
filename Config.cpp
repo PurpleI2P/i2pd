@@ -126,6 +126,7 @@ namespace config {
 #ifdef _WIN32
       ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
       ("insomnia", value<bool>()->zero_tokens()->default_value(false), "Prevent system from sleeping")
+      ("close", value<std::string>()->default_value("ask"), "On close action") // minimize, exit, ask TODO: add custom validator or something
 #endif
       ;
 
