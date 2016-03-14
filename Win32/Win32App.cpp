@@ -1,12 +1,14 @@
 #include <string.h>
 #include <windows.h>
 #include <shellapi.h>
-//#include "../Daemon.h"
+#include "../Config.h"
 #include "resource.h"
 #include "Win32App.h"
 
 #define ID_ABOUT 2000
 #define ID_EXIT 2001
+#define ID_CONSOLE 2002
+#define ID_APP 2003
 
 #define ID_TRAY_ICON 2050
 #define WM_TRAYICON (WM_USER + 1)
@@ -18,10 +20,12 @@ namespace win32
     static void ShowPopupMenu (HWND hWnd, POINT *curpos, int wDefaultItem)
     {
         HMENU hPopup = CreatePopupMenu();
-        InsertMenu (hPopup, 0, MF_BYPOSITION | MF_STRING, ID_ABOUT, "About...");
-        InsertMenu (hPopup, 1, MF_BYPOSITION | MF_STRING, ID_EXIT , "Exit");
-        SetMenuDefaultItem (hPopup, ID_ABOUT, FALSE);
-        SetFocus (hWnd);
+        InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_CONSOLE, "Open &console");
+        InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_APP, "Show app");
+        InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ABOUT, "&About...");
+        InsertMenu (hPopup, -1, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+        InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_EXIT, "E&xit");
+        SetMenuDefaultItem (hPopup, ID_CONSOLE, FALSE);
         SendMessage (hWnd, WM_INITMENUPOPUP, (WPARAM)hPopup, 0);
 
         POINT p;
@@ -44,10 +48,11 @@ namespace win32
         nid.cbSize = sizeof(nid);
         nid.hWnd = hWnd;
         nid.uID = ID_TRAY_ICON;
-        nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+        nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP | NIF_INFO;
         nid.uCallbackMessage = WM_TRAYICON;
-        nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (IDI_ICON1));
+        nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (MAINICON));
         strcpy (nid.szTip, "i2pd");
+        strcpy (nid.szInfo, "i2pd is running");
         Shell_NotifyIcon(NIM_ADD, &nid );
     }
 
@@ -88,14 +93,39 @@ namespace win32
                         PostMessage (hWnd, WM_CLOSE, 0, 0);
                         return 0;
                     }
+                    case ID_CONSOLE:
+                    {
+                        char buf[30];
+                        std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
+                        uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
+                        std::snprintf(buf, 30, "http://%s:%d", httpAddr.c_str(), httpPort);
+                        ShellExecute(NULL, "open", buf, NULL, NULL, SW_SHOWNORMAL);
+                        return 0;
+                    }
+                    case ID_APP:
+                    {
+                        ShowWindow(hWnd, SW_SHOW);
+                        return 0;
+                    }
                 }
                 break;
             }
+            case WM_SYSCOMMAND:
+            {
+                switch (wParam)
+                {
+                    case SC_MINIMIZE:
+                    {
+                        ShowWindow(hWnd, SW_HIDE);
+                        return 0;
+                    }
+                }
+            }
             case WM_TRAYICON:
             {
-                SetForegroundWindow (hWnd);
                 switch (lParam)
                 {
+                    case WM_LBUTTONUP:
                     case WM_RBUTTONUP:
                     {
                         SetForegroundWindow (hWnd);
@@ -127,15 +157,14 @@ namespace win32
         wclx.cbClsExtra = 0;
         wclx.cbWndExtra = 0;
         wclx.hInstance = hInst;
-        wclx.hIcon = LoadIcon (hInst, IDI_APPLICATION);
-        wclx.hIconSm = LoadIcon (hInst, IDI_APPLICATION);
+        wclx.hIcon = LoadIcon (hInst, MAKEINTRESOURCE(MAINICON));
         wclx.hCursor = LoadCursor (NULL, IDC_ARROW);
         wclx.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
         wclx.lpszMenuName = NULL;
         wclx.lpszClassName = I2PD_WIN32_CLASSNAME;
         RegisterClassEx (&wclx);
         // create new window
-        if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 250, 150, NULL, NULL, hInst, NULL))
+        if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPEDWINDOW, 100, 100, 250, 150, NULL, NULL, hInst, NULL))
         {
             MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
             return false;
