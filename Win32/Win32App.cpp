@@ -4,6 +4,11 @@
 #include "../Config.h"
 #include "resource.h"
 #include "Win32App.h"
+#include <stdio.h>
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define snprintf _snprintf
+#endif
 
 #define ID_ABOUT 2000
 #define ID_EXIT 2001
@@ -98,7 +103,7 @@ namespace win32
                         char buf[30];
                         std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
                         uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
-                        std::snprintf(buf, 30, "http://%s:%d", httpAddr.c_str(), httpPort);
+                        snprintf(buf, 30, "http://%s:%d", httpAddr.c_str(), httpPort);
                         ShellExecute(NULL, "open", buf, NULL, NULL, SW_SHOWNORMAL);
                         return 0;
                     }
