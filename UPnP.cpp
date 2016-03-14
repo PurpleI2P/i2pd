@@ -19,27 +19,19 @@
 #include "UPnP.h"
 #include "NetDb.h"
 #include "util.h"
+#include "RouterInfo.h"
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
 
 // These are per-process and are safe to reuse for all threads
-#ifndef UPNPDISCOVER_SUCCESS
-/* miniupnpc 1.5 */
-UPNPDev* (*upnpDiscoverFunc) (int, const char *, const char *, int);
-int (*UPNP_AddPortMappingFunc) (const char *, const char *, const char *, const char *,
-                                             const char *, const char *, const char *, const char *);
-#else
-/* miniupnpc 1.6 */
-UPNPDev* (*upnpDiscoverFunc) (int, const char *, const char *, int, int, int *);
-int (*UPNP_AddPortMappingFunc) (const char *, const char *, const char *, const char *,
-                                             const char *, const char *, const char *, const char *, const char *);
-#endif
-int (*UPNP_GetValidIGDFunc) (struct UPNPDev *, struct UPNPUrls *, struct IGDdatas *, char *, int);
-int (*UPNP_GetExternalIPAddressFunc) (const char *, const char *, char *);
-int (*UPNP_DeletePortMappingFunc) (const char *, const char *, const char *, const char *, const char *);
-void (*freeUPNPDevlistFunc) (struct UPNPDev *);
-void (*FreeUPNPUrlsFunc) (struct UPNPUrls *);
+decltype(upnpDiscover) *upnpDiscoverFunc;
+decltype(UPNP_AddPortMapping) *UPNP_AddPortMappingFunc;
+decltype(UPNP_GetValidIGD) *UPNP_GetValidIGDFunc;
+decltype(UPNP_GetExternalIPAddress) *UPNP_GetExternalIPAddressFunc;
+decltype(UPNP_DeletePortMapping) *UPNP_DeletePortMappingFunc;
+decltype(freeUPNPDevlist) *freeUPNPDevlistFunc;
+decltype(FreeUPNPUrls) *FreeUPNPUrlsFunc;
 
 // Nice approach http://stackoverflow.com/a/21517513/673826
 template<class M, typename F>
@@ -109,7 +101,8 @@ namespace transport
 
     void UPnP::Run ()
     {
-        for (auto& address : context.GetRouterInfo ().GetAddresses ())
+        std::vector<data::RouterInfo::Address> a = context.GetRouterInfo().GetAddresses();
+        for (auto& address : a)
         {
             if (!address.host.is_v6 ())
             {
@@ -128,12 +121,10 @@ namespace transport
         
     void UPnP::Discover ()
     {
-#ifndef UPNPDISCOVER_SUCCESS
-        /* miniupnpc 1.5 */
-        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0);
-#else
-        /* miniupnpc 1.6 */
         int nerror = 0;
+#if MINIUPNPC_API_VERSION >= 14
+        m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 2, &nerror);
+#else
         m_Devlist = upnpDiscoverFunc (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
 #endif
 
@@ -180,13 +171,7 @@ namespace transport
         std::string strDesc = "I2Pd";
         try {
             for (;;) {
-#ifndef UPNPDISCOVER_SUCCESS
-                /* miniupnpc 1.5 */
-                r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
-#else
-                /* miniupnpc 1.6 */
                 r = UPNP_AddPortMappingFunc (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
-#endif
                 if (r!=UPNPCOMMAND_SUCCESS)
                 {
                     LogPrint (eLogError, "UPnP: AddPortMapping (", strPort.c_str () ,", ", strPort.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);

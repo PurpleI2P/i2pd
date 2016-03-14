@@ -244,21 +244,20 @@ namespace data
 	size_t IdentityEx::FromBase64(const std::string& s)
 	{
 		const size_t slen = s.length();
-		uint8_t buf[slen]; // binary data can't exceed base64
-		const size_t len = Base64ToByteStream (s.c_str(), slen, buf, slen);
-		return FromBuffer (buf, len);
+		std::vector<uint8_t> buf(slen); // binary data can't exceed base64
+		const size_t len = Base64ToByteStream (s.c_str(), slen, buf.data(), slen);
+		return FromBuffer (buf.data(), len);
 	}	
 	
 	std::string IdentityEx::ToBase64 () const
 	{
 		const size_t bufLen = GetFullLen();
 		const size_t strLen = Base64EncodingBufferSize(bufLen);
-		uint8_t buf[bufLen];
-		char str[strLen];
-		size_t l = ToBuffer (buf, bufLen);
-		size_t l1 = i2p::data::ByteStreamToBase64 (buf, l, str, strLen);
-		str[l1] = 0;
-		return std::string (str);
+		std::vector<uint8_t> buf(bufLen);
+		std::vector<char> str(strLen);
+		size_t l = ToBuffer (buf.data(), bufLen);
+		size_t l1 = i2p::data::ByteStreamToBase64 (buf.data(), l, str.data(), strLen);
+		return std::string (str.data(), l1);
 	}
 	
 	size_t IdentityEx::GetSigningPublicKeyLen () const

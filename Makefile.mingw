@@ -1,10 +1,11 @@
+USE_WIN32_APP=yes
 CXX = g++
 WINDRES = windres
-CXXFLAGS = -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
+CXXFLAGS = -Os -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
 BOOST_SUFFIX = -mt
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
-LDFLAGS = -mwindows -Wl,-rpath,/usr/local/lib \
+LDFLAGS = -Wl,-rpath,/usr/local/lib \
   -L/usr/local/lib \
   -L/c/dev/openssl \
   -L/c/dev/boost/lib
@@ -24,8 +25,13 @@ LDLIBS = \
   -static-libgcc -static-libstdc++ \
   -Wl,-Bstatic -lstdc++ \
   -Wl,-Bstatic -lpthread
-DAEMON_RC += Win32/Resource.rc
-DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
+
+ifeq ($(USE_WIN32_APP), yes)
+	CXXFLAGS += -DWIN32_APP
+	LDFLAGS += -mwindows -s 
+	DAEMON_RC += Win32/Resource.rc
+	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
+endif
 
 ifeq ($(USE_AESNI),1)
 	CPU_FLAGS = -maes -DAESNI

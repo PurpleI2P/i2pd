@@ -12,6 +12,7 @@
 #include "ClientContext.h"
 #include "I2PEndian.h"
 #include "I2PTunnel.h"
+#include "Config.h"
 
 namespace i2p
 {
@@ -36,6 +37,7 @@ namespace proxy
 			void Terminate();
 			void AsyncSockRead();
 			void HTTPRequestFailed(/*std::string message*/);
+			void RedirectToJumpService();
 			void ExtractRequest();
 			bool ValidateHTTPRequest();
 			void HandleJumpServices();
@@ -92,6 +94,17 @@ namespace proxy
 	{
 		static std::string response = "HTTP/1.0 500 Internal Server Error\r\nContent-type: text/html\r\nContent-length: 0\r\n";
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response,response.size()),
+					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
+	}
+
+	void HTTPProxyHandler::RedirectToJumpService(/*HTTPProxyHandler::errTypes error*/)
+	{
+		std::stringstream response;
+		std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
+		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
+
+		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?jumpservices=&address=" << m_address << "\r\n\r\n";
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response.str (),response.str ().length ()),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -168,6 +181,13 @@ namespace proxy
 		ExtractRequest(); //TODO: parse earlier
 		if (!ValidateHTTPRequest()) return false;
 		HandleJumpServices();
+
+		i2p::data::IdentHash identHash;
+		if (!i2p::client::context.GetAddressBook ().GetIdentHash (m_address, identHash)){
+			RedirectToJumpService();
+			return false;
+		}
+
 		m_request = m_method;
 		m_request.push_back(' ');
 		m_request += m_path;

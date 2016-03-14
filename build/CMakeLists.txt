@@ -11,6 +11,7 @@ option(WITH_BINARY    "Build binary" ON)
 option(WITH_STATIC    "Static build" OFF)
 option(WITH_UPNP "Include support for UPnP client" OFF)
 option(WITH_PCH "Use precompiled header" OFF)
+option(WITH_GUI "Include GUI (currently MS Windows only)" ON)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -56,7 +57,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
 endif ()
 
 add_library(libi2pd ${LIBI2PD_SRC})
-set_target_properties(libi2pd PROPERTIES OUTPUT_NAME "i2pd")
+set_target_properties(libi2pd PROPERTIES PREFIX "")
 install(TARGETS libi2pd
   EXPORT libi2pd
   ARCHIVE DESTINATION lib
@@ -95,7 +96,7 @@ endif ()
 
 # compiler flags customization (by vendor)
 if (MSVC)
-  add_definitions( -D_WIN32_WINNT=_WIN32_WINNT_WINXP -DWIN32_LEAN_AND_MEAN -DNOMINMAX ) #-DOPENSSL_NO_SSL2 -DOPENSSL_USE_DEPRECATED
+  add_definitions( -DWIN32_LEAN_AND_MEAN -DNOMINMAX )
   # TODO Check & report to Boost dev, there should be no need for these two
   add_definitions( -DBOOST_THREAD_NO_LIB -DBOOST_CHRONO_NO_LIB )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL" )
@@ -157,6 +158,11 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonWin32.cpp")
+  if (WITH_GUI)
+    list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32App.cpp")
+    set_source_files_properties("${CMAKE_SOURCE_DIR}/DaemonWin32.cpp"
+      PROPERTIES COMPILE_DEFINITIONS WIN32_APP)
+  endif ()
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32Service.cpp")
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Resource.rc")
 endif ()
@@ -309,11 +315,14 @@ include(GNUInstallDirs)
 
 if (WITH_BINARY)
   add_executable ( "${PROJECT_NAME}" ${DAEMON_SRC} )
- if(NOT MSVC) # FIXME: incremental linker file name (.ilk) collision for dll & exe
-  if (WITH_STATIC)
-    set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static" )
-  endif ()
- endif()
+  if (WIN32 AND WITH_GUI)
+    set_target_properties("${PROJECT_NAME}" PROPERTIES WIN32_EXECUTABLE TRUE )
+  endif()
+  if(NOT MSVC)
+    if (WITH_STATIC)
+      set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-static" )
+    endif ()
+  endif()
 
   if (WITH_PCH)
     if (MSVC)

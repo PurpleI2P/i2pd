@@ -261,7 +261,7 @@ namespace transport
 			{
 				peer.numAttempts++;
 				auto address = peer.router->GetNTCPAddress (!context.SupportsV6 ());
-				if (address)
+				if (address && m_NTCPServer)
 				{
 #if BOOST_VERSION >= 104900
 					if (!address->host.is_unspecified ()) // we have address now

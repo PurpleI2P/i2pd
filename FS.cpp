@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <boost/filesystem.hpp>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <shlobj.h>
 #endif
 
@@ -108,7 +108,7 @@ namespace fs {
 
   bool HashedStorage::Init(const char * chars, size_t count) {
     if (!boost::filesystem::exists(root)) {
-      boost::filesystem::create_directory(root);
+      boost::filesystem::create_directories(root);
     }
     
     for (size_t i = 0; i < count; i++) {
