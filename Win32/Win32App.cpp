@@ -119,6 +119,29 @@ namespace win32
                         ShowWindow(hWnd, SW_HIDE);
                         return 0;
                     }
+                    case SC_CLOSE:
+                    {
+                        std::string close; i2p::config::GetOption("close", close);
+                        if (0 == close.compare("ask"))
+                            switch(::MessageBox(hWnd, "Would you like to minimize instead of exiting?"
+                                " You can add 'close' configuration option. Valid values are: ask, minimize, exit.",
+                                "Minimize instead of exiting?", MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON1))
+                            {
+                                case IDYES: close = "minimize"; break;
+                                case IDNO: close = "exit"; break;
+                                default: return 0;
+                            }
+                        if (0 == close.compare("minimize"))
+                        {
+                            ShowWindow(hWnd, SW_HIDE);
+                            return 0;
+                        }
+                        if (0 != close.compare("exit"))
+                        {
+                            ::MessageBox(hWnd, close.c_str(), "Unknown close action in config", MB_OK | MB_ICONWARNING);
+                            return 0;
+                        }
+                    }
                 }
             }
             case WM_TRAYICON:
