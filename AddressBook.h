@@ -40,6 +40,7 @@ namespace client
 			virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 
 			virtual void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) = 0;
+			virtual bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) = 0;
 	};			
 
 	class AddressBookSubscription;
@@ -62,6 +63,9 @@ namespace client
 			//This method returns the ".b32.i2p" address
 			std::string ToAddress(const i2p::data::IdentHash& ident) { return GetB32Address(ident); }
 			std::string ToAddress(std::shared_ptr<const i2p::data::IdentityEx> ident) { return ToAddress(ident->GetIdentHash ()); }
+
+			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+
 		private:
 
 			void StartSubscriptions ();

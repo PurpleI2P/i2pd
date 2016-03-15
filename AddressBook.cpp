@@ -37,6 +37,8 @@ namespace client
 			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
 
 			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
+			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+
 	};
 
 	bool AddressBookFilesystemStorage::Init()
@@ -162,6 +164,17 @@ namespace client
 			f << etag << std::endl; 
 			f<< lastModified << std::endl;
 		}	
+	}
+
+	bool AddressBookFilesystemStorage::GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified)
+	{
+		std::string fname = etagsPath + i2p::fs::dirSep + subscription.ToBase32 () + ".txt";
+		std::ifstream f (fname, std::ofstream::in);
+		if (!f || f.eof ()) return false;
+		std::getline (f, etag);
+		if (f.eof ()) return false; 
+		std::getline (f, lastModified);
+		return true;
 	}
 
 //---------------------------------------------------------------------
@@ -355,6 +368,14 @@ namespace client
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
 	}
 
+	bool AddressBook::GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified)
+	{
+		if (m_Storage)
+			return m_Storage->GetEtag (subscription, etag, lastModified);	
+		else
+			return false;		
+	}
+
 	void AddressBook::DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
 	{
 		m_IsDownloading = false;
@@ -457,6 +478,12 @@ namespace client
 		i2p::data::IdentHash ident;
 		if (m_Book.GetIdentHash (u.host_, ident))
 		{
+			if (!m_Etag.length ())
+			{ 
+				// load ETag
+				m_Book.GetEtag (ident, m_Etag, m_LastModified);
+				LogPrint (eLogInfo, "Addressbook: set ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+			}	
 			std::condition_variable newDataReceived;
 			std::mutex newDataReceivedMutex;
 			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
@@ -548,7 +575,7 @@ namespace client
 									!header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
 						}	
 					}
-					LogPrint (eLogInfo, "Addressbook: ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+					LogPrint (eLogInfo, "Addressbook: received ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 					if (!response.eof ())	
 					{
 						success = true;
