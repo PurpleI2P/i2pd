@@ -99,6 +99,7 @@ namespace client
 
 			AddressBook& m_Book;
 			std::string m_Link, m_Etag, m_LastModified;
+			// m_Etag must be surrounded by ""
 	};
 }
 }

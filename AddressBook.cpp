@@ -158,7 +158,10 @@ namespace client
 		std::string fname = etagsPath + i2p::fs::dirSep + subscription.ToBase32 () + ".txt";
 		std::ofstream f (fname, std::ofstream::out | std::ofstream::trunc);
 		if (f)
-			f << etag << lastModified;
+		{	
+			f << etag << std::endl; 
+			f<< lastModified << std::endl;
+		}	
 	}
 
 //---------------------------------------------------------------------
@@ -363,6 +366,7 @@ namespace client
 				nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT; 
 			else
 				m_IsLoaded = true;
+			if (m_Storage) m_Storage->SaveEtag (subscription, etag, lastModified);
 		}	
 		if (m_SubscriptionsUpdateTimer)
 		{
@@ -483,7 +487,7 @@ namespace client
 						<< "X-Accept-Encoding: x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n"
 				        << "Connection: close\r\n";
 				if (m_Etag.length () > 0) // etag
-					request << i2p::util::http::IF_NONE_MATCH << ": \"" << m_Etag << "\"\r\n";
+					request << i2p::util::http::IF_NONE_MATCH << ": " << m_Etag << "\r\n";
 				if (m_LastModified.length () > 0) // if-modfief-since
 					request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
 				request << "\r\n"; // end of header
