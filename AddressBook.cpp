@@ -24,7 +24,7 @@ namespace client
 	{
 		private:
 			i2p::fs::HashedStorage storage;
-			std::string etagsPath, indexPath;
+			std::string etagsPath, indexPath, localPath;
 
 		public:
 			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") {};
@@ -34,10 +34,15 @@ namespace client
 
 			bool Init ();
 			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
+			int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses);
 			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
 
 			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
 			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+
+		private:
+
+			int LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses); // returns -1 if can't open file, otherwise number of records
 
 	};
 
@@ -45,11 +50,13 @@ namespace client
 	{	
 		storage.SetPlace(i2p::fs::GetDataDir());
 		// init ETags
-		etagsPath = storage.GetRoot() + i2p::fs::dirSep + "etags";
+		etagsPath = i2p::fs::StorageRootPath (storage, "etags");
 		if (!i2p::fs::Exists (etagsPath))
 			i2p::fs::CreateDirectory (etagsPath);
+		// init address files
+		indexPath = i2p::fs::StorageRootPath (storage, "addresses.csv");
+		localPath = i2p::fs::StorageRootPath (storage, "local.csv");
 		// init storage
-		indexPath = storage.GetRoot() + i2p::fs::dirSep + "addresses.csv";
 		return storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
 	}
 
@@ -96,24 +103,18 @@ namespace client
 		storage.Remove( ident.ToBase32() );
 	}
 
-	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
+	int AddressBookFilesystemStorage::LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
 		int num = 0;	
-		std::string s;
-		std::ifstream f (indexPath, std::ifstream::in); // in text mode
-
-		if (f.is_open ()) {
-			LogPrint(eLogInfo, "Addressbook: using index file ", indexPath);
-		} else {
-			LogPrint(eLogWarning, "Addressbook: Can't open ", indexPath);
-			return 0;
-		}
+		std::ifstream f (filename, std::ifstream::in); // in text mode
+		if (!f) return -1;
 
 		addresses.clear ();
-		while (!f.eof ()) {
+		while (!f.eof ()) 
+		{
+			std::string s;
 			getline(f, s);
-			if (!s.length())
-				continue; // skip empty line
+			if (!s.length()) continue; // skip empty line
 
 			std::size_t pos = s.find(',');
 			if (pos != std::string::npos)
@@ -127,8 +128,28 @@ namespace client
 				num++;
 			}		
 		}
+		return num;
+	}
 
+	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
+	{
+		int num = LoadFromFile (indexPath, addresses);	
+		if (num < 0)
+		{
+			LogPrint(eLogWarning, "Addressbook: Can't open ", indexPath);
+			return 0;
+		}			
+		LogPrint(eLogInfo, "Addressbook: using index file ", indexPath);
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses loaded from storage");
+
+		return num;
+	}
+
+	int AddressBookFilesystemStorage::LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses)
+	{
+		int num = LoadFromFile (localPath, addresses);	
+		if (num < 0) return 0;
+		LogPrint (eLogInfo, "Addressbook: ", num, " local addresses loaded");	
 		return num;
 	}
 
@@ -305,6 +326,8 @@ namespace client
 			LoadHostsFromStream (f);
 			m_IsLoaded = true;
 		}
+		// load local
+		m_Storage->LoadLocal (m_Addresses);
 	}
 
 	void AddressBook::LoadHostsFromStream (std::istream& f)

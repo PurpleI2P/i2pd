@@ -37,6 +37,7 @@ namespace client
 		
 			virtual bool Init () = 0;
 			virtual int Load (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
+			virtual int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 			virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 
 			virtual void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) = 0;
@@ -79,7 +80,7 @@ namespace client
 		private:	
 
 			std::mutex m_AddressBookMutex;
-			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
+			std::map<std::string, i2p::data::IdentHash>  m_Addresses, m_LocalAddresses;
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
 			std::vector<AddressBookSubscription *> m_Subscriptions;
