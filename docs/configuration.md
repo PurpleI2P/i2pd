@@ -30,21 +30,26 @@ Command line options
 * --httpproxy.address=  - The address to listen on (HTTP Proxy)
 * --httpproxy.port=     - The port to listen on (HTTP Proxy) 4446 by default
 * --httpproxy.keys=     - optional keys file for proxy local destination (both HTTP and SOCKS)
+* --httpproxy.enabled=  - If HTTP proxy is enabled. true by default 
 
 * --socksproxy.address= - The address to listen on (SOCKS Proxy)
 * --socksproxy.port=    - The port to listen on (SOCKS Proxy). 4447 by default
 * --socksproxy.keys=    - optional keys file for proxy local destination (both HTTP and SOCKS)
-* --socksproxy.outproxy=      - Address of outproxy. requests outside i2p will go there
+* --socksproxy.enabled=  - If SOCKS proxy is enabled. true by default 
+* --socksproxy.outproxy= - Address of outproxy. requests outside i2p will go there
 * --socksproxy.outproxyport=  - Outproxy remote port
 
 * --sam.address=        - The address to listen on (SAM bridge)
 * --sam.port=           - Port of SAM bridge. Usually 7656. SAM is off if not specified
+* --sam.enabled=        - If SAM is enabled. false by default 
 
 * --bob.address=        - The address to listen on (BOB command channel)
 * --bob.port=           - Port of BOB command channel. Usually 2827. BOB is off if not specified
+* --sam.enabled=        - If BOB is enabled. false by default 
 
 * --i2pcontrol.address= - The address to listen on (I2P control service)
 * --i2pcontrol.port=    - Port of I2P control service. Usually 7650. I2PControl is off if not specified
+* --i2pcontrol.enabled= - If I2P control is enabled. false by default 
 
 Config files
 ------------
