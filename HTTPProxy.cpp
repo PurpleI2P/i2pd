@@ -204,7 +204,7 @@ namespace proxy
 			if (eol)
 			{
 				*eol = 0; eol++;			
-				if (strncmp ((const char *)http_buff, "Referer", 7)) // strip out referer
+				if (strncmp ((const char *)http_buff, "Referer", 7) && strncmp ((const char *)http_buff, "Connection", 10)) // strip out referer and connection
 				{
 					if (!strncmp ((const char *)http_buff, "User-Agent", 10)) // replace UserAgent
 						m_request.append("User-Agent: MYOB/6.66 (AN/ON)");
