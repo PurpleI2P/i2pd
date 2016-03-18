@@ -211,7 +211,7 @@ namespace proxy
 					else
 						m_request.append ((const char *)http_buff);
 					m_request.append ("\r\n");
-				} 
+				}
 				isEndOfHeader = !http_buff[0];
 				auto l = eol - http_buff;
 				http_buff = eol;
