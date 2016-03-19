@@ -49,15 +49,19 @@ namespace client
 	bool AddressBookFilesystemStorage::Init()
 	{	
 		storage.SetPlace(i2p::fs::GetDataDir());
-		// init ETags
-		etagsPath = i2p::fs::StorageRootPath (storage, "etags");
-		if (!i2p::fs::Exists (etagsPath))
-			i2p::fs::CreateDirectory (etagsPath);
-		// init address files
-		indexPath = i2p::fs::StorageRootPath (storage, "addresses.csv");
-		localPath = i2p::fs::StorageRootPath (storage, "local.csv");
 		// init storage
-		return storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
+		if (storage.Init(i2p::data::GetBase32SubstitutionTable(), 32))
+		{	
+			// init ETags
+			etagsPath = i2p::fs::StorageRootPath (storage, "etags");
+			if (!i2p::fs::Exists (etagsPath))
+				i2p::fs::CreateDirectory (etagsPath);
+			// init address files
+			indexPath = i2p::fs::StorageRootPath (storage, "addresses.csv");
+			localPath = i2p::fs::StorageRootPath (storage, "local.csv");
+			return true;
+		}	
+		return false;
 	}
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
