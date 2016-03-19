@@ -17,9 +17,9 @@ Command line options
 * --port=               - The port to listen on
 * --daemon              - Router will go to background after start
 * --service             - Router will use system folders like '/var/lib/i2pd'
-* --ipv6                - Enable communication through ipv6
-* --notransit           - Router will not accept transit tunnels at startup
-* --floodfill           - Router will be floodfill
+* --ipv6                - Enable communication through ipv6. false by default
+* --notransit           - Router will not accept transit tunnels at startup. false by default
+* --floodfill           - Router will be floodfill. false by default
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
 * --family=             - Name of a family, router belongs to
 * --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
@@ -63,15 +63,15 @@ For example:
 i2p.conf:
 
     # comment
-    log = yes
-    ipv6 = yes
+    log = true
+    ipv6 = true
     # settings for specific module
     [httpproxy]
     port = 4444
     # ^^ this will be --httproxy.port= in cmdline
     # another one
     [sam]
-    enabled = yes
+    enabled = true
 
 tunnels.cfg (filename of this config is subject of change):
 
