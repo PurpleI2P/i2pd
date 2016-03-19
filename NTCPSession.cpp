@@ -93,9 +93,7 @@ namespace transport
 		
 		m_DHKeysPair = nullptr;	
 
-		SendTimeSyncMessage ();
-		m_SendQueue.push_back (CreateDatabaseStoreMsg ()); // we tell immediately who we are		
-
+		SendTimeSyncMessage ();		
 		transports.PeerConnected (shared_from_this ());
 	}	
 		
