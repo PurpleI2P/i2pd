@@ -164,6 +164,19 @@ namespace win32
                 }
                 break;
             }
+		 case WM_PAINT:
+		 {
+			PAINTSTRUCT ps;
+			auto hDC = BeginPaint (hWnd, &ps);
+			auto mascot = LoadBitmap (GetModuleHandle(NULL), MAKEINTRESOURCE (MASCOT));
+			auto mascotDC = CreateCompatibleDC (hDC);
+			SelectObject (mascotDC, mascot);
+			BitBlt (hDC, 0,0, 533, 700, mascotDC, 0, 0, SRCCOPY);	
+			DeleteDC (mascotDC);
+			DeleteObject (mascot);
+			EndPaint (hWnd, &ps);
+			break;
+		 }	  	  	
         }
         return DefWindowProc( hWnd, uMsg, wParam, lParam);
     }
@@ -192,7 +205,7 @@ namespace win32
         wclx.lpszClassName = I2PD_WIN32_CLASSNAME;
         RegisterClassEx (&wclx);
         // create new window
-        if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPEDWINDOW, 100, 100, 250, 150, NULL, NULL, hInst, NULL))
+        if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPEDWINDOW, 100, 100, 533, 700, NULL, NULL, hInst, NULL))
         {
             MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
             return false;
