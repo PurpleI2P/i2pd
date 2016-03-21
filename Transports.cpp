@@ -112,8 +112,8 @@ namespace transport
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		// create acceptors
-		auto addresses = context.GetRouterInfo ().GetAddresses ();
-		for (auto& address : addresses)
+		auto& addresses = context.GetRouterInfo ().GetAddresses ();
+		for (auto address : addresses)
 		{
 			if (!m_NTCPServer)
 			{	
@@ -121,12 +121,12 @@ namespace transport
 				m_NTCPServer->Start ();
 			}	
 			
-			if (address.transportStyle == RouterInfo::eTransportSSU && address.host.is_v4 ())
+			if (address->transportStyle == RouterInfo::eTransportSSU && address->host.is_v4 ())
 			{
 				if (!m_SSUServer)
 				{	
-					m_SSUServer = new SSUServer (address.port);
-					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address.port);
+					m_SSUServer = new SSUServer (address->port);
+					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
 					m_SSUServer->Start ();	
 					DetectExternalIP ();
 				}

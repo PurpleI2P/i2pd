@@ -116,10 +116,10 @@ namespace data
 			void SetRouterIdentity (std::shared_ptr<const IdentityEx> identity);
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
-			std::vector<Address>& GetAddresses () { return m_Addresses; };
-			const Address * GetNTCPAddress (bool v4only = true) const;
-			const Address * GetSSUAddress (bool v4only = true) const;
-			const Address * GetSSUV6Address () const;
+			std::vector<std::shared_ptr<Address> >& GetAddresses () { return m_Addresses; };
+			std::shared_ptr<const Address> GetNTCPAddress (bool v4only = true) const;
+			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
+			std::shared_ptr<const Address> GetSSUV6Address () const;
 			
 			void AddNTCPAddress (const char * host, int port);
 			void AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu = 0);
@@ -182,7 +182,7 @@ namespace data
 			size_t ReadString (char * str, std::istream& s);
 			void WriteString (const std::string& str, std::ostream& s);
 			void ExtractCaps (const char * value);
-			const Address * GetAddress (TransportStyle s, bool v4only, bool v6only = false) const;
+			std::shared_ptr<const Address> GetAddress (TransportStyle s, bool v4only, bool v6only = false) const;
 			void UpdateCapsProperty ();			
 
 		private:
@@ -192,7 +192,7 @@ namespace data
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
 			uint64_t m_Timestamp;
-			std::vector<Address> m_Addresses;
+			std::vector<std::shared_ptr<Address> > m_Addresses;
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			uint8_t m_SupportedTransports, m_Caps;

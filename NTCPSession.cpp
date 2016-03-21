@@ -759,15 +759,15 @@ namespace transport
 			m_IsRunning = true;
 			m_Thread = new std::thread (std::bind (&NTCPServer::Run, this));
 			// create acceptors
-			auto addresses = context.GetRouterInfo ().GetAddresses ();
-			for (auto& address : addresses)
+			auto& addresses = context.GetRouterInfo ().GetAddresses ();
+			for (auto address: addresses)
 			{
-				if (address.transportStyle == i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4 ())
+				if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP && address->host.is_v4 ())
 				{	
 					m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service,
-						boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address.port));
+						boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
 
-					LogPrint (eLogInfo, "NTCP: Start listening TCP port ", address.port);
+					LogPrint (eLogInfo, "NTCP: Start listening TCP port ", address->port);
 					auto conn = std::make_shared<NTCPSession>(*this);
 					m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, 
 						conn, std::placeholders::_1));	
@@ -777,10 +777,10 @@ namespace transport
 						m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
 						m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
 						m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
-						m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address.port));
+						m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
 						m_NTCPV6Acceptor->listen ();
 
-						LogPrint (eLogInfo, "NTCP: Start listening V6 TCP port ", address.port);
+						LogPrint (eLogInfo, "NTCP: Start listening V6 TCP port ", address->port);
 						auto conn = std::make_shared<NTCPSession> (*this);
 						m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6,
 							this, conn, std::placeholders::_1));

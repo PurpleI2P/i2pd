@@ -427,18 +427,18 @@ namespace util
 		s << " (" << i2p::transport::transports.GetOutBandwidth () <<" Bps)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
 		s << "<b>Our external address:</b>" << "<br>\r\n" ;
-		for (auto& address : i2p::context.GetRouterInfo().GetAddresses())
+		for (auto address : i2p::context.GetRouterInfo().GetAddresses())
 		{
-			switch (address.transportStyle)
+			switch (address->transportStyle)
 			{
 				case i2p::data::RouterInfo::eTransportNTCP:
-					if (address.host.is_v6 ())
+					if (address->host.is_v6 ())
 						s << "NTCP6&nbsp;&nbsp;";
 					else
 						s << "NTCP&nbsp;&nbsp;";
 				break;
 				case i2p::data::RouterInfo::eTransportSSU:
-					if (address.host.is_v6 ())
+					if (address->host.is_v6 ())
 						s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 					else
 						s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
@@ -446,7 +446,7 @@ namespace util
 				default:
 					s << "Unknown&nbsp;&nbsp;";
 			}
-			s << address.host.to_string() << ":" << address.port << "<br>\r\n";
+			s << address->host.to_string() << ":" << address->port << "<br>\r\n";
 		}
 		s << "<br>\r\n<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
