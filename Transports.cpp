@@ -505,12 +505,24 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+				bool sendDatabaseStore = true;
+				if (it->second.delayedMessages.size () > 0)
+				{
+					// check if first message is our DatabaseStore (publishing)
+					auto firstMsg = it->second.delayedMessages[0];
+					if (firstMsg && firstMsg->GetTypeID () == eI2NPDatabaseStore &&
+					    i2p::data::IdentHash(firstMsg->GetPayload () + DATABASE_STORE_KEY_OFFSET) == i2p::context.GetIdentHash ())
+						sendDatabaseStore = false; // we have it in the list already
+				}	
+				if (sendDatabaseStore)
+					session->SendI2NPMessages ({ CreateDatabaseStoreMsg () });
 				it->second.sessions.push_back (session);
 				session->SendI2NPMessages (it->second.delayedMessages);
 				it->second.delayedMessages.clear ();
 			}
 			else // incoming connection
 			{
+				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				std::unique_lock<std::mutex>  l(m_PeersMutex);	
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
 			}

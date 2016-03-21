@@ -24,7 +24,7 @@ namespace client
 	{
 		private:
 			i2p::fs::HashedStorage storage;
-			std::string indexPath;
+			std::string etagsPath, indexPath, localPath;
 
 		public:
 			AddressBookFilesystemStorage (): storage("addressbook", "b", "", "b32") {};
@@ -34,14 +34,34 @@ namespace client
 
 			bool Init ();
 			int Load (std::map<std::string, i2p::data::IdentHash>& addresses);
+			int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses);
 			int Save (const std::map<std::string, i2p::data::IdentHash>& addresses);
+
+			void SaveEtag (const i2p::data::IdentHash& subsciption, const std::string& etag, const std::string& lastModified);
+			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+
+		private:
+
+			int LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses); // returns -1 if can't open file, otherwise number of records
+
 	};
 
 	bool AddressBookFilesystemStorage::Init()
-	{
+	{	
 		storage.SetPlace(i2p::fs::GetDataDir());
-		indexPath = storage.GetRoot() + i2p::fs::dirSep + "addresses.csv";
-		return storage.Init(i2p::data::GetBase32SubstitutionTable(), 32);
+		// init storage
+		if (storage.Init(i2p::data::GetBase32SubstitutionTable(), 32))
+		{	
+			// init ETags
+			etagsPath = i2p::fs::StorageRootPath (storage, "etags");
+			if (!i2p::fs::Exists (etagsPath))
+				i2p::fs::CreateDirectory (etagsPath);
+			// init address files
+			indexPath = i2p::fs::StorageRootPath (storage, "addresses.csv");
+			localPath = i2p::fs::StorageRootPath (storage, "local.csv");
+			return true;
+		}	
+		return false;
 	}
 
 	std::shared_ptr<const i2p::data::IdentityEx> AddressBookFilesystemStorage::GetAddress (const i2p::data::IdentHash& ident) const
@@ -87,24 +107,18 @@ namespace client
 		storage.Remove( ident.ToBase32() );
 	}
 
-	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
+	int AddressBookFilesystemStorage::LoadFromFile (const std::string& filename, std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
 		int num = 0;	
-		std::string s;
-		std::ifstream f (indexPath, std::ifstream::in); // in text mode
-
-		if (f.is_open ()) {
-			LogPrint(eLogInfo, "Addressbook: using index file ", indexPath);
-		} else {
-			LogPrint(eLogWarning, "Addressbook: Can't open ", indexPath);
-			return 0;
-		}
+		std::ifstream f (filename, std::ifstream::in); // in text mode
+		if (!f) return -1;
 
 		addresses.clear ();
-		while (!f.eof ()) {
+		while (!f.eof ()) 
+		{
+			std::string s;
 			getline(f, s);
-			if (!s.length())
-				continue; // skip empty line
+			if (!s.length()) continue; // skip empty line
 
 			std::size_t pos = s.find(',');
 			if (pos != std::string::npos)
@@ -118,8 +132,28 @@ namespace client
 				num++;
 			}		
 		}
+		return num;
+	}
 
+	int AddressBookFilesystemStorage::Load (std::map<std::string, i2p::data::IdentHash>& addresses)
+	{
+		int num = LoadFromFile (indexPath, addresses);	
+		if (num < 0)
+		{
+			LogPrint(eLogWarning, "Addressbook: Can't open ", indexPath);
+			return 0;
+		}			
+		LogPrint(eLogInfo, "Addressbook: using index file ", indexPath);
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses loaded from storage");
+
+		return num;
+	}
+
+	int AddressBookFilesystemStorage::LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses)
+	{
+		int num = LoadFromFile (localPath, addresses);	
+		if (num < 0) return 0;
+		LogPrint (eLogInfo, "Addressbook: ", num, " local addresses loaded");	
 		return num;
 	}
 
@@ -145,6 +179,28 @@ namespace client
 		LogPrint (eLogInfo, "Addressbook: ", num, " addresses saved");
 		return num;	
 	}	
+
+	void AddressBookFilesystemStorage::SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
+	{
+		std::string fname = etagsPath + i2p::fs::dirSep + subscription.ToBase32 () + ".txt";
+		std::ofstream f (fname, std::ofstream::out | std::ofstream::trunc);
+		if (f)
+		{	
+			f << etag << std::endl; 
+			f<< lastModified << std::endl;
+		}	
+	}
+
+	bool AddressBookFilesystemStorage::GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified)
+	{
+		std::string fname = etagsPath + i2p::fs::dirSep + subscription.ToBase32 () + ".txt";
+		std::ifstream f (fname, std::ofstream::in);
+		if (!f || f.eof ()) return false;
+		std::getline (f, etag);
+		if (f.eof ()) return false; 
+		std::getline (f, lastModified);
+		return true;
+	}
 
 //---------------------------------------------------------------------
 	AddressBook::AddressBook (): m_Storage(new AddressBookFilesystemStorage), m_IsLoaded (false), m_IsDownloading (false), 
@@ -274,6 +330,8 @@ namespace client
 			LoadHostsFromStream (f);
 			m_IsLoaded = true;
 		}
+		// load local
+		m_Storage->LoadLocal (m_Addresses);
 	}
 
 	void AddressBook::LoadHostsFromStream (std::istream& f)
@@ -337,7 +395,15 @@ namespace client
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
 	}
 
-	void AddressBook::DownloadComplete (bool success)
+	bool AddressBook::GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified)
+	{
+		if (m_Storage)
+			return m_Storage->GetEtag (subscription, etag, lastModified);	
+		else
+			return false;		
+	}
+
+	void AddressBook::DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
 	{
 		m_IsDownloading = false;
 		int nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
@@ -348,6 +414,7 @@ namespace client
 				nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT; 
 			else
 				m_IsLoaded = true;
+			if (m_Storage) m_Storage->SaveEtag (subscription, etag, lastModified);
 		}	
 		if (m_SubscriptionsUpdateTimer)
 		{
@@ -438,6 +505,12 @@ namespace client
 		i2p::data::IdentHash ident;
 		if (m_Book.GetIdentHash (u.host_, ident))
 		{
+			if (!m_Etag.length ())
+			{ 
+				// load ETag
+				m_Book.GetEtag (ident, m_Etag, m_LastModified);
+				LogPrint (eLogInfo, "Addressbook: set ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+			}	
 			std::condition_variable newDataReceived;
 			std::mutex newDataReceivedMutex;
 			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
@@ -468,7 +541,7 @@ namespace client
 						<< "X-Accept-Encoding: x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n"
 				        << "Connection: close\r\n";
 				if (m_Etag.length () > 0) // etag
-					request << i2p::util::http::IF_NONE_MATCH << ": \"" << m_Etag << "\"\r\n";
+					request << i2p::util::http::IF_NONE_MATCH << ": " << m_Etag << "\r\n";
 				if (m_LastModified.length () > 0) // if-modfief-since
 					request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
 				request << "\r\n"; // end of header
@@ -529,7 +602,7 @@ namespace client
 									!header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
 						}	
 					}
-					LogPrint (eLogInfo, "Addressbook: ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
+					LogPrint (eLogInfo, "Addressbook: received ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 					if (!response.eof ())	
 					{
 						success = true;
@@ -561,7 +634,7 @@ namespace client
 		if (!success)
 			LogPrint (eLogError, "Addressbook: download hosts.txt from ", m_Link, " failed");
 
-		m_Book.DownloadComplete (success);
+		m_Book.DownloadComplete (success, ident, m_Etag, m_LastModified);
 	}
 
 	bool AddressBookSubscription::ProcessResponse (std::stringstream& s, bool isGzip)

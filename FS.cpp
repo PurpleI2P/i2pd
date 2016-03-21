@@ -102,6 +102,13 @@ namespace fs {
     return boost::filesystem::remove(path);
   }
 
+  	bool CreateDirectory (const std::string& path)
+	{
+		if (boost::filesystem::exists(path) && 
+			boost::filesystem::is_directory (boost::filesystem::status (path))) return true;
+		return boost::filesystem::create_directory(path);
+	}			
+
   void HashedStorage::SetPlace(const std::string &path) {
     root = path + i2p::fs::dirSep + name;
   }

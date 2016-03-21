@@ -37,7 +37,11 @@ namespace client
 		
 			virtual bool Init () = 0;
 			virtual int Load (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
+			virtual int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 			virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
+
+			virtual void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) = 0;
+			virtual bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) = 0;
 	};			
 
 	class AddressBookSubscription;
@@ -56,10 +60,13 @@ namespace client
 			void InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
 			void LoadHostsFromStream (std::istream& f);
-			void DownloadComplete (bool success);
+			void DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified);
 			//This method returns the ".b32.i2p" address
 			std::string ToAddress(const i2p::data::IdentHash& ident) { return GetB32Address(ident); }
 			std::string ToAddress(std::shared_ptr<const i2p::data::IdentityEx> ident) { return ToAddress(ident->GetIdentHash ()); }
+
+			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+
 		private:
 
 			void StartSubscriptions ();
@@ -73,7 +80,7 @@ namespace client
 		private:	
 
 			std::mutex m_AddressBookMutex;
-			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
+			std::map<std::string, i2p::data::IdentHash>  m_Addresses, m_LocalAddresses;
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
 			std::vector<AddressBookSubscription *> m_Subscriptions;
@@ -97,6 +104,7 @@ namespace client
 
 			AddressBook& m_Book;
 			std::string m_Link, m_Etag, m_LastModified;
+			// m_Etag must be surrounded by ""
 	};
 }
 }

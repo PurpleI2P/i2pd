@@ -48,8 +48,8 @@ namespace fs {
 
       /** create subdirs in storage */
       bool Init(const char* chars, size_t cnt);
-      const std::string & GetRoot() const { return this->root; }
-      const std::string & GetName() const { return this->name; }
+      const std::string & GetRoot() const { return root; }
+      const std::string & GetName() const { return name; }
       /** set directory where to place storage directory */
       void SetPlace(const std::string & path);
       /** path to file with given ident */
@@ -108,6 +108,8 @@ namespace fs {
    * @return true if file exists, false otherwise
    */
   bool Exists(const std::string & path);
+ 
+  bool CreateDirectory (const std::string& path);	
 
   template<typename T>
   void _ExpandPath(std::stringstream & path, T c) {
@@ -136,6 +138,17 @@ namespace fs {
 
     return s.str();
   }
+
+	template<typename Storage, typename... Filename>
+	std::string StorageRootPath (const Storage& storage, Filename... filenames)
+	{
+		std::stringstream s("");
+		s << storage.GetRoot ();
+		_ExpandPath(s, filenames...);
+
+		return s.str();
+	}	
+
 } // fs
 } // i2p
 
