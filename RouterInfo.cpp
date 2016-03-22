@@ -552,7 +552,7 @@ namespace data
 		addr->date = 0;
 		addr->mtu = 0;
 		for (auto it: m_Addresses) // don't insert same address twice
-			if (it == addr) return;
+			if (*it == *addr) return;
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
 	}	
@@ -568,7 +568,7 @@ namespace data
 		addr->mtu = mtu; 
 		memcpy (addr->key, key, 32);
 		for (auto it: m_Addresses) // don't insert same address twice
-			if (it == addr) return;
+			if (*it == *addr) return;
 		m_Addresses.push_back(addr);	
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
 		m_Caps |= eSSUTesting; 
