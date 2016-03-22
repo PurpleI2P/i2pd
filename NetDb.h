@@ -84,6 +84,7 @@ namespace data
 			void Publish ();
 			void ManageLeaseSets ();
 			void ManageRequests ();
+			void ManageLookupResponses ();
 
 			template<typename Filter>
 			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
@@ -108,6 +109,8 @@ namespace data
 
 			friend class NetDbRequests; 
 			NetDbRequests m_Requests;
+
+			std::map<IdentHash, std::pair<std::vector<IdentHash>, uint64_t> > m_LookupResponses; // ident->(closest FFs, timestamp)
 	};
 
 	extern NetDb netdb;
