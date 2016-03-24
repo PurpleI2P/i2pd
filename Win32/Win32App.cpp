@@ -2,8 +2,14 @@
 #include <windows.h>
 #include <shellapi.h>
 #include "../Config.h"
+#include "../version.h"
 #include "resource.h"
 #include "Win32App.h"
+#include <stdio.h>
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define snprintf _snprintf
+#endif
 
 #define ID_ABOUT 2000
 #define ID_EXIT 2001
@@ -85,7 +91,9 @@ namespace win32
                 {
                     case ID_ABOUT:
                     {
-                        MessageBox( hWnd, TEXT("i2pd"), TEXT("About"), MB_ICONINFORMATION | MB_OK );
+                        std::stringstream text;
+                        text << "Version: " << I2PD_VERSION << " " << CODENAME;
+                        MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
                         return 0;
                     }
                     case ID_EXIT:
@@ -98,7 +106,7 @@ namespace win32
                         char buf[30];
                         std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
                         uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
-                        std::snprintf(buf, 30, "http://%s:%d", httpAddr.c_str(), httpPort);
+                        snprintf(buf, 30, "http://%s:%d", httpAddr.c_str(), httpPort);
                         ShellExecute(NULL, "open", buf, NULL, NULL, SW_SHOWNORMAL);
                         return 0;
                     }
@@ -119,6 +127,29 @@ namespace win32
                         ShowWindow(hWnd, SW_HIDE);
                         return 0;
                     }
+                    case SC_CLOSE:
+                    {
+                        std::string close; i2p::config::GetOption("close", close);
+                        if (0 == close.compare("ask"))
+                            switch(::MessageBox(hWnd, "Would you like to minimize instead of exiting?"
+                                " You can add 'close' configuration option. Valid values are: ask, minimize, exit.",
+                                "Minimize instead of exiting?", MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON1))
+                            {
+                                case IDYES: close = "minimize"; break;
+                                case IDNO: close = "exit"; break;
+                                default: return 0;
+                            }
+                        if (0 == close.compare("minimize"))
+                        {
+                            ShowWindow(hWnd, SW_HIDE);
+                            return 0;
+                        }
+                        if (0 != close.compare("exit"))
+                        {
+                            ::MessageBox(hWnd, close.c_str(), "Unknown close action in config", MB_OK | MB_ICONWARNING);
+                            return 0;
+                        }
+                    }
                 }
             }
             case WM_TRAYICON:
@@ -136,6 +167,19 @@ namespace win32
                 }
                 break;
             }
+		 case WM_PAINT:
+		 {
+			PAINTSTRUCT ps;
+			auto hDC = BeginPaint (hWnd, &ps);
+			auto mascot = LoadBitmap (GetModuleHandle(NULL), MAKEINTRESOURCE (MASCOT));
+			auto mascotDC = CreateCompatibleDC (hDC);
+			SelectObject (mascotDC, mascot);
+			BitBlt (hDC, 0,0, 533, 700, mascotDC, 0, 0, SRCCOPY);
+			DeleteDC (mascotDC);
+			DeleteObject (mascot);
+			EndPaint (hWnd, &ps);
+			break;
+		 }
         }
         return DefWindowProc( hWnd, uMsg, wParam, lParam);
     }
@@ -164,7 +208,7 @@ namespace win32
         wclx.lpszClassName = I2PD_WIN32_CLASSNAME;
         RegisterClassEx (&wclx);
         // create new window
-        if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPEDWINDOW, 100, 100, 250, 150, NULL, NULL, hInst, NULL))
+        if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPEDWINDOW, 100, 100, 549, 738, NULL, NULL, hInst, NULL))
         {
             MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
             return false;

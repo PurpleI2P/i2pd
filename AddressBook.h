@@ -12,6 +12,7 @@
 #include "Base.h"
 #include "Identity.h"
 #include "Log.h"
+#include "Destination.h"
 
 namespace i2p
 {
@@ -23,7 +24,7 @@ namespace client
 	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720; // in minutes (12 hours)			
 	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes	
 	const int SUBSCRIPTION_REQUEST_TIMEOUT = 60; //in second
-	
+
 	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
 
 	class AddressBookStorage // interface for storage
@@ -37,10 +38,15 @@ namespace client
 		
 			virtual bool Init () = 0;
 			virtual int Load (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
+			virtual int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 			virtual int Save (const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
+
+			virtual void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) = 0;
+			virtual bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) = 0;
 	};			
 
 	class AddressBookSubscription;
+	class AddressResolver;
 	class AddressBook
 	{
 		public:
@@ -56,10 +62,13 @@ namespace client
 			void InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
 			void LoadHostsFromStream (std::istream& f);
-			void DownloadComplete (bool success);
+			void DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified);
 			//This method returns the ".b32.i2p" address
 			std::string ToAddress(const i2p::data::IdentHash& ident) { return GetB32Address(ident); }
 			std::string ToAddress(std::shared_ptr<const i2p::data::IdentityEx> ident) { return ToAddress(ident->GetIdentHash ()); }
+
+			bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified);
+
 		private:
 
 			void StartSubscriptions ();
@@ -67,6 +76,7 @@ namespace client
 			
 			void LoadHosts ();
 			void LoadSubscriptions ();
+			void LoadLocal ();
 
 			void HandleSubscriptionsUpdateTimer (const boost::system::error_code& ecode);
 
@@ -74,6 +84,7 @@ namespace client
 
 			std::mutex m_AddressBookMutex;
 			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
+			std::map<i2p::data::IdentHash, std::shared_ptr<AddressResolver> > m_Resolvers; // local destination->resolver
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
 			std::vector<AddressBookSubscription *> m_Subscriptions;
@@ -97,6 +108,25 @@ namespace client
 
 			AddressBook& m_Book;
 			std::string m_Link, m_Etag, m_LastModified;
+			// m_Etag must be surrounded by ""
+	};
+
+	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;	
+	class AddressResolver
+	{
+		public:
+
+			AddressResolver (std::shared_ptr<ClientDestination> destination);
+			void AddAddress (const std::string& name, const i2p::data::IdentHash& ident);
+
+		private:
+
+			void HandleRequest (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+
+		private:
+
+			std::shared_ptr<ClientDestination> m_LocalDestination;
+			std::map<std::string, i2p::data::IdentHash>  m_LocalAddresses;
 	};
 }
 }

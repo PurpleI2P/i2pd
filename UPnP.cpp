@@ -101,19 +101,19 @@ namespace transport
 
     void UPnP::Run ()
     {
-        std::vector<data::RouterInfo::Address> a = context.GetRouterInfo().GetAddresses();
-        for (auto& address : a)
+        const std::vector<std::shared_ptr<i2p::data::RouterInfo::Address> > a = context.GetRouterInfo().GetAddresses();
+        for (auto address : a)
         {
-            if (!address.host.is_v6 ())
+            if (!address->host.is_v6 ())
             {
                 Discover ();
-                if (address.transportStyle == data::RouterInfo::eTransportSSU )
+                if (address->transportStyle == data::RouterInfo::eTransportSSU )
                 {
-                    TryPortMapping (I2P_UPNP_UDP, address.port);
+                    TryPortMapping (I2P_UPNP_UDP, address->port);
                 }
-                else if (address.transportStyle == data::RouterInfo::eTransportNTCP )
+                else if (address->transportStyle == data::RouterInfo::eTransportNTCP )
                 {
-                    TryPortMapping (I2P_UPNP_TCP, address.port);
+                    TryPortMapping (I2P_UPNP_TCP, address->port);
                 }
             }
         }

@@ -232,7 +232,7 @@ namespace data
 			}	
 			if (isValidAddress)
 			{
-				m_Addresses.push_back(address);
+				m_Addresses.push_back(std::make_shared<Address>(address));
 				m_SupportedTransports |= supportedTransports;
 			}
 		}	
@@ -359,8 +359,9 @@ namespace data
 		// addresses
 		uint8_t numAddresses = m_Addresses.size ();
 		s.write ((char *)&numAddresses, sizeof (numAddresses));
-		for (auto& address : m_Addresses)
+		for (auto addr : m_Addresses)
 		{
+			Address& address = *addr;
 			s.write ((char *)&address.cost, sizeof (address.cost));
 			s.write ((char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
@@ -543,46 +544,46 @@ namespace data
 
 	void RouterInfo::AddNTCPAddress (const char * host, int port)
 	{
-		Address addr;
-		addr.host = boost::asio::ip::address::from_string (host);
-		addr.port = port;
-		addr.transportStyle = eTransportNTCP;
-		addr.cost = 2;
-		addr.date = 0;
-		addr.mtu = 0;
+		auto addr = std::make_shared<Address>();
+		addr->host = boost::asio::ip::address::from_string (host);
+		addr->port = port;
+		addr->transportStyle = eTransportNTCP;
+		addr->cost = 2;
+		addr->date = 0;
+		addr->mtu = 0;
 		for (auto it: m_Addresses) // don't insert same address twice
-			if (it == addr) return;
+			if (*it == *addr) return;
 		m_Addresses.push_back(addr);	
-		m_SupportedTransports |= addr.host.is_v6 () ? eNTCPV6 : eNTCPV4;
+		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
 	}	
 
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
 	{
-		Address addr;
-		addr.host = boost::asio::ip::address::from_string (host);
-		addr.port = port;
-		addr.transportStyle = eTransportSSU;
-		addr.cost = 10; // NTCP should have priority over SSU
-		addr.date = 0;
-		addr.mtu = mtu; 
-		memcpy (addr.key, key, 32);
+		auto addr = std::make_shared<Address>();
+		addr->host = boost::asio::ip::address::from_string (host);
+		addr->port = port;
+		addr->transportStyle = eTransportSSU;
+		addr->cost = 10; // NTCP should have priority over SSU
+		addr->date = 0;
+		addr->mtu = mtu; 
+		memcpy (addr->key, key, 32);
 		for (auto it: m_Addresses) // don't insert same address twice
-			if (it == addr) return;
+			if (*it == *addr) return;
 		m_Addresses.push_back(addr);	
-		m_SupportedTransports |= addr.host.is_v6 () ? eSSUV6 : eSSUV4;
+		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
 		m_Caps |= eSSUTesting; 
 		m_Caps |= eSSUIntroducer; 
 	}	
 
 	bool RouterInfo::AddIntroducer (const Introducer& introducer)
 	{
-		for (auto& addr : m_Addresses)
+		for (auto addr : m_Addresses)
 		{
-			if (addr.transportStyle == eTransportSSU && addr.host.is_v4 ())
+			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
-				for (auto intro: addr.introducers)
+				for (auto intro: addr->introducers)
 					if (intro.iTag == introducer.iTag) return false; // already presented
-				addr.introducers.push_back (introducer);
+				addr->introducers.push_back (introducer);
 				return true;
 			}	
 		}	
@@ -591,14 +592,14 @@ namespace data
 
 	bool RouterInfo::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
 	{		
-		for (auto& addr : m_Addresses)
+		for (auto addr: m_Addresses)
 		{
-			if (addr.transportStyle == eTransportSSU && addr.host.is_v4 ())
+			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
-				for (std::vector<Introducer>::iterator it = addr.introducers.begin (); it != addr.introducers.end (); it++)
+				for (std::vector<Introducer>::iterator it = addr->introducers.begin (); it != addr->introducers.end (); it++)
 					if ( boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e) 
 					{
-						addr.introducers.erase (it);
+						addr->introducers.erase (it);
 						return true;
 					}	
 			}	
@@ -664,8 +665,8 @@ namespace data
 			m_SupportedTransports &= ~eNTCPV6; 
 			for (size_t i = 0; i < m_Addresses.size (); i++)
 			{
-				if (m_Addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
-					m_Addresses[i].host.is_v6 ())
+				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+					m_Addresses[i]->host.is_v6 ())
 				{
 					m_Addresses.erase (m_Addresses.begin () + i);
 					break;
@@ -676,8 +677,8 @@ namespace data
 			m_SupportedTransports &= ~eSSUV6; 
 			for (size_t i = 0; i < m_Addresses.size (); i++)
 			{
-				if (m_Addresses[i].transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-					m_Addresses[i].host.is_v6 ())
+				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+					m_Addresses[i]->host.is_v6 ())
 				{
 					m_Addresses.erase (m_Addresses.begin () + i);
 					break;
@@ -691,29 +692,29 @@ namespace data
 		return m_Caps & Caps::eUnreachable; // non-reachable
 	}		
 		
-	const RouterInfo::Address * RouterInfo::GetNTCPAddress (bool v4only) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetNTCPAddress (bool v4only) const
 	{
 		return GetAddress (eTransportNTCP, v4only);
 	}	
 
-	const RouterInfo::Address * RouterInfo::GetSSUAddress (bool v4only) const 
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUAddress (bool v4only) const 
 	{
 		return GetAddress (eTransportSSU, v4only);
 	}	
 
-	const RouterInfo::Address * RouterInfo::GetSSUV6Address () const 
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetSSUV6Address () const 
 	{
 		return GetAddress (eTransportSSU, false, true);
 	}	
 		
-	const RouterInfo::Address * RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
+	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
 	{
-		for (auto& address : m_Addresses)
+		for (auto address : m_Addresses)
 		{
-			if (address.transportStyle == s)
+			if (address->transportStyle == s)
 			{	
-				if ((!v4only || address.host.is_v4 ()) && (!v6only || address.host.is_v6 ()))
-					return &address;
+				if ((!v4only || address->host.is_v4 ()) && (!v6only || address->host.is_v6 ()))
+					return address;
 			}	
 		}	
 		return nullptr;

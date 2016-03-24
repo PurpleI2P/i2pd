@@ -855,7 +855,6 @@ namespace transport
 		m_DHKeysPair = nullptr;
 		m_SignedData = nullptr;
 		m_Data.Start ();
-		m_Data.Send (CreateDatabaseStoreMsg ());
 		transports.PeerConnected (shared_from_this ());
 		if (m_IsPeerTest)
 			SendPeerTest ();

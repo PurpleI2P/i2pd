@@ -92,11 +92,11 @@ namespace i2p
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;
-		for (auto& address : m_RouterInfo.GetAddresses ())
+		for (auto address : m_RouterInfo.GetAddresses ())
 		{
-			if (address.port != port)
+			if (address->port != port)
 			{	
-				address.port = port;
+				address->port = port;
 				updated = true;
 			}	
 		}	
@@ -107,11 +107,11 @@ namespace i2p
 	void RouterContext::UpdateAddress (const boost::asio::ip::address& host)
 	{
 		bool updated = false;
-		for (auto& address : m_RouterInfo.GetAddresses ())
+		for (auto address : m_RouterInfo.GetAddresses ())
 		{
-			if (address.host != host && address.IsCompatible (host))
+			if (address->host != host && address->IsCompatible (host))
 			{	
-				address.host = host;
+				address->host = host;
 				updated = true;
 			}	
 		}	
@@ -206,15 +206,15 @@ namespace i2p
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (size_t i = 0; i < addresses.size (); i++)
 		{
-			if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+			if (addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 			{
 				addresses.erase (addresses.begin () + i);
 				break;
 			}
 		}	
 		// delete previous introducers
-		for (auto& addr : addresses)
-			addr.introducers.clear ();
+		for (auto addr : addresses)
+			addr->introducers.clear ();
 	
 		// update
 		UpdateRouterInfo ();
@@ -235,16 +235,16 @@ namespace i2p
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (size_t i = 0; i < addresses.size (); i++)
 		{
-			if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportSSU)
+			if (addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU)
 			{
 				// insert NTCP address with host/port from SSU
-				m_RouterInfo.AddNTCPAddress (addresses[i].host.to_string ().c_str (), addresses[i].port);
+				m_RouterInfo.AddNTCPAddress (addresses[i]->host.to_string ().c_str (), addresses[i]->port);
 				break;
 			}
 		}		
 		// delete previous introducers
-		for (auto& addr : addresses)
-			addr.introducers.clear ();
+		for (auto addr : addresses)
+			addr->introducers.clear ();
 		
 		// update
 		UpdateRouterInfo ();
@@ -264,19 +264,19 @@ namespace i2p
 		bool updated = false, found = false;	
 		int port = 0;
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto& addr : addresses)
+		for (auto addr: addresses)
 		{
-			if (addr.host.is_v6 () && addr.transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+			if (addr->host.is_v6 () && addr->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 			{
-				if (addr.host != host)
+				if (addr->host != host)
 				{
-					addr.host = host;
+					addr->host = host;
 					updated = true;
 				}
 				found = true;	
 			}	
 			else
-				port = addr.port;	
+				port = addr->port;	
 		}	
 		if (!found)
 		{
