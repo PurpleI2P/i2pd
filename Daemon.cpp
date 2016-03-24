@@ -72,7 +72,7 @@ namespace i2p
 			if (config  == "")
 			{
 				config = i2p::fs::DataDirPath("i2p.conf");
-				// use i2p.cong only if exists
+				// use i2p.conf only if exists
 				if (!i2p::fs::Exists (config)) config = ""; /* reset */
 			}
 
