@@ -651,12 +651,24 @@ namespace data
 		return m_SupportedTransports & (eNTCPV6 | eSSUV6);
 	}
 
+	bool RouterInfo::IsV4 () const
+	{
+		return m_SupportedTransports & (eNTCPV4 | eSSUV4);
+	}
+	
 	void RouterInfo::EnableV6 ()
 	{
 		if (!IsV6 ())
 			m_SupportedTransports |= eNTCPV6 | eSSUV6;
 	}
-		
+
+  void RouterInfo::EnableV4 ()
+	{
+		if (!IsV4 ())
+			m_SupportedTransports |= eNTCPV4 | eSSUV4;
+	}
+	
+  
 	void RouterInfo::DisableV6 ()
 	{		
 		if (IsV6 ())
@@ -686,7 +698,38 @@ namespace data
 			}	
 		}	
 	}
-		
+
+  void RouterInfo::DisableV4 ()
+	{		
+		if (IsV4 ())
+		{	
+			// NTCP
+			m_SupportedTransports &= ~eNTCPV4; 
+			for (size_t i = 0; i < m_Addresses.size (); i++)
+			{
+				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+					m_Addresses[i]->host.is_v4 ())
+				{
+					m_Addresses.erase (m_Addresses.begin () + i);
+					break;
+				}
+			}	
+			
+			// SSU
+			m_SupportedTransports &= ~eSSUV4; 
+			for (size_t i = 0; i < m_Addresses.size (); i++)
+			{
+				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+					m_Addresses[i]->host.is_v4 ())
+				{
+					m_Addresses.erase (m_Addresses.begin () + i);
+					break;
+				}
+			}	
+		}	
+	}
+	
+  
 	bool RouterInfo::UsesIntroducer () const
 	{
 		return m_Caps & Caps::eUnreachable; // non-reachable

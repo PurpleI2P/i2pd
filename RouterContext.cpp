@@ -257,7 +257,17 @@ namespace i2p
 		else
 			m_RouterInfo.DisableV6 ();
 		UpdateRouterInfo ();
-	}	
+	}
+  	
+	void RouterContext::SetSupportsV4 (bool supportsV4)
+	{
+		if (supportsV4)
+			m_RouterInfo.EnableV4 ();
+		else
+			m_RouterInfo.DisableV4 ();
+		UpdateRouterInfo ();
+	}
+  
 
 	void RouterContext::UpdateNTCPV6Address (const boost::asio::ip::address& host)
 	{

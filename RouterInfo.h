@@ -133,8 +133,11 @@ namespace data
 			bool IsNTCP (bool v4only = true) const;
 			bool IsSSU (bool v4only = true) const;
 			bool IsV6 () const;
+			bool IsV4 () const;
 			void EnableV6 ();
 			void DisableV6 ();
+			void EnableV4 ();
+			void DisableV4 ();
 			bool IsCompatible (const RouterInfo& other) const { return m_SupportedTransports & other.m_SupportedTransports; };
 			bool UsesIntroducer () const;
 			bool IsIntroducer () const { return m_Caps & eSSUIntroducer; };

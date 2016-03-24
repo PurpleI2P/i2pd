@@ -117,6 +117,7 @@ namespace config {
 	  ("datadir",   value<std::string>()->default_value(""),     "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
       ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
+      ("ipv4",      value<bool>()->zero_tokens()->default_value(true),  "Enable communication through ipv4")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
       ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
       ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")

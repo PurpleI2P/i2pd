@@ -64,7 +64,10 @@ namespace i2p
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
+			bool SupportsV4 () const { return m_RouterInfo.IsV4 (); };
 			void SetSupportsV6 (bool supportsV6);
+			void SetSupportsV4 (bool supportsV4);
+
 			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session		
 			void UpdateStats ();		
 
