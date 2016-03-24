@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include "../Config.h"
+#include "../version.h"
 #include "resource.h"
 #include "Win32App.h"
 #include <stdio.h>
@@ -90,7 +91,9 @@ namespace win32
                 {
                     case ID_ABOUT:
                     {
-                        MessageBox( hWnd, TEXT("i2pd"), TEXT("About"), MB_ICONINFORMATION | MB_OK );
+                        std::stringstream text;
+                        text << "Version: " << I2PD_VERSION << " " << CODENAME;
+                        MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
                         return 0;
                     }
                     case ID_EXIT:
@@ -171,12 +174,12 @@ namespace win32
 			auto mascot = LoadBitmap (GetModuleHandle(NULL), MAKEINTRESOURCE (MASCOT));
 			auto mascotDC = CreateCompatibleDC (hDC);
 			SelectObject (mascotDC, mascot);
-			BitBlt (hDC, 0,0, 533, 700, mascotDC, 0, 0, SRCCOPY);	
+			BitBlt (hDC, 0,0, 533, 700, mascotDC, 0, 0, SRCCOPY);
 			DeleteDC (mascotDC);
 			DeleteObject (mascot);
 			EndPaint (hWnd, &ps);
 			break;
-		 }	  	  	
+		 }
         }
         return DefWindowProc( hWnd, uMsg, wParam, lParam);
     }
