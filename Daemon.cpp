@@ -104,9 +104,11 @@ namespace i2p
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 			}
 
-			bool ipv6;    i2p::config::GetOption("ipv6", ipv6);
+			bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
+			bool ipv4;		i2p::config::GetOption("ipv4", ipv4);
 			bool transit; i2p::config::GetOption("notransit", transit);
-			i2p::context.SetSupportsV6     (ipv6);
+			i2p::context.SetSupportsV6		 (ipv6);
+			i2p::context.SetSupportsV4		 (ipv4);
 			i2p::context.SetAcceptsTunnels (!transit);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
