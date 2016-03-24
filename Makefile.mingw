@@ -28,7 +28,7 @@ LDLIBS = \
 
 ifeq ($(USE_WIN32_APP), yes)
 	CXXFLAGS += -DWIN32_APP
-	LDFLAGS += -mwindows -s 
+	LDFLAGS += -mwindows -s
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
@@ -41,4 +41,3 @@ endif
 
 obj/%.o : %.rc
 	$(WINDRES) -i $< -o $@
-
