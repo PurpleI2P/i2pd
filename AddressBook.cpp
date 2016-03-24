@@ -330,8 +330,7 @@ namespace client
 			LoadHostsFromStream (f);
 			m_IsLoaded = true;
 		}
-		// load local
-		m_Storage->LoadLocal (m_Addresses);
+		LoadLocal ();
 	}
 
 	void AddressBook::LoadHostsFromStream (std::istream& f)
@@ -393,6 +392,40 @@ namespace client
 		}
 		else
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
+	}
+
+	void AddressBook::LoadLocal ()
+	{
+		std::map<std::string, i2p::data::IdentHash> localAddresses;
+		m_Storage->LoadLocal (localAddresses);
+		for (auto it: localAddresses)
+		{
+			auto dot = it.first.find ('.');
+			if (dot != std::string::npos)
+			{
+				auto domain = it.first.substr (dot + 1);
+				auto it1 = m_Addresses.find (domain);  // find domain in our addressbook
+				if (it1 != m_Addresses.end ())
+				{
+					auto dest = context.FindLocalDestination (it1->second);
+					if (dest) 
+					{
+						// address is ours
+						std::shared_ptr<AddressResolver> resolver;
+						auto it2 = m_Resolvers.find (it1->second); 
+						if (it2 != m_Resolvers.end ())
+							resolver = it2->second; // resolver exists
+						else
+						{
+							// create new resolver
+							resolver = std::make_shared<AddressResolver>(dest);
+							m_Resolvers.insert (std::make_pair(it1->second, resolver));
+						}
+						resolver->AddAddress (it.first, it.second);
+					}
+				}
+			}
+		}
 	}
 
 	bool AddressBook::GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified)
@@ -653,6 +686,50 @@ namespace client
 			m_Book.LoadHostsFromStream (s);
 		return true;	
 	}
+
+	AddressResolver::AddressResolver (std::shared_ptr<ClientDestination> destination):
+		m_LocalDestination (destination)
+	{
+		if (m_LocalDestination)
+		{
+			auto datagram = m_LocalDestination->GetDatagramDestination ();
+			if (!datagram)
+				datagram = m_LocalDestination->CreateDatagramDestination ();
+			datagram->SetReceiver (std::bind (&AddressResolver::HandleRequest, this, 
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 
+				ADDRESS_RESOLVER_DATAGRAM_PORT);
+		}
+	}
+
+	void AddressResolver::HandleRequest (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	{
+		if (len < 9 || len < buf[8] + 9U)
+		{
+			LogPrint (eLogError, "Address request is too short ", len);
+			return;
+		}
+		// read requested address
+		uint8_t l = buf[8];
+		char address[255];
+		memcpy (address, buf + 9, l);
+		address[l] = 0;		 		
+		// send response
+		uint8_t response[40];
+		memset (response, 0, 4); // reserved
+		memcpy (response + 4, buf + 4, 4); // nonce 	
+		auto it = m_LocalAddresses.find (address); // address lookup
+		if (it != m_LocalAddresses.end ())	
+			memcpy (response + 8, it->second, 32); // ident 
+		else
+			memset (response + 8, 0, 32); // not found 
+		m_LocalDestination->GetDatagramDestination ()->SendDatagramTo (response, 40, from.GetIdentHash (), toPort, fromPort);
+	}
+
+	void AddressResolver::AddAddress (const std::string& name, const i2p::data::IdentHash& ident)
+	{
+		m_LocalAddresses[name] = ident;		
+	}
+
 }
 }
 
