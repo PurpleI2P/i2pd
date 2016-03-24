@@ -106,11 +106,15 @@ namespace http
 		while (!response.eof ())
 		{	
 			std::string hexLen;
-			int len;
+			size_t len;
 			std::getline (response, hexLen);
 			std::istringstream iss (hexLen);
 			iss >> std::hex >> len;
-			if (!len) break;
+			if (!len || len > 10000000L) // 10M
+			{
+				LogPrint (eLogError, "Unexpected chunk length ", len);
+				break;
+			}
 			char * buf = new char[len];
 			response.read (buf, len);
 			merged.write (buf, len);
