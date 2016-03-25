@@ -393,6 +393,7 @@ namespace transport
 					}	
 					else
 						LogPrint (eLogInfo, "Transports: NTCP ", address, " is not supported");
+					it++;
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve NTCP address: ", ecode.message ());
@@ -434,6 +435,7 @@ namespace transport
 					}
 					else
 						LogPrint (eLogInfo, "Transports: SSU ", address, " is not supported");
+					it++;
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve SSU address: ", ecode.message ());
