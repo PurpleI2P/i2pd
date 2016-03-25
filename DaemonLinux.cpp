@@ -64,12 +64,9 @@ namespace i2p
 				}
 
 				// close stdin/stdout/stderr descriptors
-				::close (0);
-				::open ("/dev/null", O_RDWR);
-				::close (1);
-				::open ("/dev/null", O_RDWR);	
-				::close (2);
-				::open ("/dev/null", O_RDWR);
+				freopen("/dev/null", "r", stdin);
+				freopen("/dev/null", "w", stdout);
+				freopen("/dev/null", "w", stderr);
 			}
 
 			// Pidfile
