@@ -534,7 +534,7 @@ namespace util
 		auto dest = i2p::client::context.FindLocalDestination (ident);
 		if (dest)
 		{
-			s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"1\" wrap=\"off\">";
+			s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
 			s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
 			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>\r\n";
 			auto pool = dest->GetTunnelPool ();
