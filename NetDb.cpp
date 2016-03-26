@@ -118,6 +118,7 @@ namespace data
 					{
 						SaveUpdated ();
 						ManageLeaseSets ();
+						ManageLookupResponses ();
 					}	
 					lastSave = ts;
 				}	
@@ -671,13 +672,31 @@ namespace data
 			if (!replyMsg)
 			{
 				LogPrint (eLogWarning, "NetDb: Requested ", key, " not found. ", numExcluded, " excluded");
-				std::set<IdentHash> excludedRouters;	
-				for (int i = 0; i < numExcluded; i++)
-				{
-					excludedRouters.insert (excluded);
-					excluded += 32;
+				// find or cleate response
+				std::vector<IdentHash> closestFloodfills;
+				bool found = false;
+				if (!numExcluded)
+				{	
+					auto it = m_LookupResponses.find (ident);
+					if (it != m_LookupResponses.end ())
+					{
+						closestFloodfills = it->second.first;
+						found = true;
+					}
+				}	
+				if (!found)
+				{				
+					std::set<IdentHash> excludedRouters;	
+					for (int i = 0; i < numExcluded; i++)
+					{
+						excludedRouters.insert (excluded);
+						excluded += 32;
+					}
+					closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
+					if (!numExcluded) // save if no excluded
+						m_LookupResponses[ident] = std::make_pair(closestFloodfills, i2p::util::GetSecondsSinceEpoch ());
 				}
-				replyMsg = CreateDatabaseSearchReply (ident, GetClosestFloodfills (ident, 3, excludedRouters, true));
+				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
 			}
 		}
 		
@@ -969,6 +988,18 @@ namespace data
 				it = m_LeaseSets.erase (it);
 			}	
 			else 
+				it++;
+		}
+	}
+
+	void NetDb::ManageLookupResponses ()
+	{
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_LookupResponses.begin (); it != m_LookupResponses.end ();)
+		{
+			if (ts > it->second.second + 180) // 3 minutes
+				it = m_LookupResponses.erase (it);
+			else
 				it++;
 		}
 	}

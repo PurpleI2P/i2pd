@@ -12,6 +12,7 @@
 #include "Base.h"
 #include "Identity.h"
 #include "Log.h"
+#include "Destination.h"
 
 namespace i2p
 {
@@ -23,7 +24,7 @@ namespace client
 	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720; // in minutes (12 hours)			
 	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes	
 	const int SUBSCRIPTION_REQUEST_TIMEOUT = 60; //in second
-	
+
 	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
 
 	class AddressBookStorage // interface for storage
@@ -45,6 +46,7 @@ namespace client
 	};			
 
 	class AddressBookSubscription;
+	class AddressResolver;
 	class AddressBook
 	{
 		public:
@@ -74,13 +76,15 @@ namespace client
 			
 			void LoadHosts ();
 			void LoadSubscriptions ();
+			void LoadLocal ();
 
 			void HandleSubscriptionsUpdateTimer (const boost::system::error_code& ecode);
 
 		private:	
 
 			std::mutex m_AddressBookMutex;
-			std::map<std::string, i2p::data::IdentHash>  m_Addresses, m_LocalAddresses;
+			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
+			std::map<i2p::data::IdentHash, std::shared_ptr<AddressResolver> > m_Resolvers; // local destination->resolver
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
 			std::vector<AddressBookSubscription *> m_Subscriptions;
@@ -105,6 +109,24 @@ namespace client
 			AddressBook& m_Book;
 			std::string m_Link, m_Etag, m_LastModified;
 			// m_Etag must be surrounded by ""
+	};
+
+	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;	
+	class AddressResolver
+	{
+		public:
+
+			AddressResolver (std::shared_ptr<ClientDestination> destination);
+			void AddAddress (const std::string& name, const i2p::data::IdentHash& ident);
+
+		private:
+
+			void HandleRequest (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+
+		private:
+
+			std::shared_ptr<ClientDestination> m_LocalDestination;
+			std::map<std::string, i2p::data::IdentHash>  m_LocalAddresses;
 	};
 }
 }

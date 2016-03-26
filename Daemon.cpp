@@ -72,7 +72,7 @@ namespace i2p
 			if (config  == "")
 			{
 				config = i2p::fs::DataDirPath("i2p.conf");
-				// use i2p.cong only if exists
+				// use i2p.conf only if exists
 				if (!i2p::fs::Exists (config)) config = ""; /* reset */
 			}
 
@@ -104,9 +104,11 @@ namespace i2p
 				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
 			}
 
-			bool ipv6;    i2p::config::GetOption("ipv6", ipv6);
+			bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
+			bool ipv4;		i2p::config::GetOption("ipv4", ipv4);
 			bool transit; i2p::config::GetOption("notransit", transit);
-			i2p::context.SetSupportsV6     (ipv6);
+			i2p::context.SetSupportsV6		 (ipv6);
+			i2p::context.SetSupportsV4		 (ipv4);
 			i2p::context.SetAcceptsTunnels (!transit);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);

@@ -8,11 +8,11 @@ New family
 -----------
 You must create family self-signed certificate and key.  
 The only key type supposted is prime256v1.
-Use the following list of commands:
-openssl ecparam -name prime256v1 -genkey -out <your family name>.key
-openssl req -new -key <your family name>.key -out <your family name>.csr
-touch v3.ext
-openssl x509 -req -days 3650 -in <your family name>.csr -signkey <your family name>.key -out <your family name>.crt -extfile v3.ext
+Use the following list of commands:  
+openssl ecparam -name prime256v1 -genkey -out <your family name>.key  
+openssl req -new -key <your family name>.key -out <your family name>.csr  
+touch v3.ext  
+openssl x509 -req -days 3650 -in <your family name>.csr -signkey <your family name>.key -out <your family name>.crt -extfile v3.ext  
 
 specify <your family name>.family.i2p.net for CN.
 

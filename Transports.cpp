@@ -112,8 +112,8 @@ namespace transport
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		// create acceptors
-		auto addresses = context.GetRouterInfo ().GetAddresses ();
-		for (auto& address : addresses)
+		auto& addresses = context.GetRouterInfo ().GetAddresses ();
+		for (auto address : addresses)
 		{
 			if (!m_NTCPServer)
 			{	
@@ -121,12 +121,12 @@ namespace transport
 				m_NTCPServer->Start ();
 			}	
 			
-			if (address.transportStyle == RouterInfo::eTransportSSU && address.host.is_v4 ())
+			if (address->transportStyle == RouterInfo::eTransportSSU && address->host.is_v4 ())
 			{
 				if (!m_SSUServer)
 				{	
-					m_SSUServer = new SSUServer (address.port);
-					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address.port);
+					m_SSUServer = new SSUServer (address->port);
+					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
 					m_SSUServer->Start ();	
 					DetectExternalIP ();
 				}
@@ -376,14 +376,24 @@ namespace transport
 			auto& peer = it1->second;
 			if (!ecode && peer.router)
 			{
-				auto address = (*it).endpoint ().address ();
-				LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
-				auto addr = peer.router->GetNTCPAddress ();
-				if (addr)
-				{
-					auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-					m_NTCPServer->Connect (address, addr->port, s);
-					return;
+				while (it != boost::asio::ip::tcp::resolver::iterator())
+				{	
+					auto address = (*it).endpoint ().address ();
+					LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
+					if (address.is_v4 () || context.SupportsV6 ())
+					{
+						auto addr = peer.router->GetNTCPAddress (); // TODO: take one we requested
+						if (addr)
+						{
+							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+							m_NTCPServer->Connect (address, addr->port, s);
+							return;
+						}
+						break;
+					}	
+					else
+						LogPrint (eLogInfo, "Transports: NTCP ", address, " is not supported");
+					it++;
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve NTCP address: ", ecode.message ());
@@ -409,13 +419,23 @@ namespace transport
 			auto& peer = it1->second;
 			if (!ecode && peer.router)
 			{
-				auto address = (*it).endpoint ().address ();
-				LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
-				auto addr = peer.router->GetSSUAddress (!context.SupportsV6 ());;
-				if (addr)
-				{
-					m_SSUServer->CreateSession (peer.router, address, addr->port);
-					return;
+				while (it != boost::asio::ip::tcp::resolver::iterator())
+				{	
+					auto address = (*it).endpoint ().address ();
+					LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
+					if (address.is_v4 () || context.SupportsV6 ())
+					{
+						auto addr = peer.router->GetSSUAddress (); // TODO: take one we requested
+						if (addr)
+						{
+							m_SSUServer->CreateSession (peer.router, address, addr->port);
+							return;
+						}
+						break;
+					}
+					else
+						LogPrint (eLogInfo, "Transports: SSU ", address, " is not supported");
+					it++;
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve SSU address: ", ecode.message ());

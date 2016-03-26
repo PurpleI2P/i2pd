@@ -58,6 +58,5 @@ namespace transport
 }
 }
 
-#endif
-
-#endif
+#endif // USE_UPNP
+#endif // __UPNP_H__
