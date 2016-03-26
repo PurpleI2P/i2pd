@@ -39,6 +39,7 @@ namespace proxy
 			void HTTPRequestFailed(/*std::string message*/);
 			void RedirectToJumpService();
 			void ExtractRequest();
+			bool IsI2PAddress();
 			bool ValidateHTTPRequest();
 			void HandleJumpServices();
 			bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
@@ -176,6 +177,16 @@ namespace proxy
 		m_path.erase(addressHelperPos);
 	}
 
+	bool HTTPProxyHandler::IsI2PAddress()
+	{
+		auto pos = m_address.rfind (".i2p");
+		if (pos != std::string::npos && (pos+4) == m_address.length ())
+		{
+			return true;
+		}
+		return false;
+	}
+
 	bool HTTPProxyHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len) 
 	{
 		ExtractRequest(); //TODO: parse earlier
@@ -183,10 +194,14 @@ namespace proxy
 		HandleJumpServices();
 
 		i2p::data::IdentHash identHash;
-		if (!i2p::client::context.GetAddressBook ().GetIdentHash (m_address, identHash)){
-			RedirectToJumpService();
-			return false;
+		if (IsI2PAddress ())
+		{
+			if (!i2p::client::context.GetAddressBook ().GetIdentHash (m_address, identHash)){
+				RedirectToJumpService();
+				return false;
+			}
 		}
+		
 
 		m_request = m_method;
 		m_request.push_back(' ');

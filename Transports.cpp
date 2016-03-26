@@ -376,20 +376,25 @@ namespace transport
 			auto& peer = it1->second;
 			if (!ecode && peer.router)
 			{
-				auto address = (*it).endpoint ().address ();
-				LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
-				if (address.is_v4 () || context.SupportsV6 ())
-				{
-					auto addr = peer.router->GetNTCPAddress (); // TODO: take one we requested
-					if (addr)
+				while (it != boost::asio::ip::tcp::resolver::iterator())
+				{	
+					auto address = (*it).endpoint ().address ();
+					LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
+					if (address.is_v4 () || context.SupportsV6 ())
 					{
-						auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-						m_NTCPServer->Connect (address, addr->port, s);
-						return;
-					}
+						auto addr = peer.router->GetNTCPAddress (); // TODO: take one we requested
+						if (addr)
+						{
+							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+							m_NTCPServer->Connect (address, addr->port, s);
+							return;
+						}
+						break;
+					}	
+					else
+						LogPrint (eLogInfo, "Transports: NTCP ", address, " is not supported");
+					it++;
 				}	
-				else
-					LogPrint (eLogInfo, "Can't connect to NTCP ", address, " ipv6 is not supported");
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve NTCP address: ", ecode.message ());
 			std::unique_lock<std::mutex>  l(m_PeersMutex);		
@@ -414,19 +419,24 @@ namespace transport
 			auto& peer = it1->second;
 			if (!ecode && peer.router)
 			{
-				auto address = (*it).endpoint ().address ();
-				LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
-				if (address.is_v4 () || context.SupportsV6 ())
-				{
-					auto addr = peer.router->GetSSUAddress (); // TODO: take one we requested
-					if (addr)
+				while (it != boost::asio::ip::tcp::resolver::iterator())
+				{	
+					auto address = (*it).endpoint ().address ();
+					LogPrint (eLogDebug, "Transports: ", (*it).host_name (), " has been resolved to ", address);
+					if (address.is_v4 () || context.SupportsV6 ())
 					{
-						m_SSUServer->CreateSession (peer.router, address, addr->port);
-						return;
+						auto addr = peer.router->GetSSUAddress (); // TODO: take one we requested
+						if (addr)
+						{
+							m_SSUServer->CreateSession (peer.router, address, addr->port);
+							return;
+						}
+						break;
 					}
+					else
+						LogPrint (eLogInfo, "Transports: SSU ", address, " is not supported");
+					it++;
 				}	
-				else
-					LogPrint (eLogInfo, "Can't connect to SSU ", address, " ipv6 is not supported");
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve SSU address: ", ecode.message ());
 			std::unique_lock<std::mutex>  l(m_PeersMutex);	
