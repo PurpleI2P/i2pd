@@ -283,7 +283,10 @@ namespace client
 					return true;
 				}
 				else
+				{	
+					LookupAddress (address); // TODO:
 					return false;
+				}	
 			}
 		}	
 		// if not .b32 we assume full base64 address
