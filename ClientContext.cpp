@@ -96,6 +96,8 @@ namespace client
 			m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
 			m_BOBCommandChannel->Start ();
 		} 
+
+		m_AddressBook.StartResolvers ();	
 	}
 		
 	void ClientContext::Stop ()

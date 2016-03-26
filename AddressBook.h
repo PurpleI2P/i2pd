@@ -25,6 +25,9 @@ namespace client
 	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes	
 	const int SUBSCRIPTION_REQUEST_TIMEOUT = 60; //in second
 
+	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;	
+	const uint16_t ADDRESS_RESPONSE_DATAGRAM_PORT = 54;
+	
 	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
 
 	class AddressBookStorage // interface for storage
@@ -54,10 +57,12 @@ namespace client
 			AddressBook ();
 			~AddressBook ();
 			void Start ();
+			void StartResolvers ();
 			void Stop ();
 			bool GetIdentHash (const std::string& address, i2p::data::IdentHash& ident);
 			std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const std::string& address);
 			const i2p::data::IdentHash * FindAddress (const std::string& address);
+			void LookupAddress (const std::string& address);
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 			void InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
@@ -80,11 +85,17 @@ namespace client
 
 			void HandleSubscriptionsUpdateTimer (const boost::system::error_code& ecode);
 
+			void StartLookups ();
+			void StopLookups ();
+			void HandleLookupResponse (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			
 		private:	
 
 			std::mutex m_AddressBookMutex;
 			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
 			std::map<i2p::data::IdentHash, std::shared_ptr<AddressResolver> > m_Resolvers; // local destination->resolver
+			std::mutex m_LookupsMutex;
+			std::map<uint32_t, std::string> m_Lookups; // nonce -> address
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
 			std::vector<AddressBookSubscription *> m_Subscriptions;
@@ -111,12 +122,12 @@ namespace client
 			// m_Etag must be surrounded by ""
 	};
 
-	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;	
 	class AddressResolver
 	{
 		public:
 
 			AddressResolver (std::shared_ptr<ClientDestination> destination);
+			~AddressResolver ();
 			void AddAddress (const std::string& name, const i2p::data::IdentHash& ident);
 
 		private:

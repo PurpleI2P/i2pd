@@ -6,6 +6,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <boost/lexical_cast.hpp>
+#include <openssl/rand.h>
 #include "Base.h"
 #include "util.h"
 #include "Identity.h"
@@ -218,10 +219,17 @@ namespace client
 		m_Storage->Init();
 		LoadHosts (); /* try storage, then hosts.txt, then download */
 		StartSubscriptions ();
+		StartLookups ();
 	}
+
+	void AddressBook::StartResolvers ()
+	{
+		LoadLocal ();
+	}	
 	
 	void AddressBook::Stop ()
 	{
+		StopLookups ();
 		StopSubscriptions ();
 		if (m_SubscriptionsUpdateTimer)
 		{	
@@ -330,7 +338,6 @@ namespace client
 			LoadHostsFromStream (f);
 			m_IsLoaded = true;
 		}
-		LoadLocal ();
 	}
 
 	void AddressBook::LoadHostsFromStream (std::istream& f)
@@ -518,6 +525,94 @@ namespace client
 		}
 	}
 
+	void AddressBook::StartLookups ()
+	{
+		auto dest = i2p::client::context.GetSharedLocalDestination ();
+		if (dest)
+		{
+			auto datagram = dest->GetDatagramDestination ();
+			if (!datagram)
+				datagram = dest->CreateDatagramDestination ();
+			datagram->SetReceiver (std::bind (&AddressBook::HandleLookupResponse, this, 
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 
+				ADDRESS_RESPONSE_DATAGRAM_PORT);
+		}	
+	}
+	
+	void AddressBook::StopLookups ()
+	{
+		auto dest = i2p::client::context.GetSharedLocalDestination ();
+		if (dest)
+		{
+			auto datagram = dest->GetDatagramDestination ();
+			if (datagram)
+			    datagram->ResetReceiver (ADDRESS_RESPONSE_DATAGRAM_PORT);
+		}	
+	}
+
+	void AddressBook::LookupAddress (const std::string& address)
+	{
+		const i2p::data::IdentHash * ident = nullptr;
+		auto dot = address.find ('.');
+		if (dot != std::string::npos)
+			ident = FindAddress (address.substr (dot + 1));
+		if (!ident)
+		{
+			LogPrint (eLogError, "AddressBook: Can't find domain for ", address);
+			return;
+		}	
+		
+		auto dest = i2p::client::context.GetSharedLocalDestination ();
+		if (dest)
+		{
+			auto datagram = dest->GetDatagramDestination ();
+			if (datagram)
+			{
+				uint32_t nonce;
+				RAND_bytes ((uint8_t *)&nonce, 4);
+				{
+					std::unique_lock<std::mutex> l(m_LookupsMutex);
+					m_Lookups[nonce] = address; 
+				}	
+				LogPrint (eLogDebug, "AddressBook: Lookup of ", address, " to ", ident->ToBase32 (), " nonce=", nonce);
+				size_t len = address.length () + 9;
+				uint8_t * buf = new uint8_t[len];
+				memset (buf, 0, 4);
+				htobe32buf (buf + 4, nonce);
+				buf[8] = address.length ();
+				memcpy (buf + 9, address.c_str (), address.length ());
+				datagram->SendDatagramTo (buf, len, *ident, ADDRESS_RESPONSE_DATAGRAM_PORT, ADDRESS_RESOLVER_DATAGRAM_PORT);
+				delete[] buf;
+			}	
+		}		
+	}	
+	
+	void AddressBook::HandleLookupResponse (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	{
+		if (len < 44)
+		{
+			LogPrint (eLogError, "AddressBook: Lookup response is too short ", len);
+			return;
+		}
+		uint32_t nonce = bufbe32toh (buf + 4);
+		LogPrint (eLogDebug, "AddressBook: Lookup response received from ", from.GetIdentHash ().ToBase32 (), " nonce=", nonce);
+		std::string address;
+		{
+			std::unique_lock<std::mutex> l(m_LookupsMutex);
+			auto it = m_Lookups.find (nonce);
+			if (it != m_Lookups.end ())
+			{	
+				address = it->second;
+				m_Lookups.erase (it);
+			}	
+		}	
+		if (address.length () > 0)
+		{
+			// TODO: verify from
+			m_Addresses[address] = buf + 8;
+		}	
+	}
+	
 	AddressBookSubscription::AddressBookSubscription (AddressBook& book, const std::string& link):
 		m_Book (book), m_Link (link)
 	{
@@ -701,20 +796,31 @@ namespace client
 		}
 	}
 
+	AddressResolver::~AddressResolver ()
+	{
+		if (m_LocalDestination)
+		{
+			auto datagram = m_LocalDestination->GetDatagramDestination ();
+			if (datagram)
+			    datagram->ResetReceiver (ADDRESS_RESOLVER_DATAGRAM_PORT);
+		}	
+	}	
+		
 	void AddressResolver::HandleRequest (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
 		if (len < 9 || len < buf[8] + 9U)
 		{
-			LogPrint (eLogError, "Address request is too short ", len);
+			LogPrint (eLogError, "AddressBook: Address request is too short ", len);
 			return;
 		}
 		// read requested address
 		uint8_t l = buf[8];
 		char address[255];
 		memcpy (address, buf + 9, l);
-		address[l] = 0;		 		
+		address[l] = 0;		
+		LogPrint (eLogDebug, "AddressBook: Address request ", address);
 		// send response
-		uint8_t response[40];
+		uint8_t response[44];
 		memset (response, 0, 4); // reserved
 		memcpy (response + 4, buf + 4, 4); // nonce 	
 		auto it = m_LocalAddresses.find (address); // address lookup
@@ -722,7 +828,8 @@ namespace client
 			memcpy (response + 8, it->second, 32); // ident 
 		else
 			memset (response + 8, 0, 32); // not found 
-		m_LocalDestination->GetDatagramDestination ()->SendDatagramTo (response, 40, from.GetIdentHash (), toPort, fromPort);
+		memset (response + 40, 0, 4); // set expiration time to zero
+		m_LocalDestination->GetDatagramDestination ()->SendDatagramTo (response, 44, from.GetIdentHash (), toPort, fromPort);
 	}
 
 	void AddressResolver::AddAddress (const std::string& name, const i2p::data::IdentHash& ident)
