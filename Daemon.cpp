@@ -159,7 +159,10 @@ namespace i2p
 			if (isDaemon && (logs == "" || logs == "stdout"))
 				logs = "file";
 
-			if (logs == "file") {
+			if (logs == "syslog") {
+				// use syslog only no stdout
+				StartSyslog();
+			} else if (logs == "file") {
 				if (logfile == "")
 					logfile = i2p::fs::DataDirPath("i2pd.log");
 				StartLog (logfile);
