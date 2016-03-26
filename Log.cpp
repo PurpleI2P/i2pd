@@ -10,7 +10,7 @@ static const char * g_LogLevelStr[eNumLogLevels] =
 	"info",  // eLogInfo
 	"debug"	 // eLogDebug 
 };
-
+#ifndef _WIN32
 /** convert LogLevel enum to syslog priority level */
 static int ToSyslogLevel(LogLevel lvl)
 {
@@ -28,15 +28,17 @@ static int ToSyslogLevel(LogLevel lvl)
     return LOG_CRIT;
   }
 }
-
+#endif
 
 void LogMsg::Process()
 {
+#ifndef _WIN32
   if (log && log->SyslogEnabled()) {
     // only log to syslog
     syslog(ToSyslogLevel(level), "%s", s.str().c_str());
     return;
   }
+#endif
 	auto stream = log ? log->GetLogStream () : nullptr;
 	auto& output = stream ? *stream : std::cout;	
 	if (log)	
@@ -111,14 +113,18 @@ void Log::SetLogStream (std::shared_ptr<std::ostream> logStream)
 
 void Log::StartSyslog(const std::string & ident, const int facility)
 {
+#ifndef _WIN32
 	m_Ident = ident;
 	openlog(m_Ident.c_str(), LOG_PID, facility);
+#endif
 }
 
 void Log::StopSyslog()
 {
+#ifndef _WIN32
 	closelog();
 	m_Ident.clear();
+#endif
 }
 
 bool Log::SyslogEnabled()

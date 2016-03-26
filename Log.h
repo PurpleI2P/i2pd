@@ -8,8 +8,11 @@
 #include <functional>
 #include <chrono>
 #include <memory>
-#include <syslog.h>
 #include "Queue.h"
+
+#ifndef _WIN32
+#include <syslog.h>
+#endif
 
 enum LogLevel
 {
@@ -48,7 +51,7 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		LogLevel GetLogLevel () { return m_MinLevel; };
 	 	const std::string& GetFullFilePath () const { return m_FullFilePath; };
 		/** start logging to syslog */
-		void StartSyslog(const std::string & ident, const int facility = LOG_USER);
+		void StartSyslog(const std::string & ident, const int facility);
 		/** stop logging to syslog */
 		void StopSyslog();
 		/** are we logging to syslog right now? */
@@ -126,7 +129,9 @@ inline bool IsLogToFile ()
 inline void StartSyslog()
 {
 	StartLog("");
-	g_Log->StartSyslog("i2pd");
+#ifndef _WIN32
+	g_Log->StartSyslog("i2pd", LOG_USER);
+#endif
 }
 
 inline void StopSyslog()
