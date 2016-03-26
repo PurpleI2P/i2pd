@@ -8,6 +8,7 @@
 #include <functional>
 #include <chrono>
 #include <memory>
+#include <syslog.h>
 #include "Queue.h"
 
 enum LogLevel
@@ -45,14 +46,19 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		std::shared_ptr<std::ostream> GetLogStream () const { return m_LogStream; };	
 		const std::string& GetTimestamp ();
 		LogLevel GetLogLevel () { return m_MinLevel; };
-		const std::string& GetFullFilePath () const { return m_FullFilePath; };
-
+	 	const std::string& GetFullFilePath () const { return m_FullFilePath; };
+		/** start logging to syslog */
+		void StartSyslog(const std::string & ident, const int facility = LOG_USER);
+		/** stop logging to syslog */
+		void StopSyslog();
+		/** are we logging to syslog right now? */
+		bool SyslogEnabled();
 	private:
 
 		void Flush ();
 
 	private:
-		
+
 		std::string m_FullFilePath; // empty if stream
 		std::shared_ptr<std::ostream> m_LogStream;
 		enum LogLevel m_MinLevel;
@@ -61,7 +67,8 @@ class Log: public i2p::util::MsgQueue<LogMsg>
 		std::chrono::monotonic_clock::time_point m_LastTimestampUpdate;
 #else		
 		std::chrono::steady_clock::time_point m_LastTimestampUpdate;	
-#endif		
+#endif
+		std::string m_Ident;
 };
 
 extern Log * g_Log;
@@ -115,6 +122,18 @@ inline bool IsLogToFile ()
 {
 	return g_Log ? !g_Log->GetFullFilePath ().empty () : false;
 }	
+
+inline void StartSyslog()
+{
+	StartLog("");
+	g_Log->StartSyslog("i2pd");
+}
+
+inline void StopSyslog()
+{
+	if(g_Log)
+		g_Log->StopSyslog();
+}
 
 template<typename TValue>
 void LogPrint (std::stringstream& s, TValue arg) 

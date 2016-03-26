@@ -11,8 +11,32 @@ static const char * g_LogLevelStr[eNumLogLevels] =
 	"debug"	 // eLogDebug 
 };
 
+/** convert LogLevel enum to syslog priority level */
+static int ToSyslogLevel(LogLevel lvl)
+{
+  switch (lvl) {
+  case eLogError:
+    return LOG_ERR;
+  case eLogWarning:
+    return LOG_WARNING;
+  case eLogInfo:
+    return LOG_INFO;
+  case eLogDebug:
+    return LOG_DEBUG;
+  default:
+    // WTF? invalid log level?
+    return LOG_CRIT;
+  }
+}
+
+
 void LogMsg::Process()
 {
+  if (log && log->SyslogEnabled()) {
+    // only log to syslog
+    syslog(ToSyslogLevel(level), "%s", s.str().c_str());
+    return;
+  }
 	auto stream = log ? log->GetLogStream () : nullptr;
 	auto& output = stream ? *stream : std::cout;	
 	if (log)	
@@ -83,4 +107,21 @@ void Log::SetLogLevel (const std::string& level)
 void Log::SetLogStream (std::shared_ptr<std::ostream> logStream)
 {
 	m_LogStream = logStream;
+}
+
+void Log::StartSyslog(const std::string & ident, const int facility)
+{
+	m_Ident = ident;
+	openlog(m_Ident.c_str(), LOG_PID, facility);
+}
+
+void Log::StopSyslog()
+{
+	closelog();
+	m_Ident.clear();
+}
+
+bool Log::SyslogEnabled()
+{
+	return m_Ident.size() > 0;
 }
