@@ -19,7 +19,7 @@ void handle_signal(int sig)
 	{
 	case SIGHUP:
 		LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening log...");
-		ReopenLogFile ();
+		i2p::log::Logger().Reopen ();
 	break;
 	case SIGABRT:
 	case SIGTERM:

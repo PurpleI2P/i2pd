@@ -75,7 +75,7 @@ namespace i2p
             i2p::config::SetOption("log", std::string ("file"));
 #endif
 			bool ret = Daemon_Singleton::start();
-			if (ret && IsLogToFile ())
+			if (ret && i2p::log::Logger().GetLogType() == eLogFile)
 			{
 				// TODO: find out where this garbage to console comes from
 				SetStdHandle(STD_OUTPUT_HANDLE, INVALID_HANDLE_VALUE);

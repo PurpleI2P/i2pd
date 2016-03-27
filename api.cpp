@@ -40,9 +40,9 @@ namespace api
 	void StartI2P (std::shared_ptr<std::ostream> logStream)
 	{
 		if (logStream)
-			StartLog (logStream);
+			i2p::log::Logger().SendTo (logStream);
 		else
-			StartLog (i2p::fs::DataDirPath (i2p::fs::GetAppName () + ".log"));
+			i2p::log::Logger().SendTo (i2p::fs::DataDirPath (i2p::fs::GetAppName () + ".log"));
 		LogPrint(eLogInfo, "API: starting NetDB");
 		i2p::data::netdb.Start();
 		LogPrint(eLogInfo, "API: starting Transports");
@@ -60,7 +60,6 @@ namespace api
 		i2p::transport::transports.Stop();
 		LogPrint(eLogInfo, "API: stopping NetDB");
 		i2p::data::netdb.Stop();
-		StopLog ();
 	}
 
 	void RunPeerTest ()

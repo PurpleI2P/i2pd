@@ -79,16 +79,37 @@ namespace i2p
 			i2p::config::ParseConfig(config);
 			i2p::config::Finalize();
 
-			i2p::crypto::InitCrypto ();
-			i2p::context.Init ();
-
 			i2p::config::GetOption("daemon", isDaemon);
 
-			// TODO: move log init here
+			std::string logs     = ""; i2p::config::GetOption("log",      logs);
+			std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
+			std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
+
+			/* setup logging */
+			if (isDaemon && (logs == "" || logs == "stdout"))
+				logs = "file";
+
+			i2p::log::Logger().SetLogLevel(loglevel);
+			if (logs == "file") {
+				if (logfile == "")
+					logfile = i2p::fs::DataDirPath("i2pd.log");
+				LogPrint(eLogInfo, "Log: will send messages to ", logfile);
+				i2p::log::Logger().SendTo (logfile);
+#ifndef _WIN32
+			} else if (logs == "syslog") {
+				LogPrint(eLogInfo, "Log: will send messages to syslog");
+				i2p::log::Logger().SendTo("i2pd", LOG_DAEMON);
+#endif
+			} else {
+				// use stdout -- default
+			}
 
 			LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
 			LogPrint(eLogDebug, "FS: main config file: ", config);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
+
+			i2p::crypto::InitCrypto ();
+			i2p::context.Init ();
 
 			uint16_t port; i2p::config::GetOption("port", port);
 			if (!i2p::config::IsDefault("port"))
@@ -152,26 +173,6 @@ namespace i2p
 			
 		bool Daemon_Singleton::start()
 		{
-			std::string logs     = ""; i2p::config::GetOption("log",      logs);
-			std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
-			std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
-
-			if (isDaemon && (logs == "" || logs == "stdout"))
-				logs = "file";
-
-			if (logs == "syslog") {
-				// use syslog only no stdout
-				StartSyslog();
-			} else if (logs == "file") {
-				if (logfile == "")
-					logfile = i2p::fs::DataDirPath("i2pd.log");
-				StartLog (logfile);
-			} else {
-				// use stdout
-				StartLog ("");
-			}
-			SetLogLevel(loglevel);
-			
 			bool http; i2p::config::GetOption("http.enabled", http);
 			if (http) {
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
@@ -236,7 +237,6 @@ namespace i2p
 				d.m_I2PControlService = nullptr;
 			}	
 			i2p::crypto::TerminateCrypto ();
-			StopLog ();
 
 			return true;
 		}
