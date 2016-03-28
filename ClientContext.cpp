@@ -261,8 +261,15 @@ namespace client
 	{
 		boost::property_tree::ptree pt;
 		std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
-		if (tunConf == "")
+		if (tunConf == "") {
+			// TODO: cleanup this in 2.8.0
 			tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
+			if (i2p::fs::Exists(tunConf)) {
+				LogPrint(eLogWarning, "FS: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
+			} else {
+				tunConf = i2p::fs::DataDirPath ("tunnels.conf");
+			}
+		}
 		LogPrint(eLogDebug, "FS: tunnels config file: ", tunConf);
 		try 
 		{

@@ -162,9 +162,8 @@ namespace stream
 
 	void Stream::SavePacket (Packet * packet)
 	{
-		auto ins = m_SavedPackets.insert (packet);
-		// delete packed if not saved
-		if (!ins.second) delete packet;
+		if (!m_SavedPackets.insert (packet).second)
+			delete packet;
 	}	
 
 	void Stream::ProcessPacket (Packet * packet)
