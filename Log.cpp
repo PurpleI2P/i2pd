@@ -85,6 +85,11 @@ namespace log {
 		return m_LastDateTime;
 	}
 
+	/**
+	 * @note This function better to be run in separate thread due to disk i/o.
+	 * Unfortunately, with current startup process with late fork() this
+	 * will give us nothing but pain. Maybe later. See in NetDb as example.
+	 */
 	void Log::Process() {
 		std::unique_lock<std::mutex> l(m_OutputLock);
 		while (1) {
