@@ -18,7 +18,7 @@ namespace i2p
 {
 namespace client
 {
-	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
+	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt";
 	const int INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT = 3; // in minutes	
 	const int INITIAL_SUBSCRIPTION_RETRY_TIMEOUT = 1; // in minutes			
 	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720; // in minutes (12 hours)			
