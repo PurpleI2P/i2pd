@@ -7,7 +7,7 @@ Command line options
 * --conf=               - Config file (default: ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
-* --tunconf=            - Tunnels config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
+* --tunconf=            - Tunnels config file (default: ~/.i2pd/tunnels.conf or /var/lib/i2pd/tunnels.conf)
 * --pidfile=            - Where to write pidfile (dont write by default)
 * --log=                - Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)
 * --logfile=            - Path to logfile (default - autodetect)
@@ -73,7 +73,7 @@ i2pd.conf:
     [sam]
     enabled = true
 
-tunnels.cfg (filename of this config is subject of change):
+tunnels.conf
 
     # outgoing tunnel sample, to remote service
     # mandatory parameters:
