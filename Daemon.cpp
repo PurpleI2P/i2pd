@@ -69,11 +69,19 @@ namespace i2p
 			i2p::fs::Init();
 
 			datadir = i2p::fs::GetDataDir();
-			if (config  == "")
+			// TODO: drop old name detection in v2.8.0
+			if (config == "")
 			{
 				config = i2p::fs::DataDirPath("i2p.conf");
-				// use i2p.conf only if exists
-				if (!i2p::fs::Exists (config)) config = ""; /* reset */
+				if (i2p::fs::Exists (config)) {
+					LogPrint(eLogWarning, "Daemon: please rename i2p.conf to i2pd.conf here: ", config);
+				} else {
+					config = i2p::fs::DataDirPath("i2pd.conf");
+					if (!i2p::fs::Exists (config)) {
+						// use i2pd.conf only if exists
+						config = ""; /* reset */
+					}
+				}
 			}
 
 			i2p::config::ParseConfig(config);

@@ -4,7 +4,7 @@ i2pd configuration
 Command line options
 --------------------
 
-* --conf=               - Config file (default: ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)
+* --conf=               - Config file (default: ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
 * --tunconf=            - Tunnels config file (default: ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)
@@ -60,7 +60,7 @@ All command-line parameters are allowed as keys, but note for those which contai
 
 For example:
 
-i2p.conf:
+i2pd.conf:
 
     # comment
     log = true
