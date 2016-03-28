@@ -140,7 +140,7 @@ namespace log {
 		LogLevel level;   /**< message level */
 		std::thread::id tid; /**< id of thread that generated message */
 
-		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl), tid(0) {};
+		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {};
 	};
 
 	Log & Logger();
