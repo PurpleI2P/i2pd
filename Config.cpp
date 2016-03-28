@@ -110,7 +110,7 @@ namespace config {
       ("conf",      value<std::string>()->default_value(""),     "Path to main i2pd config file (default: try ~/.i2pd/i2p.conf or /var/lib/i2pd/i2p.conf)")
       ("tunconf",   value<std::string>()->default_value(""),     "Path to config with tunnels list and options (default: try ~/.i2pd/tunnels.cfg or /var/lib/i2pd/tunnels.cfg)")
       ("pidfile",   value<std::string>()->default_value(""),     "Path to pidfile (default: ~/i2pd/i2pd.pid or /var/lib/i2pd/i2pd.pid)")
-      ("log",       value<std::string>()->default_value(""),     "Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)")
+      ("log",       value<std::string>()->default_value(""),     "Logs destination: stdout, file, syslog (stdout if not set)")
       ("logfile",   value<std::string>()->default_value(""),     "Path to logfile (stdout if not set, autodetect if daemon)")
       ("loglevel",  value<std::string>()->default_value("info"), "Set the minimal level of log messages (debug, info, warn, error)")
 	  ("family",    value<std::string>()->default_value(""),     "Specify a family, router belongs to")

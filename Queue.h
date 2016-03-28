@@ -117,52 +117,6 @@ namespace util
 			std::mutex m_QueueMutex;
 			std::condition_variable m_NonEmpty;
 	};	
-
-	template<class Msg>
-	class MsgQueue: public Queue<Msg *>
-	{
-		public:
-
-			typedef std::function<void()> OnEmpty;
-
-			MsgQueue (): m_IsRunning (true), m_Thread (std::bind (&MsgQueue<Msg>::Run, this))  {};
-			~MsgQueue () { Stop (); };
-			void Stop()
-			{
-				if (m_IsRunning)
-				{
-					m_IsRunning = false;
-					Queue<Msg *>::WakeUp ();					
-					m_Thread.join();
-				}
-			}
-
-			void SetOnEmpty (OnEmpty const & e) { m_OnEmpty = e; };
-
-		private:
-
-			void Run ()
-			{
-				while (m_IsRunning)
-				{
-					while (auto msg = Queue<Msg *>::Get ())
-					{
-						msg->Process ();
-						delete msg;
-					}
-					if (m_OnEmpty != nullptr)
-						m_OnEmpty ();
-					if (m_IsRunning)
-						Queue<Msg *>::Wait ();
-				}	
-			}	
-			
-		private:
-			
-			volatile bool m_IsRunning;
-			OnEmpty m_OnEmpty;
-			std::thread m_Thread;	
-	};	
 }		
 }	
 
