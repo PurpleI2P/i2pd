@@ -92,22 +92,32 @@ namespace log {
 	 */
 	void Log::Process() {
 		std::unique_lock<std::mutex> l(m_OutputLock);
+		std::hash<std::thread::id> hasher;
+		unsigned short short_tid;
 		while (1) {
 			auto msg = m_Queue.GetNextWithTimeout (1);
 			if (!msg)
 				break;
+			short_tid = (short) (hasher(msg->tid) % 1000);
 			switch (m_Destination) {
 #ifndef _WIN32
 				case eLogSyslog:
-					syslog(GetSyslogPrio(msg->level), "%s", msg->text.c_str());
+					syslog(GetSyslogPrio(msg->level), "[%03u] %s", short_tid, msg->text.c_str());
 					break;
 #endif
 				case eLogFile:
 				case eLogStream:
-					*m_LogStream << TimeAsString(msg->timestamp) << "/" << g_LogLevelStr[msg->level] << " - " << msg->text << std::endl;
+					*m_LogStream << TimeAsString(msg->timestamp)
+						<< "@" << short_tid
+						<< "/" << g_LogLevelStr[msg->level]
+						<< " - " << msg->text << std::endl;
 					break;
+				case eLogStdout:
 				default:
-					std::cout    << TimeAsString(msg->timestamp) << "/" << g_LogLevelStr[msg->level] << " - " << msg->text << std::endl;
+					std::cout    << TimeAsString(msg->timestamp)
+						<< "@" << short_tid
+						<< "/" << g_LogLevelStr[msg->level]
+						<< " - " << msg->text << std::endl;
 					break;
 			} // switch
 		} // while
