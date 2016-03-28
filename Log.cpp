@@ -127,7 +127,6 @@ namespace log {
 			m_Logfile = path;
 			m_Destination = eLogFile;
 			m_LogStream = os;
-			m_IsReady = true;
 			return;
 		}
 		LogPrint(eLogError, "Log: can't open file ", path);
@@ -135,7 +134,6 @@ namespace log {
 
 	void Log::SendTo (std::shared_ptr<std::ostream> os) {
 		m_Destination = eLogStream;
-		m_IsReady = true;
 		m_LogStream = os;
 	}
 
@@ -143,7 +141,6 @@ namespace log {
 	void Log::SendTo(const char *name, int facility) {
 		m_Destination = eLogSyslog;
 		m_LogStream = nullptr;
-		m_IsReady = true;
 		openlog(name, LOG_CONS | LOG_PID, facility);
 	}
 #endif

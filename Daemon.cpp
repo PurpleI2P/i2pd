@@ -111,6 +111,7 @@ namespace i2p
 			} else {
 				// use stdout -- default
 			}
+			i2p::log::Logger().Ready();
 
 			LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
 			LogPrint(eLogDebug, "FS: main config file: ", config);

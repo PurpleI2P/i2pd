@@ -118,6 +118,9 @@ namespace log {
 			 */
 			void Append(std::shared_ptr<i2p::log::LogMsg> &);
 
+			/** @brief  Allow log output */
+			void Ready() { m_IsReady = true; }
+
 			/** @brief  Flushes the output log stream */
 			void Flush();
 
