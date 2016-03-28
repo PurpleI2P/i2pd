@@ -4,9 +4,12 @@ i2pd configuration
 Command line options
 --------------------
 
+Options specified on the command line take precedence over those in the config file.
+If you are upgrading your very old router (< 2.3.0) see also [this](config_opts_after_2.3.0.md) page.
+
+* --help                - Show builtin help message (default value of option will be shown in braces)
 * --conf=               - Config file (default: ~/.i2pd/i2pd.conf or /var/lib/i2pd/i2pd.conf)
                           This parameter will be silently ignored if the specified config file does not exist.
-                          Options specified on the command line take precedence over those in the config file.
 * --tunconf=            - Tunnels config file (default: ~/.i2pd/tunnels.conf or /var/lib/i2pd/tunnels.conf)
 * --pidfile=            - Where to write pidfile (dont write by default)
 * --log=                - Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)
@@ -23,6 +26,8 @@ Command line options
 * --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
 * --family=             - Name of a family, router belongs to
 * --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
+
+All options below still possible in cmdline, but better write it in config file:
 
 * --http.address=       - The address to listen on (HTTP server)
 * --http.port=          - The port to listen on (HTTP server)
@@ -69,11 +74,13 @@ i2pd.conf:
     [httpproxy]
     port = 4444
     # ^^ this will be --httproxy.port= in cmdline
-    # another one
+    # another comment
     [sam]
     enabled = true
 
-tunnels.conf
+See also commented config with examples of all options in ``docs/i2pd.conf``.
+
+tunnels.conf:
 
     # outgoing tunnel sample, to remote service
     # mandatory parameters:
@@ -107,6 +114,7 @@ tunnels.conf
     host = 127.0.0.1
     port = 80
     keys = site-keys.dat
+    #
     [IRC-SERVER]
     type = server
     host = 127.0.0.1
