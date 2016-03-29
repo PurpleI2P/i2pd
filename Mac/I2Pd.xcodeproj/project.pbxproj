@@ -1,0 +1,413 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BF3D69501CAAF56900A7EED6 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = BF3D694F1CAAF56900A7EED6 /* AppDelegate.m */; };
+		BF3D69531CAAF56900A7EED6 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = BF3D69521CAAF56900A7EED6 /* main.m */; };
+		BF3D69551CAAF56900A7EED6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF3D69541CAAF56900A7EED6 /* Assets.xcassets */; };
+		BF3D69581CAAF56900A7EED6 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = BF3D69561CAAF56900A7EED6 /* MainMenu.xib */; };
+		BF3D69631CAAF56900A7EED6 /* I2PdTests.m in Sources */ = {isa = PBXBuildFile; fileRef = BF3D69621CAAF56900A7EED6 /* I2PdTests.m */; };
+		BF83EE831CAB032000D3DE82 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF83EE821CAB032000D3DE82 /* Images.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BF3D695F1CAAF56900A7EED6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF3D69431CAAF56900A7EED6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BF3D694A1CAAF56900A7EED6;
+			remoteInfo = I2Pd;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		BF3D694B1CAAF56900A7EED6 /* I2Pd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = I2Pd.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF3D694E1CAAF56900A7EED6 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		BF3D694F1CAAF56900A7EED6 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		BF3D69521CAAF56900A7EED6 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		BF3D69541CAAF56900A7EED6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BF3D69571CAAF56900A7EED6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		BF3D69591CAAF56900A7EED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF3D695E1CAAF56900A7EED6 /* I2PdTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = I2PdTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF3D69621CAAF56900A7EED6 /* I2PdTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = I2PdTests.m; sourceTree = "<group>"; };
+		BF3D69641CAAF56900A7EED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF83EE821CAB032000D3DE82 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BF3D69481CAAF56900A7EED6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF3D695B1CAAF56900A7EED6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BF3D69421CAAF56900A7EED6 = {
+			isa = PBXGroup;
+			children = (
+				BF3D694D1CAAF56900A7EED6 /* I2Pd */,
+				BF3D69611CAAF56900A7EED6 /* I2PdTests */,
+				BF3D694C1CAAF56900A7EED6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BF3D694C1CAAF56900A7EED6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BF3D694B1CAAF56900A7EED6 /* I2Pd.app */,
+				BF3D695E1CAAF56900A7EED6 /* I2PdTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BF3D694D1CAAF56900A7EED6 /* I2Pd */ = {
+			isa = PBXGroup;
+			children = (
+				BF3D694E1CAAF56900A7EED6 /* AppDelegate.h */,
+				BF3D694F1CAAF56900A7EED6 /* AppDelegate.m */,
+				BF3D69541CAAF56900A7EED6 /* Assets.xcassets */,
+				BF83EE821CAB032000D3DE82 /* Images.xcassets */,
+				BF3D69561CAAF56900A7EED6 /* MainMenu.xib */,
+				BF3D69591CAAF56900A7EED6 /* Info.plist */,
+				BF3D69511CAAF56900A7EED6 /* Supporting Files */,
+			);
+			path = I2Pd;
+			sourceTree = "<group>";
+		};
+		BF3D69511CAAF56900A7EED6 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				BF3D69521CAAF56900A7EED6 /* main.m */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		BF3D69611CAAF56900A7EED6 /* I2PdTests */ = {
+			isa = PBXGroup;
+			children = (
+				BF3D69621CAAF56900A7EED6 /* I2PdTests.m */,
+				BF3D69641CAAF56900A7EED6 /* Info.plist */,
+			);
+			path = I2PdTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BF3D694A1CAAF56900A7EED6 /* I2Pd */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF3D69671CAAF56900A7EED6 /* Build configuration list for PBXNativeTarget "I2Pd" */;
+			buildPhases = (
+				BF3D69471CAAF56900A7EED6 /* Sources */,
+				BF3D69481CAAF56900A7EED6 /* Frameworks */,
+				BF3D69491CAAF56900A7EED6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = I2Pd;
+			productName = I2Pd;
+			productReference = BF3D694B1CAAF56900A7EED6 /* I2Pd.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BF3D695D1CAAF56900A7EED6 /* I2PdTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF3D696A1CAAF56900A7EED6 /* Build configuration list for PBXNativeTarget "I2PdTests" */;
+			buildPhases = (
+				BF3D695A1CAAF56900A7EED6 /* Sources */,
+				BF3D695B1CAAF56900A7EED6 /* Frameworks */,
+				BF3D695C1CAAF56900A7EED6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BF3D69601CAAF56900A7EED6 /* PBXTargetDependency */,
+			);
+			name = I2PdTests;
+			productName = I2PdTests;
+			productReference = BF3D695E1CAAF56900A7EED6 /* I2PdTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BF3D69431CAAF56900A7EED6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0720;
+				ORGANIZATIONNAME = "Purple I2P (Published by Sigterm AS)";
+				TargetAttributes = {
+					BF3D694A1CAAF56900A7EED6 = {
+						CreatedOnToolsVersion = 7.2.1;
+						DevelopmentTeam = W3C42P2LA8;
+					};
+					BF3D695D1CAAF56900A7EED6 = {
+						CreatedOnToolsVersion = 7.2.1;
+						TestTargetID = BF3D694A1CAAF56900A7EED6;
+					};
+				};
+			};
+			buildConfigurationList = BF3D69461CAAF56900A7EED6 /* Build configuration list for PBXProject "I2Pd" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BF3D69421CAAF56900A7EED6;
+			productRefGroup = BF3D694C1CAAF56900A7EED6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BF3D694A1CAAF56900A7EED6 /* I2Pd */,
+				BF3D695D1CAAF56900A7EED6 /* I2PdTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BF3D69491CAAF56900A7EED6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF83EE831CAB032000D3DE82 /* Images.xcassets in Resources */,
+				BF3D69551CAAF56900A7EED6 /* Assets.xcassets in Resources */,
+				BF3D69581CAAF56900A7EED6 /* MainMenu.xib in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF3D695C1CAAF56900A7EED6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BF3D69471CAAF56900A7EED6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF3D69531CAAF56900A7EED6 /* main.m in Sources */,
+				BF3D69501CAAF56900A7EED6 /* AppDelegate.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF3D695A1CAAF56900A7EED6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF3D69631CAAF56900A7EED6 /* I2PdTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BF3D69601CAAF56900A7EED6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BF3D694A1CAAF56900A7EED6 /* I2Pd */;
+			targetProxy = BF3D695F1CAAF56900A7EED6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		BF3D69561CAAF56900A7EED6 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BF3D69571CAAF56900A7EED6 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		BF3D69651CAAF56900A7EED6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		BF3D69661CAAF56900A7EED6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		BF3D69681CAAF56900A7EED6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Mac Developer";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = I2Pd/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = io.i2p.I2Pd;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
+			};
+			name = Debug;
+		};
+		BF3D69691CAAF56900A7EED6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Mac Developer";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = I2Pd/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = io.i2p.I2Pd;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
+			};
+			name = Release;
+		};
+		BF3D696B1CAAF56900A7EED6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = I2PdTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = io.i2p.I2PdTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/I2Pd.app/Contents/MacOS/I2Pd";
+			};
+			name = Debug;
+		};
+		BF3D696C1CAAF56900A7EED6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = I2PdTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = io.i2p.I2PdTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/I2Pd.app/Contents/MacOS/I2Pd";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BF3D69461CAAF56900A7EED6 /* Build configuration list for PBXProject "I2Pd" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF3D69651CAAF56900A7EED6 /* Debug */,
+				BF3D69661CAAF56900A7EED6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF3D69671CAAF56900A7EED6 /* Build configuration list for PBXNativeTarget "I2Pd" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF3D69681CAAF56900A7EED6 /* Debug */,
+				BF3D69691CAAF56900A7EED6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF3D696A1CAAF56900A7EED6 /* Build configuration list for PBXNativeTarget "I2PdTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF3D696B1CAAF56900A7EED6 /* Debug */,
+				BF3D696C1CAAF56900A7EED6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BF3D69431CAAF56900A7EED6 /* Project object */;
+}
