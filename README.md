@@ -30,7 +30,7 @@ Supported OS
 * Linux x86/x64  - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)  
 * Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)  
 * Mac OS X
-* FreeBSD
+* FreeBSD         - [![Build status](https://jenkins.manas.ca/i2pd)](https://jenkins.manas.ca/i2pd)
 
 More documentation
 ------------------
