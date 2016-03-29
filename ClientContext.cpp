@@ -52,8 +52,12 @@ namespace client
 				LoadPrivateKeys (keys, httpProxyKeys);
 				localDestination = CreateNewLocalDestination (keys, false);
 			}
-			m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
-			m_HttpProxy->Start();
+			try {
+			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
+			  m_HttpProxy->Start();
+			} catch (std::exception& e) {
+			  LogPrint(eLogError, "Exception in HTTP Proxy: ", e.what());
+			}
 		}
 
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
