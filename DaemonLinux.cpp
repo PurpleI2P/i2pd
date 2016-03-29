@@ -12,6 +12,7 @@
 #include "Config.h"
 #include "FS.h"
 #include "Log.h"
+#include "RouterContext.h"
 
 void handle_signal(int sig)
 {
@@ -22,6 +23,7 @@ void handle_signal(int sig)
 			i2p::log::Logger().Reopen ();
 		break;
 		case SIGINT:
+			i2p::context.SetAcceptsTunnels (false);
 			Daemon.gracefullShutdownInterval = 10*60; // 10 minutes
 			LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefullShutdownInterval, " seconds");
 		break;	
