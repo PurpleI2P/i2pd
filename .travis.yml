@@ -28,6 +28,7 @@ compiler:
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install openssl miniupnpc ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink boost openssl && brew link boost openssl -f ; fi
 env:
   matrix:
     - BUILD_TYPE=Release UPNP=ON
