@@ -27,7 +27,7 @@ compiler:
   - clang
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost openssl miniupnpc cmake ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install openssl miniupnpc ; fi
 env:
   matrix:
     - BUILD_TYPE=Release UPNP=ON
