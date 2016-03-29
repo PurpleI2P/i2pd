@@ -1,11 +1,19 @@
+/*
+* Copyright (c) 2013-2016, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef LOG_H__
 #define LOG_H__
 
+#include <ctime>
 #include <string>
 #include <iostream>
-#include <sstream>
 #include <fstream>
-#include <functional>
+#include <sstream>
 #include <chrono>
 #include <memory>
 #include "Queue.h"
@@ -23,150 +31,156 @@ enum LogLevel
 	eNumLogLevels
 };
 
-class Log;
-struct LogMsg
-{
-	std::stringstream s;
-	Log * log;	
-	LogLevel level;
-
-	LogMsg (Log * l = nullptr, LogLevel lv = eLogInfo): log (l), level (lv) {};
-	
-	void Process();
-};
-
-class Log: public i2p::util::MsgQueue<LogMsg>
-{
-	public:
-
-		Log () { SetOnEmpty (std::bind (&Log::Flush, this)); };
-		~Log () {};
-
-		void SetLogFile (const std::string& fullFilePath, bool truncate = true);
-		void ReopenLogFile ();
-		void SetLogLevel (const std::string& level);
-		void SetLogStream (std::shared_ptr<std::ostream> logStream);
-		std::shared_ptr<std::ostream> GetLogStream () const { return m_LogStream; };	
-		const std::string& GetTimestamp ();
-		LogLevel GetLogLevel () { return m_MinLevel; };
-	 	const std::string& GetFullFilePath () const { return m_FullFilePath; };
-		/** start logging to syslog */
-		void StartSyslog(const std::string & ident, const int facility);
-		/** stop logging to syslog */
-		void StopSyslog();
-		/** are we logging to syslog right now? */
-		bool SyslogEnabled();
-	private:
-
-		void Flush ();
-
-	private:
-
-		std::string m_FullFilePath; // empty if stream
-		std::shared_ptr<std::ostream> m_LogStream;
-		enum LogLevel m_MinLevel;
-		std::string m_Timestamp;
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6) && !defined(__clang__) // gcc 4.6
-		std::chrono::monotonic_clock::time_point m_LastTimestampUpdate;
-#else		
-		std::chrono::steady_clock::time_point m_LastTimestampUpdate;	
-#endif
-		std::string m_Ident;
-};
-
-extern Log * g_Log;
-
-inline void StartLog (const std::string& fullFilePath)
-{
-	if (!g_Log)
-	{	
-		auto log = new Log ();
-		if (fullFilePath.length () > 0)
-			log->SetLogFile (fullFilePath);
-		g_Log = log;
-	}	
-}
-
-inline void StartLog (std::shared_ptr<std::ostream> s)
-{
-	if (!g_Log)
-	{	
-		auto log = new Log ();
-		if (s)
-			log->SetLogStream (s);
-		g_Log = log;
-	}	
-}
-
-inline void StopLog ()
-{
-	if (g_Log)
-	{
-		auto log = g_Log;
-		g_Log = nullptr;
-		log->Stop ();
-		delete log;
-	}		
-}
-
-inline void SetLogLevel (const std::string& level)
-{
-	if (g_Log)	
-		g_Log->SetLogLevel(level);
-}
-
-inline void ReopenLogFile ()
-{
-	if (g_Log)	
-		g_Log->ReopenLogFile ();
-}
-
-inline bool IsLogToFile ()
-{
-	return g_Log ? !g_Log->GetFullFilePath ().empty () : false;
-}	
-
-inline void StartSyslog()
-{
-	StartLog("");
+enum LogType {
+	eLogStdout = 0,
+	eLogStream,
+	eLogFile,
 #ifndef _WIN32
-	g_Log->StartSyslog("i2pd", LOG_USER);
+	eLogSyslog,
 #endif
-}
+};
 
-inline void StopSyslog()
-{
-	if(g_Log)
-		g_Log->StopSyslog();
-}
+namespace i2p {
+namespace log {
+	struct LogMsg; /* forward declaration */
 
+	class Log
+	{
+		private:
+
+			enum LogType  m_Destination;
+			enum LogLevel m_MinLevel;
+			std::shared_ptr<std::ostream> m_LogStream;
+			std::string m_Logfile;
+			std::time_t m_LastTimestamp;
+			char m_LastDateTime[64];
+			i2p::util::Queue<std::shared_ptr<LogMsg> > m_Queue;
+			volatile bool m_IsReady;
+			mutable std::mutex m_OutputLock;
+
+		private:
+
+			/** prevent making copies */
+			Log (const Log &);
+			const Log& operator=(const Log&);
+
+			/**
+			 * @brief process stored messages in queue
+			 */
+			void Process ();
+
+			/**
+			 * @brief Makes formatted string from unix timestamp
+			 * @param ts  Second since epoch
+			 *
+			 * This function internally caches the result for last provided value
+			 */
+			const char * TimeAsString(std::time_t ts);
+
+		public:
+
+			Log ();
+			~Log ();
+
+			LogType  GetLogType  () { return m_Destination; };
+			LogLevel GetLogLevel () { return m_MinLevel; };
+
+			/**
+			 * @brief  Sets minimal alloed level for log messages
+			 * @param  level  String with wanted minimal msg level
+			 */
+			void     SetLogLevel (const std::string& level);
+
+			/**
+			 * @brief Sets log destination to logfile
+			 * @param path  Path to logfile
+			 */
+			void SendTo (const std::string &path);
+
+			/**
+			 * @brief Sets log destination to given output stream
+			 * @param os  Output stream
+			 */
+			void SendTo (std::shared_ptr<std::ostream> s);
+
+	#ifndef _WIN32
+			/**
+			 * @brief Sets log destination to syslog
+			 * @param name     Wanted program name
+			 * @param facility Wanted log category
+			 */
+			void SendTo (const char *name, int facility);
+	#endif
+
+			/**
+			 * @brief  Format log message and write to output stream/syslog
+			 * @param  msg  Pointer to processed message
+			 */
+			void Append(std::shared_ptr<i2p::log::LogMsg> &);
+
+			/** @brief  Allow log output */
+			void Ready() { m_IsReady = true; }
+
+			/** @brief  Flushes the output log stream */
+			void Flush();
+
+			/** @brief  Reopen log file */
+			void Reopen();
+	};
+
+	/**
+	 * @struct Log message container
+	 *
+	 * We creating it somewhere with LogPrint(),
+	 * then put in MsgQueue for later processing.
+	 */
+	struct LogMsg {
+		std::time_t timestamp;
+		std::string text; /**< message text as single string */
+		LogLevel level;   /**< message level */
+		std::thread::id tid; /**< id of thread that generated message */
+
+		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {};
+	};
+
+	Log & Logger();
+} // log
+} // i2p
+
+/** internal usage only -- folding args array to single string */
 template<typename TValue>
-void LogPrint (std::stringstream& s, TValue arg) 
+void LogPrint (std::stringstream& s, TValue arg)
 {
 	s << arg;
 }
- 
+
+/** internal usage only -- folding args array to single string */
 template<typename TValue, typename... TArgs>
-void LogPrint (std::stringstream& s, TValue arg, TArgs... args) 
+void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
 {
 	LogPrint (s, arg);
 	LogPrint (s, args...);
 }
 
+/**
+ * @brief Create log message and send it to queue
+ * @param level Message level (eLogError, eLogInfo, ...)
+ * @param args Array of message parts
+ */
 template<typename... TArgs>
-void LogPrint (LogLevel level, TArgs... args) 
+void LogPrint (LogLevel level, TArgs... args)
 {
-	if (g_Log && level > g_Log->GetLogLevel ())
+	i2p::log::Log &log = i2p::log::Logger();
+	if (level > log.GetLogLevel ())
 		return;
-	LogMsg * msg = new LogMsg (g_Log, level);
-	LogPrint (msg->s, args...);
-	msg->s << std::endl;
-	if (g_Log) {
-		g_Log->Put (msg);
-	} else {
-		msg->Process ();
-		delete msg;
-	}
+
+	// fold message to single string
+	std::stringstream ss("");
+	LogPrint (ss, args ...);
+
+	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
+	msg->tid = std::this_thread::get_id();
+	log.Append(msg);
 }
 
-#endif
+#endif // LOG_H__

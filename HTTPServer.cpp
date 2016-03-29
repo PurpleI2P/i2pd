@@ -525,8 +525,8 @@ namespace util
 		s << "<input type=\"hidden\" name=\"jumpservices\">";
 		s << "<input type=\"text\" value=\"" << address << "\" name=\"address\"> </form><br>\r\n";
 		s << "<b>Jump services for " << address << "</b>";
-		s << "<ul><li><a href=\"http://inr.i2p/search/?q=" << address << "\">inr.i2p jump service</a> <br>\r\n";
-		s << "<li><a href=\"http://stats.i2p/cgi-bin/jump.cgi?a=" << address << "\">stats.i2p jump service</a></ul>";
+		s << "<ul><li><a href=\"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" << address << "\">inr.i2p jump service</a> <br>\r\n";
+		s << "<li><a href=\"http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" << address << "\">stats.i2p jump service</a></ul>";
     }
 
 	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
