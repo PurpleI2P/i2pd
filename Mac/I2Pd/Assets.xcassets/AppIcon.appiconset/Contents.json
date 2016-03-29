@@ -1,8 +1,9 @@
 {
   "images" : [
     {
-      "idiom" : "mac",
       "size" : "16x16",
+      "idiom" : "mac",
+      "filename" : "icon.png",
       "scale" : "1x"
     },
     {
