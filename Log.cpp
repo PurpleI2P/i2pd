@@ -1,86 +1,167 @@
-#include <boost/date_time/posix_time/posix_time.hpp>
+/*
+* Copyright (c) 2013-2016, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include "Log.h"
 
-Log * g_Log = nullptr;
-
-static const char * g_LogLevelStr[eNumLogLevels] =
-{
-	"error", // eLogError
-	"warn",  // eLogWarning
-	"info",  // eLogInfo
-	"debug"	 // eLogDebug 
-};
-
-void LogMsg::Process()
-{
-	auto stream = log ? log->GetLogStream () : nullptr;
-	auto& output = stream ? *stream : std::cout;	
-	if (log)	
-		output << log->GetTimestamp ();
-	else
-		output << boost::posix_time::second_clock::local_time().time_of_day ();
-	output << "/" << g_LogLevelStr[level] << " - ";
-	output << s.str();
-}
-
-const std::string& Log::GetTimestamp ()
-{
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6) && !defined(__clang__)	
-	auto ts = std::chrono::monotonic_clock::now ();	
-#else	
-	auto ts = std::chrono::steady_clock::now ();	
-#endif	
-	if (ts > m_LastTimestampUpdate + std::chrono::milliseconds (500)) // 0.5 second
+namespace i2p {
+namespace log {
+	Log logger;
+	/**
+	 * @enum Maps our loglevel to their symbolic name
+	 */
+	static const char * g_LogLevelStr[eNumLogLevels] =
 	{
-		m_LastTimestampUpdate = ts;
-		m_Timestamp = boost::posix_time::to_simple_string (boost::posix_time::second_clock::local_time().time_of_day ());
-	}		
-	return m_Timestamp;
-}
+		"error", // eLogError
+		"warn",  // eLogWarn
+		"info",  // eLogInfo
+		"debug"	 // eLogDebug
+	};
 
-void Log::Flush ()
-{
-	if (m_LogStream)
-		m_LogStream->flush();
-}
-
-void Log::SetLogFile (const std::string& fullFilePath, bool truncate)
-{
-	m_FullFilePath = fullFilePath;	
-	auto mode = std::ofstream::out | std::ofstream::binary;
-	mode |= truncate ? std::ofstream::trunc : std::ofstream::app;
-	auto logFile = std::make_shared<std::ofstream> (fullFilePath, mode);
-	if (logFile->is_open ())
-	{
-		SetLogStream (logFile);
-		LogPrint(eLogInfo, "Log: will send messages to ",  fullFilePath);
-	}	
-}
-
-void Log::ReopenLogFile ()
-{
-	if (m_FullFilePath.length () > 0)
-	{
-		SetLogFile (m_FullFilePath, false); // don't truncate
-		LogPrint(eLogInfo, "Log: file ", m_FullFilePath,  " reopen");
+#ifndef _WIN32
+	/**
+	 * @brief  Maps our log levels to syslog one
+	 * @return syslog priority LOG_*, as defined in syslog.h
+	 */
+	static inline int GetSyslogPrio (enum LogLevel l) {
+		int priority = LOG_DEBUG;
+		switch (l) {
+			case eLogError   : priority = LOG_ERR;     break;
+			case eLogWarning : priority = LOG_WARNING; break;
+			case eLogInfo    : priority = LOG_INFO;    break;
+			case eLogDebug   : priority = LOG_DEBUG;   break;
+			default          : priority = LOG_DEBUG;   break;
+		}
+		return priority;
 	}
-}
+#endif
 
+	Log::Log():
+	m_Destination(eLogStdout), m_MinLevel(eLogInfo),
+	m_LogStream (nullptr), m_Logfile(""), m_IsReady(false)
+	{
+	}
 
-void Log::SetLogLevel (const std::string& level)
-{
-  if      (level == "error") { m_MinLevel = eLogError; }
-  else if (level == "warn")  { m_MinLevel = eLogWarning;  }
-  else if (level == "info")  { m_MinLevel = eLogInfo;  }
-  else if (level == "debug") { m_MinLevel = eLogDebug; }
-  else {
-		LogPrint(eLogError, "Log: Unknown loglevel: ", level);
-		return;
-  }
-  LogPrint(eLogInfo, "Log: min msg level set to ", level);
-}
+	Log::~Log ()
+	{
+		switch (m_Destination) {
+#ifndef _WIN32
+			case eLogSyslog :
+				closelog();
+				break;
+#endif
+			case eLogFile:
+			case eLogStream:
+				m_LogStream->flush();
+				break;
+			default:
+				/* do nothing */
+				break;
+		}
+		Process();
+	}
 
-void Log::SetLogStream (std::shared_ptr<std::ostream> logStream)
-{
-	m_LogStream = logStream;
-}
+	void Log::SetLogLevel (const std::string& level) {
+		if      (level == "error") { m_MinLevel = eLogError; }
+		else if (level == "warn")  { m_MinLevel = eLogWarning; }
+		else if (level == "info")  { m_MinLevel = eLogInfo;  }
+		else if (level == "debug") { m_MinLevel = eLogDebug; }
+		else {
+			LogPrint(eLogError, "Log: unknown loglevel: ", level);
+			return;
+		}
+		LogPrint(eLogInfo, "Log: min messages level set to ", level);
+	}
+	
+	const char * Log::TimeAsString(std::time_t t) {
+		if (t != m_LastTimestamp) {
+			strftime(m_LastDateTime, sizeof(m_LastDateTime), "%H:%M:%S", localtime(&t));
+			m_LastTimestamp = t;
+		}
+		return m_LastDateTime;
+	}
+
+	/**
+	 * @note This function better to be run in separate thread due to disk i/o.
+	 * Unfortunately, with current startup process with late fork() this
+	 * will give us nothing but pain. Maybe later. See in NetDb as example.
+	 */
+	void Log::Process() {
+		std::unique_lock<std::mutex> l(m_OutputLock);
+		std::hash<std::thread::id> hasher;
+		unsigned short short_tid;
+		while (1) {
+			auto msg = m_Queue.GetNextWithTimeout (1);
+			if (!msg)
+				break;
+			short_tid = (short) (hasher(msg->tid) % 1000);
+			switch (m_Destination) {
+#ifndef _WIN32
+				case eLogSyslog:
+					syslog(GetSyslogPrio(msg->level), "[%03u] %s", short_tid, msg->text.c_str());
+					break;
+#endif
+				case eLogFile:
+				case eLogStream:
+					*m_LogStream << TimeAsString(msg->timestamp)
+						<< "@" << short_tid
+						<< "/" << g_LogLevelStr[msg->level]
+						<< " - " << msg->text << std::endl;
+					break;
+				case eLogStdout:
+				default:
+					std::cout    << TimeAsString(msg->timestamp)
+						<< "@" << short_tid
+						<< "/" << g_LogLevelStr[msg->level]
+						<< " - " << msg->text << std::endl;
+					break;
+			} // switch
+		} // while
+	}
+
+	void Log::Append(std::shared_ptr<i2p::log::LogMsg> & msg) {
+		m_Queue.Put(msg);
+		if (!m_IsReady)
+			return;
+		Process();
+	}
+
+	void Log::SendTo (const std::string& path) {
+		auto flags = std::ofstream::out | std::ofstream::app;
+		auto os = std::make_shared<std::ofstream> (path, flags);
+		if (os->is_open ()) {
+			m_Logfile = path;
+			m_Destination = eLogFile;
+			m_LogStream = os;
+			return;
+		}
+		LogPrint(eLogError, "Log: can't open file ", path);
+	}
+
+	void Log::SendTo (std::shared_ptr<std::ostream> os) {
+		m_Destination = eLogStream;
+		m_LogStream = os;
+	}
+
+#ifndef _WIN32
+	void Log::SendTo(const char *name, int facility) {
+		m_Destination = eLogSyslog;
+		m_LogStream = nullptr;
+		openlog(name, LOG_CONS | LOG_PID, facility);
+	}
+#endif
+
+	void Log::Reopen() {
+		if (m_Destination == eLogFile)
+			SendTo(m_Logfile);
+	}
+
+	Log & Logger() {
+		return logger;
+	}
+} // log
+} // i2p

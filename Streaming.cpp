@@ -162,7 +162,8 @@ namespace stream
 
 	void Stream::SavePacket (Packet * packet)
 	{
-		m_SavedPackets.insert (packet);
+		if (!m_SavedPackets.insert (packet).second)
+			delete packet;
 	}	
 
 	void Stream::ProcessPacket (Packet * packet)

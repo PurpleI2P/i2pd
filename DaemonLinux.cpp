@@ -19,7 +19,7 @@ void handle_signal(int sig)
 	{
 	case SIGHUP:
 		LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening log...");
-		ReopenLogFile ();
+		i2p::log::Logger().Reopen ();
 	break;
 	case SIGABRT:
 	case SIGTERM:
@@ -64,12 +64,9 @@ namespace i2p
 				}
 
 				// close stdin/stdout/stderr descriptors
-				::close (0);
-				::open ("/dev/null", O_RDWR);
-				::close (1);
-				::open ("/dev/null", O_RDWR);	
-				::close (2);
-				::open ("/dev/null", O_RDWR);
+				freopen("/dev/null", "r", stdin);
+				freopen("/dev/null", "w", stdout);
+				freopen("/dev/null", "w", stderr);
 			}
 
 			// Pidfile

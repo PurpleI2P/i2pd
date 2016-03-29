@@ -77,7 +77,7 @@ clean:
 strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
 	strip $^
 
-LATEST_TAG=$(shell git describe --tags --abbrev=0 master)
+LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
 dist:
 	git archive --format=tar.gz -9 --worktree-attributes \
 	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz

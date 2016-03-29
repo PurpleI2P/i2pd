@@ -421,10 +421,25 @@ namespace util
 		} 
 		s << "<br>\r\n";
 		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
-		s << "<b>Received:</b> " << i2p::transport::transports.GetTotalReceivedBytes ()/1000 << "K";
-		s << " (" << i2p::transport::transports.GetInBandwidth () <<" Bps)<br>\r\n";
-		s << "<b>Sent:</b> " << i2p::transport::transports.GetTotalSentBytes ()/1000 << "K";
-		s << " (" << i2p::transport::transports.GetOutBandwidth () <<" Bps)<br>\r\n";
+		s << "<b>Received:</b> ";
+		s << std::fixed << std::setprecision(2);
+		auto numKBytesReceived = (double) i2p::transport::transports.GetTotalReceivedBytes () / 1024;
+		if (numKBytesReceived < 1024)
+			s << numKBytesReceived << " KiB";
+		else if (numKBytesReceived < 1024 * 1024)
+			s << numKBytesReceived / 1024 << " MiB";
+		else
+			s << numKBytesReceived / 1024 / 1024 << " GiB";
+		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " KiB/s)<br>\r\n";
+		s << "<b>Sent:</b> ";
+		auto numKBytesSent = (double) i2p::transport::transports.GetTotalSentBytes () / 1024;
+		if (numKBytesSent < 1024)
+			s << numKBytesSent << " KiB";
+		else if (numKBytesSent < 1024 * 1024)
+			s << numKBytesSent / 1024 << " MiB";
+		else
+			s << numKBytesSent / 1024 / 1024 << " GiB";
+		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
 		s << "<b>Our external address:</b>" << "<br>\r\n" ;
 		for (auto address : i2p::context.GetRouterInfo().GetAddresses())
@@ -510,8 +525,8 @@ namespace util
 		s << "<input type=\"hidden\" name=\"jumpservices\">";
 		s << "<input type=\"text\" value=\"" << address << "\" name=\"address\"> </form><br>\r\n";
 		s << "<b>Jump services for " << address << "</b>";
-		s << "<ul><li><a href=\"http://inr.i2p/search/?q=" << address << "\">inr.i2p jump service</a> <br>\r\n";
-		s << "<li><a href=\"http://stats.i2p/cgi-bin/jump.cgi?a=" << address << "\">stats.i2p jump service</a></ul>";
+		s << "<ul><li><a href=\"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" << address << "\">inr.i2p jump service</a> <br>\r\n";
+		s << "<li><a href=\"http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" << address << "\">stats.i2p jump service</a></ul>";
     }
 
 	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)

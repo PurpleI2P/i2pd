@@ -4,7 +4,7 @@ Build requirements
 Linux/FreeBSD/OSX
 -----------------
 
-GCC 4.8 or newer, Boost 1.49 or newer, openssl, zlib. Clang can be used instead of GCC.
+GCC 4.7 or newer, Boost 1.49 or newer, openssl, zlib. Clang can be used instead of GCC.
 
 Windows
 -------
