@@ -56,20 +56,25 @@ namespace i2p
 #else
 		class DaemonLinux : public Daemon_Singleton
 		{
-		public:
-			static DaemonLinux& Instance()
-			{
-				static DaemonLinux instance;
-				return instance;
-			}
+			public:
+				static DaemonLinux& Instance()
+				{
+					static DaemonLinux instance;
+					return instance;
+				}
 
-			bool start();
-			bool stop();
-;			void run ();
+				bool start();
+				bool stop();
+				void run ();
 
-                private:
-                       std::string pidfile;
-                       int pidFH;
+			private:
+
+				std::string pidfile;
+                int pidFH;
+
+			public:
+
+				int gracefullShutdownInterval; // in seconds
 
 		};
 #endif
