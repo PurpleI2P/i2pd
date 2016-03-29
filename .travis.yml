@@ -3,6 +3,7 @@ cache:
   apt: true
 os:
   - linux
+  - osx
 sudo: required
 dist: trusty
 addons:
@@ -23,6 +24,10 @@ addons:
       - libssl-dev
 compiler:
   - gcc
+  - clang
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost openssl miniupnpc cmake ; fi
 env:
   matrix:
     - BUILD_TYPE=Release UPNP=ON
