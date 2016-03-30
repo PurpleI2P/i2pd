@@ -29,10 +29,10 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install openssl miniupnpc ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink boost openssl && brew link boost openssl -f ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cd $TRAVIS_BUILD_DIR/Mac && xcodebuild -project I2Pd.xcodeproj -target "I2Pd" CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" ; fi
 env:
   matrix:
     - BUILD_TYPE=Release UPNP=ON
     - BUILD_TYPE=Release UPNP=OFF
 script:
   - cd build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_UPNP=${UPNP} && make
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cd $TRAVIS_BUILD_DIR/Mac && xcodebuild -project I2Pd.xcodeproj -target "I2Pd" CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" && cd $TRAVIS_BUILD_DIR ; fi
