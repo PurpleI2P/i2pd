@@ -52,8 +52,12 @@ namespace client
 				LoadPrivateKeys (keys, httpProxyKeys);
 				localDestination = CreateNewLocalDestination (keys, false);
 			}
-			m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
-			m_HttpProxy->Start();
+			try {
+			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
+			  m_HttpProxy->Start();
+			} catch (std::exception& e) {
+			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
+			}
 		}
 
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
@@ -70,8 +74,12 @@ namespace client
 				LoadPrivateKeys (keys, socksProxyKeys);
 				localDestination = CreateNewLocalDestination (keys, false);
 			}
-			m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxyAddr, socksOutProxyPort, localDestination);
-			m_SocksProxy->Start();
+			try {
+			  m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxyAddr, socksOutProxyPort, localDestination);
+			  m_SocksProxy->Start();
+			} catch (std::exception& e) {
+			  LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
+			}
 		}
 	
 		// I2P tunnels
@@ -83,8 +91,12 @@ namespace client
 			std::string samAddr; i2p::config::GetOption("sam.address", samAddr);
 			uint16_t    samPort; i2p::config::GetOption("sam.port",    samPort);
 			LogPrint(eLogInfo, "Clients: starting SAM bridge at ", samAddr, ":", samPort);
-			m_SamBridge = new SAMBridge (samAddr, samPort);
-			m_SamBridge->Start ();
+			try {
+			  m_SamBridge = new SAMBridge (samAddr, samPort);
+			  m_SamBridge->Start ();
+			} catch (std::exception& e) {
+			  LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
+			}
 		} 
 
 		// BOB
@@ -93,8 +105,12 @@ namespace client
 			std::string bobAddr; i2p::config::GetOption("bob.address", bobAddr);
 			uint16_t    bobPort; i2p::config::GetOption("bob.port",    bobPort);
 			LogPrint(eLogInfo, "Clients: starting BOB command channel at ", bobAddr, ":", bobPort);
-			m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
-			m_BOBCommandChannel->Start ();
+			try {
+			  m_BOBCommandChannel = new BOBCommandChannel (bobAddr, bobPort);
+			  m_BOBCommandChannel->Start ();
+			} catch (std::exception& e) {
+			  LogPrint(eLogError, "Clients: Exception in BOB bridge: ", e.what());
+			}
 		} 
 
 		m_AddressBook.StartResolvers ();	
