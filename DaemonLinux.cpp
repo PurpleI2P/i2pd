@@ -23,9 +23,14 @@ void handle_signal(int sig)
 			i2p::log::Logger().Reopen ();
 		break;
 		case SIGINT:
-			i2p::context.SetAcceptsTunnels (false);
-			Daemon.gracefullShutdownInterval = 10*60; // 10 minutes
-			LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefullShutdownInterval, " seconds");
+			if (i2p::context.AcceptsTunnels () && !Daemon.gracefullShutdownInterval)
+			{	
+				i2p::context.SetAcceptsTunnels (false);
+				Daemon.gracefullShutdownInterval = 10*60; // 10 minutes
+				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefullShutdownInterval, " seconds");
+			}	
+			else
+				Daemon.running = 0; 
 		break;	
 		case SIGABRT:
 		case SIGTERM:
