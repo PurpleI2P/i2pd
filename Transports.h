@@ -66,8 +66,6 @@ namespace transport
 	};	
 	
 	const size_t SESSION_CREATION_TIMEOUT = 10; // in seconds
-	const uint32_t LOW_BANDWIDTH_LIMIT = 32*1024; // 32KBs
-	const uint32_t HIGH_BANDWIDTH_LIMIT = 256*1024; // 256KBs
 	class Transports
 	{
 		public:
@@ -94,8 +92,8 @@ namespace transport
 			void UpdateReceivedBytes (uint64_t numBytes) { m_TotalReceivedBytes += numBytes; };
 			uint64_t GetTotalSentBytes () const { return m_TotalSentBytes; };
 			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; };		
-			uint32_t GetInBandwidth () const { return m_InBandwidth; }; // bytes per second
-			uint32_t GetOutBandwidth () const { return m_OutBandwidth; }; // bytes per second
+			uint32_t GetInBandwidth  () const { return m_InBandwidth; };
+			uint32_t GetOutBandwidth () const { return m_OutBandwidth; };
 			bool IsBandwidthExceeded () const;
 			size_t GetNumPeers () const { return m_Peers.size (); };
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
@@ -138,7 +136,7 @@ namespace transport
 			DHKeysPairSupplier m_DHKeysPairSupplier;
 
 			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes;
-			uint32_t m_InBandwidth, m_OutBandwidth;
+			uint32_t m_InBandwidth, m_OutBandwidth; // bytes per second
 			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;	
 			uint64_t m_LastBandwidthUpdateTime;		
 
