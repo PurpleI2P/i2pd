@@ -77,7 +77,7 @@ namespace data
 	
 	bool RouterInfo::LoadFile ()
 	{
-		std::ifstream s(m_FullPath.c_str (), std::ifstream::binary);
+		std::ifstream s(m_FullPath, std::ifstream::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
