@@ -45,6 +45,7 @@ namespace i2p
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
+			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };
 			RouterStatus GetStatus () const { return m_Status; };
 			void SetStatus (RouterStatus status);
 
@@ -58,9 +59,8 @@ namespace i2p
 			bool IsFloodfill () const { return m_IsFloodfill; };	
 			void SetFloodfill (bool floodfill);	
 			void SetFamily (const std::string& family);
-			void SetHighBandwidth ();
-			void SetLowBandwidth ();
-			void SetExtraBandwidth ();
+			void SetBandwidth (int limit); /* in kilobytes */
+			void SetBandwidth (char L); /* by letter */
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
@@ -101,6 +101,7 @@ namespace i2p
 			uint64_t m_LastUpdateTime;
 			bool m_AcceptsTunnels, m_IsFloodfill;
 			uint64_t m_StartupTime; // in seconds since epoch
+			uint32_t m_BandwidthLimit; // allowed bandwidth
 			RouterStatus m_Status;
 			std::mutex m_GarlicMutex;
 	};
