@@ -142,34 +142,21 @@ namespace i2p
 			i2p::context.SetAcceptsTunnels (!transit);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
-			char bandwidth;   i2p::config::GetOption("bandwidth", bandwidth);
-
-			if (isFloodfill) 
-			{
+			if (isFloodfill) {
 				LogPrint(eLogInfo, "Daemon: router will be floodfill");
 				i2p::context.SetFloodfill (true);
-			}	
-			else
+			}	else {
 				i2p::context.SetFloodfill (false);
-			if (bandwidth != '-')
-			{
-				LogPrint(eLogInfo, "Daemon: bandwidth set to ", bandwidth);
-				if (bandwidth > 'O') 
-					i2p::context.SetExtraBandwidth (); 
-				else if (bandwidth > 'L')
-					i2p::context.SetHighBandwidth (); 
-				else 
-					i2p::context.SetLowBandwidth ();
 			}
-			else if (isFloodfill) 
-			{
-				LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
-				i2p::context.SetExtraBandwidth ();
-			} 
-			else
-			{
-				LogPrint(eLogInfo, "Daemon: bandwidth set to 'low'");
-				i2p::context.SetLowBandwidth ();
+
+			/* this section also honors 'floodfill' flag, if set above */
+			std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
+			if (bandwidth[0] > 'K' && bandwidth[0] < 'Z') {
+				i2p::context.SetBandwidth (bandwidth[0]);
+				LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
+			} else if (bandwidth[0] >= '0' && bandwidth[0] <= '9') {
+				i2p::context.SetBandwidth (std::atoi(bandwidth.c_str()));
+				LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), " KBps");
 			}
 
 			std::string family; i2p::config::GetOption("family", family);
