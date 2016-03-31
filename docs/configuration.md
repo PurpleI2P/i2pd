@@ -23,9 +23,14 @@ If you are upgrading your very old router (< 2.3.0) see also [this](config_opts_
 * --ipv6                - Enable communication through ipv6. false by default
 * --notransit           - Router will not accept transit tunnels at startup. false by default
 * --floodfill           - Router will be floodfill. false by default
-* --bandwidth=          - L if bandwidth is limited to 32Kbs/sec, O - to 256Kbs/sec, P - unlimited
+* --bandwidth=          - Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)
 * --family=             - Name of a family, router belongs to
+
+Windows-specific options:
+
 * --svcctl=             - Windows service management (--svcctl="install" or --svcctl="remove")
+* --insomnia            - Prevent system from sleeping
+* --close=              - Action on close: minimize, exit, ask
 
 All options below still possible in cmdline, but better write it in config file:
 
