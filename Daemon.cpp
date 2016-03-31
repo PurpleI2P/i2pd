@@ -151,13 +151,38 @@ namespace i2p
 
 			/* this section also honors 'floodfill' flag, if set above */
 			std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
-			if (bandwidth[0] > 'K' && bandwidth[0] < 'Z') {
-				i2p::context.SetBandwidth (bandwidth[0]);
-				LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
-			} else if (bandwidth[0] >= '0' && bandwidth[0] <= '9') {
-				i2p::context.SetBandwidth (std::atoi(bandwidth.c_str()));
-				LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), " KBps");
-			}
+			if (bandwidth.length () > 0)
+			{	
+				if (bandwidth[0] >= 'K' && bandwidth[0] <= 'X') 
+				{
+					i2p::context.SetBandwidth (bandwidth[0]);
+					LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
+				} 
+				else 
+				{
+					auto value = std::atoi(bandwidth.c_str());
+					if (value > 0) 
+					{	
+						i2p::context.SetBandwidth (value);
+						LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), " KBps");
+					}
+					else
+					{
+						LogPrint(eLogInfo, "Daemon: unexpected bandwidth ", bandwidth, ". Set to 'low'");
+						i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
+					}	
+				}	
+			}	
+			else if (isFloodfill) 
+			{
+				LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
+				i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1);
+			} 
+			else
+			{
+				LogPrint(eLogInfo, "Daemon: bandwidth set to 'low'");
+				i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
+			}	
 
 			std::string family; i2p::config::GetOption("family", family);
 			i2p::context.SetFamily (family);

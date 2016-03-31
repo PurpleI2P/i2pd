@@ -170,26 +170,24 @@ namespace i2p
 		uint16_t limit = 0;
 		enum { low, high, extra } type = high;
 		/* detect parameters */
-		switch (L) {
+		switch (L) 
+		{
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH1   : limit =   12; type = low;   break;
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH2   : limit =   48; type = low;   break;
 			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH1  : limit =   64; type = high;  break;
 			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit =  128; type = high;  break;
-			default:
 			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH3  : limit =  256; type = high;  break;
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = 2048; type = extra; break;
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 9999; type = extra; break;
-		}
-		/* floodfill requires 'extra' bandwidth */
-		if (m_IsFloodfill && limit < 2048) {
-			limit = 2048, type = extra;
-			LogPrint(eLogInfo, "Daemon: bandwidth set to 'extra' due to floodfill");
+			default:
+				 limit =  48; type = low;
 		}
 		/* update caps & flags in RI */
 		auto caps = m_RouterInfo.GetCaps ();
 		caps &= ~i2p::data::RouterInfo::eHighBandwidth;
 		caps &= ~i2p::data::RouterInfo::eExtraBandwidth;
-		switch (type) {
+		switch (type) 
+		{
 			case low   : /* not set */; break;
 			case high  : caps |= i2p::data::RouterInfo::eHighBandwidth;  break;
 			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break;
@@ -199,7 +197,8 @@ namespace i2p
 		m_BandwidthLimit = limit;
 	}
 
-	void RouterContext::SetBandwidth (int limit) {
+	void RouterContext::SetBandwidth (int limit) 
+	{
 		if      (limit > 2000) { SetBandwidth('X'); }
 		else if (limit >  256) { SetBandwidth('P'); }
 		else if (limit >  128) { SetBandwidth('O'); }
