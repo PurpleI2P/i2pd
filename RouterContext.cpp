@@ -165,34 +165,49 @@ namespace i2p
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY_SIG);
 		}	
 	}	
-		
-	void RouterContext::SetHighBandwidth ()
-	{
-		if (!m_RouterInfo.IsHighBandwidth () || m_RouterInfo.IsExtraBandwidth ())
+
+	void RouterContext::SetBandwidth (char L) {
+		uint16_t limit = 0;
+		enum { low, high, extra } type = high;
+		/* detect parameters */
+		switch (L) 
 		{
-			m_RouterInfo.SetCaps ((m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eHighBandwidth) & ~i2p::data::RouterInfo::eExtraBandwidth);
-			UpdateRouterInfo ();
+			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH1   : limit =   12; type = low;   break;
+			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH2   : limit =   48; type = low;   break;
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH1  : limit =   64; type = high;  break;
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit =  128; type = high;  break;
+			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH3  : limit =  256; type = high;  break;
+			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = 2048; type = extra; break;
+			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 9999; type = extra; break;
+			default:
+				 limit =  48; type = low;
 		}
+		/* update caps & flags in RI */
+		auto caps = m_RouterInfo.GetCaps ();
+		caps &= ~i2p::data::RouterInfo::eHighBandwidth;
+		caps &= ~i2p::data::RouterInfo::eExtraBandwidth;
+		switch (type) 
+		{
+			case low   : /* not set */; break;
+			case high  : caps |= i2p::data::RouterInfo::eHighBandwidth;  break;
+			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break;
+		}
+		m_RouterInfo.SetCaps (caps);
+		UpdateRouterInfo ();
+		m_BandwidthLimit = limit;
 	}
 
-	void RouterContext::SetLowBandwidth ()
+	void RouterContext::SetBandwidth (int limit) 
 	{
-		if (m_RouterInfo.IsHighBandwidth () || m_RouterInfo.IsExtraBandwidth ())
-		{
-			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () & ~i2p::data::RouterInfo::eHighBandwidth & ~i2p::data::RouterInfo::eExtraBandwidth);
-			UpdateRouterInfo ();
-		}
+		if      (limit > 2000) { SetBandwidth('X'); }
+		else if (limit >  256) { SetBandwidth('P'); }
+		else if (limit >  128) { SetBandwidth('O'); }
+		else if (limit >   64) { SetBandwidth('N'); }
+		else if (limit >   48) { SetBandwidth('M'); }
+		else if (limit >   12) { SetBandwidth('L'); }
+		else                   { SetBandwidth('K'); }
 	}
 
-	void RouterContext::SetExtraBandwidth ()
-	{	
-		if (!m_RouterInfo.IsExtraBandwidth () || !m_RouterInfo.IsHighBandwidth ())
-		{
-			m_RouterInfo.SetCaps (m_RouterInfo.GetCaps () | i2p::data::RouterInfo::eExtraBandwidth | i2p::data::RouterInfo::eHighBandwidth);
-			UpdateRouterInfo ();
-		}
-	}
-		
 	bool RouterContext::IsUnreachable () const
 	{
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;

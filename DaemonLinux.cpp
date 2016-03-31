@@ -12,19 +12,29 @@
 #include "Config.h"
 #include "FS.h"
 #include "Log.h"
+#include "RouterContext.h"
 
 void handle_signal(int sig)
 {
 	switch (sig)
 	{
-	case SIGHUP:
-		LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening log...");
-		i2p::log::Logger().Reopen ();
-	break;
-	case SIGABRT:
-	case SIGTERM:
-	case SIGINT:
-		Daemon.running = 0; // Exit loop
+		case SIGHUP:
+			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening log...");
+			i2p::log::Logger().Reopen ();
+		break;
+		case SIGINT:
+			if (i2p::context.AcceptsTunnels () && !Daemon.gracefullShutdownInterval)
+			{	
+				i2p::context.SetAcceptsTunnels (false);
+				Daemon.gracefullShutdownInterval = 10*60; // 10 minutes
+				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefullShutdownInterval, " seconds");
+			}	
+			else
+				Daemon.running = 0; 
+		break;	
+		case SIGABRT:
+		case SIGTERM:
+			Daemon.running = 0; // Exit loop
 		break;
 	}
 }
@@ -96,6 +106,7 @@ namespace i2p
 					return false;
 				}
 			}
+			gracefullShutdownInterval = 0; // not specified
 
 			// Signal handler
 			struct sigaction sa;
@@ -122,6 +133,15 @@ namespace i2p
 			while (running)
 			{
 				std::this_thread::sleep_for (std::chrono::seconds(1));
+				if (gracefullShutdownInterval)
+				{
+					gracefullShutdownInterval--; // - 1 second
+					if (gracefullShutdownInterval <= 0) 
+					{	
+						LogPrint(eLogInfo, "Graceful shutdown");
+						return;
+					}
+				}	
 			}
 		}
 	}
