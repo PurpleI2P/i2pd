@@ -47,16 +47,19 @@ namespace client
 			break;
 			case eSAMSocketTypeStream:
 			{
-				if (m_Session)
-					m_Session->sockets.remove (shared_from_this ());
+				if (m_Session) {
+					m_Session->DelSocket (shared_from_this ());
+					m_Session = nullptr;
+				}
 				break;
 			}
 			case eSAMSocketTypeAcceptor:
 			{
 				if (m_Session)
 				{
-					m_Session->sockets.remove (shared_from_this ());
+					m_Session->DelSocket (shared_from_this ());
 					m_Session->localDestination->StopAcceptingStreams ();
+					m_Session = nullptr;
 				}
 				break;
 			}
@@ -64,7 +67,7 @@ namespace client
 				;
 		}
 		m_SocketType = eSAMSocketTypeTerminated;
-		m_Socket.close ();
+		if (m_Socket.is_open()) m_Socket.close ();
 	}
 
 	void SAMSocket::ReceiveHandshake ()
@@ -369,7 +372,7 @@ namespace client
 	void SAMSocket::Connect (std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		m_SocketType = eSAMSocketTypeStream;
-		m_Session->sockets.push_back (shared_from_this ());
+		m_Session->AddSocket (shared_from_this ());
 		m_Stream = m_Session->localDestination->CreateStream (remote);
 		m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
 		I2PReceive ();			
@@ -402,7 +405,7 @@ namespace client
 			if (!m_Session->localDestination->IsAcceptingStreams ())
 			{
 				m_SocketType = eSAMSocketTypeAcceptor;
-				m_Session->sockets.push_back (shared_from_this ());
+				m_Session->AddSocket (shared_from_this ());
 				m_Session->localDestination->AcceptStreams (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 			}
@@ -676,19 +679,20 @@ namespace client
 		
 	SAMSession::~SAMSession ()
 	{
-		for (auto it: sockets)
-			it->SetSocketType (eSAMSocketTypeTerminated);
+		CloseStreams();
 		i2p::client::context.DeleteLocalDestination (localDestination);
 	}
 
 	void SAMSession::CloseStreams ()
 	{
-		for (auto it: sockets)
-		{	
-			it->CloseStream ();
-			it->SetSocketType (eSAMSocketTypeTerminated);
-		}	
-		sockets.clear ();
+		{
+			std::lock_guard<std::mutex> lock(m_SocketsMutex);
+			for (auto sock : m_Sockets) {
+				sock->CloseStream();
+			}
+		}
+		// XXX: should this be done inside locked parts?
+		m_Sockets.clear();
 	}
 
 	SAMBridge::SAMBridge (const std::string& address, int port):
