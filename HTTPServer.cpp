@@ -749,7 +749,7 @@ namespace util
 				s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 				s << "<b>Streams:</b><br>\r\n";
-				for (auto it: session->sockets)
+				for (auto it: session->ListSockets())
 				{
 					switch (it->GetSocketType ())
 					{

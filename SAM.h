@@ -134,7 +134,30 @@ namespace client
 	struct SAMSession
 	{
 		std::shared_ptr<ClientDestination> localDestination;
-		std::list<std::shared_ptr<SAMSocket> > sockets;
+		std::list<std::shared_ptr<SAMSocket> > m_Sockets;
+		std::mutex m_SocketsMutex;
+
+		/** safely add a socket to this session */
+		void AddSocket(std::shared_ptr<SAMSocket> sock) {
+			std::lock_guard<std::mutex> lock(m_SocketsMutex);
+			m_Sockets.push_back(sock);
+		}
+
+		/** safely remove a socket from this session */
+		void DelSocket(std::shared_ptr<SAMSocket> sock) {
+			std::lock_guard<std::mutex> lock(m_SocketsMutex);
+			m_Sockets.remove(sock);
+		}
+
+		/** get a list holding a copy of all sam sockets from this session */
+		std::list<std::shared_ptr<SAMSocket> > ListSockets() {
+			std::list<std::shared_ptr<SAMSocket> > l;
+			{
+				std::lock_guard<std::mutex> lock(m_SocketsMutex);
+				for( auto & sock : m_Sockets ) l.push_back(sock);
+			}
+			return l;
+		}
 		
 		SAMSession (std::shared_ptr<ClientDestination> dest);		
 		~SAMSession ();
