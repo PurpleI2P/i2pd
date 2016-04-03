@@ -47,19 +47,16 @@ namespace client
 			break;
 			case eSAMSocketTypeStream:
 			{
-				if (m_Session) {
+				if (m_Session) 
 					m_Session->DelSocket (shared_from_this ());
-					m_Session = nullptr;
-				}
 				break;
 			}
 			case eSAMSocketTypeAcceptor:
 			{
 				if (m_Session)
-				{
+				{	
 					m_Session->DelSocket (shared_from_this ());
-					m_Session->localDestination->StopAcceptingStreams ();
-					m_Session = nullptr;
+					m_Session->localDestination->StopAcceptingStreams ();	
 				}
 				break;
 			}
@@ -68,6 +65,7 @@ namespace client
 		}
 		m_SocketType = eSAMSocketTypeTerminated;
 		if (m_Socket.is_open()) m_Socket.close ();
+		m_Session = nullptr;
 	}
 
 	void SAMSocket::ReceiveHandshake ()
@@ -721,7 +719,7 @@ namespace client
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
 		for (auto it: m_Sessions)
-			delete it.second;
+			it.second->CloseStreams ();
 		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)
@@ -775,7 +773,7 @@ namespace client
 			Accept ();
 	}
 
-	SAMSession * SAMBridge::CreateSession (const std::string& id, const std::string& destination, 
+	std::shared_ptr<SAMSession> SAMBridge::CreateSession (const std::string& id, const std::string& destination, 
 		const std::map<std::string, std::string> * params)
 	{
 		std::shared_ptr<ClientDestination> localDestination = nullptr; 
@@ -800,8 +798,9 @@ namespace client
 		}
 		if (localDestination)
 		{
+			auto session = std::make_shared<SAMSession>(localDestination);
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
-			auto ret = m_Sessions.insert (std::pair<std::string, SAMSession *>(id, new SAMSession (localDestination)));
+			auto ret = m_Sessions.insert (std::make_pair(id, session));
 			if (!ret.second)
 				LogPrint (eLogWarning, "SAM: Session ", id, " already exists");
 			return ret.first->second;
@@ -811,19 +810,24 @@ namespace client
 
 	void SAMBridge::CloseSession (const std::string& id)
 	{
-		std::unique_lock<std::mutex> l(m_SessionsMutex);
-		auto it = m_Sessions.find (id);
-		if (it != m_Sessions.end ())
+		std::shared_ptr<SAMSession> session;
 		{
-			auto session = it->second;
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			auto it = m_Sessions.find (id);
+			if (it != m_Sessions.end ())
+			{	
+				session = it->second;
+				m_Sessions.erase (it);
+			}	
+		}	
+		if (session)
+		{	
 			session->localDestination->StopAcceptingStreams ();
 			session->CloseStreams ();
-			m_Sessions.erase (it);
-			delete session;
 		}
 	}
 
-	SAMSession * SAMBridge::FindSession (const std::string& id) const
+	std::shared_ptr<SAMSession> SAMBridge::FindSession (const std::string& id) const
 	{
 		std::unique_lock<std::mutex> l(m_SessionsMutex);
 		auto it = m_Sessions.find (id);
