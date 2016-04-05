@@ -200,8 +200,11 @@ namespace crypto
 		ctx = BN_CTX_new ();
 		// select random k
 		BIGNUM * k = BN_new ();
-		BN_rand_range (k, elgp);
-		if (BN_is_zero (k)) BN_one (k);
+#if defined(__x86_64__)
+		BN_rand (k, 2048, -1, 1); // full exponent for x64
+#else
+		BN_rand (k, 226, -1, 1); // short exponent of 226 bits
+#endif
 		// caulculate a
 		a = BN_new ();
 		BN_mod_exp (a, elgg, k, elgp, ctx);
