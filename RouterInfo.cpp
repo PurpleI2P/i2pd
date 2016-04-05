@@ -104,6 +104,8 @@ namespace data
 	{
 		if (LoadFile ())
 			ReadFromBuffer (false); 
+		else
+			m_IsUnreachable = true;	
 	}	
 
 	void RouterInfo::ReadFromBuffer (bool verifySignature)
