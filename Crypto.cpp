@@ -296,7 +296,7 @@ namespace crypto
 		auto numZeroBytes = 256 - numBytes;
 		RAND_bytes (priv + numZeroBytes, numBytes);
 		memset (priv, 0, numZeroBytes);
-		priv[numZeroBytes] &= 0x04;
+		priv[numZeroBytes] &= 0x03;
 #endif
 		BN_CTX * ctx = BN_CTX_new ();
 		BIGNUM * p = BN_new ();	
