@@ -343,10 +343,11 @@ namespace client
 		}
 	}
 
-	void AddressBook::LoadHostsFromStream (std::istream& f)
+	bool AddressBook::LoadHostsFromStream (std::istream& f)
 	{
 		std::unique_lock<std::mutex> l(m_AddressBookMutex);
 		int numAddresses = 0;
+		bool incomplete = false;
 		std::string s;
 		while (!f.eof ())
 		{
@@ -370,15 +371,21 @@ namespace client
 					numAddresses++;
 				}	
 				else
+				{
 					LogPrint (eLogError, "Addressbook: malformed address ", addr, " for ", name);
-			}		
+					incomplete = f.eof ();
+				}
+			}	
+			else
+				incomplete = f.eof ();
 		}
 		LogPrint (eLogInfo, "Addressbook: ", numAddresses, " addresses processed");
 		if (numAddresses > 0)
 		{	
-			m_IsLoaded = true;
+			if (!incomplete) m_IsLoaded = true;
 			m_Storage->Save (m_Addresses);
 		}	
+		return !incomplete;
 	}	
 	
 	void AddressBook::LoadSubscriptions ()
@@ -776,13 +783,12 @@ namespace client
 			i2p::data::GzipInflator inflator;
 			inflator.Inflate (s, uncompressed);
 			if (!uncompressed.fail ())
-				m_Book.LoadHostsFromStream (uncompressed);
+				return m_Book.LoadHostsFromStream (uncompressed);
 			else
 				return false;
 		}	
 		else
-			m_Book.LoadHostsFromStream (s);
-		return true;	
+			return m_Book.LoadHostsFromStream (s);
 	}
 
 	AddressResolver::AddressResolver (std::shared_ptr<ClientDestination> destination):

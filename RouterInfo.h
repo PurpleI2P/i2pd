@@ -161,7 +161,7 @@ namespace data
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
-			void SaveToFile (const std::string& fullPath);
+			bool SaveToFile (const std::string& fullPath);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void SaveProfile () { if (m_Profile) m_Profile->Save (); };

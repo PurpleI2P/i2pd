@@ -780,5 +780,19 @@ namespace client
 		}
 		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
 	}
+
+	std::vector<std::shared_ptr<const i2p::stream::Stream> > ClientDestination::GetAllStreams () const
+	{
+		std::vector<std::shared_ptr<const i2p::stream::Stream> > ret;
+		if (m_StreamingDestination)
+		{
+			for (auto& it: m_StreamingDestination->GetStreams ())
+				ret.push_back (it.second);
+		}	
+		for (auto& it: m_StreamingDestinationsByPorts)
+			for (auto& it1: it.second->GetStreams ())
+				ret.push_back (it1.second);
+		return ret;
+	}	
 }
 }

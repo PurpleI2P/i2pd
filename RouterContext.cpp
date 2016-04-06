@@ -356,16 +356,24 @@ namespace i2p
 			delete[] buf;
 		}
 
-		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO)); // TODO
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
-		m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
-		m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
-		m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
+		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO)); 
+		if (!routerInfo.IsUnreachable ()) // router.info looks good
+		{
+			m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
+			m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
+			m_RouterInfo.SetProperty ("router.version", I2P_VERSION);
 
-		// Migration to 0.9.24. TODO: remove later
-		m_RouterInfo.DeleteProperty ("coreVersion");
-		m_RouterInfo.DeleteProperty ("stat_uptime");
-		
+			// Migration to 0.9.24. TODO: remove later
+			m_RouterInfo.DeleteProperty ("coreVersion");
+			m_RouterInfo.DeleteProperty ("stat_uptime");
+		}
+		else
+		{
+			LogPrint (eLogError, ROUTER_INFO, " is malformed. Creating new");
+			NewRouterInfo ();
+		}			
+
 		if (IsUnreachable ())
 			SetReachable (); // we assume reachable until we discover firewall through peer tests
 		
