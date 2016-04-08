@@ -609,19 +609,19 @@ namespace util
 			s << "<th>Status</th>";
 			s << "</tr>";
 
-			for (auto it: dest->GetStreamingDestination ()->GetStreams ())
+			for (auto it: dest->GetAllStreams ())
 			{	
 				s << "<tr>";
-				s << "<td>" << it.first << "</td>";
-				s << "<td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetRemoteIdentity ()) << "</td>";
-				s << "<td>" << it.second->GetNumSentBytes () << "</td>";
-				s << "<td>" << it.second->GetNumReceivedBytes () << "</td>";
-				s << "<td>" << it.second->GetSendQueueSize () << "</td>";
-				s << "<td>" << it.second->GetReceiveQueueSize () << "</td>";
-				s << "<td>" << it.second->GetSendBufferSize () << "</td>";
-				s << "<td>" << it.second->GetRTT () << "</td>";
-				s << "<td>" << it.second->GetWindowSize () << "</td>";
-				s << "<td>" << (int)it.second->GetStatus () << "</td>";
+				s << "<td>" << it->GetSendStreamID () << "</td>";
+				s << "<td>" << i2p::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ()) << "</td>";
+				s << "<td>" << it->GetNumSentBytes () << "</td>";
+				s << "<td>" << it->GetNumReceivedBytes () << "</td>";
+				s << "<td>" << it->GetSendQueueSize () << "</td>";
+				s << "<td>" << it->GetReceiveQueueSize () << "</td>";
+				s << "<td>" << it->GetSendBufferSize () << "</td>";
+				s << "<td>" << it->GetRTT () << "</td>";
+				s << "<td>" << it->GetWindowSize () << "</td>";
+				s << "<td>" << (int)it->GetStatus () << "</td>";
 				s << "</tr><br>\r\n" << std::endl; 
 			}
 		}	
@@ -777,20 +777,20 @@ namespace util
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
-			s << it.second->GetName () << " ⇐ ";
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇐ ";			
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</a><br>\r\n"<< std::endl;
+			s << "<br>\r\n"<< std::endl;
 		}	
 		s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
-			s << it.second->GetName () << " ⇒ ";
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇒ ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();
 			s << "</a><br>\r\n"<< std::endl;

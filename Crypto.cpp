@@ -146,6 +146,10 @@ namespace crypto
 	}
 
 // DH/ElGamal	
+
+	const int ELGAMAL_SHORT_EXPONENT_NUM_BITS = 226;
+	const int ELGAMAL_FULL_EXPONENT_NUM_BITS = 2048;
+
 	#define elgp GetCryptoConstants ().elgp
 	#define elgg GetCryptoConstants ().elgg
 
@@ -169,6 +173,10 @@ namespace crypto
 	{
 		if (m_DH->priv_key)  { BN_free (m_DH->priv_key); m_DH->priv_key = NULL; };
 		if (m_DH->pub_key)  { BN_free (m_DH->pub_key); m_DH->pub_key = NULL; };
+#if !defined(__x86_64__) // use short exponent for non x64
+		m_DH->priv_key = BN_new ();
+		BN_rand (m_DH->priv_key, ELGAMAL_SHORT_EXPONENT_NUM_BITS, 0, 1);	
+#endif
 		DH_generate_key (m_DH);
 		if (priv) bn2buf (m_DH->priv_key, priv, 256);
 		if (pub) bn2buf (m_DH->pub_key, pub, 256);
@@ -200,8 +208,11 @@ namespace crypto
 		ctx = BN_CTX_new ();
 		// select random k
 		BIGNUM * k = BN_new ();
-		BN_rand_range (k, elgp);
-		if (BN_is_zero (k)) BN_one (k);
+#if defined(__x86_64__)
+		BN_rand (k, ELGAMAL_FULL_EXPONENT_NUM_BITS, -1, 1); // full exponent for x64
+#else
+		BN_rand (k, ELGAMAL_SHORT_EXPONENT_NUM_BITS, -1, 1); // short exponent of 226 bits
+#endif
 		// caulculate a
 		a = BN_new ();
 		BN_mod_exp (a, elgg, k, elgp, ctx);
@@ -279,6 +290,14 @@ namespace crypto
 	{
 #if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)	
 		RAND_bytes (priv, 256);
+#else
+		// lower 226 bits (28 bytes and 2 bits) only. short exponent
+		auto numBytes = (ELGAMAL_SHORT_EXPONENT_NUM_BITS)/8 + 1; // 29
+		auto numZeroBytes = 256 - numBytes;
+		RAND_bytes (priv + numZeroBytes, numBytes);
+		memset (priv, 0, numZeroBytes);
+		priv[numZeroBytes] &= 0x03;
+#endif
 		BN_CTX * ctx = BN_CTX_new ();
 		BIGNUM * p = BN_new ();	
 		BN_bin2bn (priv, 256, p);
@@ -286,11 +305,6 @@ namespace crypto
 		bn2buf (p, pub, 256); 
 		BN_free (p);
 		BN_CTX_free (ctx);
-#else
-		DHKeys dh;
-		dh.GenerateKeys (priv, pub);
-		
-#endif		
 	}
 
 // HMAC

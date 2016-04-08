@@ -16,8 +16,8 @@ If you are upgrading your very old router (< 2.3.0) see also [this](config_opts_
 * --logfile=            - Path to logfile (default - autodetect)
 * --loglevel=           - Log messages above this level (debug, *info, warn, error)
 * --datadir=            - Path to storage of i2pd data (RI, keys, peer profiles, ...)
-* --host=               - The external IP
-* --port=               - The port to listen on
+* --host=               - Router external IP for incoming connections
+* --port=               - Port to listen for incoming connections (default: auto)
 * --daemon              - Router will go to background after start
 * --service             - Router will use system folders like '/var/lib/i2pd'
 * --ipv6                - Enable communication through ipv6. false by default

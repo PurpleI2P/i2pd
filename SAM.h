@@ -128,7 +128,7 @@ namespace client
 			std::string m_ID; // nickname
 			bool m_IsSilent;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
-			SAMSession * m_Session;
+			std::shared_ptr<SAMSession> m_Session;
 	};	
 
 	struct SAMSession
@@ -176,10 +176,10 @@ namespace client
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
-			SAMSession * CreateSession (const std::string& id, const std::string& destination, // empty string  means transient
+			std::shared_ptr<SAMSession> CreateSession (const std::string& id, const std::string& destination, // empty string  means transient
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
-			SAMSession * FindSession (const std::string& id) const;
+			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
 
 		private:
 
@@ -200,7 +200,7 @@ namespace client
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;
 			mutable std::mutex m_SessionsMutex;
-			std::map<std::string, SAMSession *> m_Sessions;
+			std::map<std::string, std::shared_ptr<SAMSession> > m_Sessions;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
 
 		public:

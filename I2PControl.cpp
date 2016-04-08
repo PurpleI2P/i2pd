@@ -83,6 +83,10 @@ namespace client
 		m_RouterManagerHandlers["Reseed"]           = &I2PControlService::ReseedHandler;
 		m_RouterManagerHandlers["Shutdown"]         = &I2PControlService::ShutdownHandler; 
 		m_RouterManagerHandlers["ShutdownGraceful"] = &I2PControlService::ShutdownGracefulHandler;
+
+		// NetworkSetting
+		m_NetworkSettingHandlers["i2p.router.net.bw.in"]  = &I2PControlService::InboundBandwidthLimit;
+		m_NetworkSettingHandlers["i2p.router.net.bw.out"] = &I2PControlService::OutboundBandwidthLimit;
 	}
 
 	I2PControlService::~I2PControlService ()
@@ -494,6 +498,22 @@ namespace client
 			} else
 				LogPrint (eLogError, "I2PControl: NetworkSetting unknown request: ", it->first);
 		}
+	}
+
+	void I2PControlService::InboundBandwidthLimit (const std::string& value, std::ostringstream& results)
+	{
+		if (value != "null")
+			i2p::context.SetBandwidth (std::atoi(value.c_str()));
+		int bw = i2p::context.GetBandwidthLimit();
+		InsertParam (results, "i2p.router.net.bw.in", bw);
+	}
+
+	void I2PControlService::OutboundBandwidthLimit (const std::string& value, std::ostringstream& results)
+	{
+		if (value != "null")
+			i2p::context.SetBandwidth (std::atoi(value.c_str()));
+		int bw = i2p::context.GetBandwidthLimit();
+		InsertParam (results, "i2p.router.net.bw.out", bw);
 	}
 
 	// certificate	

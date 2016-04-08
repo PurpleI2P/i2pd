@@ -104,6 +104,8 @@ namespace data
 	{
 		if (LoadFile ())
 			ReadFromBuffer (false); 
+		else
+			m_IsUnreachable = true;	
 	}	
 
 	void RouterInfo::ReadFromBuffer (bool verifySignature)
@@ -514,19 +516,20 @@ namespace data
 		m_BufferLen += privateKeys.GetPublic ()->GetSignatureLen ();
 	}	
 
-	void RouterInfo::SaveToFile (const std::string& fullPath)
+	bool RouterInfo::SaveToFile (const std::string& fullPath)
 	{
 		m_FullPath = fullPath;
-		if (m_Buffer)
-		{	
-			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
-			if (f.is_open ())
-				f.write ((char *)m_Buffer, m_BufferLen);
-			else
-				LogPrint(eLogError, "RouterInfo: Can't save to ", fullPath);
-		}
-		else
+		if (!m_Buffer) {
 			LogPrint (eLogError, "RouterInfo: Can't save, m_Buffer == NULL");
+			return false;
+		}
+		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+		if (!f.is_open ()) {
+			LogPrint(eLogError, "RouterInfo: Can't save to ", fullPath);
+			return false;
+		}
+		f.write ((char *)m_Buffer, m_BufferLen);
+		return true;
 	}
 	
 	size_t RouterInfo::ReadString (char * str, std::istream& s)

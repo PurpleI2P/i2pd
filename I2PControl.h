@@ -94,6 +94,8 @@ namespace client
 
 			// NetworkSetting
 			typedef void (I2PControlService::*NetworkSettingRequestHandler)(const std::string& value, std::ostringstream& results);
+			void InboundBandwidthLimit  (const std::string& value, std::ostringstream& results);
+			void OutboundBandwidthLimit (const std::string& value, std::ostringstream& results);
 
 		private:
 
