@@ -777,20 +777,20 @@ namespace util
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
-			s << it.second->GetName () << " ⇐ ";
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇐ ";			
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</a><br>\r\n"<< std::endl;
+			s << "<br>\r\n"<< std::endl;
 		}	
 		s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
-			s << it.second->GetName () << " ⇒ ";
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇒ ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();
 			s << "</a><br>\r\n"<< std::endl;
