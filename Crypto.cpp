@@ -153,6 +153,32 @@ namespace crypto
 	#define elgp GetCryptoConstants ().elgp
 	#define elgg GetCryptoConstants ().elgg
 
+	void PrecalculateElggTable (BIGNUM * table[][256], int len) // table is len's array of array of 256 bignums
+	{
+		if (len <= 0) return;
+		BN_CTX * ctx = BN_CTX_new ();
+		BN_MONT_CTX * montCtx = BN_MONT_CTX_new ();
+		BN_MONT_CTX_set (montCtx, elgp, ctx);
+		BIGNUM * elggMont = BN_new ();
+		BN_from_montgomery(elggMont, elgg, montCtx, ctx);			
+		for (int i = 0; i < len; i++)
+		{
+			table[i][0] = BN_new ();
+			if (!i) 	
+				BN_from_montgomery (table[0][0], BN_value_one (), montCtx, ctx); // 2^0 = 1	
+			else
+				BN_mod_mul_montgomery (table[i][0], table[i-1][255], elggMont, montCtx, ctx);
+			for (int j = 1; j < 256; j++)
+			{
+				table[i][j] = BN_new ();
+				BN_mod_mul_montgomery (table[i][j], table[i][j-1], elggMont, montCtx, ctx);
+			}
+		}
+		BN_free (elggMont);
+		BN_MONT_CTX_free (montCtx);
+		BN_CTX_free (ctx);
+	}	 
+
 // DH
 	
 	DHKeys::DHKeys (): m_IsUpdated (true)
