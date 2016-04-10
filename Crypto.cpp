@@ -153,32 +153,62 @@ namespace crypto
 	#define elgp GetCryptoConstants ().elgp
 	#define elgg GetCryptoConstants ().elgg
 
-	void PrecalculateElggTable (BIGNUM * table[][256], int len) // table is len's array of array of 256 bignums
+	void PrecalculateElggTable (BIGNUM * table[][255], int len) // table is len's array of array of 255 bignums
 	{
 		if (len <= 0) return;
 		BN_CTX * ctx = BN_CTX_new ();
 		BN_MONT_CTX * montCtx = BN_MONT_CTX_new ();
-		BN_MONT_CTX_set (montCtx, elgp, ctx);
-		BIGNUM * elggMont = BN_new ();
-		BN_from_montgomery(elggMont, elgg, montCtx, ctx);			
+		BN_MONT_CTX_set (montCtx, elgp, ctx);		
 		for (int i = 0; i < len; i++)
 		{
 			table[i][0] = BN_new ();
 			if (!i) 	
-				BN_from_montgomery (table[0][0], BN_value_one (), montCtx, ctx); // 2^0 = 1	
+				BN_to_montgomery (table[0][0], elgg, montCtx, ctx); 	
 			else
-				BN_mod_mul_montgomery (table[i][0], table[i-1][255], elggMont, montCtx, ctx);
-			for (int j = 1; j < 256; j++)
+				BN_mod_mul_montgomery (table[i][0], table[i-1][254], table[i-1][0], montCtx, ctx);
+			for (int j = 1; j < 255; j++)
 			{
 				table[i][j] = BN_new ();
-				BN_mod_mul_montgomery (table[i][j], table[i][j-1], elggMont, montCtx, ctx);
+				BN_mod_mul_montgomery (table[i][j], table[i][j-1], table[i][0], montCtx, ctx);
 			}
 		}
-		BN_free (elggMont);
 		BN_MONT_CTX_free (montCtx);
 		BN_CTX_free (ctx);
 	}	 
 
+	BIGNUM * ElggPow (const uint8_t * exp, int len, BIGNUM * table[][255], BN_CTX * ctx)
+	// exp is in Big Endian	
+	{
+		if (len <= 0) return nullptr;
+		BIGNUM * res = nullptr;
+		BN_MONT_CTX * montCtx = BN_MONT_CTX_new ();
+		BN_MONT_CTX_set (montCtx, elgp, ctx);
+		for (int i = 0; i < len; i++)
+		{
+			if (res)
+			{
+				if (exp[i])
+					BN_mod_mul_montgomery (res, res, table[len-1-i][exp[i]-1], montCtx, ctx);
+			}	
+			else if (exp[i]) 
+				res = BN_dup (table[len-i-1][exp[i]-1]);
+		}	
+		if (res)
+			BN_from_montgomery (res, res, montCtx, ctx);
+		BN_MONT_CTX_free (montCtx);
+		return res;
+	}	
+
+	BIGNUM * ElggPow (const BIGNUM * exp, BIGNUM * table[][255], BN_CTX * ctx)
+	{
+		auto len = BN_num_bytes (exp);
+		uint8_t * buf = new uint8_t[len];
+		BN_bn2bin (exp, buf);
+		auto ret = ElggPow (buf, len, table, ctx);
+		delete[] buf;
+		return ret;
+	}	
+	
 // DH
 	
 	DHKeys::DHKeys (): m_IsUpdated (true)
