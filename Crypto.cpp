@@ -148,12 +148,15 @@ namespace crypto
 // DH/ElGamal	
 
 	const int ELGAMAL_SHORT_EXPONENT_NUM_BITS = 226;
+	const int ELGAMAL_SHORT_EXPONENT_NUM_BYTES = ELGAMAL_SHORT_EXPONENT_NUM_BITS/8+1;
 	const int ELGAMAL_FULL_EXPONENT_NUM_BITS = 2048;
 
 	#define elgp GetCryptoConstants ().elgp
 	#define elgg GetCryptoConstants ().elgg
 
-	void PrecalculateElggTable (BIGNUM * table[][255], int len) // table is len's array of array of 255 bignums
+#if !defined(__x86_64__) // use precalculated table
+	
+	static void PrecalculateElggTable (BIGNUM * table[][255], int len) // table is len's array of array of 255 bignums
 	{
 		if (len <= 0) return;
 		BN_CTX * ctx = BN_CTX_new ();
@@ -176,7 +179,17 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}	 
 
-	BIGNUM * ElggPow (const uint8_t * exp, int len, BIGNUM * table[][255], BN_CTX * ctx)
+	static void DestroyElggTable (BIGNUM * table[][255], int len)
+	{
+		for (int i = 0; i < len; i++)
+			for (int j = 0; j < 255; j++)
+			{
+				BN_free (table[i][j]);
+				table[i][j] = nullptr;
+			}
+	}
+	
+	static BIGNUM * ElggPow (const uint8_t * exp, int len, BIGNUM * table[][255], BN_CTX * ctx)
 	// exp is in Big Endian	
 	{
 		if (len <= 0) return nullptr;
@@ -199,7 +212,7 @@ namespace crypto
 		return res;
 	}	
 
-	BIGNUM * ElggPow (const BIGNUM * exp, BIGNUM * table[][255], BN_CTX * ctx)
+	static BIGNUM * ElggPow (const BIGNUM * exp, BIGNUM * table[][255], BN_CTX * ctx)
 	{
 		auto len = BN_num_bytes (exp);
 		uint8_t * buf = new uint8_t[len];
@@ -208,6 +221,10 @@ namespace crypto
 		delete[] buf;
 		return ret;
 	}	
+
+	BIGNUM * g_ElggTable[ELGAMAL_SHORT_EXPONENT_NUM_BYTES][255];
+	
+#endif
 	
 // DH
 	
@@ -229,9 +246,9 @@ namespace crypto
 	{
 		if (m_DH->priv_key)  { BN_free (m_DH->priv_key); m_DH->priv_key = NULL; };
 		if (m_DH->pub_key)  { BN_free (m_DH->pub_key); m_DH->pub_key = NULL; };
-#if !defined(__x86_64__) // use short exponent for non x64
+#if !defined(__x86_64__) // use short exponent for non x64 
 		m_DH->priv_key = BN_new ();
-		BN_rand (m_DH->priv_key, ELGAMAL_SHORT_EXPONENT_NUM_BITS, 0, 1);	
+		BN_rand (m_DH->priv_key, ELGAMAL_SHORT_EXPONENT_NUM_BITS, 0, 1);
 #endif
 		DH_generate_key (m_DH);
 		if (priv) bn2buf (m_DH->priv_key, priv, 256);
@@ -266,12 +283,14 @@ namespace crypto
 		BIGNUM * k = BN_new ();
 #if defined(__x86_64__)
 		BN_rand (k, ELGAMAL_FULL_EXPONENT_NUM_BITS, -1, 1); // full exponent for x64
-#else
-		BN_rand (k, ELGAMAL_SHORT_EXPONENT_NUM_BITS, -1, 1); // short exponent of 226 bits
-#endif
-		// caulculate a
+		// calculate a
 		a = BN_new ();
 		BN_mod_exp (a, elgg, k, elgp, ctx);
+#else
+		BN_rand (k, ELGAMAL_SHORT_EXPONENT_NUM_BITS, -1, 1); // short exponent of 226 bits
+		// calculate a
+		a = ElggPow (k, g_ElggTable, ctx);
+#endif
 		BIGNUM * y = BN_new ();
 		BN_bin2bn (key, 256, y);
 		// calculate b1
@@ -772,10 +791,16 @@ namespace crypto
 		for (int i = 0; i < numLocks; i++)
 		     m_OpenSSLMutexes.emplace_back (new std::mutex);
 		CRYPTO_set_locking_callback (OpensslLockingCallback);*/
+#if !defined(__x86_64__)		
+		PrecalculateElggTable (g_ElggTable, ELGAMAL_SHORT_EXPONENT_NUM_BYTES);
+#endif		
 	}
 	
 	void TerminateCrypto ()
 	{
+#if !defined(__x86_64__)		
+		DestroyElggTable (g_ElggTable, ELGAMAL_SHORT_EXPONENT_NUM_BYTES);
+#endif		
 /*		CRYPTO_set_locking_callback (nullptr);
 		m_OpenSSLMutexes.clear ();*/
 	}	
