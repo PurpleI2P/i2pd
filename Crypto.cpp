@@ -155,27 +155,27 @@ namespace crypto
 	#define elgg GetCryptoConstants ().elgg
 
 #if !defined(__x86_64__) // use precalculated table
-	
+
+	static BN_MONT_CTX * g_MontCtx = nullptr;
 	static void PrecalculateElggTable (BIGNUM * table[][255], int len) // table is len's array of array of 255 bignums
 	{
 		if (len <= 0) return;
 		BN_CTX * ctx = BN_CTX_new ();
-		BN_MONT_CTX * montCtx = BN_MONT_CTX_new ();
-		BN_MONT_CTX_set (montCtx, elgp, ctx);		
+		g_MontCtx = BN_MONT_CTX_new ();
+		BN_MONT_CTX_set (g_MontCtx, elgp, ctx);		
 		for (int i = 0; i < len; i++)
 		{
 			table[i][0] = BN_new ();
 			if (!i) 	
-				BN_to_montgomery (table[0][0], elgg, montCtx, ctx); 	
+				BN_to_montgomery (table[0][0], elgg, g_MontCtx, ctx); 	
 			else
-				BN_mod_mul_montgomery (table[i][0], table[i-1][254], table[i-1][0], montCtx, ctx);
+				BN_mod_mul_montgomery (table[i][0], table[i-1][254], table[i-1][0], g_MontCtx, ctx);
 			for (int j = 1; j < 255; j++)
 			{
 				table[i][j] = BN_new ();
-				BN_mod_mul_montgomery (table[i][j], table[i][j-1], table[i][0], montCtx, ctx);
+				BN_mod_mul_montgomery (table[i][j], table[i][j-1], table[i][0], g_MontCtx, ctx);
 			}
 		}
-		BN_MONT_CTX_free (montCtx);
 		BN_CTX_free (ctx);
 	}	 
 
@@ -187,15 +187,16 @@ namespace crypto
 				BN_free (table[i][j]);
 				table[i][j] = nullptr;
 			}
+		BN_MONT_CTX_free (g_MontCtx);
 	}
 	
 	static BIGNUM * ElggPow (const uint8_t * exp, int len, BIGNUM * table[][255], BN_CTX * ctx)
 	// exp is in Big Endian	
 	{
 		if (len <= 0) return nullptr;
+		auto montCtx = BN_MONT_CTX_new ();
+		BN_MONT_CTX_copy (montCtx, g_MontCtx);
 		BIGNUM * res = nullptr;
-		BN_MONT_CTX * montCtx = BN_MONT_CTX_new ();
-		BN_MONT_CTX_set (montCtx, elgp, ctx);
 		for (int i = 0; i < len; i++)
 		{
 			if (res)
@@ -249,8 +250,12 @@ namespace crypto
 #if !defined(__x86_64__) // use short exponent for non x64 
 		m_DH->priv_key = BN_new ();
 		BN_rand (m_DH->priv_key, ELGAMAL_SHORT_EXPONENT_NUM_BITS, 0, 1);
-#endif
+		auto ctx = BN_CTX_new ();
+		m_DH->pub_key = ElggPow (m_DH->priv_key, g_ElggTable, ctx);
+		BN_CTX_free (ctx);
+#else
 		DH_generate_key (m_DH);
+#endif		
 		if (priv) bn2buf (m_DH->priv_key, priv, 256);
 		if (pub) bn2buf (m_DH->pub_key, pub, 256);
 		m_IsUpdated = true;
