@@ -163,19 +163,22 @@ namespace crypto
 		BN_CTX * ctx = BN_CTX_new ();
 		g_MontCtx = BN_MONT_CTX_new ();
 		BN_MONT_CTX_set (g_MontCtx, elgp, ctx);		
+		auto montCtx = BN_MONT_CTX_new ();
+		BN_MONT_CTX_copy (montCtx, g_MontCtx);
 		for (int i = 0; i < len; i++)
 		{
 			table[i][0] = BN_new ();
 			if (!i) 	
-				BN_to_montgomery (table[0][0], elgg, g_MontCtx, ctx); 	
+				BN_to_montgomery (table[0][0], elgg, montCtx, ctx); 	
 			else
-				BN_mod_mul_montgomery (table[i][0], table[i-1][254], table[i-1][0], g_MontCtx, ctx);
+				BN_mod_mul_montgomery (table[i][0], table[i-1][254], table[i-1][0], montCtx, ctx);
 			for (int j = 1; j < 255; j++)
 			{
 				table[i][j] = BN_new ();
-				BN_mod_mul_montgomery (table[i][j], table[i][j-1], table[i][0], g_MontCtx, ctx);
+				BN_mod_mul_montgomery (table[i][j], table[i][j-1], table[i][0], montCtx, ctx);
 			}
 		}
+		BN_MONT_CTX_free (montCtx);
 		BN_CTX_free (ctx);
 	}	 
 
