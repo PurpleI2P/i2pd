@@ -846,11 +846,13 @@ namespace util
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-			if (leaseSet && !leaseSet->IsExpired ())
+			if (leaseSet && !leaseSet->IsExpired ()) {
 				SendToDestination (leaseSet, port, buf, len);
-			else
-				// still no LeaseSet
-				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>\r\nLeases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
+			} else if (leaseSet) {
+				SendReply ("<html>" + itoopieImage + "<br>\r\nLeaseSet expired</html>", 504);
+			} else {
+				SendReply ("<html>" + itoopieImage + "<br>\r\nLeaseSet not found</html>", 504);
+			}
 		}
 	}	
 	
