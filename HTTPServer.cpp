@@ -885,22 +885,23 @@ namespace util
 
 	void HTTPConnection::SendReply (const std::string& content, int status)
 	{
-		m_Reply.content = content;
+		// we need the date header to be complaint with http 1.1
+		std::time_t time_now = std::time(nullptr);
+		char time_buff[128];
+		std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now));
+		/* fill reply with headers */
 		m_Reply.headers.resize(3);
-        // we need the date header to be complaint with http 1.1
-        std::time_t time_now = std::time(nullptr);
-        char time_buff[128];
-        if (std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now))) 
-		{
-            m_Reply.headers[0].name = "Date";
-            m_Reply.headers[0].value = std::string(time_buff);
-            m_Reply.headers[1].name = "Content-Length";
-            m_Reply.headers[1].value = std::to_string(m_Reply.content.size());
-            m_Reply.headers[2].name = "Content-Type";
-            m_Reply.headers[2].value = "text/html";
-        }
-		
-		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
+		m_Reply.headers[0].name = "Date";
+		m_Reply.headers[0].value = std::string(time_buff);
+		m_Reply.headers[1].name = "Content-Length";
+		m_Reply.headers[1].value = std::to_string(m_Reply.content.size());
+		m_Reply.headers[2].name = "Content-Type";
+		m_Reply.headers[2].value = "text/html";
+
+		std::vector<boost::asio::const_buffer> buffers;
+		buffers.push_back(boost::asio::buffer(m_Reply.to_string(status)));
+		buffers.push_back(boost::asio::buffer(content));
+		boost::asio::async_write (*m_Socket, buffers,
 			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
 	}
 
