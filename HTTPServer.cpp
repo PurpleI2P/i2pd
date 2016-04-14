@@ -813,7 +813,7 @@ namespace util
 		if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
 		{
 			LogPrint (eLogWarning, "HTTPServer: Unknown address ", address);
-			SendReply ("<html>" + itoopieImage + "<br>\r\nUnknown address " + address + "</html>", 404);
+			SendError ("Unknown address " + address);
 			return;
 		}		
 
@@ -840,9 +840,9 @@ namespace util
 			if (leaseSet && !leaseSet->IsExpired ()) {
 				SendToDestination (leaseSet, port, buf, len);
 			} else if (leaseSet) {
-				SendReply ("<html>" + itoopieImage + "<br>\r\nLeaseSet expired</html>", 504);
+				SendError ("LeaseSet expired");
 			} else {
-				SendReply ("<html>" + itoopieImage + "<br>\r\nLeaseSet not found</html>", 504);
+				SendError ("LeaseSet not found");
 			}
 		}
 	}	
@@ -877,7 +877,7 @@ namespace util
 		else
 		{
 			if (ecode == boost::asio::error::timed_out)
-				SendReply ("<html>" + itoopieImage + "<br>\r\nNot responding</html>", 504);
+				SendError ("Host not responding");
 			else if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -903,6 +903,11 @@ namespace util
 		buffers.push_back(boost::asio::buffer(content));
 		boost::asio::async_write (*m_Socket, buffers,
 			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
+	}
+
+	void HTTPConnection::SendError(const std::string& content)
+	{
+		SendReply ("<html>" + itoopieImage + "<br>\r\n" + content + "</html>", 504);
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):
