@@ -23,7 +23,6 @@ namespace i2p
 {
 namespace util
 {
-
 	const std::string HTTPConnection::itoopieImage = 
 		"<img alt=\"ICToopie Icon\" src=\"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXM"
@@ -204,16 +203,9 @@ namespace util
 	const char HTTP_COMMAND_I2P_TUNNELS[] = "i2p_tunnels";
 	const char HTTP_COMMAND_JUMPSERVICES[] = "jumpservices=";
 	const char HTTP_PARAM_ADDRESS[] = "address";
-
+	const char HTTP_HEADER_KV_SEP[] = ": ";
+	const char HTTP_CRLF[] = "\r\n";
 	
-	namespace misc_strings
-	{
-
-		const char name_value_separator[] = { ':', ' ' };
-		const char crlf[] = { '\r', '\n' };
-
-	} // namespace misc_strings
-
 	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers(int status)
 	{
 		std::vector<boost::asio::const_buffer> buffers;
@@ -236,17 +228,17 @@ namespace util
 				default: status_string += "WTF";
 			}
 			buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
-            buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+			buffers.push_back(boost::asio::buffer(HTTP_CRLF));
 			
 			for (std::size_t i = 0; i < headers.size(); ++i)
 			{
 				header& h = headers[i];
 				buffers.push_back(boost::asio::buffer(h.name));
-				buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
+				buffers.push_back(boost::asio::buffer(HTTP_HEADER_KV_SEP));
 				buffers.push_back(boost::asio::buffer(h.value));
-				buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+				buffers.push_back(boost::asio::buffer(HTTP_CRLF));
 			}
-			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+			buffers.push_back(boost::asio::buffer(HTTP_CRLF));
 		}
 		buffers.push_back(boost::asio::buffer(content));
 		return buffers;
@@ -977,6 +969,3 @@ namespace util
 	}
 }
 }
-
-
-
