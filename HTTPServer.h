@@ -40,7 +40,7 @@ namespace util
 			{
 				std::vector<header> headers;
 				std::string status_string, content;
-				std::vector<boost::asio::const_buffer> to_buffers (int status);
+				std::string to_string (int status);
 			};
 
 		public:
