@@ -1,7 +1,6 @@
 #include <ctime>
 #include <iomanip>
 #include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Base.h"
 #include "FS.h"
@@ -911,7 +910,7 @@ namespace util
             m_Reply.headers[0].name = "Date";
             m_Reply.headers[0].value = std::string(time_buff);
             m_Reply.headers[1].name = "Content-Length";
-            m_Reply.headers[1].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+            m_Reply.headers[1].value = std::to_string(m_Reply.content.size());
             m_Reply.headers[2].name = "Content-Type";
             m_Reply.headers[2].value = "text/html";
         }
