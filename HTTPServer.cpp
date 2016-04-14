@@ -203,36 +203,51 @@ namespace util
 	const char HTTP_COMMAND_I2P_TUNNELS[] = "i2p_tunnels";
 	const char HTTP_COMMAND_JUMPSERVICES[] = "jumpservices=";
 	const char HTTP_PARAM_ADDRESS[] = "address";
-	const char HTTP_HEADER_KV_SEP[] = ": ";
-	const char HTTP_CRLF[] = "\r\n";
 	
-	std::string HTTPConnection::reply::to_string(int code)
+	namespace misc_strings
 	{
-		std::stringstream ss("");
+
+		const char name_value_separator[] = { ':', ' ' };
+		const char crlf[] = { '\r', '\n' };
+
+	} // namespace misc_strings
+	
+	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers(int status)
+	{
+		std::vector<boost::asio::const_buffer> buffers;
 		if (headers.size () > 0)
 		{
-			const char *status;
-			switch (code)
+			status_string = "HTTP/1.1 ";
+			status_string += std::to_string (status);
+			status_string += " ";
+			switch (status)
 			{
-				case 105: status = "Name Not Resolved"; break;
-				case 200: status = "OK"; break;
-				case 400: status = "Bad Request"; break;
-				case 404: status = "Not Found"; break;
-				case 408: status = "Request Timeout"; break;
-				case 500: status = "Internal Server Error"; break;
-				case 502: status = "Bad Gateway"; break;
-				case 503: status = "Not Implemented"; break;
-				case 504: status = "Gateway Timeout"; break;
-				default: status = "WTF";
+				case 105: status_string += "Name Not Resolved"; break;
+                case 200: status_string += "OK"; break;
+                case 400: status_string += "Bad Request"; break;
+                case 404: status_string += "Not Found"; break;
+                case 408: status_string += "Request Timeout"; break;
+                case 500: status_string += "Internal Server Error"; break;
+                case 502: status_string += "Bad Gateway"; break;
+                case 503: status_string += "Not Implemented"; break;
+                case 504: status_string += "Gateway Timeout"; break;
+				default: status_string += "WTF";
 			}
-			ss << "HTTP/1.1 " << code << "" << status << HTTP_CRLF;
-			for (header & h : headers) {
-				ss << h.name << HTTP_HEADER_KV_SEP << h.value << HTTP_CRLF;
+			buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
+			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+			
+			for (std::size_t i = 0; i < headers.size(); ++i)
+			{
+				header& h = headers[i];
+				buffers.push_back(boost::asio::buffer(h.name));
+				buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
+				buffers.push_back(boost::asio::buffer(h.value));
+				buffers.push_back(boost::asio::buffer(misc_strings::crlf));
 			}
-			ss << HTTP_CRLF; /* end of headers */
+			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
 		}
-		ss << content;
-		return ss.str();
+		buffers.push_back(boost::asio::buffer(content));
+		return buffers;
 	}
 
 	void HTTPConnection::Terminate ()
@@ -885,23 +900,22 @@ namespace util
 
 	void HTTPConnection::SendReply (const std::string& content, int status)
 	{
-		// we need the date header to be complaint with http 1.1
-		std::time_t time_now = std::time(nullptr);
-		char time_buff[128];
-		std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now));
-		/* fill reply with headers */
+		m_Reply.content = content;
 		m_Reply.headers.resize(3);
-		m_Reply.headers[0].name = "Date";
-		m_Reply.headers[0].value = std::string(time_buff);
-		m_Reply.headers[1].name = "Content-Length";
-		m_Reply.headers[1].value = std::to_string(m_Reply.content.size());
-		m_Reply.headers[2].name = "Content-Type";
-		m_Reply.headers[2].value = "text/html";
-
-		std::vector<boost::asio::const_buffer> buffers;
-		buffers.push_back(boost::asio::buffer(m_Reply.to_string(status)));
-		buffers.push_back(boost::asio::buffer(content));
-		boost::asio::async_write (*m_Socket, buffers,
+        // we need the date header to be complaint with http 1.1
+        std::time_t time_now = std::time(nullptr);
+        char time_buff[128];
+        if (std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now))) 
+		{
+            m_Reply.headers[0].name = "Date";
+            m_Reply.headers[0].value = std::string(time_buff);
+            m_Reply.headers[1].name = "Content-Length";
+            m_Reply.headers[1].value = std::to_string(m_Reply.content.size());
+            m_Reply.headers[2].name = "Content-Type";
+            m_Reply.headers[2].value = "text/html";
+        }
+		
+		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
 			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
 	}
 
