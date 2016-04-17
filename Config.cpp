@@ -180,6 +180,17 @@ namespace config {
       ("i2pcontrol.key",      value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
       ;
 
+	options_description precomputation("Precomputation options");
+	precomputation.add_options()  
+	  ("precomputation.elgamal",  
+#if defined(__x86_64__)	   
+	   value<bool>()->default_value(false),   
+#else
+	   value<bool>()->default_value(true),  
+#endif	   
+	   "Enable or disable elgamal precomputation table")
+	  ;
+	  
     m_OptionsDesc
       .add(general)
       .add(httpserver)
@@ -188,6 +199,7 @@ namespace config {
       .add(sam)
       .add(bob)
       .add(i2pcontrol)
+	  .add(precomputation) 	  
       ;
   }
 

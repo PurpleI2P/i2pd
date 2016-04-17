@@ -117,7 +117,8 @@ namespace i2p
 			LogPrint(eLogDebug, "FS: main config file: ", config);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
-			i2p::crypto::InitCrypto ();
+			bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
+			i2p::crypto::InitCrypto (precomputation);
 			i2p::context.Init ();
 
 			uint16_t port; i2p::config::GetOption("port", port);
