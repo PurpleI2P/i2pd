@@ -828,7 +828,8 @@ namespace crypto
 #else
 				ELGAMAL_SHORT_EXPONENT_NUM_BYTES	
 #endif	
-			);                  
+			);   
+			delete[] g_ElggTable; g_ElggTable = nullptr;
 		}	
 /*		CRYPTO_set_locking_callback (nullptr);
 		m_OpenSSLMutexes.clear ();*/
