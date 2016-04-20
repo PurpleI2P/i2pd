@@ -130,9 +130,10 @@ namespace config {
       ("close", value<std::string>()->default_value("ask"), "Action on close: minimize, exit, ask") // TODO: add custom validator or something
 #endif
       ;
+
     options_description limits("Limits options");
     limits.add_options()
-      ("limits.transit",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
+      ("limits.transittunnels",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
       ;
 
     options_description httpserver("HTTP Server options");
