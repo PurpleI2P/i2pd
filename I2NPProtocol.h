@@ -97,8 +97,6 @@ namespace i2p
 	const uint8_t DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP = 0x08; // 1000			
 	const uint8_t DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP = 0x0C; // 1100
 
-	const unsigned int MAX_NUM_TRANSIT_TUNNELS = 2500;
-
 namespace tunnel
 {		
 	class InboundTunnel;
@@ -259,6 +257,9 @@ namespace tunnel
 
 			std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs, m_TunnelGatewayMsgs;
 	};
+
+	const uint16_t DEFAULT_MAX_NUM_TRANSIT_TUNNELS = 2500;
+	void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels);
 }	
 
 #endif

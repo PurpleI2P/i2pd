@@ -198,6 +198,7 @@ namespace config {
 	  
     m_OptionsDesc
       .add(general)
+	  .add(limits)	
       .add(httpserver)
       .add(httpproxy)
       .add(socksproxy)
