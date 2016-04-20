@@ -130,6 +130,13 @@ namespace config {
       ("close", value<std::string>()->default_value("ask"), "Action on close: minimize, exit, ask") // TODO: add custom validator or something
 #endif
       ;
+    options_description limits("Limits options");
+    limits.add_options()
+      ("limits.transit",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
+      ("limits.router",    value<uint16_t>()->default_value(4096), "Maximum active router sessions (default:4096)")
+      ("limits.client",    value<uint16_t>()->default_value(1024), "Maximum active client sessions (default:1024)")
+      ("limits.floodfill", value<uint16_t>()->default_value(1024), "Maximum active floodfill sessions (default:1024)")
+      ;
 
     options_description httpserver("HTTP Server options");
     httpserver.add_options()
