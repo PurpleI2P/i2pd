@@ -131,6 +131,11 @@ namespace config {
 #endif
       ;
 
+    options_description limits("Limits options");
+    limits.add_options()
+      ("limits.transittunnels",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
+      ;
+
     options_description httpserver("HTTP Server options");
     httpserver.add_options()
       ("http.enabled",        value<bool>()->default_value(true),               "Enable or disable webconsole")
