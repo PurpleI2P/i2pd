@@ -119,7 +119,7 @@ namespace tunnel
 							if (ret.second)
 								HandleOutOfSequenceFragment (msgID, ret.first->second);
 							else
-								LogPrint (eLogError, "TunnelMessage: Incomplete message ", msgID, "already exists");
+								LogPrint (eLogError, "TunnelMessage: Incomplete message ", msgID, " already exists");
 						}
 						else
 						{

@@ -131,6 +131,11 @@ namespace config {
 #endif
       ;
 
+    options_description limits("Limits options");
+    limits.add_options()
+      ("limits.transittunnels",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
+      ;
+
     options_description httpserver("HTTP Server options");
     httpserver.add_options()
       ("http.enabled",        value<bool>()->default_value(true),               "Enable or disable webconsole")
@@ -180,14 +185,27 @@ namespace config {
       ("i2pcontrol.key",      value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
       ;
 
+	options_description precomputation("Precomputation options");
+	precomputation.add_options()  
+	  ("precomputation.elgamal",  
+#if defined(__x86_64__)	   
+	   value<bool>()->default_value(false),   
+#else
+	   value<bool>()->default_value(true),  
+#endif	   
+	   "Enable or disable elgamal precomputation table")
+	  ;
+	  
     m_OptionsDesc
       .add(general)
+	  .add(limits)	
       .add(httpserver)
       .add(httpproxy)
       .add(socksproxy)
       .add(sam)
       .add(bob)
       .add(i2pcontrol)
+	  .add(precomputation) 	  
       ;
   }
 

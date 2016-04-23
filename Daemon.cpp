@@ -117,7 +117,8 @@ namespace i2p
 			LogPrint(eLogDebug, "FS: main config file: ", config);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
-			i2p::crypto::InitCrypto ();
+			bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
+			i2p::crypto::InitCrypto (precomputation);
 			i2p::context.Init ();
 
 			uint16_t port; i2p::config::GetOption("port", port);
@@ -140,6 +141,8 @@ namespace i2p
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
 			i2p::context.SetAcceptsTunnels (!transit);
+			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
+			SetMaxNumTransitTunnels (transitTunnels);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
 			if (isFloodfill) {
