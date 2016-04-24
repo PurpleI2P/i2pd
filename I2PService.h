@@ -118,6 +118,9 @@ namespace client
 			void Start ();
 			//If you override this make sure you call it from the children
 			void Stop ();
+
+			const boost::asio::ip::tcp::acceptor& GetAcceptor () const { return m_Acceptor; };
+			
 		protected:
 			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
 			virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
