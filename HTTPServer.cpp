@@ -417,6 +417,7 @@ namespace util
 			default: s << "Unknown";
 		} 
 		s << "<br>\r\n";
+		s << "<b>Family:</b> " << i2p::context.GetFamilyString() << "<br>\r\n";
 		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>Received:</b> ";
 		s << std::fixed << std::setprecision(2);
