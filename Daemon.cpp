@@ -117,7 +117,8 @@ namespace i2p
 			LogPrint(eLogDebug, "FS: main config file: ", config);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
-			i2p::crypto::InitCrypto ();
+			bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
+			i2p::crypto::InitCrypto (precomputation);
 			i2p::context.Init ();
 
 			uint16_t port; i2p::config::GetOption("port", port);
@@ -140,37 +141,51 @@ namespace i2p
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
 			i2p::context.SetAcceptsTunnels (!transit);
+			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
+			SetMaxNumTransitTunnels (transitTunnels);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
-			char bandwidth;   i2p::config::GetOption("bandwidth", bandwidth);
-
-			if (isFloodfill) 
-			{
+			if (isFloodfill) {
 				LogPrint(eLogInfo, "Daemon: router will be floodfill");
 				i2p::context.SetFloodfill (true);
-			}	
-			else
+			}	else {
 				i2p::context.SetFloodfill (false);
-			if (bandwidth != '-')
-			{
-				LogPrint(eLogInfo, "Daemon: bandwidth set to ", bandwidth);
-				if (bandwidth > 'O') 
-					i2p::context.SetExtraBandwidth (); 
-				else if (bandwidth > 'L')
-					i2p::context.SetHighBandwidth (); 
-				else 
-					i2p::context.SetLowBandwidth ();
 			}
+
+			/* this section also honors 'floodfill' flag, if set above */
+			std::string bandwidth; i2p::config::GetOption("bandwidth", bandwidth);
+			if (bandwidth.length () > 0)
+			{	
+				if (bandwidth[0] >= 'K' && bandwidth[0] <= 'X') 
+				{
+					i2p::context.SetBandwidth (bandwidth[0]);
+					LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), "KBps");
+				} 
+				else 
+				{
+					auto value = std::atoi(bandwidth.c_str());
+					if (value > 0) 
+					{	
+						i2p::context.SetBandwidth (value);
+						LogPrint(eLogInfo, "Daemon: bandwidth set to ", i2p::context.GetBandwidthLimit (), " KBps");
+					}
+					else
+					{
+						LogPrint(eLogInfo, "Daemon: unexpected bandwidth ", bandwidth, ". Set to 'low'");
+						i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
+					}	
+				}	
+			}	
 			else if (isFloodfill) 
 			{
 				LogPrint(eLogInfo, "Daemon: floodfill bandwidth set to 'extra'");
-				i2p::context.SetExtraBandwidth ();
+				i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1);
 			} 
 			else
 			{
 				LogPrint(eLogInfo, "Daemon: bandwidth set to 'low'");
-				i2p::context.SetLowBandwidth ();
-			}
+				i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
+			}	
 
 			std::string family; i2p::config::GetOption("family", family);
 			i2p::context.SetFamily (family);

@@ -200,9 +200,9 @@ namespace transport
 
 	bool Transports::IsBandwidthExceeded () const
 	{
-		if (i2p::context.GetRouterInfo ().IsExtraBandwidth ()) return false;
+		auto limit = i2p::context.GetBandwidthLimit() * 1024; // convert to bytes
 		auto bw = std::max (m_InBandwidth, m_OutBandwidth);
-		return bw > (i2p::context.GetRouterInfo ().IsHighBandwidth () ? HIGH_BANDWIDTH_LIMIT : LOW_BANDWIDTH_LIMIT);
+		return bw > limit;
 	}
 
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)

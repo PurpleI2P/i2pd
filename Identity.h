@@ -95,6 +95,7 @@ namespace data
 		private:
 
 			void CreateVerifier () const;
+			void UpdateVerifier (i2p::crypto::Verifier * verifier) const;
 			
 		private:
 

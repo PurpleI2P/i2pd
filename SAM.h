@@ -128,13 +128,36 @@ namespace client
 			std::string m_ID; // nickname
 			bool m_IsSilent;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
-			SAMSession * m_Session;
+			std::shared_ptr<SAMSession> m_Session;
 	};	
 
 	struct SAMSession
 	{
 		std::shared_ptr<ClientDestination> localDestination;
-		std::list<std::shared_ptr<SAMSocket> > sockets;
+		std::list<std::shared_ptr<SAMSocket> > m_Sockets;
+		std::mutex m_SocketsMutex;
+
+		/** safely add a socket to this session */
+		void AddSocket(std::shared_ptr<SAMSocket> sock) {
+			std::lock_guard<std::mutex> lock(m_SocketsMutex);
+			m_Sockets.push_back(sock);
+		}
+
+		/** safely remove a socket from this session */
+		void DelSocket(std::shared_ptr<SAMSocket> sock) {
+			std::lock_guard<std::mutex> lock(m_SocketsMutex);
+			m_Sockets.remove(sock);
+		}
+
+		/** get a list holding a copy of all sam sockets from this session */
+		std::list<std::shared_ptr<SAMSocket> > ListSockets() {
+			std::list<std::shared_ptr<SAMSocket> > l;
+			{
+				std::lock_guard<std::mutex> lock(m_SocketsMutex);
+				for( auto & sock : m_Sockets ) l.push_back(sock);
+			}
+			return l;
+		}
 		
 		SAMSession (std::shared_ptr<ClientDestination> dest);		
 		~SAMSession ();
@@ -153,10 +176,10 @@ namespace client
 			void Stop ();
 			
 			boost::asio::io_service& GetService () { return m_Service; };
-			SAMSession * CreateSession (const std::string& id, const std::string& destination, // empty string  means transient
+			std::shared_ptr<SAMSession> CreateSession (const std::string& id, const std::string& destination, // empty string  means transient
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
-			SAMSession * FindSession (const std::string& id) const;
+			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
 
 		private:
 
@@ -177,7 +200,7 @@ namespace client
 			boost::asio::ip::udp::endpoint m_DatagramEndpoint, m_SenderEndpoint;
 			boost::asio::ip::udp::socket m_DatagramSocket;
 			mutable std::mutex m_SessionsMutex;
-			std::map<std::string, SAMSession *> m_Sessions;
+			std::map<std::string, std::shared_ptr<SAMSession> > m_Sessions;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
 
 		public:

@@ -59,6 +59,7 @@ namespace util
 			void HandleWriteReply(const boost::system::error_code& ecode);
 			void HandleWrite (const boost::system::error_code& ecode);
 			void SendReply (const std::string& content, int status = 200);
+			void SendError (const std::string& message);
 
 			void HandleRequest (const std::string& address);
 			void HandleCommand (const std::string& command, std::stringstream& s);

@@ -15,14 +15,11 @@ Donations
 BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY  
 LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59  
 ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z  
+DOGE: DNXLQKziRPAsD9H3DFNjk4fLQrdaSX893Y 
 
-Downloads
-------------
-
-Official binary releases could be found at:  
-http://i2pd.website/releases/  
-older releases  
-http://download.i2p.io/purplei2p/i2pd/releases/  
+Documentation:
+--------------
+http://i2pd.readthedocs.org
 
 Supported OS
 ------------

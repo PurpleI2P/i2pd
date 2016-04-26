@@ -77,7 +77,7 @@ namespace data
 	
 	bool RouterInfo::LoadFile ()
 	{
-		std::ifstream s(m_FullPath.c_str (), std::ifstream::binary);
+		std::ifstream s(m_FullPath, std::ifstream::binary);
 		if (s.is_open ())	
 		{	
 			s.seekg (0,std::ios::end);
@@ -104,6 +104,8 @@ namespace data
 	{
 		if (LoadFile ())
 			ReadFromBuffer (false); 
+		else
+			m_IsUnreachable = true;	
 	}	
 
 	void RouterInfo::ReadFromBuffer (bool verifySignature)
@@ -333,16 +335,19 @@ namespace data
 	void RouterInfo::UpdateCapsProperty ()
 	{	
 		std::string caps;
-		if (m_Caps & eFloodfill) 
-		{
-			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
-			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+		if (m_Caps & eFloodfill) {
 			caps += CAPS_FLAG_FLOODFILL; // floodfill  
-		}	
-		else
-		{
-			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1;
-			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 : CAPS_FLAG_LOW_BANDWIDTH2; // bandwidth	
+			caps += (m_Caps & eExtraBandwidth)
+				? CAPS_FLAG_EXTRA_BANDWIDTH1 // 'P'
+				: CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+		} else {
+			if (m_Caps & eExtraBandwidth) {
+				caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			} else if (m_Caps & eHighBandwidth) {
+				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+			} else {
+				caps += CAPS_FLAG_LOW_BANDWIDTH2; // 'L'
+			}
 		}	
 		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
@@ -511,19 +516,20 @@ namespace data
 		m_BufferLen += privateKeys.GetPublic ()->GetSignatureLen ();
 	}	
 
-	void RouterInfo::SaveToFile (const std::string& fullPath)
+	bool RouterInfo::SaveToFile (const std::string& fullPath)
 	{
 		m_FullPath = fullPath;
-		if (m_Buffer)
-		{	
-			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
-			if (f.is_open ())
-				f.write ((char *)m_Buffer, m_BufferLen);
-			else
-				LogPrint(eLogError, "RouterInfo: Can't save to ", fullPath);
-		}
-		else
+		if (!m_Buffer) {
 			LogPrint (eLogError, "RouterInfo: Can't save, m_Buffer == NULL");
+			return false;
+		}
+		std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
+		if (!f.is_open ()) {
+			LogPrint(eLogError, "RouterInfo: Can't save to ", fullPath);
+			return false;
+		}
+		f.write ((char *)m_Buffer, m_BufferLen);
+		return true;
 	}
 	
 	size_t RouterInfo::ReadString (char * str, std::istream& s)

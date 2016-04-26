@@ -123,12 +123,17 @@ namespace config {
       ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
       ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will be floodfill")
-      ("bandwidth", value<char>()->default_value('-'), "Bandwidth limiting: L - 32kbps, O - 256Kbps, P - unlimited")
+      ("bandwidth", value<std::string>()->default_value(""), "Bandwidth limit: integer in kbps or letters: L (32), O (256), P (2048), X (>9000)")
 #ifdef _WIN32
       ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
       ("insomnia", value<bool>()->zero_tokens()->default_value(false), "Prevent system from sleeping")
-      ("close", value<std::string>()->default_value("ask"), "On close action") // minimize, exit, ask TODO: add custom validator or something
+      ("close", value<std::string>()->default_value("ask"), "Action on close: minimize, exit, ask") // TODO: add custom validator or something
 #endif
+      ;
+
+    options_description limits("Limits options");
+    limits.add_options()
+      ("limits.transittunnels",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
       ;
 
     options_description httpserver("HTTP Server options");
@@ -180,14 +185,27 @@ namespace config {
       ("i2pcontrol.key",      value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
       ;
 
+	options_description precomputation("Precomputation options");
+	precomputation.add_options()  
+	  ("precomputation.elgamal",  
+#if defined(__x86_64__)	   
+	   value<bool>()->default_value(false),   
+#else
+	   value<bool>()->default_value(true),  
+#endif	   
+	   "Enable or disable elgamal precomputation table")
+	  ;
+	  
     m_OptionsDesc
       .add(general)
+	  .add(limits)	
       .add(httpserver)
       .add(httpproxy)
       .add(socksproxy)
       .add(sam)
       .add(bob)
       .add(i2pcontrol)
+	  .add(precomputation) 	  
       ;
   }
 

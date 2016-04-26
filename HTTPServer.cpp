@@ -1,7 +1,6 @@
 #include <ctime>
 #include <iomanip>
 #include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "Base.h"
 #include "FS.h"
@@ -24,7 +23,6 @@ namespace i2p
 {
 namespace util
 {
-
 	const std::string HTTPConnection::itoopieImage = 
 		"<img alt=\"ICToopie Icon\" src=\"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXM"
@@ -205,7 +203,6 @@ namespace util
 	const char HTTP_COMMAND_I2P_TUNNELS[] = "i2p_tunnels";
 	const char HTTP_COMMAND_JUMPSERVICES[] = "jumpservices=";
 	const char HTTP_PARAM_ADDRESS[] = "address";
-
 	
 	namespace misc_strings
 	{
@@ -214,7 +211,7 @@ namespace util
 		const char crlf[] = { '\r', '\n' };
 
 	} // namespace misc_strings
-
+	
 	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers(int status)
 	{
 		std::vector<boost::asio::const_buffer> buffers;
@@ -237,7 +234,7 @@ namespace util
 				default: status_string += "WTF";
 			}
 			buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
-            buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
 			
 			for (std::size_t i = 0; i < headers.size(); ++i)
 			{
@@ -609,19 +606,19 @@ namespace util
 			s << "<th>Status</th>";
 			s << "</tr>";
 
-			for (auto it: dest->GetStreamingDestination ()->GetStreams ())
+			for (auto it: dest->GetAllStreams ())
 			{	
 				s << "<tr>";
-				s << "<td>" << it.first << "</td>";
-				s << "<td>" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetRemoteIdentity ()) << "</td>";
-				s << "<td>" << it.second->GetNumSentBytes () << "</td>";
-				s << "<td>" << it.second->GetNumReceivedBytes () << "</td>";
-				s << "<td>" << it.second->GetSendQueueSize () << "</td>";
-				s << "<td>" << it.second->GetReceiveQueueSize () << "</td>";
-				s << "<td>" << it.second->GetSendBufferSize () << "</td>";
-				s << "<td>" << it.second->GetRTT () << "</td>";
-				s << "<td>" << it.second->GetWindowSize () << "</td>";
-				s << "<td>" << (int)it.second->GetStatus () << "</td>";
+				s << "<td>" << it->GetSendStreamID () << "</td>";
+				s << "<td>" << i2p::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ()) << "</td>";
+				s << "<td>" << it->GetNumSentBytes () << "</td>";
+				s << "<td>" << it->GetNumReceivedBytes () << "</td>";
+				s << "<td>" << it->GetSendQueueSize () << "</td>";
+				s << "<td>" << it->GetReceiveQueueSize () << "</td>";
+				s << "<td>" << it->GetSendBufferSize () << "</td>";
+				s << "<td>" << it->GetRTT () << "</td>";
+				s << "<td>" << it->GetWindowSize () << "</td>";
+				s << "<td>" << (int)it->GetStatus () << "</td>";
 				s << "</tr><br>\r\n" << std::endl; 
 			}
 		}	
@@ -749,7 +746,7 @@ namespace util
 				s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 				s << "<b>Streams:</b><br>\r\n";
-				for (auto it: session->sockets)
+				for (auto it: session->ListSockets())
 				{
 					switch (it->GetSocketType ())
 					{
@@ -777,20 +774,20 @@ namespace util
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
-			s << it.second->GetName () << " ⇐ ";
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇐ ";			
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "</a><br>\r\n"<< std::endl;
+			s << "<br>\r\n"<< std::endl;
 		}	
 		s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
-			s << it.second->GetName () << " ⇒ ";
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
 			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇒ ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();
 			s << "</a><br>\r\n"<< std::endl;
@@ -831,7 +828,7 @@ namespace util
 		if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
 		{
 			LogPrint (eLogWarning, "HTTPServer: Unknown address ", address);
-			SendReply ("<html>" + itoopieImage + "<br>\r\nUnknown address " + address + "</html>", 404);
+			SendError ("Unknown address " + address);
 			return;
 		}		
 
@@ -855,11 +852,13 @@ namespace util
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-			if (leaseSet && !leaseSet->IsExpired ())
+			if (leaseSet && !leaseSet->IsExpired ()) {
 				SendToDestination (leaseSet, port, buf, len);
-			else
-				// still no LeaseSet
-				SendReply (leaseSet ? "<html>" + itoopieImage + "<br>\r\nLeases expired</html>" : "<html>" + itoopieImage + "LeaseSet not found</html>", 504);
+			} else if (leaseSet) {
+				SendError ("LeaseSet expired");
+			} else {
+				SendError ("LeaseSet not found");
+			}
 		}
 	}	
 	
@@ -893,7 +892,7 @@ namespace util
 		else
 		{
 			if (ecode == boost::asio::error::timed_out)
-				SendReply ("<html>" + itoopieImage + "<br>\r\nNot responding</html>", 504);
+				SendError ("Host not responding");
 			else if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
@@ -911,13 +910,18 @@ namespace util
             m_Reply.headers[0].name = "Date";
             m_Reply.headers[0].value = std::string(time_buff);
             m_Reply.headers[1].name = "Content-Length";
-            m_Reply.headers[1].value = boost::lexical_cast<std::string>(m_Reply.content.size());
+            m_Reply.headers[1].value = std::to_string(m_Reply.content.size());
             m_Reply.headers[2].name = "Content-Type";
             m_Reply.headers[2].value = "text/html";
         }
 		
 		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
 			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
+	}
+
+	void HTTPConnection::SendError(const std::string& content)
+	{
+		SendReply ("<html>" + itoopieImage + "<br>\r\n" + content + "</html>", 504);
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):
@@ -978,6 +982,3 @@ namespace util
 	}
 }
 }
-
-
-

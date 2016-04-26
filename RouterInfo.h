@@ -24,13 +24,14 @@ namespace data
 	const char CAPS_FLAG_HIDDEN = 'H';
 	const char CAPS_FLAG_REACHABLE = 'R';
 	const char CAPS_FLAG_UNREACHABLE = 'U';	
-	const char CAPS_FLAG_LOW_BANDWIDTH1 = 'K';		
-	const char CAPS_FLAG_LOW_BANDWIDTH2 = 'L';	
-	const char CAPS_FLAG_HIGH_BANDWIDTH1 = 'M';	
-	const char CAPS_FLAG_HIGH_BANDWIDTH2 = 'N';
-	const char CAPS_FLAG_HIGH_BANDWIDTH3 = 'O';
-	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P';
-	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X';
+	/* bandwidth flags */
+	const char CAPS_FLAG_LOW_BANDWIDTH1   = 'K'; /*   < 12 KBps */
+	const char CAPS_FLAG_LOW_BANDWIDTH2   = 'L'; /*  12-48 KBps */
+	const char CAPS_FLAG_HIGH_BANDWIDTH1  = 'M'; /*  48-64 KBps */
+	const char CAPS_FLAG_HIGH_BANDWIDTH2  = 'N'; /*  64-128 KBps */
+	const char CAPS_FLAG_HIGH_BANDWIDTH3  = 'O'; /* 128-256 KBps */
+	const char CAPS_FLAG_EXTRA_BANDWIDTH1 = 'P'; /* 256-2000 KBps */
+	const char CAPS_FLAG_EXTRA_BANDWIDTH2 = 'X'; /*   > 2000 KBps */
 	
 	const char CAPS_FLAG_SSU_TESTING = 'B';
 	const char CAPS_FLAG_SSU_INTRODUCER = 'C';
@@ -160,7 +161,7 @@ namespace data
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
-			void SaveToFile (const std::string& fullPath);
+			bool SaveToFile (const std::string& fullPath);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void SaveProfile () { if (m_Profile) m_Profile->Save (); };
@@ -174,7 +175,6 @@ namespace data
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; };
 			bool IsDestination () const { return false; };
 
-			
 		private:
 
 			bool LoadFile ();

@@ -273,7 +273,7 @@ namespace crypto
 #endif
 	};	
 
-	void InitCrypto ();
+	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();
 }		
 }	

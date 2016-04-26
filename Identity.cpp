@@ -311,18 +311,18 @@ namespace data
 		switch (keyType)
 		{
 			case SIGNING_KEY_TYPE_DSA_SHA1:
-				m_Verifier.reset (new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey));
+				UpdateVerifier (new i2p::crypto::DSAVerifier (m_StandardIdentity.signingKey));
 			break;
 			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 			{	
 				size_t padding =  128 - i2p::crypto::ECDSAP256_KEY_LENGTH; // 64 = 128 - 64
-				m_Verifier.reset (new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + padding));
+				UpdateVerifier (new i2p::crypto::ECDSAP256Verifier (m_StandardIdentity.signingKey + padding));
 				break;
 			}	
 			case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
 			{	
 				size_t padding = 128 - i2p::crypto::ECDSAP384_KEY_LENGTH; // 32 = 128 - 96
-				m_Verifier.reset (new i2p::crypto::ECDSAP384Verifier (m_StandardIdentity.signingKey + padding));
+				UpdateVerifier (new i2p::crypto::ECDSAP384Verifier (m_StandardIdentity.signingKey + padding));
 				break;
 			}	
 			case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
@@ -331,7 +331,7 @@ namespace data
 				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
 				size_t excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128; // 4 = 132- 128
 				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				m_Verifier.reset (new i2p::crypto::ECDSAP521Verifier (signingKey));
+				UpdateVerifier (new i2p::crypto::ECDSAP521Verifier (signingKey));
 				break;
 			}		
 			case SIGNING_KEY_TYPE_RSA_SHA256_2048:
@@ -340,7 +340,7 @@ namespace data
 				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
 				size_t excessLen = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128; // 128 = 256- 128
 				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				m_Verifier.reset (new i2p::crypto:: RSASHA2562048Verifier (signingKey));
+				UpdateVerifier (new i2p::crypto:: RSASHA2562048Verifier (signingKey));
 				break;
 			}	
 			case SIGNING_KEY_TYPE_RSA_SHA384_3072:
@@ -349,7 +349,7 @@ namespace data
 				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
 				size_t excessLen = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128; // 256 = 384- 128
 				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				m_Verifier.reset (new i2p::crypto:: RSASHA3843072Verifier (signingKey));
+				UpdateVerifier (new i2p::crypto:: RSASHA3843072Verifier (signingKey));
 				break;
 			}	
 			case SIGNING_KEY_TYPE_RSA_SHA512_4096:
@@ -358,20 +358,28 @@ namespace data
 				memcpy (signingKey, m_StandardIdentity.signingKey, 128);
 				size_t excessLen = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128; // 384 = 512- 128
 				memcpy (signingKey + 128, m_ExtendedBuffer + 4, excessLen); // right after signing and crypto key types
-				m_Verifier.reset (new i2p::crypto:: RSASHA5124096Verifier (signingKey));
+				UpdateVerifier (new i2p::crypto:: RSASHA5124096Verifier (signingKey));
 				break;
 			}	
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 			{
 				size_t padding =  128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
-				m_Verifier.reset (new i2p::crypto::EDDSA25519Verifier (m_StandardIdentity.signingKey + padding));
+				UpdateVerifier (new i2p::crypto::EDDSA25519Verifier (m_StandardIdentity.signingKey + padding));
 				break;
 			}	
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}			
 	}	
-	
+
+	void IdentityEx::UpdateVerifier (i2p::crypto::Verifier * verifier) const
+	{
+		if (!m_Verifier || !verifier)
+			m_Verifier.reset (verifier);
+		else
+			delete verifier;
+	}	
+		
 	void IdentityEx::DropVerifier () const
 	{
 		// TODO: potential race condition with Verify

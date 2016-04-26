@@ -159,6 +159,7 @@ namespace client
 			
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
+			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
 	};	
 }	
 }	
