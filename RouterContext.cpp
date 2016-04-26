@@ -159,7 +159,7 @@ namespace i2p
 
 		m_FamilyString = family;
 		if (m_FamilyString.length() == 0)
-			m_FamilyString = "&lt;undefined&gt;
+			m_FamilyString = "&lt;undefined&gt;";
 
 		std::string signature;
 		if (family.length () > 0)
