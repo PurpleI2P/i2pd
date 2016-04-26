@@ -59,6 +59,7 @@ namespace i2p
 			bool IsFloodfill () const { return m_IsFloodfill; };	
 			void SetFloodfill (bool floodfill);	
 			void SetFamily (const std::string& family);
+			void SetFamilyString (const std::string& family);
 			std::string GetFamilyString () const;
 			void SetBandwidth (int limit); /* in kilobytes */
 			void SetBandwidth (char L); /* by letter */
