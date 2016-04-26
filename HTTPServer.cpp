@@ -405,7 +405,6 @@ namespace util
 
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
-		s << "<b>Family:</b> " << i2p::context.GetFamilyString() << "<br>\r\n";
 		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
 			boost::posix_time::time_duration (boost::posix_time::seconds (
 			i2p::context.GetUptime ()))) << "<br>\r\n";
@@ -418,6 +417,7 @@ namespace util
 			default: s << "Unknown";
 		} 
 		s << "<br>\r\n";
+		s << "<b>Family:</b> " << i2p::context.GetFamilyString() << "<br>\r\n";
 		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>Received:</b> ";
 		s << std::fixed << std::setprecision(2);
