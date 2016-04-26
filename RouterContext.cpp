@@ -164,7 +164,6 @@ namespace i2p
 
 	void RouterContext::SetFamily (const std::string& family)
 	{
-
 		std::string signature;
 		if (family.length () > 0)
 			signature = i2p::data::CreateFamilySignature (family, GetIdentHash ());
