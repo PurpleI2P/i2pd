@@ -405,6 +405,7 @@ namespace util
 
 	void HTTPConnection::FillContent (std::stringstream& s)
 	{
+		s << "<b>Family:</b> " << i2p::context.GetFamilyString() << "<br>\r\n";
 		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
 			boost::posix_time::time_duration (boost::posix_time::seconds (
 			i2p::context.GetUptime ()))) << "<br>\r\n";

@@ -149,18 +149,29 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
+	std::string RouterContext::GetFamilyString () const
+	{
+		return m_FamilyString;
+	}
+
 	void RouterContext::SetFamily (const std::string& family)
 	{
+
 		std::string signature;
 		if (family.length () > 0)
+		{
+			m_FamilyString = family;
 			signature = i2p::data::CreateFamilySignature (family, GetIdentHash ());
+		}
 		if (signature.length () > 0)
 		{
+			m_FamilyString = "<none>";
 			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY, family);
 			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY_SIG, signature);
 		}	
 		else
 		{
+			m_FamilyString = "<???>";
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY);
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY_SIG);
 		}	
