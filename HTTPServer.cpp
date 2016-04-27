@@ -265,6 +265,43 @@ namespace http {
 		s << " " << (int) (bytes / 1024) << "&nbsp;KiB<br>\r\n";
 	}
 
+	void ShowPageHead (std::stringstream& s)
+	{
+		s <<
+			"<!DOCTYPE html>\r\n"
+			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
+			"  <head>\r\n"
+			"  <meta charset=\"UTF-8\">\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+			"  <link rel='shortcut icon' href='" << itoopieFavicon << "'>\r\n"
+			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
+			<< cssStyles <<
+			"</head>\r\n";
+		s <<
+			"<body>\r\n"
+			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
+			"<div class=wrapper>\r\n"
+			"<div class=left>\r\n"
+			"  <a href=/>Main page</a><br>\r\n<br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_COMMANDS << ">Router commands</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TUNNELS << ">Tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TRANSPORTS << ">Transports</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_JUMPSERVICES << ">Jump services</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_SAM_SESSIONS << ">SAM sessions</a><br>\r\n"
+			"</div>\r\n"
+			"<div class=right>";
+	}
+
+	void ShowPageTail (std::stringstream& s)
+	{
+		s <<
+			"</div></div>\r\n"
+			"</body>\r\n"
+			"</html>\r\n";
+	}
+
 	void ShowStatus (std::stringstream& s)
 	{
 		s << "<b>Uptime:</b> ";
@@ -649,43 +686,14 @@ namespace http {
 	{
 		std::stringstream s;
 		// Html5 head start
-		s <<
-			"<!DOCTYPE html>\r\n"
-			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
-			"  <head>\r\n"
-			"  <meta charset=\"UTF-8\">\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
-			"  <link rel='shortcut icon' href='" << itoopieFavicon << "'>\r\n"
-			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
-			<< cssStyles <<
-			"</head>\r\n";
-		s <<
-			"<body>\r\n"
-			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
-			"<div class=wrapper>\r\n"
-			"<div class=left>\r\n"
-			"  <a href=/>Main page</a><br>\r\n<br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_COMMANDS << ">Router commands</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_TUNNELS << ">Tunnels</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_TRANSPORTS << ">Transports</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_JUMPSERVICES << ">Jump services</a><br>\r\n"
-			;
-		if (i2p::client::context.GetSAMBridge ())
-			s << "  <a href=/?page=" << HTTP_PAGE_SAM_SESSIONS << ">SAM sessions</a><br>\r\n";
-		s << "</div>\r\n";
-		s << "<div class=right>";
+		ShowPageHead (s);
 		if (uri.find("page=") != std::string::npos)
 			HandlePage (s, uri);
 		else if (uri.find("cmd=") != std::string::npos)
 			HandleCommand (s, uri);
 		else			
 			ShowStatus (s);
-		s <<
-			"</div></div>\r\n"
-			"</body>\r\n"
-			"</html>\r\n";
+		ShowPageTail (s);
 		SendReply (s.str ());
 	}
 
