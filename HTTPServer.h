@@ -25,6 +25,7 @@ namespace http {
 			void SendReply (const std::string& content, int code = 200);
 			void SendError (const std::string& message);
 
+			void RunRequest ();
 			void HandleRequest (const std::string& uri);
 			void HandlePage    (std::stringstream& s, const std::string& request);
 			void HandleCommand (std::stringstream& s, const std::string& request);
@@ -45,16 +46,12 @@ namespace http {
 			void StopAcceptingTunnels  (std::stringstream& s);
 			void RunPeerTest           (std::stringstream& s);
 
-		protected:
+		private:
 
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
-
-		protected:
-	
-			virtual void RunRequest ();
 	};
 
 	class HTTPServer
@@ -62,7 +59,7 @@ namespace http {
 		public:
 
 			HTTPServer (const std::string& address, int port);
-			virtual ~HTTPServer ();
+			~HTTPServer ();
 
 			void Start ();
 			void Stop ();
@@ -73,6 +70,7 @@ namespace http {
  			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode,
 				std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
+			void CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
 			
 		private:
 
@@ -80,9 +78,6 @@ namespace http {
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
-
-		protected:
-			virtual void CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
 	};
 } // http
 } // i2p
