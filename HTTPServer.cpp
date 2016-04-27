@@ -230,6 +230,373 @@ namespace http {
 		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
 	};
 
+	void ShowStatus (std::stringstream& s)
+	{
+		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
+			boost::posix_time::time_duration (boost::posix_time::seconds (
+			i2p::context.GetUptime ()))) << "<br>\r\n";
+		s << "<b>Status:</b> ";
+		switch (i2p::context.GetStatus ())
+		{
+			case eRouterStatusOK: s << "OK"; break;
+			case eRouterStatusTesting: s << "Testing"; break;
+			case eRouterStatusFirewalled: s << "Firewalled"; break; 
+			default: s << "Unknown";
+		} 
+		s << "<br>\r\n";
+		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
+		s << "<b>Received:</b> ";
+		s << std::fixed << std::setprecision(2);
+		auto numKBytesReceived = (double) i2p::transport::transports.GetTotalReceivedBytes () / 1024;
+		if (numKBytesReceived < 1024)
+			s << numKBytesReceived << " KiB";
+		else if (numKBytesReceived < 1024 * 1024)
+			s << numKBytesReceived / 1024 << " MiB";
+		else
+			s << numKBytesReceived / 1024 / 1024 << " GiB";
+		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " KiB/s)<br>\r\n";
+		s << "<b>Sent:</b> ";
+		auto numKBytesSent = (double) i2p::transport::transports.GetTotalSentBytes () / 1024;
+		if (numKBytesSent < 1024)
+			s << numKBytesSent << " KiB";
+		else if (numKBytesSent < 1024 * 1024)
+			s << numKBytesSent / 1024 << " MiB";
+		else
+			s << numKBytesSent / 1024 / 1024 << " GiB";
+		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
+		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
+		s << "<b>Our external address:</b>" << "<br>\r\n" ;
+		for (auto address : i2p::context.GetRouterInfo().GetAddresses())
+		{
+			switch (address->transportStyle)
+			{
+				case i2p::data::RouterInfo::eTransportNTCP:
+					if (address->host.is_v6 ())
+						s << "NTCP6&nbsp;&nbsp;";
+					else
+						s << "NTCP&nbsp;&nbsp;";
+				break;
+				case i2p::data::RouterInfo::eTransportSSU:
+					if (address->host.is_v6 ())
+						s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+					else
+						s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+				break;
+				default:
+					s << "Unknown&nbsp;&nbsp;";
+			}
+			s << address->host.to_string() << ":" << address->port << "<br>\r\n";
+		}
+		s << "<br>\r\n<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
+		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
+		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
+
+		size_t clientTunnelCount = i2p::tunnel::tunnels.CountOutboundTunnels();
+		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
+		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
+		
+		s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
+		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
+	}
+
+	void ShowJumpServices (std::stringstream& s, const std::string& address)
+	{
+		s << "<form type=\"GET\" action=\"/\">";
+		s << "<input type=\"hidden\" name=\"page\" value=\"jumpservices\">";
+		s << "<input type=\"text\"   name=\"address\" value=\"" << address << "\">";
+		s << "<input type=\"submit\" value=\"Update\">";
+		s << "</form><br>\r\n";
+		s << "<b>Jump services for " << address << "</b>\r\n<ul>\r\n";
+		for (auto & js : jumpservices) {
+			s << "  <li><a href=\"" << js.second << address << "\">" << js.first << "</a></li>\r\n";
+		}
+		s << "</ul>\r\n";
+	}
+
+	void ShowLocalDestinations (std::stringstream& s)
+	{
+		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
+		for (auto& it: i2p::client::context.GetDestinations ())
+		{
+			auto ident = it.second->GetIdentHash ();; 
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
+		}
+	}
+
+	void  ShowLocalDestination (std::stringstream& s, const std::string& b32)
+	{
+		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
+		i2p::data::IdentHash ident;
+		ident.FromBase32 (b32);
+		auto dest = i2p::client::context.FindLocalDestination (ident);
+		if (dest)
+		{
+			s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
+			s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
+			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>\r\n";
+			auto pool = dest->GetTunnelPool ();
+			if (pool)
+			{
+				s << "<b>Tunnels:</b><br>\r\n";
+				for (auto it: pool->GetOutboundTunnels ())
+				{
+					it->Print (s);
+					auto state = it->GetState ();
+					if (state == i2p::tunnel::eTunnelStateFailed)
+						s << " " << "Failed";
+					else if (state == i2p::tunnel::eTunnelStateExpiring)
+						s << " " << "Exp";
+					s << "<br>\r\n" << std::endl;
+				}
+				for (auto it: pool->GetInboundTunnels ())
+				{
+					it->Print (s);
+					auto state = it->GetState ();
+					if (state == i2p::tunnel::eTunnelStateFailed)
+						s << " " << "Failed";
+					else if (state == i2p::tunnel::eTunnelStateExpiring)
+						s << " " << "Exp";
+					s << "<br>\r\n" << std::endl;
+				}
+			}	
+			s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
+			for (auto it: dest->GetSessions ())
+			{
+				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " ";
+				s << it.second->GetNumOutgoingTags () << "<br>" << std::endl;
+			}	
+			s << "<br>" << std::endl;
+			// s << "<br>\r\n<b>Streams:</b><br>\r\n";
+			// for (auto it: dest->GetStreamingDestination ()->GetStreams ())
+			// {	
+				// s << it.first << "->" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetRemoteIdentity ()) << " ";
+				// s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				// s << " [out:" << it.second->GetSendQueueSize () << "][in:" << it.second->GetReceiveQueueSize () << "]";
+				// s << "[buf:" << it.second->GetSendBufferSize () << "]";
+				// s << "[RTT:" << it.second->GetRTT () << "]";
+				// s << "[Window:" << it.second->GetWindowSize () << "]";
+				// s << "[Status:" << (int)it.second->GetStatus () << "]"; 
+				// s << "<br>\r\n"<< std::endl; 
+			// }	
+			s << "<br>\r\n<table><caption>Streams</caption><tr>";
+			s << "<th>StreamID</th>";
+			s << "<th>Destination</th>";
+			s << "<th>Sent</th>";
+			s << "<th>Received</th>";
+			s << "<th>Out</th>";
+			s << "<th>In</th>";
+			s << "<th>Buf</th>";
+			s << "<th>RTT</th>";
+			s << "<th>Window</th>";
+			s << "<th>Status</th>";
+			s << "</tr>";
+
+			for (auto it: dest->GetAllStreams ())
+			{	
+				s << "<tr>";
+				s << "<td>" << it->GetSendStreamID () << "</td>";
+				s << "<td>" << i2p::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ()) << "</td>";
+				s << "<td>" << it->GetNumSentBytes () << "</td>";
+				s << "<td>" << it->GetNumReceivedBytes () << "</td>";
+				s << "<td>" << it->GetSendQueueSize () << "</td>";
+				s << "<td>" << it->GetReceiveQueueSize () << "</td>";
+				s << "<td>" << it->GetSendBufferSize () << "</td>";
+				s << "<td>" << it->GetRTT () << "</td>";
+				s << "<td>" << it->GetWindowSize () << "</td>";
+				s << "<td>" << (int)it->GetStatus () << "</td>";
+				s << "</tr><br>\r\n" << std::endl; 
+			}
+		}	
+	}
+
+	void ShowTunnels (std::stringstream& s)
+	{
+		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
+		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
+		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
+		{
+			it->Print (s);
+			auto state = it->GetState ();
+			if (state == i2p::tunnel::eTunnelStateFailed)
+				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
+			else if (state == i2p::tunnel::eTunnelStateExpiring)
+				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
+			s << " " << (int)it->GetNumSentBytes () << "<br>\r\n";
+			s << std::endl;
+		}
+
+		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
+		{
+			it->Print (s);
+			auto state = it->GetState ();
+			if (state == i2p::tunnel::eTunnelStateFailed)
+				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
+			else if (state == i2p::tunnel::eTunnelStateExpiring)
+				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
+			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
+			s << std::endl;
+		}
+	}	
+
+	void ShowTransitTunnels (std::stringstream& s)
+	{
+		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
+		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
+		{
+			if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
+				s << it->GetTunnelID () << " ⇒ ";
+			else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
+				s << " ⇒ " << it->GetTunnelID ();
+			else
+				s << " ⇒ " << it->GetTunnelID () << " ⇒ ";
+			s << " " << it->GetNumTransmittedBytes () << "<br>\r\n";
+		}
+	}
+
+	void ShowTransports (std::stringstream& s)
+	{
+		s << "<b>Transports:</b><br>\r\n<br>\r\n";
+		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
+		if (ntcpServer)
+		{	
+			s << "<b>NTCP</b><br>\r\n";
+			for (auto it: ntcpServer->GetNTCPSessions ())
+			{
+				if (it.second && it.second->IsEstablished ())
+				{
+					// incoming connection doesn't have remote RI
+					if (it.second->IsOutgoing ()) s << " ⇒ ";
+					s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) <<  ": "
+						<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
+					if (!it.second->IsOutgoing ()) s << " ⇒ ";
+					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+					s << "<br>\r\n" << std::endl;
+				}
+			}
+		}	
+		auto ssuServer = i2p::transport::transports.GetSSUServer ();
+		if (ssuServer)
+		{
+			s << "<br>\r\n<b>SSU</b><br>\r\n";
+			for (auto it: ssuServer->GetSessions ())
+			{
+				auto endpoint = it.second->GetRemoteEndpoint ();
+				if (it.second->IsOutgoing ()) s << " ⇒ ";
+				s << endpoint.address ().to_string () << ":" << endpoint.port ();
+				if (!it.second->IsOutgoing ()) s << " ⇒ ";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				if (it.second->GetRelayTag ())
+					s << " [itag:" << it.second->GetRelayTag () << "]";
+				s << "<br>\r\n" << std::endl;
+			}
+			s << "<br>\r\n<b>SSU6</b><br>\r\n";
+			for (auto it: ssuServer->GetSessionsV6 ())
+			{
+				auto endpoint = it.second->GetRemoteEndpoint ();
+				if (it.second->IsOutgoing ()) s << " ⇒ ";
+				s << endpoint.address ().to_string () << ":" << endpoint.port ();
+				if (!it.second->IsOutgoing ()) s << " ⇒ ";
+				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+				s << "<br>\r\n" << std::endl;
+			}
+		}
+	}
+	
+	void ShowSAMSessions (std::stringstream& s)
+	{
+		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
+		auto sam = i2p::client::context.GetSAMBridge ();
+		if (sam)
+		{	
+			for (auto& it: sam->GetSessions ())
+			{
+				s << "<a href=/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << ">";
+				s << it.first << "</a><br>\r\n" << std::endl;
+			}	
+		}	
+	}	
+
+	void ShowSAMSession (std::stringstream& s, const std::string& id)
+	{
+		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
+		auto sam = i2p::client::context.GetSAMBridge ();
+		if (sam)
+		{
+			auto session = sam->FindSession (id);
+			if (session)
+			{
+				auto& ident = session->localDestination->GetIdentHash();
+				s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
+				s << "<b>Streams:</b><br>\r\n";
+				for (auto it: session->ListSockets())
+				{
+					switch (it->GetSocketType ())
+					{
+						case i2p::client::eSAMSocketTypeSession:
+							s << "session";
+						break;	
+						case i2p::client::eSAMSocketTypeStream:
+							s << "stream";
+						break;	
+						case i2p::client::eSAMSocketTypeAcceptor:
+							s << "acceptor";
+						break;
+						default:
+							s << "unknown";
+					}
+					s << " [" << it->GetSocket ().remote_endpoint() << "]";
+					s << "<br>\r\n" << std::endl;
+				}	
+			}
+		}	
+	}	
+
+	void ShowI2PTunnels (std::stringstream& s)
+	{
+		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
+		for (auto& it: i2p::client::context.GetClientTunnels ())
+		{
+			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇐ ";			
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << "<br>\r\n"<< std::endl;
+		}	
+		s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
+		for (auto& it: i2p::client::context.GetServerTunnels ())
+		{
+			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << it.second->GetName () << "</a> ⇒ ";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << ":" << it.second->GetLocalPort ();
+			s << "</a><br>\r\n"<< std::endl;
+		}	
+	}	
+	
+	void StopAcceptingTunnels (std::stringstream& s)
+	{
+		s << "<b>Stop Accepting Tunnels:</b><br>\r\n<br>\r\n";
+		i2p::context.SetAcceptsTunnels (false);
+		s << "Accepting tunnels stopped" <<  std::endl;
+	}
+
+	void StartAcceptingTunnels (std::stringstream& s)
+	{
+		s << "<b>Start Accepting Tunnels:</b><br>\r\n<br>\r\n";
+		i2p::context.SetAcceptsTunnels (true);
+		s << "Accepting tunnels started" <<  std::endl;		
+	}
+
+	void RunPeerTest (std::stringstream& s)
+	{
+		s << "<b>Run Peer Test:</b><br>\r\n<br>\r\n";
+		i2p::transport::transports.PeerTest ();
+		s << "Peer test is running" <<  std::endl;
+	}
+
 	void HTTPConnection::Receive ()
 	{
 		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
@@ -323,75 +690,6 @@ namespace http {
 		SendReply (s.str ());
 	}
 
-	void HTTPConnection::ShowStatus (std::stringstream& s)
-	{
-		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
-			boost::posix_time::time_duration (boost::posix_time::seconds (
-			i2p::context.GetUptime ()))) << "<br>\r\n";
-		s << "<b>Status:</b> ";
-		switch (i2p::context.GetStatus ())
-		{
-			case eRouterStatusOK: s << "OK"; break;
-			case eRouterStatusTesting: s << "Testing"; break;
-			case eRouterStatusFirewalled: s << "Firewalled"; break; 
-			default: s << "Unknown";
-		} 
-		s << "<br>\r\n";
-		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
-		s << "<b>Received:</b> ";
-		s << std::fixed << std::setprecision(2);
-		auto numKBytesReceived = (double) i2p::transport::transports.GetTotalReceivedBytes () / 1024;
-		if (numKBytesReceived < 1024)
-			s << numKBytesReceived << " KiB";
-		else if (numKBytesReceived < 1024 * 1024)
-			s << numKBytesReceived / 1024 << " MiB";
-		else
-			s << numKBytesReceived / 1024 / 1024 << " GiB";
-		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " KiB/s)<br>\r\n";
-		s << "<b>Sent:</b> ";
-		auto numKBytesSent = (double) i2p::transport::transports.GetTotalSentBytes () / 1024;
-		if (numKBytesSent < 1024)
-			s << numKBytesSent << " KiB";
-		else if (numKBytesSent < 1024 * 1024)
-			s << numKBytesSent / 1024 << " MiB";
-		else
-			s << numKBytesSent / 1024 / 1024 << " GiB";
-		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
-		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
-		s << "<b>Our external address:</b>" << "<br>\r\n" ;
-		for (auto address : i2p::context.GetRouterInfo().GetAddresses())
-		{
-			switch (address->transportStyle)
-			{
-				case i2p::data::RouterInfo::eTransportNTCP:
-					if (address->host.is_v6 ())
-						s << "NTCP6&nbsp;&nbsp;";
-					else
-						s << "NTCP&nbsp;&nbsp;";
-				break;
-				case i2p::data::RouterInfo::eTransportSSU:
-					if (address->host.is_v6 ())
-						s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-					else
-						s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-				break;
-				default:
-					s << "Unknown&nbsp;&nbsp;";
-			}
-			s << address->host.to_string() << ":" << address->port << "<br>\r\n";
-		}
-		s << "<br>\r\n<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
-		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
-		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
-
-		size_t clientTunnelCount = i2p::tunnel::tunnels.CountOutboundTunnels();
-		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
-		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
-		
-		s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
-		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
-	}
-
 	void HTTPConnection::HandlePage (std::stringstream& s, const std::string & uri)
   {
 		std::map<std::string, std::string> params;
@@ -443,304 +741,6 @@ namespace http {
 		else
 			SendError("Unknown command: " + cmd);
 	}	
-
-	void HTTPConnection::ShowJumpServices (std::stringstream& s, const std::string& address)
-	{
-		s << "<form type=\"GET\" action=\"/\">";
-		s << "<input type=\"hidden\" name=\"page\" value=\"jumpservices\">";
-		s << "<input type=\"text\"   name=\"address\" value=\"" << address << "\">";
-		s << "<input type=\"submit\" value=\"Update\">";
-		s << "</form><br>\r\n";
-		s << "<b>Jump services for " << address << "</b>\r\n<ul>\r\n";
-		for (auto & js : jumpservices) {
-			s << "  <li><a href=\"" << js.second << address << "\">" << js.first << "</a></li>\r\n";
-		}
-		s << "</ul>\r\n";
-	}
-
-	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
-	{
-		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
-		for (auto& it: i2p::client::context.GetDestinations ())
-		{
-			auto ident = it.second->GetIdentHash ();; 
-			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
-		}
-	}
-
-	void  HTTPConnection::ShowLocalDestination (std::stringstream& s, const std::string& b32)
-	{
-		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
-		i2p::data::IdentHash ident;
-		ident.FromBase32 (b32);
-		auto dest = i2p::client::context.FindLocalDestination (ident);
-		if (dest)
-		{
-			s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
-			s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
-			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>\r\n";
-			auto pool = dest->GetTunnelPool ();
-			if (pool)
-			{
-				s << "<b>Tunnels:</b><br>\r\n";
-				for (auto it: pool->GetOutboundTunnels ())
-				{
-					it->Print (s);
-					auto state = it->GetState ();
-					if (state == i2p::tunnel::eTunnelStateFailed)
-						s << " " << "Failed";
-					else if (state == i2p::tunnel::eTunnelStateExpiring)
-						s << " " << "Exp";
-					s << "<br>\r\n" << std::endl;
-				}
-				for (auto it: pool->GetInboundTunnels ())
-				{
-					it->Print (s);
-					auto state = it->GetState ();
-					if (state == i2p::tunnel::eTunnelStateFailed)
-						s << " " << "Failed";
-					else if (state == i2p::tunnel::eTunnelStateExpiring)
-						s << " " << "Exp";
-					s << "<br>\r\n" << std::endl;
-				}
-			}	
-			s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
-			for (auto it: dest->GetSessions ())
-			{
-				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " ";
-				s << it.second->GetNumOutgoingTags () << "<br>" << std::endl;
-			}	
-			s << "<br>" << std::endl;
-			// s << "<br>\r\n<b>Streams:</b><br>\r\n";
-			// for (auto it: dest->GetStreamingDestination ()->GetStreams ())
-			// {	
-				// s << it.first << "->" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetRemoteIdentity ()) << " ";
-				// s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				// s << " [out:" << it.second->GetSendQueueSize () << "][in:" << it.second->GetReceiveQueueSize () << "]";
-				// s << "[buf:" << it.second->GetSendBufferSize () << "]";
-				// s << "[RTT:" << it.second->GetRTT () << "]";
-				// s << "[Window:" << it.second->GetWindowSize () << "]";
-				// s << "[Status:" << (int)it.second->GetStatus () << "]"; 
-				// s << "<br>\r\n"<< std::endl; 
-			// }	
-			s << "<br>\r\n<table><caption>Streams</caption><tr>";
-			s << "<th>StreamID</th>";
-			s << "<th>Destination</th>";
-			s << "<th>Sent</th>";
-			s << "<th>Received</th>";
-			s << "<th>Out</th>";
-			s << "<th>In</th>";
-			s << "<th>Buf</th>";
-			s << "<th>RTT</th>";
-			s << "<th>Window</th>";
-			s << "<th>Status</th>";
-			s << "</tr>";
-
-			for (auto it: dest->GetAllStreams ())
-			{	
-				s << "<tr>";
-				s << "<td>" << it->GetSendStreamID () << "</td>";
-				s << "<td>" << i2p::client::context.GetAddressBook ().ToAddress(it->GetRemoteIdentity ()) << "</td>";
-				s << "<td>" << it->GetNumSentBytes () << "</td>";
-				s << "<td>" << it->GetNumReceivedBytes () << "</td>";
-				s << "<td>" << it->GetSendQueueSize () << "</td>";
-				s << "<td>" << it->GetReceiveQueueSize () << "</td>";
-				s << "<td>" << it->GetSendBufferSize () << "</td>";
-				s << "<td>" << it->GetRTT () << "</td>";
-				s << "<td>" << it->GetWindowSize () << "</td>";
-				s << "<td>" << (int)it->GetStatus () << "</td>";
-				s << "</tr><br>\r\n" << std::endl; 
-			}
-		}	
-	}
-
-	void HTTPConnection::ShowTunnels (std::stringstream& s)
-	{
-		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
-		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
-		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
-		{
-			it->Print (s);
-			auto state = it->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
-			s << " " << (int)it->GetNumSentBytes () << "<br>\r\n";
-			s << std::endl;
-		}
-
-		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
-		{
-			it->Print (s);
-			auto state = it->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
-			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
-			s << std::endl;
-		}
-	}	
-
-	void HTTPConnection::ShowTransitTunnels (std::stringstream& s)
-	{
-		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
-		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
-		{
-			if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
-				s << it->GetTunnelID () << " ⇒ ";
-			else if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelEndpoint>(it))
-				s << " ⇒ " << it->GetTunnelID ();
-			else
-				s << " ⇒ " << it->GetTunnelID () << " ⇒ ";
-			s << " " << it->GetNumTransmittedBytes () << "<br>\r\n";
-		}
-	}
-
-	void HTTPConnection::ShowTransports (std::stringstream& s)
-	{
-		s << "<b>Transports:</b><br>\r\n<br>\r\n";
-		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
-		if (ntcpServer)
-		{	
-			s << "<b>NTCP</b><br>\r\n";
-			for (auto it: ntcpServer->GetNTCPSessions ())
-			{
-				if (it.second && it.second->IsEstablished ())
-				{
-					// incoming connection doesn't have remote RI
-					if (it.second->IsOutgoing ()) s << " ⇒ ";
-					s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) <<  ": "
-						<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
-					if (!it.second->IsOutgoing ()) s << " ⇒ ";
-					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-					s << "<br>\r\n" << std::endl;
-				}
-			}
-		}	
-		auto ssuServer = i2p::transport::transports.GetSSUServer ();
-		if (ssuServer)
-		{
-			s << "<br>\r\n<b>SSU</b><br>\r\n";
-			for (auto it: ssuServer->GetSessions ())
-			{
-				auto endpoint = it.second->GetRemoteEndpoint ();
-				if (it.second->IsOutgoing ()) s << " ⇒ ";
-				s << endpoint.address ().to_string () << ":" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) s << " ⇒ ";
-				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				if (it.second->GetRelayTag ())
-					s << " [itag:" << it.second->GetRelayTag () << "]";
-				s << "<br>\r\n" << std::endl;
-			}
-			s << "<br>\r\n<b>SSU6</b><br>\r\n";
-			for (auto it: ssuServer->GetSessionsV6 ())
-			{
-				auto endpoint = it.second->GetRemoteEndpoint ();
-				if (it.second->IsOutgoing ()) s << " ⇒ ";
-				s << endpoint.address ().to_string () << ":" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) s << " ⇒ ";
-				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				s << "<br>\r\n" << std::endl;
-			}
-		}
-	}
-	
-	void HTTPConnection::ShowSAMSessions (std::stringstream& s)
-	{
-		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
-		auto sam = i2p::client::context.GetSAMBridge ();
-		if (sam)
-		{	
-			for (auto& it: sam->GetSessions ())
-			{
-				s << "<a href=/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << ">";
-				s << it.first << "</a><br>\r\n" << std::endl;
-			}	
-		}	
-	}	
-
-	void HTTPConnection::ShowSAMSession (std::stringstream& s, const std::string& id)
-	{
-		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
-		auto sam = i2p::client::context.GetSAMBridge ();
-		if (sam)
-		{
-			auto session = sam->FindSession (id);
-			if (session)
-			{
-				auto& ident = session->localDestination->GetIdentHash();
-				s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
-				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
-				s << "<b>Streams:</b><br>\r\n";
-				for (auto it: session->ListSockets())
-				{
-					switch (it->GetSocketType ())
-					{
-						case i2p::client::eSAMSocketTypeSession:
-							s << "session";
-						break;	
-						case i2p::client::eSAMSocketTypeStream:
-							s << "stream";
-						break;	
-						case i2p::client::eSAMSocketTypeAcceptor:
-							s << "acceptor";
-						break;
-						default:
-							s << "unknown";
-					}
-					s << " [" << it->GetSocket ().remote_endpoint() << "]";
-					s << "<br>\r\n" << std::endl;
-				}	
-			}
-		}	
-	}	
-
-	void HTTPConnection::ShowI2PTunnels (std::stringstream& s)
-	{
-		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
-		for (auto& it: i2p::client::context.GetClientTunnels ())
-		{
-			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
-			s << it.second->GetName () << "</a> ⇐ ";			
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << "<br>\r\n"<< std::endl;
-		}	
-		s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
-		for (auto& it: i2p::client::context.GetServerTunnels ())
-		{
-			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
-			s << it.second->GetName () << "</a> ⇒ ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << ":" << it.second->GetLocalPort ();
-			s << "</a><br>\r\n"<< std::endl;
-		}	
-	}	
-	
-	void HTTPConnection::StopAcceptingTunnels (std::stringstream& s)
-	{
-		s << "<b>Stop Accepting Tunnels:</b><br>\r\n<br>\r\n";
-		i2p::context.SetAcceptsTunnels (false);
-		s << "Accepting tunnels stopped" <<  std::endl;
-	}
-
-	void HTTPConnection::StartAcceptingTunnels (std::stringstream& s)
-	{
-		s << "<b>Start Accepting Tunnels:</b><br>\r\n<br>\r\n";
-		i2p::context.SetAcceptsTunnels (true);
-		s << "Accepting tunnels started" <<  std::endl;		
-	}
-
-	void HTTPConnection::RunPeerTest (std::stringstream& s)
-	{
-		s << "<b>Run Peer Test:</b><br>\r\n<br>\r\n";
-		i2p::transport::transports.PeerTest ();
-		s << "Peer test is running" <<  std::endl;
-	}
 
 	void HTTPConnection::SendReply (const std::string& content, int code)
 	{
