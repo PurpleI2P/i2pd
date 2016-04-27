@@ -836,11 +836,10 @@ namespace http {
 	{
 		m_Acceptor.close();
 		m_Service.stop ();
-		if (m_Thread)
-        {
-            m_Thread->join ();
-            m_Thread = nullptr;
-        }
+		if (m_Thread) {
+			m_Thread->join ();
+			m_Thread = nullptr;
+		}
 	}
 
 	void HTTPServer::Run ()
@@ -858,11 +857,10 @@ namespace http {
 	void HTTPServer::HandleAccept(const boost::system::error_code& ecode, 
 		std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
-		if (!ecode)
-		{
-			CreateConnection(newSocket);
-			Accept ();
-		}
+		if (ecode)
+			return;
+		CreateConnection(newSocket);
+		Accept ();
 	}
 
 	void HTTPServer::CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
