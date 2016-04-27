@@ -248,6 +248,23 @@ namespace http {
 		s << seconds << " seconds";
 	}
 
+	void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, int bytes)
+	{
+		std::string state;
+		switch (eState) {
+			case i2p::tunnel::eTunnelStateBuildReplyReceived :
+			case i2p::tunnel::eTunnelStatePending     : state = "building"; break;
+			case i2p::tunnel::eTunnelStateBuildFailed :
+			case i2p::tunnel::eTunnelStateTestFailed  :
+			case i2p::tunnel::eTunnelStateFailed      : state = "failed";   break;
+			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring"; break;
+			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
+			default: state = "unknown"; break;
+		}
+		s << "<span class=\"tunnel " << state << "\"> " << state << "</span>, ";
+		s << " " << (int) (bytes / 1024) << "&nbsp;KiB<br>\r\n";
+	}
+
 	void ShowStatus (std::stringstream& s)
 	{
 		s << "<b>Uptime:</b> ";
@@ -356,28 +373,19 @@ namespace http {
 			auto pool = dest->GetTunnelPool ();
 			if (pool)
 			{
-				s << "<b>Tunnels:</b><br>\r\n";
-				for (auto it: pool->GetOutboundTunnels ())
-				{
-					it->Print (s);
-					auto state = it->GetState ();
-					if (state == i2p::tunnel::eTunnelStateFailed)
-						s << " " << "Failed";
-					else if (state == i2p::tunnel::eTunnelStateExpiring)
-						s << " " << "Exp";
-					s << "<br>\r\n" << std::endl;
+				s << "<b>Inbound tunnels:</b><br>\r\n";
+				for (auto & it : pool->GetInboundTunnels ()) {
+					it->Print(s);
+					ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
 				}
-				for (auto it: pool->GetInboundTunnels ())
-				{
-					it->Print (s);
-					auto state = it->GetState ();
-					if (state == i2p::tunnel::eTunnelStateFailed)
-						s << " " << "Failed";
-					else if (state == i2p::tunnel::eTunnelStateExpiring)
-						s << " " << "Exp";
-					s << "<br>\r\n" << std::endl;
+				s << "<br>\r\n";
+				s << "<b>Outbound tunnels:</b><br>\r\n";
+				for (auto & it : pool->GetOutboundTunnels ()) {
+					it->Print(s);
+					ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
 				}
 			}	
+			s << "<br>\r\n";
 			s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
 			for (auto it: dest->GetSessions ())
 			{
@@ -430,30 +438,20 @@ namespace http {
 
 	void ShowTunnels (std::stringstream& s)
 	{
-		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
-		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
-		{
-			it->Print (s);
-			auto state = it->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
-			s << " " << (int)it->GetNumSentBytes () << "<br>\r\n";
-			s << std::endl;
-		}
 
-		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
-		{
-			it->Print (s);
-			auto state = it->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
-			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
+		s << "<b>Inbound tunnels:</b><br>\r\n";
+		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
+			it->Print(s);
+			ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
 		}
+		s << "<br>\r\n";
+		s << "<b>Outbound tunnels:</b><br>\r\n";
+		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
+			it->Print(s);
+			ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
+		}
+		s << "<br>\r\n";
 	}	
 
 	void ShowCommands (std::stringstream& s)
