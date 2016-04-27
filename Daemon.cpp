@@ -36,7 +36,7 @@ namespace i2p
 			Daemon_Singleton_Private() {};
 			~Daemon_Singleton_Private() {};
 
-			std::unique_ptr<i2p::util::HTTPServer> httpServer;
+			std::unique_ptr<i2p::http::HTTPServer> httpServer;
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 
 #ifdef USE_UPNP
@@ -202,7 +202,7 @@ namespace i2p
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 				uint16_t    httpPort; i2p::config::GetOption("http.port",    httpPort);
 				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
-				d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(httpAddr, httpPort));
+				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
 				d.httpServer->Start();
 			}
 

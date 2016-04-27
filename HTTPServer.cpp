@@ -26,10 +26,8 @@
 // For image and info
 #include "version.h"
 
-namespace i2p
-{
-namespace util
-{
+namespace i2p {
+namespace http {
 	const char *itoopieImage =
 		"<img alt=\"ICToopie Icon\" src=\"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXM"
@@ -980,5 +978,5 @@ namespace util
 		auto conn = std::make_shared<HTTPConnection> (newSocket);
 		conn->Receive ();
 	}
-}
-}
+} // http
+} // i2p

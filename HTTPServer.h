@@ -1,10 +1,8 @@
 #ifndef HTTP_SERVER_H__
 #define HTTP_SERVER_H__
 
-namespace i2p
-{
-namespace util
-{
+namespace i2p {
+namespace http {
 	extern const char *itoopieImage;
 	extern const char *itoopieFavicon;
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
@@ -124,7 +122,7 @@ namespace util
 		protected:
 			virtual void CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
 	};
-}
-}
+} // http
+} // i2p
 
 #endif /* HTTP_SERVER_H__ */
