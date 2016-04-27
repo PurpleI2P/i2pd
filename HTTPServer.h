@@ -7,34 +7,9 @@ namespace http {
 	extern const char *itoopieFavicon;
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
 	const int HTTP_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
+
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
-		protected:
-
-			struct header
-			{
-			  std::string name;
-			  std::string value;
-			};
-
-			struct request
-			{
-			  std::string method;
-			  std::string uri;
-			  std::string host;
-		      int port;	
-			  int http_version_major;
-			  int http_version_minor;
-			  std::vector<header> headers;
-			};
-
-			struct reply
-			{
-				std::vector<header> headers;
-				std::string status;
-				std::string to_string (int code);
-			};
-
 		public:
 
 			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket): 
@@ -71,7 +46,6 @@ namespace http {
 			std::string ExtractAddress ();
 			void ExtractParams (const std::string& str, std::map<std::string, std::string>& params);
 			
-			
 		protected:
 
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
@@ -79,8 +53,6 @@ namespace http {
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1], m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
-			request m_Request;
-			reply m_Reply;
 
 		protected:
 	
