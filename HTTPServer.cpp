@@ -212,42 +212,32 @@ namespace util
 
 	} // namespace misc_strings
 	
-	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers(int status)
+	std::string HTTPConnection::reply::to_string(int code)
 	{
-		std::vector<boost::asio::const_buffer> buffers;
+		std::stringstream ss("");
 		if (headers.size () > 0)
 		{
-			status_string = "HTTP/1.1 ";
-			status_string += std::to_string (status);
-			status_string += " ";
-			switch (status)
+			const char *status;
+			switch (code)
 			{
-				case 105: status_string += "Name Not Resolved"; break;
-                case 200: status_string += "OK"; break;
-                case 400: status_string += "Bad Request"; break;
-                case 404: status_string += "Not Found"; break;
-                case 408: status_string += "Request Timeout"; break;
-                case 500: status_string += "Internal Server Error"; break;
-                case 502: status_string += "Bad Gateway"; break;
-                case 503: status_string += "Not Implemented"; break;
-                case 504: status_string += "Gateway Timeout"; break;
-				default: status_string += "WTF";
+				case 105: status = "Name Not Resolved"; break;
+				case 200: status = "OK"; break;
+				case 400: status = "Bad Request"; break;
+				case 404: status = "Not Found"; break;
+				case 408: status = "Request Timeout"; break;
+				case 500: status = "Internal Server Error"; break;
+				case 502: status = "Bad Gateway"; break;
+				case 503: status = "Not Implemented"; break;
+				case 504: status = "Gateway Timeout"; break;
+				default: status = "WTF";
 			}
-			buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
-			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-			
-			for (std::size_t i = 0; i < headers.size(); ++i)
-			{
-				header& h = headers[i];
-				buffers.push_back(boost::asio::buffer(h.name));
-				buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
-				buffers.push_back(boost::asio::buffer(h.value));
-				buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-			}
-			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-		}
-		buffers.push_back(boost::asio::buffer(content));
-		return buffers;
+			ss << "HTTP/1.1 " << code << "" << status << HTTP_CRLF;
+			for (header & h : headers) {
+				ss << h.name << HTTP_HEADER_KV_SEP << h.value << HTTP_CRLF;
+ 			}
+			ss << HTTP_CRLF; /* end of headers */
+ 		}
+		return ss.str();
 	}
 
 	void HTTPConnection::Terminate ()
@@ -914,8 +904,9 @@ namespace util
             m_Reply.headers[2].name = "Content-Type";
             m_Reply.headers[2].value = "text/html";
         }
-		
-		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
+		std::string res = m_Reply.to_string(status);
+
+		boost::asio::async_write (*m_Socket, res,
 			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
 	}
 
