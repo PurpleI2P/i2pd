@@ -21,6 +21,7 @@
 #include "RouterContext.h"
 #include "ClientContext.h"
 #include "HTTPServer.h"
+#include "Daemon.h"
 
 // For image and info
 #include "version.h"
@@ -221,6 +222,9 @@ namespace http {
 	const char HTTP_PAGE_COMMANDS[] = "commands";
 	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
 	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";	
+	const char HTTP_COMMAND_SHUTDOWN_START[] = "shutdown_start";
+	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
+	const char HTTP_COMMAND_SHUTDOWN_NOW[]   = "terminate";
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";	
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
@@ -506,6 +510,14 @@ namespace http {
 			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
 		else	
 			s << "  <a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n";
+		if (Daemon.gracefullShutdownInterval) {
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << ">Cancel gracefull shutdown (";
+			s << Daemon.gracefullShutdownInterval;
+			s << " seconds remains)</a><br>\r\n";
+		} else {
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << ">Start gracefull shutdown</a><br>\r\n";
+		}
+		s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << ">Force shutdown</a><br>\r\n";
 	}
 
 	void ShowTransitTunnels (std::stringstream& s)
@@ -799,7 +811,15 @@ namespace http {
 			i2p::context.SetAcceptsTunnels (true);
 		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
 			i2p::context.SetAcceptsTunnels (false);
-		else {
+		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
+			i2p::context.SetAcceptsTunnels (false);
+			Daemon.gracefullShutdownInterval = 10*60;
+		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
+			i2p::context.SetAcceptsTunnels (true);
+			Daemon.gracefullShutdownInterval = 0;
+		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {
+			Daemon.running = false;
+		} else {
 			res.code = 400;
 			ShowError(s, "Unknown command: " + cmd);
 			return;
