@@ -254,26 +254,9 @@ namespace http {
 		}
 		if (ret == 0)
 			return; /* need more data */
-		HandleRequest (request.uri);
+		HandleRequest (request);
 	}
 
-	void HTTPConnection::ExtractParams (const std::string& str, std::map<std::string, std::string>& params)
-	{
-		if (str[0] != '&') return;
-		size_t pos = 1, end;
-		do
-		{
-			end = str.find ('&', pos);
-			std::string param = str.substr (pos, end - pos);
-			LogPrint (eLogDebug, "HTTPServer: extracted parameters: ", param);
-			size_t e = param.find ('=');
-			if (e != std::string::npos)
-				params[param.substr(0, e)] = param.substr(e+1);
-			pos = end + 1;
-		}	
-		while (end != std::string::npos);
-	}
-	
 	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
@@ -295,7 +278,7 @@ namespace http {
 			AsyncStreamReceive ();
 	}
 
-	void HTTPConnection::HandleRequest (const std::string& address)
+	void HTTPConnection::HandleRequest (const HTTPReq &request)
 	{
 		std::stringstream s;
 		// Html5 head start
@@ -322,22 +305,22 @@ namespace http {
 		s << "<div class=wrapper>";
 		s << "<div class=left>\r\n";
 		s << "<a href=/>Main page</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a><br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n";
+		s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n";
+		s << "<a href=/?cmd=" << HTTP_COMMAND_TUNNELS << ">Tunnels</a><br>\r\n";
+		s << "<a href=/?cmd=" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n";
+		s << "<a href=/?cmd=" << HTTP_COMMAND_TRANSPORTS << ">Transports</a><br>\r\n<br>\r\n";
+		s << "<a href=/?cmd=" << HTTP_COMMAND_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n";
 		if (i2p::client::context.GetSAMBridge ())
-			s << "<a href=/?" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a><br>\r\n<br>\r\n";
+			s << "<a href=/?cmd=" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a><br>\r\n<br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "<a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n<br>\r\n";
+			s << "<a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n<br>\r\n";
 		else	
-			s << "<a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_JUMPSERVICES << "&address=example.i2p>Jump services</a><br>\r\n<br>\r\n";
+			s << "<a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n<br>\r\n";
+		s << "<a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n<br>\r\n";
+		s << "<a href=/?cmd=" << HTTP_COMMAND_JUMPSERVICES << "&address=example.i2p>Jump services</a><br>\r\n<br>\r\n";
 		s << "</div><div class=right>";
-		if (address.length () > 1)
-			HandleCommand (address.substr (2), s);
+		if (request.uri.find("cmd=") != std::string::npos)
+			HandleCommand (s, request.uri);
 		else			
 			FillContent (s);
 		s << "</div></div>\r\n</body>\r\n</html>";
@@ -413,21 +396,23 @@ namespace http {
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
-	void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
+	void HTTPConnection::HandleCommand (std::stringstream& s, const std::string & uri)
 	{
-		size_t paramsPos = command.find('&');
-		std::string cmd = command.substr (0, paramsPos);
+		std::map<std::string, std::string> params;
+		std::string cmd("");
+		URL url;
+
+		url.parse(uri);
+		url.parse_query(params);
+		cmd = params["cmd"];
+
 		if (cmd == HTTP_COMMAND_TRANSPORTS)
 			ShowTransports (s);
 		else if (cmd == HTTP_COMMAND_TUNNELS)
 			ShowTunnels (s);
 		else if (cmd == HTTP_COMMAND_JUMPSERVICES)
-        {
-			std::map<std::string, std::string> params;
-			ExtractParams (command.substr (paramsPos), params);
-			auto address = params[HTTP_PARAM_ADDRESS];
-			ShowJumpServices (address, s);
-		} else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
+			ShowJumpServices (s, params["address"]);
+		else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
 		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
 			StartAcceptingTunnels (s);
@@ -438,26 +423,16 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATIONS)
 			ShowLocalDestinations (s);	
 		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATION)
-		{
-			std::map<std::string, std::string> params;
-			ExtractParams (command.substr (paramsPos), params);
-			auto b32 = params[HTTP_PARAM_BASE32_ADDRESS];
-			ShowLocalDestination (b32, s);
-		}	
+			ShowLocalDestination (s, params["b32"]);
 		else if (cmd == HTTP_COMMAND_SAM_SESSIONS)
 			ShowSAMSessions (s);
 		else if (cmd == HTTP_COMMAND_SAM_SESSION)
-		{
-			std::map<std::string, std::string> params;
-			ExtractParams (command.substr (paramsPos), params);
-			auto id = params[HTTP_PARAM_SAM_SESSION_ID];
-			ShowSAMSession (id, s);
-		}	
+			ShowSAMSession (s, params["sam_id"]);
 		else if (cmd == HTTP_COMMAND_I2P_TUNNELS)
 			ShowI2PTunnels (s);
 	}	
 
-	void HTTPConnection::ShowJumpServices (const std::string& address, std::stringstream& s)
+	void HTTPConnection::ShowJumpServices (std::stringstream& s, const std::string& address)
 	{
 		s << "<form type=\"get\" action=\"/\">";
 		s << "<input type=\"hidden\" name=\"jumpservices\">";
@@ -465,7 +440,7 @@ namespace http {
 		s << "<b>Jump services for " << address << "</b>";
 		s << "<ul><li><a href=\"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" << address << "\">inr.i2p jump service</a> <br>\r\n";
 		s << "<li><a href=\"http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" << address << "\">stats.i2p jump service</a></ul>";
-    }
+	}
 
 	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
 	{
@@ -473,13 +448,12 @@ namespace http {
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();; 
-			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
 	}
 
-	void  HTTPConnection::ShowLocalDestination (const std::string& b32, std::stringstream& s)
+	void  HTTPConnection::ShowLocalDestination (std::stringstream& s, const std::string& b32)
 	{
 		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
 		i2p::data::IdentHash ident;
@@ -666,14 +640,13 @@ namespace http {
 		{	
 			for (auto& it: sam->GetSessions ())
 			{
-				s << "<a href=/?" << HTTP_COMMAND_SAM_SESSION;
-				s << "&" << HTTP_PARAM_SAM_SESSION_ID << "=" << it.first << ">";
+				s << "<a href=/?cmd=" << HTTP_COMMAND_SAM_SESSION << "&sam_id=" << it.first << ">";
 				s << it.first << "</a><br>\r\n" << std::endl;
 			}	
 		}	
 	}	
 
-	void HTTPConnection::ShowSAMSession (const std::string& id, std::stringstream& s)
+	void HTTPConnection::ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
 		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
@@ -683,8 +656,7 @@ namespace http {
 			if (session)
 			{
 				auto& ident = session->localDestination->GetIdentHash();
-				s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-				s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+				s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 				s << "<b>Streams:</b><br>\r\n";
 				for (auto it: session->ListSockets())
@@ -716,8 +688,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << it.second->GetName () << "</a> ⇐ ";			
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -726,8 +697,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << it.second->GetName () << "</a> ⇒ ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();
@@ -781,14 +751,14 @@ namespace http {
 		}
 	}
 
-	void HTTPConnection::SendReply (const std::string& content, int status)
+	void HTTPConnection::SendReply (const std::string& content, int code)
 	{
 		std::time_t time_now = std::time(nullptr);
 		char time_buff[128];
 		std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now));
 		HTTPRes reply;
-		reply.code = status;
-		reply.status = HTTPCodeToStatus(status);
+		reply.code = code;
+		reply.status = HTTPCodeToStatus(code);
 		reply.headers.insert(std::pair<std::string, std::string>("Date", time_buff));
 		reply.headers.insert(std::pair<std::string, std::string>("Content-Type", "text/html"));
 		reply.headers.insert(std::pair<std::string, std::string>("Content-Length", std::to_string(content.size())));

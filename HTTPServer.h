@@ -25,27 +25,26 @@ namespace http {
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleWriteReply(const boost::system::error_code& ecode);
 			void HandleWrite (const boost::system::error_code& ecode);
-			void SendReply (const std::string& content, int status = 200);
+			void SendReply (const std::string& content, int code = 200);
 			void SendError (const std::string& message);
 
-			void HandleRequest (const std::string& address);
-			void HandleCommand (const std::string& command, std::stringstream& s);
-			void ShowJumpServices (const std::string& address, std::stringstream& s);
-			void ShowTransports (std::stringstream& s);
-			void ShowTunnels (std::stringstream& s);
-			void ShowTransitTunnels (std::stringstream& s);
+			void HandleRequest (const HTTPReq & request);
+			void HandleCommand         (std::stringstream& s, const std::string& request);
+
+			void ShowJumpServices      (std::stringstream& s, const std::string& address);
+			void ShowTransports        (std::stringstream& s);
+			void ShowTunnels           (std::stringstream& s);
+			void ShowTransitTunnels    (std::stringstream& s);
 			void ShowLocalDestinations (std::stringstream& s);
-			void ShowLocalDestination (const std::string& b32, std::stringstream& s);
-			void ShowSAMSessions (std::stringstream& s);
-			void ShowSAMSession (const std::string& id, std::stringstream& s);
-			void ShowI2PTunnels (std::stringstream& s);
+			void ShowLocalDestination  (std::stringstream& s, const std::string& b32);
+			void ShowSAMSessions       (std::stringstream& s);
+			void ShowSAMSession        (std::stringstream& s, const std::string& id);
+			void ShowI2PTunnels        (std::stringstream& s);
 			void StartAcceptingTunnels (std::stringstream& s);
-			void StopAcceptingTunnels (std::stringstream& s);
-			void RunPeerTest (std::stringstream& s);
-			void FillContent (std::stringstream& s);
-			std::string ExtractAddress ();
-			void ExtractParams (const std::string& str, std::map<std::string, std::string>& params);
-			
+			void StopAcceptingTunnels  (std::stringstream& s);
+			void RunPeerTest           (std::stringstream& s);
+			void FillContent           (std::stringstream& s);
+
 		protected:
 
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
