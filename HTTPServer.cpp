@@ -573,15 +573,16 @@ namespace http {
 	
 	void ShowSAMSessions (std::stringstream& s)
 	{
-		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
-		if (sam)
-		{	
-			for (auto& it: sam->GetSessions ())
-			{
-				s << "<a href=/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << ">";
-				s << it.first << "</a><br>\r\n" << std::endl;
-			}	
+		if (!sam) {
+			ShowError(s, "SAM disabled");
+			return;
+		}
+		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
+		for (auto& it: sam->GetSessions ())
+		{
+			s << "<a href=/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << ">";
+			s << it.first << "</a><br>\r\n" << std::endl;
 		}	
 	}	
 
@@ -589,35 +590,31 @@ namespace http {
 	{
 		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
-		if (sam)
+		if (!sam) {
+			ShowError(s, "SAM disabled");
+			return;
+		}
+		auto session = sam->FindSession (id);
+		if (!session) {
+			ShowError(s, "SAM session not found");
+			return;
+		}
+		auto& ident = session->localDestination->GetIdentHash();
+		s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">";
+		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
+		s << "<br>\r\n";
+		s << "<b>Streams:</b><br>\r\n";
+		for (auto it: session->ListSockets())
 		{
-			auto session = sam->FindSession (id);
-			if (session)
+			switch (it->GetSocketType ())
 			{
-				auto& ident = session->localDestination->GetIdentHash();
-				s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
-				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
-				s << "<b>Streams:</b><br>\r\n";
-				for (auto it: session->ListSockets())
-				{
-					switch (it->GetSocketType ())
-					{
-						case i2p::client::eSAMSocketTypeSession:
-							s << "session";
-						break;	
-						case i2p::client::eSAMSocketTypeStream:
-							s << "stream";
-						break;	
-						case i2p::client::eSAMSocketTypeAcceptor:
-							s << "acceptor";
-						break;
-						default:
-							s << "unknown";
-					}
-					s << " [" << it->GetSocket ().remote_endpoint() << "]";
-					s << "<br>\r\n" << std::endl;
-				}	
+				case i2p::client::eSAMSocketTypeSession  : s << "session";  break;
+				case i2p::client::eSAMSocketTypeStream   : s << "stream";   break;
+				case i2p::client::eSAMSocketTypeAcceptor : s << "acceptor"; break;
+				default: s << "unknown"; break;
 			}
+			s << " [" << it->GetSocket ().remote_endpoint() << "]";
+			s << "<br>\r\n";
 		}	
 	}	
 
