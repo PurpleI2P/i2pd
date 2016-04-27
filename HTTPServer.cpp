@@ -6,7 +6,6 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "Base.h"
 #include "FS.h"
@@ -230,11 +229,29 @@ namespace http {
 		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
 	};
 
+	void ShowUptime (std::stringstream& s, int seconds) {
+		int num;
+
+		if ((num = seconds / 86400) > 0) {
+			s << num << " days, ";
+			seconds -= num;
+		}
+		if ((num = seconds / 3600) > 0) {
+			s << num << " hours, ";
+			seconds -= num;
+		}
+		if ((num = seconds / 60) > 0) {
+			s << num << " min, ";
+			seconds -= num;
+		}
+		s << seconds << " seconds";
+	}
+
 	void ShowStatus (std::stringstream& s)
 	{
-		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
-			boost::posix_time::time_duration (boost::posix_time::seconds (
-			i2p::context.GetUptime ()))) << "<br>\r\n";
+		s << "<b>Uptime:</b> ";
+		ShowUptime(s, i2p::context.GetUptime ());
+		s << "<br>\r\n";
 		s << "<b>Status:</b> ";
 		switch (i2p::context.GetStatus ())
 		{
