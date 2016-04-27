@@ -217,6 +217,7 @@ namespace http {
 	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
 	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
 	const char HTTP_PAGE_JUMPSERVICES[] = "jumpservices";
+	const char HTTP_PAGE_COMMANDS[] = "commands";
 	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
 	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";	
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";	
@@ -452,9 +453,19 @@ namespace http {
 			else if (state == i2p::tunnel::eTunnelStateExpiring)
 				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
 			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
-			s << std::endl;
 		}
 	}	
+
+	void ShowCommands (std::stringstream& s)
+	{
+		/* commands */
+		s << "<b>Router Commands</b><br>\r\n";
+		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
+		if (i2p::context.AcceptsTunnels ())
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
+		else	
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n";
+	}
 
 	void ShowTransitTunnels (std::stringstream& s)
 	{
@@ -655,22 +666,16 @@ namespace http {
 			"<div class=wrapper>\r\n"
 			"<div class=left>\r\n"
 			"  <a href=/>Main page</a><br>\r\n<br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_COMMANDS << ">Router commands</a><br>\r\n"
 			"  <a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n"
 			"  <a href=/?page=" << HTTP_PAGE_TUNNELS << ">Tunnels</a><br>\r\n"
 			"  <a href=/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n"
 			"  <a href=/?page=" << HTTP_PAGE_TRANSPORTS << ">Transports</a><br>\r\n"
 			"  <a href=/?page=" << HTTP_PAGE_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_JUMPSERVICES << "&address=example.i2p>Jump services</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_JUMPSERVICES << ">Jump services</a><br>\r\n"
 			;
 		if (i2p::client::context.GetSAMBridge ())
 			s << "  <a href=/?page=" << HTTP_PAGE_SAM_SESSIONS << ">SAM sessions</a><br>\r\n";
-		/* commands */
-		s << "  <br>\r\n";
-		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
-		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
-		else	
-			s << "  <a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n";
 		s << "</div>\r\n";
 		s << "<div class=right>";
 		if (uri.find("page=") != std::string::npos)
@@ -700,6 +705,8 @@ namespace http {
 			ShowTransports (s);
 		else if (page == HTTP_PAGE_TUNNELS)
 			ShowTunnels (s);
+		else if (page == HTTP_PAGE_COMMANDS)
+			ShowCommands (s);
 		else if (page == HTTP_PAGE_JUMPSERVICES)
 			ShowJumpServices (s, params["address"]);
 		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
@@ -738,7 +745,8 @@ namespace http {
 			SendError("Unknown command: " + cmd);
 			return;
 		}
-		s << "<b>Command accepted</b>";
+		s << "<b>Command accepted</b><br><br>\r\n";
+		s << "<a href=\"/?page=commands\">Back to commands list</a>";
 	}	
 
 	void HTTPConnection::SendReply (const std::string& content, int code)
