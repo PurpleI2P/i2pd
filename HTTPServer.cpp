@@ -738,6 +738,8 @@ namespace http {
 		std::string content;
 		HTTPRes res;
 
+		LogPrint(eLogDebug, "HTTPServer: request: ", req.uri);
+
 		if (needAuth && !CheckAuth(req)) {
 			res.code = 401;
 			res.headers.insert(std::pair<std::string, std::string>("WWW-Authenticate", "Basic realm=\"WebAdmin\""));
