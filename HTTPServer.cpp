@@ -593,27 +593,6 @@ namespace http {
 		}	
 	}	
 	
-	void StopAcceptingTunnels (std::stringstream& s)
-	{
-		s << "<b>Stop Accepting Tunnels:</b><br>\r\n<br>\r\n";
-		i2p::context.SetAcceptsTunnels (false);
-		s << "Accepting tunnels stopped" <<  std::endl;
-	}
-
-	void StartAcceptingTunnels (std::stringstream& s)
-	{
-		s << "<b>Start Accepting Tunnels:</b><br>\r\n<br>\r\n";
-		i2p::context.SetAcceptsTunnels (true);
-		s << "Accepting tunnels started" <<  std::endl;		
-	}
-
-	void RunPeerTest (std::stringstream& s)
-	{
-		s << "<b>Run Peer Test:</b><br>\r\n<br>\r\n";
-		i2p::transport::transports.PeerTest ();
-		s << "Peer test is running" <<  std::endl;
-	}
-
 	void HTTPConnection::Receive ()
 	{
 		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
@@ -749,14 +728,17 @@ namespace http {
 		url.parse_query(params);
 		cmd = params["cmd"];
 
-		if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
-			StartAcceptingTunnels (s);
+		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
+			i2p::transport::transports.PeerTest ();
+		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
+			i2p::context.SetAcceptsTunnels (true);
 		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
-			StopAcceptingTunnels (s);
-		else if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
-			RunPeerTest (s);
-		else
+			i2p::context.SetAcceptsTunnels (false);
+		else {
 			SendError("Unknown command: " + cmd);
+			return;
+		}
+		s << "<b>Command accepted</b>";
 	}	
 
 	void HTTPConnection::SendReply (const std::string& content, int code)
