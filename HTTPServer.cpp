@@ -17,8 +17,6 @@
 #include "NetDb.h"
 #include "HTTP.h"
 #include "LeaseSet.h"
-#include "I2PEndian.h"
-#include "Streaming.h"
 #include "Destination.h"
 #include "RouterContext.h"
 #include "ClientContext.h"
@@ -234,9 +232,6 @@ namespace http {
 
 	void HTTPConnection::Terminate ()
 	{
-		if (!m_Stream) return;
-		m_Stream->Close ();
-		m_Stream = nullptr;
 		m_Socket->close ();
 	}
 
@@ -251,14 +246,9 @@ namespace http {
 	{
 		if (!ecode)
   		{
-			if (!m_Stream) // new request
-			{
-				m_Buffer[bytes_transferred] = '\0';
-				m_BufferLen = bytes_transferred;
-				RunRequest();
-			}
-			else // follow-on
-				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
+			m_Buffer[bytes_transferred] = '\0';
+			m_BufferLen = bytes_transferred;
+			RunRequest();
 			Receive ();
 		}
 		else if (ecode != boost::asio::error::operation_aborted)
@@ -287,17 +277,6 @@ namespace http {
 			m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 			Terminate ();
 		}	
-	}
-
-	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
-	{
-		if (ecode || (m_Stream && !m_Stream->IsOpen ()))
-		{
-			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
-		}	
-		else // data keeps coming
-			AsyncStreamReceive ();
 	}
 
 	void HTTPConnection::HandleRequest (const std::string &uri)
@@ -767,31 +746,6 @@ namespace http {
 		s << "<b>Run Peer Test:</b><br>\r\n<br>\r\n";
 		i2p::transport::transports.PeerTest ();
 		s << "Peer test is running" <<  std::endl;
-	}
-
-	void HTTPConnection::AsyncStreamReceive ()
-	{
-		if (m_Stream)
-			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-				std::bind (&HTTPConnection::HandleStreamReceive, shared_from_this (),
-					std::placeholders::_1, std::placeholders::_2),
-				45); // 45 seconds timeout
-	}
-
-	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
-	{
-		if (!ecode)
-		{
-			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		std::bind (&HTTPConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
-		}
-		else
-		{
-			if (ecode == boost::asio::error::timed_out)
-				SendError ("Host not responding");
-			else if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
-		}
 	}
 
 	void HTTPConnection::SendReply (const std::string& content, int code)

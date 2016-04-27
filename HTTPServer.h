@@ -13,17 +13,15 @@ namespace http {
 
 			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket): 
 				m_Socket (socket), m_Timer (socket->get_io_service ()), 
-				m_Stream (nullptr), m_BufferLen (0) {};
+				m_BufferLen (0) {};
 			void Receive ();
 			
 		private:
 
 			void Terminate ();
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void AsyncStreamReceive ();
-			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleWriteReply(const boost::system::error_code& ecode);
-			void HandleWrite (const boost::system::error_code& ecode);
+
 			void SendReply (const std::string& content, int code = 200);
 			void SendError (const std::string& message);
 
@@ -51,8 +49,7 @@ namespace http {
 
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			boost::asio::deadline_timer m_Timer;
-			std::shared_ptr<i2p::stream::Stream> m_Stream;
-			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1], m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
+			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
 
 		protected:
