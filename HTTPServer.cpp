@@ -194,20 +194,37 @@ namespace http {
 		"MYez0Gm9P2iWna0GOcDp8KY2JhAsnbSQS6Ahh9OgrlklINeM40bWhAkBd4SLIEh8cBURLhOeiBIArVA"
 		"U4yTRvJItk5PRehQVFaYfpbt9PBtTmdziaXyyUzjaHT/QZBQuKHAA0UxAAAAABJRU5ErkJggg==";
 
-	const char HTTP_COMMAND_TUNNELS[] = "tunnels";
-	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
-	const char HTTP_COMMAND_TRANSPORTS[] = "transports";	
+	const char *cssStyles =
+		"<style>\r\n"
+		"  body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
+		"  a { text-decoration: none; color: #894C84; }\r\n"
+		"  a:hover { color: #FAFAFA; background: #894C84; }\r\n"
+		"  .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
+		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 60em; }\r\n"
+		"  .left  { float: left; position: absolute; }\r\n"
+		"  .right { float: left; font-size: 1em; margin-left: 13em; max-width: 46em; overflow: auto; }\r\n"
+		"  .tunnel.established { color: #56B734; }\r\n"
+		"  .tunnel.expiring    { color: #D3AE3F; }\r\n"
+		"  .tunnel.failed      { color: #D33F3F; }\r\n"
+		"  .tunnel.another     { color: #434343; }\r\n"
+		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
+		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
+		"</style>\r\n";
+
+	const char HTTP_PAGE_TUNNELS[] = "tunnels";
+	const char HTTP_PAGE_TRANSIT_TUNNELS[] = "transit_tunnels";
+	const char HTTP_PAGE_TRANSPORTS[] = "transports";	
+	const char HTTP_PAGE_LOCAL_DESTINATIONS[] = "local_destinations";
+	const char HTTP_PAGE_LOCAL_DESTINATION[] = "local_destination";
+	const char HTTP_PAGE_SAM_SESSIONS[] = "sam_sessions";
+	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
+	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
+	const char HTTP_PAGE_JUMPSERVICES[] = "jumpservices";
 	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
 	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";	
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";	
-	const char HTTP_COMMAND_LOCAL_DESTINATIONS[] = "local_destinations";
-	const char HTTP_COMMAND_LOCAL_DESTINATION[] = "local_destination";
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
-	const char HTTP_COMMAND_SAM_SESSIONS[] = "sam_sessions";
-	const char HTTP_COMMAND_SAM_SESSION[] = "sam_session";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
-	const char HTTP_COMMAND_I2P_TUNNELS[] = "i2p_tunnels";
-	const char HTTP_COMMAND_JUMPSERVICES[] = "jumpservices=";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 	
 	void HTTPConnection::Terminate ()
@@ -282,52 +299,53 @@ namespace http {
 	{
 		std::stringstream s;
 		// Html5 head start
-		s << "<!DOCTYPE html>\r\n<html lang=\"en\">"; // TODO: Add support for locale.
-		s << "<head>\r\n<meta charset=\"utf-8\">\r\n"; // TODO: Find something to parse html/template system. This is horrible.
-		s << "<link rel='shortcut icon' href='" << itoopieFavicon << "'>\r\n";
-		s << "<title>Purple I2P " << VERSION " Webconsole</title>\r\n";
-		s << "<style>\r\n";
-		s << "body {font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456;}";
-		s << "a {text-decoration: none; color: #894C84;}";
-		s << "a:hover {color: #FAFAFA; background: #894C84;}";
-		s << ".header {font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84;}";
-		s << ".wrapper {margin: 0 auto; padding: 1em; max-width: 60em;}";
-		s << ".left {float: left; position: absolute;}";
-		s << ".right {font-size: 1em; margin-left: 13em; float: left; max-width: 46em; overflow: auto;}";
-		s << ".established_tunnel {color: #56b734;}";
-		s << ".expiring_tunnel {color: #d3ae3f;}";
-		s << ".failed_tunnel {color: #d33f3f;}";
-		s << ".another_tunnel {color: #434343;}";
-		s << "caption {font-size: 1.5em; text-align: center; color: #894C84;}";
-		s << "table {width: 100%; border-collapse: collapse; text-align: center;}";
-		s << "</style>\r\n</head>\r\n<body>\r\n";
-		s << "<div class=header><b>i2pd </b>webconsole</div>";
-		s << "<div class=wrapper>";
-		s << "<div class=left>\r\n";
-		s << "<a href=/>Main page</a><br>\r\n<br>\r\n";
-		s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n";
-		s << "<a href=/?cmd=" << HTTP_COMMAND_TUNNELS << ">Tunnels</a><br>\r\n";
-		s << "<a href=/?cmd=" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n";
-		s << "<a href=/?cmd=" << HTTP_COMMAND_TRANSPORTS << ">Transports</a><br>\r\n<br>\r\n";
-		s << "<a href=/?cmd=" << HTTP_COMMAND_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n";
+		s <<
+			"<!DOCTYPE html>\r\n"
+			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
+			"  <head>\r\n"
+			"  <meta charset=\"UTF-8\">\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+			"  <link rel='shortcut icon' href='" << itoopieFavicon << "'>\r\n"
+			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
+			<< cssStyles <<
+			"</head>\r\n";
+		s <<
+			"<body>\r\n"
+			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
+			"<div class=wrapper>\r\n"
+			"<div class=left>\r\n"
+			"  <a href=/>Main page</a><br>\r\n<br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TUNNELS << ">Tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TRANSPORTS << ">Transports</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_JUMPSERVICES << "&address=example.i2p>Jump services</a><br>\r\n"
+			;
 		if (i2p::client::context.GetSAMBridge ())
-			s << "<a href=/?cmd=" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a><br>\r\n<br>\r\n";
+			s << "  <a href=/?page=" << HTTP_PAGE_SAM_SESSIONS << ">SAM sessions</a><br>\r\n";
+		/* commands */
+		s << "  <br>\r\n";
+		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "<a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n<br>\r\n";
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
 		else	
-			s << "<a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n<br>\r\n";
-		s << "<a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n<br>\r\n";
-		s << "<a href=/?cmd=" << HTTP_COMMAND_JUMPSERVICES << "&address=example.i2p>Jump services</a><br>\r\n<br>\r\n";
-		s << "</div><div class=right>";
-		if (request.uri.find("cmd=") != std::string::npos)
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n";
+		s << "</div>\r\n";
+		s << "<div class=right>";
+		if (request.uri.find("page=") != std::string::npos)
+			HandlePage (s, request.uri);
+		else if (request.uri.find("cmd=") != std::string::npos)
 			HandleCommand (s, request.uri);
 		else			
-			FillContent (s);
-		s << "</div></div>\r\n</body>\r\n</html>";
+			ShowStatus (s);
+		s <<
+			"</div></div>\r\n"
+			"</body>\r\n"
+			"</html>\r\n";
 		SendReply (s.str ());
 	}
 
-	void HTTPConnection::FillContent (std::stringstream& s)
+	void HTTPConnection::ShowStatus (std::stringstream& s)
 	{
 		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
 			boost::posix_time::time_duration (boost::posix_time::seconds (
@@ -396,6 +414,38 @@ namespace http {
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
+	void HTTPConnection::HandlePage (std::stringstream& s, const std::string & uri)
+  {
+		std::map<std::string, std::string> params;
+		std::string page("");
+		URL url;
+
+		url.parse(uri);
+		url.parse_query(params);
+		page = params["page"];
+
+		if (page == HTTP_PAGE_TRANSPORTS)
+			ShowTransports (s);
+		else if (page == HTTP_PAGE_TUNNELS)
+			ShowTunnels (s);
+		else if (page == HTTP_PAGE_JUMPSERVICES)
+			ShowJumpServices (s, params["address"]);
+		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
+			ShowTransitTunnels (s);
+		else if (page == HTTP_PAGE_LOCAL_DESTINATIONS)
+			ShowLocalDestinations (s);	
+		else if (page == HTTP_PAGE_LOCAL_DESTINATION)
+			ShowLocalDestination (s, params["b32"]);
+		else if (page == HTTP_PAGE_SAM_SESSIONS)
+			ShowSAMSessions (s);
+		else if (page == HTTP_PAGE_SAM_SESSION)
+			ShowSAMSession (s, params["sam_id"]);
+		else if (page == HTTP_PAGE_I2P_TUNNELS)
+			ShowI2PTunnels (s);
+		else
+			SendError("Unknown page: " + page);
+  }
+
 	void HTTPConnection::HandleCommand (std::stringstream& s, const std::string & uri)
 	{
 		std::map<std::string, std::string> params;
@@ -406,30 +456,14 @@ namespace http {
 		url.parse_query(params);
 		cmd = params["cmd"];
 
-		if (cmd == HTTP_COMMAND_TRANSPORTS)
-			ShowTransports (s);
-		else if (cmd == HTTP_COMMAND_TUNNELS)
-			ShowTunnels (s);
-		else if (cmd == HTTP_COMMAND_JUMPSERVICES)
-			ShowJumpServices (s, params["address"]);
-		else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
-			ShowTransitTunnels (s);
-		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
+		if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
 			StartAcceptingTunnels (s);
 		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
 			StopAcceptingTunnels (s);
 		else if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
 			RunPeerTest (s);
-		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATIONS)
-			ShowLocalDestinations (s);	
-		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATION)
-			ShowLocalDestination (s, params["b32"]);
-		else if (cmd == HTTP_COMMAND_SAM_SESSIONS)
-			ShowSAMSessions (s);
-		else if (cmd == HTTP_COMMAND_SAM_SESSION)
-			ShowSAMSession (s, params["sam_id"]);
-		else if (cmd == HTTP_COMMAND_I2P_TUNNELS)
-			ShowI2PTunnels (s);
+		else
+			SendError("Unknown command: " + cmd);
 	}	
 
 	void HTTPConnection::ShowJumpServices (std::stringstream& s, const std::string& address)
@@ -448,7 +482,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();; 
-			s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
 	}
@@ -548,9 +582,9 @@ namespace http {
 			it->Print (s);
 			auto state = it->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=failed_tunnel> " << "Failed</span>";
+				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
 			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=expiring_tunnel> " << "Exp</span>";
+				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
 			s << " " << (int)it->GetNumSentBytes () << "<br>\r\n";
 			s << std::endl;
 		}
@@ -560,9 +594,9 @@ namespace http {
 			it->Print (s);
 			auto state = it->GetState ();
 			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=failed_tunnel> " << "Failed</span>";
+				s << "<span class=\"tunnel failed\"> " << "Failed</span>";
 			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=expiring_tunnel> " << "Exp</span>";
+				s << "<span class=\"tunnel expiring\"> " << "Expiring</span>";
 			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
 			s << std::endl;
 		}
@@ -640,7 +674,7 @@ namespace http {
 		{	
 			for (auto& it: sam->GetSessions ())
 			{
-				s << "<a href=/?cmd=" << HTTP_COMMAND_SAM_SESSION << "&sam_id=" << it.first << ">";
+				s << "<a href=/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << ">";
 				s << it.first << "</a><br>\r\n" << std::endl;
 			}	
 		}	
@@ -656,7 +690,7 @@ namespace http {
 			if (session)
 			{
 				auto& ident = session->localDestination->GetIdentHash();
-				s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+				s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 				s << "<b>Streams:</b><br>\r\n";
 				for (auto it: session->ListSockets())
@@ -688,7 +722,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << it.second->GetName () << "</a> ⇐ ";			
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -697,7 +731,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?cmd=" << HTTP_COMMAND_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << it.second->GetName () << "</a> ⇒ ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();

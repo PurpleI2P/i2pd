@@ -29,21 +29,24 @@ namespace http {
 			void SendError (const std::string& message);
 
 			void HandleRequest (const HTTPReq & request);
-			void HandleCommand         (std::stringstream& s, const std::string& request);
+			void HandlePage    (std::stringstream& s, const std::string& request);
+			void HandleCommand (std::stringstream& s, const std::string& request);
 
+			/* pages */
 			void ShowJumpServices      (std::stringstream& s, const std::string& address);
 			void ShowTransports        (std::stringstream& s);
 			void ShowTunnels           (std::stringstream& s);
+			void ShowStatus            (std::stringstream& s);
 			void ShowTransitTunnels    (std::stringstream& s);
 			void ShowLocalDestinations (std::stringstream& s);
 			void ShowLocalDestination  (std::stringstream& s, const std::string& b32);
 			void ShowSAMSessions       (std::stringstream& s);
 			void ShowSAMSession        (std::stringstream& s, const std::string& id);
 			void ShowI2PTunnels        (std::stringstream& s);
+			/* commands */
 			void StartAcceptingTunnels (std::stringstream& s);
 			void StopAcceptingTunnels  (std::stringstream& s);
 			void RunPeerTest           (std::stringstream& s);
-			void FillContent           (std::stringstream& s);
 
 		protected:
 
