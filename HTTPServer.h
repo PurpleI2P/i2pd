@@ -1,14 +1,6 @@
 #ifndef HTTP_SERVER_H__
 #define HTTP_SERVER_H__
 
-#include <sstream>
-#include <thread>
-#include <memory>
-#include <boost/asio.hpp>
-#include <boost/array.hpp>
-#include "LeaseSet.h"
-#include "Streaming.h"
-
 namespace i2p
 {
 namespace util
@@ -135,6 +127,4 @@ namespace util
 }
 }
 
-#endif
-
-
+#endif /* HTTP_SERVER_H__ */

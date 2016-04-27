@@ -1,7 +1,13 @@
 #include <ctime>
 #include <iomanip>
+#include <sstream>
+#include <thread>
+#include <memory>
+
+#include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "Base.h"
 #include "FS.h"
 #include "Log.h"
@@ -9,6 +15,7 @@
 #include "TransitTunnel.h"
 #include "Transports.h"
 #include "NetDb.h"
+#include "LeaseSet.h"
 #include "I2PEndian.h"
 #include "Streaming.h"
 #include "Destination.h"
