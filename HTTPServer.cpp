@@ -230,11 +230,6 @@ namespace http {
 		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
 	};
 
-	void HTTPConnection::Terminate ()
-	{
-		m_Socket->close ();
-	}
-
 	void HTTPConnection::Receive ()
 	{
 		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
@@ -244,15 +239,15 @@ namespace http {
 
 	void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (!ecode)
-  		{
-			m_Buffer[bytes_transferred] = '\0';
-			m_BufferLen = bytes_transferred;
-			RunRequest();
-			Receive ();
+		if (ecode) {
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate (ecode);
+			return;
 		}
-		else if (ecode != boost::asio::error::operation_aborted)
-			Terminate ();
+		m_Buffer[bytes_transferred] = '\0';
+		m_BufferLen = bytes_transferred;
+		RunRequest();
+		Receive ();
 	}
 
 	void HTTPConnection::RunRequest ()
@@ -269,14 +264,13 @@ namespace http {
 		HandleRequest (request.uri);
 	}
 
-	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
+	void HTTPConnection::Terminate (const boost::system::error_code& ecode)
 	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{
-			boost::system::error_code ignored_ec;
-			m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-			Terminate ();
-		}	
+		if (ecode == boost::asio::error::operation_aborted)
+			return;
+		boost::system::error_code ignored_ec;
+		m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+		m_Socket->close ();
 	}
 
 	void HTTPConnection::HandleRequest (const std::string &uri)
@@ -767,7 +761,7 @@ namespace http {
  		buffers.push_back(boost::asio::buffer(content));
 
 		boost::asio::async_write (*m_Socket, buffers,
-			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
+			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 
 	void HTTPConnection::SendError(const std::string& content)

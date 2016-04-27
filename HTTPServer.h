@@ -18,9 +18,8 @@ namespace http {
 			
 		private:
 
-			void Terminate ();
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleWriteReply(const boost::system::error_code& ecode);
+			void Terminate     (const boost::system::error_code& ecode);
 
 			void SendReply (const std::string& content, int code = 200);
 			void SendError (const std::string& message);
