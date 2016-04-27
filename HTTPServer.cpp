@@ -271,7 +271,7 @@ namespace http {
 		}
 		if (ret == 0)
 			return; /* need more data */
-		HandleRequest (request);
+		HandleRequest (request.uri);
 	}
 
 	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
@@ -295,7 +295,7 @@ namespace http {
 			AsyncStreamReceive ();
 	}
 
-	void HTTPConnection::HandleRequest (const HTTPReq &request)
+	void HTTPConnection::HandleRequest (const std::string &uri)
 	{
 		std::stringstream s;
 		// Html5 head start
@@ -332,10 +332,10 @@ namespace http {
 			s << "  <a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n";
 		s << "</div>\r\n";
 		s << "<div class=right>";
-		if (request.uri.find("page=") != std::string::npos)
-			HandlePage (s, request.uri);
-		else if (request.uri.find("cmd=") != std::string::npos)
-			HandleCommand (s, request.uri);
+		if (uri.find("page=") != std::string::npos)
+			HandlePage (s, uri);
+		else if (uri.find("cmd=") != std::string::npos)
+			HandleCommand (s, uri);
 		else			
 			ShowStatus (s);
 		s <<

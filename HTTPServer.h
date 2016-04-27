@@ -28,7 +28,7 @@ namespace http {
 			void SendReply (const std::string& content, int code = 200);
 			void SendError (const std::string& message);
 
-			void HandleRequest (const HTTPReq & request);
+			void HandleRequest (const std::string& uri);
 			void HandlePage    (std::stringstream& s, const std::string& request);
 			void HandleCommand (std::stringstream& s, const std::string& request);
 
