@@ -226,7 +226,12 @@ namespace http {
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
-	
+
+	std::map<std::string, std::string> jumpservices = {
+		{ "inr.i2p",    "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" },
+		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
+	};
+
 	void HTTPConnection::Terminate ()
 	{
 		if (!m_Stream) return;
@@ -468,12 +473,16 @@ namespace http {
 
 	void HTTPConnection::ShowJumpServices (std::stringstream& s, const std::string& address)
 	{
-		s << "<form type=\"get\" action=\"/\">";
-		s << "<input type=\"hidden\" name=\"jumpservices\">";
-		s << "<input type=\"text\" value=\"" << address << "\" name=\"address\"> </form><br>\r\n";
-		s << "<b>Jump services for " << address << "</b>";
-		s << "<ul><li><a href=\"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" << address << "\">inr.i2p jump service</a> <br>\r\n";
-		s << "<li><a href=\"http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" << address << "\">stats.i2p jump service</a></ul>";
+		s << "<form type=\"GET\" action=\"/\">";
+		s << "<input type=\"hidden\" name=\"page\" value=\"jumpservices\">";
+		s << "<input type=\"text\"   name=\"address\" value=\"" << address << "\">";
+		s << "<input type=\"submit\" value=\"Update\">";
+		s << "</form><br>\r\n";
+		s << "<b>Jump services for " << address << "</b>\r\n<ul>\r\n";
+		for (auto & js : jumpservices) {
+			s << "  <li><a href=\"" << js.second << address << "\">" << js.first << "</a></li>\r\n";
+		}
+		s << "</ul>\r\n";
 	}
 
 	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
