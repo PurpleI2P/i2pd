@@ -30,7 +30,7 @@ namespace i2p
 {
 namespace util
 {
-	const std::string HTTPConnection::itoopieImage = 
+	const char *itoopieImage =
 		"<img alt=\"ICToopie Icon\" src=\"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXM"
 		"AAA3XAAAN1wFCKJt4AAAAB3RJTUUH3ggRChYFXVBoSgAAIABJREFUeNrtnXl8VOX1/9/PvXcmewiQBB"
@@ -180,7 +180,7 @@ namespace util
 		"Am9phNX9QTcwD1cg8K8HqBLYO+FEbAMIpF3gc+AGNv1G1GPgSqzYgkKeTBmTar2ygg22TGHZgqgBYb/"
 		"+mHGvzKrRS0R/yqsZq++6BRshpPMUDQcfzHFrIsqZHhWqasAtHc6b/D3cbSAuGcmWdAAAAAElFTkSuQmCC\" />";
 
-	const std::string HTTPConnection::itoopieFavicon =
+	const char *itoopieFavicon =
 		"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv"
 		"8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My4wOGVynO"
@@ -357,7 +357,7 @@ namespace util
 		// Html5 head start
 		s << "<!DOCTYPE html>\r\n<html lang=\"en\">"; // TODO: Add support for locale.
 		s << "<head>\r\n<meta charset=\"utf-8\">\r\n"; // TODO: Find something to parse html/template system. This is horrible.
-		s << "<link rel='shortcut icon' href='" + itoopieFavicon + "'>\r\n";
+		s << "<link rel='shortcut icon' href='" << itoopieFavicon << "'>\r\n";
 		s << "<title>Purple I2P " << VERSION " Webconsole</title>\r\n";
 		s << "<style>\r\n";
 		s << "body {font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456;}";
@@ -919,7 +919,9 @@ namespace util
 
 	void HTTPConnection::SendError(const std::string& content)
 	{
-		SendReply ("<html>" + itoopieImage + "<br>\r\n" + content + "</html>", 504);
+		std::stringstream ss;
+		ss << "<html>" << itoopieImage << "<br>\r\n" << content << "</html>";
+		SendReply (ss.str(), 504);
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):

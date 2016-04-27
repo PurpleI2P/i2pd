@@ -5,6 +5,8 @@ namespace i2p
 {
 namespace util
 {
+	extern const char *itoopieImage;
+	extern const char *itoopieFavicon;
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
 	const int HTTP_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
@@ -93,8 +95,6 @@ namespace util
 
 		public:
 
-			static const std::string itoopieImage;
-			static const std::string itoopieFavicon;
 	};
 
 	class HTTPServer
