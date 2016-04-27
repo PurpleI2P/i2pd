@@ -10,6 +10,7 @@
 #include "Base.h"
 #include "FS.h"
 #include "Log.h"
+#include "Config.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"
 #include "Transports.h"
@@ -640,7 +641,16 @@ namespace http {
 			s << "</a><br>\r\n"<< std::endl;
 		}	
 	}	
-	
+
+	HTTPConnection::HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket):
+				m_Socket (socket), m_Timer (socket->get_io_service ()), m_BufferLen (0)
+	{
+		/* cache options */
+		i2p::config::GetOption("http.auth", needAuth);
+		i2p::config::GetOption("http.user", user);
+		i2p::config::GetOption("http.pass", pass);
+	};
+
 	void HTTPConnection::Receive ()
 	{
 		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
@@ -672,6 +682,7 @@ namespace http {
 		}
 		if (ret == 0)
 			return; /* need more data */
+
 		HandleRequest (request);
 	}
 
@@ -684,11 +695,44 @@ namespace http {
 		m_Socket->close ();
 	}
 
+	bool HTTPConnection::CheckAuth (const HTTPReq & req) {
+		/* method #1: http://user:pass@127.0.0.1:7070/ */
+		if (req.uri.find('@') != std::string::npos) {
+			URL url;
+			if (url.parse(req.uri) && url.user == user && url.pass == pass)
+				return true;
+		}
+		/* method #2: 'Authorization' header sent */
+		if (req.headers.count("Authorization") > 0) {
+			std::string provided = req.headers.find("Authorization")->second;
+			std::string expected = user + ":" + pass;
+			char b64_creds[64];
+			std::size_t len = 0;
+			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, sizeof(b64_creds));
+			b64_creds[len] = '\0';
+			expected = "Basic ";
+			expected += b64_creds;
+			if (provided == expected)
+				return true;
+		}
+
+		LogPrint(eLogWarning, "HTTPServer: auth failure from ", m_Socket->remote_endpoint().address ());
+		return false;
+	}
+
 	void HTTPConnection::HandleRequest (const HTTPReq & req)
 	{
 		std::stringstream s;
 		std::string content;
 		HTTPRes res;
+
+		if (needAuth && !CheckAuth(req)) {
+			res.code = 401;
+			res.headers.insert(std::pair<std::string, std::string>("WWW-Authenticate", "Basic realm=\"WebAdmin\""));
+			SendReply(res, content);
+			return;
+		}
+
 		// Html5 head start
 		ShowPageHead (s);
 		if (req.uri.find("page=") != std::string::npos)
@@ -797,6 +841,21 @@ namespace http {
 
 	void HTTPServer::Start ()
 	{
+		bool needAuth;    i2p::config::GetOption("http.auth", needAuth);
+		std::string user; i2p::config::GetOption("http.user", user);
+		std::string pass; i2p::config::GetOption("http.pass", pass);
+		/* generate pass if needed */
+		if (needAuth && pass == "") {
+			char alnum[] = "0123456789"
+			  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			  "abcdefghijklmnopqrstuvwxyz";
+			pass.resize(16);
+			for (size_t i = 0; i < pass.size(); i++) {
+				pass[i] = alnum[rand() % (sizeof(alnum) - 1)];
+			}
+			i2p::config::SetOption("http.pass", pass);
+			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
+		}
 		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
 		m_Acceptor.listen ();
 		Accept ();

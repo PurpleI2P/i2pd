@@ -11,9 +11,7 @@ namespace http {
 	{
 		public:
 
-			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket): 
-				m_Socket (socket), m_Timer (socket->get_io_service ()), 
-				m_BufferLen (0) {};
+			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			void Receive ();
 			
 		private:
@@ -22,6 +20,7 @@ namespace http {
 			void Terminate     (const boost::system::error_code& ecode);
 
 			void RunRequest ();
+			bool CheckAuth     (const HTTPReq & req);
 			void HandleRequest (const HTTPReq & req);
 			void HandlePage    (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
 			void HandleCommand (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
@@ -33,6 +32,9 @@ namespace http {
 			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
+			bool needAuth;
+			std::string user;
+			std::string pass;
 	};
 
 	class HTTPServer
