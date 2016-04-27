@@ -57,11 +57,6 @@ namespace http {
 		protected:
 	
 			virtual void RunRequest ();
-			void HandleDestinationRequest(const std::string& address, const std::string& uri);
-			void SendToAddress (const std::string& address, int port, const char * buf, size_t len);
-			void HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
-				i2p::data::IdentHash destination, int port, const char * buf, size_t len);
-			void SendToDestination (std::shared_ptr<const i2p::data::LeaseSet> remote, int port, const char * buf, size_t len);
 
 		public:
 

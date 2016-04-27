@@ -231,7 +231,7 @@ namespace http {
   		{
 			if (!m_Stream) // new request
 			{
-				m_Buffer[bytes_transferred] = 0;
+				m_Buffer[bytes_transferred] = '\0';
 				m_BufferLen = bytes_transferred;
 				RunRequest();
 			}
@@ -245,35 +245,16 @@ namespace http {
 
 	void HTTPConnection::RunRequest ()
 	{
-		auto address = ExtractAddress ();
-		if (address.length () > 1 && address[1] != '?') // not just '/' or '/?'
-		{
-			std::string uri ("/"), b32;
-			size_t pos = address.find ('/', 1);
-			if (pos == std::string::npos)
-				b32 = address.substr (1); // excluding leading '/' to end of line
-			else
-			{
-				b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
-				uri = address.substr (pos); // rest of line
-			}
-
-			HandleDestinationRequest (b32, uri);
+		HTTPReq request;
+		int ret = request.parse(m_Buffer);
+		if (ret < 0) {
+			m_Buffer[0] = '\0';
+			m_BufferLen = 0;
+			return; /* error */
 		}
-		else
-			HandleRequest (address);
-	}
-
-	std::string HTTPConnection::ExtractAddress ()
-	{
-		char * get = strstr (m_Buffer, "GET");
-		if (get)
-		{
-			char * http = strstr (get, "HTTP");
-			if (http)
-				return std::string (get + 4, http - get - 5);
-		}
-		return "";
+		if (ret == 0)
+			return; /* need more data */
+		HandleRequest (request.uri);
 	}
 
 	void HTTPConnection::ExtractParams (const std::string& str, std::map<std::string, std::string>& params)
@@ -773,64 +754,6 @@ namespace http {
 		s << "<b>Run Peer Test:</b><br>\r\n<br>\r\n";
 		i2p::transport::transports.PeerTest ();
 		s << "Peer test is running" <<  std::endl;
-	}
-
-	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
-	{
-		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n\r\n";
-		LogPrint(eLogInfo, "HTTPServer: client request: ", request);
-		SendToAddress (address, 80, request.c_str (), request.size ());		
-	}
-
-	void HTTPConnection::SendToAddress (const std::string& address, int port, const char * buf, size_t len)
-	{	
-		i2p::data::IdentHash destination;
-		if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
-		{
-			LogPrint (eLogWarning, "HTTPServer: Unknown address ", address);
-			SendError ("Unknown address " + address);
-			return;
-		}		
-
-		auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-		if (leaseSet && !leaseSet->IsExpired ())
-			SendToDestination (leaseSet, port, buf, len);
-		else
-		{
-			memcpy (m_Buffer, buf, len);
-			m_BufferLen = len;
-			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (destination);
-			m_Timer.expires_from_now (boost::posix_time::seconds(HTTP_DESTINATION_REQUEST_TIMEOUT));
-			m_Timer.async_wait (std::bind (&HTTPConnection::HandleDestinationRequestTimeout,
-				shared_from_this (), std::placeholders::_1, destination, port, m_Buffer, m_BufferLen));
-		}
-	}
-	
-	void HTTPConnection::HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
-		i2p::data::IdentHash destination, int port, const char * buf, size_t len)
-	{	
-		if (ecode != boost::asio::error::operation_aborted)
-		{	
-			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-			if (leaseSet && !leaseSet->IsExpired ()) {
-				SendToDestination (leaseSet, port, buf, len);
-			} else if (leaseSet) {
-				SendError ("LeaseSet expired");
-			} else {
-				SendError ("LeaseSet not found");
-			}
-		}
-	}	
-	
-	void HTTPConnection::SendToDestination (std::shared_ptr<const i2p::data::LeaseSet> remote, int port, const char * buf, size_t len)
-	{
-		if (!m_Stream)
-			m_Stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (remote, port);
-		if (m_Stream)
-		{
-			m_Stream->Send ((uint8_t *)buf, len);
-			AsyncStreamReceive ();
-		}
 	}
 
 	void HTTPConnection::AsyncStreamReceive ()
