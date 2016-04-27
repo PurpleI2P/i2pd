@@ -302,6 +302,11 @@ namespace http {
 			"</html>\r\n";
 	}
 
+	void ShowError(std::stringstream& s, const std::string& string)
+	{
+		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
+	}
+
 	void ShowStatus (std::stringstream& s)
 	{
 		s << "<b>Uptime:</b> ";
@@ -670,7 +675,7 @@ namespace http {
 		}
 		if (ret == 0)
 			return; /* need more data */
-		HandleRequest (request.uri);
+		HandleRequest (request);
 	}
 
 	void HTTPConnection::Terminate (const boost::system::error_code& ecode)
@@ -682,28 +687,31 @@ namespace http {
 		m_Socket->close ();
 	}
 
-	void HTTPConnection::HandleRequest (const std::string &uri)
+	void HTTPConnection::HandleRequest (const HTTPReq & req)
 	{
 		std::stringstream s;
+		std::string content;
+		HTTPRes res;
 		// Html5 head start
 		ShowPageHead (s);
-		if (uri.find("page=") != std::string::npos)
-			HandlePage (s, uri);
-		else if (uri.find("cmd=") != std::string::npos)
-			HandleCommand (s, uri);
+		if (req.uri.find("page=") != std::string::npos)
+			HandlePage (req, res, s);
+		else if (req.uri.find("cmd=") != std::string::npos)
+			HandleCommand (req, res, s);
 		else			
 			ShowStatus (s);
 		ShowPageTail (s);
-		SendReply (s.str ());
+		content = s.str ();
+		SendReply (res, content);
 	}
 
-	void HTTPConnection::HandlePage (std::stringstream& s, const std::string & uri)
+	void HTTPConnection::HandlePage (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
   {
 		std::map<std::string, std::string> params;
 		std::string page("");
 		URL url;
 
-		url.parse(uri);
+		url.parse(req.uri);
 		url.parse_query(params);
 		page = params["page"];
 
@@ -727,17 +735,20 @@ namespace http {
 			ShowSAMSession (s, params["sam_id"]);
 		else if (page == HTTP_PAGE_I2P_TUNNELS)
 			ShowI2PTunnels (s);
-		else
-			SendError("Unknown page: " + page);
+		else {
+			res.code = 400;
+			ShowError(s, "Unknown page: " + page);
+			return;
+		}
   }
 
-	void HTTPConnection::HandleCommand (std::stringstream& s, const std::string & uri)
+	void HTTPConnection::HandleCommand (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
 	{
 		std::map<std::string, std::string> params;
 		std::string cmd("");
 		URL url;
 
-		url.parse(uri);
+		url.parse(req.uri);
 		url.parse_query(params);
 		cmd = params["cmd"];
 
@@ -748,21 +759,20 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
 			i2p::context.SetAcceptsTunnels (false);
 		else {
-			SendError("Unknown command: " + cmd);
+			res.code = 400;
+			ShowError(s, "Unknown command: " + cmd);
 			return;
 		}
-		s << "<b>Command accepted</b><br><br>\r\n";
+		s << "<b>SUCCESS</b>:&nbsp;Command accepted<br><br>\r\n";
 		s << "<a href=\"/?page=commands\">Back to commands list</a>";
 	}	
 
-	void HTTPConnection::SendReply (const std::string& content, int code)
+	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
 	{
 		std::time_t time_now = std::time(nullptr);
 		char time_buff[128];
 		std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now));
-		HTTPRes reply;
-		reply.code = code;
-		reply.status = HTTPCodeToStatus(code);
+		reply.status = HTTPCodeToStatus(reply.code);
 		reply.headers.insert(std::pair<std::string, std::string>("Date", time_buff));
 		reply.headers.insert(std::pair<std::string, std::string>("Content-Type", "text/html"));
 		reply.headers.insert(std::pair<std::string, std::string>("Content-Length", std::to_string(content.size())));
@@ -775,13 +785,6 @@ namespace http {
 
 		boost::asio::async_write (*m_Socket, buffers,
 			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
-	}
-
-	void HTTPConnection::SendError(const std::string& content)
-	{
-		std::stringstream ss;
-		ss << "<html>" << itoopieImage << "<br>\r\n" << content << "</html>";
-		SendReply (ss.str(), 504);
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):

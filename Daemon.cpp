@@ -13,6 +13,7 @@
 #include "RouterInfo.h"
 #include "RouterContext.h"
 #include "Tunnel.h"
+#include "HTTP.h"
 #include "NetDb.h"
 #include "Garlic.h"
 #include "Streaming.h"

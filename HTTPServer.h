@@ -21,13 +21,11 @@ namespace http {
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void Terminate     (const boost::system::error_code& ecode);
 
-			void SendReply (const std::string& content, int code = 200);
-			void SendError (const std::string& message);
-
 			void RunRequest ();
-			void HandleRequest (const std::string& uri);
-			void HandlePage    (std::stringstream& s, const std::string& request);
-			void HandleCommand (std::stringstream& s, const std::string& request);
+			void HandleRequest (const HTTPReq & req);
+			void HandlePage    (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
+			void HandleCommand (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
+			void SendReply     (HTTPRes & res, std::string & content);
 
 		private:
 
