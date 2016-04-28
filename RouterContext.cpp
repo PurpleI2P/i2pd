@@ -149,6 +149,19 @@ namespace i2p
 		UpdateRouterInfo ();
 	}
 
+	void RouterContext::SetFamilyString (const std::string& family)
+	{
+		if (family.length() > 0)
+			m_FamilyString = family;
+		else
+			m_FamilyString = "&lt;undefined&gt;";
+	}
+
+	std::string RouterContext::GetFamilyString () const
+	{
+		return m_FamilyString;
+	}
+
 	void RouterContext::SetFamily (const std::string& family)
 	{
 		std::string signature;
