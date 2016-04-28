@@ -59,8 +59,7 @@ namespace i2p
 			bool IsFloodfill () const { return m_IsFloodfill; };	
 			void SetFloodfill (bool floodfill);	
 			void SetFamily (const std::string& family);
-			void SetFamilyString (const std::string& family);
-			std::string GetFamilyString () const;
+			std::string GetFamily () const;
 			void SetBandwidth (int limit); /* in kilobytes */
 			void SetBandwidth (char L); /* by letter */
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
@@ -102,7 +101,6 @@ namespace i2p
 			i2p::data::PrivateKeys m_Keys; 
 			uint64_t m_LastUpdateTime;
 			bool m_AcceptsTunnels, m_IsFloodfill;
-			std::string m_FamilyString;
 			uint64_t m_StartupTime; // in seconds since epoch
 			uint32_t m_BandwidthLimit; // allowed bandwidth
 			RouterStatus m_Status;

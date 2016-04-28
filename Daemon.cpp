@@ -189,7 +189,6 @@ namespace i2p
 
 			std::string family; i2p::config::GetOption("family", family);
 			i2p::context.SetFamily (family);
-			i2p::context.SetFamilyString (family);
 			if (family.length () > 0)
 				LogPrint(eLogInfo, "Daemon: family set to ", family);	
 			
