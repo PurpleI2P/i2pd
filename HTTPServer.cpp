@@ -417,6 +417,9 @@ namespace util
 			default: s << "Unknown";
 		} 
 		s << "<br>\r\n";
+		auto family = i2p::context.GetFamily ();
+		if (family.length () > 0)
+			s << "<b>Family:</b> " << family << "<br>\r\n";
 		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>Received:</b> ";
 		s << std::fixed << std::setprecision(2);
