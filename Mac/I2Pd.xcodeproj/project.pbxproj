@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BF3D69501CAAF56900A7EED6 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = BF3D694F1CAAF56900A7EED6 /* AppDelegate.m */; };
+		BF3D69501CAAF56900A7EED6 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = BF3D694F1CAAF56900A7EED6 /* AppDelegate.mm */; };
 		BF3D69531CAAF56900A7EED6 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = BF3D69521CAAF56900A7EED6 /* main.m */; };
 		BF3D69551CAAF56900A7EED6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF3D69541CAAF56900A7EED6 /* Assets.xcassets */; };
-		BF3D69581CAAF56900A7EED6 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = BF3D69561CAAF56900A7EED6 /* MainMenu.xib */; };
 		BF3D69631CAAF56900A7EED6 /* I2PdTests.m in Sources */ = {isa = PBXBuildFile; fileRef = BF3D69621CAAF56900A7EED6 /* I2PdTests.m */; };
 		BF83EE831CAB032000D3DE82 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF83EE821CAB032000D3DE82 /* Images.xcassets */; };
+		BFE4B1191CE27BE200D75993 /* libi2pd.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BFE4B1181CE27BE200D75993 /* libi2pd.a */; settings = {ATTRIBUTES = (Required, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,7 +28,7 @@
 /* Begin PBXFileReference section */
 		BF3D694B1CAAF56900A7EED6 /* I2Pd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = I2Pd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BF3D694E1CAAF56900A7EED6 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		BF3D694F1CAAF56900A7EED6 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		BF3D694F1CAAF56900A7EED6 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
 		BF3D69521CAAF56900A7EED6 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		BF3D69541CAAF56900A7EED6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = I2Pd/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		BF3D69571CAAF56900A7EED6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -37,6 +37,7 @@
 		BF3D69621CAAF56900A7EED6 /* I2PdTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = I2PdTests.m; sourceTree = "<group>"; };
 		BF3D69641CAAF56900A7EED6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BF83EE821CAB032000D3DE82 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = I2Pd/Images.xcassets; sourceTree = SOURCE_ROOT; };
+		BFE4B1181CE27BE200D75993 /* libi2pd.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libi2pd.a; path = ../build/libi2pd.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BFE4B1191CE27BE200D75993 /* libi2pd.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,6 +62,7 @@
 		BF3D69421CAAF56900A7EED6 = {
 			isa = PBXGroup;
 			children = (
+				BFE4B1181CE27BE200D75993 /* libi2pd.a */,
 				BF3D694D1CAAF56900A7EED6 /* I2Pd */,
 				BF3D69611CAAF56900A7EED6 /* I2PdTests */,
 				BF3D694C1CAAF56900A7EED6 /* Products */,
@@ -79,7 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				BF3D694E1CAAF56900A7EED6 /* AppDelegate.h */,
-				BF3D694F1CAAF56900A7EED6 /* AppDelegate.m */,
+				BF3D694F1CAAF56900A7EED6 /* AppDelegate.mm */,
 				BF3D69541CAAF56900A7EED6 /* Assets.xcassets */,
 				BF83EE821CAB032000D3DE82 /* Images.xcassets */,
 				BF3D69561CAAF56900A7EED6 /* MainMenu.xib */,
@@ -188,7 +191,6 @@
 			files = (
 				BF83EE831CAB032000D3DE82 /* Images.xcassets in Resources */,
 				BF3D69551CAAF56900A7EED6 /* Assets.xcassets in Resources */,
-				BF3D69581CAAF56900A7EED6 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -207,7 +209,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BF3D69531CAAF56900A7EED6 /* main.m in Sources */,
-				BF3D69501CAAF56900A7EED6 /* AppDelegate.m in Sources */,
+				BF3D69501CAAF56900A7EED6 /* AppDelegate.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -326,8 +328,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
+				HEADER_SEARCH_PATHS = ../;
 				INFOPLIST_FILE = I2Pd/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = ../build/;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_BUNDLE_IDENTIFIER = io.i2p.I2Pd;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -341,8 +345,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
+				HEADER_SEARCH_PATHS = ../;
 				INFOPLIST_FILE = I2Pd/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = ../build/;
 				MACOSX_DEPLOYMENT_TARGET = 10.7;
 				PRODUCT_BUNDLE_IDENTIFIER = io.i2p.I2Pd;
 				PRODUCT_NAME = "$(TARGET_NAME)";

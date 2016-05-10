@@ -8,6 +8,8 @@
 
 #import "AppDelegate.h"
 
+#include "Daemon.h"
+
 @interface AppDelegate ()
 
 @property (strong, nonatomic) NSStatusItem *statusItem;
@@ -18,6 +20,8 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     [self setupStatusItem];
+    
+    Daemon.start();
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
@@ -25,7 +29,7 @@
 }
 
 - (void)setupStatusItem {
-    self.statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
+    self.statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSSquareStatusItemLength];
     self.statusItem.button.image = [NSImage imageNamed:@"menuBarIcon"];
     
     [self updateStatusItemMenu];
@@ -33,6 +37,7 @@
 
 - (void)updateStatusItemMenu {
     NSMenu *menu = [[NSMenu alloc] init];
+    [menu addItemWithTitle:@"Open console" action:@selector(openWebConsole:) keyEquivalent:@""];
     [menu addItemWithTitle:@"Quit" action:@selector(terminate:) keyEquivalent:@""];
     self.statusItem.menu = menu;
 }
