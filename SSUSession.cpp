@@ -265,8 +265,6 @@ namespace transport
 		uint16_t ourPort = bufbe16toh (payload);
 		s.Insert (payload, 2); // our port
 		payload += 2; // port
-		LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
-		i2p::context.UpdateAddress (ourIP);
 		if (m_RemoteEndpoint.address ().is_v4 ())
 			s.Insert (m_RemoteEndpoint.address ().to_v4 ().to_bytes ().data (), 4); // remote IP v4
 		else
@@ -283,11 +281,18 @@ namespace transport
 		//TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
 		m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
 		m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload); // TODO: non-const payload
-		// verify
-		if (!s.Verify (m_RemoteIdentity, payload))
+		// verify signature
+		if (s.Verify (m_RemoteIdentity, payload))
+		{
+			LogPrint (eLogInfo, "SSU: Our external address is ", ourIP.to_string (), ":", ourPort);
+			i2p::context.UpdateAddress (ourIP);
+			SendSessionConfirmed (y, ourAddress, addressSize + 2);
+		}
+		else
+		{
 			LogPrint (eLogError, "SSU: message 'created' signature verification failed");
-		
-		SendSessionConfirmed (y, ourAddress, addressSize + 2);
+			Failed ();
+		}
 	}	
 
 	void SSUSession::ProcessSessionConfirmed (const uint8_t * buf, size_t len)
@@ -313,11 +318,17 @@ namespace transport
 		paddingSize &= 0x0F;  // %16
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
 		payload += paddingSize;
-		// verify
-		if (m_SignedData && !m_SignedData->Verify (m_RemoteIdentity, payload))
+		// verify signature
+		if (m_SignedData && m_SignedData->Verify (m_RemoteIdentity, payload))
+		{
+			m_Data.Send (CreateDeliveryStatusMsg (0));
+			Established ();
+		}
+		else	
+		{
 			LogPrint (eLogError, "SSU message 'confirmed' signature verification failed");
-		m_Data.Send (CreateDeliveryStatusMsg (0));
-		Established ();
+			Failed ();
+		}
 	}
 
 	void SSUSession::SendSessionRequest ()
