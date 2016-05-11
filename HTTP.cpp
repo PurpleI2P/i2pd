@@ -7,6 +7,7 @@
 */
 
 #include "HTTP.h"
+#include <algorithm>
 
 namespace i2p {
 namespace http {
