@@ -14,7 +14,11 @@ USE_STATIC := no
 
 ifeq ($(UNAME),Darwin)
 	DAEMON_SRC += DaemonLinux.cpp
-	include Makefile.homebrew
+	ifeq ($(HOMEBREW),1)
+		include Makefile.homebrew
+	else
+		include Makefile.osx
+	endif
 else ifeq ($(shell echo $(UNAME) | $(GREP) -c FreeBSD),1)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.bsd

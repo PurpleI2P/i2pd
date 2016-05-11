@@ -104,7 +104,7 @@ brew install libressl boost
 
 Then build:
 ```bash
-make
+make HOMEBREW=1
 ```
 
 
