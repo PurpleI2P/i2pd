@@ -286,6 +286,16 @@ namespace i2p
 		return !msg->GetPayload ()[DATABASE_STORE_TYPE_OFFSET]; // 0- RouterInfo
 	}	
 	
+	static uint16_t g_MaxNumTransitTunnels = DEFAULT_MAX_NUM_TRANSIT_TUNNELS; // TODO:
+	void SetMaxNumTransitTunnels (uint16_t maxNumTransitTunnels)
+	{
+		if (maxNumTransitTunnels > 0 && maxNumTransitTunnels <= 10000 && g_MaxNumTransitTunnels != maxNumTransitTunnels)
+		{
+			LogPrint (eLogDebug, "I2NP: Max number of  transit tunnels set to ", maxNumTransitTunnels);
+			g_MaxNumTransitTunnels = maxNumTransitTunnels;
+		}
+	}
+
 	bool HandleBuildRequestRecords (int num, uint8_t * records, uint8_t * clearText)
 	{
 		for (int i = 0; i < num; i++)
@@ -298,7 +308,7 @@ namespace i2p
 				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText);
 				// replace record to reply			
 				if (i2p::context.AcceptsTunnels () && 
-					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= MAX_NUM_TRANSIT_TUNNELS &&
+					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= g_MaxNumTransitTunnels &&
 					!i2p::transport::transports.IsBandwidthExceeded ())
 				{	
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (

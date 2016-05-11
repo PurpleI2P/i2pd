@@ -28,7 +28,11 @@ namespace api
 		i2p::fs::DetectDataDir(datadir, false);
 		i2p::fs::Init();
 
-		i2p::crypto::InitCrypto ();
+#if defined(__x86_64__)		
+		i2p::crypto::InitCrypto (false);
+#else
+		i2p::crypto::InitCrypto (true);
+#endif		
 		i2p::context.Init ();	
 	}
 

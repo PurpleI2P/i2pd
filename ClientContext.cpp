@@ -328,7 +328,8 @@ namespace client
 							localDestination = CreateNewLocalDestination (k, false, &options);
 					}
 					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
-					if (m_ClientTunnels.insert (std::make_pair (port, std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
+					if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
+						std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
 						clientTunnel->Start ();
 					else
 						LogPrint (eLogError, "Clients: I2P client tunnel with port ", port, " already exists");
@@ -382,7 +383,7 @@ namespace client
 						serverTunnel->SetAccessList (idents);
 					}
 					if (m_ServerTunnels.insert (std::make_pair (
-							std::make_tuple (localDestination->GetIdentHash (), inPort), 
+							std::make_pair (localDestination->GetIdentHash (), inPort), 
 					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
 						serverTunnel->Start ();
 					else

@@ -2,9 +2,9 @@
 #define CLIENT_CONTEXT_H__
 
 #include <map>
-#include <tuple>
 #include <mutex>
 #include <memory>
+#include <boost/asio.hpp>
 #include "Destination.h"
 #include "HTTPProxy.h"
 #include "SOCKS.h"
@@ -78,8 +78,8 @@ namespace client
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
-			std::map<int, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // port->tunnel
-			std::map<std::tuple<i2p::data::IdentHash, int>, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
+			std::map<boost::asio::ip::tcp::endpoint, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // local endpoint->tunnel
+			std::map<std::pair<i2p::data::IdentHash, int>, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
 

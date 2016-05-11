@@ -128,6 +128,7 @@ namespace data
 			bool RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			void SetProperty (const std::string& key, const std::string& value); // called from RouterContext only
 			void DeleteProperty (const std::string& key); // called from RouterContext only
+			std::string GetProperty (const std::string& key) const; // called from RouterContext only
 			void ClearProperties () { m_Properties.clear (); };
 			bool IsFloodfill () const { return m_Caps & Caps::eFloodfill; };
 			bool IsReachable () const { return m_Caps & Caps::eReachable; };
@@ -161,7 +162,7 @@ namespace data
 
 			bool IsUpdated () const { return m_IsUpdated; };
 			void SetUpdated (bool updated) { m_IsUpdated = updated; }; 
-			void SaveToFile (const std::string& fullPath);
+			bool SaveToFile (const std::string& fullPath);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
 			void SaveProfile () { if (m_Profile) m_Profile->Save (); };

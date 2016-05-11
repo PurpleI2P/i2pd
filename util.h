@@ -5,11 +5,25 @@
 #include <string>
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace i2p
 {
 namespace util
 {
+
+	/**
+		 wrapper arround boost::lexical_cast that "never" fails
+	 */
+	template <typename T>
+	T lexical_cast(const std::string & str, const T fallback) {
+		try {
+			return boost::lexical_cast<T>(str);
+		} catch ( ... ) {
+			return fallback;
+		}
+	}
+	
 	namespace http
 	{
 		// in (lower case)

@@ -131,11 +131,19 @@ namespace config {
 #endif
       ;
 
+    options_description limits("Limits options");
+    limits.add_options()
+      ("limits.transittunnels",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
+      ;
+
     options_description httpserver("HTTP Server options");
     httpserver.add_options()
       ("http.enabled",        value<bool>()->default_value(true),               "Enable or disable webconsole")
       ("http.address",        value<std::string>()->default_value("127.0.0.1"), "Webconsole listen address")
       ("http.port",           value<uint16_t>()->default_value(7070),           "Webconsole listen port")
+      ("http.auth",           value<bool>()->default_value(false),              "Enable Basic HTTP auth for webconsole")
+      ("http.user",           value<std::string>()->default_value("i2pd"),      "Username for basic auth")
+      ("http.pass",           value<std::string>()->default_value(""),          "Password for basic auth (default: random, see logs)")
       ;
 
     options_description httpproxy("HTTP Proxy options");
@@ -180,14 +188,27 @@ namespace config {
       ("i2pcontrol.key",      value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
       ;
 
+	options_description precomputation("Precomputation options");
+	precomputation.add_options()  
+	  ("precomputation.elgamal",  
+#if defined(__x86_64__)	   
+	   value<bool>()->default_value(false),   
+#else
+	   value<bool>()->default_value(true),  
+#endif	   
+	   "Enable or disable elgamal precomputation table")
+	  ;
+	  
     m_OptionsDesc
       .add(general)
+	  .add(limits)	
       .add(httpserver)
       .add(httpproxy)
       .add(socksproxy)
       .add(sam)
       .add(bob)
       .add(i2pcontrol)
+	  .add(precomputation) 	  
       ;
   }
 

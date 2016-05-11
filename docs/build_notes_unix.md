@@ -93,6 +93,21 @@ If you need UPnP support (don't forget to run CMake with `WITH_UPNP=ON`) miniupn
 miniupnpc-devel
 ```
 
+MAC OS X
+--------
+
+Requires homebrew
+
+```bash
+brew install libressl boost
+```
+
+Then build:
+```bash
+make HOMEBREW=1
+```
+
+
 FreeBSD
 -------
 

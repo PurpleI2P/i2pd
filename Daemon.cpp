@@ -13,6 +13,7 @@
 #include "RouterInfo.h"
 #include "RouterContext.h"
 #include "Tunnel.h"
+#include "HTTP.h"
 #include "NetDb.h"
 #include "Garlic.h"
 #include "Streaming.h"
@@ -36,7 +37,7 @@ namespace i2p
 			Daemon_Singleton_Private() {};
 			~Daemon_Singleton_Private() {};
 
-			std::unique_ptr<i2p::util::HTTPServer> httpServer;
+			std::unique_ptr<i2p::http::HTTPServer> httpServer;
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 
 #ifdef USE_UPNP
@@ -117,7 +118,8 @@ namespace i2p
 			LogPrint(eLogDebug, "FS: main config file: ", config);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
-			i2p::crypto::InitCrypto ();
+			bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
+			i2p::crypto::InitCrypto (precomputation);
 			i2p::context.Init ();
 
 			uint16_t port; i2p::config::GetOption("port", port);
@@ -140,6 +142,8 @@ namespace i2p
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
 			i2p::context.SetAcceptsTunnels (!transit);
+			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
+			SetMaxNumTransitTunnels (transitTunnels);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
 			if (isFloodfill) {
@@ -199,7 +203,7 @@ namespace i2p
 				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 				uint16_t    httpPort; i2p::config::GetOption("http.port",    httpPort);
 				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
-				d.httpServer = std::unique_ptr<i2p::util::HTTPServer>(new i2p::util::HTTPServer(httpAddr, httpPort));
+				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
 				d.httpServer->Start();
 			}
 
