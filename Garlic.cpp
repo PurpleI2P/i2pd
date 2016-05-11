@@ -3,8 +3,6 @@
 #include <map>
 #include <string>
 #include "Crypto.h"
-#include OPENSSL(rand.h)
-#include OPENSSL(sha.h)
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"

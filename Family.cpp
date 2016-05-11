@@ -1,7 +1,7 @@
 #include <string.h>
+#include <openssl/evp.h>
+#include <openssl/ssl.h>
 #include "Crypto.h"
-#include OPENSSL(evp.h)
-#include OPENSSL(ssl.h)
 #include "FS.h"
 #include "Log.h"
 #include "Family.h"

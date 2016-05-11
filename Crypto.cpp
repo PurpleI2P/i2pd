@@ -3,15 +3,13 @@
 #include <vector>
 #include <mutex>
 #include <memory>
-#include "Crypto.h"
-#include OPENSSL(sha.h)
-#include OPENSSL(dh.h)
-#include OPENSSL(md5.h)
-#include OPENSSL(rand.h)
-#include OPENSSL(crypto.h)
+#include <openssl/dh.h>
+#include <openssl/md5.h>
+#include <openssl/crypto.h>
 #include "TunnelBase.h"
-#include OPENSSL(ssl.h)
+#include <openssl/ssl.h>
 #include "Log.h"
+#include "Crypto.h"
 
 namespace i2p
 {

@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <sstream>
-#include "Crypto.h"
-#include OPENSSL(x509.h)
-#include OPENSSL(pem.h)
+#include <openssl/x509.h>
+#include <openssl/pem.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -14,6 +13,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #endif
 
+#include "Crypto.h"
 #include "FS.h"
 #include "Log.h"
 #include "Config.h"

@@ -3,14 +3,12 @@
 
 #include <inttypes.h>
 #include <string.h>
+#include <openssl/dsa.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/rsa.h>
+#include <openssl/evp.h>
 #include "Crypto.h"
-#include OPENSSL(sha.h)
-#include OPENSSL(dsa.h)
-#include OPENSSL(ec.h)
-#include OPENSSL(ecdsa.h)
-#include OPENSSL(rsa.h)
-#include OPENSSL(rand.h)
-#include OPENSSL(evp.h)
 
 namespace i2p
 {

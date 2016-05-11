@@ -3,13 +3,12 @@
 #include <sstream>
 #include <boost/regex.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp> // might include openssl
-#include "Crypto.h"
-#include OPENSSL(bn.h)
-#include OPENSSL(ssl.h)
-#include OPENSSL(err.h)
+#include <boost/asio/ssl.hpp> 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #include <zlib.h>
 
+#include "Crypto.h"
 #include "I2PEndian.h"
 #include "Reseed.h"
 #include "FS.h"

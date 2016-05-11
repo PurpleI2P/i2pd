@@ -1,16 +1,14 @@
 #ifndef CRYPTO_H__
 #define CRYPTO_H__
 
-#define OPENSSL(file) <openssl/file>
-
 #include <inttypes.h>
 #include <string>
-#include OPENSSL(bn.h)
-#include OPENSSL(dh.h)
-#include OPENSSL(aes.h)
-#include OPENSSL(dsa.h)
-#include OPENSSL(sha.h)
-#include OPENSSL(rand.h)
+#include <openssl/bn.h>
+#include <openssl/dh.h>
+#include <openssl/aes.h>
+#include <openssl/dsa.h>
+#include <openssl/sha.h>
+#include <openssl/rand.h>
 #include "Base.h"
 
 namespace i2p
