@@ -10,23 +10,22 @@
 
 namespace i2p {
 namespace http {
-  const char *HTTP_METHODS[] = {
+  const std::vector<std::string> HTTP_METHODS = {
     "GET", "HEAD", "POST", "PUT", "PATCH",
-    "DELETE", "OPTIONS", "CONNECT",
-    NULL
+    "DELETE", "OPTIONS", "CONNECT"
   };
-  const char *HTTP_VERSIONS[] = {
-    "HTTP/1.0", "HTTP/1.1", NULL
+  const std::vector<std::string> HTTP_VERSIONS = {
+    "HTTP/1.0", "HTTP/1.1"
   };
 
-  bool in_cstr_array(const char **haystack, const char *needle) {
-    for (const char *p = haystack[0]; p != NULL; p++) {
-      if (strcmp(p, needle) == 0)
-        return true;
-    }
-    return false;
+  inline bool is_http_version(const std::string & str) {
+    return std::find(HTTP_VERSIONS.begin(), HTTP_VERSIONS.end(), str) != std::end(HTTP_VERSIONS);
   }
 
+  inline bool is_http_method(const std::string & str) {
+    return std::find(HTTP_METHODS.begin(), HTTP_METHODS.end(), str) != std::end(HTTP_METHODS);
+  }
+  
   void strsplit(const std::string & line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) {
     std::size_t count = 0;
     std::stringstream ss(line);
@@ -205,9 +204,9 @@ namespace http {
         strsplit(line, tokens, ' ');
         if (tokens.size() != 3)
           return -1;
-        if (!in_cstr_array(HTTP_METHODS, tokens[0].c_str()))
+        if (!is_http_method(tokens[0]))
           return -1;
-        if (!in_cstr_array(HTTP_VERSIONS, tokens[2].c_str()))
+        if (!is_http_version(tokens[2]))
           return -1;
         if (!url.parse(tokens[1]))
           return -1;
@@ -288,7 +287,7 @@ namespace http {
         strsplit(line, tokens, ' ', 3);
         if (tokens.size() != 3)
           return -1;
-        if (!in_cstr_array(HTTP_VERSIONS, tokens[0].c_str()))
+        if (!is_http_version(tokens[0]))
           return -1;
         code = atoi(tokens[1].c_str());
         if (code < 100 || code >= 600)
