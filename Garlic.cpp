@@ -2,8 +2,9 @@
 #include "I2PEndian.h"
 #include <map>
 #include <string>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
+#include "Crypto.h"
+#include OPENSSL(rand.h)
+#include OPENSSL(sha.h)
 #include "RouterContext.h"
 #include "I2NPProtocol.h"
 #include "Tunnel.h"

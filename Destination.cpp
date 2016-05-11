@@ -1,11 +1,9 @@
 #include <algorithm>
 #include <cassert>
 #include <boost/lexical_cast.hpp>
-#include <openssl/rand.h>
-
+#include "Crypto.h"
 #include "Log.h"
 #include "FS.h"
-#include "Crypto.h"
 #include "Timestamp.h"
 #include "NetDb.h"
 #include "Destination.h"

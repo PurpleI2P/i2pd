@@ -1,7 +1,5 @@
 #include <boost/bind.hpp>
-#include <openssl/dh.h>
-#include <openssl/sha.h>
-#include <openssl/rand.h>
+#include "Crypto.h"
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"

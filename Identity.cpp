@@ -1,8 +1,5 @@
 #include <time.h>
 #include <stdio.h>
-#include <openssl/sha.h>
-#include <openssl/dh.h>
-#include <openssl/rand.h>
 #include "Crypto.h"
 #include "I2PEndian.h"
 #include "Log.h"

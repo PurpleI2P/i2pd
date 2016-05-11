@@ -1,6 +1,5 @@
 #include <string.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
+#include "Crypto.h"
 #include "I2PEndian.h"
 #include "Log.h"
 #include "RouterContext.h"

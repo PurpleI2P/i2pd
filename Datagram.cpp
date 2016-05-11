@@ -1,7 +1,6 @@
 #include <string.h>
 #include <vector>
-#include <openssl/sha.h>
-#include <openssl/rand.h>
+#include "Crypto.h"
 #include "Log.h"
 #include "TunnelBase.h"
 #include "RouterContext.h"
