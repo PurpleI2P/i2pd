@@ -19,8 +19,8 @@ namespace i2p {
 namespace http {
   const char CRLF[] = "\r\n";         /**< HTTP line terminator */
   const char HTTP_EOH[] = "\r\n\r\n"; /**< HTTP end-of-headers mark */
-  extern const char *HTTP_METHODS[];  /**< list of valid HTTP methods */
-  extern const char *HTTP_VERSIONS[]; /**< list of valid HTTP versions */
+  extern const std::vector<std::string> HTTP_METHODS;  /**< list of valid HTTP methods */
+  extern const std::vector<std::string> HTTP_VERSIONS; /**< list of valid HTTP versions */
 
   struct URL {
     std::string schema;
