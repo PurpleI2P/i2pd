@@ -16,7 +16,7 @@ namespace client
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
 		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr), 
-		m_BOBCommandChannel (nullptr)
+		m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr)
 	{
 	}
 	
@@ -26,6 +26,7 @@ namespace client
 		delete m_SocksProxy;
 		delete m_SamBridge;
 		delete m_BOBCommandChannel;
+		delete m_I2CPServer;
 	}
 	
 	void ClientContext::Start ()

@@ -9,7 +9,7 @@ LIB_SRC = \
 
 LIB_CLIENT_SRC = \
 	AddressBook.cpp BOB.cpp ClientContext.cpp I2PTunnel.cpp I2PService.cpp \
-	SAM.cpp SOCKS.cpp HTTP.cpp HTTPProxy.cpp
+	SAM.cpp SOCKS.cpp HTTP.cpp HTTPProxy.cpp I2CP.cpp
 
 # also: Daemon{Linux,Win32}.cpp will be added later
 DAEMON_SRC = \

@@ -11,6 +11,7 @@
 #include "I2PTunnel.h"
 #include "SAM.h"
 #include "BOB.h"
+#include "I2CP.h"
 #include "AddressBook.h"
 
 namespace i2p
@@ -84,6 +85,7 @@ namespace client
 			std::map<std::pair<i2p::data::IdentHash, int>, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
+			I2CPServer * m_I2CPServer;
 
 		public:
 			// for HTTP
