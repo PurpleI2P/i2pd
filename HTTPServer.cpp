@@ -225,7 +225,8 @@ namespace http {
 	const char HTTP_COMMAND_SHUTDOWN_START[] = "shutdown_start";
 	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
 	const char HTTP_COMMAND_SHUTDOWN_NOW[]   = "terminate";
-	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";	
+	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
+	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";	
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
@@ -509,6 +510,7 @@ namespace http {
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
 		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
+		s << "  <a href=/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << ">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
 			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
 		else	
@@ -814,6 +816,8 @@ namespace http {
 
 		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
 			i2p::transport::transports.PeerTest ();
+		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
+			i2p::client::context.ReloadConfig ();
 		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
 			i2p::context.SetAcceptsTunnels (true);
 		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)

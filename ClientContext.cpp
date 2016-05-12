@@ -171,6 +171,11 @@ namespace client
 		m_Destinations.clear ();
 		m_SharedLocalDestination = nullptr; 
 	}	
+
+	void ClientContext::ReloadConfig ()
+	{
+		ReadTunnels (); // TODO: it reads new tunnels only, should be implemented better
+	}
 	
 	void ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
 	{
@@ -330,10 +335,12 @@ namespace client
 					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
 						std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
+					{
 						clientTunnel->Start ();
+						numClientTunnels++;
+					}
 					else
-						LogPrint (eLogError, "Clients: I2P client tunnel with port ", port, " already exists");
-					numClientTunnels++;
+						LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientTunnel->GetAcceptor ().local_endpoint (), " already exists");
 				}
 				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC)
 				{	
@@ -385,10 +392,13 @@ namespace client
 					if (m_ServerTunnels.insert (std::make_pair (
 							std::make_pair (localDestination->GetIdentHash (), inPort), 
 					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
+					{
 						serverTunnel->Start ();
+						numServerTunnels++;
+					}
 					else
-						LogPrint (eLogError, "Clients: I2P server tunnel for destination ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), " already exists");
-					numServerTunnels++;
+						LogPrint (eLogError, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
+						
 				}
 				else
 					LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", tunConf);

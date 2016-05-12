@@ -48,6 +48,8 @@ namespace client
 			void Start ();
 			void Stop ();
 
+			void ReloadConfig ();
+
 			std::shared_ptr<ClientDestination> GetSharedLocalDestination () const { return m_SharedLocalDestination; };
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (bool isPublic = false, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
 			    const std::map<std::string, std::string> * params = nullptr); // transient
