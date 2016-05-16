@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <openssl/rand.h>
 #include "I2PEndian.h"
 #include "Crypto.h"
 #include "Tunnel.h"

@@ -1,14 +1,13 @@
 #include <algorithm>
 #include <cassert>
 #include <boost/lexical_cast.hpp>
-#include <openssl/rand.h>
-
+#include "Crypto.h"
 #include "Log.h"
 #include "FS.h"
-#include "Crypto.h"
 #include "Timestamp.h"
 #include "NetDb.h"
 #include "Destination.h"
+#include "util.h"
 
 namespace i2p
 {
@@ -35,28 +34,30 @@ namespace client
 		{
 			auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
 			if (it != params->end ())
-			{	
-				int len = boost::lexical_cast<int>(it->second);
+			{
+
+				int len = i2p::util::lexical_cast<int>(it->second, inboundTunnelLen);
 				if (len > 0)
 				{
-					inboundTunnelLen = len;
-					LogPrint (eLogInfo, "Destination: Inbound tunnel length set to ", len);
+						inboundTunnelLen = len;
 				}
+				LogPrint (eLogInfo, "Destination: Inbound tunnel length set to ", inboundTunnelLen);
 			}	
 			it = params->find (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
 			if (it != params->end ())
 			{
-				int len = boost::lexical_cast<int>(it->second);
+
+				int len = i2p::util::lexical_cast<int>(it->second, outboundTunnelLen);
 				if (len > 0)
 				{
-					outboundTunnelLen = len;
-					LogPrint (eLogInfo, "Destination: Outbound tunnel length set to ", len);
+						outboundTunnelLen = len;
 				}
+				LogPrint (eLogInfo, "Destination: Outbound tunnel length set to ", outboundTunnelLen);
 			}	
 			it = params->find (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
 			if (it != params->end ())
 			{
-				int quantity = boost::lexical_cast<int>(it->second);
+				int quantity = i2p::util::lexical_cast<int>(it->second, inboundTunnelsQuantity);
 				if (quantity > 0)
 				{
 					inboundTunnelsQuantity = quantity;
@@ -66,7 +67,7 @@ namespace client
 			it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
 			if (it != params->end ())
 			{
-				int quantity = boost::lexical_cast<int>(it->second);
+				int quantity = i2p::util::lexical_cast<int>(it->second, outboundTunnelsQuantity);
 				if (quantity > 0)
 				{
 					outboundTunnelsQuantity = quantity;
@@ -76,11 +77,11 @@ namespace client
 			it = params->find (I2CP_PARAM_TAGS_TO_SEND);
 			if (it != params->end ())
 			{
-				int tagsToSend = boost::lexical_cast<int>(it->second);
+				int tagsToSend = i2p::util::lexical_cast<int>(it->second, numTags);
 				if (tagsToSend > 0)
 				{
 					numTags = tagsToSend;
-					LogPrint (eLogInfo, "Destination: Tags to send set to  ", tagsToSend);
+					LogPrint (eLogInfo, "Destination: Tags to send set to	 ", tagsToSend);
 				}	
 			}	
 			it = params->find (I2CP_PARAM_EXPLICIT_PEERS);

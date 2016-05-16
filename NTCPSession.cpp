@@ -1,13 +1,11 @@
 #include <string.h>
 #include <stdlib.h>
-#include <openssl/dh.h>
-#include <openssl/sha.h>
 #include <zlib.h>
 #include "I2PEndian.h"
 #include "Base.h"
+#include "Crypto.h"
 #include "Log.h"
 #include "Timestamp.h"
-#include "Crypto.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "Transports.h"

@@ -13,6 +13,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #endif
 
+#include "Crypto.h"
 #include "FS.h"
 #include "Log.h"
 #include "Config.h"

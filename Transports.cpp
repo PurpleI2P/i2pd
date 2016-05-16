@@ -1,4 +1,3 @@
-#include <openssl/dh.h>
 #include "Log.h"
 #include "Crypto.h"
 #include "RouterContext.h"

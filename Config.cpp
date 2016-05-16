@@ -141,6 +141,9 @@ namespace config {
       ("http.enabled",        value<bool>()->default_value(true),               "Enable or disable webconsole")
       ("http.address",        value<std::string>()->default_value("127.0.0.1"), "Webconsole listen address")
       ("http.port",           value<uint16_t>()->default_value(7070),           "Webconsole listen port")
+      ("http.auth",           value<bool>()->default_value(false),              "Enable Basic HTTP auth for webconsole")
+      ("http.user",           value<std::string>()->default_value("i2pd"),      "Username for basic auth")
+      ("http.pass",           value<std::string>()->default_value(""),          "Password for basic auth (default: random, see logs)")
       ;
 
     options_description httpproxy("HTTP Proxy options");

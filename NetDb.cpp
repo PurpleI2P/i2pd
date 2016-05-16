@@ -2,10 +2,10 @@
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
-#include <openssl/rand.h>
 #include <zlib.h>
 #include "I2PEndian.h"
 #include "Base.h"
+#include "Crypto.h"
 #include "Log.h"
 #include "Timestamp.h"
 #include "I2NPProtocol.h"

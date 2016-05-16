@@ -1,6 +1,6 @@
 #include "I2PEndian.h"
 #include <string.h>
-#include <openssl/sha.h>
+#include "Crypto.h"
 #include "Log.h"
 #include "NetDb.h"
 #include "I2NPProtocol.h"
