@@ -5,7 +5,6 @@
 #include <sstream>
 #include <vector>
 #include <memory>
-#include <openssl/rand.h>
 #include "Crypto.h"
 #include "Identity.h"
 #include "RouterContext.h"

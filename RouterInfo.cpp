@@ -636,6 +636,14 @@ namespace data
 		m_Properties.erase (key);
 	}
 
+	std::string RouterInfo::GetProperty (const std::string& key) const 
+	{
+		auto it = m_Properties.find (key);
+		if (it != m_Properties.end ())
+			return it->second;
+		return "";
+	}	
+		
 	bool RouterInfo::IsNTCP (bool v4only) const
 	{
 		if (v4only)

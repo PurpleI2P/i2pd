@@ -5,7 +5,7 @@
 #include <string.h>
 #include <set>
 #include <memory>
-#include <openssl/sha.h>
+#include "Crypto.h"
 #include "I2PEndian.h"
 #include "Identity.h"
 #include "RouterInfo.h"

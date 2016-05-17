@@ -1,7 +1,5 @@
 #include <string.h>
 #include <atomic>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
 #include "Base.h"
 #include "Log.h"
 #include "Crypto.h"

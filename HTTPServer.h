@@ -1,108 +1,40 @@
 #ifndef HTTP_SERVER_H__
 #define HTTP_SERVER_H__
 
-#include <sstream>
-#include <thread>
-#include <memory>
-#include <boost/asio.hpp>
-#include <boost/array.hpp>
-#include "LeaseSet.h"
-#include "Streaming.h"
-
-namespace i2p
-{
-namespace util
-{
+namespace i2p {
+namespace http {
+	extern const char *itoopieImage;
+	extern const char *itoopieFavicon;
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
-	const int HTTP_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
+
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
-		protected:
-
-			struct header
-			{
-			  std::string name;
-			  std::string value;
-			};
-
-			struct request
-			{
-			  std::string method;
-			  std::string uri;
-			  std::string host;
-		      int port;	
-			  int http_version_major;
-			  int http_version_minor;
-			  std::vector<header> headers;
-			};
-
-			struct reply
-			{
-				std::vector<header> headers;
-				std::string status_string, content;
-				std::vector<boost::asio::const_buffer> to_buffers (int status);
-			};
-
 		public:
 
-			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket): 
-				m_Socket (socket), m_Timer (socket->get_io_service ()), 
-				m_Stream (nullptr), m_BufferLen (0) {};
+			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			void Receive ();
 			
 		private:
 
-			void Terminate ();
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void AsyncStreamReceive ();
-			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleWriteReply(const boost::system::error_code& ecode);
-			void HandleWrite (const boost::system::error_code& ecode);
-			void SendReply (const std::string& content, int status = 200);
-			void SendError (const std::string& message);
+			void Terminate     (const boost::system::error_code& ecode);
 
-			void HandleRequest (const std::string& address);
-			void HandleCommand (const std::string& command, std::stringstream& s);
-			void ShowJumpServices (const std::string& address, std::stringstream& s);
-			void ShowTransports (std::stringstream& s);
-			void ShowTunnels (std::stringstream& s);
-			void ShowTransitTunnels (std::stringstream& s);
-			void ShowLocalDestinations (std::stringstream& s);
-			void ShowLocalDestination (const std::string& b32, std::stringstream& s);
-			void ShowSAMSessions (std::stringstream& s);
-			void ShowSAMSession (const std::string& id, std::stringstream& s);
-			void ShowI2PTunnels (std::stringstream& s);
-			void StartAcceptingTunnels (std::stringstream& s);
-			void StopAcceptingTunnels (std::stringstream& s);
-			void RunPeerTest (std::stringstream& s);
-			void FillContent (std::stringstream& s);
-			std::string ExtractAddress ();
-			void ExtractParams (const std::string& str, std::map<std::string, std::string>& params);
-			
-			
-		protected:
+			void RunRequest ();
+			bool CheckAuth     (const HTTPReq & req);
+			void HandleRequest (const HTTPReq & req);
+			void HandlePage    (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
+			void HandleCommand (const HTTPReq & req, HTTPRes & res, std::stringstream& data);
+			void SendReply     (HTTPRes & res, std::string & content);
+
+		private:
 
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			boost::asio::deadline_timer m_Timer;
-			std::shared_ptr<i2p::stream::Stream> m_Stream;
-			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1], m_StreamBuffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
+			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
-			request m_Request;
-			reply m_Reply;
-
-		protected:
-	
-			virtual void RunRequest ();
-			void HandleDestinationRequest(const std::string& address, const std::string& uri);
-			void SendToAddress (const std::string& address, int port, const char * buf, size_t len);
-			void HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
-				i2p::data::IdentHash destination, int port, const char * buf, size_t len);
-			void SendToDestination (std::shared_ptr<const i2p::data::LeaseSet> remote, int port, const char * buf, size_t len);
-
-		public:
-
-			static const std::string itoopieImage;
-			static const std::string itoopieFavicon;
+			bool needAuth;
+			std::string user;
+			std::string pass;
 	};
 
 	class HTTPServer
@@ -110,7 +42,7 @@ namespace util
 		public:
 
 			HTTPServer (const std::string& address, int port);
-			virtual ~HTTPServer ();
+			~HTTPServer ();
 
 			void Start ();
 			void Stop ();
@@ -121,6 +53,7 @@ namespace util
  			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode,
 				std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
+			void CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
 			
 		private:
 
@@ -128,13 +61,8 @@ namespace util
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
-
-		protected:
-			virtual void CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
 	};
-}
-}
+} // http
+} // i2p
 
-#endif
-
-
+#endif /* HTTP_SERVER_H__ */

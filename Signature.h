@@ -3,12 +3,10 @@
 
 #include <inttypes.h>
 #include <string.h>
-#include <openssl/sha.h>
 #include <openssl/dsa.h>
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/rsa.h>
-#include <openssl/rand.h>
 #include <openssl/evp.h>
 #include "Crypto.h"
 

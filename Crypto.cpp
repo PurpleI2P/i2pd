@@ -3,10 +3,8 @@
 #include <vector>
 #include <mutex>
 #include <memory>
-#include <openssl/sha.h>
 #include <openssl/dh.h>
 #include <openssl/md5.h>
-#include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>

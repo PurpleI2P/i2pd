@@ -1,29 +1,34 @@
 #include <ctime>
 #include <iomanip>
+#include <sstream>
+#include <thread>
+#include <memory>
+
+#include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "Base.h"
 #include "FS.h"
 #include "Log.h"
+#include "Config.h"
 #include "Tunnel.h"
 #include "TransitTunnel.h"
 #include "Transports.h"
 #include "NetDb.h"
-#include "I2PEndian.h"
-#include "Streaming.h"
+#include "HTTP.h"
+#include "LeaseSet.h"
 #include "Destination.h"
 #include "RouterContext.h"
 #include "ClientContext.h"
 #include "HTTPServer.h"
+#include "Daemon.h"
 
 // For image and info
 #include "version.h"
 
-namespace i2p
-{
-namespace util
-{
-	const std::string HTTPConnection::itoopieImage = 
+namespace i2p {
+namespace http {
+	const char *itoopieImage =
 		"<img alt=\"ICToopie Icon\" src=\"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBIWXM"
 		"AAA3XAAAN1wFCKJt4AAAAB3RJTUUH3ggRChYFXVBoSgAAIABJREFUeNrtnXl8VOX1/9/PvXcmewiQBB"
@@ -173,7 +178,7 @@ namespace util
 		"Am9phNX9QTcwD1cg8K8HqBLYO+FEbAMIpF3gc+AGNv1G1GPgSqzYgkKeTBmTar2ygg22TGHZgqgBYb/"
 		"+mHGvzKrRS0R/yqsZq++6BRshpPMUDQcfzHFrIsqZHhWqasAtHc6b/D3cbSAuGcmWdAAAAAElFTkSuQmCC\" />";
 
-	const std::string HTTPConnection::itoopieFavicon =
+	const char *itoopieFavicon =
 		"data:image/png;base64,"
 		"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv"
 		"8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My4wOGVynO"
@@ -188,226 +193,131 @@ namespace util
 		"MYez0Gm9P2iWna0GOcDp8KY2JhAsnbSQS6Ahh9OgrlklINeM40bWhAkBd4SLIEh8cBURLhOeiBIArVA"
 		"U4yTRvJItk5PRehQVFaYfpbt9PBtTmdziaXyyUzjaHT/QZBQuKHAA0UxAAAAABJRU5ErkJggg==";
 
-	const char HTTP_COMMAND_TUNNELS[] = "tunnels";
-	const char HTTP_COMMAND_TRANSIT_TUNNELS[] = "transit_tunnels";
-	const char HTTP_COMMAND_TRANSPORTS[] = "transports";	
+	const char *cssStyles =
+		"<style>\r\n"
+		"  body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
+		"  a { text-decoration: none; color: #894C84; }\r\n"
+		"  a:hover { color: #FAFAFA; background: #894C84; }\r\n"
+		"  .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
+		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 60em; }\r\n"
+		"  .left  { float: left; position: absolute; }\r\n"
+		"  .right { float: left; font-size: 1em; margin-left: 13em; max-width: 46em; overflow: auto; }\r\n"
+		"  .tunnel.established { color: #56B734; }\r\n"
+		"  .tunnel.expiring    { color: #D3AE3F; }\r\n"
+		"  .tunnel.failed      { color: #D33F3F; }\r\n"
+		"  .tunnel.another     { color: #434343; }\r\n"
+		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
+		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
+		"</style>\r\n";
+
+	const char HTTP_PAGE_TUNNELS[] = "tunnels";
+	const char HTTP_PAGE_TRANSIT_TUNNELS[] = "transit_tunnels";
+	const char HTTP_PAGE_TRANSPORTS[] = "transports";	
+	const char HTTP_PAGE_LOCAL_DESTINATIONS[] = "local_destinations";
+	const char HTTP_PAGE_LOCAL_DESTINATION[] = "local_destination";
+	const char HTTP_PAGE_SAM_SESSIONS[] = "sam_sessions";
+	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
+	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
+	const char HTTP_PAGE_JUMPSERVICES[] = "jumpservices";
+	const char HTTP_PAGE_COMMANDS[] = "commands";
 	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
 	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";	
-	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";	
-	const char HTTP_COMMAND_LOCAL_DESTINATIONS[] = "local_destinations";
-	const char HTTP_COMMAND_LOCAL_DESTINATION[] = "local_destination";
+	const char HTTP_COMMAND_SHUTDOWN_START[] = "shutdown_start";
+	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
+	const char HTTP_COMMAND_SHUTDOWN_NOW[]   = "terminate";
+	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
+	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";	
 	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
-	const char HTTP_COMMAND_SAM_SESSIONS[] = "sam_sessions";
-	const char HTTP_COMMAND_SAM_SESSION[] = "sam_session";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
-	const char HTTP_COMMAND_I2P_TUNNELS[] = "i2p_tunnels";
-	const char HTTP_COMMAND_JUMPSERVICES[] = "jumpservices=";
 	const char HTTP_PARAM_ADDRESS[] = "address";
-	
-	namespace misc_strings
-	{
 
-		const char name_value_separator[] = { ':', ' ' };
-		const char crlf[] = { '\r', '\n' };
+	std::map<std::string, std::string> jumpservices = {
+		{ "inr.i2p",    "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" },
+		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
+	};
 
-	} // namespace misc_strings
-	
-	std::vector<boost::asio::const_buffer> HTTPConnection::reply::to_buffers(int status)
-	{
-		std::vector<boost::asio::const_buffer> buffers;
-		if (headers.size () > 0)
-		{
-			status_string = "HTTP/1.1 ";
-			status_string += std::to_string (status);
-			status_string += " ";
-			switch (status)
-			{
-				case 105: status_string += "Name Not Resolved"; break;
-                case 200: status_string += "OK"; break;
-                case 400: status_string += "Bad Request"; break;
-                case 404: status_string += "Not Found"; break;
-                case 408: status_string += "Request Timeout"; break;
-                case 500: status_string += "Internal Server Error"; break;
-                case 502: status_string += "Bad Gateway"; break;
-                case 503: status_string += "Not Implemented"; break;
-                case 504: status_string += "Gateway Timeout"; break;
-				default: status_string += "WTF";
-			}
-			buffers.push_back(boost::asio::buffer(status_string, status_string.size()));
-			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-			
-			for (std::size_t i = 0; i < headers.size(); ++i)
-			{
-				header& h = headers[i];
-				buffers.push_back(boost::asio::buffer(h.name));
-				buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
-				buffers.push_back(boost::asio::buffer(h.value));
-				buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-			}
-			buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+	void ShowUptime (std::stringstream& s, int seconds) {
+		int num;
+
+		if ((num = seconds / 86400) > 0) {
+			s << num << " days, ";
+			seconds -= num;
 		}
-		buffers.push_back(boost::asio::buffer(content));
-		return buffers;
-	}
-
-	void HTTPConnection::Terminate ()
-	{
-		if (!m_Stream) return;
-		m_Stream->Close ();
-		m_Stream = nullptr;
-		m_Socket->close ();
-	}
-
-	void HTTPConnection::Receive ()
-	{
-		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
-			 std::bind(&HTTPConnection::HandleReceive, shared_from_this (),
-				 std::placeholders::_1, std::placeholders::_2));
-	}
-
-	void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
-	{
-		if (!ecode)
-  		{
-			if (!m_Stream) // new request
-			{
-				m_Buffer[bytes_transferred] = 0;
-				m_BufferLen = bytes_transferred;
-				RunRequest();
-			}
-			else // follow-on
-				m_Stream->Send ((uint8_t *)m_Buffer, bytes_transferred);
-			Receive ();
+		if ((num = seconds / 3600) > 0) {
+			s << num << " hours, ";
+			seconds -= num;
 		}
-		else if (ecode != boost::asio::error::operation_aborted)
-			Terminate ();
-	}
-
-	void HTTPConnection::RunRequest ()
-	{
-		auto address = ExtractAddress ();
-		if (address.length () > 1 && address[1] != '?') // not just '/' or '/?'
-		{
-			std::string uri ("/"), b32;
-			size_t pos = address.find ('/', 1);
-			if (pos == std::string::npos)
-				b32 = address.substr (1); // excluding leading '/' to end of line
-			else
-			{
-				b32 = address.substr (1, pos - 1); // excluding leading '/' to next '/'
-				uri = address.substr (pos); // rest of line
-			}
-
-			HandleDestinationRequest (b32, uri);
+		if ((num = seconds / 60) > 0) {
+			s << num << " min, ";
+			seconds -= num;
 		}
-		else
-			HandleRequest (address);
+		s << seconds << " seconds";
 	}
 
-	std::string HTTPConnection::ExtractAddress ()
+	void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, int bytes)
 	{
-		char * get = strstr (m_Buffer, "GET");
-		if (get)
-		{
-			char * http = strstr (get, "HTTP");
-			if (http)
-				return std::string (get + 4, http - get - 5);
+		std::string state;
+		switch (eState) {
+			case i2p::tunnel::eTunnelStateBuildReplyReceived :
+			case i2p::tunnel::eTunnelStatePending     : state = "building"; break;
+			case i2p::tunnel::eTunnelStateBuildFailed :
+			case i2p::tunnel::eTunnelStateTestFailed  :
+			case i2p::tunnel::eTunnelStateFailed      : state = "failed";   break;
+			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring"; break;
+			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
+			default: state = "unknown"; break;
 		}
-		return "";
+		s << "<span class=\"tunnel " << state << "\"> " << state << "</span>, ";
+		s << " " << (int) (bytes / 1024) << "&nbsp;KiB<br>\r\n";
 	}
 
-	void HTTPConnection::ExtractParams (const std::string& str, std::map<std::string, std::string>& params)
+	void ShowPageHead (std::stringstream& s)
 	{
-		if (str[0] != '&') return;
-		size_t pos = 1, end;
-		do
-		{
-			end = str.find ('&', pos);
-			std::string param = str.substr (pos, end - pos);
-			LogPrint (eLogDebug, "HTTPServer: extracted parameters: ", param);
-			size_t e = param.find ('=');
-			if (e != std::string::npos)
-				params[param.substr(0, e)] = param.substr(e+1);
-			pos = end + 1;
-		}	
-		while (end != std::string::npos);
-	}
-	
-	void HTTPConnection::HandleWriteReply (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{
-			boost::system::error_code ignored_ec;
-			m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-			Terminate ();
-		}	
-	}
-
-	void HTTPConnection::HandleWrite (const boost::system::error_code& ecode)
-	{
-		if (ecode || (m_Stream && !m_Stream->IsOpen ()))
-		{
-			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
-		}	
-		else // data keeps coming
-			AsyncStreamReceive ();
+		s <<
+			"<!DOCTYPE html>\r\n"
+			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
+			"  <head>\r\n"
+			"  <meta charset=\"UTF-8\">\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+			"  <link rel='shortcut icon' href='" << itoopieFavicon << "'>\r\n"
+			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
+			<< cssStyles <<
+			"</head>\r\n";
+		s <<
+			"<body>\r\n"
+			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
+			"<div class=wrapper>\r\n"
+			"<div class=left>\r\n"
+			"  <a href=/>Main page</a><br>\r\n<br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_COMMANDS << ">Router commands</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TUNNELS << ">Tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_TRANSPORTS << ">Transports</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_JUMPSERVICES << ">Jump services</a><br>\r\n"
+			"  <a href=/?page=" << HTTP_PAGE_SAM_SESSIONS << ">SAM sessions</a><br>\r\n"
+			"</div>\r\n"
+			"<div class=right>";
 	}
 
-	void HTTPConnection::HandleRequest (const std::string& address)
+	void ShowPageTail (std::stringstream& s)
 	{
-		std::stringstream s;
-		// Html5 head start
-		s << "<!DOCTYPE html>\r\n<html lang=\"en\">"; // TODO: Add support for locale.
-		s << "<head>\r\n<meta charset=\"utf-8\">\r\n"; // TODO: Find something to parse html/template system. This is horrible.
-		s << "<link rel='shortcut icon' href='" + itoopieFavicon + "'>\r\n";
-		s << "<title>Purple I2P " << VERSION " Webconsole</title>\r\n";
-		s << "<style>\r\n";
-		s << "body {font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456;}";
-		s << "a {text-decoration: none; color: #894C84;}";
-		s << "a:hover {color: #FAFAFA; background: #894C84;}";
-		s << ".header {font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84;}";
-		s << ".wrapper {margin: 0 auto; padding: 1em; max-width: 60em;}";
-		s << ".left {float: left; position: absolute;}";
-		s << ".right {font-size: 1em; margin-left: 13em; float: left; max-width: 46em; overflow: auto;}";
-		s << ".established_tunnel {color: #56b734;}";
-		s << ".expiring_tunnel {color: #d3ae3f;}";
-		s << ".failed_tunnel {color: #d33f3f;}";
-		s << ".another_tunnel {color: #434343;}";
-		s << "caption {font-size: 1.5em; text-align: center; color: #894C84;}";
-		s << "table {width: 100%; border-collapse: collapse; text-align: center;}";
-		s << "</style>\r\n</head>\r\n<body>\r\n";
-		s << "<div class=header><b>i2pd </b>webconsole</div>";
-		s << "<div class=wrapper>";
-		s << "<div class=left>\r\n";
-		s << "<a href=/>Main page</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_TUNNELS << ">Tunnels</a><br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_TRANSPORTS << ">Transports</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n";
-		if (i2p::client::context.GetSAMBridge ())
-			s << "<a href=/?" << HTTP_COMMAND_SAM_SESSIONS << ">SAM sessions</a><br>\r\n<br>\r\n";
-		if (i2p::context.AcceptsTunnels ())
-			s << "<a href=/?" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n<br>\r\n";
-		else	
-			s << "<a href=/?" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n<br>\r\n";
-		s << "<a href=/?" << HTTP_COMMAND_JUMPSERVICES << "&address=example.i2p>Jump services</a><br>\r\n<br>\r\n";
-		s << "</div><div class=right>";
-		if (address.length () > 1)
-			HandleCommand (address.substr (2), s);
-		else			
-			FillContent (s);
-		s << "</div></div>\r\n</body>\r\n</html>";
-		SendReply (s.str ());
+		s <<
+			"</div></div>\r\n"
+			"</body>\r\n"
+			"</html>\r\n";
 	}
 
-	void HTTPConnection::FillContent (std::stringstream& s)
+	void ShowError(std::stringstream& s, const std::string& string)
 	{
-		s << "<b>Uptime:</b> " << boost::posix_time::to_simple_string (
-			boost::posix_time::time_duration (boost::posix_time::seconds (
-			i2p::context.GetUptime ()))) << "<br>\r\n";
+		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
+	}
+
+	void ShowStatus (std::stringstream& s)
+	{
+		s << "<b>Uptime:</b> ";
+		ShowUptime(s, i2p::context.GetUptime ());
+		s << "<br>\r\n";
 		s << "<b>Status:</b> ";
 		switch (i2p::context.GetStatus ())
 		{
@@ -417,6 +327,9 @@ namespace util
 			default: s << "Unknown";
 		} 
 		s << "<br>\r\n";
+		auto family = i2p::context.GetFamily ();
+		if (family.length () > 0)
+			s << "<b>Family:</b> " << family << "<br>\r\n";
 		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>Received:</b> ";
 		s << std::fixed << std::setprecision(2);
@@ -472,73 +385,32 @@ namespace util
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
-	void HTTPConnection::HandleCommand (const std::string& command, std::stringstream& s)
+	void ShowJumpServices (std::stringstream& s, const std::string& address)
 	{
-		size_t paramsPos = command.find('&');
-		std::string cmd = command.substr (0, paramsPos);
-		if (cmd == HTTP_COMMAND_TRANSPORTS)
-			ShowTransports (s);
-		else if (cmd == HTTP_COMMAND_TUNNELS)
-			ShowTunnels (s);
-		else if (cmd == HTTP_COMMAND_JUMPSERVICES)
-        {
-			std::map<std::string, std::string> params;
-			ExtractParams (command.substr (paramsPos), params);
-			auto address = params[HTTP_PARAM_ADDRESS];
-			ShowJumpServices (address, s);
-		} else if (cmd == HTTP_COMMAND_TRANSIT_TUNNELS)
-			ShowTransitTunnels (s);
-		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
-			StartAcceptingTunnels (s);
-		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
-			StopAcceptingTunnels (s);
-		else if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
-			RunPeerTest (s);
-		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATIONS)
-			ShowLocalDestinations (s);	
-		else if (cmd == HTTP_COMMAND_LOCAL_DESTINATION)
-		{
-			std::map<std::string, std::string> params;
-			ExtractParams (command.substr (paramsPos), params);
-			auto b32 = params[HTTP_PARAM_BASE32_ADDRESS];
-			ShowLocalDestination (b32, s);
-		}	
-		else if (cmd == HTTP_COMMAND_SAM_SESSIONS)
-			ShowSAMSessions (s);
-		else if (cmd == HTTP_COMMAND_SAM_SESSION)
-		{
-			std::map<std::string, std::string> params;
-			ExtractParams (command.substr (paramsPos), params);
-			auto id = params[HTTP_PARAM_SAM_SESSION_ID];
-			ShowSAMSession (id, s);
-		}	
-		else if (cmd == HTTP_COMMAND_I2P_TUNNELS)
-			ShowI2PTunnels (s);
-	}	
+		s << "<form type=\"GET\" action=\"/\">";
+		s << "<input type=\"hidden\" name=\"page\" value=\"jumpservices\">";
+		s << "<input type=\"text\"   name=\"address\" value=\"" << address << "\">";
+		s << "<input type=\"submit\" value=\"Update\">";
+		s << "</form><br>\r\n";
+		s << "<b>Jump services for " << address << "</b>\r\n<ul>\r\n";
+		for (auto & js : jumpservices) {
+			s << "  <li><a href=\"" << js.second << address << "\">" << js.first << "</a></li>\r\n";
+		}
+		s << "</ul>\r\n";
+	}
 
-	void HTTPConnection::ShowJumpServices (const std::string& address, std::stringstream& s)
-	{
-		s << "<form type=\"get\" action=\"/\">";
-		s << "<input type=\"hidden\" name=\"jumpservices\">";
-		s << "<input type=\"text\" value=\"" << address << "\" name=\"address\"> </form><br>\r\n";
-		s << "<b>Jump services for " << address << "</b>";
-		s << "<ul><li><a href=\"http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" << address << "\">inr.i2p jump service</a> <br>\r\n";
-		s << "<li><a href=\"http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" << address << "\">stats.i2p jump service</a></ul>";
-    }
-
-	void HTTPConnection::ShowLocalDestinations (std::stringstream& s)
+	void ShowLocalDestinations (std::stringstream& s)
 	{
 		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();; 
-			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
 	}
 
-	void  HTTPConnection::ShowLocalDestination (const std::string& b32, std::stringstream& s)
+	void  ShowLocalDestination (std::stringstream& s, const std::string& b32)
 	{
 		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
 		i2p::data::IdentHash ident;
@@ -552,28 +424,19 @@ namespace util
 			auto pool = dest->GetTunnelPool ();
 			if (pool)
 			{
-				s << "<b>Tunnels:</b><br>\r\n";
-				for (auto it: pool->GetOutboundTunnels ())
-				{
-					it->Print (s);
-					auto state = it->GetState ();
-					if (state == i2p::tunnel::eTunnelStateFailed)
-						s << " " << "Failed";
-					else if (state == i2p::tunnel::eTunnelStateExpiring)
-						s << " " << "Exp";
-					s << "<br>\r\n" << std::endl;
+				s << "<b>Inbound tunnels:</b><br>\r\n";
+				for (auto & it : pool->GetInboundTunnels ()) {
+					it->Print(s);
+					ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
 				}
-				for (auto it: pool->GetInboundTunnels ())
-				{
-					it->Print (s);
-					auto state = it->GetState ();
-					if (state == i2p::tunnel::eTunnelStateFailed)
-						s << " " << "Failed";
-					else if (state == i2p::tunnel::eTunnelStateExpiring)
-						s << " " << "Exp";
-					s << "<br>\r\n" << std::endl;
+				s << "<br>\r\n";
+				s << "<b>Outbound tunnels:</b><br>\r\n";
+				for (auto & it : pool->GetOutboundTunnels ()) {
+					it->Print(s);
+					ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
 				}
 			}	
+			s << "<br>\r\n";
 			s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
 			for (auto it: dest->GetSessions ())
 			{
@@ -624,36 +487,47 @@ namespace util
 		}	
 	}
 
-	void HTTPConnection::ShowTunnels (std::stringstream& s)
+	void ShowTunnels (std::stringstream& s)
 	{
-		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
-		for (auto it: i2p::tunnel::tunnels.GetOutboundTunnels ())
-		{
-			it->Print (s);
-			auto state = it->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=failed_tunnel> " << "Failed</span>";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=expiring_tunnel> " << "Exp</span>";
-			s << " " << (int)it->GetNumSentBytes () << "<br>\r\n";
-			s << std::endl;
-		}
 
-		for (auto it: i2p::tunnel::tunnels.GetInboundTunnels ())
-		{
-			it->Print (s);
-			auto state = it->GetState ();
-			if (state == i2p::tunnel::eTunnelStateFailed)
-				s << "<span class=failed_tunnel> " << "Failed</span>";
-			else if (state == i2p::tunnel::eTunnelStateExpiring)
-				s << "<span class=expiring_tunnel> " << "Exp</span>";
-			s << " " << (int)it->GetNumReceivedBytes () << "<br>\r\n";
-			s << std::endl;
+		s << "<b>Inbound tunnels:</b><br>\r\n";
+		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
+			it->Print(s);
+			ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
 		}
+		s << "<br>\r\n";
+		s << "<b>Outbound tunnels:</b><br>\r\n";
+		for (auto & it : i2p::tunnel::tunnels.GetOutboundTunnels ()) {
+			it->Print(s);
+			ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
+		}
+		s << "<br>\r\n";
 	}	
 
-	void HTTPConnection::ShowTransitTunnels (std::stringstream& s)
+	void ShowCommands (std::stringstream& s)
+	{
+		/* commands */
+		s << "<b>Router Commands</b><br>\r\n";
+		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
+		s << "  <a href=/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << ">Reload config</a><br>\r\n";
+		if (i2p::context.AcceptsTunnels ())
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
+		else	
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n";
+#ifndef WIN32
+		if (Daemon.gracefullShutdownInterval) {
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << ">Cancel gracefull shutdown (";
+			s << Daemon.gracefullShutdownInterval;
+			s << " seconds remains)</a><br>\r\n";
+		} else {
+			s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << ">Start gracefull shutdown</a><br>\r\n";
+		}
+		s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << ">Force shutdown</a><br>\r\n";
+#endif
+	}
+
+	void ShowTransitTunnels (std::stringstream& s)
 	{
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
 		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
@@ -668,7 +542,7 @@ namespace util
 		}
 	}
 
-	void HTTPConnection::ShowTransports (std::stringstream& s)
+	void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n<br>\r\n";
 		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
@@ -717,66 +591,60 @@ namespace util
 		}
 	}
 	
-	void HTTPConnection::ShowSAMSessions (std::stringstream& s)
+	void ShowSAMSessions (std::stringstream& s)
 	{
-		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
-		if (sam)
-		{	
-			for (auto& it: sam->GetSessions ())
-			{
-				s << "<a href=/?" << HTTP_COMMAND_SAM_SESSION;
-				s << "&" << HTTP_PARAM_SAM_SESSION_ID << "=" << it.first << ">";
-				s << it.first << "</a><br>\r\n" << std::endl;
-			}	
+		if (!sam) {
+			ShowError(s, "SAM disabled");
+			return;
+		}
+		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
+		for (auto& it: sam->GetSessions ())
+		{
+			s << "<a href=/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << ">";
+			s << it.first << "</a><br>\r\n" << std::endl;
 		}	
 	}	
 
-	void HTTPConnection::ShowSAMSession (const std::string& id, std::stringstream& s)
+	void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
 		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
-		if (sam)
+		if (!sam) {
+			ShowError(s, "SAM disabled");
+			return;
+		}
+		auto session = sam->FindSession (id);
+		if (!session) {
+			ShowError(s, "SAM session not found");
+			return;
+		}
+		auto& ident = session->localDestination->GetIdentHash();
+		s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">";
+		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
+		s << "<br>\r\n";
+		s << "<b>Streams:</b><br>\r\n";
+		for (auto it: session->ListSockets())
 		{
-			auto session = sam->FindSession (id);
-			if (session)
+			switch (it->GetSocketType ())
 			{
-				auto& ident = session->localDestination->GetIdentHash();
-				s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-				s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
-				s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
-				s << "<b>Streams:</b><br>\r\n";
-				for (auto it: session->ListSockets())
-				{
-					switch (it->GetSocketType ())
-					{
-						case i2p::client::eSAMSocketTypeSession:
-							s << "session";
-						break;	
-						case i2p::client::eSAMSocketTypeStream:
-							s << "stream";
-						break;	
-						case i2p::client::eSAMSocketTypeAcceptor:
-							s << "acceptor";
-						break;
-						default:
-							s << "unknown";
-					}
-					s << " [" << it->GetSocket ().remote_endpoint() << "]";
-					s << "<br>\r\n" << std::endl;
-				}	
+				case i2p::client::eSAMSocketTypeSession  : s << "session";  break;
+				case i2p::client::eSAMSocketTypeStream   : s << "stream";   break;
+				case i2p::client::eSAMSocketTypeAcceptor : s << "acceptor"; break;
+				default: s << "unknown"; break;
 			}
+			s << " [" << it->GetSocket ().remote_endpoint() << "]";
+			s << "<br>\r\n";
 		}	
 	}	
 
-	void HTTPConnection::ShowI2PTunnels (std::stringstream& s)
+	void ShowI2PTunnels (std::stringstream& s)
 	{
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << it.second->GetName () << "</a> ⇐ ";			
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -785,143 +653,214 @@ namespace util
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?" << HTTP_COMMAND_LOCAL_DESTINATION;
-			s << "&" << HTTP_PARAM_BASE32_ADDRESS << "=" << ident.ToBase32 () << ">"; 
+			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
 			s << it.second->GetName () << "</a> ⇒ ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();
 			s << "</a><br>\r\n"<< std::endl;
 		}	
 	}	
-	
-	void HTTPConnection::StopAcceptingTunnels (std::stringstream& s)
+
+	HTTPConnection::HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket):
+				m_Socket (socket), m_Timer (socket->get_io_service ()), m_BufferLen (0)
 	{
-		s << "<b>Stop Accepting Tunnels:</b><br>\r\n<br>\r\n";
-		i2p::context.SetAcceptsTunnels (false);
-		s << "Accepting tunnels stopped" <<  std::endl;
+		/* cache options */
+		i2p::config::GetOption("http.auth", needAuth);
+		i2p::config::GetOption("http.user", user);
+		i2p::config::GetOption("http.pass", pass);
+	};
+
+	void HTTPConnection::Receive ()
+	{
+		m_Socket->async_read_some (boost::asio::buffer (m_Buffer, HTTP_CONNECTION_BUFFER_SIZE),
+			 std::bind(&HTTPConnection::HandleReceive, shared_from_this (),
+				 std::placeholders::_1, std::placeholders::_2));
 	}
 
-	void HTTPConnection::StartAcceptingTunnels (std::stringstream& s)
+	void HTTPConnection::HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		s << "<b>Start Accepting Tunnels:</b><br>\r\n<br>\r\n";
-		i2p::context.SetAcceptsTunnels (true);
-		s << "Accepting tunnels started" <<  std::endl;		
-	}
-
-	void HTTPConnection::RunPeerTest (std::stringstream& s)
-	{
-		s << "<b>Run Peer Test:</b><br>\r\n<br>\r\n";
-		i2p::transport::transports.PeerTest ();
-		s << "Peer test is running" <<  std::endl;
-	}
-
-	void HTTPConnection::HandleDestinationRequest (const std::string& address, const std::string& uri)
-	{
-		std::string request = "GET " + uri + " HTTP/1.1\r\nHost:" + address + "\r\n\r\n";
-		LogPrint(eLogInfo, "HTTPServer: client request: ", request);
-		SendToAddress (address, 80, request.c_str (), request.size ());		
-	}
-
-	void HTTPConnection::SendToAddress (const std::string& address, int port, const char * buf, size_t len)
-	{	
-		i2p::data::IdentHash destination;
-		if (!i2p::client::context.GetAddressBook ().GetIdentHash (address, destination))
-		{
-			LogPrint (eLogWarning, "HTTPServer: Unknown address ", address);
-			SendError ("Unknown address " + address);
+		if (ecode) {
+			if (ecode != boost::asio::error::operation_aborted)
+				Terminate (ecode);
 			return;
-		}		
-
-		auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-		if (leaseSet && !leaseSet->IsExpired ())
-			SendToDestination (leaseSet, port, buf, len);
-		else
-		{
-			memcpy (m_Buffer, buf, len);
-			m_BufferLen = len;
-			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (destination);
-			m_Timer.expires_from_now (boost::posix_time::seconds(HTTP_DESTINATION_REQUEST_TIMEOUT));
-			m_Timer.async_wait (std::bind (&HTTPConnection::HandleDestinationRequestTimeout,
-				shared_from_this (), std::placeholders::_1, destination, port, m_Buffer, m_BufferLen));
 		}
+		m_Buffer[bytes_transferred] = '\0';
+		m_BufferLen = bytes_transferred;
+		RunRequest();
+		Receive ();
 	}
-	
-	void HTTPConnection::HandleDestinationRequestTimeout (const boost::system::error_code& ecode, 
-		i2p::data::IdentHash destination, int port, const char * buf, size_t len)
-	{	
-		if (ecode != boost::asio::error::operation_aborted)
-		{	
-			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (destination);
-			if (leaseSet && !leaseSet->IsExpired ()) {
-				SendToDestination (leaseSet, port, buf, len);
-			} else if (leaseSet) {
-				SendError ("LeaseSet expired");
-			} else {
-				SendError ("LeaseSet not found");
-			}
+
+	void HTTPConnection::RunRequest ()
+	{
+		HTTPReq request;
+		int ret = request.parse(m_Buffer);
+		if (ret < 0) {
+			m_Buffer[0] = '\0';
+			m_BufferLen = 0;
+			return; /* error */
 		}
+		if (ret == 0)
+			return; /* need more data */
+
+		HandleRequest (request);
+	}
+
+	void HTTPConnection::Terminate (const boost::system::error_code& ecode)
+	{
+		if (ecode == boost::asio::error::operation_aborted)
+			return;
+		boost::system::error_code ignored_ec;
+		m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+		m_Socket->close ();
+	}
+
+	bool HTTPConnection::CheckAuth (const HTTPReq & req) {
+		/* method #1: http://user:pass@127.0.0.1:7070/ */
+		if (req.uri.find('@') != std::string::npos) {
+			URL url;
+			if (url.parse(req.uri) && url.user == user && url.pass == pass)
+				return true;
+		}
+		/* method #2: 'Authorization' header sent */
+		if (req.headers.count("Authorization") > 0) {
+			std::string provided = req.headers.find("Authorization")->second;
+			std::string expected = user + ":" + pass;
+			char b64_creds[64];
+			std::size_t len = 0;
+			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, sizeof(b64_creds));
+			b64_creds[len] = '\0';
+			expected = "Basic ";
+			expected += b64_creds;
+			if (provided == expected)
+				return true;
+		}
+
+		LogPrint(eLogWarning, "HTTPServer: auth failure from ", m_Socket->remote_endpoint().address ());
+		return false;
+	}
+
+	void HTTPConnection::HandleRequest (const HTTPReq & req)
+	{
+		std::stringstream s;
+		std::string content;
+		HTTPRes res;
+
+		LogPrint(eLogDebug, "HTTPServer: request: ", req.uri);
+
+		if (needAuth && !CheckAuth(req)) {
+			res.code = 401;
+			res.headers.insert(std::pair<std::string, std::string>("WWW-Authenticate", "Basic realm=\"WebAdmin\""));
+			SendReply(res, content);
+			return;
+		}
+
+		// Html5 head start
+		ShowPageHead (s);
+		if (req.uri.find("page=") != std::string::npos)
+			HandlePage (req, res, s);
+		else if (req.uri.find("cmd=") != std::string::npos)
+			HandleCommand (req, res, s);
+		else			
+			ShowStatus (s);
+		ShowPageTail (s);
+		content = s.str ();
+		SendReply (res, content);
+	}
+
+	void HTTPConnection::HandlePage (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
+  {
+		std::map<std::string, std::string> params;
+		std::string page("");
+		URL url;
+
+		url.parse(req.uri);
+		url.parse_query(params);
+		page = params["page"];
+
+		if (page == HTTP_PAGE_TRANSPORTS)
+			ShowTransports (s);
+		else if (page == HTTP_PAGE_TUNNELS)
+			ShowTunnels (s);
+		else if (page == HTTP_PAGE_COMMANDS)
+			ShowCommands (s);
+		else if (page == HTTP_PAGE_JUMPSERVICES)
+			ShowJumpServices (s, params["address"]);
+		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
+			ShowTransitTunnels (s);
+		else if (page == HTTP_PAGE_LOCAL_DESTINATIONS)
+			ShowLocalDestinations (s);	
+		else if (page == HTTP_PAGE_LOCAL_DESTINATION)
+			ShowLocalDestination (s, params["b32"]);
+		else if (page == HTTP_PAGE_SAM_SESSIONS)
+			ShowSAMSessions (s);
+		else if (page == HTTP_PAGE_SAM_SESSION)
+			ShowSAMSession (s, params["sam_id"]);
+		else if (page == HTTP_PAGE_I2P_TUNNELS)
+			ShowI2PTunnels (s);
+		else {
+			res.code = 400;
+			ShowError(s, "Unknown page: " + page);
+			return;
+		}
+  }
+
+	void HTTPConnection::HandleCommand (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
+	{
+		std::map<std::string, std::string> params;
+		std::string cmd("");
+		URL url;
+
+		url.parse(req.uri);
+		url.parse_query(params);
+		cmd = params["cmd"];
+
+		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
+			i2p::transport::transports.PeerTest ();
+		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
+			i2p::client::context.ReloadConfig ();
+		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
+			i2p::context.SetAcceptsTunnels (true);
+		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
+			i2p::context.SetAcceptsTunnels (false);
+		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
+			i2p::context.SetAcceptsTunnels (false);
+#ifndef WIN32
+			Daemon.gracefullShutdownInterval = 10*60;
+#endif
+		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
+			i2p::context.SetAcceptsTunnels (true);
+#ifndef WIN32
+			Daemon.gracefullShutdownInterval = 0;
+#endif
+		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {
+			Daemon.running = false;
+		} else {
+			res.code = 400;
+			ShowError(s, "Unknown command: " + cmd);
+			return;
+		}
+		s << "<b>SUCCESS</b>:&nbsp;Command accepted<br><br>\r\n";
+		s << "<a href=\"/?page=commands\">Back to commands list</a>";
 	}	
-	
-	void HTTPConnection::SendToDestination (std::shared_ptr<const i2p::data::LeaseSet> remote, int port, const char * buf, size_t len)
-	{
-		if (!m_Stream)
-			m_Stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (remote, port);
-		if (m_Stream)
-		{
-			m_Stream->Send ((uint8_t *)buf, len);
-			AsyncStreamReceive ();
-		}
-	}
 
-	void HTTPConnection::AsyncStreamReceive ()
+	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
 	{
-		if (m_Stream)
-			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, 8192),
-				std::bind (&HTTPConnection::HandleStreamReceive, shared_from_this (),
-					std::placeholders::_1, std::placeholders::_2),
-				45); // 45 seconds timeout
-	}
+		std::time_t time_now = std::time(nullptr);
+		char time_buff[128];
+		std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now));
+		reply.status = HTTPCodeToStatus(reply.code);
+		reply.headers.insert(std::pair<std::string, std::string>("Date", time_buff));
+		reply.headers.insert(std::pair<std::string, std::string>("Content-Type", "text/html"));
+		reply.headers.insert(std::pair<std::string, std::string>("Content-Length", std::to_string(content.size())));
 
-	void HTTPConnection::HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
-	{
-		if (!ecode)
-		{
-			boost::asio::async_write (*m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		std::bind (&HTTPConnection::HandleWrite, shared_from_this (), std::placeholders::_1));
-		}
-		else
-		{
-			if (ecode == boost::asio::error::timed_out)
-				SendError ("Host not responding");
-			else if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
-		}
-	}
+		std::string res = reply.to_string();
+ 		std::vector<boost::asio::const_buffer> buffers;
 
-	void HTTPConnection::SendReply (const std::string& content, int status)
-	{
-		m_Reply.content = content;
-		m_Reply.headers.resize(3);
-        // we need the date header to be complaint with http 1.1
-        std::time_t time_now = std::time(nullptr);
-        char time_buff[128];
-        if (std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now))) 
-		{
-            m_Reply.headers[0].name = "Date";
-            m_Reply.headers[0].value = std::string(time_buff);
-            m_Reply.headers[1].name = "Content-Length";
-            m_Reply.headers[1].value = std::to_string(m_Reply.content.size());
-            m_Reply.headers[2].name = "Content-Type";
-            m_Reply.headers[2].value = "text/html";
-        }
-		
-		boost::asio::async_write (*m_Socket, m_Reply.to_buffers(status),
-			std::bind (&HTTPConnection::HandleWriteReply, shared_from_this (), std::placeholders::_1));
-	}
+		buffers.push_back(boost::asio::buffer(res));
+ 		buffers.push_back(boost::asio::buffer(content));
 
-	void HTTPConnection::SendError(const std::string& content)
-	{
-		SendReply ("<html>" + itoopieImage + "<br>\r\n" + content + "</html>", 504);
+		boost::asio::async_write (*m_Socket, buffers,
+			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):
@@ -937,6 +876,21 @@ namespace util
 
 	void HTTPServer::Start ()
 	{
+		bool needAuth;    i2p::config::GetOption("http.auth", needAuth);
+		std::string user; i2p::config::GetOption("http.user", user);
+		std::string pass; i2p::config::GetOption("http.pass", pass);
+		/* generate pass if needed */
+		if (needAuth && pass == "") {
+			char alnum[] = "0123456789"
+			  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			  "abcdefghijklmnopqrstuvwxyz";
+			pass.resize(16);
+			for (size_t i = 0; i < pass.size(); i++) {
+				pass[i] = alnum[rand() % (sizeof(alnum) - 1)];
+			}
+			i2p::config::SetOption("http.pass", pass);
+			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
+		}
 		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
 		m_Acceptor.listen ();
 		Accept ();
@@ -946,11 +900,10 @@ namespace util
 	{
 		m_Acceptor.close();
 		m_Service.stop ();
-		if (m_Thread)
-        {
-            m_Thread->join ();
-            m_Thread = nullptr;
-        }
+		if (m_Thread) {
+			m_Thread->join ();
+			m_Thread = nullptr;
+		}
 	}
 
 	void HTTPServer::Run ()
@@ -968,11 +921,10 @@ namespace util
 	void HTTPServer::HandleAccept(const boost::system::error_code& ecode, 
 		std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
-		if (!ecode)
-		{
-			CreateConnection(newSocket);
-			Accept ();
-		}
+		if (ecode)
+			return;
+		CreateConnection(newSocket);
+		Accept ();
 	}
 
 	void HTTPServer::CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
@@ -980,5 +932,5 @@ namespace util
 		auto conn = std::make_shared<HTTPConnection> (newSocket);
 		conn->Receive ();
 	}
-}
-}
+} // http
+} // i2p

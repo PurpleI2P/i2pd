@@ -3,7 +3,7 @@
 #include <thread>
 #include <algorithm>
 #include <vector> 
-#include <openssl/rand.h>
+#include "Crypto.h"
 #include "RouterContext.h"
 #include "Log.h"
 #include "Timestamp.h"

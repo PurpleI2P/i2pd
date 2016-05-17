@@ -3,18 +3,17 @@
 #include <sstream>
 #include <boost/regex.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <openssl/bn.h>
+#include <boost/asio/ssl.hpp> 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <zlib.h>
 
+#include "Crypto.h"
 #include "I2PEndian.h"
 #include "Reseed.h"
 #include "FS.h"
 #include "Log.h"
 #include "Identity.h"
-#include "Crypto.h"
 #include "NetDb.h"
 #include "util.h"
 
