@@ -104,7 +104,7 @@ namespace proxy
 		std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
 
-		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?jumpservices=&address=" << m_address << "\r\n\r\n";
+		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?page=jumpservices&address=" << m_address << "\r\n\r\n";
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response.str (),response.str ().length ()),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
