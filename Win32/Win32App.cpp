@@ -167,19 +167,6 @@ namespace win32
                 }
                 break;
             }
-		 case WM_PAINT:
-		 {
-			PAINTSTRUCT ps;
-			auto hDC = BeginPaint (hWnd, &ps);
-			auto mascot = LoadBitmap (GetModuleHandle(NULL), MAKEINTRESOURCE (MASCOT));
-			auto mascotDC = CreateCompatibleDC (hDC);
-			SelectObject (mascotDC, mascot);
-			BitBlt (hDC, 0,0, 533, 700, mascotDC, 0, 0, SRCCOPY);
-			DeleteDC (mascotDC);
-			DeleteObject (mascot);
-			EndPaint (hWnd, &ps);
-			break;
-		 }
         }
         return DefWindowProc( hWnd, uMsg, wParam, lParam);
     }

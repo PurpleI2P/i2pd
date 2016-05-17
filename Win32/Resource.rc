@@ -55,8 +55,6 @@ END
 MAINICON                ICON                    "ictoopie.ico"
 //MAINICON                ICON                    "anke.ico"
 
-MASCOT					BITMAP					"Anke_700px.bmp"
-
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

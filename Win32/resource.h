@@ -3,7 +3,6 @@
 // Used by Resource.rc
 //
 #define MAINICON                    101
-#define MASCOT						201
 
 // Next default values for new objects
 // 
