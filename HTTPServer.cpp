@@ -510,7 +510,7 @@ namespace http {
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
 		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
-		s << "  <a href=/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << ">Reload config</a><br>\r\n";
+		//s << "  <a href=/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << ">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
 			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
 		else	
