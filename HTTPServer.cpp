@@ -241,15 +241,15 @@ namespace http {
 
 		if ((num = seconds / 86400) > 0) {
 			s << num << " days, ";
-			seconds -= num;
+			seconds -= num * 86400;
 		}
 		if ((num = seconds / 3600) > 0) {
 			s << num << " hours, ";
-			seconds -= num;
+			seconds -= num * 3600;
 		}
 		if ((num = seconds / 60) > 0) {
 			s << num << " min, ";
-			seconds -= num;
+			seconds -= num * 60;
 		}
 		s << seconds << " seconds";
 	}
