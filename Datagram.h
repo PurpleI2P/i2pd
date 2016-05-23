@@ -14,7 +14,7 @@ namespace i2p
 {
 namespace client
 {
-	class ClientDestination;
+	class LeaseSetDestination;
 }
 namespace datagram
 {
@@ -25,7 +25,7 @@ namespace datagram
 
 		public:
 
-			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
+			DatagramDestination (std::shared_ptr<i2p::client::LeaseSetDestination> owner);
 			~DatagramDestination ();				
 
 			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort = 0, uint16_t toPort = 0);
@@ -47,7 +47,7 @@ namespace datagram
 
 		private:
 
-			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
+			std::shared_ptr<i2p::client::LeaseSetDestination> m_Owner;
 			Receiver m_Receiver; // default
 			std::map<uint16_t, Receiver> m_ReceiversByPorts;
 

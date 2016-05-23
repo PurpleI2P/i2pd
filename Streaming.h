@@ -23,7 +23,7 @@ namespace i2p
 {
 namespace client
 {
-	class ClientDestination;
+	class LeaseSetDestination;
 }
 namespace stream
 {
@@ -193,7 +193,7 @@ namespace stream
 
 			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
-			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0, bool gzip = true);
+			StreamingDestination (std::shared_ptr<i2p::client::LeaseSetDestination> owner, uint16_t localPort = 0, bool gzip = true);
 			~StreamingDestination ();	
 
 			void Start ();
@@ -204,7 +204,7 @@ namespace stream
 			void SetAcceptor (const Acceptor& acceptor);
 			void ResetAcceptor ();
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
-			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
+			std::shared_ptr<i2p::client::LeaseSetDestination> GetOwner () const { return m_Owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };
 
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
@@ -218,7 +218,7 @@ namespace stream
 
 		private:
 
-			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
+			std::shared_ptr<i2p::client::LeaseSetDestination> m_Owner;
 			uint16_t m_LocalPort;
 			bool m_Gzip; // gzip compression of data messages
 			std::mutex m_StreamsMutex;

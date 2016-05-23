@@ -49,8 +49,8 @@ namespace client
 
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
-	class ClientDestination: public i2p::garlic::GarlicDestination,
-		public std::enable_shared_from_this<ClientDestination>
+	class LeaseSetDestination: public i2p::garlic::GarlicDestination,
+		public std::enable_shared_from_this<LeaseSetDestination>
 	{
 		typedef std::function<void (std::shared_ptr<i2p::data::LeaseSet> leaseSet)> RequestComplete;
 		// leaseSet = nullptr means not found
@@ -68,8 +68,8 @@ namespace client
 		
 		public:
 
-			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
-			~ClientDestination ();	
+			LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			~LeaseSetDestination ();	
 
 			virtual void Start ();
 			virtual void Stop ();
@@ -94,11 +94,6 @@ namespace client
 			// datagram
 			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
 			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
-
-			// implements LocalDestination
-			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
-			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			
 			// implements GarlicDestination
 			std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet ();
@@ -129,8 +124,7 @@ namespace client
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request);	
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
-			void CleanupRemoteLeaseSets ();
-			void PersistTemporaryKeys ();			
+			void CleanupRemoteLeaseSets ();			
 
 		private:
 
@@ -138,8 +132,6 @@ namespace client
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
-			i2p::data::PrivateKeys m_Keys;
-			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
@@ -160,6 +152,27 @@ namespace client
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
 			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
+	};	
+
+	class ClientDestination: public LeaseSetDestination
+	{
+		public:
+
+			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+
+			// implements LocalDestination
+			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
+			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
+
+		private:
+
+			void PersistTemporaryKeys ();
+			
+		private:
+
+			i2p::data::PrivateKeys m_Keys;
+			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 	};	
 }	
 }	
