@@ -71,8 +71,8 @@ namespace client
 			LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~LeaseSetDestination ();	
 
-			virtual void Start ();
-			virtual void Stop ();
+			virtual bool Start ();
+			virtual bool Stop ();
 			bool IsRunning () const { return m_IsRunning; };
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; }; 
@@ -80,20 +80,6 @@ namespace client
 			std::shared_ptr<const i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			void CancelDestinationRequest (const i2p::data::IdentHash& dest);	
-			
-			// streaming
-			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional
-			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination (int port = 0) const;
-			// following methods operate with default streaming destination
-			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
-			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
-			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
-			void StopAcceptingStreams ();
-			bool IsAcceptingStreams () const;
-			
-			// datagram
-			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 			
 			// implements GarlicDestination
 			std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet ();
@@ -106,9 +92,11 @@ namespace client
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);	
 			void SetLeaseSetUpdated ();
 
-			// I2CP
-			void HandleDataMessage (const uint8_t * buf, size_t len);
+		protected:
 
+			// I2CP
+			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
+			
 		private:
 				
 			void Run ();			
@@ -125,7 +113,7 @@ namespace client
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();			
-
+			
 		private:
 
 			volatile bool m_IsRunning;
@@ -140,10 +128,6 @@ namespace client
 			bool m_IsPublic;
 			uint32_t m_PublishReplyToken;
 			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
-			
-			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
-			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
-			i2p::datagram::DatagramDestination * m_DatagramDestination;
 	
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer, m_CleanupTimer;
 
@@ -151,7 +135,6 @@ namespace client
 			
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
-			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
 	};	
 
 	class ClientDestination: public LeaseSetDestination
@@ -159,12 +142,35 @@ namespace client
 		public:
 
 			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
+			~ClientDestination ();
+			
+			bool Start ();
+			bool Stop ();
 
+			// streaming
+			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional
+			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination (int port = 0) const;
+			// following methods operate with default streaming destination
+			void CreateStream (StreamRequestComplete streamRequestComplete, const i2p::data::IdentHash& dest, int port = 0);
+			std::shared_ptr<i2p::stream::Stream> CreateStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
+			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
+			void StopAcceptingStreams ();
+			bool IsAcceptingStreams () const;
+			
+			// datagram
+			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
+			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
+			
 			// implements LocalDestination
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 
+		protected:
+			
+			// I2CP
+			void HandleDataMessage (const uint8_t * buf, size_t len);
+			
 		private:
 
 			void PersistTemporaryKeys ();
@@ -173,6 +179,15 @@ namespace client
 
 			i2p::data::PrivateKeys m_Keys;
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+
+			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
+			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
+			i2p::datagram::DatagramDestination * m_DatagramDestination;
+
+		public:
+
+			// for HTTP only
+			std::vector<std::shared_ptr<const i2p::stream::Stream> > GetAllStreams () const;
 	};	
 }	
 }	
