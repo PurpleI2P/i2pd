@@ -184,6 +184,21 @@ namespace http {
     return out;
   }
 
+  void HTTPMsg::add_header(const char *name, const char *value, bool replace) {
+    std::size_t count = headers.count(name);
+    if (count && !replace)
+      return;
+    if (count) {
+      headers[name] = value;
+      return;
+    }
+    headers.insert(std::pair<std::string, std::string>(name, value));
+  }
+
+  void HTTPMsg::del_header(const char *name) {
+    headers.erase(name);
+  }
+
   int HTTPReq::parse(const char *buf, size_t len) {
     std::string str(buf, len);
     return parse(str);
