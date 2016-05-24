@@ -85,6 +85,12 @@ namespace http {
     std::string version;
     std::string status;
     unsigned short int code;
+    /** simplifies response generation
+     * If this variable is set:
+     * a) Content-Length header will be added if missing
+     * b) contents of body will be included in response
+     */
+    std::string body;
 
     HTTPRes (): version("HTTP/1.1"), status("OK"), code(200) {}
 
@@ -96,7 +102,13 @@ namespace http {
     int parse(const char *buf, size_t len);
     int parse(const std::string& buf);
 
-    /** @brief Serialize HTTP response to string */
+    /**
+     * @brief Serialize HTTP response to string
+     * @note If version is set to HTTP/1.1, and Date header is missing,
+     *   it will be generated based on current time and added to headers
+     * @note If body member is set and Content-Length header is missing,
+     *   this header will be added, based on body's length
+     */
     std::string to_string();
 
     /** @brief Checks that response declared as chunked data */

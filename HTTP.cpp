@@ -334,12 +334,24 @@ namespace http {
   }
 
   std::string HTTPRes::to_string() {
+    if (version == "HTTP/1.1" && headers.count("Date") == 0) {
+      std::string date;
+      gen_rfc1123_date(date);
+      add_header("Date", date.c_str());
+    }
+    if (status == "OK" && code != 200)
+      status = HTTPCodeToStatus(code); // update
+    if (body.length() > 0 && headers.count("Content-Length") == 0)
+      add_header("Content-Length", std::to_string(body.length()).c_str());
+    /* build response */
     std::stringstream ss;
     ss << version << " " << code << " " << status << CRLF;
     for (auto & h : headers) {
       ss << h.first << ": " << h.second << CRLF;
     }
     ss << CRLF;
+    if (body.length() > 0)
+      ss << body;
     return ss.str();
   }
 
