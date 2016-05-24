@@ -8,6 +8,7 @@
 
 #include "HTTP.h"
 #include <algorithm>
+#include <ctime>
 
 namespace i2p {
 namespace http {
@@ -52,6 +53,13 @@ namespace http {
     std::string value = line.substr(pos + len);
     headers[name] = value;
     return true;
+  }
+
+  void gen_rfc1123_date(std::string & out) {
+    std::time_t now = std::time(nullptr);
+    char buf[128];
+    std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+    out = buf;
   }
 
   bool URL::parse(const char *str, std::size_t len) {
