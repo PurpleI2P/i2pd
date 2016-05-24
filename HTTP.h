@@ -54,8 +54,11 @@ namespace http {
     std::string to_string ();
   };
 
-  struct HTTPReq {
+  struct HTTPMsg {
     std::map<std::string, std::string> headers;
+  };
+
+  struct HTTPReq : HTTPMsg {
     std::string version;
     std::string method;
     std::string uri;
@@ -75,8 +78,7 @@ namespace http {
     std::string to_string();
   };
 
-  struct HTTPRes {
-    std::map<std::string, std::string> headers;
+  struct HTTPRes : HTTPMsg {
     std::string version;
     std::string status;
     unsigned short int code;
