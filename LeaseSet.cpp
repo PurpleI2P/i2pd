@@ -4,6 +4,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "NetDb.h"
+#include "Tunnel.h"
 #include "TunnelPool.h"
 #include "LeaseSet.h"
 
@@ -195,7 +196,7 @@ namespace data
 		if (size > len) return 0;
 		uint8_t num = buf[size];
 		size++; // num
-		if (size + num*44 > len) return 0;
+		if (size + num*LEASE_SIZE > len) return 0;
 		uint64_t timestamp= 0 ;
 		for (int i = 0; i < num; i++)
 		{
@@ -243,6 +244,47 @@ namespace data
 		if (IsEmpty ()) return true;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		return ts > m_ExpirationTime;
+	}
+
+	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
+		m_Identity (identity)
+	{
+		int num = tunnels.size ();
+		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
+		// identity
+		m_BufferLen = m_Identity->GetFullLen () + 256 + num*LEASE_SIZE + m_Identity->GetSignatureLen ();	
+		m_Buffer = new uint8_t[m_BufferLen];	
+		auto offset = m_Identity->ToBuffer (m_Buffer, m_BufferLen);
+		memcpy (m_Buffer + offset, encryptionPublicKey, 256);
+		offset += 256;
+		auto signingKeyLen = m_Identity->GetSigningPublicKeyLen ();
+		memset (m_Buffer + offset, 0, signingKeyLen);
+		offset += signingKeyLen;
+		// num leases
+		m_Buffer[offset] = num; 
+		offset++;
+		// leases
+		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
+		for (int i = 0; i < num; i++)
+		{
+			memcpy (m_Buffer + offset, tunnels[i]->GetNextIdentHash (), 32);
+			offset += 32; // gateway id
+			htobe32buf (m_Buffer + offset, tunnels[i]->GetNextTunnelID ());
+			offset += 4; // tunnel id
+			uint64_t ts = tunnels[i]->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
+			ts *= 1000; // in milliseconds
+			// make sure leaseset is newer than previous, but adding some time to expiration date
+			ts += (currentTime - tunnels[i]->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
+			htobe64buf (m_Buffer + offset, ts);
+			offset += 8; // end date
+		}
+		//  we don't sign it yet. must be signed later on
 	}	
+
+	void LocalLeaseSet::SetSignature (const uint8_t * signature)
+	{
+		auto signatureLen = GetSignatureLen ();
+		memcpy (m_Buffer + m_BufferLen - signatureLen, signature, signatureLen);
+	}
 }		
 }	
