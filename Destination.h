@@ -82,7 +82,7 @@ namespace client
 			void CancelDestinationRequest (const i2p::data::IdentHash& dest);	
 			
 			// implements GarlicDestination
-			std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet ();
+			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet ();
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const { return m_Pool; }
 			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
@@ -124,7 +124,7 @@ namespace client
 			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
 			std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
-			std::shared_ptr<i2p::data::LeaseSet> m_LeaseSet;
+			std::shared_ptr<i2p::data::LocalLeaseSet> m_LeaseSet;
 			bool m_IsPublic;
 			uint32_t m_PublishReplyToken;
 			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing

@@ -192,7 +192,7 @@ namespace client
 		return nullptr;
 	}	
 
-	std::shared_ptr<const i2p::data::LeaseSet> LeaseSetDestination::GetLeaseSet ()
+	std::shared_ptr<const i2p::data::LocalLeaseSet> LeaseSetDestination::GetLeaseSet ()
 	{
 		if (!m_Pool) return nullptr;
 		if (!m_LeaseSet)
@@ -202,7 +202,12 @@ namespace client
 
 	void LeaseSetDestination::UpdateLeaseSet ()
 	{
-		m_LeaseSet.reset (new i2p::data::LeaseSet (m_Pool));
+		int numTunnels = m_Pool->GetNumInboundTunnels () + 2; // 2 backup tunnels 
+		if (numTunnels > i2p::data::MAX_NUM_LEASES) numTunnels = i2p::data::MAX_NUM_LEASES; // 16 tunnels maximum 
+		auto leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), GetEncryptionPublicKey (),
+			m_Pool->GetInboundTunnels (numTunnels));
+		Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); // TODO
+		m_LeaseSet.reset (leaseSet);
 	}	
 
 	bool LeaseSetDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)

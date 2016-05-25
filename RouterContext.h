@@ -79,7 +79,7 @@ namespace i2p
 			void SetLeaseSetUpdated () {};
 
 			// implements GarlicDestination
-			std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet () { return nullptr; };
+			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () { return nullptr; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const;
 			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
