@@ -201,12 +201,12 @@ namespace data
 		int num = tunnels.size ();
 		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
 		// identity
-		m_BufferLen = m_Identity->GetFullLen () + 256 + num*LEASE_SIZE + m_Identity->GetSignatureLen ();	
+		auto signingKeyLen = m_Identity->GetSigningPublicKeyLen ();
+		m_BufferLen = m_Identity->GetFullLen () + 256 + signingKeyLen + num*LEASE_SIZE + m_Identity->GetSignatureLen ();	
 		m_Buffer = new uint8_t[m_BufferLen];	
 		auto offset = m_Identity->ToBuffer (m_Buffer, m_BufferLen);
 		memcpy (m_Buffer + offset, encryptionPublicKey, 256);
 		offset += 256;
-		auto signingKeyLen = m_Identity->GetSigningPublicKeyLen ();
 		memset (m_Buffer + offset, 0, signingKeyLen);
 		offset += signingKeyLen;
 		// num leases
