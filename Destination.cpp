@@ -407,6 +407,12 @@ namespace client
 			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No outbound tunnels");
 			return;
 		}
+		auto inbound = m_Pool->GetNextInboundTunnel ();
+		if (!inbound)
+		{
+			LogPrint (eLogError, "Destination: Can't publish LeaseSet. No inbound tunnels");
+			return;
+		}
 		auto floodfill = i2p::data::netdb.GetClosestFloodfill (m_LeaseSet->GetIdentHash (), m_ExcludedFloodfills);	
 		if (!floodfill)
 		{
@@ -417,7 +423,7 @@ namespace client
 		m_ExcludedFloodfills.insert (floodfill->GetIdentHash ());
 		LogPrint (eLogDebug, "Destination: Publish LeaseSet of ", GetIdentHash ().ToBase32 ());
 		RAND_bytes ((uint8_t *)&m_PublishReplyToken, 4);
-		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken));			
+		auto msg = WrapMessage (floodfill, i2p::CreateDatabaseStoreMsg (m_LeaseSet, m_PublishReplyToken, inbound));			
 		m_PublishConfirmationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_CONFIRMATION_TIMEOUT));
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));	
