@@ -174,7 +174,9 @@ namespace client
 		private:
 
 			void PersistTemporaryKeys ();
-			
+			std::shared_ptr<ClientDestination> GetSharedFromThis ()
+			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }  			
+
 		private:
 
 			i2p::data::PrivateKeys m_Keys;

@@ -662,7 +662,7 @@ namespace client
 	{
 		if (LeaseSetDestination::Start ())
 		{	
-			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this ()); // TODO:
+			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis ()); // TODO:
 			m_StreamingDestination->Start ();	
 			for (auto it: m_StreamingDestinationsByPorts)
 				it.second->Start ();
@@ -735,7 +735,7 @@ namespace client
 			streamRequestComplete(CreateStream (leaseSet, port));
 		else
 		{
-			auto s = std::static_pointer_cast<ClientDestination>(shared_from_this ());
+			auto s = GetSharedFromThis ();
 			RequestDestination (dest,
 				[s, streamRequestComplete, port](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
@@ -788,7 +788,7 @@ namespace client
 
 	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (int port, bool gzip)
 	{
-		auto dest = std::make_shared<i2p::stream::StreamingDestination> (shared_from_this (), port, gzip); 
+		auto dest = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis (), port, gzip); 
 		if (port)
 			m_StreamingDestinationsByPorts[port] = dest;
 		else // update default 
@@ -799,7 +799,7 @@ namespace client
 	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
 	{
 		if (!m_DatagramDestination)
-			m_DatagramDestination = new i2p::datagram::DatagramDestination (shared_from_this ());
+			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis ());
 		return m_DatagramDestination;	
 	}
 		

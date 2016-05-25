@@ -780,7 +780,7 @@ namespace stream
 			m_CurrentRemoteLease = nullptr;
 	}	
 
-	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::LeaseSetDestination> owner, uint16_t localPort, bool gzip): 
+	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip): 
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip), 
 		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
