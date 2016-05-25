@@ -46,7 +46,6 @@ namespace data
 		public:
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
-			LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool); // deprecated
 			~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len);
 			bool IsNewer (const uint8_t * buf, size_t len) const;

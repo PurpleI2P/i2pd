@@ -22,56 +22,6 @@ namespace data
 		ReadFromBuffer ();
 	}
 
-	LeaseSet::LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool):
-		m_IsValid (true), m_StoreLeases (true), m_ExpirationTime (0)
-	{	
-		if (!pool) return;
-		// header
-		auto localDestination = pool->GetLocalDestination ();
-		if (!localDestination)
-		{
-			m_Buffer = nullptr;
-			m_BufferLen = 0;
-			m_IsValid = false;
-			LogPrint (eLogError, "LeaseSet: Destination for local LeaseSet doesn't exist");
-			return;
-		}	
-		m_Buffer = new uint8_t[MAX_LS_BUFFER_SIZE];
-		m_BufferLen = localDestination->GetIdentity ()->ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
-		memcpy (m_Buffer + m_BufferLen, localDestination->GetEncryptionPublicKey (), 256);
-		m_BufferLen += 256;
-		auto signingKeyLen = localDestination->GetIdentity ()->GetSigningPublicKeyLen ();
-		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
-		m_BufferLen += signingKeyLen;
-		int numTunnels = pool->GetNumInboundTunnels () + 2; // 2 backup tunnels 
-		if (numTunnels > 16) numTunnels = 16; // 16 tunnels maximum 
-		auto tunnels = pool->GetInboundTunnels (numTunnels);
-		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
-		m_BufferLen++;
-		// leases
-		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
-		for (auto it: tunnels)
-		{	
-			memcpy (m_Buffer + m_BufferLen, it->GetNextIdentHash (), 32);
-			m_BufferLen += 32; // gateway id
-			htobe32buf (m_Buffer + m_BufferLen, it->GetNextTunnelID ());
-			m_BufferLen += 4; // tunnel id
-			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
-			ts *= 1000; // in milliseconds
-			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
-			// make sure leaseset is newer than previous, but adding some time to expiration date
-			ts += (currentTime - it->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
-			htobe64buf (m_Buffer + m_BufferLen, ts);
-			m_BufferLen += 8; // end date
-		}
-		// signature
-		localDestination->Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
-		m_BufferLen += localDestination->GetIdentity ()->GetSignatureLen (); 
-		LogPrint (eLogDebug, "LeaseSet: Local LeaseSet of ", tunnels.size (), " leases created");
-
-		ReadFromBuffer ();
-	}
-
 	void LeaseSet::Update (const uint8_t * buf, size_t len)
 	{	
 		if (len > m_BufferLen)
