@@ -13,7 +13,6 @@ namespace i2p
 namespace tunnel
 {
 	class InboundTunnel;	
-	class TunnelPool;
 }
 
 namespace data

@@ -5,7 +5,6 @@
 #include "Timestamp.h"
 #include "NetDb.h"
 #include "Tunnel.h"
-#include "TunnelPool.h"
 #include "LeaseSet.h"
 
 namespace i2p
