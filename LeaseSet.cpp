@@ -202,7 +202,7 @@ namespace data
 		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
 		// identity
 		auto signingKeyLen = m_Identity->GetSigningPublicKeyLen ();
-		m_BufferLen = m_Identity->GetFullLen () + 256 + signingKeyLen + num*LEASE_SIZE + m_Identity->GetSignatureLen ();	
+		m_BufferLen = m_Identity->GetFullLen () + 256 + signingKeyLen + 1 + num*LEASE_SIZE + m_Identity->GetSignatureLen ();	
 		m_Buffer = new uint8_t[m_BufferLen];	
 		auto offset = m_Identity->ToBuffer (m_Buffer, m_BufferLen);
 		memcpy (m_Buffer + offset, encryptionPublicKey, 256);
