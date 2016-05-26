@@ -59,6 +59,9 @@ namespace http {
 
     void add_header(const char *name, const char *value, bool replace = false);
     void del_header(const char *name);
+
+    /** @brief Returns declared message length or -1 if unknown */
+    long int length();
   };
 
   struct HTTPReq : HTTPMsg {
@@ -113,9 +116,6 @@ namespace http {
 
     /** @brief Checks that response declared as chunked data */
     bool is_chunked();
-
-    /** @brief Returns declared response length or -1 if unknown */
-    long int length();
   };
 
   /**

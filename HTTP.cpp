@@ -279,7 +279,7 @@ namespace http {
     return false;
   }
 
-  long int HTTPRes::length() {
+  long int HTTPMsg::length() {
     unsigned long int length = 0;
     auto it = headers.find("Content-Length");
     if (it == headers.end())
