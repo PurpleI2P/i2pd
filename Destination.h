@@ -147,6 +147,8 @@ namespace client
 			bool Start ();
 			bool Stop ();
 
+			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
+
 			// streaming
 			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional
 			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination (int port = 0) const;
@@ -162,9 +164,10 @@ namespace client
 			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 			
 			// implements LocalDestination
-			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }; 	
 
 		protected:
 			
