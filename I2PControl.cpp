@@ -192,6 +192,7 @@ namespace client
 			try
 			{
 				bool isHtml = !memcmp (buf->data (), "POST", 4);
+				std::string content;
 				std::stringstream ss;
 				ss.write (buf->data (), bytes_transferred);
 				if (isHtml)
@@ -242,7 +243,8 @@ namespace client
 					response << "\"jsonrpc\":\"2.0\"}";
 				}
 #endif
-				SendResponse (socket, buf, response, isHtml);
+				content = response.str();
+				SendResponse (socket, buf, content, isHtml);
 			}
 			catch (std::exception& ex)
 			{
@@ -275,23 +277,19 @@ namespace client
 	}
 
 	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
-		std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml)
+		std::shared_ptr<I2PControlBuffer> buf, std::string& content, bool isHtml)
 	{
-		std::string out;
-		std::size_t len;
 		if (isHtml) {
 			i2p::http::HTTPRes res;
 			res.code = 200;
 			res.add_header("Content-Type", "application/json");
 			res.add_header("Connection", "close");
-			res.body = response.str();
-			out = res.to_string();
-		} else {
-			out = response.str();
+			res.body = content;
+			std::string tmp = res.to_string();
+			content = tmp;
 		}
-		std::copy(out.begin(), out.end(), buf->begin());
-		len = out.length();
-		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), len),
+		std::copy(content.begin(), content.end(), buf->begin());
+		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), content.length()),
 			boost::asio::transfer_all (),
 			std::bind(&I2PControlService::HandleResponseSent, this,
 				std::placeholders::_1, std::placeholders::_2, socket, buf));
