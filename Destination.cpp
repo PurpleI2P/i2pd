@@ -130,6 +130,10 @@ namespace client
 		if (!m_IsRunning)
 		{	
 			m_IsRunning = true;
+			if (m_IsPublic)	
+				PersistTemporaryKeys ();
+			else
+				i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
 			m_Pool->SetLocalDestination (shared_from_this ());
 			m_Pool->SetActive (true);			
 			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
@@ -640,14 +644,34 @@ namespace client
 		}
 	}
 
+	void LeaseSetDestination::PersistTemporaryKeys ()
+	{
+		std::string ident = GetIdentHash().ToBase32();
+		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
+		std::ifstream f(path, std::ifstream::binary);
+
+		if (f) {
+			f.read ((char *)m_EncryptionPublicKey,  256);
+			f.read ((char *)m_EncryptionPrivateKey, 256);
+			return;
+		}
+
+		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
+		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+
+		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
+		if (f1) {
+			f1.write ((char *)m_EncryptionPublicKey,  256);
+			f1.write ((char *)m_EncryptionPrivateKey, 256);
+			return;
+		}
+		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
+	}	
+
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (isPublic, params),
 		m_Keys (keys), m_DatagramDestination (nullptr)
 	{
-		if (isPublic)	
-			PersistTemporaryKeys ();
-		else
-			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 	}	
@@ -802,30 +826,6 @@ namespace client
 			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis ());
 		return m_DatagramDestination;	
 	}
-		
-	void ClientDestination::PersistTemporaryKeys ()
-	{
-		std::string ident = GetIdentHash().ToBase32();
-		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
-		std::ifstream f(path, std::ifstream::binary);
-
-		if (f) {
-			f.read ((char *)m_EncryptionPublicKey,  256);
-			f.read ((char *)m_EncryptionPrivateKey, 256);
-			return;
-		}
-
-		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
-		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
-
-		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
-		if (f1) {
-			f1.write ((char *)m_EncryptionPublicKey,  256);
-			f1.write ((char *)m_EncryptionPrivateKey, 256);
-			return;
-		}
-		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
-	}	
 
 	std::vector<std::shared_ptr<const i2p::stream::Stream> > ClientDestination::GetAllStreams () const
 	{

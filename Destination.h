@@ -80,7 +80,11 @@ namespace client
 			std::shared_ptr<const i2p::data::LeaseSet> FindLeaseSet (const i2p::data::IdentHash& ident);
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			void CancelDestinationRequest (const i2p::data::IdentHash& dest);	
-			
+
+			// implements LocalDestination			
+			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
+
 			// implements GarlicDestination
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet ();
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const { return m_Pool; }
@@ -113,8 +117,12 @@ namespace client
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();			
+
+			void PersistTemporaryKeys ();
 			
 		private:
+
+			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 
 			volatile bool m_IsRunning;
 			std::thread * m_Thread;	
@@ -165,8 +173,6 @@ namespace client
 			
 			// implements LocalDestination
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }; 	
 
 		protected:
@@ -176,14 +182,12 @@ namespace client
 			
 		private:
 
-			void PersistTemporaryKeys ();
 			std::shared_ptr<ClientDestination> GetSharedFromThis ()
 			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }  			
 
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
-			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
