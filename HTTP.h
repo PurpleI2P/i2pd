@@ -132,6 +132,14 @@ namespace http {
    * @return Decoded string
    */
   std::string UrlDecode(const std::string& data, bool null = false);
+
+  /**
+   * @brief Merge HTTP response content with Transfer-Encoding: chunked
+   * @param in  Input stream
+   * @param out Output stream
+   * @return true on success, false otherwise
+   */
+  bool MergeChunkedResponse (std::istream& in, std::ostream& out);
 } // http
 } // i2p
 
