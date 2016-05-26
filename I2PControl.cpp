@@ -188,69 +188,64 @@ namespace client
 		if (ecode) {
 			LogPrint (eLogError, "I2PControl: read error: ", ecode.message ());
 			return;
-		} else {
-			try
-			{
-				std::stringstream json;
-				std::string response;
-				bool isHTTP = false;
-				if (memcmp (buf->data (), "POST", 4) == 0) {
-					long int remains = 0;
-					isHTTP = true;
-					i2p::http::HTTPReq req;
-					std::size_t len = req.parse(buf->data(), bytes_transferred);
-					if (len <= 0) {
-						LogPrint(eLogError, "I2PControl: incomplete/malformed POST request");
-						return;
-					}
-					/* append to json chunk of data from 1st request */
-					json.write(buf->begin() + len, bytes_transferred - len);
-					remains = req.length() - len;
-					/* if request has Content-Length header, fetch rest of data and store to json buffer */
-					while (remains > 0) {
-						len = ((long int) buf->size() < remains) ? buf->size() : remains;
-						bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), len));
-						json.write(buf->begin(), bytes_transferred);
-						remains -= bytes_transferred;
-					}
-				} else {
-					json.write(buf->begin(), bytes_transferred);
-				}
-				LogPrint(eLogDebug, "I2PControl: json from request: ", json.str());
-#if GCC47_BOOST149
-				LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
-				BuildErrorResponse(response, 32603, "JSON requests is not supported with this version of boost");
-#else
-				boost::property_tree::ptree pt;
-				boost::property_tree::read_json (json, pt);
-
-				std::string id     = pt.get<std::string>("id");
-				std::string method = pt.get<std::string>("method");
-				auto it = m_MethodHandlers.find (method);
-				if (it != m_MethodHandlers.end ())
-				{
-					std::ostringstream ss;
-					ss << "{\"id\":" << id << ",\"result\":{";
-					(this->*(it->second))(pt.get_child ("params"), ss);
-					ss << "},\"jsonrpc\":\"2.0\"}";
-					response = ss.str();
-				} else {
-					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
-					BuildErrorResponse(response, 32601, "Method not found");
-				}
-#endif
-				SendResponse (socket, buf, response, isHTTP);
-			}
-			catch (std::exception& ex)
-			{
-				LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
-				/* TODO: also send error, code 32603 */
-			}
-			catch (...)
-			{
-				LogPrint (eLogError, "I2PControl: handle request unknown exception");
-			}
 		}
+		/* try to parse received data */
+		std::stringstream json;
+		std::string response;
+		bool isHTTP = false;
+		if (memcmp (buf->data (), "POST", 4) == 0) {
+			long int remains = 0;
+			isHTTP = true;
+			i2p::http::HTTPReq req;
+			std::size_t len = req.parse(buf->data(), bytes_transferred);
+			if (len <= 0) {
+				LogPrint(eLogError, "I2PControl: incomplete/malformed POST request");
+				return;
+			}
+			/* append to json chunk of data from 1st request */
+			json.write(buf->begin() + len, bytes_transferred - len);
+			remains = req.length() - len;
+			/* if request has Content-Length header, fetch rest of data and store to json buffer */
+			while (remains > 0) {
+				len = ((long int) buf->size() < remains) ? buf->size() : remains;
+				bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), len));
+				json.write(buf->begin(), bytes_transferred);
+				remains -= bytes_transferred;
+			}
+		} else {
+			json.write(buf->begin(), bytes_transferred);
+		}
+		LogPrint(eLogDebug, "I2PControl: json from request: ", json.str());
+#if GCC47_BOOST149
+		LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
+		BuildErrorResponse(response, 32603, "JSON requests is not supported with this version of boost");
+#else
+		/* now try to parse json itself */
+		try {
+			boost::property_tree::ptree pt;
+			boost::property_tree::read_json (json, pt);
+
+			std::string id     = pt.get<std::string>("id");
+			std::string method = pt.get<std::string>("method");
+			auto it = m_MethodHandlers.find (method);
+			if (it != m_MethodHandlers.end ()) {
+				std::ostringstream ss;
+				ss << "{\"id\":" << id << ",\"result\":{";
+				(this->*(it->second))(pt.get_child ("params"), ss);
+				ss << "},\"jsonrpc\":\"2.0\"}";
+				response = ss.str();
+			} else {
+				LogPrint (eLogWarning, "I2PControl: unknown method ", method);
+				BuildErrorResponse(response, 32601, "Method not found");
+			}
+		} catch (std::exception& ex) {
+			LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
+			BuildErrorResponse(response, 32603, ex.what());
+		} catch (...) {
+			LogPrint (eLogError, "I2PControl: handle request unknown exception");
+		}
+#endif
+		SendResponse (socket, buf, response, isHTTP);
 	}
 
 	void I2PControlService::InsertParam (std::ostringstream& ss, const std::string& name, int value) const
