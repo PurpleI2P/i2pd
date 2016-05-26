@@ -57,6 +57,7 @@ namespace http {
   struct HTTPMsg {
     std::map<std::string, std::string> headers;
 
+    void add_header(const char *name, std::string & value, bool replace = false);
     void add_header(const char *name, const char *value, bool replace = false);
     void del_header(const char *name);
 

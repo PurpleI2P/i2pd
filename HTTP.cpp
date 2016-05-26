@@ -193,6 +193,10 @@ namespace http {
     return out;
   }
 
+  void HTTPMsg::add_header(const char *name, std::string & value, bool replace) {
+    add_header(name, value.c_str(), replace);
+  }
+
   void HTTPMsg::add_header(const char *name, const char *value, bool replace) {
     std::size_t count = headers.count(name);
     if (count && !replace)
