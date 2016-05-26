@@ -562,7 +562,7 @@ namespace tunnel
 				case eTunnelStatePending: 
 					if (ts > tunnel->GetCreationTime () + TUNNEL_CREATION_TIMEOUT)
 					{
-						LogPrint (eLogWarning, "Tunnel: pending build request ", it->first, " timeout, deleted");
+						LogPrint (eLogDebug, "Tunnel: pending build request ", it->first, " timeout, deleted");
 						// update stats
 						auto config = tunnel->GetTunnelConfig ();
 						if (config)
@@ -587,7 +587,7 @@ namespace tunnel
 						it++;
 				break;
 				case eTunnelStateBuildFailed:
-					LogPrint (eLogWarning, "Tunnel: pending build request ", it->first, " failed, deleted");
+					LogPrint (eLogDebug, "Tunnel: pending build request ", it->first, " failed, deleted");
 					it = pendingTunnels.erase (it);
 					m_NumFailedTunnelCreations++;
 				break;
