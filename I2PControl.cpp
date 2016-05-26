@@ -221,9 +221,7 @@ namespace client
 				std::ostringstream response;
 #if GCC47_BOOST149
 				LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
-				response << "{\"id\":null,\"error\":";
-				response << "{\"code\":-32603,\"message\":\"JSON requests is not supported with this version of boost\"},";
-				response << "\"jsonrpc\":\"2.0\"}";
+				BuildErrorResponse(content, 32603, "JSON requests is not supported with this version of boost");
 #else
 				boost::property_tree::ptree pt;
 				boost::property_tree::read_json (ss, pt);
@@ -236,19 +234,18 @@ namespace client
 					response << "{\"id\":" << id << ",\"result\":{";
 					(this->*(it->second))(pt.get_child ("params"), response);
 					response << "},\"jsonrpc\":\"2.0\"}";
+					content = response.str();
 				} else {
 					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
-					response << "{\"id\":null,\"error\":";
-					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
-					response << "\"jsonrpc\":\"2.0\"}";
+					BuildErrorResponse(content, 32601, "Method not found");
 				}
 #endif
-				content = response.str();
 				SendResponse (socket, buf, content, isHtml);
 			}
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
+				/* TODO: also send error, code 32603 */
 			}
 			catch (...)
 			{
@@ -274,6 +271,14 @@ namespace client
 	void I2PControlService::InsertParam (std::ostringstream& ss, const std::string& name, double value) const
 	{
 		ss << "\"" << name << "\":" << std::fixed << std::setprecision(2) << value;
+	}
+
+	void I2PControlService::BuildErrorResponse (std::string & content, int code, const char *message) {
+		std::stringstream ss;
+		ss << "{\"id\":null,\"error\":";
+		ss << "{\"code\":" << -code << ",\"message\":\"" << message << "\"},";
+		ss << "\"jsonrpc\":\"2.0\"}";
+		content = ss.str();
 	}
 
 	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
