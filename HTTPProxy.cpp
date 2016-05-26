@@ -56,6 +56,7 @@ namespace proxy
 			uint8_t m_http_buff[http_buffer_size];
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 			std::string m_request; //Data left to be sent
+			std::string m_Response;
 			std::string m_url; //URL
 			std::string m_method; //Method
 			std::string m_version; //HTTP version
@@ -107,9 +108,8 @@ namespace proxy
 		ss << "Content-Length: " << std::to_string(size + 2) << "\r\n"
 		   << "\r\n"; /* end of headers */
 		ss << message << "\r\n";
-		static std::string response; 
-		response = ss.str();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
+		m_Response = ss.str();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -120,9 +120,8 @@ namespace proxy
 		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
 
 		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?page=jumpservices&address=" << m_address << "\r\n\r\n";
-		static std::string s;
-		s = response.str ();		
-		boost::asio::async_write(*m_sock, boost::asio::buffer(s),
+		m_Response = response.str ();		
+		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
