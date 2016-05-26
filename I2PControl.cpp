@@ -191,56 +191,55 @@ namespace client
 		} else {
 			try
 			{
-				bool isHtml = !memcmp (buf->data (), "POST", 4);
-				std::string content;
-				std::stringstream ss;
-				ss.write (buf->data (), bytes_transferred);
-				if (isHtml)
-				{
-					std::string header;
-					size_t contentLength = 0;
-					while (!ss.eof () && header != "\r")
-					{
-						std::getline(ss, header);
-						auto colon = header.find (':');
-						if (colon != std::string::npos && header.substr (0, colon) == "Content-Length")
-							contentLength = std::stoi (header.substr (colon + 1));
+				std::stringstream json;
+				std::string response;
+				bool isHTTP = false;
+				if (memcmp (buf->data (), "POST", 4) == 0) {
+					long int remains = 0;
+					isHTTP = true;
+					i2p::http::HTTPReq req;
+					std::size_t len = req.parse(buf->data(), bytes_transferred);
+					if (len <= 0) {
+						LogPrint(eLogError, "I2PControl: incomplete/malformed POST request");
+						return;
 					}
-					if (ss.eof ())
-					{
-						LogPrint (eLogError, "I2PControl: malformed request, HTTP header expected");
-						return; // TODO:
+					/* append to json chunk of data from 1st request */
+					json.write(buf->begin() + len, bytes_transferred - len);
+					remains = req.length() - len;
+					/* if request has Content-Length header, fetch rest of data and store to json buffer */
+					while (remains > 0) {
+						len = ((long int) buf->size() < remains) ? buf->size() : remains;
+						bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), len));
+						json.write(buf->begin(), bytes_transferred);
+						remains -= bytes_transferred;
 					}
-					std::streamoff rem = contentLength + ss.tellg () - bytes_transferred; // more bytes to read
-					if (rem > 0)
-					{
-						bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), rem));
-						ss.write (buf->data (), bytes_transferred);
-					}
+				} else {
+					json.write(buf->begin(), bytes_transferred);
 				}
-				std::ostringstream response;
+				LogPrint(eLogDebug, "I2PControl: json from request: ", json.str());
 #if GCC47_BOOST149
 				LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
-				BuildErrorResponse(content, 32603, "JSON requests is not supported with this version of boost");
+				BuildErrorResponse(response, 32603, "JSON requests is not supported with this version of boost");
 #else
 				boost::property_tree::ptree pt;
-				boost::property_tree::read_json (ss, pt);
+				boost::property_tree::read_json (json, pt);
 
 				std::string id     = pt.get<std::string>("id");
 				std::string method = pt.get<std::string>("method");
 				auto it = m_MethodHandlers.find (method);
 				if (it != m_MethodHandlers.end ())
 				{
-					response << "{\"id\":" << id << ",\"result\":{";
-					(this->*(it->second))(pt.get_child ("params"), response);
-					response << "},\"jsonrpc\":\"2.0\"}";
-					content = response.str();
+					std::ostringstream ss;
+					ss << "{\"id\":" << id << ",\"result\":{";
+					(this->*(it->second))(pt.get_child ("params"), ss);
+					ss << "},\"jsonrpc\":\"2.0\"}";
+					response = ss.str();
 				} else {
 					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
-					BuildErrorResponse(content, 32601, "Method not found");
+					BuildErrorResponse(response, 32601, "Method not found");
 				}
 #endif
-				SendResponse (socket, buf, content, isHtml);
+				SendResponse (socket, buf, response, isHTTP);
 			}
 			catch (std::exception& ex)
 			{
@@ -282,9 +281,9 @@ namespace client
 	}
 
 	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
-		std::shared_ptr<I2PControlBuffer> buf, std::string& content, bool isHtml)
+		std::shared_ptr<I2PControlBuffer> buf, std::string& content, bool isHTTP)
 	{
-		if (isHtml) {
+		if (isHTTP) {
 			i2p::http::HTTPRes res;
 			res.code = 200;
 			res.add_header("Content-Type", "application/json");
