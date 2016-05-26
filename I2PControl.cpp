@@ -2,8 +2,6 @@
 #include <sstream>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
-#include <boost/lexical_cast.hpp>
-#include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
@@ -16,6 +14,7 @@
 #include "Crypto.h"
 #include "FS.h"
 #include "Log.h"
+#include "HTTP.h"
 #include "Config.h"
 #include "NetDb.h"
 #include "RouterContext.h"
@@ -278,24 +277,21 @@ namespace client
 	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml)
 	{
-		size_t len = response.str ().length (), offset = 0;
-		if (isHtml)
-		{
-			std::ostringstream header;
-			header << "HTTP/1.1 200 OK\r\n";
-			header << "Connection: close\r\n";
-			header << "Content-Length: " << boost::lexical_cast<std::string>(len) << "\r\n";
-			header << "Content-Type: application/json\r\n";
-			header << "Date: ";
-			auto facet = new boost::local_time::local_time_facet ("%a, %d %b %Y %H:%M:%S GMT");
-			header.imbue(std::locale (header.getloc(), facet));
-			header << boost::posix_time::second_clock::local_time() << "\r\n";
-			header << "\r\n";
-			offset = header.str ().size ();
-			memcpy (buf->data (), header.str ().c_str (), offset);
+		std::string out;
+		std::size_t len;
+		if (isHtml) {
+			i2p::http::HTTPRes res;
+			res.code = 200;
+			res.add_header("Content-Type", "application/json");
+			res.add_header("Connection", "close");
+			res.body = response.str();
+			out = res.to_string();
+		} else {
+			out = response.str();
 		}
-		memcpy (buf->data () + offset, response.str ().c_str (), len);
-		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), offset + len),
+		std::copy(out.begin(), out.end(), buf->begin());
+		len = out.length();
+		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), len),
 			boost::asio::transfer_all (),
 			std::bind(&I2PControlService::HandleResponseSent, this,
 				std::placeholders::_1, std::placeholders::_2, socket, buf));
@@ -322,7 +318,7 @@ namespace client
 		}
 		InsertParam (results, "API", api);
 		results << ",";
-		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
+		std::string token = std::to_string(i2p::util::GetSecondsSinceEpoch ());
 		m_Tokens.insert (token);	
 		InsertParam (results, "Token", token);
 	}	
