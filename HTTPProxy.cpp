@@ -4,6 +4,13 @@
 #include <boost/regex.hpp>
 #include <string>
 #include <atomic>
+#include <memory>
+#include <set>
+#include <boost/asio.hpp>
+#include <mutex>
+
+#include "I2PService.h"
+#include "Destination.h"
 #include "HTTPProxy.h"
 #include "util.h"
 #include "Identity.h"
@@ -351,6 +358,5 @@ namespace proxy
 	{
 		return std::make_shared<HTTPProxyHandler> (this, socket);
 	}
-
 }
 }

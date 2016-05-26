@@ -5,7 +5,6 @@
 #include <fstream>
 #include <chrono>
 #include <condition_variable>
-#include <boost/lexical_cast.hpp>
 #include <openssl/rand.h>
 #include "Base.h"
 #include "util.h"

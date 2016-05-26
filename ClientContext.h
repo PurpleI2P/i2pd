@@ -6,6 +6,7 @@
 #include <memory>
 #include <boost/asio.hpp>
 #include "Destination.h"
+#include "I2PService.h"
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PTunnel.h"
