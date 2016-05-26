@@ -68,6 +68,7 @@ int main() {
   buf =
     "GET http://inr.i2p HTTP/1.1\r\n"
     "Host:  stats.i2p\r\n"
+    "Accept-Encoding: \r\n"
     "Accept: */*\r\n"
     "\r\n";
   len = strlen(buf);
@@ -76,9 +77,13 @@ int main() {
   assert(req->method == "GET");
   assert(req->uri == "http://inr.i2p");
   assert(req->host == "stats.i2p");
-  assert(req->headers.size() == 2);
+  assert(req->headers.size() == 3);
   assert(req->headers.count("Host") == 1);
   assert(req->headers.count("Accept") == 1);
+  assert(req->headers.count("Accept-Encoding") == 1);
+  assert(req->headers["Host"] == "stats.i2p");
+  assert(req->headers["Accept"] == "*/*");
+  assert(req->headers["Accept-Encoding"] == "");
   delete req;
 
   return 0;

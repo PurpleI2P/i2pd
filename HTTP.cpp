@@ -45,9 +45,10 @@ namespace http {
   bool parse_header_line(const std::string & line, std::map<std::string, std::string> & headers) {
     std::size_t pos = 0;
     std::size_t len = 2; /* strlen(": ") */
+    std::size_t max = line.length();
     if ((pos = line.find(": ", pos)) == std::string::npos)
       return false;
-    while (isspace(line.at(pos + len)))
+    while ((pos + len) < max && isspace(line.at(pos + len)))
       len++;
     std::string name  = line.substr(0, pos);
     std::string value = line.substr(pos + len);
