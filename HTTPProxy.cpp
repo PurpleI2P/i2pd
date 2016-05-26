@@ -101,14 +101,15 @@ namespace proxy
 	void HTTPProxyHandler::HTTPRequestFailed(const char *message)
 	{
 		std::size_t size = std::strlen(message);
-		static std::stringstream ss;
+		std::stringstream ss;
 		ss << "HTTP/1.0 500 Internal Server Error\r\n"
 		   << "Content-Type: text/plain\r\n";
 		ss << "Content-Length: " << std::to_string(size + 2) << "\r\n"
 		   << "\r\n"; /* end of headers */
 		ss << message << "\r\n";
-		std::string response = ss.str();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response, response.size()),
+		static std::string response; 
+		response = ss.str();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -119,7 +120,9 @@ namespace proxy
 		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
 
 		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?page=jumpservices&address=" << m_address << "\r\n\r\n";
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response.str (),response.str ().length ()),
+		static std::string s;
+		s = response.str ();		
+		boost::asio::async_write(*m_sock, boost::asio::buffer(s),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
