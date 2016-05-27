@@ -1,8 +1,8 @@
 #include <string.h>
 #include "I2PEndian.h"
 #include "Log.h"
+#include "Timestamp.h"
 #include "I2CP.h"
-
 
 namespace i2p
 {
@@ -104,14 +104,67 @@ namespace client
 	{
 	}
 
+	void I2CPSession::SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len)
+	{
+		auto l = len + I2CP_HEADER_SIZE;
+		uint8_t * buf = new uint8_t[l];
+		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len);
+		buf[I2CP_HEADER_TYPE_OFFSET] = type;
+		memcpy (buf + I2CP_HEADER_SIZE, payload, len);
+		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
+        	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (), 
+						std::placeholders::_1, std::placeholders::_2, buf));			
+	}
+
+	void I2CPSession::HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf)
+	{
+		delete[] buf;
+		if (ecode && ecode != boost::asio::error::operation_aborted)
+			Terminate ();
+	}
+
+	std::string I2CPSession::ExtractString (const uint8_t * buf, size_t len)
+	{
+		uint8_t l = buf[0];
+		if (l > len) l = len;
+		return std::string ((const char *)buf, l);
+	}
+
+	size_t I2CPSession::PutString (uint8_t * buf, size_t len, const std::string& str)
+	{
+		auto l = str.length ();
+		if (l + 1 >= len) l = len - 1;
+		if (l > 255) l = 255; // 1 byte max
+		buf[0] = l;
+		memcpy (buf + 1, str.c_str (), l);	
+		return l + 1;
+	}
+
 	void I2CPSession::GetDateMessageHandler (const uint8_t * buf, size_t len)
 	{
+		// get version
+		auto version = ExtractString (buf, len);
+		auto l = version.length () + 1 + 8;
+		uint8_t * payload = new uint8_t[l];
+		// set date
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		htobe64buf (payload, ts);
+		// echo vesrion back
+		PutString (payload + 8, l - 8, version);
+		SendI2CPMessage (I2CP_SET_DATE_MESSAGE, payload, l); 
+	}
+
+	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
+	{
+		// TODO
+		m_Destination = std::make_shared<I2CPDestination>(*this, nullptr, false);
 	}
 
 	I2CPServer::I2CPServer (const std::string& interface, int port)
 	{
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
-		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;	
+		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
+		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE ] = &I2CPSession::CreateSessionMessageHandler;	
 	}
 }
 }
