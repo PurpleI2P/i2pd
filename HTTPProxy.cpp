@@ -188,10 +188,10 @@ namespace proxy {
 		}
 
 		i2p::data::IdentHash identHash;
-		if (str_rmatch(m_address, ".i2p"))
+		if (str_rmatch(url.host, ".i2p"))
 		{
-			if (!i2p::client::context.GetAddressBook ().GetIdentHash (m_address, identHash)){
-				RedirectToJumpService(m_address);
+			if (!i2p::client::context.GetAddressBook ().GetIdentHash (url.host, identHash)){
+				RedirectToJumpService(url.host);
 				return false;
 			}
 		}
