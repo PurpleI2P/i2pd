@@ -31,7 +31,6 @@ namespace proxy {
 		return false;
 	}
 
-	static const size_t http_buffer_size = 8192;
 	class HTTPReqHandler: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<HTTPReqHandler> 
 	{
 		private:
@@ -57,7 +56,7 @@ namespace proxy {
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 
-			uint8_t m_http_buff[http_buffer_size];
+			uint8_t m_downstream_recv_buf[8192];
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 			std::string m_request; //Data left to be sent
 			std::string m_Response;
@@ -85,7 +84,7 @@ namespace proxy {
 			LogPrint(eLogError, "HTTPProxy: no socket for read");
 			return;
 		}
-		m_sock->async_receive(boost::asio::buffer(m_http_buff, http_buffer_size),
+		m_sock->async_receive(boost::asio::buffer(m_downstream_recv_buf, sizeof(m_downstream_recv_buf)),
 					std::bind(&HTTPReqHandler::HandleSockRecv, shared_from_this(),
 							std::placeholders::_1, std::placeholders::_2));
 	}
@@ -297,7 +296,7 @@ namespace proxy {
 			return;
 		}
 
-		if (HandleData(m_http_buff, len)) 
+		if (HandleData(m_downstream_recv_buf, len))
 		{
 			if (m_state == DONE) 
 			{
