@@ -21,12 +21,10 @@
 #include "I2PTunnel.h"
 #include "Config.h"
 
-namespace i2p
-{
-namespace proxy
-{
+namespace i2p {
+namespace proxy {
 	static const size_t http_buffer_size = 8192;
-	class HTTPProxyHandler: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<HTTPProxyHandler> 
+	class HTTPReqHandler: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<HTTPReqHandler> 
 	{
 		private:
 			enum state 
@@ -67,26 +65,26 @@ namespace proxy
 
 		public:
 
-			HTTPProxyHandler(HTTPProxyServer * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) : 
+			HTTPReqHandler(HTTPProxy * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) : 
 				I2PServiceHandler(parent), m_sock(sock)
 				{ EnterState(GET_METHOD); }
-			~HTTPProxyHandler() { Terminate(); }
+			~HTTPReqHandler() { Terminate(); }
 			void Handle () { AsyncSockRead(); }
 	};
 
-	void HTTPProxyHandler::AsyncSockRead()
+	void HTTPReqHandler::AsyncSockRead()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: async sock read");
 		if(m_sock) {
 			m_sock->async_receive(boost::asio::buffer(m_http_buff, http_buffer_size),
-						std::bind(&HTTPProxyHandler::HandleSockRecv, shared_from_this(),
+						std::bind(&HTTPReqHandler::HandleSockRecv, shared_from_this(),
 								std::placeholders::_1, std::placeholders::_2));
 		} else {
 			LogPrint(eLogError, "HTTPProxy: no socket for read");
 		}
 	}
 
-	void HTTPProxyHandler::Terminate() {
+	void HTTPReqHandler::Terminate() {
 		if (Kill()) return;
 		if (m_sock) 
 		{
@@ -99,7 +97,7 @@ namespace proxy
 
 	/* All hope is lost beyond this point */
 	//TODO: handle this apropriately
-	void HTTPProxyHandler::HTTPRequestFailed(const char *message)
+	void HTTPReqHandler::HTTPRequestFailed(const char *message)
 	{
 		std::size_t size = std::strlen(message);
 		std::stringstream ss;
@@ -108,29 +106,28 @@ namespace proxy
 		ss << "Content-Length: " << std::to_string(size + 2) << "\r\n"
 		   << "\r\n"; /* end of headers */
 		ss << message << "\r\n";
-		m_Response = ss.str();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response),
-					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
+		std::string response = ss.str();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response, response.size()),
+					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
-	void HTTPProxyHandler::RedirectToJumpService(/*HTTPProxyHandler::errTypes error*/)
+	void HTTPReqHandler::RedirectToJumpService(/*HTTPReqHandler::errTypes error*/)
 	{
 		std::stringstream response;
 		std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
 
 		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?page=jumpservices&address=" << m_address << "\r\n\r\n";
-		m_Response = response.str ();		
-		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response),
-					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response.str (),response.str ().length ()),
+					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
-	void HTTPProxyHandler::EnterState(HTTPProxyHandler::state nstate) 
+	void HTTPReqHandler::EnterState(HTTPReqHandler::state nstate) 
 	{
 		m_state = nstate;
 	}
 
-	void HTTPProxyHandler::ExtractRequest()
+	void HTTPReqHandler::ExtractRequest()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: request: ", m_method, " ", m_url);
 		std::string server="";
@@ -150,7 +147,7 @@ namespace proxy
 		m_path = path;
 	}
 
-	bool HTTPProxyHandler::ValidateHTTPRequest() 
+	bool HTTPReqHandler::ValidateHTTPRequest() 
 	{
 		if ( m_version != "HTTP/1.0" && m_version != "HTTP/1.1" ) 
 		{
@@ -161,7 +158,7 @@ namespace proxy
 		return true;
 	}
 
-	void HTTPProxyHandler::HandleJumpServices() 
+	void HTTPReqHandler::HandleJumpServices() 
 	{
 		static const char * helpermark1 = "?i2paddresshelper=";
 		static const char * helpermark2 = "&i2paddresshelper=";
@@ -193,7 +190,7 @@ namespace proxy
 		m_path.erase(addressHelperPos);
 	}
 
-	bool HTTPProxyHandler::IsI2PAddress()
+	bool HTTPReqHandler::IsI2PAddress()
 	{
 		auto pos = m_address.rfind (".i2p");
 		if (pos != std::string::npos && (pos+4) == m_address.length ())
@@ -203,7 +200,7 @@ namespace proxy
 		return false;
 	}
 
-	bool HTTPProxyHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len) 
+	bool HTTPReqHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len) 
 	{
 		ExtractRequest(); //TODO: parse earlier
 		if (!ValidateHTTPRequest()) return false;
@@ -258,7 +255,7 @@ namespace proxy
 		return true;
 	}
 
-	bool HTTPProxyHandler::HandleData(uint8_t *http_buff, std::size_t len)
+	bool HTTPReqHandler::HandleData(uint8_t *http_buff, std::size_t len)
 	{
 		while (len > 0) 
 		{
@@ -309,7 +306,7 @@ namespace proxy
 		return true;
 	}
 
-	void HTTPProxyHandler::HandleSockRecv(const boost::system::error_code & ecode, std::size_t len)
+	void HTTPReqHandler::HandleSockRecv(const boost::system::error_code & ecode, std::size_t len)
 	{
 		LogPrint(eLogDebug, "HTTPProxy: sock recv: ", len, " bytes");
 		if(ecode) 
@@ -324,7 +321,7 @@ namespace proxy
 			if (m_state == DONE) 
 			{
 				LogPrint(eLogDebug, "HTTPProxy: requested: ", m_url);
-				GetOwner()->CreateStream (std::bind (&HTTPProxyHandler::HandleStreamRequestComplete,
+				GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
 						shared_from_this(), std::placeholders::_1), m_address, m_port);
 			} 
 			else 
@@ -333,14 +330,14 @@ namespace proxy
 
 	}
 
-	void HTTPProxyHandler::SentHTTPFailed(const boost::system::error_code & ecode)
+	void HTTPReqHandler::SentHTTPFailed(const boost::system::error_code & ecode)
 	{
 		if (ecode)
 			LogPrint (eLogError, "HTTPProxy: Closing socket after sending failure because: ", ecode.message ());
 		Terminate();
 	}
 
-	void HTTPProxyHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
+	void HTTPReqHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
 	{
 		if (stream) 
 		{
@@ -358,14 +355,14 @@ namespace proxy
 		}
 	}
 
-	HTTPProxyServer::HTTPProxyServer(const std::string& address, int port, std::shared_ptr<i2p::client::ClientDestination> localDestination): 
+	HTTPProxy::HTTPProxy(const std::string& address, int port, std::shared_ptr<i2p::client::ClientDestination> localDestination): 
 		TCPIPAcceptor(address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()) 
 	{
 	}
 	
-	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+	std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxy::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
-		return std::make_shared<HTTPProxyHandler> (this, socket);
+		return std::make_shared<HTTPReqHandler> (this, socket);
 	}
-}
-}
+} // http
+} // i2p
