@@ -52,7 +52,7 @@ namespace proxy {
 			void HTTPRequestFailed(const char *message);
 			void RedirectToJumpService(std::string & host);
 			bool ValidateHTTPRequest();
-			void HandleJumpServices();
+			bool ExtractAddressHelper(i2p::http::URL & url, std::string & b64);
 			bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
@@ -123,12 +123,14 @@ namespace proxy {
 
 		i2p::config::GetOption("http.address", url.host);
 		i2p::config::GetOption("http.port",    url.port);
+		url.schema = "http";
 		url.path  = "/";
 		url.query = "page=jumpservices&address=";
 		url.query += host;
 
 		res.code = 302; /* redirect */
 		res.add_header("Location", url.to_string().c_str());
+		res.add_header("Connection", "close");
 
 		std::string response = res.to_string();
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response, response.length()),
@@ -151,47 +153,40 @@ namespace proxy {
 		return true;
 	}
 
-	void HTTPReqHandler::HandleJumpServices() 
+	bool HTTPReqHandler::ExtractAddressHelper(i2p::http::URL & url, std::string & b64)
 	{
-		static const char * helpermark1 = "?i2paddresshelper=";
-		static const char * helpermark2 = "&i2paddresshelper=";
-		size_t addressHelperPos1 = m_path.rfind (helpermark1);
-		size_t addressHelperPos2 = m_path.rfind (helpermark2);
-		size_t addressHelperPos;
-		if (addressHelperPos1 == std::string::npos)
-		{
-			if (addressHelperPos2 == std::string::npos)
-				return; //Not a jump service
-			else
-				addressHelperPos = addressHelperPos2;
-		}
-		else
-		{
-			if (addressHelperPos2 == std::string::npos)
-				addressHelperPos = addressHelperPos1;
-			else if ( addressHelperPos1 > addressHelperPos2 )
-				addressHelperPos = addressHelperPos1;
-			else
-				addressHelperPos = addressHelperPos2;
-		}
-		auto base64 = m_path.substr (addressHelperPos + strlen(helpermark1));
-		base64 = i2p::util::http::urlDecode(base64); //Some of the symbols may be urlencoded
-		LogPrint (eLogInfo, "HTTPProxy: jump service for ", m_address, ", inserting to address book");
-		//TODO: this is very dangerous and broken. We should ask the user before doing anything see http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
-		//TODO: we could redirect the user again to avoid dirtiness in the browser
-		i2p::client::context.GetAddressBook ().InsertAddress (m_address, base64);
-		m_path.erase(addressHelperPos);
+		const char *param = "i2paddresshelper=";
+		std::size_t pos = url.query.find(param);
+		std::size_t len = std::strlen(param);
+		std::map<std::string, std::string> params;
+
+		if (pos == std::string::npos)
+			return false; /* not found */
+		if (!url.parse_query(params))
+			return false;
+
+		std::string value = params["i2paddresshelper"];
+		len += value.length();
+		b64 = i2p::http::UrlDecode(value);
+		url.query.replace(pos, len, "");
+		return true;
 	}
 
 	bool HTTPReqHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len) 
 	{
+		std::string b64;
 		i2p::http::URL url;
 		url.parse(m_url);
 		m_address = url.host; /* < compatibility */
 		m_port    = url.port; /* < compatibility */
 		m_path    = url.path; /* < compatibility */
 		if (!ValidateHTTPRequest()) return false;
-		HandleJumpServices();
+
+		/* TODO: notify user */
+		if (ExtractAddressHelper(url, b64)) {
+			i2p::client::context.GetAddressBook ().InsertAddress (url.host, b64);
+			LogPrint (eLogInfo, "HTTPProxy: added b64 from addresshelper for ", url.host, " to address book");
+		}
 
 		i2p::data::IdentHash identHash;
 		if (str_rmatch(m_address, ".i2p"))
