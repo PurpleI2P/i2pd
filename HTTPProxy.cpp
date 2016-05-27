@@ -20,6 +20,7 @@
 #include "I2PEndian.h"
 #include "I2PTunnel.h"
 #include "Config.h"
+#include "HTTP.h"
 
 namespace i2p {
 namespace proxy {
@@ -42,7 +43,7 @@ namespace proxy {
 			void Terminate();
 			void AsyncSockRead();
 			void HTTPRequestFailed(const char *message);
-			void RedirectToJumpService();
+			void RedirectToJumpService(std::string & host);
 			void ExtractRequest();
 			bool IsI2PAddress();
 			bool ValidateHTTPRequest();
@@ -99,26 +100,33 @@ namespace proxy {
 	//TODO: handle this apropriately
 	void HTTPReqHandler::HTTPRequestFailed(const char *message)
 	{
-		std::size_t size = std::strlen(message);
-		std::stringstream ss;
-		ss << "HTTP/1.0 500 Internal Server Error\r\n"
-		   << "Content-Type: text/plain\r\n";
-		ss << "Content-Length: " << std::to_string(size + 2) << "\r\n"
-		   << "\r\n"; /* end of headers */
-		ss << message << "\r\n";
-		std::string response = ss.str();
+		i2p::http::HTTPRes res;
+		res.code = 500;
+		res.add_header("Content-Type", "text/plain");
+		res.add_header("Connection", "close");
+		res.body = message;
+		res.body += "\r\n";
+		std::string response = res.to_string();
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response, response.size()),
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
-	void HTTPReqHandler::RedirectToJumpService(/*HTTPReqHandler::errTypes error*/)
+	void HTTPReqHandler::RedirectToJumpService(std::string & host)
 	{
-		std::stringstream response;
-		std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
+		i2p::http::HTTPRes res;
+		i2p::http::URL url;
 
-		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?page=jumpservices&address=" << m_address << "\r\n\r\n";
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response.str (),response.str ().length ()),
+		i2p::config::GetOption("http.address", url.host);
+		i2p::config::GetOption("http.port",    url.port);
+		url.path  = "/";
+		url.query = "page=jumpservices&address=";
+		url.query += host;
+
+		res.code = 302; /* redirect */
+		res.add_header("Location", url.to_string().c_str());
+
+		std::string response = res.to_string();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response, response.length()),
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -210,7 +218,7 @@ namespace proxy {
 		if (IsI2PAddress ())
 		{
 			if (!i2p::client::context.GetAddressBook ().GetIdentHash (m_address, identHash)){
-				RedirectToJumpService();
+				RedirectToJumpService(m_address);
 				return false;
 			}
 		}
