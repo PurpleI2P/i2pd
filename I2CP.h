@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include <boost/asio.hpp>
+#include "Destination.h"
 
 namespace i2p
 {
@@ -18,6 +19,28 @@ namespace client
 	const size_t I2CP_HEADER_SIZE = I2CP_HEADER_TYPE_OFFSET + 1;	
 
 	const uint8_t I2CP_GET_DATE_MESSAGE = 32;
+
+	class I2CPSession;
+	class I2CPDestination: public LeaseSetDestination
+	{
+		public:
+
+			I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic);
+
+		protected:
+
+			// implements LocalDestination
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { /* TODO */}; 
+
+			// I2CP
+			void HandleDataMessage (const uint8_t * buf, size_t len) {};
+
+		private:
+
+			I2CPSession& m_Owner;
+			std::shared_ptr<const i2p::data::IdentityEx> m_Identity;
+	};
 
 	class I2CPServer;
 	class I2CPSession: public std::enable_shared_from_this<I2CPSession>
@@ -44,6 +67,8 @@ namespace client
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			uint8_t m_Buffer[I2CP_SESSION_BUFFER_SIZE], * m_NextMessage;
 			size_t m_NextMessageLen, m_NextMessageOffset;
+
+			std::shared_ptr<I2CPDestination> m_Destination;
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
 	

@@ -163,7 +163,7 @@ namespace garlic
 			virtual void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);			
 			virtual void SetLeaseSetUpdated ();
 			
-			virtual std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet () = 0; // TODO
+			virtual std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () = 0; // TODO
 			virtual std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const = 0;
 			virtual void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from) = 0;
 			

@@ -94,7 +94,7 @@ namespace data
 		int numCertificates = 0;
 
 		if (!i2p::fs::ReadDir(certDir, files)) {
-			LogPrint(eLogWarning, "Reseed: Can't load reseed certificates from ", certDir);
+			LogPrint(eLogWarning, "Family: Can't load family certificates from ", certDir);
 			return;
 		}
 

@@ -30,6 +30,7 @@ namespace i2p
 			RouterContext ();
 			void Init ();
 
+			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
 			std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo () const 
 			{ 
@@ -73,13 +74,14 @@ namespace i2p
 			void UpdateStats ();		
 
 			// implements LocalDestination
-			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
 			const uint8_t * GetEncryptionPrivateKey () const { return m_Keys.GetPrivateKey (); };
 			const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ()->GetStandardIdentity ().publicKey; };
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }; 
 			void SetLeaseSetUpdated () {};
 
 			// implements GarlicDestination
-			std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet () { return nullptr; };
+			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet () { return nullptr; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const;
 			void HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 

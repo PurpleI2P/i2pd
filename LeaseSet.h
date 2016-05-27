@@ -12,7 +12,7 @@ namespace i2p
 
 namespace tunnel
 {
-	class TunnelPool;
+	class InboundTunnel;	
 }
 
 namespace data
@@ -37,14 +37,14 @@ namespace data
 		};
 	};	
 
-	const int MAX_LS_BUFFER_SIZE = 3072;
+	const size_t MAX_LS_BUFFER_SIZE = 3072;
+	const size_t LEASE_SIZE = 44; // 32 + 4 + 8
 	const uint8_t MAX_NUM_LEASES = 16;		
 	class LeaseSet: public RoutingDestination
 	{
 		public:
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
-			LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool);
 			~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
@@ -82,6 +82,31 @@ namespace data
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
 	};	
+
+	class LocalLeaseSet
+	{
+		public:
+
+			LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+			~LocalLeaseSet () { delete[] m_Buffer; };
+
+			const uint8_t * GetBuffer () const { return m_Buffer; };
+			uint8_t * GetSignature () { return m_Buffer + m_BufferLen - GetSignatureLen (); }; 
+			size_t GetBufferLen () const { return m_BufferLen; };	
+			size_t GetSignatureLen () const { return m_Identity->GetSignatureLen (); };
+			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
+			bool IsExpired () const;
+			bool operator== (const LeaseSet& other) const 
+			{ return m_BufferLen == other.GetBufferLen ()  && !memcmp (other.GetBuffer (), other.GetBuffer (), m_BufferLen); }; 
+
+
+		private:
+			
+			uint64_t m_ExpirationTime; // in milliseconds
+			std::shared_ptr<const IdentityEx> m_Identity;
+			uint8_t * m_Buffer;
+			size_t m_BufferLen;
+	}; 
 }		
 }	
 

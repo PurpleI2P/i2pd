@@ -5,7 +5,6 @@
 #include <fstream>
 #include <chrono>
 #include <condition_variable>
-#include <boost/lexical_cast.hpp>
 #include <openssl/rand.h>
 #include "Base.h"
 #include "util.h"
@@ -716,12 +715,14 @@ namespace client
 				if (status == 200) // OK
 				{
 					bool isChunked = false, isGzip = false;
+					m_Etag = ""; m_LastModified = "";
 					std::string header, statusMessage;
 					std::getline (response, statusMessage);
 					// read until new line meaning end of header
 					while (!response.eof () && header != "\r")
 					{
 						std::getline (response, header);
+						if (response.fail ()) break;
 						auto colon = header.find (':');
 						if (colon != std::string::npos)
 						{
@@ -741,7 +742,7 @@ namespace client
 						}	
 					}
 					LogPrint (eLogInfo, "Addressbook: received ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
-					if (!response.eof ())	
+					if (!response.eof () && !response.fail ())	
 					{
 						success = true;
 						if (!isChunked)

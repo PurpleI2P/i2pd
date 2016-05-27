@@ -54,8 +54,18 @@ namespace http {
     std::string to_string ();
   };
 
-  struct HTTPReq {
+  struct HTTPMsg {
     std::map<std::string, std::string> headers;
+
+    void add_header(const char *name, std::string & value, bool replace = false);
+    void add_header(const char *name, const char *value, bool replace = false);
+    void del_header(const char *name);
+
+    /** @brief Returns declared message length or -1 if unknown */
+    long int length();
+  };
+
+  struct HTTPReq : HTTPMsg {
     std::string version;
     std::string method;
     std::string uri;
@@ -75,11 +85,16 @@ namespace http {
     std::string to_string();
   };
 
-  struct HTTPRes {
-    std::map<std::string, std::string> headers;
+  struct HTTPRes : HTTPMsg {
     std::string version;
     std::string status;
     unsigned short int code;
+    /** simplifies response generation
+     * If this variable is set:
+     * a) Content-Length header will be added if missing
+     * b) contents of body will be included in response
+     */
+    std::string body;
 
     HTTPRes (): version("HTTP/1.1"), status("OK"), code(200) {}
 
@@ -91,14 +106,17 @@ namespace http {
     int parse(const char *buf, size_t len);
     int parse(const std::string& buf);
 
-    /** @brief Serialize HTTP response to string */
+    /**
+     * @brief Serialize HTTP response to string
+     * @note If version is set to HTTP/1.1, and Date header is missing,
+     *   it will be generated based on current time and added to headers
+     * @note If body member is set and Content-Length header is missing,
+     *   this header will be added, based on body's length
+     */
     std::string to_string();
 
     /** @brief Checks that response declared as chunked data */
     bool is_chunked();
-
-    /** @brief Returns declared response length or -1 if unknown */
-    long int length();
   };
 
   /**
@@ -115,6 +133,14 @@ namespace http {
    * @return Decoded string
    */
   std::string UrlDecode(const std::string& data, bool null = false);
+
+  /**
+   * @brief Merge HTTP response content with Transfer-Encoding: chunked
+   * @param in  Input stream
+   * @param out Output stream
+   * @return true on success, false otherwise
+   */
+  bool MergeChunkedResponse (std::istream& in, std::ostream& out);
 } // http
 } // i2p
 

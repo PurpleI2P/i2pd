@@ -3,7 +3,7 @@
 
 using namespace i2p::http;
 
-int main(int argc, char *argv[]) {
+int main() {
   std::map<std::string, std::string> params;
   URL *url;
 
