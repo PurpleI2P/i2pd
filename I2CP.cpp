@@ -8,6 +8,12 @@ namespace i2p
 {
 namespace client
 {
+
+	I2CPDestination::I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic): 
+		LeaseSetDestination (isPublic), m_Owner (owner), m_Identity (identity) 
+	{
+	}
+
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0)
