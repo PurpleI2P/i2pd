@@ -110,11 +110,11 @@ prompt to build Boost) and run the following:
 
 	cd C:\dev\boost
 	bootstrap
-	b2 toolset=msvc-12.0 --build-type=complete --with-filesystem --with-program_options --with-regex --with-date_time
+	b2 toolset=msvc-12.0 --build-type=complete --with-filesystem --with-program_options --with-date_time
 
 If you are on 64-bit Windows and you want to build 64-bit version as well
 
-	b2 toolset=msvc-12.0 --build-type=complete --stagedir=stage64 address-model=64 --with-filesystem --with-program_options --with-regex --with-date_time
+	b2 toolset=msvc-12.0 --build-type=complete --stagedir=stage64 address-model=64 --with-filesystem --with-program_options --with-date_time
 
 After Boost is compiled, set the environment variable `BOOST_ROOT` to
 the directory Boost was unpacked to, e.g., C:\dev\boost.
