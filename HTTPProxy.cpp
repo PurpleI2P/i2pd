@@ -1,7 +1,5 @@
 #include <cstring>
 #include <cassert>
-#include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp>
 #include <string>
 #include <atomic>
 #include <memory>
@@ -53,7 +51,6 @@ namespace proxy {
 			void AsyncSockRead();
 			void HTTPRequestFailed(const char *message);
 			void RedirectToJumpService(std::string & host);
-			void ExtractRequest();
 			bool ValidateHTTPRequest();
 			void HandleJumpServices();
 			bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
@@ -143,26 +140,6 @@ namespace proxy {
 		m_state = nstate;
 	}
 
-	void HTTPReqHandler::ExtractRequest()
-	{
-		LogPrint(eLogDebug, "HTTPProxy: request: ", m_method, " ", m_url);
-		std::string server="";
-		std::string port="80";
-		boost::regex rHTTP("http://(.*?)(:(\\d+))?(/.*)");
-		boost::smatch m;
-		std::string path;
-		if(boost::regex_search(m_url, m, rHTTP, boost::match_extra)) 
-		{
-			server=m[1].str();
-			if (m[2].str() != "")  port=m[3].str();
-			path=m[4].str();
-		}
-		LogPrint(eLogDebug, "HTTPProxy: server: ", server, ", port: ", port, ", path: ", path);
-		m_address = server;
-		m_port = boost::lexical_cast<int>(port);
-		m_path = path;
-	}
-
 	bool HTTPReqHandler::ValidateHTTPRequest() 
 	{
 		if ( m_version != "HTTP/1.0" && m_version != "HTTP/1.1" ) 
@@ -208,7 +185,11 @@ namespace proxy {
 
 	bool HTTPReqHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len) 
 	{
-		ExtractRequest(); //TODO: parse earlier
+		i2p::http::URL url;
+		url.parse(m_url);
+		m_address = url.host; /* < compatibility */
+		m_port    = url.port; /* < compatibility */
+		m_path    = url.path; /* < compatibility */
 		if (!ValidateHTTPRequest()) return false;
 		HandleJumpServices();
 
