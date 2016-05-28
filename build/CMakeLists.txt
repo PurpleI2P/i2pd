@@ -242,7 +242,7 @@ endif()
 
 target_link_libraries(i2pdclient libi2pd)
 
-find_package ( Boost COMPONENTS system filesystem regex program_options date_time REQUIRED )
+find_package ( Boost COMPONENTS system filesystem program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
   message(SEND_ERROR "Boost is not found, or your boost version was bellow 1.46. Please download Boost!")
 endif()
