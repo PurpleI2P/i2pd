@@ -1,0 +1,27 @@
+#!/sbin/openrc-run
+
+pidfile="/var/run/i2pd.pid"
+logfile="/var/log/i2pd.log"
+mainconf="/etc/i2pd/i2pd.conf"
+tunconf="/etc/i2pd/tunnels.conf"
+
+. /etc/default/i2pd
+
+name="i2pd"
+command="/usr/sbin/i2pd"
+command_args="--service --daemon --log=file --logfile=$logfile --conf=$mainconf --tunconf=$tunconf"
+description="i2p router written in C++"
+required_dirs="/var/lib/i2pd"
+required_files="$mainconf"
+start_stop_daemon_args="--chuid i2pd"
+
+depend() {
+  need mountall
+  use net
+  after bootmisc
+}
+
+start_pre() {
+  checkpath -f -o i2pd:adm -w $pidfile
+  checkpath -f -o i2pd:adm -w $logfile
+}

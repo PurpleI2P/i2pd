@@ -755,12 +755,14 @@ namespace http {
 
 		// Html5 head start
 		ShowPageHead (s);
-		if (req.uri.find("page=") != std::string::npos)
+		if (req.uri.find("page=") != std::string::npos) {
 			HandlePage (req, res, s);
-		else if (req.uri.find("cmd=") != std::string::npos)
+		} else if (req.uri.find("cmd=") != std::string::npos) {
 			HandleCommand (req, res, s);
-		else			
+		} else {
 			ShowStatus (s);
+		  res.add_header("Refresh", "5");
+		}
 		ShowPageTail (s);
 
 		res.code = 200;
@@ -841,7 +843,9 @@ namespace http {
 			return;
 		}
 		s << "<b>SUCCESS</b>:&nbsp;Command accepted<br><br>\r\n";
-		s << "<a href=\"/?page=commands\">Back to commands list</a>";
+		s << "<a href=\"/?page=commands\">Back to commands list</a><br>\r\n";
+		s << "<p>You will be redirected in 5 seconds</b>";
+		res.add_header("Refresh", "5; url=/?page=commands");
 	}	
 
 	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)

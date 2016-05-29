@@ -22,7 +22,7 @@ Proceed with building Boost normal way, but let's define dedicated staging direc
 ```sh
 ./bootstrap.sh
 ./b2 toolset=gcc-mingw target-os=windows variant=release link=static runtime-link=static address-model=64 \
-  --build-type=minimal --with-filesystem --with-program_options --with-regex --with-date_time \
+  --build-type=minimal --with-filesystem --with-program_options --with-date_time \
   --stagedir=stage-mingw-64
 cd ..
 ```

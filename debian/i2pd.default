@@ -4,6 +4,7 @@
 I2PD_ENABLED="yes"
 
 # port to listen for incoming connections
+# comment this line if you want to use value from config
 I2PD_PORT="4567"
 
 # Additional options that are passed to the Daemon.

@@ -1,7 +1,6 @@
 #include <string.h>
 #include <fstream>
 #include <sstream>
-#include <boost/regex.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp> 
 #include <openssl/ssl.h>

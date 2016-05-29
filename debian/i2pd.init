@@ -41,6 +41,10 @@ do_start()
     return 2
   fi
 
+  if [ -n "$I2PD_PORT" ]; then
+    DAEMON_OPTS="--port $I2PD_PORT $DAEMON_OPTS"
+  fi
+
   touch "$PIDFILE"
   chown -f $USER:adm "$PIDFILE"
 
@@ -51,7 +55,7 @@ do_start()
     || return 1
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" -- \
     --service --daemon --log=file --logfile=$LOGFILE --conf=$I2PCONF --tunconf=$TUNCONF \
-    --port=$I2PD_PORT $DAEMON_OPTS > /dev/null 2>&1 \
+    $DAEMON_OPTS > /dev/null 2>&1 \
     || return 2
   return $?
 }
