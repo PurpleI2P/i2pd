@@ -49,7 +49,6 @@ namespace client
 			{
 				if (m_Session) 
 					m_Session->DelSocket (shared_from_this ());
-				}
 				break;
 			}
 			case eSAMSocketTypeAcceptor:
