@@ -32,16 +32,19 @@ namespace client
 		protected:
 
 			// implements LocalDestination
+			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { /* TODO */}; 
 
 			// I2CP
-			void HandleDataMessage (const uint8_t * buf, size_t len) {};
+			void HandleDataMessage (const uint8_t * buf, size_t len) { /* TODO */ };
+			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) { /* TODO */ };
 
 		private:
 
 			I2CPSession& m_Owner;
 			std::shared_ptr<const i2p::data::IdentityEx> m_Identity;
+			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 	};
 
 	class I2CPServer;

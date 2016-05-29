@@ -152,6 +152,7 @@ namespace client
 		// echo vesrion back
 		PutString (payload + 8, l - 8, version);
 		SendI2CPMessage (I2CP_SET_DATE_MESSAGE, payload, l); 
+		delete[] payload;
 	}
 
 	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
