@@ -21,7 +21,8 @@ namespace client
 	const uint8_t I2CP_GET_DATE_MESSAGE = 32;
 	const uint8_t I2CP_SET_DATE_MESSAGE = 33;
 	const uint8_t I2CP_CREATE_SESSION_MESSAGE = 1;
-
+	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
+	
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
 	{
@@ -38,7 +39,7 @@ namespace client
 
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len) { /* TODO */ };
-			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) { /* TODO */ };
+			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 
 		private:
 
@@ -55,6 +56,9 @@ namespace client
 			I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			~I2CPSession ();
 
+			uint16_t GetSessionID () const { return m_SessionID; };
+			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
+			
 			// message handlers
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
 			void CreateSessionMessageHandler (const uint8_t * buf, size_t len);
@@ -66,10 +70,8 @@ namespace client
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleNextMessage (const uint8_t * buf);
 			void Terminate ();
-
-			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
+			
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf);
-
 			std::string ExtractString (const uint8_t * buf, size_t len);
 			size_t PutString (uint8_t * buf, size_t len, const std::string& str);
 
@@ -81,6 +83,7 @@ namespace client
 			size_t m_NextMessageLen, m_NextMessageOffset;
 
 			std::shared_ptr<I2CPDestination> m_Destination;
+			uint16_t m_SessionID;
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
 	

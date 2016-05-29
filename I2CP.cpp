@@ -2,6 +2,7 @@
 #include "I2PEndian.h"
 #include "Log.h"
 #include "Timestamp.h"
+#include "LeaseSet.h"
 #include "I2CP.h"
 
 namespace i2p
@@ -14,13 +15,25 @@ namespace client
 	{
 	}
 
+	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) 
+	{
+		i2p::data::LocalLeaseSet ls (m_Identity,  m_EncryptionPublicKey, tunnels);
+		uint8_t * leases = ls.GetLeases ();
+		leases[-1] = tunnels.size ();
+		htobe16buf (leases - 3, m_Owner.GetSessionID ());
+		size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
+		m_Owner.SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l); 
+		
+	}
+		
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
-		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0)
+		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
+		m_SessionID (0)
 	{
 		ReadProtocolByte ();
 	}
-
+		
 	I2CPSession::~I2CPSession ()
 	{
 		delete[] m_NextMessage;

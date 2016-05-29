@@ -213,6 +213,7 @@ namespace data
 		m_Buffer[offset] = num; 
 		offset++;
 		// leases
+		m_Leases = m_Buffer + offset;
 		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
 		for (int i = 0; i < num; i++)
 		{

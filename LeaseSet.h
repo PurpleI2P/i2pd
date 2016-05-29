@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
+#include <set>
 #include <memory>
 #include "Identity.h"
 
@@ -94,6 +95,8 @@ namespace data
 			uint8_t * GetSignature () { return m_Buffer + m_BufferLen - GetSignatureLen (); }; 
 			size_t GetBufferLen () const { return m_BufferLen; };	
 			size_t GetSignatureLen () const { return m_Identity->GetSignatureLen (); };
+			uint8_t * GetLeases () { return m_Leases; }; 
+			
 			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
 			bool IsExpired () const;
 			bool operator== (const LeaseSet& other) const 
@@ -104,7 +107,7 @@ namespace data
 			
 			uint64_t m_ExpirationTime; // in milliseconds
 			std::shared_ptr<const IdentityEx> m_Identity;
-			uint8_t * m_Buffer;
+			uint8_t * m_Buffer, * m_Leases;
 			size_t m_BufferLen;
 	}; 
 }		
