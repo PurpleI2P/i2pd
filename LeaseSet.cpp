@@ -4,7 +4,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "NetDb.h"
-#include "TunnelPool.h"
+#include "Tunnel.h"
 #include "LeaseSet.h"
 
 namespace i2p
@@ -18,56 +18,6 @@ namespace data
 		m_Buffer = new uint8_t[len];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer ();
-	}
-
-	LeaseSet::LeaseSet (std::shared_ptr<const i2p::tunnel::TunnelPool> pool):
-		m_IsValid (true), m_StoreLeases (true), m_ExpirationTime (0)
-	{	
-		if (!pool) return;
-		// header
-		auto localDestination = pool->GetLocalDestination ();
-		if (!localDestination)
-		{
-			m_Buffer = nullptr;
-			m_BufferLen = 0;
-			m_IsValid = false;
-			LogPrint (eLogError, "LeaseSet: Destination for local LeaseSet doesn't exist");
-			return;
-		}	
-		m_Buffer = new uint8_t[MAX_LS_BUFFER_SIZE];
-		m_BufferLen = localDestination->GetIdentity ()->ToBuffer (m_Buffer, MAX_LS_BUFFER_SIZE);
-		memcpy (m_Buffer + m_BufferLen, localDestination->GetEncryptionPublicKey (), 256);
-		m_BufferLen += 256;
-		auto signingKeyLen = localDestination->GetIdentity ()->GetSigningPublicKeyLen ();
-		memset (m_Buffer + m_BufferLen, 0, signingKeyLen);
-		m_BufferLen += signingKeyLen;
-		int numTunnels = pool->GetNumInboundTunnels () + 2; // 2 backup tunnels 
-		if (numTunnels > 16) numTunnels = 16; // 16 tunnels maximum 
-		auto tunnels = pool->GetInboundTunnels (numTunnels);
-		m_Buffer[m_BufferLen] = tunnels.size (); // num leases
-		m_BufferLen++;
-		// leases
-		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
-		for (auto it: tunnels)
-		{	
-			memcpy (m_Buffer + m_BufferLen, it->GetNextIdentHash (), 32);
-			m_BufferLen += 32; // gateway id
-			htobe32buf (m_Buffer + m_BufferLen, it->GetNextTunnelID ());
-			m_BufferLen += 4; // tunnel id
-			uint64_t ts = it->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
-			ts *= 1000; // in milliseconds
-			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
-			// make sure leaseset is newer than previous, but adding some time to expiration date
-			ts += (currentTime - it->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
-			htobe64buf (m_Buffer + m_BufferLen, ts);
-			m_BufferLen += 8; // end date
-		}
-		// signature
-		localDestination->Sign (m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
-		m_BufferLen += localDestination->GetIdentity ()->GetSignatureLen (); 
-		LogPrint (eLogDebug, "LeaseSet: Local LeaseSet of ", tunnels.size (), " leases created");
-
 		ReadFromBuffer ();
 	}
 
@@ -195,7 +145,7 @@ namespace data
 		if (size > len) return 0;
 		uint8_t num = buf[size];
 		size++; // num
-		if (size + num*44 > len) return 0;
+		if (size + num*LEASE_SIZE > len) return 0;
 		uint64_t timestamp= 0 ;
 		for (int i = 0; i < num; i++)
 		{
@@ -241,6 +191,48 @@ namespace data
 	bool LeaseSet::IsExpired () const
 	{
 		if (IsEmpty ()) return true;
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		return ts > m_ExpirationTime;
+	}
+
+	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
+		m_ExpirationTime (0), m_Identity (identity)
+	{
+		int num = tunnels.size ();
+		if (num > MAX_NUM_LEASES) num = MAX_NUM_LEASES;
+		// identity
+		auto signingKeyLen = m_Identity->GetSigningPublicKeyLen ();
+		m_BufferLen = m_Identity->GetFullLen () + 256 + signingKeyLen + 1 + num*LEASE_SIZE + m_Identity->GetSignatureLen ();	
+		m_Buffer = new uint8_t[m_BufferLen];	
+		auto offset = m_Identity->ToBuffer (m_Buffer, m_BufferLen);
+		memcpy (m_Buffer + offset, encryptionPublicKey, 256);
+		offset += 256;
+		memset (m_Buffer + offset, 0, signingKeyLen);
+		offset += signingKeyLen;
+		// num leases
+		m_Buffer[offset] = num; 
+		offset++;
+		// leases
+		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
+		for (int i = 0; i < num; i++)
+		{
+			memcpy (m_Buffer + offset, tunnels[i]->GetNextIdentHash (), 32);
+			offset += 32; // gateway id
+			htobe32buf (m_Buffer + offset, tunnels[i]->GetNextTunnelID ());
+			offset += 4; // tunnel id
+			uint64_t ts = tunnels[i]->GetCreationTime () + i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD; // 1 minute before expiration
+			ts *= 1000; // in milliseconds
+			if (ts > m_ExpirationTime) m_ExpirationTime = ts;
+			// make sure leaseset is newer than previous, but adding some time to expiration date
+			ts += (currentTime - tunnels[i]->GetCreationTime ()*1000LL)*2/i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT; // up to 2 secs
+			htobe64buf (m_Buffer + offset, ts);
+			offset += 8; // end date
+		}
+		//  we don't sign it yet. must be signed later on
+	}
+
+	bool LocalLeaseSet::IsExpired () const
+	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		return ts > m_ExpirationTime;
 	}	

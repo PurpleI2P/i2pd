@@ -178,16 +178,12 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual const PrivateKeys& GetPrivateKeys () const = 0;
 			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; 
 			virtual const uint8_t * GetEncryptionPublicKey () const = 0; 
+			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
+			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;
 
-			std::shared_ptr<const IdentityEx> GetIdentity () const { return GetPrivateKeys ().GetPublic (); };
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };  
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const 
-			{ 
-				GetPrivateKeys ().Sign (buf, len, signature); 
-			};
 	};	
 }
 }

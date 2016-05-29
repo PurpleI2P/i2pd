@@ -249,7 +249,23 @@ namespace i2p
 		return m;
 	}	
 
-	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet,  uint32_t replyToken)
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LeaseSet> leaseSet)
+	{
+		if (!leaseSet) return nullptr;
+		auto m = NewI2NPShortMessage ();
+		uint8_t * payload = m->GetPayload ();	
+		memcpy (payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash (), 32);
+		payload[DATABASE_STORE_TYPE_OFFSET] = 1; // LeaseSet
+		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
+		size_t size = DATABASE_STORE_HEADER_SIZE;
+		memcpy (payload + size, leaseSet->GetBuffer (), leaseSet->GetBufferLen ());
+		size += leaseSet->GetBufferLen ();
+		m->len += size;
+		m->FillI2NPMessageHeader (eI2NPDatabaseStore);
+		return m;
+	}
+
+	std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg (std::shared_ptr<const i2p::data::LocalLeaseSet> leaseSet,  uint32_t replyToken, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
 		if (!leaseSet) return nullptr;
 		auto m = NewI2NPShortMessage ();
@@ -258,14 +274,13 @@ namespace i2p
 		payload[DATABASE_STORE_TYPE_OFFSET] = 1; // LeaseSet
 		htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, replyToken);
 		size_t size = DATABASE_STORE_HEADER_SIZE;
-		if (replyToken)
+		if (replyToken && replyTunnel)
 		{
-			auto leases = leaseSet->GetNonExpiredLeases ();
-			if (leases.size () > 0)
+			if (replyTunnel)
 			{
-				htobe32buf (payload + size, leases[0]->tunnelID);
+				htobe32buf (payload + size, replyTunnel->GetNextTunnelID ());
 				size += 4; // reply tunnelID
-				memcpy (payload + size, leases[0]->tunnelGateway, 32);
+				memcpy (payload + size, replyTunnel->GetNextIdentHash (), 32);
 				size += 32; // reply tunnel gateway
 			}
 			else

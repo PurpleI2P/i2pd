@@ -45,8 +45,9 @@ namespace client
 			void ReadRequest (std::shared_ptr<ssl_socket> socket);
 			void HandleRequestReceived (const boost::system::error_code& ecode, size_t bytes_transferred,
 				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
+			void BuildErrorResponse (std::string & content, int code, const char *message);
 			void SendResponse (std::shared_ptr<ssl_socket> socket,
-				std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml);
+				std::shared_ptr<I2PControlBuffer> buf, std::string& response, bool isHtml);
 			void HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
 				std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf);
 

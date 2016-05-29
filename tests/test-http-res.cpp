@@ -3,11 +3,12 @@
 
 using namespace i2p::http;
 
-int main(int argc, char *argv[]) {
+int main() {
   HTTPRes *res;
   int ret = 0, len = 0;
   const char *buf;
 
+  /* test: parsing valid response without body */
   buf =
     "HTTP/1.1 304 Not Modified\r\n"
     "Date: Thu, 14 Apr 2016 00:00:00 GMT\r\n"
@@ -30,6 +31,18 @@ int main(int argc, char *argv[]) {
   assert(res->is_chunked() == false);
   assert(res->length() == 536);
   delete res;
+
+  /* test: building request */
+  buf =
+    "HTTP/1.0 304 Not Modified\r\n"
+    "Content-Length: 0\r\n"
+    "\r\n";
+  res = new HTTPRes;
+  res->version = "HTTP/1.0";
+  res->code = 304;
+  res->status = "Not Modified";
+  res->add_header("Content-Length", "0");
+  assert(res->to_string() == buf);
 
   return 0;
 }

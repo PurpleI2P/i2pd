@@ -4,6 +4,13 @@
 #include <boost/regex.hpp>
 #include <string>
 #include <atomic>
+#include <memory>
+#include <set>
+#include <boost/asio.hpp>
+#include <mutex>
+
+#include "I2PService.h"
+#include "Destination.h"
 #include "HTTPProxy.h"
 #include "util.h"
 #include "Identity.h"
@@ -36,7 +43,7 @@ namespace proxy
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			void HTTPRequestFailed(/*std::string message*/);
+			void HTTPRequestFailed(const char *message);
 			void RedirectToJumpService();
 			void ExtractRequest();
 			bool IsI2PAddress();
@@ -49,6 +56,7 @@ namespace proxy
 			uint8_t m_http_buff[http_buffer_size];
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 			std::string m_request; //Data left to be sent
+			std::string m_Response;
 			std::string m_url; //URL
 			std::string m_method; //Method
 			std::string m_version; //HTTP version
@@ -91,10 +99,17 @@ namespace proxy
 
 	/* All hope is lost beyond this point */
 	//TODO: handle this apropriately
-	void HTTPProxyHandler::HTTPRequestFailed(/*HTTPProxyHandler::errTypes error*/)
+	void HTTPProxyHandler::HTTPRequestFailed(const char *message)
 	{
-		static std::string response = "HTTP/1.0 500 Internal Server Error\r\nContent-type: text/html\r\nContent-length: 0\r\n";
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response,response.size()),
+		std::size_t size = std::strlen(message);
+		std::stringstream ss;
+		ss << "HTTP/1.0 500 Internal Server Error\r\n"
+		   << "Content-Type: text/plain\r\n";
+		ss << "Content-Length: " << std::to_string(size + 2) << "\r\n"
+		   << "\r\n"; /* end of headers */
+		ss << message << "\r\n";
+		m_Response = ss.str();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -104,8 +119,9 @@ namespace proxy
 		std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
 		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
 
-		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?jumpservices=&address=" << m_address << "\r\n\r\n";
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response.str (),response.str ().length ()),
+		response << "HTTP/1.1 302 Found\r\nLocation: http://" << httpAddr << ":" << httpPort << "/?page=jumpservices&address=" << m_address << "\r\n\r\n";
+		m_Response = response.str ();		
+		boost::asio::async_write(*m_sock, boost::asio::buffer(m_Response),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -139,7 +155,7 @@ namespace proxy
 		if ( m_version != "HTTP/1.0" && m_version != "HTTP/1.1" ) 
 		{
 			LogPrint(eLogError, "HTTPProxy: unsupported version: ", m_version);
-			HTTPRequestFailed(); //TODO: send right stuff
+			HTTPRequestFailed("unsupported HTTP version");
 			return false;
 		}
 		return true;
@@ -276,13 +292,13 @@ namespace proxy
 						case '\n': EnterState(DONE); break;
 						default:
 							LogPrint(eLogError, "HTTPProxy: rejected invalid request ending with: ", ((int)*http_buff));
-							HTTPRequestFailed(); //TODO: add correct code
+							HTTPRequestFailed("rejected invalid request");
 							return false;
 					}
 				break;
 				default:
 					LogPrint(eLogError, "HTTPProxy: invalid state: ", m_state);
-					HTTPRequestFailed(); //TODO: add correct code 500
+					HTTPRequestFailed("invalid parser state");
 					return false;
 			}
 			http_buff++;
@@ -338,7 +354,7 @@ namespace proxy
 		else 
 		{
 			LogPrint (eLogError, "HTTPProxy: error when creating the stream, check the previous warnings for more info");
-			HTTPRequestFailed(); // TODO: Send correct error message host unreachable
+			HTTPRequestFailed("error when creating the stream, check logs");
 		}
 	}
 
@@ -351,6 +367,5 @@ namespace proxy
 	{
 		return std::make_shared<HTTPProxyHandler> (this, socket);
 	}
-
 }
 }

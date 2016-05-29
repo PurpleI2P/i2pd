@@ -1,4 +1,3 @@
-#include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <thread>
@@ -241,15 +240,15 @@ namespace http {
 
 		if ((num = seconds / 86400) > 0) {
 			s << num << " days, ";
-			seconds -= num;
+			seconds -= num * 86400;
 		}
 		if ((num = seconds / 3600) > 0) {
 			s << num << " hours, ";
-			seconds -= num;
+			seconds -= num * 3600;
 		}
 		if ((num = seconds / 60) > 0) {
 			s << num << " min, ";
-			seconds -= num;
+			seconds -= num * 60;
 		}
 		s << seconds << " seconds";
 	}
@@ -510,7 +509,7 @@ namespace http {
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
 		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
-		s << "  <a href=/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << ">Reload config</a><br>\r\n";
+		//s << "  <a href=/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << ">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
 			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
 		else	
@@ -749,7 +748,7 @@ namespace http {
 
 		if (needAuth && !CheckAuth(req)) {
 			res.code = 401;
-			res.headers.insert(std::pair<std::string, std::string>("WWW-Authenticate", "Basic realm=\"WebAdmin\""));
+			res.add_header("WWW-Authenticate", "Basic realm=\"WebAdmin\"");
 			SendReply(res, content);
 			return;
 		}
@@ -763,6 +762,8 @@ namespace http {
 		else			
 			ShowStatus (s);
 		ShowPageTail (s);
+
+		res.code = 200;
 		content = s.str ();
 		SendReply (res, content);
 	}
@@ -845,21 +846,11 @@ namespace http {
 
 	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
 	{
-		std::time_t time_now = std::time(nullptr);
-		char time_buff[128];
-		std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now));
-		reply.status = HTTPCodeToStatus(reply.code);
-		reply.headers.insert(std::pair<std::string, std::string>("Date", time_buff));
-		reply.headers.insert(std::pair<std::string, std::string>("Content-Type", "text/html"));
-		reply.headers.insert(std::pair<std::string, std::string>("Content-Length", std::to_string(content.size())));
+		reply.add_header("Content-Type", "text/html");
+		reply.body = content;
 
 		std::string res = reply.to_string();
- 		std::vector<boost::asio::const_buffer> buffers;
-
-		buffers.push_back(boost::asio::buffer(res));
- 		buffers.push_back(boost::asio::buffer(content));
-
-		boost::asio::async_write (*m_Socket, buffers,
+		boost::asio::async_write (*m_Socket, boost::asio::buffer(res),
 			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 
