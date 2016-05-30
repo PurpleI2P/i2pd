@@ -56,7 +56,7 @@ namespace log {
 #endif
 			case eLogFile:
 			case eLogStream:
-				m_LogStream->flush();
+					if (m_LogStream) m_LogStream->flush();
 				break;
 			default:
 				/* do nothing */
@@ -107,10 +107,11 @@ namespace log {
 #endif
 				case eLogFile:
 				case eLogStream:
-					*m_LogStream << TimeAsString(msg->timestamp)
-						<< "@" << short_tid
-						<< "/" << g_LogLevelStr[msg->level]
-						<< " - " << msg->text << std::endl;
+					if (m_LogStream)
+						*m_LogStream << TimeAsString(msg->timestamp)
+							<< "@" << short_tid
+							<< "/" << g_LogLevelStr[msg->level]
+							<< " - " << msg->text << std::endl;
 					break;
 				case eLogStdout:
 				default:
