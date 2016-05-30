@@ -130,10 +130,13 @@ namespace log {
 		Process();
 	}
 
-	void Log::SendTo (const std::string& path) {
+	void Log::SendTo (const std::string& path) 
+	{
+		if (m_LogStream) m_LogStream = nullptr; // close previous	
 		auto flags = std::ofstream::out | std::ofstream::app;
 		auto os = std::make_shared<std::ofstream> (path, flags);
-		if (os->is_open ()) {
+		if (os->is_open ()) 
+		{
 			m_Logfile = path;
 			m_Destination = eLogFile;
 			m_LogStream = os;
