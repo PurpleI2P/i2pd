@@ -7,6 +7,7 @@
 */
 
 #include <string.h>
+#include <openssl/rand.h>
 #include "I2PEndian.h"
 #include "Log.h"
 #include "Timestamp.h"
@@ -202,8 +203,31 @@ namespace client
 
 	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
 	{
-		// TODO
-		m_Destination = std::make_shared<I2CPDestination>(*this, nullptr, false);
+		auto identity = std::make_shared<i2p::data::IdentityEx>();
+		size_t offset = identity->FromBuffer (buf, len);
+		uint16_t optionsSize = bufbe16toh (buf + offset);
+		// TODO: extract options
+		offset += optionsSize;
+		offset += 8; // date
+		if (identity->Verify (buf, offset, buf + offset)) // signature
+		{	
+			m_Destination = std::make_shared<I2CPDestination>(*this, identity, false);
+			RAND_bytes ((uint8_t *)&m_SessionID, 2);
+			SendSessionStatusMessage (1); // created
+		}
+		else
+		{
+			LogPrint (eLogError, "I2CP: create session signature verification falied");	
+			SendSessionStatusMessage (3); // invalid
+		}
+	}
+
+	void I2CPSession::SendSessionStatusMessage (uint8_t status)
+	{
+		uint8_t buf[3];
+		htobe16buf (buf, m_SessionID);
+		buf[2] = status;
+		SendI2CPMessage (I2CP_SESSION_STATUS_MESSAGE, buf, 3); 
 	}
 
 	void I2CPSession::CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len)

@@ -29,6 +29,7 @@ namespace client
 	const uint8_t I2CP_GET_DATE_MESSAGE = 32;
 	const uint8_t I2CP_SET_DATE_MESSAGE = 33;
 	const uint8_t I2CP_CREATE_SESSION_MESSAGE = 1;
+	const uint8_t I2CP_SESSION_STATUS_MESSAGE = 20;	
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
 	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
 	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;	
@@ -90,6 +91,8 @@ namespace client
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf);
 			std::string ExtractString (const uint8_t * buf, size_t len);
 			size_t PutString (uint8_t * buf, size_t len, const std::string& str);
+
+			void SendSessionStatusMessage (uint8_t status);
 
 		private:
 
