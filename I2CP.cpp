@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2016, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #include <string.h>
 #include "I2PEndian.h"
 #include "Log.h"
@@ -15,9 +23,15 @@ namespace client
 	{
 	}
 
+	void I2CPDestination::SetEncryptionPrivateKey (const uint8_t * key)
+	{
+		memcpy (m_EncryptionPrivateKey, key, 256);
+	}
+
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) 
 	{
-		i2p::data::LocalLeaseSet ls (m_Identity,  m_EncryptionPublicKey, tunnels);
+		i2p::data::LocalLeaseSet ls (m_Identity, m_EncryptionPrivateKey, tunnels); // we don't care about encryption key
+		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
 		uint8_t * leases = ls.GetLeases ();
 		leases[-1] = tunnels.size ();
 		htobe16buf (leases - 3, m_Owner.GetSessionID ());
@@ -25,7 +39,14 @@ namespace client
 		m_Owner.SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l); 
 		
 	}
-		
+	
+	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
+	{
+		auto ls = new i2p::data::LocalLeaseSet (m_Identity, buf, len);
+		ls->SetExpirationTime (m_LeaseSetExpirationTime);
+		SetLeaseSet (ls);
+	}
+	
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
@@ -174,11 +195,29 @@ namespace client
 		m_Destination = std::make_shared<I2CPDestination>(*this, nullptr, false);
 	}
 
+	void I2CPSession::CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len)
+	{
+		uint16_t sessionID = bufbe16toh (buf);
+		if (sessionID == m_SessionID)
+		{
+			size_t offset = 2;
+			if (m_Destination)
+			{
+				m_Destination->SetEncryptionPrivateKey (buf + offset);
+				offset += 256;
+				m_Destination->LeaseSetCreated (buf + offset, len - offset);
+			}
+		}	
+		else
+			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+	}
+
 	I2CPServer::I2CPServer (const std::string& interface, int port)
 	{
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
-		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE ] = &I2CPSession::CreateSessionMessageHandler;	
+		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE] = &I2CPSession::CreateSessionMessageHandler;
+		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;	
 	}
 }
 }

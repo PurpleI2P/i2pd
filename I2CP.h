@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2013-2016, The PurpleI2P Project
+*
+* This file is part of Purple i2pd project and licensed under BSD3
+*
+* See full license text in LICENSE file at top of project tree
+*/
+
 #ifndef I2CP_H__
 #define I2CP_H__
 
@@ -22,7 +30,8 @@ namespace client
 	const uint8_t I2CP_SET_DATE_MESSAGE = 33;
 	const uint8_t I2CP_CREATE_SESSION_MESSAGE = 1;
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
-	
+	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
+
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
 	{
@@ -30,11 +39,13 @@ namespace client
 
 			I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic);
 
+			void SetEncryptionPrivateKey (const uint8_t * key);
+			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
+
 		protected:
 
 			// implements LocalDestination
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
 
 			// I2CP
@@ -45,7 +56,8 @@ namespace client
 
 			I2CPSession& m_Owner;
 			std::shared_ptr<const i2p::data::IdentityEx> m_Identity;
-			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+			uint8_t m_EncryptionPrivateKey[256];
+			uint64_t m_LeaseSetExpirationTime;
 	};
 
 	class I2CPServer;
@@ -62,6 +74,7 @@ namespace client
 			// message handlers
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
 			void CreateSessionMessageHandler (const uint8_t * buf, size_t len);
+			void CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len);
 
 		private:
 			
@@ -95,7 +108,7 @@ namespace client
 
 		private:
 			
-			 I2CPMessageHandler m_MessagesHandlers[256];
+			I2CPMessageHandler m_MessagesHandlers[256];
 
 		public:
 

@@ -232,6 +232,14 @@ namespace data
 		//  we don't sign it yet. must be signed later on
 	}
 
+	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
+		m_ExpirationTime (0), m_Identity (identity)
+	{
+		m_BufferLen = len;
+		m_Buffer = new uint8_t[m_BufferLen];
+		memcpy (m_Buffer, buf, len);		
+	}
+
 	bool LocalLeaseSet::IsExpired () const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();

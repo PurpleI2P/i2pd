@@ -168,7 +168,6 @@ namespace client
 			
 			// implements LocalDestination		
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };			
 
 		protected:
