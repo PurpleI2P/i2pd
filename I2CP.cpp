@@ -47,6 +47,17 @@ namespace client
 		SetLeaseSet (ls);
 	}
 	
+	void I2CPDestination::SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident)
+	{
+		auto msg = NewI2NPMessage ();
+		uint8_t * buf = msg->GetPayload ();
+		htobe32buf (buf, len);
+		memcpy (buf + 4, payload, len);
+		msg->len += len + 4; 
+		msg->FillI2NPMessageHeader (eI2NPData);
+		// TODO: send 
+	}
+
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
@@ -212,12 +223,30 @@ namespace client
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
 	}
 
+	void I2CPSession::SendMessageMessageHandler (const uint8_t * buf, size_t len)
+	{
+		uint16_t sessionID = bufbe16toh (buf);
+		if (sessionID == m_SessionID)
+		{
+			size_t offset = 2;
+			if (m_Destination)
+			{
+				i2p::data::IdentityEx identity;
+				offset += identity.FromBuffer (buf + offset, len - offset);
+				m_Destination->SendMsgTo (buf + offset, len - offset, identity.GetIdentHash ());
+			} 
+		}	
+		else
+			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+	}
+
 	I2CPServer::I2CPServer (const std::string& interface, int port)
 	{
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE] = &I2CPSession::CreateSessionMessageHandler;
-		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;	
+		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
+		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;	
 	}
 }
 }

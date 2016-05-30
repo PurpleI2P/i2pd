@@ -31,6 +31,7 @@ namespace client
 	const uint8_t I2CP_CREATE_SESSION_MESSAGE = 1;
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
 	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
+	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;	
 
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
@@ -41,6 +42,7 @@ namespace client
 
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
+			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident); // called from I2CPSession
 
 		protected:
 
@@ -75,6 +77,7 @@ namespace client
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
 			void CreateSessionMessageHandler (const uint8_t * buf, size_t len);
 			void CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len);
+			void SendMessageMessageHandler (const uint8_t * buf, size_t len);
 
 		private:
 			
