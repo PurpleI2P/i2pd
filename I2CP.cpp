@@ -61,15 +61,19 @@ namespace client
 
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
-		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
-		m_SessionID (0)
+		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0)
 	{
+		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 		ReadProtocolByte ();
 	}
 		
 	I2CPSession::~I2CPSession ()
 	{
 		delete[] m_NextMessage;
+	}
+
+	void I2CPSession::Close ()
+	{
 	}
 
 	void I2CPSession::ReadProtocolByte ()
@@ -148,6 +152,12 @@ namespace client
 
 	void I2CPSession::Terminate ()
 	{
+		if (m_Destination)
+		{
+			m_Destination->Stop ();
+			m_Destination = nullptr;
+		}
+		m_Owner.RemoveSession (GetSessionID ());
 	}
 
 	void I2CPSession::SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len)
@@ -212,7 +222,7 @@ namespace client
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{	
 			m_Destination = std::make_shared<I2CPDestination>(*this, identity, false);
-			RAND_bytes ((uint8_t *)&m_SessionID, 2);
+			m_Destination->Start ();
 			SendSessionStatusMessage (1); // created
 		}
 		else
@@ -264,7 +274,9 @@ namespace client
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
 	}
 
-	I2CPServer::I2CPServer (const std::string& interface, int port)
+	I2CPServer::I2CPServer (const std::string& interface, int port):
+		m_IsRunning (false), m_Thread (nullptr),
+		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(interface), port))
 	{
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
@@ -272,6 +284,84 @@ namespace client
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;	
 	}
+
+	I2CPServer::~I2CPServer ()
+	{
+		if (m_IsRunning)
+			Stop ();
+	}
+
+	void I2CPServer::Start ()
+	{
+		Accept ();
+		m_IsRunning = true;
+		m_Thread = new std::thread (std::bind (&I2CPServer::Run, this));
+	}
+
+	void I2CPServer::Stop ()
+	{
+		m_IsRunning = false;
+		m_Acceptor.cancel ();
+		for (auto it: m_Sessions)
+			it.second->Close ();
+		m_Sessions.clear ();
+		m_Service.stop ();
+		if (m_Thread)
+		{	
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = nullptr;
+		}	
+	}
+
+	void I2CPServer::Run () 
+	{ 
+		while (m_IsRunning)
+		{
+			try
+			{	
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "I2CP: runtime exception: ", ex.what ());
+			}	
+		}	
+	}
+
+	void I2CPServer::Accept ()
+	{
+		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (m_Service);
+		m_Acceptor.async_accept (*newSocket, std::bind (&I2CPServer::HandleAccept, this,
+			std::placeholders::_1, newSocket));
+	}
+
+	void I2CPServer::HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+	{
+		if (!ecode && socket)
+		{
+			boost::system::error_code ec;
+			auto ep = socket->remote_endpoint (ec);
+			if (!ec)
+			{	
+				LogPrint (eLogDebug, "I2CP: new connection from ", ep);
+				auto session = std::make_shared<I2CPSession>(*this, socket);
+				m_Sessions[session->GetSessionID ()] = session;
+			}
+			else
+				LogPrint (eLogError, "I2CP: incoming connection error ", ec.message ());
+		}
+		else
+			LogPrint (eLogError, "I2CP: accept error: ", ecode.message ());
+
+		if (ecode != boost::asio::error::operation_aborted)
+			Accept ();
+	}
+
+	void I2CPServer::RemoveSession (uint16_t sessionID)
+	{
+		m_Sessions.erase (sessionID);
+	}	
 }
 }
 

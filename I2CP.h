@@ -12,6 +12,8 @@
 #include <inttypes.h>
 #include <string>
 #include <memory>
+#include <thread>
+#include <map>
 #include <boost/asio.hpp>
 #include "Destination.h"
 
@@ -72,6 +74,7 @@ namespace client
 			~I2CPSession ();
 
 			uint16_t GetSessionID () const { return m_SessionID; };
+			void Close ();
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
 			
 			// message handlers
@@ -111,10 +114,30 @@ namespace client
 		public:
 
 			I2CPServer (const std::string& interface, int port);
+			~I2CPServer ();
+			
+			void Start ();
+			void Stop ();
+			boost::asio::io_service& GetService () { return m_Service; };
+
+			void RemoveSession (uint16_t sessionID);
+
+		private:
+
+			void Run ();
+
+			void Accept ();
+			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
 		private:
 			
 			I2CPMessageHandler m_MessagesHandlers[256];
+			std::map<uint16_t, std::shared_ptr<I2CPSession> > m_Sessions;
+
+			bool m_IsRunning;
+			std::thread * m_Thread;	
+			boost::asio::io_service m_Service;
+			boost::asio::ip::tcp::acceptor m_Acceptor;
 
 		public:
 
