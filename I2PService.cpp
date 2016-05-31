@@ -150,7 +150,7 @@ namespace client
 	
 	void TCPIPPipe::HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
-		LogPrint(eLogDebug, "TCPIPPipe: upstream ", (int) bytes_transfered, , " bytes received");
+		LogPrint(eLogDebug, "TCPIPPipe: upstream ", (int)bytes_transfered, " bytes received");
 		if (ecode) {
 			LogPrint(eLogError, "TCPIPPipe: upstream read error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
