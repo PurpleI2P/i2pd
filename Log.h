@@ -86,7 +86,7 @@ namespace log {
 			LogLevel GetLogLevel () { return m_MinLevel; };
 
 			/**
-			 * @brief  Sets minimal alloed level for log messages
+			 * @brief  Sets minimal allowed level for log messages
 			 * @param  level  String with wanted minimal msg level
 			 */
 			void     SetLogLevel (const std::string& level);
@@ -101,7 +101,7 @@ namespace log {
 			 * @brief Sets log destination to given output stream
 			 * @param os  Output stream
 			 */
-			void SendTo (std::shared_ptr<std::ostream> s);
+			void SendTo (std::shared_ptr<std::ostream> os);
 
 	#ifndef _WIN32
 			/**
@@ -129,7 +129,8 @@ namespace log {
 	};
 
 	/**
-	 * @struct Log message container
+	 * @struct LogMsg
+	 * @brief Log message container
 	 *
 	 * We creating it somewhere with LogPrint(),
 	 * then put in MsgQueue for later processing.

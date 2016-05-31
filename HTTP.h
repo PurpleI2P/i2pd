@@ -38,7 +38,7 @@ namespace http {
      * @brief Tries to parse url from string
      * @return true on success, false on invalid url
      */
-    bool parse (const char *str, size_t len = 0);
+    bool parse (const char *str, std::size_t len = 0);
     bool parse (const std::string& url);
 
     /**
@@ -89,10 +89,12 @@ namespace http {
     std::string version;
     std::string status;
     unsigned short int code;
-    /** simplifies response generation
-     * If this variable is set:
-     * a) Content-Length header will be added if missing
-     * b) contents of body will be included in response
+    /**
+     * @brief Simplifies response generation
+     *
+     * If this variable is set, on @a to_string() call:
+     *   * Content-Length header will be added if missing,
+     *   * contents of @a body will be included in generated response
      */
     std::string body;
 
@@ -108,9 +110,9 @@ namespace http {
 
     /**
      * @brief Serialize HTTP response to string
-     * @note If version is set to HTTP/1.1, and Date header is missing,
+     * @note If @a version is set to HTTP/1.1, and Date header is missing,
      *   it will be generated based on current time and added to headers
-     * @note If body member is set and Content-Length header is missing,
+     * @note If @a body is set and Content-Length header is missing,
      *   this header will be added, based on body's length
      */
     std::string to_string();

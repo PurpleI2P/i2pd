@@ -68,7 +68,7 @@ namespace config {
    * @param  value Variable where to store option
    * @return this function returns false if parameter not found
    *
-   * @example  uint16_t port; GetOption("sam.port", port);
+   * Example: uint16_t port; GetOption("sam.port", port);
    */
   template<typename T>
   bool GetOption(const char *name, T& value) {
@@ -84,7 +84,7 @@ namespace config {
    * @param  value New parameter value
    * @return true if value set up successful, false otherwise
    *
-   * @example uint16_t port = 2827; SetOption("bob.port", port);
+   * Example: uint16_t port = 2827; SetOption("bob.port", port);
    */
   template<typename T>
   bool SetOption(const char *name, const T& value) {

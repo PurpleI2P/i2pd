@@ -12,7 +12,7 @@ namespace i2p {
 namespace log {
 	Log logger;
 	/**
-	 * @enum Maps our loglevel to their symbolic name
+	 * @brief Maps our loglevel to their symbolic name
 	 */
 	static const char * g_LogLevelStr[eNumLogLevels] =
 	{
