@@ -3,7 +3,6 @@
 #include "ClientContext.h"
 #include "I2PService.h"
 
-
 namespace i2p
 {
 namespace client
@@ -71,7 +70,7 @@ namespace client
 															std::bind(&TCPIPPipe::HandleUpstreamReceived, shared_from_this(),
 																				std::placeholders::_1, std::placeholders::_2));
 		} else {
-			LogPrint(eLogError, "TCPIPPipe: no upstream socket for read");
+			LogPrint(eLogError, "TCPIPPipe: upstream receive: no socket");
 		}
 	}
 
@@ -82,14 +81,14 @@ namespace client
 															std::bind(&TCPIPPipe::HandleDownstreamReceived, shared_from_this(),
 																				std::placeholders::_1, std::placeholders::_2));
 		} else {
-			LogPrint(eLogError, "TCPIPPipe: no downstream socket for read");
+			LogPrint(eLogError, "TCPIPPipe: downstream receive: no socket");
 		}
 	}
 
 	void TCPIPPipe::UpstreamWrite(const uint8_t * buf, size_t len)
 	{
 		if (m_up) {
-			LogPrint(eLogDebug, "TCPIPPipe: write upstream ", (int)len);
+			LogPrint(eLogDebug, "TCPIPPipe: upstream: ", (int) len, " bytes written");
 			boost::asio::async_write(*m_up, boost::asio::buffer(buf, len),
 															 boost::asio::transfer_all(),
 															 std::bind(&TCPIPPipe::HandleUpstreamWrite,
@@ -97,14 +96,14 @@ namespace client
 																				 std::placeholders::_1)
 															 );
 		} else {
-			LogPrint(eLogError, "tcpip pipe upstream socket null");
+			LogPrint(eLogError, "TCPIPPipe: upstream write: no socket");
 		}
 	}
 
 	void TCPIPPipe::DownstreamWrite(const uint8_t * buf, size_t len)
 	{
 		if (m_down) {
-			LogPrint(eLogDebug, "TCPIPPipe: write downstream ", (int)len);
+			LogPrint(eLogDebug, "TCPIPPipe: downstream: ", (int) len, " bytes written");
 			boost::asio::async_write(*m_down, boost::asio::buffer(buf, len),
 															 boost::asio::transfer_all(),
 															 std::bind(&TCPIPPipe::HandleDownstreamWrite,
@@ -112,16 +111,16 @@ namespace client
 																				 std::placeholders::_1)
 															 );
 		} else { 
-			LogPrint(eLogError, "tcpip pipe downstream socket null");
+			LogPrint(eLogError, "TCPIPPipe: downstream write: no socket");
 		}
 	}
 	
 	
 	void TCPIPPipe::HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
-		LogPrint(eLogDebug, "TCPIPPipe downstream got ", (int) bytes_transfered);
+		LogPrint(eLogDebug, "TCPIPPipe: downstream: ", (int) bytes_transfered, " bytes received");
 		if (ecode) {
-			LogPrint(eLogError, "TCPIPPipe Downstream read error:" , ecode.message());
+			LogPrint(eLogError, "TCPIPPipe: downstream read error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
 		} else {
@@ -135,7 +134,7 @@ namespace client
 
 	void TCPIPPipe::HandleDownstreamWrite(const boost::system::error_code & ecode) {
 		if (ecode) {
-			LogPrint(eLogError, "TCPIPPipe Downstream write error:" , ecode.message());
+			LogPrint(eLogError, "TCPIPPipe: downstream write error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
 		}
@@ -143,7 +142,7 @@ namespace client
 	
 	void TCPIPPipe::HandleUpstreamWrite(const boost::system::error_code & ecode) {
 		if (ecode) {
-			LogPrint(eLogError, "TCPIPPipe Upstream write error:" , ecode.message());
+			LogPrint(eLogError, "TCPIPPipe: upstream write error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
 		}
@@ -151,9 +150,9 @@ namespace client
 	
 	void TCPIPPipe::HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
-		LogPrint(eLogDebug, "TCPIPPipe upstream got ", (int) bytes_transfered);
+		LogPrint(eLogDebug, "TCPIPPipe: upstream ", (int) bytes_transfered, , " bytes received");
 		if (ecode) {
-			LogPrint(eLogError, "TCPIPPipe Upstream read error:" , ecode.message());
+			LogPrint(eLogError, "TCPIPPipe: upstream read error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
 		} else {
@@ -206,6 +205,5 @@ namespace client
 				LogPrint (eLogError, "I2PService: ", GetName(), " closing socket on accept because: ", ecode.message ());
 		}
 	}
-
 }
 }
