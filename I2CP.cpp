@@ -7,6 +7,7 @@
 */
 
 #include <string.h>
+#include <stdlib.h>
 #include <openssl/rand.h>
 #include "I2PEndian.h"
 #include "Log.h"
@@ -29,6 +30,13 @@ namespace client
 		memcpy (m_EncryptionPrivateKey, key, 256);
 	}
 
+	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len)
+	{
+		uint32_t length = bufbe32toh (buf);
+		if (length > len - 4) length = len - 4;
+		m_Owner.SendMessagePayloadMessage (buf + 4, length);
+	}
+
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) 
 	{
 		i2p::data::LocalLeaseSet ls (m_Identity, m_EncryptionPrivateKey, tunnels); // we don't care about encryption key
@@ -38,7 +46,6 @@ namespace client
 		htobe16buf (leases - 3, m_Owner.GetSessionID ());
 		size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
 		m_Owner.SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l); 
-		
 	}
 	
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
@@ -56,12 +63,50 @@ namespace client
 		memcpy (buf + 4, payload, len);
 		msg->len += len + 4; 
 		msg->FillI2NPMessageHeader (eI2NPData);
-		// TODO: send 
+		auto remote = FindLeaseSet (ident);
+		if (remote)
+			GetService ().post (std::bind (&I2CPDestination::SendMsg, GetSharedFromThis (), msg, remote));
+		else
+		{
+			auto s = GetSharedFromThis ();
+			RequestDestination (ident,
+				[s, msg](std::shared_ptr<i2p::data::LeaseSet> ls)
+				{
+					if (ls) s->SendMsg (msg, ls);
+				});
+		}
+	}
+
+	void I2CPDestination::SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
+	{
+		auto outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
+		auto leases = remote->GetNonExpiredLeases ();
+		if (!leases.empty () && outboundTunnel)
+		{
+			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
+			uint32_t i = rand () % leases.size ();
+			auto garlic = WrapMessage (remote, msg, true);
+			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
+				{ 
+					i2p::tunnel::eDeliveryTypeTunnel,
+					leases[i]->tunnelGateway, leases[i]->tunnelID,
+					garlic
+				});
+			outboundTunnel->SendTunnelDataMsg (msgs);
+		}
+		else
+		{
+			if (outboundTunnel)
+				LogPrint (eLogWarning, "I2CP: Failed to send message. All leases expired");
+			else
+				LogPrint (eLogWarning, "I2CP: Failed to send message. No outbound tunnels");
+		}	
 	}
 
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
-		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0)
+		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
+		m_MessageID (0)	
 	{
 		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 	}
@@ -345,6 +390,21 @@ namespace client
 			buf[6] = 1; // result code
 			SendI2CPMessage (I2CP_HOST_REPLY_MESSAGE, buf, 7); 
 		}	
+	}
+
+	void I2CPSession::SendMessagePayloadMessage (const uint8_t * payload, size_t len)
+	{
+		// we don't use SendI2CPMessage to eliminate additional copy
+		auto l = len + 6 + I2CP_HEADER_SIZE;
+		uint8_t * buf = new uint8_t[l];
+		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len + 6);
+		buf[I2CP_HEADER_TYPE_OFFSET] = I2CP_MESSAGE_PAYLOAD_MESSAGE;
+		htobe16buf (buf + I2CP_HEADER_SIZE, m_SessionID);
+		htobe32buf (buf + I2CP_HEADER_SIZE + 2, m_MessageID++);		
+		memcpy (buf + I2CP_HEADER_SIZE + 6, payload, len);
+		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
+        	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (), 
+						std::placeholders::_1, std::placeholders::_2, buf));	
 	}
 
 	I2CPServer::I2CPServer (const std::string& interface, int port):

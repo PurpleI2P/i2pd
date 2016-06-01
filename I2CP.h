@@ -36,6 +36,7 @@ namespace client
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
 	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
 	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;
+	const uint8_t I2CP_MESSAGE_PAYLOAD_MESSAGE = 31;
 	const uint8_t I2CP_HOST_LOOKUP_MESSAGE = 38;
 	const uint8_t I2CP_HOST_REPLY_MESSAGE = 39;		
 
@@ -57,8 +58,14 @@ namespace client
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
 
 			// I2CP
-			void HandleDataMessage (const uint8_t * buf, size_t len) { /* TODO */ };
+			void HandleDataMessage (const uint8_t * buf, size_t len);
 			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+
+		private:
+
+			std::shared_ptr<I2CPDestination> GetSharedFromThis ()
+			{ return std::static_pointer_cast<I2CPDestination>(shared_from_this ()); }  
+			void SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote);
 
 		private:
 
@@ -79,8 +86,10 @@ namespace client
 			void Start ();
 			void Stop ();
 			uint16_t GetSessionID () const { return m_SessionID; };
+
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
-			
+			void SendMessagePayloadMessage (const uint8_t * payload, size_t len); // called from I2CPDestination			
+
 			// message handlers
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
 			void CreateSessionMessageHandler (const uint8_t * buf, size_t len);
@@ -113,6 +122,7 @@ namespace client
 
 			std::shared_ptr<I2CPDestination> m_Destination;
 			uint16_t m_SessionID;
+			uint32_t m_MessageID;
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
 	
