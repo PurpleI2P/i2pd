@@ -287,6 +287,66 @@ namespace client
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
 	}
 
+	void I2CPSession::HostLookupMessageHandler (const uint8_t * buf, size_t len)
+	{
+		uint16_t sessionID = bufbe16toh (buf);
+		if (sessionID == m_SessionID)
+		{
+			uint32_t requestID = bufbe32toh (buf + 2);
+			//uint32_t timeout = bufbe32toh (buf + 6);
+			if (!buf[10]) // request type = 0 (hash)
+			{
+				if (m_Destination)
+				{
+					auto ls = m_Destination->FindLeaseSet (buf + 11);
+					if (ls)
+						SendHostReplyMessage (requestID, ls->GetIdentity ());
+					else
+					{
+						auto s = shared_from_this ();
+						m_Destination->RequestDestination (buf + 11,
+							[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+							{
+								s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
+							});
+					}		
+				}
+				else
+					SendHostReplyMessage (requestID, nullptr);
+			}
+			else
+			{
+				LogPrint (eLogError, "I2CP: request type ", (int)buf[8], " is not supported");
+				SendHostReplyMessage (requestID, nullptr);
+			}
+		}	
+		else
+			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
+	}
+
+	void I2CPSession::SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity)
+	{
+		if (identity)
+		{
+			size_t l = identity->GetFullLen () + 7;
+			uint8_t * buf = new uint8_t[l];
+			htobe16buf (buf, m_SessionID);
+			htobe32buf (buf + 2, requestID);
+			buf[6] = 0; // result code
+			identity->ToBuffer (buf + 7, l - 7);
+			SendI2CPMessage (I2CP_HOST_REPLY_MESSAGE, buf, l); 
+			delete[] buf;
+		}
+		else
+		{
+			uint8_t buf[7];
+			htobe16buf (buf, m_SessionID);
+			htobe32buf (buf + 2, requestID);
+			buf[6] = 1; // result code
+			SendI2CPMessage (I2CP_HOST_REPLY_MESSAGE, buf, 7); 
+		}	
+	}
+
 	I2CPServer::I2CPServer (const std::string& interface, int port):
 		m_IsRunning (false), m_Thread (nullptr),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(interface), port))
@@ -296,7 +356,8 @@ namespace client
 		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE] = &I2CPSession::CreateSessionMessageHandler;
 		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
-		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;	
+		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;
+		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;	
 	}
 
 	I2CPServer::~I2CPServer ()
