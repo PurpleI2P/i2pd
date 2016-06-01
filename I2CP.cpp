@@ -55,7 +55,7 @@ namespace client
 		SetLeaseSet (ls);
 	}
 	
-	void I2CPDestination::SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident)
+	void I2CPDestination::SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce)
 	{
 		auto msg = NewI2NPMessage ();
 		uint8_t * buf = msg->GetPayload ();
@@ -70,14 +70,20 @@ namespace client
 		{
 			auto s = GetSharedFromThis ();
 			RequestDestination (ident,
-				[s, msg](std::shared_ptr<i2p::data::LeaseSet> ls)
+				[s, msg, nonce](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{
-					if (ls) s->SendMsg (msg, ls);
+					if (ls)
+					{ 
+						bool sent = s->SendMsg (msg, ls);
+						s->m_Owner.SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+					}
+					else
+						s->m_Owner.SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLeaseSet);
 				});
 		}
 	}
 
-	void I2CPDestination::SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
+	bool I2CPDestination::SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
 	{
 		auto outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
 		auto leases = remote->GetNonExpiredLeases ();
@@ -93,6 +99,7 @@ namespace client
 					garlic
 				});
 			outboundTunnel->SendTunnelDataMsg (msgs);
+			return true;
 		}
 		else
 		{
@@ -100,13 +107,14 @@ namespace client
 				LogPrint (eLogWarning, "I2CP: Failed to send message. All leases expired");
 			else
 				LogPrint (eLogWarning, "I2CP: Failed to send message. No outbound tunnels");
+			return false;
 		}	
 	}
 
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
-		m_MessageID (0)	
+		m_MessageID (0)
 	{
 		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 	}
@@ -298,6 +306,17 @@ namespace client
 		SendI2CPMessage (I2CP_SESSION_STATUS_MESSAGE, buf, 3); 
 	}
 
+	void I2CPSession::SendMessageStatusMessage (uint32_t nonce, I2CPMessageStatus status)
+	{
+		uint8_t buf[15];
+		htobe16buf (buf, m_SessionID);
+		htobe32buf (buf + 2, m_MessageID++);
+		buf[6] = (uint8_t)status;
+		memset (buf + 7, 0, 4); // size
+		htobe32buf (buf + 11, nonce);	
+		SendI2CPMessage (I2CP_MESSAGE_STATUS_MESSAGE, buf, 15); 	
+	}
+
 	void I2CPSession::CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len)
 	{
 		uint16_t sessionID = bufbe16toh (buf);
@@ -325,7 +344,11 @@ namespace client
 			{
 				i2p::data::IdentityEx identity;
 				offset += identity.FromBuffer (buf + offset, len - offset);
-				m_Destination->SendMsgTo (buf + offset, len - offset, identity.GetIdentHash ());
+				uint32_t payloadLen = bufbe32toh (buf + offset);
+				offset += 4;
+				uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
+				SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
+				m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
 			} 
 		}	
 		else
@@ -395,13 +418,14 @@ namespace client
 	void I2CPSession::SendMessagePayloadMessage (const uint8_t * payload, size_t len)
 	{
 		// we don't use SendI2CPMessage to eliminate additional copy
-		auto l = len + 6 + I2CP_HEADER_SIZE;
+		auto l = len + 10 + I2CP_HEADER_SIZE;
 		uint8_t * buf = new uint8_t[l];
-		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len + 6);
+		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len + 10);
 		buf[I2CP_HEADER_TYPE_OFFSET] = I2CP_MESSAGE_PAYLOAD_MESSAGE;
 		htobe16buf (buf + I2CP_HEADER_SIZE, m_SessionID);
-		htobe32buf (buf + I2CP_HEADER_SIZE + 2, m_MessageID++);		
-		memcpy (buf + I2CP_HEADER_SIZE + 6, payload, len);
+		htobe32buf (buf + I2CP_HEADER_SIZE + 2, m_MessageID++);
+		htobe32buf (buf + I2CP_HEADER_SIZE + 6, len);		
+		memcpy (buf + I2CP_HEADER_SIZE + 10, payload, len);
 		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
         	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (), 
 						std::placeholders::_1, std::placeholders::_2, buf));	

@@ -37,8 +37,17 @@ namespace client
 	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
 	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;
 	const uint8_t I2CP_MESSAGE_PAYLOAD_MESSAGE = 31;
+	const uint8_t I2CP_MESSAGE_STATUS_MESSAGE = 22;	
 	const uint8_t I2CP_HOST_LOOKUP_MESSAGE = 38;
 	const uint8_t I2CP_HOST_REPLY_MESSAGE = 39;		
+
+	enum I2CPMessageStatus
+	{
+		eI2CPMessageStatusAccepted = 1,
+		eI2CPMessageStatusGuaranteedSuccess = 4,
+		eI2CPMessageStatusGuaranteedFailure = 5,
+		eI2CPMessageStatusNoLeaseSet = 21
+	};
 
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
@@ -49,7 +58,7 @@ namespace client
 
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
-			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident); // called from I2CPSession
+			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce); // called from I2CPSession
 
 		protected:
 
@@ -65,7 +74,7 @@ namespace client
 
 			std::shared_ptr<I2CPDestination> GetSharedFromThis ()
 			{ return std::static_pointer_cast<I2CPDestination>(shared_from_this ()); }  
-			void SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote);
+			bool SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote);
 
 		private:
 
@@ -87,8 +96,10 @@ namespace client
 			void Stop ();
 			uint16_t GetSessionID () const { return m_SessionID; };
 
+			// called from I2CPDestination	
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
-			void SendMessagePayloadMessage (const uint8_t * payload, size_t len); // called from I2CPDestination			
+			void SendMessagePayloadMessage (const uint8_t * payload, size_t len); 		
+			void SendMessageStatusMessage (uint32_t nonce, I2CPMessageStatus status);
 
 			// message handlers
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
