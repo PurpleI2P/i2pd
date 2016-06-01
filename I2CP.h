@@ -32,6 +32,7 @@ namespace client
 	const uint8_t I2CP_SET_DATE_MESSAGE = 33;
 	const uint8_t I2CP_CREATE_SESSION_MESSAGE = 1;
 	const uint8_t I2CP_SESSION_STATUS_MESSAGE = 20;	
+	const uint8_t I2CP_DESTROY_SESSION_MESSAGE = 3;
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
 	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
 	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;	
@@ -73,13 +74,15 @@ namespace client
 			I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			~I2CPSession ();
 
+			void Start ();
+			void Stop ();
 			uint16_t GetSessionID () const { return m_SessionID; };
-			void Close ();
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
 			
 			// message handlers
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
 			void CreateSessionMessageHandler (const uint8_t * buf, size_t len);
+			void DestroySessionMessageHandler (const uint8_t * buf, size_t len);
 			void CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len);
 			void SendMessageMessageHandler (const uint8_t * buf, size_t len);
 

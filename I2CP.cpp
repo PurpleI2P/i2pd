@@ -64,7 +64,6 @@ namespace client
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0)
 	{
 		RAND_bytes ((uint8_t *)&m_SessionID, 2);
-		ReadProtocolByte ();
 	}
 		
 	I2CPSession::~I2CPSession ()
@@ -72,7 +71,12 @@ namespace client
 		delete[] m_NextMessage;
 	}
 
-	void I2CPSession::Close ()
+	void I2CPSession::Start ()
+	{
+		ReadProtocolByte ();
+	}
+
+	void I2CPSession::Stop ()
 	{
 	}
 
@@ -216,6 +220,7 @@ namespace client
 		auto identity = std::make_shared<i2p::data::IdentityEx>();
 		size_t offset = identity->FromBuffer (buf, len);
 		uint16_t optionsSize = bufbe16toh (buf + offset);
+		offset += 2;
 		// TODO: extract options
 		offset += optionsSize;
 		offset += 8; // date
@@ -224,12 +229,20 @@ namespace client
 			m_Destination = std::make_shared<I2CPDestination>(*this, identity, false);
 			m_Destination->Start ();
 			SendSessionStatusMessage (1); // created
+			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");	
 		}
 		else
 		{
 			LogPrint (eLogError, "I2CP: create session signature verification falied");	
 			SendSessionStatusMessage (3); // invalid
 		}
+	}
+
+	void I2CPSession::DestroySessionMessageHandler (const uint8_t * buf, size_t len)
+	{
+		SendSessionStatusMessage (0); // destroy
+		LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " destroyed");
+		Terminate ();
 	}
 
 	void I2CPSession::SendSessionStatusMessage (uint8_t status)
@@ -281,6 +294,7 @@ namespace client
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE] = &I2CPSession::CreateSessionMessageHandler;
+		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;	
 	}
@@ -303,7 +317,7 @@ namespace client
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
 		for (auto it: m_Sessions)
-			it.second->Close ();
+			it.second->Stop ();
 		m_Sessions.clear ();
 		m_Service.stop ();
 		if (m_Thread)
@@ -347,6 +361,7 @@ namespace client
 				LogPrint (eLogDebug, "I2CP: new connection from ", ep);
 				auto session = std::make_shared<I2CPSession>(*this, socket);
 				m_Sessions[session->GetSessionID ()] = session;
+				session->Start ();
 			}
 			else
 				LogPrint (eLogError, "I2CP: incoming connection error ", ec.message ());
