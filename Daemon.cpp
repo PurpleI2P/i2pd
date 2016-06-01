@@ -45,10 +45,10 @@ namespace i2p
 #endif	
 		};
 
-		Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
+		Daemon_Singleton::Daemon_Singleton() : isDaemon(false), running(true), d(*new Daemon_Singleton_Private()) {}
 		Daemon_Singleton::~Daemon_Singleton() {
 			delete &d;
-		};
+		}
 
 		bool Daemon_Singleton::IsService () const
 		{

@@ -667,7 +667,7 @@ namespace http {
 		i2p::config::GetOption("http.auth", needAuth);
 		i2p::config::GetOption("http.user", user);
 		i2p::config::GetOption("http.pass", pass);
-	};
+	}
 
 	void HTTPConnection::Receive ()
 	{

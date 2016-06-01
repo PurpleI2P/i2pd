@@ -45,7 +45,7 @@ namespace i2p
 	{
 		bool DaemonLinux::start()
 		{
-			if (isDaemon == 1)
+			if (isDaemon)
 			{
 				pid_t pid;
 				pid = fork();

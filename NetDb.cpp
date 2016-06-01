@@ -849,7 +849,8 @@ namespace data
 	template<typename Filter>
 	std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter (Filter filter) const
 	{
-		if (!m_RouterInfos.size ()) return 0;
+		if (m_RouterInfos.empty())
+			return 0;
 		uint32_t ind = rand () % m_RouterInfos.size ();	
 		for (int j = 0; j < 2; j++)
 		{	

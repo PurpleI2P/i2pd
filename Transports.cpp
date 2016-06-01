@@ -606,7 +606,7 @@ namespace transport
 
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
 	{
-		if (!m_Peers.size ()) return nullptr;
+		if (m_Peers.empty ()) return nullptr;
 		std::unique_lock<std::mutex> l(m_PeersMutex);	
 		auto it = m_Peers.begin ();
 		std::advance (it, rand () % m_Peers.size ());	
