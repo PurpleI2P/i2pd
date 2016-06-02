@@ -20,8 +20,8 @@ namespace i2p
 namespace client
 {
 
-	I2CPDestination::I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic): 
-		LeaseSetDestination (isPublic), m_Owner (owner), m_Identity (identity) 
+	I2CPDestination::I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params): 
+		LeaseSetDestination (isPublic, &params), m_Owner (owner), m_Identity (identity) 
 	{
 	}
 
@@ -141,7 +141,7 @@ namespace client
 			m_Socket->async_read_some (boost::asio::buffer (m_Buffer, 1), 
 				[s](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 				    {
-						if (!ecode && bytes_transferred > 0 && s->m_Buffer[0] == I2CP_PRTOCOL_BYTE)
+						if (!ecode && bytes_transferred > 0 && s->m_Buffer[0] == I2CP_PROTOCOL_BYTE)
 							s->Receive ();
 						else
 							s->Terminate ();
@@ -253,6 +253,30 @@ namespace client
 		return l + 1;
 	}
 
+	void I2CPSession::ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping)
+	// TODO: move to Base.cpp
+	{
+		size_t offset = 0;
+		while (offset < len)
+		{
+			auto semicolon = (const uint8_t *)memchr (buf + offset, ';', len - offset);
+			if (semicolon)
+			{
+				auto l = semicolon - buf - offset + 1; 
+				auto equal = (const uint8_t *)memchr (buf + offset, '=', l);
+				if (equal)
+				{
+					auto l1 = equal - buf - offset + 1;
+					mapping.insert (std::make_pair (std::string ((const char *)(buf + offset), l1 -1), 
+						std::string ((const char *)(buf + offset + l1), l - l1 - 2)));
+				}
+				offset += l;
+			}
+			else
+				break;
+		}
+	}
+
 	void I2CPSession::GetDateMessageHandler (const uint8_t * buf, size_t len)
 	{
 		// get version
@@ -274,12 +298,16 @@ namespace client
 		size_t offset = identity->FromBuffer (buf, len);
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
-		// TODO: extract options
+		
+		std::map<std::string, std::string> params;
+		ExtractMapping (buf + offset, optionsSize, params);		
 		offset += optionsSize;
 		offset += 8; // date
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{	
-			m_Destination = std::make_shared<I2CPDestination>(*this, identity, false);
+			bool isPublic = true;
+			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "false") isPublic = false;
+			m_Destination = std::make_shared<I2CPDestination>(*this, identity, isPublic, params);
 			m_Destination->Start ();
 			SendSessionStatusMessage (1); // created
 			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");	
