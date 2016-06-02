@@ -73,7 +73,7 @@ namespace tunnel
 			
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 
-			virtual void Print (std::stringstream& s) const {};	
+			virtual void Print (std::stringstream&) const {};
 			
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);

@@ -213,6 +213,7 @@ namespace data
 		m_Buffer[offset] = num; 
 		offset++;
 		// leases
+		m_Leases = m_Buffer + offset;
 		auto currentTime = i2p::util::GetMillisecondsSinceEpoch ();
 		for (int i = 0; i < num; i++)
 		{
@@ -229,6 +230,14 @@ namespace data
 			offset += 8; // end date
 		}
 		//  we don't sign it yet. must be signed later on
+	}
+
+	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len):
+		m_ExpirationTime (0), m_Identity (identity)
+	{
+		m_BufferLen = len;
+		m_Buffer = new uint8_t[m_BufferLen];
+		memcpy (m_Buffer, buf, len);		
 	}
 
 	bool LocalLeaseSet::IsExpired () const

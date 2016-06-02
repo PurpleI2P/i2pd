@@ -12,7 +12,7 @@ namespace i2p {
 namespace log {
 	Log logger;
 	/**
-	 * @enum Maps our loglevel to their symbolic name
+	 * @brief Maps our loglevel to their symbolic name
 	 */
 	static const char * g_LogLevelStr[eNumLogLevels] =
 	{
@@ -56,7 +56,7 @@ namespace log {
 #endif
 			case eLogFile:
 			case eLogStream:
-				m_LogStream->flush();
+					if (m_LogStream) m_LogStream->flush();
 				break;
 			default:
 				/* do nothing */
@@ -107,10 +107,11 @@ namespace log {
 #endif
 				case eLogFile:
 				case eLogStream:
-					*m_LogStream << TimeAsString(msg->timestamp)
-						<< "@" << short_tid
-						<< "/" << g_LogLevelStr[msg->level]
-						<< " - " << msg->text << std::endl;
+					if (m_LogStream)
+						*m_LogStream << TimeAsString(msg->timestamp)
+							<< "@" << short_tid
+							<< "/" << g_LogLevelStr[msg->level]
+							<< " - " << msg->text << std::endl;
 					break;
 				case eLogStdout:
 				default:
@@ -130,10 +131,13 @@ namespace log {
 		Process();
 	}
 
-	void Log::SendTo (const std::string& path) {
+	void Log::SendTo (const std::string& path) 
+	{
+		if (m_LogStream) m_LogStream = nullptr; // close previous	
 		auto flags = std::ofstream::out | std::ofstream::app;
 		auto os = std::make_shared<std::ofstream> (path, flags);
-		if (os->is_open ()) {
+		if (os->is_open ()) 
+		{
 			m_Logfile = path;
 			m_Destination = eLogFile;
 			m_LogStream = os;

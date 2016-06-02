@@ -1,0 +1,86 @@
+# for this file format description,
+# see https://github.com/olivierlacan/keep-a-changelog
+
+## [2.8.0] - UNRELEASED
+### Changed
+- Proxy refactoring & speedup
+- I2PControl refactoring & fixes (proper jsonrpc responses on errors)
+- boost::regex no more needed
+
+### Fixed
+- initscripts: added openrc one, in sysv-ish make I2PD_PORT optional
+
+## [2.7.0] - 2016-05-18
+### Added
+- Precomputed El-Gamal/DH tables
+- Configurable limit of transit tunnels
+
+### Changed
+- Speed-up of assymetric crypto for non-x64 platforms
+- Refactoring of web-console
+
+## [2.6.0] - 2016-03-31
+### Added
+- Gracefull shutdown on SIGINT
+- Numeric bandwidth limits (was: by router class)
+- Jumpservices in web-console
+- Logging to syslog
+- Tray icon for windows application
+
+### Changed
+- Logs refactoring
+- Improved statistics in web-console
+
+### Deprecated:
+- Renamed main/tunnels config files (will use old, if found, but emits warning)
+
+## [2.5.1] - 2016-03-10
+### Fixed
+- Doesn't create ~/.i2pd dir if missing
+
+## [2.5.0] - 2016-03-04
+### Added
+- IRC server tunnels
+- SOCKS outproxy support
+- Support for gzipped addressbook updates
+- Support for router families
+
+### Changed
+- Shared RTT/RTO between streams
+- Filesystem work refactoring
+
+## [2.4.0] - 2016-02-03
+### Added
+- X-I2P-* headers for server http-tunnels
+- I2CP options for I2P tunnels
+- Show I2P tunnels in webconsole
+
+### Changed
+- Refactoring of cmdline/config parsing
+
+## [2.3.0] - 2016-01-12
+### Added
+- Support for new router bandwidth class codes (P and X)
+- I2PControl supports external webui
+- Added --pidfile and --notransit parameters
+- Ability to specify signature type for i2p tunnel
+
+### Changed
+- Fixed multiple floodfill-related bugs
+- New webconsole layout
+
+## [2.2.0] - 2015-12-22
+### Added
+- Ability to connect to router without ip via introducer
+
+### Changed
+- Persist temporary encryption keys for local destinations
+- Performance improvements for EdDSA
+- New addressbook structure
+
+## [2.1.0] - 2015-11-12
+### Added
+- Implementation of EdDSA
+
+### Changed
+- EdDSA is default signature type for new RouterInfos

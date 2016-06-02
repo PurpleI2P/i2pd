@@ -159,7 +159,7 @@ namespace client
 
 	int AddressBookFilesystemStorage::Save (const std::map<std::string, i2p::data::IdentHash>& addresses)
 	{
-		if (addresses.size() == 0) {
+		if (addresses.empty()) {
 			LogPrint(eLogWarning, "Addressbook: not saving empty addressbook");
 			return 0;
 		}

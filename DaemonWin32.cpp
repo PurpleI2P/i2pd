@@ -45,7 +45,7 @@ namespace i2p
 				return false;
 			}
 
-			if (isDaemon == 1)
+			if (isDaemon)
 			{
 				LogPrint(eLogDebug, "Daemon: running as service");
 				I2PService service(SERVICE_NAME);

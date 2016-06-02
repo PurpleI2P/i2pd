@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
+#include <set>
 #include <memory>
 #include "Identity.h"
 
@@ -88,14 +89,19 @@ namespace data
 		public:
 
 			LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
+			LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * buf, size_t len);
 			~LocalLeaseSet () { delete[] m_Buffer; };
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			uint8_t * GetSignature () { return m_Buffer + m_BufferLen - GetSignatureLen (); }; 
 			size_t GetBufferLen () const { return m_BufferLen; };	
 			size_t GetSignatureLen () const { return m_Identity->GetSignatureLen (); };
+			uint8_t * GetLeases () { return m_Leases; }; 
+			
 			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
 			bool IsExpired () const;
+			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
+			void SetExpirationTime (uint64_t expirationTime) { m_ExpirationTime = expirationTime; };
 			bool operator== (const LeaseSet& other) const 
 			{ return m_BufferLen == other.GetBufferLen ()  && !memcmp (other.GetBuffer (), other.GetBuffer (), m_BufferLen); }; 
 
@@ -104,7 +110,7 @@ namespace data
 			
 			uint64_t m_ExpirationTime; // in milliseconds
 			std::shared_ptr<const IdentityEx> m_Identity;
-			uint8_t * m_Buffer;
+			uint8_t * m_Buffer, * m_Leases;
 			size_t m_BufferLen;
 	}; 
 }		

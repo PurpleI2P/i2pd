@@ -22,9 +22,7 @@ namespace i2p
 			virtual bool stop();
 			virtual void run () {};
 
-			bool isLogging;
 			bool isDaemon;
-
 			bool running;
 
 		protected:

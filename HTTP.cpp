@@ -406,11 +406,10 @@ namespace http {
 
   bool MergeChunkedResponse (std::istream& in, std::ostream& out) {
     std::string hexLen;
-    long int len;
     while (!in.eof ()) {
       std::getline (in, hexLen);
       errno = 0;
-      len = strtoul(hexLen.c_str(), (char **) NULL, 16);
+      long int len = strtoul(hexLen.c_str(), (char **) NULL, 16);
       if (errno != 0)
         return false; /* conversion error */
       if (len == 0)

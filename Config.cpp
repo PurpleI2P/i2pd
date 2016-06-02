@@ -178,6 +178,13 @@ namespace config {
       ("bob.port",            value<uint16_t>()->default_value(2827),                     "BOB listen port")
       ;
 
+	options_description i2cp("I2CP options");
+    i2cp.add_options()
+      ("i2cp.enabled",        value<bool>()->default_value(false),                        "Enable or disable I2CP")
+      ("i2cp.address",        value<std::string>()->default_value("127.0.0.1"),           "I2CP listen address")
+      ("i2cp.port",            value<uint16_t>()->default_value(7654),                     "I2CP listen port")
+      ;
+
     options_description i2pcontrol("I2PControl options");
     i2pcontrol.add_options()
       ("i2pcontrol.enabled",  value<bool>()->default_value(false),                        "Enable or disable I2P Control Protocol")
@@ -207,6 +214,7 @@ namespace config {
       .add(socksproxy)
       .add(sam)
       .add(bob)
+	  .add(i2cp)	
       .add(i2pcontrol)
 	  .add(precomputation) 	  
       ;
