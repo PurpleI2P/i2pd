@@ -13,6 +13,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "LeaseSet.h"
+#include "ClientContext.h"
 #include "I2CP.h"
 
 namespace i2p
@@ -390,31 +391,46 @@ namespace client
 		{
 			uint32_t requestID = bufbe32toh (buf + 2);
 			//uint32_t timeout = bufbe32toh (buf + 6);
-			if (!buf[10]) // request type = 0 (hash)
+			i2p::data::IdentHash ident;
+			switch (buf[10]) 
 			{
-				if (m_Destination)
+				case 0: // hash
+					ident = i2p::data::IdentHash (buf + 11);
+				break;
+				case 1: // address
 				{
-					auto ls = m_Destination->FindLeaseSet (buf + 11);
-					if (ls)
-						SendHostReplyMessage (requestID, ls->GetIdentity ());
-					else
+					auto name = ExtractString (buf + 11, len - 11);
+					if (!i2p::client::context.GetAddressBook ().GetIdentHash (name, ident))
 					{
-						auto s = shared_from_this ();
-						m_Destination->RequestDestination (buf + 11,
-							[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
-							{
-								s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
-							});
-					}		
+						LogPrint (eLogError, "I2CP: address ", name, " not found");
+						SendHostReplyMessage (requestID, nullptr);
+						return;
+					}
+					break;	
 				}
-				else
+				default:
+					LogPrint (eLogError, "I2CP: request type ", (int)buf[10], " is not supported");
 					SendHostReplyMessage (requestID, nullptr);
+					return;
+			}
+
+			if (m_Destination)
+			{
+				auto ls = m_Destination->FindLeaseSet (ident);
+				if (ls)
+					SendHostReplyMessage (requestID, ls->GetIdentity ());
+				else
+				{
+					auto s = shared_from_this ();
+					m_Destination->RequestDestination (ident,
+						[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+						{
+							s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
+						});
+				}		
 			}
 			else
-			{
-				LogPrint (eLogError, "I2CP: request type ", (int)buf[8], " is not supported");
 				SendHostReplyMessage (requestID, nullptr);
-			}
 		}	
 		else
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
