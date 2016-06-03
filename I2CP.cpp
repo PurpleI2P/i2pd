@@ -384,6 +384,11 @@ namespace client
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
 	}
 
+	void I2CPSession::SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len)
+	{
+		SendMessageMessageHandler (buf, len - 8); // ignore flags(2) and expiration(6) 
+	}	
+
 	void I2CPSession::HostLookupMessageHandler (const uint8_t * buf, size_t len)
 	{
 		uint16_t sessionID = bufbe16toh (buf);
@@ -522,6 +527,7 @@ namespace client
 		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;
+		m_MessagesHandlers[I2CP_SEND_MESSAGE_EXPIRES_MESSAGE] = &I2CPSession::SendMessageExpiresMessageHandler;	
 		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;
 		m_MessagesHandlers[I2CP_DEST_LOOKUP_MESSAGE] = &I2CPSession::DestLookupMessageHandler;	
 	}

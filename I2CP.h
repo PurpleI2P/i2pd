@@ -36,6 +36,7 @@ namespace client
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
 	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
 	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;
+	const uint8_t I2CP_SEND_MESSAGE_EXPIRES_MESSAGE = 36;	
 	const uint8_t I2CP_MESSAGE_PAYLOAD_MESSAGE = 31;
 	const uint8_t I2CP_MESSAGE_STATUS_MESSAGE = 22;	
 	const uint8_t I2CP_HOST_LOOKUP_MESSAGE = 38;
@@ -112,6 +113,7 @@ namespace client
 			void DestroySessionMessageHandler (const uint8_t * buf, size_t len);
 			void CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len);
 			void SendMessageMessageHandler (const uint8_t * buf, size_t len);
+			void SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len);
 			void HostLookupMessageHandler (const uint8_t * buf, size_t len);
 			void DestLookupMessageHandler (const uint8_t * buf, size_t len);
 
