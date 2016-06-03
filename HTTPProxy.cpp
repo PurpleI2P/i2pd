@@ -191,7 +191,7 @@ namespace proxy {
 		SanitizeHTTPRequest(req);
 
 		std::string dest_host = url.host;
-		uint16_t    dest_host = url.port;
+		uint16_t    dest_port = url.port;
 		/* convert proxy-style http req to ordinary one: */
 		/* 1) replace Host header, 2) make relative url */
 		req.add_header("Host", url.host, true);
