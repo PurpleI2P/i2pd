@@ -40,6 +40,8 @@ namespace client
 	const uint8_t I2CP_MESSAGE_STATUS_MESSAGE = 22;	
 	const uint8_t I2CP_HOST_LOOKUP_MESSAGE = 38;
 	const uint8_t I2CP_HOST_REPLY_MESSAGE = 39;		
+	const uint8_t I2CP_DEST_LOOKUP_MESSAGE = 34;
+	const uint8_t I2CP_DEST_REPLY_MESSAGE = 35;	
 
 	enum I2CPMessageStatus
 	{
@@ -111,6 +113,7 @@ namespace client
 			void CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len);
 			void SendMessageMessageHandler (const uint8_t * buf, size_t len);
 			void HostLookupMessageHandler (const uint8_t * buf, size_t len);
+			void DestLookupMessageHandler (const uint8_t * buf, size_t len);
 
 		private:
 			

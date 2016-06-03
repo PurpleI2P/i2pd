@@ -307,7 +307,7 @@ namespace client
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{	
 			bool isPublic = true;
-			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "false") isPublic = false;
+			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "true") isPublic = false;
 			m_Destination = std::make_shared<I2CPDestination>(*this, identity, isPublic, params);
 			m_Destination->Start ();
 			SendSessionStatusMessage (1); // created
@@ -459,6 +459,43 @@ namespace client
 		}	
 	}
 
+	void I2CPSession::DestLookupMessageHandler (const uint8_t * buf, size_t len)
+	{
+		if (m_Destination)
+		{
+			auto ls = m_Destination->FindLeaseSet (buf);
+			if (ls)
+			{	
+				auto l = ls->GetIdentity ()->GetFullLen ();
+				uint8_t * identBuf = new uint8_t[l];
+				ls->GetIdentity ()->ToBuffer (identBuf, l);
+				SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, identBuf, l);
+				delete[] identBuf;
+			}
+			else
+			{
+				auto s = shared_from_this ();
+				i2p::data::IdentHash ident (buf);
+				m_Destination->RequestDestination (ident,
+					[s, ident](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+					{
+						if (leaseSet) // found
+						{
+							auto l = leaseSet->GetIdentity ()->GetFullLen ();
+							uint8_t * identBuf = new uint8_t[l];
+							leaseSet->GetIdentity ()->ToBuffer (identBuf, l);
+							s->SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, identBuf, l);
+							delete[] identBuf;
+						}
+						else
+							s->SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, ident, 32); // not found
+					});
+			}
+		}
+		else
+			SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, buf, 32); 
+	}	
+
 	void I2CPSession::SendMessagePayloadMessage (const uint8_t * payload, size_t len)
 	{
 		// we don't use SendI2CPMessage to eliminate additional copy
@@ -485,7 +522,8 @@ namespace client
 		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;
-		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;	
+		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;
+		m_MessagesHandlers[I2CP_DEST_LOOKUP_MESSAGE] = &I2CPSession::DestLookupMessageHandler;	
 	}
 
 	I2CPServer::~I2CPServer ()
