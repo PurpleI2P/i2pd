@@ -14,6 +14,7 @@
 #include "Timestamp.h"
 #include "LeaseSet.h"
 #include "ClientContext.h"
+#include "Transports.h"
 #include "I2CP.h"
 
 namespace i2p
@@ -241,7 +242,7 @@ namespace client
 	{
 		uint8_t l = buf[0];
 		if (l > len) l = len;
-		return std::string ((const char *)buf, l);
+		return std::string ((const char *)(buf + 1), l);
 	}
 
 	size_t I2CPSession::PutString (uint8_t * buf, size_t len, const std::string& str)
@@ -502,6 +503,15 @@ namespace client
 			SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, buf, 32); 
 	}	
 
+	void I2CPSession::GetBandwidthLimitsMessageHandler (const uint8_t * buf, size_t len)
+	{
+		uint8_t limits[64];
+		memset (limits, 0, 64);
+		htobe32buf (limits, i2p::transport::transports.GetInBandwidth ()); // inbound
+		htobe32buf (limits + 4, i2p::transport::transports.GetOutBandwidth ()); // outbound
+		SendI2CPMessage (I2CP_BANDWIDTH_LIMITS_MESSAGE, limits, 64);
+	}
+
 	void I2CPSession::SendMessagePayloadMessage (const uint8_t * payload, size_t len)
 	{
 		// we don't use SendI2CPMessage to eliminate additional copy
@@ -531,6 +541,7 @@ namespace client
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_EXPIRES_MESSAGE] = &I2CPSession::SendMessageExpiresMessageHandler;	
 		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;
 		m_MessagesHandlers[I2CP_DEST_LOOKUP_MESSAGE] = &I2CPSession::DestLookupMessageHandler;	
+		m_MessagesHandlers[I2CP_GET_BANDWIDTH_LIMITS_MESSAGE] = &I2CPSession::GetBandwidthLimitsMessageHandler;	
 	}
 
 	I2CPServer::~I2CPServer ()

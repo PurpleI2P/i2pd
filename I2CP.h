@@ -43,6 +43,8 @@ namespace client
 	const uint8_t I2CP_HOST_REPLY_MESSAGE = 39;		
 	const uint8_t I2CP_DEST_LOOKUP_MESSAGE = 34;
 	const uint8_t I2CP_DEST_REPLY_MESSAGE = 35;	
+	const uint8_t I2CP_GET_BANDWIDTH_LIMITS_MESSAGE = 8;	
+	const uint8_t I2CP_BANDWIDTH_LIMITS_MESSAGE = 23;
 
 	enum I2CPMessageStatus
 	{
@@ -116,6 +118,7 @@ namespace client
 			void SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len);
 			void HostLookupMessageHandler (const uint8_t * buf, size_t len);
 			void DestLookupMessageHandler (const uint8_t * buf, size_t len);
+			void GetBandwidthLimitsMessageHandler (const uint8_t * buf, size_t len);
 
 		private:
 			
