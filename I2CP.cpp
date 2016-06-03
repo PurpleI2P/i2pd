@@ -354,6 +354,7 @@ namespace client
 			size_t offset = 2;
 			if (m_Destination)
 			{
+				offset += m_Destination->GetIdentity ()->GetSigningPrivateKeyLen (); // skip signing private key
 				m_Destination->SetEncryptionPrivateKey (buf + offset);
 				offset += 256;
 				m_Destination->LeaseSetCreated (buf + offset, len - offset);
