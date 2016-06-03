@@ -66,11 +66,11 @@ namespace client
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
 			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce); // called from I2CPSession
 
-		protected:
-
 			// implements LocalDestination
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
+
+		protected:
 
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
