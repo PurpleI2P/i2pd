@@ -189,6 +189,12 @@ namespace proxy {
 			return true;
 		}
 		SanitizeHTTPRequest(req);
+		/* convert proxy-style http req to ordinary one: */
+		/* 1) replace Host header, 2) make relative url */
+		req.add_header("Host", url.host, true);
+		url.schema = "";
+		url.host   = "";
+		req.uri = url.to_string();
 
 		/* drop original request from input buffer */
 		m_recv_buf.erase(m_recv_buf.begin(), m_recv_buf.begin() + req_len);
