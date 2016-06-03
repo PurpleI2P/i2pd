@@ -21,7 +21,7 @@ namespace i2p
 {
 namespace client
 {
-	const uint8_t I2CP_PRTOCOL_BYTE = 0x2A;
+	const uint8_t I2CP_PROTOCOL_BYTE = 0x2A;
 	const size_t I2CP_SESSION_BUFFER_SIZE = 4096;
 
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
@@ -36,10 +36,13 @@ namespace client
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
 	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
 	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;
+	const uint8_t I2CP_SEND_MESSAGE_EXPIRES_MESSAGE = 36;	
 	const uint8_t I2CP_MESSAGE_PAYLOAD_MESSAGE = 31;
 	const uint8_t I2CP_MESSAGE_STATUS_MESSAGE = 22;	
 	const uint8_t I2CP_HOST_LOOKUP_MESSAGE = 38;
 	const uint8_t I2CP_HOST_REPLY_MESSAGE = 39;		
+	const uint8_t I2CP_DEST_LOOKUP_MESSAGE = 34;
+	const uint8_t I2CP_DEST_REPLY_MESSAGE = 35;	
 
 	enum I2CPMessageStatus
 	{
@@ -49,12 +52,15 @@ namespace client
 		eI2CPMessageStatusNoLeaseSet = 21
 	};
 
+	// params
+	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet ";	
+
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
 	{
 		public:
 
-			I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic);
+			I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
 
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
@@ -107,7 +113,9 @@ namespace client
 			void DestroySessionMessageHandler (const uint8_t * buf, size_t len);
 			void CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len);
 			void SendMessageMessageHandler (const uint8_t * buf, size_t len);
+			void SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len);
 			void HostLookupMessageHandler (const uint8_t * buf, size_t len);
+			void DestLookupMessageHandler (const uint8_t * buf, size_t len);
 
 		private:
 			
@@ -120,6 +128,7 @@ namespace client
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf);
 			std::string ExtractString (const uint8_t * buf, size_t len);
 			size_t PutString (uint8_t * buf, size_t len, const std::string& str);
+			void ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping);
 
 			void SendSessionStatusMessage (uint8_t status);
 			void SendHostReplyMessage (uint32_t requestID, std::shared_ptr<const i2p::data::IdentityEx> identity);

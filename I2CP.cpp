@@ -13,6 +13,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "LeaseSet.h"
+#include "ClientContext.h"
 #include "I2CP.h"
 
 namespace i2p
@@ -20,8 +21,8 @@ namespace i2p
 namespace client
 {
 
-	I2CPDestination::I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic): 
-		LeaseSetDestination (isPublic), m_Owner (owner), m_Identity (identity) 
+	I2CPDestination::I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params): 
+		LeaseSetDestination (isPublic, &params), m_Owner (owner), m_Identity (identity) 
 	{
 	}
 
@@ -141,7 +142,7 @@ namespace client
 			m_Socket->async_read_some (boost::asio::buffer (m_Buffer, 1), 
 				[s](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 				    {
-						if (!ecode && bytes_transferred > 0 && s->m_Buffer[0] == I2CP_PRTOCOL_BYTE)
+						if (!ecode && bytes_transferred > 0 && s->m_Buffer[0] == I2CP_PROTOCOL_BYTE)
 							s->Receive ();
 						else
 							s->Terminate ();
@@ -253,6 +254,30 @@ namespace client
 		return l + 1;
 	}
 
+	void I2CPSession::ExtractMapping (const uint8_t * buf, size_t len, std::map<std::string, std::string>& mapping)
+	// TODO: move to Base.cpp
+	{
+		size_t offset = 0;
+		while (offset < len)
+		{
+			auto semicolon = (const uint8_t *)memchr (buf + offset, ';', len - offset);
+			if (semicolon)
+			{
+				auto l = semicolon - buf - offset + 1; 
+				auto equal = (const uint8_t *)memchr (buf + offset, '=', l);
+				if (equal)
+				{
+					auto l1 = equal - buf - offset + 1;
+					mapping.insert (std::make_pair (std::string ((const char *)(buf + offset), l1 -1), 
+						std::string ((const char *)(buf + offset + l1), l - l1 - 2)));
+				}
+				offset += l;
+			}
+			else
+				break;
+		}
+	}
+
 	void I2CPSession::GetDateMessageHandler (const uint8_t * buf, size_t len)
 	{
 		// get version
@@ -274,12 +299,16 @@ namespace client
 		size_t offset = identity->FromBuffer (buf, len);
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
-		// TODO: extract options
+		
+		std::map<std::string, std::string> params;
+		ExtractMapping (buf + offset, optionsSize, params);		
 		offset += optionsSize;
 		offset += 8; // date
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{	
-			m_Destination = std::make_shared<I2CPDestination>(*this, identity, false);
+			bool isPublic = true;
+			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "true") isPublic = false;
+			m_Destination = std::make_shared<I2CPDestination>(*this, identity, isPublic, params);
 			m_Destination->Start ();
 			SendSessionStatusMessage (1); // created
 			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");	
@@ -355,6 +384,11 @@ namespace client
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
 	}
 
+	void I2CPSession::SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len)
+	{
+		SendMessageMessageHandler (buf, len - 8); // ignore flags(2) and expiration(6) 
+	}	
+
 	void I2CPSession::HostLookupMessageHandler (const uint8_t * buf, size_t len)
 	{
 		uint16_t sessionID = bufbe16toh (buf);
@@ -362,31 +396,46 @@ namespace client
 		{
 			uint32_t requestID = bufbe32toh (buf + 2);
 			//uint32_t timeout = bufbe32toh (buf + 6);
-			if (!buf[10]) // request type = 0 (hash)
+			i2p::data::IdentHash ident;
+			switch (buf[10]) 
 			{
-				if (m_Destination)
+				case 0: // hash
+					ident = i2p::data::IdentHash (buf + 11);
+				break;
+				case 1: // address
 				{
-					auto ls = m_Destination->FindLeaseSet (buf + 11);
-					if (ls)
-						SendHostReplyMessage (requestID, ls->GetIdentity ());
-					else
+					auto name = ExtractString (buf + 11, len - 11);
+					if (!i2p::client::context.GetAddressBook ().GetIdentHash (name, ident))
 					{
-						auto s = shared_from_this ();
-						m_Destination->RequestDestination (buf + 11,
-							[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
-							{
-								s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
-							});
-					}		
+						LogPrint (eLogError, "I2CP: address ", name, " not found");
+						SendHostReplyMessage (requestID, nullptr);
+						return;
+					}
+					break;	
 				}
-				else
+				default:
+					LogPrint (eLogError, "I2CP: request type ", (int)buf[10], " is not supported");
 					SendHostReplyMessage (requestID, nullptr);
+					return;
+			}
+
+			if (m_Destination)
+			{
+				auto ls = m_Destination->FindLeaseSet (ident);
+				if (ls)
+					SendHostReplyMessage (requestID, ls->GetIdentity ());
+				else
+				{
+					auto s = shared_from_this ();
+					m_Destination->RequestDestination (ident,
+						[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+						{
+							s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
+						});
+				}		
 			}
 			else
-			{
-				LogPrint (eLogError, "I2CP: request type ", (int)buf[8], " is not supported");
 				SendHostReplyMessage (requestID, nullptr);
-			}
 		}	
 		else
 			LogPrint (eLogError, "I2CP: unexpected sessionID ", sessionID);
@@ -415,6 +464,43 @@ namespace client
 		}	
 	}
 
+	void I2CPSession::DestLookupMessageHandler (const uint8_t * buf, size_t len)
+	{
+		if (m_Destination)
+		{
+			auto ls = m_Destination->FindLeaseSet (buf);
+			if (ls)
+			{	
+				auto l = ls->GetIdentity ()->GetFullLen ();
+				uint8_t * identBuf = new uint8_t[l];
+				ls->GetIdentity ()->ToBuffer (identBuf, l);
+				SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, identBuf, l);
+				delete[] identBuf;
+			}
+			else
+			{
+				auto s = shared_from_this ();
+				i2p::data::IdentHash ident (buf);
+				m_Destination->RequestDestination (ident,
+					[s, ident](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
+					{
+						if (leaseSet) // found
+						{
+							auto l = leaseSet->GetIdentity ()->GetFullLen ();
+							uint8_t * identBuf = new uint8_t[l];
+							leaseSet->GetIdentity ()->ToBuffer (identBuf, l);
+							s->SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, identBuf, l);
+							delete[] identBuf;
+						}
+						else
+							s->SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, ident, 32); // not found
+					});
+			}
+		}
+		else
+			SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, buf, 32); 
+	}	
+
 	void I2CPSession::SendMessagePayloadMessage (const uint8_t * payload, size_t len)
 	{
 		// we don't use SendI2CPMessage to eliminate additional copy
@@ -441,7 +527,9 @@ namespace client
 		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;
-		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;	
+		m_MessagesHandlers[I2CP_SEND_MESSAGE_EXPIRES_MESSAGE] = &I2CPSession::SendMessageExpiresMessageHandler;	
+		m_MessagesHandlers[I2CP_HOST_LOOKUP_MESSAGE] = &I2CPSession::HostLookupMessageHandler;
+		m_MessagesHandlers[I2CP_DEST_LOOKUP_MESSAGE] = &I2CPSession::DestLookupMessageHandler;	
 	}
 
 	I2CPServer::~I2CPServer ()

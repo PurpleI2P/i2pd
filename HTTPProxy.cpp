@@ -190,6 +190,15 @@ namespace proxy {
 		}
 		SanitizeHTTPRequest(req);
 
+		std::string dest_host = url.host;
+		uint16_t    dest_port = url.port;
+		/* convert proxy-style http req to ordinary one: */
+		/* 1) replace Host header, 2) make relative url */
+		req.add_header("Host", url.host, true);
+		url.schema = "";
+		url.host   = "";
+		req.uri = url.to_string();
+
 		/* drop original request from input buffer */
 		m_recv_buf.erase(m_recv_buf.begin(), m_recv_buf.begin() + req_len);
 
@@ -200,7 +209,7 @@ namespace proxy {
 
 		/* connect to destination */
 		GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
-			shared_from_this(), std::placeholders::_1), url.host, url.port);
+			shared_from_this(), std::placeholders::_1), dest_host, dest_port);
 
 		return true;
 	}
