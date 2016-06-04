@@ -137,8 +137,24 @@ namespace proxy {
 	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq & req)
 	{
 		req.del_header("Referer");
-		req.add_header("Connection", "close", true);
-		req.add_header("User-Agent", "MYOB/6.66 (AN/ON)", true);
+		req.del_header("Via");
+		req.del_header("Forwarded");
+		std::vector<std::string> toErase;
+		for (auto it : req.headers) {
+			if (it.first.compare(0, 12, "X-Forwarded-")) {
+				toErase.push_back(it.first);
+			} else if (it.first.compare(0, 6, "Proxy-")) {
+				toErase.push_back(it.first);
+			} else {
+				/* allow this header */
+			}
+		}
+		for (auto header : toErase) {
+			req.headers.erase(header);
+		}
+		/* replace headers */
+		req.add_header("Connection", "close", true); /* keep-alive conns not supported yet */
+		req.add_header("User-Agent", "MYOB/6.66 (AN/ON)", true); /* privacy */
 	}
 
 	/**
