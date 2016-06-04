@@ -224,8 +224,10 @@ namespace proxy {
 			return;
 		}
 
-		if (HandleRequest(len))
+		if (HandleRequest(len)) {
+			m_recv_buf.clear();
 			return; /* request processed */
+		}
 		AsyncSockRead();
 	}
 
