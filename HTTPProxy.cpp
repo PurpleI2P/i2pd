@@ -192,9 +192,28 @@ namespace proxy {
 
 		std::string dest_host = url.host;
 		uint16_t    dest_port = url.port;
-		/* convert proxy-style http req to ordinary one: */
-		/* 1) replace Host header, 2) make relative url */
-		req.add_header("Host", url.host, true);
+		/* set proper 'Host' header in upstream request */
+		auto h = req.headers.find("Host");
+		if (dest_host != "") {
+			/* absolute url, replace 'Host' header */
+			std::string h = dest_host;
+			if (dest_port != 0 && dest_port != 80)
+				h += ":" + std::to_string(dest_port);
+			req.add_header("Host", h, true);
+		} else if (h != req.headers.end()) {
+			/* relative url and 'Host' header provided. transparent proxy mode? */
+			i2p::http::URL u;
+			std::string t = "http://" + h->second;
+			u.parse(t);
+			dest_host = u.host;
+			dest_port = u.port;
+		} else {
+			/* relative url and missing 'Host' header */
+			std::string message = "Can't detect destination host from request";
+			HTTPRequestFailed(message.c_str());
+			return true;
+		}
+		/* make relative url */
 		url.schema = "";
 		url.host   = "";
 		req.uri = url.to_string();
