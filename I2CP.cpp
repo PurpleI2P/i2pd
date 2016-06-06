@@ -328,6 +328,12 @@ namespace client
 		Terminate ();
 	}
 
+	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len)
+	{
+		// TODO: implement actual reconfiguration
+		SendSessionStatusMessage (2); // updated
+	}	
+
 	void I2CPSession::SendSessionStatusMessage (uint8_t status)
 	{
 		uint8_t buf[3];
@@ -536,6 +542,7 @@ namespace client
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE] = &I2CPSession::CreateSessionMessageHandler;
 		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
+		m_MessagesHandlers[I2CP_RECONFIGURE_SESSION_MESSAGE] = &I2CPSession::ReconfigureSessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_EXPIRES_MESSAGE] = &I2CPSession::SendMessageExpiresMessageHandler;	

@@ -31,6 +31,7 @@ namespace client
 	const uint8_t I2CP_GET_DATE_MESSAGE = 32;
 	const uint8_t I2CP_SET_DATE_MESSAGE = 33;
 	const uint8_t I2CP_CREATE_SESSION_MESSAGE = 1;
+	const uint8_t I2CP_RECONFIGURE_SESSION_MESSAGE = 2;	
 	const uint8_t I2CP_SESSION_STATUS_MESSAGE = 20;	
 	const uint8_t I2CP_DESTROY_SESSION_MESSAGE = 3;
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
@@ -113,6 +114,7 @@ namespace client
 			void GetDateMessageHandler (const uint8_t * buf, size_t len);
 			void CreateSessionMessageHandler (const uint8_t * buf, size_t len);
 			void DestroySessionMessageHandler (const uint8_t * buf, size_t len);
+			void ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len);
 			void CreateLeaseSetMessageHandler (const uint8_t * buf, size_t len);
 			void SendMessageMessageHandler (const uint8_t * buf, size_t len);
 			void SendMessageExpiresMessageHandler (const uint8_t * buf, size_t len);
