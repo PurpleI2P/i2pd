@@ -178,6 +178,7 @@ namespace client
 					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, offset);
 					HandleNextMessage (m_NextMessage);
 					delete[] m_NextMessage;
+					m_NextMessage = nullptr
 				}
 			}	
 			while (offset < bytes_transferred)
