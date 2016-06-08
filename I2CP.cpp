@@ -276,21 +276,24 @@ namespace client
 		size_t offset = 0;
 		while (offset < len)
 		{
-			auto semicolon = (const uint8_t *)memchr (buf + offset, ';', len - offset);
-			if (semicolon)
+			std::string param = ExtractString (buf + offset, len - offset);
+			offset += param.length ();
+			if (buf[offset] != '=') 
 			{
-				auto l = semicolon - buf - offset + 1; 
-				auto equal = (const uint8_t *)memchr (buf + offset, '=', l);
-				if (equal)
-				{
-					auto l1 = equal - buf - offset + 1;
-					mapping.insert (std::make_pair (std::string ((const char *)(buf + offset), l1 -1), 
-						std::string ((const char *)(buf + offset + l1), l - l1 - 2)));
-				}
-				offset += l;
-			}
-			else
-				break;
+				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead '=' after ", param);
+				break;	
+			}				
+			offset++;
+
+			std::string value = ExtractString (buf + offset, len - offset);
+			offset += value.length ();
+			if (buf[offset] != ';') 
+			{
+				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead ';' after ", value);
+				break;	
+			}				
+			offset++;
+			mapping.insert (std::make_pair (param, value));
 		}
 	}
 
