@@ -15,6 +15,7 @@
 #include "LeaseSet.h"
 #include "ClientContext.h"
 #include "Transports.h"
+#include "Signature.h"
 #include "I2CP.h"
 
 namespace i2p
@@ -361,7 +362,10 @@ namespace client
 			size_t offset = 2;
 			if (m_Destination)
 			{
-				offset += m_Destination->GetIdentity ()->GetSigningPrivateKeyLen (); // skip signing private key
+				offset += i2p::crypto::DSA_PRIVATE_KEY_LENGTH; // skip signing private key
+				// we always assume this field as 20 bytes (DSA) regardless actual size
+				// instead of 	
+				//offset += m_Destination->GetIdentity ()->GetSigningPrivateKeyLen (); 
 				m_Destination->SetEncryptionPrivateKey (buf + offset);
 				offset += 256;
 				m_Destination->LeaseSetCreated (buf + offset, len - offset);
