@@ -23,7 +23,7 @@ namespace i2p
 namespace client
 {
 
-	I2CPDestination::I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params): 
+	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params): 
 		LeaseSetDestination (isPublic, &params), m_Owner (owner), m_Identity (identity) 
 	{
 	}
@@ -37,7 +37,7 @@ namespace client
 	{
 		uint32_t length = bufbe32toh (buf);
 		if (length > len - 4) length = len - 4;
-		m_Owner.SendMessagePayloadMessage (buf + 4, length);
+		m_Owner->SendMessagePayloadMessage (buf + 4, length);
 	}
 
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) 
@@ -46,9 +46,9 @@ namespace client
 		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
 		uint8_t * leases = ls.GetLeases ();
 		leases[-1] = tunnels.size ();
-		htobe16buf (leases - 3, m_Owner.GetSessionID ());
+		htobe16buf (leases - 3, m_Owner->GetSessionID ());
 		size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
-		m_Owner.SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l); 
+		m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l); 
 	}
 	
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
@@ -78,10 +78,10 @@ namespace client
 					if (ls)
 					{ 
 						bool sent = s->SendMsg (msg, ls);
-						s->m_Owner.SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+						s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
 					}
 					else
-						s->m_Owner.SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLeaseSet);
+						s->m_Owner->SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLeaseSet);
 				});
 		}
 	}
@@ -134,6 +134,7 @@ namespace client
 
 	void I2CPSession::Stop ()
 	{
+		Terminate ();
 	}
 
 	void I2CPSession::ReadProtocolByte ()
@@ -327,7 +328,7 @@ namespace client
 		{	
 			bool isPublic = true;
 			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "true") isPublic = false;
-			m_Destination = std::make_shared<I2CPDestination>(*this, identity, isPublic, params);
+			m_Destination = std::make_shared<I2CPDestination>(shared_from_this (), identity, isPublic, params);
 			m_Destination->Start ();
 			SendSessionStatusMessage (1); // created
 			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");	
