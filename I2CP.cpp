@@ -164,26 +164,34 @@ namespace client
 			Terminate ();
 		else
 		{
-			size_t offset = 0;
+			size_t offset = 0; // from m_Buffer
 			if (m_NextMessage)
 			{
 				if (m_NextMessageOffset + bytes_transferred <= m_NextMessageLen)
 				{
 					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, bytes_transferred);
 					m_NextMessageOffset += bytes_transferred;
+					offset = bytes_transferred;
 				}	
 				else
 				{
+					// m_NextMessage complete
 					offset = m_NextMessageLen - m_NextMessageOffset;
 					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, offset);
 					HandleNextMessage (m_NextMessage);
 					delete[] m_NextMessage;
-					m_NextMessage = nullptr
+					m_NextMessage = nullptr;
 				}
 			}	
 			while (offset < bytes_transferred)
 			{
 				auto msgLen = bufbe32toh (m_Buffer + offset + I2CP_HEADER_LENGTH_OFFSET) + I2CP_HEADER_SIZE;
+				if (msgLen > 0xFFFF) // 64K
+				{
+					LogPrint (eLogError, "I2CP: message length ", msgLen, " exceeds 64K. Terminated");
+					Terminate ();
+					return;
+				}
 				if (msgLen <= bytes_transferred - offset)
 				{
 					HandleNextMessage (m_Buffer + offset);
@@ -217,6 +225,11 @@ namespace client
 		{
 			m_Destination->Stop ();
 			m_Destination = nullptr;
+		}
+		if (m_Socket)
+		{
+			m_Socket->close ();
+			m_Socket = nullptr;
 		}
 		m_Owner.RemoveSession (GetSessionID ());
 	}
