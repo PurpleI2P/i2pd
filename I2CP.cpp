@@ -15,6 +15,7 @@
 #include "LeaseSet.h"
 #include "ClientContext.h"
 #include "Transports.h"
+#include "Signature.h"
 #include "I2CP.h"
 
 namespace i2p
@@ -328,6 +329,12 @@ namespace client
 		Terminate ();
 	}
 
+	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len)
+	{
+		// TODO: implement actual reconfiguration
+		SendSessionStatusMessage (2); // updated
+	}	
+
 	void I2CPSession::SendSessionStatusMessage (uint8_t status)
 	{
 		uint8_t buf[3];
@@ -355,7 +362,10 @@ namespace client
 			size_t offset = 2;
 			if (m_Destination)
 			{
-				offset += m_Destination->GetIdentity ()->GetSigningPrivateKeyLen (); // skip signing private key
+				offset += i2p::crypto::DSA_PRIVATE_KEY_LENGTH; // skip signing private key
+				// we always assume this field as 20 bytes (DSA) regardless actual size
+				// instead of 	
+				//offset += m_Destination->GetIdentity ()->GetSigningPrivateKeyLen (); 
 				m_Destination->SetEncryptionPrivateKey (buf + offset);
 				offset += 256;
 				m_Destination->LeaseSetCreated (buf + offset, len - offset);
@@ -536,6 +546,7 @@ namespace client
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_SESSION_MESSAGE] = &I2CPSession::CreateSessionMessageHandler;
 		m_MessagesHandlers[I2CP_DESTROY_SESSION_MESSAGE] = &I2CPSession::DestroySessionMessageHandler;
+		m_MessagesHandlers[I2CP_RECONFIGURE_SESSION_MESSAGE] = &I2CPSession::ReconfigureSessionMessageHandler;
 		m_MessagesHandlers[I2CP_CREATE_LEASESET_MESSAGE] = &I2CPSession::CreateLeaseSetMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_MESSAGE] = &I2CPSession::SendMessageMessageHandler;
 		m_MessagesHandlers[I2CP_SEND_MESSAGE_EXPIRES_MESSAGE] = &I2CPSession::SendMessageExpiresMessageHandler;	

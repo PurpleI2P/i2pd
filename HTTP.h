@@ -69,7 +69,6 @@ namespace http {
     std::string version;
     std::string method;
     std::string uri;
-    std::string host;
 
     HTTPReq (): version("HTTP/1.0"), method("GET"), uri("/") {};
 
