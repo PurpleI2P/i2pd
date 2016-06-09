@@ -223,6 +223,8 @@ namespace proxy {
 			u.parse(t);
 			dest_host = u.host;
 			dest_port = u.port;
+			if (dest_port == 0)
+				dest_port = 80; /* always set port for CreateStream() */
 		} else {
 			/* relative url and missing 'Host' header */
 			std::string message = "Can't detect destination host from request";
