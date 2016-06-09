@@ -341,9 +341,9 @@ namespace stream
 				htobe32buf (packet + size, m_SequenceNumber++);
 				size += 4; // sequenceNum
 				if (isNoAck)			
-					htobe32buf (packet + size, m_LastReceivedSequenceNumber);
-				else
 					htobuf32 (packet + size, 0);
+				else
+					htobe32buf (packet + size, m_LastReceivedSequenceNumber);
 				size += 4; // ack Through
 				packet[size] = 0; 
 				size++; // NACK count
