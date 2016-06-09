@@ -232,6 +232,11 @@ namespace stream
 		bool acknowledged = false;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t ackThrough = packet->GetAckThrough ();
+		if (ackThrough > m_SequenceNumber)
+		{
+			LogPrint (eLogError, "Streaming: Unexpected ackThrough=", ackThrough, " > seqn=", m_SequenceNumber);
+			return;
+		}	
 		int nackCount = packet->GetNACKCount ();
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
 		{			
@@ -521,7 +526,7 @@ namespace stream
 		size += 4; // receiveStreamID
 		htobe32buf (packet + size, m_SequenceNumber++);
 		size += 4; // sequenceNum
-		htobe32buf (packet + size, m_LastReceivedSequenceNumber);
+		htobe32buf (packet + size, m_LastReceivedSequenceNumber >= 0 ?  m_LastReceivedSequenceNumber : 0);
 		size += 4; // ack Through
 		packet[size] = 0; 
 		size++; // NACK count
