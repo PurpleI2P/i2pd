@@ -358,7 +358,7 @@ namespace tunnel
 	
 	std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel ()
 	{
-		if (!m_OutboundTunnels.size ()) return nullptr;
+		if (m_OutboundTunnels.empty ()) return nullptr;
 		uint32_t ind = rand () % m_OutboundTunnels.size (), i = 0;
 		std::shared_ptr<OutboundTunnel> tunnel;
 		for (auto it: m_OutboundTunnels)

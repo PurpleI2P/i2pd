@@ -76,6 +76,7 @@ $(ARLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
 
 clean:
 	rm -rf obj
+	rm -rf docs/generated
 	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 
 strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
@@ -86,9 +87,13 @@ dist:
 	git archive --format=tar.gz -9 --worktree-attributes \
 	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz
 
+doxygen:
+	doxygen -s docs/Doxyfile
+
 .PHONY: all
 .PHONY: clean
 .PHONY: deps
+.PHONY: doxygen
 .PHONY: dist
 .PHONY: api
 .PHONY: api_client

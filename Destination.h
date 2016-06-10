@@ -81,10 +81,6 @@ namespace client
 			bool RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete = nullptr);
 			void CancelDestinationRequest (const i2p::data::IdentHash& dest);	
 
-			// implements LocalDestination			
-			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionPublicKey; };
-
 			// implements GarlicDestination
 			std::shared_ptr<const i2p::data::LocalLeaseSet> GetLeaseSet ();
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () const { return m_Pool; }
@@ -98,8 +94,10 @@ namespace client
 
 		protected:
 
+			void SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet);
 			// I2CP
 			virtual void HandleDataMessage (const uint8_t * buf, size_t len) = 0;
+			virtual void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) = 0;
 			
 		private:
 				
@@ -117,12 +115,8 @@ namespace client
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
 			void HandleCleanupTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();			
-
-			void PersistTemporaryKeys ();
 			
 		private:
-
-			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 
 			volatile bool m_IsRunning;
 			std::thread * m_Thread;	
@@ -156,7 +150,8 @@ namespace client
 			bool Stop ();
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
-
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };	
+			
 			// streaming
 			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional
 			std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination (int port = 0) const;
@@ -166,28 +161,31 @@ namespace client
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;
-			
+
 			// datagram
 			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
 			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 			
-			// implements LocalDestination
-			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }; 	
+			// implements LocalDestination		
+			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
+			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };			
 
 		protected:
 			
 			// I2CP
 			void HandleDataMessage (const uint8_t * buf, size_t len);
+			void CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels);
 			
 		private:
 
 			std::shared_ptr<ClientDestination> GetSharedFromThis ()
-			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }  			
+			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }   
+			void PersistTemporaryKeys ();
 
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
+			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;

@@ -253,21 +253,12 @@ namespace http {
       if (pos >= eoh)
         break;
     }
-    auto it = headers.find("Host");
-    if (it != headers.end ()) {
-      host = it->second;
-    } else if (version == "HTTP/1.1") {
-      return -1; /* 'Host' header required for HTTP/1.1 */
-    } else if (url.host != "") {
-      host = url.host;
-    }
     return eoh + strlen(HTTP_EOH);
   }
 
   std::string HTTPReq::to_string() {
     std::stringstream ss;
     ss << method << " " << uri << " " << version << CRLF;
-    ss << "Host: " << host << CRLF;
     for (auto & h : headers) {
       ss << h.first << ": " << h.second << CRLF;
     }
@@ -406,11 +397,10 @@ namespace http {
 
   bool MergeChunkedResponse (std::istream& in, std::ostream& out) {
     std::string hexLen;
-    long int len;
     while (!in.eof ()) {
       std::getline (in, hexLen);
       errno = 0;
-      len = strtoul(hexLen.c_str(), (char **) NULL, 16);
+      long int len = strtoul(hexLen.c_str(), (char **) NULL, 16);
       if (errno != 0)
         return false; /* conversion error */
       if (len == 0)

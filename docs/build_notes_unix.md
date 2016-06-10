@@ -46,7 +46,6 @@ sudo apt-get install \
     libboost-date-time-dev \
     libboost-filesystem-dev \
     libboost-program-options-dev \
-    libboost-regex-dev \
     libboost-system-dev \
     libboost-thread-dev \
     libssl-dev

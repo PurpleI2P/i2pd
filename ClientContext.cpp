@@ -114,6 +114,24 @@ namespace client
 			}
 		} 
 
+		// I2CP
+		bool i2cp; i2p::config::GetOption("i2cp.enabled", i2cp);
+		if (i2cp) 
+		{
+			std::string i2cpAddr; i2p::config::GetOption("i2cp.address", i2cpAddr);
+			uint16_t i2cpPort; i2p::config::GetOption("i2cp.port", i2cpPort);
+			LogPrint(eLogInfo, "Clients: starting I2CP at ", i2cpAddr, ":", i2cpPort);
+			try 
+			{
+				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort);
+			  	m_I2CPServer->Start ();
+			} 
+			catch (std::exception& e) 
+			{
+				LogPrint(eLogError, "Clients: Exception in I2CP: ", e.what());
+			}
+		} 
+
 		m_AddressBook.StartResolvers ();	
 	}
 		
@@ -163,6 +181,14 @@ namespace client
 			m_BOBCommandChannel->Stop ();
 			delete m_BOBCommandChannel; 
 			m_BOBCommandChannel = nullptr;
+		}
+
+		if (m_I2CPServer)
+		{
+			LogPrint(eLogInfo, "Clients: stopping I2CP");
+			m_I2CPServer->Stop ();
+			delete m_I2CPServer; 
+			m_I2CPServer = nullptr;
 		}
 
 		LogPrint(eLogInfo, "Clients: stopping AddressBook");

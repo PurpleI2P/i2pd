@@ -3,7 +3,6 @@
 
 namespace i2p {
 namespace http {
-	extern const char *itoopieImage;
 	extern const char *itoopieFavicon;
 	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
 

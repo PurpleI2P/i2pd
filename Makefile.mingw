@@ -13,7 +13,6 @@ LDLIBS = \
   -Wl,-Bstatic -lboost_system$(BOOST_SUFFIX) \
   -Wl,-Bstatic -lboost_date_time$(BOOST_SUFFIX) \
   -Wl,-Bstatic -lboost_filesystem$(BOOST_SUFFIX) \
-  -Wl,-Bstatic -lboost_regex$(BOOST_SUFFIX) \
   -Wl,-Bstatic -lboost_program_options$(BOOST_SUFFIX) \
   -Wl,-Bstatic -lssl \
   -Wl,-Bstatic -lcrypto \

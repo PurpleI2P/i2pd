@@ -125,7 +125,7 @@ install:
 - cd %BOOST_ROOT%
 - if defined msvc if not exist "stage%bitness%\lib\%boostlib%boost_system-vc%msvc%0-mt%boostdbg%*" (
     bootstrap > c:\projects\instdir\build_boost.log
-    && b2 toolset=msvc-%msvc%.0 %boost_variant% link=%type% runtime-link=%type% address-model=%bitness% --build-type=minimal --with-filesystem --with-program_options --with-regex --with-date_time --stagedir=stage%bitness% >> c:\projects\instdir\build_boost.log
+    && b2 toolset=msvc-%msvc%.0 %boost_variant% link=%type% runtime-link=%type% address-model=%bitness% --build-type=minimal --with-filesystem --with-program_options --with-date_time --stagedir=stage%bitness% >> c:\projects\instdir\build_boost.log
     || type c:\projects\instdir\build_boost.log
   )
 - if defined msvc if not exist C:\stage\OpenSSL-Win%bitness%-vc%msvc%-%type%\ (

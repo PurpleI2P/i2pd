@@ -1,6 +1,7 @@
 CXXFLAGS += -Wall -Wextra -pedantic -O0 -g -std=c++11 -D_GLIBCXX_USE_NANOSLEEP=1
 
-TESTS = test-http-url test-http-req test-http-res test-http-url_decode
+TESTS = test-http-url test-http-req test-http-res test-http-url_decode \
+  test-http-merge_chunked
 
 all: $(TESTS) run
 

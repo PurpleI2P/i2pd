@@ -130,10 +130,6 @@ namespace client
 		if (!m_IsRunning)
 		{	
 			m_IsRunning = true;
-			if (m_IsPublic)	
-				PersistTemporaryKeys ();
-			else
-				i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
 			m_Pool->SetLocalDestination (shared_from_this ());
 			m_Pool->SetActive (true);			
 			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
@@ -204,14 +200,21 @@ namespace client
 		return m_LeaseSet;
 	}	
 
+	void LeaseSetDestination::SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet)
+	{
+		m_LeaseSet.reset (newLeaseSet);
+		if (m_IsPublic)
+		{
+			m_PublishVerificationTimer.cancel ();
+			Publish ();
+		}
+	}	
+		
 	void LeaseSetDestination::UpdateLeaseSet ()
 	{
 		int numTunnels = m_Pool->GetNumInboundTunnels () + 2; // 2 backup tunnels 
 		if (numTunnels > i2p::data::MAX_NUM_LEASES) numTunnels = i2p::data::MAX_NUM_LEASES; // 16 tunnels maximum 
-		auto leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), GetEncryptionPublicKey (),
-			m_Pool->GetInboundTunnels (numTunnels));
-		Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); // TODO
-		m_LeaseSet.reset (leaseSet);
+		CreateNewLeaseSet (m_Pool->GetInboundTunnels (numTunnels));
 	}	
 
 	bool LeaseSetDestination::SubmitSessionKey (const uint8_t * key, const uint8_t * tag)
@@ -391,11 +394,6 @@ namespace client
 	{
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();	
 		UpdateLeaseSet ();
-		if (m_IsPublic)
-		{
-			m_PublishVerificationTimer.cancel ();
-			Publish ();
-		}
 	}
 		
 	void LeaseSetDestination::Publish ()
@@ -642,36 +640,16 @@ namespace client
 			else 
 				it++;
 		}
-	}
-
-	void LeaseSetDestination::PersistTemporaryKeys ()
-	{
-		std::string ident = GetIdentHash().ToBase32();
-		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
-		std::ifstream f(path, std::ifstream::binary);
-
-		if (f) {
-			f.read ((char *)m_EncryptionPublicKey,  256);
-			f.read ((char *)m_EncryptionPrivateKey, 256);
-			return;
-		}
-
-		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
-		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
-
-		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
-		if (f1) {
-			f1.write ((char *)m_EncryptionPublicKey,  256);
-			f1.write ((char *)m_EncryptionPrivateKey, 256);
-			return;
-		}
-		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
 	}	
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (isPublic, params),
 		m_Keys (keys), m_DatagramDestination (nullptr)
 	{
+		if (isPublic)	
+			PersistTemporaryKeys ();
+		else
+			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 	}	
@@ -839,6 +817,38 @@ namespace client
 			for (auto& it1: it.second->GetStreams ())
 				ret.push_back (it1.second);
 		return ret;
+	}	
+
+	void ClientDestination::PersistTemporaryKeys ()
+	{
+		std::string ident = GetIdentHash().ToBase32();
+		std::string path  = i2p::fs::DataDirPath("destinations", (ident + ".dat"));
+		std::ifstream f(path, std::ifstream::binary);
+
+		if (f) {
+			f.read ((char *)m_EncryptionPublicKey,  256);
+			f.read ((char *)m_EncryptionPrivateKey, 256);
+			return;
+		}
+
+		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
+		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+
+		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
+		if (f1) {
+			f1.write ((char *)m_EncryptionPublicKey,  256);
+			f1.write ((char *)m_EncryptionPrivateKey, 256);
+			return;
+		}
+		LogPrint(eLogError, "Destinations: Can't save keys to ", path);
+	}	
+
+	void ClientDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels)
+	{
+		auto leaseSet = new i2p::data::LocalLeaseSet (GetIdentity (), m_EncryptionPublicKey, tunnels);
+		// sign
+		Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); // TODO
+		SetLeaseSet (leaseSet);
 	}	
 }
 }
