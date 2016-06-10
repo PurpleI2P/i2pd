@@ -449,7 +449,7 @@ namespace client
 	void I2CPSession::HostLookupMessageHandler (const uint8_t * buf, size_t len)
 	{
 		uint16_t sessionID = bufbe16toh (buf);
-		if (sessionID == m_SessionID)
+		if (sessionID == m_SessionID || sessionID == 0xFFFF) // -1 means without session
 		{
 			uint32_t requestID = bufbe32toh (buf + 2);
 			//uint32_t timeout = bufbe32toh (buf + 6);
@@ -476,15 +476,17 @@ namespace client
 					return;
 			}
 
-			if (m_Destination)
+			std::shared_ptr<LeaseSetDestination> destination = m_Destination;
+			if(!destination) destination = i2p::client::context.GetSharedLocalDestination ();	
+			if (destination)
 			{
-				auto ls = m_Destination->FindLeaseSet (ident);
+				auto ls = destination->FindLeaseSet (ident);
 				if (ls)
 					SendHostReplyMessage (requestID, ls->GetIdentity ());
 				else
 				{
 					auto s = shared_from_this ();
-					m_Destination->RequestDestination (ident,
+					destination->RequestDestination (ident,
 						[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 						{
 							s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
