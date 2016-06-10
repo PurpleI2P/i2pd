@@ -117,9 +117,8 @@ namespace client
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
-		m_MessageID (0), m_IsSendAccepted (true)
+		m_SessionID (0), m_MessageID (0), m_IsSendAccepted (true)
 	{
-		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 	}
 		
 	I2CPSession::~I2CPSession ()
@@ -315,6 +314,7 @@ namespace client
 
 	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
 	{
+		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 		auto identity = std::make_shared<i2p::data::IdentityEx>();
 		size_t offset = identity->FromBuffer (buf, len);
 		if (!offset)
@@ -365,7 +365,11 @@ namespace client
 	{
 		SendSessionStatusMessage (0); // destroy
 		LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " destroyed");
-		Terminate ();
+		if (m_Destination)
+		{
+			m_Destination->Stop ();
+			m_Destination = 0;
+		}
 	}
 
 	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len)
