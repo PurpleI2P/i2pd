@@ -122,6 +122,7 @@ namespace proxy
 		m_address = url.host;
 		m_port = url.port;
 		m_path = url.path;
+		if (url.query.length () > 0) m_path += "?" + url.query;
 		if (!m_port) m_port = 80;
 		LogPrint(eLogDebug, "HTTPProxy: server: ", m_address, ", port: ", m_port, ", path: ", m_path);
 	}
