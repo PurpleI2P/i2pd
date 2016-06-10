@@ -167,7 +167,7 @@ namespace client
 			size_t offset = 0; // from m_Buffer
 			if (m_NextMessage)
 			{
-				if (m_NextMessageOffset + bytes_transferred <= m_NextMessageLen)
+				if (m_NextMessageOffset + bytes_transferred < m_NextMessageLen)
 				{
 					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, bytes_transferred);
 					m_NextMessageOffset += bytes_transferred;
