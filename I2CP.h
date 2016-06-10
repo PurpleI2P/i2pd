@@ -56,7 +56,8 @@ namespace client
 	};
 
 	// params
-	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet ";	
+	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet";	
+	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";	
 
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
@@ -148,6 +149,7 @@ namespace client
 			std::shared_ptr<I2CPDestination> m_Destination;
 			uint16_t m_SessionID;
 			uint32_t m_MessageID;
+			bool m_IsSendAccepted;
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
 	

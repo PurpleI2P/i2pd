@@ -117,7 +117,7 @@ namespace client
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
-		m_MessageID (0)
+		m_MessageID (0), m_IsSendAccepted (true)
 	{
 		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 	}
@@ -317,21 +317,42 @@ namespace client
 	{
 		auto identity = std::make_shared<i2p::data::IdentityEx>();
 		size_t offset = identity->FromBuffer (buf, len);
+		if (!offset)
+		{
+			LogPrint (eLogError, "I2CP: create session maformed identity");	
+			SendSessionStatusMessage (3); // invalid
+			return;
+		}	
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
-		
+		if (optionsSize > len - offset)
+		{
+			LogPrint (eLogError, "I2CP: options size ", optionsSize, "exceeds message size");	
+			SendSessionStatusMessage (3); // invalid
+			return;
+		}
 		std::map<std::string, std::string> params;
 		ExtractMapping (buf + offset, optionsSize, params);		
-		offset += optionsSize;
+		offset += optionsSize; // options
+		if (params[I2CP_PARAM_MESSAGE_RELIABILITY] == "none") m_IsSendAccepted = false;
+
 		offset += 8; // date
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{	
 			bool isPublic = true;
 			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "true") isPublic = false;
-			m_Destination = std::make_shared<I2CPDestination>(shared_from_this (), identity, isPublic, params);
-			m_Destination->Start ();
-			SendSessionStatusMessage (1); // created
-			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");	
+			if (!m_Destination)
+			{
+				m_Destination = std::make_shared<I2CPDestination>(shared_from_this (), identity, isPublic, params);
+				SendSessionStatusMessage (1); // created
+				LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");
+				m_Destination->Start ();	
+			}
+			else
+			{
+				LogPrint (eLogError, "I2CP: session already exists");	
+				SendSessionStatusMessage (4); // refused
+			}
 		}
 		else
 		{
@@ -363,6 +384,7 @@ namespace client
 
 	void I2CPSession::SendMessageStatusMessage (uint32_t nonce, I2CPMessageStatus status)
 	{
+		if (!nonce) return; // don't send status with zero nonce
 		uint8_t buf[15];
 		htobe16buf (buf, m_SessionID);
 		htobe32buf (buf + 2, m_MessageID++);
@@ -406,7 +428,8 @@ namespace client
 				uint32_t payloadLen = bufbe32toh (buf + offset);
 				offset += 4;
 				uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
-				SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
+				if (m_IsSendAccepted) 
+					SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
 				m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
 			} 
 		}	
