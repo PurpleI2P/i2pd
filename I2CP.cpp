@@ -277,7 +277,7 @@ namespace client
 		while (offset < len)
 		{
 			std::string param = ExtractString (buf + offset, len - offset);
-			offset += param.length ();
+			offset += param.length () + 1;
 			if (buf[offset] != '=') 
 			{
 				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead '=' after ", param);
@@ -286,7 +286,7 @@ namespace client
 			offset++;
 
 			std::string value = ExtractString (buf + offset, len - offset);
-			offset += value.length ();
+			offset += value.length () + 1;
 			if (buf[offset] != ';') 
 			{
 				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead ';' after ", value);
