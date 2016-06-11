@@ -117,7 +117,7 @@ namespace client
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
-		m_SessionID (0), m_MessageID (0), m_IsSendAccepted (true)
+		m_SessionID (0xFFFF), m_MessageID (0), m_IsSendAccepted (true)
 	{
 	}
 		
