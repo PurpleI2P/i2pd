@@ -744,7 +744,6 @@ namespace client
 					LogPrint (eLogInfo, "Addressbook: received ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
 					if (!response.eof () && !response.fail ())	
 					{
-						success = true;
 						if (!isChunked)
 							success = ProcessResponse (response, isGzip);
 						else
