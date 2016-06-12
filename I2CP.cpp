@@ -167,24 +167,59 @@ namespace client
 			size_t offset = 0; // from m_Buffer
 			if (m_NextMessage)
 			{
-				if (m_NextMessageOffset + bytes_transferred < m_NextMessageLen)
+				if (!m_NextMessageLen) // we didn't receive header yet
 				{
-					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, bytes_transferred);
-					m_NextMessageOffset += bytes_transferred;
-					offset = bytes_transferred;
+					if (m_NextMessageOffset + bytes_transferred <  I2CP_HEADER_SIZE)
+					{
+						// still no complete header
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, bytes_transferred);
+						m_NextMessageOffset += bytes_transferred; 
+						offset = bytes_transferred;
+					}
+					else
+					{
+						// we know message length now
+						offset = I2CP_HEADER_SIZE - m_NextMessageOffset; 
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, offset);
+						m_NextMessageLen = bufbe32toh (m_NextMessage + I2CP_HEADER_LENGTH_OFFSET) + I2CP_HEADER_SIZE;
+						m_NextMessageOffset = I2CP_HEADER_SIZE; 
+					}		
 				}	
-				else
-				{
-					// m_NextMessage complete
-					offset = m_NextMessageLen - m_NextMessageOffset;
-					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, offset);
-					HandleNextMessage (m_NextMessage);
-					delete[] m_NextMessage;
-					m_NextMessage = nullptr;
-				}
+
+				if (offset < bytes_transferred)
+				{	
+					auto msgRemainingLen = m_NextMessageLen - m_NextMessageOffset;
+					auto bufRemainingLen = bytes_transferred - offset;
+					if (bufRemainingLen < msgRemainingLen)
+					{
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer + offset, bufRemainingLen);
+						m_NextMessageOffset += bufRemainingLen;
+						offset += bufRemainingLen;
+					}	
+					else
+					{
+						// m_NextMessage complete
+						offset += msgRemainingLen;
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer + offset, msgRemainingLen);
+						HandleNextMessage (m_NextMessage);
+						delete[] m_NextMessage;
+						m_NextMessage = nullptr;
+					}
+				}	
 			}	
+			// process the rest
 			while (offset < bytes_transferred)
 			{
+				if (bytes_transferred - offset < I2CP_HEADER_SIZE)
+				{
+					// we don't have message header yet
+					m_NextMessage = new uint8_t[0xFFFF]; // allocate 64K
+					m_NextMessageLen = 0; // we must set message length later
+					m_NextMessageOffset = bytes_transferred - offset;
+					memcpy (m_NextMessage, m_Buffer + offset, m_NextMessageOffset); // just copy it
+					break;
+				}	
+					
 				auto msgLen = bufbe32toh (m_Buffer + offset + I2CP_HEADER_LENGTH_OFFSET) + I2CP_HEADER_SIZE;
 				if (msgLen > 0xFFFF) // 64K
 				{
@@ -236,14 +271,20 @@ namespace client
 
 	void I2CPSession::SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len)
 	{
-		auto l = len + I2CP_HEADER_SIZE;
-		uint8_t * buf = new uint8_t[l];
-		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len);
-		buf[I2CP_HEADER_TYPE_OFFSET] = type;
-		memcpy (buf + I2CP_HEADER_SIZE, payload, len);
-		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
-        	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (), 
-						std::placeholders::_1, std::placeholders::_2, buf));			
+		auto socket = m_Socket;
+		if (socket)
+		{	
+			auto l = len + I2CP_HEADER_SIZE;
+			uint8_t * buf = new uint8_t[l];
+			htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len);
+			buf[I2CP_HEADER_TYPE_OFFSET] = type;
+			memcpy (buf + I2CP_HEADER_SIZE, payload, len);
+			boost::asio::async_write (*socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
+		    	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (), 
+							std::placeholders::_1, std::placeholders::_2, buf));	
+		}	
+		else
+			LogPrint (eLogError, "I2CP: Can't write to the socket");
 	}
 
 	void I2CPSession::HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf)
