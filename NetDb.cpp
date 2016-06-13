@@ -67,7 +67,7 @@ namespace data
 			}
 			m_LeaseSets.clear();
 			m_Requests.Stop ();
-		}	
+		}
 	}	
 	
 	void NetDb::Run ()

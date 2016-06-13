@@ -198,25 +198,34 @@ namespace i2p
 			
 		bool Daemon_Singleton::start()
 		{
-			bool http; i2p::config::GetOption("http.enabled", http);
-			if (http) {
-				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-				uint16_t    httpPort; i2p::config::GetOption("http.port",    httpPort);
-				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
-				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
-				d.httpServer->Start();
-			}
-
 			LogPrint(eLogInfo, "Daemon: starting NetDB");
 			i2p::data::netdb.Start();
 
 #ifdef USE_UPNP
 			LogPrint(eLogInfo, "Daemon: starting UPnP");
 			d.m_UPnP.Start ();
-#endif			
+#endif
 			LogPrint(eLogInfo, "Daemon: starting Transports");
 			i2p::transport::transports.Start();
+			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
+				LogPrint(eLogInfo, "Daemon: Transports started");
+			} else {
+				LogPrint(eLogError, "Daemon: failed to start Transports");
+				/** shut down netdb right away */
+				i2p::data::netdb.Stop();
+				return false;
+			}
+						
+			bool http; i2p::config::GetOption("http.enabled", http);
+			if (http) {
+				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
+				uint16_t		httpPort; i2p::config::GetOption("http.port",		 httpPort);
+				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
+				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
+				d.httpServer->Start();
+			}
 
+			
 			LogPrint(eLogInfo, "Daemon: starting Tunnels");
 			i2p::tunnel::tunnels.Start();
 
@@ -232,6 +241,7 @@ namespace i2p
 				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
 				d.m_I2PControlService->Start ();
 			}
+
 			return true;
 		}
 

@@ -75,6 +75,9 @@ namespace transport
 
 			void Start ();
 			void Stop ();
+
+			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
+			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
 			
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();	
