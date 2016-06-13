@@ -56,14 +56,15 @@ namespace client
 	};
 
 	// params
-	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet ";	
+	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet";	
+	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";	
 
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
 	{
 		public:
 
-			I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
+			I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params);
 
 			void SetEncryptionPrivateKey (const uint8_t * key);
 			void LeaseSetCreated (const uint8_t * buf, size_t len); // called from I2CPSession
@@ -87,7 +88,7 @@ namespace client
 
 		private:
 
-			I2CPSession& m_Owner;
+			std::shared_ptr<I2CPSession> m_Owner;
 			std::shared_ptr<const i2p::data::IdentityEx> m_Identity;
 			uint8_t m_EncryptionPrivateKey[256];
 			uint64_t m_LeaseSetExpirationTime;
@@ -148,6 +149,7 @@ namespace client
 			std::shared_ptr<I2CPDestination> m_Destination;
 			uint16_t m_SessionID;
 			uint32_t m_MessageID;
+			bool m_IsSendAccepted;
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
 	

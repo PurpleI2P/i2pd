@@ -23,7 +23,7 @@ namespace i2p
 namespace client
 {
 
-	I2CPDestination::I2CPDestination (I2CPSession& owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params): 
+	I2CPDestination::I2CPDestination (std::shared_ptr<I2CPSession> owner, std::shared_ptr<const i2p::data::IdentityEx> identity, bool isPublic, const std::map<std::string, std::string>& params): 
 		LeaseSetDestination (isPublic, &params), m_Owner (owner), m_Identity (identity) 
 	{
 	}
@@ -37,7 +37,7 @@ namespace client
 	{
 		uint32_t length = bufbe32toh (buf);
 		if (length > len - 4) length = len - 4;
-		m_Owner.SendMessagePayloadMessage (buf + 4, length);
+		m_Owner->SendMessagePayloadMessage (buf + 4, length);
 	}
 
 	void I2CPDestination::CreateNewLeaseSet (std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels) 
@@ -46,9 +46,9 @@ namespace client
 		m_LeaseSetExpirationTime = ls.GetExpirationTime ();
 		uint8_t * leases = ls.GetLeases ();
 		leases[-1] = tunnels.size ();
-		htobe16buf (leases - 3, m_Owner.GetSessionID ());
+		htobe16buf (leases - 3, m_Owner->GetSessionID ());
 		size_t l = 2/*sessionID*/ + 1/*num leases*/ + i2p::data::LEASE_SIZE*tunnels.size ();
-		m_Owner.SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l); 
+		m_Owner->SendI2CPMessage (I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE, leases - 3, l); 
 	}
 	
 	void I2CPDestination::LeaseSetCreated (const uint8_t * buf, size_t len)
@@ -78,10 +78,10 @@ namespace client
 					if (ls)
 					{ 
 						bool sent = s->SendMsg (msg, ls);
-						s->m_Owner.SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+						s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
 					}
 					else
-						s->m_Owner.SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLeaseSet);
+						s->m_Owner->SendMessageStatusMessage (nonce, eI2CPMessageStatusNoLeaseSet);
 				});
 		}
 	}
@@ -117,9 +117,8 @@ namespace client
 	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
 		m_Owner (owner), m_Socket (socket), 
 		m_NextMessage (nullptr), m_NextMessageLen (0), m_NextMessageOffset (0),
-		m_MessageID (0)
+		m_SessionID (0xFFFF), m_MessageID (0), m_IsSendAccepted (true)
 	{
-		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 	}
 		
 	I2CPSession::~I2CPSession ()
@@ -134,6 +133,7 @@ namespace client
 
 	void I2CPSession::Stop ()
 	{
+		Terminate ();
 	}
 
 	void I2CPSession::ReadProtocolByte ()
@@ -167,24 +167,59 @@ namespace client
 			size_t offset = 0; // from m_Buffer
 			if (m_NextMessage)
 			{
-				if (m_NextMessageOffset + bytes_transferred <= m_NextMessageLen)
+				if (!m_NextMessageLen) // we didn't receive header yet
 				{
-					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, bytes_transferred);
-					m_NextMessageOffset += bytes_transferred;
-					offset = bytes_transferred;
+					if (m_NextMessageOffset + bytes_transferred <  I2CP_HEADER_SIZE)
+					{
+						// still no complete header
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, bytes_transferred);
+						m_NextMessageOffset += bytes_transferred; 
+						offset = bytes_transferred;
+					}
+					else
+					{
+						// we know message length now
+						offset = I2CP_HEADER_SIZE - m_NextMessageOffset; 
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, offset);
+						m_NextMessageLen = bufbe32toh (m_NextMessage + I2CP_HEADER_LENGTH_OFFSET) + I2CP_HEADER_SIZE;
+						m_NextMessageOffset = I2CP_HEADER_SIZE; 
+					}		
 				}	
-				else
-				{
-					// m_NextMessage complete
-					offset = m_NextMessageLen - m_NextMessageOffset;
-					memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer, offset);
-					HandleNextMessage (m_NextMessage);
-					delete[] m_NextMessage;
-					m_NextMessage = nullptr;
-				}
+
+				if (offset < bytes_transferred)
+				{	
+					auto msgRemainingLen = m_NextMessageLen - m_NextMessageOffset;
+					auto bufRemainingLen = bytes_transferred - offset;
+					if (bufRemainingLen < msgRemainingLen)
+					{
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer + offset, bufRemainingLen);
+						m_NextMessageOffset += bufRemainingLen;
+						offset += bufRemainingLen;
+					}	
+					else
+					{
+						// m_NextMessage complete
+						offset += msgRemainingLen;
+						memcpy (m_NextMessage + m_NextMessageOffset, m_Buffer + offset, msgRemainingLen);
+						HandleNextMessage (m_NextMessage);
+						delete[] m_NextMessage;
+						m_NextMessage = nullptr;
+					}
+				}	
 			}	
+			// process the rest
 			while (offset < bytes_transferred)
 			{
+				if (bytes_transferred - offset < I2CP_HEADER_SIZE)
+				{
+					// we don't have message header yet
+					m_NextMessage = new uint8_t[0xFFFF]; // allocate 64K
+					m_NextMessageLen = 0; // we must set message length later
+					m_NextMessageOffset = bytes_transferred - offset;
+					memcpy (m_NextMessage, m_Buffer + offset, m_NextMessageOffset); // just copy it
+					break;
+				}	
+					
 				auto msgLen = bufbe32toh (m_Buffer + offset + I2CP_HEADER_LENGTH_OFFSET) + I2CP_HEADER_SIZE;
 				if (msgLen > 0xFFFF) // 64K
 				{
@@ -236,14 +271,20 @@ namespace client
 
 	void I2CPSession::SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len)
 	{
-		auto l = len + I2CP_HEADER_SIZE;
-		uint8_t * buf = new uint8_t[l];
-		htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len);
-		buf[I2CP_HEADER_TYPE_OFFSET] = type;
-		memcpy (buf + I2CP_HEADER_SIZE, payload, len);
-		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
-        	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (), 
-						std::placeholders::_1, std::placeholders::_2, buf));			
+		auto socket = m_Socket;
+		if (socket)
+		{	
+			auto l = len + I2CP_HEADER_SIZE;
+			uint8_t * buf = new uint8_t[l];
+			htobe32buf (buf + I2CP_HEADER_LENGTH_OFFSET, len);
+			buf[I2CP_HEADER_TYPE_OFFSET] = type;
+			memcpy (buf + I2CP_HEADER_SIZE, payload, len);
+			boost::asio::async_write (*socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
+		    	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (), 
+							std::placeholders::_1, std::placeholders::_2, buf));	
+		}	
+		else
+			LogPrint (eLogError, "I2CP: Can't write to the socket");
 	}
 
 	void I2CPSession::HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf)
@@ -276,21 +317,24 @@ namespace client
 		size_t offset = 0;
 		while (offset < len)
 		{
-			auto semicolon = (const uint8_t *)memchr (buf + offset, ';', len - offset);
-			if (semicolon)
+			std::string param = ExtractString (buf + offset, len - offset);
+			offset += param.length () + 1;
+			if (buf[offset] != '=') 
 			{
-				auto l = semicolon - buf - offset + 1; 
-				auto equal = (const uint8_t *)memchr (buf + offset, '=', l);
-				if (equal)
-				{
-					auto l1 = equal - buf - offset + 1;
-					mapping.insert (std::make_pair (std::string ((const char *)(buf + offset), l1 -1), 
-						std::string ((const char *)(buf + offset + l1), l - l1 - 2)));
-				}
-				offset += l;
-			}
-			else
-				break;
+				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead '=' after ", param);
+				break;	
+			}				
+			offset++;
+
+			std::string value = ExtractString (buf + offset, len - offset);
+			offset += value.length () + 1;
+			if (buf[offset] != ';') 
+			{
+				LogPrint (eLogWarning, "I2CP: Unexpected character ", buf[offset], " instead ';' after ", value);
+				break;	
+			}				
+			offset++;
+			mapping.insert (std::make_pair (param, value));
 		}
 	}
 
@@ -311,23 +355,45 @@ namespace client
 
 	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
 	{
+		RAND_bytes ((uint8_t *)&m_SessionID, 2);
 		auto identity = std::make_shared<i2p::data::IdentityEx>();
 		size_t offset = identity->FromBuffer (buf, len);
+		if (!offset)
+		{
+			LogPrint (eLogError, "I2CP: create session maformed identity");	
+			SendSessionStatusMessage (3); // invalid
+			return;
+		}	
 		uint16_t optionsSize = bufbe16toh (buf + offset);
 		offset += 2;
-		
+		if (optionsSize > len - offset)
+		{
+			LogPrint (eLogError, "I2CP: options size ", optionsSize, "exceeds message size");	
+			SendSessionStatusMessage (3); // invalid
+			return;
+		}
 		std::map<std::string, std::string> params;
 		ExtractMapping (buf + offset, optionsSize, params);		
-		offset += optionsSize;
+		offset += optionsSize; // options
+		if (params[I2CP_PARAM_MESSAGE_RELIABILITY] == "none") m_IsSendAccepted = false;
+
 		offset += 8; // date
 		if (identity->Verify (buf, offset, buf + offset)) // signature
 		{	
 			bool isPublic = true;
 			if (params[I2CP_PARAM_DONT_PUBLISH_LEASESET] == "true") isPublic = false;
-			m_Destination = std::make_shared<I2CPDestination>(*this, identity, isPublic, params);
-			m_Destination->Start ();
-			SendSessionStatusMessage (1); // created
-			LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");	
+			if (!m_Destination)
+			{
+				m_Destination = std::make_shared<I2CPDestination>(shared_from_this (), identity, isPublic, params);
+				SendSessionStatusMessage (1); // created
+				LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " created");
+				m_Destination->Start ();	
+			}
+			else
+			{
+				LogPrint (eLogError, "I2CP: session already exists");	
+				SendSessionStatusMessage (4); // refused
+			}
 		}
 		else
 		{
@@ -340,7 +406,11 @@ namespace client
 	{
 		SendSessionStatusMessage (0); // destroy
 		LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " destroyed");
-		Terminate ();
+		if (m_Destination)
+		{
+			m_Destination->Stop ();
+			m_Destination = 0;
+		}
 	}
 
 	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len)
@@ -359,6 +429,7 @@ namespace client
 
 	void I2CPSession::SendMessageStatusMessage (uint32_t nonce, I2CPMessageStatus status)
 	{
+		if (!nonce) return; // don't send status with zero nonce
 		uint8_t buf[15];
 		htobe16buf (buf, m_SessionID);
 		htobe32buf (buf + 2, m_MessageID++);
@@ -402,7 +473,8 @@ namespace client
 				uint32_t payloadLen = bufbe32toh (buf + offset);
 				offset += 4;
 				uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
-				SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
+				if (m_IsSendAccepted) 
+					SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
 				m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
 			} 
 		}	
@@ -418,7 +490,7 @@ namespace client
 	void I2CPSession::HostLookupMessageHandler (const uint8_t * buf, size_t len)
 	{
 		uint16_t sessionID = bufbe16toh (buf);
-		if (sessionID == m_SessionID)
+		if (sessionID == m_SessionID || sessionID == 0xFFFF) // -1 means without session
 		{
 			uint32_t requestID = bufbe32toh (buf + 2);
 			//uint32_t timeout = bufbe32toh (buf + 6);
@@ -445,15 +517,17 @@ namespace client
 					return;
 			}
 
-			if (m_Destination)
+			std::shared_ptr<LeaseSetDestination> destination = m_Destination;
+			if(!destination) destination = i2p::client::context.GetSharedLocalDestination ();	
+			if (destination)
 			{
-				auto ls = m_Destination->FindLeaseSet (ident);
+				auto ls = destination->FindLeaseSet (ident);
 				if (ls)
 					SendHostReplyMessage (requestID, ls->GetIdentity ());
 				else
 				{
 					auto s = shared_from_this ();
-					m_Destination->RequestDestination (ident,
+					destination->RequestDestination (ident,
 						[s, requestID](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 						{
 							s->SendHostReplyMessage (requestID, leaseSet ? leaseSet->GetIdentity () : nullptr);
