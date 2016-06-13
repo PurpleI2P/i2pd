@@ -75,7 +75,7 @@ namespace http {
       /* specical case */
       pos_p ++;
     }
-    if(url.at(0) != "/" || pos_b > 0) {
+    if(url.at(0) != "/" || pos_p > 0) {
       /* schema */
       pos_c = url.find("://");
       if (pos_c != std::string::npos) {
