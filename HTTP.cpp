@@ -71,7 +71,7 @@ namespace http {
   bool URL::parse(const std::string& url) {
     std::size_t pos_p = 0; /* < current parse position */
     std::size_t pos_c = 0; /* < work position */
-    if (url.at(0) == "/" && url.find("/http://") == url.begin()) {
+    if (url.at(0) == "/" && url.find("/http://") == 0) {
       /* specical case */
       pos_p ++;
     }
