@@ -25,12 +25,6 @@
 #include "version.h"
 #include "I2PControl.h"
 
-#ifdef ANDROID
-#  include "to_string.h"
-#else
-#  define to_string(x) std::to_string(x)
-#endif
-
 namespace i2p
 {
 namespace client
@@ -321,7 +315,7 @@ namespace client
 		}
 		InsertParam (results, "API", api);
 		results << ",";
-        std::string token = to_string(i2p::util::GetSecondsSinceEpoch ());
+        std::string token = std::to_string(i2p::util::GetSecondsSinceEpoch ());
 		m_Tokens.insert (token);	
 		InsertParam (results, "Token", token);
 	}	

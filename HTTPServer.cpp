@@ -25,12 +25,6 @@
 // For image and info
 #include "version.h"
 
-#ifdef ANDROID
-#  include "to_string.h"
-#else
-#  define to_string(x) std::to_string(x)
-#endif
-
 namespace i2p {
 namespace http {
 	const char *itoopieFavicon =
@@ -236,8 +230,8 @@ namespace http {
 		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
 		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
 		
-        s << "<b>Client Tunnels:</b> " << to_string(clientTunnelCount) << " ";
-        s << "<b>Transit Tunnels:</b> " << to_string(transitTunnelCount) << "<br>\r\n";
+        s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
+        s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
 	void ShowJumpServices (std::stringstream& s, const std::string& address)
