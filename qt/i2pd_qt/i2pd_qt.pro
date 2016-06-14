@@ -135,14 +135,23 @@ INCLUDEPATH +=  /home/anon5/git/Boost-for-Android-Prebuilt/boost_1_53_0/include 
                 /home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/include \
                 ../../../android-ifaddrs/
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
+# http://stackoverflow.com/a/30235934/529442
 LIBS += -L/home/anon5/git/Boost-for-Android-Prebuilt/boost_1_53_0/armeabi-v7a/lib \
-        -L/home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib \
--lcrypto \
--lssl \
+#/home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
+#/home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libssl.a \
 -lboost_system-gcc-mt-1_53 \
 -lboost_date_time-gcc-mt-1_53 \
 -lboost_filesystem-gcc-mt-1_53 \
--lboost_program_options-gcc-mt-1_53
+-lboost_program_options-gcc-mt-1_53 \
+-L$$PWD/../../../OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/ -lcrypto -lssl
+
+PRE_TARGETDEPS += $$PWD/../../../OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
+                  $$PWD/../../../OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libssl.a
+
+DEPENDPATH += $$PWD/../../../OpenSSL-for-Android-Prebuilt/openssl-1.0.2/include
+
+ANDROID_EXTRA_LIBS +=   /home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libcrypto_1_0_0.so \
+                        /home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libssl_1_0_0.so
 }
 }
 
@@ -150,4 +159,9 @@ linux:!android {
 message("Using Linux settings")
 LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
 }
+
+
+unix:!macx:
+
+
 
