@@ -126,9 +126,11 @@ namespace client
 		private:
 			
 			void ReadProtocolByte ();
-			void Receive ();
-			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleNextMessage (const uint8_t * buf);
+			void ReceiveHeader ();
+			void HandleReceivedHeader (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void ReceivePayload ();
+			void HandleReceivedPayload (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleMessage ();
 			void Terminate ();
 			
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf);
@@ -143,8 +145,8 @@ namespace client
 
 			I2CPServer& m_Owner;
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
-			uint8_t m_Buffer[I2CP_SESSION_BUFFER_SIZE], * m_NextMessage;
-			size_t m_NextMessageLen, m_NextMessageOffset;
+			uint8_t m_Header[I2CP_HEADER_SIZE], * m_Payload;
+			size_t m_PayloadLen;
 
 			std::shared_ptr<I2CPDestination> m_Destination;
 			uint16_t m_SessionID;

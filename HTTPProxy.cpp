@@ -93,7 +93,7 @@ namespace proxy
 	//TODO: handle this apropriately
 	void HTTPProxyHandler::HTTPRequestFailed(/*HTTPProxyHandler::errTypes error*/)
 	{
-		static std::string response = "HTTP/1.0 500 Internal Server Error\r\nContent-type: text/html\r\nContent-length: 0\r\n";
+		static std::string response = "HTTP/1.0 500 Internal Server Error\r\nContent-type: text/html\r\nContent-length: 0\r\n\r\n";
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response,response.size()),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
@@ -122,6 +122,7 @@ namespace proxy
 		m_address = url.host;
 		m_port = url.port;
 		m_path = url.path;
+		if (url.query.length () > 0) m_path += "?" + url.query;
 		if (!m_port) m_port = 80;
 		LogPrint(eLogDebug, "HTTPProxy: server: ", m_address, ", port: ", m_port, ", path: ", m_path);
 	}
