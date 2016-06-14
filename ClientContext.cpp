@@ -6,6 +6,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "Identity.h"
+#include "util.h"
 #include "ClientContext.h"
 
 namespace i2p

@@ -23,6 +23,7 @@
 #include "Timestamp.h"
 #include "Transports.h"
 #include "version.h"
+#include "util.h"
 #include "I2PControl.h"
 
 namespace i2p

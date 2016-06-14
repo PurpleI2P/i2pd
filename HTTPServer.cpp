@@ -21,6 +21,7 @@
 #include "ClientContext.h"
 #include "HTTPServer.h"
 #include "Daemon.h"
+#include "util.h"
 
 // For image and info
 #include "version.h"

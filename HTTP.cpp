@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include "util.h"
 #include "HTTP.h"
 #include <algorithm>
 #include <ctime>
