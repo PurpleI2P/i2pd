@@ -8,6 +8,12 @@
 #include "Identity.h"
 #include "ClientContext.h"
 
+#ifdef ANDROID
+#  include "to_string.h"
+#else
+#  define to_string(x) std::to_string(x)
+#endif
+
 namespace i2p
 {
 namespace client
@@ -292,7 +298,7 @@ namespace client
 	template<typename Section, typename Type>
 	std::string ClientContext::GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
 	{
-		return section.second.get (boost::property_tree::ptree::path_type (name, '/'), std::to_string (value));
+        return section.second.get (boost::property_tree::ptree::path_type (name, '/'), to_string (value));
 	}	
 
 	template<typename Section>

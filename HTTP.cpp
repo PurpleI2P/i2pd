@@ -10,6 +10,13 @@
 #include <algorithm>
 #include <ctime>
 
+#ifdef ANDROID
+#  include "to_string.h"
+#  include <errno.h>
+#else
+#  define to_string(x) std::to_string(x)
+#endif
+
 namespace i2p {
 namespace http {
   const std::vector<std::string> HTTP_METHODS = {
@@ -180,7 +187,11 @@ namespace http {
         out += user + "@";
       }
       if (port) {
-        out += host + ":" + std::to_string(port);
+#ifndef ANDROID
+        out += host + ":" + to_string(port);
+#else
+        out += host + ":" + tostr::to_string(port);
+#endif
       } else {
         out += host;
       }
@@ -338,7 +349,11 @@ namespace http {
     if (status == "OK" && code != 200)
       status = HTTPCodeToStatus(code); // update
     if (body.length() > 0 && headers.count("Content-Length") == 0)
-      add_header("Content-Length", std::to_string(body.length()).c_str());
+#ifndef ANDROID
+        add_header("Content-Length", to_string(body.length()).c_str());
+#else
+        add_header("Content-Length", tostr::to_string(body.length()).c_str());
+#endif
     /* build response */
     std::stringstream ss;
     ss << version << " " << code << " " << status << CRLF;

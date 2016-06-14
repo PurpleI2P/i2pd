@@ -52,7 +52,7 @@ namespace i2p
 			void run ();
 		};
 #else
-		class DaemonLinux : public Daemon_Singleton
+        class DaemonLinux : public Daemon_Singleton
 		{
 			public:
 				static DaemonLinux& Instance()
