@@ -1,0 +1,10 @@
+# Various generated files
+/CMakeFiles/
+/i2pd
+/libi2pd.a
+/libi2pdclient.a
+/cmake_install.cmake
+/CMakeCache.txt
+/CPackConfig.cmake
+/CPackSourceConfig.cmake
+/install_manifest.txt

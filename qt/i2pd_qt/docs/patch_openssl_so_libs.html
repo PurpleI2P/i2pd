@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="ru" class=" ya-page_js_yes"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<h1 id="blog_title" style="font-size:14pt; font-weight:normal; margin:0px">
+			OpenSSL под Android в Qt
+			
+		</h1> <div class="smallfont shade"> <span class="shade">Запись от <a href="http://www.cyberforum.ru/blogs/748276/">Wyn</a> размещена 18.01.2016 в 18:22</span> </div> <script type="text/javascript" src="./patch_openssl_so_libs_files/blog_ajax_tag.js"></script> <div class="smallfont" id="blogtagcontainer_4086"> <span class="shade">Метки</span> <span id="blogtaglist_4086"><a href="http://www.cyberforum.ru/blog.php?tag=android&amp;u=748276">android</a>, <a href="http://www.cyberforum.ru/blog.php?tag=openssl&amp;u=748276">openssl</a>, <a href="http://www.cyberforum.ru/blog.php?tag=qt&amp;u=748276">qt</a></span> </div> <div style="clear:both; margin-top:4px"></div> <hr size="1" style="color:#AAAAAA; background-color:#AAAAAA; margin-bottom:10px">  <div id="blog_message" style="margin-bottom:10px"><!-- google_ad_section_start --><!-- google_ad_section_start -->Мини-руководство по тому, как быстро скомпилировать OpenSSL для Android и связать его с проектом Qt.<br>
+Для Linux.<br> <br>
+Вначале действия полностью идентичны <a rel="nofollow" href="https://wiki.openssl.org/index.php/Android" target="_blank" title="https://wiki.openssl.org/index.php/Android">"расово-верному" руководству по компилянию OpenSSL для Android</a>:<br>
+Качаем исходники openssl нужной версии с их сайта, качаем setenv-android.sh(все ссылки на закачку выше по ссылке).<br>
+Ложим их в одну папку. Запускаем консоль, переходим в ней в эту самую папку.<br>
+Далее:<br> <div style="margin: 5px 10px 5px 30px"><table class="bash"><thead><tr><td colspan="2" class="head">Bash<a href="http://www.cyberforum.ru/#" style="float: right; color: rgb(96, 96, 96); font-weight: normal;">Выделить код</a></td></tr></thead><tbody><tr class="li1"><td><div id="52254522" style="overflow: auto; width: 805px; height: 73px"><table><tbody><tr class="li1"><td class="ln" style="padding: 0px 10px 0px 5px;"><pre class="de1">1
+2
+3
+</pre></td><td class="de1"><pre class="de1">$ <span class="kw2">rm</span> <span class="re5">-rf</span> openssl-1.0.1g<span class="sy0">/</span> &nbsp; <span class="co0"># удаляем исходники(вместо версии 1.0.1g - подставляем свою), если они уже были распакованы</span>
+$ <span class="kw2">tar</span> xzf openssl-1.0.1g.tar.gz &nbsp; &nbsp;<span class="co0"># распаковываем исходники в подпапку</span>
+$ <span class="kw2">chmod</span> a+x setenv-android.sh &nbsp; &nbsp;<span class="co0"># разрешаем setenv-android.sh исполняться</span></pre></td></tr></tbody></table></div></td></tr></tbody></table></div>Редактируем setenv-android.sh, настраивая там _ANDROID_EABI, _ANDROID_ARCH, _ANDROID_API на нужные значения.<br>
+Дальше возвращаемся в консоль:<br> <div style="margin: 5px 10px 5px 30px"><table class="bash"><thead><tr><td colspan="2" class="head">Bash<a href="http://www.cyberforum.ru/#" style="float: right; color: rgb(96, 96, 96); font-weight: normal;">Выделить код</a></td></tr></thead><tbody><tr class="li1"><td><div id="701353202" style="overflow: auto; width: 805px; height: 201px"><table><tbody><tr class="li1"><td class="ln" style="padding: 0px 10px 0px 5px;"><pre class="de1">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre></td><td class="de1"><pre class="de1">$ <span class="kw3">export</span> <span class="re2">ANDROID_NDK_ROOT</span>=путь_до_ANDROID_NDK <span class="co0"># указываем путь до Android NDK для setenv-android.sh</span>
+$ . .<span class="sy0">/</span>setenv-android.sh <span class="co0"># запускаем скрипт, чтобы он нам в окружение проставил необходимые далее переменные</span>
+$ <span class="kw3">cd</span> openssl-1.0.1g<span class="sy0">/</span>
+$ <span class="kw2">perl</span> <span class="re5">-pi</span> <span class="re5">-e</span> <span class="st_h">'s/install: all install_docs install_sw/install: install_docs install_sw/g'</span> Makefile.org
+<span class="co0"># конфигурируем</span>
+$ .<span class="sy0">/</span>config shared no-ssl2 no-ssl3 no-comp no-hw no-engine <span class="re5">--openssldir</span>=<span class="sy0">/</span>usr<span class="sy0">/</span>local<span class="sy0">/</span>ssl<span class="sy0">/</span><span class="re1">$ANDROID_API</span>
+<span class="co0"># собираем</span>
+$ <span class="kw2">make</span> depend
+$ <span class="kw2">make</span> all
+<span class="co0"># устанавливаем</span>
+$ <span class="kw2">sudo</span> <span class="re5">-E</span> <span class="kw2">make</span> <span class="kw2">install</span> <span class="re2">CC</span>=<span class="re1">$ANDROID_TOOLCHAIN</span><span class="sy0">/</span>arm-linux-androideabi-gcc <span class="re2">RANLIB</span>=<span class="re1">$ANDROID_TOOLCHAIN</span><span class="sy0">/</span>arm-linux-androideabi-ranlib</pre></td></tr></tbody></table></div></td></tr></tbody></table></div>И тут начинается интересное. Андроид не принимает versioned shared object (это *.so.x и подобные). Казалось бы 2016 год, космические корабли уже давно бороздят просторы Большого театра, но вот те на. <br> <br>
+Однако, есть обходной приём - нужно заменить *.so.x.x.x на *_x_x_x.so. Простым переименованием файлов данную проблему здесь, разумеется, не решить. Нужно лезть внутрь и переименовывать soname и внутренние ссылки на другие versioned shared object. В интернете есть много способов по подобному переименованию. Большинство из них обещают райскую жизнь с rpl, забывая упомянуть, что утилита уже давно отпета и закопана на большинстве дистрибутивов. Или хитро-хитро редактируют makefile, что в итоге на место левой руки собирается правая нога. В целом множество путей из разряда "как потратить много времени на полную фигню". <br> <br>
+В итоге предлагаю решить данную проблему методом топора:<br>
+Качаем hex-редактор, если ещё нет(в моём случае таковым оказался Okteta). Запускаем его из под рута(kdesu okteta), открываем в нём файлы openssldir/lib/libcrypto.so.1.0.0. Заменяем(ctrl+r) в нём символы ".so.1.0.0" на char "_1_0_0.so". Проделываем тоже самое с libssl.so.1.0.0. Всё, теперь осталось только переименовать сами файлы(в libcrypto_1_0_0.so и libssl_1_0_0.so) и поправить ссылки libssl.so и libcrypto.so, чтобы они вели на них.<br> <br>
+Чтобы подключить и использовать данную библиотеку в проекте нужно добавить в .pro:<br> <div style="margin: 5px 10px 5px 30px"><table class="bash"><thead><tr><td colspan="2" class="head">Bash<a href="http://www.cyberforum.ru/#" style="float: right; color: rgb(96, 96, 96); font-weight: normal;">Выделить код</a></td></tr></thead><tbody><tr class="li1"><td><div id="304166412" style="overflow: auto; width: 805px; height: 105px"><table><tbody><tr class="li1"><td class="ln" style="padding: 0px 10px 0px 5px;"><pre class="de1">1
+2
+3
+4
+5
+</pre></td><td class="de1"><pre class="de1">android: <span class="br0">{</span>
+&nbsp; &nbsp; INCLUDEPATH += <span class="sy0">/</span>usr<span class="sy0">/</span>local<span class="sy0">/</span>ssl<span class="sy0">/</span>android-<span class="nu0">21</span><span class="sy0">/</span>include
+&nbsp; &nbsp; LIBS += -L<span class="sy0">/</span>usr<span class="sy0">/</span>local<span class="sy0">/</span>ssl<span class="sy0">/</span>android-<span class="nu0">21</span><span class="sy0">/</span>lib
+<span class="br0">}</span>
+LIBS += <span class="re5">-lcrypto</span></pre></td></tr></tbody></table></div></td></tr></tbody></table></div>А затем в настройках проекта, в Buld/Build Steps/Bulild Android Apk добавить libcrypto_1_0_0.so и libssl_1_0_0.so в список Additional Libraries.<br> <br>
+На этом всё.
+
+<br>
+<p><small>Original: http://www.cyberforum.ru/blogs/748276/blog4086.html</small></p>
+
+</body></html>
