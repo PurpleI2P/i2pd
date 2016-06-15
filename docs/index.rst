@@ -1,20 +1,27 @@
 i2pd
 ====
 
-`Website <http://i2pd.website>`_ | 
-`Github <https://github.com/PurpleI2P/i2pd>`_ |
-`Issues <https://github.com/PurpleI2P/i2pd/issues>`_
+i2pd is a full-featured C++ implementation of 
+`I2P <https://geti2p.net/en/about/intro>`_ client.
 
-i2pd is C++ implementation of `I2P <https://geti2p.net/en/about/intro>`_.
+* `Website <http://i2pd.website>`_
+* `GitHub <https://github.com/PurpleI2P/i2pd>`_
+* `Wiki <https://github.com/PurpleI2P/i2pd/wiki>`_
+* `Tickets/Issues <https://github.com/PurpleI2P/i2pd/issues>`_
+* `Twitter <https://twitter.com/i2porignal>`_
 
-Supports:                                                                       
----------
-                                                                                
-* Complete I2P router functionality                                             
-* Floodfill                                                                     
-* HTTP and SOCKS proxy                                                          
-* I2P client and server tunnels                                                 
-* SAM and BOB interfaces
+Installing
+----------
+
+The easiest way to install i2pd is by using 
+`precompiled binaries <https://github.com/PurpleI2P/i2pd/releases/latest>`_. 
+See documentation for how to build i2pd from source on your OS.
+
+Using i2pd
+----------
+
+See documentation and 
+`example config file <https://github.com/PurpleI2P/i2pd/blob/openssl/docs/i2pd.conf>`_.
 
 Contents:
 ---------
@@ -27,4 +34,5 @@ Contents:
    build_notes_windows
    configuration
    family
+
 
