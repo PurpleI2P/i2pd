@@ -12,6 +12,13 @@ TARGET = i2pd_qt
 TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11
 
+# git clone https://github.com/emileb/Boost-for-Android-Prebuilt.git
+# git clone https://github.com/anon5/OpenSSL-for-Android-Prebuilt.git
+# git clone https://github.com/anon5/android-ifaddrs.git
+# change to your own
+BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
+OPENSSL_PATH = /mnt/media/android/OpenSSL-for-Android-Prebuilt
+IFADDRS_PATH = /mnt/media/android/android-ifaddrs
 
 SOURCES += DaemonQT.cpp\
         mainwindow.cpp \
@@ -60,7 +67,7 @@ SOURCES += DaemonQT.cpp\
     ../../TunnelPool.cpp \
     ../../util.cpp \
      ../../i2pd.cpp \
-    /mnt/media/android/android-ifaddrs/ifaddrs.c
+    $$IFADDRS_PATH/ifaddrs.c
 
 HEADERS  += mainwindow.h \
         ../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
@@ -114,7 +121,7 @@ HEADERS  += mainwindow.h \
     ../../TunnelPool.h \
     ../../util.h \
     ../../version.h \
-    /mnt/media/android/android-ifaddrs/ifaddrs.h
+    $$IFADDRS_PATH/ifaddrs.h
 
 FORMS    += mainwindow.ui
 
@@ -127,30 +134,27 @@ LIBS += -lz
 android {
 message("Using Android settings")
 DEFINES += ANDROID=1
-# git clone https://github.com/emileb/Boost-for-Android-Prebuilt.git
-# git clone https://github.com/anon5/OpenSSL-for-Android-Prebuilt.git
-# git clone https://github.com/anon5/android-ifaddrs.git
-INCLUDEPATH +=  /mnt/media/android/Boost-for-Android-Prebuilt/boost_1_53_0/include \
-                /mnt/media/android/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/include \
-                /mnt/media/android/android-ifaddrs/
+INCLUDEPATH +=  $$BOOST_PATH/boost_1_53_0/include \
+                $$OPENSSL_PATH/openssl-1.0.2/include \
+                $$IFADDRS_PATH
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
 # http://stackoverflow.com/a/30235934/529442
-LIBS += -L/mnt/media/android/Boost-for-Android-Prebuilt/boost_1_53_0/armeabi-v7a/lib \
+LIBS += -L$$BOOST_PATH/boost_1_53_0/armeabi-v7a/lib \
 #/home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
 #/home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libssl.a \
 -lboost_system-gcc-mt-1_53 \
 -lboost_date_time-gcc-mt-1_53 \
 -lboost_filesystem-gcc-mt-1_53 \
 -lboost_program_options-gcc-mt-1_53 \
--L/mnt/media/android/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/ -lcrypto -lssl
+-L$$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/ -lcrypto -lssl
 
-PRE_TARGETDEPS += /mnt/media/android/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
-                  /mnt/media/android/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libssl.a
+PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
+                  $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl.a
 
-DEPENDPATH += /mnt/media/android/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/include
+DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 
-ANDROID_EXTRA_LIBS +=   /mnt/media/android/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libcrypto.so \
-                        /mnt/media/android/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libssl.so
+ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.so \
+                      $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl.so
 }
 }
 
