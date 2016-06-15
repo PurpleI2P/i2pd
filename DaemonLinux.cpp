@@ -74,11 +74,9 @@ namespace i2p
 				}
 
 				// point std{in,out,err} descriptors to /dev/null
-#ifndef ANDROID
                 stdin  = freopen("/dev/null", "r", stdin);
 				stdout = freopen("/dev/null", "w", stdout);
 				stderr = freopen("/dev/null", "w", stderr);
-#endif
 			}
 
 			// Pidfile
@@ -94,12 +92,7 @@ namespace i2p
 					LogPrint(eLogError, "Daemon: could not create pid file ", pidfile, ": ", strerror(errno));
 					return false;
 				}
-#ifndef ANDROID
 				if (lockf(pidFH, F_TLOCK, 0) != 0)
-#else
-                //TODO ANDROID actually need to read man for this, blindly took a solution from <https://forum.qt.io/topic/27872/qtjsondb-build-failed-for-android/2>. -anon5
-                if (fcntl(pidFH, 1, 0) < 0)
-#endif
 				{
 					LogPrint(eLogError, "Daemon: could not lock pid file ", pidfile, ": ", strerror(errno));
 					return false;

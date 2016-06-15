@@ -365,7 +365,7 @@ namespace http {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << "\">Stop accepting tunnels</a><br>\r\n";
 		else	
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << "\">Start accepting tunnels</a><br>\r\n";
-#ifndef WIN32
+#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
 		if (Daemon.gracefullShutdownInterval) {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown (";
 			s << Daemon.gracefullShutdownInterval;
@@ -678,12 +678,12 @@ namespace http {
 			i2p::context.SetAcceptsTunnels (false);
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
 			i2p::context.SetAcceptsTunnels (false);
-#ifndef WIN32
+#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
 			Daemon.gracefullShutdownInterval = 10*60;
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
-#ifndef WIN32
+#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
 			Daemon.gracefullShutdownInterval = 0;
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {

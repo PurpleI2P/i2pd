@@ -3,10 +3,12 @@
 
 #include <string>
 
-#ifdef _WIN32
-#define Daemon i2p::util::DaemonWin32::Instance()
+#if defined(QT_GUI)
+
+#elif defined(_WIN32)
+
 #else
-#define Daemon i2p::util::DaemonLinux::Instance()
+
 #endif
 
 namespace i2p
@@ -36,7 +38,21 @@ namespace i2p
 			Daemon_Singleton_Private &d;
 		};
 
-#ifdef _WIN32
+#if defined(QT_GUI_LIB) // check if QT
+#define Daemon i2p::util::DaemonQT::Instance()
+	class DaemonQT: public i2p::util::Daemon_Singleton
+	{
+		public:
+
+			static DaemonQT& Instance()
+			{
+				static DaemonQT instance;
+				return instance;
+			}
+	};
+
+#elif defined(_WIN32)
+#define Daemon i2p::util::DaemonWin32::Instance()
 		class DaemonWin32 : public Daemon_Singleton
 		{
 		public:
@@ -52,6 +68,7 @@ namespace i2p
 			void run ();
 		};
 #else
+#define Daemon i2p::util::DaemonLinux::Instance()
         class DaemonLinux : public Daemon_Singleton
 		{
 			public:

@@ -22,8 +22,6 @@ SOURCES += main.cpp\
     ../../BOB.cpp \
     ../../ClientContext.cpp \
     ../../Crypto.cpp \
-    ../../DaemonLinux.cpp \
-    ../../DaemonWin32.cpp \
     ../../Datagram.cpp \
     ../../Destination.cpp \
     ../../Family.cpp \
