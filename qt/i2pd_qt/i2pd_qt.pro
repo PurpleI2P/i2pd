@@ -13,7 +13,7 @@ TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11
 
 
-SOURCES += main.cpp\
+SOURCES += DaemonQT.cpp\
         mainwindow.cpp \
         ../../HTTPServer.cpp ../../I2PControl.cpp ../../UPnP.cpp ../../Daemon.cpp ../../Config.cpp \
     ../../AddressBook.cpp \
@@ -59,6 +59,7 @@ SOURCES += main.cpp\
     ../../TunnelGateway.cpp \
     ../../TunnelPool.cpp \
     ../../util.cpp \
+     ../../i2pd.cpp \
     /mnt/media/android/android-ifaddrs/ifaddrs.c
 
 HEADERS  += mainwindow.h \

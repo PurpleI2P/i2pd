@@ -3,14 +3,6 @@
 
 #include <string>
 
-#if defined(QT_GUI)
-
-#elif defined(_WIN32)
-
-#else
-
-#endif
-
 namespace i2p
 {
 	namespace util
@@ -49,6 +41,11 @@ namespace i2p
 				static DaemonQT instance;
 				return instance;
 			}
+
+			bool init(int argc, char* argv[]);
+			bool start();
+			bool stop();
+			void run ();
 	};
 
 #elif defined(_WIN32)
