@@ -8,14 +8,16 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w;
 
-    w.show();
-
+	int ret = -1;	
 	if (Daemon.init(argc, argv))
 	{
 		if (Daemon.start())
-			Daemon.run ();
+		{
+			w.show();	
+			ret = a.exec();
+		}
 		Daemon.stop();
 	}
 
-    return a.exec();
+    return ret;
 }
