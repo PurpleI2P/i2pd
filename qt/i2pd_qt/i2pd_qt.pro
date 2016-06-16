@@ -13,7 +13,7 @@ TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11
 
 # git clone https://github.com/emileb/Boost-for-Android-Prebuilt.git
-# git clone https://github.com/anon5/OpenSSL-for-Android-Prebuilt.git
+# git clone https://github.com/hypnosis-i2p/OpenSSL-for-Android-Prebuilt
 # git clone https://github.com/anon5/android-ifaddrs.git
 # change to your own
 BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
@@ -153,8 +153,8 @@ PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
 
 DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 
-ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.so \
-                      $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl.so
+ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto_1_0_0.so \
+                      $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl_1_0_0.so
 }
 equals(ANDROID_TARGET_ARCH, x86){
 # http://stackoverflow.com/a/30235934/529442
@@ -172,8 +172,8 @@ PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.a \
 
 DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 
-ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.so \
-                      $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl.so
+ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto_1_0_0.so \
+                      $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl_1_0_0.so
 }
 }
 
