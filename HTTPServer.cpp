@@ -612,6 +612,7 @@ namespace http {
 			HandleCommand (req, res, s);
 		} else {
 			ShowStatus (s);
+			//res.add_header("Refresh", "5");
 		}
 		ShowPageTail (s);
 
