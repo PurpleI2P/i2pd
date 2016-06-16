@@ -156,6 +156,25 @@ DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.so \
                       $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl.so
 }
+equals(ANDROID_TARGET_ARCH, x86){
+# http://stackoverflow.com/a/30235934/529442
+LIBS += -L$$BOOST_PATH/boost_1_53_0/x86/lib \
+#/home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
+#/home/anon5/git/OpenSSL-for-Android-Prebuilt/openssl-1.0.2/armeabi-v7a/lib/libssl.a \
+-lboost_system-gcc-mt-1_53 \
+-lboost_date_time-gcc-mt-1_53 \
+-lboost_filesystem-gcc-mt-1_53 \
+-lboost_program_options-gcc-mt-1_53 \
+-L$$OPENSSL_PATH/openssl-1.0.2/x86/lib/ -lcrypto -lssl
+
+PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.a \
+                  $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl.a
+
+DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
+
+ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.so \
+                      $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl.so
+}
 }
 
 linux:!android {
