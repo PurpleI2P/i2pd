@@ -185,5 +185,10 @@ LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboo
 
 unix:!macx:
 
+DISTFILES += \
+    android/AndroidManifest.xml
+
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
 
 
