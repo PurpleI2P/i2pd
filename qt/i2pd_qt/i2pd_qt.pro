@@ -12,9 +12,9 @@ TARGET = i2pd_qt
 TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11
 
-# git clone https://github.com/emileb/Boost-for-Android-Prebuilt.git
-# git clone https://github.com/hypnosis-i2p/OpenSSL-for-Android-Prebuilt
-# git clone https://github.com/anon5/android-ifaddrs.git
+# git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
+# git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt
+# git clone https://github.com/PuerpleI2P/android-ifaddrs.git
 # change to your own
 BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
 OPENSSL_PATH = /mnt/media/android/OpenSSL-for-Android-Prebuilt
@@ -57,7 +57,6 @@ SOURCES += DaemonQT.cpp\
     ../../SSU.cpp \
     ../../SSUData.cpp \
     ../../SSUSession.cpp \
-    ../../stdafx.cpp \
     ../../Streaming.cpp \
     ../../TransitTunnel.cpp \
     ../../Transports.cpp \
@@ -107,7 +106,6 @@ HEADERS  += mainwindow.h \
     ../../SSU.h \
     ../../SSUData.h \
     ../../SSUSession.h \
-    ../../stdafx.h \
     ../../Streaming.h \
     ../../Timestamp.h \
     ../../TransitTunnel.h \
