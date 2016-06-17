@@ -23,6 +23,7 @@
 #include "Timestamp.h"
 #include "Transports.h"
 #include "version.h"
+#include "util.h"
 #include "I2PControl.h"
 
 namespace i2p
@@ -315,7 +316,7 @@ namespace client
 		}
 		InsertParam (results, "API", api);
 		results << ",";
-		std::string token = std::to_string(i2p::util::GetSecondsSinceEpoch ());
+        std::string token = std::to_string(i2p::util::GetSecondsSinceEpoch ());
 		m_Tokens.insert (token);	
 		InsertParam (results, "Token", token);
 	}	

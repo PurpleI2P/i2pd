@@ -56,7 +56,7 @@ namespace i2p
 		routerInfo.AddNTCPAddress (host.c_str(), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
-		routerInfo.SetProperty ("netId", std::to_string (I2PD_NET_ID));
+        routerInfo.SetProperty ("netId", std::to_string (I2PD_NET_ID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());

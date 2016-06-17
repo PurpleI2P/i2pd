@@ -16,7 +16,6 @@
 #include "NetDb.h"
 #include "util.h"
 
-
 namespace i2p
 {
 namespace data
@@ -373,7 +372,7 @@ namespace data
 		boost::asio::io_service service;
 		boost::system::error_code ecode;
     	auto it = boost::asio::ip::tcp::resolver(service).resolve (
-			 boost::asio::ip::tcp::resolver::query (u.host_, std::to_string (u.port_)), ecode);
+             boost::asio::ip::tcp::resolver::query (u.host_, std::to_string (u.port_)), ecode);
 		if (!ecode)
 		{
 			boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);

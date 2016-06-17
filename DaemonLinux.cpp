@@ -74,7 +74,7 @@ namespace i2p
 				}
 
 				// point std{in,out,err} descriptors to /dev/null
-				stdin  = freopen("/dev/null", "r", stdin);
+                stdin  = freopen("/dev/null", "r", stdin);
 				stdout = freopen("/dev/null", "w", stdout);
 				stderr = freopen("/dev/null", "w", stderr);
 			}

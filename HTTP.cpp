@@ -6,6 +6,7 @@
 * See full license text in LICENSE file at top of project tree
 */
 
+#include "util.h"
 #include "HTTP.h"
 #include <algorithm>
 #include <ctime>
@@ -338,7 +339,7 @@ namespace http {
     if (status == "OK" && code != 200)
       status = HTTPCodeToStatus(code); // update
     if (body.length() > 0 && headers.count("Content-Length") == 0)
-      add_header("Content-Length", std::to_string(body.length()).c_str());
+        add_header("Content-Length", std::to_string(body.length()).c_str());
     /* build response */
     std::stringstream ss;
     ss << version << " " << code << " " << status << CRLF;
