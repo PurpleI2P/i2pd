@@ -73,7 +73,7 @@ namespace transport
 			Transports ();
 			~Transports ();
 
-			void Start ();
+			void Start (bool enableNTCP=true, bool enableSSU=true);
 			void Stop ();
 
 			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }

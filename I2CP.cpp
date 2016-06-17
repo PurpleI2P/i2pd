@@ -474,11 +474,16 @@ namespace client
         {
           offset += identsize;
           uint32_t payloadLen = bufbe32toh (buf + offset);
-          offset += 4;
-          uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
-          if (m_IsSendAccepted) 
-            SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
-          m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
+          if (payloadLen + offset <= len)
+          {            
+            offset += 4;
+            uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
+            if (m_IsSendAccepted) 
+              SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
+            m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
+          }
+          else
+            LogPrint(eLogError, "I2CP: cannot send message, too big");
         }
         else
           LogPrint(eLogError, "I2CP: invalid identity");

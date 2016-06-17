@@ -105,7 +105,7 @@ namespace transport
 		Stop ();
 	}	
 
-	void Transports::Start ()
+	void Transports::Start (bool enableNTCP, bool enableSSU)
 	{
 		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
@@ -114,7 +114,7 @@ namespace transport
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
 		for (auto address : addresses)
 		{
-			if (!m_NTCPServer)
+			if (!m_NTCPServer && enableNTCP)
 			{
 				m_NTCPServer = new NTCPServer ();
 				m_NTCPServer->Start ();
@@ -129,7 +129,7 @@ namespace transport
 			
 			if (address->transportStyle == RouterInfo::eTransportSSU && address->host.is_v4 ())
 			{
-				if (!m_SSUServer)
+				if (!m_SSUServer && enableSSU)
 				{	
 					m_SSUServer = new SSUServer (address->port);
 					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);

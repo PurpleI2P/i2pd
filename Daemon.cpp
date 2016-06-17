@@ -205,8 +205,10 @@ namespace i2p
 			LogPrint(eLogInfo, "Daemon: starting UPnP");
 			d.m_UPnP.Start ();
 #endif
+      bool ntcp; i2p::config::GetOption("ntcp", ntcp);
+      bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
-			i2p::transport::transports.Start();
+			i2p::transport::transports.Start(ntcp, ssu);
 			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
 				LogPrint(eLogInfo, "Daemon: Transports started");
 			} else {
