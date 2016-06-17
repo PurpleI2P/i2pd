@@ -265,13 +265,5 @@ namespace i2p
 
 			return true;
 		}
-
-        bool DaemonQT::init(int argc, char* argv[])
-        {
-        #if 0
-            m_Impl = std::make_shared<DaemonQTImpl> (argc, argv);
-        #endif
-            return Daemon_Singleton::init(argc, argv);
-        }
     }
 }

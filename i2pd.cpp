@@ -17,7 +17,7 @@ int main( int argc, char* argv[] )
     //QMessageBox::information(0,"Debug","runGUI completed");
     QApplication app(argc, argv);
     qDebug("Initialising the daemon...");
-    bool daemonInitSuccess = i2p::util::DaemonQt::DaemonQTImpl::init(argc, argv);
+    bool daemonInitSuccess = i2p::qt::DaemonQTImpl::init(argc, argv);
     if(!daemonInitSuccess) {
         QMessageBox::critical(0, "Error", "Daemon init failed");
         return 1;
@@ -28,14 +28,14 @@ int main( int argc, char* argv[] )
     w.show ();
     int result;
     {
-        i2p::util::DaemonQt::Controller daemonQtController;
+        i2p::qt::Controller daemonQtController;
         qDebug("Starting the daemon...");
         emit daemonQtController.startDaemon();
         qDebug("Starting gui event loop...");
         result = app.exec();
         //QMessageBox::information(&w, "Debug", "exec finished");
     }
-    i2p::util::DaemonQt::DaemonQTImpl::deinit();
+    i2p::qt::DaemonQTImpl::deinit();
     //QMessageBox::information(&w, "Debug", "demon stopped");
     //exit(result); //return from main() causes intermittent sigsegv bugs in some Androids. exit() is a workaround for this
     qDebug("Exiting the application");

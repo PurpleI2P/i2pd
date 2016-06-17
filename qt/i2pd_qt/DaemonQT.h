@@ -6,9 +6,7 @@
 
 namespace i2p
 {
-namespace util
-{
-namespace DaemonQt
+namespace qt
 {
     class Worker : public QObject
     {
@@ -59,7 +57,6 @@ namespace DaemonQt
         void stopDaemon();
         void restartDaemon();
     };
-}
 }
 }
 
