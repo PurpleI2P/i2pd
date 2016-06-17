@@ -33,8 +33,10 @@ namespace i2p
 
 #if defined(QT_GUI_LIB) // check if QT
 #define Daemon i2p::util::DaemonQT::Instance()
-	class DaemonQTImpl;	
-	class DaemonQT: public i2p::util::Daemon_Singleton
+#if 0
+    class DaemonQTImpl;
+#endif
+    class DaemonQT: public i2p::util::Daemon_Singleton
 	{
 		public:
 
@@ -45,12 +47,14 @@ namespace i2p
 			}
 
 			bool init(int argc, char* argv[]);
-			void run ();
+#if 0
+            void run ();
 
-		private:
+        private:
 
 			std::shared_ptr<DaemonQTImpl> m_Impl;
-	};
+#endif
+    };
 
 #elif defined(_WIN32)
 #define Daemon i2p::util::DaemonWin32::Instance()
