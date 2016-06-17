@@ -62,6 +62,7 @@ namespace data
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
+      std::shared_ptr<const RouterInfo> GetRandomRouterInFamily(const std::string & fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);			
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
@@ -86,8 +87,8 @@ namespace data
 			void ManageRequests ();
 			void ManageLookupResponses ();
 
-			template<typename Filter>
-			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
+    	template<typename Filter>
+        std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		
 		private:
 

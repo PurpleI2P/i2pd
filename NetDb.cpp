@@ -851,7 +851,7 @@ namespace data
 	{
 		if (m_RouterInfos.empty())
 			return 0;
-		uint32_t ind = rand () % m_RouterInfos.size ();	
+		uint32_t ind = rand () % m_RouterInfos.size ();
 		for (int j = 0; j < 2; j++)
 		{	
 			uint32_t i = 0;
@@ -955,6 +955,14 @@ namespace data
 		return res;
 	}
 
+  std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily(const std::string & fam) const {
+    return GetRandomRouter(
+      [fam](std::shared_ptr<const RouterInfo> router)->bool
+      {
+        return router->IsFamily(fam);
+      });
+  }
+  
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill (const IdentHash& destination, 
 		const std::set<IdentHash>& excluded) const
 	{

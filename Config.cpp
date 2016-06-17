@@ -205,7 +205,12 @@ namespace config {
 #endif	   
 	   "Enable or disable elgamal precomputation table")
 	  ;
-	  
+
+  options_description trust("Trust options");
+  trust.add_options()
+    ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
+    ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops");
+    
     m_OptionsDesc
       .add(general)
 	  .add(limits)	
@@ -216,7 +221,8 @@ namespace config {
       .add(bob)
 	  .add(i2cp)	
       .add(i2pcontrol)
-	  .add(precomputation) 	  
+	  .add(precomputation)
+      .add(trust)
       ;
   }
 

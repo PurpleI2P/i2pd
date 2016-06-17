@@ -612,6 +612,30 @@ namespace transport
 		std::advance (it, rand () % m_Peers.size ());	
 		return it != m_Peers.end () ? it->second.router : nullptr;
 	}
+  void Transports::RestrictRoutes(std::vector<std::string> families)
+  {
+    std::lock_guard<std::mutex> lock(m_FamilyMutex);
+    m_TrustedFamilies.clear();
+    for ( auto fam : families )
+      m_TrustedFamilies.push_back(fam);
+  }
+
+  bool Transports::RoutesRestricted() const {
+    std::lock_guard<std::mutex> lock(m_FamilyMutex);
+    return m_TrustedFamilies.size() > 0;
+  }
+
+  /** XXX: if routes are not restricted this dies */
+  std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const {
+    std::string fam;
+    {
+      std::lock_guard<std::mutex> lock(m_FamilyMutex);
+      // TODO: random family (?)
+      fam = m_TrustedFamilies[0];
+    }
+    boost::to_lower(fam);
+    return i2p::data::netdb.GetRandomRouterInFamily(fam);
+  }
 }
 }
 

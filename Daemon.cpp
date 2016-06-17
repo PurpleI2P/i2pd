@@ -192,7 +192,19 @@ namespace i2p
 			i2p::context.SetFamily (family);
 			if (family.length () > 0)
 				LogPrint(eLogInfo, "Daemon: family set to ", family);	
-			
+
+      bool trust; i2p::config::GetOption("trust.enabled", trust);
+      if (trust)
+      {
+        LogPrint(eLogInfo, "Daemon: explicit trust enabled");
+        std::string fam; i2p::config::GetOption("trust.family", fam);
+        if (fam.length() > 0)
+        {
+          LogPrint(eLogInfo, "Daemon: setting restricted routes to use family ", fam);
+          i2p::transport::transports.RestrictRoutes({fam});
+        } else
+          LogPrint(eLogError, "Daemon: no family specified for restricted routes");
+      }
 			return true;
 		}
 			
@@ -215,7 +227,7 @@ namespace i2p
 			d.m_UPnP.Start ();
 #endif			
 			LogPrint(eLogInfo, "Daemon: starting Transports");
-			i2p::transport::transports.Start();
+      i2p::transport::transports.Start();
 
 			LogPrint(eLogInfo, "Daemon: starting Tunnels");
 			i2p::tunnel::tunnels.Start();
