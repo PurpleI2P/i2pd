@@ -1,6 +1,5 @@
 #include "DaemonQT.h"
 #include "../../Daemon.h"
-#include "i2pd_qt_gui.h"
 #include "mainwindow.h"
 #include <QMessageBox>
 #include <QApplication>

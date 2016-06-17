@@ -66,8 +66,7 @@ SOURCES += DaemonQT.cpp\
     ../../TunnelPool.cpp \
     ../../util.cpp \
      ../../i2pd.cpp \
-    $$IFADDRS_PATH/ifaddrs.c \
-    i2pd_qt_gui.cpp
+    $$IFADDRS_PATH/ifaddrs.c
 
 HEADERS  += DaemonQT.h mainwindow.h \
         ../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
@@ -120,9 +119,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../TunnelPool.h \
     ../../util.h \
     ../../version.h \
-    $$IFADDRS_PATH/ifaddrs.h \
-    i2pd_qt_gui.h
-
+    $$IFADDRS_PATH/ifaddrs.h 
 
 FORMS    += mainwindow.ui
 
