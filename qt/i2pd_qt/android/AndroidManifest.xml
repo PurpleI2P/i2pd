@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <manifest package="org.purplei2p.i2pd" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.8.0" android:versionCode="1" android:installLocation="auto">
-    <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="-- %%INSERT_APP_NAME%% --">
+    <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="i2pd">
         <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation" android:name="org.qtproject.qt5.android.bindings.QtActivity" android:label="-- %%INSERT_APP_NAME%% --" android:screenOrientation="unspecified" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -46,7 +46,7 @@
             <!-- auto screen scale factor -->
         </activity>
     </application>
-    <uses-sdk android:minSdkVersion="14" android:targetSdkVersion="19"/>
+    <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="23"/>
     <supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
 
     <!-- The following comment will be replaced upon deployment with default permissions based on the dependencies of the application.
