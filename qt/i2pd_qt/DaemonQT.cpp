@@ -9,17 +9,6 @@
 
 namespace i2p
 {
-namespace util
-{
-	 bool DaemonQT::init(int argc, char* argv[])
-     {
-     	return Daemon_Singleton::init(argc, argv);
-     }
-}
-}
-
-namespace i2p
-{
 namespace qt
 {
 	Worker::Worker (DaemonQTImpl& daemon):
