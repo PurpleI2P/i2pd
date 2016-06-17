@@ -146,12 +146,13 @@ namespace qt
 		w.show ();
 		int result;
 		{
-		    i2p::qt::Controller daemonQtController(daemon);
+           /* i2p::qt::Controller daemonQtController(daemon);
 		    qDebug("Starting the daemon...");
 		    emit daemonQtController.startDaemon();
-		    qDebug("Starting gui event loop...");
+            qDebug("Starting gui event loop...");*/
+            daemon.start ();
 		    result = app.exec();
-		    //QMessageBox::information(&w, "Debug", "exec finished");
+            daemon.stop ();
 		}
 		daemon.deinit();
 		//QMessageBox::information(&w, "Debug", "demon stopped");
