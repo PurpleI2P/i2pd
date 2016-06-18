@@ -24,7 +24,7 @@ namespace data
 {		
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat")
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
 	{
 	}
 	
@@ -121,7 +121,11 @@ namespace data
 						ManageLookupResponses ();
 					}	
 					lastSave = ts;
-				}	
+				}
+
+        // if we're in hidden mode don't publish or explore
+        if (m_HiddenMode) continue;
+        
 				if (ts - lastPublish >= 2400) // publish every 40 minutes
 				{
 					Publish ();
@@ -161,6 +165,11 @@ namespace data
 		return false;
 	}
 
+  void NetDb::SetHidden(bool hide) {
+    // TODO: remove reachable addresses from router info
+    m_HiddenMode = hide;
+  }
+  
 	bool NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
 		bool updated = true;	

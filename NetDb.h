@@ -67,6 +67,9 @@ namespace data
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
+      /** set hidden mode, aka don't publish our RI to netdb and don't explore */
+      void SetHidden(bool hide); 
+      
 			void Reseed ();
 			Families& GetFamilies () { return m_Families; };
 
@@ -112,6 +115,9 @@ namespace data
 			NetDbRequests m_Requests;
 
 			std::map<IdentHash, std::pair<std::vector<IdentHash>, uint64_t> > m_LookupResponses; // ident->(closest FFs, timestamp)
+
+      /** true if in hidden mode */
+      bool m_HiddenMode;
 	};
 
 	extern NetDb netdb;

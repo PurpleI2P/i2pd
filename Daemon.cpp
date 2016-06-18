@@ -205,6 +205,12 @@ namespace i2p
         } else
           LogPrint(eLogError, "Daemon: no family specified for restricted routes");
       }
+      bool hidden; i2p::config::GetOption("trust.hidden", hidden);
+      if (hidden)
+      {
+        LogPrint(eLogInfo, "Daemon: using hidden mode");
+        i2p::data::netdb.SetHidden(true);
+      }
 			return true;
 		}
 			

@@ -333,6 +333,7 @@ namespace tunnel
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
     if(i2p::transport::transports.RoutesRestricted())
     {
+      /** if routes are restricted prepend trusted first hop */
       auto hop = i2p::transport::transports.GetRestrictedPeer();
       if(!hop) return false;
       peers.push_back(hop->GetRouterIdentity());
