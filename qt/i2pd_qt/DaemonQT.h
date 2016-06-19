@@ -3,27 +3,19 @@
 
 #include <QObject>
 #include <QThread>
+#include <QMutex>
 
 namespace i2p
 {
 namespace qt
 {
-    class Worker : public QObject
-    {
-        Q_OBJECT
-
-    public slots:
-        void startDaemon();
-        void restartDaemon();
-        void stopDaemon();
-
-    signals:
-        void resultReady();
-    };
-
     class DaemonQTImpl
     {
     public:
+
+		DaemonQTImpl ();
+		~DaemonQTImpl ();	
+
         typedef void (*runningChangedCallback)();
 
         /**
@@ -32,24 +24,50 @@ namespace qt
          * @param argv
          * @return success
          */
-        bool static init(int argc, char* argv[]);
-        void static deinit();
-        void static start();
-        void static stop();
-        void static restart();
-        void static setRunningCallback(runningChangedCallback cb);
-        bool static isRunning();
+        bool init(int argc, char* argv[]);
+        void start();
+        void stop();
+        void restart();
+        void setRunningCallback(runningChangedCallback cb);
+        bool isRunning();
     private:
-        void static setRunning(bool running);
+        void setRunning(bool running);
+	private:
+		QMutex* mutex;
+        bool m_IsRunning;
+		runningChangedCallback m_RunningChangedCallback;
     };
+
+	class Worker : public QObject
+    {
+        Q_OBJECT
+	public:
+
+		Worker (DaemonQTImpl& daemon);		
+
+	private:
+
+		DaemonQTImpl& m_Daemon;		
+
+    public slots:
+        void startDaemon();
+        void restartDaemon();
+        void stopDaemon();
+
+    signals:
+        void resultReady();
+    };	
 
     class Controller : public QObject
     {
         Q_OBJECT
         QThread workerThread;
     public:
-        Controller();
+        Controller(DaemonQTImpl& daemon);
         ~Controller();
+	private:
+		DaemonQTImpl& m_Daemon;	
+
     public slots:
         void handleResults(){}
     signals:

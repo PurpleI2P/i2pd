@@ -33,6 +33,7 @@ namespace i2p
 
 #if defined(QT_GUI_LIB) // check if QT
 #define Daemon i2p::util::DaemonQT::Instance()
+	// dummy, invoked from RunQT	
     class DaemonQT: public i2p::util::Daemon_Singleton
 	{
 		public:
@@ -42,8 +43,6 @@ namespace i2p
 				static DaemonQT instance;
 				return instance;
 			}
-
-			bool init(int argc, char* argv[]);
     };
 
 #elif defined(_WIN32)
