@@ -4,4 +4,7 @@
     <string name="ministro_not_found_msg">Can\'t find Ministro service.\nThe application can\'t start.</string>
     <string name="ministro_needed_msg">This application requires Ministro service. Would you like to install it?</string>
     <string name="fatal_error_msg">Your application encountered a fatal error and cannot continue.</string>
+    <string name="local_service_started">i2pd started</string>
+    <string name="local_service_stopped">i2pd stopped</string>
+    <string name="local_service_label">i2pd</string>
 </resources>

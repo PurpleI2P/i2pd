@@ -62,7 +62,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.PackageInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources.Theme;
@@ -1589,34 +1588,34 @@ public class QtActivity extends Activity
 //@ANDROID-11
     //////////////// Activity API 12 /////////////
 
-//@ANDROID-12
-    @Override
-    public boolean dispatchGenericMotionEvent(MotionEvent ev)
-    {
-        if (QtApplication.m_delegateObject != null  && QtApplication.dispatchGenericMotionEvent != null)
-            return (Boolean) QtApplication.invokeDelegateMethod(QtApplication.dispatchGenericMotionEvent, ev);
-        else
-            return super.dispatchGenericMotionEvent(ev);
-    }
-    public boolean super_dispatchGenericMotionEvent(MotionEvent event)
-    {
-        return super.dispatchGenericMotionEvent(event);
-    }
-    //---------------------------------------------------------------------------
-
-    @Override
-    public boolean onGenericMotionEvent(MotionEvent event)
-    {
-        if (QtApplication.m_delegateObject != null  && QtApplication.onGenericMotionEvent != null)
-            return (Boolean) QtApplication.invokeDelegateMethod(QtApplication.onGenericMotionEvent, event);
-        else
-            return super.onGenericMotionEvent(event);
-    }
-    public boolean super_onGenericMotionEvent(MotionEvent event)
-    {
-        return super.onGenericMotionEvent(event);
-    }
-    //---------------------------------------------------------------------------
-//@ANDROID-12
+////@ANDROID-12
+//    @Override
+//    public boolean dispatchGenericMotionEvent(MotionEvent ev)
+//    {
+//        if (QtApplication.m_delegateObject != null  && QtApplication.dispatchGenericMotionEvent != null)
+//            return (Boolean) QtApplication.invokeDelegateMethod(QtApplication.dispatchGenericMotionEvent, ev);
+//        else
+//            return super.dispatchGenericMotionEvent(ev);
+//    }
+//    public boolean super_dispatchGenericMotionEvent(MotionEvent event)
+//    {
+//        return super.dispatchGenericMotionEvent(event);
+//    }
+//    //---------------------------------------------------------------------------
+//
+//    @Override
+//    public boolean onGenericMotionEvent(MotionEvent event)
+//    {
+//        if (QtApplication.m_delegateObject != null  && QtApplication.onGenericMotionEvent != null)
+//            return (Boolean) QtApplication.invokeDelegateMethod(QtApplication.onGenericMotionEvent, event);
+//        else
+//            return super.onGenericMotionEvent(event);
+//    }
+//    public boolean super_onGenericMotionEvent(MotionEvent event)
+//    {
+//        return super.onGenericMotionEvent(event);
+//    }
+//    //---------------------------------------------------------------------------
+////@ANDROID-12
 
 }

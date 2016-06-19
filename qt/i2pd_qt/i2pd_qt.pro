@@ -20,6 +20,11 @@ BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
 OPENSSL_PATH = /mnt/media/android/OpenSSL-for-Android-Prebuilt
 IFADDRS_PATH = /mnt/media/android/android-ifaddrs
 
+# Steps in Android SDK manager:
+# 1) Check Extras/Google Support Library https://developer.android.com/topic/libraries/support-library/setup.html
+# 2) Check API 11
+# Finally, click Install.
+
 SOURCES += DaemonQT.cpp\
         mainwindow.cpp \
         ../../HTTPServer.cpp ../../I2PControl.cpp ../../UPnP.cpp ../../Daemon.cpp ../../Config.cpp \
