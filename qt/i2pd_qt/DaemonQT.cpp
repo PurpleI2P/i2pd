@@ -78,11 +78,6 @@ namespace qt
 		setRunningCallback(0);
         m_IsRunning=false;
 		return Daemon.init(argc,argv);
-
-	}
-	void DaemonQTImpl::deinit()
-	{
-		delete mutex; mutex = nullptr;
 	}
 
 	void DaemonQTImpl::start()
@@ -129,34 +124,35 @@ namespace qt
 
 	int RunQT (int argc, char* argv[])
 	{
-		 //int result = runGUI(argc, argv);
-		//QMessageBox::information(0,"Debug","runGUI completed");
-		QApplication app(argc, argv);
-		DaemonQTImpl daemon;
-		qDebug("Initialising the daemon...");
-		bool daemonInitSuccess = daemon.init(argc, argv);
-		if(!daemonInitSuccess) 
-		{
-		    QMessageBox::critical(0, "Error", "Daemon init failed");
-		    return 1;
-		}
-		qDebug("Initialised, creating the main window...");
-		MainWindow w;
-		qDebug("Before main window.show()...");
-		w.show ();
-		int result;
-		{
-           /* i2p::qt::Controller daemonQtController(daemon);
-		    qDebug("Starting the daemon...");
-		    emit daemonQtController.startDaemon();
-            qDebug("Starting gui event loop...");*/
-            daemon.start ();
-		    result = app.exec();
-            daemon.stop ();
-		}
-		daemon.deinit();
+        QApplication app(argc, argv);
+        int result;
+
+        {
+            DaemonQTImpl daemon;
+            qDebug("Initialising the daemon...");
+            bool daemonInitSuccess = daemon.init(argc, argv);
+            if(!daemonInitSuccess)
+            {
+                QMessageBox::critical(0, "Error", "Daemon init failed");
+                return 1;
+            }
+            qDebug("Initialised, creating the main window...");
+            MainWindow w;
+            qDebug("Before main window.show()...");
+            w.show ();
+
+            {
+                i2p::qt::Controller daemonQtController(daemon);
+                qDebug("Starting the daemon...");
+                emit daemonQtController.startDaemon();
+                //daemon.start ();
+                qDebug("Starting GUI event loop...");
+                result = app.exec();
+                //daemon.stop ();
+            }
+        }
+
 		//QMessageBox::information(&w, "Debug", "demon stopped");
-		//exit(result); //return from main() causes intermittent sigsegv bugs in some Androids. exit() is a workaround for this
 		qDebug("Exiting the application");
 		return result;
 	}

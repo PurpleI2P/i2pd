@@ -25,7 +25,6 @@ namespace qt
          * @return success
          */
         bool init(int argc, char* argv[]);
-        void deinit();
         void start();
         void stop();
         void restart();
