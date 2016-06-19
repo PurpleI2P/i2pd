@@ -77,7 +77,7 @@ public class LocalService extends Service {
 
         // Set the info for the views that show in the notification panel.
         Notification notification = new NotificationCompat.Builder(this)
-                .setSmallIcon(R.drawable.itoopie)  // the status icon
+                .setSmallIcon(R.drawable.itoopie_notification_icon)  // the status icon
                 .setTicker(text)  // the status text
                 .setWhen(System.currentTimeMillis())  // the time stamp
                 .setContentTitle(getText(R.string.local_service_label))  // the label of the entry
