@@ -1,22 +1,11 @@
 <?xml version="1.0"?>
-<manifest 
-    package="org.purplei2p.i2pd" 
-    xmlns:android="http://schemas.android.com/apk/res/android" 
-    android:versionName="2.8.0" android:versionCode="1" android:installLocation="auto">
+<manifest package="org.purplei2p.i2pd" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="2.8.0" android:versionCode="1" android:installLocation="auto">
     <uses-sdk android:minSdkVersion="11" android:targetSdkVersion="24"/>
-	<supports-screens 
-	    android:largeScreens="true" 
-	    android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
-    <!-- <application android:hardwareAccelerated="true" --> 
-	<application 
-        android:name="org.qtproject.qt5.android.bindings.QtApplication" 
-        android:label="i2pd">
+        <supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
+    <!-- <application android:hardwareAccelerated="true" -->
+        <application android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="i2pd">
         <!-- android:configChanges="screenSize|smallestScreenSize" are since api 13, "layoutDirection" since api 17 -->
-        <activity 
-            android:configChanges="orientation|uiMode|screenLayout|locale|fontScale|keyboard|keyboardHidden|navigation" 
-            android:name="org.purplei2p.i2pd.I2PDMainActivity" 
-            android:label="-- %%INSERT_APP_NAME%% --" 
-            android:screenOrientation="unspecified" android:launchMode="singleTop">
+        <activity android:configChanges="orientation|uiMode|screenLayout|locale|fontScale|keyboard|keyboardHidden|navigation" android:name="org.purplei2p.i2pd.I2PDMainActivity" android:label="-- %%INSERT_APP_NAME%% --" android:screenOrientation="unspecified" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -60,7 +49,7 @@
             <meta-data android:name="android.app.auto_screen_scale_factor" android:value="false"/>
             <!-- auto screen scale factor -->
         </activity>
-        <service android:enabled="true" android:name=".LocalService" />
+        <service android:enabled="true" android:name=".LocalService"/>
     </application>
 
     <!-- The following comment will be replaced upon deployment with default permissions based on the dependencies of the application.

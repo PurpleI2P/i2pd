@@ -861,6 +861,12 @@ namespace tunnel
 		// TODO: locking
 		return m_OutboundTunnels.size();
 	}
+
+#ifdef ANDROID_ARM7A
+    template std::shared_ptr<InboundTunnel> Tunnels::CreateTunnel<InboundTunnel>(std::shared_ptr<TunnelConfig>, std::shared_ptr<OutboundTunnel>);
+    template std::shared_ptr<OutboundTunnel> Tunnels::CreateTunnel<OutboundTunnel>(std::shared_ptr<TunnelConfig>, std::shared_ptr<OutboundTunnel>);
+#endif
+
 }
 }
 
