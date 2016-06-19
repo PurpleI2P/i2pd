@@ -137,6 +137,7 @@ LIBS += -lz
 android {
 message("Using Android settings")
 DEFINES += ANDROID=1
+DEFINES += __ANDROID__
 INCLUDEPATH +=  $$BOOST_PATH/boost_1_53_0/include \
                 $$OPENSSL_PATH/openssl-1.0.2/include \
                 $$IFADDRS_PATH
@@ -146,6 +147,9 @@ DISTFILES += \
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
+
+DEFINES += ANDROID_ARM7A
+
 # http://stackoverflow.com/a/30235934/529442
 LIBS += -L$$BOOST_PATH/boost_1_53_0/armeabi-v7a/lib \
 -lboost_system-gcc-mt-1_53 \
