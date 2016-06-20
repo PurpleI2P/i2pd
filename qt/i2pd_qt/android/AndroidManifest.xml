@@ -5,7 +5,7 @@
     <!-- <application android:hardwareAccelerated="true" -->
         <application android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="i2pd" android:icon="@drawable/icon">
         <!-- android:configChanges="screenSize|smallestScreenSize" are since api 13, "layoutDirection" since api 17 -->
-        <activity android:configChanges="orientation|uiMode|screenLayout|locale|fontScale|keyboard|keyboardHidden|navigation" android:name="org.purplei2p.i2pd.I2PDMainActivity" android:label="-- %%INSERT_APP_NAME%% --" android:screenOrientation="unspecified" android:launchMode="singleTop">
+        <activity android:configChanges="orientation|uiMode|screenLayout|locale|fontScale|keyboard|keyboardHidden|navigation" android:name="org.purplei2p.i2pd.I2PDMainActivity" android:label="i2pd" android:screenOrientation="unspecified" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
