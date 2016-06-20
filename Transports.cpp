@@ -460,7 +460,7 @@ namespace transport
 		auto ntcpSession = m_NTCPServer ? m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
 		if (ntcpSession) // try deleting ntcp session too
 		{
-			m_NTCPServer->RemoveNTCPSession(ntcpSession);
+			ntcpSession->Terminate ();
 			LogPrint(eLogDebug, "Transports: NTCP session closed");
 		}
 	}	
