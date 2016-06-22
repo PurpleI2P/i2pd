@@ -456,8 +456,13 @@ namespace transport
 		{	
 			m_SSUServer->DeleteSession (ssuSession);
 			LogPrint (eLogDebug, "Transports: SSU session closed");
-		}	
-		// TODO: delete NTCP
+		}
+		auto ntcpSession = m_NTCPServer ? m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
+		if (ntcpSession) // try deleting ntcp session too
+		{
+			ntcpSession->Terminate ();
+			LogPrint(eLogDebug, "Transports: NTCP session closed");
+		}
 	}	
 		
 	void Transports::DetectExternalIP ()

@@ -164,6 +164,15 @@ folder name included in downloaded archive.
 Note that you might need to build DLL yourself for 64-bit systems
 using msys2 as 64-bit DLLs are not provided by the project.
 
+You can also install it through the MSYS2
+and build with USE_UPNP key.
+
+```bash
+pacman -S mingw-w64-i686-miniupnpc  
+make USE_UPNP=1  
+```
+
+It requires libminiupnpc.dll from /mingw32/bin  
 
 ### Creating Visual Studio project
 

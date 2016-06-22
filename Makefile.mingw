@@ -32,6 +32,11 @@ ifeq ($(USE_WIN32_APP), yes)
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
+# UPNP Support 
+ifeq ($(USE_UPNP),1)
+  CXXFLAGS += -DUSE_UPNP
+endif
+
 ifeq ($(USE_AESNI),1)
 	CPU_FLAGS = -maes -DAESNI
 else

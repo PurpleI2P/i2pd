@@ -13,12 +13,17 @@ TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
-# git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt
+# git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
 BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
 OPENSSL_PATH = /mnt/media/android/OpenSSL-for-Android-Prebuilt
 IFADDRS_PATH = /mnt/media/android/android-ifaddrs
+
+# Steps in Android SDK manager:
+# 1) Check Extras/Google Support Library https://developer.android.com/topic/libraries/support-library/setup.html
+# 2) Check API 11
+# Finally, click Install.
 
 SOURCES += DaemonQT.cpp\
         mainwindow.cpp \
@@ -132,6 +137,7 @@ LIBS += -lz
 android {
 message("Using Android settings")
 DEFINES += ANDROID=1
+DEFINES += __ANDROID__
 INCLUDEPATH +=  $$BOOST_PATH/boost_1_53_0/include \
                 $$OPENSSL_PATH/openssl-1.0.2/include \
                 $$IFADDRS_PATH
@@ -141,6 +147,9 @@ DISTFILES += \
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
+
+DEFINES += ANDROID_ARM7A
+
 # http://stackoverflow.com/a/30235934/529442
 LIBS += -L$$BOOST_PATH/boost_1_53_0/armeabi-v7a/lib \
 -lboost_system-gcc-mt-1_53 \

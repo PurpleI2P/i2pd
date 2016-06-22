@@ -69,7 +69,7 @@ namespace transport
 #ifdef MAC_OSX
             m_Module = dlopen ("libminiupnpc.dylib", RTLD_LAZY);
 #elif _WIN32
-            m_Module = LoadLibrary ("miniupnpc.dll"); // official prebuilt binary, e.g., in upnpc-exe-win32-20140422.zip
+            m_Module = LoadLibrary ("libminiupnpc.dll"); // from MSYS2
 #else
             m_Module = dlopen ("libminiupnpc.so", RTLD_LAZY);
 #endif
