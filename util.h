@@ -7,6 +7,17 @@
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
 
+#ifdef ANDROID
+namespace std
+{
+template <typename T>
+std::string to_string(T value)
+{
+   return boost::lexical_cast<std::string>(value);
+}
+}
+#endif
+
 namespace i2p
 {
 namespace util

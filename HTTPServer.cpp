@@ -21,6 +21,7 @@
 #include "ClientContext.h"
 #include "HTTPServer.h"
 #include "Daemon.h"
+#include "util.h"
 
 // For image and info
 #include "version.h"
@@ -127,7 +128,7 @@ namespace http {
 			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
 			"  <head>\r\n"
 			"  <meta charset=\"UTF-8\">\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
-			"  <link rel='shortcut icon' href='" << itoopieFavicon << "'>\r\n"
+			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
 			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
 			<< cssStyles <<
 			"</head>\r\n";
@@ -136,15 +137,15 @@ namespace http {
 			"<div class=header><b>i2pd</b> webconsole</div>\r\n"
 			"<div class=wrapper>\r\n"
 			"<div class=left>\r\n"
-			"  <a href=/>Main page</a><br>\r\n<br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_COMMANDS << ">Router commands</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << ">Local destinations</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_TUNNELS << ">Tunnels</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << ">Transit tunnels</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_TRANSPORTS << ">Transports</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_I2P_TUNNELS << ">I2P tunnels</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_JUMPSERVICES << ">Jump services</a><br>\r\n"
-			"  <a href=/?page=" << HTTP_PAGE_SAM_SESSIONS << ">SAM sessions</a><br>\r\n"
+			"  <a href=\"/\">Main page</a><br>\r\n<br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_COMMANDS << "\">Router commands</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">Local destinations</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_JUMPSERVICES << "\">Jump services</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n"
 			"</div>\r\n"
 			"<div class=right>";
 	}
@@ -230,15 +231,15 @@ namespace http {
 		clientTunnelCount += i2p::tunnel::tunnels.CountInboundTunnels();
 		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
 		
-		s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
-		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
+        s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
+        s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
 	void ShowJumpServices (std::stringstream& s, const std::string& address)
 	{
-		s << "<form type=\"GET\" action=\"/\">";
+		s << "<form method=\"get\" action=\"/\">";
 		s << "<input type=\"hidden\" name=\"page\" value=\"jumpservices\">";
-		s << "<input type=\"text\"   name=\"address\" value=\"" << address << "\">";
+		s << "<input type=\"text\" name=\"address\" value=\"" << address << "\">";
 		s << "<input type=\"submit\" value=\"Update\">";
 		s << "</form><br>\r\n";
 		s << "<b>Jump services for " << address << "</b>\r\n<ul>\r\n";
@@ -254,7 +255,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
 			auto ident = it.second->GetIdentHash ();; 
-			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
 	}
@@ -358,21 +359,21 @@ namespace http {
 	{
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
-		s << "  <a href=/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << ">Run peer test</a><br>\r\n";
-		//s << "  <a href=/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << ">Reload config</a><br>\r\n";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "\">Run peer test</a><br>\r\n";
+		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << ">Stop accepting tunnels</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << "\">Stop accepting tunnels</a><br>\r\n";
 		else	
-			s << "  <a href=/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << ">Start accepting tunnels</a><br>\r\n";
-#ifndef WIN32
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << "\">Start accepting tunnels</a><br>\r\n";
+#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
 		if (Daemon.gracefullShutdownInterval) {
-			s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << ">Cancel gracefull shutdown (";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown (";
 			s << Daemon.gracefullShutdownInterval;
 			s << " seconds remains)</a><br>\r\n";
 		} else {
-			s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << ">Start gracefull shutdown</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start gracefull shutdown</a><br>\r\n";
 		}
-		s << "  <a href=/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << ">Force shutdown</a><br>\r\n";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
 #endif
 	}
 
@@ -450,7 +451,7 @@ namespace http {
 		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
 		for (auto& it: sam->GetSessions ())
 		{
-			s << "<a href=/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << ">";
+			s << "<a href=\"/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
 			s << it.first << "</a><br>\r\n" << std::endl;
 		}	
 	}	
@@ -469,7 +470,7 @@ namespace http {
 			return;
 		}
 		auto& ident = session->localDestination->GetIdentHash();
-		s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">";
+		s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
 		s << "<br>\r\n";
 		s << "<b>Streams:</b><br>\r\n";
@@ -493,7 +494,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
 			s << it.second->GetName () << "</a> ⇐ ";			
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -502,7 +503,7 @@ namespace http {
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << ">"; 
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
 			s << it.second->GetName () << "</a> ⇒ ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();
@@ -611,7 +612,7 @@ namespace http {
 			HandleCommand (req, res, s);
 		} else {
 			ShowStatus (s);
-		  res.add_header("Refresh", "5");
+			//res.add_header("Refresh", "5");
 		}
 		ShowPageTail (s);
 
@@ -677,12 +678,12 @@ namespace http {
 			i2p::context.SetAcceptsTunnels (false);
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
 			i2p::context.SetAcceptsTunnels (false);
-#ifndef WIN32
+#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
 			Daemon.gracefullShutdownInterval = 10*60;
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
-#ifndef WIN32
+#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
 			Daemon.gracefullShutdownInterval = 0;
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {

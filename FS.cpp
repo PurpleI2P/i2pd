@@ -55,6 +55,14 @@ namespace fs {
     dataDir += "/Library/Application Support/" + appName;
     return;
 #else /* other unix */
+#if defined(ANDROID)
+	if (boost::filesystem::exists("/sdcard"))
+	{	  
+		dataDir = "/sdcard/" + appName; 
+		return;
+	}	  
+	// otherwise use /data/files  
+#endif	  
     char *home = getenv("HOME");
     if (isService) {
       dataDir = "/var/lib/" + appName;

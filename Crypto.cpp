@@ -298,11 +298,13 @@ namespace crypto
 		BN_rand (k, ELGAMAL_SHORT_EXPONENT_NUM_BITS, -1, 1); // short exponent of 226 bits
 #endif		
 		// calculate a
-		a = BN_new ();
 		if (g_ElggTable)
 			a = ElggPow (k, g_ElggTable, ctx);
 		else
+		{	
+			a = BN_new ();
 			BN_mod_exp (a, elgg, k, elgp, ctx);
+		}
 
 		BIGNUM * y = BN_new ();
 		BN_bin2bn (key, 256, y);
