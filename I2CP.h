@@ -99,7 +99,12 @@ namespace client
 	{
 		public:
 
-			I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+			I2CPSession (I2CPServer& owner,
+#ifdef ANDROID 
+				std::shared_ptr<boost::asio::local::stream_protocol::socket> socket);
+#else
+				std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+#endif
 			~I2CPSession ();
 
 			void Start ();
@@ -144,7 +149,11 @@ namespace client
 		private:
 
 			I2CPServer& m_Owner;
+#ifdef ANDROID
+			std::shared_ptr<boost::asio::local::stream_protocol::socket> m_Socket;
+#else
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
+#endif
 			uint8_t m_Header[I2CP_HEADER_SIZE], * m_Payload;
 			size_t m_PayloadLen;
 
@@ -173,7 +182,13 @@ namespace client
 			void Run ();
 
 			void Accept ();
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+
+			void HandleAccept(const boost::system::error_code& ecode,
+#ifdef ANDROID
+				std::shared_ptr<boost::asio::local::stream_protocol::socket> socket);
+#else
+				std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+#endif
 
 		private:
 			
@@ -183,7 +198,11 @@ namespace client
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
+#ifdef ANDROID
+			boost::asio::local::stream_protocol::acceptor m_Acceptor;
+#else
 			boost::asio::ip::tcp::acceptor m_Acceptor;
+#endif
 
 		public:
 
