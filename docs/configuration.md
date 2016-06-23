@@ -60,9 +60,9 @@ All options below still possible in cmdline, but better write it in config file:
 * --bob.port=           - Port of BOB command channel. Usually 2827. BOB is off if not specified
 * --bob.enabled=        - If BOB is enabled. false by default 
 
-* --i2cp.address=        - The address to listen on 
-* --i2cp.port=           - Port of I2CP server. Usually 7654. IPCP is off if not specified
-* --i2cp.enabled=        - If I2CP is enabled. false by default. Other services don't requeire I2CP 
+* --i2cp.address=        - The address to listen on or an abstract address for Android LocalSocket
+* --i2cp.port=           - Port of I2CP server. Usually 7654. Ignored for Andorid
+* --i2cp.enabled=        - If I2CP is enabled. false by default. Other services don't require I2CP 
 
 * --i2pcontrol.address= - The address to listen on (I2P control service)
 * --i2pcontrol.port=    - Port of I2P control service. Usually 7650. I2PControl is off if not specified
