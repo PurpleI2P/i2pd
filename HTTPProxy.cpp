@@ -43,7 +43,7 @@ namespace proxy
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			void HTTPRequestFailed(/*std::string message*/);
+			void HTTPRequestFailed(const char *message);
 			void RedirectToJumpService();
 			void ExtractRequest();
 			bool IsI2PAddress();
@@ -98,10 +98,17 @@ namespace proxy
 
 	/* All hope is lost beyond this point */
 	//TODO: handle this apropriately
-	void HTTPProxyHandler::HTTPRequestFailed(/*HTTPProxyHandler::errTypes error*/)
+	void HTTPProxyHandler::HTTPRequestFailed(const char *message)
 	{
-		static std::string response = "HTTP/1.0 500 Internal Server Error\r\nContent-type: text/html\r\nContent-length: 0\r\n\r\n";
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response,response.size()),
+		std::size_t size = std::strlen(message);
+		std::stringstream ss;
+		ss << "HTTP/1.0 500 Internal Server Error\r\n"
+		   << "Content-Type: text/plain\r\n";
+		ss << "Content-Length: " << std::to_string(size + 2) << "\r\n"
+		   << "\r\n"; /* end of headers */
+		ss << message << "\r\n";
+		std::string response = ss.str();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
 					 std::bind(&HTTPProxyHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -139,7 +146,7 @@ namespace proxy
 		if ( m_version != "HTTP/1.0" && m_version != "HTTP/1.1" ) 
 		{
 			LogPrint(eLogError, "HTTPProxy: unsupported version: ", m_version);
-			HTTPRequestFailed(); //TODO: send right stuff
+			HTTPRequestFailed("unsupported HTTP version");
 			return false;
 		}
 		return true;
@@ -276,13 +283,13 @@ namespace proxy
 						case '\n': EnterState(DONE); break;
 						default:
 							LogPrint(eLogError, "HTTPProxy: rejected invalid request ending with: ", ((int)*http_buff));
-							HTTPRequestFailed(); //TODO: add correct code
+							HTTPRequestFailed("rejected invalid request");
 							return false;
 					}
 				break;
 				default:
 					LogPrint(eLogError, "HTTPProxy: invalid state: ", m_state);
-					HTTPRequestFailed(); //TODO: add correct code 500
+					HTTPRequestFailed("invalid parser state");
 					return false;
 			}
 			http_buff++;
@@ -338,7 +345,7 @@ namespace proxy
 		else 
 		{
 			LogPrint (eLogError, "HTTPProxy: error when creating the stream, check the previous warnings for more info");
-			HTTPRequestFailed(); // TODO: Send correct error message host unreachable
+			HTTPRequestFailed("error when creating the stream, check logs");
 		}
 	}
 
