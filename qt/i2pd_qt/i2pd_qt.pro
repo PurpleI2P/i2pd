@@ -10,14 +10,16 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11
+QMAKE_CXXFLAGS *= -std=c++11 -DUSE_UPNP
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
+# git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
 BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
 OPENSSL_PATH = /mnt/media/android/OpenSSL-for-Android-Prebuilt
+MINIUPNP_PATH = /mnt/media/android/MiniUPnP-for-Android-Prebuilt
 IFADDRS_PATH = /mnt/media/android/android-ifaddrs
 
 # Steps in Android SDK manager:
@@ -140,6 +142,7 @@ DEFINES += ANDROID=1
 DEFINES += __ANDROID__
 INCLUDEPATH +=  $$BOOST_PATH/boost_1_53_0/include \
                 $$OPENSSL_PATH/openssl-1.0.2/include \
+                $$MINIUPNP_PATH/miniupnp-2.0/include \
                 $$IFADDRS_PATH
 DISTFILES += \
     android/AndroidManifest.xml
@@ -164,7 +167,8 @@ PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
 DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 
 ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto_1_0_0.so \
-                      $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl_1_0_0.so
+                      $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl_1_0_0.so \
+                      $$MINIUPNP_PATH/miniupnp-2.0/armeabi-v7a/lib/libminiupnpc.so
 }
 equals(ANDROID_TARGET_ARCH, x86){
 # http://stackoverflow.com/a/30235934/529442
@@ -181,7 +185,8 @@ PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.a \
 DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 
 ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto_1_0_0.so \
-                      $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl_1_0_0.so
+                      $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl_1_0_0.so \
+                      $$MINIUPNP_PATH/miniupnp-2.0/x86/lib/libminiupnpc.so
 }
 }
 
