@@ -99,12 +99,14 @@ namespace client
 	{
 		public:
 
-			I2CPSession (I2CPServer& owner,
 #ifdef ANDROID 
-				std::shared_ptr<boost::asio::local::stream_protocol::socket> socket);
+			typedef boost::asio::local::stream_protocol proto;
 #else
-				std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-#endif
+			typedef boost::asio::ip::tcp proto;
+#endif		
+
+			I2CPSession (I2CPServer& owner, std::shared_ptr<proto::socket> socket);
+
 			~I2CPSession ();
 
 			void Start ();
@@ -149,11 +151,7 @@ namespace client
 		private:
 
 			I2CPServer& m_Owner;
-#ifdef ANDROID
-			std::shared_ptr<boost::asio::local::stream_protocol::socket> m_Socket;
-#else
-			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
-#endif
+			std::shared_ptr<proto::socket> m_Socket;
 			uint8_t m_Header[I2CP_HEADER_SIZE], * m_Payload;
 			size_t m_PayloadLen;
 
@@ -183,12 +181,7 @@ namespace client
 
 			void Accept ();
 
-			void HandleAccept(const boost::system::error_code& ecode,
-#ifdef ANDROID
-				std::shared_ptr<boost::asio::local::stream_protocol::socket> socket);
-#else
-				std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-#endif
+			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<I2CPSession::proto::socket> socket);
 
 		private:
 			
@@ -198,11 +191,7 @@ namespace client
 			bool m_IsRunning;
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
-#ifdef ANDROID
-			boost::asio::local::stream_protocol::acceptor m_Acceptor;
-#else
-			boost::asio::ip::tcp::acceptor m_Acceptor;
-#endif
+			I2CPSession::proto::acceptor m_Acceptor;
 
 		public:
 
