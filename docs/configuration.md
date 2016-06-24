@@ -41,7 +41,7 @@ All options below still possible in cmdline, but better write it in config file:
 * --http.pass=          - Password for basic auth (default: random, see logs)
 
 * --httpproxy.address=  - The address to listen on (HTTP Proxy)
-* --httpproxy.port=     - The port to listen on (HTTP Proxy) 4446 by default
+* --httpproxy.port=     - The port to listen on (HTTP Proxy) 4444 by default
 * --httpproxy.keys=     - optional keys file for proxy local destination (both HTTP and SOCKS)
 * --httpproxy.enabled=  - If HTTP proxy is enabled. true by default 
 
