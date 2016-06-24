@@ -6,10 +6,15 @@ NEEDED_CXXFLAGS = -std=c++11
 BOOST_SUFFIX = -mt
 INCFLAGS = -I/usr/include/ -I/usr/local/include/
 LDFLAGS = -Wl,-rpath,/usr/local/lib \
-  -L/usr/local/lib \
-  -L/c/dev/openssl \
-  -L/c/dev/boost/lib
-LDLIBS = \
+  -L/usr/local/lib 
+
+# UPNP Support 
+ifeq ($(USE_UPNP),1)
+  CXXFLAGS += -DUSE_UPNP -DMINIUPNP_STATICLIB
+  LDLIBS = -Wl,-Bstatic -lminiupnpc	
+endif
+
+LDLIBS += \
   -Wl,-Bstatic -lboost_system$(BOOST_SUFFIX) \
   -Wl,-Bstatic -lboost_date_time$(BOOST_SUFFIX) \
   -Wl,-Bstatic -lboost_filesystem$(BOOST_SUFFIX) \
@@ -30,11 +35,6 @@ ifeq ($(USE_WIN32_APP), yes)
 	LDFLAGS += -mwindows -s
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
-endif
-
-# UPNP Support 
-ifeq ($(USE_UPNP),1)
-  CXXFLAGS += -DUSE_UPNP
 endif
 
 ifeq ($(USE_AESNI),1)
