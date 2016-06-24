@@ -11,6 +11,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = i2pd_qt
 TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11
+DEFINES += USE_UPNP
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
@@ -71,6 +72,7 @@ SOURCES += DaemonQT.cpp\
     ../../TunnelEndpoint.cpp \
     ../../TunnelGateway.cpp \
     ../../TunnelPool.cpp \
+    ../../UPnP.cpp \
     ../../util.cpp \
      ../../i2pd.cpp
 
@@ -123,6 +125,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../TunnelEndpoint.h \
     ../../TunnelGateway.h \
     ../../TunnelPool.h \
+    ../../UPnP.h \
     ../../util.h \
     ../../version.h
 
@@ -138,7 +141,6 @@ android {
 message("Using Android settings")
 DEFINES += ANDROID=1
 DEFINES += __ANDROID__
-DEFINES += USE_UPNP
 
 INCLUDEPATH +=  $$BOOST_PATH/boost_1_53_0/include \
                 $$OPENSSL_PATH/openssl-1.0.2/include \
@@ -197,6 +199,6 @@ ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto_1_0_0.so \
 
 linux:!android {
 message("Using Linux settings")
-LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
 }
 
