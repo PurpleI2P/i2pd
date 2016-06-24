@@ -2,6 +2,7 @@
 //#include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QTimer>
+#include "../../RouterContext.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)/*,
@@ -62,7 +63,7 @@ void MainWindow::handleGracefulQuitButton() {
     gracefulQuitButton->setEnabled(false);
     gracefulQuitButton->adjustSize();
     verticalLayoutWidget->adjustSize();
-    //here, the code to stop tunnels
+    i2p::context.SetAcceptsTunnels (false); // stop accpting tunnels
     QTimer::singleShot(10*60*1000/*millis*/, this, SLOT(handleGracefulQuitTimerEvent()));
 }
 
