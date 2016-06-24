@@ -172,8 +172,6 @@ pacman -S mingw-w64-i686-miniupnpc
 make USE_UPNP=1  
 ```
 
-It requires libminiupnpc.dll from /mingw32/bin  
-
 ### Creating Visual Studio project
 
 Start CMake GUI, navigate to i2pd directory, choose building directory,  e.g. ./out, and configure options.
