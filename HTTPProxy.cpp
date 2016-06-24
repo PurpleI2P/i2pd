@@ -20,6 +20,7 @@
 #include "I2PTunnel.h"
 #include "Config.h"
 #include "HTTP.h"
+#include "HTTPServer.h"
 
 namespace i2p {
 namespace proxy {
@@ -113,15 +114,8 @@ namespace proxy {
 	void HTTPReqHandler::RedirectToJumpService(/*HTTPReqHandler::errTypes error*/)
 	{
 		std::stringstream ss;
-		std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-		uint16_t    httpPort; i2p::config::GetOption("http.port", httpPort);
-
-		ss << "HTTP/1.1 302 Found\r\n"
-			<< "Connection: close\r\n"
-			<< "Location: http://" << httpAddr << ":" << httpPort << "/?page=jumpservices&address=" << m_address << "\r\n"
-			<< "\r\n";
-		std::string response = ss.str();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
+		i2p::http::ShowJumpServices (ss, m_address);
+		boost::asio::async_write(*m_sock, boost::asio::buffer(ss.str ()),
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 

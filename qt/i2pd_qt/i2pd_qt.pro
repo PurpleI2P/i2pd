@@ -18,10 +18,10 @@ DEFINES += USE_UPNP
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
-BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
-OPENSSL_PATH = /mnt/media/android/OpenSSL-for-Android-Prebuilt
-MINIUPNP_PATH = /mnt/media/android/MiniUPnP-for-Android-Prebuilt
-IFADDRS_PATH = /mnt/media/android/android-ifaddrs
+BOOST_PATH = /home/rebby/andp/Boost-for-Android-Prebuilt
+OPENSSL_PATH = /home/rebby/andp/OpenSSL-for-Android-Prebuilt
+MINIUPNP_PATH = /home/rebby/andp/MiniUPnP-for-Android-Prebuilt
+IFADDRS_PATH = /home/rebby/andp/android-ifaddrs
 
 # Steps in Android SDK manager:
 # 1) Check Extras/Google Support Library https://developer.android.com/topic/libraries/support-library/setup.html
