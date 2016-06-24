@@ -30,7 +30,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink boost openssl && brew link boost openssl -f ; fi
 env:
   matrix:
-    - BUILD_TYPE=Release UPNP=ON
+#    - BUILD_TYPE=Release UPNP=ON
     - BUILD_TYPE=Release UPNP=OFF
 script:
   - cd build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_UPNP=${UPNP} && make
