@@ -10,7 +10,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = i2pd_qt
 TEMPLATE = app
-QMAKE_CXXFLAGS *= -std=c++11 -DUSE_UPNP
+QMAKE_CXXFLAGS *= -std=c++11
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
@@ -29,7 +29,7 @@ IFADDRS_PATH = /mnt/media/android/android-ifaddrs
 
 SOURCES += DaemonQT.cpp\
         mainwindow.cpp \
-        ../../HTTPServer.cpp ../../I2PControl.cpp ../../UPnP.cpp ../../Daemon.cpp ../../Config.cpp \
+        ../../HTTPServer.cpp ../../I2PControl.cpp ../../Daemon.cpp ../../Config.cpp \
     ../../AddressBook.cpp \
     ../../api.cpp \
     ../../Base.cpp \
@@ -72,8 +72,7 @@ SOURCES += DaemonQT.cpp\
     ../../TunnelGateway.cpp \
     ../../TunnelPool.cpp \
     ../../util.cpp \
-     ../../i2pd.cpp \
-    $$IFADDRS_PATH/ifaddrs.c
+     ../../i2pd.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
         ../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
@@ -125,8 +124,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../TunnelGateway.h \
     ../../TunnelPool.h \
     ../../util.h \
-    ../../version.h \
-    $$IFADDRS_PATH/ifaddrs.h 
+    ../../version.h
 
 FORMS    += mainwindow.ui
 
@@ -140,6 +138,8 @@ android {
 message("Using Android settings")
 DEFINES += ANDROID=1
 DEFINES += __ANDROID__
+DEFINES += USE_UPNP
+
 INCLUDEPATH +=  $$BOOST_PATH/boost_1_53_0/include \
                 $$OPENSSL_PATH/openssl-1.0.2/include \
                 $$MINIUPNP_PATH/miniupnp-2.0/include \
@@ -148,6 +148,9 @@ DISTFILES += \
     android/AndroidManifest.xml
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+SOURCES += $$IFADDRS_PATH/ifaddrs.c ../../UPnP.cpp
+HEADERS += $$IFADDRS_PATH/ifaddrs.h
 
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
 
