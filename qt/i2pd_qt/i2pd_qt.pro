@@ -14,7 +14,7 @@ QMAKE_CXXFLAGS *= -std=c++11 -DUSE_UPNP
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
-# git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt
+# git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
 BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
@@ -159,7 +159,8 @@ LIBS += -L$$BOOST_PATH/boost_1_53_0/armeabi-v7a/lib \
 -lboost_date_time-gcc-mt-1_53 \
 -lboost_filesystem-gcc-mt-1_53 \
 -lboost_program_options-gcc-mt-1_53 \
--L$$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/ -lcrypto -lssl
+-L$$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/ -lcrypto -lssl \
+-L$$MINIUPNP_PATH/miniupnp-2.0/armeabi-v7a/lib/ -lminiupnpc
 
 PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
                   $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl.a
@@ -177,7 +178,8 @@ LIBS += -L$$BOOST_PATH/boost_1_53_0/x86/lib \
 -lboost_date_time-gcc-mt-1_53 \
 -lboost_filesystem-gcc-mt-1_53 \
 -lboost_program_options-gcc-mt-1_53 \
--L$$OPENSSL_PATH/openssl-1.0.2/x86/lib/ -lcrypto -lssl
+-L$$OPENSSL_PATH/openssl-1.0.2/x86/lib/ -lcrypto -lssl \
+-L$$MINIUPNP_PATH/miniupnp-2.0/x86/lib/ -lminiupnpc
 
 PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.a \
                   $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl.a
