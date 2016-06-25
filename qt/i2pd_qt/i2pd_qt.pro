@@ -202,3 +202,15 @@ message("Using Linux settings")
 LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
 }
 
+
+!android:!symbian:!maemo5:!simulator {
+message("Build with a system tray icon")
+# see also http://doc.qt.io/qt-4.8/qt-desktop-systray-systray-pro.html for example on wince*
+#sources.files = $$SOURCES $$HEADERS $$RESOURCES $$FORMS i2pd_qt.pro resources images
+RESOURCES     = i2pd.qrc
+QT           += xml
+#INSTALLS     += sources
+}
+
+RESOURCES += \
+    i2pd.qrc
