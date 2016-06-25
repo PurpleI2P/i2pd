@@ -31,7 +31,7 @@ i2pd from source on your OS.
 * Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)  
 * Mac OS X
 * FreeBSD
-* Android *(coming soon)*
+* Android 
 
 Using i2pd
 ----------
@@ -43,6 +43,7 @@ Donations
 ---------
 
 BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY  
+DASH: Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF  
 LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59  
 ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z  
 DOGE: DNXLQKziRPAsD9H3DFNjk4fLQrdaSX893Y 
