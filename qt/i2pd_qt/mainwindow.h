@@ -27,12 +27,15 @@ public:
 
 private slots:
     void handleQuitButton();
+    void handleGracefulQuitButton();
+    void handleGracefulQuitTimerEvent();
 
 private:
     QWidget *centralWidget;
     QWidget *verticalLayoutWidget;
     QVBoxLayout *verticalLayout1;
     QPushButton *quitButton;
+    QPushButton *gracefulQuitButton;
 };
 
 #endif // MAINWINDOW_H

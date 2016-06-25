@@ -114,7 +114,7 @@ namespace client
 		}	
 	}
 
-	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
+	I2CPSession::I2CPSession (I2CPServer& owner, std::shared_ptr<proto::socket> socket):
 		m_Owner (owner), m_Socket (socket), m_Payload (nullptr),
 		m_SessionID (0xFFFF), m_MessageID (0), m_IsSendAccepted (true)
 	{
@@ -594,7 +594,12 @@ namespace client
 
 	I2CPServer::I2CPServer (const std::string& interface, int port):
 		m_IsRunning (false), m_Thread (nullptr),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(interface), port))
+		m_Acceptor (m_Service, 
+#ifdef ANDROID
+            I2CPSession::proto::endpoint(std::string (1, '\0') + interface)) // leading 0 for abstract address
+#else
+			I2CPSession::proto::endpoint(boost::asio::ip::address::from_string(interface), port))
+#endif
 	{
 		memset (m_MessagesHandlers, 0, sizeof (m_MessagesHandlers));
 		m_MessagesHandlers[I2CP_GET_DATE_MESSAGE] = &I2CPSession::GetDateMessageHandler;
@@ -655,12 +660,13 @@ namespace client
 
 	void I2CPServer::Accept ()
 	{
-		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (m_Service);
+		auto newSocket = std::make_shared<I2CPSession::proto::socket> (m_Service);
 		m_Acceptor.async_accept (*newSocket, std::bind (&I2CPServer::HandleAccept, this,
 			std::placeholders::_1, newSocket));
 	}
 
-	void I2CPServer::HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+	void I2CPServer::HandleAccept(const boost::system::error_code& ecode,
+		std::shared_ptr<I2CPSession::proto::socket> socket)
 	{
 		if (!ecode && socket)
 		{

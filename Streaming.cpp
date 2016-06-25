@@ -395,8 +395,11 @@ namespace stream
 		}	
 		if (packets.size () > 0)
 		{
-			m_IsAckSendScheduled = false;	
-			m_AckSendTimer.cancel ();
+			if (m_SavedPackets.empty ()) // no NACKS
+			{	
+				m_IsAckSendScheduled = false;	
+				m_AckSendTimer.cancel ();
+			}	
 			bool isEmpty = m_SentPackets.empty ();
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 			for (auto it: packets)
