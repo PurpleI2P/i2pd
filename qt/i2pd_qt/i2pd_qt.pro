@@ -212,5 +212,3 @@ QT           += xml
 #INSTALLS     += sources
 }
 
-RESOURCES += \
-    i2pd.qrc
