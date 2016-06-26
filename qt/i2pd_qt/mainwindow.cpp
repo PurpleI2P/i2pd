@@ -11,8 +11,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)/*,
     ui(new Ui::MainWindow)*/
 #ifndef ANDROID
-    ,
-    quitting(false)
+    ,quitting(false)
 #endif
 {
     //ui->setupUi(this);
