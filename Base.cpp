@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include "Log.h"
 #include "Base.h"
 
 namespace i2p
@@ -305,13 +304,10 @@ namespace data
 		m_Inflator.next_out = out;
 		m_Inflator.avail_out = outLen;
 		int err;
-		if ((err = inflate (&m_Inflator, Z_NO_FLUSH)) == Z_STREAM_END)
+		if ((err = inflate (&m_Inflator, Z_NO_FLUSH)) == Z_STREAM_END) {
 			return outLen - m_Inflator.avail_out;	
-		else
-		{
-			LogPrint (eLogError, "Decompression error ", err);
-			return 0;
-		}	
+		}
+		return 0;
 	}	
 
 	bool GzipInflator::Inflate (const uint8_t * in, size_t inLen, std::ostream& s)
@@ -328,13 +324,11 @@ namespace data
 			ret = inflate (&m_Inflator, Z_NO_FLUSH);
 			if (ret < 0)
 			{
-				LogPrint (eLogError, "Decompression error ", ret);
 				inflateEnd (&m_Inflator);
 				s.setstate(std::ios_base::failbit);
 				break;
 			}	
-			else
-				s.write ((char *)out, GZIP_CHUNK_SIZE - m_Inflator.avail_out);
+			s.write ((char *)out, GZIP_CHUNK_SIZE - m_Inflator.avail_out);
 		}
 		while (!m_Inflator.avail_out); // more data to read
 		delete[] out;
@@ -377,13 +371,10 @@ namespace data
 		m_Deflator.next_out = out;
 		m_Deflator.avail_out = outLen;
 		int err;
-		if ((err = deflate (&m_Deflator, Z_FINISH)) == Z_STREAM_END) 
+		if ((err = deflate (&m_Deflator, Z_FINISH)) == Z_STREAM_END) {
 			return outLen - m_Deflator.avail_out;	
-		else
-		{
-			LogPrint (eLogError, "Compression error ", err);
-			return 0;
-		}	
+		} /* else */
+		return 0;
 	}
 }
 }

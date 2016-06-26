@@ -11,14 +11,17 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = i2pd_qt
 TEMPLATE = app
 QMAKE_CXXFLAGS *= -std=c++11
+DEFINES += USE_UPNP
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
+# git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
-BOOST_PATH = /mnt/media/android/Boost-for-Android-Prebuilt
-OPENSSL_PATH = /mnt/media/android/OpenSSL-for-Android-Prebuilt
-IFADDRS_PATH = /mnt/media/android/android-ifaddrs
+BOOST_PATH = /home/rebby/andp/Boost-for-Android-Prebuilt
+OPENSSL_PATH = /home/rebby/andp/OpenSSL-for-Android-Prebuilt
+MINIUPNP_PATH = /home/rebby/andp/MiniUPnP-for-Android-Prebuilt
+IFADDRS_PATH = /home/rebby/andp/android-ifaddrs
 
 # Steps in Android SDK manager:
 # 1) Check Extras/Google Support Library https://developer.android.com/topic/libraries/support-library/setup.html
@@ -27,7 +30,7 @@ IFADDRS_PATH = /mnt/media/android/android-ifaddrs
 
 SOURCES += DaemonQT.cpp\
         mainwindow.cpp \
-        ../../HTTPServer.cpp ../../I2PControl.cpp ../../UPnP.cpp ../../Daemon.cpp ../../Config.cpp \
+        ../../HTTPServer.cpp ../../I2PControl.cpp ../../Daemon.cpp ../../Config.cpp \
     ../../AddressBook.cpp \
     ../../api.cpp \
     ../../Base.cpp \
@@ -69,9 +72,9 @@ SOURCES += DaemonQT.cpp\
     ../../TunnelEndpoint.cpp \
     ../../TunnelGateway.cpp \
     ../../TunnelPool.cpp \
+    ../../UPnP.cpp \
     ../../util.cpp \
-     ../../i2pd.cpp \
-    $$IFADDRS_PATH/ifaddrs.c
+     ../../i2pd.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
         ../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
@@ -122,9 +125,9 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../TunnelEndpoint.h \
     ../../TunnelGateway.h \
     ../../TunnelPool.h \
+    ../../UPnP.h \
     ../../util.h \
-    ../../version.h \
-    $$IFADDRS_PATH/ifaddrs.h 
+    ../../version.h
 
 FORMS    += mainwindow.ui
 
@@ -138,13 +141,18 @@ android {
 message("Using Android settings")
 DEFINES += ANDROID=1
 DEFINES += __ANDROID__
+
 INCLUDEPATH +=  $$BOOST_PATH/boost_1_53_0/include \
                 $$OPENSSL_PATH/openssl-1.0.2/include \
+                $$MINIUPNP_PATH/miniupnp-2.0/include \
                 $$IFADDRS_PATH
 DISTFILES += \
     android/AndroidManifest.xml
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+SOURCES += $$IFADDRS_PATH/ifaddrs.c ../../UPnP.cpp
+HEADERS += $$IFADDRS_PATH/ifaddrs.h
 
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
 
@@ -156,7 +164,8 @@ LIBS += -L$$BOOST_PATH/boost_1_53_0/armeabi-v7a/lib \
 -lboost_date_time-gcc-mt-1_53 \
 -lboost_filesystem-gcc-mt-1_53 \
 -lboost_program_options-gcc-mt-1_53 \
--L$$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/ -lcrypto -lssl
+-L$$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/ -lcrypto -lssl \
+-L$$MINIUPNP_PATH/miniupnp-2.0/armeabi-v7a/lib/ -lminiupnpc
 
 PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
                   $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl.a
@@ -164,7 +173,8 @@ PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto.a \
 DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 
 ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libcrypto_1_0_0.so \
-                      $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl_1_0_0.so
+                      $$OPENSSL_PATH/openssl-1.0.2/armeabi-v7a/lib/libssl_1_0_0.so \
+                      $$MINIUPNP_PATH/miniupnp-2.0/armeabi-v7a/lib/libminiupnpc.so
 }
 equals(ANDROID_TARGET_ARCH, x86){
 # http://stackoverflow.com/a/30235934/529442
@@ -173,7 +183,8 @@ LIBS += -L$$BOOST_PATH/boost_1_53_0/x86/lib \
 -lboost_date_time-gcc-mt-1_53 \
 -lboost_filesystem-gcc-mt-1_53 \
 -lboost_program_options-gcc-mt-1_53 \
--L$$OPENSSL_PATH/openssl-1.0.2/x86/lib/ -lcrypto -lssl
+-L$$OPENSSL_PATH/openssl-1.0.2/x86/lib/ -lcrypto -lssl \
+-L$$MINIUPNP_PATH/miniupnp-2.0/x86/lib/ -lminiupnpc
 
 PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.a \
                   $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl.a
@@ -181,12 +192,23 @@ PRE_TARGETDEPS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto.a \
 DEPENDPATH += $$OPENSSL_PATH/openssl-1.0.2/include
 
 ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto_1_0_0.so \
-                      $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl_1_0_0.so
+                      $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libssl_1_0_0.so \
+                      $$MINIUPNP_PATH/miniupnp-2.0/x86/lib/libminiupnpc.so
 }
 }
 
 linux:!android {
 message("Using Linux settings")
-LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
+}
+
+
+!android:!symbian:!maemo5:!simulator {
+message("Build with a system tray icon")
+# see also http://doc.qt.io/qt-4.8/qt-desktop-systray-systray-pro.html for example on wince*
+#sources.files = $$SOURCES $$HEADERS $$RESOURCES $$FORMS i2pd_qt.pro resources images
+RESOURCES     = i2pd.qrc
+QT           += xml
+#INSTALLS     += sources
 }
 
