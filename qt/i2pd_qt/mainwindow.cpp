@@ -9,8 +9,11 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)/*,
-    ui(new Ui::MainWindow)*/,
+    ui(new Ui::MainWindow)*/
+#ifndef ANDROID
+    ,
     quitting(false)
+#endif
 {
     //ui->setupUi(this);
     if (objectName().isEmpty())
