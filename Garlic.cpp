@@ -519,7 +519,7 @@ namespace garlic
 						tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
 					if (!tunnel)
 					{
-						tunnel = i2p::context::GetExploratoryPool()->GetNextOutboundTunnel();
+						tunnel = GetTunnelPool()->GetNextOutboundTunnel();
 					}
 					if (tunnel) // we have send it through an outbound tunnel
 					{	
