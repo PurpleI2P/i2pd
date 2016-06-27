@@ -9,7 +9,7 @@ LDFLAGS = -Wl,-rpath,/usr/local/lib \
   -L/usr/local/lib 
 
 # UPNP Support 
-ifeq ($(USE_UPNP),1)
+ifeq ($(USE_UPNP),yes)
   CXXFLAGS += -DUSE_UPNP -DMINIUPNP_STATICLIB
   LDLIBS = -Wl,-Bstatic -lminiupnpc	
 endif
@@ -37,7 +37,7 @@ ifeq ($(USE_WIN32_APP), yes)
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
-ifeq ($(USE_AESNI),1)
+ifeq ($(USE_AESNI),yes)
 	CPU_FLAGS = -maes -DAESNI
 else
 	CPU_FLAGS = -msse
