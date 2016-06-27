@@ -11,6 +11,7 @@ include filelist.mk
 
 USE_AESNI  := yes
 USE_STATIC := no
+USE_MESHNET := yes
 
 ifeq ($(UNAME),Darwin)
 	DAEMON_SRC += DaemonLinux.cpp
@@ -28,6 +29,10 @@ else ifeq ($(UNAME),Linux)
 else # win32 mingw
 	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
 	include Makefile.mingw
+endif
+
+ifeq ($(USE_MESHNET),yes)
+	CXXFLAGS += -DMESHNET
 endif
 
 all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)

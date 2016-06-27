@@ -138,6 +138,11 @@ namespace i2p
 
 			bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
 			bool ipv4;		i2p::config::GetOption("ipv4", ipv4);
+#ifdef MESHNET
+      // manual override for meshnet
+      ipv4 = false;
+      ipv6 = true;
+#endif
 			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
