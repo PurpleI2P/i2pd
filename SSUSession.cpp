@@ -814,7 +814,7 @@ namespace transport
 		if (!ecode)
 		{
 			// timeout expired
-			LogPrint (eLogWarning, "SSU: session was not established after ", SSU_CONNECT_TIMEOUT, " seconds");
+			LogPrint (eLogWarning, "SSU: session with ", m_RemoteEndpoint, " was not established after ", SSU_CONNECT_TIMEOUT, " seconds");
 			Failed ();
 		}	
 	}	
@@ -891,7 +891,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint (eLogWarning, "SSU: no activity for ", SSU_TERMINATION_TIMEOUT, " seconds");
+			LogPrint (eLogWarning, "SSU: no activity with ", m_RemoteEndpoint, " for ", SSU_TERMINATION_TIMEOUT, " seconds");
 			Failed ();
 		}	
 	}	
