@@ -120,11 +120,14 @@ namespace transport
 				m_NTCPServer->Start ();
 			}	
 			
-			if (address->transportStyle == RouterInfo::eTransportSSU && address->host.is_v4 ())
+			if (address->transportStyle == RouterInfo::eTransportSSU)
 			{
 				if (!m_SSUServer)
-				{	
-					m_SSUServer = new SSUServer (address->port);
+				{
+					if (address->host.is_v4())
+						m_SSUServer = new SSUServer (address->port);
+					else
+						m_SSUServer = new SSUServer (address->host, address->port);
 					LogPrint (eLogInfo, "Transports: Start listening UDP port ", address->port);
 					m_SSUServer->Start ();	
 					DetectExternalIP ();

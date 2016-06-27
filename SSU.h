@@ -37,6 +37,7 @@ namespace transport
 		public:
 
 			SSUServer (int port);
+			SSUServer (const boost::asio::ip::address & addr, int port);			// ipv6 only constructor
 			~SSUServer ();
 			void Start ();
 			void Stop ();
@@ -93,8 +94,9 @@ namespace transport
 				uint64_t creationTime;
 				PeerTestParticipant role;
 				std::shared_ptr<SSUSession> session; // for Bob to Alice
-			};	
+			};
 			
+			bool m_OnlyV6;			
 			bool m_IsRunning;
 			std::thread * m_Thread, * m_ThreadV6, * m_ReceiversThread;	
 			boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService;
