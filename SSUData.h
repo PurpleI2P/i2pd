@@ -19,7 +19,7 @@ namespace transport
 
 	const size_t SSU_MTU_V4 = 1484;
 	#ifdef MESHNET
-	const size_t SSU_MTU_V6 = 1304;
+	const size_t SSU_MTU_V6 = 1286;
 	#else
 	const size_t SSU_MTU_V6 = 1472;
 	#endif
