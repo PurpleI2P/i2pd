@@ -1079,7 +1079,7 @@ namespace transport
 	{
 		// we are Alice
 		LogPrint (eLogDebug, "SSU: sending peer test");
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
 		if (!address)
 		{
 			LogPrint (eLogInfo, "SSU is not supported. Can't send peer test");
