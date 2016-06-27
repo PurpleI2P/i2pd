@@ -11,6 +11,7 @@
 #include "Transports.h"
 #include "Garlic.h"
 #include "I2NPProtocol.h"
+#include "version.h"
 
 using namespace i2p::transport;
 
@@ -101,7 +102,7 @@ namespace i2p
 		{
 			RAND_bytes ((uint8_t *)&msgID, 4);
 			htobe32buf (buf + DELIVERY_STATUS_MSGID_OFFSET, msgID);
-			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, 2); // netID = 2
+			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, I2PD_NET_ID); // netID = 2
 		}	
 		m->len += DELIVERY_STATUS_SIZE;
 		m->FillI2NPMessageHeader (eI2NPDeliveryStatus);
