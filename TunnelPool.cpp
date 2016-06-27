@@ -322,7 +322,7 @@ namespace tunnel
 			i2p::data::netdb.GetHighBandwidthRandomRouter (prevHop);
 
 		if (!hop || hop->GetProfile ()->IsBad ())
-			hop = i2p::data::netdb.GetRandomRouter ();
+			hop = i2p::data::netdb.GetRandomRouter (prevHop);
 		return hop;	
 	}	
 
@@ -331,7 +331,6 @@ namespace tunnel
 		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);
 		auto prevHop = i2p::context.GetSharedRouterInfo ();	
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
-#ifndef MESHNET
 		if (i2p::transport::transports.GetNumPeers () > 25)
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
@@ -342,7 +341,6 @@ namespace tunnel
 				numHops--;
 			}
 		}
-#endif
 		for (int i = 0; i < numHops; i++)
 		{
 			auto hop = SelectNextHop (prevHop);
