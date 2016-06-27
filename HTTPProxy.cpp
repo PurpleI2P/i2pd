@@ -20,7 +20,6 @@
 #include "I2PTunnel.h"
 #include "Config.h"
 #include "HTTP.h"
-#include "HTTPServer.h"
 
 namespace i2p {
 namespace proxy {
@@ -52,7 +51,7 @@ namespace proxy {
 			void Terminate();
 			void AsyncSockRead();
 			void HTTPRequestFailed(const char *message);
-			void RedirectToJumpService();
+			void RedirectToJumpService(std::string & host);
 			void ExtractRequest();
 			bool ValidateHTTPRequest();
 			void HandleJumpServices();
@@ -119,11 +118,23 @@ namespace proxy {
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
-	void HTTPReqHandler::RedirectToJumpService(/*HTTPReqHandler::errTypes error*/)
+	void HTTPReqHandler::RedirectToJumpService(std::string & host)
 	{
-		std::stringstream ss;
-		i2p::http::ShowJumpServices (ss, m_address);
-		boost::asio::async_write(*m_sock, boost::asio::buffer(ss.str ()),
+		i2p::http::HTTPRes res;
+		i2p::http::URL url;
+
+		/* TODO: don't redirect to webconsole, it's not always work, handle jumpservices here */
+		i2p::config::GetOption("http.address", url.host);
+		i2p::config::GetOption("http.port",    url.port);
+		url.path  = "/";
+		url.query = "page=jumpservices&address=";
+		url.query += host;
+
+		res.code = 302; /* redirect */
+		res.add_header("Location", url.to_string().c_str());
+
+		std::string response = res.to_string();
+		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
@@ -198,7 +209,7 @@ namespace proxy {
 		if (str_rmatch(m_address, ".i2p"))
 		{
 			if (!i2p::client::context.GetAddressBook ().GetIdentHash (m_address, identHash)){
-				RedirectToJumpService();
+				RedirectToJumpService(m_address);
 				return false;
 			}
 		}

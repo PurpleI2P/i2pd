@@ -61,8 +61,6 @@ namespace http {
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 	};
-
-	void ShowJumpServices (std::stringstream& s, const std::string& address);
 } // http
 } // i2p
 
