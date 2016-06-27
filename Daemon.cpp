@@ -197,12 +197,6 @@ namespace i2p
 			i2p::context.SetFamily (family);
 			if (family.length () > 0)
 				LogPrint(eLogInfo, "Daemon: family set to ", family);	
-
-#ifdef MESHNET
-			// always reachable in meshnet mode, no NAT
-			i2p::context.SetStatus(eRouterStatusOK);
-#endif
-			
 			return true;
 		}
 			
