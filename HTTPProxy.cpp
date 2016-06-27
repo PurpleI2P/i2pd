@@ -106,14 +106,13 @@ namespace proxy {
 	//TODO: handle this apropriately
 	void HTTPReqHandler::HTTPRequestFailed(const char *message)
 	{
-		std::size_t size = std::strlen(message);
-		std::stringstream ss;
-		ss << "HTTP/1.0 500 Internal Server Error\r\n"
-		   << "Content-Type: text/plain\r\n";
-		ss << "Content-Length: " << std::to_string(size + 2) << "\r\n"
-		   << "\r\n"; /* end of headers */
-		ss << message << "\r\n";
-		std::string response = ss.str();
+		i2p::http::HTTPRes res;
+		res.code = 500;
+		res.add_header("Content-Type", "text/plain");
+		res.add_header("Connection", "close");
+		res.body = message;
+		res.body += "\r\n";
+		std::string response = res.to_string();
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
