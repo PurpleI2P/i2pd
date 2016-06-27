@@ -517,13 +517,17 @@ namespace garlic
 					std::shared_ptr<i2p::tunnel::OutboundTunnel> tunnel;
 					if (from && from->GetTunnelPool ())
 						tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
+					if (!tunnel)
+					{
+						tunnel = i2p::context::GetExploratoryPool()->GetNextOutboundTunnel();
+					}
 					if (tunnel) // we have send it through an outbound tunnel
 					{	
 						auto msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
 						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
-					}	
+					}
 					else
-						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove given tunnelID=", gwTunnel);
+						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove given tunnelID=", gwTunnel);					
 					break;
 				}
 				case eGarlicDeliveryTypeRouter:
