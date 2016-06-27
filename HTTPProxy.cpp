@@ -24,6 +24,15 @@
 
 namespace i2p {
 namespace proxy {
+	bool str_rmatch(std::string & str, const char *suffix) {
+		auto pos = str.rfind (suffix);
+		if (pos == std::string::npos)
+			return false; /* not found */
+		if (str.length() == (pos + std::strlen(suffix)))
+			return true; /* match */
+		return false;
+	}
+
 	static const size_t http_buffer_size = 8192;
 	class HTTPReqHandler: public i2p::client::I2PServiceHandler, public std::enable_shared_from_this<HTTPReqHandler>
 	{
@@ -45,7 +54,6 @@ namespace proxy {
 			void HTTPRequestFailed(const char *message);
 			void RedirectToJumpService();
 			void ExtractRequest();
-			bool IsI2PAddress();
 			bool ValidateHTTPRequest();
 			void HandleJumpServices();
 			bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
@@ -180,16 +188,6 @@ namespace proxy {
 		m_path.erase(addressHelperPos);
 	}
 
-	bool HTTPReqHandler::IsI2PAddress()
-	{
-		auto pos = m_address.rfind (".i2p");
-		if (pos != std::string::npos && (pos+4) == m_address.length ())
-		{
-			return true;
-		}
-		return false;
-	}
-
 	bool HTTPReqHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len)
 	{
 		ExtractRequest(); //TODO: parse earlier
@@ -197,14 +195,13 @@ namespace proxy {
 		HandleJumpServices();
 
 		i2p::data::IdentHash identHash;
-		if (IsI2PAddress ())
+		if (str_rmatch(m_address, ".i2p"))
 		{
 			if (!i2p::client::context.GetAddressBook ().GetIdentHash (m_address, identHash)){
 				RedirectToJumpService();
 				return false;
 			}
 		}
-		
 
 		m_request = m_method;
 		m_request.push_back(' ');
@@ -317,7 +314,6 @@ namespace proxy {
 			else 
 				AsyncSockRead();
 		}
-
 	}
 
 	void HTTPReqHandler::SentHTTPFailed(const boost::system::error_code & ecode)
