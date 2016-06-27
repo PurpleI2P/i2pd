@@ -82,13 +82,13 @@ namespace proxy {
 	void HTTPReqHandler::AsyncSockRead()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: async sock read");
-		if(m_sock) {
-			m_sock->async_receive(boost::asio::buffer(m_http_buff, http_buffer_size),
-						std::bind(&HTTPReqHandler::HandleSockRecv, shared_from_this(),
-								std::placeholders::_1, std::placeholders::_2));
-		} else {
+		if (!m_sock) {
 			LogPrint(eLogError, "HTTPProxy: no socket for read");
+			return;
 		}
+		m_sock->async_receive(boost::asio::buffer(m_http_buff, http_buffer_size),
+					std::bind(&HTTPReqHandler::HandleSockRecv, shared_from_this(),
+							std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void HTTPReqHandler::Terminate() {
