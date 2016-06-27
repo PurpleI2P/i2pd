@@ -151,7 +151,7 @@ DISTFILES += \
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
-SOURCES += $$IFADDRS_PATH/ifaddrs.c ../../UPnP.cpp
+SOURCES += $$IFADDRS_PATH/ifaddrs.c
 HEADERS += $$IFADDRS_PATH/ifaddrs.h
 
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
