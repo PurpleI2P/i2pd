@@ -472,7 +472,10 @@ namespace transport
 	{
 		if (m_SSUServer)
 		{
+#ifndef MESHNET
 			i2p::context.SetStatus (eRouterStatusTesting);
+#endif
+
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
