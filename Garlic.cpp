@@ -523,7 +523,7 @@ namespace garlic
 						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
 					}	
 					else
-						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
+						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove given tunnelID=", gwTunnel);
 					break;
 				}
 				case eGarlicDeliveryTypeRouter:
