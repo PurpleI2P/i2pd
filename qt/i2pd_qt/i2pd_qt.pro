@@ -151,7 +151,7 @@ DISTFILES += \
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
-SOURCES += $$IFADDRS_PATH/ifaddrs.c ../../UPnP.cpp
+SOURCES += $$IFADDRS_PATH/ifaddrs.c
 HEADERS += $$IFADDRS_PATH/ifaddrs.h
 
 equals(ANDROID_TARGET_ARCH, armeabi-v7a){
@@ -200,5 +200,15 @@ ANDROID_EXTRA_LIBS += $$OPENSSL_PATH/openssl-1.0.2/x86/lib/libcrypto_1_0_0.so \
 linux:!android {
 message("Using Linux settings")
 LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
+}
+
+
+!android:!symbian:!maemo5:!simulator {
+message("Build with a system tray icon")
+# see also http://doc.qt.io/qt-4.8/qt-desktop-systray-systray-pro.html for example on wince*
+#sources.files = $$SOURCES $$HEADERS $$RESOURCES $$FORMS i2pd_qt.pro resources images
+RESOURCES     = i2pd.qrc
+QT           += xml
+#INSTALLS     += sources
 }
 

@@ -338,6 +338,10 @@ if (WITH_BINARY)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-z relro -z now" )
   endif ()
 
+  if (WITH_UPNP)
+    target_link_libraries("${PROJECT_NAME}" "miniupnpc")
+  endif ()
+
   # FindBoost pulls pthread for thread which is broken for static linking at least on Ubuntu 15.04
   list(GET Boost_LIBRARIES -1 LAST_Boost_LIBRARIES)
   if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
