@@ -24,7 +24,7 @@ namespace data
 {		
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat")
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
 	{
 	}
 	
@@ -67,7 +67,7 @@ namespace data
 			}
 			m_LeaseSets.clear();
 			m_Requests.Stop ();
-		}	
+		}
 	}	
 	
 	void NetDb::Run ()
@@ -121,7 +121,11 @@ namespace data
 						ManageLookupResponses ();
 					}	
 					lastSave = ts;
-				}	
+				}
+
+        // if we're in hidden mode don't publish or explore
+        if (m_HiddenMode) continue;
+        
 				if (ts - lastPublish >= 2400) // publish every 40 minutes
 				{
 					Publish ();
@@ -161,6 +165,11 @@ namespace data
 		return false;
 	}
 
+  void NetDb::SetHidden(bool hide) {
+    // TODO: remove reachable addresses from router info
+    m_HiddenMode = hide;
+  }
+  
 	bool NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
 		bool updated = true;	
@@ -851,7 +860,7 @@ namespace data
 	{
 		if (m_RouterInfos.empty())
 			return 0;
-		uint32_t ind = rand () % m_RouterInfos.size ();	
+		uint32_t ind = rand () % m_RouterInfos.size ();
 		for (int j = 0; j < 2; j++)
 		{	
 			uint32_t i = 0;
@@ -955,6 +964,14 @@ namespace data
 		return res;
 	}
 
+  std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily(const std::string & fam) const {
+    return GetRandomRouter(
+      [fam](std::shared_ptr<const RouterInfo> router)->bool
+      {
+        return router->IsFamily(fam);
+      });
+  }
+  
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill (const IdentHash& destination, 
 		const std::set<IdentHash>& excluded) const
 	{

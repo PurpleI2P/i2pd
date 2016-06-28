@@ -64,10 +64,14 @@ namespace data
 			std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
 				std::set<IdentHash>& excluded, bool closeThanUsOnly = false) const;
 			std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
+      std::shared_ptr<const RouterInfo> GetRandomRouterInFamily(const std::string & fam) const;
 			void SetUnreachable (const IdentHash& ident, bool unreachable);			
 
 			void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
+      /** set hidden mode, aka don't publish our RI to netdb and don't explore */
+      void SetHidden(bool hide); 
+      
 			void Reseed ();
 			Families& GetFamilies () { return m_Families; };
 
@@ -88,8 +92,8 @@ namespace data
 			void ManageRequests ();
 			void ManageLookupResponses ();
 
-			template<typename Filter>
-			std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
+    	template<typename Filter>
+        std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		
 		private:
 
@@ -113,6 +117,9 @@ namespace data
 			NetDbRequests m_Requests;
 
 			std::map<IdentHash, std::pair<std::vector<IdentHash>, uint64_t> > m_LookupResponses; // ident->(closest FFs, timestamp)
+
+      /** true if in hidden mode */
+      bool m_HiddenMode;
 	};
 
 	extern NetDb netdb;

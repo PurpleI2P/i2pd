@@ -171,6 +171,9 @@ namespace data
 			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;			
 
+      /** return true if we are in a router family and the signature is valid */
+      bool IsFamily(const std::string & fam) const;
+      
 			// implements RoutingDestination
 			const IdentHash& GetIdentHash () const { return m_RouterIdentity->GetIdentHash (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; };

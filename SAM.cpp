@@ -56,7 +56,8 @@ namespace client
 				if (m_Session)
 				{	
 					m_Session->DelSocket (shared_from_this ());
-					m_Session->localDestination->StopAcceptingStreams ();	
+					if (m_Session->localDestination)
+						m_Session->localDestination->StopAcceptingStreams ();
 				}
 				break;
 			}

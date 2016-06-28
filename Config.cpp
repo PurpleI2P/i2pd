@@ -124,6 +124,8 @@ namespace config {
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
       ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will be floodfill")
       ("bandwidth", value<std::string>()->default_value(""), "Bandwidth limit: integer in kbps or letters: L (32), O (256), P (2048), X (>9000)")
+      ("ntcp", value<bool>()->zero_tokens()->default_value(true), "enable ntcp transport")
+      ("ssu", value<bool>()->zero_tokens()->default_value(true), "enable ssu transport")
 #ifdef _WIN32
       ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
       ("insomnia", value<bool>()->zero_tokens()->default_value(false), "Prevent system from sleeping")
@@ -205,7 +207,13 @@ namespace config {
 #endif	   
 	   "Enable or disable elgamal precomputation table")
 	  ;
-	  
+
+  options_description trust("Trust options");
+  trust.add_options()
+    ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
+    ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
+    ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
+  
     m_OptionsDesc
       .add(general)
 	  .add(limits)	
@@ -216,7 +224,8 @@ namespace config {
       .add(bob)
 	  .add(i2cp)	
       .add(i2pcontrol)
-	  .add(precomputation) 	  
+	  .add(precomputation)
+      .add(trust)
       ;
   }
 

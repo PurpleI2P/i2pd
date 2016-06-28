@@ -197,30 +197,60 @@ namespace i2p
 			i2p::context.SetFamily (family);
 			if (family.length () > 0)
 				LogPrint(eLogInfo, "Daemon: family set to ", family);	
-			return true;
+
+      bool trust; i2p::config::GetOption("trust.enabled", trust);
+      if (trust)
+      {
+        LogPrint(eLogInfo, "Daemon: explicit trust enabled");
+        std::string fam; i2p::config::GetOption("trust.family", fam);
+        if (fam.length() > 0)
+        {
+          LogPrint(eLogInfo, "Daemon: setting restricted routes to use family ", fam);
+          i2p::transport::transports.RestrictRoutes({fam});
+        } else
+          LogPrint(eLogError, "Daemon: no family specified for restricted routes");
+      }
+      bool hidden; i2p::config::GetOption("trust.hidden", hidden);
+      if (hidden)
+      {
+        LogPrint(eLogInfo, "Daemon: using hidden mode");
+        i2p::data::netdb.SetHidden(true);
+      }
+      return true;
 		}
 			
 		bool Daemon_Singleton::start()
 		{
-			bool http; i2p::config::GetOption("http.enabled", http);
-			if (http) {
-				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
-				uint16_t    httpPort; i2p::config::GetOption("http.port",    httpPort);
-				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
-				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
-				d.httpServer->Start();
-			}
-
 			LogPrint(eLogInfo, "Daemon: starting NetDB");
 			i2p::data::netdb.Start();
 
 #ifdef USE_UPNP
 			LogPrint(eLogInfo, "Daemon: starting UPnP");
 			d.m_UPnP.Start ();
-#endif			
+#endif
+      bool ntcp; i2p::config::GetOption("ntcp", ntcp);
+      bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
-			i2p::transport::transports.Start();
+			i2p::transport::transports.Start(ntcp, ssu);
+			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
+				LogPrint(eLogInfo, "Daemon: Transports started");
+			} else {
+				LogPrint(eLogError, "Daemon: failed to start Transports");
+				/** shut down netdb right away */
+				i2p::data::netdb.Stop();
+				return false;
+			}
+						
+			bool http; i2p::config::GetOption("http.enabled", http);
+			if (http) {
+				std::string httpAddr; i2p::config::GetOption("http.address", httpAddr);
+				uint16_t		httpPort; i2p::config::GetOption("http.port",		 httpPort);
+				LogPrint(eLogInfo, "Daemon: starting HTTP Server at ", httpAddr, ":", httpPort);
+				d.httpServer = std::unique_ptr<i2p::http::HTTPServer>(new i2p::http::HTTPServer(httpAddr, httpPort));
+				d.httpServer->Start();
+			}
 
+			
 			LogPrint(eLogInfo, "Daemon: starting Tunnels");
 			i2p::tunnel::tunnels.Start();
 
@@ -236,6 +266,7 @@ namespace i2p
 				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
 				d.m_I2PControlService->Start ();
 			}
+
 			return true;
 		}
 

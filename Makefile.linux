@@ -28,7 +28,7 @@ endif
 NEEDED_CXXFLAGS += -fPIC
 
 ifeq ($(USE_STATIC),yes)
-  LIBDIR := /usr/lib
+  #LIBDIR = /usr/lib
   LDLIBS  = $(LIBDIR)/libboost_system.a
   LDLIBS += $(LIBDIR)/libboost_date_time.a
   LDLIBS += $(LIBDIR)/libboost_filesystem.a
