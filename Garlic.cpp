@@ -7,6 +7,7 @@
 #include "I2NPProtocol.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"
+#include "Transports.h"
 #include "Timestamp.h"
 #include "Log.h"
 #include "Garlic.h"
@@ -514,26 +515,34 @@ namespace garlic
 					buf += 32;
 					uint32_t gwTunnel = bufbe32toh (buf);
 					buf += 4;
-					std::shared_ptr<i2p::tunnel::OutboundTunnel> tunnel;
-					if (from && from->GetTunnelPool ())
-						tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
-					if (!tunnel)
+					auto msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
+					if (from) // received through an inbound tunnel
 					{
-						tunnel = GetTunnelPool()->GetNextOutboundTunnel();
+						std::shared_ptr<i2p::tunnel::OutboundTunnel> tunnel;
+						if (from->GetTunnelPool ())
+							tunnel = from->GetTunnelPool ()->GetNextOutboundTunnel ();
+						else
+							LogPrint (eLogError, "Garlic: Tunnel pool is not set for inbound tunnel");
+						if (tunnel) // we have send it through an outbound tunnel
+							tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
+						else
+							LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove");
 					}
-					if (tunnel) // we have send it through an outbound tunnel
-					{	
-						auto msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
-						tunnel->SendTunnelDataMsg (gwHash, gwTunnel, msg);
-					}
-					else
-						LogPrint (eLogWarning, "Garlic: No outbound tunnels available for garlic clove given tunnelID=", gwTunnel);					
+					else // received directly
+						i2p::transport::transports.SendMessage (gwHash, i2p::CreateTunnelGatewayMsg (gwTunnel, msg)); // send directly
 					break;
 				}
 				case eGarlicDeliveryTypeRouter:
-					LogPrint (eLogWarning, "Garlic: type router not supported");
+				{
+					uint8_t * ident = buf;
 					buf += 32;
-				break;	
+					if (!from) // received directly
+						i2p::transport::transports.SendMessage (ident,
+							CreateI2NPMessage (buf, GetI2NPMessageLength (buf)));
+					else
+						LogPrint (eLogWarning, "Garlic: type router for inbound tunnels not supported");
+					break;	
+				}
 				default:
 					LogPrint (eLogWarning, "Garlic: unknown delivery type ", (int)deliveryType);
 			}

@@ -43,7 +43,7 @@ else
 endif
 
 # UPNP Support (miniupnpc 1.5 or 1.6)
-ifeq ($(USE_UPNP),1)
+ifeq ($(USE_UPNP),yes)
   LDFLAGS += -lminiupnpc
   CXXFLAGS += -DUSE_UPNP
 endif

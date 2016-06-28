@@ -253,7 +253,7 @@ namespace transport
 						session = std::make_shared<SSUSession> (*this, packet->from);
 						session->WaitForConnect ();
 						(*sessions)[packet->from] = session;
-						LogPrint (eLogInfo, "SSU: new session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
+						LogPrint (eLogDebug, "SSU: new session from ", packet->from.address ().to_string (), ":", packet->from.port (), " created");
 					}
 				}
 				session->ProcessNextMessage (packet->buf, packet->len, packet->from);
@@ -334,7 +334,7 @@ namespace transport
 			auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
 			sessions[remoteEndpoint] = session;
 			// connect 					
-			LogPrint (eLogInfo, "SSU: Creating new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
+			LogPrint (eLogDebug, "SSU: Creating new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()), "] ",
 				remoteEndpoint.address ().to_string (), ":", remoteEndpoint.port ());
 			session->Connect ();
 		}
@@ -386,10 +386,10 @@ namespace transport
 					}				
 
 					if (introducerSession) // session found 
-						LogPrint (eLogInfo, "SSU: Session to introducer already exists");
+						LogPrint (eLogWarning, "SSU: Session to introducer already exists");
 					else // create new
 					{
-						LogPrint (eLogInfo, "SSU: Creating new session to introducer");
+						LogPrint (eLogDebug, "SSU: Creating new session to introducer ", introducer->iHost);
 						boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
 						introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
 						m_Sessions[introducerEndpoint] = introducerSession;													

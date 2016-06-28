@@ -22,7 +22,6 @@ int main() {
   assert(req->version == "HTTP/1.0");
   assert(req->method == "GET");
   assert(req->uri == "/");
-  assert(req->host == "inr.i2p");
   assert(req->headers.size() == 3);
   assert(req->headers.count("Host") == 1);
   assert(req->headers.count("Accept") == 1);
@@ -42,7 +41,6 @@ int main() {
   assert(req->version == "HTTP/1.0");
   assert(req->method == "GET");
   assert(req->uri == "/");
-  assert(req->host == "");
   assert(req->headers.size() == 0);
   delete req;
 
@@ -52,7 +50,7 @@ int main() {
     "\r\n";
   len = strlen(buf);
   req = new HTTPReq;
-  assert((ret = req->parse(buf, len)) == -1); /* no host header */
+  assert((ret = req->parse(buf, len)) > 0);
   delete req;
 
   /* test: parsing incomplete request */
@@ -76,7 +74,6 @@ int main() {
   assert((ret = req->parse(buf, len)) == len); /* no host header */
   assert(req->method == "GET");
   assert(req->uri == "http://inr.i2p");
-  assert(req->host == "stats.i2p");
   assert(req->headers.size() == 3);
   assert(req->headers.count("Host") == 1);
   assert(req->headers.count("Accept") == 1);

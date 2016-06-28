@@ -241,7 +241,7 @@ namespace transport
 						if (!msg->IsExpired ())
 							m_Handler.PutNextMessage (msg);
 						else
-							LogPrint (eLogInfo, "SSU: message expired");
+							LogPrint (eLogDebug, "SSU: message expired");
 					}	
 					else
 						LogPrint (eLogWarning, "SSU: Message ", msgID, " already received");

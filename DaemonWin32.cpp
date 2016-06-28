@@ -1,4 +1,5 @@
 #include <thread>
+#include <clocale>
 #include "Config.h"
 #include "Daemon.h"
 #include "util.h"
@@ -20,6 +21,7 @@ namespace i2p
 			setlocale(LC_CTYPE, "");
 			SetConsoleCP(1251);
 			SetConsoleOutputCP(1251);
+			setlocale(LC_ALL, "Russian");
 
 			if (!Daemon_Singleton::init(argc, argv))
 				return false;

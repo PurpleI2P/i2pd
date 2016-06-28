@@ -21,6 +21,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Config.cpp"
   "${CMAKE_SOURCE_DIR}/Crypto.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
+  "${CMAKE_SOURCE_DIR}/Gzip.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
   "${CMAKE_SOURCE_DIR}/Identity.cpp"
   "${CMAKE_SOURCE_DIR}/LeaseSet.cpp"

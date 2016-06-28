@@ -82,13 +82,13 @@ namespace proxy {
 	void HTTPReqHandler::AsyncSockRead()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: async sock read");
-		if(m_sock) {
-			m_sock->async_receive(boost::asio::buffer(m_http_buff, http_buffer_size),
-						std::bind(&HTTPReqHandler::HandleSockRecv, shared_from_this(),
-								std::placeholders::_1, std::placeholders::_2));
-		} else {
+		if (!m_sock) {
 			LogPrint(eLogError, "HTTPProxy: no socket for read");
+			return;
 		}
+		m_sock->async_receive(boost::asio::buffer(m_http_buff, http_buffer_size),
+					std::bind(&HTTPReqHandler::HandleSockRecv, shared_from_this(),
+							std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void HTTPReqHandler::Terminate() {
@@ -335,20 +335,18 @@ namespace proxy {
 
 	void HTTPReqHandler::HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		if (stream) 
-		{
-			if (Kill()) return;
-			LogPrint (eLogInfo, "HTTPProxy: New I2PTunnel connection");
-			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, stream);
-			GetOwner()->AddHandler (connection);
-			connection->I2PConnect (reinterpret_cast<const uint8_t*>(m_request.data()), m_request.size());
-			Done(shared_from_this());
-		} 
-		else 
-		{
+		if (!stream) {
 			LogPrint (eLogError, "HTTPProxy: error when creating the stream, check the previous warnings for more info");
 			HTTPRequestFailed("error when creating the stream, check logs");
+			return;
 		}
+		if (Kill())
+			return;
+		LogPrint (eLogDebug, "HTTPProxy: New I2PTunnel connection");
+		auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, stream);
+		GetOwner()->AddHandler (connection);
+		connection->I2PConnect (reinterpret_cast<const uint8_t*>(m_request.data()), m_request.size());
+		Done (shared_from_this());
 	}
 
 	HTTPProxy::HTTPProxy(const std::string& address, int port, std::shared_ptr<i2p::client::ClientDestination> localDestination):
