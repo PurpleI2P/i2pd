@@ -11,7 +11,7 @@ include filelist.mk
 
 USE_AESNI  := yes
 USE_STATIC := no
-USE_MESHNET := no
+USE_MESHNET := yes
 
 ifeq ($(UNAME),Darwin)
 	DAEMON_SRC += DaemonLinux.cpp
