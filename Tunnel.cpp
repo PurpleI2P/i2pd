@@ -468,7 +468,7 @@ namespace tunnel
 										HandleTunnelGatewayMsg (tunnel, msg);
 								}
 								else		
-									LogPrint (eLogWarning, "Tunnel: tunnel with id ", tunnelID, " not found");
+									LogPrint (eLogWarning, "Tunnel: tunnel with id ", tunnelID, " not found, type=", (int)typeID);
 								break;
 							}	
 							case eI2NPVariableTunnelBuild:		
