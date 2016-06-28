@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <string.h>
+
 #include "Base.h"
 
 namespace i2p

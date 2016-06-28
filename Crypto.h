@@ -9,7 +9,9 @@
 #include <openssl/dsa.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+
 #include "Base.h"
+#include "Tag.h"
 
 namespace i2p
 {
