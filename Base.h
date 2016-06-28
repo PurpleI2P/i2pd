@@ -4,7 +4,6 @@
 #include <inttypes.h>
 #include <string.h>
 #include <string>
-#include <zlib.h>
 #include <iostream>
 
 namespace i2p
@@ -92,41 +91,6 @@ namespace data
 				uint8_t m_Buf[sz];
 				uint64_t ll[sz/8];
 			};		
-	};
-
-	const size_t GZIP_CHUNK_SIZE = 16384;
-	class GzipInflator
-	{
-		public:
-
-			GzipInflator ();
-			~GzipInflator ();
-
-			size_t Inflate (const uint8_t * in, size_t inLen, uint8_t * out, size_t outLen);
-			bool Inflate (const uint8_t * in, size_t inLen, std::ostream& s); 
-			// return true when finshed or error, s failbit will be set in case of error
-			void Inflate (std::istream& in, std::ostream& out); 			
-
-		private:
-
-			z_stream m_Inflator;
-			bool m_IsDirty;
-	};
-
-	class GzipDeflator
-	{
-		public:
-
-			GzipDeflator ();
-			~GzipDeflator ();
-
-			void SetCompressionLevel (int level);
-			size_t Deflate (const uint8_t * in, size_t inLen, uint8_t * out, size_t outLen);
-			
-		private:
-
-			z_stream m_Deflator;
-			bool m_IsDirty;
 	};
 }
 }

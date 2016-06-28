@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
-#include <zlib.h>
+
 #include "I2PEndian.h"
 #include "Base.h"
 #include "Crypto.h"

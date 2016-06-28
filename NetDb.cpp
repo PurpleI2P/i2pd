@@ -2,7 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
-#include <zlib.h>
+
 #include "I2PEndian.h"
 #include "Base.h"
 #include "Crypto.h"
