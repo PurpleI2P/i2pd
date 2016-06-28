@@ -62,7 +62,7 @@ namespace http {
     void del_header(const char *name);
 
     /** @brief Returns declared message length or -1 if unknown */
-    long int length();
+    long int content_length();
   };
 
   struct HTTPReq : HTTPMsg {

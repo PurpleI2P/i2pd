@@ -205,7 +205,7 @@ namespace client
 			}
 			/* append to json chunk of data from 1st request */
 			json.write(buf->begin() + len, bytes_transferred - len);
-			remains = req.length() - len;
+			remains = req.content_length() - len;
 			/* if request has Content-Length header, fetch rest of data and store to json buffer */
 			while (remains > 0) {
 				len = ((long int) buf->size() < remains) ? buf->size() : remains;
