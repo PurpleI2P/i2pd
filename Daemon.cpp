@@ -130,13 +130,9 @@ namespace i2p
 			ipv4 = false;
 			ipv6 = true;
 #endif
-			
-			uint16_t port; i2p::config::GetOption("port", port);
-			if (!i2p::config::IsDefault("port"))
-			{	
-				LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
-				i2p::context.UpdatePort (port);
-			}	
+
+			i2p::context.SetSupportsV6		 (ipv6);
+			i2p::context.SetSupportsV4		 (ipv4);
 
 			bool nat; i2p::config::GetOption("nat", nat);
 			if (nat)
@@ -163,6 +159,15 @@ namespace i2p
 				}
 			}
 
+			
+			uint16_t port; i2p::config::GetOption("port", port);
+			if (!i2p::config::IsDefault("port"))
+			{	
+				LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
+				i2p::context.UpdatePort (port);
+			}	
+
+      
 			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
