@@ -27,6 +27,10 @@ namespace config {
   variables_map       m_Options;
 
   void Init() {
+    bool nat = true;
+#ifdef MESHNET
+    nat = false;
+#endif
     options_description general("General options");
     general.add_options()
       ("help",     "Show this message")
@@ -39,6 +43,8 @@ namespace config {
 	  ("family",    value<std::string>()->default_value(""),     "Specify a family, router belongs to")
 	  ("datadir",   value<std::string>()->default_value(""),     "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
       ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
+      ("ifname",    value<std::string>()->default_value(""), "network interface to bind to")
+      ("nat",       value<bool>()->zero_tokens()->default_value(nat), "should we assume we are behind NAT?")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv4",      value<bool>()->zero_tokens()->default_value(true),  "Enable communication through ipv4")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")

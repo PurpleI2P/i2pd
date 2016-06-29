@@ -22,6 +22,7 @@
 #include "I2PControl.h"
 #include "ClientContext.h"
 #include "Crypto.h"
+#include "util.h"
 
 #ifdef USE_UPNP
 #include "UPnP.h"
@@ -114,7 +115,7 @@ namespace i2p
 			}
 			i2p::log::Logger().Ready();
 
-			LogPrint(eLogInfo,  "i2pd v", VERSION, " starting");
+			LogPrint(eLogInfo,	"i2pd v", VERSION, " starting");
 			LogPrint(eLogDebug, "FS: main config file: ", config);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 
@@ -122,6 +123,14 @@ namespace i2p
 			i2p::crypto::InitCrypto (precomputation);
 			i2p::context.Init ();
 
+			bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
+			bool ipv4;		i2p::config::GetOption("ipv4", ipv4);
+#ifdef MESHNET
+			// manual override for meshnet
+			ipv4 = false;
+			ipv6 = true;
+#endif
+			
 			uint16_t port; i2p::config::GetOption("port", port);
 			if (!i2p::config::IsDefault("port"))
 			{	
@@ -129,20 +138,31 @@ namespace i2p
 				i2p::context.UpdatePort (port);
 			}	
 
-			std::string host; i2p::config::GetOption("host", host);
-			if (!i2p::config::IsDefault("host"))
+			bool nat; i2p::config::GetOption("nat", nat);
+			if (nat)
 			{
-				LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
-				i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
+				LogPrint(eLogInfo, "Daemon: assuming be are behind NAT");
+				// we are behind nat, try setting via host 
+				std::string host; i2p::config::GetOption("host", host);
+				if (!i2p::config::IsDefault("host"))
+					{
+						LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
+						i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
+					}
+			}
+			else
+			{
+				// we are not behind nat
+				std::string ifname; i2p::config::GetOption("ifname", ifname);
+				if (ifname.size())
+				{
+					// bind to interface, we have no NAT so set external address too
+					auto addr = i2p::util::net::GetInterfaceAddress(ifname, ipv6);
+					LogPrint(eLogInfo, "Daemon: bind to network interface ", ifname, " with public address ", addr);
+					i2p::context.UpdateAddress(addr);
+				}
 			}
 
-			bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
-			bool ipv4;		i2p::config::GetOption("ipv4", ipv4);
-#ifdef MESHNET
-      // manual override for meshnet
-      ipv4 = false;
-      ipv6 = true;
-#endif
 			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
