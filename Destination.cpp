@@ -464,14 +464,14 @@ namespace client
 						if (s->m_LeaseSet && *s->m_LeaseSet == *leaseSet)
 						{
 							// we got latest LeasetSet
-							LogPrint (eLogDebug, "Destination: published LeaseSet verified");
+							LogPrint (eLogDebug, "Destination: published LeaseSet verified for ", GetIdentHash().ToBase32());
 							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
 							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));	
 							return;
 						}		
 					}	
 					else
-						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet");
+						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet for ", GetIdentHash().ToBase32());
 					// we have to publish again
 					s->Publish ();	
 				});
