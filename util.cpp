@@ -430,7 +430,7 @@ namespace net
 			while(cur)
 			{
 				std::string cur_ifname(cur->ifa_name);
-				if (cur_ifname == ifname && cur->ifa_addr->sa_family == af)
+				if (cur_ifname == ifname && cur->ifa_addr && cur->ifa_addr->sa_family == af)
 				{
 					// match
 					size_t sz = (ipv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
@@ -440,7 +440,6 @@ namespace net
 					// this probably won't screw up (right?)
 					inet_ntop(af, cur->ifa_addr, addr, sl);
 					std::string cur_ifaddr(addr);
-					delete [] addr;
 					freeifaddrs(addrs);
 					return boost::asio::ip::address::from_string(cur_ifaddr);
 				}
