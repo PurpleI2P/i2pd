@@ -615,7 +615,7 @@ namespace data
 		uint8_t flag = buf[64];
 		LogPrint (eLogDebug, "NetDb: DatabaseLookup for ", key, " recieved flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
-		uint8_t * excluded = buf + 65;		
+		const uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
 		{
