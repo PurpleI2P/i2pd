@@ -676,7 +676,7 @@ namespace data
 					// no lease set found
 					LogPrint(eLogDebug, "NetDb: requested LeaseSet not found ident=", ident.ToBase64());
 				}
-				else if (leaseSet->IsExpired ()) // we don't send back our LeaseSets
+				else if (!leaseSet->IsExpired ()) // we don't send back our LeaseSets
 				{
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
 					replyMsg = CreateDatabaseStoreMsg (leaseSet);
