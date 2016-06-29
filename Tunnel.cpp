@@ -457,7 +457,8 @@ namespace tunnel
 									tunnel = prevTunnel;
 								else if (prevTunnel)
 									prevTunnel->FlushTunnelDataMsgs (); 
-						
+								else
+									LogPrint(eLogWarning, "Tunnel: no previous tunnel, prevTunnelID=", prevTunnelID, "tunnelID=", tunnelID, "type=", (int)typeID);
 								if (!tunnel)
 									tunnel = GetTunnel (tunnelID);
 								if (tunnel)
@@ -467,7 +468,7 @@ namespace tunnel
 									else // tunnel gateway assumed
 										HandleTunnelGatewayMsg (tunnel, msg);
 								}
-								else		
+								else
 									LogPrint (eLogWarning, "Tunnel: tunnel with id ", tunnelID, " not found, type=", (int)typeID);
 								break;
 							}	
