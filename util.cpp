@@ -437,8 +437,7 @@ namespace net
 					char * addr = new char[sz];
 					addr[sz-1] = 0;
 					// this probably won't screw up (right?)
-					inet_ntop(af, cur->ifa_addr->sa_data, addr, sz);
-					std::string cur_ifaddr(addr);
+          std::string cur_ifaddr = inet_ntop(af, cur->ifa_addr->sa_data, addr, sz);
 					freeifaddrs(addrs);
 					return boost::asio::ip::address::from_string(cur_ifaddr);
 				}
