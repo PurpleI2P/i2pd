@@ -435,10 +435,10 @@ namespace net
 					// match
 					size_t sz = 128;
 					char * addr = new char[sz];
-					addr[sz-1] = 0;
 					// this probably won't screw up (right?)
-          std::string cur_ifaddr = inet_ntop(af, cur->ifa_addr->sa_data, addr, sizeof(in6_addr));
+          inet_ntop(af, cur->ifa_addr->sa_data, addr, sizeof(in6_addr));
 					freeifaddrs(addrs);
+          std::string cur_ifaddr(addr);
 					return boost::asio::ip::address::from_string(cur_ifaddr);
 				}
 				cur = cur->ifa_next;
