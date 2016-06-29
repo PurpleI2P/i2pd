@@ -436,9 +436,8 @@ namespace net
 					size_t sz = (ipv6 ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN);
 					char * addr = new char[sz];
 					addr[sz-1] = 0;
-					socklen_t sl = (ipv6 ? sizeof(sockaddr_in6) : sizeof(sockaddr_in));
 					// this probably won't screw up (right?)
-					inet_ntop(af, cur->ifa_addr->sa_data, addr, sl);
+					inet_ntop(af, cur->ifa_addr->sa_data, addr, sz);
 					std::string cur_ifaddr(addr);
 					freeifaddrs(addrs);
 					return boost::asio::ip::address::from_string(cur_ifaddr);
