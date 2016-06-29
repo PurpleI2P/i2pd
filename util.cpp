@@ -433,11 +433,13 @@ namespace net
 				if (cur_ifname == ifname && cur->ifa_addr && cur->ifa_addr->sa_family == af)
 				{
 					// match
-					size_t sz = 128;
-					char * addr = new char[sz];
-					// this probably won't screw up (right?)
-          inet_ntop(af, cur->ifa_addr->sa_data, addr, sizeof(in6_addr));
-					freeifaddrs(addrs);
+          char * addr = new char[INET6_ADDRSTRLEN];
+          bzero(addr, INET6_ADDRSTRLEN);
+          if(af == AF_INET)
+            inet_ntop(af, &((sockaddr_in *)cur->ifa_addr)->sin_addr, addr, INET6_ADDRSTRLEN);
+          else
+            inet_ntop(af, &((sockaddr_in6 *)cur->ifa_addr)->sin6_addr, addr, INET6_ADDRSTRLEN);
+          freeifaddrs(addrs);
           std::string cur_ifaddr(addr);
 					return boost::asio::ip::address::from_string(cur_ifaddr);
 				}
