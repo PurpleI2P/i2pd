@@ -12,6 +12,7 @@ option(WITH_STATIC    "Static build" OFF)
 option(WITH_UPNP "Include support for UPnP client" OFF)
 option(WITH_PCH "Use precompiled header" OFF)
 option(WITH_GUI "Include GUI (currently MS Windows only)" ON)
+option(WITH_MESHNET "Build for cjdns test network" ON)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -89,6 +90,10 @@ set (DAEMON_SRC
   "${CMAKE_SOURCE_DIR}/i2pd.cpp"
   "${CMAKE_SOURCE_DIR}/UPnP.cpp"
 )
+
+if (WITH_MESHNET)
+  add_definitions(-DMESHNET)
+endif ()
 
 if (WITH_UPNP)
   add_definitions(-DUSE_UPNP)
@@ -296,6 +301,14 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib ${ZLIB_ROOT}/lib)
 # load includes
 include_directories( SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
 
+
+# warn if for meshnet
+if (WITH_MESHNET)
+  message(STATUS "Building for testnet")
+  message(WARNING "This build will NOT work on mainline i2p")  
+endif()
+
+
 # show summary
 message(STATUS "---------------------------------------")
 message(STATUS "Build type         : ${CMAKE_BUILD_TYPE}")
@@ -311,6 +324,7 @@ message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  PCH              : ${WITH_PCH}")
+message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
