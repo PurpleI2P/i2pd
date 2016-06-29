@@ -674,7 +674,7 @@ namespace data
 				if (!leaseSet)
 				{
 					// no lease set found
-					LogPrint(eLogDebug, "NetDb: requested LeaseSet not found ident=", ident);
+					LogPrint(eLogDebug, "NetDb: requested LeaseSet not found ident=", ident.ToBase64());
 				}
 				else if (leaseSet->IsExpired ()) // we don't send back our LeaseSets
 				{
