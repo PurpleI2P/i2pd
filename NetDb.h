@@ -27,17 +27,10 @@ namespace i2p
 namespace data
 {		
 	const int NETDB_MIN_ROUTERS = 90;
-#ifdef MESHNET
-	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60; // 1 hour, in seconds
-	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65;
-	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90; // 1.5 hours
-	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27*60; // 27 hours
-#else
 	const int NETDB_FLOODFILL_EXPIRATION_TIMEOUT = 60*60; // 1 hour, in seconds
 	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65*60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90*60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27*60*60; // 27 hours
-#endif
   
 	class NetDb
 	{
