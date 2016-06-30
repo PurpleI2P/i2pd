@@ -12,7 +12,7 @@ option(WITH_STATIC    "Static build" OFF)
 option(WITH_UPNP "Include support for UPnP client" OFF)
 option(WITH_PCH "Use precompiled header" OFF)
 option(WITH_GUI "Include GUI (currently MS Windows only)" ON)
-option(WITH_MESHNET "Build for cjdns test network" ON)
+option(WITH_MESHNET "Build for cjdns test network" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
