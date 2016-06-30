@@ -190,7 +190,7 @@ namespace data
 
 	bool LeaseSet::IsExpired () const
 	{
-		if (IsEmpty ()) return true;
+		if (m_StoreLeases && IsEmpty ()) return true;
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		return ts > m_ExpirationTime;
 	}
