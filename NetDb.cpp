@@ -685,6 +685,8 @@ namespace data
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
 					replyMsg = CreateDatabaseStoreMsg (leaseSet);
 				}
+				else
+					LogPrint (eLogDebug, "NetDb: requested Expired LeaseSet ", key);
 			}
 			
 			if (!replyMsg)
