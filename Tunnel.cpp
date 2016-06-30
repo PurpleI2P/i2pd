@@ -217,6 +217,7 @@ namespace tunnel
 		if (msg)
 		{	
 			m_NumReceivedBytes += msg->GetLength ();
+			msg->from = shared_from_this ();
 			HandleI2NPMessage (msg);
 		}	
 	}	
@@ -768,6 +769,22 @@ namespace tunnel
 		return newTunnel;
 	}	
 
+	std::shared_ptr<InboundTunnel> Tunnels::CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel)
+	{
+		if (config)
+			return CreateTunnel<InboundTunnel>(config, outboundTunnel);
+		else
+			return CreateZeroHopsInboundTunnel ();
+	}
+
+	std::shared_ptr<OutboundTunnel> Tunnels::CreateOutboundTunnel (std::shared_ptr<TunnelConfig> config)
+	{
+		if (config)
+			return CreateTunnel<OutboundTunnel>(config);
+		else
+			return CreateZeroHopsOutboundTunnel ();
+	}
+
 	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel)
 	{
 		m_PendingInboundTunnels[replyMsgID] = tunnel; 
@@ -815,20 +832,22 @@ namespace tunnel
 	}	
 
 	
-	void Tunnels::CreateZeroHopsInboundTunnel ()
+	std::shared_ptr<ZeroHopsInboundTunnel> Tunnels::CreateZeroHopsInboundTunnel ()
 	{
 		auto inboundTunnel = std::make_shared<ZeroHopsInboundTunnel> ();
 		inboundTunnel->SetState (eTunnelStateEstablished);
 		m_InboundTunnels.push_back (inboundTunnel);
 		m_Tunnels[inboundTunnel->GetTunnelID ()] = inboundTunnel;
+		return inboundTunnel;
 	}	
 
-	void Tunnels::CreateZeroHopsOutboundTunnel ()
+	std::shared_ptr<ZeroHopsOutboundTunnel> Tunnels::CreateZeroHopsOutboundTunnel ()
 	{
 		auto outboundTunnel = std::make_shared<ZeroHopsOutboundTunnel> ();
 		outboundTunnel->SetState (eTunnelStateEstablished);
 		m_OutboundTunnels.push_back (outboundTunnel);
 		// we don't insert into m_Tunnels
+		return outboundTunnel;
 	}
 
 	int Tunnels::GetTransitTunnelsExpirationTimeout ()
@@ -861,12 +880,6 @@ namespace tunnel
 		// TODO: locking
 		return m_OutboundTunnels.size();
 	}
-
-#ifdef ANDROID_ARM7A
-    template std::shared_ptr<InboundTunnel> Tunnels::CreateTunnel<InboundTunnel>(std::shared_ptr<TunnelConfig>, std::shared_ptr<OutboundTunnel>);
-    template std::shared_ptr<OutboundTunnel> Tunnels::CreateTunnel<OutboundTunnel>(std::shared_ptr<TunnelConfig>, std::shared_ptr<OutboundTunnel>);
-#endif
-
 }
 }
 

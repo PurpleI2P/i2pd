@@ -21,6 +21,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Config.cpp"
   "${CMAKE_SOURCE_DIR}/Crypto.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
+  "${CMAKE_SOURCE_DIR}/Gzip.cpp"
   "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
   "${CMAKE_SOURCE_DIR}/Identity.cpp"
   "${CMAKE_SOURCE_DIR}/LeaseSet.cpp"
@@ -336,6 +337,10 @@ if (WITH_BINARY)
 
   if (WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT MSYS AND NOT MINGW)
     set_target_properties("${PROJECT_NAME}" PROPERTIES LINK_FLAGS "-z relro -z now" )
+  endif ()
+
+  if (WITH_UPNP)
+    target_link_libraries("${PROJECT_NAME}" "miniupnpc")
   endif ()
 
   # FindBoost pulls pthread for thread which is broken for static linking at least on Ubuntu 15.04

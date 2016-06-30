@@ -203,7 +203,7 @@ namespace client
 	}
 
 //---------------------------------------------------------------------
-	AddressBook::AddressBook (): m_Storage(new AddressBookFilesystemStorage), m_IsLoaded (false), m_IsDownloading (false), 
+	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
 		m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
 	{
 	}
@@ -215,6 +215,8 @@ namespace client
 
 	void AddressBook::Start ()
 	{
+		if (!m_Storage)
+			m_Storage = new AddressBookFilesystemStorage;
 		m_Storage->Init();
 		LoadHosts (); /* try storage, then hosts.txt, then download */
 		StartSubscriptions ();

@@ -33,18 +33,18 @@ ifeq ($(USE_STATIC),yes)
   LDLIBS += $(LIBDIR)/libboost_date_time.a
   LDLIBS += $(LIBDIR)/libboost_filesystem.a
   LDLIBS += $(LIBDIR)/libboost_program_options.a
-  LDLIBS += $(LIBDIR)/libcrypto.a
   LDLIBS += $(LIBDIR)/libssl.a
+  LDLIBS += $(LIBDIR)/libcrypto.a
   LDLIBS += $(LIBDIR)/libz.a
-  LDLIBS += -lpthread -static-libstdc++ -static-libgcc
+  LDLIBS += -lpthread -static-libstdc++ -static-libgcc -lrt
   USE_AESNI := no
 else
   LDLIBS = -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
 endif
 
 # UPNP Support (miniupnpc 1.5 or 1.6)
-ifeq ($(USE_UPNP),1)
-  LDFLAGS += -ldl
+ifeq ($(USE_UPNP),yes)
+  LDFLAGS += -lminiupnpc
   CXXFLAGS += -DUSE_UPNP
 endif
 

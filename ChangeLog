@@ -1,14 +1,23 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
-## [2.8.0] - UNRELEASED
+## [2.9.0] - UNRELEASED
 ### Changed
 - Proxy refactoring & speedup
+
+## [2.8.0] - 2016-06-20
+### Added
+- Basic Android support
+- I2CP implementation
+- 'doxygen' target
+
+### Changed
 - I2PControl refactoring & fixes (proper jsonrpc responses on errors)
 - boost::regex no more needed
 
 ### Fixed
 - initscripts: added openrc one, in sysv-ish make I2PD_PORT optional
+- properly close NTCP sessions (memleak)
 
 ## [2.7.0] - 2016-05-18
 ### Added

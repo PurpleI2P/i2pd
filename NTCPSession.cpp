@@ -1,6 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
-#include <zlib.h>
+
 #include "I2PEndian.h"
 #include "Base.h"
 #include "Crypto.h"
@@ -430,7 +430,7 @@ namespace transport
 		}
 		else
 		{	
-			LogPrint (eLogInfo, "NTCP: Server session from ", m_Socket.remote_endpoint (), " connected");
+			LogPrint (eLogDebug, "NTCP: Server session from ", m_Socket.remote_endpoint (), " connected");
 			m_Server.AddNTCPSession (shared_from_this ());
 
 			Connected ();
@@ -942,7 +942,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Connect error: ", ecode.message ());
+			LogPrint (eLogError, "NTCP: Can't connect to ", conn->GetSocket ().remote_endpoint (), ": ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 			conn->Terminate ();

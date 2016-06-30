@@ -58,6 +58,9 @@ namespace http {
 		"  .tunnel.another     { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
+		"  .private { background: black; color: black; } .private:hover { background: black; color: white } \r\n"
+		"  .slide p, .slide [type='checkbox']{ display:none; } \r\n"
+		"  .slide [type='checkbox']:checked ~ p { display:block; } \r\n"
 		"</style>\r\n";
 
 	const char HTTP_PAGE_TUNNELS[] = "tunnels";
@@ -126,8 +129,12 @@ namespace http {
 		s <<
 			"<!DOCTYPE html>\r\n"
 			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
-			"  <head>\r\n"
-			"  <meta charset=\"UTF-8\">\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+			"  <head>\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+#if (!defined(WIN32))
+			"  <meta charset=\"UTF-8\">\r\n"
+#else
+			"  <meta charset=\"windows-1251\">\r\n"
+#endif
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
 			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
 			<< cssStyles <<
@@ -201,6 +208,10 @@ namespace http {
 			s << numKBytesSent / 1024 / 1024 << " GiB";
 		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
+		s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
+		s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
+		s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
+		s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
 		s << "<b>Our external address:</b>" << "<br>\r\n" ;
 		for (auto address : i2p::context.GetRouterInfo().GetAddresses())
 		{
@@ -223,6 +234,7 @@ namespace http {
 			}
 			s << address->host.to_string() << ":" << address->port << "<br>\r\n";
 		}
+		s << "</p>\r\n</div>\r\n";
 		s << "<br>\r\n<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
@@ -612,7 +624,7 @@ namespace http {
 			HandleCommand (req, res, s);
 		} else {
 			ShowStatus (s);
-			//res.add_header("Refresh", "5");
+			res.add_header("Refresh", "10");
 		}
 		ShowPageTail (s);
 
