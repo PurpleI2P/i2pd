@@ -490,7 +490,7 @@ namespace data
 			uint8_t * payload = floodMsg->GetPayload ();		
 			memcpy (payload, buf, 33); // key + type
 			htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
-			auto msgLen = len - payloadOffset;
+			size_t msgLen = len - payloadOffset;
 			floodMsg->len += DATABASE_STORE_HEADER_SIZE + msgLen;
 			if (floodMsg->len < floodMsg->maxLen)
 			{	
@@ -501,14 +501,18 @@ namespace data
 				{
 					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
-						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+					{
+						auto h = floodfill->GetIdentHash();
+						LogPrint(eLogDebug, "NetDb: Flood lease set for ", ident.ToBase32(), " to ", h.ToBase32());
+						transports.SendMessage (h, floodMsg);
+					}
 					else
-						break;
+						LogPrint(eLogWarning, "NetDb: failed to flood, no close floodfill for ", ident.ToBase32());
 				}	
 			}	
 			else
-				LogPrint (eLogError, "Database store message is too long ", floodMsg->len);
-		}	
+				LogPrint (eLogError, "NetDb: Database store message is too long ", floodMsg->len);
+		}	 
 	}	
 
 	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
@@ -674,7 +678,7 @@ namespace data
 				if (!leaseSet)
 				{
 					// no lease set found
-					LogPrint(eLogDebug, "NetDb: requested LeaseSet not found ident=", ident.ToBase64());
+					LogPrint(eLogDebug, "NetDb: requested LeaseSet not found for ", ident.ToBase32());
 				}
 				else if (!leaseSet->IsExpired ()) // we don't send back our LeaseSets
 				{
