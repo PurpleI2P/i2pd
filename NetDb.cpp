@@ -688,8 +688,14 @@ namespace data
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
 					replyMsg = CreateDatabaseStoreMsg (leaseSet);
 				}
-				else
+				else if (!leaseSet->IsEmpty())
+				{
 					LogPrint (eLogDebug, "NetDb: requested Expired LeaseSet ", key);
+					// remove LS as it is expired
+					m_LeaseSets.erase(ident);
+				}
+				else
+					LogPrint(eLogWarning, "NetDb: LeaseSet is empty? ", ident.ToBase32());
 			}
 			
 			if (!replyMsg)
