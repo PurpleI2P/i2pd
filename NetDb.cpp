@@ -503,7 +503,8 @@ namespace data
 					if (floodfill)
 					{
 						auto h = floodfill->GetIdentHash();
-						LogPrint(eLogDebug, "NetDb: Flood lease set for ", ident.ToBase32(), " to ", h.ToBase32());
+						excluded.push_back(h);
+						LogPrint(eLogDebug, "NetDb: Flood lease set for ", ident.ToBase32(), " to ", h.ToBase64());
 						transports.SendMessage (h, floodMsg);
 					}
 					else
