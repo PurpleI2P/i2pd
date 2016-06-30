@@ -124,9 +124,9 @@ namespace data
 				}
 
         // if we're in hidden mode don't publish or explore
-        if (m_HiddenMode) continue;
-        
-				if (ts - lastPublish >= 2400) // publish every 40 minutes
+				// if (m_HiddenMode) continue;
+				
+				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL) // publish 
 				{
 					Publish ();
 					lastPublish = ts;
@@ -183,10 +183,8 @@ namespace data
 				// TODO: check if floodfill has been changed
 			}
 			else
-			{
 				LogPrint (eLogDebug, "NetDb: RouterInfo is older: ", ident.ToBase64());
-				updated = false;
-			}
+			
 		}	
 		else	
 		{	

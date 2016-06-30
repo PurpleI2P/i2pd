@@ -31,7 +31,13 @@ namespace data
 	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65*60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90*60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27*60*60; // 27 hours
-  
+
+#ifdef MESHNET
+	const int NETDB_PUBLISH_INTERVAL = 60;
+#else
+	const int NETDB_PUBLISH_INTERVAL = 60*40;
+#endif
+	
 	class NetDb
 	{
 		public:
