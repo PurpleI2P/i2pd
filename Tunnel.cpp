@@ -217,6 +217,7 @@ namespace tunnel
 		if (msg)
 		{	
 			m_NumReceivedBytes += msg->GetLength ();
+			msg->from = shared_from_this ();
 			HandleI2NPMessage (msg);
 		}	
 	}	
