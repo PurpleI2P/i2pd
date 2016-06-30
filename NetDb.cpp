@@ -226,29 +226,29 @@ namespace data
 					it->second->Update (buf, len); 
 					if (it->second->IsValid ())
 					{
-						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase64());
+						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
 						updated = true;	
 					}
 					else
 					{
-						LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase64());
+						LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase32());
 						m_LeaseSets.erase (it);
 					}	
 				}
 				else
-					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase64());
+					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
 			}
 			else
 			{	
 				auto leaseSet = std::make_shared<LeaseSet> (buf, len, false); // we don't need leases in netdb 
 				if (leaseSet->IsValid ())
 				{
-					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase64());
+					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase32());
 					m_LeaseSets[ident] = leaseSet;
 					updated = true;
 				}
 				else
-					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase64());
+					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase32());
 			}	
 		}	
 		return updated;
