@@ -610,7 +610,7 @@ namespace data
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
 		{
-			replyTunnelID = bufbe32toh (buf + 64);
+			replyTunnelID = bufbe32toh (buf + 65);
 			excluded += 4;
 		}
 		uint16_t numExcluded = bufbe16toh (excluded);	
