@@ -488,11 +488,15 @@ namespace data
 				memcpy (payload + DATABASE_STORE_HEADER_SIZE, buf + payloadOffset, msgLen);
 				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
 				std::set<IdentHash> excluded;
-				for (int i = 0; i < 3; i++)
+				excluded.insert (i2p::context.GetIdentHash ()); // don't flood to itself
+ 				for (int i = 0; i < 3; i++)
 				{
 					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
+					{
 						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+						excluded.insert (floodfill->GetIdentHash ());
+					}
 					else
 						break;
 				}	
