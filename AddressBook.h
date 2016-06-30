@@ -19,7 +19,7 @@ namespace i2p
 namespace client
 {
 #ifdef MESHNET
-	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://opo57rwxz27frnqxrwiyr6snkybuyetv25fyd25y6se6imj54xfq.b32.i2p/hosts.txt";
+	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://i42ofzetmgicvui5sshinfckpijix2udewbam4sjo6x5fbukltia.b32.i2p/hosts.txt";
 #else
 	const char DEFAULT_SUBSCRIPTION_ADDRESS[] = "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt";
 #endif
