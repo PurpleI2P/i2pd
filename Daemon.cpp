@@ -257,6 +257,7 @@ namespace i2p
       bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
 			i2p::transport::transports.Start(ntcp, ssu);
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
 				LogPrint(eLogInfo, "Daemon: Transports started");
 			} else {

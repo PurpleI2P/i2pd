@@ -617,6 +617,9 @@ namespace data
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
 		uint8_t flag = buf[64];
+
+		IdentHash replyIdent(buf + 32);
+		
 		LogPrint (eLogDebug, "NetDb: DatabaseLookup for ", key, " recieved flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
 		const uint8_t * excluded = buf + 65;		
@@ -739,12 +742,12 @@ namespace data
 				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
 				if (outbound)
-					outbound->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+					outbound->SendTunnelDataMsg (replyIdent, replyTunnelID, replyMsg);
 				else
-					transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
+					transports.SendMessage (replyIdent, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
 			}
 			else
-				transports.SendMessage (buf+32, replyMsg);
+				transports.SendMessage (replyIdent, replyMsg);
 		}
 	}	
 
