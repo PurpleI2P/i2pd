@@ -24,7 +24,7 @@ namespace data
 {		
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat")
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
 	{
 	}
 	
@@ -67,7 +67,7 @@ namespace data
 			}
 			m_LeaseSets.clear();
 			m_Requests.Stop ();
-		}	
+		}
 	}	
 	
 	void NetDb::Run ()
@@ -121,8 +121,12 @@ namespace data
 						ManageLookupResponses ();
 					}	
 					lastSave = ts;
-				}	
-				if (ts - lastPublish >= 2400) // publish every 40 minutes
+				}
+
+        // if we're in hidden mode don't publish or explore
+				// if (m_HiddenMode) continue;
+				
+				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL) // publish 
 				{
 					Publish ();
 					lastPublish = ts;
@@ -161,6 +165,11 @@ namespace data
 		return false;
 	}
 
+  void NetDb::SetHidden(bool hide) {
+    // TODO: remove reachable addresses from router info
+    m_HiddenMode = hide;
+  }
+  
 	bool NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
 		bool updated = true;	
@@ -174,10 +183,8 @@ namespace data
 				// TODO: check if floodfill has been changed
 			}
 			else
-			{
 				LogPrint (eLogDebug, "NetDb: RouterInfo is older: ", ident.ToBase64());
-				updated = false;
-			}
+			
 		}	
 		else	
 		{	
@@ -217,29 +224,29 @@ namespace data
 					it->second->Update (buf, len); 
 					if (it->second->IsValid ())
 					{
-						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase64());
+						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
 						updated = true;	
 					}
 					else
 					{
-						LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase64());
+						LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase32());
 						m_LeaseSets.erase (it);
 					}	
 				}
 				else
-					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase64());
+					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
 			}
 			else
 			{	
 				auto leaseSet = std::make_shared<LeaseSet> (buf, len, false); // we don't need leases in netdb 
 				if (leaseSet->IsValid ())
 				{
-					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase64());
+					LogPrint (eLogInfo, "NetDb: LeaseSet added: ", ident.ToBase32());
 					m_LeaseSets[ident] = leaseSet;
 					updated = true;
 				}
 				else
-					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase64());
+					LogPrint (eLogError, "NetDb: new LeaseSet validation failed: ", ident.ToBase32());
 			}	
 		}	
 		return updated;
@@ -461,7 +468,7 @@ namespace data
 		bool updated = false;
 		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
-			LogPrint (eLogDebug, "NetDb: store request: LeaseSet");
+			LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
 			updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
 		}	
 		else
@@ -487,7 +494,7 @@ namespace data
 			uint8_t * payload = floodMsg->GetPayload ();		
 			memcpy (payload, buf, 33); // key + type
 			htobe32buf (payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0); // zero reply token
-			auto msgLen = len - payloadOffset;
+			size_t msgLen = len - payloadOffset;
 			floodMsg->len += DATABASE_STORE_HEADER_SIZE + msgLen;
 			if (floodMsg->len < floodMsg->maxLen)
 			{	
@@ -501,16 +508,18 @@ namespace data
 					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
 					{
-						transports.SendMessage (floodfill->GetIdentHash (), CopyI2NPMessage(floodMsg));
-						excluded.insert (floodfill->GetIdentHash ());
+						auto h = floodfill->GetIdentHash();
+						LogPrint(eLogDebug, "NetDb: Flood lease set for ", ident.ToBase32(), " to ", h.ToBase64());
+						transports.SendMessage (h, CopyI2NPMessage(floodMsg));
+						excluded.insert (h);
 					}
 					else
 						break;
 				}	
 			}	
 			else
-				LogPrint (eLogError, "Database store message is too long ", floodMsg->len);
-		}	
+				LogPrint (eLogError, "NetDb: Database store message is too long ", floodMsg->len);
+		}	 
 	}	
 
 	void NetDb::HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg)
@@ -615,13 +624,16 @@ namespace data
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
 		uint8_t flag = buf[64];
+
+		IdentHash replyIdent(buf + 32);
+		
 		LogPrint (eLogDebug, "NetDb: DatabaseLookup for ", key, " recieved flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
 		const uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
 		{
-			replyTunnelID = bufbe32toh (buf + 64);
+			replyTunnelID = bufbe32toh (buf + 65);
 			excluded += 4;
 		}
 		uint16_t numExcluded = bufbe16toh (excluded);	
@@ -673,7 +685,12 @@ namespace data
 			    lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP))
 			{
 				auto leaseSet = FindLeaseSet (ident);
-				if (leaseSet && !leaseSet->IsExpired ()) // we don't send back our LeaseSets
+				if (!leaseSet)
+				{
+					// no lease set found
+					LogPrint(eLogDebug, "NetDb: requested LeaseSet not found for ", ident.ToBase32());
+				}
+				else if (!leaseSet->IsExpired ()) // we don't send back our LeaseSets
 				{
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
 					replyMsg = CreateDatabaseStoreMsg (leaseSet);
@@ -730,12 +747,12 @@ namespace data
 				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;
 				if (outbound)
-					outbound->SendTunnelDataMsg (buf+32, replyTunnelID, replyMsg);
+					outbound->SendTunnelDataMsg (replyIdent, replyTunnelID, replyMsg);
 				else
-					transports.SendMessage (buf+32, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
+					transports.SendMessage (replyIdent, i2p::CreateTunnelGatewayMsg (replyTunnelID, replyMsg));
 			}
 			else
-				transports.SendMessage (buf+32, replyMsg);
+				transports.SendMessage (replyIdent, replyMsg);
 		}
 	}	
 
@@ -862,7 +879,7 @@ namespace data
 	{
 		if (m_RouterInfos.empty())
 			return 0;
-		uint32_t ind = rand () % m_RouterInfos.size ();	
+		uint32_t ind = rand () % m_RouterInfos.size ();
 		for (int j = 0; j < 2; j++)
 		{	
 			uint32_t i = 0;
@@ -966,6 +983,14 @@ namespace data
 		return res;
 	}
 
+  std::shared_ptr<const RouterInfo> NetDb::GetRandomRouterInFamily(const std::string & fam) const {
+    return GetRandomRouter(
+      [fam](std::shared_ptr<const RouterInfo> router)->bool
+      {
+        return router->IsFamily(fam);
+      });
+  }
+  
 	std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill (const IdentHash& destination, 
 		const std::set<IdentHash>& excluded) const
 	{

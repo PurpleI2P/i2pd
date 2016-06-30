@@ -378,7 +378,7 @@ namespace client
 		uint32_t msgID = bufbe32toh (msg->GetPayload () + DELIVERY_STATUS_MSGID_OFFSET);
 		if (msgID == m_PublishReplyToken)
 		{
-			LogPrint (eLogDebug, "Destination: Publishing LeaseSet confirmed");
+			LogPrint (eLogDebug, "Destination: Publishing LeaseSet confirmed for ", GetIdentHash().ToBase32());
 			m_ExcludedFloodfills.clear ();
 			m_PublishReplyToken = 0;
 			// schedule verification
@@ -459,19 +459,16 @@ namespace client
 				// "this" added due to bug in gcc 4.7-4.8
 				[s,this](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 				{
-					if (leaseSet)
+					if (leaseSet && s->m_LeaseSet)
 					{
-						if (s->m_LeaseSet && *s->m_LeaseSet == *leaseSet)
-						{
-							// we got latest LeasetSet
-							LogPrint (eLogDebug, "Destination: published LeaseSet verified");
-							s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
-							s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));	
-							return;
-						}		
+						// we got latest LeasetSet
+						LogPrint (eLogDebug, "Destination: published LeaseSet verified for ", GetIdentHash().ToBase32());
+						s->m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_REGULAR_VERIFICATION_INTERNAL));
+						s->m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer, s, std::placeholders::_1));	
+						return;
 					}	
 					else
-						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet");
+						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet for ", GetIdentHash().ToBase32());
 					// we have to publish again
 					s->Publish ();	
 				});

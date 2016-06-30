@@ -144,7 +144,10 @@ namespace transport
 			void RemoveNTCPSession (std::shared_ptr<NTCPSession> session);
 			std::shared_ptr<NTCPSession> FindNTCPSession (const i2p::data::IdentHash& ident);
 			void Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn);
-			
+
+      bool IsBoundV4() const { return m_NTCPAcceptor != nullptr; };
+      bool IsBoundV6() const { return m_NTCPV6Acceptor != nullptr; };
+      
 			boost::asio::io_service& GetService () { return m_Service; };
 			void Ban (const boost::asio::ip::address& addr);			
 

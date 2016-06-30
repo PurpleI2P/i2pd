@@ -73,8 +73,11 @@ namespace transport
 			Transports ();
 			~Transports ();
 
-			void Start ();
+			void Start (bool enableNTCP=true, bool enableSSU=true);
 			void Stop ();
+
+			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
+			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
 			
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();	
@@ -98,6 +101,13 @@ namespace transport
 			size_t GetNumPeers () const { return m_Peers.size (); };
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
 
+    /** get a trusted first hop for restricted routes */
+    std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer() const;
+    /** do we want to use restricted routes? */
+    bool RoutesRestricted() const;  
+    /** restrict routes to use only these router families for first hops */
+    void RestrictRoutes(std::vector<std::string> families);
+    
 			void PeerTest ();
 			
 		private:
@@ -140,6 +150,10 @@ namespace transport
 			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;	
 			uint64_t m_LastBandwidthUpdateTime;		
 
+    /** which router families to trust for first hops */
+    std::vector<std::string> m_TrustedFamilies;
+    mutable std::mutex m_FamilyMutex;
+    
 		public:
 
 			// for HTTP only

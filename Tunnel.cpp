@@ -443,7 +443,7 @@ namespace tunnel
 				if (msg)
 				{	
 					uint32_t prevTunnelID = 0, tunnelID = 0;
-					std::shared_ptr<TunnelBase> prevTunnel; 
+					std::shared_ptr<TunnelBase> prevTunnel;
 					do
 					{
 						std::shared_ptr<TunnelBase> tunnel;
@@ -458,7 +458,7 @@ namespace tunnel
 									tunnel = prevTunnel;
 								else if (prevTunnel)
 									prevTunnel->FlushTunnelDataMsgs (); 
-						
+								
 								if (!tunnel)
 									tunnel = GetTunnel (tunnelID);
 								if (tunnel)
@@ -468,8 +468,9 @@ namespace tunnel
 									else // tunnel gateway assumed
 										HandleTunnelGatewayMsg (tunnel, msg);
 								}
-								else		
-									LogPrint (eLogWarning, "Tunnel: tunnel with id ", tunnelID, " not found");
+								else
+									LogPrint (eLogWarning, "Tunnel: tunnel not found, tunnelID=", tunnelID, " previousTunnelID=", prevTunnelID, " type=", (int)typeID);
+
 								break;
 							}	
 							case eI2NPVariableTunnelBuild:		

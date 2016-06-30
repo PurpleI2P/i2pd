@@ -205,7 +205,7 @@ namespace tunnel
 			if (it->second.fragmentNum == msg.nextFragmentNum)
 			{
 				LogPrint (eLogWarning, "TunnelMessage: Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
-				auto size = it->second.data->GetLength ();
+				size_t size = it->second.data->GetLength ();
 				if (msg.data->len + size > msg.data->maxLen)
 				{
 					LogPrint (eLogWarning, "TunnelMessage: Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
@@ -235,7 +235,7 @@ namespace tunnel
 			LogPrint (eLogInfo, "TunnelMessage: message expired");
 			return;
 		}	
-		auto typeID = msg.data->GetTypeID ();
+		uint8_t typeID = msg.data->GetTypeID ();
 		LogPrint (eLogDebug, "TunnelMessage: handle fragment of ", msg.data->GetLength (), " bytes, msg type ", (int)typeID);
 		// catch RI or reply with new list of routers	
 		if ((IsRouterInfoMsg (msg.data) || typeID == eI2NPDatabaseSearchReply) &&
