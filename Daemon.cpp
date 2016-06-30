@@ -141,10 +141,10 @@ namespace i2p
 				// we are behind nat, try setting via host 
 				std::string host; i2p::config::GetOption("host", host);
 				if (!i2p::config::IsDefault("host"))
-					{
-						LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
-						i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
-					}
+				{
+					LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
+					i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
+				}
 			}
 			else
 			{
