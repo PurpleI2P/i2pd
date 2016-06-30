@@ -771,18 +771,18 @@ namespace tunnel
 
 	std::shared_ptr<InboundTunnel> Tunnels::CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
-		if (config->IsEmpty ())
-			return CreateZeroHopsInboundTunnel ();
-		else
+		if (config)
 			return CreateTunnel<InboundTunnel>(config, outboundTunnel);
+		else
+			return CreateZeroHopsInboundTunnel ();
 	}
 
 	std::shared_ptr<OutboundTunnel> Tunnels::CreateOutboundTunnel (std::shared_ptr<TunnelConfig> config)
 	{
-		if (config->IsEmpty ())
-			return CreateZeroHopsOutboundTunnel ();
-		else	
+		if (config)
 			return CreateTunnel<OutboundTunnel>(config);
+		else
+			return CreateZeroHopsOutboundTunnel ();
 	}
 
 	void Tunnels::AddPendingTunnel (uint32_t replyMsgID, std::shared_ptr<InboundTunnel> tunnel)
