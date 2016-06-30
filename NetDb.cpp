@@ -450,6 +450,12 @@ namespace data
 			}		
 			offset += 32;
 		}
+		// we must send reply back before this check	
+		if (ident == i2p::context.GetIdentHash ())
+		{
+			LogPrint (eLogError, "NetDb: database store with own RouterInfo received, dropped");
+			return;
+		}
 		size_t payloadOffset = offset;		
 
 		bool updated = false;
@@ -489,6 +495,7 @@ namespace data
 				floodMsg->FillI2NPMessageHeader (eI2NPDatabaseStore); 
 				std::set<IdentHash> excluded;
 				excluded.insert (i2p::context.GetIdentHash ()); // don't flood to itself
+				excluded.insert (ident); // don't flood back
  				for (int i = 0; i < 3; i++)
 				{
 					auto floodfill = GetClosestFloodfill (ident, excluded);
