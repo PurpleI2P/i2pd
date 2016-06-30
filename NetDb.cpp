@@ -462,7 +462,7 @@ namespace data
 		bool updated = false;
 		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
-			LogPrint (eLogDebug, "NetDb: store request: LeaseSet");
+			LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident);
 			updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
 		}	
 		else
@@ -688,14 +688,6 @@ namespace data
 					LogPrint (eLogDebug, "NetDb: requested LeaseSet ", key, " found");
 					replyMsg = CreateDatabaseStoreMsg (leaseSet);
 				}
-				else if (!leaseSet->IsEmpty())
-				{
-					LogPrint (eLogDebug, "NetDb: requested Expired LeaseSet ", key);
-					// remove LS as it is expired
-					m_LeaseSets.erase(ident);
-				}
-				else
-					LogPrint(eLogWarning, "NetDb: LeaseSet is empty? ", ident.ToBase32());
 			}
 			
 			if (!replyMsg)
