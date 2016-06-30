@@ -236,7 +236,10 @@ namespace data
 					}	
 				}
 				else
+				{
 					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
+					updated = true;
+				}
 			}
 			else
 			{	
