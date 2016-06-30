@@ -329,8 +329,9 @@ namespace tunnel
 	bool TunnelPool::SelectPeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers, bool isInbound)
 	{
 		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);
-		auto prevHop = i2p::context.GetSharedRouterInfo ();	
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
+		if (numHops <= 0) return true; // peers is empty 
+		auto prevHop = i2p::context.GetSharedRouterInfo ();			
 		if (i2p::transport::transports.GetNumPeers () > 25)
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
@@ -389,9 +390,16 @@ namespace tunnel
 		std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers;
 		if (SelectPeers (peers, true))
 		{
-			std::reverse (peers.begin (), peers.end ());	
-			auto tunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig> (peers), outboundTunnel);
+			std::shared_ptr<TunnelConfig> config;
+			if (m_NumInboundHops > 0)
+			{	
+				std::reverse (peers.begin (), peers.end ());	
+				config = std::make_shared<TunnelConfig> (peers);
+			}	
+			auto tunnel = tunnels.CreateInboundTunnel (config, outboundTunnel);
 			tunnel->SetTunnelPool (shared_from_this ());
+			if (tunnel->IsEstablished ()) // zero hops
+				TunnelCreated (tunnel);
 		}	
 		else
 			LogPrint (eLogError, "Tunnels: Can't create inbound tunnel, no peers available");
@@ -403,8 +411,12 @@ namespace tunnel
 		if (!outboundTunnel)
 			outboundTunnel = tunnels.GetNextOutboundTunnel ();
 		LogPrint (eLogDebug, "Tunnels: Re-creating destination inbound tunnel...");
-		auto newTunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig>(tunnel->GetPeers ()), outboundTunnel);
+		std::shared_ptr<TunnelConfig> config;
+		if (m_NumInboundHops > 0) config = std::make_shared<TunnelConfig>(tunnel->GetPeers ());
+		auto newTunnel = tunnels.CreateInboundTunnel (config, outboundTunnel);
 		newTunnel->SetTunnelPool (shared_from_this());
+		if (newTunnel->IsEstablished ()) // zero hops
+			TunnelCreated (newTunnel);
 	}	
 		
 	void TunnelPool::CreateOutboundTunnel ()
@@ -418,9 +430,13 @@ namespace tunnel
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > peers;
 			if (SelectPeers (peers, false))
 			{	
-				auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
-					std::make_shared<TunnelConfig> (peers, inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()));
+				std::shared_ptr<TunnelConfig> config;
+				if (m_NumOutboundHops > 0) 
+					config = std::make_shared<TunnelConfig>(peers, inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ());
+				auto tunnel = tunnels.CreateOutboundTunnel (config);
 				tunnel->SetTunnelPool (shared_from_this ());
+				if (tunnel->IsEstablished ()) // zero hops
+					TunnelCreated (tunnel);
 			}	
 			else
 				LogPrint (eLogError, "Tunnels: Can't create outbound tunnel, no peers available");
@@ -437,10 +453,13 @@ namespace tunnel
 		if (inboundTunnel)
 		{	
 			LogPrint (eLogDebug, "Tunnels: Re-creating destination outbound tunnel...");
-			auto newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
-				std::make_shared<TunnelConfig> (tunnel->GetPeers (),
-					inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ()));
+			std::shared_ptr<TunnelConfig> config;
+			if (m_NumOutboundHops > 0)
+				config = std::make_shared<TunnelConfig>(tunnel->GetPeers (), inboundTunnel->GetNextTunnelID (), inboundTunnel->GetNextIdentHash ());
+			auto newTunnel = tunnels.CreateOutboundTunnel (config);
 			newTunnel->SetTunnelPool (shared_from_this ());
+			if (newTunnel->IsEstablished ()) // zero hops
+				TunnelCreated (newTunnel);
 		}	
 		else
 			LogPrint (eLogDebug, "Tunnels: Can't re-create outbound tunnel, no inbound tunnels found");
@@ -449,7 +468,7 @@ namespace tunnel
 	void TunnelPool::CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
-		auto tunnel = tunnels.CreateTunnel<InboundTunnel> (std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()), outboundTunnel);
+		auto tunnel = tunnels.CreateInboundTunnel (std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()), outboundTunnel);
 		tunnel->SetTunnelPool (shared_from_this ());
 	}	
 }

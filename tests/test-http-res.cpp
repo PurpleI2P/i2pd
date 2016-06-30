@@ -29,7 +29,7 @@ int main() {
   assert(res->headers.find("Server")->second == "nginx/1.2.1");
   assert(res->headers.find("Content-Length")->second == "536");
   assert(res->is_chunked() == false);
-  assert(res->length() == 536);
+  assert(res->content_length() == 536);
   delete res;
 
   /* test: building request */

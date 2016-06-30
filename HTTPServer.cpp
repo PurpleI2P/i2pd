@@ -58,6 +58,7 @@ namespace http {
 		"  .tunnel.another     { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
+		"  .private { background: black; color: black; } .private:hover { background: black; color: white } \r\n"
 		"</style>\r\n";
 
 	const char HTTP_PAGE_TUNNELS[] = "tunnels";
@@ -205,6 +206,7 @@ namespace http {
 			s << numKBytesSent / 1024 / 1024 << " GiB";
 		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
+		s << "<b>Router Ident:</b> <span class='private'>" << i2p::context.GetRouterInfo().GetIdentHashBase64()<< "</span><br>\r\n";
 		s << "<b>Our external address:</b>" << "<br>\r\n" ;
 		for (auto address : i2p::context.GetRouterInfo().GetAddresses())
 		{
