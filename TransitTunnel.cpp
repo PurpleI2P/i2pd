@@ -92,7 +92,7 @@ namespace tunnel
 	{
 		if (isEndpoint)
 		{	
-			LogPrint (eLogInfo, "TransitTunnel: endpoint ", receiveTunnelID, " created");
+			LogPrint (eLogDebug, "TransitTunnel: endpoint ", receiveTunnelID, " created");
 			return std::make_shared<TransitTunnelEndpoint> (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 		else if (isGateway)
@@ -102,7 +102,7 @@ namespace tunnel
 		}	
 		else	
 		{	
-			LogPrint (eLogInfo, "TransitTunnel: ", receiveTunnelID, "->", nextTunnelID, " created");
+			LogPrint (eLogDebug, "TransitTunnel: ", receiveTunnelID, "->", nextTunnelID, " created");
 			return std::make_shared<TransitTunnelParticipant> (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey);
 		}	
 	}		

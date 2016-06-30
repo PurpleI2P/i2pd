@@ -2,7 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <boost/asio.hpp>
-#include <zlib.h>
+
 #include "I2PEndian.h"
 #include "Base.h"
 #include "Crypto.h"
@@ -671,7 +671,7 @@ namespace data
 			
 			if (!replyMsg)
 			{
-				LogPrint (eLogWarning, "NetDb: Requested ", key, " not found. ", numExcluded, " excluded");
+				LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
 				// find or cleate response
 				std::vector<IdentHash> closestFloodfills;
 				bool found = false;

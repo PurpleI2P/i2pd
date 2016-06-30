@@ -37,6 +37,13 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="gracefulShutdownButton">
+       <property name="text">
+        <string>Graceful Quit</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
   </widget>
@@ -60,8 +67,25 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>gracefulShutdownButton</sender>
+   <signal>released()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>handleGracefulQuitButton()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>395</x>
+     <y>319</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>239</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>handleQuitButton()</slot>
+  <slot>handleGracefulQuitButton()</slot>
  </slots>
 </ui>

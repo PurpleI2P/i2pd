@@ -241,7 +241,7 @@ namespace transport
 						if (!msg->IsExpired ())
 							m_Handler.PutNextMessage (msg);
 						else
-							LogPrint (eLogInfo, "SSU: message expired");
+							LogPrint (eLogDebug, "SSU: message expired");
 					}	
 					else
 						LogPrint (eLogWarning, "SSU: Message ", msgID, " already received");
@@ -425,6 +425,7 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			int numResent = 0;
 			for (auto it = m_SentMessages.begin (); it != m_SentMessages.end ();)
 			{
 				if (ts >= it->second->nextResendTime)
@@ -437,6 +438,7 @@ namespace transport
 								try
 								{	
 									m_Session.Send (f->buf, f->len); // resend
+									numResent++;
 								}
 								catch (boost::system::system_error& ec)
 								{
@@ -457,7 +459,13 @@ namespace transport
 				else
 					it++;
 			}
-			ScheduleResend ();	
+			if (numResent < MAX_OUTGOING_WINDOW_SIZE)
+				ScheduleResend ();
+			else
+			{
+				LogPrint (eLogError, "SSU: resend window exceeds max size. Session terminated");
+				m_Session.Close ();
+			}	
 		}	
 	}	
 

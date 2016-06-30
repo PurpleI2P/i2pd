@@ -8,7 +8,9 @@
 #include <string>
 #include <thread>
 #include <mutex>
+
 #include "Base.h"
+#include "Gzip.h"
 #include "FS.h"
 #include "Queue.h"
 #include "I2NPProtocol.h"

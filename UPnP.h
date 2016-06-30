@@ -48,12 +48,6 @@ namespace transport
         struct UPNPDev * m_Devlist = 0;
         char m_NetworkAddr[64];
         char m_externalIPAddress[40];
-        bool m_IsModuleLoaded;
-#ifndef _WIN32
-        void *m_Module;
-#else
-        HINSTANCE m_Module;
-#endif
 	};
 }
 }

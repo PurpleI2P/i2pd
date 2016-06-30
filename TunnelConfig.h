@@ -159,6 +159,11 @@ namespace tunnel
 				return num;
 			}
 
+			bool IsEmpty () const
+			{
+				return !m_FirstHop;
+			}			
+
 			virtual bool IsInbound () const { return m_FirstHop->isGateway; }
 
 			virtual uint32_t GetTunnelID () const 

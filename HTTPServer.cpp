@@ -126,8 +126,12 @@ namespace http {
 		s <<
 			"<!DOCTYPE html>\r\n"
 			"<html lang=\"en\">\r\n" /* TODO: Add support for locale */
-			"  <head>\r\n"
-			"  <meta charset=\"UTF-8\">\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+			"  <head>\r\n" /* TODO: Find something to parse html/template system. This is horrible. */
+#if (!defined(WIN32))
+			"  <meta charset=\"UTF-8\">\r\n"
+#else
+			"  <meta charset=\"windows-1251\">\r\n"
+#endif
 			"  <link rel=\"shortcut icon\" href=\"" << itoopieFavicon << "\">\r\n"
 			"  <title>Purple I2P " VERSION " Webconsole</title>\r\n"
 			<< cssStyles <<
@@ -612,7 +616,7 @@ namespace http {
 			HandleCommand (req, res, s);
 		} else {
 			ShowStatus (s);
-			//res.add_header("Refresh", "5");
+			res.add_header("Refresh", "10");
 		}
 		ShowPageTail (s);
 
