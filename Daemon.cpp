@@ -253,11 +253,12 @@ namespace i2p
 			LogPrint(eLogInfo, "Daemon: starting UPnP");
 			d.m_UPnP.Start ();
 #endif
-      bool ntcp; i2p::config::GetOption("ntcp", ntcp);
-      bool ssu; i2p::config::GetOption("ssu", ssu);
+			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
+			bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
+			if(!ssu) LogPrint(eLogDebug, "Daemon: ssu disabled");
+			if(!ntcp) LogPrint(eLogDebug, "Daemon: ntcp disabled");
 			i2p::transport::transports.Start(ntcp, ssu);
-			std::this_thread::sleep_for(std::chrono::seconds(1));
 			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
 				LogPrint(eLogInfo, "Daemon: Transports started");
 			} else {
