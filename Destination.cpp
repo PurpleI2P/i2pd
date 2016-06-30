@@ -31,7 +31,7 @@ namespace client
 			{
 
 				int len = i2p::util::lexical_cast<int>(it->second, inboundTunnelLen);
-				if (len > 0)
+				if (len >= 0)
 				{
 						inboundTunnelLen = len;
 				}
@@ -42,7 +42,7 @@ namespace client
 			{
 
 				int len = i2p::util::lexical_cast<int>(it->second, outboundTunnelLen);
-				if (len > 0)
+				if (len >= 0)
 				{
 						outboundTunnelLen = len;
 				}
