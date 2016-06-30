@@ -494,7 +494,7 @@ namespace data
 					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
 					{
-						transports.SendMessage (floodfill->GetIdentHash (), floodMsg);
+						transports.SendMessage (floodfill->GetIdentHash (), CopyI2NPMessage(floodMsg));
 						excluded.insert (floodfill->GetIdentHash ());
 					}
 					else
