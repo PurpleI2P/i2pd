@@ -462,7 +462,7 @@ namespace data
 		bool updated = false;
 		if (buf[DATABASE_STORE_TYPE_OFFSET]) // type
 		{
-			LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident);
+			LogPrint (eLogDebug, "NetDb: store request: LeaseSet for ", ident.ToBase32());
 			updated = AddLeaseSet (ident, buf + offset, len - offset, m->from);
 		}	
 		else
