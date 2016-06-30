@@ -85,7 +85,8 @@ namespace http {
       }
       /* user[:pass] */
       pos_c = url.find('@', pos_p);
-      if (pos_c != std::string::npos) {
+      std::size_t pos_slash = url.find('/', pos_p);
+      if (pos_c != std::string::npos && (pos_slash == std::string::npos || pos_slash > pos_c)) {
         std::size_t delim = url.find(':', pos_p);
         if (delim != std::string::npos && delim < pos_c) {
           user = url.substr(pos_p, delim - pos_p);
@@ -94,7 +95,7 @@ namespace http {
         } else {
           user = url.substr(pos_p, pos_c - pos_p);
         }
-        pos_p = pos_c + 1;
+        pos_p = pos_c + 1;        
       }
       /* hostname[:port][/path] */
       pos_c = url.find_first_of(":/", pos_p);
