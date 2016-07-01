@@ -52,6 +52,7 @@ namespace proxy {
 			void RedirectToJumpService(std::string & host);
 			bool ValidateHTTPRequest();
 			bool ExtractAddressHelper(i2p::http::URL & url, std::string & b64);
+			void SanitizeHTTPRequest(i2p::http::HTTPReq & req);
 			bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
@@ -169,6 +170,31 @@ namespace proxy {
 		b64 = i2p::http::UrlDecode(value);
 		url.query.replace(pos, len, "");
 		return true;
+	}
+
+	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq & req)
+	{
+		/* drop common headers */
+		req.del_header("Referer");
+		req.del_header("Via");
+		req.del_header("Forwarded");
+		/* drop proxy-disclosing headers */
+		std::vector<std::string> toErase;
+		for (auto it : req.headers) {
+			if (it.first.compare(0, 12, "X-Forwarded-") == 0) {
+				toErase.push_back(it.first);
+			} else if (it.first.compare(0, 6, "Proxy-") == 0) {
+				toErase.push_back(it.first);
+			} else {
+				/* allow */
+			}
+		}
+		for (auto header : toErase) {
+			req.headers.erase(header);
+		}
+		/* replace headers */
+		req.add_header("Connection", "close", true); /* keep-alive conns not supported yet */
+		req.add_header("User-Agent", "MYOB/6.66 (AN/ON)", true); /* privacy */
 	}
 
 	bool HTTPReqHandler::CreateHTTPRequest(uint8_t *http_buff, std::size_t len)
