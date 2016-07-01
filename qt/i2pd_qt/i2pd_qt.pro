@@ -50,7 +50,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
 	../../Streaming.h ../../Timestamp.h ../../TransitTunnel.h ../../Transports.h \
 	../../TransportSession.h ../../Tunnel.h ../../TunnelBase.h ../../TunnelConfig.h \
 	../../TunnelEndpoint.h ../../TunnelGateway.h ../../TunnelPool.h ../../UPnP.h \
-	../../util.h ../../version.h ..//../Gzip.h ../../Tag.h
+	../../util.h ../../version.h ../../Gzip.h ../../Tag.h
 
 FORMS += mainwindow.ui
 
