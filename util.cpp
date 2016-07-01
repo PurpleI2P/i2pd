@@ -419,7 +419,7 @@ namespace net
 	{
 #ifdef WIN32
 		LogPrint(eLogError, "NetIface: cannot get address by interface name, not implemented on WIN32");
-		return boost::asio::ip::from_string("127.0.0.1");
+		return boost::asio::ip::address::from_string("127.0.0.1");
 #else
 		int af = (ipv6 ? AF_INET6 : AF_INET);
 		ifaddrs * addrs = nullptr;
