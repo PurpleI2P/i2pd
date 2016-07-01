@@ -104,6 +104,18 @@ int main() {
   assert(url->query == "");
   delete url;
 
+  url = new URL;
+  assert(url->parse("http://user:password@site.com:84/asdasd/@17#frag") == true);
+  assert(url->schema == "http");
+  assert(url->user == "user");
+  assert(url->pass == "password");
+  assert(url->host == "site.com");
+  assert(url->port == 84);
+  assert(url->path == "/asdasd/@17");
+  assert(url->query == "");
+  assert(url->frag == "frag");
+  delete url;
+
   return 0;
 }
 
