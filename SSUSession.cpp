@@ -20,14 +20,14 @@ namespace transport
 		if (router)
 		{
 			// we are client
-			auto address = router->GetSSUAddress ();
+			auto address = router->GetSSUAddress (false);
 			if (address) m_IntroKey = address->key;
 			m_Data.AdjustPacketSize (router); // mtu
 		}
 		else
 		{
 			// we are server
-			auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+			auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
 			if (address) m_IntroKey = address->key;
 		}
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
@@ -108,7 +108,7 @@ namespace transport
 				else
 				{    
 					// try own intro key
-					auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+					auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
 					if (!address)
 					{
 						LogPrint (eLogInfo, "SSU is not supported");
@@ -366,7 +366,7 @@ namespace transport
 
 	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce)
 	{
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
 		if (!address)
 		{
 			LogPrint (eLogInfo, "SSU is not supported");
@@ -1079,7 +1079,7 @@ namespace transport
 	{
 		// we are Alice
 		LogPrint (eLogDebug, "SSU: sending peer test");
-		auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
+		auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
 		if (!address)
 		{
 			LogPrint (eLogInfo, "SSU is not supported. Can't send peer test");

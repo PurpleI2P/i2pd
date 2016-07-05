@@ -290,7 +290,11 @@ namespace data
 
 		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))
 			SetUnreachable (true);
-	}	
+	}
+
+  bool RouterInfo::IsFamily(const std::string & fam) const {
+    return m_Family == fam;
+  }
 
 	void RouterInfo::ExtractCaps (const char * value)
 	{

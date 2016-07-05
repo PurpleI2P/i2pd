@@ -204,17 +204,17 @@ namespace client
 				return;
 			}
 			/* append to json chunk of data from 1st request */
-			json.write(buf->begin() + len, bytes_transferred - len);
+			json.write(buf->data() + len, bytes_transferred - len);
 			remains = req.content_length() - len;
 			/* if request has Content-Length header, fetch rest of data and store to json buffer */
 			while (remains > 0) {
 				len = ((long int) buf->size() < remains) ? buf->size() : remains;
 				bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), len));
-				json.write(buf->begin(), bytes_transferred);
+				json.write(buf->data(), bytes_transferred);
 				remains -= bytes_transferred;
 			}
 		} else {
-			json.write(buf->begin(), bytes_transferred);
+			json.write(buf->data(), bytes_transferred);
 		}
 		LogPrint(eLogDebug, "I2PControl: json from request: ", json.str());
 #if GCC47_BOOST149

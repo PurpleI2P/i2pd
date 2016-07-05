@@ -413,7 +413,52 @@ namespace net
         return GetMTUUnix(localAddress, fallback);
 #endif
         return fallback;
-    }	
+    }
+  
+	const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6)
+	{
+#ifdef WIN32
+		LogPrint(eLogError, "NetIface: cannot get address by interface name, not implemented on WIN32");
+		return boost::asio::ip::address::from_string("127.0.0.1");
+#else
+		int af = (ipv6 ? AF_INET6 : AF_INET);
+		ifaddrs * addrs = nullptr;
+		if(getifaddrs(&addrs) == 0)
+		{
+			// got ifaddrs
+			ifaddrs * cur = addrs;
+			while(cur)
+			{
+				std::string cur_ifname(cur->ifa_name);
+				if (cur_ifname == ifname && cur->ifa_addr && cur->ifa_addr->sa_family == af)
+				{
+					// match
+          char * addr = new char[INET6_ADDRSTRLEN];
+          bzero(addr, INET6_ADDRSTRLEN);
+          if(af == AF_INET)
+            inet_ntop(af, &((sockaddr_in *)cur->ifa_addr)->sin_addr, addr, INET6_ADDRSTRLEN);
+          else
+            inet_ntop(af, &((sockaddr_in6 *)cur->ifa_addr)->sin6_addr, addr, INET6_ADDRSTRLEN);
+          freeifaddrs(addrs);
+          std::string cur_ifaddr(addr);
+					return boost::asio::ip::address::from_string(cur_ifaddr);
+				}
+				cur = cur->ifa_next;
+			}
+		}
+		if(addrs) freeifaddrs(addrs);
+		std::string fallback;
+		if(ipv6) {
+			fallback = "::";
+			LogPrint(eLogWarning, "NetIface: cannot find ipv6 address for interface ", ifname);
+		} else {
+			fallback = "127.0.0.1";
+			LogPrint(eLogWarning, "NetIface: cannot find ipv4 address for interface ", ifname);
+		}
+		return boost::asio::ip::address::from_string(fallback);
+			
+#endif
+	}
 } 
 
 } // util
