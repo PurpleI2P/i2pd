@@ -36,7 +36,6 @@ namespace stream
 
 	Stream::~Stream ()
 	{	
-		Terminate ();
 		while (!m_ReceiveQueue.empty ())
 		{
 			auto packet = m_ReceiveQueue.front ();
@@ -302,7 +301,9 @@ namespace stream
 			m_NumResendAttempts = 0;
 			SendBuffer ();
 		}	
-		if (m_Status == eStreamStatusClosing)
+		if (m_Status == eStreamStatusClosed)
+			Terminate ();
+		else if (m_Status == eStreamStatusClosing)
 			Close (); // check is all outgoing messages have been sent and we can send close
 	}		
 		
