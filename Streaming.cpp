@@ -66,6 +66,7 @@ namespace stream
 			m_SendHandler = nullptr;
 			handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted));
 		}
+		m_LocalDestination.DeleteStream (shared_from_this ());	
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
@@ -220,10 +221,17 @@ namespace stream
 		
 		m_LastReceivedSequenceNumber = receivedSeqn;
 
-		if (flags & (PACKET_FLAG_CLOSE | PACKET_FLAG_RESET))
+		if (flags & PACKET_FLAG_RESET)
 		{
 			m_Status = eStreamStatusReset;
 			Close ();
+		}
+		else if (flags & PACKET_FLAG_CLOSE)
+		{
+			if (m_Status != eStreamStatusClosed)
+				SendClose ();
+			m_Status = eStreamStatusClosed;
+			Terminate (); 
 		}
 	}	
 
@@ -295,7 +303,7 @@ namespace stream
 			SendBuffer ();
 		}	
 		if (m_Status == eStreamStatusClosing)
-			Close (); // all outgoing messages have been sent
+			Close (); // check is all outgoing messages have been sent and we can send close
 	}		
 		
 	size_t Stream::Send (const uint8_t * buf, size_t len)
@@ -495,23 +503,19 @@ namespace stream
 					LogPrint (eLogDebug, "Streaming: Trying to send stream data before closing, sSID=", m_SendStreamID);
 			break;
 			case eStreamStatusReset:
-				SendClose (); 
-				Terminate ();
-				m_LocalDestination.DeleteStream (shared_from_this ());	
+				// TODO: send reset
+				Terminate ();	
 			break;
 			case eStreamStatusClosing:
 				if (m_SentPackets.empty () && m_SendBuffer.eof ()) // nothing to send
 				{
 					m_Status = eStreamStatusClosed;
 					SendClose ();
-					Terminate ();
-					m_LocalDestination.DeleteStream (shared_from_this ());	
 				}
 			break;
 			case eStreamStatusClosed:
 				// already closed
 				Terminate ();
-				m_LocalDestination.DeleteStream (shared_from_this ());		
 			break;				
 			default:
 				LogPrint (eLogWarning, "Streaming: Unexpected stream status ", (int)m_Status, "sSID=", m_SendStreamID);
@@ -578,15 +582,10 @@ namespace stream
 				m_AckSendTimer.cancel ();
 			}
 			SendPackets (std::vector<Packet *> { packet });
-			if (m_Status == eStreamStatusOpen)
-			{	
-				bool isEmpty = m_SentPackets.empty ();
-				m_SentPackets.insert (packet);
-				if (isEmpty)
-					ScheduleResend ();
-			}	
-			else
-				delete packet;
+			bool isEmpty = m_SentPackets.empty ();
+			m_SentPackets.insert (packet);
+			if (isEmpty)
+				ScheduleResend ();
 			return true;	
 		}	
 		else
