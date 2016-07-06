@@ -8,7 +8,7 @@ https://developer.android.com/studio/index.html
 NDK 
 https://developer.android.com/ndk/downloads/index.html
 
-QT
+QT  
 https://www.qt.io/download-open-source/
 Choose one for your platform for android
 For example QT 5.6 under Linux would be
@@ -26,10 +26,10 @@ Android for armeabi-v7a (gcc, qt) and Android for x86 (gcc, qt).
 Dependencies
 --------------
 Take following pre-compiled binaries from PurpleI2P's repositories.  
-git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
-git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
-git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
-git clone https://github.com/PurpleI2P/android-ifaddrs.git
+git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git  
+git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git  
+git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git  
+git clone https://github.com/PurpleI2P/android-ifaddrs.git  
 
 
 Building the app
