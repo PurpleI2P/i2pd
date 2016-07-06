@@ -8,8 +8,7 @@ QMAKE_CXXFLAGS *= -std=c++11
 DEFINES += USE_UPNP
 
 # change to your own path, where you will store all needed libraries with 'git clone' commands below.
-#MAIN_PATH = /path/to/libraries
-MAIN_PATH = /home/anon5/git
+MAIN_PATH = /path/to/libraries
 
 # git clone https://github.com/PurpleI2P/Boost-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
