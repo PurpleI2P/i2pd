@@ -5,7 +5,7 @@ You need to install Android SDK, NDK  and QT with android support.
 
 SDK (choose command line tools only)  
 https://developer.android.com/studio/index.html  
-NDK 
+NDK  
 https://developer.android.com/ndk/downloads/index.html
 
 QT  
@@ -34,9 +34,9 @@ git clone https://github.com/PurpleI2P/android-ifaddrs.git
 
 Building the app
 ----------------
-Open qt/i2pd_qt/i2pd_qt.pro in the QT-creator.
-Change line MAIN_PATH = /path/to/libraries to actual path where did you put the dependancies to.
-Select appropriate project (usually armeabi-v7a) and build.
+Open qt/i2pd_qt/i2pd_qt.pro in the QT-creator.  
+Change line MAIN_PATH = /path/to/libraries to actual path where did you put the dependancies to.  
+Select appropriate project (usually armeabi-v7a) and build.  
 You will find an .apk file in android-build/bin folder.  
 
 
