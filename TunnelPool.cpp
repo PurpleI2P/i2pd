@@ -330,8 +330,8 @@ namespace tunnel
 	{
 		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
-		if (numHops <= 0) return true;
-		auto prevHop	= i2p::context.GetSharedRouterInfo();
+		if (numHops <= 0) return true; // peers is empty 
+		auto prevHop = i2p::context.GetSharedRouterInfo ();			
 		if(i2p::transport::transports.RoutesRestricted())
 		{
 			/** if routes are restricted prepend trusted first hop */
@@ -340,6 +340,17 @@ namespace tunnel
 			peers.push_back(hop->GetRouterIdentity());
 			prevHop = hop;
 		}
+		else if (i2p::transport::transports.GetNumPeers () > 25)
+		{
+			auto r = i2p::transport::transports.GetRandomPeer ();
+			if (r && !r->GetProfile ()->IsBad ())
+			{
+				prevHop = r;
+				peers.push_back (r->GetRouterIdentity ());
+				numHops--;
+			}
+		}
+		
 		for(int i = 0; i < numHops; i++ )
 		{
 			auto hop = SelectNextHop (prevHop);
