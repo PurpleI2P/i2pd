@@ -83,6 +83,7 @@ namespace garlic
 			{
 				UnconfirmedTags (int n): numTags (n), tagsCreationTime (0) { sessionTags = new SessionTag[numTags]; };
 				~UnconfirmedTags () { delete[] sessionTags; };
+				uint32_t msgID;
 				int numTags;
 				SessionTag * sessionTags;
 				uint32_t tagsCreationTime;
@@ -123,7 +124,7 @@ namespace garlic
 			i2p::crypto::AESKey m_SessionKey;
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
-			std::map<uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;	
+			std::list<std::unique_ptr<UnconfirmedTags> > m_UnconfirmedTagsMsgs;	
 			
 			LeaseSetUpdateStatus m_LeaseSetUpdateStatus;
 			uint32_t m_LeaseSetUpdateMsgID;
