@@ -125,6 +125,14 @@ namespace garlic
 			else 
 				it++;
 		}
+		CleanupUnconfirmedTags ();
+		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
+ 	}
+
+	bool GarlicRoutingSession::CleanupUnconfirmedTags ()
+	{
+		bool ret = false;
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		// delete expired unconfirmed tags
 		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
@@ -133,12 +141,13 @@ namespace garlic
 				if (m_Owner)
 					m_Owner->RemoveDeliveryStatusSession ((*it)->msgID);
 				it = m_UnconfirmedTagsMsgs.erase (it);
+				ret = true;
 			}	
 			else
 				it++;
 		}	
-		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
- 	}
+		return ret;
+	}
 
 	std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
@@ -625,7 +634,7 @@ namespace garlic
 				it++;
 		}
 	}
-	
+
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
 	{
 		m_DeliveryStatusSessions.erase (msgID);

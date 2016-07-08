@@ -98,6 +98,7 @@ namespace garlic
 			std::shared_ptr<I2NPMessage> WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg);
 			void MessageConfirmed (uint32_t msgID);
 			bool CleanupExpiredTags (); // returns true if something left 
+			bool CleanupUnconfirmedTags (); // returns true if something has been deleted
 
 			void SetLeaseSetUpdated () 
 			{ 
