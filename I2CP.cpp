@@ -87,23 +87,51 @@ namespace client
 	}
 
 	bool I2CPDestination::SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote)
-	{
-		auto outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
-		auto leases = remote->GetNonExpiredLeases ();
-		if (!leases.empty () && outboundTunnel)
+	{	
+		auto remoteSession = GetRoutingSession (remote, true); 	
+		if (!remoteSession)
+		{
+			LogPrint (eLogError, "I2CP: Failed to create remote session");
+			return false;
+		}
+		auto path = remoteSession->GetSharedRoutingPath ();
+		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
+		std::shared_ptr<const i2p::data::Lease> remoteLease;	
+		if (path)
+		{
+			if (!remoteSession->CleanupUnconfirmedTags ()) // no stuck tags
+			{
+				outboundTunnel = path->outboundTunnel;
+				remoteLease = path->remoteLease;
+			}
+			else
+				remoteSession->SetSharedRoutingPath (nullptr);
+		}
+		else
+		{
+			auto outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
+			auto leases = remote->GetNonExpiredLeases ();
+			if (!leases.empty ())		
+				remoteLease = leases[rand () % leases.size ()];
+			if (remoteLease && outboundTunnel)
+				remoteSession->SetSharedRoutingPath (std::make_shared<i2p::garlic::GarlicRoutingPath> (
+					i2p::garlic::GarlicRoutingPath{outboundTunnel, remoteLease, 10000, 0, 0})); // 10 secs RTT
+			else
+				remoteSession->SetSharedRoutingPath (nullptr);
+		}	
+		if (remoteLease && outboundTunnel)
 		{
 			std::vector<i2p::tunnel::TunnelMessageBlock> msgs;			
-			uint32_t i = rand () % leases.size ();
-			auto garlic = WrapMessage (remote, msg, true);
+			auto garlic = remoteSession->WrapSingleMessage (msg);
 			msgs.push_back (i2p::tunnel::TunnelMessageBlock 
 				{ 
 					i2p::tunnel::eDeliveryTypeTunnel,
-					leases[i]->tunnelGateway, leases[i]->tunnelID,
+					remoteLease->tunnelGateway, remoteLease->tunnelID,
 					garlic
 				});
 			outboundTunnel->SendTunnelDataMsg (msgs);
 			return true;
-		}
+		}		
 		else
 		{
 			if (outboundTunnel)

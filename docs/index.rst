@@ -32,6 +32,7 @@ Contents:
    build_requirements
    build_notes_unix
    build_notes_windows
+   build_notes_android
    configuration
    family
 

@@ -38,9 +38,6 @@ namespace garlic
 
 	GarlicRoutingSession::~GarlicRoutingSession	()
 	{	
-		for (auto it: m_UnconfirmedTagsMsgs)	
-			delete it.second;
-		m_UnconfirmedTagsMsgs.clear ();
 	}
 
 	std::shared_ptr<GarlicRoutingPath> GarlicRoutingSession::GetSharedRoutingPath ()
@@ -94,18 +91,27 @@ namespace garlic
 		
 	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID) 
 	{ 
-		auto it = m_UnconfirmedTagsMsgs.find (msgID);	
-		if (it != m_UnconfirmedTagsMsgs.end ())
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
-			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			UnconfirmedTags * tags = it->second;
-			if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
-			{	
-				for (int i = 0; i < tags->numTags; i++)
-					m_SessionTags.push_back (tags->sessionTags[i]);
+			auto& tags = *it;
+			if (tags->msgID == msgID)
+			{
+				if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+				{	
+					for (int i = 0; i < tags->numTags; i++)
+						m_SessionTags.push_back (tags->sessionTags[i]);
+				}	
+				it = m_UnconfirmedTagsMsgs.erase (it);
 			}	
-			m_UnconfirmedTagsMsgs.erase (it);
-			delete tags;
+			else if (ts >= tags->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
+			{
+				if (m_Owner)
+					m_Owner->RemoveDeliveryStatusSession (tags->msgID);
+				it = m_UnconfirmedTagsMsgs.erase (it);
+			}	
+			else 
+				it++;
 		}
 	}
 
@@ -119,21 +125,29 @@ namespace garlic
 			else 
 				it++;
 		}
+		CleanupUnconfirmedTags ();
+		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
+ 	}
+
+	bool GarlicRoutingSession::CleanupUnconfirmedTags ()
+	{
+		bool ret = false;
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		// delete expired unconfirmed tags
 		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
-			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
+			if (ts >= (*it)->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
 			{
 				if (m_Owner)
-					m_Owner->RemoveDeliveryStatusSession (it->first);
-				delete it->second;
+					m_Owner->RemoveDeliveryStatusSession ((*it)->msgID);
 				it = m_UnconfirmedTagsMsgs.erase (it);
+				ret = true;
 			}	
 			else
 				it++;
 		}	
-		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
- 	}
+		return ret;
+	}
 
 	std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage (std::shared_ptr<const I2NPMessage> msg)
 	{
@@ -258,7 +272,10 @@ namespace garlic
 					size += cloveSize;
 					(*numCloves)++;
 					if (newTags) // new tags created
-						m_UnconfirmedTagsMsgs[msgID] = newTags;
+					{
+						newTags->msgID = msgID;
+						m_UnconfirmedTagsMsgs.emplace_back (newTags);
+					}	
 					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
 				}
 				else
@@ -617,7 +634,7 @@ namespace garlic
 				it++;
 		}
 	}
-	
+
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
 	{
 		m_DeliveryStatusSessions.erase (msgID);
