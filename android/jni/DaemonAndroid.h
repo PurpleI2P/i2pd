@@ -1,11 +1,12 @@
 #ifndef DAEMON_ANDROID_H
 #define DAEMON_ANDROID_H
 
+#include <string>
+
 namespace i2p
 {
 namespace android
 {
-	//FIXME currently NOT threadsafe
     class DaemonAndroidImpl
     {
     public:
@@ -13,7 +14,7 @@ namespace android
 		DaemonAndroidImpl ();
 		~DaemonAndroidImpl ();
 
-        typedef void (*runningChangedCallback)();
+        //typedef void (*runningChangedCallback)();
 
         /**
          * @return success
@@ -22,21 +23,21 @@ namespace android
         void start();
         void stop();
         void restart();
-        void setRunningCallback(runningChangedCallback cb);
-        bool isRunning();
+        //void setRunningCallback(runningChangedCallback cb);
+        //bool isRunning();
     private:
-        void setRunning(bool running);
+        //void setRunning(bool running);
 	private:
 		//QMutex* mutex;
-        bool m_IsRunning;
-		runningChangedCallback m_RunningChangedCallback;
+        //bool m_IsRunning;
+		//runningChangedCallback m_RunningChangedCallback;
     };
 
 	/**
-	 * returns 1 if daemon init failed
-	 * returns 0 if daemon initialized and started okay
+	 * returns "ok" if daemon init failed
+	 * returns errinfo if daemon initialized and started okay
 	 */
-    int start();
+    std::string start();
 
     // stops the daemon
     void stop();

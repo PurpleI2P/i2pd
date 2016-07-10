@@ -3,6 +3,7 @@
 #include <jni.h>
 #include "org_purplei2p_i2pd_I2PD_JNI.h"
 #include "DaemonAndroid.h"
+#include "../../RouterContext.h"
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
   (JNIEnv * env, jclass clazz) {
@@ -41,9 +42,9 @@ JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
     return env->NewStringUTF(ABI);
 }
 
-JNIEXPORT jint JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startDaemon
+JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startDaemon
   (JNIEnv * env, jclass clazz) {
-	return (jint)i2p::android::start();
+	return env->NewStringUTF(i2p::android::start().c_str());
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopDaemon
@@ -51,3 +52,12 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopDaemon
 	i2p::android::stop();
 }
 
+JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopAcceptingTunnels
+  (JNIEnv * env, jclass clazz) {
+	i2p::context.SetAcceptsTunnels (false);
+}
+
+JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_onNetworkStateChanged
+  (JNIEnv * env, jclass clazz, jboolean isConnected) {
+	bool isConnectedBool = (bool) isConnected;
+}

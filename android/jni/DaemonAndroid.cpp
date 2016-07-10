@@ -1,5 +1,9 @@
 #include "DaemonAndroid.h"
 #include "../../Daemon.h"
+#include <iostream>
+#include <boost/exception/diagnostic_information.hpp>
+#include <boost/exception_ptr.hpp>
+#include <exception>
 //#include "mainwindow.h"
 
 namespace i2p
@@ -58,10 +62,11 @@ namespace android
 		}
 	}
 */
-	DaemonAndroidImpl::DaemonAndroidImpl ():
+	DaemonAndroidImpl::DaemonAndroidImpl ()
+		//:
         /*mutex(nullptr), */
-        m_IsRunning(false),
-        m_RunningChangedCallback(nullptr)
+        //m_IsRunning(false),
+        //m_RunningChangedCallback(nullptr)
 	{
 	}
 
@@ -73,15 +78,15 @@ namespace android
 	bool DaemonAndroidImpl::init(int argc, char* argv[])
 	{
 		//mutex=new QMutex(QMutex::Recursive);
-		setRunningCallback(0);
-        m_IsRunning=false;
+		//setRunningCallback(0);
+        //m_IsRunning=false;
 		return Daemon.init(argc,argv);
 	}
 
 	void DaemonAndroidImpl::start()
 	{
 		//QMutexLocker locker(mutex);
-		setRunning(true);
+		//setRunning(true);
 		Daemon.start();
 	}
 
@@ -89,7 +94,7 @@ namespace android
 	{
 		//QMutexLocker locker(mutex);
 		Daemon.stop();
-		setRunning(false);
+		//setRunning(false);
 	}
 
 	void DaemonAndroidImpl::restart()
@@ -98,7 +103,7 @@ namespace android
 		stop();
 		start();
 	}
-
+	/*
 	void DaemonAndroidImpl::setRunningCallback(runningChangedCallback cb)
 	{
 		m_RunningChangedCallback = cb;
@@ -119,46 +124,65 @@ namespace android
 				m_RunningChangedCallback();
 		}
 	}
-
+*/
 	static DaemonAndroidImpl daemon;
-
+	static char* argv[1]={strdup("tmp")};
 	/**
-	 * returns 1 if daemon init failed
-	 * returns 0 if daemon initialized and started okay
+	 * returns error details if failed
+	 * returns "ok" if daemon initialized and started okay
 	 */
-	int start(/*int argc, char* argv[]*/)
+	std::string start(/*int argc, char* argv[]*/)
 	{
-		int result;
-
+		try
 		{
-			//Log.d(TAG"Initialising the daemon...");
-			bool daemonInitSuccess = daemon.init(0,0/*argc, argv*/);
-			if(!daemonInitSuccess)
-			{
-				//QMessageBox::critical(0, "Error", "Daemon init failed");
-				return 1;
-			}
-			//Log.d(TAG"Initialised, creating the main window...");
-			//MainWindow w;
-			//Log.d(TAG"Before main window.show()...");
-			//w.show ();
+			//int result;
 
 			{
-				//i2p::qt::Controller daemonQtController(daemon);
-				//Log.d(TAG"Starting the daemon...");
-				//emit daemonQtController.startDaemon();
-				//daemon.start ();
-				//Log.d(TAG"Starting GUI event loop...");
-				//result = app.exec();
-				//daemon.stop ();
-				daemon.start();
-				return 0;
+				//Log.d(TAG"Initialising the daemon...");
+				bool daemonInitSuccess = daemon.init(1,argv);
+				if(!daemonInitSuccess)
+				{
+					//QMessageBox::critical(0, "Error", "Daemon init failed");
+					return "Daemon init failed";
+				}
+				//Log.d(TAG"Initialised, creating the main window...");
+				//MainWindow w;
+				//Log.d(TAG"Before main window.show()...");
+				//w.show ();
+
+				{
+					//i2p::qt::Controller daemonQtController(daemon);
+					//Log.d(TAG"Starting the daemon...");
+					//emit daemonQtController.startDaemon();
+					//daemon.start ();
+					//Log.d(TAG"Starting GUI event loop...");
+					//result = app.exec();
+					//daemon.stop ();
+					daemon.start();
+				}
 			}
+
+			//QMessageBox::information(&w, "Debug", "demon stopped");
+			//Log.d(TAG"Exiting the application");
+			//return result;
 		}
-
-		//QMessageBox::information(&w, "Debug", "demon stopped");
-		//Log.d(TAG"Exiting the application");
-		//return result;
+		catch (boost::exception& ex)
+		{
+			std::stringstream ss;
+		    ss << boost::diagnostic_information(ex);
+		    return ss.str();
+		}
+		catch (std::exception& ex)
+		{
+			std::stringstream ss;
+		    ss << ex.what();
+		    return ss.str();
+		}
+		catch(...)
+		{
+			return "unknown exception";
+		}
+		return "ok";
 	}
 
 	void stop()

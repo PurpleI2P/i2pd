@@ -12,7 +12,6 @@ LOCAL_STATIC_LIBRARIES := \
 	miniupnpc
 LOCAL_LDLIBS := -lz
 
-#LOCAL_CFLAGS := 
 LOCAL_SRC_FILES := DaemonAndroid.cpp i2pd_android.cpp \
 	$(IFADDRS_PATH)/ifaddrs.c \
     ../../HTTPServer.cpp ../../I2PControl.cpp ../../Daemon.cpp ../../Config.cpp \
@@ -58,9 +57,8 @@ LOCAL_SRC_FILES := DaemonAndroid.cpp i2pd_android.cpp \
     ../../TunnelEndpoint.cpp \
     ../../TunnelGateway.cpp \
     ../../TunnelPool.cpp \
-    ../../UPnP.cpp \
     ../../util.cpp \
-     ../../i2pd.cpp
+     ../../i2pd.cpp ../../UPnP.cpp
 
 include $(BUILD_SHARED_LIBRARY)
 

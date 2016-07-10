@@ -3,14 +3,19 @@ package org.purplei2p.i2pd;
 public class I2PD_JNI {
     public static native String getABICompiledWith();
 	/**
-	 * returns 1 if daemon init failed
-	 * returns 0 if daemon initialized and started okay
+	 * returns error info if failed
+	 * returns "ok" if daemon initialized and started okay
 	 */
-    public static native int startDaemon();
+    public static native String startDaemon();
     //should only be called after startDaemon() success
     public static native void stopDaemon();
+    
+    public static native void stopAcceptingTunnels();
+    
+	public static native void onNetworkStateChanged(boolean isConnected);
 
-    static {
+	public static void loadLibraries() {
+    	//System.loadLibrary("gnustl_shared");
         System.loadLibrary("i2pd");
     }
 }
