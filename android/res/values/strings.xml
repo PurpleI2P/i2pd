@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">i2pd</string>
+    <string name="i2pd_started">i2pd started</string>
+    <string name="action_quit">Quit</string>
+    <string name="action_graceful_quit">Graceful Quit</string>
+    <string name="graceful_quit_is_already_in_progress">Graceful quit is already in progress</string>
+    <string name="graceful_quit_is_in_progress">Graceful quit is in progress</string>
+</resources>

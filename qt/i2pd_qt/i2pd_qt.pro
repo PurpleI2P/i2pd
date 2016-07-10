@@ -14,7 +14,6 @@ MAIN_PATH = /path/to/libraries
 # git clone https://github.com/PurpleI2P/OpenSSL-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
-
 BOOST_PATH = $$MAIN_PATH/Boost-for-Android-Prebuilt
 OPENSSL_PATH = $$MAIN_PATH/OpenSSL-for-Android-Prebuilt
 MINIUPNP_PATH = $$MAIN_PATH/MiniUPnP-for-Android-Prebuilt
