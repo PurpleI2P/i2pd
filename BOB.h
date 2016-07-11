@@ -42,6 +42,8 @@ namespace client
 	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
 	const char BOB_DATA[] = "NICKNAME %s\n";
 
+	const int BOB_SESSION_READINESS_CHECK_INTERVAL = 5; // in seconds
+
 	class BOBI2PTunnel: public I2PService
 	{
 		public:
@@ -173,6 +175,7 @@ namespace client
 
 			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);
 
 			void Send (size_t len);
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -184,6 +187,7 @@ namespace client
 
 			BOBCommandChannel& m_Owner;
 			boost::asio::ip::tcp::socket m_Socket;
+			boost::asio::deadline_timer m_Timer;
 			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1], m_SendBuffer[BOB_COMMAND_BUFFER_SIZE + 1];
 			size_t m_ReceiveBufferOffset;
 			bool m_IsOpen, m_IsQuiet;

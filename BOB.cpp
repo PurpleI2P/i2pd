@@ -202,9 +202,9 @@ namespace client
 	}	
 		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
-		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
-		m_IsOpen (true), m_IsQuiet (false), m_InPort (0), m_OutPort (0),
-		m_CurrentDestination (nullptr)
+		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
+		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), 
+		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr)
 	{
 	}
 
@@ -364,9 +364,31 @@ namespace client
 		if (m_OutPort && !m_Address.empty ())
 			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
 		m_CurrentDestination->Start ();	
-		SendReplyOK ("tunnel starting");	
+		if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
+			SendReplyOK ("tunnel starting");
+		else
+		{
+			m_Timer.expires_from_now (boost::posix_time::seconds(BOB_SESSION_READINESS_CHECK_INTERVAL));
+			m_Timer.async_wait (std::bind (&BOBCommandSession::HandleSessionReadinessCheckTimer,
+				shared_from_this (), std::placeholders::_1));
+		}	
 	}	
 	
+	void BOBCommandSession::HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
+				SendReplyOK ("tunnel starting");
+			else
+			{
+				m_Timer.expires_from_now (boost::posix_time::seconds(BOB_SESSION_READINESS_CHECK_INTERVAL));
+				m_Timer.async_wait (std::bind (&BOBCommandSession::HandleSessionReadinessCheckTimer,
+					shared_from_this (), std::placeholders::_1));
+			}	
+		}	
+	}
+
 	void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
 	{
 		auto dest = m_Owner.FindDestination (m_Nickname);
