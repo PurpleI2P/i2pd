@@ -713,8 +713,16 @@ namespace transport
 		if (m_IsTerminated) return;
 		if (m_IsSending)
 		{
-			for (auto it: msgs)
-				m_SendQueue.push_back (it);
+			if (m_SendQueue.size () < NTCP_MAX_OUTGOING_QUEUE_SIZE)	
+			{
+				for (auto it: msgs)
+					m_SendQueue.push_back (it);
+			}
+			else
+			{
+				LogPrint (eLogWarning, "NTCP: outgoing messages queue size exceeds ", NTCP_MAX_OUTGOING_QUEUE_SIZE);
+				Terminate ();
+			}	
 		}	
 		else	
 			Send (msgs);

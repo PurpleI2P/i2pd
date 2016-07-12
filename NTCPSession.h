@@ -40,6 +40,7 @@ namespace transport
 	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
 	const int NTCP_BAN_EXPIRATION_TIMEOUT = 70; // in second
 	const int NTCP_CLOCK_SKEW = 60; // in seconds 
+	const int NTCP_MAX_OUTGOING_QUEUE_SIZE = 200; // how many messages we can queue up
 
 	class NTCPServer;
 	class NTCPSession: public TransportSession, public std::enable_shared_from_this<NTCPSession>
