@@ -73,14 +73,13 @@ namespace http {
 	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
 	const char HTTP_PAGE_JUMPSERVICES[] = "jumpservices";
 	const char HTTP_PAGE_COMMANDS[] = "commands";
-	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
-	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";	
+	const char HTTP_COMMAND_ENABLE_TRANSIT[] = "enable_transit";
+	const char HTTP_COMMAND_DISABLE_TRANSIT[] = "disable_transit";
 	const char HTTP_COMMAND_SHUTDOWN_START[] = "shutdown_start";
 	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
 	const char HTTP_COMMAND_SHUTDOWN_NOW[]   = "terminate";
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
 	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";	
-	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
@@ -374,9 +373,9 @@ namespace http {
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "\">Run peer test</a><br>\r\n";
 		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << "\">Stop accepting tunnels</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "\">Decline transit tunnels</a><br>\r\n";
 		else	
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << "\">Start accepting tunnels</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 		if (Daemon.gracefullShutdownInterval) {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown (";
@@ -684,9 +683,9 @@ namespace http {
 			i2p::transport::transports.PeerTest ();
 		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
 			i2p::client::context.ReloadConfig ();
-		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
+		else if (cmd == HTTP_COMMAND_ENABLE_TRANSIT)
 			i2p::context.SetAcceptsTunnels (true);
-		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
+		else if (cmd == HTTP_COMMAND_DISABLE_TRANSIT)
 			i2p::context.SetAcceptsTunnels (false);
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
 			i2p::context.SetAcceptsTunnels (false);
