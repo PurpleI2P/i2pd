@@ -126,6 +126,11 @@ namespace config {
       ("i2pcontrol.key",      value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
       ;
 
+  options_description upnp("UPnP options");
+  upnp.add_options()
+    ("upnp.enabled",  value<bool>()->default_value(false),             "Enable or disable UPnP: automatic port forwarding")
+    ;
+
 	options_description precomputation("Precomputation options");
 	precomputation.add_options()  
 	  ("precomputation.elgamal",  
@@ -153,6 +158,7 @@ namespace config {
       .add(bob)
 	  .add(i2cp)	
       .add(i2pcontrol)
+      .add(upnp)
 	  .add(precomputation)
       .add(trust)
       ;
