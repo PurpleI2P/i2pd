@@ -66,6 +66,7 @@ namespace transport
 	};	
 	
 	const size_t SESSION_CREATION_TIMEOUT = 10; // in seconds
+	const int MAX_NUM_DELAYED_MESSAGES = 50; 
 	class Transports
 	{
 		public:

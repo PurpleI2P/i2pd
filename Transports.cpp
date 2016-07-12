@@ -264,8 +264,17 @@ namespace transport
 			it->second.sessions.front ()->SendI2NPMessages (msgs);
 		else
 		{	
-			for (auto it1: msgs)
-				it->second.delayedMessages.push_back (it1);
+			if (it->second.delayedMessages.size () < MAX_NUM_DELAYED_MESSAGES)
+			{	
+				for (auto it1: msgs)
+					it->second.delayedMessages.push_back (it1);
+			}
+			else
+			{
+				LogPrint (eLogWarning, "Transports: delayed messages queue size exceeds ", MAX_NUM_DELAYED_MESSAGES);
+				std::unique_lock<std::mutex> l(m_PeersMutex);	
+				m_Peers.erase (it);
+			}	
 		}	
 	}	
 		
@@ -337,7 +346,7 @@ namespace transport
 			}	
 			LogPrint (eLogError, "Transports: No NTCP or SSU addresses available");
 			peer.Done ();
-			std::unique_lock<std::mutex>	l(m_PeersMutex);	
+			std::unique_lock<std::mutex> l(m_PeersMutex);	
 			m_Peers.erase (ident);
 			return false;
 		}	
@@ -369,7 +378,7 @@ namespace transport
 			else
 			{
 				LogPrint (eLogError, "Transports: RouterInfo not found, Failed to send messages");
-				std::unique_lock<std::mutex>	l(m_PeersMutex);	
+				std::unique_lock<std::mutex> l(m_PeersMutex);	
 				m_Peers.erase (it);
 			}	
 		}	
@@ -413,7 +422,7 @@ namespace transport
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve NTCP address: ", ecode.message ());
-			std::unique_lock<std::mutex>	l(m_PeersMutex);		
+			std::unique_lock<std::mutex> l(m_PeersMutex);		
 			m_Peers.erase (it1);
 		}
 	}
@@ -455,7 +464,7 @@ namespace transport
 				}	
 			}
 			LogPrint (eLogError, "Transports: Unable to resolve SSU address: ", ecode.message ());
-			std::unique_lock<std::mutex>	l(m_PeersMutex);	
+			std::unique_lock<std::mutex> l(m_PeersMutex);	
 			m_Peers.erase (it1);
 		}
 	}
@@ -590,7 +599,7 @@ namespace transport
 						ConnectToPeer (ident, it->second);
 					else
 					{
-						std::unique_lock<std::mutex>	l(m_PeersMutex);	
+						std::unique_lock<std::mutex> l(m_PeersMutex);	
 						m_Peers.erase (it);
 					}
 				}
