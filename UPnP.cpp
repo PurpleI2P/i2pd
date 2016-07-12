@@ -82,20 +82,20 @@ namespace transport
             r = UPNP_GetExternalIPAddress (m_upnpUrls.controlURL, m_upnpData.first.servicetype, m_externalIPAddress);
             if(r != UPNPCOMMAND_SUCCESS)
             {
-                LogPrint (eLogError, "UPnP: UPNP_GetExternalIPAddress () returned ", r);
+                LogPrint (eLogError, "UPnP: UPNP_GetExternalIPAddress() returned ", r);
                 return;
             }
             else
             {
                 if (m_externalIPAddress[0])
                 {
-                    LogPrint (eLogInfo, "UPnP: ExternalIPAddress = ", m_externalIPAddress);
+                    LogPrint (eLogDebug, "UPnP: ExternalIPAddress is ", m_externalIPAddress);
                     i2p::context.UpdateAddress (boost::asio::ip::address::from_string (m_externalIPAddress));
                     return;
                 }
                 else
                 {
-                    LogPrint (eLogError, "UPnP: GetExternalIPAddress failed.");
+                    LogPrint (eLogError, "UPnP: GetExternalIPAddress() failed.");
                     return;
                 }
             }
@@ -121,12 +121,12 @@ namespace transport
                 r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
                 if (r!=UPNPCOMMAND_SUCCESS)
                 {
-                    LogPrint (eLogError, "UPnP: AddPortMapping (", strPort.c_str () ,", ", strPort.c_str () ,", ", m_NetworkAddr, ") failed with code ", r);
+                    LogPrint (eLogError, "UPnP: AddPortMapping (", m_NetworkAddr, ":", strPort, ") failed with code ", r);
                     return;
                 }
                 else
                 {
-                    LogPrint (eLogDebug, "UPnP: Port Mapping successful. (", m_NetworkAddr ,":", strPort.c_str(), " type ", strType.c_str () ," -> ", m_externalIPAddress ,":", strPort.c_str() ,")");
+                    LogPrint (eLogDebug, "UPnP: Port Mapping successful. (", m_NetworkAddr ,":", strPort, " type ", strType, " -> ", m_externalIPAddress ,":", strPort ,")");
                     return;
                 }
                 std::this_thread::sleep_for(std::chrono::minutes(20)); // c++11
@@ -156,7 +156,7 @@ namespace transport
         }
         int r = 0;
         r = UPNP_DeletePortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strType.c_str (), 0);
-        LogPrint (eLogError, "UPnP: DeletePortMapping() returned : ", r, "\n");
+        LogPrint (eLogError, "UPnP: DeletePortMapping() returned : ", r);
     }
 
     void UPnP::Close ()
