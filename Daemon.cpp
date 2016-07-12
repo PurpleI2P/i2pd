@@ -22,11 +22,8 @@
 #include "I2PControl.h"
 #include "ClientContext.h"
 #include "Crypto.h"
-#include "util.h"
-
-#ifdef USE_UPNP
 #include "UPnP.h"
-#endif
+#include "util.h"
 
 namespace i2p
 {
@@ -40,10 +37,7 @@ namespace i2p
 
 			std::unique_ptr<i2p::http::HTTPServer> httpServer;
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
-
-#ifdef USE_UPNP
-			i2p::transport::UPnP m_UPnP;
-#endif	
+			std::unique_ptr<i2p::transport::UPnP> UPnP;
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : isDaemon(false), running(true), d(*new Daemon_Singleton_Private()) {}
@@ -249,10 +243,12 @@ namespace i2p
 			LogPrint(eLogInfo, "Daemon: starting NetDB");
 			i2p::data::netdb.Start();
 
-#ifdef USE_UPNP
-			LogPrint(eLogInfo, "Daemon: starting UPnP");
-			d.m_UPnP.Start ();
-#endif
+			bool upnp; i2p::config::GetOption("upnp.enabled", upnp);
+			if (upnp) {
+				d.UPnP = std::unique_ptr<i2p::transport::UPnP>(new i2p::transport::UPnP);
+				d.UPnP->Start ();
+			}
+
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
 			bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
@@ -304,10 +300,12 @@ namespace i2p
 			i2p::client::context.Stop();
 			LogPrint(eLogInfo, "Daemon: stopping Tunnels");
 			i2p::tunnel::tunnels.Stop();
-#ifdef USE_UPNP
-			LogPrint(eLogInfo, "Daemon: stopping UPnP");
-			d.m_UPnP.Stop ();
-#endif			
+
+			if (d.UPnP) {
+				d.UPnP->Stop ();
+				d.UPnP = nullptr;
+			}
+
 			LogPrint(eLogInfo, "Daemon: stopping Transports");
 			i2p::transport::transports.Stop();
 			LogPrint(eLogInfo, "Daemon: stopping NetDB");
