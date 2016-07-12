@@ -14,7 +14,7 @@ If you are upgrading your very old router (< 2.3.0) see also [this](config_opts_
 * --pidfile=            - Where to write pidfile (dont write by default)
 * --log=                - Logs destination: stdout, file (stdout if not set, file - otherwise, for compatibility)
 * --logfile=            - Path to logfile (default - autodetect)
-* --loglevel=           - Log messages above this level (debug, *info, warn, error)
+* --loglevel=           - Log messages above this level (debug, info, warn, error)
 * --datadir=            - Path to storage of i2pd data (RI, keys, peer profiles, ...)
 * --host=               - Router external IP for incoming connections
 * --port=               - Port to listen for incoming connections (default: auto)
