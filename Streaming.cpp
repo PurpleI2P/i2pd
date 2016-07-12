@@ -201,7 +201,7 @@ namespace stream
 			memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
 			if (!m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature))
 			{  
-				LogPrint (eLogError, "Streaming: Signature verification failed");
+				LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
 				Close ();
 				flags |= PACKET_FLAG_CLOSE;
 			}	
@@ -222,6 +222,7 @@ namespace stream
 
 		if (flags & PACKET_FLAG_RESET)
 		{
+			LogPrint (eLogDebug, "Streaming: closing stream sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID, ": reset flag received in packet #", receivedSeqn);
 			m_Status = eStreamStatusReset;
 			Close ();
 		}
@@ -495,6 +496,7 @@ namespace stream
 
 	void Stream::Close ()
 	{
+		LogPrint(eLogDebug, "Streaming: closing stream with sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID, ", status=", m_Status);
 		switch (m_Status)
 		{
 			case eStreamStatusOpen:
@@ -668,7 +670,7 @@ namespace stream
 			// check for resend attempts
 			if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS)
 			{
-				LogPrint (eLogWarning, "Streaming: packet was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS, " attempts, terminate, sSID=", m_SendStreamID);
+				LogPrint (eLogWarning, "Streaming: packet was not ACKed after ", MAX_NUM_RESEND_ATTEMPTS, " attempts, terminate, rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 				m_Status = eStreamStatusReset;
 				Close ();
 				return;
@@ -703,7 +705,7 @@ namespace stream
 					case 4:
 						if (m_RoutingSession) m_RoutingSession->SetSharedRoutingPath (nullptr);
 						UpdateCurrentRemoteLease (); // pick another lease
-						LogPrint (eLogWarning, "Streaming: Another remote lease has been selected for stream with sSID=", m_SendStreamID);
+						LogPrint (eLogWarning, "Streaming: Another remote lease has been selected for stream with rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 					break;	
 					case 3:
 						// pick another outbound tunnel 
@@ -725,7 +727,7 @@ namespace stream
 		{
 			if (m_LastReceivedSequenceNumber < 0)
 			{
-				LogPrint (eLogWarning, "Streaming: SYN has not been recived after ", ACK_SEND_TIMEOUT, " milliseconds after follow on, terminate sSID=", m_SendStreamID);
+				LogPrint (eLogWarning, "Streaming: SYN has not been received after ", ACK_SEND_TIMEOUT, " milliseconds after follow on, terminate rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 				m_Status = eStreamStatusReset;
 				Close ();
 				return;
