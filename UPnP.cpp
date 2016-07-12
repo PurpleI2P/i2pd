@@ -27,6 +27,7 @@ namespace transport
 
     void UPnP::Stop ()
     {
+        LogPrint(eLogInfo, "UPnP: stopping");
         if (m_Thread)
         {   
             m_Thread->join (); 
@@ -37,6 +38,7 @@ namespace transport
 
     void UPnP::Start()
     {
+        LogPrint(eLogInfo, "UPnP: starting");
         m_Thread = new std::thread (std::bind (&UPnP::Run, this));
     }
     
@@ -163,10 +165,11 @@ namespace transport
         m_Devlist = 0;
         FreeUPNPUrls (&m_upnpUrls);
     }
-
 }
 }
-
-
-#endif
-
+#else /* USE_UPNP */
+namespace i2p {
+namespace transport {
+}
+}
+#endif /* USE_UPNP */

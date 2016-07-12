@@ -52,5 +52,18 @@ namespace transport
 }
 }
 
+#else  // USE_UPNP
+namespace i2p {
+namespace transport {
+  /* class stub */
+  class UPnP {
+  public:
+    UPnP () {};
+    ~UPnP () {};
+    void Start () { LogPrint(eLogWarning, "UPnP: this module was disabled at compile-time"); }
+    void Stop () {};
+  };
+}
+}
 #endif // USE_UPNP
 #endif // __UPNP_H__
