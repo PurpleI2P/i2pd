@@ -68,7 +68,7 @@ All options below still possible in cmdline, but better write it in config file:
 * --i2pcontrol.port=    - Port of I2P control service. Usually 7650. I2PControl is off if not specified
 * --i2pcontrol.enabled= - If I2P control is enabled. false by default   
 
-* --upnp.enabled=       - Enable or disable UPnP, false by default
+* --upnp.enabled=       - Enable or disable UPnP, false by default for CLI and true for GUI (Windows, Android)
 
 * --precomputation.elgamal=  - Use ElGamal precomputated tables. false for x64 and true for other platforms by default  
 
