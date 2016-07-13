@@ -1,4 +1,7 @@
-/gen/
-/libs/
-/tests/
+gen
+tests
 .idea
+local.properties
+build.sh
+bin
+log*
