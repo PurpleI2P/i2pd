@@ -3,6 +3,9 @@ cmake_minimum_required ( VERSION 2.8.12 )
 cmake_policy( VERSION 2.8.12 )
 project ( "i2pd" )
 
+# for debugging
+#set(CMAKE_VERBOSE_MAKEFILE on)
+
 # configurale options
 option(WITH_AESNI     "Use AES-NI instructions set" OFF)
 option(WITH_HARDENING "Use hardening compiler flags" OFF)
