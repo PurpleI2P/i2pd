@@ -5,8 +5,6 @@ import java.io.StringWriter;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.purplei2p.i2pd.DaemonSingleton.State;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ComponentName;
@@ -76,8 +74,9 @@ public class I2PD extends Activity {
 	private void localDestroy() {
 		textView = null;
 		daemon.removeStateChangeListener(daemonStateChangeListener);
-		if(getGracefulQuitTimer()!=null) {
-			getGracefulQuitTimer().cancel();
+		Timer gracefulQuitTimer = getGracefulQuitTimer();
+		if(gracefulQuitTimer!=null) {
+			gracefulQuitTimer.cancel();
 			setGracefulQuitTimer(null);
 		}
 		try{

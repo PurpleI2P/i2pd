@@ -18,7 +18,7 @@ public class DaemonSingleton {
 	public synchronized void addStateChangeListener(StateChangeListener listener) { stateChangeListeners.add(listener); }
 	public synchronized void removeStateChangeListener(StateChangeListener listener) { stateChangeListeners.remove(listener); }
 	
-	public void stopAcceptingTunnels() {
+	public synchronized void stopAcceptingTunnels() {
 		if(isStartedOkay()){
 			state=State.gracefulShutdownInProgress;
 			fireStateChange();
@@ -39,35 +39,45 @@ public class DaemonSingleton {
 	public State getState() { return state; }
 	
 	{
-		fireStateChange();
-		new Thread(new Runnable(){
-
-			@Override
-			public void run() {
-				try {
-					I2PD_JNI.loadLibraries();
-					state = State.jniLibraryLoaded;
-					fireStateChange();
-				} catch (Throwable tr) {
-					lastThrowable=tr;
-					state = State.startFailed;
-					fireStateChange();
-					return;
+		synchronized(this){
+			fireStateChange();
+			new Thread(new Runnable(){
+	
+				@Override
+				public void run() {
+					try {
+						I2PD_JNI.loadLibraries();
+						synchronized (DaemonSingleton.this) {
+							state = State.jniLibraryLoaded;
+							fireStateChange();
+						}
+					} catch (Throwable tr) {
+						lastThrowable=tr;
+						synchronized (DaemonSingleton.this) {
+							state = State.startFailed;
+							fireStateChange();
+						}
+						return;
+					}
+					try {
+						synchronized (DaemonSingleton.this) {
+							daemonStartResult = I2PD_JNI.startDaemon();
+							if("ok".equals(daemonStartResult)){state=State.startedOkay;setStartedOkay(true);}
+							else state=State.startFailed;
+							fireStateChange();
+						}
+					} catch (Throwable tr) {
+						lastThrowable=tr;
+						synchronized (DaemonSingleton.this) {
+							state = State.startFailed;
+							fireStateChange();
+						}
+						return;
+					}				
 				}
-				try {
-					daemonStartResult = I2PD_JNI.startDaemon();
-					if("ok".equals(daemonStartResult)){state=State.startedOkay;setStartedOkay(true);}
-					else state=State.startFailed;
-					fireStateChange();
-				} catch (Throwable tr) {
-					lastThrowable=tr;
-					state = State.startFailed;
-					fireStateChange();
-					return;
-				}				
-			}
-			
-		}, "i2pdDaemonStart").start();
+				
+			}, "i2pdDaemonStart").start();
+		}
 	}
 	private Throwable lastThrowable;
 	private String daemonStartResult="N/A";
@@ -90,16 +100,22 @@ public class DaemonSingleton {
 	public String getDaemonStartResult() {
 		return daemonStartResult;
 	}
+	
+	private final Object startedOkayLock = new Object();
 
-	public synchronized boolean isStartedOkay() {
-		return startedOkay;
+	public boolean isStartedOkay() {
+		synchronized (startedOkayLock) {
+			return startedOkay;
+		}
 	}
 
-	private synchronized void setStartedOkay(boolean startedOkay) {
-		this.startedOkay = startedOkay;
+	private void setStartedOkay(boolean startedOkay) {
+		synchronized (startedOkayLock) {
+			this.startedOkay = startedOkay;
+		}
 	}
 
-	public void stopDaemon() {
+	public synchronized void stopDaemon() {
 		if(isStartedOkay()){
 			try {I2PD_JNI.stopDaemon();}catch(Throwable tr){Log.e(TAG, "", tr);}
 			setStartedOkay(false);
