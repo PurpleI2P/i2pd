@@ -105,7 +105,8 @@ namespace data
 					return !(*this == other);
 				}	
 			};
-			
+			typedef std::vector<std::shared_ptr<Address> > Addresses;			
+
 			RouterInfo (const std::string& fullPath);
 			RouterInfo (): m_Buffer (nullptr) { };
 			RouterInfo (const RouterInfo& ) = default;
@@ -117,7 +118,7 @@ namespace data
 			void SetRouterIdentity (std::shared_ptr<const IdentityEx> identity);
 			std::string GetIdentHashBase64 () const { return GetIdentHash ().ToBase64 (); };
 			uint64_t GetTimestamp () const { return m_Timestamp; };
-			std::vector<std::shared_ptr<Address> >& GetAddresses () { return m_Addresses; };
+			Addresses& GetAddresses () { return *m_Addresses; }; // should be called for local RI only, otherwise must return shared_ptr
 			std::shared_ptr<const Address> GetNTCPAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUAddress (bool v4only = true) const;
 			std::shared_ptr<const Address> GetSSUV6Address () const;
@@ -199,7 +200,7 @@ namespace data
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
 			uint64_t m_Timestamp;
-			std::vector<std::shared_ptr<Address> > m_Addresses;
+			std::shared_ptr<Addresses> m_Addresses;
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			uint8_t m_SupportedTransports, m_Caps;

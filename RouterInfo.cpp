@@ -19,6 +19,7 @@ namespace data
 		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false), 
 		m_SupportedTransports (0), m_Caps (0)
 	{
+		m_Addresses = std::make_shared<Addresses>(); // create empty list
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		ReadFromFile ();
 	}	
@@ -26,6 +27,7 @@ namespace data
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
 		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
+		m_Addresses = std::make_shared<Addresses>(); // create empty list
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
@@ -48,7 +50,7 @@ namespace data
 			m_IsUnreachable = false;
 			m_SupportedTransports = 0;
 			m_Caps = 0;
-			m_Addresses.clear ();
+			// don't clean up m_Addresses, it will be replaced in ReadFromStream
 			m_Properties.clear ();
 			// copy buffer
 			if (!m_Buffer)	
@@ -144,6 +146,7 @@ namespace data
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
+		auto addresses = std::make_shared<Addresses>(); 
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses)); if (!s) return;	
 		bool introducers = false;
@@ -234,10 +237,11 @@ namespace data
 			}	
 			if (isValidAddress)
 			{
-				m_Addresses.push_back(std::make_shared<Address>(address));
+				addresses->push_back(std::make_shared<Address>(address));
 				m_SupportedTransports |= supportedTransports;
 			}
 		}	
+		m_Addresses = addresses;
 		// read peers
 		uint8_t numPeers;
 		s.read ((char *)&numPeers, sizeof (numPeers)); if (!s) return;
@@ -288,7 +292,7 @@ namespace data
 			if (!s) return;
 		}		
 
-		if (!m_SupportedTransports || !m_Addresses.size() || (UsesIntroducer () && !introducers))
+		if (!m_SupportedTransports || !m_Addresses->size() || (UsesIntroducer () && !introducers))
 			SetUnreachable (true);
 	}
 
@@ -366,9 +370,9 @@ namespace data
 		s.write ((char *)&ts, sizeof (ts));
 
 		// addresses
-		uint8_t numAddresses = m_Addresses.size ();
+		uint8_t numAddresses = m_Addresses->size ();
 		s.write ((char *)&numAddresses, sizeof (numAddresses));
-		for (auto addr : m_Addresses)
+		for (auto addr : *m_Addresses)
 		{
 			Address& address = *addr;
 			s.write ((char *)&address.cost, sizeof (address.cost));
@@ -561,9 +565,9 @@ namespace data
 		addr->cost = 2;
 		addr->date = 0;
 		addr->mtu = 0;
-		for (auto it: m_Addresses) // don't insert same address twice
+		for (auto it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
-		m_Addresses.push_back(addr);	
+		m_Addresses->push_back(addr);	
 		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
 	}	
 
@@ -577,9 +581,9 @@ namespace data
 		addr->date = 0;
 		addr->mtu = mtu; 
 		memcpy (addr->key, key, 32);
-		for (auto it: m_Addresses) // don't insert same address twice
+		for (auto it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
-		m_Addresses.push_back(addr);	
+		m_Addresses->push_back(addr);	
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
 		m_Caps |= eSSUTesting; 
 		m_Caps |= eSSUIntroducer; 
@@ -587,7 +591,7 @@ namespace data
 
 	bool RouterInfo::AddIntroducer (const Introducer& introducer)
 	{
-		for (auto addr : m_Addresses)
+		for (auto addr : *m_Addresses)
 		{
 			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
@@ -602,7 +606,7 @@ namespace data
 
 	bool RouterInfo::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
 	{		
-		for (auto addr: m_Addresses)
+		for (auto addr: *m_Addresses)
 		{
 			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
@@ -693,24 +697,24 @@ namespace data
 		{	
 			// NTCP
 			m_SupportedTransports &= ~eNTCPV6; 
-			for (size_t i = 0; i < m_Addresses.size (); i++)
+			for (size_t i = 0; i < m_Addresses->size (); i++)
 			{
-				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
-					m_Addresses[i]->host.is_v6 ())
+				if ((*m_Addresses)[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+					(*m_Addresses)[i]->host.is_v6 ())
 				{
-					m_Addresses.erase (m_Addresses.begin () + i);
+					m_Addresses->erase (m_Addresses->begin () + i);
 					break;
 				}
 			}	
 			
 			// SSU
 			m_SupportedTransports &= ~eSSUV6; 
-			for (size_t i = 0; i < m_Addresses.size (); i++)
+			for (size_t i = 0; i < m_Addresses->size (); i++)
 			{
-				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-					m_Addresses[i]->host.is_v6 ())
+				if ((*m_Addresses)[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+					(*m_Addresses)[i]->host.is_v6 ())
 				{
-					m_Addresses.erase (m_Addresses.begin () + i);
+					m_Addresses->erase (m_Addresses->begin () + i);
 					break;
 				}
 			}	
@@ -723,24 +727,24 @@ namespace data
 		{	
 			// NTCP
 			m_SupportedTransports &= ~eNTCPV4; 
-			for (size_t i = 0; i < m_Addresses.size (); i++)
+			for (size_t i = 0; i < m_Addresses->size (); i++)
 			{
-				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
-					m_Addresses[i]->host.is_v4 ())
+				if ((*m_Addresses)[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+					(*m_Addresses)[i]->host.is_v4 ())
 				{
-					m_Addresses.erase (m_Addresses.begin () + i);
+					m_Addresses->erase (m_Addresses->begin () + i);
 					break;
 				}
 			}	
 			
 			// SSU
 			m_SupportedTransports &= ~eSSUV4; 
-			for (size_t i = 0; i < m_Addresses.size (); i++)
+			for (size_t i = 0; i < m_Addresses->size (); i++)
 			{
-				if (m_Addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
-					m_Addresses[i]->host.is_v4 ())
+				if ((*m_Addresses)[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+					(*m_Addresses)[i]->host.is_v4 ())
 				{
-					m_Addresses.erase (m_Addresses.begin () + i);
+					m_Addresses->erase (m_Addresses->begin () + i);
 					break;
 				}
 			}	
@@ -770,7 +774,8 @@ namespace data
 		
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
 	{
-		for (auto address : m_Addresses)
+		auto addresses = m_Addresses;
+		for (auto address : *addresses)
 		{
 			if (address->transportStyle == s)
 			{	
