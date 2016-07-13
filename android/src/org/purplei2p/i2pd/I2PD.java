@@ -208,8 +208,9 @@ public class I2PD extends Activity {
 					Log.d(TAG, "grac stopping");
 			        if(daemon.isStartedOkay()) {
 			        	daemon.stopAcceptingTunnels();
-			            setGracefulQuitTimer(new Timer(true));
-			            getGracefulQuitTimer().schedule(new TimerTask(){
+			            Timer gracefulQuitTimer = new Timer(true);
+						setGracefulQuitTimer(gracefulQuitTimer);
+						gracefulQuitTimer.schedule(new TimerTask(){
 
 			    			@Override
 			    			public void run() {
