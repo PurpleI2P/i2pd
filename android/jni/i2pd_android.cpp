@@ -4,6 +4,7 @@
 #include "org_purplei2p_i2pd_I2PD_JNI.h"
 #include "DaemonAndroid.h"
 #include "../../RouterContext.h"
+#include "../../Transports.h"
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
   (JNIEnv * env, jclass clazz) {
@@ -58,6 +59,8 @@ JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopAcceptingTunnels
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_onNetworkStateChanged
-  (JNIEnv * env, jclass clazz, jboolean isConnected) {
+  (JNIEnv * env, jclass clazz, jboolean isConnected) 
+{
 	bool isConnectedBool = (bool) isConnected;
+	i2p::transport::transports.SetOnline (isConnectedBool);	
 }

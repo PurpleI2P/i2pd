@@ -80,6 +80,9 @@ namespace transport
 			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
 			
+			bool IsOnline() const { return m_IsOnline; };
+			void SetOnline (bool online) { m_IsOnline = online; };
+
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();	
 			void ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair);
@@ -133,7 +136,7 @@ namespace transport
 			
 		private:
 
-			bool m_IsRunning;
+			bool m_IsOnline, m_IsRunning;
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
