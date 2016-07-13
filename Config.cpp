@@ -31,6 +31,7 @@ namespace config {
 #ifdef MESHNET
     nat = false;
 #endif
+
     options_description general("General options");
     general.add_options()
       ("help",     "Show this message")
@@ -126,9 +127,13 @@ namespace config {
       ("i2pcontrol.key",      value<std::string>()->default_value("i2pcontrol.key.pem"),  "I2PCP connection cerificate key")
       ;
 
-  options_description upnp("UPnP options");
-  upnp.add_options()
-    ("upnp.enabled",  value<bool>()->default_value(false),             "Enable or disable UPnP: automatic port forwarding")
+	bool upnp_default = false;
+#if (defined(USE_UPNP) && ((defined(WIN32) && defined(USE_WIN32_APP)) || defined(ANDROID)))
+	upnp_default = true; // enable UPNP for windows GUI and android by default	
+#endif
+  	options_description upnp("UPnP options");
+  	upnp.add_options()
+    ("upnp.enabled",  value<bool>()->default_value(upnp_default),             "Enable or disable UPnP: automatic port forwarding")
     ;
 
 	options_description precomputation("Precomputation options");
