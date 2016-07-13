@@ -22,52 +22,47 @@ import android.widget.Toast;
 
 public class I2PD extends Activity {
 	private static final String TAG = "i2pd";
-	
-	private static Throwable loadLibsThrowable;
-	static {
-		try {
-			I2PD_JNI.loadLibraries();
-		} catch (Throwable tr) {
-			loadLibsThrowable = tr;
+	private DaemonSingleton daemon = DaemonSingleton.getInstance();
+	private DaemonSingleton.StateChangeListener daemonStateChangeListener = 
+			new DaemonSingleton.StateChangeListener() {
+		
+		@Override
+		public void daemonStateChanged() {
+			runOnUiThread(new Runnable(){
+
+				@Override
+				public void run() {
+					try {
+						if(textView==null)return;
+						Throwable tr = daemon.getLastThrowable();
+						if(tr!=null) {
+							textView.setText(throwableToString(tr));
+							return;
+						}
+						DaemonSingleton.State state = daemon.getState();
+						textView.setText(String.valueOf(state)+
+								(DaemonSingleton.State.startFailed.equals(state)?": "+daemon.getDaemonStartResult():""));
+					} catch (Throwable tr) {
+						Log.e(TAG,"error ignored",tr);
+					}
+				}
+			});
 		}
-	}
-	private String daemonStartResult="N/A";
-	private boolean destroyed=false;
+	};
+	
 	private TextView textView;
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        destroyed=false;
 
         //set the app be foreground (do not unload when RAM needed)
         doBindService();
 
         textView = new TextView(this);
         setContentView(textView);
-        if (loadLibsThrowable != null) {
-        	textView.setText(throwableToString(loadLibsThrowable)+"\r\n");
-        	return;
-        }
-        try {
-        	textView.setText( 
-        			"libi2pd.so was compiled with ABI " + getABICompiledWith() + "\r\n"+
-        			"Starting daemon... ");
-        	new Thread(new Runnable(){
-
-				@Override
-				public void run() {
-			        try {
-						doStartDaemon();
-			        } catch (final Throwable tr) {
-						appendThrowable(tr);
-			        }
-				}
-        		
-        	},"i2pdDaemonStarting").start();
-        } catch (Throwable tr) {
-        	textView.setText(textView.getText().toString()+throwableToString(tr));
-        }
+        daemonStateChangeListener.daemonStateChanged();
+        daemon.addStateChangeListener(daemonStateChangeListener);
     }
 
     @Override
@@ -76,24 +71,18 @@ public class I2PD extends Activity {
 		localDestroy();
 	}
 
-	private synchronized void localDestroy() {
-		if(destroyed)return;
-		destroyed=true;
+	private void localDestroy() {
+		textView = null;
+		daemon.removeStateChangeListener(daemonStateChangeListener);
+		Timer gracefulQuitTimer = getGracefulQuitTimer();
 		if(gracefulQuitTimer!=null) {
 			gracefulQuitTimer.cancel();
-			gracefulQuitTimer = null;
+			setGracefulQuitTimer(null);
 		}
 		try{
             doUnbindService();
 		}catch(Throwable tr){
 			Log.e(TAG, "", tr);
-		}
-		if("ok".equals(daemonStartResult)) {
-	        try {
-	        	I2PD_JNI.stopDaemon();
-	        } catch (Throwable tr) {
-	        	Log.e(TAG, "error", tr);
-	        }
 		}
 	}
 
@@ -103,42 +92,6 @@ public class I2PD extends Activity {
     	tr.printStackTrace(pw);
     	pw.close();
     	return sw.toString();
-	}
-
-	public String getABICompiledWith() {
-    	return I2PD_JNI.getABICompiledWith();
-    }
-
-	private synchronized void doStartDaemon() {
-		if(destroyed)return;
-		daemonStartResult = I2PD_JNI.startDaemon();
-		runOnUiThread(new Runnable(){
-
-			@Override
-			public void run() {
-				synchronized (I2PD.this) {
-					if(destroyed)return;
-					textView.setText(
-        					textView.getText().toString()+
-        					"start result: "+daemonStartResult+"\r\n"
-        			);
-				}	
-			}
-    		
-    	});
-	}
-
-	private void appendThrowable(final Throwable tr) {
-		runOnUiThread(new Runnable(){
-
-			@Override
-			public void run() {
-				synchronized (I2PD.this) {
-					if(destroyed)return;
-					textView.setText(textView.getText().toString()+throwableToString(tr)+"\r\n");
-				}
-			}
-		});
 	}
 
 //	private LocalService mBoundService;
@@ -218,7 +171,6 @@ public class I2PD extends Activity {
     @SuppressLint("NewApi")
 	private void quit() {
         try {
-            localDestroy();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 finishAndRemoveTask();
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
@@ -230,11 +182,18 @@ public class I2PD extends Activity {
         }catch (Throwable tr) {
             Log.e(TAG, "", tr);
         }
+        try{
+            daemon.stopDaemon();
+	    }catch (Throwable tr) {
+	        Log.e(TAG, "", tr);
+	    }
+        System.exit(0);
     }
 
-    private Timer gracefulQuitTimer; 
-    private synchronized void gracefulQuit() {
-    	if(gracefulQuitTimer!=null){
+    private Timer gracefulQuitTimer;
+    private final Object gracefulQuitTimerLock = new Object();
+    private void gracefulQuit() {
+    	if(getGracefulQuitTimer()!=null){
 	        Toast.makeText(this, R.string.graceful_quit_is_already_in_progress,
 	        		Toast.LENGTH_SHORT).show();
     		return;
@@ -246,22 +205,22 @@ public class I2PD extends Activity {
 			@Override
 			public void run() {
 				try{
-					synchronized (I2PD.this) {
-				        if("ok".equals(daemonStartResult)) {
-				        	I2PD_JNI.stopAcceptingTunnels();
-				            gracefulQuitTimer = new Timer(true);
-				            gracefulQuitTimer.schedule(new TimerTask(){
+					Log.d(TAG, "grac stopping");
+			        if(daemon.isStartedOkay()) {
+			        	daemon.stopAcceptingTunnels();
+			            Timer gracefulQuitTimer = new Timer(true);
+						setGracefulQuitTimer(gracefulQuitTimer);
+						gracefulQuitTimer.schedule(new TimerTask(){
 
-				    			@Override
-				    			public void run() {
-				    				quit();	
-				    			}
-				            	
-				            }, 10*60*1000/*millis*/);
-				        }else{
-				        	quit();
-				        }
-					}
+			    			@Override
+			    			public void run() {
+			    				quit();	
+			    			}
+			            	
+			            }, 10*60*1000/*milliseconds*/);
+			        }else{
+			        	quit();
+			        }
 				} catch(Throwable tr) {
 					Log.e(TAG,"",tr);
 				}
@@ -269,4 +228,16 @@ public class I2PD extends Activity {
         	
         },"gracQuitInit").start();
     }
+
+	private Timer getGracefulQuitTimer() {
+		synchronized (gracefulQuitTimerLock) {
+			return gracefulQuitTimer;
+		}
+	}
+
+	private void setGracefulQuitTimer(Timer gracefulQuitTimer) {
+    	synchronized (gracefulQuitTimerLock) {
+    		this.gracefulQuitTimer = gracefulQuitTimer;
+    	}
+	}
 }
