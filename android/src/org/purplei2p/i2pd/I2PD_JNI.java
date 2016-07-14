@@ -15,7 +15,7 @@ public class I2PD_JNI {
 	public static native void onNetworkStateChanged(boolean isConnected);
 
 	public static void loadLibraries() {
-    	//System.loadLibrary("gnustl_shared");
+    	System.loadLibrary("gnustl_shared");
         System.loadLibrary("i2pd");
     }
 }
