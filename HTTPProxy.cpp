@@ -22,6 +22,21 @@
 
 namespace i2p {
 namespace proxy {
+	std::map<std::string, std::string> jumpservices = {
+		{ "inr.i2p",    "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" },
+		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
+	};
+
+	static const char *pageHead =
+		"<head>\r\n"
+		"  <title>I2P HTTP proxy: error</title>\r\n"
+		"  <style type=\"text/css\">\r\n"
+		"    body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
+		"    .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
+		"  </style>\r\n"
+		"</head>\r\n"
+	;
+
 	bool str_rmatch(std::string & str, const char *suffix) {
 		auto pos = str.rfind (suffix);
 		if (pos == std::string::npos)
@@ -39,12 +54,14 @@ namespace proxy {
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			void HTTPRequestFailed(const char *message);
-			void RedirectToJumpService(std::string & host);
 			bool ExtractAddressHelper(i2p::http::URL & url, std::string & b64);
 			void SanitizeHTTPRequest(i2p::http::HTTPReq & req);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
+			/* error helpers */
+			void GenericProxyError(const char *title, const char *description);
+			void HostNotFound(std::string & host);
+			void SendProxyError(std::string & content);
 
 			uint8_t m_recv_chunk[8192];
 			std::string m_recv_buf; // from client
@@ -82,36 +99,39 @@ namespace proxy {
 		Done(shared_from_this());
 	}
 
-	void HTTPReqHandler::HTTPRequestFailed(const char *message)
+	void HTTPReqHandler::GenericProxyError(const char *title, const char *description) {
+		std::stringstream ss;
+		ss << "<h1>Proxy error: " << title << "</h1>\r\n";
+		ss << "<p>" << description << "</p>\r\n";
+		std::string content = ss.str();
+		SendProxyError(content);
+  }
+
+	void HTTPReqHandler::HostNotFound(std::string & host) {
+		std::stringstream ss;
+		ss << "<h1>Proxy error: Host not found</h1>\r\n"
+		   << "<p>Remote host not found in router's addressbook</p>\r\n"
+		   << "<p>You may try to find this host on jumpservices below:</p>\r\n"
+		   << "<ul>\r\n";
+		for (auto & js : jumpservices) {
+			ss << "  <li><a href=\"" << js.second << host << "\">" << js.first << "</a></li>\r\n";
+		}
+		ss << "</ul>\r\n";
+		std::string content = ss.str();
+		SendProxyError(content);
+  }
+
+	void HTTPReqHandler::SendProxyError(std::string & content)
 	{
 		i2p::http::HTTPRes res;
 		res.code = 500;
-		res.add_header("Content-Type", "text/plain");
+		res.add_header("Content-Type", "text/html; charset=UTF-8");
 		res.add_header("Connection", "close");
-		res.body = message;
-		res.body += "\r\n";
-		std::string response = res.to_string();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
-					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
-	}
-
-	void HTTPReqHandler::RedirectToJumpService(std::string & host)
-	{
-		i2p::http::HTTPRes res;
-		i2p::http::URL url;
-
-		/* TODO: don't redirect to webconsole, it's not always work, handle jumpservices here */
-		i2p::config::GetOption("http.address", url.host);
-		i2p::config::GetOption("http.port",    url.port);
-		url.schema = "http";
-		url.path  = "/";
-		url.query = "page=jumpservices&address=";
-		url.query += host;
-
-		res.code = 302; /* redirect */
-		res.add_header("Location", url.to_string().c_str());
-		res.add_header("Connection", "close");
-
+		std::stringstream ss;
+		ss << "<html>\r\n" << pageHead
+		   << "<body>" << content << "</body>\r\n"
+		   << "</html>\r\n";
+		res.body = ss.str();
 		std::string response = res.to_string();
 		boost::asio::async_write(*m_sock, boost::asio::buffer(response),
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
@@ -181,7 +201,7 @@ namespace proxy {
 
 		if (req_len < 0) {
 			LogPrint(eLogError, "HTTPProxy: unable to parse request");
-			HTTPRequestFailed("invalid request");
+			GenericProxyError("Invalid request", "Proxy unable to parse your request");
 			return true; /* parse error */
 		}
 
@@ -189,13 +209,14 @@ namespace proxy {
 		LogPrint(eLogDebug, "HTTPProxy: requested: ", req.uri);
 		url.parse(req.uri);
 
-		/* TODO: show notice page with original link */
 		if (ExtractAddressHelper(url, b64)) {
 			i2p::client::context.GetAddressBook ().InsertAddress (url.host, b64);
-			std::string message = "added b64 from addresshelper for " + url.host + " to address book";
-			LogPrint (eLogInfo, "HTTPProxy: ", message);
-			message += ", please reload page";
-			HTTPRequestFailed(message.c_str());
+			LogPrint (eLogInfo, "HTTPProxy: added b64 from addresshelper for ", url.host);
+			std::string full_url = url.to_string();
+			std::stringstream ss;
+			ss << "Host " << url.host << " added to router's addressbook from helper. "
+			   << "Click <a href=\"" << full_url << "\">here</a> to proceed.";
+			GenericProxyError("Addresshelper found", ss.str().c_str());
 			return true; /* request processed */
 		}
 
@@ -224,8 +245,7 @@ namespace proxy {
 			dest_port = u.port;
 		} else {
 			/* relative url and missing 'Host' header */
-			const char *message = "Can't detect destination host from request";
-			HTTPRequestFailed(message);
+			GenericProxyError("Invalid request", "Can't detect destination host from request");
 			return true;
 		}
 
@@ -233,14 +253,14 @@ namespace proxy {
 		i2p::data::IdentHash identHash;
 		if (str_rmatch(dest_host, ".i2p")) {
 			if (!i2p::client::context.GetAddressBook ().GetIdentHash (dest_host, identHash)) {
-				RedirectToJumpService(dest_host); /* unknown host */
+				HostNotFound(dest_host);
 				return true; /* request processed */
 			}
 			/* TODO: outproxy handler here */
 		} else {
-			std::string message = "Host " + url.host + " not inside i2p network, but outproxy support still missing";
-			HTTPRequestFailed(message.c_str());
-			LogPrint (eLogWarning, "HTTPProxy: ", message);
+			LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": not implemented yet");
+			std::string message = "Host" + dest_host + "not inside I2P network, but outproxy support not implemented yet";
+			GenericProxyError("Outproxy failure", message.c_str());
 			return true;
 		}
 
@@ -291,7 +311,7 @@ namespace proxy {
 	{
 		if (!stream) {
 			LogPrint (eLogError, "HTTPProxy: error when creating the stream, check the previous warnings for more info");
-			HTTPRequestFailed("error when creating the stream, check logs");
+			GenericProxyError("Host is down", "Can't create connection to requested host, it may be down");
 			return;
 		}
 		if (Kill())
