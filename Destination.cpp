@@ -459,7 +459,7 @@ namespace client
 				// "this" added due to bug in gcc 4.7-4.8
 				[s,this](std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 				{
-					if (leaseSet && s->m_LeaseSet)
+					if (leaseSet)
 					{
 						// we got latest LeasetSet
 						LogPrint (eLogDebug, "Destination: published LeaseSet verified for ", GetIdentHash().ToBase32());
@@ -470,7 +470,7 @@ namespace client
 					else
 						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet for ", GetIdentHash().ToBase32());
 					// we have to publish again
-					s->Publish ();	
+					s->Publish ();
 				});
 		}
 	}
