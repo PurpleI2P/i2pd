@@ -114,7 +114,7 @@ namespace transport
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
 		for (auto address : addresses)
 		{
-			if (!m_NTCPServer && enableNTCP)
+			if (m_NTCPServer == nullptr && enableNTCP)
 			{
 				m_NTCPServer = new NTCPServer ();
 				m_NTCPServer->Start ();
@@ -129,7 +129,7 @@ namespace transport
 			
 			if (address->transportStyle == RouterInfo::eTransportSSU)
 			{
-				if (!m_SSUServer && enableSSU)
+				if (m_SSUServer == nullptr && enableSSU)
 				{
 					if (address->host.is_v4())
 						m_SSUServer = new SSUServer (address->port);

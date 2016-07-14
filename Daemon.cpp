@@ -124,47 +124,16 @@ namespace i2p
 			ipv4 = false;
 			ipv6 = true;
 #endif
-
-			i2p::context.SetSupportsV6		 (ipv6);
-			i2p::context.SetSupportsV4		 (ipv4);
-
-			bool nat; i2p::config::GetOption("nat", nat);
-			if (nat)
-			{
-				LogPrint(eLogInfo, "Daemon: assuming be are behind NAT");
-				// we are behind nat, try setting via host 
-				std::string host; i2p::config::GetOption("host", host);
-				if (!i2p::config::IsDefault("host"))
-				{
-					LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
-					i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
-				}
-			}
-			else
-			{
-				// we are not behind nat
-				std::string ifname; i2p::config::GetOption("ifname", ifname);
-				if (ifname.size())
-				{
-					// bind to interface, we have no NAT so set external address too
-					auto addr = i2p::util::net::GetInterfaceAddress(ifname, ipv6);
-					LogPrint(eLogInfo, "Daemon: bind to network interface ", ifname, " with public address ", addr);
-					i2p::context.UpdateAddress(addr);
-				}
-			}
-
-			
 			uint16_t port; i2p::config::GetOption("port", port);
 			if (!i2p::config::IsDefault("port"))
-			{	
+			{
 				LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
 				i2p::context.UpdatePort (port);
-			}	
-
-      
-			bool transit; i2p::config::GetOption("notransit", transit);
+			}
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
+			
+			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetAcceptsTunnels (!transit);
 			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 			SetMaxNumTransitTunnels (transitTunnels);
@@ -252,14 +221,15 @@ namespace i2p
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
 			bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
-			if(!ssu) LogPrint(eLogDebug, "Daemon: ssu disabled");
-			if(!ntcp) LogPrint(eLogDebug, "Daemon: ntcp disabled");
+			if(!ssu) LogPrint(eLogInfo, "Daemon: ssu disabled");
+			if(!ntcp) LogPrint(eLogInfo, "Daemon: ntcp disabled");
 			i2p::transport::transports.Start(ntcp, ssu);
 			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
 				LogPrint(eLogInfo, "Daemon: Transports started");
 			} else {
 				LogPrint(eLogError, "Daemon: failed to start Transports");
 				/** shut down netdb right away */
+				i2p::transport::transports.Stop();
 				i2p::data::netdb.Stop();
 				return false;
 			}

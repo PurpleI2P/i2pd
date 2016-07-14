@@ -461,5 +461,30 @@ namespace net
 	}
 } 
 
+namespace config
+{
+	std::string GetHost(bool ipv4, bool ipv6)
+	{
+		std::string host;
+		if(ipv6)
+			host = "::";
+		else if(ipv4)
+			host = "127.0.0.1";
+		bool nat; i2p::config::GetOption("nat", nat);
+		if (nat)
+		{
+			if (!i2p::config::IsDefault("host"))
+				i2p::config::GetOption("host", host);
+		}
+		else
+		{
+			// we are not behind nat
+			std::string ifname; i2p::config::GetOption("ifname", ifname);
+			if (ifname.size())
+				host = i2p::util::net::GetInterfaceAddress(ifname, ipv6).to_string(); // bind to interface, we have no NAT so set external address too
+		}
+		return host;
+	}
+} // config
 } // util
 } // i2p
