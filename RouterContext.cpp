@@ -224,11 +224,11 @@ namespace i2p
 		m_RouterInfo.SetCaps (i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting); // LU, B
 		// remove NTCP address
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (size_t i = 0; i < addresses.size (); i++)
+		for (auto it = addresses.begin (); it != addresses.end (); it++)
 		{
-			if (addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 			{
-				addresses.erase (addresses.begin () + i);
+				addresses.erase (it);
 				break;
 			}
 		}	
@@ -253,12 +253,12 @@ namespace i2p
 		
 		// insert NTCP back
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (size_t i = 0; i < addresses.size (); i++)
+		for (auto addr : addresses)
 		{
-			if (addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+			if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU)
 			{
 				// insert NTCP address with host/port from SSU
-				m_RouterInfo.AddNTCPAddress (addresses[i]->host.to_string ().c_str (), addresses[i]->port);
+				m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
 				break;
 			}
 		}		
