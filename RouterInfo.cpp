@@ -15,6 +15,11 @@ namespace i2p
 {
 namespace data
 {		
+	RouterInfo::RouterInfo (): m_Buffer (nullptr) 
+	{ 
+		m_Addresses = std::make_shared<Addresses>(); // create empty list
+	}
+	
 	RouterInfo::RouterInfo (const std::string& fullPath):
 		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false), 
 		m_SupportedTransports (0), m_Caps (0)

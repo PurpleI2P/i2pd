@@ -107,8 +107,8 @@ namespace data
 			};
 			typedef std::vector<std::shared_ptr<Address> > Addresses;			
 
+			RouterInfo ();
 			RouterInfo (const std::string& fullPath);
-			RouterInfo (): m_Buffer (nullptr) { };
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
 			RouterInfo (const uint8_t * buf, int len);
