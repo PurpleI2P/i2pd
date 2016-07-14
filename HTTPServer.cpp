@@ -71,7 +71,6 @@ namespace http {
 	const char HTTP_PAGE_SAM_SESSIONS[] = "sam_sessions";
 	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
 	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
-	const char HTTP_PAGE_JUMPSERVICES[] = "jumpservices";
 	const char HTTP_PAGE_COMMANDS[] = "commands";
 	const char HTTP_COMMAND_ENABLE_TRANSIT[] = "enable_transit";
 	const char HTTP_COMMAND_DISABLE_TRANSIT[] = "disable_transit";
@@ -82,11 +81,6 @@ namespace http {
 	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";	
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
-
-	std::map<std::string, std::string> jumpservices = {
-		{ "inr.i2p",    "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" },
-		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
-	};
 
 	void ShowUptime (std::stringstream& s, int seconds) {
 		int num;
@@ -150,7 +144,6 @@ namespace http {
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_JUMPSERVICES << "\">Jump services</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n"
 			"</div>\r\n"
 			"<div class=right>";
@@ -244,20 +237,6 @@ namespace http {
 		
         s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
         s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
-	}
-
-	void ShowJumpServices (std::stringstream& s, const std::string& address)
-	{
-		s << "<form method=\"get\" action=\"/\">";
-		s << "<input type=\"hidden\" name=\"page\" value=\"jumpservices\">";
-		s << "<input type=\"text\" name=\"address\" value=\"" << address << "\">";
-		s << "<input type=\"submit\" value=\"Update\">";
-		s << "</form><br>\r\n";
-		s << "<b>Jump services for " << address << "</b>\r\n<ul>\r\n";
-		for (auto & js : jumpservices) {
-			s << "  <li><a href=\"" << js.second << address << "\">" << js.first << "</a></li>\r\n";
-		}
-		s << "</ul>\r\n";
 	}
 
 	void ShowLocalDestinations (std::stringstream& s)
@@ -648,8 +627,6 @@ namespace http {
 			ShowTunnels (s);
 		else if (page == HTTP_PAGE_COMMANDS)
 			ShowCommands (s);
-		else if (page == HTTP_PAGE_JUMPSERVICES)
-			ShowJumpServices (s, params["address"]);
 		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
 		else if (page == HTTP_PAGE_LOCAL_DESTINATIONS)
