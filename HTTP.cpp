@@ -278,6 +278,18 @@ namespace http {
     return false;
   }
 
+  bool HTTPRes::is_gzipped() {
+    auto it = headers.find("x-i2p-gzip");
+    if (it == headers.end())
+      return true; /* i2p-specific header */
+    it = headers.find("Content-Encoding");
+    if (it == headers.end())
+      return false; /* no header */
+    if (it->second.find("gzip") != std::string::npos)
+      return true; /* gotcha! */
+    return false;
+  }
+
   long int HTTPMsg::content_length() {
     unsigned long int length = 0;
     auto it = headers.find("Content-Length");
