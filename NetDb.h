@@ -31,12 +31,10 @@ namespace data
 	const int NETDB_INTRODUCEE_EXPIRATION_TIMEOUT = 65*60;
 	const int NETDB_MIN_EXPIRATION_TIMEOUT = 90*60; // 1.5 hours
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27*60*60; // 27 hours
-
-#ifdef MESHNET
-	const int NETDB_PUBLISH_INTERVAL = 60;
-#else
 	const int NETDB_PUBLISH_INTERVAL = 60*40;
-#endif
+
+	/** function for visiting a leaseset stored in a floodfill */
+	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
 	
 	class NetDb
 	{
@@ -85,7 +83,10 @@ namespace data
 			int GetNumRouters () const { return m_RouterInfos.size (); };
 			int GetNumFloodfills () const { return m_Floodfills.size (); };
 			int GetNumLeaseSets () const { return m_LeaseSets.size (); };
-			
+
+			/** visit all lease sets we currently store */
+			void VisitLeaseSets(LeaseSetVisitor v);
+		
 		private:
 
 			void Load ();
@@ -103,6 +104,7 @@ namespace data
 		
 		private:
 
+			mutable std::mutex m_LeaseSetsMutex;
 			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
 			mutable std::mutex m_RouterInfosMutex;
 			std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;

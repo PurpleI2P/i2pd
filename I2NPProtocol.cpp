@@ -165,9 +165,10 @@ namespace i2p
 		buf += 32;
 		memcpy (buf, replyTunnel->GetNextIdentHash (), 32); // reply tunnel GW
 		buf += 32;
-		*buf = DATABASE_LOOKUP_DELIVERY_FLAG | DATABASE_LOOKUP_ENCYPTION_FLAG | DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP; // flags 
-		htobe32buf (buf + 1, replyTunnel->GetNextTunnelID ()); // reply tunnel ID
-		buf += 5;
+		*buf = DATABASE_LOOKUP_DELIVERY_FLAG | DATABASE_LOOKUP_ENCRYPTION_FLAG | DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP; // flags
+		buf ++;
+		htobe32buf (buf, replyTunnel->GetNextTunnelID ()); // reply tunnel ID
+		buf += 4;
 		
 		// excluded
 		htobe16buf (buf, cnt);
@@ -182,7 +183,7 @@ namespace i2p
 		}	
 		// encryption
 		memcpy (buf, replyKey, 32);
-		buf[32] = 1; // 1 tag
+		buf[32] = uint8_t( 1 ); // 1 tag
 		memcpy (buf + 33, replyTag, 32);
 		buf += 65;
 

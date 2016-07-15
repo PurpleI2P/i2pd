@@ -49,10 +49,10 @@ namespace i2p
 		uint16_t port; i2p::config::GetOption("port", port);
 		if (!port)
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-		std::string host; i2p::config::GetOption("host", host);
-		if (i2p::config::IsDefault("host"))
-			host = "127.0.0.1"; // replace default address with safe value
-		routerInfo.AddSSUAddress  (host.c_str(), port, routerInfo.GetIdentHash ());
+		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		std::string host = i2p::util::config::GetHost(ipv4, ipv6);
+		routerInfo.AddSSUAddress	(host.c_str(), port, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress (host.c_str(), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC

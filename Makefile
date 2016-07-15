@@ -33,7 +33,7 @@ else # win32 mingw
 endif
 
 ifeq ($(USE_MESHNET),yes)
-	CXXFLAGS += -DMESHNET
+	NEEDED_CXXFLAGS += -DMESHNET
 endif
 
 all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
