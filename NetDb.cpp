@@ -724,22 +724,21 @@ namespace data
 				}	
 				if (!found)
 				{				
-					std::set<IdentHash> excludedRouters;	
+					std::set<IdentHash> excLudedrouters;
+					const uint8_t * exclude_ident = excluded;
 					for (int i = 0; i < numExcluded; i++)
 					{
-						excludedRouters.insert (excluded);
-						excluded += 32;
+						excludedRouters.insert (exclude_ident);
+						exclude_ident += 32;
 					}
 					closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
 					if (!numExcluded) // save if no excluded
 						m_LookupResponses[ident] = std::make_pair(closestFloodfills, i2p::util::GetSecondsSinceEpoch ());
 				}
-				else
-					excluded += numExcluded * 32;
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
-			}
+    		}
 		}
-		
+		excluded += numExcluded * 32;	
 		if (replyMsg)
 		{	
 			if (replyTunnelID)
@@ -751,7 +750,7 @@ namespace data
 					const uint8_t numTags = excluded[32];
 					if (numTags)
 					{
-						const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
+         		const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
 						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
 						replyMsg = garlic.WrapSingleMessage (replyMsg);
 						if(replyMsg == nullptr) LogPrint(eLogError, "NetDb: failed to wrap message");
