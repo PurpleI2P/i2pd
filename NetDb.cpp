@@ -724,7 +724,7 @@ namespace data
 				}	
 				if (!found)
 				{				
-					std::set<IdentHash> excLudedrouters;
+					std::set<IdentHash> excludedRouters;
 					const uint8_t * exclude_ident = excluded;
 					for (int i = 0; i < numExcluded; i++)
 					{
