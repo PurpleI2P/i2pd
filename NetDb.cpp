@@ -748,7 +748,8 @@ namespace data
 					uint8_t numTags = sessionKey[32];
 					if (numTags > 0) 
 					{
-						const uint8_t * sessionTag = sessionKey + 33; // take first tag
+						sessionKey ++;
+						const uint8_t * sessionTag = sessionKey + 32; // take first tag
 						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
 						replyMsg = garlic.WrapSingleMessage (replyMsg);
 					}
