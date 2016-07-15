@@ -72,6 +72,7 @@ namespace http {
 	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
 	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
 	const char HTTP_PAGE_COMMANDS[] = "commands";
+  const char HTTP_PAGE_LEASESETS[] = "leasesets";
 	const char HTTP_COMMAND_ENABLE_TRANSIT[] = "enable_transit";
 	const char HTTP_COMMAND_DISABLE_TRANSIT[] = "disable_transit";
 	const char HTTP_COMMAND_SHUTDOWN_START[] = "shutdown_start";
@@ -140,6 +141,7 @@ namespace http {
 			"  <a href=\"/\">Main page</a><br>\r\n<br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_COMMANDS << "\">Router commands</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">Local destinations</a><br>\r\n"
+      "  <a href=\"/?page=" << HTTP_PAGE_LEASESETS << "\">Lease Sets</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
@@ -327,6 +329,57 @@ namespace http {
 		}	
 	}
 
+  void ShowLeasesSets(std::stringstream& s)
+  {
+    s << "<div id='leasesets'>LeaseSets</div><br>";
+    // for each lease set
+    i2p::data::netdb.VisitLeaseSets(
+      [&s](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet) 
+      {
+        // create copy of lease set so we extract leases
+        i2p::data::LeaseSet ls(leaseSet->GetBuffer(), leaseSet->GetBufferLen());
+        // begin lease set entry
+        s << "<div class='leaseset";
+        if (ls.IsExpired())
+          s << " expired"; // additional css class for expired
+        s << "'>";
+        // invalid ?
+        if (!ls.IsValid())
+          s << "<div class='invalid'>!! Invalid !! </div>";
+        // ident
+        s << "<div class='ident'>" << dest.ToBase32() << "</div>";
+        // LeaseSet time
+        s << "<div class='expires'>expires: " << ls.GetExpirationTime() << "</div>";
+        // get non expired leases
+        auto leases = ls.GetNonExpiredLeases();
+        // show non expired leases
+        s << "<div class='leasecount'>Non Expired Leases: " << leases.size() << "</div>";
+        // for each lease
+        s << "<div class='leases'>";
+        for ( auto & l : leases )
+        {
+          // begin lease
+          s << "<div class='lease'>";
+          // gateway
+          s << "<div class='gateway'>Gateway: " << l->tunnelGateway.ToBase64() << "</div>";
+          // tunnel id
+          s << "<div class='tunnelID'>TunnelID: " << l->tunnelID << "</div>";
+          // end date
+          s << "<div class='endDate'>EndDate: " << l->endDate << "</div>";
+          // end lease
+          s << "</div>";
+        }
+        // end for each lease
+        s << "</div>";
+        // end lease set entry
+        s << "</div>";
+        // linebreak
+        s << "<br>";
+      }
+    );
+    // end for each lease set
+  }
+  
 	void ShowTunnels (std::stringstream& s)
 	{
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
@@ -639,6 +692,8 @@ namespace http {
 			ShowSAMSession (s, params["sam_id"]);
 		else if (page == HTTP_PAGE_I2P_TUNNELS)
 			ShowI2PTunnels (s);
+    else if (page == HTTP_PAGE_LEASESETS)
+      ShowLeasesSets(s);
 		else {
 			res.code = 400;
 			ShowError(s, "Unknown page: " + page);

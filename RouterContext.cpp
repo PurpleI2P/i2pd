@@ -49,7 +49,9 @@ namespace i2p
 		uint16_t port; i2p::config::GetOption("port", port);
 		if (!port)
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
-		std::string host = i2p::util::config::GetHost();
+    bool ipv4; i2p::config::GetOption("ipv4", ipv4);
+    bool ipv6; i2p::config::GetOption("ipv6", ipv6);
+		std::string host = i2p::util::config::GetHost(ipv4, ipv6);
 		routerInfo.AddSSUAddress  (host.c_str(), port, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress (host.c_str(), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
