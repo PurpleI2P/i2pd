@@ -33,9 +33,9 @@ namespace data
 	const int NETDB_MAX_EXPIRATION_TIMEOUT = 27*60*60; // 27 hours
 	const int NETDB_PUBLISH_INTERVAL = 60*40;
 
-  /** function for visiting a leaseset stored in a floodfill */
-  typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
-  
+	/** function for visiting a leaseset stored in a floodfill */
+	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
+	
 	class NetDb
 	{
 		public:
@@ -84,9 +84,9 @@ namespace data
 			int GetNumFloodfills () const { return m_Floodfills.size (); };
 			int GetNumLeaseSets () const { return m_LeaseSets.size (); };
 
-      /** visit all lease sets we currently store */
-      void VisitLeaseSets(LeaseSetVisitor v);
-    
+			/** visit all lease sets we currently store */
+			void VisitLeaseSets(LeaseSetVisitor v);
+		
 		private:
 
 			void Load ();
@@ -104,7 +104,7 @@ namespace data
 		
 		private:
 
-      mutable std::mutex m_LeaseSetsMutex;
+			mutable std::mutex m_LeaseSetsMutex;
 			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
 			mutable std::mutex m_RouterInfosMutex;
 			std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;

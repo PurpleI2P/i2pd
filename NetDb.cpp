@@ -213,7 +213,7 @@ namespace data
 	bool NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
-    std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 		bool updated = false;
 		if (!from) // unsolicited LS must be received directly
 		{	
@@ -265,7 +265,7 @@ namespace data
 
 	std::shared_ptr<LeaseSet> NetDb::FindLeaseSet (const IdentHash& destination) const
 	{
-    std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 		auto it = m_LeaseSets.find (destination);
 		if (it != m_LeaseSets.end ())
 			return it->second;
@@ -320,13 +320,13 @@ namespace data
 		return true;
 	}
 
-  void NetDb::VisitLeaseSets(LeaseSetVisitor v)
-  {
-    std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
-    for ( auto & entry : m_LeaseSets)
-      v(entry.first, entry.second);
-  }
-  
+	void NetDb::VisitLeaseSets(LeaseSetVisitor v)
+	{
+		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		for ( auto & entry : m_LeaseSets)
+			v(entry.first, entry.second);
+	}
+	
 	void NetDb::Load ()
 	{
 		// make sure we cleanup netDb from previous attempts
@@ -750,7 +750,7 @@ namespace data
 					const uint8_t numTags = excluded[32];
 					if (numTags)
 					{
-         		const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
+						const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
 						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
 						replyMsg = garlic.WrapSingleMessage (replyMsg);
 						if(replyMsg == nullptr) LogPrint(eLogError, "NetDb: failed to wrap message");
