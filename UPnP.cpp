@@ -48,7 +48,7 @@ namespace transport
 
     void UPnP::Run ()
     {
-        const std::vector<std::shared_ptr<i2p::data::RouterInfo::Address> > a = context.GetRouterInfo().GetAddresses();
+        auto a = context.GetRouterInfo().GetAddresses();
         for (auto address : a)
         {
             if (!address->host.is_v6 ())
