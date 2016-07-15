@@ -166,7 +166,7 @@ namespace i2p
 		memcpy (buf, replyTunnel->GetNextIdentHash (), 32); // reply tunnel GW
 		buf += 32;
 		*buf = DATABASE_LOOKUP_DELIVERY_FLAG | DATABASE_LOOKUP_ENCRYPTION_FLAG | DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP; // flags
-    buf ++;
+		buf ++;
 		htobe32buf (buf, replyTunnel->GetNextTunnelID ()); // reply tunnel ID
 		buf += 4;
 		
