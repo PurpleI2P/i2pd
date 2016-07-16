@@ -572,7 +572,7 @@ namespace client
 			ident = FindAddress (address.substr (dot + 1));
 		if (!ident)
 		{
-			LogPrint (eLogError, "AddressBook: Can't find domain for ", address);
+			LogPrint (eLogError, "Addressbook: Can't find domain for ", address);
 			return;
 		}	
 		
@@ -588,7 +588,7 @@ namespace client
 					std::unique_lock<std::mutex> l(m_LookupsMutex);
 					m_Lookups[nonce] = address; 
 				}	
-				LogPrint (eLogDebug, "AddressBook: Lookup of ", address, " to ", ident->ToBase32 (), " nonce=", nonce);
+				LogPrint (eLogDebug, "Addressbook: Lookup of ", address, " to ", ident->ToBase32 (), " nonce=", nonce);
 				size_t len = address.length () + 9;
 				uint8_t * buf = new uint8_t[len];
 				memset (buf, 0, 4);
@@ -605,11 +605,11 @@ namespace client
 	{
 		if (len < 44)
 		{
-			LogPrint (eLogError, "AddressBook: Lookup response is too short ", len);
+			LogPrint (eLogError, "Addressbook: Lookup response is too short ", len);
 			return;
 		}
 		uint32_t nonce = bufbe32toh (buf + 4);
-		LogPrint (eLogDebug, "AddressBook: Lookup response received from ", from.GetIdentHash ().ToBase32 (), " nonce=", nonce);
+		LogPrint (eLogDebug, "Addressbook: Lookup response received from ", from.GetIdentHash ().ToBase32 (), " nonce=", nonce);
 		std::string address;
 		{
 			std::unique_lock<std::mutex> l(m_LookupsMutex);
@@ -809,7 +809,7 @@ namespace client
 	{
 		if (len < 9 || len < buf[8] + 9U)
 		{
-			LogPrint (eLogError, "AddressBook: Address request is too short ", len);
+			LogPrint (eLogError, "Addressbook: Address request is too short ", len);
 			return;
 		}
 		// read requested address
@@ -817,7 +817,7 @@ namespace client
 		char address[255];
 		memcpy (address, buf + 9, l);
 		address[l] = 0;		
-		LogPrint (eLogDebug, "AddressBook: Address request ", address);
+		LogPrint (eLogDebug, "Addressbook: Address request ", address);
 		// send response
 		uint8_t response[44];
 		memset (response, 0, 4); // reserved
