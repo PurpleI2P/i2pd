@@ -550,7 +550,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: status ", operand);
 		if (m_Owner.FindDestination (operand))
-			SendReplyOK ("")
+			SendReplyOK ("");
 		else
 			SendReplyError ("no nickname has been set");	
 	}	
