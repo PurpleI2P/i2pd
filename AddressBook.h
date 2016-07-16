@@ -117,7 +117,6 @@ namespace client
 		private:
 
 			void Request ();
-			bool ProcessResponse (std::stringstream& s, bool isGzip = false);
 		
 		private:
 
