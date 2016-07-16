@@ -650,56 +650,57 @@ namespace client
 			LogPrint (eLogError, "Addressbook: Can't resolve ", url.host);
 			return;
 		}
-
+		/* this code block still needs some love */
+		std::condition_variable newDataReceived;
+		std::mutex newDataReceivedMutex;
+		auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
+		if (!leaseSet)
+		{
+			std::unique_lock<std::mutex> l(newDataReceivedMutex);
+			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident,
+				[&newDataReceived, &leaseSet](std::shared_ptr<i2p::data::LeaseSet> ls)
+			    {
+					leaseSet = ls;
+					newDataReceived.notify_all ();
+				});
+			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+			{
+				LogPrint (eLogError, "Addressbook: Subscription LeaseSet request timeout expired");
+				i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (ident);
+				return;
+			}
+		}
+		if (!leaseSet) {
+			/* still no leaseset found */
+			LogPrint (eLogError, "Addressbook: LeaseSet for address ", url.host, " not found");
+			return;
+		}
+		if (m_Etag.empty() && m_LastModified.empty()) {
+			m_Book.GetEtag (ident, m_Etag, m_LastModified);
+			LogPrint (eLogDebug, "Addressbook: loaded for ", url.host, ": ETag: ", m_Etag, ", Last-Modified: ", m_LastModified);
+		}
+		/* save url parts for later use */
+		std::string dest_host = url.host;
+		int         dest_port = url.port ? url.port : 80;
+		/* create http request & send it */
+		i2p::http::HTTPReq req;
+		req.add_header("Host", dest_host);
+		req.add_header("User-Agent", "Wget/1.11.4");
+		req.add_header("Connection", "close");
+		if (!m_Etag.empty())
+			req.add_header("If-None-Match", m_Etag);
+		if (!m_LastModified.empty())
+			req.add_header("If-Modified-Since", m_LastModified);
+		/* convert url to relative */
+		url.schema = "";
+		url.host   = "";
+		req.uri  = url.to_string();
+		auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, dest_port);
+		std::string request = req.to_string();
+		stream->Send ((const uint8_t *) request.data(), request.length());
 		/* all code below till end of function is subject of refacroring */
 		bool success = false;	
-			if (!m_Etag.length ())
-			{ 
-				// load ETag
-				m_Book.GetEtag (ident, m_Etag, m_LastModified);
-				LogPrint (eLogInfo, "Addressbook: set ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
-			}	
-			std::condition_variable newDataReceived;
-			std::mutex newDataReceivedMutex;
-			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
-			if (!leaseSet)
-			{
-				std::unique_lock<std::mutex> l(newDataReceivedMutex);
-				i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident,
-					[&newDataReceived, &leaseSet](std::shared_ptr<i2p::data::LeaseSet> ls)
-				    {
-						leaseSet = ls;
-						newDataReceived.notify_all ();
-					});
-				if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
-				{	
-					LogPrint (eLogError, "Addressbook: Subscription LeaseSet request timeout expired");
-					i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (ident);
-				}	
-			}
-			if (leaseSet)
-			{
-				std::stringstream request, response;
-				std::string host = url.host;
-				int port = url.port ? url.port : 80;
-				/* make relative url */
-				url.schema = "";
-				url.host   = "";
-				// standard header
-				request << "GET "   << url.to_string() << " HTTP/1.1\r\n"
-				        << "Host: " << url.host << "\r\n"
-				        << "Accept: */*\r\n"
-				        << "User-Agent: Wget/1.11.4\r\n"
-						//<< "Accept-Encoding: gzip\r\n"
-						<< "X-Accept-Encoding: x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n"
-				        << "Connection: close\r\n";
-				if (m_Etag.length () > 0) // etag
-					request << i2p::util::http::IF_NONE_MATCH << ": " << m_Etag << "\r\n";
-				if (m_LastModified.length () > 0) // if-modfief-since
-					request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
-				request << "\r\n"; // end of header
-				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, port);
-				stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
+		std::stringstream response;
 				
 				uint8_t buf[4096];
 				bool end = false;
@@ -778,9 +779,6 @@ namespace client
 				}	
 				else
 					LogPrint (eLogWarning, "Adressbook: HTTP response ", status);
-			}
-			else
-				LogPrint (eLogError, "Addressbook: address ", url.host, " not found");
 
 		if (!success)
 			LogPrint (eLogError, "Addressbook: download hosts.txt from ", m_Link, " failed");
