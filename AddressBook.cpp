@@ -340,12 +340,12 @@ namespace client
 		std::ifstream f (i2p::fs::DataDirPath("hosts.txt"), std::ifstream::in); // in text mode
 		if (f.is_open ())	
 		{
-			LoadHostsFromStream (f);
+			LoadHostsFromStream (f, false);
 			m_IsLoaded = true;
 		}
 	}
 
-	bool AddressBook::LoadHostsFromStream (std::istream& f)
+	bool AddressBook::LoadHostsFromStream (std::istream& f, bool is_update)
 	{
 		std::unique_lock<std::mutex> l(m_AddressBookMutex);
 		int numAddresses = 0;
@@ -366,17 +366,18 @@ namespace client
 				std::string addr = s.substr(pos);
 
 				auto ident = std::make_shared<i2p::data::IdentityEx> ();
-				if (ident->FromBase64(addr))
-				{	
-					m_Addresses[name] = ident->GetIdentHash ();
-					m_Storage->AddAddress (ident);
-					numAddresses++;
-				}	
-				else
-				{
+				if (!ident->FromBase64(addr)) {
 					LogPrint (eLogError, "Addressbook: malformed address ", addr, " for ", name);
 					incomplete = f.eof ();
+					continue;
 				}
+				numAddresses++;
+				if (m_Addresses.count(name) > 0)
+					continue; /* already exists */
+				m_Addresses[name] = ident->GetIdentHash ();
+				m_Storage->AddAddress (ident);
+				if (is_update)
+					LogPrint(eLogInfo, "Addressbook: added new host: ", name);
 			}	
 			else
 				incomplete = f.eof ();
@@ -776,7 +777,7 @@ namespace client
 		}
 		std::stringstream ss(response);
 		LogPrint (eLogInfo, "Addressbook: got update from ", dest_host);
-		m_Book.LoadHostsFromStream (ss);
+		m_Book.LoadHostsFromStream (ss, true);
 		return true;
 	}
 

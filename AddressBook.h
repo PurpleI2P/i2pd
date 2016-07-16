@@ -70,7 +70,7 @@ namespace client
 			void InsertAddress (const std::string& address, const std::string& base64); // for jump service
 			void InsertAddress (std::shared_ptr<const i2p::data::IdentityEx> address);
 
-			bool LoadHostsFromStream (std::istream& f);
+			bool LoadHostsFromStream (std::istream& f, bool is_update);
 			void DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified);
 			//This method returns the ".b32.i2p" address
 			std::string ToAddress(const i2p::data::IdentHash& ident) { return GetB32Address(ident); }
