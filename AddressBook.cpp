@@ -11,6 +11,7 @@
 #include "Identity.h"
 #include "FS.h"
 #include "Log.h"
+#include "HTTP.h"
 #include "NetDb.h"
 #include "ClientContext.h"
 #include "AddressBook.h"
@@ -637,13 +638,21 @@ namespace client
 
 	void AddressBookSubscription::Request ()
 	{
-		// must be run in separate thread	
-		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
-		bool success = false;	
-		i2p::util::http::url u (m_Link);
 		i2p::data::IdentHash ident;
-		if (m_Book.GetIdentHash (u.host_, ident))
-		{
+		i2p::http::URL url;
+		// must be run in separate thread	
+		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link);
+		if (!url.parse(m_Link)) {
+			LogPrint(eLogError, "Addressbook: failed to parse url: ", m_Link);
+			return;
+		}
+		if (!m_Book.GetIdentHash (url.host, ident)) {
+			LogPrint (eLogError, "Addressbook: Can't resolve ", url.host);
+			return;
+		}
+
+		/* all code below till end of function is subject of refacroring */
+		bool success = false;	
 			if (!m_Etag.length ())
 			{ 
 				// load ETag
@@ -671,9 +680,14 @@ namespace client
 			if (leaseSet)
 			{
 				std::stringstream request, response;
+				std::string host = url.host;
+				int port = url.port ? url.port : 80;
+				/* make relative url */
+				url.schema = "";
+				url.host   = "";
 				// standard header
-				request << "GET "   << u.path_ << " HTTP/1.1\r\n"
-				        << "Host: " << u.host_ << "\r\n"
+				request << "GET "   << url.to_string() << " HTTP/1.1\r\n"
+				        << "Host: " << url.host << "\r\n"
 				        << "Accept: */*\r\n"
 				        << "User-Agent: Wget/1.11.4\r\n"
 						//<< "Accept-Encoding: gzip\r\n"
@@ -684,7 +698,7 @@ namespace client
 				if (m_LastModified.length () > 0) // if-modfief-since
 					request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
 				request << "\r\n"; // end of header
-				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, u.port_);
+				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, port);
 				stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
 				
 				uint8_t buf[4096];
@@ -766,10 +780,7 @@ namespace client
 					LogPrint (eLogWarning, "Adressbook: HTTP response ", status);
 			}
 			else
-				LogPrint (eLogError, "Addressbook: address ", u.host_, " not found");
-		}
-		else
-			LogPrint (eLogError, "Addressbook: Can't resolve ", u.host_);
+				LogPrint (eLogError, "Addressbook: address ", url.host, " not found");
 
 		if (!success)
 			LogPrint (eLogError, "Addressbook: download hosts.txt from ", m_Link, " failed");
