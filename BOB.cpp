@@ -545,6 +545,15 @@ namespace client
 		else
 			SendReplyError ("malformed");
 	}	
+
+	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: status ", operand);
+		if (m_Owner.FindDestination (operand))
+			SendReplyOK ("")
+		else
+			SendReplyError ("no nickname has been set");	
+	}	
 		
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, int port):
 		m_IsRunning (false), m_Thread (nullptr),
@@ -570,6 +579,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_STATUS] = &BOBCommandSession::StatusCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()
