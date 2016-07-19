@@ -15,7 +15,6 @@
 #include "Identity.h"
 #include "NetDb.h"
 #include "HTTP.h"
-#include "util.h"
 
 namespace i2p
 {
@@ -405,15 +404,31 @@ namespace data
 					s.write_some (boost::asio::buffer (req.to_string()));
 					// read response
 					std::stringstream rs;
-					char response[1024]; size_t l = 0;
-					do
-					{
-						l = s.read_some (boost::asio::buffer (response, 1024), ecode);
-						if (l) rs.write (response, l);
-					}
-					while (!ecode && l);
+					char recv_buf[1024]; size_t l = 0;
+					do {
+						l = s.read_some (boost::asio::buffer (recv_buf, sizeof(recv_buf)), ecode);
+						if (l) rs.write (recv_buf, l);
+					} while (!ecode && l);
 					// process response
-					return i2p::util::http::GetHttpContent (rs);
+					std::string data = rs.str();
+					i2p::http::HTTPRes res;
+					int len = res.parse(data);
+					if (len <= 0) {
+						LogPrint(eLogWarning, "Reseed: incomplete/broken response from ", url.host);
+						return "";
+					}
+					data.erase(0, len); /* drop http headers from response */
+					LogPrint(eLogDebug, "Reseed: got ", data.length(), " bytes of data from ", url.host);
+					if (res.is_chunked()) {
+						std::stringstream in(data), out;
+						if (!i2p::http::MergeChunkedResponse(in, out)) {
+							LogPrint(eLogWarning, "Reseed: failed to merge chunked response from ", url.host);
+							return "";
+						}
+						LogPrint(eLogDebug, "Reseed: got ", data.length(), "(", out.tellg(), ") bytes of data from ", url.host);
+						data = out.str();
+					}
+					return data;
 				}
 				else
 					LogPrint (eLogError, "Reseed: SSL handshake failed: ", ecode.message ());
