@@ -68,14 +68,7 @@ namespace util
 		int GetMTU (const boost::asio::ip::address& localAddress);
 		const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6=false);
 	}
-
-	namespace config
-	{
-		/** get the host to use from out config, for use in RouterContext.cpp */
-		std::string GetHost(bool ipv4=true, bool ipv6=true);
-	}
 }
 }
-
 
 #endif
