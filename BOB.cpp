@@ -202,7 +202,7 @@ namespace client
 	}	
 		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
-		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
+		m_Owner (owner), m_Socket (m_Owner.GetService ()),
 		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), 
 		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr)
 	{
@@ -364,30 +364,8 @@ namespace client
 		if (m_OutPort && !m_Address.empty ())
 			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
 		m_CurrentDestination->Start ();	
-		if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-			SendReplyOK ("tunnel starting");
-		else
-		{
-			m_Timer.expires_from_now (boost::posix_time::seconds(BOB_SESSION_READINESS_CHECK_INTERVAL));
-			m_Timer.async_wait (std::bind (&BOBCommandSession::HandleSessionReadinessCheckTimer,
-				shared_from_this (), std::placeholders::_1));
-		}	
+		SendReplyOK ("tunnel starting");
 	}	
-	
-	void BOBCommandSession::HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{
-			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-				SendReplyOK ("tunnel starting");
-			else
-			{
-				m_Timer.expires_from_now (boost::posix_time::seconds(BOB_SESSION_READINESS_CHECK_INTERVAL));
-				m_Timer.async_wait (std::bind (&BOBCommandSession::HandleSessionReadinessCheckTimer,
-					shared_from_this (), std::placeholders::_1));
-			}	
-		}	
-	}
 
 	void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
 	{
@@ -549,8 +527,27 @@ namespace client
 	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: status ", operand);
-		if (m_Owner.FindDestination (operand))
-			SendReplyOK ("");
+		if (operand == m_Nickname)
+		{
+			std::stringstream s;
+			s << "DATA"; s << " NICKNAME:"; s << operand;
+			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
+				s << " STARTING:false RUNNING:true STOPPING:false";
+			else
+				s << " STARTING:true RUNNING:false STOPPING:false";
+			s << " KEYS: true"; s << " QUIET:"; s << (m_IsQuiet ? "true":"false");
+			if (m_InPort)
+			{	
+				s << " INPORT:" << m_InPort;
+				s << " INHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+			}	
+			if (m_OutPort)
+			{ 
+				s << " OUTPORT:" << m_OutPort;
+				s << " OUTHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+			}	
+			SendReplyOK (s.str().c_str());
+		}
 		else
 			SendReplyError ("no nickname has been set");	
 	}	
