@@ -14,6 +14,7 @@
 #include "Log.h"
 #include "Identity.h"
 #include "NetDb.h"
+#include "HTTP.h"
 #include "util.h"
 
 namespace i2p
@@ -372,13 +373,19 @@ namespace data
 
 	std::string Reseeder::HttpsRequest (const std::string& address)
 	{
-		i2p::util::http::url u(address);
-		if (u.port_ == 80) u.port_ = 443; 
+		i2p::http::URL url;
+		if (!url.parse(address)) {
+			LogPrint(eLogError, "Reseed: failed to parse url: ", address);
+			return "";
+		}
+		url.schema = "https";
+		if (!url.port)
+			url.port = 443;
 
 		boost::asio::io_service service;
 		boost::system::error_code ecode;
-    	auto it = boost::asio::ip::tcp::resolver(service).resolve (
-             boost::asio::ip::tcp::resolver::query (u.host_, std::to_string (u.port_)), ecode);
+		auto it = boost::asio::ip::tcp::resolver(service).resolve (
+			boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
 		if (!ecode)
 		{
 			boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);
@@ -390,12 +397,12 @@ namespace data
 				s.handshake (boost::asio::ssl::stream_base::client, ecode);
 				if (!ecode)
 				{
-					LogPrint (eLogInfo, "Reseed: Connected to ", u.host_, ":", u.port_);
-					// send request		
-					std::stringstream ss;
-					ss << "GET " << u.path_ << " HTTP/1.1\r\nHost: " << u.host_
-					<< "\r\nAccept: */*\r\n" << "User-Agent: Wget/1.11.4\r\n" << "Connection: close\r\n\r\n";	
-					s.write_some (boost::asio::buffer (ss.str ()));
+					LogPrint (eLogDebug, "Reseed: Connected to ", url.host, ":", url.port);
+					i2p::http::HTTPReq req;
+					req.uri = url.to_string();
+					req.add_header("User-Agent", "Wget/1.11.4");
+					req.add_header("Connection", "close");
+					s.write_some (boost::asio::buffer (req.to_string()));
 					// read response
 					std::stringstream rs;
 					char response[1024]; size_t l = 0;
@@ -412,10 +419,10 @@ namespace data
 					LogPrint (eLogError, "Reseed: SSL handshake failed: ", ecode.message ());
 			}
 			else
-				LogPrint (eLogError, "Reseed: Couldn't connect to ", u.host_, ": ", ecode.message ());
+				LogPrint (eLogError, "Reseed: Couldn't connect to ", url.host, ": ", ecode.message ());
 		}
 		else
-			LogPrint (eLogError, "Reseed: Couldn't resolve address ", u.host_, ": ", ecode.message ());
+			LogPrint (eLogError, "Reseed: Couldn't resolve address ", url.host, ": ", ecode.message ());
 		return "";
 	}	
 }
