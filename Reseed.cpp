@@ -417,6 +417,10 @@ namespace data
 						LogPrint(eLogWarning, "Reseed: incomplete/broken response from ", url.host);
 						return "";
 					}
+					if (res.code != 200) {
+						LogPrint(eLogError, "Reseed: failed to reseed from ", url.host, ", http code ", res.code);
+						return "";
+					}
 					data.erase(0, len); /* drop http headers from response */
 					LogPrint(eLogDebug, "Reseed: got ", data.length(), " bytes of data from ", url.host);
 					if (res.is_chunked()) {
