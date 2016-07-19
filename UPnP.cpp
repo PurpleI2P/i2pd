@@ -13,6 +13,7 @@
 #include "NetDb.h"
 #include "util.h"
 #include "RouterInfo.h"
+#include "Config.h"
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>
@@ -143,7 +144,7 @@ namespace transport
     {
         std::string strType (GetProto (address)), strPort (std::to_string (address->port));
         int r;
-        std::string strDesc = "I2Pd";
+        std::string strDesc; i2p::config::GetOption("upnp.name", strDesc);
         r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
         if (r!=UPNPCOMMAND_SUCCESS)
         {

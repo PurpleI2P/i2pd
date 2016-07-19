@@ -134,6 +134,7 @@ namespace config {
   	options_description upnp("UPnP options");
   	upnp.add_options()
     ("upnp.enabled",  value<bool>()->default_value(upnp_default),             "Enable or disable UPnP: automatic port forwarding")
+	("upnp.name", value<std::string>()->default_value("I2Pd"), "Name i2pd appears in UPnP forwardings list") 
     ;
 
 	options_description precomputation("Precomputation options");
