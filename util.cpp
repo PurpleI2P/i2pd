@@ -7,7 +7,6 @@
 #include <set>
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
-#include "Config.h"
 #include "util.h"
 #include "Log.h"
 
@@ -460,6 +459,5 @@ namespace net
 #endif
 	}
 } 
-
 } // util
 } // i2p

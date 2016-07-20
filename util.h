@@ -71,5 +71,4 @@ namespace util
 }
 }
 
-
 #endif

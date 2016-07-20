@@ -202,9 +202,9 @@ namespace client
 	}	
 		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
-		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_ReceiveBufferOffset (0),
-		m_IsOpen (true), m_IsQuiet (false), m_InPort (0), m_OutPort (0),
-		m_CurrentDestination (nullptr)
+		m_Owner (owner), m_Socket (m_Owner.GetService ()),
+		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), 
+		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr)
 	{
 	}
 
@@ -364,9 +364,9 @@ namespace client
 		if (m_OutPort && !m_Address.empty ())
 			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
 		m_CurrentDestination->Start ();	
-		SendReplyOK ("tunnel starting");	
+		SendReplyOK ("tunnel starting");
 	}	
-	
+
 	void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
 	{
 		auto dest = m_Owner.FindDestination (m_Nickname);
@@ -523,6 +523,34 @@ namespace client
 		else
 			SendReplyError ("malformed");
 	}	
+
+	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: status ", operand);
+		if (operand == m_Nickname)
+		{
+			std::stringstream s;
+			s << "DATA"; s << " NICKNAME:"; s << operand;
+			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
+				s << " STARTING:false RUNNING:true STOPPING:false";
+			else
+				s << " STARTING:true RUNNING:false STOPPING:false";
+			s << " KEYS: true"; s << " QUIET:"; s << (m_IsQuiet ? "true":"false");
+			if (m_InPort)
+			{	
+				s << " INPORT:" << m_InPort;
+				s << " INHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+			}	
+			if (m_OutPort)
+			{ 
+				s << " OUTPORT:" << m_OutPort;
+				s << " OUTHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+			}	
+			SendReplyOK (s.str().c_str());
+		}
+		else
+			SendReplyError ("no nickname has been set");	
+	}	
 		
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, int port):
 		m_IsRunning (false), m_Thread (nullptr),
@@ -548,6 +576,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_STATUS] = &BOBCommandSession::StatusCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()

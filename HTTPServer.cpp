@@ -71,23 +71,17 @@ namespace http {
 	const char HTTP_PAGE_SAM_SESSIONS[] = "sam_sessions";
 	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
 	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
-	const char HTTP_PAGE_JUMPSERVICES[] = "jumpservices";
 	const char HTTP_PAGE_COMMANDS[] = "commands";
-	const char HTTP_COMMAND_START_ACCEPTING_TUNNELS[] = "start_accepting_tunnels";	
-	const char HTTP_COMMAND_STOP_ACCEPTING_TUNNELS[] = "stop_accepting_tunnels";	
+	const char HTTP_PAGE_LEASESETS[] = "leasesets";
+	const char HTTP_COMMAND_ENABLE_TRANSIT[] = "enable_transit";
+	const char HTTP_COMMAND_DISABLE_TRANSIT[] = "disable_transit";
 	const char HTTP_COMMAND_SHUTDOWN_START[] = "shutdown_start";
 	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
 	const char HTTP_COMMAND_SHUTDOWN_NOW[]   = "terminate";
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
 	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";	
-	const char HTTP_PARAM_BASE32_ADDRESS[] = "b32";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
-
-	std::map<std::string, std::string> jumpservices = {
-		{ "inr.i2p",    "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/search/?q=" },
-		{ "stats.i2p",  "http://7tbay5p4kzeekxvyvbf6v7eauazemsnnl2aoyqhg5jzpr5eke7tq.b32.i2p/cgi-bin/jump.cgi?a=" },
-	};
 
 	void ShowUptime (std::stringstream& s, int seconds) {
 		int num;
@@ -147,11 +141,11 @@ namespace http {
 			"  <a href=\"/\">Main page</a><br>\r\n<br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_COMMANDS << "\">Router commands</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATIONS << "\">Local destinations</a><br>\r\n"
+			"  <a href=\"/?page=" << HTTP_PAGE_LEASESETS << "\">Lease Sets</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TUNNELS << "\">Tunnels</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_JUMPSERVICES << "\">Jump services</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n"
 			"</div>\r\n"
 			"<div class=right>";
@@ -247,20 +241,6 @@ namespace http {
         s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
-	void ShowJumpServices (std::stringstream& s, const std::string& address)
-	{
-		s << "<form method=\"get\" action=\"/\">";
-		s << "<input type=\"hidden\" name=\"page\" value=\"jumpservices\">";
-		s << "<input type=\"text\" name=\"address\" value=\"" << address << "\">";
-		s << "<input type=\"submit\" value=\"Update\">";
-		s << "</form><br>\r\n";
-		s << "<b>Jump services for " << address << "</b>\r\n<ul>\r\n";
-		for (auto & js : jumpservices) {
-			s << "  <li><a href=\"" << js.second << address << "\">" << js.first << "</a></li>\r\n";
-		}
-		s << "</ul>\r\n";
-	}
-
 	void ShowLocalDestinations (std::stringstream& s)
 	{
 		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
@@ -349,6 +329,57 @@ namespace http {
 		}	
 	}
 
+	void ShowLeasesSets(std::stringstream& s)
+	{
+		s << "<div id='leasesets'>LeaseSets</div><br>";
+		// for each lease set
+		i2p::data::netdb.VisitLeaseSets(
+			[&s](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet) 
+			{
+				// create copy of lease set so we extract leases
+				i2p::data::LeaseSet ls(leaseSet->GetBuffer(), leaseSet->GetBufferLen());
+				// begin lease set entry
+				s << "<div class='leaseset";
+				if (ls.IsExpired())
+					s << " expired"; // additional css class for expired
+				s << "'>";
+				// invalid ?
+				if (!ls.IsValid())
+					s << "<div class='invalid'>!! Invalid !! </div>";
+				// ident
+				s << "<div class='ident'>" << dest.ToBase32() << "</div>";
+				// LeaseSet time
+				s << "<div class='expires'>expires: " << ls.GetExpirationTime() << "</div>";
+				// get non expired leases
+				auto leases = ls.GetNonExpiredLeases();
+				// show non expired leases
+				s << "<div class='leasecount'>Non Expired Leases: " << leases.size() << "</div>";
+				// for each lease
+				s << "<div class='leases'>";
+				for ( auto & l : leases )
+				{
+					// begin lease
+					s << "<div class='lease'>";
+					// gateway
+					s << "<div class='gateway'>Gateway: " << l->tunnelGateway.ToBase64() << "</div>";
+					// tunnel id
+					s << "<div class='tunnelID'>TunnelID: " << l->tunnelID << "</div>";
+					// end date
+					s << "<div class='endDate'>EndDate: " << l->endDate << "</div>";
+					// end lease
+					s << "</div>";
+				}
+				// end for each lease
+				s << "</div>";
+				// end lease set entry
+				s << "</div>";
+				// linebreak
+				s << "<br>";
+			}
+		);
+		// end for each lease set
+	}
+	
 	void ShowTunnels (std::stringstream& s)
 	{
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
@@ -374,10 +405,10 @@ namespace http {
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "\">Run peer test</a><br>\r\n";
 		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_STOP_ACCEPTING_TUNNELS << "\">Stop accepting tunnels</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "\">Decline transit tunnels</a><br>\r\n";
 		else	
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_START_ACCEPTING_TUNNELS << "\">Start accepting tunnels</a><br>\r\n";
-#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
+#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 		if (Daemon.gracefullShutdownInterval) {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown (";
 			s << Daemon.gracefullShutdownInterval;
@@ -649,8 +680,6 @@ namespace http {
 			ShowTunnels (s);
 		else if (page == HTTP_PAGE_COMMANDS)
 			ShowCommands (s);
-		else if (page == HTTP_PAGE_JUMPSERVICES)
-			ShowJumpServices (s, params["address"]);
 		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
 		else if (page == HTTP_PAGE_LOCAL_DESTINATIONS)
@@ -663,6 +692,8 @@ namespace http {
 			ShowSAMSession (s, params["sam_id"]);
 		else if (page == HTTP_PAGE_I2P_TUNNELS)
 			ShowI2PTunnels (s);
+		else if (page == HTTP_PAGE_LEASESETS)
+			ShowLeasesSets(s);
 		else {
 			res.code = 400;
 			ShowError(s, "Unknown page: " + page);
@@ -684,18 +715,18 @@ namespace http {
 			i2p::transport::transports.PeerTest ();
 		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
 			i2p::client::context.ReloadConfig ();
-		else if (cmd == HTTP_COMMAND_START_ACCEPTING_TUNNELS)
+		else if (cmd == HTTP_COMMAND_ENABLE_TRANSIT)
 			i2p::context.SetAcceptsTunnels (true);
-		else if (cmd == HTTP_COMMAND_STOP_ACCEPTING_TUNNELS)
+		else if (cmd == HTTP_COMMAND_DISABLE_TRANSIT)
 			i2p::context.SetAcceptsTunnels (false);
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
 			i2p::context.SetAcceptsTunnels (false);
-#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
+#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 			Daemon.gracefullShutdownInterval = 10*60;
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
-#if (!defined(WIN32) && !defined(QT_GUI_LIB)) 
+#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 			Daemon.gracefullShutdownInterval = 0;
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {

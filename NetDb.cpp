@@ -213,6 +213,7 @@ namespace data
 	bool NetDb::AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len,
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
+		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 		bool updated = false;
 		if (!from) // unsolicited LS must be received directly
 		{	
@@ -264,6 +265,7 @@ namespace data
 
 	std::shared_ptr<LeaseSet> NetDb::FindLeaseSet (const IdentHash& destination) const
 	{
+		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 		auto it = m_LeaseSets.find (destination);
 		if (it != m_LeaseSets.end ())
 			return it->second;
@@ -318,6 +320,13 @@ namespace data
 		return true;
 	}
 
+	void NetDb::VisitLeaseSets(LeaseSetVisitor v)
+	{
+		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
+		for ( auto & entry : m_LeaseSets)
+			v(entry.first, entry.second);
+	}
+	
 	void NetDb::Load ()
 	{
 		// make sure we cleanup netDb from previous attempts
@@ -623,17 +632,18 @@ namespace data
 		char key[48];
 		int l = i2p::data::ByteStreamToBase64 (buf, 32, key, 48);
 		key[l] = 0;
-		uint8_t flag = buf[64];
 
 		IdentHash replyIdent(buf + 32);
-		
+		uint8_t flag = buf[64];
+
+				
 		LogPrint (eLogDebug, "NetDb: DatabaseLookup for ", key, " recieved flags=", (int)flag);
 		uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
 		const uint8_t * excluded = buf + 65;		
 		uint32_t replyTunnelID = 0;
 		if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) //reply to tunnel
 		{
-			replyTunnelID = bufbe32toh (buf + 65);
+			replyTunnelID = bufbe32toh (excluded);
 			excluded += 4;
 		}
 		uint16_t numExcluded = bufbe16toh (excluded);	
@@ -641,7 +651,7 @@ namespace data
 		if (numExcluded > 512)
 		{
 			LogPrint (eLogWarning, "NetDb: number of excluded peers", numExcluded, " exceeds 512");
-			numExcluded = 0; // TODO:
+			return;
 		} 
 		
 		std::shared_ptr<I2NPMessage> replyMsg;
@@ -714,35 +724,39 @@ namespace data
 				}	
 				if (!found)
 				{				
-					std::set<IdentHash> excludedRouters;	
+					std::set<IdentHash> excludedRouters;
+					const uint8_t * exclude_ident = excluded;
 					for (int i = 0; i < numExcluded; i++)
 					{
-						excludedRouters.insert (excluded);
-						excluded += 32;
+						excludedRouters.insert (exclude_ident);
+						exclude_ident += 32;
 					}
 					closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
 					if (!numExcluded) // save if no excluded
 						m_LookupResponses[ident] = std::make_pair(closestFloodfills, i2p::util::GetSecondsSinceEpoch ());
 				}
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
-			}
+    		}
 		}
-		
+		excluded += numExcluded * 32;	
 		if (replyMsg)
 		{	
 			if (replyTunnelID)
 			{
 				// encryption might be used though tunnel only
-				if (flag & DATABASE_LOOKUP_ENCYPTION_FLAG) // encrypted reply requested
+				if (flag & DATABASE_LOOKUP_ENCRYPTION_FLAG) // encrypted reply requested
 				{
 					const uint8_t * sessionKey = excluded;
-					uint8_t numTags = sessionKey[32];
-					if (numTags > 0) 
+					const uint8_t numTags = excluded[32];
+					if (numTags)
 					{
-						const uint8_t * sessionTag = sessionKey + 33; // take first tag
+						const i2p::garlic::SessionTag sessionTag(excluded + 33); // take first tag
 						i2p::garlic::GarlicRoutingSession garlic (sessionKey, sessionTag);
 						replyMsg = garlic.WrapSingleMessage (replyMsg);
+						if(replyMsg == nullptr) LogPrint(eLogError, "NetDb: failed to wrap message");
 					}
+					else
+						LogPrint(eLogWarning, "NetDb: encrypted reply requested but no tags provided");
 				}	
 				auto exploratoryPool = i2p::tunnel::tunnels.GetExploratoryPool ();
 				auto outbound = exploratoryPool ? exploratoryPool->GetNextOutboundTunnel () : nullptr;

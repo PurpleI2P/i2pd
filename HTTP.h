@@ -118,6 +118,9 @@ namespace http {
 
     /** @brief Checks that response declared as chunked data */
     bool is_chunked();
+
+    /** @brief Checks that response contains compressed data */
+    bool is_gzipped();
   };
 
   /**

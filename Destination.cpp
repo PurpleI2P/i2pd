@@ -470,7 +470,7 @@ namespace client
 					else
 						LogPrint (eLogWarning, "Destination: couldn't find published LeaseSet for ", GetIdentHash().ToBase32());
 					// we have to publish again
-					s->Publish ();	
+					s->Publish ();
 				});
 		}
 	}

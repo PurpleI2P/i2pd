@@ -22,11 +22,8 @@
 #include "I2PControl.h"
 #include "ClientContext.h"
 #include "Crypto.h"
-#include "util.h"
-
-#ifdef USE_UPNP
 #include "UPnP.h"
-#endif
+#include "util.h"
 
 namespace i2p
 {
@@ -40,10 +37,7 @@ namespace i2p
 
 			std::unique_ptr<i2p::http::HTTPServer> httpServer;
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
-
-#ifdef USE_UPNP
-			i2p::transport::UPnP m_UPnP;
-#endif	
+			std::unique_ptr<i2p::transport::UPnP> UPnP;
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : isDaemon(false), running(true), d(*new Daemon_Singleton_Private()) {}
@@ -130,47 +124,16 @@ namespace i2p
 			ipv4 = false;
 			ipv6 = true;
 #endif
-
-			i2p::context.SetSupportsV6		 (ipv6);
-			i2p::context.SetSupportsV4		 (ipv4);
-
-			bool nat; i2p::config::GetOption("nat", nat);
-			if (nat)
-			{
-				LogPrint(eLogInfo, "Daemon: assuming be are behind NAT");
-				// we are behind nat, try setting via host 
-				std::string host; i2p::config::GetOption("host", host);
-				if (!i2p::config::IsDefault("host"))
-				{
-					LogPrint(eLogInfo, "Daemon: setting address for incoming connections to ", host);
-					i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));	
-				}
-			}
-			else
-			{
-				// we are not behind nat
-				std::string ifname; i2p::config::GetOption("ifname", ifname);
-				if (ifname.size())
-				{
-					// bind to interface, we have no NAT so set external address too
-					auto addr = i2p::util::net::GetInterfaceAddress(ifname, ipv6);
-					LogPrint(eLogInfo, "Daemon: bind to network interface ", ifname, " with public address ", addr);
-					i2p::context.UpdateAddress(addr);
-				}
-			}
-
-			
 			uint16_t port; i2p::config::GetOption("port", port);
 			if (!i2p::config::IsDefault("port"))
-			{	
+			{
 				LogPrint(eLogInfo, "Daemon: accepting incoming connections at port ", port);
 				i2p::context.UpdatePort (port);
-			}	
-
-      
-			bool transit; i2p::config::GetOption("notransit", transit);
+			}
 			i2p::context.SetSupportsV6		 (ipv6);
 			i2p::context.SetSupportsV4		 (ipv4);
+			
+			bool transit; i2p::config::GetOption("notransit", transit);
 			i2p::context.SetAcceptsTunnels (!transit);
 			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 			SetMaxNumTransitTunnels (transitTunnels);
@@ -249,21 +212,24 @@ namespace i2p
 			LogPrint(eLogInfo, "Daemon: starting NetDB");
 			i2p::data::netdb.Start();
 
-#ifdef USE_UPNP
-			LogPrint(eLogInfo, "Daemon: starting UPnP");
-			d.m_UPnP.Start ();
-#endif
+			bool upnp; i2p::config::GetOption("upnp.enabled", upnp);
+			if (upnp) {
+				d.UPnP = std::unique_ptr<i2p::transport::UPnP>(new i2p::transport::UPnP);
+				d.UPnP->Start ();
+			}
+
 			bool ntcp; i2p::config::GetOption("ntcp", ntcp);
 			bool ssu; i2p::config::GetOption("ssu", ssu);
 			LogPrint(eLogInfo, "Daemon: starting Transports");
-			if(!ssu) LogPrint(eLogDebug, "Daemon: ssu disabled");
-			if(!ntcp) LogPrint(eLogDebug, "Daemon: ntcp disabled");
+			if(!ssu) LogPrint(eLogInfo, "Daemon: ssu disabled");
+			if(!ntcp) LogPrint(eLogInfo, "Daemon: ntcp disabled");
 			i2p::transport::transports.Start(ntcp, ssu);
 			if (i2p::transport::transports.IsBoundNTCP() || i2p::transport::transports.IsBoundSSU()) {
 				LogPrint(eLogInfo, "Daemon: Transports started");
 			} else {
 				LogPrint(eLogError, "Daemon: failed to start Transports");
 				/** shut down netdb right away */
+				i2p::transport::transports.Stop();
 				i2p::data::netdb.Stop();
 				return false;
 			}
@@ -304,10 +270,12 @@ namespace i2p
 			i2p::client::context.Stop();
 			LogPrint(eLogInfo, "Daemon: stopping Tunnels");
 			i2p::tunnel::tunnels.Stop();
-#ifdef USE_UPNP
-			LogPrint(eLogInfo, "Daemon: stopping UPnP");
-			d.m_UPnP.Stop ();
-#endif			
+
+			if (d.UPnP) {
+				d.UPnP->Stop ();
+				d.UPnP = nullptr;
+			}
+
 			LogPrint(eLogInfo, "Daemon: stopping Transports");
 			i2p::transport::transports.Stop();
 			LogPrint(eLogInfo, "Daemon: stopping NetDB");

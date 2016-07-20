@@ -237,3 +237,4 @@ pip-log.txt
 
 # Sphinx
 docs/_build
+/androidIdea/

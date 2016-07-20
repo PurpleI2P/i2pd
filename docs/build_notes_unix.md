@@ -16,7 +16,7 @@ Let's clone the repository and start building the i2pd:
 git clone https://github.com/PurpleI2P/i2pd.git
 cd i2pd/build
 cmake -DCMAKE_BUILD_TYPE=Release # more options could be passed, see "CMake Options"
-make
+make                             # you may add VERBOSE=1 to cmdline for debugging
 ```
 
 After successfull build i2pd could be installed with:
