@@ -128,7 +128,7 @@ namespace config {
       ;
 
 	bool upnp_default = false;
-#if (defined(USE_UPNP) && ((defined(WIN32) && defined(USE_WIN32_APP)) || defined(ANDROID)))
+#if (defined(USE_UPNP) && (defined(WIN32_APP) || defined(ANDROID)))
 	upnp_default = true; // enable UPNP for windows GUI and android by default	
 #endif
   	options_description upnp("UPnP options");
