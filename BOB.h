@@ -188,7 +188,7 @@ namespace client
 			boost::asio::ip::tcp::socket m_Socket;
 			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1], m_SendBuffer[BOB_COMMAND_BUFFER_SIZE + 1];
 			size_t m_ReceiveBufferOffset;
-			bool m_IsOpen, m_IsQuiet;
+			bool m_IsOpen, m_IsQuiet, m_IsActive;
 			std::string m_Nickname, m_Address;
 			int m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;
