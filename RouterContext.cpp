@@ -53,16 +53,25 @@ namespace i2p
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
 		bool nat;  i2p::config::GetOption("nat", nat);
 		std::string ifname; i2p::config::GetOption("ifname", ifname);
-		std::string host = ipv6 ? "::" : "127.0.0.1";
-		if (nat) {
+		if (ipv4)
+		{
+			std::string host = "127.0.0.1";
 			if (!i2p::config::IsDefault("host"))
 				i2p::config::GetOption("host", host);
-		} else if (!ifname.empty()) {
-			/* bind to interface, we have no NAT so set external address too */
-			host = i2p::util::net::GetInterfaceAddress(ifname, ipv6).to_string();
+			else if (!nat && !ifname.empty())
+				/* bind to interface, we have no NAT so set external address too */
+				host = i2p::util::net::GetInterfaceAddress(ifname, false).to_string(); // v4
+			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
+			routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
-		routerInfo.AddSSUAddress	(host.c_str(), port, routerInfo.GetIdentHash ());
-		routerInfo.AddNTCPAddress (host.c_str(), port);
+		if (ipv6)
+		{
+			std::string host = "::";
+			if (!ifname.empty()) 
+				host = i2p::util::net::GetInterfaceAddress(ifname, true).to_string(); // v6
+			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
+			routerInfo.AddNTCPAddress (host.c_str(), port);
+		}
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
         routerInfo.SetProperty ("netId", std::to_string (I2PD_NET_ID));
