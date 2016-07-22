@@ -68,8 +68,8 @@ All options below still possible in cmdline, but better write it in config file:
 * --i2pcontrol.port=    - Port of I2P control service. Usually 7650. I2PControl is off if not specified
 * --i2pcontrol.enabled= - If I2P control is enabled. false by default   
 
-* --upnp.enabled=       - Enable or disable UPnP, false by default for CLI and true for GUI (Windows, Android)
-
+* --upnp.enabled=       - Enable or disable UPnP, false by default for CLI and true for GUI (Windows, Android)  
+* --upnp.name=          - Name i2pd appears in UPnP forwardings list. I2Pd by default  
 * --precomputation.elgamal=  - Use ElGamal precomputated tables. false for x64 and true for other platforms by default  
 
 * --limits.transittunnels=  - Override maximum number of transit tunnels. 2500 by default   

@@ -128,12 +128,13 @@ namespace config {
       ;
 
 	bool upnp_default = false;
-#if (defined(USE_UPNP) && ((defined(WIN32) && defined(USE_WIN32_APP)) || defined(ANDROID)))
+#if (defined(USE_UPNP) && (defined(WIN32_APP) || defined(ANDROID)))
 	upnp_default = true; // enable UPNP for windows GUI and android by default	
 #endif
   	options_description upnp("UPnP options");
   	upnp.add_options()
     ("upnp.enabled",  value<bool>()->default_value(upnp_default),             "Enable or disable UPnP: automatic port forwarding")
+	("upnp.name", value<std::string>()->default_value("I2Pd"), "Name i2pd appears in UPnP forwardings list") 
     ;
 
 	options_description precomputation("Precomputation options");

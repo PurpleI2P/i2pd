@@ -4,6 +4,7 @@
 #ifdef USE_UPNP
 #include <string>
 #include <thread>
+#include <memory>
 
 #include <miniupnpc/miniwget.h>
 #include <miniupnpc/miniupnpc.h>
@@ -13,9 +14,6 @@
 #include <boost/asio.hpp>
 
 #include "util.h"
-
-#define I2P_UPNP_TCP 1
-#define I2P_UPNP_UDP 2
 
 namespace i2p
 {
@@ -32,13 +30,23 @@ namespace transport
         void Start ();
         void Stop ();
 
-		void Discover ();
-		void TryPortMapping (int type, int port);
-		void CloseMapping (int type, int port);
 	private:
-		void Run ();
 
-        std::thread * m_Thread;
+		void Discover ();
+		void PortMapping ();
+		void TryPortMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+		void CloseMapping ();
+		void CloseMapping (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+
+		void Run ();
+		std::string GetProto (std::shared_ptr<i2p::data::RouterInfo::Address> address);
+
+	private:
+	
+		bool m_IsRunning;
+        std::unique_ptr<std::thread> m_Thread;
+		boost::asio::io_service m_Service;
+		boost::asio::deadline_timer m_Timer;
         struct UPNPUrls m_upnpUrls;
         struct IGDdatas m_upnpData;
 

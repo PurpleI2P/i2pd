@@ -11,6 +11,7 @@
 #include "Identity.h"
 #include "FS.h"
 #include "Log.h"
+#include "HTTP.h"
 #include "NetDb.h"
 #include "ClientContext.h"
 #include "AddressBook.h"
@@ -339,12 +340,12 @@ namespace client
 		std::ifstream f (i2p::fs::DataDirPath("hosts.txt"), std::ifstream::in); // in text mode
 		if (f.is_open ())	
 		{
-			LoadHostsFromStream (f);
+			LoadHostsFromStream (f, false);
 			m_IsLoaded = true;
 		}
 	}
 
-	bool AddressBook::LoadHostsFromStream (std::istream& f)
+	bool AddressBook::LoadHostsFromStream (std::istream& f, bool is_update)
 	{
 		std::unique_lock<std::mutex> l(m_AddressBookMutex);
 		int numAddresses = 0;
@@ -365,17 +366,18 @@ namespace client
 				std::string addr = s.substr(pos);
 
 				auto ident = std::make_shared<i2p::data::IdentityEx> ();
-				if (ident->FromBase64(addr))
-				{	
-					m_Addresses[name] = ident->GetIdentHash ();
-					m_Storage->AddAddress (ident);
-					numAddresses++;
-				}	
-				else
-				{
+				if (!ident->FromBase64(addr)) {
 					LogPrint (eLogError, "Addressbook: malformed address ", addr, " for ", name);
 					incomplete = f.eof ();
+					continue;
 				}
+				numAddresses++;
+				if (m_Addresses.count(name) > 0)
+					continue; /* already exists */
+				m_Addresses[name] = ident->GetIdentHash ();
+				m_Storage->AddAddress (ident);
+				if (is_update)
+					LogPrint(eLogInfo, "Addressbook: added new host: ", name);
 			}	
 			else
 				incomplete = f.eof ();
@@ -516,14 +518,15 @@ namespace client
 					if (!m_DefaultSubscription)
 						m_DefaultSubscription.reset (new AddressBookSubscription (*this, DEFAULT_SUBSCRIPTION_ADDRESS));
 					m_IsDownloading = true;	
-					m_DefaultSubscription->CheckSubscription ();
+					m_DefaultSubscription->CheckUpdates ();
 				}	
 				else if (!m_Subscriptions.empty ())
 				{	
 					// pick random subscription
 					auto ind = rand () % m_Subscriptions.size();	
 					m_IsDownloading = true;	
-					m_Subscriptions[ind]->CheckSubscription ();
+					std::thread load_hosts(&AddressBookSubscription::CheckUpdates, m_Subscriptions[ind]);
+					load_hosts.detach(); // TODO: use join
 				}	
 			}
 			else
@@ -569,7 +572,7 @@ namespace client
 			ident = FindAddress (address.substr (dot + 1));
 		if (!ident)
 		{
-			LogPrint (eLogError, "AddressBook: Can't find domain for ", address);
+			LogPrint (eLogError, "Addressbook: Can't find domain for ", address);
 			return;
 		}	
 		
@@ -585,7 +588,7 @@ namespace client
 					std::unique_lock<std::mutex> l(m_LookupsMutex);
 					m_Lookups[nonce] = address; 
 				}	
-				LogPrint (eLogDebug, "AddressBook: Lookup of ", address, " to ", ident->ToBase32 (), " nonce=", nonce);
+				LogPrint (eLogDebug, "Addressbook: Lookup of ", address, " to ", ident->ToBase32 (), " nonce=", nonce);
 				size_t len = address.length () + 9;
 				uint8_t * buf = new uint8_t[len];
 				memset (buf, 0, 4);
@@ -602,11 +605,11 @@ namespace client
 	{
 		if (len < 44)
 		{
-			LogPrint (eLogError, "AddressBook: Lookup response is too short ", len);
+			LogPrint (eLogError, "Addressbook: Lookup response is too short ", len);
 			return;
 		}
 		uint32_t nonce = bufbe32toh (buf + 4);
-		LogPrint (eLogDebug, "AddressBook: Lookup response received from ", from.GetIdentHash ().ToBase32 (), " nonce=", nonce);
+		LogPrint (eLogDebug, "Addressbook: Lookup response received from ", from.GetIdentHash ().ToBase32 (), " nonce=", nonce);
 		std::string address;
 		{
 			std::unique_lock<std::mutex> l(m_LookupsMutex);
@@ -629,168 +632,153 @@ namespace client
 	{
 	}
 
-	void AddressBookSubscription::CheckSubscription ()
+	void AddressBookSubscription::CheckUpdates ()
 	{
-		std::thread load_hosts(&AddressBookSubscription::Request, this);
-		load_hosts.detach(); // TODO: use join
+		bool result = MakeRequest ();
+		m_Book.DownloadComplete (result, m_Ident, m_Etag, m_LastModified);
 	}
 
-	void AddressBookSubscription::Request ()
+	bool AddressBookSubscription::MakeRequest ()
 	{
+		i2p::http::URL url;
 		// must be run in separate thread	
-		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
-		bool success = false;	
-		i2p::util::http::url u (m_Link);
-		i2p::data::IdentHash ident;
-		if (m_Book.GetIdentHash (u.host_, ident))
-		{
-			if (!m_Etag.length ())
-			{ 
-				// load ETag
-				m_Book.GetEtag (ident, m_Etag, m_LastModified);
-				LogPrint (eLogInfo, "Addressbook: set ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
-			}	
-			std::condition_variable newDataReceived;
-			std::mutex newDataReceivedMutex;
-			auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (ident);
-			if (!leaseSet)
-			{
-				std::unique_lock<std::mutex> l(newDataReceivedMutex);
-				i2p::client::context.GetSharedLocalDestination ()->RequestDestination (ident,
-					[&newDataReceived, &leaseSet](std::shared_ptr<i2p::data::LeaseSet> ls)
-				    {
-						leaseSet = ls;
-						newDataReceived.notify_all ();
-					});
-				if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
-				{	
-					LogPrint (eLogError, "Addressbook: Subscription LeaseSet request timeout expired");
-					i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (ident);
-				}	
-			}
-			if (leaseSet)
-			{
-				std::stringstream request, response;
-				// standard header
-				request << "GET "   << u.path_ << " HTTP/1.1\r\n"
-				        << "Host: " << u.host_ << "\r\n"
-				        << "Accept: */*\r\n"
-				        << "User-Agent: Wget/1.11.4\r\n"
-						//<< "Accept-Encoding: gzip\r\n"
-						<< "X-Accept-Encoding: x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n"
-				        << "Connection: close\r\n";
-				if (m_Etag.length () > 0) // etag
-					request << i2p::util::http::IF_NONE_MATCH << ": " << m_Etag << "\r\n";
-				if (m_LastModified.length () > 0) // if-modfief-since
-					request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
-				request << "\r\n"; // end of header
-				auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, u.port_);
-				stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
-				
-				uint8_t buf[4096];
-				bool end = false;
-				while (!end)
-				{
-					stream->AsyncReceive (boost::asio::buffer (buf, 4096), 
-						[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
-						{
-							if (bytes_transferred)
-								response.write ((char *)buf, bytes_transferred);
-							if (ecode == boost::asio::error::timed_out || !stream->IsOpen ())
-								end = true;	
-							newDataReceived.notify_all ();
-						},
-						30); // wait for 30 seconds
-					std::unique_lock<std::mutex> l(newDataReceivedMutex);
-					if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
-						LogPrint (eLogError, "Addressbook: subscriptions request timeout expired");
-				}
-				// process remaining buffer
-				while (size_t len = stream->ReadSome (buf, 4096))
-					response.write ((char *)buf, len);
-				
-				// parse response
-				std::string version;
-				response >> version; // HTTP version
-				int status = 0;
-				response >> status; // status
-				if (status == 200) // OK
-				{
-					bool isChunked = false, isGzip = false;
-					m_Etag = ""; m_LastModified = "";
-					std::string header, statusMessage;
-					std::getline (response, statusMessage);
-					// read until new line meaning end of header
-					while (!response.eof () && header != "\r")
-					{
-						std::getline (response, header);
-						if (response.fail ()) break;
-						auto colon = header.find (':');
-						if (colon != std::string::npos)
-						{
-							std::string field = header.substr (0, colon);
-							boost::to_lower (field); // field are not case-sensitive
-							colon++;
-							header.resize (header.length () - 1); // delete \r	
-							if (field == i2p::util::http::ETAG)
-								m_Etag = header.substr (colon + 1);
-							else if (field == i2p::util::http::LAST_MODIFIED)
-								m_LastModified = header.substr (colon + 1);
-							else if (field == i2p::util::http::TRANSFER_ENCODING)
-								isChunked = !header.compare (colon + 1, std::string::npos, "chunked");
-							else if (field == i2p::util::http::CONTENT_ENCODING)
-								isGzip = !header.compare (colon + 1, std::string::npos, "gzip") ||
-									!header.compare (colon + 1, std::string::npos, "x-i2p-gzip");
-						}	
-					}
-					LogPrint (eLogInfo, "Addressbook: received ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
-					if (!response.eof () && !response.fail ())	
-					{
-						if (!isChunked)
-							success = ProcessResponse (response, isGzip);
-						else
-						{
-							// merge chunks
-							std::stringstream merged;
-							i2p::util::http::MergeChunkedResponse (response, merged);
-							success = ProcessResponse (merged, isGzip);
-						}	
-					}	
-				}
-				else if (status == 304)
-				{	
-					success = true;
-					LogPrint (eLogInfo, "Addressbook: no updates from ", m_Link);
-				}	
-				else
-					LogPrint (eLogWarning, "Adressbook: HTTP response ", status);
-			}
-			else
-				LogPrint (eLogError, "Addressbook: address ", u.host_, " not found");
+		LogPrint (eLogInfo, "Addressbook: Downloading hosts database from ", m_Link);
+		if (!url.parse(m_Link)) {
+			LogPrint(eLogError, "Addressbook: failed to parse url: ", m_Link);
+			return false;
 		}
-		else
-			LogPrint (eLogError, "Addressbook: Can't resolve ", u.host_);
-
-		if (!success)
-			LogPrint (eLogError, "Addressbook: download hosts.txt from ", m_Link, " failed");
-
-		m_Book.DownloadComplete (success, ident, m_Etag, m_LastModified);
-	}
-
-	bool AddressBookSubscription::ProcessResponse (std::stringstream& s, bool isGzip)
-	{
-		if (isGzip)
+		if (!m_Book.GetIdentHash (url.host, m_Ident)) {
+			LogPrint (eLogError, "Addressbook: Can't resolve ", url.host);
+			return false;
+		}
+		/* this code block still needs some love */
+		std::condition_variable newDataReceived;
+		std::mutex newDataReceivedMutex;
+		auto leaseSet = i2p::client::context.GetSharedLocalDestination ()->FindLeaseSet (m_Ident);
+		if (!leaseSet)
 		{
-			std::stringstream uncompressed;
-			i2p::data::GzipInflator inflator;
-			inflator.Inflate (s, uncompressed);
-			if (!uncompressed.fail ())
-				return m_Book.LoadHostsFromStream (uncompressed);
-			else
+			std::unique_lock<std::mutex> l(newDataReceivedMutex);
+			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (m_Ident,
+				[&newDataReceived, &leaseSet](std::shared_ptr<i2p::data::LeaseSet> ls)
+			    {
+					leaseSet = ls;
+					newDataReceived.notify_all ();
+				});
+			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+			{
+				LogPrint (eLogError, "Addressbook: Subscription LeaseSet request timeout expired");
+				i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (m_Ident);
 				return false;
-		}	
-		else
-			return m_Book.LoadHostsFromStream (s);
+			}
+		}
+		if (!leaseSet) {
+			/* still no leaseset found */
+			LogPrint (eLogError, "Addressbook: LeaseSet for address ", url.host, " not found");
+			return false;
+		}
+		if (m_Etag.empty() && m_LastModified.empty()) {
+			m_Book.GetEtag (m_Ident, m_Etag, m_LastModified);
+			LogPrint (eLogDebug, "Addressbook: loaded for ", url.host, ": ETag: ", m_Etag, ", Last-Modified: ", m_LastModified);
+		}
+		/* save url parts for later use */
+		std::string dest_host = url.host;
+		int         dest_port = url.port ? url.port : 80;
+		/* create http request & send it */
+		i2p::http::HTTPReq req;
+		req.add_header("Host", dest_host);
+		req.add_header("User-Agent", "Wget/1.11.4");
+		req.add_header("Connection", "close");
+		if (!m_Etag.empty())
+			req.add_header("If-None-Match", m_Etag);
+		if (!m_LastModified.empty())
+			req.add_header("If-Modified-Since", m_LastModified);
+		/* convert url to relative */
+		url.schema = "";
+		url.host   = "";
+		req.uri  = url.to_string();
+		auto stream = i2p::client::context.GetSharedLocalDestination ()->CreateStream (leaseSet, dest_port);
+		std::string request = req.to_string();
+		stream->Send ((const uint8_t *) request.data(), request.length());
+		/* read response */
+		std::string response;
+		uint8_t recv_buf[4096];
+		bool end = false;
+		while (!end) {
+			stream->AsyncReceive (boost::asio::buffer (recv_buf, 4096),
+				[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
+				{
+					if (bytes_transferred)
+						response.append ((char *)recv_buf, bytes_transferred);
+					if (ecode == boost::asio::error::timed_out || !stream->IsOpen ())
+						end = true;
+					newDataReceived.notify_all ();
+				},
+				30); // wait for 30 seconds
+			std::unique_lock<std::mutex> l(newDataReceivedMutex);
+			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+				LogPrint (eLogError, "Addressbook: subscriptions request timeout expired");
+		}
+		// process remaining buffer
+		while (size_t len = stream->ReadSome (recv_buf, sizeof(recv_buf))) {
+			response.append ((char *)recv_buf, len);
+		}
+		/* parse response */
+		i2p::http::HTTPRes res;
+		int res_head_len = res.parse(response);
+		if (res_head_len < 0) {
+			LogPrint(eLogError, "Addressbook: can't parse http response from ", dest_host);
+			return false;
+		}
+		if (res_head_len == 0) {
+			LogPrint(eLogError, "Addressbook: incomplete http response from ", dest_host, ", interrupted by timeout");
+			return false;
+		}
+		/* assert: res_head_len > 0 */
+		response.erase(0, res_head_len);
+		if (res.code == 304) {
+			LogPrint (eLogInfo, "Addressbook: no updates from ", dest_host, ", code 304");
+			return false;
+		}
+		if (res.code != 200) {
+			LogPrint (eLogWarning, "Adressbook: can't get updates from ", dest_host, ", response code ", res.code);
+			return false;
+		}
+		int len = res.content_length();
+		if (response.empty()) {
+			LogPrint(eLogError, "Addressbook: empty response from ", dest_host, ", expected ", len, " bytes");
+			return false;
+		}
+		if (len > 0 && len != (int) response.length()) {
+			LogPrint(eLogError, "Addressbook: response size mismatch, expected: ", response.length(), ", got: ", len, "bytes");
+			return false;
+		}
+		/* assert: res.code == 200 */
+		auto it = res.headers.find("ETag");
+		if (it != res.headers.end()) {
+			m_Etag = it->second;
+		}
+		it = res.headers.find("If-Modified-Since");
+		if (it != res.headers.end()) {
+			m_LastModified = it->second;
+		}
+		if (res.is_chunked()) {
+			std::stringstream in(response), out;
+			i2p::http::MergeChunkedResponse (in, out);
+			response = out.str();
+		} else if (res.is_gzipped()) {
+			std::stringstream out;
+			i2p::data::GzipInflator inflator;
+			inflator.Inflate ((const uint8_t *) response.data(), response.length(), out);
+			if (out.fail()) {
+				LogPrint(eLogError, "Addressbook: can't gunzip http response");
+				return false;
+			}
+			response = out.str();
+		}
+		std::stringstream ss(response);
+		LogPrint (eLogInfo, "Addressbook: got update from ", dest_host);
+		m_Book.LoadHostsFromStream (ss, true);
+		return true;
 	}
 
 	AddressResolver::AddressResolver (std::shared_ptr<ClientDestination> destination):
@@ -821,7 +809,7 @@ namespace client
 	{
 		if (len < 9 || len < buf[8] + 9U)
 		{
-			LogPrint (eLogError, "AddressBook: Address request is too short ", len);
+			LogPrint (eLogError, "Addressbook: Address request is too short ", len);
 			return;
 		}
 		// read requested address
@@ -829,7 +817,7 @@ namespace client
 		char address[255];
 		memcpy (address, buf + 9, l);
 		address[l] = 0;		
-		LogPrint (eLogDebug, "AddressBook: Address request ", address);
+		LogPrint (eLogDebug, "Addressbook: Address request ", address);
 		// send response
 		uint8_t response[44];
 		memset (response, 0, 4); // reserved

@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <list>
 #include <iostream>
 #include <boost/asio.hpp>
 #include "Identity.h"
@@ -105,7 +106,7 @@ namespace data
 					return !(*this == other);
 				}	
 			};
-			typedef std::vector<std::shared_ptr<Address> > Addresses;			
+			typedef std::list<std::shared_ptr<Address> > Addresses;			
 
 			RouterInfo ();
 			RouterInfo (const std::string& fullPath);

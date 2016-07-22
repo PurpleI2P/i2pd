@@ -36,13 +36,12 @@ namespace client
 	const char BOB_COMMAND_CLEAR[] = "clear";
 	const char BOB_COMMAND_LIST[] = "list";
 	const char BOB_COMMAND_OPTION[] = "option";
+	const char BOB_COMMAND_STATUS[] = "status";	
 	
 	const char BOB_VERSION[] = "BOB 00.00.10\nOK\n";	
 	const char BOB_REPLY_OK[] = "OK %s\n";
 	const char BOB_REPLY_ERROR[] = "ERROR %s\n";
 	const char BOB_DATA[] = "NICKNAME %s\n";
-
-	const int BOB_SESSION_READINESS_CHECK_INTERVAL = 5; // in seconds
 
 	class BOBI2PTunnel: public I2PService
 	{
@@ -170,12 +169,12 @@ namespace client
 			void ClearCommandHandler (const char * operand, size_t len);
 			void ListCommandHandler (const char * operand, size_t len);
 			void OptionCommandHandler (const char * operand, size_t len);
+			void StatusCommandHandler (const char * operand, size_t len);
 			
 		private:
 
 			void Receive ();
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);
 
 			void Send (size_t len);
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -187,10 +186,9 @@ namespace client
 
 			BOBCommandChannel& m_Owner;
 			boost::asio::ip::tcp::socket m_Socket;
-			boost::asio::deadline_timer m_Timer;
 			char m_ReceiveBuffer[BOB_COMMAND_BUFFER_SIZE + 1], m_SendBuffer[BOB_COMMAND_BUFFER_SIZE + 1];
 			size_t m_ReceiveBufferOffset;
-			bool m_IsOpen, m_IsQuiet;
+			bool m_IsOpen, m_IsQuiet, m_IsActive;
 			std::string m_Nickname, m_Address;
 			int m_InPort, m_OutPort;
 			i2p::data::PrivateKeys m_Keys;

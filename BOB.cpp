@@ -202,8 +202,8 @@ namespace client
 	}	
 		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
-		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
-		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), 
+		m_Owner (owner), m_Socket (m_Owner.GetService ()),
+		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), m_IsActive (false), 
 		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr)
 	{
 	}
@@ -354,6 +354,11 @@ namespace client
 	void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
+		if (m_IsActive)
+		{
+			SendReplyError ("tunnel is active");
+			return; 
+		}
 		if (!m_CurrentDestination)
 		{	
 			m_CurrentDestination = new BOBDestination (i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options));
@@ -364,41 +369,27 @@ namespace client
 		if (m_OutPort && !m_Address.empty ())
 			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
 		m_CurrentDestination->Start ();	
-		if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-			SendReplyOK ("tunnel starting");
-		else
-		{
-			m_Timer.expires_from_now (boost::posix_time::seconds(BOB_SESSION_READINESS_CHECK_INTERVAL));
-			m_Timer.async_wait (std::bind (&BOBCommandSession::HandleSessionReadinessCheckTimer,
-				shared_from_this (), std::placeholders::_1));
-		}	
+		SendReplyOK ("Tunnel starting");
+		m_IsActive = true;
 	}	
-	
-	void BOBCommandSession::HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{
-			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-				SendReplyOK ("tunnel starting");
-			else
-			{
-				m_Timer.expires_from_now (boost::posix_time::seconds(BOB_SESSION_READINESS_CHECK_INTERVAL));
-				m_Timer.async_wait (std::bind (&BOBCommandSession::HandleSessionReadinessCheckTimer,
-					shared_from_this (), std::placeholders::_1));
-			}	
-		}	
-	}
 
 	void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
 	{
+		LogPrint (eLogDebug, "BOB: stop ", m_Nickname);
+		if (!m_IsActive)
+		{
+			SendReplyError ("tunnel is inactive");
+			return;
+		}
 		auto dest = m_Owner.FindDestination (m_Nickname);
 		if (dest)
 		{
 			dest->StopTunnels ();
-			SendReplyOK ("tunnel stopping");
+			SendReplyOK ("Tunnel stopping");
 		}
 		else
 			SendReplyError ("tunnel not found");
+		m_IsActive = false;
 	}	
 	
 	void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
@@ -406,7 +397,7 @@ namespace client
 		LogPrint (eLogDebug, "BOB: setnick ", operand);
 		m_Nickname = operand;
 		std::string msg ("Nickname set to ");
-		msg += operand;
+		msg += m_Nickname;
 		SendReplyOK (msg.c_str ());
 	}	
 
@@ -418,12 +409,15 @@ namespace client
 		{
 			m_Keys = m_CurrentDestination->GetKeys ();
 			m_Nickname = operand;
-			std::string msg ("Nickname set to ");
-			msg += operand;
-			SendReplyOK (msg.c_str ());
 		}
+		if (m_Nickname == operand)
+		{	
+			std::string msg ("Nickname set to ");
+			msg += m_Nickname;
+			SendReplyOK (msg.c_str ());
+		}	
 		else
-			SendReplyError ("tunnel not found");	
+			SendReplyError ("no nickname has been set");	
 	}	
 
 	void BOBCommandSession::NewkeysCommandHandler (const char * operand, size_t len)
@@ -463,7 +457,10 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: outport ", operand);
 		m_OutPort = boost::lexical_cast<int>(operand);
-		SendReplyOK ("outbound port set");
+		if (m_OutPort >= 0)
+			SendReplyOK ("outbound port set");
+		else
+			SendReplyError ("port out of range");
 	}	
 
 	void BOBCommandSession::InhostCommandHandler (const char * operand, size_t len)
@@ -477,14 +474,27 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: inport ", operand);
 		m_InPort = boost::lexical_cast<int>(operand);
-		SendReplyOK ("inbound port set");
+		if (m_InPort >= 0)
+			SendReplyOK ("inbound port set");
+		else
+			SendReplyError ("port out of range");
 	}		
 
 	void BOBCommandSession::QuietCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: quiet");
-		m_IsQuiet = true;
-		SendReplyOK ("quiet");
+		if (m_Nickname.length () > 0)
+		{
+			if (!m_IsActive)
+			{
+				m_IsQuiet = true;
+				SendReplyOK ("Quiet set");
+			}
+			else
+				SendReplyError ("tunnel is active");
+		}
+		else
+			SendReplyError ("no nickname has been set");
 	}	
 	
 	void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
@@ -519,6 +529,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: clear");
 		m_Owner.DeleteDestination (m_Nickname);
+		m_Nickname = "";
 		SendReplyOK ("cleared");
 	}	
 
@@ -537,13 +548,45 @@ namespace client
 		const char * value = strchr (operand, '=');
 		if (value)
 		{	
+			std::string msg ("option ");
 			*(const_cast<char *>(value)) = 0;
 			m_Options[operand] = value + 1; 
+			msg += operand;
 			*(const_cast<char *>(value)) = '=';
-			SendReplyOK ("option");
+			msg += " set to ";
+			msg += value;	
+			SendReplyOK (msg.c_str ());
 		}	
 		else
 			SendReplyError ("malformed");
+	}	
+
+	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
+	{
+		LogPrint (eLogDebug, "BOB: status ", operand);
+		if (m_Nickname == operand)
+		{
+			std::stringstream s;
+			s << "DATA"; s << " NICKNAME:"; s << m_Nickname;
+			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
+				s << " STARTING:false RUNNING:true STOPPING:false";
+			else
+				s << " STARTING:true RUNNING:false STOPPING:false";
+			s << " KEYS: true"; s << " QUIET:"; s << (m_IsQuiet ? "true":"false");
+			if (m_InPort)
+			{	
+				s << " INPORT:" << m_InPort;
+				s << " INHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+			}	
+			if (m_OutPort)
+			{ 
+				s << " OUTPORT:" << m_OutPort;
+				s << " OUTHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+			}	
+			SendReplyOK (s.str().c_str());
+		}
+		else
+			SendReplyError ("no nickname has been set");	
 	}	
 		
 	BOBCommandChannel::BOBCommandChannel (const std::string& address, int port):
@@ -570,6 +613,7 @@ namespace client
 		m_CommandHandlers[BOB_COMMAND_CLEAR] = &BOBCommandSession::ClearCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_LIST] = &BOBCommandSession::ListCommandHandler;
 		m_CommandHandlers[BOB_COMMAND_OPTION] = &BOBCommandSession::OptionCommandHandler;
+		m_CommandHandlers[BOB_COMMAND_STATUS] = &BOBCommandSession::StatusCommandHandler;
 	}
 
 	BOBCommandChannel::~BOBCommandChannel ()

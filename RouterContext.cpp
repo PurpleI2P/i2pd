@@ -51,7 +51,16 @@ namespace i2p
 			port = rand () % (30777 - 9111) + 9111; // I2P network ports range
 		bool ipv4; i2p::config::GetOption("ipv4", ipv4);
 		bool ipv6; i2p::config::GetOption("ipv6", ipv6);
-		std::string host = i2p::util::config::GetHost(ipv4, ipv6);
+		bool nat;  i2p::config::GetOption("nat", nat);
+		std::string ifname; i2p::config::GetOption("ifname", ifname);
+		std::string host = ipv6 ? "::" : "127.0.0.1";
+		if (nat) {
+			if (!i2p::config::IsDefault("host"))
+				i2p::config::GetOption("host", host);
+		} else if (!ifname.empty()) {
+			/* bind to interface, we have no NAT so set external address too */
+			host = i2p::util::net::GetInterfaceAddress(ifname, ipv6).to_string();
+		}
 		routerInfo.AddSSUAddress	(host.c_str(), port, routerInfo.GetIdentHash ());
 		routerInfo.AddNTCPAddress (host.c_str(), port);
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
@@ -224,11 +233,12 @@ namespace i2p
 		m_RouterInfo.SetCaps (i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting); // LU, B
 		// remove NTCP address
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (size_t i = 0; i < addresses.size (); i++)
+		for (auto it = addresses.begin (); it != addresses.end (); it++)
 		{
-			if (addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
+				(*it)->host.is_v4 ())
 			{
-				addresses.erase (addresses.begin () + i);
+				addresses.erase (it);
 				break;
 			}
 		}	
@@ -253,12 +263,13 @@ namespace i2p
 		
 		// insert NTCP back
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (size_t i = 0; i < addresses.size (); i++)
+		for (auto addr : addresses)
 		{
-			if (addresses[i]->transportStyle == i2p::data::RouterInfo::eTransportSSU)
+			if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
+				addr->host.is_v4 ())
 			{
 				// insert NTCP address with host/port from SSU
-				m_RouterInfo.AddNTCPAddress (addresses[i]->host.to_string ().c_str (), addresses[i]->port);
+				m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
 				break;
 			}
 		}		
