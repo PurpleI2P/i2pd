@@ -60,6 +60,7 @@ namespace data
 			bool IsExpired () const;
 			bool IsEmpty () const { return m_Leases.empty (); };
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
+			bool ExpiresSoon(const uint64_t dlt=1000 * 5) const ;
 			bool operator== (const LeaseSet& other) const 
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }; 
 

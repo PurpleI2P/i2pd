@@ -768,6 +768,7 @@ namespace transport
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
 			for (auto address: addresses)
 			{
+				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 				{
 					if (address->host.is_v4())

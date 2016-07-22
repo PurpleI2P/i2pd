@@ -162,7 +162,14 @@ namespace data
 	{
 		return ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
 	}	
-		
+
+	bool LeaseSet::ExpiresSoon(const uint64_t dlt) const
+	{
+		auto now = i2p::util::GetMillisecondsSinceEpoch ();
+		if (now >= m_ExpirationTime) return true;
+		return	m_ExpirationTime - now <= dlt;
+	}
+	
 	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
