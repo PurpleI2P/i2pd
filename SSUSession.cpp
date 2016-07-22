@@ -930,10 +930,10 @@ namespace transport
 	{
 		uint32_t nonce = bufbe32toh (buf); // 4 bytes
 		uint8_t size = buf[4];	// 1 byte	
-		uint32_t address = (size == 4) ? buf32toh(buf + 5) : 0; // big endian, size bytes
+		const uint8_t * address = buf + 5; // big endian, size bytes
 		uint16_t port = buf16toh(buf + size + 5); // big endian, 2 bytes
 		const uint8_t * introKey = buf + size + 7;
-		if (port && !address)
+		if (port && (size != 4) && (size != 16)) 
 		{
 			LogPrint (eLogWarning, "SSU: Address of ", size, " bytes not supported");
 			return;
@@ -954,8 +954,7 @@ namespace transport
 					LogPrint (eLogDebug, "SSU: first peer test from Charlie. We are Alice");
 					i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
-					SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (), 
-						senderEndpoint.port (), introKey, true, false); // to Charlie
+					SendPeerTest (nonce, senderEndpoint.address (), senderEndpoint.port (), introKey, true, false); // to Charlie
 				}
 				break;
 			}	
@@ -984,8 +983,7 @@ namespace transport
 			case ePeerTestParticipantCharlie:
 			{	
 				LogPrint (eLogDebug, "SSU: peer test from Alice. We are Charlie");
-				SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
-					senderEndpoint.port (), introKey); // to Alice with her actual address
+				SendPeerTest (nonce, senderEndpoint.address (), senderEndpoint.port (), introKey); // to Alice with her actual address
 				m_Server.RemovePeerTest (nonce); // nonce has been used
 				break;
 			}
@@ -1000,7 +998,20 @@ namespace transport
 						LogPrint (eLogDebug, "SSU: peer test from Bob. We are Charlie");
 						m_Server.NewPeerTest (nonce, ePeerTestParticipantCharlie);
 						Send (PAYLOAD_TYPE_PEER_TEST, buf, len); // back to Bob
-						SendPeerTest (nonce, be32toh (address), be16toh (port), introKey); // to Alice with her address received from Bob
+						boost::asio::ip::address addr; // Alice's address
+						if (size == 4) // v4
+						{
+							boost::asio::ip::address_v4::bytes_type bytes;
+							memcpy (bytes.data (), address, 4);
+							addr = boost::asio::ip::address_v4 (bytes);
+						}
+						else // v6
+						{
+							boost::asio::ip::address_v6::bytes_type bytes;
+							memcpy (bytes.data (), address, 6);
+							addr = boost::asio::ip::address_v6 (bytes);
+						}		
+						SendPeerTest (nonce, addr, be16toh (port), introKey); // to Alice with her address received from Bob
 					}
 					else
 					{
@@ -1009,8 +1020,7 @@ namespace transport
 						if (session)
 						{
 							m_Server.NewPeerTest (nonce, ePeerTestParticipantBob, shared_from_this ());
-							session->SendPeerTest (nonce, senderEndpoint.address ().to_v4 ().to_ulong (),
-								senderEndpoint.port (), introKey, false); // to Charlie with Alice's actual address 	
+							session->SendPeerTest (nonce, senderEndpoint.address (), senderEndpoint.port (), introKey, false); // to Charlie with Alice's actual address 	
 						}	
 					}
 				}
@@ -1020,7 +1030,7 @@ namespace transport
 		}	
 	}
 	
-	void SSUSession::SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, 
+	void SSUSession::SendPeerTest (uint32_t nonce, const boost::asio::ip::address& address, uint16_t port, 
 		const uint8_t * introKey, bool toAddress, bool sendAddress)
 	// toAddress is true for Alice<->Chalie communications only
 	// sendAddress is false if message comes from Alice		
@@ -1031,12 +1041,21 @@ namespace transport
 		htobe32buf (payload, nonce);
 		payload += 4; // nonce	
 		// address and port
-		if (sendAddress && address)
-		{					
-			*payload = 4;
-			payload++; // size
-			htobe32buf (payload, address);
-			payload += 4; // address
+		if (sendAddress)
+		{
+			if (address.is_v4 ())
+			{
+				*payload = 4;
+				memcpy (payload + 1, address.to_v4 ().to_bytes ().data (), 4); // our IP V4
+			}
+			else if (address.is_v6 ())
+			{
+				*payload = 6;
+				memcpy (payload + 1, address.to_v6 ().to_bytes ().data (), 16); // our IP V6		
+			}
+			else
+				*payload = 0;
+			payload += (payload[0] + 1);			
 		}
 		else
 		{
@@ -1064,7 +1083,7 @@ namespace transport
 		{	
 			// encrypt message with specified intro key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80, introKey, iv, introKey);
-			boost::asio::ip::udp::endpoint e (boost::asio::ip::address_v4 (address), port);
+			boost::asio::ip::udp::endpoint e (address, port);
 			m_Server.Send (buf, 80, e);
 		}	
 		else
@@ -1090,7 +1109,7 @@ namespace transport
 		if (!nonce) nonce = 1;
 		m_IsPeerTest = false;
 		m_Server.NewPeerTest (nonce, ePeerTestParticipantAlice1);
-		SendPeerTest (nonce, 0, 0, address->key, false, false); // address and port always zero for Alice
+		SendPeerTest (nonce, boost::asio::ip::address(), 0, address->key, false, false); // address and port always zero for Alice
 	}	
 
 	void SSUSession::SendKeepAlive ()
