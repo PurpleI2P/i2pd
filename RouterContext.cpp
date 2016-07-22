@@ -67,7 +67,9 @@ namespace i2p
 		if (ipv6)
 		{
 			std::string host = "::";
-			if (!ifname.empty()) 
+			if (!i2p::config::IsDefault("host") && !ipv4) // override if v6 only
+				i2p::config::GetOption("host", host);
+			else if (!ifname.empty()) 
 				host = i2p::util::net::GetInterfaceAddress(ifname, true).to_string(); // v6
 			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
 			routerInfo.AddNTCPAddress (host.c_str(), port);
