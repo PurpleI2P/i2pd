@@ -1016,7 +1016,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogDebug, "SSU: peer test from Alice. We are Bob");
-						auto session = m_Server.GetRandomEstablishedV4Session (shared_from_this ()); // Charlie, TODO: implement v6 support
+						auto session = senderEndpoint.address ().is_v4 () ? m_Server.GetRandomEstablishedV4Session (shared_from_this ()) : m_Server.GetRandomEstablishedV6Session (shared_from_this ()); // Charlie
 						if (session)
 						{
 							m_Server.NewPeerTest (nonce, ePeerTestParticipantBob, shared_from_this ());

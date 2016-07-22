@@ -459,8 +459,31 @@ namespace transport
 		return GetRandomV4Session (
 			[excluded](std::shared_ptr<SSUSession> session)->bool 
 			{ 
-				return session->GetState () == eSessionStateEstablished && !session->IsV6 () && 
-					session != excluded; 
+				return session->GetState () == eSessionStateEstablished && session != excluded; 
+			}
+								);
+	}
+
+	template<typename Filter>
+	std::shared_ptr<SSUSession> SSUServer::GetRandomV6Session (Filter filter) // v6 only
+	{
+		std::vector<std::shared_ptr<SSUSession> > filteredSessions;
+		for (auto s :m_SessionsV6)
+			if (filter (s.second)) filteredSessions.push_back (s.second);
+		if (filteredSessions.size () > 0)
+		{
+			auto ind = rand () % filteredSessions.size ();
+			return filteredSessions[ind];
+		}
+		return nullptr;	
+	}
+
+	std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedV6Session (std::shared_ptr<const SSUSession> excluded) // v6 only
+	{
+		return GetRandomV6Session (
+			[excluded](std::shared_ptr<SSUSession> session)->bool 
+			{ 
+				return session->GetState () == eSessionStateEstablished && session != excluded; 
 			}
 								);
 	}
