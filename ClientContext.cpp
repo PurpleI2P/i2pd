@@ -202,7 +202,13 @@ namespace client
 
 	void ClientContext::ReloadConfig ()
 	{
-		ReadTunnels (); // TODO: it reads new tunnels only, should be implemented better
+		/*
+		 std::string config; i2p::config::GetOption("conf", config);
+		 i2p::config::ParseConfig(config);
+		*/
+		//I don't think we can just reload the main config without making a mess of things, so holding off for now.
+		Stop();
+		Start();
 	}
 	
 	void ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
