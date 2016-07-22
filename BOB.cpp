@@ -409,10 +409,13 @@ namespace client
 		{
 			m_Keys = m_CurrentDestination->GetKeys ();
 			m_Nickname = operand;
+		}
+		if (m_Nickname == operand)
+		{	
 			std::string msg ("Nickname set to ");
 			msg += m_Nickname;
 			SendReplyOK (msg.c_str ());
-		}
+		}	
 		else
 			SendReplyError ("no nickname has been set");	
 	}	
