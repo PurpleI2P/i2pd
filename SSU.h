@@ -48,6 +48,7 @@ namespace transport
 			std::shared_ptr<SSUSession> FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const;
 			std::shared_ptr<SSUSession> FindSession (const boost::asio::ip::udp::endpoint& e) const;
 			std::shared_ptr<SSUSession> GetRandomEstablishedV4Session (std::shared_ptr<const SSUSession> excluded);
+			std::shared_ptr<SSUSession> GetRandomEstablishedV6Session (std::shared_ptr<const SSUSession> excluded);
 			void DeleteSession (std::shared_ptr<SSUSession> session);
 			void DeleteAllSessions ();			
 
@@ -79,7 +80,9 @@ namespace transport
 			void CreateSessionThroughIntroducer (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);			
 			template<typename Filter>
 			std::shared_ptr<SSUSession> GetRandomV4Session (Filter filter);
-			
+			template<typename Filter>
+			std::shared_ptr<SSUSession> GetRandomV6Session (Filter filter);			
+
 			std::set<SSUSession *> FindIntroducers (int maxNumIntroducers);	
 			void ScheduleIntroducersUpdateTimer ();
 			void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode);

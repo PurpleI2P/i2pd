@@ -118,7 +118,7 @@ namespace transport
 			void ScheduleConnectTimer ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);
 			void ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
-			void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, const uint8_t * introKey, bool toAddress = true, bool sendAddress = true); 
+			void SendPeerTest (uint32_t nonce, const boost::asio::ip::address& address, uint16_t port, const uint8_t * introKey, bool toAddress = true, bool sendAddress = true); 
 			void ProcessData (uint8_t * buf, size_t len);		
 			void SendSesionDestroyed ();
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
