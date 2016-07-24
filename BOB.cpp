@@ -70,7 +70,7 @@ namespace client
 			if (eol)
 			{
 				*eol = 0;
-				
+				if (eol != receiver->buffer && eol[-1] == '\r') eol[-1] = 0; // workaround for Transmission, it sends '\r\n' terminated address 
 				receiver->data = (uint8_t *)eol + 1;
 				receiver->dataLen = receiver->bufferOffset - (eol - receiver->buffer + 1);
 				i2p::data::IdentHash ident;
