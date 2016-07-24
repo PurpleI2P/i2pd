@@ -13,6 +13,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "RouterContext.h"
+#include "ClientContext.h"
 
 void handle_signal(int sig)
 {
@@ -21,6 +22,7 @@ void handle_signal(int sig)
 		case SIGHUP:
 			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening log...");
 			i2p::log::Logger().Reopen ();
+			i2p::client::context.ReloadConfig();
 		break;
 		case SIGINT:
 			if (i2p::context.AcceptsTunnels () && !Daemon.gracefullShutdownInterval)
