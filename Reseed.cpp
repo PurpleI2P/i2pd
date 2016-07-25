@@ -15,6 +15,7 @@
 #include "Identity.h"
 #include "NetDb.h"
 #include "HTTP.h"
+#include "util.h"
 
 namespace i2p
 {

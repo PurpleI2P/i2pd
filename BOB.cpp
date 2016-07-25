@@ -70,7 +70,7 @@ namespace client
 			if (eol)
 			{
 				*eol = 0;
-				
+				if (eol != receiver->buffer && eol[-1] == '\r') eol[-1] = 0; // workaround for Transmission, it sends '\r\n' terminated address 
 				receiver->data = (uint8_t *)eol + 1;
 				receiver->dataLen = receiver->bufferOffset - (eol - receiver->buffer + 1);
 				i2p::data::IdentHash ident;
@@ -203,7 +203,7 @@ namespace client
 		
 	BOBCommandSession::BOBCommandSession (BOBCommandChannel& owner): 
 		m_Owner (owner), m_Socket (m_Owner.GetService ()),
-		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), 
+		m_ReceiveBufferOffset (0), m_IsOpen (true), m_IsQuiet (false), m_IsActive (false), 
 		m_InPort (0), m_OutPort (0), m_CurrentDestination (nullptr)
 	{
 	}
@@ -354,6 +354,11 @@ namespace client
 	void BOBCommandSession::StartCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: start ", m_Nickname);
+		if (m_IsActive)
+		{
+			SendReplyError ("tunnel is active");
+			return; 
+		}
 		if (!m_CurrentDestination)
 		{	
 			m_CurrentDestination = new BOBDestination (i2p::client::context.CreateNewLocalDestination (m_Keys, true, &m_Options));
@@ -364,19 +369,27 @@ namespace client
 		if (m_OutPort && !m_Address.empty ())
 			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
 		m_CurrentDestination->Start ();	
-		SendReplyOK ("tunnel starting");
+		SendReplyOK ("Tunnel starting");
+		m_IsActive = true;
 	}	
 
 	void BOBCommandSession::StopCommandHandler (const char * operand, size_t len)
 	{
+		LogPrint (eLogDebug, "BOB: stop ", m_Nickname);
+		if (!m_IsActive)
+		{
+			SendReplyError ("tunnel is inactive");
+			return;
+		}
 		auto dest = m_Owner.FindDestination (m_Nickname);
 		if (dest)
 		{
 			dest->StopTunnels ();
-			SendReplyOK ("tunnel stopping");
+			SendReplyOK ("Tunnel stopping");
 		}
 		else
 			SendReplyError ("tunnel not found");
+		m_IsActive = false;
 	}	
 	
 	void BOBCommandSession::SetNickCommandHandler (const char * operand, size_t len)
@@ -384,7 +397,7 @@ namespace client
 		LogPrint (eLogDebug, "BOB: setnick ", operand);
 		m_Nickname = operand;
 		std::string msg ("Nickname set to ");
-		msg += operand;
+		msg += m_Nickname;
 		SendReplyOK (msg.c_str ());
 	}	
 
@@ -396,12 +409,15 @@ namespace client
 		{
 			m_Keys = m_CurrentDestination->GetKeys ();
 			m_Nickname = operand;
-			std::string msg ("Nickname set to ");
-			msg += operand;
-			SendReplyOK (msg.c_str ());
 		}
+		if (m_Nickname == operand)
+		{	
+			std::string msg ("Nickname set to ");
+			msg += m_Nickname;
+			SendReplyOK (msg.c_str ());
+		}	
 		else
-			SendReplyError ("tunnel not found");	
+			SendReplyError ("no nickname has been set");	
 	}	
 
 	void BOBCommandSession::NewkeysCommandHandler (const char * operand, size_t len)
@@ -441,7 +457,10 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: outport ", operand);
 		m_OutPort = boost::lexical_cast<int>(operand);
-		SendReplyOK ("outbound port set");
+		if (m_OutPort >= 0)
+			SendReplyOK ("outbound port set");
+		else
+			SendReplyError ("port out of range");
 	}	
 
 	void BOBCommandSession::InhostCommandHandler (const char * operand, size_t len)
@@ -455,14 +474,27 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: inport ", operand);
 		m_InPort = boost::lexical_cast<int>(operand);
-		SendReplyOK ("inbound port set");
+		if (m_InPort >= 0)
+			SendReplyOK ("inbound port set");
+		else
+			SendReplyError ("port out of range");
 	}		
 
 	void BOBCommandSession::QuietCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: quiet");
-		m_IsQuiet = true;
-		SendReplyOK ("quiet");
+		if (m_Nickname.length () > 0)
+		{
+			if (!m_IsActive)
+			{
+				m_IsQuiet = true;
+				SendReplyOK ("Quiet set");
+			}
+			else
+				SendReplyError ("tunnel is active");
+		}
+		else
+			SendReplyError ("no nickname has been set");
 	}	
 	
 	void BOBCommandSession::LookupCommandHandler (const char * operand, size_t len)
@@ -497,6 +529,7 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: clear");
 		m_Owner.DeleteDestination (m_Nickname);
+		m_Nickname = "";
 		SendReplyOK ("cleared");
 	}	
 
@@ -515,10 +548,14 @@ namespace client
 		const char * value = strchr (operand, '=');
 		if (value)
 		{	
+			std::string msg ("option ");
 			*(const_cast<char *>(value)) = 0;
 			m_Options[operand] = value + 1; 
+			msg += operand;
 			*(const_cast<char *>(value)) = '=';
-			SendReplyOK ("option");
+			msg += " set to ";
+			msg += value;	
+			SendReplyOK (msg.c_str ());
 		}	
 		else
 			SendReplyError ("malformed");
@@ -527,24 +564,24 @@ namespace client
 	void BOBCommandSession::StatusCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: status ", operand);
-		if (operand == m_Nickname)
+		if (m_Nickname == operand)
 		{
 			std::stringstream s;
-			s << "DATA"; s << " NICKNAME:"; s << operand;
+			s << "DATA"; s << " NICKNAME: "; s << m_Nickname;
 			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-				s << " STARTING:false RUNNING:true STOPPING:false";
+				s << " STARTING: false RUNNING: true STOPPING: false";
 			else
-				s << " STARTING:true RUNNING:false STOPPING:false";
-			s << " KEYS: true"; s << " QUIET:"; s << (m_IsQuiet ? "true":"false");
+				s << " STARTING: true RUNNING: false STOPPING: false";
+			s << " KEYS: true"; s << " QUIET: "; s << (m_IsQuiet ? "true":"false");
 			if (m_InPort)
 			{	
-				s << " INPORT:" << m_InPort;
-				s << " INHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+				s << " INPORT: " << m_InPort;
+				s << " INHOST: " << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
 			}	
 			if (m_OutPort)
 			{ 
-				s << " OUTPORT:" << m_OutPort;
-				s << " OUTHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+				s << " OUTPORT: " << m_OutPort;
+				s << " OUTHOST: " << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
 			}	
 			SendReplyOK (s.str().c_str());
 		}
