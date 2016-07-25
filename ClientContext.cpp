@@ -51,8 +51,10 @@ namespace client
 			if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				LoadPrivateKeys (keys, httpProxyKeys);
-				localDestination = CreateNewLocalDestination (keys, false);
+				if(LoadPrivateKeys (keys, httpProxyKeys))
+					localDestination = CreateNewLocalDestination (keys, false);
+				else
+					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
 			try {
 			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
@@ -208,8 +210,9 @@ namespace client
 		Start();
 	}
 	
-	void ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
 	{
+		bool success = true;
 		std::string fullPath = i2p::fs::DataDirPath (filename);
 		std::ifstream s(fullPath, std::ifstream::binary);
 		if (s.is_open ())	
@@ -219,9 +222,14 @@ namespace client
 			s.seekg (0, std::ios::beg);
 			uint8_t * buf = new uint8_t[len];
 			s.read ((char *)buf, len);
-			keys.FromBuffer (buf, len);
+			if(!keys.FromBuffer (buf, len))
+			{
+				LogPrint (eLogError, "Clients: failed to load keyfile ", filename);
+				success = false;
+			}
+			else
+				LogPrint (eLogInfo, "Clients: Local address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " loaded");
 			delete[] buf;
-			LogPrint (eLogInfo, "Clients: Local address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " loaded");
 		}	
 		else
 		{
@@ -235,7 +243,8 @@ namespace client
 			delete[] buf;
 			
 			LogPrint (eLogInfo, "Clients: New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
-		}	
+		}
+		return success;
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
@@ -358,10 +367,12 @@ namespace client
 					if (keys.length () > 0)
 					{
 						i2p::data::PrivateKeys k;
-						LoadPrivateKeys (k, keys, sigType);
-						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-						if (!localDestination)
-							localDestination = CreateNewLocalDestination (k, false, &options);
+						if(LoadPrivateKeys (k, keys, sigType))
+						{
+							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+							if (!localDestination)
+								localDestination = CreateNewLocalDestination (k, false, &options);
+						}
 					}
 					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 					if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
@@ -392,7 +403,8 @@ namespace client
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
-					LoadPrivateKeys (k, keys, sigType);
+					if(!LoadPrivateKeys (k, keys, sigType))
+						continue;
 					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
