@@ -202,11 +202,8 @@ namespace client
 
 	void ClientContext::ReloadConfig ()
 	{
-		/*
-		 std::string config; i2p::config::GetOption("conf", config);
-		 i2p::config::ParseConfig(config);
-		*/
-		//I don't think we can just reload the main config without making a mess of things, so holding off for now.
+		std::string config; i2p::config::GetOption("conf", config);
+		i2p::config::ParseConfig(config);
 		Stop();
 		Start();
 	}
