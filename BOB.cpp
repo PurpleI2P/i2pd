@@ -70,7 +70,7 @@ namespace client
 			if (eol)
 			{
 				*eol = 0;
-				
+				if (eol != receiver->buffer && eol[-1] == '\r') eol[-1] = 0; // workaround for Transmission, it sends '\r\n' terminated address 
 				receiver->data = (uint8_t *)eol + 1;
 				receiver->dataLen = receiver->bufferOffset - (eol - receiver->buffer + 1);
 				i2p::data::IdentHash ident;
@@ -567,21 +567,21 @@ namespace client
 		if (m_Nickname == operand)
 		{
 			std::stringstream s;
-			s << "DATA"; s << " NICKNAME:"; s << m_Nickname;
+			s << "DATA"; s << " NICKNAME: "; s << m_Nickname;
 			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-				s << " STARTING:false RUNNING:true STOPPING:false";
+				s << " STARTING: false RUNNING: true STOPPING: false";
 			else
-				s << " STARTING:true RUNNING:false STOPPING:false";
-			s << " KEYS: true"; s << " QUIET:"; s << (m_IsQuiet ? "true":"false");
+				s << " STARTING: true RUNNING: false STOPPING: false";
+			s << " KEYS: true"; s << " QUIET: "; s << (m_IsQuiet ? "true":"false");
 			if (m_InPort)
 			{	
-				s << " INPORT:" << m_InPort;
-				s << " INHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+				s << " INPORT: " << m_InPort;
+				s << " INHOST: " << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
 			}	
 			if (m_OutPort)
 			{ 
-				s << " OUTPORT:" << m_OutPort;
-				s << " OUTHOST:" << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
+				s << " OUTPORT: " << m_OutPort;
+				s << " OUTHOST: " << (m_Address.length () > 0 ? m_Address : "127.0.0.1");
 			}	
 			SendReplyOK (s.str().c_str());
 		}
