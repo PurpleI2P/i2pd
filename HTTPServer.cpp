@@ -22,6 +22,9 @@
 #include "HTTPServer.h"
 #include "Daemon.h"
 #include "util.h"
+#ifdef WIN32_APP
+#include "Win32/Win32App.h"
+#endif
 
 // For image and info
 #include "version.h"
@@ -409,15 +412,21 @@ namespace http {
 		else	
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
-		if (Daemon.gracefullShutdownInterval) {
+		if (Daemon.gracefullShutdownInterval) 
+		{
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown (";
 			s << Daemon.gracefullShutdownInterval;
 			s << " seconds remains)</a><br>\r\n";
-		} else {
+		} 
+		else 
+		{
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start gracefull shutdown</a><br>\r\n";
 		}
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
 #endif
+#ifdef WIN32_APP
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Gracefull shutdown</a><br>\r\n";
+#endif
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
 	}
 
 	void ShowTransitTunnels (std::stringstream& s)
@@ -723,6 +732,9 @@ namespace http {
 			i2p::context.SetAcceptsTunnels (false);
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 			Daemon.gracefullShutdownInterval = 10*60;
+#endif
+#ifdef WIN32_APP
+			i2p::win32::GracefulShutdown ();		
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
