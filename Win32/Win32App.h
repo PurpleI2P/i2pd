@@ -10,6 +10,7 @@ namespace win32
     bool StartWin32App ();
     void StopWin32App ();
     int RunWin32App ();
+    bool GracefulShutdown ();
 }
 }
 #endif // WIN32APP_H__

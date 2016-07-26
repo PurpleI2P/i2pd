@@ -239,5 +239,13 @@ namespace win32
     {
          UnregisterClass (I2PD_WIN32_CLASSNAME, GetModuleHandle(NULL));
     }
+
+    bool GracefulShutdown ()
+    {
+        HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+        if (hWnd)
+            PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_GRACEFUL_SHUTDOWN, 0), 0);
+        return hWnd;
+    }
 }
 }
