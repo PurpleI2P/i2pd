@@ -782,12 +782,14 @@ namespace http {
 		std::string pass; i2p::config::GetOption("http.pass", pass);
 		/* generate pass if needed */
 		if (needAuth && pass == "") {
+			uint8_t random[16];
 			char alnum[] = "0123456789"
 			  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 			  "abcdefghijklmnopqrstuvwxyz";
-			pass.resize(16);
-			for (size_t i = 0; i < pass.size(); i++) {
-				pass[i] = alnum[rand() % (sizeof(alnum) - 1)];
+			pass.resize(sizeof(random));
+			RAND_bytes(random, sizeof(random));
+			for (size_t i = 0; i < sizeof(random); i++) {
+				pass[i] = alnum[random[i] % (sizeof(alnum) - 1)];
 			}
 			i2p::config::SetOption("http.pass", pass);
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
