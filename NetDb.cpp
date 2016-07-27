@@ -14,7 +14,6 @@
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
-#include "util.h"
 
 using namespace i2p::transport;
 
