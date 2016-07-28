@@ -53,7 +53,7 @@ namespace stream
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
 
 	/** i2cp option for limiting inbound stremaing connections */
-	const char I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN[] = "maxConnsPerMinute";
+	const char I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN[] = "maxconns";
 	/** default maximum connections attempts per minute per destination */
 	const uint32_t DEFAULT_MAX_CONNS_PER_MIN = 600;
 
