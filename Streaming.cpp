@@ -863,12 +863,11 @@ namespace stream
 					{
 						// drop
 						LogPrint(eLogWarning, "Streaming: Dropping connection, too many inbound streams from ", ih.ToBase32());
-						incomingStream->Close();
+						incomingStream->Terminate();
+						delete incomingStream;
 						return;
 					}
-				} else
-					LogPrint(eLogWarning, "Streaming: Inbound stream has no identity");
-
+				}
 				// handle saved packets if any
 				{
 					auto it = m_SavedPackets.find (receiveStreamID);
