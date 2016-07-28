@@ -397,6 +397,8 @@ namespace client
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
+
 					// I2CP
 					std::map<std::string, std::string> options;							 
 					ReadI2CPOptions (section, options);				
@@ -417,7 +419,6 @@ namespace client
 					else // regular server tunnel by default
                    		serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
 
-					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
 					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
 					serverTunnel->SetMaxConnsPerMinute(maxConns);
 					
