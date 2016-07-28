@@ -436,9 +436,10 @@ namespace client
 							std::make_pair (localDestination->GetIdentHash (), inPort), 
 					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
 					{
-						serverTunnel->Start ();
 						auto maxConns = section.second.get<uint32_t>(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
+						LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
 						serverTunnel->SetMaxConnsPerMinute(maxConns);
+						serverTunnel->Start ();						 
 						numServerTunnels++;
 					}
 					else

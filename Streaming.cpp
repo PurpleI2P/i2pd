@@ -1042,25 +1042,27 @@ namespace stream
 	void StreamingDestination::SetMaxConnsPerMinute(const uint32_t conns)
 	{
 		m_ConnsPerMinute = conns;
+		LogPrint(eLogDebug, "Streaming: Set max conns per minute per destination to ", conns);
 	}
 
 	bool StreamingDestination::DropNewStream(const i2p::data::IdentHash & ih)
 	{
 		std::lock_guard<std::mutex> lock(m_ConnsMutex);
 		if (m_Banned.size() > MAX_BANNED_CONNS) return true; // overload
-		auto end = m_Banned.end();
-		if ( std::find(m_Banned.begin(), end, ih) != end) return true; // already banned
+		auto end = std::end(m_Banned);
+		if ( std::find(std::begin(m_Banned), end, ih) != end) return true; // already banned
 		auto itr = m_Conns.find(ih);
 		if (itr == m_Conns.end())
 			m_Conns[ih] = 0;
 
-		m_Conns[ih] = m_Conns[ih] + 1;
+		m_Conns[ih] += 1;
 
 		bool ban = m_Conns[ih] >= m_ConnsPerMinute;
 		if (ban)
 		{
 			m_Banned.push_back(ih);
 			m_Conns.erase(ih);
+			LogPrint(eLogWarning, "Streaming: ban ", ih.ToBase32());
 		}
 		return ban;
 	}
