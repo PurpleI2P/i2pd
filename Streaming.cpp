@@ -862,10 +862,8 @@ namespace stream
 					if(DropNewStream(ih))
 					{
 						// drop
-						LogPrint(eLogWarning, "Streaming: Too many inbound streams from ", ih.ToBase32());
+						LogPrint(eLogWarning, "Streaming: Dropping connection, too many inbound streams from ", ih.ToBase32());
 						incomingStream->Close();
-						DeleteStream(incomingStream);
-						incomingStream = nullptr;
 						if(m_SavedPackets.find(receiveStreamID) != m_SavedPackets.end())
 							m_SavedPackets.erase(receiveStreamID);
 						delete packet;
