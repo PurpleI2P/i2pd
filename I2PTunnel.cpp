@@ -45,7 +45,7 @@ namespace client
 	I2PTunnelConnection::~I2PTunnelConnection ()
 	{
 	}	
-
+  
 	void I2PTunnelConnection::I2PConnect (const uint8_t * msg, size_t len)
 	{
 		if (m_Stream)
@@ -396,7 +396,7 @@ namespace client
 	{
 		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port, gzip);
 	}
-	
+
 	void I2PServerTunnel::Start ()
 	{
 		m_Endpoint.port (m_Port);	

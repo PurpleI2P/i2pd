@@ -51,6 +51,22 @@ namespace stream
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
+
+	/** i2cp option for limiting inbound stremaing connections */
+	const char I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN[] = "i2p.streaming.maxConnsPerMinute";
+	/** default maximum connections attempts per minute per destination */
+	const uint32_t DEFAULT_MAX_CONNS_PER_MIN = 600;
+
+	/** 
+	 * max banned destinations per local destination
+	 * TODO: make configurable
+	 */
+	const uint16_t MAX_BANNED_CONNS = 9999;
+	/** 
+	 * length of a ban in ms
+	 * TODO: make configurable 
+	 */
+	const uint64_t DEFAULT_BAN_INTERVAL = 60 * 60 * 1000;
 	
 	struct Packet
 	{
@@ -210,12 +226,22 @@ namespace stream
 			void HandleDataMessagePayload (const uint8_t * buf, size_t len);
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t toPort);
 
+			/** set max connections per minute per destination */
+			void SetMaxConnsPerMinute(const uint32_t conns);
+			
 		private:		
 	
 			void HandleNextPacket (Packet * packet);
 			std::shared_ptr<Stream> CreateNewIncomingStream ();
 			void HandlePendingIncomingTimer (const boost::system::error_code& ecode);
 
+			/** handle cleaning up connection tracking for ratelimits */
+			void HandleConnTrack(const boost::system::error_code& ecode);
+
+			bool DropNewStream(const i2p::data::IdentHash & ident);
+
+			void ScheduleConnTrack();
+      
 		private:
 
 			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
@@ -227,7 +253,16 @@ namespace stream
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
 			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
-			
+      
+			std::mutex m_ConnsMutex;
+			/** how many connections per minute did each identity have */
+			std::map<i2p::data::IdentHash, uint32_t> m_Conns;
+			boost::asio::deadline_timer m_ConnTrackTimer;
+			uint32_t m_ConnsPerMinute;
+			/** banned identities */
+			std::vector<i2p::data::IdentHash> m_Banned;
+			uint64_t m_LastBanClear;
+      
 		public:
 
 			i2p::data::GzipInflator m_Inflator;
