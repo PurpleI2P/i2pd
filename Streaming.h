@@ -150,10 +150,11 @@ namespace stream
 			size_t GetSendBufferSize () const { return m_SendBuffer.rdbuf ()->in_avail (); };
 			int GetWindowSize () const { return m_WindowSize; };
 			int GetRTT () const { return m_RTT; };
-			
-		private:
 
+			/** don't call me */
 			void Terminate ();
+						
+		private:
 
 			void SendBuffer ();
 			void SendQuickAck ();
