@@ -439,6 +439,12 @@ namespace i2p
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
 		i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
 	}	
+
+	void RouterContext::CleanupDestination ()
+	{
+		std::unique_lock<std::mutex> l(m_GarlicMutex);
+		i2p::garlic::GarlicDestination::CleanupExpiredTags ();
+	}
 		
 	uint32_t RouterContext::GetUptime () const
 	{
