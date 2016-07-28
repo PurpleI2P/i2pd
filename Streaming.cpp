@@ -1052,7 +1052,7 @@ namespace stream
 
 		m_Conns[ih] = m_Conns[ih] + 1;
 
-		bool ban = m_Conns[ih] <= m_ConnsPerMinute;
+		bool ban = m_Conns[ih] >= m_ConnsPerMinute;
 		if (ban)
 		{
 			m_Banned.push_back(ih);
