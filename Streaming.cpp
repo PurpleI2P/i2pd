@@ -864,7 +864,6 @@ namespace stream
 						// drop
 						LogPrint(eLogWarning, "Streaming: Dropping connection, too many inbound streams from ", ih.ToBase32());
 						incomingStream->Terminate();
-						delete incomingStream;
 						return;
 					}
 				}
