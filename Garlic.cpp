@@ -178,7 +178,7 @@ namespace garlic
 		// create message
 		if (!tagFound) // new session
 		{
-			LogPrint (eLogWarning, "Garlic: No tags available, will use ElGamal");
+			LogPrint (eLogInfo, "Garlic: No tags available, will use ElGamal");
 			if (!m_Destination)
 			{
 				LogPrint (eLogError, "Garlic: Can't use ElGamal for unknown destination");
