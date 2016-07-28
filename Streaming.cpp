@@ -268,7 +268,12 @@ namespace stream
 					}	
 				}
 				auto sentPacket = *it;
-				uint64_t rtt = ts - sentPacket->sendTime;
+        uint64_t rtt = ts - sentPacket->sendTime;
+        if(ts < sentPacket->sendTime)
+        {
+          LogPrint(eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
+          rtt = 0;
+        }
 				m_RTT = (m_RTT*seqn + rtt)/(seqn + 1);
 				m_RTO = m_RTT*1.5; // TODO: implement it better
 				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt);
