@@ -417,6 +417,11 @@ namespace client
 					else // regular server tunnel by default
                    		serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
 
+					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
+					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
+					serverTunnel->SetMaxConnsPerMinute(maxConns);
+					
+          
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;
@@ -436,9 +441,6 @@ namespace client
 							std::make_pair (localDestination->GetIdentHash (), inPort), 
 					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
 					{
-						auto maxConns = section.second.get<int>(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
-						LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
-						serverTunnel->SetMaxConnsPerMinute(maxConns);
 						serverTunnel->Start ();						 
 						numServerTunnels++;
 					}
