@@ -9,11 +9,20 @@ namespace i2p
 {
 namespace client
 {
+
+	/** set standard socket options */
+	static void I2PTunnelSetSocketOptions(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+	{
+		boost::asio::socket_base::receive_buffer_size option(I2P_TUNNEL_CONNECTION_BUFFER_SIZE);
+		socket->set_option(option);
+	}
+	
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 		std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port): 
 		I2PServiceHandler(owner), m_Socket (socket), m_RemoteEndpoint (socket->remote_endpoint ()),
 		m_IsQuiet (true)
 	{
+		I2PTunnelSetSocketOptions(m_Socket);
 		m_Stream = GetOwner()->GetLocalDestination ()->CreateStream (leaseSet, port);
 	}	
 
@@ -22,6 +31,7 @@ namespace client
 		I2PServiceHandler(owner), m_Socket (socket), m_Stream (stream),
 		m_RemoteEndpoint (socket->remote_endpoint ()), m_IsQuiet (true)
 	{
+		I2PTunnelSetSocketOptions(m_Socket);
 	}
 
 	I2PTunnelConnection::I2PTunnelConnection (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
@@ -29,6 +39,7 @@ namespace client
 		I2PServiceHandler(owner), m_Socket (socket), m_Stream (stream),
 		m_RemoteEndpoint (target), m_IsQuiet (quiet)
 	{
+		I2PTunnelSetSocketOptions(m_Socket);
 	}
 
 	I2PTunnelConnection::~I2PTunnelConnection ()
