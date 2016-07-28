@@ -40,8 +40,20 @@ enum LogType {
 #endif
 };
 
+#ifdef _WIN32
+	const char LOG_COLOR_ERROR[] = "";
+	const char LOG_COLOR_WARNING[] = "";
+	const char LOG_COLOR_RESET[] = "";
+#else
+	const char LOG_COLOR_ERROR[] = "\033[1;31m";
+	const char LOG_COLOR_WARNING[] = "\033[1;33m";
+	const char LOG_COLOR_RESET[] = "\033[0m";
+#endif
+
+
 namespace i2p {
 namespace log {
+  
 	struct LogMsg; /* forward declaration */
 
 	class Log
@@ -177,8 +189,16 @@ void LogPrint (LogLevel level, TArgs... args)
 
 	// fold message to single string
 	std::stringstream ss("");
-	LogPrint (ss, args ...);
 
+	if(level == eLogError) // if log level is ERROR color log message red
+		ss << LOG_COLOR_ERROR;
+	else if (level == eLogWarning) // if log level is WARN color log message yellow
+		ss << LOG_COLOR_WARNING;
+	LogPrint (ss, args ...);
+  
+	// reset color
+	ss << LOG_COLOR_RESET;
+  
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
 	msg->tid = std::this_thread::get_id();
 	log.Append(msg);
