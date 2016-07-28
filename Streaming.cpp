@@ -853,6 +853,8 @@ namespace stream
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{	
 				auto incomingStream = CreateNewIncomingStream ();
+				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
+				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
 				if(ident)
 				{
@@ -864,14 +866,14 @@ namespace stream
 						incomingStream->Close();
 						DeleteStream(incomingStream);
 						incomingStream = nullptr;
+						if(m_SavedPackets.find(receiveStreamID) != m_SavedPackets.end())
+							m_SavedPackets.erase(receiveStreamID);
 						delete packet;
 						return;
 					}
 				} else
 					LogPrint(eLogWarning, "Streaming: Inbound stream has no identity");
 
-				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
-				incomingStream->HandleNextPacket (packet); // SYN
 				// handle saved packets if any
 				{
 					auto it = m_SavedPackets.find (receiveStreamID);
