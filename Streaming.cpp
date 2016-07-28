@@ -272,11 +272,11 @@ namespace stream
         if(ts < sentPacket->sendTime)
         {
           LogPrint(eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
-          rtt = 0;
+          rtt = 1;
         }
 				m_RTT = (m_RTT*seqn + rtt)/(seqn + 1);
 				m_RTO = m_RTT*1.5; // TODO: implement it better
-				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt);
+				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
 				m_SentPackets.erase (it++);
 				delete sentPacket;	
 				acknowledged = true;
