@@ -22,6 +22,9 @@
 #include "HTTPServer.h"
 #include "Daemon.h"
 #include "util.h"
+#ifdef WIN32_APP
+#include "Win32/Win32App.h"
+#endif
 
 // For image and info
 #include "version.h"
@@ -409,15 +412,21 @@ namespace http {
 		else	
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
-		if (Daemon.gracefullShutdownInterval) {
+		if (Daemon.gracefullShutdownInterval) 
+		{
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown (";
 			s << Daemon.gracefullShutdownInterval;
 			s << " seconds remains)</a><br>\r\n";
-		} else {
+		} 
+		else 
+		{
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start gracefull shutdown</a><br>\r\n";
 		}
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
 #endif
+#ifdef WIN32_APP
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Gracefull shutdown</a><br>\r\n";
+#endif
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
 	}
 
 	void ShowTransitTunnels (std::stringstream& s)
@@ -724,6 +733,9 @@ namespace http {
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 			Daemon.gracefullShutdownInterval = 10*60;
 #endif
+#ifdef WIN32_APP
+			i2p::win32::GracefulShutdown ();		
+#endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
@@ -770,12 +782,14 @@ namespace http {
 		std::string pass; i2p::config::GetOption("http.pass", pass);
 		/* generate pass if needed */
 		if (needAuth && pass == "") {
+			uint8_t random[16];
 			char alnum[] = "0123456789"
 			  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 			  "abcdefghijklmnopqrstuvwxyz";
-			pass.resize(16);
-			for (size_t i = 0; i < pass.size(); i++) {
-				pass[i] = alnum[rand() % (sizeof(alnum) - 1)];
+			pass.resize(sizeof(random));
+			RAND_bytes(random, sizeof(random));
+			for (size_t i = 0; i < sizeof(random); i++) {
+				pass[i] = alnum[random[i] % (sizeof(alnum) - 1)];
 			}
 			i2p::config::SetOption("http.pass", pass);
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);

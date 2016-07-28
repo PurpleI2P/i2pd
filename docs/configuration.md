@@ -109,7 +109,7 @@ tunnels.conf:
     # * keys -- our identity, if unset, will be generated on every startup,
     #     if set and file missing, keys will be generated and placed to this file
     # * address -- local interface to bind
-    # * signaturetype -- signature type for new destination. 0,1 or 7
+    # * signaturetype -- signature type for new destination. 0 (DSA/SHA1), 1 (EcDSA/SHA256) or 7 (EdDSA/SHA512)
     [IRC]
     type = client
     address = 127.0.0.1

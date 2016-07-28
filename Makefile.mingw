@@ -37,7 +37,7 @@ ifeq ($(USE_WIN32_APP), yes)
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
-ifeq ($(USE_AESNI),yes)
+ifeq ($(USE_AESNI),1)
 	CPU_FLAGS = -maes -DAESNI
 else
 	CPU_FLAGS = -msse

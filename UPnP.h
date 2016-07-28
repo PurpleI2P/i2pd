@@ -13,8 +13,6 @@
 
 #include <boost/asio.hpp>
 
-#include "util.h"
-
 namespace i2p
 {
 namespace transport
