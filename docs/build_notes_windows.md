@@ -161,15 +161,17 @@ support for this. Unpack client source code in a sibling folder,
 e.g. C:\dev\miniupnpc . You may want to remove version number from
 folder name included in downloaded archive.
 
-Note that you might need to build DLL yourself for 64-bit systems
-using msys2 as 64-bit DLLs are not provided by the project.
-
 You can also install it through the MSYS2
 and build with USE_UPNP key.
 
 ```bash
 pacman -S mingw-w64-i686-miniupnpc  
-make USE_UPNP=1  
+make USE_UPNP=yes  
+```
+or
+```bash
+pacman -S mingw-x86_64-miniupnpc  
+make USE_UPNP=yes  
 ```
 
 ### Creating Visual Studio project

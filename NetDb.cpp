@@ -71,7 +71,7 @@ namespace data
 	
 	void NetDb::Run ()
 	{
-		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0;
+		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		while (m_IsRunning)
 		{	
 			try
@@ -121,7 +121,11 @@ namespace data
 					}	
 					lastSave = ts;
 				}
-
+				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT) 
+				{
+					i2p::context.CleanupDestination ();
+					lastDestinationCleanup = ts;
+				}
         // if we're in hidden mode don't publish or explore
 				// if (m_HiddenMode) continue;
 				

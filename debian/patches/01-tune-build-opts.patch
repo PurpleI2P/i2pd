@@ -1,14 +1,15 @@
 diff --git a/Makefile b/Makefile
-index fe8ae7e..fc8abda 100644
+index 7d04ba0..33ee184 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -9,9 +9,9 @@ DEPS := obj/make.dep
+@@ -9,10 +9,10 @@ DEPS := obj/make.dep
  
  include filelist.mk
  
 -USE_AESNI  := yes
 +USE_AESNI  := no
  USE_STATIC := no
+ USE_MESHNET := no
 -USE_UPNP   := no
 +USE_UPNP   := yes
  

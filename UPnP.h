@@ -4,6 +4,8 @@
 #ifdef USE_UPNP
 #include <string>
 #include <thread>
+#include <condition_variable>
+#include <mutex>
 #include <memory>
 
 #include <miniupnpc/miniwget.h>
@@ -43,8 +45,10 @@ namespace transport
 	
 		bool m_IsRunning;
         std::unique_ptr<std::thread> m_Thread;
+		std::condition_variable m_Started;	
+		std::mutex m_StartedMutex;	
 		boost::asio::io_service m_Service;
-		boost::asio::deadline_timer m_Timer;
+		boost::asio::deadline_timer m_Timer;	
         struct UPNPUrls m_upnpUrls;
         struct IGDdatas m_upnpData;
 

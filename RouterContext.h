@@ -71,7 +71,8 @@ namespace i2p
 			void SetSupportsV4 (bool supportsV4);
 
 			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session		
-			void UpdateStats ();		
+			void UpdateStats ();	
+			void CleanupDestination ();	// garlic destination
 
 			// implements LocalDestination
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
