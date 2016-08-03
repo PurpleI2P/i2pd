@@ -861,6 +861,7 @@ namespace transport
 		if (it != m_NTCPSessions.end ())
 		{
 			LogPrint (eLogWarning, "NTCP: session to ", ident.ToBase64 (), " already exists");
+			session->Terminate();
 			return false;
 		}
 		m_NTCPSessions.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<NTCPSession> >(ident, session));
