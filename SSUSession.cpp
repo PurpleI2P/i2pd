@@ -12,7 +12,8 @@ namespace i2p
 namespace transport
 {
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
-		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): TransportSession (router), 
+		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): 
+		TransportSession (router, SSU_TERMINATION_TIMEOUT), 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_Timer (GetService ()), 
 		m_IsPeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), 
 		m_RelayTag (0),m_Data (*this), m_IsDataReceived (false)
@@ -882,7 +883,7 @@ namespace transport
 	void SSUSession::ScheduleTermination ()
 	{
 		m_Timer.cancel ();
-		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_TIMEOUT));
+		m_Timer.expires_from_now (boost::posix_time::seconds(GetTerminationTimeout ()));
 		m_Timer.async_wait (std::bind (&SSUSession::HandleTerminationTimer,
 			shared_from_this (), std::placeholders::_1));
 	}
@@ -891,7 +892,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint (eLogWarning, "SSU: no activity with ", m_RemoteEndpoint, " for ", SSU_TERMINATION_TIMEOUT, " seconds");
+			LogPrint (eLogWarning, "SSU: no activity with ", m_RemoteEndpoint, " for ", GetTerminationTimeout (), " seconds");
 			Failed ();
 		}	
 	}	

@@ -53,8 +53,8 @@ namespace transport
 	{
 		public:
 
-			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> router): 
-				m_DHKeysPair (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0), m_IsOutgoing (router)
+			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> router, int terminationTimeout): 
+				m_DHKeysPair (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0), m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout)
 			{
 				if (router)
 					m_RemoteIdentity = router->GetRouterIdentity ();
@@ -70,6 +70,9 @@ namespace transport
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			bool IsOutgoing () const { return m_IsOutgoing; };
 			
+			int GetTerminationTimeout () const { return m_TerminationTimeout; };
+			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; };	
+
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			
 		protected:
@@ -78,6 +81,7 @@ namespace transport
 			std::shared_ptr<i2p::crypto::DHKeys> m_DHKeysPair; // X - for client and Y - for server
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			bool m_IsOutgoing;
+			int m_TerminationTimeout;
 	};	
 }
 }
