@@ -64,10 +64,10 @@ namespace data
 			return;
 		}	
 
-		// reset existing leases	
+		// reset existing leases
 		if (m_StoreLeases)
-			for (auto it: m_Leases)
-				it->isUpdated = false;		
+			for (auto& it: m_Leases)
+				it->isUpdated = false;
 		else	
 			m_Leases.clear ();
 
@@ -123,7 +123,7 @@ namespace data
 					m_Leases.erase (it++);
 				}	
 				else
-					it++;
+					++it;
 			}
 		}
 
@@ -167,7 +167,7 @@ namespace data
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		std::vector<std::shared_ptr<const Lease> > leases;
-		for (auto it: m_Leases)
+		for (const auto& it: m_Leases)
 		{
 			auto endDate = it->endDate;
 			if (withThreshold)
@@ -183,7 +183,7 @@ namespace data
 	bool LeaseSet::HasExpiredLeases () const
  	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-		for (auto it: m_Leases)
+		for (const auto& it: m_Leases)
 			if (ts >= it->endDate) return true;
 		return false;
  	}	

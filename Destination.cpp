@@ -103,7 +103,7 @@ namespace client
 	{
 		if (m_IsRunning)	
 			Stop ();
-		for (auto it: m_LeaseSetRequests)
+		for (auto& it: m_LeaseSetRequests)
 			if (it.second->requestComplete) it.second->requestComplete (nullptr);
 		m_LeaseSetRequests.clear ();
 		if (m_Pool)
@@ -635,7 +635,7 @@ namespace client
 				it = m_RemoteLeaseSets.erase (it);
 			}	
 			else 
-				it++;
+				++it;
 		}
 	}	
 
@@ -663,7 +663,7 @@ namespace client
 		{	
 			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis ()); // TODO:
 			m_StreamingDestination->Start ();	
-			for (auto it: m_StreamingDestinationsByPorts)
+			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Start ();
 			return true;
 		}	
@@ -677,7 +677,7 @@ namespace client
 		{
 			m_StreamingDestination->Stop ();
 			m_StreamingDestination = nullptr;
-			for (auto it: m_StreamingDestinationsByPorts)
+			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Stop ();
 			if (m_DatagramDestination)
 			{

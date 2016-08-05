@@ -173,7 +173,7 @@ namespace client
 			return 0;
 		}
 
-		for (auto it: addresses) {
+		for (const auto& it: addresses) {
 			f << it.first << "," << it.second.ToBase32 () << std::endl;
 			num++;
 		}
@@ -252,7 +252,7 @@ namespace client
 			}	
 			LogPrint (eLogError, "Addressbook: subscription download timeout");
 			m_IsDownloading = false;
-		}	
+		}
 		if (m_Storage)
 		{
 			m_Storage->Save (m_Addresses);
@@ -260,7 +260,7 @@ namespace client
 			m_Storage = nullptr;
 		}
 		m_DefaultSubscription = nullptr;	
-		for (auto it: m_Subscriptions)
+		for (auto& it: m_Subscriptions)
 			delete it;
 		m_Subscriptions.clear ();	
 	}	
@@ -418,7 +418,7 @@ namespace client
 	{
 		std::map<std::string, i2p::data::IdentHash> localAddresses;
 		m_Storage->LoadLocal (localAddresses);
-		for (auto it: localAddresses)
+		for (const auto& it: localAddresses)
 		{
 			auto dot = it.first.find ('.');
 			if (dot != std::string::npos)

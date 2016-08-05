@@ -141,7 +141,7 @@ namespace data
 			if (done)
 				it = m_RequestedDestinations.erase (it);
 			else
-				it++;
+				++it;
 		}	
 	}
 }
