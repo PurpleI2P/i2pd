@@ -7,6 +7,7 @@
 #include <thread>
 #include <condition_variable>
 #include <functional>
+#include <utility>
 
 namespace i2p
 {
@@ -20,7 +21,7 @@ namespace util
 			void Put (Element e)
 			{
 				std::unique_lock<std::mutex>  l(m_QueueMutex);
-				m_Queue.push (e);	
+				m_Queue.push (std::move(e));
 				m_NonEmpty.notify_one ();
 			}
 
@@ -29,7 +30,7 @@ namespace util
 				if (!vec.empty ())
 				{	
 					std::unique_lock<std::mutex>  l(m_QueueMutex);
-					for (auto it: vec)
+					for (const auto& it: vec)
 						m_Queue.push (it);	
 					m_NonEmpty.notify_one ();
 				}	

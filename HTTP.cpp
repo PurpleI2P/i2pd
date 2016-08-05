@@ -160,7 +160,7 @@ namespace http {
     strsplit(query, tokens, '&');
 
     params.clear();
-    for (auto it : tokens) {
+    for (const auto& it : tokens) {
       std::size_t eq = it.find ('=');
       if (eq != std::string::npos) {
         auto e = std::pair<std::string, std::string>(it.substr(0, eq), it.substr(eq + 1));
