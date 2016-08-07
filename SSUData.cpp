@@ -25,10 +25,10 @@ namespace transport
 	}
 
 	SSUData::SSUData (SSUSession& session):
-		m_Session (session), m_ResendTimer (session.GetService ()), m_DecayTimer (session.GetService ()),
+		m_Session (session), m_ResendTimer (session.GetService ()), 
 		m_IncompleteMessagesCleanupTimer (session.GetService ()), 
 		m_MaxPacketSize (session.IsV6 () ? SSU_V6_MAX_PACKET_SIZE : SSU_V4_MAX_PACKET_SIZE), 
-		m_PacketSize (m_MaxPacketSize)
+		m_PacketSize (m_MaxPacketSize), m_LastMessageReceivedTime (0)
 	{
 	}
 
@@ -44,7 +44,6 @@ namespace transport
 	void SSUData::Stop ()
 	{
 		m_ResendTimer.cancel ();
-		m_DecayTimer.cancel ();
 		m_IncompleteMessagesCleanupTimer.cancel ();
 	}	
 		
@@ -233,11 +232,8 @@ namespace transport
 				{
 					if (!m_ReceivedMessages.count (msgID))
 					{	
-						if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES)
-							m_ReceivedMessages.clear ();
-						else
-							ScheduleDecay ();
 						m_ReceivedMessages.insert (msgID);
+						m_LastMessageReceivedTime = i2p::util::GetSecondsSinceEpoch ();
 						if (!msg->IsExpired ())
 							m_Handler.PutNextMessage (msg);
 						else
@@ -469,21 +465,6 @@ namespace transport
 		}	
 	}	
 
-	void SSUData::ScheduleDecay ()
-	{		
-		m_DecayTimer.cancel ();
-		m_DecayTimer.expires_from_now (boost::posix_time::seconds(DECAY_INTERVAL));
-		auto s = m_Session.shared_from_this();
-		m_ResendTimer.async_wait ([s](const boost::system::error_code& ecode)
-			{ s->m_Data.HandleDecayTimer (ecode); });
-	}	
-
-	void SSUData::HandleDecayTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-			m_ReceivedMessages.clear ();
-	}	
-
 	void SSUData::ScheduleIncompleteMessagesCleanup ()
 	{
 		m_IncompleteMessagesCleanupTimer.cancel ();
@@ -508,6 +489,11 @@ namespace transport
 				else
 					it++;
 			}	
+			// decay
+			if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES ||
+			    i2p::util::GetSecondsSinceEpoch () > m_LastMessageReceivedTime + DECAY_INTERVAL)
+				m_ReceivedMessages.clear ();
+			
 			ScheduleIncompleteMessagesCleanup ();
 		}	
 	}	
