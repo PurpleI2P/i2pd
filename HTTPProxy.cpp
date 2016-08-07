@@ -105,7 +105,7 @@ namespace proxy {
 		ss << "<p>" << description << "</p>\r\n";
 		std::string content = ss.str();
 		SendProxyError(content);
-  }
+	}
 
 	void HTTPReqHandler::HostNotFound(std::string & host) {
 		std::stringstream ss;
@@ -113,13 +113,13 @@ namespace proxy {
 		   << "<p>Remote host not found in router's addressbook</p>\r\n"
 		   << "<p>You may try to find this host on jumpservices below:</p>\r\n"
 		   << "<ul>\r\n";
-		for (auto & js : jumpservices) {
+		for (const auto& js : jumpservices) {
 			ss << "  <li><a href=\"" << js.second << host << "\">" << js.first << "</a></li>\r\n";
 		}
 		ss << "</ul>\r\n";
 		std::string content = ss.str();
 		SendProxyError(content);
-  }
+	}
 
 	void HTTPReqHandler::SendProxyError(std::string & content)
 	{
@@ -164,7 +164,7 @@ namespace proxy {
 		req.del_header("Forwarded");
 		/* drop proxy-disclosing headers */
 		std::vector<std::string> toErase;
-		for (auto it : req.headers) {
+		for (const auto& it : req.headers) {
 			if (it.first.compare(0, 12, "X-Forwarded-") == 0) {
 				toErase.push_back(it.first);
 			} else if (it.first.compare(0, 6, "Proxy-") == 0) {
@@ -173,7 +173,7 @@ namespace proxy {
 				/* allow */
 			}
 		}
-		for (auto header : toErase) {
+		for (const auto& header : toErase) {
 			req.headers.erase(header);
 		}
 		/* replace headers */

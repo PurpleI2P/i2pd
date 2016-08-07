@@ -51,7 +51,7 @@ namespace data
 	{
 		if (m_IsRunning)
 		{	
-			for (auto it: m_RouterInfos)
+			for (auto& it: m_RouterInfos)
 				it.second->SaveProfile ();
 			DeleteObsoleteProfiles ();
 			m_RouterInfos.clear ();
@@ -339,7 +339,7 @@ namespace data
 		m_LastLoad = i2p::util::GetSecondsSinceEpoch();
 		std::vector<std::string> files;
 		m_Storage.Traverse(files);
-		for (auto path : files)
+		for (const auto& path : files)
 			LoadRouterInfo(path);
 
 		LogPrint (eLogInfo, "NetDb: ", m_RouterInfos.size(), " routers loaded (", m_Floodfills.size (), " floodfils)");
@@ -357,7 +357,7 @@ namespace data
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 					NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;	
 
-		for (auto it: m_RouterInfos)
+		for (auto& it: m_RouterInfos)
 		{	
 			std::string ident = it.second->GetIdentHashBase64();
 			std::string path  = m_Storage.Path(ident);
@@ -405,7 +405,7 @@ namespace data
 						it = m_RouterInfos.erase (it);
 						continue;
 					}	
-					it++;
+					++it;
 				}
 			}	
 			// clean up expired floodfiils
@@ -415,7 +415,7 @@ namespace data
 					if ((*it)->IsUnreachable ())
 						it = m_Floodfills.erase (it);
 					else
-						it++;
+						++it;
 			}	
 		}
 	}
@@ -901,7 +901,7 @@ namespace data
 		{	
 			uint32_t i = 0;
 			std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-			for (auto it: m_RouterInfos)
+			for (const auto& it: m_RouterInfos)
 			{	
 				if (i >= ind)
 				{	
@@ -933,7 +933,7 @@ namespace data
 		else	
 			minMetric.SetMax ();
 		std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-		for (auto it: m_Floodfills)
+		for (const auto& it: m_Floodfills)
 		{	
 			if (!it->IsUnreachable ())
 			{	
@@ -964,7 +964,7 @@ namespace data
 		if (closeThanUsOnly) ourMetric = destKey ^ i2p::context.GetIdentHash ();
 		{
 			std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-			for (auto it: m_Floodfills)
+			for (const auto& it: m_Floodfills)
 			{
 				if (!it->IsUnreachable ())
 				{	
@@ -983,11 +983,11 @@ namespace data
 
 		std::vector<IdentHash> res;	
 		size_t i = 0;			
-		for (auto it: sorted)
+		for (const auto& it: sorted)
 		{
 			if (i < num)
 			{
-				auto& ident = it.r->GetIdentHash ();
+				const auto& ident = it.r->GetIdentHash ();
 				if (!excluded.count (ident))
 				{	
 					res.push_back (ident);
@@ -1016,7 +1016,7 @@ namespace data
 		IdentHash destKey = CreateRoutingKey (destination);
 		minMetric.SetMax ();
 		// must be called from NetDb thread only
-		for (auto it: m_RouterInfos)
+		for (const auto& it: m_RouterInfos)
 		{	
 			if (!it.second->IsFloodfill ())
 			{	
@@ -1042,7 +1042,7 @@ namespace data
 				it = m_LeaseSets.erase (it);
 			}	
 			else 
-				it++;
+				++it;
 		}
 	}
 
@@ -1054,7 +1054,7 @@ namespace data
 			if (ts > it->second.second + 180) // 3 minutes
 				it = m_LookupResponses.erase (it);
 			else
-				it++;
+				++it;
 		}
 	}
 }

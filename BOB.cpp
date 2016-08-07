@@ -536,8 +536,8 @@ namespace client
 	void BOBCommandSession::ListCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: list");
-		auto& destinations = m_Owner.GetDestinations ();
-		for (auto it: destinations)
+		const auto& destinations = m_Owner.GetDestinations ();
+		for (const auto& it: destinations)
 			SendData (it.first.c_str ());
 		SendReplyOK ("Listing done");
 	}	
@@ -619,7 +619,7 @@ namespace client
 	BOBCommandChannel::~BOBCommandChannel ()
 	{
 		Stop ();
-		for (auto it: m_Destinations)
+		for (const auto& it: m_Destinations)
 			delete it.second;
 	}
 
@@ -633,7 +633,7 @@ namespace client
 	void BOBCommandChannel::Stop ()
 	{
 		m_IsRunning = false;
-		for (auto it: m_Destinations)
+		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Acceptor.cancel ();	
 		m_Service.stop ();

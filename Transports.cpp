@@ -570,6 +570,8 @@ namespace transport
 				}	
 				if (sendDatabaseStore)
 					session->SendI2NPMessages ({ CreateDatabaseStoreMsg () });
+				else
+					session->SetTerminationTimeout (10); // most likely it's publishing, no follow-up messages expected, set timeout to 10 seconds
 				it->second.sessions.push_back (session);
 				session->SendI2NPMessages (it->second.delayedMessages);
 				it->second.delayedMessages.clear ();

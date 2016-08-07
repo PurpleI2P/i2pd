@@ -196,7 +196,7 @@ namespace client
 
 		LogPrint(eLogInfo, "Clients: stopping AddressBook");
 		m_AddressBook.Stop ();		
-		for (auto it: m_Destinations)
+		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Destinations.clear ();
 		m_SharedLocalDestination = nullptr; 

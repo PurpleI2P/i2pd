@@ -210,7 +210,7 @@ namespace http {
 		s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
 		s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
 		s << "<b>Our external address:</b>" << "<br>\r\n" ;
-		for (auto address : i2p::context.GetRouterInfo().GetAddresses())
+		for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
 		{
 			switch (address->transportStyle)
 			{
@@ -283,7 +283,7 @@ namespace http {
 			}	
 			s << "<br>\r\n";
 			s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
-			for (auto it: dest->GetSessions ())
+			for (const auto& it: dest->GetSessions ())
 			{
 				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " ";
 				s << it.second->GetNumOutgoingTags () << "<br>" << std::endl;
@@ -314,7 +314,7 @@ namespace http {
 			s << "<th>Status</th>";
 			s << "</tr>";
 
-			for (auto it: dest->GetAllStreams ())
+			for (const auto& it: dest->GetAllStreams ())
 			{	
 				s << "<tr>";
 				s << "<td>" << it->GetSendStreamID () << "</td>";
@@ -432,7 +432,7 @@ namespace http {
 	void ShowTransitTunnels (std::stringstream& s)
 	{
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
-		for (auto it: i2p::tunnel::tunnels.GetTransitTunnels ())
+		for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
 		{
 			if (std::dynamic_pointer_cast<i2p::tunnel::TransitTunnelGateway>(it))
 				s << it->GetTunnelID () << " ⇒ ";
@@ -451,7 +451,7 @@ namespace http {
 		if (ntcpServer)
 		{	
 			s << "<b>NTCP</b><br>\r\n";
-			for (auto it: ntcpServer->GetNTCPSessions ())
+			for (const auto& it: ntcpServer->GetNTCPSessions ())
 			{
 				if (it.second && it.second->IsEstablished ())
 				{
@@ -469,7 +469,7 @@ namespace http {
 		if (ssuServer)
 		{
 			s << "<br>\r\n<b>SSU</b><br>\r\n";
-			for (auto it: ssuServer->GetSessions ())
+			for (const auto& it: ssuServer->GetSessions ())
 			{
 				auto endpoint = it.second->GetRemoteEndpoint ();
 				if (it.second->IsOutgoing ()) s << " ⇒ ";
@@ -481,7 +481,7 @@ namespace http {
 				s << "<br>\r\n" << std::endl;
 			}
 			s << "<br>\r\n<b>SSU6</b><br>\r\n";
-			for (auto it: ssuServer->GetSessionsV6 ())
+			for (const auto& it: ssuServer->GetSessionsV6 ())
 			{
 				auto endpoint = it.second->GetRemoteEndpoint ();
 				if (it.second->IsOutgoing ()) s << " ⇒ ";
@@ -526,7 +526,7 @@ namespace http {
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
 		s << "<br>\r\n";
 		s << "<b>Streams:</b><br>\r\n";
-		for (auto it: session->ListSockets())
+		for (const auto& it: session->ListSockets())
 		{
 			switch (it->GetSocketType ())
 			{
