@@ -369,19 +369,19 @@ namespace data
 		SetProperty ("caps", caps);
 	}
 		
-	void RouterInfo::WriteToStream (std::ostream& s)
+	void RouterInfo::WriteToStream (std::ostream& s) const
 	{
 		uint64_t ts = htobe64 (m_Timestamp);
-		s.write ((char *)&ts, sizeof (ts));
+		s.write ((const char *)&ts, sizeof (ts));
 
 		// addresses
 		uint8_t numAddresses = m_Addresses->size ();
 		s.write ((char *)&numAddresses, sizeof (numAddresses));
-		for (auto addr : *m_Addresses)
+		for (const auto& addr_ptr : *m_Addresses)
 		{
-			Address& address = *addr;
-			s.write ((char *)&address.cost, sizeof (address.cost));
-			s.write ((char *)&address.date, sizeof (address.date));
+			const Address& address = *addr_ptr;
+			s.write ((const char *)&address.cost, sizeof (address.cost));
+			s.write ((const char *)&address.date, sizeof (address.date));
 			std::stringstream properties;
 			if (address.transportStyle == eTransportNTCP)
 				WriteString ("NTCP", s);
@@ -410,7 +410,7 @@ namespace data
 				if (address.introducers.size () > 0)
 				{	
 					int i = 0;
-					for (auto introducer: address.introducers)
+					for (const auto& introducer: address.introducers)
 					{
 						WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -419,7 +419,7 @@ namespace data
 						i++;
 					}	
 					i = 0;
-					for (auto introducer: address.introducers)
+					for (const auto& introducer: address.introducers)
 					{
 						WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -431,7 +431,7 @@ namespace data
 						i++;
 					}	
 					i = 0;
-					for (auto introducer: address.introducers)
+					for (const auto& introducer: address.introducers)
 					{
 						WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -440,7 +440,7 @@ namespace data
 						i++;
 					}	
 					i = 0;
-					for (auto introducer: address.introducers)
+					for (const auto& introducer: address.introducers)
 					{
 						WriteString ("itag" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -482,7 +482,7 @@ namespace data
 
 		// properties
 		std::stringstream properties;
-		for (auto& p : m_Properties)
+		for (const auto& p : m_Properties)
 		{
 			WriteString (p.first, properties);
 			properties << '=';
@@ -570,10 +570,10 @@ namespace data
 		addr->cost = 2;
 		addr->date = 0;
 		addr->mtu = 0;
-		for (auto it: *m_Addresses) // don't insert same address twice
+		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
-		m_Addresses->push_back(addr);	
 		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
+		m_Addresses->push_back(std::move(addr));
 	}	
 
 	void RouterInfo::AddSSUAddress (const char * host, int port, const uint8_t * key, int mtu)
@@ -586,21 +586,22 @@ namespace data
 		addr->date = 0;
 		addr->mtu = mtu; 
 		memcpy (addr->key, key, 32);
-		for (auto it: *m_Addresses) // don't insert same address twice
+		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
-		m_Addresses->push_back(addr);	
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
-		m_Caps |= eSSUTesting; 
-		m_Caps |= eSSUIntroducer; 
+		m_Addresses->push_back(std::move(addr));
+
+		m_Caps |= eSSUTesting;
+		m_Caps |= eSSUIntroducer;
 	}	
 
 	bool RouterInfo::AddIntroducer (const Introducer& introducer)
 	{
-		for (auto addr : *m_Addresses)
+		for (auto& addr : *m_Addresses)
 		{
 			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
-				for (auto intro: addr->introducers)
+				for (auto& intro: addr->introducers)
 					if (intro.iTag == introducer.iTag) return false; // already presented
 				addr->introducers.push_back (introducer);
 				return true;
@@ -611,16 +612,16 @@ namespace data
 
 	bool RouterInfo::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
 	{		
-		for (auto addr: *m_Addresses)
+		for (auto& addr: *m_Addresses)
 		{
 			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
-				for (std::vector<Introducer>::iterator it = addr->introducers.begin (); it != addr->introducers.end (); it++)
+				for (auto it = addr->introducers.begin (); it != addr->introducers.end (); ++it)
 					if ( boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e) 
 					{
 						addr->introducers.erase (it);
 						return true;
-					}	
+					}
 			}	
 		}	
 		return false;
@@ -707,7 +708,7 @@ namespace data
 				if (addr->host.is_v6 ())
 					it = m_Addresses->erase (it);
 				else
-					it++;
+					++it;
 			}	
 		}	
 	}
@@ -723,7 +724,7 @@ namespace data
 				if (addr->host.is_v4 ())
 					it = m_Addresses->erase (it);
 				else
-					it++;
+					++it;
 			}	
 		}	
 	}
@@ -751,8 +752,7 @@ namespace data
 		
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
 	{
-		auto addresses = m_Addresses;
-		for (auto address : *addresses)
+		for (const auto& address : *m_Addresses)
 		{
 			if (address->transportStyle == s)
 			{	

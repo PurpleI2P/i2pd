@@ -187,9 +187,9 @@ namespace data
 			void ReadFromFile ();
 			void ReadFromStream (std::istream& s);
 			void ReadFromBuffer (bool verifySignature);
-			void WriteToStream (std::ostream& s);
-			size_t ReadString (char * str, std::istream& s);
-			void WriteString (const std::string& str, std::ostream& s);
+			void WriteToStream (std::ostream& s) const;
+			static size_t ReadString (char* str, std::istream& s);
+			static void WriteString (const std::string& str, std::ostream& s);
 			void ExtractCaps (const char * value);
 			std::shared_ptr<const Address> GetAddress (TransportStyle s, bool v4only, bool v6only = false) const;
 			void UpdateCapsProperty ();			
