@@ -149,7 +149,8 @@ namespace http {
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSIT_TUNNELS << "\">Transit tunnels</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_TRANSPORTS << "\">Transports</a><br>\r\n"
 			"  <a href=\"/?page=" << HTTP_PAGE_I2P_TUNNELS << "\">I2P tunnels</a><br>\r\n"
-			"  <a href=\"/?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n"
+			if (i2p::client::context.GetSAMBridge ())
+				"  <a href=\"/?page=" << HTTP_PAGE_SAM_SESSIONS << "\">SAM sessions</a><br>\r\n"
 			"</div>\r\n"
 			"<div class=right>";
 	}
