@@ -486,17 +486,17 @@ namespace client
 		return true;
 	}
 
-	void LeaseSetDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest)
+	void LeaseSetDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest, bool notify)
 	{
 		auto s = shared_from_this ();
-		m_Service.post ([dest, s](void)
+		m_Service.post ([dest, notify, s](void)
 			{
 				auto it = s->m_LeaseSetRequests.find (dest);
 				if (it != s->m_LeaseSetRequests.end ())
 				{	
 					auto requestComplete = it->second->requestComplete; 
 					s->m_LeaseSetRequests.erase (it);
-					if (requestComplete) requestComplete (nullptr);
+					if (notify && requestComplete) requestComplete (nullptr);
 				}	
 			});				
 	}
