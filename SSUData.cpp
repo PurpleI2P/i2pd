@@ -427,12 +427,12 @@ namespace transport
 				if (ts >= it->second->nextResendTime)
 				{	
 					if (it->second->numResends < MAX_NUM_RESENDS)
-					{	
+					{
 						for (auto& f: it->second->fragments)
-							if (f) 
+							if (f)
 							{
 								try
-								{	
+								{
 									m_Session.Send (f->buf, f->len); // resend
 									numResent++;
 								}
@@ -440,11 +440,11 @@ namespace transport
 								{
 									LogPrint (eLogWarning, "SSU: Can't resend data fragment ", ec.what ());
 								}
-							}	
+							}
 
 						it->second->numResends++;
 						it->second->nextResendTime += it->second->numResends*RESEND_INTERVAL;
-						it++;
+						++it;
 					}	
 					else
 					{
@@ -453,7 +453,7 @@ namespace transport
 					}	
 				}	
 				else
-					it++;
+					++it;
 			}
 			if (numResent < MAX_OUTGOING_WINDOW_SIZE)
 				ScheduleResend ();
@@ -487,7 +487,7 @@ namespace transport
 					it = m_IncompleteMessages.erase (it);
 				}	
 				else
-					it++;
+					++it;
 			}	
 			// decay
 			if (m_ReceivedMessages.size () > MAX_NUM_RECEIVED_MESSAGES ||

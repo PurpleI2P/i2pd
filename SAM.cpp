@@ -686,7 +686,7 @@ namespace client
 	{
 		{
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
-			for (auto sock : m_Sockets) {
+			for (auto& sock : m_Sockets) {
 				sock->CloseStream();
 			}
 		}
@@ -719,7 +719,7 @@ namespace client
 	{
 		m_IsRunning = false;
 		m_Acceptor.cancel ();
-		for (auto it: m_Sessions)
+		for (auto& it: m_Sessions)
 			it.second->CloseStreams ();
 		m_Sessions.clear ();
 		m_Service.stop ();
