@@ -260,8 +260,6 @@ namespace client
 			m_Storage = nullptr;
 		}
 		m_DefaultSubscription = nullptr;	
-		for (auto& it: m_Subscriptions)
-			delete it;
 		m_Subscriptions.clear ();	
 	}	
 	
@@ -403,7 +401,7 @@ namespace client
 				{
 					getline(f, s);
 					if (!s.length()) continue; // skip empty line
-					m_Subscriptions.push_back (new AddressBookSubscription (*this, s));
+					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
 				}
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
 			}
@@ -462,7 +460,7 @@ namespace client
 		int nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
 		if (success)
 		{	
-			if (m_DefaultSubscription) m_DefaultSubscription.reset (nullptr);
+			if (m_DefaultSubscription) m_DefaultSubscription = nullptr;
 			if (m_IsLoaded)
 				nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT; 
 			else
@@ -516,16 +514,17 @@ namespace client
 					// download it from http://i2p-projekt.i2p/hosts.txt 
 					LogPrint (eLogInfo, "Addressbook: trying to download it from default subscription.");
 					if (!m_DefaultSubscription)
-						m_DefaultSubscription.reset (new AddressBookSubscription (*this, DEFAULT_SUBSCRIPTION_ADDRESS));
+						m_DefaultSubscription = std::make_shared<AddressBookSubscription>(*this, DEFAULT_SUBSCRIPTION_ADDRESS);
 					m_IsDownloading = true;	
-					m_DefaultSubscription->CheckUpdates ();
+					std::thread load_hosts(std::bind (&AddressBookSubscription::CheckUpdates, m_DefaultSubscription));
+					load_hosts.detach(); // TODO: use join
 				}	
 				else if (!m_Subscriptions.empty ())
 				{	
 					// pick random subscription
 					auto ind = rand () % m_Subscriptions.size();	
 					m_IsDownloading = true;	
-					std::thread load_hosts(&AddressBookSubscription::CheckUpdates, m_Subscriptions[ind]);
+					std::thread load_hosts(std::bind (&AddressBookSubscription::CheckUpdates, m_Subscriptions[ind]));
 					load_hosts.detach(); // TODO: use join
 				}	
 			}
