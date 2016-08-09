@@ -658,23 +658,17 @@ namespace client
 		if (!leaseSet)
 		{
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
-			if (i2p::client::context.GetSharedLocalDestination ()->RequestDestination (m_Ident,
-				[&newDataReceived, &leaseSet](std::shared_ptr<i2p::data::LeaseSet> ls)
+			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (m_Ident,
+				[&newDataReceived, &leaseSet, &newDataReceivedMutex](std::shared_ptr<i2p::data::LeaseSet> ls)
 			    {
 					leaseSet = ls;
+					std::unique_lock<std::mutex> l1(newDataReceivedMutex);
 					newDataReceived.notify_all ();
-				}))
+				});
+			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
 			{
-				if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
-				{
-					LogPrint (eLogError, "Addressbook: Subscription LeaseSet request timeout expired");
-					i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (m_Ident, false); // don't notify, because we know it already
-					return false;
-				}
-			}
-			else
-			{
-				LogPrint (eLogError, "Addressbook: Destination is not ready");
+				LogPrint (eLogError, "Addressbook: Subscription LeaseSet request timeout expired");
+				i2p::client::context.GetSharedLocalDestination ()->CancelDestinationRequest (m_Ident, false); // don't notify, because we know it already
 				return false;
 			}
 		}

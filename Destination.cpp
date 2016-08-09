@@ -479,7 +479,8 @@ namespace client
 	{
 		if (!m_Pool || !IsReady ()) 
 		{	
-			if (requestComplete) requestComplete (nullptr);
+			if (requestComplete) 
+				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}	
 		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), dest, requestComplete));
