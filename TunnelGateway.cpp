@@ -197,7 +197,7 @@ namespace tunnel
 	{
 		m_Buffer.CompleteCurrentTunnelDataMessage ();
 		auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs ();
-		for (auto tunnelMsg : tunnelMsgs)
+		for (auto& tunnelMsg : tunnelMsgs)
 		{	
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg, tunnelMsg); 
 			tunnelMsg->FillI2NPMessageHeader (eI2NPTunnelData); 

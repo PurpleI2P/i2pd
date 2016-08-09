@@ -345,7 +345,7 @@ namespace tunnel
 	{
 		std::shared_ptr<InboundTunnel> tunnel; 
 		size_t minReceived = 0;
-		for (auto it : m_InboundTunnels)
+		for (const auto& it : m_InboundTunnels)
 		{
 			if (!it->IsEstablished ()) continue;
 			if (!tunnel || it->GetNumReceivedBytes () < minReceived)
@@ -362,7 +362,7 @@ namespace tunnel
 		if (m_OutboundTunnels.empty ()) return nullptr;
 		uint32_t ind = rand () % m_OutboundTunnels.size (), i = 0;
 		std::shared_ptr<OutboundTunnel> tunnel;
-		for (auto it: m_OutboundTunnels)
+		for (const auto& it: m_OutboundTunnels)
 		{	
 			if (it->IsEstablished ())
 			{
@@ -586,7 +586,7 @@ namespace tunnel
 						m_NumFailedTunnelCreations++;
 					}
 					else
-						it++;
+						++it;
 				break;
 				case eTunnelStateBuildFailed:
 					LogPrint (eLogDebug, "Tunnel: pending build request ", it->first, " failed, deleted");
@@ -595,7 +595,7 @@ namespace tunnel
 				break;
 				case eTunnelStateBuildReplyReceived:
 					// intermediate state, will be either established of build failed
-					it++;
+					++it;
 				break;	
 				default:
 					// success
@@ -635,7 +635,7 @@ namespace tunnel
 						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 							tunnel->SetState (eTunnelStateExpiring);
 					}	
-					it++;
+					++it;
 				}
 			}
 		}	
@@ -738,9 +738,8 @@ namespace tunnel
 	void Tunnels::ManageTunnelPools ()
 	{
 		std::unique_lock<std::mutex> l(m_PoolsMutex);
-		for (auto it: m_Pools)
+		for (auto& pool : m_Pools)
 		{	
-			auto pool = it;
 			if (pool && pool->IsActive ())
 			{	
 				pool->CreateTunnels ();
@@ -856,7 +855,7 @@ namespace tunnel
 		int timeout = 0;
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 		// TODO: possible race condition with I2PControl
-		for (auto it: m_TransitTunnels)
+		for (const auto& it : m_TransitTunnels)
 		{
 			int t = it->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT - ts;
 			if (t > timeout) timeout = t;
