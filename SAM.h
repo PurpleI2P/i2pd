@@ -154,7 +154,7 @@ namespace client
 			std::list<std::shared_ptr<SAMSocket> > l;
 			{
 				std::lock_guard<std::mutex> lock(m_SocketsMutex);
-				for( auto & sock : m_Sockets ) l.push_back(sock);
+				for(const auto& sock : m_Sockets ) l.push_back(sock);
 			}
 			return l;
 		}

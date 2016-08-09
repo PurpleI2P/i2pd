@@ -907,7 +907,7 @@ namespace transport
 	{
 		if (m_State == eSessionStateEstablished)
 		{
-			for (auto it: msgs)
+			for (const auto& it: msgs)
 				if (it) m_Data.Send (it);
 		}
 	}	

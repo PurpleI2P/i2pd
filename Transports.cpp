@@ -112,7 +112,7 @@ namespace transport
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		// create acceptors
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
-		for (auto address : addresses)
+		for (const auto& address : addresses)
 		{
 			if (m_NTCPServer == nullptr && enableNTCP)
 			{
@@ -236,7 +236,7 @@ namespace transport
 		if (ident == i2p::context.GetRouterInfo ().GetIdentHash ())
 		{	
 			// we send it to ourself
-			for (auto it: msgs)
+			for (auto& it: msgs)
 				i2p::HandleI2NPMessage (it);
 			return;
 		}	
@@ -266,7 +266,7 @@ namespace transport
 		{	
 			if (it->second.delayedMessages.size () < MAX_NUM_DELAYED_MESSAGES)
 			{	
-				for (auto it1: msgs)
+				for (auto& it1: msgs)
 					it->second.delayedMessages.push_back (it1);
 			}
 			else
@@ -636,7 +636,7 @@ namespace transport
 					it = m_Peers.erase (it);
 				}
 				else
-					it++;
+					++it;
 			}
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
 			if (i2p::context.GetStatus () == eRouterStatusTesting) // if still testing,	 repeat peer test
@@ -658,7 +658,7 @@ namespace transport
   {
     std::lock_guard<std::mutex> lock(m_FamilyMutex);
     m_TrustedFamilies.clear();
-    for ( auto fam : families )
+    for ( const auto& fam : families )
       m_TrustedFamilies.push_back(fam);
   }
 
