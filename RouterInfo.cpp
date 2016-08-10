@@ -752,7 +752,8 @@ namespace data
 		
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
 	{
-		for (const auto& address : *m_Addresses)
+		auto addresses = m_Addresses;
+		for (const auto& address : *addresses)
 		{
 			if (address->transportStyle == s)
 			{	
