@@ -247,7 +247,7 @@ namespace stream
 		}	
 		int nackCount = packet->GetNACKCount ();
 		for (auto it = m_SentPackets.begin (); it != m_SentPackets.end ();)
-		{			
+		{
 			auto seqn = (*it)->GetSeqn ();
 			if (seqn <= ackThrough)
 			{
@@ -263,7 +263,7 @@ namespace stream
 					if (nacked)
 					{
 						LogPrint (eLogDebug, "Streaming: Packet ", seqn, " NACK");
-						it++;
+						++it;
 						continue;
 					}	
 				}
@@ -417,7 +417,7 @@ namespace stream
 			}	
 			bool isEmpty = m_SentPackets.empty ();
 			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
-			for (auto it: packets)
+			for (auto& it: packets)
 			{
 				it->sendTime = ts;
 				m_SentPackets.insert (it);
@@ -767,7 +767,7 @@ namespace stream
 				bool updated = false;	
 				if (expired && m_CurrentRemoteLease)
 				{
-					for (auto it: leases)
+					for (const auto& it: leases)
 						if ((it->tunnelGateway == m_CurrentRemoteLease->tunnelGateway) && (it->tunnelID != m_CurrentRemoteLease->tunnelID))
 						{
 							m_CurrentRemoteLease = it;
@@ -806,7 +806,7 @@ namespace stream
 		
 	StreamingDestination::~StreamingDestination ()
 	{
-		for (auto it: m_SavedPackets)
+		for (auto& it: m_SavedPackets)
 		{
 			for (auto it1: it.second) delete it1;
 			it.second.clear ();	
@@ -903,7 +903,7 @@ namespace stream
 			else // follow on packet without SYN
 			{
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
-				for (auto it: m_Streams)
+				for (auto& it: m_Streams)
 					if (it.second->GetSendStreamID () == receiveStreamID)
 					{
 						// found
@@ -970,7 +970,7 @@ namespace stream
 		m_Owner->GetService ().post([acceptor, this](void)
 			{                            
 				m_Acceptor = acceptor;
-				for (auto it: m_PendingIncomingStreams)
+				for (auto& it: m_PendingIncomingStreams)
 					if (it->GetStatus () == eStreamStatusOpen) // still open?
 						m_Acceptor (it);
 				m_PendingIncomingStreams.clear ();
@@ -989,7 +989,7 @@ namespace stream
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			LogPrint (eLogWarning, "Streaming: Pending incoming timeout expired");
-			for (auto it: m_PendingIncomingStreams)
+			for (auto& it: m_PendingIncomingStreams)
 				it->Close ();
 			m_PendingIncomingStreams.clear ();
 		}	

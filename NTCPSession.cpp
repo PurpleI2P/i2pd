@@ -666,7 +666,7 @@ namespace transport
 	{
 		m_IsSending = true;
 		std::vector<boost::asio::const_buffer> bufs;
-		for (auto it: msgs)
+		for (const auto& it: msgs)
 			bufs.push_back (CreateMsgBuffer (it));
 		boost::asio::async_write (m_Socket, bufs, boost::asio::transfer_all (),                      
         	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
@@ -716,7 +716,7 @@ namespace transport
 		{
 			if (m_SendQueue.size () < NTCP_MAX_OUTGOING_QUEUE_SIZE)	
 			{
-				for (auto it: msgs)
+				for (const auto& it: msgs)
 					m_SendQueue.push_back (it);
 			}
 			else
@@ -767,7 +767,7 @@ namespace transport
 			m_Thread = new std::thread (std::bind (&NTCPServer::Run, this));
 			// create acceptors
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
-			for (auto address: addresses)
+			for (const auto& address: addresses)
 			{
 				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)

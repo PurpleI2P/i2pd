@@ -70,7 +70,9 @@ All options below still possible in cmdline, but better write it in config file:
 
 * --upnp.enabled=       - Enable or disable UPnP, false by default for CLI and true for GUI (Windows, Android)  
 * --upnp.name=          - Name i2pd appears in UPnP forwardings list. I2Pd by default  
+
 * --precomputation.elgamal=  - Use ElGamal precomputated tables. false for x64 and true for other platforms by default  
+* --reseed.file         - Full path to SU3 file to reseed from  
 
 * --limits.transittunnels=  - Override maximum number of transit tunnels. 2500 by default   
 

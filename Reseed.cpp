@@ -16,6 +16,7 @@
 #include "NetDb.h"
 #include "HTTP.h"
 #include "util.h"
+#include "Config.h"
 
 namespace i2p
 {
@@ -51,6 +52,13 @@ namespace data
 
 	int Reseeder::ReseedNowSU3 ()
 	{
+		std::string filename; i2p::config::GetOption("reseed.file", filename);
+		if (filename.length() > 0) // reseed file is specified
+		{
+			auto num = ProcessSU3File (filename.c_str ());
+			if (num > 0) return num; // success
+			LogPrint (eLogWarning, "Can't reseed from ", filename, " . Trying from hosts"); 
+		}	
 		auto ind = rand () % httpsReseedHostList.size ();
 		std::string& reseedHost = httpsReseedHostList[ind];
 		return ReseedFromSU3 (reseedHost);

@@ -213,7 +213,7 @@ namespace tunnel
 			void CreatePeers (const Peers& peers)
 			{
 				TunnelHopConfig * prev = nullptr;
-				for (auto it: peers)
+				for (const auto& it: peers)
 				{
 					auto hop = new TunnelHopConfig (it);
 					if (prev)

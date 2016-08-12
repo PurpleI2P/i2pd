@@ -501,24 +501,25 @@ namespace client
 	{
 		if (!m_Pool || !IsReady ()) 
 		{	
-			if (requestComplete) requestComplete (nullptr);
+			if (requestComplete) 
+				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}	
 		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), dest, requestComplete));
 		return true;
 	}
 
-	void LeaseSetDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest)
+	void LeaseSetDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest, bool notify)
 	{
 		auto s = shared_from_this ();
-		m_Service.post ([dest, s](void)
+		m_Service.post ([dest, notify, s](void)
 			{
 				auto it = s->m_LeaseSetRequests.find (dest);
 				if (it != s->m_LeaseSetRequests.end ())
 				{	
 					auto requestComplete = it->second->requestComplete; 
 					s->m_LeaseSetRequests.erase (it);
-					if (requestComplete) requestComplete (nullptr);
+					if (notify && requestComplete) requestComplete (nullptr);
 				}	
 			});				
 	}

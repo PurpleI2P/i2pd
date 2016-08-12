@@ -4,8 +4,8 @@
 I2PD_ENABLED="yes"
 
 # port to listen for incoming connections
-# comment this line if you want to use value from config
-I2PD_PORT="4567"
+# uncomment following line if you want to specify it here
+# I2PD_PORT="4567"
 
 # Additional options that are passed to the Daemon.
 # see possible switches in /usr/share/doc/i2pd/configuration.md.gz
