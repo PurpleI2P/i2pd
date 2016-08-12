@@ -1,0 +1,3 @@
+http://inr.i2p/export/alive-hosts.txt
+http://stats.i2p/cgi-bin/newhosts.txt
+http://i2p-projekt.i2p/hosts.txt
