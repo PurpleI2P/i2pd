@@ -202,7 +202,7 @@ namespace i2p
 		len += 32;
 		buf[len] = routers.size (); 
 		len++;
-		for (auto it: routers)
+		for (const auto& it: routers)
 		{
 			memcpy (buf + len, it, 32);
 			len += 32;

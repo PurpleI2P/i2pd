@@ -237,9 +237,8 @@ namespace transport
 		std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > * sessions)
 	{
 		std::shared_ptr<SSUSession> session;	
-		for (auto it1: packets)
+		for (auto& packet: packets)
 		{
-			auto packet = it1;
 			try
 			{	
 				if (!session || session->GetRemoteEndpoint () != packet->from) // we received packet for other session than previous
@@ -431,11 +430,11 @@ namespace transport
 
 	void SSUServer::DeleteAllSessions ()
 	{
-		for (auto it: m_Sessions)
+		for (auto& it: m_Sessions)
 			it.second->Close ();
 		m_Sessions.clear ();
 
-		for (auto it: m_SessionsV6)
+		for (auto& it: m_SessionsV6)
 			it.second->Close ();
 		m_SessionsV6.clear ();
 	}
@@ -444,7 +443,7 @@ namespace transport
 	std::shared_ptr<SSUSession> SSUServer::GetRandomV4Session (Filter filter) // v4 only
 	{
 		std::vector<std::shared_ptr<SSUSession> > filteredSessions;
-		for (auto s :m_Sessions)
+		for (const auto& s :m_Sessions)
 			if (filter (s.second)) filteredSessions.push_back (s.second);
 		if (filteredSessions.size () > 0)
 		{
@@ -468,7 +467,7 @@ namespace transport
 	std::shared_ptr<SSUSession> SSUServer::GetRandomV6Session (Filter filter) // v6 only
 	{
 		std::vector<std::shared_ptr<SSUSession> > filteredSessions;
-		for (auto s :m_SessionsV6)
+		for (const auto& s :m_SessionsV6)
 			if (filter (s.second)) filteredSessions.push_back (s.second);
 		if (filteredSessions.size () > 0)
 		{
@@ -535,7 +534,7 @@ namespace transport
 			std::list<boost::asio::ip::udp::endpoint> newList;
 			size_t numIntroducers = 0;
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			for (auto it :m_Introducers)
+			for (const auto& it : m_Introducers)
 			{	
 				auto session = FindSession (it);
 				if (session && ts < session->GetCreationTime () + SSU_TO_INTRODUCER_SESSION_DURATION)
@@ -552,23 +551,20 @@ namespace transport
 			{
 				// create new
 				auto introducers = FindIntroducers (SSU_MAX_NUM_INTRODUCERS);
-				if (introducers.size () > 0)
+				for (const auto& it1: introducers)
 				{
-					for (auto it1: introducers)
+					const auto& ep = it1->GetRemoteEndpoint ();
+					i2p::data::RouterInfo::Introducer introducer;
+					introducer.iHost = ep.address ();
+					introducer.iPort = ep.port ();
+					introducer.iTag = it1->GetRelayTag ();
+					introducer.iKey = it1->GetIntroKey ();
+					if (i2p::context.AddIntroducer (introducer))
 					{
-						auto& ep = it1->GetRemoteEndpoint ();
-						i2p::data::RouterInfo::Introducer introducer;
-						introducer.iHost = ep.address ();
-						introducer.iPort = ep.port ();
-						introducer.iTag = it1->GetRelayTag ();
-						introducer.iKey = it1->GetIntroKey ();
-						if (i2p::context.AddIntroducer (introducer))
-						{	
-							newList.push_back (ep);
-							if (newList.size () >= SSU_MAX_NUM_INTRODUCERS) break;
-						}	
-					}	
-				}	
+						newList.push_back (ep);
+						if (newList.size () >= SSU_MAX_NUM_INTRODUCERS) break;
+					}
+				}
 			}	
 			m_Introducers = newList;
 			if (m_Introducers.size () < SSU_MAX_NUM_INTRODUCERS)
@@ -637,7 +633,7 @@ namespace transport
 					it = m_PeerTests.erase (it);
 				}
 				else
-					it++;	 
+					++it;
 			}
 			if (numDeleted > 0)
 				LogPrint (eLogDebug, "SSU: ", numDeleted, " peer tests have been expired");

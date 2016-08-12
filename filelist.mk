@@ -5,7 +5,7 @@ LIB_SRC = \
   SSUSession.cpp SSUData.cpp Streaming.cpp Identity.cpp TransitTunnel.cpp \
   Transports.cpp Tunnel.cpp TunnelEndpoint.cpp TunnelPool.cpp TunnelGateway.cpp \
   Destination.cpp Base.cpp I2PEndian.cpp FS.cpp Config.cpp Family.cpp \
-  util.cpp api.cpp
+  Config.cpp util.cpp api.cpp
 
 LIB_CLIENT_SRC = \
 	AddressBook.cpp BOB.cpp ClientContext.cpp I2PTunnel.cpp I2PService.cpp \
@@ -13,5 +13,5 @@ LIB_CLIENT_SRC = \
 
 # also: Daemon{Linux,Win32}.cpp will be added later
 DAEMON_SRC = \
-	HTTPServer.cpp I2PControl.cpp UPnP.cpp Daemon.cpp Config.cpp i2pd.cpp
+	HTTPServer.cpp I2PControl.cpp UPnP.cpp Daemon.cpp i2pd.cpp
 

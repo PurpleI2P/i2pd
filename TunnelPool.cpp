@@ -49,13 +49,13 @@ namespace tunnel
 	{
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
-			for (auto it: m_InboundTunnels)
+			for (auto& it: m_InboundTunnels)
 				it->SetTunnelPool (nullptr);
 			m_InboundTunnels.clear ();
 		}
 		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-			for (auto it: m_OutboundTunnels)
+			for (auto& it: m_OutboundTunnels)
 				it->SetTunnelPool (nullptr);
 			m_OutboundTunnels.clear ();
 		}
@@ -78,7 +78,7 @@ namespace tunnel
 		if (expiredTunnel)
 		{	
 			expiredTunnel->SetTunnelPool (nullptr);
-			for (auto it: m_Tests)
+			for (auto& it: m_Tests)
 				if (it.second.second == expiredTunnel) it.second.second = nullptr;
 
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
@@ -101,7 +101,7 @@ namespace tunnel
 		if (expiredTunnel)
 		{
 			expiredTunnel->SetTunnelPool (nullptr);
-			for (auto it: m_Tests)
+			for (auto& it: m_Tests)
 				if (it.second.first == expiredTunnel) it.second.first = nullptr;
 
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
@@ -114,7 +114,7 @@ namespace tunnel
 		std::vector<std::shared_ptr<InboundTunnel> > v;
 		int i = 0;
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-		for (auto it : m_InboundTunnels)
+		for (const auto& it : m_InboundTunnels)
 		{
 			if (i >= num) break;
 			if (it->IsEstablished ())
@@ -144,7 +144,7 @@ namespace tunnel
 		if (tunnels.empty ()) return nullptr;		
 		uint32_t ind = rand () % (tunnels.size ()/2 + 1), i = 0;
 		typename TTunnels::value_type tunnel = nullptr;
-		for (auto it: tunnels)
+		for (const auto& it: tunnels)
 		{	
 			if (it->IsEstablished () && it != excluded)
 			{
@@ -164,7 +164,7 @@ namespace tunnel
 		if (old)
 		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
-			for (auto it: m_OutboundTunnels)
+			for (const auto& it: m_OutboundTunnels)
 				if (it->IsEstablished () && old->GetEndpointIdentHash () == it->GetEndpointIdentHash ())
 				{
 					tunnel = it;
@@ -182,7 +182,7 @@ namespace tunnel
 		int num = 0;
 		{
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-			for (auto it : m_InboundTunnels)
+			for (const auto& it : m_InboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
 		for (int i = num; i < m_NumInboundTunnels; i++)
@@ -191,7 +191,7 @@ namespace tunnel
 		num = 0;
 		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
-			for (auto it : m_OutboundTunnels)
+			for (const auto& it : m_OutboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
 		for (int i = num; i < m_NumOutboundTunnels; i++)
@@ -203,11 +203,10 @@ namespace tunnel
 		decltype(m_Tests) tests;
 		{
 			std::unique_lock<std::mutex> l(m_TestsMutex);
-			tests = m_Tests;
-			m_Tests.clear ();
+			tests.swap(m_Tests);
 		}
 
-		for (auto it: tests)
+		for (auto& it: tests)
 		{
 			LogPrint (eLogWarning, "Tunnels: test of tunnel ", it.first, " failed");
 			// if test failed again with another tunnel we consider it failed
@@ -248,12 +247,12 @@ namespace tunnel
 			if ((*it1)->IsFailed ())
 			{	
 				failed = true;
-				it1++;
+				++it1;
 			}
 			if ((*it2)->IsFailed ())
 			{	
 				failed = true;
-				it2++;
+				++it2;
 			}
 			if (!failed)
 			{
@@ -265,7 +264,7 @@ namespace tunnel
 				}
  				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
 					CreateDeliveryStatusMsg (msgID));
-				it1++; it2++;
+				++it1; ++it2;
 			}	
 		}
 	}

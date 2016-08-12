@@ -49,7 +49,9 @@ namespace transport
 		m_IsRunning = true;
         LogPrint(eLogInfo, "UPnP: starting");
 		m_Service.post (std::bind (&UPnP::Discover, this));
+		std::unique_lock<std::mutex> l(m_StartedMutex);
         m_Thread.reset (new std::thread (std::bind (&UPnP::Run, this)));
+		m_Started.wait_for (l, std::chrono::seconds (5)); // 5 seconds maximum
     }
     
     UPnP::~UPnP ()
@@ -80,7 +82,12 @@ namespace transport
 #else
         m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
 #endif
-
+		{
+			// notify satrting thread			
+			std::unique_lock<std::mutex> l(m_StartedMutex);
+			m_Started.notify_all ();
+		}	
+		
         int r;
         r = UPNP_GetValidIGD (m_Devlist, &m_upnpUrls, &m_upnpData, m_NetworkAddr, sizeof (m_NetworkAddr));
         if (r == 1)
@@ -115,8 +122,8 @@ namespace transport
 
 	void UPnP::PortMapping ()
 	{
-		auto a = context.GetRouterInfo().GetAddresses();
-        for (auto address : a)
+		const auto& a = context.GetRouterInfo().GetAddresses();
+		for (const auto& address : a)
         {
             if (!address->host.is_v6 ())
             	TryPortMapping (address);
@@ -132,8 +139,8 @@ namespace transport
 
 	void UPnP::CloseMapping ()
 	{
-		auto a = context.GetRouterInfo().GetAddresses();
-        for (auto address : a)
+		const auto& a = context.GetRouterInfo().GetAddresses();
+		for (const auto& address : a)
         {
             if (!address->host.is_v6 ())
             	CloseMapping (address);

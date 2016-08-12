@@ -102,8 +102,8 @@ namespace client
 			std::map<uint32_t, std::string> m_Lookups; // nonce -> address
 			AddressBookStorage * m_Storage;
 			volatile bool m_IsLoaded, m_IsDownloading;
-			std::vector<AddressBookSubscription *> m_Subscriptions;
-			std::unique_ptr<AddressBookSubscription> m_DefaultSubscription; // in case if we don't know any addresses yet
+			std::vector<std::shared_ptr<AddressBookSubscription> > m_Subscriptions;
+			std::shared_ptr<AddressBookSubscription> m_DefaultSubscription; // in case if we don't know any addresses yet
 			boost::asio::deadline_timer * m_SubscriptionsUpdateTimer;
 	};
 

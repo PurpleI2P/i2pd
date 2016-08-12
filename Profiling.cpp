@@ -167,7 +167,7 @@ namespace data
 
 		std::vector<std::string> files;
 		m_ProfilesStorage.Traverse(files);
-		for (auto path: files) {
+		for (const auto& path: files) {
 			if (stat(path.c_str(), &st) != 0) {
 				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);
 				continue;

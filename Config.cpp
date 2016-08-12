@@ -147,12 +147,17 @@ namespace config {
 #endif	   
 	   "Enable or disable elgamal precomputation table")
 	  ;
+	
+	options_description reseed("Reseed options");	
+	reseed.add_options()
+	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
+	  ;	
 
-  options_description trust("Trust options");
-  trust.add_options()
-    ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
-    ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
-    ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
+  	options_description trust("Trust options");
+  	trust.add_options()
+      ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
+      ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
+      ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
   
     m_OptionsDesc
       .add(general)
@@ -166,7 +171,8 @@ namespace config {
       .add(i2pcontrol)
       .add(upnp)
 	  .add(precomputation)
-      .add(trust)
+	  .add(reseed) 
+      .add(trust)	
       ;
   }
 

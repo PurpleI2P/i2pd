@@ -60,7 +60,7 @@ namespace transport
 
 		void Done ()
 		{
-			for (auto it: sessions)
+			for (auto& it: sessions)
 				it->Done ();
 		}	
 	};	

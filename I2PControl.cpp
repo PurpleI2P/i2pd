@@ -358,7 +358,7 @@ namespace client
 
 	void I2PControlService::RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		for (auto it = params.begin (); it != params.end (); it++)
+		for (auto it = params.begin (); it != params.end (); ++it)
 		{
 			LogPrint (eLogDebug, "I2PControl: RouterInfo request: ", it->first);
 			auto it1 = m_RouterInfoHandlers.find (it->first);
@@ -434,7 +434,7 @@ namespace client
 
 	void I2PControlService::RouterManagerHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		for (auto it = params.begin (); it != params.end (); it++)
+		for (auto it = params.begin (); it != params.end (); ++it)
 		{
 			if (it != params.begin ()) results << ",";	
 			LogPrint (eLogDebug, "I2PControl: RouterManager request: ", it->first);
@@ -483,7 +483,7 @@ namespace client
 // network setting
 	void I2PControlService::NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		for (auto it = params.begin (); it != params.end (); it++)
+		for (auto it = params.begin (); it != params.end (); ++it)
 		{
 			if (it != params.begin ()) results << ",";	
 			LogPrint (eLogDebug, "I2PControl: NetworkSetting request: ", it->first);

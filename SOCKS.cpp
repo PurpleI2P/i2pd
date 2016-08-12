@@ -26,7 +26,7 @@ namespace proxy
 	{
 		uint8_t size;
 		char value[max_socks_hostname_size];
-		void FromString (std::string str) 
+		void FromString (const std::string& str)
 		{
 			size = str.length();
 			if (str.length() > max_socks_hostname_size) size = max_socks_hostname_size;

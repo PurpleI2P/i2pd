@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include "../Config.h"
+#include "../RouterContext.h"
 #include "../version.h"
 #include "resource.h"
 #include "Win32App.h"
@@ -15,9 +16,12 @@
 #define ID_EXIT 2001
 #define ID_CONSOLE 2002
 #define ID_APP 2003
+#define ID_GRACEFUL_SHUTDOWN 2004
 
 #define ID_TRAY_ICON 2050
 #define WM_TRAYICON (WM_USER + 1)
+
+#define IDT_GRACEFUL_SHUTDOWN_TIMER 2100
 
 namespace i2p
 {
@@ -30,6 +34,7 @@ namespace win32
         InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_APP, "Show app");
         InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ABOUT, "&About...");
         InsertMenu (hPopup, -1, MF_BYPOSITION | MF_SEPARATOR, NULL, NULL);
+        InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_GRACEFUL_SHUTDOWN, "&Graceful shutdown");
         InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_EXIT, "E&xit");
         SetMenuDefaultItem (hPopup, ID_CONSOLE, FALSE);
         SendMessage (hWnd, WM_INITMENUPOPUP, (WPARAM)hPopup, 0);
@@ -82,6 +87,7 @@ namespace win32
             case WM_CLOSE:
             {
                 RemoveTrayIcon (hWnd);
+                KillTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER);
                 PostQuitMessage (0);
                 break;
             }
@@ -99,6 +105,12 @@ namespace win32
                     case ID_EXIT:
                     {
                         PostMessage (hWnd, WM_CLOSE, 0, 0);
+                        return 0;
+                    }
+                    case ID_GRACEFUL_SHUTDOWN:
+                    {
+                        i2p::context.SetAcceptsTunnels (false);
+                        SetTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER, 10*60*1000, nullptr); // 10 minutes
                         return 0;
                     }
                     case ID_CONSOLE:
@@ -167,6 +179,15 @@ namespace win32
                 }
                 break;
             }
+            case WM_TIMER:
+            {
+                if (wParam == IDT_GRACEFUL_SHUTDOWN_TIMER)
+                {
+                    PostMessage (hWnd, WM_CLOSE, 0, 0); // exit
+                    return 0;
+                }
+                break;
+            }
         }
         return DefWindowProc( hWnd, uMsg, wParam, lParam);
     }
@@ -217,6 +238,14 @@ namespace win32
     void StopWin32App ()
     {
          UnregisterClass (I2PD_WIN32_CLASSNAME, GetModuleHandle(NULL));
+    }
+
+    bool GracefulShutdown ()
+    {
+        HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+        if (hWnd)
+            PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_GRACEFUL_SHUTDOWN, 0), 0);
+        return hWnd;
     }
 }
 }

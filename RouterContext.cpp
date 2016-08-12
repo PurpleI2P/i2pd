@@ -112,7 +112,7 @@ namespace i2p
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;
-		for (auto address : m_RouterInfo.GetAddresses ())
+		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
 			if (address->port != port)
 			{	
@@ -127,7 +127,7 @@ namespace i2p
 	void RouterContext::UpdateAddress (const boost::asio::ip::address& host)
 	{
 		bool updated = false;
-		for (auto address : m_RouterInfo.GetAddresses ())
+		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
 			if (address->host != host && address->IsCompatible (host))
 			{	
@@ -244,7 +244,7 @@ namespace i2p
 		m_RouterInfo.SetCaps (i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting); // LU, B
 		// remove NTCP address
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto it = addresses.begin (); it != addresses.end (); it++)
+		for (auto it = addresses.begin (); it != addresses.end (); ++it)
 		{
 			if ((*it)->transportStyle == i2p::data::RouterInfo::eTransportNTCP &&
 				(*it)->host.is_v4 ())
@@ -254,7 +254,7 @@ namespace i2p
 			}
 		}	
 		// delete previous introducers
-		for (auto addr : addresses)
+		for (auto& addr : addresses)
 			addr->introducers.clear ();
 	
 		// update
@@ -274,7 +274,7 @@ namespace i2p
 		
 		// insert NTCP back
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto addr : addresses)
+		for (const auto& addr : addresses)
 		{
 			if (addr->transportStyle == i2p::data::RouterInfo::eTransportSSU &&
 				addr->host.is_v4 ())
@@ -285,7 +285,7 @@ namespace i2p
 			}
 		}		
 		// delete previous introducers
-		for (auto addr : addresses)
+		for (auto& addr : addresses)
 			addr->introducers.clear ();
 		
 		// update
@@ -316,7 +316,7 @@ namespace i2p
 		bool updated = false, found = false;	
 		int port = 0;
 		auto& addresses = m_RouterInfo.GetAddresses ();
-		for (auto addr: addresses)
+		for (auto& addr: addresses)
 		{
 			if (addr->host.is_v6 () && addr->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 			{
@@ -439,6 +439,12 @@ namespace i2p
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
 		i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
 	}	
+
+	void RouterContext::CleanupDestination ()
+	{
+		std::unique_lock<std::mutex> l(m_GarlicMutex);
+		i2p::garlic::GarlicDestination::CleanupExpiredTags ();
+	}
 		
 	uint32_t RouterContext::GetUptime () const
 	{

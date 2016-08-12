@@ -103,7 +103,7 @@ namespace client
 	{
 		if (m_IsRunning)	
 			Stop ();
-		for (auto it: m_LeaseSetRequests)
+		for (auto& it: m_LeaseSetRequests)
 			if (it.second->requestComplete) it.second->requestComplete (nullptr);
 		m_LeaseSetRequests.clear ();
 		if (m_Pool)
@@ -479,24 +479,25 @@ namespace client
 	{
 		if (!m_Pool || !IsReady ()) 
 		{	
-			if (requestComplete) requestComplete (nullptr);
+			if (requestComplete) 
+				m_Service.post ([requestComplete](void){requestComplete (nullptr);});
 			return false;
 		}	
 		m_Service.post (std::bind (&LeaseSetDestination::RequestLeaseSet, shared_from_this (), dest, requestComplete));
 		return true;
 	}
 
-	void LeaseSetDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest)
+	void LeaseSetDestination::CancelDestinationRequest (const i2p::data::IdentHash& dest, bool notify)
 	{
 		auto s = shared_from_this ();
-		m_Service.post ([dest, s](void)
+		m_Service.post ([dest, notify, s](void)
 			{
 				auto it = s->m_LeaseSetRequests.find (dest);
 				if (it != s->m_LeaseSetRequests.end ())
 				{	
 					auto requestComplete = it->second->requestComplete; 
 					s->m_LeaseSetRequests.erase (it);
-					if (requestComplete) requestComplete (nullptr);
+					if (notify && requestComplete) requestComplete (nullptr);
 				}	
 			});				
 	}
@@ -635,7 +636,7 @@ namespace client
 				it = m_RemoteLeaseSets.erase (it);
 			}	
 			else 
-				it++;
+				++it;
 		}
 	}	
 
@@ -663,7 +664,7 @@ namespace client
 		{	
 			m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis ()); // TODO:
 			m_StreamingDestination->Start ();	
-			for (auto it: m_StreamingDestinationsByPorts)
+			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Start ();
 			return true;
 		}	
@@ -677,7 +678,7 @@ namespace client
 		{
 			m_StreamingDestination->Stop ();
 			m_StreamingDestination = nullptr;
-			for (auto it: m_StreamingDestinationsByPorts)
+			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Stop ();
 			if (m_DatagramDestination)
 			{

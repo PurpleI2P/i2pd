@@ -19,7 +19,8 @@ namespace i2p
 namespace transport
 {
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-		TransportSession (in_RemoteRouter),	m_Server (server), m_Socket (m_Server.GetService ()), 
+		TransportSession (in_RemoteRouter, NTCP_TERMINATION_TIMEOUT),	
+		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_TerminationTimer (m_Server.GetService ()), m_IsEstablished (false), m_IsTerminated (false),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
 	{		
@@ -665,7 +666,7 @@ namespace transport
 	{
 		m_IsSending = true;
 		std::vector<boost::asio::const_buffer> bufs;
-		for (auto it: msgs)
+		for (const auto& it: msgs)
 			bufs.push_back (CreateMsgBuffer (it));
 		boost::asio::async_write (m_Socket, bufs, boost::asio::transfer_all (),                      
         	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
@@ -715,7 +716,7 @@ namespace transport
 		{
 			if (m_SendQueue.size () < NTCP_MAX_OUTGOING_QUEUE_SIZE)	
 			{
-				for (auto it: msgs)
+				for (const auto& it: msgs)
 					m_SendQueue.push_back (it);
 			}
 			else
@@ -731,7 +732,7 @@ namespace transport
 	void NTCPSession::ScheduleTermination ()
 	{
 		m_TerminationTimer.cancel ();
-		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(NTCP_TERMINATION_TIMEOUT));
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(GetTerminationTimeout ()));
 		m_TerminationTimer.async_wait (std::bind (&NTCPSession::HandleTerminationTimer,
 			shared_from_this (), std::placeholders::_1));
 	}
@@ -740,7 +741,7 @@ namespace transport
 	{
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
-			LogPrint (eLogDebug, "NTCP: No activity for ", NTCP_TERMINATION_TIMEOUT, " seconds");
+			LogPrint (eLogDebug, "NTCP: No activity for ", GetTerminationTimeout (), " seconds");
 			//Terminate ();
 			m_Socket.close ();// invoke Terminate () from HandleReceive 
 		}	
@@ -766,7 +767,7 @@ namespace transport
 			m_Thread = new std::thread (std::bind (&NTCPServer::Run, this));
 			// create acceptors
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
-			for (auto address: addresses)
+			for (const auto& address: addresses)
 			{
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 				{

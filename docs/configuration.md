@@ -70,7 +70,9 @@ All options below still possible in cmdline, but better write it in config file:
 
 * --upnp.enabled=       - Enable or disable UPnP, false by default for CLI and true for GUI (Windows, Android)  
 * --upnp.name=          - Name i2pd appears in UPnP forwardings list. I2Pd by default  
+
 * --precomputation.elgamal=  - Use ElGamal precomputated tables. false for x64 and true for other platforms by default  
+* --reseed.file         - Full path to SU3 file to reseed from  
 
 * --limits.transittunnels=  - Override maximum number of transit tunnels. 2500 by default   
 
@@ -109,7 +111,7 @@ tunnels.conf:
     # * keys -- our identity, if unset, will be generated on every startup,
     #     if set and file missing, keys will be generated and placed to this file
     # * address -- local interface to bind
-    # * signaturetype -- signature type for new destination. 0,1 or 7
+    # * signaturetype -- signature type for new destination. 0 (DSA/SHA1), 1 (EcDSA/SHA256) or 7 (EdDSA/SHA512)
     [IRC]
     type = client
     address = 127.0.0.1

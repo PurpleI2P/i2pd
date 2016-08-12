@@ -5,7 +5,7 @@
 #include <string.h>
 #include <map>
 #include <vector>
-#include <set>
+#include <unordered_set>
 #include <memory>
 #include <boost/asio.hpp>
 #include "I2NPProtocol.h"
@@ -109,9 +109,6 @@ namespace transport
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);	
 
-			void ScheduleDecay ();
-			void HandleDecayTimer (const boost::system::error_code& ecode);	
-
 			void ScheduleIncompleteMessagesCleanup ();
 			void HandleIncompleteMessagesCleanupTimer (const boost::system::error_code& ecode);	
 			
@@ -121,10 +118,11 @@ namespace transport
 			SSUSession& m_Session;
 			std::map<uint32_t, std::unique_ptr<IncompleteMessage> > m_IncompleteMessages;
 			std::map<uint32_t, std::unique_ptr<SentMessage> > m_SentMessages;
-			std::set<uint32_t> m_ReceivedMessages;
-			boost::asio::deadline_timer m_ResendTimer, m_DecayTimer, m_IncompleteMessagesCleanupTimer;
+			std::unordered_set<uint32_t> m_ReceivedMessages;
+			boost::asio::deadline_timer m_ResendTimer, m_IncompleteMessagesCleanupTimer;
 			int m_MaxPacketSize, m_PacketSize;
 			i2p::I2NPMessagesHandler m_Handler;
+			uint32_t m_LastMessageReceivedTime; // in second
 	};	
 }
 }
