@@ -130,7 +130,7 @@ export CXX=/usr/local/bin/g++47
 CMake Options
 -------------
 
-Available CMake options(each option has a for of `<key>=<value>`, for more information see `man 1 cmake`):
+Available CMake options(each option has a form of `<key>=<value>`, for more information see `man 1 cmake`):
 
 * `CMAKE_BUILD_TYPE` build profile (Debug/Release)
 * `WITH_BINARY`      build i2pd itself
