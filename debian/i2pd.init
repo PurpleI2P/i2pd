@@ -41,10 +41,6 @@ do_start()
     return 2
   fi
 
-  if [ -n "$I2PD_PORT" ]; then
-    DAEMON_OPTS="--port $I2PD_PORT $DAEMON_OPTS"
-  fi
-
   touch "$PIDFILE"
   chown -f $USER:adm "$PIDFILE"
 
@@ -103,7 +99,7 @@ case "$1" in
   status)
        status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
        ;;
-  reload|force-reload)
+  reload)
       log_daemon_msg "Reloading $DESC" "$NAME"
       do_reload
       log_end_msg $?
@@ -127,7 +123,7 @@ case "$1" in
   esac
   ;;
   *)
-    echo "Usage: $0 {start|stop|status|restart|force-reload}" >&2
+    echo "Usage: $0 {start|stop|status|restart|reload}" >&2
     exit 3
   ;;
 esac
