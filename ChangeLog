@@ -1,9 +1,13 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
-## [2.9.0] - UNRELEASED
+## [2.9.0] - 2016-08-12
 ### Changed
 - Proxy refactoring & speedup
+- Transmission-I2P support
+- Graceful shutdown for Windows
+- Android without QT
+- Reduced number of timers in SSU
 
 ## [2.8.0] - 2016-06-20
 ### Added
