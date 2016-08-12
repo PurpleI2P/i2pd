@@ -10,7 +10,7 @@ You need to install Android SDK, NDK  and QT with android support.
 
 - [SDK](https://developer.android.com/studio/index.html) (choose command line tools only)  
 - [NDK](https://developer.android.com/ndk/downloads/index.html)  
-- [QT](https://www.qt.io/download-open-source/).(for QT only) Choose one for your platform for android. For example QT 5.6 under Linux would be [this file](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-linux-x64-android-5.6.1-1.run  )
+- [QT](https://www.qt.io/download-open-source/)(for QT only). Choose one for your platform for android. For example QT 5.6 under Linux would be [this file](http://download.qt.io/official_releases/qt/5.6/5.6.1-1/qt-opensource-linux-x64-android-5.6.1-1.run  )
 
 You also need Java JDK and Ant.
 
@@ -50,8 +50,8 @@ Creating release .apk
 ----------------------
 In order to create release .apk you must obtain a Java keystore file(.jks). Either you have in already, or you can generate it yourself using keytool, or from one of you existing well-know ceritificates. For example, i2pd release are signed with this [certificate](https://github.com/PurpleI2P/i2pd/blob/openssl/contrib/certificates/router/orignal_at_mail.i2p.crt).  
 Create file 'ant.propeties'  
-key.store=<path to keystore file>  
-key.alias=<alias name>  
-key.store.password=<keystore password>  
-key.alias.password=<alias password>  
+key.store='path to keystore file'  
+key.alias='alias name'  
+key.store.password='keystore password'  
+key.alias.password='alias password'   
 Run 'ant clean release'
