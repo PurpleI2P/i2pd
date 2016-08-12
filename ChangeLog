@@ -8,6 +8,8 @@
 - Graceful shutdown for Windows
 - Android without QT
 - Reduced number of timers in SSU
+- ipv6 peer test support
+- Reseed from SU3 file
 
 ## [2.8.0] - 2016-06-20
 ### Added
