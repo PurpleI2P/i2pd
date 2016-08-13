@@ -1,6 +1,7 @@
 i2pd (2.9.0-1) unstable; urgency=low
 
   * updated to version 2.9.0
+  * updated tuner-patch
   * removed I2PD_PORT in i2pd.default
   * removed all port assigments in services files
   * fixed logrotate
