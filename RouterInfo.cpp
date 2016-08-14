@@ -348,19 +348,15 @@ namespace data
 	void RouterInfo::UpdateCapsProperty ()
 	{	
 		std::string caps;
-		if (m_Caps & eFloodfill) {
+		if (m_Caps & eFloodfill) 
+		{
 			caps += CAPS_FLAG_FLOODFILL; // floodfill  
-			caps += (m_Caps & eExtraBandwidth)
-				? CAPS_FLAG_EXTRA_BANDWIDTH1 // 'P'
-				: CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
-		} else {
-			if (m_Caps & eExtraBandwidth) {
-				caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
-			} else if (m_Caps & eHighBandwidth) {
-				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
-			} else {
-				caps += CAPS_FLAG_LOW_BANDWIDTH2; // 'L'
-			}
+			caps += (m_Caps & eExtraBandwidth)? CAPS_FLAG_EXTRA_BANDWIDTH1 /* 'P' */ : CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */; 
+		} 
+		else 
+		{
+			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth	
 		}	
 		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
