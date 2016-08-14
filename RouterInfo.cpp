@@ -350,8 +350,9 @@ namespace data
 		std::string caps;
 		if (m_Caps & eFloodfill) 
 		{
+			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill  
-			caps += (m_Caps & eExtraBandwidth)? CAPS_FLAG_EXTRA_BANDWIDTH1 /* 'P' */ : CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */; 
 		} 
 		else 
 		{
