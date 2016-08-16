@@ -68,8 +68,7 @@ namespace data
 		dest->SetRequestComplete (requestComplete);
 		{
 			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-			if (!m_RequestedDestinations.insert (std::make_pair (destination, 
-				std::shared_ptr<RequestedDestination> (dest))).second) // not inserted
+			if (!m_RequestedDestinations.insert (std::make_pair (destination, dest)).second) // not inserted
 				return nullptr; 
 		}
 		return dest;
@@ -77,20 +76,28 @@ namespace data
 
 	void NetDbRequests::RequestComplete (const IdentHash& ident, std::shared_ptr<RouterInfo> r)
 	{
-		auto it = m_RequestedDestinations.find (ident);
-		if (it != m_RequestedDestinations.end ())
-		{	
-			if (r)
-				it->second->Success (r);
-			else
-				it->second->Fail ();
+		std::shared_ptr<RequestedDestination> request;
+		{
 			std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
-			m_RequestedDestinations.erase (it);
+			auto it = m_RequestedDestinations.find (ident);
+			if (it != m_RequestedDestinations.end ())
+			{	
+				request = it->second;
+				m_RequestedDestinations.erase (it);
+			}	
+		}	
+		if (request)
+		{
+			if (r)
+				request->Success (r);
+			else
+				request->Fail ();
 		}	
 	}
 
 	std::shared_ptr<RequestedDestination> NetDbRequests::FindRequest (const IdentHash& ident) const
 	{
+		std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
 		auto it = m_RequestedDestinations.find (ident);
 		if (it != m_RequestedDestinations.end ())
 			return it->second;
