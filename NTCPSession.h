@@ -37,6 +37,7 @@ namespace transport
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
 	const size_t NTCP_BUFFER_SIZE = 4160; // fits 4 tunnel messages (4*1028)
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
+	const int NTCP_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds	
 	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
 	const int NTCP_BAN_EXPIRATION_TIMEOUT = 70; // in second
 	const int NTCP_CLOCK_SKEW = 60; // in seconds 
@@ -54,7 +55,9 @@ namespace transport
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };
-			
+			bool IsTerminationTimeoutExpired (uint64_t ts) const 
+			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };		
+
 			void ClientLogin ();
 			void ServerLogin ();
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
@@ -95,17 +98,12 @@ namespace transport
 			void Send (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			
-			
-			// timer
-			void ScheduleTermination ();
-			void HandleTerminationTimer (const boost::system::error_code& ecode);
-			
 		private:
 
 			NTCPServer& m_Server;
 			boost::asio::ip::tcp::socket m_Socket;
-			boost::asio::deadline_timer m_TerminationTimer;
 			bool m_IsEstablished, m_IsTerminated;
+			uint64_t m_LastActivityTimestamp;
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;
@@ -146,8 +144,8 @@ namespace transport
 			std::shared_ptr<NTCPSession> FindNTCPSession (const i2p::data::IdentHash& ident);
 			void Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn);
 
-      bool IsBoundV4() const { return m_NTCPAcceptor != nullptr; };
-      bool IsBoundV6() const { return m_NTCPV6Acceptor != nullptr; };
+      		bool IsBoundV4() const { return m_NTCPAcceptor != nullptr; };
+      		bool IsBoundV6() const { return m_NTCPV6Acceptor != nullptr; };
       
 			boost::asio::io_service& GetService () { return m_Service; };
 			void Ban (const boost::asio::ip::address& addr);			
@@ -159,6 +157,10 @@ namespace transport
 			void HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
 
 			void HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn);
+
+			// timer
+			void ScheduleTermination ();
+			void HandleTerminationTimer (const boost::system::error_code& ecode);
 			
 		private:	
 
@@ -166,6 +168,7 @@ namespace transport
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
+			boost::asio::deadline_timer m_TerminationTimer;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions; // access from m_Thread only
 			std::map<boost::asio::ip::address, uint32_t> m_BanList; // IP -> ban expiration time in seconds
