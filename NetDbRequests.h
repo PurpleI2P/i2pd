@@ -59,7 +59,7 @@ namespace data
 
 		private:
 
-			std::mutex m_RequestedDestinationsMutex;
+			mutable std::mutex m_RequestedDestinationsMutex;
 			std::map<IdentHash, std::shared_ptr<RequestedDestination> > m_RequestedDestinations;
 	};
 }

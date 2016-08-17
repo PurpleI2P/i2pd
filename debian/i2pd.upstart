@@ -4,8 +4,6 @@ start on runlevel [2345]
 stop on runlevel [016] or unmounting-filesystem
 
 # these can be overridden in /etc/init/i2pd.override
-env I2PD_HOST="1.2.3.4"
-env I2PD_PORT="4567"
 env LOGFILE="/var/log/i2pd.log"
 
-exec /usr/sbin/i2pd --daemon --log=file --logfile=$LOGFILE --service --host=$I2PD_HOST --port=$I2PD_PORT
+exec /usr/sbin/i2pd --daemon --service --log=file --logfile=$LOGFILE
