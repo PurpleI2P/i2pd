@@ -163,7 +163,7 @@ namespace data
 			s.read ((char *)&address.cost, sizeof (address.cost));
 			s.read ((char *)&address.date, sizeof (address.date));
 			char transportStyle[5];
-			ReadString (transportStyle, s);
+			ReadString (transportStyle, 5, s);
 			if (!strcmp (transportStyle, "NTCP"))
 				address.transportStyle = eTransportNTCP;
 			else if (!strcmp (transportStyle, "SSU"))
@@ -177,10 +177,10 @@ namespace data
 			size = be16toh (size);
 			while (r < size)
 			{
-				char key[500], value[500];
-				r += ReadString (key, s);
+				char key[255], value[255];
+				r += ReadString (key, 255, s);
 				s.seekg (1, std::ios_base::cur); r++; // =
-				r += ReadString (value, s); 
+				r += ReadString (value, 255, s); 
 				s.seekg (1, std::ios_base::cur); r++; // ;
 				if (!strcmp (key, "host"))
 				{	
@@ -257,16 +257,10 @@ namespace data
 		size = be16toh (size);
 		while (r < size)
 		{
-#ifdef _WIN32			
-			char key[500], value[500];
-			// TODO: investigate why properties get read as one long string under Windows
-			// length should not be more than 44
-#else
-			char key[50], value[50];
-#endif			
-			r += ReadString (key, s);
+			char key[255], value[255];		
+			r += ReadString (key, 255, s);
 			s.seekg (1, std::ios_base::cur); r++; // =
-			r += ReadString (value, s); 
+			r += ReadString (value, 255, s); 
 			s.seekg (1, std::ios_base::cur); r++; // ;
 			m_Properties[key] = value;
 			
@@ -348,19 +342,16 @@ namespace data
 	void RouterInfo::UpdateCapsProperty ()
 	{	
 		std::string caps;
-		if (m_Caps & eFloodfill) {
+		if (m_Caps & eFloodfill) 
+		{
+			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill  
-			caps += (m_Caps & eExtraBandwidth)
-				? CAPS_FLAG_EXTRA_BANDWIDTH1 // 'P'
-				: CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
-		} else {
-			if (m_Caps & eExtraBandwidth) {
-				caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
-			} else if (m_Caps & eHighBandwidth) {
-				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
-			} else {
-				caps += CAPS_FLAG_LOW_BANDWIDTH2; // 'L'
-			}
+		} 
+		else 
+		{
+			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth	
 		}	
 		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
@@ -545,16 +536,25 @@ namespace data
 		return true;
 	}
 	
-	size_t RouterInfo::ReadString (char * str, std::istream& s)
+	size_t RouterInfo::ReadString (char * str, size_t len, std::istream& s) const
 	{
-		uint8_t len;
-		s.read ((char *)&len, 1);
-		s.read (str, len);
-		str[len] = 0;
-		return len+1;
+		uint8_t l;
+		s.read ((char *)&l, 1);
+		if (l < len)
+		{	
+			s.read (str, l);
+			str[l] = 0;
+		}
+		else
+		{
+			LogPrint (eLogWarning, "RouterInfo: string length ", (int)l, " exceeds buffer size ", len);
+			s.seekg (l, std::ios::cur); // skip
+			str[0] = 0;
+		}	
+		return l+1;
 	}	
 
-	void RouterInfo::WriteString (const std::string& str, std::ostream& s)
+	void RouterInfo::WriteString (const std::string& str, std::ostream& s) const
 	{
 		uint8_t len = str.size ();
 		s.write ((char *)&len, 1);

@@ -3,10 +3,6 @@
 # installed at /etc/default/i2pd by the maintainer scripts
 I2PD_ENABLED="yes"
 
-# port to listen for incoming connections
-# uncomment following line if you want to specify it here
-# I2PD_PORT="4567"
-
 # Additional options that are passed to the Daemon.
 # see possible switches in /usr/share/doc/i2pd/configuration.md.gz
 DAEMON_OPTS=""
