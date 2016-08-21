@@ -466,7 +466,7 @@ namespace client
                 std::make_pair(
                   localDestination->GetIdentHash(), port),
                 std::unique_ptr<I2PUDPServerTunnel>(serverTunnel))).second) {
-              LogPrint(eLogInfo, "Cleints: I2P Server Forward created for UDP Endpoint ", host, ":", port);
+              LogPrint(eLogInfo, "Cleints: I2P Server Forward created for UDP Endpoint ", host, ":", port, " via ",localDestination->GetIdentHash().ToBase32());
             } else {
               LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
               delete serverTunnel;
