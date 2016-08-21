@@ -574,7 +574,7 @@ namespace client
         auto dgram = Destination->GetDatagramDestination();
         if(dgram) {
           LastActivity = i2p::util::GetMillisecondsSinceEpoch();
-          dgram->SendDatagramTo(m_Buffer, len, Identity, LocalPort, RemotePort);
+          dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
           LogPrint(eLogDebug, "UDPSession: forward ", len, "B to ", Identity.ToBase32(), " from ", Destination->GetIdentHash().ToBase32());
         } else {
           LogPrint(eLogWarning, "UDPSession: no datagram destination");
@@ -594,14 +594,14 @@ namespace client
   {
     i2p::datagram::DatagramDestination * dgram = m_Destination->CreateDatagramDestination();
     if(dgram)
-      dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), LocalPort);
+      dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 0);
   }
 
   I2PUDPServerTunnel::~I2PUDPServerTunnel()
   {
     i2p::datagram::DatagramDestination * dgram = m_Destination->GetDatagramDestination();
     if (dgram) {
-      dgram->ResetReceiver(LocalPort);
+      dgram->ResetReceiver(0);
     }
   }
 
