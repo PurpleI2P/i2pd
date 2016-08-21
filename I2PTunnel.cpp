@@ -575,7 +575,7 @@ namespace client
         if(dgram) {
           LastActivity = i2p::util::GetMillisecondsSinceEpoch();
           dgram->SendDatagramTo(m_Buffer, len, Identity, RemotePort, LocalPort);
-          LogPrint(eLogDebug, "UDPSession: forward ", len, "B to ", Identity.ToBase32());
+          LogPrint(eLogDebug, "UDPSession: forward ", len, "B to ", Identity.ToBase32(), " from ", Destination->GetIdentHash().ToBase32());
         } else {
           LogPrint(eLogWarning, "UDPSession: no datagram destination");
         }
