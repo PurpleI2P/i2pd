@@ -538,6 +538,7 @@ namespace client
       for ( auto & s : m_ServerForwards ) {
         s.second->ExpireStale();
       }
+      ScheduleCleanupUDP();
     }
   }
 }		
