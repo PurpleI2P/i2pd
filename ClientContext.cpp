@@ -404,6 +404,9 @@ namespace client
             if(destinationPort == 0) {
               destinationPort = port;
             }
+            if (!localDestination) {
+              localDestination = m_SharedLocalDestination;
+            }
             auto clientTunnel = new I2PUDPClientTunnel(name, dest, end, localDestination, destinationPort, m_Service);
             if(m_ClientForwards.insert(std::make_pair(end, std::unique_ptr<I2PUDPClientTunnel>(clientTunnel))).second) {
               clientTunnel->Start();
@@ -411,6 +414,7 @@ namespace client
               LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
               delete clientTunnel;
             }
+
           } else {
             // tcp client
             auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);

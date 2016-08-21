@@ -539,19 +539,20 @@ namespace client
       }
     }
     /** create new */
-    m_Sessions.push_back(UDPSession(m_Service, m_Destination, m_Endpoint, ih, localPort, remotePort));
+    m_Sessions.push_back(UDPSession(m_Service, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0), m_Destination, m_Endpoint, ih, localPort, remotePort));
     return m_Sessions.back();
   }
 
-  UDPSession::UDPSession(boost::asio::io_service & ios, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash from, uint16_t ourPort, uint16_t theirPort) :
+  UDPSession::UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash from, uint16_t ourPort, uint16_t theirPort) :
     Destination(localDestination),
-    IPSocket(ios, boost::asio::ip::udp::endpoint(boost::asio::ip::udp::v4(), 0)),
+    IPSocket(ios, localEndpoint),
     Identity(from),
     ExpectedEndpoint(endpoint),
     LocalPort(ourPort),
     RemotePort(theirPort)
   {
     Receive();
+    LogPrint(eLogDebug, "UDPSession: bound to", IPSocket.local_endpoint());
   }
 
 
@@ -624,10 +625,11 @@ namespace client
       LogPrint(eLogError, "UDP Tunnel: lookup of ", m_RemoteDest, " was cancelled");
       return;
     }
+    LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());
+    auto dgram = m_LocalDest->CreateDatagramDestination();
     // delete existing session
     if(m_Session) delete m_Session;
-    m_Session = new UDPSession(m_Service, m_LocalDest, m_LocalEndpoint, *m_RemoteIdent, LocalPort, RemotePort);
-    auto dgram = m_LocalDest->CreateDatagramDestination();
+    m_Session = new UDPSession(m_Service, m_LocalEndpoint, m_LocalDest, m_LocalEndpoint, *m_RemoteIdent, LocalPort, RemotePort);
     dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
                                  std::placeholders::_1, std::placeholders::_2,
                                  std::placeholders::_3, std::placeholders::_4,
