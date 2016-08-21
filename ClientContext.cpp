@@ -42,7 +42,9 @@ namespace client
 
     if ( m_ServiceThread == nullptr ) {
       m_ServiceThread = new std::thread([&] () {
+          LogPrint(eLogInfo, "ClientContext: starting service");
           m_Service.run();
+          LogPrint(eLogError, "ClientContext: service died");
       });
       ScheduleCleanupUDP();
     }
@@ -394,7 +396,7 @@ namespace client
 						{
 							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 							if (!localDestination)
-								localDestination = CreateNewLocalDestination (k, false, &options);
+								localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
 						}
 					}
           if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
@@ -412,7 +414,6 @@ namespace client
               clientTunnel->Start();
             } else {
               LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
-              delete clientTunnel;
             }
 
           } else {
@@ -454,7 +455,6 @@ namespace client
 					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
-
           if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER) {
             // udp server tunnel
             // TODO: ipv6 and hostnames
@@ -469,7 +469,6 @@ namespace client
               LogPrint(eLogInfo, "Cleints: I2P Server Forward created for UDP Endpoint ", host, ":", port, " via ",localDestination->GetIdentHash().ToBase32());
             } else {
               LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
-              delete serverTunnel;
             }
             continue;
           }

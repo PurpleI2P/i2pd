@@ -143,8 +143,8 @@ namespace client
     std::shared_ptr<i2p::client::ClientDestination> Destination;
     boost::asio::ip::udp::socket IPSocket;
     i2p::data::IdentHash Identity;
-    boost::asio::ip::udp::endpoint ExpectedEndpoint;
     boost::asio::ip::udp::endpoint FromEndpoint;
+    boost::asio::ip::udp::endpoint SendEndpoint;
     uint64_t LastActivity;
 
     uint16_t LocalPort;
@@ -193,8 +193,8 @@ namespace client
     UDPSession * m_Session;
     const std::string m_RemoteDest;
     std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
-    i2p::data::IdentHash * m_RemoteIdent;
     const boost::asio::ip::udp::endpoint m_LocalEndpoint;
+    i2p::data::IdentHash * m_RemoteIdent;
     std::thread * m_ResolveThread;
     boost::asio::io_service & m_Service;
     uint16_t LocalPort;
