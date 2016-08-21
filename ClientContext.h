@@ -24,6 +24,8 @@ namespace client
 	const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
 	const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
 	const char I2P_TUNNELS_SECTION_TYPE_IRC[] = "irc";
+  const char I2P_TUNNELS_SECTION_TYPE_UDPCLIENT[] = "udpclient";
+  const char I2P_TUNNELS_SECTION_TYPE_UDPSERVER[] = "udpserver";
 	const char I2P_CLIENT_TUNNEL_PORT[] = "port";
 	const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
@@ -72,7 +74,10 @@ namespace client
 			template<typename Section>
 			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const;	
 
-		private:
+      void CleanupUDP(const boost::system::error_code & ecode);
+      void ScheduleCleanupUDP();
+      
+    private:
 
 			std::mutex m_DestinationsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<ClientDestination> > m_Destinations;
@@ -84,10 +89,21 @@ namespace client
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
 			std::map<boost::asio::ip::tcp::endpoint, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // local endpoint->tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
-			SAMBridge * m_SamBridge;
+
+      std::mutex m_ForwardsMutex;
+      
+      std::map<boost::asio::ip::udp::endpoint, std::unique_ptr<I2PUDPClientTunnel> > m_ClientForwards; // local endpoint -> udp tunnel
+      std::map<std::pair<i2p::data::IdentHash, int>, std::unique_ptr<I2PUDPServerTunnel> > m_ServerForwards; // <destination,port> -> udp tunnel
+      
+      SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
 			I2CPServer * m_I2CPServer;
 
+      boost::asio::io_service m_Service;
+      std::thread * m_ServiceThread;
+
+      boost::asio::deadline_timer m_CleanupUDPTimer;
+      
 		public:
 			// for HTTP
 			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };

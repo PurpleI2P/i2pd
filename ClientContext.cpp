@@ -17,7 +17,8 @@ namespace client
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
 		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr), 
-		m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr)
+    m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr),
+    m_CleanupUDPTimer(m_Service, boost::posix_time::seconds(1))
 	{
 	}
 	
@@ -39,6 +40,13 @@ namespace client
 			m_SharedLocalDestination->Start ();
 		}
 
+    if ( m_ServiceThread == nullptr ) {
+      m_ServiceThread = new std::thread([&] () {
+          m_Service.run();
+      });
+      ScheduleCleanupUDP();
+    }
+    
 		m_AddressBook.Start ();	
 		
 		std::shared_ptr<ClientDestination> localDestination;	
@@ -195,11 +203,26 @@ namespace client
 		}
 
 		LogPrint(eLogInfo, "Clients: stopping AddressBook");
-		m_AddressBook.Stop ();		
+		m_AddressBook.Stop ();
+
+    {
+      std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+      m_ServerForwards.clear();
+      m_ClientForwards.clear();
+    }
+    
+    
 		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Destinations.clear ();
-		m_SharedLocalDestination = nullptr; 
+		m_SharedLocalDestination = nullptr;
+    // stop io service thread
+    if(m_ServiceThread) {
+      m_Service.stop();
+      m_ServiceThread->join();
+      delete m_ServiceThread;
+      m_ServiceThread = nullptr;
+    }
 	}	
 
 	void ClientContext::ReloadConfig ()
@@ -349,7 +372,7 @@ namespace client
 			try
 			{
 				std::string type = section.second.get<std::string> (I2P_TUNNELS_SECTION_TYPE);
-				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT)
+				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
 				{
 					// mandatory params
 					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
@@ -374,17 +397,34 @@ namespace client
 								localDestination = CreateNewLocalDestination (k, false, &options);
 						}
 					}
-					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
-					if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
-						std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
-					{
-						clientTunnel->Start ();
-						numClientTunnels++;
-					}
-					else
-						LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientTunnel->GetAcceptor ().local_endpoint (), " already exists");
+          if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
+            // udp client
+            // TODO: ip6 and hostnames
+            boost::asio::ip::udp::endpoint end(boost::asio::ip::address::from_string(address), port);
+            if(destinationPort == 0) {
+              destinationPort = port;
+            }
+            auto clientTunnel = new I2PUDPClientTunnel(name, dest, end, localDestination, destinationPort, m_Service);
+            if(m_ClientForwards.insert(std::make_pair(end, std::unique_ptr<I2PUDPClientTunnel>(clientTunnel))).second) {
+              clientTunnel->Start();
+            } else {
+              LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
+              delete clientTunnel;
+            }
+          } else {
+            // tcp client
+            auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
+            if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
+              std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
+            {
+              clientTunnel->Start ();
+              numClientTunnels++;
+            }
+            else
+              LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientTunnel->GetAcceptor ().local_endpoint (), " already exists");
+          }
 				}
-				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC)
+				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC || type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 				{	
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
@@ -411,6 +451,25 @@ namespace client
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
 
+          if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER) {
+            // udp server tunnel
+            // TODO: ipv6 and hostnames
+            boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
+            I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, endpoint, port, m_Service);
+            std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+            if(m_ServerForwards.insert(
+              std::make_pair(
+                std::make_pair(
+                  localDestination->GetIdentHash(), port),
+                std::unique_ptr<I2PUDPServerTunnel>(serverTunnel))).second) {
+              LogPrint(eLogInfo, "Cleints: I2P Server Forward created for UDP Endpoint ", host, ":", port);
+            } else {
+              LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
+              delete serverTunnel;
+            }
+            continue;
+          }
+          
 					I2PServerTunnel * serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
                     	serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
@@ -460,6 +519,22 @@ namespace client
 		}	
 		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " I2P client tunnels created");
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
-	}	
+	}
+  void ClientContext::ScheduleCleanupUDP()
+  {
+    // schedule cleanup in 1 second
+    m_CleanupUDPTimer.expires_at(m_CleanupUDPTimer.expires_at() + boost::posix_time::seconds(1));
+    m_CleanupUDPTimer.async_wait(std::bind(&ClientContext::CleanupUDP, this, std::placeholders::_1));
+  }
+
+  void ClientContext::CleanupUDP(const boost::system::error_code & ecode)
+  {
+    if(!ecode) {
+      std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+      for ( auto & s : m_ServerForwards ) {
+        s.second->ExpireStale();
+      }
+    }
+  }
 }		
 }	

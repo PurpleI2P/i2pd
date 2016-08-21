@@ -92,6 +92,8 @@ namespace data
 			CryptoKeyType GetCryptoKeyType () const;
 			void DropVerifier () const; // to save memory			
 
+      bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
+      
 		private:
 
 			void CreateVerifier () const;
