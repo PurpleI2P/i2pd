@@ -539,7 +539,7 @@ namespace client
     }
     /** create new */
     boost::asio::ip::udp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 0);
-    m_Sessions.push_back(UDPSession(m_Service, ep, m_Destination, ep, ih, localPort, remotePort));
+    m_Sessions.push_back(UDPSession(m_Service, ep, m_Destination, m_Endpoint, ih, localPort, remotePort));
     return m_Sessions.back();
   }
 
@@ -554,7 +554,9 @@ namespace client
   {
     Receive();
     LogPrint(eLogDebug, "UDPSession: bound to ", IPSocket.local_endpoint());
-   
+    if (localEndpoint == endpoint) {
+      SendEndpoint = IPSocket.local_endpoint();
+    }
   }
 
 
