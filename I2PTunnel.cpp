@@ -552,7 +552,7 @@ namespace client
     RemotePort(theirPort)
   {
     Receive();
-    LogPrint(eLogDebug, "UDPSession: bound to", IPSocket.local_endpoint());
+    LogPrint(eLogDebug, "UDPSession: bound to ", IPSocket.local_endpoint());
   }
 
 
@@ -563,10 +563,12 @@ namespace client
   void UDPSession::HandleReceived(const boost::system::error_code & ecode, std::size_t len)
   {
     if(!ecode) {
+      LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
       i2p::datagram::DatagramDestination * dgram = Destination->GetDatagramDestination();
-      if(dgram) {
+      if(dgram && FromEndpoint == ExpectedEndpoint) {
         LastActivity = i2p::util::GetMillisecondsSinceEpoch();
         dgram->SendDatagramTo(m_Buffer, len, Identity, LocalPort, RemotePort);
+        LogPrint(eLogDebug, "UDPSession: forward to ", Identity.ToBase32());
       }
       Receive();
     }
