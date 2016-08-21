@@ -548,6 +548,7 @@ namespace client
     IPSocket(ios, localEndpoint),
     Identity(from),
     ExpectedEndpoint(endpoint),
+    LastActivity(i2p::util::GetMillisecondsSinceEpoch()),
     LocalPort(ourPort),
     RemotePort(theirPort)
   {
