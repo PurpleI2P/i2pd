@@ -534,7 +534,6 @@ namespace client
     for ( UDPSession & s : m_Sessions ) {
       if ( s.Identity == ih) {
         /** found existing */
-        LogPrint(eLogDebug, "UDP Server: found ", s.SendEndpoint);
         return s;
       }
     }
@@ -555,6 +554,7 @@ namespace client
   {
     Receive();
     LogPrint(eLogDebug, "UDPSession: bound to ", IPSocket.local_endpoint());
+   
   }
 
 
@@ -569,11 +569,13 @@ namespace client
     if(!ecode) {
       LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
       if (Destination) {
-        auto dgram = Destination->CreateDatagramDestination();
+        auto dgram = Destination->GetDatagramDestination();
         if(dgram) {
           LastActivity = i2p::util::GetMillisecondsSinceEpoch();
           dgram->SendDatagramTo(m_Buffer, len, Identity, RemotePort, LocalPort);
           LogPrint(eLogDebug, "UDPSession: forward ", len, "B to ", Identity.ToBase32());
+        } else {
+          LogPrint(eLogWarning, "UDPSession: no datagram destination");
         }
       } else {
         LogPrint(eLogWarning, "UDPSession: no Local Destination");
