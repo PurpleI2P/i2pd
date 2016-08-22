@@ -659,7 +659,7 @@ namespace client
       if(m_Session) {
         // tell session
         LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", from.GetIdentHash().ToBase32(), " via ", m_Session->SendEndpoint);
-        m_Session->IPSocket.send_to(boost::asio::buffer(buf, len), m_Session->SendEndpoint);
+        m_Session->IPSocket.send_to(boost::asio::buffer(buf, len), m_Session->FromEndpoint);
       } else {
         LogPrint(eLogWarning, "UDP Client: no session");
       }
