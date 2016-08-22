@@ -812,10 +812,10 @@ namespace client
 		return dest;
 	}	
 		
-  std::shared_ptr<i2p::datagram::DatagramDestination> ClientDestination::CreateDatagramDestination ()
+  i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
 	{
 		if (m_DatagramDestination == nullptr)
-			m_DatagramDestination = std::make_shared<i2p::datagram::DatagramDestination> (GetSharedFromThis ());
+			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis ());
 		return m_DatagramDestination;	
 	}
 
