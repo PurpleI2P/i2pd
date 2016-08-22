@@ -136,7 +136,7 @@ namespace client
   const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
 
   /** max size for i2p udp */
-  const size_t I2P_UDP_MAX_MTU = 4000;
+  const size_t I2P_UDP_MAX_MTU = i2p::datagram::MAX_DATAGRAM_SIZE;
   
   struct UDPSession
   {
@@ -152,7 +152,6 @@ namespace client
     uint16_t RemotePort;
 
     uint8_t m_Buffer[I2P_UDP_MAX_MTU];
-    uint8_t * m_Forward;
     
     UDPSession(boost::asio::ip::udp::endpoint localEndpoint, const std::shared_ptr<i2p::client::ClientDestination> & localDestination, boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash ident, uint16_t ourPort, uint16_t theirPort);
 

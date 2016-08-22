@@ -406,9 +406,6 @@ namespace client
             // udp client
             // TODO: ip6 and hostnames
             boost::asio::ip::udp::endpoint end(boost::asio::ip::address::from_string(address), port);
-            if(destinationPort == 0) {
-              destinationPort = port;
-            }
             if (!localDestination) {
               localDestination = m_SharedLocalDestination;
             }

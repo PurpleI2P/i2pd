@@ -534,6 +534,7 @@ namespace client
     for ( UDPSession * s : m_Sessions ) {
       if ( s->Identity == ih) {
         /** found existing */
+        LogPrint(eLogDebug, "UDPServer: found session ", s->IPSocket.local_endpoint());
         return s;
       }
     }
@@ -558,20 +559,19 @@ namespace client
 
 
   void UDPSession::Receive() {
-    LogPrint(eLogDebug, "UDPSesssion: Recveive");
+    LogPrint(eLogDebug, "UDPSession: Receive");
     IPSocket.async_receive_from(boost::asio::buffer(m_Buffer, I2P_UDP_MAX_MTU), FromEndpoint, std::bind(&UDPSession::HandleReceived, this, std::placeholders::_1, std::placeholders::_2));
   }
   
   void UDPSession::HandleReceived(const boost::system::error_code & ecode, std::size_t len)
   {
-    LogPrint(eLogDebug, "UDPSesssion: HandleRecveived");
     if(!ecode) {
       LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
       LastActivity = i2p::util::GetMillisecondsSinceEpoch();
       uint8_t * data = new uint8_t[len];
       memcpy(data, m_Buffer, len);
       m_Service.post([&,len, data] () {
-        m_Destination->SendDatagramTo(data, len, Identity, 0, 0);
+        m_Destination->SendDatagramTo(data, len, Identity, LocalPort, RemotePort);
         delete [] data;
       });
       
@@ -590,14 +590,14 @@ namespace client
     m_LocalDest = localDestination;
     m_LocalDest->Start();
     auto dgram = m_LocalDest->CreateDatagramDestination();
-    dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 0);
+    dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), LocalPort);
   }
 
   I2PUDPServerTunnel::~I2PUDPServerTunnel()
   {
     auto dgram = m_LocalDest->GetDatagramDestination();
     if (dgram) {
-      dgram->ResetReceiver(0);
+      dgram->ResetReceiver(LocalPort);
     }
     LogPrint(eLogInfo, "UDPServer: done");
   }
@@ -658,7 +658,7 @@ namespace client
       // address match
       if(m_Session) {
         // tell session
-        LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", from.GetIdentHash().ToBase32(), " via ", m_Session->SendEndpoint);
+        LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", from.GetIdentHash().ToBase32());
         m_Session->IPSocket.send_to(boost::asio::buffer(buf, len), m_Session->FromEndpoint);
       } else {
         LogPrint(eLogWarning, "UDP Client: no session");
