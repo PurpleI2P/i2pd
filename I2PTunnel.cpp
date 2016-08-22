@@ -540,7 +540,9 @@ namespace client
     /** create new */
     boost::asio::ip::udp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 0);
     m_Sessions.push_back(UDPSession(m_Service, ep, m_Destination, m_Endpoint, ih, localPort, remotePort));
-    return m_Sessions.back();
+    auto & s = m_Sessions.back();
+    s.SendEndpoint = s.IPSocket.local_endpoint();
+    return s;
   }
 
   UDPSession::UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash to, uint16_t ourPort, uint16_t theirPort) :
@@ -552,11 +554,8 @@ namespace client
     LocalPort(ourPort),
     RemotePort(theirPort)
   {
+    IPSocket.local_endpoint();
     Receive();
-    LogPrint(eLogDebug, "UDPSession: bound to ", IPSocket.local_endpoint());
-    if (localEndpoint == endpoint) {
-      SendEndpoint = IPSocket.local_endpoint();
-    }
   }
 
 
@@ -583,6 +582,8 @@ namespace client
         LogPrint(eLogWarning, "UDPSession: no Local Destination");
       }
       Receive();
+    } else {
+      LogPrint(eLogError, "UDPSession: ", ecode.message());
     }
   }
   
