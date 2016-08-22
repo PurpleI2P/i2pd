@@ -569,13 +569,13 @@ namespace client
     LogPrint(eLogDebug, "UDPSesssion: HandleRecveived");
     if(!ecode) {
       LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
-      auto dgram = m_Destination->GetDatagramDestination();
-      if(dgram) {
-        LastActivity = i2p::util::GetMillisecondsSinceEpoch();
-        dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
-      } else {
-        LogPrint(eLogWarning, "UDPSession: no datagram destination");
-      }
+      LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+      m_Destination->GetService().post([&, len] () {
+        auto dgram = m_Destination->GetDatagramDestination();
+        if (dgram) {
+          dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
+        }
+      });
       Receive();
     } else {
       LogPrint(eLogError, "UDPSession: ", ecode.message());
@@ -602,6 +602,10 @@ namespace client
     LogPrint(eLogInfo, "UDPServer: done");
   }
 
+  void I2PUDPServerTunnel::Start() {
+    m_LocalDest->Start();
+  }
+  
   I2PUDPClientTunnel::I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, uint16_t remotePort, boost::asio::io_service & service) :
     m_Session(nullptr),
     m_RemoteDest(remoteDest),
@@ -624,6 +628,7 @@ namespace client
   
   
   void I2PUDPClientTunnel::Start() {
+    m_LocalDest->Start();
     if (m_ResolveThread == nullptr)
       m_ResolveThread = new std::thread(std::bind(&I2PUDPClientTunnel::TryResolving, this));
   }

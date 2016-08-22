@@ -87,9 +87,6 @@ namespace client
 			  LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
 			}
 		}
-	
-		// I2P tunnels
-		ReadTunnels ();
 
     if ( m_ServiceThread == nullptr ) {
       m_ServiceThread = new std::thread([&] () {
@@ -99,7 +96,11 @@ namespace client
       });
       ScheduleCleanupUDP();
     }
-		
+
+    	
+		// I2P tunnels
+		ReadTunnels ();
+
     
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
@@ -468,6 +469,7 @@ namespace client
                 std::make_pair(
                   localDestination->GetIdentHash(), port),
                 std::unique_ptr<I2PUDPServerTunnel>(serverTunnel))).second) {
+              serverTunnel->Start();
               LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " via ",localDestination->GetIdentHash().ToBase32());
             } else {
               LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");

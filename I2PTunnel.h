@@ -167,7 +167,7 @@ namespace client
     ~I2PUDPServerTunnel();
     /** expire stale udp conversations */
     void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
-
+    void Start();
   private:
     void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
     UDPSession & ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
