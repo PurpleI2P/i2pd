@@ -47,7 +47,7 @@ namespace datagram
 
 		private:
 
-			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
+			i2p::client::ClientDestination * m_Owner;
 			Receiver m_Receiver; // default
 			std::map<uint16_t, Receiver> m_ReceiversByPorts;
 

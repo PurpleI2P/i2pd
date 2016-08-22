@@ -12,7 +12,7 @@ namespace i2p
 namespace datagram
 {
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner): 
-		m_Owner (owner), m_Receiver (nullptr)
+		m_Owner (owner.get()), m_Receiver (nullptr)
 	{
 	}
 	
