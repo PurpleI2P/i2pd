@@ -23,15 +23,16 @@ namespace datagram
 	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort, uint16_t toPort)
 	{
     auto owner = m_Owner.get();
+    auto i = owner->GetIdentity().get();
 		uint8_t buf[MAX_DATAGRAM_SIZE];
-		auto identityLen = owner->GetIdentity ()->ToBuffer (buf, MAX_DATAGRAM_SIZE);
+		auto identityLen = i->ToBuffer (buf, MAX_DATAGRAM_SIZE);
 		uint8_t * signature = buf + identityLen;
-		auto signatureLen = owner->GetIdentity ()->GetSignatureLen ();
+		auto signatureLen = i->GetSignatureLen ();
 		uint8_t * buf1 = signature + signatureLen;
 		size_t headerLen = identityLen + signatureLen;
 		
 		memcpy (buf1, payload, len);	
-		if (owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		if (i->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			uint8_t hash[32];	
 			SHA256(buf1, len, hash);
