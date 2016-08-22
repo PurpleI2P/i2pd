@@ -572,7 +572,7 @@ namespace client
       memcpy(data, m_Buffer, len);
       m_Service.post([&,len, data] () {
         m_Destination->SendDatagramTo(data, len, Identity, 0, 0);
-        delete data;
+        delete [] data;
       });
       
       Receive();
