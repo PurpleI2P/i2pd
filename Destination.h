@@ -164,8 +164,8 @@ namespace client
 			bool IsAcceptingStreams () const;
 
 			// datagram
-			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
+      std::shared_ptr<i2p::datagram::DatagramDestination> GetDatagramDestination () const { return m_DatagramDestination; };
+      std::shared_ptr<i2p::datagram::DatagramDestination> CreateDatagramDestination ();
 			
 			// implements LocalDestination		
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
@@ -190,7 +190,7 @@ namespace client
 
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
-			i2p::datagram::DatagramDestination * m_DatagramDestination;
+      std::shared_ptr<i2p::datagram::DatagramDestination> m_DatagramDestination;
 
 		public:
 

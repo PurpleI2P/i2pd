@@ -539,14 +539,14 @@ namespace client
     }
     /** create new */
     boost::asio::ip::udp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 0);
-    m_Sessions.push_back(UDPSession(m_Service, ep, m_Destination, m_Endpoint, ih, localPort, remotePort));
+    m_Sessions.push_back(UDPSession(m_Service, ep, m_LocalDest, m_Endpoint, ih, localPort, remotePort));
     auto & s = m_Sessions.back();
     s.SendEndpoint = s.IPSocket.local_endpoint();
     return s;
   }
 
   UDPSession::UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash to, uint16_t ourPort, uint16_t theirPort) :
-    Destination(localDestination),
+    m_Destination(localDestination),
     IPSocket(ios, localEndpoint),
     Identity(to),
     SendEndpoint(endpoint),
@@ -569,17 +569,12 @@ namespace client
     LogPrint(eLogDebug, "UDPSesssion: HandleRecveived");
     if(!ecode) {
       LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
-      if (Destination) {
-        auto dgram = Destination->CreateDatagramDestination();
-        if(dgram) {
-          LastActivity = i2p::util::GetMillisecondsSinceEpoch();
-          dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
-          LogPrint(eLogDebug, "UDPSession: forward ", len, "B to ", Identity.ToBase32(), " from ", Destination->GetIdentHash().ToBase32());
-        } else {
-          LogPrint(eLogWarning, "UDPSession: no datagram destination");
-        }
+      auto dgram = m_Destination->GetDatagramDestination();
+      if(dgram) {
+        LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+        dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
       } else {
-        LogPrint(eLogWarning, "UDPSession: no Local Destination");
+        LogPrint(eLogWarning, "UDPSession: no datagram destination");
       }
       Receive();
     } else {
@@ -590,20 +585,21 @@ namespace client
   I2PUDPServerTunnel::I2PUDPServerTunnel(const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint forwardTo, uint16_t port, boost::asio::io_service & service) :
     LocalPort(port),
     m_Endpoint(forwardTo),
-    m_Service(service),
-    m_Destination(localDestination)
+    m_Service(service)
   {
-    i2p::datagram::DatagramDestination * dgram = m_Destination->CreateDatagramDestination();
-    if(dgram)
-      dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 0);
+    m_LocalDest = localDestination;
+    m_LocalDest->Start();
+    auto dgram = m_LocalDest->CreateDatagramDestination();
+    dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 0);
   }
 
   I2PUDPServerTunnel::~I2PUDPServerTunnel()
   {
-    i2p::datagram::DatagramDestination * dgram = m_Destination->GetDatagramDestination();
+    auto dgram = m_LocalDest->GetDatagramDestination();
     if (dgram) {
       dgram->ResetReceiver(0);
     }
+    LogPrint(eLogInfo, "UDPServer: done");
   }
 
   I2PUDPClientTunnel::I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, uint16_t remotePort, boost::asio::io_service & service) :

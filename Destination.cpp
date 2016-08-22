@@ -677,8 +677,6 @@ namespace client
 
 	ClientDestination::~ClientDestination ()	
 	{
-		if (m_DatagramDestination)
-			delete m_DatagramDestination;
 	}	
 		
 	bool ClientDestination::Start ()
@@ -703,13 +701,8 @@ namespace client
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Stop ();
-			if (m_DatagramDestination)
-			{
-				auto d = m_DatagramDestination;
-				m_DatagramDestination = nullptr;
-				delete d;
-			}	
-			return true;
+      m_DatagramDestination = nullptr;
+  		return true;
 		}
 		else
 			return false;
@@ -819,10 +812,10 @@ namespace client
 		return dest;
 	}	
 		
-	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
+  std::shared_ptr<i2p::datagram::DatagramDestination> ClientDestination::CreateDatagramDestination ()
 	{
-		if (!m_DatagramDestination)
-			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis ());
+		if (m_DatagramDestination == nullptr)
+			m_DatagramDestination = std::make_shared<i2p::datagram::DatagramDestination> (GetSharedFromThis ());
 		return m_DatagramDestination;	
 	}
 

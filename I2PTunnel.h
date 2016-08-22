@@ -140,7 +140,7 @@ namespace client
   
   struct UDPSession
   {
-    std::shared_ptr<i2p::client::ClientDestination> Destination;
+    std::shared_ptr<i2p::client::ClientDestination> m_Destination;
     boost::asio::ip::udp::socket IPSocket;
     i2p::data::IdentHash Identity;
     boost::asio::ip::udp::endpoint FromEndpoint;
@@ -177,7 +177,7 @@ namespace client
     std::mutex m_SessionsMutex;
     std::vector<UDPSession> m_Sessions;
     boost::asio::io_service & m_Service;
-    std::shared_ptr<i2p::client::ClientDestination> m_Destination;
+    std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
     uint8_t m_Buffer[I2P_UDP_MAX_MTU];
   };
 
