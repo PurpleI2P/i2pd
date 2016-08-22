@@ -614,7 +614,11 @@ namespace client
     RemotePort(remotePort),
     m_cancel_resolve(false)
   {
-    
+    auto dgram = m_LocalDest->CreateDatagramDestination();
+    dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
+                                 std::placeholders::_1, std::placeholders::_2,
+                                 std::placeholders::_3, std::placeholders::_4,
+                                 std::placeholders::_5));   
   }
 
   
@@ -638,15 +642,10 @@ namespace client
       return;
     }
     LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());
-    auto dgram = m_LocalDest->CreateDatagramDestination().get();
     // delete existing session
     if(m_Session) delete m_Session;
     boost::asio::ip::udp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 0);
     m_Session = new UDPSession(m_Service, m_LocalEndpoint, m_LocalDest, ep, *m_RemoteIdent, LocalPort, RemotePort);
-    dgram->SetReceiver(std::bind(&I2PUDPClientTunnel::HandleRecvFromI2P, this,
-                                 std::placeholders::_1, std::placeholders::_2,
-                                 std::placeholders::_3, std::placeholders::_4,
-                                 std::placeholders::_5));
   }
 
   void I2PUDPClientTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
