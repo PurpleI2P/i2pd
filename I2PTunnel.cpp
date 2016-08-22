@@ -534,7 +534,7 @@ namespace client
     for ( UDPSession * s : m_Sessions ) {
       if ( s->Identity == ih) {
         /** found existing */
-        LogPrint(eLogDebug, "UDPServer: found session ", s->IPSocket.local_endpoint());
+        LogPrint(eLogDebug, "UDPServer: found session ", s->IPSocket.local_endpoint(), " ", ih.ToBase32());
         return s;
       }
     }
