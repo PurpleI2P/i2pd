@@ -22,29 +22,30 @@ namespace datagram
 	
 	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort, uint16_t toPort)
 	{
+    auto owner = m_Owner.get();
 		uint8_t buf[MAX_DATAGRAM_SIZE];
-		auto identityLen = m_Owner->GetIdentity ()->ToBuffer (buf, MAX_DATAGRAM_SIZE);
+		auto identityLen = owner->GetIdentity ()->ToBuffer (buf, MAX_DATAGRAM_SIZE);
 		uint8_t * signature = buf + identityLen;
-		auto signatureLen = m_Owner->GetIdentity ()->GetSignatureLen ();
+		auto signatureLen = owner->GetIdentity ()->GetSignatureLen ();
 		uint8_t * buf1 = signature + signatureLen;
 		size_t headerLen = identityLen + signatureLen;
 		
 		memcpy (buf1, payload, len);	
-		if (m_Owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		if (owner->GetIdentity ()->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			uint8_t hash[32];	
 			SHA256(buf1, len, hash);
-			m_Owner->Sign (hash, 32, signature);
+      owner->Sign (hash, 32, signature);
 		}
 		else
-			m_Owner->Sign (buf1, len, signature);
+			owner->Sign (buf1, len, signature);
 
 		auto msg = CreateDataMessage (buf, len + headerLen, fromPort, toPort); 
-		auto remote = m_Owner->FindLeaseSet (ident);
+		auto remote = owner->FindLeaseSet (ident);
 		if (remote)
-			m_Owner->GetService ().post (std::bind (&DatagramDestination::SendMsg, this, msg, remote));
+			owner->GetService ().post (std::bind (&DatagramDestination::SendMsg, this, msg, remote));
 		else
-			m_Owner->RequestDestination (ident, std::bind (&DatagramDestination::HandleLeaseSetRequestComplete, this, std::placeholders::_1, msg));
+      owner->RequestDestination (ident, std::bind (&DatagramDestination::HandleLeaseSetRequestComplete, this, std::placeholders::_1, msg));
 	}
 
 	void DatagramDestination::HandleLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> remote, std::shared_ptr<I2NPMessage> msg)
