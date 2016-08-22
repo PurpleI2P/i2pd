@@ -152,7 +152,7 @@ namespace client
 
     uint8_t m_Buffer[I2P_UDP_MAX_MTU];
     
-    UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash ident, uint16_t ourPort, uint16_t theirPort);
+    UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, const std::shared_ptr<i2p::client::ClientDestination> & localDestination, boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash ident, uint16_t ourPort, uint16_t theirPort);
 
     void HandleReceived(const boost::system::error_code & ecode, std::size_t len);
     void Receive();

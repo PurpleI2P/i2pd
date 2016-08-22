@@ -545,7 +545,7 @@ namespace client
     return s;
   }
 
-  UDPSession::UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash to, uint16_t ourPort, uint16_t theirPort) :
+  UDPSession::UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, const std::shared_ptr<i2p::client::ClientDestination> & localDestination, boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash to, uint16_t ourPort, uint16_t theirPort) :
     m_Destination(localDestination),
     IPSocket(ios, localEndpoint),
     Identity(to),
@@ -569,7 +569,7 @@ namespace client
     LogPrint(eLogDebug, "UDPSesssion: HandleRecveived");
     if(!ecode) {
       LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
-      auto dgram = m_Destination.get()->GetDatagramDestination().get();
+      auto dgram = m_Destination->GetDatagramDestination();
       if(dgram) {
         LastActivity = i2p::util::GetMillisecondsSinceEpoch();
         dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
