@@ -140,7 +140,7 @@ namespace client
   
   struct UDPSession
   {
-    std::shared_ptr<i2p::client::ClientDestination> m_Destination;
+    i2p::client::ClientDestination * m_Destination;
     boost::asio::ip::udp::socket IPSocket;
     i2p::data::IdentHash Identity;
     boost::asio::ip::udp::endpoint FromEndpoint;

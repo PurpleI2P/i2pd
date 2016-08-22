@@ -546,7 +546,7 @@ namespace client
   }
 
   UDPSession::UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, const std::shared_ptr<i2p::client::ClientDestination> & localDestination, boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash to, uint16_t ourPort, uint16_t theirPort) :
-    m_Destination(localDestination),
+    m_Destination(localDestination.get()),
     IPSocket(ios, localEndpoint),
     Identity(to),
     SendEndpoint(endpoint),
