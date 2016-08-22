@@ -40,6 +40,9 @@ namespace client
 			m_SharedLocalDestination->Start ();
 		}
 
+    
+		m_AddressBook.Start ();	
+    
     if ( m_ServiceThread == nullptr ) {
       m_ServiceThread = new std::thread([&] () {
           LogPrint(eLogInfo, "ClientContext: starting service");
@@ -48,8 +51,6 @@ namespace client
       });
       ScheduleCleanupUDP();
     }
-    
-		m_AddressBook.Start ();	
 		
 		std::shared_ptr<ClientDestination> localDestination;	
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
