@@ -638,7 +638,7 @@ namespace client
       return;
     }
     LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());
-    auto dgram = m_LocalDest->CreateDatagramDestination();
+    auto dgram = m_LocalDest->CreateDatagramDestination().get();
     // delete existing session
     if(m_Session) delete m_Session;
     boost::asio::ip::udp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 0);
