@@ -590,7 +590,7 @@ namespace client
     m_LocalDest = localDestination;
     m_LocalDest->Start();
     auto dgram = m_LocalDest->CreateDatagramDestination();
-    dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), LocalPort);
+    dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 0);
   }
 
   I2PUDPServerTunnel::~I2PUDPServerTunnel()
