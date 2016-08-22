@@ -412,7 +412,7 @@ namespace client
             if (!localDestination) {
               localDestination = m_SharedLocalDestination;
             }
-            auto clientTunnel = new I2PUDPClientTunnel(name, dest, end, localDestination, destinationPort, m_Service);
+            auto clientTunnel = new I2PUDPClientTunnel(name, dest, end, localDestination, destinationPort);
             if(m_ClientForwards.insert(std::make_pair(end, std::unique_ptr<I2PUDPClientTunnel>(clientTunnel))).second) {
               clientTunnel->Start();
             } else {
@@ -462,7 +462,7 @@ namespace client
             // udp server tunnel
             // TODO: ipv6 and hostnames
             boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
-            I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, endpoint, port, m_Service);
+            I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, endpoint, port);
             std::lock_guard<std::mutex> lock(m_ForwardsMutex);
             if(m_ServerForwards.insert(
               std::make_pair(

@@ -140,7 +140,8 @@ namespace client
   
   struct UDPSession
   {
-    i2p::client::ClientDestination * m_Destination;
+    i2p::datagram::DatagramDestination * m_Destination;
+    boost::asio::io_service & m_Service;
     boost::asio::ip::udp::socket IPSocket;
     i2p::data::IdentHash Identity;
     boost::asio::ip::udp::endpoint FromEndpoint;
@@ -151,32 +152,31 @@ namespace client
     uint16_t RemotePort;
 
     uint8_t m_Buffer[I2P_UDP_MAX_MTU];
+    uint8_t * m_Forward;
     
-    UDPSession(boost::asio::io_service & ios, boost::asio::ip::udp::endpoint localEndpoint, const std::shared_ptr<i2p::client::ClientDestination> & localDestination, boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash ident, uint16_t ourPort, uint16_t theirPort);
+    UDPSession(boost::asio::ip::udp::endpoint localEndpoint, const std::shared_ptr<i2p::client::ClientDestination> & localDestination, boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash ident, uint16_t ourPort, uint16_t theirPort);
 
     void HandleReceived(const boost::system::error_code & ecode, std::size_t len);
     void Receive();
-    
   };
 
   /** server side udp tunnel, many i2p inbound to 1 ip outbound */
   class I2PUDPServerTunnel
   {
   public:
-    I2PUDPServerTunnel(const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint forwardTo, uint16_t port, boost::asio::io_service & service);
+    I2PUDPServerTunnel(const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination, boost::asio::ip::udp::endpoint forwardTo, uint16_t port);
     ~I2PUDPServerTunnel();
     /** expire stale udp conversations */
     void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
     void Start();
   private:
     void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-    UDPSession & ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
+    UDPSession * ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
   private:
     const uint16_t LocalPort;
     boost::asio::ip::udp::endpoint m_Endpoint;
     std::mutex m_SessionsMutex;
-    std::vector<UDPSession> m_Sessions;
-    boost::asio::io_service & m_Service;
+    std::vector<UDPSession*> m_Sessions;
     std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
     uint8_t m_Buffer[I2P_UDP_MAX_MTU];
   };
@@ -184,7 +184,7 @@ namespace client
   class I2PUDPClientTunnel
   {
   public:
-    I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, uint16_t remotePort, boost::asio::io_service & service);
+    I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest, boost::asio::ip::udp::endpoint localEndpoint, std::shared_ptr<i2p::client::ClientDestination> localDestination, uint16_t remotePort);
     ~I2PUDPClientTunnel();
     void Start();
   private:
@@ -196,7 +196,6 @@ namespace client
     const boost::asio::ip::udp::endpoint m_LocalEndpoint;
     i2p::data::IdentHash * m_RemoteIdent;
     std::thread * m_ResolveThread;
-    boost::asio::io_service & m_Service;
     uint16_t LocalPort;
     uint16_t RemotePort;
     bool m_cancel_resolve;
