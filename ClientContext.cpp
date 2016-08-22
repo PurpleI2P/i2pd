@@ -43,15 +43,6 @@ namespace client
     
 		m_AddressBook.Start ();	
     
-    if ( m_ServiceThread == nullptr ) {
-      m_ServiceThread = new std::thread([&] () {
-          LogPrint(eLogInfo, "ClientContext: starting service");
-          m_Service.run();
-          LogPrint(eLogError, "ClientContext: service died");
-      });
-      ScheduleCleanupUDP();
-    }
-		
 		std::shared_ptr<ClientDestination> localDestination;	
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
 		if (httproxy) {
@@ -74,7 +65,7 @@ namespace client
 			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
 		}
-
+    
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy) {
 			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",    socksProxyKeys);
@@ -100,6 +91,16 @@ namespace client
 		// I2P tunnels
 		ReadTunnels ();
 
+    if ( m_ServiceThread == nullptr ) {
+      m_ServiceThread = new std::thread([&] () {
+          LogPrint(eLogInfo, "ClientContext: starting service");
+          m_Service.run();
+          LogPrint(eLogError, "ClientContext: service died");
+      });
+      ScheduleCleanupUDP();
+    }
+		
+    
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
 		if (sam) {

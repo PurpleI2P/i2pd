@@ -628,6 +628,7 @@ namespace client
     LogPrint(eLogInfo, "UDP Tunnel: Trying to resolve ", m_RemoteDest);
     m_RemoteIdent = new i2p::data::IdentHash;
     m_RemoteIdent->Fill(0);
+
     while(!context.GetAddressBook().GetIdentHash(m_RemoteDest, *m_RemoteIdent) && !m_cancel_resolve) {
       LogPrint(eLogWarning, "UDP Tunnel: failed to lookup ", m_RemoteDest);
       std::this_thread::sleep_for(std::chrono::seconds(1));
