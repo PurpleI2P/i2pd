@@ -23,7 +23,7 @@ namespace datagram
 	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort, uint16_t toPort)
 	{
     auto owner = m_Owner.get();
-    auto i = owner->GetIdentity().get();
+    auto i = owner->GetIdentity();
 		uint8_t buf[MAX_DATAGRAM_SIZE];
 		auto identityLen = i->ToBuffer (buf, MAX_DATAGRAM_SIZE);
 		uint8_t * signature = buf + identityLen;
