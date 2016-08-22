@@ -570,7 +570,7 @@ namespace client
     if(!ecode) {
       LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
       if (Destination) {
-        auto dgram = Destination->GetDatagramDestination();
+        auto dgram = Destination->CreateDatagramDestination();
         if(dgram) {
           LastActivity = i2p::util::GetMillisecondsSinceEpoch();
           dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
