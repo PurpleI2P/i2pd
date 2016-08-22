@@ -136,7 +136,7 @@ namespace client
   const uint64_t I2P_UDP_SESSION_TIMEOUT = 1000 * 60 * 2;
 
   /** max size for i2p udp */
-  const size_t I2P_UDP_MAX_MTU = i2p::datagram::MAX_DATAGRAM_SIZE;
+  const size_t I2P_UDP_MAX_MTU = 4000;
   
   struct UDPSession
   {

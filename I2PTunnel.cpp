@@ -569,7 +569,7 @@ namespace client
     LogPrint(eLogDebug, "UDPSesssion: HandleRecveived");
     if(!ecode) {
       LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
-      auto dgram = m_Destination->GetDatagramDestination();
+      auto dgram = m_Destination.get()->GetDatagramDestination();
       if(dgram) {
         LastActivity = i2p::util::GetMillisecondsSinceEpoch();
         dgram->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
