@@ -571,7 +571,7 @@ namespace client
       uint8_t * data = new uint8_t[len];
       memcpy(data, m_Buffer, len);
       m_Service.post([&,len, data] () {
-        m_Destination->SendDatagramTo(data, len, Identity, LocalPort, RemotePort);
+          m_Destination->SendDatagramTo(data, len, Identity, 0, 0);
         delete [] data;
       });
       
@@ -597,7 +597,7 @@ namespace client
   {
     auto dgram = m_LocalDest->GetDatagramDestination();
     if (dgram) {
-      dgram->ResetReceiver(LocalPort);
+      dgram->ResetReceiver(0);
     }
     LogPrint(eLogInfo, "UDPServer: done");
   }
