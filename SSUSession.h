@@ -77,6 +77,7 @@ namespace transport
 			void WaitForIntroduction ();
 			void Close ();
 			void Done ();
+			void Failed ();
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
@@ -114,7 +115,6 @@ namespace transport
 			void ProcessRelayResponse (const uint8_t * buf, size_t len);
 			void ProcessRelayIntro (const uint8_t * buf, size_t len);
 			void Established ();
-			void Failed ();
 			void ScheduleConnectTimer ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);
 			void ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
@@ -131,15 +131,12 @@ namespace transport
 			void DecryptSessionKey (uint8_t * buf, size_t len);
 			bool Validate (uint8_t * buf, size_t len, const i2p::crypto::MACKey& macKey);			
 
-			void ScheduleTermination ();
-			void HandleTerminationTimer (const boost::system::error_code& ecode);
-
 		private:
 	
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
-			boost::asio::deadline_timer m_Timer;
+			boost::asio::deadline_timer m_ConnectTimer;
 			bool m_IsPeerTest;
 			SessionState m_State;
 			bool m_IsSessionKey;

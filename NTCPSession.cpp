@@ -22,7 +22,6 @@ namespace transport
 		TransportSession (in_RemoteRouter, NTCP_TERMINATION_TIMEOUT),	
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
-		m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ()),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
 	{		
 		m_Establisher = new Establisher;

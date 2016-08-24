@@ -54,9 +54,7 @@ namespace transport
 			void Done ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
-			bool IsEstablished () const { return m_IsEstablished; };
-			bool IsTerminationTimeoutExpired (uint64_t ts) const 
-			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };		
+			bool IsEstablished () const { return m_IsEstablished; };	
 
 			void ClientLogin ();
 			void ServerLogin ();
@@ -103,7 +101,6 @@ namespace transport
 			NTCPServer& m_Server;
 			boost::asio::ip::tcp::socket m_Socket;
 			bool m_IsEstablished, m_IsTerminated;
-			uint64_t m_LastActivityTimestamp;
 			
 			i2p::crypto::CBCDecryption m_Decryption;
 			i2p::crypto::CBCEncryption m_Encryption;

@@ -17,7 +17,8 @@ namespace transport
 		m_Work (m_Service), m_WorkV6 (m_ServiceV6), m_ReceiversWork (m_ReceiversService), 
 		m_EndpointV6 (addr, port), 
 		m_Socket (m_ReceiversService, m_Endpoint), m_SocketV6 (m_ReceiversService), 
-		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service)	
+		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
+		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)	
 	{
 		m_SocketV6.open (boost::asio::ip::udp::v6());
 		m_SocketV6.set_option (boost::asio::ip::v6_only (true));
@@ -32,7 +33,8 @@ namespace transport
 		m_Work (m_Service), m_WorkV6 (m_ServiceV6), m_ReceiversWork (m_ReceiversService), 
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port), 
 		m_Socket (m_ReceiversService, m_Endpoint), m_SocketV6 (m_ReceiversService), 
-		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service)	
+		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
+		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)	
 	{
 		
 		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
@@ -59,11 +61,13 @@ namespace transport
 		{
 			m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 			m_ReceiversService.post (std::bind (&SSUServer::Receive, this));
+			ScheduleTermination ();		
 		}
 		if (context.SupportsV6 ())
 		{	
 			m_ThreadV6 = new std::thread (std::bind (&SSUServer::RunV6, this));
 			m_ReceiversService.post (std::bind (&SSUServer::ReceiveV6, this));	
+			ScheduleTerminationV6 ();	
 		}
 		SchedulePeerTestsCleanupTimer ();	
 		ScheduleIntroducersUpdateTimer (); // wait for 30 seconds and decide if we need introducers
@@ -640,6 +644,58 @@ namespace transport
 			SchedulePeerTestsCleanupTimer ();
 		}
 	}
+
+	void SSUServer::ScheduleTermination ()
+	{
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_CHECK_TIMEOUT));
+		m_TerminationTimer.async_wait (std::bind (&SSUServer::HandleTerminationTimer,
+			this, std::placeholders::_1));
+	}
+
+	void SSUServer::HandleTerminationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto& it: m_Sessions)
+ 				if (it.second->IsTerminationTimeoutExpired (ts))
+				{
+					auto session = it.second;
+					m_Service.post ([session] 
+						{ 
+							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
+							session->Failed ();
+						});	
+				}
+			ScheduleTermination ();	
+		}	
+	}	
+
+	void SSUServer::ScheduleTerminationV6 ()
+	{
+		m_TerminationTimerV6.expires_from_now (boost::posix_time::seconds(SSU_TERMINATION_CHECK_TIMEOUT));
+		m_TerminationTimerV6.async_wait (std::bind (&SSUServer::HandleTerminationTimerV6,
+			this, std::placeholders::_1));
+	}
+
+	void SSUServer::HandleTerminationTimerV6 (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto& it: m_SessionsV6)
+ 				if (it.second->IsTerminationTimeoutExpired (ts))
+				{
+					auto session = it.second;
+					m_ServiceV6.post ([session] 
+						{ 
+							LogPrint (eLogWarning, "SSU: no activity with ", session->GetRemoteEndpoint (), " for ", session->GetTerminationTimeout (), " seconds");
+							session->Failed ();
+						});	
+				}
+			ScheduleTerminationV6 ();	
+		}	
+	}	
 }
 }
 

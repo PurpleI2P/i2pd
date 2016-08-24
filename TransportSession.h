@@ -9,6 +9,7 @@
 #include "Crypto.h"
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
+#include "Timestamp.h"
 
 namespace i2p
 {
@@ -54,7 +55,8 @@ namespace transport
 		public:
 
 			TransportSession (std::shared_ptr<const i2p::data::RouterInfo> router, int terminationTimeout): 
-				m_DHKeysPair (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0), m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout)
+				m_DHKeysPair (nullptr), m_NumSentBytes (0), m_NumReceivedBytes (0), m_IsOutgoing (router), m_TerminationTimeout (terminationTimeout), 
+				m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ())
 			{
 				if (router)
 					m_RemoteIdentity = router->GetRouterIdentity ();
@@ -72,6 +74,8 @@ namespace transport
 			
 			int GetTerminationTimeout () const { return m_TerminationTimeout; };
 			void SetTerminationTimeout (int terminationTimeout) { m_TerminationTimeout = terminationTimeout; };	
+			bool IsTerminationTimeoutExpired (uint64_t ts) const 
+			{ return ts >= m_LastActivityTimestamp + GetTerminationTimeout (); };	
 
 			virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 			
@@ -82,6 +86,7 @@ namespace transport
 			size_t m_NumSentBytes, m_NumReceivedBytes;
 			bool m_IsOutgoing;
 			int m_TerminationTimeout;
+			uint64_t m_LastActivityTimestamp;
 	};	
 }
 }
