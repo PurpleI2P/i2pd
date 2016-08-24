@@ -357,7 +357,7 @@ if (WITH_BINARY)
   endif ()
 
   if (WITH_UPNP)
-    target_link_libraries("${PROJECT_NAME}" "miniupnpc")
+	  target_link_libraries("${PROJECT_NAME}" "${MINIUPNPC_LIBRARY}")
   endif ()
 
   # FindBoost pulls pthread for thread which is broken for static linking at least on Ubuntu 15.04
