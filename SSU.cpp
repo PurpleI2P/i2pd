@@ -77,6 +77,8 @@ namespace transport
 	{
 		DeleteAllSessions ();
 		m_IsRunning = false;
+		m_TerminationTimer.cancel ();
+ 		m_TerminationTimerV6.cancel ();
 		m_Service.stop ();
 		m_Socket.close ();
 		m_ServiceV6.stop ();
