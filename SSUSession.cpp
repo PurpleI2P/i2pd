@@ -14,7 +14,7 @@ namespace transport
 	SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 		std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): 
 		TransportSession (router, SSU_TERMINATION_TIMEOUT), 
-		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_Timer (GetService ()), 
+		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_ConnectTimer (GetService ()), 
 		m_IsPeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), 
 		m_RelayTag (0),m_Data (*this), m_IsDataReceived (false)
 	{	
@@ -97,7 +97,7 @@ namespace transport
 		{
 			if (!len) return; // ignore zero-length packets	
 			if (m_State == eSessionStateEstablished)
-				ScheduleTermination ();		
+				m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();	
 			
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
 				DecryptSessionKey (buf, len);	
@@ -229,7 +229,7 @@ namespace transport
 		}
 
 		LogPrint (eLogDebug, "SSU message: session created");
-		m_Timer.cancel (); // connect timer
+		m_ConnectTimer.cancel (); // connect timer
 		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
 		auto headerSize = GetSSUHeaderSize (buf);	
 		if (headerSize >= len)
@@ -804,9 +804,9 @@ namespace transport
 
 	void SSUSession::ScheduleConnectTimer ()
 	{
-		m_Timer.cancel ();
-		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-		m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
+		m_ConnectTimer.cancel ();
+		m_ConnectTimer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
+		m_ConnectTimer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
 			shared_from_this (), std::placeholders::_1));	
 }
 
@@ -826,8 +826,8 @@ namespace transport
 		if (m_State == eSessionStateUnknown)
 		{	
 			// set connect timer
-			m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-			m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
+			m_ConnectTimer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
+			m_ConnectTimer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
 				shared_from_this (), std::placeholders::_1));
 		}
 		uint32_t nonce;
@@ -840,8 +840,8 @@ namespace transport
 	{
 		m_State = eSessionStateIntroduced;
 		// set connect timer
-		m_Timer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
-		m_Timer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
+		m_ConnectTimer.expires_from_now (boost::posix_time::seconds(SSU_CONNECT_TIMEOUT));
+		m_ConnectTimer.async_wait (std::bind (&SSUSession::HandleConnectTimer,
 			shared_from_this (), std::placeholders::_1));			
 	}
 
@@ -851,7 +851,7 @@ namespace transport
 		SendSesionDestroyed ();
 		transports.PeerDisconnected (shared_from_this ());
 		m_Data.Stop ();
-		m_Timer.cancel ();
+		m_ConnectTimer.cancel ();
 	}	
 
 	void SSUSession::Done ()
@@ -868,7 +868,7 @@ namespace transport
 		transports.PeerConnected (shared_from_this ());
 		if (m_IsPeerTest)
 			SendPeerTest ();
-		ScheduleTermination ();
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 	}	
 
 	void SSUSession::Failed ()
@@ -879,24 +879,6 @@ namespace transport
 			m_Server.DeleteSession (shared_from_this ());  
 		}	
 	}	
-
-	void SSUSession::ScheduleTermination ()
-	{
-		m_Timer.cancel ();
-		m_Timer.expires_from_now (boost::posix_time::seconds(GetTerminationTimeout ()));
-		m_Timer.async_wait (std::bind (&SSUSession::HandleTerminationTimer,
-			shared_from_this (), std::placeholders::_1));
-	}
-
-	void SSUSession::HandleTerminationTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{	
-			LogPrint (eLogWarning, "SSU: no activity with ", m_RemoteEndpoint, " for ", GetTerminationTimeout (), " seconds");
-			Failed ();
-		}	
-	}	
-	
 
 	void SSUSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
@@ -1126,7 +1108,7 @@ namespace transport
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
 			Send (buf, 48);
 			LogPrint (eLogDebug, "SSU: keep-alive sent");
-			ScheduleTermination ();
+			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		}	
 	}
 

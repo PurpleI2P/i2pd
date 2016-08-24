@@ -174,7 +174,7 @@ namespace http {
 		s << "<b>Uptime:</b> ";
 		ShowUptime(s, i2p::context.GetUptime ());
 		s << "<br>\r\n";
-		s << "<b>Status:</b> ";
+		s << "<b>Network status:</b> ";
 		switch (i2p::context.GetStatus ())
 		{
 			case eRouterStatusOK: s << "OK"; break;
@@ -183,6 +183,13 @@ namespace http {
 			default: s << "Unknown";
 		} 
 		s << "<br>\r\n";
+#if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
+		if (auto remains = Daemon.gracefullShutdownInterval) {
+			s << "<b>Stopping in:</b> ";
+			s << remains << " seconds";
+			s << "<br>\r\n";
+		}
+#endif
 		auto family = i2p::context.GetFamily ();
 		if (family.length () > 0)
 			s << "<b>Family:</b> " << family << "<br>\r\n";
@@ -415,15 +422,9 @@ namespace http {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 		if (Daemon.gracefullShutdownInterval) 
-		{
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown (";
-			s << Daemon.gracefullShutdownInterval;
-			s << " seconds remains)</a><br>\r\n";
-		} 
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown</a></br>";
 		else 
-		{
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start gracefull shutdown</a><br>\r\n";
-		}
 #endif
 #ifdef WIN32_APP
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Gracefull shutdown</a><br>\r\n";

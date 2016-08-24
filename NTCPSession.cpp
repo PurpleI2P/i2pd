@@ -21,7 +21,7 @@ namespace transport
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
 		TransportSession (in_RemoteRouter, NTCP_TERMINATION_TIMEOUT),	
 		m_Server (server), m_Socket (m_Server.GetService ()), 
-		m_TerminationTimer (m_Server.GetService ()), m_IsEstablished (false), m_IsTerminated (false),
+		m_IsEstablished (false), m_IsTerminated (false),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
 	{		
 		m_Establisher = new Establisher;
@@ -78,7 +78,6 @@ namespace transport
 			m_Server.RemoveNTCPSession (shared_from_this ());
 			m_SendQueue.clear ();
 			m_NextMessage = nullptr;
-			m_TerminationTimer.cancel ();
 			LogPrint (eLogDebug, "NTCP: session terminated");
 		}	
 	}	
@@ -110,7 +109,6 @@ namespace transport
 		
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),
         	std::bind(&NTCPSession::HandlePhase1Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-		ScheduleTermination ();
 	}	
 
 	void NTCPSession::ServerLogin ()
@@ -124,7 +122,6 @@ namespace transport
 			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),                    
 				std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (), 
 					std::placeholders::_1, std::placeholders::_2));
-			ScheduleTermination ();	
 		}
 	}	
 		
@@ -558,7 +555,7 @@ namespace transport
 				m_Handler.Flush ();
 			}	
 			
-			ScheduleTermination (); // reset termination timer
+			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			Receive ();
 		}	
 	}	
@@ -685,6 +682,7 @@ namespace transport
 		}
 		else
 		{	
+			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			m_NumSentBytes += bytes_transferred;
 			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
 			if (!m_SendQueue.empty())
@@ -692,8 +690,6 @@ namespace transport
 				Send (m_SendQueue);
 				m_SendQueue.clear ();
 			}	
-			else
-				ScheduleTermination (); // reset termination timer
 		}	
 	}	
 
@@ -728,29 +724,11 @@ namespace transport
 		else	
 			Send (msgs);
 	}	
-		
-	void NTCPSession::ScheduleTermination ()
-	{
-		m_TerminationTimer.cancel ();
-		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(GetTerminationTimeout ()));
-		m_TerminationTimer.async_wait (std::bind (&NTCPSession::HandleTerminationTimer,
-			shared_from_this (), std::placeholders::_1));
-	}
-
-	void NTCPSession::HandleTerminationTimer (const boost::system::error_code& ecode)
-	{
-		if (ecode != boost::asio::error::operation_aborted)
-		{	
-			LogPrint (eLogDebug, "NTCP: No activity for ", GetTerminationTimeout (), " seconds");
-			//Terminate ();
-			m_Socket.close ();// invoke Terminate () from HandleReceive 
-		}	
-	}	
 
 //-----------------------------------------
 	NTCPServer::NTCPServer ():
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
-		m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr)
+		m_TerminationTimer (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr)
 	{
 	}
 		
@@ -810,7 +788,8 @@ namespace transport
 						}
 					}	
 				}
-			}	
+			}
+			ScheduleTermination ();	
 		}	
 	}
 		
@@ -821,13 +800,17 @@ namespace transport
 		if (m_IsRunning)
 		{	
 			m_IsRunning = false;
-      if (m_NTCPAcceptor)
-        delete m_NTCPAcceptor;
-			m_NTCPAcceptor = nullptr;
-      if (m_NTCPV6Acceptor)
-        delete m_NTCPV6Acceptor;
-			m_NTCPV6Acceptor = nullptr;
-
+			m_TerminationTimer.cancel ();	
+		  	if (m_NTCPAcceptor)
+			{	
+		    	delete m_NTCPAcceptor;
+				m_NTCPAcceptor = nullptr;
+			}
+		  	if (m_NTCPV6Acceptor)
+			{
+		    	delete m_NTCPV6Acceptor;
+				m_NTCPV6Acceptor = nullptr;
+			}
 			m_Service.stop ();
 			if (m_Thread)
 			{	
@@ -991,5 +974,31 @@ namespace transport
 		m_BanList[addr] = ts + NTCP_BAN_EXPIRATION_TIMEOUT;
 		LogPrint (eLogWarning, "NTCP: ", addr, " has been banned for ", NTCP_BAN_EXPIRATION_TIMEOUT, " seconds");
 	}
+
+	void NTCPServer::ScheduleTermination ()
+	{
+		m_TerminationTimer.expires_from_now (boost::posix_time::seconds(NTCP_TERMINATION_CHECK_TIMEOUT));
+		m_TerminationTimer.async_wait (std::bind (&NTCPServer::HandleTerminationTimer,
+			this, std::placeholders::_1));
+	}
+
+	void NTCPServer::HandleTerminationTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{	
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto& it: m_NTCPSessions)
+ 				if (it.second->IsTerminationTimeoutExpired (ts))
+				{
+					auto session = it.second;
+					m_Service.post ([session] 
+						{ 
+							LogPrint (eLogDebug, "NTCP: No activity for ", session->GetTerminationTimeout (), " seconds");
+							session->Terminate ();
+						});	
+				}
+			ScheduleTermination ();	
+		}	
+	}	
 }	
 }	
