@@ -762,8 +762,8 @@ namespace http {
 		reply.add_header("Content-Type", "text/html");
 		reply.body = content;
 
-		std::string res = reply.to_string();
-		boost::asio::async_write (*m_Socket, boost::asio::buffer(res),
+		m_SendBuffer = reply.to_string();
+		boost::asio::async_write (*m_Socket, boost::asio::buffer(m_SendBuffer),
 			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 
