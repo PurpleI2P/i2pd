@@ -345,11 +345,21 @@ namespace data
 				// extract issuer name
 				char name[100];
 				X509_NAME_oneline (X509_get_issuer_name(cert), name, 100);
+				char * cn = strstr (name, "CN=");
+				if (cn)
+				{	
+					cn += 3;
+					char * terminator = strchr (cn, '/');
+					if (terminator) terminator[0] = 0;
+				}	
 				// extract RSA key (we need n only, e = 65537)
 				RSA * key = X509_get_pubkey (cert)->pkey.rsa;
 				PublicKey value;
 				i2p::crypto::bn2buf (key->n, value, 512);
-				m_SigningKeys[name] = value;
+				if (cn)
+					m_SigningKeys[cn] = value;
+				else
+					LogPrint (eLogError, "Reseed: Can't find CN field in ", filename);
 			}	
 			SSL_free (ssl);			
 		}	
