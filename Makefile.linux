@@ -32,9 +32,14 @@ ifeq ($(USE_STATIC),yes)
 #   Using 'getaddrinfo' in statically linked applications requires at runtime
 #   the shared libraries from the glibc version used for linking
   LIBDIR := /usr/lib
-  LDLIBS  = -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options
-  LDLIBS += -lssl -lcrypto -lz -ldl -lpthread -lrt
-  LDLIBS += -static-libstdc++ -static-libgcc -static
+  LDLIBS  = $(LIBDIR)/libboost_system.a
+  LDLIBS += $(LIBDIR)/libboost_date_time.a
+  LDLIBS += $(LIBDIR)/libboost_filesystem.a
+  LDLIBS += $(LIBDIR)/libboost_program_options.a
+  LDLIBS += $(LIBDIR)/libssl.a
+  LDLIBS += $(LIBDIR)/libcrypto.a
+  LDLIBS += $(LIBDIR)/libz.a
+  LDLIBS += -lpthread -static-libstdc++ -static-libgcc -lrt
   USE_AESNI := no
 else
   LDLIBS = -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
