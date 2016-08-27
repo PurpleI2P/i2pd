@@ -139,7 +139,6 @@ namespace datagram
       m_Sessions.erase(ident);
     }
     m_Owner->CleanupExpiredTags();
-    m_Owner->CleanupUnconfirmedTags();
     ScheduleCleanup();
   }
   

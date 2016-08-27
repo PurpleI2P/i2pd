@@ -21,7 +21,7 @@ namespace datagram
 {
 
   // seconds interval for cleanup timer
-  const int DATAGRAM_SESSION_CLEANUP_INTERVAL = 30;
+  const int DATAGRAM_SESSION_CLEANUP_INTERVAL = 3;
   // milliseconds for max session idle time (10 minutes)
   const uint64_t DATAGRAM_SESSION_MAX_IDLE = 3600 * 1000;
 
