@@ -701,6 +701,8 @@ namespace client
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Stop ();
+      if(m_DatagramDestination)
+        delete m_DatagramDestination;
       m_DatagramDestination = nullptr;
   		return true;
 		}
