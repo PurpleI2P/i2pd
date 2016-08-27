@@ -138,6 +138,7 @@ namespace datagram
       LogPrint(eLogInfo, "DatagramDestination: expiring idle session with ", ident.ToBase32());
       m_Sessions.erase(ident);
     }
+    ScheduleCleanup();
   }
   
   std::shared_ptr<DatagramSession> DatagramDestination::ObtainSession(const i2p::data::IdentHash & ident)
@@ -180,6 +181,7 @@ namespace datagram
       auto routingPath = m_RoutingSession->GetSharedRoutingPath();
       if(!routingPath)
       {
+        LogPrint(eLogDebug, "DatagramSession: try getting new routing path");
         // no routing path, try getting one
         routingPath = GetNextRoutingPath();
         if(routingPath) // remember the routing path if we got one
