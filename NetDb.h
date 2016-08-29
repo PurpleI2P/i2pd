@@ -112,7 +112,7 @@ namespace data
         std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		
 		private:
-			std::promise<void> * m_Ready;
+			std::promise<void> m_Ready;
 		
 			mutable std::mutex m_LeaseSetsMutex;
 			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;

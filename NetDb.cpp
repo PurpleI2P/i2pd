@@ -23,7 +23,7 @@ namespace data
 {		
 	NetDb netdb;
 
-	NetDb::NetDb (): m_Ready(new std::promise<void>()), m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
 	{
 	}
 	
@@ -34,7 +34,7 @@ namespace data
 	}	
 
 	void NetDb::Start ()
-	{	
+	{
 		m_Storage.SetPlace(i2p::fs::GetDataDir());
 		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
 		InitProfilesStorage ();
@@ -45,7 +45,7 @@ namespace data
 
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
-		m_Ready->set_value();
+		m_Ready.set_value();
 	}
 	
 	void NetDb::Stop ()
@@ -72,9 +72,7 @@ namespace data
 
   void NetDb::WaitForReady()
   {
-    m_Ready->get_future().wait();
-    delete m_Ready;
-    m_Ready = nullptr;
+    m_Ready.get_future().get();
   }
   
 	void NetDb::Run ()
