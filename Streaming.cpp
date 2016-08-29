@@ -658,6 +658,9 @@ namespace stream
 	void Stream::ScheduleResend ()
 	{
 		m_ResendTimer.cancel ();
+		// check for invalid value
+		if (m_RTO <= 0)
+			m_RTO = 1;
 		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
 		m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
 			shared_from_this (), std::placeholders::_1));
