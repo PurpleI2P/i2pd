@@ -35,7 +35,10 @@ namespace data
 
 	/** function for visiting a leaseset stored in a floodfill */
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
-	
+
+	/** function for visiting a router info we have locally */
+	typedef std::function<void(const i2p::data::RouterInfo &)> RouterInfoVisitor; 
+  
 	class NetDb
 	{
 		public:
@@ -86,7 +89,10 @@ namespace data
 
 			/** visit all lease sets we currently store */
 			void VisitLeaseSets(LeaseSetVisitor v);
-		
+			/** visit all router infos we have currently on disk, usually insanely expensive, does not access in memory RI */
+			void VisitStoredRouterInfos(RouterInfoVisitor v);
+			/** visit all router infos we have loaded in memory, cheaper than VisitLocalRouterInfos but locks access while visiting */
+			void VisitRouterInfos(RouterInfoVisitor v);
 		private:
 
 			void Load ();

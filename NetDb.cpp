@@ -329,6 +329,21 @@ namespace data
 		for ( auto & entry : m_LeaseSets)
 			v(entry.first, entry.second);
 	}
+
+	void NetDb::VisitStoredRouterInfos(RouterInfoVisitor v)
+	{
+		m_Storage.Iterate([v] (const std::string & filename) {
+				const i2p::data::RouterInfo ri(filename);
+				v(ri);
+		});
+	}
+
+	void NetDb::VisitRouterInfos(RouterInfoVisitor v)
+	{
+		std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
+		for ( const auto & item : m_RouterInfos )
+			v(*item.second);
+	}
 	
 	void NetDb::Load ()
 	{

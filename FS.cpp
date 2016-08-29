@@ -158,6 +158,13 @@ namespace fs {
   }
 
   void HashedStorage::Traverse(std::vector<std::string> & files) {
+    Iterate([&files] (const std::string & fname) {
+        files.push_back(fname);
+    });
+  }
+
+  void HashedStorage::Iterate(FilenameVisitor v)
+  {
     boost::filesystem::path p(root);
     boost::filesystem::recursive_directory_iterator it(p);
     boost::filesystem::recursive_directory_iterator end;
@@ -166,7 +173,7 @@ namespace fs {
       if (!boost::filesystem::is_regular_file( it->status() ))
         continue;
       const std::string & t = it->path().string();
-      files.push_back(t);
+      v(t);
     }
   }
 } // fs
