@@ -23,7 +23,7 @@ namespace data
 {		
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
+	NetDb::NetDb (): m_Ready(new std::promise<void>()), m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
 	{
 	}
 	
@@ -38,13 +38,14 @@ namespace data
 		m_Storage.SetPlace(i2p::fs::GetDataDir());
 		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
 		InitProfilesStorage ();
-		m_Families.LoadCertificates ();	
+		m_Families.LoadCertificates ();
 		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
 			Reseed ();
 
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
+		m_Ready->set_value();
 	}
 	
 	void NetDb::Stop ()
@@ -68,7 +69,14 @@ namespace data
 			m_Requests.Stop ();
 		}
 	}	
-	
+
+  void NetDb::WaitForReady()
+  {
+    m_Ready->get_future().wait();
+    delete m_Ready;
+    m_Ready = nullptr;
+  }
+  
 	void NetDb::Run ()
 	{
 		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;

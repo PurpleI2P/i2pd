@@ -8,6 +8,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <future>
 
 #include "Base.h"
 #include "Gzip.h"
@@ -48,7 +49,9 @@ namespace data
 
 			void Start ();
 			void Stop ();
-			
+			/** block until netdb is ready, call only once*/
+			void WaitForReady();
+    
 			bool AddRouterInfo (const uint8_t * buf, int len);
 			bool AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
 			bool AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
@@ -109,7 +112,8 @@ namespace data
         std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		
 		private:
-
+			std::promise<void> * m_Ready;
+		
 			mutable std::mutex m_LeaseSetsMutex;
 			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
 			mutable std::mutex m_RouterInfosMutex;
