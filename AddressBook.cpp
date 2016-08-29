@@ -547,8 +547,7 @@ namespace client
 			auto datagram = dest->GetDatagramDestination ();
       if(datagram == nullptr) datagram = dest->CreateDatagramDestination();
 			datagram->SetReceiver (std::bind (&AddressBook::HandleLookupResponse, this, 
-				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 
-				ADDRESS_RESPONSE_DATAGRAM_PORT);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
 		}	
 	}
 	
@@ -559,7 +558,7 @@ namespace client
 		{
 			auto datagram = dest->GetDatagramDestination ();
 			if (datagram)
-			    datagram->ResetReceiver (ADDRESS_RESPONSE_DATAGRAM_PORT);
+        datagram->ResetReceiver ();
 		}	
 	}
 

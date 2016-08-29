@@ -590,14 +590,14 @@ namespace client
     m_LocalDest = localDestination;
     m_LocalDest->Start();
     auto dgram = m_LocalDest->CreateDatagramDestination();
-    dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), 0);
+    dgram->SetReceiver(std::bind(&I2PUDPServerTunnel::HandleRecvFromI2P, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
   }
 
   I2PUDPServerTunnel::~I2PUDPServerTunnel()
   {
     auto dgram = m_LocalDest->GetDatagramDestination();
     if (dgram) {
-      dgram->ResetReceiver(0);
+      dgram->ResetReceiver();
     }
     LogPrint(eLogInfo, "UDPServer: done");
   }
@@ -671,7 +671,7 @@ namespace client
   I2PUDPClientTunnel::~I2PUDPClientTunnel() {
     auto dgram = m_LocalDest->GetDatagramDestination();
     if (dgram) {
-      dgram->ResetReceiver(LocalPort);
+      dgram->ResetReceiver();
     }
     if (m_Session) delete m_Session;
     m_cancel_resolve = true;
