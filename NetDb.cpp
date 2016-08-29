@@ -72,7 +72,7 @@ namespace data
 
   void NetDb::WaitForReady()
   {
-    m_Ready.get_future().get();
+    m_Ready.get_future().wait();
   }
   
 	void NetDb::Run ()
