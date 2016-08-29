@@ -23,6 +23,16 @@ namespace tunnel
 	class InboundTunnel;
 	class OutboundTunnel;
 
+	/** interface for custom tunnel peer selection algorithm */
+	struct ITunnelPeerSelector
+	{
+		typedef std::shared_ptr<const i2p::data::IdentityEx> Peer;
+		typedef std::vector<Peer> TunnelPath;
+		virtual bool SelectPeers(TunnelPath & peers, int hops, bool isInbound) = 0;
+	};
+
+	typedef std::shared_ptr<ITunnelPeerSelector> TunnelPeerSelector;
+  
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
 		public:
@@ -55,7 +65,10 @@ namespace tunnel
 
 			int GetNumInboundTunnels () const { return m_NumInboundTunnels; };
 			int GetNumOutboundTunnels () const { return m_NumOutboundTunnels; };
-			
+
+			void SetCustomPeerSelector(TunnelPeerSelector selector);
+			TunnelPeerSelector GetCustomPeerSelector() const { return m_CustomPeerSelector; }
+    
 		private:
 
 			void CreateInboundTunnel ();	
@@ -79,7 +92,7 @@ namespace tunnel
 			mutable std::mutex m_TestsMutex;
 			std::map<uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
 			bool m_IsActive;
-
+			TunnelPeerSelector m_CustomPeerSelector;
 		public:
 
 			// for HTTP only
