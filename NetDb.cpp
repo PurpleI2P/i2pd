@@ -45,7 +45,6 @@ namespace data
 
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
-		m_Ready.set_value();
 	}
 	
 	void NetDb::Stop ()
@@ -77,6 +76,11 @@ namespace data
   
 	void NetDb::Run ()
 	{
+    try {
+      m_Ready.set_value();
+    } catch( std::future_error & ex) {
+      (void) ex;
+    }
 		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		while (m_IsRunning)
 		{	
