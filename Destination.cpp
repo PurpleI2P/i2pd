@@ -168,7 +168,7 @@ namespace client
 		else
 			return false;
 	}	
-
+  
 	std::shared_ptr<const i2p::data::LeaseSet> LeaseSetDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
 	{
 		std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
@@ -665,7 +665,8 @@ namespace client
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (isPublic, params),
-		m_Keys (keys), m_DatagramDestination (nullptr)
+		m_Keys (keys), m_DatagramDestination (nullptr),
+		m_ReadyChecker(GetService())
 	{
 		if (isPublic)	
 			PersistTemporaryKeys ();
@@ -697,6 +698,7 @@ namespace client
 	{
 		if (LeaseSetDestination::Stop ())
 		{
+			m_ReadyChecker.cancel();
 			m_StreamingDestination->Stop ();
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
@@ -710,6 +712,30 @@ namespace client
 			return false;
 	}	
 
+	void ClientDestination::Ready(ReadyPromise & p)
+	{
+		ScheduleCheckForReady(&p);
+	}
+
+	void ClientDestination::ScheduleCheckForReady(ReadyPromise * p)
+	{
+		// tick every 100ms
+		m_ReadyChecker.expires_from_now(boost::posix_time::milliseconds(100));
+		m_ReadyChecker.async_wait([&, p] (const boost::system::error_code & ecode) {
+			HandleCheckForReady(ecode, p);
+		});
+	}
+
+	void ClientDestination::HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p)
+	{
+		if(ecode) // error happened
+			p->set_value(nullptr);
+		else if(IsReady()) // we are ready
+			p->set_value(std::shared_ptr<ClientDestination>(this));
+		else // we are not ready
+			ScheduleCheckForReady(p);
+	}
+	
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
 		uint32_t length = bufbe32toh (buf);
