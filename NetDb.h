@@ -38,10 +38,10 @@ namespace data
 	typedef std::function<void(const IdentHash, std::shared_ptr<LeaseSet>)> LeaseSetVisitor;
 
 	/** function for visiting a router info we have locally */
-	typedef std::function<void(const i2p::data::RouterInfo &)> RouterInfoVisitor; 
+	typedef std::function<void(std::shared_ptr<const i2p::data::RouterInfo>)> RouterInfoVisitor; 
 
 	/** function for visiting a router info and determining if we want to use it */
-	typedef std::function<bool(const i2p::data::RouterInfo &)> RouterInfoFilter;
+	typedef std::function<bool(std::shared_ptr<const i2p::data::RouterInfo>)> RouterInfoFilter;
   
 	class NetDb
 	{

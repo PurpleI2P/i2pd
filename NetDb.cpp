@@ -342,7 +342,7 @@ namespace data
 	{
 		std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
 		for ( const auto & item : m_RouterInfos )
-			v(*item.second);
+			v(item.second);
 	}
 
 	size_t NetDb::VisitRandomRouterInfos(RouterInfoFilter filter, RouterInfoVisitor v, size_t n)
@@ -359,7 +359,7 @@ namespace data
 				if(i >= idx) // are we at the random start point?
 				{
 					// yes, check if we want this one
-					if(filter(*it.second))
+					if(filter(it.second))
 					{
 						// we have a match
 						--n;
@@ -383,7 +383,7 @@ namespace data
 		// visit the ones we found
 		size_t visited = 0;
 		for(const auto & ri : found ) {
-			v(*ri);
+			v(ri);
 			++visited;
 		}
 		return visited;
