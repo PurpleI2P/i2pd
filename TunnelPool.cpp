@@ -331,8 +331,12 @@ namespace tunnel
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
 		// peers is empty
 		if (numHops <= 0) return true; 
-		// custom peer selector in use
-		if (m_CustomPeerSelector) return m_CustomPeerSelector->SelectPeers(peers, numHops, isInbound); 
+		// custom peer selector in use ?
+		{
+			std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
+			if (m_CustomPeerSelector)
+					return m_CustomPeerSelector->SelectPeers(peers, numHops, isInbound);
+		}
 		// explicit peers in use
 		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);
 
@@ -483,6 +487,23 @@ namespace tunnel
 		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
 		auto tunnel = tunnels.CreateInboundTunnel (std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()), outboundTunnel);
 		tunnel->SetTunnelPool (shared_from_this ());
-	}	
+	}
+
+	void TunnelPool::SetCustomPeerSelector(TunnelPeerSelector selector)
+	{
+		std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
+		m_CustomPeerSelector = selector;
+	}
+
+	void TunnelPool::UnsetCustomPeerSelector()
+	{
+		SetCustomPeerSelector(nullptr);
+	}
+
+	bool TunnelPool::HasCustomPeerSelector()
+	{
+		std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
+		return m_CustomPeerSelector != nullptr;
+	}
 }
 }

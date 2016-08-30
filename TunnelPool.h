@@ -67,10 +67,10 @@ namespace tunnel
 			int GetNumOutboundTunnels () const { return m_NumOutboundTunnels; };
 
 			void SetCustomPeerSelector(TunnelPeerSelector selector);
-			TunnelPeerSelector GetCustomPeerSelector() const { return m_CustomPeerSelector; }
-    
+			void UnsetCustomPeerSelector();
+			bool HasCustomPeerSelector();
 		private:
-
+			
 			void CreateInboundTunnel ();	
 			void CreateOutboundTunnel ();
 			void CreatePairedInboundTunnel (std::shared_ptr<OutboundTunnel> outboundTunnel);
@@ -92,6 +92,7 @@ namespace tunnel
 			mutable std::mutex m_TestsMutex;
 			std::map<uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
 			bool m_IsActive;
+			std::mutex m_CustomPeerSelectorMutex;
 			TunnelPeerSelector m_CustomPeerSelector;
 		public:
 
