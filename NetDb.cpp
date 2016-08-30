@@ -68,19 +68,9 @@ namespace data
 			m_Requests.Stop ();
 		}
 	}	
-
-  void NetDb::WaitForReady()
-  {
-    m_Ready.get_future().wait();
-  }
   
 	void NetDb::Run ()
 	{
-    try {
-      m_Ready.set_value();
-    } catch( std::future_error & ex) {
-      (void) ex;
-    }
 		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
 		while (m_IsRunning)
 		{	
@@ -353,6 +343,50 @@ namespace data
 		std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
 		for ( const auto & item : m_RouterInfos )
 			v(*item.second);
+	}
+
+	size_t NetDb::VisitRandomRouterInfos(RouterInfoFilter filter, RouterInfoVisitor v, size_t n)
+	{
+		std::vector<std::shared_ptr<const RouterInfo> > found;
+		const size_t max_iters_per_cyle = 3;
+		size_t iters = max_iters_per_cyle;
+		while(n)
+		{
+			std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
+			uint32_t idx = rand () % m_RouterInfos.size ();
+			uint32_t i = 0;
+			for (const auto & it : m_RouterInfos) {
+				if(i >= idx) // are we at the random start point?
+				{
+					// yes, check if we want this one
+					if(filter(*it.second))
+					{
+						// we have a match
+						--n;
+						found.push_back(it.second);
+						// reset max iterations per cycle
+						iters = max_iters_per_cyle;
+						break;
+					}
+				}
+				else // not there yet
+					++i;
+			}
+			--iters;
+			// have we tried enough this cycle ?
+			if(!iters) {
+				// yes let's try the next cycle
+				--n;
+				iters = max_iters_per_cyle;
+			}
+		}
+		// visit the ones we found
+		size_t visited = 0;
+		for(const auto & ri : found ) {
+			v(*ri);
+			++visited;
+		}
+		return visited;
 	}
 	
 	void NetDb::Load ()

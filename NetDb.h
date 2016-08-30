@@ -39,6 +39,9 @@ namespace data
 
 	/** function for visiting a router info we have locally */
 	typedef std::function<void(const i2p::data::RouterInfo &)> RouterInfoVisitor; 
+
+	/** function for visiting a router info and determining if we want to use it */
+	typedef std::function<bool(const i2p::data::RouterInfo &)> RouterInfoFilter;
   
 	class NetDb
 	{
@@ -49,8 +52,6 @@ namespace data
 
 			void Start ();
 			void Stop ();
-			/** block until netdb is ready, call only once*/
-			void WaitForReady();
     
 			bool AddRouterInfo (const uint8_t * buf, int len);
 			bool AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
@@ -96,6 +97,8 @@ namespace data
 			void VisitStoredRouterInfos(RouterInfoVisitor v);
 			/** visit all router infos we have loaded in memory, cheaper than VisitLocalRouterInfos but locks access while visiting */
 			void VisitRouterInfos(RouterInfoVisitor v);
+			/** visit N random router that match using filter, then visit them with a visitor, return number of RouterInfos that were visited */
+			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
 		private:
 
 			void Load ();
@@ -112,7 +115,6 @@ namespace data
         std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		
 		private:
-			std::promise<void> m_Ready;
 		
 			mutable std::mutex m_LeaseSetsMutex;
 			std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
