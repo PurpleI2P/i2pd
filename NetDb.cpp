@@ -333,7 +333,7 @@ namespace data
 	void NetDb::VisitStoredRouterInfos(RouterInfoVisitor v)
 	{
 		m_Storage.Iterate([v] (const std::string & filename) {
-				const i2p::data::RouterInfo ri(filename);
+        auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
 				v(ri);
 		});
 	}
