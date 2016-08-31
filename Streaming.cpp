@@ -96,7 +96,7 @@ namespace stream
 			// we should also try stored messages if any
 			for (auto it = m_SavedPackets.begin (); it != m_SavedPackets.end ();)
 			{			
-				if ((*it)->GetSeqn () == (uint32_t)(m_LastReceivedSequenceNumber + 1))
+				if ((*it)->GetSeqn () < (uint32_t)(m_LastReceivedSequenceNumber + 1))
 				{
 					Packet * savedPacket = *it;
 					m_SavedPackets.erase (it++);
@@ -439,8 +439,8 @@ namespace stream
 			return;
 		}
 		
-		Packet p;
-		uint8_t * packet = p.GetBuffer ();	
+		Packet * p = new Packet;
+		uint8_t * packet = p->GetBuffer ();	
 		size_t size = 0;
 		htobe32buf (packet + size, m_SendStreamID);
 		size += 4; // sendStreamID
@@ -488,9 +488,9 @@ namespace stream
 		size += 2; // flags
 		htobuf16 (packet + size, 0); // no options
 		size += 2; // options size
-		p.len = size;		
+		p->len = size;		
 
-		SendPackets (std::vector<Packet *> { &p });
+		SendPackets (std::vector<Packet *> { p });
 		LogPrint (eLogDebug, "Streaming: Quick Ack sent. ", (int)numNacks, " NACKs");
 	}	
 
