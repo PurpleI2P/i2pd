@@ -350,7 +350,7 @@ namespace data
 		std::vector<std::shared_ptr<const RouterInfo> > found;
 		const size_t max_iters_per_cyle = 3;
 		size_t iters = max_iters_per_cyle;
-		while(n)
+		while(n > 0)
 		{
 			std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
 			uint32_t idx = rand () % m_RouterInfos.size ();
@@ -372,6 +372,8 @@ namespace data
 				else // not there yet
 					++i;
 			}
+			// we have enough
+			if(n == 0) break;
 			--iters;
 			// have we tried enough this cycle ?
 			if(!iters) {
