@@ -991,7 +991,7 @@ namespace transport
 						else // v6
 						{
 							boost::asio::ip::address_v6::bytes_type bytes;
-							memcpy (bytes.data (), address, 6);
+							memcpy (bytes.data (), address, 16);
 							addr = boost::asio::ip::address_v6 (bytes);
 						}		
 						SendPeerTest (nonce, addr, be16toh (port), introKey); // to Alice with her address received from Bob
@@ -1033,7 +1033,7 @@ namespace transport
 			}
 			else if (address.is_v6 ())
 			{
-				*payload = 6;
+				*payload = 16;
 				memcpy (payload + 1, address.to_v6 ().to_bytes ().data (), 16); // our IP V6		
 			}
 			else

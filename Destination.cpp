@@ -224,6 +224,7 @@ namespace client
 	void LeaseSetDestination::SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet)
 	{
 		m_LeaseSet.reset (newLeaseSet);
+		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();
 		if (m_IsPublic)
 		{
 			m_PublishVerificationTimer.cancel ();
@@ -413,8 +414,7 @@ namespace client
 	}	
 
 	void LeaseSetDestination::SetLeaseSetUpdated ()
-	{
-		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();	
+	{	
 		UpdateLeaseSet ();
 	}
 		

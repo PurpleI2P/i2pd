@@ -62,9 +62,26 @@ namespace client
 	void I2PTunnelConnection::Connect ()
 	{
 		I2PTunnelSetSocketOptions(m_Socket);
-		if (m_Socket)
-			m_Socket->async_connect (m_RemoteEndpoint, std::bind (&I2PTunnelConnection::HandleConnect,
+		if (m_Socket) {
+#ifdef __linux__ 			
+			// bind to 127.x.x.x address 
+			// where x.x.x are first three bytes from ident
+
+			if (m_RemoteEndpoint.address ().is_v4 () &&
+				m_RemoteEndpoint.address ().to_v4 ().to_bytes ()[0] == 127)
+			{
+				m_Socket->open (boost::asio::ip::tcp::v4 ());
+				boost::asio::ip::address_v4::bytes_type bytes;
+				const uint8_t * ident = m_Stream->GetRemoteIdentity ()->GetIdentHash ();
+				bytes[0] = 127;
+				memcpy (bytes.data ()+1, ident, 3);
+				boost::asio::ip::address ourIP = boost::asio::ip::address_v4 (bytes);
+				m_Socket->bind (boost::asio::ip::tcp::endpoint (ourIP, 0));
+			}
+#endif
+ 			m_Socket->async_connect (m_RemoteEndpoint, std::bind (&I2PTunnelConnection::HandleConnect,
 				shared_from_this (), std::placeholders::_1));
+		}
 	}	
 		
 	void I2PTunnelConnection::Terminate ()
