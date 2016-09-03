@@ -53,11 +53,14 @@ namespace datagram
 			const uint64_t activity;
 			const uint64_t success;
 			Info() : IBGW(nullptr), OBEP(nullptr), activity(0), success(0) {}
-			Info(const i2p::data::IdentHash & ibgw, const i2p::data::IdentHash & obep, const uint64_t a, const uint64_t s) :
-				IBGW(new i2p::data::IdentHash(ibgw.data())),
-				OBEP(new i2p::data::IdentHash(obep.data())),
+			Info(const uint8_t * ibgw, const uint8_t * obep, const uint64_t a, const uint64_t s) :
 				activity(a),
-				success(s) {}
+				success(s) {
+				if(ibgw) IBGW = new i2p::data::IdentHash(ibgw);
+				else IBGW = nullptr;
+				if(obep) OBEP = new i2p::data::IdentHash(obep);
+				else OBEP = nullptr;
+			}
 			~Info()
 			{
 				if(IBGW) delete IBGW;

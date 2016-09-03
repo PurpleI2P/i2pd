@@ -352,14 +352,14 @@ namespace http {
 				s << "<td>" << info.RemoteIdent.ToBase32() << "</td>";
 				s << "<td>";
 				if(info.CurrentIBGW)
-					s << info.CurrentIBGW->ToBase64();
+					s << info.CurrentIBGW->ToBase64().c_str();
 				else
 					s << "(none)";
 				s << "</td>";
 
 				s << "<td>";
 				if(info.CurrentOBEP)
-					s << info.CurrentOBEP->ToBase64();
+					s << info.CurrentOBEP->ToBase64().c_str();
 				else
 					s << "(none)";
 				s << "</td>";

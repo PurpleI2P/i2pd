@@ -195,24 +195,24 @@ namespace datagram
 	DatagramSession::Info DatagramSession::GetSessionInfo() const
 	{
 		if(!m_RoutingSession)
-			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
+			return DatagramSession::Info(nullptr, nullptr, m_LastUse, m_LastSuccess);
 		
 		auto routingPath = m_RoutingSession->GetSharedRoutingPath();
 		if (!routingPath)
-			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
+			return DatagramSession::Info(nullptr, nullptr, m_LastUse, m_LastSuccess);
 		auto lease = routingPath->remoteLease;
 		auto tunnel = routingPath->outboundTunnel;
 		if(lease)
 		{
 			if(tunnel)
-				return DatagramSession::Info{lease->tunnelGateway, tunnel->GetEndpointIdentHash(), m_LastUse, m_LastSuccess};
+				return DatagramSession::Info(lease->tunnelGateway, tunnel->GetEndpointIdentHash(), m_LastUse, m_LastSuccess);
 			else
-				return DatagramSession::Info{lease->tunnelGateway, nullptr, m_LastUse, m_LastSuccess};
+				return DatagramSession::Info(lease->tunnelGateway, nullptr, m_LastUse, m_LastSuccess);
 		}
 		else if(tunnel)
-			return DatagramSession::Info{nullptr, tunnel->GetEndpointIdentHash(), m_LastUse, m_LastSuccess};
+			return DatagramSession::Info(nullptr, tunnel->GetEndpointIdentHash(), m_LastUse, m_LastSuccess);
 		else
-			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
+			return DatagramSession::Info(nullptr, nullptr, m_LastUse, m_LastSuccess);
 	}
 	
 	void DatagramSession::HandleSend(std::shared_ptr<I2NPMessage> msg)
