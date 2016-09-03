@@ -404,17 +404,19 @@ namespace client
 					}
           if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
             // udp client
-            // TODO: ip6 and hostnames
+            // TODO: hostnames
             boost::asio::ip::udp::endpoint end(boost::asio::ip::address::from_string(address), port);
-            if (!localDestination) {
+            if (!localDestination)
+            {
               localDestination = m_SharedLocalDestination;
             }
             auto clientTunnel = new I2PUDPClientTunnel(name, dest, end, localDestination, destinationPort);
-            if(m_ClientForwards.insert(std::make_pair(end, std::unique_ptr<I2PUDPClientTunnel>(clientTunnel))).second) {
+            if(m_ClientForwards.insert(std::make_pair(end, std::unique_ptr<I2PUDPClientTunnel>(clientTunnel))).second)
+            {
               clientTunnel->Start();
-            } else {
-              LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
             }
+            else
+              LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
 
           } else {
             // tcp client
@@ -443,7 +445,8 @@ namespace client
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
-
+					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
+					
 					// I2CP
 					std::map<std::string, std::string> options;							 
 					ReadI2CPOptions (section, options);				
@@ -455,22 +458,26 @@ namespace client
 					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
-          if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER) {
+          if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
+          {
             // udp server tunnel
-            // TODO: ipv6 and hostnames
+            // TODO: hostnames
+            auto localAddress = boost::asio::ip::address::from_string(address);
             boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
-            I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, endpoint, port);
+            I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, localAddress, endpoint, port);
             std::lock_guard<std::mutex> lock(m_ForwardsMutex);
             if(m_ServerForwards.insert(
               std::make_pair(
                 std::make_pair(
                   localDestination->GetIdentHash(), port),
-                std::unique_ptr<I2PUDPServerTunnel>(serverTunnel))).second) {
+                std::unique_ptr<I2PUDPServerTunnel>(serverTunnel))).second)
+            {
               serverTunnel->Start();
-              LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " via ",localDestination->GetIdentHash().ToBase32());
-            } else {
-              LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
+              LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
             }
+            else
+              LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
+            
             continue;
           }
           
