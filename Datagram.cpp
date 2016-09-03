@@ -260,7 +260,8 @@ namespace datagram
 
 	void DatagramSession::UpdateRoutingPath(const std::shared_ptr<i2p::garlic::GarlicRoutingPath> & path)
 	{
-		// we can't update routing path because we have no routing session
+		if(m_RoutingSession == nullptr && m_RemoteLeaseSet)
+			m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
 		if(!m_RoutingSession) return;
 		// set routing path and update time we last updated the routing path
 		m_RoutingSession->SetSharedRoutingPath (path);
