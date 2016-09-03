@@ -20,7 +20,7 @@ namespace data {
 	{
 		public:
 
-			Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); };
+    Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); };
 			Tag (const Tag<sz>& ) = default;
 #ifndef _WIN32 // FIXME!!! msvs 2013 can't compile it
 			Tag (Tag<sz>&& ) = default;

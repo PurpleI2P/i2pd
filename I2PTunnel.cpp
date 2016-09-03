@@ -696,7 +696,7 @@ namespace client
 			if (s->m_Destination)
 			{
 				auto info = m_Session->m_Destination->GetInfoForRemote(s->Identity);
-				if(!info)
+				if(info)
 				{
 					infos.push_back(DatagramSessionInfo{
 						m_Name,
