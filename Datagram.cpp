@@ -146,7 +146,6 @@ namespace datagram
 			LogPrint(eLogInfo, "DatagramDestination: expiring idle session with ", ident.ToBase32());
 			m_Sessions.erase(ident);
 		}
-		m_Owner->CleanupExpiredTags();
 		ScheduleCleanup();
 	}
 	
@@ -174,7 +173,7 @@ namespace datagram
 		}
 		return nullptr;
 	}
-  
+	
 	DatagramSession::DatagramSession(i2p::client::ClientDestination * localDestination,
 		const i2p::data::IdentHash & remoteIdent) :
 		m_LocalDestination(localDestination),
@@ -215,9 +214,14 @@ namespace datagram
 		else
 			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
 	}
-  
+	
 	void DatagramSession::HandleSend(std::shared_ptr<I2NPMessage> msg)
 	{
+		if(!m_RoutingSession)
+		{
+			// try to get one
+			if(m_RemoteLeaseSet) m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
+		}
 		// do we have a routing session?
 		if(m_RoutingSession)
 		{
@@ -226,7 +230,11 @@ namespace datagram
 			{
 				LogPrint(eLogDebug, "DatagramSession: try getting new routing path");
 				// try switching paths
-				UpdateRoutingPath (GetNextRoutingPath ());
+				auto path = GetNextRoutingPath();
+				if(path)
+					UpdateRoutingPath (path);
+				else
+					ResetRoutingPath();
 			}
 			auto routingPath = m_RoutingSession->GetSharedRoutingPath ();
 			// make sure we have a routing path
@@ -282,7 +290,6 @@ namespace datagram
 
 	bool DatagramSession::ShouldSwitchLease() const
 	{
-		auto now = i2p::util::GetMillisecondsSinceEpoch ();
 		std::shared_ptr<i2p::garlic::GarlicRoutingPath> routingPath = nullptr;
 		std::shared_ptr<const i2p::data::Lease> currentLease = nullptr;
 		if(m_RoutingSession)
@@ -290,7 +297,7 @@ namespace datagram
 		if(routingPath)
 			currentLease = routingPath->remoteLease;
 		if(currentLease) // if we have a lease return true if it's about to expire otherwise return false
-			return now - currentLease->ExpiresWithin( DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE );
+			return currentLease->ExpiresWithin( DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE );
 		// we have no current lease, we should switch
 		return true;
 	}
@@ -418,7 +425,11 @@ namespace datagram
 			m_InvalidIBGW.clear();
 			m_RemoteLeaseSet = remoteIdent;
 			// update routing path
-			UpdateRoutingPath(GetNextRoutingPath());
+			auto path = GetNextRoutingPath();
+			if (path)
+				UpdateRoutingPath(path);
+			else
+				ResetRoutingPath();
 			// send the message that was queued if it was provided
 			if(msg)
 				HandleSend(msg);
