@@ -343,29 +343,26 @@ namespace http {
 			s << "<th>IBGW</th>";
 			s << "<th>OBEP</th>";
 			s << "<th>UDP Converstation</th>";
-			s << "<th>Idle Time</th>";
 			s << "</th>";
 			auto forward = i2p::client::context.GetForwardInfosFor(dest->GetIdentHash());
 			for (auto info : forward)
 			{
 				s << "<tr>";
-				s << "<td>" << info.RemoteIdent.ToBase32() << "</td>";
+				s << "<td>" << info->RemoteIdent->ToBase32() << "</td>";
 				s << "<td>";
-				if(info.CurrentIBGW)
-					s << std::string(info.CurrentIBGW->ToBase64());
+				if(info->CurrentIBGW)
+					s << info->CurrentIBGW->ToBase64();
 				else
 					s << "(none)";
 				s << "</td>";
 
 				s << "<td>";
-				if(info.CurrentOBEP)
-					s << std::string(info.CurrentOBEP->ToBase64());
+				if(info->CurrentOBEP)
+					s << info->CurrentOBEP->ToBase64();
 				else
 					s << "(none)";
 				s << "</td>";
-				s << "<td>" << info.LocalEndpoint << " &#8644; " << info.RemoteEndpoint << "</td>";
-				auto sec = std::chrono::duration<float, std::ratio<1000, 1 > >( std::chrono::milliseconds(info.idle) ); 
-				s << "<td>" << sec.count() << " seconds </td>";
+				s << "<td>" << info->LocalEndpoint << " &#8644; " << info->RemoteEndpoint << "</td>";
 				s << "</tr><br>\r\n";
 			}
 			s << "</table>\r\n";
