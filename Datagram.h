@@ -48,23 +48,18 @@ namespace datagram
 		uint64_t LastSuccess() const { return m_LastSuccess; }
 		struct Info
 		{
-			const i2p::data::IdentHash * IBGW;
-			const i2p::data::IdentHash * OBEP;
+			std::shared_ptr<const i2p::data::IdentHash> IBGW;
+			std::shared_ptr<const i2p::data::IdentHash> OBEP;
 			const uint64_t activity;
 			const uint64_t success;
 			Info() : IBGW(nullptr), OBEP(nullptr), activity(0), success(0) {}
 			Info(const uint8_t * ibgw, const uint8_t * obep, const uint64_t a, const uint64_t s) :
 				activity(a),
 				success(s) {
-				if(ibgw) IBGW = new i2p::data::IdentHash(ibgw);
+				if(ibgw) IBGW = std::make_shared<i2p::data::IdentHash>(ibgw);
 				else IBGW = nullptr;
-				if(obep) OBEP = new i2p::data::IdentHash(obep);
+				if(obep) OBEP = std::make_shared<i2p::data::IdentHash>(obep);
 				else OBEP = nullptr;
-			}
-			~Info()
-			{
-				if(IBGW) delete IBGW;
-				if(OBEP) delete OBEP;
 			}
 		};
 

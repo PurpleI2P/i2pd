@@ -148,9 +148,9 @@ namespace client
 		/** ident hash of remote destination */
 		const i2p::data::IdentHash RemoteIdent;
 		/** ident hash of IBGW in use currently in this session or nullptr if none is set */
-		const i2p::data::IdentHash * CurrentIBGW;
+		std::shared_ptr<const i2p::data::IdentHash> CurrentIBGW;
 		/** ident hash of OBEP in use for this session or nullptr if none is set */
-		const i2p::data::IdentHash * CurrentOBEP;
+		std::shared_ptr<const i2p::data::IdentHash> CurrentOBEP;
 		/** i2p router's udp endpoint */
 		const boost::asio::ip::udp::endpoint LocalEndpoint;
 		/** client's udp endpoint */

@@ -346,20 +346,20 @@ namespace http {
 			s << "<th>Idle Time</th>";
 			s << "</th>";
 			auto forward = i2p::client::context.GetForwardInfosFor(dest->GetIdentHash());
-			for (auto & info : forward)
+			for (auto info : forward)
 			{
 				s << "<tr>";
 				s << "<td>" << info.RemoteIdent.ToBase32() << "</td>";
 				s << "<td>";
 				if(info.CurrentIBGW)
-					s << info.CurrentIBGW->ToBase64().c_str();
+					s << std::string(info.CurrentIBGW->ToBase64());
 				else
 					s << "(none)";
 				s << "</td>";
 
 				s << "<td>";
 				if(info.CurrentOBEP)
-					s << info.CurrentOBEP->ToBase64().c_str();
+					s << std::string(info.CurrentOBEP->ToBase64());
 				else
 					s << "(none)";
 				s << "</td>";
