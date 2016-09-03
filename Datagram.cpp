@@ -205,12 +205,12 @@ namespace datagram
 		if(lease)
 		{
 			if(tunnel)
-				return DatagramSession::Info{new i2p::data::IdentHash(lease->tunnelGateway), new i2p::data::IdentHash(tunnel->GetEndpointIdentHash()), m_LastUse, m_LastSuccess};
+				return DatagramSession::Info{new i2p::data::IdentHash(lease->tunnelGateway.data()), new i2p::data::IdentHash(tunnel->GetEndpointIdentHash().data()), m_LastUse, m_LastSuccess};
 			else
-				return DatagramSession::Info{new i2p::data::IdentHash(lease->tunnelGateway), nullptr, m_LastUse, m_LastSuccess};
+				return DatagramSession::Info{new i2p::data::IdentHash(lease->tunnelGateway.data()), nullptr, m_LastUse, m_LastSuccess};
 		}
 		else if(tunnel)
-			return DatagramSession::Info{nullptr, new i2p::data::IdentHash(tunnel->GetEndpointIdentHash()), m_LastUse, m_LastSuccess};
+			return DatagramSession::Info{nullptr, new i2p::data::IdentHash(tunnel->GetEndpointIdentHash().data()), m_LastUse, m_LastSuccess};
 		else
 			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
 	}

@@ -50,6 +50,8 @@ namespace data {
 				return true;
 			}
 
+      const uint8_t * data() const { return m_Buf; }
+
       /** fill with a value */
 			void Fill(uint8_t c)
 			{
