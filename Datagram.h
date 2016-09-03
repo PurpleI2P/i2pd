@@ -20,51 +20,70 @@ namespace client
 namespace datagram
 {
 
-  // seconds interval for cleanup timer
-  const int DATAGRAM_SESSION_CLEANUP_INTERVAL = 3;
-  // milliseconds for max session idle time (10 minutes)
-  const uint64_t DATAGRAM_SESSION_MAX_IDLE = 3600 * 1000;
+	// seconds interval for cleanup timer
+	const int DATAGRAM_SESSION_CLEANUP_INTERVAL = 3;
+	// milliseconds for max session idle time 
+	const uint64_t DATAGRAM_SESSION_MAX_IDLE = 10 * 60 * 1000;
+	// milliseconds for how long we try sticking to a dead routing path before trying to switch
+	const uint64_t DATAGRAM_SESSION_PATH_TIMEOUT = 5000;
+	// milliseconds interval a routing path is used before switching
+	const uint64_t DATAGRAM_SESSION_PATH_SWITCH_INTERVAL = 60 * 1000;
+	// milliseconds before lease expire should we try switching leases
+	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW = 10 * 1000;
+	// milliseconds fudge factor for leases handover
+	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE = 1000;
 
-  
-  class DatagramSession
-  {
-  public:
-    DatagramSession(i2p::client::ClientDestination * localDestination,
-                    const i2p::data::IdentHash & remoteIdent);
+	
+	class DatagramSession
+	{
+	public:
+		DatagramSession(i2p::client::ClientDestination * localDestination,
+										const i2p::data::IdentHash & remoteIdent);
 
-    /** send an i2np message to remote endpoint for this session */
-    void SendMsg(std::shared_ptr<I2NPMessage> msg);
-    /** get the last time in milliseconds for when we used this datagram session */
-    uint64_t LastActivity() const { return m_LastUse; }
-  private:
+		/** send an i2np message to remote endpoint for this session */
+		void SendMsg(std::shared_ptr<I2NPMessage> msg);
+		/** get the last time in milliseconds for when we used this datagram session */
+		uint64_t LastActivity() const { return m_LastUse; }
+	private:
 
-    /** get next usable routing path, try reusing outbound tunnels  */
-    std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetNextRoutingPath();
-    /** 
-     *  mark current routing path as invalid and clear it
-     *  if the outbound tunnel we were using was okay don't use the IBGW in the routing path's lease next time
-     */
-    void ResetRoutingPath();
+		/** update our routing path we are using, mark that we have changed paths */
+		void UpdateRoutingPath(const std::shared_ptr<i2p::garlic::GarlicRoutingPath> & path);
 
-    /** get next usable lease, does not fetch or update if expired or have no lease set */
-    std::shared_ptr<const i2p::data::Lease> GetNextLease();
-    
-    void HandleSend(std::shared_ptr<I2NPMessage> msg);
-    void HandleGotLeaseSet(std::shared_ptr<const i2p::data::LeaseSet> remoteIdent,
-                           std::shared_ptr<I2NPMessage> msg);
-    void UpdateLeaseSet(std::shared_ptr<I2NPMessage> msg=nullptr);
-    
-  private:
-    i2p::client::ClientDestination * m_LocalDestination;
-    i2p::data::IdentHash m_RemoteIdentity;
-    std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
-    // Ident hash of IBGW that are invalid
-    std::vector<i2p::data::IdentHash> m_InvalidIBGW;
-    std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
-    uint64_t m_LastUse;
-  };
-  
-	const size_t MAX_DATAGRAM_SIZE = 32768;  
+		/** return true if we should switch routing paths because of path lifetime or timeout otherwise false */
+		bool ShouldUpdateRoutingPath() const;
+
+		/** return true if we should switch the lease for out routing path otherwise return false */
+		bool ShouldSwitchLease() const;
+		
+		/** get next usable routing path, try reusing outbound tunnels	*/
+		std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetNextRoutingPath();
+		/** 
+		 *	mark current routing path as invalid and clear it
+		 *	if the outbound tunnel we were using was okay don't use the IBGW in the routing path's lease next time
+		 */
+		void ResetRoutingPath();
+
+		/** get next usable lease, does not fetch or update if expired or have no lease set */
+		std::shared_ptr<const i2p::data::Lease> GetNextLease();
+		
+		void HandleSend(std::shared_ptr<I2NPMessage> msg);
+		void HandleGotLeaseSet(std::shared_ptr<const i2p::data::LeaseSet> remoteIdent,
+													 std::shared_ptr<I2NPMessage> msg);
+		void UpdateLeaseSet(std::shared_ptr<I2NPMessage> msg=nullptr);
+		
+	private:
+		i2p::client::ClientDestination * m_LocalDestination;
+		i2p::data::IdentHash m_RemoteIdentity;
+		std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
+		// Ident hash of IBGW that are invalid
+		std::vector<i2p::data::IdentHash> m_InvalidIBGW;
+		std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
+		uint64_t m_LastUse;
+		uint64_t m_LastPathChange;
+		uint64_t m_LastSuccess;
+	};
+	
+	const size_t MAX_DATAGRAM_SIZE = 32768;	 
 	class DatagramDestination
 	{
 		typedef std::function<void (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> Receiver;
@@ -82,15 +101,15 @@ namespace datagram
 
 			void SetReceiver (const Receiver& receiver, uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts[port] = receiver; };
 			void ResetReceiver (uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts.erase (port); };
-    
+		
 		private:
-      // clean up after next tick
-      void ScheduleCleanup();
-    
-      // clean up stale sessions and expire tags
-      void HandleCleanUp(const boost::system::error_code & ecode);
-      
-      std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
+			// clean up after next tick
+			void ScheduleCleanup();
+		
+			// clean up stale sessions and expire tags
+			void HandleCleanUp(const boost::system::error_code & ecode);
+			
+			std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
 			
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
 

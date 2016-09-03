@@ -7,6 +7,7 @@
 #include <set>
 #include <memory>
 #include "Identity.h"
+#include "Timestamp.h"
 
 namespace i2p
 {
@@ -24,7 +25,13 @@ namespace data
 		IdentHash tunnelGateway;
 		uint32_t tunnelID;
 		uint64_t endDate; // 0 means invalid
-		bool isUpdated; // trasient 
+		bool isUpdated; // trasient
+		/* return true if this lease expires within t millisecond + fudge factor */
+		bool ExpiresWithin( const uint64_t t, const uint64_t fudge = 1000 ) const {
+			auto expire = i2p::util::GetMillisecondsSinceEpoch ();
+			if(fudge) expire += rand() % fudge;
+			return expire - endDate >= t;
+		}
 	};	
 
 	struct LeaseCmp
@@ -63,7 +70,7 @@ namespace data
 			bool IsExpired () const;
 			bool IsEmpty () const { return m_Leases.empty (); };
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
-			bool ExpiresSoon(const uint64_t dlt=1000 * 5) const ;
+			bool ExpiresSoon(const uint64_t dlt=1000 * 5, const uint64_t fudge = 0) const ;
 			bool operator== (const LeaseSet& other) const 
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }; 
 

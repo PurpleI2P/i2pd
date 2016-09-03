@@ -163,9 +163,10 @@ namespace data
 		return ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
 	}	
 
-	bool LeaseSet::ExpiresSoon(const uint64_t dlt) const
+	bool LeaseSet::ExpiresSoon(const uint64_t dlt, const uint64_t fudge) const
 	{
 		auto now = i2p::util::GetMillisecondsSinceEpoch ();
+		if (fudge) now += rand() % fudge;
 		if (now >= m_ExpirationTime) return true;
 		return	m_ExpirationTime - now <= dlt;
 	}
