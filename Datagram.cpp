@@ -343,7 +343,7 @@ namespace datagram
 			{
 				if(routingPath->remoteLease)
 				{
-					if(routingPath->remoteLease->ExpiresSoon())
+					if(routingPath->remoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE))
 						lease = GetNextLease();
 					else
 						lease = routingPath->remoteLease;
