@@ -71,16 +71,24 @@ namespace datagram
 				
 		if (verified)
 		{
-			auto it = m_ReceiversByPorts.find (toPort);
-			if (it != m_ReceiversByPorts.end ())
-				it->second (identity, fromPort, toPort, buf + headerLen, len -headerLen);
-			else if (m_Receiver != nullptr)
-				m_Receiver (identity, fromPort, toPort, buf + headerLen, len -headerLen);
+			auto r = FindReceiver(toPort);
+			if(r)
+				r(identity, fromPort, toPort, buf + headerLen, len -headerLen);
 			else
-				LogPrint (eLogWarning, "Receiver for datagram is not set");	
+				LogPrint (eLogWarning, "DatagramDestination: no receiver for port ", toPort);
 		}
 		else
 			LogPrint (eLogWarning, "Datagram signature verification failed");	
+	}
+
+	DatagramDestination::Receiver DatagramDestination::FindReceiver(uint16_t port)
+	{
+		std::lock_guard<std::mutex> lock(m_ReceiversMutex);
+		Receiver r = m_Receiver;
+		auto itr = m_ReceiversByPorts.find(port);
+		if (itr != m_ReceiversByPorts.end())
+			r = itr->second;
+		return r;
 	}
 
 	void DatagramDestination::HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)

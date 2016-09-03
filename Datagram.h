@@ -80,8 +80,8 @@ namespace datagram
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
 			void ResetReceiver () { m_Receiver = nullptr; };
 
-			void SetReceiver (const Receiver& receiver, uint16_t port) { m_ReceiversByPorts[port] = receiver; };
-			void ResetReceiver (uint16_t port) { m_ReceiversByPorts.erase (port); };
+			void SetReceiver (const Receiver& receiver, uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts[port] = receiver; };
+			void ResetReceiver (uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts.erase (port); };
     
 		private:
       // clean up after next tick
@@ -96,12 +96,16 @@ namespace datagram
 
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
+			/** find a receiver by port, if none by port is found try default receiever, otherwise returns nullptr */
+			Receiver FindReceiver(uint16_t port);
+			
 		private:
 			i2p::client::ClientDestination * m_Owner;
-      boost::asio::deadline_timer m_CleanupTimer;
+			boost::asio::deadline_timer m_CleanupTimer;
 			Receiver m_Receiver; // default
-      std::mutex m_SessionsMutex;
-      std::map<i2p::data::IdentHash, std::shared_ptr<DatagramSession> > m_Sessions;
+			std::mutex m_SessionsMutex;
+			std::map<i2p::data::IdentHash, std::shared_ptr<DatagramSession> > m_Sessions;
+			std::mutex m_ReceiversMutex;
 			std::map<uint16_t, Receiver> m_ReceiversByPorts;
 
 			i2p::data::GzipInflator m_Inflator;
