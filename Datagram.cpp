@@ -417,6 +417,8 @@ namespace datagram
 			// clear invalid IBGW as we have a new lease set
 			m_InvalidIBGW.clear();
 			m_RemoteLeaseSet = remoteIdent;
+			// update routing path
+			UpdateRoutingPath(GetNextRoutingPath());
 			// send the message that was queued if it was provided
 			if(msg)
 				HandleSend(msg);
