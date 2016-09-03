@@ -221,6 +221,11 @@ namespace datagram
 		{
 			// try to get one
 			if(m_RemoteLeaseSet) m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
+			else
+			{
+				UpdateLeaseSet(msg);
+				return;
+			}
 		}
 		// do we have a routing session?
 		if(m_RoutingSession)
@@ -261,7 +266,7 @@ namespace datagram
 		}
 		auto now = i2p::util::GetMillisecondsSinceEpoch ();
 		// if this path looks dead reset the routing path since we didn't seem to be able to get a path in time
-		if (now - m_LastPathChange >= DATAGRAM_SESSION_PATH_TIMEOUT ) ResetRoutingPath();
+		if (m_LastPathChange && now - m_LastPathChange >= DATAGRAM_SESSION_PATH_TIMEOUT ) ResetRoutingPath();
 		UpdateLeaseSet(msg);
 		
 	}
