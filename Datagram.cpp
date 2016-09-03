@@ -341,9 +341,16 @@ namespace datagram
 			}
 			else if (routingPath)
 			{
-				// stick with the lease we have if we have one
-				lease = routingPath->remoteLease;
+				if(routingPath->remoteLease)
+				{
+					if(routingPath->remoteLease->ExpiresSoon())
+						lease = GetNextLease();
+					else
+						lease = routingPath->remoteLease;
+				}
 			}
+			else
+				lease = GetNextLease();
 			if(lease)
 			{
 				// we have a valid lease to use and an outbound tunnel
@@ -408,6 +415,8 @@ namespace datagram
 				uint32_t idx = rand() % leases.size();
 				next = leases[idx];
 			}
+			else
+				LogPrint(eLogWarning, "DatagramDestination: no leases to use");
 		}
 		return next;
 	}
