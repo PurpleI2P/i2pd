@@ -403,8 +403,8 @@ namespace datagram
 				{
 					auto end = std::end(exclude);
 					return std::find_if(exclude.begin(), end, [l, now] ( const i2p::data::IdentHash & ident) -> bool {
-							return ident == l.tunnelGateway || l.ExpiresWithin (DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE);
-					}) != end;
+							return ident == l.tunnelGateway;
+						}) != end || l.ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE);
 				}
 				else
 					return l.ExpiresWithin (DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE);
