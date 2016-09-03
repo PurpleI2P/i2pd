@@ -146,6 +146,7 @@ namespace datagram
 			LogPrint(eLogInfo, "DatagramDestination: expiring idle session with ", ident.ToBase32());
 			m_Sessions.erase(ident);
 		}
+		m_Owner->CleanupExpiredTags();
 		ScheduleCleanup();
 	}
 	
