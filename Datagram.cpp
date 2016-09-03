@@ -399,15 +399,17 @@ namespace datagram
 				exclude.push_back(ident);
 			// find get all leases that are not in our ban list and are not going to expire within our lease set handover window + fudge
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeasesExcluding( [&exclude, now] (const i2p::data::Lease & l) -> bool {
+				if(l.ExpiresWithin (DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE))
+					return true;
 				if(exclude.size())
 				{
 					auto end = std::end(exclude);
 					return std::find_if(exclude.begin(), end, [l, now] ( const i2p::data::IdentHash & ident) -> bool {
 							return ident == l.tunnelGateway;
-						}) != end || l.ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE);
+						}) != end;
 				}
 				else
-					return l.ExpiresWithin (DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE);
+					return false;
 			});
 			if(leases.size())
 			{
