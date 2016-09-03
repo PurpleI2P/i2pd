@@ -165,6 +165,16 @@ namespace datagram
 		return session;
 	}
 
+	std::shared_ptr<DatagramSession::Info> DatagramDestination::GetInfoForRemote(const i2p::data::IdentHash & remote)
+	{
+		std::lock_guard<std::mutex> lock(m_SessionsMutex);
+		for ( auto & item : m_Sessions)
+		{
+			if(item.first == remote) return std::make_shared<DatagramSession::Info>(item.second->GetSessionInfo());
+		}
+		return nullptr;
+	}
+  
 	DatagramSession::DatagramSession(i2p::client::ClientDestination * localDestination,
 		const i2p::data::IdentHash & remoteIdent) :
 		m_LocalDestination(localDestination),
@@ -183,6 +193,29 @@ namespace datagram
 		m_LocalDestination->GetService().post(std::bind(&DatagramSession::HandleSend, this, msg));
 	}
 
+	DatagramSession::Info DatagramSession::GetSessionInfo() const
+	{
+		if(!m_RoutingSession)
+			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
+		
+		auto routingPath = m_RoutingSession->GetSharedRoutingPath();
+		if (!routingPath)
+			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
+		auto lease = routingPath->remoteLease;
+		auto tunnel = routingPath->outboundTunnel;
+		if(lease)
+		{
+			if(tunnel)
+				return DatagramSession::Info{new i2p::data::IdentHash(lease->tunnelGateway), new i2p::data::IdentHash(tunnel->GetEndpointIdentHash()), m_LastUse, m_LastSuccess};
+			else
+				return DatagramSession::Info{new i2p::data::IdentHash(lease->tunnelGateway), nullptr, m_LastUse, m_LastSuccess};
+		}
+		else if(tunnel)
+			return DatagramSession::Info{nullptr, new i2p::data::IdentHash(tunnel->GetEndpointIdentHash()), m_LastUse, m_LastSuccess};
+		else
+			return DatagramSession::Info{nullptr, nullptr, m_LastUse, m_LastSuccess};
+	}
+  
 	void DatagramSession::HandleSend(std::shared_ptr<I2NPMessage> msg)
 	{
 		// do we have a routing session?

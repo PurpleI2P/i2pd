@@ -137,7 +137,28 @@ namespace client
 
 	/** max size for i2p udp */
 	const size_t I2P_UDP_MAX_MTU = i2p::datagram::MAX_DATAGRAM_SIZE;
-	
+
+	/** read only info about a datagram session */
+	struct DatagramSessionInfo
+	{
+		/** the name of this forward */
+		const std::string Name;
+		/** ident hash of local destination */
+		const i2p::data::IdentHash LocalIdent;
+		/** ident hash of remote destination */
+		const i2p::data::IdentHash RemoteIdent;
+		/** ident hash of IBGW in use currently in this session or nullptr if none is set */
+		const i2p::data::IdentHash * CurrentIBGW;
+		/** ident hash of OBEP in use for this session or nullptr if none is set */
+		const i2p::data::IdentHash * CurrentOBEP;
+		/** i2p router's udp endpoint */
+		const boost::asio::ip::udp::endpoint LocalEndpoint;
+		/** client's udp endpoint */
+		const boost::asio::ip::udp::endpoint RemoteEndpoint;
+		/** how long has this converstation been idle in ms */
+		const uint64_t idle;
+	};
+  
 	struct UDPSession
 	{
 		i2p::datagram::DatagramDestination * m_Destination;
@@ -174,6 +195,7 @@ namespace client
 			void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
 			void Start();
 			const char * GetName() const { return m_Name.c_str(); }
+			std::vector<DatagramSessionInfo> GetSessions();
 		private:
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSession * ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
@@ -196,7 +218,8 @@ namespace client
 			~I2PUDPClientTunnel();
 			void Start();
 			const char * GetName() const { return m_Name.c_str(); }
-			
+			std::vector<DatagramSessionInfo> GetSessions();
+			bool IsLocalDestination(const i2p::data::IdentHash & destination) const { return destination == m_LocalDest->GetIdentHash(); }
 		private:
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving();

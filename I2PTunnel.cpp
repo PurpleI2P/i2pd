@@ -631,6 +631,30 @@ namespace client
   void I2PUDPServerTunnel::Start() {
     m_LocalDest->Start();
   }
+
+  std::vector<DatagramSessionInfo> I2PUDPServerTunnel::GetSessions()
+	{
+		std::vector<DatagramSessionInfo> sessions;
+		auto localident = m_LocalDest->GetIdentHash();
+		std::lock_guard<std::mutex> lock(m_SessionsMutex);
+		for ( UDPSession * s : m_Sessions )
+		{
+			if (!s->m_Destination) continue;
+			auto info = s->m_Destination->GetInfoForRemote(s->Identity);
+			if(!info) continue;
+			sessions.push_back(DatagramSessionInfo{
+				m_Name,
+				localident,
+				s->Identity,
+				info->IBGW,
+				info->OBEP,
+				s->IPSocket.local_endpoint(),		 
+				s->SendEndpoint,
+				info->success
+			});
+		}
+		return sessions;
+	}
   
   I2PUDPClientTunnel::I2PUDPClientTunnel(const std::string & name, const std::string &remoteDest,
     boost::asio::ip::udp::endpoint localEndpoint,
@@ -662,6 +686,34 @@ namespace client
       m_ResolveThread = new std::thread(std::bind(&I2PUDPClientTunnel::TryResolving, this));
   }
 
+	std::vector<DatagramSessionInfo> I2PUDPClientTunnel::GetSessions()
+	{
+		std::vector<DatagramSessionInfo> infos;
+		if(m_Session && m_LocalDest)
+		{
+			auto localident = m_LocalDest->GetIdentHash();
+			auto s = m_Session;
+			if (s->m_Destination)
+			{
+				auto info = m_Session->m_Destination->GetInfoForRemote(s->Identity);
+				if(!info)
+				{
+					infos.push_back(DatagramSessionInfo{
+						m_Name,
+						localident,
+						s->Identity,
+						info->IBGW,
+						info->OBEP,
+						s->IPSocket.local_endpoint(),		 
+						s->SendEndpoint,
+						info->success
+					});
+				}
+			}
+		}
+		return infos;
+	}
+	
   void I2PUDPClientTunnel::TryResolving() {
     LogPrint(eLogInfo, "UDP Tunnel: Trying to resolve ", m_RemoteDest);
     m_RemoteIdent = new i2p::data::IdentHash;

@@ -276,6 +276,22 @@ namespace client
 		return success;
 	}
 
+	std::vector<DatagramSessionInfo> ClientContext::GetForwardInfosFor(const i2p::data::IdentHash & destination)
+	{
+		std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+		for(auto & c : m_ClientForwards)
+		{
+			if (c.second->IsLocalDestination(destination))
+				return c.second->GetSessions();
+		}
+		for(auto & s : m_ServerForwards)
+		{
+			if(std::get<0>(s.first) == destination)
+				return s.second->GetSessions();
+		}
+		return {};
+	}
+
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
 		const std::map<std::string, std::string> * params)
 	{

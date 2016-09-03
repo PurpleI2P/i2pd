@@ -44,6 +44,24 @@ namespace datagram
 		void SendMsg(std::shared_ptr<I2NPMessage> msg);
 		/** get the last time in milliseconds for when we used this datagram session */
 		uint64_t LastActivity() const { return m_LastUse; }
+		/** get the last time in milliseconds when we successfully sent data */
+		uint64_t LastSuccess() const { return m_LastSuccess; }
+		struct Info
+		{
+			const i2p::data::IdentHash * IBGW;
+			const i2p::data::IdentHash * OBEP;
+			const uint64_t activity;
+			const uint64_t success;
+			~Info()
+			{
+				if(IBGW) delete IBGW;
+				if(OBEP) delete OBEP;
+			}
+		};
+
+		Info GetSessionInfo() const;
+
+		
 	private:
 
 		/** update our routing path we are using, mark that we have changed paths */
@@ -90,6 +108,7 @@ namespace datagram
 
 		public:
 
+    
 			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
 			~DatagramDestination ();				
 
@@ -101,6 +120,8 @@ namespace datagram
 
 			void SetReceiver (const Receiver& receiver, uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts[port] = receiver; };
 			void ResetReceiver (uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts.erase (port); };
+
+			std::shared_ptr<DatagramSession::Info> GetInfoForRemote(const i2p::data::IdentHash & remote);
 		
 		private:
 			// clean up after next tick

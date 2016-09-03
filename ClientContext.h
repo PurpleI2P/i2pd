@@ -66,7 +66,9 @@ namespace client
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
-		
+
+			std::vector<DatagramSessionInfo> GetForwardInfosFor(const i2p::data::IdentHash & destination);
+			
 		private:
 
 			void ReadTunnels ();
