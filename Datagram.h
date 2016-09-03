@@ -52,6 +52,12 @@ namespace datagram
 			const i2p::data::IdentHash * OBEP;
 			const uint64_t activity;
 			const uint64_t success;
+			Info() : IBGW(nullptr), OBEP(nullptr), activity(0), success(0) {}
+			Info(const i2p::data::IdentHash & ibgw, const i2p::data::IdentHash & obep, const uint64_t a, const uint64_t s) :
+				IBGW(new i2p::data::IdentHash(ibgw.data())),
+				OBEP(new i2p::data::IdentHash(obep.data())),
+				activity(a),
+				success(s) {}
 			~Info()
 			{
 				if(IBGW) delete IBGW;
