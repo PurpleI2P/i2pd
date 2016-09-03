@@ -609,9 +609,9 @@ namespace client
   
   I2PUDPServerTunnel::I2PUDPServerTunnel(const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
     const boost::asio::ip::address& localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port) :
-    m_LocalAddress(localAddress),
     m_Name(name),
     LocalPort(port),
+    m_LocalAddress(localAddress),
     m_RemoteEndpoint(forwardTo)
   {
     m_LocalDest = localDestination;
@@ -639,9 +639,9 @@ namespace client
     m_Name(name),
     m_Session(nullptr),
     m_RemoteDest(remoteDest),
-    m_RemoteIdent(nullptr),
     m_LocalDest(localDestination),
     m_LocalEndpoint(localEndpoint),
+    m_RemoteIdent(nullptr),
     m_ResolveThread(nullptr),
     LocalPort(localEndpoint.port()),
     RemotePort(remotePort),

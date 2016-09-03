@@ -531,6 +531,7 @@ namespace client
 		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " I2P client tunnels created");
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
 	}
+  
   void ClientContext::ScheduleCleanupUDP()
   {
     // schedule cleanup in 1 second
@@ -540,11 +541,10 @@ namespace client
 
   void ClientContext::CleanupUDP(const boost::system::error_code & ecode)
   {
-    if(!ecode) {
+    if(!ecode)
+    {
       std::lock_guard<std::mutex> lock(m_ForwardsMutex);
-      for ( auto & s : m_ServerForwards ) {
-        s.second->ExpireStale();
-      }
+      for ( auto & s : m_ServerForwards ) s.second->ExpireStale();
       ScheduleCleanupUDP();
     }
   }
