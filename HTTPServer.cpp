@@ -828,7 +828,13 @@ namespace http {
 		std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
 		if (ecode)
+		{
+			if(newSocket) newSocket->close();
+			LogPrint(eLogError, "HTTP Server: error handling accept ", ecode.message());
+			if(ecode != boost::asio::error::operation_aborted)
+				Accept();			
 			return;
+		}
 		CreateConnection(newSocket);
 		Accept ();
 	}
