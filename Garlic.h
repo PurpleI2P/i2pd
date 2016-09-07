@@ -104,6 +104,7 @@ namespace garlic
 			{ 
 				if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend) m_LeaseSetUpdateStatus = eLeaseSetUpdated; 
 			};
+			bool IsLeaseSetNonConfirmed () const { return m_LeaseSetUpdateStatus == eLeaseSetSubmitted; };
 
 			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
 			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);

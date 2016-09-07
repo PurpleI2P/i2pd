@@ -736,7 +736,15 @@ namespace stream
 				return;
 			}	
 			if (m_Status == eStreamStatusOpen)
+			{
+				if (m_RoutingSession && m_RoutingSession->IsLeaseSetNonConfirmed ()) 
+				{
+					// seems something went wrong and we should re-select tunnels
+					m_CurrentOutboundTunnel = nullptr;
+					m_CurrentRemoteLease = nullptr;
+				}
 				SendQuickAck ();
+			}
 			m_IsAckSendScheduled = false;
 		}	
 	}
