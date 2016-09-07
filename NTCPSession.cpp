@@ -747,6 +747,7 @@ namespace transport
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)
 			{
+				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 				{
 					if (address->host.is_v4())
@@ -844,6 +845,7 @@ namespace transport
 		if (it != m_NTCPSessions.end ())
 		{
 			LogPrint (eLogWarning, "NTCP: session to ", ident.ToBase64 (), " already exists");
+			session->Terminate();
 			return false;
 		}
 		m_NTCPSessions.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<NTCPSession> >(ident, session));

@@ -200,7 +200,9 @@ namespace data
 		}	
 		memcpy (&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
 
-		delete[] m_ExtendedBuffer; m_ExtendedBuffer = nullptr;
+		if(m_ExtendedBuffer) delete[] m_ExtendedBuffer;
+		m_ExtendedBuffer = nullptr;
+
 		m_ExtendedLen = bufbe16toh (m_StandardIdentity.certificate + 1);
 		if (m_ExtendedLen)
 		{
@@ -410,6 +412,7 @@ namespace data
 		memcpy (m_PrivateKey, buf + ret, 256); // private key always 256
 		ret += 256;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
+		if(signingPrivateKeySize + ret > len) return 0; // overflow
 		memcpy (m_SigningPrivateKey, buf + ret, signingPrivateKeySize); 
 		ret += signingPrivateKeySize;
 		m_Signer = nullptr;
@@ -422,7 +425,8 @@ namespace data
 		size_t ret = m_Public->ToBuffer (buf, len);
 		memcpy (buf + ret, m_PrivateKey, 256); // private key always 256
 		ret += 256;
-		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen (); 
+		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
+		if(ret + signingPrivateKeySize > len) return 0; // overflow
 		memcpy (buf + ret, m_SigningPrivateKey, signingPrivateKeySize); 
 		ret += signingPrivateKeySize;
 		return ret;
@@ -452,11 +456,12 @@ namespace data
 
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
-		if (m_Signer)
-			m_Signer->Sign (buf, len, signature);
+		if (!m_Signer)
+      CreateSigner();
+    m_Signer->Sign (buf, len, signature);
 	}			
 
-	void PrivateKeys::CreateSigner ()
+	void PrivateKeys::CreateSigner () const
 	{
 		switch (m_Public->GetSigningKeyType ())
 		{	

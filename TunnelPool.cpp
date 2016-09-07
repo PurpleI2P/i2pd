@@ -15,7 +15,8 @@ namespace tunnel
 {
 	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
-		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true)
+		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true),
+		m_CustomPeerSelector(nullptr)
 	{
 	}
 
@@ -327,9 +328,18 @@ namespace tunnel
 
 	bool TunnelPool::SelectPeers (std::vector<std::shared_ptr<const i2p::data::IdentityEx> >& peers, bool isInbound)
 	{
-		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);
 		int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
-		if (numHops <= 0) return true; // peers is empty 
+		// peers is empty
+		if (numHops <= 0) return true; 
+		// custom peer selector in use ?
+		{
+			std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
+			if (m_CustomPeerSelector)
+					return m_CustomPeerSelector->SelectPeers(peers, numHops, isInbound);
+		}
+		// explicit peers in use
+		if (m_ExplicitPeers) return SelectExplicitPeers (peers, isInbound);
+
 		auto prevHop = i2p::context.GetSharedRouterInfo ();			
 		if(i2p::transport::transports.RoutesRestricted())
 		{
@@ -477,6 +487,23 @@ namespace tunnel
 		LogPrint (eLogDebug, "Tunnels: Creating paired inbound tunnel...");
 		auto tunnel = tunnels.CreateInboundTunnel (std::make_shared<TunnelConfig>(outboundTunnel->GetInvertedPeers ()), outboundTunnel);
 		tunnel->SetTunnelPool (shared_from_this ());
-	}	
+	}
+
+	void TunnelPool::SetCustomPeerSelector(TunnelPeerSelector selector)
+	{
+		std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
+		m_CustomPeerSelector = selector;
+	}
+
+	void TunnelPool::UnsetCustomPeerSelector()
+	{
+		SetCustomPeerSelector(nullptr);
+	}
+
+	bool TunnelPool::HasCustomPeerSelector()
+	{
+		std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
+		return m_CustomPeerSelector != nullptr;
+	}
 }
 }

@@ -337,7 +337,8 @@ namespace http {
 				s << "<td>" << it->GetWindowSize () << "</td>";
 				s << "<td>" << (int)it->GetStatus () << "</td>";
 				s << "</tr><br>\r\n" << std::endl; 
-			}
+   		}
+			s << "</table>";
 		}
 	}
 

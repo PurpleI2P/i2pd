@@ -8,6 +8,7 @@
 #include <set>
 #include <string>
 #include <functional>
+#include <future>
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
@@ -122,6 +123,7 @@ namespace client
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
+			mutable std::mutex m_RemoteLeaseSetsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
 
@@ -142,13 +144,19 @@ namespace client
 	class ClientDestination: public LeaseSetDestination
 	{
 		public:
-
+			// type for informing that a client destination is ready
+			typedef std::promise<std::shared_ptr<ClientDestination> > ReadyPromise;
+		
 			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();
 			
 			bool Start ();
 			bool Stop ();
-
+     
+			// informs promise with shared_from_this() when this destination is ready to use
+			// if cancelled before ready, informs promise with nullptr
+			void Ready(ReadyPromise & p);
+			
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };	
 			
@@ -163,8 +171,8 @@ namespace client
 			bool IsAcceptingStreams () const;
 
 			// datagram
-			i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
-			i2p::datagram::DatagramDestination * CreateDatagramDestination ();
+      i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
+      i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 			
 			// implements LocalDestination		
 			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
@@ -182,6 +190,9 @@ namespace client
 			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }   
 			void PersistTemporaryKeys ();
 
+			void ScheduleCheckForReady(ReadyPromise * p);
+			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
+      
 		private:
 
 			i2p::data::PrivateKeys m_Keys;
@@ -189,8 +200,10 @@ namespace client
 
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
-			i2p::datagram::DatagramDestination * m_DatagramDestination;
+      i2p::datagram::DatagramDestination * m_DatagramDestination;
 
+			boost::asio::deadline_timer m_ReadyChecker;
+			
 		public:
 
 			// for HTTP only

@@ -108,7 +108,7 @@ namespace garlic
 
 			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
 			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);
-			
+
 		private:
 
 			size_t CreateAESBlock (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg);

@@ -114,6 +114,7 @@ namespace transport
 		auto& addresses = context.GetRouterInfo ().GetAddresses ();
 		for (const auto& address : addresses)
 		{
+			if (!address) continue;
 			if (m_NTCPServer == nullptr && enableNTCP)
 			{
 				m_NTCPServer = new NTCPServer ();

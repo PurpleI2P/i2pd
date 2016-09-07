@@ -162,8 +162,21 @@ namespace data
 	{
 		return ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
 	}	
-		
-	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
+
+	bool LeaseSet::ExpiresSoon(const uint64_t dlt, const uint64_t fudge) const
+	{
+		auto now = i2p::util::GetMillisecondsSinceEpoch ();
+		if (fudge) now += rand() % fudge;
+		if (now >= m_ExpirationTime) return true;
+		return	m_ExpirationTime - now <= dlt;
+	}
+
+  const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
+  {
+    return GetNonExpiredLeasesExcluding( [] (const Lease & l) -> bool { return false; }, withThreshold);
+  }
+  
+	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold) const
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		std::vector<std::shared_ptr<const Lease> > leases;
@@ -174,7 +187,7 @@ namespace data
 				endDate += LEASE_ENDDATE_THRESHOLD;
 			else
 				endDate -= LEASE_ENDDATE_THRESHOLD;
-			if (ts < endDate)
+			if (ts < endDate && !exclude(*it))
 				leases.push_back (it);
 		}	
 		return leases;	
