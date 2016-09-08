@@ -117,26 +117,21 @@ namespace datagram
 	}
 
 	void DatagramDestination::CleanUp ()
-	{
-		std::vector<i2p::data::IdentHash> expiredSessions;
+	{			
+		auto now = i2p::util::GetMillisecondsSinceEpoch();
+		LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
+		std::lock_guard<std::mutex> lock(m_SessionsMutex);
+		// for each session ...
+		for (auto it = m_Sessions.begin (); it != m_Sessions.end (); ) 
 		{
-			std::lock_guard<std::mutex> lock(m_SessionsMutex);
-			auto now = i2p::util::GetMillisecondsSinceEpoch();
-			LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
-			// for each session ...
-			for (auto & e : m_Sessions) 
+			// check if expired
+			if (now - it->second->LastActivity() >= DATAGRAM_SESSION_MAX_IDLE)
 			{
-				// check if expired
-				if(now - e.second->LastActivity() >= DATAGRAM_SESSION_MAX_IDLE)
-					expiredSessions.push_back(e.first); // we are expired
+				LogPrint(eLogInfo, "DatagramDestination: expiring idle session with ", it->first.ToBase32());
+				it = m_Sessions.erase (it); // we are expired
 			}
-		}
-		// for each expired session ...
-		for (auto & ident : expiredSessions) 
-		{
-			// remove the expired session
-			LogPrint(eLogInfo, "DatagramDestination: expiring idle session with ", ident.ToBase32());
-			m_Sessions.erase(ident);
+			else
+				it++;
 		}
 	}
 	
