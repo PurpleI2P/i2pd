@@ -57,6 +57,7 @@ namespace http {
 			
 		private:
 
+			bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;

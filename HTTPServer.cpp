@@ -769,7 +769,7 @@ namespace http {
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):
-		m_Thread (nullptr), m_Work (m_Service),
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port))
 	{
 	}
@@ -798,6 +798,7 @@ namespace http {
 			i2p::config::SetOption("http.pass", pass);
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 		}
+		m_IsRunning = true;
 		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
 		m_Acceptor.listen ();
 		Accept ();
@@ -805,9 +806,11 @@ namespace http {
 
 	void HTTPServer::Stop ()
 	{
+		m_IsRunning = false;
 		m_Acceptor.close();
 		m_Service.stop ();
-		if (m_Thread) {
+		if (m_Thread) 
+		{
 			m_Thread->join ();
 			m_Thread = nullptr;
 		}
@@ -815,7 +818,17 @@ namespace http {
 
 	void HTTPServer::Run ()
 	{
-		m_Service.run ();
+		while (m_IsRunning)
+		{
+			try
+			{
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "HTTPServer: runtime exception: ", ex.what ());
+			}	
+		}
 	}
 
 	void HTTPServer::Accept ()
