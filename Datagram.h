@@ -19,9 +19,6 @@ namespace client
 }
 namespace datagram
 {
-
-	// seconds interval for cleanup timer
-	const int DATAGRAM_SESSION_CLEANUP_INTERVAL = 3;
 	// milliseconds for max session idle time 
 	const uint64_t DATAGRAM_SESSION_MAX_IDLE = 10 * 60 * 1000;
 	// milliseconds for how long we try sticking to a dead routing path before trying to switch
@@ -127,13 +124,11 @@ namespace datagram
 
 			std::shared_ptr<DatagramSession::Info> GetInfoForRemote(const i2p::data::IdentHash & remote);
 		
+			// clean up stale sessions
+			void CleanUp ();
+
 		private:
-			// clean up after next tick
-			void ScheduleCleanup();
-		
-			// clean up stale sessions and expire tags
-			void HandleCleanUp(const boost::system::error_code & ecode);
-			
+						
 			std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
 			
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
@@ -145,7 +140,6 @@ namespace datagram
 			
 		private:
 			i2p::client::ClientDestination * m_Owner;
-			boost::asio::deadline_timer m_CleanupTimer;
 			Receiver m_Receiver; // default
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<DatagramSession> > m_Sessions;

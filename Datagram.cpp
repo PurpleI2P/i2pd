@@ -12,16 +12,12 @@ namespace i2p
 namespace datagram
 {
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner): 
-		m_Owner (owner.get()),
-		m_CleanupTimer(owner->GetService()),
-		m_Receiver (nullptr)
+		m_Owner (owner.get()), m_Receiver (nullptr)
 	{
-		ScheduleCleanup();
 	}
 	
 	DatagramDestination::~DatagramDestination ()
 	{
-		m_CleanupTimer.cancel();
 		m_Sessions.clear();
 	}
 	
@@ -120,34 +116,28 @@ namespace datagram
 		return msg;
 	}
 
-	void DatagramDestination::ScheduleCleanup()
+	void DatagramDestination::CleanUp ()
 	{
-		m_CleanupTimer.expires_from_now(boost::posix_time::seconds(DATAGRAM_SESSION_CLEANUP_INTERVAL));
-		m_CleanupTimer.async_wait(std::bind(&DatagramDestination::HandleCleanUp, this, std::placeholders::_1));
-	}
-
-	void DatagramDestination::HandleCleanUp(const boost::system::error_code & ecode)
-	{
-		if(ecode)
-			return;
-		std::lock_guard<std::mutex> lock(m_SessionsMutex);
-		auto now = i2p::util::GetMillisecondsSinceEpoch();
-		LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
 		std::vector<i2p::data::IdentHash> expiredSessions;
-		// for each session ...
-		for (auto & e : m_Sessions) {
-			// check if expired
-			if(now - e.second->LastActivity() >= DATAGRAM_SESSION_MAX_IDLE)
-				expiredSessions.push_back(e.first); // we are expired
+		{
+			std::lock_guard<std::mutex> lock(m_SessionsMutex);
+			auto now = i2p::util::GetMillisecondsSinceEpoch();
+			LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
+			// for each session ...
+			for (auto & e : m_Sessions) 
+			{
+				// check if expired
+				if(now - e.second->LastActivity() >= DATAGRAM_SESSION_MAX_IDLE)
+					expiredSessions.push_back(e.first); // we are expired
+			}
 		}
 		// for each expired session ...
-		for (auto & ident : expiredSessions) {
+		for (auto & ident : expiredSessions) 
+		{
 			// remove the expired session
 			LogPrint(eLogInfo, "DatagramDestination: expiring idle session with ", ident.ToBase32());
 			m_Sessions.erase(ident);
 		}
-		m_Owner->CleanupExpiredTags();
-		ScheduleCleanup();
 	}
 	
 	std::shared_ptr<DatagramSession> DatagramDestination::ObtainSession(const i2p::data::IdentHash & ident)

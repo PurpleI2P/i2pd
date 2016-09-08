@@ -641,6 +641,7 @@ namespace client
 		{
 			CleanupExpiredTags ();
 			CleanupRemoteLeaseSets ();
+			CleanupDestination ();
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
 				shared_from_this (), std::placeholders::_1));
@@ -892,5 +893,11 @@ namespace client
 		Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); // TODO
 		SetLeaseSet (leaseSet);
 	}	
+
+	void ClientDestination::CleanupDestination ()
+	{
+		if (m_DatagramDestination) m_DatagramDestination->CleanUp ();
+	}
+
 }
 }
