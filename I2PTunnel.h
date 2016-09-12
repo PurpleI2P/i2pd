@@ -197,9 +197,13 @@ namespace client
 			void Start();
 			const char * GetName() const { return m_Name.c_str(); }
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions();
+			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
+
 		private:
+
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSession * ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
+
 		private:
 			const std::string m_Name;
 			const uint16_t LocalPort;
@@ -220,7 +224,11 @@ namespace client
 			void Start();
 			const char * GetName() const { return m_Name.c_str(); }
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions();
+			
 			bool IsLocalDestination(const i2p::data::IdentHash & destination) const { return destination == m_LocalDest->GetIdentHash(); }
+
+			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
+
 		private:
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving();

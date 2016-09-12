@@ -565,6 +565,32 @@ namespace http {
 			s << ":" << it.second->GetLocalPort ();
 			s << "</a><br>\r\n"<< std::endl;
 		}
+		auto& clientForwards = i2p::client::context.GetClientForwards ();
+		if (!clientForwards.empty ())
+		{
+			s << "<br>\r\n<b>Client Forwards:</b><br>\r\n<br>\r\n";
+			for (auto& it: clientForwards)
+			{
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << it.second->GetName () << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "<br>\r\n"<< std::endl;
+			}
+		}
+		auto& serverForwards = i2p::client::context.GetServerForwards ();
+		if (!serverForwards.empty ())
+		{
+			s << "<br>\r\n<b>Server Forwards:</b><br>\r\n<br>\r\n";
+			for (auto& it: serverForwards)
+			{
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << it.second->GetName () << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "<br>\r\n"<< std::endl;
+			}
+		}
 	}
 
 	HTTPConnection::HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket):
