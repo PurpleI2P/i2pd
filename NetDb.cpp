@@ -556,8 +556,13 @@ namespace data
 			}	
 			uint8_t uncompressed[2048];
 			size_t uncompressedSize = m_Inflator.Inflate (buf + offset, size, uncompressed, 2048);
-			if (uncompressedSize)
+			if (uncompressedSize && uncompressedSize < 2048)
 				updated = AddRouterInfo (ident, uncompressed, uncompressedSize);
+			else
+			{	
+				LogPrint (eLogError, "NetDb: decompression failed ", uncompressedSize);
+				return;
+			}	
 		}	
 
 		if (replyToken && context.IsFloodfill () && updated)

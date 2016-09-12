@@ -125,7 +125,8 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}
-		std::stringstream str (std::string ((char *)m_Buffer + identityLen, m_BufferLen - identityLen));
+		std::stringstream str;
+		str.write ((const char *)m_Buffer + identityLen, m_BufferLen - identityLen);
 		ReadFromStream (str);
 		if (!str)
 		{
