@@ -125,15 +125,6 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}
-		std::stringstream str;
-		str.write ((const char *)m_Buffer + identityLen, m_BufferLen - identityLen);
-		ReadFromStream (str);
-		if (!str)
-		{
-			LogPrint (eLogError, "RouterInfo: malformed message");
-			m_IsUnreachable = true;
-			return;
-		}
 		if (verifySignature)
 		{	
 			// verify signature
@@ -142,9 +133,20 @@ namespace data
 			{	
 				LogPrint (eLogError, "RouterInfo: signature verification failed");
 				m_IsUnreachable = true;
+				return;
 			}
 			m_RouterIdentity->DropVerifier ();
 		}	
+		// parse RI
+		std::stringstream str;
+		str.write ((const char *)m_Buffer + identityLen, m_BufferLen - identityLen);
+		ReadFromStream (str);
+		if (!str)
+		{
+			LogPrint (eLogError, "RouterInfo: malformed message");
+			m_IsUnreachable = true;
+		}
+		
 	}	
 	
 	void RouterInfo::ReadFromStream (std::istream& s)
