@@ -10,7 +10,7 @@
 
 namespace i2p {
 namespace log {
-	Log logger;
+	static Log logger;
 	/**
 	 * @brief Maps our loglevel to their symbolic name
 	 */
