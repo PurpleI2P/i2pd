@@ -162,17 +162,17 @@ namespace log {
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
-void LogPrint (std::stringstream& s, TValue arg)
+void LogPrint (std::stringstream& s, TValue&& arg) noexcept
 {
-	s << arg;
+	s << std::forward<TValue>(arg);
 }
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue, typename... TArgs>
-void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
+void LogPrint (std::stringstream& s, TValue&& arg, TArgs&&... args) noexcept
 {
-	LogPrint (s, arg);
-	LogPrint (s, args...);
+	LogPrint (s, std::forward<TValue>(arg));
+	LogPrint (s, std::forward<TArgs>(args)...);
 }
 
 /**
@@ -181,7 +181,7 @@ void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
  * @param args Array of message parts
  */
 template<typename... TArgs>
-void LogPrint (LogLevel level, TArgs... args)
+void LogPrint (LogLevel level, TArgs&&... args) noexcept
 {
 	i2p::log::Log &log = i2p::log::Logger();
 	if (level > log.GetLogLevel ())
@@ -194,7 +194,7 @@ void LogPrint (LogLevel level, TArgs... args)
 		ss << LOG_COLOR_ERROR;
 	else if (level == eLogWarning) // if log level is WARN color log message yellow
 		ss << LOG_COLOR_WARNING;
-	LogPrint (ss, args ...);
+	LogPrint (ss, std::forward<TArgs>(args)...);
   
 	// reset color
 	ss << LOG_COLOR_RESET;
