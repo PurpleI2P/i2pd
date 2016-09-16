@@ -73,6 +73,7 @@ All options below still possible in cmdline, but better write it in config file:
 
 * --precomputation.elgamal=  - Use ElGamal precomputated tables. false for x64 and true for other platforms by default  
 * --reseed.file         - Full path to SU3 file to reseed from  
+* --reseed.urls         - Reseed URLs, separated by comma
 
 * --limits.transittunnels=  - Override maximum number of transit tunnels. 2500 by default   
 
