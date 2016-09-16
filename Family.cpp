@@ -114,6 +114,12 @@ namespace data
 	{
 		uint8_t buf[50], signatureBuf[64];
 		size_t len = family.length (), signatureLen = strlen (signature);
+		if (len + 32 > 50)
+		{
+			LogPrint (eLogError, "Family: ", family, " is too long");
+			return false;
+		}		
+
 		memcpy (buf, family.c_str (), len);
 		memcpy (buf + len, (const uint8_t *)ident, 32);
 		len += 32;	
