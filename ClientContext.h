@@ -101,10 +101,7 @@ namespace client
 			BOBCommandChannel * m_BOBCommandChannel;
 			I2CPServer * m_I2CPServer;
 
-			boost::asio::io_service m_Service;
-			std::thread * m_ServiceThread;
-
-			boost::asio::deadline_timer m_CleanupUDPTimer;
+			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
 			
 		public:
 			// for HTTP

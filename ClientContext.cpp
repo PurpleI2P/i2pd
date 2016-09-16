@@ -17,8 +17,7 @@ namespace client
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
 		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr), 
-		m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr),
-		m_CleanupUDPTimer(m_Service, boost::posix_time::seconds(1))
+		m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr)
 	{
 	}
 	
@@ -88,19 +87,8 @@ namespace client
 			}
 		}
 
-		if ( m_ServiceThread == nullptr ) {
-			m_ServiceThread = new std::thread([&] () {
-					LogPrint(eLogInfo, "ClientContext: starting service");
-					m_Service.run();
-					LogPrint(eLogError, "ClientContext: service died");
-			});
-			ScheduleCleanupUDP();
-		}
-
-    	
 		// I2P tunnels
-		ReadTunnels ();
-
+		ReadTunnels ();		
     
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
@@ -149,6 +137,13 @@ namespace client
 		} 
 
 		m_AddressBook.StartResolvers ();	
+
+		// start UDP cleanup
+		if (!m_ServerForwards.empty ())
+		{
+			m_CleanupUDPTimer.reset (new boost::asio::deadline_timer(m_SharedLocalDestination->GetService ()));
+			ScheduleCleanupUDP();
+		}
 	}
 		
 	void ClientContext::Stop ()
@@ -210,25 +205,22 @@ namespace client
 		LogPrint(eLogInfo, "Clients: stopping AddressBook");
 		m_AddressBook.Stop ();
 
-    {
+    	{
 			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
 			m_ServerForwards.clear();
 			m_ClientForwards.clear();
 		}
 		
-		
+		if (m_CleanupUDPTimer)
+		{
+			m_CleanupUDPTimer->cancel ();	
+			m_CleanupUDPTimer = nullptr;	
+		}
+
 		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Destinations.clear ();
 		m_SharedLocalDestination = nullptr;
-		// stop io service thread
-		if(m_ServiceThread)
-		{
-			m_Service.stop();
-			m_ServiceThread->join();
-			delete m_ServiceThread;
-			m_ServiceThread = nullptr;
-		}
 	}	
 
 	void ClientContext::ReloadConfig ()
@@ -558,9 +550,12 @@ namespace client
   
 	void ClientContext::ScheduleCleanupUDP()
 	{
-		// schedule cleanup in 1 second
-		m_CleanupUDPTimer.expires_at(m_CleanupUDPTimer.expires_at() + boost::posix_time::seconds(1));
-		m_CleanupUDPTimer.async_wait(std::bind(&ClientContext::CleanupUDP, this, std::placeholders::_1));
+		if (m_CleanupUDPTimer)
+		{
+			// schedule cleanup in 17 seconds
+			m_CleanupUDPTimer->expires_from_now (boost::posix_time::seconds (17));
+			m_CleanupUDPTimer->async_wait(std::bind(&ClientContext::CleanupUDP, this, std::placeholders::_1));
+		}
 	}
 
 	void ClientContext::CleanupUDP(const boost::system::error_code & ecode)
@@ -568,7 +563,7 @@ namespace client
 		if(!ecode)
 		{
 			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
-			for ( auto & s : m_ServerForwards ) s.second->ExpireStale();
+			for (auto & s : m_ServerForwards ) s.second->ExpireStale();
 			ScheduleCleanupUDP();
 		}
 	}
