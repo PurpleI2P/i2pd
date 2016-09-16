@@ -3,6 +3,7 @@
 #include <sstream>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp> 
+#include <boost/algorithm/string.hpp>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <zlib.h>
@@ -22,26 +23,6 @@ namespace i2p
 {
 namespace data
 {
-	static std::vector<std::string> httpsReseedHostList =
-	{
-#ifdef MESHNET
-		// meshnet i2p reseeds
-		"https://reseed.i2p.rocks:8443/"
-#else
-		// mainline i2p reseeds
-		"https://reseed.i2p-projekt.de/", // Only HTTPS
-		"https://i2p.mooo.com/netDb/",
-		"https://netdb.i2p2.no/", // Only SU3 (v3) support, SNI required
-		"https://us.reseed.i2p2.no:444/",	
-		"https://uk.reseed.i2p2.no:444/",
-		"https://i2p.manas.ca:8443/",
-		"https://i2p-0.manas.ca:8443/",
-		"https://reseed.i2p.vzaws.com:8443/", // Only SU3 (v3) support
-		"https://user.mx24.eu/", // Only HTTPS and SU3 (v3) support
-		"https://download.xxlspeed.com/", // Only HTTPS and SU3 (v3) support
-		"https://reseed-ru.lngserv.ru/"
-#endif
-	};
  
 	Reseeder::Reseeder()
 	{
@@ -53,6 +34,10 @@ namespace data
 
 	int Reseeder::ReseedNowSU3 ()
 	{
+		std::string reseedURLs; i2p::config::GetOption("reseed.urls", reseedURLs);
+		std::vector<std::string> httpsReseedHostList;
+		boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
+
 		std::string filename; i2p::config::GetOption("reseed.file", filename);
 		if (filename.length() > 0) // reseed file is specified
 		{
