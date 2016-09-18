@@ -40,8 +40,20 @@ enum LogType {
 #endif
 };
 
+#ifdef _WIN32
+	const char LOG_COLOR_ERROR[] = "";
+	const char LOG_COLOR_WARNING[] = "";
+	const char LOG_COLOR_RESET[] = "";
+#else
+	const char LOG_COLOR_ERROR[] = "\033[1;31m";
+	const char LOG_COLOR_WARNING[] = "\033[1;33m";
+	const char LOG_COLOR_RESET[] = "\033[0m";
+#endif
+
+
 namespace i2p {
 namespace log {
+  
 	struct LogMsg; /* forward declaration */
 
 	class Log
@@ -150,17 +162,17 @@ namespace log {
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
-void LogPrint (std::stringstream& s, TValue arg)
+void LogPrint (std::stringstream& s, TValue&& arg) noexcept
 {
-	s << arg;
+	s << std::forward<TValue>(arg);
 }
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue, typename... TArgs>
-void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
+void LogPrint (std::stringstream& s, TValue&& arg, TArgs&&... args) noexcept
 {
-	LogPrint (s, arg);
-	LogPrint (s, args...);
+	LogPrint (s, std::forward<TValue>(arg));
+	LogPrint (s, std::forward<TArgs>(args)...);
 }
 
 /**
@@ -169,7 +181,7 @@ void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
  * @param args Array of message parts
  */
 template<typename... TArgs>
-void LogPrint (LogLevel level, TArgs... args)
+void LogPrint (LogLevel level, TArgs&&... args) noexcept
 {
 	i2p::log::Log &log = i2p::log::Logger();
 	if (level > log.GetLogLevel ())
@@ -177,8 +189,16 @@ void LogPrint (LogLevel level, TArgs... args)
 
 	// fold message to single string
 	std::stringstream ss("");
-	LogPrint (ss, args ...);
 
+	if(level == eLogError) // if log level is ERROR color log message red
+		ss << LOG_COLOR_ERROR;
+	else if (level == eLogWarning) // if log level is WARN color log message yellow
+		ss << LOG_COLOR_WARNING;
+	LogPrint (ss, std::forward<TArgs>(args)...);
+  
+	// reset color
+	ss << LOG_COLOR_RESET;
+  
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
 	msg->tid = std::this_thread::get_id();
 	log.Append(msg);

@@ -20,7 +20,7 @@ void handle_signal(int sig)
 	switch (sig)
 	{
 		case SIGHUP:
-			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening log...");
+			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening logs and tunnel configuration...");
 			i2p::log::Logger().Reopen ();
 			i2p::client::context.ReloadConfig();
 		break;

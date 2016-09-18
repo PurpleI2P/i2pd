@@ -7,6 +7,7 @@
 #include <set>
 #include <memory>
 #include "Identity.h"
+#include "Timestamp.h"
 
 namespace i2p
 {
@@ -24,7 +25,13 @@ namespace data
 		IdentHash tunnelGateway;
 		uint32_t tunnelID;
 		uint64_t endDate; // 0 means invalid
-		bool isUpdated; // trasient 
+		bool isUpdated; // trasient
+		/* return true if this lease expires within t millisecond + fudge factor */
+		bool ExpiresWithin( const uint64_t t, const uint64_t fudge = 1000 ) const {
+			auto expire = i2p::util::GetMillisecondsSinceEpoch ();
+			if(fudge) expire += rand() % fudge;
+			return endDate - expire >= t;
+		}
 	};	
 
 	struct LeaseCmp
@@ -38,6 +45,8 @@ namespace data
 		};
 	};	
 
+  typedef std::function<bool(const Lease & l)> LeaseInspectFunc;
+  
 	const size_t MAX_LS_BUFFER_SIZE = 3072;
 	const size_t LEASE_SIZE = 44; // 32 + 4 + 8
 	const uint8_t MAX_NUM_LEASES = 16;		
@@ -56,10 +65,12 @@ namespace data
 			size_t GetBufferLen () const { return m_BufferLen; };	
 			bool IsValid () const { return m_IsValid; };
 			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
+      const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold = true)  const;
 			bool HasExpiredLeases () const;
 			bool IsExpired () const;
 			bool IsEmpty () const { return m_Leases.empty (); };
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
+			bool ExpiresSoon(const uint64_t dlt=1000 * 5, const uint64_t fudge = 0) const ;
 			bool operator== (const LeaseSet& other) const 
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }; 
 

@@ -31,6 +31,7 @@ namespace http {
 			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[HTTP_CONNECTION_BUFFER_SIZE + 1];
 			size_t m_BufferLen;
+			std::string m_SendBuffer;
 			bool needAuth;
 			std::string user;
 			std::string pass;
@@ -56,6 +57,7 @@ namespace http {
 			
 		private:
 
+			bool m_IsRunning;
 			std::unique_ptr<std::thread> m_Thread;
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;

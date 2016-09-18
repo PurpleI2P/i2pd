@@ -337,7 +337,8 @@ namespace http {
 				s << "<td>" << it->GetWindowSize () << "</td>";
 				s << "<td>" << (int)it->GetStatus () << "</td>";
 				s << "</tr><br>\r\n" << std::endl; 
-			}
+   		}
+			s << "</table>";
 		}
 	}
 
@@ -422,7 +423,7 @@ namespace http {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 		if (Daemon.gracefullShutdownInterval) 
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown</a></br>";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown</a><br>";
 		else 
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start gracefull shutdown</a><br>\r\n";
 #endif
@@ -563,6 +564,32 @@ namespace http {
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << ":" << it.second->GetLocalPort ();
 			s << "</a><br>\r\n"<< std::endl;
+		}
+		auto& clientForwards = i2p::client::context.GetClientForwards ();
+		if (!clientForwards.empty ())
+		{
+			s << "<br>\r\n<b>Client Forwards:</b><br>\r\n<br>\r\n";
+			for (auto& it: clientForwards)
+			{
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << it.second->GetName () << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "<br>\r\n"<< std::endl;
+			}
+		}
+		auto& serverForwards = i2p::client::context.GetServerForwards ();
+		if (!serverForwards.empty ())
+		{
+			s << "<br>\r\n<b>Server Forwards:</b><br>\r\n<br>\r\n";
+			for (auto& it: serverForwards)
+			{
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << it.second->GetName () << "</a> &#8656; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << "<br>\r\n"<< std::endl;
+			}
 		}
 	}
 
@@ -762,13 +789,13 @@ namespace http {
 		reply.add_header("Content-Type", "text/html");
 		reply.body = content;
 
-		std::string res = reply.to_string();
-		boost::asio::async_write (*m_Socket, boost::asio::buffer(res),
+		m_SendBuffer = reply.to_string();
+		boost::asio::async_write (*m_Socket, boost::asio::buffer(m_SendBuffer),
 			std::bind (&HTTPConnection::Terminate, shared_from_this (), std::placeholders::_1));
 	}
 
 	HTTPServer::HTTPServer (const std::string& address, int port):
-		m_Thread (nullptr), m_Work (m_Service),
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
 		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port))
 	{
 	}
@@ -797,6 +824,7 @@ namespace http {
 			i2p::config::SetOption("http.pass", pass);
 			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 		}
+		m_IsRunning = true;
 		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
 		m_Acceptor.listen ();
 		Accept ();
@@ -804,9 +832,11 @@ namespace http {
 
 	void HTTPServer::Stop ()
 	{
+		m_IsRunning = false;
 		m_Acceptor.close();
 		m_Service.stop ();
-		if (m_Thread) {
+		if (m_Thread) 
+		{
 			m_Thread->join ();
 			m_Thread = nullptr;
 		}
@@ -814,7 +844,17 @@ namespace http {
 
 	void HTTPServer::Run ()
 	{
-		m_Service.run ();
+		while (m_IsRunning)
+		{
+			try
+			{
+				m_Service.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "HTTPServer: runtime exception: ", ex.what ());
+			}	
+		}
 	}
 
 	void HTTPServer::Accept ()
@@ -828,7 +868,13 @@ namespace http {
 		std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
 		if (ecode)
+		{
+			if(newSocket) newSocket->close();
+			LogPrint(eLogError, "HTTP Server: error handling accept ", ecode.message());
+			if(ecode != boost::asio::error::operation_aborted)
+				Accept();			
 			return;
+		}
 		CreateConnection(newSocket);
 		Accept ();
 	}

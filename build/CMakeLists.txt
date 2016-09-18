@@ -16,6 +16,7 @@ option(WITH_UPNP "Include support for UPnP client" OFF)
 option(WITH_PCH "Use precompiled header" OFF)
 option(WITH_GUI "Include GUI (currently MS Windows only)" ON)
 option(WITH_MESHNET "Build for cjdns test network" OFF)
+option(WITH_ADDRSANITIZER "Build with address sanitizer (linux only)" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -183,11 +184,27 @@ if (WITH_AESNI)
   add_definitions ( -DAESNI )
 endif()
 
+if (WITH_ADDRSANITIZER)
+  if (NOT MSVC)
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer" )
+    set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address" )
+  else ()
+    error ("MSVC does not support address sanitizer option")
+  endif()
+endif()
+
 # libraries
 # TODO: once CMake 3.1+ becomes mainstream, see e.g. http://stackoverflow.com/a/29871891/673826
 # use imported Threads::Threads instead
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package ( Threads REQUIRED )
+if (IOS)
+  set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+  set(CMAKE_HAVE_THREADS_LIBRARY 1)
+  set(CMAKE_USE_WIN32_THREADS_INIT 0)
+  set(CMAKE_USE_PTHREADS_INIT 1)
+else()
+  find_package ( Threads REQUIRED )
+endif()
 if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
@@ -328,6 +345,7 @@ message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  PCH              : ${WITH_PCH}")
 message(STATUS "  MESHNET          : ${WITH_MESHNET}")
+message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely

@@ -24,6 +24,8 @@ namespace client
 	const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
 	const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
 	const char I2P_TUNNELS_SECTION_TYPE_IRC[] = "irc";
+	const char I2P_TUNNELS_SECTION_TYPE_UDPCLIENT[] = "udpclient";
+	const char I2P_TUNNELS_SECTION_TYPE_UDPSERVER[] = "udpserver";
 	const char I2P_CLIENT_TUNNEL_PORT[] = "port";
 	const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
@@ -39,7 +41,8 @@ namespace client
 	const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";		
 	const char I2P_SERVER_TUNNEL_GZIP[] = "gzip";
 	const char I2P_SERVER_TUNNEL_WEBIRC_PASSWORD[] = "webircpassword";
-
+	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";
+	
 	class ClientContext
 	{
 		public:
@@ -59,11 +62,13 @@ namespace client
 				const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;		
-			void LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
-		
+
+			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
+			
 		private:
 
 			void ReadTunnels ();
@@ -72,6 +77,9 @@ namespace client
 			template<typename Section>
 			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const;	
 
+			void CleanupUDP(const boost::system::error_code & ecode);
+			void ScheduleCleanupUDP();
+			
 		private:
 
 			std::mutex m_DestinationsMutex;
@@ -84,15 +92,24 @@ namespace client
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
 			std::map<boost::asio::ip::tcp::endpoint, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // local endpoint->tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
+
+			std::mutex m_ForwardsMutex;			 
+			std::map<boost::asio::ip::udp::endpoint, std::unique_ptr<I2PUDPClientTunnel> > m_ClientForwards; // local endpoint -> udp tunnel
+			std::map<std::pair<i2p::data::IdentHash, int>, std::unique_ptr<I2PUDPServerTunnel> > m_ServerForwards; // <destination,port> -> udp tunnel
+			
 			SAMBridge * m_SamBridge;
 			BOBCommandChannel * m_BOBCommandChannel;
 			I2CPServer * m_I2CPServer;
 
+			std::unique_ptr<boost::asio::deadline_timer> m_CleanupUDPTimer;
+			
 		public:
 			// for HTTP
 			const decltype(m_Destinations)& GetDestinations () const { return m_Destinations; };
 			const decltype(m_ClientTunnels)& GetClientTunnels () const { return m_ClientTunnels; };
 			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
+			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
+			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
 	};
 	
 	extern ClientContext context;	

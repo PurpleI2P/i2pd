@@ -178,7 +178,7 @@ namespace garlic
 		// create message
 		if (!tagFound) // new session
 		{
-			LogPrint (eLogWarning, "Garlic: No tags available, will use ElGamal");
+			LogPrint (eLogInfo, "Garlic: No tags available, will use ElGamal");
 			if (!m_Destination)
 			{
 				LogPrint (eLogError, "Garlic: Can't use ElGamal for unknown destination");
@@ -247,7 +247,7 @@ namespace garlic
 
 	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, std::shared_ptr<const I2NPMessage> msg, UnconfirmedTags * newTags)
 	{
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
+		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
 		uint32_t msgID;
 		RAND_bytes ((uint8_t *)&msgID, 4);
 		size_t size = 0;
@@ -258,9 +258,11 @@ namespace garlic
 		if (m_Owner)
 		{	
 			// resubmit non-confirmed LeaseSet
-			if (m_LeaseSetUpdateStatus == eLeaseSetSubmitted && 
-			    i2p::util::GetMillisecondsSinceEpoch () > m_LeaseSetSubmissionTime + LEASET_CONFIRMATION_TIMEOUT)
-					m_LeaseSetUpdateStatus = eLeaseSetUpdated;
+			if (m_LeaseSetUpdateStatus == eLeaseSetSubmitted && ts > m_LeaseSetSubmissionTime + LEASET_CONFIRMATION_TIMEOUT)
+			{
+				m_LeaseSetUpdateStatus = eLeaseSetUpdated;
+				SetSharedRoutingPath (nullptr); // invalidate path since leaseset was not confirmed
+			}
 
 			// attach DeviveryStatus if necessary
 			if (newTags || m_LeaseSetUpdateStatus == eLeaseSetUpdated) // new tags created or leaseset updated
@@ -286,7 +288,7 @@ namespace garlic
 			{
 				m_LeaseSetUpdateStatus = eLeaseSetSubmitted;
 				m_LeaseSetUpdateMsgID = msgID;
-				m_LeaseSetSubmissionTime = i2p::util::GetMillisecondsSinceEpoch ();
+				m_LeaseSetSubmissionTime = ts;
 				// clove if our leaseSet must be attached
 				auto leaseSet = CreateDatabaseStoreMsg (m_Owner->GetLeaseSet ());
 				size += CreateGarlicClove (payload + size, leaseSet, false); 
@@ -303,7 +305,7 @@ namespace garlic
 		size += 3;
 		htobe32buf (payload + size, msgID); // MessageID
 		size += 4;
-		htobe64buf (payload + size, ts); // Expiration of message
+		htobe64buf (payload + size, ts + 8000); // Expiration of message, 8 sec
 		size += 8;
 		return size;
 	}	

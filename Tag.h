@@ -20,7 +20,7 @@ namespace data {
 	{
 		public:
 
-			Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); };
+    Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); };
 			Tag (const Tag<sz>& ) = default;
 #ifndef _WIN32 // FIXME!!! msvs 2013 can't compile it
 			Tag (Tag<sz>&& ) = default;
@@ -50,6 +50,14 @@ namespace data {
 				return true;
 			}
 
+      const uint8_t * data() const { return m_Buf; }
+
+      /** fill with a value */
+			void Fill(uint8_t c)
+			{
+				memset(m_Buf, c, sz);
+			}
+			
 			std::string ToBase64 () const
 			{
 				char str[sz*2];

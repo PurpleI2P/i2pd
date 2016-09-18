@@ -34,11 +34,11 @@ namespace data
 	}	
 
 	void NetDb::Start ()
-	{	
+	{
 		m_Storage.SetPlace(i2p::fs::GetDataDir());
 		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
 		InitProfilesStorage ();
-		m_Families.LoadCertificates ();	
+		m_Families.LoadCertificates ();
 		Load ();
 		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
 			Reseed ();
@@ -68,7 +68,7 @@ namespace data
 			m_Requests.Stop ();
 		}
 	}	
-	
+  
 	void NetDb::Run ()
 	{
 		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
@@ -329,6 +329,67 @@ namespace data
 		for ( auto & entry : m_LeaseSets)
 			v(entry.first, entry.second);
 	}
+
+	void NetDb::VisitStoredRouterInfos(RouterInfoVisitor v)
+	{
+		m_Storage.Iterate([v] (const std::string & filename) {
+        auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
+				v(ri);
+		});
+	}
+
+	void NetDb::VisitRouterInfos(RouterInfoVisitor v)
+	{
+		std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
+		for ( const auto & item : m_RouterInfos )
+			v(item.second);
+	}
+
+	size_t NetDb::VisitRandomRouterInfos(RouterInfoFilter filter, RouterInfoVisitor v, size_t n)
+	{
+		std::vector<std::shared_ptr<const RouterInfo> > found;
+		const size_t max_iters_per_cyle = 3;
+		size_t iters = max_iters_per_cyle;
+		while(n > 0)
+		{
+			std::unique_lock<std::mutex> lock(m_RouterInfosMutex);
+			uint32_t idx = rand () % m_RouterInfos.size ();
+			uint32_t i = 0;
+			for (const auto & it : m_RouterInfos) {
+				if(i >= idx) // are we at the random start point?
+				{
+					// yes, check if we want this one
+					if(filter(it.second))
+					{
+						// we have a match
+						--n;
+						found.push_back(it.second);
+						// reset max iterations per cycle
+						iters = max_iters_per_cyle;
+						break;
+					}
+				}
+				else // not there yet
+					++i;
+			}
+			// we have enough
+			if(n == 0) break;
+			--iters;
+			// have we tried enough this cycle ?
+			if(!iters) {
+				// yes let's try the next cycle
+				--n;
+				iters = max_iters_per_cyle;
+			}
+		}
+		// visit the ones we found
+		size_t visited = 0;
+		for(const auto & ri : found ) {
+			v(ri);
+			++visited;
+		}
+		return visited;
+	}
 	
 	void NetDb::Load ()
 	{
@@ -495,8 +556,13 @@ namespace data
 			}	
 			uint8_t uncompressed[2048];
 			size_t uncompressedSize = m_Inflator.Inflate (buf + offset, size, uncompressed, 2048);
-			if (uncompressedSize)
+			if (uncompressedSize && uncompressedSize < 2048)
 				updated = AddRouterInfo (ident, uncompressed, uncompressedSize);
+			else
+			{	
+				LogPrint (eLogError, "NetDb: decompression failed ", uncompressedSize);
+				return;
+			}	
 		}	
 
 		if (replyToken && context.IsFloodfill () && updated)

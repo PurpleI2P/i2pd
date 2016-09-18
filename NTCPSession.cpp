@@ -22,7 +22,6 @@ namespace transport
 		TransportSession (in_RemoteRouter, NTCP_TERMINATION_TIMEOUT),	
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
-		m_LastActivityTimestamp (i2p::util::GetSecondsSinceEpoch ()),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
 	{		
 		m_Establisher = new Establisher;
@@ -748,6 +747,7 @@ namespace transport
 			auto& addresses = context.GetRouterInfo ().GetAddresses ();
 			for (const auto& address: addresses)
 			{
+				if (!address) continue;
 				if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
 				{
 					if (address->host.is_v4())
@@ -845,6 +845,7 @@ namespace transport
 		if (it != m_NTCPSessions.end ())
 		{
 			LogPrint (eLogWarning, "NTCP: session to ", ident.ToBase64 (), " already exists");
+			session->Terminate();
 			return false;
 		}
 		m_NTCPSessions.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<NTCPSession> >(ident, session));
@@ -953,7 +954,7 @@ namespace transport
 	{
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Can't connect to ", conn->GetSocket ().remote_endpoint (), ": ", ecode.message ());
+			LogPrint (eLogError, "NTCP: Connect error ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 			conn->Terminate ();

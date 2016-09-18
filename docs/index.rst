@@ -35,5 +35,6 @@ Contents:
    build_notes_android
    configuration
    family
+   usage
 
 

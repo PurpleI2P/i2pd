@@ -151,6 +151,23 @@ namespace config {
 	options_description reseed("Reseed options");	
 	reseed.add_options()
 	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
+#ifdef MESHNET
+	  ("reseed.urls", value<std::string>()->default_value("https://reseed.i2p.rocks:8443/"),  "Reseed URLs, separated by comma")
+#else
+	  ("reseed.urls", value<std::string>()->default_value(
+		"https://reseed.i2p-projekt.de/,"
+		"https://i2p.mooo.com/netDb/,"
+		"https://netdb.i2p2.no/,"
+		"https://us.reseed.i2p2.no:444/,"
+		"https://uk.reseed.i2p2.no:444/,"
+		"https://i2p.manas.ca:8443/,"
+		"https://i2p-0.manas.ca:8443/,"
+		"https://reseed.i2p.vzaws.com:8443/,"
+		"https://user.mx24.eu/,"
+		"https://download.xxlspeed.com/,"
+		"https://reseed-ru.lngserv.ru/"
+		),  "Reseed URLs, separated by comma")
+#endif
 	  ;	
 
   	options_description trust("Trust options");

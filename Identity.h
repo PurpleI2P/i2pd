@@ -92,6 +92,8 @@ namespace data
 			CryptoKeyType GetCryptoKeyType () const;
 			void DropVerifier () const; // to save memory			
 
+      bool operator == (const IdentityEx & other) const { return GetIdentHash() == other.GetIdentHash(); }
+      
 		private:
 
 			void CreateVerifier () const;
@@ -133,14 +135,14 @@ namespace data
 	
 		private:
 
-			void CreateSigner ();
+			void CreateSigner () const;
 			
 		private:
 
 			std::shared_ptr<IdentityEx> m_Public;
 			uint8_t m_PrivateKey[256];
 			uint8_t m_SigningPrivateKey[1024]; // assume private key doesn't exceed 1024 bytes
-			std::unique_ptr<i2p::crypto::Signer> m_Signer;
+			mutable std::unique_ptr<i2p::crypto::Signer> m_Signer;
 	};
 
 	// kademlia

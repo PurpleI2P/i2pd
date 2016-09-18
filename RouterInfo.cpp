@@ -125,14 +125,6 @@ namespace data
 			m_IsUnreachable = true;
 			return;
 		}
-		std::stringstream str (std::string ((char *)m_Buffer + identityLen, m_BufferLen - identityLen));
-		ReadFromStream (str);
-		if (!str)
-		{
-			LogPrint (eLogError, "RouterInfo: malformed message");
-			m_IsUnreachable = true;
-			return;
-		}
 		if (verifySignature)
 		{	
 			// verify signature
@@ -141,9 +133,20 @@ namespace data
 			{	
 				LogPrint (eLogError, "RouterInfo: signature verification failed");
 				m_IsUnreachable = true;
+				return;
 			}
 			m_RouterIdentity->DropVerifier ();
 		}	
+		// parse RI
+		std::stringstream str;
+		str.write ((const char *)m_Buffer + identityLen, m_BufferLen - identityLen);
+		ReadFromStream (str);
+		if (!str)
+		{
+			LogPrint (eLogError, "RouterInfo: malformed message");
+			m_IsUnreachable = true;
+		}
+		
 	}	
 	
 	void RouterInfo::ReadFromStream (std::istream& s)
@@ -182,6 +185,7 @@ namespace data
 				s.seekg (1, std::ios_base::cur); r++; // =
 				r += ReadString (value, 255, s); 
 				s.seekg (1, std::ios_base::cur); r++; // ;
+				if (!s) return;
 				if (!strcmp (key, "host"))
 				{	
 					boost::system::error_code ecode;
@@ -223,6 +227,11 @@ namespace data
 					size_t l = strlen(key); 	
 					unsigned char index = key[l-1] - '0'; // TODO:
 					key[l-1] = 0;
+					if (index > 9)
+					{
+						LogPrint (eLogError, "RouterInfo: Unexpected introducer's index ", index, " skipped");
+						if (s) continue; else return;
+					}
 					if (index >= address.introducers.size ())
 						address.introducers.resize (index + 1); 
 					Introducer& introducer = address.introducers.at (index);
@@ -262,6 +271,7 @@ namespace data
 			s.seekg (1, std::ios_base::cur); r++; // =
 			r += ReadString (value, 255, s); 
 			s.seekg (1, std::ios_base::cur); r++; // ;
+			if (!s) return;
 			m_Properties[key] = value;
 			
 			// extract caps	
@@ -270,7 +280,7 @@ namespace data
 			// check netId
 			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID) && atoi (value) != I2PD_NET_ID)
 			{
-				LogPrint (eLogError, "Unexpected ", ROUTER_INFO_PROPERTY_NETID, "=", value);
+				LogPrint (eLogError, "RouterInfo: Unexpected ", ROUTER_INFO_PROPERTY_NETID, "=", value);
 				m_IsUnreachable = true;		
 			}	
 			// family
@@ -543,6 +553,7 @@ namespace data
 		if (l < len)
 		{	
 			s.read (str, l);
+			if (!s) l = 0; // failed, return empty string
 			str[l] = 0;
 		}
 		else

@@ -168,14 +168,32 @@ namespace client
 		else
 			return false;
 	}	
-
+  
 	std::shared_ptr<const i2p::data::LeaseSet> LeaseSetDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
 	{
+		std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 		auto it = m_RemoteLeaseSets.find (ident);
 		if (it != m_RemoteLeaseSets.end ())
-		{	
+		{
 			if (!it->second->IsExpired ())
+			{
+				if (it->second->ExpiresSoon())
+				{
+					LogPrint(eLogDebug, "Destination: Lease Set expires soon, updating before expire");
+					// update now before expiration for smooth handover
+					RequestDestination(ident, [this, ident] (std::shared_ptr<i2p::data::LeaseSet> ls) {
+						if(ls && !ls->IsExpired())
+						{
+							ls->PopulateLeases();
+							{
+								std::lock_guard<std::mutex> _lock(m_RemoteLeaseSetsMutex);
+								m_RemoteLeaseSets[ident] = ls;
+							}
+						}
+					});
+				}
 				return it->second;
+			}
 			else
 				LogPrint (eLogWarning, "Destination: remote LeaseSet expired");
 		}	
@@ -185,7 +203,10 @@ namespace client
 			if (ls && !ls->IsExpired ())
 			{
 				ls->PopulateLeases (); // since we don't store them in netdb
-				m_RemoteLeaseSets[ident] = ls;			
+				{
+					std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+					m_RemoteLeaseSets[ident] = ls;
+				}
 				return ls;
 			}	
 		}
@@ -203,6 +224,7 @@ namespace client
 	void LeaseSetDestination::SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet)
 	{
 		m_LeaseSet.reset (newLeaseSet);
+		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();
 		if (m_IsPublic)
 		{
 			m_PublishVerificationTimer.cancel ();
@@ -279,6 +301,7 @@ namespace client
 		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
 		{
 			LogPrint (eLogDebug, "Remote LeaseSet");
+			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 			auto it = m_RemoteLeaseSets.find (buf + DATABASE_STORE_KEY_OFFSET);
 			if (it != m_RemoteLeaseSets.end ())
 			{
@@ -391,8 +414,7 @@ namespace client
 	}	
 
 	void LeaseSetDestination::SetLeaseSetUpdated ()
-	{
-		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();	
+	{	
 		UpdateLeaseSet ();
 	}
 		
@@ -619,6 +641,7 @@ namespace client
 		{
 			CleanupExpiredTags ();
 			CleanupRemoteLeaseSets ();
+			CleanupDestination ();
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
 				shared_from_this (), std::placeholders::_1));
@@ -628,6 +651,7 @@ namespace client
 	void LeaseSetDestination::CleanupRemoteLeaseSets ()
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 		for (auto it = m_RemoteLeaseSets.begin (); it != m_RemoteLeaseSets.end ();)
 		{
 			if (it->second->IsEmpty () || ts > it->second->GetExpirationTime ()) // leaseset expired
@@ -642,7 +666,8 @@ namespace client
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (isPublic, params),
-		m_Keys (keys), m_DatagramDestination (nullptr)
+		m_Keys (keys), m_DatagramDestination (nullptr),
+		m_ReadyChecker(GetService())
 	{
 		if (isPublic)	
 			PersistTemporaryKeys ();
@@ -654,8 +679,6 @@ namespace client
 
 	ClientDestination::~ClientDestination ()	
 	{
-		if (m_DatagramDestination)
-			delete m_DatagramDestination;
 	}	
 		
 	bool ClientDestination::Start ()
@@ -676,22 +699,44 @@ namespace client
 	{
 		if (LeaseSetDestination::Stop ())
 		{
+			m_ReadyChecker.cancel();
 			m_StreamingDestination->Stop ();
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
 				it.second->Stop ();
-			if (m_DatagramDestination)
-			{
-				auto d = m_DatagramDestination;
-				m_DatagramDestination = nullptr;
-				delete d;
-			}	
-			return true;
+      if(m_DatagramDestination)
+        delete m_DatagramDestination;
+      m_DatagramDestination = nullptr;
+  		return true;
 		}
 		else
 			return false;
 	}	
 
+	void ClientDestination::Ready(ReadyPromise & p)
+	{
+		ScheduleCheckForReady(&p);
+	}
+
+	void ClientDestination::ScheduleCheckForReady(ReadyPromise * p)
+	{
+		// tick every 100ms
+		m_ReadyChecker.expires_from_now(boost::posix_time::milliseconds(100));
+		m_ReadyChecker.async_wait([&, p] (const boost::system::error_code & ecode) {
+			HandleCheckForReady(ecode, p);
+		});
+	}
+
+	void ClientDestination::HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p)
+	{
+		if(ecode) // error happened
+			p->set_value(nullptr);
+		else if(IsReady()) // we are ready
+			p->set_value(std::shared_ptr<ClientDestination>(this));
+		else // we are not ready
+			ScheduleCheckForReady(p);
+	}
+	
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
 		uint32_t length = bufbe32toh (buf);
@@ -796,9 +841,9 @@ namespace client
 		return dest;
 	}	
 		
-	i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
+  i2p::datagram::DatagramDestination * ClientDestination::CreateDatagramDestination ()
 	{
-		if (!m_DatagramDestination)
+		if (m_DatagramDestination == nullptr)
 			m_DatagramDestination = new i2p::datagram::DatagramDestination (GetSharedFromThis ());
 		return m_DatagramDestination;	
 	}
@@ -848,5 +893,11 @@ namespace client
 		Sign (leaseSet->GetBuffer (), leaseSet->GetBufferLen () - leaseSet->GetSignatureLen (), leaseSet->GetSignature ()); // TODO
 		SetLeaseSet (leaseSet);
 	}	
+
+	void ClientDestination::CleanupDestination ()
+	{
+		if (m_DatagramDestination) m_DatagramDestination->CleanUp ();
+	}
+
 }
 }

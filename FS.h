@@ -13,6 +13,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <functional>
 
 namespace i2p {
 namespace fs {
@@ -43,6 +44,7 @@ namespace fs {
       std::string suffix;  /**< suffix of file in storage (extension) */
 
     public:
+      typedef std::function<void(const std::string &)> FilenameVisitor;
       HashedStorage(const char *n, const char *p1, const char *p2, const char *s):
         name(n), prefix1(p1), prefix2(p2), suffix(s) {};
 
@@ -58,6 +60,8 @@ namespace fs {
       void Remove(const std::string & ident);
       /** find all files in storage and store list in provided vector */
       void Traverse(std::vector<std::string> & files);
+      /** visit every file in this storage with a visitor */
+      void Iterate(FilenameVisitor v);
   };
 
   /** @brief Returns current application name, default 'i2pd' */

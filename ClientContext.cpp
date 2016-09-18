@@ -39,8 +39,9 @@ namespace client
 			m_SharedLocalDestination->Start ();
 		}
 
+    
 		m_AddressBook.Start ();	
-		
+    
 		std::shared_ptr<ClientDestination> localDestination;	
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
 		if (httproxy) {
@@ -51,8 +52,10 @@ namespace client
 			if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				LoadPrivateKeys (keys, httpProxyKeys);
-				localDestination = CreateNewLocalDestination (keys, false);
+				if(LoadPrivateKeys (keys, httpProxyKeys))
+					localDestination = CreateNewLocalDestination (keys, false);
+				else
+					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
 			try {
 			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
@@ -61,7 +64,7 @@ namespace client
 			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
 		}
-
+    
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy) {
 			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",    socksProxyKeys);
@@ -83,10 +86,10 @@ namespace client
 			  LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
 			}
 		}
-	
-		// I2P tunnels
-		ReadTunnels ();
 
+		// I2P tunnels
+		ReadTunnels ();		
+    
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
 		if (sam) {
@@ -134,6 +137,13 @@ namespace client
 		} 
 
 		m_AddressBook.StartResolvers ();	
+
+		// start UDP cleanup
+		if (!m_ServerForwards.empty ())
+		{
+			m_CleanupUDPTimer.reset (new boost::asio::deadline_timer(m_SharedLocalDestination->GetService ()));
+			ScheduleCleanupUDP();
+		}
 	}
 		
 	void ClientContext::Stop ()
@@ -193,20 +203,37 @@ namespace client
 		}
 
 		LogPrint(eLogInfo, "Clients: stopping AddressBook");
-		m_AddressBook.Stop ();		
+		m_AddressBook.Stop ();
+
+    	{
+			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+			m_ServerForwards.clear();
+			m_ClientForwards.clear();
+		}
+		
+		if (m_CleanupUDPTimer)
+		{
+			m_CleanupUDPTimer->cancel ();	
+			m_CleanupUDPTimer = nullptr;	
+		}
+
 		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Destinations.clear ();
-		m_SharedLocalDestination = nullptr; 
+		m_SharedLocalDestination = nullptr;
 	}	
 
 	void ClientContext::ReloadConfig ()
 	{
-		ReadTunnels (); // TODO: it reads new tunnels only, should be implemented better
+		std::string config; i2p::config::GetOption("conf", config);
+		i2p::config::ParseConfig(config);
+		Stop();
+		Start();
 	}
 	
-	void ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
 	{
+		bool success = true;
 		std::string fullPath = i2p::fs::DataDirPath (filename);
 		std::ifstream s(fullPath, std::ifstream::binary);
 		if (s.is_open ())	
@@ -216,9 +243,14 @@ namespace client
 			s.seekg (0, std::ios::beg);
 			uint8_t * buf = new uint8_t[len];
 			s.read ((char *)buf, len);
-			keys.FromBuffer (buf, len);
+			if(!keys.FromBuffer (buf, len))
+			{
+				LogPrint (eLogError, "Clients: failed to load keyfile ", filename);
+				success = false;
+			}
+			else
+				LogPrint (eLogInfo, "Clients: Local address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " loaded");
 			delete[] buf;
-			LogPrint (eLogInfo, "Clients: Local address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " loaded");
 		}	
 		else
 		{
@@ -232,7 +264,31 @@ namespace client
 			delete[] buf;
 			
 			LogPrint (eLogInfo, "Clients: New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
-		}	
+		}
+		return success;
+	}
+
+	std::vector<std::shared_ptr<DatagramSessionInfo> > ClientContext::GetForwardInfosFor(const i2p::data::IdentHash & destination)
+	{
+		std::vector<std::shared_ptr<DatagramSessionInfo> > infos;
+		std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+		for(const auto & c : m_ClientForwards)
+		{
+			if (c.second->IsLocalDestination(destination))
+			{
+				for (auto & i : c.second->GetSessions()) infos.push_back(i);
+				break;
+			}
+		}
+		for(const auto & s : m_ServerForwards)
+		{
+			if(std::get<0>(s.first) == destination)
+			{
+				for( auto & i : s.second->GetSessions()) infos.push_back(i);
+				break;
+			}
+		}
+		return infos;
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
@@ -337,7 +393,7 @@ namespace client
 			try
 			{
 				std::string type = section.second.get<std::string> (I2P_TUNNELS_SECTION_TYPE);
-				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT)
+				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
 				{
 					// mandatory params
 					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
@@ -355,22 +411,43 @@ namespace client
 					if (keys.length () > 0)
 					{
 						i2p::data::PrivateKeys k;
-						LoadPrivateKeys (k, keys, sigType);
-						localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+						if(LoadPrivateKeys (k, keys, sigType))
+						{
+							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
+							if (!localDestination)
+								localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+						}
+					}
+					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
+						// udp client
+						// TODO: hostnames
+						boost::asio::ip::udp::endpoint end(boost::asio::ip::address::from_string(address), port);
 						if (!localDestination)
-							localDestination = CreateNewLocalDestination (k, false, &options);
+						{
+							localDestination = m_SharedLocalDestination;
+						}
+						auto clientTunnel = new I2PUDPClientTunnel(name, dest, end, localDestination, destinationPort);
+						if(m_ClientForwards.insert(std::make_pair(end, std::unique_ptr<I2PUDPClientTunnel>(clientTunnel))).second)
+						{
+							clientTunnel->Start();
+						}
+						else
+							LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
+
+					} else {
+						// tcp client
+						auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
+						if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
+							std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
+						{
+							clientTunnel->Start ();
+							numClientTunnels++;
+						}
+						else
+							LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientTunnel->GetAcceptor ().local_endpoint (), " already exists");
 					}
-					auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
-					if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
-						std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
-					{
-						clientTunnel->Start ();
-						numClientTunnels++;
-					}
-					else
-						LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientTunnel->GetAcceptor ().local_endpoint (), " already exists");
 				}
-				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC)
+				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC || type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 				{	
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
@@ -383,17 +460,43 @@ namespace client
 					std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
+					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
+					
 					// I2CP
 					std::map<std::string, std::string> options;							 
 					ReadI2CPOptions (section, options);				
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
-					LoadPrivateKeys (k, keys, sigType);
+					if(!LoadPrivateKeys (k, keys, sigType))
+						continue;
 					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 					if (!localDestination)		
 						localDestination = CreateNewLocalDestination (k, true, &options);
-
+					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
+					{
+						// udp server tunnel
+						// TODO: hostnames
+						auto localAddress = boost::asio::ip::address::from_string(address);
+						boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
+						I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, localAddress, endpoint, port);
+						std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+						if(m_ServerForwards.insert(
+							std::make_pair(
+								std::make_pair(
+									localDestination->GetIdentHash(), port),
+								std::unique_ptr<I2PUDPServerTunnel>(serverTunnel))).second)
+						{
+							serverTunnel->Start();
+							LogPrint(eLogInfo, "Clients: I2P Server Forward created for UDP Endpoint ", host, ":", port, " bound on ", address, " for ",localDestination->GetIdentHash().ToBase32());
+						}
+						else
+							LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
+						
+						continue;
+					}
+          
 					I2PServerTunnel * serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
                     	serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
@@ -402,6 +505,10 @@ namespace client
 					else // regular server tunnel by default
                    		serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
 
+					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
+					serverTunnel->SetMaxConnsPerMinute(maxConns);
+					
+          
 					if (accessList.length () > 0)
 					{
 						std::set<i2p::data::IdentHash> idents;
@@ -439,6 +546,26 @@ namespace client
 		}	
 		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " I2P client tunnels created");
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
-	}	
+	}
+  
+	void ClientContext::ScheduleCleanupUDP()
+	{
+		if (m_CleanupUDPTimer)
+		{
+			// schedule cleanup in 17 seconds
+			m_CleanupUDPTimer->expires_from_now (boost::posix_time::seconds (17));
+			m_CleanupUDPTimer->async_wait(std::bind(&ClientContext::CleanupUDP, this, std::placeholders::_1));
+		}
+	}
+
+	void ClientContext::CleanupUDP(const boost::system::error_code & ecode)
+	{
+		if(!ecode)
+		{
+			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
+			for (auto & s : m_ServerForwards ) s.second->ExpireStale();
+			ScheduleCleanupUDP();
+		}
+	}
 }		
 }	

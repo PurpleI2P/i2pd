@@ -269,9 +269,14 @@ namespace stream
 				}
 				auto sentPacket = *it;
 				uint64_t rtt = ts - sentPacket->sendTime;
+				if(ts < sentPacket->sendTime)
+				{
+					LogPrint(eLogError, "Streaming: Packet ", seqn, "sent from the future, sendTime=", sentPacket->sendTime);
+					rtt = 1;
+				}
 				m_RTT = (m_RTT*seqn + rtt)/(seqn + 1);
 				m_RTO = m_RTT*1.5; // TODO: implement it better
-				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt);
+				LogPrint (eLogDebug, "Streaming: Packet ", seqn, " acknowledged rtt=", rtt, " sentTime=", sentPacket->sendTime);
 				m_SentPackets.erase (it++);
 				delete sentPacket;	
 				acknowledged = true;
@@ -658,6 +663,9 @@ namespace stream
 	void Stream::ScheduleResend ()
 	{
 		m_ResendTimer.cancel ();
+		// check for invalid value
+		if (m_RTO <= 0)
+			m_RTO = 1;
 		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
 		m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -733,7 +741,15 @@ namespace stream
 				return;
 			}	
 			if (m_Status == eStreamStatusOpen)
+			{
+				if (m_RoutingSession && m_RoutingSession->IsLeaseSetNonConfirmed ()) 
+				{
+					// seems something went wrong and we should re-select tunnels
+					m_CurrentOutboundTunnel = nullptr;
+					m_CurrentRemoteLease = nullptr;
+				}
 				SendQuickAck ();
+			}
 			m_IsAckSendScheduled = false;
 		}	
 	}
@@ -792,7 +808,10 @@ namespace stream
 
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip): 
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip), 
-		m_PendingIncomingTimer (m_Owner->GetService ())
+		m_PendingIncomingTimer (m_Owner->GetService ()),
+		m_ConnTrackTimer(m_Owner->GetService()),
+		m_ConnsPerMinute(DEFAULT_MAX_CONNS_PER_MIN),
+		m_LastBanClear(i2p::util::GetMillisecondsSinceEpoch())
 	{
 	}
 		
@@ -807,17 +826,23 @@ namespace stream
 	}
 
 	void StreamingDestination::Start ()
-	{	
+	{
+		ScheduleConnTrack();
 	}
 		
 	void StreamingDestination::Stop ()
 	{	
 		ResetAcceptor ();
 		m_PendingIncomingTimer.cancel ();
+		m_ConnTrackTimer.cancel();
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.clear ();
-		}	
+		}
+		{
+			std::unique_lock<std::mutex> l(m_ConnsMutex);
+			m_Conns.clear ();
+		}
 	}	
 		
 	void StreamingDestination::HandleNextPacket (Packet * packet)
@@ -841,6 +866,18 @@ namespace stream
 				auto incomingStream = CreateNewIncomingStream ();
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
 				incomingStream->HandleNextPacket (packet); // SYN
+				auto ident = incomingStream->GetRemoteIdentity();
+				if(ident)
+				{
+					auto ih = ident->GetIdentHash();
+					if(DropNewStream(ih))
+					{
+						// drop
+						LogPrint(eLogWarning, "Streaming: Dropping connection, too many inbound streams from ", ih.ToBase32());
+						incomingStream->Terminate();
+						return;
+					}
+				}
 				// handle saved packets if any
 				{
 					auto it = m_SavedPackets.find (receiveStreamID);
@@ -851,7 +888,7 @@ namespace stream
 							incomingStream->HandleNextPacket (it1);
 						m_SavedPackets.erase (it);
 					}			
-				}	
+				}
 				// accept
 				if (m_Acceptor != nullptr)
 					m_Acceptor (incomingStream);
@@ -1004,6 +1041,64 @@ namespace stream
 		else
 			msg = nullptr;
 		return msg;
-	}	
+	}
+
+	void StreamingDestination::SetMaxConnsPerMinute(const uint32_t conns)
+	{
+		m_ConnsPerMinute = conns;
+		LogPrint(eLogDebug, "Streaming: Set max conns per minute per destination to ", conns);
+	}
+
+	bool StreamingDestination::DropNewStream(const i2p::data::IdentHash & ih)
+	{
+		std::lock_guard<std::mutex> lock(m_ConnsMutex);
+		if (m_Banned.size() > MAX_BANNED_CONNS) return true; // overload
+		auto end = std::end(m_Banned);
+		if ( std::find(std::begin(m_Banned), end, ih) != end) return true; // already banned
+		auto itr = m_Conns.find(ih);
+		if (itr == m_Conns.end())
+			m_Conns[ih] = 0;
+
+		m_Conns[ih] += 1;
+
+		bool ban = m_Conns[ih] >= m_ConnsPerMinute;
+		if (ban)
+		{
+			m_Banned.push_back(ih);
+			m_Conns.erase(ih);
+			LogPrint(eLogWarning, "Streaming: ban ", ih.ToBase32());
+		}
+		return ban;
+	}
+
+	void StreamingDestination::HandleConnTrack(const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			{ // acquire lock
+				std::lock_guard<std::mutex> lock(m_ConnsMutex);
+				// clear conn tracking
+				m_Conns.clear();
+				// check for ban clear
+				auto ts = i2p::util::GetMillisecondsSinceEpoch();
+				if (ts - m_LastBanClear >= DEFAULT_BAN_INTERVAL)
+				{
+					// clear bans
+					m_Banned.clear();
+					m_LastBanClear = ts;
+				}
+			}
+			// reschedule timer
+			ScheduleConnTrack();
+		}	 
+	}
+
+	void StreamingDestination::ScheduleConnTrack()
+	{
+		m_ConnTrackTimer.expires_from_now (boost::posix_time::seconds(60));
+		m_ConnTrackTimer.async_wait (
+			std::bind (&StreamingDestination::HandleConnTrack, 
+								 shared_from_this (), std::placeholders::_1));
+	}
 }		
 }	
