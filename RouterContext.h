@@ -20,7 +20,8 @@ namespace i2p
 	{
 		eRouterStatusOK = 0,
 		eRouterStatusTesting = 1,
-		eRouterStatusFirewalled = 2
+		eRouterStatusFirewalled = 2,
+		eRouterStatusError = 3 
 	};	
 
 	class RouterContext: public i2p::garlic::GarlicDestination 

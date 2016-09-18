@@ -272,6 +272,16 @@ namespace transport
 		s.Insert (payload, 8); // relayTag and signed on time 
 		m_RelayTag = bufbe32toh (payload);
 		payload += 4; // relayTag
+		if (i2p::context.GetStatus () == eRouterStatusTesting)
+		{	
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			uint32_t signedOnTime = bufbe32toh(payload);
+			if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
+			{
+				LogPrint (eLogError, "SSU: clock skew detected ", (int)ts - signedOnTime, ". Check your clock"); 
+				i2p::context.SetStatus (eRouterStatusError);
+			}
+		}	
 		payload += 4; // signed on time
 		// decrypt signature
 		size_t signatureLen = m_RemoteIdentity->GetSignatureLen ();
@@ -310,6 +320,14 @@ namespace transport
 		SetRemoteIdentity (std::make_shared<i2p::data::IdentityEx> (payload, identitySize));
 		m_Data.UpdatePacketSize (m_RemoteIdentity->GetIdentHash ());
 		payload += identitySize; // identity	
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t signedOnTime = bufbe32toh(payload); 
+		if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
+		{
+			LogPrint (eLogError, "SSU message 'confirmed' time difference ", (int)ts - signedOnTime, " exceeds clock skew"); 
+			Failed ();
+			return;
+		}	
 		if (m_SignedData)
 			m_SignedData->Insert (payload, 4); // insert Alice's signed on time
 		payload += 4; // signed-on time

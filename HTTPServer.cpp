@@ -180,6 +180,7 @@ namespace http {
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
 			case eRouterStatusFirewalled: s << "Firewalled"; break; 
+			case eRouterStatusError: s << "Error"; break;
 			default: s << "Unknown";
 		} 
 		s << "<br>\r\n";
