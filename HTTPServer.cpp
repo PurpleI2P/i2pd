@@ -345,50 +345,32 @@ namespace http {
 
 	void ShowLeasesSets(std::stringstream& s)
 	{
-		s << "<div id='leasesets'><b>LeaseSets:</b></div><br>";
+		s << "<div id='leasesets'><b>LeaseSets (click on to show info):</b></div><br>\r\n";
+		int counter = 1;
 		// for each lease set
 		i2p::data::netdb.VisitLeaseSets(
-			[&s](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet) 
+			[&s, &counter](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet) 
 			{
 				// create copy of lease set so we extract leases
 				i2p::data::LeaseSet ls(leaseSet->GetBuffer(), leaseSet->GetBufferLen());
-				// begin lease set entry
 				s << "<div class='leaseset";
 				if (ls.IsExpired())
 					s << " expired"; // additional css class for expired
-				s << "'>";
-				// invalid ?
+				s << "'>\r\n";
 				if (!ls.IsValid())
-					s << "<div class='invalid'>!! Invalid !! </div>";
-				// ident
-				s << "<div class='ident'>" << dest.ToBase32() << "</div>";
-				// LeaseSet time
-				s << "<div class='expires'>expires: " << ls.GetExpirationTime() << "</div>";
-				// get non expired leases
+					s << "<div class='invalid'>!! Invalid !! </div>\r\n";
+				s << "<div class='slide'><label for='slide" << counter << "'>" << dest.ToBase32() << "</label>\r\n";
+				s << "<input type='checkbox' id='slide" << (counter++) << "'/>\r\n<p class='content'>\r\n";
+				s << "<b>Expires:</b> " << ls.GetExpirationTime() << "<br>\r\n";
 				auto leases = ls.GetNonExpiredLeases();
-				// show non expired leases
-				s << "<div class='leasecount'>Non Expired Leases: " << leases.size() << "</div>";
-				// for each lease
-				s << "<div class='leases'>";
+				s << "<b>Non Expired Leases: " << leases.size() << "</b><br>\r\n";
 				for ( auto & l : leases )
 				{
-					// begin lease
-					s << "<div class='lease'>";
-					// gateway
-					s << "<div class='gateway'>Gateway: " << l->tunnelGateway.ToBase64() << "</div>";
-					// tunnel id
-					s << "<div class='tunnelID'>TunnelID: " << l->tunnelID << "</div>";
-					// end date
-					s << "<div class='endDate'>EndDate: " << l->endDate << "</div>";
-					// end lease
-					s << "</div>";
+					s << "<b>Gateway:</b> " << l->tunnelGateway.ToBase64() << "<br>\r\n";
+					s << "<b>TunnelID:</b> " << l->tunnelID << "<br>\r\n";
+					s << "<b>EndDate:</b> " << l->endDate << "<br>\r\n";
 				}
-				// end for each lease
-				s << "</div>";
-				// end lease set entry
-				s << "</div>";
-				// linebreak
-				s << "<br>";
+				s << "</p>\r\n</div>\r\n</div>\r\n";
 			}
 		);
 		// end for each lease set
