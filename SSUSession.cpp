@@ -279,7 +279,7 @@ namespace transport
 			if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
 			{
 				LogPrint (eLogError, "SSU: clock skew detected ", (int)ts - signedOnTime, ". Check your clock"); 
-				i2p::context.SetStatus (eRouterStatusError);
+				i2p::context.SetError (eRouterErrorClockSkew);
 			}
 		}	
 		payload += 4; // signed on time

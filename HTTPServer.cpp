@@ -180,7 +180,18 @@ namespace http {
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
 			case eRouterStatusFirewalled: s << "Firewalled"; break; 
-			case eRouterStatusError: s << "Error"; break;
+			case eRouterStatusError: 
+			{	
+				s << "Error"; 
+				switch (i2p::context.GetError ())
+				{
+					case eRouterErrorClockSkew:
+						s << "<br>Clock skew"; 
+					break;
+					default: ;	
+				}	
+				break;
+			}	
 			default: s << "Unknown";
 		} 
 		s << "<br>\r\n";
