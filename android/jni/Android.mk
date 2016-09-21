@@ -57,6 +57,7 @@ LOCAL_SRC_FILES := DaemonAndroid.cpp i2pd_android.cpp \
     ../../TunnelEndpoint.cpp \
     ../../TunnelGateway.cpp \
     ../../TunnelPool.cpp \
+	../../Timestamp.cpp \
     ../../util.cpp \
      ../../i2pd.cpp ../../UPnP.cpp
 

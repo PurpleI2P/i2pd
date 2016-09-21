@@ -55,6 +55,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"
   "${CMAKE_SOURCE_DIR}/Family.cpp"
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
+  "${CMAKE_SOURCE_DIR}/Timestamp.cpp"	
   "${CMAKE_SOURCE_DIR}/api.cpp"
 )
 
