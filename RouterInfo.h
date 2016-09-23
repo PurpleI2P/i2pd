@@ -8,6 +8,7 @@
 #include <list>
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/shared_ptr.hpp> 
 #include "Identity.h"
 #include "Profiling.h"
 
@@ -201,7 +202,7 @@ namespace data
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
 			uint64_t m_Timestamp;
-			std::shared_ptr<Addresses> m_Addresses;
+			boost::shared_ptr<Addresses> m_Addresses; // TODO: use std::shared_ptr and std::atomic_store for gcc >= 4.9 
 			std::map<std::string, std::string> m_Properties;
 			bool m_IsUpdated, m_IsUnreachable;
 			uint8_t m_SupportedTransports, m_Caps;
