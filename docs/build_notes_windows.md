@@ -97,7 +97,7 @@ Requirements for building:
 * [CMake](https://cmake.org/) (tested with 3.1.3)
 * [Visual Studio Community Edition](https://www.visualstudio.com/en-us/products/visual-studio-community-vs.aspx) (tested with VS2013 Update 4)
 * [Boost](http://www.boost.org/) (tested with 1.59)
-* Optionally [MiniUPnP](http://miniupnp.free.f) (tested with 1.9), we need only few client headers
+* Optionally [MiniUPnP](http://miniupnp.free.fr) (tested with 1.9), we need only few client headers
 * OpenSSL (tested with 1.0.1p and 1.0.2e), if building from sources (recommended), you'll need as well
 	* [Netwide assembler](www.nasm.us)
 	* Strawberry Perl or ActiveState Perl, do NOT try msys2 perl, it won't work
