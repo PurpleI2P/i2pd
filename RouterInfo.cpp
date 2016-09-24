@@ -3,8 +3,10 @@
 #include "I2PEndian.h"
 #include <fstream>
 #include <boost/lexical_cast.hpp>
-#include <boost/atomic.hpp>
 #include <boost/make_shared.hpp>
+#if (BOOST_VERSION >= 105300)
+#include <boost/atomic.hpp>
+#endif
 #include "version.h"
 #include "Crypto.h"
 #include "Base.h"
@@ -257,7 +259,11 @@ namespace data
 				m_SupportedTransports |= supportedTransports;
 			}
 		}	
+#if (BOOST_VERSION >= 105300)		
 		boost::atomic_store (&m_Addresses, addresses);
+#else
+		m_Addresses = addresses; // race condition
+#endif		
 		// read peers
 		uint8_t numPeers;
 		s.read ((char *)&numPeers, sizeof (numPeers)); if (!s) return;
