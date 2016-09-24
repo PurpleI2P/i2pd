@@ -27,7 +27,7 @@ msys2
 
 ### x86 (32-bit architecture)
 
-Get install file msys2-i686-20150916.exe from https://msys2.github.io.
+Get install file msys2-i686-*.exe from https://msys2.github.io.
 open MSYS2 Shell (from Start menu).
 Install all prerequisites and download i2pd source:
 
@@ -44,7 +44,7 @@ make
 
 ### x64 (64-bit architecture)
 
-Get install file msys2-x86_64-20150916.exe from https://msys2.github.io.
+Get install file msys2-x86_64-*.exe from https://msys2.github.io.
 open MSYS2 Shell (from Start menu).
 Install all prerequisites and download i2pd source:
 
@@ -99,7 +99,7 @@ Requirements for building:
 * [Boost](http://www.boost.org/) (tested with 1.59)
 * Optionally [MiniUPnP](http://miniupnp.free.fr) (tested with 1.9), we need only few client headers
 * OpenSSL (tested with 1.0.1p and 1.0.2e), if building from sources (recommended), you'll need as well
-	* [Netwide assembler](www.nasm.us)
+	* [Netwide assembler](http://www.nasm.us/)
 	* Strawberry Perl or ActiveState Perl, do NOT try msys2 perl, it won't work
 
 
