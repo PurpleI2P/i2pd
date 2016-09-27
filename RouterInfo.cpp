@@ -3,6 +3,10 @@
 #include "I2PEndian.h"
 #include <fstream>
 #include <boost/lexical_cast.hpp>
+#include <boost/make_shared.hpp>
+#if (BOOST_VERSION >= 105300)
+#include <boost/atomic.hpp>
+#endif
 #include "version.h"
 #include "Crypto.h"
 #include "Base.h"
@@ -17,14 +21,14 @@ namespace data
 {		
 	RouterInfo::RouterInfo (): m_Buffer (nullptr) 
 	{ 
-		m_Addresses = std::make_shared<Addresses>(); // create empty list
+		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 	}
 	
 	RouterInfo::RouterInfo (const std::string& fullPath):
 		m_FullPath (fullPath), m_IsUpdated (false), m_IsUnreachable (false), 
 		m_SupportedTransports (0), m_Caps (0)
 	{
-		m_Addresses = std::make_shared<Addresses>(); // create empty list
+		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		ReadFromFile ();
 	}	
@@ -32,7 +36,7 @@ namespace data
 	RouterInfo::RouterInfo (const uint8_t * buf, int len):
 		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
-		m_Addresses = std::make_shared<Addresses>(); // create empty list
+		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
@@ -154,7 +158,7 @@ namespace data
 		s.read ((char *)&m_Timestamp, sizeof (m_Timestamp));
 		m_Timestamp = be64toh (m_Timestamp);
 		// read addresses
-		auto addresses = std::make_shared<Addresses>(); 
+		auto addresses = boost::make_shared<Addresses>(); 
 		uint8_t numAddresses;
 		s.read ((char *)&numAddresses, sizeof (numAddresses)); if (!s) return;	
 		bool introducers = false;
@@ -255,7 +259,11 @@ namespace data
 				m_SupportedTransports |= supportedTransports;
 			}
 		}	
-		m_Addresses = addresses;
+#if (BOOST_VERSION >= 105300)		
+		boost::atomic_store (&m_Addresses, addresses);
+#else
+		m_Addresses = addresses; // race condition
+#endif		
 		// read peers
 		uint8_t numPeers;
 		s.read ((char *)&numPeers, sizeof (numPeers)); if (!s) return;

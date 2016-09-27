@@ -5,7 +5,7 @@ LIB_SRC = \
   SSUSession.cpp SSUData.cpp Streaming.cpp Identity.cpp TransitTunnel.cpp \
   Transports.cpp Tunnel.cpp TunnelEndpoint.cpp TunnelPool.cpp TunnelGateway.cpp \
   Destination.cpp Base.cpp I2PEndian.cpp FS.cpp Config.cpp Family.cpp \
-  Config.cpp HTTP.cpp util.cpp api.cpp
+  Config.cpp HTTP.cpp Timestamp.cpp util.cpp api.cpp
 
 LIB_CLIENT_SRC = \
 	AddressBook.cpp BOB.cpp ClientContext.cpp I2PTunnel.cpp I2PService.cpp \

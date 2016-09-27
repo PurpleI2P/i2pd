@@ -20,9 +20,16 @@ namespace i2p
 	{
 		eRouterStatusOK = 0,
 		eRouterStatusTesting = 1,
-		eRouterStatusFirewalled = 2
+		eRouterStatusFirewalled = 2,
+		eRouterStatusError = 3 
 	};	
 
+	enum RouterError
+	{
+		eRouterErrorNone = 0,
+		eRouterErrorClockSkew = 1
+	};	
+	
 	class RouterContext: public i2p::garlic::GarlicDestination 
 	{
 		public:
@@ -49,7 +56,9 @@ namespace i2p
 			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };
 			RouterStatus GetStatus () const { return m_Status; };
 			void SetStatus (RouterStatus status);
-
+			RouterError GetError () const { return m_Error; };
+			void SetError (RouterError error) { m_Status = eRouterStatusError; m_Error = error; };
+			
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
@@ -107,6 +116,7 @@ namespace i2p
 			uint64_t m_StartupTime; // in seconds since epoch
 			uint32_t m_BandwidthLimit; // allowed bandwidth
 			RouterStatus m_Status;
+			RouterError m_Error;
 			std::mutex m_GarlicMutex;
 	};
 

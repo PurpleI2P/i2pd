@@ -18,7 +18,7 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false), 
-		m_StartupTime (0), m_Status (eRouterStatusOK )
+		m_StartupTime (0), m_Status (eRouterStatusOK), m_Error (eRouterErrorNone)
 	{
 	}
 
@@ -95,6 +95,7 @@ namespace i2p
 		if (status != m_Status)
 		{	
 			m_Status = status;
+			m_Error = eRouterErrorNone;
 			switch (m_Status)
 			{	
 				case eRouterStatusOK:

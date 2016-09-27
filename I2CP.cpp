@@ -109,7 +109,7 @@ namespace client
 		}
 		else
 		{
-			auto outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
+			outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
 			auto leases = remote->GetNonExpiredLeases ();
 			if (!leases.empty ())		
 				remoteLease = leases[rand () % leases.size ()];

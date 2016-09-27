@@ -35,7 +35,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
 	../../RouterInfo.cpp ../../SAM.cpp ../../Signature.cpp ../../SOCKS.cpp ../../SSU.cpp \
 	../../SSUData.cpp ../../SSUSession.cpp ../../Streaming.cpp ../../TransitTunnel.cpp \
 	../../Transports.cpp ../../Tunnel.cpp ../../TunnelEndpoint.cpp ../../TunnelGateway.cpp \
-	../../TunnelPool.cpp ../../UPnP.cpp ../../util.cpp ../../Gzip.cpp ../../i2pd.cpp
+	../../TunnelPool.cpp ../../UPnP.cpp ../../Gzip.cpp ../../Timestamp.cpp ../../util.cpp \
+	../../i2pd.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
 	../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
