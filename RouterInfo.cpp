@@ -771,7 +771,11 @@ namespace data
 		
 	std::shared_ptr<const RouterInfo::Address> RouterInfo::GetAddress (TransportStyle s, bool v4only, bool v6only) const
 	{
+#if (BOOST_VERSION >= 105300)
+		auto addresses = boost::atomic_load (&m_Addresses);
+#else		
 		auto addresses = m_Addresses;
+#endif		
 		for (const auto& address : *addresses)
 		{
 			if (address->transportStyle == s)
