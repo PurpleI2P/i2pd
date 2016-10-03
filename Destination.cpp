@@ -171,7 +171,7 @@ namespace client
   
 	std::shared_ptr<const i2p::data::LeaseSet> LeaseSetDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
 	{
-		std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+		std::unique_lock<std::mutex> lock(m_RemoteLeaseSetsMutex);
 		auto it = m_RemoteLeaseSets.find (ident);
 		if (it != m_RemoteLeaseSets.end ())
 		{
@@ -186,7 +186,6 @@ namespace client
 						{
 							ls->PopulateLeases();
 							{
-								std::lock_guard<std::mutex> _lock(m_RemoteLeaseSetsMutex);
 								m_RemoteLeaseSets[ident] = ls;
 							}
 						}
@@ -203,15 +202,12 @@ namespace client
 			if (ls && !ls->IsExpired ())
 			{
 				ls->PopulateLeases (); // since we don't store them in netdb
-				{
-					std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
-					m_RemoteLeaseSets[ident] = ls;
-				}
+				m_RemoteLeaseSets[ident] = ls;
 				return ls;
 			}	
 		}
 		return nullptr;
-	}	
+	}
 
 	std::shared_ptr<const i2p::data::LocalLeaseSet> LeaseSetDestination::GetLeaseSet ()
 	{
