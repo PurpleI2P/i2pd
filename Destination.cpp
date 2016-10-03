@@ -185,9 +185,7 @@ namespace client
 						if(ls && !ls->IsExpired())
 						{
 							ls->PopulateLeases();
-							{
-								m_RemoteLeaseSets[ident] = ls;
-							}
+							m_RemoteLeaseSets[ident] = ls;
 						}
 					});
 				}
