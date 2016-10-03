@@ -135,7 +135,7 @@ namespace client
 		}
 	}
 
-	void SAMSocket::HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	void SAMSocket::HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t /*bytes_transferred*/)
 	{
 		if (ecode)
         {
@@ -166,7 +166,7 @@ namespace client
 		}		
 	}
 
-	void SAMSocket::HandleMessageReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred, bool close)
+	void SAMSocket::HandleMessageReplySent (const boost::system::error_code& ecode, std::size_t /*bytes_transferred*/, bool close)
 	{
 		if (ecode)
         {
@@ -262,7 +262,7 @@ namespace client
 		}
 	}
 
-	void SAMSocket::ProcessSessionCreate (char * buf, size_t len)
+	void SAMSocket::ProcessSessionCreate (char * buf, size_t /*len*/)
 	{
 		LogPrint (eLogDebug, "SAM: session create: ", buf);
 		std::map<std::string, std::string> params;
@@ -333,7 +333,7 @@ namespace client
 		SendMessageReply (m_Buffer, l2, false);
 	}
 
-	void SAMSocket::ProcessStreamConnect (char * buf, size_t len)
+	void SAMSocket::ProcessStreamConnect (char * buf, size_t /*len*/)
 	{
 		LogPrint (eLogDebug, "SAM: stream connect: ", buf);
 		std::map<std::string, std::string> params;
@@ -389,7 +389,7 @@ namespace client
 		}
 	}
 
-	void SAMSocket::ProcessStreamAccept (char * buf, size_t len)
+	void SAMSocket::ProcessStreamAccept (char * buf, size_t /*len*/)
 	{
 		LogPrint (eLogDebug, "SAM: stream accept: ", buf);
 		std::map<std::string, std::string> params;
@@ -460,7 +460,7 @@ namespace client
 		SendMessageReply (m_Buffer, len, false);
 	}
 
-	void SAMSocket::ProcessNamingLookup (char * buf, size_t len)
+	void SAMSocket::ProcessNamingLookup (char * buf, size_t /*len*/)
 	{
 		LogPrint (eLogDebug, "SAM: naming lookup: ", buf);
 		std::map<std::string, std::string> params;
@@ -652,7 +652,8 @@ namespace client
 			LogPrint (eLogWarning, "SAM: I2P acceptor has been reset");
 	}	
 
-	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	void SAMSocket::HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t /*fromPort*/,
+											  uint16_t /*toPort*/, const uint8_t* buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SAM: datagram received ", len);
 		auto base64 = from.ToBase64 ();
