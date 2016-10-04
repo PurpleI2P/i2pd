@@ -185,6 +185,7 @@ namespace client
 						if(ls && !ls->IsExpired())
 						{
 							ls->PopulateLeases();
+							std::unique_lock<std::mutex> lock(m_RemoteLeaseSetsMutex);
 							m_RemoteLeaseSets[ident] = ls;
 						}
 					});
