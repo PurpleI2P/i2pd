@@ -37,10 +37,15 @@ ifeq ($(USE_WIN32_APP), yes)
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
 
-ifeq ($(USE_AESNI),1)
+ifeq ($(USE_AESNI),yes)
 	CPU_FLAGS = -maes -DAESNI
 else
 	CPU_FLAGS = -msse
+endif
+
+ifeq ($(USE_ASLR),yes)
+	LDFLAGS += -Wl,--nxcompat -Wl,--high-entropy-va \
+      -Wl,--dynamicbase,--export-all-symbols
 endif
 
 obj/%.o : %.rc

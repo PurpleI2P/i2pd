@@ -103,7 +103,8 @@ namespace client
 		}
 		auto path = remoteSession->GetSharedRoutingPath ();
 		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
-		std::shared_ptr<const i2p::data::Lease> remoteLease;	
+		std::shared_ptr<const i2p::data::Lease> remoteLease;
+		bool unconfirmedTags=false;
 		if (path)
 		{
 			if (!remoteSession->CleanupUnconfirmedTags ()) // no stuck tags
@@ -112,9 +113,12 @@ namespace client
 				remoteLease = path->remoteLease;
 			}
 			else
+			{
 				remoteSession->SetSharedRoutingPath (nullptr);
+				unconfirmedTags=true;
+			}
 		}
-		else
+		if (!path || unconfirmedTags)
 		{
 			outboundTunnel = GetTunnelPool ()->GetNextOutboundTunnel ();
 			auto leases = remote->GetNonExpiredLeases ();
