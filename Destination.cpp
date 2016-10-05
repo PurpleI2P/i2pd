@@ -260,7 +260,7 @@ namespace client
 		m_Service.post (std::bind (&LeaseSetDestination::HandleDeliveryStatusMessage, shared_from_this (), msg)); 
 	}
 
-	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+	void LeaseSetDestination::HandleI2NPMessage (const uint8_t * buf, size_t /*len*/, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
 		switch (typeID)
@@ -348,7 +348,7 @@ namespace client
 		}	
 	}
 
-	void LeaseSetDestination::HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len)
+	void LeaseSetDestination::HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t /*len*/)
 	{
 		i2p::data::IdentHash key (buf);
 		int num = buf[32]; // num
@@ -732,7 +732,7 @@ namespace client
 			ScheduleCheckForReady(p);
 	}
 	
-	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
+	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t /*len*/)
 	{
 		uint32_t length = bufbe32toh (buf);
 		buf += 4;

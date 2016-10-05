@@ -51,12 +51,12 @@ namespace tunnel
 		}	
 	}	
 		
-	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg)
+	void TransitTunnel::SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> /*msg*/)
 	{	
 		LogPrint (eLogError, "TransitTunnel: We are not a gateway for ", GetTunnelID ());
 	}		
 
-	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg)
+	void TransitTunnel::HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> /*msg*/)
 	{
 		LogPrint (eLogError, "TransitTunnel: Incoming tunnel message is not supported ", GetTunnelID ());
 	}	
