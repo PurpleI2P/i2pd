@@ -80,7 +80,13 @@ $(ARLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 $(ARLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
 	ar -r $@ $^
 
-clean:
+tools: $(ARLIB)
+	$(MAKE) -C contrib/tools/
+
+clean-tools:
+	$(MAKE) -C contrib/tools/ clean
+
+clean: clean-tools
 	rm -rf obj
 	rm -rf docs/generated
 	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
