@@ -276,7 +276,7 @@ namespace datagram
 		// our path looks dead so we need to rotate paths
 		if (now - m_LastSuccess >= DATAGRAM_SESSION_PATH_TIMEOUT) return true;
 		// if we have a routing session and routing path we don't need to switch paths
-		return m_RoutingSession != nullptr && m_RoutingSession->GetSharedRoutingPath () != nullptr;
+		return m_RoutingSession == nullptr || m_RoutingSession->GetSharedRoutingPath () == nullptr;
 	}
 
 
@@ -291,7 +291,7 @@ namespace datagram
 		if(currentLease) // if we have a lease return true if it's about to expire otherwise return false
 			return currentLease->ExpiresWithin( DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW, DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE );
 		// we have no current lease, we should switch
-		return true;
+		return currentLease == nullptr;
 	}
 	
 	std::shared_ptr<i2p::garlic::GarlicRoutingPath> DatagramSession::GetNextRoutingPath()
