@@ -16,7 +16,8 @@ option(WITH_UPNP "Include support for UPnP client" OFF)
 option(WITH_PCH "Use precompiled header" OFF)
 option(WITH_GUI "Include GUI (currently MS Windows only)" ON)
 option(WITH_MESHNET "Build for cjdns test network" OFF)
-option(WITH_ADDRSANITIZER "Build with address sanitizer (linux only)" OFF)
+option(WITH_ADDRSANITIZER "Build with address sanitizer unix only" OFF)
+option(WITH_THREADSANITIZER "Build with thread sanitizer unix only" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -190,9 +191,21 @@ if (WITH_ADDRSANITIZER)
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer" )
     set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address" )
   else ()
-    error ("MSVC does not support address sanitizer option")
+    message( SEND_ERROR "MSVC does not support address sanitizer option")
   endif()
 endif()
+
+if (WITH_THREADSANITIZER)
+  if (WITH_ADDRSANITIZER)
+    message( FATAL_ERROR "thread sanitizer option cannot be combined with address sanitizer")
+  elseif (NOT MSVC)
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread" )
+    set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread" )
+  else ()
+    message( SEND_ERROR "MSVC does not support address sanitizer option")
+  endif()
+endif()
+
 
 # libraries
 # TODO: once CMake 3.1+ becomes mainstream, see e.g. http://stackoverflow.com/a/29871891/673826
@@ -347,6 +360,7 @@ message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  PCH              : ${WITH_PCH}")
 message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
+message(STATUS "  THEADSANITIZER   : ${WITH_THREADSANITIZER}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
