@@ -12,8 +12,10 @@ namespace i2p
 namespace datagram
 {
 	DatagramDestination::DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner): 
-		m_Owner (owner.get()), m_Receiver (nullptr)
+		m_Owner (owner.get()),
+		m_Receiver (nullptr)
 	{
+		m_Identity.FromBase64 (owner->GetIdentity()->ToBase64());
 	}
 	
 	DatagramDestination::~DatagramDestination ()
@@ -24,16 +26,16 @@ namespace datagram
 	void DatagramDestination::SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort, uint16_t toPort)
 	{
 		auto owner = m_Owner;
-		auto i = owner->GetIdentity();
-		uint8_t buf[MAX_DATAGRAM_SIZE];
-		auto identityLen = i->ToBuffer (buf, MAX_DATAGRAM_SIZE);
+		std::vector<uint8_t> v(MAX_DATAGRAM_SIZE);
+		uint8_t * buf = v.data();
+		auto identityLen = m_Identity.ToBuffer (buf, MAX_DATAGRAM_SIZE);
 		uint8_t * signature = buf + identityLen;
-		auto signatureLen = i->GetSignatureLen ();
+		auto signatureLen = m_Identity.GetSignatureLen ();
 		uint8_t * buf1 = signature + signatureLen;
 		size_t headerLen = identityLen + signatureLen;
 		
 		memcpy (buf1, payload, len);	
-		if (i->GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
+		if (m_Identity.GetSigningKeyType () == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			uint8_t hash[32];	
 			SHA256(buf1, len, hash);
@@ -48,7 +50,7 @@ namespace datagram
 	}
 
 
-	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	void DatagramDestination::HandleDatagram (uint16_t fromPort, uint16_t toPort,uint8_t * const &buf, size_t len)
 	{
 		i2p::data::IdentityEx identity;
 		size_t identityLen = identity.FromBuffer (buf, len);
@@ -93,7 +95,7 @@ namespace datagram
 		uint8_t uncompressed[MAX_DATAGRAM_SIZE];
 		size_t uncompressedLen = m_Inflator.Inflate (buf, len, uncompressed, MAX_DATAGRAM_SIZE);
 		if (uncompressedLen)
-			HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen); 
+			HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen);
 	}
 
 	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
@@ -121,7 +123,7 @@ namespace datagram
 		if (m_Sessions.empty ()) return;
 		auto now = i2p::util::GetMillisecondsSinceEpoch();
 		LogPrint(eLogDebug, "DatagramDestination: clean up sessions");
-		std::lock_guard<std::mutex> lock(m_SessionsMutex);
+		std::unique_lock<std::mutex> lock(m_SessionsMutex);
 		// for each session ...
 		for (auto it = m_Sessions.begin (); it != m_Sessions.end (); ) 
 		{
@@ -270,13 +272,16 @@ namespace datagram
 
 	bool DatagramSession::ShouldUpdateRoutingPath() const
 	{
+		bool dead = m_RoutingSession == nullptr || m_RoutingSession->GetSharedRoutingPath () == nullptr;
 		auto now = i2p::util::GetMillisecondsSinceEpoch ();
 		// we need to rotate paths becuase the routing path is too old
-		if (now - m_LastPathChange >= DATAGRAM_SESSION_PATH_SWITCH_INTERVAL) return true;
-		// our path looks dead so we need to rotate paths
-		if (now - m_LastSuccess >= DATAGRAM_SESSION_PATH_TIMEOUT) return true;
+		// if (now - m_LastPathChange >= DATAGRAM_SESSION_PATH_SWITCH_INTERVAL) return true;
+    // too fast switching paths
+    if (now - m_LastPathChange < DATAGRAM_SESSION_PATH_MIN_LIFETIME ) return false;
+    // our path looks dead so we need to rotate paths
+		if (now - m_LastSuccess >= DATAGRAM_SESSION_PATH_TIMEOUT) return !dead;
 		// if we have a routing session and routing path we don't need to switch paths
-		return m_RoutingSession == nullptr || m_RoutingSession->GetSharedRoutingPath () == nullptr;
+		return dead;
 	}
 
 

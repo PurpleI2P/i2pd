@@ -155,7 +155,7 @@ namespace client
 	
 		UDPSession(boost::asio::ip::udp::endpoint localEndpoint,
 							 const std::shared_ptr<i2p::client::ClientDestination> & localDestination,
-							 boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash ident,
+							 boost::asio::ip::udp::endpoint remote, const i2p::data::IdentHash * ident,
 							 uint16_t ourPort, uint16_t theirPort);
 		void HandleReceived(const boost::system::error_code & ecode, std::size_t len);
 		void Receive();

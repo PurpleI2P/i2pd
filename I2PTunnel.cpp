@@ -559,23 +559,23 @@ namespace client
     }
     /** create new udp session */
     boost::asio::ip::udp::endpoint ep(m_LocalAddress, 0);
-    m_Sessions.push_back(new UDPSession(ep, m_LocalDest, m_RemoteEndpoint, ih, localPort, remotePort));
+    m_Sessions.push_back(new UDPSession(ep, m_LocalDest, m_RemoteEndpoint, &ih, localPort, remotePort));
     return m_Sessions.back();
   }
 
   UDPSession::UDPSession(boost::asio::ip::udp::endpoint localEndpoint,
     const std::shared_ptr<i2p::client::ClientDestination> & localDestination,
-    boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash to,
+    boost::asio::ip::udp::endpoint endpoint, const i2p::data::IdentHash * to,
     uint16_t ourPort, uint16_t theirPort) :
     m_Destination(localDestination->GetDatagramDestination()),
     m_Service(localDestination->GetService()),
 		IPSocket(localDestination->GetService(), localEndpoint),
-		Identity(to),
 		SendEndpoint(endpoint),
 		LastActivity(i2p::util::GetMillisecondsSinceEpoch()),
 		LocalPort(ourPort),
 		RemotePort(theirPort)
 	{
+		memcpy(Identity, to->data(), 32);
 		Receive();
 	}
 
@@ -592,13 +592,7 @@ namespace client
 		{
 			LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
 			LastActivity = i2p::util::GetMillisecondsSinceEpoch();
-			uint8_t * data = new uint8_t[len];
-			memcpy(data, m_Buffer, len);
-			m_Service.post([&,len, data] () {
-				m_Destination->SendDatagramTo(data, len, Identity, 0, 0);
-				delete [] data;
-			});
-			
+			m_Destination->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
 			Receive();
 		} else {
 			LogPrint(eLogError, "UDPSession: ", ecode.message());
@@ -727,7 +721,7 @@ namespace client
 		if(m_Session) delete m_Session;
 		
 		boost::asio::ip::udp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 0);
-		m_Session = new UDPSession(m_LocalEndpoint, m_LocalDest, ep, *m_RemoteIdent, LocalPort, RemotePort);
+		m_Session = new UDPSession(m_LocalEndpoint, m_LocalDest, ep, m_RemoteIdent, LocalPort, RemotePort);
 	}
 
 	void I2PUDPClientTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t /*fromPort*/,
