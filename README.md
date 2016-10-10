@@ -22,6 +22,7 @@ without restrictions.
 * [Documentation](https://i2pd.readthedocs.io/en/latest/)
 * [Wiki](https://github.com/PurpleI2P/i2pd/wiki)
 * [Tickets/Issues](https://github.com/PurpleI2P/i2pd/issues)
+* [Specifications](https://geti2p.net/spec)
 * [Twitter](https://twitter.com/hashtag/i2pd)
 
 Installing
