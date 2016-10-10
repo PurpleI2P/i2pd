@@ -110,7 +110,7 @@ namespace data
 	}
 
 	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident, 
-		const char * signature, const char * /*key*/)
+		const char * signature, const char * key)
 	{
 		uint8_t buf[50], signatureBuf[64];
 		size_t len = family.length (), signatureLen = strlen (signature);

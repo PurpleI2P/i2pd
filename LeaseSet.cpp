@@ -173,7 +173,7 @@ namespace data
 
   const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeases (bool withThreshold) const
   {
-    return GetNonExpiredLeasesExcluding( [] (const Lease &) -> bool { return false; }, withThreshold);
+    return GetNonExpiredLeasesExcluding( [] (const Lease & l) -> bool { return false; }, withThreshold);
   }
   
 	const std::vector<std::shared_ptr<const Lease> > LeaseSet::GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold) const

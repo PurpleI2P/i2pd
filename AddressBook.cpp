@@ -599,8 +599,7 @@ namespace client
 		}		
 	}	
 	
-	void AddressBook::HandleLookupResponse (const i2p::data::IdentityEx& from, uint16_t /*fromPort*/,
-											uint16_t /*toPort*/, const uint8_t * buf, size_t len)
+	void AddressBook::HandleLookupResponse (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
 	{
 		if (len < 44)
 		{

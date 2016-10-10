@@ -424,7 +424,7 @@ namespace i2p
 		return i2p::tunnel::tunnels.GetExploratoryPool (); 
 	}	
 		
-	void RouterContext::HandleI2NPMessage (const uint8_t * buf, size_t /*len*/, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
+	void RouterContext::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
 	}
