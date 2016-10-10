@@ -186,7 +186,7 @@ namespace client
 						{
 							ls->PopulateLeases();
 							{
-								std::lock_guard<std::mutex> l(m_RemoteLeaseSetsMutex);
+								std::lock_guard<std::mutex> _lock(m_RemoteLeaseSetsMutex);
 								m_RemoteLeaseSets[ident] = ls;
 							}
 						}
