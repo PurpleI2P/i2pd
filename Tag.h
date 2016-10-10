@@ -1,3 +1,6 @@
+#ifndef TAG_H__
+#define TAG_H__
+
 /*
 * Copyright (c) 2013-2016, The PurpleI2P Project
 *
@@ -6,92 +9,80 @@
 * See full license text in LICENSE file at top of project tree
 */
 
-#ifndef TAG_H__
-#define TAG_H__
-
-#include <string.h> /* memcpy */
-
+#include <boost/static_assert.hpp>
+#include <string.h>
 #include "Base.h"
 
 namespace i2p {
 namespace data {
-	template<int sz>
-	class Tag
+
+template<size_t sz>
+class Tag
+{
+	BOOST_STATIC_ASSERT_MSG(sz % 8 == 0, "Tag size must be multiple of 8 bytes");
+
+public:
+
+	Tag () = default;
+	Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); }
+
+	bool operator== (const Tag& other) const { return !memcmp (m_Buf, other.m_Buf, sz); }
+	bool operator< (const Tag& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; }
+
+	uint8_t * operator()() { return m_Buf; }
+	const uint8_t * operator()() const { return m_Buf; }
+
+	operator uint8_t * () { return m_Buf; }
+	operator const uint8_t * () const { return m_Buf; }
+
+	const uint8_t * data() const { return m_Buf; }
+	const uint64_t * GetLL () const { return ll; }
+
+	bool IsZero () const
 	{
-		public:
+		for (size_t i = 0; i < sz/8; ++i)
+			if (ll[i]) return false;
+		return true;
+	}
 
-    Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); };
-			Tag (const Tag<sz>& ) = default;
-#ifndef _WIN32 // FIXME!!! msvs 2013 can't compile it
-			Tag (Tag<sz>&& ) = default;
-#endif
-			Tag () = default;
-
-			Tag<sz>& operator= (const Tag<sz>& ) = default;
-#ifndef _WIN32
-			Tag<sz>& operator= (Tag<sz>&& ) = default;
-#endif
-
-			uint8_t * operator()() { return m_Buf; };
-			const uint8_t * operator()() const { return m_Buf; };
-
-			operator uint8_t * () { return m_Buf; };
-			operator const uint8_t * () const { return m_Buf; };
-
-			const uint64_t * GetLL () const { return ll; };
-
-			bool operator== (const Tag<sz>& other) const { return !memcmp (m_Buf, other.m_Buf, sz); };
-			bool operator< (const Tag<sz>& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; };
-
-			bool IsZero () const
-			{
-				for (int i = 0; i < sz/8; i++)
-					if (ll[i]) return false;
-				return true;
-			}
-
-      const uint8_t * data() const { return m_Buf; }
-
-      /** fill with a value */
-			void Fill(uint8_t c)
-			{
-				memset(m_Buf, c, sz);
-			}
+    void Fill(uint8_t c)
+    {
+        memset(m_Buf, c, sz);
+    }
 			
-			std::string ToBase64 () const
-			{
-				char str[sz*2];
-				int l = i2p::data::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
-				str[l] = 0;
-				return std::string (str);
-			}
+	std::string ToBase64 () const
+	{
+		char str[sz*2];
+		size_t l = i2p::data::ByteStreamToBase64 (m_Buf, sz, str, sz*2);
+		return std::string (str, str + l);
+	}
 
-			std::string ToBase32 () const
-			{
-				char str[sz*2];
-				int l = i2p::data::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
-				str[l] = 0;
-				return std::string (str);
-			}
+	std::string ToBase32 () const
+	{
+		char str[sz*2];
+		size_t l = i2p::data::ByteStreamToBase32 (m_Buf, sz, str, sz*2);
+		return std::string (str, str + l);
+	}
 
-			void FromBase32 (const std::string& s)
-			{
-				i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
-			}
+	void FromBase32 (const std::string& s)
+	{
+		i2p::data::Base32ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+	}
 
-			void FromBase64 (const std::string& s)
-			{
-				i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
-			}
+	void FromBase64 (const std::string& s)
+	{
+		i2p::data::Base64ToByteStream (s.c_str (), s.length (), m_Buf, sz);
+	}
 
-		private:
+private:
 
-			union // 8 bytes alignment
-			{
-				uint8_t m_Buf[sz];
-				uint64_t ll[sz/8];
-			};
+	union // 8 bytes aligned
+	{
+		uint8_t m_Buf[sz];
+		uint64_t ll[sz/8];
 	};
+};
+
 } // data
 } // i2p
 
