@@ -45,10 +45,10 @@ public:
 		return true;
 	}
 
-    void Fill(uint8_t c)
-    {
-        memset(m_Buf, c, sz);
-    }
+	void Fill(uint8_t c)
+	{
+		memset(m_Buf, c, sz);
+	}
 			
 	std::string ToBase64 () const
 	{
