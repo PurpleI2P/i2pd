@@ -22,14 +22,15 @@ namespace datagram
 	// milliseconds for max session idle time 
 	const uint64_t DATAGRAM_SESSION_MAX_IDLE = 10 * 60 * 1000;
 	// milliseconds for how long we try sticking to a dead routing path before trying to switch
-	const uint64_t DATAGRAM_SESSION_PATH_TIMEOUT = 5000;
+	const uint64_t DATAGRAM_SESSION_PATH_TIMEOUT = 10 * 1000;
 	// milliseconds interval a routing path is used before switching
-	const uint64_t DATAGRAM_SESSION_PATH_SWITCH_INTERVAL = 60 * 1000;
+	const uint64_t DATAGRAM_SESSION_PATH_SWITCH_INTERVAL = 20 * 60 * 1000;
 	// milliseconds before lease expire should we try switching leases
 	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW = 10 * 1000;
 	// milliseconds fudge factor for leases handover
 	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE = 1000;
-
+	// milliseconds minimum time between path switches
+	const uint64_t DATAGRAM_SESSION_PATH_MIN_LIFETIME = 5 * 1000;
 	
 	class DatagramSession
 	{
@@ -133,13 +134,14 @@ namespace datagram
 			
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
 
-			void HandleDatagram (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
+			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 
 			/** find a receiver by port, if none by port is found try default receiever, otherwise returns nullptr */
 			Receiver FindReceiver(uint16_t port);
 			
 		private:
 			i2p::client::ClientDestination * m_Owner;
+			i2p::data::IdentityEx m_Identity;
 			Receiver m_Receiver; // default
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<DatagramSession> > m_Sessions;
