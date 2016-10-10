@@ -163,9 +163,9 @@ namespace config {
 		"https://i2p.manas.ca:8443/,"
 		"https://i2p-0.manas.ca:8443/,"
 		"https://reseed.i2p.vzaws.com:8443/,"
-		"https://user.mx24.eu/,"
 		"https://download.xxlspeed.com/,"
-		"https://reseed-ru.lngserv.ru/"
+		"https://reseed-ru.lngserv.ru/,"
+	    "https://reseed.atomike.ninja/"                                                   
 		),  "Reseed URLs, separated by comma")
 #endif
 	  ;	
