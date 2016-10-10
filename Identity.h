@@ -5,6 +5,7 @@
 #include <string.h>
 #include <string>
 #include <memory>
+#include <atomic>
 #include "Base.h"
 #include "Signature.h"
 
@@ -104,6 +105,7 @@ namespace data
 			Identity m_StandardIdentity;
 			IdentHash m_IdentHash;
 			mutable std::unique_ptr<i2p::crypto::Verifier> m_Verifier; 
+			mutable std::atomic_bool m_IsVerifierCreated; // make sure we don't create twice
 			size_t m_ExtendedLen;
 			uint8_t * m_ExtendedBuffer;
 	};	
