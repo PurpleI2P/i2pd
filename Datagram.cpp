@@ -276,9 +276,9 @@ namespace datagram
 		auto now = i2p::util::GetMillisecondsSinceEpoch ();
 		// we need to rotate paths becuase the routing path is too old
 		// if (now - m_LastPathChange >= DATAGRAM_SESSION_PATH_SWITCH_INTERVAL) return true;
-    // too fast switching paths
-    if (now - m_LastPathChange < DATAGRAM_SESSION_PATH_MIN_LIFETIME ) return false;
-    // our path looks dead so we need to rotate paths
+		// too fast switching paths
+		if (now - m_LastPathChange < DATAGRAM_SESSION_PATH_MIN_LIFETIME ) return false;
+		// our path looks dead so we need to rotate paths
 		if (now - m_LastSuccess >= DATAGRAM_SESSION_PATH_TIMEOUT) return !dead;
 		// if we have a routing session and routing path we don't need to switch paths
 		return dead;
