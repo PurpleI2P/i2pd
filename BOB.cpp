@@ -568,10 +568,15 @@ namespace client
 		{
 			std::stringstream s;
 			s << "DATA"; s << " NICKNAME: "; s << m_Nickname;
-			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-				s << " STARTING: false RUNNING: true STOPPING: false";
+			if (m_CurrentDestination)
+			{	
+				if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
+					s << " STARTING: false RUNNING: true STOPPING: false";
+				else
+					s << " STARTING: true RUNNING: false STOPPING: false";
+			}	
 			else
-				s << " STARTING: true RUNNING: false STOPPING: false";
+				s << " STARTING: false RUNNING: false STOPPING: false";
 			s << " KEYS: true"; s << " QUIET: "; s << (m_IsQuiet ? "true":"false");
 			if (m_InPort)
 			{	
