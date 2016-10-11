@@ -376,13 +376,16 @@ namespace data
 
 	void IdentityEx::UpdateVerifier (i2p::crypto::Verifier * verifier) const
 	{
-		if (!m_Verifier || !verifier)
+		if (!m_Verifier)
 		{
 			auto created = m_IsVerifierCreated.exchange (true);
 			if (!created)
 				m_Verifier.reset (verifier);
 			else
+			{
 				delete verifier;
+				while (!m_Verifier) ; // spin lock
+			}
 		}	
 		else
 			delete verifier;
@@ -391,7 +394,8 @@ namespace data
 	void IdentityEx::DropVerifier () const
 	{
 		// TODO: potential race condition with Verify
-		m_Verifier = nullptr; 
+		m_IsVerifierCreated = false; 
+		m_Verifier = nullptr;
 	}
 
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
