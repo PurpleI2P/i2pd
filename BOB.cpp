@@ -437,8 +437,11 @@ namespace client
 	void BOBCommandSession::GetkeysCommandHandler (const char * operand, size_t len)
 	{		
 		LogPrint (eLogDebug, "BOB: getkeys");
-		SendReplyOK (m_Keys.ToBase64 ().c_str ());
-	}	
+		if (m_Keys.GetPublic ()) // keys are set ?
+			SendReplyOK (m_Keys.ToBase64 ().c_str ());
+		else
+			SendReplyError ("keys are not set");
+	}
 
 	void BOBCommandSession::GetdestCommandHandler (const char * operand, size_t len)
 	{
@@ -506,6 +509,11 @@ namespace client
 			SendReplyError ("Address Not found");
 			return;
 		}	
+		if (!m_CurrentDestination)
+		{
+			SendReplyError ("session not created");
+			return;
+		}
 		auto localDestination = m_CurrentDestination->GetLocalDestination ();
 		auto leaseSet = localDestination->FindLeaseSet (ident);
 		if (leaseSet)
