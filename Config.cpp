@@ -150,6 +150,7 @@ namespace config {
 	
 	options_description reseed("Reseed options");	
 	reseed.add_options()
+	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")	
 	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
 #ifdef MESHNET
 	  ("reseed.urls", value<std::string>()->default_value("https://reseed.i2p.rocks:8443/"),  "Reseed URLs, separated by comma")
