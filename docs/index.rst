@@ -32,7 +32,9 @@ Contents:
    build_requirements
    build_notes_unix
    build_notes_windows
+   build_notes_cross
    build_notes_android
+   build_notes_ios
    configuration
    family
    usage

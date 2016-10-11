@@ -6,6 +6,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <openssl/rand.h>
+#include <boost/algorithm/string.hpp>
 #include "Base.h"
 #include "util.h"
 #include "Identity.h"
@@ -15,6 +16,7 @@
 #include "NetDb.h"
 #include "ClientContext.h"
 #include "AddressBook.h"
+#include "Config.h"
 
 namespace i2p
 {
@@ -205,7 +207,7 @@ namespace client
 
 //---------------------------------------------------------------------
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
-		m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
+		m_SubscriptionsUpdateTimer (nullptr)
 	{
 	}
 
@@ -259,7 +261,6 @@ namespace client
 			delete m_Storage;
 			m_Storage = nullptr;
 		}
-		m_DefaultSubscription = nullptr;	
 		m_Subscriptions.clear ();	
 	}	
 	
@@ -404,9 +405,21 @@ namespace client
 					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
 				}
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
+				LogPrint (eLogWarning, "Addressbook: subscriptions.txt usage is deprecated, use config file instead");
 			}
 			else
-				LogPrint (eLogWarning, "Addressbook: subscriptions.txt not found in datadir");
+                        {
+                            // using config file items
+                            std::string subscriptionURLs; i2p::config::GetOption("addressbook.subscriptions", subscriptionURLs);
+                            std::vector<std::string> subsList;
+                            boost::split(subsList, subscriptionURLs, boost::is_any_of(","), boost::token_compress_on);
+
+                            for (size_t i = 0; i < subsList.size (); i++)
+                            {
+                                    m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, subsList[i]));
+                            }
+                            LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
+                        }
 		}
 		else
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
@@ -460,7 +473,6 @@ namespace client
 		int nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
 		if (success)
 		{	
-			if (m_DefaultSubscription) m_DefaultSubscription = nullptr;
 			if (m_IsLoaded)
 				nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT; 
 			else
@@ -509,17 +521,7 @@ namespace client
 			}
 			if (!m_IsDownloading && dest->IsReady ())
 			{
-				if (!m_IsLoaded)
-				{
-					// download it from http://i2p-projekt.i2p/hosts.txt 
-					LogPrint (eLogInfo, "Addressbook: trying to download it from default subscription.");
-					if (!m_DefaultSubscription)
-						m_DefaultSubscription = std::make_shared<AddressBookSubscription>(*this, DEFAULT_SUBSCRIPTION_ADDRESS);
-					m_IsDownloading = true;	
-					std::thread load_hosts(std::bind (&AddressBookSubscription::CheckUpdates, m_DefaultSubscription));
-					load_hosts.detach(); // TODO: use join
-				}	
-				else if (!m_Subscriptions.empty ())
+				if (m_IsLoaded && !m_Subscriptions.empty ())
 				{	
 					// pick random subscription
 					auto ind = rand () % m_Subscriptions.size();	
