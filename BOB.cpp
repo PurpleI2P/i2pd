@@ -504,17 +504,12 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: lookup ", operand);
 		i2p::data::IdentHash ident;
-		if (!context.GetAddressBook ().GetIdentHash (operand, ident) || !m_CurrentDestination) 
+		if (!context.GetAddressBook ().GetIdentHash (operand, ident)) 
 		{
 			SendReplyError ("Address Not found");
 			return;
 		}	
-		if (!m_CurrentDestination)
-		{
-			SendReplyError ("session not created");
-			return;
-		}
-		auto localDestination = m_CurrentDestination->GetLocalDestination ();
+		auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
 		auto leaseSet = localDestination->FindLeaseSet (ident);
 		if (leaseSet)
 			SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
