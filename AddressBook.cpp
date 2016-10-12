@@ -6,6 +6,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <openssl/rand.h>
+#include <boost/algorithm/string.hpp>
 #include "Base.h"
 #include "util.h"
 #include "Identity.h"
@@ -15,6 +16,7 @@
 #include "NetDb.h"
 #include "ClientContext.h"
 #include "AddressBook.h"
+#include "Config.h"
 
 namespace i2p
 {
@@ -404,9 +406,21 @@ namespace client
 					m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, s));
 				}
 				LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
+				LogPrint (eLogWarning, "Addressbook: subscriptions.txt usage is deprecated, use config file instead");
 			}
-			else
-				LogPrint (eLogWarning, "Addressbook: subscriptions.txt not found in datadir");
+			else if (!i2p::config::IsDefault("addressbook.subscriptions"))
+                        {
+                            // using config file items
+                            std::string subscriptionURLs; i2p::config::GetOption("addressbook.subscriptions", subscriptionURLs);
+                            std::vector<std::string> subsList;
+                            boost::split(subsList, subscriptionURLs, boost::is_any_of(","), boost::token_compress_on);
+
+                            for (size_t i = 0; i < subsList.size (); i++)
+                            {
+                                    m_Subscriptions.push_back (std::make_shared<AddressBookSubscription> (*this, subsList[i]));
+                            }
+                            LogPrint (eLogInfo, "Addressbook: ", m_Subscriptions.size (), " subscriptions urls loaded");
+                        }
 		}
 		else
 			LogPrint (eLogError, "Addressbook: subscriptions already loaded");
@@ -511,10 +525,11 @@ namespace client
 			{
 				if (!m_IsLoaded)
 				{
-					// download it from http://i2p-projekt.i2p/hosts.txt 
+					// download it from default subscription 
 					LogPrint (eLogInfo, "Addressbook: trying to download it from default subscription.");
+                                        std::string defaultSubURL; i2p::config::GetOption("addressbook.defaulturl", defaultSubURL);
 					if (!m_DefaultSubscription)
-						m_DefaultSubscription = std::make_shared<AddressBookSubscription>(*this, DEFAULT_SUBSCRIPTION_ADDRESS);
+						m_DefaultSubscription = std::make_shared<AddressBookSubscription>(*this, defaultSubURL);
 					m_IsDownloading = true;	
 					std::thread load_hosts(std::bind (&AddressBookSubscription::CheckUpdates, m_DefaultSubscription));
 					load_hosts.detach(); // TODO: use join

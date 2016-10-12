@@ -75,6 +75,8 @@ All options below still possible in cmdline, but better write it in config file:
 * --reseed.verify=      - Request SU3 signature verification  
 * --reseed.file=        - Full path to SU3 file to reseed from  
 * --reseed.urls=        - Reseed URLs, separated by comma
+* --addressbook.defaulturl=     - AddressBook subscription URL for initial setup
+* --addressbook.subscriptions=  - AddressBook subscriptions URLs, separated by comma
 
 * --limits.transittunnels=  - Override maximum number of transit tunnels. 2500 by default   
 

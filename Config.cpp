@@ -171,12 +171,20 @@ namespace config {
 #endif
 	  ;	
 
+  	options_description addressbook("AddressBook options");
+  	addressbook.add_options()
+      ("addressbook.defaulturl", value<std::string>()->default_value(
+                "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt"
+                ), "AddressBook subscription URL for initial setup")
+      ("addressbook.subscriptions", value<std::string>()->default_value(""), 
+                "AddressBook subscriptions URLs, separated by comma");
+
   	options_description trust("Trust options");
   	trust.add_options()
       ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
       ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
-  
+
     m_OptionsDesc
       .add(general)
 	  .add(limits)	
@@ -190,6 +198,7 @@ namespace config {
       .add(upnp)
 	  .add(precomputation)
 	  .add(reseed) 
+      .add(addressbook)	
       .add(trust)	
       ;
   }
