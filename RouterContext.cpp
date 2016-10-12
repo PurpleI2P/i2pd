@@ -18,7 +18,8 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false), 
-		m_StartupTime (0), m_Status (eRouterStatusOK), m_Error (eRouterErrorNone)
+		m_StartupTime (0), m_Status (eRouterStatusOK), m_Error (eRouterErrorNone),
+		m_NetID (I2PD_NET_ID)
 	{
 	}
 
@@ -76,7 +77,8 @@ namespace i2p
 		}
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
-        routerInfo.SetProperty ("netId", std::to_string (I2PD_NET_ID));
+		i2p::config::GetOption("netid", m_NetID);
+        routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());

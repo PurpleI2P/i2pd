@@ -25,6 +25,7 @@ If you are upgrading your very old router (< 2.3.0) see also [this](config_opts_
 * --floodfill           - Router will be floodfill. false by default
 * --bandwidth=          - Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)
 * --family=             - Name of a family, router belongs to
+* --netid=				- Network ID, router belongs to. Main I2P is 2.
 
 Windows-specific options:
 

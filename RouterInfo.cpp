@@ -13,6 +13,7 @@
 #include "Timestamp.h"
 #include "Log.h"
 #include "NetDb.h"
+#include "RouterContext.h"
 #include "RouterInfo.h"
 
 namespace i2p
@@ -286,7 +287,7 @@ namespace data
 			if (!strcmp (key, "caps"))
 				ExtractCaps (value);
 			// check netId
-			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID) && atoi (value) != I2PD_NET_ID)
+			else if (!strcmp (key, ROUTER_INFO_PROPERTY_NETID) && atoi (value) != i2p::context.GetNetID ())
 			{
 				LogPrint (eLogError, "RouterInfo: Unexpected ", ROUTER_INFO_PROPERTY_NETID, "=", value);
 				m_IsUnreachable = true;		

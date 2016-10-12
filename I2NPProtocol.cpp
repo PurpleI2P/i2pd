@@ -102,7 +102,7 @@ namespace i2p
 		{
 			RAND_bytes ((uint8_t *)&msgID, 4);
 			htobe32buf (buf + DELIVERY_STATUS_MSGID_OFFSET, msgID);
-			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, I2PD_NET_ID); 
+			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, i2p::context.GetNetID ()); 
 		}	
 		m->len += DELIVERY_STATUS_SIZE;
 		m->FillI2NPMessageHeader (eI2NPDeliveryStatus);
