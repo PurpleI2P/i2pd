@@ -8,12 +8,9 @@ All communications over I2P are anonymous and end-to-end encrypted, participants
 don't reveal their real IP addresses. 
 
 I2P client is a software used for building and using anonymous I2P 
-networks. Such networks can work on top of ordinary Internet connection, LAN
-and even wireless mesh-networks. 
-
-I2P is commonly used for anonymous peer-to-peer applications (filesharing, 
-cryptocurrencies) and anonymous client-server applications (websites, instant
-messengers, chat-servers).
+networks. Such networks are commonly used for anonymous peer-to-peer 
+applications (filesharing, cryptocurrencies) and anonymous client-server 
+applications (websites, instant messengers, chat-servers).
 
 I2P allows people from all around the world to communicate and share information
 without restrictions.
