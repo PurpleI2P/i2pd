@@ -14,7 +14,7 @@ netDb
 autom4te.cache
 .deps
 stamp-h1
-Makefile
+#Makefile
 config.h
 config.h.in~
 config.log
@@ -238,3 +238,11 @@ pip-log.txt
 # Sphinx
 docs/_build
 /androidIdea/
+
+
+# emacs files
+*~
+*\#*
+
+# gdb files
+.gdb_history

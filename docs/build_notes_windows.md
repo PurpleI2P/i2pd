@@ -87,7 +87,19 @@ You should be able to run ./i2pd . If you need to start from the new
 shell, consider starting *MinGW-w64 Win32 Shell* instead of *MSYS2 Shell* as
 it adds`/minw32/bin` to the PATH.
 
+### UPnP
+You can install it through the MSYS2
+and build with USE_UPNP key.
 
+```bash
+pacman -S mingw-w64-i686-miniupnpc  
+make USE_UPNP=yes  
+```
+or
+```bash
+pacman -S mingw-w64-x86_64-miniupnpc  
+make USE_UPNP=yes
+```
 
 Using Visual Studio
 -------------------
@@ -160,20 +172,7 @@ port. You'd want to have include headers around to build i2pd with
 support for this. Unpack client source code in a sibling folder,
 e.g. C:\dev\miniupnpc . You may want to remove version number from
 folder name included in downloaded archive.
-
-You can also install it through the MSYS2
-and build with USE_UPNP key.
-
-```bash
-pacman -S mingw-w64-i686-miniupnpc  
-make USE_UPNP=yes  
-```
-or
-```bash
-pacman -S mingw-x86_64-miniupnpc  
-make USE_UPNP=yes  
-```
-
+ 
 ### Creating Visual Studio project
 
 Start CMake GUI, navigate to i2pd directory, choose building directory,  e.g. ./out, and configure options.

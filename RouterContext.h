@@ -58,7 +58,9 @@ namespace i2p
 			void SetStatus (RouterStatus status);
 			RouterError GetError () const { return m_Error; };
 			void SetError (RouterError error) { m_Status = eRouterStatusError; m_Error = error; };
-			
+			int GetNetID () const { return m_NetID; };
+			void SetNetID (int netID) { m_NetID = netID; };			
+
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
@@ -117,6 +119,7 @@ namespace i2p
 			uint32_t m_BandwidthLimit; // allowed bandwidth
 			RouterStatus m_Status;
 			RouterError m_Error;
+			int m_NetID;
 			std::mutex m_GarlicMutex;
 	};
 

@@ -25,6 +25,7 @@ If you are upgrading your very old router (< 2.3.0) see also [this](config_opts_
 * --floodfill           - Router will be floodfill. false by default
 * --bandwidth=          - Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)
 * --family=             - Name of a family, router belongs to
+* --netid=				- Network ID, router belongs to. Main I2P is 2.
 
 Windows-specific options:
 
@@ -72,8 +73,11 @@ All options below still possible in cmdline, but better write it in config file:
 * --upnp.name=          - Name i2pd appears in UPnP forwardings list. I2Pd by default  
 
 * --precomputation.elgamal=  - Use ElGamal precomputated tables. false for x64 and true for other platforms by default  
-* --reseed.file         - Full path to SU3 file to reseed from  
-* --reseed.urls         - Reseed URLs, separated by comma
+* --reseed.verify=      - Request SU3 signature verification  
+* --reseed.file=        - Full path to SU3 file to reseed from  
+* --reseed.urls=        - Reseed URLs, separated by comma
+* --addressbook.defaulturl=     - AddressBook subscription URL for initial setup
+* --addressbook.subscriptions=  - AddressBook subscriptions URLs, separated by comma
 
 * --limits.transittunnels=  - Override maximum number of transit tunnels. 2500 by default   
 

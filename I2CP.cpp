@@ -66,12 +66,19 @@ namespace client
 		memcpy (buf + 4, payload, len);
 		msg->len += len + 4; 
 		msg->FillI2NPMessageHeader (eI2NPData);
+		auto s = GetSharedFromThis ();
 		auto remote = FindLeaseSet (ident);
 		if (remote)
-			GetService ().post (std::bind (&I2CPDestination::SendMsg, GetSharedFromThis (), msg, remote));
+		{
+			GetService ().post (
+				[s, msg, remote, nonce]()
+				{
+					bool sent = s->SendMsg (msg, remote);
+					s->m_Owner->SendMessageStatusMessage (nonce, sent ? eI2CPMessageStatusGuaranteedSuccess : eI2CPMessageStatusGuaranteedFailure);
+				});	
+		}
 		else
 		{
-			auto s = GetSharedFromThis ();
 			RequestDestination (ident,
 				[s, msg, nonce](std::shared_ptr<i2p::data::LeaseSet> ls)
 				{

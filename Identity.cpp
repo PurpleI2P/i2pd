@@ -35,11 +35,12 @@ namespace data
 	}	
 	
 	IdentityEx::IdentityEx ():
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 	}
 
-	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type)
+	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type):
+		m_IsVerifierCreated (false)
 	{	
 		memcpy (m_StandardIdentity.publicKey, publicKey, sizeof (m_StandardIdentity.publicKey));
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
@@ -135,19 +136,19 @@ namespace data
 	}	
 		
 	IdentityEx::IdentityEx (const uint8_t * buf, size_t len):
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 		FromBuffer (buf, len);
 	}
 
 	IdentityEx::IdentityEx (const IdentityEx& other):
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 		*this = other;
 	}	
 
 	IdentityEx::IdentityEx (const Identity& standard):
-		m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
+		m_IsVerifierCreated (false), m_ExtendedLen (0), m_ExtendedBuffer (nullptr)
 	{
 		*this = standard;
 	}	
@@ -173,6 +174,7 @@ namespace data
 			m_ExtendedBuffer = nullptr;
 		
 		m_Verifier = nullptr;
+		m_IsVerifierCreated = false;
 		
 		return *this;
 	}	
@@ -187,6 +189,7 @@ namespace data
 		m_ExtendedLen = 0;
 
 		m_Verifier = nullptr;
+		m_IsVerifierCreated = false;
 		
 		return *this;
 	}	
@@ -373,8 +376,17 @@ namespace data
 
 	void IdentityEx::UpdateVerifier (i2p::crypto::Verifier * verifier) const
 	{
-		if (!m_Verifier || !verifier)
-			m_Verifier.reset (verifier);
+		if (!m_Verifier)
+		{
+			auto created = m_IsVerifierCreated.exchange (true);
+			if (!created)
+				m_Verifier.reset (verifier);
+			else
+			{
+				delete verifier;
+				while (!m_Verifier) ; // spin lock
+			}
+		}	
 		else
 			delete verifier;
 	}	
@@ -382,7 +394,8 @@ namespace data
 	void IdentityEx::DropVerifier () const
 	{
 		// TODO: potential race condition with Verify
-		m_Verifier = nullptr; 
+		m_IsVerifierCreated = false; 
+		m_Verifier = nullptr;
 	}
 
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
@@ -457,8 +470,8 @@ namespace data
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		if (!m_Signer)
-      CreateSigner();
-    m_Signer->Sign (buf, len, signature);
+  			CreateSigner();
+		m_Signer->Sign (buf, len, signature);
 	}			
 
 	void PrivateKeys::CreateSigner () const

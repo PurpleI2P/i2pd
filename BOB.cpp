@@ -437,8 +437,11 @@ namespace client
 	void BOBCommandSession::GetkeysCommandHandler (const char * operand, size_t len)
 	{		
 		LogPrint (eLogDebug, "BOB: getkeys");
-		SendReplyOK (m_Keys.ToBase64 ().c_str ());
-	}	
+		if (m_Keys.GetPublic ()) // keys are set ?
+			SendReplyOK (m_Keys.ToBase64 ().c_str ());
+		else
+			SendReplyError ("keys are not set");
+	}
 
 	void BOBCommandSession::GetdestCommandHandler (const char * operand, size_t len)
 	{
@@ -501,12 +504,12 @@ namespace client
 	{
 		LogPrint (eLogDebug, "BOB: lookup ", operand);
 		i2p::data::IdentHash ident;
-		if (!context.GetAddressBook ().GetIdentHash (operand, ident) || !m_CurrentDestination) 
+		if (!context.GetAddressBook ().GetIdentHash (operand, ident)) 
 		{
 			SendReplyError ("Address Not found");
 			return;
 		}	
-		auto localDestination = m_CurrentDestination->GetLocalDestination ();
+		auto localDestination = m_CurrentDestination ? m_CurrentDestination->GetLocalDestination () : i2p::client::context.GetSharedLocalDestination ();
 		auto leaseSet = localDestination->FindLeaseSet (ident);
 		if (leaseSet)
 			SendReplyOK (leaseSet->GetIdentity ()->ToBase64 ().c_str ());
@@ -568,10 +571,15 @@ namespace client
 		{
 			std::stringstream s;
 			s << "DATA"; s << " NICKNAME: "; s << m_Nickname;
-			if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
-				s << " STARTING: false RUNNING: true STOPPING: false";
+			if (m_CurrentDestination)
+			{	
+				if (m_CurrentDestination->GetLocalDestination ()->IsReady ())
+					s << " STARTING: false RUNNING: true STOPPING: false";
+				else
+					s << " STARTING: true RUNNING: false STOPPING: false";
+			}	
 			else
-				s << " STARTING: true RUNNING: false STOPPING: false";
+				s << " STARTING: false RUNNING: false STOPPING: false";
 			s << " KEYS: true"; s << " QUIET: "; s << (m_IsQuiet ? "true":"false");
 			if (m_InPort)
 			{	

@@ -142,9 +142,9 @@ install:
 - if not defined msvc (
     C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -Sy bash pacman pacman-mirrors msys2-runtime msys2-runtime-devel cmake"
     && if "%x64%" == "1" (
-      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-openssl mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc"
+      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-openssl mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc mingw-w64-x86_64-extra-cmake-modules"
     ) else (
-      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-openssl mingw-w64-i686-boost mingw-w64-i686-miniupnpc"
+      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-openssl mingw-w64-i686-boost mingw-w64-i686-miniupnpc mingw-w64-i686-extra-cmake-modules"
     )
   )
 cache:

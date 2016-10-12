@@ -49,6 +49,7 @@ namespace config {
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv4",      value<bool>()->zero_tokens()->default_value(true),  "Enable communication through ipv4")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
+	  ("netid",		value<int>()->default_value(I2PD_NET_ID), "Specify NetID. Main I2P is 2") 	
       ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
       ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
@@ -150,6 +151,7 @@ namespace config {
 	
 	options_description reseed("Reseed options");	
 	reseed.add_options()
+	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")	
 	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
 #ifdef MESHNET
 	  ("reseed.urls", value<std::string>()->default_value("https://reseed.i2p.rocks:8443/"),  "Reseed URLs, separated by comma")
@@ -163,19 +165,27 @@ namespace config {
 		"https://i2p.manas.ca:8443/,"
 		"https://i2p-0.manas.ca:8443/,"
 		"https://reseed.i2p.vzaws.com:8443/,"
-		"https://user.mx24.eu/,"
 		"https://download.xxlspeed.com/,"
-		"https://reseed-ru.lngserv.ru/"
+		"https://reseed-ru.lngserv.ru/,"
+	    "https://reseed.atomike.ninja/"                                                   
 		),  "Reseed URLs, separated by comma")
 #endif
 	  ;	
+
+  	options_description addressbook("AddressBook options");
+  	addressbook.add_options()
+      ("addressbook.defaulturl", value<std::string>()->default_value(
+                "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt"
+                ), "AddressBook subscription URL for initial setup")
+      ("addressbook.subscriptions", value<std::string>()->default_value(""), 
+                "AddressBook subscriptions URLs, separated by comma");
 
   	options_description trust("Trust options");
   	trust.add_options()
       ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
       ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
-  
+
     m_OptionsDesc
       .add(general)
 	  .add(limits)	
@@ -189,6 +199,7 @@ namespace config {
       .add(upnp)
 	  .add(precomputation)
 	  .add(reseed) 
+      .add(addressbook)	
       .add(trust)	
       ;
   }

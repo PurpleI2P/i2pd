@@ -131,52 +131,64 @@ namespace data
 		s.read (signerID, signerIDLength); // signerID
 		signerID[signerIDLength] = 0;
 		
-		//try to verify signature
-		auto it = m_SigningKeys.find (signerID);
-		if (it != m_SigningKeys.end ())
-		{
-			// TODO: implement all signature types
-			if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096)
+		bool verify; i2p::config::GetOption("reseed.verify", verify);
+		if (verify)
+		{ 
+			//try to verify signature
+			auto it = m_SigningKeys.find (signerID);
+			if (it != m_SigningKeys.end ())
 			{
-				size_t pos = s.tellg ();
-				size_t tbsLen = pos + contentLength;
-				uint8_t * tbs = new uint8_t[tbsLen];
-				s.seekg (0, std::ios::beg);
-				s.read ((char *)tbs, tbsLen);
-				uint8_t * signature = new uint8_t[signatureLength];
-				s.read ((char *)signature, signatureLength);
-				// RSA-raw
+				// TODO: implement all signature types
+				if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096)
 				{
-					// calculate digest
-					uint8_t digest[64];
-					SHA512 (tbs, tbsLen, digest);
-					// encrypt signature
-					BN_CTX * bnctx = BN_CTX_new ();
-					BIGNUM * s = BN_new (), * n = BN_new ();
-					BN_bin2bn (signature, signatureLength, s);
-					BN_bin2bn (it->second, i2p::crypto::RSASHA5124096_KEY_LENGTH, n);
-					BN_mod_exp (s, s, i2p::crypto::GetRSAE (), n, bnctx); // s = s^e mod n 
-					uint8_t * enSigBuf = new uint8_t[signatureLength];
-					i2p::crypto::bn2buf (s, enSigBuf, signatureLength);
-					// digest is right aligned
-					// we can't use RSA_verify due wrong padding in SU3
-					if (memcmp (enSigBuf + (signatureLength - 64), digest, 64))
-						LogPrint (eLogWarning, "Reseed: SU3 signature verification failed");
-					delete[] enSigBuf;
-					BN_free (s); BN_free (n);
-					BN_CTX_free (bnctx);
-				}	
+					size_t pos = s.tellg ();
+					size_t tbsLen = pos + contentLength;
+					uint8_t * tbs = new uint8_t[tbsLen];
+					s.seekg (0, std::ios::beg);
+					s.read ((char *)tbs, tbsLen);
+					uint8_t * signature = new uint8_t[signatureLength];
+					s.read ((char *)signature, signatureLength);
+					// RSA-raw
+					{
+						// calculate digest
+						uint8_t digest[64];
+						SHA512 (tbs, tbsLen, digest);
+						// encrypt signature
+						BN_CTX * bnctx = BN_CTX_new ();
+						BIGNUM * s = BN_new (), * n = BN_new ();
+						BN_bin2bn (signature, signatureLength, s);
+						BN_bin2bn (it->second, i2p::crypto::RSASHA5124096_KEY_LENGTH, n);
+						BN_mod_exp (s, s, i2p::crypto::GetRSAE (), n, bnctx); // s = s^e mod n 
+						uint8_t * enSigBuf = new uint8_t[signatureLength];
+						i2p::crypto::bn2buf (s, enSigBuf, signatureLength);
+						// digest is right aligned
+						// we can't use RSA_verify due wrong padding in SU3
+						if (memcmp (enSigBuf + (signatureLength - 64), digest, 64))
+							LogPrint (eLogWarning, "Reseed: SU3 signature verification failed");
+						else
+							verify = false; // verified
+						delete[] enSigBuf;
+						BN_free (s); BN_free (n);
+						BN_CTX_free (bnctx);
+					}	
 					
-				delete[] signature;
-				delete[] tbs;
-				s.seekg (pos, std::ios::beg);
+					delete[] signature;
+					delete[] tbs;
+					s.seekg (pos, std::ios::beg);
+				}
+				else
+					LogPrint (eLogWarning, "Reseed: Signature type ", signatureType, " is not supported");
 			}
 			else
-				LogPrint (eLogWarning, "Reseed: Signature type ", signatureType, " is not supported");
+				LogPrint (eLogWarning, "Reseed: Certificate for ", signerID, " not loaded");
 		}
-		else
-			LogPrint (eLogWarning, "Reseed: Certificate for ", signerID, " not loaded");
-		
+
+		if (verify) // not verified
+		{
+			LogPrint (eLogError, "Reseed: SU3 verification failed");
+			return 0;
+		}	
+
 		// handle content
 		int numFiles = 0;
 		size_t contentPos = s.tellg ();
