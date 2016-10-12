@@ -22,7 +22,7 @@ Source: "..\README.md"; DestDir: "{app}"; DestName: "Readme.txt"; Flags: onlyifd
 Source: "..\docs\i2pd.conf"; DestDir: "{userappdata}\i2pd"; Flags: onlyifdoesntexist
 Source: "..\docs\subscriptions.txt"; DestDir: "{userappdata}\i2pd"; Flags: onlyifdoesntexist
 Source: "..\docs\tunnels.conf"; DestDir: "{userappdata}\i2pd"; Flags: onlyifdoesntexist
-Source: "..\contrib\certificates"; DestDir: "{userappdata}\i2pd"; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
+Source: "..\contrib\*"; DestDir: "{userappdata}\i2pd"; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\I2Pd"; Filename: "{app}\i2pd.exe"
