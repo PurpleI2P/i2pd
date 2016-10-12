@@ -171,28 +171,35 @@ namespace client
   
 	std::shared_ptr<const i2p::data::LeaseSet> LeaseSetDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
 	{
-		std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
-		auto it = m_RemoteLeaseSets.find (ident);
-		if (it != m_RemoteLeaseSets.end ())
+		std::shared_ptr<i2p::data::LeaseSet> remoteLS;
 		{
-			if (!it->second->IsExpired ())
+			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+			auto it = m_RemoteLeaseSets.find (ident);
+			if (it != m_RemoteLeaseSets.end ())
+				remoteLS = it->second;
+		}
+
+		if (remoteLS)	
+		{
+			if (!remoteLS->IsExpired ())
 			{
-				if (it->second->ExpiresSoon())
+				if (remoteLS->ExpiresSoon())
 				{
 					LogPrint(eLogDebug, "Destination: Lease Set expires soon, updating before expire");
 					// update now before expiration for smooth handover
-					RequestDestination(ident, [this, ident] (std::shared_ptr<i2p::data::LeaseSet> ls) {
+					auto s = shared_from_this ();
+					RequestDestination(ident, [s, ident] (std::shared_ptr<i2p::data::LeaseSet> ls) {
 						if(ls && !ls->IsExpired())
 						{
 							ls->PopulateLeases();
 							{
-								std::lock_guard<std::mutex> _lock(m_RemoteLeaseSetsMutex);
-								m_RemoteLeaseSets[ident] = ls;
+								std::lock_guard<std::mutex> _lock(s->m_RemoteLeaseSetsMutex);
+								s->m_RemoteLeaseSets[ident] = ls;
 							}
 						}
 					});
 				}
-				return it->second;
+				return remoteLS;
 			}
 			else
 				LogPrint (eLogWarning, "Destination: remote LeaseSet expired");
@@ -203,6 +210,7 @@ namespace client
 			if (ls && !ls->IsExpired ())
 			{
 				ls->PopulateLeases (); // since we don't store them in netdb
+				std::lock_guard<std::mutex> _lock(m_RemoteLeaseSetsMutex);
 				m_RemoteLeaseSets[ident] = ls;
 				return ls;
 			}	
