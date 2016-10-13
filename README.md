@@ -39,6 +39,7 @@ i2pd from source on your OS.
 * Mac OS X
 * FreeBSD
 * Android 
+* iOS
 
 Using i2pd
 ----------
