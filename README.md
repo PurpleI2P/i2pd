@@ -44,7 +44,7 @@ i2pd from source on your OS.
 Using i2pd
 ----------
 
-See [documentation](https://i2pd.readthedocs.io/en/latest/) and 
+See [documentation](https://i2pd.readthedocs.io/en/latest/usage.html) and 
 [example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/docs/i2pd.conf).
 
 Donations
