@@ -4,8 +4,9 @@ Building on Unix systems
 First of all we need to make sure that all dependencies are satisfied.
 
 This doc is trying to cover:
-* [Debian/Ubuntu](#debianubuntu) (contains packaging instructions)
-* [Fedora/Centos](#fedoracentos)
+* [Debian/Ubuntu](#debian-ubuntu) (contains packaging instructions)
+* [Fedora/Centos](#fedora-centos)
+* [Fedora/Centos](#mac-os-x)
 * [FreeBSD](#freebsd)
 
 Make sure you have all required dependencies for your system successfully installed.
@@ -73,7 +74,8 @@ sudo yum install make cmake gcc gcc-c++
 
 *Latest Fedora system using [DNF](https://en.wikipedia.org/wiki/DNF_(software)) instead of YUM by default, you may prefer to use DNF, but YUM should be ok*
 
-> *Centos 7 has CMake 2.8.11 in the official repositories that too old to build i2pd, CMake >=2.8.12 is required*
+> *Centos 7 has CMake 2.8.11 in the official repositories that too old to build i2pd, CMake >=2.8.12 is required.*
+>
 > You could build CMake for Centos manualy(WARNING there are a lot of build dependencies!):
 > ```bash
 > wget https://kojipkgs.fedoraproject.org/packages/cmake/2.8.12/3.fc21/src/cmake-2.8.12-3.fc21.src.rpm
@@ -95,7 +97,7 @@ miniupnpc-devel
 MAC OS X
 --------
 
-Requires homebrew
+Requires [homebrew](http://brew.sh/)
 
 ```bash
 brew install libressl boost
