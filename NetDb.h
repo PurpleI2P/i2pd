@@ -8,7 +8,6 @@
 #include <string>
 #include <thread>
 #include <mutex>
-#include <future>
 
 #include "Base.h"
 #include "Gzip.h"

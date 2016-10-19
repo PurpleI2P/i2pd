@@ -716,6 +716,7 @@ namespace client
 			return false;
 	}	
 
+#ifdef I2LUA
 	void ClientDestination::Ready(ReadyPromise & p)
 	{
 		ScheduleCheckForReady(&p);
@@ -739,6 +740,7 @@ namespace client
 		else // we are not ready
 			ScheduleCheckForReady(p);
 	}
+#endif
 	
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{
