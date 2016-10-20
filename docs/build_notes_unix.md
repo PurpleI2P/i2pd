@@ -74,16 +74,6 @@ sudo yum install make cmake gcc gcc-c++
 
 *Latest Fedora system using [DNF](https://en.wikipedia.org/wiki/DNF_(software)) instead of YUM by default, you may prefer to use DNF, but YUM should be ok*
 
-> *Centos 7 has CMake 2.8.11 in the official repositories that too old to build i2pd, CMake >=2.8.12 is required.*
->
-> You could build CMake for Centos manualy(WARNING there are a lot of build dependencies!):
-> ```bash
-> wget https://kojipkgs.fedoraproject.org/packages/cmake/2.8.12/3.fc21/src/cmake-2.8.12-3.fc21.src.rpm
-> yum-builddep cmake-2.8.12-3.fc21.src.rpm
-> rpmbuild --rebuild cmake-2.8.12-3.fc21.src.rpm
-> yum install ~/rpmbuild/RPMS/x86_64/cmake-2.8.12-3.el7.centos.x86_64.rpm
-> ```
-
 Also you will need a bunch of development libraries
 ```bash
 sudo yum install boost-devel openssl-devel
@@ -93,6 +83,15 @@ If you need UPnP support (don't forget to run CMake with `WITH_UPNP=ON`) miniupn
 ```bash
 miniupnpc-devel
 ```
+> *Centos 7 has CMake 2.8.11 in the official repositories that too old to build i2pd, CMake >=2.8.12 is required.*
+> 
+> But you can use cmake3 from the epel repository:
+> ```bash
+> yum install epel-release -y
+> yum install make cmake3 gcc gcc-c++ miniupnpc-devel boost-devel openssl-devel -y
+> cmake3 -DWITH_LIBRARY=OFF -DWITH_UPNP=ON  -DWITH_HARDENING=ON -DBUILD_SHARED_LIBS:BOOL=OFF
+> make
+> ```
 
 MAC OS X
 --------
