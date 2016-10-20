@@ -1,0 +1,16 @@
+[Unit]
+Description=I2P router
+After=network.target
+
+[Service]
+User=i2pd
+Group=i2pd
+Type=simple
+ExecStart=/usr/bin/i2pd --service
+PIDFile=/var/lib/i2pd/i2pd.pid
+Restart=always
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
