@@ -57,6 +57,7 @@ namespace i2p
 
       void Stop() {
         m_run = false;
+        m_server.stop();
         if(m_thread) {
           m_thread->join();
           delete m_thread;
