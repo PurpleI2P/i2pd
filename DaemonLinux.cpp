@@ -74,12 +74,12 @@ namespace i2p
 					LogPrint(eLogError, "Daemon: could not chdir: ", strerror(errno));
 					return false;
 				}
-
-				// point std{in,out,err} descriptors to /dev/null
-                stdin  = freopen("/dev/null", "r", stdin);
-				stdout = freopen("/dev/null", "w", stdout);
-				stderr = freopen("/dev/null", "w", stderr);
 			}
+
+			std::ofstream fout("/dev/null");
+			std::cout.rdbuf(fout.rdbuf());
+			std::cerr.rdbuf(fout.rdbuf());
+			std::cin.rdbuf(fout.rdbuf());
 
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
