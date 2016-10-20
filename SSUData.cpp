@@ -5,6 +5,7 @@
 #include "NetDb.h"
 #include "SSU.h"
 #include "SSUData.h"
+#include "Event.h"
 
 namespace i2p
 {
@@ -233,9 +234,16 @@ namespace transport
 					if (!m_ReceivedMessages.count (msgID))
 					{	
 						m_ReceivedMessages.insert (msgID);
+<<<<<<< HEAD
 						m_LastMessageReceivedTime = i2p::util::GetSecondsSinceEpoch ();
 						if (!msg->IsExpired ())
+=======
+						m_LastMessageReceivedTime = i2p::util::GetSinceEpoch<Time> ();
+						if (!msg->IsExpired ()) {
+              EmitEvent({{"type", "transport.recvmsg"} , {"ident", m_Session.GetIdentHashBase64()}, {"number", "1"}});
+>>>>>>> bda4170... add web socket ui
 							m_Handler.PutNextMessage (msg);
+            }
 						else
 							LogPrint (eLogDebug, "SSU: message expired");
 					}	

@@ -68,7 +68,7 @@ namespace client
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
 
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
-			
+
 		private:
 
 			void ReadTunnels ();

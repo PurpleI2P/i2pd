@@ -547,7 +547,6 @@ namespace i2p
 		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
 		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);	
 		LogPrint (eLogDebug, "I2NP: msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
-
 		uint8_t * buf = msg + I2NP_HEADER_SIZE;
 		int size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
 		switch (typeID)
