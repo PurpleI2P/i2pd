@@ -14,6 +14,12 @@ USE_STATIC := no
 USE_MESHNET := no
 USE_UPNP   := no
 
+
+ifeq ($(WEBSOCKET),1)
+	NEEDED_CXXFLAGS += -DWITH_EVENTS
+	DAEMON_SRC += Websocket.cpp
+endif
+
 ifeq ($(UNAME),Darwin)
 	DAEMON_SRC += DaemonLinux.cpp
 	ifeq ($(HOMEBREW),1)

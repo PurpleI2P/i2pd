@@ -41,7 +41,9 @@ namespace i2p
 			std::unique_ptr<i2p::http::HTTPServer> httpServer;
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 			std::unique_ptr<i2p::transport::UPnP> UPnP;
+#ifdef WITH_EVENTS
       std::unique_ptr<i2p::event::WebsocketServer> m_WebsocketServer;
+#endif
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : isDaemon(false), running(true), d(*new Daemon_Singleton_Private()) {}
@@ -294,6 +296,7 @@ namespace i2p
 				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
 				d.m_I2PControlService->Start ();
 			}
+#ifdef WITH_EVENTS
 
       bool websocket; i2p::config::GetOption("websockets.enabled", websocket);
       if(websocket) {
@@ -305,7 +308,7 @@ namespace i2p
         i2p::event::core.SetListener(d.m_WebsocketServer->ToListener());
       }
       
-      
+#endif      
 			return true;
 		}
 
@@ -338,13 +341,13 @@ namespace i2p
 				d.m_I2PControlService->Stop ();
 				d.m_I2PControlService = nullptr;
 			}
-
+#ifdef WITH_EVENTS
       if (d.m_WebsocketServer) {
         LogPrint(eLogInfo, "Daemon: stopping Websocket server");
         d.m_WebsocketServer->Stop();
         d.m_WebsocketServer = nullptr;
       }
-      
+#endif
 			i2p::crypto::TerminateCrypto ();
 
 			return true;
