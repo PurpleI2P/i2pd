@@ -1,12 +1,11 @@
 Name:           i2pd
 Version:        2.10.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        I2P router written in C++
 
 License:        BSD
 URL:            https://github.com/PurpleI2P/i2pd
 Source0:        https://github.com/PurpleI2P/i2pd/archive/%{version}/%name-%version.tar.gz
-Source1:        i2pd.service
 
 %if 0%{?rhel}  == 7
 BuildRequires:  cmake3
@@ -68,7 +67,7 @@ make %{?_smp_mflags}
 cd build
 chrpath -d i2pd
 install -D -m 755 i2pd %{buildroot}%{_bindir}/i2pd
-install -D -m 644 %{SOURCE1} %{buildroot}/%{_unitdir}/i2pd.service
+install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}/%{_unitdir}/i2pd.service
 install -d -m 700 %{buildroot}/%{_sharedstatedir}/i2pd
 
 
@@ -102,8 +101,9 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Tue Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-2
+* Tue Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
 - add support C7
+- move rpm-related files to contrib folder
 
 * Sun Oct 16 2016 Oleg Girko <ol@infoserver.lv> - 2.10.0-1
 - update to 2.10.0
