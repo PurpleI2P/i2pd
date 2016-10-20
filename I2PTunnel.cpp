@@ -175,7 +175,9 @@ namespace client
 					Write (m_StreamBuffer, bytes_transferred); // postpone termination
 				else	
 					Terminate ();
-			}	
+			}
+			else
+				Terminate ();	
 		}
 		else
 			Write (m_StreamBuffer, bytes_transferred);
