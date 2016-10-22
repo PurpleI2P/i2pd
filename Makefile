@@ -21,7 +21,7 @@ ifeq ($(UNAME),Darwin)
 	else
 		include Makefile.osx
 	endif
-else ifeq ($(shell echo $(UNAME) | $(GREP) -c FreeBSD),1)
+else ifeq ($(shell echo $(UNAME) | $(GREP) -Ec '(Free|Open)BSD'),1)
 	DAEMON_SRC += DaemonLinux.cpp
 	include Makefile.bsd
 else ifeq ($(UNAME),Linux)
