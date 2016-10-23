@@ -51,7 +51,7 @@ namespace stream
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
-	const int MAX_RECEIVE_TIMEOUT = 60; // in seconds 
+	const int MAX_RECEIVE_TIMEOUT = 30; // in seconds 
 
 	/** i2cp option for limiting inbound stremaing connections */
 	const char I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN[] = "maxconns";

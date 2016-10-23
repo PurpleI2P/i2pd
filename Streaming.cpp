@@ -661,25 +661,34 @@ namespace stream
 
 	void Stream::SendUpdatedLeaseSet ()
 	{
-		if (m_RoutingSession && m_RoutingSession->IsLeaseSetUpdated ())
+		if (m_RoutingSession && m_RemoteLeaseSet && 
+		    (m_RoutingSession->IsLeaseSetUpdated () || m_RoutingSession->IsLeaseSetNonConfirmed ()))
 		{
-			if (!m_CurrentRemoteLease)
-				UpdateCurrentRemoteLease (true);
-			if (m_CurrentRemoteLease)
+			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // with threshold
+			if (leases.empty ())
 			{	
-				auto msg = m_RoutingSession->WrapSingleMessage (nullptr);
 				auto outboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel ();
 				if (outboundTunnel)
-					m_CurrentOutboundTunnel->SendTunnelDataMsg (
+				{	
+					auto lease = leases[rand () % leases.size ()];		
+					auto msg = m_RoutingSession->WrapSingleMessage (nullptr);
+					outboundTunnel->SendTunnelDataMsg (
 						{
 							i2p::tunnel::TunnelMessageBlock 
 							{ 
 								i2p::tunnel::eDeliveryTypeTunnel,
-								m_CurrentRemoteLease->tunnelGateway, m_CurrentRemoteLease->tunnelID,
+								lease->tunnelGateway, lease->tunnelID,
 								msg
 							} 
 						});
+					LogPrint (eLogDebug, "Streaming: Updated LeaseSet sent. sSID=", m_SendStreamID);
+				}	
 			}
+			else
+			{	
+				LogPrint (eLogWarning, "Streaming: Can't sent updated LeaseSet. Remote LeaseSet expired. sSID=", m_SendStreamID);
+				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ());
+			}	
 		}	
 	}	
 		
