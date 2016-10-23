@@ -659,6 +659,29 @@ namespace stream
 			LogPrint (eLogWarning, "Streaming: All leases are expired, sSID=", m_SendStreamID);
 	}
 
+	void Stream::SendUpdatedLeaseSet ()
+	{
+		if (m_RoutingSession && m_RoutingSession->IsLeaseSetUpdated ())
+		{
+			if (!m_CurrentRemoteLease)
+				UpdateCurrentRemoteLease (true);
+			if (m_CurrentRemoteLease)
+			{	
+				auto msg = m_RoutingSession->WrapSingleMessage (nullptr);
+				auto outboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel ();
+				if (outboundTunnel)
+					m_CurrentOutboundTunnel->SendTunnelDataMsg (
+						{
+							i2p::tunnel::TunnelMessageBlock 
+							{ 
+								i2p::tunnel::eDeliveryTypeTunnel,
+								m_CurrentRemoteLease->tunnelGateway, m_CurrentRemoteLease->tunnelID,
+								msg
+							} 
+						});
+			}
+		}	
+	}	
 		
 	void Stream::ScheduleResend ()
 	{
@@ -760,7 +783,10 @@ namespace stream
 		{
 			m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
 			if (!m_RemoteLeaseSet)	
+			{	
 				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " not found");
+				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
+			}	
 		}
 		if (m_RemoteLeaseSet)
 		{
