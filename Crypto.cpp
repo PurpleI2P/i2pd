@@ -135,11 +135,8 @@ namespace crypto
 	DSA * CreateDSA ()
 	{
 		DSA * dsa = DSA_new ();
-		dsa->p = BN_dup (dsap);
-		dsa->q = BN_dup (dsaq);
-		dsa->g = BN_dup (dsag);
-		dsa->priv_key = NULL;
-		dsa->pub_key = NULL;
+		DSA_set0_pqg (dsa, BN_dup (dsap), BN_dup (dsaq), BN_dup (dsag));	
+		DSA_set0_key (dsa, NULL, NULL);
 		return dsa;
 	}
 

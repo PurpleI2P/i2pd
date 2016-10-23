@@ -1,6 +1,8 @@
 i2pd
 ====
 
+[Русская версия](https://github.com/PurpleI2P/i2pd_docs_ru/blob/master/README.md)
+
 i2pd (I2P Daemon) is a full-featured C++ implementation of I2P client.
 
 I2P (Invisible Internet Protocol) is a universal anonymous network layer. 
@@ -37,11 +39,12 @@ i2pd from source on your OS.
 * Mac OS X
 * FreeBSD
 * Android 
+* iOS
 
 Using i2pd
 ----------
 
-See [documentation](https://i2pd.readthedocs.io/en/latest/) and 
+See [documentation](https://i2pd.readthedocs.io/en/latest/usage.html) and 
 [example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/docs/i2pd.conf).
 
 Donations

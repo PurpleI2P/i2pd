@@ -373,26 +373,24 @@ namespace client
 				for (int i = 0; i < num; i++)
 				{
 					i2p::data::IdentHash peerHash (buf + 33 + i*32);
-					auto floodfill = i2p::data::netdb.FindRouter (peerHash);
-					if (floodfill)
+					if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
 					{
-						LogPrint (eLogInfo, "Destination: Requesting ", key.ToBase64 (), " at ", peerHash.ToBase64 ());
-						if (SendLeaseSetRequest (key, floodfill, request))
-							found = true;
-					}	
-					else
-					{	
 						LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); // TODO: recheck this message
 						i2p::data::netdb.RequestDestination (peerHash);
 					}	
 				}
-				if (!found)
-					LogPrint (eLogError, "Destination: Suggested floodfills are not presented in netDb");
+				
+				auto floodfill = i2p::data::netdb.GetClosestFloodfill (key, request->excluded);
+				if (floodfill)
+				{
+					LogPrint (eLogInfo, "Destination: Requesting ", key.ToBase64 (), " at ", floodfill->GetIdentHash ().ToBase64 ());
+					if (SendLeaseSetRequest (key, floodfill, request))
+						found = true;
+				}	
 			}	
-			else
-				LogPrint (eLogInfo, "Destination: ", key.ToBase64 (), " was not found on ", MAX_NUM_FLOODFILLS_PER_REQUEST, " floodfills");
 			if (!found)
-			{
+			{	
+				LogPrint (eLogInfo, "Destination: ", key.ToBase64 (), " was not found on ", MAX_NUM_FLOODFILLS_PER_REQUEST, " floodfills");
 				if (request->requestComplete) request->requestComplete (nullptr);
 				m_LeaseSetRequests.erase (key);
 			}	
@@ -718,6 +716,7 @@ namespace client
 			return false;
 	}	
 
+#ifdef I2LUA
 	void ClientDestination::Ready(ReadyPromise & p)
 	{
 		ScheduleCheckForReady(&p);
@@ -741,6 +740,7 @@ namespace client
 		else // we are not ready
 			ScheduleCheckForReady(p);
 	}
+#endif
 	
 	void ClientDestination::HandleDataMessage (const uint8_t * buf, size_t len)
 	{

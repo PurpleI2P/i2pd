@@ -309,6 +309,7 @@ namespace data
 		
 	void IdentityEx::CreateVerifier () const 
 	{
+		if (m_Verifier) return; // don't create again
 		auto keyType = GetSigningKeyType ();
 		switch (keyType)
 		{
@@ -476,6 +477,7 @@ namespace data
 
 	void PrivateKeys::CreateSigner () const
 	{
+		if (m_Signer) return;
 		switch (m_Public->GetSigningKeyType ())
 		{	
 			case SIGNING_KEY_TYPE_DSA_SHA1:

@@ -8,7 +8,9 @@
 #include <set>
 #include <string>
 #include <functional>
+#ifdef I2LUA
 #include <future>
+#endif
 #include <boost/asio.hpp>
 #include "Identity.h"
 #include "TunnelPool.h"
@@ -145,18 +147,19 @@ namespace client
 	class ClientDestination: public LeaseSetDestination
 	{
 		public:
+#ifdef I2LUA
 			// type for informing that a client destination is ready
 			typedef std::promise<std::shared_ptr<ClientDestination> > ReadyPromise;
+			// informs promise with shared_from_this() when this destination is ready to use
+			// if cancelled before ready, informs promise with nullptr
+			void Ready(ReadyPromise & p);
+#endif
 		
 			ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~ClientDestination ();
 			
 			bool Start ();
 			bool Stop ();
-     
-			// informs promise with shared_from_this() when this destination is ready to use
-			// if cancelled before ready, informs promise with nullptr
-			void Ready(ReadyPromise & p);
 			
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };	
@@ -191,10 +194,10 @@ namespace client
 			std::shared_ptr<ClientDestination> GetSharedFromThis ()
 			{ return std::static_pointer_cast<ClientDestination>(shared_from_this ()); }   
 			void PersistTemporaryKeys ();
-
+#ifdef I2LUA
 			void ScheduleCheckForReady(ReadyPromise * p);
 			void HandleCheckForReady(const boost::system::error_code & ecode, ReadyPromise * p);
-      
+#endif      
 		private:
 
 			i2p::data::PrivateKeys m_Keys;

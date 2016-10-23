@@ -35,19 +35,19 @@ If you wish to run your own website in Invisible Internet, follow those steps:
 
 2) Configure i2pd to create HTTP server tunnel. Put in your ~/.i2pd/tunnels.conf file:
 
-    [anon-website]
-    type = http
-    host = 127.0.0.1
-    port = 8080
-    keys = anon-website.dat
+        [anon-website]
+        type = http
+        host = 127.0.0.1
+        port = 8080
+        keys = anon-website.dat
 
 3) Restart i2pd.
 
 4) Find b32 destination of your website.
 
-Go to webconsole -> [I2P tunnels page](http://127.0.0.1:7070/?page=i2p_tunnels). Look for Sever tunnels and you will see address like \<long random string\>.b32.i2p next to anon-website.
+    Go to webconsole -> [I2P tunnels page](http://127.0.0.1:7070/?page=i2p_tunnels). Look for Sever tunnels and you will see address like \<long random string\>.b32.i2p next to anon-website.
 
-Website is now available in Invisible Internet by visiting this address.
+    Website is now available in Invisible Internet by visiting this address.
 
 5) (Optional) Register short and rememberable .i2p domain on [inr.i2p](http://inr.i2p).
 
@@ -58,51 +58,51 @@ Website is now available in Invisible Internet by visiting this address.
 
 1) Run your IRC server software and find out which host:port it uses (for example, 127.0.0.1:5555).
 
-For small private IRC servers you can use [miniircd](https://github.com/jrosdahl/miniircd), for large public networks [UnreadIRCd](https://www.unrealircd.org/).
+    For small private IRC servers you can use [miniircd](https://github.com/jrosdahl/miniircd), for large public networks [UnreadIRCd](https://www.unrealircd.org/).
 
 2) Configure i2pd to create IRC server tunnel.
 
-Simplest case, if your server does not support WebIRC, add this to ~/.i2pd/tunnels.conf:
+    Simplest case, if your server does not support WebIRC, add this to ~/.i2pd/tunnels.conf:
 
-    [anon-chatserver]
-    type = irc
-    host = 127.0.0.1     
-    port = 5555
-    keys = chatserver-key.dat
+        [anon-chatserver]
+        type = irc
+        host = 127.0.0.1     
+        port = 5555
+        keys = chatserver-key.dat
 
-And that is it.
+    And that is it.
 
-Alternatively, if your IRC server supports WebIRC, for example, UnreadIRCd, put this into UnrealIRCd config:
+    Alternatively, if your IRC server supports WebIRC, for example, UnreadIRCd, put this into UnrealIRCd config:
 
-    webirc {
-        mask 127.0.0.1;
-        password your_password;
-    };
+        webirc {
+            mask 127.0.0.1;
+            password your_password;
+        };
 
-Also change line:
+    Also change line:
 
-    modes-on-connect "+ixw";
+        modes-on-connect "+ixw";
 
-to
+    to
 
-    modes-on-connect "+iw";
+        modes-on-connect "+iw";
 
-And this in ~/.i2pd/tunnels.conf:
+    And this in ~/.i2pd/tunnels.conf:
 
-    [anon-chatserver]
-    type = irc
-    host = 127.0.0.1
-    port = 5555
-    keys = chatserver-key.dat
-    webircpassword = your_password
+        [anon-chatserver]
+        type = irc
+        host = 127.0.0.1
+        port = 5555
+        keys = chatserver-key.dat
+        webircpassword = your_password
 
 3) Restart i2pd.
 
 4) Find b32 destination of your anonymous IRC server.
 
-Go to webconsole -> [I2P tunnels page](http://127.0.0.1:7070/?page=i2p_tunnels). Look for Sever tunnels and you will see address like \<long random string\>.b32.i2p next to anon-chatserver.
+    Go to webconsole -> [I2P tunnels page](http://127.0.0.1:7070/?page=i2p_tunnels). Look for Sever tunnels and you will see address like \<long random string\>.b32.i2p next to anon-chatserver.
 
-Clients will use this address to connect to your server anonymously.
+    Clients will use this address to connect to your server anonymously.
 
 ### Connect to anonymous IRC server
 

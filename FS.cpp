@@ -46,8 +46,18 @@ namespace fs {
     }
 #if defined(WIN32) || defined(_WIN32)
     char localAppData[MAX_PATH];
-    SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
-    dataDir = std::string(localAppData) + "\\" + appName;
+    // check executable directory first
+    GetModuleFileName (NULL, localAppData, MAX_PATH);
+    auto execPath = boost::filesystem::path(localAppData).parent_path();
+    // if config file exists in .exe's folder use it
+    if(boost::filesystem::exists(execPath/"i2pd.conf")) // TODO: magic string
+        dataDir = execPath.string ();
+    else
+    {
+        // otherwise %appdata%
+        SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
+        dataDir = std::string(localAppData) + "\\" + appName;
+    }
     return;
 #elif defined(MAC_OSX)
     char *home = getenv("HOME");
@@ -57,12 +67,12 @@ namespace fs {
 #else /* other unix */
 #if defined(ANDROID)
 	if (boost::filesystem::exists("/sdcard"))
-	{	  
-		dataDir = "/sdcard/" + appName; 
+	{
+		dataDir = "/sdcard/" + appName;
 		return;
-	}	  
-	// otherwise use /data/files  
-#endif	  
+	}
+	// otherwise use /data/files
+#endif
     char *home = getenv("HOME");
     if (isService) {
       dataDir = "/var/lib/" + appName;
@@ -112,10 +122,10 @@ namespace fs {
 
   	bool CreateDirectory (const std::string& path)
 	{
-		if (boost::filesystem::exists(path) && 
+		if (boost::filesystem::exists(path) &&
 			boost::filesystem::is_directory (boost::filesystem::status (path))) return true;
 		return boost::filesystem::create_directory(path);
-	}			
+	}
 
   void HashedStorage::SetPlace(const std::string &path) {
     root = path + i2p::fs::dirSep + name;
@@ -125,7 +135,7 @@ namespace fs {
     if (!boost::filesystem::exists(root)) {
       boost::filesystem::create_directories(root);
     }
-    
+
     for (size_t i = 0; i < count; i++) {
       auto p = root + i2p::fs::dirSep + prefix1 + chars[i];
       if (boost::filesystem::exists(p))
