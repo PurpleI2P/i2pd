@@ -138,6 +138,9 @@ namespace i2p
 			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 			SetMaxNumTransitTunnels (transitTunnels);
 
+			int netID; i2p::config::GetOption("netid", netID);
+			i2p::context.SetNetID (netID);
+
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
 			if (isFloodfill) {
 				LogPrint(eLogInfo, "Daemon: router will be floodfill");

@@ -77,7 +77,6 @@ namespace i2p
 		}
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
-		i2p::config::GetOption("netid", m_NetID);
         routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
