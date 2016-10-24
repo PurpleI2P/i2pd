@@ -665,7 +665,7 @@ namespace stream
 		    (m_RoutingSession->IsLeaseSetUpdated () || m_RoutingSession->IsLeaseSetNonConfirmed ()))
 		{
 			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // with threshold
-			if (leases.empty ())
+			if (!leases.empty ())
 			{	
 				auto outboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel ();
 				if (outboundTunnel)
