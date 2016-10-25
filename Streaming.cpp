@@ -661,33 +661,25 @@ namespace stream
 
 	void Stream::SendUpdatedLeaseSet ()
 	{
-		if (m_RoutingSession && m_RemoteLeaseSet && 
-		    (m_RoutingSession->IsLeaseSetUpdated () || m_RoutingSession->IsLeaseSetNonConfirmed ()))
-		{
-			auto leases = m_RemoteLeaseSet->GetNonExpiredLeases (true); // with threshold
-			if (!leases.empty ())
-			{	
-				auto outboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNextOutboundTunnel ();
-				if (outboundTunnel)
-				{	
-					auto lease = leases[rand () % leases.size ()];		
-					auto msg = m_RoutingSession->WrapSingleMessage (nullptr);
-					outboundTunnel->SendTunnelDataMsg (
-						{
-							i2p::tunnel::TunnelMessageBlock 
-							{ 
-								i2p::tunnel::eDeliveryTypeTunnel,
-								lease->tunnelGateway, lease->tunnelID,
-								msg
-							} 
-						});
-					LogPrint (eLogDebug, "Streaming: Updated LeaseSet sent. sSID=", m_SendStreamID);
+		if (m_RoutingSession)
+		{		
+			if (m_RoutingSession->IsLeaseSetNonConfirmed ())	    
+			{
+				auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+				if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASET_CONFIRMATION_TIMEOUT)
+				{
+					// LeaseSet was not confirmed, should try other tunnels
+					LogPrint (eLogWarning, "Streaming: LeaseSet was not confrimed in ", i2p::garlic::LEASET_CONFIRMATION_TIMEOUT,  " milliseconds. Trying to resubmit");
+					m_RoutingSession->SetSharedRoutingPath (nullptr);
+					m_CurrentOutboundTunnel = nullptr;	
+					m_CurrentRemoteLease = nullptr;
+					SendQuickAck ();
 				}	
-			}
-			else
+			}	
+			else if (m_RoutingSession->IsLeaseSetUpdated ())
 			{	
-				LogPrint (eLogWarning, "Streaming: Can't sent updated LeaseSet. Remote LeaseSet expired. sSID=", m_SendStreamID);
-				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ());
+				LogPrint (eLogDebug, "Streaming: sending updated LeaseSet");
+				SendQuickAck ();
 			}	
 		}	
 	}	
