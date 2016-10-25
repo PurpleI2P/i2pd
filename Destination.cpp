@@ -202,7 +202,12 @@ namespace client
 				return remoteLS;
 			}
 			else
+			{
 				LogPrint (eLogWarning, "Destination: remote LeaseSet expired");
+				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+				m_RemoteLeaseSets.erase (ident);
+				return nullptr;
+			}
 		}	
 		else
 		{	
@@ -223,12 +228,16 @@ namespace client
 		if (!m_Pool) return nullptr;
 		if (!m_LeaseSet)
 			UpdateLeaseSet ();
+		std::lock_guard<std::mutex> l(m_LeaseSetMutex);
 		return m_LeaseSet;
 	}	
 
 	void LeaseSetDestination::SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet)
 	{
-		m_LeaseSet.reset (newLeaseSet);
+		{	
+			std::lock_guard<std::mutex> l(m_LeaseSetMutex);
+			m_LeaseSet.reset (newLeaseSet);
+		}
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();
 		if (m_IsPublic)
 		{
@@ -371,14 +380,14 @@ namespace client
 			if (request->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
 			{	
 				for (int i = 0; i < num; i++)
+			{
+				i2p::data::IdentHash peerHash (buf + 33 + i*32);
+				if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
 				{
-					i2p::data::IdentHash peerHash (buf + 33 + i*32);
-					if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
-					{
-						LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); // TODO: recheck this message
-						i2p::data::netdb.RequestDestination (peerHash);
-					}	
-				}
+					LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); // TODO: recheck this message
+					i2p::data::netdb.RequestDestination (peerHash);
+				}	
+			}
 				
 				auto floodfill = i2p::data::netdb.GetClosestFloodfill (key, request->excluded);
 				if (floodfill)
