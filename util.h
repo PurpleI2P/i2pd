@@ -15,6 +15,11 @@ std::string to_string(T value)
 {
    return boost::lexical_cast<std::string>(value);
 }
+
+inline int stoi(const std::string& str)
+{
+	return boost::lexical_cast<int>(str);
+}
 }
 #endif
 
