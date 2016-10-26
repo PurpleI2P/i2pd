@@ -656,7 +656,11 @@ namespace stream
 			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
 		}	
 		else
-			LogPrint (eLogWarning, "Streaming: All leases are expired, sSID=", m_SendStreamID);
+		{	
+			LogPrint (eLogWarning, "Streaming: Remote lease is not available, sSID=", m_SendStreamID);
+			if (m_RoutingSession) 
+				m_RoutingSession->SetSharedRoutingPath (nullptr); // invalidate routing path
+		}
 	}
 
 	void Stream::SendUpdatedLeaseSet ()
@@ -824,13 +828,17 @@ namespace stream
 			}	
 			else
 			{	
+				LogPrint (eLogWarning, "Streaming: All remote leases are expired");
 				m_RemoteLeaseSet = nullptr;
 				m_CurrentRemoteLease = nullptr;
 				// we have requested expired before, no need to do it twice
 			}	
 		}
 		else
+		{
+			LogPrint (eLogWarning, "Streaming: Remote LeaseSet not found");
 			m_CurrentRemoteLease = nullptr;
+		}	
 	}	
 
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip): 

@@ -280,7 +280,7 @@ namespace client
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
 		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
 		{
-			LogPrint (eLogDebug, "Remote LeaseSet");
+			LogPrint (eLogDebug, "Destination: Remote LeaseSet");
 			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 			auto it = m_RemoteLeaseSets.find (buf + DATABASE_STORE_KEY_OFFSET);
 			if (it != m_RemoteLeaseSets.end ())
@@ -290,16 +290,16 @@ namespace client
 				{	
 					leaseSet->Update (buf + offset, len - offset); 
 					if (leaseSet->IsValid ())
-						LogPrint (eLogDebug, "Remote LeaseSet updated");
+						LogPrint (eLogDebug, "Destination: Remote LeaseSet updated");
 					else
 					{
-						LogPrint (eLogDebug, "Remote LeaseSet update failed");
+						LogPrint (eLogDebug, "Destination: Remote LeaseSet update failed");
 						m_RemoteLeaseSets.erase (it);
 						leaseSet = nullptr;
 					}
 				}
 				else
-					LogPrint (eLogDebug, "Remote LeaseSet is older. Not updated");
+					LogPrint (eLogDebug, "Destination: Remote LeaseSet is older. Not updated");
 			}
 			else
 			{	
@@ -308,15 +308,15 @@ namespace client
 				{
 					if (leaseSet->GetIdentHash () != GetIdentHash ())
 					{
-						LogPrint (eLogDebug, "New remote LeaseSet added");
+						LogPrint (eLogDebug, "Destination: New remote LeaseSet added");
 						m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
 					}
 					else
-						LogPrint (eLogDebug, "Own remote LeaseSet dropped");
+						LogPrint (eLogDebug, "Destination: Own remote LeaseSet dropped");
 				}
 				else
 				{
-					LogPrint (eLogError, "New remote LeaseSet failed");
+					LogPrint (eLogError, "Destination: New remote LeaseSet failed");
 					leaseSet = nullptr;
 				}
 			}	
