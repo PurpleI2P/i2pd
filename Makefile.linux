@@ -55,7 +55,7 @@ IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(GREP) -c "64")
 ifeq ($(USE_AESNI),yes)
 ifeq ($(IS_64),1)
 #check if AES-NI is supported by CPU
-ifneq ($(shell grep -c aes /proc/cpuinfo),0)
+ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
 	CPU_FLAGS = -maes -DAESNI
 endif
 endif
