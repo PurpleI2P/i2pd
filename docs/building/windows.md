@@ -3,7 +3,7 @@ Building on Windows
 
 There are two approaches available to build i2pd on Windows. The best
 one depends on your needs and personal preferences. One is to use
-msys2 and [unix alike infrastructure](build_notes_unix.md). Another
+msys2 and [unix alike infrastructure](unix.md). Another
 one is to use Visual Studio. While there might be no difference for
 end users of i2pd daemon, developers, however, shall be wary of
 differences in C++ name mangling between the two compilers when making
@@ -19,8 +19,6 @@ assume that you typically have your projects in C:\dev\ as your
 development location for the sake of convenience. Adjust paths
 accordingly if it is not the case. Note that msys uses unix-alike
 paths like /c/dev/ for C:\dev\.
-
-
 
 msys2
 -----
