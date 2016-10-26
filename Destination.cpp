@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cassert>
-#include <boost/lexical_cast.hpp>
 #include "Crypto.h"
 #include "Log.h"
 #include "FS.h"
@@ -18,83 +17,50 @@ namespace client
 		m_PublishReplyToken (0), m_PublishConfirmationTimer (m_Service), 
 		m_PublishVerificationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
-		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
-		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
-		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
-		int outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+		int inLen   = DEFAULT_INBOUND_TUNNEL_LENGTH;
+		int inQty   = DEFAULT_INBOUND_TUNNELS_QUANTITY;
+		int outLen  = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
+		int outQty  = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
 		int numTags = DEFAULT_TAGS_TO_SEND;
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
-		if (params)
-		{
-			auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
-			if (it != params->end ())
-			{
-
-				int len = i2p::util::lexical_cast<int>(it->second, inboundTunnelLen);
-				if (len >= 0)
+		try {
+			if (params) {
+				auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
+				if (it != params->end ())
+					inLen = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
+				if (it != params->end ())
+					outLen = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
+				if (it != params->end ())
+					inQty = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
+				if (it != params->end ())
+					outQty = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_TAGS_TO_SEND);
+				if (it != params->end ())
+					numTags = std::stoi(it->second);
+				LogPrint (eLogInfo, "Destination: parameters for tunnel set to: ", inQty, " inbound (", inLen, " hops), ", outQty, " outbound (", outLen, " hops), ", numTags, " tags");
+				it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
+				if (it != params->end ())
 				{
-						inboundTunnelLen = len;
+					explicitPeers = std::make_shared<std::vector<i2p::data::IdentHash> >();
+					std::stringstream ss(it->second);
+					std::string b64;
+					while (std::getline (ss, b64, ','))
+					{
+						i2p::data::IdentHash ident;
+						ident.FromBase64 (b64);
+						explicitPeers->push_back (ident);
+						LogPrint (eLogInfo, "Destination: Added to explicit peers list: ", b64);
+					}
 				}
-				LogPrint (eLogInfo, "Destination: Inbound tunnel length set to ", inboundTunnelLen);
-			}	
-			it = params->find (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
-			if (it != params->end ())
-			{
-
-				int len = i2p::util::lexical_cast<int>(it->second, outboundTunnelLen);
-				if (len >= 0)
-				{
-						outboundTunnelLen = len;
-				}
-				LogPrint (eLogInfo, "Destination: Outbound tunnel length set to ", outboundTunnelLen);
-			}	
-			it = params->find (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
-			if (it != params->end ())
-			{
-				int quantity = i2p::util::lexical_cast<int>(it->second, inboundTunnelsQuantity);
-				if (quantity > 0)
-				{
-					inboundTunnelsQuantity = quantity;
-					LogPrint (eLogInfo, "Destination: Inbound tunnels quantity set to ", quantity);
-				}	
 			}
-			it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
-			if (it != params->end ())
-			{
-				int quantity = i2p::util::lexical_cast<int>(it->second, outboundTunnelsQuantity);
-				if (quantity > 0)
-				{
-					outboundTunnelsQuantity = quantity;
-					LogPrint (eLogInfo, "Destination: Outbound tunnels quantity set to ", quantity);
-				}	
-			}
-			it = params->find (I2CP_PARAM_TAGS_TO_SEND);
-			if (it != params->end ())
-			{
-				int tagsToSend = i2p::util::lexical_cast<int>(it->second, numTags);
-				if (tagsToSend > 0)
-				{
-					numTags = tagsToSend;
-					LogPrint (eLogInfo, "Destination: Tags to send set to	 ", tagsToSend);
-				}	
-			}	
-			it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
-			if (it != params->end ())
-			{
-				explicitPeers = std::make_shared<std::vector<i2p::data::IdentHash> >();
-				std::stringstream ss(it->second);
-				std::string b64;
-				while (std::getline (ss, b64, ','))
-				{
-					i2p::data::IdentHash ident;
-					ident.FromBase64 (b64);
-					explicitPeers->push_back (ident);
-				}
-				LogPrint (eLogInfo, "Destination: Explicit peers set to ", it->second);
-			}
-		}	
+		} catch (std::exception & ex) {
+			LogPrint(eLogError, "Destination: unable to parse parameters for destination: ", ex.what());
+		}
 		SetNumTags (numTags);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty);
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
 	}
