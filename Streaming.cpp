@@ -637,7 +637,8 @@ namespace stream
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();		
-		if (!m_CurrentRemoteLease || ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
+		if (!m_CurrentRemoteLease || !m_CurrentRemoteLease->endDate || // excluded from LeaseSet
+		    ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
 			UpdateCurrentRemoteLease (true);
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{	
