@@ -4,6 +4,7 @@
 #include "I2NPProtocol.h"
 #include "NetDb.h"
 #include "Transports.h"
+#include "Config.h"
 
 using namespace i2p::data;
 
@@ -496,9 +497,9 @@ namespace transport
 	{
 		if (m_SSUServer)
 		{
-#ifndef MESHNET
-			i2p::context.SetStatus (eRouterStatusTesting);
-#endif
+                        bool nat;  i2p::config::GetOption("nat", nat);
+                        if (nat)
+                            i2p::context.SetStatus (eRouterStatusTesting);
 
 			for (int i = 0; i < 5; i++)
 			{
