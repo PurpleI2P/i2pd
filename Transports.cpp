@@ -240,7 +240,8 @@ namespace transport
 			for (auto& it: msgs)
 				i2p::HandleI2NPMessage (it);
 			return;
-		}	
+		}
+		if(RoutesRestricted() && ! IsRestrictedPeer(ident)) return;
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
@@ -494,6 +495,12 @@ namespace transport
 		
 	void Transports::DetectExternalIP ()
 	{
+		if (RoutesRestricted())
+  	{
+			LogPrint(eLogInfo, "Transports: restricted routes enabled, not detecting ip");
+			i2p::context.SetStatus (eRouterStatusOK);
+			return;
+		}
 		if (m_SSUServer)
 		{
 #ifndef MESHNET
@@ -520,8 +527,10 @@ namespace transport
 
 	void Transports::PeerTest ()
 	{
+		if (RoutesRestricted()) return;
 		if (m_SSUServer)
 		{
+			
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
@@ -578,6 +587,12 @@ namespace transport
 			}
 			else // incoming connection
 			{
+				if(RoutesRestricted() && ! IsRestrictedPeer(ident)) {
+					// not trusted
+					LogPrint(eLogWarning, "Transports: closing untrusted inbound connection from ", ident.ToBase64());
+					session->Done();
+					return;
+				}
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				std::unique_lock<std::mutex>	l(m_PeersMutex);	
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
@@ -655,7 +670,7 @@ namespace transport
 		std::advance (it, rand () % m_Peers.size ());	
 		return it != m_Peers.end () ? it->second.router : nullptr;
 	}
-  void Transports::RestrictRoutes(std::vector<std::string> families)
+  void Transports::RestrictRoutesToFamilies(std::set<std::string> families)
   {
     std::lock_guard<std::mutex> lock(m_FamilyMutex);
     m_TrustedFamilies.clear();
@@ -663,22 +678,71 @@ namespace transport
       m_TrustedFamilies.push_back(fam);
   }
 
+	void Transports::RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers)
+	{
+		std::unique_lock<std::mutex> lock(m_TrustedRoutersMutex);
+		m_TrustedRouters.clear();
+		for (const auto & ri : routers )
+			m_TrustedRouters.push_back(ri);
+	}
+	
   bool Transports::RoutesRestricted() const {
-    std::lock_guard<std::mutex> lock(m_FamilyMutex);
-    return m_TrustedFamilies.size() > 0;
+    std::unique_lock<std::mutex> famlock(m_FamilyMutex);
+		std::unique_lock<std::mutex> routerslock(m_TrustedRoutersMutex);
+    return m_TrustedFamilies.size() > 0 || m_TrustedRouters.size() > 0;
   }
 
   /** XXX: if routes are not restricted this dies */
-  std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const {
-    std::string fam;
-    {
-      std::lock_guard<std::mutex> lock(m_FamilyMutex);
-      // TODO: random family (?)
-      fam = m_TrustedFamilies[0];
-    }
-    boost::to_lower(fam);
-    return i2p::data::netdb.GetRandomRouterInFamily(fam);
+  std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const
+	{
+		{
+			std::lock_guard<std::mutex> l(m_FamilyMutex);
+			std::string fam;
+			auto sz = m_TrustedFamilies.size();
+			if(sz > 1)
+			{
+				auto it = m_TrustedFamilies.begin ();
+				std::advance(it, rand() % sz);
+				fam = *it;
+				boost::to_lower(fam);
+			}
+			else if (sz == 1)
+			{
+				fam = m_TrustedFamilies[0];
+			}
+			if (fam.size())
+				return i2p::data::netdb.GetRandomRouterInFamily(fam);
+		}
+		{
+			std::unique_lock<std::mutex> l(m_TrustedRoutersMutex);
+			auto sz = m_TrustedRouters.size();
+			if (sz)
+			{
+				if(sz == 1)
+					return i2p::data::netdb.FindRouter(m_TrustedRouters[0]);
+				auto it = m_TrustedRouters.begin();
+				std::advance(it, rand() % sz);
+				return i2p::data::netdb.FindRouter(*it);
+			}
+		}
+		return nullptr;
   }
+
+	bool Transports::IsRestrictedPeer(const i2p::data::IdentHash & ih) const
+	{
+		{
+			std::unique_lock<std::mutex> l(m_TrustedRoutersMutex);
+			for (const auto & r : m_TrustedRouters )
+				if ( r == ih ) return true;
+		}
+		{
+			std::unique_lock<std::mutex> l(m_FamilyMutex);
+			auto ri = i2p::data::netdb.FindRouter(ih);
+			for (const auto & fam : m_TrustedFamilies)
+				if(ri->IsFamily(fam)) return true;
+		}
+		return false;
+	}
 }
 }
 

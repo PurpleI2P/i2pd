@@ -126,10 +126,8 @@ namespace data
 					i2p::context.CleanupDestination ();
 					lastDestinationCleanup = ts;
 				}
-        // if we're in hidden mode don't publish or explore
-				// if (m_HiddenMode) continue;
-				
-				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL) // publish 
+        
+				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL && !m_HiddenMode) // publish 
 				{
 					Publish ();
 					lastPublish = ts;
@@ -147,8 +145,9 @@ namespace data
 						numRouters = 800/numRouters;
 						if (numRouters < 1) numRouters = 1;
 						if (numRouters > 9) numRouters = 9;	
-						m_Requests.ManageRequests ();					
-						Explore (numRouters);
+						m_Requests.ManageRequests ();
+						if(!m_HiddenMode)
+							Explore (numRouters);
 						lastExploratory = ts;
 					}	
 				}	

@@ -184,6 +184,7 @@ namespace config {
   	trust.add_options()
       ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
+			("trust.routers", value<std::string>()->default_value(""), "Only Connect to these routers")
       ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
 
     m_OptionsDesc
