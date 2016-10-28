@@ -40,8 +40,8 @@ namespace config {
 	  ("family",    value<std::string>()->default_value(""),     "Specify a family, router belongs to")
 	  ("datadir",   value<std::string>()->default_value(""),     "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
       ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
-      ("ifname",    value<std::string>()->default_value(""), "network interface to bind to")
-      ("nat",       value<bool>()->zero_tokens()->default_value(true), "should we assume we are behind NAT?")
+      ("ifname",    value<std::string>()->default_value(""), "Network interface to bind to")
+      ("nat",       value<bool>()->zero_tokens()->default_value(true), "Should we assume we are behind NAT?")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv4",      value<bool>()->zero_tokens()->default_value(true),  "Enable communication through ipv4")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
@@ -51,8 +51,8 @@ namespace config {
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
       ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will be floodfill")
       ("bandwidth", value<std::string>()->default_value(""), "Bandwidth limit: integer in kbps or letters: L (32), O (256), P (2048), X (>9000)")
-      ("ntcp", value<bool>()->zero_tokens()->default_value(true), "enable ntcp transport")
-      ("ssu", value<bool>()->zero_tokens()->default_value(true), "enable ssu transport")
+      ("ntcp", value<bool>()->zero_tokens()->default_value(true), "Enable NTCP transport")
+      ("ssu", value<bool>()->zero_tokens()->default_value(true), "Enable SSU transport")
 #ifdef _WIN32
       ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
       ("insomnia", value<bool>()->zero_tokens()->default_value(false), "Prevent system from sleeping")
@@ -174,9 +174,9 @@ namespace config {
 
   	options_description trust("Trust options");
   	trust.add_options()
-      ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
+      ("trust.enabled", value<bool>()->default_value(false), "Enable explicit trust options")
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
-      ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
+      ("trust.hidden", value<bool>()->default_value(false), "Should we hide our router from other routers?");
 
     m_OptionsDesc
       .add(general)
