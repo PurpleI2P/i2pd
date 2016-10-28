@@ -253,6 +253,7 @@ namespace stream
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
 			Acceptor m_Acceptor;
+			uint32_t m_LastIncomingReceiveStreamID;
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
 			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN

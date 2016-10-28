@@ -844,6 +844,7 @@ namespace stream
 
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip): 
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip), 
+		m_LastIncomingReceiveStreamID (0),
 		m_PendingIncomingTimer (m_Owner->GetService ()),
 		m_ConnTrackTimer(m_Owner->GetService()),
 		m_ConnsPerMinute(DEFAULT_MAX_CONNS_PER_MIN),
@@ -899,8 +900,15 @@ namespace stream
 		{
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{	
-				auto incomingStream = CreateNewIncomingStream ();
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
+				if (receiveStreamID == m_LastIncomingReceiveStreamID) 
+				{
+					// already pending
+					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
+					delete packet; // drop it, because previous should be connected
+					return;
+				}	
+				auto incomingStream = CreateNewIncomingStream ();
 				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
 				if(ident)
@@ -914,6 +922,8 @@ namespace stream
 						return;
 					}
 				}
+				m_LastIncomingReceiveStreamID = receiveStreamID;
+				
 				// handle saved packets if any
 				{
 					auto it = m_SavedPackets.find (receiveStreamID);
