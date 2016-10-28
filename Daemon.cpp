@@ -194,12 +194,40 @@ namespace i2p
       {
         LogPrint(eLogInfo, "Daemon: explicit trust enabled");
         std::string fam; i2p::config::GetOption("trust.family", fam);
+				std::string routers; i2p::config::GetOption("trust.routers", routers);
+				bool restricted = false;
         if (fam.length() > 0)
         {
-          LogPrint(eLogInfo, "Daemon: setting restricted routes to use family ", fam);
-          i2p::transport::transports.RestrictRoutes({fam});
-        } else
-          LogPrint(eLogError, "Daemon: no family specified for restricted routes");
+					std::set<std::string> fams;
+					size_t pos = 0, comma;
+					do
+					{
+						comma = fam.find (',', pos);
+						fams.insert (fam.substr (pos, comma != std::string::npos ? comma - pos : std::string::npos));
+						pos = comma + 1;
+					}
+					while (comma != std::string::npos);				 
+					i2p::transport::transports.RestrictRoutesToFamilies(fams);
+					restricted  = fams.size() > 0;
+        }
+				if (routers.length() > 0) {
+					std::set<i2p::data::IdentHash> idents;
+					size_t pos = 0, comma;
+					do
+					{
+						comma = routers.find (',', pos);
+						i2p::data::IdentHash ident;
+						ident.FromBase64 (routers.substr (pos, comma != std::string::npos ? comma - pos : std::string::npos));	
+						idents.insert (ident);
+						pos = comma + 1;
+					}
+					while (comma != std::string::npos);				 
+					LogPrint(eLogInfo, "Daemon: setting restricted routes to use ", idents.size(), " trusted routesrs");
+					i2p::transport::transports.RestrictRoutesToRouters(idents);
+					restricted = idents.size() > 0;
+				}
+				if(!restricted)
+					LogPrint(eLogError, "Daemon: no trusted routers of families specififed");
       }
       bool hidden; i2p::config::GetOption("trust.hidden", hidden);
       if (hidden)
