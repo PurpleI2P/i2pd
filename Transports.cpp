@@ -498,7 +498,7 @@ namespace transport
 		if (RoutesRestricted())
   	{
 			LogPrint(eLogInfo, "Transports: restricted routes enabled, not detecting ip");
-			i2p::context.SetStatus (eRouterStatusFirewalled);
+			i2p::context.SetStatus (eRouterStatusOK);
 			return;
 		}
 		if (m_SSUServer)
