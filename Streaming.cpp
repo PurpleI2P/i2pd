@@ -693,8 +693,7 @@ namespace stream
 	{
 		m_ResendTimer.cancel ();
 		// check for invalid value
-		if (m_RTO <= 0)
-			m_RTO = 1;
+		if (m_RTO <= 0) m_RTO = INITIAL_RTO;
 		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
 		m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -901,13 +900,13 @@ namespace stream
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{	
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
-				if (receiveStreamID == m_LastIncomingReceiveStreamID) 
+		/*		if (receiveStreamID == m_LastIncomingReceiveStreamID) 
 				{
 					// already pending
 					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
 					delete packet; // drop it, because previous should be connected
 					return;
-				}	
+				}	*/
 				auto incomingStream = CreateNewIncomingStream ();
 				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
