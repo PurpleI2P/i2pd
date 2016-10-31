@@ -70,7 +70,7 @@ namespace fs {
 	if (!ext) ext = "/sdcard";	
 	if (boost::filesystem::exists(ext))
 	{
-		dataDir = ext + appName;
+		dataDir = std::string (ext) + "/" + appName;
 		return;
 	}
 	// otherwise use /data/files
