@@ -38,6 +38,7 @@ namespace client
 			}
 
 			inline std::shared_ptr<ClientDestination> GetLocalDestination () { return m_LocalDestination; }
+			inline std::shared_ptr<const ClientDestination> GetLocalDestination () const  { return m_LocalDestination; }
 			inline void SetLocalDestination (std::shared_ptr<ClientDestination> dest) { m_LocalDestination = dest; }
 			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
 
