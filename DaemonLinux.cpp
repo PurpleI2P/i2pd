@@ -25,11 +25,11 @@ void handle_signal(int sig)
 			i2p::client::context.ReloadConfig();
 		break;
 		case SIGINT:
-			if (i2p::context.AcceptsTunnels () && !Daemon.gracefullShutdownInterval)
+			if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
 			{	
 				i2p::context.SetAcceptsTunnels (false);
-				Daemon.gracefullShutdownInterval = 10*60; // 10 minutes
-				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefullShutdownInterval, " seconds");
+				Daemon.gracefulShutdownInterval = 10*60; // 10 minutes
+				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
 			}	
 			else
 				Daemon.running = 0; 
@@ -110,7 +110,7 @@ namespace i2p
 					return false;
 				}
 			}
-			gracefullShutdownInterval = 0; // not specified
+			gracefulShutdownInterval = 0; // not specified
 
 			// Signal handler
 			struct sigaction sa;
@@ -137,10 +137,10 @@ namespace i2p
 			while (running)
 			{
 				std::this_thread::sleep_for (std::chrono::seconds(1));
-				if (gracefullShutdownInterval)
+				if (gracefulShutdownInterval)
 				{
-					gracefullShutdownInterval--; // - 1 second
-					if (gracefullShutdownInterval <= 0) 
+					gracefulShutdownInterval--; // - 1 second
+					if (gracefulShutdownInterval <= 0) 
 					{	
 						LogPrint(eLogInfo, "Graceful shutdown");
 						return;

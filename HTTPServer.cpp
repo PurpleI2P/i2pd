@@ -196,7 +196,7 @@ namespace http {
 		} 
 		s << "<br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
-		if (auto remains = Daemon.gracefullShutdownInterval) {
+		if (auto remains = Daemon.gracefulShutdownInterval) {
 			s << "<b>Stopping in:</b> ";
 			s << remains << " seconds";
 			s << "<br>\r\n";
@@ -416,13 +416,13 @@ namespace http {
 		else
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
-		if (Daemon.gracefullShutdownInterval) 
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel gracefull shutdown</a><br>";
+		if (Daemon.gracefulShutdownInterval) 
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel graceful shutdown</a><br>";
 		else 
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start gracefull shutdown</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start graceful shutdown</a><br>\r\n";
 #endif
 #ifdef WIN32_APP
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Gracefull shutdown</a><br>\r\n";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Graceful shutdown</a><br>\r\n";
 #endif
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
 	}
@@ -755,7 +755,7 @@ namespace http {
 		else if (cmd == HTTP_COMMAND_SHUTDOWN_START) {
 			i2p::context.SetAcceptsTunnels (false);
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
-			Daemon.gracefullShutdownInterval = 10*60;
+			Daemon.gracefulShutdownInterval = 10*60;
 #endif
 #ifdef WIN32_APP
 			i2p::win32::GracefulShutdown ();
@@ -763,7 +763,7 @@ namespace http {
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
-			Daemon.gracefullShutdownInterval = 0;
+			Daemon.gracefulShutdownInterval = 0;
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {
 			Daemon.running = false;
