@@ -2,7 +2,7 @@
 set -e
 
 if [ "$1" = "purge" ]; then
-	rm -f /etc/default/i2pd /var/log/i2pd.log
+	rm -f /etc/default/i2pd /var/log/i2pd /var/run/i2pd
 	rm -rf /etc/i2pd
 	rm -rf /var/lib/i2pd
 fi

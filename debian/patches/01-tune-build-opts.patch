@@ -10,8 +10,7 @@ index 7d04ba0..33ee184 100644
 +USE_AESNI  := no
  USE_STATIC := no
  USE_MESHNET := no
--USE_UPNP   := no
-+USE_UPNP   := yes
+ USE_UPNP   := no
  
  ifeq ($(UNAME),Darwin)
  	DAEMON_SRC += DaemonLinux.cpp
