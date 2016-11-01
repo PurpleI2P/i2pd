@@ -598,7 +598,6 @@ namespace tunnel
 								hop = hop->next;
 							}
 						}
-						if(pool) pool->OnTunnelBuildResult(tunnel, eBuildResultTimeout);
 						EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
 						// delete
 						it = pendingTunnels.erase (it);
@@ -610,7 +609,6 @@ namespace tunnel
 				case eTunnelStateBuildFailed:
 					LogPrint (eLogDebug, "Tunnel: pending build request ", it->first, " failed, deleted");
 
-					if(pool) pool->OnTunnelBuildResult(tunnel, eBuildResultRejected);
 					EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
 
 					it = pendingTunnels.erase (it);

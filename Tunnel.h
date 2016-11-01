@@ -31,7 +31,10 @@ namespace tunnel
   {
 #ifdef WITH_EVENTS
     EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}});
-#endif 
+#else
+		(void) ev;
+		(void) t;
+#endif
   }
   
   template<typename TunnelT, typename T>
@@ -39,6 +42,10 @@ namespace tunnel
   {
 #ifdef WITH_EVENTS
     EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}, {"value", std::to_string(val)}, {"inbound", std::to_string(t->IsInbound())}});
+#else
+		(void) ev;
+		(void) t;
+		(void) val;
 #endif 
   }
 
@@ -47,6 +54,10 @@ namespace tunnel
   {
 #ifdef WITH_EVENTS
     EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}, {"value", val}, {"inbound", std::to_string(t->IsInbound())}});
+#else
+		(void) ev;
+		(void) t;
+		(void) val;
 #endif 
   }
 
@@ -94,7 +105,8 @@ namespace tunnel
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
 			void SetIsRecreated () { m_IsRecreated = true; };
-
+			virtual bool IsInbound() const = 0;
+			
 			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
 			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };			
 			
@@ -134,6 +146,8 @@ namespace tunnel
 			
 			// implements TunnelBase
 			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+
+			bool IsInbound() const { return false; }
 			
 		private:
 
@@ -150,7 +164,7 @@ namespace tunnel
 			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			void Print (std::stringstream& s) const;
-			
+			bool IsInbound() const { return true; }
 		private:
 
 			TunnelEndpoint m_Endpoint; 

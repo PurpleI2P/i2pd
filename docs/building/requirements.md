@@ -12,3 +12,4 @@ Optional tools:
 
 * cmake >= 2.8 (or 3.3+ if you want to use precompiled headers on windows)
 * miniupnp library (for upnp support)
+* [websocketpp](https://github.com/zaphoyd/websocketpp/) (for websocket ui)

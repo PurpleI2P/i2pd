@@ -46,6 +46,9 @@ Available CMake options(each option has a form of `<key>=<value>`, for more info
 * `WITH_AESNI`       build with AES-NI support (ON/OFF)
 * `WITH_HARDENING`   enable hardening features (ON/OFF) (gcc only)
 * `WITH_PCH`         use pre-compiled header (experimental, speeds up build)
+* `WITH_I2LUA`       used when building i2lua
+* `WITH_WEBSOCKETS`  enable websocket server
+
 
 Also there is `-L` flag for CMake that could be used to list current cached options:
 

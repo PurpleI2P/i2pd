@@ -31,7 +31,6 @@ namespace i2p
 		extern EventCore core;
 	}
 }
-
 void EmitEvent(const EventType & ev);
 
 #endif

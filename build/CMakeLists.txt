@@ -60,15 +60,13 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
   "${CMAKE_SOURCE_DIR}/Timestamp.cpp"	
   "${CMAKE_SOURCE_DIR}/api.cpp"
+  "${CMAKE_SOURCE_DIR}/Event.cpp"
 )
 
 if (WITH_WEBSOCKETS)
   add_definitions(-DWITH_EVENTS)
   find_package(websocketpp REQUIRED)
 endif ()  
-if (WITH_WEBSOCKETS)
-  list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/Event.cpp")
-endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
