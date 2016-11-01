@@ -184,10 +184,11 @@ namespace tunnel
 
 	void Tunnel::PrintHops (std::stringstream& s) const
 	{
-		for (auto& it: m_Hops)
+		// hops are in inverted order, we must print in direct order	
+		for (auto it = m_Hops.rbegin (); it != m_Hops.rend (); it++)
 		{
 			s << " &#8658; ";
-			s << i2p::data::GetIdentHashAbbreviation (it->ident->GetIdentHash ());
+			s << i2p::data::GetIdentHashAbbreviation ((*it)->ident->GetIdentHash ());
 		}
 	}
 

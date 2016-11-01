@@ -66,9 +66,11 @@ namespace fs {
     return;
 #else /* other unix */
 #if defined(ANDROID)
-	if (boost::filesystem::exists("/sdcard"))
+	const char * ext = getenv("EXTERNAL_STORAGE");
+	if (!ext) ext = "/sdcard";	
+	if (boost::filesystem::exists(ext))
 	{
-		dataDir = "/sdcard/" + appName;
+		dataDir = std::string (ext) + "/" + appName;
 		return;
 	}
 	// otherwise use /data/files
