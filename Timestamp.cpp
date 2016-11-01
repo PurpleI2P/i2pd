@@ -9,7 +9,7 @@ namespace i2p
 {
 namespace util
 {
-	std::chrono::seconds g_TimeOffset (0);
+	static int64_t g_TimeOffset = 0; // in seconds
 
 	void SyncTimeWithNTP (const std::string& address)
 	{
@@ -31,17 +31,26 @@ namespace util
 				try
 				{
 					socket.send_to (boost::asio::buffer (buf, 48), ep);
-					len = socket.receive_from (boost::asio::buffer (buf, 48), ep);
+					int i = 0;
+					while (!socket.available() && i < 10) // 10 seconds max
+					{	
+						std::this_thread::sleep_for (std::chrono::seconds(1)); 
+						i++;
+					}	
+					if (socket.available ())
+						len = socket.receive_from (boost::asio::buffer (buf, 48), ep);
 				}
 				catch (std::exception& e)
 				{
+					LogPrint (eLogError, "NTP error: ", e.what ());
 				}	
 				if (len >= 8)
 				{
+					auto ourTs = GetSecondsSinceEpoch ();
 					uint32_t ts = bufbe32toh (buf + 32);
 					if (ts > 2208988800U) ts -= 2208988800U; // 1/1/1970 from 1/1/1900
-					g_TimeOffset = std::chrono::seconds(ts) - std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch());
-					LogPrint (eLogInfo,  address, " time offset from system time is ", g_TimeOffset.count (), " seconds");
+					g_TimeOffset = ts - ourTs;
+					LogPrint (eLogInfo,  address, " time offset from system time is ", g_TimeOffset, " seconds");
 				}	
 			}
 		}
