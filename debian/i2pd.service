@@ -6,7 +6,7 @@ After=network.target
 User=i2pd
 Group=i2pd
 Type=forking
-ExecStart=/usr/sbin/i2pd --conf=/etc/i2pd/i2pd.conf --pidfile=/var/run/i2pd/i2pd.pid --daemon --service
+ExecStart=/usr/sbin/i2pd --conf=/etc/i2pd/i2pd.conf --pidfile=/var/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --daemon --service
 ExecReload=/bin/kill -HUP $MAINPID
 PIDFile=/var/run/i2pd/i2pd.pid
 ### Uncomment, if auto restart needed
