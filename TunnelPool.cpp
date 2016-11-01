@@ -7,6 +7,7 @@
 #include "Garlic.h"
 #include "Transports.h"
 #include "Log.h"
+#include "Tunnel.h"
 #include "TunnelPool.h"
 #include "Destination.h"
 #include "Event.h"
@@ -70,7 +71,7 @@ namespace tunnel
 	{
 		if (!m_IsActive) return;
 		{
-      EmitTunnelEvent("tunnels.created", createdTunnel);
+			EmitTunnelEvent("tunnels.created", createdTunnel);
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.insert (createdTunnel);
 		}
@@ -82,8 +83,7 @@ namespace tunnel
 	{
 		if (expiredTunnel)
 		{
-      EmitTunnelEvent("tunnels.expired", expiredTunnel);
-      
+			EmitTunnelEvent("tunnels.expired", expiredTunnel);
 			expiredTunnel->SetTunnelPool (nullptr);
 			for (auto& it: m_Tests)
 				if (it.second.second == expiredTunnel) it.second.second = nullptr;
@@ -97,7 +97,7 @@ namespace tunnel
 	{
 		if (!m_IsActive) return;
 		{
-      EmitTunnelEvent("tunnels.created", createdTunnel);
+			EmitTunnelEvent("tunnels.created", createdTunnel);
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.insert (createdTunnel);
 		}
@@ -108,8 +108,7 @@ namespace tunnel
 	{
 		if (expiredTunnel)
 		{
-      EmitTunnelEvent("tunnels.expired", expiredTunnel);
-      
+			EmitTunnelEvent("tunnels.expired", expiredTunnel);
 			expiredTunnel->SetTunnelPool (nullptr);
 			for (auto& it: m_Tests)
 				if (it.second.first == expiredTunnel) it.second.first = nullptr;

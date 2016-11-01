@@ -89,7 +89,7 @@ namespace tunnel
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const; 
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const; 
 			TunnelState GetState () const { return m_State; };
-      void SetState (TunnelState state);
+			void SetState (TunnelState state);
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };

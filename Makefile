@@ -15,7 +15,7 @@ USE_MESHNET := no
 USE_UPNP   := no
 
 
-ifeq ($(WEBSOCKET),1)
+ifeq ($(WEBSOCKETS),1)
 	NEEDED_CXXFLAGS += -DWITH_EVENTS
 	DAEMON_SRC += Websocket.cpp
 endif

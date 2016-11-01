@@ -605,10 +605,10 @@ namespace transport
 			if (!memcmp (m_NextMessage->buf + m_NextMessageOffset - 4, checksum, 4))
 			{
 				if (!m_NextMessage->IsExpired ())
-        {
-          EmitEvent({{"type", "transport.recvmsg"} , {"ident", GetIdentHashBase64()}, {"number", "1"}});
+				{
+					EmitEvent({{"type", "transport.recvmsg"} , {"ident", GetIdentHashBase64()}, {"number", "1"}});
 					m_Handler.PutNextMessage (m_NextMessage);
-        }
+				}
 				else
 					LogPrint (eLogInfo, "NTCP: message expired");
 			}	

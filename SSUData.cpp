@@ -234,11 +234,11 @@ namespace transport
 					if (!m_ReceivedMessages.count (msgID))
 					{	
 						m_ReceivedMessages.insert (msgID);
-						m_LastMessageReceivedTime = i2p::util::GetSinceEpoch<Time> ();
+						m_LastMessageReceivedTime = i2p::util::GetSecondsSinceEpoch ();
 						if (!msg->IsExpired ()) {
-              EmitEvent({{"type", "transport.recvmsg"} , {"ident", m_Session.GetIdentHashBase64()}, {"number", "1"}});
+							EmitEvent({{"type", "transport.recvmsg"} , {"ident", m_Session.GetIdentHashBase64()}, {"number", "1"}});
 							m_Handler.PutNextMessage (msg);
-            }
+						}
 						else
 							LogPrint (eLogDebug, "SSU: message expired");
 					}	

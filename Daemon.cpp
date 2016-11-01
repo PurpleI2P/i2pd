@@ -42,7 +42,7 @@ namespace i2p
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 			std::unique_ptr<i2p::transport::UPnP> UPnP;
 #ifdef WITH_EVENTS
-      std::unique_ptr<i2p::event::WebsocketServer> m_WebsocketServer;
+			std::unique_ptr<i2p::event::WebsocketServer> m_WebsocketServer;
 #endif
 		};
 
@@ -298,23 +298,25 @@ namespace i2p
 			}
 #ifdef WITH_EVENTS
 
-      bool websocket; i2p::config::GetOption("websockets.enabled", websocket);
-      if(websocket) {
-      	std::string websocketAddr; i2p::config::GetOption("websockets.address", websocketAddr);
-				uint16_t    websocketPort; i2p::config::GetOption("websockets.port",    websocketPort);
+			bool websocket; i2p::config::GetOption("websockets.enabled", websocket);
+			if(websocket) {
+				std::string websocketAddr; i2p::config::GetOption("websockets.address", websocketAddr);
+				uint16_t		websocketPort; i2p::config::GetOption("websockets.port",		websocketPort);
 				LogPrint(eLogInfo, "Daemon: starting Websocket server at ", websocketAddr, ":", websocketPort);
 				d.m_WebsocketServer = std::unique_ptr<i2p::event::WebsocketServer>(new i2p::event::WebsocketServer (websocketAddr, websocketPort));
-        d.m_WebsocketServer->Start();
-        i2p::event::core.SetListener(d.m_WebsocketServer->ToListener());
-      }
-      
-#endif      
+				d.m_WebsocketServer->Start();
+				i2p::event::core.SetListener(d.m_WebsocketServer->ToListener());
+			}
+			
+#endif
 			return true;
 		}
 
 		bool Daemon_Singleton::stop()
 		{
-      i2p::event::core.SetListener(nullptr);
+#ifdef WITH_EVENTS
+			i2p::event::core.SetListener(nullptr);
+#endif
 			LogPrint(eLogInfo, "Daemon: shutting down");
 			LogPrint(eLogInfo, "Daemon: stopping Client");
 			i2p::client::context.Stop();
@@ -342,15 +344,15 @@ namespace i2p
 				d.m_I2PControlService = nullptr;
 			}
 #ifdef WITH_EVENTS
-      if (d.m_WebsocketServer) {
-        LogPrint(eLogInfo, "Daemon: stopping Websocket server");
-        d.m_WebsocketServer->Stop();
-        d.m_WebsocketServer = nullptr;
-      }
+			if (d.m_WebsocketServer) {
+				LogPrint(eLogInfo, "Daemon: stopping Websocket server");
+				d.m_WebsocketServer->Stop();
+				d.m_WebsocketServer = nullptr;
+			}
 #endif
 			i2p::crypto::TerminateCrypto ();
 
 			return true;
 		}
-    }
+}
 }

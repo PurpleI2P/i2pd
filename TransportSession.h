@@ -65,8 +65,8 @@ namespace transport
 			virtual ~TransportSession () {};
 			virtual void Done () = 0;
 
-      std::string GetIdentHashBase64() const { return m_RemoteIdentity->GetIdentHash().ToBase64(); }
-      
+			std::string GetIdentHashBase64() const { return m_RemoteIdentity->GetIdentHash().ToBase64(); }
+			
 			std::shared_ptr<const i2p::data::IdentityEx> GetRemoteIdentity () { return m_RemoteIdentity; };
 			void SetRemoteIdentity (std::shared_ptr<const i2p::data::IdentityEx> ident) { m_RemoteIdentity = ident; };
 			

@@ -11,6 +11,7 @@
 #include "Transports.h"
 #include "NetDb.h"
 #include "Tunnel.h"
+#include "TunnelPool.h"
 
 namespace i2p
 {
@@ -30,7 +31,7 @@ namespace tunnel
 	void Tunnel::Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
 #ifdef WITH_EVENTS
-    std::string peers = i2p::context.GetIdentity()->GetIdentHash().ToBase64();
+		std::string peers = i2p::context.GetIdentity()->GetIdentHash().ToBase64();
 #endif
 		auto numHops = m_Config->GetNumHops ();
 		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops; 
@@ -58,14 +59,13 @@ namespace tunnel
 			hop->recordIndex = idx; 
 			i++;
 #ifdef WITH_EVENTS
-      peers += ":" + hop->ident->GetIdentHash().ToBase64();
+			peers += ":" + hop->ident->GetIdentHash().ToBase64();
 #endif
 			hop = hop->next;
 		}
 #ifdef WITH_EVENTS
-    EmitTunnelEvent("tunnel.build", this, peers);
+		EmitTunnelEvent("tunnel.build", this, peers);
 #endif
-    
 		// fill up fake records with random data
 		for (int i = numHops; i < numRecords; i++)
 		{
@@ -191,12 +191,12 @@ namespace tunnel
 		return ret;
 	}
 
-  void Tunnel::SetState(TunnelState state)
-  {
-    m_State = state;
-    EmitTunnelEvent("tunnel.state", this, state);
-  }
-  
+	void Tunnel::SetState(TunnelState state)
+	{
+		m_State = state;
+		EmitTunnelEvent("tunnel.state", this, state);
+	}
+	
 
 	void Tunnel::PrintHops (std::stringstream& s) const
 	{
@@ -599,7 +599,7 @@ namespace tunnel
 							}
 						}
 						if(pool) pool->OnTunnelBuildResult(tunnel, eBuildResultTimeout);
-            EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
+						EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
 						// delete
 						it = pendingTunnels.erase (it);
 						m_NumFailedTunnelCreations++;
@@ -611,7 +611,7 @@ namespace tunnel
 					LogPrint (eLogDebug, "Tunnel: pending build request ", it->first, " failed, deleted");
 
 					if(pool) pool->OnTunnelBuildResult(tunnel, eBuildResultRejected);
-          EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
+					EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
 
 					it = pendingTunnels.erase (it);
 					m_NumFailedTunnelCreations++;
@@ -800,7 +800,7 @@ namespace tunnel
 	{
 		if (config) 
 			return CreateTunnel<InboundTunnel>(config, outboundTunnel);
-    else 
+		else
 			return CreateZeroHopsInboundTunnel ();
 	}
 
