@@ -5,6 +5,7 @@
 #include "NetDb.h"
 #include "Transports.h"
 #include "Config.h"
+#include "Event.h"
 
 using namespace i2p::data;
 
@@ -230,6 +231,7 @@ namespace transport
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
+		EmitEvent({{"type" , "transport.sendmsg"}, {"ident", ident.ToBase64()}, {"number", std::to_string(msgs.size())}});
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}	
 
@@ -504,10 +506,9 @@ namespace transport
 		}
 		if (m_SSUServer)
 		{
-                        bool nat;  i2p::config::GetOption("nat", nat);
-                        if (nat)
-                            i2p::context.SetStatus (eRouterStatusTesting);
-
+			bool nat;	 i2p::config::GetOption("nat", nat);
+			if (nat)
+				i2p::context.SetStatus (eRouterStatusTesting);
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
@@ -569,6 +570,7 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "false"}});
 				bool sendDatabaseStore = true;
 				if (it->second.delayedMessages.size () > 0)
 				{
@@ -594,20 +596,22 @@ namespace transport
 					session->Done();
 					return;
 				}
+				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "true"}});
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				std::unique_lock<std::mutex>	l(m_PeersMutex);	
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
 			}
-		});			
+		});
 	}
 		
 	void Transports::PeerDisconnected (std::shared_ptr<TransportSession> session)
 	{
 		m_Service.post([session, this]()
-		{	 
+		{
 			auto remoteIdentity = session->GetRemoteIdentity (); 
 			if (!remoteIdentity) return;
 			auto ident = remoteIdentity->GetIdentHash ();
+			EmitEvent({{"type" , "transport.disconnected"}, {"ident", ident.ToBase64()}});
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
@@ -671,13 +675,13 @@ namespace transport
 		std::advance (it, rand () % m_Peers.size ());	
 		return it != m_Peers.end () ? it->second.router : nullptr;
 	}
-  void Transports::RestrictRoutesToFamilies(std::set<std::string> families)
-  {
-    std::lock_guard<std::mutex> lock(m_FamilyMutex);
-    m_TrustedFamilies.clear();
-    for ( const auto& fam : families )
-      m_TrustedFamilies.push_back(fam);
-  }
+	void Transports::RestrictRoutesToFamilies(std::set<std::string> families)
+	{
+		std::lock_guard<std::mutex> lock(m_FamilyMutex);
+		m_TrustedFamilies.clear();
+		for ( const auto& fam : families )
+			m_TrustedFamilies.push_back(fam);
+	}
 
 	void Transports::RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers)
 	{
@@ -687,14 +691,14 @@ namespace transport
 			m_TrustedRouters.push_back(ri);
 	}
 	
-  bool Transports::RoutesRestricted() const {
-    std::unique_lock<std::mutex> famlock(m_FamilyMutex);
+	bool Transports::RoutesRestricted() const {
+		std::unique_lock<std::mutex> famlock(m_FamilyMutex);
 		std::unique_lock<std::mutex> routerslock(m_TrustedRoutersMutex);
-    return m_TrustedFamilies.size() > 0 || m_TrustedRouters.size() > 0;
-  }
+		return m_TrustedFamilies.size() > 0 || m_TrustedRouters.size() > 0;
+	}
 
-  /** XXX: if routes are not restricted this dies */
-  std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const
+	/** XXX: if routes are not restricted this dies */
+	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const
 	{
 		{
 			std::lock_guard<std::mutex> l(m_FamilyMutex);
@@ -727,7 +731,7 @@ namespace transport
 			}
 		}
 		return nullptr;
-  }
+	}
 
 	bool Transports::IsRestrictedPeer(const i2p::data::IdentHash & ih) const
 	{

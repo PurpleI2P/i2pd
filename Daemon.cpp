@@ -25,6 +25,9 @@
 #include "UPnP.h"
 #include "util.h"
 
+#include "Event.h"
+#include "Websocket.h"
+
 namespace i2p
 {
 	namespace util
@@ -38,6 +41,9 @@ namespace i2p
 			std::unique_ptr<i2p::http::HTTPServer> httpServer;
 			std::unique_ptr<i2p::client::I2PControlService> m_I2PControlService;
 			std::unique_ptr<i2p::transport::UPnP> UPnP;
+#ifdef WITH_EVENTS
+			std::unique_ptr<i2p::event::WebsocketServer> m_WebsocketServer;
+#endif
 		};
 
 		Daemon_Singleton::Daemon_Singleton() : isDaemon(false), running(true), d(*new Daemon_Singleton_Private()) {}
@@ -290,12 +296,27 @@ namespace i2p
 				d.m_I2PControlService = std::unique_ptr<i2p::client::I2PControlService>(new i2p::client::I2PControlService (i2pcpAddr, i2pcpPort));
 				d.m_I2PControlService->Start ();
 			}
+#ifdef WITH_EVENTS
 
+			bool websocket; i2p::config::GetOption("websockets.enabled", websocket);
+			if(websocket) {
+				std::string websocketAddr; i2p::config::GetOption("websockets.address", websocketAddr);
+				uint16_t		websocketPort; i2p::config::GetOption("websockets.port",		websocketPort);
+				LogPrint(eLogInfo, "Daemon: starting Websocket server at ", websocketAddr, ":", websocketPort);
+				d.m_WebsocketServer = std::unique_ptr<i2p::event::WebsocketServer>(new i2p::event::WebsocketServer (websocketAddr, websocketPort));
+				d.m_WebsocketServer->Start();
+				i2p::event::core.SetListener(d.m_WebsocketServer->ToListener());
+			}
+			
+#endif
 			return true;
 		}
 
 		bool Daemon_Singleton::stop()
 		{
+#ifdef WITH_EVENTS
+			i2p::event::core.SetListener(nullptr);
+#endif
 			LogPrint(eLogInfo, "Daemon: shutting down");
 			LogPrint(eLogInfo, "Daemon: stopping Client");
 			i2p::client::context.Stop();
@@ -321,10 +342,17 @@ namespace i2p
 				LogPrint(eLogInfo, "Daemon: stopping I2PControl");
 				d.m_I2PControlService->Stop ();
 				d.m_I2PControlService = nullptr;
-			}	
+			}
+#ifdef WITH_EVENTS
+			if (d.m_WebsocketServer) {
+				LogPrint(eLogInfo, "Daemon: stopping Websocket server");
+				d.m_WebsocketServer->Stop();
+				d.m_WebsocketServer = nullptr;
+			}
+#endif
 			i2p::crypto::TerminateCrypto ();
 
 			return true;
 		}
-    }
+}
 }

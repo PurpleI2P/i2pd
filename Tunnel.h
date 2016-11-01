@@ -19,11 +19,49 @@
 #include "TunnelGateway.h"
 #include "TunnelBase.h"
 #include "I2NPProtocol.h"
+#include "Event.h"
 
 namespace i2p
 {
 namespace tunnel
-{	
+{
+
+  template<typename TunnelT>
+  static void EmitTunnelEvent(const std::string & ev, const TunnelT & t)
+  {
+#ifdef WITH_EVENTS
+    EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}});
+#else
+		(void) ev;
+		(void) t;
+#endif
+  }
+  
+  template<typename TunnelT, typename T>
+  static void EmitTunnelEvent(const std::string & ev, TunnelT * t, const T & val)
+  {
+#ifdef WITH_EVENTS
+    EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}, {"value", std::to_string(val)}, {"inbound", std::to_string(t->IsInbound())}});
+#else
+		(void) ev;
+		(void) t;
+		(void) val;
+#endif 
+  }
+
+  template<typename TunnelT>
+  static void EmitTunnelEvent(const std::string & ev, TunnelT * t, const std::string & val)
+  {
+#ifdef WITH_EVENTS
+    EmitEvent({{"type", ev}, {"tid", std::to_string(t->GetTunnelID())}, {"value", val}, {"inbound", std::to_string(t->IsInbound())}});
+#else
+		(void) ev;
+		(void) t;
+		(void) val;
+#endif 
+  }
+
+  
 	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes	
 	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute	
 	const int TUNNEL_RECREATION_THRESHOLD = 90; // 1.5 minutes	
@@ -40,7 +78,7 @@ namespace tunnel
 		eTunnelStateFailed,
 		eTunnelStateExpiring
 	};	
-	
+
 	class OutboundTunnel;
 	class InboundTunnel;
 	class Tunnel: public TunnelBase
@@ -62,12 +100,13 @@ namespace tunnel
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const; 
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const; 
 			TunnelState GetState () const { return m_State; };
-			void SetState (TunnelState state)  { m_State = state; };
+			void SetState (TunnelState state);
 			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
 			void SetIsRecreated () { m_IsRecreated = true; };
-
+			virtual bool IsInbound() const = 0;
+			
 			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
 			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };			
 			
@@ -107,6 +146,8 @@ namespace tunnel
 			
 			// implements TunnelBase
 			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+
+			bool IsInbound() const { return false; }
 			
 		private:
 
@@ -123,7 +164,7 @@ namespace tunnel
 			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			void Print (std::stringstream& s) const;
-			
+			bool IsInbound() const { return true; }
 		private:
 
 			TunnelEndpoint m_Endpoint; 
