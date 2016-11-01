@@ -4,11 +4,8 @@
 #include "I2NPProtocol.h"
 #include "NetDb.h"
 #include "Transports.h"
-<<<<<<< HEAD
 #include "Config.h"
-=======
 #include "Event.h"
->>>>>>> bda4170... add web socket ui
 
 using namespace i2p::data;
 
@@ -596,16 +593,13 @@ namespace transport
 			}
 			else // incoming connection
 			{
-<<<<<<< HEAD
 				if(RoutesRestricted() && ! IsRestrictedPeer(ident)) {
 					// not trusted
 					LogPrint(eLogWarning, "Transports: closing untrusted inbound connection from ", ident.ToBase64());
 					session->Done();
 					return;
 				}
-=======
         EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "true"}});
->>>>>>> bda4170... add web socket ui
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				std::unique_lock<std::mutex>	l(m_PeersMutex);	
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));

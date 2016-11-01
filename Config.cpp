@@ -176,13 +176,8 @@ namespace config {
   	trust.add_options()
       ("trust.enabled", value<bool>()->default_value(false), "Enable explicit trust options")
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
-<<<<<<< HEAD
 			("trust.routers", value<std::string>()->default_value(""), "Only Connect to these routers")
       ("trust.hidden", value<bool>()->default_value(false), "Should we hide our router from other routers?");
-
-=======
-      ("trust.routerInfo", value<std::string>()->default_value(""), "Path to routerInfo of floodfill to use with floodfill friend mode")
-      ("trust.hidden", value<bool>()->default_value(true), "should we hide our router from other routers?");
 
     options_description websocket("Websocket Options");
     websocket.add_options()
@@ -190,7 +185,6 @@ namespace config {
       ("websockets.address", value<std::string>()->default_value("127.0.0.1"), "address to bind websocket server on")
       ("websockets.port", value<uint16_t>()->default_value(7666), "port to bind websocket server on");
     
->>>>>>> bda4170... add web socket ui
     m_OptionsDesc
       .add(general)
 	  .add(limits)	

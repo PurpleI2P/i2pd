@@ -18,12 +18,8 @@ option(WITH_GUI "Include GUI (currently MS Windows only)" ON)
 option(WITH_MESHNET "Build for cjdns test network" OFF)
 option(WITH_ADDRSANITIZER "Build with address sanitizer unix only" OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only" OFF)
-<<<<<<< HEAD
 option(WITH_I2LUA "Build for i2lua" OFF)
-=======
 option(WITH_WEBSOCKETS "Build with websocket ui" OFF)
-
->>>>>>> bda4170... add web socket ui
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -382,11 +378,8 @@ message(STATUS "  PCH              : ${WITH_PCH}")
 message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THEADSANITIZER   : ${WITH_THREADSANITIZER}")
-<<<<<<< HEAD
 message(STATUS "  I2LUA            : ${WITH_I2LUA}")
-=======
 message(STATUS "  WEBSOCKETS       : ${WITH_WEBSOCKETS}")
->>>>>>> bda4170... add web socket ui
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely
