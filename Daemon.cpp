@@ -121,6 +121,9 @@ namespace i2p
 
 			bool precomputation; i2p::config::GetOption("precomputation.elgamal", precomputation);
 			i2p::crypto::InitCrypto (precomputation);
+
+			int netID; i2p::config::GetOption("netid", netID);
+			i2p::context.SetNetID (netID);
 			i2p::context.Init ();
 
 			bool ipv6;		i2p::config::GetOption("ipv6", ipv6);
@@ -143,9 +146,6 @@ namespace i2p
 			i2p::context.SetAcceptsTunnels (!transit);
 			uint16_t transitTunnels; i2p::config::GetOption("limits.transittunnels", transitTunnels);
 			SetMaxNumTransitTunnels (transitTunnels);
-
-			int netID; i2p::config::GetOption("netid", netID);
-			i2p::context.SetNetID (netID);
 
 			bool isFloodfill; i2p::config::GetOption("floodfill", isFloodfill);
 			if (isFloodfill) {
