@@ -5,7 +5,9 @@ namespace i2p
 {
 	namespace event
 	{
+#ifdef WITH_EVENTS
 		EventCore core;
+#endif
 
 		void EventCore::SetListener(EventListener * l)
 		{

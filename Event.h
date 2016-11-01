@@ -27,8 +27,9 @@ namespace i2p
 		private:
 			EventListener * m_listener = nullptr;
 		};
-		
+#ifdef WITH_EVENTS		
 		extern EventCore core;
+#endif
 	}
 }
 void EmitEvent(const EventType & ev);
