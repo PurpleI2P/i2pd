@@ -6,6 +6,7 @@
 #include "Transports.h"
 #include "Config.h"
 #include "Event.h"
+#include "util.h"
 
 using namespace i2p::data;
 
