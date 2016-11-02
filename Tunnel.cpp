@@ -12,6 +12,9 @@
 #include "NetDb.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"
+#ifdef WITH_EVENTS
+#include "Event.h"
+#endif
 
 namespace i2p
 {
@@ -194,7 +197,9 @@ namespace tunnel
 	void Tunnel::SetState(TunnelState state)
 	{
 		m_State = state;
+#ifdef WITH_EVENTS
 		EmitTunnelEvent("tunnel.state", this, state);
+#endif
 	}
 	
 
@@ -598,7 +603,9 @@ namespace tunnel
 								hop = hop->next;
 							}
 						}
+#ifdef WITH_EVENTS
 						EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
+#endif
 						// delete
 						it = pendingTunnels.erase (it);
 						m_NumFailedTunnelCreations++;
@@ -608,9 +615,9 @@ namespace tunnel
 				break;
 				case eTunnelStateBuildFailed:
 					LogPrint (eLogDebug, "Tunnel: pending build request ", it->first, " failed, deleted");
-
+#ifdef WITH_EVENTS
 					EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
-
+#endif
 					it = pendingTunnels.erase (it);
 					m_NumFailedTunnelCreations++;
 				break;
@@ -661,7 +668,7 @@ namespace tunnel
 			}
 		}
 
-		if (m_OutboundTunnels.size () < 5) 
+		if (m_OutboundTunnels.size () < 3) 
 		{
 			// trying to create one more oubound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
@@ -720,13 +727,13 @@ namespace tunnel
 			CreateZeroHopsOutboundTunnel ();
 			if (!m_ExploratoryPool)
 			{
-				m_ExploratoryPool = CreateTunnelPool (2, 2, 5, 5); // 2-hop exploratory, 5 tunnels
+				m_ExploratoryPool = CreateTunnelPool (2, 2, 3, 3); // 2-hop exploratory, 3 tunnels
 				m_ExploratoryPool->SetLocalDestination (i2p::context.GetSharedDestination ());
 			}
 			return;
 		}
 
-		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 5) 
+		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3) 
 		{
 			// trying to create one more inbound tunnel
 			auto router = i2p::transport::transports.RoutesRestricted() ?
