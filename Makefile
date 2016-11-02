@@ -14,7 +14,6 @@ USE_STATIC := no
 USE_MESHNET := no
 USE_UPNP   := no
 
-
 ifeq ($(WEBSOCKETS),1)
 	NEEDED_CXXFLAGS += -DWITH_EVENTS
 	DAEMON_SRC += Websocket.cpp
