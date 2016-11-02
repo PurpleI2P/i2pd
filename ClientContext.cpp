@@ -290,7 +290,7 @@ namespace client
 		}
 		return infos;
 	}
-
+  
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
 		const std::map<std::string, std::string> * params)
 	{

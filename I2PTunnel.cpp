@@ -238,8 +238,8 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{	
-						if (line.find ("Host:") != std::string::npos)
-							m_OutHeader << "Host: " << m_Host << "\r\n";
+						if (m_Host.length () > 0 && line.find ("Host:") != std::string::npos)
+							m_OutHeader << "Host: " << m_Host << "\r\n"; // override host
 						else
 							m_OutHeader << line << "\n";
 					}	
@@ -501,7 +501,7 @@ namespace client
 	    int port, std::shared_ptr<ClientDestination> localDestination, 
 	    const std::string& host, int inport, bool gzip):
 		I2PServerTunnel (name, address, port, localDestination, inport, gzip), 
-		m_Host (host.length () > 0 ? host : address)
+		m_Host (host)
 	{
 	}
 

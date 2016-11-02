@@ -19,6 +19,7 @@ option(WITH_MESHNET "Build for cjdns test network" OFF)
 option(WITH_ADDRSANITIZER "Build with address sanitizer unix only" OFF)
 option(WITH_THREADSANITIZER "Build with thread sanitizer unix only" OFF)
 option(WITH_I2LUA "Build for i2lua" OFF)
+option(WITH_WEBSOCKETS "Build with websocket ui" OFF)
 
 # paths
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
@@ -59,7 +60,13 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
   "${CMAKE_SOURCE_DIR}/Timestamp.cpp"	
   "${CMAKE_SOURCE_DIR}/api.cpp"
+  "${CMAKE_SOURCE_DIR}/Event.cpp"
 )
+
+if (WITH_WEBSOCKETS)
+  add_definitions(-DWITH_EVENTS)
+  find_package(websocketpp REQUIRED)
+endif ()  
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
@@ -92,6 +99,9 @@ set (CLIENT_SRC
   "${CMAKE_SOURCE_DIR}/I2CP.cpp"
   )
 
+if(WITH_WEBSOCKETS)
+  list (APPEND CLIENT_SRC "${CMAKE_SOURCE_DIR}/Websocket.cpp")
+endif ()
 add_library(i2pdclient ${CLIENT_SRC})
 
 set (DAEMON_SRC
@@ -367,6 +377,7 @@ message(STATUS "  MESHNET          : ${WITH_MESHNET}")
 message(STATUS "  ADDRSANITIZER    : ${WITH_ADDRSANITIZER}")
 message(STATUS "  THEADSANITIZER   : ${WITH_THREADSANITIZER}")
 message(STATUS "  I2LUA            : ${WITH_I2LUA}")
+message(STATUS "  WEBSOCKETS       : ${WITH_WEBSOCKETS}")
 message(STATUS "---------------------------------------")
 
 #Handle paths nicely

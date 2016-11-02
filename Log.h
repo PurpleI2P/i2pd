@@ -152,13 +152,13 @@ namespace log {
 		std::string text; /**< message text as single string */
 		LogLevel level;   /**< message level */
 		std::thread::id tid; /**< id of thread that generated message */
-
+    
 		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {};
 	};
 
 	Log & Logger();
 } // log
-} // i2p
+}
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>

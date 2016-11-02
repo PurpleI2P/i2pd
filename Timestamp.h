@@ -8,8 +8,6 @@ namespace i2p
 {
 namespace util
 {
-	extern std::chrono::system_clock::duration g_TimeOffset;
-
 	inline uint64_t GetMillisecondsSinceEpoch ()
 	{
 		return std::chrono::duration_cast<std::chrono::milliseconds>(
