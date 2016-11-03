@@ -50,12 +50,16 @@ All options below still possible in cmdline, but better write it in config file:
 * --httpproxy.outbound.length=	- Outbound tunnels length if keys is set. 3 by default  
 * --httpproxy.outbound.quantity= - Outbound tunnels quantity if keys is set. 5 by default    
 
-* --socksproxy.address= - The address to listen on (SOCKS Proxy)
-* --socksproxy.port=    - The port to listen on (SOCKS Proxy). 4447 by default
+* --socksproxy.enabled=  - If SOCKS proxy is enabled. true by default  
+* --socksproxy.address= - The address to listen on (SOCKS Proxy)  
+* --socksproxy.port=    - The port to listen on (SOCKS Proxy). 4447 by default  
 * --socksproxy.keys=    - optional keys file for SOCKS proxy local destination  
-* --socksproxy.enabled=  - If SOCKS proxy is enabled. true by default 
-* --socksproxy.outproxy= - Address of outproxy. requests outside i2p will go there
-* --socksproxy.outproxyport=  - Outproxy remote port
+* --socksproxy.inbound.length= 	- Inbound tunnels length if keys is set. 3 by default  
+* --socksproxy.inbound.quantity= - Inbound tunnels quantity if keys is set. 5 by default  
+* --socksproxy.outbound.length=	- Outbound tunnels length if keys is set. 3 by default  
+* --socksproxy.outbound.quantity= - Outbound tunnels quantity if keys is set. 5 by default  
+* --socksproxy.outproxy= - Address of outproxy. requests outside i2p will go there  
+* --socksproxy.outproxyport=  - Outproxy remote port  
 
 * --sam.address=        - The address to listen on (SAM bridge)
 * --sam.port=           - Port of SAM bridge. Usually 7656. SAM is off if not specified

@@ -93,7 +93,11 @@ namespace config {
       ("socksproxy.address",  value<std::string>()->default_value("127.0.0.1"),           "SOCKS Proxy listen address")
       ("socksproxy.port",     value<uint16_t>()->default_value(4447),                     "SOCKS Proxy listen port")
       ("socksproxy.keys",     value<std::string>()->default_value(""), "File to persist SOCKS Proxy keys")
-      ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
+      ("socksproxy.inbound.length",      value<std::string>()->default_value("3"),  "SOCKS proxy inbound tunnel length")	
+	  ("socksproxy.outbound.length",     value<std::string>()->default_value("3"),  "SOCKS proxy outbound tunnel length")
+	  ("socksproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")	
+	  ("socksproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "SOCKS proxy outbound tunnels quantity")	
+	  ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
       ("socksproxy.outproxyport", value<uint16_t>()->default_value(9050), "Upstream outproxy port for SOCKS Proxy")
       ;
 
