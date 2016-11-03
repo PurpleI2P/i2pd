@@ -81,6 +81,10 @@ namespace config {
       ("httpproxy.address",   value<std::string>()->default_value("127.0.0.1"),           "HTTP Proxy listen address")
       ("httpproxy.port",      value<uint16_t>()->default_value(4444),                     "HTTP Proxy listen port")
       ("httpproxy.keys",      value<std::string>()->default_value(""),  "File to persist HTTP Proxy keys")
+	  ("httpproxy.inbound.length",      value<std::string>()->default_value("3"),  "HTTP proxy inbound tunnel length")	
+	  ("httpproxy.outbound.length",     value<std::string>()->default_value("3"),  "HTTP proxy outbound tunnel length")
+	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")	
+	  ("httpproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "HTTP proxy outbound tunnels quantity")	
       ;
 
     options_description socksproxy("SOCKS Proxy options");

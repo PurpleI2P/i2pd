@@ -53,7 +53,19 @@ namespace client
 			{
 				i2p::data::PrivateKeys keys;
 				if(LoadPrivateKeys (keys, httpProxyKeys))
-					localDestination = CreateNewLocalDestination (keys, false);
+				{
+					std::map<std::string, std::string> params;
+					std::string value; 
+					if (i2p::config::GetOption("httpproxy.inbound.length", value)) 
+						params["inbound.length"] = value;
+					if (i2p::config::GetOption("httpproxy.inbound.quantity", value)) 
+						params["inbound.quantity"] = value;	
+					if (i2p::config::GetOption("httpproxy.outbound.length", value)) 
+						params["outbound.length"] = value;
+					if (i2p::config::GetOption("httpproxy.outbound.quantity", value)) 
+						params["outbound.quantity"] = value;	
+					localDestination = CreateNewLocalDestination (keys, false, &params);
+				}	
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
