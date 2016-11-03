@@ -6,3 +6,5 @@ I2PD_ENABLED="yes"
 # Additional options that are passed to the Daemon.
 # see possible switches in /usr/share/doc/i2pd/configuration.md.gz
 DAEMON_OPTS=""
+
+ulimit -n 4096

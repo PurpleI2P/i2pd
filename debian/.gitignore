@@ -1,0 +1,9 @@
+files
+i2pd-dbg.substvars
+i2pd-dbg/
+i2pd.postinst.debhelper
+i2pd.postrm.debhelper
+i2pd.prerm.debhelper
+i2pd.substvars
+i2pd/
+

@@ -15,3 +15,6 @@ PREFIX=/usr
 
 override_dh_strip:
 	dh_strip --dbg-package=i2pd-dbg
+
+override_dh_shlibdeps:
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
