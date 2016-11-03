@@ -41,18 +41,18 @@ All options below still possible in cmdline, but better write it in config file:
 * --http.user=          - Username for basic auth (default: i2pd)
 * --http.pass=          - Password for basic auth (default: random, see logs)
 
-* --httpproxy.enabled=  - If HTTP proxy is enabled. true by default
-* --httpproxy.address=  - The address to listen on (HTTP Proxy)
-* --httpproxy.port=     - The port to listen on (HTTP Proxy) 4444 by default
-* --httpproxy.keys=     - optional keys file for HTTP proxy local destination
+* --httpproxy.enabled=  - If HTTP proxy is enabled. true by default  
+* --httpproxy.address=  - The address to listen on (HTTP Proxy)  
+* --httpproxy.port=     - The port to listen on (HTTP Proxy) 4444 by default  
+* --httpproxy.keys=     - optional keys file for HTTP proxy local destination  
 * --httpproxy.inbound.length= 	- Inbound tunnels length if keys is set. 3 by default  
 * --httpproxy.inbound.quantity= - Inbound tunnels quantity if keys is set. 5 by default 
 * --httpproxy.outbound.length=	- Outbound tunnels length if keys is set. 3 by default  
-* --httpproxy.outbound.quantity= - Outbound tunnels quantity if keys is set. 5 by default 
+* --httpproxy.outbound.quantity= - Outbound tunnels quantity if keys is set. 5 by default   
 
 * --socksproxy.address= - The address to listen on (SOCKS Proxy)
 * --socksproxy.port=    - The port to listen on (SOCKS Proxy). 4447 by default
-* --socksproxy.keys=    - optional keys file for SOCKS proxy local destination
+* --socksproxy.keys=    - optional keys file for SOCKS proxy local destination  
 * --socksproxy.enabled=  - If SOCKS proxy is enabled. true by default 
 * --socksproxy.outproxy= - Address of outproxy. requests outside i2p will go there
 * --socksproxy.outproxyport=  - Outproxy remote port
