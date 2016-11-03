@@ -1,5 +1,5 @@
 diff --git a/Makefile b/Makefile
-index 7d04ba0..33ee184 100644
+index b6fc795..abc3ace 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -9,10 +9,10 @@ DEPS := obj/make.dep
@@ -10,8 +10,7 @@ index 7d04ba0..33ee184 100644
 +USE_AESNI  := no
  USE_STATIC := no
  USE_MESHNET := no
--USE_UPNP   := no
-+USE_UPNP   := yes
- 
- ifeq ($(UNAME),Darwin)
- 	DAEMON_SRC += DaemonLinux.cpp
+ USE_UPNP   := no
+
+ ifeq ($(WEBSOCKETS),1)
+ 	NEEDED_CXXFLAGS += -DWITH_EVENTS
