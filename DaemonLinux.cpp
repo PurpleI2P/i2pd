@@ -102,20 +102,23 @@ namespace i2p
 				LogPrint(eLogError, "Daemon: limits.openfiles exceeds system limit: ", limit.rlim_max);
 			}
 			uint32_t cfsize; i2p::config::GetOption("limits.coresize", cfsize);
-      cfsize *= 1024;
-			getrlimit(RLIMIT_CORE, &limit);
-			if (cfsize <= limit.rlim_max) {
-				limit.rlim_cur = cfsize;
-				if (setrlimit(RLIMIT_CORE, &limit) != 0) {
-					LogPrint(eLogError, "Daemon: can't set max size of coredump: ", strerror(errno));
-				} else if (cfsize == 0) {
-					LogPrint(eLogInfo, "Daemon: coredumps disabled");
+			if (cfsize) // core file size set
+			{	
+	  			cfsize *= 1024;
+				getrlimit(RLIMIT_CORE, &limit);
+				if (cfsize <= limit.rlim_max) {
+					limit.rlim_cur = cfsize;
+					if (setrlimit(RLIMIT_CORE, &limit) != 0) {
+						LogPrint(eLogError, "Daemon: can't set max size of coredump: ", strerror(errno));
+					} else if (cfsize == 0) {
+						LogPrint(eLogInfo, "Daemon: coredumps disabled");
+					} else {
+						LogPrint(eLogInfo, "Daemon: set max size of core files to ", cfsize / 1024, "Kb");
+					}
 				} else {
-					LogPrint(eLogInfo, "Daemon: set max size of core files to ", cfsize / 1024, "Kb");
+					LogPrint(eLogError, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
 				}
-			} else {
-				LogPrint(eLogError, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
-			}
+			}	
 
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile

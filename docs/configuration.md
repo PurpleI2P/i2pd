@@ -88,6 +88,8 @@ All options below still possible in cmdline, but better write it in config file:
 * --addressbook.subscriptions=  - AddressBook subscriptions URLs, separated by comma
 
 * --limits.transittunnels=  - Override maximum number of transit tunnels. 2500 by default   
+* --limits.openfiles=	- Maximum size of corefile in Kb (0 - use system limit)  
+* --limits.coresize=	- Maximum size of corefile in Kb (0 - use system limit)  
 
 Config files
 ------------
