@@ -638,7 +638,7 @@ namespace proxy
 	{
 		LogPrint(eLogInfo, "SOCKS: forwarding to upstream");
 		EnterState(UPSTREAM_RESOLVE);
-		boost::asio::ip::tcp::resolver::query q(m_UpstreamProxyAddress,boost::lexical_cast<std::string>(m_UpstreamProxyPort) );
+		boost::asio::ip::tcp::resolver::query q(m_UpstreamProxyAddress, std::to_string(m_UpstreamProxyPort));
 		m_proxy_resolver.async_resolve(q, std::bind(&SOCKSHandler::HandleUpstreamResolved, shared_from_this(),
 			std::placeholders::_1, std::placeholders::_2));
 	}
