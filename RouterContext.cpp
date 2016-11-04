@@ -1,5 +1,4 @@
 #include <fstream>
-#include <boost/lexical_cast.hpp>
 #include "Config.h"
 #include "Crypto.h"
 #include "Timestamp.h"
@@ -357,8 +356,8 @@ namespace i2p
 		if (m_IsFloodfill)
 		{
 			// update routers and leasesets
-			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumLeaseSets ()));
-			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ()));
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS, std::to_string(i2p::data::netdb.GetNumLeaseSets ()));
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS,   std::to_string(i2p::data::netdb.GetNumRouters ()));
 			UpdateRouterInfo (); 
 		}
 	}
