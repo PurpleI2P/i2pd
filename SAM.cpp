@@ -3,7 +3,6 @@
 #ifdef _MSC_VER
 #include <stdlib.h>
 #endif
-#include <boost/lexical_cast.hpp>
 #include "Base.h"
 #include "Identity.h"
 #include "Log.h"
@@ -420,7 +419,7 @@ namespace client
 		LogPrint (eLogDebug, "SAM: datagram send: ", buf, " ", len);
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
-		size_t size = boost::lexical_cast<int>(params[SAM_PARAM_SIZE]), offset = data - buf;
+		size_t size = std::stoi(params[SAM_PARAM_SIZE]), offset = data - buf;
 		if (offset + size <= len)
 		{	
 			if (m_Session)
@@ -819,7 +818,7 @@ namespace client
 				auto it = params->find (SAM_PARAM_SIGNATURE_TYPE);
 				if (it != params->end ())
 					// TODO: extract string values	
-					signatureType = boost::lexical_cast<int> (it->second);
+					signatureType = std::stoi(it->second);
 			}
 			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, params); 
 		}
