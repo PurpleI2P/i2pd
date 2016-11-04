@@ -22,6 +22,22 @@ namespace log {
 		"debug"	 // eLogDebug
 	};
 
+	/**
+	 * @brief Colorize log output -- array of terminal control sequences
+	 * @note Using ISO 6429 (ANSI) color sequences
+	 */
+#ifdef _WIN32
+	static const char *LogMsgColors[] = { "", "", "", "", "" };
+#else /* UNIX */
+	static const char *LogMsgColors[] = {
+		[eLogError]     = "\033[1;31m", /* red */
+		[eLogWarning]   = "\033[1;33m", /* yellow */
+		[eLogInfo]      = "\033[1;36m", /* cyan */
+		[eLogDebug]     = "\033[1;34m", /* blue */
+		[eNumLogLevels] = "\033[0m",    /* reset */
+	};
+#endif
+
 #ifndef _WIN32
 	/**
 	 * @brief  Maps our log levels to syslog one
@@ -42,7 +58,7 @@ namespace log {
 
 	Log::Log():
 	m_Destination(eLogStdout), m_MinLevel(eLogInfo),
-	m_LogStream (nullptr), m_Logfile(""), m_IsReady(false)
+	m_LogStream (nullptr), m_Logfile(""), m_IsReady(false), m_HasColors(true)
 	{
 	}
 
@@ -117,7 +133,7 @@ namespace log {
 				default:
 					std::cout    << TimeAsString(msg->timestamp)
 						<< "@" << short_tid
-						<< "/" << g_LogLevelStr[msg->level]
+						<< "/" << LogMsgColors[msg->level] << g_LogLevelStr[msg->level] << LogMsgColors[eNumLogLevels]
 						<< " - " << msg->text << std::endl;
 					break;
 			} // switch
@@ -138,6 +154,7 @@ namespace log {
 		auto os = std::make_shared<std::ofstream> (path, flags);
 		if (os->is_open ()) 
 		{
+			m_HasColors = false;
 			m_Logfile = path;
 			m_Destination = eLogFile;
 			m_LogStream = os;
@@ -147,12 +164,14 @@ namespace log {
 	}
 
 	void Log::SendTo (std::shared_ptr<std::ostream> os) {
+		m_HasColors = false;
 		m_Destination = eLogStream;
 		m_LogStream = os;
 	}
 
 #ifndef _WIN32
 	void Log::SendTo(const char *name, int facility) {
+		m_HasColors = false;
 		m_Destination = eLogSyslog;
 		m_LogStream = nullptr;
 		openlog(name, LOG_CONS | LOG_PID, facility);
