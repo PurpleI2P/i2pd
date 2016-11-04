@@ -62,6 +62,8 @@ namespace config {
 
     options_description limits("Limits options");
     limits.add_options()
+      ("limits.coresize",         value<uint32_t>()->default_value(0),    "Maximum size of corefile in Kb (0 - disable coredumps)")
+      ("limits.openfiles",        value<uint16_t>()->default_value(0),    "Maximum number of open files (0 - use system default)")
       ("limits.transittunnels",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
       ;
 
