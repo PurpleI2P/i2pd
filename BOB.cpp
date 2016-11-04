@@ -1,5 +1,4 @@
 #include <string.h>
-#include <boost/lexical_cast.hpp>
 #include "Log.h"
 #include "ClientContext.h"
 #include "BOB.h"
@@ -459,7 +458,7 @@ namespace client
 	void BOBCommandSession::OutportCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: outport ", operand);
-		m_OutPort = boost::lexical_cast<int>(operand);
+		m_OutPort = std::stoi(operand);
 		if (m_OutPort >= 0)
 			SendReplyOK ("outbound port set");
 		else
@@ -476,7 +475,7 @@ namespace client
 	void BOBCommandSession::InportCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: inport ", operand);
-		m_InPort = boost::lexical_cast<int>(operand);
+		m_InPort = std::stoi(operand);
 		if (m_InPort >= 0)
 			SendReplyOK ("inbound port set");
 		else
