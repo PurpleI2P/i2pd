@@ -1,6 +1,7 @@
 #include <string.h>
 #include "Log.h"
 #include "ClientContext.h"
+#include "util.h"
 #include "BOB.h"
 
 namespace i2p

@@ -8,6 +8,7 @@
 #include "Log.h"
 #include "Destination.h"
 #include "ClientContext.h"
+#include "util.h"
 #include "SAM.h"
 
 namespace i2p

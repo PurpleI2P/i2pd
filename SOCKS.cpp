@@ -10,6 +10,7 @@
 #include "I2PEndian.h"
 #include "I2PTunnel.h"
 #include "I2PService.h"
+#include "util.h"
 
 namespace i2p
 {
