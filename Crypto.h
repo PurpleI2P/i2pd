@@ -283,7 +283,7 @@ namespace crypto
 
 // take care about openssl version
 #include <openssl/opensslv.h>
-#if !(OPENSSL_VERSION_NUMBER >= 0x010100000) //  < 1.1.0 or non-OpenSSL
+#if (OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER) // 1.1.0 or LibreSSL
 // define getters and setters introduced in 1.1.0
 inline int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g) 
 	{ d->p = p; d->q = q; d->g = g; return 1; }
