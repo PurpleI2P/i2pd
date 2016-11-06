@@ -48,7 +48,7 @@ namespace tunnel
 
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 			void SetCreationTime (uint32_t t) { m_CreationTime = t; };
-
+			
 		private:
 
 			uint32_t m_TunnelID, m_NextTunnelID;

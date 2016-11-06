@@ -1,7 +1,7 @@
 #!/sbin/openrc-run
 
-pidfile="/var/run/i2pd.pid"
-logfile="/var/log/i2pd.log"
+pidfile="/var/run/i2pd/i2pd.pid"
+logfile="/var/log/i2pd/i2pd.log"
 mainconf="/etc/i2pd/i2pd.conf"
 tunconf="/etc/i2pd/tunnels.conf"
 
@@ -32,9 +32,6 @@ start_pre() {
   checkpath -f -o i2pd:adm $logfile
   checkpath -f -o i2pd:adm $pidfile
 
-  if [ -n "$I2PD_PORT" -a "$I2PD_PORT" -gt 0 ]; then
-    command_args="$command_args --port=$I2PD_PORT"
-  fi
   if [ -n "$DAEMON_OPTS" ]; then
     command_args="$command_args $DAEMON_OPTS"
   fi

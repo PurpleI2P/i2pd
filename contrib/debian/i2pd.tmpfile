@@ -1,0 +1,2 @@
+d /var/run/i2pd 0755 i2pd i2pd - -
+d /var/log/i2pd 0755 i2pd i2pd - -

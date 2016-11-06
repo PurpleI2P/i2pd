@@ -637,7 +637,8 @@ namespace stream
 		}
 
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();		
-		if (!m_CurrentRemoteLease || ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
+		if (!m_CurrentRemoteLease || !m_CurrentRemoteLease->endDate || // excluded from LeaseSet
+		    ts >= m_CurrentRemoteLease->endDate - i2p::data::LEASE_ENDDATE_THRESHOLD)
 			UpdateCurrentRemoteLease (true);
 		if (m_CurrentRemoteLease && ts < m_CurrentRemoteLease->endDate + i2p::data::LEASE_ENDDATE_THRESHOLD)
 		{	
@@ -656,16 +657,43 @@ namespace stream
 			m_CurrentOutboundTunnel->SendTunnelDataMsg (msgs);
 		}	
 		else
-			LogPrint (eLogWarning, "Streaming: All leases are expired, sSID=", m_SendStreamID);
+		{	
+			LogPrint (eLogWarning, "Streaming: Remote lease is not available, sSID=", m_SendStreamID);
+			if (m_RoutingSession) 
+				m_RoutingSession->SetSharedRoutingPath (nullptr); // invalidate routing path
+		}
 	}
 
+	void Stream::SendUpdatedLeaseSet ()
+	{
+		if (m_RoutingSession)
+		{		
+			if (m_RoutingSession->IsLeaseSetNonConfirmed ())	    
+			{
+				auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+				if (ts > m_RoutingSession->GetLeaseSetSubmissionTime () + i2p::garlic::LEASET_CONFIRMATION_TIMEOUT)
+				{
+					// LeaseSet was not confirmed, should try other tunnels
+					LogPrint (eLogWarning, "Streaming: LeaseSet was not confrimed in ", i2p::garlic::LEASET_CONFIRMATION_TIMEOUT,  " milliseconds. Trying to resubmit");
+					m_RoutingSession->SetSharedRoutingPath (nullptr);
+					m_CurrentOutboundTunnel = nullptr;	
+					m_CurrentRemoteLease = nullptr;
+					SendQuickAck ();
+				}	
+			}	
+			else if (m_RoutingSession->IsLeaseSetUpdated ())
+			{	
+				LogPrint (eLogDebug, "Streaming: sending updated LeaseSet");
+				SendQuickAck ();
+			}	
+		}	
+	}	
 		
 	void Stream::ScheduleResend ()
 	{
 		m_ResendTimer.cancel ();
 		// check for invalid value
-		if (m_RTO <= 0)
-			m_RTO = 1;
+		if (m_RTO <= 0) m_RTO = INITIAL_RTO;
 		m_ResendTimer.expires_from_now (boost::posix_time::milliseconds(m_RTO));
 		m_ResendTimer.async_wait (std::bind (&Stream::HandleResendTimer,
 			shared_from_this (), std::placeholders::_1));
@@ -760,7 +788,10 @@ namespace stream
 		{
 			m_RemoteLeaseSet = m_LocalDestination.GetOwner ()->FindLeaseSet (m_RemoteIdentity->GetIdentHash ());
 			if (!m_RemoteLeaseSet)	
+			{	
 				LogPrint (eLogWarning, "Streaming: LeaseSet ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), " not found");
+				m_LocalDestination.GetOwner ()->RequestDestination (m_RemoteIdentity->GetIdentHash ()); // try to request for a next attempt
+			}	
 		}
 		if (m_RemoteLeaseSet)
 		{
@@ -797,17 +828,22 @@ namespace stream
 			}	
 			else
 			{	
+				LogPrint (eLogWarning, "Streaming: All remote leases are expired");
 				m_RemoteLeaseSet = nullptr;
 				m_CurrentRemoteLease = nullptr;
 				// we have requested expired before, no need to do it twice
 			}	
 		}
 		else
+		{
+			LogPrint (eLogWarning, "Streaming: Remote LeaseSet not found");
 			m_CurrentRemoteLease = nullptr;
+		}	
 	}	
 
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip): 
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip), 
+		m_LastIncomingReceiveStreamID (0),
 		m_PendingIncomingTimer (m_Owner->GetService ()),
 		m_ConnTrackTimer(m_Owner->GetService()),
 		m_ConnsPerMinute(DEFAULT_MAX_CONNS_PER_MIN),
@@ -863,8 +899,15 @@ namespace stream
 		{
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{	
-				auto incomingStream = CreateNewIncomingStream ();
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
+		/*		if (receiveStreamID == m_LastIncomingReceiveStreamID) 
+				{
+					// already pending
+					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
+					delete packet; // drop it, because previous should be connected
+					return;
+				}	*/
+				auto incomingStream = CreateNewIncomingStream ();
 				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
 				if(ident)
@@ -878,6 +921,8 @@ namespace stream
 						return;
 					}
 				}
+				m_LastIncomingReceiveStreamID = receiveStreamID;
+				
 				// handle saved packets if any
 				{
 					auto it = m_SavedPackets.find (receiveStreamID);

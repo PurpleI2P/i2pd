@@ -51,6 +51,7 @@ namespace stream
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
+	const int MAX_RECEIVE_TIMEOUT = 30; // in seconds 
 
 	/** i2cp option for limiting inbound stremaing connections */
 	const char I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN[] = "maxconns";
@@ -161,6 +162,7 @@ namespace stream
 			void SendClose ();
 			bool SendPacket (Packet * packet);
 			void SendPackets (const std::vector<Packet *>& packets);
+			void SendUpdatedLeaseSet ();
 
 			void SavePacket (Packet * packet);
 			void ProcessPacket (Packet * packet);
@@ -170,7 +172,7 @@ namespace stream
 			void UpdateCurrentRemoteLease (bool expired = false);
 			
 			template<typename Buffer, typename ReceiveHandler>
-			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler);
+			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler, int remainingTimeout);
 			
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
@@ -251,6 +253,7 @@ namespace stream
 			std::mutex m_StreamsMutex;
 			std::map<uint32_t, std::shared_ptr<Stream> > m_Streams; // sendStreamID->stream
 			Acceptor m_Acceptor;
+			uint32_t m_LastIncomingReceiveStreamID;
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
 			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
@@ -282,18 +285,19 @@ namespace stream
 		m_Service.post ([=](void)
 		{
 			if (!m_ReceiveQueue.empty () || m_Status == eStreamStatusReset)
-				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler);
+				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
 			else
 			{
-				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(timeout));
+				int t = (timeout > MAX_RECEIVE_TIMEOUT) ?  MAX_RECEIVE_TIMEOUT : timeout;
+				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(t));
 				s->m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
-					{ s->HandleReceiveTimer (ecode, buffer, handler); });
+					{ s->HandleReceiveTimer (ecode, buffer, handler, timeout - t); });
 			}
 		});	
 	}
 
 	template<typename Buffer, typename ReceiveHandler>
-	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler)
+	void Stream::HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler, int remainingTimeout)
 	{
 		size_t received = ConcatenatePackets (boost::asio::buffer_cast<uint8_t *>(buffer), boost::asio::buffer_size(buffer));
 		if (received > 0)
@@ -307,8 +311,17 @@ namespace stream
 				handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0); 
 		}	
 		else
+		{	
 			// timeout expired
-			handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
+			if (remainingTimeout <= 0)
+				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
+			else
+			{	
+				// itermediate iterrupt
+				SendUpdatedLeaseSet (); // send our leaseset if applicable
+				AsyncReceive (buffer, handler, remainingTimeout); 
+			}	
+		}	
 	}
 }		
 }	

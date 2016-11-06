@@ -4,7 +4,7 @@ ARLIB := libi2pd.a
 SHLIB_CLIENT := libi2pdclient.so
 ARLIB_CLIENT := libi2pdclient.a
 I2PD  := i2pd
-GREP := fgrep
+GREP := grep
 DEPS := obj/make.dep
 
 include filelist.mk
@@ -13,6 +13,11 @@ USE_AESNI  := yes
 USE_STATIC := no
 USE_MESHNET := no
 USE_UPNP   := no
+
+ifeq ($(WEBSOCKETS),1)
+	NEEDED_CXXFLAGS += -DWITH_EVENTS
+	DAEMON_SRC += Websocket.cpp
+endif
 
 ifeq ($(UNAME),Darwin)
 	DAEMON_SRC += DaemonLinux.cpp
@@ -89,9 +94,14 @@ strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
 	strip $^
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
+BRANCH=$(shell git branch --no-color | cut -c 3-)
 dist:
 	git archive --format=tar.gz -9 --worktree-attributes \
 	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz
+
+last-dist:
+	git archive --format=tar.gz -9 --worktree-attributes \
+	    --prefix=i2pd_$(LATEST_TAG)/ $(BRANCH) -o ../i2pd_$(LATEST_TAG).orig.tar.gz
 
 doxygen:
 	doxygen -s docs/Doxyfile

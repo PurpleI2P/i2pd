@@ -43,7 +43,7 @@ namespace crypto
 			DSAVerifier (const uint8_t * signingKey)
 			{
 				m_PublicKey = CreateDSA ();
-				m_PublicKey->pub_key = BN_bin2bn (signingKey, DSA_PUBLIC_KEY_LENGTH, NULL);
+				DSA_set0_key (m_PublicKey, BN_bin2bn (signingKey, DSA_PUBLIC_KEY_LENGTH, NULL), NULL);
 			}
 
 			~DSAVerifier ()
@@ -58,8 +58,7 @@ namespace crypto
 				SHA1 (buf, len, digest);
 				// signature
 				DSA_SIG * sig = DSA_SIG_new();
-				sig->r = BN_bin2bn (signature, DSA_SIGNATURE_LENGTH/2, NULL);
-				sig->s = BN_bin2bn (signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2, NULL);
+				DSA_SIG_set0 (sig, BN_bin2bn (signature, DSA_SIGNATURE_LENGTH/2, NULL), BN_bin2bn (signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2, NULL));
 				// DSA verification
 				int ret = DSA_do_verify (digest, 20, sig, m_PublicKey);
 				DSA_SIG_free(sig);
@@ -81,7 +80,7 @@ namespace crypto
 			DSASigner (const uint8_t * signingPrivateKey)
 			{
 				m_PrivateKey = CreateDSA ();
-				m_PrivateKey->priv_key = BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL);
+				DSA_set0_key (m_PrivateKey, NULL, BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL));
 			}
 
 			~DSASigner ()
@@ -94,8 +93,10 @@ namespace crypto
 				uint8_t digest[20];
 				SHA1 (buf, len, digest);
 				DSA_SIG * sig = DSA_do_sign (digest, 20, m_PrivateKey);
-				bn2buf (sig->r, signature, DSA_SIGNATURE_LENGTH/2);
-				bn2buf (sig->s, signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2);
+				const BIGNUM * r, * s;
+				DSA_SIG_get0 (sig, &r, &s);
+				bn2buf (r, signature, DSA_SIGNATURE_LENGTH/2);
+				bn2buf (s, signature + DSA_SIGNATURE_LENGTH/2, DSA_SIGNATURE_LENGTH/2);
 				DSA_SIG_free(sig);
 			}
 
@@ -108,10 +109,11 @@ namespace crypto
 	{
 		DSA * dsa = CreateDSA ();
 		DSA_generate_key (dsa);
-		bn2buf (dsa->priv_key, signingPrivateKey, DSA_PRIVATE_KEY_LENGTH);
-		bn2buf (dsa->pub_key, signingPublicKey, DSA_PUBLIC_KEY_LENGTH);
-		DSA_free (dsa);
-		
+		const BIGNUM * pub_key, * priv_key;
+		DSA_get0_key(dsa, &pub_key, &priv_key);
+		bn2buf (priv_key, signingPrivateKey, DSA_PRIVATE_KEY_LENGTH);
+		bn2buf (pub_key, signingPublicKey, DSA_PUBLIC_KEY_LENGTH);
+		DSA_free (dsa);	
 	}	
 
 	struct SHA256Hash
@@ -270,8 +272,7 @@ namespace crypto
 			{
 				m_PublicKey = RSA_new ();
 				memset (m_PublicKey, 0, sizeof (RSA));
-				m_PublicKey->e = BN_dup (GetRSAE ());
-				m_PublicKey->n = BN_bin2bn (signingKey, keyLen, NULL);
+				RSA_set0_key (m_PublicKey, BN_bin2bn (signingKey, keyLen, NULL) /* n */ , BN_dup (GetRSAE ()) /* d */, NULL);
 			}
 
 			~RSAVerifier ()
@@ -304,9 +305,8 @@ namespace crypto
 			{
 				m_PrivateKey = RSA_new ();
 				memset (m_PrivateKey, 0, sizeof (RSA));
-				m_PrivateKey->e = BN_dup (GetRSAE ());
-				m_PrivateKey->n = BN_bin2bn (signingPrivateKey, keyLen, NULL);
-				m_PrivateKey->d = BN_bin2bn (signingPrivateKey + keyLen, keyLen, NULL);
+				RSA_set0_key (m_PrivateKey, BN_bin2bn (signingPrivateKey, keyLen, NULL), /* n */
+					BN_dup (GetRSAE ()) /* e */, BN_bin2bn (signingPrivateKey + keyLen, keyLen, NULL) /* d */);
 			}
 
 			~RSASigner ()
@@ -332,9 +332,11 @@ namespace crypto
 		RSA * rsa = RSA_new ();
 		BIGNUM * e = BN_dup (GetRSAE ()); // make it non-const
 		RSA_generate_key_ex (rsa, publicKeyLen*8, e, NULL);
-		bn2buf (rsa->n, signingPrivateKey, publicKeyLen);
-		bn2buf (rsa->d, signingPrivateKey + publicKeyLen, publicKeyLen);
-		bn2buf (rsa->n, signingPublicKey, publicKeyLen);
+		const BIGNUM * n, * d, * e1;
+		RSA_get0_key (rsa, &n, &e1, &d);	
+		bn2buf (n, signingPrivateKey, publicKeyLen);
+		bn2buf (d, signingPrivateKey + publicKeyLen, publicKeyLen);
+		bn2buf (n, signingPublicKey, publicKeyLen);
 		BN_free (e); // this e is not assigned to rsa->e
 		RSA_free (rsa);
 	}	

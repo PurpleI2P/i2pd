@@ -4,6 +4,11 @@
 #include "I2NPProtocol.h"
 #include "NetDb.h"
 #include "Transports.h"
+#include "Config.h"
+#ifdef WITH_EVENTS
+#include "Event.h"
+#include "util.h"
+#endif
 
 using namespace i2p::data;
 
@@ -229,6 +234,9 @@ namespace transport
 
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
+#ifdef WITH_EVENTS
+		EmitEvent({{"type" , "transport.sendmsg"}, {"ident", ident.ToBase64()}, {"number", std::to_string(msgs.size())}});
+#endif
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}	
 
@@ -240,7 +248,8 @@ namespace transport
 			for (auto& it: msgs)
 				i2p::HandleI2NPMessage (it);
 			return;
-		}	
+		}
+		if(RoutesRestricted() && ! IsRestrictedPeer(ident)) return;
 		auto it = m_Peers.find (ident);
 		if (it == m_Peers.end ())
 		{
@@ -494,12 +503,17 @@ namespace transport
 		
 	void Transports::DetectExternalIP ()
 	{
+		if (RoutesRestricted())
+  	{
+			LogPrint(eLogInfo, "Transports: restricted routes enabled, not detecting ip");
+			i2p::context.SetStatus (eRouterStatusOK);
+			return;
+		}
 		if (m_SSUServer)
 		{
-#ifndef MESHNET
-			i2p::context.SetStatus (eRouterStatusTesting);
-#endif
-
+			bool nat;	 i2p::config::GetOption("nat", nat);
+			if (nat)
+				i2p::context.SetStatus (eRouterStatusTesting);
 			for (int i = 0; i < 5; i++)
 			{
 				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
@@ -520,8 +534,10 @@ namespace transport
 
 	void Transports::PeerTest ()
 	{
+		if (RoutesRestricted()) return;
 		if (m_SSUServer)
 		{
+			
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
@@ -559,6 +575,9 @@ namespace transport
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
+#ifdef WITH_EVENTS
+				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "false"}});
+#endif
 				bool sendDatabaseStore = true;
 				if (it->second.delayedMessages.size () > 0)
 				{
@@ -578,20 +597,32 @@ namespace transport
 			}
 			else // incoming connection
 			{
+				if(RoutesRestricted() && ! IsRestrictedPeer(ident)) {
+					// not trusted
+					LogPrint(eLogWarning, "Transports: closing untrusted inbound connection from ", ident.ToBase64());
+					session->Done();
+					return;
+				}
+#ifdef WITH_EVENTS
+				EmitEvent({{"type" , "transport.connected"}, {"ident", ident.ToBase64()}, {"inbound", "true"}});
+#endif
 				session->SendI2NPMessages ({ CreateDatabaseStoreMsg () }); // send DatabaseStore
 				std::unique_lock<std::mutex>	l(m_PeersMutex);	
 				m_Peers.insert (std::make_pair (ident, Peer{ 0, nullptr, { session }, i2p::util::GetSecondsSinceEpoch (), {} }));
 			}
-		});			
+		});
 	}
 		
 	void Transports::PeerDisconnected (std::shared_ptr<TransportSession> session)
 	{
 		m_Service.post([session, this]()
-		{	 
+		{
 			auto remoteIdentity = session->GetRemoteIdentity (); 
 			if (!remoteIdentity) return;
 			auto ident = remoteIdentity->GetIdentHash ();
+#ifdef WITH_EVENTS
+			EmitEvent({{"type" , "transport.disconnected"}, {"ident", ident.ToBase64()}});
+#endif
 			auto it = m_Peers.find (ident);
 			if (it != m_Peers.end ())
 			{
@@ -655,30 +686,79 @@ namespace transport
 		std::advance (it, rand () % m_Peers.size ());	
 		return it != m_Peers.end () ? it->second.router : nullptr;
 	}
-  void Transports::RestrictRoutes(std::vector<std::string> families)
-  {
-    std::lock_guard<std::mutex> lock(m_FamilyMutex);
-    m_TrustedFamilies.clear();
-    for ( const auto& fam : families )
-      m_TrustedFamilies.push_back(fam);
-  }
+	void Transports::RestrictRoutesToFamilies(std::set<std::string> families)
+	{
+		std::lock_guard<std::mutex> lock(m_FamilyMutex);
+		m_TrustedFamilies.clear();
+		for ( const auto& fam : families )
+			m_TrustedFamilies.push_back(fam);
+	}
 
-  bool Transports::RoutesRestricted() const {
-    std::lock_guard<std::mutex> lock(m_FamilyMutex);
-    return m_TrustedFamilies.size() > 0;
-  }
+	void Transports::RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers)
+	{
+		std::unique_lock<std::mutex> lock(m_TrustedRoutersMutex);
+		m_TrustedRouters.clear();
+		for (const auto & ri : routers )
+			m_TrustedRouters.push_back(ri);
+	}
+	
+	bool Transports::RoutesRestricted() const {
+		std::unique_lock<std::mutex> famlock(m_FamilyMutex);
+		std::unique_lock<std::mutex> routerslock(m_TrustedRoutersMutex);
+		return m_TrustedFamilies.size() > 0 || m_TrustedRouters.size() > 0;
+	}
 
-  /** XXX: if routes are not restricted this dies */
-  std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const {
-    std::string fam;
-    {
-      std::lock_guard<std::mutex> lock(m_FamilyMutex);
-      // TODO: random family (?)
-      fam = m_TrustedFamilies[0];
-    }
-    boost::to_lower(fam);
-    return i2p::data::netdb.GetRandomRouterInFamily(fam);
-  }
+	/** XXX: if routes are not restricted this dies */
+	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRestrictedPeer() const
+	{
+		{
+			std::lock_guard<std::mutex> l(m_FamilyMutex);
+			std::string fam;
+			auto sz = m_TrustedFamilies.size();
+			if(sz > 1)
+			{
+				auto it = m_TrustedFamilies.begin ();
+				std::advance(it, rand() % sz);
+				fam = *it;
+				boost::to_lower(fam);
+			}
+			else if (sz == 1)
+			{
+				fam = m_TrustedFamilies[0];
+			}
+			if (fam.size())
+				return i2p::data::netdb.GetRandomRouterInFamily(fam);
+		}
+		{
+			std::unique_lock<std::mutex> l(m_TrustedRoutersMutex);
+			auto sz = m_TrustedRouters.size();
+			if (sz)
+			{
+				if(sz == 1)
+					return i2p::data::netdb.FindRouter(m_TrustedRouters[0]);
+				auto it = m_TrustedRouters.begin();
+				std::advance(it, rand() % sz);
+				return i2p::data::netdb.FindRouter(*it);
+			}
+		}
+		return nullptr;
+	}
+
+	bool Transports::IsRestrictedPeer(const i2p::data::IdentHash & ih) const
+	{
+		{
+			std::unique_lock<std::mutex> l(m_TrustedRoutersMutex);
+			for (const auto & r : m_TrustedRouters )
+				if ( r == ih ) return true;
+		}
+		{
+			std::unique_lock<std::mutex> l(m_FamilyMutex);
+			auto ri = i2p::data::netdb.FindRouter(ih);
+			for (const auto & fam : m_TrustedFamilies)
+				if(ri->IsFamily(fam)) return true;
+		}
+		return false;
+	}
 }
 }
 

@@ -1,6 +1,21 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.10.0] - 2016-10-17
+### Added
+- Datagram i2p tunnels
+- Unique local addresses for server tunnels
+- Configurable list of reseed servers  and initial addressbook
+- Configurable netid
+- Initial iOS support
+
+### Changed
+- Reduced file descriptiors usage
+- Strict reseed checks enabled by default
+
+## Fixed
+- Multiple fixes in I2CP and BOB implementations
+
 ## [2.9.0] - 2016-08-12
 ### Changed
 - Proxy refactoring & speedup

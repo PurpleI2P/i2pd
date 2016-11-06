@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <boost/asio.hpp>
+#include "Log.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
 
@@ -8,7 +9,7 @@ namespace i2p
 {
 namespace util
 {
-	std::chrono::system_clock::duration g_TimeOffset = std::chrono::system_clock::duration::zero ();
+	static int64_t g_TimeOffset = 0; // in seconds
 
 	void SyncTimeWithNTP (const std::string& address)
 	{
@@ -23,25 +24,34 @@ namespace util
 			socket.open (boost::asio::ip::udp::v4 (), ec);
 			if (!ec)
 			{
-				uint8_t request[48];// 48 bytes NTP request
-				memset (request, 0, 48);
-				request[0] = 0x80; // client mode, version 0
-				uint8_t * response = new uint8_t[1500]; // MTU
+				uint8_t buf[48];// 48 bytes NTP request/response
+				memset (buf, 0, 48);
+				htobe32buf (buf, (3 << 27) | (3 << 24)); // RFC 4330
 				size_t len = 0;
 				try
 				{
-					socket.send_to (boost::asio::buffer (request, 48), ep);
-					len = socket.receive_from (boost::asio::buffer (response, 1500), ep);
+					socket.send_to (boost::asio::buffer (buf, 48), ep);
+					int i = 0;
+					while (!socket.available() && i < 10) // 10 seconds max
+					{	
+						std::this_thread::sleep_for (std::chrono::seconds(1)); 
+						i++;
+					}	
+					if (socket.available ())
+						len = socket.receive_from (boost::asio::buffer (buf, 48), ep);
 				}
 				catch (std::exception& e)
 				{
+					LogPrint (eLogError, "NTP error: ", e.what ());
 				}	
 				if (len >= 8)
 				{
-					uint32_t ts = bufbe32toh (response + 4);
+					auto ourTs = GetSecondsSinceEpoch ();
+					uint32_t ts = bufbe32toh (buf + 32);
 					if (ts > 2208988800U) ts -= 2208988800U; // 1/1/1970 from 1/1/1900
+					g_TimeOffset = ts - ourTs;
+					LogPrint (eLogInfo,  address, " time offset from system time is ", g_TimeOffset, " seconds");
 				}	
-				delete[] response;
 			}
 		}
 	}	

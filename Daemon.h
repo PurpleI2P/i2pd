@@ -97,7 +97,7 @@ namespace i2p
 
 			public:
 
-				int gracefullShutdownInterval; // in seconds
+				int gracefulShutdownInterval; // in seconds
 
 		};
 #endif

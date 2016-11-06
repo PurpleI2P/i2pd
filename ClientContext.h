@@ -68,14 +68,15 @@ namespace client
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
 
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
-			
+
 		private:
 
 			void ReadTunnels ();
 			template<typename Section, typename Type>
 			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
 			template<typename Section>
-			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const;	
+			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const;
+			void ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const;	
 
 			void CleanupUDP(const boost::system::error_code & ecode);
 			void ScheduleCleanupUDP();
@@ -110,6 +111,7 @@ namespace client
 			const decltype(m_ServerTunnels)& GetServerTunnels () const { return m_ServerTunnels; };
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
+			const i2p::proxy::HTTPProxy * GetHttpProxy () const { return m_HttpProxy; }
 	};
 	
 	extern ClientContext context;	

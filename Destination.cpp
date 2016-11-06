@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cassert>
-#include <boost/lexical_cast.hpp>
 #include "Crypto.h"
 #include "Log.h"
 #include "FS.h"
@@ -18,83 +17,50 @@ namespace client
 		m_PublishReplyToken (0), m_PublishConfirmationTimer (m_Service), 
 		m_PublishVerificationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
-		int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
-		int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
-		int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
-		int outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+		int inLen   = DEFAULT_INBOUND_TUNNEL_LENGTH;
+		int inQty   = DEFAULT_INBOUND_TUNNELS_QUANTITY;
+		int outLen  = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
+		int outQty  = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
 		int numTags = DEFAULT_TAGS_TO_SEND;
 		std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
-		if (params)
-		{
-			auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
-			if (it != params->end ())
-			{
-
-				int len = i2p::util::lexical_cast<int>(it->second, inboundTunnelLen);
-				if (len >= 0)
+		try {
+			if (params) {
+				auto it = params->find (I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
+				if (it != params->end ())
+					inLen = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
+				if (it != params->end ())
+					outLen = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
+				if (it != params->end ())
+					inQty = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
+				if (it != params->end ())
+					outQty = std::stoi(it->second);
+				it = params->find (I2CP_PARAM_TAGS_TO_SEND);
+				if (it != params->end ())
+					numTags = std::stoi(it->second);
+				LogPrint (eLogInfo, "Destination: parameters for tunnel set to: ", inQty, " inbound (", inLen, " hops), ", outQty, " outbound (", outLen, " hops), ", numTags, " tags");
+				it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
+				if (it != params->end ())
 				{
-						inboundTunnelLen = len;
+					explicitPeers = std::make_shared<std::vector<i2p::data::IdentHash> >();
+					std::stringstream ss(it->second);
+					std::string b64;
+					while (std::getline (ss, b64, ','))
+					{
+						i2p::data::IdentHash ident;
+						ident.FromBase64 (b64);
+						explicitPeers->push_back (ident);
+						LogPrint (eLogInfo, "Destination: Added to explicit peers list: ", b64);
+					}
 				}
-				LogPrint (eLogInfo, "Destination: Inbound tunnel length set to ", inboundTunnelLen);
-			}	
-			it = params->find (I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
-			if (it != params->end ())
-			{
-
-				int len = i2p::util::lexical_cast<int>(it->second, outboundTunnelLen);
-				if (len >= 0)
-				{
-						outboundTunnelLen = len;
-				}
-				LogPrint (eLogInfo, "Destination: Outbound tunnel length set to ", outboundTunnelLen);
-			}	
-			it = params->find (I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
-			if (it != params->end ())
-			{
-				int quantity = i2p::util::lexical_cast<int>(it->second, inboundTunnelsQuantity);
-				if (quantity > 0)
-				{
-					inboundTunnelsQuantity = quantity;
-					LogPrint (eLogInfo, "Destination: Inbound tunnels quantity set to ", quantity);
-				}	
 			}
-			it = params->find (I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
-			if (it != params->end ())
-			{
-				int quantity = i2p::util::lexical_cast<int>(it->second, outboundTunnelsQuantity);
-				if (quantity > 0)
-				{
-					outboundTunnelsQuantity = quantity;
-					LogPrint (eLogInfo, "Destination: Outbound tunnels quantity set to ", quantity);
-				}	
-			}
-			it = params->find (I2CP_PARAM_TAGS_TO_SEND);
-			if (it != params->end ())
-			{
-				int tagsToSend = i2p::util::lexical_cast<int>(it->second, numTags);
-				if (tagsToSend > 0)
-				{
-					numTags = tagsToSend;
-					LogPrint (eLogInfo, "Destination: Tags to send set to	 ", tagsToSend);
-				}	
-			}	
-			it = params->find (I2CP_PARAM_EXPLICIT_PEERS);
-			if (it != params->end ())
-			{
-				explicitPeers = std::make_shared<std::vector<i2p::data::IdentHash> >();
-				std::stringstream ss(it->second);
-				std::string b64;
-				while (std::getline (ss, b64, ','))
-				{
-					i2p::data::IdentHash ident;
-					ident.FromBase64 (b64);
-					explicitPeers->push_back (ident);
-				}
-				LogPrint (eLogInfo, "Destination: Explicit peers set to ", it->second);
-			}
-		}	
+		} catch (std::exception & ex) {
+			LogPrint(eLogError, "Destination: unable to parse parameters for destination: ", ex.what());
+		}
 		SetNumTags (numTags);
-		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inboundTunnelLen, outboundTunnelLen, inboundTunnelsQuantity, outboundTunnelsQuantity);  
+		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty);
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
 	}
@@ -202,7 +168,12 @@ namespace client
 				return remoteLS;
 			}
 			else
+			{
 				LogPrint (eLogWarning, "Destination: remote LeaseSet expired");
+				std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
+				m_RemoteLeaseSets.erase (ident);
+				return nullptr;
+			}
 		}	
 		else
 		{	
@@ -223,12 +194,16 @@ namespace client
 		if (!m_Pool) return nullptr;
 		if (!m_LeaseSet)
 			UpdateLeaseSet ();
+		std::lock_guard<std::mutex> l(m_LeaseSetMutex);
 		return m_LeaseSet;
 	}	
 
 	void LeaseSetDestination::SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet)
 	{
-		m_LeaseSet.reset (newLeaseSet);
+		{	
+			std::lock_guard<std::mutex> l(m_LeaseSetMutex);
+			m_LeaseSet.reset (newLeaseSet);
+		}
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();
 		if (m_IsPublic)
 		{
@@ -305,7 +280,7 @@ namespace client
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
 		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
 		{
-			LogPrint (eLogDebug, "Remote LeaseSet");
+			LogPrint (eLogDebug, "Destination: Remote LeaseSet");
 			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
 			auto it = m_RemoteLeaseSets.find (buf + DATABASE_STORE_KEY_OFFSET);
 			if (it != m_RemoteLeaseSets.end ())
@@ -315,16 +290,16 @@ namespace client
 				{	
 					leaseSet->Update (buf + offset, len - offset); 
 					if (leaseSet->IsValid ())
-						LogPrint (eLogDebug, "Remote LeaseSet updated");
+						LogPrint (eLogDebug, "Destination: Remote LeaseSet updated");
 					else
 					{
-						LogPrint (eLogDebug, "Remote LeaseSet update failed");
+						LogPrint (eLogDebug, "Destination: Remote LeaseSet update failed");
 						m_RemoteLeaseSets.erase (it);
 						leaseSet = nullptr;
 					}
 				}
 				else
-					LogPrint (eLogDebug, "Remote LeaseSet is older. Not updated");
+					LogPrint (eLogDebug, "Destination: Remote LeaseSet is older. Not updated");
 			}
 			else
 			{	
@@ -333,15 +308,15 @@ namespace client
 				{
 					if (leaseSet->GetIdentHash () != GetIdentHash ())
 					{
-						LogPrint (eLogDebug, "New remote LeaseSet added");
+						LogPrint (eLogDebug, "Destination: New remote LeaseSet added");
 						m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
 					}
 					else
-						LogPrint (eLogDebug, "Own remote LeaseSet dropped");
+						LogPrint (eLogDebug, "Destination: Own remote LeaseSet dropped");
 				}
 				else
 				{
-					LogPrint (eLogError, "New remote LeaseSet failed");
+					LogPrint (eLogError, "Destination: New remote LeaseSet failed");
 					leaseSet = nullptr;
 				}
 			}	
@@ -371,14 +346,14 @@ namespace client
 			if (request->excluded.size () < MAX_NUM_FLOODFILLS_PER_REQUEST)
 			{	
 				for (int i = 0; i < num; i++)
+			{
+				i2p::data::IdentHash peerHash (buf + 33 + i*32);
+				if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
 				{
-					i2p::data::IdentHash peerHash (buf + 33 + i*32);
-					if (!request->excluded.count (peerHash) && !i2p::data::netdb.FindRouter (peerHash))
-					{
-						LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); // TODO: recheck this message
-						i2p::data::netdb.RequestDestination (peerHash);
-					}	
-				}
+					LogPrint (eLogInfo, "Destination: Found new floodfill, request it"); // TODO: recheck this message
+					i2p::data::netdb.RequestDestination (peerHash);
+				}	
+			}
 				
 				auto floodfill = i2p::data::netdb.GetClosestFloodfill (key, request->excluded);
 				if (floodfill)

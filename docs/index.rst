@@ -29,14 +29,13 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   build_requirements
-   build_notes_unix
-   build_notes_windows
-   build_notes_cross
-   build_notes_android
-   build_notes_ios
+   building/requirements
+   building/unix
+   building/windows
+   building/cross
+   building/android
+   building/ios
    configuration
    family
    usage
-
 

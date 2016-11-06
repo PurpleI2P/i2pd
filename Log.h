@@ -40,17 +40,6 @@ enum LogType {
 #endif
 };
 
-#ifdef _WIN32
-	const char LOG_COLOR_ERROR[] = "";
-	const char LOG_COLOR_WARNING[] = "";
-	const char LOG_COLOR_RESET[] = "";
-#else
-	const char LOG_COLOR_ERROR[] = "\033[1;31m";
-	const char LOG_COLOR_WARNING[] = "\033[1;33m";
-	const char LOG_COLOR_RESET[] = "\033[0m";
-#endif
-
-
 namespace i2p {
 namespace log {
   
@@ -68,6 +57,7 @@ namespace log {
 			char m_LastDateTime[64];
 			i2p::util::Queue<std::shared_ptr<LogMsg> > m_Queue;
 			volatile bool m_IsReady;
+			bool m_HasColors;
 			mutable std::mutex m_OutputLock;
 
 		private:
@@ -152,13 +142,13 @@ namespace log {
 		std::string text; /**< message text as single string */
 		LogLevel level;   /**< message level */
 		std::thread::id tid; /**< id of thread that generated message */
-
+    
 		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {};
 	};
 
 	Log & Logger();
 } // log
-} // i2p
+}
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
@@ -190,14 +180,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	// fold message to single string
 	std::stringstream ss("");
 
-	if(level == eLogError) // if log level is ERROR color log message red
-		ss << LOG_COLOR_ERROR;
-	else if (level == eLogWarning) // if log level is WARN color log message yellow
-		ss << LOG_COLOR_WARNING;
 	LogPrint (ss, std::forward<TArgs>(args)...);
-  
-	// reset color
-	ss << LOG_COLOR_RESET;
   
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
 	msg->tid = std::this_thread::get_id();

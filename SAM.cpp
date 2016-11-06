@@ -3,12 +3,12 @@
 #ifdef _MSC_VER
 #include <stdlib.h>
 #endif
-#include <boost/lexical_cast.hpp>
 #include "Base.h"
 #include "Identity.h"
 #include "Log.h"
 #include "Destination.h"
 #include "ClientContext.h"
+#include "util.h"
 #include "SAM.h"
 
 namespace i2p
@@ -420,7 +420,7 @@ namespace client
 		LogPrint (eLogDebug, "SAM: datagram send: ", buf, " ", len);
 		std::map<std::string, std::string> params;
 		ExtractParams (buf, params);
-		size_t size = boost::lexical_cast<int>(params[SAM_PARAM_SIZE]), offset = data - buf;
+		size_t size = std::stoi(params[SAM_PARAM_SIZE]), offset = data - buf;
 		if (offset + size <= len)
 		{	
 			if (m_Session)
@@ -587,10 +587,28 @@ namespace client
 	void SAMSocket::I2PReceive ()
 	{
 		if (m_Stream)
-			m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE),
-				std::bind (&SAMSocket::HandleI2PReceive, shared_from_this (),
-					std::placeholders::_1, std::placeholders::_2),
-				SAM_SOCKET_CONNECTION_MAX_IDLE);
+		{
+			if (m_Stream->GetStatus () == i2p::stream::eStreamStatusNew ||
+			    m_Stream->GetStatus () == i2p::stream::eStreamStatusOpen) // regular
+			{	
+				m_Stream->AsyncReceive (boost::asio::buffer (m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE),
+					std::bind (&SAMSocket::HandleI2PReceive, shared_from_this (),
+						std::placeholders::_1, std::placeholders::_2),
+					SAM_SOCKET_CONNECTION_MAX_IDLE);
+			}
+			else // closed by peer
+			{
+				// get remaning data
+				auto len = m_Stream->ReadSome (m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE);
+				if (len > 0) // still some data
+				{
+					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len),
+        				std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+				}
+				else // no more data
+					Terminate (); 
+			}		
+		}
 	}	
 
 	void SAMSocket::HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -599,6 +617,14 @@ namespace client
 		{
 			LogPrint (eLogError, "SAM: stream read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
+			{
+				if (bytes_transferred > 0)
+					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
+        		std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1)); // postpone termination
+				else	
+					Terminate ();
+			}
+			else	
 				Terminate ();
 		}
 		else
@@ -793,7 +819,7 @@ namespace client
 				auto it = params->find (SAM_PARAM_SIGNATURE_TYPE);
 				if (it != params->end ())
 					// TODO: extract string values	
-					signatureType = boost::lexical_cast<int> (it->second);
+					signatureType = std::stoi(it->second);
 			}
 			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, params); 
 		}

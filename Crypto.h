@@ -7,6 +7,7 @@
 #include <openssl/dh.h>
 #include <openssl/aes.h>
 #include <openssl/dsa.h>
+#include <openssl/rsa.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
 
@@ -284,8 +285,21 @@ namespace crypto
 #include <openssl/opensslv.h>
 #if (OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER) // 1.1.0 or LibreSSL
 // define getters and setters introduced in 1.1.0
-inline int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g) { d->p = p; d->q = q; d->g = g; return 1; }
-inline int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key) { d->pub_key = pub_key; d->priv_key = priv_key; return 1; } 
+inline int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g) 
+	{ d->p = p; d->q = q; d->g = g; return 1; }
+inline int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key) 
+	{ d->pub_key = pub_key; d->priv_key = priv_key; return 1; } 
+inline void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **priv_key) 
+	{ *pub_key = d->pub_key; *priv_key = d->priv_key; }
+inline int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s) 
+	{ sig->r = r; sig->s = s; return 1; }
+inline void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
+	{ *pr = sig->r; *ps = sig->s; }
+
+inline int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d) 
+	{ r->n = n; r->e = e; r->d = d; return 1; }
+inline void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e, const BIGNUM **d)
+	{ *n = r->n; *e = r->e; *d = r->d; }
 
 #endif
 

@@ -53,7 +53,11 @@ namespace client
 			{
 				i2p::data::PrivateKeys keys;
 				if(LoadPrivateKeys (keys, httpProxyKeys))
-					localDestination = CreateNewLocalDestination (keys, false);
+				{
+					std::map<std::string, std::string> params;
+					ReadI2CPOptionsFromConfig ("httpproxy.", params);
+					localDestination = CreateNewLocalDestination (keys, false, &params);
+				}	
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
@@ -65,8 +69,10 @@ namespace client
 			}
 		}
     
+		localDestination = nullptr;
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
-		if (socksproxy) {
+		if (socksproxy) 
+		{
 			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",    socksProxyKeys);
 			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address", socksProxyAddr);
 			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",    socksProxyPort);
@@ -76,8 +82,14 @@ namespace client
 			if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				LoadPrivateKeys (keys, socksProxyKeys);
-				localDestination = CreateNewLocalDestination (keys, false);
+				if (LoadPrivateKeys (keys, socksProxyKeys))
+				{
+					std::map<std::string, std::string> params;
+					ReadI2CPOptionsFromConfig ("socksproxy.", params);
+					localDestination = CreateNewLocalDestination (keys, false, &params);
+				}
+				else
+					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
 			}
 			try {
 			  m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxyAddr, socksOutProxyPort, localDestination);
@@ -290,7 +302,7 @@ namespace client
 		}
 		return infos;
 	}
-
+  
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
 		const std::map<std::string, std::string> * params)
 	{
@@ -360,6 +372,19 @@ namespace client
 		options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
 		options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
 		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
+	}	
+
+	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
+	{
+		std::string value; 
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNEL_LENGTH, value)) 
+			options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, value)) 
+			options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = value;	
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, value)) 
+			options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, value)) 
+			options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = value;	
 	}	
 
 	void ClientContext::ReadTunnels ()

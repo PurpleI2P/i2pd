@@ -78,6 +78,12 @@ namespace config {
     return true;
   }
 
+  template<typename T>
+  bool GetOption(const std::string& name, T& value) 
+  {
+    return GetOption (name.c_str (), value);
+  }	
+
   /**
    * @brief  Set value of given parameter
    * @param  name  Name of settable parameter

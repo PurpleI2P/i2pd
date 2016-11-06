@@ -4,7 +4,7 @@ start on runlevel [2345]
 stop on runlevel [016] or unmounting-filesystem
 
 # these can be overridden in /etc/init/i2pd.override
-env LOGFILE="/var/log/i2pd.log"
+env LOGFILE="/var/log/i2pd/i2pd.log"
 
 expect fork
 

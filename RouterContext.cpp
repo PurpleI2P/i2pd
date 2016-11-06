@@ -1,5 +1,4 @@
 #include <fstream>
-#include <boost/lexical_cast.hpp>
 #include "Config.h"
 #include "Crypto.h"
 #include "Timestamp.h"
@@ -77,7 +76,6 @@ namespace i2p
 		}
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
-		i2p::config::GetOption("netid", m_NetID);
         routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
@@ -358,8 +356,8 @@ namespace i2p
 		if (m_IsFloodfill)
 		{
 			// update routers and leasesets
-			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumLeaseSets ()));
-			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS, boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters ()));
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS, std::to_string(i2p::data::netdb.GetNumLeaseSets ()));
+			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS,   std::to_string(i2p::data::netdb.GetNumRouters ()));
 			UpdateRouterInfo (); 
 		}
 	}

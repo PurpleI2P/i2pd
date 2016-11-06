@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 
 #include "Config.h"
 #include "FS.h"
@@ -25,11 +26,11 @@ void handle_signal(int sig)
 			i2p::client::context.ReloadConfig();
 		break;
 		case SIGINT:
-			if (i2p::context.AcceptsTunnels () && !Daemon.gracefullShutdownInterval)
+			if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
 			{	
 				i2p::context.SetAcceptsTunnels (false);
-				Daemon.gracefullShutdownInterval = 10*60; // 10 minutes
-				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefullShutdownInterval, " seconds");
+				Daemon.gracefulShutdownInterval = 10*60; // 10 minutes
+				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
 			}	
 			else
 				Daemon.running = 0; 
@@ -83,6 +84,42 @@ namespace i2p
 #endif
 			}
 
+			// set proc limits
+			struct rlimit limit;
+			uint16_t nfiles; i2p::config::GetOption("limits.openfiles", nfiles);
+			getrlimit(RLIMIT_NOFILE, &limit);
+			if (nfiles == 0) {
+				LogPrint(eLogInfo, "Daemon: using system limit in ", limit.rlim_cur, " max open files");
+			} else if (nfiles <= limit.rlim_max) {
+				limit.rlim_cur = nfiles;
+				if (setrlimit(RLIMIT_NOFILE, &limit) == 0) {
+					LogPrint(eLogInfo, "Daemon: set max number of open files to ",
+						nfiles, " (system limit is ", limit.rlim_max, ")");
+				} else {
+					LogPrint(eLogError, "Daemon: can't set max number of open files: ", strerror(errno));
+				}
+			} else {
+				LogPrint(eLogError, "Daemon: limits.openfiles exceeds system limit: ", limit.rlim_max);
+			}
+			uint32_t cfsize; i2p::config::GetOption("limits.coresize", cfsize);
+			if (cfsize) // core file size set
+			{	
+	  			cfsize *= 1024;
+				getrlimit(RLIMIT_CORE, &limit);
+				if (cfsize <= limit.rlim_max) {
+					limit.rlim_cur = cfsize;
+					if (setrlimit(RLIMIT_CORE, &limit) != 0) {
+						LogPrint(eLogError, "Daemon: can't set max size of coredump: ", strerror(errno));
+					} else if (cfsize == 0) {
+						LogPrint(eLogInfo, "Daemon: coredumps disabled");
+					} else {
+						LogPrint(eLogInfo, "Daemon: set max size of core files to ", cfsize / 1024, "Kb");
+					}
+				} else {
+					LogPrint(eLogError, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
+				}
+			}	
+
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
 			std::string pidfile; i2p::config::GetOption("pidfile", pidfile);
@@ -110,7 +147,7 @@ namespace i2p
 					return false;
 				}
 			}
-			gracefullShutdownInterval = 0; // not specified
+			gracefulShutdownInterval = 0; // not specified
 
 			// Signal handler
 			struct sigaction sa;
@@ -137,10 +174,10 @@ namespace i2p
 			while (running)
 			{
 				std::this_thread::sleep_for (std::chrono::seconds(1));
-				if (gracefullShutdownInterval)
+				if (gracefulShutdownInterval)
 				{
-					gracefullShutdownInterval--; // - 1 second
-					if (gracefullShutdownInterval <= 0) 
+					gracefulShutdownInterval--; // - 1 second
+					if (gracefulShutdownInterval <= 0) 
 					{	
 						LogPrint(eLogInfo, "Graceful shutdown");
 						return;

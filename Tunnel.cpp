@@ -11,6 +11,10 @@
 #include "Transports.h"
 #include "NetDb.h"
 #include "Tunnel.h"
+#include "TunnelPool.h"
+#ifdef WITH_EVENTS
+#include "Event.h"
+#endif
 
 namespace i2p
 {
@@ -29,12 +33,14 @@ namespace tunnel
 
 	void Tunnel::Build (uint32_t replyMsgID, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
+#ifdef WITH_EVENTS
+		std::string peers = i2p::context.GetIdentity()->GetIdentHash().ToBase64();
+#endif
 		auto numHops = m_Config->GetNumHops ();
 		int numRecords = numHops <= STANDARD_NUM_RECORDS ? STANDARD_NUM_RECORDS : numHops; 
 		auto msg = NewI2NPShortMessage ();
 		*msg->GetPayload () = numRecords;
 		msg->len += numRecords*TUNNEL_BUILD_RECORD_SIZE + 1;
-
 		// shuffle records
 		std::vector<int> recordIndicies;
 		for (int i = 0; i < numRecords; i++) recordIndicies.push_back(i);
@@ -55,8 +61,14 @@ namespace tunnel
 			hop->CreateBuildRequestRecord (records + idx*TUNNEL_BUILD_RECORD_SIZE, msgID); 
 			hop->recordIndex = idx; 
 			i++;
+#ifdef WITH_EVENTS
+			peers += ":" + hop->ident->GetIdentHash().ToBase64();
+#endif
 			hop = hop->next;
 		}
+#ifdef WITH_EVENTS
+		EmitTunnelEvent("tunnel.build", this, peers);
+#endif
 		// fill up fake records with random data
 		for (int i = numHops; i < numRecords; i++)
 		{
@@ -182,12 +194,22 @@ namespace tunnel
 		return ret;
 	}
 
+	void Tunnel::SetState(TunnelState state)
+	{
+		m_State = state;
+#ifdef WITH_EVENTS
+		EmitTunnelEvent("tunnel.state", this, state);
+#endif
+	}
+	
+
 	void Tunnel::PrintHops (std::stringstream& s) const
 	{
-		for (auto& it: m_Hops)
+		// hops are in inverted order, we must print in direct order	
+		for (auto it = m_Hops.rbegin (); it != m_Hops.rend (); it++)
 		{
 			s << " &#8658; ";
-			s << i2p::data::GetIdentHashAbbreviation (it->ident->GetIdentHash ());
+			s << i2p::data::GetIdentHashAbbreviation ((*it)->ident->GetIdentHash ());
 		}
 	}
 
@@ -581,6 +603,9 @@ namespace tunnel
 								hop = hop->next;
 							}
 						}
+#ifdef WITH_EVENTS
+						EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
+#endif
 						// delete
 						it = pendingTunnels.erase (it);
 						m_NumFailedTunnelCreations++;
@@ -590,6 +615,9 @@ namespace tunnel
 				break;
 				case eTunnelStateBuildFailed:
 					LogPrint (eLogDebug, "Tunnel: pending build request ", it->first, " failed, deleted");
+#ifdef WITH_EVENTS
+					EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
+#endif
 					it = pendingTunnels.erase (it);
 					m_NumFailedTunnelCreations++;
 				break;
@@ -640,11 +668,13 @@ namespace tunnel
 			}
 		}
 
-		if (m_OutboundTunnels.size () < 5) 
+		if (m_OutboundTunnels.size () < 3) 
 		{
 			// trying to create one more oubound tunnel
 			auto inboundTunnel = GetNextInboundTunnel ();
-			auto router = i2p::data::netdb.GetRandomRouter ();
+			auto router = i2p::transport::transports.RoutesRestricted() ?
+				i2p::transport::transports.GetRestrictedPeer() :
+				i2p::data::netdb.GetRandomRouter ();
 			if (!inboundTunnel || !router) return;
 			LogPrint (eLogDebug, "Tunnel: creating one hop outbound tunnel");
 			CreateTunnel<OutboundTunnel> (
@@ -697,16 +727,18 @@ namespace tunnel
 			CreateZeroHopsOutboundTunnel ();
 			if (!m_ExploratoryPool)
 			{
-				m_ExploratoryPool = CreateTunnelPool (2, 2, 5, 5); // 2-hop exploratory, 5 tunnels
+				m_ExploratoryPool = CreateTunnelPool (2, 2, 3, 3); // 2-hop exploratory, 3 tunnels
 				m_ExploratoryPool->SetLocalDestination (i2p::context.GetSharedDestination ());
 			}
 			return;
 		}
 
-		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 5) 
+		if (m_OutboundTunnels.empty () || m_InboundTunnels.size () < 3) 
 		{
 			// trying to create one more inbound tunnel
-			auto router = i2p::data::netdb.GetRandomRouter ();
+			auto router = i2p::transport::transports.RoutesRestricted() ?
+				i2p::transport::transports.GetRestrictedPeer() :
+				i2p::data::netdb.GetRandomRouter ();
 			if (!router) {
 				LogPrint (eLogWarning, "Tunnel: can't find any router, skip creating tunnel");
 				return;
@@ -771,7 +803,7 @@ namespace tunnel
 
 	std::shared_ptr<InboundTunnel> Tunnels::CreateInboundTunnel (std::shared_ptr<TunnelConfig> config, std::shared_ptr<OutboundTunnel> outboundTunnel)
 	{
-		if (config)
+		if (config) 
 			return CreateTunnel<InboundTunnel>(config, outboundTunnel);
 		else
 			return CreateZeroHopsInboundTunnel ();

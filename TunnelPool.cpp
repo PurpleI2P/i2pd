@@ -7,12 +7,18 @@
 #include "Garlic.h"
 #include "Transports.h"
 #include "Log.h"
+#include "Tunnel.h"
 #include "TunnelPool.h"
+#include "Destination.h"
+#ifdef WITH_EVENTS
+#include "Event.h"
+#endif
 
 namespace i2p
 {
 namespace tunnel
 {
+  
 	TunnelPool::TunnelPool (int numInboundHops, int numOutboundHops, int numInboundTunnels, int numOutboundTunnels):
 		m_NumInboundHops (numInboundHops), m_NumOutboundHops (numOutboundHops),
 		m_NumInboundTunnels (numInboundTunnels), m_NumOutboundTunnels (numOutboundTunnels), m_IsActive (true),
@@ -67,6 +73,9 @@ namespace tunnel
 	{
 		if (!m_IsActive) return;
 		{
+#ifdef WITH_EVENTS			
+			EmitTunnelEvent("tunnels.created", createdTunnel);
+#endif			
 			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 			m_InboundTunnels.insert (createdTunnel);
 		}
@@ -77,7 +86,10 @@ namespace tunnel
 	void TunnelPool::TunnelExpired (std::shared_ptr<InboundTunnel> expiredTunnel)
 	{
 		if (expiredTunnel)
-		{	
+		{
+#ifdef WITH_EVENTS			
+			EmitTunnelEvent("tunnels.expired", expiredTunnel);
+#endif			
 			expiredTunnel->SetTunnelPool (nullptr);
 			for (auto& it: m_Tests)
 				if (it.second.second == expiredTunnel) it.second.second = nullptr;
@@ -91,6 +103,9 @@ namespace tunnel
 	{
 		if (!m_IsActive) return;
 		{
+#ifdef WITH_EVENTS			
+			EmitTunnelEvent("tunnels.created", createdTunnel);
+#endif			
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.insert (createdTunnel);
 		}
@@ -101,6 +116,9 @@ namespace tunnel
 	{
 		if (expiredTunnel)
 		{
+#ifdef WITH_EVENTS			
+			EmitTunnelEvent("tunnels.expired", expiredTunnel);
+#endif			
 			expiredTunnel->SetTunnelPool (nullptr);
 			for (auto& it: m_Tests)
 				if (it.second.first == expiredTunnel) it.second.first = nullptr;

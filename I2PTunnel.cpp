@@ -238,8 +238,8 @@ namespace client
 					if (line == "\r") endOfHeader = true;
 					else
 					{	
-						if (line.find ("Host:") != std::string::npos)
-							m_OutHeader << "Host: " << m_Host << "\r\n";
+						if (m_Host.length () > 0 && line.find ("Host:") != std::string::npos)
+							m_OutHeader << "Host: " << m_Host << "\r\n"; // override host
 						else
 							m_OutHeader << line << "\n";
 					}	
@@ -275,26 +275,24 @@ namespace client
 
     void I2PTunnelConnectionIRC::Write (const uint8_t * buf, size_t len)
     {
-    	if (m_NeedsWebIrc) {
+		m_OutPacket.str ("");
+    	if (m_NeedsWebIrc) 
+		{
         	m_NeedsWebIrc = false;
-        	m_OutPacket.str ("");
-            m_OutPacket << "WEBIRC " << this->m_WebircPass << " cgiirc " << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ()) << " 127.0.0.1\n";
-            I2PTunnelConnection::Write ((uint8_t *)m_OutPacket.str ().c_str (), m_OutPacket.str ().length ());
+            m_OutPacket << "WEBIRC " << m_WebircPass << " cgiirc " << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ()) << " 127.0.0.1\n";
         }
 
-    	std::string line;
-        m_OutPacket.str ("");
         m_InPacket.clear ();
         m_InPacket.write ((const char *)buf, len);
         
         while (!m_InPacket.eof () && !m_InPacket.fail ())
         {
+			std::string line;
             std::getline (m_InPacket, line);
-            if (line.length () == 0 && m_InPacket.eof ()) {
+            if (line.length () == 0 && m_InPacket.eof ()) 
             	m_InPacket.str ("");
-            }
             auto pos = line.find ("USER");
-            if (pos != std::string::npos && pos == 0)
+            if (!pos) // start of line
             {
                 pos = line.find (" ");
                 pos++;
@@ -304,9 +302,9 @@ namespace client
                 m_OutPacket << line.substr (0, pos);
                 m_OutPacket << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ());
                 m_OutPacket << line.substr (nextpos) << '\n';
-            } else {
+            } 
+			else
                 m_OutPacket << line << '\n';
-            }
         }
         I2PTunnelConnection::Write ((uint8_t *)m_OutPacket.str ().c_str (), m_OutPacket.str ().length ());
     }
@@ -503,7 +501,7 @@ namespace client
 	    int port, std::shared_ptr<ClientDestination> localDestination, 
 	    const std::string& host, int inport, bool gzip):
 		I2PServerTunnel (name, address, port, localDestination, inport, gzip), 
-		m_Host (host.length () > 0 ? host : address)
+		m_Host (host)
 	{
 	}
 

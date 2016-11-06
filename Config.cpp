@@ -27,10 +27,6 @@ namespace config {
   variables_map       m_Options;
 
   void Init() {
-    bool nat = true;
-#ifdef MESHNET
-    nat = false;
-#endif
 
     options_description general("General options");
     general.add_options()
@@ -44,8 +40,8 @@ namespace config {
 	  ("family",    value<std::string>()->default_value(""),     "Specify a family, router belongs to")
 	  ("datadir",   value<std::string>()->default_value(""),     "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
       ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
-      ("ifname",    value<std::string>()->default_value(""), "network interface to bind to")
-      ("nat",       value<bool>()->zero_tokens()->default_value(nat), "should we assume we are behind NAT?")
+      ("ifname",    value<std::string>()->default_value(""), "Network interface to bind to")
+      ("nat",       value<bool>()->zero_tokens()->default_value(true), "Should we assume we are behind NAT?")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv4",      value<bool>()->zero_tokens()->default_value(true),  "Enable communication through ipv4")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
@@ -55,8 +51,8 @@ namespace config {
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
       ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will be floodfill")
       ("bandwidth", value<std::string>()->default_value(""), "Bandwidth limit: integer in kbps or letters: L (32), O (256), P (2048), X (>9000)")
-      ("ntcp", value<bool>()->zero_tokens()->default_value(true), "enable ntcp transport")
-      ("ssu", value<bool>()->zero_tokens()->default_value(true), "enable ssu transport")
+      ("ntcp", value<bool>()->zero_tokens()->default_value(true), "Enable NTCP transport")
+      ("ssu", value<bool>()->zero_tokens()->default_value(true), "Enable SSU transport")
 #ifdef _WIN32
       ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
       ("insomnia", value<bool>()->zero_tokens()->default_value(false), "Prevent system from sleeping")
@@ -66,6 +62,8 @@ namespace config {
 
     options_description limits("Limits options");
     limits.add_options()
+      ("limits.coresize",         value<uint32_t>()->default_value(0),    "Maximum size of corefile in Kb (0 - use system limit)")
+      ("limits.openfiles",        value<uint16_t>()->default_value(0),    "Maximum number of open files (0 - use system default)")
       ("limits.transittunnels",   value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
       ;
 
@@ -85,6 +83,10 @@ namespace config {
       ("httpproxy.address",   value<std::string>()->default_value("127.0.0.1"),           "HTTP Proxy listen address")
       ("httpproxy.port",      value<uint16_t>()->default_value(4444),                     "HTTP Proxy listen port")
       ("httpproxy.keys",      value<std::string>()->default_value(""),  "File to persist HTTP Proxy keys")
+	  ("httpproxy.inbound.length",      value<std::string>()->default_value("3"),  "HTTP proxy inbound tunnel length")	
+	  ("httpproxy.outbound.length",     value<std::string>()->default_value("3"),  "HTTP proxy outbound tunnel length")
+	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")	
+	  ("httpproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "HTTP proxy outbound tunnels quantity")	
       ;
 
     options_description socksproxy("SOCKS Proxy options");
@@ -93,7 +95,11 @@ namespace config {
       ("socksproxy.address",  value<std::string>()->default_value("127.0.0.1"),           "SOCKS Proxy listen address")
       ("socksproxy.port",     value<uint16_t>()->default_value(4447),                     "SOCKS Proxy listen port")
       ("socksproxy.keys",     value<std::string>()->default_value(""), "File to persist SOCKS Proxy keys")
-      ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
+      ("socksproxy.inbound.length",      value<std::string>()->default_value("3"),  "SOCKS proxy inbound tunnel length")	
+	  ("socksproxy.outbound.length",     value<std::string>()->default_value("3"),  "SOCKS proxy outbound tunnel length")
+	  ("socksproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")	
+	  ("socksproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "SOCKS proxy outbound tunnels quantity")	
+	  ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
       ("socksproxy.outproxyport", value<uint16_t>()->default_value(9050), "Upstream outproxy port for SOCKS Proxy")
       ;
 
@@ -153,9 +159,6 @@ namespace config {
 	reseed.add_options()
 	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")	
 	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
-#ifdef MESHNET
-	  ("reseed.urls", value<std::string>()->default_value("https://reseed.i2p.rocks:8443/"),  "Reseed URLs, separated by comma")
-#else
 	  ("reseed.urls", value<std::string>()->default_value(
 		"https://reseed.i2p-projekt.de/,"
 		"https://i2p.mooo.com/netDb/,"
@@ -169,7 +172,6 @@ namespace config {
 		"https://reseed-ru.lngserv.ru/,"
 	    "https://reseed.atomike.ninja/"                                                   
 		),  "Reseed URLs, separated by comma")
-#endif
 	  ;	
 
   	options_description addressbook("AddressBook options");
@@ -182,10 +184,17 @@ namespace config {
 
   	options_description trust("Trust options");
   	trust.add_options()
-      ("trust.enabled", value<bool>()->default_value(false), "enable explicit trust options")
+      ("trust.enabled", value<bool>()->default_value(false), "Enable explicit trust options")
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
-      ("trust.hidden", value<bool>()->default_value(false), "should we hide our router from other routers?");
+			("trust.routers", value<std::string>()->default_value(""), "Only Connect to these routers")
+      ("trust.hidden", value<bool>()->default_value(false), "Should we hide our router from other routers?");
 
+    options_description websocket("Websocket Options");
+    websocket.add_options()
+      ("websockets.enabled", value<bool>()->default_value(false), "enable websocket server")
+      ("websockets.address", value<std::string>()->default_value("127.0.0.1"), "address to bind websocket server on")
+      ("websockets.port", value<uint16_t>()->default_value(7666), "port to bind websocket server on");
+    
     m_OptionsDesc
       .add(general)
 	  .add(limits)	
@@ -200,7 +209,8 @@ namespace config {
 	  .add(precomputation)
 	  .add(reseed) 
       .add(addressbook)	
-      .add(trust)	
+      .add(trust)
+      .add(websocket)
       ;
   }
 

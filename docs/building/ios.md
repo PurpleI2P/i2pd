@@ -9,31 +9,30 @@ Prerequisites
 XCode7+, cmake 3.2+
 
 Dependencies
---------------
+------------
+
 - precompiled openssl
 - precompiled boost with modules `filesystem`, `program_options`, `date_time` and `system`
-- ios-cmake toolchain from https://github.com/vovasty/ios-cmake.git
+- ios-cmake toolchain from `https://github.com/vovasty/ios-cmake.git`
 
 Building
-------------------------
+--------
+
 Assume you have folder structure
 
-```
-lib
-	libboost_date_time.a
-	libboost_filesystem.a
-	libboost_program_options.a
-	libboost_system.a
-	libboost.a
-	libcrypto.a
-	libssl.a
-include
-	boost
-	openssl
-ios-cmake
-i2pd
-```
-
+	lib/
+		libboost_date_time.a
+		libboost_filesystem.a
+		libboost_program_options.a
+		libboost_system.a
+		libboost.a
+		libcrypto.a
+		libssl.a
+	include/
+		boost/
+		openssl/
+	ios-cmake/
+	i2pd/
 
 ```bash
 mkdir -p build/simulator/lib build/ios/lib include/i2pd
@@ -77,9 +76,10 @@ cp i2pd/*.h include/i2pd
 ```
 
 Include into project
----------------------------
-1. add all libraries in `lib` folder to `Project linked frameworks`.
-2. add `libc++` and `libz` libraries from system libraries to `Project linked frameworks`.
-3. add path to i2p headers to your `Headers search paths`
+--------------------
 
-Alternatively you may use swift wrapper https://github.com/vovasty/SwiftyI2P.git
+- add all libraries in `lib` folder to `Project linked frameworks`.
+- add `libc++` and `libz` libraries from system libraries to `Project linked frameworks`.
+- add path to i2p headers to your `Headers search paths`
+
+Alternatively you may use swift wrapper `https://github.com/vovasty/SwiftyI2P.git`
