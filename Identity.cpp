@@ -385,7 +385,14 @@ namespace data
 			else
 			{
 				delete verifier;
-				while (!m_Verifier) ; // spin lock
+				int count = 0;
+				while (!m_Verifier && count < 500) // 5 seconds
+				{	
+					std::this_thread::sleep_for (std::chrono::milliseconds(10)); 
+					count++;
+				}	
+				if (!m_Verifier)
+					LogPrint (eLogError, "Identity: couldn't get verifier in 5 seconds");
 			}
 		}	
 		else
