@@ -944,7 +944,7 @@ namespace transport
 			// existing test 
 			case ePeerTestParticipantAlice1:
 			{			
-				if (m_State == eSessionStateEstablished)
+				if (m_Server.GetPeerTestSession (nonce) == shared_from_this ()) // Alice-Bob
 				{
 					LogPrint (eLogDebug, "SSU: peer test from Bob. We are Alice");
 					if (i2p::context.GetStatus () == eRouterStatusTesting) // still not OK
@@ -953,6 +953,8 @@ namespace transport
 				else
 				{
 					LogPrint (eLogDebug, "SSU: first peer test from Charlie. We are Alice");
+					if (m_State == eSessionStateEstablished)
+						LogPrint (eLogWarning, "SSU: first peer test from Charlie through established session. We are Alice");
 					i2p::context.SetStatus (eRouterStatusOK);
 					m_Server.UpdatePeerTest (nonce, ePeerTestParticipantAlice2);
 					SendPeerTest (nonce, senderEndpoint.address (), senderEndpoint.port (), introKey, true, false); // to Charlie
@@ -961,7 +963,7 @@ namespace transport
 			}	
 			case ePeerTestParticipantAlice2:
 			{
-				if (m_State == eSessionStateEstablished)
+				if (m_Server.GetPeerTestSession (nonce) == shared_from_this ()) // Alice-Bob
 					LogPrint (eLogDebug, "SSU: peer test from Bob. We are Alice");
 				else
 				{
