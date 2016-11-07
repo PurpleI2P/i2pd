@@ -289,7 +289,7 @@ namespace client
 				if (leaseSet->IsNewer (buf + offset, len - offset))
 				{	
 					leaseSet->Update (buf + offset, len - offset); 
-					if (leaseSet->IsValid ())
+					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == i2p::data::IdentHash (buf + DATABASE_STORE_KEY_OFFSET))
 						LogPrint (eLogDebug, "Destination: Remote LeaseSet updated");
 					else
 					{
@@ -304,7 +304,7 @@ namespace client
 			else
 			{	
 				leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
-				if (leaseSet->IsValid ())
+				if (leaseSet->IsValid () && leaseSet->GetIdentHash () == i2p::data::IdentHash (buf + DATABASE_STORE_KEY_OFFSET))
 				{
 					if (leaseSet->GetIdentHash () != GetIdentHash ())
 					{
