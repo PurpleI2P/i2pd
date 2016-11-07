@@ -48,11 +48,22 @@ namespace transport
 	{
 		while (m_IsRunning)
 		{
-			int num;
-			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0)
+			int num, total = 0;
+			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0 && total < 20)
+			{	
 				CreateDHKeysPairs (num);
-			std::unique_lock<std::mutex>	l(m_AcquiredMutex);
-			m_Acquired.wait (l); // wait for element gets aquired
+				total += num;
+			}
+			if (total >= 20)
+			{
+				LogPrint (eLogWarning, "Transports: ", total, " DH keys generated at the time");
+				std::this_thread::sleep_for (std::chrono::seconds(1)); // take a break
+			}
+			else
+			{
+				std::unique_lock<std::mutex>	l(m_AcquiredMutex);
+				m_Acquired.wait (l); // wait for element gets aquired
+			}	
 		}
 	}		
 
@@ -60,7 +71,6 @@ namespace transport
 	{
 		if (num > 0)
 		{
-			i2p::crypto::DHKeys dh;
 			for (int i = 0; i < num; i++)
 			{
 				auto pair = std::make_shared<i2p::crypto::DHKeys> ();
