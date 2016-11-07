@@ -49,7 +49,7 @@ namespace transport
 		while (m_IsRunning)
 		{
 			int num;
-			while ((num = m_QueueSize - m_Queue.size ()) > 0)
+			while ((num = m_QueueSize - (int)m_Queue.size ()) > 0)
 				CreateDHKeysPairs (num);
 			std::unique_lock<std::mutex>	l(m_AcquiredMutex);
 			m_Acquired.wait (l); // wait for element gets aquired
