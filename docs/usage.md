@@ -37,13 +37,13 @@ Some binary Linux packages have a systemd control unit, so it is possible to man
 
 Start/stop i2pd:
 
-    sudo systemctl i2pd.service start
-    sudo systemctl i2pd.service stop
+    sudo systemctl start i2pd.service
+    sudo systemctl stop i2pd.service
 
 Enable/disable i2pd to be started on bootup:
 
-    sudo systemctl i2pd.service enable
-    sudo systemctl i2pd.service disable
+    sudo systemctl enable i2pd.service
+    sudo systemctl disable i2pd.service
 
 
 ## Configuring i2pd
