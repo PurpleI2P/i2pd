@@ -94,7 +94,7 @@ strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
 	strip $^
 
 LATEST_TAG=$(shell git describe --tags --abbrev=0 openssl)
-BRANCH=$(shell git branch --no-color | cut -c 3-)
+BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 dist:
 	git archive --format=tar.gz -9 --worktree-attributes \
 	    --prefix=i2pd_$(LATEST_TAG)/ $(LATEST_TAG) -o i2pd_$(LATEST_TAG).tar.gz
