@@ -39,12 +39,13 @@ namespace tunnel
 			void HandleNextMessage (const TunnelMessageBlock& msg);
 
 			void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, std::shared_ptr<I2NPMessage> data);
-			void HandleOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg);
-			
+			bool ConcatNextOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg); // true if something added
+			void HandleOutOfSequenceFragments (uint32_t msgID, TunnelMessageBlockEx& msg);			
+
 		private:			
 
 			std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
-			std::map<uint32_t, Fragment> m_OutOfSequenceFragments;
+			std::map<std::pair<uint32_t, uint8_t>, Fragment> m_OutOfSequenceFragments; // (msgID, fragment#)->fragment
 			bool m_IsInbound;
 			size_t m_NumReceivedBytes;
 	};	
