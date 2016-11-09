@@ -152,14 +152,14 @@ namespace log {
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue>
-void LogPrint (std::stringstream& s, TValue&& arg) noexcept
+void LogPrint (std::stringstream& s, TValue&& arg) 
 {
 	s << std::forward<TValue>(arg);
 }
 
 /** internal usage only -- folding args array to single string */
 template<typename TValue, typename... TArgs>
-void LogPrint (std::stringstream& s, TValue&& arg, TArgs&&... args) noexcept
+void LogPrint (std::stringstream& s, TValue&& arg, TArgs&&... args) 
 {
 	LogPrint (s, std::forward<TValue>(arg));
 	LogPrint (s, std::forward<TArgs>(args)...);
@@ -171,7 +171,7 @@ void LogPrint (std::stringstream& s, TValue&& arg, TArgs&&... args) noexcept
  * @param args Array of message parts
  */
 template<typename... TArgs>
-void LogPrint (LogLevel level, TArgs&&... args) noexcept
+void LogPrint (LogLevel level, TArgs&&... args) 
 {
 	i2p::log::Log &log = i2p::log::Logger();
 	if (level > log.GetLogLevel ())
