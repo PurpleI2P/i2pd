@@ -1111,7 +1111,7 @@ namespace transport
 		RAND_bytes ((uint8_t *)&nonce, 4);
 		if (!nonce) nonce = 1;
 		m_IsPeerTest = false;
-		m_Server.NewPeerTest (nonce, ePeerTestParticipantAlice1);
+		m_Server.NewPeerTest (nonce, ePeerTestParticipantAlice1, shared_from_this ());
 		SendPeerTest (nonce, boost::asio::ip::address(), 0, address->key, false, false); // address and port always zero for Alice
 	}	
 
