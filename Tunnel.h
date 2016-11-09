@@ -165,6 +165,10 @@ namespace tunnel
 			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
 			void Print (std::stringstream& s) const;
 			bool IsInbound() const { return true; }
+
+			// override TunnelBase
+			void Cleanup () { m_Endpoint.Cleanup (); };	
+
 		private:
 
 			TunnelEndpoint m_Endpoint; 

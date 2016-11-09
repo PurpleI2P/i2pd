@@ -714,6 +714,8 @@ namespace tunnel
 
 						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 							tunnel->SetState (eTunnelStateExpiring);
+						else // we don't need to cleanup expiring tunnels
+							tunnel->Cleanup ();
 					}
 					it++;
 				}
@@ -763,7 +765,10 @@ namespace tunnel
 				it = m_TransitTunnels.erase (it);
 			}
 			else 
+			{
+				tunnel->Cleanup ();
 				it++;
+			}
 		}
 	}
 
