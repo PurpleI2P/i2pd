@@ -277,19 +277,20 @@ namespace client
 			LogPrint (eLogInfo, "Destination: Reply token is ignored for DatabaseStore");
 			offset += 36;
 		}
+		i2p::data::IdentHash key (buf + DATABASE_STORE_KEY_OFFSET);
 		std::shared_ptr<i2p::data::LeaseSet> leaseSet;
 		if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) // LeaseSet
 		{
 			LogPrint (eLogDebug, "Destination: Remote LeaseSet");
 			std::lock_guard<std::mutex> lock(m_RemoteLeaseSetsMutex);
-			auto it = m_RemoteLeaseSets.find (buf + DATABASE_STORE_KEY_OFFSET);
+			auto it = m_RemoteLeaseSets.find (key);
 			if (it != m_RemoteLeaseSets.end ())
 			{
 				leaseSet = it->second;
 				if (leaseSet->IsNewer (buf + offset, len - offset))
 				{	
 					leaseSet->Update (buf + offset, len - offset); 
-					if (leaseSet->IsValid ())
+					if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
 						LogPrint (eLogDebug, "Destination: Remote LeaseSet updated");
 					else
 					{
@@ -304,12 +305,12 @@ namespace client
 			else
 			{	
 				leaseSet = std::make_shared<i2p::data::LeaseSet> (buf + offset, len - offset);
-				if (leaseSet->IsValid ())
+				if (leaseSet->IsValid () && leaseSet->GetIdentHash () == key)
 				{
 					if (leaseSet->GetIdentHash () != GetIdentHash ())
 					{
 						LogPrint (eLogDebug, "Destination: New remote LeaseSet added");
-						m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = leaseSet;
+						m_RemoteLeaseSets[key] = leaseSet;
 					}
 					else
 						LogPrint (eLogDebug, "Destination: Own remote LeaseSet dropped");
@@ -324,7 +325,7 @@ namespace client
 		else
 			LogPrint (eLogError, "Destination: Unexpected client's DatabaseStore type ", buf[DATABASE_STORE_TYPE_OFFSET], ", dropped");
 		
-		auto it1 = m_LeaseSetRequests.find (buf + DATABASE_STORE_KEY_OFFSET);
+		auto it1 = m_LeaseSetRequests.find (key);
 		if (it1 != m_LeaseSetRequests.end ())
 		{
 			it1->second->requestTimeoutTimer.cancel ();

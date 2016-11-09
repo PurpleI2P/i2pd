@@ -227,10 +227,8 @@ namespace crypto
 	DHKeys::DHKeys (): m_IsUpdated (true)
 	{
 		m_DH = DH_new ();
-		m_DH->p = BN_dup (elgp);
-		m_DH->g = BN_dup (elgg);
-		m_DH->priv_key = NULL;
-		m_DH->pub_key = NULL;
+		DH_set0_pqg (m_DH, BN_dup (elgp), NULL, BN_dup (elgg));
+		DH_set0_key (m_DH, NULL, NULL);
 	}
 	
 	DHKeys::~DHKeys ()
@@ -240,27 +238,31 @@ namespace crypto
 
 	void DHKeys::GenerateKeys (uint8_t * priv, uint8_t * pub)
 	{
-		if (m_DH->priv_key)  { BN_free (m_DH->priv_key); m_DH->priv_key = NULL; };
-		if (m_DH->pub_key)  { BN_free (m_DH->pub_key); m_DH->pub_key = NULL; };
+		BIGNUM * priv_key = NULL, * pub_key = NULL;	
 #if !defined(__x86_64__) // use short exponent for non x64 
-		m_DH->priv_key = BN_new ();
-		BN_rand (m_DH->priv_key, ELGAMAL_SHORT_EXPONENT_NUM_BITS, 0, 1);
+		priv_key = BN_new ();
+		BN_rand (priv_key, ELGAMAL_SHORT_EXPONENT_NUM_BITS, 0, 1);
 #endif		
 		if (g_ElggTable)
 		{	
 #if defined(__x86_64__)
-			m_DH->priv_key = BN_new ();
-			BN_rand (m_DH->priv_key, ELGAMAL_FULL_EXPONENT_NUM_BITS, 0, 1);
+			priv_key = BN_new ();
+			BN_rand (priv_key, ELGAMAL_FULL_EXPONENT_NUM_BITS, 0, 1);
 #endif			
 			auto ctx = BN_CTX_new ();
-			m_DH->pub_key = ElggPow (m_DH->priv_key, g_ElggTable, ctx);
+			pub_key = ElggPow (priv_key, g_ElggTable, ctx);
+			DH_set0_key (m_DH, pub_key, priv_key);
 			BN_CTX_free (ctx);
 		}	
 		else
+		{
+			DH_set0_key (m_DH, NULL, priv_key);
 			DH_generate_key (m_DH);
+			DH_get0_key (m_DH, (const BIGNUM **)&pub_key, (const BIGNUM **)&priv_key);
+		}	
 
-		if (priv) bn2buf (m_DH->priv_key, priv, 256);
-		if (pub) bn2buf (m_DH->pub_key, pub, 256);
+		if (priv) bn2buf (priv_key, priv, 256);
+		if (pub) bn2buf (pub_key, pub, 256);
 		m_IsUpdated = true;
 	}	
 

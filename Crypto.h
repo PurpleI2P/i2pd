@@ -301,6 +301,17 @@ inline int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d)
 inline void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e, const BIGNUM **d)
 	{ *n = r->n; *e = r->e; *d = r->d; }
 
+inline int DH_set0_pqg(DH *dh, BIGNUM *p, BIGNUM *q, BIGNUM *g)
+	{ dh->p = p; dh->q = q; dh->g = g;  return 1; }
+inline int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
+	{ 
+		if (dh->pub_key) BN_free (dh->pub_key); 
+		if (dh->priv_key) BN_free (dh->priv_key);
+		dh->pub_key = pub_key; dh->priv_key = priv_key; return 1; 
+	}
+inline void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key)
+	{ *pub_key = dh->pub_key; *priv_key = dh->priv_key; }
+
 #endif
 
 }		

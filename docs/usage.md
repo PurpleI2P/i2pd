@@ -10,6 +10,47 @@ i2pd can be used for:
 
 and many more.
 
+## Starting, stopping and reloading configuration
+
+After you have built i2pd from source, just run a binary:
+
+    ./i2pd
+
+To display all available options:
+
+    ./i2pd --help
+
+i2pd can be controlled with signals. Process ID by default is written to file `~/.i2pd/i2pd.pid` or `/var/run/i2pd/i2pd.pid`.
+You can use `kill` utility to send signals like this:
+
+    kill -TERM $( cat /var/run/i2pd/i2pd.pid )
+
+i2pd supports the following signals:
+
+    TERM - Graceful shutdown. i2pd will wait for 10 minutes and stop. Send second TERM signal to shutdown i2pd immediately.
+    HUP - Reload configuration files.
+
+
+### systemd unit
+
+Some binary Linux packages have a systemd control unit, so it is possible to managage i2pd with it.
+
+Start/stop i2pd:
+
+    sudo systemctl start i2pd.service
+    sudo systemctl stop i2pd.service
+
+Enable/disable i2pd to be started on bootup:
+
+    sudo systemctl enable i2pd.service
+    sudo systemctl disable i2pd.service
+
+
+## Configuring i2pd
+
+See [configuration page](i2pd.readthedocs.io/page/configuration.html).
+
+
 ## Browsing and hosting websites
 
 ### Browse anonymous websites

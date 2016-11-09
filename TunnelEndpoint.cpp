@@ -117,7 +117,7 @@ namespace tunnel
 							m.nextFragmentNum = 1;
 							auto ret = m_IncompleteMessages.insert (std::pair<uint32_t, TunnelMessageBlockEx>(msgID, m));
 							if (ret.second)
-								HandleOutOfSequenceFragment (msgID, ret.first->second);
+								HandleOutOfSequenceFragments (msgID, ret.first->second);
 							else
 								LogPrint (eLogError, "TunnelMessage: Incomplete message ", msgID, " already exists");
 						}
@@ -168,7 +168,7 @@ namespace tunnel
 					else
 					{	
 						msg.nextFragmentNum++;
-						HandleOutOfSequenceFragment (msgID, msg);
+						HandleOutOfSequenceFragments (msgID, msg);
 					}	
 				}
 				else
@@ -192,19 +192,31 @@ namespace tunnel
 
 	void TunnelEndpoint::AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, std::shared_ptr<I2NPMessage> data)
 	{
-		auto it = m_OutOfSequenceFragments.find (msgID);
-		if (it == m_OutOfSequenceFragments.end ())
-			m_OutOfSequenceFragments.insert (std::pair<uint32_t, Fragment> (msgID, {fragmentNum, isLastFragment, data}));	
+		if (!m_OutOfSequenceFragments.insert ({{msgID, fragmentNum}, {fragmentNum, isLastFragment, data}}).second)
+			LogPrint (eLogInfo, "TunnelMessage: duplicate out-of-sequence fragment ", fragmentNum, " of message ", msgID);
 	}	
 
-	void TunnelEndpoint::HandleOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg)
+	void TunnelEndpoint::HandleOutOfSequenceFragments (uint32_t msgID, TunnelMessageBlockEx& msg)
 	{
-		auto it = m_OutOfSequenceFragments.find (msgID);
-		if (it != m_OutOfSequenceFragments.end ())
+		while (ConcatNextOutOfSequenceFragment (msgID, msg)) 
 		{
+			if (!msg.nextFragmentNum) // message complete
+			{
+				HandleNextMessage (msg);	
+				m_IncompleteMessages.erase (msgID);
+				break;
+			}
+		}
+	}
+
+	bool TunnelEndpoint::ConcatNextOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg)
+	{
+		auto it = m_OutOfSequenceFragments.find ({msgID, msg.nextFragmentNum});
+		if (it != m_OutOfSequenceFragments.end ())
+		{			
 			if (it->second.fragmentNum == msg.nextFragmentNum)
 			{
-				LogPrint (eLogWarning, "TunnelMessage: Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
+				LogPrint (eLogDebug, "TunnelMessage: Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
 				size_t size = it->second.data->GetLength ();
 				if (msg.data->len + size > msg.data->maxLen)
 				{
@@ -214,18 +226,19 @@ namespace tunnel
 					msg.data = newMsg;
 				}
 				if (msg.data->Concat (it->second.data->GetBuffer (), size) < size) // concatenate out-of-sync fragment
-					LogPrint (eLogError, "Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
+					LogPrint (eLogError, "TunnelMessage: Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
 				if (it->second.isLastFragment)
-				{
 					// message complete
-					HandleNextMessage (msg);	
-					m_IncompleteMessages.erase (msgID); 
-				}	
+					msg.nextFragmentNum = 0;
 				else
 					msg.nextFragmentNum++;
 				m_OutOfSequenceFragments.erase (it);
-			}	
+				return true;
+			}
+			else
+				LogPrint (eLogError, "Tunnel message: next fragment ", (int)it->second.fragmentNum, " of message ", msgID, " mismatch. ", (int)msg.nextFragmentNum, " expected");
 		}	
+		return false;
 	}	
 	
 	void TunnelEndpoint::HandleNextMessage (const TunnelMessageBlock& msg)
