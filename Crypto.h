@@ -7,6 +7,7 @@
 #include <openssl/dh.h>
 #include <openssl/aes.h>
 #include <openssl/dsa.h>
+#include <openssl/ecdsa.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
@@ -294,6 +295,11 @@ inline void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **pr
 inline int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s) 
 	{ sig->r = r; sig->s = s; return 1; }
 inline void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
+	{ *pr = sig->r; *ps = sig->s; }
+
+inline int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s)
+	{ sig->r = r; sig->s = s; return 1; }
+inline void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps)
 	{ *pr = sig->r; *ps = sig->s; }
 
 inline int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d) 
