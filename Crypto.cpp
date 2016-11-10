@@ -270,10 +270,9 @@ namespace crypto
 	{
 		if (m_IsUpdated)
 		{	
-			const BIGNUM * priv_key, * pub_key;	
-			DH_get0_key (m_DH, &pub_key, &priv_key);
-			bn2buf (pub_key, m_PublicKey, 256);
-			DH_set0_key (m_DH, NULL, NULL);
+			// TODO: seems race condition here
+			bn2buf (m_DH->pub_key, m_PublicKey, 256);
+			BN_free (m_DH->pub_key); m_DH->pub_key = NULL;
 			m_IsUpdated= false;
 		}	
 		return m_PublicKey;
