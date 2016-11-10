@@ -350,9 +350,11 @@ namespace data
 					if (terminator) terminator[0] = 0;
 				}	
 				// extract RSA key (we need n only, e = 65537)
-				RSA * key = X509_get_pubkey (cert)->pkey.rsa;
+				RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
+				const BIGNUM * n, * e, * d;
+				RSA_get0_key(key, &n, &e, &d);
 				PublicKey value;
-				i2p::crypto::bn2buf (key->n, value, 512);
+				i2p::crypto::bn2buf (n, value, 512);
 				if (cn)
 					m_SigningKeys[cn] = value;
 				else

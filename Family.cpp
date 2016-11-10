@@ -40,7 +40,7 @@ namespace data
 					if (family) family[0] = 0;
 				}	
 				auto pkey = X509_get_pubkey (cert);
-				int keyType = EVP_PKEY_type(pkey->type);
+				int keyType = EVP_PKEY_base_id (pkey);
 				switch (keyType)
 				{
 					case EVP_PKEY_DSA:
