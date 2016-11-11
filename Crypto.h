@@ -36,15 +36,14 @@ namespace crypto
 			DHKeys ();
 			~DHKeys ();
 
-			void GenerateKeys (uint8_t * priv = nullptr, uint8_t * pub = nullptr);
-			const uint8_t * GetPublicKey ();
+			void GenerateKeys ();
+			const uint8_t * GetPublicKey () const { return m_PublicKey; };
 			void Agree (const uint8_t * pub, uint8_t * shared);
 			
 		private:
 
 			DH * m_DH;
 			uint8_t m_PublicKey[256];
-			bool m_IsUpdated;
 	};	
 	
 	// ElGamal

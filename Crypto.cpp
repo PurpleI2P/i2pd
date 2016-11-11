@@ -224,7 +224,7 @@ namespace crypto
 	
 // DH
 	
-	DHKeys::DHKeys (): m_IsUpdated (true)
+	DHKeys::DHKeys ()
 	{
 		m_DH = DH_new ();
 		DH_set0_pqg (m_DH, BN_dup (elgp), NULL, BN_dup (elgg));
@@ -236,7 +236,7 @@ namespace crypto
 		DH_free (m_DH);
 	}	
 
-	void DHKeys::GenerateKeys (uint8_t * priv, uint8_t * pub)
+	void DHKeys::GenerateKeys ()
 	{
 		BIGNUM * priv_key = NULL, * pub_key = NULL;	
 #if !defined(__x86_64__) // use short exponent for non x64 
@@ -261,22 +261,7 @@ namespace crypto
 			DH_get0_key (m_DH, (const BIGNUM **)&pub_key, (const BIGNUM **)&priv_key);
 		}	
 
-		if (priv) bn2buf (priv_key, priv, 256);
-		if (pub) bn2buf (pub_key, pub, 256);
-		m_IsUpdated = true;
-	}	
-
-	const uint8_t * DHKeys::GetPublicKey () 
-	{
-		if (m_IsUpdated)
-		{	
-			const BIGNUM * priv_key, * pub_key;	
-			DH_get0_key (m_DH, &pub_key, &priv_key);
-			bn2buf (pub_key, m_PublicKey, 256);
-			DH_set0_key (m_DH, NULL, NULL);
-			m_IsUpdated= false;
-		}	
-		return m_PublicKey;
+		bn2buf (pub_key, m_PublicKey, 256);
 	}	
 	
 	void DHKeys::Agree (const uint8_t * pub, uint8_t * shared)
