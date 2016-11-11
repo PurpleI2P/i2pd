@@ -48,7 +48,7 @@ Enable/disable i2pd to be started on bootup:
 
 ## Configuring i2pd
 
-See [configuration page](i2pd.readthedocs.io/page/configuration.html).
+See [configuration documentation](/page/configuration.html).
 
 
 ## Browsing and hosting websites
