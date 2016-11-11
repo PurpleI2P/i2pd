@@ -30,16 +30,16 @@ Where $ARCH is `i686` or `x86_64` (matching your system).
 - Open MSYS2 Shell (from Start menu).
 - Install all prerequisites and download i2pd source:
 
-	export ARCH='i686'     # or 'x86_64'
-	export MINGW='mingw32' # or 'mingw64'
-	pacman -S mingw-w64-$ARCH-boost mingw-w64-$ARCH-openssl mingw-w64-$ARCH-gcc git make
-	mkdir -p /c/dev/i2pd
-	cd /c/dev/i2pd
-	git clone https://github.com/PurpleI2P/i2pd.git
-	cd i2pd
-	# we need compiler on PATH which is usually heavily cluttered on Windows
-	export PATH=/$MINGW/bin:/usr/bin
-	make
+        export ARCH='i686'     # or 'x86_64'
+        export MINGW='mingw32' # or 'mingw64'
+        pacman -S mingw-w64-$ARCH-boost mingw-w64-$ARCH-openssl mingw-w64-$ARCH-gcc git make
+        mkdir -p /c/dev/i2pd
+        cd /c/dev/i2pd
+        git clone https://github.com/PurpleI2P/i2pd.git
+        cd i2pd
+        # we need compiler on PATH which is usually heavily cluttered on Windows
+        export PATH=/$MINGW/bin:/usr/bin
+        make
 
 ### Caveats
 
