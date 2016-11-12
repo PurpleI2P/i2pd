@@ -225,7 +225,7 @@ namespace http {
 		else
 			s << numKBytesSent / 1024 / 1024 << " GiB";
 		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
-		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n<br>\r\n";
+		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
 		s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
 		s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
 		s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
@@ -253,7 +253,7 @@ namespace http {
 			s << address->host.to_string() << ":" << address->port << "<br>\r\n";
 		}
 		s << "</p>\r\n</div>\r\n";
-		s << "<br>\r\n<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
+		s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
 
@@ -287,6 +287,13 @@ namespace http {
 			s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
 			s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
 			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>\r\n";
+			if(dest->GetNumRemoteLeaseSets())
+			{
+				s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
+				for(auto& it: dest->GetLeaseSets ())
+					s << it.second->GetIdentHash ().ToBase32 () << "<br>\r\n";
+				s << "</p>\r\n</div>\r\n";
+			}
 			auto pool = dest->GetTunnelPool ();
 			if (pool)
 			{

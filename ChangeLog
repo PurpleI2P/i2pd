@@ -1,6 +1,10 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.10.1] - 2016-11-07
+### Fixed
+- Fixed some performance issues for Windows and Android
+
 ## [2.10.0] - 2016-10-17
 ### Added
 - Datagram i2p tunnels
