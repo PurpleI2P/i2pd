@@ -319,17 +319,15 @@ namespace data
 					}
 				});
 			if (numOutdated > numFiles/2) // more than half
-			{	
-				LogPrint (eLogError, "Reseed: mammoth's shit");
-				/*LogPrint (eLogError, "   *_____*",
-					  std::endl, "  *_*****_*",
-					  std::endl, " *_(O)_(O)_*",
-					  std::endl, "**____V____**",
-					  std::endl, "**_________**",
-					  std::endl, "**_________**",
-					  std::endl, " *_________*",
-					  std::endl, "  ***___***");*/
-			}	
+				LogPrint (eLogError, "Reseed: mammoth's shit\n"
+				"	   *_____*\n"
+				"	  *_*****_*\n"
+				"	 *_(O)_(O)_*\n"
+				"	**____V____**\n"
+				"	**_________**\n"
+				"	**_________**\n"
+				"	 *_________*\n"
+				"	  ***___***");
 		}
 		return numFiles;
 	}
