@@ -305,6 +305,22 @@ namespace data
 			if (end - contentPos >= contentLength)
 				break; // we are beyond contentLength
 		}
+		if (numFiles) // check if  routers are not outdated
+		{
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			int numOutdated = 0;
+			i2p::data::netdb.VisitRouterInfos (
+				[&numOutdated, ts](std::shared_ptr<const RouterInfo> r)
+				{
+					if (r && ts > r->GetTimestamp () + i2p::data::NETDB_MAX_EXPIRATION_TIMEOUT*1000LL)
+					{
+						LogPrint (eLogError, "Reseed: router ", r->GetIdentHash().ToBase64 (), " is outdated by ", (ts - r->GetTimestamp ())/1000LL/3600LL, " hours");
+						numOutdated++;
+					}
+				});
+			if (numOutdated > numFiles/2) // more than half
+				LogPrint (eLogError, "Reseed: mammoth's shit");
+		}
 		return numFiles;
 	}
 
