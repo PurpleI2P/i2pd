@@ -312,13 +312,14 @@ namespace data
 			i2p::data::netdb.VisitRouterInfos (
 				[&numOutdated, ts](std::shared_ptr<const RouterInfo> r)
 				{
-					if (r && ts > r->GetTimestamp () + i2p::data::NETDB_MAX_EXPIRATION_TIMEOUT*1000LL)
+					if (r && ts > r->GetTimestamp () + 3*i2p::data::NETDB_MAX_EXPIRATION_TIMEOUT*1000LL) // 81 hours
 					{
 						LogPrint (eLogError, "Reseed: router ", r->GetIdentHash().ToBase64 (), " is outdated by ", (ts - r->GetTimestamp ())/1000LL/3600LL, " hours");
 						numOutdated++;
 					}
 				});
 			if (numOutdated > numFiles/2) // more than half
+			{
 				LogPrint (eLogError, "Reseed: mammoth's shit\n"
 				"	   *_____*\n"
 				"	  *_*****_*\n"
@@ -328,6 +329,8 @@ namespace data
 				"	**_________**\n"
 				"	 *_________*\n"
 				"	  ***___***");
+				numFiles = numFiles > numOutdated ? numFiles - numOutdated : 0;
+			}
 		}
 		return numFiles;
 	}
