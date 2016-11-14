@@ -14,6 +14,7 @@
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetDb.h"
+#include "Config.h"
 
 using namespace i2p::transport;
 
@@ -23,7 +24,7 @@ namespace data
 {		
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_HiddenMode(false)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_FloodfillBootstrap(nullptr), m_HiddenMode(false)
 	{
 	}
 	
@@ -140,6 +141,8 @@ namespace data
 						LogPrint(eLogError, "NetDb: no known routers, reseed seems to be totally failed");
 						break;
 					}
+					else // we have peers now
+						m_FloodfillBootstrap = nullptr;
 					if (numRouters < 2500 || ts - lastExploratory >= 90)
 					{	
 						numRouters = 800/numRouters;
@@ -295,11 +298,60 @@ namespace data
 			m_Reseeder = new Reseeder ();
 			m_Reseeder->LoadCertificates (); // we need certificates for SU3 verification
 		}
-		int reseedRetries = 0;	
+		int reseedRetries = 0;
+
+		// try reseeding from floodfill first if specified
+		std::string riPath;
+		if(i2p::config::GetOption("reseed.floodfill", riPath)) {
+			auto ri = std::make_shared<RouterInfo>(riPath);
+			if (ri->IsFloodfill()) {
+				const uint8_t * riData = ri->GetBuffer();
+				int riLen = ri->GetBufferLen();
+				if(!i2p::data::netdb.AddRouterInfo(riData, riLen)) {
+					// bad router info
+					LogPrint(eLogError, "NetDb: bad router info");
+					return;
+				}
+				m_FloodfillBootstrap = ri;
+				ReseedFromFloodfill(*ri);
+				// don't try reseed servers if trying to boostrap from floodfill
+				return;
+			}
+		}
+		
 		while (reseedRetries < 10 && !m_Reseeder->ReseedNowSU3 ())
 			reseedRetries++;
 		if (reseedRetries >= 10)
 			LogPrint (eLogWarning, "NetDb: failed to reseed after 10 attempts");
+	}
+
+	void NetDb::ReseedFromFloodfill(const RouterInfo & ri, int numRouters, int numFloodfills)
+	{
+		LogPrint(eLogInfo, "NetDB: reseeding from floodfill ", ri.GetIdentHashBase64());
+		std::vector<std::shared_ptr<i2p::I2NPMessage> > requests;
+
+		i2p::data::IdentHash ourIdent = i2p::context.GetIdentHash();
+		i2p::data::IdentHash ih = ri.GetIdentHash();
+		i2p::data::IdentHash randomIdent;
+		
+		// make floodfill lookups
+		while(numFloodfills > 0) {
+			randomIdent.Randomize();
+			auto msg = i2p::CreateRouterInfoDatabaseLookupMsg(randomIdent, ourIdent, 0, false);
+			requests.push_back(msg);
+			numFloodfills --;
+		}
+		
+		// make regular router lookups
+		while(numRouters > 0) {
+			randomIdent.Randomize();
+			auto msg = i2p::CreateRouterInfoDatabaseLookupMsg(randomIdent, ourIdent, 0, true);
+			requests.push_back(msg);
+			numRouters --;
+		}
+		
+		// send them off
+		i2p::transport::transports.SendMessages(ih, requests);
 	}
 
 	bool NetDb::LoadRouterInfo (const std::string & path)
@@ -498,6 +550,21 @@ namespace data
 			m_Requests.RequestComplete (destination, nullptr);
 		}	
 	}	
+
+	void NetDb::RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete)
+	{
+		
+		auto dest = m_Requests.CreateRequest (destination, exploritory, requestComplete); // non-exploratory
+		if (!dest)
+		{
+			LogPrint (eLogWarning, "NetDb: destination ", destination.ToBase64(), " is requested already");
+			return;			
+		}
+		LogPrint(eLogInfo, "NetDb: destination ", destination.ToBase64(), " being requested directly from ", from.ToBase64());
+		// direct
+		transports.SendMessage (from, dest->CreateRequestMessage (nullptr, nullptr));		
+	}	
+	
 	
 	void NetDb::HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> m)
 	{	
@@ -620,7 +687,7 @@ namespace data
 				if (!dest->IsExploratory ())
 				{
 					// reply to our destination. Try other floodfills
-					if (outbound && inbound )
+					if (outbound && inbound)
 					{
 						std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
 						auto count = dest->GetExcludedPeers ().size ();
@@ -664,7 +731,7 @@ namespace data
 				// no more requests for detination possible. delete it
 				m_Requests.RequestComplete (ident, nullptr);
 		}
-		else	
+		else if(!m_FloodfillBootstrap)
 			LogPrint (eLogWarning, "NetDb: requested destination for ", key, " not found");
 
 		// try responses
@@ -681,7 +748,10 @@ namespace data
 			{	
 				// router with ident not found or too old (1 hour)
 				LogPrint (eLogDebug, "NetDb: found new/outdated router. Requesting RouterInfo ...");
-				RequestDestination (router);
+				if(m_FloodfillBootstrap)
+					RequestDestinationFrom(router, m_FloodfillBootstrap->GetIdentHash(), true);
+				else
+					RequestDestination (router);
 			}
 			else
 				LogPrint (eLogDebug, "NetDb: [:|||:]");

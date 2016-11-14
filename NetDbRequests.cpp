@@ -11,10 +11,15 @@ namespace data
 	std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage (std::shared_ptr<const RouterInfo> router,
 		std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel)
 	{
-		auto msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
+		std::shared_ptr<I2NPMessage> msg;
+		if(replyTunnel)
+			msg = i2p::CreateRouterInfoDatabaseLookupMsg (m_Destination, 
 			replyTunnel->GetNextIdentHash (), replyTunnel->GetNextTunnelID (), m_IsExploratory, 
 		    &m_ExcludedPeers);
-		m_ExcludedPeers.insert (router->GetIdentHash ());
+		else
+			msg = i2p::CreateRouterInfoDatabaseLookupMsg(m_Destination, i2p::context.GetIdentHash(), 0, m_IsExploratory, &m_ExcludedPeers);
+		if(router)
+			m_ExcludedPeers.insert (router->GetIdentHash ());
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 		return msg;
 	}	

@@ -157,7 +157,8 @@ namespace config {
 	
 	options_description reseed("Reseed options");	
 	reseed.add_options()
-	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")	
+	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")
+		("reseed.floodfill", value<std::string>()->default_value(""), "Path to router info of floodfill to reseed from")
 	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
 	  ("reseed.urls", value<std::string>()->default_value(
 		"https://reseed.i2p-projekt.de/,"
