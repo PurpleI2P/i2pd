@@ -320,6 +320,14 @@ namespace data
 				});
 			if (numOutdated > numFiles/2) // more than half
 				LogPrint (eLogError, "Reseed: mammoth's shit");
+				LogPrint (eLogError, "   *_____*",
+					  std::endl, "  *_*****_*",
+					  std::endl, " *_(O)_(O)_*",
+					  std::endl, "**____V____**",
+					  std::endl, "**_________**",
+					  std::endl, "**_________**",
+					  std::endl, " *_________*",
+					  std::endl, "  ***___***");
 		}
 		return numFiles;
 	}
