@@ -11,6 +11,7 @@
 
 #include <boost/static_assert.hpp>
 #include <string.h>
+#include <openssl/rand.h>
 #include "Base.h"
 
 namespace i2p {
@@ -49,7 +50,12 @@ public:
 	{
 		memset(m_Buf, c, sz);
 	}
-			
+
+	void Randomize()
+	{
+		RAND_bytes(m_Buf, sz);
+	}
+	
 	std::string ToBase64 () const
 	{
 		char str[sz*2];
