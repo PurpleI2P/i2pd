@@ -166,7 +166,6 @@ namespace config {
 		"https://netdb.i2p2.no/,"
 		"https://us.reseed.i2p2.no:444/,"
 		"https://uk.reseed.i2p2.no:444/,"
-		"https://i2p.manas.ca:8443/,"
 		"https://i2p-0.manas.ca:8443/,"
 		"https://reseed.i2p.vzaws.com:8443/,"
 		"https://download.xxlspeed.com/,"

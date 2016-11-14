@@ -66,6 +66,7 @@ namespace transport
 	};	
 	
 	const size_t SESSION_CREATION_TIMEOUT = 10; // in seconds
+	const int PEER_TEST_INTERVAL = 71; // in minutes
 	const int MAX_NUM_DELAYED_MESSAGES = 50; 
 	class Transports
 	{
@@ -127,7 +128,8 @@ namespace transport
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
 			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);			
-
+			void HandlePeerTestTimer (const boost::system::error_code& ecode);
+			
 			void NTCPResolve (const std::string& addr, const i2p::data::IdentHash& ident);
 			void HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
  				i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
@@ -144,7 +146,7 @@ namespace transport
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
-			boost::asio::deadline_timer m_PeerCleanupTimer;
+			boost::asio::deadline_timer m_PeerCleanupTimer, m_PeerTestTimer;
 
 			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;

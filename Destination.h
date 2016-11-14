@@ -143,6 +143,7 @@ namespace client
 			
 			// for HTTP only
 			int GetNumRemoteLeaseSets () const { return m_RemoteLeaseSets.size (); };
+			const decltype(m_RemoteLeaseSets)& GetLeaseSets () const { return m_RemoteLeaseSets; };
 	};	
 
 	class ClientDestination: public LeaseSetDestination

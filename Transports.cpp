@@ -108,7 +108,8 @@ namespace transport
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_IsOnline (true), m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), m_PeerCleanupTimer (m_Service),
+		m_IsOnline (true), m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
+		m_PeerCleanupTimer (m_Service), m_PeerTestTimer (m_Service),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_DHKeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_InBandwidth (0), m_OutBandwidth (0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0), m_LastBandwidthUpdateTime (0)	
@@ -168,11 +169,14 @@ namespace transport
 		}	
 		m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
+		m_PeerTestTimer.expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+		m_PeerTestTimer.async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
 	}
 		
 	void Transports::Stop ()
 	{	
 		m_PeerCleanupTimer.cancel ();	
+		m_PeerTestTimer.cancel ();
 		m_Peers.clear ();
 		if (m_SSUServer)
 		{
@@ -546,8 +550,7 @@ namespace transport
 	{
 		if (RoutesRestricted()) return;
 		if (m_SSUServer)
-		{
-			
+		{			
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
@@ -688,6 +691,16 @@ namespace transport
 		}	
 	}
 
+	void Transports::HandlePeerTestTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+		{
+			PeerTest ();
+			m_PeerTestTimer.expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+			m_PeerTestTimer.async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
+		}	
+	}		
+		
 	std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer () const
 	{
 		if (m_Peers.empty ()) return nullptr;

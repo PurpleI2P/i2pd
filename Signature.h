@@ -77,10 +77,11 @@ namespace crypto
 	{
 		public:
 
-			DSASigner (const uint8_t * signingPrivateKey)
+			DSASigner (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
+			// openssl 1.1 always requires DSA public key even for signing
 			{
 				m_PrivateKey = CreateDSA ();
-				DSA_set0_key (m_PrivateKey, NULL, BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL));
+				DSA_set0_key (m_PrivateKey, BN_bin2bn (signingPublicKey, DSA_PUBLIC_KEY_LENGTH, NULL), BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL));
 			}
 
 			~DSASigner ()

@@ -100,8 +100,8 @@ namespace data
 			/** visit N random router that match using filter, then visit them with a visitor, return number of RouterInfos that were visited */
 			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
 
-		
-		
+			void ClearRouterInfos () { m_RouterInfos.clear (); };
+
 		private:
 
 			void Load ();
