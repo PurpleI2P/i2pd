@@ -60,6 +60,7 @@ namespace data
 			std::shared_ptr<RouterProfile> FindRouterProfile (const IdentHash& ident) const;
 
 			void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);			
+		void RequestDestinationFrom (const IdentHash& destination, const IdentHash & from, bool exploritory, RequestedDestination::RequestComplete requestComplete = nullptr);			
 			
 			void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
 			void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
@@ -98,6 +99,9 @@ namespace data
 			void VisitRouterInfos(RouterInfoVisitor v);
 			/** visit N random router that match using filter, then visit them with a visitor, return number of RouterInfos that were visited */
 			size_t VisitRandomRouterInfos(RouterInfoFilter f, RouterInfoVisitor v, size_t n);
+
+		
+		
 		private:
 
 			void Load ();
@@ -110,6 +114,8 @@ namespace data
 			void ManageRequests ();
 			void ManageLookupResponses ();
 
+		void ReseedFromFloodfill(const RouterInfo & ri, int numRouters=40, int numFloodfills=20);
+		
     	template<typename Filter>
         std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;	
 		
@@ -135,6 +141,9 @@ namespace data
 			friend class NetDbRequests; 
 			NetDbRequests m_Requests;
 
+		/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
+		std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
+		
 			std::map<IdentHash, std::pair<std::vector<IdentHash>, uint64_t> > m_LookupResponses; // ident->(closest FFs, timestamp)
 
       /** true if in hidden mode */
