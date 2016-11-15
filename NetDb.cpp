@@ -188,23 +188,34 @@ namespace data
 				// TODO: check if floodfill has been changed
 			}
 			else
+			{
 				LogPrint (eLogDebug, "NetDb: RouterInfo is older: ", ident.ToBase64());
-			
+				updated = false;
+			}
 		}	
 		else	
 		{	
 			r = std::make_shared<RouterInfo> (buf, len);
 			if (!r->IsUnreachable ())
 			{
-				LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
+				bool inserted = false;
 				{
 					std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-					m_RouterInfos[r->GetIdentHash ()] = r;
+					inserted = m_RouterInfos.insert ({r->GetIdentHash (), r}).second;
 				}
-				if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
+				if (inserted)
 				{
-					std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-					m_Floodfills.push_back (r);
+					LogPrint (eLogInfo, "NetDb: RouterInfo added: ", ident.ToBase64());
+					if (r->IsFloodfill () && r->IsReachable ()) // floodfill must be reachable
+					{
+						std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+						m_Floodfills.push_back (r);
+					}
+				}
+				else
+				{
+					LogPrint (eLogWarning, "NetDb: Duplicated RouterInfo ", ident.ToBase64());
+					updated = false;
 				}
 			}	
 			else
