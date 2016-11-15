@@ -147,26 +147,14 @@ namespace tunnel
 
 	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded) const
 	{
-		std::shared_ptr<OutboundTunnel> tun = nullptr;
-		if (HasLatencyRequriement())
-			tun = GetLowestLatencyOutboundTunnel(excluded);
-		if (! tun) {
-			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-			tun =  GetNextTunnel (m_OutboundTunnels, excluded);
-		}
-		return tun;
+		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+		return GetNextTunnel (m_OutboundTunnels, excluded);
 	}	
 
 	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded) const
 	{
-		std::shared_ptr<InboundTunnel> tun = nullptr;
-		if (HasLatencyRequriement())
-			tun = GetLowestLatencyInboundTunnel(excluded);
-		if (! tun) {
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-			tun = GetNextTunnel (m_InboundTunnels, excluded);
-		}
-		return tun;
+		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+		return GetNextTunnel (m_InboundTunnels, excluded);
 	}
 
 	template<class TTunnels>
@@ -179,6 +167,10 @@ namespace tunnel
 		{	
 			if (it->IsEstablished () && it != excluded)
 			{
+				if(HasLatencyRequirement() && !it->LatencyFitsRange(m_MinLatency, m_MaxLatency)) {
+					i ++;
+					continue;
+				}
 				tunnel = it;
 				i++;
 			}
