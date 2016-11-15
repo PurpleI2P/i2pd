@@ -260,7 +260,8 @@ namespace transport
 		{	
 			// we send it to ourself
 			for (auto& it: msgs)
-				i2p::HandleI2NPMessage (it);
+				m_LoopbackHandler.PutNextMessage (it);
+			m_LoopbackHandler.Flush ();
 			return;
 		}
 		if(RoutesRestricted() && ! IsRestrictedPeer(ident)) return;
