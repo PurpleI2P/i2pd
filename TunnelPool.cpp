@@ -147,18 +147,26 @@ namespace tunnel
 
 	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded) const
 	{
+		std::shared_ptr<OutboundTunnel> tun = nullptr;
 		if (HasLatencyRequriement())
-			return GetLowestLatencyOutboundTunnel(excluded);
-		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-		return GetNextTunnel (m_OutboundTunnels, excluded);
+			tun = GetLowestLatencyOutboundTunnel(excluded);
+		if (! tun) {
+			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
+			tun =  GetNextTunnel (m_OutboundTunnels, excluded);
+		}
+		return tun;
 	}	
 
 	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded) const
 	{
+		std::shared_ptr<InboundTunnel> tun = nullptr;
 		if (HasLatencyRequriement())
-			return GetLowestLatencyInboundTunnel(excluded);
-		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
-		return GetNextTunnel (m_InboundTunnels, excluded);
+			tun = GetLowestLatencyInboundTunnel(excluded);
+		if (! tun) {
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			tun = GetNextTunnel (m_InboundTunnels, excluded);
+		}
+		return tun;
 	}
 
 	template<class TTunnels>
