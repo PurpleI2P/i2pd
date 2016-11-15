@@ -81,6 +81,8 @@ namespace tunnel
 		}
 		if (m_LocalDestination)
 			m_LocalDestination->SetLeaseSetUpdated ();
+		
+		OnTunnelBuildResult(createdTunnel, eBuildResultOkay);
 	}
 
 	void TunnelPool::TunnelExpired (std::shared_ptr<InboundTunnel> expiredTunnel)
@@ -109,6 +111,8 @@ namespace tunnel
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 			m_OutboundTunnels.insert (createdTunnel);
 		}
+		OnTunnelBuildResult(createdTunnel, eBuildResultOkay);
+
 		//CreatePairedInboundTunnel (createdTunnel);
 	}
 
@@ -575,6 +579,12 @@ namespace tunnel
 			min = l;
 		}
 		return tun;
+	}
+
+	void TunnelPool::OnTunnelBuildResult(std::shared_ptr<Tunnel> tunnel, TunnelBuildResult result)
+	{
+		auto peers = tunnel->GetPeers();
+		if(m_CustomPeerSelector) m_CustomPeerSelector->OnBuildResult(peers, tunnel->IsInbound(), result);
 	}
 }
 }

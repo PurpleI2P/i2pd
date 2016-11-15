@@ -612,6 +612,7 @@ namespace tunnel
 		for (auto it = pendingTunnels.begin (); it != pendingTunnels.end ();)
 		{
 			auto tunnel = it->second;
+			auto pool = tunnel->GetTunnelPool();
 			switch (tunnel->GetState ())
 			{
 				case eTunnelStatePending: 
@@ -637,6 +638,8 @@ namespace tunnel
 #ifdef WITH_EVENTS
 						EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
 #endif
+						// for i2lua
+						if(pool) pool->OnTunnelBuildResult(tunnel, eBuildResultTimeout);
 						// delete
 						it = pendingTunnels.erase (it);
 						m_NumFailedTunnelCreations++;
@@ -649,6 +652,9 @@ namespace tunnel
 #ifdef WITH_EVENTS
 					EmitTunnelEvent("tunnel.state", tunnel.get(), eTunnelStateBuildFailed);
 #endif
+					// for i2lua
+					if(pool) pool->OnTunnelBuildResult(tunnel, eBuildResultRejected);
+					
 					it = pendingTunnels.erase (it);
 					m_NumFailedTunnelCreations++;
 				break;
