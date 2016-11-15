@@ -167,7 +167,7 @@ namespace tunnel
 		{	
 			if (it->IsEstablished () && it != excluded)
 			{
-				if(HasLatencyRequirement() && !it->LatencyFitsRange(m_MinLatency, m_MaxLatency)) {
+				if(HasLatencyRequirement() && it->LatencyIsKnown() && !it->LatencyFitsRange(m_MinLatency, m_MaxLatency)) {
 					i ++;
 					continue;
 				}
