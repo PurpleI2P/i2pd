@@ -74,7 +74,7 @@ namespace tunnel
 		void RequireLatency(uint64_t min, uint64_t max) { m_MinLatency = min; m_MaxLatency = max; }
 
 		/** @brief return true if this tunnel pool has a latency requirement */
-		bool HasLatencyRequriement() const { return m_MinLatency > 0 && m_MaxLatency > 0; }
+		bool HasLatencyRequirement() const { return m_MinLatency > 0 && m_MaxLatency > 0; }
 
 		/** @brief get the lowest latency tunnel in this tunnel pool regardless of latency requirements */
 		std::shared_ptr<InboundTunnel> GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude=nullptr) const;
