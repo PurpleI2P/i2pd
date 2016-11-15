@@ -91,7 +91,7 @@ namespace tunnel
 		Latency GetMeanLatency() const;
 
 		std::vector<Sample> m_samples;
-		std::mutex m_access;
+		mutable std::mutex m_access;
 	};
 	
 	class OutboundTunnel;
