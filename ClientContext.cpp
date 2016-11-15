@@ -52,7 +52,7 @@ namespace client
 			if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				if(LoadPrivateKeys (keys, httpProxyKeys))
+				if(LoadPrivateKeys (keys, httpProxyKeys, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1))
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
@@ -82,7 +82,7 @@ namespace client
 			if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				if (LoadPrivateKeys (keys, socksProxyKeys))
+				if (LoadPrivateKeys (keys, socksProxyKeys, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1))
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
