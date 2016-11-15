@@ -160,13 +160,15 @@ namespace transport
 			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;	
 			uint64_t m_LastBandwidthUpdateTime;		
 
-    /** which router families to trust for first hops */
-    std::vector<std::string> m_TrustedFamilies;
-    mutable std::mutex m_FamilyMutex;
+			/** which router families to trust for first hops */
+			std::vector<std::string> m_TrustedFamilies;
+			mutable std::mutex m_FamilyMutex;
 
-    /** which routers for first hop to trust */
-    std::vector<i2p::data::IdentHash> m_TrustedRouters;
-    mutable std::mutex m_TrustedRoutersMutex;
+			/** which routers for first hop to trust */
+			std::vector<i2p::data::IdentHash> m_TrustedRouters;
+			mutable std::mutex m_TrustedRoutersMutex;
+
+			i2p::I2NPMessagesHandler m_LoopbackHandler; 
     
 		public:
 
