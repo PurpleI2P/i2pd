@@ -147,12 +147,16 @@ namespace tunnel
 
 	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded) const
 	{
-		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
+		if (HasLatencyRequriement())
+			return GetLowestLatencyOutboundTunnel(excluded);
+		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		return GetNextTunnel (m_OutboundTunnels, excluded);
 	}	
 
 	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded) const
 	{
+		if (HasLatencyRequriement())
+			return GetLowestLatencyInboundTunnel(excluded);
 		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
 		return GetNextTunnel (m_InboundTunnels, excluded);
 	}
@@ -322,7 +326,12 @@ namespace tunnel
 				test.first->SetState (eTunnelStateEstablished);
 			if (test.second->GetState () == eTunnelStateTestFailed)
 				test.second->SetState (eTunnelStateEstablished);
-			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
+			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
+			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", dlt, " milliseconds");
+			// update latency
+			uint64_t latency = dlt / 2;
+			test.first->AddLatencySample(latency);
+			test.second->AddLatencySample(latency);
 		}
 		else
 		{
@@ -522,6 +531,38 @@ namespace tunnel
 	{
 		std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
 		return m_CustomPeerSelector != nullptr;
+	}
+
+	std::shared_ptr<InboundTunnel> TunnelPool::GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude) const
+	{
+		std::shared_ptr<InboundTunnel> tun = nullptr;
+		std::unique_lock<std::mutex> lock(m_InboundTunnelsMutex);
+		uint64_t min = 1000000;
+		for (const auto & itr : m_InboundTunnels) {
+			if(!itr->LatencyIsKnown()) continue;
+			auto l = itr->GetMeanLatency();
+			if (l >= min) continue;
+			tun = itr;
+			if(tun == exclude) continue;
+			min = l;
+		}
+		return tun;
+	}
+	
+	std::shared_ptr<OutboundTunnel> TunnelPool::GetLowestLatencyOutboundTunnel(std::shared_ptr<OutboundTunnel> exclude) const
+	{
+		std::shared_ptr<OutboundTunnel> tun = nullptr;
+		std::unique_lock<std::mutex> lock(m_OutboundTunnelsMutex);
+		uint64_t min = 1000000;
+		for (const auto & itr : m_OutboundTunnels) {
+			if(!itr->LatencyIsKnown()) continue;
+			auto l = itr->GetMeanLatency();
+			if (l >= min) continue;
+			tun = itr;
+			if(tun == exclude) continue;
+			min = l;
+		}
+		return tun;
 	}
 }
 }

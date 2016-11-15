@@ -69,6 +69,17 @@ namespace tunnel
 			void SetCustomPeerSelector(TunnelPeerSelector selector);
 			void UnsetCustomPeerSelector();
 			bool HasCustomPeerSelector();
+
+		/** @brief make this tunnel pool yield tunnels that fit latency range [min, max] */
+		void RequireLatency(uint64_t min, uint64_t max) { m_MinLatency = min; m_MaxLatency = max; }
+
+		/** @brief return true if this tunnel pool has a latency requirement */
+		bool HasLatencyRequriement() const { return m_MinLatency > 0 && m_MaxLatency > 0; }
+
+		/** @brief get the lowest latency tunnel in this tunnel pool regardless of latency requirements */
+		std::shared_ptr<InboundTunnel> GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude=nullptr) const;
+		std::shared_ptr<OutboundTunnel> GetLowestLatencyOutboundTunnel(std::shared_ptr<OutboundTunnel> exclude=nullptr) const;
+		
 		private:
 			
 			void CreateInboundTunnel ();	
@@ -94,6 +105,10 @@ namespace tunnel
 			bool m_IsActive;
 			std::mutex m_CustomPeerSelectorMutex;
 			TunnelPeerSelector m_CustomPeerSelector;
+
+		uint64_t m_MinLatency=0; // if > 0 this tunnel pool will try building tunnels with minimum latency by ms
+		uint64_t m_MaxLatency=0; // if > 0 this tunnel pool will try building tunnels with maximum latency by ms
+		
 		public:
 
 			// for HTTP only

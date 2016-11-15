@@ -21,6 +21,23 @@ namespace i2p
 namespace tunnel
 {
 
+	void TunnelLatency::AddSample(Sample s)
+	{
+		m_samples ++;
+		m_latency += s / m_samples;
+	}
+
+	bool TunnelLatency::HasSamples() const
+	{
+		return m_samples > 0;
+	}
+
+	TunnelLatency::Latency TunnelLatency::GetMeanLatency() const
+	{
+		return m_latency;
+	}
+	
+	
 	Tunnel::Tunnel (std::shared_ptr<const TunnelConfig> config): 
 		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
 		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending), m_IsRecreated (false)
@@ -162,6 +179,12 @@ namespace tunnel
 		return established;
 	}
 
+	bool Tunnel::LatencyFitsRange(uint64_t lower, uint64_t upper) const
+	{
+		auto latency = GetMeanLatency();
+		return latency >= lower && latency <= upper;
+	}
+	
 	void Tunnel::EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out)
 	{
 		const uint8_t * inPayload = in->GetPayload () + 4;
