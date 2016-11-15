@@ -35,7 +35,7 @@ namespace tunnel
 
 	TunnelLatency::Latency TunnelLatency::GetMeanLatency() const
 	{
-		std::unique_lock<std::mutex> l(m_access);
+		std::unique_lock<std::mutex> lock(m_access);
 		Latency l = 0;
 		for(auto s : m_samples)
 			l += s;
