@@ -23,18 +23,23 @@ namespace tunnel
 
 	void TunnelLatency::AddSample(Sample s)
 	{
-		m_samples ++;
-		m_latency += s / m_samples;
+		std::unique_lock<std::mutex> l(m_access);
+		m_samples.push_back(s);
 	}
 
 	bool TunnelLatency::HasSamples() const
 	{
-		return m_samples > 0;
+		std::unique_lock<std::mutex> l(m_access);
+		return m_samples.size() > 0;
 	}
 
 	TunnelLatency::Latency TunnelLatency::GetMeanLatency() const
 	{
-		return m_latency;
+		std::unique_lock<std::mutex> l(m_access);
+		Latency l = 0;
+		for(auto s : m_samples)
+			l += s;
+		return l / m_samples.size();
 	}
 	
 	

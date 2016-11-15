@@ -90,9 +90,8 @@ namespace tunnel
 		bool HasSamples() const;
 		Latency GetMeanLatency() const;
 
-		Latency m_latency = 0;
-		std::size_t m_samples = 0;
-		
+		std::vector<Sample> m_samples;
+		std::mutex m_access;
 	};
 	
 	class OutboundTunnel;
