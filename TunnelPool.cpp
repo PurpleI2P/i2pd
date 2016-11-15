@@ -176,6 +176,18 @@ namespace tunnel
 			}
 			if (i > ind && tunnel) break;
 		}
+		if(HasLatencyRequirement() && !tunnel) {
+			ind = rand () % (tunnels.size ()/2 + 1), i = 0;
+			for (const auto& it: tunnels)
+			{	
+				if (it->IsEstablished () && it != excluded)
+				{
+						tunnel = it;
+						i++;
+				}
+				if (i > ind && tunnel) break;
+			}
+		}
 		if (!tunnel && excluded && excluded->IsEstablished ()) tunnel = excluded;
 		return tunnel;
 	}
