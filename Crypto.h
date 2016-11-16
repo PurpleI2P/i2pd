@@ -7,8 +7,10 @@
 #include <openssl/dh.h>
 #include <openssl/aes.h>
 #include <openssl/dsa.h>
+#include <openssl/ecdsa.h>
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 #include <openssl/rand.h>
 
 #include "Base.h"
@@ -34,15 +36,14 @@ namespace crypto
 			DHKeys ();
 			~DHKeys ();
 
-			void GenerateKeys (uint8_t * priv = nullptr, uint8_t * pub = nullptr);
-			const uint8_t * GetPublicKey ();
+			void GenerateKeys ();
+			const uint8_t * GetPublicKey () const { return m_PublicKey; };
 			void Agree (const uint8_t * pub, uint8_t * shared);
 			
 		private:
 
 			DH * m_DH;
 			uint8_t m_PublicKey[256];
-			bool m_IsUpdated;
 	};	
 	
 	// ElGamal
@@ -280,6 +281,8 @@ namespace crypto
 
 	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();
+}		
+}	
 
 // take care about openssl version
 #include <openssl/opensslv.h>
@@ -294,6 +297,11 @@ inline void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **pr
 inline int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s) 
 	{ sig->r = r; sig->s = s; return 1; }
 inline void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
+	{ *pr = sig->r; *ps = sig->s; }
+
+inline int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s)
+	{ sig->r = r; sig->s = s; return 1; }
+inline void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps)
 	{ *pr = sig->r; *ps = sig->s; }
 
 inline int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d) 
@@ -312,9 +320,10 @@ inline int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
 inline void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key)
 	{ *pub_key = dh->pub_key; *priv_key = dh->priv_key; }
 
+inline int EVP_PKEY_base_id(const EVP_PKEY *pkey)
+	{ return EVP_PKEY_type(pkey->type); }
+inline RSA *EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
+	{ return pkey->pkey.rsa; }
 #endif
-
-}		
-}	
 
 #endif

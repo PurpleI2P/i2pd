@@ -63,6 +63,22 @@ namespace client
 		m_Pool = i2p::tunnel::tunnels.CreateTunnelPool (inLen, outLen, inQty, outQty);
 		if (explicitPeers)
 			m_Pool->SetExplicitPeers (explicitPeers);
+		if(params)
+		{
+			auto itr = params->find(I2CP_PARAM_MAX_TUNNEL_LATENCY);
+			if (itr != params->end()) {
+				auto maxlatency = std::stoi(itr->second);
+				itr = params->find(I2CP_PARAM_MIN_TUNNEL_LATENCY);
+				if (itr != params->end()) {
+					auto minlatency = std::stoi(itr->second);
+					if ( minlatency > 0 && maxlatency > 0 ) {
+						// set tunnel pool latency
+						LogPrint(eLogInfo, "Destination: requiring tunnel latency [", minlatency, "ms, ", maxlatency, "ms]");
+						m_Pool->RequireLatency(minlatency, maxlatency);
+					}
+				}
+			}
+		}
 	}
 
 	LeaseSetDestination::~LeaseSetDestination ()

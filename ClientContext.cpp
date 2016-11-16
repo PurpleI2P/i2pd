@@ -52,7 +52,7 @@ namespace client
 			if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				if(LoadPrivateKeys (keys, httpProxyKeys))
+				if(LoadPrivateKeys (keys, httpProxyKeys, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1))
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
@@ -82,7 +82,7 @@ namespace client
 			if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				if (LoadPrivateKeys (keys, socksProxyKeys))
+				if (LoadPrivateKeys (keys, socksProxyKeys, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1))
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
@@ -372,6 +372,8 @@ namespace client
 		options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, DEFAULT_INBOUND_TUNNELS_QUANTITY);
 		options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = GetI2CPOption (section, I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, DEFAULT_OUTBOUND_TUNNELS_QUANTITY);
 		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
+		options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);
+		options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);
 	}	
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
@@ -384,7 +386,11 @@ namespace client
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, value)) 
 			options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, value)) 
-			options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = value;	
+			options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_MIN_TUNNEL_LATENCY, value))
+			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
+			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
 	}	
 
 	void ClientContext::ReadTunnels ()

@@ -488,7 +488,7 @@ namespace data
 		switch (m_Public->GetSigningKeyType ())
 		{	
 			case SIGNING_KEY_TYPE_DSA_SHA1:
-				m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey));
+				m_Signer.reset (new i2p::crypto::DSASigner (m_SigningPrivateKey, m_Public->GetStandardIdentity ().signingKey));
 			break;	
 			case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
 				m_Signer.reset (new i2p::crypto::ECDSAP256Signer (m_SigningPrivateKey));

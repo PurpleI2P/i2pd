@@ -86,7 +86,9 @@ namespace config {
 	  ("httpproxy.inbound.length",      value<std::string>()->default_value("3"),  "HTTP proxy inbound tunnel length")	
 	  ("httpproxy.outbound.length",     value<std::string>()->default_value("3"),  "HTTP proxy outbound tunnel length")
 	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")	
-	  ("httpproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "HTTP proxy outbound tunnels quantity")	
+	  ("httpproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "HTTP proxy outbound tunnels quantity")
+	  ("httpproxy.latency.min",    value<std::string>()->default_value("0"),  "HTTP proxy min latency for tunnels")	
+	  ("httpproxy.latency.max",   value<std::string>()->default_value("0"),  "HTTP proxy max latency for tunnels")	
       ;
 
     options_description socksproxy("SOCKS Proxy options");
@@ -98,7 +100,9 @@ namespace config {
       ("socksproxy.inbound.length",      value<std::string>()->default_value("3"),  "SOCKS proxy inbound tunnel length")	
 	  ("socksproxy.outbound.length",     value<std::string>()->default_value("3"),  "SOCKS proxy outbound tunnel length")
 	  ("socksproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")	
-	  ("socksproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "SOCKS proxy outbound tunnels quantity")	
+	  ("socksproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "SOCKS proxy outbound tunnels quantity")
+	  ("socksproxy.latency.min",    value<std::string>()->default_value("0"),  "SOCKS proxy min latency for tunnels")	
+	  ("socksproxy.latency.max",   value<std::string>()->default_value("0"),  "SOCKS proxy max latency for tunnels")	
 	  ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
       ("socksproxy.outproxyport", value<uint16_t>()->default_value(9050), "Upstream outproxy port for SOCKS Proxy")
       ;
@@ -157,7 +161,8 @@ namespace config {
 	
 	options_description reseed("Reseed options");	
 	reseed.add_options()
-	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")	
+	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")
+		("reseed.floodfill", value<std::string>()->default_value(""), "Path to router info of floodfill to reseed from")
 	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
 	  ("reseed.urls", value<std::string>()->default_value(
 		"https://reseed.i2p-projekt.de/,"
@@ -165,7 +170,6 @@ namespace config {
 		"https://netdb.i2p2.no/,"
 		"https://us.reseed.i2p2.no:444/,"
 		"https://uk.reseed.i2p2.no:444/,"
-		"https://i2p.manas.ca:8443/,"
 		"https://i2p-0.manas.ca:8443/,"
 		"https://reseed.i2p.vzaws.com:8443/,"
 		"https://download.xxlspeed.com/,"

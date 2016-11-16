@@ -23,12 +23,12 @@ To display all available options:
 i2pd can be controlled with signals. Process ID by default is written to file `~/.i2pd/i2pd.pid` or `/var/run/i2pd/i2pd.pid`.
 You can use `kill` utility to send signals like this:
 
-    kill -TERM $( cat /var/run/i2pd/i2pd.pid )
+    kill -INT $( cat /var/run/i2pd/i2pd.pid )
 
 i2pd supports the following signals:
 
-    TERM - Graceful shutdown. i2pd will wait for 10 minutes and stop. Send second TERM signal to shutdown i2pd immediately.
-    HUP - Reload configuration files.
+* INT - Graceful shutdown. i2pd will wait for 10 minutes and stop. Send second INT signal to shutdown i2pd immediately.
+* HUP - Reload configuration files.
 
 
 ### systemd unit
@@ -48,7 +48,7 @@ Enable/disable i2pd to be started on bootup:
 
 ## Configuring i2pd
 
-See [configuration page](i2pd.readthedocs.io/page/configuration.html).
+See [configuration documentation](/page/configuration.html).
 
 
 ## Browsing and hosting websites

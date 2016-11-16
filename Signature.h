@@ -77,10 +77,11 @@ namespace crypto
 	{
 		public:
 
-			DSASigner (const uint8_t * signingPrivateKey)
+			DSASigner (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
+			// openssl 1.1 always requires DSA public key even for signing
 			{
 				m_PrivateKey = CreateDSA ();
-				DSA_set0_key (m_PrivateKey, NULL, BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL));
+				DSA_set0_key (m_PrivateKey, BN_bin2bn (signingPublicKey, DSA_PUBLIC_KEY_LENGTH, NULL), BN_bin2bn (signingPrivateKey, DSA_PRIVATE_KEY_LENGTH, NULL));
 			}
 
 			~DSASigner ()
@@ -169,8 +170,9 @@ namespace crypto
 				uint8_t digest[Hash::hashLen];
 				Hash::CalculateHash (buf, len, digest);
 				ECDSA_SIG * sig = ECDSA_SIG_new();
-				sig->r = BN_bin2bn (signature, GetSignatureLen ()/2, NULL);
-				sig->s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
+				auto r = BN_bin2bn (signature, GetSignatureLen ()/2, NULL);
+				auto s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
+				ECDSA_SIG_set0(sig, r, s);
 				// ECDSA verification
 				int ret = ECDSA_do_verify (digest, Hash::hashLen, sig, m_PublicKey);
 				ECDSA_SIG_free(sig);
@@ -207,9 +209,11 @@ namespace crypto
 				uint8_t digest[Hash::hashLen];
 				Hash::CalculateHash (buf, len, digest);
 				ECDSA_SIG * sig = ECDSA_do_sign (digest, Hash::hashLen, m_PrivateKey);
+				const BIGNUM * r, * s;
+				ECDSA_SIG_get0 (sig, &r, &s);
 				// signatureLen = keyLen
-				bn2buf (sig->r, signature, keyLen/2);
-				bn2buf (sig->s, signature + keyLen/2, keyLen/2);
+				bn2buf (r, signature, keyLen/2);
+				bn2buf (s, signature + keyLen/2, keyLen/2);
 				ECDSA_SIG_free(sig);
 			}
 
@@ -271,7 +275,6 @@ namespace crypto
 			RSAVerifier (const uint8_t * signingKey)
 			{
 				m_PublicKey = RSA_new ();
-				memset (m_PublicKey, 0, sizeof (RSA));
 				RSA_set0_key (m_PublicKey, BN_bin2bn (signingKey, keyLen, NULL) /* n */ , BN_dup (GetRSAE ()) /* d */, NULL);
 			}
 
@@ -304,7 +307,6 @@ namespace crypto
 			RSASigner (const uint8_t * signingPrivateKey)
 			{
 				m_PrivateKey = RSA_new ();
-				memset (m_PrivateKey, 0, sizeof (RSA));
 				RSA_set0_key (m_PrivateKey, BN_bin2bn (signingPrivateKey, keyLen, NULL), /* n */
 					BN_dup (GetRSAE ()) /* e */, BN_bin2bn (signingPrivateKey + keyLen, keyLen, NULL) /* d */);
 			}

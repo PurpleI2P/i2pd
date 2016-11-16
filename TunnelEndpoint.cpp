@@ -6,6 +6,7 @@
 #include "I2NPProtocol.h"
 #include "Transports.h"
 #include "RouterContext.h"
+#include "Timestamp.h"
 #include "TunnelEndpoint.h"
 
 namespace i2p
@@ -192,7 +193,7 @@ namespace tunnel
 
 	void TunnelEndpoint::AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, std::shared_ptr<I2NPMessage> data)
 	{
-		if (!m_OutOfSequenceFragments.insert ({{msgID, fragmentNum}, {fragmentNum, isLastFragment, data}}).second)
+		if (!m_OutOfSequenceFragments.insert ({{msgID, fragmentNum}, {isLastFragment, data, i2p::util::GetMillisecondsSinceEpoch () }}).second)
 			LogPrint (eLogInfo, "TunnelMessage: duplicate out-of-sequence fragment ", fragmentNum, " of message ", msgID);
 	}	
 
@@ -213,30 +214,25 @@ namespace tunnel
 	{
 		auto it = m_OutOfSequenceFragments.find ({msgID, msg.nextFragmentNum});
 		if (it != m_OutOfSequenceFragments.end ())
-		{			
-			if (it->second.fragmentNum == msg.nextFragmentNum)
+		{					
+			LogPrint (eLogDebug, "TunnelMessage: Out-of-sequence fragment ", (int)msg.nextFragmentNum, " of message ", msgID, " found");
+			size_t size = it->second.data->GetLength ();
+			if (msg.data->len + size > msg.data->maxLen)
 			{
-				LogPrint (eLogDebug, "TunnelMessage: Out-of-sequence fragment ", (int)it->second.fragmentNum, " of message ", msgID, " found");
-				size_t size = it->second.data->GetLength ();
-				if (msg.data->len + size > msg.data->maxLen)
-				{
-					LogPrint (eLogWarning, "TunnelMessage: Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
-					auto newMsg = NewI2NPMessage ();
-					*newMsg = *(msg.data);
-					msg.data = newMsg;
-				}
-				if (msg.data->Concat (it->second.data->GetBuffer (), size) < size) // concatenate out-of-sync fragment
-					LogPrint (eLogError, "TunnelMessage: Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
-				if (it->second.isLastFragment)
-					// message complete
-					msg.nextFragmentNum = 0;
-				else
-					msg.nextFragmentNum++;
-				m_OutOfSequenceFragments.erase (it);
-				return true;
+				LogPrint (eLogWarning, "TunnelMessage: Tunnel endpoint I2NP message size ", msg.data->maxLen, " is not enough");
+				auto newMsg = NewI2NPMessage ();
+				*newMsg = *(msg.data);
+				msg.data = newMsg;
 			}
+			if (msg.data->Concat (it->second.data->GetBuffer (), size) < size) // concatenate out-of-sync fragment
+				LogPrint (eLogError, "TunnelMessage: Tunnel endpoint I2NP buffer overflow ", msg.data->maxLen);
+			if (it->second.isLastFragment)
+				// message complete
+				msg.nextFragmentNum = 0;
 			else
-				LogPrint (eLogError, "Tunnel message: next fragment ", (int)it->second.fragmentNum, " of message ", msgID, " mismatch. ", (int)msg.nextFragmentNum, " expected");
+				msg.nextFragmentNum++;
+			m_OutOfSequenceFragments.erase (it);
+			return true;		
 		}	
 		return false;
 	}	
@@ -275,6 +271,19 @@ namespace tunnel
 			default:
 				LogPrint (eLogError, "TunnelMessage: Unknown delivery type ", (int)msg.deliveryType);
 		};	
+	}
+
+	void TunnelEndpoint::Cleanup ()
+	{
+		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		// out-of-sequence fragments
+		for (auto it = m_OutOfSequenceFragments.begin (); it != m_OutOfSequenceFragments.end ();)
+		{
+			if (ts > it->second.receiveTime + i2p::I2NP_MESSAGE_EXPIRATION_TIMEOUT)
+				it = m_OutOfSequenceFragments.erase (it);
+			else
+				++it;
+		}
 	}	
 }		
 }

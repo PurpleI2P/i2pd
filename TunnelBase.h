@@ -37,6 +37,7 @@ namespace tunnel
 				m_TunnelID (tunnelID), m_NextTunnelID (nextTunnelID), m_NextIdent (nextIdent),
 				m_CreationTime (i2p::util::GetSecondsSinceEpoch ()) {};
 			virtual ~TunnelBase () {};
+			virtual void Cleanup () {};
 			
 			virtual void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg) = 0;
 			virtual void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg) = 0;

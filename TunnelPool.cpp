@@ -147,13 +147,13 @@ namespace tunnel
 
 	std::shared_ptr<OutboundTunnel> TunnelPool::GetNextOutboundTunnel (std::shared_ptr<OutboundTunnel> excluded) const
 	{
-		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
+		std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
 		return GetNextTunnel (m_OutboundTunnels, excluded);
 	}	
 
 	std::shared_ptr<InboundTunnel> TunnelPool::GetNextInboundTunnel (std::shared_ptr<InboundTunnel> excluded) const
 	{
-		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);	
+		std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
 		return GetNextTunnel (m_InboundTunnels, excluded);
 	}
 
@@ -167,10 +167,26 @@ namespace tunnel
 		{	
 			if (it->IsEstablished () && it != excluded)
 			{
+				if(HasLatencyRequirement() && it->LatencyIsKnown() && !it->LatencyFitsRange(m_MinLatency, m_MaxLatency)) {
+					i ++;
+					continue;
+				}
 				tunnel = it;
 				i++;
 			}
 			if (i > ind && tunnel) break;
+		}
+		if(HasLatencyRequirement() && !tunnel) {
+			ind = rand () % (tunnels.size ()/2 + 1), i = 0;
+			for (const auto& it: tunnels)
+			{	
+				if (it->IsEstablished () && it != excluded)
+				{
+						tunnel = it;
+						i++;
+				}
+				if (i > ind && tunnel) break;
+			}
 		}
 		if (!tunnel && excluded && excluded->IsEstablished ()) tunnel = excluded;
 		return tunnel;
@@ -200,21 +216,24 @@ namespace tunnel
 	{
 		int num = 0;
 		{
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-			for (const auto& it : m_InboundTunnels)
-				if (it->IsEstablished ()) num++;
-		}
-		for (int i = num; i < m_NumInboundTunnels; i++)
-			CreateInboundTunnel ();	
-		
-		num = 0;
-		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
 			for (const auto& it : m_OutboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
 		for (int i = num; i < m_NumOutboundTunnels; i++)
 			CreateOutboundTunnel ();	
+
+		num = 0;
+		{
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			for (const auto& it : m_InboundTunnels)
+				if (it->IsEstablished ()) num++;
+		}
+		for (int i = num; i < m_NumInboundTunnels; i++)
+			CreateInboundTunnel ();
+
+		if (num > 0 && m_NumInboundHops <= 0 && m_LocalDestination) // zero hops IB
+			m_LocalDestination->SetLeaseSetUpdated (); // update LeaseSet immediately
 	}
 
 	void TunnelPool::TestTunnels ()
@@ -322,7 +341,12 @@ namespace tunnel
 				test.first->SetState (eTunnelStateEstablished);
 			if (test.second->GetState () == eTunnelStateTestFailed)
 				test.second->SetState (eTunnelStateEstablished);
-			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", i2p::util::GetMillisecondsSinceEpoch () - timestamp, " milliseconds");
+			uint64_t dlt = i2p::util::GetMillisecondsSinceEpoch () - timestamp;
+			LogPrint (eLogDebug, "Tunnels: test of ", msgID, " successful. ", dlt, " milliseconds");
+			// update latency
+			uint64_t latency = dlt / 2;
+			test.first->AddLatencySample(latency);
+			test.second->AddLatencySample(latency);
 		}
 		else
 		{
@@ -522,6 +546,38 @@ namespace tunnel
 	{
 		std::lock_guard<std::mutex> lock(m_CustomPeerSelectorMutex);
 		return m_CustomPeerSelector != nullptr;
+	}
+
+	std::shared_ptr<InboundTunnel> TunnelPool::GetLowestLatencyInboundTunnel(std::shared_ptr<InboundTunnel> exclude) const
+	{
+		std::shared_ptr<InboundTunnel> tun = nullptr;
+		std::unique_lock<std::mutex> lock(m_InboundTunnelsMutex);
+		uint64_t min = 1000000;
+		for (const auto & itr : m_InboundTunnels) {
+			if(!itr->LatencyIsKnown()) continue;
+			auto l = itr->GetMeanLatency();
+			if (l >= min) continue;
+			tun = itr;
+			if(tun == exclude) continue;
+			min = l;
+		}
+		return tun;
+	}
+	
+	std::shared_ptr<OutboundTunnel> TunnelPool::GetLowestLatencyOutboundTunnel(std::shared_ptr<OutboundTunnel> exclude) const
+	{
+		std::shared_ptr<OutboundTunnel> tun = nullptr;
+		std::unique_lock<std::mutex> lock(m_OutboundTunnelsMutex);
+		uint64_t min = 1000000;
+		for (const auto & itr : m_OutboundTunnels) {
+			if(!itr->LatencyIsKnown()) continue;
+			auto l = itr->GetMeanLatency();
+			if (l >= min) continue;
+			tun = itr;
+			if(tun == exclude) continue;
+			min = l;
+		}
+		return tun;
 	}
 }
 }

@@ -20,9 +20,9 @@ namespace tunnel
 
 		struct Fragment
 		{
-			uint8_t fragmentNum;
 			bool isLastFragment;
 			std::shared_ptr<I2NPMessage> data;
+			uint64_t receiveTime; // milliseconds since epoch
 		};	
 		
 		public:
@@ -30,7 +30,8 @@ namespace tunnel
 			TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0) {};
 			~TunnelEndpoint ();
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
-			
+			void Cleanup ();			
+
 			void HandleDecryptedTunnelDataMsg (std::shared_ptr<I2NPMessage> msg);
 
 		private:

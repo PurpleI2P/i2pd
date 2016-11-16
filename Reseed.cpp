@@ -305,6 +305,34 @@ namespace data
 			if (end - contentPos >= contentLength)
 				break; // we are beyond contentLength
 		}
+		if (numFiles) // check if  routers are not outdated
+		{
+			auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+			int numOutdated = 0;
+			i2p::data::netdb.VisitRouterInfos (
+				[&numOutdated, ts](std::shared_ptr<const RouterInfo> r)
+				{
+					if (r && ts > r->GetTimestamp () + 10*i2p::data::NETDB_MAX_EXPIRATION_TIMEOUT*1000LL) // 270 hours
+					{
+						LogPrint (eLogError, "Reseed: router ", r->GetIdentHash().ToBase64 (), " is outdated by ", (ts - r->GetTimestamp ())/1000LL/3600LL, " hours");
+						numOutdated++;
+					}
+				});
+			if (numOutdated > numFiles/2) // more than half
+			{
+				LogPrint (eLogError, "Reseed: mammoth's shit\n"
+				"	   *_____*\n"
+				"	  *_*****_*\n"
+				"	 *_(O)_(O)_*\n"
+				"	**____V____**\n"
+				"	**_________**\n"
+				"	**_________**\n"
+				"	 *_________*\n"
+				"	  ***___***");
+				i2p::data::netdb.ClearRouterInfos ();
+				numFiles = 0;
+			}
+		}
 		return numFiles;
 	}
 
@@ -350,9 +378,11 @@ namespace data
 					if (terminator) terminator[0] = 0;
 				}	
 				// extract RSA key (we need n only, e = 65537)
-				RSA * key = X509_get_pubkey (cert)->pkey.rsa;
+				RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
+				const BIGNUM * n, * e, * d;
+				RSA_get0_key(key, &n, &e, &d);
 				PublicKey value;
-				i2p::crypto::bn2buf (key->n, value, 512);
+				i2p::crypto::bn2buf (n, value, 512);
 				if (cn)
 					m_SigningKeys[cn] = value;
 				else
