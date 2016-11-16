@@ -277,6 +277,7 @@ namespace garlic
 					{
 						newTags->msgID = msgID;
 						m_UnconfirmedTagsMsgs.emplace_back (newTags);
+						newTags = nullptr; // got acquired
 					}	
 					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
 				}
@@ -300,13 +301,14 @@ namespace garlic
 			size += CreateGarlicClove (payload + size, msg, m_Destination ? m_Destination->IsDestination () : false);
 			(*numCloves)++;
 		}	
-		
 		memset (payload + size, 0, 3); // certificate of message
 		size += 3;
 		htobe32buf (payload + size, msgID); // MessageID
 		size += 4;
 		htobe64buf (payload + size, ts + 8000); // Expiration of message, 8 sec
 		size += 8;
+		
+		if (newTags) delete newTags; // not acquired, delete			
 		return size;
 	}	
 
