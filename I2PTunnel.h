@@ -202,14 +202,14 @@ namespace client
 		private:
 
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			UDPSession & ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
+		std::shared_ptr<UDPSession> ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 
 		private:
 			const std::string m_Name;
 			boost::asio::ip::address m_LocalAddress;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			std::mutex m_SessionsMutex;
-			std::vector<UDPSession> m_Sessions;
+		std::vector<std::shared_ptr<UDPSession> > m_Sessions;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 	};
 

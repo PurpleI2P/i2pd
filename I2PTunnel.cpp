@@ -531,17 +531,17 @@ namespace client
   void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
   {
     std::lock_guard<std::mutex> lock(m_SessionsMutex);
-    auto & session = ObtainUDPSession(from, toPort, fromPort);
-    session.IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
-    session.LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+    auto session = ObtainUDPSession(from, toPort, fromPort);
+    session->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
+    session->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
     
   }
 
   void I2PUDPServerTunnel::ExpireStale(const uint64_t delta) {
     std::lock_guard<std::mutex> lock(m_SessionsMutex);
     uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
-    std::remove_if(m_Sessions.begin(), m_Sessions.end(), [now, delta](const UDPSession & u) -> bool {
-      return now - u.LastActivity >= delta;
+    std::remove_if(m_Sessions.begin(), m_Sessions.end(), [now, delta](const std::shared_ptr<UDPSession> & u) -> bool {
+      return now - u->LastActivity >= delta;
     });
   }
 
@@ -558,21 +558,21 @@ namespace client
 		}
   }
 	
-  UDPSession & I2PUDPServerTunnel::ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort)
+	std::shared_ptr<UDPSession> I2PUDPServerTunnel::ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort)
   {
     auto ih = from.GetIdentHash();
-    for ( UDPSession & s : m_Sessions )
+    for (auto & s : m_Sessions )
     {
-      if ( s.Identity == ih)
+      if ( s->Identity == ih)
       {
         /** found existing session */
-        LogPrint(eLogDebug, "UDPServer: found session ", s.IPSocket.local_endpoint(), " ", ih.ToBase32());
+        LogPrint(eLogDebug, "UDPServer: found session ", s->IPSocket.local_endpoint(), " ", ih.ToBase32());
         return s;
       }
     }
     /** create new udp session */
     boost::asio::ip::udp::endpoint ep(m_LocalAddress, 0);
-    m_Sessions.push_back(UDPSession(ep, m_LocalDest, m_RemoteEndpoint, &ih, localPort, remotePort));
+    m_Sessions.push_back(std::make_shared<UDPSession>(ep, m_LocalDest, m_RemoteEndpoint, &ih, localPort, remotePort));
 		auto & back = m_Sessions.back();
 		return back;
   }
@@ -642,16 +642,16 @@ namespace client
 	{
 		std::vector<std::shared_ptr<DatagramSessionInfo> > sessions;
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
-		for ( UDPSession & s : m_Sessions )
+		for (auto & s : m_Sessions )
 		{
-			if (!s.m_Destination) continue;
-			auto info = s.m_Destination->GetInfoForRemote(s.Identity);
+			if (!s->m_Destination) continue;
+			auto info = s->m_Destination->GetInfoForRemote(s->Identity);
 			if(!info) continue;
 
 			auto sinfo = std::make_shared<DatagramSessionInfo>();
 			sinfo->Name = m_Name;
 			sinfo->LocalIdent = std::make_shared<i2p::data::IdentHash>(m_LocalDest->GetIdentHash().data());
-			sinfo->RemoteIdent = std::make_shared<i2p::data::IdentHash>(s.Identity.data());
+			sinfo->RemoteIdent = std::make_shared<i2p::data::IdentHash>(s->Identity.data());
 			sinfo->CurrentIBGW = info->IBGW;
 			sinfo->CurrentOBEP = info->OBEP;
 			sessions.push_back(sinfo);
