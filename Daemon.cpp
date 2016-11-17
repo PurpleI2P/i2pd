@@ -113,7 +113,7 @@ namespace i2p
 			} else {
 				// use stdout -- default
 			}
-			i2p::log::Logger().Ready();
+			i2p::log::Logger().Start();
 
 			LogPrint(eLogInfo,	"i2pd v", VERSION, " starting");
 			LogPrint(eLogDebug, "FS: main config file: ", config);
@@ -351,6 +351,7 @@ namespace i2p
 			}
 #endif
 			i2p::crypto::TerminateCrypto ();
+			i2p::log::Logger().Stop();
 
 			return true;
 		}
