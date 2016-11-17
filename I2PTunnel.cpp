@@ -605,7 +605,7 @@ namespace client
 		{
 			LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
 			LastActivity = i2p::util::GetMillisecondsSinceEpoch();
-			m_Destination->SendDatagramTo(m_Buffer, len, Identity, 0, 0);
+			m_Destination->SendDatagramTo(m_Buffer, len, Identity, LocalPort, RemotePort);
 			Receive();
 		} else {
 			LogPrint(eLogError, "UDPSession: ", ecode.message());
