@@ -112,6 +112,7 @@ namespace client
 			void Start ();
 			void Stop ();
 			uint16_t GetSessionID () const { return m_SessionID; };
+			std::shared_ptr<const I2CPDestination> GetDestination () const { return m_Destination; };
 
 			// called from I2CPDestination	
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
@@ -196,6 +197,9 @@ namespace client
 		public:
 
 			const decltype(m_MessagesHandlers)& GetMessagesHandlers () const { return m_MessagesHandlers; };
+
+			// for HTTP
+			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
 	};	
 }
 }
