@@ -697,8 +697,13 @@ namespace client
 
 	void I2PUDPClientTunnel::HandleRecvFromLocal(const boost::system::error_code & ec, std::size_t transferred)
 	{
+		if(ec) {
+			LogPrint(eLogError, "UDP Client: ", ec.message());
+			return;
+		}
 		if(!m_RemoteIdent) {
 			LogPrint(eLogWarning, "UDP Client: remote endpoint not resolved yet");
+			RecvFromLocal();
 			return; // drop, remote not resolved
 		}
 		auto remotePort = m_RecvEndpoint.port();
@@ -712,6 +717,7 @@ namespace client
 		m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);
 		// mark convo as active
 		m_Sessions[remotePort].second = i2p::util::GetMillisecondsSinceEpoch();
+		RecvFromLocal();
 	}
 	
 	std::vector<std::shared_ptr<DatagramSessionInfo> > I2PUDPClientTunnel::GetSessions()
