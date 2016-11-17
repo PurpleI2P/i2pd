@@ -69,9 +69,15 @@ namespace client
 			std::set<i2p::data::IdentHash> excluded;
 			uint64_t requestTime;
 			boost::asio::deadline_timer requestTimeoutTimer;
-			RequestComplete requestComplete;
+			std::list<RequestComplete> requestComplete;
 			std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
 			std::shared_ptr<i2p::tunnel::InboundTunnel> replyTunnel;
+
+			void Complete (std::shared_ptr<i2p::data::LeaseSet> ls)
+			{
+				for (auto& it: requestComplete) it (ls);
+				requestComplete.clear ();
+			}	
 		};	
 		
 		

@@ -86,7 +86,7 @@ namespace client
 		if (m_IsRunning)	
 			Stop ();
 		for (auto& it: m_LeaseSetRequests)
-			if (it.second->requestComplete) it.second->requestComplete (nullptr);
+			it.second->Complete (nullptr);
 		m_LeaseSetRequests.clear ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
@@ -345,7 +345,7 @@ namespace client
 		if (it1 != m_LeaseSetRequests.end ())
 		{
 			it1->second->requestTimeoutTimer.cancel ();
-			if (it1->second->requestComplete) it1->second->requestComplete (leaseSet);
+			if (it1->second) it1->second->Complete (leaseSet);
 			m_LeaseSetRequests.erase (it1);
 		}	
 	}
@@ -383,7 +383,7 @@ namespace client
 			if (!found)
 			{	
 				LogPrint (eLogInfo, "Destination: ", key.ToBase64 (), " was not found on ", MAX_NUM_FLOODFILLS_PER_REQUEST, " floodfills");
-				if (request->requestComplete) request->requestComplete (nullptr);
+				request->Complete (nullptr);
 				m_LeaseSetRequests.erase (key);
 			}	
 		}	
@@ -512,9 +512,9 @@ namespace client
 				auto it = s->m_LeaseSetRequests.find (dest);
 				if (it != s->m_LeaseSetRequests.end ())
 				{	
-					auto requestComplete = it->second->requestComplete; 
+					auto requestComplete = it->second; 
 					s->m_LeaseSetRequests.erase (it);
-					if (notify && requestComplete) requestComplete (nullptr);
+					if (notify && requestComplete) requestComplete->Complete (nullptr);
 				}	
 			});				
 	}
@@ -526,7 +526,7 @@ namespace client
 		if (floodfill)
 		{
 			auto request = std::make_shared<LeaseSetRequest> (m_Service);
-			request->requestComplete = requestComplete;
+			request->requestComplete.push_back (requestComplete);
 			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> >(dest,request));
 			if (ret.second) // inserted
 			{
@@ -534,20 +534,19 @@ namespace client
 				{
 					// request failed
 					m_LeaseSetRequests.erase (dest);
-					if (request->requestComplete) request->requestComplete (nullptr);
+					requestComplete (nullptr);
 				}
 			}	
 			else // duplicate
 			{
-				LogPrint (eLogWarning, "Destination: Request of LeaseSet ", dest.ToBase64 (), " is pending already");
-				// TODO: queue up requests
-				if (request->requestComplete) request->requestComplete (nullptr);
+				LogPrint (eLogInfo, "Destination: Request of LeaseSet ", dest.ToBase64 (), " is pending already");
+				ret.first->second->requestComplete.push_back (requestComplete);
 			}	
 		}	
 		else
 		{	
 			LogPrint (eLogError, "Destination: Can't request LeaseSet, no floodfills found");
-			if (requestComplete) requestComplete (nullptr);
+			requestComplete (nullptr);
 		}	
 	}	
 		
@@ -622,9 +621,9 @@ namespace client
 				
 				if (done)
 				{
-					auto requestComplete = it->second->requestComplete; 
+					auto requestComplete = it->second; 
 					m_LeaseSetRequests.erase (it);
-					if (requestComplete) requestComplete (nullptr);
+					if (requestComplete) requestComplete->Complete (nullptr);
 				}	
 			}	
 		}	
