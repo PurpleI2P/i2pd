@@ -697,7 +697,10 @@ namespace client
 
 	void I2PUDPClientTunnel::HandleRecvFromLocal(const boost::system::error_code & ec, std::size_t transferred)
 	{
-		if(!m_RemoteIdent) return; // drop, remote not resolved
+		if(!m_RemoteIdent) {
+			LogPrint(eLogWarning, "UDP Client: remote endpoint not resolved yet");
+			return; // drop, remote not resolved
+		}
 		auto remotePort = m_RecvEndpoint.port();
 		auto itr = m_Sessions.find(remotePort);
 		if (itr == m_Sessions.end()) {
@@ -705,6 +708,7 @@ namespace client
 			m_Sessions[remotePort] = {boost::asio::ip::udp::endpoint(m_RecvEndpoint), 0};
 		}
 		// send off to remote i2p destination
+		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);
 		// mark convo as active
 		m_Sessions[remotePort].second = i2p::util::GetMillisecondsSinceEpoch();
