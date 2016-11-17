@@ -29,7 +29,7 @@ namespace proxy {
 
 	static const char *pageHead =
 		"<head>\r\n"
-		"  <title>I2P HTTP proxy: error</title>\r\n"
+		"  <title>I2Pd HTTP proxy</title>\r\n"
 		"  <style type=\"text/css\">\r\n"
 		"    body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
 		"    .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
@@ -60,6 +60,7 @@ namespace proxy {
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
 			/* error helpers */
 			void GenericProxyError(const char *title, const char *description);
+			void GenericProxyInfo(const char *title, const char *description);
 			void HostNotFound(std::string & host);
 			void SendProxyError(std::string & content);
 
@@ -102,6 +103,14 @@ namespace proxy {
 	void HTTPReqHandler::GenericProxyError(const char *title, const char *description) {
 		std::stringstream ss;
 		ss << "<h1>Proxy error: " << title << "</h1>\r\n";
+		ss << "<p>" << description << "</p>\r\n";
+		std::string content = ss.str();
+		SendProxyError(content);
+	}
+
+	void HTTPReqHandler::GenericProxyInfo(const char *title, const char *description) {
+		std::stringstream ss;
+		ss << "<h1>Proxy info: " << title << "</h1>\r\n";
 		ss << "<p>" << description << "</p>\r\n";
 		std::string content = ss.str();
 		SendProxyError(content);
@@ -216,7 +225,7 @@ namespace proxy {
 			std::stringstream ss;
 			ss << "Host " << url.host << " added to router's addressbook from helper. "
 			   << "Click <a href=\"" << full_url << "\">here</a> to proceed.";
-			GenericProxyError("Addresshelper found", ss.str().c_str());
+			GenericProxyInfo("Addresshelper found", ss.str().c_str());
 			return true; /* request processed */
 		}
 

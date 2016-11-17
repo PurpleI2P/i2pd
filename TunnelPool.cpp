@@ -220,21 +220,24 @@ namespace tunnel
 	{
 		int num = 0;
 		{
-			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-			for (const auto& it : m_InboundTunnels)
-				if (it->IsEstablished ()) num++;
-		}
-		for (int i = num; i < m_NumInboundTunnels; i++)
-			CreateInboundTunnel ();	
-		
-		num = 0;
-		{
 			std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);	
 			for (const auto& it : m_OutboundTunnels)
 				if (it->IsEstablished ()) num++;
 		}
 		for (int i = num; i < m_NumOutboundTunnels; i++)
 			CreateOutboundTunnel ();	
+
+		num = 0;
+		{
+			std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
+			for (const auto& it : m_InboundTunnels)
+				if (it->IsEstablished ()) num++;
+		}
+		for (int i = num; i < m_NumInboundTunnels; i++)
+			CreateInboundTunnel ();
+
+		if (num < m_NumInboundTunnels && m_NumInboundHops <= 0 && m_LocalDestination) // zero hops IB
+			m_LocalDestination->SetLeaseSetUpdated (); // update LeaseSet immediately
 	}
 
 	void TunnelPool::TestTunnels ()

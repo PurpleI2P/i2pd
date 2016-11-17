@@ -87,8 +87,8 @@ namespace config {
 	  ("httpproxy.outbound.length",     value<std::string>()->default_value("3"),  "HTTP proxy outbound tunnel length")
 	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")	
 	  ("httpproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "HTTP proxy outbound tunnels quantity")
-			("httpproxy.latency.min",    value<int>()->default_value(0),  "HTTP proxy min latency for tunnels")	
-			("httpproxy.latency.max",   value<int>()->default_value(0),  "HTTP proxy max latency for tunnels")	
+	  ("httpproxy.latency.min",    value<std::string>()->default_value("0"),  "HTTP proxy min latency for tunnels")	
+	  ("httpproxy.latency.max",   value<std::string>()->default_value("0"),  "HTTP proxy max latency for tunnels")	
       ;
 
     options_description socksproxy("SOCKS Proxy options");
@@ -101,8 +101,8 @@ namespace config {
 	  ("socksproxy.outbound.length",     value<std::string>()->default_value("3"),  "SOCKS proxy outbound tunnel length")
 	  ("socksproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")	
 	  ("socksproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "SOCKS proxy outbound tunnels quantity")
-			("socksproxy.latency.min",    value<int>()->default_value(0),  "SOCKS proxy min latency for tunnels")	
-			("socksproxy.latency.max",   value<int>()->default_value(0),  "SOCKS proxy max latency for tunnels")	
+	  ("socksproxy.latency.min",    value<std::string>()->default_value("0"),  "SOCKS proxy min latency for tunnels")	
+	  ("socksproxy.latency.max",   value<std::string>()->default_value("0"),  "SOCKS proxy max latency for tunnels")	
 	  ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
       ("socksproxy.outproxyport", value<uint16_t>()->default_value(9050), "Upstream outproxy port for SOCKS Proxy")
       ;
