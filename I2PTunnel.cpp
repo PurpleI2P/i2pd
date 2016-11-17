@@ -550,7 +550,7 @@ namespace client
     uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
 		std::vector<uint16_t> removePorts;
 		for (const auto & s : m_Sessions) {
-			if (now - std::get<1>(s.second) >= delta)
+			if (now - s.second.second >= delta)
 				removePorts.push_back(s.first);
 		}
 		for(auto port : removePorts) {
@@ -707,7 +707,7 @@ namespace client
 		// send off to remote i2p destination
 		m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);
 		// mark convo as active
-		std::get<1>(m_Sessions[remotePort]) = i2p::util::GetMillisecondsSinceEpoch();
+		m_Sessions[remotePort].second = i2p::util::GetMillisecondsSinceEpoch();
 	}
 	
 	std::vector<std::shared_ptr<DatagramSessionInfo> > I2PUDPClientTunnel::GetSessions()
@@ -748,9 +748,9 @@ namespace client
 					LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", from.GetIdentHash().ToBase32());
 					uint8_t sendbuf[len];
 					memcpy(sendbuf, buf, len);
-					m_LocalSocket.send_to(boost::asio::buffer(buf, len), std::get<0>(itr->second));
+					m_LocalSocket.send_to(boost::asio::buffer(buf, len), itr->second.first);
 					// mark convo as active
-					std::get<1>(itr->second) = i2p::util::GetMillisecondsSinceEpoch();
+					itr->second.second = i2p::util::GetMillisecondsSinceEpoch();
 				}
 			}
 			else

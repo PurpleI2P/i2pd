@@ -230,7 +230,7 @@ namespace client
 			void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
 
 		private:
-		typedef std::tuple<boost::asio::ip::udp::endpoint, uint64_t> UDPConvo;
+		typedef std::pair<boost::asio::ip::udp::endpoint, uint64_t> UDPConvo;
 		void RecvFromLocal();
 		void HandleRecvFromLocal(const boost::system::error_code & e, std::size_t transferred);
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
