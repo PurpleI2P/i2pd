@@ -195,6 +195,7 @@ namespace garlic
 			// incoming
 			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
 			// DeliveryStatus
+			std::mutex m_DeliveryStatusSessionsMutex;
 			std::map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
 			
 		public:
