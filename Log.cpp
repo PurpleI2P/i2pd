@@ -72,6 +72,7 @@ namespace log {
 	{
 		if (!m_IsRunning)
 		{	
+			Reopen ();
 			m_IsRunning = true;	
 			m_Thread = new std::thread (std::bind (&Log::Run, this));
 		}
