@@ -58,13 +58,29 @@ namespace log {
 
 	Log::Log():
 	m_Destination(eLogStdout), m_MinLevel(eLogInfo),
-	m_LogStream (nullptr), m_Logfile(""), m_IsReady(false), m_HasColors(true)
+	m_LogStream (nullptr), m_Logfile(""), m_HasColors(true),
+	m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
 
 	Log::~Log ()
 	{
-		switch (m_Destination) {
+		delete m_Thread;
+	}
+
+	void Log::Start ()
+	{
+		if (!m_IsRunning)
+		{	
+			m_IsRunning = true;	
+			m_Thread = new std::thread (std::bind (&Log::Run, this));
+		}
+	}
+
+	void Log::Stop ()	
+	{
+		switch (m_Destination) 
+		{
 #ifndef _WIN32
 			case eLogSyslog :
 				closelog();
@@ -78,7 +94,14 @@ namespace log {
 				/* do nothing */
 				break;
 		}
-		Process();
+		m_IsRunning = false;
+		m_Queue.WakeUp ();
+		if (m_Thread)
+		{	
+			m_Thread->join (); 
+			delete m_Thread;
+			m_Thread = nullptr;
+		}		
 	}
 
 	void Log::SetLogLevel (const std::string& level) {
@@ -106,45 +129,52 @@ namespace log {
 	 * Unfortunately, with current startup process with late fork() this
 	 * will give us nothing but pain. Maybe later. See in NetDb as example.
 	 */
-	void Log::Process() {
-		std::unique_lock<std::mutex> l(m_OutputLock);
+	void Log::Process(std::shared_ptr<LogMsg> msg) 
+	{
+		if (!msg) return;
 		std::hash<std::thread::id> hasher;
 		unsigned short short_tid;
-		while (1) {
-			auto msg = m_Queue.GetNextWithTimeout (1);
-			if (!msg)
-				break;
-			short_tid = (short) (hasher(msg->tid) % 1000);
-			switch (m_Destination) {
+		short_tid = (short) (hasher(msg->tid) % 1000);
+		switch (m_Destination) {
 #ifndef _WIN32
-				case eLogSyslog:
-					syslog(GetSyslogPrio(msg->level), "[%03u] %s", short_tid, msg->text.c_str());
-					break;
+			case eLogSyslog:
+				syslog(GetSyslogPrio(msg->level), "[%03u] %s", short_tid, msg->text.c_str());
+				break;
 #endif
-				case eLogFile:
-				case eLogStream:
-					if (m_LogStream)
-						*m_LogStream << TimeAsString(msg->timestamp)
-							<< "@" << short_tid
-							<< "/" << g_LogLevelStr[msg->level]
-							<< " - " << msg->text << std::endl;
-					break;
-				case eLogStdout:
-				default:
-					std::cout    << TimeAsString(msg->timestamp)
+			case eLogFile:
+			case eLogStream:
+				if (m_LogStream)
+					*m_LogStream << TimeAsString(msg->timestamp)
 						<< "@" << short_tid
-						<< "/" << LogMsgColors[msg->level] << g_LogLevelStr[msg->level] << LogMsgColors[eNumLogLevels]
+						<< "/" << g_LogLevelStr[msg->level]
 						<< " - " << msg->text << std::endl;
-					break;
-			} // switch
-		} // while
+				break;
+			case eLogStdout:
+			default:
+				std::cout    << TimeAsString(msg->timestamp)
+					<< "@" << short_tid
+					<< "/" << LogMsgColors[msg->level] << g_LogLevelStr[msg->level] << LogMsgColors[eNumLogLevels]
+					<< " - " << msg->text << std::endl;
+				break;
+		} // switch
 	}
 
-	void Log::Append(std::shared_ptr<i2p::log::LogMsg> & msg) {
+	void Log::Run ()
+	{
+		while (m_IsRunning)
+		{
+			std::shared_ptr<LogMsg> msg;
+			while (msg = m_Queue.Get ())
+				Process (msg);
+			if (m_LogStream) m_LogStream->flush();
+			if (m_IsRunning)
+				m_Queue.Wait ();
+		}
+	}		
+
+	void Log::Append(std::shared_ptr<i2p::log::LogMsg> & msg) 
+	{
 		m_Queue.Put(msg);
-		if (!m_IsReady)
-			return;
-		Process();
 	}
 
 	void Log::SendTo (const std::string& path) 

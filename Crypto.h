@@ -320,8 +320,6 @@ inline int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
 inline void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key)
 	{ *pub_key = dh->pub_key; *priv_key = dh->priv_key; }
 
-inline int EVP_PKEY_base_id(const EVP_PKEY *pkey)
-	{ return EVP_PKEY_type(pkey->type); }
 inline RSA *EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 	{ return pkey->pkey.rsa; }
 #endif

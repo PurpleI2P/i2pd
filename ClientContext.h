@@ -66,6 +66,7 @@ namespace client
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
+			const I2CPServer * GetI2CPServer () const { return m_I2CPServer; };
 
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetForwardInfosFor(const i2p::data::IdentHash & destination);
 
