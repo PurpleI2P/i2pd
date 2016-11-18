@@ -215,8 +215,8 @@ namespace i2p
 		switch (type) 
 		{
 			case low   : /* not set */; break;
+			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; //  no break here
 			case high  : caps |= i2p::data::RouterInfo::eHighBandwidth;  break;
-			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break;
 		}
 		m_RouterInfo.SetCaps (caps);
 		UpdateRouterInfo ();
