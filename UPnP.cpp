@@ -66,10 +66,13 @@ namespace transport
 			try
 			{	
 				m_Service.run ();
+				// Discover failed
+				break; // terminate the thread
 			}
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "UPnP: runtime exception: ", ex.what ());
+				PortMapping ();
 			}	
 		}	
     } 

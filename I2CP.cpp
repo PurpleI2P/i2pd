@@ -346,6 +346,7 @@ namespace client
 	void I2CPSession::CreateSessionMessageHandler (const uint8_t * buf, size_t len)
 	{
 		RAND_bytes ((uint8_t *)&m_SessionID, 2);
+		m_Owner.InsertSession (shared_from_this ());
 		auto identity = std::make_shared<i2p::data::IdentityEx>();
 		size_t offset = identity->FromBuffer (buf, len);
 		if (!offset)
@@ -460,23 +461,23 @@ namespace client
 			{
 				i2p::data::IdentityEx identity;
 				size_t identsize = identity.FromBuffer (buf + offset, len - offset);
-        if (identsize)
-        {
-          offset += identsize;
-          uint32_t payloadLen = bufbe32toh (buf + offset);
-          if (payloadLen + offset <= len)
-          {            
-            offset += 4;
-            uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
-            if (m_IsSendAccepted) 
-              SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
-            m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
-          }
-          else
-            LogPrint(eLogError, "I2CP: cannot send message, too big");
-        }
-        else
-          LogPrint(eLogError, "I2CP: invalid identity");
+				if (identsize)
+				{
+					offset += identsize;
+					uint32_t payloadLen = bufbe32toh (buf + offset);
+					if (payloadLen + offset <= len)
+					{            
+						offset += 4;
+						uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
+						if (m_IsSendAccepted) 
+						  SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
+						m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
+					}
+      				else
+        				LogPrint(eLogError, "I2CP: cannot send message, too big");
+   				}
+    			else
+      				LogPrint(eLogError, "I2CP: invalid identity");
 			} 
 		}	
 		else
@@ -711,7 +712,6 @@ namespace client
 			{	
 				LogPrint (eLogDebug, "I2CP: new connection from ", ep);
 				auto session = std::make_shared<I2CPSession>(*this, socket);
-				m_Sessions[session->GetSessionID ()] = session;
 				session->Start ();
 			}
 			else
@@ -722,6 +722,17 @@ namespace client
 
 		if (ecode != boost::asio::error::operation_aborted)
 			Accept ();
+	}
+
+	bool I2CPServer::InsertSession (std::shared_ptr<I2CPSession> session)
+	{
+		if (!session) return false;
+		if (!m_Sessions.insert({session->GetSessionID (), session}).second)
+		{	
+			LogPrint (eLogError, "I2CP: duplicate session id ", session->GetSessionID ());
+			return false;
+		}	
+		return true;
 	}
 
 	void I2CPServer::RemoveSession (uint16_t sessionID)

@@ -94,26 +94,16 @@ namespace garlic
 	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID) 
 	{ 
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
+		auto it = m_UnconfirmedTagsMsgs.find (msgID);
+		if (it != m_UnconfirmedTagsMsgs.end ())
 		{
-			auto& tags = *it;
-			if (tags->msgID == msgID)
-			{
-				if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
-				{	
-					for (int i = 0; i < tags->numTags; i++)
-						m_SessionTags.push_back (tags->sessionTags[i]);
-				}	
-				it = m_UnconfirmedTagsMsgs.erase (it);
+			auto& tags = it->second;
+			if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+			{	
+				for (int i = 0; i < tags->numTags; i++)
+					m_SessionTags.push_back (tags->sessionTags[i]);
 			}	
-			else if (ts >= tags->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
-			{
-				if (m_Owner)
-					m_Owner->RemoveDeliveryStatusSession (tags->msgID);
-				it = m_UnconfirmedTagsMsgs.erase (it);
-			}	
-			else 
-				++it;
+			m_UnconfirmedTagsMsgs.erase (it);
 		}
 	}
 
@@ -144,10 +134,10 @@ namespace garlic
 		// delete expired unconfirmed tags
 		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
-			if (ts >= (*it)->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
+			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
 			{
 				if (m_Owner)
-					m_Owner->RemoveDeliveryStatusSession ((*it)->msgID);
+					m_Owner->RemoveDeliveryStatusSession (it->first);
 				it = m_UnconfirmedTagsMsgs.erase (it);
 				ret = true;
 			}	
@@ -284,7 +274,7 @@ namespace garlic
 					if (newTags) // new tags created
 					{
 						newTags->msgID = msgID;
-						m_UnconfirmedTagsMsgs.emplace_back (newTags);
+						m_UnconfirmedTagsMsgs.emplace (msgID, std::unique_ptr<UnconfirmedTags>(newTags));
 						newTags = nullptr; // got acquired
 					}	
 					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
@@ -650,36 +640,47 @@ namespace garlic
 			}
 		}
 		// delivery status sessions
-		for (auto it = m_DeliveryStatusSessions.begin (); it != m_DeliveryStatusSessions.end (); )
-		{
-			if (it->second->GetOwner () != this)
-				it = m_DeliveryStatusSessions.erase (it);
-			else
-				++it;
+		{	
+			std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
+			for (auto it = m_DeliveryStatusSessions.begin (); it != m_DeliveryStatusSessions.end (); )
+			{
+				if (it->second->GetOwner () != this)
+					it = m_DeliveryStatusSessions.erase (it);
+				else
+					++it;
+			}
 		}	
 	}
 
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
 	{
+		std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 		m_DeliveryStatusSessions.erase (msgID);
 	}
 
 	void GarlicDestination::DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID)
 	{
+		std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 		m_DeliveryStatusSessions[msgID] = session;
 	}
 
 	void GarlicDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint32_t msgID = bufbe32toh (msg->GetPayload ());
+		GarlicRoutingSessionPtr session;
 		{
+			std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 			auto it = m_DeliveryStatusSessions.find (msgID);
 			if (it != m_DeliveryStatusSessions.end ())
 			{
-				it->second->MessageConfirmed (msgID);
+				session = it->second;
 				m_DeliveryStatusSessions.erase (it);
-				LogPrint (eLogDebug, "Garlic: message ", msgID, " acknowledged");
 			}
+		}
+		if (session)
+		{
+			session->MessageConfirmed (msgID);
+			LogPrint (eLogDebug, "Garlic: message ", msgID, " acknowledged");
 		}
 	}
 

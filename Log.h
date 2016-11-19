@@ -16,6 +16,7 @@
 #include <sstream>
 #include <chrono>
 #include <memory>
+#include <thread>
 #include "Queue.h"
 
 #ifndef _WIN32
@@ -56,9 +57,9 @@ namespace log {
 			std::time_t m_LastTimestamp;
 			char m_LastDateTime[64];
 			i2p::util::Queue<std::shared_ptr<LogMsg> > m_Queue;
-			volatile bool m_IsReady;
 			bool m_HasColors;
-			mutable std::mutex m_OutputLock;
+			volatile bool m_IsRunning;
+			std::thread * m_Thread;
 
 		private:
 
@@ -66,10 +67,8 @@ namespace log {
 			Log (const Log &);
 			const Log& operator=(const Log&);
 
-			/**
-			 * @brief process stored messages in queue
-			 */
-			void Process ();
+			void Run ();
+			void Process (std::shared_ptr<LogMsg> msg);
 
 			/**
 			 * @brief Makes formatted string from unix timestamp
@@ -86,6 +85,9 @@ namespace log {
 
 			LogType  GetLogType  () { return m_Destination; };
 			LogLevel GetLogLevel () { return m_MinLevel; };
+
+			void Start ();
+			void Stop ();
 
 			/**
 			 * @brief  Sets minimal allowed level for log messages
@@ -119,12 +121,6 @@ namespace log {
 			 * @param  msg  Pointer to processed message
 			 */
 			void Append(std::shared_ptr<i2p::log::LogMsg> &);
-
-			/** @brief  Allow log output */
-			void Ready() { m_IsReady = true; }
-
-			/** @brief  Flushes the output log stream */
-			void Flush();
 
 			/** @brief  Reopen log file */
 			void Reopen();

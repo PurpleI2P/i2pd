@@ -47,7 +47,7 @@ namespace api
 			i2p::log::Logger().SendTo (logStream);
 		else
 			i2p::log::Logger().SendTo (i2p::fs::DataDirPath (i2p::fs::GetAppName () + ".log"));
-		i2p::log::Logger().Ready();
+		i2p::log::Logger().Start ();
 		LogPrint(eLogInfo, "API: starting NetDB");
 		i2p::data::netdb.Start();
 		LogPrint(eLogInfo, "API: starting Transports");
@@ -65,6 +65,7 @@ namespace api
 		i2p::transport::transports.Stop();
 		LogPrint(eLogInfo, "API: stopping NetDB");
 		i2p::data::netdb.Stop();
+		i2p::log::Logger().Stop ();
 	}
 
 	void RunPeerTest ()
