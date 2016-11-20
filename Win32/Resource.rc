@@ -52,7 +52,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-MAINICON                ICON                    "ictoopie.ico"
+MAINICON                ICON                    "mask.ico"
 //MAINICON                ICON                    "anke.ico"
 
 #endif    // English (United States) resources
