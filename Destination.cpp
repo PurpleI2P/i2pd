@@ -97,14 +97,14 @@ namespace client
 		while (m_IsRunning)
 		{
 			try
-			{
+			{	
 				m_Service.run ();
 			}
 			catch (std::exception& ex)
 			{
-				LogPrint (eLogError,  "Destination: Runtime Exception", ex.what ());
-			}
-		}
+				LogPrint (eLogError, "Destination: runtime exception: ", ex.what ());
+			}	
+		}	
 	}	
 
 	bool LeaseSetDestination::Start ()
@@ -113,7 +113,7 @@ namespace client
 		{	
 			m_IsRunning = true;
 			m_Pool->SetLocalDestination (shared_from_this ());
-			m_Pool->SetActive (true);
+			m_Pool->SetActive (true);			
 			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
 			
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
@@ -137,7 +137,7 @@ namespace client
 			{	
 				m_Pool->SetLocalDestination (nullptr);
 				i2p::tunnel::tunnels.StopTunnelPool (m_Pool);
-			}
+			}	
 			m_Service.stop ();
 			if (m_Thread)
 			{	
@@ -627,8 +627,8 @@ namespace client
 				if (done)
 				{
 					auto requestComplete = it->second; 
-					if (requestComplete) requestComplete->Complete (nullptr);
 					m_LeaseSetRequests.erase (it);
+					if (requestComplete) requestComplete->Complete (nullptr);
 				}	
 			}	
 		}	
