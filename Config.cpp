@@ -88,7 +88,8 @@ namespace config {
 	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")	
 	  ("httpproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "HTTP proxy outbound tunnels quantity")
 	  ("httpproxy.latency.min",    value<std::string>()->default_value("0"),  "HTTP proxy min latency for tunnels")	
-	  ("httpproxy.latency.max",   value<std::string>()->default_value("0"),  "HTTP proxy max latency for tunnels")	
+	  ("httpproxy.latency.max",   value<std::string>()->default_value("0"),  "HTTP proxy max latency for tunnels")
+			("httpproxy.outproxy", value<std::string>()->default_value(""), "HTTP proxy upstream out proxy url")
       ;
 
     options_description socksproxy("SOCKS Proxy options");
