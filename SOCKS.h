@@ -33,7 +33,6 @@ namespace proxy
 	};
 
 	typedef SOCKSServer SOCKSProxy;
-	
 }
 }
 
