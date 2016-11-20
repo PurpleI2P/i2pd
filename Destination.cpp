@@ -527,20 +527,26 @@ namespace client
 		{
 			auto request = std::make_shared<LeaseSetRequest> (m_Service);
 			request->requestComplete.push_back (requestComplete);
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> >(dest,request));
 			if (ret.second) // inserted
 			{
+				request->requestTime = ts;
 				if (!SendLeaseSetRequest (dest, floodfill, request))
 				{
 					// request failed
-					m_LeaseSetRequests.erase (dest);
+					m_LeaseSetRequests.erase (ret.first);
 					requestComplete (nullptr);
 				}
 			}	
 			else // duplicate
 			{
 				LogPrint (eLogInfo, "Destination: Request of LeaseSet ", dest.ToBase64 (), " is pending already");
-				ret.first->second->requestComplete.push_back (requestComplete);
+				// TODO: implement it properly
+				//ret.first->second->requestComplete.push_back (requestComplete);
+				if (ts > ret.first->second->requestTime + MAX_LEASESET_REQUEST_TIMEOUT)
+					m_LeaseSetRequests.erase (ret.first);
+				requestComplete (nullptr);
 			}	
 		}	
 		else
@@ -563,7 +569,6 @@ namespace client
 		if (request->replyTunnel && request->outboundTunnel)
 		{	
 			request->excluded.insert (nextFloodfill->GetIdentHash ());
-			request->requestTime = i2p::util::GetSecondsSinceEpoch ();
 			request->requestTimeoutTimer.cancel ();
 
 			uint8_t replyKey[32], replyTag[32];

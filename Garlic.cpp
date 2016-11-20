@@ -274,7 +274,7 @@ namespace garlic
 					if (newTags) // new tags created
 					{
 						newTags->msgID = msgID;
-						m_UnconfirmedTagsMsgs.emplace (msgID, std::unique_ptr<UnconfirmedTags>(newTags));
+						m_UnconfirmedTagsMsgs.insert (std::make_pair(msgID, std::unique_ptr<UnconfirmedTags>(newTags)));
 						newTags = nullptr; // got acquired
 					}	
 					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
