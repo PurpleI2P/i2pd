@@ -259,15 +259,20 @@ namespace http {
     return eoh + strlen(HTTP_EOH);
   }
 
-  std::string HTTPReq::to_string() {
-    std::stringstream ss;
-    ss << method << " " << uri << " " << version << CRLF;
+  void HTTPReq::write(std::ostream & o) {
+		o << method << " " << uri << " " << version << CRLF;
     for (auto & h : headers) {
-      ss << h.first << ": " << h.second << CRLF;
+      o << h.first << ": " << h.second << CRLF;
     }
-    ss << CRLF;
-    return ss.str();
+    o << CRLF;
   }
+
+	std::string HTTPReq::to_string()
+	{
+		std::stringstream ss;
+		write(ss);
+		return ss.str();
+	}
 
   bool HTTPRes::is_chunked() {
     auto it = headers.find("Transfer-Encoding");

@@ -84,11 +84,14 @@ namespace proxy {
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 		std::shared_ptr<boost::asio::ip::tcp::socket> m_proxysock;
 		boost::asio::ip::tcp::resolver m_proxy_resolver;
-		i2p::http::URL m_RequestURL;
 		i2p::http::URL m_ProxyURL;
-		std::string m_HTTPMethod;
+		i2p::http::URL m_RequestURL;
 		uint8_t m_socks_buf[255+8]; // for socks request/response
-		
+		ssize_t m_req_len;
+		i2p::http::URL m_ClientRequestURL;
+		i2p::http::HTTPReq m_ClientRequest;
+		i2p::http::HTTPRes m_ClientResponse;
+		std::stringstream m_ClientRequestBuffer;
 		public:
 
 			HTTPReqHandler(HTTPProxy * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) :
@@ -121,6 +124,7 @@ namespace proxy {
 		}
 		if(m_proxysock)
 		{
+			LogPrint(eLogDebug, "HTTPProxy: close proxysock");
 			if(m_proxysock->is_open())
 				m_proxysock->close();
 			m_proxysock = nullptr;
@@ -226,24 +230,22 @@ namespace proxy {
 	 */
 	bool HTTPReqHandler::HandleRequest()
 	{
-		i2p::http::HTTPReq req;
 		std::string b64;
-		int req_len = 0;
 
-		req_len = req.parse(m_recv_buf);
+		m_req_len = m_ClientRequest.parse(m_recv_buf);
 
-		if (req_len == 0)
+		if (m_req_len == 0)
 			return false; /* need more data */
 
-		if (req_len < 0) {
+		if (m_req_len < 0) {
 			LogPrint(eLogError, "HTTPProxy: unable to parse request");
 			GenericProxyError("Invalid request", "Proxy unable to parse your request");
 			return true; /* parse error */
 		}
 
 		/* parsing success, now let's look inside request */
-		LogPrint(eLogDebug, "HTTPProxy: requested: ", req.uri);
-		m_RequestURL.parse(req.uri);
+		LogPrint(eLogDebug, "HTTPProxy: requested: ", m_ClientRequest.uri);
+		m_RequestURL.parse(m_ClientRequest.uri);
 
 		if (ExtractAddressHelper(m_RequestURL, b64)) {
 			i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, b64);
@@ -256,7 +258,7 @@ namespace proxy {
 			return true; /* request processed */
 		}
 
-		SanitizeHTTPRequest(req);
+		SanitizeHTTPRequest(m_ClientRequest);
 
 		std::string dest_host = m_RequestURL.host;
 		uint16_t    dest_port = m_RequestURL.port;
@@ -265,14 +267,14 @@ namespace proxy {
 			dest_port = (m_RequestURL.schema == "https") ? 443 : 80;
 		}
 		/* detect dest_host, set proper 'Host' header in upstream request */
-		auto h = req.headers.find("Host");
+		auto h = m_ClientRequest.headers.find("Host");
 		if (dest_host != "") {
 			/* absolute url, replace 'Host' header */
 			std::string h = dest_host;
 			if (dest_port != 0 && dest_port != 80)
 				h += ":" + std::to_string(dest_port);
-			req.add_header("Host", h, true);
-		} else if (h != req.headers.end()) {
+			m_ClientRequest.add_header("Host", h, true);
+		} else if (h != m_ClientRequest.headers.end()) {
 			/* relative url and 'Host' header provided. transparent proxy mode? */
 			i2p::http::URL u;
 			std::string t = "http://" + h->second;
@@ -292,19 +294,17 @@ namespace proxy {
 				HostNotFound(dest_host);
 				return true; /* request processed */
 			}
-			/* TODO: outproxy handler here */
 		} else {
 			std::string outproxyUrl; i2p::config::GetOption("httpproxy.outproxy", outproxyUrl);
 			if(outproxyUrl.size()) {
-				m_HTTPMethod = req.method;
 				LogPrint (eLogDebug, "HTTPProxy: use outproxy ", outproxyUrl);
 				if(m_ProxyURL.parse(outproxyUrl))
 					ForwardToUpstreamProxy();
 				else
 					GenericProxyError("Outproxy failure", "bad outproxy settings");
 			} else {
-				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": not implemented yet");
-				std::string message = "Host" + dest_host + "not inside I2P network, but outproxy support not implemented yet";
+				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": no outprxy enabled");
+				std::string message = "Host" + dest_host + "not inside I2P network, but outproxy is not enabled";
 				GenericProxyError("Outproxy failure", message.c_str());
 			}
 			return true;
@@ -313,12 +313,12 @@ namespace proxy {
 		/* make relative url */
 		m_RequestURL.schema = "";
 		m_RequestURL.host   = "";
-		req.uri = m_RequestURL.to_string();
+		m_ClientRequest.uri = m_RequestURL.to_string();
 
 		/* drop original request from recv buffer */
-		m_recv_buf.erase(0, req_len);
+		m_recv_buf.erase(0, m_req_len);
 		/* build new buffer from modified request and data from original request */
-		m_send_buf = req.to_string();
+		m_send_buf = m_ClientRequest.to_string();
 		m_send_buf.append(m_recv_buf);
 		/* connect to destination */
 		LogPrint(eLogDebug, "HTTPProxy: connecting to host ", dest_host, ":", dest_port);
@@ -330,6 +330,17 @@ namespace proxy {
 	void HTTPReqHandler::ForwardToUpstreamProxy()
 	{
 		LogPrint(eLogDebug, "HTTPProxy: forward to upstream");
+		// build http requset
+
+		m_ClientRequestURL = m_RequestURL;
+		LogPrint(eLogDebug, "HTTPProxy: ", m_ClientRequestURL.host);
+		m_ClientRequestURL.schema = "";
+		m_ClientRequestURL.host   = "";
+		m_ClientRequest.uri = m_ClientRequestURL.to_string();
+
+		m_ClientRequest.write(m_ClientRequestBuffer);
+		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
+		
 		// assume http if empty schema
 		if (m_ProxyURL.schema == "" || m_ProxyURL.schema == "http") {
 			// handle upstream http proxy
@@ -365,59 +376,67 @@ namespace proxy {
 				return;
 			}
 			uint16_t port = m_RequestURL.port;
+			if(!port) port = 80;
 			LogPrint(eLogDebug, "HTTPProxy: connected to socks upstream");
-			if(m_HTTPMethod == "CONNECT") {
-				std::string host = m_RequestURL.host;
-				std::size_t reqsize = 0;
-				m_socks_buf[0] = '\x04';
-				m_socks_buf[1] = 1;
-				htobe16buf(m_socks_buf+2, port);
-				m_socks_buf[4] = 0;
-				m_socks_buf[5] = 0;
-				m_socks_buf[6] = 0;
-				m_socks_buf[7] = 1;
-				// user id
-				m_socks_buf[8] = 'i';
-				m_socks_buf[9] = '2';
-				m_socks_buf[10] = 'p';
-				m_socks_buf[11] = 'd';
-				m_socks_buf[12] = 0;
-				reqsize += 13;
-				memcpy(m_socks_buf+ reqsize, host.c_str(), host.size());
-				reqsize += host.size();
-				m_socks_buf[++reqsize] = 0;
-				m_proxysock->async_write_some(boost::asio::buffer(m_socks_buf, reqsize), std::bind(&HTTPReqHandler::HandleSocksProxySendHandshake, this, std::placeholders::_1, std::placeholders::_2));
-			} else {
-				GenericProxyError("unsupported http method", m_HTTPMethod.c_str());
-			}
+
+			std::string host = m_RequestURL.host;
+			std::size_t reqsize = 0;
+			m_socks_buf[0] = '\x04';
+			m_socks_buf[1] = 1;
+			htobe16buf(m_socks_buf+2, port);
+			m_socks_buf[4] = 0;
+			m_socks_buf[5] = 0;
+			m_socks_buf[6] = 0;
+			m_socks_buf[7] = 1;
+			// user id
+			m_socks_buf[8] = 'i';
+			m_socks_buf[9] = '2';
+			m_socks_buf[10] = 'p';
+			m_socks_buf[11] = 'd';
+			m_socks_buf[12] = 0;
+			reqsize += 13;
+			memcpy(m_socks_buf+ reqsize, host.c_str(), host.size());
+			reqsize += host.size();
+			m_socks_buf[++reqsize] = 0;
+			boost::asio::async_write(*m_proxysock, boost::asio::buffer(m_socks_buf, reqsize), boost::asio::transfer_all(), std::bind(&HTTPReqHandler::HandleSocksProxySendHandshake, this, std::placeholders::_1, std::placeholders::_2));
 		} else GenericProxyError("cannot connect to upstream socks proxy", ec.message().c_str());
 	}
 
 	void HTTPReqHandler::HandleSocksProxySendHandshake(const boost::system::error_code & ec, std::size_t bytes_transferred)
 	{
+		LogPrint(eLogDebug, "HTTPProxy: upstream socks handshake sent");
 		if(ec) GenericProxyError("Cannot negotiate with socks proxy", ec.message().c_str());
 		else m_proxysock->async_read_some(boost::asio::buffer(m_socks_buf, 8), std::bind(&HTTPReqHandler::HandleSocksProxyReply, this, std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void HTTPReqHandler::HandoverToUpstreamProxy()
 	{
-			auto connection = std::make_shared<i2p::client::TCPIPPipe>(GetOwner(), m_proxysock, m_sock);
-			m_sock = nullptr;
-			m_proxysock = nullptr;
-			GetOwner()->AddHandler(connection);
-			connection->Start();
-			Terminate();
+		LogPrint(eLogDebug, "HTTPProxy: handover to socks proxy");
+		auto connection = std::make_shared<i2p::client::TCPIPPipe>(GetOwner(), m_proxysock, m_sock);
+		m_sock = nullptr;
+		m_proxysock = nullptr;
+		GetOwner()->AddHandler(connection);
+		connection->Start();
+		Terminate();
 	}
 	
 	void HTTPReqHandler::SocksProxySuccess()
 	{
-		i2p::http::HTTPRes res;
-		res.code = 200;
-		std::string response = res.to_string();
-		boost::asio::async_write(*m_sock, boost::asio::buffer(response), boost::asio::transfer_all(), [&] (const boost::system::error_code & ec, std::size_t transferred) {
-				if(ec) GenericProxyError("socks proxy error", ec.message().c_str());
-				else HandoverToUpstreamProxy();
-			});
+		if(m_ClientRequest.method == "CONNECT") {
+			m_ClientResponse.code = 200;
+			m_send_buf = m_ClientResponse.to_string();
+			boost::asio::async_write(*m_sock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&] (const boost::system::error_code & ec, std::size_t transferred) {
+					if(ec) GenericProxyError("socks proxy error", ec.message().c_str());
+					else HandoverToUpstreamProxy();
+				});
+		} else {
+			m_send_buf = m_ClientRequestBuffer.str();
+			LogPrint(eLogDebug, "HTTPProxy: send ", m_send_buf.size(), " bytes");
+			boost::asio::async_write(*m_proxysock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&](const boost::system::error_code & ec, std::size_t transferred) {
+					if(ec) GenericProxyError("failed to send request to upstream", ec.message().c_str());
+					else HandoverToUpstreamProxy();
+				});
+		}
 	}
 	
 	void HTTPReqHandler::HandleSocksProxyReply(const boost::system::error_code & ec, std::size_t bytes_transferred)
@@ -429,6 +448,7 @@ namespace proxy {
 				SocksProxySuccess();
 			} else {
 				std::stringstream ss;
+				ss << "error code: ";
 				ss << (int) m_socks_buf[1];
 				std::string msg = ss.str();
 				GenericProxyError("Socks Proxy error", msg.c_str());
