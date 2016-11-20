@@ -137,7 +137,7 @@ namespace client
 			volatile bool m_IsRunning;
 			std::thread * m_Thread;	
 			boost::asio::io_service m_Service;
-		boost::asio::io_service::work m_Work;
+			boost::asio::io_service::work m_Work;
 			mutable std::mutex m_RemoteLeaseSetsMutex;
 			std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
 			std::map<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> > m_LeaseSetRequests;
