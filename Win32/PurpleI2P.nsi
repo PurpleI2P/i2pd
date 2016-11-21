@@ -14,7 +14,7 @@ ShowInstDetails show
 !define URL "https://i2p.io"
 
 # MUI Symbol Definitions
-!define MUI_ICON "ictoopie.ico"
+!define MUI_ICON "mask.ico"
 #!define MUI_WELCOMEFINISHPAGE_BITMAP "../share/pixmaps/nsis-wizard.bmp"
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_RIGHT
