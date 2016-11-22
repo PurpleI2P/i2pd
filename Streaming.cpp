@@ -611,22 +611,19 @@ namespace stream
 				return;
 			}
 		}
-		if (!m_CurrentOutboundTunnel) // first message to send
+		if (!m_RoutingSession || !m_RoutingSession->GetOwner ()) // expired and detached
+			m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);			
+		if (!m_CurrentOutboundTunnel && m_RoutingSession) // first message to send
 		{
 			// try to get shared path first
-			if (!m_RoutingSession)
-				m_RoutingSession = m_LocalDestination.GetOwner ()->GetRoutingSession (m_RemoteLeaseSet, true);
-			if (m_RoutingSession)
-			{	
-				auto routingPath = m_RoutingSession->GetSharedRoutingPath ();
-				if (routingPath)
-				{
-					m_CurrentOutboundTunnel = routingPath->outboundTunnel;
-					m_CurrentRemoteLease = routingPath->remoteLease;
-					m_RTT = routingPath->rtt;
-					m_RTO = m_RTT*1.5; // TODO: implement it better
-				}
-			}	
+			auto routingPath = m_RoutingSession->GetSharedRoutingPath ();
+			if (routingPath)
+			{
+				m_CurrentOutboundTunnel = routingPath->outboundTunnel;
+				m_CurrentRemoteLease = routingPath->remoteLease;
+				m_RTT = routingPath->rtt;
+				m_RTO = m_RTT*1.5; // TODO: implement it better
+			}
 		}	
 		if (!m_CurrentOutboundTunnel || !m_CurrentOutboundTunnel->IsEstablished ())
 			m_CurrentOutboundTunnel = m_LocalDestination.GetOwner ()->GetTunnelPool ()->GetNewOutboundTunnel (m_CurrentOutboundTunnel);
@@ -900,13 +897,13 @@ namespace stream
 			if (packet->IsSYN () && !packet->GetSeqn ()) // new incoming stream
 			{	
 				uint32_t receiveStreamID = packet->GetReceiveStreamID ();
-		/*		if (receiveStreamID == m_LastIncomingReceiveStreamID) 
+				if (receiveStreamID == m_LastIncomingReceiveStreamID) 
 				{
 					// already pending
 					LogPrint(eLogWarning, "Streaming: Incoming streaming with rSID=", receiveStreamID, " already exists");
 					delete packet; // drop it, because previous should be connected
 					return;
-				}	*/
+				}	
 				auto incomingStream = CreateNewIncomingStream ();
 				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
