@@ -574,17 +574,17 @@ namespace transport
 			if (dataSize)
 			{
 				// new message
-				if (dataSize + 16U > NTCP_MAX_MESSAGE_SIZE - 2) // + 6 + padding
+				if (dataSize + 16U + 15U > NTCP_MAX_MESSAGE_SIZE - 2) // + 6 + padding
 				{
 					LogPrint (eLogError, "NTCP: data size ", dataSize, " exceeds max size");
 					return false;
 				}
-				auto msg = (dataSize + 16U) <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
-				m_NextMessage = msg;	
-				memcpy (m_NextMessage->buf, buf, 16);
+				m_NextMessage = (dataSize + 16U + 15U) <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
+				m_NextMessage->Align (16);
+				m_NextMessage->offset += 2; // size field
+				m_NextMessage->len = m_NextMessage->offset + dataSize; 
+				memcpy (m_NextMessage->GetBuffer () - 2, buf, 16);
 				m_NextMessageOffset = 16;
-				m_NextMessage->offset = 2; // size field
-				m_NextMessage->len = dataSize + 2; 
 			}	
 			else
 			{	
@@ -595,16 +595,16 @@ namespace transport
 		}	
 		else // message continues
 		{	
-			m_Decryption.Decrypt (encrypted, m_NextMessage->buf + m_NextMessageOffset);
+			m_Decryption.Decrypt (encrypted, m_NextMessage->GetBuffer () - 2 + m_NextMessageOffset);
 			m_NextMessageOffset += 16;
 		}		
 		
-		if (m_NextMessageOffset >= m_NextMessage->len + 4) // +checksum
+		if (m_NextMessageOffset >= m_NextMessage->GetLength () + 2 + 4) // +checksum
 		{	
 			// we have a complete I2NP message
 			uint8_t checksum[4];
-			htobe32buf (checksum, adler32 (adler32 (0, Z_NULL, 0), m_NextMessage->buf, m_NextMessageOffset - 4));
-			if (!memcmp (m_NextMessage->buf + m_NextMessageOffset - 4, checksum, 4))
+			htobe32buf (checksum, adler32 (adler32 (0, Z_NULL, 0), m_NextMessage->GetBuffer () - 2, m_NextMessageOffset - 4));
+			if (!memcmp (m_NextMessage->GetBuffer () - 2 + m_NextMessageOffset - 4, checksum, 4))
 			{
 				if (!m_NextMessage->IsExpired ())
 				{
