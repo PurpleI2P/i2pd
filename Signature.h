@@ -155,9 +155,10 @@ namespace crypto
 			ECDSAVerifier (const uint8_t * signingKey)
 			{
 				m_PublicKey = EC_KEY_new_by_curve_name (curve);
-				EC_KEY_set_public_key_affine_coordinates (m_PublicKey, 
-					BN_bin2bn (signingKey, keyLen/2, NULL),
-					BN_bin2bn (signingKey + keyLen/2, keyLen/2, NULL));  
+				BIGNUM * x = BN_bin2bn (signingKey, keyLen/2, NULL);
+				BIGNUM * y = BN_bin2bn (signingKey + keyLen/2, keyLen/2, NULL);
+				EC_KEY_set_public_key_affine_coordinates (m_PublicKey, x, y);
+				BN_free (x); BN_free (y);
 			}
 
 			~ECDSAVerifier ()
