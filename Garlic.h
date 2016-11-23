@@ -111,6 +111,9 @@ namespace garlic
 			std::shared_ptr<GarlicRoutingPath> GetSharedRoutingPath ();
 			void SetSharedRoutingPath (std::shared_ptr<GarlicRoutingPath> path);
 
+			const GarlicDestination * GetOwner () const { return m_Owner; }
+			void SetOwner (GarlicDestination * owner) { m_Owner = owner; }
+
 		private:
 
 			size_t CreateAESBlock (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg);
@@ -128,7 +131,7 @@ namespace garlic
 			i2p::crypto::AESKey m_SessionKey;
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
-			std::list<std::unique_ptr<UnconfirmedTags> > m_UnconfirmedTagsMsgs;	
+			std::map<uint32_t, std::unique_ptr<UnconfirmedTags> > m_UnconfirmedTagsMsgs; // msgID->tags	
 			
 			LeaseSetUpdateStatus m_LeaseSetUpdateStatus;
 			uint32_t m_LeaseSetUpdateMsgID;
@@ -192,6 +195,7 @@ namespace garlic
 			// incoming
 			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
 			// DeliveryStatus
+			std::mutex m_DeliveryStatusSessionsMutex;
 			std::map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
 			
 		public:

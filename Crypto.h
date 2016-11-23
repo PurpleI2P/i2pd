@@ -112,7 +112,9 @@ namespace crypto
 		
 			operator uint8_t * () { return m_Buf; };
 			operator const uint8_t * () const { return m_Buf; };
-
+			ChipherBlock * GetChipherBlock () { return (ChipherBlock *)m_Buf; };
+			const ChipherBlock * GetChipherBlock () const { return (const ChipherBlock *)m_Buf; };
+			
 		private:
 
 			uint8_t m_UnalignedBuffer[sz + 15]; // up to 15 bytes alignment
@@ -200,10 +202,10 @@ namespace crypto
 	{
 		public:
 	
-			CBCEncryption () { memset (m_LastBlock.buf, 0, 16); };
+			CBCEncryption () { memset ((uint8_t *)m_LastBlock, 0, 16); };
 
 			void SetKey (const AESKey& key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
-			void SetIV (const uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
+			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_LastBlock, iv, 16); }; // 16 bytes
 
 			void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			void Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
@@ -211,7 +213,7 @@ namespace crypto
 
 		private:
 
-			ChipherBlock m_LastBlock;
+			AESAlignedBuffer<16> m_LastBlock;
 			
 			ECBEncryption m_ECBEncryption;
 	};
@@ -220,10 +222,10 @@ namespace crypto
 	{
 		public:
 	
-			CBCDecryption () { memset (m_IV.buf, 0, 16); };
+			CBCDecryption () { memset ((uint8_t *)m_IV, 0, 16); };
 
 			void SetKey (const AESKey& key) { m_ECBDecryption.SetKey (key); }; // 32 bytes
-			void SetIV (const uint8_t * iv) { memcpy (m_IV.buf, iv, 16); }; // 16 bytes
+			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_IV, iv, 16); }; // 16 bytes
 
 			void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			void Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
@@ -231,7 +233,7 @@ namespace crypto
 
 		private:
 
-			ChipherBlock m_IV;
+			AESAlignedBuffer<16> m_IV;
 			ECBDecryption m_ECBDecryption;
 	};	
 
@@ -320,8 +322,6 @@ inline int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
 inline void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key)
 	{ *pub_key = dh->pub_key; *priv_key = dh->priv_key; }
 
-inline int EVP_PKEY_base_id(const EVP_PKEY *pkey)
-	{ return EVP_PKEY_type(pkey->type); }
 inline RSA *EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 	{ return pkey->pkey.rsa; }
 #endif

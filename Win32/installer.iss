@@ -12,6 +12,7 @@ UninstallDisplayIcon={app}\I2Pd.exe
 OutputDir=.
 LicenseFile=../LICENSE
 OutputBaseFilename=setup_{#I2Pd_AppName}_v{#I2Pd_ver}
+SetupIconFile=mask.ico
 InternalCompressLevel=ultra64
 Compression=lzma/ultra64
 SolidCompression=true

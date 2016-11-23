@@ -33,18 +33,21 @@ namespace i2p {
 namespace http {
 	const char *itoopieFavicon =
 		"data:image/png;base64,"
-		"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv"
-		"8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAYdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My4wOGVynO"
-		"EAAAIzSURBVDhPjZNdSFNhGMf3nm3n7OzMs+8JtfJGzdlgoPtoWBrkqc1OsLTMKEY3eZOQbbS6aBVYO"
-		"oO8CKSLXEulQtZNahAM9Cq6lS533UUaeDEEKcN/79x7kbQT/eDhfPB7/u/7Poej08JqtXoEQbhoMpmG"
-		"ZFn2stf/h8nEZ4aHue1SiWBlhSCV4n41NBifBINBjina8DyfzOUIVlcJtrYINjcJ3rw1oFAg4HnjHaZ"
-		"p4/Ppv8zPH0G5XKZNPZibO4lKpYJ8vgOqqv+uKMq/d9Hfz/0sFr3w+/3IZt2YnbWhszOAxUUv0mkCs9"
-		"ncyNT6hEL6dYBgY4Ngd5eger+zU7sODHA/mpubzUytj9FofLa0VGv4s9bWCCTJUGSaNvSzXT3stuHDM"
-		"rc3xEqF4N2CERciURyyHfgqSZKPqfuxUMyC+OKcL4YHyl28nDFAPdqDZMcQ7tPnSfURUt0jMBgMH1nL"
-		"fkRRDPvcLds3otfhbRTwasaE8b6He43VSrT3QW3tBT3iPdbyN3T7Ibsor988H8OxtiaMx2sB1aBbCRW"
-		"R1hbQhbqYXh+6QkaJn8DZyzF09x6HeiaOTC6NK9cSsFqkb3aH3cLU+tCAx9l8FoXPBUy9n8LgyCCmS9"
-		"MYez0Gm9P2iWna0GOcDp8KY2JhAsnbSQS6Ahh9OgrlklINeM40bWhAkBd4SLIEh8cBURLhOeiBIArVA"
-		"U4yTRvJItk5PRehQVFaYfpbt9PBtTmdziaXyyUzjaHT/QZBQuKHAA0UxAAAAABJRU5ErkJggg==";
+		"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACx"
+		"jwv8YQUAAAAJcEhZcwAALiIAAC4iAari3ZIAAAAHdElNRQfgCQsUNSZrkhi1AAAAGXRFWHRTb2Z0"
+		"d2FyZQBwYWludC5uZXQgNC4wLjEyQwRr7AAAAoJJREFUOE9jwAUqi4Q1oEwwcDTV1+5sETaBclGB"
+		"vb09C5QJB6kWpvFQJoOCeLC5kmjEHCgXE2SlyETLi3h6QrkM4VL+ssWSCZUgtopITLKqaOotRTEn"
+		"cbAkLqAkGtOqLBLVAWLXyWSVFkkmRiqLxuaqiWb/VBYJMAYrwgckJY25VEUzniqKhjU2y+RtCRSP"
+		"6lUXy/1jIBV5tlYxZUaFVMq2NInwIi9hO8fSfOEAqDZUoCwal6MulvOvyS7gi69K4j9zxZT/m0ps"
+		"/28ptvvvquXXryIa7QYMMdTwqi0WNtVi0GIDseXl7TnUxFKfnGlxAGp0+D8j2eH/8Ub7/9e7nf7X"
+		"+Af/B7rwt6pI0h0l0WhQADOC9DBkhSirpImHNVZKp24ukkyoshGLnN8d5fA/y13t/44Kq/8hlnL/"
+		"z7fZ/58f6vcxSNpbVUVFhV1RLNBVTsQzVYZPSwhsCAhkiIfpNMrkbO6TLf071Sfk/5ZSi/+7q6z/"
+		"P5ns+v9mj/P/CpuI/20y+aeNGYxZoVoYGmsF3aFMBAAZlCwftnF9ke3//bU2//fXWP8/UGv731Am"
+		"+V+DdNblSqnUYqhSTKAiYSOqJBrVqiaa+S3UNPr/gmyH/xuKXf63hnn/B8bIP0UxHfEyyeSNQKVM"
+		"EB1AEB2twhcTLp+gIBJUoyKasEpVJHmqskh8qryovUG/ffCHHRU2q/Tk/YuB6eGPsbExa7ZkpLu1"
+		"oLEcVDtuUCgV1w60rQzElpRUE1EVSX0BYidHiInXF4nagNhYQW60EF+ApH1ktni0A1SIITSUgVlZ"
+		"JHYnlIsfzJjIp9xZKswL5YKBHL+coKJoRDaUSzoozxHVrygQU4JykQADAwAT5b1NHtwZugAAAABJ"
+		"RU5ErkJggg==";
 
 	const char *cssStyles =
 		"<style>\r\n"
@@ -71,6 +74,7 @@ namespace http {
 	const char HTTP_PAGE_TRANSPORTS[] = "transports";
 	const char HTTP_PAGE_LOCAL_DESTINATIONS[] = "local_destinations";
 	const char HTTP_PAGE_LOCAL_DESTINATION[] = "local_destination";
+	const char HTTP_PAGE_I2CP_LOCAL_DESTINATION[] = "i2cp_local_destination";
 	const char HTTP_PAGE_SAM_SESSIONS[] = "sam_sessions";
 	const char HTTP_PAGE_SAM_SESSION[] = "sam_session";
 	const char HTTP_PAGE_I2P_TUNNELS[] = "i2p_tunnels";
@@ -86,7 +90,8 @@ namespace http {
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
-	void ShowUptime (std::stringstream& s, int seconds) {
+	static void ShowUptime (std::stringstream& s, int seconds) 
+	{
 		int num;
 
 		if ((num = seconds / 86400) > 0) {
@@ -104,7 +109,7 @@ namespace http {
 		s << seconds << " seconds";
 	}
 
-	void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, int bytes)
+	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, int bytes)
 	{
 		std::string state;
 		switch (eState) {
@@ -121,7 +126,7 @@ namespace http {
 		s << " " << (int) (bytes / 1024) << "&nbsp;KiB<br>\r\n";
 	}
 
-	void ShowPageHead (std::stringstream& s)
+	static void ShowPageHead (std::stringstream& s)
 	{
 		s <<
 			"<!DOCTYPE html>\r\n"
@@ -156,7 +161,7 @@ namespace http {
 			"<div class=right>";
 	}
 
-	void ShowPageTail (std::stringstream& s)
+	static void ShowPageTail (std::stringstream& s)
 	{
 		s <<
 			"</div></div>\r\n"
@@ -164,12 +169,12 @@ namespace http {
 			"</html>\r\n";
 	}
 
-	void ShowError(std::stringstream& s, const std::string& string)
+	static void ShowError(std::stringstream& s, const std::string& string)
 	{
 		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	void ShowStatus (std::stringstream& s)
+	static void ShowStatus (std::stringstream& s)
 	{
 		s << "<b>Uptime:</b> ";
 		ShowUptime(s, i2p::context.GetUptime ());
@@ -265,18 +270,75 @@ namespace http {
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
-	void ShowLocalDestinations (std::stringstream& s)
+	static void ShowLocalDestinations (std::stringstream& s)
 	{
 		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
-			auto ident = it.second->GetIdentHash ();; 
+			auto ident = it.second->GetIdentHash (); 
 			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
+
+		auto i2cpServer = i2p::client::context.GetI2CPServer ();
+		if (i2cpServer)
+		{
+			s << "<br><b>I2CP Local Destinations:</b><br>\r\n<br>\r\n";
+			for (auto& it: i2cpServer->GetSessions ())
+			{
+				auto dest = it.second->GetDestination ();
+				if (dest)
+				{	
+					auto ident = dest->GetIdentHash (); 
+					s << "<a href=\"/?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">"; 
+					s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
+				}	
+			}
+		}
 	}
 
-	void  ShowLocalDestination (std::stringstream& s, const std::string& b32)
+	static void ShowLeaseSetDestination (std::stringstream& s, std::shared_ptr<const i2p::client::LeaseSetDestination> dest)
+	{
+		s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
+		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
+		s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>\r\n";
+		if(dest->GetNumRemoteLeaseSets())
+		{
+			s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
+			for(auto& it: dest->GetLeaseSets ())
+				s << it.second->GetIdentHash ().ToBase32 () << "<br>\r\n";
+			s << "</p>\r\n</div>\r\n";
+		}
+		auto pool = dest->GetTunnelPool ();
+		if (pool)
+		{
+			s << "<b>Inbound tunnels:</b><br>\r\n";
+			for (auto & it : pool->GetInboundTunnels ()) {
+				it->Print(s);
+				if(it->LatencyIsKnown())
+					s << " ( " << it->GetMeanLatency() << "ms )";
+				ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
+			}
+			s << "<br>\r\n";
+			s << "<b>Outbound tunnels:</b><br>\r\n";
+			for (auto & it : pool->GetOutboundTunnels ()) {
+				it->Print(s);
+				if(it->LatencyIsKnown())
+					s << " ( " << it->GetMeanLatency() << "ms )";
+				ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
+			}
+		}
+		s << "<br>\r\n";
+		s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
+		for (const auto& it: dest->GetSessions ())
+		{
+			s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " ";
+			s << it.second->GetNumOutgoingTags () << "<br>" << std::endl;
+		}
+		s << "<br>" << std::endl;
+	}
+
+	static void  ShowLocalDestination (std::stringstream& s, const std::string& b32)
 	{
 		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
 		i2p::data::IdentHash ident;
@@ -284,55 +346,8 @@ namespace http {
 		auto dest = i2p::client::context.FindLocalDestination (ident);
 		if (dest)
 		{
-			s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
-			s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
-			s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>\r\n";
-			if(dest->GetNumRemoteLeaseSets())
-			{
-				s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
-				for(auto& it: dest->GetLeaseSets ())
-					s << it.second->GetIdentHash ().ToBase32 () << "<br>\r\n";
-				s << "</p>\r\n</div>\r\n";
-			}
-			auto pool = dest->GetTunnelPool ();
-			if (pool)
-			{
-				s << "<b>Inbound tunnels:</b><br>\r\n";
-				for (auto & it : pool->GetInboundTunnels ()) {
-					it->Print(s);
-					if(it->LatencyIsKnown())
-						s << " ( " << it->GetMeanLatency() << "ms )";
-					ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
-				}
-				s << "<br>\r\n";
-				s << "<b>Outbound tunnels:</b><br>\r\n";
-				for (auto & it : pool->GetOutboundTunnels ()) {
-					it->Print(s);
-					if(it->LatencyIsKnown())
-						s << " ( " << it->GetMeanLatency() << "ms )";
-					ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
-				}
-			}
-			s << "<br>\r\n";
-			s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
-			for (const auto& it: dest->GetSessions ())
-			{
-				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " ";
-				s << it.second->GetNumOutgoingTags () << "<br>" << std::endl;
-			}
-			s << "<br>" << std::endl;
-			// s << "<br>\r\n<b>Streams:</b><br>\r\n";
-			// for (auto it: dest->GetStreamingDestination ()->GetStreams ())
-			// {
-				// s << it.first << "->" << i2p::client::context.GetAddressBook ().ToAddress(it.second->GetRemoteIdentity ()) << " ";
-				// s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				// s << " [out:" << it.second->GetSendQueueSize () << "][in:" << it.second->GetReceiveQueueSize () << "]";
-				// s << "[buf:" << it.second->GetSendBufferSize () << "]";
-				// s << "[RTT:" << it.second->GetRTT () << "]";
-				// s << "[Window:" << it.second->GetWindowSize () << "]";
-				// s << "[Status:" << (int)it.second->GetStatus () << "]"; 
-				// s << "<br>\r\n"<< std::endl; 
-			// }
+			ShowLeaseSetDestination (s, dest);	
+			// show streams
 			s << "<br>\r\n<table><caption>Streams</caption><tr>";
 			s << "<th>StreamID</th>";
 			s << "<th>Destination</th>";
@@ -365,7 +380,23 @@ namespace http {
 		}
 	}
 
-	void ShowLeasesSets(std::stringstream& s)
+	static void  ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
+	{
+		auto i2cpServer = i2p::client::context.GetI2CPServer ();
+		if (i2cpServer)
+		{
+			s << "<b>I2CP Local Destination:</b><br>\r\n<br>\r\n";
+			auto it = i2cpServer->GetSessions ().find (std::stoi (id)); 
+			if (it != i2cpServer->GetSessions ().end ())
+				ShowLeaseSetDestination (s, it->second->GetDestination ());
+			else
+				ShowError(s, "I2CP session not found");	
+		}
+		else
+			ShowError(s, "I2CP is not enabled");
+	}
+
+	static void ShowLeasesSets(std::stringstream& s)
 	{
 		s << "<div id='leasesets'><b>LeaseSets (click on to show info):</b></div><br>\r\n";
 		int counter = 1;
@@ -398,7 +429,7 @@ namespace http {
 		// end for each lease set
 	}
 
-	void ShowTunnels (std::stringstream& s)
+	static void ShowTunnels (std::stringstream& s)
 	{
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
 
@@ -420,7 +451,7 @@ namespace http {
 		s << "<br>\r\n";
 	}
 
-	void ShowCommands (std::stringstream& s)
+	static void ShowCommands (std::stringstream& s)
 	{
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
@@ -442,7 +473,7 @@ namespace http {
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
 	}
 
-	void ShowTransitTunnels (std::stringstream& s)
+	static void ShowTransitTunnels (std::stringstream& s)
 	{
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
 		for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
@@ -457,7 +488,7 @@ namespace http {
 		}
 	}
 
-	void ShowTransports (std::stringstream& s)
+	static void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n<br>\r\n";
 		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
@@ -506,7 +537,7 @@ namespace http {
 		}
 	}
 
-	void ShowSAMSessions (std::stringstream& s)
+	static void ShowSAMSessions (std::stringstream& s)
 	{
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
@@ -521,7 +552,7 @@ namespace http {
 		}
 	}
 
-	void ShowSAMSession (std::stringstream& s, const std::string& id)
+	static void ShowSAMSession (std::stringstream& s, const std::string& id)
 	{
 		s << "<b>SAM Session:</b><br>\r\n<br>\r\n";
 		auto sam = i2p::client::context.GetSAMBridge ();
@@ -553,7 +584,7 @@ namespace http {
 		}
 	}
 
-	void ShowI2PTunnels (std::stringstream& s)
+	static void ShowI2PTunnels (std::stringstream& s)
 	{
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
@@ -743,6 +774,8 @@ namespace http {
 			ShowLocalDestinations (s);	
 		else if (page == HTTP_PAGE_LOCAL_DESTINATION)
 			ShowLocalDestination (s, params["b32"]);
+		else if (page == HTTP_PAGE_I2CP_LOCAL_DESTINATION)
+			ShowI2CPLocalDestination (s, params["i2cp_id"]);
 		else if (page == HTTP_PAGE_SAM_SESSIONS)
 			ShowSAMSessions (s);
 		else if (page == HTTP_PAGE_SAM_SESSION)

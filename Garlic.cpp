@@ -20,6 +20,7 @@ namespace garlic
 	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags, bool attachLeaseSet):
 		m_Owner (owner), m_Destination (destination), m_NumTags (numTags), 
 		m_LeaseSetUpdateStatus (attachLeaseSet ? eLeaseSetUpdated : eLeaseSetDoNotSend),
+		m_LeaseSetUpdateMsgID (0),
 		m_ElGamalEncryption (new i2p::crypto::ElGamalEncryption (destination->GetEncryptionPublicKey ()))
 	{
 		// create new session tags and session key
@@ -28,7 +29,7 @@ namespace garlic
 	}	
 
 	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
-		m_Owner (nullptr), m_Destination (nullptr), m_NumTags (1), m_LeaseSetUpdateStatus (eLeaseSetDoNotSend)
+		m_Owner (nullptr), m_Destination (nullptr), m_NumTags (1), m_LeaseSetUpdateStatus (eLeaseSetDoNotSend), m_LeaseSetUpdateMsgID (0)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
@@ -83,6 +84,7 @@ namespace garlic
 		if (msgID == m_LeaseSetUpdateMsgID)
 		{	
 			m_LeaseSetUpdateStatus = eLeaseSetUpToDate;
+			m_LeaseSetUpdateMsgID = 0;
 			LogPrint (eLogInfo, "Garlic: LeaseSet update confirmed");
 		}	
 		else
@@ -92,32 +94,22 @@ namespace garlic
 	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID) 
 	{ 
 		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
+		auto it = m_UnconfirmedTagsMsgs.find (msgID);
+		if (it != m_UnconfirmedTagsMsgs.end ())
 		{
-			auto& tags = *it;
-			if (tags->msgID == msgID)
-			{
-				if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
-				{	
-					for (int i = 0; i < tags->numTags; i++)
-						m_SessionTags.push_back (tags->sessionTags[i]);
-				}	
-				it = m_UnconfirmedTagsMsgs.erase (it);
+			auto& tags = it->second;
+			if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+			{	
+				for (int i = 0; i < tags->numTags; i++)
+					m_SessionTags.push_back (tags->sessionTags[i]);
 			}	
-			else if (ts >= tags->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
-			{
-				if (m_Owner)
-					m_Owner->RemoveDeliveryStatusSession (tags->msgID);
-				it = m_UnconfirmedTagsMsgs.erase (it);
-			}	
-			else 
-				++it;
+			m_UnconfirmedTagsMsgs.erase (it);
 		}
 	}
 
 	bool GarlicRoutingSession::CleanupExpiredTags ()
 	{
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_SessionTags.begin (); it != m_SessionTags.end ();)
 		{
 			if (ts >= it->creationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
@@ -126,6 +118,12 @@ namespace garlic
 				++it;
 		}
 		CleanupUnconfirmedTags ();
+		if (m_LeaseSetUpdateMsgID && ts*1000LL > m_LeaseSetSubmissionTime + LEASET_CONFIRMATION_TIMEOUT)
+		{
+			if (m_Owner)
+				m_Owner->RemoveDeliveryStatusSession (m_LeaseSetUpdateMsgID);
+			m_LeaseSetUpdateMsgID = 0;
+		} 	
 		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
  	}
 
@@ -136,10 +134,10 @@ namespace garlic
 		// delete expired unconfirmed tags
 		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
-			if (ts >= (*it)->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
+			if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_CONFIRMATION_TIMEOUT)
 			{
 				if (m_Owner)
-					m_Owner->RemoveDeliveryStatusSession ((*it)->msgID);
+					m_Owner->RemoveDeliveryStatusSession (it->first);
 				it = m_UnconfirmedTagsMsgs.erase (it);
 				ret = true;
 			}	
@@ -276,7 +274,7 @@ namespace garlic
 					if (newTags) // new tags created
 					{
 						newTags->msgID = msgID;
-						m_UnconfirmedTagsMsgs.emplace_back (newTags);
+						m_UnconfirmedTagsMsgs.insert (std::make_pair(msgID, std::unique_ptr<UnconfirmedTags>(newTags)));
 						newTags = nullptr; // got acquired
 					}	
 					m_Owner->DeliveryStatusSent (shared_from_this (), msgID);
@@ -287,6 +285,7 @@ namespace garlic
 			// attach LeaseSet
 			if (m_LeaseSetUpdateStatus == eLeaseSetUpdated) 
 			{
+				if (m_LeaseSetUpdateMsgID) m_Owner->RemoveDeliveryStatusSession (m_LeaseSetUpdateMsgID); // remove previous
 				m_LeaseSetUpdateStatus = eLeaseSetSubmitted;
 				m_LeaseSetUpdateMsgID = msgID;
 				m_LeaseSetSubmissionTime = ts;
@@ -625,41 +624,63 @@ namespace garlic
 			LogPrint (eLogDebug, "Garlic: ", numExpiredTags, " tags expired for ", GetIdentHash().ToBase64 ());
 
 		// outgoing
-		std::unique_lock<std::mutex> l(m_SessionsMutex);
-		for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
 		{
-			it->second->GetSharedRoutingPath (); // delete shared path if necessary
-			if (!it->second->CleanupExpiredTags ())
+			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			for (auto it = m_Sessions.begin (); it != m_Sessions.end ();)
 			{
-				LogPrint (eLogInfo, "Routing session to ", it->first.ToBase32 (), " deleted");
-				it = m_Sessions.erase (it);
+				it->second->GetSharedRoutingPath (); // delete shared path if necessary
+				if (!it->second->CleanupExpiredTags ())
+				{
+					LogPrint (eLogInfo, "Routing session to ", it->first.ToBase32 (), " deleted");
+					it->second->SetOwner (nullptr);
+					it = m_Sessions.erase (it);
+				}
+				else
+					++it;
 			}
-			else
-				++it;
 		}
+		// delivery status sessions
+		{	
+			std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
+			for (auto it = m_DeliveryStatusSessions.begin (); it != m_DeliveryStatusSessions.end (); )
+			{
+				if (it->second->GetOwner () != this)
+					it = m_DeliveryStatusSessions.erase (it);
+				else
+					++it;
+			}
+		}	
 	}
 
 	void GarlicDestination::RemoveDeliveryStatusSession (uint32_t msgID)
 	{
+		std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 		m_DeliveryStatusSessions.erase (msgID);
 	}
 
 	void GarlicDestination::DeliveryStatusSent (GarlicRoutingSessionPtr session, uint32_t msgID)
 	{
+		std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 		m_DeliveryStatusSessions[msgID] = session;
 	}
 
 	void GarlicDestination::HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		uint32_t msgID = bufbe32toh (msg->GetPayload ());
+		GarlicRoutingSessionPtr session;
 		{
+			std::unique_lock<std::mutex> l(m_DeliveryStatusSessionsMutex);
 			auto it = m_DeliveryStatusSessions.find (msgID);
 			if (it != m_DeliveryStatusSessions.end ())
 			{
-				it->second->MessageConfirmed (msgID);
+				session = it->second;
 				m_DeliveryStatusSessions.erase (it);
-				LogPrint (eLogDebug, "Garlic: message ", msgID, " acknowledged");
 			}
+		}
+		if (session)
+		{
+			session->MessageConfirmed (msgID);
+			LogPrint (eLogDebug, "Garlic: message ", msgID, " acknowledged");
 		}
 	}
 

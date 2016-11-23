@@ -232,7 +232,7 @@ namespace tunnel
 		for (int i = num; i < m_NumInboundTunnels; i++)
 			CreateInboundTunnel ();
 
-		if (num > 0 && m_NumInboundHops <= 0 && m_LocalDestination) // zero hops IB
+		if (num < m_NumInboundTunnels && m_NumInboundHops <= 0 && m_LocalDestination) // zero hops IB
 			m_LocalDestination->SetLeaseSetUpdated (); // update LeaseSet immediately
 	}
 
