@@ -163,7 +163,7 @@ namespace config {
 	reseed.add_options()
 	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")
 		("reseed.floodfill", value<std::string>()->default_value(""), "Path to router info of floodfill to reseed from")
-	  ("reseed.file", value<std::string>()->default_value(""),  "Path to .su3 file")
+	  ("reseed.file", value<std::string>()->default_value(""),  "Path to local .su3 file or HTTPS URL to reseed from")
 	  ("reseed.urls", value<std::string>()->default_value(
 		"https://reseed.i2p-projekt.de/,"
 		"https://i2p.mooo.com/netDb/,"

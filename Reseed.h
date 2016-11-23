@@ -29,7 +29,7 @@ namespace data
 
 			void LoadCertificate (const std::string& filename);
 						
-			int ReseedFromSU3 (const std::string& host);
+			int ReseedFromSU3 (const std::string& url);
 			int ProcessSU3File (const char * filename);	
 			int ProcessSU3Stream (std::istream& s);	
 
