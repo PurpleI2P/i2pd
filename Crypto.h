@@ -112,7 +112,9 @@ namespace crypto
 		
 			operator uint8_t * () { return m_Buf; };
 			operator const uint8_t * () const { return m_Buf; };
-
+			ChipherBlock * GetChipherBlock () { return (ChipherBlock *)m_Buf; };
+			const ChipherBlock * GetChipherBlock () const { return (const ChipherBlock *)m_Buf; };
+			
 		private:
 
 			uint8_t m_UnalignedBuffer[sz + 15]; // up to 15 bytes alignment
@@ -200,10 +202,10 @@ namespace crypto
 	{
 		public:
 	
-			CBCEncryption () { memset (m_LastBlock.buf, 0, 16); };
+			CBCEncryption () { memset ((uint8_t *)m_LastBlock, 0, 16); };
 
 			void SetKey (const AESKey& key) { m_ECBEncryption.SetKey (key); }; // 32 bytes
-			void SetIV (const uint8_t * iv) { memcpy (m_LastBlock.buf, iv, 16); }; // 16 bytes
+			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_LastBlock, iv, 16); }; // 16 bytes
 
 			void Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			void Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
@@ -211,7 +213,7 @@ namespace crypto
 
 		private:
 
-			ChipherBlock m_LastBlock;
+			AESAlignedBuffer<16> m_LastBlock;
 			
 			ECBEncryption m_ECBEncryption;
 	};
@@ -220,10 +222,10 @@ namespace crypto
 	{
 		public:
 	
-			CBCDecryption () { memset (m_IV.buf, 0, 16); };
+			CBCDecryption () { memset ((uint8_t *)m_IV, 0, 16); };
 
 			void SetKey (const AESKey& key) { m_ECBDecryption.SetKey (key); }; // 32 bytes
-			void SetIV (const uint8_t * iv) { memcpy (m_IV.buf, iv, 16); }; // 16 bytes
+			void SetIV (const uint8_t * iv) { memcpy ((uint8_t *)m_IV, iv, 16); }; // 16 bytes
 
 			void Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out);
 			void Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
@@ -231,7 +233,7 @@ namespace crypto
 
 		private:
 
-			ChipherBlock m_IV;
+			AESAlignedBuffer<16> m_IV;
 			ECBDecryption m_ECBDecryption;
 	};	
 
@@ -300,7 +302,11 @@ inline void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **p
 	{ *pr = sig->r; *ps = sig->s; }
 
 inline int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s)
-	{ sig->r = r; sig->s = s; return 1; }
+	{ 
+		if (sig->r) BN_free (sig->r);
+		if (sig->s) BN_free (sig->s);
+		sig->r = r; sig->s = s; return 1; 
+	}
 inline void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps)
 	{ *pr = sig->r; *ps = sig->s; }
 

@@ -595,16 +595,16 @@ namespace crypto
 		 	"jnz 1b \n"	 	
 		 	"movups	%%xmm1, (%[iv]) \n"
 			: 
-			: [iv]"r"(&m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()), 
+			: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()), 
 			  [in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
 			: "%xmm0", "%xmm1", "cc", "memory"
 		); 
 #else		
 		for (int i = 0; i < numBlocks; i++)
 		{
-			m_LastBlock ^= in[i];
-			m_ECBEncryption.Encrypt (&m_LastBlock, &m_LastBlock);
-			out[i] = m_LastBlock;
+			*m_LastBlock.GetChipherBlock () ^= in[i];
+			m_ECBEncryption.Encrypt (m_LastBlock.GetChipherBlock (), m_LastBlock.GetChipherBlock ());
+			out[i] = *m_LastBlock.GetChipherBlock ();
 		}
 #endif		
 	}
@@ -629,7 +629,7 @@ namespace crypto
 			"movups	%%xmm0, (%[out]) \n"
 			"movups	%%xmm0, (%[iv]) \n"
 			: 
-			: [iv]"r"(&m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()), 
+			: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()), 
 			  [in]"r"(in), [out]"r"(out)
 			: "%xmm0", "%xmm1", "memory"
 		);		
@@ -657,7 +657,7 @@ namespace crypto
 		 	"jnz 1b \n"	 	
 		 	"movups	%%xmm1, (%[iv]) \n"
 			: 
-			: [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()), 
+			: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()), 
 			  [in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
 			: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
 		); 
@@ -666,8 +666,8 @@ namespace crypto
 		{
 			ChipherBlock tmp = in[i];
 			m_ECBDecryption.Decrypt (in + i, out + i);
-			out[i] ^= m_IV;
-			m_IV = tmp;
+			out[i] ^= *m_IV.GetChipherBlock ();
+			*m_IV.GetChipherBlock () = tmp;
 		}
 #endif
 	}
@@ -691,7 +691,7 @@ namespace crypto
 			"pxor %%xmm1, %%xmm0 \n"
 		 	"movups	%%xmm0, (%[out]) \n"	
 			: 
-			: [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()), 
+			: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()), 
 			  [in]"r"(in), [out]"r"(out)
 			: "%xmm0", "%xmm1", "memory"
 		);
