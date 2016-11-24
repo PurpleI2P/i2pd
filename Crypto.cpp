@@ -308,12 +308,12 @@ namespace crypto
 		BN_free (b1);
 	}
 			
-	void ElGamalEncryption::Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding) const
+	void ElGamalEncryption::Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) const
 	{
 		// create m
 		uint8_t m[255];
 		m[0] = 0xFF;
-		memcpy (m+33, data, len);
+		memcpy (m+33, data, 222);
 		SHA256 (m+33, 222, m+1);
 		// calculate b = b1*m mod p
 		BIGNUM * b = BN_new ();

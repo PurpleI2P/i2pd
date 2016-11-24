@@ -188,7 +188,7 @@ namespace garlic
 			RAND_bytes (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(elGamal.preIV, 32, iv); 
-			m_ElGamalEncryption->Encrypt ((uint8_t *)&elGamal, sizeof(elGamal), buf, true);			
+			m_ElGamalEncryption->Encrypt ((uint8_t *)&elGamal, buf, true);			
 			m_Encryption.SetIV (iv);
 			buf += 514;
 			len += 514;	
