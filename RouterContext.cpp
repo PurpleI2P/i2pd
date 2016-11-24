@@ -74,6 +74,22 @@ namespace i2p
 			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
 			routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
+
+		std::string ifname4; i2p::config::GetOption("ifname4", ifname4);
+		if(ifname4.size())
+		{
+			std::string host = i2p::util::net::GetInterfaceAddress(ifname4, false).to_string();
+			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash());
+			routerInfo.AddNTCPAddress (host.c_str(), port);
+		}
+		std::string ifname6; i2p::config::GetOption("ifname6", ifname6);
+		if (ifname6.size())
+		{
+			std::string host = i2p::util::net::GetInterfaceAddress(ifname6, true).to_string();
+			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash());
+			routerInfo.AddNTCPAddress (host.c_str(), port);	
+		}
+		
 		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
         routerInfo.SetProperty ("netId", std::to_string (m_NetID));
