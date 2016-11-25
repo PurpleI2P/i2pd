@@ -54,7 +54,7 @@ namespace crypto
 			ElGamalEncryption (const uint8_t * key);
 			~ElGamalEncryption ();
 			
-			void Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding = false) const;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false) const;
 
 		private:
 
