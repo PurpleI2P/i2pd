@@ -700,13 +700,20 @@ namespace client
 		{
 			m_ReadyChecker.cancel();
 			m_StreamingDestination->Stop ();
+			m_StreamingDestination->SetOwner (nullptr);
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
+			{	
 				it.second->Stop ();
-      if(m_DatagramDestination)
-        delete m_DatagramDestination;
-      m_DatagramDestination = nullptr;
-  		return true;
+				it.second->SetOwner (nullptr);
+			}
+			m_StreamingDestinationsByPorts.clear ();
+			if (m_DatagramDestination)
+			{	
+				delete m_DatagramDestination;
+				m_DatagramDestination = nullptr;
+			}	
+		  	return true;
 		}
 		else
 			return false;
