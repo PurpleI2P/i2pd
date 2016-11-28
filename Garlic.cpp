@@ -392,7 +392,6 @@ namespace garlic
 	
 	GarlicDestination::~GarlicDestination ()
 	{
-		LogPrint (eLogInfo, "Garlic: destination destroyed");
 	}
 
 	void GarlicDestination::AddSessionKey (const uint8_t * key, const uint8_t * tag)

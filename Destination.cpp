@@ -87,8 +87,6 @@ namespace client
 			Stop ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
-		for (auto& it: m_LeaseSetRequests)
-			it.second->Complete (nullptr);
 	}	
 
 	void LeaseSetDestination::Run ()
@@ -132,6 +130,13 @@ namespace client
 			m_PublishConfirmationTimer.cancel ();
 			m_PublishVerificationTimer.cancel ();
 			
+			for (auto& it: m_LeaseSetRequests)
+			{
+				it.second->Complete (nullptr);
+				it.second->requestTimeoutTimer.cancel ();
+			}
+			m_LeaseSetRequests.clear ();			
+
 			m_IsRunning = false;
 			if (m_Pool)
 			{	
