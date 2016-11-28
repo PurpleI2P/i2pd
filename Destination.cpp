@@ -13,7 +13,7 @@ namespace i2p
 namespace client
 {
 	LeaseSetDestination::LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params):
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), m_IsPublic (isPublic), 
+		m_IsRunning (false), m_Thread (nullptr), m_IsPublic (isPublic), 
 		m_PublishReplyToken (0), m_PublishConfirmationTimer (m_Service), 
 		m_PublishVerificationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
@@ -87,6 +87,8 @@ namespace client
 			Stop ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
+		for (auto& it: m_LeaseSetRequests)
+			it.second->Complete (nullptr);
 	}	
 
 	void LeaseSetDestination::Run ()
@@ -110,12 +112,12 @@ namespace client
 		{	
 			m_IsRunning = true;
 			m_Pool->SetLocalDestination (shared_from_this ());
-			m_Pool->SetActive (true);			
-			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
-			
+			m_Pool->SetActive (true);	
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
-				shared_from_this (), std::placeholders::_1));
+				shared_from_this (), std::placeholders::_1));		
+			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
+			
 			return true;
 		}	
 		else
@@ -129,13 +131,6 @@ namespace client
 			m_CleanupTimer.cancel ();
 			m_PublishConfirmationTimer.cancel ();
 			m_PublishVerificationTimer.cancel ();
-
-			for (auto& it: m_LeaseSetRequests)
-			{	
-				it.second->Complete (nullptr);
-				it.second->requestTimeoutTimer.cancel ();
-			}	
-			m_LeaseSetRequests.clear ();
 			
 			m_IsRunning = false;
 			if (m_Pool)
