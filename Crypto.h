@@ -54,7 +54,7 @@ namespace crypto
 			ElGamalEncryption (const uint8_t * key);
 			~ElGamalEncryption ();
 			
-			void Encrypt (const uint8_t * data, int len, uint8_t * encrypted, bool zeroPadding = false) const;
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false) const;
 
 		private:
 
@@ -302,7 +302,11 @@ inline void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **p
 	{ *pr = sig->r; *ps = sig->s; }
 
 inline int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s)
-	{ sig->r = r; sig->s = s; return 1; }
+	{ 
+		if (sig->r) BN_free (sig->r);
+		if (sig->s) BN_free (sig->s);
+		sig->r = r; sig->s = s; return 1; 
+	}
 inline void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps)
 	{ *pr = sig->r; *ps = sig->s; }
 

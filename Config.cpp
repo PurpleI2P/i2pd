@@ -41,6 +41,8 @@ namespace config {
 	  ("datadir",   value<std::string>()->default_value(""),     "Path to storage of i2pd data (RI, keys, peer profiles, ...)")
       ("host",      value<std::string>()->default_value("0.0.0.0"),     "External IP")
       ("ifname",    value<std::string>()->default_value(""), "Network interface to bind to")
+			("ifname4",   value<std::string>()->default_value(""), "Network interface to bind to for ipv4")
+			("ifname6",   value<std::string>()->default_value(""), "Network interface to bind to for ipv6")
       ("nat",       value<bool>()->zero_tokens()->default_value(true), "Should we assume we are behind NAT?")
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv4",      value<bool>()->zero_tokens()->default_value(true),  "Enable communication through ipv4")
@@ -59,7 +61,7 @@ namespace config {
       ("close", value<std::string>()->default_value("ask"), "Action on close: minimize, exit, ask") // TODO: add custom validator or something
 #endif
       ;
-
+		
     options_description limits("Limits options");
     limits.add_options()
       ("limits.coresize",         value<uint32_t>()->default_value(0),    "Maximum size of corefile in Kb (0 - use system limit)")
@@ -192,7 +194,7 @@ namespace config {
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
 			("trust.routers", value<std::string>()->default_value(""), "Only Connect to these routers")
       ("trust.hidden", value<bool>()->default_value(false), "Should we hide our router from other routers?");
-
+		
     options_description websocket("Websocket Options");
     websocket.add_options()
       ("websockets.enabled", value<bool>()->default_value(false), "enable websocket server")

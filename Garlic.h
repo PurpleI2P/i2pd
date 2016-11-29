@@ -156,6 +156,7 @@ namespace garlic
 			GarlicDestination (): m_NumTags (32) {}; // 32 tags by default
 			~GarlicDestination ();
 
+			void CleanUp ();
 			void SetNumTags (int numTags) { m_NumTags = numTags; };		
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);	
 			void CleanupExpiredTags ();
