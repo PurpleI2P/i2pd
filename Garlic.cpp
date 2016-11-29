@@ -394,6 +394,12 @@ namespace garlic
 	{
 	}
 
+	void GarlicDestination::CleanUp ()
+	{		
+		m_Sessions.clear ();
+		m_DeliveryStatusSessions.clear ();
+		m_Tags.clear ();
+	}	
 	void GarlicDestination::AddSessionKey (const uint8_t * key, const uint8_t * tag)
 	{
 		if (key)

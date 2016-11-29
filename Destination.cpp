@@ -150,6 +150,7 @@ namespace client
 				delete m_Thread;
 				m_Thread = 0;
 			}	
+			CleanUp (); // GarlicDestination
 			return true;
 		}	
 		else
