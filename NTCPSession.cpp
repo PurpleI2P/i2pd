@@ -951,15 +951,28 @@ namespace transport
 	{
 		LogPrint (eLogDebug, "NTCP: Connecting to ", address ,":",  port);
 		m_Service.post([=]()
-		{           
+		{       
 			if (this->AddNTCPSession (conn))
+			{
+				auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
+				timer->expires_from_now (boost::posix_time::seconds(NTCP_CONNECT_TIMEOUT)); 
+				timer->async_wait ([conn](const boost::system::error_code& ecode)
+					{
+						if (ecode != boost::asio::error::operation_aborted)
+						{
+							LogPrint (eLogError, "NTCP: Not connected in ", NTCP_CONNECT_TIMEOUT, " seconds");
+							conn->Terminate ();
+						}
+					});   
 				conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), 
-					std::bind (&NTCPServer::HandleConnect, this, std::placeholders::_1, conn));	
+					std::bind (&NTCPServer::HandleConnect, this, std::placeholders::_1, conn, timer));
+			}	
 		});	
 	}
 
-	void NTCPServer::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn)
+	void NTCPServer::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer)
 	{
+		timer->cancel ();	
 		if (ecode)
         {
 			LogPrint (eLogError, "NTCP: Connect error ", ecode.message ());
