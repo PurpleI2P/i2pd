@@ -207,8 +207,12 @@ namespace transport
 		}
 		else
 		{	
-			LogPrint (eLogError, "SSU: receive error: ", ecode.message ());
 			delete packet;
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				LogPrint (eLogError, "SSU: receive error: ", ecode.message ());
+				Receive ();
+			}
 		}	
 	}
 
@@ -234,8 +238,12 @@ namespace transport
 		}
 		else
 		{	
-			LogPrint (eLogError, "SSU: v6 receive error: ", ecode.message ());
 			delete packet;
+			if (ecode != boost::asio::error::operation_aborted)
+			{
+				LogPrint (eLogError, "SSU: v6 receive error: ", ecode.message ());
+				ReceiveV6 ();
+			}
 		}	
 	}
 
