@@ -13,7 +13,7 @@ namespace i2p
 namespace client
 {
 	LeaseSetDestination::LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params):
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), m_IsPublic (isPublic), 
+		m_IsRunning (false), m_Thread (nullptr), m_IsPublic (isPublic), 
 		m_PublishReplyToken (0), m_PublishConfirmationTimer (m_Service), 
 		m_PublishVerificationTimer (m_Service), m_CleanupTimer (m_Service)
 	{
@@ -85,9 +85,6 @@ namespace client
 	{
 		if (m_IsRunning)	
 			Stop ();
-		for (auto& it: m_LeaseSetRequests)
-			it.second->Complete (nullptr);
-		m_LeaseSetRequests.clear ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
 	}	
@@ -113,12 +110,12 @@ namespace client
 		{	
 			m_IsRunning = true;
 			m_Pool->SetLocalDestination (shared_from_this ());
-			m_Pool->SetActive (true);			
-			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
-			
+			m_Pool->SetActive (true);	
 			m_CleanupTimer.expires_from_now (boost::posix_time::minutes (DESTINATION_CLEANUP_TIMEOUT));
 			m_CleanupTimer.async_wait (std::bind (&LeaseSetDestination::HandleCleanupTimer,
-				shared_from_this (), std::placeholders::_1));
+				shared_from_this (), std::placeholders::_1));		
+			m_Thread = new std::thread (std::bind (&LeaseSetDestination::Run, shared_from_this ()));
+			
 			return true;
 		}	
 		else
@@ -132,6 +129,14 @@ namespace client
 			m_CleanupTimer.cancel ();
 			m_PublishConfirmationTimer.cancel ();
 			m_PublishVerificationTimer.cancel ();
+			
+			for (auto& it: m_LeaseSetRequests)
+			{
+				it.second->Complete (nullptr);
+				it.second->requestTimeoutTimer.cancel ();
+			}
+			m_LeaseSetRequests.clear ();			
+
 			m_IsRunning = false;
 			if (m_Pool)
 			{	
@@ -145,6 +150,7 @@ namespace client
 				delete m_Thread;
 				m_Thread = 0;
 			}	
+			CleanUp (); // GarlicDestination
 			return true;
 		}	
 		else
@@ -700,13 +706,20 @@ namespace client
 		{
 			m_ReadyChecker.cancel();
 			m_StreamingDestination->Stop ();
+			m_StreamingDestination->SetOwner (nullptr);
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
+			{	
 				it.second->Stop ();
-      if(m_DatagramDestination)
-        delete m_DatagramDestination;
-      m_DatagramDestination = nullptr;
-  		return true;
+				it.second->SetOwner (nullptr);
+			}
+			m_StreamingDestinationsByPorts.clear ();
+			if (m_DatagramDestination)
+			{	
+				delete m_DatagramDestination;
+				m_DatagramDestination = nullptr;
+			}	
+		  	return true;
 		}
 		else
 			return false;

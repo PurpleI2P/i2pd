@@ -64,12 +64,10 @@ You will need a compiler and other tools that could be installed with `build-ess
 Also you will need a bunch of development libraries:
 
 	sudo apt-get install \
-	    libboost-chrono-dev \
 	    libboost-date-time-dev \
 	    libboost-filesystem-dev \
 	    libboost-program-options-dev \
 	    libboost-system-dev \
-	    libboost-thread-dev \
 	    libssl-dev
 
 If you need UPnP support miniupnpc development library should be installed (don't forget to rerun CMake with needed option):
