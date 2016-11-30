@@ -803,6 +803,12 @@ namespace transport
 		
 	void NTCPServer::Stop ()
 	{	
+		{
+			// we have to copy it because Terminate changes m_NTCPSessions
+			auto ntcpSessions = m_NTCPSessions; 
+			for (auto& it: ntcpSessions)
+				it.second->Terminate ();
+		}	 
 		m_NTCPSessions.clear ();
 
 		if (m_IsRunning)
