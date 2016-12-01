@@ -589,7 +589,8 @@ namespace transport
 			else
 			{	
 				// timestamp
-				LogPrint (eLogDebug, "NTCP: Timestamp");
+				int diff = (int)bufbe32toh (buf + 2) - (int)i2p::util::GetSecondsSinceEpoch ();
+				LogPrint (eLogInfo, "NTCP: Timestamp. Time difference ", diff, " seconds");
 				return true;
 			}	
 		}	
@@ -650,7 +651,7 @@ namespace transport
 			sendBuffer = m_TimeSyncBuffer;
 			len = 4;
 			htobuf16(sendBuffer, 0);
-			htobe32buf (sendBuffer + 2, time (0));
+			htobe32buf (sendBuffer + 2, i2p::util::GetSecondsSinceEpoch ());
 		}	
 		int rem = (len + 6) & 0x0F; // %16
 		int padding = 0;
@@ -966,7 +967,7 @@ namespace transport
 					{
 						if (ecode != boost::asio::error::operation_aborted)
 						{
-							LogPrint (eLogError, "NTCP: Not connected in ", NTCP_CONNECT_TIMEOUT, " seconds");
+							LogPrint (eLogInfo, "NTCP: Not connected in ", NTCP_CONNECT_TIMEOUT, " seconds");
 							conn->Terminate ();
 						}
 					});   
@@ -981,7 +982,7 @@ namespace transport
 		timer->cancel ();	
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Connect error ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: Connect error ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 			conn->Terminate ();
