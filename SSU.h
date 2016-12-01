@@ -68,6 +68,8 @@ namespace transport
       
 		private:
 
+			void OpenSocket ();
+			void OpenSocketV6 ();
 			void Run ();
 			void RunV6 ();
 			void RunReceivers ();

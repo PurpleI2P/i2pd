@@ -20,11 +20,7 @@ namespace transport
 		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
 		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)	
 	{
-		m_SocketV6.open (boost::asio::ip::udp::v6());
-		m_SocketV6.set_option (boost::asio::ip::v6_only (true));
-		m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-		m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (65535));
-		m_SocketV6.bind (m_EndpointV6);
+		OpenSocketV6 ();
 	}
 	
 	SSUServer::SSUServer (int port):
@@ -32,27 +28,36 @@ namespace transport
 		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr),
 		m_Work (m_Service), m_WorkV6 (m_ServiceV6), m_ReceiversWork (m_ReceiversService), 
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port), 
-		m_Socket (m_ReceiversService, m_Endpoint), m_SocketV6 (m_ReceiversService), 
+		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversService), 
 		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
 		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)	
 	{
-		
-		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		OpenSocket ();
 		if (context.SupportsV6 ())
-		{
-			m_SocketV6.open (boost::asio::ip::udp::v6());
-			m_SocketV6.set_option (boost::asio::ip::v6_only (true));
-			m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-			m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (65535));
-			m_SocketV6.bind (m_EndpointV6);
-		}
+			OpenSocketV6 ();
 	}
 	
 	SSUServer::~SSUServer ()
 	{
 	}
 
+	void SSUServer::OpenSocket ()
+	{
+		m_Socket.open (boost::asio::ip::udp::v4());
+		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
+		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		m_Socket.bind (m_Endpoint);
+	}
+		
+	void SSUServer::OpenSocketV6 ()
+	{
+		m_SocketV6.open (boost::asio::ip::udp::v6());
+		m_SocketV6.set_option (boost::asio::ip::v6_only (true));
+		m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (65535));
+		m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		m_SocketV6.bind (m_EndpointV6);
+	}	
+		
 	void SSUServer::Start ()
 	{
 		m_IsRunning = true;
@@ -211,6 +216,8 @@ namespace transport
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU: receive error: ", ecode.message ());
+				m_Socket.close ();
+				OpenSocket ();
 				Receive ();
 			}
 		}	
@@ -242,6 +249,8 @@ namespace transport
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU: v6 receive error: ", ecode.message ());
+				m_SocketV6.close ();
+				OpenSocketV6 ();
 				ReceiveV6 ();
 			}
 		}	
