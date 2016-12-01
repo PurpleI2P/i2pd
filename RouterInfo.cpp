@@ -256,7 +256,10 @@ namespace data
 			}	
 			if (isValidAddress)
 			{
-				addresses->push_back(std::make_shared<Address>(address));
+				if (supportedTransports & eNTCPV6) // ipv6 NTCP ?
+					addresses->push_front(std::make_shared<Address>(address)); // ipv6 has priority over ipv4
+				else	
+					addresses->push_back(std::make_shared<Address>(address));
 				m_SupportedTransports |= supportedTransports;
 			}
 		}	
