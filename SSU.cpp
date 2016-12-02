@@ -342,9 +342,9 @@ namespace transport
 			return nullptr;
 	}
 	
-	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest)
+	void SSUServer::CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest, bool v4only)
 	{
-		auto address = router->GetSSUAddress (!context.SupportsV6 ());
+		auto address = router->GetSSUAddress (v4only || !context.SupportsV6 ());
 		if (address)
 			CreateSession (router, address->host, address->port, peerTest);
 		else
