@@ -87,6 +87,8 @@ namespace client
 			Stop ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
+		for (auto& it: m_LeaseSetRequests)
+			it.second->Complete (nullptr);
 	}	
 
 	void LeaseSetDestination::Run ()
@@ -128,14 +130,7 @@ namespace client
 		{	
 			m_CleanupTimer.cancel ();
 			m_PublishConfirmationTimer.cancel ();
-			m_PublishVerificationTimer.cancel ();
-			
-			for (auto& it: m_LeaseSetRequests)
-			{
-				it.second->Complete (nullptr);
-				it.second->requestTimeoutTimer.cancel ();
-			}
-			m_LeaseSetRequests.clear ();			
+			m_PublishVerificationTimer.cancel ();		
 
 			m_IsRunning = false;
 			if (m_Pool)
@@ -706,12 +701,12 @@ namespace client
 		{
 			m_ReadyChecker.cancel();
 			m_StreamingDestination->Stop ();
-			m_StreamingDestination->SetOwner (nullptr);
+			//m_StreamingDestination->SetOwner (nullptr);
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
 			{	
 				it.second->Stop ();
-				it.second->SetOwner (nullptr);
+				//it.second->SetOwner (nullptr);
 			}
 			m_StreamingDestinationsByPorts.clear ();
 			if (m_DatagramDestination)
