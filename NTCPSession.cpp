@@ -537,11 +537,11 @@ namespace transport
 					{	
 						boost::system::error_code ec;
 						size_t moreBytes = m_Socket.available(ec);
-						if (moreBytes)
+						if (moreBytes && !ec)
 						{
 							if (moreBytes > NTCP_BUFFER_SIZE - m_ReceiveBufferOffset)
 								moreBytes = NTCP_BUFFER_SIZE - m_ReceiveBufferOffset;
-							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes));
+							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes), ec);
 							if (ec)
 							{
 								LogPrint (eLogInfo, "NTCP: Read more bytes error: ", ec.message ());
