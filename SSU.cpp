@@ -199,13 +199,26 @@ namespace transport
 
 			boost::system::error_code ec;
 			size_t moreBytes = m_Socket.available(ec);
-			while (moreBytes && packets.size () < 25)
-			{
-				packet = new SSUPacket ();
-				packet->len = m_Socket.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from);
-				packets.push_back (packet);
-				moreBytes = m_Socket.available();
-			}
+			if (!ec)
+			{	
+				while (moreBytes && packets.size () < 25)
+				{
+					packet = new SSUPacket ();
+					packet->len = m_Socket.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from, 0, ec);
+					if (!ec)
+					{	
+						packets.push_back (packet);
+						moreBytes = m_Socket.available(ec);
+						if (ec) break;
+					}
+					else
+					{
+						LogPrint (eLogError, "SSU: receive_from error: ", ec.message ());
+						delete packet;
+						break;
+					}	
+				}
+			}	
 
 			m_Service.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, &m_Sessions));
 			Receive ();
@@ -231,15 +244,29 @@ namespace transport
 			std::vector<SSUPacket *> packets;
 			packets.push_back (packet);
 
-			size_t moreBytes = m_SocketV6.available ();
-			while (moreBytes && packets.size () < 25)
+			boost::system::error_code ec;
+			size_t moreBytes = m_SocketV6.available (ec);
+			if (!ec)
 			{
-				packet = new SSUPacket ();
-				packet->len = m_SocketV6.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from);
-				packets.push_back (packet);
-				moreBytes = m_SocketV6.available();
+				while (moreBytes && packets.size () < 25)
+				{
+					packet = new SSUPacket ();
+					packet->len = m_SocketV6.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from, 0, ec);
+					if (!ec)
+					{
+						packets.push_back (packet);
+						moreBytes = m_SocketV6.available(ec);
+						if (ec) break;
+					}
+					else
+					{
+						LogPrint (eLogError, "SSU: v6 receive_from error: ", ec.message ());
+						delete packet;
+						break;
+					}	
+				}
 			}
-
+			
 			m_ServiceV6.post (std::bind (&SSUServer::HandleReceivedPackets, this, packets, &m_SessionsV6));
 			ReceiveV6 ();
 		}
