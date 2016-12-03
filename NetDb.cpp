@@ -1008,12 +1008,12 @@ namespace data
 			});
 	}	
 
-	std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter () const
+	std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter (bool v4only) const
 	{
 		return GetRandomRouter (
-			[](std::shared_ptr<const RouterInfo> router)->bool 
+			[v4only](std::shared_ptr<const RouterInfo> router)->bool 
 			{ 
-				return !router->IsHidden () && router->IsPeerTesting (); 
+				return !router->IsHidden () && router->IsPeerTesting () && router->IsSSU (v4only);  
 			});
 	}
 

@@ -42,7 +42,7 @@ namespace transport
 			~SSUServer ();
 			void Start ();
 			void Stop ();
-			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
+			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false, bool v4only = false);
 			void CreateSession (std::shared_ptr<const i2p::data::RouterInfo> router, 
 				const boost::asio::ip::address& addr, int port, bool peerTest = false);
 			void CreateDirectSession (std::shared_ptr<const i2p::data::RouterInfo> router, boost::asio::ip::udp::endpoint remoteEndpoint, bool peerTest);
@@ -68,6 +68,8 @@ namespace transport
       
 		private:
 
+			void OpenSocket ();
+			void OpenSocketV6 ();
 			void Run ();
 			void RunV6 ();
 			void RunReceivers ();
