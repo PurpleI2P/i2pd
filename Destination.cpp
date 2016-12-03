@@ -87,6 +87,8 @@ namespace client
 			Stop ();
 		if (m_Pool)
 			i2p::tunnel::tunnels.DeleteTunnelPool (m_Pool);		
+		for (auto& it: m_LeaseSetRequests)
+			it.second->Complete (nullptr);
 	}	
 
 	void LeaseSetDestination::Run ()
@@ -128,14 +130,7 @@ namespace client
 		{	
 			m_CleanupTimer.cancel ();
 			m_PublishConfirmationTimer.cancel ();
-			m_PublishVerificationTimer.cancel ();
-			
-			for (auto& it: m_LeaseSetRequests)
-			{
-				it.second->Complete (nullptr);
-				it.second->requestTimeoutTimer.cancel ();
-			}
-			m_LeaseSetRequests.clear ();			
+			m_PublishVerificationTimer.cancel ();		
 
 			m_IsRunning = false;
 			if (m_Pool)
@@ -532,7 +527,8 @@ namespace client
 		if (floodfill)
 		{
 			auto request = std::make_shared<LeaseSetRequest> (m_Service);
-			request->requestComplete.push_back (requestComplete);
+			if (requestComplete)
+				request->requestComplete.push_back (requestComplete);
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			auto ret = m_LeaseSetRequests.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<LeaseSetRequest> >(dest,request));
 			if (ret.second) // inserted
@@ -542,7 +538,7 @@ namespace client
 				{
 					// request failed
 					m_LeaseSetRequests.erase (ret.first);
-					requestComplete (nullptr);
+					if (requestComplete) requestComplete (nullptr);
 				}
 			}	
 			else // duplicate
@@ -552,13 +548,13 @@ namespace client
 				//ret.first->second->requestComplete.push_back (requestComplete);
 				if (ts > ret.first->second->requestTime + MAX_LEASESET_REQUEST_TIMEOUT)
 					m_LeaseSetRequests.erase (ret.first);
-				requestComplete (nullptr);
+				if (requestComplete) requestComplete (nullptr);
 			}	
 		}	
 		else
 		{	
 			LogPrint (eLogError, "Destination: Can't request LeaseSet, no floodfills found");
-			requestComplete (nullptr);
+			if (requestComplete) requestComplete (nullptr);
 		}	
 	}	
 		
@@ -706,12 +702,12 @@ namespace client
 		{
 			m_ReadyChecker.cancel();
 			m_StreamingDestination->Stop ();
-			m_StreamingDestination->SetOwner (nullptr);
+			//m_StreamingDestination->SetOwner (nullptr);
 			m_StreamingDestination = nullptr;
 			for (auto& it: m_StreamingDestinationsByPorts)
 			{	
 				it.second->Stop ();
-				it.second->SetOwner (nullptr);
+				//it.second->SetOwner (nullptr);
 			}
 			m_StreamingDestinationsByPorts.clear ();
 			if (m_DatagramDestination)

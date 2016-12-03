@@ -519,7 +519,7 @@ namespace transport
 	void Transports::DetectExternalIP ()
 	{
 		if (RoutesRestricted())
-  	{
+  		{
 			LogPrint(eLogInfo, "Transports: restricted routes enabled, not detecting ip");
 			i2p::context.SetStatus (eRouterStatusOK);
 			return;
@@ -527,13 +527,14 @@ namespace transport
 		if (m_SSUServer)
 		{
 			bool nat;	 i2p::config::GetOption("nat", nat);
-			if (nat)
+			bool isv4 = i2p::context.SupportsV4 ();
+			if (nat && isv4)
 				i2p::context.SetStatus (eRouterStatusTesting);
 			for (int i = 0; i < 5; i++)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
-				if (router	&& router->IsSSU (!context.SupportsV6 ()))
-					m_SSUServer->CreateSession (router, true);	// peer test	
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (isv4); // v4 only if v4
+				if (router)
+					m_SSUServer->CreateSession (router, true, isv4);	// peer test 	
 				else
 				{
 					// if not peer test capable routers found pick any
@@ -549,23 +550,25 @@ namespace transport
 
 	void Transports::PeerTest ()
 	{
-		if (RoutesRestricted()) return;
+		if (RoutesRestricted() || !i2p::context.SupportsV4 ()) return;
 		if (m_SSUServer)
-		{			
+		{	
 			bool statusChanged = false;
 			for (int i = 0; i < 5; i++)
 			{
-				auto router = i2p::data::netdb.GetRandomPeerTestRouter ();
-				if (router && router->IsSSU (!context.SupportsV6 ()))
+				auto router = i2p::data::netdb.GetRandomPeerTestRouter (true); // v4 only
+				if (router)
 				{	
 					if (!statusChanged)
 					{	
 						statusChanged = true;
 						i2p::context.SetStatus (eRouterStatusTesting); // first time only
 					}	
-					m_SSUServer->CreateSession (router, true);	// peer test	
+					m_SSUServer->CreateSession (router, true, true); // peer test v4 	
 				}	
-			}	
+			}
+			if (!statusChanged)
+				LogPrint (eLogWarning, "Can't find routers for peer test");	
 		}
 	}	
 		

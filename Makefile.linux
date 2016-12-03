@@ -45,10 +45,14 @@ else
   LDLIBS = -lcrypto -lssl -lz -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
 endif
 
-# UPNP Support (miniupnpc 1.5 or 1.6)
+# UPNP Support (miniupnpc 1.5 and higher)
 ifeq ($(USE_UPNP),yes)
-  LDFLAGS += -lminiupnpc
   CXXFLAGS += -DUSE_UPNP
+ifeq ($(USE_STATIC),yes)
+  LDLIBS += $(LIBDIR)/libminiupnpc.a
+else
+  LDLIBS += -lminiupnpc
+endif
 endif
 
 IS_64 := $(shell $(CXX) -dumpmachine 2>&1 | $(GREP) -c "64")

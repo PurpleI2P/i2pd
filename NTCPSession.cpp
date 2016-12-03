@@ -537,11 +537,11 @@ namespace transport
 					{	
 						boost::system::error_code ec;
 						size_t moreBytes = m_Socket.available(ec);
-						if (moreBytes)
+						if (moreBytes && !ec)
 						{
 							if (moreBytes > NTCP_BUFFER_SIZE - m_ReceiveBufferOffset)
 								moreBytes = NTCP_BUFFER_SIZE - m_ReceiveBufferOffset;
-							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes));
+							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes), ec);
 							if (ec)
 							{
 								LogPrint (eLogInfo, "NTCP: Read more bytes error: ", ec.message ());
@@ -589,7 +589,8 @@ namespace transport
 			else
 			{	
 				// timestamp
-				LogPrint (eLogDebug, "NTCP: Timestamp");
+				int diff = (int)bufbe32toh (buf + 2) - (int)i2p::util::GetSecondsSinceEpoch ();
+				LogPrint (eLogInfo, "NTCP: Timestamp. Time difference ", diff, " seconds");
 				return true;
 			}	
 		}	
@@ -650,7 +651,7 @@ namespace transport
 			sendBuffer = m_TimeSyncBuffer;
 			len = 4;
 			htobuf16(sendBuffer, 0);
-			htobe32buf (sendBuffer + 2, time (0));
+			htobe32buf (sendBuffer + 2, i2p::util::GetSecondsSinceEpoch ());
 		}	
 		int rem = (len + 6) & 0x0F; // %16
 		int padding = 0;
@@ -803,6 +804,12 @@ namespace transport
 		
 	void NTCPServer::Stop ()
 	{	
+		{
+			// we have to copy it because Terminate changes m_NTCPSessions
+			auto ntcpSessions = m_NTCPSessions; 
+			for (auto& it: ntcpSessions)
+				it.second->Terminate ();
+		}	 
 		m_NTCPSessions.clear ();
 
 		if (m_IsRunning)
@@ -960,7 +967,7 @@ namespace transport
 					{
 						if (ecode != boost::asio::error::operation_aborted)
 						{
-							LogPrint (eLogError, "NTCP: Not connected in ", NTCP_CONNECT_TIMEOUT, " seconds");
+							LogPrint (eLogInfo, "NTCP: Not connected in ", NTCP_CONNECT_TIMEOUT, " seconds");
 							conn->Terminate ();
 						}
 					});   
@@ -975,7 +982,7 @@ namespace transport
 		timer->cancel ();	
 		if (ecode)
         {
-			LogPrint (eLogError, "NTCP: Connect error ", ecode.message ());
+			LogPrint (eLogInfo, "NTCP: Connect error ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 			conn->Terminate ();
