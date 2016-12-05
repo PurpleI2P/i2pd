@@ -118,7 +118,6 @@ namespace data
 					{
 						SaveUpdated ();
 						ManageLeaseSets ();
-						ManageLookupResponses ();
 					}	
 					lastSave = ts;
 				}
@@ -857,37 +856,17 @@ namespace data
 			}
 			
 			if (!replyMsg)
-			{
-				LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
-				// find or cleate response
-				std::vector<IdentHash> closestFloodfills;
-				bool found = false;
-				if (!numExcluded)
-				{	
-					auto it = m_LookupResponses.find (ident);
-					if (it != m_LookupResponses.end ())
-					{
-						closestFloodfills = it->second.first;
-						found = true;
-					}
-				}	
-				if (!found)
-				{				
-					std::set<IdentHash> excludedRouters;
-					const uint8_t * exclude_ident = excluded;
-					for (int i = 0; i < numExcluded; i++)
-					{
-						excludedRouters.insert (exclude_ident);
-						exclude_ident += 32;
-					}
-					closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
-					if (!numExcluded) // save if no excluded
-					{
-						m_LookupResponses[ident] = std::make_pair(closestFloodfills, i2p::util::GetSecondsSinceEpoch ());
-						if (lookupType != DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP && !closestFloodfills.empty ()) // we are not closest
-							RequestDestination (ident); // try to request for first time only
-					}
+			{		
+				std::set<IdentHash> excludedRouters;
+				const uint8_t * exclude_ident = excluded;
+				for (int i = 0; i < numExcluded; i++)
+				{
+					excludedRouters.insert (exclude_ident);
+					exclude_ident += 32;
 				}
+				auto closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
+				if (closestFloodfills.empty ())
+					LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
     		}
 		}
@@ -1192,18 +1171,6 @@ namespace data
 				it = m_LeaseSets.erase (it);
 			}	
 			else 
-				++it;
-		}
-	}
-
-	void NetDb::ManageLookupResponses ()
-	{
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
-		for (auto it = m_LookupResponses.begin (); it != m_LookupResponses.end ();)
-		{
-			if (ts > it->second.second + 120) // 2 minutes
-				it = m_LookupResponses.erase (it);
-			else
 				++it;
 		}
 	}
