@@ -882,7 +882,11 @@ namespace data
 					}
 					closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
 					if (!numExcluded) // save if no excluded
+					{
 						m_LookupResponses[ident] = std::make_pair(closestFloodfills, i2p::util::GetSecondsSinceEpoch ());
+						if (lookupType != DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP)
+							RequestDestination (ident); // try to request for first time only
+					}
 				}
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
     		}
@@ -1197,7 +1201,7 @@ namespace data
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		for (auto it = m_LookupResponses.begin (); it != m_LookupResponses.end ();)
 		{
-			if (ts > it->second.second + 180) // 3 minutes
+			if (ts > it->second.second + 120) // 2 minutes
 				it = m_LookupResponses.erase (it);
 			else
 				++it;
