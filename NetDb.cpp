@@ -884,7 +884,7 @@ namespace data
 					if (!numExcluded) // save if no excluded
 					{
 						m_LookupResponses[ident] = std::make_pair(closestFloodfills, i2p::util::GetSecondsSinceEpoch ());
-						if (lookupType != DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP)
+						if (lookupType != DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP && !closestFloodfills.empty ()) // we are not closest
 							RequestDestination (ident); // try to request for first time only
 					}
 				}
