@@ -112,7 +112,6 @@ namespace data
 			void Publish ();
 			void ManageLeaseSets ();
 			void ManageRequests ();
-			void ManageLookupResponses ();
 
 		void ReseedFromFloodfill(const RouterInfo & ri, int numRouters=40, int numFloodfills=20);
 		
@@ -143,8 +142,7 @@ namespace data
 
 		/** router info we are bootstrapping from or nullptr if we are not currently doing that*/
 		std::shared_ptr<RouterInfo> m_FloodfillBootstrap;
-		
-			std::map<IdentHash, std::pair<std::vector<IdentHash>, uint64_t> > m_LookupResponses; // ident->(closest FFs, timestamp)
+				
 
       /** true if in hidden mode */
       bool m_HiddenMode;

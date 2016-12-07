@@ -116,6 +116,7 @@ namespace tunnel
 						if (!isFollowOnFragment) // create new incomlete message
 						{
 							m.nextFragmentNum = 1;
+							m.receiveTime = i2p::util::GetMillisecondsSinceEpoch ();
 							auto ret = m_IncompleteMessages.insert (std::pair<uint32_t, TunnelMessageBlockEx>(msgID, m));
 							if (ret.second)
 								HandleOutOfSequenceFragments (msgID, ret.first->second);
@@ -281,6 +282,14 @@ namespace tunnel
 		{
 			if (ts > it->second.receiveTime + i2p::I2NP_MESSAGE_EXPIRATION_TIMEOUT)
 				it = m_OutOfSequenceFragments.erase (it);
+			else
+				++it;
+		}
+		// incomplete messages
+		for (auto it = m_IncompleteMessages.begin (); it != m_IncompleteMessages.end ();)
+		{
+			if (ts > it->second.receiveTime + i2p::I2NP_MESSAGE_EXPIRATION_TIMEOUT)
+				it = m_IncompleteMessages.erase (it);
 			else
 				++it;
 		}

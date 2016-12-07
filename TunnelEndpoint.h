@@ -15,6 +15,7 @@ namespace tunnel
 	{	
 		struct TunnelMessageBlockEx: public TunnelMessageBlock
 		{
+			uint64_t receiveTime; // milliseconds since epoch
 			uint8_t nextFragmentNum;
 		};	
 

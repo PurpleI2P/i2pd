@@ -1,6 +1,11 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.10.2] - 2016-12-04
+### Fixed
+- Fixes UPnP discovery bug, producing excessive CPU usage
+- Fixes sudden SSU thread stop for Windows. 
+
 ## [2.10.1] - 2016-11-07
 ### Fixed
 - Fixed some performance issues for Windows and Android
