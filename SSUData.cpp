@@ -240,7 +240,7 @@ namespace transport
 						if (!msg->IsExpired ()) 
 						{
 #ifdef WITH_EVENTS
-							EmitEvent({{"type", "transport.recvmsg"} , {"ident", m_Session.GetIdentHashBase64()}, {"number", "1"}});
+							QueueIntEvent("transport.recvmsg", m_Session.GetIdentHashBase64(), 1);
 #endif
 							m_Handler.PutNextMessage (msg);
 						}

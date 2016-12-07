@@ -249,7 +249,7 @@ namespace transport
 	void Transports::SendMessages (const i2p::data::IdentHash& ident, const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs)
 	{
 #ifdef WITH_EVENTS
-		EmitEvent({{"type" , "transport.sendmsg"}, {"ident", ident.ToBase64()}, {"number", std::to_string(msgs.size())}});
+		QueueIntEvent("transport.send", ident.ToBase64(), msgs.size());
 #endif
 		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}	
