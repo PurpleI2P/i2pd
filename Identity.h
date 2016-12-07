@@ -133,7 +133,7 @@ namespace data
 			size_t FromBase64(const std::string& s);
 			std::string ToBase64 () const;
 
-			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+			static PrivateKeys CreateRandomKeys (SigningKeyType type =  SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 	
 		private:
 
