@@ -709,11 +709,15 @@ namespace http {
 			char b64_creds[64];
 			std::size_t len = 0;
 			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, sizeof(b64_creds));
-			b64_creds[len] = '\0';
-			expected = "Basic ";
-			expected += b64_creds;
-			if (provided == expected)
-				return true;
+			/* if we decoded properly then check credentials */
+			if(len) {
+				b64_creds[len] = '\0';
+				expected = "Basic ";
+				expected += b64_creds;
+				return expected == provided;
+			}
+			/** we decoded wrong so it's not a correct login credential */
+			return false;
 		}
 
 		LogPrint(eLogWarning, "HTTPServer: auth failure from ", m_Socket->remote_endpoint().address ());
