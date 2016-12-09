@@ -30,7 +30,7 @@ namespace util
 		{
 			std::size_t idx;
 			uint8_t mask;
-		  Get(data, len, idx, mask);
+			Get(data, len, idx, mask);
 			if(m_Data[idx] & mask) return false; // filter hit
 			m_Data[idx] |= mask;
 			return true;
