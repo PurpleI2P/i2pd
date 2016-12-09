@@ -26,6 +26,7 @@ set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
 set (LIBI2PD_SRC
+  "${CMAKE_SOURCE_DIR}/BloomFilter.cpp"
   "${CMAKE_SOURCE_DIR}/Config.cpp"
   "${CMAKE_SOURCE_DIR}/Crypto.cpp"
   "${CMAKE_SOURCE_DIR}/Garlic.cpp"
