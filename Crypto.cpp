@@ -409,9 +409,11 @@ namespace crypto
 			"vmovups %%ymm1, 32%[hash] \n"	
 			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
 			"vmovups %%ymm1, %[hash] \n"
+			"vzeroall \n" // end of AVX
+		    "movups %%xmm0, 80%[hash] \n" // zero last 16 bytes
 			: [buf]"=m"(*buf), [hash]"=m"(*hash)
 			: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads)
-			: "memory", "%xmm0", "%xmm1" // should be replaced by %ymm0/1 once supported by compiler	
+			: "memory"	
 		);
 #else
 		// ikeypad
@@ -426,15 +428,14 @@ namespace crypto
 		hash[2] = key.GetLL ()[2] ^ OPAD; 
 		hash[3] = key.GetLL ()[3] ^ OPAD; 
 		memcpy (hash + 4, opads, 32);
+		// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
+		memset (hash + 10, 0, 16);		
 #endif
 
 		// concatenate with msg
 		memcpy (buf + 8, msg, len);
 		// calculate first hash
-		MD5((uint8_t *)buf, len + 64, (uint8_t *)(hash + 8));  // 16 bytes
-		
-		// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-		memset (hash + 10, 0, 16);			
+		MD5((uint8_t *)buf, len + 64, (uint8_t *)(hash + 8));  // 16 bytes	
 		
 		// calculate digest
 		MD5((uint8_t *)hash, 96, digest);
