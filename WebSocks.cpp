@@ -199,7 +199,6 @@ namespace client
           LogPrint(eLogDebug, "websocks: connected to ", m_RemoteAddr, ":", m_RemotePort);
           SendResponse("");
           m_State = eWSCOkayConnect;
-          StartForwarding();
         } else if(state == eWSCFailConnect) {
           // we did not connect okay
           LogPrint(eLogDebug, "websocks: failed to connect to ", m_RemoteAddr, ":", m_RemotePort);
@@ -252,6 +251,8 @@ namespace client
     void StartForwarding()
     {
       LogPrint(eLogDebug, "websocks: begin forwarding data");
+			uint8_t b[1];
+			m_Stream->Send(b, 0);
       AsyncRecv();
     }
 
@@ -264,15 +265,17 @@ namespace client
       } else {
         // forward data
         LogPrint(eLogDebug, "websocks recv ", n);
-        std::string str((char*)m_RecvBuf, n);
-        auto conn = m_Parent->GetConn(m_Conn);
-        if(!conn)  {
-          LogPrint(eLogWarning, "websocks: connection is gone");
-          EnterState(eWSCClose);
-          return;
-        }
-        conn->send(str);
-        AsyncRecv();
+	  
+				std::string str((char*)m_RecvBuf, n);
+				auto conn = m_Parent->GetConn(m_Conn);
+				if(!conn)  {
+					LogPrint(eLogWarning, "websocks: connection is gone");
+					EnterState(eWSCClose);
+					return;
+				}
+				conn->send(str);
+				AsyncRecv();
+				
       }
     }
 
@@ -280,7 +283,7 @@ namespace client
     {
       m_Stream->AsyncReceive(
         boost::asio::buffer(m_RecvBuf, sizeof(m_RecvBuf)),
-        std::bind(&WebSocksConn::HandleAsyncRecv, this, std::placeholders::_1, std::placeholders::_2));
+        std::bind(&WebSocksConn::HandleAsyncRecv, this, std::placeholders::_1, std::placeholders::_2), 60);
     }
 
     /** @brief send error message or empty string for success */
@@ -310,6 +313,7 @@ namespace client
       if(m_Stream) {
         // connect good
         EnterState(eWSCOkayConnect);
+				StartForwarding();
       } else {
         // connect failed
         EnterState(eWSCFailConnect);
@@ -323,7 +327,7 @@ namespace client
       if(m_State == eWSCOkayConnect)
       {
         // forward to server
-        LogPrint(eLogDebug, "websocks: send ", payload.size());
+        LogPrint(eLogDebug, "websocks: forward ", payload.size());
         m_Stream->Send((uint8_t*)payload.c_str(), payload.size());
       } else if (m_State == eWSCInitial) {
         // recv connect request
