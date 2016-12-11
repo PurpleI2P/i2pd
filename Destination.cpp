@@ -544,11 +544,14 @@ namespace client
 			else // duplicate
 			{
 				LogPrint (eLogInfo, "Destination: Request of LeaseSet ", dest.ToBase64 (), " is pending already");
-				// TODO: implement it properly
-				//ret.first->second->requestComplete.push_back (requestComplete);
 				if (ts > ret.first->second->requestTime + MAX_LEASESET_REQUEST_TIMEOUT)
+				{	
+					// something went wrong
 					m_LeaseSetRequests.erase (ret.first);
-				if (requestComplete) requestComplete (nullptr);
+					if (requestComplete) requestComplete (nullptr);
+				}
+				else if (requestComplete)
+					ret.first->second->requestComplete.push_back (requestComplete);
 			}	
 		}	
 		else
