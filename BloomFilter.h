@@ -13,11 +13,11 @@ namespace util
 	{
 
 		/** @brief destructor */
-		virtual ~IBloomFilter();
+		virtual ~IBloomFilter() {};
 		/** @brief add entry to bloom filter, return false if filter hit otherwise return true */
 		virtual bool Add(const uint8_t * data, std::size_t len) = 0;
 		/** @brief optionally decay old entries */
-		virtual void Decay();
+		virtual void Decay() = 0;
 	};
 
 	typedef std::shared_ptr<IBloomFilter> BloomFilterPtr;
