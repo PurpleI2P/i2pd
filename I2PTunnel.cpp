@@ -540,9 +540,13 @@ namespace client
   void I2PUDPServerTunnel::ExpireStale(const uint64_t delta) {
     std::lock_guard<std::mutex> lock(m_SessionsMutex);
     uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
-    std::remove_if(m_Sessions.begin(), m_Sessions.end(), [now, delta](const UDPSession * u) -> bool {
-      return now - u->LastActivity >= delta;
-    });
+		auto itr = m_Sessions.begin();
+		while(itr != m_Sessions.end()) {
+			if(now - (*itr)->LastActivity >= delta )
+				itr = m_Sessions.erase(itr);
+			else
+				++itr;
+		}
   }
   
   UDPSession * I2PUDPServerTunnel::ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort)
