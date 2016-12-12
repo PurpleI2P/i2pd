@@ -31,29 +31,33 @@ namespace datagram
 	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE = 1000;
 	// milliseconds minimum time between path switches
 	const uint64_t DATAGRAM_SESSION_PATH_MIN_LIFETIME = 5 * 1000;
+  // max 64 messages buffered in send queue for each datagram session
+  const size_t DATAGRAM_SEND_QUEUE_MAX_SIZE = 64;
 	
 	class DatagramSession
 	{
 	public:
 		DatagramSession(i2p::client::ClientDestination * localDestination,
-										const i2p::data::IdentHash & remoteIdent);
+									  const i2p::data::IdentHash & remoteIdent);
+
+
+    /** @brief ack the garlic routing path */
+    void Ack();
 
 		/** send an i2np message to remote endpoint for this session */
 		void SendMsg(std::shared_ptr<I2NPMessage> msg);
 		/** get the last time in milliseconds for when we used this datagram session */
 		uint64_t LastActivity() const { return m_LastUse; }
-		/** get the last time in milliseconds when we successfully sent data */
-		uint64_t LastSuccess() const { return m_LastSuccess; }
+
 		struct Info
 		{
 			std::shared_ptr<const i2p::data::IdentHash> IBGW;
 			std::shared_ptr<const i2p::data::IdentHash> OBEP;
 			const uint64_t activity;
-			const uint64_t success;
-			Info() : IBGW(nullptr), OBEP(nullptr), activity(0), success(0) {}
-			Info(const uint8_t * ibgw, const uint8_t * obep, const uint64_t a, const uint64_t s) :
-				activity(a),
-				success(s) {
+ 
+			Info() : IBGW(nullptr), OBEP(nullptr), activity(0) {}
+			Info(const uint8_t * ibgw, const uint8_t * obep, const uint64_t a) :
+				activity(a) {
 				if(ibgw) IBGW = std::make_shared<i2p::data::IdentHash>(ibgw);
 				else IBGW = nullptr;
 				if(obep) OBEP = std::make_shared<i2p::data::IdentHash>(obep);
@@ -63,44 +67,28 @@ namespace datagram
 
 		Info GetSessionInfo() const;
 
-		
 	private:
 
-		/** update our routing path we are using, mark that we have changed paths */
-		void UpdateRoutingPath(const std::shared_ptr<i2p::garlic::GarlicRoutingPath> & path);
+    void FlushSendQueue();
+    void ScheduleFlushSendQueue();
 
-		/** return true if we should switch routing paths because of path lifetime or timeout otherwise false */
-		bool ShouldUpdateRoutingPath() const;
+    void HandleSend(std::shared_ptr<I2NPMessage> msg);
 
-		/** return true if we should switch the lease for out routing path otherwise return false */
-		bool ShouldSwitchLease() const;
-		
-		/** get next usable routing path, try reusing outbound tunnels	*/
-		std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetNextRoutingPath();
-		/** 
-		 *	mark current routing path as invalid and clear it
-		 *	if the outbound tunnel we were using was okay don't use the IBGW in the routing path's lease next time
-		 */
-		void ResetRoutingPath();
+    std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetSharedRoutingPath();
+    
+    void HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls);
 
-		/** get next usable lease, does not fetch or update if expired or have no lease set */
-		std::shared_ptr<const i2p::data::Lease> GetNextLease();
-		
-		void HandleSend(std::shared_ptr<I2NPMessage> msg);
-		void HandleGotLeaseSet(std::shared_ptr<const i2p::data::LeaseSet> remoteIdent,
-													 std::shared_ptr<I2NPMessage> msg);
-		void UpdateLeaseSet(std::shared_ptr<I2NPMessage> msg=nullptr);
-		
 	private:
 		i2p::client::ClientDestination * m_LocalDestination;
-		i2p::data::IdentHash m_RemoteIdentity;
-		std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
-		// Ident hash of IBGW that are invalid
-		std::vector<i2p::data::IdentHash> m_InvalidIBGW;
-		std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
-		uint64_t m_LastUse;
-		uint64_t m_LastPathChange;
-		uint64_t m_LastSuccess;
+    i2p::data::IdentHash m_RemoteIdent;
+    std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
+    std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
+    std::shared_ptr<const i2p::data::Lease> m_CurrentRemoteLease;
+    std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
+    boost::asio::deadline_timer m_SendQueueTimer;
+    std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
+    uint64_t m_LastUse;
+
 	};
 	
 	const size_t MAX_DATAGRAM_SIZE = 32768;	 
@@ -112,9 +100,9 @@ namespace datagram
 
     
 			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
-			~DatagramDestination ();				
+			~DatagramDestination ();	
 
-			void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint16_t fromPort = 0, uint16_t toPort = 0);
+    	void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
 			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };
@@ -130,7 +118,7 @@ namespace datagram
 
 		private:
 						
-			std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
+    std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
 			
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
 
