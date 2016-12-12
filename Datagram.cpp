@@ -221,6 +221,7 @@ namespace datagram
 			}
 			if(!m_RemoteLeaseSet) {
 				// no remote lease set
+				m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, this, std::placeholders::_1));
 				return nullptr;
 			}
 			m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
