@@ -127,7 +127,9 @@ namespace garlic
 		private:
 
 			GarlicDestination * m_Owner;
-			std::shared_ptr<const i2p::data::RoutingDestination> m_Destination;
+			bool m_IsDestination; // destination or RouterInfo ?
+			i2p::data::IdentHash m_DestinationIdent;
+			
 			i2p::crypto::AESKey m_SessionKey;
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
