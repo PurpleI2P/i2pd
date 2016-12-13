@@ -237,7 +237,7 @@ namespace datagram
 				// bad lease, switch to next one
 				if(m_RemoteLeaseSet) {
 					auto ls = m_RemoteLeaseSet->GetNonExpiredLeasesExcluding([&](const i2p::data::Lease& l) -> bool {
-							return l.tunnelGateway == m_CurrentRemoteLease->tunnelGateway || l.endDate <= m_CurrentRemoteLease->endDate;
+							return l.tunnelGateway == m_CurrentRemoteLease->tunnelGateway;
 					});
 					auto sz = ls.size();
 					if (sz) {
