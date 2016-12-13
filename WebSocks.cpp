@@ -1,5 +1,6 @@
 #include "WebSocks.h"
 #include "Log.h"
+#include <string>
 
 #ifdef WITH_EVENTS
 #include "ClientContext.h"
@@ -382,14 +383,24 @@ namespace client
 	class WebSocksImpl
 	{
 	public:
-		WebSocks(const std::string & addr, int port) {}
-		~WebSocks(){}
+		WebSocksImpl(const std::string & addr, int port)
+		{
+		}
+
+		~WebSocksImpl()
+		{
+		}
+
 		void Start()
 		{
 			LogPrint(eLogInfo, "WebSockets not enabled on compile time");
 		}
 
-		void Stop() {}
+		void Stop()
+		{
+
+		}
+
 	};
 }
 }
