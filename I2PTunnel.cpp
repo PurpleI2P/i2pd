@@ -92,15 +92,9 @@ namespace client
 			m_Stream->Close ();
 			m_Stream.reset ();
 		}	
-		auto s = shared_from_this ();
-		// make sure all outstading jobs finished before close
-		m_Socket->get_io_service ().post(
-			[s]()
-			{
-				s->m_Socket->close ();
-			});
+		m_Socket->close ();
 
-		Done(s);
+		Done(shared_from_this ());
 	}			
 
 	void I2PTunnelConnection::Receive ()
