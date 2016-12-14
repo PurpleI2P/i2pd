@@ -912,7 +912,6 @@ namespace data
 		
 		uint8_t randomHash[32];
 		std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-		std::set<const RouterInfo *> floodfills;
 		LogPrint (eLogInfo, "NetDb: exploring new ", numDestinations, " routers ...");
 		for (int i = 0; i < numDestinations; i++)
 		{	
@@ -924,9 +923,8 @@ namespace data
 				return; 	
 			}	
 			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
-			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
+			if (floodfill) 
 			{	
-				floodfills.insert (floodfill.get ());
 				if (i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
 					throughTunnels = false;
 				if (throughTunnels)
