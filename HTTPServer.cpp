@@ -451,26 +451,26 @@ namespace http {
 		s << "<br>\r\n";
 	}
 
-	static void ShowCommands (std::stringstream& s)
+	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "\">Run peer test</a><br>\r\n";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">Run peer test</a><br>\r\n";
 		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "\">Decline transit tunnels</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_DISABLE_TRANSIT << "&token=" << token << "\">Decline transit tunnels</a><br>\r\n";
 		else
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "\">Accept transit tunnels</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 		if (Daemon.gracefulShutdownInterval) 
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "\">Cancel graceful shutdown</a><br>";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
 		else 
-			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Start graceful shutdown</a><br>\r\n";
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Start graceful shutdown</a><br>\r\n";
 #endif
 #ifdef WIN32_APP
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "\">Graceful shutdown</a><br>\r\n";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
 #endif
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "\">Force shutdown</a><br>\r\n";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n";
 	}
 
 	static void ShowTransitTunnels (std::stringstream& s)
@@ -756,6 +756,7 @@ namespace http {
 		SendReply (res, content);
 	}
 
+	std::map<uint32_t, uint32_t> HTTPConnection::m_Tokens;
 	void HTTPConnection::HandlePage (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
   {
 		std::map<std::string, std::string> params;
@@ -771,7 +772,20 @@ namespace http {
 		else if (page == HTTP_PAGE_TUNNELS)
 			ShowTunnels (s);
 		else if (page == HTTP_PAGE_COMMANDS)
-			ShowCommands (s);
+		{
+			uint32_t token;
+			RAND_bytes ((uint8_t *)&token, 4);
+			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			for (auto it = m_Tokens.begin (); it != m_Tokens.end (); )
+			{
+				if (ts > it->second + TOKEN_EXPIRATION_TIMEOUT)
+					it = m_Tokens.erase (it);
+				else
+					++it;
+			}
+			m_Tokens[token] = ts; 
+			ShowCommands (s, token);
+		}
 		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
 		else if (page == HTTP_PAGE_LOCAL_DESTINATIONS)
@@ -798,13 +812,19 @@ namespace http {
 	void HTTPConnection::HandleCommand (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
 	{
 		std::map<std::string, std::string> params;
-		std::string cmd("");
 		URL url;
 
 		url.parse(req.uri);
 		url.parse_query(params);
-		cmd = params["cmd"];
 
+		std::string token = params["token"];
+		if (!token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
+		{
+			ShowError(s, "Invalid token");
+			return;
+		}
+
+		std::string cmd = params["cmd"];	
 		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
 			i2p::transport::transports.PeerTest ();
 		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
