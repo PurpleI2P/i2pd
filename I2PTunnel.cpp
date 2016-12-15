@@ -92,7 +92,9 @@ namespace client
 			m_Stream->Close ();
 			m_Stream.reset ();
 		}	
+		m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_send); // avoid RST
 		m_Socket->close ();
+
 		Done(shared_from_this ());
 	}			
 
@@ -107,9 +109,11 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "I2PTunnel: read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
+			{
+				LogPrint (eLogError, "I2PTunnel: read error: ", ecode.message ());
 				Terminate ();
+			}
 		}
 		else
 		{	

@@ -285,7 +285,7 @@ namespace stream
 		auto s = shared_from_this();
 		m_Service.post ([=](void)
 		{
-			if (!m_ReceiveQueue.empty () || m_Status == eStreamStatusReset || m_Status == eStreamStatusClosed)
+			if (!m_ReceiveQueue.empty () || m_Status == eStreamStatusReset)
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
 			else
 			{
@@ -306,7 +306,7 @@ namespace stream
 		else if (ecode == boost::asio::error::operation_aborted)
 		{	
 			// timeout not expired	
-			if (m_Status == eStreamStatusReset || m_Status == eStreamStatusClosed)
+			if (m_Status == eStreamStatusReset)
 				handler (boost::asio::error::make_error_code (boost::asio::error::connection_reset), 0);
 			else
 				handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0); 

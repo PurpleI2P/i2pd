@@ -167,19 +167,19 @@ namespace data
 		{
 			uint8_t supportedTransports = 0;
 			bool isValidAddress = true;
-			Address address;
-			s.read ((char *)&address.cost, sizeof (address.cost));
-			s.read ((char *)&address.date, sizeof (address.date));
+			auto address = std::make_shared<Address>();
+			s.read ((char *)&address->cost, sizeof (address->cost));
+			s.read ((char *)&address->date, sizeof (address->date));
 			char transportStyle[5];
 			ReadString (transportStyle, 5, s);
 			if (!strcmp (transportStyle, "NTCP"))
-				address.transportStyle = eTransportNTCP;
+				address->transportStyle = eTransportNTCP;
 			else if (!strcmp (transportStyle, "SSU"))
-				address.transportStyle = eTransportSSU;
+				address->transportStyle = eTransportSSU;
 			else
-				address.transportStyle = eTransportUnknown;
-			address.port = 0;
-			address.mtu = 0;
+				address->transportStyle = eTransportUnknown;
+			address->port = 0;
+			address->mtu = 0;
 			uint16_t size, r = 0;
 			s.read ((char *)&size, sizeof (size)); if (!s) return;
 			size = be16toh (size);
@@ -194,35 +194,35 @@ namespace data
 				if (!strcmp (key, "host"))
 				{	
 					boost::system::error_code ecode;
-					address.host = boost::asio::ip::address::from_string (value, ecode);
+					address->host = boost::asio::ip::address::from_string (value, ecode);
 					if (ecode)
 					{	
-						if (address.transportStyle == eTransportNTCP)
+						if (address->transportStyle == eTransportNTCP)
 						{
 							supportedTransports |= eNTCPV4; // TODO:
-							address.addressString = value;
+							address->addressString = value;
 						}
 						else
 						{	
 							supportedTransports |= eSSUV4; // TODO:
-							address.addressString = value;
+							address->addressString = value;
 						}	
 					}	
 					else
 					{
 						// add supported protocol
-						if (address.host.is_v4 ())
-							supportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;	
+						if (address->host.is_v4 ())
+							supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;	
 						else
-							supportedTransports |= (address.transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+							supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
  					}	
 				}	
 				else if (!strcmp (key, "port"))
-					address.port = boost::lexical_cast<int>(value);
+					address->port = boost::lexical_cast<int>(value);
 				else if (!strcmp (key, "mtu"))
-					address.mtu = boost::lexical_cast<int>(value);
+					address->mtu = boost::lexical_cast<int>(value);
 				else if (!strcmp (key, "key"))
-					Base64ToByteStream (value, strlen (value), address.key, 32);
+					Base64ToByteStream (value, strlen (value), address->key, 32);
 				else if (!strcmp (key, "caps"))
 					ExtractCaps (value);
 				else if (key[0] == 'i')
@@ -237,9 +237,9 @@ namespace data
 						LogPrint (eLogError, "RouterInfo: Unexpected introducer's index ", index, " skipped");
 						if (s) continue; else return;
 					}
-					if (index >= address.introducers.size ())
-						address.introducers.resize (index + 1); 
-					Introducer& introducer = address.introducers.at (index);
+					if (index >= address->introducers.size ())
+						address->introducers.resize (index + 1); 
+					Introducer& introducer = address->introducers.at (index);
 					if (!strcmp (key, "ihost"))
 					{
 						boost::system::error_code ecode;
@@ -256,7 +256,7 @@ namespace data
 			}	
 			if (isValidAddress)
 			{
-				addresses->push_back(std::make_shared<Address>(address));
+				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
 			}
 		}	
