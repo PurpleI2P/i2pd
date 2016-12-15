@@ -818,7 +818,7 @@ namespace http {
 		url.parse_query(params);
 
 		std::string token = params["token"];
-		if (!token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
+		if (token.empty () || m_Tokens.find (std::stoi (token)) == m_Tokens.end ())
 		{
 			ShowError(s, "Invalid token");
 			return;
