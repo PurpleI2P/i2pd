@@ -404,17 +404,18 @@ namespace crypto
 		(
 			"vmovups %[key], %%ymm0 \n"
 			"vmovups %[ipad], %%ymm1 \n"
-			"vmovups %%ymm1, 32%[buf] \n"
+			"vmovups %%ymm1, 32(%[buf]) \n"
 			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-			"vmovups %%ymm1, %[buf] \n"			
+			"vmovups %%ymm1, (%[buf]) \n"			
 			"vmovups %[opad], %%ymm1 \n"
-			"vmovups %%ymm1, 32%[hash] \n"	
+			"vmovups %%ymm1, 32(%[hash]) \n"	
 			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-			"vmovups %%ymm1, %[hash] \n"
+			"vmovups %%ymm1, (%[hash]) \n"
 			"vzeroall \n" // end of AVX
-		    "movups %%xmm0, 80%[hash] \n" // zero last 16 bytes
-			: [buf]"=m"(*buf), [hash]"=m"(*hash)
-			: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads)
+		    "movups %%xmm0, 80(%[hash]) \n" // zero last 16 bytes
+			: 
+			: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads),
+			  [buf]"r"(buf), [hash]"r"(hash)
 			: "memory", "%xmm0"	// TODO: change to %ymm0 later
 		);
 #else
