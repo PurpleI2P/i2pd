@@ -243,9 +243,6 @@ namespace datagram
 					if (sz) {
 						auto idx = rand() % sz;
 						m_CurrentRemoteLease = ls[idx];
-					} else {
-						// no more leases, bail
-						LogPrint(eLogWarning, "DatagramSession: no more valid remote leases to ", m_RemoteIdent.ToBase32());
 					}
 				} else {
 					// no remote lease set?
