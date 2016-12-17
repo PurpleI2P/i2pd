@@ -293,6 +293,7 @@ namespace datagram
 
 	void DatagramSession::HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls)
 	{
+		if(!ls) return;
 		// only update lease set if found and newer than previous lease set
 		uint64_t oldExpire = 0;
 		if(m_RemoteLeaseSet) oldExpire = m_RemoteLeaseSet->GetExpirationTime();
