@@ -177,11 +177,13 @@ namespace client
 			{
 				if (bytes_transferred > 0)
 					Write (m_StreamBuffer, bytes_transferred); // postpone termination
-				else	
+				else if (ecode == boost::asio::error::timed_out && m_Stream->IsOpen ())
+					StreamReceive ();
+				else
 					Terminate ();
 			}
 			else
-				Terminate ();	
+				Terminate ();
 		}
 		else
 			Write (m_StreamBuffer, bytes_transferred);
