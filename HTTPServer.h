@@ -1,10 +1,20 @@
 #ifndef HTTP_SERVER_H__
 #define HTTP_SERVER_H__
 
-namespace i2p {
-namespace http {
-	extern const char *itoopieFavicon;
-	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;	
+#include <inttypes.h>
+#include <string>
+#include <memory>
+#include <map>
+#include <thread>
+#include <boost/asio.hpp>
+#include "HTTP.h"
+
+namespace i2p 
+{
+namespace http 
+{
+	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;		
+	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds	
 
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
@@ -35,6 +45,8 @@ namespace http {
 			bool needAuth;
 			std::string user;
 			std::string pass;
+
+			static std::map<uint32_t, uint32_t> m_Tokens; // token->timestamp in seconds
 	};
 
 	class HTTPServer
