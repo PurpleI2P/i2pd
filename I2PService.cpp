@@ -53,7 +53,6 @@ namespace client
 	void TCPIPPipe::Terminate()
 	{
 		if(Kill()) return;
-		Done(shared_from_this());
 		if (m_up) {
 			if (m_up->is_open()) {
 				m_up->close();
@@ -66,6 +65,7 @@ namespace client
 			}
 			m_down = nullptr;
 		}
+		Done(shared_from_this());
 	}
 	
 	void TCPIPPipe::AsyncReceiveUpstream()
@@ -90,11 +90,11 @@ namespace client
 		}
 	}
 
-	void TCPIPPipe::UpstreamWrite(const uint8_t * buf, size_t len)
+	void TCPIPPipe::UpstreamWrite(size_t len)
 	{
 		if (m_up) {
 			LogPrint(eLogDebug, "TCPIPPipe: upstream: ", (int) len, " bytes written");
-			boost::asio::async_write(*m_up, boost::asio::buffer(buf, len),
+			boost::asio::async_write(*m_up, boost::asio::buffer(m_upstream_buf, len),
 															 boost::asio::transfer_all(),
 															 std::bind(&TCPIPPipe::HandleUpstreamWrite,
 																				 shared_from_this(),
@@ -105,11 +105,11 @@ namespace client
 		}
 	}
 
-	void TCPIPPipe::DownstreamWrite(const uint8_t * buf, size_t len)
+	void TCPIPPipe::DownstreamWrite(size_t len)
 	{
 		if (m_down) {
 			LogPrint(eLogDebug, "TCPIPPipe: downstream: ", (int) len, " bytes written");
-			boost::asio::async_write(*m_down, boost::asio::buffer(buf, len),
+			boost::asio::async_write(*m_down, boost::asio::buffer(m_downstream_buf, len),
 															 boost::asio::transfer_all(),
 															 std::bind(&TCPIPPipe::HandleDownstreamWrite,
 																				 shared_from_this(),
@@ -131,9 +131,8 @@ namespace client
 		} else {
 			if (bytes_transfered > 0 ) {
 				memcpy(m_upstream_buf, m_downstream_to_up_buf, bytes_transfered);
-				UpstreamWrite(m_upstream_buf, bytes_transfered);
 			}
-			AsyncReceiveDownstream();
+			UpstreamWrite(bytes_transfered);
 		}
 	}
 
@@ -142,6 +141,8 @@ namespace client
 			LogPrint(eLogError, "TCPIPPipe: downstream write error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
+		} else {
+			AsyncReceiveUpstream();
 		}
 	}
 	
@@ -150,6 +151,8 @@ namespace client
 			LogPrint(eLogError, "TCPIPPipe: upstream write error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
+		} else {
+			AsyncReceiveDownstream();
 		}
 	}
 	
@@ -162,10 +165,9 @@ namespace client
 				Terminate();
 		} else {
 			if (bytes_transfered > 0 ) {
-				memcpy(m_upstream_buf, m_upstream_to_down_buf, bytes_transfered);
-				DownstreamWrite(m_upstream_buf, bytes_transfered);
+				memcpy(m_downstream_buf, m_upstream_to_down_buf, bytes_transfered);
 			}
-			AsyncReceiveUpstream();
+			DownstreamWrite(bytes_transfered);
 		}
 	}
 	

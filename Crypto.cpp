@@ -386,9 +386,11 @@ namespace crypto
 // HMAC
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C; 			
-	
+
+#if defined(__AVX__)	
 	static const uint64_t ipads[] = { IPAD, IPAD, IPAD, IPAD };
 	static const uint64_t opads[] = { OPAD, OPAD, OPAD, OPAD };
+#endif
 	
 	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest)
 	// key is 32 bytes
@@ -402,18 +404,19 @@ namespace crypto
 		(
 			"vmovups %[key], %%ymm0 \n"
 			"vmovups %[ipad], %%ymm1 \n"
-			"vmovups %%ymm1, 32%[buf] \n"
+			"vmovups %%ymm1, 32(%[buf]) \n"
 			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-			"vmovups %%ymm1, %[buf] \n"			
+			"vmovups %%ymm1, (%[buf]) \n"			
 			"vmovups %[opad], %%ymm1 \n"
-			"vmovups %%ymm1, 32%[hash] \n"	
+			"vmovups %%ymm1, 32(%[hash]) \n"	
 			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-			"vmovups %%ymm1, %[hash] \n"
+			"vmovups %%ymm1, (%[hash]) \n"
 			"vzeroall \n" // end of AVX
-		    "movups %%xmm0, 80%[hash] \n" // zero last 16 bytes
-			: [buf]"=m"(*buf), [hash]"=m"(*hash)
-			: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads)
-			: "memory"	
+		    "movups %%xmm0, 80(%[hash]) \n" // zero last 16 bytes
+			: 
+			: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads),
+			  [buf]"r"(buf), [hash]"r"(hash)
+			: "memory", "%xmm0"	// TODO: change to %ymm0 later
 		);
 #else
 		// ikeypad
@@ -421,13 +424,19 @@ namespace crypto
 		buf[1] = key.GetLL ()[1] ^ IPAD; 
 		buf[2] = key.GetLL ()[2] ^ IPAD; 
 		buf[3] = key.GetLL ()[3] ^ IPAD; 
-		memcpy (buf + 4, ipads, 32);
+		buf[4] = IPAD;
+		buf[5] = IPAD;
+		buf[6] = IPAD;
+		buf[7] = IPAD;
 		// okeypad			
 		hash[0] = key.GetLL ()[0] ^ OPAD; 
 		hash[1] = key.GetLL ()[1] ^ OPAD; 
 		hash[2] = key.GetLL ()[2] ^ OPAD; 
 		hash[3] = key.GetLL ()[3] ^ OPAD; 
-		memcpy (hash + 4, opads, 32);
+		hash[4] = OPAD;
+		hash[5] = OPAD;
+		hash[6] = OPAD;
+		hash[7] = OPAD;
 		// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
 		memset (hash + 10, 0, 16);		
 #endif

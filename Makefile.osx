@@ -3,19 +3,24 @@ CXXFLAGS = -g -Wall -std=c++11 -DMAC_OSX
 #CXXFLAGS = -g -O2 -Wall -std=c++11
 INCFLAGS = -I/usr/local/include -I/usr/local/ssl/include
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib -L/usr/local/ssl/lib
+
+ifeq ($(USE_STATIC),yes)
+LDLIBS = -lz -lcrypto -lssl /usr/local/lib/libboost_system.a /usr/local/lib/libboost_date_time.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
+else
 LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+endif
 
 ifeq ($(USE_UPNP),yes)
   LDFLAGS += -ldl
   CXXFLAGS += -DUSE_UPNP
 endif
 
-# OSX Notes
-# http://www.hutsby.net/2011/08/macs-with-aes-ni.html
-# Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
-# Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
 ifeq ($(USE_AESNI),yes)
   CXXFLAGS += -maes -DAESNI
+endif
+
+ifeq ($(USE_AVX),yes)
+  CXXFLAGS += -mavx
 endif
 
 # Disabled, since it will be the default make rule. I think its better

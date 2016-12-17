@@ -76,7 +76,18 @@ namespace crypto
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
-#if defined(__x86_64__) || defined(__SSE__) // for Intel x84 or with SSE
+#if defined(__AVX__) // AVX
+			__asm__
+			(
+				"vmovups (%[buf]), %%xmm0 \n"	
+				"vmovups (%[other]), %%xmm1 \n"	
+				"vxorps %%xmm0, %%xmm1, %%xmm0 \n"
+				"vmovups %%xmm0, (%[buf]) \n"	
+				: 
+				: [buf]"r"(buf), [other]"r"(other.buf) 
+				: "%xmm0", "%xmm1", "memory"
+			);		
+#elif defined(__SSE__) // SSE
 			__asm__
 			(
 				"movups	(%[buf]), %%xmm0 \n"	

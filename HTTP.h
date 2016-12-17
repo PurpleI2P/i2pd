@@ -82,6 +82,9 @@ namespace http {
 
     /** @brief Serialize HTTP request to string */
     std::string to_string();
+		
+		void write(std::ostream & o);
+
   };
 
   struct HTTPRes : HTTPMsg {
@@ -116,6 +119,8 @@ namespace http {
      */
     std::string to_string();
 
+		void write(std::ostream & o);
+		
     /** @brief Checks that response declared as chunked data */
     bool is_chunked();
 
