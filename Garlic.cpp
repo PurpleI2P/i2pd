@@ -18,20 +18,17 @@ namespace garlic
 {
 	GarlicRoutingSession::GarlicRoutingSession (GarlicDestination * owner, 
 	    std::shared_ptr<const i2p::data::RoutingDestination> destination, int numTags, bool attachLeaseSet):
-		m_Owner (owner), m_IsDestination (destination->IsDestination ()), m_NumTags (numTags), 
+		m_Owner (owner), m_Destination (destination), m_NumTags (numTags), 
 		m_LeaseSetUpdateStatus (attachLeaseSet ? eLeaseSetUpdated : eLeaseSetDoNotSend),
-		m_LeaseSetUpdateMsgID (0),
-		m_ElGamalEncryption (new i2p::crypto::ElGamalEncryption (destination->GetEncryptionPublicKey ()))
+		m_LeaseSetUpdateMsgID (0)
 	{
 		// create new session tags and session key
 		RAND_bytes (m_SessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
-		if (m_IsDestination)
-			m_DestinationIdent = destination->GetIdentHash ();
 	}	
 
 	GarlicRoutingSession::GarlicRoutingSession (const uint8_t * sessionKey, const SessionTag& sessionTag):
-		m_Owner (nullptr), m_IsDestination (false), m_NumTags (1), m_LeaseSetUpdateStatus (eLeaseSetDoNotSend), m_LeaseSetUpdateMsgID (0)
+		m_Owner (nullptr), m_NumTags (1), m_LeaseSetUpdateStatus (eLeaseSetDoNotSend), m_LeaseSetUpdateMsgID (0)
 	{
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
@@ -179,7 +176,7 @@ namespace garlic
 		if (!tagFound) // new session
 		{
 			LogPrint (eLogInfo, "Garlic: No tags available, will use ElGamal");
-			if (!m_ElGamalEncryption)
+			if (!m_Destination)
 			{
 				LogPrint (eLogError, "Garlic: Can't use ElGamal for unknown destination");
 				return nullptr;
@@ -190,7 +187,8 @@ namespace garlic
 			RAND_bytes (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(elGamal.preIV, 32, iv); 
-			m_ElGamalEncryption->Encrypt ((uint8_t *)&elGamal, buf, true);			
+			i2p::crypto::ElGamalEncryption elGamalEncryption (m_Destination->GetEncryptionPublicKey ());
+			elGamalEncryption.Encrypt ((uint8_t *)&elGamal, buf, true);			
 			m_Encryption.SetIV (iv);
 			buf += 514;
 			len += 514;	
@@ -299,7 +297,7 @@ namespace garlic
 		}	
 		if (msg) // clove message ifself if presented
 		{	
-			size += CreateGarlicClove (payload + size, msg, m_IsDestination);
+			size += CreateGarlicClove (payload + size, msg, m_Destination ? m_Destination->IsDestination () : false);
 			(*numCloves)++;
 		}	
 		memset (payload + size, 0, 3); // certificate of message
@@ -321,7 +319,7 @@ namespace garlic
 		{
 			buf[size] = eGarlicDeliveryTypeDestination << 5;//  delivery instructions flag destination
 			size++;
-			memcpy (buf + size, m_DestinationIdent, 32);
+			memcpy (buf + size, m_Destination->GetIdentHash (), 32);
 			size += 32;
 		}	
 		else	
