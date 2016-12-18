@@ -710,11 +710,6 @@ namespace client
 	{
 		PumpBacklog();
 	}
-		
-	SAMSession::~SAMSession ()
-	{
-		i2p::client::context.DeleteLocalDestination (localDestination);
-	}
 
 	void SAMSession::AcceptI2P(std::shared_ptr<i2p::stream::Stream> stream)
 	{
@@ -767,18 +762,19 @@ namespace client
 
 	void SAMSession::CloseStreams ()
 	{
+		m_BacklogPumper.cancel();
 		localDestination->GetService().post([&] () {
-				std::lock_guard<std::mutex> lock(m_SocketsMutex);
-				for (auto& sock : m_Sockets) {
-					sock->CloseStream();
-				}
-				for(auto & stream : m_Backlog) {
-						stream->Close();
-				}
-				// XXX: should this be done inside locked parts?
-				m_Sockets.clear();
-				m_Backlog.clear();
-			});
+			std::lock_guard<std::mutex> lock(m_SocketsMutex);
+			for (auto& sock : m_Sockets) {
+				sock->CloseStream();
+			}
+			for(auto & stream : m_Backlog) {
+				stream->Close();
+			}
+			m_Sockets.clear();
+			m_Backlog.clear();
+			i2p::client::context.DeleteLocalDestination (localDestination);
+		});
 	}
 
 	SAMBridge::SAMBridge (const std::string& address, int port):
