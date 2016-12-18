@@ -417,7 +417,9 @@ namespace client
 			HandleI2PAccept(stream);
 		} else {
 			SendMessageReply (SAM_STREAM_STATUS_I2P_ERROR, strlen(SAM_STREAM_STATUS_I2P_ERROR), true);
-			Terminate();
+			auto s = shared_from_this ();
+			m_Owner.GetService ().post ([s] { s->Terminate (); });
+
 		}
 	}
 	size_t SAMSocket::ProcessDatagramSend (char * buf, size_t len, const char * data)
@@ -582,8 +584,8 @@ namespace client
 				    {
 						if (!ecode)
 							s->Receive ();
-						else
-							s->Terminate ();
+						else	
+							s->m_Owner.GetService ().post ([s] { s->Terminate (); });
 					});
 			}	
 		}
