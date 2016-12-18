@@ -622,10 +622,16 @@ namespace client
 					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
         		std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1)); // postpone termination
 				else	
-					Terminate ();
+				{	
+					auto s = shared_from_this ();
+					m_Owner.GetService ().post ([s] { s->Terminate (); });
+				}
 			}
 			else	
-				Terminate ();
+			{	
+				auto s = shared_from_this ();
+				m_Owner.GetService ().post ([s] { s->Terminate (); });
+			}	
 		}
 		else
 		{
