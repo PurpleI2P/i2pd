@@ -91,7 +91,7 @@ namespace data
 				if (m_StoreLeases)
 				{	
 					auto ret = m_Leases.insert (std::make_shared<Lease>(lease));
-					if (!ret.second) *(*ret.first) = lease; // update existing
+					if (!ret.second) (*ret.first)->endDate = lease.endDate; // update existing
 					(*ret.first)->isUpdated = true;
 					// check if lease's gateway is in our netDb
 					if (!netdb.FindRouter (lease.tunnelGateway))

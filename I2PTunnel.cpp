@@ -92,7 +92,9 @@ namespace client
 			m_Stream->Close ();
 			m_Stream.reset ();
 		}	
+		m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_send); // avoid RST
 		m_Socket->close ();
+
 		Done(shared_from_this ());
 	}			
 
@@ -107,9 +109,11 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "I2PTunnel: read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
+			{
+				LogPrint (eLogError, "I2PTunnel: read error: ", ecode.message ());
 				Terminate ();
+			}
 		}
 		else
 		{	
@@ -173,11 +177,13 @@ namespace client
 			{
 				if (bytes_transferred > 0)
 					Write (m_StreamBuffer, bytes_transferred); // postpone termination
-				else	
+				else if (ecode == boost::asio::error::timed_out && m_Stream->IsOpen ())
+					StreamReceive ();
+				else
 					Terminate ();
 			}
 			else
-				Terminate ();	
+				Terminate ();
 		}
 		else
 			Write (m_StreamBuffer, bytes_transferred);
@@ -540,9 +546,13 @@ namespace client
   void I2PUDPServerTunnel::ExpireStale(const uint64_t delta) {
     std::lock_guard<std::mutex> lock(m_SessionsMutex);
     uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
-    std::remove_if(m_Sessions.begin(), m_Sessions.end(), [now, delta](const UDPSession * u) -> bool {
-      return now - u->LastActivity >= delta;
-    });
+		auto itr = m_Sessions.begin();
+		while(itr != m_Sessions.end()) {
+			if(now - (*itr)->LastActivity >= delta )
+				itr = m_Sessions.erase(itr);
+			else
+				++itr;
+		}
   }
   
   UDPSession * I2PUDPServerTunnel::ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort)

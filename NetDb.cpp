@@ -118,7 +118,6 @@ namespace data
 					{
 						SaveUpdated ();
 						ManageLeaseSets ();
-						ManageLookupResponses ();
 					}	
 					lastSave = ts;
 				}
@@ -857,33 +856,17 @@ namespace data
 			}
 			
 			if (!replyMsg)
-			{
-				LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
-				// find or cleate response
-				std::vector<IdentHash> closestFloodfills;
-				bool found = false;
-				if (!numExcluded)
-				{	
-					auto it = m_LookupResponses.find (ident);
-					if (it != m_LookupResponses.end ())
-					{
-						closestFloodfills = it->second.first;
-						found = true;
-					}
-				}	
-				if (!found)
-				{				
-					std::set<IdentHash> excludedRouters;
-					const uint8_t * exclude_ident = excluded;
-					for (int i = 0; i < numExcluded; i++)
-					{
-						excludedRouters.insert (exclude_ident);
-						exclude_ident += 32;
-					}
-					closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
-					if (!numExcluded) // save if no excluded
-						m_LookupResponses[ident] = std::make_pair(closestFloodfills, i2p::util::GetSecondsSinceEpoch ());
+			{		
+				std::set<IdentHash> excludedRouters;
+				const uint8_t * exclude_ident = excluded;
+				for (int i = 0; i < numExcluded; i++)
+				{
+					excludedRouters.insert (exclude_ident);
+					exclude_ident += 32;
 				}
+				auto closestFloodfills = GetClosestFloodfills (ident, 3, excludedRouters, true);
+				if (closestFloodfills.empty ())
+					LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
     		}
 		}
@@ -929,7 +912,6 @@ namespace data
 		
 		uint8_t randomHash[32];
 		std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-		std::set<const RouterInfo *> floodfills;
 		LogPrint (eLogInfo, "NetDb: exploring new ", numDestinations, " routers ...");
 		for (int i = 0; i < numDestinations; i++)
 		{	
@@ -941,9 +923,8 @@ namespace data
 				return; 	
 			}	
 			auto floodfill = GetClosestFloodfill (randomHash, dest->GetExcludedPeers ());
-			if (floodfill && !floodfills.count (floodfill.get ())) // request floodfill only once
+			if (floodfill) 
 			{	
-				floodfills.insert (floodfill.get ());
 				if (i2p::transport::transports.IsConnected (floodfill->GetIdentHash ()))
 					throughTunnels = false;
 				if (throughTunnels)
@@ -1188,18 +1169,6 @@ namespace data
 				it = m_LeaseSets.erase (it);
 			}	
 			else 
-				++it;
-		}
-	}
-
-	void NetDb::ManageLookupResponses ()
-	{
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
-		for (auto it = m_LookupResponses.begin (); it != m_LookupResponses.end ();)
-		{
-			if (ts > it->second.second + 180) // 3 minutes
-				it = m_LookupResponses.erase (it);
-			else
 				++it;
 		}
 	}

@@ -386,44 +386,68 @@ namespace crypto
 // HMAC
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C; 			
-		
+
+#if defined(__AVX__)	
+	static const uint64_t ipads[] = { IPAD, IPAD, IPAD, IPAD };
+	static const uint64_t opads[] = { OPAD, OPAD, OPAD, OPAD };
+#endif
+	
 	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest)
 	// key is 32 bytes
 	// digest is 16 bytes
 	// block size is 64 bytes	
 	{
 		uint64_t buf[256];
+		uint64_t hash[12]; // 96 bytes
+#if defined(__AVX__) // for AVX
+		__asm__
+		(
+			"vmovups %[key], %%ymm0 \n"
+			"vmovups %[ipad], %%ymm1 \n"
+			"vmovups %%ymm1, 32(%[buf]) \n"
+			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
+			"vmovups %%ymm1, (%[buf]) \n"			
+			"vmovups %[opad], %%ymm1 \n"
+			"vmovups %%ymm1, 32(%[hash]) \n"	
+			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
+			"vmovups %%ymm1, (%[hash]) \n"
+			"vzeroall \n" // end of AVX
+		    "movups %%xmm0, 80(%[hash]) \n" // zero last 16 bytes
+			: 
+			: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads),
+			  [buf]"r"(buf), [hash]"r"(hash)
+			: "memory", "%xmm0"	// TODO: change to %ymm0 later
+		);
+#else
 		// ikeypad
 		buf[0] = key.GetLL ()[0] ^ IPAD; 
 		buf[1] = key.GetLL ()[1] ^ IPAD; 
 		buf[2] = key.GetLL ()[2] ^ IPAD; 
 		buf[3] = key.GetLL ()[3] ^ IPAD; 
-		buf[4] = IPAD; 
-		buf[5] = IPAD; 
-		buf[6] = IPAD; 
-		buf[7] = IPAD; 		
+		buf[4] = IPAD;
+		buf[5] = IPAD;
+		buf[6] = IPAD;
+		buf[7] = IPAD;
+		// okeypad			
+		hash[0] = key.GetLL ()[0] ^ OPAD; 
+		hash[1] = key.GetLL ()[1] ^ OPAD; 
+		hash[2] = key.GetLL ()[2] ^ OPAD; 
+		hash[3] = key.GetLL ()[3] ^ OPAD; 
+		hash[4] = OPAD;
+		hash[5] = OPAD;
+		hash[6] = OPAD;
+		hash[7] = OPAD;
+		// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
+		memset (hash + 10, 0, 16);		
+#endif
+
 		// concatenate with msg
 		memcpy (buf + 8, msg, len);
 		// calculate first hash
-		uint8_t hash[16]; // MD5
-		MD5((uint8_t *)buf, len + 64, hash);
-		
-		// okeypad			
-		buf[0] = key.GetLL ()[0] ^ OPAD; 
-		buf[1] = key.GetLL ()[1] ^ OPAD; 
-		buf[2] = key.GetLL ()[2] ^ OPAD; 
-		buf[3] = key.GetLL ()[3] ^ OPAD; 
-		buf[4] = OPAD; 
-		buf[5] = OPAD; 
-		buf[6] = OPAD; 
-		buf[7] = OPAD; 
-		// copy first hash after okeypad		
-		memcpy (buf + 8, hash, 16);
-		// fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-		memset (buf + 10, 0, 16);			
+		MD5((uint8_t *)buf, len + 64, (uint8_t *)(hash + 8));  // 16 bytes	
 		
 		// calculate digest
-		MD5((uint8_t *)buf, 96, digest);
+		MD5((uint8_t *)hash, 96, digest);
 	}
 
 // AES

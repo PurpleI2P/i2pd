@@ -842,7 +842,7 @@ namespace client
 		else
 			memset (response + 8, 0, 32); // not found 
 		memset (response + 40, 0, 4); // set expiration time to zero
-		m_LocalDestination->GetDatagramDestination ()->SendDatagramTo (response, 44, from.GetIdentHash (), toPort, fromPort);
+		m_LocalDestination->GetDatagramDestination ()->SendDatagramTo (response, 44, from.GetIdentHash(), toPort, fromPort);
 	}
 
 	void AddressResolver::AddAddress (const std::string& name, const i2p::data::IdentHash& ident)

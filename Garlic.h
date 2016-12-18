@@ -128,6 +128,7 @@ namespace garlic
 
 			GarlicDestination * m_Owner;
 			std::shared_ptr<const i2p::data::RoutingDestination> m_Destination;
+			
 			i2p::crypto::AESKey m_SessionKey;
 			std::list<SessionTag> m_SessionTags;
 			int m_NumTags;
@@ -138,7 +139,6 @@ namespace garlic
 			uint64_t m_LeaseSetSubmissionTime; // in milliseconds
 			
 			i2p::crypto::CBCEncryption m_Encryption;
-			std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption; 
 
 			std::shared_ptr<GarlicRoutingPath> m_SharedRoutingPath;
 			

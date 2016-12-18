@@ -171,7 +171,7 @@ namespace config {
 		"https://i2p.mooo.com/netDb/,"
 		"https://netdb.i2p2.no/,"
 		"https://us.reseed.i2p2.no:444/,"
-		"https://uk.reseed.i2p2.no:444/,"
+//		"https://uk.reseed.i2p2.no:444/," // mamoth's shit
 		"https://i2p-0.manas.ca:8443/,"
 		"https://reseed.i2p.vzaws.com:8443/,"
 		"https://download.xxlspeed.com/,"

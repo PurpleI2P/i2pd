@@ -60,7 +60,14 @@ ifeq ($(USE_AESNI),yes)
 ifeq ($(IS_64),1)
 #check if AES-NI is supported by CPU
 ifneq ($(shell $(GREP) -c aes /proc/cpuinfo),0)
-	CPU_FLAGS = -maes -DAESNI
+	CPU_FLAGS += -maes -DAESNI
 endif
+endif
+endif
+
+ifeq ($(USE_AVX),yes)
+#check if AVX supported by CPU
+ifneq ($(shell $(GREP) -c avx /proc/cpuinfo),0)
+	CPU_FLAGS += -mavx
 endif
 endif
