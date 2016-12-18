@@ -165,7 +165,6 @@ namespace client
 		}
 
 		SAMSession (std::shared_ptr<ClientDestination> dest);
-		~SAMSession ();
 
 		void AcceptI2P(std::shared_ptr<i2p::stream::Stream> stream);
 

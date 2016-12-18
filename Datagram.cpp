@@ -310,7 +310,7 @@ namespace datagram
 		std::vector<i2p::tunnel::TunnelMessageBlock> send;
 		auto routingPath = GetSharedRoutingPath();
 		// if we don't have a routing path we will drop all queued messages
-		if(routingPath)
+		if(routingPath && routingPath->outboundTunnel && routingPath->remoteLease)
 		{
 			for (const auto & msg : m_SendQueue)
 			{
