@@ -577,8 +577,8 @@ namespace client
 				    {
 						if (!ecode)
 							s->Receive ();
-						else
-							s->Terminate ();
+						else	
+							s->m_Owner.GetService ().post ([s] { s->Terminate (); });
 					});
 			}	
 		}
