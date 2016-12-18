@@ -20,7 +20,8 @@ namespace client
 {
 	const size_t SAM_SOCKET_BUFFER_SIZE = 8192;
 	const int SAM_SOCKET_CONNECTION_MAX_IDLE = 3600; // in seconds
-	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 20; // in seconds	
+	const int SAM_SESSION_READINESS_CHECK_INTERVAL = 20; // in seconds
+	const int SAM_MAX_ACCEPT_BACKLOG = 50;
 	const char SAM_HANDSHAKE[] = "HELLO VERSION";
 	const char SAM_HANDSHAKE_REPLY[] = "HELLO REPLY RESULT=OK VERSION=%s\n";
 	const char SAM_HANDSHAKE_I2P_ERROR[] = "HELLO REPLY RESULT=I2P_ERROR\n";	
@@ -84,6 +85,8 @@ namespace client
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 			SAMSocketType GetSocketType () const { return m_SocketType; };
 
+			void Accept(std::shared_ptr<i2p::stream::Stream> stream);
+
 		private:
 
 			void Terminate ();	
@@ -134,6 +137,8 @@ namespace client
 	struct SAMSession
 	{
 		std::shared_ptr<ClientDestination> localDestination;
+		boost::asio::deadline_timer m_BacklogPumper;
+		std::list<std::shared_ptr<i2p::stream::Stream> > m_Backlog;
 		std::list<std::shared_ptr<SAMSocket> > m_Sockets;
 		std::mutex m_SocketsMutex;
 
@@ -158,9 +163,14 @@ namespace client
 			}
 			return l;
 		}
-		
-		SAMSession (std::shared_ptr<ClientDestination> dest);		
+
+		SAMSession (std::shared_ptr<ClientDestination> dest);
 		~SAMSession ();
+
+		void AcceptI2P(std::shared_ptr<i2p::stream::Stream> stream);
+
+		void PumpBacklog();
+		void HandlePumpBacklog(const boost::system::error_code & ec);
 
 		void CloseStreams ();
 	};

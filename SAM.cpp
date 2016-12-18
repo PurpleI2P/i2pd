@@ -54,11 +54,7 @@ namespace client
 			case eSAMSocketTypeAcceptor:
 			{
 				if (m_Session)
-				{	
 					m_Session->DelSocket (shared_from_this ());
-					if (m_Session->localDestination)
-						m_Session->localDestination->StopAcceptingStreams ();
-				}
 				break;
 			}
 			default:
@@ -289,6 +285,11 @@ namespace client
 				dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), 
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
 			}
+			else
+			{
+				// start accepting streams because we're not a datagram session
+				m_Session->localDestination->AcceptStreams (std::bind (&SAMSession::AcceptI2P, m_Session, std::placeholders::_1));
+			}
 
 			if (m_Session->localDestination->IsReady ())
 				SendSessionCreateReplyOk ();
@@ -401,20 +402,24 @@ namespace client
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
 		{
-			if (!m_Session->localDestination->IsAcceptingStreams ())
-			{
-				m_SocketType = eSAMSocketTypeAcceptor;
-				m_Session->AddSocket (shared_from_this ());
-				m_Session->localDestination->AcceptStreams (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
-				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
-			}
-			else
-				SendMessageReply (SAM_STREAM_STATUS_I2P_ERROR, strlen(SAM_STREAM_STATUS_I2P_ERROR), true);
+			m_SocketType = eSAMSocketTypeAcceptor;
+			m_Session->AddSocket (shared_from_this ());
 		}	
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
 	}
 
+	void SAMSocket::Accept(std::shared_ptr<i2p::stream::Stream> stream)
+	{
+		if(stream) {
+			m_SocketType = eSAMSocketTypeStream;
+			SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
+			HandleI2PAccept(stream);
+		} else {
+			SendMessageReply (SAM_STREAM_STATUS_I2P_ERROR, strlen(SAM_STREAM_STATUS_I2P_ERROR), true);
+			Terminate();
+		}
+	}
 	size_t SAMSocket::ProcessDatagramSend (char * buf, size_t len, const char * data)
 	{
 		LogPrint (eLogDebug, "SAM: datagram send: ", buf, " ", len);
@@ -659,10 +664,6 @@ namespace client
 			LogPrint (eLogDebug, "SAM: incoming I2P connection for session ", m_ID);
 			m_Stream = stream;
 			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
-			auto session = m_Owner.FindSession (m_ID);
-			if (session)	
-				session->localDestination->StopAcceptingStreams ();	
-			m_SocketType = eSAMSocketTypeStream;
 			if (!m_IsSilent)
 			{
 				// get remote peer address
@@ -704,14 +705,52 @@ namespace client
 	}
 
 	SAMSession::SAMSession (std::shared_ptr<ClientDestination> dest):
-		localDestination (dest)
+		localDestination (dest),
+		m_BacklogPumper(dest->GetService())
 	{
+		PumpBacklog();
 	}
 		
 	SAMSession::~SAMSession ()
 	{
 		CloseStreams();
 		i2p::client::context.DeleteLocalDestination (localDestination);
+	}
+
+	void SAMSession::AcceptI2P(std::shared_ptr<i2p::stream::Stream> stream)
+	{
+		if(!stream) return; // fail
+		std::unique_lock<std::mutex> lock(m_SocketsMutex);
+		if(m_Backlog.size() > SAM_MAX_ACCEPT_BACKLOG) {
+			stream->Close();
+			return;
+		}
+		m_Backlog.push_back(stream);
+	}
+
+	void SAMSession::PumpBacklog()
+	{
+		// pump backlog every 100ms
+		boost::posix_time::milliseconds dlt(100);
+		m_BacklogPumper.expires_from_now(dlt);
+		m_BacklogPumper.async_wait(std::bind(&SAMSession::HandlePumpBacklog, this, std::placeholders::_1));
+	}
+
+	void SAMSession::HandlePumpBacklog(const boost::system::error_code & ec)
+	{
+		if(ec) return;
+
+		std::unique_lock<std::mutex> lock(m_SocketsMutex);
+		for(auto & stream : m_Backlog) {
+			for (auto & sock : m_Sockets) {
+				auto t = sock->GetSocketType();
+				if(t == eSAMSocketTypeAcceptor) {
+					sock->Accept(stream);
+					break;
+				}
+			}
+		}
+		PumpBacklog();
 	}
 
 	void SAMSession::CloseStreams ()
@@ -721,9 +760,13 @@ namespace client
 			for (auto& sock : m_Sockets) {
 				sock->CloseStream();
 			}
+			for(auto & stream : m_Backlog) {
+				stream->Close();
+			}
 		}
 		// XXX: should this be done inside locked parts?
 		m_Sockets.clear();
+		m_Backlog.clear();
 	}
 
 	SAMBridge::SAMBridge (const std::string& address, int port):
@@ -834,8 +877,9 @@ namespace client
 			auto session = std::make_shared<SAMSession>(localDestination);
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			auto ret = m_Sessions.insert (std::make_pair(id, session));
-			if (!ret.second)
+			if (!ret.second) {
 				LogPrint (eLogWarning, "SAM: Session ", id, " already exists");
+			} 
 			return ret.first->second;
 		}
 		return nullptr;
