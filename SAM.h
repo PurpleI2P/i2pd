@@ -169,6 +169,8 @@ namespace client
 
 		void AcceptI2P(std::shared_ptr<i2p::stream::Stream> stream);
 
+		std::shared_ptr<SAMSocket> FindAcceptor();
+
 		void PumpBacklog();
 		void HandlePumpBacklog(const boost::system::error_code & ec);
 
