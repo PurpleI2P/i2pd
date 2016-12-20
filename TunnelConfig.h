@@ -101,8 +101,7 @@ namespace tunnel
 			htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ()); 
 			htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID); 
 			RAND_bytes (clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE - BUILD_REQUEST_RECORD_PADDING_OFFSET);
-			i2p::crypto::ElGamalEncryption elGamalEncryption (ident->GetEncryptionPublicKey ());
-			elGamalEncryption.Encrypt (clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
+			i2p::crypto::ElGamalEncrypt (ident->GetEncryptionPublicKey (), clearText, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 			memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)ident->GetIdentHash (), 16);
 		}	
 	};	
