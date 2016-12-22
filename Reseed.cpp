@@ -444,6 +444,7 @@ namespace data
 			s.lowest_layer().connect (*it, ecode);
 			if (!ecode)
 			{
+				SSL_set_tlsext_host_name(s.native_handle(), url.host.c_str ());
 				s.handshake (boost::asio::ssl::stream_base::client, ecode);
 				if (!ecode)
 				{

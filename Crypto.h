@@ -47,21 +47,7 @@ namespace crypto
 	};	
 	
 	// ElGamal
-	class ElGamalEncryption
-	{
-		public:
-
-			ElGamalEncryption (const uint8_t * key);
-			~ElGamalEncryption ();
-			
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false) const;
-
-		private:
-
-			BN_CTX * ctx;
-			BIGNUM * a, * b1;
-	};
-
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false);
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, bool zeroPadding = false);
 	void GenerateElGamalKeyPair (uint8_t * priv, uint8_t * pub);
 

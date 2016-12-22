@@ -1,6 +1,24 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.11.0] - 2016-12-18
+### Added
+- Websockets support
+- Reseed through a floodfill
+- Tunnel configuration for HTTP and SOCKS proxy
+- Zero-hops tunnels for destinations
+- Multiple acceptors for SAM
+### Changed
+- Reseed servers list
+- DHT uses AVX if applicable
+- New logo
+- LeaseSet lookups
+### Fixed
+- HTTP Proxy connection reset for Windows
+- Crash upon SAM session termination
+- Can't connect to a destination for a longer time after restart
+- Mass packet loss for UDP tunnels
+
 ## [2.10.2] - 2016-12-04
 ### Fixed
 - Fixes UPnP discovery bug, producing excessive CPU usage
