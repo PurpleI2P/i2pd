@@ -72,7 +72,6 @@ namespace log {
 	{
 		if (!m_IsRunning)
 		{	
-			Reopen ();
 			m_IsRunning = true;	
 			m_Thread = new std::thread (std::bind (&Log::Run, this));
 		}
@@ -162,6 +161,7 @@ namespace log {
 
 	void Log::Run ()
 	{
+		Reopen ();
 		while (m_IsRunning)
 		{
 			std::shared_ptr<LogMsg> msg;
