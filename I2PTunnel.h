@@ -18,7 +18,7 @@ namespace i2p
 {
 namespace client
 {
-	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
+	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 65536;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds	
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	// for HTTP tunnels		
@@ -182,6 +182,8 @@ namespace client
 		/** how long has this converstation been idle in ms */
 		uint64_t idle;
 	};
+
+	typedef std::shared_ptr<UDPSession> UDPSessionPtr;
 	
 	/** server side udp tunnel, many i2p inbound to 1 ip outbound */
 	class I2PUDPServerTunnel
@@ -202,14 +204,14 @@ namespace client
 		private:
 
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-		std::shared_ptr<UDPSession> ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
+			UDPSessionPtr ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 
 		private:
 			const std::string m_Name;
 			boost::asio::ip::address m_LocalAddress;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			std::mutex m_SessionsMutex;
-		std::vector<std::shared_ptr<UDPSession> > m_Sessions;
+			std::vector<UDPSessionPtr> m_Sessions;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 	};
 
