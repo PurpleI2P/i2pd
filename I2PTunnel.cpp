@@ -177,7 +177,7 @@ namespace client
 			{
 				if (bytes_transferred > 0)
 					Write (m_StreamBuffer, bytes_transferred); // postpone termination
-				else if (ecode == boost::asio::error::timed_out && && m_Stream && m_Stream->IsOpen ())
+				else if (ecode == boost::asio::error::timed_out && m_Stream && m_Stream->IsOpen ())
 					StreamReceive ();
 				else
 					Terminate ();
@@ -553,7 +553,6 @@ namespace client
 				++itr;
 		}
   }
-<<<<<<< HEAD
 
 	void I2PUDPClientTunnel::ExpireStale(const uint64_t delta) {
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
