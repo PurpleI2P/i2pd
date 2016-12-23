@@ -223,6 +223,8 @@ namespace stream
 			void SetAcceptor (const Acceptor& acceptor);
 			void ResetAcceptor ();
 			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
+			void AcceptOnce (const Acceptor& acceptor);
+
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
 			void SetOwner (std::shared_ptr<i2p::client::ClientDestination> owner) { m_Owner = owner; };
 			uint16_t GetLocalPort () const { return m_LocalPort; };

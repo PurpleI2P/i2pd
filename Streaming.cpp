@@ -1037,6 +1037,29 @@ namespace stream
 		m_Acceptor = nullptr; 
 	}
 
+	void StreamingDestination::AcceptOnce (const Acceptor& acceptor)
+	{
+		m_Owner->GetService ().post([acceptor, this](void)
+			{   
+				if (!m_PendingIncomingStreams.empty ())
+                {
+					acceptor (m_PendingIncomingStreams.front ());
+					m_PendingIncomingStreams.pop_front ();
+					if (m_PendingIncomingStreams.empty ())
+						m_PendingIncomingTimer.cancel ();
+				}
+				else // we must save old acceptor and set it back
+				{
+					auto oldAcceptor = m_Acceptor;	
+					m_Acceptor = [acceptor, oldAcceptor, this](std::shared_ptr<Stream> stream)
+						{
+							acceptor (stream);
+							m_Acceptor = oldAcceptor;
+						};
+				}
+			});	
+	}
+
 	void StreamingDestination::HandlePendingIncomingTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
