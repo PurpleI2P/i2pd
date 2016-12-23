@@ -775,6 +775,7 @@ namespace http {
 		{
 			uint32_t token;
 			RAND_bytes ((uint8_t *)&token, 4);
+			token |= 0x7FFFFFFF; // clear first bit
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Tokens.begin (); it != m_Tokens.end (); )
 			{
