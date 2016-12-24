@@ -668,7 +668,7 @@ namespace client
 				for (auto it: session->ListSockets ())
 					if (it->m_SocketType == eSAMSocketTypeAcceptor)
 					{
-						session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
+						session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, it, std::placeholders::_1));
 						break;
 					}
 			}
