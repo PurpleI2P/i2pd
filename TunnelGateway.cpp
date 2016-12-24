@@ -20,6 +20,7 @@ namespace tunnel
 
 	TunnelGatewayBuffer::~TunnelGatewayBuffer ()
 	{
+		ClearTunnelDataMsgs ();
 	}	
 	
 	void TunnelGatewayBuffer::PutI2NPMsg (const TunnelMessageBlock& block)
@@ -48,7 +49,7 @@ namespace tunnel
 		di[0] = block.deliveryType << 5; // set delivery type
 
 		// create fragments
-		std::shared_ptr<I2NPMessage> msg = block.data;
+		const std::shared_ptr<I2NPMessage> & msg = block.data;
 		size_t fullMsgLen = diLen + msg->GetLength () + 2; // delivery instructions + payload + 2 bytes length
 		if (fullMsgLen <= m_RemainingSize)
 		{
@@ -115,9 +116,13 @@ namespace tunnel
 					m_CurrentTunnelDataMsg->len += s+7;
 					if (isLastFragment)
 					{
-						m_RemainingSize -= s+7; 
-						if (!m_RemainingSize)
-							CompleteCurrentTunnelDataMessage ();
+						if(m_RemainingSize < (s+7)) {
+							LogPrint (eLogError, "TunnelGateway: remaining size overflow: ", m_RemainingSize, " < ", s+7);
+						} else {
+							m_RemainingSize -= s+7; 
+							if (m_RemainingSize == 0)
+								CompleteCurrentTunnelDataMessage ();
+						}
 					}
 					else
 						CompleteCurrentTunnelDataMessage ();
@@ -138,10 +143,12 @@ namespace tunnel
 	void TunnelGatewayBuffer::ClearTunnelDataMsgs ()
 	{
 		m_TunnelDataMsgs.clear ();
+		m_CurrentTunnelDataMsg = nullptr;
 	}
 
 	void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage ()
 	{
+		m_CurrentTunnelDataMsg = nullptr;
 		m_CurrentTunnelDataMsg = NewI2NPShortMessage ();
 		m_CurrentTunnelDataMsg->Align (12);
 		// we reserve space for padding
@@ -196,7 +203,7 @@ namespace tunnel
 	void TunnelGateway::SendBuffer ()
 	{
 		m_Buffer.CompleteCurrentTunnelDataMessage ();
-		auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs ();
+		const auto & tunnelMsgs = m_Buffer.GetTunnelDataMsgs ();
 		for (auto& tunnelMsg : tunnelMsgs)
 		{	
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg, tunnelMsg); 
