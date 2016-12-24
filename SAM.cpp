@@ -405,7 +405,8 @@ namespace client
 			{
 				m_SocketType = eSAMSocketTypeAcceptor;
 				m_Session->AddSocket (shared_from_this ());
-				m_Session->localDestination->AcceptStreams (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
+				if (!m_Session->localDestination->IsAcceptingStreams ())
+					m_Session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
 				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 			}
 			else
@@ -657,12 +658,20 @@ namespace client
 		if (stream)
 		{
 			LogPrint (eLogDebug, "SAM: incoming I2P connection for session ", m_ID);
+			m_SocketType = eSAMSocketTypeStream;
 			m_Stream = stream;
 			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
-			if (session)	
-				session->localDestination->StopAcceptingStreams ();	
-			m_SocketType = eSAMSocketTypeStream;
+			if (session)
+			{	
+				// find more pending acceptors
+				for (auto it: session->ListSockets ())
+					if (it->m_SocketType == eSAMSocketTypeAcceptor)
+					{
+						session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
+						break;
+					}
+			}
 			if (!m_IsSilent)
 			{
 				// get remote peer address
