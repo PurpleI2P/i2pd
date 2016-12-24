@@ -400,17 +400,12 @@ namespace client
 		m_ID = id;
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
-		{
+		{			
+			m_SocketType = eSAMSocketTypeAcceptor;
+			m_Session->AddSocket (shared_from_this ());
 			if (!m_Session->localDestination->IsAcceptingStreams ())
-			{
-				m_SocketType = eSAMSocketTypeAcceptor;
-				m_Session->AddSocket (shared_from_this ());
-				if (!m_Session->localDestination->IsAcceptingStreams ())
-					m_Session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
-				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
-			}
-			else
-				SendMessageReply (SAM_STREAM_STATUS_I2P_ERROR, strlen(SAM_STREAM_STATUS_I2P_ERROR), true);
+				m_Session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
+			SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 		}	
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
