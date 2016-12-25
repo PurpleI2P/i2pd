@@ -212,7 +212,9 @@ namespace client
 				// send destination first like received from I2P
 				std::string dest = m_Stream->GetRemoteIdentity ()->ToBase64 ();
 				dest += "\n";
-				memcpy (m_StreamBuffer, dest.c_str (), dest.size ());
+				if(sizeof(m_StreamBuffer) >= dest.size()) {
+					memcpy (m_StreamBuffer, dest.c_str (), dest.size ());
+				}
 				HandleStreamReceive (boost::system::error_code (), dest.size ());
 			}	
 			Receive ();	
