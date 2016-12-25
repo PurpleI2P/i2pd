@@ -38,7 +38,7 @@ namespace client
 				const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
 			~I2PTunnelConnection ();
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
-			void Connect ();
+			void Connect (bool mapToLoopback = true);
 			
 		protected:
 
@@ -201,12 +201,15 @@ namespace client
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions();
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
 
+			void SetMapToLoopback(bool mapToLoopback = true) { m_MapToLoopback = mapToLoopback; }
+
 		private:
 
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSessionPtr ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 
 		private:
+			bool m_MapToLoopback;
 			const std::string m_Name;
 			boost::asio::ip::address m_LocalAddress;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
@@ -264,6 +267,8 @@ namespace client
 
 			void SetAccessList (const std::set<i2p::data::IdentHash>& accessList); 
 
+			void SetMapToLoopback(bool mapToLoopback) { m_MapToLoopback = mapToLoopback; }
+
 			const std::string& GetAddress() const { return m_Address; }
 			int GetPort () const { return m_Port; };
 			uint16_t GetLocalPort () const { return m_PortDestination->GetLocalPort (); };
@@ -283,7 +288,7 @@ namespace client
 			virtual void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
-
+			bool m_MapToLoopback;
 			std::string m_Name, m_Address;
 			int m_Port;
 			boost::asio::ip::tcp::endpoint m_Endpoint;	

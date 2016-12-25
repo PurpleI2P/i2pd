@@ -58,25 +58,39 @@ namespace client
 		StreamReceive ();
 		Receive ();
 	}
-		
-	void I2PTunnelConnection::Connect ()
+
+	static boost::asio::ip::address GetLoopbackAddressFor(const i2p::data::IdentHash & addr)
+	{
+		boost::asio::ip::address_v4::bytes_type bytes;
+		const uint8_t * ident = addr;
+		bytes[0] = 127;
+		memcpy (bytes.data ()+1, ident, 3);
+		boost::asio::ip::address ourIP = boost::asio::ip::address_v4 (bytes);
+		return ourIP;
+	}
+	
+	static void MapToLoopback(const std::shared_ptr<boost::asio::ip::tcp::socket> & sock, const i2p::data::IdentHash & addr)
+	{
+
+		// bind to 127.x.x.x address 
+		// where x.x.x are first three bytes from ident
+		auto ourIP = GetLoopbackAddressFor(addr);
+		sock->bind (boost::asio::ip::tcp::endpoint (ourIP, 0));
+
+	}
+
+	void I2PTunnelConnection::Connect (bool mapToLoopback)
 	{
 		I2PTunnelSetSocketOptions(m_Socket);
 		if (m_Socket) {
-#ifdef __linux__ 			
-			// bind to 127.x.x.x address 
-			// where x.x.x are first three bytes from ident
 
+#ifdef __linux__
 			if (m_RemoteEndpoint.address ().is_v4 () &&
-				m_RemoteEndpoint.address ().to_v4 ().to_bytes ()[0] == 127)
+				m_RemoteEndpoint.address ().to_v4 ().to_bytes ()[0] == 127 && mapToLoopback)
 			{
 				m_Socket->open (boost::asio::ip::tcp::v4 ());
-				boost::asio::ip::address_v4::bytes_type bytes;
-				const uint8_t * ident = m_Stream->GetRemoteIdentity ()->GetIdentHash ();
-				bytes[0] = 127;
-				memcpy (bytes.data ()+1, ident, 3);
-				boost::asio::ip::address ourIP = boost::asio::ip::address_v4 (bytes);
-				m_Socket->bind (boost::asio::ip::tcp::endpoint (ourIP, 0));
+				auto ident = m_Stream->GetRemoteIdentity()->GetIdentHash();
+				MapToLoopback(m_Socket, ident);
 			}
 #endif
  			m_Socket->async_connect (m_RemoteEndpoint, std::bind (&I2PTunnelConnection::HandleConnect,
@@ -417,7 +431,7 @@ namespace client
 
 	I2PServerTunnel::I2PServerTunnel (const std::string& name, const std::string& address, 
 	    int port, std::shared_ptr<ClientDestination> localDestination, int inport, bool gzip): 
-		I2PService (localDestination), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
+		I2PService (localDestination), m_MapToLoopback(true), m_Name (name), m_Address (address), m_Port (port), m_IsAccessList (false)
 	{
 		m_PortDestination = localDestination->CreateStreamingDestination (inport > 0 ? inport : port, gzip);
 	}
@@ -502,7 +516,7 @@ namespace client
 	{
 		auto conn = std::make_shared<I2PTunnelConnection> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint ());
 		AddHandler (conn);
-		conn->Connect ();
+		conn->Connect (m_MapToLoopback);
 	}
 
 	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& name, const std::string& address, 
@@ -581,8 +595,15 @@ namespace client
         return s;
       }
     }
-    /** create new udp session */
-    boost::asio::ip::udp::endpoint ep(m_LocalAddress, 0);
+		boost::asio::ip::address addr;
+		/** create new udp session */
+		if(m_LocalAddress.is_loopback() && m_MapToLoopback) {
+			auto ident = from.GetIdentHash();
+			addr = GetLoopbackAddressFor(ident);
+		} else {
+			addr = m_LocalAddress;
+		}
+		boost::asio::ip::udp::endpoint ep(addr, 0);
     m_Sessions.push_back(std::make_shared<UDPSession>(ep, m_LocalDest, m_RemoteEndpoint, &ih, localPort, remotePort));
 		auto & back = m_Sessions.back();
 		return back;
@@ -627,6 +648,7 @@ namespace client
 	
 	I2PUDPServerTunnel::I2PUDPServerTunnel(const std::string & name, std::shared_ptr<i2p::client::ClientDestination> localDestination,
 		boost::asio::ip::address localAddress, boost::asio::ip::udp::endpoint forwardTo, uint16_t port) :
+		m_MapToLoopback(true),
 		m_Name(name),
 		m_LocalAddress(localAddress),
 		m_RemoteEndpoint(forwardTo)
@@ -768,8 +790,6 @@ namespace client
 				// found convo
 				if (len > 0) {
 					LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", from.GetIdentHash().ToBase32());
-					uint8_t sendbuf[len];
-					memcpy(sendbuf, buf, len);
 					m_LocalSocket.send_to(boost::asio::buffer(buf, len), itr->second.first);
 					// mark convo as active
 					itr->second.second = i2p::util::GetMillisecondsSinceEpoch();
