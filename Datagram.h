@@ -88,7 +88,7 @@ namespace datagram
     boost::asio::deadline_timer m_SendQueueTimer;
     std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
     uint64_t m_LastUse;
-
+    bool m_RequestingLS;
 	};
 	
 	const size_t MAX_DATAGRAM_SIZE = 32768;	 

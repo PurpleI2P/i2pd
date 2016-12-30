@@ -114,6 +114,7 @@ namespace client
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
 			const i2p::proxy::HTTPProxy * GetHttpProxy () const { return m_HttpProxy; }
+			const i2p::proxy::SOCKSProxy * GetSocksProxy () const { return m_SocksProxy; }
 	};
 	
 	extern ClientContext context;	

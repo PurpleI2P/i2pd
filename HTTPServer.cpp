@@ -604,6 +604,15 @@ namespace http {
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
 		}	
+		auto socksProxy = i2p::client::context.GetSocksProxy ();
+		if (socksProxy)
+		{
+			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+			s << "SOCKS Proxy" << "</a> &#8656; ";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << "<br>\r\n"<< std::endl;
+		}	
 		s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetServerTunnels ())
 		{
@@ -775,6 +784,7 @@ namespace http {
 		{
 			uint32_t token;
 			RAND_bytes ((uint8_t *)&token, 4);
+			token &= 0x7FFFFFFF; // clear first bit
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Tokens.begin (); it != m_Tokens.end (); )
 			{

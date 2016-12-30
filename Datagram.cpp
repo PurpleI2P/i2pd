@@ -168,7 +168,8 @@ namespace datagram
 																	 const i2p::data::IdentHash & remoteIdent) :
 		m_LocalDestination(localDestination),
 		m_RemoteIdent(remoteIdent),
-		m_SendQueueTimer(localDestination->GetService())
+		m_SendQueueTimer(localDestination->GetService()),
+		m_RequestingLS(false)
 	{
 		m_LastUse = i2p::util::GetMillisecondsSinceEpoch ();
 		ScheduleFlushSendQueue();
@@ -221,7 +222,10 @@ namespace datagram
 			}
 			if(!m_RemoteLeaseSet) {
 				// no remote lease set
-				m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, this, std::placeholders::_1));
+				if(!m_RequestingLS) {
+					m_RequestingLS = true;
+					m_LocalDestination->RequestDestination(m_RemoteIdent, std::bind(&DatagramSession::HandleLeaseSetUpdated, this, std::placeholders::_1));
+				}
 				return nullptr;
 			}
 			m_RoutingSession = m_LocalDestination->GetRoutingSession(m_RemoteLeaseSet, true);
@@ -290,6 +294,7 @@ namespace datagram
 
 	void DatagramSession::HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls)
 	{
+		m_RequestingLS = false;
 		if(!ls) return;
 		// only update lease set if found and newer than previous lease set
 		uint64_t oldExpire = 0;

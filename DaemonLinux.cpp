@@ -76,12 +76,10 @@ namespace i2p
 					return false;
 				}
 
-#if !defined(__OpenBSD__)
 				// point std{in,out,err} descriptors to /dev/null
-                stdin  = freopen("/dev/null", "r", stdin);
-				stdout = freopen("/dev/null", "w", stdout);
-				stderr = freopen("/dev/null", "w", stderr);
-#endif
+                freopen("/dev/null", "r", stdin);
+				freopen("/dev/null", "w", stdout);
+				freopen("/dev/null", "w", stderr);
 			}
 
 			// set proc limits
