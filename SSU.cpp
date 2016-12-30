@@ -159,6 +159,11 @@ namespace transport
 		m_Relays[tag] = relay;
 	}	
 
+	void SSUServer::RemoveRelay (uint32_t tag)
+	{
+		m_Relays.erase (tag);
+	}	
+		
 	std::shared_ptr<SSUSession> SSUServer::FindRelaySession (uint32_t tag)
 	{
 		auto it = m_Relays.find (tag);

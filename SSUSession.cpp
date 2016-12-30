@@ -16,7 +16,7 @@ namespace transport
 		TransportSession (router, SSU_TERMINATION_TIMEOUT), 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_ConnectTimer (GetService ()), 
 		m_IsPeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), 
-		m_RelayTag (0),m_Data (*this), m_IsDataReceived (false)
+		m_RelayTag (0), m_SentRelayTag (0), m_Data (*this), m_IsDataReceived (false)
 	{	
 		if (router)
 		{
@@ -458,14 +458,13 @@ namespace transport
 		else
 			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
 		s.Insert<uint16_t> (htobe16 (address->port)); // our port
-		uint32_t relayTag = 0;
 		if (sendRelayTag && i2p::context.GetRouterInfo ().IsIntroducer () && !IsV6 ())
 		{
-			RAND_bytes((uint8_t *)&relayTag, 4);
-			if (!relayTag) relayTag = 1;
-			m_Server.AddRelay (relayTag, m_RemoteEndpoint);
+			RAND_bytes((uint8_t *)&m_SentRelayTag, 4);
+			if (!m_SentRelayTag) m_SentRelayTag = 1;
+			m_Server.AddRelay (m_SentRelayTag, m_RemoteEndpoint);
 		}
-		htobe32buf (payload, relayTag); 
+		htobe32buf (payload, m_SentRelayTag); 
 		payload += 4; // relay tag 
 		htobe32buf (payload, i2p::util::GetSecondsSinceEpoch ()); // signed on time
 		payload += 4;
@@ -870,6 +869,8 @@ namespace transport
 		transports.PeerDisconnected (shared_from_this ());
 		m_Data.Stop ();
 		m_ConnectTimer.cancel ();
+		if (m_SentRelayTag)
+			m_Server.RemoveRelay (m_SentRelayTag); // relay tag is not valid anymore
 	}	
 
 	void SSUSession::Done ()

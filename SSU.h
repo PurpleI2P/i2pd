@@ -58,6 +58,7 @@ namespace transport
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
 			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
+			void RemoveRelay (uint32_t tag);
 			std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
 
 			void NewPeerTest (uint32_t nonce, PeerTestParticipant role, std::shared_ptr<SSUSession> session = nullptr);
