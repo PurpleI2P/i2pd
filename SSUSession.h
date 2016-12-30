@@ -141,7 +141,8 @@ namespace transport
 			bool m_IsPeerTest;
 			SessionState m_State;
 			bool m_IsSessionKey;
-			uint32_t m_RelayTag;	
+			uint32_t m_RelayTag; // received from peer
+			uint32_t m_SentRelayTag; // sent by us
 			i2p::crypto::CBCEncryption m_SessionKeyEncryption;
 			i2p::crypto::CBCDecryption m_SessionKeyDecryption;
 			i2p::crypto::AESKey m_SessionKey;
