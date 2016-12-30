@@ -462,7 +462,7 @@ namespace transport
 		{
 			RAND_bytes((uint8_t *)&m_SentRelayTag, 4);
 			if (!m_SentRelayTag) m_SentRelayTag = 1;
-			m_Server.AddRelay (m_SentRelayTag, m_RemoteEndpoint);
+			m_Server.AddRelay (m_SentRelayTag, shared_from_this ());
 		}
 		htobe32buf (payload, m_SentRelayTag); 
 		payload += 4; // relay tag 

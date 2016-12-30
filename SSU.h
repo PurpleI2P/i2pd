@@ -57,7 +57,7 @@ namespace transport
 			boost::asio::io_service& GetServiceV6 () { return m_ServiceV6; };
 			const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };			
 			void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
-			void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
+			void AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay);
 			void RemoveRelay (uint32_t tag);
 			std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
 
@@ -120,7 +120,7 @@ namespace transport
 				m_TerminationTimer, m_TerminationTimerV6;
 			std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions, m_SessionsV6;
-			std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
+			std::map<uint32_t, std::shared_ptr<SSUSession> > m_Relays; // we are introducer
 			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
 
 		public:
