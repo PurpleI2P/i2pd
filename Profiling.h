@@ -26,11 +26,11 @@ namespace data
 	{
 		public:
 
-			RouterProfile (const IdentHash& identHash);
+			RouterProfile ();
 			RouterProfile& operator= (const RouterProfile& ) = default;
 			
-			void Save ();
-			void Load ();
+			void Save (const IdentHash& identHash);
+			void Load (const IdentHash& identHash);
 
 			bool IsBad ();
 			
@@ -48,7 +48,6 @@ namespace data
 			
 		private:	
 
-			IdentHash m_IdentHash;
 			boost::posix_time::ptime m_LastUpdateTime;
 			// participation
 			uint32_t m_NumTunnelsAgreed;
