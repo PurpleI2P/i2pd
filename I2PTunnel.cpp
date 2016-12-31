@@ -106,7 +106,8 @@ namespace client
 			m_Stream->Close ();
 			m_Stream.reset ();
 		}	
-		m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_send); // avoid RST
+		boost::system::error_code ec;
+		m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec); // avoid RST
 		m_Socket->close ();
 
 		Done(shared_from_this ());

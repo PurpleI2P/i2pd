@@ -116,16 +116,10 @@ namespace transport
 
 	void NTCPSession::ServerLogin ()
 	{
-		boost::system::error_code ec;
-		auto ep = m_Socket.remote_endpoint(ec);	
-		if (!ec)
-		{	
-			m_ConnectedFrom = ep.address ();
-			// receive Phase1
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),                    
-				std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (), 
-					std::placeholders::_1, std::placeholders::_2));
-		}
+		// receive Phase1
+		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),                    
+			std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (), 
+				std::placeholders::_1, std::placeholders::_2));
 	}	
 		
 	void NTCPSession::HandlePhase1Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -502,8 +496,6 @@ namespace transport
 		if (ecode) {
 			if (ecode != boost::asio::error::operation_aborted)
 				LogPrint (eLogDebug, "NTCP: Read error: ", ecode.message ());
-			if (!m_NumReceivedBytes)
-				m_Server.Ban (m_ConnectedFrom);
 			//if (ecode != boost::asio::error::operation_aborted)
 			Terminate ();
 		}
@@ -890,18 +882,6 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
-				auto it = m_BanList.find (ep.address ());
-				if (it != m_BanList.end ())
-				{
-					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-					if (ts < it->second)
-					{
-						LogPrint (eLogWarning, "NTCP: ", ep.address (), " is banned for ", it->second - ts, " more seconds");
-						conn = nullptr;
-					}
-					else
-						m_BanList.erase (it);
-				}
 				if (conn)
 					conn->ServerLogin ();
 			}
@@ -927,18 +907,6 @@ namespace transport
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
-				auto it = m_BanList.find (ep.address ());
-				if (it != m_BanList.end ())
-				{
-					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-					if (ts < it->second)
-					{
-						LogPrint (eLogWarning, "NTCP: ", ep.address (), " is banned for ", it->second - ts, " more seconds");
-						conn = nullptr;
-					}
-					else
-						m_BanList.erase (it);
-				}
 				if (conn)
 					conn->ServerLogin ();
 			}
@@ -995,13 +963,6 @@ namespace transport
 			conn->ClientLogin ();
 		}	
 	}	
-
-	void NTCPServer::Ban (const boost::asio::ip::address& addr)
-	{
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();	
-		m_BanList[addr] = ts + NTCP_BAN_EXPIRATION_TIMEOUT;
-		LogPrint (eLogWarning, "NTCP: ", addr, " has been banned for ", NTCP_BAN_EXPIRATION_TIMEOUT, " seconds");
-	}
 
 	void NTCPServer::ScheduleTermination ()
 	{
