@@ -122,8 +122,6 @@ namespace transport
 
 			bool m_IsSending;
 			std::vector<std::shared_ptr<I2NPMessage> > m_SendQueue;
-			
-			boost::asio::ip::address m_ConnectedFrom; // for ban
 	};	
 
 	// TODO: move to NTCP.h/.cpp
@@ -145,8 +143,7 @@ namespace transport
       		bool IsBoundV4() const { return m_NTCPAcceptor != nullptr; };
       		bool IsBoundV6() const { return m_NTCPV6Acceptor != nullptr; };
       
-			boost::asio::io_service& GetService () { return m_Service; };
-			void Ban (const boost::asio::ip::address& addr);			
+			boost::asio::io_service& GetService () { return m_Service; };	
 
 		private:
 
@@ -169,7 +166,6 @@ namespace transport
 			boost::asio::deadline_timer m_TerminationTimer;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions; // access from m_Thread only
-			std::map<boost::asio::ip::address, uint32_t> m_BanList; // IP -> ban expiration time in seconds
 
 		public:
 
