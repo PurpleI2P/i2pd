@@ -16,7 +16,7 @@ namespace transport
 		TransportSession (router, SSU_TERMINATION_TIMEOUT), 
 		m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_ConnectTimer (GetService ()), 
 		m_IsPeerTest (peerTest),m_State (eSessionStateUnknown), m_IsSessionKey (false), 
-		m_RelayTag (0),m_Data (*this), m_IsDataReceived (false)
+		m_RelayTag (0), m_SentRelayTag (0), m_Data (*this), m_IsDataReceived (false)
 	{	
 		if (router)
 		{
@@ -350,7 +350,7 @@ namespace transport
 
 	void SSUSession::SendSessionRequest ()
 	{	
-		uint8_t buf[320 + 18]; // 304 bytes for ipv4, 320 for ipv6
+		uint8_t * buf = new uint8_t[320 + 18]; // 304 bytes for ipv4, 320 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		uint8_t flag = 0;
 		// fill extended options, 3 bytes extended options don't change message size
@@ -381,6 +381,7 @@ namespace transport
 		RAND_bytes (iv, 16); // random iv
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_REQUEST, buf, isV4 ? 304 : 320, m_IntroKey, iv, m_IntroKey, flag);
 		m_Server.Send (buf, isV4 ? 304 : 320, m_RemoteEndpoint);
+		delete [] buf;
 	}
 
 	void SSUSession::SendRelayRequest (const i2p::data::RouterInfo::Introducer& introducer, uint32_t nonce)
@@ -392,7 +393,7 @@ namespace transport
 			return;
 		}
 	
-		uint8_t buf[96 + 18]; 
+		uint8_t * buf = new uint8_t[96 + 18]; 
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		htobe32buf (payload, introducer.iTag);
 		payload += 4;
@@ -413,6 +414,7 @@ namespace transport
 		else
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_REQUEST, buf, 96, introducer.iKey, iv, introducer.iKey);			
 		m_Server.Send (buf, 96, m_RemoteEndpoint);
+		delete [] buf;
 	}
 
 	void SSUSession::SendSessionCreated (const uint8_t * x, bool sendRelayTag)
@@ -427,7 +429,7 @@ namespace transport
 		SignedData s; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
 		s.Insert (x, 256); // x
 
-		uint8_t buf[384 + 18];	
+		uint8_t * buf = new uint8_t[384 + 18];	
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256);
 		s.Insert (payload, 256); // y
@@ -458,14 +460,13 @@ namespace transport
 		else
 			s.Insert (address->host.to_v6 ().to_bytes ().data (), 16); // our IP V6
 		s.Insert<uint16_t> (htobe16 (address->port)); // our port
-		uint32_t relayTag = 0;
 		if (sendRelayTag && i2p::context.GetRouterInfo ().IsIntroducer () && !IsV6 ())
 		{
-			RAND_bytes((uint8_t *)&relayTag, 4);
-			if (!relayTag) relayTag = 1;
-			m_Server.AddRelay (relayTag, m_RemoteEndpoint);
+			RAND_bytes((uint8_t *)&m_SentRelayTag, 4);
+			if (!m_SentRelayTag) m_SentRelayTag = 1;
+			m_Server.AddRelay (m_SentRelayTag, shared_from_this ());
 		}
-		htobe32buf (payload, relayTag); 
+		htobe32buf (payload, m_SentRelayTag); 
 		payload += 4; // relay tag 
 		htobe32buf (payload, i2p::util::GetSecondsSinceEpoch ()); // signed on time
 		payload += 4;
@@ -491,11 +492,12 @@ namespace transport
 		// encrypt message with intro key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, msgLen, m_IntroKey, iv, m_IntroKey);	
 		Send (buf, msgLen);
+		delete [] buf;
 	}
 
 	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen)
 	{
-		uint8_t buf[512 + 18];
+		uint8_t * buf = new uint8_t[512 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 1; // 1 fragment
 		payload++; // info
@@ -534,6 +536,7 @@ namespace transport
 		// encrypt message with session key
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CONFIRMED, buf, msgLen, m_SessionKey, iv, m_MacKey);
 		Send (buf, msgLen);
+		delete [] buf;
 	}
 
 	void SSUSession::ProcessRelayRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
@@ -561,14 +564,14 @@ namespace transport
 	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 		const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
 	{
-		uint8_t buf[80 + 18]; // 64 Alice's ipv4 and 80 Alice's ipv6
-		uint8_t * payload = buf + sizeof (SSUHeader);
 		// Charlie's address always v4
 		if (!to.address ().is_v4 ())
 		{
 			LogPrint (eLogWarning, "SSU: Charlie's IP must be v4");
 			return;
 		}
+		uint8_t * buf = new uint8_t[80 + 18]; // 64 Alice's ipv4 and 80 Alice's ipv6
+		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 4;
 		payload++; // size
 		htobe32buf (payload, to.address ().to_v4 ().to_ulong ()); // Charlie's IP
@@ -610,6 +613,7 @@ namespace transport
 			m_Server.Send (buf, isV4 ? 64 : 80, from);
 		}	
 		LogPrint (eLogDebug, "SSU: relay response sent");
+		delete [] buf;
 	}	
 
 	void SSUSession::SendRelayIntro (std::shared_ptr<SSUSession> session, const boost::asio::ip::udp::endpoint& from)
@@ -621,7 +625,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU: Alice's IP must be v4");
 			return;
 		}	
-		uint8_t buf[48 + 18];
+		uint8_t * buf = new uint8_t[48 + 18];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 4;
 		payload++; // size
@@ -635,6 +639,7 @@ namespace transport
 		FillHeaderAndEncrypt (PAYLOAD_TYPE_RELAY_INTRO, buf, 48, session->m_SessionKey, iv, session->m_MacKey);
 		m_Server.Send (buf, 48, session->m_RemoteEndpoint);
 		LogPrint (eLogDebug, "SSU: relay intro sent");
+		delete [] buf;
 	}
 	
 	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t len)
@@ -870,6 +875,8 @@ namespace transport
 		transports.PeerDisconnected (shared_from_this ());
 		m_Data.Stop ();
 		m_ConnectTimer.cancel ();
+		if (m_SentRelayTag)
+			m_Server.RemoveRelay (m_SentRelayTag); // relay tag is not valid anymore
 	}	
 
 	void SSUSession::Done ()
@@ -1038,7 +1045,7 @@ namespace transport
 	// toAddress is true for Alice<->Chalie communications only
 	// sendAddress is false if message comes from Alice		
 	{
-		uint8_t buf[80 + 18];
+		uint8_t * buf = new uint8_t[80 + 18];
 		uint8_t iv[16];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		htobe32buf (payload, nonce);
@@ -1094,7 +1101,8 @@ namespace transport
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80);
 			Send (buf, 80);
-		}	
+		}
+		delete [] buf;
 	}	
 
 	void SSUSession::SendPeerTest ()
@@ -1119,7 +1127,7 @@ namespace transport
 	{
 		if (m_State == eSessionStateEstablished)
 		{	
-			uint8_t buf[48 + 18];	
+			uint8_t * buf = new uint8_t[48 + 18];	
 			uint8_t	* payload = buf + sizeof (SSUHeader);
 			*payload = 0; // flags
 			payload++;
@@ -1129,6 +1137,7 @@ namespace transport
 			Send (buf, 48);
 			LogPrint (eLogDebug, "SSU: keep-alive sent");
 			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+			delete [] buf;
 		}	
 	}
 
@@ -1136,7 +1145,7 @@ namespace transport
 	{
 		if (m_IsSessionKey)
 		{
-			uint8_t buf[48 + 18];
+			uint8_t * buf = new uint8_t[48 + 18];
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
 			try
@@ -1148,12 +1157,13 @@ namespace transport
 				LogPrint (eLogWarning, "SSU: exception while sending session destoroyed: ", ex.what ());
 			}
 			LogPrint (eLogDebug, "SSU: session destroyed sent");
+			delete [] buf;
 		}
 	}	
 
 	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
 	{
-		uint8_t buf[SSU_MTU_V4 + 18];
+		uint8_t * buf = new uint8_t[SSU_MTU_V4 + 18];
 		size_t msgSize = len + sizeof (SSUHeader); 
 		size_t paddingSize = msgSize & 0x0F; // %16
 		if (paddingSize > 0) msgSize += (16 - paddingSize);
@@ -1166,6 +1176,7 @@ namespace transport
 		// encrypt message with session key
 		FillHeaderAndEncrypt (type, buf, msgSize);
 		Send (buf, msgSize);
+		delete [] buf;
 	}			
 
 	void SSUSession::Send (const uint8_t * buf, size_t size)

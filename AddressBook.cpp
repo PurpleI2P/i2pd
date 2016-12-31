@@ -636,7 +636,11 @@ namespace client
 		if (address.length () > 0)
 		{
 			// TODO: verify from
-			m_Addresses[address] = buf + 8;
+			i2p::data::IdentHash hash(buf + 8);
+			if (!hash.IsZero ())				
+				m_Addresses[address] = hash;
+			else
+				LogPrint (eLogInfo, "AddressBook: Lookup response: ", address, " not found");
 		}	
 	}
 	

@@ -1,16 +1,18 @@
 diff --git a/Makefile b/Makefile
-index b6fc795..abc3ace 100644
+index bdadfe0..2f71eec 100644
+
 --- a/Makefile
 +++ b/Makefile
 @@ -9,10 +9,10 @@ DEPS := obj/make.dep
  
  include filelist.mk
  
--USE_AESNI  := yes
-+USE_AESNI  := no
- USE_STATIC := no
- USE_MESHNET := no
- USE_UPNP   := no
+-USE_AESNI	:= yes
++USE_AESNI	:= no
+-USE_AVX		:= yes
++USE_AVX		:= no
+ USE_STATIC	:= no
+ USE_MESHNET	:= no
+ USE_UPNP	:= no
 
  ifeq ($(WEBSOCKETS),1)
- 	NEEDED_CXXFLAGS += -DWITH_EVENTS

@@ -844,6 +844,12 @@ namespace client
 		return false;
 	}	
 
+	void ClientDestination::AcceptOnce (const i2p::stream::StreamingDestination::Acceptor& acceptor)
+	{
+		if (m_StreamingDestination)
+			m_StreamingDestination->AcceptOnce (acceptor);
+	}	
+		
 	std::shared_ptr<i2p::stream::StreamingDestination> ClientDestination::CreateStreamingDestination (int port, bool gzip)
 	{
 		auto dest = std::make_shared<i2p::stream::StreamingDestination> (GetSharedFromThis (), port, gzip); 

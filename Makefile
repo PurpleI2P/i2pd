@@ -9,10 +9,11 @@ DEPS := obj/make.dep
 
 include filelist.mk
 
-USE_AESNI  := yes
-USE_STATIC := no
-USE_MESHNET := no
-USE_UPNP   := no
+USE_AESNI	:= yes
+USE_AVX		:= yes
+USE_STATIC	:= no
+USE_MESHNET	:= no
+USE_UPNP	:= no
 
 ifeq ($(WEBSOCKETS),1)
 	NEEDED_CXXFLAGS += -DWITH_EVENTS

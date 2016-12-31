@@ -42,7 +42,8 @@ namespace client
 	const char I2P_SERVER_TUNNEL_GZIP[] = "gzip";
 	const char I2P_SERVER_TUNNEL_WEBIRC_PASSWORD[] = "webircpassword";
 	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";
-	
+	const char I2P_SERVER_TUNNEL_MAPTOLOOPBACK[] = "maploopback";
+
 	class ClientContext
 	{
 		public:
@@ -113,6 +114,7 @@ namespace client
 			const decltype(m_ClientForwards)& GetClientForwards () const { return m_ClientForwards; }
 			const decltype(m_ServerForwards)& GetServerForwards () const { return m_ServerForwards; }
 			const i2p::proxy::HTTPProxy * GetHttpProxy () const { return m_HttpProxy; }
+			const i2p::proxy::SOCKSProxy * GetSocksProxy () const { return m_SocksProxy; }
 	};
 	
 	extern ClientContext context;	

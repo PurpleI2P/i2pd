@@ -108,10 +108,10 @@ namespace client
 					separator++;
 					std::map<std::string, std::string> params;
 					ExtractParams (separator, params);
-					auto it = params.find (SAM_PARAM_MAX);
+					//auto it = params.find (SAM_PARAM_MAX);
 					// TODO: check MIN as well
-					if (it != params.end ())
-						version = it->second;
+					//if (it != params.end ())
+					//	version = it->second;
 				}
 				if (version[0] == '3') // we support v3 (3.0 and 3.1) only
 				{
@@ -400,16 +400,12 @@ namespace client
 		m_ID = id;
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
-		{
+		{			
+			m_SocketType = eSAMSocketTypeAcceptor;
+			m_Session->AddSocket (shared_from_this ());
 			if (!m_Session->localDestination->IsAcceptingStreams ())
-			{
-				m_SocketType = eSAMSocketTypeAcceptor;
-				m_Session->AddSocket (shared_from_this ());
-				m_Session->localDestination->AcceptStreams (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
-				SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
-			}
-			else
-				SendMessageReply (SAM_STREAM_STATUS_I2P_ERROR, strlen(SAM_STREAM_STATUS_I2P_ERROR), true);
+				m_Session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
+			SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 		}	
 		else
 			SendMessageReply (SAM_STREAM_STATUS_INVALID_ID, strlen(SAM_STREAM_STATUS_INVALID_ID), true);
@@ -468,21 +464,21 @@ namespace client
 		std::string& name = params[SAM_PARAM_NAME];
 		std::shared_ptr<const i2p::data::IdentityEx> identity;
 		i2p::data::IdentHash ident;
+		auto dest = m_Session == nullptr ? context.GetSharedLocalDestination() : m_Session->localDestination;
 		if (name == "ME")
-			SendNamingLookupReply (m_Session->localDestination->GetIdentity ());
+			SendNamingLookupReply (dest->GetIdentity ());
 		else if ((identity = context.GetAddressBook ().GetAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
-		else if (m_Session && m_Session->localDestination &&
-			context.GetAddressBook ().GetIdentHash (name, ident))
+		else if (context.GetAddressBook ().GetIdentHash (name, ident))
 		{
-			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
+			auto leaseSet = dest->FindLeaseSet (ident);
 			if (leaseSet)
 				SendNamingLookupReply (leaseSet->GetIdentity ());
 			else
-				m_Session->localDestination->RequestDestination (ident, 
+				dest->RequestDestination (ident,
 					std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
-					shared_from_this (), std::placeholders::_1, ident));	
-		}	
+					shared_from_this (), std::placeholders::_1, ident));
+		}
 		else 
 		{
 			LogPrint (eLogError, "SAM: naming failed, unknown address ", name);
@@ -577,8 +573,8 @@ namespace client
 				    {
 						if (!ecode)
 							s->Receive ();
-						else
-							s->Terminate ();
+						else	
+							s->m_Owner.GetService ().post ([s] { s->Terminate (); });
 					});
 			}	
 		}
@@ -622,10 +618,16 @@ namespace client
 					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
         		std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1)); // postpone termination
 				else	
-					Terminate ();
+				{	
+					auto s = shared_from_this ();
+					m_Owner.GetService ().post ([s] { s->Terminate (); });
+				}
 			}
 			else	
-				Terminate ();
+			{	
+				auto s = shared_from_this ();
+				m_Owner.GetService ().post ([s] { s->Terminate (); });
+			}	
 		}
 		else
 		{
@@ -651,12 +653,20 @@ namespace client
 		if (stream)
 		{
 			LogPrint (eLogDebug, "SAM: incoming I2P connection for session ", m_ID);
+			m_SocketType = eSAMSocketTypeStream;
 			m_Stream = stream;
 			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
-			if (session)	
-				session->localDestination->StopAcceptingStreams ();	
-			m_SocketType = eSAMSocketTypeStream;
+			if (session)
+			{	
+				// find more pending acceptors
+				for (auto it: session->ListSockets ())
+					if (it->m_SocketType == eSAMSocketTypeAcceptor)
+					{
+						session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, it, std::placeholders::_1));
+						break;
+					}
+			}
 			if (!m_IsSilent)
 			{
 				// get remote peer address
