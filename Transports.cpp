@@ -694,7 +694,7 @@ namespace transport
 					if (profile)
 					{
 						profile->TunnelNonReplied();
-						profile->Save();
+						profile->Save(it->first);
 					}
 					std::unique_lock<std::mutex>	l(m_PeersMutex);	
 					it = m_Peers.erase (it);

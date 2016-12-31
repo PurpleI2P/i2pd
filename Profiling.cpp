@@ -12,8 +12,8 @@ namespace data
 {
 	i2p::fs::HashedStorage m_ProfilesStorage("peerProfiles", "p", "profile-", "txt");
 
-	RouterProfile::RouterProfile (const IdentHash& identHash):
-		m_IdentHash (identHash), m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
+	RouterProfile::RouterProfile ():
+		m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
 		m_NumTunnelsAgreed (0), m_NumTunnelsDeclined (0), m_NumTunnelsNonReplied (0),
 		m_NumTimesTaken (0), m_NumTimesRejected (0) 
 	{
@@ -29,7 +29,7 @@ namespace data
 		m_LastUpdateTime = GetTime ();
 	}	
 		
-	void RouterProfile::Save ()
+	void RouterProfile::Save (const IdentHash& identHash)
 	{
 		// fill sections
 		boost::property_tree::ptree participation;
@@ -46,7 +46,7 @@ namespace data
 		pt.put_child (PEER_PROFILE_SECTION_USAGE, usage);
 
 		// save to file
-		std::string ident = m_IdentHash.ToBase64 ();
+		std::string ident = identHash.ToBase64 ();
 		std::string path = m_ProfilesStorage.Path(ident);
 
 		try {
@@ -57,51 +57,64 @@ namespace data
 		}
 	}
 
-	void RouterProfile::Load ()
+	void RouterProfile::Load (const IdentHash& identHash)
 	{
-		std::string ident = m_IdentHash.ToBase64 ();
+		std::string ident = identHash.ToBase64 ();
 		std::string path = m_ProfilesStorage.Path(ident);
 		boost::property_tree::ptree pt;
 
-		if (!i2p::fs::Exists(path)) {
+		if (!i2p::fs::Exists(path)) 
+		{
 			LogPrint(eLogWarning, "Profiling: no profile yet for ", ident);
 			return;
 		}
 
-		try {
+		try 
+		{
 			boost::property_tree::read_ini (path, pt);
-		} catch (std::exception& ex) {
+		} catch (std::exception& ex) 
+		{
 			/* boost exception verbose enough */
 			LogPrint (eLogError, "Profiling: ", ex.what ());
 			return;
 		}
 
-		try {
+		try 
+		{
 			auto t = pt.get (PEER_PROFILE_LAST_UPDATE_TIME, "");
 			if (t.length () > 0)
 				m_LastUpdateTime = boost::posix_time::time_from_string (t);
-			if ((GetTime () - m_LastUpdateTime).hours () < PEER_PROFILE_EXPIRATION_TIMEOUT) {
-				try {
+			if ((GetTime () - m_LastUpdateTime).hours () < PEER_PROFILE_EXPIRATION_TIMEOUT) 
+			{
+				try 
+				{	
 					// read participations
 					auto participations = pt.get_child (PEER_PROFILE_SECTION_PARTICIPATION);
 					m_NumTunnelsAgreed = participations.get (PEER_PROFILE_PARTICIPATION_AGREED, 0);
 					m_NumTunnelsDeclined = participations.get (PEER_PROFILE_PARTICIPATION_DECLINED, 0);
 					m_NumTunnelsNonReplied = participations.get (PEER_PROFILE_PARTICIPATION_NON_REPLIED, 0);
-				}	catch (boost::property_tree::ptree_bad_path& ex) {
+				}	
+				catch (boost::property_tree::ptree_bad_path& ex) 
+				{
 					LogPrint (eLogWarning, "Profiling: Missing section ", PEER_PROFILE_SECTION_PARTICIPATION, " in profile for ", ident);
 				}	
-				try {
+				try 
+				{
 					// read usage
 					auto usage = pt.get_child (PEER_PROFILE_SECTION_USAGE);
 					m_NumTimesTaken = usage.get (PEER_PROFILE_USAGE_TAKEN, 0);
 					m_NumTimesRejected = usage.get (PEER_PROFILE_USAGE_REJECTED, 0);
-				}	catch (boost::property_tree::ptree_bad_path& ex) {
+				}	
+				catch (boost::property_tree::ptree_bad_path& ex) 
+				{
 					LogPrint (eLogWarning, "Missing section ", PEER_PROFILE_SECTION_USAGE, " in profile for ", ident);
 				}
-			} else {
-				*this = RouterProfile (m_IdentHash);
-			}
-		} catch (std::exception& ex) {
+			} 
+			else 
+				*this = RouterProfile ();
+		} 
+		catch (std::exception& ex) 
+		{
 			LogPrint (eLogError, "Profiling: Can't read profile ", ident, " :", ex.what ());
 		}
 	}
@@ -149,8 +162,8 @@ namespace data
 		
 	std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash)
 	{
-		auto profile = std::make_shared<RouterProfile> (identHash);
-		profile->Load (); // if possible
+		auto profile = std::make_shared<RouterProfile> ();
+		profile->Load (identHash); // if possible
 		return profile;
 	}		
 

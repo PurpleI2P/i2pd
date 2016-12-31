@@ -154,7 +154,7 @@ namespace transport
 		}	
 	}	
 	
-	void SSUServer::AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay)
+	void SSUServer::AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay)
 	{
 		m_Relays[tag] = relay;
 	}	
@@ -168,7 +168,12 @@ namespace transport
 	{
 		auto it = m_Relays.find (tag);
 		if (it != m_Relays.end ())
-			return FindSession (it->second);
+		{	
+			if (it->second->GetState () == eSessionStateEstablished)
+				return it->second;
+			else
+				m_Relays.erase (it);	
+		}	
 		return nullptr;
 	}
 
