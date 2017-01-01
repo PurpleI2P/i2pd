@@ -494,8 +494,9 @@ namespace http {
 		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
 		if (ntcpServer)
 		{
-			s << "<b>NTCP</b><br>\r\n";
-			for (const auto& it: ntcpServer->GetNTCPSessions ())
+			auto sessions = ntcpServer->GetNTCPSessions ();
+			s << "<b>NTCP</b> ( " << (int) sessions.size() << " )<br>\r\n";
+			for (const auto& it: sessions )
 			{
 				if (it.second && it.second->IsEstablished ())
 				{
@@ -512,8 +513,9 @@ namespace http {
 		auto ssuServer = i2p::transport::transports.GetSSUServer ();
 		if (ssuServer)
 		{
-			s << "<br>\r\n<b>SSU</b><br>\r\n";
-			for (const auto& it: ssuServer->GetSessions ())
+			auto sessions = ssuServer->GetSessions ();
+			s << "<br>\r\n<b>SSU</b> ( " << (int) sessions.size() << " )<br>\r\n";
+			for (const auto& it: sessions)
 			{
 				auto endpoint = it.second->GetRemoteEndpoint ();
 				if (it.second->IsOutgoing ()) s << " &#8658; ";
