@@ -1,4 +1,4 @@
-i2pd usr/sbin/
+usr/bin/i2pd usr/sbin/
 docs/i2pd.conf      etc/i2pd/
 docs/tunnels.conf etc/i2pd/
 docs/subscriptions.txt etc/i2pd/
