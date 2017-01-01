@@ -716,10 +716,10 @@ namespace http {
 			bool result = false;
 			std::string provided = req.headers.find("Authorization")->second;
 			std::string expected = user + ":" + pass;
-			size_t b64_sz = i2p::data::Base64EncodingBufferSize(expected.length());
-			char * b64_creds = new char[b64_sz+1];
+			size_t b64_sz = i2p::data::Base64EncodingBufferSize(expected.length()) + 1;
+			char * b64_creds = new char[b64_sz];
 			std::size_t len = 0;
-			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, sizeof(b64_creds));
+			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, b64_sz);
 			/* if we decoded properly then check credentials */
 			if(len) {
 				b64_creds[len] = '\0';
