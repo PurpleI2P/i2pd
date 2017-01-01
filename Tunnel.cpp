@@ -19,36 +19,11 @@
 namespace i2p
 {
 namespace tunnel
-{
-
-	void TunnelLatency::AddSample(Sample s)
-	{
-		std::unique_lock<std::mutex> l(m_access);
-		m_samples.push_back(s);
-	}
-
-	bool TunnelLatency::HasSamples() const
-	{
-		std::unique_lock<std::mutex> l(m_access);
-		return m_samples.size() > 0;
-	}
-
-	TunnelLatency::Latency TunnelLatency::GetMeanLatency() const
-	{
-		std::unique_lock<std::mutex> lock(m_access);
-		if (m_samples.size() > 0) {
-			Latency l = 0;
-			for(auto s : m_samples)
-				l += s;
-			return l / m_samples.size();
-		}
-		return 0;
-	}
-	
-	
+{	
 	Tunnel::Tunnel (std::shared_ptr<const TunnelConfig> config): 
 		TunnelBase (config->GetTunnelID (), config->GetNextTunnelID (), config->GetNextIdentHash ()),
-		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending), m_IsRecreated (false)
+		m_Config (config), m_Pool (nullptr), m_State (eTunnelStatePending), m_IsRecreated (false),
+		m_Latency (0)
 	{
 	}
 
