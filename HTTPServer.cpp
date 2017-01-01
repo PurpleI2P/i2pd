@@ -713,9 +713,11 @@ namespace http {
 		}
 		/* method #2: 'Authorization' header sent */
 		if (req.headers.count("Authorization") > 0) {
+			bool result = false;
 			std::string provided = req.headers.find("Authorization")->second;
 			std::string expected = user + ":" + pass;
-			char b64_creds[64];
+			size_t b64_sz = i2p::data::Base64EncodingBufferSize(expected.length());
+			char * b64_creds = new char[b64_sz+1];
 			std::size_t len = 0;
 			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, sizeof(b64_creds));
 			/* if we decoded properly then check credentials */
@@ -723,10 +725,10 @@ namespace http {
 				b64_creds[len] = '\0';
 				expected = "Basic ";
 				expected += b64_creds;
-				return expected == provided;
+				result = expected == provided;
 			}
-			/** we decoded wrong so it's not a correct login credential */
-			return false;
+			delete [] b64_creds;
+			return result;
 		}
 
 		LogPrint(eLogWarning, "HTTPServer: auth failure from ", m_Socket->remote_endpoint().address ());
