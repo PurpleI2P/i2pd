@@ -186,7 +186,8 @@ namespace client
 			void AcceptStreams (const i2p::stream::StreamingDestination::Acceptor& acceptor);
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;
-
+			void AcceptOnce (const i2p::stream::StreamingDestination::Acceptor& acceptor);
+			
 			// datagram
       i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
       i2p::datagram::DatagramDestination * CreateDatagramDestination ();

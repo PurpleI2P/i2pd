@@ -84,7 +84,7 @@ namespace transport
 			bool IsOnline() const { return m_IsOnline; };
 			void SetOnline (bool online) { m_IsOnline = online; };
 
-			boost::asio::io_service& GetService () { return m_Service; };
+			boost::asio::io_service& GetService () { return *m_Service; };
 			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();	
 			void ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair);
 
@@ -144,9 +144,9 @@ namespace transport
 
 			bool m_IsOnline, m_IsRunning;
 			std::thread * m_Thread;	
-			boost::asio::io_service m_Service;
-			boost::asio::io_service::work m_Work;
-			boost::asio::deadline_timer m_PeerCleanupTimer, m_PeerTestTimer;
+			boost::asio::io_service * m_Service;
+			boost::asio::io_service::work * m_Work;
+			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer;
 
 			NTCPServer * m_NTCPServer;
 			SSUServer * m_SSUServer;

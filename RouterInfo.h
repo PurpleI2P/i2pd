@@ -168,7 +168,7 @@ namespace data
 			bool SaveToFile (const std::string& fullPath);
 
 			std::shared_ptr<RouterProfile> GetProfile () const;
-			void SaveProfile () { if (m_Profile) m_Profile->Save (); };
+			void SaveProfile () { if (m_Profile) m_Profile->Save (GetIdentHash ()); };
 			
 			void Update (const uint8_t * buf, int len);
 			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };

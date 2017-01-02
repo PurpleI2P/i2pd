@@ -108,8 +108,8 @@ namespace transport
 	Transports transports;	
 	
 	Transports::Transports (): 
-		m_IsOnline (true), m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
-		m_PeerCleanupTimer (m_Service), m_PeerTestTimer (m_Service),
+		m_IsOnline (true), m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr),
+		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_DHKeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_InBandwidth (0), m_OutBandwidth (0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0), m_LastBandwidthUpdateTime (0)	
@@ -119,10 +119,25 @@ namespace transport
 	Transports::~Transports () 
 	{ 
 		Stop ();
+		if (m_Service)
+		{
+			delete m_PeerCleanupTimer; m_PeerCleanupTimer = nullptr;
+			delete m_PeerTestTimer; m_PeerTestTimer = nullptr;
+			delete m_Work; m_Work = nullptr;
+			delete m_Service; m_Service = nullptr;
+		}	
 	}	
 
 	void Transports::Start (bool enableNTCP, bool enableSSU)
 	{
+		if (!m_Service)
+		{
+			m_Service = new boost::asio::io_service ();
+			m_Work = new boost::asio::io_service::work (*m_Service);
+			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
+	 		m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
+		}
+
 		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
@@ -167,16 +182,16 @@ namespace transport
 					LogPrint (eLogError, "Transports: SSU server already exists");
 			}
 		}	
-		m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
-		m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
-		m_PeerTestTimer.expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
-		m_PeerTestTimer.async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
+		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
+		m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+		m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
 	}
 		
 	void Transports::Stop ()
 	{	
-		m_PeerCleanupTimer.cancel ();	
-		m_PeerTestTimer.cancel ();
+		if (m_PeerCleanupTimer) m_PeerCleanupTimer->cancel ();	
+		if (m_PeerTestTimer) m_PeerTestTimer->cancel ();
 		m_Peers.clear ();
 		if (m_SSUServer)
 		{
@@ -193,7 +208,7 @@ namespace transport
 
 		m_DHKeysPairSupplier.Stop ();
 		m_IsRunning = false;
-		m_Service.stop ();
+		if (m_Service) m_Service->stop ();
 		if (m_Thread)
 		{	
 			m_Thread->join (); 
@@ -204,11 +219,11 @@ namespace transport
 
 	void Transports::Run () 
 	{ 
-		while (m_IsRunning)
+		while (m_IsRunning && m_Service)
 		{
 			try
 			{	
-				m_Service.run ();
+				m_Service->run ();
 			}
 			catch (std::exception& ex)
 			{
@@ -251,7 +266,7 @@ namespace transport
 #ifdef WITH_EVENTS
 		EmitEvent({{"type" , "transport.sendmsg"}, {"ident", ident.ToBase64()}, {"number", std::to_string(msgs.size())}});
 #endif
-		m_Service.post (std::bind (&Transports::PostMessages, this, ident, msgs));
+		m_Service->post (std::bind (&Transports::PostMessages, this, ident, msgs));
 	}	
 
 	void Transports::PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs)
@@ -369,7 +384,7 @@ namespace transport
 					}
 				}
 			}	
-			LogPrint (eLogError, "Transports: No NTCP or SSU addresses available");
+			LogPrint (eLogInfo, "Transports: No NTCP or SSU addresses available");
 			peer.Done ();
 			std::unique_lock<std::mutex> l(m_PeersMutex);	
 			m_Peers.erase (ident);
@@ -386,7 +401,7 @@ namespace transport
 	
 	void Transports::RequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, const i2p::data::IdentHash& ident)
 	{
-		m_Service.post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
+		m_Service->post (std::bind (&Transports::HandleRequestComplete, this, r, ident));
 	}		
 	
 	void Transports::HandleRequestComplete (std::shared_ptr<const i2p::data::RouterInfo> r, i2p::data::IdentHash ident)
@@ -411,7 +426,7 @@ namespace transport
 
 	void Transports::NTCPResolve (const std::string& addr, const i2p::data::IdentHash& ident)
 	{
-		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
+		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(*m_Service);
 		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr, ""), 
 			std::bind (&Transports::HandleNTCPResolve, this, 
 				std::placeholders::_1, std::placeholders::_2, ident, resolver));
@@ -454,7 +469,7 @@ namespace transport
 
 	void Transports::SSUResolve (const std::string& addr, const i2p::data::IdentHash& ident)
 	{
-		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
+		auto resolver = std::make_shared<boost::asio::ip::tcp::resolver>(*m_Service);
 		resolver->async_resolve (boost::asio::ip::tcp::resolver::query (addr, ""), 
 			std::bind (&Transports::HandleSSUResolve, this, 
 				std::placeholders::_1, std::placeholders::_2, ident, resolver));
@@ -497,7 +512,7 @@ namespace transport
 	void Transports::CloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
 	{
 		if (!router) return;
-		m_Service.post (std::bind (&Transports::PostCloseSession, this, router));		 
+		m_Service->post (std::bind (&Transports::PostCloseSession, this, router));		 
 	}	
 
 	void Transports::PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router)
@@ -584,7 +599,7 @@ namespace transport
 
 	void Transports::PeerConnected (std::shared_ptr<TransportSession> session)
 	{
-		m_Service.post([session, this]()
+		m_Service->post([session, this]()
 		{		
 			auto remoteIdentity = session->GetRemoteIdentity (); 
 			if (!remoteIdentity) return;
@@ -632,7 +647,7 @@ namespace transport
 		
 	void Transports::PeerDisconnected (std::shared_ptr<TransportSession> session)
 	{
-		m_Service.post([session, this]()
+		m_Service->post([session, this]()
 		{
 			auto remoteIdentity = session->GetRemoteIdentity (); 
 			if (!remoteIdentity) return;
@@ -679,7 +694,7 @@ namespace transport
 					if (profile)
 					{
 						profile->TunnelNonReplied();
-						profile->Save();
+						profile->Save(it->first);
 					}
 					std::unique_lock<std::mutex>	l(m_PeersMutex);	
 					it = m_Peers.erase (it);
@@ -690,8 +705,8 @@ namespace transport
 			UpdateBandwidth (); // TODO: use separate timer(s) for it
 			if (i2p::context.GetStatus () == eRouterStatusTesting) // if still testing,	 repeat peer test
 				DetectExternalIP ();
-			m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
-			m_PeerCleanupTimer.async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
+			m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
+			m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
 		}	
 	}
 
@@ -700,8 +715,8 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{
 			PeerTest ();
-			m_PeerTestTimer.expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
-			m_PeerTestTimer.async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
+			m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+			m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
 		}	
 	}		
 		

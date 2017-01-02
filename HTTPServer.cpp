@@ -494,8 +494,9 @@ namespace http {
 		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
 		if (ntcpServer)
 		{
-			s << "<b>NTCP</b><br>\r\n";
-			for (const auto& it: ntcpServer->GetNTCPSessions ())
+			auto sessions = ntcpServer->GetNTCPSessions ();
+			s << "<b>NTCP</b> ( " << (int) sessions.size() << " )<br>\r\n";
+			for (const auto& it: sessions )
 			{
 				if (it.second && it.second->IsEstablished ())
 				{
@@ -512,8 +513,9 @@ namespace http {
 		auto ssuServer = i2p::transport::transports.GetSSUServer ();
 		if (ssuServer)
 		{
-			s << "<br>\r\n<b>SSU</b><br>\r\n";
-			for (const auto& it: ssuServer->GetSessions ())
+			auto sessions = ssuServer->GetSessions ();
+			s << "<br>\r\n<b>SSU</b> ( " << (int) sessions.size() << " )<br>\r\n";
+			for (const auto& it: sessions)
 			{
 				auto endpoint = it.second->GetRemoteEndpoint ();
 				if (it.second->IsOutgoing ()) s << " &#8658; ";
@@ -601,6 +603,15 @@ namespace http {
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
 			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
 			s << "HTTP Proxy" << "</a> &#8656; ";
+			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+			s << "<br>\r\n"<< std::endl;
+		}	
+		auto socksProxy = i2p::client::context.GetSocksProxy ();
+		if (socksProxy)
+		{
+			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+			s << "SOCKS Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
 		}	
@@ -704,20 +715,22 @@ namespace http {
 		}
 		/* method #2: 'Authorization' header sent */
 		if (req.headers.count("Authorization") > 0) {
+			bool result = false;
 			std::string provided = req.headers.find("Authorization")->second;
 			std::string expected = user + ":" + pass;
-			char b64_creds[64];
+			size_t b64_sz = i2p::data::Base64EncodingBufferSize(expected.length()) + 1;
+			char * b64_creds = new char[b64_sz];
 			std::size_t len = 0;
-			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, sizeof(b64_creds));
+			len = i2p::data::ByteStreamToBase64((unsigned char *)expected.c_str(), expected.length(), b64_creds, b64_sz);
 			/* if we decoded properly then check credentials */
 			if(len) {
 				b64_creds[len] = '\0';
 				expected = "Basic ";
 				expected += b64_creds;
-				return expected == provided;
+				result = expected == provided;
 			}
-			/** we decoded wrong so it's not a correct login credential */
-			return false;
+			delete [] b64_creds;
+			return result;
 		}
 
 		LogPrint(eLogWarning, "HTTPServer: auth failure from ", m_Socket->remote_endpoint().address ());
@@ -775,6 +788,7 @@ namespace http {
 		{
 			uint32_t token;
 			RAND_bytes ((uint8_t *)&token, 4);
+			token &= 0x7FFFFFFF; // clear first bit
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto it = m_Tokens.begin (); it != m_Tokens.end (); )
 			{

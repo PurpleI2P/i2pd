@@ -272,10 +272,9 @@ namespace crypto
 	}	
 	
 // ElGamal
-
-	ElGamalEncryption::ElGamalEncryption (const uint8_t * key)
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
 	{
-		ctx = BN_CTX_new ();
+		BN_CTX * ctx = BN_CTX_new ();
 		// select random k
 		BIGNUM * k = BN_new ();
 #if defined(__x86_64__)
@@ -284,6 +283,7 @@ namespace crypto
 		BN_rand (k, ELGAMAL_SHORT_EXPONENT_NUM_BITS, -1, 1); // short exponent of 226 bits
 #endif		
 		// calculate a
+		BIGNUM * a;	
 		if (g_ElggTable)
 			a = ElggPow (k, g_ElggTable, ctx);
 		else
@@ -295,21 +295,10 @@ namespace crypto
 		BIGNUM * y = BN_new ();
 		BN_bin2bn (key, 256, y);
 		// calculate b1
-		b1 = BN_new ();
+		BIGNUM * b1 = BN_new ();
 		BN_mod_exp (b1, y, k, elgp, ctx);
 		BN_free (y);
 		BN_free (k);
-	}
-
-	ElGamalEncryption::~ElGamalEncryption ()
-	{
-		BN_CTX_free (ctx);
-		BN_free (a);
-		BN_free (b1);
-	}
-			
-	void ElGamalEncryption::Encrypt (const uint8_t * data, uint8_t * encrypted, bool zeroPadding) const
-	{
 		// create m
 		uint8_t m[255];
 		m[0] = 0xFF;
@@ -319,6 +308,7 @@ namespace crypto
 		BIGNUM * b = BN_new ();
 		BN_bin2bn (m, 255, b);
 		BN_mod_mul (b, b1, b, elgp, ctx);
+		BN_free (b1);
 		// copy a and b
 		if (zeroPadding)
 		{
@@ -333,8 +323,10 @@ namespace crypto
 			bn2buf (b, encrypted + 256, 256);
 		}		
 		BN_free (b);
+		BN_free (a);
+		BN_CTX_free (ctx);
 	}
-	
+
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
 		uint8_t * data, bool zeroPadding)
 	{
