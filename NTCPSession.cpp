@@ -493,7 +493,8 @@ namespace transport
 		
 	void NTCPSession::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode) {
+		if (ecode) 
+		{
 			if (ecode != boost::asio::error::operation_aborted)
 				LogPrint (eLogDebug, "NTCP: Read error: ", ecode.message ());
 			//if (ecode != boost::asio::error::operation_aborted)
@@ -507,51 +508,57 @@ namespace transport
 
 			if (m_ReceiveBufferOffset >= 16)
 			{	
-				int numReloads = 0;
-				do
-				{	
-					uint8_t * nextBlock = m_ReceiveBuffer;
-					while (m_ReceiveBufferOffset >= 16)
+				// process received data
+				uint8_t * nextBlock = m_ReceiveBuffer;
+				while (m_ReceiveBufferOffset >= 16)
+				{
+					if (!DecryptNextBlock (nextBlock)) // 16 bytes
 					{
-						if (!DecryptNextBlock (nextBlock)) // 16 bytes
-						{
-							Terminate ();
-							return; 
-						}	
-						nextBlock += 16;
-						m_ReceiveBufferOffset -= 16;
+						Terminate ();
+						return; 
 					}	
-					if (m_ReceiveBufferOffset > 0)
-						memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
-
-					// try to read more
-					if (numReloads < 16) // ~16K 
-					{	
-						boost::system::error_code ec;
-						size_t moreBytes = m_Socket.available(ec);
-						if (moreBytes && !ec)
-						{
-							if (moreBytes > NTCP_BUFFER_SIZE - m_ReceiveBufferOffset)
-								moreBytes = NTCP_BUFFER_SIZE - m_ReceiveBufferOffset;
-							moreBytes = m_Socket.read_some (boost::asio::buffer (m_ReceiveBuffer + m_ReceiveBufferOffset, moreBytes), ec);
-							if (ec)
-							{
-								LogPrint (eLogInfo, "NTCP: Read more bytes error: ", ec.message ());
-								Terminate ();
-								return;
-							}	
-							m_NumReceivedBytes += moreBytes;
-							i2p::transport::transports.UpdateReceivedBytes (moreBytes);
-							m_ReceiveBufferOffset += moreBytes;
-							numReloads++;
-						}
-						else
-							break; // no more data	
-					}	
+					nextBlock += 16;
+					m_ReceiveBufferOffset -= 16;
 				}	
-				while (m_ReceiveBufferOffset >= 16);
-				m_Handler.Flush ();
-			}	
+				if (m_ReceiveBufferOffset > 0) 
+					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);		
+			}		
+
+			// read and process more is available
+			boost::system::error_code ec;
+			size_t moreBytes = m_Socket.available(ec);
+			if (moreBytes && !ec)
+			{
+				uint8_t * buf = nullptr, * moreBuf = m_ReceiveBuffer;
+				if (moreBytes + m_ReceiveBufferOffset > NTCP_BUFFER_SIZE)
+				{
+					buf = new uint8_t[moreBytes + m_ReceiveBufferOffset];
+					if (m_ReceiveBufferOffset)
+						memcpy (buf, m_ReceiveBuffer, m_ReceiveBufferOffset);
+					moreBuf = buf;
+				}
+				moreBytes = m_Socket.read_some (boost::asio::buffer (moreBuf + m_ReceiveBufferOffset, moreBytes), ec);
+				m_ReceiveBufferOffset += moreBytes;	
+				m_NumReceivedBytes += moreBytes;
+				i2p::transport::transports.UpdateReceivedBytes (moreBytes);
+				// process more data				
+				uint8_t * nextBlock = moreBuf;
+				while (m_ReceiveBufferOffset >= 16)
+				{
+					if (!DecryptNextBlock (nextBlock)) // 16 bytes
+					{
+						delete[] buf;
+						Terminate ();
+						return; 
+					}	
+					nextBlock += 16;
+					m_ReceiveBufferOffset -= 16;
+				}	
+				if (m_ReceiveBufferOffset > 0) 
+					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset); // nextBlock points to memory inside buf
+				delete[] buf;
+			}			
+			m_Handler.Flush ();	
 			
 			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			Receive ();
