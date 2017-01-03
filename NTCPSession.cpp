@@ -538,6 +538,13 @@ namespace transport
 					moreBuf = buf;
 				}
 				moreBytes = m_Socket.read_some (boost::asio::buffer (moreBuf + m_ReceiveBufferOffset, moreBytes), ec);
+				if (ec)
+				{
+					LogPrint (eLogInfo, "NTCP: Read more bytes error: ", ec.message ());
+					delete[] buf;
+					Terminate ();
+					return;
+				} 
 				m_ReceiveBufferOffset += moreBytes;	
 				m_NumReceivedBytes += moreBytes;
 				i2p::transport::transports.UpdateReceivedBytes (moreBytes);
