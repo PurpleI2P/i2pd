@@ -525,7 +525,7 @@ namespace transport
 						memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
 
 					// try to read more
-					if (numReloads < 5)
+					if (numReloads < 16) // ~16K 
 					{	
 						boost::system::error_code ec;
 						size_t moreBytes = m_Socket.available(ec);
@@ -541,9 +541,12 @@ namespace transport
 								return;
 							}	
 							m_NumReceivedBytes += moreBytes;
+							i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
 							m_ReceiveBufferOffset += moreBytes;
 							numReloads++;
-						}	
+						}
+						else
+							break; // no more data	
 					}	
 				}	
 				while (m_ReceiveBufferOffset >= 16);
