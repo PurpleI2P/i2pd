@@ -541,7 +541,7 @@ namespace transport
 								return;
 							}	
 							m_NumReceivedBytes += moreBytes;
-							i2p::transport::transports.UpdateReceivedBytes (bytes_transferred);
+							i2p::transport::transports.UpdateReceivedBytes (moreBytes);
 							m_ReceiveBufferOffset += moreBytes;
 							numReloads++;
 						}
