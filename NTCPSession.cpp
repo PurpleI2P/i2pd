@@ -532,10 +532,12 @@ namespace transport
 				uint8_t * buf = nullptr, * moreBuf = m_ReceiveBuffer;
 				if (moreBytes + m_ReceiveBufferOffset > NTCP_BUFFER_SIZE)
 				{
-					buf = new uint8_t[moreBytes + m_ReceiveBufferOffset];
-					if (m_ReceiveBufferOffset)
-						memcpy (buf, m_ReceiveBuffer, m_ReceiveBufferOffset);
+					buf = new uint8_t[moreBytes + m_ReceiveBufferOffset + 16];
 					moreBuf = buf;
+					uint8_t rem = ((size_t)buf) & 0x0f;
+					if (rem) moreBuf += (16 - rem); // align 16
+					if (m_ReceiveBufferOffset)
+						memcpy (moreBuf, m_ReceiveBuffer, m_ReceiveBufferOffset);
 				}
 				moreBytes = m_Socket.read_some (boost::asio::buffer (moreBuf + m_ReceiveBufferOffset, moreBytes), ec);
 				if (ec)
