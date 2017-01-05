@@ -79,17 +79,22 @@ namespace data
 				uint32_t iTag;
 			};
 
+			struct SSUExt
+			{
+				int mtu;
+				IntroKey key; // intro key for SSU
+				std::vector<Introducer> introducers;		
+			};
+			
 			struct Address
 			{
 				TransportStyle transportStyle;
 				boost::asio::ip::address host;
 				std::string addressString;
-				int port, mtu;
+				int port;
 				uint64_t date;
 				uint8_t cost;
-				// SSU only
-				IntroKey key; // intro key for SSU
-				std::vector<Introducer> introducers;
+				std::unique_ptr<SSUExt> ssu; // not null for SSU
 
 				bool IsCompatible (const boost::asio::ip::address& other) const 
 				{

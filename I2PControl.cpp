@@ -205,7 +205,7 @@ namespace client
 			}
 			/* append to json chunk of data from 1st request */
 			json.write(buf->data() + len, bytes_transferred - len);
-			remains = req.content_length() - len;
+			remains = req.content_length();
 			/* if request has Content-Length header, fetch rest of data and store to json buffer */
 			while (remains > 0) {
 				len = ((long int) buf->size() < remains) ? buf->size() : remains;
@@ -216,15 +216,17 @@ namespace client
 		} else {
 			json.write(buf->data(), bytes_transferred);
 		}
-		LogPrint(eLogDebug, "I2PControl: json from request: ", json.str());
+		//LogPrint(eLogDebug, "I2PControl: json from request: ", json.str());
 #if GCC47_BOOST149
 		LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
 		BuildErrorResponse(response, 32603, "JSON requests is not supported with this version of boost");
 #else
 		/* now try to parse json itself */
+		std::string j_str = json.str();
+		std::stringstream _json(j_str);
 		try {
 			boost::property_tree::ptree pt;
-			boost::property_tree::read_json (json, pt);
+			boost::property_tree::read_json (_json, pt);
 
 			std::string id     = pt.get<std::string>("id");
 			std::string method = pt.get<std::string>("method");
@@ -342,9 +344,10 @@ namespace client
 				(this->*(it1->second))(it.second.data ());
 				InsertParam (results, it.first, "");
 			}
-			else
+			else {
 				LogPrint (eLogError, "I2PControl: I2PControl unknown request: ", it.first);
-		}	
+			}
+		}
 	}
 
 	void I2PControlService::PasswordHandler (const std::string& value)
@@ -361,14 +364,17 @@ namespace client
 		for (auto it = params.begin (); it != params.end (); ++it)
 		{
 			LogPrint (eLogDebug, "I2PControl: RouterInfo request: ", it->first);
+			if (it != params.begin ()) results << ",";
 			auto it1 = m_RouterInfoHandlers.find (it->first);
 			if (it1 != m_RouterInfoHandlers.end ())
 			{
-				if (it != params.begin ()) results << ",";
 				(this->*(it1->second))(results);
 			}
 			else
+			{
+				InsertParam(results, it->first, "");
 				LogPrint (eLogError, "I2PControl: RouterInfo unknown request ", it->first);
+			}
 		}
 	}
 
@@ -436,13 +442,18 @@ namespace client
 	{
 		for (auto it = params.begin (); it != params.end (); ++it)
 		{
-			if (it != params.begin ()) results << ",";	
+			if (it != params.begin ()) results << ","; 
 			LogPrint (eLogDebug, "I2PControl: RouterManager request: ", it->first);
 			auto it1 = m_RouterManagerHandlers.find (it->first);
-			if (it1 != m_RouterManagerHandlers.end ()) {
-				(this->*(it1->second))(results);	
-			} else
+			if (it1 != m_RouterManagerHandlers.end ())
+			{
+				(this->*(it1->second))(results);
+			}
+			else
+			{
+				InsertParam(results, it->first, "");
 				LogPrint (eLogError, "I2PControl: RouterManager unknown request: ", it->first);
+			}
 		}
 	}
 
@@ -488,10 +499,15 @@ namespace client
 			if (it != params.begin ()) results << ",";	
 			LogPrint (eLogDebug, "I2PControl: NetworkSetting request: ", it->first);
 			auto it1 = m_NetworkSettingHandlers.find (it->first);
-			if (it1 != m_NetworkSettingHandlers.end ()) {
-				(this->*(it1->second))(it->second.data (), results);	
-			} else
+			if (it1 != m_NetworkSettingHandlers.end ())
+			{
+				(this->*(it1->second))(it->second.data (), results);
+			}
+			else
+			{
+				InsertParam(results, it->first, "");
 				LogPrint (eLogError, "I2PControl: NetworkSetting unknown request: ", it->first);
+			}
 		}
 	}
 

@@ -175,11 +175,14 @@ namespace data
 			if (!strcmp (transportStyle, "NTCP"))
 				address->transportStyle = eTransportNTCP;
 			else if (!strcmp (transportStyle, "SSU"))
+			{	
 				address->transportStyle = eTransportSSU;
+				address->ssu.reset (new SSUExt ());
+				address->ssu->mtu = 0;
+			}	
 			else
 				address->transportStyle = eTransportUnknown;
 			address->port = 0;
-			address->mtu = 0;
 			uint16_t size, r = 0;
 			s.read ((char *)&size, sizeof (size)); if (!s) return;
 			size = be16toh (size);
@@ -220,9 +223,19 @@ namespace data
 				else if (!strcmp (key, "port"))
 					address->port = boost::lexical_cast<int>(value);
 				else if (!strcmp (key, "mtu"))
-					address->mtu = boost::lexical_cast<int>(value);
+				{
+					if (address->ssu)
+						address->ssu->mtu = boost::lexical_cast<int>(value);
+					else
+						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'mtu' for NTCP");
+				}	
 				else if (!strcmp (key, "key"))
-					Base64ToByteStream (value, strlen (value), address->key, 32);
+				{	
+					if (address->ssu)
+						Base64ToByteStream (value, strlen (value), address->ssu->key, 32);
+					else
+						LogPrint (eLogWarning, "RouterInfo: Unexpected field 'key' for NTCP");
+				}	
 				else if (!strcmp (key, "caps"))
 					ExtractCaps (value);
 				else if (key[0] == 'i')
@@ -237,9 +250,9 @@ namespace data
 						LogPrint (eLogError, "RouterInfo: Unexpected introducer's index ", index, " skipped");
 						if (s) continue; else return;
 					}
-					if (index >= address->introducers.size ())
-						address->introducers.resize (index + 1); 
-					Introducer& introducer = address->introducers.at (index);
+					if (index >= address->ssu->introducers.size ())
+						address->ssu->introducers.resize (index + 1); 
+					Introducer& introducer = address->ssu->introducers.at (index);
 					if (!strcmp (key, "ihost"))
 					{
 						boost::system::error_code ecode;
@@ -417,10 +430,10 @@ namespace data
 			if (address.transportStyle == eTransportSSU)
 			{
 				// write introducers if any
-				if (address.introducers.size () > 0)
+				if (address.ssu->introducers.size () > 0)
 				{	
 					int i = 0;
-					for (const auto& introducer: address.introducers)
+					for (const auto& introducer: address.ssu->introducers)
 					{
 						WriteString ("ihost" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -429,7 +442,7 @@ namespace data
 						i++;
 					}	
 					i = 0;
-					for (const auto& introducer: address.introducers)
+					for (const auto& introducer: address.ssu->introducers)
 					{
 						WriteString ("ikey" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -441,7 +454,7 @@ namespace data
 						i++;
 					}	
 					i = 0;
-					for (const auto& introducer: address.introducers)
+					for (const auto& introducer: address.ssu->introducers)
 					{
 						WriteString ("iport" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -450,7 +463,7 @@ namespace data
 						i++;
 					}	
 					i = 0;
-					for (const auto& introducer: address.introducers)
+					for (const auto& introducer: address.ssu->introducers)
 					{
 						WriteString ("itag" + boost::lexical_cast<std::string>(i), properties);
 						properties << '=';
@@ -463,16 +476,16 @@ namespace data
 				WriteString ("key", properties);
 				properties << '=';
 				char value[64];
-				size_t l = ByteStreamToBase64 (address.key, 32, value, 64);
+				size_t l = ByteStreamToBase64 (address.ssu->key, 32, value, 64);
 				value[l] = 0;
 				WriteString (value, properties);
 				properties << ';';
 				// write mtu
-				if (address.mtu)
+				if (address.ssu->mtu)
 				{
 					WriteString ("mtu", properties);
 					properties << '=';
-					WriteString (boost::lexical_cast<std::string>(address.mtu), properties);
+					WriteString (boost::lexical_cast<std::string>(address.ssu->mtu), properties);
 					properties << ';';
 				}	
 			}	
@@ -589,7 +602,6 @@ namespace data
 		addr->transportStyle = eTransportNTCP;
 		addr->cost = 2;
 		addr->date = 0;
-		addr->mtu = 0;
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eNTCPV6 : eNTCPV4;
@@ -604,8 +616,9 @@ namespace data
 		addr->transportStyle = eTransportSSU;
 		addr->cost = 10; // NTCP should have priority over SSU
 		addr->date = 0;
-		addr->mtu = mtu; 
-		memcpy (addr->key, key, 32);
+		addr->ssu.reset (new SSUExt ());
+		addr->ssu->mtu = mtu; 
+		memcpy (addr->ssu->key, key, 32);
 		for (const auto& it: *m_Addresses) // don't insert same address twice
 			if (*it == *addr) return;
 		m_SupportedTransports |= addr->host.is_v6 () ? eSSUV6 : eSSUV4;
@@ -621,9 +634,9 @@ namespace data
 		{
 			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
-				for (auto& intro: addr->introducers)
+				for (auto& intro: addr->ssu->introducers)
 					if (intro.iTag == introducer.iTag) return false; // already presented
-				addr->introducers.push_back (introducer);
+				addr->ssu->introducers.push_back (introducer);
 				return true;
 			}	
 		}	
@@ -636,10 +649,10 @@ namespace data
 		{
 			if (addr->transportStyle == eTransportSSU && addr->host.is_v4 ())
 			{	
-				for (auto it = addr->introducers.begin (); it != addr->introducers.end (); ++it)
+				for (auto it = addr->ssu->introducers.begin (); it != addr->ssu->introducers.end (); ++it)
 					if ( boost::asio::ip::udp::endpoint (it->iHost, it->iPort) == e) 
 					{
-						addr->introducers.erase (it);
+						addr->ssu->introducers.erase (it);
 						return true;
 					}
 			}	
