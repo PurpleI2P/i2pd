@@ -635,14 +635,7 @@ namespace transport
 		return true;	
  	}	
 
-	void NTCPSession::Send (std::shared_ptr<i2p::I2NPMessage> msg)
-	{
-		m_IsSending = true;
-		boost::asio::async_write (m_Socket, CreateMsgBuffer (msg), boost::asio::transfer_all (),                      
-        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, std::vector<std::shared_ptr<I2NPMessage> >{ msg }));	
-	}
-
-	boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg)
+	size_t NTCPSession::CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg, uint8_t * buf)
 	{
 		uint8_t * sendBuffer;
 		int len;
@@ -674,24 +667,29 @@ namespace transport
 		htobe32buf (sendBuffer + len + 2 + padding, adler32 (adler32 (0, Z_NULL, 0), sendBuffer, len + 2+ padding));
 
 		int l = len + padding + 6;
-		m_Encryption.Encrypt(sendBuffer, l, sendBuffer);	
-		return boost::asio::buffer ((const uint8_t *)sendBuffer, l);
+		m_Encryption.Encrypt(sendBuffer, l, buf);	
+		return l;
 	}	
 
 
 	void NTCPSession::Send (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
+		if (!msgs.size ()) return; 	
 		m_IsSending = true;
-		std::vector<boost::asio::const_buffer> bufs;
+		size_t len = 0;
 		for (const auto& it: msgs)
-			bufs.push_back (CreateMsgBuffer (it));
-		boost::asio::async_write (m_Socket, bufs, boost::asio::transfer_all (),                      
-        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
+			len += it->GetLength () + 22; // 6 + 16	
+		uint8_t * buf = new uint8_t[len];	
+		len = 0;
+		for (const auto& it: msgs)
+			len += CreateMsgBuffer (it, buf + len);
+		boost::asio::async_write (m_Socket, boost::asio::buffer (buf, len), boost::asio::transfer_all (),                      
+        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, buf));
 	}
 		
-	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs)
+	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint8_t * buf)
 	{
-		(void) msgs;
+		delete[] buf;
 		m_IsSending = false;
 		if (ecode)
         {
@@ -716,7 +714,11 @@ namespace transport
 		
 	void NTCPSession::SendTimeSyncMessage ()
 	{
-		Send (nullptr);
+		uint8_t * buf = new uint8_t[16];
+		m_IsSending = true;
+		auto len = CreateMsgBuffer (nullptr, buf); // nullptr means timestamp
+		boost::asio::async_write (m_Socket, boost::asio::buffer (buf, len), boost::asio::transfer_all (),                      
+        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, buf));	
 	}	
 
 

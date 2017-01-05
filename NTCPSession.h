@@ -91,10 +91,9 @@ namespace transport
 			void HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			bool DecryptNextBlock (const uint8_t * encrypted);	
 		
-			void Send (std::shared_ptr<i2p::I2NPMessage> msg);
-			boost::asio::const_buffers_1 CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg);
+			size_t CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg, uint8_t * buf);
 			void Send (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
-			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
+			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint8_t * buf);
 			
 		private:
 
