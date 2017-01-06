@@ -536,7 +536,7 @@ namespace client
 			X509_gmtime_adj (X509_get_notAfter (x509), I2P_CONTROL_CERTIFICATE_VALIDITY*24*60*60); // expiration
 			X509_set_pubkey (x509, pkey); // public key
 			X509_NAME * name = X509_get_subject_name (x509);
-			X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"RU", -1, -1, 0); // country (Russia by default)
+			X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"A1", -1, -1, 0); // country (Anonymous proxy)
 			X509_NAME_add_entry_by_txt (name, "O",  MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_ORGANIZATION, -1, -1, 0); // organization
 			X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
 			X509_set_issuer_name (x509, name); // set issuer to ourselves
