@@ -121,10 +121,11 @@ namespace client
 			void Stop ();
 
 			const boost::asio::ip::tcp::acceptor& GetAcceptor () const { return m_Acceptor; };
-			
+
+    virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
+
 		protected:
 			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
-			virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
 		private:
 			void Accept();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);

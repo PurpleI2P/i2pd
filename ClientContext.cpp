@@ -8,6 +8,8 @@
 #include "Identity.h"
 #include "util.h"
 #include "ClientContext.h"
+#include "SOCKS.h"
+#include "WebSocks.h"
 
 namespace i2p
 {
@@ -424,7 +426,11 @@ namespace client
 			try
 			{
 				std::string type = section.second.get<std::string> (I2P_TUNNELS_SECTION_TYPE);
-				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
+				if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT
+						|| type == I2P_TUNNELS_SECTION_TYPE_SOCKS
+						|| type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS
+						|| type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY
+						|| type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
 				{
 					// mandatory params
 					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
@@ -466,19 +472,45 @@ namespace client
 							LogPrint(eLogError, "Clients: I2P Client forward for endpoint ", end, " already exists");
 
 					} else {
-						// tcp client
-						auto clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
-						if (m_ClientTunnels.insert (std::make_pair (clientTunnel->GetAcceptor ().local_endpoint (), 
-							std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
+						boost::asio::ip::tcp::endpoint clientEndpoint;
+						I2PService * clientTunnel = nullptr;
+						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
+						{
+							// socks proxy
+							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, "", destinationPort, localDestination);
+							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetAcceptor().local_endpoint();
+						}
+						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
+						{
+							// http proxy
+							clientTunnel = new i2p::proxy::HTTPProxy(address, port, localDestination);
+							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetAcceptor().local_endpoint();
+						}
+						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)
+						{
+							// websocks proxy
+							clientTunnel = new WebSocks(address, port, localDestination);;
+							clientEndpoint = ((WebSocks*)clientTunnel)->GetLocalEndpoint();
+						}
+						else
+						{
+							// tcp client
+							clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
+							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetAcceptor().local_endpoint();
+						}
+						if (m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel))).second)
 						{
 							clientTunnel->Start ();
 							numClientTunnels++;
 						}
 						else
-							LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientTunnel->GetAcceptor ().local_endpoint (), " already exists");
+							LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientEndpoint, "already exists");
 					}
 				}
-				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER || type == I2P_TUNNELS_SECTION_TYPE_HTTP || type == I2P_TUNNELS_SECTION_TYPE_IRC || type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
+				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
+								 || type == I2P_TUNNELS_SECTION_TYPE_HTTP
+								 || type == I2P_TUNNELS_SECTION_TYPE_IRC
+								 || type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 				{	
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);

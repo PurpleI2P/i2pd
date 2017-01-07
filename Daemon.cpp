@@ -27,7 +27,6 @@
 
 #include "Event.h"
 #include "Websocket.h"
-#include "WebSocks.h"
 
 namespace i2p
 {
@@ -44,7 +43,6 @@ namespace i2p
 			std::unique_ptr<i2p::transport::UPnP> UPnP;
 #ifdef WITH_EVENTS
 			std::unique_ptr<i2p::event::WebsocketServer> m_WebsocketServer;
-			std::unique_ptr<i2p::client::WebSocks> m_WebSocksServer;
 #endif
 		};
 
@@ -309,15 +307,6 @@ namespace i2p
 				d.m_WebsocketServer->Start();
 				i2p::event::core.SetListener(d.m_WebsocketServer->ToListener());
 			}
-			bool websocks; i2p::config::GetOption("websocks.enabled", websocks);
-			if (websocks) {
-				std::string websocksAddr; i2p::config::GetOption("websocks.address", websocksAddr);
-				uint16_t websocksPort; i2p::config::GetOption("websocks.port", websocksPort);
-				LogPrint(eLogInfo, "Daemon: starting up WebSOCKS server at ", websocksAddr, ":", websocksPort);
-				d.m_WebSocksServer = std::unique_ptr<i2p::client::WebSocks>(new i2p::client::WebSocks(websocksAddr, websocksPort));
-				d.m_WebSocksServer->Start();
-			}
-			
 #endif
 			return true;
 		}
