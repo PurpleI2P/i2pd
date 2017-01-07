@@ -26,6 +26,9 @@ namespace client
 	const char I2P_TUNNELS_SECTION_TYPE_IRC[] = "irc";
 	const char I2P_TUNNELS_SECTION_TYPE_UDPCLIENT[] = "udpclient";
 	const char I2P_TUNNELS_SECTION_TYPE_UDPSERVER[] = "udpserver";
+	const char I2P_TUNNELS_SECTION_TYPE_SOCKS[] = "socks";
+	const char I2P_TUNNELS_SECTION_TYPE_WEBSOCKS[] = "websocks";
+	const char I2P_TUNNELS_SECTION_TYPE_HTTPPROXY[] = "httpproxy";
 	const char I2P_CLIENT_TUNNEL_PORT[] = "port";
 	const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
@@ -42,7 +45,8 @@ namespace client
 	const char I2P_SERVER_TUNNEL_GZIP[] = "gzip";
 	const char I2P_SERVER_TUNNEL_WEBIRC_PASSWORD[] = "webircpassword";
 	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";
-	
+	const char I2P_SERVER_TUNNEL_MAPTOLOOPBACK[] = "maploopback";
+
 	class ClientContext
 	{
 		public:
@@ -92,7 +96,7 @@ namespace client
 
 			i2p::proxy::HTTPProxy * m_HttpProxy;
 			i2p::proxy::SOCKSProxy * m_SocksProxy;
-			std::map<boost::asio::ip::tcp::endpoint, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // local endpoint->tunnel
+			std::map<boost::asio::ip::tcp::endpoint, std::unique_ptr<I2PService> > m_ClientTunnels; // local endpoint->tunnel
 			std::map<std::pair<i2p::data::IdentHash, int>, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // <destination,port>->tunnel
 
 			std::mutex m_ForwardsMutex;			 

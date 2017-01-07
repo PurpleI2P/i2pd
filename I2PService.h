@@ -77,7 +77,7 @@ namespace client
 			std::atomic<bool> m_Dead; //To avoid cleaning up multiple times
 	};
 
-	const size_t TCP_IP_PIPE_BUFFER_SIZE = 8192;
+	const size_t TCP_IP_PIPE_BUFFER_SIZE = 8192 * 8;
 
 	// bidirectional pipe for 2 tcp/ip sockets
 	class TCPIPPipe: public I2PServiceHandler, public std::enable_shared_from_this<TCPIPPipe> {
@@ -93,8 +93,8 @@ namespace client
 		void HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transferred);
 		void HandleUpstreamWrite(const boost::system::error_code & ecode);
 		void HandleDownstreamWrite(const boost::system::error_code & ecode);
-		void UpstreamWrite(const uint8_t * buf, size_t len);
-		void DownstreamWrite(const uint8_t * buf, size_t len);
+		void UpstreamWrite(size_t len);
+		void DownstreamWrite(size_t len);
 	private:
 		uint8_t m_upstream_to_down_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_to_up_buf[TCP_IP_PIPE_BUFFER_SIZE];
 		uint8_t m_upstream_buf[TCP_IP_PIPE_BUFFER_SIZE], m_downstream_buf[TCP_IP_PIPE_BUFFER_SIZE];
@@ -121,10 +121,11 @@ namespace client
 			void Stop ();
 
 			const boost::asio::ip::tcp::acceptor& GetAcceptor () const { return m_Acceptor; };
-			
+
+    virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
+
 		protected:
 			virtual std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
-			virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
 		private:
 			void Accept();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);

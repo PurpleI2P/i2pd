@@ -98,6 +98,7 @@ set (CLIENT_SRC
   "${CMAKE_SOURCE_DIR}/HTTP.cpp"
   "${CMAKE_SOURCE_DIR}/HTTPProxy.cpp"
   "${CMAKE_SOURCE_DIR}/I2CP.cpp"
+  "${CMAKE_SOURCE_DIR}/WebSocks.cpp"
   )
 
 if(WITH_WEBSOCKETS)

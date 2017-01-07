@@ -307,7 +307,6 @@ namespace i2p
 				d.m_WebsocketServer->Start();
 				i2p::event::core.SetListener(d.m_WebsocketServer->ToListener());
 			}
-			
 #endif
 			return true;
 		}
