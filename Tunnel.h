@@ -78,21 +78,6 @@ namespace tunnel
 		eTunnelStateFailed,
 		eTunnelStateExpiring
 	};	
-
-	/** @brief for storing latency history */
-	struct TunnelLatency
-	{
-		typedef uint64_t Sample;
-		typedef uint64_t Latency;
-
-		
-		void AddSample(Sample s);
-		bool HasSamples() const;
-		Latency GetMeanLatency() const;
-
-		std::vector<Sample> m_samples;
-		mutable std::mutex m_access;
-	};
 	
 	class OutboundTunnel;
 	class InboundTunnel;
@@ -133,14 +118,14 @@ namespace tunnel
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
 			void EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out); 
 
-		/** @brief add latency sample */
-		void AddLatencySample(const uint64_t ms) { m_Latency.AddSample(ms); }
-		/** @brief get this tunnel's estimated latency */
-		uint64_t GetMeanLatency() const { return m_Latency.GetMeanLatency(); }
-		/** @breif return true if this tunnel's latency fits in range [lowerbound, upperbound] */
-		bool LatencyFitsRange(uint64_t lowerbound, uint64_t upperbound) const;
+			/** @brief add latency sample */
+			void AddLatencySample(const uint64_t ms) { m_Latency = (m_Latency + ms) >> 1; }
+			/** @brief get this tunnel's estimated latency */
+			uint64_t GetMeanLatency() const { return m_Latency; }
+			/** @breif return true if this tunnel's latency fits in range [lowerbound, upperbound] */
+			bool LatencyFitsRange(uint64_t lowerbound, uint64_t upperbound) const;
 		
-		bool LatencyIsKnown() const { return m_Latency.HasSamples(); }
+			bool LatencyIsKnown() const { return m_Latency > 0; }
 		protected:
 
 			void PrintHops (std::stringstream& s) const;
@@ -152,7 +137,7 @@ namespace tunnel
 			std::shared_ptr<TunnelPool> m_Pool; // pool, tunnel belongs to, or null
 			TunnelState m_State;
 			bool m_IsRecreated;
-		TunnelLatency m_Latency;
+			uint64_t m_Latency; // in milliseconds
 	};	
 
 	class OutboundTunnel: public Tunnel 

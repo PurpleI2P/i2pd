@@ -73,9 +73,12 @@ All options below still possible in cmdline, but better write it in config file:
 * --i2cp.port=           - Port of I2CP server. Usually 7654. Ignored for Andorid
 * --i2cp.enabled=        - If I2CP is enabled. false by default. Other services don't require I2CP 
 
-* --i2pcontrol.address= - The address to listen on (I2P control service)
-* --i2pcontrol.port=    - Port of I2P control service. Usually 7650. I2PControl is off if not specified
-* --i2pcontrol.enabled= - If I2P control is enabled. false by default   
+* --i2pcontrol.address=  - The address to listen on (I2P control service)  
+* --i2pcontrol.port=     - Port of I2P control service. Usually 7650. I2PControl is off if not specified  
+* --i2pcontrol.enabled=  - If I2P control is enabled. false by default  
+* --i2pcontrol.password= - I2P control authentication password. itoopie by default  
+* --i2pcontrol.cert=     - I2P control HTTPS certificate file name. i2pcontrol.crt.pem by default  
+* --i2pcontrol.key=      - I2P control HTTPS certificate key file name. i2pcontrol.key.pem by default  
 
 * --upnp.enabled=       - Enable or disable UPnP, false by default for CLI and true for GUI (Windows, Android)  
 * --upnp.name=          - Name i2pd appears in UPnP forwardings list. I2Pd by default  

@@ -35,12 +35,11 @@ namespace transport
 	};	
 
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
-	const size_t NTCP_BUFFER_SIZE = 4160; // fits 4 tunnel messages (4*1028)
+	const size_t NTCP_BUFFER_SIZE = 1028; // fits 1 tunnel data message
 	const int NTCP_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds	
 	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
-	const int NTCP_BAN_EXPIRATION_TIMEOUT = 70; // in second
 	const int NTCP_CLOCK_SKEW = 60; // in seconds 
 	const int NTCP_MAX_OUTGOING_QUEUE_SIZE = 200; // how many messages we can queue up
 

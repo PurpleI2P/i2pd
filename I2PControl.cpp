@@ -2,6 +2,8 @@
 #include <sstream>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
+#include <boost/lexical_cast.hpp>
+#include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
@@ -14,7 +16,6 @@
 #include "Crypto.h"
 #include "FS.h"
 #include "Log.h"
-#include "HTTP.h"
 #include "Config.h"
 #include "NetDb.h"
 #include "RouterContext.h"
@@ -189,64 +190,71 @@ namespace client
 		if (ecode) {
 			LogPrint (eLogError, "I2PControl: read error: ", ecode.message ());
 			return;
-		}
-		/* try to parse received data */
-		std::stringstream json;
-		std::string response;
-		bool isHTTP = false;
-		if (memcmp (buf->data (), "POST", 4) == 0) {
-			long int remains = 0;
-			isHTTP = true;
-			i2p::http::HTTPReq req;
-			std::size_t len = req.parse(buf->data(), bytes_transferred);
-			if (len <= 0) {
-				LogPrint(eLogError, "I2PControl: incomplete/malformed POST request");
-				return;
-			}
-			/* append to json chunk of data from 1st request */
-			json.write(buf->data() + len, bytes_transferred - len);
-			remains = req.content_length() - len;
-			/* if request has Content-Length header, fetch rest of data and store to json buffer */
-			while (remains > 0) {
-				len = ((long int) buf->size() < remains) ? buf->size() : remains;
-				bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), len));
-				json.write(buf->data(), bytes_transferred);
-				remains -= bytes_transferred;
-			}
 		} else {
-			json.write(buf->data(), bytes_transferred);
-		}
-		LogPrint(eLogDebug, "I2PControl: json from request: ", json.str());
+			try
+			{
+				bool isHtml = !memcmp (buf->data (), "POST", 4);
+				std::stringstream ss;
+				ss.write (buf->data (), bytes_transferred);
+				if (isHtml)
+				{
+					std::string header;
+					size_t contentLength = 0;
+					while (!ss.eof () && header != "\r")
+					{
+						std::getline(ss, header);
+						auto colon = header.find (':');
+						if (colon != std::string::npos && header.substr (0, colon) == "Content-Length")
+							contentLength = std::stoi (header.substr (colon + 1));
+					}
+					if (ss.eof ())
+					{
+						LogPrint (eLogError, "I2PControl: malformed request, HTTP header expected");
+						return; // TODO:
+					}
+					std::streamoff rem = contentLength + ss.tellg () - bytes_transferred; // more bytes to read
+					if (rem > 0)
+					{
+						bytes_transferred = boost::asio::read (*socket, boost::asio::buffer (buf->data (), rem));
+						ss.write (buf->data (), bytes_transferred);
+					}
+				}
+				std::ostringstream response;
 #if GCC47_BOOST149
-		LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
-		BuildErrorResponse(response, 32603, "JSON requests is not supported with this version of boost");
+				LogPrint (eLogError, "I2PControl: json_read is not supported due bug in boost 1.49 with gcc 4.7");
+				response << "{\"id\":null,\"error\":";
+				response << "{\"code\":-32603,\"message\":\"JSON requests is not supported with this version of boost\"},";
+				response << "\"jsonrpc\":\"2.0\"}";
 #else
-		/* now try to parse json itself */
-		try {
-			boost::property_tree::ptree pt;
-			boost::property_tree::read_json (json, pt);
+				boost::property_tree::ptree pt;
+				boost::property_tree::read_json (ss, pt);
 
-			std::string id     = pt.get<std::string>("id");
-			std::string method = pt.get<std::string>("method");
-			auto it = m_MethodHandlers.find (method);
-			if (it != m_MethodHandlers.end ()) {
-				std::ostringstream ss;
-				ss << "{\"id\":" << id << ",\"result\":{";
-				(this->*(it->second))(pt.get_child ("params"), ss);
-				ss << "},\"jsonrpc\":\"2.0\"}";
-				response = ss.str();
-			} else {
-				LogPrint (eLogWarning, "I2PControl: unknown method ", method);
-				BuildErrorResponse(response, 32601, "Method not found");
-			}
-		} catch (std::exception& ex) {
-			LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
-			BuildErrorResponse(response, 32603, ex.what());
-		} catch (...) {
-			LogPrint (eLogError, "I2PControl: handle request unknown exception");
-		}
+				std::string id     = pt.get<std::string>("id");
+				std::string method = pt.get<std::string>("method");
+				auto it = m_MethodHandlers.find (method);
+				if (it != m_MethodHandlers.end ())
+				{
+					response << "{\"id\":" << id << ",\"result\":{";
+					(this->*(it->second))(pt.get_child ("params"), response);
+					response << "},\"jsonrpc\":\"2.0\"}";
+				} else {
+					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
+					response << "{\"id\":null,\"error\":";
+					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
+					response << "\"jsonrpc\":\"2.0\"}";
+				}
 #endif
-		SendResponse (socket, buf, response, isHTTP);
+				SendResponse (socket, buf, response, isHtml);
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
+			}
+			catch (...)
+			{
+				LogPrint (eLogError, "I2PControl: handle request unknown exception");
+			}
+		}
 	}
 
 	void I2PControlService::InsertParam (std::ostringstream& ss, const std::string& name, int value) const
@@ -268,28 +276,27 @@ namespace client
 		ss << "\"" << name << "\":" << std::fixed << std::setprecision(2) << value;
 	}
 
-	void I2PControlService::BuildErrorResponse (std::string & content, int code, const char *message) {
-		std::stringstream ss;
-		ss << "{\"id\":null,\"error\":";
-		ss << "{\"code\":" << -code << ",\"message\":\"" << message << "\"},";
-		ss << "\"jsonrpc\":\"2.0\"}";
-		content = ss.str();
-	}
-
 	void I2PControlService::SendResponse (std::shared_ptr<ssl_socket> socket,
-		std::shared_ptr<I2PControlBuffer> buf, std::string& content, bool isHTTP)
+		std::shared_ptr<I2PControlBuffer> buf, std::ostringstream& response, bool isHtml)
 	{
-		if (isHTTP) {
-			i2p::http::HTTPRes res;
-			res.code = 200;
-			res.add_header("Content-Type", "application/json");
-			res.add_header("Connection", "close");
-			res.body = content;
-			std::string tmp = res.to_string();
-			content = tmp;
+		size_t len = response.str ().length (), offset = 0;
+		if (isHtml)
+		{
+			std::ostringstream header;
+			header << "HTTP/1.1 200 OK\r\n";
+			header << "Connection: close\r\n";
+			header << "Content-Length: " << boost::lexical_cast<std::string>(len) << "\r\n";
+			header << "Content-Type: application/json\r\n";
+			header << "Date: ";
+			auto facet = new boost::local_time::local_time_facet ("%a, %d %b %Y %H:%M:%S GMT");
+			header.imbue(std::locale (header.getloc(), facet));
+			header << boost::posix_time::second_clock::local_time() << "\r\n";
+			header << "\r\n";
+			offset = header.str ().size ();
+			memcpy (buf->data (), header.str ().c_str (), offset);
 		}
-		std::copy(content.begin(), content.end(), buf->begin());
-		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), content.length()),
+		memcpy (buf->data () + offset, response.str ().c_str (), len);
+		boost::asio::async_write (*socket, boost::asio::buffer (buf->data (), offset + len),
 			boost::asio::transfer_all (),
 			std::bind(&I2PControlService::HandleResponseSent, this,
 				std::placeholders::_1, std::placeholders::_2, socket, buf));
@@ -316,7 +323,7 @@ namespace client
 		}
 		InsertParam (results, "API", api);
 		results << ",";
-        std::string token = std::to_string(i2p::util::GetSecondsSinceEpoch ());
+		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
 		m_Tokens.insert (token);	
 		InsertParam (results, "Token", token);
 	}	
@@ -358,7 +365,7 @@ namespace client
 
 	void I2PControlService::RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		for (auto it = params.begin (); it != params.end (); ++it)
+		for (auto it = params.begin (); it != params.end (); it++)
 		{
 			LogPrint (eLogDebug, "I2PControl: RouterInfo request: ", it->first);
 			auto it1 = m_RouterInfoHandlers.find (it->first);
@@ -434,7 +441,7 @@ namespace client
 
 	void I2PControlService::RouterManagerHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		for (auto it = params.begin (); it != params.end (); ++it)
+		for (auto it = params.begin (); it != params.end (); it++)
 		{
 			if (it != params.begin ()) results << ",";	
 			LogPrint (eLogDebug, "I2PControl: RouterManager request: ", it->first);
@@ -483,7 +490,7 @@ namespace client
 // network setting
 	void I2PControlService::NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
-		for (auto it = params.begin (); it != params.end (); ++it)
+		for (auto it = params.begin (); it != params.end (); it++)
 		{
 			if (it != params.begin ()) results << ",";	
 			LogPrint (eLogDebug, "I2PControl: NetworkSetting request: ", it->first);
@@ -529,7 +536,7 @@ namespace client
 			X509_gmtime_adj (X509_get_notAfter (x509), I2P_CONTROL_CERTIFICATE_VALIDITY*24*60*60); // expiration
 			X509_set_pubkey (x509, pkey); // public key
 			X509_NAME * name = X509_get_subject_name (x509);
-			X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"RU", -1, -1, 0); // country (Russia by default)
+			X509_NAME_add_entry_by_txt (name, "C",  MBSTRING_ASC, (unsigned char *)"A1", -1, -1, 0); // country (Anonymous proxy)
 			X509_NAME_add_entry_by_txt (name, "O",  MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_ORGANIZATION, -1, -1, 0); // organization
 			X509_NAME_add_entry_by_txt (name, "CN", MBSTRING_ASC, (unsigned char *)I2P_CONTROL_CERTIFICATE_COMMON_NAME, -1, -1, 0); // common name
 			X509_set_issuer_name (x509, name); // set issuer to ourselves

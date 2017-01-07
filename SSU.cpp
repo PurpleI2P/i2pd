@@ -417,7 +417,7 @@ namespace transport
 					return; 
 				}		
 				// create new session					
-				int numIntroducers = address->introducers.size ();
+				int numIntroducers = address->ssu->introducers.size ();
 				if (numIntroducers > 0)
 				{
 					std::shared_ptr<SSUSession> introducerSession;
@@ -425,7 +425,7 @@ namespace transport
 					// we might have a session to introducer already
 					for (int i = 0; i < numIntroducers; i++)
 					{
-						auto intr = &(address->introducers[i]);
+						auto intr = &(address->ssu->introducers[i]);
 						boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
 						if (ep.address ().is_v4 ()) // ipv4 only
 						{	

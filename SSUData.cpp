@@ -54,23 +54,23 @@ namespace transport
 	{
 		if (remoteRouter) return;
 		auto ssuAddress = remoteRouter->GetSSUAddress ();
-		if (ssuAddress && ssuAddress->mtu)
+		if (ssuAddress && ssuAddress->ssu->mtu)
 		{
 			if (m_Session.IsV6 ())
-				m_PacketSize = ssuAddress->mtu - IPV6_HEADER_SIZE - UDP_HEADER_SIZE;
+				m_PacketSize = ssuAddress->ssu->mtu - IPV6_HEADER_SIZE - UDP_HEADER_SIZE;
 			else
-				m_PacketSize = ssuAddress->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
+				m_PacketSize = ssuAddress->ssu->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
 			if (m_PacketSize > 0)
 			{
 				// make sure packet size multiple of 16
 				m_PacketSize >>= 4;
 				m_PacketSize <<= 4;
 				if (m_PacketSize > m_MaxPacketSize) m_PacketSize = m_MaxPacketSize;
-				LogPrint (eLogDebug, "SSU: MTU=", ssuAddress->mtu, " packet size=", m_PacketSize);
+				LogPrint (eLogDebug, "SSU: MTU=", ssuAddress->ssu->mtu, " packet size=", m_PacketSize);
 			}
 			else
 			{	
-				LogPrint (eLogWarning, "SSU: Unexpected MTU ", ssuAddress->mtu);
+				LogPrint (eLogWarning, "SSU: Unexpected MTU ", ssuAddress->ssu->mtu);
 				m_PacketSize = m_MaxPacketSize;
 			}	
 		}		

@@ -266,8 +266,9 @@ namespace i2p
 			}
 		}	
 		// delete previous introducers
-		for (auto& addr : addresses)
-			addr->introducers.clear ();
+		for (auto& addr : addresses)	
+			if (addr->ssu)
+				addr->ssu->introducers.clear ();
 	
 		// update
 		UpdateRouterInfo ();
@@ -298,7 +299,8 @@ namespace i2p
 		}		
 		// delete previous introducers
 		for (auto& addr : addresses)
-			addr->introducers.clear ();
+			if (addr->ssu)
+				addr->ssu->introducers.clear ();
 		
 		// update
 		UpdateRouterInfo ();

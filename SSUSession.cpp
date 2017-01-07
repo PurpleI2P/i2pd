@@ -22,14 +22,14 @@ namespace transport
 		{
 			// we are client
 			auto address = router->GetSSUAddress (false);
-			if (address) m_IntroKey = address->key;
+			if (address) m_IntroKey = address->ssu->key;
 			m_Data.AdjustPacketSize (router); // mtu
 		}
 		else
 		{
 			// we are server
 			auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
-			if (address) m_IntroKey = address->key;
+			if (address) m_IntroKey = address->ssu->key;
 		}
 		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
 	}
@@ -115,8 +115,8 @@ namespace transport
 						LogPrint (eLogInfo, "SSU is not supported");
 						return;
 					}	
-					if (Validate (buf, len, address->key))
-						Decrypt (buf, len, address->key);
+					if (Validate (buf, len, address->ssu->key))
+						Decrypt (buf, len, address->ssu->key);
 					else
 					{
 						LogPrint (eLogWarning, "SSU: MAC verification failed ", len, " bytes from ", senderEndpoint);
@@ -403,7 +403,7 @@ namespace transport
 		payload += 2;
 		*payload = 0; // challenge
 		payload++;	
-		memcpy (payload, (const uint8_t *)address->key, 32);
+		memcpy (payload, (const uint8_t *)address->ssu->key, 32);
 		payload += 32;
 		htobe32buf (payload, nonce); // nonce	
 
@@ -1081,7 +1081,7 @@ namespace transport
 			// send our intro key to address instead it's own
 			auto addr = i2p::context.GetRouterInfo ().GetSSUAddress ();
 			if (addr)
-				memcpy (payload, addr->key, 32); // intro key
+				memcpy (payload, addr->ssu->key, 32); // intro key
 			else
 				LogPrint (eLogInfo, "SSU is not supported. Can't send peer test");	
 		}	
@@ -1121,7 +1121,7 @@ namespace transport
 		if (!nonce) nonce = 1;
 		m_IsPeerTest = false;
 		m_Server.NewPeerTest (nonce, ePeerTestParticipantAlice1, shared_from_this ());
-		SendPeerTest (nonce, boost::asio::ip::address(), 0, address->key, false, false); // address and port always zero for Alice
+		SendPeerTest (nonce, boost::asio::ip::address(), 0, address->ssu->key, false, false); // address and port always zero for Alice
 	}	
 
 	void SSUSession::SendKeepAlive ()
