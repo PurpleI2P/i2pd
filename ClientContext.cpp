@@ -433,7 +433,9 @@ namespace client
 						|| type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
 				{
 					// mandatory params
-					std::string dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
+					std::string dest;
+					if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
+						dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
 					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
 					// optional params
 					std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
