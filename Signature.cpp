@@ -467,17 +467,27 @@ namespace crypto
 		return GetEd25519 ()->Verify (m_PublicKey, digest, signature);
 	}
 
-	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey)
+	EDDSA25519Signer::EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey)
 	{ 
 		// expand key
 		SHA512 (signingPrivateKey, EDDSA25519_PRIVATE_KEY_LENGTH, m_ExpandedPrivateKey);
 		m_ExpandedPrivateKey[0] &= 0xF8; // drop last 3 bits 
-		m_ExpandedPrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] &= 0x1F; // drop first 3 bits
+		m_ExpandedPrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] &= 0x3F; // drop first 2 bits
 		m_ExpandedPrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] |= 0x40; // set second bit
+		
 		// generate and encode public key
 		BN_CTX * ctx = BN_CTX_new ();	
 		auto publicKey = GetEd25519 ()->GeneratePublicKey (m_ExpandedPrivateKey, ctx);
 		GetEd25519 ()->EncodePublicKey (publicKey, m_PublicKeyEncoded, ctx);	
+		
+		if (signingPublicKey && memcmp (m_PublicKeyEncoded, signingPublicKey, EDDSA25519_PUBLIC_KEY_LENGTH))
+		{
+			// keys don't match, it means older key with 0x1F
+			LogPrint (eLogWarning, "Older EdDSA key detected");
+			m_ExpandedPrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH - 1] &= 0xDF; // drop third bit 
+			publicKey = GetEd25519 ()->GeneratePublicKey (m_ExpandedPrivateKey, ctx);
+			GetEd25519 ()->EncodePublicKey (publicKey, m_PublicKeyEncoded, ctx);	
+		}
 		BN_CTX_free (ctx);
 	} 
 		
