@@ -27,6 +27,47 @@ namespace i2p
 {
 namespace util
 {
+
+	template<class T> 
+	class MemoryPool
+	{
+		public:
+
+			MemoryPool (): m_Head (nullptr) {};
+			~MemoryPool () 
+			{ 
+				while (m_Head) 
+				{
+					auto tmp = m_Head;
+					m_Head = static_cast<T*>(*(void * *)m_Head); // next
+					delete tmp;
+				}
+			} 
+
+			template<typename... TArgs>
+			T * Acquire (TArgs... args)
+			{
+				if (!m_Head) return new T(args...);
+				else
+				{
+					auto tmp = m_Head;
+					m_Head = static_cast<T*>(*(void * *)m_Head); // next
+					return new (tmp)T(args...);
+				}
+			}
+
+			void Release (T * t)
+			{
+				t->~T ();
+				*(void * *)t = m_Head;
+				m_Head = t;	
+			}
+
+		private:
+
+			T * m_Head;
+	};	
+
 	namespace net
 	{
 		int GetMTU (const boost::asio::ip::address& localAddress);
