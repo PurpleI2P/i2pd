@@ -58,8 +58,9 @@ namespace util
 
 			void Release (T * t)
 			{
+				if (!t) return;
 				t->~T ();
-				*(void * *)t = m_Head;
+				*(void * *)t = m_Head; // next
 				m_Head = t;	
 			}
 

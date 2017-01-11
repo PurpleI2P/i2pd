@@ -18,6 +18,7 @@
 #include "I2NPProtocol.h"
 #include "Garlic.h"
 #include "Tunnel.h"
+#include "util.h" // MemoryPool
 
 namespace i2p
 {
@@ -234,6 +235,9 @@ namespace stream
 
 			/** set max connections per minute per destination */
 			void SetMaxConnsPerMinute(const uint32_t conns);
+
+			Packet * NewPacket () { return m_PacketsPool.Acquire (); };
+			void DeletePacket (Packet * p) { if (p) m_PacketsPool.Release (p); };		
 			
 		private:		
 	
@@ -269,7 +273,9 @@ namespace stream
 			/** banned identities */
 			std::vector<i2p::data::IdentHash> m_Banned;
 			uint64_t m_LastBanClear;
-      
+
+			i2p::util::MemoryPool<Packet> m_PacketsPool;
+			
 		public:
 
 			i2p::data::GzipInflator m_Inflator;
