@@ -45,7 +45,7 @@ namespace client
 	const char I2P_SERVER_TUNNEL_GZIP[] = "gzip";
 	const char I2P_SERVER_TUNNEL_WEBIRC_PASSWORD[] = "webircpassword";
 	const char I2P_SERVER_TUNNEL_ADDRESS[] = "address";
-	const char I2P_SERVER_TUNNEL_MAPTOLOOPBACK[] = "maploopback";
+	const char I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL[] = "enableuniquelocal";
 
 	class ClientContext
 	{
