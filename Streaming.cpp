@@ -867,6 +867,7 @@ namespace stream
 	{	
 		ResetAcceptor ();
 		m_PendingIncomingTimer.cancel ();
+		m_PendingIncomingStreams.clear ();
 		m_ConnTrackTimer.cancel();
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
@@ -1020,14 +1021,16 @@ namespace stream
 
 	void StreamingDestination::SetAcceptor (const Acceptor& acceptor) 
 	{ 
-		m_Owner->GetService ().post([acceptor, this](void)
+		m_Acceptor = acceptor; // we must set it immediately for IsAcceptorSet
+		auto s = shared_from_this ();
+		m_Owner->GetService ().post([s](void)
 			{                            
-				m_Acceptor = acceptor;
-				for (auto& it: m_PendingIncomingStreams)
+				// take care about incoming queue
+				for (auto& it: s->m_PendingIncomingStreams)
 					if (it->GetStatus () == eStreamStatusOpen) // still open?
-						m_Acceptor (it);
-				m_PendingIncomingStreams.clear ();
-				m_PendingIncomingTimer.cancel ();
+						s->m_Acceptor (it);
+				s->m_PendingIncomingStreams.clear ();
+				s->m_PendingIncomingTimer.cancel ();
 			});	
 	}
 
