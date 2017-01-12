@@ -1,9 +1,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <map>
 #include <string>
-#include <iostream>
+#include <functional>
+#include <memory>
 #include <boost/asio.hpp>
 
 #ifdef ANDROID
@@ -45,7 +45,7 @@ namespace util
 			} 
 
 			template<typename... TArgs>
-			T * Acquire (TArgs... args)
+			T * Acquire (TArgs&&... args)
 			{
 				if (!m_Head) return new T(args...);
 				else
@@ -64,6 +64,13 @@ namespace util
 				m_Head = t;	
 			}
 
+			template<typename... TArgs>
+			std::unique_ptr<T, std::function<void(T*)> > AcquireUnique (TArgs&&... args)
+			{
+				return std::unique_ptr<T, std::function<void(T*)> >(Acquire (args...), 
+					std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
+			}
+			
 		private:
 
 			T * m_Head;
