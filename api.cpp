@@ -33,6 +33,10 @@ namespace api
 #else
 		i2p::crypto::InitCrypto (true);
 #endif		
+
+                int netID; i2p::config::GetOption("netid", netID);
+                i2p::context.SetNetID (netID);
+
 		i2p::context.Init ();	
 	}
 
