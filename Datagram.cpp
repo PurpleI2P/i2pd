@@ -45,7 +45,8 @@ namespace datagram
 			owner->Sign (buf1, len, signature);
 
 		auto msg = CreateDataMessage (buf, len + headerLen, fromPort, toPort);
-		ObtainSession(identity)->SendMsg(msg);
+		auto session = ObtainSession(identity);
+		session->SendMsg(msg);
 	}
 
 
@@ -69,7 +70,8 @@ namespace datagram
 		if (verified)
 		{
 			auto h = identity.GetIdentHash();
-			ObtainSession(h)->Ack();
+			auto session = ObtainSession(h);
+			session->Ack();
 			auto r = FindReceiver(toPort);
 			if(r)
 				r(identity, fromPort, toPort, buf + headerLen, len -headerLen);
@@ -332,7 +334,7 @@ namespace datagram
 	{
 		boost::posix_time::milliseconds dlt(100);
 		m_SendQueueTimer.expires_from_now(dlt);
-		m_SendQueueTimer.async_wait([&](const boost::system::error_code & ec) { if(ec) return; FlushSendQueue(); });
+		m_SendQueueTimer.async_wait([this](const boost::system::error_code & ec) { if(ec) return; FlushSendQueue(); });
 	}
 }
 }
