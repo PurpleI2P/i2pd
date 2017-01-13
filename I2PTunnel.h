@@ -268,6 +268,7 @@ namespace client
 			void SetAccessList (const std::set<i2p::data::IdentHash>& accessList); 
 
 			void SetUniqueLocal (bool isUniqueLocal) { m_IsUniqueLocal = isUniqueLocal; }
+			bool IsUniqueLocal () const { return m_IsUniqueLocal; }
 
 			const std::string& GetAddress() const { return m_Address; }
 			int GetPort () const { return m_Port; };
@@ -285,7 +286,7 @@ namespace client
 
 			void Accept ();
 			void HandleAccept (std::shared_ptr<i2p::stream::Stream> stream);
-			virtual void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
+			virtual std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
 			
@@ -308,7 +309,7 @@ namespace client
 
 		private:
 
-			void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
+			std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
 
@@ -325,7 +326,7 @@ namespace client
 
         private:
 
-            void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
+            std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
         private:
 

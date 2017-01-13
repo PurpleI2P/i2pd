@@ -509,15 +509,17 @@ namespace client
 					return;
 				}
 			}
-			CreateI2PConnection (stream);
+			// new connection
+			auto conn = CreateI2PConnection (stream);
+			AddHandler (conn);
+			conn->Connect (m_IsUniqueLocal);
 		}	
 	}
 
-	void I2PServerTunnel::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
+	std::shared_ptr<I2PTunnelConnection> I2PServerTunnel::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		auto conn = std::make_shared<I2PTunnelConnection> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint ());
-		AddHandler (conn);
-		conn->Connect (m_IsUniqueLocal);
+		return std::make_shared<I2PTunnelConnection> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint ());
+		
 	}
 
 	I2PServerTunnelHTTP::I2PServerTunnelHTTP (const std::string& name, const std::string& address, 
@@ -528,12 +530,10 @@ namespace client
 	{
 	}
 
-	void I2PServerTunnelHTTP::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
+	std::shared_ptr<I2PTunnelConnection> I2PServerTunnelHTTP::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		auto conn = std::make_shared<I2PTunnelConnectionHTTP> (this, stream, 
+		return std::make_shared<I2PTunnelConnectionHTTP> (this, stream, 
 			std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint (), m_Host);
-		AddHandler (conn);
-		conn->Connect ();
 	}
 
     I2PServerTunnelIRC::I2PServerTunnelIRC (const std::string& name, const std::string& address, 
@@ -544,11 +544,9 @@ namespace client
     {
     }
 
-    void I2PServerTunnelIRC::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
+    std::shared_ptr<I2PTunnelConnection> I2PServerTunnelIRC::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
     {
-	    auto conn = std::make_shared<I2PTunnelConnectionIRC> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint (), this->m_WebircPass);
-	    AddHandler (conn);
-        conn->Connect ();
+	    return std::make_shared<I2PTunnelConnectionIRC> (this, stream, std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint (), this->m_WebircPass);
     }
 
   void I2PUDPServerTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
