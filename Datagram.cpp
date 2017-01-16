@@ -182,7 +182,8 @@ namespace datagram
 		// we used this session
 		m_LastUse = i2p::util::GetMillisecondsSinceEpoch();
 		// schedule send
-		m_LocalDestination->GetService().post(std::bind(&DatagramSession::HandleSend, this, msg));
+		auto self = shared_from_this();
+		m_LocalDestination->GetService().post(std::bind(&DatagramSession::HandleSend, self, msg));
 	}
 
 	DatagramSession::Info DatagramSession::GetSessionInfo() const
@@ -334,7 +335,8 @@ namespace datagram
 	{
 		boost::posix_time::milliseconds dlt(100);
 		m_SendQueueTimer.expires_from_now(dlt);
-		m_SendQueueTimer.async_wait([this](const boost::system::error_code & ec) { if(ec) return; FlushSendQueue(); });
+		auto self = shared_from_this();
+		m_SendQueueTimer.async_wait([self](const boost::system::error_code & ec) { if(ec) return; self->FlushSendQueue(); });
 	}
 }
 }
