@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <boost/asio.hpp>
 
 #ifdef ANDROID
@@ -71,10 +72,43 @@ namespace util
 					std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
 			}
 			
-		private:
+		protected:
 
 			T * m_Head;
 	};	
+
+	template<class T>
+	class MemoryPoolMt: public MemoryPool<T>
+	{
+		public:
+
+			MemoryPoolMt () {};			
+			template<typename... TArgs>
+			T * AcquireMt (TArgs&&... args)
+			{
+				if (!this->m_Head) return new T(args...);
+				std::lock_guard<std::mutex> l(m_Mutex);
+				return this->Acquire (args...);
+			}
+
+			void ReleaseMt (T * t)
+			{
+				std::lock_guard<std::mutex> l(m_Mutex);
+				this->Release (t);	
+			}
+
+			template<template<typename, typename...>class C, typename... R>
+			void ReleaseMt(const C<T *, R...>& c)	
+			{
+				std::lock_guard<std::mutex> l(m_Mutex);
+				for (auto& it: c)
+					this->Release (it);
+			}	
+
+		private:
+		
+			std::mutex m_Mutex;
+	};
 
 	namespace net
 	{
