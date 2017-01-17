@@ -15,6 +15,7 @@
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 #include "SSUSession.h"
+#include "util.h" // for MemoryPool
 
 namespace i2p
 {
@@ -122,7 +123,8 @@ namespace transport
 			std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions, m_SessionsV6;
 			std::map<uint32_t, std::shared_ptr<SSUSession> > m_Relays; // we are introducer
 			std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
-
+			i2p::util::MemoryPoolMt<SSUPacket> m_Packets;
+			
 		public:
 			// for HTTP only
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
