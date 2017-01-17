@@ -257,7 +257,7 @@ namespace transport
 
 	void NTCPSession::SendPhase3 ()
 	{
-		auto keys = i2p::context.GetPrivateKeys ();
+		auto& keys = i2p::context.GetPrivateKeys ();
 		uint8_t * buf = m_ReceiveBuffer; 
 		htobe16buf (buf, keys.GetPublic ()->GetFullLen ());
 		buf += 2;
@@ -403,7 +403,7 @@ namespace transport
 		s.Insert (m_RemoteIdentity->GetIdentHash (), 32); // ident
 		s.Insert (tsA); // tsA
 		s.Insert (tsB); // tsB
-		auto keys = i2p::context.GetPrivateKeys ();
+		auto& keys = i2p::context.GetPrivateKeys ();
  		auto signatureLen = keys.GetPublic ()->GetSignatureLen ();
 		s.Sign (keys, m_ReceiveBuffer);
 		size_t paddingSize = signatureLen & 0x0F; // %16
@@ -621,7 +621,7 @@ namespace transport
 				if (!m_NextMessage->IsExpired ())
 				{
 #ifdef WITH_EVENTS
-					EmitEvent({{"type", "transport.recvmsg"} , {"ident", GetIdentHashBase64()}, {"number", "1"}});
+					QueueIntEvent("transport.recvmsg", GetIdentHashBase64(), 1);
 #endif
 					m_Handler.PutNextMessage (m_NextMessage);
 				}

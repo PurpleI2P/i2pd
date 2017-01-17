@@ -509,7 +509,7 @@ namespace data
 				m_Signer.reset (new i2p::crypto::RSASHA5124096Signer (m_SigningPrivateKey));
 			break;	
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey));
+				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");

@@ -154,8 +154,7 @@ namespace transport
 		{	
 			uint32_t msgID = bufbe32toh (buf); // message ID
 			buf += 4;
-			uint8_t frag[4];
-			frag[0] = 0;
+			uint8_t frag[4] = {0};
 			memcpy (frag + 1, buf, 3);
 			buf += 3;
 			uint32_t fragmentInfo = bufbe32toh (frag); // fragment info
@@ -240,7 +239,7 @@ namespace transport
 						if (!msg->IsExpired ()) 
 						{
 #ifdef WITH_EVENTS
-							EmitEvent({{"type", "transport.recvmsg"} , {"ident", m_Session.GetIdentHashBase64()}, {"number", "1"}});
+							QueueIntEvent("transport.recvmsg", m_Session.GetIdentHashBase64(), 1);
 #endif
 							m_Handler.PutNextMessage (msg);
 						}
@@ -371,7 +370,7 @@ namespace transport
 
 	void SSUData::SendMsgAck (uint32_t msgID)
 	{
-		uint8_t buf[48 + 18]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
+		uint8_t buf[48 + 18] = {0}; // actual length is 44 = 37 + 7 but pad it to multiple of 16
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
 		payload++;
@@ -393,7 +392,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU: Fragment number ", fragmentNum, " exceeds 64");
 			return;
 		}
-		uint8_t buf[64 + 18];
+		uint8_t buf[64 + 18] = {0};
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = DATA_FLAG_ACK_BITFIELDS_INCLUDED; // flag
 		payload++;	

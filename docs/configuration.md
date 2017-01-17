@@ -35,8 +35,9 @@ Windows-specific options:
 
 All options below still possible in cmdline, but better write it in config file:
 
+* --http.enabled=       - If webconsole is enabled. true by default  
 * --http.address=       - The address to listen on (HTTP server)
-* --http.port=          - The port to listen on (HTTP server)
+* --http.port=          - The port to listen on (HTTP server) 7070 by default
 * --http.auth           - Enable basic HTTP auth for webconsole
 * --http.user=          - Username for basic auth (default: i2pd)
 * --http.pass=          - Password for basic auth (default: random, see logs)

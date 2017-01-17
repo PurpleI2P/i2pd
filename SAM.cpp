@@ -108,10 +108,10 @@ namespace client
 					separator++;
 					std::map<std::string, std::string> params;
 					ExtractParams (separator, params);
-					auto it = params.find (SAM_PARAM_MAX);
+					//auto it = params.find (SAM_PARAM_MAX);
 					// TODO: check MIN as well
-					if (it != params.end ())
-						version = it->second;
+					//if (it != params.end ())
+					//	version = it->second;
 				}
 				if (version[0] == '3') // we support v3 (3.0 and 3.1) only
 				{
@@ -464,21 +464,21 @@ namespace client
 		std::string& name = params[SAM_PARAM_NAME];
 		std::shared_ptr<const i2p::data::IdentityEx> identity;
 		i2p::data::IdentHash ident;
+		auto dest = m_Session == nullptr ? context.GetSharedLocalDestination() : m_Session->localDestination;
 		if (name == "ME")
-			SendNamingLookupReply (m_Session->localDestination->GetIdentity ());
+			SendNamingLookupReply (dest->GetIdentity ());
 		else if ((identity = context.GetAddressBook ().GetAddress (name)) != nullptr)
 			SendNamingLookupReply (identity);
-		else if (m_Session && m_Session->localDestination &&
-			context.GetAddressBook ().GetIdentHash (name, ident))
+		else if (context.GetAddressBook ().GetIdentHash (name, ident))
 		{
-			auto leaseSet = m_Session->localDestination->FindLeaseSet (ident);
+			auto leaseSet = dest->FindLeaseSet (ident);
 			if (leaseSet)
 				SendNamingLookupReply (leaseSet->GetIdentity ());
 			else
-				m_Session->localDestination->RequestDestination (ident, 
+				dest->RequestDestination (ident,
 					std::bind (&SAMSocket::HandleNamingLookupLeaseSetRequestComplete,
-					shared_from_this (), std::placeholders::_1, ident));	
-		}	
+					shared_from_this (), std::placeholders::_1, ident));
+		}
 		else 
 		{
 			LogPrint (eLogError, "SAM: naming failed, unknown address ", name);

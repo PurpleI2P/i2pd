@@ -34,7 +34,7 @@ namespace datagram
   // max 64 messages buffered in send queue for each datagram session
   const size_t DATAGRAM_SEND_QUEUE_MAX_SIZE = 64;
 	
-	class DatagramSession
+	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{
 	public:
 		DatagramSession(i2p::client::ClientDestination * localDestination,
@@ -90,7 +90,9 @@ namespace datagram
     uint64_t m_LastUse;
     bool m_RequestingLS;
 	};
-	
+
+	typedef std::shared_ptr<DatagramSession> DatagramSession_ptr;
+
 	const size_t MAX_DATAGRAM_SIZE = 32768;	 
 	class DatagramDestination
 	{
@@ -132,7 +134,7 @@ namespace datagram
 			i2p::data::IdentityEx m_Identity;
 			Receiver m_Receiver; // default
 			std::mutex m_SessionsMutex;
-			std::map<i2p::data::IdentHash, std::shared_ptr<DatagramSession> > m_Sessions;
+			std::map<i2p::data::IdentHash, DatagramSession_ptr > m_Sessions;
 			std::mutex m_ReceiversMutex;
 			std::map<uint16_t, Receiver> m_ReceiversByPorts;
 

@@ -45,7 +45,8 @@ namespace datagram
 			owner->Sign (buf1, len, signature);
 
 		auto msg = CreateDataMessage (buf, len + headerLen, fromPort, toPort);
-		ObtainSession(identity)->SendMsg(msg);
+		auto session = ObtainSession(identity);
+		session->SendMsg(msg);
 	}
 
 
@@ -69,7 +70,8 @@ namespace datagram
 		if (verified)
 		{
 			auto h = identity.GetIdentHash();
-			ObtainSession(h)->Ack();
+			auto session = ObtainSession(h);
+			session->Ack();
 			auto r = FindReceiver(toPort);
 			if(r)
 				r(identity, fromPort, toPort, buf + headerLen, len -headerLen);
@@ -180,7 +182,8 @@ namespace datagram
 		// we used this session
 		m_LastUse = i2p::util::GetMillisecondsSinceEpoch();
 		// schedule send
-		m_LocalDestination->GetService().post(std::bind(&DatagramSession::HandleSend, this, msg));
+		auto self = shared_from_this();
+		m_LocalDestination->GetService().post(std::bind(&DatagramSession::HandleSend, self, msg));
 	}
 
 	DatagramSession::Info DatagramSession::GetSessionInfo() const
@@ -237,11 +240,11 @@ namespace datagram
 				m_CurrentOutboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(m_CurrentOutboundTunnel);
 				path->outboundTunnel = m_CurrentOutboundTunnel;
 			}
-			if(m_CurrentRemoteLease && ! m_CurrentRemoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) {
+			if(m_CurrentRemoteLease && m_CurrentRemoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) {
 				// bad lease, switch to next one
 				if(m_RemoteLeaseSet) {
 					auto ls = m_RemoteLeaseSet->GetNonExpiredLeasesExcluding([&](const i2p::data::Lease& l) -> bool {
-							return l.tunnelGateway == m_CurrentRemoteLease->tunnelGateway || l.endDate <= m_CurrentRemoteLease->endDate;
+							return l.tunnelGateway == m_CurrentRemoteLease->tunnelGateway;
 					});
 					auto sz = ls.size();
 					if (sz) {
@@ -332,7 +335,8 @@ namespace datagram
 	{
 		boost::posix_time::milliseconds dlt(100);
 		m_SendQueueTimer.expires_from_now(dlt);
-		m_SendQueueTimer.async_wait([&](const boost::system::error_code & ec) { if(ec) return; FlushSendQueue(); });
+		auto self = shared_from_this();
+		m_SendQueueTimer.async_wait([self](const boost::system::error_code & ec) { if(ec) return; self->FlushSendQueue(); });
 	}
 }
 }

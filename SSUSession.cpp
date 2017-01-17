@@ -350,7 +350,7 @@ namespace transport
 
 	void SSUSession::SendSessionRequest ()
 	{	
-		uint8_t buf[320 + 18]; // 304 bytes for ipv4, 320 for ipv6
+		uint8_t buf[320 + 18] = {0}; // 304 bytes for ipv4, 320 for ipv6
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		uint8_t flag = 0;
 		// fill extended options, 3 bytes extended options don't change message size
@@ -392,7 +392,7 @@ namespace transport
 			return;
 		}
 	
-		uint8_t buf[96 + 18]; 
+		uint8_t buf[96 + 18] = {0};
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		htobe32buf (payload, introducer.iTag);
 		payload += 4;
@@ -427,7 +427,7 @@ namespace transport
 		SignedData s; // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time 
 		s.Insert (x, 256); // x
 
-		uint8_t buf[384 + 18];	
+		uint8_t buf[384 + 18] = {0};
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		memcpy (payload, m_DHKeysPair->GetPublicKey (), 256);
 		s.Insert (payload, 256); // y
@@ -473,14 +473,18 @@ namespace transport
 		m_SignedData = std::unique_ptr<SignedData>(new SignedData (s)); 	
 		s.Insert (payload - 4, 4); // BOB's signed on time 
 		s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature
-		// TODO: fill padding with random data	
 
 		uint8_t iv[16];
 		RAND_bytes (iv, 16); // random iv
 		// encrypt signature and padding with newly created session key	
 		size_t signatureLen = i2p::context.GetIdentity ()->GetSignatureLen ();
 		size_t paddingSize = signatureLen & 0x0F; // %16
-		if (paddingSize > 0) signatureLen += (16 - paddingSize);
+		if (paddingSize > 0)
+		{
+			// fill random padding
+			RAND_bytes(payload + signatureLen, (16 - paddingSize));
+			signatureLen += (16 - paddingSize);
+		}
 		m_SessionKeyEncryption.SetIV (iv);
 		m_SessionKeyEncryption.Encrypt (payload, signatureLen, payload);
 		payload += signatureLen;
@@ -493,7 +497,7 @@ namespace transport
 
 	void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen)
 	{
-		uint8_t buf[512 + 18];
+		uint8_t buf[512 + 18] = {0};
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 1; // 1 fragment
 		payload++; // info
@@ -508,9 +512,8 @@ namespace transport
 		auto signatureLen = i2p::context.GetIdentity ()->GetSignatureLen ();
 		size_t paddingSize = ((payload - buf) + signatureLen)%16;
 		if (paddingSize > 0) paddingSize = 16 - paddingSize;
-		// TODO: fill padding	
+		RAND_bytes(payload, paddingSize); // fill padding with random
 		payload += paddingSize; // padding size
-
 		// signature		
 		SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, our signed on time 
 		s.Insert (m_DHKeysPair->GetPublicKey (), 256); // x
@@ -559,14 +562,14 @@ namespace transport
 	void SSUSession::SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
 		const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
 	{
-		uint8_t buf[80 + 18]; // 64 Alice's ipv4 and 80 Alice's ipv6
-		uint8_t * payload = buf + sizeof (SSUHeader);
 		// Charlie's address always v4
 		if (!to.address ().is_v4 ())
 		{
 			LogPrint (eLogWarning, "SSU: Charlie's IP must be v4");
 			return;
 		}
+		uint8_t buf[80 + 18] = {0}; // 64 Alice's ipv4 and 80 Alice's ipv6
+		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 4;
 		payload++; // size
 		htobe32buf (payload, to.address ().to_v4 ().to_ulong ()); // Charlie's IP
@@ -619,7 +622,7 @@ namespace transport
 			LogPrint (eLogWarning, "SSU: Alice's IP must be v4");
 			return;
 		}	
-		uint8_t buf[48 + 18];
+		uint8_t buf[48 + 18] = {0};
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		*payload = 4;
 		payload++; // size
@@ -1040,7 +1043,7 @@ namespace transport
 	// toAddress is true for Alice<->Chalie communications only
 	// sendAddress is false if message comes from Alice		
 	{
-		uint8_t buf[80 + 18];
+		uint8_t buf[80 + 18] = {0};
 		uint8_t iv[16];
 		uint8_t * payload = buf + sizeof (SSUHeader);
 		htobe32buf (payload, nonce);
@@ -1096,7 +1099,7 @@ namespace transport
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_PEER_TEST, buf, 80);
 			Send (buf, 80);
-		}	
+		}
 	}	
 
 	void SSUSession::SendPeerTest ()
@@ -1121,7 +1124,7 @@ namespace transport
 	{
 		if (m_State == eSessionStateEstablished)
 		{	
-			uint8_t buf[48 + 18];	
+			uint8_t buf[48 + 18] = {0};
 			uint8_t	* payload = buf + sizeof (SSUHeader);
 			*payload = 0; // flags
 			payload++;
@@ -1138,7 +1141,7 @@ namespace transport
 	{
 		if (m_IsSessionKey)
 		{
-			uint8_t buf[48 + 18];
+			uint8_t buf[48 + 18] = {0};
 			// encrypt message with session key
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
 			try
@@ -1155,7 +1158,7 @@ namespace transport
 
 	void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
 	{
-		uint8_t buf[SSU_MTU_V4 + 18];
+		uint8_t buf[SSU_MTU_V4 + 18] = {0};
 		size_t msgSize = len + sizeof (SSUHeader); 
 		size_t paddingSize = msgSize & 0x0F; // %16
 		if (paddingSize > 0) msgSize += (16 - paddingSize);

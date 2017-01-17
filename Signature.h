@@ -424,7 +424,8 @@ namespace crypto
 	{
 		public:
 
-			EDDSA25519Signer (const uint8_t * signingPrivateKey); 
+			EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey = nullptr); 
+			// we pass signingPublicKey to check if it matches private key 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const; 
 			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; };
 			

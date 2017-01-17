@@ -25,7 +25,8 @@ namespace util
 				m_NonEmpty.notify_one ();
 			}
 
-			void Put (const std::vector<Element>& vec)
+			template<template<typename, typename...>class Container, typename... R>
+			void Put (const Container<Element, R...>& vec)
 			{
 				if (!vec.empty ())
 				{	

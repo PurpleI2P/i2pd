@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <string>
 #include <set>
+#include <tuple>
 #include <memory>
 #include <sstream>
 #include <boost/asio.hpp>
@@ -17,7 +18,7 @@ namespace i2p
 {
 namespace client
 {
-	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
+	const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 65536;
 	const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600; // in seconds	
 	const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10; // in seconds
 	// for HTTP tunnels		
@@ -37,7 +38,7 @@ namespace client
 				const boost::asio::ip::tcp::endpoint& target, bool quiet = true); // from I2P
 			~I2PTunnelConnection ();
 			void I2PConnect (const uint8_t * msg = nullptr, size_t len = 0);
-			void Connect ();
+			void Connect (bool isUniqueLocal = true);
 			
 		protected:
 
@@ -141,7 +142,6 @@ namespace client
 	struct UDPSession
 	{
 		i2p::datagram::DatagramDestination * m_Destination;
-		boost::asio::io_service & m_Service;
 		boost::asio::ip::udp::socket IPSocket;
 		i2p::data::IdentHash Identity;
 		boost::asio::ip::udp::endpoint FromEndpoint;
@@ -182,6 +182,8 @@ namespace client
 		/** how long has this converstation been idle in ms */
 		uint64_t idle;
 	};
+
+	typedef std::shared_ptr<UDPSession> UDPSessionPtr;
 	
 	/** server side udp tunnel, many i2p inbound to 1 ip outbound */
 	class I2PUDPServerTunnel
@@ -189,7 +191,7 @@ namespace client
 		public:
 			I2PUDPServerTunnel(const std::string & name,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination,
-        const boost::asio::ip::address & localAddress,
+        boost::asio::ip::address localAddress,
 				boost::asio::ip::udp::endpoint forwardTo, uint16_t port);
 			~I2PUDPServerTunnel();
 			/** expire stale udp conversations */
@@ -199,18 +201,20 @@ namespace client
 			std::vector<std::shared_ptr<DatagramSessionInfo> > GetSessions();
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
 
+			void SetUniqueLocal(bool isUniqueLocal = true) { m_IsUniqueLocal = isUniqueLocal; }
+
 		private:
 
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			UDPSession * ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
+			UDPSessionPtr ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 
 		private:
+			bool m_IsUniqueLocal;
 			const std::string m_Name;
-			const uint16_t LocalPort;
 			boost::asio::ip::address m_LocalAddress;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;
 			std::mutex m_SessionsMutex;
-			std::vector<UDPSession*> m_Sessions;
+			std::vector<UDPSessionPtr> m_Sessions;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 	};
 
@@ -228,18 +232,25 @@ namespace client
 			bool IsLocalDestination(const i2p::data::IdentHash & destination) const { return destination == m_LocalDest->GetIdentHash(); }
 
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDest; }
+			void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
 
 		private:
+		typedef std::pair<boost::asio::ip::udp::endpoint, uint64_t> UDPConvo;
+		void RecvFromLocal();
+		void HandleRecvFromLocal(const boost::system::error_code & e, std::size_t transferred);
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving();
 			const std::string m_Name;
-			UDPSession * m_Session;
+		std::mutex m_SessionsMutex;
+		std::map<uint16_t, UDPConvo > m_Sessions; // maps i2p port -> local udp convo
 			const std::string m_RemoteDest;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			const boost::asio::ip::udp::endpoint m_LocalEndpoint;
 			i2p::data::IdentHash * m_RemoteIdent;
 			std::thread * m_ResolveThread;
-			uint16_t LocalPort;
+		boost::asio::ip::udp::socket m_LocalSocket;
+		boost::asio::ip::udp::endpoint m_RecvEndpoint;
+		uint8_t m_RecvBuff[I2P_UDP_MAX_MTU];
 			uint16_t RemotePort;
 			bool m_cancel_resolve;
 	};
@@ -255,6 +266,9 @@ namespace client
 			void Stop ();
 
 			void SetAccessList (const std::set<i2p::data::IdentHash>& accessList); 
+
+			void SetUniqueLocal (bool isUniqueLocal) { m_IsUniqueLocal = isUniqueLocal; }
+			bool IsUniqueLocal () const { return m_IsUniqueLocal; }
 
 			const std::string& GetAddress() const { return m_Address; }
 			int GetPort () const { return m_Port; };
@@ -272,10 +286,11 @@ namespace client
 
 			void Accept ();
 			void HandleAccept (std::shared_ptr<i2p::stream::Stream> stream);
-			virtual void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
+			virtual std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
-
+			
+			bool m_IsUniqueLocal;
 			std::string m_Name, m_Address;
 			int m_Port;
 			boost::asio::ip::tcp::endpoint m_Endpoint;	
@@ -294,7 +309,7 @@ namespace client
 
 		private:
 
-			void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
+			std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
 
@@ -311,7 +326,7 @@ namespace client
 
         private:
 
-            void CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
+            std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
         private:
 
