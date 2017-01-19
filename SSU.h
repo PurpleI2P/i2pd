@@ -25,6 +25,8 @@ namespace transport
 	const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
 	const int SSU_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 	const size_t SSU_MAX_NUM_INTRODUCERS = 3;
+	const size_t SSU_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
+	const size_t SSU_SOCKET_SEND_BUFFER_SIZE = 0xFFFF; // 64K
 
 	struct SSUPacket
 	{

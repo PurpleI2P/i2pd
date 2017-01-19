@@ -44,8 +44,8 @@ namespace transport
 	void SSUServer::OpenSocket ()
 	{
 		m_Socket.open (boost::asio::ip::udp::v4());
-		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE)); 
+		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 		m_Socket.bind (m_Endpoint);
 	}
 		
@@ -53,8 +53,8 @@ namespace transport
 	{
 		m_SocketV6.open (boost::asio::ip::udp::v6());
 		m_SocketV6.set_option (boost::asio::ip::v6_only (true));
-		m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-		m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
+		m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 		m_SocketV6.bind (m_EndpointV6);
 	}	
 		
