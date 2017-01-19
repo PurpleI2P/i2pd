@@ -187,14 +187,14 @@ namespace transport
 
 	void SSUServer::Receive ()
 	{
-		SSUPacket * packet = m_Packets.AcquireMt ();
+		SSUPacket * packet = new SSUPacket ();
 		m_Socket.async_receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from,
 			std::bind (&SSUServer::HandleReceivedFrom, this, std::placeholders::_1, std::placeholders::_2, packet)); 
 	}
 
 	void SSUServer::ReceiveV6 ()
 	{
-		SSUPacket * packet = m_Packets.AcquireMt ();
+		SSUPacket * packet = new SSUPacket ();
 		m_SocketV6.async_receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from,
 			std::bind (&SSUServer::HandleReceivedFromV6, this, std::placeholders::_1, std::placeholders::_2, packet)); 
 	}	
@@ -213,7 +213,7 @@ namespace transport
 			{	
 				while (moreBytes && packets.size () < 25)
 				{
-					packet = m_Packets.AcquireMt ();
+					packet = new SSUPacket ();
 					packet->len = m_Socket.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V4), packet->from, 0, ec);
 					if (!ec)
 					{	
@@ -224,7 +224,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "SSU: receive_from error: ", ec.message ());
-						m_Packets.ReleaseMt (packet);
+						delete packet;
 						break;
 					}	
 				}
@@ -260,7 +260,7 @@ namespace transport
 			{
 				while (moreBytes && packets.size () < 25)
 				{
-					packet = m_Packets.AcquireMt ();
+					packet = new SSUPacket ();
 					packet->len = m_SocketV6.receive_from (boost::asio::buffer (packet->buf, SSU_MTU_V6), packet->from, 0, ec);
 					if (!ec)
 					{
@@ -271,7 +271,7 @@ namespace transport
 					else
 					{
 						LogPrint (eLogError, "SSU: v6 receive_from error: ", ec.message ());
-						m_Packets.ReleaseMt (packet);
+						delete packet;
 						break;
 					}	
 				}
@@ -282,7 +282,7 @@ namespace transport
 		}
 		else
 		{	
-			m_Packets.ReleaseMt (packet);
+			delete packet;
 			if (ecode != boost::asio::error::operation_aborted)
 			{
 				LogPrint (eLogError, "SSU: v6 receive error: ", ecode.message ());
@@ -323,8 +323,8 @@ namespace transport
 				if (session) session->FlushData ();
 				session = nullptr;
 			}	
+			delete packet;
 		}
-		m_Packets.ReleaseMt (packets);
 		if (session) session->FlushData ();
 	}
 
