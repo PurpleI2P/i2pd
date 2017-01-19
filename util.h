@@ -72,6 +72,12 @@ namespace util
 					std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
 			}
 			
+			template<typename... TArgs>
+			std::shared_ptr<T> AcquireShared (TArgs&&... args)
+			{
+				return std::shared_ptr<T>(Acquire (args...), std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
+			}
+
 		protected:
 
 			T * m_Head;
