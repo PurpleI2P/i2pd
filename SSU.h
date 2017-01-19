@@ -26,7 +26,7 @@ namespace transport
 	const int SSU_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds
 	const size_t SSU_MAX_NUM_INTRODUCERS = 3;
 	const size_t SSU_SOCKET_RECEIVE_BUFFER_SIZE = 0x1FFFF; // 128K
-	const size_t SSU_SOCKET_SEND_BUFFER_SIZE = 0xFFFF; // 64K
+	const size_t SSU_SOCKET_SEND_BUFFER_SIZE = 0x1FFFF; // 128K
 
 	struct SSUPacket
 	{
@@ -76,6 +76,7 @@ namespace transport
 			void Run ();
 			void RunV6 ();
 			void RunReceivers ();
+			void RunReceiversV6 ();
 			void Receive ();
 			void ReceiveV6 ();
 			void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
@@ -113,9 +114,9 @@ namespace transport
 			
 			bool m_OnlyV6;			
 			bool m_IsRunning;
-			std::thread * m_Thread, * m_ThreadV6, * m_ReceiversThread;	
-			boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService;
-			boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork;
+			std::thread * m_Thread, * m_ThreadV6, * m_ReceiversThread, * m_ReceiversThreadV6;	
+			boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService, m_ReceiversServiceV6;
+			boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork, m_ReceiversWorkV6;
 			boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
 			boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 			boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer,
