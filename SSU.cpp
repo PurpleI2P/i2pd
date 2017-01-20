@@ -13,12 +13,13 @@ namespace transport
 
 	SSUServer::SSUServer (const boost::asio::ip::address & addr, int port):
 		m_OnlyV6(true), m_IsRunning(false),
-		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr),
-		m_Work (m_Service), m_WorkV6 (m_ServiceV6), m_ReceiversWork (m_ReceiversService), 
-		m_EndpointV6 (addr, port), 
-		m_Socket (m_ReceiversService, m_Endpoint), m_SocketV6 (m_ReceiversService), 
-		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
-		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)	
+		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr), 
+		m_ReceiversThreadV6 (nullptr), m_Work (m_Service), m_WorkV6 (m_ServiceV6), 
+		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
+		m_EndpointV6 (addr, port), m_Socket (m_ReceiversService, m_Endpoint), 
+		m_SocketV6 (m_ReceiversServiceV6), m_IntroducersUpdateTimer (m_Service), 
+		m_PeerTestsCleanupTimer (m_Service), m_TerminationTimer (m_Service), 
+		m_TerminationTimerV6 (m_ServiceV6)	
 	{
 		OpenSocketV6 ();
 	}
@@ -26,9 +27,10 @@ namespace transport
 	SSUServer::SSUServer (int port):
 		m_OnlyV6(false), m_IsRunning(false),
 		m_Thread (nullptr), m_ThreadV6 (nullptr), m_ReceiversThread (nullptr),
-		m_Work (m_Service), m_WorkV6 (m_ServiceV6), m_ReceiversWork (m_ReceiversService), 
+		m_ReceiversThreadV6 (nullptr), 	m_Work (m_Service), m_WorkV6 (m_ServiceV6), 
+		m_ReceiversWork (m_ReceiversService), m_ReceiversWorkV6 (m_ReceiversServiceV6),
 		m_Endpoint (boost::asio::ip::udp::v4 (), port), m_EndpointV6 (boost::asio::ip::udp::v6 (), port), 
-		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversService), 
+		m_Socket (m_ReceiversService), m_SocketV6 (m_ReceiversServiceV6), 
 		m_IntroducersUpdateTimer (m_Service), m_PeerTestsCleanupTimer (m_Service),
 		m_TerminationTimer (m_Service), m_TerminationTimerV6 (m_ServiceV6)	
 	{
@@ -44,8 +46,8 @@ namespace transport
 	void SSUServer::OpenSocket ()
 	{
 		m_Socket.open (boost::asio::ip::udp::v4());
-		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		m_Socket.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE)); 
+		m_Socket.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 		m_Socket.bind (m_Endpoint);
 	}
 		
@@ -53,25 +55,26 @@ namespace transport
 	{
 		m_SocketV6.open (boost::asio::ip::udp::v6());
 		m_SocketV6.set_option (boost::asio::ip::v6_only (true));
-		m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (65535));
-		m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (65535));
+		m_SocketV6.set_option (boost::asio::socket_base::receive_buffer_size (SSU_SOCKET_RECEIVE_BUFFER_SIZE));
+		m_SocketV6.set_option (boost::asio::socket_base::send_buffer_size (SSU_SOCKET_SEND_BUFFER_SIZE));
 		m_SocketV6.bind (m_EndpointV6);
 	}	
 		
 	void SSUServer::Start ()
 	{
 		m_IsRunning = true;
-		m_ReceiversThread = new std::thread (std::bind (&SSUServer::RunReceivers, this));
 		if (!m_OnlyV6)
 		{
+			m_ReceiversThread = new std::thread (std::bind (&SSUServer::RunReceivers, this));
 			m_Thread = new std::thread (std::bind (&SSUServer::Run, this));
 			m_ReceiversService.post (std::bind (&SSUServer::Receive, this));
 			ScheduleTermination ();		
 		}
 		if (context.SupportsV6 ())
 		{	
+			m_ReceiversThreadV6 = new std::thread (std::bind (&SSUServer::RunReceiversV6, this));
 			m_ThreadV6 = new std::thread (std::bind (&SSUServer::RunV6, this));
-			m_ReceiversService.post (std::bind (&SSUServer::ReceiveV6, this));	
+			m_ReceiversServiceV6.post (std::bind (&SSUServer::ReceiveV6, this));	
 			ScheduleTerminationV6 ();	
 		}
 		SchedulePeerTestsCleanupTimer ();	
@@ -89,6 +92,7 @@ namespace transport
 		m_ServiceV6.stop ();
 		m_SocketV6.close ();
 		m_ReceiversService.stop ();
+		m_ReceiversServiceV6.stop ();
 		if (m_ReceiversThread)
 		{	
 			m_ReceiversThread->join (); 
@@ -100,6 +104,12 @@ namespace transport
 			m_Thread->join (); 
 			delete m_Thread;
 			m_Thread = nullptr;
+		}
+		if (m_ReceiversThreadV6)
+		{	
+			m_ReceiversThreadV6->join (); 
+			delete m_ReceiversThreadV6;
+			m_ReceiversThreadV6 = nullptr;
 		}
 		if (m_ThreadV6)
 		{	
@@ -154,6 +164,21 @@ namespace transport
 		}	
 	}	
 	
+	void SSUServer::RunReceiversV6 () 
+	{ 
+		while (m_IsRunning)
+		{
+			try
+			{	
+				m_ReceiversServiceV6.run ();
+			}
+			catch (std::exception& ex)
+			{
+				LogPrint (eLogError, "SSU: v6 receivers runtime exception: ", ex.what ());
+			}	
+		}	
+	}	
+
 	void SSUServer::AddRelay (uint32_t tag, std::shared_ptr<SSUSession> relay)
 	{
 		m_Relays[tag] = relay;

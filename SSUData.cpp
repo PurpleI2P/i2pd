@@ -52,7 +52,7 @@ namespace transport
 		
 	void SSUData::AdjustPacketSize (std::shared_ptr<const i2p::data::RouterInfo> remoteRouter)
 	{
-		if (remoteRouter) return;
+		if (!remoteRouter) return;
 		auto ssuAddress = remoteRouter->GetSSUAddress ();
 		if (ssuAddress && ssuAddress->ssu->mtu)
 		{

@@ -37,8 +37,10 @@ namespace datagram
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{
 	public:
-		DatagramSession(i2p::client::ClientDestination * localDestination,
-									  const i2p::data::IdentHash & remoteIdent);
+		DatagramSession(i2p::client::ClientDestination * localDestination, const i2p::data::IdentHash & remoteIdent);
+
+		void Start ();
+		void Stop ();	
 
 
     /** @brief ack the garlic routing path */

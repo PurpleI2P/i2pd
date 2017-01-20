@@ -99,6 +99,8 @@ namespace datagram
 		size_t uncompressedLen = m_Inflator.Inflate (buf, len, uncompressed, MAX_DATAGRAM_SIZE);
 		if (uncompressedLen)
 			HandleDatagram (fromPort, toPort, uncompressed, uncompressedLen);
+		else
+			LogPrint (eLogWarning, "Datagram: decompression failed");
 	}
 
 	std::shared_ptr<I2NPMessage> DatagramDestination::CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort)
@@ -134,6 +136,7 @@ namespace datagram
 			if (now - it->second->LastActivity() >= DATAGRAM_SESSION_MAX_IDLE)
 			{
 				LogPrint(eLogInfo, "DatagramDestination: expiring idle session with ", it->first.ToBase32());
+				it->second->Stop ();
 				it = m_Sessions.erase (it); // we are expired
 			}
 			else
@@ -149,6 +152,7 @@ namespace datagram
 		if (itr == m_Sessions.end()) {
 			// not found, create new session
 			session = std::make_shared<DatagramSession>(m_Owner, identity);
+			session->Start ();
 			m_Sessions[identity] = session;
 		} else {
 			session = itr->second;
@@ -173,8 +177,17 @@ namespace datagram
 		m_SendQueueTimer(localDestination->GetService()),
 		m_RequestingLS(false)
 	{
+	}
+
+	void DatagramSession::Start ()
+	{
 		m_LastUse = i2p::util::GetMillisecondsSinceEpoch ();
 		ScheduleFlushSendQueue();
+	}
+
+	void DatagramSession::Stop ()
+	{
+		m_SendQueueTimer.cancel ();
 	}
 
 	void DatagramSession::SendMsg(std::shared_ptr<I2NPMessage> msg)
