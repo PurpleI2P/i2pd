@@ -53,6 +53,8 @@ namespace client
 			void HandleStreamReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleConnect (const boost::system::error_code& ecode);
 
+			std::shared_ptr<const boost::asio::ip::tcp::socket> GetSocket () const { return m_Socket; };
+
 		private:
 
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
