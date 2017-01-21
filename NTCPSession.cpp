@@ -36,12 +36,12 @@ namespace transport
 		delete m_Establisher;
 	}
 
-	void NTCPSession::CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key)
+	void NTCPSession::CreateAESKey (uint8_t * pubKey)
 	{
 		uint8_t sharedKey[256];
 		m_DHKeysPair->Agree (pubKey, sharedKey); // time consuming operation
 		
-		uint8_t * aesKey = key;
+		i2p::crypto::AESKey aesKey;
 		if (sharedKey[0] & 0x80)
 		{
 			aesKey[0] = 0;
@@ -64,6 +64,9 @@ namespace transport
 			}
 			memcpy (aesKey, nonZero, 32);
 		}
+
+		m_Decryption.SetKey (aesKey);
+		m_Encryption.SetKey (aesKey);
 	}	
 
 	void NTCPSession::Done ()
@@ -164,15 +167,25 @@ namespace transport
 					return;
 				}	
 			}	
-			
-			SendPhase2 ();
+
+			// TODO: check for number of pending keys
+			auto s = shared_from_this ();
+			auto keyCreated = std::async (std::launch::async, [s] ()
+				{
+					if (!s->m_DHKeysPair)
+						s->m_DHKeysPair = transports.GetNextDHKeysPair ();
+					s->CreateAESKey (s->m_Establisher->phase1.pubKey);
+				}).share (); 						 
+			m_Server.GetService ().post ([s, keyCreated]()
+				{  
+					keyCreated.get (); 
+					s->SendPhase2 ();
+				});	
 		}	
 	}	
 
 	void NTCPSession::SendPhase2 ()
 	{
-		if (!m_DHKeysPair)
-			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		const uint8_t * y = m_DHKeysPair->GetPublicKey ();
 		memcpy (m_Establisher->phase2.pubKey, y, 256);
 		uint8_t xy[512];
@@ -183,11 +196,7 @@ namespace transport
 		memcpy (m_Establisher->phase2.encrypted.timestamp, &tsB, 4);
 		RAND_bytes (m_Establisher->phase2.encrypted.filler, 12);
 
-		i2p::crypto::AESKey aesKey;
-		CreateAESKey (m_Establisher->phase1.pubKey, aesKey);
-		m_Encryption.SetKey (aesKey);
 		m_Encryption.SetIV (y + 240);
-		m_Decryption.SetKey (aesKey);
 		m_Decryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
 		
 		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
@@ -232,26 +241,22 @@ namespace transport
 		{	
 			auto s = shared_from_this ();
 			// create AES key in separate thread
-			auto createKey = std::async (std::launch::async, [s] ()->i2p::crypto::AESKey
+			auto keyCreated = std::async (std::launch::async, [s] ()
 				{
-					i2p::crypto::AESKey aesKey;
-					s->CreateAESKey (s->m_Establisher->phase2.pubKey, aesKey);
-					return std::move (aesKey);
+					s->CreateAESKey (s->m_Establisher->phase2.pubKey);
 				}).share (); // TODO: use move capture in C++ 14 instead shared_future							 
 			// let other operations execute while a key gets created
-			m_Server.GetService ().post ([s, createKey]()
+			m_Server.GetService ().post ([s, keyCreated]()
 				{  
-					auto aesKey = createKey.get (); // we might wait if no more pending operations
-					s->HandlePhase2 (aesKey);
+					keyCreated.get (); // we might wait if no more pending operations
+					s->HandlePhase2 ();
 				});	
 		}	
 	}	
 
-	void NTCPSession::HandlePhase2 (const i2p::crypto::AESKey& aesKey)
+	void NTCPSession::HandlePhase2 ()
 	{
-		m_Decryption.SetKey (aesKey);
 		m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
-		m_Encryption.SetKey (aesKey);
 		m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
 		
 		m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);

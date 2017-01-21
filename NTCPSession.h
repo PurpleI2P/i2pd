@@ -67,13 +67,13 @@ namespace transport
 			void SendTimeSyncMessage ();
 			void SetIsEstablished (bool isEstablished) { m_IsEstablished = isEstablished; }
 
-			void CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key);
+			void CreateAESKey (uint8_t * pubKey);
 				
 			// client
 			void SendPhase3 ();
 			void HandlePhase1Sent (const boost::system::error_code& ecode,  std::size_t bytes_transferred);
 			void HandlePhase2Received (const boost::system::error_code& ecode, std::size_t bytes_transferred);
-			void HandlePhase2 (const i2p::crypto::AESKey& aesKey);
+			void HandlePhase2 ();
 			void HandlePhase3Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA);
 			void HandlePhase4Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA);
 
