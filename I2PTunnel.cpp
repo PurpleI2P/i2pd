@@ -302,7 +302,7 @@ namespace client
     	if (m_NeedsWebIrc) 
 		{
         	m_NeedsWebIrc = false;
-            m_OutPacket << "WEBIRC " << m_WebircPass << " cgiirc " << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ()) << " 127.0.0.1\n";
+            m_OutPacket << "WEBIRC " << m_WebircPass << " cgiirc " << context.GetAddressBook ().ToAddress (m_From->GetIdentHash ()) << " " << GetSocket ()->local_endpoint ().address () << std::endl;
         }
 
         m_InPacket.clear ();
