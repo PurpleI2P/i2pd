@@ -362,7 +362,7 @@ namespace data
 
 	void Reseeder::LoadCertificate (const std::string& filename)
 	{
-		SSL_CTX * ctx = SSL_CTX_new (TLSv1_method ());
+		SSL_CTX * ctx = SSL_CTX_new (TLS_method ());
 		int ret = SSL_CTX_use_certificate_file (ctx, filename.c_str (), SSL_FILETYPE_PEM); 
 		if (ret)
 		{	

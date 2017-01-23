@@ -325,6 +325,10 @@ inline void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **pri
 
 inline RSA *EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 	{ return pkey->pkey.rsa; }
+
+// ssl
+#define TLS_method TLSv1_method
+
 #endif
 
 #endif
