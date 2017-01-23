@@ -158,6 +158,8 @@ namespace stream
 						
 		private:
 
+			void CleanUp ();
+			
 			void SendBuffer ();
 			void SendQuickAck ();
 			void SendClose ();

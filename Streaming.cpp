@@ -36,21 +36,7 @@ namespace stream
 
 	Stream::~Stream ()
 	{	
-		while (!m_ReceiveQueue.empty ())
-		{
-			auto packet = m_ReceiveQueue.front ();
-			m_ReceiveQueue.pop ();
-			m_LocalDestination.DeletePacket (packet);
-		}
-		
-		for (auto it: m_SentPackets)
-			m_LocalDestination.DeletePacket (it);
-		m_SentPackets.clear ();
-		
-		for (auto it: m_SavedPackets)
-			m_LocalDestination.DeletePacket (it);
-		m_SavedPackets.clear ();
-			
+		CleanUp ();	
 		LogPrint (eLogDebug, "Streaming: Stream deleted");
 	}	
 
@@ -65,7 +51,27 @@ namespace stream
 			m_SendHandler = nullptr;
 			handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted));
 		}
+		CleanUp ();
 		m_LocalDestination.DeleteStream (shared_from_this ());	
+	}	
+
+	void Stream::CleanUp ()
+	{
+		m_SendBuffer.str ("");
+		while (!m_ReceiveQueue.empty ())
+		{
+			auto packet = m_ReceiveQueue.front ();
+			m_ReceiveQueue.pop ();
+			m_LocalDestination.DeletePacket (packet);
+		}
+		
+		for (auto it: m_SentPackets)
+			m_LocalDestination.DeletePacket (it);
+		m_SentPackets.clear ();
+		
+		for (auto it: m_SavedPackets)
+			m_LocalDestination.DeletePacket (it);
+		m_SavedPackets.clear ();
 	}	
 		
 	void Stream::HandleNextPacket (Packet * packet)
