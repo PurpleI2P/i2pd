@@ -5,7 +5,7 @@ INCFLAGS = -I/usr/local/include
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 
 ifeq ($(USE_STATIC),yes)
-LDLIBS = -lz -l/usr/local/lib/libcrypto.a -l/usr/local/lib/libssl.a /usr/local/lib/libboost_system.a /usr/local/lib/libboost_date_time.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
+LDLIBS = -lz /usr/local/lib/libcrypto.a /usr/local/lib/libssl.a /usr/local/lib/libboost_system.a /usr/local/lib/libboost_date_time.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
 else
 LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
 endif
@@ -15,11 +15,13 @@ ifeq ($(USE_UPNP),yes)
   CXXFLAGS += -DUSE_UPNP
 endif
 
-ifeq ($(USE_AESNI),yes)
+ifeq ($(USE_AESNI),1)
   CXXFLAGS += -maes -DAESNI
+else
+  CXXFLAGS += -msse
 endif
 
-ifeq ($(USE_AVX),yes)
+ifeq ($(USE_AVX),1)
   CXXFLAGS += -mavx
 endif
 
