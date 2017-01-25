@@ -254,7 +254,12 @@ namespace i2p
 	void RouterContext::SetUnreachable ()
 	{
 		// set caps
-		m_RouterInfo.SetCaps (i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting); // LU, B
+		uint8_t caps = m_RouterInfo.GetCaps ();
+		caps &= ~i2p::data::RouterInfo::eReachable;
+		caps |= i2p::data::RouterInfo::eUnreachable;
+		caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
+		caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
+		m_RouterInfo.SetCaps (caps); 
 		// remove NTCP address
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto it = addresses.begin (); it != addresses.end (); ++it)
