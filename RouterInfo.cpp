@@ -376,14 +376,21 @@ namespace data
 		std::string caps;
 		if (m_Caps & eFloodfill) 
 		{
-			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
+			if (m_Caps & eExtraBandwidth) caps += (m_Caps & eHighBandwidth) ?
+				CAPS_FLAG_EXTRA_BANDWIDTH2 : // 'X'
+				CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
 			caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
 			caps += CAPS_FLAG_FLOODFILL; // floodfill  
 		} 
 		else 
 		{
-			if (m_Caps & eExtraBandwidth) caps += CAPS_FLAG_EXTRA_BANDWIDTH1; // 'P'
-			caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth	
+			if (m_Caps & eExtraBandwidth) 
+			{	
+				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_EXTRA_BANDWIDTH2 /* 'X' */ : CAPS_FLAG_EXTRA_BANDWIDTH1; /*'P' */
+				caps += CAPS_FLAG_HIGH_BANDWIDTH3; // 'O'
+			}
+			else	
+				caps += (m_Caps & eHighBandwidth) ? CAPS_FLAG_HIGH_BANDWIDTH3 /* 'O' */: CAPS_FLAG_LOW_BANDWIDTH2 /* 'L' */; // bandwidth	
 		}	
 		if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN; // hidden
 		if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE; // reachable
