@@ -391,7 +391,7 @@ namespace client
 
 	void I2PControlService::StatusHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.status", "???"); // TODO:
+		InsertParam (results, "i2p.router.status", i2p::transport::transports.IsOnline () ? "1" : "0"); 
 	}
 
 	void I2PControlService::NetDbKnownPeersHandler (std::ostringstream& results)
