@@ -8,7 +8,7 @@ elif [ $MSYSTEM == MINGW32 ]; then
 else 
 	echo "Не могу понять, какая у вас архитектура, используемая для сборки.";
 	echo "Вы точно запустили скрипт в оболочке MSYS2 MinGW [64/32]-bit ?";
-	echo "Обычно его можно запустить выполнив c:\msys64\mingw64.exe или c:\msys64\mingw32.exe";
+	echo "Обычно её можно запустить выполнив c:\msys64\mingw64.exe или c:\msys64\mingw32.exe";
 	exit 1;
 fi;
 
@@ -38,39 +38,46 @@ fi;
 # Получаем версию приложения
 export version=$(grep -E "I2PD_VERSION_(MAJOR|MINOR|MICRO)\ " version.h | grep -oE '[^ ]+$' | tr '\n' '.'|head -c -1)
 
+# Получаем количество ядер, и уменьшаем количество потоков на 1 от количества ядер (если их больше чем 1).
+if [ $NUMBER_OF_PROCESSORS -ge 2 ]; then
+	export threads=$(( $NUMBER_OF_PROCESSORS - 1 ))
+else
+	export threads=$NUMBER_OF_PROCESSORS
+fi;
+
 echo "Собираем i2pd ${version} (коммит ${commit}) для ${arch}.";
 
 # Собираем приложение с разными параметрами, и архивируем в zip архивы.
-make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j $NUMBER_OF_PROCESSORS > ${contrib}/build_avx_aesni.log 2>&1
+make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j ${threads} > ${contrib}/build_avx_aesni.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build_avx_aesni.log";
 	exit 1;
 fi;
-zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_avx_aesni.zip i2pd.exe
+zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_avx_aesni.zip i2pd.exe >> /dev/null
 make clean >> /dev/null
 
-make USE_UPNP=yes USE_AVX=1 -j $NUMBER_OF_PROCESSORS > ${contrib}/build_avx.log 2>&1
+make USE_UPNP=yes USE_AVX=1 -j ${threads} > ${contrib}/build_avx.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build_avx.log.";
 	exit 1;
 fi;
-zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_avx.zip i2pd.exe
+zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_avx.zip i2pd.exe >> /dev/null
 make clean >> /dev/null
 
-make USE_UPNP=yes USE_AESNI=1 -j $NUMBER_OF_PROCESSORS > ${contrib}/build_aesni.log 2>&1
+make USE_UPNP=yes USE_AESNI=1 -j ${threads} > ${contrib}/build_aesni.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build_aesni.log";
 	exit 1;
 fi;
-zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_aesni.zip i2pd.exe
+zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_aesni.zip i2pd.exe >> /dev/null
 make clean >> /dev/null
 
-make USE_UPNP=yes -j $NUMBER_OF_PROCESSORS > ${contrib}/build.log 2>&1
+make USE_UPNP=yes -j ${threads} > ${contrib}/build.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build.log";
 	exit 1;
 fi;
-zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw.zip i2pd.exe
+zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw.zip i2pd.exe >> /dev/null
 make clean >> /dev/null
 
 echo "Сборка i2pd ${version} для ${arch} завершена.";
