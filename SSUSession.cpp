@@ -537,7 +537,7 @@ namespace transport
 		Send (buf, msgLen);
 	}
 
-	void SSUSession::ProcessRelayRequest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from)
+	void SSUSession::ProcessRelayRequest (const uint8_t * buf, size_t /*len*/, const boost::asio::ip::udp::endpoint& from)
 	{
 		uint32_t relayTag = bufbe32toh (buf);
 		auto session = m_Server.FindRelaySession (relayTag);
@@ -638,7 +638,7 @@ namespace transport
 		LogPrint (eLogDebug, "SSU: relay intro sent");
 	}
 	
-	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t len)
+	void SSUSession::ProcessRelayResponse (const uint8_t * buf, size_t /*len*/)
 	{
 		LogPrint (eLogDebug, "SSU message: Relay response received");		
 		uint8_t remoteSize = *buf; 
@@ -690,7 +690,7 @@ namespace transport
 			LogPrint (eLogError, "SSU: Unsolicited RelayResponse, nonce=", nonce);
 	}
 
-	void SSUSession::ProcessRelayIntro (const uint8_t * buf, size_t len)
+	void SSUSession::ProcessRelayIntro (const uint8_t * buf, size_t /*len*/)
 	{
 		uint8_t size = *buf;
 		if (size == 4)

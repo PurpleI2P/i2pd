@@ -462,7 +462,7 @@ namespace client
 	}	
 
 	void I2PServerTunnel::HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it, 
-		std::shared_ptr<boost::asio::ip::tcp::resolver> resolver)
+		std::shared_ptr<boost::asio::ip::tcp::resolver> /*resolver*/)
 	{	
 		if (!ecode)
 		{	
@@ -779,7 +779,8 @@ namespace client
 		LogPrint(eLogInfo, "UDP Tunnel: resolved ", m_RemoteDest, " to ", m_RemoteIdent->ToBase32());
 	}
 
-	void I2PUDPClientTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+	void I2PUDPClientTunnel::HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t /*fromPort*/,
+											   uint16_t /*toPort*/, const uint8_t * buf, size_t len)
 	{
 		if(m_RemoteIdent && from.GetIdentHash() == *m_RemoteIdent)
 		{

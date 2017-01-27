@@ -697,7 +697,7 @@ namespace proxy
 				
 	}
 	
-	void SOCKSHandler::HandleUpstreamData(uint8_t * dataptr, std::size_t len)
+	void SOCKSHandler::HandleUpstreamData(uint8_t* /*dataptr*/, std::size_t len)
 	{
 		if (m_state == UPSTREAM_HANDSHAKE) {
 			m_upstream_response_len += len;
@@ -740,7 +740,7 @@ namespace proxy
 		}
 	}
 	
-	void SOCKSHandler::HandleUpstreamConnected(const boost::system::error_code & ecode, boost::asio::ip::tcp::resolver::iterator itr)
+	void SOCKSHandler::HandleUpstreamConnected(const boost::system::error_code & ecode, boost::asio::ip::tcp::resolver::iterator)
 	{
 		if (ecode) {
 			LogPrint(eLogWarning, "SOCKS: could not connect to upstream proxy: ", ecode.message());

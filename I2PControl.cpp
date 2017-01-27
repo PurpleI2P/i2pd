@@ -302,8 +302,8 @@ namespace client
 				std::placeholders::_1, std::placeholders::_2, socket, buf));
 	}
 
-	void I2PControlService::HandleResponseSent (const boost::system::error_code& ecode, std::size_t bytes_transferred,
-		std::shared_ptr<ssl_socket> socket, std::shared_ptr<I2PControlBuffer> buf)
+	void I2PControlService::HandleResponseSent (const boost::system::error_code& ecode, std::size_t /*bytes_transferred*/,
+		std::shared_ptr<ssl_socket> /*socket*/, std::shared_ptr<I2PControlBuffer> /*buf*/)
 	{
 		if (ecode) {
 			LogPrint (eLogError, "I2PControl: write error: ", ecode.message ());
@@ -460,7 +460,7 @@ namespace client
 		InsertParam (results, "Shutdown", "");
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(1)); // 1 second to make sure response has been sent
 		m_ShutdownTimer.async_wait (
-			[](const boost::system::error_code& ecode)
+			[](const boost::system::error_code&)
 		    {
 				Daemon.running = 0;
 			});
@@ -474,7 +474,7 @@ namespace client
 		InsertParam (results, "ShutdownGraceful", "");
 		m_ShutdownTimer.expires_from_now (boost::posix_time::seconds(timeout + 1)); // + 1 second
 		m_ShutdownTimer.async_wait (
-			[](const boost::system::error_code& ecode)
+			[](const boost::system::error_code&)
 		    {
 				Daemon.running = 0;
 			});

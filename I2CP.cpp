@@ -193,7 +193,7 @@ namespace client
 			std::bind (&I2CPSession::HandleReceivedHeader, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
 
-	void I2CPSession::HandleReceivedHeader (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	void I2CPSession::HandleReceivedHeader (const boost::system::error_code& ecode, std::size_t /*bytes_transferred*/)
 	{
 		if (ecode)
 			Terminate ();
@@ -220,7 +220,7 @@ namespace client
 			std::bind (&I2CPSession::HandleReceivedPayload, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
 
-	void I2CPSession::HandleReceivedPayload (const boost::system::error_code& ecode, std::size_t bytes_transferred)
+	void I2CPSession::HandleReceivedPayload (const boost::system::error_code& ecode, std::size_t /*bytes_transferred*/)
 	{
 		if (ecode)
 			Terminate ();
@@ -277,7 +277,8 @@ namespace client
 			LogPrint (eLogError, "I2CP: Can't write to the socket");
 	}
 
-	void I2CPSession::HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf)
+	void I2CPSession::HandleI2CPMessageSent (const boost::system::error_code& ecode,
+											 std::size_t /*bytes_transferred*/, const uint8_t* buf)
 	{
 		delete[] buf;
 		if (ecode && ecode != boost::asio::error::operation_aborted)
@@ -393,7 +394,7 @@ namespace client
 		}
 	}
 
-	void I2CPSession::DestroySessionMessageHandler (const uint8_t * buf, size_t len)
+	void I2CPSession::DestroySessionMessageHandler (const uint8_t* /*buf*/, size_t /*len*/)
 	{
 		SendSessionStatusMessage (0); // destroy
 		LogPrint (eLogDebug, "I2CP: session ", m_SessionID, " destroyed");
@@ -404,7 +405,7 @@ namespace client
 		}
 	}
 
-	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len)
+	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t* /*buf*/, size_t /*len*/)
 	{
 		// TODO: implement actual reconfiguration
 		SendSessionStatusMessage (2); // updated
@@ -566,7 +567,7 @@ namespace client
 		}	
 	}
 
-	void I2CPSession::DestLookupMessageHandler (const uint8_t * buf, size_t len)
+	void I2CPSession::DestLookupMessageHandler (const uint8_t * buf, size_t /*len*/)
 	{
 		if (m_Destination)
 		{
@@ -603,7 +604,7 @@ namespace client
 			SendI2CPMessage (I2CP_DEST_REPLY_MESSAGE, buf, 32); 
 	}	
 
-	void I2CPSession::GetBandwidthLimitsMessageHandler (const uint8_t * buf, size_t len)
+	void I2CPSession::GetBandwidthLimitsMessageHandler (const uint8_t* /*buf*/, size_t /*len*/)
 	{
 		uint8_t limits[64];
 		memset (limits, 0, 64);
