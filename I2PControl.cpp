@@ -187,13 +187,16 @@ namespace client
  		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf)
 	{
-		if (ecode) {
+		if (ecode) 
+		{
 			LogPrint (eLogError, "I2PControl: read error: ", ecode.message ());
 			return;
-		} else {
+		} 
+		else 
+		{
+			bool isHtml = !memcmp (buf->data (), "POST", 4);
 			try
 			{
-				bool isHtml = !memcmp (buf->data (), "POST", 4);
 				std::stringstream ss;
 				ss.write (buf->data (), bytes_transferred);
 				if (isHtml)
@@ -237,7 +240,9 @@ namespace client
 					response << "{\"id\":" << id << ",\"result\":{";
 					(this->*(it->second))(pt.get_child ("params"), response);
 					response << "},\"jsonrpc\":\"2.0\"}";
-				} else {
+				} 
+				else 
+				{
 					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
 					response << "{\"id\":null,\"error\":";
 					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
@@ -249,6 +254,11 @@ namespace client
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
+				std::ostringstream response;
+				response << "{\"id\":null,\"error\":";
+				response << "{\"code\":-32700,\"message\":\"" << ex.what () << "\"},";
+				response << "\"jsonrpc\":\"2.0\"}";
+				SendResponse (socket, buf, response, isHtml);
 			}
 			catch (...)
 			{
