@@ -25,6 +25,7 @@
 #include "Transports.h"
 #include "version.h"
 #include "util.h"
+#include "ClientContext.h"
 #include "I2PControl.h"
 
 namespace i2p
@@ -401,7 +402,8 @@ namespace client
 
 	void I2PControlService::StatusHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.status", i2p::transport::transports.IsOnline () ? "1" : "0"); 
+		auto dest = i2p::client::context.GetSharedLocalDestination ();
+		InsertParam (results, "i2p.router.status", (dest && dest->IsReady ()) ? "1" : "0"); 
 	}
 
 	void I2PControlService::NetDbKnownPeersHandler (std::ostringstream& results)
