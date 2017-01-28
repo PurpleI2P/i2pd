@@ -162,7 +162,7 @@ namespace qt
             {
                 i2p::qt::Controller daemonQtController(daemon);
                 qDebug("Starting the daemon...");
-                emit daemonQtController.startDaemon();
+                //DEBUG //emit daemonQtController.startDaemon();
                 //daemon.start ();
                 qDebug("Starting GUI event loop...");
                 result = app.exec();

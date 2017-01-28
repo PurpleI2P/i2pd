@@ -43,6 +43,11 @@ private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void toggleVisibilitySlot();
 #endif
+    void showStatusPage();
+    void showSettingsPage();
+    void showTunnelsPage();
+    void showRestartPage();
+    void showQuitPage();
 
 private:
 #ifndef ANDROID
@@ -60,6 +65,8 @@ protected:
 #ifndef ANDROID
     void closeEvent(QCloseEvent *event);
 #endif
+    void resizeEvent(QResizeEvent* event);
+    void onResize();
 };
 
 #endif // MAINWINDOW_H

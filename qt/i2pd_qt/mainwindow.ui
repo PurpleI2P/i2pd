@@ -6,26 +6,32 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>3200</height>
+    <width>816</width>
+    <height>3000</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <widget class="QWidget" name="horizontalLayoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>781</width>
-      <height>3181</height>
+      <width>801</width>
+      <height>491</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="sizeConstraint">
-      <enum>QLayout::SetMaximumSize</enum>
+      <enum>QLayout::SetDefaultConstraint</enum>
      </property>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0">
@@ -35,7 +41,7 @@
        <item>
         <widget class="QPushButton" name="statusPagePushButton">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Status</string>
@@ -45,7 +51,7 @@
        <item>
         <widget class="QPushButton" name="settingsPagePushButton">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Settings</string>
@@ -55,7 +61,7 @@
        <item>
         <widget class="QPushButton" name="tunnelsPagePushButton">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Tunnels</string>
@@ -65,7 +71,7 @@
        <item>
         <widget class="QPushButton" name="restartPagePushButton">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Restart</string>
@@ -75,7 +81,7 @@
        <item>
         <widget class="QPushButton" name="quitPagePushButton">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Quit</string>
@@ -99,17 +105,35 @@
      </item>
      <item>
       <widget class="QStackedWidget" name="stackedWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>516</height>
+        </size>
+       </property>
+       <property name="currentIndex">
+        <number>1</number>
+       </property>
        <widget class="QWidget" name="statusPage">
         <widget class="QWidget" name="verticalLayoutWidget_5">
          <property name="geometry">
           <rect>
-           <x>10</x>
+           <x>0</x>
            <y>0</y>
-           <width>661</width>
+           <width>671</width>
            <height>491</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMinAndMaxSize</enum>
+          </property>
           <item>
            <widget class="QLabel" name="label_4">
             <property name="font">
@@ -139,18 +163,27 @@
         </widget>
        </widget>
        <widget class="QWidget" name="settingsPage">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <widget class="QWidget" name="verticalLayoutWidget_4">
          <property name="geometry">
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>681</width>
-           <height>3171</height>
+           <width>701</width>
+           <height>460</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMinAndMaxSize</enum>
+          </property>
           <item>
-           <widget class="QLabel" name="label">
+           <widget class="QLabel" name="settingsTitleLabel">
             <property name="font">
              <font>
               <pointsize>15</pointsize>
@@ -163,6 +196,15 @@
           </item>
           <item>
            <widget class="QScrollArea" name="settingsScrollArea">
+            <property name="verticalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOn</enum>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAsNeeded</enum>
+            </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QAbstractScrollArea::AdjustIgnored</enum>
+            </property>
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
@@ -171,8 +213,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>677</width>
-               <height>3138</height>
+               <width>684</width>
+               <height>427</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -187,10 +229,60 @@
                 <x>10</x>
                 <y>11</y>
                 <width>661</width>
-                <height>3121</height>
+                <height>3000</height>
                </rect>
               </property>
-              <layout class="QGridLayout" name="settingsContentsGridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
+              <layout class="QGridLayout" name="settingsContentsGridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
+               <item row="1" column="0">
+                <widget class="QGroupBox" name="configFIleGroupBox">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>46</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>46</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Configuration file:</string>
+                 </property>
+                 <widget class="QWidget" name="horizontalLayoutWidget_2">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>18</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_2">
+                   <property name="sizeConstraint">
+                    <enum>QLayout::SetMinimumSize</enum>
+                   </property>
+                   <item>
+                    <widget class="QLineEdit" name="configFileLineEdit"/>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="configFileBrowsePushButton">
+                     <property name="text">
+                      <string>Browse…</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
                <item row="7" column="0">
                 <widget class="QGroupBox" name="routerOptionsGroupBox">
                  <property name="sizePolicy">
@@ -335,97 +427,6 @@
                       </spacer>
                      </item>
                     </layout>
-                   </item>
-                  </layout>
-                 </widget>
-                </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="QGroupBox" name="configFIleGroupBox">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>46</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>46</height>
-                  </size>
-                 </property>
-                 <property name="title">
-                  <string>Configuration file:</string>
-                 </property>
-                 <widget class="QWidget" name="horizontalLayoutWidget_2">
-                  <property name="geometry">
-                   <rect>
-                    <x>0</x>
-                    <y>18</y>
-                    <width>661</width>
-                    <height>31</height>
-                   </rect>
-                  </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_2">
-                   <property name="sizeConstraint">
-                    <enum>QLayout::SetMinimumSize</enum>
-                   </property>
-                   <item>
-                    <widget class="QLineEdit" name="configFileLineEdit"/>
-                   </item>
-                   <item>
-                    <widget class="QPushButton" name="configFileBrowsePushButton">
-                     <property name="text">
-                      <string>Browse…</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </widget>
-                </widget>
-               </item>
-               <item row="3" column="0">
-                <widget class="QGroupBox" name="pidFileGroupBox">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>48</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>48</height>
-                  </size>
-                 </property>
-                 <property name="title">
-                  <string>Pid file:</string>
-                 </property>
-                 <widget class="QWidget" name="horizontalLayoutWidget_4">
-                  <property name="geometry">
-                   <rect>
-                    <x>0</x>
-                    <y>20</y>
-                    <width>661</width>
-                    <height>31</height>
-                   </rect>
-                  </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_4">
-                   <item>
-                    <widget class="QLineEdit" name="pidFileLineEdit"/>
-                   </item>
-                   <item>
-                    <widget class="QPushButton" name="pidFileBrowsePushButton">
-                     <property name="text">
-                      <string>Browse…</string>
-                     </property>
-                    </widget>
                    </item>
                   </layout>
                  </widget>
@@ -812,49 +813,6 @@
                    </item>
                   </layout>
                  </widget>
-                </widget>
-               </item>
-               <item row="10" column="0">
-                <widget class="QLabel" name="portsLabel">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>60</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>60</height>
-                  </size>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <pointsize>13</pointsize>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Ports</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="9" column="0">
-                <widget class="QCheckBox" name="insomniaCheckBox">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Insomnia (prevent system from sleeping)</string>
-                 </property>
                 </widget>
                </item>
                <item row="6" column="0">
@@ -1367,30 +1325,6 @@
                  </widget>
                 </widget>
                </item>
-               <item row="8" column="0">
-                <widget class="QLabel" name="winOptLabel">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>60</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>16777215</width>
-                   <height>60</height>
-                  </size>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <pointsize>13</pointsize>
-                  </font>
-                 </property>
-                 <property name="text">
-                  <string>Windows-specific options</string>
-                 </property>
-                </widget>
-               </item>
                <item row="11" column="0">
                 <widget class="QGroupBox" name="webconsoleGroupBox">
                  <property name="minimumSize">
@@ -1725,22 +1659,6 @@
                  </widget>
                 </widget>
                </item>
-               <item row="18" column="0">
-                <spacer name="verticalSpacer_5">
-                 <property name="orientation">
-                  <enum>Qt::Vertical</enum>
-                 </property>
-                 <property name="sizeType">
-                  <enum>QSizePolicy::Preferred</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>40</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
                <item row="14" column="0">
                 <widget class="QGroupBox" name="samGroupBox">
                  <property name="minimumSize">
@@ -2073,13 +1991,13 @@
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>200</height>
+                   <height>189</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>200</height>
+                   <height>189</height>
                   </size>
                  </property>
                  <property name="title">
@@ -2175,6 +2093,600 @@
                    </item>
                   </layout>
                  </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_10">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>100</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_27">
+                   <item>
+                    <widget class="QLabel" name="label_26">
+                     <property name="text">
+                      <string>Password:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="i2pControlPasswordLineEdit"/>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_21">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_11">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>130</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_28">
+                   <item>
+                    <widget class="QLabel" name="label_27">
+                     <property name="text">
+                      <string>Certificate file:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="i2pControlCertFileLineEdit"/>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="i2pControlCertFileBrowsePushButton">
+                     <property name="text">
+                      <string>Browse…</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_12">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>160</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_29">
+                   <item>
+                    <widget class="QLabel" name="label_28">
+                     <property name="text">
+                      <string>Key file:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="i2pControlKeyFileLineEdit"/>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="i2pControlKeyFileBrowsePushButton">
+                     <property name="text">
+                      <string>Browse…</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+               <item row="23" column="0">
+                <widget class="QGroupBox" name="groupBox_5">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>108</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>108</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Limits</string>
+                 </property>
+                 <widget class="QWidget" name="horizontalLayoutWidget_29">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>20</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_35">
+                   <item>
+                    <widget class="QLabel" name="label_35">
+                     <property name="text">
+                      <string>Maximum number of transit tunnels:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="lineEdit"/>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_23">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_30">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>50</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_36">
+                   <item>
+                    <widget class="QLabel" name="label_36">
+                     <property name="text">
+                      <string>Maximum number of open files (0 — use system limit):</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="lineEdit_2"/>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_24">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_31">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>80</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_37">
+                   <item>
+                    <widget class="QLabel" name="label_37">
+                     <property name="text">
+                      <string>Maximum size of core file in Kb (0 — use system limit):</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="lineEdit_3"/>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_25">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+               <item row="10" column="0">
+                <widget class="QLabel" name="portsLabel">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>13</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Ports</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="0">
+                <widget class="QCheckBox" name="insomniaCheckBox">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Insomnia (prevent system from sleeping)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QGroupBox" name="pidFileGroupBox">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>48</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>48</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Pid file:</string>
+                 </property>
+                 <widget class="QWidget" name="horizontalLayoutWidget_4">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>20</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_4">
+                   <item>
+                    <widget class="QLineEdit" name="pidFileLineEdit"/>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pidFileBrowsePushButton">
+                     <property name="text">
+                      <string>Browse…</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+               <item row="20" column="0">
+                <widget class="QGroupBox" name="groupBox_2">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>44</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>44</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Cryptography</string>
+                 </property>
+                 <widget class="QCheckBox" name="useElGamalPrecomputedTablesCheckBox">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>20</y>
+                    <width>661</width>
+                    <height>22</height>
+                   </rect>
+                  </property>
+                  <property name="text">
+                   <string>Use ElGamal precomputed tables</string>
+                  </property>
+                 </widget>
+                </widget>
+               </item>
+               <item row="8" column="0">
+                <widget class="QLabel" name="winOptLabel">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>13</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Windows-specific options</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="21" column="0">
+                <widget class="QGroupBox" name="groupBox_3">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>98</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>98</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Reseeding</string>
+                 </property>
+                 <widget class="QCheckBox" name="reseedVerifyCheckBox">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>20</y>
+                    <width>661</width>
+                    <height>22</height>
+                   </rect>
+                  </property>
+                  <property name="text">
+                   <string>Request SU3 signature verification</string>
+                  </property>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_25">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>40</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_31">
+                   <item>
+                    <widget class="QLabel" name="label_31">
+                     <property name="text">
+                      <string>SU3 file to reseed from:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="reseedFileLineEdit"/>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="reseedFileBrowsePushButton">
+                     <property name="text">
+                      <string>Browse…</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_26">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>70</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_32">
+                   <item>
+                    <widget class="QLabel" name="label_32">
+                     <property name="text">
+                      <string>Reseed URLs, separated by comma:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="reseedURLsLineEdit"/>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+               <item row="22" column="0">
+                <widget class="QGroupBox" name="groupBox_4">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>78</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>78</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Addressbook settings</string>
+                 </property>
+                 <widget class="QWidget" name="horizontalLayoutWidget_27">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>20</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_33">
+                   <item>
+                    <widget class="QLabel" name="label_34">
+                     <property name="text">
+                      <string>Addressbook default subscription URL for initial setup:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="addressbookDefaultURLLineEdit"/>
+                   </item>
+                  </layout>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_28">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>50</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_34">
+                   <item>
+                    <widget class="QLabel" name="label_33">
+                     <property name="text">
+                      <string>Addressbook subscriptions URLs, separated by comma:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="addressbookSubscriptionsURLslineEdit"/>
+                   </item>
+                  </layout>
+                 </widget>
+                </widget>
+               </item>
+               <item row="18" column="0">
+                <widget class="QLabel" name="label_29">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>60</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>13</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Various options</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="19" column="0">
+                <widget class="QGroupBox" name="groupBox">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>68</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>68</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>UPnP</string>
+                 </property>
+                 <widget class="QCheckBox" name="enableUPnPCheckBox">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>20</y>
+                    <width>97</width>
+                    <height>22</height>
+                   </rect>
+                  </property>
+                  <property name="text">
+                   <string>Enable</string>
+                  </property>
+                 </widget>
+                 <widget class="QWidget" name="horizontalLayoutWidget_24">
+                  <property name="geometry">
+                   <rect>
+                    <x>0</x>
+                    <y>40</y>
+                    <width>661</width>
+                    <height>31</height>
+                   </rect>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_30">
+                   <item>
+                    <widget class="QLabel" name="label_30">
+                     <property name="text">
+                      <string>Name i2pd appears in UPnP forwardings list:</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="upnpNameLineEdit"/>
+                   </item>
+                   <item>
+                    <spacer name="horizontalSpacer_22">
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>40</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
                 </widget>
                </item>
               </layout>
@@ -2190,14 +2702,14 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>10</y>
+           <y>0</y>
            <width>681</width>
-           <height>931</height>
+           <height>460</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <property name="sizeConstraint">
-           <enum>QLayout::SetMaximumSize</enum>
+           <enum>QLayout::SetMinAndMaxSize</enum>
           </property>
           <item>
            <widget class="QLabel" name="label_5">
@@ -2213,6 +2725,9 @@
           </item>
           <item>
            <widget class="QScrollArea" name="tunnelsScrollArea">
+            <property name="verticalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOn</enum>
+            </property>
             <property name="widgetResizable">
              <bool>true</bool>
             </property>
@@ -2221,21 +2736,10 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>98</width>
-               <height>28</height>
+               <width>664</width>
+               <height>427</height>
               </rect>
              </property>
-             <widget class="QWidget" name="verticalLayoutWidget_7">
-              <property name="geometry">
-               <rect>
-                <x>0</x>
-                <y>10</y>
-                <width>661</width>
-                <height>881</height>
-               </rect>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_7"/>
-             </widget>
             </widget>
            </widget>
           </item>
@@ -2253,6 +2757,9 @@
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMinAndMaxSize</enum>
+          </property>
           <item>
            <widget class="QLabel" name="label_3">
             <property name="font">
@@ -2299,14 +2806,14 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>10</y>
+           <y>0</y>
            <width>671</width>
-           <height>931</height>
+           <height>480</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="quitPageVerticalLayout">
           <property name="sizeConstraint">
-           <enum>QLayout::SetMaximumSize</enum>
+           <enum>QLayout::SetMinAndMaxSize</enum>
           </property>
           <item>
            <widget class="QLabel" name="label_2">
