@@ -53,7 +53,7 @@ do_start()
     || return 1
   start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --chuid "$USER" -- \
     --service --daemon --log=file --logfile=$LOGFILE --conf=$I2PCONF --tunconf=$TUNCONF \
-    $DAEMON_OPTS > /dev/null 2>&1 \
+    --pidfile=$PIDFILE $DAEMON_OPTS > /dev/null 2>&1 \
     || return 2
   return $?
 }

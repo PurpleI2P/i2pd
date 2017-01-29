@@ -21,20 +21,23 @@ void handle_signal(int sig)
 	switch (sig)
 	{
 		case SIGHUP:
-			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening logs and tunnel configuration...");
-			i2p::log::Logger().Reopen ();
+			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening tunnel configuration...");
 			i2p::client::context.ReloadConfig();
+		break;
+		case SIGUSR1:
+			LogPrint(eLogInfo, "Daemon: Got SIGUSR1, reopening logs...");
+			i2p::log::Logger().Reopen ();
 		break;
 		case SIGINT:
 			if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
-			{	
+			{
 				i2p::context.SetAcceptsTunnels (false);
 				Daemon.gracefulShutdownInterval = 10*60; // 10 minutes
 				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
-			}	
+			}
 			else
-				Daemon.running = 0; 
-		break;	
+				Daemon.running = 0;
+		break;
 		case SIGABRT:
 		case SIGTERM:
 			Daemon.running = 0; // Exit loop
@@ -77,7 +80,7 @@ namespace i2p
 				}
 
 				// point std{in,out,err} descriptors to /dev/null
-                freopen("/dev/null", "r", stdin);
+				freopen("/dev/null", "r", stdin);
 				freopen("/dev/null", "w", stdout);
 				freopen("/dev/null", "w", stderr);
 			}
@@ -101,8 +104,8 @@ namespace i2p
 			}
 			uint32_t cfsize; i2p::config::GetOption("limits.coresize", cfsize);
 			if (cfsize) // core file size set
-			{	
-	  			cfsize *= 1024;
+			{
+				cfsize *= 1024;
 				getrlimit(RLIMIT_CORE, &limit);
 				if (cfsize <= limit.rlim_max) {
 					limit.rlim_cur = cfsize;
@@ -116,7 +119,7 @@ namespace i2p
 				} else {
 					LogPrint(eLogError, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
 				}
-			}	
+			}
 
 			// Pidfile
 			// this code is c-styled and a bit ugly, but we need fd for locking pidfile
@@ -153,6 +156,7 @@ namespace i2p
 			sigemptyset(&sa.sa_mask);
 			sa.sa_flags = SA_RESTART;
 			sigaction(SIGHUP, &sa, 0);
+			sigaction(SIGUSR1, &sa, 0);
 			sigaction(SIGABRT, &sa, 0);
 			sigaction(SIGTERM, &sa, 0);
 			sigaction(SIGINT, &sa, 0);
@@ -164,7 +168,7 @@ namespace i2p
 		{
 			i2p::fs::Remove(pidfile);
 
-			return Daemon_Singleton::stop();			
+			return Daemon_Singleton::stop();
 		}
 
 		void DaemonLinux::run ()
@@ -175,12 +179,12 @@ namespace i2p
 				if (gracefulShutdownInterval)
 				{
 					gracefulShutdownInterval--; // - 1 second
-					if (gracefulShutdownInterval <= 0) 
-					{	
+					if (gracefulShutdownInterval <= 0)
+					{
 						LogPrint(eLogInfo, "Graceful shutdown");
 						return;
 					}
-				}	
+				}
 			}
 		}
 	}
