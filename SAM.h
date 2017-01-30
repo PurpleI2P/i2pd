@@ -29,6 +29,7 @@ namespace client
 	const char SAM_SESSION_CREATE_DUPLICATED_ID[] = "SESSION STATUS RESULT=DUPLICATED_ID\n";
 	const char SAM_SESSION_CREATE_DUPLICATED_DEST[] = "SESSION STATUS RESULT=DUPLICATED_DEST\n";	
 	const char SAM_SESSION_STATUS_INVALID_KEY[] = "SESSION STATUS RESULT=INVALID_KEY\n";
+  const char SAM_SESSION_STATUS_I2P_ERROR[] = "SESSION STATUS RESULT=I2P_ERROR MESSAGE=%s\n";
 	const char SAM_STREAM_CONNECT[] = "STREAM CONNECT";
 	const char SAM_STREAM_STATUS_OK[] = "STREAM STATUS RESULT=OK\n";
 	const char SAM_STREAM_STATUS_INVALID_ID[] = "STREAM STATUS RESULT=INVALID_ID\n";
@@ -58,7 +59,9 @@ namespace client
 	const char SAM_VALUE_DATAGRAM[] = "DATAGRAM";
 	const char SAM_VALUE_RAW[] = "RAW";	
 	const char SAM_VALUE_TRUE[] = "true";	
-	const char SAM_VALUE_FALSE[] = "false";	
+	const char SAM_VALUE_FALSE[] = "false";
+  const char SAM_VALUE_HOST[] = "HOST";
+  const char SAM_VALUE_PORT[] = "PORT";
 
 	enum SAMSocketType
 	{
@@ -106,6 +109,7 @@ namespace client
 			void ProcessStreamAccept (char * buf, size_t len);
 			void ProcessDestGenerate ();
 			void ProcessNamingLookup (char * buf, size_t len);
+    	void SendI2PError(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0	
 			void ExtractParams (char * buf, std::map<std::string, std::string>& params);
 
@@ -135,6 +139,7 @@ namespace client
 	{
 		std::shared_ptr<ClientDestination> localDestination;
 		std::list<std::shared_ptr<SAMSocket> > m_Sockets;
+    std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint;
 		std::mutex m_SocketsMutex;
 
 		/** safely add a socket to this session */
@@ -180,6 +185,9 @@ namespace client
 				const std::map<std::string, std::string> * params);
 			void CloseSession (const std::string& id);
 			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
+
+    /** send raw data to remote endpoint from our UDP Socket */
+    void SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote);
 
 		private:
 

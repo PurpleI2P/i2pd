@@ -252,6 +252,7 @@ namespace client
 					Terminate ();
 				}
 			}
+
 			else
 			{	
 				LogPrint (eLogWarning, "SAM: incomplete message ", bytes_transferred);
@@ -278,13 +279,37 @@ namespace client
 			return;
 		}
 
+		std::shared_ptr<boost::asio::ip::udp::endpoint> forward = nullptr;
+		if (style == SAM_VALUE_DATAGRAM && params.find(SAM_VALUE_HOST) != params.end() && params.find(SAM_VALUE_PORT) != params.end())
+		{
+			// udp forward selected
+			boost::system::error_code e;
+			// TODO: support hostnames in udp forward
+			auto addr = boost::asio::ip::address::from_string(params[SAM_VALUE_HOST], e);
+			if (e)
+			{
+				// not an ip address
+				SendI2PError("Invalid IP Address in HOST");
+				return;
+			}
+
+			auto port = std::stoi(params[SAM_VALUE_PORT]);
+			if (port == -1)
+			{
+				SendI2PError("Invalid port");
+				return;
+			}
+			forward = std::make_shared<boost::asio::ip::udp::endpoint>(addr, port);
+		}
+
 		// create destination	
-		m_Session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination, &params); 
+		m_Session = m_Owner.CreateSession (id, destination == SAM_VALUE_TRANSIENT ? "" : destination, &params);
 		if (m_Session)
 		{
 			m_SocketType = eSAMSocketTypeSession;
 			if (style == SAM_VALUE_DATAGRAM)
 			{
+				m_Session->UDPEndpoint = forward;
 				auto dest = m_Session->localDestination->CreateDatagramDestination ();
 				dest->SetReceiver (std::bind (&SAMSocket::HandleI2PDatagramReceive, shared_from_this (), 
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
@@ -480,18 +505,29 @@ namespace client
 					shared_from_this (), std::placeholders::_1, ident));
 		}
 		else 
-		{
-			LogPrint (eLogError, "SAM: naming failed, unknown address ", name);
+			{
+				LogPrint (eLogError, "SAM: naming failed, unknown address ", name);
 #ifdef _MSC_VER
-			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
+				size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #else				
-			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
+				size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #endif
-			SendMessageReply (m_Buffer, len, false);
+				SendMessageReply (m_Buffer, len, false);
 		}
-	}	
+	}
 
-	void  SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, i2p::data::IdentHash ident)
+	void SAMSocket::SendI2PError(const std::string & msg)
+	{
+		LogPrint (eLogError, "SAM: i2p error ", msg);
+#ifdef _MSC_VER
+		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_STATUS_I2P_ERROR, msg.c_str());
+#else				
+		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_SESSION_STATUS_I2P_ERROR, msg.c_str());
+#endif
+		SendMessageReply (m_Buffer, len, true);
+	}
+
+	void SAMSocket::HandleNamingLookupLeaseSetRequestComplete (std::shared_ptr<i2p::data::LeaseSet> leaseSet, i2p::data::IdentHash ident)
 	{
 		if (leaseSet)
 		{	
@@ -692,23 +728,46 @@ namespace client
 	{
 		LogPrint (eLogDebug, "SAM: datagram received ", len);
 		auto base64 = from.ToBase64 ();
-#ifdef _MSC_VER
-		size_t l = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), (long unsigned int)len); 	
-#else			
-		size_t l = snprintf ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), (long unsigned int)len); 	
-#endif
-		if (len < SAM_SOCKET_BUFFER_SIZE - l)	
-		{	
-			memcpy (m_StreamBuffer + l, buf, len);
-			boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len + l),
-        		std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+		auto ep = m_Session->UDPEndpoint;
+		if (ep)
+		{
+			// udp forward enabled
+			size_t bsz = base64.size();
+			size_t sz = 4 + bsz + 1 + len;
+			// build datagram body
+			uint8_t * data = new uint8_t[sz];
+			data[0] = '3';
+			data[1] = '.';
+			data[2] = '0';
+			data[3] = ' ';
+			memcpy(data+4, base64.c_str(), bsz);
+			data[4+bsz] = '\n';
+			memcpy(data+4+bsz+1, buf, sz);
+			// send to remote endpoint
+			m_Owner.SendTo(data, sz, ep);
+			delete [] buf;
 		}
 		else
-			LogPrint (eLogWarning, "SAM: received datagram size ", len," exceeds buffer");
+		{
+#ifdef _MSC_VER
+			size_t l = sprintf_s ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), (long unsigned int)len); 	
+#else			
+			size_t l = snprintf ((char *)m_StreamBuffer, SAM_SOCKET_BUFFER_SIZE, SAM_DATAGRAM_RECEIVED, base64.c_str (), (long unsigned int)len); 	
+#endif
+			if (len < SAM_SOCKET_BUFFER_SIZE - l)	
+			{	
+				memcpy (m_StreamBuffer + l, buf, len);
+				boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len + l),
+																	std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+			}
+			else
+				LogPrint (eLogWarning, "SAM: received datagram size ", len," exceeds buffer");
+		}
 	}
 
 	SAMSession::SAMSession (std::shared_ptr<ClientDestination> dest):
-		localDestination (dest)
+		localDestination (dest),
+		UDPEndpoint(nullptr)
 	{
 	}
 		
@@ -871,6 +930,14 @@ namespace client
 		if (it != m_Sessions.end ())
 			return it->second;
 		return nullptr;
+	}
+
+	void SAMBridge::SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote)
+	{
+		if(remote)
+		{
+			m_DatagramSocket.send_to(boost::asio::buffer(buf, len), *remote);
+		}
 	}
 
 	void SAMBridge::ReceiveDatagram ()
