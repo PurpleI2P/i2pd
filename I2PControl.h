@@ -81,6 +81,7 @@ namespace client
 			void NetDbActivePeersHandler (std::ostringstream& results);
 			void NetStatusHandler (std::ostringstream& results);
 			void TunnelsParticipatingHandler (std::ostringstream& results);
+			void TunnelsSuccessRateHandler (std::ostringstream& results);
 			void InboundBandwidth1S (std::ostringstream& results);
 			void OutboundBandwidth1S (std::ostringstream& results);
 			void NetTotalReceivedBytes (std::ostringstream& results);

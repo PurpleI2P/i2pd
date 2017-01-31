@@ -79,6 +79,8 @@ namespace client
 		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"] = &I2PControlService::OutboundBandwidth1S;
 		m_RouterInfoHandlers["i2p.router.net.status"]         = &I2PControlService::NetStatusHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlService::TunnelsParticipatingHandler;
+		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"] =
+&I2PControlService::TunnelsSuccessRateHandler;	
 		m_RouterInfoHandlers["i2p.router.net.total.received.bytes"]  = &I2PControlService::NetTotalReceivedBytes;
 		m_RouterInfoHandlers["i2p.router.net.total.sent.bytes"]      = &I2PControlService::NetTotalSentBytes;
 
@@ -425,6 +427,12 @@ namespace client
 	{
 		int transit = i2p::tunnel::tunnels.GetTransitTunnels ().size ();
 		InsertParam (results, "i2p.router.net.tunnels.participating", transit);
+	}
+
+	void I2PControlService::TunnelsSuccessRateHandler (std::ostringstream& results)
+	{
+		int rate = i2p::tunnel::tunnels.GetTunnelCreationSuccessRate ();
+		InsertParam (results, "i2p.router.net.tunnels.successrate", rate);
 	}
 
 	void I2PControlService::InboundBandwidth1S (std::ostringstream& results)
