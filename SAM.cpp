@@ -505,14 +505,14 @@ namespace client
 					shared_from_this (), std::placeholders::_1, ident));
 		}
 		else
-			{
-				LogPrint (eLogError, "SAM: naming failed, unknown address ", name);
+		{
+			LogPrint (eLogError, "SAM: naming failed, unknown address ", name);
 #ifdef _MSC_VER
-				size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
+			size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #else
-				size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
+			size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_NAMING_REPLY_INVALID_KEY, name.c_str());
 #endif
-				SendMessageReply (m_Buffer, len, false);
+			SendMessageReply (m_Buffer, len, false);
 		}
 	}
 
