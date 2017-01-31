@@ -744,7 +744,7 @@ namespace client
 			memcpy(data+bsz+1, buf, len);
 			// send to remote endpoint
 			m_Owner.SendTo(data, sz, ep);
-			delete [] buf;
+			delete [] data;
 		}
 		else
 		{
