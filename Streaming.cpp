@@ -895,7 +895,7 @@ namespace stream
 				it->second->HandleNextPacket (packet);
 			else
 			{
-				LogPrint (eLogError, "Streaming: Unknown stream sSID=", sendStreamID);
+				LogPrint (eLogInfo, "Streaming: Unknown stream sSID=", sendStreamID);
 				DeletePacket (packet);
 			}
 		}

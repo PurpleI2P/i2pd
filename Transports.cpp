@@ -418,7 +418,7 @@ namespace transport
 			}	
 			else
 			{
-				LogPrint (eLogError, "Transports: RouterInfo not found, Failed to send messages");
+				LogPrint (eLogWarning, "Transports: RouterInfo not found, Failed to send messages");
 				std::unique_lock<std::mutex> l(m_PeersMutex);	
 				m_Peers.erase (it);
 			}	

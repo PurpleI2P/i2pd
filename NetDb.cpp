@@ -583,7 +583,7 @@ namespace data
 		IdentHash ident (buf + DATABASE_STORE_KEY_OFFSET);
 		if (ident.IsZero ())
 		{
-			LogPrint (eLogError, "NetDb: database store with zero ident, dropped");
+			LogPrint (eLogDebug, "NetDb: database store with zero ident, dropped");
 			return;
 		}	
 		uint32_t replyToken = bufbe32toh (buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
@@ -602,14 +602,14 @@ namespace data
 				if (outbound)
 					outbound->SendTunnelDataMsg (buf + offset, tunnelID, deliveryStatus);
 				else
-					LogPrint (eLogError, "NetDb: no outbound tunnels for DatabaseStore reply found");
+					LogPrint (eLogWarning, "NetDb: no outbound tunnels for DatabaseStore reply found");
 			}		
 			offset += 32;
 		}
 		// we must send reply back before this check	
 		if (ident == i2p::context.GetIdentHash ())
 		{
-			LogPrint (eLogError, "NetDb: database store with own RouterInfo received, dropped");
+			LogPrint (eLogDebug, "NetDb: database store with own RouterInfo received, dropped");
 			return;
 		}
 		size_t payloadOffset = offset;		
@@ -636,7 +636,7 @@ namespace data
 				updated = AddRouterInfo (ident, uncompressed, uncompressedSize);
 			else
 			{	
-				LogPrint (eLogError, "NetDb: decompression failed ", uncompressedSize);
+				LogPrint (eLogInfo, "NetDb: decompression failed ", uncompressedSize);
 				return;
 			}	
 		}	
