@@ -83,10 +83,24 @@ namespace data
 		}
 	}
 
+	int Reseeder::ProcessZIPFile (const char * filename)
+	{
+		std::ifstream s(filename, std::ifstream::binary);
+		if (s.is_open ())	
+		{	
+			s.seekg (0, std::ios::end);
+			auto len = s.tellg ();
+			s.seekg (0, std::ios::beg);
+			return ProcessZIPStream (s, len);
+		}	
+		else
+		{
+			LogPrint (eLogError, "Reseed: Can't open file ", filename);
+			return 0;
+		}
+	}		
+	
 	const char SU3_MAGIC_NUMBER[]="I2Psu3";	
-	const uint32_t ZIP_HEADER_SIGNATURE = 0x04034B50;
-	const uint32_t ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014B50;	
-	const uint16_t ZIP_BIT_FLAG_DATA_DESCRIPTOR = 0x0008;	
 	int Reseeder::ProcessSU3Stream (std::istream& s)
 	{
 		char magicNumber[7];
@@ -194,6 +208,14 @@ namespace data
 		}	
 
 		// handle content
+		return ProcessZIPStream (s, contentLength);
+	}
+
+	const uint32_t ZIP_HEADER_SIGNATURE = 0x04034B50;
+	const uint32_t ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014B50;	
+	const uint16_t ZIP_BIT_FLAG_DATA_DESCRIPTOR = 0x0008;
+	int Reseeder::ProcessZIPStream (std::istream& s, uint64_t contentLength)
+	{	
 		int numFiles = 0;
 		size_t contentPos = s.tellg ();
 		while (!s.eof ())
