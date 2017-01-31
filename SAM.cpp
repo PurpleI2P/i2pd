@@ -733,16 +733,15 @@ namespace client
 		{
 			// udp forward enabled
 			size_t bsz = base64.size();
-			size_t sz = 4 + bsz + 1 + len;
+			size_t sz = bsz + 1 + len;
 			// build datagram body
 			uint8_t * data = new uint8_t[sz];
-			data[0] = '3';
-			data[1] = '.';
-			data[2] = '0';
-			data[3] = ' ';
-			memcpy(data+4, base64.c_str(), bsz);
-			data[4+bsz] = '\n';
-			memcpy(data+4+bsz+1, buf, len);
+			// Destination
+			memcpy(data, base64.c_str(), bsz);
+			// linefeed
+			data[bsz] = '\n';
+			// Payload
+			memcpy(data+bsz+1, buf, len);
 			// send to remote endpoint
 			m_Owner.SendTo(data, sz, ep);
 			delete [] buf;
