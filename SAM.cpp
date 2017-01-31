@@ -742,7 +742,7 @@ namespace client
 			data[3] = ' ';
 			memcpy(data+4, base64.c_str(), bsz);
 			data[4+bsz] = '\n';
-			memcpy(data+4+bsz+1, buf, sz);
+			memcpy(data+4+bsz+1, buf, len);
 			// send to remote endpoint
 			m_Owner.SendTo(data, sz, ep);
 			delete [] buf;
