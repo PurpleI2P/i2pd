@@ -101,8 +101,9 @@ namespace transport
 
 	void DHKeysPairSupplier::Return (std::shared_ptr<i2p::crypto::DHKeys> pair)
 	{
-		std::unique_lock<std::mutex>	l(m_AcquiredMutex);
-		m_Queue.push (pair);
+		std::unique_lock<std::mutex>l(m_AcquiredMutex);
+		if ((int)m_Queue.size () < 2*m_QueueSize)
+			m_Queue.push (pair);
 	}
 
 	Transports transports;	
@@ -417,7 +418,7 @@ namespace transport
 			}	
 			else
 			{
-				LogPrint (eLogError, "Transports: RouterInfo not found, Failed to send messages");
+				LogPrint (eLogWarning, "Transports: RouterInfo not found, Failed to send messages");
 				std::unique_lock<std::mutex> l(m_PeersMutex);	
 				m_Peers.erase (it);
 			}	

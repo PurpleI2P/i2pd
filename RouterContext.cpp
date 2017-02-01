@@ -205,7 +205,7 @@ namespace i2p
 
 	void RouterContext::SetBandwidth (char L) {
 		uint16_t limit = 0;
-		enum { low, high, extra } type = high;
+		enum { low, high, extra, unlim } type = high;
 		/* detect parameters */
 		switch (L) 
 		{
@@ -215,7 +215,7 @@ namespace i2p
 			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit =  128; type = high;  break;
 			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH3  : limit =  256; type = high;  break;
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = 2048; type = extra; break;
-			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 9999; type = extra; break;
+			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 9999; type = unlim; break;
 			default:
 				 limit =  48; type = low;
 		}
@@ -226,7 +226,8 @@ namespace i2p
 		switch (type) 
 		{
 			case low   : /* not set */; break;
-			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; //  no break here
+			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break; // 'P'
+			case unlim : caps |= i2p::data::RouterInfo::eExtraBandwidth; //  no break here, extra + high means 'X'
 			case high  : caps |= i2p::data::RouterInfo::eHighBandwidth;  break;
 		}
 		m_RouterInfo.SetCaps (caps);
@@ -253,7 +254,12 @@ namespace i2p
 	void RouterContext::SetUnreachable ()
 	{
 		// set caps
-		m_RouterInfo.SetCaps (i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting); // LU, B
+		uint8_t caps = m_RouterInfo.GetCaps ();
+		caps &= ~i2p::data::RouterInfo::eReachable;
+		caps |= i2p::data::RouterInfo::eUnreachable;
+		caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
+		caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
+		m_RouterInfo.SetCaps (caps); 
 		// remove NTCP address
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto it = addresses.begin (); it != addresses.end (); ++it)

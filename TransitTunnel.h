@@ -85,6 +85,8 @@ namespace tunnel
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
 				m_Endpoint (false) {}; // transit endpoint is always outbound
 
+			void Cleanup () { m_Endpoint.Cleanup (); }
+			
 			void HandleTunnelDataMsg (std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
 			size_t GetNumTransmittedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 			

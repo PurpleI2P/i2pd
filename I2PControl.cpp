@@ -25,6 +25,7 @@
 #include "Transports.h"
 #include "version.h"
 #include "util.h"
+#include "ClientContext.h"
 #include "I2PControl.h"
 
 namespace i2p
@@ -78,6 +79,8 @@ namespace client
 		m_RouterInfoHandlers["i2p.router.net.bw.outbound.1s"] = &I2PControlService::OutboundBandwidth1S;
 		m_RouterInfoHandlers["i2p.router.net.status"]         = &I2PControlService::NetStatusHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlService::TunnelsParticipatingHandler;
+		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"] =
+&I2PControlService::TunnelsSuccessRateHandler;	
 		m_RouterInfoHandlers["i2p.router.net.total.received.bytes"]  = &I2PControlService::NetTotalReceivedBytes;
 		m_RouterInfoHandlers["i2p.router.net.total.sent.bytes"]      = &I2PControlService::NetTotalSentBytes;
 
@@ -187,13 +190,16 @@ namespace client
  		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf)
 	{
-		if (ecode) {
+		if (ecode) 
+		{
 			LogPrint (eLogError, "I2PControl: read error: ", ecode.message ());
 			return;
-		} else {
+		} 
+		else 
+		{
+			bool isHtml = !memcmp (buf->data (), "POST", 4);
 			try
 			{
-				bool isHtml = !memcmp (buf->data (), "POST", 4);
 				std::stringstream ss;
 				ss.write (buf->data (), bytes_transferred);
 				if (isHtml)
@@ -237,7 +243,9 @@ namespace client
 					response << "{\"id\":" << id << ",\"result\":{";
 					(this->*(it->second))(pt.get_child ("params"), response);
 					response << "},\"jsonrpc\":\"2.0\"}";
-				} else {
+				} 
+				else 
+				{
 					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
 					response << "{\"id\":null,\"error\":";
 					response << "{\"code\":-32601,\"message\":\"Method not found\"},";
@@ -249,6 +257,11 @@ namespace client
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "I2PControl: exception when handle request: ", ex.what ());
+				std::ostringstream response;
+				response << "{\"id\":null,\"error\":";
+				response << "{\"code\":-32700,\"message\":\"" << ex.what () << "\"},";
+				response << "\"jsonrpc\":\"2.0\"}";
+				SendResponse (socket, buf, response, isHtml);
 			}
 			catch (...)
 			{
@@ -391,7 +404,8 @@ namespace client
 
 	void I2PControlService::StatusHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.status", "???"); // TODO:
+		auto dest = i2p::client::context.GetSharedLocalDestination ();
+		InsertParam (results, "i2p.router.status", (dest && dest->IsReady ()) ? "1" : "0"); 
 	}
 
 	void I2PControlService::NetDbKnownPeersHandler (std::ostringstream& results)
@@ -413,6 +427,12 @@ namespace client
 	{
 		int transit = i2p::tunnel::tunnels.GetTransitTunnels ().size ();
 		InsertParam (results, "i2p.router.net.tunnels.participating", transit);
+	}
+
+	void I2PControlService::TunnelsSuccessRateHandler (std::ostringstream& results)
+	{
+		int rate = i2p::tunnel::tunnels.GetTunnelCreationSuccessRate ();
+		InsertParam (results, "i2p.router.net.tunnels.successrate", rate);
 	}
 
 	void I2PControlService::InboundBandwidth1S (std::ostringstream& results)

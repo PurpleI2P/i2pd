@@ -31,8 +31,10 @@ namespace data
 						
 			int ReseedFromSU3 (const std::string& url);
 			int ProcessSU3File (const char * filename);	
+			int ProcessZIPFile (const char * filename);
 			int ProcessSU3Stream (std::istream& s);	
-
+			int ProcessZIPStream (std::istream& s, uint64_t contentLength);	
+			
 			bool FindZipDataDescriptor (std::istream& s);
 			
 			std::string HttpsRequest (const std::string& address);

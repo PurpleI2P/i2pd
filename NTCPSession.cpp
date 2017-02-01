@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <future>
 
 #include "I2PEndian.h"
 #include "Base.h"
@@ -35,12 +36,12 @@ namespace transport
 		delete m_Establisher;
 	}
 
-	void NTCPSession::CreateAESKey (uint8_t * pubKey, i2p::crypto::AESKey& key)
+	void NTCPSession::CreateAESKey (uint8_t * pubKey)
 	{
 		uint8_t sharedKey[256];
-		m_DHKeysPair->Agree (pubKey, sharedKey);
+		m_DHKeysPair->Agree (pubKey, sharedKey); // time consuming operation
 		
-		uint8_t * aesKey = key;
+		i2p::crypto::AESKey aesKey;
 		if (sharedKey[0] & 0x80)
 		{
 			aesKey[0] = 0;
@@ -63,6 +64,9 @@ namespace transport
 			}
 			memcpy (aesKey, nonZero, 32);
 		}
+
+		m_Decryption.SetKey (aesKey);
+		m_Encryption.SetKey (aesKey);
 	}	
 
 	void NTCPSession::Done ()
@@ -163,15 +167,25 @@ namespace transport
 					return;
 				}	
 			}	
-			
-			SendPhase2 ();
+
+			// TODO: check for number of pending keys
+			auto s = shared_from_this ();
+			auto keyCreated = std::async (std::launch::async, [s] ()
+				{
+					if (!s->m_DHKeysPair)
+						s->m_DHKeysPair = transports.GetNextDHKeysPair ();
+					s->CreateAESKey (s->m_Establisher->phase1.pubKey);
+				}).share (); 						 
+			m_Server.GetService ().post ([s, keyCreated]()
+				{  
+					keyCreated.get (); 
+					s->SendPhase2 ();
+				});	
 		}	
 	}	
 
 	void NTCPSession::SendPhase2 ()
 	{
-		if (!m_DHKeysPair)
-			m_DHKeysPair = transports.GetNextDHKeysPair ();
 		const uint8_t * y = m_DHKeysPair->GetPublicKey ();
 		memcpy (m_Establisher->phase2.pubKey, y, 256);
 		uint8_t xy[512];
@@ -182,11 +196,7 @@ namespace transport
 		memcpy (m_Establisher->phase2.encrypted.timestamp, &tsB, 4);
 		RAND_bytes (m_Establisher->phase2.encrypted.filler, 12);
 
-		i2p::crypto::AESKey aesKey;
-		CreateAESKey (m_Establisher->phase1.pubKey, aesKey);
-		m_Encryption.SetKey (aesKey);
 		m_Encryption.SetIV (y + 240);
-		m_Decryption.SetKey (aesKey);
 		m_Decryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
 		
 		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
@@ -229,32 +239,44 @@ namespace transport
 		}
 		else
 		{	
-			i2p::crypto::AESKey aesKey;
-			CreateAESKey (m_Establisher->phase2.pubKey, aesKey);
-			m_Decryption.SetKey (aesKey);
-			m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
-			m_Encryption.SetKey (aesKey);
-			m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
-			
-			m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
-			// verify
-			uint8_t xy[512];
-			memcpy (xy, m_DHKeysPair->GetPublicKey (), 256);
-			memcpy (xy + 256, m_Establisher->phase2.pubKey, 256);
-			uint8_t digest[32];
-			SHA256 (xy, 512, digest);
-			if (memcmp(m_Establisher->phase2.encrypted.hxy, digest, 32)) 
-			{
-				LogPrint (eLogError, "NTCP: Phase 2 process error: incorrect hash");
-				transports.ReuseDHKeysPair (m_DHKeysPair);
-				m_DHKeysPair = nullptr;
-				Terminate ();
-				return ;
-			}	
-			SendPhase3 ();
+			auto s = shared_from_this ();
+			// create AES key in separate thread
+			auto keyCreated = std::async (std::launch::async, [s] ()
+				{
+					s->CreateAESKey (s->m_Establisher->phase2.pubKey);
+				}).share (); // TODO: use move capture in C++ 14 instead shared_future							 
+			// let other operations execute while a key gets created
+			m_Server.GetService ().post ([s, keyCreated]()
+				{  
+					keyCreated.get (); // we might wait if no more pending operations
+					s->HandlePhase2 ();
+				});	
 		}	
 	}	
 
+	void NTCPSession::HandlePhase2 ()
+	{
+		m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
+		m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
+		
+		m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
+		// verify
+		uint8_t xy[512];
+		memcpy (xy, m_DHKeysPair->GetPublicKey (), 256);
+		memcpy (xy + 256, m_Establisher->phase2.pubKey, 256);
+		uint8_t digest[32];
+		SHA256 (xy, 512, digest);
+		if (memcmp(m_Establisher->phase2.encrypted.hxy, digest, 32)) 
+		{
+			LogPrint (eLogError, "NTCP: Phase 2 process error: incorrect hash");
+			transports.ReuseDHKeysPair (m_DHKeysPair);
+			m_DHKeysPair = nullptr;
+			Terminate ();
+			return ;
+		}	
+		SendPhase3 ();
+	}				
+		
 	void NTCPSession::SendPhase3 ()
 	{
 		auto& keys = i2p::context.GetPrivateKeys ();
