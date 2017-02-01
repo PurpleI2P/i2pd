@@ -32,30 +32,18 @@ namespace data
 	{
 	}
 
-	int Reseeder::ReseedNowSU3 ()
+	int Reseeder::ReseedFromServers ()
 	{
 		std::string reseedURLs; i2p::config::GetOption("reseed.urls", reseedURLs);
 		std::vector<std::string> httpsReseedHostList;
 		boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
 
-		std::string filename; i2p::config::GetOption("reseed.file", filename);
-		if (filename.length() > 0) // reseed file is specified
-		{
-                    if (filename.length() > 8 && filename.substr(0, 8) == "https://")
-                    {
-                        return ReseedFromSU3 (filename); // reseed from https URL 
-                    } else {
-			auto num = ProcessSU3File (filename.c_str ());
-			if (num > 0) return num; // success
-			LogPrint (eLogWarning, "Can't reseed from ", filename, " . Trying from hosts"); 
-                    }
-		}	
 		auto ind = rand () % httpsReseedHostList.size ();
 		std::string reseedUrl = httpsReseedHostList[ind] + "i2pseeds.su3";
-		return ReseedFromSU3 (reseedUrl);
+		return ReseedFromSU3Url (reseedUrl);
 	}
 
-	int Reseeder::ReseedFromSU3 (const std::string& url)
+	int Reseeder::ReseedFromSU3Url (const std::string& url)
 	{
 		LogPrint (eLogInfo, "Reseed: Downloading SU3 from ", url);
 		std::string su3 = HttpsRequest (url);
