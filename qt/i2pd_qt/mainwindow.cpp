@@ -16,6 +16,8 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
 {
     ui->setupUi(this);
+
+    //TODO handle resizes and change the below into resize() call
     setFixedSize(width(), 480);
     onResize();
 
@@ -52,10 +54,77 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->restartPagePushButton, SIGNAL(released()), this, SLOT(showRestartPage()));
     QObject::connect(ui->quitPagePushButton, SIGNAL(released()), this, SLOT(showQuitPage()));
 
-    /*
     QObject::connect(ui->fastQuitPushButton, SIGNAL(released()), this, SLOT(handleQuitButton()));
     QObject::connect(ui->gracefulQuitPushButton, SIGNAL(released()), this, SLOT(handleGracefulQuitButton()));
-*/
+
+    initFileChooser(configFileLineEdit, configFileBrowsePushButton);
+    initFileChooser(tunnelsConfigFileLineEdit, tunnelsConfigFileBrowsePushButton);
+    initFileChooser(pidFileLineEdit, pidFileBrowsePushButton);
+    initFileChooser(logFileLineEdit, logFileBrowsePushButton);
+    initFileChooser(httpProxyKeyFileLineEdit, httpProxyKeyFilePushButton);
+    initFileChooser(socksProxyKeyFileLineEdit, socksProxyKeyFilePushButton);
+    initFileChooser(i2pControlCertFileLineEdit, i2pControlCertFileBrowsePushButton);
+    initFileChooser(i2pControlKeyFileLineEdit, i2pControlKeyFileBrowsePushButton);
+    initFileChooser(reseedFileLineEdit, reseedFileBrowsePushButton);
+
+    initFolderChooser(dataFolderLineEdit, dataFolderBrowsePushButton);
+
+	initCombobox(logLevelComboBox);
+
+	initIPAddressBox(routerExternalHostLineEdit, tr("Router external address -> Host"));
+	initTCPPortBox(routerExternalPortLineEdit, tr("Router external address -> Port"));
+
+	initCheckBox(ipv6CheckBox);
+	initCheckBox(notransitCheckBox);
+	initCheckBox(floodfillCheckBox);
+	initIntegerBox(bandwidthLineEdit);
+	initStringBox(familyLineEdit);
+	initIntegerBox(netIdLineEdit);
+	
+	initCheckBox(insomniaCheckBox);
+
+	initCheckBox(webconsoleEnabledCheckBox);
+	initIPAddressBox(webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
+	initTCPPortBox(webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
+	initCheckBox(webconsoleBasicAuthCheckBox);
+	initStringBox(webconsoleUserNameLineEditBasicAuth);
+	initStringBox(webconsolePasswordLineEditBasicAuth);
+
+	initCheckBox(httpProxyEnabledCheckBox);
+	initIPAddressBox(httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
+	initTCPPortBox(httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
+	initIntegerBox(httpProxyInboundTunnelsLenLineEdit);
+	initIntegerBox(httpProxyInboundTunnQuantityLineEdit);
+	initIntegerBox(httpProxyOutBoundTunnLenLineEdit);
+	initIntegerBox(httpProxyOutboundTunnQuantityLineEdit);
+
+	initCheckBox(socksProxyEnabledCheckBox);
+	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+	initIntegerBox(socksProxyInboundTunnelsLenLineEdit);
+	initIntegerBox(socksProxyInboundTunnQuantityLineEdit);
+	initIntegerBox(socksProxyOutBoundTunnLenLineEdit);
+	initIntegerBox(socksProxyOutboundTunnQuantityLineEdit);
+	initIPAddressBox(outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
+	initTCPPortBox(outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
+
+	initCheckBox(socksProxyEnabledCheckBox);
+	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+
+	initCheckBox(socksProxyEnabledCheckBox);
+	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+
+	initCheckBox(socksProxyEnabledCheckBox);
+	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+
+	initCheckBox(socksProxyEnabledCheckBox);
+	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+
+    loadAllConfigs();
 
 #ifndef ANDROID
     QObject::connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
@@ -74,12 +143,14 @@ void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);}
 void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);}
 void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);}
 
+//TODO
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
     onResize();
 }
 
+//TODO
 void MainWindow::onResize()
 {
     if(isVisible()){

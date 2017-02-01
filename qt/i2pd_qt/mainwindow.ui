@@ -26,7 +26,7 @@
       <x>10</x>
       <y>10</y>
       <width>801</width>
-      <height>491</height>
+      <height>3000</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -114,7 +114,7 @@
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>516</height>
+         <height>3000</height>
         </size>
        </property>
        <property name="currentIndex">
@@ -127,7 +127,7 @@
            <x>0</x>
            <y>0</y>
            <width>671</width>
-           <height>491</height>
+           <height>3000</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -175,7 +175,7 @@
            <x>0</x>
            <y>0</y>
            <width>701</width>
-           <height>460</height>
+           <height>3000</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
