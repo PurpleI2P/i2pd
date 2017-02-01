@@ -346,12 +346,15 @@ namespace transport
 			m_Decryption.Decrypt (m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 			uint8_t * buf = m_ReceiveBuffer;
 			uint16_t size = bufbe16toh (buf);
-			SetRemoteIdentity (std::make_shared<i2p::data::IdentityEx> (buf + 2, size));
-			if (m_Server.FindNTCPSession (m_RemoteIdentity->GetIdentHash ()))
+			auto identity = std::make_shared<i2p::data::IdentityEx> (buf + 2, size);
+			if (m_Server.FindNTCPSession (identity->GetIdentHash ()))
 			{
 				LogPrint (eLogInfo, "NTCP: session already exists");
 				Terminate ();
 			}	
+			auto existing = i2p::data::netdb.FindRouter (identity->GetIdentHash ()); // check if exists already
+			SetRemoteIdentity (existing ? existing->GetRouterIdentity () : identity);
+		
 			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity->GetSignatureLen ();
 			size_t paddingLen = expectedSize & 0x0F;
 			if (paddingLen) paddingLen = (16 - paddingLen);	
