@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QThread>
 #include <QMutex>
+#include <QMessageBox>
 
 namespace i2p
 {
@@ -32,6 +33,7 @@ namespace qt
         bool isRunning();
     private:
         void setRunning(bool running);
+        void showError(std::string errorMsg);
 	private:
 		QMutex* mutex;
         bool m_IsRunning;
@@ -55,7 +57,7 @@ namespace qt
         void stopDaemon();
 
     signals:
-        void resultReady();
+        void resultReady(bool failed, QString failureMessage);
     };	
 
     class Controller : public QObject
@@ -69,7 +71,11 @@ namespace qt
 		DaemonQTImpl& m_Daemon;	
 
     public slots:
-        void handleResults(){}
+        void handleResults(bool failed, QString failureMessage){
+            if(failed){
+                QMessageBox::critical(0, QObject::tr("Error"), failureMessage);
+            }
+        }
     signals:
         void startDaemon();
         void stopDaemon();

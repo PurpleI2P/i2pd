@@ -48,20 +48,13 @@ private:
 #ifndef ANDROID
     void createActions();
     void createTrayIcon();
-#endif
-
-    QWidget *centralWidget;
-    QWidget *verticalLayoutWidget;
-    QVBoxLayout *verticalLayout1;
-    QPushButton *quitButton;
-    QPushButton *gracefulQuitButton;
-
-#ifndef ANDROID
     bool quitting;
     QAction *toggleWindowVisibleAction;
     QSystemTrayIcon *trayIcon;
     QMenu *trayIconMenu;
 #endif
+
+    Ui::MainWindow* ui;
 
 protected:
 #ifndef ANDROID

@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-//#include "ui_mainwindow.h"
+#include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QTimer>
 #include "RouterContext.h"
@@ -8,56 +8,24 @@
 #endif
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent)/*,
-    ui(new Ui::MainWindow)*/
+    QMainWindow(parent),
+    ui(new Ui::MainWindow)
 #ifndef ANDROID
     ,quitting(false)
 #endif
 {
-    //ui->setupUi(this);
-    if (objectName().isEmpty())
-        setObjectName(QStringLiteral("MainWindow"));
+    ui->setupUi(this);
     resize(800, 480);
-    centralWidget = new QWidget(this);
-    centralWidget->setObjectName(QStringLiteral("centralWidget"));
-    verticalLayoutWidget = new QWidget(centralWidget);
-    verticalLayoutWidget->setObjectName(QStringLiteral("verticalLayoutWidget"));
-    //verticalLayoutWidget->setGeometry(QRect(10, 20, 771, 441));
-    verticalLayout1 = new QVBoxLayout(verticalLayoutWidget);
-    verticalLayout1->setSpacing(6);
-    verticalLayout1->setContentsMargins(11, 11, 11, 11);
-    verticalLayout1->setObjectName(QStringLiteral("verticalLayout1"));
-    verticalLayout1->setContentsMargins(0, 0, 0, 0);
-    quitButton = new QPushButton(verticalLayoutWidget);
-    quitButton->setObjectName(QStringLiteral("quitButton"));
-    QSizePolicy sizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    sizePolicy.setHorizontalStretch(1);
-    //sizePolicy.setVerticalStretch(1);
-    sizePolicy.setHeightForWidth(quitButton->sizePolicy().hasHeightForWidth());
-    quitButton->setSizePolicy(sizePolicy);
-    verticalLayout1->addWidget(quitButton);
-    gracefulQuitButton = new QPushButton(verticalLayoutWidget);
-    gracefulQuitButton->setObjectName(QStringLiteral("gracefulQuitButton"));
-    QSizePolicy sizePolicy2(QSizePolicy::Maximum, QSizePolicy::Maximum);
-    sizePolicy2.setHorizontalStretch(1);
-    //sizePolicy2.setVerticalStretch(1);
-    sizePolicy2.setHeightForWidth(gracefulQuitButton->sizePolicy().hasHeightForWidth());
-    gracefulQuitButton->setSizePolicy(sizePolicy2);
-    verticalLayout1->addWidget(gracefulQuitButton);
-
-    setCentralWidget(centralWidget);
-
-    setWindowTitle(QApplication::translate("MainWindow", "i2pd", 0));
-    quitButton->setText(QApplication::translate("MainWindow", "Quit", 0));
-    gracefulQuitButton->setText(QApplication::translate("MainWindow", "Graceful Quit", 0));
+    //ui->stackedWidget->setCurrentIndex(4);//quit page
+    ui->stackedWidget->setCurrentIndex(1);//sett. page
 
 #ifndef ANDROID
     createActions();
     createTrayIcon();
 #endif
 
-    QObject::connect(quitButton, SIGNAL(released()), this, SLOT(handleQuitButton()));
-    QObject::connect(gracefulQuitButton, SIGNAL(released()), this, SLOT(handleGracefulQuitButton()));
+    QObject::connect(ui->fastQuitPushButton, SIGNAL(released()), this, SLOT(handleQuitButton()));
+    QObject::connect(ui->gracefulQuitPushButton, SIGNAL(released()), this, SLOT(handleGracefulQuitButton()));
 
 #ifndef ANDROID
     QObject::connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
@@ -138,10 +106,10 @@ void MainWindow::handleQuitButton() {
 
 void MainWindow::handleGracefulQuitButton() {
     qDebug("Graceful Quit pressed.");
-    gracefulQuitButton->setText(QApplication::translate("MainWindow", "Graceful quit is in progress", 0));
-    gracefulQuitButton->setEnabled(false);
-    gracefulQuitButton->adjustSize();
-    verticalLayoutWidget->adjustSize();
+    ui->gracefulQuitPushButton->setText(QApplication::translate("MainWindow", "Graceful quit is in progress", 0));
+    ui->gracefulQuitPushButton->setEnabled(false);
+    ui->gracefulQuitPushButton->adjustSize();
+    ui->quitPage->adjustSize();
     i2p::context.SetAcceptsTunnels (false); // stop accpting tunnels
     QTimer::singleShot(10*60*1000/*millis*/, this, SLOT(handleGracefulQuitTimerEvent()));
 }
