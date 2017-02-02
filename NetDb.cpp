@@ -41,7 +41,9 @@ namespace data
 		InitProfilesStorage ();
 		m_Families.LoadCertificates ();
 		Load ();
-		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
+
+                uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
+		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
 			Reseed ();
 
 		m_IsRunning = true;
