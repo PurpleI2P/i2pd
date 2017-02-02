@@ -12,6 +12,8 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
+#include <QtWidgets/QCheckBox>
+#include <QtWidgets/QComboBox>
 #ifndef ANDROID
 #include <QSystemTrayIcon>
 #include <QCloseEvent>
@@ -67,6 +69,19 @@ protected:
 #endif
     void resizeEvent(QResizeEvent* event);
     void onResize();
+
+    void initFileChooser(QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton);
+    void initFolderChooser(QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton);
+    void initCombobox(QComboBox* comboBox);
+    void initIPAddressBox(QLineEdit* addressLineEdit, QString fieldNameTranslated);
+    void initTCPPortBox(QLineEdit* portLineEdit, QString fieldNameTranslated);
+    void initCheckBox(QCheckBox* checkBox);
+    void initIntegerBox(QLineEdit* numberLineEdit);
+    void initStringBox(QLineEdit* lineEdit);
+
+    void loadAllConfigs();
+    void saveAllConfigs();
+
 };
 
 #endif // MAINWINDOW_H

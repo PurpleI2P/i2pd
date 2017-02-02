@@ -57,72 +57,88 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->fastQuitPushButton, SIGNAL(released()), this, SLOT(handleQuitButton()));
     QObject::connect(ui->gracefulQuitPushButton, SIGNAL(released()), this, SLOT(handleGracefulQuitButton()));
 
-    initFileChooser(configFileLineEdit, configFileBrowsePushButton);
-    initFileChooser(tunnelsConfigFileLineEdit, tunnelsConfigFileBrowsePushButton);
-    initFileChooser(pidFileLineEdit, pidFileBrowsePushButton);
-    initFileChooser(logFileLineEdit, logFileBrowsePushButton);
-    initFileChooser(httpProxyKeyFileLineEdit, httpProxyKeyFilePushButton);
-    initFileChooser(socksProxyKeyFileLineEdit, socksProxyKeyFilePushButton);
-    initFileChooser(i2pControlCertFileLineEdit, i2pControlCertFileBrowsePushButton);
-    initFileChooser(i2pControlKeyFileLineEdit, i2pControlKeyFileBrowsePushButton);
-    initFileChooser(reseedFileLineEdit, reseedFileBrowsePushButton);
+    initFileChooser(ui->configFileLineEdit, ui->configFileBrowsePushButton);
+    initFileChooser(ui->tunnelsConfigFileLineEdit, ui->tunnelsConfigFileBrowsePushButton);
+    initFileChooser(ui->pidFileLineEdit, ui->pidFileBrowsePushButton);
+    initFileChooser(ui->logFileLineEdit, ui->logFileBrowsePushButton);
+    initFileChooser(ui->httpProxyKeyFileLineEdit, ui->httpProxyKeyFilePushButton);
+    initFileChooser(ui->socksProxyKeyFileLineEdit, ui->socksProxyKeyFilePushButton);
+    initFileChooser(ui->i2pControlCertFileLineEdit, ui->i2pControlCertFileBrowsePushButton);
+    initFileChooser(ui->i2pControlKeyFileLineEdit, ui->i2pControlKeyFileBrowsePushButton);
+    initFileChooser(ui->reseedFileLineEdit, ui->reseedFileBrowsePushButton);
 
-    initFolderChooser(dataFolderLineEdit, dataFolderBrowsePushButton);
+    initFolderChooser(ui->dataFolderLineEdit, ui->dataFolderBrowsePushButton);
 
-	initCombobox(logLevelComboBox);
+    initCombobox(ui->logLevelComboBox);
 
-	initIPAddressBox(routerExternalHostLineEdit, tr("Router external address -> Host"));
-	initTCPPortBox(routerExternalPortLineEdit, tr("Router external address -> Port"));
+    initIPAddressBox(ui->routerExternalHostLineEdit, tr("Router external address -> Host"));
+    initTCPPortBox(ui->routerExternalPortLineEdit, tr("Router external address -> Port"));
 
-	initCheckBox(ipv6CheckBox);
-	initCheckBox(notransitCheckBox);
-	initCheckBox(floodfillCheckBox);
-	initIntegerBox(bandwidthLineEdit);
-	initStringBox(familyLineEdit);
-	initIntegerBox(netIdLineEdit);
+    initCheckBox(ui->ipv6CheckBox);
+    initCheckBox(ui->notransitCheckBox);
+    initCheckBox(ui->floodfillCheckBox);
+    initIntegerBox(ui->bandwidthLineEdit);
+    initStringBox(ui->familyLineEdit);
+    initIntegerBox(ui->netIdLineEdit);
 	
-	initCheckBox(insomniaCheckBox);
+    initCheckBox(ui->insomniaCheckBox);
 
-	initCheckBox(webconsoleEnabledCheckBox);
-	initIPAddressBox(webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
-	initTCPPortBox(webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
-	initCheckBox(webconsoleBasicAuthCheckBox);
-	initStringBox(webconsoleUserNameLineEditBasicAuth);
-	initStringBox(webconsolePasswordLineEditBasicAuth);
+    initCheckBox(ui->webconsoleEnabledCheckBox);
+    initIPAddressBox(ui->webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
+    initTCPPortBox(ui->webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
+    initCheckBox(ui->webconsoleBasicAuthCheckBox);
+    initStringBox(ui->webconsoleUserNameLineEditBasicAuth);
+    initStringBox(ui->webconsolePasswordLineEditBasicAuth);
 
-	initCheckBox(httpProxyEnabledCheckBox);
-	initIPAddressBox(httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
-	initTCPPortBox(httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
-	initIntegerBox(httpProxyInboundTunnelsLenLineEdit);
-	initIntegerBox(httpProxyInboundTunnQuantityLineEdit);
-	initIntegerBox(httpProxyOutBoundTunnLenLineEdit);
-	initIntegerBox(httpProxyOutboundTunnQuantityLineEdit);
+    initCheckBox(ui->httpProxyEnabledCheckBox);
+    initIPAddressBox(ui->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
+    initTCPPortBox(ui->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
+    initIntegerBox(ui->httpProxyInboundTunnelsLenLineEdit);
+    initIntegerBox(ui->httpProxyInboundTunnQuantityLineEdit);
+    initIntegerBox(ui->httpProxyOutBoundTunnLenLineEdit);
+    initIntegerBox(ui->httpProxyOutboundTunnQuantityLineEdit);
 
-	initCheckBox(socksProxyEnabledCheckBox);
-	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
-	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
-	initIntegerBox(socksProxyInboundTunnelsLenLineEdit);
-	initIntegerBox(socksProxyInboundTunnQuantityLineEdit);
-	initIntegerBox(socksProxyOutBoundTunnLenLineEdit);
-	initIntegerBox(socksProxyOutboundTunnQuantityLineEdit);
-	initIPAddressBox(outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
-	initTCPPortBox(outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
+    initCheckBox(ui->socksProxyEnabledCheckBox);
+    initIPAddressBox(ui->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+    initTCPPortBox(ui->socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+    initIntegerBox(ui->socksProxyInboundTunnelsLenLineEdit);
+    initIntegerBox(ui->socksProxyInboundTunnQuantityLineEdit);
+    initIntegerBox(ui->socksProxyOutBoundTunnLenLineEdit);
+    initIntegerBox(ui->socksProxyOutboundTunnQuantityLineEdit);
+    initIPAddressBox(ui->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
+    initTCPPortBox(ui->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
 
-	initCheckBox(socksProxyEnabledCheckBox);
-	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
-	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+    initCheckBox(ui->samEnabledCheckBox);
+    initIPAddressBox(ui->samAddressLineEdit, tr("SAM -> IP address"));
+    initTCPPortBox(ui->samPortLineEdit, tr("SAM -> Port"));
 
-	initCheckBox(socksProxyEnabledCheckBox);
-	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
-	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+    initCheckBox(ui->bobEnabledCheckBox);
+    initIPAddressBox(ui->bobAddressLineEdit, tr("BOB -> IP address"));
+    initTCPPortBox(ui->bobPortLineEdit, tr("BOB -> Port"));
 
-	initCheckBox(socksProxyEnabledCheckBox);
-	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
-	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+    initCheckBox(ui->i2cpEnabledCheckBox);
+    initIPAddressBox(ui->i2cpAddressLineEdit, tr("I2CP -> IP address"));
+    initTCPPortBox(ui->i2cpPortLineEdit, tr("I2CP -> Port"));
 
-	initCheckBox(socksProxyEnabledCheckBox);
-	initIPAddressBox(socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
-	initTCPPortBox(socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+    initCheckBox(ui->i2pControlEnabledCheckBox);
+    initIPAddressBox(ui->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
+    initTCPPortBox(ui->i2pControlPortLineEdit, tr("I2PControl -> Port"));
+    initStringBox(ui->i2pControlPasswordLineEdit);
+	
+    initCheckBox(ui->enableUPnPCheckBox);
+    initStringBox(ui->upnpNameLineEdit);
+	
+    initCheckBox(ui->useElGamalPrecomputedTablesCheckBox);
+	
+    initCheckBox(ui->reseedVerifyCheckBox);
+    initStringBox(ui->reseedURLsLineEdit);
+	
+    initStringBox(ui->addressbookDefaultURLLineEdit);
+    initStringBox(ui->addressbookSubscriptionsURLslineEdit);
+	
+    initIntegerBox(ui->maxNumOfTransitTunnelsLineEdit);
+    initIntegerBox(ui->maxNumOfOpenFilesLineEdit);
+    initIntegerBox(ui->coreFileMaxSizeNumberLineEdit);
 
     loadAllConfigs();
 
@@ -235,7 +251,6 @@ void MainWindow::handleQuitButton() {
 
 void MainWindow::handleGracefulQuitButton() {
     qDebug("Graceful Quit pressed.");
-    /*
     ui->gracefulQuitPushButton->setText(QApplication::translate("MainWindow", "Graceful quit is in progress", 0));
     ui->gracefulQuitPushButton->setEnabled(false);
     ui->gracefulQuitPushButton->adjustSize();
@@ -243,7 +258,6 @@ void MainWindow::handleGracefulQuitButton() {
     i2p::context.SetAcceptsTunnels (false); // stop accpting tunnels
     QTimer::singleShot(10*60*1000//millis
         , this, SLOT(handleGracefulQuitTimerEvent()));
-    */
 }
 
 void MainWindow::handleGracefulQuitTimerEvent() {
@@ -263,3 +277,15 @@ MainWindow::~MainWindow()
     //delete ui;
     //QMessageBox::information(0, "Debug", "mw destructor 2");
 }
+
+void MainWindow::initFileChooser(QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton){}
+void MainWindow::initFolderChooser(QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton){}
+void MainWindow::initCombobox(QComboBox* comboBox){}
+void MainWindow::initIPAddressBox(QLineEdit* addressLineEdit, QString fieldNameTranslated){}
+void MainWindow::initTCPPortBox(QLineEdit* portLineEdit, QString fieldNameTranslated){}
+void MainWindow::initCheckBox(QCheckBox* checkBox){}
+void MainWindow::initIntegerBox(QLineEdit* numberLineEdit){}
+void MainWindow::initStringBox(QLineEdit* lineEdit){}
+
+void MainWindow::loadAllConfigs(){}
+void MainWindow::saveAllConfigs(){}

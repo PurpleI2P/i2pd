@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>816</width>
-    <height>3000</height>
+    <height>5000</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,7 +26,7 @@
       <x>10</x>
       <y>10</y>
       <width>801</width>
-      <height>491</height>
+      <height>5000</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -114,7 +114,7 @@
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>516</height>
+         <height>5000</height>
         </size>
        </property>
        <property name="currentIndex">
@@ -127,7 +127,7 @@
            <x>0</x>
            <y>0</y>
            <width>671</width>
-           <height>491</height>
+           <height>5000</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -175,7 +175,7 @@
            <x>0</x>
            <y>0</y>
            <width>701</width>
-           <height>460</height>
+           <height>5000</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -213,8 +213,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>683</width>
-               <height>426</height>
+               <width>684</width>
+               <height>427</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -229,7 +229,7 @@
                 <x>10</x>
                 <y>11</y>
                 <width>661</width>
-                <height>3000</height>
+                <height>5000</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="settingsContentsGridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
@@ -2223,7 +2223,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="maxNumOfTransitTunnelsLineEdit"/>
+                    <widget class="QLineEdit" name="lineEdit"/>
                    </item>
                    <item>
                     <spacer name="horizontalSpacer_23">
@@ -2258,7 +2258,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="maxNumOfOpenFilesLineEdit"/>
+                    <widget class="QLineEdit" name="lineEdit_2"/>
                    </item>
                    <item>
                     <spacer name="horizontalSpacer_24">
@@ -2293,7 +2293,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QLineEdit" name="coreFileMaxSizeNumberLineEdit"/>
+                    <widget class="QLineEdit" name="lineEdit_3"/>
                    </item>
                    <item>
                     <spacer name="horizontalSpacer_25">
@@ -2736,8 +2736,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>84</width>
-               <height>28</height>
+               <width>664</width>
+               <height>427</height>
               </rect>
              </property>
             </widget>
