@@ -328,40 +328,7 @@ namespace data
 			}
 		}
 
-
-		std::string su3FileName; i2p::config::GetOption("reseed.file", su3FileName);
-		std::string zipFileName; i2p::config::GetOption("reseed.zipfile", zipFileName);
-
-		if (su3FileName.length() > 0) // bootstrap from SU3 file or URL
-		{
-                    int num;
-                    if (su3FileName.length() > 8 && su3FileName.substr(0, 8) == "https://")
-                    {
-			num = m_Reseeder->ReseedFromSU3Url (su3FileName); // from https URL
-                    }
-                    else
-                    {
-			num = m_Reseeder->ProcessSU3File (su3FileName.c_str ());
-                    }
-                    if (num == 0)
-                        LogPrint (eLogWarning, "NetDb: failed to reseed from ", su3FileName);
-                    return;
-		}
-                else if (zipFileName.length() > 0) // bootstrap from ZIP file
-		{
-                    int num = m_Reseeder->ProcessZIPFile (zipFileName.c_str ());
-                    if (num == 0)
-                        LogPrint (eLogWarning, "NetDb: failed to reseed from ", zipFileName);
-                    return;
-                }
-                else // bootstrap from reseed servers
-                {
-                    int reseedRetries = 0;
-                    while (reseedRetries < 10 && !m_Reseeder->ReseedFromServers ())
-                            reseedRetries++;
-                    if (reseedRetries >= 10)
-                            LogPrint (eLogWarning, "NetDb: failed to reseed after 10 attempts");
-                }
+                m_Reseeder->Bootstrap ();
 	}
 
 	void NetDb::ReseedFromFloodfill(const RouterInfo & ri, int numRouters, int numFloodfills)
