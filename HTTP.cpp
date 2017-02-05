@@ -1,14 +1,15 @@
 /*
-* Copyright (c) 2013-2016, The PurpleI2P Project
+* Copyright (c) 2013-2017, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
 * See full license text in LICENSE file at top of project tree
 */
 
+#include <algorithm>
+#include <utility>
 #include "util.h"
 #include "HTTP.h"
-#include <algorithm>
 #include <ctime>
 
 namespace i2p {
@@ -43,18 +44,16 @@ namespace http {
     }
   }
 
-  bool parse_header_line(const std::string & line, std::map<std::string, std::string> & headers) {
+  static std::pair<std::string, std::string> parse_header_line(const std::string& line) 
+  {
     std::size_t pos = 0;
     std::size_t len = 2; /* strlen(": ") */
     std::size_t max = line.length();
     if ((pos = line.find(": ", pos)) == std::string::npos)
-      return false;
+      return std::make_pair("", "");
     while ((pos + len) < max && isspace(line.at(pos + len)))
       len++;
-    std::string name  = line.substr(0, pos);
-    std::string value = line.substr(pos + len);
-    headers[name] = value;
-    return true;
+    return std::make_pair(line.substr(0, pos), line.substr(pos + len));
   }
 
   void gen_rfc1123_date(std::string & out) {
@@ -247,10 +246,15 @@ namespace http {
         uri     = tokens[1];
         version = tokens[2];
         expect = HEADER_LINE;
-      } else {
+      } 
+	  else 
+	  {
         std::string line = str.substr(pos, eol - pos);
-        if (!parse_header_line(line, headers))
-          return -1;
+        auto p = parse_header_line(line);
+		if (p.first.length () > 0)
+			headers.push_back (p);
+		else  
+            return -1;
       }
       pos = eol + strlen(CRLF);
       if (pos >= eoh)
@@ -259,12 +263,12 @@ namespace http {
     return eoh + strlen(HTTP_EOH);
   }
 
-  void HTTPReq::write(std::ostream & o) {
-		o << method << " " << uri << " " << version << CRLF;
-    for (auto & h : headers) {
-      o << h.first << ": " << h.second << CRLF;
-    }
-    o << CRLF;
+  void HTTPReq::write(std::ostream & o) 
+  {
+	  o << method << " " << uri << " " << version << CRLF;
+	  for (auto & h : headers) 
+  		o << h.first << ": " << h.second << CRLF;
+	  o << CRLF;
   }
 
 	std::string HTTPReq::to_string()
@@ -274,6 +278,40 @@ namespace http {
 		return ss.str();
 	}
 
+	void HTTPReq::AddHeader (const std::string& name, const std::string& value)
+	{	
+		headers.push_back (std::make_pair(name, value));
+	}
+
+	void HTTPReq::UpdateHeader (const std::string& name, const std::string& value)
+	{
+		 for (auto& it : headers)
+			if (it.first == name)
+			{
+				it.second = value;
+				break;
+			}	
+	}	
+	
+	void HTTPReq::RemoveHeader (const std::string& name)
+	{
+		for (auto it = headers.begin (); it != headers.end ();)
+		{
+			if (!it->first.compare(0, name.length (), name))	
+				it = headers.erase (it);
+			else
+				it++;
+		}	
+	}	
+
+	std::string HTTPReq::GetHeader (const std::string& name) const 
+	{
+		 for (auto& it : headers)
+			if (it.first == name)
+				return it.second;	
+		return "";
+	}	
+	
   bool HTTPRes::is_chunked() {
     auto it = headers.find("Transfer-Encoding");
     if (it == headers.end())
@@ -335,7 +373,10 @@ namespace http {
         expect = HEADER_LINE;
       } else {
         std::string line = str.substr(pos, eol - pos);
-        if (!parse_header_line(line, headers))
+        auto p = parse_header_line(line);
+		if (p.first.length () > 0)
+			headers.insert (p);  
+		else	  
           return -1;
       }
       pos = eol + strlen(CRLF);

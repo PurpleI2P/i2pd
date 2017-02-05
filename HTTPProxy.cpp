@@ -200,26 +200,16 @@ namespace proxy {
 	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq & req)
 	{
 		/* drop common headers */
-		req.del_header("Referer");
-		req.del_header("Via");
-		req.del_header("Forwarded");
+		req.RemoveHeader ("Referer");
+		req.RemoveHeader("Via");
+		req.RemoveHeader("Forwarded");
 		/* drop proxy-disclosing headers */
-		std::vector<std::string> toErase;
-		for (const auto& it : req.headers) {
-			if (it.first.compare(0, 12, "X-Forwarded-") == 0) {
-				toErase.push_back(it.first);
-			} else if (it.first.compare(0, 6, "Proxy-") == 0) {
-				toErase.push_back(it.first);
-			} else {
-				/* allow */
-			}
-		}
-		for (const auto& header : toErase) {
-			req.headers.erase(header);
-		}
+		req.RemoveHeader("X-Forwarded");
+		req.RemoveHeader("Proxy-");		
 		/* replace headers */
-		req.add_header("Connection", "close", true); /* keep-alive conns not supported yet */
-		req.add_header("User-Agent", "MYOB/6.66 (AN/ON)", true); /* privacy */
+		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
+		/* add headers */
+		req.AddHeader("Connection", "close"); /* keep-alive conns not supported yet */
 	}
 
 	/**
@@ -263,29 +253,36 @@ namespace proxy {
 		std::string dest_host = m_RequestURL.host;
 		uint16_t    dest_port = m_RequestURL.port;
 		/* always set port, even if missing in request */
-		if (!dest_port) {
+		if (!dest_port)
 			dest_port = (m_RequestURL.schema == "https") ? 443 : 80;
-		}
 		/* detect dest_host, set proper 'Host' header in upstream request */
-		auto h = m_ClientRequest.headers.find("Host");
-		if (dest_host != "") {
+		if (dest_host != "") 
+		{
 			/* absolute url, replace 'Host' header */
 			std::string h = dest_host;
 			if (dest_port != 0 && dest_port != 80)
 				h += ":" + std::to_string(dest_port);
-			m_ClientRequest.add_header("Host", h, true);
-		} else if (h != m_ClientRequest.headers.end()) {
-			/* relative url and 'Host' header provided. transparent proxy mode? */
-			i2p::http::URL u;
-			std::string t = "http://" + h->second;
-			u.parse(t);
-			dest_host = u.host;
-			dest_port = u.port;
-		} else {
-			/* relative url and missing 'Host' header */
-			GenericProxyError("Invalid request", "Can't detect destination host from request");
-			return true;
-		}
+			m_ClientRequest.UpdateHeader("Host", h);
+		} 
+		else
+		{	
+			auto h = m_ClientRequest.GetHeader ("Host");
+			if (h.length () > 0) 
+			{
+				/* relative url and 'Host' header provided. transparent proxy mode? */
+				i2p::http::URL u;
+				std::string t = "http://" + h;
+				u.parse(t);
+				dest_host = u.host;
+				dest_port = u.port;
+			} 
+			else 
+			{
+				/* relative url and missing 'Host' header */
+				GenericProxyError("Invalid request", "Can't detect destination host from request");
+				return true;
+			}
+		}	
 
 		/* check dest_host really exists and inside I2P network */
 		i2p::data::IdentHash identHash;

@@ -703,13 +703,13 @@ namespace client
 		int         dest_port = url.port ? url.port : 80;
 		/* create http request & send it */
 		i2p::http::HTTPReq req;
-		req.add_header("Host", dest_host);
-		req.add_header("User-Agent", "Wget/1.11.4");
-		req.add_header("Connection", "close");
+		req.AddHeader("Host", dest_host);
+		req.AddHeader("User-Agent", "Wget/1.11.4");
+		req.AddHeader("Connection", "close");
 		if (!m_Etag.empty())
-			req.add_header("If-None-Match", m_Etag);
+			req.AddHeader("If-None-Match", m_Etag);
 		if (!m_LastModified.empty())
-			req.add_header("If-Modified-Since", m_LastModified);
+			req.AddHeader("If-Modified-Since", m_LastModified);
 		/* convert url to relative */
 		url.schema = "";
 		url.host   = "";

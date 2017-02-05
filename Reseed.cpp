@@ -517,8 +517,8 @@ namespace data
 					LogPrint (eLogDebug, "Reseed: Connected to ", url.host, ":", url.port);
 					i2p::http::HTTPReq req;
 					req.uri = url.to_string();
-					req.add_header("User-Agent", "Wget/1.11.4");
-					req.add_header("Connection", "close");
+					req.AddHeader("User-Agent", "Wget/1.11.4");
+					req.AddHeader("Connection", "close");
 					s.write_some (boost::asio::buffer (req.to_string()));
 					// read response
 					std::stringstream rs;
