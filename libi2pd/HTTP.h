@@ -56,6 +56,11 @@ namespace http
      * @note Returns relative url if schema if empty, absolute url otherwise
      */
     std::string to_string ();
+
+    /**
+     * @brief return true if the host is inside i2p
+     */
+    bool is_i2p() const;
   };
 
   struct HTTPMsg 
@@ -89,7 +94,7 @@ namespace http
 
     /** @brief Serialize HTTP request to string */
     std::string to_string();
-	void write(std::ostream & o);
+		void write(std::ostream & o);
 
 	void AddHeader (const std::string& name, const std::string& value);
 	void UpdateHeader (const std::string& name, const std::string& value);  
@@ -131,7 +136,7 @@ namespace http
     std::string to_string();
 
 		void write(std::ostream & o);
-		
+
     /** @brief Checks that response declared as chunked data */
     bool is_chunked() const ;
 

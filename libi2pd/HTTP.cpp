@@ -29,7 +29,7 @@ namespace http {
   inline bool is_http_method(const std::string & str) {
     return std::find(HTTP_METHODS.begin(), HTTP_METHODS.end(), str) != std::end(HTTP_METHODS);
   }
-  
+
   void strsplit(const std::string & line, std::vector<std::string> &tokens, char delim, std::size_t limit = 0) {
     std::size_t count = 0;
     std::stringstream ss(line);
@@ -194,6 +194,11 @@ namespace http {
       out += "#" + frag;
     return out;
   }
+
+	bool URL::is_i2p() const
+	{
+		return host.rfind(".i2p") == ( host.size() - 4 );
+	}
 
   void HTTPMsg::add_header(const char *name, std::string & value, bool replace) {
     add_header(name, value.c_str(), replace);
