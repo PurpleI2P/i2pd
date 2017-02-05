@@ -180,8 +180,9 @@ namespace config {
 		"https://download.xxlspeed.com/,"
 		"https://reseed-ru.lngserv.ru/,"
 	    "https://reseed.atomike.ninja/,"
-	    "https://reseed.memcpy.io/",
-	    "https://reseed.onion.im/"                                                  
+	    "https://reseed.memcpy.io/,"
+	    "https://reseed.onion.im/,"
+	    "https://itoopie.atomike.ninja/"
 		),  "Reseed URLs, separated by comma")
 	  ;	
 
