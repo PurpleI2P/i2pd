@@ -203,7 +203,8 @@ namespace tunnel
 	{
 		m_Buffer.CompleteCurrentTunnelDataMessage ();
 		std::vector<std::shared_ptr<I2NPMessage> > newTunnelMsgs;
-		for (auto& tunnelMsg : m_Buffer.GetTunnelDataMsgs ())
+		const auto& tunnelDataMsgs = m_Buffer.GetTunnelDataMsgs ();
+		for (auto& tunnelMsg : tunnelDataMsgs)
 		{	
 			auto newMsg = CreateEmptyTunnelDataMsg ();
 			m_Tunnel->EncryptTunnelMsg (tunnelMsg, newMsg); 
