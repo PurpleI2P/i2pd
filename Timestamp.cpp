@@ -5,6 +5,12 @@
 #include "I2PEndian.h"
 #include "Timestamp.h"
 
+#ifdef WIN32
+	#ifndef _WIN64
+		#define _USE_32BIT_TIME_T
+	#endif
+#endif
+
 namespace i2p
 {
 namespace util
@@ -33,17 +39,17 @@ namespace util
 					socket.send_to (boost::asio::buffer (buf, 48), ep);
 					int i = 0;
 					while (!socket.available() && i < 10) // 10 seconds max
-					{	
+					{
 						std::this_thread::sleep_for (std::chrono::seconds(1)); 
 						i++;
-					}	
+					}
 					if (socket.available ())
 						len = socket.receive_from (boost::asio::buffer (buf, 48), ep);
 				}
 				catch (std::exception& e)
 				{
 					LogPrint (eLogError, "NTP error: ", e.what ());
-				}	
+				}
 				if (len >= 8)
 				{
 					auto ourTs = GetSecondsSinceEpoch ();
@@ -51,10 +57,10 @@ namespace util
 					if (ts > 2208988800U) ts -= 2208988800U; // 1/1/1970 from 1/1/1900
 					g_TimeOffset = ts - ourTs;
 					LogPrint (eLogInfo,  address, " time offset from system time is ", g_TimeOffset, " seconds");
-				}	
+				}
 			}
 		}
-	}	
+	}
 }
 }
 
