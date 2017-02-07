@@ -498,7 +498,7 @@ namespace proxy {
 		if (Kill())
 			return;
 		LogPrint (eLogDebug, "HTTPProxy: Created new I2PTunnel stream, sSID=", stream->GetSendStreamID(), ", rSID=", stream->GetRecvStreamID());
-		auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, stream);
+		auto connection = std::make_shared<i2p::client::I2PClientTunnelConnectionHTTP>(GetOwner(), m_sock, stream);
 		GetOwner()->AddHandler (connection);
 		connection->I2PConnect (reinterpret_cast<const uint8_t*>(m_send_buf.data()), m_send_buf.length());
 		Done (shared_from_this());
