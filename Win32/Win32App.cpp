@@ -80,9 +80,47 @@ namespace win32
 		Shell_NotifyIcon (NIM_DELETE, &nid);
 	}
 
-	void PrintMainWindowText (std::stringstream& s)
+	static void ShowUptime (std::stringstream& s, int seconds) 
 	{
-		s << "NetStatus: ";
+		int num;
+
+		if ((num = seconds / 86400) > 0) {
+			s << num << " days, ";
+			seconds -= num * 86400;
+		}
+		if ((num = seconds / 3600) > 0) {
+			s << num << " hours, ";
+			seconds -= num * 3600;
+		}
+		if ((num = seconds / 60) > 0) {
+			s << num << " min, ";
+			seconds -= num * 60;
+		}
+		s << seconds << " seconds\n";
+	}
+
+	static void ShowTransfered (std::stringstream& s, int transfer)
+	{
+		auto bytes = transfer & 0x03ff;
+		transfer >>= 10;
+		auto kbytes = transfer & 0x03ff;
+		transfer >>= 10;
+		auto mbytes = transfer & 0x03ff;
+		transfer >>= 10;
+		auto gbytes = transfer & 0x03ff;
+
+		if (gbytes)
+			s << gbytes << " GB, ";
+		if (mbytes)
+			s << mbytes << " MB, ";
+		if (kbytes)
+			s << kbytes << " KB, ";
+		s << bytes << " Bytes\n";
+	}
+
+	static void PrintMainWindowText (std::stringstream& s)
+	{
+		s << "Status: ";
 		switch (i2p::context.GetStatus())
 		{
 			case eRouterStatusOK: s << "OK"; break;
@@ -100,13 +138,13 @@ namespace win32
 			default: s << "Unknown";
 		}
 		s << "; ";
-		s << "SuccRate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
-		s << "Uptime: " << i2p::context.GetUptime() << " seconds\n";
+		s << "Success Rate: " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate() << "%\n";
+		s << "Uptime: "; ShowUptime(s, i2p::context.GetUptime ());
 		s << "\n";
-		s << "InBand: " << i2p::transport::transports.GetInBandwidth() << " Bytes/s; ";
-		s << "OutBand: " << i2p::transport::transports.GetOutBandwidth() << " Bytes/s\n";
-		s << "Recv: " << i2p::transport::transports.GetTotalReceivedBytes() << " Bytes; ";
-		s << "Sent: " << i2p::transport::transports.GetTotalSentBytes() << " Bytes\n";
+		s << "Inbound: " << i2p::transport::transports.GetInBandwidth() / 1024 << " KiB/s; ";
+		s << "Outbound: " << i2p::transport::transports.GetOutBandwidth() / 1024 << " KiB/s\n";
+		s << "Recvieved: "; ShowTransfered (s, i2p::transport::transports.GetTotalReceivedBytes());
+		s << "Sent: "; ShowTransfered (s, i2p::transport::transports.GetTotalSentBytes());
 		s << "\n";
 		s << "Routers: " << i2p::data::netdb.GetNumRouters () << "; ";
 		s << "Floodfills: " << i2p::data::netdb.GetNumFloodfills () << "; ";
@@ -282,7 +320,7 @@ namespace win32
 		wclx.lpszClassName = I2PD_WIN32_CLASSNAME;
 		RegisterClassEx (&wclx);
 		// create new window
-		if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 400, 180, NULL, NULL, hInst, NULL))
+		if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 350, 180, NULL, NULL, hInst, NULL))
 		{
 			MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
 			return false;
