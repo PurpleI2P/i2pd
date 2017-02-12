@@ -64,7 +64,7 @@ namespace http {
     void del_header(const char *name);
 
     /** @brief Returns declared message length or -1 if unknown */
-    long int content_length();
+    long int content_length() const;
   };
 
   struct HTTPReq 
@@ -129,10 +129,10 @@ namespace http {
 		void write(std::ostream & o);
 		
     /** @brief Checks that response declared as chunked data */
-    bool is_chunked();
+    bool is_chunked() const ;
 
     /** @brief Checks that response contains compressed data */
-    bool is_gzipped();
+    bool is_gzipped(bool includingI2PGzip = true) const;
   };
 
   /**

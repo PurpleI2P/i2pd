@@ -705,6 +705,7 @@ namespace client
 		i2p::http::HTTPReq req;
 		req.AddHeader("Host", dest_host);
 		req.AddHeader("User-Agent", "Wget/1.11.4");
+		req.AddHeader("X-Accept-Encoding", "x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n");
 		req.AddHeader("Connection", "close");
 		if (!m_Etag.empty())
 			req.AddHeader("If-None-Match", m_Etag);
@@ -721,7 +722,9 @@ namespace client
 		std::string response;
 		uint8_t recv_buf[4096];
 		bool end = false;
-		while (!end) {
+		int numAttempts = 5;
+		while (!end) 
+		{
 			stream->AsyncReceive (boost::asio::buffer (recv_buf, 4096),
 				[&](const boost::system::error_code& ecode, std::size_t bytes_transferred)
 				{
@@ -734,60 +737,69 @@ namespace client
 				30); // wait for 30 seconds
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
 			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+			{	
 				LogPrint (eLogError, "Addressbook: subscriptions request timeout expired");
+				numAttempts++;
+				if (numAttempts > 5) end = true;
+			}	
 		}
 		// process remaining buffer
-		while (size_t len = stream->ReadSome (recv_buf, sizeof(recv_buf))) {
+		while (size_t len = stream->ReadSome (recv_buf, sizeof(recv_buf))) 
 			response.append ((char *)recv_buf, len);
-		}
 		/* parse response */
 		i2p::http::HTTPRes res;
 		int res_head_len = res.parse(response);
-		if (res_head_len < 0) {
+		if (res_head_len < 0) 
+		{
 			LogPrint(eLogError, "Addressbook: can't parse http response from ", dest_host);
 			return false;
 		}
-		if (res_head_len == 0) {
+		if (res_head_len == 0) 
+		{
 			LogPrint(eLogError, "Addressbook: incomplete http response from ", dest_host, ", interrupted by timeout");
 			return false;
 		}
 		/* assert: res_head_len > 0 */
 		response.erase(0, res_head_len);
-		if (res.code == 304) {
+		if (res.code == 304) 
+		{
 			LogPrint (eLogInfo, "Addressbook: no updates from ", dest_host, ", code 304");
 			return false;
 		}
-		if (res.code != 200) {
+		if (res.code != 200) 
+		{
 			LogPrint (eLogWarning, "Adressbook: can't get updates from ", dest_host, ", response code ", res.code);
 			return false;
 		}
 		int len = res.content_length();
-		if (response.empty()) {
+		if (response.empty()) 
+		{
 			LogPrint(eLogError, "Addressbook: empty response from ", dest_host, ", expected ", len, " bytes");
 			return false;
 		}
-		if (len > 0 && len != (int) response.length()) {
-			LogPrint(eLogError, "Addressbook: response size mismatch, expected: ", response.length(), ", got: ", len, "bytes");
+		if (!res.is_gzipped () && len > 0 && len != (int) response.length()) 
+		{
+			LogPrint(eLogError, "Addressbook: response size mismatch, expected: ", len, ", got: ", response.length(), "bytes");
 			return false;
 		}
 		/* assert: res.code == 200 */
 		auto it = res.headers.find("ETag");
-		if (it != res.headers.end()) {
-			m_Etag = it->second;
-		}
+		if (it != res.headers.end()) m_Etag = it->second;
 		it = res.headers.find("If-Modified-Since");
-		if (it != res.headers.end()) {
-			m_LastModified = it->second;
-		}
-		if (res.is_chunked()) {
+		if (it != res.headers.end()) m_LastModified = it->second;
+		if (res.is_chunked()) 
+		{
 			std::stringstream in(response), out;
 			i2p::http::MergeChunkedResponse (in, out);
 			response = out.str();
-		} else if (res.is_gzipped()) {
+		} 
+		else if (res.is_gzipped()) 
+		{
 			std::stringstream out;
 			i2p::data::GzipInflator inflator;
 			inflator.Inflate ((const uint8_t *) response.data(), response.length(), out);
-			if (out.fail()) {
+			if (out.fail()) 
+			{
 				LogPrint(eLogError, "Addressbook: can't gunzip http response");
 				return false;
 			}
