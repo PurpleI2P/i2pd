@@ -30,7 +30,7 @@ namespace transport
 
 	struct SSUPacket
 	{
-		i2p::crypto::AESAlignedBuffer<SSU_MTU_V4 + 18> buf; // max MTU + iv + size
+		i2p::crypto::AESAlignedBuffer<SSU_MTU_V6 + 18> buf; // max MTU + iv + size
 		boost::asio::ip::udp::endpoint from;
 		size_t len;
 	};	

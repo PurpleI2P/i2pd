@@ -21,13 +21,13 @@ namespace transport
 	#ifdef MESHNET
 	const size_t SSU_MTU_V6 = 1286;
 	#else
-	const size_t SSU_MTU_V6 = 1472;
+	const size_t SSU_MTU_V6 = 1488;
 	#endif
 	const size_t IPV4_HEADER_SIZE = 20;
 	const size_t IPV6_HEADER_SIZE = 40;	
 	const size_t UDP_HEADER_SIZE = 8;
 	const size_t SSU_V4_MAX_PACKET_SIZE = SSU_MTU_V4 - IPV4_HEADER_SIZE - UDP_HEADER_SIZE; // 1456
-	const size_t SSU_V6_MAX_PACKET_SIZE = SSU_MTU_V6 - IPV6_HEADER_SIZE - UDP_HEADER_SIZE; // 1424
+	const size_t SSU_V6_MAX_PACKET_SIZE = SSU_MTU_V6 - IPV6_HEADER_SIZE - UDP_HEADER_SIZE; // 1440
 	const int RESEND_INTERVAL = 3; // in seconds
 	const int MAX_NUM_RESENDS = 5;
 	const int DECAY_INTERVAL = 20; // in seconds
