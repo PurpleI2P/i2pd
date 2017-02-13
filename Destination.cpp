@@ -14,8 +14,8 @@ namespace client
 {
 	LeaseSetDestination::LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params):
 		m_IsRunning (false), m_Thread (nullptr), m_IsPublic (isPublic), 
-		m_PublishReplyToken (0), m_PublishConfirmationTimer (m_Service), 
-		m_PublishVerificationTimer (m_Service), m_CleanupTimer (m_Service)
+		m_PublishReplyToken (0), m_LastSubmissionTime (0), m_PublishConfirmationTimer (m_Service), 
+		m_PublishVerificationTimer (m_Service), m_PublishDelayTimer (m_Service), m_CleanupTimer (m_Service)
 	{
 		int inLen   = DEFAULT_INBOUND_TUNNEL_LENGTH;
 		int inQty   = DEFAULT_INBOUND_TUNNELS_QUANTITY;
@@ -426,6 +426,16 @@ namespace client
 			LogPrint (eLogDebug, "Destination: Publishing LeaseSet is pending");
 			return;
 		}
+		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		if (ts < m_LastSubmissionTime + PUBLISH_MIN_INTERVAL)
+		{
+			LogPrint (eLogDebug, "Destination: Publishing LeaseSet is too fast. Wait for ", PUBLISH_MIN_INTERVAL, " seconds");
+			m_PublishDelayTimer.cancel ();
+			m_PublishDelayTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_MIN_INTERVAL));
+			m_PublishDelayTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishDelayTimer,
+				shared_from_this (), std::placeholders::_1));	
+			return;
+		}	
 		auto outbound = m_Pool->GetNextOutboundTunnel ();
 		if (!outbound)
 		{
@@ -453,6 +463,7 @@ namespace client
 		m_PublishConfirmationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishConfirmationTimer,
 			shared_from_this (), std::placeholders::_1));	
 		outbound->SendTunnelDataMsg (floodfill->GetIdentHash (), 0, msg);	
+		m_LastSubmissionTime = ts;
 	}
 
 	void LeaseSetDestination::HandlePublishConfirmationTimer (const boost::system::error_code& ecode)
@@ -498,6 +509,12 @@ namespace client
 		}
 	}
 
+	void LeaseSetDestination::HandlePublishDelayTimer (const boost::system::error_code& ecode)
+	{
+		if (ecode != boost::asio::error::operation_aborted)
+			Publish ();
+	}	
+		
 	bool LeaseSetDestination::RequestDestination (const i2p::data::IdentHash& dest, RequestComplete requestComplete)
 	{
 		if (!m_Pool || !IsReady ()) 
