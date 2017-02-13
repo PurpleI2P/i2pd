@@ -289,6 +289,7 @@ namespace win32
 				hFont = CreateFont(18,0,0,0,0,0,0,0,DEFAULT_CHARSET,0,0,0,0,TEXT("Times New Roman"));
 				SelectObject(hDC,hFont);
 				DrawText(hDC, TEXT(s.str().c_str()), s.str().length(), &rp, DT_CENTER|DT_VCENTER);
+				DeleteObject(hFont);
 				EndPaint(hWnd, &ps);
 				break;
 			}
@@ -310,12 +311,13 @@ namespace win32
 		wclx.cbSize = sizeof(wclx);
 		wclx.style = 0;
 		wclx.lpfnWndProc = WndProc;
-		wclx.cbClsExtra = 0;
-		wclx.cbWndExtra = 0;
+		//wclx.cbClsExtra = 0;
+		//wclx.cbWndExtra = 0;
 		wclx.hInstance = hInst;
 		wclx.hIcon = LoadIcon (hInst, MAKEINTRESOURCE(MAINICON));
 		wclx.hCursor = LoadCursor (NULL, IDC_ARROW);
-		wclx.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+		//wclx.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+		wclx.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 		wclx.lpszMenuName = NULL;
 		wclx.lpszClassName = I2PD_WIN32_CLASSNAME;
 		RegisterClassEx (&wclx);
