@@ -30,6 +30,7 @@ namespace client
 	const uint8_t PROTOCOL_TYPE_RAW = 18;	
 	const int PUBLISH_CONFIRMATION_TIMEOUT = 5; // in seconds
 	const int PUBLISH_VERIFICATION_TIMEOUT = 10; // in seconds after successfull publish
+	const int PUBLISH_MIN_INTERVAL = 20; // in seconds 
 	const int PUBLISH_REGULAR_VERIFICATION_INTERNAL = 100; // in seconds periodically	
 	const int LEASESET_REQUEST_TIMEOUT = 5; // in seconds
 	const int MAX_LEASESET_REQUEST_TIMEOUT = 40; // in seconds
@@ -122,6 +123,7 @@ namespace client
 			void Publish ();
 			void HandlePublishConfirmationTimer (const boost::system::error_code& ecode);
 			void HandlePublishVerificationTimer (const boost::system::error_code& ecode);
+			void HandlePublishDelayTimer (const boost::system::error_code& ecode);
 			void HandleDatabaseStoreMessage (const uint8_t * buf, size_t len);
 			void HandleDatabaseSearchReplyMessage (const uint8_t * buf, size_t len);
 			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);		
@@ -146,9 +148,11 @@ namespace client
 			std::shared_ptr<i2p::data::LocalLeaseSet> m_LeaseSet;
 			bool m_IsPublic;
 			uint32_t m_PublishReplyToken;
+			uint64_t m_LastSubmissionTime; // in seconds
 			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
 	
-			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer, m_CleanupTimer;
+			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer, 
+				m_PublishDelayTimer, m_CleanupTimer;
 
 		public:
 			

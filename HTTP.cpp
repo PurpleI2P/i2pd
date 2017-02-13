@@ -312,7 +312,8 @@ namespace http {
 		return "";
 	}	
 	
-  bool HTTPRes::is_chunked() {
+  bool HTTPRes::is_chunked() const
+ {
     auto it = headers.find("Transfer-Encoding");
     if (it == headers.end())
       return false;
@@ -321,16 +322,20 @@ namespace http {
     return false;
   }
 
-  bool HTTPRes::is_gzipped() {
+  bool HTTPRes::is_gzipped(bool includingI2PGzip) const
+  {
     auto it = headers.find("Content-Encoding");
     if (it == headers.end())
       return false; /* no header */
     if (it->second.find("gzip") != std::string::npos)
       return true; /* gotcha! */
+	if (includingI2PGzip &&  it->second.find("x-i2p-gzip") != std::string::npos)
+	  return true;	  
     return false;
   }
-
-  long int HTTPMsg::content_length() {
+	
+  long int HTTPMsg::content_length() const
+  {
     unsigned long int length = 0;
     auto it = headers.find("Content-Length");
     if (it == headers.end())

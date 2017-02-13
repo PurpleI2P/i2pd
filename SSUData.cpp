@@ -462,6 +462,7 @@ namespace transport
 				else
 					++it;
 			}
+			if (m_SentMessages.empty ()) return; // nothing to resend
 			if (numResent < MAX_OUTGOING_WINDOW_SIZE)
 				ScheduleResend ();
 			else

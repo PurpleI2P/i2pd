@@ -46,6 +46,7 @@ All options below still possible in cmdline, but better write it in config file:
 * --httpproxy.address=  - The address to listen on (HTTP Proxy)  
 * --httpproxy.port=     - The port to listen on (HTTP Proxy) 4444 by default  
 * --httpproxy.keys=     - optional keys file for HTTP proxy local destination  
+* --httpproxy.signaturetype=    - signature type for new keys if keys file is set. 7 by default  
 * --httpproxy.inbound.length= 	- Inbound tunnels length if keys is set. 3 by default  
 * --httpproxy.inbound.quantity= - Inbound tunnels quantity if keys is set. 5 by default  
 * --httpproxy.outbound.length=	- Outbound tunnels length if keys is set. 3 by default  
@@ -55,6 +56,7 @@ All options below still possible in cmdline, but better write it in config file:
 * --socksproxy.address= - The address to listen on (SOCKS Proxy)  
 * --socksproxy.port=    - The port to listen on (SOCKS Proxy). 4447 by default  
 * --socksproxy.keys=    - optional keys file for SOCKS proxy local destination  
+* --socksproxy.signaturetype=   - signature type for new keys if keys file is set. 7 by default
 * --socksproxy.inbound.length= 	- Inbound tunnels length if keys is set. 3 by default  
 * --socksproxy.inbound.quantity= - Inbound tunnels quantity if keys is set. 5 by default  
 * --socksproxy.outbound.length=	- Outbound tunnels length if keys is set. 3 by default  
