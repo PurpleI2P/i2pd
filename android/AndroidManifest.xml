@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="org.purplei2p.i2pd"
       android:versionCode="1"
-      android:versionName="2.11.0">
+      android:versionName="2.12.0">
     <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="24"/>
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
