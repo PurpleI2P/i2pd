@@ -64,11 +64,30 @@ namespace client
 			bool m_IsQuiet; // don't send destination
 	};
 
-	class I2PTunnelConnectionHTTP: public I2PTunnelConnection
+	class I2PClientTunnelConnectionHTTP: public I2PTunnelConnection
+	{
+		public:
+
+			I2PClientTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+				std::shared_ptr<i2p::stream::Stream> stream):
+				I2PTunnelConnection (owner, socket, stream), m_HeaderSent (false),
+				m_ConnectionSent (false), m_ProxyConnectionSent (false) {};
+
+		protected:
+
+			void Write (const uint8_t * buf, size_t len);	
+			
+		private:	
+
+			std::stringstream m_InHeader, m_OutHeader;
+			bool m_HeaderSent, m_ConnectionSent, m_ProxyConnectionSent;
+	};	
+	
+	class I2PServerTunnelConnectionHTTP: public I2PTunnelConnection
 	{
 		public:
 			
-			I2PTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+			I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 				const boost::asio::ip::tcp::endpoint& target, const std::string& host); 
 

@@ -32,30 +32,74 @@ namespace data
 	{
 	}
 
-	int Reseeder::ReseedNowSU3 ()
+        /** @brief tries to bootstrap into I2P network (from local files and servers, with respect of options)
+         */
+        void Reseeder::Bootstrap ()
+        {
+            std::string su3FileName; i2p::config::GetOption("reseed.file", su3FileName);
+            std::string zipFileName; i2p::config::GetOption("reseed.zipfile", zipFileName);
+
+            if (su3FileName.length() > 0) // bootstrap from SU3 file or URL
+            {
+                int num;
+                if (su3FileName.length() > 8 && su3FileName.substr(0, 8) == "https://")
+                {
+                    num = ReseedFromSU3Url (su3FileName); // from https URL
+                }
+                else
+                {
+                    num = ProcessSU3File (su3FileName.c_str ());
+                }
+                if (num == 0)
+                    LogPrint (eLogWarning, "Reseed: failed to reseed from ", su3FileName);
+            }
+            else if (zipFileName.length() > 0) // bootstrap from ZIP file
+            {
+                int num = ProcessZIPFile (zipFileName.c_str ());
+                if (num == 0)
+                    LogPrint (eLogWarning, "Reseed: failed to reseed from ", zipFileName);
+            }
+            else // bootstrap from reseed servers
+            {
+                int num = ReseedFromServers ();
+                if (num == 0)
+                    LogPrint (eLogWarning, "Reseed: failed to reseed from servers");
+            }
+        }
+
+        /** @brief bootstrap from random server, retry 10 times
+         *  @return number of entries added to netDb
+         */
+	int Reseeder::ReseedFromServers ()
 	{
 		std::string reseedURLs; i2p::config::GetOption("reseed.urls", reseedURLs);
-		std::vector<std::string> httpsReseedHostList;
-		boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
+                std::vector<std::string> httpsReseedHostList;
+                boost::split(httpsReseedHostList, reseedURLs, boost::is_any_of(","), boost::token_compress_on);
 
-		std::string filename; i2p::config::GetOption("reseed.file", filename);
-		if (filename.length() > 0) // reseed file is specified
-		{
-                    if (filename.length() > 8 && filename.substr(0, 8) == "https://")
-                    {
-                        return ReseedFromSU3 (filename); // reseed from https URL 
-                    } else {
-			auto num = ProcessSU3File (filename.c_str ());
-			if (num > 0) return num; // success
-			LogPrint (eLogWarning, "Can't reseed from ", filename, " . Trying from hosts"); 
-                    }
-		}	
-		auto ind = rand () % httpsReseedHostList.size ();
-		std::string reseedUrl = httpsReseedHostList[ind] + "i2pseeds.su3";
-		return ReseedFromSU3 (reseedUrl);
+                if (reseedURLs.length () == 0)
+                {
+                    LogPrint (eLogWarning, "Reseed: No reseed servers specified");
+                    return 0;
+                }
+
+                int reseedRetries = 0;
+                while (reseedRetries < 10)
+                {
+                    auto ind = rand () % httpsReseedHostList.size ();
+                    std::string reseedUrl = httpsReseedHostList[ind] + "i2pseeds.su3";
+                    auto num = ReseedFromSU3Url (reseedUrl);
+                    if (num > 0) return num; // success
+                    reseedRetries++;
+                }
+                LogPrint (eLogWarning, "Reseed: failed to reseed from servers after 10 attempts");
+                return 0;
 	}
 
-	int Reseeder::ReseedFromSU3 (const std::string& url)
+        /** @brief bootstrap from HTTPS URL with SU3 file
+         *  @param url
+         *  @return number of entries added to netDb
+         */
+	int Reseeder::ReseedFromSU3Url (const std::string& url)
 	{
 		LogPrint (eLogInfo, "Reseed: Downloading SU3 from ", url);
 		std::string su3 = HttpsRequest (url);
@@ -473,8 +517,8 @@ namespace data
 					LogPrint (eLogDebug, "Reseed: Connected to ", url.host, ":", url.port);
 					i2p::http::HTTPReq req;
 					req.uri = url.to_string();
-					req.add_header("User-Agent", "Wget/1.11.4");
-					req.add_header("Connection", "close");
+					req.AddHeader("User-Agent", "Wget/1.11.4");
+					req.AddHeader("Connection", "close");
 					s.write_some (boost::asio::buffer (req.to_string()));
 					// read response
 					std::stringstream rs;

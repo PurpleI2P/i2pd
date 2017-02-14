@@ -41,7 +41,9 @@ namespace data
 		InitProfilesStorage ();
 		m_Families.LoadCertificates ();
 		Load ();
-		if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
+
+                uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
+		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
 			Reseed ();
 
 		m_IsRunning = true;
@@ -308,7 +310,6 @@ namespace data
 			m_Reseeder = new Reseeder ();
 			m_Reseeder->LoadCertificates (); // we need certificates for SU3 verification
 		}
-		int reseedRetries = 0;
 
 		// try reseeding from floodfill first if specified
 		std::string riPath;
@@ -328,11 +329,8 @@ namespace data
 				return;
 			}
 		}
-		
-		while (reseedRetries < 10 && !m_Reseeder->ReseedNowSU3 ())
-			reseedRetries++;
-		if (reseedRetries >= 10)
-			LogPrint (eLogWarning, "NetDb: failed to reseed after 10 attempts");
+
+                m_Reseeder->Bootstrap ();
 	}
 
 	void NetDb::ReseedFromFloodfill(const RouterInfo & ri, int numRouters, int numFloodfills)

@@ -1,7 +1,7 @@
 Source: i2pd
 Section: net
 Priority: extra
-Maintainer: hagen <hagen@i2pmail.org>
+Maintainer: R4SAS <r4sas@i2pmail.org>
 Build-Depends: debhelper (>= 9.0.0), dpkg-dev (>= 1.16.1~),
  gcc (>= 4.7) | clang (>= 3.3),
  libboost-system-dev (>= 1.46),

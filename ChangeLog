@@ -1,6 +1,22 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.12.0] - 2017-02-14
+### Added
+- Additional HTTP and SOCKS proxy tunnels
+- Reseed from ZIP achieve
+- Some stats in a main window for Windows version
+### Changed
+- Reseed servers list
+- MTU of 1488 for ipv6 
+- Android and Mac OS X versions use OpenSSL 1.1
+- New logo for Android
+### Fixed
+- Multiple memory leaks
+- Incomptibility of some EdDSA private keys with Java
+- Clock skew for Windows XP
+- Occasional crashes with I2PSnark
+
 ## [2.11.0] - 2016-12-18
 ### Added
 - Websockets support

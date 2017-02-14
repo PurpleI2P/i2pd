@@ -714,9 +714,11 @@ namespace http {
 				return true;
 		}
 		/* method #2: 'Authorization' header sent */
-		if (req.headers.count("Authorization") > 0) {
+		auto provided = req.GetHeader ("Authorization");
+		 if (provided.length () > 0) 
+		 {
 			bool result = false;
-			std::string provided = req.headers.find("Authorization")->second;
+			
 			std::string expected = user + ":" + pass;
 			size_t b64_sz = i2p::data::Base64EncodingBufferSize(expected.length()) + 1;
 			char * b64_creds = new char[b64_sz];
@@ -875,6 +877,7 @@ namespace http {
 
 	void HTTPConnection::SendReply (HTTPRes& reply, std::string& content)
 	{
+		reply.add_header("X-Frame-Options", "SAMEORIGIN");
 		reply.add_header("Content-Type", "text/html");
 		reply.body = content;
 

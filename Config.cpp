@@ -16,6 +16,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 
+#include "Identity.h"
 #include "Config.h"
 #include "version.h"
 
@@ -85,6 +86,7 @@ namespace config {
       ("httpproxy.address",   value<std::string>()->default_value("127.0.0.1"),           "HTTP Proxy listen address")
       ("httpproxy.port",      value<uint16_t>()->default_value(4444),                     "HTTP Proxy listen port")
       ("httpproxy.keys",      value<std::string>()->default_value(""),  "File to persist HTTP Proxy keys")
+	  ("httpproxy.signaturetype",      value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")	
 	  ("httpproxy.inbound.length",      value<std::string>()->default_value("3"),  "HTTP proxy inbound tunnel length")	
 	  ("httpproxy.outbound.length",     value<std::string>()->default_value("3"),  "HTTP proxy outbound tunnel length")
 	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")	
@@ -100,6 +102,7 @@ namespace config {
       ("socksproxy.address",  value<std::string>()->default_value("127.0.0.1"),           "SOCKS Proxy listen address")
       ("socksproxy.port",     value<uint16_t>()->default_value(4447),                     "SOCKS Proxy listen port")
       ("socksproxy.keys",     value<std::string>()->default_value(""), "File to persist SOCKS Proxy keys")
+	  ("socksproxy.signaturetype",      value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")	
       ("socksproxy.inbound.length",      value<std::string>()->default_value("3"),  "SOCKS proxy inbound tunnel length")	
 	  ("socksproxy.outbound.length",     value<std::string>()->default_value("3"),  "SOCKS proxy outbound tunnel length")
 	  ("socksproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")	
@@ -165,8 +168,10 @@ namespace config {
 	options_description reseed("Reseed options");	
 	reseed.add_options()
 	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")
+	  ("reseed.threshold", value<uint16_t>()->default_value(25), "Minimum number of known routers before requesting reseed")
 		("reseed.floodfill", value<std::string>()->default_value(""), "Path to router info of floodfill to reseed from")
 	  ("reseed.file", value<std::string>()->default_value(""),  "Path to local .su3 file or HTTPS URL to reseed from")
+	  ("reseed.zipfile", value<std::string>()->default_value(""),  "Path to local .zip file to reseed from")
 	  ("reseed.urls", value<std::string>()->default_value(
 		"https://reseed.i2p-projekt.de/,"
 		"https://i2p.mooo.com/netDb/,"
@@ -178,8 +183,9 @@ namespace config {
 		"https://download.xxlspeed.com/,"
 		"https://reseed-ru.lngserv.ru/,"
 	    "https://reseed.atomike.ninja/,"
-	    "https://reseed.memcpy.io/",
-	    "https://reseed.onion.im/"                                                  
+	    "https://reseed.memcpy.io/,"
+	    "https://reseed.onion.im/,"
+	    "https://itoopie.atomike.ninja/"
 		),  "Reseed URLs, separated by comma")
 	  ;	
 

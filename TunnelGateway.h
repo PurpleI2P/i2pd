@@ -14,10 +14,10 @@ namespace tunnel
 	class TunnelGatewayBuffer
 	{
 		public:
-			TunnelGatewayBuffer (uint32_t tunnelID);
+			TunnelGatewayBuffer ();
 			~TunnelGatewayBuffer ();
 			void PutI2NPMsg (const TunnelMessageBlock& block);	
-			const std::vector<std::shared_ptr<I2NPMessage> >& GetTunnelDataMsgs () const { return m_TunnelDataMsgs; };
+			const std::vector<std::shared_ptr<const I2NPMessage> >& GetTunnelDataMsgs () const { return m_TunnelDataMsgs; };
 			void ClearTunnelDataMsgs ();
 			void CompleteCurrentTunnelDataMessage ();
 
@@ -27,8 +27,7 @@ namespace tunnel
 			
 		private:
 
-			uint32_t m_TunnelID;
-			std::vector<std::shared_ptr<I2NPMessage> > m_TunnelDataMsgs;
+			std::vector<std::shared_ptr<const I2NPMessage> > m_TunnelDataMsgs;
 			std::shared_ptr<I2NPMessage> m_CurrentTunnelDataMsg;
 			size_t m_RemainingSize;
 			uint8_t m_NonZeroRandomBuffer[TUNNEL_DATA_MAX_PAYLOAD_SIZE];
@@ -39,7 +38,7 @@ namespace tunnel
 		public:
 
 			TunnelGateway (TunnelBase * tunnel):
-				m_Tunnel (tunnel), m_Buffer (tunnel->GetNextTunnelID ()), m_NumSentBytes (0) {};
+				m_Tunnel (tunnel), m_NumSentBytes (0) {};
 			void SendTunnelDataMsg (const TunnelMessageBlock& block);	
 			void PutTunnelDataMsg (const TunnelMessageBlock& block);
 			void SendBuffer ();			

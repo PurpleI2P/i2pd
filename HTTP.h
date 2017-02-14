@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include <map>
+#include <list>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -54,7 +55,8 @@ namespace http {
     std::string to_string ();
   };
 
-  struct HTTPMsg {
+  struct HTTPMsg 
+  {
     std::map<std::string, std::string> headers;
 
     void add_header(const char *name, std::string & value, bool replace = false);
@@ -62,10 +64,12 @@ namespace http {
     void del_header(const char *name);
 
     /** @brief Returns declared message length or -1 if unknown */
-    long int content_length();
+    long int content_length() const;
   };
 
-  struct HTTPReq : HTTPMsg {
+  struct HTTPReq 
+  {
+	std::list<std::pair<std::string, std::string> > headers;  
     std::string version;
     std::string method;
     std::string uri;
@@ -82,9 +86,12 @@ namespace http {
 
     /** @brief Serialize HTTP request to string */
     std::string to_string();
-		
-		void write(std::ostream & o);
+	void write(std::ostream & o);
 
+	void AddHeader (const std::string& name, const std::string& value);
+	void UpdateHeader (const std::string& name, const std::string& value);  
+	void RemoveHeader (const std::string& name);
+	std::string GetHeader (const std::string& name) const;  
   };
 
   struct HTTPRes : HTTPMsg {
@@ -122,10 +129,10 @@ namespace http {
 		void write(std::ostream & o);
 		
     /** @brief Checks that response declared as chunked data */
-    bool is_chunked();
+    bool is_chunked() const ;
 
     /** @brief Checks that response contains compressed data */
-    bool is_gzipped();
+    bool is_gzipped(bool includingI2PGzip = true) const;
   };
 
   /**

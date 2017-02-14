@@ -27,6 +27,13 @@ namespace i2p
 		return std::make_shared<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE> >();
 	}
 
+	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage ()
+	{
+		auto msg = new I2NPMessageBuffer<i2p::tunnel::TUNNEL_DATA_MSG_SIZE + I2NP_HEADER_SIZE + 34>(); // reserved for alignment and NTCP 16 + 6 + 12
+		msg->Align (12);
+		return std::shared_ptr<I2NPMessage>(msg);
+	}	
+	
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len)
 	{
 		return (len < I2NP_MAX_SHORT_MESSAGE_SIZE/2) ? NewI2NPShortMessage () : NewI2NPMessage ();
@@ -464,7 +471,7 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (const uint8_t * buf)
 	{
-		auto msg = NewI2NPShortMessage ();
+		auto msg = NewI2NPTunnelMessage ();
 		msg->Concat (buf, i2p::tunnel::TUNNEL_DATA_MSG_SIZE);	
 		msg->FillI2NPMessageHeader (eI2NPTunnelData);
 		return msg;
@@ -472,7 +479,7 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> CreateTunnelDataMsg (uint32_t tunnelID, const uint8_t * payload)	
 	{
-		auto msg = NewI2NPShortMessage ();
+		auto msg = NewI2NPTunnelMessage ();
 		htobe32buf (msg->GetPayload (), tunnelID);
 		msg->len += 4; // tunnelID
 		msg->Concat (payload, i2p::tunnel::TUNNEL_DATA_MSG_SIZE - 4);
@@ -482,7 +489,7 @@ namespace i2p
 
 	std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg ()
 	{
-		auto msg = NewI2NPShortMessage ();
+		auto msg = NewI2NPTunnelMessage ();
 		msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE; 
 		return msg;
 	}	

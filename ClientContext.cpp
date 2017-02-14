@@ -50,11 +50,12 @@ namespace client
 			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
 			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
 			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
+			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype",  sigType);
 			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				if(LoadPrivateKeys (keys, httpProxyKeys, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1))
+				if(LoadPrivateKeys (keys, httpProxyKeys, sigType))
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
@@ -80,11 +81,12 @@ namespace client
 			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",    socksProxyPort);
 			std::string socksOutProxyAddr; i2p::config::GetOption("socksproxy.outproxy",     socksOutProxyAddr);
 			uint16_t    socksOutProxyPort; i2p::config::GetOption("socksproxy.outproxyport", socksOutProxyPort);
+			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",  sigType);
 			LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
 			if (socksProxyKeys.length () > 0)
 			{
 				i2p::data::PrivateKeys keys;
-				if (LoadPrivateKeys (keys, socksProxyKeys, i2p::data::SIGNING_KEY_TYPE_DSA_SHA1))
+				if (LoadPrivateKeys (keys, socksProxyKeys, sigType))
 				{
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);

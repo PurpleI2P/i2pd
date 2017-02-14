@@ -4,6 +4,7 @@
 #include "Timestamp.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "NetDb.h"
 #include "SSU.h"
 #include "SSUSession.h"
 
@@ -317,7 +318,9 @@ namespace transport
 		payload++; // identity fragment info
 		uint16_t identitySize = bufbe16toh (payload);	
 		payload += 2; // size of identity fragment
-		SetRemoteIdentity (std::make_shared<i2p::data::IdentityEx> (payload, identitySize));
+		auto identity = std::make_shared<i2p::data::IdentityEx> (payload, identitySize);
+		auto existing = i2p::data::netdb.FindRouter (identity->GetIdentHash ()); // check if exists already
+		SetRemoteIdentity (existing ? existing->GetRouterIdentity () : identity);
 		m_Data.UpdatePacketSize (m_RemoteIdentity->GetIdentHash ());
 		payload += identitySize; // identity	
 		auto ts = i2p::util::GetSecondsSinceEpoch ();

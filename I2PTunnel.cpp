@@ -187,9 +187,9 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "I2PTunnel: stream read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 			{
+				LogPrint (eLogError, "I2PTunnel: stream read error: ", ecode.message ());
 				if (bytes_transferred > 0)
 					Write (m_StreamBuffer, bytes_transferred); // postpone termination
 				else if (ecode == boost::asio::error::timed_out && m_Stream && m_Stream->IsOpen ())
@@ -236,14 +236,63 @@ namespace client
 		}
 	}
 
-	I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+	void I2PClientTunnelConnectionHTTP::Write (const uint8_t * buf, size_t len)
+	{
+		if (m_HeaderSent)
+			I2PTunnelConnection::Write (buf, len);
+		else
+		{
+			m_InHeader.clear ();
+			m_InHeader.write ((const char *)buf, len);
+			std::string line;
+			bool endOfHeader = false;
+			while (!endOfHeader)
+			{
+				std::getline(m_InHeader, line);
+				if (!m_InHeader.fail ())
+				{
+					if (line == "\r") endOfHeader = true;
+					else
+					{	
+						if (!m_ConnectionSent && !line.compare(0, 10, "Connection"))
+						{	
+							m_OutHeader << "Connection: close\r\n";
+							m_ConnectionSent = true;
+						}	
+						else if (!m_ProxyConnectionSent && !line.compare(0, 16, "Proxy-Connection"))
+						{	
+							m_OutHeader << "Proxy-Connection: close\r\n";
+							m_ProxyConnectionSent = true;
+						}	
+						else
+							m_OutHeader << line << "\n";
+					}	
+				}
+				else
+					break;
+			}
+
+			if (endOfHeader)
+			{
+				if (!m_ConnectionSent) m_OutHeader << "Connection: close\r\n";
+				 if (!m_ProxyConnectionSent) m_OutHeader << "Proxy-Connection: close\r\n";
+				m_OutHeader << "\r\n"; // end of header
+				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
+				m_InHeader.str ("");
+				m_HeaderSent = true;
+				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
+			}
+		}
+	}	
+		
+	I2PServerTunnelConnectionHTTP::I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 		std::shared_ptr<boost::asio::ip::tcp::socket> socket, 
 		const boost::asio::ip::tcp::endpoint& target, const std::string& host):
 		I2PTunnelConnection (owner, stream, socket, target), m_Host (host), m_HeaderSent (false), m_From (stream->GetRemoteIdentity ())
 	{
 	}
 
-	void I2PTunnelConnectionHTTP::Write (const uint8_t * buf, size_t len)
+	void I2PServerTunnelConnectionHTTP::Write (const uint8_t * buf, size_t len)
 	{
 		if (m_HeaderSent)
 			I2PTunnelConnection::Write (buf, len);
@@ -282,6 +331,7 @@ namespace client
 			{
 				m_OutHeader << "\r\n"; // end of header
 				m_OutHeader << m_InHeader.str ().substr (m_InHeader.tellg ()); // data right after header
+				m_InHeader.str ("");
 				m_HeaderSent = true;
 				I2PTunnelConnection::Write ((uint8_t *)m_OutHeader.str ().c_str (), m_OutHeader.str ().length ());
 			}
@@ -532,7 +582,7 @@ namespace client
 
 	std::shared_ptr<I2PTunnelConnection> I2PServerTunnelHTTP::CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream)
 	{
-		return std::make_shared<I2PTunnelConnectionHTTP> (this, stream, 
+		return std::make_shared<I2PServerTunnelConnectionHTTP> (this, stream, 
 			std::make_shared<boost::asio::ip::tcp::socket> (GetService ()), GetEndpoint (), m_Host);
 	}
 
