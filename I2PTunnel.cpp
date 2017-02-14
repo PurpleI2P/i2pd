@@ -187,9 +187,9 @@ namespace client
 	{
 		if (ecode)
 		{
-			LogPrint (eLogError, "I2PTunnel: stream read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 			{
+				LogPrint (eLogError, "I2PTunnel: stream read error: ", ecode.message ());
 				if (bytes_transferred > 0)
 					Write (m_StreamBuffer, bytes_transferred); // postpone termination
 				else if (ecode == boost::asio::error::timed_out && m_Stream && m_Stream->IsOpen ())
