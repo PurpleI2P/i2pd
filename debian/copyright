@@ -3,9 +3,9 @@ Upstream-Name: i2pd
 Source: https://github.com/PurpleI2P
 
 Files: *
-Copyright: 2013-2016 PurpleI2P
+Copyright: 2013-2017 PurpleI2P
 License: BSD-3-clause
- Copyright (c) 2013-2016, The PurpleI2P Project
+ Copyright (c) 2013-2017, The PurpleI2P Project
  .
  All rights reserved.
  .
@@ -34,7 +34,8 @@ License: BSD-3-clause
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Files: debian/*
-Copyright: 2014-2016 hagen <hagen@i2pmail.org>
+Copyright: 2016-2017 R4SAS <r4sas@i2pmail.org>
+           2014-2016 hagen <hagen@i2pmail.org>
            2013-2015 Kill Your TV <killyourtv@i2pmail.org>
 License: GPL-2.0+
  This package is free software; you can redistribute it and/or modify
