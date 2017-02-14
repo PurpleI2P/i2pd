@@ -4,7 +4,7 @@
 ## [2.12.0] - 2017-02-14
 ### Added
 - Additional HTTP and SOCKS proxy tunnels
-- Reseed from ZIP achieve
+- Reseed from ZIP archive
 - Some stats in a main window for Windows version
 ### Changed
 - Reseed servers list
