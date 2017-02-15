@@ -13,6 +13,11 @@ endif
 ifeq ($(USE_UPNP),yes)
   LDFLAGS += -ldl
   CXXFLAGS += -DUSE_UPNP
+ifeq ($(USE_STATIC),yes)
+  LDLIBS += /usr/local/lib/libminiupnpc.a
+else
+  LDLIBS += -lminiupnpc
+endif
 endif
 
 ifeq ($(USE_AESNI),1)
