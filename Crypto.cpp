@@ -8,6 +8,7 @@
 #include <openssl/crypto.h>
 #include "TunnelBase.h"
 #include <openssl/ssl.h>
+#include <openssl/engine.h>
 #include "Log.h"
 #include "Crypto.h"
 
@@ -800,10 +801,41 @@ namespace crypto
 				m_OpenSSLMutexes[type]->unlock ();
 		}	
 	}*/
+
+	static ENGINE * g_GostEngine = nullptr;
+	static bool InitGost ()
+	{
+		auto g_GostEngine = ENGINE_by_id ("gost");
+		if (!g_GostEngine)
+		{
+		     ENGINE_load_builtin_engines ();
+#if OPENSSL_API_COMPAT < 0x10100000L
+		     ENGINE_load_dynamic ();
+#endif
+		     g_GostEngine = ENGINE_by_id ("gost");
+		     if (!g_GostEngine) return false;
+		}
+
+		ENGINE_set_default (g_GostEngine, ENGINE_METHOD_ALL);
+		return true;
+	}
 	
-	void InitCrypto (bool precomputation)
+	static void TerminateGost ()
+	{
+		if (g_GostEngine)
+		{
+			ENGINE_finish (g_GostEngine);
+			ENGINE_free (g_GostEngine);
+#if OPENSSL_API_COMPAT < 0x10100000L
+			ENGINE_cleanup();
+#endif
+		}
+	}
+
+	void InitCrypto (bool precomputation, bool withGost)
 	{
 		SSL_library_init ();
+		if (withGost) InitGost ();
 /*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)
 		     m_OpenSSLMutexes.emplace_back (new std::mutex);
@@ -833,6 +865,7 @@ namespace crypto
 			);   
 			delete[] g_ElggTable; g_ElggTable = nullptr;
 		}	
+		TerminateGost ();	
 /*		CRYPTO_set_locking_callback (nullptr);
 		m_OpenSSLMutexes.clear ();*/
 	}	
