@@ -99,7 +99,7 @@ namespace win32
 		s << seconds << " seconds\n";
 	}
 
-	static void ShowTransfered (std::stringstream& s, int transfer)
+	template <typename size> static void ShowTransfered (std::stringstream& s, size transfer)
 	{
 		auto bytes = transfer & 0x03ff;
 		transfer >>= 10;
