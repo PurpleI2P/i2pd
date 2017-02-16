@@ -143,7 +143,7 @@ namespace win32
 		s << "\n";
 		s << "Inbound: " << i2p::transport::transports.GetInBandwidth() / 1024 << " KiB/s; ";
 		s << "Outbound: " << i2p::transport::transports.GetOutBandwidth() / 1024 << " KiB/s\n";
-		s << "Recvieved: "; ShowTransfered (s, i2p::transport::transports.GetTotalReceivedBytes());
+		s << "Received: "; ShowTransfered (s, i2p::transport::transports.GetTotalReceivedBytes());
 		s << "Sent: "; ShowTransfered (s, i2p::transport::transports.GetTotalSentBytes());
 		s << "\n";
 		s << "Routers: " << i2p::data::netdb.GetNumRouters () << "; ";
