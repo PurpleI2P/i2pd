@@ -56,7 +56,7 @@ Using i2pd
 ----------
 
 See [documentation](https://i2pd.readthedocs.io/en/latest/user-guide/run/) and 
-[example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/docs/i2pd.conf).
+[example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/contrib/i2pd.conf).
 
 Donations
 ---------
