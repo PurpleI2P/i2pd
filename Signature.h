@@ -450,7 +450,16 @@ namespace crypto
 	{
 		public:
 
-			GOSTR3410Verifier (const uint8_t * signingKey) { m_PublicKey = nullptr; } // TODO
+			GOSTR3410Verifier (const uint8_t * signingKey) 
+			{ 
+				m_PublicKey = EVP_PKEY_new (); 
+				EVP_PKEY_set_type (m_PublicKey, NID_id_GostR3410_2001);
+				EC_KEY * ecKey = (EC_KEY *)EVP_PKEY_get0 (m_PublicKey);
+				BIGNUM * x = BN_bin2bn (signingKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+				BIGNUM * y = BN_bin2bn (signingKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+				EC_KEY_set_public_key_affine_coordinates (ecKey, x, y);
+				BN_free (x); BN_free (y);
+			} 
 			~GOSTR3410Verifier () { EVP_PKEY_free (m_PublicKey); }
 			
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
@@ -474,7 +483,13 @@ namespace crypto
 	{
 		public:
 
-			GOSTR3410Signer (const uint8_t * signingPrivateKey) { m_PrivateKey = nullptr; } // TODO
+			GOSTR3410Signer (const uint8_t * signingPrivateKey) 
+			{ 
+				m_PrivateKey = EVP_PKEY_new (); 
+				EVP_PKEY_set_type (m_PrivateKey, NID_id_GostR3410_2001);
+				EC_KEY * ecKey = (EC_KEY *)EVP_PKEY_get0 (m_PrivateKey);
+				EC_KEY_set_private_key (ecKey, BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL));
+			}
 			~GOSTR3410Signer () { EVP_PKEY_free (m_PrivateKey); }
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
