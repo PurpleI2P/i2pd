@@ -490,6 +490,24 @@ namespace crypto
 
 			EVP_PKEY * m_PrivateKey;
 	};	
+
+	inline void CreateGOSTR3410RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, nullptr);
+		EVP_PKEY_keygen_init (ctx);
+		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A");
+		EVP_PKEY* pkey = nullptr;
+		EVP_PKEY_keygen (ctx, &pkey);
+		const EC_KEY* ecKey = (const EC_KEY*) EVP_PKEY_get0(pkey);
+		bn2buf (EC_KEY_get0_private_key (ecKey), signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BIGNUM * x = BN_new(), * y = BN_new();
+		EC_POINT_get_affine_coordinates_GFp (EC_KEY_get0_group(ecKey), EC_KEY_get0_public_key (ecKey), x, y, NULL);
+		bn2buf (x, signingPublicKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		bn2buf (y, signingPublicKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BN_free (x); BN_free (y);
+		EVP_PKEY_CTX_free (ctx);
+		EVP_PKEY_free (pkey);	
+	}
 }
 }
 
