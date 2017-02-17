@@ -441,6 +441,55 @@ namespace crypto
 		EDDSA25519Signer signer (signingPrivateKey);
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
 	}
+
+	// ГОСТ Р 34.10-2001
+	const size_t GOSTR3410_PUBLIC_KEY_LENGTH = 64;
+	const size_t GOSTR3410_SIGNATURE_LENGTH = 64;
+
+	class GOSTR3410Verifier: public Verifier
+	{
+		public:
+
+			GOSTR3410Verifier (const uint8_t * signingKey) { m_PublicKey = nullptr; } // TODO
+			~GOSTR3410Verifier () { EVP_PKEY_free (m_PublicKey); }
+			
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+			{
+				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PublicKey, nullptr);
+				EVP_PKEY_verify_init (ctx);
+				int ret = EVP_PKEY_verify (ctx, signature, GOSTR3410_SIGNATURE_LENGTH, buf, len);
+				EVP_PKEY_CTX_free (ctx);
+				return ret == 1;
+			}
+			
+			size_t GetPublicKeyLen () const { return GOSTR3410_PUBLIC_KEY_LENGTH; }
+			size_t GetSignatureLen () const { return GOSTR3410_SIGNATURE_LENGTH; }
+
+		private:
+
+			EVP_PKEY * m_PublicKey;
+	};	
+
+	class GOSTR3410Signer: public Signer
+	{
+		public:
+
+			GOSTR3410Signer (const uint8_t * signingPrivateKey) { m_PrivateKey = nullptr; } // TODO
+			~GOSTR3410Signer () { EVP_PKEY_free (m_PrivateKey); }
+
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
+			{
+				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PrivateKey, nullptr);
+				EVP_PKEY_sign_init (ctx);
+				size_t l = GOSTR3410_SIGNATURE_LENGTH;
+				EVP_PKEY_sign (ctx, signature, &l, buf, len);
+				EVP_PKEY_CTX_free (ctx);
+			}	
+			
+		private:
+
+			EVP_PKEY * m_PrivateKey;
+	};	
 }
 }
 
