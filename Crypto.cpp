@@ -811,7 +811,7 @@ namespace crypto
 
 	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest)
 	{
-		if (!g_Gost3411) return false;
+		//if (!g_Gost3411) return false; /* Converting bool to uint_8 ??? */
 		auto ctx = EVP_MD_CTX_new ();
 		EVP_DigestInit_ex (ctx, g_Gost3411, GetGostEngine ());
 		EVP_DigestUpdate (ctx, buf, len);
