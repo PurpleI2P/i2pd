@@ -831,6 +831,9 @@ namespace crypto
 		g_GostEngine = ENGINE_by_id ("gost");
 		if (!g_GostEngine) return false;
 
+		ENGINE_init (g_GostEngine);
+		ENGINE_set_default (g_GostEngine, ENGINE_METHOD_ALL);
+		ENGINE_ctrl_cmd_string(g_GostEngine, "CRYPT_PARAMS", "id-Gost28147-89-CryptoPro-A-ParamSet", 0);
 		g_Gost3411 = ENGINE_get_digest(g_GostEngine, NID_id_GostR3411_94);
 		return true;
 	}
