@@ -12,6 +12,7 @@
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <openssl/engine.h>
 
 #include "Base.h"
 #include "Tag.h"
@@ -278,6 +279,12 @@ namespace crypto
 #endif
 	};	
 
+// GOST
+	bool InitGost ();
+	void TerminateGost ();
+	ENGINE * GetGostEngine ();
+	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest); // hash
+	
 	void InitCrypto (bool precomputation, bool withGost = false);
 	void TerminateCrypto ();
 }		
@@ -325,6 +332,11 @@ inline void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **pri
 
 inline RSA *EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 	{ return pkey->pkey.rsa; }
+
+inline EVP_MD_CTX *EVP_MD_CTX_new ()
+	{ return EVP_MD_CTX_create(); }
+inline void EVP_MD_CTX_free (EVP_MD_CTX *ctx)
+	{ EVP_MD_CTX_destroy (ctx); }
 
 // ssl
 #define TLS_method TLSv1_method

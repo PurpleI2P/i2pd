@@ -464,9 +464,11 @@ namespace crypto
 			
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
-				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PublicKey, nullptr);
+				uint8_t digest[32];
+				GOSTR3411 (buf, len, digest);
+				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PublicKey, GetGostEngine ());
 				EVP_PKEY_verify_init (ctx);
-				int ret = EVP_PKEY_verify (ctx, signature, GOSTR3410_SIGNATURE_LENGTH, buf, len);
+				int ret = EVP_PKEY_verify (ctx, signature, GOSTR3410_SIGNATURE_LENGTH, digest, 32);
 				EVP_PKEY_CTX_free (ctx);
 				return ret == 1;
 			}
@@ -494,10 +496,12 @@ namespace crypto
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
 			{
-				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PrivateKey, nullptr);
+				uint8_t digest[32];
+				GOSTR3411 (buf, len, digest);
+				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PrivateKey, GetGostEngine ());
 				EVP_PKEY_sign_init (ctx);
 				size_t l = GOSTR3410_SIGNATURE_LENGTH;
-				EVP_PKEY_sign (ctx, signature, &l, buf, len);
+				EVP_PKEY_sign (ctx, signature, &l, digest, 32);
 				EVP_PKEY_CTX_free (ctx);
 			}	
 			
@@ -508,7 +512,7 @@ namespace crypto
 
 	inline void CreateGOSTR3410RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
-		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, nullptr);
+		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, GetGostEngine ());
 		EVP_PKEY_keygen_init (ctx);
 		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A");
 		EVP_PKEY* pkey = nullptr;
