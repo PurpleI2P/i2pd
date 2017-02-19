@@ -60,6 +60,9 @@ namespace data
 	const uint16_t SIGNING_KEY_TYPE_RSA_SHA384_3072 = 5;
 	const uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
 	const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
+	// following signature type should never appear in netid=2
+	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411 = 65280; // approved by FSB
+	
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;	
 	

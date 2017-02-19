@@ -837,6 +837,7 @@ namespace crypto
 		g_Gost3411 = ENGINE_get_digest(g_GostEngine, NID_id_GostR3411_94);
 
 		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, g_GostEngine);
+		if (!ctx) return false;
 		EVP_PKEY_keygen_init (ctx);
 		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A"); // possible values 'A', 'B', 'C', 'XA', 'XB'
 		EVP_PKEY_keygen (ctx, &g_GostPKEY);	// it seems only way to fill with correct params
