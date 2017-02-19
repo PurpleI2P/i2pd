@@ -803,17 +803,18 @@ namespace crypto
 
 	static ENGINE * g_GostEngine = nullptr;
 	static const EVP_MD * g_Gost3411 = nullptr;
-
-	ENGINE * GetGostEngine ()
+	static EVP_PKEY * g_GostPKEY = nullptr;	
+	
+	const EVP_PKEY * GetGostPKEY ()
 	{
-		return g_GostEngine;
-	}
-
+		return g_GostPKEY;
+	}	
+	
 	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest)
 	{
 		if (!g_Gost3411) return nullptr;
 		auto ctx = EVP_MD_CTX_new ();
-		EVP_DigestInit_ex (ctx, g_Gost3411, GetGostEngine ());
+		EVP_DigestInit_ex (ctx, g_Gost3411, g_GostEngine);
 		EVP_DigestUpdate (ctx, buf, len);
 		EVP_DigestFinal_ex (ctx, digest, nullptr);
 		EVP_MD_CTX_free (ctx);
@@ -833,13 +834,20 @@ namespace crypto
 
 		ENGINE_init (g_GostEngine);
 		ENGINE_set_default (g_GostEngine, ENGINE_METHOD_ALL);
-		ENGINE_ctrl_cmd_string(g_GostEngine, "CRYPT_PARAMS", "id-Gost28147-89-CryptoPro-A-ParamSet", 0);
 		g_Gost3411 = ENGINE_get_digest(g_GostEngine, NID_id_GostR3411_94);
+
+		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, g_GostEngine);
+		EVP_PKEY_keygen_init (ctx);
+		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A"); // possible values 'A', 'B', 'C', 'XA', 'XB'
+		EVP_PKEY_keygen (ctx, &g_GostPKEY);	// it seems only way to fill with correct params
+		EVP_PKEY_CTX_free (ctx);
 		return true;
 	}
 	
 	void TerminateGost ()
 	{
+		if (g_GostPKEY)
+			EVP_PKEY_free (g_GostPKEY);
 		if (g_GostEngine)
 		{
 			ENGINE_finish (g_GostEngine);
