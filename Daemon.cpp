@@ -122,7 +122,7 @@ namespace i2p
 			i2p::crypto::InitCrypto (precomputation);
 
 			int netID; i2p::config::GetOption("netid", netID);
-			if (netID != 2)	i2p::crypto::InitGost () // init GOST for own darknet
+			if (netID != 2)	i2p::crypto::InitGost (); // init GOST for own darknet
 			i2p::context.SetNetID (netID);
 			i2p::context.Init ();
 
