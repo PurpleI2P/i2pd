@@ -828,7 +828,7 @@ namespace crypto
 		ENGINE_load_builtin_engines ();
 		ENGINE_load_dynamic ();
 #else
-		OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |, NULL);
+		OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | NULL);
 #endif
 		g_GostEngine = ENGINE_by_id ("gost");
 		if (!g_GostEngine) return false;
