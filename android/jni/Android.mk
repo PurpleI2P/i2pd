@@ -97,16 +97,23 @@ include $(PREBUILT_STATIC_LIBRARY)
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := crypto
-LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.0/$(TARGET_ARCH_ABI)/lib/libcrypto.a
-LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.0/include
+LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.0e/$(TARGET_ARCH_ABI)/lib/libcrypto.a
+LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.0e/include
 include $(PREBUILT_STATIC_LIBRARY)
 
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := ssl
-LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.0/$(TARGET_ARCH_ABI)/lib/libssl.a
-LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.0/include
+LOCAL_SRC_FILES := $(OPENSSL_PATH)/openssl-1.1.0e/$(TARGET_ARCH_ABI)/lib/libssl.a
+LOCAL_EXPORT_C_INCLUDES := $(OPENSSL_PATH)/openssl-1.1.0e/include
 LOCAL_STATIC_LIBRARIES := crypto
+include $(PREBUILT_STATIC_LIBRARY)
+
+LOCAL_PATH := $(call my-dir)
+include $(CLEAR_VARS)
+LOCAL_MODULE := gost_engine
+LOCAL_SRC_FILES := $(GOST_PATH)/gost-engine/$(TARGET_ARCH_ABI)/lib/libgost.a
+LOCAL_EXPORT_C_INCLUDES := $(GOST_PATH)/gost-engine/include
 include $(PREBUILT_STATIC_LIBRARY)
 
 LOCAL_PATH := $(call my-dir)
