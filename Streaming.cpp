@@ -408,10 +408,14 @@ namespace stream
 				packets.push_back (p);
 				numMsgs--;
 			}
-			if (m_SendBuffer.eof () && m_SendHandler)
+			if (m_SendBuffer.eof ())
 			{
-				m_SendHandler (boost::system::error_code ());
-				m_SendHandler = nullptr;
+				m_SendBuffer.str(""); // clean up buffer
+				if (m_SendHandler)
+				{
+					m_SendHandler (boost::system::error_code ());
+					m_SendHandler = nullptr;
+				}
 			}
 		}
 		if (packets.size () > 0)
