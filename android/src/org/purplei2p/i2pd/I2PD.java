@@ -22,12 +22,16 @@ import android.widget.Toast;
 
 public class I2PD extends Activity {
 	private static final String TAG = "i2pd";
-	private DaemonSingleton daemon = DaemonSingleton.getInstance();
-	private DaemonSingleton.StateChangeListener daemonStateChangeListener = 
-			new DaemonSingleton.StateChangeListener() {
+
+	private TextView textView;
+	
+	private final DaemonSingleton daemon = DaemonSingleton.getInstance();
+	
+	private DaemonSingleton.StateUpdateListener daemonStateUpdatedListener = 
+			new DaemonSingleton.StateUpdateListener() {
 		
 		@Override
-		public void daemonStateChanged() {
+		public void daemonStateUpdate() {
 			runOnUiThread(new Runnable(){
 
 				@Override
@@ -50,19 +54,17 @@ public class I2PD extends Activity {
 		}
 	};
 	
-	private TextView textView;
-	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //set the app be foreground (do not unload when RAM needed)
-        doBindService();
-
         textView = new TextView(this);
         setContentView(textView);
-        daemonStateChangeListener.daemonStateChanged();
-        daemon.addStateChangeListener(daemonStateChangeListener);
+        DaemonSingleton.getInstance().addStateChangeListener(daemonStateUpdatedListener);
+        daemonStateUpdatedListener.daemonStateUpdate();
+
+        //set the app be foreground
+        doBindService();
     }
 
     @Override
@@ -73,7 +75,7 @@ public class I2PD extends Activity {
 
 	private void localDestroy() {
 		textView = null;
-		daemon.removeStateChangeListener(daemonStateChangeListener);
+		DaemonSingleton.getInstance().removeStateChangeListener(daemonStateUpdatedListener);
 		Timer gracefulQuitTimer = getGracefulQuitTimer();
 		if(gracefulQuitTimer!=null) {
 			gracefulQuitTimer.cancel();
