@@ -28,9 +28,9 @@ AppUpdatesURL=https://github.com/PurpleI2P/i2pd/releases
 Source: ..\i2pd_x86.exe; DestDir: {app}; DestName: i2pd.exe; Flags: ignoreversion; Check: not IsWin64
 Source: ..\i2pd_x64.exe; DestDir: {app}; DestName: i2pd.exe; Flags: ignoreversion; Check: IsWin64
 Source: ..\README.md; DestDir: {app}; DestName: Readme.txt; Flags: onlyifdoesntexist
-Source: ..\docs\i2pd.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
-Source: ..\docs\subscriptions.txt; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
-Source: ..\docs\tunnels.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
+Source: ..\contrib\i2pd.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
+Source: ..\contrib\subscriptions.txt; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
+Source: ..\contrib\tunnels.conf; DestDir: {userappdata}\i2pd; Flags: onlyifdoesntexist
 Source: ..\contrib\certificates\*; DestDir: {userappdata}\i2pd\certificates; Flags: onlyifdoesntexist recursesubdirs createallsubdirs
 
 [Icons]

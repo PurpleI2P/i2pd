@@ -17,6 +17,17 @@ applications (websites, instant messengers, chat-servers).
 I2P allows people from all around the world to communicate and share information
 without restrictions.
 
+Features
+--------
+
+* Distributed anonymous networking framework
+* End-to-end encrypted communications
+* Small footprint, simple dependencies, fast performance
+* Rich set of APIs for developers of secure applications
+
+Resources
+---------
+
 * [Website](http://i2pd.website)
 * [Documentation](https://i2pd.readthedocs.io/en/latest/)
 * [Wiki](https://github.com/PurpleI2P/i2pd/wiki)
@@ -34,7 +45,7 @@ i2pd from source on your OS.
 
 **Supported systems:**
 
-* Linux x86/x64  - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)  
+* GNU/Linux x86/x64  - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)  
 * Windows        - [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)  
 * Mac OS X
 * FreeBSD
@@ -44,8 +55,8 @@ i2pd from source on your OS.
 Using i2pd
 ----------
 
-See [documentation](https://i2pd.readthedocs.io/en/latest/usage.html) and 
-[example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/docs/i2pd.conf).
+See [documentation](https://i2pd.readthedocs.io/en/latest/user-guide/run/) and 
+[example config file](https://github.com/PurpleI2P/i2pd/blob/openssl/contrib/i2pd.conf).
 
 Donations
 ---------

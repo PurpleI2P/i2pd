@@ -102,6 +102,13 @@ namespace data
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
 					break;
 				}	
+				case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
+				{	
+					size_t padding =  128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
+					RAND_bytes (m_StandardIdentity.signingKey, padding);
+					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH);
+					break;
+				}	
 				default:
 					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported");
 			}	
@@ -295,14 +302,14 @@ namespace data
 
 	SigningKeyType IdentityEx::GetSigningKeyType () const
 	{
-		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
+		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedLen >= 2)				
 			return bufbe16toh (m_ExtendedBuffer); // signing key
 		return SIGNING_KEY_TYPE_DSA_SHA1;
 	}	
 
 	CryptoKeyType IdentityEx::GetCryptoKeyType () const
 	{
-		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)				
+		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedLen >= 4)				
 			return bufbe16toh (m_ExtendedBuffer + 2); // crypto key
 		return CRYPTO_KEY_TYPE_ELGAMAL;
 	}	
@@ -370,6 +377,12 @@ namespace data
 				UpdateVerifier (new i2p::crypto::EDDSA25519Verifier (m_StandardIdentity.signingKey + padding));
 				break;
 			}	
+			case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
+			{	
+				size_t padding =  128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
+				UpdateVerifier (new i2p::crypto::GOSTR3410Verifier (m_StandardIdentity.signingKey + padding));
+				break;
+			}		
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)keyType, " is not supported");
 		}			
@@ -511,6 +524,9 @@ namespace data
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
 			break;
+			case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
+				m_Signer.reset (new i2p::crypto::GOSTR3410Signer (m_SigningPrivateKey));
+			break;	
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
 		}
@@ -546,6 +562,9 @@ namespace data
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
+				case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
+					i2p::crypto::CreateGOSTR3410RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
+				break;	
 				default:
 					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 					return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1

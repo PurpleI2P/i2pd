@@ -11,6 +11,7 @@ LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem 
 ifeq ($(USE_UPNP),yes)
   LDFLAGS += -ldl
   CXXFLAGS += -DUSE_UPNP
+  LDLIBS += -lminiupnpc
 endif
 
 # OSX Notes

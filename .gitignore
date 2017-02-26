@@ -240,6 +240,8 @@ pip-log.txt
 docs/_build
 /androidIdea/
 
+# Doxygen
+docs/generated
 
 # emacs files
 *~

@@ -441,6 +441,94 @@ namespace crypto
 		EDDSA25519Signer signer (signingPrivateKey);
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
 	}
+
+	// ГОСТ Р 34.10-2001
+	const size_t GOSTR3410_PUBLIC_KEY_LENGTH = 64;
+	const size_t GOSTR3410_SIGNATURE_LENGTH = 64;
+
+	class GOSTR3410Verifier: public Verifier
+	{
+		public:
+
+			GOSTR3410Verifier (const uint8_t * signingKey) 
+			{ 
+				m_PublicKey = EVP_PKEY_new (); 
+				EC_KEY * ecKey = EC_KEY_new ();
+				EVP_PKEY_assign (m_PublicKey, NID_id_GostR3410_2001, ecKey);
+				EVP_PKEY_copy_parameters (m_PublicKey, GetGostPKEY ());		
+				BIGNUM * x = BN_bin2bn (signingKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+				BIGNUM * y = BN_bin2bn (signingKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+				EC_KEY_set_public_key_affine_coordinates (ecKey, x, y);
+				BN_free (x); BN_free (y);
+			} 
+			~GOSTR3410Verifier () { EVP_PKEY_free (m_PublicKey); }
+			
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+			{
+				uint8_t digest[32];
+				GOSTR3411 (buf, len, digest);
+				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PublicKey, nullptr);
+				EVP_PKEY_verify_init (ctx);
+				int ret = EVP_PKEY_verify (ctx, signature, GOSTR3410_SIGNATURE_LENGTH, digest, 32);
+				EVP_PKEY_CTX_free (ctx);
+				return ret == 1;
+			}
+			
+			size_t GetPublicKeyLen () const { return GOSTR3410_PUBLIC_KEY_LENGTH; }
+			size_t GetSignatureLen () const { return GOSTR3410_SIGNATURE_LENGTH; }
+
+		private:
+
+			EVP_PKEY * m_PublicKey;
+	};	
+
+	class GOSTR3410Signer: public Signer
+	{
+		public:
+
+			GOSTR3410Signer (const uint8_t * signingPrivateKey) 
+			{ 
+				m_PrivateKey = EVP_PKEY_new (); 
+				EC_KEY * ecKey = EC_KEY_new ();
+				EVP_PKEY_assign (m_PrivateKey, NID_id_GostR3410_2001, ecKey);
+				EVP_PKEY_copy_parameters (m_PrivateKey, GetGostPKEY ());	
+				EC_KEY_set_private_key (ecKey, BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL));
+			}
+			~GOSTR3410Signer () { EVP_PKEY_free (m_PrivateKey); }
+
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
+			{
+				uint8_t digest[32];
+				GOSTR3411 (buf, len, digest);
+				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PrivateKey, nullptr);
+				EVP_PKEY_sign_init (ctx);
+				size_t l = GOSTR3410_SIGNATURE_LENGTH;
+				EVP_PKEY_sign (ctx, signature, &l, digest, 32);
+				EVP_PKEY_CTX_free (ctx);
+			}	
+			
+		private:
+
+			EVP_PKEY * m_PrivateKey;
+	};	
+
+	inline void CreateGOSTR3410RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, nullptr);
+		EVP_PKEY_keygen_init (ctx);
+		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A"); // TODO should be in one place
+		EVP_PKEY* pkey = nullptr;
+		EVP_PKEY_keygen (ctx, &pkey);
+		const EC_KEY* ecKey = (const EC_KEY*) EVP_PKEY_get0(pkey);
+		bn2buf (EC_KEY_get0_private_key (ecKey), signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BIGNUM * x = BN_new(), * y = BN_new();
+		EC_POINT_get_affine_coordinates_GFp (EC_KEY_get0_group(ecKey), EC_KEY_get0_public_key (ecKey), x, y, NULL);
+		bn2buf (x, signingPublicKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		bn2buf (y, signingPublicKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BN_free (x); BN_free (y);
+		EVP_PKEY_CTX_free (ctx);
+		EVP_PKEY_free (pkey);	
+	}
 }
 }
 

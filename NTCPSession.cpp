@@ -167,7 +167,13 @@ namespace transport
 					return;
 				}	
 			}	
-
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)
+// due the bug in gcc 4.7. std::shared_future.get() is not const
+			if (!m_DHKeysPair)
+				m_DHKeysPair = transports.GetNextDHKeysPair ();
+			CreateAESKey (m_Establisher->phase1.pubKey);
+			SendPhase2 ();
+#else
 			// TODO: check for number of pending keys
 			auto s = shared_from_this ();
 			auto keyCreated = std::async (std::launch::async, [s] ()
@@ -180,7 +186,8 @@ namespace transport
 				{  
 					keyCreated.get (); 
 					s->SendPhase2 ();
-				});	
+				});
+#endif	
 		}	
 	}	
 
@@ -239,6 +246,11 @@ namespace transport
 		}
 		else
 		{	
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)
+// due the bug in gcc 4.7. std::shared_future.get() is not const
+			CreateAESKey (m_Establisher->phase2.pubKey);
+			HandlePhase2 ();
+#else
 			auto s = shared_from_this ();
 			// create AES key in separate thread
 			auto keyCreated = std::async (std::launch::async, [s] ()
@@ -251,6 +263,7 @@ namespace transport
 					keyCreated.get (); // we might wait if no more pending operations
 					s->HandlePhase2 ();
 				});	
+#endif
 		}	
 	}	
 
