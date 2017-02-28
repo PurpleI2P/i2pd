@@ -10,6 +10,7 @@
 #include "I2NPProtocol.h"
 #include "Transports.h"
 #include "NetDb.h"
+#include "Config.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"
 #ifdef WITH_EVENTS
@@ -741,7 +742,11 @@ namespace tunnel
 			CreateZeroHopsOutboundTunnel ();
 			if (!m_ExploratoryPool)
 			{
-				m_ExploratoryPool = CreateTunnelPool (2, 2, 3, 3); // 2-hop exploratory, 3 tunnels
+				int ibLen; i2p::config::GetOption("exploratory.inbound.length", ibLen);
+				int obLen; i2p::config::GetOption("exploratory.outbound.length", obLen);
+				int ibNum; i2p::config::GetOption("exploratory.inbound.quantity", ibNum);
+				int obNum; i2p::config::GetOption("exploratory.outbound.quantity", obNum);
+				m_ExploratoryPool = CreateTunnelPool (ibLen, obLen, ibNum, obNum); 
 				m_ExploratoryPool->SetLocalDestination (i2p::context.GetSharedDestination ());
 			}
 			return;
