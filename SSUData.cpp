@@ -48,6 +48,9 @@ namespace transport
 	{
 		m_ResendTimer.cancel ();
 		m_IncompleteMessagesCleanupTimer.cancel ();
+		m_IncompleteMessages.clear ();
+		m_SentMessages.clear ();
+		m_ReceivedMessages.clear ();
 	}	
 		
 	void SSUData::AdjustPacketSize (std::shared_ptr<const i2p::data::RouterInfo> remoteRouter)

@@ -121,7 +121,7 @@ namespace transport
 			void ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			void SendPeerTest (uint32_t nonce, const boost::asio::ip::address& address, uint16_t port, const uint8_t * introKey, bool toAddress = true, bool sendAddress = true); 
 			void ProcessData (uint8_t * buf, size_t len);		
-			void SendSesionDestroyed ();
+			void SendSessionDestroyed ();
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
 			void Send (const uint8_t * buf, size_t size); 
 			
@@ -132,6 +132,8 @@ namespace transport
 			void DecryptSessionKey (uint8_t * buf, size_t len);
 			bool Validate (uint8_t * buf, size_t len, const i2p::crypto::MACKey& macKey);			
 
+			void Reset ();
+			
 		private:
 	
 			friend class SSUData; // TODO: change in later
