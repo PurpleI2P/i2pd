@@ -492,6 +492,36 @@ namespace crypto
 	{
 		GetEd25519 ()->Sign (m_ExpandedPrivateKey, m_PublicKeyEncoded, buf, len, signature);
 	}	
+
+//----------------------------------------------
+// GOST
+
+	class GOSTR3410
+	{
+		public:
+
+			GOSTR3410 (BIGNUM * a, BIGNUM * b, BIGNUM * p, BIGNUM * q, BIGNUM * x, BIGNUM * y)
+			{
+				BN_CTX * ctx = BN_CTX_new ();
+				m_Curve = EC_GROUP_new_curve_GFp (p, a, b, ctx);
+				EC_POINT * P = EC_POINT_new (m_Curve);
+				EC_POINT_set_affine_coordinates_GFp (m_Curve, P, x, y, ctx);
+				EC_GROUP_set_generator (m_Curve, P, q, nullptr);
+				EC_GROUP_set_curve_name (m_Curve, NID_id_GostR3410_2001);
+				EC_POINT_free(P);
+				BN_CTX_free (ctx);
+			}
+		
+			~GOSTR3410 ()
+			{
+				 EC_GROUP_free (m_Curve);
+			}				
+
+		private:
+
+			EC_GROUP * m_Curve;
+	};
+
 }
 }
 
