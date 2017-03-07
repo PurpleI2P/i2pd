@@ -275,8 +275,13 @@ namespace crypto
 	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
 	{
 		BN_CTX * ctx = BN_CTX_new ();
+		BN_CTX_start (ctx);
+		// everything, but a, because a might come from table	
+		BIGNUM * k = BN_CTX_get (ctx);
+		BIGNUM * y = BN_CTX_get (ctx);
+		BIGNUM * b1 = BN_CTX_get (ctx);
+		BIGNUM * b = BN_CTX_get (ctx);
 		// select random k
-		BIGNUM * k = BN_new ();
 #if defined(__x86_64__)
 		BN_rand (k, ELGAMAL_FULL_EXPONENT_NUM_BITS, -1, 1); // full exponent for x64
 #else
@@ -292,23 +297,18 @@ namespace crypto
 			BN_mod_exp (a, elgg, k, elgp, ctx);
 		}
 
-		BIGNUM * y = BN_new ();
+		// restore y from key
 		BN_bin2bn (key, 256, y);
 		// calculate b1
-		BIGNUM * b1 = BN_new ();
 		BN_mod_exp (b1, y, k, elgp, ctx);
-		BN_free (y);
-		BN_free (k);
 		// create m
 		uint8_t m[255];
 		m[0] = 0xFF;
 		memcpy (m+33, data, 222);
 		SHA256 (m+33, 222, m+1);
 		// calculate b = b1*m mod p
-		BIGNUM * b = BN_new ();
 		BN_bin2bn (m, 255, b);
 		BN_mod_mul (b, b1, b, elgp, ctx);
-		BN_free (b1);
 		// copy a and b
 		if (zeroPadding)
 		{
@@ -322,8 +322,8 @@ namespace crypto
 			bn2buf (a, encrypted, 256);
 			bn2buf (b, encrypted + 256, 256);
 		}		
-		BN_free (b);
 		BN_free (a);
+		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
 	}
 
