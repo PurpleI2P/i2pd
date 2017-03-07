@@ -331,7 +331,8 @@ namespace crypto
 		uint8_t * data, bool zeroPadding)
 	{
 		BN_CTX * ctx = BN_CTX_new ();
-		BIGNUM * x = BN_new (), * a = BN_new (), * b = BN_new ();
+		BN_CTX_start (ctx);
+		BIGNUM * x = BN_CTX_get (ctx), * a = BN_CTX_get (ctx), * b = BN_CTX_get (ctx);
 		BN_bin2bn (key, 256, x);
 		BN_sub (x, elgp, x); BN_sub_word (x, 1); // x = elgp - x- 1
 		BN_bin2bn (zeroPadding ? encrypted + 1 : encrypted, 256, a);
@@ -341,7 +342,7 @@ namespace crypto
 		BN_mod_mul (b, b, x, elgp, ctx);	
 		uint8_t m[255];
 		bn2buf (b, m, 255); 
-		BN_free (x); BN_free (a); BN_free (b); 
+		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
 		uint8_t hash[32];
 		SHA256 (m + 33, 222, hash);
