@@ -1,4 +1,5 @@
 #include <memory>
+#include <array>
 #include "Log.h"
 #include "Signature.h"
 
@@ -496,32 +497,89 @@ namespace crypto
 //----------------------------------------------
 // GOST
 
-	class GOSTR3410
+	class GOSTR3410Curve
 	{
 		public:
 
-			GOSTR3410 (BIGNUM * a, BIGNUM * b, BIGNUM * p, BIGNUM * q, BIGNUM * x, BIGNUM * y)
+			GOSTR3410Curve (BIGNUM * a, BIGNUM * b, BIGNUM * p, BIGNUM * q, BIGNUM * x, BIGNUM * y)
 			{
 				BN_CTX * ctx = BN_CTX_new ();
-				m_Curve = EC_GROUP_new_curve_GFp (p, a, b, ctx);
-				EC_POINT * P = EC_POINT_new (m_Curve);
-				EC_POINT_set_affine_coordinates_GFp (m_Curve, P, x, y, ctx);
-				EC_GROUP_set_generator (m_Curve, P, q, nullptr);
-				EC_GROUP_set_curve_name (m_Curve, NID_id_GostR3410_2001);
+				m_Group = EC_GROUP_new_curve_GFp (p, a, b, ctx);
+				EC_POINT * P = EC_POINT_new (m_Group);
+				EC_POINT_set_affine_coordinates_GFp (m_Group, P, x, y, ctx);
+				EC_GROUP_set_generator (m_Group, P, q, nullptr);
+				EC_GROUP_set_curve_name (m_Group, NID_id_GostR3410_2001);
 				EC_POINT_free(P);
 				BN_CTX_free (ctx);
 			}
 		
-			~GOSTR3410 ()
+			~GOSTR3410Curve ()
 			{
-				 EC_GROUP_free (m_Curve);
+				 EC_GROUP_free (m_Group);
 			}				
 
 		private:
 
-			EC_GROUP * m_Curve;
+			EC_GROUP * m_Group;
 	};
 
+	GOSTR3410Curve * CreateGOSTR3410Curve (GOSTR3410ParamSet paramSet)
+	{
+		// a, b, p, q, x, y	
+		static const char * params[eGOSTR3410NumParamSets][6] = 
+		{
+			{ 
+				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD94",
+				"A6",
+				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97",
+				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6C611070995AD10045841B09B761B893",
+				"1",
+				"8D91E471E0989CDA27DF505A453F2B7635294F2DDF23E3B122ACC99C9E9F1E14"
+			}, // A
+			{
+				"8000000000000000000000000000000000000000000000000000000000000C96",
+ 				"3E1AF419A269A5F866A7D3C25C3DF80AE979259373FF2B182F49D4CE7E1BBC8B",
+ 				"8000000000000000000000000000000000000000000000000000000000000C99",
+ 				"800000000000000000000000000000015F700CFFF1A624E5E497161BCC8A198F",
+				"1",
+				"3FA8124359F96680B83D1C3EB2C070E5C545C9858D03ECFB744BF8D717717EFC"
+			}, // B	
+			{
+				"9B9F605F5A858107AB1EC85E6B41C8AACF846E86789051D37998F7B9022D7598",
+ 				"805A",
+ 				"9B9F605F5A858107AB1EC85E6B41C8AACF846E86789051D37998F7B9022D759B",
+ 				"9B9F605F5A858107AB1EC85E6B41C8AA582CA3511EDDFB74F02F3A6598980BB9",
+ 				"0",
+				"41ECE55743711A8C3CBF3783CD08C0EE4D4DC440D4641A8F366E550DFDB3BB67"
+			} // C
+		};	
+		
+		BIGNUM * a = nullptr, * b = nullptr, * p = nullptr, * q =nullptr, * x = nullptr, * y = nullptr;
+		BN_hex2bn(&a, params[paramSet][0]);
+		BN_hex2bn(&b, params[paramSet][1]);
+		BN_hex2bn(&p, params[paramSet][2]);
+		BN_hex2bn(&q, params[paramSet][3]);
+		BN_hex2bn(&x, params[paramSet][4]);
+		BN_hex2bn(&y, params[paramSet][5]);
+		auto curve = new GOSTR3410Curve (a, b, p, q, x, y);
+		BN_free (a); BN_free (b); BN_free (p); BN_free (q); BN_free (x); BN_free (y);
+		return curve;
+	}	
+	
+	static std::array<std::unique_ptr<GOSTR3410Curve>, eGOSTR3410NumParamSets> g_GOSTR3410Curves;
+	std::unique_ptr<GOSTR3410Curve>& GetGOSTR3410Curve (GOSTR3410ParamSet paramSet)
+	{
+		if (!g_GOSTR3410Curves[paramSet])
+		{
+			auto c = CreateGOSTR3410Curve (paramSet);	
+			if (!g_GOSTR3410Curves[paramSet]) // make sure it was not created already
+				g_GOSTR3410Curves[paramSet].reset (c);
+			else
+				delete c;
+		}	
+		return g_GOSTR3410Curves[paramSet]; 
+	}	
+	
 }
 }
 
