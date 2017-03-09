@@ -515,9 +515,23 @@ namespace crypto
 		
 			~GOSTR3410Curve ()
 			{
-				 EC_GROUP_free (m_Group);
+				EC_GROUP_free (m_Group);
 			}				
 
+			EC_POINT * MulP (const BIGNUM * n) const
+			{
+				BN_CTX * ctx = BN_CTX_new ();
+				auto p = EC_POINT_new (m_Group);
+				EC_POINT_mul (m_Group, p, n, nullptr, nullptr, ctx);
+				BN_CTX_free (ctx);
+				return p;
+			}
+
+			bool GetXY (const EC_POINT * p, BIGNUM * x, BIGNUM * y) const
+			{
+				return EC_POINT_get_affine_coordinates_GFp (m_Group, p, x, y, nullptr);
+			}
+			
 		private:
 
 			EC_GROUP * m_Group;
@@ -579,7 +593,21 @@ namespace crypto
 		}	
 		return g_GOSTR3410Curves[paramSet]; 
 	}	
-	
+
+	void CreateGOSTR3410RandomKeys (GOSTR3410ParamSet paramSet, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{	
+		RAND_bytes (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BIGNUM * priv = BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, nullptr);
+		const auto& curve = GetGOSTR3410Curve (paramSet);
+		auto pub = curve->MulP (priv);
+		BN_free (priv);
+		BIGNUM * x = BN_new (), * y = BN_new ();
+		curve->GetXY (pub, x, y);
+		EC_POINT_free (pub);
+		bn2buf (x, signingPublicKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		bn2buf (y, signingPublicKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BN_free (x); BN_free (y); 
+	}
 }
 }
 
