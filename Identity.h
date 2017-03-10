@@ -62,6 +62,8 @@ namespace data
 	const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
 	// following signature type should never appear in netid=2
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411 = 65280; // approved by FSB
+	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_B_GOSTR3411 = 65281;
+	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_C_GOSTR3411 = 65282;
 	
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;	
