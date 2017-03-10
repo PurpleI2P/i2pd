@@ -614,6 +614,19 @@ namespace crypto
 		return g_GOSTR3410Curves[paramSet]; 
 	}	
 
+	void GOSTR3410Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
+	{
+		uint8_t digest[32];
+		GOSTR3411 (buf, len, digest);
+		BIGNUM * d = BN_bin2bn (digest, 32, nullptr); 
+		BIGNUM * r = BN_new (), * s = BN_new ();
+		const auto& curve = GetGOSTR3410Curve (m_ParamSet);
+		curve->Sign (m_PrivateKey, d, r, s);
+		bn2buf (r, signature, GOSTR3410_SIGNATURE_LENGTH/2);
+		bn2buf (s, signature + GOSTR3410_SIGNATURE_LENGTH/2, GOSTR3410_SIGNATURE_LENGTH/2);
+		BN_free (d); BN_free (r); BN_free (s);
+	}	
+	
 	void CreateGOSTR3410RandomKeys (GOSTR3410ParamSet paramSet, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{	
 		RAND_bytes (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);

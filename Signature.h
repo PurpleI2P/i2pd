@@ -498,37 +498,22 @@ namespace crypto
 	{
 		public:
 
-			GOSTR3410Signer (const uint8_t * signingPrivateKey) 
+			GOSTR3410Signer (GOSTR3410ParamSet paramSet, const uint8_t * signingPrivateKey):
+				m_ParamSet (paramSet)
 			{ 
-				m_PrivateKey = EVP_PKEY_new (); 
-				EC_KEY * ecKey = EC_KEY_new ();
-				EVP_PKEY_assign (m_PrivateKey, NID_id_GostR3410_2001, ecKey);
-				EVP_PKEY_copy_parameters (m_PrivateKey, GetGostPKEY ());	
-				EC_KEY_set_private_key (ecKey, BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL));
+				m_PrivateKey = BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, nullptr); 
 			}
-			~GOSTR3410Signer () { EVP_PKEY_free (m_PrivateKey); }
+			~GOSTR3410Signer () { BN_free (m_PrivateKey); }
 
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
-			{
-				uint8_t digest[32];
-				GOSTR3411 (buf, len, digest);
-				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PrivateKey, nullptr);
-				EVP_PKEY_sign_init (ctx);
-				size_t l = GOSTR3410_SIGNATURE_LENGTH;
-				EVP_PKEY_sign (ctx, signature, &l, digest, 32);
-				EVP_PKEY_CTX_free (ctx);
-			}	
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			
 		private:
 
-			EVP_PKEY * m_PrivateKey;
+			GOSTR3410ParamSet m_ParamSet;
+			BIGNUM * m_PrivateKey;
 	};	
 
 	void CreateGOSTR3410RandomKeys (GOSTR3410ParamSet paramSet, uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
-	inline void CreateGOSTR3410RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
-	{
-		CreateGOSTR3410RandomKeys (eGOSTR3410CryptoProA, signingPrivateKey, signingPublicKey); // A by default
-	}
 }
 }
 

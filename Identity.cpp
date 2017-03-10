@@ -525,7 +525,7 @@ namespace data
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
-				m_Signer.reset (new i2p::crypto::GOSTR3410Signer (m_SigningPrivateKey));
+				m_Signer.reset (new i2p::crypto::GOSTR3410Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
 			break;	
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
@@ -563,7 +563,7 @@ namespace data
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
 				case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
-					i2p::crypto::CreateGOSTR3410RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
+					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, keys.m_SigningPrivateKey, signingPublicKey);
 				break;	
 				default:
 					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
