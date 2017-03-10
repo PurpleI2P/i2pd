@@ -462,36 +462,18 @@ namespace crypto
 	{
 		public:
 
-			GOSTR3410Verifier (const uint8_t * signingKey) 
-			{ 
-				m_PublicKey = EVP_PKEY_new (); 
-				EC_KEY * ecKey = EC_KEY_new ();
-				EVP_PKEY_assign (m_PublicKey, NID_id_GostR3410_2001, ecKey);
-				EVP_PKEY_copy_parameters (m_PublicKey, GetGostPKEY ());		
-				BIGNUM * x = BN_bin2bn (signingKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
-				BIGNUM * y = BN_bin2bn (signingKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
-				EC_KEY_set_public_key_affine_coordinates (ecKey, x, y);
-				BN_free (x); BN_free (y);
-			} 
-			~GOSTR3410Verifier () { EVP_PKEY_free (m_PublicKey); }
+			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey);
+			~GOSTR3410Verifier () { EC_POINT_free (m_PublicKey); }
 			
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
-			{
-				uint8_t digest[32];
-				GOSTR3411 (buf, len, digest);
-				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PublicKey, nullptr);
-				EVP_PKEY_verify_init (ctx);
-				int ret = EVP_PKEY_verify (ctx, signature, GOSTR3410_SIGNATURE_LENGTH, digest, 32);
-				EVP_PKEY_CTX_free (ctx);
-				return ret == 1;
-			}
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			
 			size_t GetPublicKeyLen () const { return GOSTR3410_PUBLIC_KEY_LENGTH; }
 			size_t GetSignatureLen () const { return GOSTR3410_SIGNATURE_LENGTH; }
 
 		private:
 
-			EVP_PKEY * m_PublicKey;
+			GOSTR3410ParamSet m_ParamSet;
+			EC_POINT * m_PublicKey;
 	};	
 
 	class GOSTR3410Signer: public Signer

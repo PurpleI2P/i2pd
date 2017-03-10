@@ -532,6 +532,13 @@ namespace crypto
 				return EC_POINT_get_affine_coordinates_GFp (m_Group, p, x, y, nullptr);
 			}
 
+			EC_POINT * CreatePoint (const BIGNUM * x, const BIGNUM * y) const
+			{
+				EC_POINT * p = EC_POINT_new (m_Group);
+				EC_POINT_set_affine_coordinates_GFp (m_Group, p, x, y, nullptr);
+				return p;
+			}
+
 			void Sign (const BIGNUM * priv, const BIGNUM * digest, BIGNUM * r, BIGNUM * s)
 			{
 				BN_CTX * ctx = BN_CTX_new ();
@@ -551,6 +558,31 @@ namespace crypto
 				BN_CTX_free (ctx);
 			}
 
+			bool Verify (const EC_POINT * pub, const BIGNUM * digest, const BIGNUM * r, const BIGNUM * s)
+			{
+				BN_CTX * ctx = BN_CTX_new ();
+				BN_CTX_start (ctx);
+				BIGNUM * q = BN_CTX_get (ctx);
+				EC_GROUP_get_order(m_Group, q, ctx);
+				BIGNUM * h = BN_CTX_get (ctx);
+				BN_mod (h, digest, q, ctx); // h = digest % q
+				BN_mod_inverse (h, h, q, ctx); // 1/h mod q
+				BIGNUM * z1 = BN_CTX_get (ctx);
+				BN_mod_mul (z1, s, h, q, ctx); // z1 = s/h
+				BIGNUM * z2 = BN_CTX_get (ctx);				
+				BN_sub (z2, q, r); // z2 = -r
+ 				BN_mod_mul (z2, z2, h, q, ctx); // z2 = -r/h
+				EC_POINT * C = EC_POINT_new (m_Group);
+				EC_POINT_mul (m_Group, C, z1, pub, z2, ctx); // z1*P + z2*pub
+				BIGNUM * x = BN_CTX_get (ctx);	
+				GetXY  (C, x, nullptr); // Cx
+				BN_mod (x, x, q, ctx); // Cx % q
+				bool ret = !BN_cmp (x, r); // Cx = r ?
+				EC_POINT_free (C);
+				BN_CTX_end (ctx);
+				BN_CTX_free (ctx);
+				return ret;
+			}
 			
 		private:
 
@@ -614,14 +646,34 @@ namespace crypto
 		return g_GOSTR3410Curves[paramSet]; 
 	}	
 
+	GOSTR3410Verifier::GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey):
+		m_ParamSet (paramSet)
+	{ 
+		BIGNUM * x = BN_bin2bn (signingKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+		BIGNUM * y = BN_bin2bn (signingKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+		m_PublicKey = GetGOSTR3410Curve (m_ParamSet)->CreatePoint (x, y);
+		BN_free (x); BN_free (y);
+	} 
+
+	bool GOSTR3410Verifier::Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+	{
+		uint8_t digest[32];
+		GOSTR3411 (buf, len, digest);
+		BIGNUM * d = BN_bin2bn (digest, 32, nullptr);
+		BIGNUM * r = BN_bin2bn (signature, GetSignatureLen ()/2, NULL);
+		BIGNUM * s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
+		bool ret = GetGOSTR3410Curve (m_ParamSet)->Verify (m_PublicKey, d, r, s);
+		BN_free (d); BN_free (r); BN_free (s);	
+		return ret;
+	}
+
 	void GOSTR3410Signer::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		uint8_t digest[32];
 		GOSTR3411 (buf, len, digest);
 		BIGNUM * d = BN_bin2bn (digest, 32, nullptr); 
 		BIGNUM * r = BN_new (), * s = BN_new ();
-		const auto& curve = GetGOSTR3410Curve (m_ParamSet);
-		curve->Sign (m_PrivateKey, d, r, s);
+		GetGOSTR3410Curve (m_ParamSet)->Sign (m_PrivateKey, d, r, s);
 		bn2buf (r, signature, GOSTR3410_SIGNATURE_LENGTH/2);
 		bn2buf (s, signature + GOSTR3410_SIGNATURE_LENGTH/2, GOSTR3410_SIGNATURE_LENGTH/2);
 		BN_free (d); BN_free (r); BN_free (s);

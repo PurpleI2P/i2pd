@@ -97,14 +97,14 @@ namespace data
 				}	
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				{
-					size_t padding =  128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
+					size_t padding = 128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH; // 96 = 128 - 32
 					RAND_bytes (m_StandardIdentity.signingKey, padding);
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
 					break;
 				}	
 				case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
 				{	
-					size_t padding =  128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
+					size_t padding = 128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
 					RAND_bytes (m_StandardIdentity.signingKey, padding);
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH);
 					break;
@@ -380,7 +380,7 @@ namespace data
 			case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
 			{	
 				size_t padding =  128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
-				UpdateVerifier (new i2p::crypto::GOSTR3410Verifier (m_StandardIdentity.signingKey + padding));
+				UpdateVerifier (new i2p::crypto::GOSTR3410Verifier (i2p::crypto::eGOSTR3410CryptoProA, m_StandardIdentity.signingKey + padding));
 				break;
 			}		
 			default:
