@@ -531,6 +531,26 @@ namespace crypto
 			{
 				return EC_POINT_get_affine_coordinates_GFp (m_Group, p, x, y, nullptr);
 			}
+
+			void Sign (const BIGNUM * priv, const BIGNUM * digest, BIGNUM * r, BIGNUM * s)
+			{
+				BN_CTX * ctx = BN_CTX_new ();
+				BN_CTX_start (ctx);
+				BIGNUM * q = BN_CTX_get (ctx);
+				EC_GROUP_get_order(m_Group, q, ctx);
+				BIGNUM * k = BN_CTX_get (ctx);
+				BN_rand_range (k, q); // 0 < k < q
+				EC_POINT * C = MulP (k); // C = k*P
+				GetXY (C, r, nullptr); // r = Cx
+				EC_POINT_free (C);
+				BN_mod_mul (s, r, priv, q, ctx); // (r*priv)%q
+				BIGNUM * tmp = BN_CTX_get (ctx);
+				BN_mod_mul (tmp, k, digest, q, ctx); // (k*digest)%q
+				BN_mod_add (s, s, tmp, q, ctx); // (r*priv+k*digest)%q
+				BN_CTX_end (ctx);
+				BN_CTX_free (ctx);
+			}
+
 			
 		private:
 
