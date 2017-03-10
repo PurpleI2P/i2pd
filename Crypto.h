@@ -280,9 +280,6 @@ namespace crypto
 	};	
 
 // GOST
-	bool InitGost ();
-	void TerminateGost ();
-	const EVP_PKEY * GetGostPKEY ();
 	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest); // hash
 	
 	void InitCrypto (bool precomputation, bool withGost = false);

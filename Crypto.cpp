@@ -802,70 +802,15 @@ namespace crypto
 		}	
 	}*/
 
-	static ENGINE * g_GostEngine = nullptr;
-	static const EVP_MD * g_Gost3411 = nullptr;
-	static EVP_PKEY * g_GostPKEY = nullptr;	
-	
-	const EVP_PKEY * GetGostPKEY ()
-	{
-		return g_GostPKEY;
-	}	
 	
 	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest)
 	{
-		if (!g_Gost3411) return nullptr;
-		auto ctx = EVP_MD_CTX_new ();
-		EVP_DigestInit_ex (ctx, g_Gost3411, g_GostEngine);
-		EVP_DigestUpdate (ctx, buf, len);
-		EVP_DigestFinal_ex (ctx, digest, nullptr);
-		EVP_MD_CTX_free (ctx);
+		// TODO: implement actual GOST R 34.11
+		// SHA-256 is used for testing only
+		SHA256 (buf, len, digest);	
 		return digest;
 	}	
 	
-	bool InitGost ()
-	{
-#ifndef OPENSSL_NO_ENGINE
-#if (OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)
-		ENGINE_load_builtin_engines ();
-		ENGINE_load_dynamic ();
-#else
-		OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
-#endif
-		g_GostEngine = ENGINE_by_id ("gost");
-		if (!g_GostEngine) return false;
-
-		ENGINE_init (g_GostEngine);
-		ENGINE_set_default (g_GostEngine, ENGINE_METHOD_ALL);
-		g_Gost3411 = ENGINE_get_digest(g_GostEngine, NID_id_GostR3411_94);
-
-		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, g_GostEngine);
-		if (!ctx) return false;
-		EVP_PKEY_keygen_init (ctx);
-		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A"); // possible values 'A', 'B', 'C', 'XA', 'XB'
-		EVP_PKEY_keygen (ctx, &g_GostPKEY);	// it seems only way to fill with correct params
-		EVP_PKEY_CTX_free (ctx);
-		return true;
-#else
-		LogPrint (eLogError, "Can't initialize GOST. Engines are not supported");
-		return false;
-#endif
-	}
-	
-	void TerminateGost ()
-	{
-		if (g_GostPKEY)
-			EVP_PKEY_free (g_GostPKEY);
-#ifndef OPENSSL_NO_ENGINE
-		if (g_GostEngine)
-		{
-			ENGINE_finish (g_GostEngine);
-			ENGINE_free (g_GostEngine);
-#if (OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)
-			ENGINE_cleanup();
-#endif
-		}
-#endif
-	}
 
 	void InitCrypto (bool precomputation, bool withGost)
 	{

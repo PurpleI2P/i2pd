@@ -122,7 +122,6 @@ namespace i2p
 			i2p::crypto::InitCrypto (precomputation);
 
 			int netID; i2p::config::GetOption("netid", netID);
-			if (netID != 2)	i2p::crypto::InitGost (); // init GOST for own darknet
 			i2p::context.SetNetID (netID);
 			i2p::context.Init ();
 
@@ -350,7 +349,6 @@ namespace i2p
 				d.m_WebsocketServer = nullptr;
 			}
 #endif
-			if (i2p::context.GetNetID () != 2) i2p::crypto::TerminateGost ();
 			i2p::crypto::TerminateCrypto ();
 			i2p::log::Logger().Stop();
 
