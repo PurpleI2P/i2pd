@@ -51,6 +51,7 @@ namespace tunnel
 		uint8_t * records = msg->GetPayload () + 1; 
 		TunnelHopConfig * hop = m_Config->GetFirstHop ();
 		int i = 0;
+		BN_CTX * ctx = BN_CTX_new ();
 		while (hop)
 		{
 			uint32_t msgID;
@@ -59,7 +60,7 @@ namespace tunnel
 			else
 				msgID = replyMsgID;
 			int idx = recordIndicies[i];
-			hop->CreateBuildRequestRecord (records + idx*TUNNEL_BUILD_RECORD_SIZE, msgID); 
+			hop->CreateBuildRequestRecord (records + idx*TUNNEL_BUILD_RECORD_SIZE, msgID, ctx); 
 			hop->recordIndex = idx; 
 			i++;
 #ifdef WITH_EVENTS
@@ -67,6 +68,7 @@ namespace tunnel
 #endif
 			hop = hop->next;
 		}
+		BN_CTX_free (ctx);
 #ifdef WITH_EVENTS
 		EmitTunnelEvent("tunnel.build", this, peers);
 #endif

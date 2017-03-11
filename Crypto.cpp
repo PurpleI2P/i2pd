@@ -272,9 +272,8 @@ namespace crypto
 	}	
 	
 // ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
 	{
-		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		// everything, but a, because a might come from table	
 		BIGNUM * k = BN_CTX_get (ctx);
@@ -324,13 +323,11 @@ namespace crypto
 		}		
 		BN_free (a);
 		BN_CTX_end (ctx);
-		BN_CTX_free (ctx);
 	}
 
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
-		uint8_t * data, bool zeroPadding)
+		uint8_t * data, BN_CTX * ctx, bool zeroPadding)
 	{
-		BN_CTX * ctx = BN_CTX_new ();
 		BN_CTX_start (ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * a = BN_CTX_get (ctx), * b = BN_CTX_get (ctx);
 		BN_bin2bn (key, 256, x);
@@ -343,7 +340,6 @@ namespace crypto
 		uint8_t m[255];
 		bn2buf (b, m, 255); 
 		BN_CTX_end (ctx);
-		BN_CTX_free (ctx);
 		uint8_t hash[32];
 		SHA256 (m + 33, 222, hash);
 		if (memcmp (m + 1, hash, 32))

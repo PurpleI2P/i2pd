@@ -326,8 +326,9 @@ namespace i2p
 			if (!memcmp (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)i2p::context.GetRouterInfo ().GetIdentHash (), 16))
 			{	
 				LogPrint (eLogDebug, "I2NP: Build request record ", i, " is ours");
-			
-				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText);
+				BN_CTX * ctx = BN_CTX_new ();
+				i2p::crypto::ElGamalDecrypt (i2p::context.GetEncryptionPrivateKey (), record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET, clearText, ctx);
+				BN_CTX_free (ctx);
 				// replace record to reply			
 				if (i2p::context.AcceptsTunnels () && 
 					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= g_MaxNumTransitTunnels &&

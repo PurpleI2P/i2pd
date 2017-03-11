@@ -48,8 +48,8 @@ namespace crypto
 	};	
 	
 	// ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false);
-	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, bool zeroPadding = false);
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding = false);
+	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding = false);
 	void GenerateElGamalKeyPair (uint8_t * priv, uint8_t * pub);
 
 	// HMAC
