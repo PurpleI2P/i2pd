@@ -1,6 +1,8 @@
+%define build_timestamp %(date +"%Y%m%d")
+
 Name:           i2pd
-Version:        2.10.0
-Release:        3%{?dist}
+Version:        2.12.0
+Release:        %{build_timestamp}git%{?dist}
 Summary:        I2P router written in C++
 
 License:        BSD
@@ -101,6 +103,23 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Tue Feb 14 2017 orignal <i2porignal@yandex.ru> - 2.12.0
+- Additional HTTP and SOCKS proxy tunnels
+- Reseed from ZIP archive
+- 'X' bandwidth code
+- Reduced memory and file descriptors usage
+
+* Mon Dec 19 2016 orignal <i2porignal@yandex.ru> - 2.11.0
+- Full support of zero-hops tunnels
+- Tunnel configuration for HTTP and SOCKS proxy
+- Websockets support
+- Multiple acceptors for SAM destination
+- Routing path for UDP tunnels
+- Reseed through a floodfill
+- Use AVX instructions for DHT and HMAC if applicable
+- Fixed UPnP discovery bug, producing excessive CPU usage
+- Handle multiple lookups of the same LeaseSet correctly
+
 * Tue Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
 - add support C7
 - move rpm-related files to contrib folder
