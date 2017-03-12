@@ -23,7 +23,7 @@ namespace i2p
 namespace transport
 {
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-		TransportSession (in_RemoteRouter, NTCP_CONNECT_TIMEOUT),	
+		TransportSession (in_RemoteRouter, NTCP_ESTABLISH_TIMEOUT),	
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
