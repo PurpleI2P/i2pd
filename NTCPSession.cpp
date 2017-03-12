@@ -1065,6 +1065,8 @@ namespace transport
 					(*it)->Terminate (); 
 					it = m_PendingIncomingSessions.erase (it); // expired
 				}	
+				else
+					it++;
 			}
 			
 			ScheduleTermination ();	
