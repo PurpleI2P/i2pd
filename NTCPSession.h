@@ -55,7 +55,8 @@ namespace transport
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };	
-
+			bool IsTerminated () const { return m_IsTerminated; };
+			
 			void ClientLogin ();
 			void ServerLogin ();
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
@@ -166,6 +167,7 @@ namespace transport
 			boost::asio::deadline_timer m_TerminationTimer;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions; // access from m_Thread only
+			std::list<std::shared_ptr<NTCPSession> > m_PendingIncomingSessions;
 
 		public:
 
