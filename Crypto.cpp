@@ -797,15 +797,6 @@ namespace crypto
 				m_OpenSSLMutexes[type]->unlock ();
 		}	
 	}*/
-
-	
-	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest)
-	{
-		// TODO: implement actual GOST R 34.11
-		// SHA-256 is used for testing only
-		SHA256 (buf, len, digest);	
-		return digest;
-	}	
 	
 
 	void InitCrypto (bool precomputation, bool withGost)

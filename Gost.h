@@ -13,12 +13,16 @@ namespace crypto
 	
 	enum GOSTR3410ParamSet
 	{
+		// GOST R 34.10-2001
 		eGOSTR3410CryptoProA = 0,   // 1.2.643.2.2.35.1
 		eGOSTR3410CryptoProB,	    // 1.2.643.2.2.35.2
 		eGOSTR3410CryptoProC,	    // 1.2.643.2.2.35.3
+		// XchA = A, XchB = C
 		//eGOSTR3410CryptoProXchA,    // 1.2.643.2.2.36.0
 		//eGOSTR3410CryptoProXchB,	// 1.2.643.2.2.36.1
-		// XchA = A, XchB = C
+		// GOST R 34.10-2012		
+		eGOSTR3410tc26paramSetA256,		// 1.2.643.7.1.2.1.1.1 
+		eGOSTR3410tc26paramSetC512,		// 1.2.643.7.1.2.1.2.3 
 		eGOSTR3410NumParamSets
 	};	
 	

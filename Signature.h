@@ -452,10 +452,26 @@ namespace crypto
 	{
 		public:
 
-			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey);
+			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey)
+			{
+				BIGNUM * x = BN_bin2bn (signingKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+				BIGNUM * y = BN_bin2bn (signingKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+				m_PublicKey = GetGOSTR3410Curve (m_ParamSet)->CreatePoint (x, y);
+				BN_free (x); BN_free (y);
+			}
 			~GOSTR3410Verifier () { EC_POINT_free (m_PublicKey); }
 			
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
+			{
+				uint8_t digest[32];
+				SHA256 (buf, len, digest);  // TODO: use GOST 34.11
+				BIGNUM * d = BN_bin2bn (digest, 32, nullptr);
+				BIGNUM * r = BN_bin2bn (signature, GetSignatureLen ()/2, NULL);
+				BIGNUM * s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
+				bool ret = GetGOSTR3410Curve (m_ParamSet)->Verify (m_PublicKey, d, r, s);
+				BN_free (d); BN_free (r); BN_free (s);	
+				return ret;
+			}
 			
 			size_t GetPublicKeyLen () const { return GOSTR3410_PUBLIC_KEY_LENGTH; }
 			size_t GetSignatureLen () const { return GOSTR3410_SIGNATURE_LENGTH; }
@@ -477,7 +493,17 @@ namespace crypto
 			}
 			~GOSTR3410Signer () { BN_free (m_PrivateKey); }
 
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
+			{
+				uint8_t digest[32];
+				SHA256 (buf, len, digest); // TODO: use GOST 34.11
+				BIGNUM * d = BN_bin2bn (digest, 32, nullptr); 
+				BIGNUM * r = BN_new (), * s = BN_new ();
+				GetGOSTR3410Curve (m_ParamSet)->Sign (m_PrivateKey, d, r, s);
+				bn2buf (r, signature, GOSTR3410_SIGNATURE_LENGTH/2);
+				bn2buf (s, signature + GOSTR3410_SIGNATURE_LENGTH/2, GOSTR3410_SIGNATURE_LENGTH/2);
+				BN_free (d); BN_free (r); BN_free (s);
+			}
 			
 		private:
 
@@ -485,7 +511,20 @@ namespace crypto
 			BIGNUM * m_PrivateKey;
 	};	
 
-	void CreateGOSTR3410RandomKeys (GOSTR3410ParamSet paramSet, uint8_t * signingPrivateKey, uint8_t * signingPublicKey);
+	inline void CreateGOSTR3410RandomKeys (GOSTR3410ParamSet paramSet, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	{
+		RAND_bytes (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BIGNUM * priv = BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, nullptr);
+		const auto& curve = GetGOSTR3410Curve (paramSet);
+		auto pub = curve->MulP (priv);
+		BN_free (priv);
+		BIGNUM * x = BN_new (), * y = BN_new ();
+		curve->GetXY (pub, x, y);
+		EC_POINT_free (pub);
+		bn2buf (x, signingPublicKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		bn2buf (y, signingPublicKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2);
+		BN_free (x); BN_free (y); 
+	}
 }
 }
 
