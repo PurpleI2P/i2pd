@@ -1,0 +1,94 @@
+#ifndef TUNNELPANE_H
+#define TUNNELPANE_H
+
+#include "QObject"
+#include "QWidget"
+#include "QComboBox"
+#include "QGridLayout"
+#include "QLabel"
+#include "QPushButton"
+#include "QApplication"
+#include "QLineEdit"
+#include "QGroupBox"
+
+#include "TunnelConfig.h"
+
+class ServerTunnelPane;
+class ClientTunnelPane;
+
+class TunnelConfig;
+class I2CPParameters;
+
+class TunnelPane : public QObject {
+
+    Q_OBJECT
+
+public:
+    TunnelPane();
+    virtual ~TunnelPane(){}
+
+    virtual ServerTunnelPane* asServerTunnelPane()=0;
+    virtual ClientTunnelPane* asClientTunnelPane()=0;
+
+protected:
+    QGridLayout *tunnelGridLayout;
+    QGroupBox *tunnelGroupBox;
+    QWidget* gridLayoutWidget_2;
+
+    //header
+    QLabel *nameLabel;
+    QLineEdit *nameLineEdit;
+    QSpacerItem *headerHorizontalSpacer;
+    QPushButton *deletePushButton;
+
+    //type
+    QComboBox *tunnelTypeComboBox;
+    QLabel *typeLabel;
+
+    //i2cp
+
+    QLabel * inbound_lengthLabel;
+    QLineEdit * inbound_lengthLineEdit;
+
+    QLabel * outbound_lengthLabel;
+    QLineEdit * outbound_lengthLineEdit;
+
+    QLabel * inbound_quantityLabel;
+    QLineEdit * inbound_quantityLineEdit;
+
+    QLabel * outbound_quantityLabel;
+    QLineEdit * outbound_quantityLineEdit;
+
+    QLabel * crypto_tagsToSendLabel;
+    QLineEdit * crypto_tagsToSendLineEdit;
+
+    void setupTunnelPane(
+            TunnelConfig* tunnelConfig,
+            QGroupBox *tunnelGroupBox,
+            QWidget* gridLayoutWidget_2, QComboBox * tunnelTypeComboBox,
+            QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout);
+    void appendControlsForI2CPParameters(I2CPParameters& i2cpParameters, int& gridIndex);
+public:
+    int height() {
+        return gridLayoutWidget_2?gridLayoutWidget_2->height():0;
+    }
+
+protected slots:
+    virtual void setGroupBoxTitle(const QString & title)=0;
+private:
+    void retranslateTunnelForm(TunnelPane& ui) {
+        ui.deletePushButton->setText(QApplication::translate("tunForm", "Delete Tunnel", 0));
+        ui.nameLabel->setText(QApplication::translate("tunForm", "Tunnel name:", 0));
+        ui.typeLabel->setText(QApplication::translate("tunForm", "Server tunnel type:", 0));
+    }
+
+    void retranslateI2CPParameters() {
+        inbound_lengthLabel->setText(QApplication::translate("tunForm", "Number of hops of an inbound tunnel:", 0));;
+        outbound_lengthLabel->setText(QApplication::translate("tunForm", "Number of hops of an outbound tunnel:", 0));;
+        inbound_quantityLabel->setText(QApplication::translate("tunForm", "Number of inbound tunnels:", 0));;
+        outbound_quantityLabel->setText(QApplication::translate("tunForm", "Number of outbound tunnels:", 0));;
+        crypto_tagsToSendLabel->setText(QApplication::translate("tunForm", "Number of ElGamal/AES tags to send:", 0));;
+    }
+};
+
+#endif // TUNNELPANE_H

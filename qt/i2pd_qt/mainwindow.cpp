@@ -2,33 +2,52 @@
 #include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QTimer>
-#include "RouterContext.h"
+#include <QFile>
+#include <QFileDialog>
+#include "../../RouterContext.h"
+#include "../../Config.h"
+#include "../../FS.h"
+#include "../../Log.h"
+
 #ifndef ANDROID
-#include <QtDebug>
+# include <QtDebug>
 #endif
+
 #include <QScrollBar>
 
+#include <fstream>
+
+std::string programOptionsWriterCurrentSection;
+
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    QMainWindow(parent)
 #ifndef ANDROID
     ,quitting(false)
 #endif
+    ,ui(new Ui::MainWindow)
+    ,configItems()
+    ,datadir()
+    ,confpath()
+    ,tunconfpath()
+
 {
     ui->setupUi(this);
+    setWindowTitle(QApplication::translate("AppTitle","I2PD"));
 
     //TODO handle resizes and change the below into resize() call
     setFixedSize(width(), 480);
+    ui->centralWidget->setMinimumHeight(480);
+    ui->centralWidget->setMaximumHeight(480);
     onResize();
 
     ui->stackedWidget->setCurrentIndex(0);
-    ui->settingsScrollArea->resize(ui->settingsContentsGridLayout->sizeHint().width()+10,ui->settingsScrollArea->height());
+    ui->settingsScrollArea->resize(ui->settingsContentsGridLayout->sizeHint().width()+10,380);
     QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
     //QSize szSettContents = ui->settingsContentsGridLayout->minimumSize();
     int w = 683;
-    int h = 3000;
+    int h = 3060;
     ui->settingsContents->setFixedSize(w, h);
-    ui->settingsContents->resize(w, h);
+    //ui->settingsContents->resize(w, h);
     //ui->settingsContents->adjustSize();
 
     /*
@@ -39,8 +58,8 @@ MainWindow::MainWindow(QWidget *parent) :
     */
 
     //ui->settingsScrollArea->adjustSize();
-    ui->tunnelsScrollAreaWidgetContents->setFixedSize(
-                ui->tunnelsScrollArea->width() - barSett->width(), 0);
+    /*ui->tunnelsScrollAreaWidgetContents->setFixedSize(
+                ui->tunnelsScrollArea->width() - barSett->width(), 0);*/
 
 #ifndef ANDROID
     createActions();
@@ -57,90 +76,140 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->fastQuitPushButton, SIGNAL(released()), this, SLOT(handleQuitButton()));
     QObject::connect(ui->gracefulQuitPushButton, SIGNAL(released()), this, SLOT(handleGracefulQuitButton()));
 
-    initFileChooser(ui->configFileLineEdit, ui->configFileBrowsePushButton);
-    initFileChooser(ui->tunnelsConfigFileLineEdit, ui->tunnelsConfigFileBrowsePushButton);
-    initFileChooser(ui->pidFileLineEdit, ui->pidFileBrowsePushButton);
-    initFileChooser(ui->logFileLineEdit, ui->logFileBrowsePushButton);
-    initFileChooser(ui->httpProxyKeyFileLineEdit, ui->httpProxyKeyFilePushButton);
-    initFileChooser(ui->socksProxyKeyFileLineEdit, ui->socksProxyKeyFilePushButton);
-    initFileChooser(ui->i2pControlCertFileLineEdit, ui->i2pControlCertFileBrowsePushButton);
-    initFileChooser(ui->i2pControlKeyFileLineEdit, ui->i2pControlKeyFileBrowsePushButton);
-    initFileChooser(ui->reseedFileLineEdit, ui->reseedFileBrowsePushButton);
+#   define OPTION(section,option,defaultValueGetter) ConfigOption(QString(section),QString(option))
 
-    initFolderChooser(ui->dataFolderLineEdit, ui->dataFolderBrowsePushButton);
+    initFileChooser(    OPTION("","conf",[](){return "";}), ui->configFileLineEdit, ui->configFileBrowsePushButton);
+    initFolderChooser(  OPTION("","datadir",[]{return "";}), ui->dataFolderLineEdit, ui->dataFolderBrowsePushButton);
+    initFileChooser(    OPTION("","tunconf",[](){return "";}), ui->tunnelsConfigFileLineEdit, ui->tunnelsConfigFileBrowsePushButton);
 
-    initCombobox(ui->logLevelComboBox);
+    initFileChooser(    OPTION("","pidfile",[]{return "";}), ui->pidFileLineEdit, ui->pidFileBrowsePushButton);
+    logOption=initNonGUIOption(   OPTION("","log",[]{return "";}));
+    daemonOption=initNonGUIOption(   OPTION("","daemon",[]{return "";}));
+    serviceOption=initNonGUIOption(   OPTION("","service",[]{return "";}));
 
-    initIPAddressBox(ui->routerExternalHostLineEdit, tr("Router external address -> Host"));
-    initTCPPortBox(ui->routerExternalPortLineEdit, tr("Router external address -> Port"));
+    logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), ui->logFileLineEdit, ui->logFileBrowsePushButton);
+    initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), ui->logLevelComboBox);
 
-    initCheckBox(ui->ipv6CheckBox);
-    initCheckBox(ui->notransitCheckBox);
-    initCheckBox(ui->floodfillCheckBox);
-    initIntegerBox(ui->bandwidthLineEdit);
-    initStringBox(ui->familyLineEdit);
-    initIntegerBox(ui->netIdLineEdit);
+    initIPAddressBox(   OPTION("","host",[]{return "";}), ui->routerExternalHostLineEdit, tr("Router external address -> Host"));
+    initTCPPortBox(     OPTION("","port",[]{return "";}), ui->routerExternalPortLineEdit, tr("Router external address -> Port"));
+
+    initCheckBox(       OPTION("","ipv6",[]{return "false";}), ui->ipv6CheckBox);
+    initCheckBox(       OPTION("","notransit",[]{return "false";}), ui->notransitCheckBox);
+    initCheckBox(       OPTION("","floodfill",[]{return "false";}), ui->floodfillCheckBox);
+    initStringBox(      OPTION("","bandwidth",[]{return "";}), ui->bandwidthLineEdit);
+    initStringBox(      OPTION("","family",[]{return "";}), ui->familyLineEdit);
+    initIntegerBox(     OPTION("","netid",[]{return "2";}), ui->netIdLineEdit, tr("NetID"));
+
+#ifdef Q_OS_WIN
+    initCheckBox(       OPTION("","insomnia",[]{return "";}), ui->insomniaCheckBox);
+    initNonGUIOption(   OPTION("","svcctl",[]{return "";}));
+    initNonGUIOption(   OPTION("","close",[]{return "";}));
+#else
+    ui->insomniaCheckBox->setEnabled(false);
+#endif
+
+    initCheckBox(       OPTION("http","enabled",[]{return "true";}), ui->webconsoleEnabledCheckBox);
+    initIPAddressBox(   OPTION("http","address",[]{return "";}), ui->webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
+    initTCPPortBox(     OPTION("http","port",[]{return "7070";}), ui->webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
+    initCheckBox(       OPTION("http","auth",[]{return "";}), ui->webconsoleBasicAuthCheckBox);
+    initStringBox(      OPTION("http","user",[]{return "i2pd";}), ui->webconsoleUserNameLineEditBasicAuth);
+    initStringBox(      OPTION("http","pass",[]{return "";}), ui->webconsolePasswordLineEditBasicAuth);
+
+    initCheckBox(       OPTION("httpproxy","enabled",[]{return "";}), ui->httpProxyEnabledCheckBox);
+    initIPAddressBox(   OPTION("httpproxy","address",[]{return "";}), ui->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
+    initTCPPortBox(     OPTION("httpproxy","port",[]{return "4444";}), ui->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
+    initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), ui->httpProxyKeyFileLineEdit, ui->httpProxyKeyFilePushButton);
+    initSignatureTypeCombobox(OPTION("httpproxy","signaturetype",[]{return "7";}), ui->comboBox_httpPorxySignatureType);
+    initStringBox(     OPTION("httpproxy","inbound.length",[]{return "3";}), ui->httpProxyInboundTunnelsLenLineEdit);
+    initStringBox(     OPTION("httpproxy","inbound.quantity",[]{return "5";}), ui->httpProxyInboundTunnQuantityLineEdit);
+    initStringBox(     OPTION("httpproxy","outbound.length",[]{return "3";}), ui->httpProxyOutBoundTunnLenLineEdit);
+    initStringBox(     OPTION("httpproxy","outbound.quantity",[]{return "5";}), ui->httpProxyOutboundTunnQuantityLineEdit);
+
+    initCheckBox(       OPTION("socksproxy","enabled",[]{return "";}), ui->socksProxyEnabledCheckBox);
+    initIPAddressBox(   OPTION("socksproxy","address",[]{return "";}), ui->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+    initTCPPortBox(     OPTION("socksproxy","port",[]{return "4447";}), ui->socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+    initFileChooser(    OPTION("socksproxy","keys",[]{return "";}), ui->socksProxyKeyFileLineEdit, ui->socksProxyKeyFilePushButton);
+    initSignatureTypeCombobox(OPTION("socksproxy","signaturetype",[]{return "7";}), ui->comboBox_socksProxySignatureType);
+    initStringBox(     OPTION("socksproxy","inbound.length",[]{return "";}), ui->socksProxyInboundTunnelsLenLineEdit);
+    initStringBox(     OPTION("socksproxy","inbound.quantity",[]{return "";}), ui->socksProxyInboundTunnQuantityLineEdit);
+    initStringBox(     OPTION("socksproxy","outbound.length",[]{return "";}), ui->socksProxyOutBoundTunnLenLineEdit);
+    initStringBox(     OPTION("socksproxy","outbound.quantity",[]{return "";}), ui->socksProxyOutboundTunnQuantityLineEdit);
+    initIPAddressBox(   OPTION("socksproxy","outproxy",[]{return "";}), ui->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
+    initTCPPortBox(     OPTION("socksproxy","outproxyport",[]{return "";}), ui->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
+
+    initCheckBox(       OPTION("sam","enabled",[]{return "false";}), ui->samEnabledCheckBox);
+    initIPAddressBox(   OPTION("sam","address",[]{return "";}), ui->samAddressLineEdit, tr("SAM -> IP address"));
+    initTCPPortBox(     OPTION("sam","port",[]{return "7656";}), ui->samPortLineEdit, tr("SAM -> Port"));
+
+    initCheckBox(       OPTION("bob","enabled",[]{return "false";}), ui->bobEnabledCheckBox);
+    initIPAddressBox(   OPTION("bob","address",[]{return "";}), ui->bobAddressLineEdit, tr("BOB -> IP address"));
+    initTCPPortBox(     OPTION("bob","port",[]{return "2827";}), ui->bobPortLineEdit, tr("BOB -> Port"));
+
+    initCheckBox(       OPTION("i2cp","enabled",[]{return "false";}), ui->i2cpEnabledCheckBox);
+    initIPAddressBox(   OPTION("i2cp","address",[]{return "";}), ui->i2cpAddressLineEdit, tr("I2CP -> IP address"));
+    initTCPPortBox(     OPTION("i2cp","port",[]{return "7654";}), ui->i2cpPortLineEdit, tr("I2CP -> Port"));
+
+    initCheckBox(       OPTION("i2pcontrol","enabled",[]{return "false";}), ui->i2pControlEnabledCheckBox);
+    initIPAddressBox(   OPTION("i2pcontrol","address",[]{return "";}), ui->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
+    initTCPPortBox(     OPTION("i2pcontrol","port",[]{return "7650";}), ui->i2pControlPortLineEdit, tr("I2PControl -> Port"));
+    initStringBox(      OPTION("i2pcontrol","password",[]{return "";}), ui->i2pControlPasswordLineEdit);
+    initFileChooser(    OPTION("i2pcontrol","cert",[]{return "i2pcontrol.crt.pem";}), ui->i2pControlCertFileLineEdit, ui->i2pControlCertFileBrowsePushButton);
+    initFileChooser(    OPTION("i2pcontrol","key",[]{return "i2pcontrol.key.pem";}), ui->i2pControlKeyFileLineEdit, ui->i2pControlKeyFileBrowsePushButton);
+
+    initCheckBox(       OPTION("upnp","enabled",[]{return "true";}), ui->enableUPnPCheckBox);
+    initStringBox(      OPTION("upnp","name",[]{return "I2Pd";}), ui->upnpNameLineEdit);
 	
-    initCheckBox(ui->insomniaCheckBox);
-
-    initCheckBox(ui->webconsoleEnabledCheckBox);
-    initIPAddressBox(ui->webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
-    initTCPPortBox(ui->webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
-    initCheckBox(ui->webconsoleBasicAuthCheckBox);
-    initStringBox(ui->webconsoleUserNameLineEditBasicAuth);
-    initStringBox(ui->webconsolePasswordLineEditBasicAuth);
-
-    initCheckBox(ui->httpProxyEnabledCheckBox);
-    initIPAddressBox(ui->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
-    initTCPPortBox(ui->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
-    initIntegerBox(ui->httpProxyInboundTunnelsLenLineEdit);
-    initIntegerBox(ui->httpProxyInboundTunnQuantityLineEdit);
-    initIntegerBox(ui->httpProxyOutBoundTunnLenLineEdit);
-    initIntegerBox(ui->httpProxyOutboundTunnQuantityLineEdit);
-
-    initCheckBox(ui->socksProxyEnabledCheckBox);
-    initIPAddressBox(ui->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
-    initTCPPortBox(ui->socksProxyPortLineEdit, tr("Socks proxy -> Port"));
-    initIntegerBox(ui->socksProxyInboundTunnelsLenLineEdit);
-    initIntegerBox(ui->socksProxyInboundTunnQuantityLineEdit);
-    initIntegerBox(ui->socksProxyOutBoundTunnLenLineEdit);
-    initIntegerBox(ui->socksProxyOutboundTunnQuantityLineEdit);
-    initIPAddressBox(ui->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
-    initTCPPortBox(ui->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
-
-    initCheckBox(ui->samEnabledCheckBox);
-    initIPAddressBox(ui->samAddressLineEdit, tr("SAM -> IP address"));
-    initTCPPortBox(ui->samPortLineEdit, tr("SAM -> Port"));
-
-    initCheckBox(ui->bobEnabledCheckBox);
-    initIPAddressBox(ui->bobAddressLineEdit, tr("BOB -> IP address"));
-    initTCPPortBox(ui->bobPortLineEdit, tr("BOB -> Port"));
-
-    initCheckBox(ui->i2cpEnabledCheckBox);
-    initIPAddressBox(ui->i2cpAddressLineEdit, tr("I2CP -> IP address"));
-    initTCPPortBox(ui->i2cpPortLineEdit, tr("I2CP -> Port"));
-
-    initCheckBox(ui->i2pControlEnabledCheckBox);
-    initIPAddressBox(ui->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
-    initTCPPortBox(ui->i2pControlPortLineEdit, tr("I2PControl -> Port"));
-    initStringBox(ui->i2pControlPasswordLineEdit);
+    initCheckBox(       OPTION("precomputation","elgamal",[]{return "false";}), ui->useElGamalPrecomputedTablesCheckBox);
 	
-    initCheckBox(ui->enableUPnPCheckBox);
-    initStringBox(ui->upnpNameLineEdit);
+    initCheckBox(       OPTION("reseed","verify",[]{return "";}), ui->reseedVerifyCheckBox);
+    initFileChooser(    OPTION("reseed","file",[]{return "";}), ui->reseedFileLineEdit, ui->reseedFileBrowsePushButton);
+    initStringBox(      OPTION("reseed","urls",[]{return "";}), ui->reseedURLsLineEdit);
 	
-    initCheckBox(ui->useElGamalPrecomputedTablesCheckBox);
+    initStringBox(      OPTION("addressbook","defaulturl",[]{return "";}), ui->addressbookDefaultURLLineEdit);
+    initStringBox(      OPTION("addressbook","subscriptions",[]{return "";}), ui->addressbookSubscriptionsURLslineEdit);
 	
-    initCheckBox(ui->reseedVerifyCheckBox);
-    initStringBox(ui->reseedURLsLineEdit);
-	
-    initStringBox(ui->addressbookDefaultURLLineEdit);
-    initStringBox(ui->addressbookSubscriptionsURLslineEdit);
-	
-    initIntegerBox(ui->maxNumOfTransitTunnelsLineEdit);
-    initIntegerBox(ui->maxNumOfOpenFilesLineEdit);
-    initIntegerBox(ui->coreFileMaxSizeNumberLineEdit);
+    initUInt16Box(     OPTION("limits","transittunnels",[]{return "2500";}), ui->maxNumOfTransitTunnelsLineEdit, tr("maxNumberOfTransitTunnels"));
+    initUInt16Box(     OPTION("limits","openfiles",[]{return "0";}), ui->maxNumOfOpenFilesLineEdit, tr("maxNumberOfOpenFiles"));
+    initUInt32Box(     OPTION("limits","coresize",[]{return "0";}), ui->coreFileMaxSizeNumberLineEdit, tr("coreFileMaxSize"));
+
+    initCheckBox(       OPTION("trust","enabled",[]{return "false";}), ui->checkBoxTrustEnable);
+    initStringBox(      OPTION("trust","family",[]{return "";}), ui->lineEditTrustFamily);
+    initStringBox(      OPTION("trust","routers",[]{return "";}), ui->lineEditTrustRouters);
+    initCheckBox(       OPTION("trust","hidden",[]{return "false";}), ui->checkBoxTrustHidden);
+
+    initCheckBox(       OPTION("websockets","enabled",[]{return "false";}), ui->checkBoxWebsocketsEnable);
+    initIPAddressBox(   OPTION("websockets","address",[]{return "127.0.0.1";}), ui->lineEdit_webSock_addr, tr("Websocket server -> IP address"));
+    initTCPPortBox(     OPTION("websockets","port",[]{return "7666";}), ui->lineEdit_webSock_port, tr("Websocket server -> Port"));
+
+#   undef OPTION
 
     loadAllConfigs();
+
+    tunnelsFormGridLayoutWidget = new QWidget(ui->tunnelsScrollAreaWidgetContents);
+    tunnelsFormGridLayoutWidget->setObjectName(QStringLiteral("tunnelsFormGridLayoutWidget"));
+    tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, 451));
+    ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, 451));
+    tunnelsFormGridLayout = new QGridLayout(tunnelsFormGridLayoutWidget);
+    tunnelsFormGridLayout->setObjectName(QStringLiteral("tunnelsFormGridLayout"));
+    tunnelsFormGridLayout->setContentsMargins(5, 5, 5, 5);
+    tunnelsFormGridLayout->setVerticalSpacing(5);
+
+    appendTunnelForms();
+
+    ui->configFileLineEdit->setEnabled(false);
+    ui->configFileBrowsePushButton->setEnabled(false);
+    ui->configFileLineEdit->setText(confpath);
+    ui->tunnelsConfigFileLineEdit->setText(tunconfpath);
+
+    for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
+        MainWindowItem* item = *it;
+        item->installListeners(this);
+    }
+
+    QObject::connect(ui->tunnelsConfigFileLineEdit, SIGNAL(textChanged(const QString &)),
+                     this, SLOT(reloadTunnelsConfigAndUI()));
+
+
 
 #ifndef ANDROID
     QObject::connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
@@ -273,19 +342,223 @@ void MainWindow::handleGracefulQuitTimerEvent() {
 MainWindow::~MainWindow()
 {
     qDebug("Destroying main window");
+    for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
+        MainWindowItem* item = *it;
+        item->deleteLater();
+    }
+    configItems.clear();
     //QMessageBox::information(0, "Debug", "mw destructor 1");
     //delete ui;
     //QMessageBox::information(0, "Debug", "mw destructor 2");
 }
 
-void MainWindow::initFileChooser(QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton){}
-void MainWindow::initFolderChooser(QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton){}
-void MainWindow::initCombobox(QComboBox* comboBox){}
-void MainWindow::initIPAddressBox(QLineEdit* addressLineEdit, QString fieldNameTranslated){}
-void MainWindow::initTCPPortBox(QLineEdit* portLineEdit, QString fieldNameTranslated){}
-void MainWindow::initCheckBox(QCheckBox* checkBox){}
-void MainWindow::initIntegerBox(QLineEdit* numberLineEdit){}
-void MainWindow::initStringBox(QLineEdit* lineEdit){}
+FileChooserItem* MainWindow::initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton){
+    FileChooserItem* retVal;
+    retVal=new FileChooserItem(option, fileNameLineEdit, fileBrowsePushButton);
+    MainWindowItem* super=retVal;
+    configItems.append(super);
+    return retVal;
+}
+void MainWindow::initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton){
+    configItems.append(new FolderChooserItem(option, folderLineEdit, folderBrowsePushButton));
+}
+/*void MainWindow::initCombobox(ConfigOption option, QComboBox* comboBox){
+    configItems.append(new ComboBoxItem(option, comboBox));
+    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(saveAllConfigs()));
+}*/
+void MainWindow::initLogLevelCombobox(ConfigOption option, QComboBox* comboBox){
+    configItems.append(new LogLevelComboBoxItem(option, comboBox));
+}
+void MainWindow::initSignatureTypeCombobox(ConfigOption option, QComboBox* comboBox){
+    configItems.append(new SignatureTypeComboBoxItem(option, comboBox));
+}
+void MainWindow::initIPAddressBox(ConfigOption option, QLineEdit* addressLineEdit, QString fieldNameTranslated){
+    configItems.append(new IPAddressStringItem(option, addressLineEdit, fieldNameTranslated));
+}
+void MainWindow::initTCPPortBox(ConfigOption option, QLineEdit* portLineEdit, QString fieldNameTranslated){
+    configItems.append(new TCPPortStringItem(option, portLineEdit, fieldNameTranslated));
+}
+void MainWindow::initCheckBox(ConfigOption option, QCheckBox* checkBox) {
+    configItems.append(new CheckBoxItem(option, checkBox));
+}
+void MainWindow::initIntegerBox(ConfigOption option, QLineEdit* numberLineEdit, QString fieldNameTranslated){
+    configItems.append(new IntegerStringItem(option, numberLineEdit, fieldNameTranslated));
+}
+void MainWindow::initUInt32Box(ConfigOption option, QLineEdit* numberLineEdit, QString fieldNameTranslated){
+    configItems.append(new UInt32StringItem(option, numberLineEdit, fieldNameTranslated));
+}
+void MainWindow::initUInt16Box(ConfigOption option, QLineEdit* numberLineEdit, QString fieldNameTranslated){
+    configItems.append(new UInt16StringItem(option, numberLineEdit, fieldNameTranslated));
+}
+void MainWindow::initStringBox(ConfigOption option, QLineEdit* lineEdit){
+    configItems.append(new BaseStringItem(option, lineEdit));
+}
+NonGUIOptionItem* MainWindow::initNonGUIOption(ConfigOption option) {
+    NonGUIOptionItem * retValue;
+    configItems.append(retValue=new NonGUIOptionItem(option));
+    return retValue;
+}
 
-void MainWindow::loadAllConfigs(){}
-void MainWindow::saveAllConfigs(){}
+void MainWindow::loadAllConfigs(){
+
+    //BORROWED FROM ??? //TODO move this code into single location
+    std::string config;  i2p::config::GetOption("conf",    config);
+    std::string datadir; i2p::config::GetOption("datadir", datadir);
+    bool service = false;
+#ifndef _WIN32
+    i2p::config::GetOption("service", service);
+#endif
+    i2p::fs::DetectDataDir(datadir, service);
+    i2p::fs::Init();
+
+    datadir = i2p::fs::GetDataDir();
+    // TODO: drop old name detection in v2.8.0
+    if (config == "")
+    {
+        config = i2p::fs::DataDirPath("i2p.conf");
+        if (i2p::fs::Exists (config)) {
+            LogPrint(eLogWarning, "Daemon: please rename i2p.conf to i2pd.conf here: ", config);
+        } else {
+            config = i2p::fs::DataDirPath("i2pd.conf");
+            if (!i2p::fs::Exists (config)) {
+                // use i2pd.conf only if exists
+                config = ""; /* reset */
+            }
+        }
+    }
+
+    //BORROWED FROM ClientContext.cpp //TODO move this code into single location
+    std::string tunConf; i2p::config::GetOption("tunconf", tunConf);
+    if (tunConf == "") {
+        // TODO: cleanup this in 2.8.0
+        tunConf = i2p::fs::DataDirPath ("tunnels.cfg");
+        if (i2p::fs::Exists(tunConf)) {
+            LogPrint(eLogWarning, "FS: please rename tunnels.cfg -> tunnels.conf here: ", tunConf);
+        } else {
+            tunConf = i2p::fs::DataDirPath ("tunnels.conf");
+        }
+    }
+
+    this->confpath = config.c_str();
+    this->datadir = datadir.c_str();
+    this->tunconfpath = tunConf.c_str();
+
+    for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
+        MainWindowItem* item = *it;
+        item->loadFromConfigOption();
+    }
+
+    ReadTunnelsConfig();
+}
+/** returns false iff not valid items present and save was aborted */
+bool MainWindow::saveAllConfigs(){
+    programOptionsWriterCurrentSection="";
+    if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
+    else logOption->optionValue=boost::any(std::string("stdout"));
+    daemonOption->optionValue=boost::any(false);
+    serviceOption->optionValue=boost::any(false);
+
+    std::stringstream out;
+    for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
+        MainWindowItem* item = *it;
+        if(!item->isValid()) return false;
+    }
+
+    for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
+        MainWindowItem* item = *it;
+        item->saveToStringStream(out);
+    }
+
+    using namespace std;
+
+    QString backup=confpath+"~";
+    if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
+    QFile::rename(confpath, backup);//TODO handle errors
+    ofstream outfile;
+    outfile.open(confpath.toStdString());//TODO handle errors
+    string dataToWrite = out.str();
+    outfile << dataToWrite.c_str();
+    outfile.close();
+
+    return true;
+}
+
+void FileChooserItem::pushButtonReleased() {
+    QString fileName = lineEdit->text().trimmed();
+    fileName = QFileDialog::getOpenFileName(nullptr, tr("Open File"), fileName, tr("All Files (*.*)"));
+    if(fileName.length()>0)lineEdit->setText(fileName);
+}
+void FolderChooserItem::pushButtonReleased() {
+    QString fileName = lineEdit->text().trimmed();
+    fileName = QFileDialog::getExistingDirectory(nullptr, tr("Open Folder"), fileName);
+    if(fileName.length()>0)lineEdit->setText(fileName);
+}
+
+void BaseStringItem::installListeners(MainWindow *mainWindow) {
+    QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(saveAllConfigs()));
+}
+void ComboBoxItem::installListeners(MainWindow *mainWindow) {
+    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+}
+void CheckBoxItem::installListeners(MainWindow *mainWindow) {
+    QObject::connect(checkBox, SIGNAL(stateChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+}
+
+
+void MainWindowItem::installListeners(MainWindow *mainWindow) {}
+
+void MainWindow::appendTunnelForms() {
+    int height=0;
+    for(std::list<TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
+        TunnelConfig* tunconf = *it;
+        ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
+        if(stc){
+            ServerTunnelPane * tunnelPane=new ServerTunnelPane();
+            tunnelPane->appendServerTunnelForm(stc, tunnelsFormGridLayoutWidget, tunnelsFormGridLayout);
+            height+=tunnelPane->height();
+            qDebug() << "tun.height:" << height;
+            tunnelPanes.push_back(tunnelPane);
+            continue;
+        }
+        ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
+        if(ctc){
+            ClientTunnelPane * tunnelPane=new ClientTunnelPane();//TODO
+            height+=tunnelPane->height();
+            qDebug() << "tun.height:" << height;
+            tunnelPanes.push_back(tunnelPane);
+            continue;
+        }
+        throw "unknown TunnelConfig subtype";
+    }
+    qDebug() << "tun.setting height:" << height;
+    tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, height));
+    ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, height));
+}
+void MainWindow::deleteTunnelForms() {
+    for(std::list<TunnelPane*>::iterator it = tunnelPanes.begin(); it != tunnelPanes.end(); ++it) {
+        TunnelPane* tp = *it;
+        ServerTunnelPane* stp = tp->asServerTunnelPane();
+        if(stp){
+            stp->deleteServerTunnelForm(tunnelsFormGridLayout);
+            continue;
+        }
+        ClientTunnelPane* ctp = tp->asClientTunnelPane();
+        if(ctp){
+            ctp->deleteClientTunnelForm(tunnelsFormGridLayout);
+            continue;
+        }
+        throw "unknown TunnelPane subtype";
+    }
+    tunnelPanes.clear();
+}
+
+void MainWindow::reloadTunnelsConfigAndUI() {
+    deleteTunnelForms();
+    for(std::list<TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
+        TunnelConfig* tunconf = *it;
+        delete tunconf;
+    }
+    tunnelConfigs.clear();
+    ReadTunnelsConfig();
+    appendTunnelForms();
+}

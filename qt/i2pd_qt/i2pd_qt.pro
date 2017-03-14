@@ -42,6 +42,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp
 SOURCES += $$files(../../libi2pd/*.cpp)
 SOURCES += $$files(../../libi2pd_client/*.cpp)
 SOURCES += $$files(../../daemon/*.cpp)
+SOURCES += $$files(./*.cpp)
 
 SOURCES -= ../../daemon/UnixDaemon.cpp
 
@@ -63,8 +64,10 @@ HEADERS  += DaemonQT.h mainwindow.h
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
 INCLUDEPATH += ../../daemon
+INCLUDEPATH += .
 
-FORMS += mainwindow.ui
+FORMS += mainwindow.ui \
+    tunnelform.ui
 
 CONFIG += mobility
 
