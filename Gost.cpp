@@ -12,6 +12,7 @@ namespace crypto
 
 	GOSTR3410Curve::GOSTR3410Curve (BIGNUM * a, BIGNUM * b, BIGNUM * p, BIGNUM * q, BIGNUM * x, BIGNUM * y)
 	{
+		m_KeyLen = BN_num_bytes (p);
 		BN_CTX * ctx = BN_CTX_new ();
 		m_Group = EC_GROUP_new_curve_GFp (p, a, b, ctx);
 		EC_POINT * P = EC_POINT_new (m_Group);

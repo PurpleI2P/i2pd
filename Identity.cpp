@@ -382,19 +382,19 @@ namespace data
 			case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
 			{	
 				size_t padding =  128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
-				UpdateVerifier (new i2p::crypto::GOSTR3410Verifier (i2p::crypto::eGOSTR3410CryptoProA, m_StandardIdentity.signingKey + padding));
+				UpdateVerifier (new i2p::crypto::GOSTR3410_2001_Verifier (i2p::crypto::eGOSTR3410CryptoProA, m_StandardIdentity.signingKey + padding));
 				break;
 			}
 			case SIGNING_KEY_TYPE_GOSTR3410_B_GOSTR3411:
 			{	
 				size_t padding =  128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
-				UpdateVerifier (new i2p::crypto::GOSTR3410Verifier (i2p::crypto::eGOSTR3410CryptoProB, m_StandardIdentity.signingKey + padding));
+				UpdateVerifier (new i2p::crypto::GOSTR3410_2001_Verifier (i2p::crypto::eGOSTR3410CryptoProB, m_StandardIdentity.signingKey + padding));
 				break;
 			}	
 			case SIGNING_KEY_TYPE_GOSTR3410_C_GOSTR3411:
 			{	
 				size_t padding =  128 - i2p::crypto::GOSTR3410_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
-				UpdateVerifier (new i2p::crypto::GOSTR3410Verifier (i2p::crypto::eGOSTR3410CryptoProC, m_StandardIdentity.signingKey + padding));
+				UpdateVerifier (new i2p::crypto::GOSTR3410_2001_Verifier (i2p::crypto::eGOSTR3410CryptoProC, m_StandardIdentity.signingKey + padding));
 				break;
 			}	
 			default:
@@ -539,13 +539,13 @@ namespace data
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_A_GOSTR3411:
-				m_Signer.reset (new i2p::crypto::GOSTR3410Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
+				m_Signer.reset (new i2p::crypto::GOSTR3410_2001_Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
 			break;	
 			case SIGNING_KEY_TYPE_GOSTR3410_B_GOSTR3411:
-				m_Signer.reset (new i2p::crypto::GOSTR3410Signer (i2p::crypto::eGOSTR3410CryptoProB, m_SigningPrivateKey));
+				m_Signer.reset (new i2p::crypto::GOSTR3410_2001_Signer (i2p::crypto::eGOSTR3410CryptoProB, m_SigningPrivateKey));
 			break;		
 			case SIGNING_KEY_TYPE_GOSTR3410_C_GOSTR3411:
-				m_Signer.reset (new i2p::crypto::GOSTR3410Signer (i2p::crypto::eGOSTR3410CryptoProC, m_SigningPrivateKey));
+				m_Signer.reset (new i2p::crypto::GOSTR3410_2001_Signer (i2p::crypto::eGOSTR3410CryptoProC, m_SigningPrivateKey));
 			break;		
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
