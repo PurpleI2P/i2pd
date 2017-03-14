@@ -158,7 +158,6 @@ namespace garlic
 
 			void CleanUp ();
 			void SetNumTags (int numTags) { m_NumTags = numTags; };	
-			BN_CTX * GetBNContext () const { return m_Ctx; };
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);	
 			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
@@ -190,7 +189,7 @@ namespace garlic
 
 		private:
 
-			BN_CTX * m_Ctx;
+			BN_CTX * m_Ctx; // incoming
 			// outgoing sessions
 			int m_NumTags;
 			std::mutex m_SessionsMutex;

@@ -187,8 +187,9 @@ namespace garlic
 			RAND_bytes (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(elGamal.preIV, 32, iv); 
-			i2p::crypto::ElGamalEncrypt (m_Destination->GetEncryptionPublicKey (), 
-				(uint8_t *)&elGamal, buf, m_Owner->GetBNContext (), true);			
+			BN_CTX * ctx = BN_CTX_new ();
+			i2p::crypto::ElGamalEncrypt (m_Destination->GetEncryptionPublicKey (), (uint8_t *)&elGamal, buf, ctx, true);	
+			BN_CTX_free (ctx);		
 			m_Encryption.SetIV (iv);
 			buf += 514;
 			len += 514;	
