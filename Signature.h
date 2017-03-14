@@ -9,6 +9,7 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include "Crypto.h"
+#include "Gost.h"
 
 namespace i2p
 {
@@ -443,17 +444,6 @@ namespace crypto
 	}
 
 	// ГОСТ Р 34.10-2001
-
-	enum GOSTR3410ParamSet
-	{
-		eGOSTR3410CryptoProA = 0,   // 1.2.643.2.2.35.1
-		eGOSTR3410CryptoProB,	    // 1.2.643.2.2.35.2
-		eGOSTR3410CryptoProC,	    // 1.2.643.2.2.35.3
-		//eGOSTR3410CryptoProXchA,    // 1.2.643.2.2.36.0
-		//eGOSTR3410CryptoProXchB,	// 1.2.643.2.2.36.1
-		// XchA = A, XchB = C
-		eGOSTR3410NumParamSets
-	};	
 	
 	const size_t GOSTR3410_PUBLIC_KEY_LENGTH = 64;
 	const size_t GOSTR3410_SIGNATURE_LENGTH = 64;

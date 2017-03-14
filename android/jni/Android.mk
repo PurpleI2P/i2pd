@@ -59,6 +59,7 @@ LOCAL_SRC_FILES := DaemonAndroid.cpp i2pd_android.cpp \
     ../../TunnelPool.cpp \
 	../../Timestamp.cpp \
 	../../Event.cpp \
+	../../Gost.cpp \
 	../../WebSocks.cpp \
 ../../BloomFilter.cpp \
     ../../util.cpp \
