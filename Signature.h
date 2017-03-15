@@ -472,22 +472,25 @@ namespace crypto
 			SHA512 (buf, len, digest); // TODO: implement GOST R 34.11 - 2012
 		}
 
-		enum { hashLen = 32 };
+		enum { hashLen = 64 };
 	};
 
 	// ГОСТ Р 34.10
-	const size_t GOSTR3410_PUBLIC_KEY_LENGTH = 64;
-	const size_t GOSTR3410_SIGNATURE_LENGTH = 64;
+	const size_t GOSTR3410_256_PUBLIC_KEY_LENGTH = 64;
+	const size_t GOSTR3410_512_PUBLIC_KEY_LENGTH = 128;
 
 	template<typename Hash>
 	class GOSTR3410Verifier: public Verifier
 	{
 		public:
 
-			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey)
+			enum { keyLen = Hash::hashLen };
+			
+			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey):
+				m_ParamSet (paramSet)
 			{
-				BIGNUM * x = BN_bin2bn (signingKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
-				BIGNUM * y = BN_bin2bn (signingKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
+				BIGNUM * x = BN_bin2bn (signingKey, GetPublicKeyLen ()/2, NULL);
+				BIGNUM * y = BN_bin2bn (signingKey + GetPublicKeyLen ()/2, GetPublicKeyLen ()/2, NULL);
 				m_PublicKey = GetGOSTR3410Curve (m_ParamSet)->CreatePoint (x, y);
 				BN_free (x); BN_free (y);
 			}
@@ -497,16 +500,16 @@ namespace crypto
 			{
 				uint8_t digest[Hash::hashLen];
 				Hash::CalculateHash (buf, len, digest);
-				BIGNUM * d = BN_bin2bn (digest, 32, nullptr);
+				BIGNUM * d = BN_bin2bn (digest, Hash::hashLen, nullptr);
 				BIGNUM * r = BN_bin2bn (signature, GetSignatureLen ()/2, NULL);
 				BIGNUM * s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
 				bool ret = GetGOSTR3410Curve (m_ParamSet)->Verify (m_PublicKey, d, r, s);
 				BN_free (d); BN_free (r); BN_free (s);	
 				return ret;
 			}
-			
-			size_t GetPublicKeyLen () const { return GOSTR3410_PUBLIC_KEY_LENGTH; }
-			size_t GetSignatureLen () const { return GOSTR3410_SIGNATURE_LENGTH; }
+
+			size_t GetPublicKeyLen () const { return keyLen*2; }
+			size_t GetSignatureLen () const { return keyLen*2; }
 
 		private:
 
@@ -519,10 +522,12 @@ namespace crypto
 	{
 		public:
 
+			enum { keyLen = Hash::hashLen };
+			
 			GOSTR3410Signer (GOSTR3410ParamSet paramSet, const uint8_t * signingPrivateKey):
 				m_ParamSet (paramSet)
 			{ 
-				m_PrivateKey = BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, nullptr); 
+				m_PrivateKey = BN_bin2bn (signingPrivateKey, keyLen, nullptr); 
 			}
 			~GOSTR3410Signer () { BN_free (m_PrivateKey); }
 
@@ -533,8 +538,8 @@ namespace crypto
 				BIGNUM * d = BN_bin2bn (digest, 32, nullptr); 
 				BIGNUM * r = BN_new (), * s = BN_new ();
 				GetGOSTR3410Curve (m_ParamSet)->Sign (m_PrivateKey, d, r, s);
-				bn2buf (r, signature, GOSTR3410_SIGNATURE_LENGTH/2);
-				bn2buf (s, signature + GOSTR3410_SIGNATURE_LENGTH/2, GOSTR3410_SIGNATURE_LENGTH/2);
+				bn2buf (r, signature, keyLen);
+				bn2buf (s, signature + keyLen, keyLen);
 				BN_free (d); BN_free (r); BN_free (s);
 			}
 			
@@ -563,6 +568,10 @@ namespace crypto
 
 	typedef GOSTR3410Verifier<GOSTR3411_2001_Hash> GOSTR3410_2001_Verifier;
 	typedef GOSTR3410Signer<GOSTR3411_2001_Hash> GOSTR3410_2001_Signer;
+	typedef GOSTR3410Verifier<GOSTR3411_2012_256_Hash> GOSTR3410_2012_256_Verifier;
+	typedef GOSTR3410Signer<GOSTR3411_2012_256_Hash> GOSTR3410_2012_256_Signer;
+	typedef GOSTR3410Verifier<GOSTR3411_2012_512_Hash> GOSTR3410_2012_512_Verifier;
+	typedef GOSTR3410Signer<GOSTR3411_2012_512_Hash> GOSTR3410_2012_512_Signer;
 }
 }
 

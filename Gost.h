@@ -21,8 +21,8 @@ namespace crypto
 		//eGOSTR3410CryptoProXchA,    // 1.2.643.2.2.36.0
 		//eGOSTR3410CryptoProXchB,	// 1.2.643.2.2.36.1
 		// GOST R 34.10-2012		
-		eGOSTR3410tc26paramSetA256,		// 1.2.643.7.1.2.1.1.1 
-		eGOSTR3410tc26paramSetC512,		// 1.2.643.7.1.2.1.2.3 
+		eGOSTR3410TC26A256,		// 1.2.643.7.1.2.1.1.1 
+		eGOSTR3410TC26C512,		// 1.2.643.7.1.2.1.2.3 
 		eGOSTR3410NumParamSets
 	};	
 	
