@@ -111,7 +111,7 @@ namespace data
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH);
 					break;
 				}
-				case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_C_512_GOSTR3411:	
+				case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_512_GOSTR3411:	
 				{	
 					// 512
 					// no padding, key length is 128
@@ -398,10 +398,10 @@ namespace data
 				UpdateVerifier (new i2p::crypto::GOSTR3410_2012_256_Verifier (i2p::crypto::eGOSTR3410TC26A256, m_StandardIdentity.signingKey + padding));
 				break;
 			}	
-			case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_C_512_GOSTR3411:
+			case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_512_GOSTR3411:
 			{	
 				// zero padding
-				UpdateVerifier (new i2p::crypto::GOSTR3410_2012_512_Verifier (i2p::crypto::eGOSTR3410TC26C512, m_StandardIdentity.signingKey));
+				UpdateVerifier (new i2p::crypto::GOSTR3410_2012_512_Verifier (i2p::crypto::eGOSTR3410TC26A512, m_StandardIdentity.signingKey));
 				break;
 			}	
 			default:
@@ -551,8 +551,8 @@ namespace data
 			case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_256_GOSTR3411:
 				m_Signer.reset (new i2p::crypto::GOSTR3410_2012_256_Signer (i2p::crypto::eGOSTR3410TC26A256, m_SigningPrivateKey));
 			break;		
-			case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_C_512_GOSTR3411:
-				m_Signer.reset (new i2p::crypto::GOSTR3410_2012_512_Signer (i2p::crypto::eGOSTR3410TC26C512, m_SigningPrivateKey));
+			case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_512_GOSTR3411:
+				m_Signer.reset (new i2p::crypto::GOSTR3410_2012_512_Signer (i2p::crypto::eGOSTR3410TC26A512, m_SigningPrivateKey));
 			break;		
 			default:
 				LogPrint (eLogError, "Identity: Signing key type ", (int)m_Public->GetSigningKeyType (), " is not supported");
@@ -595,8 +595,8 @@ namespace data
 				case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_256_GOSTR3411:
 					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A256, keys.m_SigningPrivateKey, signingPublicKey);
 				break;	
-				case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_C_512_GOSTR3411:
-					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26C512, keys.m_SigningPrivateKey, signingPublicKey);
+				case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_512_GOSTR3411:
+					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, keys.m_SigningPrivateKey, signingPublicKey);
 				break;		
 				default:
 					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");

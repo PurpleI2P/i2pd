@@ -63,7 +63,7 @@ namespace data
 	// following signature type should never appear in netid=2
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_GOSTR3411 = 65280; // approved by FSB
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_256_GOSTR3411 = 65281;
-	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_C_512_GOSTR3411 = 65282;
+	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_512_GOSTR3411 = 65282;
 	
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;	
