@@ -62,6 +62,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Timestamp.cpp"	
   "${CMAKE_SOURCE_DIR}/api.cpp"
   "${CMAKE_SOURCE_DIR}/Event.cpp"
+  "${CMAKE_SOURCE_DIR}/Gost.cpp"	
 )
 
 if (WITH_WEBSOCKETS)
