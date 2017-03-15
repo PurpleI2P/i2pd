@@ -535,7 +535,7 @@ namespace crypto
 			{
 				uint8_t digest[Hash::hashLen];
 				Hash::CalculateHash (buf, len, digest);
-				BIGNUM * d = BN_bin2bn (digest, 32, nullptr); 
+				BIGNUM * d = BN_bin2bn (digest, Hash::hashLen, nullptr); 
 				BIGNUM * r = BN_new (), * s = BN_new ();
 				GetGOSTR3410Curve (m_ParamSet)->Sign (m_PrivateKey, d, r, s);
 				bn2buf (r, signature, keyLen);
