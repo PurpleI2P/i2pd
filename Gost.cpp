@@ -194,6 +194,19 @@ namespace crypto
 		0x07e095624504536c, 0x8d70c431ac02a736, 0xc83862965601dd1b, 0x641c314b2b8ee083
 	};
 
+	static const uint8_t T_[64]=
+	{
+		 0,  8, 16, 24, 32, 40, 48, 56, 
+		 1,  9, 17, 25, 33, 41, 49, 57,
+		 2, 10, 18, 26, 34, 42, 50, 58, 
+		 3, 11, 19, 27, 35, 43, 51, 59,
+		 4, 12, 20, 28, 36, 44, 52, 60,
+		 5, 13, 21, 29, 37, 45, 53, 61,
+		 6, 14, 22, 30, 38, 46, 54, 62,
+		 7, 15, 23, 31, 39, 47, 55, 63
+	};
+
+
 	static const uint8_t C_[12][64] = 
 	{
 		{
@@ -275,7 +288,7 @@ namespace crypto
 		uint8_t buf[64];
 		uint64_t ll[8];
 
-		GOST3411Block operator^(const GOST3411Block& other)
+		GOST3411Block operator^(const GOST3411Block& other) const
 		{
 			GOST3411Block ret;
 			for (int i = 0; i < 8; i++)
@@ -283,7 +296,7 @@ namespace crypto
 			return ret;
 		}	
 
-		GOST3411Block operator^(const uint8_t * other)
+		GOST3411Block operator^(const uint8_t * other) const
 		{
 			GOST3411Block ret;
 			for (int i = 0; i < 64; i++)
@@ -291,7 +304,7 @@ namespace crypto
 			return ret;
 		}	
 		
-		GOST3411Block operator+(const GOST3411Block& other)
+		GOST3411Block operator+(const GOST3411Block& other) const
 		{
 			GOST3411Block ret;
 			uint8_t carry = 0;
@@ -303,17 +316,25 @@ namespace crypto
 			}	
 			return ret;
 		}
-		
+
+		void Add (uint32_t c)
+		{
+			for (int i = 63; i >= 0; i--)
+			{
+				c += buf[i];
+				buf[i] = c;
+				c >>= 8;			
+			}
+		}
+
 		void S ()
 		{
 			for (int i = 0; i < 64; i++)
 				buf[i] = sbox_[buf[i]];
 		}	
 
-		void LP ()
+		void L ()
 		{
-			uint8_t tmp[64];
-			memcpy (tmp, buf, 64);
 			for (int i = 0; i < 8; i++)
 			{
 				uint64_t c = 0;
@@ -322,15 +343,21 @@ namespace crypto
 					uint8_t bit = 0x80;
 					for (int k = 0; k < 8; k++)
 					{
-						
-						if (tmp[j*8+i] & bit) c ^= A_[j*8+k];
+						if (buf[i*8+j] & bit) c ^= A_[j*8+k];
 						bit >>= 1;
 					}
 				}	
-				for (int j = 0; j < 8; j++) 
-					buf[i*8+j] = c >> ((7 - j) << 3);
+				ll[i] = c;
 			}	
 		}	
+
+		void P ()
+		{
+			uint8_t t[64];
+			for (int i = 0; i < 64; i++)
+				t[i] = buf[T_[i]];
+			memcpy (buf, t, 64);			
+		}
 
 		GOST3411Block E (const GOST3411Block& m)
 		{
@@ -339,16 +366,76 @@ namespace crypto
 			for (int i = 0; i < 12; i++)
 			{
 				res.S ();
-				res.LP ();
+				res.P ();
+				res.L ();
 				k = k^C_[i];
 				k.S ();
-				k.LP ();
+				k.P ();
+				k.L ();
 				res = k^res;
 			}	
 			return res;
 		}	
 	};
 	
+	static GOST3411Block gN (const GOST3411Block& N, const GOST3411Block& h, const GOST3411Block& m)
+	{
+		GOST3411Block res = N ^ h;
+		res.S ();
+		res.P ();
+		res.L ();
+		res = res.E (m);
+		res = res ^ h;
+		res = res ^ m;
+		return res;	
+	}	
+
+	static void H (const uint8_t * iv, const uint8_t * buf, size_t len, uint8_t * digest)
+	{
+		// stage 1	
+		GOST3411Block h, N, s, m;
+		memcpy (h.buf, iv, 64);
+		memset (N.buf, 0, 64);
+		memset (s.buf, 0, 64);
+		size_t l = len;
+		// stage 2
+		while (l >= 64)
+		{
+			memcpy (m.buf, buf + l - 64, 64); // TODO
+			h= gN (N, h, m);
+			N.Add (512);
+			s = m + s;
+			len -= 64;
+		}
+		memset (m.buf, 0, 64);
+		memcpy (m.buf + 64, buf, l);	
+		// stage 3
+		h = gN (N, h, m);
+		N.Add (l*8);	
+		s = m + s;
 	
+		GOST3411Block N0;
+		memset (N0.buf, 0, 64);
+		h = gN (N0, h, N);
+		h = gN (N0, h, s);
+		
+		memcpy (digest, h.buf, 64); 
+	}
+
+	void GOSTR3411_2012_256 (const uint8_t * buf, size_t len, uint8_t * digest)
+	{
+		uint8_t iv[64];
+		memset (iv, 1, 64);
+		uint8_t h[64];
+		H (iv, buf, len, h);
+		memcpy (digest, h, 32); // first half
+	}
+
+	void GOSTR3411_2012_512 (const uint8_t * buf, size_t len, uint8_t * digest)
+	{
+		uint8_t iv[64];
+		memset (iv, 0, 64);
+		H (iv, buf, len, digest);
+	}
 }
 }
