@@ -25,7 +25,7 @@ environment:
   BOOST_ROOT: C:\Libraries\boost_1_59_0
   MINIUPNPC: miniupnpc-1.9.20151026
   OPENSSL: OpenSSL_1_0_2e
-  ZLIB: zlib-1.2.8
+  ZLIB: 1.2.8
   matrix:
   # - type: static
   #   msvc: 14
@@ -62,9 +62,9 @@ install:
 - if not exist \projects\zlib\ (
     mkdir \projects\zlib
     && cd \projects\zlib
-    && curl -sLO http://zlib.net/%ZLIB%.tar.gz
+    && curl -sLO https://prdownloads.sourceforge.net/libpng/zlib/%ZLIB%/zlib-%ZLIB%.tar.gz
   )
-- tar --strip-components=1 --directory=\projects\zlib -xzf \projects\zlib\%ZLIB%.tar.gz
+- tar --strip-components=1 --directory=\projects\zlib -xzf \projects\zlib\zlib-%ZLIB%.tar.gz
 - patch -p0 C:/projects/zlib/CMakeLists.txt %APPVEYOR_BUILD_FOLDER%/build/cmake-zlib-static.patch
 - patch -p0 C:/projects/zlib/CMakeLists.txt %APPVEYOR_BUILD_FOLDER%/build/cmake-zlib-amd64.patch
 - if "%type%" == "static" (
@@ -154,7 +154,7 @@ cache:
 - C:\stage
 - '%BOOST_ROOT%\stage32'
 - '%BOOST_ROOT%\stage64'
-- C:\projects\zlib\%ZLIB%.tar.gz
+- C:\projects\zlib\zlib-%ZLIB%.tar.gz
 build_script:
 - cmd: >-
     mkdir \projects\build
