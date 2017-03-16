@@ -407,9 +407,15 @@ namespace crypto
 			s = m + s;
 			len -= 64;
 		}
-		memset (m.buf, 0, 64);
-		memcpy (m.buf + 64, buf, l);	
 		// stage 3
+		size_t padding = 64 - l;
+		if (padding)
+		{
+			memset (m.buf, 0, padding - 1);
+			m.buf[padding - 1] = 1;
+		}
+		memcpy (m.buf + padding, buf, l);
+
 		h = gN (N, h, m);
 		N.Add (l*8);	
 		s = m + s;
