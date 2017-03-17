@@ -33,7 +33,7 @@ install:
     C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -S mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-miniupnpc mingw-w64-x86_64-gcc make"
   ) else (
     C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -S mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-miniupnpc mingw-w64-i686-gcc make"
-)
+  )
 
 build_script:
 - cmd: >-
