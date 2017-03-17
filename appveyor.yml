@@ -24,6 +24,7 @@ install:
   ) else (
     c:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-boost mingw-w64-i686-miniupnpc"
   )
+- c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Su"
 
 build_script:
 - cmd: >-
@@ -31,7 +32,7 @@ build_script:
 
     echo MSYSTEM=%MSYSTEM%
 
-    c:\msys64\usr\bin\bash -lc "make USE_UPNP=YES"
+    c:\msys64\usr\bin\bash --login "make USE_UPNP=YES"
 
     7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
 
