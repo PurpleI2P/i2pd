@@ -27,12 +27,12 @@ build_script:
 - cmd: >-
     cd \projects\i2pd
 
-    echo "MSYSTEM=%MSYSTEM%"
+    echo MSYSTEM=%MSYSTEM%
 - if "%MSYSTEM%" == "MINGW64"(
-    C:\msys64\usr\bin\bash --login "make USE_UPNP=YES -I/mingw64/include/"
+    C:\msys64\usr\bin\bash -lc "make USE_UPNP=YES -I/mingw64/include/ -j2"
     && 7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
   ) else (
-    C:\msys64\usr\bin\bash --login "make USE_UPNP=YES -I/mingw32/include/"
+    C:\msys64\usr\bin\bash -lc "make USE_UPNP=YES -I/mingw32/include/ -j2"
     && 7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
   )
 
