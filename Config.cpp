@@ -185,7 +185,8 @@ namespace config {
 	    "https://reseed.atomike.ninja/,"
 	    "https://reseed.memcpy.io/,"
 	    "https://reseed.onion.im/,"
-	    "https://itoopie.atomike.ninja/"
+	    "https://itoopie.atomike.ninja/,"
+		"https://randomrng.ddns.net/"	                                                      
 		),  "Reseed URLs, separated by comma")
 	  ;	
 
