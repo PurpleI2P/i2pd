@@ -1,197 +1,49 @@
-version: 1.0.{build}
+version: 2.12.{build}
+
 pull_requests:
   do_not_increment_build_number: true
+
 branches:
   only:
-  - openssl
+  - appveyor
 skip_tags: true
 os: Visual Studio 2015
 shallow_clone: true
 clone_depth: 1
-init:
-- cmd: >-
-    mkdir \projects\instdir
 
-    rem Appveyor has win32 openssl pre-installed that is picked up erroneously even for 64-bit. Cleaning the mess... Should happen before restoring cache.
-
-    rem Might consider passing OPENSSL_ROOT_DIR
-
-    if exist \OpenSSL-Win32 rmdir /S /Q \OpenSSL-Win32
-
-    if exist \OpenSSL-Win64 rmdir /S /Q \OpenSSL-Win64
-
-    if exist \OpenSSL rmdir /S /Q \OpenSSL
 environment:
-  BOOST_ROOT: C:\Libraries\boost_1_59_0
-  MINIUPNPC: miniupnpc-1.9.20151026
-  OPENSSL: OpenSSL_1_0_2e
-  ZLIB: zlib-1.2.8
+  MSYS2_PATH_TYPE: inherit
+  CHERE_INVOKING: enabled_from_arguments
   matrix:
-  # - type: static
-  #   msvc: 14
-  #   x64: 0
-  # - type: static
-  #   variant: Release
-  #   # FIXME why is this necessary with Appveyor???
-  #   cmake: -DSSL_EAY=/mingw32/lib/libssl.a -DLIB_EAY=/mingw32/lib/libcrypto.a
-  - type: shared
-    variant: Release
   - type: static
-    msvc: 12
     x64: 1
-    variant: RelWithDebInfo
   - type: static
-    msvc: 14
-    variant: RelWithDebInfo
-    cmake: -DWITH_PCH=ON
-  # - type: static
-  #   msvc: 12
-  # - type: shared
-  #   msvc: 14
-  #   variant: Debug
-  # - type: shared
-  #   variant: Release
-  #   cmake: -DWITH_PCH=ON
-  #   x64: 1
+    x64: 0
+
 install:
-- if not exist \projects\miniupnpc\ (
-    mkdir \projects\miniupnpc
-    && curl -sL http://miniupnp.free.fr/files/download.php?file=%MINIUPNPC%.tar.gz -o \projects\miniupnpc\%MINIUPNPC%.tar.gz
-  )
-- tar --strip-components=1 --directory=\projects\miniupnpc -xzf \projects\miniupnpc\%MINIUPNPC%.tar.gz
-- if not exist \projects\zlib\ (
-    mkdir \projects\zlib
-    && cd \projects\zlib
-    && curl -sLO http://zlib.net/%ZLIB%.tar.gz
-  )
-- tar --strip-components=1 --directory=\projects\zlib -xzf \projects\zlib\%ZLIB%.tar.gz
-- patch -p0 C:/projects/zlib/CMakeLists.txt %APPVEYOR_BUILD_FOLDER%/build/cmake-zlib-static.patch
-- patch -p0 C:/projects/zlib/CMakeLists.txt %APPVEYOR_BUILD_FOLDER%/build/cmake-zlib-amd64.patch
-- if "%type%" == "static" (
-    set "static=ON"
-    && set "boostlib=lib"
-  ) else (
-    set "static=OFF"
-    && set "dll=dll"
-  )
 - if "%x64%"=="1" (
     set "bitness=64"
-    && set "openssl_target=VC-WIN64A"
-    && set "zlib_asm=-DAMD64=ON"
+    set "MSYSTEM=MINGW64"
   ) else (
     set "bitness=32"
-    && set "openssl_target=VC-WIN32"
-    && set "zlib_asm=-DASM686=ON "-DCMAKE_ASM_MASM_FLAGS=/W0 /safeseh""
+    set "MSYSTEM=MINGW32"
   )
-- C:\msys64\usr\bin\bash -lc "export PATH=/mingw%bitness%/bin:/usr/bin:. && cd /c/projects/miniupnpc && CC=gcc make -f Makefile.mingw init miniupnpc.dll > c:\projects\instdir\build_miniupnpc.log 2>&1 || cat c:\projects\instdir\build_miniupnpc.log"
-- set /a generator=%msvc%+2001
-- if defined msvc (
-    (
-      if "%x64%" == "1" (
-        call "C:\Program Files (x86)\Microsoft Visual Studio %msvc%.0\VC\vcvarsall.bat" amd64
-        && set "generator=Visual Studio %msvc% %generator% Win64"
-      ) else (
-        call "C:\Program Files (x86)\Microsoft Visual Studio %msvc%.0\VC\vcvarsall.bat" x86
-        && set "generator=Visual Studio %msvc% %generator%"
-      )
-    )
-    && set "zlib_root=C:/stage/zlib-Win%bitness%-vc%msvc%-%type%"
-    && if "%variant%" neq "Debug" (
-      set "boost_variant=variant=release"
-      && set "boostdbg=-gd"
-    )
+
+- if "%x64%" == "1" (
+    C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -S mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-miniupnpc mingw-w64-x86_64-gcc make"
   ) else (
-    set "generator=Unix Makefiles"
-  )
-- if defined msvc if not exist %zlib_root% (
-    mkdir \projects\zlib-build
-    && cd \projects\zlib-build
-    && cmake ../zlib -G "%generator%" %zlib_asm% -DWITH_STATIC=%static% -DCMAKE_INSTALL_PREFIX=%zlib_root% > c:\projects\instdir\build_zlib.log
-    && cmake --build . --config Release --target INSTALL >> c:\projects\instdir\build_zlib.log
-    || type c:\projects\instdir\build_zlib.log
-  )
-- cmd: >-
-    rem cinst nasm
+    C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -S mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-miniupnpc mingw-w64-i686-gcc make"
+)
 
-    cd \projects
-
-    if not exist nasm-2.11.08-installer.exe curl --silent --location --remote-name http://www.nasm.us/pub/nasm/releasebuilds/2.11.08/win32/nasm-2.11.08-installer.exe
-
-    nasm-2.11.08-installer.exe /S
-
-    set "PATH=%PATH%;C:\Program Files (x86)\nasm"
-
-    if not exist %OPENSSL%.zip curl --silent --location --remote-name https://github.com/openssl/openssl/archive/%OPENSSL%.zip
-- cd %BOOST_ROOT%
-- if defined msvc if not exist "stage%bitness%\lib\%boostlib%boost_system-vc%msvc%0-mt%boostdbg%*" (
-    bootstrap > c:\projects\instdir\build_boost.log
-    && b2 toolset=msvc-%msvc%.0 %boost_variant% link=%type% runtime-link=%type% address-model=%bitness% --build-type=minimal --with-filesystem --with-program_options --with-date_time --stagedir=stage%bitness% >> c:\projects\instdir\build_boost.log
-    || type c:\projects\instdir\build_boost.log
-  )
-- if defined msvc if not exist C:\stage\OpenSSL-Win%bitness%-vc%msvc%-%type%\ (
-    cd \projects
-    && 7z x %OPENSSL%.zip > NUL
-    && cd openssl-%OPENSSL%
-    && perl Configure %openssl_target% no-rc2 no-rc4 no-rc5 no-idea no-bf no-cast no-whirlpool no-md2 no-md4 no-ripemd no-mdc2 no-camellia no-seed no-comp no-krb5 no-gmp no-rfc3779 no-ec2m no-ssl2 no-jpake no-srp no-sctp no-srtp --prefix=c:\stage\OpenSSL-Win%bitness%-vc%msvc%-%type% > c:\projects\instdir\build_openssl.log
-    && ( if "%x64%" == "1" ( ms\do_win64a >> c:\projects\instdir\build_openssl.log ) else ( ms\do_nasm >> c:\projects\instdir\build_openssl.log ) )
-    && nmake -f ms\nt%dll%.mak install >> c:\projects\instdir\build_openssl.log 2>&1
-    || type c:\projects\instdir\build_openssl.log
-  )
-- mklink /J \OpenSSL \stage\OpenSSL-Win%bitness%-vc%msvc%-%type%
-- rem already there: mingw-w64-i686-openssl mingw-w64-i686-gcc
-- if not defined msvc (
-    C:\msys64\usr\bin\bash -lc "pacman --needed --noconfirm -Sy bash pacman pacman-mirrors msys2-runtime msys2-runtime-devel cmake"
-    && if "%x64%" == "1" (
-      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-openssl mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc mingw-w64-x86_64-extra-cmake-modules"
-    ) else (
-      C:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-openssl mingw-w64-i686-boost mingw-w64-i686-miniupnpc mingw-w64-i686-extra-cmake-modules"
-    )
-  )
-cache:
-- C:\projects\%OPENSSL%.zip
-- C:\projects\nasm-2.11.08-installer.exe
-- C:\projects\miniupnpc\%MINIUPNPC%.tar.gz
-- C:\stage
-- '%BOOST_ROOT%\stage32'
-- '%BOOST_ROOT%\stage64'
-- C:\projects\zlib\%ZLIB%.tar.gz
 build_script:
 - cmd: >-
-    mkdir \projects\build
+  cd \projects\i2pd
+  echo "bitness=%bitness%; type=%type%; variant=%variant%"
+  C:\msys64\usr\bin\bash -lc "make USE_UPNP=YES"
+  7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
 
-    rem FIXME use fixup_bundle in cmake
-
-    rem msbuild i2pd.sln /p:Configuration=Release
-
-    if defined variant ( set cmake_extra=-DCMAKE_BUILD_TYPE=%variant% && set "cmake_build=--config %variant%" )
-
-    echo "bitness=%bitness%; static=%static%; dll=%dll%; type=%type%; generator=%generator%; variant=%variant%; cmake=%cmake%; cmake_extra=%cmake_extra%"
-- if not defined msvc (
-    C:\msys64\usr\bin\bash -lc "export PATH=/mingw%bitness%/bin:/usr/bin && cd /c/projects/build && CC=/mingw%bitness%/bin/gcc.exe CXX=/mingw%bitness%/bin/g++.exe /usr/bin/cmake /c/projects/i2pd/build -G 'Unix Makefiles' -DWITH_AESNI=ON -DWITH_UPNP=ON %cmake% %cmake_extra% -DWITH_STATIC=%static% -DWITH_HARDENING=ON -DCMAKE_INSTALL_PREFIX:PATH=/c/projects/instdir -DCMAKE_FIND_ROOT_PATH=/mingw%bitness% && make install"
-    && 7z a -tzip -mx9 -mmt C:\projects\i2pd\i2pd-mingw-win%bitness%-%type%.zip C:\projects\instdir\* C:\msys64\mingw%bitness%\bin\zlib1.dll C:\msys64\mingw%bitness%\bin\*eay32.dll
-  )
-- rem We are fine with multiple generated configurations in MS solution. Will use later
-- if defined msvc (
-    cd \projects\build
-    && cmake ..\i2pd\build -G "%generator%" -DWITH_UPNP=ON %cmake% -DWITH_STATIC=%static% -DZLIB_ROOT=%zlib_root% -DBoost_LIBRARY_DIR:PATH=%BOOST_ROOT%/stage%bitness%/lib -DCMAKE_INSTALL_PREFIX:PATH=c:/projects/instdir
-    && cmake --build . %cmake_build% --target install
-    && 7z a -tzip -mx9 -mmt C:\projects\i2pd\i2pd-vc%msvc%-win%bitness%-%type%.zip C:\projects\instdir\*
-    && cmake --build . %cmake_build% --target package
-    && xcopy i2pd*win*.exe ..\i2pd\
-  )
 test: off
+
 artifacts:
-- path: i2pd-vc12-win64-static.zip
-- path: i2pd-vc12-win32-static.zip
-- path: i2pd-vc12-win64-shared.zip
-- path: i2pd-vc12-win32-shared.zip
-- path: i2pd-vc14-win64-static.zip
-- path: i2pd-vc14-win32-static.zip
-- path: i2pd-vc14-win64-shared.zip
-- path: i2pd-vc14-win32-shared.zip
-- path: i2pd-mingw-win64-static.zip
-- path: i2pd-mingw-win32-static.zip
-- path: i2pd-mingw-win64-shared.zip
-- path: i2pd-mingw-win32-shared.zip
-- path: i2pd-2.1.0-win64.exe
-- path: i2pd-2.1.0-win32.exe
+- path: i2pd-mingw-win64.zip
+- path: i2pd-mingw-win32.zip
