@@ -32,7 +32,7 @@ build_script:
 
     echo MSYSTEM=%MSYSTEM%
 
-    c:\msys64\usr\bin\bash --login "make USE_UPNP=YES"
+    c:\msys64\usr\bin\bash -lc "make USE_UPNP=YES"
 
     7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
 
