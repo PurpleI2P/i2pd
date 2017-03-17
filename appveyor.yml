@@ -32,8 +32,11 @@ install:
 build_script:
 - cmd: >-
     cd \projects\i2pd
+
     echo "bitness=%bitness%; type=%type%; variant=%variant%"
+
     C:\msys64\usr\bin\bash -lc "make USE_UPNP=YES"
+
     7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
 test: off
 artifacts:
