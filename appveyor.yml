@@ -20,9 +20,6 @@ install:
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc"
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
-- echo --- Print list of installed packages ---
-- c:\msys64\usr\bin\bash -lc "pacman -Q"
-- echo --- End of list ---
 
 - if "%MSYSTEM%" == "MINGW64" (
     c:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc"
@@ -32,10 +29,13 @@ install:
 
 build_script:
 - if "%MSYSTEM%" == "MINGW64" (
-    cc=/mingw64/bin/g++
+    set "cc=/mingw64/bin/g++"
+    set "bitness=64"
   ) else (
-    cc=/mingw32/bin/g++
+    set "cc=/mingw32/bin/g++"
+    set "bitness=32"
   )
+
 - cmd: >-
     cd \projects\i2pd
 
