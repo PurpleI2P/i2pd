@@ -3,7 +3,7 @@ pull_requests:
   do_not_increment_build_number: true
 branches:
   only:
-  - appveyor
+  - openssl
 skip_tags: true
 os: Visual Studio 2015
 shallow_clone: true
@@ -37,7 +37,7 @@ build_script:
 - cmd: >-
     cd \projects\i2pd
 
-    echo MSYSTEM = %MSYSTEM%, bitness = %bitness%, compiler = %compiler%
+    echo MSYSTEM = %MSYSTEM%, bitness = %bitness%
 
 - c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j2"
 - 7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
