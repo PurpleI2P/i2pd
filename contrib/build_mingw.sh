@@ -48,7 +48,8 @@ fi;
 echo "Собираем i2pd ${version} (коммит ${commit}) для ${arch}.";
 
 # Собираем приложение с разными параметрами, и архивируем в zip архивы.
-make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j ${threads} > ${contrib}/build_avx_aesni.log 2>&1
+echo "Сборка AVX+AESNI";
+make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j ${threads} > ${contrib}/build_${arch}_avx_aesni.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build_avx_aesni.log";
 	exit 1;
@@ -56,7 +57,8 @@ fi;
 zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_avx_aesni.zip i2pd.exe >> /dev/null
 make clean >> /dev/null
 
-make USE_UPNP=yes USE_AVX=1 -j ${threads} > ${contrib}/build_avx.log 2>&1
+echo "Сборка AVX";
+make USE_UPNP=yes USE_AVX=1 -j ${threads} > ${contrib}/build_${arch}_avx.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build_avx.log.";
 	exit 1;
@@ -64,7 +66,8 @@ fi;
 zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_avx.zip i2pd.exe >> /dev/null
 make clean >> /dev/null
 
-make USE_UPNP=yes USE_AESNI=1 -j ${threads} > ${contrib}/build_aesni.log 2>&1
+echo "Сборка AESNI";
+make USE_UPNP=yes USE_AESNI=1 -j ${threads} > ${contrib}/build_${arch}_aesni.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build_aesni.log";
 	exit 1;
@@ -72,7 +75,8 @@ fi;
 zip -9 ${contrib}/i2pd_${version}_${commit}_${arch}_mingw_aesni.zip i2pd.exe >> /dev/null
 make clean >> /dev/null
 
-make USE_UPNP=yes -j ${threads} > ${contrib}/build.log 2>&1
+echo "Сборка без дополнительных инструкций";
+make USE_UPNP=yes -j ${threads} > ${contrib}/build_${arch}.log 2>&1
 if [ "$?" != 0 ]; then
 	echo "Сборка не удалась. Смотрите в build.log";
 	exit 1;
