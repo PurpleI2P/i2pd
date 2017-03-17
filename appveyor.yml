@@ -25,9 +25,9 @@ install:
     set "MSYSTEM=MINGW32"
   )
 - if "%x64%" == "1" (
-    C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Su mingw-w64-x86_64-boost mingw-w64-x86_64-miniupnpc"
+    C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Su mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-miniupnpc"
   ) else (
-    C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Su mingw-w64-i686-boost mingw-w64-i686-miniupnpc"
+    C:\msys64\usr\bin\bash -lc "pacman --noconfirm -Su mingw-w64-i686-boost mingw-w64-i386-openssl mingw-w64-i686-miniupnpc"
   )
 build_script:
 - cmd: >-
