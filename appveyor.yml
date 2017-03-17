@@ -27,25 +27,22 @@ install:
     c:\msys64\usr\bin\bash -lc "pacman --noconfirm -S mingw-w64-i686-boost mingw-w64-i686-miniupnpc"
   )
 
-build_script:
 - if "%MSYSTEM%" == "MINGW64" (
-    set "comiler=/mingw64/bin/g++"
     set "bitness=64"
   ) else (
-    set "compiler=/mingw32/bin/g++"
     set "bitness=32"
   )
 
+build_script:
 - cmd: >-
     cd \projects\i2pd
 
     echo MSYSTEM = %MSYSTEM%, bitness = %bitness%, compiler = %compiler%
 
-- c:\msys64\usr\bin\bash -lc "export CC=%cc% && make USE_UPNP=yes -j2"
+- c:\msys64\usr\bin\bash -lc "make USE_UPNP=yes -j2"
 - 7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
 
 test: off
 
 artifacts:
-- path: i2pd-mingw-win64.zip
-- path: i2pd-mingw-win32.zip
+- path: i2pd-mingw-win*.zip
