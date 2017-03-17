@@ -29,21 +29,20 @@ install:
 
 build_script:
 - if "%MSYSTEM%" == "MINGW64" (
-    set "cc=/mingw64/bin/g++"
+    set "comiler=/mingw64/bin/g++"
     set "bitness=64"
   ) else (
-    set "cc=/mingw32/bin/g++"
+    set "compiler=/mingw32/bin/g++"
     set "bitness=32"
   )
 
 - cmd: >-
     cd \projects\i2pd
 
-    echo MSYSTEM=%MSYSTEM%
+    echo MSYSTEM = %MSYSTEM%, bitness = %bitness%, compiler = %compiler%
 
-    c:\msys64\usr\bin\bash -lc "export CC=%cc% && make USE_UPNP=YES -j2"
-
-    7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
+- c:\msys64\usr\bin\bash -lc "export CC=%cc% && make USE_UPNP=yes -j2"
+- 7z a -tzip -mx9 -mmt i2pd-mingw-win%bitness%.zip i2pd.exe
 
 test: off
 
