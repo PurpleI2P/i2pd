@@ -185,7 +185,8 @@ namespace config {
 	    "https://reseed.atomike.ninja/,"
 	    "https://reseed.memcpy.io/,"
 	    "https://reseed.onion.im/,"
-	    "https://itoopie.atomike.ninja/"
+	    "https://itoopie.atomike.ninja/,"
+		"https://randomrng.ddns.net/"	                                                      
 		),  "Reseed URLs, separated by comma")
 	  ;	
 
@@ -210,6 +211,13 @@ namespace config {
       ("websockets.address", value<std::string>()->default_value("127.0.0.1"), "address to bind websocket server on")
       ("websockets.port", value<uint16_t>()->default_value(7666), "port to bind websocket server on");
 
+	options_description exploratory("Exploratory Options");
+	exploratory.add_options()
+	  ("exploratory.inbound.length",      value<int>()->default_value(2),  "Exploratory inbound tunnel length")	
+	  ("exploratory.outbound.length",     value<int>()->default_value(2),  "Exploratory outbound tunnel length")
+	  ("exploratory.inbound.quantity",    value<int>()->default_value(3),  "Exploratory inbound tunnels quantity")	
+	  ("exploratory.outbound.quantity",   value<int>()->default_value(3),  "Exploratory outbound tunnels quantity");	
+
     m_OptionsDesc
       .add(general)
 	  .add(limits)	
@@ -226,6 +234,7 @@ namespace config {
       .add(addressbook)	
       .add(trust)
       .add(websocket)
+	  .add(exploratory)
       ;
   }
 

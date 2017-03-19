@@ -3,7 +3,6 @@
 
 #include <inttypes.h>
 #include <string>
-#include <sstream>
 #include <map>
 #include <set>
 #include <queue>
@@ -104,6 +103,48 @@ namespace stream
 		};
 	};	
 
+	typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
+	struct SendBuffer
+	{
+		uint8_t * buf;
+		size_t len, offset;
+		SendHandler handler;
+
+		SendBuffer (const uint8_t * b, size_t l, SendHandler h):
+			len(l), offset (0), handler(h)
+		{
+			buf = new uint8_t[len];
+			memcpy (buf, b, len);
+		}	
+		~SendBuffer ()
+		{
+			delete[] buf;
+			if (handler) handler(boost::system::error_code ());
+		}	
+		size_t GetRemainingSize () const { return len - offset; };
+		const uint8_t * GetRemaningBuffer () const { return buf + offset; };	
+		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted)); handler = nullptr; };
+	};	
+
+	class SendBufferQueue
+	{
+		public:
+
+			SendBufferQueue (): m_Size (0) {};
+			~SendBufferQueue () { CleanUp (); };
+
+			void Add (const uint8_t * buf, size_t len, SendHandler handler); 
+			size_t Get (uint8_t * buf, size_t len); 
+			size_t GetSize () const { return m_Size; };
+			bool IsEmpty () const { return m_Buffers.empty (); };
+			void CleanUp ();
+			
+		private:	
+
+			std::list<std::shared_ptr<SendBuffer> > m_Buffers;
+			size_t m_Size;
+	};	
+	
 	enum StreamStatus
 	{
 		eStreamStatusNew = 0,
@@ -117,8 +158,6 @@ namespace stream
 	class Stream: public std::enable_shared_from_this<Stream>
 	{	
 		public:
-
-			typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
 
 			Stream (boost::asio::io_service& service, StreamingDestination& local, 
 				std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0); // outgoing
@@ -149,7 +188,7 @@ namespace stream
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
 			size_t GetSendQueueSize () const { return m_SentPackets.size (); };
 			size_t GetReceiveQueueSize () const { return m_ReceiveQueue.size (); };
-			size_t GetSendBufferSize () const { return m_SendBuffer.rdbuf ()->in_avail (); };
+			size_t GetSendBufferSize () const { return m_SendBuffer.GetSize (); };
 			int GetWindowSize () const { return m_WindowSize; };
 			int GetRTT () const { return m_RTT; };
 
@@ -202,11 +241,10 @@ namespace stream
 			uint16_t m_Port;
 
 			std::mutex m_SendBufferMutex;
-			std::stringstream m_SendBuffer;
+			SendBufferQueue m_SendBuffer;
 			int m_WindowSize, m_RTT, m_RTO;
 			uint64_t m_LastWindowSizeIncreaseTime;
 			int m_NumResendAttempts;
-			SendHandler m_SendHandler;
 	};
 
 	class StreamingDestination: public std::enable_shared_from_this<StreamingDestination>

@@ -48,8 +48,8 @@ namespace crypto
 	};	
 	
 	// ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding = false);
-	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, bool zeroPadding = false);
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding = false);
+	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding = false);
 	void GenerateElGamalKeyPair (uint8_t * priv, uint8_t * pub);
 
 	// HMAC
@@ -278,12 +278,6 @@ namespace crypto
 			CBCDecryption m_LayerDecryption;
 #endif
 	};	
-
-// GOST
-	bool InitGost ();
-	void TerminateGost ();
-	const EVP_PKEY * GetGostPKEY ();
-	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest); // hash
 	
 	void InitCrypto (bool precomputation, bool withGost = false);
 	void TerminateCrypto ();

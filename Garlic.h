@@ -153,11 +153,11 @@ namespace garlic
 	{
 		public:
 
-			GarlicDestination (): m_NumTags (32) {}; // 32 tags by default
+			GarlicDestination ();
 			~GarlicDestination ();
 
 			void CleanUp ();
-			void SetNumTags (int numTags) { m_NumTags = numTags; };		
+			void SetNumTags (int numTags) { m_NumTags = numTags; };	
 			std::shared_ptr<GarlicRoutingSession> GetRoutingSession (std::shared_ptr<const i2p::data::RoutingDestination> destination, bool attachLeaseSet);	
 			void CleanupExpiredTags ();
 			void RemoveDeliveryStatusSession (uint32_t msgID);
@@ -188,7 +188,8 @@ namespace garlic
 			void HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
 		private:
-			
+
+			BN_CTX * m_Ctx; // incoming
 			// outgoing sessions
 			int m_NumTags;
 			std::mutex m_SessionsMutex;

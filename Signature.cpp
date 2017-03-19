@@ -192,7 +192,8 @@ namespace crypto
 						BN_one (z3); // D = 1
 				}	
 
-				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
+				BN_CTX_start (ctx);
+				BIGNUM * E = BN_CTX_get (ctx), * F = BN_CTX_get (ctx), * G = BN_CTX_get (ctx), * H = BN_CTX_get (ctx);
 				BN_add (E, p1.x, p1.y);				
 				BN_add (F, p2.x, p2.y);
 				BN_mul (E, E, F, ctx); // (x1 + y1)*(x2 + y2)
@@ -207,7 +208,7 @@ namespace crypto
 				BN_mod_mul (z3, F, G, q, ctx); // z3 = F*G	
 				BN_mod_mul (t3, E, H, q, ctx); // t3 = E*H	
 
-				BN_free (E); BN_free (F); BN_free (G); BN_free (H);
+				BN_CTX_end (ctx);
 
 				return EDDSAPoint {x3, y3, z3, t3};
 			}
@@ -231,7 +232,8 @@ namespace crypto
 				else
 					BN_one (z2); // z2 = 1
 
-				BIGNUM * E = BN_new (), * F = BN_new (), * G = BN_new (), * H = BN_new ();
+				BN_CTX_start (ctx);
+				BIGNUM * E = BN_CTX_get (ctx), * F = BN_CTX_get (ctx), * G = BN_CTX_get (ctx), * H = BN_CTX_get (ctx);
 				// E = (x+y)*(x+y)-A-B = x^2+y^2+2xy-A-B = 2xy
 				BN_mul (E, p.x, p.y, ctx);
 				BN_lshift1 (E, E);	// E =2*x*y							
@@ -244,7 +246,7 @@ namespace crypto
 				BN_mod_mul (z2, F, G, q, ctx); // z2 = F*G	
 				BN_mod_mul (t2, E, H, q, ctx); // t2 = E*H	
 
-				BN_free (E); BN_free (F); BN_free (G); BN_free (H);
+				BN_CTX_end (ctx);
 
 				return EDDSAPoint {x2, y2, z2, t2};
 			}
@@ -316,12 +318,11 @@ namespace crypto
 
 			bool IsOnCurve (const EDDSAPoint& p, BN_CTX * ctx) const
 			{
-				BIGNUM * x2 = BN_new ();
+				BN_CTX_start (ctx);
+				BIGNUM * x2 = BN_CTX_get (ctx), * y2 = BN_CTX_get (ctx), * tmp = BN_CTX_get (ctx);
 				BN_sqr (x2, p.x, ctx); // x^2
-				BIGNUM * y2 = BN_new ();
 				BN_sqr (y2, p.y, ctx); // y^2
-				// y^2 - x^2 - 1 - d*x^2*y^2 
-				BIGNUM * tmp = BN_new ();				
+				// y^2 - x^2 - 1 - d*x^2*y^2 			
 				BN_mul (tmp, d, x2, ctx);
 				BN_mul (tmp, tmp, y2, ctx);	
 				BN_sub (tmp, y2, tmp);
@@ -329,18 +330,16 @@ namespace crypto
 				BN_sub_word (tmp, 1);
 				BN_mod (tmp, tmp, q, ctx); // % q
 				bool ret = BN_is_zero (tmp);
-				BN_free (x2);
-				BN_free (y2);
-				BN_free (tmp);
+				BN_CTX_end (ctx);
 				return ret;
 			}	
 
 			BIGNUM * RecoverX (const BIGNUM * y, BN_CTX * ctx) const
 			{
-				BIGNUM * y2 = BN_new ();
+				BN_CTX_start (ctx);
+				BIGNUM * y2 = BN_CTX_get (ctx), * xx = BN_CTX_get (ctx);
 				BN_sqr (y2, y, ctx); // y^2
 				// xx = (y^2 -1)*inv(d*y^2 +1) 
-				BIGNUM * xx = BN_new ();
 				BN_mul (xx, d, y2, ctx);
 				BN_add_word (xx, 1);
 				BN_mod_inverse (xx, xx, q, ctx);
@@ -356,8 +355,6 @@ namespace crypto
 					BN_mod_mul (x, x, I, q, ctx);
 				if (BN_is_odd (x))
 					BN_sub (x, q, x);
-				BN_free (y2);
-				BN_free (xx);
 				return x;
 			}
 

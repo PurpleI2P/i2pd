@@ -187,7 +187,9 @@ namespace garlic
 			RAND_bytes (elGamal.preIV, 32); // Pre-IV
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(elGamal.preIV, 32, iv); 
-			i2p::crypto::ElGamalEncrypt (m_Destination->GetEncryptionPublicKey (), (uint8_t *)&elGamal, buf, true);			
+			BN_CTX * ctx = BN_CTX_new ();
+			i2p::crypto::ElGamalEncrypt (m_Destination->GetEncryptionPublicKey (), (uint8_t *)&elGamal, buf, ctx, true);	
+			BN_CTX_free (ctx);		
 			m_Encryption.SetIV (iv);
 			buf += 514;
 			len += 514;	
@@ -388,9 +390,15 @@ namespace garlic
 
 		return size;
 	}
-	
+
+	GarlicDestination::GarlicDestination (): m_NumTags (32) // 32 tags by default
+	{
+		m_Ctx = BN_CTX_new ();
+	} 
+		
 	GarlicDestination::~GarlicDestination ()
 	{
+		BN_CTX_free (m_Ctx);
 	}
 
 	void GarlicDestination::CleanUp ()
@@ -446,7 +454,7 @@ namespace garlic
 		{
 			// tag not found. Use ElGamal
 			ElGamalBlock elGamal;
-			if (length >= 514 && i2p::crypto::ElGamalDecrypt (GetEncryptionPrivateKey (), buf, (uint8_t *)&elGamal, true))
+			if (length >= 514 && i2p::crypto::ElGamalDecrypt (GetEncryptionPrivateKey (), buf, (uint8_t *)&elGamal, m_Ctx, true))
 			{	
 				auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
 				decryption->SetKey (elGamal.sessionKey);

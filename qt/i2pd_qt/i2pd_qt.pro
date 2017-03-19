@@ -36,7 +36,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
 	../../SSUData.cpp ../../SSUSession.cpp ../../Streaming.cpp ../../TransitTunnel.cpp \
 	../../Transports.cpp ../../Tunnel.cpp ../../TunnelEndpoint.cpp ../../TunnelGateway.cpp \
 	../../TunnelPool.cpp ../../UPnP.cpp ../../Gzip.cpp ../../Timestamp.cpp ../../util.cpp \
-	../../Event.cpp ../../BloomFilter.cpp ../../WebSocks.cpp ../../i2pd.cpp
+	../../Event.cpp ../../BloomFiler.cpp ../../Gost.cpp ../../i2pd.cpp
 
 HEADERS  += DaemonQT.h mainwindow.h \
 	../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
@@ -51,7 +51,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
 	../../TransportSession.h ../../Tunnel.h ../../TunnelBase.h ../../TunnelConfig.h \
 	../../TunnelEndpoint.h ../../TunnelGateway.h ../../TunnelPool.h ../../UPnP.h \
 	../../util.h ../../version.h ../../Gzip.h ../../Tag.h \
-	../../BloomFilter.h ../../Event.h ../../WebSocks.h
+	../../BloomFiler.h ../../Event.h ../../Gost.h
 
 FORMS += mainwindow.ui
 

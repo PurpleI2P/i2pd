@@ -23,7 +23,7 @@ namespace i2p
 namespace transport
 {
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-		TransportSession (in_RemoteRouter, NTCP_TERMINATION_TIMEOUT),	
+		TransportSession (in_RemoteRouter, NTCP_ESTABLISH_TIMEOUT),	
 		m_Server (server), m_Socket (m_Server.GetService ()), 
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
@@ -98,6 +98,7 @@ namespace transport
 		
 		m_DHKeysPair = nullptr;	
 
+		SetTerminationTimeout (NTCP_TERMINATION_TIMEOUT);
 		SendTimeSyncMessage ();		
 		transports.PeerConnected (shared_from_this ());
 	}	
@@ -120,6 +121,7 @@ namespace transport
 
 	void NTCPSession::ServerLogin ()
 	{
+		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		// receive Phase1
 		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),                    
 			std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (), 
@@ -858,6 +860,8 @@ namespace transport
 			auto ntcpSessions = m_NTCPSessions; 
 			for (auto& it: ntcpSessions)
 				it.second->Terminate ();
+			for (auto& it: m_PendingIncomingSessions)
+				it->Terminate ();
 		}	 
 		m_NTCPSessions.clear ();
 
@@ -940,7 +944,10 @@ namespace transport
 			{
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
 				if (conn)
+				{
 					conn->ServerLogin ();
+					m_PendingIncomingSessions.push_back (conn);
+				}	
 			}
 			else
 				LogPrint (eLogError, "NTCP: Connected from error ", ec.message ());
@@ -965,7 +972,10 @@ namespace transport
 			{
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
 				if (conn)
+				{	
 					conn->ServerLogin ();
+					m_PendingIncomingSessions.push_back (conn);
+				}	
 			}
 			else
 				LogPrint (eLogError, "NTCP: Connected from error ", ec.message ());
@@ -1033,16 +1043,32 @@ namespace transport
 		if (ecode != boost::asio::error::operation_aborted)
 		{	
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			// established
 			for (auto& it: m_NTCPSessions)
  				if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					auto session = it.second;
+					// Termniate modifies m_NTCPSession, so we postpone it
 					m_Service.post ([session] 
 						{ 
 							LogPrint (eLogDebug, "NTCP: No activity for ", session->GetTerminationTimeout (), " seconds");
 							session->Terminate ();
 						});	
 				}
+			// pending
+			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
+			{
+				if ((*it)->IsEstablished () || (*it)->IsTerminated ())
+					it = m_PendingIncomingSessions.erase (it); // established or terminated
+				else if ((*it)->IsTerminationTimeoutExpired (ts))
+				{
+					(*it)->Terminate (); 
+					it = m_PendingIncomingSessions.erase (it); // expired
+				}	
+				else
+					it++;
+			}
+			
 			ScheduleTermination ();	
 		}	
 	}	

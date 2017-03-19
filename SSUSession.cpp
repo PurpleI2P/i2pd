@@ -104,6 +104,7 @@ namespace transport
 				DecryptSessionKey (buf, len);	
 			else 
 			{
+				if (m_State == eSessionStateEstablished) Reset (); // new session key required 
 				// try intro key depending on side
 				if (Validate (buf, len, m_IntroKey))
 					Decrypt (buf, len, m_IntroKey);
@@ -869,14 +870,26 @@ namespace transport
 
 	void SSUSession::Close ()
 	{
+		SendSessionDestroyed ();
+		Reset ();
 		m_State = eSessionStateClosed;
-		SendSesionDestroyed ();
+	}	
+
+	void SSUSession::Reset ()
+	{
+		m_State = eSessionStateUnknown;
 		transports.PeerDisconnected (shared_from_this ());
 		m_Data.Stop ();
 		m_ConnectTimer.cancel ();
 		if (m_SentRelayTag)
+		{	
 			m_Server.RemoveRelay (m_SentRelayTag); // relay tag is not valid anymore
-	}	
+			m_SentRelayTag = 0;
+		}	
+		m_DHKeysPair = nullptr;
+		m_SignedData = nullptr;
+		m_IsSessionKey = false;
+	}
 
 	void SSUSession::Done ()
 	{
@@ -1140,7 +1153,7 @@ namespace transport
 		}	
 	}
 
-	void SSUSession::SendSesionDestroyed ()
+	void SSUSession::SendSessionDestroyed ()
 	{
 		if (m_IsSessionKey)
 		{

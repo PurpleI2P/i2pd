@@ -272,11 +272,15 @@ namespace crypto
 	}	
 	
 // ElGamal
-	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, bool zeroPadding)
+	void ElGamalEncrypt (const uint8_t * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding)
 	{
-		BN_CTX * ctx = BN_CTX_new ();
+		BN_CTX_start (ctx);
+		// everything, but a, because a might come from table	
+		BIGNUM * k = BN_CTX_get (ctx);
+		BIGNUM * y = BN_CTX_get (ctx);
+		BIGNUM * b1 = BN_CTX_get (ctx);
+		BIGNUM * b = BN_CTX_get (ctx);
 		// select random k
-		BIGNUM * k = BN_new ();
 #if defined(__x86_64__)
 		BN_rand (k, ELGAMAL_FULL_EXPONENT_NUM_BITS, -1, 1); // full exponent for x64
 #else
@@ -292,23 +296,18 @@ namespace crypto
 			BN_mod_exp (a, elgg, k, elgp, ctx);
 		}
 
-		BIGNUM * y = BN_new ();
+		// restore y from key
 		BN_bin2bn (key, 256, y);
 		// calculate b1
-		BIGNUM * b1 = BN_new ();
 		BN_mod_exp (b1, y, k, elgp, ctx);
-		BN_free (y);
-		BN_free (k);
 		// create m
 		uint8_t m[255];
 		m[0] = 0xFF;
 		memcpy (m+33, data, 222);
 		SHA256 (m+33, 222, m+1);
 		// calculate b = b1*m mod p
-		BIGNUM * b = BN_new ();
 		BN_bin2bn (m, 255, b);
 		BN_mod_mul (b, b1, b, elgp, ctx);
-		BN_free (b1);
 		// copy a and b
 		if (zeroPadding)
 		{
@@ -322,16 +321,15 @@ namespace crypto
 			bn2buf (a, encrypted, 256);
 			bn2buf (b, encrypted + 256, 256);
 		}		
-		BN_free (b);
 		BN_free (a);
-		BN_CTX_free (ctx);
+		BN_CTX_end (ctx);
 	}
 
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, 
-		uint8_t * data, bool zeroPadding)
+		uint8_t * data, BN_CTX * ctx, bool zeroPadding)
 	{
-		BN_CTX * ctx = BN_CTX_new ();
-		BIGNUM * x = BN_new (), * a = BN_new (), * b = BN_new ();
+		BN_CTX_start (ctx);
+		BIGNUM * x = BN_CTX_get (ctx), * a = BN_CTX_get (ctx), * b = BN_CTX_get (ctx);
 		BN_bin2bn (key, 256, x);
 		BN_sub (x, elgp, x); BN_sub_word (x, 1); // x = elgp - x- 1
 		BN_bin2bn (zeroPadding ? encrypted + 1 : encrypted, 256, a);
@@ -341,8 +339,7 @@ namespace crypto
 		BN_mod_mul (b, b, x, elgp, ctx);	
 		uint8_t m[255];
 		bn2buf (b, m, 255); 
-		BN_free (x); BN_free (a); BN_free (b); 
-		BN_CTX_free (ctx);
+		BN_CTX_end (ctx);
 		uint8_t hash[32];
 		SHA256 (m + 33, 222, hash);
 		if (memcmp (m + 1, hash, 32))
@@ -800,71 +797,7 @@ namespace crypto
 				m_OpenSSLMutexes[type]->unlock ();
 		}	
 	}*/
-
-	static ENGINE * g_GostEngine = nullptr;
-	static const EVP_MD * g_Gost3411 = nullptr;
-	static EVP_PKEY * g_GostPKEY = nullptr;	
 	
-	const EVP_PKEY * GetGostPKEY ()
-	{
-		return g_GostPKEY;
-	}	
-	
-	uint8_t * GOSTR3411 (const uint8_t * buf, size_t len, uint8_t * digest)
-	{
-		if (!g_Gost3411) return nullptr;
-		auto ctx = EVP_MD_CTX_new ();
-		EVP_DigestInit_ex (ctx, g_Gost3411, g_GostEngine);
-		EVP_DigestUpdate (ctx, buf, len);
-		EVP_DigestFinal_ex (ctx, digest, nullptr);
-		EVP_MD_CTX_free (ctx);
-		return digest;
-	}	
-	
-	bool InitGost ()
-	{
-#ifndef OPENSSL_NO_ENGINE
-#if (OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)
-		ENGINE_load_builtin_engines ();
-		ENGINE_load_dynamic ();
-#else
-		OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
-#endif
-		g_GostEngine = ENGINE_by_id ("gost");
-		if (!g_GostEngine) return false;
-
-		ENGINE_init (g_GostEngine);
-		ENGINE_set_default (g_GostEngine, ENGINE_METHOD_ALL);
-		g_Gost3411 = ENGINE_get_digest(g_GostEngine, NID_id_GostR3411_94);
-
-		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, g_GostEngine);
-		if (!ctx) return false;
-		EVP_PKEY_keygen_init (ctx);
-		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A"); // possible values 'A', 'B', 'C', 'XA', 'XB'
-		EVP_PKEY_keygen (ctx, &g_GostPKEY);	// it seems only way to fill with correct params
-		EVP_PKEY_CTX_free (ctx);
-		return true;
-#else
-		LogPrint (eLogError, "Can't initialize GOST. Engines are not supported");
-		return false;
-#endif
-	}
-	
-	void TerminateGost ()
-	{
-		if (g_GostPKEY)
-			EVP_PKEY_free (g_GostPKEY);
-#ifndef OPENSSL_NO_ENGINE
-		if (g_GostEngine)
-		{
-			ENGINE_finish (g_GostEngine);
-			ENGINE_free (g_GostEngine);
-#if (OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER)
-			ENGINE_cleanup();
-#endif
-		}
-#endif
-	}
 
 	void InitCrypto (bool precomputation, bool withGost)
 	{

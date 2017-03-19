@@ -9,6 +9,7 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include "Crypto.h"
+#include "Gost.h"
 
 namespace i2p
 {
@@ -442,93 +443,135 @@ namespace crypto
 		memcpy (signingPublicKey, signer.GetPublicKey (), EDDSA25519_PUBLIC_KEY_LENGTH);
 	}
 
-	// ГОСТ Р 34.10-2001
-	const size_t GOSTR3410_PUBLIC_KEY_LENGTH = 64;
-	const size_t GOSTR3410_SIGNATURE_LENGTH = 64;
 
+	// ГОСТ Р 34.11
+	struct GOSTR3411_2001_Hash
+	{	
+		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
+		{
+			SHA256 (buf, len, digest); // TODO: implement GOST R 34.11 - 2001
+		}
+
+		enum { hashLen = 32 };
+	};
+		
+	struct GOSTR3411_2012_256_Hash
+	{	
+		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
+		{
+			SHA256 (buf, len, digest); // TODO: implement GOST R 34.11 - 2012
+		}
+
+		enum { hashLen = 32 };
+	};
+
+	struct GOSTR3411_2012_512_Hash
+	{	
+		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
+		{
+			SHA512 (buf, len, digest); // TODO: implement GOST R 34.11 - 2012
+		}
+
+		enum { hashLen = 64 };
+	};
+
+	// ГОСТ Р 34.10
+	const size_t GOSTR3410_256_PUBLIC_KEY_LENGTH = 64;
+	const size_t GOSTR3410_512_PUBLIC_KEY_LENGTH = 128;
+
+	template<typename Hash>
 	class GOSTR3410Verifier: public Verifier
 	{
 		public:
 
-			GOSTR3410Verifier (const uint8_t * signingKey) 
-			{ 
-				m_PublicKey = EVP_PKEY_new (); 
-				EC_KEY * ecKey = EC_KEY_new ();
-				EVP_PKEY_assign (m_PublicKey, NID_id_GostR3410_2001, ecKey);
-				EVP_PKEY_copy_parameters (m_PublicKey, GetGostPKEY ());		
-				BIGNUM * x = BN_bin2bn (signingKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
-				BIGNUM * y = BN_bin2bn (signingKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL);
-				EC_KEY_set_public_key_affine_coordinates (ecKey, x, y);
+			enum { keyLen = Hash::hashLen };
+			
+			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey):
+				m_ParamSet (paramSet)
+			{
+				BIGNUM * x = BN_bin2bn (signingKey, GetPublicKeyLen ()/2, NULL);
+				BIGNUM * y = BN_bin2bn (signingKey + GetPublicKeyLen ()/2, GetPublicKeyLen ()/2, NULL);
+				m_PublicKey = GetGOSTR3410Curve (m_ParamSet)->CreatePoint (x, y);
 				BN_free (x); BN_free (y);
-			} 
-			~GOSTR3410Verifier () { EVP_PKEY_free (m_PublicKey); }
+			}
+			~GOSTR3410Verifier () { EC_POINT_free (m_PublicKey); }
 			
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
-				uint8_t digest[32];
-				GOSTR3411 (buf, len, digest);
-				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PublicKey, nullptr);
-				EVP_PKEY_verify_init (ctx);
-				int ret = EVP_PKEY_verify (ctx, signature, GOSTR3410_SIGNATURE_LENGTH, digest, 32);
-				EVP_PKEY_CTX_free (ctx);
-				return ret == 1;
+				uint8_t digest[Hash::hashLen];
+				Hash::CalculateHash (buf, len, digest);
+				BIGNUM * d = BN_bin2bn (digest, Hash::hashLen, nullptr);
+				BIGNUM * r = BN_bin2bn (signature, GetSignatureLen ()/2, NULL);
+				BIGNUM * s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
+				bool ret = GetGOSTR3410Curve (m_ParamSet)->Verify (m_PublicKey, d, r, s);
+				BN_free (d); BN_free (r); BN_free (s);	
+				return ret;
 			}
-			
-			size_t GetPublicKeyLen () const { return GOSTR3410_PUBLIC_KEY_LENGTH; }
-			size_t GetSignatureLen () const { return GOSTR3410_SIGNATURE_LENGTH; }
+
+			size_t GetPublicKeyLen () const { return keyLen*2; }
+			size_t GetSignatureLen () const { return keyLen*2; }
 
 		private:
 
-			EVP_PKEY * m_PublicKey;
+			GOSTR3410ParamSet m_ParamSet;
+			EC_POINT * m_PublicKey;
 	};	
 
+	template<typename Hash>
 	class GOSTR3410Signer: public Signer
 	{
 		public:
 
-			GOSTR3410Signer (const uint8_t * signingPrivateKey) 
+			enum { keyLen = Hash::hashLen };
+			
+			GOSTR3410Signer (GOSTR3410ParamSet paramSet, const uint8_t * signingPrivateKey):
+				m_ParamSet (paramSet)
 			{ 
-				m_PrivateKey = EVP_PKEY_new (); 
-				EC_KEY * ecKey = EC_KEY_new ();
-				EVP_PKEY_assign (m_PrivateKey, NID_id_GostR3410_2001, ecKey);
-				EVP_PKEY_copy_parameters (m_PrivateKey, GetGostPKEY ());	
-				EC_KEY_set_private_key (ecKey, BN_bin2bn (signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2, NULL));
+				m_PrivateKey = BN_bin2bn (signingPrivateKey, keyLen, nullptr); 
 			}
-			~GOSTR3410Signer () { EVP_PKEY_free (m_PrivateKey); }
+			~GOSTR3410Signer () { BN_free (m_PrivateKey); }
 
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
 			{
-				uint8_t digest[32];
-				GOSTR3411 (buf, len, digest);
-				EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new (m_PrivateKey, nullptr);
-				EVP_PKEY_sign_init (ctx);
-				size_t l = GOSTR3410_SIGNATURE_LENGTH;
-				EVP_PKEY_sign (ctx, signature, &l, digest, 32);
-				EVP_PKEY_CTX_free (ctx);
-			}	
+				uint8_t digest[Hash::hashLen];
+				Hash::CalculateHash (buf, len, digest);
+				BIGNUM * d = BN_bin2bn (digest, Hash::hashLen, nullptr); 
+				BIGNUM * r = BN_new (), * s = BN_new ();
+				GetGOSTR3410Curve (m_ParamSet)->Sign (m_PrivateKey, d, r, s);
+				bn2buf (r, signature, keyLen);
+				bn2buf (s, signature + keyLen, keyLen);
+				BN_free (d); BN_free (r); BN_free (s);
+			}
 			
 		private:
 
-			EVP_PKEY * m_PrivateKey;
+			GOSTR3410ParamSet m_ParamSet;
+			BIGNUM * m_PrivateKey;
 	};	
 
-	inline void CreateGOSTR3410RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
+	inline void CreateGOSTR3410RandomKeys (GOSTR3410ParamSet paramSet, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
-		auto ctx = EVP_PKEY_CTX_new_id(NID_id_GostR3410_2001, nullptr);
-		EVP_PKEY_keygen_init (ctx);
-		EVP_PKEY_CTX_ctrl_str (ctx, "paramset", "A"); // TODO should be in one place
-		EVP_PKEY* pkey = nullptr;
-		EVP_PKEY_keygen (ctx, &pkey);
-		const EC_KEY* ecKey = (const EC_KEY*) EVP_PKEY_get0(pkey);
-		bn2buf (EC_KEY_get0_private_key (ecKey), signingPrivateKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
-		BIGNUM * x = BN_new(), * y = BN_new();
-		EC_POINT_get_affine_coordinates_GFp (EC_KEY_get0_group(ecKey), EC_KEY_get0_public_key (ecKey), x, y, NULL);
-		bn2buf (x, signingPublicKey, GOSTR3410_PUBLIC_KEY_LENGTH/2);
-		bn2buf (y, signingPublicKey + GOSTR3410_PUBLIC_KEY_LENGTH/2, GOSTR3410_PUBLIC_KEY_LENGTH/2);
-		BN_free (x); BN_free (y);
-		EVP_PKEY_CTX_free (ctx);
-		EVP_PKEY_free (pkey);	
+		const auto& curve = GetGOSTR3410Curve (paramSet);
+		auto keyLen = curve->GetKeyLen ();
+		RAND_bytes (signingPrivateKey, keyLen);
+		BIGNUM * priv = BN_bin2bn (signingPrivateKey, keyLen, nullptr);
+		
+		auto pub = curve->MulP (priv);
+		BN_free (priv);
+		BIGNUM * x = BN_new (), * y = BN_new ();
+		curve->GetXY (pub, x, y);
+		EC_POINT_free (pub);
+		bn2buf (x, signingPublicKey, keyLen);
+		bn2buf (y, signingPublicKey + keyLen, keyLen);
+		BN_free (x); BN_free (y); 
 	}
+
+	typedef GOSTR3410Verifier<GOSTR3411_2001_Hash> GOSTR3410_2001_Verifier;
+	typedef GOSTR3410Signer<GOSTR3411_2001_Hash> GOSTR3410_2001_Signer;
+	typedef GOSTR3410Verifier<GOSTR3411_2012_256_Hash> GOSTR3410_2012_256_Verifier;
+	typedef GOSTR3410Signer<GOSTR3411_2012_256_Hash> GOSTR3410_2012_256_Signer;
+	typedef GOSTR3410Verifier<GOSTR3411_2012_512_Hash> GOSTR3410_2012_512_Verifier;
+	typedef GOSTR3410Signer<GOSTR3411_2012_512_Hash> GOSTR3410_2012_512_Signer;
 }
 }
 

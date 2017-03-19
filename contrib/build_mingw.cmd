@@ -1,22 +1,25 @@
 @echo off
-title Сборка i2pd
+setlocal
 
-set "WD=C:\msys64"
+title Building i2pd
+
+set "WD=C:\msys64\usr\bin\"
+set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=enabled_from_arguments
-set MSYSCON=mintty.exe
+set MSYSCON=
 
-echo Сборка i2pd для win32. Нажмите Enter после окончания компиляции...
-set "MSYSTEM=MINGW32"
-set "CONTITLE=MinGW x32"
-start "%CONTITLE%" /WAIT C:\msys64\usr\bin\mintty.exe -i /msys2.ico /usr/bin/bash --login build_mingw.sh
-pause
+echo Building i2pd for win32. Press Enter after the end of compilation...
+set MSYSTEM=MINGW32
+set CONTITLE=MinGW x32
+start "%CONTITLE%" /WAIT "%WD%bash" --login build_mingw.sh
+pause > nul
 
-echo Сборка i2pd для win64. Нажмите Enter после окончания компиляции...
-set "MSYSTEM=MINGW64"
-set "CONTITLE=MinGW x64"
-start "%CONTITLE%" /WAIT C:\msys64\usr\bin\mintty.exe -i /msys2.ico /usr/bin/bash --login build_mingw.sh
-pause
+echo Building i2pd for win64. Press Enter after the end of compilation...
+set MSYSTEM=MINGW64
+set CONTITLE=MinGW x64
+start "%CONTITLE%" /WAIT "%WD%bash" --login build_mingw.sh
+pause > nul
 
-echo Сборка завершена...
+echo Build complete...
 pause
 exit /b 0

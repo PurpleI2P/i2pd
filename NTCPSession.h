@@ -37,6 +37,7 @@ namespace transport
 	const size_t NTCP_MAX_MESSAGE_SIZE = 16384; 
 	const size_t NTCP_BUFFER_SIZE = 1028; // fits 1 tunnel data message
 	const int NTCP_CONNECT_TIMEOUT = 5; // 5 seconds
+	const int NTCP_ESTABLISH_TIMEOUT = 10; // 10 seconds
 	const int NTCP_TERMINATION_TIMEOUT = 120; // 2 minutes
 	const int NTCP_TERMINATION_CHECK_TIMEOUT = 30; // 30 seconds	
 	const size_t NTCP_DEFAULT_PHASE3_SIZE = 2/*size*/ + i2p::data::DEFAULT_IDENTITY_SIZE/*387*/ + 4/*ts*/ + 15/*padding*/ + 40/*signature*/; // 448 	
@@ -55,7 +56,8 @@ namespace transport
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			bool IsEstablished () const { return m_IsEstablished; };	
-
+			bool IsTerminated () const { return m_IsTerminated; };
+			
 			void ClientLogin ();
 			void ServerLogin ();
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
@@ -166,6 +168,7 @@ namespace transport
 			boost::asio::deadline_timer m_TerminationTimer;
 			boost::asio::ip::tcp::acceptor * m_NTCPAcceptor, * m_NTCPV6Acceptor;
 			std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions; // access from m_Thread only
+			std::list<std::shared_ptr<NTCPSession> > m_PendingIncomingSessions;
 
 		public:
 

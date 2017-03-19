@@ -30,4 +30,3 @@ BOOST_PATH = $(I2PD_LIBS_PATH)/Boost-for-Android-Prebuilt
 OPENSSL_PATH = $(I2PD_LIBS_PATH)/OpenSSL-for-Android-Prebuilt
 MINIUPNP_PATH = $(I2PD_LIBS_PATH)/MiniUPnP-for-Android-Prebuilt
 IFADDRS_PATH = $(I2PD_LIBS_PATH)/android-ifaddrs
-GOST_PATH = $(I2PD_LIBS_PATH)/GOST-Engine-for-Android-Prebuilt
