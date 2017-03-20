@@ -337,17 +337,23 @@ namespace crypto
 		{
 			for (int i = 0; i < 8; i++)
 			{
-				uint64_t c = 0;
+				union
+				{
+					uint8_t b[8];
+					uint64_t ll;
+				} c;
+				c.ll = 0;
 				for (int j = 0; j < 8; j++)
 				{	
 					uint8_t bit = 0x80;
 					for (int k = 0; k < 8; k++)
 					{
-						if (buf[i*8+j] & bit) c ^= A_[j*8+k];
+						if (buf[i*8+j] & bit) c.ll ^= A_[j*8+k];
 						bit >>= 1;
 					}
 				}	
-				ll[i] = c;
+				for (int j = 0; j < 8; j++)
+					buf[i*8+j] = c.b[7-j]; // invert 	
 			}	
 		}	
 
@@ -405,7 +411,7 @@ namespace crypto
 			h= gN (N, h, m);
 			N.Add (512);
 			s = m + s;
-			len -= 64;
+			l -= 64;
 		}
 		// stage 3
 		size_t padding = 64 - l;
