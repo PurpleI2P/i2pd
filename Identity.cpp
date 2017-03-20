@@ -102,7 +102,7 @@ namespace data
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
 					break;
 				}	
-				case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_GOSTR3411:
+				case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_SHA256:
 				case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_256_GOSTR3411:
 				{	
 					// 256
@@ -386,7 +386,7 @@ namespace data
 				UpdateVerifier (new i2p::crypto::EDDSA25519Verifier (m_StandardIdentity.signingKey + padding));
 				break;
 			}	
-			case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_GOSTR3411:
+			case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_SHA256 :
 			{	
 				size_t padding =  128 - i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
 				UpdateVerifier (new i2p::crypto::GOSTR3410_2001_Verifier (i2p::crypto::eGOSTR3410CryptoProA, m_StandardIdentity.signingKey + padding));
@@ -545,7 +545,7 @@ namespace data
 			case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
 			break;
-			case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_GOSTR3411:
+			case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_SHA256:
 				m_Signer.reset (new i2p::crypto::GOSTR3410_2001_Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
 			break;	
 			case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_256_GOSTR3411:
@@ -589,7 +589,7 @@ namespace data
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
-				case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_GOSTR3411:
+				case SIGNING_KEY_TYPE_GOSTR3410_2001_CRYPTO_PRO_A_SHA256:
 					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, keys.m_SigningPrivateKey, signingPublicKey);
 				break;	
 				case SIGNING_KEY_TYPE_GOSTR3410_2012_TC26_A_256_GOSTR3411:
