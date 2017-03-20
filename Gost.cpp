@@ -2,6 +2,7 @@
 #include <array>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include "I2PEndian.h"
 #include "Gost.h"
 
 namespace i2p
@@ -192,7 +193,7 @@ namespace crypto
 		0x492c024284fbaec0, 0xaa16012142f35760, 0x550b8e9e21f7a530, 0xa48b474f9ef5dc18,
 		0x70a6a56e2440598e, 0x3853dc371220a247, 0x1ca76e95091051ad, 0x0edd37c48a08a6d8,
 		0x07e095624504536c, 0x8d70c431ac02a736, 0xc83862965601dd1b, 0x641c314b2b8ee083
-	};
+	}; // in Little Endian
 
 	static const uint8_t T_[64]=
 	{
@@ -337,23 +338,18 @@ namespace crypto
 		{
 			for (int i = 0; i < 8; i++)
 			{
-				union
-				{
-					uint8_t b[8];
-					uint64_t ll;
-				} c;
-				c.ll = 0;
+				uint64_t c = 0;
 				for (int j = 0; j < 8; j++)
 				{	
 					uint8_t bit = 0x80;
+					uint8_t byte = buf[i*8+j];
 					for (int k = 0; k < 8; k++)
 					{
-						if (buf[i*8+j] & bit) c.ll ^= A_[j*8+k];
+						if (byte & bit) c ^= A_[j*8+k];
 						bit >>= 1;
 					}
 				}	
-				for (int j = 0; j < 8; j++)
-					buf[i*8+j] = c.b[7-j]; // invert 	
+				ll[i] = htobe64 (c);	
 			}	
 		}	
 
@@ -391,8 +387,8 @@ namespace crypto
 		res.P ();
 		res.L ();
 		res = res.E (m);
-		res = res ^ h;
-		res = res ^ m;
+		res = res^h;
+		res = res^m;
 		return res;	
 	}	
 
