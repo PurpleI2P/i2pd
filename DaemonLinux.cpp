@@ -42,6 +42,9 @@ void handle_signal(int sig)
 		case SIGTERM:
 			Daemon.running = 0; // Exit loop
 		break;
+		case SIGPIPE:
+			LogPrint(eLogInfo, "SIGPIPE received");
+		break;
 	}
 }
 
@@ -160,6 +163,7 @@ namespace i2p
 			sigaction(SIGABRT, &sa, 0);
 			sigaction(SIGTERM, &sa, 0);
 			sigaction(SIGINT, &sa, 0);
+			sigaction(SIGPIPE, &sa, 0);			
 
 			return Daemon_Singleton::start();
 		}
