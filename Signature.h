@@ -445,7 +445,7 @@ namespace crypto
 
 
 	// ГОСТ Р 34.11		
-	struct GOSTR3411_2012_256_Hash
+	struct GOSTR3411_256_Hash
 	{	
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
 		{
@@ -455,7 +455,7 @@ namespace crypto
 		enum { hashLen = 32 };
 	};
 
-	struct GOSTR3411_2012_512_Hash
+	struct GOSTR3411_512_Hash
 	{	
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
 		{
@@ -556,12 +556,10 @@ namespace crypto
 		BN_free (x); BN_free (y); 
 	}
 
-	typedef GOSTR3410Verifier<SHA256Hash> GOSTR3410_2001_Verifier;
-	typedef GOSTR3410Signer<SHA256Hash> GOSTR3410_2001_Signer;
-	typedef GOSTR3410Verifier<GOSTR3411_2012_256_Hash> GOSTR3410_2012_256_Verifier;
-	typedef GOSTR3410Signer<GOSTR3411_2012_256_Hash> GOSTR3410_2012_256_Signer;
-	typedef GOSTR3410Verifier<GOSTR3411_2012_512_Hash> GOSTR3410_2012_512_Verifier;
-	typedef GOSTR3410Signer<GOSTR3411_2012_512_Hash> GOSTR3410_2012_512_Signer;
+	typedef GOSTR3410Verifier<GOSTR3411_256_Hash> GOSTR3410_256_Verifier;
+	typedef GOSTR3410Signer<GOSTR3411_256_Hash> GOSTR3410_256_Signer;
+	typedef GOSTR3410Verifier<GOSTR3411_512_Hash> GOSTR3410_512_Verifier;
+	typedef GOSTR3410Signer<GOSTR3411_512_Hash> GOSTR3410_512_Signer;
 }
 }
 
