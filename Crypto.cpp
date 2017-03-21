@@ -799,7 +799,7 @@ namespace crypto
 	}*/
 	
 
-	void InitCrypto (bool precomputation, bool withGost)
+	void InitCrypto (bool precomputation)
 	{
 		SSL_library_init ();
 /*		auto numLocks = CRYPTO_num_locks();
