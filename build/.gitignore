@@ -8,3 +8,6 @@
 /CPackConfig.cmake
 /CPackSourceConfig.cmake
 /install_manifest.txt
+# windows build script
+i2pd*.zip
+build*.log
