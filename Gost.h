@@ -29,6 +29,7 @@ namespace crypto
 			~GOSTR3410Curve ();			
 
 			size_t GetKeyLen () const { return m_KeyLen; }; 
+			const EC_GROUP * GetGroup () const { return m_Group; };
 			EC_POINT * MulP (const BIGNUM * n) const;
 			bool GetXY (const EC_POINT * p, BIGNUM * x, BIGNUM * y) const;
 			EC_POINT * CreatePoint (const BIGNUM * x, const BIGNUM * y) const;
@@ -44,7 +45,7 @@ namespace crypto
 	std::unique_ptr<GOSTR3410Curve>& GetGOSTR3410Curve (GOSTR3410ParamSet paramSet);
 
 	void GOSTR3411_2012_256 (const uint8_t * buf, size_t len, uint8_t * digest);
-	void GOSTR3411_2012_512 (const uint8_t * buf, size_t len, uint8_t * digest);
+	void GOSTR3411_2012_512 (const uint8_t * buf, size_t len, uint8_t * digest);	
 }
 }
 
