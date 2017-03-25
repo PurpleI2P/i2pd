@@ -455,8 +455,9 @@ namespace data
 		
 	size_t PrivateKeys::FromBuffer (const uint8_t * buf, size_t len)
 	{
-		m_Public = std::make_shared<IdentityEx>(buf, len);
-		size_t ret = m_Public->GetFullLen ();
+		m_Public = std::make_shared<IdentityEx>();
+		size_t ret = m_Public->FromBuffer (buf, len);
+		if (!ret || ret + 256 > len) return 0; // overflow	
 		memcpy (m_PrivateKey, buf + ret, 256); // private key always 256
 		ret += 256;
 		size_t signingPrivateKeySize = m_Public->GetSigningPrivateKeyLen ();
