@@ -96,6 +96,38 @@ namespace crypto
 		return ret;
 	}	
 
+	EC_POINT * GOSTR3410Curve::RecoverPublicKey (const BIGNUM * digest, const BIGNUM * r, const BIGNUM * s, bool isNegativeY) const 
+	{
+		// s*P = r*Q + h*C
+		BN_CTX * ctx = BN_CTX_new ();
+		BN_CTX_start (ctx);
+		EC_POINT * C = EC_POINT_new (m_Group); // C = k*P = (rx, ry)
+		EC_POINT * Q  = nullptr;
+		if (EC_POINT_set_compressed_coordinates_GFp (m_Group, C, r, isNegativeY ? 1 : 0,  ctx))
+		{	
+			EC_POINT * S = EC_POINT_new (m_Group); // S = s*P
+			EC_POINT_mul (m_Group, S, s, nullptr, nullptr, ctx);
+			BIGNUM * q = BN_CTX_get (ctx);
+			EC_GROUP_get_order(m_Group, q, ctx);
+			BIGNUM * h = BN_CTX_get (ctx);
+			BN_mod (h, digest, q, ctx); // h = digest % q
+			BN_sub (h, q, h); // h = -h
+			EC_POINT * H = EC_POINT_new (m_Group); 
+			EC_POINT_mul (m_Group, H, nullptr, C, h, ctx); // -h*C
+			EC_POINT_add (m_Group, C, S, H, ctx); // s*P - h*C
+			EC_POINT_free (H);
+			EC_POINT_free (S);
+			BIGNUM * r1 = BN_CTX_get (ctx);
+			BN_mod_inverse (r1, r, q, ctx);
+			Q = EC_POINT_new (m_Group); 
+			EC_POINT_mul (m_Group, Q, nullptr, C, r1, ctx); // (s*P - h*C)/r 
+		}	
+		EC_POINT_free (C);
+		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
+		return Q;
+	}	
+	
 	static GOSTR3410Curve * CreateGOSTR3410Curve (GOSTR3410ParamSet paramSet)
 	{
 		// a, b, p, q, x, y	

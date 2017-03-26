@@ -35,6 +35,7 @@ namespace crypto
 			EC_POINT * CreatePoint (const BIGNUM * x, const BIGNUM * y) const;
 			void Sign (const BIGNUM * priv, const BIGNUM * digest, BIGNUM * r, BIGNUM * s);
 			bool Verify (const EC_POINT * pub, const BIGNUM * digest, const BIGNUM * r, const BIGNUM * s);
+			EC_POINT * RecoverPublicKey (const BIGNUM * digest, const BIGNUM * r, const BIGNUM * s, bool isNegativeY = false) const;
 			
 		private:
 
