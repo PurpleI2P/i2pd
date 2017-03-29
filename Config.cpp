@@ -238,18 +238,26 @@ namespace config {
       ;
   }
 
-  void ParseCmdline(int argc, char* argv[]) {
-    try {
+  void ParseCmdline(int argc, char* argv[], bool ignoreUnknown) 
+  {
+    try 
+	{
       auto style = boost::program_options::command_line_style::unix_style
                  | boost::program_options::command_line_style::allow_long_disguise;
       style &=   ~ boost::program_options::command_line_style::allow_guessing;
-      store(parse_command_line(argc, argv, m_OptionsDesc, style), m_Options);
-    } catch (boost::program_options::error& e) {
+	  if (ignoreUnknown)
+	  	store(command_line_parser(argc, argv).options(m_OptionsDesc).style (style).allow_unregistered().run(), m_Options);	
+	  else			
+      	store(parse_command_line(argc, argv, m_OptionsDesc, style), m_Options);
+    } 
+	catch (boost::program_options::error& e) 
+	{
       std::cerr << "args: " << e.what() << std::endl;
       exit(EXIT_FAILURE);
     }
 
-    if (m_Options.count("help") || m_Options.count("h")) {
+    if (!ignoreUnknown && (m_Options.count("help") || m_Options.count("h"))) 
+	{
       std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
       std::cout << m_OptionsDesc;
       exit(EXIT_SUCCESS);
