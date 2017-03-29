@@ -105,7 +105,7 @@ namespace client
 			void HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 			void ProcessSessionCreate (char * buf, size_t len);
-			void ProcessStreamConnect (char * buf, size_t len);
+			void ProcessStreamConnect (char * buf, size_t len, size_t rem);
 			void ProcessStreamAccept (char * buf, size_t len);
 			void ProcessDestGenerate ();
 			void ProcessNamingLookup (char * buf, size_t len);

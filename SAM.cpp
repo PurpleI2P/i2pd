@@ -214,7 +214,7 @@ namespace client
 					if (!strcmp (m_Buffer, SAM_SESSION_CREATE))
 						ProcessSessionCreate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_CONNECT))
-						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, bytes_transferred - (eol - m_Buffer) - 1);		
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
 						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
@@ -358,7 +358,7 @@ namespace client
 		SendMessageReply (m_Buffer, l2, false);
 	}
 
-	void SAMSocket::ProcessStreamConnect (char * buf, size_t len)
+	void SAMSocket::ProcessStreamConnect (char * buf, size_t len, size_t rem)
 	{
 		LogPrint (eLogDebug, "SAM: stream connect: ", buf);
 		std::map<std::string, std::string> params;
@@ -371,9 +371,17 @@ namespace client
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
 		{
+			if (rem > 0) // handle follow on data
+			{	
+				memmove (m_Buffer, buf + len + 1, rem); // buf is a pointer to m_Buffer's content
+				m_BufferOffset = rem;  
+			}
+			else	
+				m_BufferOffset = 0;
+
 			auto dest = std::make_shared<i2p::data::IdentityEx> ();
-			size_t len = dest->FromBase64(destination);
-			if (len > 0)
+			size_t l = dest->FromBase64(destination);
+			if (l > 0)
 			{
 				context.GetAddressBook().InsertAddress(dest);
 				auto leaseSet = m_Session->localDestination->FindLeaseSet(dest->GetIdentHash());
@@ -398,7 +406,8 @@ namespace client
 		m_SocketType = eSAMSocketTypeStream;
 		m_Session->AddSocket (shared_from_this ());
 		m_Stream = m_Session->localDestination->CreateStream (remote);
-		m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
+		m_Stream->Send ((uint8_t *)m_Buffer, m_BufferOffset); // connect and send
+		m_BufferOffset = 0;
 		I2PReceive ();
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
@@ -603,6 +612,8 @@ namespace client
 		{
 			if (m_Stream)
 			{
+				bytes_transferred += m_BufferOffset;
+				m_BufferOffset = 0;
 				auto s = shared_from_this ();
 				m_Stream->AsyncSend ((uint8_t *)m_Buffer, bytes_transferred,
 					[s](const boost::system::error_code& ecode)
