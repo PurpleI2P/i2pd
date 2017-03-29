@@ -789,13 +789,14 @@ namespace client
 
 	void SAMSession::CloseStreams ()
 	{
+		std::vector<std::shared_ptr<SAMSocket> > socks;
 		{
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
-			for (auto& sock : m_Sockets) {
-				sock->CloseStream();
+			for (const auto& sock : m_Sockets) {
+				socks.push_back(sock);
 			}
 		}
-		// XXX: should this be done inside locked parts?
+		for (auto & sock : socks ) sock->Terminate();
 		m_Sockets.clear();
 	}
 

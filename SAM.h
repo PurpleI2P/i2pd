@@ -87,9 +87,9 @@ namespace client
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 			SAMSocketType GetSocketType () const { return m_SocketType; };
 
+			void Terminate ();
 		private:
 
-			void Terminate ();
 			void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -143,13 +143,13 @@ namespace client
 		std::mutex m_SocketsMutex;
 
 		/** safely add a socket to this session */
-		void AddSocket(std::shared_ptr<SAMSocket> sock) {
+		void AddSocket(const std::shared_ptr<SAMSocket> & sock) {
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
 			m_Sockets.push_back(sock);
 		}
 
 		/** safely remove a socket from this session */
-		void DelSocket(std::shared_ptr<SAMSocket> sock) {
+		void DelSocket(const std::shared_ptr<SAMSocket> & sock) {
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
 			m_Sockets.remove(sock);
 		}
