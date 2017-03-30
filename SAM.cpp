@@ -18,7 +18,7 @@ namespace client
 	SAMSocket::SAMSocket (SAMBridge& owner):
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
 		m_BufferOffset (0), m_SocketType (eSAMSocketTypeUnknown), m_IsSilent (false),
-		m_Stream (nullptr), m_Session (nullptr)
+		m_IsAccepting (false), m_Stream (nullptr), m_Session (nullptr)
 	{
 	}
 
@@ -56,7 +56,7 @@ namespace client
 				if (m_Session)
 				{
 					m_Session->DelSocket (shared_from_this ());
-					if (m_Session->localDestination)
+					if (m_IsAccepting && m_Session->localDestination)
 						m_Session->localDestination->StopAcceptingStreams ();
 				}
 				break;
@@ -438,7 +438,10 @@ namespace client
 			m_SocketType = eSAMSocketTypeAcceptor;
 			m_Session->AddSocket (shared_from_this ());
 			if (!m_Session->localDestination->IsAcceptingStreams ())
+			{
+				m_IsAccepting = true;	
 				m_Session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
+			}
 			SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 		}
 		else
@@ -701,6 +704,7 @@ namespace client
 		{
 			LogPrint (eLogDebug, "SAM: incoming I2P connection for session ", m_ID);
 			m_SocketType = eSAMSocketTypeStream;
+			m_IsAccepting = false;
 			m_Stream = stream;
 			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
@@ -710,6 +714,7 @@ namespace client
 				for (auto it: session->ListSockets ())
 					if (it->m_SocketType == eSAMSocketTypeAcceptor)
 					{
+						it->m_IsAccepting = true;
 						session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, it, std::placeholders::_1));
 						break;
 					}
