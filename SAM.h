@@ -107,7 +107,7 @@ namespace client
 			void ProcessSessionCreate (char * buf, size_t len);
 			void ProcessStreamConnect (char * buf, size_t len, size_t rem);
 			void ProcessStreamAccept (char * buf, size_t len);
-			void ProcessDestGenerate ();
+			void ProcessDestGenerate (char * buf, size_t len);
 			void ProcessNamingLookup (char * buf, size_t len);
 			void SendI2PError(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0

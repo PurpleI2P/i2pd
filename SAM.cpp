@@ -218,7 +218,7 @@ namespace client
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
 						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
-						ProcessDestGenerate ();
+						ProcessDestGenerate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
 						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND))
@@ -479,18 +479,26 @@ namespace client
 		return offset + size;
 	}
 
-	void SAMSocket::ProcessDestGenerate ()
+	void SAMSocket::ProcessDestGenerate (char * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SAM: dest generate");
-		auto keys = i2p::data::PrivateKeys::CreateRandomKeys ();
+		std::map<std::string, std::string> params;
+		ExtractParams (buf, params);
+		// extract signature type
+		i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
+		auto it = params.find (SAM_PARAM_SIGNATURE_TYPE);
+		if (it != params.end ())
+				// TODO: extract string values
+			signatureType = std::stoi(it->second);
+		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType);
 #ifdef _MSC_VER
-		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
+		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #else
-		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
+		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 		    keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #endif
-		SendMessageReply (m_Buffer, len, false);
+		SendMessageReply (m_Buffer, l, false);
 	}
 
 	void SAMSocket::ProcessNamingLookup (char * buf, size_t len)
