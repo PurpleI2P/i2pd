@@ -1094,8 +1094,8 @@ namespace stream
 					auto oldAcceptor = m_Acceptor;
 					m_Acceptor = [acceptor, oldAcceptor, this](std::shared_ptr<Stream> stream)
 						{
-							m_Acceptor = oldAcceptor;
-							acceptor (stream);
+							acceptor (stream); // m_Acceptor might be set after 
+							m_Acceptor = oldAcceptor; // so we must restore old one before
 						};
 				}
 			});
