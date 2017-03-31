@@ -103,6 +103,7 @@ namespace data
 					break;
 				}	
 				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
+				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 				{	
 					// 256
 					size_t padding = 128 - i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
@@ -110,7 +111,8 @@ namespace data
 					memcpy (m_StandardIdentity.signingKey + padding, signingKey, i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH);
 					break;
 				}
-				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:	
+				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
+				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:		
 				{	
 					// 512
 					// no padding, key length is 128
@@ -386,12 +388,14 @@ namespace data
 				break;
 			}	
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
+			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 			{	
 				size_t padding =  128 - i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
 				UpdateVerifier (new i2p::crypto::GOSTR3410_256_Verifier (i2p::crypto::eGOSTR3410CryptoProA, m_StandardIdentity.signingKey + padding));
 				break;
 			}	
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
+			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:
 			{	
 				// zero padding
 				UpdateVerifier (new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512, m_StandardIdentity.signingKey));
@@ -540,9 +544,11 @@ namespace data
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
+			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 				m_Signer.reset (new i2p::crypto::GOSTR3410_256_Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
 			break;		
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
+			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:
 				m_Signer.reset (new i2p::crypto::GOSTR3410_512_Signer (i2p::crypto::eGOSTR3410TC26A512, m_SigningPrivateKey));
 			break;		
 			default:
@@ -581,9 +587,11 @@ namespace data
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;	
 				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
+				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, keys.m_SigningPrivateKey, signingPublicKey);
 				break;	
 				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
+				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:
 					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, keys.m_SigningPrivateKey, signingPublicKey);
 				break;		
 				default:
