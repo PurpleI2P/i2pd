@@ -280,7 +280,9 @@ namespace stream
 			void DeletePacket (Packet * p) { if (p) m_PacketsPool.Release (p); };		
 			
 		private:		
-	
+
+			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
+			
 			void HandleNextPacket (Packet * packet);
 			std::shared_ptr<Stream> CreateNewIncomingStream ();
 			void HandlePendingIncomingTimer (const boost::system::error_code& ecode);

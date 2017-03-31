@@ -1091,16 +1091,18 @@ namespace stream
 				}
 				else // we must save old acceptor and set it back
 				{
-					auto oldAcceptor = m_Acceptor;
-					m_Acceptor = [acceptor, oldAcceptor, this](std::shared_ptr<Stream> stream)
-						{
-							acceptor (stream); // m_Acceptor might be set after 
-							m_Acceptor = oldAcceptor; // so we must restore old one before
-						};
+					m_Acceptor = std::bind (&StreamingDestination::AcceptOnceAcceptor, this, 
+						std::placeholders::_1, acceptor, m_Acceptor);
 				}
 			});
 	}
 
+	void StreamingDestination::AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev)
+	{
+		m_Acceptor = prev;
+		acceptor (stream);
+	}	
+		
 	void StreamingDestination::HandlePendingIncomingTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
