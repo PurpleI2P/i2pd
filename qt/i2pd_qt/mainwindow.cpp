@@ -509,22 +509,24 @@ void MainWindowItem::installListeners(MainWindow *mainWindow) {}
 
 void MainWindow::appendTunnelForms() {
     int height=0;
+    tunnelsFormGridLayoutWidget->setGeometry(0,0,0,0);
     for(std::list<TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
         TunnelConfig* tunconf = *it;
         ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
         if(stc){
             ServerTunnelPane * tunnelPane=new ServerTunnelPane();
-            tunnelPane->appendServerTunnelForm(stc, tunnelsFormGridLayoutWidget, tunnelsFormGridLayout);
+            tunnelPane->appendServerTunnelForm(stc, tunnelsFormGridLayoutWidget, tunnelsFormGridLayout, tunnelPanes.size());
             height+=tunnelPane->height();
-            qDebug() << "tun.height:" << height;
+            qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
             continue;
         }
         ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
         if(ctc){
-            ClientTunnelPane * tunnelPane=new ClientTunnelPane();//TODO
+            ClientTunnelPane * tunnelPane=new ClientTunnelPane();
+            tunnelPane->appendClientTunnelForm(ctc, tunnelsFormGridLayoutWidget, tunnelsFormGridLayout, tunnelPanes.size());
             height+=tunnelPane->height();
-            qDebug() << "tun.height:" << height;
+            qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
             continue;
         }
@@ -532,6 +534,7 @@ void MainWindow::appendTunnelForms() {
     }
     qDebug() << "tun.setting height:" << height;
     tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, height));
+    tunnelsFormGridLayout->invalidate();
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, height));
 }
 void MainWindow::deleteTunnelForms() {

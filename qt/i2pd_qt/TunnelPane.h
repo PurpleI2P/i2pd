@@ -66,7 +66,7 @@ protected:
             TunnelConfig* tunnelConfig,
             QGroupBox *tunnelGroupBox,
             QWidget* gridLayoutWidget_2, QComboBox * tunnelTypeComboBox,
-            QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout);
+            QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout, int tunnelsRow);
     void appendControlsForI2CPParameters(I2CPParameters& i2cpParameters, int& gridIndex);
 public:
     int height() {

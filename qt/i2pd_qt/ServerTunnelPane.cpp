@@ -8,9 +8,7 @@ void ServerTunnelPane::setGroupBoxTitle(const QString & title) {
 }
 
 void ServerTunnelPane::appendServerTunnelForm(
-        ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout) {
-
-    tunnelsFormGridLayoutWidget->resize(527, 452);
+        ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout, int tunnelsRow) {
 
     ServerTunnelPane& ui = *this;
 
@@ -27,12 +25,14 @@ void ServerTunnelPane::appendServerTunnelForm(
     tunnelTypeComboBox->addItem("IRC", i2p::client::I2P_TUNNELS_SECTION_TYPE_IRC);
     tunnelTypeComboBox->addItem("UDP Server", i2p::client::I2P_TUNNELS_SECTION_TYPE_UDPSERVER);
 
-    gridLayoutWidget_2->setGeometry(QRect(0, 10, 561, 18*40+10));
+    gridLayoutWidget_2->setGeometry(QRect(0, 0, 561, 18*60));
+
 
     setupTunnelPane(tunnelConfig,
                     serverTunnelNameGroupBox,
                     gridLayoutWidget_2, tunnelTypeComboBox,
-                    tunnelsFormGridLayoutWidget, tunnelsFormGridLayout);
+                    tunnelsFormGridLayoutWidget, tunnelsFormGridLayout, tunnelsRow);
+    //this->tunnelGroupBox->setGeometry(QRect(0, tunnelsFormGridLayoutWidget->height()+10, 561, 18*40+10));
 
     {
         const QString& type = tunnelConfig->getType();
@@ -218,8 +218,6 @@ void ServerTunnelPane::appendServerTunnelForm(
         I2CPParameters& i2cpParameters = tunnelConfig->getI2cpParameters();
         appendControlsForI2CPParameters(i2cpParameters, gridIndex);
     }
-
-    tunnelsFormGridLayout->addWidget(serverTunnelNameGroupBox, 0, 0, 1, 1);
 
     retranslateServerTunnelForm(ui);
 }

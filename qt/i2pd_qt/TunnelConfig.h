@@ -54,6 +54,7 @@ class TunnelConfig {
     std::string name;
 public:
     TunnelConfig(std::string name_, QString& type_, I2CPParameters& i2cpParameters_): type(type_), name(name_), i2cpParameters(i2cpParameters_) {}
+    virtual ~TunnelConfig(){}
     const QString& getType(){return type;}
     const std::string& getName(){return name;}
     void setType(const QString& type_){type=type_;}

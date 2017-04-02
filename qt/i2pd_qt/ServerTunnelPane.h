@@ -33,7 +33,8 @@ public:
     virtual ServerTunnelPane* asServerTunnelPane();
     virtual ClientTunnelPane* asClientTunnelPane();
 
-    void appendServerTunnelForm(ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout);
+    void appendServerTunnelForm(ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget,
+                                QGridLayout *tunnelsFormGridLayout, int tunnelsRow);
     void deleteServerTunnelForm(QGridLayout *tunnelsFormGridLayout);
 
 private:

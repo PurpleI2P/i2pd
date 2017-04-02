@@ -7,8 +7,14 @@ void TunnelPane::setupTunnelPane(
         TunnelConfig* tunnelConfig,
         QGroupBox *tunnelGroupBox,
         QWidget* gridLayoutWidget_2, QComboBox * tunnelTypeComboBox,
-        QWidget */*tunnelsFormGridLayoutWidget*/, QGridLayout */*tunnelsFormGridLayout*/) {
+        QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout, int tunnelsRow) {
+    tunnelsFormGridLayoutWidget->resize(527, tunnelsFormGridLayoutWidget->height()+gridLayoutWidget_2->height());
+    tunnelGroupBox->resize(gridLayoutWidget_2->width(), gridLayoutWidget_2->height());
+    tunnelsFormGridLayout->addWidget(tunnelGroupBox, tunnelsRow, 0);
+
+
     this->tunnelGroupBox=tunnelGroupBox;
+
     gridLayoutWidget_2->setObjectName(QStringLiteral("gridLayoutWidget_2"));
     this->gridLayoutWidget_2=gridLayoutWidget_2;
     tunnelGridLayout = new QGridLayout(gridLayoutWidget_2);
