@@ -59,6 +59,22 @@ namespace garlic
 		uint32_t creationTime; // seconds since epoch	
 	};
 
+	// AESDecryption is associated with session tags and store key
+	class AESDecryption: public i2p::crypto::CBCDecryption
+	{
+		public:
+
+			AESDecryption (const uint8_t * key): m_Key (key)
+			{
+				SetKey (key);
+			}			
+			const i2p::crypto::AESKey& GetKey () const { return m_Key; };
+
+		private:
+
+			i2p::crypto::AESKey m_Key;
+	};
+
 	struct GarlicRoutingPath
 	{
 		std::shared_ptr<i2p::tunnel::OutboundTunnel> outboundTunnel;
@@ -67,7 +83,7 @@ namespace garlic
 		uint32_t updateTime; // seconds since epoch
 		int numTimesUsed; 
 	};	
-	
+
 	class GarlicDestination;
 	class GarlicRoutingSession: public std::enable_shared_from_this<GarlicRoutingSession>
 	{
@@ -180,10 +196,13 @@ namespace garlic
 
 			void HandleGarlicMessage (std::shared_ptr<I2NPMessage> msg);
 			void HandleDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);			
-	
+
+			void SaveTags ();
+			void LoadTags ();	
+
 		private:
 
-			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption, 
+			void HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption, 
 				std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 			void HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
@@ -195,7 +214,7 @@ namespace garlic
 			std::mutex m_SessionsMutex;
 			std::map<i2p::data::IdentHash, GarlicRoutingSessionPtr> m_Sessions;
 			// incoming
-			std::map<SessionTag, std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
+			std::map<SessionTag, std::shared_ptr<AESDecryption> > m_Tags;
 			// DeliveryStatus
 			std::mutex m_DeliveryStatusSessionsMutex;
 			std::map<uint32_t, GarlicRoutingSessionPtr> m_DeliveryStatusSessions; // msgID -> session
@@ -205,7 +224,10 @@ namespace garlic
 			// for HTTP only
 			size_t GetNumIncomingTags () const { return m_Tags.size (); }	
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
-	};	
+	};
+
+	void CleanUpTagsFiles ();
+	
 }	
 }
 

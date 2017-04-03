@@ -97,7 +97,7 @@ namespace fs {
    * @param files Vector to store found files
    * @return true on success and false if directory not exists
    */
-  bool ReadDir(const std::string & path, std::vector<std::string> & files);
+  bool ReadDir(const std::string & path, std::vector<std::string> & files);		
 
   /**
    * @brief Remove file with given path
@@ -112,6 +112,8 @@ namespace fs {
    * @return true if file exists, false otherwise
    */
   bool Exists(const std::string & path);
+
+  uint32_t GetLastUpdateTime (const std::string & path); // seconds since epoch			
  
   bool CreateDirectory (const std::string& path);	
 

@@ -110,6 +110,7 @@ namespace client
 	{	
 		if (!m_IsRunning)
 		{	
+			LoadTags ();
 			m_IsRunning = true;
 			m_Pool->SetLocalDestination (shared_from_this ());
 			m_Pool->SetActive (true);	
@@ -145,6 +146,7 @@ namespace client
 				delete m_Thread;
 				m_Thread = 0;
 			}	
+			SaveTags ();
 			CleanUp (); // GarlicDestination
 			return true;
 		}	

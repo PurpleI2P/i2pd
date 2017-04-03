@@ -10,6 +10,7 @@
 #include "Transports.h"
 #include "Timestamp.h"
 #include "Log.h"
+#include "FS.h"
 #include "Garlic.h"
 
 namespace i2p
@@ -412,9 +413,7 @@ namespace garlic
 		if (key)
 		{
 			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
-			auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
-			decryption->SetKey (key);
-			m_Tags[SessionTag(tag, ts)] = decryption;
+			m_Tags[SessionTag(tag, ts)] = std::make_shared<AESDecryption>(key);
 		}
 	}
 
@@ -456,8 +455,7 @@ namespace garlic
 			ElGamalBlock elGamal;
 			if (length >= 514 && i2p::crypto::ElGamalDecrypt (GetEncryptionPrivateKey (), buf, (uint8_t *)&elGamal, m_Ctx, true))
 			{	
-				auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
-				decryption->SetKey (elGamal.sessionKey);
+				auto decryption = std::make_shared<AESDecryption>(elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes
 				SHA256(elGamal.preIV, 32, iv); 
 				decryption->SetIV (iv);
@@ -469,7 +467,7 @@ namespace garlic
 		}
 	}	
 
-	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<i2p::crypto::CBCDecryption> decryption,
+	void GarlicDestination::HandleAESBlock (uint8_t * buf, size_t len, std::shared_ptr<AESDecryption> decryption,
 		std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		uint16_t tagCount = bufbe16toh (buf);
@@ -714,5 +712,75 @@ namespace garlic
 		HandleDeliveryStatusMessage (msg);
 	}
 
+	void GarlicDestination::SaveTags ()
+	{
+		if (m_Tags.empty ()) return;
+		std::string ident = GetIdentHash().ToBase32();
+		std::string path  = i2p::fs::DataDirPath("tags", (ident + ".tags"));
+		std::ofstream f (path, std::ofstream::binary | std::ofstream::out | std::ofstream::trunc);	
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		// 4 bytes timestamp, 32 bytes tag, 32 bytes key
+		for (auto it: m_Tags)
+		{
+			if (ts < it.first.creationTime + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+			{
+				f.write ((char *)&it.first.creationTime, 4);
+				f.write ((char *)it.first.data (), 32);
+				f.write ((char *)it.second->GetKey ().data (), 32);
+			} 
+		}
+	}
+
+	void GarlicDestination::LoadTags ()
+	{
+		std::string ident = GetIdentHash().ToBase32();
+		std::string path  = i2p::fs::DataDirPath("tags", (ident + ".tags"));
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		if (ts < i2p::fs::GetLastUpdateTime (path) + INCOMING_TAGS_EXPIRATION_TIMEOUT) 
+		{
+			// might contain non-expired tags
+			std::ifstream f (path, std::ifstream::binary);
+			if (f) 
+			{
+				std::map<i2p::crypto::AESKey, std::shared_ptr<AESDecryption> > keys;
+				// 4 bytes timestamp, 32 bytes tag, 32 bytes key
+				while (!f.eof ())
+				{
+					uint32_t t;
+					uint8_t tag[32], key[32];
+					f.read ((char *)&t, 4); if (f.eof ()) break;
+					if (ts < t + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+					{
+						f.read ((char *)tag, 32);
+						f.read ((char *)key, 32);
+					}
+					else
+						f.seekg (64, std::ios::cur); // skip 
+					if (f.eof ()) break;
+
+					std::shared_ptr<AESDecryption> decryption;
+					auto it = keys.find (key);
+					if (it != keys.end ())
+						decryption = it->second;
+					else
+						decryption = std::make_shared<AESDecryption>(key);
+					m_Tags.insert (std::make_pair (SessionTag (tag, ts), decryption));
+				}
+				if (!m_Tags.empty ()) 
+					LogPrint (eLogInfo, m_Tags.size (), " loaded for ", ident);	
+			}
+		}
+		i2p::fs::Remove (path);	 
+	}
+
+	void CleanUpTagsFiles ()
+	{
+		std::vector<std::string> files; 
+		i2p::fs::ReadDir (i2p::fs::DataDirPath("tags"), files);
+		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		for (auto  it: files)
+			if (ts >= i2p::fs::GetLastUpdateTime (it) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
+				 i2p::fs::Remove (it);
+	}
 }	
 }
