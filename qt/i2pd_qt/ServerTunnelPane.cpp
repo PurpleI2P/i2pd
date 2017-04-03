@@ -1,5 +1,6 @@
 #include "ServerTunnelPane.h"
 #include "../../ClientContext.h"
+#include "SignatureTypeComboboxFactory.h"
 
 ServerTunnelPane::ServerTunnelPane(): TunnelPane() {}
 
@@ -168,8 +169,17 @@ void ServerTunnelPane::appendServerTunnelForm(
     }
     {
         i2p::data::SigningKeyType sigType = tunnelConfig->getsigType();
-        //combo box
-        //TODO sigtype
+        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
+        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
+        ui.sigTypeLabel = new QLabel(gridLayoutWidget_2);
+        sigTypeLabel->setObjectName(QStringLiteral("sigTypeLabel"));
+        horizontalLayout_2->addWidget(sigTypeLabel);
+        ui.sigTypeComboBox = SignatureTypeComboBoxFactory::createSignatureTypeComboBox(gridLayoutWidget_2, sigType);
+        sigTypeComboBox->setObjectName(QStringLiteral("sigTypeComboBox"));
+        horizontalLayout_2->addWidget(sigTypeComboBox);
+        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalLayout_2->addItem(horizontalSpacer);
+        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
     }
     {
         uint32_t maxConns = tunnelConfig->getmaxConns();
@@ -220,6 +230,8 @@ void ServerTunnelPane::appendServerTunnelForm(
     }
 
     retranslateServerTunnelForm(ui);
+
+    tunnelGridLayout->invalidate();
 }
 
 void ServerTunnelPane::deleteServerTunnelForm(QGridLayout *tunnelsFormGridLayout) {

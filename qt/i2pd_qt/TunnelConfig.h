@@ -108,7 +108,8 @@ public:
         port(port_),
         keys(keys_),
         address(address_),
-        destinationPort(destinationPort_) {}
+        destinationPort(destinationPort_),
+        sigType(sigType_){}
     std::string& getdest(){return dest;}
     int getport(){return port;}
     std::string & getkeys(){return keys;}

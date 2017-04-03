@@ -79,7 +79,6 @@ private:
     void retranslateTunnelForm(TunnelPane& ui) {
         ui.deletePushButton->setText(QApplication::translate("tunForm", "Delete Tunnel", 0));
         ui.nameLabel->setText(QApplication::translate("tunForm", "Tunnel name:", 0));
-        ui.typeLabel->setText(QApplication::translate("tunForm", "Server tunnel type:", 0));
     }
 
     void retranslateI2CPParameters() {

@@ -48,16 +48,22 @@ private:
     QLabel * destinationPortLabel;
     QLineEdit * destinationPortLineEdit;
 
+    //sigType
+    QLabel * sigTypeLabel;
+    QComboBox * sigTypeComboBox;
+
 protected slots:
     virtual void setGroupBoxTitle(const QString & title);
 
 private:
     void retranslateClientTunnelForm(ClientTunnelPane& /*ui*/) {
-        destinationLabel->setText(QApplication::translate("srvTunForm", "Destination:", 0));
-        portLabel->setText(QApplication::translate("srvTunForm", "Port:", 0));
-        keysLabel->setText(QApplication::translate("srvTunForm", "Keys:", 0));
-        destinationPortLabel->setText(QApplication::translate("srvTunForm", "Destination port:", 0));
-        addressLabel->setText(QApplication::translate("srvTunForm", "Address:", 0));
+        typeLabel->setText(QApplication::translate("cltTunForm", "Client tunnel type:", 0));
+        destinationLabel->setText(QApplication::translate("cltTunForm", "Destination:", 0));
+        portLabel->setText(QApplication::translate("cltTunForm", "Port:", 0));
+        keysLabel->setText(QApplication::translate("cltTunForm", "Keys:", 0));
+        destinationPortLabel->setText(QApplication::translate("cltTunForm", "Destination port:", 0));
+        addressLabel->setText(QApplication::translate("cltTunForm", "Address:", 0));
+        sigTypeLabel->setText(QApplication::translate("cltTunForm", "Signature type:", 0));
     }
 
 };

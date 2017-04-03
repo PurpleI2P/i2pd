@@ -401,13 +401,6 @@ private:
 
     TODO signaturetype
 
-    <orignal_> https://geti2p.net/spec/common-structures#certificate
-    <orignal_> все коды перечислены
-    <Hypnosis> orignal_, это таблица "The defined Signing Public Key types are:" ?
-    <orignal_> да
-
-    see also : Identity.h line 55
-
     */
 
     template<typename Section, typename Type>

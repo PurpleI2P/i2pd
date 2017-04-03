@@ -87,11 +87,16 @@ private:
     //isUniqueLocal
     QCheckBox * isUniqueLocalCheckBox;
 
+    //sigType
+    QLabel * sigTypeLabel;
+    QComboBox * sigTypeComboBox;
+
 protected slots:
     virtual void setGroupBoxTitle(const QString & title);
 
 private:
     void retranslateServerTunnelForm(ServerTunnelPane& /*ui*/) {
+        typeLabel->setText(QApplication::translate("srvTunForm", "Server tunnel type:", 0));
         hostLabel->setText(QApplication::translate("srvTunForm", "Host:", 0));
         portLabel->setText(QApplication::translate("srvTunForm", "Port:", 0));
         keysLabel->setText(QApplication::translate("srvTunForm", "Keys:", 0));
@@ -104,6 +109,8 @@ private:
 
         gzipCheckBox->setText(QApplication::translate("srvTunForm", "GZip", 0));
         isUniqueLocalCheckBox->setText(QApplication::translate("srvTunForm", "Is unique local", 0));
+
+        sigTypeLabel->setText(QApplication::translate("cltTunForm", "Signature type:", 0));
     }
 
 };
