@@ -2,6 +2,7 @@
 #include <array>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include "I2PEndian.h"
 #include "Gost.h"
 
 namespace i2p
@@ -95,6 +96,38 @@ namespace crypto
 		return ret;
 	}	
 
+	EC_POINT * GOSTR3410Curve::RecoverPublicKey (const BIGNUM * digest, const BIGNUM * r, const BIGNUM * s, bool isNegativeY) const 
+	{
+		// s*P = r*Q + h*C
+		BN_CTX * ctx = BN_CTX_new ();
+		BN_CTX_start (ctx);
+		EC_POINT * C = EC_POINT_new (m_Group); // C = k*P = (rx, ry)
+		EC_POINT * Q  = nullptr;
+		if (EC_POINT_set_compressed_coordinates_GFp (m_Group, C, r, isNegativeY ? 1 : 0,  ctx))
+		{	
+			EC_POINT * S = EC_POINT_new (m_Group); // S = s*P
+			EC_POINT_mul (m_Group, S, s, nullptr, nullptr, ctx);
+			BIGNUM * q = BN_CTX_get (ctx);
+			EC_GROUP_get_order(m_Group, q, ctx);
+			BIGNUM * h = BN_CTX_get (ctx);
+			BN_mod (h, digest, q, ctx); // h = digest % q
+			BN_sub (h, q, h); // h = -h
+			EC_POINT * H = EC_POINT_new (m_Group); 
+			EC_POINT_mul (m_Group, H, nullptr, C, h, ctx); // -h*C
+			EC_POINT_add (m_Group, C, S, H, ctx); // s*P - h*C
+			EC_POINT_free (H);
+			EC_POINT_free (S);
+			BIGNUM * r1 = BN_CTX_get (ctx);
+			BN_mod_inverse (r1, r, q, ctx);
+			Q = EC_POINT_new (m_Group); 
+			EC_POINT_mul (m_Group, Q, nullptr, C, r1, ctx); // (s*P - h*C)/r 
+		}	
+		EC_POINT_free (C);
+		BN_CTX_end (ctx);
+		BN_CTX_free (ctx);
+		return Q;
+	}	
+	
 	static GOSTR3410Curve * CreateGOSTR3410Curve (GOSTR3410ParamSet paramSet)
 	{
 		// a, b, p, q, x, y	
@@ -107,15 +140,7 @@ namespace crypto
 				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6C611070995AD10045841B09B761B893",
 				"1",
 				"8D91E471E0989CDA27DF505A453F2B7635294F2DDF23E3B122ACC99C9E9F1E14"
-			}, // A
-			{
-				"C2173F1513981673AF4892C23035A27CE25E2013BF95AA33B22C656F277E7335",
-				"295F9BAE7428ED9CCC20E7C359A9D41A22FCCD9108E17BF7BA9337A6F8AE9513",
-				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97",
-				"400000000000000000000000000000000FD8CDDFC87B6635C115AF556C360C67",
-				"0D",
-				"32879423AB1A0375895786C4BB46E9565FDE0B5344766740AF268ADB32322E5C"		
-			}, // tc26-2012-paramSetA-256
+			}, // CryptoPro A
 			{
 				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDC4",
 				"E8C2505DEDFC86DDC1BD0B2B6667F1DA34B82574761CB0E879BD081CFD0B6265EE3CB090F30D27614CB4574010DA90DD862EF9D4EBEE4761503190785A71C760",
@@ -192,20 +217,7 @@ namespace crypto
 		0x492c024284fbaec0, 0xaa16012142f35760, 0x550b8e9e21f7a530, 0xa48b474f9ef5dc18,
 		0x70a6a56e2440598e, 0x3853dc371220a247, 0x1ca76e95091051ad, 0x0edd37c48a08a6d8,
 		0x07e095624504536c, 0x8d70c431ac02a736, 0xc83862965601dd1b, 0x641c314b2b8ee083
-	};
-
-	static const uint8_t T_[64]=
-	{
-		 0,  8, 16, 24, 32, 40, 48, 56, 
-		 1,  9, 17, 25, 33, 41, 49, 57,
-		 2, 10, 18, 26, 34, 42, 50, 58, 
-		 3, 11, 19, 27, 35, 43, 51, 59,
-		 4, 12, 20, 28, 36, 44, 52, 60,
-		 5, 13, 21, 29, 37, 45, 53, 61,
-		 6, 14, 22, 30, 38, 46, 54, 62,
-		 7, 15, 23, 31, 39, 47, 55, 63
-	};
-
+	}; 
 
 	static const uint8_t C_[12][64] = 
 	{
@@ -327,37 +339,26 @@ namespace crypto
 			}
 		}
 
-		void S ()
+		void SPL ()
 		{
-			for (int i = 0; i < 64; i++)
-				buf[i] = sbox_[buf[i]];
-		}	
-
-		void L ()
-		{
+			uint8_t p[64];
+			memcpy (p, buf, 64); // we need to copy it for P's transposition
 			for (int i = 0; i < 8; i++)
 			{
 				uint64_t c = 0;
 				for (int j = 0; j < 8; j++)
 				{	
 					uint8_t bit = 0x80;
+					uint8_t byte = sbox_[p[j*8+i]]; // S - sbox_, P - transpose (i,j)
 					for (int k = 0; k < 8; k++)
 					{
-						if (buf[i*8+j] & bit) c ^= A_[j*8+k];
+						if (byte & bit) c ^= A_[j*8+k];
 						bit >>= 1;
 					}
 				}	
-				ll[i] = c;
+				ll[i] = htobe64 (c);	
 			}	
 		}	
-
-		void P ()
-		{
-			uint8_t t[64];
-			for (int i = 0; i < 64; i++)
-				t[i] = buf[T_[i]];
-			memcpy (buf, t, 64);			
-		}
 
 		GOST3411Block E (const GOST3411Block& m)
 		{
@@ -365,13 +366,9 @@ namespace crypto
 			GOST3411Block res = k^m;
 			for (int i = 0; i < 12; i++)
 			{
-				res.S ();
-				res.P ();
-				res.L ();
+				res.SPL ();
 				k = k^C_[i];
-				k.S ();
-				k.P ();
-				k.L ();
+				k.SPL ();
 				res = k^res;
 			}	
 			return res;
@@ -381,12 +378,10 @@ namespace crypto
 	static GOST3411Block gN (const GOST3411Block& N, const GOST3411Block& h, const GOST3411Block& m)
 	{
 		GOST3411Block res = N ^ h;
-		res.S ();
-		res.P ();
-		res.L ();
+		res.SPL ();
 		res = res.E (m);
-		res = res ^ h;
-		res = res ^ m;
+		res = res^h;
+		res = res^m;
 		return res;	
 	}	
 
@@ -405,7 +400,7 @@ namespace crypto
 			h= gN (N, h, m);
 			N.Add (512);
 			s = m + s;
-			len -= 64;
+			l -= 64;
 		}
 		// stage 3
 		size_t padding = 64 - l;

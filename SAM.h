@@ -87,9 +87,9 @@ namespace client
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 			SAMSocketType GetSocketType () const { return m_SocketType; };
 
+			void Terminate ();
 		private:
 
-			void Terminate ();
 			void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -105,9 +105,9 @@ namespace client
 			void HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 			void ProcessSessionCreate (char * buf, size_t len);
-			void ProcessStreamConnect (char * buf, size_t len);
+			void ProcessStreamConnect (char * buf, size_t len, size_t rem);
 			void ProcessStreamAccept (char * buf, size_t len);
-			void ProcessDestGenerate ();
+			void ProcessDestGenerate (char * buf, size_t len);
 			void ProcessNamingLookup (char * buf, size_t len);
 			void SendI2PError(const std::string & msg);
 			size_t ProcessDatagramSend (char * buf, size_t len, const char * data); // from SAM 1.0
@@ -131,6 +131,7 @@ namespace client
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
 			bool m_IsSilent;
+			bool m_IsAccepting; // for eSAMSocketTypeAcceptor only 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			std::shared_ptr<SAMSession> m_Session;
 	};
@@ -143,13 +144,13 @@ namespace client
 		std::mutex m_SocketsMutex;
 
 		/** safely add a socket to this session */
-		void AddSocket(std::shared_ptr<SAMSocket> sock) {
+		void AddSocket(const std::shared_ptr<SAMSocket> & sock) {
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
 			m_Sockets.push_back(sock);
 		}
 
 		/** safely remove a socket from this session */
-		void DelSocket(std::shared_ptr<SAMSocket> sock) {
+		void DelSocket(const std::shared_ptr<SAMSocket> & sock) {
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
 			m_Sockets.remove(sock);
 		}

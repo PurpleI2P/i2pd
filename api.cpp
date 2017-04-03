@@ -19,7 +19,7 @@ namespace api
 	void InitI2P (int argc, char* argv[], const char * appName)
 	{
 		i2p::config::Init ();
-		i2p::config::ParseCmdline (argc, argv);
+		i2p::config::ParseCmdline (argc, argv, true); // ignore unknown options and help
 		i2p::config::Finalize ();
 
 		std::string datadir; i2p::config::GetOption("datadir", datadir);

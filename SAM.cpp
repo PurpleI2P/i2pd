@@ -18,7 +18,7 @@ namespace client
 	SAMSocket::SAMSocket (SAMBridge& owner):
 		m_Owner (owner), m_Socket (m_Owner.GetService ()), m_Timer (m_Owner.GetService ()),
 		m_BufferOffset (0), m_SocketType (eSAMSocketTypeUnknown), m_IsSilent (false),
-		m_Stream (nullptr), m_Session (nullptr)
+		m_IsAccepting (false), m_Stream (nullptr), m_Session (nullptr)
 	{
 	}
 
@@ -56,7 +56,7 @@ namespace client
 				if (m_Session)
 				{
 					m_Session->DelSocket (shared_from_this ());
-					if (m_Session->localDestination)
+					if (m_IsAccepting && m_Session->localDestination)
 						m_Session->localDestination->StopAcceptingStreams ();
 				}
 				break;
@@ -214,11 +214,11 @@ namespace client
 					if (!strcmp (m_Buffer, SAM_SESSION_CREATE))
 						ProcessSessionCreate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_CONNECT))
-						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
+						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, bytes_transferred - (eol - m_Buffer) - 1);		
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
 						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
-						ProcessDestGenerate ();
+						ProcessDestGenerate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_NAMING_LOOKUP))
 						ProcessNamingLookup (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DATAGRAM_SEND))
@@ -358,7 +358,7 @@ namespace client
 		SendMessageReply (m_Buffer, l2, false);
 	}
 
-	void SAMSocket::ProcessStreamConnect (char * buf, size_t len)
+	void SAMSocket::ProcessStreamConnect (char * buf, size_t len, size_t rem)
 	{
 		LogPrint (eLogDebug, "SAM: stream connect: ", buf);
 		std::map<std::string, std::string> params;
@@ -371,9 +371,17 @@ namespace client
 		m_Session = m_Owner.FindSession (id);
 		if (m_Session)
 		{
+			if (rem > 0) // handle follow on data
+			{	
+				memmove (m_Buffer, buf + len + 1, rem); // buf is a pointer to m_Buffer's content
+				m_BufferOffset = rem;  
+			}
+			else	
+				m_BufferOffset = 0;
+
 			auto dest = std::make_shared<i2p::data::IdentityEx> ();
-			size_t len = dest->FromBase64(destination);
-			if (len > 0)
+			size_t l = dest->FromBase64(destination);
+			if (l > 0)
 			{
 				context.GetAddressBook().InsertAddress(dest);
 				auto leaseSet = m_Session->localDestination->FindLeaseSet(dest->GetIdentHash());
@@ -398,7 +406,8 @@ namespace client
 		m_SocketType = eSAMSocketTypeStream;
 		m_Session->AddSocket (shared_from_this ());
 		m_Stream = m_Session->localDestination->CreateStream (remote);
-		m_Stream->Send ((uint8_t *)m_Buffer, 0); // connect
+		m_Stream->Send ((uint8_t *)m_Buffer, m_BufferOffset); // connect and send
+		m_BufferOffset = 0;
 		I2PReceive ();
 		SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 	}
@@ -429,7 +438,10 @@ namespace client
 			m_SocketType = eSAMSocketTypeAcceptor;
 			m_Session->AddSocket (shared_from_this ());
 			if (!m_Session->localDestination->IsAcceptingStreams ())
+			{
+				m_IsAccepting = true;	
 				m_Session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
+			}
 			SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
 		}
 		else
@@ -467,18 +479,26 @@ namespace client
 		return offset + size;
 	}
 
-	void SAMSocket::ProcessDestGenerate ()
+	void SAMSocket::ProcessDestGenerate (char * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SAM: dest generate");
-		auto keys = i2p::data::PrivateKeys::CreateRandomKeys ();
+		std::map<std::string, std::string> params;
+		ExtractParams (buf, params);
+		// extract signature type
+		i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
+		auto it = params.find (SAM_PARAM_SIGNATURE_TYPE);
+		if (it != params.end ())
+				// TODO: extract string values
+			signatureType = std::stoi(it->second);
+		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType);
 #ifdef _MSC_VER
-		size_t len = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
+		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #else
-		size_t len = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
+		size_t l = snprintf (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 		    keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
 #endif
-		SendMessageReply (m_Buffer, len, false);
+		SendMessageReply (m_Buffer, l, false);
 	}
 
 	void SAMSocket::ProcessNamingLookup (char * buf, size_t len)
@@ -603,6 +623,8 @@ namespace client
 		{
 			if (m_Stream)
 			{
+				bytes_transferred += m_BufferOffset;
+				m_BufferOffset = 0;
 				auto s = shared_from_this ();
 				m_Stream->AsyncSend ((uint8_t *)m_Buffer, bytes_transferred,
 					[s](const boost::system::error_code& ecode)
@@ -690,6 +712,7 @@ namespace client
 		{
 			LogPrint (eLogDebug, "SAM: incoming I2P connection for session ", m_ID);
 			m_SocketType = eSAMSocketTypeStream;
+			m_IsAccepting = false;
 			m_Stream = stream;
 			context.GetAddressBook ().InsertAddress (stream->GetRemoteIdentity ());
 			auto session = m_Owner.FindSession (m_ID);
@@ -699,6 +722,7 @@ namespace client
 				for (auto it: session->ListSockets ())
 					if (it->m_SocketType == eSAMSocketTypeAcceptor)
 					{
+						it->m_IsAccepting = true;
 						session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, it, std::placeholders::_1));
 						break;
 					}
@@ -778,13 +802,14 @@ namespace client
 
 	void SAMSession::CloseStreams ()
 	{
+		std::vector<std::shared_ptr<SAMSocket> > socks;
 		{
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
-			for (auto& sock : m_Sockets) {
-				sock->CloseStream();
+			for (const auto& sock : m_Sockets) {
+				socks.push_back(sock);
 			}
 		}
-		// XXX: should this be done inside locked parts?
+		for (auto & sock : socks ) sock->Terminate();
 		m_Sockets.clear();
 	}
 
@@ -875,7 +900,7 @@ namespace client
 		if (destination != "")
 		{
 			i2p::data::PrivateKeys keys;
-			keys.FromBase64 (destination);
+			if (!keys.FromBase64 (destination)) return nullptr;
 			localDestination = i2p::client::context.CreateNewLocalDestination (keys, true, params);
 		}
 		else // transient

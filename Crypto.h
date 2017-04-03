@@ -279,7 +279,7 @@ namespace crypto
 #endif
 	};	
 	
-	void InitCrypto (bool precomputation, bool withGost = false);
+	void InitCrypto (bool precomputation);
 	void TerminateCrypto ();
 }		
 }	

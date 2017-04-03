@@ -430,8 +430,10 @@ namespace client
 	void BOBCommandSession::SetkeysCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: setkeys ", operand);
-		m_Keys.FromBase64 (operand);
-		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+		if (m_Keys.FromBase64 (operand))
+			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+		else
+			SendReplyError ("invalid keys");
 	}
 		
 	void BOBCommandSession::GetkeysCommandHandler (const char * operand, size_t len)

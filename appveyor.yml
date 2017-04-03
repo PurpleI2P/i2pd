@@ -19,6 +19,7 @@ environment:
 install:
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Rns gcc-fortran gcc"
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
+
 - c:\msys64\usr\bin\bash -lc "pacman --noconfirm -Syuu"
 
 - if "%MSYSTEM%" == "MINGW64" (
