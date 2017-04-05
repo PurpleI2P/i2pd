@@ -304,7 +304,11 @@ inline int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key)
 inline void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **priv_key) 
 	{ *pub_key = d->pub_key; *priv_key = d->priv_key; }
 inline int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s) 
-	{ sig->r = r; sig->s = s; return 1; }
+	{ 
+		if (sig->r) BN_free (sig->r);
+		if (sig->s) BN_free (sig->s);
+		sig->r = r; sig->s = s; return 1; 
+	}
 inline void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps) 
 	{ *pr = sig->r; *ps = sig->s; }
 
@@ -318,12 +322,22 @@ inline void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM
 	{ *pr = sig->r; *ps = sig->s; }
 
 inline int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d) 
-	{ r->n = n; r->e = e; r->d = d; return 1; }
+	{
+		if (r->n) BN_free (r->n);
+		if (r->e) BN_free (r->e);
+		if (r->d) BN_free (r->d);
+		r->n = n; r->e = e; r->d = d; return 1; 
+	}
 inline void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e, const BIGNUM **d)
 	{ *n = r->n; *e = r->e; *d = r->d; }
 
 inline int DH_set0_pqg(DH *dh, BIGNUM *p, BIGNUM *q, BIGNUM *g)
-	{ dh->p = p; dh->q = q; dh->g = g;  return 1; }
+	{ 
+		if (dh->p) BN_free (dh->p);
+		if (dh->q) BN_free (dh->q);
+		if (dh->g) BN_free (dh->g);
+		dh->p = p; dh->q = q; dh->g = g;  return 1; 
+	}
 inline int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
 	{ 
 		if (dh->pub_key) BN_free (dh->pub_key); 
