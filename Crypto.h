@@ -289,9 +289,18 @@ namespace crypto
 #if (OPENSSL_VERSION_NUMBER < 0x010100000) || defined(LIBRESSL_VERSION_NUMBER) // 1.1.0 or LibreSSL
 // define getters and setters introduced in 1.1.0
 inline int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g) 
-	{ d->p = p; d->q = q; d->g = g; return 1; }
+	{ 
+		if (d->p) BN_free (d->p);
+		if (d->q) BN_free (d->q);
+		if (d->g) BN_free (d->g);
+		d->p = p; d->q = q; d->g = g; return 1; 
+	}
 inline int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key) 
-	{ d->pub_key = pub_key; d->priv_key = priv_key; return 1; } 
+	{ 
+		if (d->pub_key) BN_free (d->pub_key);
+		if (d->priv_key) BN_free (d->priv_key);
+		d->pub_key = pub_key; d->priv_key = priv_key; return 1; 
+	} 
 inline void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **priv_key) 
 	{ *pub_key = d->pub_key; *priv_key = d->priv_key; }
 inline int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s) 
