@@ -16,6 +16,7 @@
 #include "Base.h"
 #include "FS.h"
 #include "Log.h"
+#include "Garlic.h"
 
 namespace i2p {
 namespace fs {
@@ -93,6 +94,11 @@ namespace fs {
     std::string destinations = DataDirPath("destinations");
     if (!boost::filesystem::exists(destinations))
       boost::filesystem::create_directory(destinations);
+	std::string tags = DataDirPath("tags");
+    if (!boost::filesystem::exists(tags))
+    	boost::filesystem::create_directory(tags);
+	else
+		i2p::garlic::CleanUpTagsFiles ();
 
     return true;
   }
@@ -115,6 +121,14 @@ namespace fs {
   bool Exists(const std::string & path) {
     return boost::filesystem::exists(path);
   }
+
+  uint32_t GetLastUpdateTime (const std::string & path)
+  {	
+	 if (!boost::filesystem::exists(path)) return 0;
+	 boost::system::error_code ec;
+	 auto t = boost::filesystem::last_write_time (path, ec);
+	 return ec ? 0 : t;
+  }				
 
   bool Remove(const std::string & path) {
     if (!boost::filesystem::exists(path))

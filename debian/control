@@ -1,17 +1,10 @@
 Source: i2pd
 Section: net
-Priority: extra
+Priority: optional
 Maintainer: R4SAS <r4sas@i2pmail.org>
-Build-Depends: debhelper (>= 9.0.0), dpkg-dev (>= 1.16.1~),
- gcc (>= 4.7) | clang (>= 3.3),
- libboost-system-dev (>= 1.46),
- libboost-date-time-dev,
- libboost-filesystem-dev,
- libboost-program-options-dev,
- libminiupnpc-dev,
- libssl-dev
-Standards-Version: 3.9.3
-Homepage: https://github.com/PurpleI2P/i2pd
+Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.16.1~), gcc (>= 4.7) | clang (>= 3.3), libboost-system-dev (>= 1.46), libboost-date-time-dev, libboost-filesystem-dev, libboost-program-options-dev, libminiupnpc-dev, libssl-dev
+Standards-Version: 3.9.6
+Homepage: http://i2pd.website/
 Vcs-Git: git://github.com/PurpleI2P/i2pd.git
 Vcs-Browser: https://github.com/PurpleI2P/i2pd.git
 
@@ -19,26 +12,23 @@ Package: i2pd
 Architecture: any
 Pre-Depends: adduser
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: privoxy
-Suggests: tor
-Description: load-balanced unspoofable packet switching network - C++ port
- I2P is an anonymizing network, offering a simple layer that identity-sensitive
- applications can use to securely communicate. All data is wrapped with several
- layers of encryption, and the network is both distributed and dynamic, with no
- trusted parties.
+Suggests: tor, privoxy
+Description: i2pd is a full-featured C++ implementation of I2P client.
+ I2P (Invisible Internet Protocol) is a universal anonymous network layer. All
+ communications over I2P are anonymous and end-to-end encrypted, participants
+ don't reveal their real IP addresses.
  .
- This package contains the port of the I2P router to C++. Unless willing
- to test and report problems, you should install the 'i2p' package instead.
+ This package contains the full-featured C++ implementation of I2P router.
 
 Package: i2pd-dbg
 Architecture: any
 Priority: extra
 Section: debug
 Depends: i2pd (= ${binary:Version}), ${misc:Depends}
+Suggests: gdb
 Description: i2pd debugging symbols
- I2P is an anonymizing network, offering a simple layer that identity-sensitive
- applications can use to securely communicate. All data is wrapped with several
- layers of encryption, and the network is both distributed and dynamic, with no
- trusted parties.
+ I2P (Invisible Internet Protocol) is a universal anonymous network layer. All
+ communications over I2P are anonymous and end-to-end encrypted, participants
+ don't reveal their real IP addresses.
  .
  This package contains symbols required for debugging.

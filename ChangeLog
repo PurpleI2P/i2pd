@@ -1,6 +1,20 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.13.0] - 2017-04-06
+### Added
+- Persist local destination's tags
+- GOST signature types 9 and 10
+- Exploratory tunnels configuration
+### Changed
+- Reseed servers list
+- Inactive NTCP sockets get closed faster
+- Some EdDSA speed up
+### Fixed
+- Multiple acceptors for SAM
+- Follow on data after STREAM CREATE for SAM
+- Memory leaks
+
 ## [2.12.0] - 2017-02-14
 ### Added
 - Additional HTTP and SOCKS proxy tunnels
