@@ -10,20 +10,21 @@
 #include "ClientContext.h"
 #include "SOCKS.h"
 #include "WebSocks.h"
+#include "MatchedDestination.h"
 
 namespace i2p
 {
 namespace client
 {
-	ClientContext context;	
+	ClientContext context;
 
 	ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
-		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr), 
+		m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr),
 		m_BOBCommandChannel (nullptr), m_I2CPServer (nullptr)
 	{
 	}
-	
-	ClientContext::~ClientContext () 
+
+	ClientContext::~ClientContext ()
 	{
 		delete m_HttpProxy;
 		delete m_SocksProxy;
@@ -31,20 +32,20 @@ namespace client
 		delete m_BOBCommandChannel;
 		delete m_I2CPServer;
 	}
-	
+
 	void ClientContext::Start ()
 	{
 		if (!m_SharedLocalDestination)
-		{	
+		{
 			m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
 			m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
 
-    
-		m_AddressBook.Start ();	
-    
-		std::shared_ptr<ClientDestination> localDestination;	
+
+		m_AddressBook.Start ();
+
+		std::shared_ptr<ClientDestination> localDestination;
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
 		if (httproxy) {
 			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
@@ -60,7 +61,7 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
-				}	
+				}
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
@@ -71,10 +72,10 @@ namespace client
 			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
 		}
-    
+
 		localDestination = nullptr;
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
-		if (socksproxy) 
+		if (socksproxy)
 		{
 			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",    socksProxyKeys);
 			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address", socksProxyAddr);
@@ -104,8 +105,8 @@ namespace client
 		}
 
 		// I2P tunnels
-		ReadTunnels ();		
-    
+		ReadTunnels ();
+
 		// SAM
 		bool sam; i2p::config::GetOption("sam.enabled", sam);
 		if (sam) {
@@ -118,7 +119,7 @@ namespace client
 			} catch (std::exception& e) {
 			  LogPrint(eLogError, "Clients: Exception in SAM bridge: ", e.what());
 			}
-		} 
+		}
 
 		// BOB
 		bool bob; i2p::config::GetOption("bob.enabled", bob);
@@ -132,27 +133,27 @@ namespace client
 			} catch (std::exception& e) {
 			  LogPrint(eLogError, "Clients: Exception in BOB bridge: ", e.what());
 			}
-		} 
+		}
 
 		// I2CP
 		bool i2cp; i2p::config::GetOption("i2cp.enabled", i2cp);
-		if (i2cp) 
+		if (i2cp)
 		{
 			std::string i2cpAddr; i2p::config::GetOption("i2cp.address", i2cpAddr);
 			uint16_t i2cpPort; i2p::config::GetOption("i2cp.port", i2cpPort);
 			LogPrint(eLogInfo, "Clients: starting I2CP at ", i2cpAddr, ":", i2cpPort);
-			try 
+			try
 			{
 				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort);
 			  	m_I2CPServer->Start ();
-			} 
-			catch (std::exception& e) 
+			}
+			catch (std::exception& e)
 			{
 				LogPrint(eLogError, "Clients: Exception in I2CP: ", e.what());
 			}
-		} 
+		}
 
-		m_AddressBook.StartResolvers ();	
+		m_AddressBook.StartResolvers ();
 
 		// start UDP cleanup
 		if (!m_ServerForwards.empty ())
@@ -161,7 +162,7 @@ namespace client
 			ScheduleCleanupUDP();
 		}
 	}
-		
+
 	void ClientContext::Stop ()
 	{
 		if (m_HttpProxy)
@@ -185,28 +186,28 @@ namespace client
 			LogPrint(eLogInfo, "Clients: stopping I2P client tunnel on port ", it.first);
 			it.second->Stop ();
 		}
-		m_ClientTunnels.clear ();	
+		m_ClientTunnels.clear ();
 
 		for (auto& it: m_ServerTunnels)
 		{
 			LogPrint(eLogInfo, "Clients: stopping I2P server tunnel");
 			it.second->Stop ();
 		}
-		m_ServerTunnels.clear ();	
+		m_ServerTunnels.clear ();
 
 		if (m_SamBridge)
 		{
 			LogPrint(eLogInfo, "Clients: stopping SAM bridge");
 			m_SamBridge->Stop ();
-			delete m_SamBridge; 
+			delete m_SamBridge;
 			m_SamBridge = nullptr;
-		}		
+		}
 
 		if (m_BOBCommandChannel)
 		{
 			LogPrint(eLogInfo, "Clients: stopping BOB command channel");
 			m_BOBCommandChannel->Stop ();
-			delete m_BOBCommandChannel; 
+			delete m_BOBCommandChannel;
 			m_BOBCommandChannel = nullptr;
 		}
 
@@ -214,7 +215,7 @@ namespace client
 		{
 			LogPrint(eLogInfo, "Clients: stopping I2CP");
 			m_I2CPServer->Stop ();
-			delete m_I2CPServer; 
+			delete m_I2CPServer;
 			m_I2CPServer = nullptr;
 		}
 
@@ -226,18 +227,18 @@ namespace client
 			m_ServerForwards.clear();
 			m_ClientForwards.clear();
 		}
-		
+
 		if (m_CleanupUDPTimer)
 		{
-			m_CleanupUDPTimer->cancel ();	
-			m_CleanupUDPTimer = nullptr;	
+			m_CleanupUDPTimer->cancel ();
+			m_CleanupUDPTimer = nullptr;
 		}
 
 		for (auto& it: m_Destinations)
 			it.second->Stop ();
 		m_Destinations.clear ();
 		m_SharedLocalDestination = nullptr;
-	}	
+	}
 
 	void ClientContext::ReloadConfig ()
 	{
@@ -246,14 +247,14 @@ namespace client
 		Stop();
 		Start();
 	}
-	
+
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
 	{
 		bool success = true;
 		std::string fullPath = i2p::fs::DataDirPath (filename);
 		std::ifstream s(fullPath, std::ifstream::binary);
-		if (s.is_open ())	
-		{	
+		if (s.is_open ())
+		{
 			s.seekg (0, std::ios::end);
 			size_t len = s.tellg();
 			s.seekg (0, std::ios::beg);
@@ -267,18 +268,18 @@ namespace client
 			else
 				LogPrint (eLogInfo, "Clients: Local address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " loaded");
 			delete[] buf;
-		}	
+		}
 		else
 		{
 			LogPrint (eLogError, "Clients: can't open file ", fullPath, " Creating new one with signature type ", sigType);
-			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType); 
+			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
 			len = keys.ToBuffer (buf, len);
 			f.write ((char *)buf, len);
 			delete[] buf;
-			
+
 			LogPrint (eLogInfo, "Clients: New private keys file ", fullPath, " for ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
 		}
 		return success;
@@ -306,12 +307,22 @@ namespace client
 		}
 		return infos;
 	}
-  
+
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
-		const std::map<std::string, std::string> * params)
+     const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
+		std::unique_lock<std::mutex> l(m_DestinationsMutex);
+		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
+		localDestination->Start ();
+		return localDestination;
+	}
+
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params)
+	{
+		MatchedTunnelDestination * cl = new MatchedTunnelDestination(keys, name, params);
+		auto localDestination = std::shared_ptr<ClientDestination>(cl);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
@@ -328,7 +339,7 @@ namespace client
 			{
 				std::unique_lock<std::mutex> l(m_DestinationsMutex);
 				m_Destinations.erase (it);
-			}	
+			}
 			d->Stop ();
 		}
 	}
@@ -341,32 +352,32 @@ namespace client
 		{
 			LogPrint (eLogWarning, "Clients: Local destination ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " exists");
 			if (!it->second->IsRunning ())
-			{	
+			{
 				it->second->Start ();
 				return it->second;
-			}	
+			}
 			return nullptr;
-		}	
+		}
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[keys.GetPublic ()->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
 	}
-	
+
 	std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
 	{
 		auto it = m_Destinations.find (destination);
 		if (it != m_Destinations.end ())
 			return it->second;
 		return nullptr;
-	}	
+	}
 
 	template<typename Section, typename Type>
 	std::string ClientContext::GetI2CPOption (const Section& section, const std::string& name, const Type& value) const
 	{
         return section.second.get (boost::property_tree::ptree::path_type (name, '/'), std::to_string (value));
-	}	
+	}
 
 	template<typename Section>
 	void ClientContext::ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const
@@ -378,24 +389,24 @@ namespace client
 		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
 		options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);
 		options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);
-	}	
+	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
 	{
-		std::string value; 
-		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNEL_LENGTH, value)) 
+		std::string value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNEL_LENGTH, value))
 			options[I2CP_PARAM_INBOUND_TUNNEL_LENGTH] = value;
-		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, value)) 
-			options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = value;	
-		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, value)) 
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, value))
+			options[I2CP_PARAM_INBOUND_TUNNELS_QUANTITY] = value;
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, value))
 			options[I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH] = value;
-		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, value)) 
+		if (i2p::config::GetOption(prefix + I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, value))
 			options[I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MIN_TUNNEL_LATENCY, value))
 			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
 			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
-	}	
+	}
 
 	void ClientContext::ReadTunnels ()
 	{
@@ -411,20 +422,20 @@ namespace client
 			}
 		}
 		LogPrint(eLogDebug, "FS: tunnels config file: ", tunConf);
-		try 
+		try
 		{
 			boost::property_tree::read_ini (tunConf, pt);
-		} 
-		catch (std::exception& ex) 
+		}
+		catch (std::exception& ex)
 		{
 			LogPrint (eLogWarning, "Clients: Can't read ", tunConf, ": ", ex.what ());
 			return;
 		}
-			
+
 		int numClientTunnels = 0, numServerTunnels = 0;
 		for (auto& section: pt)
 		{
-			std::string name = section.first;			
+			std::string name = section.first;
 			try
 			{
 				std::string type = section.second.get<std::string> (I2P_TUNNELS_SECTION_TYPE);
@@ -440,13 +451,14 @@ namespace client
 						dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
 					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
 					// optional params
+					bool matchTunnels = section.second.get(I2P_CLIENT_TUNNEL_MATCH_TUNNELS, false);
 					std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
 					std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
 					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					// I2CP
-					std::map<std::string, std::string> options;			
-					ReadI2CPOptions (section, options);	
+					std::map<std::string, std::string> options;
+					ReadI2CPOptions (section, options);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					if (keys.length () > 0)
@@ -456,9 +468,15 @@ namespace client
 						{
 							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 							if (!localDestination)
-								localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+							{
+								if(matchTunnels)
+									localDestination = CreateNewMatchedTunnelDestination(k, dest, &options);
+								else
+									localDestination = CreateNewLocalDestination (k, type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT, &options);
+							}
 						}
 					}
+
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
 						// udp client
 						// TODO: hostnames
@@ -515,7 +533,7 @@ namespace client
 								 || type == I2P_TUNNELS_SECTION_TYPE_HTTP
 								 || type == I2P_TUNNELS_SECTION_TYPE_IRC
 								 || type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
-				{	
+				{
 					// mandatory params
 					std::string host = section.second.get<std::string> (I2P_SERVER_TUNNEL_HOST);
 					int port = section.second.get<int> (I2P_SERVER_TUNNEL_PORT);
@@ -532,15 +550,15 @@ namespace client
 					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 
 					// I2CP
-					std::map<std::string, std::string> options;							 
-					ReadI2CPOptions (section, options);				
+					std::map<std::string, std::string> options;
+					ReadI2CPOptions (section, options);
 
 					std::shared_ptr<ClientDestination> localDestination = nullptr;
 					i2p::data::PrivateKeys k;
 					if(!LoadPrivateKeys (k, keys, sigType))
 						continue;
 					localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
-					if (!localDestination)		
+					if (!localDestination)
 						localDestination = CreateNewLocalDestination (k, true, &options);
 					if (type == I2P_TUNNELS_SECTION_TYPE_UDPSERVER)
 					{
@@ -549,7 +567,7 @@ namespace client
 						auto localAddress = boost::asio::ip::address::from_string(address);
 						boost::asio::ip::udp::endpoint endpoint(boost::asio::ip::address::from_string(host), port);
 						I2PUDPServerTunnel * serverTunnel = new I2PUDPServerTunnel(name, localDestination, localAddress, endpoint, port);
-						if(!isUniqueLocal) 
+						if(!isUniqueLocal)
 						{
 							LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
 							serverTunnel->SetUniqueLocal(isUniqueLocal);
@@ -566,10 +584,10 @@ namespace client
 						}
 						else
 							LogPrint(eLogError, "Clients: I2P Server Forward for destination/port ", m_AddressBook.ToAddress(localDestination->GetIdentHash()), "/", port, "already exists");
-						
+
 						continue;
 					}
-          
+
 					I2PServerTunnel * serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
                     	serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
@@ -594,7 +612,7 @@ namespace client
 						{
 							comma = accessList.find (',', pos);
 							i2p::data::IdentHash ident;
-							ident.FromBase32 (accessList.substr (pos, comma != std::string::npos ? comma - pos : std::string::npos));	
+							ident.FromBase32 (accessList.substr (pos, comma != std::string::npos ? comma - pos : std::string::npos));
 							idents.insert (ident);
 							pos = comma + 1;
 						}
@@ -602,7 +620,7 @@ namespace client
 						serverTunnel->SetAccessList (idents);
 					}
 					if (m_ServerTunnels.insert (std::make_pair (
-							std::make_pair (localDestination->GetIdentHash (), inPort), 
+							std::make_pair (localDestination->GetIdentHash (), inPort),
 					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
 					{
 						serverTunnel->Start ();
@@ -610,21 +628,21 @@ namespace client
 					}
 					else
 						LogPrint (eLogError, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
-						
+
 				}
 				else
 					LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", tunConf);
-				
+
 			}
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "Clients: Can't read tunnel ", name, " params: ", ex.what ());
 			}
-		}	
+		}
 		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " I2P client tunnels created");
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
 	}
-  
+
 	void ClientContext::ScheduleCleanupUDP()
 	{
 		if (m_CleanupUDPTimer)
@@ -644,5 +662,5 @@ namespace client
 			ScheduleCleanupUDP();
 		}
 	}
-}		
-}	
+}
+}
