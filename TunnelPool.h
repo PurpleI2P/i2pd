@@ -30,21 +30,21 @@ namespace tunnel
 		eBuildResultTimeout // tunnel build timed out
 	};
 
-  typedef std::shared_ptr<const i2p::data::IdentityEx> Peer;
-  typedef std::vector<Peer> Path;
+	typedef std::shared_ptr<const i2p::data::IdentityEx> Peer;
+	typedef std::vector<Peer> Path;
 
 	/** interface for custom tunnel peer selection algorithm */
 	struct ITunnelPeerSelector
 	{
-    virtual ~ITunnelPeerSelector() {};
+		virtual ~ITunnelPeerSelector() {};
 		virtual bool SelectPeers(Path & peers, int hops, bool isInbound) = 0;
 		virtual bool OnBuildResult(const Path & peers, bool isInbound, TunnelBuildResult result) = 0;
 	};
 
 
-  typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>)> SelectHopFunc;
-  // standard peer selection algorithm
-  bool StandardSelectPeers(Path & path, int hops, bool inbound, SelectHopFunc nextHop);
+	typedef std::function<std::shared_ptr<const i2p::data::RouterInfo>(std::shared_ptr<const i2p::data::RouterInfo>)> SelectHopFunc;
+	// standard peer selection algorithm
+	bool StandardSelectPeers(Path & path, int hops, bool inbound, SelectHopFunc nextHop);
 
 	class TunnelPool: public std::enable_shared_from_this<TunnelPool> // per local destination
 	{
@@ -95,8 +95,8 @@ namespace tunnel
 
 		void OnTunnelBuildResult(std::shared_ptr<Tunnel> tunnel, TunnelBuildResult result);
 
-    // for overriding tunnel peer selection
-    std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;
+		// for overriding tunnel peer selection
+		std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop (std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;
 
 		private:
 
