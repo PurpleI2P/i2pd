@@ -11,6 +11,7 @@ namespace client
 		: ClientDestination(keys, false, params),
 			m_RemoteName(remoteName) {}
 
+
 	void MatchedTunnelDestination::ResolveCurrentLeaseSet()
 	{
 		if(i2p::client::context.GetAddressBook().GetIdentHash(m_RemoteName, m_RemoteIdent))
@@ -35,7 +36,12 @@ namespace client
 			m_RemoteLeaseSet = ls;
 		}
 		else
-			ResolveCurrentLeaseSet();
+		{
+			m_ResolveTimer->expires_from_now(boost::posix_time::seconds(1));
+			m_ResolveTimer->async_wait([&](const boost::system::error_code & ec) {
+					if(!ec)	ResolveCurrentLeaseSet();
+			});
+		}
 	}
 
 
@@ -43,6 +49,7 @@ namespace client
 	{
 		if(ClientDestination::Start())
 		{
+			m_ResolveTimer = std::make_shared<boost::asio::deadline_timer>(GetService());
 			GetTunnelPool()->SetCustomPeerSelector(this);
 			ResolveCurrentLeaseSet();
 			return true;
@@ -55,7 +62,8 @@ namespace client
 	{
 		if(ClientDestination::Stop())
 		{
-
+			if(m_ResolveTimer)
+				m_ResolveTimer->cancel();
 			return true;
 		}
 		else
