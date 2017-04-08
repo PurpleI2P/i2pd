@@ -387,11 +387,11 @@ namespace tunnel
 		{
 			auto r = i2p::transport::transports.GetRandomPeer ();
 			if (r && !r->GetProfile ()->IsBad ())
-				{
-					prevHop = r;
-					peers.push_back (r->GetRouterIdentity ());
-					numHops--;
-				}
+			{
+				prevHop = r;
+				peers.push_back (r->GetRouterIdentity ());
+				numHops--;
+			}
 		}
 
 		for(int i = 0; i < numHops; i++ )
