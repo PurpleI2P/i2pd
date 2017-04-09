@@ -52,7 +52,7 @@ namespace client
 			m_ResolveTimer = std::make_shared<boost::asio::deadline_timer>(GetService());
 			GetTunnelPool()->SetCustomPeerSelector(this);
 			ResolveCurrentLeaseSet();
-			return true;
+  		return true;
 		}
 		else
 			return false;
