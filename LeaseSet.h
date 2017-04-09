@@ -30,7 +30,8 @@ namespace data
 		bool ExpiresWithin( const uint64_t t, const uint64_t fudge = 1000 ) const {
 			auto expire = i2p::util::GetMillisecondsSinceEpoch ();
 			if(fudge) expire += rand() % fudge;
-			return endDate - expire >= t;
+			if (endDate < expire) return true;
+			return (endDate - expire) < t;
 		}
 	};	
 
