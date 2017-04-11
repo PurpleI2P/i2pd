@@ -237,7 +237,15 @@ namespace proxy {
 		LogPrint(eLogDebug, "HTTPProxy: requested: ", m_ClientRequest.uri);
 		m_RequestURL.parse(m_ClientRequest.uri);
 
-		if (ExtractAddressHelper(m_RequestURL, b64)) {
+		if (ExtractAddressHelper(m_RequestURL, b64)) 
+		{
+			bool addresshelper; i2p::config::GetOption("httpproxy.addresshelper", addresshelper);
+			if (!addresshelper)
+			{
+				LogPrint(eLogWarning, "HTTPProxy: addresshelper disabled");
+				GenericProxyError("Invalid request", "adddresshelper is not supported");
+				return true; 
+			}
 			i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, b64);
 			LogPrint (eLogInfo, "HTTPProxy: added b64 from addresshelper for ", m_RequestURL.host);
 			std::string full_url = m_RequestURL.to_string();

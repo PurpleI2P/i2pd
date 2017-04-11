@@ -94,6 +94,7 @@ namespace config {
 	  ("httpproxy.latency.min",    value<std::string>()->default_value("0"),  "HTTP proxy min latency for tunnels")	
 	  ("httpproxy.latency.max",   value<std::string>()->default_value("0"),  "HTTP proxy max latency for tunnels")
 			("httpproxy.outproxy", value<std::string>()->default_value(""), "HTTP proxy upstream out proxy url")
+	  ("httpproxy.addresshelper",   value<bool>()->default_value(true),                         "Enable or disable addresshelper")
       ;
 
     options_description socksproxy("SOCKS Proxy options");
