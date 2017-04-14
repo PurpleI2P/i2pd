@@ -209,6 +209,7 @@ namespace tunnel
 
 	std::shared_ptr<I2NPMessage> NewI2NPMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPShortMessage ();
+	std::shared_ptr<I2NPMessage> NewI2NPTunnelMessage ();
 	std::shared_ptr<I2NPMessage> NewI2NPMessage (size_t len);
 	
 	std::shared_ptr<I2NPMessage> CreateI2NPMessage (I2NPMessageType msgType, const uint8_t * buf, size_t len, uint32_t replyMsgID = 0);	
