@@ -27,6 +27,7 @@ void handle_signal(int sig)
 		case SIGUSR1:
 			LogPrint(eLogInfo, "Daemon: Got SIGUSR1, reopening logs...");
 			i2p::log::Logger().Reopen ();
+			i2p::client::context.ReloadConfig();
 		break;
 		case SIGINT:
 			if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
