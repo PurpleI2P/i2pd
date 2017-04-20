@@ -186,14 +186,13 @@ namespace data
 			const IdentHash& GetIdentHash () const { return m_RouterIdentity->GetIdentHash (); };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; };
 			bool IsDestination () const { return false; };
-
+			void WriteToStream (std::ostream& s) const;
 		private:
 
 			bool LoadFile ();
 			void ReadFromFile ();
 			void ReadFromStream (std::istream& s);
 			void ReadFromBuffer (bool verifySignature);
-			void WriteToStream (std::ostream& s) const;
 			size_t ReadString (char* str, size_t len, std::istream& s) const;
 			void WriteString (const std::string& str, std::ostream& s) const;
 			void ExtractCaps (const char * value);
