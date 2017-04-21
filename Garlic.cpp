@@ -437,17 +437,18 @@ namespace garlic
 		if (it != m_Tags.end ())
 		{
 			// tag found. Use AES
+			auto decryption = it->second;
+			m_Tags.erase (it); // tag might be used only once	
 			if (length >= 32)
 			{	
 				uint8_t iv[32]; // IV is first 16 bytes
 				SHA256(buf, 32, iv);
-				it->second->SetIV (iv);
-				it->second->Decrypt (buf + 32, length - 32, buf + 32);
-				HandleAESBlock (buf + 32, length - 32, it->second, msg->from);
+				decryption->SetIV (iv);
+				decryption->Decrypt (buf + 32, length - 32, buf + 32);
+				HandleAESBlock (buf + 32, length - 32, decryption, msg->from);
 			}	
 			else
 				LogPrint (eLogWarning, "Garlic: message length ", length, " is less than 32 bytes");
-			m_Tags.erase (it); // tag might be used only once	
 		}
 		else
 		{

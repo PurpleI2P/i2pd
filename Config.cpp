@@ -53,7 +53,7 @@ namespace config {
       ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
       ("floodfill", value<bool>()->zero_tokens()->default_value(false), "Router will be floodfill")
-      ("bandwidth", value<std::string>()->default_value(""), "Bandwidth limit: integer in kbps or letters: L (32), O (256), P (2048), X (>9000)")
+      ("bandwidth", value<std::string>()->default_value(""), "Bandwidth limit: integer in KBps or letters: L (32), O (256), P (2048), X (>9000)")
       ("ntcp", value<bool>()->zero_tokens()->default_value(true), "Enable NTCP transport")
       ("ssu", value<bool>()->zero_tokens()->default_value(true), "Enable SSU transport")
 #ifdef _WIN32
@@ -94,6 +94,7 @@ namespace config {
 	  ("httpproxy.latency.min",    value<std::string>()->default_value("0"),  "HTTP proxy min latency for tunnels")	
 	  ("httpproxy.latency.max",   value<std::string>()->default_value("0"),  "HTTP proxy max latency for tunnels")
 			("httpproxy.outproxy", value<std::string>()->default_value(""), "HTTP proxy upstream out proxy url")
+	  ("httpproxy.addresshelper",   value<bool>()->default_value(true),                         "Enable or disable addresshelper")
       ;
 
     options_description socksproxy("SOCKS Proxy options");

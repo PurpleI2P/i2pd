@@ -438,5 +438,92 @@ namespace crypto
 		memset (iv, 0, 64);
 		H (iv, buf, len, digest);
 	}
+
+	// reverse order
+	struct GOSTR3411_2012_CTX
+	{
+		GOST3411Block h, N, s, m;
+		size_t len;
+		bool is512;
+	};
+	
+	GOSTR3411_2012_CTX * GOSTR3411_2012_CTX_new ()
+	{
+		return new GOSTR3411_2012_CTX;
+	}
+
+	void GOSTR3411_2012_CTX_free (GOSTR3411_2012_CTX * ctx)
+	{
+		delete ctx;
+	}
+
+	void GOSTR3411_2012_CTX_Init (GOSTR3411_2012_CTX * ctx, bool is512)
+	{
+		uint8_t iv[64];
+		memset (iv, is512 ? 0 : 1, 64);
+		memcpy (ctx->h.buf, iv, 64);
+		memset (ctx->N.buf, 0, 64);
+		memset (ctx->s.buf, 0, 64);
+		ctx->len = 0;
+		ctx->is512 = is512;
+	}
+
+	void GOSTR3411_2012_CTX_Update (const uint8_t * buf, size_t len, GOSTR3411_2012_CTX * ctx)
+	{
+		if (!len) return;
+		if (ctx->len > 0) // something left from buffer
+		{
+			size_t l = 64 - ctx->len;
+			if (len < l) l = len;
+			for (size_t i = 0; i < l; i++)
+				ctx->m.buf[ctx->len + i] = buf[l-i-1]; // invert	 
+			ctx->len += l; len -= l; buf += l;
+
+			ctx->h = gN (ctx->N, ctx->h, ctx->m);
+			ctx->N.Add (512);
+			ctx->s = ctx->m + ctx->s;
+		}
+		while (len >= 64)
+		{
+			for (size_t i = 0; i < 64; i++)
+				ctx->m.buf[i] = buf[63-i]; // invert	
+			len -= 64; buf += 64;
+			ctx->h = gN (ctx->N, ctx->h, ctx->m);
+			ctx->N.Add (512);
+			ctx->s = ctx->m + ctx->s;
+		}
+		if (len > 0) // carry remaining
+		{
+			for (size_t i = 0; i < len; i++)
+				ctx->m.buf[i] = buf[len-i-1]; // invert
+		}
+		ctx->len = len;
+	}
+
+	void GOSTR3411_2012_CTX_Finish (uint8_t * digest, GOSTR3411_2012_CTX * ctx)
+	{
+		GOST3411Block m;	
+		size_t padding = 64 - ctx->len;
+		if (padding)
+		{
+			memset (m.buf, 0, padding - 1);
+			m.buf[padding - 1] = 1;
+		}
+		memcpy (m.buf + padding, ctx->m.buf, ctx->len);
+
+		ctx->h = gN (ctx->N, ctx->h, m);
+		ctx->N.Add (ctx->len*8);	
+		ctx->s = m + ctx->s;
+	
+		GOST3411Block N0;
+		memset (N0.buf, 0, 64);
+		ctx->h = gN (N0, ctx->h, ctx->N);
+		ctx->h = gN (N0, ctx->h, ctx->s);
+		
+		size_t sz = ctx->is512 ? 64 : 32;
+		for (size_t i = 0; i < sz; i++)
+			digest[i] = ctx->h.buf[sz - i - 1];
+	}
+
 }
 }

@@ -19,28 +19,28 @@ namespace client
 }
 namespace datagram
 {
-	// milliseconds for max session idle time 
+	// milliseconds for max session idle time
 	const uint64_t DATAGRAM_SESSION_MAX_IDLE = 10 * 60 * 1000;
 	// milliseconds for how long we try sticking to a dead routing path before trying to switch
 	const uint64_t DATAGRAM_SESSION_PATH_TIMEOUT = 10 * 1000;
 	// milliseconds interval a routing path is used before switching
 	const uint64_t DATAGRAM_SESSION_PATH_SWITCH_INTERVAL = 20 * 60 * 1000;
 	// milliseconds before lease expire should we try switching leases
-	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW = 10 * 1000;
+	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW = 30 * 1000;
 	// milliseconds fudge factor for leases handover
 	const uint64_t DATAGRAM_SESSION_LEASE_HANDOVER_FUDGE = 1000;
 	// milliseconds minimum time between path switches
 	const uint64_t DATAGRAM_SESSION_PATH_MIN_LIFETIME = 5 * 1000;
   // max 64 messages buffered in send queue for each datagram session
   const size_t DATAGRAM_SEND_QUEUE_MAX_SIZE = 64;
-	
+
 	class DatagramSession : public std::enable_shared_from_this<DatagramSession>
 	{
 	public:
 		DatagramSession(i2p::client::ClientDestination * localDestination, const i2p::data::IdentHash & remoteIdent);
 
 		void Start ();
-		void Stop ();	
+		void Stop ();
 
 
     /** @brief ack the garlic routing path */
@@ -56,7 +56,7 @@ namespace datagram
 			std::shared_ptr<const i2p::data::IdentHash> IBGW;
 			std::shared_ptr<const i2p::data::IdentHash> OBEP;
 			const uint64_t activity;
- 
+
 			Info() : IBGW(nullptr), OBEP(nullptr), activity(0) {}
 			Info(const uint8_t * ibgw, const uint8_t * obep, const uint64_t a) :
 				activity(a) {
@@ -77,7 +77,7 @@ namespace datagram
     void HandleSend(std::shared_ptr<I2NPMessage> msg);
 
     std::shared_ptr<i2p::garlic::GarlicRoutingPath> GetSharedRoutingPath();
-    
+
     void HandleLeaseSetUpdated(std::shared_ptr<i2p::data::LeaseSet> ls);
 
 	private:
@@ -95,16 +95,16 @@ namespace datagram
 
 	typedef std::shared_ptr<DatagramSession> DatagramSession_ptr;
 
-	const size_t MAX_DATAGRAM_SIZE = 32768;	 
+	const size_t MAX_DATAGRAM_SIZE = 32768;
 	class DatagramDestination
 	{
 		typedef std::function<void (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)> Receiver;
 
 		public:
 
-    
-			DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
-			~DatagramDestination ();	
+
+    DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
+			~DatagramDestination ();
 
     	void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
 			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
@@ -116,21 +116,21 @@ namespace datagram
 			void ResetReceiver (uint16_t port) { std::lock_guard<std::mutex> lock(m_ReceiversMutex); m_ReceiversByPorts.erase (port); };
 
 			std::shared_ptr<DatagramSession::Info> GetInfoForRemote(const i2p::data::IdentHash & remote);
-		
+
 			// clean up stale sessions
 			void CleanUp ();
 
 		private:
-						
+
     std::shared_ptr<DatagramSession> ObtainSession(const i2p::data::IdentHash & ident);
-			
+
 			std::shared_ptr<I2NPMessage> CreateDataMessage (const uint8_t * payload, size_t len, uint16_t fromPort, uint16_t toPort);
 
 			void HandleDatagram (uint16_t fromPort, uint16_t toPort, uint8_t *const& buf, size_t len);
 
 			/** find a receiver by port, if none by port is found try default receiever, otherwise returns nullptr */
 			Receiver FindReceiver(uint16_t port);
-			
+
 		private:
 			i2p::client::ClientDestination * m_Owner;
 			i2p::data::IdentityEx m_Identity;
@@ -142,9 +142,8 @@ namespace datagram
 
 			i2p::data::GzipInflator m_Inflator;
 			i2p::data::GzipDeflator m_Deflator;
-	};		
+	};
 }
 }
 
 #endif
-

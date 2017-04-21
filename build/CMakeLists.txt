@@ -37,7 +37,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/FS.cpp"
   "${CMAKE_SOURCE_DIR}/Log.cpp"
   "${CMAKE_SOURCE_DIR}/NTCPSession.cpp"
-  "${CMAKE_SOURCE_DIR}/NetDbRequests.cpp"	
+  "${CMAKE_SOURCE_DIR}/NetDbRequests.cpp"
   "${CMAKE_SOURCE_DIR}/NetDb.cpp"
   "${CMAKE_SOURCE_DIR}/Profiling.cpp"
   "${CMAKE_SOURCE_DIR}/Reseed.cpp"
@@ -47,7 +47,7 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/SSUData.cpp"
   "${CMAKE_SOURCE_DIR}/SSUSession.cpp"
   "${CMAKE_SOURCE_DIR}/Streaming.cpp"
-  "${CMAKE_SOURCE_DIR}/Destination.cpp"	
+  "${CMAKE_SOURCE_DIR}/Destination.cpp"
   "${CMAKE_SOURCE_DIR}/TransitTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/Tunnel.cpp"
   "${CMAKE_SOURCE_DIR}/TunnelGateway.cpp"
@@ -59,16 +59,16 @@ set (LIBI2PD_SRC
   "${CMAKE_SOURCE_DIR}/Datagram.cpp"
   "${CMAKE_SOURCE_DIR}/Family.cpp"
   "${CMAKE_SOURCE_DIR}/Signature.cpp"
-  "${CMAKE_SOURCE_DIR}/Timestamp.cpp"	
+  "${CMAKE_SOURCE_DIR}/Timestamp.cpp"
   "${CMAKE_SOURCE_DIR}/api.cpp"
   "${CMAKE_SOURCE_DIR}/Event.cpp"
-  "${CMAKE_SOURCE_DIR}/Gost.cpp"	
+  "${CMAKE_SOURCE_DIR}/Gost.cpp"
 )
 
 if (WITH_WEBSOCKETS)
   add_definitions(-DWITH_EVENTS)
   find_package(websocketpp REQUIRED)
-endif ()  
+endif ()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
@@ -90,8 +90,9 @@ install(TARGETS libi2pd
 
 set (CLIENT_SRC
   "${CMAKE_SOURCE_DIR}/AddressBook.cpp"
-  "${CMAKE_SOURCE_DIR}/BOB.cpp"	
+  "${CMAKE_SOURCE_DIR}/BOB.cpp"
   "${CMAKE_SOURCE_DIR}/ClientContext.cpp"
+  "${CMAKE_SOURCE_DIR}/MatchedDestination.cpp"
   "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
   "${CMAKE_SOURCE_DIR}/I2PService.cpp"
   "${CMAKE_SOURCE_DIR}/SAM.cpp"
@@ -357,7 +358,7 @@ include_directories( SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_
 # warn if for meshnet
 if (WITH_MESHNET)
   message(STATUS "Building for testnet")
-  message(WARNING "This build will NOT work on mainline i2p")  
+  message(WARNING "This build will NOT work on mainline i2p")
 endif()
 
 

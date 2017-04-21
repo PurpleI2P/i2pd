@@ -61,7 +61,8 @@ LOCAL_SRC_FILES := DaemonAndroid.cpp i2pd_android.cpp \
 	../../Event.cpp \
 	../../Gost.cpp \
 	../../WebSocks.cpp \
-../../BloomFilter.cpp \
+	../../BloomFilter.cpp \
+	../../MatchedDestination.cpp \
     ../../util.cpp \
      ../../i2pd.cpp ../../UPnP.cpp
 

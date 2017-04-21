@@ -255,9 +255,11 @@ namespace datagram
 			}
 			if(m_CurrentRemoteLease && m_CurrentRemoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) {
 				// bad lease, switch to next one
+				if(m_RemoteLeaseSet && m_RemoteLeaseSet->IsExpired())
+					m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
 				if(m_RemoteLeaseSet) {
 					auto ls = m_RemoteLeaseSet->GetNonExpiredLeasesExcluding([&](const i2p::data::Lease& l) -> bool {
-							return l.tunnelGateway == m_CurrentRemoteLease->tunnelGateway;
+							return l.tunnelID == m_CurrentRemoteLease->tunnelID;
 					});
 					auto sz = ls.size();
 					if (sz) {
@@ -278,7 +280,7 @@ namespace datagram
 				m_CurrentOutboundTunnel = m_LocalDestination->GetTunnelPool()->GetNextOutboundTunnel(m_CurrentOutboundTunnel);
 			}
 			// switch lease if bad
-			if(m_CurrentRemoteLease == nullptr || m_CurrentRemoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) {
+			if(m_CurrentRemoteLease && m_CurrentRemoteLease->ExpiresWithin(DATAGRAM_SESSION_LEASE_HANDOVER_WINDOW)) {
 				if(!m_RemoteLeaseSet) {
 					m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
 				}
@@ -298,6 +300,17 @@ namespace datagram
 					// no remote lease set currently, bail
 					LogPrint(eLogWarning, "DatagramSession: no remote lease set found for ", m_RemoteIdent.ToBase32());
 					return nullptr;
+				}
+			} else if (!m_CurrentRemoteLease) {
+				if(!m_RemoteLeaseSet) m_RemoteLeaseSet = m_LocalDestination->FindLeaseSet(m_RemoteIdent);
+				if (m_RemoteLeaseSet)
+				{
+					auto ls = m_RemoteLeaseSet->GetNonExpiredLeases();
+					auto sz = ls.size();
+					if (sz) {
+						auto idx = rand() % sz;
+						m_CurrentRemoteLease = ls[idx];
+					}
 				}
 			}
 			path->outboundTunnel = m_CurrentOutboundTunnel;
@@ -346,7 +359,7 @@ namespace datagram
 
 	void DatagramSession::ScheduleFlushSendQueue()
 	{
-		boost::posix_time::milliseconds dlt(100);
+		boost::posix_time::milliseconds dlt(10);
 		m_SendQueueTimer.expires_from_now(dlt);
 		auto self = shared_from_this();
 		m_SendQueueTimer.async_wait([self](const boost::system::error_code & ec) { if(ec) return; self->FlushSendQueue(); });
