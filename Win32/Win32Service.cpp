@@ -7,8 +7,8 @@
 #include <strsafe.h>
 #include <windows.h>
 
-#include "../Daemon.h"
-#include "../Log.h"
+#include "Daemon.h"
+#include "Log.h"
 
 I2PService *I2PService::s_service = NULL;
 
@@ -100,7 +100,7 @@ I2PService::I2PService(PSTR pszServiceName,
 
 	m_fStopping = FALSE;
 
-	// Create a manual-reset event that is not signaled at first to indicate 
+	// Create a manual-reset event that is not signaled at first to indicate
 	// the stopped signal of the service.
 	m_hStoppedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	if (m_hStoppedEvent == NULL)
