@@ -4,14 +4,13 @@ WINDRES = windres
 CXXFLAGS = -Os -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
 BOOST_SUFFIX = -mt
-INCFLAGS = -I/usr/include/ -I/usr/local/include/
-LDFLAGS = -Wl,-rpath,/usr/local/lib \
-  -L/usr/local/lib 
+INCFLAGS = -I/usr/include/ -I/usr/local/include/ -I.
+LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 
-# UPNP Support 
+# UPNP Support
 ifeq ($(USE_UPNP),yes)
   CXXFLAGS += -DUSE_UPNP -DMINIUPNP_STATICLIB
-  LDLIBS = -Wl,-Bstatic -lminiupnpc	
+  LDLIBS = -Wl,-Bstatic -lminiupnpc
 endif
 
 LDLIBS += \
