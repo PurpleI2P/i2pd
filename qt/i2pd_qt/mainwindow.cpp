@@ -2,7 +2,7 @@
 //#include "ui_mainwindow.h"
 #include <QMessageBox>
 #include <QTimer>
-#include "../../RouterContext.h"
+#include "RouterContext.h"
 #ifndef ANDROID
 #include <QtDebug>
 #endif

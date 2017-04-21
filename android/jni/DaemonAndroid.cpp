@@ -1,5 +1,5 @@
 #include "DaemonAndroid.h"
-#include "../../Daemon.h"
+#include "Daemon.h"
 #include <iostream>
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/exception_ptr.hpp>
@@ -191,4 +191,3 @@ namespace android
 	}
 }
 }
-

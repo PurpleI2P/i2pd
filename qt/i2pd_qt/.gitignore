@@ -1,1 +1,7 @@
 i2pd_qt.pro.user*
+moc_*
+ui_*
+qrc_*
+i2pd_qt
+Makefile
+*.stash

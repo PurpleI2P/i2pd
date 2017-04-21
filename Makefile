@@ -7,6 +7,10 @@ I2PD  := i2pd
 GREP := grep
 DEPS := obj/make.dep
 
+LIB_SRC_DIR := libi2pd
+LIB_CLIENT_SRC_DIR := libi2pd_client
+DAEMON_SRC_DIR := daemon
+
 include filelist.mk
 
 USE_AESNI	:= yes
@@ -17,24 +21,23 @@ USE_UPNP	:= no
 
 ifeq ($(WEBSOCKETS),1)
 	NEEDED_CXXFLAGS += -DWITH_EVENTS
-	DAEMON_SRC += Websocket.cpp
 endif
 
 ifeq ($(UNAME),Darwin)
-	DAEMON_SRC += DaemonLinux.cpp
+	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	ifeq ($(HOMEBREW),1)
 		include Makefile.homebrew
 	else
 		include Makefile.osx
 	endif
 else ifeq ($(shell echo $(UNAME) | $(GREP) -Ec '(Free|Open)BSD'),1)
-	DAEMON_SRC += DaemonLinux.cpp
+	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
 else ifeq ($(UNAME),Linux)
-	DAEMON_SRC += DaemonLinux.cpp
+	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.linux
-else # win32 mingw
-	DAEMON_SRC += DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
+else
+	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
 	include Makefile.mingw
 endif
 
@@ -42,11 +45,16 @@ ifeq ($(USE_MESHNET),yes)
 	NEEDED_CXXFLAGS += -DMESHNET
 endif
 
+NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)
+
 all: mk_obj_dir $(ARLIB) $(ARLIB_CLIENT) $(I2PD)
 
 mk_obj_dir:
 	@mkdir -p obj
 	@mkdir -p obj/Win32
+	@mkdir -p obj/$(LIB_SRC_DIR)
+	@mkdir -p obj/$(LIB_CLIENT_SRC_DIR)
+	@mkdir -p obj/$(DAEMON_SRC_DIR)
 
 api: mk_obj_dir $(SHLIB) $(ARLIB)
 api_client: mk_obj_dir $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)

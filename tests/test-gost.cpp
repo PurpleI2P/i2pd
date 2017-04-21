@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "../Gost.h"
+#include "Gost.h"
 
 const uint8_t example1[63] =
 {
@@ -51,19 +51,16 @@ const uint8_t example2_hash_256[32] =
 
 int main ()
 {
-	uint8_t digest[64];	
-	i2p::crypto::GOSTR3411_2012_512 (example1, 63, digest);	
+	uint8_t digest[64];
+	i2p::crypto::GOSTR3411_2012_512 (example1, 63, digest);
 	assert(memcmp (digest, example1_hash_512, 64) == 0);
 
-	i2p::crypto::GOSTR3411_2012_256 (example1, 63, digest);	
+	i2p::crypto::GOSTR3411_2012_256 (example1, 63, digest);
 	assert(memcmp (digest, example1_hash_256, 32) == 0);
 
-	i2p::crypto::GOSTR3411_2012_512 (example2, 72, digest);	
+	i2p::crypto::GOSTR3411_2012_512 (example2, 72, digest);
 	assert(memcmp (digest, example2_hash_512, 64) == 0);
 
-	i2p::crypto::GOSTR3411_2012_256 (example2, 72, digest);	
+	i2p::crypto::GOSTR3411_2012_256 (example2, 72, digest);
 	assert(memcmp (digest, example2_hash_256, 32) == 0);
 }
-
-
-

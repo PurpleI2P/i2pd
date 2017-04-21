@@ -2,8 +2,8 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "../Gost.h"
-#include "../Signature.h"
+#include "Gost.h"
+#include "Signature.h"
 
 const uint8_t example2[72] =
 {
@@ -30,6 +30,3 @@ int main ()
 	i2p::crypto::GOSTR3410_256_Verifier verifier1 (i2p::crypto::eGOSTR3410CryptoProA, pub);
 	assert (verifier1.Verify (example2, 72, signature));
 }
-
-
-
