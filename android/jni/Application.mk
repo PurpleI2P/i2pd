@@ -25,7 +25,7 @@ APP_OPTIM  := debug
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
-I2PD_LIBS_PATH=/tmp/i2pd
+I2PD_LIBS_PATH=/path/to/libraries
 BOOST_PATH = $(I2PD_LIBS_PATH)/Boost-for-Android-Prebuilt
 OPENSSL_PATH = $(I2PD_LIBS_PATH)/OpenSSL-for-Android-Prebuilt
 MINIUPNP_PATH = $(I2PD_LIBS_PATH)/MiniUPnP-for-Android-Prebuilt
