@@ -410,7 +410,7 @@ if (WITH_BINARY)
     if (MSVC)
       target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
     else()
-      target_compile_options("${PROJECT_NAME}" PRIVATE -include src/core/stdafx.h)
+      target_compile_options("${PROJECT_NAME}" PRIVATE -include libi2pd/stdafx.h)
     endif()
   endif()
 
