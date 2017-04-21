@@ -1,3 +1,4 @@
+#ifdef USE_EVENTS
 #include "Websocket.h"
 #include "Log.h"
 
@@ -191,3 +192,4 @@ namespace i2p
 		}
 	}
 }
+#endif

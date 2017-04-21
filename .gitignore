@@ -1,5 +1,5 @@
 # i2pd
-obj/*.o
+*.o
 router.info
 router.keys
 i2p
@@ -249,3 +249,9 @@ docs/generated
 
 # gdb files
 .gdb_history
+
+# cmake makefile
+build/Makefile
+
+# debian stuff
+.pc/

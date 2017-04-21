@@ -25,44 +25,51 @@ option(WITH_WEBSOCKETS "Build with websocket ui" OFF)
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
+set(LIBI2PD_SRC_DIR ../libi2pd)
+set(LIBI2PD_CLIENT_SRC_DIR ../libi2pd_client)
+
+include_directories(${LIBI2PD_SRC_DIR})
+include_directories(${LIBI2PD_CLIENT_SRC_DIR})
+
 set (LIBI2PD_SRC
-  "${CMAKE_SOURCE_DIR}/BloomFilter.cpp"
-  "${CMAKE_SOURCE_DIR}/Config.cpp"
-  "${CMAKE_SOURCE_DIR}/Crypto.cpp"
-  "${CMAKE_SOURCE_DIR}/Garlic.cpp"
-  "${CMAKE_SOURCE_DIR}/Gzip.cpp"
-  "${CMAKE_SOURCE_DIR}/I2NPProtocol.cpp"
-  "${CMAKE_SOURCE_DIR}/Identity.cpp"
-  "${CMAKE_SOURCE_DIR}/LeaseSet.cpp"
-  "${CMAKE_SOURCE_DIR}/FS.cpp"
-  "${CMAKE_SOURCE_DIR}/Log.cpp"
-  "${CMAKE_SOURCE_DIR}/NTCPSession.cpp"
-  "${CMAKE_SOURCE_DIR}/NetDbRequests.cpp"
-  "${CMAKE_SOURCE_DIR}/NetDb.cpp"
-  "${CMAKE_SOURCE_DIR}/Profiling.cpp"
-  "${CMAKE_SOURCE_DIR}/Reseed.cpp"
-  "${CMAKE_SOURCE_DIR}/RouterContext.cpp"
-  "${CMAKE_SOURCE_DIR}/RouterInfo.cpp"
-  "${CMAKE_SOURCE_DIR}/SSU.cpp"
-  "${CMAKE_SOURCE_DIR}/SSUData.cpp"
-  "${CMAKE_SOURCE_DIR}/SSUSession.cpp"
-  "${CMAKE_SOURCE_DIR}/Streaming.cpp"
-  "${CMAKE_SOURCE_DIR}/Destination.cpp"
-  "${CMAKE_SOURCE_DIR}/TransitTunnel.cpp"
-  "${CMAKE_SOURCE_DIR}/Tunnel.cpp"
-  "${CMAKE_SOURCE_DIR}/TunnelGateway.cpp"
-  "${CMAKE_SOURCE_DIR}/Transports.cpp"
-  "${CMAKE_SOURCE_DIR}/TunnelEndpoint.cpp"
-  "${CMAKE_SOURCE_DIR}/TunnelPool.cpp"
-  "${CMAKE_SOURCE_DIR}/Base.cpp"
-  "${CMAKE_SOURCE_DIR}/util.cpp"
-  "${CMAKE_SOURCE_DIR}/Datagram.cpp"
-  "${CMAKE_SOURCE_DIR}/Family.cpp"
-  "${CMAKE_SOURCE_DIR}/Signature.cpp"
-  "${CMAKE_SOURCE_DIR}/Timestamp.cpp"
-  "${CMAKE_SOURCE_DIR}/api.cpp"
-  "${CMAKE_SOURCE_DIR}/Event.cpp"
-  "${CMAKE_SOURCE_DIR}/Gost.cpp"
+  "${LIBI2PD_SRC_DIR}/BloomFilter.cpp"
+  "${LIBI2PD_SRC_DIR}/Config.cpp"
+  "${LIBI2PD_SRC_DIR}/Crypto.cpp"
+  "${LIBI2PD_SRC_DIR}/Garlic.cpp"
+  "${LIBI2PD_SRC_DIR}/Gzip.cpp"
+  "${LIBI2PD_SRC_DIR}/HTTP.cpp"
+  "${LIBI2PD_SRC_DIR}/I2NPProtocol.cpp"
+  "${LIBI2PD_SRC_DIR}/Identity.cpp"
+  "${LIBI2PD_SRC_DIR}/LeaseSet.cpp"
+  "${LIBI2PD_SRC_DIR}/FS.cpp"
+  "${LIBI2PD_SRC_DIR}/Log.cpp"
+  "${LIBI2PD_SRC_DIR}/NTCPSession.cpp"
+  "${LIBI2PD_SRC_DIR}/NetDbRequests.cpp"
+  "${LIBI2PD_SRC_DIR}/NetDb.cpp"
+  "${LIBI2PD_SRC_DIR}/Profiling.cpp"
+  "${LIBI2PD_SRC_DIR}/Reseed.cpp"
+  "${LIBI2PD_SRC_DIR}/RouterContext.cpp"
+  "${LIBI2PD_SRC_DIR}/RouterInfo.cpp"
+  "${LIBI2PD_SRC_DIR}/SSU.cpp"
+  "${LIBI2PD_SRC_DIR}/SSUData.cpp"
+  "${LIBI2PD_SRC_DIR}/SSUSession.cpp"
+  "${LIBI2PD_SRC_DIR}/Streaming.cpp"
+  "${LIBI2PD_SRC_DIR}/Destination.cpp"
+  "${LIBI2PD_SRC_DIR}/TransitTunnel.cpp"
+  "${LIBI2PD_SRC_DIR}/Tunnel.cpp"
+  "${LIBI2PD_SRC_DIR}/TunnelGateway.cpp"
+  "${LIBI2PD_SRC_DIR}/Transports.cpp"
+  "${LIBI2PD_SRC_DIR}/TunnelEndpoint.cpp"
+  "${LIBI2PD_SRC_DIR}/TunnelPool.cpp"
+  "${LIBI2PD_SRC_DIR}/Base.cpp"
+  "${LIBI2PD_SRC_DIR}/util.cpp"
+  "${LIBI2PD_SRC_DIR}/Datagram.cpp"
+  "${LIBI2PD_SRC_DIR}/Family.cpp"
+  "${LIBI2PD_SRC_DIR}/Signature.cpp"
+  "${LIBI2PD_SRC_DIR}/Timestamp.cpp"
+  "${LIBI2PD_SRC_DIR}/api.cpp"
+  "${LIBI2PD_SRC_DIR}/Event.cpp"
+  "${LIBI2PD_SRC_DIR}/Gost.cpp"
 )
 
 if (WITH_WEBSOCKETS)
@@ -89,31 +96,32 @@ install(TARGETS libi2pd
 # install(EXPORT libi2pd DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 set (CLIENT_SRC
-  "${CMAKE_SOURCE_DIR}/AddressBook.cpp"
-  "${CMAKE_SOURCE_DIR}/BOB.cpp"
-  "${CMAKE_SOURCE_DIR}/ClientContext.cpp"
-  "${CMAKE_SOURCE_DIR}/MatchedDestination.cpp"
-  "${CMAKE_SOURCE_DIR}/I2PTunnel.cpp"
-  "${CMAKE_SOURCE_DIR}/I2PService.cpp"
-  "${CMAKE_SOURCE_DIR}/SAM.cpp"
-  "${CMAKE_SOURCE_DIR}/SOCKS.cpp"
-  "${CMAKE_SOURCE_DIR}/HTTP.cpp"
-  "${CMAKE_SOURCE_DIR}/HTTPProxy.cpp"
-  "${CMAKE_SOURCE_DIR}/I2CP.cpp"
-  "${CMAKE_SOURCE_DIR}/WebSocks.cpp"
-  )
+  "${LIBI2PD_CLIENT_SRC_DIR}/AddressBook.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/BOB.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/ClientContext.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/MatchedDestination.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/I2PTunnel.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/I2PService.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/SAM.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/SOCKS.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/HTTPProxy.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/I2CP.cpp"
+  "${LIBI2PD_CLIENT_SRC_DIR}/WebSocks.cpp"
+)
 
 if(WITH_WEBSOCKETS)
-  list (APPEND CLIENT_SRC "${CMAKE_SOURCE_DIR}/Websocket.cpp")
+  list (APPEND CLIENT_SRC "${LIBI2PD_SRC_DIR}/Websocket.cpp")
 endif ()
 add_library(i2pdclient ${CLIENT_SRC})
 
+set(DAEMON_SRC_DIR ../daemon)
+
 set (DAEMON_SRC
-  "${CMAKE_SOURCE_DIR}/Daemon.cpp"
-  "${CMAKE_SOURCE_DIR}/HTTPServer.cpp"
-  "${CMAKE_SOURCE_DIR}/I2PControl.cpp"
-  "${CMAKE_SOURCE_DIR}/i2pd.cpp"
-  "${CMAKE_SOURCE_DIR}/UPnP.cpp"
+  "${DAEMON_SRC_DIR}/Daemon.cpp"
+  "${DAEMON_SRC_DIR}/HTTPServer.cpp"
+  "${DAEMON_SRC_DIR}/I2PControl.cpp"
+  "${DAEMON_SRC_DIR}/i2pd.cpp"
+  "${DAEMON_SRC_DIR}/UPnP.cpp"
 )
 
 if (WITH_MESHNET)
@@ -178,22 +186,22 @@ endif ()
 
 # compiler flags customization (by system)
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
+  list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
   # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
   add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
 elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
+  list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
   # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
   add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
-elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonLinux.cpp")
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
-  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/DaemonWin32.cpp")
+    list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
+  elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+      list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
+        list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp")
   if (WITH_GUI)
     list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32App.cpp")
-    set_source_files_properties("${CMAKE_SOURCE_DIR}/DaemonWin32.cpp"
+    set_source_files_properties("${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp"
       PROPERTIES COMPILE_DEFINITIONS WIN32_APP)
   endif ()
   list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32Service.cpp")
@@ -275,7 +283,7 @@ endif ()
 
 if (WITH_PCH)
   include_directories(BEFORE ${CMAKE_BINARY_DIR})
-  add_library(stdafx STATIC "${CMAKE_SOURCE_DIR}/stdafx.cpp")
+  add_library(stdafx STATIC "${LIBI2PD_SRC_DIR}/stdafx.cpp")
   if(MSVC)
     target_compile_options(stdafx PRIVATE /Ycstdafx.h /Zm155)
     add_custom_command(TARGET stdafx POST_BUILD
@@ -291,10 +299,10 @@ if (WITH_PCH)
     get_directory_property(DEFS DEFINITIONS)
     string(REPLACE " " ";" FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BTU}} ${DEFS}")
     add_custom_command(TARGET stdafx PRE_BUILD
-      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
+      COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../libi2pd/stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
     )
-    target_compile_options(libi2pd PRIVATE -include stdafx.h)
-    target_compile_options(i2pdclient PRIVATE -include stdafx.h)
+    target_compile_options(libi2pd PRIVATE -include libi2pd/stdafx.h)
+    target_compile_options(i2pdclient PRIVATE -include libi2pd/stdafx.h)
   endif()
   target_link_libraries(libi2pd stdafx)
 endif()
@@ -402,7 +410,7 @@ if (WITH_BINARY)
     if (MSVC)
       target_compile_options("${PROJECT_NAME}" PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
     else()
-      target_compile_options("${PROJECT_NAME}" PRIVATE -include stdafx.h)
+      target_compile_options("${PROJECT_NAME}" PRIVATE -include src/core/stdafx.h)
     endif()
   endif()
 
@@ -453,7 +461,7 @@ install(FILES "C:/projects/openssl-$ENV{OPENSSL}/LICENSE"
   OPTIONAL                      # for local builds only!
   )
 
-file(GLOB_RECURSE I2PD_SOURCES "../*.cpp" "../build" "../Win32" "../Makefile*")
+file(GLOB_RECURSE I2PD_SOURCES "../libi2pd/*.cpp" "../libi2pd_client/*.cpp" "../daemon/*.cpp" "../build" "../Win32" "../Makefile*")
 install(FILES ${I2PD_SOURCES} DESTINATION src/ COMPONENT Source)
 # install(DIRECTORY ../ DESTINATION src/
 #   # OPTIONAL
@@ -462,7 +470,7 @@ install(FILES ${I2PD_SOURCES} DESTINATION src/ COMPONENT Source)
 #   PATTERN "*.cpp"
 #   )
 
-file(GLOB I2PD_HEADERS "../*.h")
+file(GLOB I2PD_HEADERS "../libi2pd/*.h" "../libi2pd_client/*.h" "../daemon/*.h")
 install(FILES ${I2PD_HEADERS} DESTINATION src/ COMPONENT Headers)
 # install(DIRECTORY ../ DESTINATION src/
 #   # OPTIONAL
@@ -475,7 +483,7 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Purple I2P, a C++ I2P daemon")
 set(CPACK_PACKAGE_VENDOR "Purple I2P")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE")
-file(READ ../version.h version_h)
+file(READ ../libi2pd/version.h version_h)
 string(REGEX REPLACE ".*I2PD_VERSION_MAJOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MAJOR "${version_h}")
 string(REGEX REPLACE ".*I2PD_VERSION_MINOR ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MINOR "${version_h}")
 string(REGEX REPLACE ".*I2PD_VERSION_MICRO ([0-9]+).*" "\\1" CPACK_PACKAGE_VERSION_MICRO "${version_h}")

@@ -1,5 +1,5 @@
 #include "DaemonQT.h"
-#include "../../Daemon.h"
+#include "Daemon.h"
 #include "mainwindow.h"
 #include <QMessageBox>
 #include <QApplication>

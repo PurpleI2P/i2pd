@@ -1,7 +1,7 @@
 #include <cassert>
 #include <string.h>
 
-#include "../Base.h"
+#include "Base.h"
 
 using namespace i2p::data;
 
