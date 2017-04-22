@@ -1,6 +1,7 @@
 gen
 tests
 .idea
+ant.properties
 local.properties
 build.sh
 bin

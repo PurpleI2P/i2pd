@@ -78,7 +78,7 @@ obj/%.o: %.cpp
 
 DAEMON_OBJS += $(patsubst %.cpp,obj/%.o,$(DAEMON_SRC))
 $(I2PD): $(DAEMON_OBJS) $(ARLIB) $(ARLIB_CLIENT)
-	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS)
+	$(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 $(SHLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
 ifneq ($(USE_STATIC),yes)
