@@ -60,10 +60,6 @@ HEADERS  += DaemonQT.h mainwindow.h
 #	../../util.h ../../version.h ../../Gzip.h ../../Tag.h \
 #	../../BloomFiler.h ../../Event.h ../../Gost.h ../../MatchedDestination.h
 
-HEADERS += $$files(../../libi2pd/*.h)
-HEADERS += $$files(../../libi2pd_client/*.h)
-HEADERS += $$files(../../daemon/*.h)
-
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
 INCLUDEPATH += ../../daemon
