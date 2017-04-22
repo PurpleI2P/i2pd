@@ -3,7 +3,7 @@
 #APP_ABI := x86
 APP_ABI := armeabi-v7a
 #can be android-3 but will fail for x86 since arch-x86 is not present at ndkroot/platforms/android-3/ . libz is taken from there.
-APP_PLATFORM := android-9
+APP_PLATFORM := android-14
 
 # http://stackoverflow.com/a/21386866/529442 http://stackoverflow.com/a/15616255/529442 to enable c++11 support in Eclipse
 NDK_TOOLCHAIN_VERSION := 4.9
@@ -25,7 +25,7 @@ APP_OPTIM  := debug
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
-I2PD_LIBS_PATH=/path/to/libraries
+I2PD_LIBS_PATH = /path/to/libraries
 BOOST_PATH = $(I2PD_LIBS_PATH)/Boost-for-Android-Prebuilt
 OPENSSL_PATH = $(I2PD_LIBS_PATH)/OpenSSL-for-Android-Prebuilt
 MINIUPNP_PATH = $(I2PD_LIBS_PATH)/MiniUPnP-for-Android-Prebuilt
