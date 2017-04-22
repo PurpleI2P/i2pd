@@ -13,7 +13,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "HTTP.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "ClientContext.h"
 #include "AddressBook.h"
 #include "Config.h"

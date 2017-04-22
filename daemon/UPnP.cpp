@@ -10,7 +10,7 @@
 
 #include "RouterContext.h"
 #include "UPnP.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "util.h"
 #include "RouterInfo.h"
 #include "Config.h"

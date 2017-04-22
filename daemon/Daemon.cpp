@@ -14,7 +14,7 @@
 #include "RouterContext.h"
 #include "Tunnel.h"
 #include "HTTP.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "Garlic.h"
 #include "Streaming.h"
 #include "Destination.h"

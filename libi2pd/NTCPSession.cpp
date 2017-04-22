@@ -10,7 +10,7 @@
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "Transports.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "NTCPSession.h"
 #ifdef WITH_EVENTS
 #include "Event.h"

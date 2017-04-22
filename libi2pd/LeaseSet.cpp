@@ -3,7 +3,7 @@
 #include "Crypto.h"
 #include "Log.h"
 #include "Timestamp.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "Tunnel.h"
 #include "LeaseSet.h"
 

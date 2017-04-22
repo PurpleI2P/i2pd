@@ -3,7 +3,7 @@
 #include <shellapi.h>
 #include "ClientContext.h"
 #include "Config.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "RouterContext.h"
 #include "Transports.h"
 #include "Tunnel.h"

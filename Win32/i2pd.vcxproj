@@ -83,7 +83,7 @@
     <ClInclude Include="..\LittleBigEndian.h" />
     <ClInclude Include="..\Log.h" />
 	<ClInclude Include="..\NetDbRequests.h" />
-    <ClInclude Include="..\NetDb.h" />
+    <ClInclude Include="..\NetDb.hpp" />
     <ClInclude Include="..\NTCPSession.h" />
     <ClInclude Include="..\Queue.h" />
 	<ClInclude Include="..\Profiling.h" />

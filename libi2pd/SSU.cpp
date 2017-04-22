@@ -3,7 +3,7 @@
 #include "Log.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "SSU.h"
 
 namespace i2p

@@ -2,7 +2,7 @@
 #include <boost/bind.hpp>
 #include "Log.h"
 #include "Timestamp.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "SSU.h"
 #include "SSUData.h"
 #ifdef WITH_EVENTS
