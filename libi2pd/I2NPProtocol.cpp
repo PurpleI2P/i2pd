@@ -6,7 +6,7 @@
 #include "I2PEndian.h"
 #include "Timestamp.h"
 #include "RouterContext.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "Tunnel.h"
 #include "Transports.h"
 #include "Garlic.h"

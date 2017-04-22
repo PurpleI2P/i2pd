@@ -4,7 +4,7 @@
 #include "Log.h"
 #include "FS.h"
 #include "Timestamp.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "Destination.h"
 #include "util.h"
 

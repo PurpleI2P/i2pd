@@ -9,7 +9,7 @@
 #include "Timestamp.h"
 #include "I2NPProtocol.h"
 #include "Transports.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "Config.h"
 #include "Tunnel.h"
 #include "TunnelPool.h"

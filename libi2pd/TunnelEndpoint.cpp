@@ -2,7 +2,7 @@
 #include <string.h>
 #include "Crypto.h"
 #include "Log.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "I2NPProtocol.h"
 #include "Transports.h"
 #include "RouterContext.h"

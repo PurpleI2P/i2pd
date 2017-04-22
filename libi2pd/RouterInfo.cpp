@@ -12,7 +12,7 @@
 #include "Base.h"
 #include "Timestamp.h"
 #include "Log.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "RouterContext.h"
 #include "RouterInfo.h"
 

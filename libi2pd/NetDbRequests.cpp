@@ -1,7 +1,7 @@
 #include "Log.h"
 #include "I2NPProtocol.h"
 #include "Transports.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "NetDbRequests.h"
 
 namespace i2p

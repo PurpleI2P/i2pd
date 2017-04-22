@@ -17,7 +17,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "Config.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "RouterContext.h"
 #include "Daemon.h"
 #include "Tunnel.h"

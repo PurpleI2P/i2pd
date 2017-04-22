@@ -13,7 +13,7 @@
 #include "Tunnel.h"
 #include "TransitTunnel.h"
 #include "Transports.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "HTTP.h"
 #include "LeaseSet.h"
 #include "Destination.h"

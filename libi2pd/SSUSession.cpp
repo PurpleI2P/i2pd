@@ -4,7 +4,7 @@
 #include "Timestamp.h"
 #include "RouterContext.h"
 #include "Transports.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "SSU.h"
 #include "SSUSession.h"
 

@@ -14,7 +14,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "Identity.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "HTTP.h"
 #include "util.h"
 #include "Config.h"

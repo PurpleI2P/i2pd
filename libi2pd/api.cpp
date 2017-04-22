@@ -2,7 +2,7 @@
 #include <map>
 #include "Config.h"
 #include "Log.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "Transports.h"
 #include "Tunnel.h"
 #include "RouterContext.h"

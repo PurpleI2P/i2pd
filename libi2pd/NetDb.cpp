@@ -13,7 +13,7 @@
 #include "Transports.h"
 #include "RouterContext.h"
 #include "Garlic.h"
-#include "NetDb.h"
+#include "NetDb.hpp"
 #include "Config.h"
 
 using namespace i2p::transport;
