@@ -116,7 +116,7 @@ namespace config {
 
     options_description sam("SAM bridge options");
     sam.add_options()
-      ("sam.enabled",         value<bool>()->default_value(false),                        "Enable or disable SAM Application bridge")
+      ("sam.enabled",         value<bool>()->default_value(true),                        "Enable or disable SAM Application bridge")
       ("sam.address",         value<std::string>()->default_value("127.0.0.1"),           "SAM listen address")
       ("sam.port",            value<uint16_t>()->default_value(7656),                     "SAM listen port")
       ;
