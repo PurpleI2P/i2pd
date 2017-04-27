@@ -6,4 +6,6 @@ stop on runlevel [016] or unmounting-filesystem
 # these can be overridden in /etc/init/i2pd.override
 env LOGFILE="/var/log/i2pd/i2pd.log"
 
+expect fork
+
 exec /usr/sbin/i2pd --daemon --service --log=file --logfile=$LOGFILE
