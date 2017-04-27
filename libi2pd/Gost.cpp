@@ -323,7 +323,7 @@ namespace crypto
 			for (int i = 63; i >= 0; i--)
 			{
 				uint16_t sum = buf[i] + other.buf[i] + carry;
-				ret.buf[i] = sum & 0xFF;
+				ret.buf[i] = sum;
 				carry = sum >> 8;
 			}	
 			return ret;
@@ -333,9 +333,10 @@ namespace crypto
 		{
 			for (int i = 63; i >= 0; i--)
 			{
+				if (!c) return;	
 				c += buf[i];
 				buf[i] = c;
-				c >>= 8;			
+				c >>= 8;		
 			}
 		}
 
