@@ -109,6 +109,18 @@ namespace http {
 		s << seconds << " seconds";
 	}
 
+	static void ShowTraffic (std::stringstream& s, uint64_t bytes)
+	{
+		s << std::fixed << std::setprecision(2);
+		auto numKBytes = (double) bytes / 1024;
+		if (numKBytes < 1024)
+			s << numKBytes << " KiB";
+		else if (numKBytes < 1024 * 1024)
+			s << numKBytes / 1024 << " MiB";
+		else
+			s << numKBytes / 1024 / 1024 << " GiB";
+	}
+
 	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, int bytes)
 	{
 		std::string state;
@@ -212,24 +224,14 @@ namespace http {
 			s << "<b>Family:</b> " << family << "<br>\r\n";
 		s << "<b>Tunnel creation success rate:</b> " << i2p::tunnel::tunnels.GetTunnelCreationSuccessRate () << "%<br>\r\n";
 		s << "<b>Received:</b> ";
-		s << std::fixed << std::setprecision(2);
-		auto numKBytesReceived = (double) i2p::transport::transports.GetTotalReceivedBytes () / 1024;
-		if (numKBytesReceived < 1024)
-			s << numKBytesReceived << " KiB";
-		else if (numKBytesReceived < 1024 * 1024)
-			s << numKBytesReceived / 1024 << " MiB";
-		else
-			s << numKBytesReceived / 1024 / 1024 << " GiB";
+		ShowTraffic (s, i2p::transport::transports.GetTotalReceivedBytes ());
 		s << " (" << (double) i2p::transport::transports.GetInBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Sent:</b> ";
-		auto numKBytesSent = (double) i2p::transport::transports.GetTotalSentBytes () / 1024;
-		if (numKBytesSent < 1024)
-			s << numKBytesSent << " KiB";
-		else if (numKBytesSent < 1024 * 1024)
-			s << numKBytesSent / 1024 << " MiB";
-		else
-			s << numKBytesSent / 1024 / 1024 << " GiB";
+		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
 		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
+		s << "<b>Transit:</b> ";
+		ShowTraffic (s, i2p::tunnel::GetTotalTrasitTransmittedBytes ());
+		s << "<br>\r\n";		
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
 		s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
 		s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
