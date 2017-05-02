@@ -99,8 +99,6 @@ namespace tunnel
 		const uint8_t * nextIdent, uint32_t nextTunnelID, 
 	    const uint8_t * layerKey,const uint8_t * ivKey, 
 		bool isGateway, bool isEndpoint);
-
-	uint64_t GetTotalTrasitTransmittedBytes ();
 }
 }
 

@@ -11,7 +11,6 @@
 #include "Log.h"
 #include "Config.h"
 #include "Tunnel.h"
-#include "TransitTunnel.h"
 #include "Transports.h"
 #include "NetDb.hpp"
 #include "HTTP.h"
@@ -230,8 +229,8 @@ namespace http {
 		ShowTraffic (s, i2p::transport::transports.GetTotalSentBytes ());
 		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Transit:</b> ";
-		ShowTraffic (s, i2p::tunnel::GetTotalTrasitTransmittedBytes ());
-		s << "<br>\r\n";		
+		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
+		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";		
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
 		s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
 		s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";

@@ -11,13 +11,6 @@ namespace i2p
 {
 namespace tunnel
 {	
-	static uint64_t m_TotalTransitTrasmittedBytes = 0;
-
-	uint64_t GetTotalTrasitTransmittedBytes ()
-	{
-		return m_TotalTransitTrasmittedBytes;
-	}
-
 	TransitTunnel::TransitTunnel (uint32_t receiveTunnelID, 
 	    const uint8_t * nextIdent, uint32_t nextTunnelID, 
 		const uint8_t * layerKey,const uint8_t * ivKey): 
@@ -29,7 +22,7 @@ namespace tunnel
 	void TransitTunnel::EncryptTunnelMsg (std::shared_ptr<const I2NPMessage> in, std::shared_ptr<I2NPMessage> out)
 	{		
 		m_Encryption.Encrypt (in->GetPayload () + 4, out->GetPayload () + 4); 
-		m_TotalTransitTrasmittedBytes += TUNNEL_DATA_MSG_SIZE;
+		i2p::transport::transports.UpdateTotalTransitTransmittedBytes (TUNNEL_DATA_MSG_SIZE);
 	}	
 
 	TransitTunnelParticipant::~TransitTunnelParticipant ()

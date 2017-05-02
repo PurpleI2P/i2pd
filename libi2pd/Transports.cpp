@@ -112,8 +112,10 @@ namespace transport
 		m_IsOnline (true), m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr),
 		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_DHKeysPairSupplier (5), // 5 pre-generated keys
-		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_InBandwidth (0), m_OutBandwidth (0),
-		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0), m_LastBandwidthUpdateTime (0)	
+		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
+ 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0), 
+		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
+		m_LastTransitBandwidthUpdateBytes (0), m_LastBandwidthUpdateTime (0)	
 	{		
 	}
 		
@@ -243,11 +245,13 @@ namespace transport
 			{
 				m_InBandwidth = (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes)*1000/delta; // per second 
 				m_OutBandwidth = (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes)*1000/delta; // per second 
+				m_TransitBandwidth = (m_TotalTransitTransmittedBytes - m_LastTransitBandwidthUpdateBytes)*1000/delta;
 			} 
 		}
 		m_LastBandwidthUpdateTime = ts;
 		m_LastInBandwidthUpdateBytes = m_TotalReceivedBytes;	
-		m_LastOutBandwidthUpdateBytes = m_TotalSentBytes;		
+		m_LastOutBandwidthUpdateBytes = m_TotalSentBytes;	
+		m_LastTransitBandwidthUpdateBytes = m_TotalTransitTransmittedBytes;	
 	}
 
 	bool Transports::IsBandwidthExceeded () const

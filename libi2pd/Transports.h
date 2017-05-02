@@ -99,9 +99,12 @@ namespace transport
 			void UpdateSentBytes (uint64_t numBytes) { m_TotalSentBytes += numBytes; };
 			void UpdateReceivedBytes (uint64_t numBytes) { m_TotalReceivedBytes += numBytes; };
 			uint64_t GetTotalSentBytes () const { return m_TotalSentBytes; };
-			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; };		
+			uint64_t GetTotalReceivedBytes () const { return m_TotalReceivedBytes; };
+			uint64_t GetTotalTransitTransmittedBytes () const { return m_TotalTransitTransmittedBytes; }
+			void UpdateTotalTransitTransmittedBytes (uint32_t add) { m_TotalTransitTransmittedBytes += add; };
 			uint32_t GetInBandwidth  () const { return m_InBandwidth; };
 			uint32_t GetOutBandwidth () const { return m_OutBandwidth; };
+			uint32_t GetTransitBandwidth () const { return m_TransitBandwidth; };
 			bool IsBandwidthExceeded () const;
 			size_t GetNumPeers () const { return m_Peers.size (); };
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
@@ -155,9 +158,9 @@ namespace transport
 			
 			DHKeysPairSupplier m_DHKeysPairSupplier;
 
-			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes;
-			uint32_t m_InBandwidth, m_OutBandwidth; // bytes per second
-			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;	
+			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes, m_TotalTransitTransmittedBytes;
+			uint32_t m_InBandwidth, m_OutBandwidth, m_TransitBandwidth; // bytes per second
+			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes, m_LastTransitBandwidthUpdateBytes;	
 			uint64_t m_LastBandwidthUpdateTime;		
 
 			/** which router families to trust for first hops */
