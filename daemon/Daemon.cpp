@@ -189,6 +189,9 @@ namespace i2p
 				i2p::context.SetBandwidth (i2p::data::CAPS_FLAG_LOW_BANDWIDTH2);
 			}	
 
+			int shareRatio; i2p::config::GetOption("share", shareRatio);
+			i2p::context.SetShareRatio (shareRatio);
+
 			std::string family; i2p::config::GetOption("family", family);
 			i2p::context.SetFamily (family);
 			if (family.length () > 0)

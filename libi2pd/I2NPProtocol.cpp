@@ -332,7 +332,8 @@ namespace i2p
 				// replace record to reply			
 				if (i2p::context.AcceptsTunnels () && 
 					i2p::tunnel::tunnels.GetTransitTunnels ().size () <= g_MaxNumTransitTunnels &&
-					!i2p::transport::transports.IsBandwidthExceeded ())
+					!i2p::transport::transports.IsBandwidthExceeded () &&
+					!i2p::transport::transports.IsTransitBandwidthExceeded ())
 				{	
 					auto transitTunnel = i2p::tunnel::CreateTransitTunnel (
 							bufbe32toh (clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET), 

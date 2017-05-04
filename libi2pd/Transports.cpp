@@ -261,6 +261,12 @@ namespace transport
 		return bw > limit;
 	}
 
+	bool Transports::IsTransitBandwidthExceeded () const
+	{
+		auto limit = i2p::context.GetTransitBandwidthLimit() * 1024; // convert to bytes
+		return m_TransitBandwidth > limit;
+	}	
+
 	void Transports::SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		SendMessages (ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg });															

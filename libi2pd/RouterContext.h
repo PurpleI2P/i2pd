@@ -54,6 +54,7 @@ namespace i2p
 			uint32_t GetStartupTime () const { return m_StartupTime; };
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
 			uint64_t GetBandwidthLimit () const { return m_BandwidthLimit; };
+			uint64_t GetTransitBandwidthLimit () const { return (m_BandwidthLimit*m_ShareRatio)/100LL; };
 			RouterStatus GetStatus () const { return m_Status; };
 			void SetStatus (RouterStatus status);
 			RouterError GetError () const { return m_Error; };
@@ -74,6 +75,7 @@ namespace i2p
 			std::string GetFamily () const;
 			void SetBandwidth (int limit); /* in kilobytes */
 			void SetBandwidth (char L); /* by letter */
+			void SetShareRatio (int percents); // 0 - 100
 			bool AcceptsTunnels () const { return m_AcceptsTunnels; };
 			void SetAcceptsTunnels (bool acceptsTunnels) { m_AcceptsTunnels = acceptsTunnels; };
 			bool SupportsV6 () const { return m_RouterInfo.IsV6 (); };
@@ -116,7 +118,8 @@ namespace i2p
 			uint64_t m_LastUpdateTime;
 			bool m_AcceptsTunnels, m_IsFloodfill;
 			uint64_t m_StartupTime; // in seconds since epoch
-			uint32_t m_BandwidthLimit; // allowed bandwidth
+			uint64_t m_BandwidthLimit; // allowed bandwidth
+			int m_ShareRatio;
 			RouterStatus m_Status;
 			RouterError m_Error;
 			int m_NetID;

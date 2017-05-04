@@ -106,6 +106,7 @@ namespace transport
 			uint32_t GetOutBandwidth () const { return m_OutBandwidth; };
 			uint32_t GetTransitBandwidth () const { return m_TransitBandwidth; };
 			bool IsBandwidthExceeded () const;
+			bool IsTransitBandwidthExceeded () const;
 			size_t GetNumPeers () const { return m_Peers.size (); };
 			std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer () const;
 

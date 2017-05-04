@@ -17,8 +17,8 @@ namespace i2p
 
 	RouterContext::RouterContext ():
 		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false), 
-		m_StartupTime (0), m_Status (eRouterStatusOK), m_Error (eRouterErrorNone),
-		m_NetID (I2PD_NET_ID)
+		m_StartupTime (0), m_ShareRatio (100), m_Status (eRouterStatusOK), 
+		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
 
@@ -244,6 +244,13 @@ namespace i2p
 		else if (limit >   48) { SetBandwidth('M'); }
 		else if (limit >   12) { SetBandwidth('L'); }
 		else                   { SetBandwidth('K'); }
+	}
+
+	void RouterContext::SetShareRatio (int percents)
+	{
+		if (percents < 0) percents = 0;
+		if (percents > 100) percents = 100;
+		m_ShareRatio = percents;
 	}
 
 	bool RouterContext::IsUnreachable () const
