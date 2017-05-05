@@ -355,8 +355,8 @@ namespace client
 		{
 			getline(f, s);
 
-			if (!s.length())
-				continue; // skip empty line
+			if (!s.length() || s[0] == '#')
+				continue; // skip empty or comment line
 
 			size_t pos = s.find('=');
 
