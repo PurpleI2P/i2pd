@@ -365,6 +365,10 @@ namespace client
 				std::string name = s.substr(0, pos++);
 				std::string addr = s.substr(pos);
 
+				size_t pos = s.find('#');
+				if (pos != std::string::npos)
+					std::string addr = addr.substr(pos); // remove comments			
+
 				auto ident = std::make_shared<i2p::data::IdentityEx> ();
 				if (!ident->FromBase64(addr)) {
 					LogPrint (eLogError, "Addressbook: malformed address ", addr, " for ", name);
