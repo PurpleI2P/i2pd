@@ -1,4 +1,4 @@
-#ifdef USE_EVENTS
+#ifdef WITH_EVENTS
 #include "Websocket.h"
 #include "Log.h"
 
@@ -22,7 +22,7 @@ namespace i2p
 
 		typedef websocketpp::server<websocketpp::config::asio> ServerImpl;
 		typedef websocketpp::connection_hdl ServerConn;
-		
+
 		class WebsocketServerImpl : public EventListener
 		{
 		private:
@@ -39,20 +39,20 @@ namespace i2p
 				m_server.set_open_handler(std::bind(&WebsocketServerImpl::ConnOpened, this, std::placeholders::_1));
 				m_server.set_close_handler(std::bind(&WebsocketServerImpl::ConnClosed, this, std::placeholders::_1));
 				m_server.set_message_handler(std::bind(&WebsocketServerImpl::OnConnMessage, this, std::placeholders::_1, std::placeholders::_2));
-				
+
 				m_server.listen(boost::asio::ip::address::from_string(addr), port);
 			}
 
 			~WebsocketServerImpl()
 			{
 			}
-			
+
 			void Start() {
 				m_run = true;
 				m_server.start_accept();
 				m_ws_thread = new std::thread([&] () {
 						while(m_run) {
-							try { 
+							try {
 								m_server.run();
 							} catch (std::exception & e ) {
 								LogPrint(eLogError, "Websocket server: ", e.what());
@@ -61,7 +61,7 @@ namespace i2p
 					});
 				m_ev_thread = new std::thread([&] () {
 						while(m_run) {
-							try { 
+							try {
 								m_Service.run();
 								break;
 							} catch (std::exception & e ) {
@@ -82,7 +82,7 @@ namespace i2p
 					delete m_ev_thread;
 				}
 				m_ev_thread = nullptr;
-				
+
 				if(m_ws_thread) {
 					m_ws_thread->join();
 					delete m_ws_thread;
@@ -95,7 +95,7 @@ namespace i2p
 				std::lock_guard<std::mutex> lock(m_connsMutex);
 				m_conns.insert(c);
 			}
-			
+
 			void ConnClosed(ServerConn c)
 			{
 				std::lock_guard<std::mutex> lock(m_connsMutex);
@@ -123,20 +123,20 @@ namespace i2p
 				LogPrint(eLogDebug, "Websocket schedule tick");
 				boost::posix_time::seconds dlt(1);
 				m_WebsocketTicker.expires_from_now(dlt);
-				m_WebsocketTicker.async_wait(std::bind(&WebsocketServerImpl::HandleTick, this, std::placeholders::_1)); 
+				m_WebsocketTicker.async_wait(std::bind(&WebsocketServerImpl::HandleTick, this, std::placeholders::_1));
 			}
-			
+
 			/** @brief called from m_ev_thread */
 			void HandlePumpEvent(const EventType & ev, const uint64_t & val)
 			{
 				EventType e;
 				for (const auto & i : ev)
 					e[i.first] = i.second;
-				
+
 				e["number"] = std::to_string(val);
 				HandleEvent(e);
 			}
-			
+
 			/** @brief called from m_ws_thread */
 			void HandleEvent(const EventType & ev)
 			{
@@ -155,7 +155,7 @@ namespace i2p
 					 con->send(s);
 				 }
 			}
-			
+
 		private:
 			typedef std::set<ServerConn, std::owner_less<ServerConn> > ConnList;
 			bool m_run;
@@ -175,7 +175,7 @@ namespace i2p
 			delete m_impl;
 		}
 
-		
+
 		void WebsocketServer::Start()
 		{
 			m_impl->Start();
@@ -185,7 +185,7 @@ namespace i2p
 		{
 			m_impl->Stop();
 		}
-		
+
 		EventListener * WebsocketServer::ToListener()
 		{
 			return m_impl;
