@@ -110,7 +110,7 @@ set (CLIENT_SRC
 )
 
 if(WITH_WEBSOCKETS)
-  list (APPEND CLIENT_SRC "${LIBI2PD_SRC_DIR}/Websocket.cpp")
+  list (APPEND CLIENT_SRC "${LIBI2PD_CLIENT_SRC_DIR}/Websocket.cpp")
 endif ()
 add_library(i2pdclient ${CLIENT_SRC})
 
