@@ -264,6 +264,8 @@ namespace data
 						introducer.iTag = boost::lexical_cast<uint32_t>(value);
 					else if (!strcmp (key, "ikey"))
 						Base64ToByteStream (value, strlen (value), introducer.iKey, 32);
+					else if (!strcmp (key, "iexp"))
+						introducer.iExp = boost::lexical_cast<uint32_t>(value);
 				}
 				if (!s) return;
 			}	
@@ -476,6 +478,18 @@ namespace data
 						properties << '=';
 						WriteString (boost::lexical_cast<std::string>(introducer.iTag), properties);
 						properties << ';';
+						i++;
+					}	
+					i = 0;
+					for (const auto& introducer: address.ssu->introducers)
+					{
+						if (introducer.iExp) // expiration is specified
+						{
+							WriteString ("iexp" + boost::lexical_cast<std::string>(i), properties);
+							properties << '=';
+							WriteString (boost::lexical_cast<std::string>(introducer.iExp), properties);
+							properties << ';';
+						}
 						i++;
 					}	
 				}	
