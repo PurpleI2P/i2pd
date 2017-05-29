@@ -12,6 +12,7 @@
 #include "Transports.h"
 #include "NetDb.hpp"
 #include "NTCPSession.h"
+#include "HTTP.h"
 #ifdef WITH_EVENTS
 #include "Event.h"
 #endif
@@ -22,15 +23,15 @@ namespace i2p
 {
 namespace transport
 {
-	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-		TransportSession (in_RemoteRouter, NTCP_ESTABLISH_TIMEOUT),	
-		m_Server (server), m_Socket (m_Server.GetService ()), 
+	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
+		TransportSession (in_RemoteRouter, NTCP_ESTABLISH_TIMEOUT),
+		m_Server (server), m_Socket (m_Server.GetService ()),
 		m_IsEstablished (false), m_IsTerminated (false),
 		m_ReceiveBufferOffset (0), m_NextMessage (nullptr), m_IsSending (false)
-	{		
+	{
 		m_Establisher = new Establisher;
 	}
-	
+
 	NTCPSession::~NTCPSession ()
 	{
 		delete m_Establisher;
@@ -40,14 +41,14 @@ namespace transport
 	{
 		uint8_t sharedKey[256];
 		m_DHKeysPair->Agree (pubKey, sharedKey); // time consuming operation
-		
+
 		i2p::crypto::AESKey aesKey;
 		if (sharedKey[0] & 0x80)
 		{
 			aesKey[0] = 0;
 			memcpy (aesKey + 1, sharedKey, 31);
-		}	
-		else if (sharedKey[0])	
+		}
+		else if (sharedKey[0])
 			memcpy (aesKey, sharedKey, 32);
 		else
 		{
@@ -60,24 +61,24 @@ namespace transport
 				{
 					LogPrint (eLogWarning, "NTCP: First 32 bytes of shared key is all zeros, ignored");
 					return;
-				}	
+				}
 			}
 			memcpy (aesKey, nonZero, 32);
 		}
 
 		m_Decryption.SetKey (aesKey);
 		m_Encryption.SetKey (aesKey);
-	}	
+	}
 
 	void NTCPSession::Done ()
 	{
-		m_Server.GetService ().post (std::bind (&NTCPSession::Terminate, shared_from_this ()));  
-	}	
-		
+		m_Server.GetService ().post (std::bind (&NTCPSession::Terminate, shared_from_this ()));
+	}
+
 	void NTCPSession::Terminate ()
 	{
 		if (!m_IsTerminated)
-		{	
+		{
 			m_IsTerminated = true;
 			m_IsEstablished = false;
 			m_Socket.close ();
@@ -86,8 +87,8 @@ namespace transport
 			m_SendQueue.clear ();
 			m_NextMessage = nullptr;
 			LogPrint (eLogDebug, "NTCP: session terminated");
-		}	
-	}	
+		}
+	}
 
 	void NTCPSession::Connected ()
 	{
@@ -95,14 +96,14 @@ namespace transport
 
 		delete m_Establisher;
 		m_Establisher = nullptr;
-		
-		m_DHKeysPair = nullptr;	
+
+		m_DHKeysPair = nullptr;
 
 		SetTerminationTimeout (NTCP_TERMINATION_TIMEOUT);
-		SendTimeSyncMessage ();		
+		SendTimeSyncMessage ();
 		transports.PeerConnected (shared_from_this ());
-	}	
-		
+	}
+
 	void NTCPSession::ClientLogin ()
 	{
 		if (!m_DHKeysPair)
@@ -114,61 +115,61 @@ namespace transport
 		const uint8_t * ident = m_RemoteIdentity->GetIdentHash ();
 		for (int i = 0; i < 32; i++)
 			m_Establisher->phase1.HXxorHI[i] ^= ident[i];
-		
+
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),
-        	std::bind(&NTCPSession::HandlePhase1Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-	}	
+			std::bind(&NTCPSession::HandlePhase1Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+	}
 
 	void NTCPSession::ServerLogin ()
 	{
 		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 		// receive Phase1
-		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),                    
-			std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (), 
+		boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),
+			std::bind(&NTCPSession::HandlePhase1Received, shared_from_this (),
 				std::placeholders::_1, std::placeholders::_2));
-	}	
-		
+	}
+
 	void NTCPSession::HandlePhase1Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		(void) bytes_transferred;
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: couldn't send Phase 1 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
-		{	
-			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),                 
-				std::bind(&NTCPSession::HandlePhase2Received, shared_from_this (), 
+		{
+			boost::asio::async_read (m_Socket, boost::asio::buffer(&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),
+				std::bind(&NTCPSession::HandlePhase2Received, shared_from_this (),
 					std::placeholders::_1, std::placeholders::_2));
-		}	
-	}	
+		}
+	}
 
 	void NTCPSession::HandlePhase1Received (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		(void) bytes_transferred;
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: phase 1 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
-		{	
+		{
 			// verify ident
 			uint8_t digest[32];
 			SHA256(m_Establisher->phase1.pubKey, 256, digest);
 			const uint8_t * ident = i2p::context.GetIdentHash ();
 			for (int i = 0; i < 32; i++)
-			{	
+			{
 				if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i])
 				{
 					LogPrint (eLogError, "NTCP: phase 1 error: ident mismatch");
 					Terminate ();
 					return;
-				}	
-			}	
+				}
+			}
 #if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)
 // due the bug in gcc 4.7. std::shared_future.get() is not const
 			if (!m_DHKeysPair)
@@ -183,15 +184,15 @@ namespace transport
 					if (!s->m_DHKeysPair)
 						s->m_DHKeysPair = transports.GetNextDHKeysPair ();
 					s->CreateAESKey (s->m_Establisher->phase1.pubKey);
-				}).share (); 						 
+				}).share ();
 			m_Server.GetService ().post ([s, keyCreated]()
-				{  
-					keyCreated.get (); 
-					s->SendPhase2 ();
-				});
-#endif	
-		}	
-	}	
+			{
+				keyCreated.get ();
+				s->SendPhase2 ();
+			});
+#endif
+		}
+	}
 
 	void NTCPSession::SendPhase2 ()
 	{
@@ -200,42 +201,42 @@ namespace transport
 		uint8_t xy[512];
 		memcpy (xy, m_Establisher->phase1.pubKey, 256);
 		memcpy (xy + 256, y, 256);
-		SHA256(xy, 512, m_Establisher->phase2.encrypted.hxy); 
+		SHA256(xy, 512, m_Establisher->phase2.encrypted.hxy);
 		uint32_t tsB = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		memcpy (m_Establisher->phase2.encrypted.timestamp, &tsB, 4);
 		RAND_bytes (m_Establisher->phase2.encrypted.filler, 12);
 
 		m_Encryption.SetIV (y + 240);
 		m_Decryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
-		
+
 		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),
-        	std::bind(&NTCPSession::HandlePhase2Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsB));
+					std::bind(&NTCPSession::HandlePhase2Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsB));
 
-	}	
-		
+	}
+
 	void NTCPSession::HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB)
 	{
 		(void) bytes_transferred;
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 2 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
-		{	
-			boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer, NTCP_DEFAULT_PHASE3_SIZE), boost::asio::transfer_all (),                   
-				std::bind(&NTCPSession::HandlePhase3Received, shared_from_this (), 
+		{
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer, NTCP_DEFAULT_PHASE3_SIZE), boost::asio::transfer_all (),
+				std::bind(&NTCPSession::HandlePhase3Received, shared_from_this (),
 					std::placeholders::_1, std::placeholders::_2, tsB));
-		}	
-	}	
-		
+		}
+	}
+
 	void NTCPSession::HandlePhase2Received (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		(void) bytes_transferred;
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
 			if (ecode != boost::asio::error::operation_aborted)
 			{
@@ -247,7 +248,7 @@ namespace transport
 			}
 		}
 		else
-		{	
+		{
 #if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)
 // due the bug in gcc 4.7. std::shared_future.get() is not const
 			CreateAESKey (m_Establisher->phase2.pubKey);
@@ -258,22 +259,22 @@ namespace transport
 			auto keyCreated = std::async (std::launch::async, [s] ()
 				{
 					s->CreateAESKey (s->m_Establisher->phase2.pubKey);
-				}).share (); // TODO: use move capture in C++ 14 instead shared_future							 
+				}).share (); // TODO: use move capture in C++ 14 instead shared_future
 			// let other operations execute while a key gets created
 			m_Server.GetService ().post ([s, keyCreated]()
-				{  
+				{
 					keyCreated.get (); // we might wait if no more pending operations
 					s->HandlePhase2 ();
-				});	
+				});
 #endif
-		}	
-	}	
+		}
+	}
 
 	void NTCPSession::HandlePhase2 ()
 	{
 		m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
 		m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
-		
+
 		m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 		// verify
 		uint8_t xy[512];
@@ -281,31 +282,31 @@ namespace transport
 		memcpy (xy + 256, m_Establisher->phase2.pubKey, 256);
 		uint8_t digest[32];
 		SHA256 (xy, 512, digest);
-		if (memcmp(m_Establisher->phase2.encrypted.hxy, digest, 32)) 
+		if (memcmp(m_Establisher->phase2.encrypted.hxy, digest, 32))
 		{
 			LogPrint (eLogError, "NTCP: Phase 2 process error: incorrect hash");
 			transports.ReuseDHKeysPair (m_DHKeysPair);
 			m_DHKeysPair = nullptr;
 			Terminate ();
 			return ;
-		}	
+		}
 		SendPhase3 ();
-	}				
-		
+	}
+
 	void NTCPSession::SendPhase3 ()
 	{
 		auto& keys = i2p::context.GetPrivateKeys ();
-		uint8_t * buf = m_ReceiveBuffer; 
+		uint8_t * buf = m_ReceiveBuffer;
 		htobe16buf (buf, keys.GetPublic ()->GetFullLen ());
 		buf += 2;
 		buf += i2p::context.GetIdentity ()->ToBuffer (buf, NTCP_BUFFER_SIZE);
 		uint32_t tsA = htobe32 (i2p::util::GetSecondsSinceEpoch ());
 		htobuf32(buf,tsA);
-		buf += 4;		
+		buf += 4;
 		size_t signatureLen = keys.GetPublic ()->GetSignatureLen ();
 		size_t len = (buf - m_ReceiveBuffer) + signatureLen;
 		size_t paddingSize = len & 0x0F; // %16
-		if (paddingSize > 0) 
+		if (paddingSize > 0)
 		{
 			paddingSize = 16 - paddingSize;
 			// fill padding with random data
@@ -318,46 +319,46 @@ namespace transport
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
 		s.Insert (m_RemoteIdentity->GetIdentHash (), 32); // ident
- 		s.Insert (tsA);	// tsA
+		s.Insert (tsA);	// tsA
 		s.Insert (m_Establisher->phase2.encrypted.timestamp, 4); // tsB
 		s.Sign (keys, buf);
 
-		m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);		        
+		m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_ReceiveBuffer, len), boost::asio::transfer_all (),
-        	std::bind(&NTCPSession::HandlePhase3Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsA));				
-	}	
-		
+			std::bind(&NTCPSession::HandlePhase3Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsA));
+	}
+
 	void NTCPSession::HandlePhase3Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA)
 	{
-		(void) bytes_transferred; 
+		(void) bytes_transferred;
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 3 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
-		{	
-			// wait for phase4 
+		{
+			// wait for phase4
 			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
 			size_t paddingSize = signatureLen & 0x0F; // %16
-			if (paddingSize > 0) signatureLen += (16 - paddingSize);	
-			boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer, signatureLen), boost::asio::transfer_all (),                  
-				std::bind(&NTCPSession::HandlePhase4Received, shared_from_this (), 
+			if (paddingSize > 0) signatureLen += (16 - paddingSize);
+			boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer, signatureLen), boost::asio::transfer_all (),
+				std::bind(&NTCPSession::HandlePhase4Received, shared_from_this (),
 					std::placeholders::_1, std::placeholders::_2, tsA));
-		}	
-	}	
+		}
+	}
 
 	void NTCPSession::HandlePhase3Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB)
-	{	
+	{
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: Phase 3 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
-		{	
+		{
 			m_Decryption.Decrypt (m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 			uint8_t * buf = m_ReceiveBuffer;
 			uint16_t size = bufbe16toh (buf);
@@ -366,30 +367,30 @@ namespace transport
 			{
 				LogPrint (eLogInfo, "NTCP: session already exists");
 				Terminate ();
-			}	
+			}
 			auto existing = i2p::data::netdb.FindRouter (identity->GetIdentHash ()); // check if exists already
 			SetRemoteIdentity (existing ? existing->GetRouterIdentity () : identity);
-		
+
 			size_t expectedSize = size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity->GetSignatureLen ();
 			size_t paddingLen = expectedSize & 0x0F;
-			if (paddingLen) paddingLen = (16 - paddingLen);	
+			if (paddingLen) paddingLen = (16 - paddingLen);
 			if (expectedSize > NTCP_DEFAULT_PHASE3_SIZE)
 			{
 				// we need more bytes for Phase3
-				expectedSize += paddingLen;	
-				boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE, expectedSize - NTCP_DEFAULT_PHASE3_SIZE), boost::asio::transfer_all (),                   
-				std::bind(&NTCPSession::HandlePhase3ExtraReceived, shared_from_this (), 
+				expectedSize += paddingLen;
+				boost::asio::async_read (m_Socket, boost::asio::buffer(m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE, expectedSize - NTCP_DEFAULT_PHASE3_SIZE), boost::asio::transfer_all (),
+				std::bind(&NTCPSession::HandlePhase3ExtraReceived, shared_from_this (),
 					std::placeholders::_1, std::placeholders::_2, tsB, paddingLen));
 			}
 			else
 				HandlePhase3 (tsB, paddingLen);
-		}	
+		}
 	}
 
 	void NTCPSession::HandlePhase3ExtraReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB, size_t paddingLen)
 	{
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: Phase 3 extra read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -398,25 +399,25 @@ namespace transport
 		{
 			m_Decryption.Decrypt (m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE, bytes_transferred, m_ReceiveBuffer+ NTCP_DEFAULT_PHASE3_SIZE);
 			HandlePhase3 (tsB, paddingLen);
-		}		
-	}	
+		}
+	}
 
 	void NTCPSession::HandlePhase3 (uint32_t tsB, size_t paddingLen)
 	{
 		uint8_t * buf = m_ReceiveBuffer + m_RemoteIdentity->GetFullLen () + 2 /*size*/;
-		uint32_t tsA = buf32toh(buf); 
+		uint32_t tsA = buf32toh(buf);
 		buf += 4;
-		buf += paddingLen;	
+		buf += paddingLen;
 
 		// check timestamp
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		uint32_t tsA1 = be32toh (tsA);
 		if (tsA1 < ts - NTCP_CLOCK_SKEW || tsA1 > ts + NTCP_CLOCK_SKEW)
 		{
-			LogPrint (eLogError, "NTCP: Phase3 time difference ", ts - tsA1, " exceeds clock skew"); 
+			LogPrint (eLogError, "NTCP: Phase3 time difference ", ts - tsA1, " exceeds clock skew");
 			Terminate ();
 			return;
-		}	
+		}
 
 		// check signature
 		SignedData s;
@@ -424,13 +425,13 @@ namespace transport
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
 		s.Insert (i2p::context.GetRouterInfo ().GetIdentHash (), 32); // ident
 		s.Insert (tsA); // tsA
-		s.Insert (tsB); // tsB			
+		s.Insert (tsB); // tsB
 		if (!s.Verify (m_RemoteIdentity, buf))
-		{	
+		{
 			LogPrint (eLogError, "NTCP: signature verification failed");
 			Terminate ();
 			return;
-		}	
+		}
 
 		SendPhase4 (tsA, tsB);
 	}
@@ -444,27 +445,27 @@ namespace transport
 		s.Insert (tsA); // tsA
 		s.Insert (tsB); // tsB
 		auto& keys = i2p::context.GetPrivateKeys ();
- 		auto signatureLen = keys.GetPublic ()->GetSignatureLen ();
+		auto signatureLen = keys.GetPublic ()->GetSignatureLen ();
 		s.Sign (keys, m_ReceiveBuffer);
 		size_t paddingSize = signatureLen & 0x0F; // %16
-		if (paddingSize > 0) signatureLen += (16 - paddingSize);		
+		if (paddingSize > 0) signatureLen += (16 - paddingSize);
 		m_Encryption.Encrypt (m_ReceiveBuffer, signatureLen, m_ReceiveBuffer);
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_ReceiveBuffer, signatureLen), boost::asio::transfer_all (),
-        	std::bind(&NTCPSession::HandlePhase4Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
-	}	
+			std::bind(&NTCPSession::HandlePhase4Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+	}
 
 	void NTCPSession::HandlePhase4Sent (const boost::system::error_code& ecode,  std::size_t bytes_transferred)
 	{
 		(void) bytes_transferred;
 		if (ecode)
-        {
+		{
 			LogPrint (eLogWarning, "NTCP: Couldn't send Phase 4 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
 		}
 		else
-		{	
+		{
 			LogPrint (eLogDebug, "NTCP: Server session from ", m_Socket.remote_endpoint (), " connected");
 			m_Server.AddNTCPSession (shared_from_this ());
 
@@ -472,23 +473,23 @@ namespace transport
 			m_ReceiveBufferOffset = 0;
 			m_NextMessage = nullptr;
 			Receive ();
-		}	
-	}	
-		
+		}
+	}
+
 	void NTCPSession::HandlePhase4Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA)
 	{
 		if (ecode)
-        {
+		{
 			LogPrint (eLogError, "NTCP: Phase 4 read error: ", ecode.message (), ". Check your clock");
 			if (ecode != boost::asio::error::operation_aborted)
 			{
-				 // this router doesn't like us	
+				 // this router doesn't like us
 				i2p::data::netdb.SetUnreachable (GetRemoteIdentity ()->GetIdentHash (), true);
 				Terminate ();
-			}	
+			}
 		}
 		else
-		{	
+		{
 			m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
 
 			// check timestamp
@@ -496,11 +497,11 @@ namespace transport
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			if (tsB < ts - NTCP_CLOCK_SKEW || tsB > ts + NTCP_CLOCK_SKEW)
 			{
-				LogPrint (eLogError, "NTCP: Phase4 time difference ", ts - tsB, " exceeds clock skew"); 
+				LogPrint (eLogError, "NTCP: Phase4 time difference ", ts - tsB, " exceeds clock skew");
 				Terminate ();
 				return;
-			}	
-			
+			}
+
 			// verify signature
 			SignedData s;
 			s.Insert (m_Establisher->phase1.pubKey, 256); // x
@@ -510,14 +511,14 @@ namespace transport
 			s.Insert (m_Establisher->phase2.encrypted.timestamp, 4); // tsB
 
 			if (!s.Verify (m_RemoteIdentity, m_ReceiveBuffer))
-			{	
+			{
 				LogPrint (eLogError, "NTCP: Phase 4 process error: signature verification failed");
 				Terminate ();
 				return;
-			}	
+			}
 			LogPrint (eLogDebug, "NTCP: session to ", m_Socket.remote_endpoint (), " connected");
 			Connected ();
-						
+
 			m_ReceiveBufferOffset = 0;
 			m_NextMessage = nullptr;
 			Receive ();
@@ -526,14 +527,14 @@ namespace transport
 
 	void NTCPSession::Receive ()
 	{
-		m_Socket.async_read_some (boost::asio::buffer(m_ReceiveBuffer + m_ReceiveBufferOffset, NTCP_BUFFER_SIZE - m_ReceiveBufferOffset),                
-			std::bind(&NTCPSession::HandleReceived, shared_from_this (), 
+		m_Socket.async_read_some (boost::asio::buffer(m_ReceiveBuffer + m_ReceiveBufferOffset, NTCP_BUFFER_SIZE - m_ReceiveBufferOffset),
+			std::bind(&NTCPSession::HandleReceived, shared_from_this (),
 			std::placeholders::_1, std::placeholders::_2));
-	}	
-		
+	}
+
 	void NTCPSession::HandleReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
-		if (ecode) 
+		if (ecode)
 		{
 			if (ecode != boost::asio::error::operation_aborted)
 				LogPrint (eLogDebug, "NTCP: Read error: ", ecode.message ());
@@ -547,7 +548,7 @@ namespace transport
 			m_ReceiveBufferOffset += bytes_transferred;
 
 			if (m_ReceiveBufferOffset >= 16)
-			{	
+			{
 				// process received data
 				uint8_t * nextBlock = m_ReceiveBuffer;
 				while (m_ReceiveBufferOffset >= 16)
@@ -555,14 +556,14 @@ namespace transport
 					if (!DecryptNextBlock (nextBlock)) // 16 bytes
 					{
 						Terminate ();
-						return; 
-					}	
+						return;
+					}
 					nextBlock += 16;
 					m_ReceiveBufferOffset -= 16;
-				}	
-				if (m_ReceiveBufferOffset > 0) 
-					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);		
-			}		
+				}
+				if (m_ReceiveBufferOffset > 0)
+					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
+			}
 
 			// read and process more is available
 			boost::system::error_code ec;
@@ -586,11 +587,11 @@ namespace transport
 					delete[] buf;
 					Terminate ();
 					return;
-				} 
-				m_ReceiveBufferOffset += moreBytes;	
+				}
+				m_ReceiveBufferOffset += moreBytes;
 				m_NumReceivedBytes += moreBytes;
 				i2p::transport::transports.UpdateReceivedBytes (moreBytes);
-				// process more data				
+				// process more data
 				uint8_t * nextBlock = moreBuf;
 				while (m_ReceiveBufferOffset >= 16)
 				{
@@ -598,26 +599,26 @@ namespace transport
 					{
 						delete[] buf;
 						Terminate ();
-						return; 
-					}	
+						return;
+					}
 					nextBlock += 16;
 					m_ReceiveBufferOffset -= 16;
-				}	
-				if (m_ReceiveBufferOffset > 0) 
+				}
+				if (m_ReceiveBufferOffset > 0)
 					memcpy (m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset); // nextBlock points to memory inside buf
 				delete[] buf;
-			}			
-			m_Handler.Flush ();	
-			
+			}
+			m_Handler.Flush ();
+
 			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			Receive ();
-		}	
-	}	
+		}
+	}
 
 	bool NTCPSession::DecryptNextBlock (const uint8_t * encrypted) // 16 bytes
 	{
 		if (!m_NextMessage) // new message, header expected
-		{	
+		{
 			// decrypt header and extract length
 			uint8_t buf[16];
 			m_Decryption.Decrypt (encrypted, buf);
@@ -633,26 +634,26 @@ namespace transport
 				m_NextMessage = (dataSize + 16U + 15U) <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ? NewI2NPShortMessage () : NewI2NPMessage ();
 				m_NextMessage->Align (16);
 				m_NextMessage->offset += 2; // size field
-				m_NextMessage->len = m_NextMessage->offset + dataSize; 
+				m_NextMessage->len = m_NextMessage->offset + dataSize;
 				memcpy (m_NextMessage->GetBuffer () - 2, buf, 16);
 				m_NextMessageOffset = 16;
-			}	
+			}
 			else
-			{	
+			{
 				// timestamp
 				int diff = (int)bufbe32toh (buf + 2) - (int)i2p::util::GetSecondsSinceEpoch ();
 				LogPrint (eLogInfo, "NTCP: Timestamp. Time difference ", diff, " seconds");
 				return true;
-			}	
-		}	
+			}
+		}
 		else // message continues
-		{	
+		{
 			m_Decryption.Decrypt (encrypted, m_NextMessage->GetBuffer () - 2 + m_NextMessageOffset);
 			m_NextMessageOffset += 16;
-		}		
-		
+		}
+
 		if (m_NextMessageOffset >= m_NextMessage->GetLength () + 2 + 4) // +checksum
-		{	
+		{
 			// we have a complete I2NP message
 			uint8_t checksum[4];
 			htobe32buf (checksum, adler32 (adler32 (0, Z_NULL, 0), m_NextMessage->GetBuffer () - 2, m_NextMessageOffset - 4));
@@ -667,19 +668,19 @@ namespace transport
 				}
 				else
 					LogPrint (eLogInfo, "NTCP: message expired");
-			}	
+			}
 			else
 				LogPrint (eLogWarning, "NTCP: Incorrect adler checksum of message, dropped");
 			m_NextMessage = nullptr;
 		}
-		return true;	
- 	}	
+		return true;
+	}
 
 	void NTCPSession::Send (std::shared_ptr<i2p::I2NPMessage> msg)
 	{
 		m_IsSending = true;
-		boost::asio::async_write (m_Socket, CreateMsgBuffer (msg), boost::asio::transfer_all (),                      
-        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, std::vector<std::shared_ptr<I2NPMessage> >{ msg }));	
+		boost::asio::async_write (m_Socket, CreateMsgBuffer (msg), boost::asio::transfer_all (),
+			std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, std::vector<std::shared_ptr<I2NPMessage> >{ msg }));
 	}
 
 	boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg)
@@ -688,14 +689,14 @@ namespace transport
 		int len;
 
 		if (msg)
-		{	
+		{
 			// regular I2NP
 			if (msg->offset < 2)
 				LogPrint (eLogError, "NTCP: Malformed I2NP message"); // TODO:
-			sendBuffer = msg->GetBuffer () - 2; 
+			sendBuffer = msg->GetBuffer () - 2;
 			len = msg->GetLength ();
 			htobe16buf (sendBuffer, len);
-		}	
+		}
 		else
 		{
 			// prepare timestamp
@@ -703,7 +704,7 @@ namespace transport
 			len = 4;
 			htobuf16(sendBuffer, 0);
 			htobe32buf (sendBuffer + 2, i2p::util::GetSecondsSinceEpoch ());
-		}	
+		}
 		int rem = (len + 6) & 0x0F; // %16
 		int padding = 0;
 		if (rem > 0) {
@@ -714,9 +715,9 @@ namespace transport
 		htobe32buf (sendBuffer + len + 2 + padding, adler32 (adler32 (0, Z_NULL, 0), sendBuffer, len + 2+ padding));
 
 		int l = len + padding + 6;
-		m_Encryption.Encrypt(sendBuffer, l, sendBuffer);	
+		m_Encryption.Encrypt(sendBuffer, l, sendBuffer);
 		return boost::asio::buffer ((const uint8_t *)sendBuffer, l);
-	}	
+	}
 
 
 	void NTCPSession::Send (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
@@ -725,23 +726,23 @@ namespace transport
 		std::vector<boost::asio::const_buffer> bufs;
 		for (const auto& it: msgs)
 			bufs.push_back (CreateMsgBuffer (it));
-		boost::asio::async_write (m_Socket, bufs, boost::asio::transfer_all (),                      
-        	std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
+		boost::asio::async_write (m_Socket, bufs, boost::asio::transfer_all (),
+			std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
 	}
-		
+
 	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
 		(void) msgs;
 		m_IsSending = false;
 		if (ecode)
-        {
+		{
 			LogPrint (eLogWarning, "NTCP: Couldn't send msgs: ", ecode.message ());
 			// we shouldn't call Terminate () here, because HandleReceive takes care
 			// TODO: 'delete this' statement in Terminate () must be eliminated later
 			// Terminate ();
 		}
 		else
-		{	
+		{
 			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
 			m_NumSentBytes += bytes_transferred;
 			i2p::transport::transports.UpdateSentBytes (bytes_transferred);
@@ -749,28 +750,28 @@ namespace transport
 			{
 				Send (m_SendQueue);
 				m_SendQueue.clear ();
-			}	
-		}	
-	}	
+			}
+		}
+	}
 
-		
+
 	void NTCPSession::SendTimeSyncMessage ()
 	{
 		Send (nullptr);
-	}	
+	}
 
 
 	void NTCPSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
 	{
-		m_Server.GetService ().post (std::bind (&NTCPSession::PostI2NPMessages, shared_from_this (), msgs));  
-	}	
+		m_Server.GetService ().post (std::bind (&NTCPSession::PostI2NPMessages, shared_from_this (), msgs));
+	}
 
 	void NTCPSession::PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs)
 	{
 		if (m_IsTerminated) return;
 		if (m_IsSending)
 		{
-			if (m_SendQueue.size () < NTCP_MAX_OUTGOING_QUEUE_SIZE)	
+			if (m_SendQueue.size () < NTCP_MAX_OUTGOING_QUEUE_SIZE)
 			{
 				for (const auto& it: msgs)
 					m_SendQueue.push_back (it);
@@ -779,131 +780,152 @@ namespace transport
 			{
 				LogPrint (eLogWarning, "NTCP: outgoing messages queue size exceeds ", NTCP_MAX_OUTGOING_QUEUE_SIZE);
 				Terminate ();
-			}	
-		}	
-		else	
+			}
+		}
+		else
 			Send (msgs);
-	}	
+	}
 
 //-----------------------------------------
 	NTCPServer::NTCPServer ():
-		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service), 
-		m_TerminationTimer (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr)
+		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
+		m_TerminationTimer (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr),
+		m_ProxyType(eNoProxy), m_Resolver(m_Service), m_ProxyEndpoint(nullptr)
 	{
 	}
-		
+
 	NTCPServer::~NTCPServer ()
 	{
 		Stop ();
-	}	
+	}
 
 	void NTCPServer::Start ()
 	{
 		if (!m_IsRunning)
-		{	
+		{
 			m_IsRunning = true;
 			m_Thread = new std::thread (std::bind (&NTCPServer::Run, this));
-			// create acceptors
-			auto& addresses = context.GetRouterInfo ().GetAddresses ();
-			for (const auto& address: addresses)
+			// we are using a proxy, don't create any acceptors
+			if(UsingProxy())
 			{
-				if (!address) continue;
-				if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+				// TODO: resolve proxy until it is resolved
+				boost::asio::ip::tcp::resolver::query q(m_ProxyAddress, std::to_string(m_ProxyPort));
+				boost::system::error_code e;
+				auto itr = m_Resolver.resolve(q, e);
+				if(e)
 				{
-					if (address->host.is_v4())
-					{
-						try
-						{
-							m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service,
-								boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
-						} catch ( std::exception & ex ) {
-							/** fail to bind ip4 */
-							LogPrint(eLogError, "NTCP: Failed to bind to ip4 port ",address->port, ex.what());
-							continue;
-						}
-						
-						LogPrint (eLogInfo, "NTCP: Start listening TCP port ", address->port);
-						auto conn = std::make_shared<NTCPSession>(*this);
-						m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, 
-							conn, std::placeholders::_1));	
-					}
-					else if (address->host.is_v6() && context.SupportsV6 ())
-					{
-						m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);							
-						try
-						{
-							m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
-							m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
-							
-							m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
-							m_NTCPV6Acceptor->listen ();
-							
-							LogPrint (eLogInfo, "NTCP: Start listening V6 TCP port ", address->port);
-							auto conn = std::make_shared<NTCPSession> (*this);
-							m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6,
-								this, conn, std::placeholders::_1));
-						} catch ( std::exception & ex ) {
-							LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
-							continue;
-						}
-					}	
+					LogPrint(eLogError, "NTCP: Failed to resolve proxy ", e.message());
+				}
+				else
+				{
+					m_ProxyEndpoint = new boost::asio::ip::tcp::endpoint(*itr);
 				}
 			}
-			ScheduleTermination ();	
-		}	
+			else
+			{
+				// create acceptors
+				auto& addresses = context.GetRouterInfo ().GetAddresses ();
+				for (const auto& address: addresses)
+				{
+					if (!address) continue;
+					if (address->transportStyle == i2p::data::RouterInfo::eTransportNTCP)
+					{
+						if (address->host.is_v4())
+						{
+							try
+							{
+								m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor (m_Service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), address->port));
+							} catch ( std::exception & ex ) {
+								/** fail to bind ip4 */
+								LogPrint(eLogError, "NTCP: Failed to bind to ip4 port ",address->port, ex.what());
+								continue;
+							}
+
+							LogPrint (eLogInfo, "NTCP: Start listening TCP port ", address->port);
+							auto conn = std::make_shared<NTCPSession>(*this);
+							m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, conn, std::placeholders::_1));
+						}
+						else if (address->host.is_v6() && context.SupportsV6 ())
+						{
+							m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor (m_Service);
+							try
+							{
+								m_NTCPV6Acceptor->open (boost::asio::ip::tcp::v6());
+								m_NTCPV6Acceptor->set_option (boost::asio::ip::v6_only (true));
+								m_NTCPV6Acceptor->bind (boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v6(), address->port));
+								m_NTCPV6Acceptor->listen ();
+
+								LogPrint (eLogInfo, "NTCP: Start listening V6 TCP port ", address->port);
+								auto conn = std::make_shared<NTCPSession> (*this);
+								m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, conn, std::placeholders::_1));
+							} catch ( std::exception & ex ) {
+								LogPrint(eLogError, "NTCP: failed to bind to ip6 port ", address->port);
+								continue;
+							}
+						}
+					}
+				}
+			}
+			ScheduleTermination ();
+		}
 	}
-		
+
 	void NTCPServer::Stop ()
-	{	
+	{
 		{
 			// we have to copy it because Terminate changes m_NTCPSessions
-			auto ntcpSessions = m_NTCPSessions; 
+			auto ntcpSessions = m_NTCPSessions;
 			for (auto& it: ntcpSessions)
 				it.second->Terminate ();
 			for (auto& it: m_PendingIncomingSessions)
 				it->Terminate ();
-		}	 
+		}
 		m_NTCPSessions.clear ();
 
 		if (m_IsRunning)
-		{	
+		{
 			m_IsRunning = false;
-			m_TerminationTimer.cancel ();	
-		  	if (m_NTCPAcceptor)
-			{	
-		    	delete m_NTCPAcceptor;
+			m_TerminationTimer.cancel ();
+			if (m_NTCPAcceptor)
+			{
+					delete m_NTCPAcceptor;
 				m_NTCPAcceptor = nullptr;
 			}
-		  	if (m_NTCPV6Acceptor)
+			if (m_NTCPV6Acceptor)
 			{
-		    	delete m_NTCPV6Acceptor;
+				delete m_NTCPV6Acceptor;
 				m_NTCPV6Acceptor = nullptr;
 			}
 			m_Service.stop ();
 			if (m_Thread)
-			{	
-				m_Thread->join (); 
+			{
+				m_Thread->join ();
 				delete m_Thread;
 				m_Thread = nullptr;
-			}	
-		}	
-	}	
+			}
+			if(m_ProxyEndpoint)
+			{
+				delete m_ProxyEndpoint;
+				m_ProxyEndpoint = nullptr;
+			}
+		}
+	}
 
-		
-	void NTCPServer::Run () 
-	{ 
+
+	void NTCPServer::Run ()
+	{
 		while (m_IsRunning)
 		{
 			try
-			{	
+			{
 				m_Service.run ();
 			}
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "NTCP: runtime exception: ", ex.what ());
-			}	
-		}	
-	}	
+			}
+		}
+	}
 
 	bool NTCPServer::AddNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
@@ -918,13 +940,13 @@ namespace transport
 		}
 		m_NTCPSessions.insert (std::pair<i2p::data::IdentHash, std::shared_ptr<NTCPSession> >(ident, session));
 		return true;
-	}	
+	}
 
 	void NTCPServer::RemoveNTCPSession (std::shared_ptr<NTCPSession> session)
 	{
 		if (session && session->GetRemoteIdentity ())
 			m_NTCPSessions.erase (session->GetRemoteIdentity ()->GetIdentHash ());
-	}	
+	}
 
 	std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession (const i2p::data::IdentHash& ident)
 	{
@@ -932,14 +954,14 @@ namespace transport
 		if (it != m_NTCPSessions.end ())
 			return it->second;
 		return nullptr;
-	}	
-		
+	}
+
 	void NTCPServer::HandleAccept (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error)
-	{		
+	{
 		if (!error)
 		{
 			boost::system::error_code ec;
-			auto ep = conn->GetSocket ().remote_endpoint(ec);	
+			auto ep = conn->GetSocket ().remote_endpoint(ec);
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
@@ -947,35 +969,35 @@ namespace transport
 				{
 					conn->ServerLogin ();
 					m_PendingIncomingSessions.push_back (conn);
-				}	
+				}
 			}
 			else
 				LogPrint (eLogError, "NTCP: Connected from error ", ec.message ());
 		}
-		
+
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-    		conn = std::make_shared<NTCPSession> (*this);
-			m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this, 
+			conn = std::make_shared<NTCPSession> (*this);
+			m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this,
 				conn, std::placeholders::_1));
-		}	
+		}
 	}
 
 	void NTCPServer::HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error)
-	{		
+	{
 		if (!error)
 		{
 			boost::system::error_code ec;
-			auto ep = conn->GetSocket ().remote_endpoint(ec);	
+			auto ep = conn->GetSocket ().remote_endpoint(ec);
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
 				if (conn)
-				{	
+				{
 					conn->ServerLogin ();
 					m_PendingIncomingSessions.push_back (conn);
-				}	
+				}
 			}
 			else
 				LogPrint (eLogError, "NTCP: Connected from error ", ec.message ());
@@ -983,40 +1005,65 @@ namespace transport
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-    		conn = std::make_shared<NTCPSession> (*this);
-			m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this, 
+			conn = std::make_shared<NTCPSession> (*this);
+			m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this,
 				conn, std::placeholders::_1));
-		}	
-	}	
+		}
+	}
 
-	void NTCPServer::Connect (const boost::asio::ip::address& address, int port, std::shared_ptr<NTCPSession> conn)
+	void NTCPServer::Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCPSession> conn)
 	{
 		LogPrint (eLogDebug, "NTCP: Connecting to ", address ,":",  port);
-		m_Service.post([=]()
-		{       
+		m_Service.post([=]() {
 			if (this->AddNTCPSession (conn))
 			{
+
 				auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
-				timer->expires_from_now (boost::posix_time::seconds(NTCP_CONNECT_TIMEOUT)); 
-				timer->async_wait ([conn](const boost::system::error_code& ecode)
+				timer->expires_from_now (boost::posix_time::seconds(NTCP_CONNECT_TIMEOUT));
+				timer->async_wait ([conn](const boost::system::error_code& ecode) {
+					if (ecode != boost::asio::error::operation_aborted)
 					{
-						if (ecode != boost::asio::error::operation_aborted)
-						{
-							LogPrint (eLogInfo, "NTCP: Not connected in ", NTCP_CONNECT_TIMEOUT, " seconds");
-							conn->Terminate ();
-						}
-					});   
-				conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), 
-					std::bind (&NTCPServer::HandleConnect, this, std::placeholders::_1, conn, timer));
-			}	
-		});	
+						LogPrint (eLogInfo, "NTCP: Not connected in ", NTCP_CONNECT_TIMEOUT, " seconds");
+						conn->Terminate ();
+					}
+				});
+				conn->GetSocket ().async_connect (boost::asio::ip::tcp::endpoint (address, port), std::bind (&NTCPServer::HandleConnect, this, std::placeholders::_1, conn, timer));
+			}
+		});
+	}
+
+	void NTCPServer::ConnectWithProxy (const std::string& host, uint16_t port, RemoteAddressType addrtype, std::shared_ptr<NTCPSession> conn)
+	{
+		if(m_ProxyEndpoint == nullptr)
+		{
+			return;
+		}
+		m_Service.post([=]() {
+			if (this->AddNTCPSession (conn))
+			{
+
+				auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
+				auto timeout = NTCP_CONNECT_TIMEOUT * 5;
+				conn->SetTerminationTimeout(timeout * 2);
+				timer->expires_from_now (boost::posix_time::seconds(timeout));
+				timer->async_wait ([conn, timeout](const boost::system::error_code& ecode) {
+					if (ecode != boost::asio::error::operation_aborted)
+					{
+						LogPrint (eLogInfo, "NTCP: Not connected in ", timeout, " seconds");
+						i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
+						conn->Terminate ();
+					}
+				});
+				conn->GetSocket ().async_connect (*m_ProxyEndpoint, std::bind (&NTCPServer::HandleProxyConnect, this, std::placeholders::_1, conn, timer, host, port, addrtype));
+			}
+		});
 	}
 
 	void NTCPServer::HandleConnect (const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer)
 	{
-		timer->cancel ();	
+		timer->cancel ();
 		if (ecode)
-        {
+		{
 			LogPrint (eLogInfo, "NTCP: Connect error ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
@@ -1028,8 +1075,193 @@ namespace transport
 			if (conn->GetSocket ().local_endpoint ().protocol () == boost::asio::ip::tcp::v6()) // ipv6
 				context.UpdateNTCPV6Address (conn->GetSocket ().local_endpoint ().address ());
 			conn->ClientLogin ();
-		}	
-	}	
+		}
+	}
+
+	void NTCPServer::UseProxy(ProxyType proxytype, const std::string & addr, uint16_t port)
+	{
+		m_ProxyType = proxytype;
+		m_ProxyAddress = addr;
+		m_ProxyPort = port;
+	}
+
+	void NTCPServer::HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
+	{
+		if(ecode)
+		{
+			LogPrint(eLogWarning, "NTCP: failed to connect to proxy ", ecode.message());
+			timer->cancel();
+			conn->Terminate();
+			return;
+		}
+		if(m_ProxyType == eSocksProxy)
+		{
+			// TODO: support username/password auth etc
+			uint8_t buff[3] = {0x05, 0x01, 0x00};
+			boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, 3), boost::asio::transfer_all(), [=] (const boost::system::error_code & ec, std::size_t transferred) {
+				(void) transferred;
+				if(ec)
+				{
+					LogPrint(eLogWarning, "NTCP: socks5 write error ", ec.message());
+				}
+			});
+			uint8_t readbuff[2];
+			boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 2), [=](const boost::system::error_code & ec, std::size_t transferred) {
+				if(ec)
+				{
+					LogPrint(eLogError, "NTCP: socks5 read error ", ec.message());
+					timer->cancel();
+					conn->Terminate();
+					return;
+				}
+				else if(transferred == 2)
+				{
+					if(readbuff[1] == 0x00)
+					{
+						AfterSocksHandshake(conn, timer, host, port, addrtype);
+						return;
+					}
+					else if (readbuff[1] == 0xff)
+					{
+						LogPrint(eLogError, "NTCP: socks5 proxy rejected authentication");
+						timer->cancel();
+						conn->Terminate();
+						return;
+					}
+				}
+				LogPrint(eLogError, "NTCP: socks5 server gave invalid response");
+				timer->cancel();
+				conn->Terminate();
+			});
+		}
+		else if(m_ProxyType == eHTTPProxy)
+		{
+			i2p::http::HTTPReq req;
+			req.method = "CONNECT";
+			req.version ="HTTP/1.1";
+			if(addrtype == eIP6Address)
+				req.uri = "[" + host + "]:" + std::to_string(port);
+			else
+				req.uri = host + ":" + std::to_string(port);
+
+			boost::asio::streambuf writebuff;
+			std::ostream out(&writebuff);
+			out << req.to_string();
+
+			boost::asio::async_write(conn->GetSocket(), writebuff.data(), boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t transferred) {
+				(void) transferred;
+				if(ec)
+					LogPrint(eLogError, "NTCP: http proxy write error ", ec.message());
+			});
+
+			boost::asio::streambuf * readbuff = new boost::asio::streambuf;
+			boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n", [=] (const boost::system::error_code & ec, std::size_t transferred) {
+				if(ec)
+				{
+					LogPrint(eLogError, "NTCP: http proxy read error ", ec.message());
+					timer->cancel();
+					conn->Terminate();
+				}
+				else
+				{
+					readbuff->commit(transferred);
+					i2p::http::HTTPRes res;
+					if(res.parse(boost::asio::buffer_cast<const char*>(readbuff->data()), readbuff->size()) > 0)
+					{
+						if(res.code == 200)
+						{
+							timer->cancel();
+							conn->ClientLogin();
+							delete readbuff;
+							return;
+						}
+						else
+						{
+							LogPrint(eLogError, "NTCP: http proxy rejected request ", res.code);
+						}
+					}
+					else
+						LogPrint(eLogError, "NTCP: http proxy gave malformed response");
+					timer->cancel();
+					conn->Terminate();
+					delete readbuff;
+				}
+			});
+		}
+		else
+			LogPrint(eLogError, "NTCP: unknown proxy type, invalid state");
+	}
+
+	void NTCPServer::AfterSocksHandshake(std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
+	{
+
+		// build request
+		size_t sz = 0;
+		uint8_t buff[256];
+		uint8_t readbuff[256];
+		buff[0] = 0x05;
+		buff[1] = 0x01;
+		buff[2] = 0x00;
+
+		if(addrtype == eIP4Address)
+		{
+			buff[3] = 0x01;
+			auto addr = boost::asio::ip::address::from_string(host).to_v4();
+			auto addrbytes = addr.to_bytes();
+			auto addrsize = addrbytes.size();
+			memcpy(buff+4, addrbytes.data(), addrsize);
+		}
+		else if (addrtype == eIP6Address)
+		{
+			buff[3] = 0x04;
+			auto addr = boost::asio::ip::address::from_string(host).to_v6();
+			auto addrbytes = addr.to_bytes();
+			auto addrsize = addrbytes.size();
+			memcpy(buff+4, addrbytes.data(), addrsize);
+		}
+		else if (addrtype == eHostname)
+		{
+			buff[3] = 0x03;
+			size_t addrsize = host.size();
+			sz = addrsize + 1 + 4;
+			if (2 + sz > sizeof(buff))
+			{
+				// too big
+				return;
+			}
+			buff[4] = (uint8_t) addrsize;
+			memcpy(buff+4, host.c_str(), addrsize);
+		}
+		htobe16buf(buff+sz, port);
+		sz += 2;
+		boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, sz), boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t written) {
+			if(ec)
+			{
+				LogPrint(eLogError, "NTCP: failed to write handshake to socks proxy ", ec.message());
+				return;
+			}
+		});
+
+		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, sz), [=](const boost::system::error_code & e, std::size_t transferred) {
+			if(e)
+			{
+				LogPrint(eLogError, "NTCP: socks proxy read error ", e.message());
+			}
+			else if(transferred == sz)
+			{
+				if( readbuff[1] == 0x00)
+				{
+					timer->cancel();
+					conn->ClientLogin();
+					return;
+				}
+			}
+			if(!e)
+				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
+			timer->cancel();
+			conn->Terminate();
+		});
+	}
 
 	void NTCPServer::ScheduleTermination ()
 	{
@@ -1041,19 +1273,18 @@ namespace transport
 	void NTCPServer::HandleTerminationTimer (const boost::system::error_code& ecode)
 	{
 		if (ecode != boost::asio::error::operation_aborted)
-		{	
+		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			// established
 			for (auto& it: m_NTCPSessions)
- 				if (it.second->IsTerminationTimeoutExpired (ts))
+				if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					auto session = it.second;
 					// Termniate modifies m_NTCPSession, so we postpone it
-					m_Service.post ([session] 
-						{ 
+					m_Service.post ([session] {
 							LogPrint (eLogDebug, "NTCP: No activity for ", session->GetTerminationTimeout (), " seconds");
 							session->Terminate ();
-						});	
+					});
 				}
 			// pending
 			for (auto it = m_PendingIncomingSessions.begin (); it != m_PendingIncomingSessions.end ();)
@@ -1062,15 +1293,15 @@ namespace transport
 					it = m_PendingIncomingSessions.erase (it); // established or terminated
 				else if ((*it)->IsTerminationTimeoutExpired (ts))
 				{
-					(*it)->Terminate (); 
+					(*it)->Terminate ();
 					it = m_PendingIncomingSessions.erase (it); // expired
-				}	
+				}
 				else
 					it++;
 			}
-			
-			ScheduleTermination ();	
-		}	
-	}	
-}	
-}	
+
+			ScheduleTermination ();
+		}
+	}
+}
+}

@@ -45,7 +45,7 @@ namespace transport
 			std::queue<std::shared_ptr<i2p::crypto::DHKeys> > m_Queue;
 
 			bool m_IsRunning;
-			std::thread * m_Thread;	
+			std::thread * m_Thread;
 			std::condition_variable m_Acquired;
 			std::mutex m_AcquiredMutex;
 	};
@@ -62,12 +62,12 @@ namespace transport
 		{
 			for (auto& it: sessions)
 				it->Done ();
-		}	
-	};	
-	
+		}
+	};
+
 	const size_t SESSION_CREATION_TIMEOUT = 10; // in seconds
 	const int PEER_TEST_INTERVAL = 71; // in minutes
-	const int MAX_NUM_DELAYED_MESSAGES = 50; 
+	const int MAX_NUM_DELAYED_MESSAGES = 50;
 	class Transports
 	{
 		public:
@@ -80,12 +80,12 @@ namespace transport
 
 			bool IsBoundNTCP() const { return m_NTCPServer != nullptr; }
 			bool IsBoundSSU() const { return m_SSUServer != nullptr; }
-			
+
 			bool IsOnline() const { return m_IsOnline; };
 			void SetOnline (bool online) { m_IsOnline = online; };
 
 			boost::asio::io_service& GetService () { return *m_Service; };
-			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();	
+			std::shared_ptr<i2p::crypto::DHKeys> GetNextDHKeysPair ();
 			void ReuseDHKeysPair (std::shared_ptr<i2p::crypto::DHKeys> pair);
 
 			void SendMessage (const i2p::data::IdentHash& ident, std::shared_ptr<i2p::I2NPMessage> msg);
@@ -95,7 +95,7 @@ namespace transport
 			void PeerConnected (std::shared_ptr<TransportSession> session);
 			void PeerDisconnected (std::shared_ptr<TransportSession> session);
 			bool IsConnected (const i2p::data::IdentHash& ident) const;
-			
+
 			void UpdateSentBytes (uint64_t numBytes) { m_TotalSentBytes += numBytes; };
 			void UpdateReceivedBytes (uint64_t numBytes) { m_TotalReceivedBytes += numBytes; };
 			uint64_t GetTotalSentBytes () const { return m_TotalSentBytes; };
@@ -113,16 +113,16 @@ namespace transport
     /** get a trusted first hop for restricted routes */
     std::shared_ptr<const i2p::data::RouterInfo> GetRestrictedPeer() const;
     /** do we want to use restricted routes? */
-    bool RoutesRestricted() const;  
+    bool RoutesRestricted() const;
     /** restrict routes to use only these router families for first hops */
     void RestrictRoutesToFamilies(std::set<std::string> families);
     /** restrict routes to use only these routers for first hops */
     void RestrictRoutesToRouters(std::set<i2p::data::IdentHash> routers);
 
     bool IsRestrictedPeer(const i2p::data::IdentHash & ident) const;
-    
+
 			void PeerTest ();
-			
+
 		private:
 
 			void Run ();
@@ -131,9 +131,9 @@ namespace transport
 			void PostMessages (i2p::data::IdentHash ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
 			void PostCloseSession (std::shared_ptr<const i2p::data::RouterInfo> router);
 			bool ConnectToPeer (const i2p::data::IdentHash& ident, Peer& peer);
-			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);			
+			void HandlePeerCleanupTimer (const boost::system::error_code& ecode);
 			void HandlePeerTestTimer (const boost::system::error_code& ecode);
-			
+
 			void NTCPResolve (const std::string& addr, const i2p::data::IdentHash& ident);
 			void HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
  				i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
@@ -143,11 +143,11 @@ namespace transport
 
 			void UpdateBandwidth ();
 			void DetectExternalIP ();
-			
+
 		private:
 
 			bool m_IsOnline, m_IsRunning;
-			std::thread * m_Thread;	
+			std::thread * m_Thread;
 			boost::asio::io_service * m_Service;
 			boost::asio::io_service::work * m_Work;
 			boost::asio::deadline_timer * m_PeerCleanupTimer, * m_PeerTestTimer;
@@ -156,13 +156,13 @@ namespace transport
 			SSUServer * m_SSUServer;
 			mutable std::mutex m_PeersMutex;
 			std::map<i2p::data::IdentHash, Peer> m_Peers;
-			
+
 			DHKeysPairSupplier m_DHKeysPairSupplier;
 
 			std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes, m_TotalTransitTransmittedBytes;
 			uint32_t m_InBandwidth, m_OutBandwidth, m_TransitBandwidth; // bytes per second
-			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes, m_LastTransitBandwidthUpdateBytes;	
-			uint64_t m_LastBandwidthUpdateTime;		
+			uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes, m_LastTransitBandwidthUpdateBytes;
+			uint64_t m_LastBandwidthUpdateTime;
 
 			/** which router families to trust for first hops */
 			std::vector<std::string> m_TrustedFamilies;
@@ -172,18 +172,18 @@ namespace transport
 			std::vector<i2p::data::IdentHash> m_TrustedRouters;
 			mutable std::mutex m_TrustedRoutersMutex;
 
-			i2p::I2NPMessagesHandler m_LoopbackHandler; 
-    
+			i2p::I2NPMessagesHandler m_LoopbackHandler;
+
 		public:
 
 			// for HTTP only
 			const NTCPServer * GetNTCPServer () const { return m_NTCPServer; };
 			const SSUServer * GetSSUServer () const { return m_SSUServer; };
 			const decltype(m_Peers)& GetPeers () const { return m_Peers; };
-	};	
+	};
 
 	extern Transports transports;
-}	
+}
 }
 
 #endif
