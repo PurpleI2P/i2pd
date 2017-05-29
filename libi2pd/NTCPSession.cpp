@@ -1044,7 +1044,7 @@ namespace transport
 
 				auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
 				auto timeout = NTCP_CONNECT_TIMEOUT * 5;
-				conn->SetTerminationTimeout(timeout);
+				conn->SetTerminationTimeout(timeout * 2);
 				timer->expires_from_now (boost::posix_time::seconds(timeout));
 				timer->async_wait ([conn, timeout](const boost::system::error_code& ecode) {
 					if (ecode != boost::asio::error::operation_aborted)
@@ -1136,6 +1136,8 @@ namespace transport
 					}
 					else
 					{
+						timer->cancel();
+						conn->Terminate();
 						i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
 					}
 			}
