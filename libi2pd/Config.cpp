@@ -48,7 +48,7 @@ namespace config {
       ("port",      value<uint16_t>()->default_value(0),                "Port to listen for incoming connections (default: auto)")
       ("ipv4",      value<bool>()->zero_tokens()->default_value(true),  "Enable communication through ipv4")
       ("ipv6",      value<bool>()->zero_tokens()->default_value(false), "Enable communication through ipv6")
-	  ("netid",		value<int>()->default_value(I2PD_NET_ID), "Specify NetID. Main I2P is 2") 	
+	  ("netid",		value<int>()->default_value(I2PD_NET_ID), "Specify NetID. Main I2P is 2")
       ("daemon",    value<bool>()->zero_tokens()->default_value(false), "Router will go to background after start")
       ("service",   value<bool>()->zero_tokens()->default_value(false), "Router will use system folders like '/var/lib/i2pd'")
       ("notransit", value<bool>()->zero_tokens()->default_value(false), "Router will not accept transit tunnels at startup")
@@ -57,13 +57,14 @@ namespace config {
 	  ("share",	value<int>()->default_value(100), "Limit of transit traffic from max bandwidth in percents. (default: 100")
       ("ntcp", value<bool>()->zero_tokens()->default_value(true), "Enable NTCP transport")
       ("ssu", value<bool>()->zero_tokens()->default_value(true), "Enable SSU transport")
+			("ntcpproxy", value<std::string>()->default_value(""), "proxy url for ntcp transport")
 #ifdef _WIN32
       ("svcctl",    value<std::string>()->default_value(""),     "Windows service management ('install' or 'remove')")
       ("insomnia", value<bool>()->zero_tokens()->default_value(false), "Prevent system from sleeping")
       ("close", value<std::string>()->default_value("ask"), "Action on close: minimize, exit, ask") // TODO: add custom validator or something
 #endif
       ;
-		
+
     options_description limits("Limits options");
     limits.add_options()
       ("limits.coresize",         value<uint32_t>()->default_value(0),    "Maximum size of corefile in Kb (0 - use system limit)")
@@ -87,12 +88,12 @@ namespace config {
       ("httpproxy.address",   value<std::string>()->default_value("127.0.0.1"),           "HTTP Proxy listen address")
       ("httpproxy.port",      value<uint16_t>()->default_value(4444),                     "HTTP Proxy listen port")
       ("httpproxy.keys",      value<std::string>()->default_value(""),  "File to persist HTTP Proxy keys")
-	  ("httpproxy.signaturetype",      value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")	
-	  ("httpproxy.inbound.length",      value<std::string>()->default_value("3"),  "HTTP proxy inbound tunnel length")	
+	  ("httpproxy.signaturetype",      value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
+	  ("httpproxy.inbound.length",      value<std::string>()->default_value("3"),  "HTTP proxy inbound tunnel length")
 	  ("httpproxy.outbound.length",     value<std::string>()->default_value("3"),  "HTTP proxy outbound tunnel length")
-	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")	
+	  ("httpproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "HTTP proxy inbound tunnels quantity")
 	  ("httpproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "HTTP proxy outbound tunnels quantity")
-	  ("httpproxy.latency.min",    value<std::string>()->default_value("0"),  "HTTP proxy min latency for tunnels")	
+	  ("httpproxy.latency.min",    value<std::string>()->default_value("0"),  "HTTP proxy min latency for tunnels")
 	  ("httpproxy.latency.max",   value<std::string>()->default_value("0"),  "HTTP proxy max latency for tunnels")
 			("httpproxy.outproxy", value<std::string>()->default_value(""), "HTTP proxy upstream out proxy url")
 	  ("httpproxy.addresshelper",   value<bool>()->default_value(true),                         "Enable or disable addresshelper")
@@ -104,13 +105,13 @@ namespace config {
       ("socksproxy.address",  value<std::string>()->default_value("127.0.0.1"),           "SOCKS Proxy listen address")
       ("socksproxy.port",     value<uint16_t>()->default_value(4447),                     "SOCKS Proxy listen port")
       ("socksproxy.keys",     value<std::string>()->default_value(""), "File to persist SOCKS Proxy keys")
-	  ("socksproxy.signaturetype",      value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")	
-      ("socksproxy.inbound.length",      value<std::string>()->default_value("3"),  "SOCKS proxy inbound tunnel length")	
+	  ("socksproxy.signaturetype",      value<i2p::data::SigningKeyType>()->default_value(i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519), "Signature type for new keys. 7 (EdDSA) by default")
+      ("socksproxy.inbound.length",      value<std::string>()->default_value("3"),  "SOCKS proxy inbound tunnel length")
 	  ("socksproxy.outbound.length",     value<std::string>()->default_value("3"),  "SOCKS proxy outbound tunnel length")
-	  ("socksproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")	
+	  ("socksproxy.inbound.quantity",    value<std::string>()->default_value("5"),  "SOCKS proxy inbound tunnels quantity")
 	  ("socksproxy.outbound.quantity",   value<std::string>()->default_value("5"),  "SOCKS proxy outbound tunnels quantity")
-	  ("socksproxy.latency.min",    value<std::string>()->default_value("0"),  "SOCKS proxy min latency for tunnels")	
-	  ("socksproxy.latency.max",   value<std::string>()->default_value("0"),  "SOCKS proxy max latency for tunnels")	
+	  ("socksproxy.latency.min",    value<std::string>()->default_value("0"),  "SOCKS proxy min latency for tunnels")
+	  ("socksproxy.latency.max",   value<std::string>()->default_value("0"),  "SOCKS proxy max latency for tunnels")
 	  ("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"), "Upstream outproxy address for SOCKS Proxy")
       ("socksproxy.outproxyport", value<uint16_t>()->default_value(9050), "Upstream outproxy port for SOCKS Proxy")
       ;
@@ -148,26 +149,26 @@ namespace config {
 
 	bool upnp_default = false;
 #if (defined(USE_UPNP) && (defined(WIN32_APP) || defined(ANDROID)))
-	upnp_default = true; // enable UPNP for windows GUI and android by default	
+	upnp_default = true; // enable UPNP for windows GUI and android by default
 #endif
   	options_description upnp("UPnP options");
   	upnp.add_options()
     ("upnp.enabled",  value<bool>()->default_value(upnp_default),             "Enable or disable UPnP: automatic port forwarding")
-	("upnp.name", value<std::string>()->default_value("I2Pd"), "Name i2pd appears in UPnP forwardings list") 
+	("upnp.name", value<std::string>()->default_value("I2Pd"), "Name i2pd appears in UPnP forwardings list")
     ;
 
 	options_description precomputation("Precomputation options");
-	precomputation.add_options()  
-	  ("precomputation.elgamal",  
-#if defined(__x86_64__)	   
-	   value<bool>()->default_value(false),   
+	precomputation.add_options()
+	  ("precomputation.elgamal",
+#if defined(__x86_64__)
+	   value<bool>()->default_value(false),
 #else
-	   value<bool>()->default_value(true),  
-#endif	   
+	   value<bool>()->default_value(true),
+#endif
 	   "Enable or disable elgamal precomputation table")
 	  ;
-	
-	options_description reseed("Reseed options");	
+
+	options_description reseed("Reseed options");
 	reseed.add_options()
 	  ("reseed.verify", value<bool>()->default_value(false), "Verify .su3 signature")
 	  ("reseed.threshold", value<uint16_t>()->default_value(25), "Minimum number of known routers before requesting reseed")
@@ -188,16 +189,16 @@ namespace config {
 	    "https://reseed.memcpy.io/,"
 	    "https://reseed.onion.im/,"
 	    "https://itoopie.atomike.ninja/"
-//		"https://randomrng.ddns.net/"	   // dead                                                   
+//		"https://randomrng.ddns.net/"	   // dead
 		),  "Reseed URLs, separated by comma")
-	  ;	
+	  ;
 
   	options_description addressbook("AddressBook options");
   	addressbook.add_options()
       ("addressbook.defaulturl", value<std::string>()->default_value(
                 "http://joajgazyztfssty4w2on5oaqksz6tqoxbduy553y34mf4byv6gpq.b32.i2p/export/alive-hosts.txt"
                 ), "AddressBook subscription URL for initial setup")
-      ("addressbook.subscriptions", value<std::string>()->default_value(""), 
+      ("addressbook.subscriptions", value<std::string>()->default_value(""),
                 "AddressBook subscriptions URLs, separated by comma");
 
   	options_description trust("Trust options");
@@ -206,7 +207,7 @@ namespace config {
       ("trust.family", value<std::string>()->default_value(""), "Router Familiy to trust for first hops")
 			("trust.routers", value<std::string>()->default_value(""), "Only Connect to these routers")
       ("trust.hidden", value<bool>()->default_value(false), "Should we hide our router from other routers?");
-		
+
     options_description websocket("Websocket Options");
     websocket.add_options()
       ("websockets.enabled", value<bool>()->default_value(false), "enable websocket server")
@@ -215,50 +216,50 @@ namespace config {
 
 	options_description exploratory("Exploratory Options");
 	exploratory.add_options()
-	  ("exploratory.inbound.length",      value<int>()->default_value(2),  "Exploratory inbound tunnel length")	
+	  ("exploratory.inbound.length",      value<int>()->default_value(2),  "Exploratory inbound tunnel length")
 	  ("exploratory.outbound.length",     value<int>()->default_value(2),  "Exploratory outbound tunnel length")
-	  ("exploratory.inbound.quantity",    value<int>()->default_value(3),  "Exploratory inbound tunnels quantity")	
-	  ("exploratory.outbound.quantity",   value<int>()->default_value(3),  "Exploratory outbound tunnels quantity");	
+	  ("exploratory.inbound.quantity",    value<int>()->default_value(3),  "Exploratory inbound tunnels quantity")
+	  ("exploratory.outbound.quantity",   value<int>()->default_value(3),  "Exploratory outbound tunnels quantity");
 
     m_OptionsDesc
       .add(general)
-	  .add(limits)	
+	  .add(limits)
       .add(httpserver)
       .add(httpproxy)
       .add(socksproxy)
       .add(sam)
       .add(bob)
-	  .add(i2cp)	
+	  .add(i2cp)
       .add(i2pcontrol)
       .add(upnp)
 	  .add(precomputation)
-	  .add(reseed) 
-      .add(addressbook)	
+	  .add(reseed)
+      .add(addressbook)
       .add(trust)
       .add(websocket)
 	  .add(exploratory)
       ;
   }
 
-  void ParseCmdline(int argc, char* argv[], bool ignoreUnknown) 
+  void ParseCmdline(int argc, char* argv[], bool ignoreUnknown)
   {
-    try 
+    try
 	{
       auto style = boost::program_options::command_line_style::unix_style
                  | boost::program_options::command_line_style::allow_long_disguise;
       style &=   ~ boost::program_options::command_line_style::allow_guessing;
 	  if (ignoreUnknown)
-	  	store(command_line_parser(argc, argv).options(m_OptionsDesc).style (style).allow_unregistered().run(), m_Options);	
-	  else			
+	  	store(command_line_parser(argc, argv).options(m_OptionsDesc).style (style).allow_unregistered().run(), m_Options);
+	  else
       	store(parse_command_line(argc, argv, m_OptionsDesc, style), m_Options);
-    } 
-	catch (boost::program_options::error& e) 
+    }
+	catch (boost::program_options::error& e)
 	{
       std::cerr << "args: " << e.what() << std::endl;
       exit(EXIT_FAILURE);
     }
 
-    if (!ignoreUnknown && (m_Options.count("help") || m_Options.count("h"))) 
+    if (!ignoreUnknown && (m_Options.count("help") || m_Options.count("h")))
 	{
       std::cout << "i2pd version " << I2PD_VERSION << " (" << I2P_VERSION << ")" << std::endl;
       std::cout << m_OptionsDesc;
@@ -271,17 +272,17 @@ namespace config {
 
     std::ifstream config(path, std::ios::in);
 
-    if (!config.is_open()) 
+    if (!config.is_open())
 	{
       std::cerr << "missing/unreadable config file: " << path << std::endl;
       exit(EXIT_FAILURE);
     }
 
-    try 
+    try
 	{
 		store(boost::program_options::parse_config_file(config, m_OptionsDesc), m_Options);
-    } 
-	catch (boost::program_options::error& e) 
+    }
+	catch (boost::program_options::error& e)
 	{
       std::cerr << e.what() << std::endl;
       exit(EXIT_FAILURE);
