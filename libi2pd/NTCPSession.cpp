@@ -1043,7 +1043,8 @@ namespace transport
 			{
 
 				auto timer = std::make_shared<boost::asio::deadline_timer>(m_Service);
-				auto timeout = NTCP_CONNECT_TIMEOUT * 2;
+				auto timeout = NTCP_CONNECT_TIMEOUT * 5;
+				conn->SetTerminationTimeout(timeout);
 				timer->expires_from_now (boost::posix_time::seconds(timeout));
 				timer->async_wait ([conn, timeout](const boost::system::error_code& ecode) {
 					if (ecode != boost::asio::error::operation_aborted)
@@ -1117,7 +1118,7 @@ namespace transport
 		memcpy(buff+12, host.c_str(), addrsz);
 		buff[12+addrsz] = 0;
 
-		boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, sz), boost::asio::transfer_all(), [&](const boost::system::error_code & ec, std::size_t written) {
+		boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, sz), boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t written) {
 			if(ec)
 			{
 				LogPrint(eLogError, "NTCP: failed to write handshake to socks proxy ", ec.message());
@@ -1125,11 +1126,18 @@ namespace transport
 			}
 		});
 
-		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 8), [&](const boost::system::error_code & e, std::size_t transferred) {
-			if(transferred == 8 && readbuff[1] == 0x5a)
-			{
-				timer->cancel();
-				conn->ClientLogin();
+		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 8), [=](const boost::system::error_code & e, std::size_t transferred) {
+				if(transferred == 8)
+				{
+					if( readbuff[1] == 0x5a)
+					{
+						timer->cancel();
+						conn->ClientLogin();
+					}
+					else
+					{
+						i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
+					}
 			}
 		});
 	}
