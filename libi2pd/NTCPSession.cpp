@@ -679,7 +679,7 @@ namespace transport
 	{
 		m_IsSending = true;
 		boost::asio::async_write (m_Socket, CreateMsgBuffer (msg), boost::asio::transfer_all (),
-					std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, std::vector<std::shared_ptr<I2NPMessage> >{ msg }));
+			std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, std::vector<std::shared_ptr<I2NPMessage> >{ msg }));
 	}
 
 	boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer (std::shared_ptr<I2NPMessage> msg)
@@ -726,7 +726,7 @@ namespace transport
 		for (const auto& it: msgs)
 			bufs.push_back (CreateMsgBuffer (it));
 		boost::asio::async_write (m_Socket, bufs, boost::asio::transfer_all (),
-															std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
+			std::bind(&NTCPSession::HandleSent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, msgs));
 	}
 
 	void NTCPSession::HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs)
@@ -885,14 +885,14 @@ namespace transport
 		{
 			m_IsRunning = false;
 			m_TerminationTimer.cancel ();
-				if (m_NTCPAcceptor)
+			if (m_NTCPAcceptor)
 			{
 					delete m_NTCPAcceptor;
 				m_NTCPAcceptor = nullptr;
 			}
-				if (m_NTCPV6Acceptor)
+			if (m_NTCPV6Acceptor)
 			{
-					delete m_NTCPV6Acceptor;
+				delete m_NTCPV6Acceptor;
 				m_NTCPV6Acceptor = nullptr;
 			}
 			m_Service.stop ();
@@ -977,7 +977,7 @@ namespace transport
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-				conn = std::make_shared<NTCPSession> (*this);
+			conn = std::make_shared<NTCPSession> (*this);
 			m_NTCPAcceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAccept, this,
 				conn, std::placeholders::_1));
 		}
@@ -1004,7 +1004,7 @@ namespace transport
 
 		if (error != boost::asio::error::operation_aborted)
 		{
-				conn = std::make_shared<NTCPSession> (*this);
+			conn = std::make_shared<NTCPSession> (*this);
 			m_NTCPV6Acceptor->async_accept(conn->GetSocket (), std::bind (&NTCPServer::HandleAcceptV6, this,
 				conn, std::placeholders::_1));
 		}
@@ -1130,10 +1130,7 @@ namespace transport
 			{
 				timer->cancel();
 				conn->ClientLogin();
-				LogPrint(eLogDebug, "NTCP: connected via socks");
 			}
-			else
-				LogPrint(eLogDebug, "NTCP: connection via socks failed");
 		});
 	}
 
