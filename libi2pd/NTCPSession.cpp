@@ -116,7 +116,7 @@ namespace transport
 			m_Establisher->phase1.HXxorHI[i] ^= ident[i];
 
 		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase1, sizeof (NTCPPhase1)), boost::asio::transfer_all (),
-					std::bind(&NTCPSession::HandlePhase1Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
+			std::bind(&NTCPSession::HandlePhase1Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2));
 	}
 
 	void NTCPSession::ServerLogin ()
