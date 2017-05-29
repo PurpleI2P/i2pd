@@ -1013,7 +1013,7 @@ namespace transport
 	void NTCPServer::Connect(const boost::asio::ip::address & address, uint16_t port, std::shared_ptr<NTCPSession> conn)
 	{
 		LogPrint (eLogDebug, "NTCP: Connecting to ", address ,":",  port);
-		m_Service.post([&]() {
+		m_Service.post([=]() {
 			if (this->AddNTCPSession (conn))
 			{
 
