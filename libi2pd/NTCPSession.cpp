@@ -132,7 +132,7 @@ namespace transport
 	{
 		(void) bytes_transferred;
 		if (ecode)
-				{
+		{
 			LogPrint (eLogInfo, "NTCP: couldn't send Phase 1 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -149,7 +149,7 @@ namespace transport
 	{
 		(void) bytes_transferred;
 		if (ecode)
-				{
+		{
 			LogPrint (eLogInfo, "NTCP: phase 1 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -185,10 +185,10 @@ namespace transport
 					s->CreateAESKey (s->m_Establisher->phase1.pubKey);
 				}).share ();
 			m_Server.GetService ().post ([s, keyCreated]()
-				{
-					keyCreated.get ();
-					s->SendPhase2 ();
-				});
+			{
+				keyCreated.get ();
+				s->SendPhase2 ();
+			});
 #endif
 		}
 	}
@@ -218,7 +218,7 @@ namespace transport
 	{
 		(void) bytes_transferred;
 		if (ecode)
-				{
+		{
 			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 2 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -235,7 +235,7 @@ namespace transport
 	{
 		(void) bytes_transferred;
 		if (ecode)
-				{
+		{
 			LogPrint (eLogInfo, "NTCP: Phase 2 read error: ", ecode.message (), ". Wrong ident assumed");
 			if (ecode != boost::asio::error::operation_aborted)
 			{
@@ -331,7 +331,7 @@ namespace transport
 	{
 		(void) bytes_transferred;
 		if (ecode)
-				{
+		{
 			LogPrint (eLogInfo, "NTCP: Couldn't send Phase 3 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -351,7 +351,7 @@ namespace transport
 	void NTCPSession::HandlePhase3Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB)
 	{
 		if (ecode)
-				{
+		{
 			LogPrint (eLogInfo, "NTCP: Phase 3 read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -389,7 +389,7 @@ namespace transport
 	void NTCPSession::HandlePhase3ExtraReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB, size_t paddingLen)
 	{
 		if (ecode)
-				{
+		{
 			LogPrint (eLogInfo, "NTCP: Phase 3 extra read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -458,7 +458,7 @@ namespace transport
 	{
 		(void) bytes_transferred;
 		if (ecode)
-				{
+		{
 			LogPrint (eLogWarning, "NTCP: Couldn't send Phase 4 message: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate ();
@@ -478,7 +478,7 @@ namespace transport
 	void NTCPSession::HandlePhase4Received (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA)
 	{
 		if (ecode)
-				{
+		{
 			LogPrint (eLogError, "NTCP: Phase 4 read error: ", ecode.message (), ". Check your clock");
 			if (ecode != boost::asio::error::operation_aborted)
 			{
@@ -734,7 +734,7 @@ namespace transport
 		(void) msgs;
 		m_IsSending = false;
 		if (ecode)
-				{
+		{
 			LogPrint (eLogWarning, "NTCP: Couldn't send msgs: ", ecode.message ());
 			// we shouldn't call Terminate () here, because HandleReceive takes care
 			// TODO: 'delete this' statement in Terminate () must be eliminated later
@@ -807,6 +807,7 @@ namespace transport
 			// we are using a socks proxy, don't create any acceptors
 			if(m_UseSocks)
 			{
+				// TODO: resolve socks proxy until it is resolved
 				boost::asio::ip::tcp::resolver::query q(m_SocksAddress, std::to_string(m_SocksPort));
 				boost::system::error_code e;
 				auto itr = m_Resolver.resolve(q, e);
