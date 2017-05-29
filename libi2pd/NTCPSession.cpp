@@ -1148,15 +1148,14 @@ namespace transport
 			std::ostream out(&writebuff);
 			out << req.to_string();
 
-			boost::asio::async_write(conn->GetSocket(), writebuff, boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t transferred) {
+			boost::asio::async_write(conn->GetSocket(), writebuff.data(), boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t transferred) {
 				(void) transferred;
 				if(ec)
 					LogPrint(eLogError, "NTCP: http proxy write error ", ec.message());
 			});
 
-			boost::asio::streambuf readbuff;
-			boost::asio::async_read_until(conn->GetSocket(), readbuff, "\r\n\r\n", [=, &readbuff] (const boost::system::error_code & ec, std::size_t transferred) {
-				(void) transferred;
+			boost::asio::streambuf * readbuff = new boost::asio::streambuf;
+			boost::asio::async_read_until(conn->GetSocket(), *readbuff, "\r\n\r\n", [=] (const boost::system::error_code & ec, std::size_t transferred) {
 				if(ec)
 				{
 					LogPrint(eLogError, "NTCP: http proxy read error ", ec.message());
@@ -1165,14 +1164,15 @@ namespace transport
 				}
 				else
 				{
-					readbuff.commit(transferred);
+					readbuff->commit(transferred);
 					i2p::http::HTTPRes res;
-					if(res.parse(boost::asio::buffer_cast<const char*>(readbuff.data()), readbuff.size()) > 0)
+					if(res.parse(boost::asio::buffer_cast<const char*>(readbuff->data()), readbuff->size()) > 0)
 					{
 						if(res.code == 200)
 						{
 							timer->cancel();
 							conn->ClientLogin();
+							delete readbuff;
 							return;
 						}
 						else
@@ -1184,6 +1184,7 @@ namespace transport
 						LogPrint(eLogError, "NTCP: http proxy gave malformed response");
 					timer->cancel();
 					conn->Terminate();
+					delete readbuff;
 				}
 			});
 		}
