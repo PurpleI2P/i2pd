@@ -151,14 +151,20 @@ namespace transport
 		{
 			if(proxyurl.parse(ntcpproxy))
 			{
-				if(proxyurl.schema == "socks")
+				if(proxyurl.schema == "socks" || proxyurl.schema == "http")
 				{
 					m_NTCPServer = new NTCPServer();
-					m_NTCPServer->UseSocksProxy(proxyurl.host, proxyurl.port) ;
+
+					NTCPServer::ProxyType proxytype = NTCPServer::eSocksProxy;
+
+					if (proxyurl.schema == "http")
+						proxytype = NTCPServer::eHTTPProxy;
+
+					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
 					m_NTCPServer->Start();
 					if(!m_NTCPServer->NetworkIsReady())
 					{
-						LogPrint(eLogError, "Transports: NTCP failed to start with socks proxy");
+						LogPrint(eLogError, "Transports: NTCP failed to start with proxy");
 						m_NTCPServer->Stop();
 						delete m_NTCPServer;
 						m_NTCPServer = nullptr;
@@ -169,7 +175,6 @@ namespace transport
 			}
 			else
 				LogPrint(eLogError, "Transports: invalid NTCP proxy url ", ntcpproxy);
-
 			return;
 		}
 
@@ -379,10 +384,15 @@ namespace transport
 						if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
 						{
 							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-							if(m_NTCPServer->UsingSocksProxy())
+							if(m_NTCPServer->UsingProxy())
 							{
+								NTCPServer::RemoteAddressType remote = NTCPServer::eIP4Address;
 								std::string addr = address->host.to_string();
-								m_NTCPServer->ConnectSocks(addr, address->port, s);
+
+								if(address->host.is_v6())
+									remote = NTCPServer::eIP6Address;
+
+								m_NTCPServer->ConnectWithProxy(addr, address->port, remote, s);
 							}
 							else
 								m_NTCPServer->Connect (address->host, address->port, s);
@@ -393,10 +403,10 @@ namespace transport
 					{
 						if (address->addressString.length () > 0) // trying to resolve
 						{
-							if(m_NTCPServer->UsingSocksProxy())
+							if(m_NTCPServer->UsingProxy())
 							{
 								auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-								m_NTCPServer->ConnectSocks(address->addressString, address->port, s);
+								m_NTCPServer->ConnectWithProxy(address->addressString, address->port, NTCPServer::eHostname, s);
 							}
 							else
 							{

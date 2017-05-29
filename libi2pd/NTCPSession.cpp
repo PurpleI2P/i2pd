@@ -12,6 +12,7 @@
 #include "Transports.h"
 #include "NetDb.hpp"
 #include "NTCPSession.h"
+#include "HTTP.h"
 #ifdef WITH_EVENTS
 #include "Event.h"
 #endif
@@ -789,7 +790,7 @@ namespace transport
 	NTCPServer::NTCPServer ():
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
 		m_TerminationTimer (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr),
-		m_UseSocks(false), m_Resolver(m_Service), m_SocksEndpoint(nullptr)
+		m_ProxyType(eNoProxy), m_Resolver(m_Service), m_ProxyEndpoint(nullptr)
 	{
 	}
 
@@ -804,11 +805,11 @@ namespace transport
 		{
 			m_IsRunning = true;
 			m_Thread = new std::thread (std::bind (&NTCPServer::Run, this));
-			// we are using a socks proxy, don't create any acceptors
-			if(m_UseSocks)
+			// we are using a proxy, don't create any acceptors
+			if(UsingProxy())
 			{
-				// TODO: resolve socks proxy until it is resolved
-				boost::asio::ip::tcp::resolver::query q(m_SocksAddress, std::to_string(m_SocksPort));
+				// TODO: resolve proxy until it is resolved
+				boost::asio::ip::tcp::resolver::query q(m_ProxyAddress, std::to_string(m_ProxyPort));
 				boost::system::error_code e;
 				auto itr = m_Resolver.resolve(q, e);
 				if(e)
@@ -817,7 +818,7 @@ namespace transport
 				}
 				else
 				{
-					m_SocksEndpoint = new boost::asio::ip::tcp::endpoint(*itr);
+					m_ProxyEndpoint = new boost::asio::ip::tcp::endpoint(*itr);
 				}
 			}
 			else
@@ -902,10 +903,10 @@ namespace transport
 				delete m_Thread;
 				m_Thread = nullptr;
 			}
-			if(m_SocksEndpoint)
+			if(m_ProxyEndpoint)
 			{
-				delete m_SocksEndpoint;
-				m_SocksEndpoint = nullptr;
+				delete m_ProxyEndpoint;
+				m_ProxyEndpoint = nullptr;
 			}
 		}
 	}
@@ -1031,13 +1032,12 @@ namespace transport
 		});
 	}
 
-	void NTCPServer::ConnectSocks (const std::string& host, uint16_t port, std::shared_ptr<NTCPSession> conn)
+	void NTCPServer::ConnectWithProxy (const std::string& host, uint16_t port, RemoteAddressType addrtype, std::shared_ptr<NTCPSession> conn)
 	{
-		if(m_SocksEndpoint == nullptr)
+		if(m_ProxyEndpoint == nullptr)
 		{
 			return;
 		}
-		LogPrint (eLogDebug, "NTCP: Connecting to ", host ,":",  port, " Via socks proxy");
 		m_Service.post([=]() {
 			if (this->AddNTCPSession (conn))
 			{
@@ -1054,7 +1054,7 @@ namespace transport
 						conn->Terminate ();
 					}
 				});
-				conn->GetSocket ().async_connect (*m_SocksEndpoint, std::bind (&NTCPServer::HandleSocksConnect, this, std::placeholders::_1, conn, timer, host, port));
+				conn->GetSocket ().async_connect (*m_ProxyEndpoint, std::bind (&NTCPServer::HandleProxyConnect, this, std::placeholders::_1, conn, timer, host, port, addrtype));
 			}
 		});
 	}
@@ -1078,46 +1078,161 @@ namespace transport
 		}
 	}
 
-	void NTCPServer::UseSocksProxy(const std::string & addr, uint16_t port)
+	void NTCPServer::UseProxy(ProxyType proxytype, const std::string & addr, uint16_t port)
 	{
-		m_UseSocks = true;
-		m_SocksAddress = addr;
-		m_SocksPort = port;
+		m_ProxyType = proxytype;
+		m_ProxyAddress = addr;
+		m_ProxyPort = port;
 	}
 
-	void NTCPServer::HandleSocksConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port)
+	void NTCPServer::HandleProxyConnect(const boost::system::error_code& ecode, std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
 	{
 		if(ecode)
 		{
-			LogPrint(eLogInfo, "NTCP: Socks Proxy connect error ", ecode.message());
+			LogPrint(eLogWarning, "NTCP: failed to connect to proxy ", ecode.message());
+			timer->cancel();
+			conn->Terminate();
 			return;
 		}
-		LogPrint(eLogDebug, "NTCP: connecting via socks proxy to ",host, ":", port);
-		uint8_t readbuff[8];
-		// build socks4a request
-		size_t addrsz = host.size();
-		size_t sz = 8 + 1 + 4 + addrsz + 1;
-		uint8_t buff[256];
-		if(sz  > 256)
+		if(m_ProxyType == eSocksProxy)
 		{
-			// hostname too big
-			return;
+			// TODO: support username/password auth etc
+			uint8_t buff[3] = {0x05, 0x01, 0x00};
+			boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, 3), boost::asio::transfer_all(), [=] (const boost::system::error_code & ec, std::size_t transferred) {
+				(void) transferred;
+				if(ec)
+				{
+					LogPrint(eLogWarning, "NTCP: socks5 write error ", ec.message());
+				}
+			});
+			uint8_t readbuff[2];
+			boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 2), [=](const boost::system::error_code & ec, std::size_t transferred) {
+				if(ec)
+				{
+					LogPrint(eLogError, "NTCP: socks5 read error ", ec.message());
+					timer->cancel();
+					conn->Terminate();
+					return;
+				}
+				else if(transferred == 2)
+				{
+					if(readbuff[1] == 0x00)
+					{
+						AfterSocksHandshake(conn, timer, host, port, addrtype);
+						return;
+					}
+					else if (readbuff[1] == 0xff)
+					{
+						LogPrint(eLogError, "NTCP: socks5 proxy rejected authentication");
+						timer->cancel();
+						conn->Terminate();
+						return;
+					}
+				}
+				LogPrint(eLogError, "NTCP: socks5 server gave invalid response");
+				timer->cancel();
+				conn->Terminate();
+			});
 		}
-		buff[0] = 4;
-		buff[1] = 1;
-		htobe16buf(buff+2, port);
-		buff[4] = 0;
-		buff[5] = 0;
-		buff[6] = 0;
-		buff[7] = 1;
-		buff[8] = 105;  // i
-		buff[9] = 50;   // 2
-		buff[10] = 112; // p
-		buff[11] = 100; // d
-		buff[12] = 0;
-		memcpy(buff+12, host.c_str(), addrsz);
-		buff[12+addrsz] = 0;
+		else if(m_ProxyType == eHTTPProxy)
+		{
+			i2p::http::HTTPReq req;
+			req.method = "CONNECT";
+			req.version ="HTTP/1.1";
+			if(addrtype == eIP6Address)
+				req.uri = "[" + host + "]:" + std::to_string(port);
+			else
+				req.uri = host + ":" + std::to_string(port);
 
+			boost::asio::streambuf writebuff;
+			std::ostream out(&writebuff);
+			out << req.to_string();
+
+			boost::asio::async_write(conn->GetSocket(), writebuff, boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t transferred) {
+				(void) transferred;
+				if(ec)
+					LogPrint(eLogError, "NTCP: http proxy write error ", ec.message());
+			});
+
+			boost::asio::streambuf readbuff;
+			boost::asio::async_read_until(conn->GetSocket(), readbuff, "\r\n\r\n", [=, &readbuff] (const boost::system::error_code & ec, std::size_t transferred) {
+				(void) transferred;
+				if(ec)
+				{
+					LogPrint(eLogError, "NTCP: http proxy read error ", ec.message());
+					timer->cancel();
+					conn->Terminate();
+				}
+				else
+				{
+					readbuff.commit(transferred);
+					i2p::http::HTTPRes res;
+					if(res.parse(boost::asio::buffer_cast<const char*>(readbuff.data()), readbuff.size()) > 0)
+					{
+						if(res.code == 200)
+						{
+							timer->cancel();
+							conn->ClientLogin();
+							return;
+						}
+						else
+						{
+							LogPrint(eLogError, "NTCP: http proxy rejected request ", res.code);
+						}
+					}
+					else
+						LogPrint(eLogError, "NTCP: http proxy gave malformed response");
+					timer->cancel();
+					conn->Terminate();
+				}
+			});
+		}
+		else
+			LogPrint(eLogError, "NTCP: unknown proxy type, invalid state");
+	}
+
+	void NTCPServer::AfterSocksHandshake(std::shared_ptr<NTCPSession> conn, std::shared_ptr<boost::asio::deadline_timer> timer, const std::string & host, uint16_t port, RemoteAddressType addrtype)
+	{
+
+		// build request
+		size_t sz = 0;
+		uint8_t buff[256];
+		uint8_t readbuff[256];
+		buff[0] = 0x05;
+		buff[1] = 0x01;
+		buff[2] = 0x00;
+
+		if(addrtype == eIP4Address)
+		{
+			buff[3] = 0x01;
+			auto addr = boost::asio::ip::address::from_string(host).to_v4();
+			auto addrbytes = addr.to_bytes();
+			auto addrsize = addrbytes.size();
+			memcpy(buff+4, addrbytes.data(), addrsize);
+		}
+		else if (addrtype == eIP6Address)
+		{
+			buff[3] = 0x04;
+			auto addr = boost::asio::ip::address::from_string(host).to_v6();
+			auto addrbytes = addr.to_bytes();
+			auto addrsize = addrbytes.size();
+			memcpy(buff+4, addrbytes.data(), addrsize);
+		}
+		else if (addrtype == eHostname)
+		{
+			buff[3] = 0x03;
+			size_t addrsize = host.size();
+			sz = addrsize + 1 + 4;
+			if (2 + sz > sizeof(buff))
+			{
+				// too big
+				return;
+			}
+			buff[4] = (uint8_t) addrsize;
+			memcpy(buff+4, host.c_str(), addrsize);
+		}
+		htobe16buf(buff+sz, port);
+		sz += 2;
 		boost::asio::async_write(conn->GetSocket(), boost::asio::buffer(buff, sz), boost::asio::transfer_all(), [=](const boost::system::error_code & ec, std::size_t written) {
 			if(ec)
 			{
@@ -1126,21 +1241,24 @@ namespace transport
 			}
 		});
 
-		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 8), [=](const boost::system::error_code & e, std::size_t transferred) {
-				if(transferred == 8)
-				{
-					if( readbuff[1] == 0x5a)
-					{
-						timer->cancel();
-						conn->ClientLogin();
-					}
-					else
-					{
-						timer->cancel();
-						conn->Terminate();
-						i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
-					}
+		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, sz), [=](const boost::system::error_code & e, std::size_t transferred) {
+			if(e)
+			{
+				LogPrint(eLogError, "NTCP: socks proxy read error ", e.message());
 			}
+			else if(transferred == sz)
+			{
+				if( readbuff[1] == 0x00)
+				{
+					timer->cancel();
+					conn->ClientLogin();
+					return;
+				}
+			}
+			if(!e)
+				i2p::data::netdb.SetUnreachable (conn->GetRemoteIdentity ()->GetIdentHash (), true);
+			timer->cancel();
+			conn->Terminate();
 		});
 	}
 
