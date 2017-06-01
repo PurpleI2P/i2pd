@@ -1,6 +1,17 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.14.0] - 2017-06-01
+### Added
+- Transit traffic bandwidth limitation
+- NTCP connections through HTTP and SOCKS proxies
+- Ability to disable address helper for HTTP proxy
+### Changed
+- Reseed servers list
+- Minimal required version is 4.0 for Android
+### Fixed
+- Ignore comments in addressbook feed
+
 ## [2.13.0] - 2017-04-06
 ### Added
 - Persist local destination's tags
