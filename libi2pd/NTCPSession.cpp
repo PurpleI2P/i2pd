@@ -13,6 +13,7 @@
 #include "NetDb.hpp"
 #include "NTCPSession.h"
 #include "HTTP.h"
+#include "util.h"
 #ifdef WITH_EVENTS
 #include "Event.h"
 #endif
