@@ -1,5 +1,5 @@
 #include "ServerTunnelPane.h"
-#include "../../ClientContext.h"
+#include "ClientContext.h"
 #include "SignatureTypeComboboxFactory.h"
 
 ServerTunnelPane::ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf):

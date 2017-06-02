@@ -812,7 +812,7 @@ namespace client
 				socks.push_back(sock);
 			}
 		}
-		for (auto & sock : socks ) sock->Terminate();
+                for (auto & sock : socks ) sock->Terminate("SAMSession::CloseStreams()");
 		m_Sockets.clear();
 	}
 

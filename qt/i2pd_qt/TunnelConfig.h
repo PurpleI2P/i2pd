@@ -4,7 +4,7 @@
 #include "QString"
 #include <string>
 
-#include "../../ClientContext.h"
+#include "../../libi2pd_client/ClientContext.h"
 #include "TunnelsPageUpdateListener.h"
 
 

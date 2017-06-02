@@ -41,8 +41,8 @@
 #include "ClientTunnelPane.h"
 #include "TunnelConfig.h"
 
-#include "../../Config.h"
-#include "../../FS.h"
+#include "Config.h"
+#include "FS.h"
 
 #include <QDebug>
 

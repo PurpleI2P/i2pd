@@ -4,10 +4,10 @@
 #include <QTimer>
 #include <QFile>
 #include <QFileDialog>
-#include "../../RouterContext.h"
-#include "../../Config.h"
-#include "../../FS.h"
-#include "../../Log.h"
+#include "RouterContext.h"
+#include "Config.h"
+#include "FS.h"
+#include "Log.h"
 
 #ifndef ANDROID
 # include <QtDebug>
