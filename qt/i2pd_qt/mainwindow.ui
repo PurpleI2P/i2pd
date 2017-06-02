@@ -136,7 +136,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="statusPage">
         <widget class="QWidget" name="verticalLayoutWidget_5">
@@ -193,7 +193,7 @@
            <x>0</x>
            <y>0</y>
            <width>701</width>
-           <height>450</height>
+           <height>400</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -231,8 +231,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>683</width>
-               <height>416</height>
+               <width>679</width>
+               <height>400</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -246,12 +246,13 @@
                <rect>
                 <x>10</x>
                 <y>11</y>
-                <width>661</width>
-                <height>3048</height>
+                <width>679</width>
+                <height>2962</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="settingsContentsGridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
                <item row="14" column="0">
+
                 <widget class="QGroupBox" name="samGroupBox">
                  <property name="minimumSize">
                   <size>
@@ -281,7 +282,7 @@
                    <string>Enabled</string>
                   </property>
                  </widget>
-                 <widget class="QWidget" name="horizontalLayoutWidget_8">
+                 <widget class="QWidget" name="sam_horizontalLayoutWidget_8">
                   <property name="geometry">
                    <rect>
                     <x>0</x>
@@ -290,9 +291,9 @@
                     <height>31</height>
                    </rect>
                   </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_25">
+                  <layout class="QHBoxLayout" name="sam_horizontalLayout_25">
                    <item>
-                    <widget class="QLabel" name="label_24">
+                    <widget class="QLabel" name="sam_label_24">
                      <property name="text">
                       <string>IP address to listen on:</string>
                      </property>
@@ -302,7 +303,7 @@
                     <widget class="QLineEdit" name="samAddressLineEdit"/>
                    </item>
                    <item>
-                    <spacer name="horizontalSpacer_19">
+                    <spacer name="sam_horizontalSpacer_19">
                      <property name="orientation">
                       <enum>Qt::Horizontal</enum>
                      </property>
@@ -316,18 +317,18 @@
                    </item>
                   </layout>
                  </widget>
-                 <widget class="QWidget" name="horizontalLayoutWidget_9">
+                 <widget class="QWidget" name="sam_horizontalLayoutWidget_9">
                   <property name="geometry">
                    <rect>
                     <x>0</x>
                     <y>70</y>
                     <width>661</width>
-                    <height>342</height>
+                    <height>31</height>
                    </rect>
                   </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_26">
+                  <layout class="QHBoxLayout" name="sam_horizontalLayout_26">
                    <item>
-                    <widget class="QLabel" name="label_25">
+                    <widget class="QLabel" name="sam_label_25">
                      <property name="text">
                       <string>Port to listen on:</string>
                      </property>
@@ -344,7 +345,7 @@
                     </widget>
                    </item>
                    <item>
-                    <spacer name="horizontalSpacer_20">
+                    <spacer name="sam_horizontalSpacer_20">
                      <property name="orientation">
                       <enum>Qt::Horizontal</enum>
                      </property>
@@ -359,6 +360,9 @@
                   </layout>
                  </widget>
                 </widget>
+
+
+
                </item>
                <item row="8" column="0">
                 <widget class="QLabel" name="winOptLabel">
@@ -1877,13 +1881,13 @@
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>120</height>
+                   <height>180</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>120</height>
+                   <height>180</height>
                   </size>
                  </property>
                  <property name="title">
@@ -1918,31 +1922,33 @@
                     <x>0</x>
                     <y>40</y>
                     <width>391</width>
-                    <height>21</height>
+                    <height>42</height>
                    </rect>
                   </property>
                   <property name="text">
-                   <string>Make direct I2P connections only to routers in specified Family:</string>
+                   <string>Make direct I2P connections only to
+routers in specified Family:</string>
                   </property>
                  </widget>
                  <widget class="QLabel" name="labelTrustRouters">
                   <property name="geometry">
                    <rect>
                     <x>0</x>
-                    <y>60</y>
+                    <y>82</y>
                     <width>661</width>
-                    <height>16</height>
+                    <height>42</height>
                    </rect>
                   </property>
                   <property name="text">
-                   <string>Make direct I2P connections only to routers specified here. Comma separated list of base64 identities:</string>
+                   <string>Make direct I2P connections only to routers specified here.
+Comma separated list of base64 identities:</string>
                   </property>
                  </widget>
                  <widget class="QLineEdit" name="lineEditTrustRouters">
                   <property name="geometry">
                    <rect>
                     <x>0</x>
-                    <y>80</y>
+                    <y>124</y>
                     <width>661</width>
                     <height>23</height>
                    </rect>
@@ -1952,7 +1958,7 @@
                   <property name="geometry">
                    <rect>
                     <x>0</x>
-                    <y>100</y>
+                    <y>147</y>
                     <width>661</width>
                     <height>21</height>
                    </rect>

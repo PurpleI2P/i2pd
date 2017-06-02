@@ -1,26 +1,32 @@
 #include "TunnelPane.h"
+#include "QMessageBox"
 
-TunnelPane::TunnelPane(): QObject(),gridLayoutWidget_2(nullptr) {
-}
+TunnelPane::TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunnelConfig_):
+    QObject(),
+    tunnelConfig(tunnelConfig_),
+    tunnelsPageUpdateListener(tunnelsPageUpdateListener_),
+    gridLayoutWidget_2(nullptr) {}
 
 void TunnelPane::setupTunnelPane(
         TunnelConfig* tunnelConfig,
         QGroupBox *tunnelGroupBox,
         QWidget* gridLayoutWidget_2, QComboBox * tunnelTypeComboBox,
-        QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout, int tunnelsRow) {
-    tunnelsFormGridLayoutWidget->resize(527, tunnelsFormGridLayoutWidget->height()+gridLayoutWidget_2->height());
-    tunnelGroupBox->resize(gridLayoutWidget_2->width(), gridLayoutWidget_2->height());
-    tunnelsFormGridLayout->addWidget(tunnelGroupBox, tunnelsRow, 0);
+        QWidget *tunnelsFormGridLayoutWidget, int tunnelsRow, int height, int h) {
+    tunnelGroupBox->setGeometry(0, tunnelsFormGridLayoutWidget->height(), gridLayoutWidget_2->width(), h);
+    tunnelsFormGridLayoutWidget->resize(527, tunnelsFormGridLayoutWidget->height()+h);
+
+    QObject::connect(tunnelTypeComboBox, SIGNAL(currentIndexChanged(int)),
+                             this, SLOT(updated()));
 
 
     this->tunnelGroupBox=tunnelGroupBox;
 
     gridLayoutWidget_2->setObjectName(QStringLiteral("gridLayoutWidget_2"));
     this->gridLayoutWidget_2=gridLayoutWidget_2;
-    tunnelGridLayout = new QGridLayout(gridLayoutWidget_2);
+    tunnelGridLayout = new QVBoxLayout(gridLayoutWidget_2);
     tunnelGridLayout->setObjectName(QStringLiteral("tunnelGridLayout"));
     tunnelGridLayout->setContentsMargins(5, 5, 5, 5);
-    tunnelGridLayout->setVerticalSpacing(5);
+    tunnelGridLayout->setSpacing(5);
 
     //header
     QHBoxLayout *headerHorizontalLayout = new QHBoxLayout();
@@ -37,14 +43,18 @@ void TunnelPane::setupTunnelPane(
 
     QObject::connect(nameLineEdit, SIGNAL(textChanged(const QString &)),
                              this, SLOT(setGroupBoxTitle(const QString &)));
+    QObject::connect(nameLineEdit, SIGNAL(textChanged(const QString &)),
+                             this, SLOT(updated()));
 
     headerHorizontalLayout->addWidget(nameLineEdit);
     headerHorizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
     headerHorizontalLayout->addItem(headerHorizontalSpacer);
-    deletePushButton = new QPushButton(gridLayoutWidget_2);//TODO handle it
+    deletePushButton = new QPushButton(gridLayoutWidget_2);
     deletePushButton->setObjectName(QStringLiteral("deletePushButton"));
+    QObject::connect(deletePushButton, SIGNAL(released()),
+                             this, SLOT(deleteButtonReleased()));//MainWindow::DeleteTunnelNamed(std::string name) {
     headerHorizontalLayout->addWidget(deletePushButton);
-    tunnelGridLayout->addLayout(headerHorizontalLayout, 0, 0, 1, 1);
+    tunnelGridLayout->addLayout(headerHorizontalLayout);
 
     //type
     {
@@ -58,7 +68,7 @@ void TunnelPane::setupTunnelPane(
         this->tunnelTypeComboBox=tunnelTypeComboBox;
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_, 1, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_);
     }
 
     retranslateTunnelForm(*this);
@@ -77,10 +87,12 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         inbound_lengthLineEdit->setObjectName(QStringLiteral("inbound_lengthLineEdit"));
         inbound_lengthLineEdit->setText(inbound_length);
         inbound_lengthLineEdit->setMaximumWidth(80);
+        QObject::connect(inbound_lengthLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(inbound_lengthLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         //number of hops of an outbound tunnel
@@ -94,10 +106,12 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         outbound_lengthLineEdit->setObjectName(QStringLiteral("outbound_lengthLineEdit"));
         outbound_lengthLineEdit->setText(outbound_length);
         outbound_lengthLineEdit->setMaximumWidth(80);
+        QObject::connect(outbound_lengthLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(outbound_lengthLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         //number of inbound tunnels
@@ -111,10 +125,12 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         inbound_quantityLineEdit->setObjectName(QStringLiteral("inbound_quantityLineEdit"));
         inbound_quantityLineEdit->setText(inbound_quantity);
         inbound_quantityLineEdit->setMaximumWidth(80);
+        QObject::connect(inbound_quantityLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(inbound_quantityLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         //number of outbound tunnels
@@ -128,10 +144,12 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         outbound_quantityLineEdit->setObjectName(QStringLiteral("outbound_quantityLineEdit"));
         outbound_quantityLineEdit->setText(outbound_quantity);
         outbound_quantityLineEdit->setMaximumWidth(80);
+        QObject::connect(outbound_quantityLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(outbound_quantityLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         //number of ElGamal/AES tags to send
@@ -145,11 +163,55 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
         crypto_tagsToSendLineEdit->setObjectName(QStringLiteral("crypto_tagsToSendLineEdit"));
         crypto_tagsToSendLineEdit->setText(crypto_tagsToSend);
         crypto_tagsToSendLineEdit->setMaximumWidth(80);
+        QObject::connect(crypto_tagsToSendLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(crypto_tagsToSendLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
 
     retranslateI2CPParameters();
+}
+
+void TunnelPane::updated() {
+    std::string oldName=tunnelConfig->getName();
+    if(!applyDataFromUIToTunnelConfig())return;//TODO visualise bad input
+    tunnelsPageUpdateListener->updated(oldName, tunnelConfig);
+}
+
+void TunnelPane::deleteButtonReleased() {
+    QMessageBox msgBox;
+    msgBox.setText(QApplication::tr("Are you sure to delete this tunnel?"));
+    msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+    msgBox.setDefaultButton(QMessageBox::Cancel);
+    int ret = msgBox.exec();
+    switch (ret) {
+      case QMessageBox::Ok:
+          // OK was clicked
+        tunnelsPageUpdateListener->needsDeleting(tunnelConfig->getName());
+        break;
+      case QMessageBox::Cancel:
+          // Cancel was clicked
+        return;
+    }
+}
+
+/*
+const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
+const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
+const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
+const char I2P_TUNNELS_SECTION_TYPE_IRC[] = "irc";
+const char I2P_TUNNELS_SECTION_TYPE_UDPCLIENT[] = "udpclient";
+const char I2P_TUNNELS_SECTION_TYPE_UDPSERVER[] = "udpserver";
+const char I2P_TUNNELS_SECTION_TYPE_SOCKS[] = "socks";
+const char I2P_TUNNELS_SECTION_TYPE_WEBSOCKS[] = "websocks";
+const char I2P_TUNNELS_SECTION_TYPE_HTTPPROXY[] = "httpproxy";
+*/
+QString TunnelPane::readTunnelTypeComboboxData() {
+    return tunnelTypeComboBox->currentData().toString();
+}
+
+i2p::data::SigningKeyType TunnelPane::readSigTypeComboboxUI(QComboBox* sigTypeComboBox) {
+    return (i2p::data::SigningKeyType) sigTypeComboBox->currentData().toInt();
 }

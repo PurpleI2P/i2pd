@@ -2,14 +2,15 @@
 #include "../../ClientContext.h"
 #include "SignatureTypeComboboxFactory.h"
 
-ServerTunnelPane::ServerTunnelPane(): TunnelPane() {}
+ServerTunnelPane::ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf):
+    TunnelPane(tunnelsPageUpdateListener, tunconf) {}
 
 void ServerTunnelPane::setGroupBoxTitle(const QString & title) {
     serverTunnelNameGroupBox->setTitle(title);
 }
 
-void ServerTunnelPane::appendServerTunnelForm(
-        ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout, int tunnelsRow) {
+int ServerTunnelPane::appendServerTunnelForm(
+        ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget, int tunnelsRow, int height) {
 
     ServerTunnelPane& ui = *this;
 
@@ -17,7 +18,7 @@ void ServerTunnelPane::appendServerTunnelForm(
     serverTunnelNameGroupBox->setObjectName(QStringLiteral("serverTunnelNameGroupBox"));
 
     //tunnel
-    ui.gridLayoutWidget_2 = new QWidget(serverTunnelNameGroupBox);
+    gridLayoutWidget_2 = new QWidget(serverTunnelNameGroupBox);
 
     QComboBox *tunnelTypeComboBox = new QComboBox(gridLayoutWidget_2);
     tunnelTypeComboBox->setObjectName(QStringLiteral("tunnelTypeComboBox"));
@@ -26,14 +27,9 @@ void ServerTunnelPane::appendServerTunnelForm(
     tunnelTypeComboBox->addItem("IRC", i2p::client::I2P_TUNNELS_SECTION_TYPE_IRC);
     tunnelTypeComboBox->addItem("UDP Server", i2p::client::I2P_TUNNELS_SECTION_TYPE_UDPSERVER);
 
-    gridLayoutWidget_2->setGeometry(QRect(0, 0, 561, 18*60));
-
-
-    setupTunnelPane(tunnelConfig,
-                    serverTunnelNameGroupBox,
-                    gridLayoutWidget_2, tunnelTypeComboBox,
-                    tunnelsFormGridLayoutWidget, tunnelsFormGridLayout, tunnelsRow);
-    //this->tunnelGroupBox->setGeometry(QRect(0, tunnelsFormGridLayoutWidget->height()+10, 561, 18*40+10));
+    int h=19*60;
+    gridLayoutWidget_2->setGeometry(QRect(0, 0, 561, h));
+    serverTunnelNameGroupBox->setGeometry(QRect(0, 0, 561, h));
 
     {
         const QString& type = tunnelConfig->getType();
@@ -48,6 +44,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ++index;
     }
 
+    setupTunnelPane(tunnelConfig,
+                    serverTunnelNameGroupBox,
+                    gridLayoutWidget_2, tunnelTypeComboBox,
+                    tunnelsFormGridLayoutWidget, tunnelsRow, height, h);
+    //this->tunnelGroupBox->setGeometry(QRect(0, tunnelsFormGridLayoutWidget->height()+10, 561, 18*40+10));
+
     //host
     ui.horizontalLayout_2 = new QHBoxLayout();
     horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
@@ -57,10 +59,12 @@ void ServerTunnelPane::appendServerTunnelForm(
     ui.hostLineEdit = new QLineEdit(gridLayoutWidget_2);
     hostLineEdit->setObjectName(QStringLiteral("hostLineEdit"));
     hostLineEdit->setText(tunnelConfig->gethost().c_str());
+    QObject::connect(hostLineEdit, SIGNAL(textChanged(const QString &)),
+                             this, SLOT(updated()));
     horizontalLayout_2->addWidget(hostLineEdit);
     ui.hostHorizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
     horizontalLayout_2->addItem(hostHorizontalSpacer);
-    tunnelGridLayout->addLayout(horizontalLayout_2, 2, 0, 1, 1);
+    tunnelGridLayout->addLayout(horizontalLayout_2);
 
     int gridIndex = 2;
     {
@@ -74,10 +78,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         portLineEdit->setObjectName(QStringLiteral("portLineEdit"));
         portLineEdit->setText(QString::number(port));
         portLineEdit->setMaximumWidth(80);
+        QObject::connect(portLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(portLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         std::string keys  = tunnelConfig->getkeys();
@@ -89,10 +95,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ui.keysLineEdit = new QLineEdit(gridLayoutWidget_2);
         keysLineEdit->setObjectName(QStringLiteral("keysLineEdit"));
         keysLineEdit->setText(keys.c_str());
+        QObject::connect(keysLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(keysLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         int inPort = tunnelConfig->getinPort();
@@ -105,10 +113,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         inPortLineEdit->setObjectName(QStringLiteral("inPortLineEdit"));
         inPortLineEdit->setText(QString::number(inPort));
         inPortLineEdit->setMaximumWidth(80);
+        QObject::connect(inPortLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(inPortLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         std::string accessList = tunnelConfig->getaccessList();
@@ -120,10 +130,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ui.accessListLineEdit = new QLineEdit(gridLayoutWidget_2);
         accessListLineEdit->setObjectName(QStringLiteral("accessListLineEdit"));
         accessListLineEdit->setText(accessList.c_str());
+        QObject::connect(accessListLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(accessListLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         std::string hostOverride = tunnelConfig->gethostOverride();
@@ -135,10 +147,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ui.hostOverrideLineEdit = new QLineEdit(gridLayoutWidget_2);
         hostOverrideLineEdit->setObjectName(QStringLiteral("hostOverrideLineEdit"));
         hostOverrideLineEdit->setText(hostOverride.c_str());
+        QObject::connect(hostOverrideLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(hostOverrideLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         std::string webIRCPass = tunnelConfig->getwebircpass();
@@ -150,10 +164,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ui.webIRCPassLineEdit = new QLineEdit(gridLayoutWidget_2);
         webIRCPassLineEdit->setObjectName(QStringLiteral("webIRCPassLineEdit"));
         webIRCPassLineEdit->setText(webIRCPass.c_str());
+        QObject::connect(webIRCPassLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(webIRCPassLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         bool gzip = tunnelConfig->getgzip();
@@ -162,10 +178,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ui.gzipCheckBox = new QCheckBox(gridLayoutWidget_2);
         gzipCheckBox->setObjectName(QStringLiteral("gzipCheckBox"));
         gzipCheckBox->setChecked(gzip);
+        QObject::connect(gzipCheckBox, SIGNAL(stateChanged(int)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(gzipCheckBox);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         i2p::data::SigningKeyType sigType = tunnelConfig->getsigType();
@@ -176,10 +194,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         horizontalLayout_2->addWidget(sigTypeLabel);
         ui.sigTypeComboBox = SignatureTypeComboBoxFactory::createSignatureTypeComboBox(gridLayoutWidget_2, sigType);
         sigTypeComboBox->setObjectName(QStringLiteral("sigTypeComboBox"));
+        QObject::connect(sigTypeComboBox, SIGNAL(currentIndexChanged(int)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(sigTypeComboBox);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         uint32_t maxConns = tunnelConfig->getmaxConns();
@@ -192,10 +212,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         maxConnsLineEdit->setObjectName(QStringLiteral("maxConnsLineEdit"));
         maxConnsLineEdit->setText(QString::number(maxConns));
         maxConnsLineEdit->setMaximumWidth(80);
+        QObject::connect(maxConnsLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(maxConnsLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         std::string address = tunnelConfig->getaddress();
@@ -207,10 +229,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ui.addressLineEdit = new QLineEdit(gridLayoutWidget_2);
         addressLineEdit->setObjectName(QStringLiteral("addressLineEdit"));
         addressLineEdit->setText(address.c_str());
+        QObject::connect(addressLineEdit, SIGNAL(textChanged(const QString &)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(addressLineEdit);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         bool isUniqueLocal = tunnelConfig->getisUniqueLocal();
@@ -219,10 +243,12 @@ void ServerTunnelPane::appendServerTunnelForm(
         ui.isUniqueLocalCheckBox = new QCheckBox(gridLayoutWidget_2);
         isUniqueLocalCheckBox->setObjectName(QStringLiteral("isUniqueLocalCheckBox"));
         isUniqueLocalCheckBox->setChecked(isUniqueLocal);
+        QObject::connect(gzipCheckBox, SIGNAL(stateChanged(int)),
+                                 this, SLOT(updated()));
         horizontalLayout_2->addWidget(isUniqueLocalCheckBox);
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2, ++gridIndex, 0, 1, 1);
+        tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
         I2CPParameters& i2cpParameters = tunnelConfig->getI2cpParameters();
@@ -232,16 +258,16 @@ void ServerTunnelPane::appendServerTunnelForm(
     retranslateServerTunnelForm(ui);
 
     tunnelGridLayout->invalidate();
+
+    return h;
 }
 
-void ServerTunnelPane::deleteServerTunnelForm(QGridLayout *tunnelsFormGridLayout) {
-    tunnelsFormGridLayout->removeWidget(tunnelGroupBox);
+void ServerTunnelPane::deleteServerTunnelForm() {
+    delete serverTunnelNameGroupBox;//->deleteLater();
+    serverTunnelNameGroupBox=nullptr;
 
-    tunnelGroupBox->deleteLater();
-    tunnelGroupBox=nullptr;
-
-    gridLayoutWidget_2->deleteLater();
-    gridLayoutWidget_2=nullptr;
+    //gridLayoutWidget_2->deleteLater();
+    //gridLayoutWidget_2=nullptr;
 }
 
 

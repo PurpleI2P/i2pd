@@ -2,7 +2,7 @@
 #define SERVERTUNNELPANE_H
 
 #include "TunnelPane.h"
-#include "mainwindow.h"
+#include "TunnelsPageUpdateListener.h"
 
 #include <QtCore/QVariant>
 #include <QtWidgets/QAction>
@@ -18,6 +18,10 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QWidget>
+#include "QVBoxLayout"
+#include "QCheckBox"
+
+#include "assert.h"
 
 class ServerTunnelConfig;
 
@@ -27,15 +31,15 @@ class ServerTunnelPane : public TunnelPane {
     Q_OBJECT
 
 public:
-    ServerTunnelPane();
+    ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf);
     virtual ~ServerTunnelPane(){}
 
     virtual ServerTunnelPane* asServerTunnelPane();
     virtual ClientTunnelPane* asClientTunnelPane();
 
-    void appendServerTunnelForm(ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget,
-                                QGridLayout *tunnelsFormGridLayout, int tunnelsRow);
-    void deleteServerTunnelForm(QGridLayout *tunnelsFormGridLayout);
+    int appendServerTunnelForm(ServerTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget,
+                                int tunnelsRow, int height);
+    void deleteServerTunnelForm();
 
 private:
     QGroupBox *serverTunnelNameGroupBox;
@@ -113,6 +117,45 @@ private:
         sigTypeLabel->setText(QApplication::translate("cltTunForm", "Signature type:", 0));
     }
 
+protected:
+    virtual bool applyDataFromUIToTunnelConfig() {
+        bool ok=TunnelPane::applyDataFromUIToTunnelConfig();
+        if(!ok)return false;
+        ServerTunnelConfig* stc=tunnelConfig->asServerTunnelConfig();
+        assert(stc!=nullptr);
+        stc->sethost(hostLineEdit->text().toStdString());
+
+        auto portStr=portLineEdit->text();
+        int portInt=portStr.toInt(&ok);
+        if(!ok)return false;
+        stc->setport(portInt);
+
+        stc->setkeys(keysLineEdit->text().toStdString());
+
+        auto str=inPortLineEdit->text();
+        int inPortInt=str.toInt(&ok);
+        if(!ok)return false;
+        stc->setinPort(inPortInt);
+
+        stc->setaccessList(accessListLineEdit->text().toStdString());
+
+        stc->sethostOverride(hostOverrideLineEdit->text().toStdString());
+
+        stc->setwebircpass(webIRCPassLineEdit->text().toStdString());
+
+        stc->setaddress(addressLineEdit->text().toStdString());
+
+        auto mcStr=maxConnsLineEdit->text();
+        uint32_t mcInt=(uint32_t)mcStr.toInt(&ok);
+        if(!ok)return false;
+        stc->setmaxConns(mcInt);
+
+        stc->setgzip(gzipCheckBox->isChecked());
+
+        stc->setisUniqueLocal(isUniqueLocalCheckBox->isChecked());
+
+        stc->setsigType(readSigTypeComboboxUI(sigTypeComboBox));
+    }
 };
 
 #endif // SERVERTUNNELPANE_H

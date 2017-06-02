@@ -23,6 +23,7 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
+#include "QVBoxLayout"
 
 #ifndef ANDROID
 # include <QSystemTrayIcon>
@@ -47,6 +48,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
+
+#include "TunnelsPageUpdateListener.h"
 
 template<typename ValueType>
 bool isType(boost::any& a) {
@@ -380,20 +383,23 @@ protected:
 public slots:
     /** returns false iff not valid items present and save was aborted */
     bool saveAllConfigs();
-    void reloadTunnelsConfigAndUI();
+    void SaveTunnelsConfig();
+    void reloadTunnelsConfigAndUI(std::string tunnelNameToFocus);
+
+    //focus none
+    void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI(""); }
+    void addServerTunnelPushButtonReleased();
+    void addClientTunnelPushButtonReleased();
 
 private:
     QString datadir;
     QString confpath;
     QString tunconfpath;
 
-    std::list<TunnelConfig*> tunnelConfigs;
+    std::map<std::string, TunnelConfig*> tunnelConfigs;
     std::list<TunnelPane*> tunnelPanes;
 
-    QWidget *tunnelsFormGridLayoutWidget;
-    QGridLayout *tunnelsFormGridLayout;
-
-    void appendTunnelForms();
+    void appendTunnelForms(std::string tunnelNameToFocus);
     void deleteTunnelForms();
 
 
@@ -427,6 +433,107 @@ private:
         options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);//TODO include into param
     }
 
+    void CreateDefaultI2CPOptions (I2CPParameters& param
+                          /*TODO fill param*/) const
+    {
+        const int _INBOUND_TUNNEL_LENGTH = DEFAULT_INBOUND_TUNNEL_LENGTH;
+        param.setInbound_length(QString::number(_INBOUND_TUNNEL_LENGTH));
+        const int _OUTBOUND_TUNNEL_LENGTH = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
+        param.setOutbound_length(QString::number(_OUTBOUND_TUNNEL_LENGTH));
+        const int _INBOUND_TUNNELS_QUANTITY = DEFAULT_INBOUND_TUNNELS_QUANTITY;
+        param.setInbound_quantity( QString::number(_INBOUND_TUNNELS_QUANTITY));
+        const int _OUTBOUND_TUNNELS_QUANTITY = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+        param.setOutbound_quantity(QString::number(_OUTBOUND_TUNNELS_QUANTITY));
+        const int _TAGS_TO_SEND = DEFAULT_TAGS_TO_SEND;
+        param.setCrypto_tagsToSend(QString::number(_TAGS_TO_SEND));
+    }
+
+
+    void DeleteTunnelNamed(std::string name) {
+        std::map<std::string,TunnelConfig*>::const_iterator it=tunnelConfigs.find(name);
+        if(it!=tunnelConfigs.end()){
+            TunnelConfig* tc=it->second;
+            tunnelConfigs.erase(it);
+            delete tc;
+            SaveTunnelsConfig();
+            reloadTunnelsConfigAndUI("");
+        }
+    }
+
+    std::string GenerateNewTunnelName() {
+        int i=1;
+        while(true){
+            std::stringstream name;
+            name << "name" << i;
+            const std::string& str=name.str();
+            if(tunnelConfigs.find(str)==tunnelConfigs.end())return str;
+            ++i;
+        }
+    }
+
+    void CreateDefaultClientTunnel() {//TODO dedup default values with ReadTunnelsConfig() and with ClientContext.cpp::ReadTunnels ()
+        std::string name=GenerateNewTunnelName();
+        std::string type = I2P_TUNNELS_SECTION_TYPE_CLIENT;
+        std::string dest = "127.0.0.1";
+        int port = 0;
+        std::string keys = "";
+        std::string address = "127.0.0.1";
+        int destinationPort = 0;
+        i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+        // I2CP
+        I2CPParameters i2cpParameters;
+        CreateDefaultI2CPOptions (i2cpParameters);
+
+        tunnelConfigs[name]=new ClientTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+                                                      dest,
+                                                      port,
+                                                      keys,
+                                                      address,
+                                                      destinationPort,
+                                                      sigType);
+
+        SaveTunnelsConfig();
+        reloadTunnelsConfigAndUI(name);
+    }
+
+    void CreateDefaultServerTunnel() {//TODO dedup default values with ReadTunnelsConfig() and with ClientContext.cpp::ReadTunnels ()
+        std::string name=GenerateNewTunnelName();
+        std::string type=I2P_TUNNELS_SECTION_TYPE_SERVER;
+        std::string host = "127.0.0.1";
+        int port = 0;
+        std::string keys = "";
+        int inPort = 0;
+        std::string accessList = "";
+        std::string hostOverride = "";
+        std::string webircpass = "";
+        bool gzip = true;
+        i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+        uint32_t maxConns = i2p::stream::DEFAULT_MAX_CONNS_PER_MIN;
+        std::string address = "127.0.0.1";
+        bool isUniqueLocal = true;
+
+        // I2CP
+        I2CPParameters i2cpParameters;
+        CreateDefaultI2CPOptions (i2cpParameters);
+
+        tunnelConfigs[name]=new ServerTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+                                                  host,
+                                                  port,
+                                                  keys,
+                                                  inPort,
+                                                  accessList,
+                                                  hostOverride,
+                                                  webircpass,
+                                                  gzip,
+                                                  sigType,
+                                                  maxConns,
+                                                  address,
+                                                  isUniqueLocal);
+
+
+        SaveTunnelsConfig();
+        reloadTunnelsConfigAndUI(name);
+    }
 
     void ReadTunnelsConfig() //TODO deduplicate the code with ClientContext.cpp::ReadTunnels ()
     {
@@ -479,13 +586,13 @@ private:
                     I2CPParameters i2cpParameters;
                     ReadI2CPOptions (section, options, i2cpParameters);
 
-                    tunnelConfigs.push_back(new ClientTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+                    tunnelConfigs[name]=new ClientTunnelConfig(name, QString(type.c_str()), i2cpParameters,
                                                               dest,
                                                               port,
                                                               keys,
                                                               address,
                                                               destinationPort,
-                                                              sigType));
+                                                              sigType);
                 }
                 else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
                                  || type == I2P_TUNNELS_SECTION_TYPE_HTTP
@@ -528,7 +635,7 @@ private:
                         while (comma != std::string::npos);
                     }
                     */
-                    tunnelConfigs.push_back(new ServerTunnelConfig(name, QString(type.c_str()), i2cpParameters,
+                    tunnelConfigs[name]=new ServerTunnelConfig(name, QString(type.c_str()), i2cpParameters,
                                                               host,
                                                               port,
                                                               keys,
@@ -540,7 +647,7 @@ private:
                                                               sigType,
                                                               maxConns,
                                                               address,
-                                                              isUniqueLocal));
+                                                              isUniqueLocal);
                 }
                 else
                     LogPrint (eLogWarning, "Clients: Unknown section type=", type, " of ", name, " in ", tunConf);//TODO show err box and disable the tunn gui
@@ -553,6 +660,16 @@ private:
         }
     }
 
+private:
+    class TunnelsPageUpdateListenerMainWindowImpl : public TunnelsPageUpdateListener {
+        MainWindow* mainWindow;
+    public:
+        TunnelsPageUpdateListenerMainWindowImpl(MainWindow* mainWindow_):mainWindow(mainWindow_){}
+        virtual void updated(std::string oldName, TunnelConfig* tunConf);
+        virtual void needsDeleting(std::string oldName);
+    };
+
+    TunnelsPageUpdateListenerMainWindowImpl tunnelsPageUpdateListener;
 };
 
 #endif // MAINWINDOW_H

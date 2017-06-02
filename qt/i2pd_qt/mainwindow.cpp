@@ -29,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ,datadir()
     ,confpath()
     ,tunconfpath()
+    ,tunnelsPageUpdateListener(this)
 
 {
     ui->setupUi(this);
@@ -185,16 +186,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     loadAllConfigs();
 
-    tunnelsFormGridLayoutWidget = new QWidget(ui->tunnelsScrollAreaWidgetContents);
-    tunnelsFormGridLayoutWidget->setObjectName(QStringLiteral("tunnelsFormGridLayoutWidget"));
-    tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, 451));
+    //tunnelsFormGridLayoutWidget = new QWidget(ui->tunnelsScrollAreaWidgetContents);
+    //tunnelsFormGridLayoutWidget->setObjectName(QStringLiteral("tunnelsFormGridLayoutWidget"));
+    //tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, 451));
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, 451));
-    tunnelsFormGridLayout = new QGridLayout(tunnelsFormGridLayoutWidget);
-    tunnelsFormGridLayout->setObjectName(QStringLiteral("tunnelsFormGridLayout"));
-    tunnelsFormGridLayout->setContentsMargins(5, 5, 5, 5);
-    tunnelsFormGridLayout->setVerticalSpacing(5);
 
-    appendTunnelForms();
+    appendTunnelForms("");
 
     ui->configFileLineEdit->setEnabled(false);
     ui->configFileBrowsePushButton->setEnabled(false);
@@ -209,6 +206,8 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(ui->tunnelsConfigFileLineEdit, SIGNAL(textChanged(const QString &)),
                      this, SLOT(reloadTunnelsConfigAndUI()));
 
+    QObject::connect(ui->addServerTunnelPushButton, SIGNAL(released()), this, SLOT(addServerTunnelPushButtonReleased()));
+    QObject::connect(ui->addClientTunnelPushButton, SIGNAL(released()), this, SLOT(addClientTunnelPushButtonReleased()));
 
 
 #ifndef ANDROID
@@ -476,9 +475,10 @@ bool MainWindow::saveAllConfigs(){
     QFile::rename(confpath, backup);//TODO handle errors
     ofstream outfile;
     outfile.open(confpath.toStdString());//TODO handle errors
-    string dataToWrite = out.str();
-    outfile << dataToWrite.c_str();
+    outfile << out.str().c_str();
     outfile.close();
+
+    SaveTunnelsConfig();
 
     return true;
 }
@@ -507,47 +507,53 @@ void CheckBoxItem::installListeners(MainWindow *mainWindow) {
 
 void MainWindowItem::installListeners(MainWindow *mainWindow) {}
 
-void MainWindow::appendTunnelForms() {
+void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
     int height=0;
-    tunnelsFormGridLayoutWidget->setGeometry(0,0,0,0);
-    for(std::list<TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
-        TunnelConfig* tunconf = *it;
+    ui->tunnelsScrollAreaWidgetContents->setGeometry(0,0,0,0);
+    for(std::map<std::string, TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
+        const std::string& name=it->first;
+        TunnelConfig* tunconf = it->second;
         ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
         if(stc){
-            ServerTunnelPane * tunnelPane=new ServerTunnelPane();
-            tunnelPane->appendServerTunnelForm(stc, tunnelsFormGridLayoutWidget, tunnelsFormGridLayout, tunnelPanes.size());
-            height+=tunnelPane->height();
+            ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc);
+            int h=tunnelPane->appendServerTunnelForm(stc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
+            height+=h;
             qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
+            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
             continue;
         }
         ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
         if(ctc){
-            ClientTunnelPane * tunnelPane=new ClientTunnelPane();
-            tunnelPane->appendClientTunnelForm(ctc, tunnelsFormGridLayoutWidget, tunnelsFormGridLayout, tunnelPanes.size());
-            height+=tunnelPane->height();
+            ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc);
+            int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
+            height+=h;
             qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
+            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
             continue;
         }
         throw "unknown TunnelConfig subtype";
     }
     qDebug() << "tun.setting height:" << height;
-    tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, height));
-    tunnelsFormGridLayout->invalidate();
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, height));
+    QList<QWidget*> childWidgets = ui->tunnelsScrollAreaWidgetContents->findChildren<QWidget*>();
+    foreach(QWidget* widget, childWidgets)
+        widget->show();
 }
 void MainWindow::deleteTunnelForms() {
     for(std::list<TunnelPane*>::iterator it = tunnelPanes.begin(); it != tunnelPanes.end(); ++it) {
         TunnelPane* tp = *it;
         ServerTunnelPane* stp = tp->asServerTunnelPane();
         if(stp){
-            stp->deleteServerTunnelForm(tunnelsFormGridLayout);
+            stp->deleteServerTunnelForm();
+            delete stp;
             continue;
         }
         ClientTunnelPane* ctp = tp->asClientTunnelPane();
         if(ctp){
-            ctp->deleteClientTunnelForm(tunnelsFormGridLayout);
+            ctp->deleteClientTunnelForm();
+            delete ctp;
             continue;
         }
         throw "unknown TunnelPane subtype";
@@ -555,13 +561,58 @@ void MainWindow::deleteTunnelForms() {
     tunnelPanes.clear();
 }
 
-void MainWindow::reloadTunnelsConfigAndUI() {
+void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
     deleteTunnelForms();
-    for(std::list<TunnelConfig*>::iterator it = tunnelConfigs.begin(); it != tunnelConfigs.end(); ++it) {
-        TunnelConfig* tunconf = *it;
+    for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
+        TunnelConfig* tunconf = it->second;
         delete tunconf;
     }
     tunnelConfigs.clear();
     ReadTunnelsConfig();
-    appendTunnelForms();
+    appendTunnelForms(tunnelNameToFocus);
+}
+
+void MainWindow::SaveTunnelsConfig() {
+    std::stringstream out;
+
+    for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
+        const std::string& name = it->first;
+        TunnelConfig* tunconf = it->second;
+        tunconf->saveHeaderToStringStream(out);
+        tunconf->saveToStringStream(out);
+        tunconf->saveI2CPParametersToStringStream(out);
+    }
+
+    using namespace std;
+
+    QString backup=tunconfpath+"~";
+    if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
+    QFile::rename(tunconfpath, backup);//TODO handle errors
+    ofstream outfile;
+    outfile.open(tunconfpath.toStdString());//TODO handle errors
+    outfile << out.str().c_str();
+    outfile.close();
+
+}
+
+void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::updated(std::string oldName, TunnelConfig* tunConf) {
+    if(oldName!=tunConf->getName()) {
+        //name has changed
+        std::map<std::string,TunnelConfig*>::const_iterator it=mainWindow->tunnelConfigs.find(oldName);
+        if(it!=mainWindow->tunnelConfigs.end())mainWindow->tunnelConfigs.erase(it);
+        mainWindow->tunnelConfigs[tunConf->getName()]=tunConf;
+    }
+    mainWindow->SaveTunnelsConfig();
+}
+
+void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::needsDeleting(std::string oldName){
+    mainWindow->DeleteTunnelNamed(oldName);
+}
+
+void MainWindow::addServerTunnelPushButtonReleased() {
+    CreateDefaultServerTunnel();
+}
+
+void MainWindow::addClientTunnelPushButtonReleased() {
+    CreateDefaultClientTunnel();
 }

@@ -10,6 +10,7 @@
 #include "QApplication"
 #include "QLineEdit"
 #include "QGroupBox"
+#include "QVBoxLayout"
 
 #include "TunnelConfig.h"
 
@@ -24,20 +25,30 @@ class TunnelPane : public QObject {
     Q_OBJECT
 
 public:
-    TunnelPane();
+    TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunconf);
     virtual ~TunnelPane(){}
 
     virtual ServerTunnelPane* asServerTunnelPane()=0;
     virtual ClientTunnelPane* asClientTunnelPane()=0;
 
 protected:
-    QGridLayout *tunnelGridLayout;
+    TunnelConfig* tunnelConfig;
+    TunnelsPageUpdateListener* tunnelsPageUpdateListener;
+    QVBoxLayout *tunnelGridLayout;
     QGroupBox *tunnelGroupBox;
     QWidget* gridLayoutWidget_2;
 
     //header
     QLabel *nameLabel;
     QLineEdit *nameLineEdit;
+public:
+    QLineEdit * getNameLineEdit() { return nameLineEdit; }
+
+public slots:
+    void updated();
+    void deleteButtonReleased();
+
+protected:
     QSpacerItem *headerHorizontalSpacer;
     QPushButton *deletePushButton;
 
@@ -62,11 +73,28 @@ protected:
     QLabel * crypto_tagsToSendLabel;
     QLineEdit * crypto_tagsToSendLineEdit;
 
+    QString readTunnelTypeComboboxData();
+
+    //should be created by factory
+    i2p::data::SigningKeyType readSigTypeComboboxUI(QComboBox* sigTypeComboBox);
+
+    //returns false when invalid data at UI
+    virtual bool applyDataFromUIToTunnelConfig() {
+        tunnelConfig->setName(nameLineEdit->text().toStdString());
+        tunnelConfig->setType(readTunnelTypeComboboxData());
+        I2CPParameters& i2cpParams=tunnelConfig->getI2cpParameters();
+        i2cpParams.setInbound_length(inbound_lengthLineEdit->text());
+        i2cpParams.setInbound_quantity(inbound_quantityLineEdit->text());
+        i2cpParams.setOutbound_length(outbound_lengthLineEdit->text());
+        i2cpParams.setOutbound_quantity(outbound_quantityLineEdit->text());
+        i2cpParams.setCrypto_tagsToSend(crypto_tagsToSendLineEdit->text());
+    }
+
     void setupTunnelPane(
             TunnelConfig* tunnelConfig,
             QGroupBox *tunnelGroupBox,
             QWidget* gridLayoutWidget_2, QComboBox * tunnelTypeComboBox,
-            QWidget *tunnelsFormGridLayoutWidget, QGridLayout *tunnelsFormGridLayout, int tunnelsRow);
+            QWidget *tunnelsFormGridLayoutWidget, int tunnelsRow, int height, int h);
     void appendControlsForI2CPParameters(I2CPParameters& i2cpParameters, int& gridIndex);
 public:
     int height() {

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "../../ClientContext.h"
+#include "TunnelsPageUpdateListener.h"
 
 
 class I2CPParameters{
@@ -53,13 +54,17 @@ class TunnelConfig {
     QString type;
     std::string name;
 public:
-    TunnelConfig(std::string name_, QString& type_, I2CPParameters& i2cpParameters_): type(type_), name(name_), i2cpParameters(i2cpParameters_) {}
+    TunnelConfig(std::string name_, QString& type_, I2CPParameters& i2cpParameters_):
+        type(type_), name(name_), i2cpParameters(i2cpParameters_) {}
     virtual ~TunnelConfig(){}
     const QString& getType(){return type;}
     const std::string& getName(){return name;}
     void setType(const QString& type_){type=type_;}
     void setName(const std::string& name_){name=name_;}
     I2CPParameters& getI2cpParameters(){return i2cpParameters;}
+    void saveHeaderToStringStream(std::stringstream& out);
+    void saveI2CPParametersToStringStream(std::stringstream& out);
+    virtual void saveToStringStream(std::stringstream& out)=0;
     virtual ClientTunnelConfig* asClientTunnelConfig()=0;
     virtual ServerTunnelConfig* asServerTunnelConfig()=0;
 
@@ -116,12 +121,13 @@ public:
     std::string & getaddress(){return address;}
     int getdestinationPort(){return destinationPort;}
     i2p::data::SigningKeyType getsigType(){return sigType;}
-    void setdest(std::string& dest_){dest=dest_;}
+    void setdest(const std::string& dest_){dest=dest_;}
     void setport(int port_){port=port_;}
-    void setkeys(std::string & keys_){keys=keys_;}
-    void setaddress(std::string & address_){address=address_;}
+    void setkeys(const std::string & keys_){keys=keys_;}
+    void setaddress(const std::string & address_){address=address_;}
     void setdestinationPort(int destinationPort_){destinationPort=destinationPort_;}
     void setsigType(i2p::data::SigningKeyType sigType_){sigType=sigType_;}
+    virtual void saveToStringStream(std::stringstream& out);
     virtual ClientTunnelConfig* asClientTunnelConfig(){return this;}
     virtual ServerTunnelConfig* asServerTunnelConfig(){return nullptr;}
 };
@@ -203,18 +209,19 @@ public:
     uint32_t getmaxConns(){return maxConns;}
     std::string& getaddress(){return address;}
     bool getisUniqueLocal(){return isUniqueLocal;}
-    void sethost(std::string& host_){host=host_;}
+    void sethost(const std::string& host_){host=host_;}
     void setport(int port_){port=port_;}
-    void setkeys(std::string& keys_){keys=keys_;}
+    void setkeys(const std::string& keys_){keys=keys_;}
     void setinPort(int inPort_){inPort=inPort_;}
-    void setaccessList(std::string& accessList_){accessList=accessList_;}
-    void sethostOverride(std::string& hostOverride_){hostOverride=hostOverride_;}
-    void setwebircpass(std::string& webircpass_){webircpass=webircpass_;}
+    void setaccessList(const std::string& accessList_){accessList=accessList_;}
+    void sethostOverride(const std::string& hostOverride_){hostOverride=hostOverride_;}
+    void setwebircpass(const std::string& webircpass_){webircpass=webircpass_;}
     void setgzip(bool gzip_){gzip=gzip_;}
     void setsigType(i2p::data::SigningKeyType sigType_){sigType=sigType_;}
     void setmaxConns(uint32_t maxConns_){maxConns=maxConns_;}
-    void setaddress(std::string& address_){address=address_;}
+    void setaddress(const std::string& address_){address=address_;}
     void setisUniqueLocal(bool isUniqueLocal_){isUniqueLocal=isUniqueLocal_;}
+    virtual void saveToStringStream(std::stringstream& out);
     virtual ClientTunnelConfig* asClientTunnelConfig(){return nullptr;}
     virtual ServerTunnelConfig* asServerTunnelConfig(){return this;}
 };

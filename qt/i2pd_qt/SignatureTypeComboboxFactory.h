@@ -8,7 +8,7 @@
 
 class SignatureTypeComboBoxFactory
 {
-    static const QVariant& createUserData(const uint16_t sigType) {
+    static const QVariant createUserData(const uint16_t sigType) {
         return QVariant::fromValue((uint)sigType);
     }
 

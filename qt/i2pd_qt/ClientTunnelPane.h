@@ -2,6 +2,7 @@
 #define CLIENTTUNNELPANE_H
 
 #include "QGridLayout"
+#include "QVBoxLayout"
 
 #include "TunnelPane.h"
 
@@ -13,13 +14,13 @@ class TunnelPane;
 class ClientTunnelPane : public TunnelPane {
     Q_OBJECT
 public:
-    ClientTunnelPane();
+    ClientTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ClientTunnelConfig* tunconf);
     virtual ~ClientTunnelPane(){}
     virtual ServerTunnelPane* asServerTunnelPane();
     virtual ClientTunnelPane* asClientTunnelPane();
-    void appendClientTunnelForm(ClientTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget,
-                                QGridLayout *tunnelsFormGridLayout, int tunnelsRow);
-    void deleteClientTunnelForm(QGridLayout *tunnelsFormGridLayout);
+    int appendClientTunnelForm(ClientTunnelConfig* tunnelConfig, QWidget *tunnelsFormGridLayoutWidget,
+                                int tunnelsRow, int height);
+    void deleteClientTunnelForm();
 private:
     QGroupBox *clientTunnelNameGroupBox;
 
@@ -65,7 +66,32 @@ private:
         addressLabel->setText(QApplication::translate("cltTunForm", "Address:", 0));
         sigTypeLabel->setText(QApplication::translate("cltTunForm", "Signature type:", 0));
     }
+protected:
+    virtual bool applyDataFromUIToTunnelConfig() {
+        bool ok=TunnelPane::applyDataFromUIToTunnelConfig();
+        if(!ok)return false;
+        ClientTunnelConfig* ctc=tunnelConfig->asClientTunnelConfig();
+        assert(ctc!=nullptr);
 
+        //destination
+        ctc->setdest(destinationLineEdit->text().toStdString());
+
+        auto portStr=portLineEdit->text();
+        int portInt=portStr.toInt(&ok);
+        if(!ok)return false;
+        ctc->setport(portInt);
+
+        ctc->setkeys(keysLineEdit->text().toStdString());
+
+        ctc->setaddress(addressLineEdit->text().toStdString());
+
+        auto dportStr=portLineEdit->text();
+        int dportInt=dportStr.toInt(&ok);
+        if(!ok)return false;
+        ctc->setdestinationPort(dportInt);
+
+        ctc->setsigType(readSigTypeComboboxUI(sigTypeComboBox));
+    }
 };
 
 #endif // CLIENTTUNNELPANE_H
