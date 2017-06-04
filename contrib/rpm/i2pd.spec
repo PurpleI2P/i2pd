@@ -103,13 +103,13 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Thr June 01 2017 orignal <i2porignal@yandex.ru> - 2.14.0
+* Thu Jun 01 2017 orignal <i2porignal@yandex.ru> - 2.14.0
 - Added transit traffic bandwidth limitation
 - Added NTCP connections through HTTP and SOCKS proxies
 - Added ability to disable address helper for HTTP proxy
 - Changed reseed servers list
 
-* Tue April 06 2017 orignal <i2porignal@yandex.ru> - 2.13.0
+* Thu Apr 06 2017 orignal <i2porignal@yandex.ru> - 2.13.0
 - Added persist local destination's tags
 - Added GOST signature types 9 and 10
 - Added exploratory tunnels configuration
@@ -137,7 +137,7 @@ getent passwd i2pd >/dev/null || \
 - Fixed UPnP discovery bug, producing excessive CPU usage
 - Handle multiple lookups of the same LeaseSet correctly
 
-* Tue Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
+* Thu Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
 - add support C7
 - move rpm-related files to contrib folder
 
