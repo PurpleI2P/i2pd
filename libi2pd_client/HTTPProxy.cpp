@@ -309,7 +309,7 @@ namespace proxy {
 					GenericProxyError("Outproxy failure", "bad outproxy settings");
 			} else {
 				LogPrint (eLogWarning, "HTTPProxy: outproxy failure for ", dest_host, ": no outprxy enabled");
-				std::string message = "Host" + dest_host + "not inside I2P network, but outproxy is not enabled";
+				std::string message = "Host " + dest_host + " not inside I2P network, but outproxy is not enabled";
 				GenericProxyError("Outproxy failure", message.c_str());
 			}
 			return true;
