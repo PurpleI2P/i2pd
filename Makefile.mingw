@@ -4,31 +4,29 @@ WINDRES = windres
 CXXFLAGS = -Os -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
 BOOST_SUFFIX = -mt
-INCFLAGS = -I/usr/include/ -I/usr/local/include/
-LDFLAGS = -Wl,-rpath,/usr/local/lib \
-  -L/usr/local/lib 
+INCFLAGS = -I/usr/include/ -I/usr/local/include/ -I. -Idaemon
+LDFLAGS = -Wl,-rpath,/usr/local/lib -Wl,-Bstatic -static-libgcc -static-libstdc++ -L/usr/local/lib
 
-# UPNP Support 
+# UPNP Support
 ifeq ($(USE_UPNP),yes)
-  CXXFLAGS += -DUSE_UPNP -DMINIUPNP_STATICLIB
-  LDLIBS = -Wl,-Bstatic -lminiupnpc	
+	CXXFLAGS += -DUSE_UPNP -DMINIUPNP_STATICLIB
+	LDLIBS = -lminiupnpc
 endif
 
 LDLIBS += \
-  -Wl,-Bstatic -lboost_system$(BOOST_SUFFIX) \
-  -Wl,-Bstatic -lboost_date_time$(BOOST_SUFFIX) \
-  -Wl,-Bstatic -lboost_filesystem$(BOOST_SUFFIX) \
-  -Wl,-Bstatic -lboost_program_options$(BOOST_SUFFIX) \
-  -Wl,-Bstatic -lssl \
-  -Wl,-Bstatic -lcrypto \
-  -Wl,-Bstatic -lz \
-  -Wl,-Bstatic -lwsock32 \
-  -Wl,-Bstatic -lws2_32 \
-  -Wl,-Bstatic -lgdi32 \
-  -Wl,-Bstatic -liphlpapi \
-  -static-libgcc -static-libstdc++ \
-  -Wl,-Bstatic -lstdc++ \
-  -Wl,-Bstatic -lpthread
+	-lboost_system$(BOOST_SUFFIX) \
+	-lboost_date_time$(BOOST_SUFFIX) \
+	-lboost_filesystem$(BOOST_SUFFIX) \
+	-lboost_program_options$(BOOST_SUFFIX) \
+	-lssl \
+	-lcrypto \
+	-lz \
+	-lwsock32 \
+	-lws2_32 \
+	-lgdi32 \
+	-liphlpapi \
+	-lstdc++ \
+	-lpthread
 
 ifeq ($(USE_WIN32_APP), yes)
 	CXXFLAGS += -DWIN32_APP
@@ -50,7 +48,7 @@ endif
 
 ifeq ($(USE_ASLR),yes)
 	LDFLAGS += -Wl,--nxcompat -Wl,--high-entropy-va \
-      -Wl,--dynamicbase,--export-all-symbols
+	-Wl,--dynamicbase,--export-all-symbols
 endif
 
 obj/%.o : %.rc

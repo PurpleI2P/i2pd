@@ -1,7 +1,7 @@
 %define build_timestamp %(date +"%Y%m%d")
 
 Name:           i2pd
-Version:        2.12.0
+Version:        2.14.0
 Release:        %{build_timestamp}git%{?dist}
 Summary:        I2P router written in C++
 
@@ -103,6 +103,23 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Thu Jun 01 2017 orignal <i2porignal@yandex.ru> - 2.14.0
+- Added transit traffic bandwidth limitation
+- Added NTCP connections through HTTP and SOCKS proxies
+- Added ability to disable address helper for HTTP proxy
+- Changed reseed servers list
+
+* Thu Apr 06 2017 orignal <i2porignal@yandex.ru> - 2.13.0
+- Added persist local destination's tags
+- Added GOST signature types 9 and 10
+- Added exploratory tunnels configuration
+- Changed reseed servers list
+- Changed inactive NTCP sockets get closed faster
+- Changed some EdDSA speed up
+- Fixed multiple acceptors for SAM
+- Fixed follow on data after STREAM CREATE for SAM
+- Fixed memory leaks
+
 * Tue Feb 14 2017 orignal <i2porignal@yandex.ru> - 2.12.0
 - Additional HTTP and SOCKS proxy tunnels
 - Reseed from ZIP archive
@@ -120,7 +137,7 @@ getent passwd i2pd >/dev/null || \
 - Fixed UPnP discovery bug, producing excessive CPU usage
 - Handle multiple lookups of the same LeaseSet correctly
 
-* Tue Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
+* Thu Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
 - add support C7
 - move rpm-related files to contrib folder
 

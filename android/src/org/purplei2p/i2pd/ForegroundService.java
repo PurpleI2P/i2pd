@@ -6,7 +6,6 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 public class ForegroundService extends Service {
@@ -72,7 +71,7 @@ public class ForegroundService extends Service {
                 new Intent(this, I2PD.class), 0);
 
         // Set the info for the views that show in the notification panel.
-        Notification notification = new NotificationCompat.Builder(this)
+        Notification notification = new Notification.Builder(this)
                 .setSmallIcon(R.drawable.itoopie_notification_icon)  // the status icon
                 .setTicker(text)  // the status text
                 .setWhen(System.currentTimeMillis())  // the time stamp

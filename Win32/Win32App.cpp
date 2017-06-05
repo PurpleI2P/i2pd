@@ -1,13 +1,13 @@
 #include <string.h>
 #include <windows.h>
 #include <shellapi.h>
-#include "../ClientContext.h"
-#include "../Config.h"
-#include "../NetDb.h"
-#include "../RouterContext.h"
-#include "../Transports.h"
-#include "../Tunnel.h"
-#include "../version.h"
+#include "ClientContext.h"
+#include "Config.h"
+#include "NetDb.hpp"
+#include "RouterContext.h"
+#include "Transports.h"
+#include "Tunnel.h"
+#include "version.h"
 #include "resource.h"
 #include "Win32App.h"
 #include <stdio.h>
@@ -80,7 +80,7 @@ namespace win32
 		Shell_NotifyIcon (NIM_DELETE, &nid);
 	}
 
-	static void ShowUptime (std::stringstream& s, int seconds) 
+	static void ShowUptime (std::stringstream& s, int seconds)
 	{
 		int num;
 
@@ -125,8 +125,8 @@ namespace win32
 		{
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
-			case eRouterStatusFirewalled: s << "Firewalled"; break; 
-			case eRouterStatusError: 
+			case eRouterStatusFirewalled: s << "Firewalled"; break;
+			case eRouterStatusError:
 			{
 				switch (i2p::context.GetError())
 				{

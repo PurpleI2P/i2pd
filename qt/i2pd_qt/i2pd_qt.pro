@@ -24,35 +24,45 @@ IFADDRS_PATH = $$MAIN_PATH/android-ifaddrs
 # 2) Check API 11
 # Finally, click Install.
 
-SOURCES += DaemonQT.cpp mainwindow.cpp \
-	../../HTTPServer.cpp ../../I2PControl.cpp ../../Daemon.cpp ../../Config.cpp \
-	../../AddressBook.cpp ../../api.cpp ../../Base.cpp ../../BOB.cpp ../../ClientContext.cpp \
-	../../Crypto.cpp ../../Datagram.cpp ../../Destination.cpp ../../Family.cpp ../../FS.cpp \
-	../../Garlic.cpp ../../HTTP.cpp ../../HTTPProxy.cpp ../../I2CP.cpp ../../I2NPProtocol.cpp \
-	../../I2PEndian.cpp ../../I2PService.cpp ../../I2PTunnel.cpp ../../Identity.cpp \
-	../../LeaseSet.cpp ../../Log.cpp ../../NetDb.cpp ../../NetDbRequests.cpp \
-	../../NTCPSession.cpp ../../Profiling.cpp ../../Reseed.cpp ../../RouterContext.cpp \
-	../../RouterInfo.cpp ../../SAM.cpp ../../Signature.cpp ../../SOCKS.cpp ../../SSU.cpp \
-	../../SSUData.cpp ../../SSUSession.cpp ../../Streaming.cpp ../../TransitTunnel.cpp \
-	../../Transports.cpp ../../Tunnel.cpp ../../TunnelEndpoint.cpp ../../TunnelGateway.cpp \
-	../../TunnelPool.cpp ../../UPnP.cpp ../../Gzip.cpp ../../Timestamp.cpp ../../util.cpp \
-	../../Event.cpp ../../BloomFiler.cpp ../../Gost.cpp ../../MatchedDestination.cpp \
-	../../i2pd.cpp
+SOURCES += DaemonQT.cpp mainwindow.cpp
+#	../../HTTPServer.cpp ../../I2PControl.cpp ../../Daemon.cpp ../../Config.cpp \
+#	../../AddressBook.cpp ../../api.cpp ../../Base.cpp ../../BOB.cpp ../../ClientContext.cpp \
+#	../../Crypto.cpp ../../Datagram.cpp ../../Destination.cpp ../../Family.cpp ../../FS.cpp \
+#	../../Garlic.cpp ../../HTTP.cpp ../../HTTPProxy.cpp ../../I2CP.cpp ../../I2NPProtocol.cpp \
+#	../../I2PEndian.cpp ../../I2PService.cpp ../../I2PTunnel.cpp ../../Identity.cpp \
+#	../../LeaseSet.cpp ../../Log.cpp ../../NetDb.cpp ../../NetDbRequests.cpp \
+#	../../NTCPSession.cpp ../../Profiling.cpp ../../Reseed.cpp ../../RouterContext.cpp \
+#	../../RouterInfo.cpp ../../SAM.cpp ../../Signature.cpp ../../SOCKS.cpp ../../SSU.cpp \
+#	../../SSUData.cpp ../../SSUSession.cpp ../../Streaming.cpp ../../TransitTunnel.cpp \
+#	../../Transports.cpp ../../Tunnel.cpp ../../TunnelEndpoint.cpp ../../TunnelGateway.cpp \
+#	../../TunnelPool.cpp ../../UPnP.cpp ../../Gzip.cpp ../../Timestamp.cpp ../../util.cpp \
+#	../../Event.cpp ../../BloomFiler.cpp ../../Gost.cpp ../../MatchedDestination.cpp \
+#	../../i2pd.cpp
 
-HEADERS  += DaemonQT.h mainwindow.h \
-	../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
-	../../AddressBook.h ../../api.h ../../Base.h ../../BOB.h ../../ClientContext.h \
-	../../Crypto.h ../../Datagram.h ../../Destination.h ../../Family.h ../../FS.h \
-	../../Garlic.h ../../HTTP.h ../../HTTPProxy.h ../../I2CP.h ../../I2NPProtocol.h \
-	../../I2PEndian.h ../../I2PService.h ../../I2PTunnel.h ../../Identity.h ../../LeaseSet.h \
-	../../LittleBigEndian.h ../../Log.h ../../NetDb.h ../../NetDbRequests.h ../../NTCPSession.h \
-	../../Profiling.h ../../Queue.h ../../Reseed.h ../../RouterContext.h ../../RouterInfo.h \
-	../../SAM.h ../../Signature.h ../../SOCKS.h ../../SSU.h ../../SSUData.h ../../SSUSession.h \
-	../../Streaming.h ../../Timestamp.h ../../TransitTunnel.h ../../Transports.h \
-	../../TransportSession.h ../../Tunnel.h ../../TunnelBase.h ../../TunnelConfig.h \
-	../../TunnelEndpoint.h ../../TunnelGateway.h ../../TunnelPool.h ../../UPnP.h \
-	../../util.h ../../version.h ../../Gzip.h ../../Tag.h \
-	../../BloomFiler.h ../../Event.h ../../Gost.h ../../MatchedDestination.h
+SOURCES += $$files(../../libi2pd/*.cpp)
+SOURCES += $$files(../../libi2pd_client/*.cpp)
+SOURCES += $$files(../../daemon/*.cpp)
+
+SOURCES -= ../../daemon/UnixDaemon.cpp
+
+HEADERS  += DaemonQT.h mainwindow.h
+#	../../HTTPServer.h ../../I2PControl.h ../../UPnP.h ../../Daemon.h ../../Config.h \
+#	../../AddressBook.h ../../api.h ../../Base.h ../../BOB.h ../../ClientContext.h \
+#	../../Crypto.h ../../Datagram.h ../../Destination.h ../../Family.h ../../FS.h \
+#	../../Garlic.h ../../HTTP.h ../../HTTPProxy.h ../../I2CP.h ../../I2NPProtocol.h \
+#	../../I2PEndian.h ../../I2PService.h ../../I2PTunnel.h ../../Identity.h ../../LeaseSet.h \
+#	../../LittleBigEndian.h ../../Log.h ../../NetDb.h ../../NetDbRequests.h ../../NTCPSession.h \
+#	../../Profiling.h ../../Queue.h ../../Reseed.h ../../RouterContext.h ../../RouterInfo.h \
+#	../../SAM.h ../../Signature.h ../../SOCKS.h ../../SSU.h ../../SSUData.h ../../SSUSession.h \
+#	../../Streaming.h ../../Timestamp.h ../../TransitTunnel.h ../../Transports.h \
+#	../../TransportSession.h ../../Tunnel.h ../../TunnelBase.h ../../TunnelConfig.h \
+#	../../TunnelEndpoint.h ../../TunnelGateway.h ../../TunnelPool.h ../../UPnP.h \
+#	../../util.h ../../version.h ../../Gzip.h ../../Tag.h \
+#	../../BloomFiler.h ../../Event.h ../../Gost.h ../../MatchedDestination.h
+
+INCLUDEPATH += ../../libi2pd
+INCLUDEPATH += ../../libi2pd_client
+INCLUDEPATH += ../../daemon
 
 FORMS += mainwindow.ui
 

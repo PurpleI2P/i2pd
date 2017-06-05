@@ -158,7 +158,7 @@
     <ClInclude Include="..\Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\NetDb.h">
+    <ClInclude Include="..\NetDb.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\NTCPSession.h">
