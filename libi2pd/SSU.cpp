@@ -445,12 +445,14 @@ namespace transport
 				int numIntroducers = address->ssu->introducers.size ();
 				if (numIntroducers > 0)
 				{
+					uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
 					std::shared_ptr<SSUSession> introducerSession;
 					const i2p::data::RouterInfo::Introducer * introducer = nullptr;
 					// we might have a session to introducer already
 					for (int i = 0; i < numIntroducers; i++)
 					{
 						auto intr = &(address->ssu->introducers[i]);
+						if (intr->iExp > 0 && ts > intr->iExp) continue; // skip expired introducer
 						boost::asio::ip::udp::endpoint ep (intr->iHost, intr->iPort);
 						if (ep.address ().is_v4 ()) // ipv4 only
 						{	
@@ -465,7 +467,7 @@ namespace transport
 					}
 					if (!introducer)
 					{
-						LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no ipv4 introducers present");
+						LogPrint (eLogWarning, "SSU: Can't connect to unreachable router and no ipv4 non-expired introducers presented");
 						return;
 					}				
 
