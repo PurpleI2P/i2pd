@@ -56,7 +56,7 @@ namespace fs {
     else
     {
         // otherwise %appdata%
-        SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
+        SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, localAppData);
         dataDir = std::string(localAppData) + "\\" + appName;
     }
     return;

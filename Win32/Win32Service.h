@@ -7,10 +7,10 @@
 
 #ifdef _WIN32
 // Internal name of the service
-#define SERVICE_NAME             "i2pService"
+#define SERVICE_NAME             "i2pdService"
 
 // Displayed name of the service
-#define SERVICE_DISPLAY_NAME     "i2p router service"
+#define SERVICE_DISPLAY_NAME     "i2pd router service"
 
 // Service start options.
 #define SERVICE_START_TYPE       SERVICE_DEMAND_START
