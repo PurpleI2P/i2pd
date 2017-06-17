@@ -79,16 +79,17 @@ namespace client
 		public:
 
 			SAMSocket (SAMBridge& owner);
-			~SAMSocket ();
-			void CloseStream (); // TODO: implement it better
+			~SAMSocket ();			
+			void CloseStream (const char* reason); // TODO: implement it better
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
 			void ReceiveHandshake ();
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 			SAMSocketType GetSocketType () const { return m_SocketType; };
 
-			void Terminate ();
-		private:
+                        void Terminate (const char* reason);
+
+                private:
 
 			void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred);

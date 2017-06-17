@@ -1,15 +1,17 @@
 package org.purplei2p.i2pd;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 public class ForegroundService extends Service {
-//    private NotificationManager mNM;
+    private NotificationManager notificationManager;
 
     // Unique Identification Number for the Notification.
     // We use it on Notification start, and to cancel it.
@@ -28,26 +30,31 @@ public class ForegroundService extends Service {
 
     @Override
     public void onCreate() {
-//        mNM = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+        notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
 
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
+        daemon.start();
+        // Tell the user we started.
+        Toast.makeText(this, R.string.i2pd_service_started, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("ForegroundService", "Received start id " + startId + ": " + intent);
-        return START_NOT_STICKY;
+        daemon.start();
+        return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         // Cancel the persistent notification.
-        //mNM.cancel(NOTIFICATION);
+        notificationManager.cancel(NOTIFICATION);
+        
         stopForeground(true);
 
         // Tell the user we stopped.
-        //Toast.makeText(this, R.string.local_service_stopped, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, R.string.i2pd_service_stopped, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -84,4 +91,7 @@ public class ForegroundService extends Service {
         //mNM.notify(NOTIFICATION, notification);
         startForeground(NOTIFICATION, notification);
     }
+    
+	private final DaemonSingleton daemon = DaemonSingleton.getInstance();
 }
+

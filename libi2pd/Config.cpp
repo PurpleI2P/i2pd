@@ -301,5 +301,19 @@ namespace config {
       return true;
     return false;
   }
+
+  bool GetOptionAsAny(const char *name, boost::any& value) {
+    if (!m_Options.count(name))
+      return false;
+    value = m_Options[name];
+    return true;
+  }
+
+  bool GetOptionAsAny(const std::string& name, boost::any& value)
+  {
+    return GetOptionAsAny (name.c_str (), value);
+  }
+
 } // namespace config
 } // namespace i2p
+

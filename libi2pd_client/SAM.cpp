@@ -24,22 +24,23 @@ namespace client
 
 	SAMSocket::~SAMSocket ()
 	{
-		Terminate ();
-	}
+		Terminate ("~SAMSocket()");
+	}	
 
-	void SAMSocket::CloseStream ()
+	void SAMSocket::CloseStream (const char* reason)
 	{
+		LogPrint (eLogDebug, "SAMSocket::CloseStream, reason: ", reason);
 		if (m_Stream)
 		{
 			m_Stream->Close ();
 			m_Stream.reset ();
-		}
-	}
-
-	void SAMSocket::Terminate ()
+		}	
+	}	
+		
+	void SAMSocket::Terminate (const char* reason)
 	{
-		CloseStream ();
-
+		CloseStream (reason);
+		
 		switch (m_SocketType)
 		{
 			case eSAMSocketTypeSession:
@@ -82,7 +83,7 @@ namespace client
         {
 			LogPrint (eLogError, "SAM: handshake read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+				Terminate ("SAM: handshake read error");
 		}
 		else
 		{
@@ -130,7 +131,7 @@ namespace client
 			else
 			{
 				LogPrint (eLogError, "SAM: handshake mismatch");
-				Terminate ();
+				Terminate ("SAM: handshake mismatch");
 			}
 		}
 	}
@@ -141,7 +142,7 @@ namespace client
         {
 			LogPrint (eLogError, "SAM: handshake reply send error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+				Terminate ("SAM: handshake reply send error");
 		}
 		else
 		{
@@ -153,6 +154,8 @@ namespace client
 
 	void SAMSocket::SendMessageReply (const char * msg, size_t len, bool close)
 	{
+		LogPrint (eLogDebug, "SAMSocket::SendMessageReply, close=",close?"true":"false", " reason: ", msg);
+
 		if (!m_IsSilent)
 			boost::asio::async_write (m_Socket, boost::asio::buffer (msg, len), boost::asio::transfer_all (),
 				std::bind(&SAMSocket::HandleMessageReplySent, shared_from_this (),
@@ -160,7 +163,7 @@ namespace client
 		else
 		{
 			if (close)
-				Terminate ();
+				Terminate ("SAMSocket::SendMessageReply(close=true)");
 			else
 				Receive ();
 		}
@@ -172,12 +175,12 @@ namespace client
         {
 			LogPrint (eLogError, "SAM: reply send error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+				Terminate ("SAM: reply send error");
 		}
 		else
 		{
 			if (close)
-				Terminate ();
+				Terminate ("SAMSocket::HandleMessageReplySent(close=true)");
 			else
 				Receive ();
 		}
@@ -189,7 +192,7 @@ namespace client
         {
 			LogPrint (eLogError, "SAM: read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+				Terminate ("SAM: read error");
 		}
 		else if (m_SocketType == eSAMSocketTypeStream)
 			HandleReceived (ecode, bytes_transferred);
@@ -243,13 +246,13 @@ namespace client
 					else
 					{
 						LogPrint (eLogError, "SAM: unexpected message ", m_Buffer);
-						Terminate ();
+						Terminate ("SAM: unexpected message");
 					}
 				}
 				else
 				{
 					LogPrint (eLogError, "SAM: malformed message ", m_Buffer);
-					Terminate ();
+					Terminate ("malformed message");
 				}
 			}
 
@@ -603,7 +606,7 @@ namespace client
 		if (m_BufferOffset >= SAM_SOCKET_BUFFER_SIZE)
 		{
 			LogPrint (eLogError, "SAM: Buffer is full, terminate");
-			Terminate ();
+			Terminate ("Buffer is full");
 			return;
 		}
 		m_Socket.async_read_some (boost::asio::buffer(m_Buffer + m_BufferOffset, SAM_SOCKET_BUFFER_SIZE - m_BufferOffset),
@@ -617,7 +620,7 @@ namespace client
         {
 			LogPrint (eLogError, "SAM: read error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+				Terminate ("read error");
 		}
 		else
 		{
@@ -631,8 +634,8 @@ namespace client
 				    {
 						if (!ecode)
 							s->Receive ();
-						else
-							s->m_Owner.GetService ().post ([s] { s->Terminate (); });
+						else	
+							s->m_Owner.GetService ().post ([s] { s->Terminate ("AsyncSend failed"); });
 					});
 			}
 		}
@@ -660,8 +663,8 @@ namespace client
         				std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
 				}
 				else // no more data
-					Terminate ();
-			}
+					Terminate ("no more data");
+			}		
 		}
 	}
 
@@ -678,14 +681,14 @@ namespace client
 				else
 				{
 					auto s = shared_from_this ();
-					m_Owner.GetService ().post ([s] { s->Terminate (); });
+					m_Owner.GetService ().post ([s] { s->Terminate ("stream read error"); });
 				}
 			}
 			else
 			{
 				auto s = shared_from_this ();
-				m_Owner.GetService ().post ([s] { s->Terminate (); });
-			}
+				m_Owner.GetService ().post ([s] { s->Terminate ("stream read error (op aborted)"); });
+			}	
 		}
 		else
 		{
@@ -700,7 +703,7 @@ namespace client
 		{
 			LogPrint (eLogError, "SAM: socket write error: ", ecode.message ());
 			if (ecode != boost::asio::error::operation_aborted)
-				Terminate ();
+				Terminate ("socket write error at HandleWriteI2PData");
 		}
 		else
 			I2PReceive ();
@@ -809,7 +812,7 @@ namespace client
 				socks.push_back(sock);
 			}
 		}
-		for (auto & sock : socks ) sock->Terminate();
+                for (auto & sock : socks ) sock->Terminate("SAMSession::CloseStreams()");
 		m_Sockets.clear();
 	}
 
