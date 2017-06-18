@@ -182,14 +182,13 @@ namespace config {
 //		"https://us.reseed.i2p2.no:444/," // mamoth's shit
 //		"https://uk.reseed.i2p2.no:444/," // mamoth's shit
 		"https://i2p-0.manas.ca:8443/,"
-		"https://reseed.i2p.vzaws.com:8443/,"
 		"https://download.xxlspeed.com/,"
 		"https://reseed-ru.lngserv.ru/,"
 	    "https://reseed.atomike.ninja/,"
 	    "https://reseed.memcpy.io/,"
 	    "https://reseed.onion.im/,"
-	    "https://itoopie.atomike.ninja/"
-//		"https://randomrng.ddns.net/"	   // dead
+	    "https://itoopie.atomike.ninja/,"
+	    "https://i2pseed.creativecowpat.net:8443/"                                                
 		),  "Reseed URLs, separated by comma")
 	  ;
 
