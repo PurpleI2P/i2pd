@@ -8,20 +8,20 @@ import android.util.Log;
 public class DaemonSingleton {
 	private static final String TAG="i2pd";
 	private static final DaemonSingleton instance = new DaemonSingleton();
-	public static interface StateChangeListener { void daemonStateChanged(); }
-	private final Set<StateChangeListener> stateChangeListeners = new HashSet<StateChangeListener>();
+	public static interface StateUpdateListener { void daemonStateUpdate(); }
+	private final Set<StateUpdateListener> stateUpdateListeners = new HashSet<StateUpdateListener>();
 
 	public static DaemonSingleton getInstance() {
 		return instance;
 	}
 	
-	public synchronized void addStateChangeListener(StateChangeListener listener) { stateChangeListeners.add(listener); }
-	public synchronized void removeStateChangeListener(StateChangeListener listener) { stateChangeListeners.remove(listener); }
+	public synchronized void addStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.add(listener); }
+	public synchronized void removeStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.remove(listener); }
 	
 	public synchronized void stopAcceptingTunnels() {
 		if(isStartedOkay()){
 			state=State.gracefulShutdownInProgress;
-			fireStateChange();
+			fireStateUpdate();
 			I2PD_JNI.stopAcceptingTunnels();
 		}
 	}
@@ -32,61 +32,63 @@ public class DaemonSingleton {
 	
 	private boolean startedOkay;
 
-	public static enum State {starting,jniLibraryLoaded,startedOkay,startFailed,gracefulShutdownInProgress};
+	public static enum State {uninitialized,starting,jniLibraryLoaded,startedOkay,startFailed,gracefulShutdownInProgress};
 	
-	private State state = State.starting;
+	private State state = State.uninitialized;
 	
 	public State getState() { return state; }
 	
-	{
-		synchronized(this){
-			fireStateChange();
-			new Thread(new Runnable(){
-	
-				@Override
-				public void run() {
-					try {
-						I2PD_JNI.loadLibraries();
-						synchronized (DaemonSingleton.this) {
-							state = State.jniLibraryLoaded;
-							fireStateChange();
-						}
-					} catch (Throwable tr) {
-						lastThrowable=tr;
-						synchronized (DaemonSingleton.this) {
-							state = State.startFailed;
-							fireStateChange();
-						}
-						return;
+	public synchronized void start() {
+		if(state != State.uninitialized)return;
+		state = State.starting;
+		fireStateUpdate();
+		new Thread(new Runnable(){
+
+			@Override
+			public void run() {
+				try {
+					I2PD_JNI.loadLibraries();
+					synchronized (DaemonSingleton.this) {
+						state = State.jniLibraryLoaded;
+						fireStateUpdate();
 					}
-					try {
-						synchronized (DaemonSingleton.this) {
-							daemonStartResult = I2PD_JNI.startDaemon();
-							if("ok".equals(daemonStartResult)){state=State.startedOkay;setStartedOkay(true);}
-							else state=State.startFailed;
-							fireStateChange();
-						}
-					} catch (Throwable tr) {
-						lastThrowable=tr;
-						synchronized (DaemonSingleton.this) {
-							state = State.startFailed;
-							fireStateChange();
-						}
-						return;
-					}				
+				} catch (Throwable tr) {
+					lastThrowable=tr;
+					synchronized (DaemonSingleton.this) {
+						state = State.startFailed;
+						fireStateUpdate();
+					}
+					return;
 				}
-				
-			}, "i2pdDaemonStart").start();
-		}
+				try {
+					synchronized (DaemonSingleton.this) {
+						daemonStartResult = I2PD_JNI.startDaemon();
+						if("ok".equals(daemonStartResult)){
+							state=State.startedOkay;
+							setStartedOkay(true);
+						}else state=State.startFailed;
+						fireStateUpdate();
+					}
+				} catch (Throwable tr) {
+					lastThrowable=tr;
+					synchronized (DaemonSingleton.this) {
+						state = State.startFailed;
+						fireStateUpdate();
+					}
+					return;
+				}				
+			}
+			
+		}, "i2pdDaemonStart").start();
 	}
 	private Throwable lastThrowable;
 	private String daemonStartResult="N/A";
 
-	private synchronized void fireStateChange() {
+	private synchronized void fireStateUpdate() {
 		Log.i(TAG, "daemon state change: "+state);
-		for(StateChangeListener listener : stateChangeListeners) {
+		for(StateUpdateListener listener : stateUpdateListeners) {
 			try { 
-				listener.daemonStateChanged(); 
+				listener.daemonStateUpdate(); 
 			} catch (Throwable tr) { 
 				Log.e(TAG, "exception in listener ignored", tr); 
 			}

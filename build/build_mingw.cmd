@@ -33,6 +33,8 @@ FOR /F "usebackq" %%a IN (`%WD%bash -lc 'git describe --tags'`) DO (
  set tag=%%a
 )
 
+"%WD%bash" -lc "echo To use configs and certificates, move all files and certificates folder from contrib directory here. > README.txt" >> nul
+
 REM starting building
 set MSYSTEM=MINGW32
 set bitness=32
@@ -44,6 +46,8 @@ set bitness=64
 call :BUILDING
 echo.
 
+del README.txt >> nul
+
 echo Build complete...
 pause
 exit /b 0
@@ -51,12 +55,12 @@ exit /b 0
 :BUILDING
 echo Building i2pd %tag% for win%bitness%:
 echo Build AVX+AESNI...
-"%WD%bash" -lc "make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1
+"%WD%bash" -lc "make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1
 echo Build AVX...
-"%WD%bash" -lc "make USE_UPNP=yes USE_AVX=1 -j%threads% && zip -9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip i2pd.exe && make clean" > build/build_win%bitness%_avx.log 2>&1
+"%WD%bash" -lc "make USE_UPNP=yes USE_AVX=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx.log 2>&1
 echo Build AESNI...
-"%WD%bash" -lc "make USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip i2pd.exe && make clean" > build/build_win%bitness%_aesni.log 2>&1
+"%WD%bash" -lc "make USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_aesni.log 2>&1
 echo Build without extensions...
-"%WD%bash" -lc "make USE_UPNP=yes -j%threads% && zip -9 build/i2pd_%tag%_win%bitness%_mingw.zip i2pd.exe && make clean" > build/build_win%bitness%.log 2>&1
+"%WD%bash" -lc "make USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%.log 2>&1
 
 :EOF

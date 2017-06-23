@@ -182,14 +182,13 @@ namespace config {
 //		"https://us.reseed.i2p2.no:444/," // mamoth's shit
 //		"https://uk.reseed.i2p2.no:444/," // mamoth's shit
 		"https://i2p-0.manas.ca:8443/,"
-		"https://reseed.i2p.vzaws.com:8443/,"
 		"https://download.xxlspeed.com/,"
 		"https://reseed-ru.lngserv.ru/,"
 	    "https://reseed.atomike.ninja/,"
 	    "https://reseed.memcpy.io/,"
 	    "https://reseed.onion.im/,"
-	    "https://itoopie.atomike.ninja/"
-//		"https://randomrng.ddns.net/"	   // dead
+	    "https://itoopie.atomike.ninja/,"
+	    "https://i2pseed.creativecowpat.net:8443/"                                                
 		),  "Reseed URLs, separated by comma")
 	  ;
 
@@ -301,5 +300,19 @@ namespace config {
       return true;
     return false;
   }
+
+  bool GetOptionAsAny(const char *name, boost::any& value) {
+    if (!m_Options.count(name))
+      return false;
+    value = m_Options[name];
+    return true;
+  }
+
+  bool GetOptionAsAny(const std::string& name, boost::any& value)
+  {
+    return GetOptionAsAny (name.c_str (), value);
+  }
+
 } // namespace config
 } // namespace i2p
+

@@ -84,6 +84,9 @@ namespace config {
     return GetOption (name.c_str (), value);
   }	
 
+  bool GetOptionAsAny(const char *name, boost::any& value);
+  bool GetOptionAsAny(const std::string& name, boost::any& value);
+
   /**
    * @brief  Set value of given parameter
    * @param  name  Name of settable parameter

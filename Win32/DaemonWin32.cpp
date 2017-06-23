@@ -60,7 +60,6 @@ namespace i2p
 			}
 			else
 				LogPrint(eLogDebug, "Daemon: running as user");
-
 			return true;
 		}
 
@@ -71,10 +70,10 @@ namespace i2p
 			SetConsoleOutputCP(1251);
 			setlocale(LC_ALL, "Russian");
 #ifdef WIN32_APP
-            if (!i2p::win32::StartWin32App ()) return false;
+			if (!i2p::win32::StartWin32App ()) return false;
 
-            // override log
-            i2p::config::SetOption("log", std::string ("file"));
+			// override log
+			i2p::config::SetOption("log", std::string ("file"));
 #endif
 			bool ret = Daemon_Singleton::start();
 			if (ret && i2p::log::Logger().GetLogType() == eLogFile)
@@ -92,24 +91,22 @@ namespace i2p
 		bool DaemonWin32::stop()
 		{
 #ifdef WIN32_APP
-		    i2p::win32::StopWin32App ();
+			i2p::win32::StopWin32App ();
 #endif
 			return Daemon_Singleton::stop();
 		}
 
 		void DaemonWin32::run ()
-        {
+		{
 #ifdef WIN32_APP
-            i2p::win32::RunWin32App ();
+			i2p::win32::RunWin32App ();
 #else
 		 while (running)
 		{
 			std::this_thread::sleep_for (std::chrono::seconds(1));
 		}
- 	
 #endif
-        }
+		}
 	}
 }
-
 #endif
