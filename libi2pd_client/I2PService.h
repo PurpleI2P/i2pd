@@ -19,7 +19,7 @@ namespace client
 		public:
 			I2PService (std::shared_ptr<ClientDestination> localDestination  = nullptr);
 			I2PService (i2p::data::SigningKeyType kt);
-			virtual ~I2PService () { ClearHandlers (); }
+			virtual ~I2PService ();
 
 			inline void AddHandler (std::shared_ptr<I2PServiceHandler> conn)
 			{

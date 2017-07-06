@@ -13,13 +13,21 @@ namespace client
 		m_LocalDestination (localDestination ? localDestination :
 					i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE))
 	{
+		m_LocalDestination->Acquire ();	
 	}
 	
 	I2PService::I2PService (i2p::data::SigningKeyType kt):
 		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt))
 	{
+		m_LocalDestination->Acquire ();
 	}
 	
+	I2PService::~I2PService () 
+	{ 
+		ClearHandlers (); 
+		if (m_LocalDestination) m_LocalDestination->Release (); 
+	}
+
 	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
 		assert(streamRequestComplete);
 		i2p::data::IdentHash identHash;

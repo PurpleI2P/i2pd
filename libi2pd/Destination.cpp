@@ -694,7 +694,7 @@ namespace client
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
 		LeaseSetDestination (isPublic, params),
-		m_Keys (keys), m_DatagramDestination (nullptr),
+		m_Keys (keys), m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
 		if (isPublic)	
