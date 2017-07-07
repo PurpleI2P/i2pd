@@ -38,6 +38,7 @@ namespace client
 		if (!m_SharedLocalDestination)
 		{
 			m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
+			m_SharedLocalDestination->Acquire ();
 			m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
@@ -246,6 +247,19 @@ namespace client
 		i2p::config::ParseConfig(config);
 		Stop();
 		Start();
+
+		// delete unused destinations
+		std::unique_lock<std::mutex> l(m_DestinationsMutex);
+		for (auto it = m_Destinations.begin (); it != m_Destinations.end ();)
+		{
+			auto dest = it->second;
+			if (dest->GetRefCounter () > 0) ++it; // skip
+			else
+			{
+				dest->Stop ();
+				it = m_Destinations.erase (it);
+			}
+		}
 	}
 
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
