@@ -122,7 +122,7 @@ namespace tunnel
 			void AddLatencySample(const uint64_t ms) { m_Latency = (m_Latency + ms) >> 1; }
 			/** @brief get this tunnel's estimated latency */
 			uint64_t GetMeanLatency() const { return m_Latency; }
-			/** @breif return true if this tunnel's latency fits in range [lowerbound, upperbound] */
+			/** @brief return true if this tunnel's latency fits in range [lowerbound, upperbound] */
 			bool LatencyFitsRange(uint64_t lowerbound, uint64_t upperbound) const;
 		
 			bool LatencyIsKnown() const { return m_Latency > 0; }
