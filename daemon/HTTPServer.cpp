@@ -553,6 +553,7 @@ namespace http {
 						s << " [itag:" << it.second->GetRelayTag () << "]";
 					s << "<br>\r\n" << std::endl;
 				}
+				s << "<br>\r\n";
 			}
 			auto sessions6 = ssuServer->GetSessionsV6 ();
 			if (!sessions6.empty ())
@@ -569,6 +570,7 @@ namespace http {
 						s << " [itag:" << it.second->GetRelayTag () << "]";
 					s << "<br>\r\n" << std::endl;
 				}
+				s << "<br>\r\n";
 			}
 		}
 	}
