@@ -7,8 +7,6 @@ DEFAULT_ARGS=" --datadir=$DATA_DIR --reseed.verify=true --upnp.enabled=false --h
 if [ "$1" = "--help" ]; then
     set -- $COMMAND --help
 else
-    # Create datadir 
-    mkdir -p "$DATA_DIR"
     ln -s /i2pd_certificates "$DATA_DIR"/certificates
     set -- $COMMAND $DEFAULT_ARGS $@
 fi
