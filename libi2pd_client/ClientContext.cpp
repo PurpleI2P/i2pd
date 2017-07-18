@@ -78,9 +78,10 @@ namespace client
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy)
 		{
-			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",    socksProxyKeys);
-			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address", socksProxyAddr);
-			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",    socksProxyPort);
+			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",     socksProxyKeys);
+			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address",  socksProxyAddr);
+			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",     socksProxyPort);
+			bool socksOutProxy; i2p::config::GetOption("socksproxy.outproxy.enabled", socksOutProxy);
 			std::string socksOutProxyAddr; i2p::config::GetOption("socksproxy.outproxy",     socksOutProxyAddr);
 			uint16_t    socksOutProxyPort; i2p::config::GetOption("socksproxy.outproxyport", socksOutProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",  sigType);
@@ -97,11 +98,14 @@ namespace client
 				else
 					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
 			}
-			try {
-			  m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxyAddr, socksOutProxyPort, localDestination);
-			  m_SocksProxy->Start();
-			} catch (std::exception& e) {
-			  LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
+			try
+			{
+				m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
+				m_SocksProxy->Start();
+			}
+			catch (std::exception& e)
+			{
+				LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
 			}
 		}
 

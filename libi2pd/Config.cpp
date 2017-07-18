@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2013-2016, The PurpleI2P Project
+* Copyright (c) 2013-2017, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -112,6 +112,7 @@ namespace config {
 			("socksproxy.outbound.quantity", value<std::string>()->default_value("5"), "SOCKS proxy outbound tunnels quantity")
 			("socksproxy.latency.min", value<std::string>()->default_value("0"),       "SOCKS proxy min latency for tunnels")
 			("socksproxy.latency.max", value<std::string>()->default_value("0"),       "SOCKS proxy max latency for tunnels")
+			("socksproxy.outproxy.enabled", value<bool>()->default_value(false),       "Enable or disable SOCKS outproxy")
 			("socksproxy.outproxy", value<std::string>()->default_value("127.0.0.1"),  "Upstream outproxy address for SOCKS Proxy")
 			("socksproxy.outproxyport", value<uint16_t>()->default_value(9050),        "Upstream outproxy port for SOCKS Proxy")
 		;
