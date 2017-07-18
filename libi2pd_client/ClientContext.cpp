@@ -517,7 +517,7 @@ namespace client
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
 						{
 							// socks proxy
-							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, "", destinationPort, localDestination);
+							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, false, "", destinationPort, localDestination);
 							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetAcceptor().local_endpoint();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
