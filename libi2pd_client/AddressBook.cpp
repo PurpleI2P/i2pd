@@ -376,12 +376,23 @@ namespace client
 					continue;
 				}
 				numAddresses++;
-				if (m_Addresses.count(name) > 0)
-					continue; /* already exists */
-				m_Addresses[name] = ident->GetIdentHash ();
-				m_Storage->AddAddress (ident);
-				if (is_update)
-					LogPrint(eLogInfo, "Addressbook: added new host: ", name);
+				auto it = m_Addresses.find (name);
+				if (it != m_Addresses.end ()) // aleady exists ?
+				{
+					if (it->second != ident->GetIdentHash ()) // address changed?
+					{
+						it->second = ident->GetIdentHash ();
+						m_Storage->AddAddress (ident);
+						LogPrint (eLogInfo, "Addressbook: updated host: ", name);		
+					}
+				}	
+				else
+				{
+					m_Addresses.insert (std::make_pair (name, ident->GetIdentHash ()));
+					m_Storage->AddAddress (ident);
+					if (is_update)
+						LogPrint (eLogInfo, "Addressbook: added new host: ", name);
+				}
 			}
 			else
 				incomplete = f.eof ();
