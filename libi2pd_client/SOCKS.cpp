@@ -765,18 +765,18 @@ namespace proxy
 		m_upstreamSock = std::make_shared<boost::asio::ip::tcp::socket>(service);
 		boost::asio::async_connect(*m_upstreamSock, itr,
 			std::bind(&SOCKSHandler::HandleUpstreamConnected,
-								shared_from_this(), std::placeholders::_1, std::placeholders::_2));
+			shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 	}
-	
-	SOCKSServer::SOCKSServer(const std::string& address, int port, const std::string& outAddress, uint16_t outPort,
+
+	SOCKSServer::SOCKSServer(const std::string& address, int port, bool outEnable, const std::string& outAddress, uint16_t outPort,
 			std::shared_ptr<i2p::client::ClientDestination> localDestination) : 
-		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()) 
+		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ())
 	{
 		m_UseUpstreamProxy = false;
-		if (outAddress.length() > 0)
+		if (outAddress.length() > 0 && outEnable)
 			SetUpstreamProxy(outAddress, outPort);
 	}
-	
+
 	std::shared_ptr<i2p::client::I2PServiceHandler> SOCKSServer::CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 	{
 		return std::make_shared<SOCKSHandler> (this, socket, m_UpstreamProxyAddress, m_UpstreamProxyPort, m_UseUpstreamProxy);
