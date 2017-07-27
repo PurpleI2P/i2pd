@@ -203,6 +203,7 @@ namespace proxy {
 		req.RemoveHeader ("Referer");
 		req.RemoveHeader("Via");
 		req.RemoveHeader("Forwarded");
+		req.RemoveHeader("Accept-Language"); // TODO: should exclude all Accept-*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
 		req.RemoveHeader("Proxy-");		
