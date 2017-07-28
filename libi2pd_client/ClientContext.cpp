@@ -704,7 +704,10 @@ namespace client
 		for (auto it = c.begin (); it != c.end ();)
 		{
 			if (!v (it->second.get ()))
+			{
+				it->second->Stop ();
 				it = c.erase (it);
+			}
 			else
 				it++;	
 		}	
