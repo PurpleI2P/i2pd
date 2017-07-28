@@ -18,8 +18,11 @@ class SignatureTypeComboBoxFactory
     }
 
 public:
-    static QComboBox* createSignatureTypeComboBox(QWidget* parent, uint16_t selectedSigType) {
-        QComboBox* signatureTypeCombobox = new QComboBox(parent);
+    static const uint16_t getSigType(const QVariant& var) {
+        return (uint16_t)var.toInt();
+    }
+
+    static void fillComboBox(QComboBox* signatureTypeCombobox, uint16_t selectedSigType) {
         /*
             <orignal> https://geti2p.net/spec/common-structures#certificate
             <orignal> все коды перечислены
@@ -78,7 +81,11 @@ public:
             addItem(signatureTypeCombobox, QString::number(selectedSigType), selectedSigType); //unknown sigtype
             signatureTypeCombobox->setCurrentIndex(index);
         }
+    }
 
+    static QComboBox* createSignatureTypeComboBox(QWidget* parent, uint16_t selectedSigType) {
+        QComboBox* signatureTypeCombobox = new QComboBox(parent);
+        fillComboBox(signatureTypeCombobox, selectedSigType);
         return signatureTypeCombobox;
     }
 };

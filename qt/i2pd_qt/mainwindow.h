@@ -52,6 +52,7 @@
 #include "TunnelsPageUpdateListener.h"
 
 #include "DaemonQT.h"
+#include "SignatureTypeComboboxFactory.h"
 
 template<typename ValueType>
 bool isType(boost::any& a) {
@@ -218,16 +219,15 @@ class SignatureTypeComboBoxItem : public ComboBoxItem {
 public:
     SignatureTypeComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {};
     virtual ~SignatureTypeComboBoxItem(){}
-    virtual void loadFromConfigOption(){//TODO
+    virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
-        comboBox->setCurrentText(QString::number(boost::any_cast<unsigned short>(optionValue)));
+        while(comboBox->count()>0)comboBox->removeItem(0);
+        uint16_t selected = (uint16_t) boost::any_cast<unsigned short>(optionValue);
+        SignatureTypeComboBoxFactory::fillComboBox(comboBox, selected);
     }
-    virtual void saveToStringStream(std::stringstream& out){//TODO
-        QString txt = comboBox->currentText();
-        if(txt.isEmpty())
-            optionValue=std::string();
-        else
-            optionValue=(unsigned short)std::stoi(txt.toStdString());
+    virtual void saveToStringStream(std::stringstream& out){
+        uint16_t selected = SignatureTypeComboBoxFactory::getSigType(comboBox->currentData());
+        optionValue=(unsigned short)selected;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }

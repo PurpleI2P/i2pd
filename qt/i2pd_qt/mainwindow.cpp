@@ -18,6 +18,7 @@
 #include <fstream>
 
 #include "DaemonQT.h"
+#include "SignatureTypeComboboxFactory.h"
 
 std::string programOptionsWriterCurrentSection;
 
@@ -123,6 +124,7 @@ MainWindow::MainWindow(QWidget *parent) :
     initIPAddressBox(   OPTION("httpproxy","address",[]{return "";}), ui->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
     initTCPPortBox(     OPTION("httpproxy","port",[]{return "4444";}), ui->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
     initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), ui->httpProxyKeyFileLineEdit, ui->httpProxyKeyFilePushButton);
+
     initSignatureTypeCombobox(OPTION("httpproxy","signaturetype",[]{return "7";}), ui->comboBox_httpPorxySignatureType);
     initStringBox(     OPTION("httpproxy","inbound.length",[]{return "3";}), ui->httpProxyInboundTunnelsLenLineEdit);
     initStringBox(     OPTION("httpproxy","inbound.quantity",[]{return "5";}), ui->httpProxyInboundTunnQuantityLineEdit);
