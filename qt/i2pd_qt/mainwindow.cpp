@@ -17,6 +17,8 @@
 
 #include <fstream>
 
+#include "DaemonQT.h"
+
 std::string programOptionsWriterCurrentSection;
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -25,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ,quitting(false)
 #endif
     ,ui(new Ui::MainWindow)
+    ,i2pController(nullptr)
     ,configItems()
     ,datadir()
     ,confpath()
@@ -74,6 +77,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QObject::connect(ui->fastQuitPushButton, SIGNAL(released()), this, SLOT(handleQuitButton()));
     QObject::connect(ui->gracefulQuitPushButton, SIGNAL(released()), this, SLOT(handleGracefulQuitButton()));
+
+    QObject::connect(ui->doRestartI2PDPushButton, SIGNAL(released()), this, SLOT(handleDoRestartButton()));
 
 #   define OPTION(section,option,defaultValueGetter) ConfigOption(QString(section),QString(option))
 
@@ -325,6 +330,12 @@ void MainWindow::handleGracefulQuitButton() {
     QTimer::singleShot(10*60*1000//millis
         , this, SLOT(handleGracefulQuitTimerEvent()));
 }
+
+void MainWindow::handleDoRestartButton() {
+    qDebug()<<"Do Restart pressed.";
+    emit i2pController->restartDaemon();
+}
+
 
 void MainWindow::handleGracefulQuitTimerEvent() {
     qDebug("Hiding the main window");
@@ -613,4 +624,8 @@ void MainWindow::addServerTunnelPushButtonReleased() {
 
 void MainWindow::addClientTunnelPushButtonReleased() {
     CreateDefaultClientTunnel();
+}
+
+void MainWindow::setI2PController(i2p::qt::Controller* controller_) {
+    this->i2pController = controller_;
 }
