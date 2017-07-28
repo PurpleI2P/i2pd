@@ -202,11 +202,11 @@ namespace proxy {
 		/* drop common headers */
 		req.RemoveHeader ("Referer");
 		req.RemoveHeader("Via");
-		req.RemoveHeader("Forwarded");
-		req.RemoveHeader("Accept-Language"); // TODO: should exclude all Accept-*, but Accept-Encoding
+		req.RemoveHeader("Forwarded");	
+		req.RemoveHeader("Accept-", "Accept-Encoding"); // Accept-*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
-		req.RemoveHeader("Proxy-");		
+		req.RemoveHeader("Proxy-");	// Proxy-*	
 		/* replace headers */
 		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
 		/* add headers */
