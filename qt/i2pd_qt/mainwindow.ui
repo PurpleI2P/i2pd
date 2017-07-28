@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>816</width>
-    <height>5000</height>
+    <height>516</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -37,8 +37,8 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>801</width>
-      <height>518</height>
+      <width>796</width>
+      <height>496</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -126,17 +126,17 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>516</height>
+         <height>496</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>516</height>
+         <height>496</height>
         </size>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>4</number>
        </property>
        <widget class="QWidget" name="statusPage">
         <widget class="QWidget" name="verticalLayoutWidget_5">
@@ -144,8 +144,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>671</width>
-           <height>5000</height>
+           <width>686</width>
+           <height>496</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -192,8 +192,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>701</width>
-           <height>400</height>
+           <width>706</width>
+           <height>461</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -232,7 +232,7 @@
                <x>0</x>
                <y>0</y>
                <width>679</width>
-               <height>400</height>
+               <height>3000</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -245,14 +245,13 @@
               <property name="geometry">
                <rect>
                 <x>10</x>
-                <y>11</y>
+                <y>10</y>
                 <width>679</width>
-                <height>2962</height>
+                <height>3000</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="settingsContentsGridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
                <item row="14" column="0">
-
                 <widget class="QGroupBox" name="samGroupBox">
                  <property name="minimumSize">
                   <size>
@@ -360,9 +359,6 @@
                   </layout>
                  </widget>
                 </widget>
-
-
-
                </item>
                <item row="8" column="0">
                 <widget class="QLabel" name="winOptLabel">
@@ -2570,13 +2566,13 @@ Comma separated list of base64 identities:</string>
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>370</height>
+                   <height>400</height>
                   </size>
                  </property>
                  <property name="maximumSize">
                   <size>
                    <width>16777215</width>
-                   <height>370</height>
+                   <height>400</height>
                   </size>
                  </property>
                  <property name="title">
@@ -2997,8 +2993,8 @@ Comma separated list of base64 identities:</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>681</width>
-           <height>460</height>
+           <width>706</width>
+           <height>461</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -3064,8 +3060,8 @@ Comma separated list of base64 identities:</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>663</width>
-               <height>395</height>
+               <width>699</width>
+               <height>425</height>
               </rect>
              </property>
             </widget>
@@ -3080,8 +3076,8 @@ Comma separated list of base64 identities:</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>681</width>
-           <height>451</height>
+           <width>686</width>
+           <height>496</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -3135,8 +3131,8 @@ Comma separated list of base64 identities:</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>671</width>
-           <height>480</height>
+           <width>686</width>
+           <height>496</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="quitPageVerticalLayout">

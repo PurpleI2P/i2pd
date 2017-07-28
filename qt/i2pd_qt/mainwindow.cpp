@@ -48,8 +48,6 @@ MainWindow::MainWindow(QWidget *parent) :
     int w = 683;
     int h = 3060;
     ui->settingsContents->setFixedSize(w, h);
-    //ui->settingsContents->resize(w, h);
-    //ui->settingsContents->adjustSize();
 
     /*
     QPalette pal(palette());
