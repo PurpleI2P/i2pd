@@ -155,6 +155,7 @@ protected:
         stc->setisUniqueLocal(isUniqueLocalCheckBox->isChecked());
 
         stc->setsigType(readSigTypeComboboxUI(sigTypeComboBox));
+        return true;
     }
 };
 
