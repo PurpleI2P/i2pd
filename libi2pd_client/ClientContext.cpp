@@ -247,10 +247,17 @@ namespace client
 
 	void ClientContext::ReloadConfig ()
 	{
-		std::string config; i2p::config::GetOption("conf", config);
-		i2p::config::ParseConfig(config);
-		Stop();
-		Start();
+		// TODO: handle config changes	
+		/*std::string config; i2p::config::GetOption("conf", config);
+		i2p::config::ParseConfig(config);*/
+
+		// handle tunnels
+		// reset isUpdated for each tunnel
+		VisitTunnels ([](I2PService * s)->bool { s->isUpdated = false; return true; });
+		// reload tunnels
+		ReadTunnels();
+		// delete not updated tunnels (not in config anymore)
+		VisitTunnels ([](I2PService * s)->bool { return s->isUpdated; });
 
 		// delete unused destinations
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
@@ -538,13 +545,18 @@ namespace client
 							clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetAcceptor().local_endpoint();
 						}
-						if (m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel))).second)
+						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel)));
+						if (ins.second)
 						{
 							clientTunnel->Start ();
 							numClientTunnels++;
 						}
 						else
-							LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientEndpoint, "already exists");
+						{
+							// TODO: update
+							ins.first->second->isUpdated = true;
+							LogPrint (eLogInfo, "Clients: I2P client tunnel for endpoint ", clientEndpoint, "already exists");
+						}
 					}
 				}
 				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
@@ -637,15 +649,20 @@ namespace client
 						while (comma != std::string::npos);
 						serverTunnel->SetAccessList (idents);
 					}
-					if (m_ServerTunnels.insert (std::make_pair (
+					auto ins = m_ServerTunnels.insert (std::make_pair (
 							std::make_pair (localDestination->GetIdentHash (), inPort),
-					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
+					        std::unique_ptr<I2PServerTunnel>(serverTunnel))); 
+					if (ins.second)
 					{
 						serverTunnel->Start ();
 						numServerTunnels++;
 					}
 					else
-						LogPrint (eLogError, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
+					{
+						// TODO: update
+						ins.first->second->isUpdated = true;
+						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
+					}
 
 				}
 				else
@@ -679,6 +696,26 @@ namespace client
 			for (auto & s : m_ServerForwards ) s.second->ExpireStale();
 			ScheduleCleanupUDP();
 		}
+	}
+
+	template<typename Container, typename Visitor>
+	void VisitTunnelsContainer (Container& c, Visitor v)
+	{
+		for (auto it = c.begin (); it != c.end ();)
+		{
+			if (!v (it->second.get ()))
+				it = c.erase (it);
+			else
+				it++;	
+		}	
+	}
+
+	template<typename Visitor>
+	void ClientContext::VisitTunnels (Visitor v)
+	{
+		VisitTunnelsContainer (m_ClientTunnels, v);
+		VisitTunnelsContainer (m_ServerTunnels, v);
+		// TODO: implement UDP forwards
 	}
 }
 }

@@ -11,13 +11,14 @@ namespace client
 
 	I2PService::I2PService (std::shared_ptr<ClientDestination> localDestination):
 		m_LocalDestination (localDestination ? localDestination :
-					i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE))
+					i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE)), isUpdated (true)
 	{
 		m_LocalDestination->Acquire ();	
 	}
 	
 	I2PService::I2PService (i2p::data::SigningKeyType kt):
-		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt))
+		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt)),
+		isUpdated (true)
 	{
 		m_LocalDestination->Acquire ();
 	}

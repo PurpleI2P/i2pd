@@ -53,6 +53,9 @@ namespace client
 			std::shared_ptr<ClientDestination> m_LocalDestination;
 			std::unordered_set<std::shared_ptr<I2PServiceHandler> > m_Handlers;
 			std::mutex m_HandlersMutex;
+
+		public:
+			bool isUpdated; // transient, used during reload only	
 	};
 
 	/*Simple interface for I2PHandlers, allows detection of finalization amongst other things */
