@@ -196,7 +196,8 @@ public:
         gzip(gzip_),
         sigType(sigType_),
         maxConns(maxConns_),
-        address(address_) {}
+        address(address_),
+        isUniqueLocal(isUniqueLocal_) {}
     std::string& gethost(){return host;}
     int getport(){return port;}
     std::string& getkeys(){return keys;}
