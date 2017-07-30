@@ -102,7 +102,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Settings</string>
+          <string>General Settings</string>
          </property>
         </widget>
        </item>
@@ -112,7 +112,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Tunnels</string>
+          <string>Tunnels Settings</string>
          </property>
         </widget>
        </item>
