@@ -307,6 +307,7 @@ public:
 
 namespace Ui {
 class MainWindow;
+class StatusButtonsForm;
 }
 
 using namespace i2p::client;
@@ -359,6 +360,7 @@ private:
 #endif
 
     Ui::MainWindow* ui;
+    Ui::StatusButtonsForm* statusButtonsUI;
 
     i2p::qt::Controller* i2pController;
 
@@ -368,6 +370,8 @@ protected:
 #endif
     void resizeEvent(QResizeEvent* event);
     void onResize();
+
+    void setStatusButtonsVisible(bool visible);
 
     QList<MainWindowItem*> configItems;
     NonGUIOptionItem* logOption;

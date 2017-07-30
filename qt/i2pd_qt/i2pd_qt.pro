@@ -174,7 +174,8 @@ INCLUDEPATH += ../../daemon
 INCLUDEPATH += .
 
 FORMS += mainwindow.ui \
-    tunnelform.ui
+    tunnelform.ui \
+    statusbuttons.ui
 
 LIBS += -lz
 

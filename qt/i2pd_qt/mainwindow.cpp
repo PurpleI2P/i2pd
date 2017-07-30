@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "ui_statusbuttons.h"
 #include <QMessageBox>
 #include <QTimer>
 #include <QFile>
@@ -28,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ,quitting(false)
 #endif
     ,ui(new Ui::MainWindow)
+    ,statusButtonsUI(new Ui::StatusButtonsForm)
     ,i2pController(nullptr)
     ,configItems()
     ,datadir()
@@ -37,12 +39,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
 {
     ui->setupUi(this);
+    statusButtonsUI->setupUi(ui->statusButtonsPane);
+    ui->statusButtonsPane->setFixedSize(172,300);
+    ui->verticalLayout->setGeometry(QRect(0,0,172,ui->verticalLayout->geometry().height()));
+    ui->statusButtonsPane->adjustSize();
+    ui->centralWidget->adjustSize();
     setWindowTitle(QApplication::translate("AppTitle","I2PD"));
 
     //TODO handle resizes and change the below into resize() call
-    setFixedSize(width(), 480);
-    ui->centralWidget->setMinimumHeight(480);
-    ui->centralWidget->setMaximumHeight(480);
+    setFixedSize(width(), 550);
+    ui->centralWidget->setFixedHeight(550);
     onResize();
 
     ui->stackedWidget->setCurrentIndex(0);
@@ -70,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
 
     QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusPage()));
+    setStatusButtonsVisible(true);
     QObject::connect(ui->settingsPagePushButton, SIGNAL(released()), this, SLOT(showSettingsPage()));
 
     QObject::connect(ui->tunnelsPagePushButton, SIGNAL(released()), this, SLOT(showTunnelsPage()));
@@ -226,11 +233,15 @@ MainWindow::MainWindow(QWidget *parent) :
     //QMetaObject::connectSlotsByName(this);
 }
 
-void MainWindow::showStatusPage(){ui->stackedWidget->setCurrentIndex(0);}
-void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);}
-void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);}
-void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);}
-void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);}
+void MainWindow::showStatusPage(){ui->stackedWidget->setCurrentIndex(0);setStatusButtonsVisible(true);}
+void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
+void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);setStatusButtonsVisible(false);}
+void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);setStatusButtonsVisible(false);}
+void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);setStatusButtonsVisible(false);}
+
+void MainWindow::setStatusButtonsVisible(bool visible) {
+    ui->statusButtonsPane->setVisible(visible);
+}
 
 //TODO
 void MainWindow::resizeEvent(QResizeEvent *event)

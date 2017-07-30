@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>816</width>
-    <height>516</height>
+    <width>904</width>
+    <height>550</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>904</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>950</width>
+    <height>16777215</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
@@ -22,14 +34,14 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>0</width>
-     <height>516</height>
+     <width>904</width>
+     <height>550</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>16777215</width>
-     <height>516</height>
+     <height>550</height>
     </size>
    </property>
    <widget class="QWidget" name="horizontalLayoutWidget">
@@ -37,18 +49,26 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>796</width>
-      <height>496</height>
+      <width>931</width>
+      <height>498</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="sizeConstraint">
-      <enum>QLayout::SetDefaultConstraint</enum>
+      <enum>QLayout::SetMaximumSize</enum>
      </property>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0">
+      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0">
        <property name="sizeConstraint">
         <enum>QLayout::SetMinimumSize</enum>
+       </property>
+       <property name="geometry" stdset="0">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>170</width>
+         <height>496</height>
+        </rect>
        </property>
        <item>
         <widget class="QPushButton" name="statusPagePushButton">
@@ -57,6 +77,22 @@
          </property>
          <property name="text">
           <string>Status</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="statusButtonsPane" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>172</width>
+           <height>0</height>
+          </size>
          </property>
         </widget>
        </item>
@@ -101,6 +137,22 @@
         </widget>
        </item>
        <item>
+        <spacer name="horizontalSpacer_19">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>172</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -136,7 +188,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="statusPage">
         <widget class="QWidget" name="verticalLayoutWidget_5">
@@ -231,8 +283,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>679</width>
-               <height>3000</height>
+               <width>684</width>
+               <height>426</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -247,7 +299,7 @@
                 <x>10</x>
                 <y>10</y>
                 <width>679</width>
-                <height>3000</height>
+                <height>3052</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="settingsContentsGridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
