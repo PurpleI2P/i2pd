@@ -40,10 +40,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     statusButtonsUI->setupUi(ui->statusButtonsPane);
-    ui->statusButtonsPane->setFixedSize(172,300);
-    ui->verticalLayout->setGeometry(QRect(0,0,172,ui->verticalLayout->geometry().height()));
-    ui->statusButtonsPane->adjustSize();
-    ui->centralWidget->adjustSize();
+    ui->statusButtonsPane->setFixedSize(171,300);
+    ui->verticalLayout->setGeometry(QRect(0,0,171,ui->verticalLayout->geometry().height()));
+    //ui->statusButtonsPane->adjustSize();
+    //ui->centralWidget->adjustSize();
     setWindowTitle(QApplication::translate("AppTitle","I2PD"));
 
     //TODO handle resizes and change the below into resize() call

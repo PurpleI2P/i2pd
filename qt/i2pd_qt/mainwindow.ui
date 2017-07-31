@@ -83,7 +83,7 @@
        <item>
         <widget class="QWidget" name="statusButtonsPane" native="true">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -146,7 +146,7 @@
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>172</width>
+           <width>171</width>
            <height>0</height>
           </size>
          </property>
@@ -260,7 +260,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Settings</string>
+             <string>General settings</string>
             </property>
            </widget>
           </item>
@@ -3061,7 +3061,7 @@ Comma separated list of base64 identities:</string>
              </font>
             </property>
             <property name="text">
-             <string>Tunnels</string>
+             <string>Tunnels settings</string>
             </property>
            </widget>
           </item>
