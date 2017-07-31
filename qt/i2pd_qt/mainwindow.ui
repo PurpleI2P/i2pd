@@ -35,7 +35,7 @@
    <property name="minimumSize">
     <size>
      <width>904</width>
-     <height>550</height>
+     <height>0</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -50,7 +50,7 @@
       <x>10</x>
       <y>10</y>
       <width>931</width>
-      <height>498</height>
+      <height>715</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -102,7 +102,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>General Settings</string>
+          <string>General settings</string>
          </property>
         </widget>
        </item>
@@ -112,7 +112,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Tunnels Settings</string>
+          <string>Tunnels settings</string>
          </property>
         </widget>
        </item>
@@ -170,7 +170,7 @@
      <item>
       <widget class="QStackedWidget" name="stackedWidget">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -178,17 +178,17 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>496</height>
+         <height>528</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
-         <height>496</height>
+         <height>713</height>
         </size>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="statusPage">
         <widget class="QWidget" name="verticalLayoutWidget_5">
@@ -197,7 +197,7 @@
            <x>0</x>
            <y>0</y>
            <width>686</width>
-           <height>496</height>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -245,12 +245,12 @@
            <x>0</x>
            <y>0</y>
            <width>706</width>
-           <height>461</height>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <property name="sizeConstraint">
-           <enum>QLayout::SetMinAndMaxSize</enum>
+           <enum>QLayout::SetMaximumSize</enum>
           </property>
           <item>
            <widget class="QLabel" name="settingsTitleLabel">
@@ -284,7 +284,7 @@
                <x>0</x>
                <y>0</y>
                <width>684</width>
-               <height>426</height>
+               <height>496</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -3046,7 +3046,7 @@ Comma separated list of base64 identities:</string>
            <x>0</x>
            <y>0</y>
            <width>706</width>
-           <height>461</height>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -3110,7 +3110,7 @@ Comma separated list of base64 identities:</string>
             <widget class="QWidget" name="tunnelsScrollAreaWidgetContents">
              <property name="geometry">
               <rect>
-               <x>0</x>
+               <x>-18</x>
                <y>0</y>
                <width>699</width>
                <height>425</height>
