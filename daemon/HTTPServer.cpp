@@ -185,7 +185,7 @@ namespace http {
 		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-	static void ShowStatus (std::stringstream& s)
+    void ShowStatus (std::stringstream& s, bool includeHiddenContent)
 	{
 		s << "<b>Uptime:</b> ";
 		ShowUptime(s, i2p::context.GetUptime ());
@@ -233,33 +233,35 @@ namespace http {
 		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";		
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
 		s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
-		s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
-		s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
-		s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
-		s << "<b>Our external address:</b>" << "<br>\r\n" ;
-		for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
-		{
-			switch (address->transportStyle)
-			{
-				case i2p::data::RouterInfo::eTransportNTCP:
-					if (address->host.is_v6 ())
-						s << "NTCP6&nbsp;&nbsp;";
-					else
-						s << "NTCP&nbsp;&nbsp;";
-				break;
-				case i2p::data::RouterInfo::eTransportSSU:
-					if (address->host.is_v6 ())
-						s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-					else
-						s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-				break;
-				default:
-					s << "Unknown&nbsp;&nbsp;";
-			}
-			s << address->host.to_string() << ":" << address->port << "<br>\r\n";
-		}
-		s << "</p>\r\n</div>\r\n";
-		s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
+        if(includeHiddenContent) {
+            s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
+            s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
+            s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
+            s << "<b>Our external address:</b>" << "<br>\r\n" ;
+            for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
+            {
+                switch (address->transportStyle)
+                {
+                    case i2p::data::RouterInfo::eTransportNTCP:
+                        if (address->host.is_v6 ())
+                            s << "NTCP6&nbsp;&nbsp;";
+                        else
+                            s << "NTCP&nbsp;&nbsp;";
+                    break;
+                    case i2p::data::RouterInfo::eTransportSSU:
+                        if (address->host.is_v6 ())
+                            s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+                        else
+                            s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+                    break;
+                    default:
+                        s << "Unknown&nbsp;&nbsp;";
+                }
+                s << address->host.to_string() << ":" << address->port << "<br>\r\n";
+            }
+        }
+        s << "</p>\r\n</div>\r\n";
+        s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
 
@@ -797,7 +799,7 @@ namespace http {
 		} else if (req.uri.find("cmd=") != std::string::npos) {
 			HandleCommand (req, res, s);
 		} else {
-			ShowStatus (s);
+            ShowStatus (s, true);
 			res.add_header("Refresh", "10");
 		}
 		ShowPageTail (s);

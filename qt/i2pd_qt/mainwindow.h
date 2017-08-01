@@ -40,6 +40,7 @@
 #include "ServerTunnelPane.h"
 #include "ClientTunnelPane.h"
 #include "TunnelConfig.h"
+#include "textbrowsertweaked1.h"
 
 #include "Config.h"
 #include "FS.h"
@@ -306,8 +307,9 @@ public:
 };
 
 namespace Ui {
-class MainWindow;
-class StatusButtonsForm;
+  class MainWindow;
+  class StatusButtonsForm;
+  class StatusHtmlPaneForm;
 }
 
 using namespace i2p::client;
@@ -343,13 +345,23 @@ private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void toggleVisibilitySlot();
 #endif
-    void showStatusPage();
+    void showStatusMainPage();
+    void statusHtmlPageMouseReleased();
+    void statusHtmlPageSelectionChanged();
+    void updateStatusMainPage();
+    void scheduleMainPageUpdates();
+
     void showSettingsPage();
     void showTunnelsPage();
     void showRestartPage();
     void showQuitPage();
 
 private:
+    QTimer * statusMainPageUpdateTimer;
+    bool wasSelectingAtStatusMainPage;
+    bool showHiddenInfoStatusMainPage;
+
+    void showStatusPage();
 #ifndef ANDROID
     void createActions();
     void createTrayIcon();
@@ -362,6 +374,8 @@ private:
     Ui::MainWindow* ui;
     Ui::StatusButtonsForm* statusButtonsUI;
 
+    TextBrowserTweaked1 * textBrowser;
+
     i2p::qt::Controller* i2pController;
 
 protected:
@@ -372,6 +386,8 @@ protected:
     void onResize();
 
     void setStatusButtonsVisible(bool visible);
+
+    QString getStatusMainPageHtml(bool showHiddenInfo);
 
     QList<MainWindowItem*> configItems;
     NonGUIOptionItem* logOption;

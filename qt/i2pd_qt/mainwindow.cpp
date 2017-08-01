@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_statusbuttons.h"
+#include "ui_statushtmlpaneform.h"
+#include <sstream>
 #include <QMessageBox>
 #include <QTimer>
 #include <QFile>
@@ -9,6 +11,8 @@
 #include "Config.h"
 #include "FS.h"
 #include "Log.h"
+
+#include "HTTPServer.h"
 
 #ifndef ANDROID
 # include <QtDebug>
@@ -28,6 +32,8 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifndef ANDROID
     ,quitting(false)
 #endif
+    ,wasSelectingAtStatusMainPage(false)
+    ,showHiddenInfoStatusMainPage(false)
     ,ui(new Ui::MainWindow)
     ,statusButtonsUI(new Ui::StatusButtonsForm)
     ,i2pController(nullptr)
@@ -40,6 +46,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     statusButtonsUI->setupUi(ui->statusButtonsPane);
+    //,statusHtmlUI(new Ui::StatusHtmlPaneForm)
+    //statusHtmlUI->setupUi(lastStatusWidgetui->statusWidget);
     ui->statusButtonsPane->setFixedSize(171,300);
     ui->verticalLayout->setGeometry(QRect(0,0,171,ui->verticalLayout->geometry().height()));
     //ui->statusButtonsPane->adjustSize();
@@ -75,8 +83,17 @@ MainWindow::MainWindow(QWidget *parent) :
     createTrayIcon();
 #endif
 
-    QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusPage()));
-    setStatusButtonsVisible(true);
+    textBrowser = new TextBrowserTweaked1();
+    ui->verticalLayout_2->addWidget(textBrowser);
+    scheduleMainPageUpdates();
+
+    QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
+    showStatusMainPage();
+    QObject::connect(statusButtonsUI->mainPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
+    QObject::connect(textBrowser, SIGNAL(mouseReleased()), this, SLOT(statusHtmlPageMouseReleased()));
+    QObject::connect(textBrowser, SIGNAL(selectionChanged()), this, SLOT(statusHtmlPageSelectionChanged()));
+
+
     QObject::connect(ui->settingsPagePushButton, SIGNAL(released()), this, SLOT(showSettingsPage()));
 
     QObject::connect(ui->tunnelsPagePushButton, SIGNAL(released()), this, SLOT(showTunnelsPage()));
@@ -243,6 +260,49 @@ void MainWindow::setStatusButtonsVisible(bool visible) {
     ui->statusButtonsPane->setVisible(visible);
 }
 
+// see also: HTTPServer.cpp
+QString MainWindow::getStatusMainPageHtml(bool showHiddenInfo) {
+    std::stringstream s;
+
+    i2p::http::ShowStatus (s, showHiddenInfo);
+
+    std::string str = s.str();
+    return QString::fromStdString(str);
+}
+
+void MainWindow::showStatusMainPage() {
+    showHiddenInfoStatusMainPage=false;
+    showStatusPage();
+    textBrowser->setHtml(getStatusMainPageHtml(false));
+    textBrowser->show();
+    wasSelectingAtStatusMainPage=false;
+}
+
+void MainWindow::scheduleMainPageUpdates() {
+    statusMainPageUpdateTimer = new QTimer(this);
+    connect(statusMainPageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateStatusMainPage()));
+    statusMainPageUpdateTimer->start(10*1000/*millis*/);
+}
+
+void MainWindow::statusHtmlPageMouseReleased() {
+    if(wasSelectingAtStatusMainPage){
+        QString selection = textBrowser->textCursor().selectedText();
+        if(!selection.isEmpty()&&!selection.isNull())return;
+    }
+    showHiddenInfoStatusMainPage=!showHiddenInfoStatusMainPage;
+    textBrowser->setHtml(getStatusMainPageHtml(showHiddenInfoStatusMainPage));
+}
+
+void MainWindow::statusHtmlPageSelectionChanged() {
+    wasSelectingAtStatusMainPage=true;
+}
+
+void MainWindow::updateStatusMainPage() {
+    showHiddenInfoStatusMainPage=false;
+    textBrowser->setHtml(getStatusMainPageHtml(showHiddenInfoStatusMainPage));
+}
+
+
 //TODO
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
@@ -363,6 +423,7 @@ void MainWindow::handleGracefulQuitTimerEvent() {
 MainWindow::~MainWindow()
 {
     qDebug("Destroying main window");
+    delete statusMainPageUpdateTimer;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         item->deleteLater();
@@ -642,3 +703,4 @@ void MainWindow::addClientTunnelPushButtonReleased() {
 void MainWindow::setI2PController(i2p::qt::Controller* controller_) {
     this->i2pController = controller_;
 }
+

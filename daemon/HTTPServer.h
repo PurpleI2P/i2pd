@@ -7,6 +7,7 @@
 #include <map>
 #include <thread>
 #include <boost/asio.hpp>
+#include <sstream>
 #include "HTTP.h"
 
 namespace i2p 
@@ -75,6 +76,8 @@ namespace http
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 	};
+
+    void ShowStatus (std::stringstream& s, bool includeHiddenContent);
 } // http
 } // i2p
 

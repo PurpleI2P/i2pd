@@ -87,7 +87,8 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../daemon/i2pd.cpp \
     ../../daemon/I2PControl.cpp \
     ../../daemon/UnixDaemon.cpp \
-    ../../daemon/UPnP.cpp
+    ../../daemon/UPnP.cpp \
+    textbrowsertweaked1.cpp
 
 #qt creator does not handle this well
 #SOURCES += $$files(../../libi2pd/*.cpp)
@@ -166,7 +167,8 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/Daemon.h \
     ../../daemon/HTTPServer.h \
     ../../daemon/I2PControl.h \
-    ../../daemon/UPnP.h
+    ../../daemon/UPnP.h \
+    textbrowsertweaked1.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
