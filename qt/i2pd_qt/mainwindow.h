@@ -335,7 +335,12 @@ public:
 //    void setVisible(bool visible);
 //#endif
 
+private:
+
+    enum StatusPage {main_page, commands, local_destinations, leasesets, tunnels, transit_tunnels,
+                     transports, i2p_tunnels, sam_sessions};
 private slots:
+
     void handleQuitButton();
     void handleGracefulQuitButton();
     void handleDoRestartButton();
@@ -345,11 +350,20 @@ private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void toggleVisibilitySlot();
 #endif
-    void showStatusMainPage();
+    void scheduleStatusPageUpdates();
     void statusHtmlPageMouseReleased();
     void statusHtmlPageSelectionChanged();
-    void updateStatusMainPage();
-    void scheduleMainPageUpdates();
+    void updateStatusPage();
+
+    void showStatusMainPage();
+    void showStatus_commands_Page();
+    void showStatus_local_destinations_Page();
+    void showStatus_leasesets_Page();
+    void showStatus_tunnels_Page();
+    void showStatus_transit_tunnels_Page();
+    void showStatus_transports_Page();
+    void showStatus_i2p_tunnels_Page();
+    void showStatus_sam_sessions_Page();
 
     void showSettingsPage();
     void showTunnelsPage();
@@ -357,11 +371,12 @@ private slots:
     void showQuitPage();
 
 private:
-    QTimer * statusMainPageUpdateTimer;
+    StatusPage statusPage;
+    QTimer * statusPageUpdateTimer;
     bool wasSelectingAtStatusMainPage;
     bool showHiddenInfoStatusMainPage;
 
-    void showStatusPage();
+    void showStatusPage(StatusPage newStatusPage);
 #ifndef ANDROID
     void createActions();
     void createTrayIcon();
@@ -387,7 +402,7 @@ protected:
 
     void setStatusButtonsVisible(bool visible);
 
-    QString getStatusMainPageHtml(bool showHiddenInfo);
+    QString getStatusPageHtml(bool showHiddenInfo);
 
     QList<MainWindowItem*> configItems;
     NonGUIOptionItem* logOption;

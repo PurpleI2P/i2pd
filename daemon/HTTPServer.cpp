@@ -273,7 +273,7 @@ namespace http {
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
-	static void ShowLocalDestinations (std::stringstream& s)
+    void ShowLocalDestinations (std::stringstream& s)
 	{
 		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
@@ -399,7 +399,7 @@ namespace http {
 			ShowError(s, "I2CP is not enabled");
 	}
 
-	static void ShowLeasesSets(std::stringstream& s)
+    void ShowLeasesSets(std::stringstream& s)
 	{
 		s << "<div id='leasesets'><b>LeaseSets (click on to show info):</b></div><br>\r\n";
 		int counter = 1;
@@ -432,7 +432,7 @@ namespace http {
 		// end for each lease set
 	}
 
-	static void ShowTunnels (std::stringstream& s)
+    void ShowTunnels (std::stringstream& s)
 	{
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
 
@@ -454,7 +454,7 @@ namespace http {
 		s << "<br>\r\n";
 	}
 
-	static void ShowCommands (std::stringstream& s, uint32_t token)
+    void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
@@ -476,7 +476,7 @@ namespace http {
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n";
 	}
 
-	static void ShowTransitTunnels (std::stringstream& s)
+    void ShowTransitTunnels (std::stringstream& s)
 	{
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
 		for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
@@ -491,7 +491,7 @@ namespace http {
 		}
 	}
 
-	static void ShowTransports (std::stringstream& s)
+    void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n<br>\r\n";
 		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
@@ -577,7 +577,7 @@ namespace http {
 		}
 	}
 
-	static void ShowSAMSessions (std::stringstream& s)
+    void ShowSAMSessions (std::stringstream& s)
 	{
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
@@ -624,7 +624,7 @@ namespace http {
 		}
 	}
 
-	static void ShowI2PTunnels (std::stringstream& s)
+    void ShowI2PTunnels (std::stringstream& s)
 	{
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())

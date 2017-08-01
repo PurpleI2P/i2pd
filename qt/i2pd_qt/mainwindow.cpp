@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_statusbuttons.h"
@@ -85,11 +86,20 @@ MainWindow::MainWindow(QWidget *parent) :
 
     textBrowser = new TextBrowserTweaked1();
     ui->verticalLayout_2->addWidget(textBrowser);
-    scheduleMainPageUpdates();
+    scheduleStatusPageUpdates();
 
     QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
     showStatusMainPage();
     QObject::connect(statusButtonsUI->mainPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
+    QObject::connect(statusButtonsUI->routerCommandsPushButton, SIGNAL(released()), this, SLOT(showStatus_commands_Page()));
+    QObject::connect(statusButtonsUI->localDestinationsPushButton, SIGNAL(released()), this, SLOT(showStatus_local_destinations_Page()));
+    QObject::connect(statusButtonsUI->leasesetsPushButton, SIGNAL(released()), this, SLOT(showStatus_leasesets_Page()));
+    QObject::connect(statusButtonsUI->tunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_tunnels_Page()));
+    QObject::connect(statusButtonsUI->transitTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_transit_tunnels_Page()));
+    QObject::connect(statusButtonsUI->transportsPushButton, SIGNAL(released()), this, SLOT(showStatus_transports_Page()));
+    QObject::connect(statusButtonsUI->i2pTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_i2p_tunnels_Page()));
+    QObject::connect(statusButtonsUI->samSessionsPushButton, SIGNAL(released()), this, SLOT(showStatus_sam_sessions_Page()));
+
     QObject::connect(textBrowser, SIGNAL(mouseReleased()), this, SLOT(statusHtmlPageMouseReleased()));
     QObject::connect(textBrowser, SIGNAL(selectionChanged()), this, SLOT(statusHtmlPageSelectionChanged()));
 
@@ -250,7 +260,14 @@ MainWindow::MainWindow(QWidget *parent) :
     //QMetaObject::connectSlotsByName(this);
 }
 
-void MainWindow::showStatusPage(){ui->stackedWidget->setCurrentIndex(0);setStatusButtonsVisible(true);}
+void MainWindow::showStatusPage(StatusPage newStatusPage){
+    ui->stackedWidget->setCurrentIndex(0);
+    setStatusButtonsVisible(true);
+    statusPage=newStatusPage;
+    showHiddenInfoStatusMainPage=false;
+    textBrowser->setHtml(getStatusPageHtml(false));
+    wasSelectingAtStatusMainPage=false;
+}
 void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
 void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);setStatusButtonsVisible(false);}
 void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);setStatusButtonsVisible(false);}
@@ -261,27 +278,41 @@ void MainWindow::setStatusButtonsVisible(bool visible) {
 }
 
 // see also: HTTPServer.cpp
-QString MainWindow::getStatusMainPageHtml(bool showHiddenInfo) {
+QString MainWindow::getStatusPageHtml(bool showHiddenInfo) {
     std::stringstream s;
 
-    i2p::http::ShowStatus (s, showHiddenInfo);
+    switch (statusPage) {
+    case main_page: i2p::http::ShowStatus(s, showHiddenInfo);break;
+    case commands: i2p::http::ShowCommands(s, /*token=*/0); break;
+    case local_destinations: i2p::http::ShowLocalDestinations(s);break;
+    case leasesets: i2p::http::ShowLeasesSets(s); break;
+    case tunnels: i2p::http::ShowTunnels(s); break;
+    case transit_tunnels: i2p::http::ShowTransitTunnels(s); break;
+    case transports: i2p::http::ShowTransports(s); break;
+    case i2p_tunnels: i2p::http::ShowI2PTunnels(s); break;
+    case sam_sessions: i2p::http::ShowSAMSessions(s); break;
+    default: assert(false); break;
+    }
 
     std::string str = s.str();
     return QString::fromStdString(str);
 }
 
-void MainWindow::showStatusMainPage() {
-    showHiddenInfoStatusMainPage=false;
-    showStatusPage();
-    textBrowser->setHtml(getStatusMainPageHtml(false));
-    textBrowser->show();
-    wasSelectingAtStatusMainPage=false;
-}
+void MainWindow::showStatusMainPage() { showStatusPage(StatusPage::main_page); }
+void MainWindow::showStatus_commands_Page() { showStatusPage(StatusPage::commands); }
+void MainWindow::showStatus_local_destinations_Page() { showStatusPage(StatusPage::local_destinations); }
+void MainWindow::showStatus_leasesets_Page() { showStatusPage(StatusPage::leasesets); }
+void MainWindow::showStatus_tunnels_Page() { showStatusPage(StatusPage::tunnels); }
+void MainWindow::showStatus_transit_tunnels_Page() { showStatusPage(StatusPage::transit_tunnels); }
+void MainWindow::showStatus_transports_Page() { showStatusPage(StatusPage::transports); }
+void MainWindow::showStatus_i2p_tunnels_Page() { showStatusPage(StatusPage::i2p_tunnels); }
+void MainWindow::showStatus_sam_sessions_Page() { showStatusPage(StatusPage::sam_sessions); }
 
-void MainWindow::scheduleMainPageUpdates() {
-    statusMainPageUpdateTimer = new QTimer(this);
-    connect(statusMainPageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateStatusMainPage()));
-    statusMainPageUpdateTimer->start(10*1000/*millis*/);
+
+void MainWindow::scheduleStatusPageUpdates() {
+    statusPageUpdateTimer = new QTimer(this);
+    connect(statusPageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateStatusPage()));
+    statusPageUpdateTimer->start(10*1000/*millis*/);
 }
 
 void MainWindow::statusHtmlPageMouseReleased() {
@@ -290,16 +321,16 @@ void MainWindow::statusHtmlPageMouseReleased() {
         if(!selection.isEmpty()&&!selection.isNull())return;
     }
     showHiddenInfoStatusMainPage=!showHiddenInfoStatusMainPage;
-    textBrowser->setHtml(getStatusMainPageHtml(showHiddenInfoStatusMainPage));
+    textBrowser->setHtml(getStatusPageHtml(showHiddenInfoStatusMainPage));
 }
 
 void MainWindow::statusHtmlPageSelectionChanged() {
     wasSelectingAtStatusMainPage=true;
 }
 
-void MainWindow::updateStatusMainPage() {
+void MainWindow::updateStatusPage() {
     showHiddenInfoStatusMainPage=false;
-    textBrowser->setHtml(getStatusMainPageHtml(showHiddenInfoStatusMainPage));
+    textBrowser->setHtml(getStatusPageHtml(showHiddenInfoStatusMainPage));
 }
 
 
@@ -423,7 +454,7 @@ void MainWindow::handleGracefulQuitTimerEvent() {
 MainWindow::~MainWindow()
 {
     qDebug("Destroying main window");
-    delete statusMainPageUpdateTimer;
+    delete statusPageUpdateTimer;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         item->deleteLater();
