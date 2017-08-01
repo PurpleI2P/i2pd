@@ -454,7 +454,7 @@ namespace http {
 		s << "<br>\r\n";
 	}
 
-    void ShowCommands (std::stringstream& s, uint32_t token)
+    static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";

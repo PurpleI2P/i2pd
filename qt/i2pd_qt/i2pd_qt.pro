@@ -177,7 +177,8 @@ INCLUDEPATH += .
 
 FORMS += mainwindow.ui \
     tunnelform.ui \
-    statusbuttons.ui
+    statusbuttons.ui \
+    routercommandswidget.ui
 
 LIBS += -lz
 

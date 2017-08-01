@@ -82,7 +82,6 @@ namespace http
     void ShowLocalDestinations (std::stringstream& s);
     void ShowLeasesSets(std::stringstream& s);
     void ShowTunnels (std::stringstream& s);
-    void ShowCommands (std::stringstream& s, uint32_t token);
     void ShowTransitTunnels (std::stringstream& s);
     void ShowTransports (std::stringstream& s);
     void ShowSAMSessions (std::stringstream& s);

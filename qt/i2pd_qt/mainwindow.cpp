@@ -1,9 +1,11 @@
+#include <fstream>
 #include <assert.h>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ui_statusbuttons.h"
-#include "ui_statushtmlpaneform.h"
+#include "ui_routercommandswidget.h"
 #include <sstream>
+#include <QScrollBar>
 #include <QMessageBox>
 #include <QTimer>
 #include <QFile>
@@ -12,16 +14,13 @@
 #include "Config.h"
 #include "FS.h"
 #include "Log.h"
+#include "RouterContext.h"
 
 #include "HTTPServer.h"
 
 #ifndef ANDROID
 # include <QtDebug>
 #endif
-
-#include <QScrollBar>
-
-#include <fstream>
 
 #include "DaemonQT.h"
 #include "SignatureTypeComboboxFactory.h"
@@ -37,6 +36,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ,showHiddenInfoStatusMainPage(false)
     ,ui(new Ui::MainWindow)
     ,statusButtonsUI(new Ui::StatusButtonsForm)
+    ,routerCommandsUI(new Ui::routerCommandsWidget)
+    ,routerCommandsParent(new QWidget(this))
     ,i2pController(nullptr)
     ,configItems()
     ,datadir()
@@ -47,6 +48,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     statusButtonsUI->setupUi(ui->statusButtonsPane);
+    routerCommandsUI->setupUi(routerCommandsParent);
+    routerCommandsParent->hide();
+    ui->verticalLayout_2->addWidget(routerCommandsParent);
     //,statusHtmlUI(new Ui::StatusHtmlPaneForm)
     //statusHtmlUI->setupUi(lastStatusWidgetui->statusWidget);
     ui->statusButtonsPane->setFixedSize(171,300);
@@ -260,12 +264,26 @@ MainWindow::MainWindow(QWidget *parent) :
     //QMetaObject::connectSlotsByName(this);
 }
 
+void MainWindow::updateRouterCommandsButtons() {
+    bool acceptsTunnels = i2p::context.AcceptsTunnels ();
+    routerCommandsUI->declineTransitTunnelsPushButton->setEnabled(acceptsTunnels);
+    routerCommandsUI->acceptTransitTunnelsPushButton->setEnabled(!acceptsTunnels);
+}
+
 void MainWindow::showStatusPage(StatusPage newStatusPage){
     ui->stackedWidget->setCurrentIndex(0);
     setStatusButtonsVisible(true);
     statusPage=newStatusPage;
     showHiddenInfoStatusMainPage=false;
-    textBrowser->setHtml(getStatusPageHtml(false));
+    if(newStatusPage!=StatusPage::commands){
+        textBrowser->setHtml(getStatusPageHtml(false));
+        textBrowser->show();
+        routerCommandsParent->hide();
+    }else{
+        routerCommandsParent->show();
+        textBrowser->hide();
+        updateRouterCommandsButtons();
+    }
     wasSelectingAtStatusMainPage=false;
 }
 void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
@@ -283,7 +301,7 @@ QString MainWindow::getStatusPageHtml(bool showHiddenInfo) {
 
     switch (statusPage) {
     case main_page: i2p::http::ShowStatus(s, showHiddenInfo);break;
-    case commands: i2p::http::ShowCommands(s, /*token=*/0); break;
+    case commands: break;
     case local_destinations: i2p::http::ShowLocalDestinations(s);break;
     case leasesets: i2p::http::ShowLeasesSets(s); break;
     case tunnels: i2p::http::ShowTunnels(s); break;

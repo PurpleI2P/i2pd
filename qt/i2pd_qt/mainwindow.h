@@ -309,7 +309,7 @@ public:
 namespace Ui {
   class MainWindow;
   class StatusButtonsForm;
-  class StatusHtmlPaneForm;
+  class routerCommandsWidget;
 }
 
 using namespace i2p::client;
@@ -388,12 +388,17 @@ private:
 
     Ui::MainWindow* ui;
     Ui::StatusButtonsForm* statusButtonsUI;
+    Ui::routerCommandsWidget* routerCommandsUI;
 
     TextBrowserTweaked1 * textBrowser;
+    QWidget * routerCommandsParent;
 
     i2p::qt::Controller* i2pController;
 
 protected:
+
+    void updateRouterCommandsButtons();
+
 #ifndef ANDROID
     void closeEvent(QCloseEvent *event);
 #endif
