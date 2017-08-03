@@ -111,11 +111,11 @@ namespace client
 		public:
 			TCPIPAcceptor (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
 				I2PService(localDestination),
-				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
+				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
 				m_Timer (GetService ()) {}
 			TCPIPAcceptor (const std::string& address, int port, i2p::data::SigningKeyType kt) :
 				I2PService(kt),
-				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
+				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
 				m_Timer (GetService ()) {}
 			virtual ~TCPIPAcceptor () { TCPIPAcceptor::Stop(); }
 			//If you override this make sure you call it from the children
@@ -123,7 +123,7 @@ namespace client
 			//If you override this make sure you call it from the children
 			void Stop ();
 
-			const boost::asio::ip::tcp::acceptor& GetAcceptor () const { return m_Acceptor; };
+			const boost::asio::ip::tcp::endpoint& GetLocalEndpoint () const  { return m_LocalEndpoint; };
 
     virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
 
@@ -132,7 +132,8 @@ namespace client
 		private:
 			void Accept();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::ip::tcp::endpoint m_LocalEndpoint;
+			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_Acceptor;
 			boost::asio::deadline_timer m_Timer;
 	};
 }

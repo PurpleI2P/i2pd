@@ -182,13 +182,18 @@ namespace client
 	
 	void TCPIPAcceptor::Start ()
 	{
-		m_Acceptor.listen ();
+		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
+		m_Acceptor->listen ();
 		Accept ();
 	}
 
 	void TCPIPAcceptor::Stop ()
 	{
-		m_Acceptor.close();
+		if (m_Acceptor)
+		{	
+			m_Acceptor->close();
+			m_Acceptor.reset (nullptr);
+		}	
 		m_Timer.cancel ();
 		ClearHandlers();
 	}
@@ -196,7 +201,7 @@ namespace client
 	void TCPIPAcceptor::Accept ()
 	{
 		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
-		m_Acceptor.async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
+		m_Acceptor->async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
 			std::placeholders::_1, newSocket));
 	}
 

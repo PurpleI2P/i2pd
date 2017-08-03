@@ -48,7 +48,8 @@ namespace client
 
 		std::shared_ptr<ClientDestination> localDestination;
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
-		if (httproxy) {
+		if (httproxy) 
+		{
 			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
 			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
 			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
@@ -62,14 +63,18 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
+					localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
-			try {
+			try 
+			{
 			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
 			  m_HttpProxy->Start();
-			} catch (std::exception& e) {
+			} 
+			catch (std::exception& e) 
+			{
 			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
 		}
@@ -94,6 +99,7 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
+					localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
@@ -263,7 +269,7 @@ namespace client
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		for (auto it = m_Destinations.begin (); it != m_Destinations.end ();)
 		{
-			auto dest = it->second;
+			auto dest = it->second;	
 			if (dest->GetRefCounter () > 0) ++it; // skip
 			else
 			{
@@ -525,13 +531,13 @@ namespace client
 						{
 							// socks proxy
 							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, false, "", destinationPort, localDestination);
-							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetAcceptor().local_endpoint();
+							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
 						{
 							// http proxy
 							clientTunnel = new i2p::proxy::HTTPProxy(address, port, localDestination);
-							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetAcceptor().local_endpoint();
+							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)
 						{
@@ -543,7 +549,7 @@ namespace client
 						{
 							// tcp client
 							clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
-							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetAcceptor().local_endpoint();
+							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetLocalEndpoint ();
 						}
 						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel)));
 						if (ins.second)
