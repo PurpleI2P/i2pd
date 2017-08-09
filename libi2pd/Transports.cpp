@@ -110,7 +110,7 @@ namespace transport
 	Transports transports;
 
 	Transports::Transports ():
-		m_IsOnline (true), m_IsRunning (false), m_Thread (nullptr), m_Service (nullptr),
+		m_IsOnline (true), m_IsRunning (false), m_IsNAT (true), m_Thread (nullptr), m_Service (nullptr),
 		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_DHKeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
@@ -141,6 +141,8 @@ namespace transport
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
 	 		m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 		}
+
+                i2p::config::GetOption("nat", m_IsNAT);
 
 		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
@@ -221,8 +223,12 @@ namespace transport
 		}
 		m_PeerCleanupTimer->expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));
 		m_PeerCleanupTimer->async_wait (std::bind (&Transports::HandlePeerCleanupTimer, this, std::placeholders::_1));
-		m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
-		m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
+
+                if (m_IsNAT)
+                {
+                    m_PeerTestTimer->expires_from_now (boost::posix_time::minutes(PEER_TEST_INTERVAL));
+                    m_PeerTestTimer->async_wait (std::bind (&Transports::HandlePeerTestTimer, this, std::placeholders::_1));
+                }
 	}
 
 	void Transports::Stop ()
@@ -605,9 +611,8 @@ namespace transport
 		}
 		if (m_SSUServer)
 		{
-			bool nat;	 i2p::config::GetOption("nat", nat);
 			bool isv4 = i2p::context.SupportsV4 ();
-			if (nat && isv4)
+			if (m_IsNAT && isv4)
 				i2p::context.SetStatus (eRouterStatusTesting);
 			for (int i = 0; i < 5; i++)
 			{
