@@ -146,7 +146,7 @@ namespace transport
 
 		private:
 
-			bool m_IsOnline, m_IsRunning;
+			bool m_IsOnline, m_IsRunning, m_IsNAT;
 			std::thread * m_Thread;
 			boost::asio::io_service * m_Service;
 			boost::asio::io_service::work * m_Work;
