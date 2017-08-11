@@ -31,11 +31,7 @@ namespace client
 				std::unique_lock<std::mutex> l(m_HandlersMutex);
 				m_Handlers.erase(conn);
 			}
-			inline void ClearHandlers ()
-			{
-				std::unique_lock<std::mutex> l(m_HandlersMutex);
-				m_Handlers.clear();
-			}
+			void ClearHandlers ();
 
 			inline std::shared_ptr<ClientDestination> GetLocalDestination () { return m_LocalDestination; }
 			inline std::shared_ptr<const ClientDestination> GetLocalDestination () const  { return m_LocalDestination; }
@@ -66,6 +62,9 @@ namespace client
 			virtual ~I2PServiceHandler() { }
 			//If you override this make sure you call it from the children
 			virtual void Handle() {}; //Start handling the socket
+
+			void Terminate () { Kill (); };
+			
 		protected:
 			// Call when terminating or handing over to avoid race conditions
 			inline bool Kill () { return m_Dead.exchange(true); }

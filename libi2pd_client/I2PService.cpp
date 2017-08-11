@@ -29,6 +29,14 @@ namespace client
 		if (m_LocalDestination) m_LocalDestination->Release (); 
 	}
 
+	void I2PService::ClearHandlers ()
+	{
+		std::unique_lock<std::mutex> l(m_HandlersMutex);
+		for (auto it: m_Handlers)
+			it->Terminate ();
+		m_Handlers.clear();
+	}
+		
 	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
 		assert(streamRequestComplete);
 		i2p::data::IdentHash identHash;
