@@ -1,7 +1,7 @@
 %define build_timestamp %(date +"%Y%m%d")
 
 Name:           i2pd
-Version:        2.14.0
+Version:        2.15.0
 Release:        %{build_timestamp}git%{?dist}
 Summary:        I2P router written in C++
 
@@ -103,6 +103,17 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Thu Aug 17 2017 orignal <i2porignal@yandex.ru> - 2.15.0
+- Added QT GUI 
+- Added ability add and remove I2P tunnels without restart
+- Added ability to disable SOCKS outproxy option
+- Changed strip-out Accept-* hedaers in HTTP proxy
+- Changed peer test if nat=false
+- Changed separate output of NTCP and SSU sessions in Transports tab
+- Fixed handle lines with comments in hosts.txt file for address book
+- Fixed run router with empty netdb for testnet
+- Fixed skip expired introducers by iexp
+
 * Thu Jun 01 2017 orignal <i2porignal@yandex.ru> - 2.14.0
 - Added transit traffic bandwidth limitation
 - Added NTCP connections through HTTP and SOCKS proxies

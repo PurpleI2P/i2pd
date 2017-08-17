@@ -1,6 +1,20 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.15.0] - 2017-08-17
+### Added
+- QT GUI 
+- Ability to add and remove I2P tunnels without restart
+- Ability to disable SOCKS outproxy option
+### Changed
+- Strip-out Accept-* hedaers in HTTP proxy
+- Don't run peer test if nat=false
+- Separate output of NTCP and SSU sessions in Transports tab
+### Fixed
+- Handle lines with comments in hosts.txt file for address book
+- Run router with empty netdb for testnet
+- Skip expired introducers by iexp
+
 ## [2.14.0] - 2017-06-01
 ### Added
 - Transit traffic bandwidth limitation

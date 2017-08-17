@@ -1,3 +1,12 @@
+i2pd (2.15.0-1) unstable; urgency=low
+
+  * updated to version 2.15.0/0.9.31
+  * updated debian/control
+  * renamed logrotate to i2pd.logrotate
+  * fixed init.d script
+
+ -- orignal <orignal@i2pmail.org>  Thu, 17 Aug 2017 18:00:00 +0000
+
 i2pd (2.14.0-1) unstable; urgency=low
 
   * updated to version 2.14.0/0.9.30
