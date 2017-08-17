@@ -2,7 +2,7 @@
 #define TAG_H__
 
 /*
-* Copyright (c) 2013-2016, The PurpleI2P Project
+* Copyright (c) 2013-2017, The PurpleI2P Project
 *
 * This file is part of Purple i2pd project and licensed under BSD3
 *
@@ -28,6 +28,7 @@ public:
 	Tag (const uint8_t * buf) { memcpy (m_Buf, buf, sz); }
 
 	bool operator== (const Tag& other) const { return !memcmp (m_Buf, other.m_Buf, sz); }
+	bool operator!= (const Tag& other) const { return !(*this == other); }
 	bool operator< (const Tag& other) const { return memcmp (m_Buf, other.m_Buf, sz) < 0; }
 
 	uint8_t * operator()() { return m_Buf; }

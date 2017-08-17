@@ -43,6 +43,15 @@ The easiest way to install i2pd is by using
 See [documentation](https://i2pd.readthedocs.io/en/latest/) for how to build 
 i2pd from source on your OS.
 
+
+Build instructions:
+
+* [unix](https://i2pd.readthedocs.io/en/latest/devs/building/unix/)
+* [windows](https://i2pd.readthedocs.io/en/latest/devs/building/windows/)
+* [iOS](https://i2pd.readthedocs.io/en/latest/devs/building/ios/)
+* [android](https://i2pd.readthedocs.io/en/latest/devs/building/android/)
+
+
 **Supported systems:**
 
 * GNU/Linux x86/x64  - [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)  

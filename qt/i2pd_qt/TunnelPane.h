@@ -88,6 +88,7 @@ protected:
         i2cpParams.setOutbound_length(outbound_lengthLineEdit->text());
         i2cpParams.setOutbound_quantity(outbound_quantityLineEdit->text());
         i2cpParams.setCrypto_tagsToSend(crypto_tagsToSendLineEdit->text());
+        return true;
     }
 
     void setupTunnelPane(

@@ -293,11 +293,11 @@ namespace http {
 			}	
 	}	
 	
-	void HTTPReq::RemoveHeader (const std::string& name)
+	void HTTPReq::RemoveHeader (const std::string& name, const std::string& exempt)
 	{
 		for (auto it = headers.begin (); it != headers.end ();)
 		{
-			if (!it->first.compare(0, name.length (), name))	
+			if (!it->first.compare(0, name.length (), name) && it->first != exempt)	
 				it = headers.erase (it);
 			else
 				it++;

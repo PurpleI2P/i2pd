@@ -19,7 +19,7 @@ namespace client
 		public:
 			I2PService (std::shared_ptr<ClientDestination> localDestination  = nullptr);
 			I2PService (i2p::data::SigningKeyType kt);
-			virtual ~I2PService () { ClearHandlers (); }
+			virtual ~I2PService ();
 
 			inline void AddHandler (std::shared_ptr<I2PServiceHandler> conn)
 			{
@@ -31,11 +31,7 @@ namespace client
 				std::unique_lock<std::mutex> l(m_HandlersMutex);
 				m_Handlers.erase(conn);
 			}
-			inline void ClearHandlers ()
-			{
-				std::unique_lock<std::mutex> l(m_HandlersMutex);
-				m_Handlers.clear();
-			}
+			void ClearHandlers ();
 
 			inline std::shared_ptr<ClientDestination> GetLocalDestination () { return m_LocalDestination; }
 			inline std::shared_ptr<const ClientDestination> GetLocalDestination () const  { return m_LocalDestination; }
@@ -53,6 +49,9 @@ namespace client
 			std::shared_ptr<ClientDestination> m_LocalDestination;
 			std::unordered_set<std::shared_ptr<I2PServiceHandler> > m_Handlers;
 			std::mutex m_HandlersMutex;
+
+		public:
+			bool isUpdated; // transient, used during reload only	
 	};
 
 	/*Simple interface for I2PHandlers, allows detection of finalization amongst other things */
@@ -63,6 +62,9 @@ namespace client
 			virtual ~I2PServiceHandler() { }
 			//If you override this make sure you call it from the children
 			virtual void Handle() {}; //Start handling the socket
+
+			void Terminate () { Kill (); };
+			
 		protected:
 			// Call when terminating or handing over to avoid race conditions
 			inline bool Kill () { return m_Dead.exchange(true); }
@@ -108,11 +110,11 @@ namespace client
 		public:
 			TCPIPAcceptor (const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination = nullptr) :
 				I2PService(localDestination),
-				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
+				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
 				m_Timer (GetService ()) {}
 			TCPIPAcceptor (const std::string& address, int port, i2p::data::SigningKeyType kt) :
 				I2PService(kt),
-				m_Acceptor (GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
+				m_LocalEndpoint (boost::asio::ip::address::from_string(address), port),
 				m_Timer (GetService ()) {}
 			virtual ~TCPIPAcceptor () { TCPIPAcceptor::Stop(); }
 			//If you override this make sure you call it from the children
@@ -120,7 +122,7 @@ namespace client
 			//If you override this make sure you call it from the children
 			void Stop ();
 
-			const boost::asio::ip::tcp::acceptor& GetAcceptor () const { return m_Acceptor; };
+			const boost::asio::ip::tcp::endpoint& GetLocalEndpoint () const  { return m_LocalEndpoint; };
 
     virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
 
@@ -129,7 +131,8 @@ namespace client
 		private:
 			void Accept();
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-			boost::asio::ip::tcp::acceptor m_Acceptor;
+			boost::asio::ip::tcp::endpoint m_LocalEndpoint;
+			std::unique_ptr<boost::asio::ip::tcp::acceptor> m_Acceptor;
 			boost::asio::deadline_timer m_Timer;
 	};
 }

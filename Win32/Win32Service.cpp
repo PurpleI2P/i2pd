@@ -70,7 +70,6 @@ void WINAPI I2PService::ServiceCtrlHandler(DWORD dwCtrl)
 	}
 }
 
-
 I2PService::I2PService(PSTR pszServiceName,
 	BOOL fCanStop,
 	BOOL fCanShutdown,
@@ -147,8 +146,7 @@ void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 
 void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 {
-	LogPrint(eLogInfo, "Win32Service in OnStart",
-		EVENTLOG_INFORMATION_TYPE);
+	LogPrint(eLogInfo, "Win32Service in OnStart", EVENTLOG_INFORMATION_TYPE);
 
 	Daemon.start();
 
@@ -165,7 +163,7 @@ void I2PService::WorkerThread()
 {
 	while (!m_fStopping)
 	{
-		::Sleep(1000);  // Simulate some lengthy operations.
+		::Sleep(1000); // Simulate some lengthy operations.
 	}
 
 	// Signal the stopped event.
@@ -270,11 +268,9 @@ void I2PService::Continue()
 	}
 }
 
-
 void I2PService::OnContinue()
 {
 }
-
 
 void I2PService::Shutdown()
 {
@@ -294,18 +290,15 @@ void I2PService::Shutdown()
 	}
 }
 
-
 void I2PService::OnShutdown()
 {
 }
-
 
 void I2PService::SetServiceStatus(DWORD dwCurrentState,
 	DWORD dwWin32ExitCode,
 	DWORD dwWaitHint)
 {
 	static DWORD dwCheckPoint = 1;
-
 
 	m_status.dwCurrentState = dwCurrentState;
 	m_status.dwWin32ExitCode = dwWin32ExitCode;
@@ -335,12 +328,7 @@ void FreeHandles(SC_HANDLE schSCManager, SC_HANDLE schService)
 	}
 }
 
-void InstallService(PSTR pszServiceName,
-	PSTR pszDisplayName,
-	DWORD dwStartType,
-	PSTR pszDependencies,
-	PSTR pszAccount,
-	PSTR pszPassword)
+void InstallService(PSTR pszServiceName, PSTR pszDisplayName, DWORD dwStartType, PSTR pszDependencies, PSTR pszAccount, PSTR pszPassword)
 {
 	printf("Try to install Win32Service (%s).\n", pszServiceName);
 
@@ -354,10 +342,10 @@ void InstallService(PSTR pszServiceName,
 		FreeHandles(schSCManager, schService);
 		return;
 	}
+	strncat(szPath, " --daemon", MAX_PATH);
 
 	// Open the local default service control manager database
-	schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT |
-		SC_MANAGER_CREATE_SERVICE);
+	schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
 	if (schSCManager == NULL)
 	{
 		printf("OpenSCManager failed w/err 0x%08lx\n", GetLastError());
@@ -381,6 +369,7 @@ void InstallService(PSTR pszServiceName,
 		pszAccount,                     // Service running account
 		pszPassword                     // Password of the account
 		);
+
 	if (schService == NULL)
 	{
 		printf("CreateService failed w/err 0x%08lx\n", GetLastError());
@@ -412,8 +401,7 @@ void UninstallService(PSTR pszServiceName)
 	}
 
 	// Open the service with delete, stop, and query status permissions
-	schService = OpenService(schSCManager, pszServiceName, SERVICE_STOP |
-		SERVICE_QUERY_STATUS | DELETE);
+	schService = OpenService(schSCManager, pszServiceName, SERVICE_STOP | SERVICE_QUERY_STATUS | DELETE);
 	if (schService == NULL)
 	{
 		printf("OpenService failed w/err 0x%08lx\n", GetLastError());

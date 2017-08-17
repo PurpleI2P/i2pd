@@ -38,6 +38,7 @@ namespace client
 		if (!m_SharedLocalDestination)
 		{
 			m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
+			m_SharedLocalDestination->Acquire ();
 			m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
 			m_SharedLocalDestination->Start ();
 		}
@@ -47,7 +48,8 @@ namespace client
 
 		std::shared_ptr<ClientDestination> localDestination;
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
-		if (httproxy) {
+		if (httproxy) 
+		{
 			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
 			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
 			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
@@ -61,14 +63,18 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("httpproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
+					localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
-			try {
+			try 
+			{
 			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
 			  m_HttpProxy->Start();
-			} catch (std::exception& e) {
+			} 
+			catch (std::exception& e) 
+			{
 			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
 		}
@@ -77,9 +83,10 @@ namespace client
 		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
 		if (socksproxy)
 		{
-			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",    socksProxyKeys);
-			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address", socksProxyAddr);
-			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",    socksProxyPort);
+			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",     socksProxyKeys);
+			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address",  socksProxyAddr);
+			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",     socksProxyPort);
+			bool socksOutProxy; i2p::config::GetOption("socksproxy.outproxy.enabled", socksOutProxy);
 			std::string socksOutProxyAddr; i2p::config::GetOption("socksproxy.outproxy",     socksOutProxyAddr);
 			uint16_t    socksOutProxyPort; i2p::config::GetOption("socksproxy.outproxyport", socksOutProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",  sigType);
@@ -92,15 +99,19 @@ namespace client
 					std::map<std::string, std::string> params;
 					ReadI2CPOptionsFromConfig ("socksproxy.", params);
 					localDestination = CreateNewLocalDestination (keys, false, &params);
+					localDestination->Acquire ();
 				}
 				else
 					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
 			}
-			try {
-			  m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxyAddr, socksOutProxyPort, localDestination);
-			  m_SocksProxy->Start();
-			} catch (std::exception& e) {
-			  LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
+			try
+			{
+				m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
+				m_SocksProxy->Start();
+			}
+			catch (std::exception& e)
+			{
+				LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
 			}
 		}
 
@@ -242,10 +253,30 @@ namespace client
 
 	void ClientContext::ReloadConfig ()
 	{
-		std::string config; i2p::config::GetOption("conf", config);
-		i2p::config::ParseConfig(config);
-		Stop();
-		Start();
+		// TODO: handle config changes	
+		/*std::string config; i2p::config::GetOption("conf", config);
+		i2p::config::ParseConfig(config);*/
+
+		// handle tunnels
+		// reset isUpdated for each tunnel
+		VisitTunnels ([](I2PService * s)->bool { s->isUpdated = false; return true; });
+		// reload tunnels
+		ReadTunnels();
+		// delete not updated tunnels (not in config anymore)
+		VisitTunnels ([](I2PService * s)->bool { return s->isUpdated; });
+
+		// delete unused destinations
+		std::unique_lock<std::mutex> l(m_DestinationsMutex);
+		for (auto it = m_Destinations.begin (); it != m_Destinations.end ();)
+		{
+			auto dest = it->second;	
+			if (dest->GetRefCounter () > 0) ++it; // skip
+			else
+			{
+				dest->Stop ();
+				it = m_Destinations.erase (it);
+			}
+		}
 	}
 
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
@@ -499,14 +530,14 @@ namespace client
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
 						{
 							// socks proxy
-							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, "", destinationPort, localDestination);
-							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetAcceptor().local_endpoint();
+							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, false, "", destinationPort, localDestination);
+							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
 						{
 							// http proxy
 							clientTunnel = new i2p::proxy::HTTPProxy(address, port, localDestination);
-							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetAcceptor().local_endpoint();
+							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)
 						{
@@ -518,15 +549,20 @@ namespace client
 						{
 							// tcp client
 							clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
-							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetAcceptor().local_endpoint();
+							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetLocalEndpoint ();
 						}
-						if (m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel))).second)
+						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel)));
+						if (ins.second)
 						{
 							clientTunnel->Start ();
 							numClientTunnels++;
 						}
 						else
-							LogPrint (eLogError, "Clients: I2P client tunnel for endpoint ", clientEndpoint, "already exists");
+						{
+							// TODO: update
+							ins.first->second->isUpdated = true;
+							LogPrint (eLogInfo, "Clients: I2P client tunnel for endpoint ", clientEndpoint, "already exists");
+						}
 					}
 				}
 				else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER
@@ -619,15 +655,20 @@ namespace client
 						while (comma != std::string::npos);
 						serverTunnel->SetAccessList (idents);
 					}
-					if (m_ServerTunnels.insert (std::make_pair (
+					auto ins = m_ServerTunnels.insert (std::make_pair (
 							std::make_pair (localDestination->GetIdentHash (), inPort),
-					        std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
+					        std::unique_ptr<I2PServerTunnel>(serverTunnel))); 
+					if (ins.second)
 					{
 						serverTunnel->Start ();
 						numServerTunnels++;
 					}
 					else
-						LogPrint (eLogError, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
+					{
+						// TODO: update
+						ins.first->second->isUpdated = true;
+						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
+					}
 
 				}
 				else
@@ -661,6 +702,29 @@ namespace client
 			for (auto & s : m_ServerForwards ) s.second->ExpireStale();
 			ScheduleCleanupUDP();
 		}
+	}
+
+	template<typename Container, typename Visitor>
+	void VisitTunnelsContainer (Container& c, Visitor v)
+	{
+		for (auto it = c.begin (); it != c.end ();)
+		{
+			if (!v (it->second.get ()))
+			{
+				it->second->Stop ();
+				it = c.erase (it);
+			}
+			else
+				it++;	
+		}	
+	}
+
+	template<typename Visitor>
+	void ClientContext::VisitTunnels (Visitor v)
+	{
+		VisitTunnelsContainer (m_ClientTunnels, v);
+		VisitTunnelsContainer (m_ServerTunnels, v);
+		// TODO: implement UDP forwards
 	}
 }
 }

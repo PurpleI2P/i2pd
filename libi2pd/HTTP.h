@@ -16,14 +16,17 @@
 #include <string>
 #include <vector>
 
-namespace i2p {
-namespace http {
+namespace i2p 
+{
+namespace http 
+{
   const char CRLF[] = "\r\n";         /**< HTTP line terminator */
   const char HTTP_EOH[] = "\r\n\r\n"; /**< HTTP end-of-headers mark */
   extern const std::vector<std::string> HTTP_METHODS;  /**< list of valid HTTP methods */
   extern const std::vector<std::string> HTTP_VERSIONS; /**< list of valid HTTP versions */
 
-  struct URL {
+  struct URL 
+  {
     std::string schema;
     std::string user;
     std::string pass;
@@ -90,7 +93,8 @@ namespace http {
 
 	void AddHeader (const std::string& name, const std::string& value);
 	void UpdateHeader (const std::string& name, const std::string& value);  
-	void RemoveHeader (const std::string& name);
+	void RemoveHeader (const std::string& name, const std::string& exempt); // remove all headers starting with name, but exempt
+	void RemoveHeader (const std::string& name) { RemoveHeader (name, ""); };
 	std::string GetHeader (const std::string& name) const;  
   };
 

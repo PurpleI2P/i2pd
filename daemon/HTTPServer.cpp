@@ -496,18 +496,42 @@ namespace http {
 		if (ntcpServer)
 		{
 			auto sessions = ntcpServer->GetNTCPSessions ();
-			s << "<b>NTCP</b> ( " << (int) sessions.size() << " )<br>\r\n";
-			for (const auto& it: sessions )
+			if (!sessions.empty ())
 			{
-				if (it.second && it.second->IsEstablished ())
+				std::stringstream tmp_s, tmp_s6; uint16_t cnt = 0, cnt6 = 0;
+				for (const auto& it: sessions )
 				{
-					// incoming connection doesn't have remote RI
-					if (it.second->IsOutgoing ()) s << " &#8658; ";
-					s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) <<  ": "
-						<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
-					if (!it.second->IsOutgoing ()) s << " &#8658; ";
-					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-					s << "<br>\r\n" << std::endl;
+					if (it.second && it.second->IsEstablished () && !it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
+					{
+						// incoming connection doesn't have remote RI
+						if (it.second->IsOutgoing ()) tmp_s << " &#8658; ";
+						tmp_s << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+							<< it.second->GetSocket ().remote_endpoint().address ().to_string ();
+						if (!it.second->IsOutgoing ()) tmp_s << " &#8658; ";
+						tmp_s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+						tmp_s << "<br>\r\n" << std::endl;
+						cnt++;
+					}
+					if (it.second && it.second->IsEstablished () && it.second->GetSocket ().remote_endpoint ().address ().is_v6 ())
+					{
+						if (it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
+						tmp_s6 << i2p::data::GetIdentHashAbbreviation (it.second->GetRemoteIdentity ()->GetIdentHash ()) << ": "
+							<< "[" << it.second->GetSocket ().remote_endpoint().address ().to_string () << "]";
+						if (!it.second->IsOutgoing ()) tmp_s6 << " &#8658; ";
+						tmp_s6 << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+						tmp_s6 << "<br>\r\n" << std::endl;
+						cnt6++;
+					}
+				}
+				if (!tmp_s.str ().empty ())
+				{
+					s << "<b>NTCP</b> ( " << cnt << " )<br>\r\n";
+					s << tmp_s.str () << "<br>\r\n";
+				}
+				if (!tmp_s6.str ().empty ())
+				{
+					s << "<b>NTCP6</b> ( " << cnt6 << " )<br>\r\n";
+					s << tmp_s6.str () << "<br>\r\n";
 				}
 			}
 		}
@@ -515,27 +539,38 @@ namespace http {
 		if (ssuServer)
 		{
 			auto sessions = ssuServer->GetSessions ();
-			s << "<br>\r\n<b>SSU</b> ( " << (int) sessions.size() << " )<br>\r\n";
-			for (const auto& it: sessions)
+			if (!sessions.empty ())
 			{
-				auto endpoint = it.second->GetRemoteEndpoint ();
-				if (it.second->IsOutgoing ()) s << " &#8658; ";
-				s << endpoint.address ().to_string () << ":" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) s << " &#8658; ";
-				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				if (it.second->GetRelayTag ())
-					s << " [itag:" << it.second->GetRelayTag () << "]";
-				s << "<br>\r\n" << std::endl;
+				s << "<b>SSU</b> ( " << (int) sessions.size() << " )<br>\r\n";
+				for (const auto& it: sessions)
+				{
+					auto endpoint = it.second->GetRemoteEndpoint ();
+					if (it.second->IsOutgoing ()) s << " &#8658; ";
+					s << endpoint.address ().to_string () << ":" << endpoint.port ();
+					if (!it.second->IsOutgoing ()) s << " &#8658; ";
+					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+					if (it.second->GetRelayTag ())
+						s << " [itag:" << it.second->GetRelayTag () << "]";
+					s << "<br>\r\n" << std::endl;
+				}
+				s << "<br>\r\n";
 			}
-			s << "<br>\r\n<b>SSU6</b><br>\r\n";
-			for (const auto& it: ssuServer->GetSessionsV6 ())
+			auto sessions6 = ssuServer->GetSessionsV6 ();
+			if (!sessions6.empty ())
 			{
-				auto endpoint = it.second->GetRemoteEndpoint ();
-				if (it.second->IsOutgoing ()) s << " &#8658; ";
-				s << endpoint.address ().to_string () << ":" << endpoint.port ();
-				if (!it.second->IsOutgoing ()) s << " &#8658; ";
-				s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
-				s << "<br>\r\n" << std::endl;
+				s << "<b>SSU6</b> ( " << (int) sessions6.size() << " )<br>\r\n";
+				for (const auto& it: sessions6)
+				{
+					auto endpoint = it.second->GetRemoteEndpoint ();
+					if (it.second->IsOutgoing ()) s << " &#8658; ";
+					s << "[" << endpoint.address ().to_string () << "]:" << endpoint.port ();
+					if (!it.second->IsOutgoing ()) s << " &#8658; ";
+					s << " [" << it.second->GetNumSentBytes () << ":" << it.second->GetNumReceivedBytes () << "]";
+					if (it.second->GetRelayTag ())
+						s << " [itag:" << it.second->GetRelayTag () << "]";
+					s << "<br>\r\n" << std::endl;
+				}
+				s << "<br>\r\n";
 			}
 		}
 	}

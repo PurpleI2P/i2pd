@@ -51,6 +51,9 @@
 
 #include "TunnelsPageUpdateListener.h"
 
+#include "DaemonQT.h"
+#include "SignatureTypeComboboxFactory.h"
+
 template<typename ValueType>
 bool isType(boost::any& a) {
     return
@@ -216,16 +219,15 @@ class SignatureTypeComboBoxItem : public ComboBoxItem {
 public:
     SignatureTypeComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {};
     virtual ~SignatureTypeComboBoxItem(){}
-    virtual void loadFromConfigOption(){//TODO
+    virtual void loadFromConfigOption(){
         MainWindowItem::loadFromConfigOption();
-        comboBox->setCurrentText(QString::number(boost::any_cast<unsigned short>(optionValue)));
+        while(comboBox->count()>0)comboBox->removeItem(0);
+        uint16_t selected = (uint16_t) boost::any_cast<unsigned short>(optionValue);
+        SignatureTypeComboBoxFactory::fillComboBox(comboBox, selected);
     }
-    virtual void saveToStringStream(std::stringstream& out){//TODO
-        QString txt = comboBox->currentText();
-        if(txt.isEmpty())
-            optionValue=std::string();
-        else
-            optionValue=(unsigned short)std::stoi(txt.toStdString());
+    virtual void saveToStringStream(std::stringstream& out){
+        uint16_t selected = SignatureTypeComboBoxFactory::getSigType(comboBox->currentData());
+        optionValue=(unsigned short)selected;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
@@ -311,12 +313,18 @@ using namespace i2p::client;
 
 class TunnelPane;
 
+using namespace i2p::qt;
+
+class Controller;
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(QWidget *parent=0);
     ~MainWindow();
+
+    void setI2PController(i2p::qt::Controller* controller_);
 
     //typedef std::function<QString ()> DefaultValueGetter;
 
@@ -327,6 +335,7 @@ public:
 private slots:
     void handleQuitButton();
     void handleGracefulQuitButton();
+    void handleDoRestartButton();
     void handleGracefulQuitTimerEvent();
 #ifndef ANDROID
     void setIcon();
@@ -350,6 +359,8 @@ private:
 #endif
 
     Ui::MainWindow* ui;
+
+    i2p::qt::Controller* i2pController;
 
 protected:
 #ifndef ANDROID

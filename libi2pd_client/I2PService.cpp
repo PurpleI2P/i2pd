@@ -11,15 +11,32 @@ namespace client
 
 	I2PService::I2PService (std::shared_ptr<ClientDestination> localDestination):
 		m_LocalDestination (localDestination ? localDestination :
-					i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE))
+					i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE)), isUpdated (true)
 	{
+		m_LocalDestination->Acquire ();	
 	}
 	
 	I2PService::I2PService (i2p::data::SigningKeyType kt):
-		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt))
+		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt)),
+		isUpdated (true)
 	{
+		m_LocalDestination->Acquire ();
 	}
 	
+	I2PService::~I2PService () 
+	{ 
+		ClearHandlers (); 
+		if (m_LocalDestination) m_LocalDestination->Release (); 
+	}
+
+	void I2PService::ClearHandlers ()
+	{
+		std::unique_lock<std::mutex> l(m_HandlersMutex);
+		for (auto it: m_Handlers)
+			it->Terminate ();
+		m_Handlers.clear();
+	}
+		
 	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
 		assert(streamRequestComplete);
 		i2p::data::IdentHash identHash;
@@ -173,13 +190,18 @@ namespace client
 	
 	void TCPIPAcceptor::Start ()
 	{
-		m_Acceptor.listen ();
+		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
+		m_Acceptor->listen ();
 		Accept ();
 	}
 
 	void TCPIPAcceptor::Stop ()
 	{
-		m_Acceptor.close();
+		if (m_Acceptor)
+		{	
+			m_Acceptor->close();
+			m_Acceptor.reset (nullptr);
+		}	
 		m_Timer.cancel ();
 		ClearHandlers();
 	}
@@ -187,7 +209,7 @@ namespace client
 	void TCPIPAcceptor::Accept ()
 	{
 		auto newSocket = std::make_shared<boost::asio::ip::tcp::socket> (GetService ());
-		m_Acceptor.async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
+		m_Acceptor->async_accept (*newSocket, std::bind (&TCPIPAcceptor::HandleAccept, this,
 			std::placeholders::_1, newSocket));
 	}
 

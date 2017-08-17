@@ -921,6 +921,7 @@ namespace client
 		}
 		if (localDestination)
 		{
+			localDestination->Acquire ();
 			auto session = std::make_shared<SAMSession>(localDestination);
 			std::unique_lock<std::mutex> l(m_SessionsMutex);
 			auto ret = m_Sessions.insert (std::make_pair(id, session));
@@ -945,6 +946,7 @@ namespace client
 		}
 		if (session)
 		{
+			session->localDestination->Release ();
 			session->localDestination->StopAcceptingStreams ();
 			session->CloseStreams ();
 		}

@@ -433,7 +433,7 @@ namespace transport
 			{
 				boost::asio::ip::udp::endpoint remoteEndpoint (address->host, address->port);
 				auto it = m_Sessions.find (remoteEndpoint);
-				// check if session if presented alredy
+				// check if session is presented already
 				if (it != m_Sessions.end ())
 				{	
 					auto session = it->second;
@@ -480,18 +480,24 @@ namespace transport
 						introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
 						m_Sessions[introducerEndpoint] = introducerSession;													
 					}
-					// create session	
-					auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
-					m_Sessions[remoteEndpoint] = session;
-					// introduce
-					LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
-							"] through introducer ", introducer->iHost, ":", introducer->iPort);
-					session->WaitForIntroduction ();	
-					if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+#if BOOST_VERSION >= 104900					
+					if (!address->host.is_unspecified () && address->port)
+#endif
 					{
-						uint8_t buf[1];
-						Send (buf, 0, remoteEndpoint); // send HolePunch
-					}	
+						// create session	
+						auto session = std::make_shared<SSUSession> (*this, remoteEndpoint, router, peerTest);
+						m_Sessions[remoteEndpoint] = session;
+
+						// introduce
+						LogPrint (eLogInfo, "SSU: Introduce new session to [", i2p::data::GetIdentHashAbbreviation (router->GetIdentHash ()),
+								"] through introducer ", introducer->iHost, ":", introducer->iPort);
+						session->WaitForIntroduction ();	
+						if (i2p::context.GetRouterInfo ().UsesIntroducer ()) // if we are unreachable
+						{
+							uint8_t buf[1];
+							Send (buf, 0, remoteEndpoint); // send HolePunch
+						}	
+					}
 					introducerSession->Introduce (*introducer, router);
 				}
 				else	

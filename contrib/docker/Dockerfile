@@ -12,7 +12,7 @@ ENV REPO_URL=${REPO_URL}
 ENV I2PD_HOME="/home/i2pd"
 ENV DATA_DIR="${I2PD_HOME}/data"
 
-RUN mkdir -p "$I2PD_HOME" \
+RUN mkdir -p "$I2PD_HOME" "$DATA_DIR" \
     && adduser -S -h "$I2PD_HOME" i2pd \
     && chown -R i2pd:nobody "$I2PD_HOME"
 

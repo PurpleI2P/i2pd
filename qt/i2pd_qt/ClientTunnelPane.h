@@ -91,6 +91,7 @@ protected:
         ctc->setdestinationPort(dportInt);
 
         ctc->setsigType(readSigTypeComboboxUI(sigTypeComboBox));
+        return true;
     }
 };
 

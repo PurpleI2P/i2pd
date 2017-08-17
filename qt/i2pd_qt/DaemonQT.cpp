@@ -161,6 +161,7 @@ namespace qt
 
             {
                 i2p::qt::Controller daemonQtController(daemon);
+                w.setI2PController(&daemonQtController);
                 qDebug("Starting the daemon...");
                 emit daemonQtController.startDaemon();
                 //daemon.start ();
