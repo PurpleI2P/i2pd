@@ -7,11 +7,15 @@ class PageWithBackButton : public QWidget
 {
     Q_OBJECT
 public:
-    explicit PageWithBackButton(QWidget *parent = 0);
+    explicit PageWithBackButton(QWidget *parent, QWidget* child);
 
 signals:
 
-public slots:
+    void backReleased();
+
+private slots:
+
+    void backReleasedSlot();
 };
 
 #endif // PAGEWITHBACKBUTTON_H

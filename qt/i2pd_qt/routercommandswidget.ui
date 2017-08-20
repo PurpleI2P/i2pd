@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>711</width>
     <height>300</height>
    </rect>
   </property>
@@ -24,13 +24,22 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>401</width>
+     <width>711</width>
      <height>301</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="sizeConstraint">
+     <enum>QLayout::SetMaximumSize</enum>
+    </property>
     <item>
      <widget class="QLabel" name="label">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="font">
        <font>
         <weight>75</weight>
@@ -44,6 +53,12 @@
     </item>
     <item>
      <widget class="QPushButton" name="runPeerTestPushButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string>Run peer test</string>
       </property>
@@ -51,6 +66,12 @@
     </item>
     <item>
      <widget class="QPushButton" name="declineTransitTunnelsPushButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string>Decline transit tunnels</string>
       </property>
@@ -58,6 +79,12 @@
     </item>
     <item>
      <widget class="QPushButton" name="acceptTransitTunnelsPushButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string>Accept transit tunnels</string>
       </property>
@@ -67,6 +94,12 @@
      <widget class="QPushButton" name="cancelGracefulQuitPushButton">
       <property name="enabled">
        <bool>false</bool>
+      </property>
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
       <property name="text">
        <string>Cancel graceful quit</string>

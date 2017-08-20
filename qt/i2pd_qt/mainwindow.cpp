@@ -15,6 +15,7 @@
 #include "FS.h"
 #include "Log.h"
 #include "RouterContext.h"
+#include "Transports.h"
 
 #include "HTTPServer.h"
 
@@ -60,7 +61,7 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowTitle(QApplication::translate("AppTitle","I2PD"));
 
     //TODO handle resizes and change the below into resize() call
-    setFixedSize(width(), 550);
+    setFixedHeight(550);
     ui->centralWidget->setFixedHeight(550);
     onResize();
 
@@ -88,8 +89,21 @@ MainWindow::MainWindow(QWidget *parent) :
     createTrayIcon();
 #endif
 
-    textBrowser = new TextBrowserTweaked1();
+    textBrowser = new TextBrowserTweaked1(this);
+    //textBrowser->setOpenExternalLinks(false);
+    textBrowser->setOpenLinks(false);
+    /*textBrowser->setTextInteractionFlags(textBrowser->textInteractionFlags()|
+                                         Qt::LinksAccessibleByMouse|Qt::LinksAccessibleByKeyboard|
+                                         Qt::TextSelectableByMouse|Qt::TextSelectableByKeyboard);*/
     ui->verticalLayout_2->addWidget(textBrowser);
+    childTextBrowser = new TextBrowserTweaked1(this);
+    //childTextBrowser->setOpenExternalLinks(false);
+    childTextBrowser->setOpenLinks(false);
+    connect(textBrowser, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(anchorClickedHandler(const QUrl&)));
+    pageWithBackButton = new PageWithBackButton(this, childTextBrowser);
+    ui->verticalLayout_2->addWidget(pageWithBackButton);
+    pageWithBackButton->hide();
+    connect(pageWithBackButton, SIGNAL(backReleased()), this, SLOT(backClickedFromChild()));
     scheduleStatusPageUpdates();
 
     QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
@@ -107,6 +121,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(textBrowser, SIGNAL(mouseReleased()), this, SLOT(statusHtmlPageMouseReleased()));
     QObject::connect(textBrowser, SIGNAL(selectionChanged()), this, SLOT(statusHtmlPageSelectionChanged()));
 
+    QObject::connect(routerCommandsUI->runPeerTestPushButton, SIGNAL(released()), this, SLOT(runPeerTest()));
+    QObject::connect(routerCommandsUI->acceptTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(enableTransit()));
+    QObject::connect(routerCommandsUI->declineTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(disableTransit()));
 
     QObject::connect(ui->settingsPagePushButton, SIGNAL(released()), this, SLOT(showSettingsPage()));
 
@@ -279,9 +296,11 @@ void MainWindow::showStatusPage(StatusPage newStatusPage){
         textBrowser->setHtml(getStatusPageHtml(false));
         textBrowser->show();
         routerCommandsParent->hide();
+        pageWithBackButton->hide();
     }else{
         routerCommandsParent->show();
         textBrowser->hide();
+        pageWithBackButton->hide();
         updateRouterCommandsButtons();
     }
     wasSelectingAtStatusMainPage=false;
@@ -298,6 +317,8 @@ void MainWindow::setStatusButtonsVisible(bool visible) {
 // see also: HTTPServer.cpp
 QString MainWindow::getStatusPageHtml(bool showHiddenInfo) {
     std::stringstream s;
+
+    s << "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">";
 
     switch (statusPage) {
     case main_page: i2p::http::ShowStatus(s, showHiddenInfo);break;
@@ -753,3 +774,40 @@ void MainWindow::setI2PController(i2p::qt::Controller* controller_) {
     this->i2pController = controller_;
 }
 
+void MainWindow::runPeerTest() {
+    i2p::transport::transports.PeerTest();
+}
+
+void MainWindow::enableTransit() {
+    i2p::context.SetAcceptsTunnels(true);
+    updateRouterCommandsButtons();
+}
+
+void MainWindow::disableTransit() {
+    i2p::context.SetAcceptsTunnels(false);
+    updateRouterCommandsButtons();
+}
+
+void MainWindow::anchorClickedHandler(const QUrl & link) {
+    QString debugStr=QString()+"anchorClicked: "+"\""+link.toString()+"\"";
+    qDebug()<<debugStr;
+    //QMessageBox::information(this, "", debugStr);
+
+    /* /?page=local_destination&b32=xx...xx */
+    QString str=link.toString();
+#define LOCAL_DEST_B32_PREFIX "/?page=local_destination&b32="
+    static size_t LOCAL_DEST_B32_PREFIX_SZ=QString(LOCAL_DEST_B32_PREFIX).size();
+    if(str.startsWith(LOCAL_DEST_B32_PREFIX)) {
+        str = str.right(str.size()-LOCAL_DEST_B32_PREFIX_SZ);
+        qDebug () << "b32:" << str;
+        pageWithBackButton->show();
+        textBrowser->hide();
+        std::stringstream s;
+        i2p::http::ShowLocalDestination(s,str.toStdString());
+        childTextBrowser->setHtml(QString::fromStdString(s.str()));
+    }
+}
+
+void MainWindow::backClickedFromChild() {
+    showStatusPage(statusPage);
+}

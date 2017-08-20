@@ -341,7 +341,7 @@ namespace http {
 		s << "<br>" << std::endl;
 	}
 
-	static void  ShowLocalDestination (std::stringstream& s, const std::string& b32)
+    void  ShowLocalDestination (std::stringstream& s, const std::string& b32)
 	{
 		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
 		i2p::data::IdentHash ident;

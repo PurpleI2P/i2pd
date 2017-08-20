@@ -24,6 +24,7 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
 #include "QVBoxLayout"
+#include "QUrl"
 
 #ifndef ANDROID
 # include <QSystemTrayIcon>
@@ -54,6 +55,7 @@
 
 #include "DaemonQT.h"
 #include "SignatureTypeComboboxFactory.h"
+#include "pagewithbackbutton.h"
 
 template<typename ValueType>
 bool isType(boost::any& a) {
@@ -357,6 +359,10 @@ private slots:
 
     void showStatusMainPage();
     void showStatus_commands_Page();
+    void runPeerTest();
+    void enableTransit();
+    void disableTransit();
+
     void showStatus_local_destinations_Page();
     void showStatus_leasesets_Page();
     void showStatus_tunnels_Page();
@@ -392,6 +398,8 @@ private:
 
     TextBrowserTweaked1 * textBrowser;
     QWidget * routerCommandsParent;
+    PageWithBackButton * pageWithBackButton;
+    TextBrowserTweaked1 * childTextBrowser;
 
     i2p::qt::Controller* i2pController;
 
@@ -441,6 +449,9 @@ public slots:
     void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI(""); }
     void addServerTunnelPushButtonReleased();
     void addClientTunnelPushButtonReleased();
+
+    void anchorClickedHandler(const QUrl & link);
+    void backClickedFromChild();
 
 private:
     QString datadir;
