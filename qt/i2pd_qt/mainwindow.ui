@@ -6,9 +6,21 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>816</width>
-    <height>516</height>
+    <width>908</width>
+    <height>550</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>908</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>908</width>
+    <height>16777215</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
@@ -22,14 +34,14 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>0</width>
-     <height>516</height>
+     <width>908</width>
+     <height>550</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
-     <width>16777215</width>
-     <height>516</height>
+     <width>908</width>
+     <height>550</height>
     </size>
    </property>
    <widget class="QWidget" name="horizontalLayoutWidget">
@@ -37,18 +49,26 @@
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>796</width>
-      <height>496</height>
+      <width>888</width>
+      <height>530</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="sizeConstraint">
-      <enum>QLayout::SetDefaultConstraint</enum>
+      <enum>QLayout::SetMaximumSize</enum>
      </property>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0">
+      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0">
        <property name="sizeConstraint">
         <enum>QLayout::SetMinimumSize</enum>
+       </property>
+       <property name="geometry" stdset="0">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>170</width>
+         <height>496</height>
+        </rect>
        </property>
        <item>
         <widget class="QPushButton" name="statusPagePushButton">
@@ -61,12 +81,28 @@
         </widget>
        </item>
        <item>
+        <widget class="QWidget" name="statusButtonsPane" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>172</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="settingsPagePushButton">
          <property name="enabled">
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Settings</string>
+          <string>General settings</string>
          </property>
         </widget>
        </item>
@@ -76,7 +112,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Tunnels</string>
+          <string>Tunnels settings</string>
          </property>
         </widget>
        </item>
@@ -101,6 +137,22 @@
         </widget>
        </item>
        <item>
+        <spacer name="horizontalSpacer_19">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>171</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -118,7 +170,7 @@
      <item>
       <widget class="QStackedWidget" name="stackedWidget">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -126,31 +178,37 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>496</height>
+         <height>528</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>16777215</width>
-         <height>496</height>
+         <width>713</width>
+         <height>713</height>
         </size>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="statusPage">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <widget class="QWidget" name="verticalLayoutWidget_5">
          <property name="geometry">
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>686</width>
-           <height>496</height>
+           <width>713</width>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
           <property name="sizeConstraint">
-           <enum>QLayout::SetMinAndMaxSize</enum>
+           <enum>QLayout::SetMaximumSize</enum>
           </property>
           <item>
            <widget class="QLabel" name="label_4">
@@ -165,17 +223,11 @@
            </widget>
           </item>
           <item>
-           <spacer name="verticalSpacer_4">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <property name="sizeConstraint">
+             <enum>QLayout::SetMaximumSize</enum>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -192,13 +244,13 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>706</width>
-           <height>461</height>
+           <width>711</width>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <property name="sizeConstraint">
-           <enum>QLayout::SetMinAndMaxSize</enum>
+           <enum>QLayout::SetMaximumSize</enum>
           </property>
           <item>
            <widget class="QLabel" name="settingsTitleLabel">
@@ -208,7 +260,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Settings</string>
+             <string>General settings</string>
             </property>
            </widget>
           </item>
@@ -231,8 +283,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>679</width>
-               <height>3000</height>
+               <width>689</width>
+               <height>496</height>
               </rect>
              </property>
              <property name="sizePolicy">
@@ -247,7 +299,7 @@
                 <x>10</x>
                 <y>10</y>
                 <width>679</width>
-                <height>3000</height>
+                <height>3052</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="settingsContentsGridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
@@ -2993,8 +3045,8 @@ Comma separated list of base64 identities:</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>706</width>
-           <height>461</height>
+           <width>711</width>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -3009,7 +3061,7 @@ Comma separated list of base64 identities:</string>
              </font>
             </property>
             <property name="text">
-             <string>Tunnels</string>
+             <string>Tunnels settings</string>
             </property>
            </widget>
           </item>
@@ -3076,8 +3128,8 @@ Comma separated list of base64 identities:</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>686</width>
-           <height>496</height>
+           <width>711</width>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -3131,8 +3183,8 @@ Comma separated list of base64 identities:</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>686</width>
-           <height>496</height>
+           <width>711</width>
+           <height>531</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="quitPageVerticalLayout">

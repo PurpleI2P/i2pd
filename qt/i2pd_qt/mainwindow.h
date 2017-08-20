@@ -24,6 +24,7 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
 #include "QVBoxLayout"
+#include "QUrl"
 
 #ifndef ANDROID
 # include <QSystemTrayIcon>
@@ -40,6 +41,7 @@
 #include "ServerTunnelPane.h"
 #include "ClientTunnelPane.h"
 #include "TunnelConfig.h"
+#include "textbrowsertweaked1.h"
 
 #include "Config.h"
 #include "FS.h"
@@ -53,6 +55,7 @@
 
 #include "DaemonQT.h"
 #include "SignatureTypeComboboxFactory.h"
+#include "pagewithbackbutton.h"
 
 template<typename ValueType>
 bool isType(boost::any& a) {
@@ -306,7 +309,9 @@ public:
 };
 
 namespace Ui {
-class MainWindow;
+  class MainWindow;
+  class StatusButtonsForm;
+  class routerCommandsWidget;
 }
 
 using namespace i2p::client;
@@ -332,7 +337,12 @@ public:
 //    void setVisible(bool visible);
 //#endif
 
+private:
+
+    enum StatusPage {main_page, commands, local_destinations, leasesets, tunnels, transit_tunnels,
+                     transports, i2p_tunnels, sam_sessions};
 private slots:
+
     void handleQuitButton();
     void handleGracefulQuitButton();
     void handleDoRestartButton();
@@ -342,13 +352,37 @@ private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void toggleVisibilitySlot();
 #endif
-    void showStatusPage();
+    void scheduleStatusPageUpdates();
+    void statusHtmlPageMouseReleased();
+    void statusHtmlPageSelectionChanged();
+    void updateStatusPage();
+
+    void showStatusMainPage();
+    void showStatus_commands_Page();
+    void runPeerTest();
+    void enableTransit();
+    void disableTransit();
+
+    void showStatus_local_destinations_Page();
+    void showStatus_leasesets_Page();
+    void showStatus_tunnels_Page();
+    void showStatus_transit_tunnels_Page();
+    void showStatus_transports_Page();
+    void showStatus_i2p_tunnels_Page();
+    void showStatus_sam_sessions_Page();
+
     void showSettingsPage();
     void showTunnelsPage();
     void showRestartPage();
     void showQuitPage();
 
 private:
+    StatusPage statusPage;
+    QTimer * statusPageUpdateTimer;
+    bool wasSelectingAtStatusMainPage;
+    bool showHiddenInfoStatusMainPage;
+
+    void showStatusPage(StatusPage newStatusPage);
 #ifndef ANDROID
     void createActions();
     void createTrayIcon();
@@ -359,15 +393,29 @@ private:
 #endif
 
     Ui::MainWindow* ui;
+    Ui::StatusButtonsForm* statusButtonsUI;
+    Ui::routerCommandsWidget* routerCommandsUI;
+
+    TextBrowserTweaked1 * textBrowser;
+    QWidget * routerCommandsParent;
+    PageWithBackButton * pageWithBackButton;
+    TextBrowserTweaked1 * childTextBrowser;
 
     i2p::qt::Controller* i2pController;
 
 protected:
+
+    void updateRouterCommandsButtons();
+
 #ifndef ANDROID
     void closeEvent(QCloseEvent *event);
 #endif
     void resizeEvent(QResizeEvent* event);
     void onResize();
+
+    void setStatusButtonsVisible(bool visible);
+
+    QString getStatusPageHtml(bool showHiddenInfo);
 
     QList<MainWindowItem*> configItems;
     NonGUIOptionItem* logOption;
@@ -401,6 +449,9 @@ public slots:
     void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI(""); }
     void addServerTunnelPushButtonReleased();
     void addClientTunnelPushButtonReleased();
+
+    void anchorClickedHandler(const QUrl & link);
+    void backClickedFromChild();
 
 private:
     QString datadir;

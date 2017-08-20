@@ -7,6 +7,7 @@
 #include <map>
 #include <thread>
 #include <boost/asio.hpp>
+#include <sstream>
 #include "HTTP.h"
 
 namespace i2p 
@@ -75,6 +76,17 @@ namespace http
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
 	};
+
+    //all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
+    void ShowStatus (std::stringstream& s, bool includeHiddenContent);
+    void ShowLocalDestinations (std::stringstream& s);
+    void ShowLeasesSets(std::stringstream& s);
+    void ShowTunnels (std::stringstream& s);
+    void ShowTransitTunnels (std::stringstream& s);
+    void ShowTransports (std::stringstream& s);
+    void ShowSAMSessions (std::stringstream& s);
+    void ShowI2PTunnels (std::stringstream& s);
+    void ShowLocalDestination (std::stringstream& s, const std::string& b32);
 } // http
 } // i2p
 

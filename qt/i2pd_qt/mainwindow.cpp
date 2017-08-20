@@ -1,5 +1,11 @@
+#include <fstream>
+#include <assert.h>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "ui_statusbuttons.h"
+#include "ui_routercommandswidget.h"
+#include <sstream>
+#include <QScrollBar>
 #include <QMessageBox>
 #include <QTimer>
 #include <QFile>
@@ -8,14 +14,14 @@
 #include "Config.h"
 #include "FS.h"
 #include "Log.h"
+#include "RouterContext.h"
+#include "Transports.h"
+
+#include "HTTPServer.h"
 
 #ifndef ANDROID
 # include <QtDebug>
 #endif
-
-#include <QScrollBar>
-
-#include <fstream>
 
 #include "DaemonQT.h"
 #include "SignatureTypeComboboxFactory.h"
@@ -27,7 +33,12 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifndef ANDROID
     ,quitting(false)
 #endif
+    ,wasSelectingAtStatusMainPage(false)
+    ,showHiddenInfoStatusMainPage(false)
     ,ui(new Ui::MainWindow)
+    ,statusButtonsUI(new Ui::StatusButtonsForm)
+    ,routerCommandsUI(new Ui::routerCommandsWidget)
+    ,routerCommandsParent(new QWidget(this))
     ,i2pController(nullptr)
     ,configItems()
     ,datadir()
@@ -37,12 +48,21 @@ MainWindow::MainWindow(QWidget *parent) :
 
 {
     ui->setupUi(this);
+    statusButtonsUI->setupUi(ui->statusButtonsPane);
+    routerCommandsUI->setupUi(routerCommandsParent);
+    routerCommandsParent->hide();
+    ui->verticalLayout_2->addWidget(routerCommandsParent);
+    //,statusHtmlUI(new Ui::StatusHtmlPaneForm)
+    //statusHtmlUI->setupUi(lastStatusWidgetui->statusWidget);
+    ui->statusButtonsPane->setFixedSize(171,300);
+    ui->verticalLayout->setGeometry(QRect(0,0,171,ui->verticalLayout->geometry().height()));
+    //ui->statusButtonsPane->adjustSize();
+    //ui->centralWidget->adjustSize();
     setWindowTitle(QApplication::translate("AppTitle","I2PD"));
 
     //TODO handle resizes and change the below into resize() call
-    setFixedSize(width(), 480);
-    ui->centralWidget->setMinimumHeight(480);
-    ui->centralWidget->setMaximumHeight(480);
+    setFixedHeight(550);
+    ui->centralWidget->setFixedHeight(550);
     onResize();
 
     ui->stackedWidget->setCurrentIndex(0);
@@ -69,7 +89,42 @@ MainWindow::MainWindow(QWidget *parent) :
     createTrayIcon();
 #endif
 
-    QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusPage()));
+    textBrowser = new TextBrowserTweaked1(this);
+    //textBrowser->setOpenExternalLinks(false);
+    textBrowser->setOpenLinks(false);
+    /*textBrowser->setTextInteractionFlags(textBrowser->textInteractionFlags()|
+                                         Qt::LinksAccessibleByMouse|Qt::LinksAccessibleByKeyboard|
+                                         Qt::TextSelectableByMouse|Qt::TextSelectableByKeyboard);*/
+    ui->verticalLayout_2->addWidget(textBrowser);
+    childTextBrowser = new TextBrowserTweaked1(this);
+    //childTextBrowser->setOpenExternalLinks(false);
+    childTextBrowser->setOpenLinks(false);
+    connect(textBrowser, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(anchorClickedHandler(const QUrl&)));
+    pageWithBackButton = new PageWithBackButton(this, childTextBrowser);
+    ui->verticalLayout_2->addWidget(pageWithBackButton);
+    pageWithBackButton->hide();
+    connect(pageWithBackButton, SIGNAL(backReleased()), this, SLOT(backClickedFromChild()));
+    scheduleStatusPageUpdates();
+
+    QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
+    showStatusMainPage();
+    QObject::connect(statusButtonsUI->mainPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
+    QObject::connect(statusButtonsUI->routerCommandsPushButton, SIGNAL(released()), this, SLOT(showStatus_commands_Page()));
+    QObject::connect(statusButtonsUI->localDestinationsPushButton, SIGNAL(released()), this, SLOT(showStatus_local_destinations_Page()));
+    QObject::connect(statusButtonsUI->leasesetsPushButton, SIGNAL(released()), this, SLOT(showStatus_leasesets_Page()));
+    QObject::connect(statusButtonsUI->tunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_tunnels_Page()));
+    QObject::connect(statusButtonsUI->transitTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_transit_tunnels_Page()));
+    QObject::connect(statusButtonsUI->transportsPushButton, SIGNAL(released()), this, SLOT(showStatus_transports_Page()));
+    QObject::connect(statusButtonsUI->i2pTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_i2p_tunnels_Page()));
+    QObject::connect(statusButtonsUI->samSessionsPushButton, SIGNAL(released()), this, SLOT(showStatus_sam_sessions_Page()));
+
+    QObject::connect(textBrowser, SIGNAL(mouseReleased()), this, SLOT(statusHtmlPageMouseReleased()));
+    QObject::connect(textBrowser, SIGNAL(selectionChanged()), this, SLOT(statusHtmlPageSelectionChanged()));
+
+    QObject::connect(routerCommandsUI->runPeerTestPushButton, SIGNAL(released()), this, SLOT(runPeerTest()));
+    QObject::connect(routerCommandsUI->acceptTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(enableTransit()));
+    QObject::connect(routerCommandsUI->declineTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(disableTransit()));
+
     QObject::connect(ui->settingsPagePushButton, SIGNAL(released()), this, SLOT(showSettingsPage()));
 
     QObject::connect(ui->tunnelsPagePushButton, SIGNAL(released()), this, SLOT(showTunnelsPage()));
@@ -226,11 +281,97 @@ MainWindow::MainWindow(QWidget *parent) :
     //QMetaObject::connectSlotsByName(this);
 }
 
-void MainWindow::showStatusPage(){ui->stackedWidget->setCurrentIndex(0);}
-void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);}
-void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);}
-void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);}
-void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);}
+void MainWindow::updateRouterCommandsButtons() {
+    bool acceptsTunnels = i2p::context.AcceptsTunnels ();
+    routerCommandsUI->declineTransitTunnelsPushButton->setEnabled(acceptsTunnels);
+    routerCommandsUI->acceptTransitTunnelsPushButton->setEnabled(!acceptsTunnels);
+}
+
+void MainWindow::showStatusPage(StatusPage newStatusPage){
+    ui->stackedWidget->setCurrentIndex(0);
+    setStatusButtonsVisible(true);
+    statusPage=newStatusPage;
+    showHiddenInfoStatusMainPage=false;
+    if(newStatusPage!=StatusPage::commands){
+        textBrowser->setHtml(getStatusPageHtml(false));
+        textBrowser->show();
+        routerCommandsParent->hide();
+        pageWithBackButton->hide();
+    }else{
+        routerCommandsParent->show();
+        textBrowser->hide();
+        pageWithBackButton->hide();
+        updateRouterCommandsButtons();
+    }
+    wasSelectingAtStatusMainPage=false;
+}
+void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
+void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);setStatusButtonsVisible(false);}
+void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);setStatusButtonsVisible(false);}
+void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);setStatusButtonsVisible(false);}
+
+void MainWindow::setStatusButtonsVisible(bool visible) {
+    ui->statusButtonsPane->setVisible(visible);
+}
+
+// see also: HTTPServer.cpp
+QString MainWindow::getStatusPageHtml(bool showHiddenInfo) {
+    std::stringstream s;
+
+    s << "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">";
+
+    switch (statusPage) {
+    case main_page: i2p::http::ShowStatus(s, showHiddenInfo);break;
+    case commands: break;
+    case local_destinations: i2p::http::ShowLocalDestinations(s);break;
+    case leasesets: i2p::http::ShowLeasesSets(s); break;
+    case tunnels: i2p::http::ShowTunnels(s); break;
+    case transit_tunnels: i2p::http::ShowTransitTunnels(s); break;
+    case transports: i2p::http::ShowTransports(s); break;
+    case i2p_tunnels: i2p::http::ShowI2PTunnels(s); break;
+    case sam_sessions: i2p::http::ShowSAMSessions(s); break;
+    default: assert(false); break;
+    }
+
+    std::string str = s.str();
+    return QString::fromStdString(str);
+}
+
+void MainWindow::showStatusMainPage() { showStatusPage(StatusPage::main_page); }
+void MainWindow::showStatus_commands_Page() { showStatusPage(StatusPage::commands); }
+void MainWindow::showStatus_local_destinations_Page() { showStatusPage(StatusPage::local_destinations); }
+void MainWindow::showStatus_leasesets_Page() { showStatusPage(StatusPage::leasesets); }
+void MainWindow::showStatus_tunnels_Page() { showStatusPage(StatusPage::tunnels); }
+void MainWindow::showStatus_transit_tunnels_Page() { showStatusPage(StatusPage::transit_tunnels); }
+void MainWindow::showStatus_transports_Page() { showStatusPage(StatusPage::transports); }
+void MainWindow::showStatus_i2p_tunnels_Page() { showStatusPage(StatusPage::i2p_tunnels); }
+void MainWindow::showStatus_sam_sessions_Page() { showStatusPage(StatusPage::sam_sessions); }
+
+
+void MainWindow::scheduleStatusPageUpdates() {
+    statusPageUpdateTimer = new QTimer(this);
+    connect(statusPageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateStatusPage()));
+    statusPageUpdateTimer->start(10*1000/*millis*/);
+}
+
+void MainWindow::statusHtmlPageMouseReleased() {
+    if(wasSelectingAtStatusMainPage){
+        QString selection = textBrowser->textCursor().selectedText();
+        if(!selection.isEmpty()&&!selection.isNull())return;
+    }
+    showHiddenInfoStatusMainPage=!showHiddenInfoStatusMainPage;
+    textBrowser->setHtml(getStatusPageHtml(showHiddenInfoStatusMainPage));
+}
+
+void MainWindow::statusHtmlPageSelectionChanged() {
+    wasSelectingAtStatusMainPage=true;
+}
+
+void MainWindow::updateStatusPage() {
+    showHiddenInfoStatusMainPage=false;
+    textBrowser->setHtml(getStatusPageHtml(showHiddenInfoStatusMainPage));
+}
+
 
 //TODO
 void MainWindow::resizeEvent(QResizeEvent *event)
@@ -352,6 +493,7 @@ void MainWindow::handleGracefulQuitTimerEvent() {
 MainWindow::~MainWindow()
 {
     qDebug("Destroying main window");
+    delete statusPageUpdateTimer;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         item->deleteLater();
@@ -630,4 +772,42 @@ void MainWindow::addClientTunnelPushButtonReleased() {
 
 void MainWindow::setI2PController(i2p::qt::Controller* controller_) {
     this->i2pController = controller_;
+}
+
+void MainWindow::runPeerTest() {
+    i2p::transport::transports.PeerTest();
+}
+
+void MainWindow::enableTransit() {
+    i2p::context.SetAcceptsTunnels(true);
+    updateRouterCommandsButtons();
+}
+
+void MainWindow::disableTransit() {
+    i2p::context.SetAcceptsTunnels(false);
+    updateRouterCommandsButtons();
+}
+
+void MainWindow::anchorClickedHandler(const QUrl & link) {
+    QString debugStr=QString()+"anchorClicked: "+"\""+link.toString()+"\"";
+    qDebug()<<debugStr;
+    //QMessageBox::information(this, "", debugStr);
+
+    /* /?page=local_destination&b32=xx...xx */
+    QString str=link.toString();
+#define LOCAL_DEST_B32_PREFIX "/?page=local_destination&b32="
+    static size_t LOCAL_DEST_B32_PREFIX_SZ=QString(LOCAL_DEST_B32_PREFIX).size();
+    if(str.startsWith(LOCAL_DEST_B32_PREFIX)) {
+        str = str.right(str.size()-LOCAL_DEST_B32_PREFIX_SZ);
+        qDebug () << "b32:" << str;
+        pageWithBackButton->show();
+        textBrowser->hide();
+        std::stringstream s;
+        i2p::http::ShowLocalDestination(s,str.toStdString());
+        childTextBrowser->setHtml(QString::fromStdString(s.str()));
+    }
+}
+
+void MainWindow::backClickedFromChild() {
+    showStatusPage(statusPage);
 }
