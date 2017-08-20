@@ -189,7 +189,8 @@ namespace config {
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"
 				"https://itoopie.atomike.ninja/,"
-				"https://i2pseed.creativecowpat.net:8443/"
+				"https://i2pseed.creativecowpat.net:8443/,"
+                "https://i2p.novg.net/"
 			),                                                            "Reseed URLs, separated by comma")
 		;
 
