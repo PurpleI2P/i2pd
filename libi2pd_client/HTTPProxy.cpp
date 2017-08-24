@@ -200,10 +200,11 @@ namespace proxy {
 	void HTTPReqHandler::SanitizeHTTPRequest(i2p::http::HTTPReq & req)
 	{
 		/* drop common headers */
-		req.RemoveHeader ("Referer");
+		req.RemoveHeader("Referer");
 		req.RemoveHeader("Via");
+		req.RemoveHeader("From");
 		req.RemoveHeader("Forwarded");	
-		req.RemoveHeader("Accept-", "Accept-Encoding"); // Accept-*, but Accept-Encoding
+		req.RemoveHeader("Accept", "Accept-Encoding"); // Accept*, but Accept-Encoding
 		/* drop proxy-disclosing headers */
 		req.RemoveHeader("X-Forwarded");
 		req.RemoveHeader("Proxy-");	// Proxy-*	
