@@ -652,16 +652,19 @@ namespace http {
 			s << "SOCKS Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
-		}	
-		s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
-		for (auto& it: i2p::client::context.GetServerTunnels ())
-		{
-			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
-			s << it.second->GetName () << "</a> &#8658; ";
-			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
-			s << ":" << it.second->GetLocalPort ();
-			s << "</a><br>\r\n"<< std::endl;
+		}
+		auto& serverTunnels = i2p::client::context.GetServerTunnels ();
+		if (!serverTunnels.empty ()) {
+			s << "<br>\r\n<b>Server Tunnels:</b><br>\r\n<br>\r\n";
+			for (auto& it: serverTunnels)
+			{
+				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << it.second->GetName () << "</a> &#8658; ";
+				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
+				s << ":" << it.second->GetLocalPort ();
+				s << "</a><br>\r\n"<< std::endl;
+			}
 		}
 		auto& clientForwards = i2p::client::context.GetClientForwards ();
 		if (!clientForwards.empty ())
