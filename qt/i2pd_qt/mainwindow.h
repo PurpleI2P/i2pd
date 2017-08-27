@@ -59,6 +59,9 @@
 
 #include <iostream>
 
+#include "widgetlockregistry.h"
+#include "widgetlock.h"
+
 template<typename ValueType>
 bool isType(boost::any& a) {
     return
@@ -329,6 +332,7 @@ namespace Ui {
   class MainWindow;
   class StatusButtonsForm;
   class routerCommandsWidget;
+  class GeneralSettingsContentsForm;
 }
 
 using namespace i2p::client;
@@ -412,11 +416,14 @@ private:
     Ui::MainWindow* ui;
     Ui::StatusButtonsForm* statusButtonsUI;
     Ui::routerCommandsWidget* routerCommandsUI;
+    Ui::GeneralSettingsContentsForm* uiSettings;
 
     TextBrowserTweaked1 * textBrowser;
     QWidget * routerCommandsParent;
     PageWithBackButton * pageWithBackButton;
     TextBrowserTweaked1 * childTextBrowser;
+
+    widgetlockregistry widgetlocks;
 
     i2p::qt::Controller* i2pController;
 

@@ -197,6 +197,9 @@ int ServerTunnelPane::appendServerTunnelForm(
         QObject::connect(sigTypeComboBox, SIGNAL(currentIndexChanged(int)),
                                  this, SLOT(updated()));
         horizontalLayout_2->addWidget(sigTypeComboBox);
+        QPushButton * lockButton2 = new QPushButton(gridLayoutWidget_2);
+        horizontalLayout_2->addWidget(lockButton2);
+        widgetlocks.add(new widgetlock(sigTypeComboBox, lockButton2));
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
         tunnelGridLayout->addLayout(horizontalLayout_2);

@@ -14,6 +14,9 @@
 
 #include "TunnelConfig.h"
 
+#include <widgetlock.h>
+#include <widgetlockregistry.h>
+
 class ServerTunnelPane;
 class ClientTunnelPane;
 
@@ -33,6 +36,7 @@ public:
 
 protected:
     TunnelConfig* tunnelConfig;
+    widgetlockregistry widgetlocks;
     TunnelsPageUpdateListener* tunnelsPageUpdateListener;
     QVBoxLayout *tunnelGridLayout;
     QGroupBox *tunnelGroupBox;
