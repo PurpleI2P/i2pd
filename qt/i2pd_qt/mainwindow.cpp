@@ -766,7 +766,7 @@ void MainWindow::SaveTunnelsConfig() {
     outfile << out.str().c_str();
     outfile.close();
 
-    i2p::client::ClientContext::ReloadConfig();
+    i2p::client::context.ReloadConfig();
 
 }
 

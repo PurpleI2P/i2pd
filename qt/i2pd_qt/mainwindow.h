@@ -218,7 +218,9 @@ public:
         comboBox->setCurrentText(QString(ld));
     }
     virtual void saveToStringStream(std::stringstream& out){
-        optionValue=comboBox->currentText().toStdString();
+        std::string logDest = comboBox->currentText().toStdString();
+        if(logDest==std::string("stdout"))logDest="";
+        optionValue=logDest;
         MainWindowItem::saveToStringStream(out);
     }
     virtual bool isValid() { return true; }
