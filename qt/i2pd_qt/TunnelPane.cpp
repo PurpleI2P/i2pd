@@ -65,6 +65,9 @@ void TunnelPane::setupTunnelPane(
         typeLabel->setObjectName(QStringLiteral("typeLabel"));
         horizontalLayout_->addWidget(typeLabel);
         horizontalLayout_->addWidget(tunnelTypeComboBox);
+        QPushButton * lockButton1 = new QPushButton(gridLayoutWidget_2);
+        horizontalLayout_->addWidget(lockButton1);
+        widgetlocks.add(new widgetlock(tunnelTypeComboBox, lockButton1));
         this->tunnelTypeComboBox=tunnelTypeComboBox;
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_->addItem(horizontalSpacer);

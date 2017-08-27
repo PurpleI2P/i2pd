@@ -57,6 +57,11 @@
 #include "SignatureTypeComboboxFactory.h"
 #include "pagewithbackbutton.h"
 
+#include <iostream>
+
+#include "widgetlockregistry.h"
+#include "widgetlock.h"
+
 template<typename ValueType>
 bool isType(boost::any& a) {
     return
@@ -97,7 +102,7 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
+        //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
         optionValue=programOption.empty()?boost::any(std::string(""))
@@ -201,6 +206,21 @@ public:
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption()=0;
     virtual void saveToStringStream(std::stringstream& out)=0;
+    virtual bool isValid() { return true; }
+};
+class LogDestinationComboBoxItem : public ComboBoxItem {
+public:
+    LogDestinationComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {};
+    virtual ~LogDestinationComboBoxItem(){}
+    virtual void loadFromConfigOption(){
+        MainWindowItem::loadFromConfigOption();
+        const char * ld = boost::any_cast<std::string>(optionValue).c_str();
+        comboBox->setCurrentText(QString(ld));
+    }
+    virtual void saveToStringStream(std::stringstream& out){
+        optionValue=comboBox->currentText().toStdString();
+        MainWindowItem::saveToStringStream(out);
+    }
     virtual bool isValid() { return true; }
 };
 class LogLevelComboBoxItem : public ComboBoxItem {
@@ -312,6 +332,7 @@ namespace Ui {
   class MainWindow;
   class StatusButtonsForm;
   class routerCommandsWidget;
+  class GeneralSettingsContentsForm;
 }
 
 using namespace i2p::client;
@@ -395,11 +416,14 @@ private:
     Ui::MainWindow* ui;
     Ui::StatusButtonsForm* statusButtonsUI;
     Ui::routerCommandsWidget* routerCommandsUI;
+    Ui::GeneralSettingsContentsForm* uiSettings;
 
     TextBrowserTweaked1 * textBrowser;
     QWidget * routerCommandsParent;
     PageWithBackButton * pageWithBackButton;
     TextBrowserTweaked1 * childTextBrowser;
+
+    widgetlockregistry widgetlocks;
 
     i2p::qt::Controller* i2pController;
 
@@ -418,14 +442,15 @@ protected:
     QString getStatusPageHtml(bool showHiddenInfo);
 
     QList<MainWindowItem*> configItems;
-    NonGUIOptionItem* logOption;
     NonGUIOptionItem* daemonOption;
     NonGUIOptionItem* serviceOption;
+    //LogDestinationComboBoxItem* logOption;
     FileChooserItem* logFileNameOption;
 
     FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton);
     void initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton);
     //void initCombobox(ConfigOption option, QComboBox* comboBox);
+    void initLogDestinationCombobox(ConfigOption option, QComboBox* comboBox);
     void initLogLevelCombobox(ConfigOption option, QComboBox* comboBox);
     void initSignatureTypeCombobox(ConfigOption option, QComboBox* comboBox);
     void initIPAddressBox(ConfigOption option, QLineEdit* addressLineEdit, QString fieldNameTranslated);
@@ -452,6 +477,8 @@ public slots:
 
     void anchorClickedHandler(const QUrl & link);
     void backClickedFromChild();
+
+    void logDestinationComboBoxValueChanged(const QString & text);
 
 private:
     QString datadir;
@@ -635,13 +662,17 @@ private:
                 {
                     // mandatory params
                     std::string dest;
-                    if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
+                    if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
                         dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
+                        std::cout << "had read tunnel dest: " << dest << std::endl;
+                    }
                     int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
+                    std::cout << "had read tunnel port: " << port << std::endl;
                     // optional params
                     std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
                     std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-                    int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+                    int destinationPort = section.second.get<int>(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+                    std::cout << "had read tunnel destinationPort: " << destinationPort << std::endl;
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
                     // I2CP
                     std::map<std::string, std::string> options;
