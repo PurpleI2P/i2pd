@@ -85,7 +85,7 @@ protected:
 
         ctc->setaddress(addressLineEdit->text().toStdString());
 
-        auto dportStr=portLineEdit->text();
+        auto dportStr=destinationPortLineEdit->text();
         int dportInt=dportStr.toInt(&ok);
         if(!ok)return false;
         ctc->setdestinationPort(dportInt);

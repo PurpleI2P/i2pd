@@ -143,9 +143,15 @@ MainWindow::MainWindow(QWidget *parent) :
     initFileChooser(    OPTION("","tunconf",[](){return "";}), ui->tunnelsConfigFileLineEdit, ui->tunnelsConfigFileBrowsePushButton);
 
     initFileChooser(    OPTION("","pidfile",[]{return "";}), ui->pidFileLineEdit, ui->pidFileBrowsePushButton);
-    logOption=initNonGUIOption(   OPTION("","log",[]{return "";}));
     daemonOption=initNonGUIOption(   OPTION("","daemon",[]{return "";}));
     serviceOption=initNonGUIOption(   OPTION("","service",[]{return "";}));
+
+    ui->logDestinationComboBox->clear();
+    ui->logDestinationComboBox->insertItems(0, QStringList()
+     << QApplication::translate("MainWindow", "stdout", 0)
+     << QApplication::translate("MainWindow", "file", 0)
+    );
+    initLogDestinationCombobox(   OPTION("","log",[]{return "";}), ui->logDestinationComboBox);
 
     logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), ui->logFileLineEdit, ui->logFileBrowsePushButton);
     initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), ui->logLevelComboBox);
@@ -246,6 +252,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
     loadAllConfigs();
 
+    QObject::connect(ui->logDestinationComboBox, SIGNAL(currentIndexChanged(const QString &)),
+                     this, SLOT(logDestinationComboBoxValueChanged(const QString &)));
+    logDestinationComboBoxValueChanged(ui->logDestinationComboBox->currentText());
+
     //tunnelsFormGridLayoutWidget = new QWidget(ui->tunnelsScrollAreaWidgetContents);
     //tunnelsFormGridLayoutWidget->setObjectName(QStringLiteral("tunnelsFormGridLayoutWidget"));
     //tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, 451));
@@ -280,6 +290,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //QMetaObject::connectSlotsByName(this);
 }
+
+void MainWindow::logDestinationComboBoxValueChanged(const QString & text) {
+    bool stdout = text==QString("stdout");
+    ui->logFileLineEdit->setEnabled(!stdout);
+    ui->logFileBrowsePushButton->setEnabled(!stdout);
+}
+
 
 void MainWindow::updateRouterCommandsButtons() {
     bool acceptsTunnels = i2p::context.AcceptsTunnels ();
@@ -518,6 +535,9 @@ void MainWindow::initFolderChooser(ConfigOption option, QLineEdit* folderLineEdi
     configItems.append(new ComboBoxItem(option, comboBox));
     QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(saveAllConfigs()));
 }*/
+void MainWindow::initLogDestinationCombobox(ConfigOption option, QComboBox* comboBox){
+    configItems.append(new LogDestinationComboBoxItem(option, comboBox));
+}
 void MainWindow::initLogLevelCombobox(ConfigOption option, QComboBox* comboBox){
     configItems.append(new LogLevelComboBoxItem(option, comboBox));
 }
@@ -572,10 +592,7 @@ void MainWindow::loadAllConfigs(){
             LogPrint(eLogWarning, "Daemon: please rename i2p.conf to i2pd.conf here: ", config);
         } else {
             config = i2p::fs::DataDirPath("i2pd.conf");
-            if (!i2p::fs::Exists (config)) {
-                // use i2pd.conf only if exists
-                config = ""; /* reset */
-            }
+            /*if (!i2p::fs::Exists (config)) {}*/
         }
     }
 
@@ -605,8 +622,8 @@ void MainWindow::loadAllConfigs(){
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(){
     programOptionsWriterCurrentSection="";
-    if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
-    else logOption->optionValue=boost::any(std::string("stdout"));
+    /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
+    else logOption->optionValue=boost::any(std::string("stdout"));*/
     daemonOption->optionValue=boost::any(false);
     serviceOption->optionValue=boost::any(false);
 
@@ -623,9 +640,10 @@ bool MainWindow::saveAllConfigs(){
 
     using namespace std;
 
+
     QString backup=confpath+"~";
     if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
-    QFile::rename(confpath, backup);//TODO handle errors
+    if(QFile::exists(confpath)) QFile::rename(confpath, backup);//TODO handle errors
     ofstream outfile;
     outfile.open(confpath.toStdString());//TODO handle errors
     outfile << out.str().c_str();
@@ -740,7 +758,7 @@ void MainWindow::SaveTunnelsConfig() {
 
     QString backup=tunconfpath+"~";
     if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
-    QFile::rename(tunconfpath, backup);//TODO handle errors
+    if(QFile::exists(tunconfpath)) QFile::rename(tunconfpath, backup);//TODO handle errors
     ofstream outfile;
     outfile.open(tunconfpath.toStdString());//TODO handle errors
     outfile << out.str().c_str();

@@ -188,7 +188,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="statusPage">
         <property name="sizePolicy">
@@ -506,6 +506,16 @@
                      <property name="sizeConstraint">
                       <enum>QLayout::SetMaximumSize</enum>
                      </property>
+                     <item>
+                      <widget class="QLabel" name="label">
+                       <property name="text">
+                        <string>Destination:</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QComboBox" name="logDestinationComboBox"/>
+                     </item>
                      <item>
                       <widget class="QLabel" name="logFileLabel">
                        <property name="text">
@@ -3007,7 +3017,7 @@ Comma separated list of base64 identities:</string>
                    <item>
                     <widget class="QLabel" name="label_42">
                      <property name="text">
-                      <string>SIgnature type:</string>
+                      <string>Signature type:</string>
                      </property>
                     </widget>
                    </item>
