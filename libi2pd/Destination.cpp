@@ -868,7 +868,7 @@ namespace client
 		}
 		else
 		{
-			// call later if tunnel is not ready
+			// call if tunnel is not ready
 			AddReadyCallback([&](const boost::system::error_code & ec) {
 					if(ec)
 						streamRequestComplete(nullptr);
