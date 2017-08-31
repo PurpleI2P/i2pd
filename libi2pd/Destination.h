@@ -63,7 +63,7 @@ namespace client
 		public std::enable_shared_from_this<LeaseSetDestination>
 	{
 		typedef std::function<void (std::shared_ptr<i2p::data::LeaseSet> leaseSet)> RequestComplete;
-    typedef std::function<void (const boost::system::error_code &)> ReadyCallback;
+		typedef std::function<void (const boost::system::error_code &)> ReadyCallback;
 		// leaseSet = nullptr means not found
 		struct LeaseSetRequest
 		{
@@ -109,7 +109,7 @@ namespace client
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 			void SetLeaseSetUpdated ();
 
-    void AddReadyCallback(ReadyCallback cb);
+			void AddReadyCallback(ReadyCallback cb);
 
 		protected:
 
@@ -134,8 +134,8 @@ namespace client
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request);
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
-    void HandleCleanupTimer (const boost::system::error_code& ecode);
-    void HandleReadyCheckTimer (const boost::system::error_code& ecode);
+			void HandleCleanupTimer (const boost::system::error_code& ecode);
+			void HandleReadyCheckTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
 
 		private:
@@ -158,7 +158,7 @@ namespace client
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer,
 				m_PublishDelayTimer, m_CleanupTimer, m_ReadyCheckTimer;
 
-    std::vector<ReadyCallback> m_ReadyCallbacks;
+			std::vector<ReadyCallback> m_ReadyCallbacks;
 
 		public:
 
