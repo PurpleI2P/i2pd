@@ -13,20 +13,20 @@ namespace client
 		m_LocalDestination (localDestination ? localDestination :
 					i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE)), isUpdated (true)
 	{
-		m_LocalDestination->Acquire ();	
+		m_LocalDestination->Acquire ();
 	}
-	
+
 	I2PService::I2PService (i2p::data::SigningKeyType kt):
 		m_LocalDestination (i2p::client::context.CreateNewLocalDestination (false, kt)),
 		isUpdated (true)
 	{
 		m_LocalDestination->Acquire ();
 	}
-	
-	I2PService::~I2PService () 
-	{ 
-		ClearHandlers (); 
-		if (m_LocalDestination) m_LocalDestination->Release (); 
+
+	I2PService::~I2PService ()
+	{
+		ClearHandlers ();
+		if (m_LocalDestination) m_LocalDestination->Release ();
 	}
 
 	void I2PService::ClearHandlers ()
@@ -36,7 +36,7 @@ namespace client
 			it->Terminate ();
 		m_Handlers.clear();
 	}
-		
+
 	void I2PService::CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port) {
 		assert(streamRequestComplete);
 		i2p::data::IdentHash identHash;
@@ -60,7 +60,7 @@ namespace client
 	{
 		Terminate();
 	}
-	
+
 	void TCPIPPipe::Start()
 	{
 		AsyncReceiveUpstream();
@@ -84,7 +84,7 @@ namespace client
 		}
 		Done(shared_from_this());
 	}
-	
+
 	void TCPIPPipe::AsyncReceiveUpstream()
 	{
 		if (m_up) {
@@ -132,12 +132,12 @@ namespace client
 																				 shared_from_this(),
 																				 std::placeholders::_1)
 															 );
-		} else { 
+		} else {
 			LogPrint(eLogError, "TCPIPPipe: downstream write: no socket");
 		}
 	}
-	
-	
+
+
 	void TCPIPPipe::HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
 		LogPrint(eLogDebug, "TCPIPPipe: downstream: ", (int) bytes_transfered, " bytes received");
@@ -162,7 +162,7 @@ namespace client
 			AsyncReceiveUpstream();
 		}
 	}
-	
+
 	void TCPIPPipe::HandleUpstreamWrite(const boost::system::error_code & ecode) {
 		if (ecode) {
 			LogPrint(eLogError, "TCPIPPipe: upstream write error:" , ecode.message());
@@ -172,7 +172,7 @@ namespace client
 			AsyncReceiveDownstream();
 		}
 	}
-	
+
 	void TCPIPPipe::HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
 		LogPrint(eLogDebug, "TCPIPPipe: upstream ", (int)bytes_transfered, " bytes received");
@@ -187,7 +187,7 @@ namespace client
 			DownstreamWrite(bytes_transfered);
 		}
 	}
-	
+
 	void TCPIPAcceptor::Start ()
 	{
 		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
@@ -198,10 +198,10 @@ namespace client
 	void TCPIPAcceptor::Stop ()
 	{
 		if (m_Acceptor)
-		{	
+		{
 			m_Acceptor->close();
 			m_Acceptor.reset (nullptr);
-		}	
+		}
 		m_Timer.cancel ();
 		ClearHandlers();
 	}
@@ -219,19 +219,22 @@ namespace client
 		{
 			LogPrint(eLogDebug, "I2PService: ", GetName(), " accepted");
 			auto handler = CreateHandler(socket);
-			if (handler) 
+			if (handler)
 			{
 				AddHandler(handler);
 				handler->Handle();
-			} 
-			else 
+			}
+			else
 				socket->close();
 			Accept();
 		}
 		else
 		{
 			if (ecode != boost::asio::error::operation_aborted)
+			{
 				LogPrint (eLogError, "I2PService: ", GetName(), " closing socket on accept because: ", ecode.message ());
+				Accept();
+			}
 		}
 	}
 }
