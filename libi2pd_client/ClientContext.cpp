@@ -48,7 +48,7 @@ namespace client
 
 		std::shared_ptr<ClientDestination> localDestination;
 		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
-		if (httproxy) 
+		if (httproxy)
 		{
 			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
 			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
@@ -68,12 +68,12 @@ namespace client
 				else
 					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
 			}
-			try 
+			try
 			{
 			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
 			  m_HttpProxy->Start();
-			} 
-			catch (std::exception& e) 
+			}
+			catch (std::exception& e)
 			{
 			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
@@ -253,7 +253,7 @@ namespace client
 
 	void ClientContext::ReloadConfig ()
 	{
-		// TODO: handle config changes	
+		// TODO: handle config changes
 		/*std::string config; i2p::config::GetOption("conf", config);
 		i2p::config::ParseConfig(config);*/
 
@@ -269,7 +269,7 @@ namespace client
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		for (auto it = m_Destinations.begin (); it != m_Destinations.end ();)
 		{
-			auto dest = it->second;	
+			auto dest = it->second;
 			if (dest->GetRefCounter () > 0) ++it; // skip
 			else
 			{
@@ -551,6 +551,13 @@ namespace client
 							clientTunnel = new I2PClientTunnel (name, dest, address, port, localDestination, destinationPort);
 							clientEndpoint = ((I2PClientTunnel*)clientTunnel)->GetLocalEndpoint ();
 						}
+						uint32_t timeout = section.second.get<uint32_t>(I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT, 0);
+						if(timeout)
+						{
+							clientTunnel->SetConnectTimeout(timeout);
+							LogPrint(eLogInfo, "Clients: I2P Client tunnel connect timeout set to ", timeout);
+						}
+
 						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel)));
 						if (ins.second)
 						{
@@ -657,7 +664,7 @@ namespace client
 					}
 					auto ins = m_ServerTunnels.insert (std::make_pair (
 							std::make_pair (localDestination->GetIdentHash (), inPort),
-					        std::unique_ptr<I2PServerTunnel>(serverTunnel))); 
+					        std::unique_ptr<I2PServerTunnel>(serverTunnel)));
 					if (ins.second)
 					{
 						serverTunnel->Start ();
@@ -715,8 +722,8 @@ namespace client
 				it = c.erase (it);
 			}
 			else
-				it++;	
-		}	
+				it++;
+		}
 	}
 
 	template<typename Visitor>
