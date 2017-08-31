@@ -63,6 +63,7 @@ namespace client
 		public std::enable_shared_from_this<LeaseSetDestination>
 	{
 		typedef std::function<void (std::shared_ptr<i2p::data::LeaseSet> leaseSet)> RequestComplete;
+    typedef std::function<void (const boost::system::error_code &)> ReadyCallback;
 		// leaseSet = nullptr means not found
 		struct LeaseSetRequest
 		{
@@ -108,6 +109,8 @@ namespace client
 			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
 			void SetLeaseSetUpdated ();
 
+    void AddReadyCallback(ReadyCallback cb);
+
 		protected:
 
 			void SetLeaseSet (i2p::data::LocalLeaseSet * newLeaseSet);
@@ -131,7 +134,8 @@ namespace client
 			void RequestLeaseSet (const i2p::data::IdentHash& dest, RequestComplete requestComplete);
 			bool SendLeaseSetRequest (const i2p::data::IdentHash& dest, std::shared_ptr<const i2p::data::RouterInfo>  nextFloodfill, std::shared_ptr<LeaseSetRequest> request);
 			void HandleRequestTimoutTimer (const boost::system::error_code& ecode, const i2p::data::IdentHash& dest);
-			void HandleCleanupTimer (const boost::system::error_code& ecode);
+    void HandleCleanupTimer (const boost::system::error_code& ecode);
+    void HandleReadyCheckTimer (const boost::system::error_code& ecode);
 			void CleanupRemoteLeaseSets ();
 
 		private:
@@ -152,7 +156,9 @@ namespace client
 			std::set<i2p::data::IdentHash> m_ExcludedFloodfills; // for publishing
 
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer,
-				m_PublishDelayTimer, m_CleanupTimer;
+				m_PublishDelayTimer, m_CleanupTimer, m_ReadyCheckTimer;
+
+    std::vector<ReadyCallback> m_ReadyCallbacks;
 
 		public:
 
@@ -182,9 +188,9 @@ namespace client
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
 
 			// ref counter
-			int Acquire () { return ++m_RefCounter; }; 
+			int Acquire () { return ++m_RefCounter; };
 			int Release () { return --m_RefCounter; };
-			int GetRefCounter () const { return m_RefCounter; }; 
+			int GetRefCounter () const { return m_RefCounter; };
 
 			// streaming
 			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional
