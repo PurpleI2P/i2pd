@@ -698,9 +698,6 @@ namespace client
 				}
 				m_ReadyCallbacks.clear();
 			}
-			m_ReadyCheckTimer.expires_from_now(boost::posix_time::seconds (1));
-			m_ReadyCheckTimer.async_wait(std::bind(&LeaseSetDestination::HandleReadyCheckTimer,
-																						 shared_from_this (), std::placeholders::_1));
 		}
 		else
 		{
@@ -733,7 +730,7 @@ namespace client
 		m_Keys (keys), m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
-		if (isPublic)
+		if (isPublic)	
 			PersistTemporaryKeys ();
 		else
 			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
