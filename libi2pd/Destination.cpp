@@ -869,11 +869,12 @@ namespace client
 		else
 		{
 			// call later if tunnel is not ready
-			AddReadyCallback([&](const boost::system::error_code & ec) {
+			auto s = GetSharedFromThis();
+			AddReadyCallback([s, streamRequestComplete, dest, port](const boost::system::error_code & ec) {
 					if(ec)
 						streamRequestComplete(nullptr);
 					else
-						CreateStream(streamRequestComplete, dest, port);
+						s->CreateStream(streamRequestComplete, dest, port);
 			});
 		}
 	}
