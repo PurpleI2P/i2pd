@@ -456,6 +456,7 @@ namespace proxy {
 
 	void HTTPReqHandler::HTTPConnect(const std::string & host, uint16_t port)
 	{
+		LogPrint(eLogDebug, "HTTPProxy: CONNECT ",host, ":", port);
 		std::string hostname(host);
 		if(str_rmatch(hostname, ".i2p"))
 			GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleHTTPConnectStreamRequestComplete,
@@ -468,22 +469,15 @@ namespace proxy {
 	{
 		if(stream)
 		{
-			m_ClientResponse.code = 101;
-			m_ClientResponse.status = "Switching Protocols";
+			m_ClientResponse.code = 200;
+			m_ClientResponse.status = "OK";
 			m_send_buf = m_ClientResponse.to_string();
-			boost::asio::async_write(*m_sock, boost::asio::buffer(m_send_buf), boost::asio::transfer_all(), [&] (const boost::system::error_code & ec, std::size_t transferred) {
-				if(ec)
-				{
-					LogPrint(eLogError, "HTTPProxy: failed to send reply: ", ec.message());
-				}
-				else
-				{
-					auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, stream);
-					GetOwner()->AddHandler(connection);
-					connection->I2PConnect();
-				}
-				Done(shared_from_this());
-			});
+			m_sock->send(boost::asio::buffer(m_send_buf));
+			auto connection = std::make_shared<i2p::client::I2PTunnelConnection>(GetOwner(), m_sock, stream);
+			GetOwner()->AddHandler(connection);
+			connection->I2PConnect();
+			m_sock = nullptr;
+			Terminate();
 		}
 		else
 		{
