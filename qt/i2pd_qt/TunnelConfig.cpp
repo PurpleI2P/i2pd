@@ -6,12 +6,19 @@ void TunnelConfig::saveHeaderToStringStream(std::stringstream& out) {
 }
 
 void TunnelConfig::saveI2CPParametersToStringStream(std::stringstream& out) {
-    out << "inbound.length=" << i2cpParameters.getInbound_length().toStdString() << "\n"
-        << "outbound.length=" << i2cpParameters.getOutbound_length().toStdString() << "\n"
-        << "inbound.quantity=" << i2cpParameters.getInbound_quantity().toStdString() << "\n"
-        << "outbound.quantity=" << i2cpParameters.getOutbound_quantity().toStdString() << "\n"
-        << "crypto.tagsToSend=" << i2cpParameters.getCrypto_tagsToSend().toStdString() << "\n"
-        << "explicitPeers=" << i2cpParameters.getExplicitPeers().toStdString() << "\n\n";
+    if (i2cpParameters.getInbound_length().toUShort() != 3)
+        out << "inbound.length=" << i2cpParameters.getInbound_length().toStdString() << "\n";
+    if (i2cpParameters.getOutbound_length().toUShort() != 3)
+        out << "outbound.length=" << i2cpParameters.getOutbound_length().toStdString() << "\n";
+    if (i2cpParameters.getInbound_quantity().toUShort() != 5)
+        out << "inbound.quantity=" << i2cpParameters.getInbound_quantity().toStdString() << "\n";
+    if (i2cpParameters.getOutbound_quantity().toUShort() != 5)
+        out << "outbound.quantity=" << i2cpParameters.getOutbound_quantity().toStdString() << "\n";
+    if (i2cpParameters.getCrypto_tagsToSend().toUShort() != 40)
+        out << "crypto.tagsToSend=" << i2cpParameters.getCrypto_tagsToSend().toStdString() << "\n";
+    if (!i2cpParameters.getExplicitPeers().isEmpty())
+        out << "explicitPeers=" << i2cpParameters.getExplicitPeers().toStdString() << "\n";
+    out << "\n";
 }
 
 void ClientTunnelConfig::saveToStringStream(std::stringstream& out) {
