@@ -102,9 +102,14 @@ namespace transport
 
 	void DHKeysPairSupplier::Return (std::shared_ptr<i2p::crypto::DHKeys> pair)
 	{
-		std::unique_lock<std::mutex>l(m_AcquiredMutex);
-		if ((int)m_Queue.size () < 2*m_QueueSize)
-			m_Queue.push (pair);
+		if (pair)
+		{
+			std::unique_lock<std::mutex>l(m_AcquiredMutex);
+			if ((int)m_Queue.size () < 2*m_QueueSize)
+				m_Queue.push (pair);
+		}
+		else
+			LogPrint(eLogError, "Transports: return null DHKeys");
 	}
 
 	Transports transports;

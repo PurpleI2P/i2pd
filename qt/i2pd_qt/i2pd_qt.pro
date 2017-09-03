@@ -89,7 +89,9 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../daemon/UnixDaemon.cpp \
     ../../daemon/UPnP.cpp \
     textbrowsertweaked1.cpp \
-    pagewithbackbutton.cpp
+    pagewithbackbutton.cpp \
+    widgetlock.cpp \
+    widgetlockregistry.cpp
 
 #qt creator does not handle this well
 #SOURCES += $$files(../../libi2pd/*.cpp)
@@ -170,7 +172,9 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/I2PControl.h \
     ../../daemon/UPnP.h \
     textbrowsertweaked1.h \
-    pagewithbackbutton.h
+    pagewithbackbutton.h \
+    widgetlock.h \
+    widgetlockregistry.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
@@ -180,7 +184,8 @@ INCLUDEPATH += .
 FORMS += mainwindow.ui \
     tunnelform.ui \
     statusbuttons.ui \
-    routercommandswidget.ui
+    routercommandswidget.ui \
+    generalsettingswidget.ui
 
 LIBS += -lz
 

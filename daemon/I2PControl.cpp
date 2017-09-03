@@ -512,10 +512,10 @@ namespace client
 	{
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
-			if (it != params.begin ()) results << ",";	
 			LogPrint (eLogDebug, "I2PControl: NetworkSetting request: ", it->first);
 			auto it1 = m_NetworkSettingHandlers.find (it->first);
 			if (it1 != m_NetworkSettingHandlers.end ()) {
+				if (it != params.begin ()) results << ",";
 				(this->*(it1->second))(it->second.data (), results);	
 			} else
 				LogPrint (eLogError, "I2PControl: NetworkSetting unknown request: ", it->first);
