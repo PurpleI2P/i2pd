@@ -5,6 +5,7 @@
 #include <string>
 
 #include "../../libi2pd_client/ClientContext.h"
+#include "../../libi2pd/Destination.h"
 #include "TunnelsPageUpdateListener.h"
 
 
