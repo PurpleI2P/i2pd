@@ -632,10 +632,6 @@ void MainWindow::loadAllConfigs(){
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(){
     QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
-    bool redVisible = ui->wrongInputLabel->isVisible();
-    ui->wrongInputLabel->setVisible(false);
-    if(redVisible)adjustSizesAccordingToWrongLabel();
-
     programOptionsWriterCurrentSection="";
     /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
     else logOption->optionValue=boost::any(std::string("stdout"));*/
@@ -684,15 +680,22 @@ void FolderChooserItem::pushButtonReleased() {
 }
 
 void BaseStringItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(updated()));
 }
 void ComboBoxItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(updated()));
 }
 void CheckBoxItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(checkBox, SIGNAL(stateChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(checkBox, SIGNAL(stateChanged(int)), mainWindow, SLOT(updated()));
 }
 
+void MainWindow::updated() {
+    ui->wrongInputLabel->setVisible(false);
+    adjustSizesAccordingToWrongLabel();
+
+    applyTunnelsUiToConfigs();
+    saveAllConfigs();
+}
 
 void MainWindowItem::installListeners(MainWindow *mainWindow) {}
 

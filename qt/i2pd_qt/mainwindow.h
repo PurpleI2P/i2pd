@@ -390,6 +390,7 @@ private:
     enum StatusPage {main_page, commands, local_destinations, leasesets, tunnels, transit_tunnels,
                      transports, i2p_tunnels, sam_sessions};
 private slots:
+    void updated();
 
     void handleQuitButton();
     void handleGracefulQuitButton();

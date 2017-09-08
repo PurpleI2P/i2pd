@@ -95,7 +95,6 @@ protected:
 public:
     //returns false when invalid data at UI
     virtual bool applyDataFromUIToTunnelConfig() {
-        hideWrongInputLabel();
         tunnelConfig->setName(nameLineEdit->text().toStdString());
         tunnelConfig->setType(readTunnelTypeComboboxData());
         I2CPParameters& i2cpParams=tunnelConfig->getI2cpParameters();
