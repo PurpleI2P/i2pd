@@ -2,8 +2,8 @@
 #include "ClientContext.h"
 #include "SignatureTypeComboboxFactory.h"
 
-ServerTunnelPane::ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf):
-    TunnelPane(tunnelsPageUpdateListener, tunconf) {}
+ServerTunnelPane::ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_):
+    TunnelPane(tunnelsPageUpdateListener, tunconf, wrongInputPane_, wrongInputLabel_) {}
 
 void ServerTunnelPane::setGroupBoxTitle(const QString & title) {
     serverTunnelNameGroupBox->setTitle(title);

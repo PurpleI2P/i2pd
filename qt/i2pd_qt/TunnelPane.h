@@ -28,16 +28,24 @@ class TunnelPane : public QObject {
     Q_OBJECT
 
 public:
-    TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunconf);
+    TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_);
     virtual ~TunnelPane(){}
 
     void deleteTunnelForm();
 
+    void hideWrongInputLabel() { wrongInputPane->setVisible(false); }
+    void highlightWrongInput(QString warningText, QWidget* controlWithWrongInput) {
+        wrongInputPane->setVisible(true);
+        wrongInputLabel->setText(warningText);
+        if(controlWithWrongInput)controlWithWrongInput->setFocus();
+    }
 
     virtual ServerTunnelPane* asServerTunnelPane()=0;
     virtual ClientTunnelPane* asClientTunnelPane()=0;
 
 protected:
+    QWidget * wrongInputPane;
+    QLabel* wrongInputLabel;
     TunnelConfig* tunnelConfig;
     widgetlockregistry widgetlocks;
     TunnelsPageUpdateListener* tunnelsPageUpdateListener;
@@ -87,6 +95,7 @@ protected:
 
     //returns false when invalid data at UI
     virtual bool applyDataFromUIToTunnelConfig() {
+        hideWrongInputLabel();
         tunnelConfig->setName(nameLineEdit->text().toStdString());
         tunnelConfig->setType(readTunnelTypeComboboxData());
         I2CPParameters& i2cpParams=tunnelConfig->getI2cpParameters();

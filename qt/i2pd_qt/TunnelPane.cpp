@@ -1,8 +1,10 @@
 #include "TunnelPane.h"
 #include "QMessageBox"
 
-TunnelPane::TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunnelConfig_):
+TunnelPane::TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunnelConfig_, QWidget* wrongInputPane_, QLabel* wrongInputLabel_):
     QObject(),
+    wrongInputPane(wrongInputPane_),
+    wrongInputLabel(wrongInputLabel_),
     tunnelConfig(tunnelConfig_),
     tunnelsPageUpdateListener(tunnelsPageUpdateListener_),
     gridLayoutWidget_2(nullptr) {}
