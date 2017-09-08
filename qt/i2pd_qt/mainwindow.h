@@ -387,10 +387,10 @@ public:
 //#endif
 
 private:
-
     enum StatusPage {main_page, commands, local_destinations, leasesets, tunnels, transit_tunnels,
                      transports, i2p_tunnels, sam_sessions};
 private slots:
+    void updated();
 
     void handleQuitButton();
     void handleGracefulQuitButton();
@@ -446,7 +446,10 @@ public:
     Ui::StatusButtonsForm* statusButtonsUI;
     Ui::routerCommandsWidget* routerCommandsUI;
     Ui::GeneralSettingsContentsForm* uiSettings;
+    void adjustSizesAccordingToWrongLabel();
+    bool applyTunnelsUiToConfigs();
 private:
+    int settingsTitleLabelNominalHeight;
     TextBrowserTweaked1 * textBrowser;
     QWidget * routerCommandsParent;
     PageWithBackButton * pageWithBackButton;

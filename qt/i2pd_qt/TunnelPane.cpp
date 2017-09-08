@@ -186,7 +186,8 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
 void TunnelPane::updated() {
     std::string oldName=tunnelConfig->getName();
     //validate and show red if invalid
-    if(!applyDataFromUIToTunnelConfig())return;
+    hideWrongInputLabel();
+    if(!mainWindow->applyTunnelsUiToConfigs())return;
     tunnelsPageUpdateListener->updated(oldName, tunnelConfig);
 }
 
@@ -199,6 +200,7 @@ void TunnelPane::deleteButtonReleased() {
     switch (ret) {
       case QMessageBox::Ok:
           // OK was clicked
+        hideWrongInputLabel();
         tunnelsPageUpdateListener->needsDeleting(tunnelConfig->getName());
         break;
       case QMessageBox::Cancel:
@@ -233,9 +235,15 @@ void TunnelPane::deleteTunnelForm() {
 void TunnelPane::highlightWrongInput(QString warningText, QWidget* controlWithWrongInput) {
     wrongInputPane->setVisible(true);
     wrongInputLabel->setText(warningText);
+    mainWindow->adjustSizesAccordingToWrongLabel();
     if(controlWithWrongInput){
         mainWindow->ui->tunnelsScrollArea->ensureWidgetVisible(controlWithWrongInput);
         controlWithWrongInput->setFocus();
     }
     mainWindow->showTunnelsPage();
+}
+
+void TunnelPane::hideWrongInputLabel() const {
+    wrongInputPane->setVisible(false);
+    mainWindow->adjustSizesAccordingToWrongLabel();
 }

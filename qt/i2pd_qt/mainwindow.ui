@@ -169,6 +169,9 @@
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_7">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMinAndMaxSize</enum>
+       </property>
        <item>
         <widget class="QLabel" name="wrongInputLabel">
          <property name="minimumSize">
@@ -606,7 +609,7 @@
        <item>
         <widget class="QStackedWidget" name="stackedWidget">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -624,11 +627,11 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="statusPage">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -670,7 +673,7 @@
          </widget>
          <widget class="QWidget" name="settingsPage">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -686,7 +689,7 @@
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_4">
             <property name="sizeConstraint">
-             <enum>QLayout::SetMaximumSize</enum>
+             <enum>QLayout::SetMinAndMaxSize</enum>
             </property>
             <item>
              <widget class="QLabel" name="settingsTitleLabel">
@@ -702,6 +705,12 @@
             </item>
             <item>
              <widget class="QScrollArea" name="settingsScrollArea">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="verticalScrollBarPolicy">
                <enum>Qt::ScrollBarAlwaysOn</enum>
               </property>
@@ -750,7 +759,7 @@
              <enum>QLayout::SetMinAndMaxSize</enum>
             </property>
             <item>
-             <widget class="QLabel" name="label_5">
+             <widget class="QLabel" name="tunnelsTitleLabel">
               <property name="font">
                <font>
                 <pointsize>15</pointsize>
@@ -869,7 +878,7 @@
          </widget>
          <widget class="QWidget" name="quitPage">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>

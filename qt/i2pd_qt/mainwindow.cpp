@@ -75,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
     int w = 683;
     int h = 3060;
     ui->settingsContents->setFixedSize(w, h);
+    ui->settingsContents->setGeometry(QRect(0,0,w,h));
 
     /*
     QPalette pal(palette());
@@ -86,8 +87,10 @@ MainWindow::MainWindow(QWidget *parent) :
     pal.setColor(QPalette::Background, Qt::red);
     ui->wrongInputLabel->setAutoFillBackground(true);
     ui->wrongInputLabel->setPalette(pal);
+    ui->wrongInputLabel->setMaximumHeight(ui->wrongInputLabel->sizeHint().height());
     ui->wrongInputLabel->setVisible(false);
 
+    settingsTitleLabelNominalHeight = ui->settingsTitleLabel->height();
 #ifndef ANDROID
     createActions();
     createTrayIcon();
@@ -629,8 +632,6 @@ void MainWindow::loadAllConfigs(){
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(){
     QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
-    ui->wrongInputLabel->setVisible(false);
-
     programOptionsWriterCurrentSection="";
     /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
     else logOption->optionValue=boost::any(std::string("stdout"));*/
@@ -679,15 +680,22 @@ void FolderChooserItem::pushButtonReleased() {
 }
 
 void BaseStringItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(updated()));
 }
 void ComboBoxItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(updated()));
 }
 void CheckBoxItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(checkBox, SIGNAL(stateChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(checkBox, SIGNAL(stateChanged(int)), mainWindow, SLOT(updated()));
 }
 
+void MainWindow::updated() {
+    ui->wrongInputLabel->setVisible(false);
+    adjustSizesAccordingToWrongLabel();
+
+    applyTunnelsUiToConfigs();
+    saveAllConfigs();
+}
 
 void MainWindowItem::installListeners(MainWindow *mainWindow) {}
 
@@ -749,6 +757,14 @@ void MainWindow::deleteTunnelForms() {
         throw "unknown TunnelPane subtype";
     }
     tunnelPanes.clear();
+}
+
+bool MainWindow::applyTunnelsUiToConfigs() {
+    for(std::list<TunnelPane*>::iterator it = tunnelPanes.begin(); it != tunnelPanes.end(); ++it) {
+        TunnelPane* tp = *it;
+        if(!tp->applyDataFromUIToTunnelConfig())return false;
+    }
+    return true;
 }
 
 void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
@@ -851,9 +867,40 @@ void MainWindow::backClickedFromChild() {
     showStatusPage(statusPage);
 }
 
+void MainWindow::adjustSizesAccordingToWrongLabel() {
+    if(ui->wrongInputLabel->isVisible()) {
+        int dh = ui->wrongInputLabel->height()+ui->verticalLayout_7->layout()->spacing();
+        ui->verticalLayout_7->invalidate();
+        ui->wrongInputLabel->adjustSize();
+        ui->stackedWidget->adjustSize();
+        ui->stackedWidget->setFixedHeight(531-dh);
+        ui->settingsPage->setFixedHeight(531-dh);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531-dh));
+        ui->stackedWidget->setFixedHeight(531-dh);
+        ui->settingsScrollArea->setFixedHeight(531-dh-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+        ui->settingsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+        ui->tunnelsScrollArea->setFixedHeight(531-dh-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
+        ui->tunnelsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+    }else{
+        ui->verticalLayout_7->invalidate();
+        ui->wrongInputLabel->adjustSize();
+        ui->stackedWidget->adjustSize();
+        ui->stackedWidget->setFixedHeight(531);
+        ui->settingsPage->setFixedHeight(531);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531));
+        ui->stackedWidget->setFixedHeight(531);
+        ui->settingsScrollArea->setFixedHeight(531-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+        ui->settingsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+        ui->tunnelsScrollArea->setFixedHeight(531-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
+        ui->tunnelsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+    }
+}
+
 void MainWindow::highlightWrongInput(QString warningText, QWidget* widgetToFocus) {
+    bool redVisible = ui->wrongInputLabel->isVisible();
     ui->wrongInputLabel->setVisible(true);
     ui->wrongInputLabel->setText(warningText);
+    if(!redVisible)adjustSizesAccordingToWrongLabel();
     if(widgetToFocus){ui->settingsScrollArea->ensureWidgetVisible(widgetToFocus);widgetToFocus->setFocus();}
     showSettingsPage();
 }

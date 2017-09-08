@@ -35,7 +35,7 @@ public:
 
     void deleteTunnelForm();
 
-    void hideWrongInputLabel() const { wrongInputPane->setVisible(false); }
+    void hideWrongInputLabel() const;
     void highlightWrongInput(QString warningText, QWidget* controlWithWrongInput);
 
     virtual ServerTunnelPane* asServerTunnelPane()=0;
@@ -95,7 +95,6 @@ protected:
 public:
     //returns false when invalid data at UI
     virtual bool applyDataFromUIToTunnelConfig() {
-        hideWrongInputLabel();
         tunnelConfig->setName(nameLineEdit->text().toStdString());
         tunnelConfig->setType(readTunnelTypeComboboxData());
         I2CPParameters& i2cpParams=tunnelConfig->getI2cpParameters();
