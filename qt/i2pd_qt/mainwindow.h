@@ -331,7 +331,7 @@ public:
 class UInt16StringItem : public BaseFormattedStringItem {
 public:
     UInt16StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 16-bit integer")) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 16-bit integer.")) {};
     virtual ~UInt16StringItem(){}
     virtual bool isValid(){
         auto str=lineEdit->text();
