@@ -31,6 +31,9 @@ public:
     TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunconf);
     virtual ~TunnelPane(){}
 
+    void deleteTunnelForm();
+
+
     virtual ServerTunnelPane* asServerTunnelPane()=0;
     virtual ClientTunnelPane* asClientTunnelPane()=0;
 

@@ -218,3 +218,7 @@ QString TunnelPane::readTunnelTypeComboboxData() {
 i2p::data::SigningKeyType TunnelPane::readSigTypeComboboxUI(QComboBox* sigTypeComboBox) {
     return (i2p::data::SigningKeyType) sigTypeComboBox->currentData().toInt();
 }
+
+void TunnelPane::deleteTunnelForm() {
+    widgetlocks.deleteListeners();
+}

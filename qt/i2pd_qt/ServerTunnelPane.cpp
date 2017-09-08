@@ -266,6 +266,7 @@ int ServerTunnelPane::appendServerTunnelForm(
 }
 
 void ServerTunnelPane::deleteServerTunnelForm() {
+    TunnelPane::deleteTunnelForm();
     delete serverTunnelNameGroupBox;//->deleteLater();
     serverTunnelNameGroupBox=nullptr;
 

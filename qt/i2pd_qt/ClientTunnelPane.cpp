@@ -11,6 +11,7 @@ void ClientTunnelPane::setGroupBoxTitle(const QString & title) {
 }
 
 void ClientTunnelPane::deleteClientTunnelForm() {
+    TunnelPane::deleteTunnelForm();
     delete clientTunnelNameGroupBox;
     clientTunnelNameGroupBox=nullptr;
 

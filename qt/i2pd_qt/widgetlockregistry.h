@@ -9,14 +9,18 @@ class widgetlockregistry {
 
 public:
     widgetlockregistry() : locks() {}
-    virtual ~widgetlockregistry() {
-        while(!locks.empty()) {
-            delete locks.back();
-            locks.pop_back();
-        }
-    }
+    virtual ~widgetlockregistry() {}
     void add(widgetlock* lock) {
         locks.push_back(lock);
+    }
+
+    void deleteListeners() {
+        while(!locks.empty()) {
+            widgetlock* lock = locks.back();
+            lock->deleteListener();
+            delete lock;
+            locks.pop_back();
+        }
     }
 };
 

@@ -12,6 +12,7 @@ class widgetlock : public QObject {
 private:
     QWidget* widget;
     QPushButton* lockButton;
+
 public slots:
     void lockButtonClicked(bool) {
         bool wasEnabled = widget->isEnabled();
@@ -25,7 +26,8 @@ public:
         lockButton->setText(lockButton->tr("Edit"));
         QObject::connect(lockButton,SIGNAL(clicked(bool)), this, SLOT(lockButtonClicked(bool)));
     }
-    virtual ~widgetlock() {
+    virtual ~widgetlock() {}
+    void deleteListener() {
         QObject::disconnect(lockButton,SIGNAL(clicked(bool)), this, SLOT(lockButtonClicked(bool)));
     }
 };
