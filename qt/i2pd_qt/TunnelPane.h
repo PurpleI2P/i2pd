@@ -35,7 +35,7 @@ public:
 
     void deleteTunnelForm();
 
-    void hideWrongInputLabel() const { wrongInputPane->setVisible(false); }
+    void hideWrongInputLabel() const;
     void highlightWrongInput(QString warningText, QWidget* controlWithWrongInput);
 
     virtual ServerTunnelPane* asServerTunnelPane()=0;

@@ -75,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
     int w = 683;
     int h = 3060;
     ui->settingsContents->setFixedSize(w, h);
+    ui->settingsContents->setGeometry(QRect(0,0,w,h));
 
     /*
     QPalette pal(palette());
@@ -86,8 +87,10 @@ MainWindow::MainWindow(QWidget *parent) :
     pal.setColor(QPalette::Background, Qt::red);
     ui->wrongInputLabel->setAutoFillBackground(true);
     ui->wrongInputLabel->setPalette(pal);
+    ui->wrongInputLabel->setMaximumHeight(ui->wrongInputLabel->sizeHint().height());
     ui->wrongInputLabel->setVisible(false);
 
+    settingsTitleLabelNominalHeight = ui->settingsTitleLabel->height();
 #ifndef ANDROID
     createActions();
     createTrayIcon();
@@ -629,7 +632,9 @@ void MainWindow::loadAllConfigs(){
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(){
     QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
+    bool redVisible = ui->wrongInputLabel->isVisible();
     ui->wrongInputLabel->setVisible(false);
+    if(redVisible)adjustSizesAccordingToWrongLabel();
 
     programOptionsWriterCurrentSection="";
     /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
@@ -851,9 +856,34 @@ void MainWindow::backClickedFromChild() {
     showStatusPage(statusPage);
 }
 
+void MainWindow::adjustSizesAccordingToWrongLabel() {
+    if(ui->wrongInputLabel->isVisible()) {
+        int dh = ui->wrongInputLabel->height()+ui->verticalLayout_7->layout()->spacing();
+        ui->verticalLayout_7->invalidate();
+        ui->wrongInputLabel->adjustSize();
+        ui->stackedWidget->adjustSize();
+        ui->stackedWidget->setFixedHeight(531-dh);
+        ui->settingsPage->setFixedHeight(531-dh);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531-dh));
+        ui->stackedWidget->setFixedHeight(531-dh);
+        ui->settingsScrollArea->setFixedHeight(531-dh-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+    }else{
+        ui->verticalLayout_7->invalidate();
+        ui->wrongInputLabel->adjustSize();
+        ui->stackedWidget->adjustSize();
+        ui->stackedWidget->setFixedHeight(531);
+        ui->settingsPage->setFixedHeight(531);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531));
+        ui->stackedWidget->setFixedHeight(531);
+        ui->settingsScrollArea->setFixedHeight(531-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+    }
+}
+
 void MainWindow::highlightWrongInput(QString warningText, QWidget* widgetToFocus) {
+    bool redVisible = ui->wrongInputLabel->isVisible();
     ui->wrongInputLabel->setVisible(true);
     ui->wrongInputLabel->setText(warningText);
+    if(!redVisible)adjustSizesAccordingToWrongLabel();
     if(widgetToFocus){ui->settingsScrollArea->ensureWidgetVisible(widgetToFocus);widgetToFocus->setFocus();}
     showSettingsPage();
 }

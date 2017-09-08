@@ -231,11 +231,20 @@ void TunnelPane::deleteTunnelForm() {
 }
 
 void TunnelPane::highlightWrongInput(QString warningText, QWidget* controlWithWrongInput) {
+    bool redVisible = wrongInputPane->isVisible();
     wrongInputPane->setVisible(true);
     wrongInputLabel->setText(warningText);
+    if(!redVisible)mainWindow->adjustSizesAccordingToWrongLabel();
     if(controlWithWrongInput){
         mainWindow->ui->tunnelsScrollArea->ensureWidgetVisible(controlWithWrongInput);
         controlWithWrongInput->setFocus();
     }
     mainWindow->showTunnelsPage();
+}
+
+void TunnelPane::hideWrongInputLabel() const {
+    bool redVisible = wrongInputPane->isVisible();
+    wrongInputPane->setVisible(false);
+    if(redVisible)mainWindow->adjustSizesAccordingToWrongLabel();
+
 }
