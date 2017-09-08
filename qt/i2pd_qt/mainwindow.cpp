@@ -756,6 +756,14 @@ void MainWindow::deleteTunnelForms() {
     tunnelPanes.clear();
 }
 
+bool MainWindow::applyTunnelsUiToConfigs() {
+    for(std::list<TunnelPane*>::iterator it = tunnelPanes.begin(); it != tunnelPanes.end(); ++it) {
+        TunnelPane* tp = *it;
+        if(!tp->applyDataFromUIToTunnelConfig())return false;
+    }
+    return true;
+}
+
 void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
     deleteTunnelForms();
     for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {

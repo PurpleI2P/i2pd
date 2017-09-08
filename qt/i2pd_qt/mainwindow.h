@@ -446,6 +446,7 @@ public:
     Ui::routerCommandsWidget* routerCommandsUI;
     Ui::GeneralSettingsContentsForm* uiSettings;
     void adjustSizesAccordingToWrongLabel();
+    bool applyTunnelsUiToConfigs();
 private:
     int settingsTitleLabelNominalHeight;
     TextBrowserTweaked1 * textBrowser;

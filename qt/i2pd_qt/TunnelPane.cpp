@@ -186,7 +186,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
 void TunnelPane::updated() {
     std::string oldName=tunnelConfig->getName();
     //validate and show red if invalid
-    if(!applyDataFromUIToTunnelConfig())return;
+    if(!mainWindow->applyTunnelsUiToConfigs())return;
     tunnelsPageUpdateListener->updated(oldName, tunnelConfig);
 }
 
