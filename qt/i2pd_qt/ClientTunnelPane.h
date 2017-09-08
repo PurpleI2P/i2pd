@@ -14,7 +14,7 @@ class TunnelPane;
 class ClientTunnelPane : public TunnelPane {
     Q_OBJECT
 public:
-    ClientTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ClientTunnelConfig* tunconf);
+    ClientTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ClientTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow);
     virtual ~ClientTunnelPane(){}
     virtual ServerTunnelPane* asServerTunnelPane();
     virtual ClientTunnelPane* asClientTunnelPane();
@@ -68,6 +68,7 @@ private:
     }
 protected:
     virtual bool applyDataFromUIToTunnelConfig() {
+        QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
         bool ok=TunnelPane::applyDataFromUIToTunnelConfig();
         if(!ok)return false;
         ClientTunnelConfig* ctc=tunnelConfig->asClientTunnelConfig();
@@ -78,7 +79,11 @@ protected:
 
         auto portStr=portLineEdit->text();
         int portInt=portStr.toInt(&ok);
-        if(!ok)return false;
+
+        if(!ok){
+            highlightWrongInput(QApplication::tr("Bad port, must be int.")+" "+cannotSaveSettings,portLineEdit);
+            return false;
+        }
         ctc->setport(portInt);
 
         ctc->setkeys(keysLineEdit->text().toStdString());
@@ -87,7 +92,10 @@ protected:
 
         auto dportStr=destinationPortLineEdit->text();
         int dportInt=dportStr.toInt(&ok);
-        if(!ok)return false;
+        if(!ok){
+            highlightWrongInput(QApplication::tr("Bad destinationPort, must be int.")+" "+cannotSaveSettings,destinationPortLineEdit);
+            return false;
+        }
         ctc->setdestinationPort(dportInt);
 
         ctc->setsigType(readSigTypeComboboxUI(sigTypeComboBox));

@@ -1,9 +1,6 @@
 #ifndef SERVERTUNNELPANE_H
 #define SERVERTUNNELPANE_H
 
-#include "TunnelPane.h"
-#include "TunnelsPageUpdateListener.h"
-
 #include <QtCore/QVariant>
 #include <QtWidgets/QAction>
 #include <QtWidgets/QApplication>
@@ -23,6 +20,9 @@
 
 #include "assert.h"
 
+#include "TunnelPane.h"
+#include "TunnelsPageUpdateListener.h"
+
 class ServerTunnelConfig;
 
 class ClientTunnelPane;
@@ -31,7 +31,7 @@ class ServerTunnelPane : public TunnelPane {
     Q_OBJECT
 
 public:
-    ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf);
+    ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow);
     virtual ~ServerTunnelPane(){}
 
     virtual ServerTunnelPane* asServerTunnelPane();
@@ -119,6 +119,7 @@ private:
 
 protected:
     virtual bool applyDataFromUIToTunnelConfig() {
+        QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
         bool ok=TunnelPane::applyDataFromUIToTunnelConfig();
         if(!ok)return false;
         ServerTunnelConfig* stc=tunnelConfig->asServerTunnelConfig();
@@ -127,14 +128,20 @@ protected:
 
         auto portStr=portLineEdit->text();
         int portInt=portStr.toInt(&ok);
-        if(!ok)return false;
+        if(!ok){
+            highlightWrongInput(QApplication::tr("Bad port, must be int.")+" "+cannotSaveSettings,portLineEdit);
+            return false;
+        }
         stc->setport(portInt);
 
         stc->setkeys(keysLineEdit->text().toStdString());
 
         auto str=inPortLineEdit->text();
         int inPortInt=str.toInt(&ok);
-        if(!ok)return false;
+        if(!ok){
+            highlightWrongInput(QApplication::tr("Bad inPort, must be int.")+" "+cannotSaveSettings,inPortLineEdit);
+            return false;
+        }
         stc->setinPort(inPortInt);
 
         stc->setaccessList(accessListLineEdit->text().toStdString());
@@ -147,7 +154,10 @@ protected:
 
         auto mcStr=maxConnsLineEdit->text();
         uint32_t mcInt=(uint32_t)mcStr.toInt(&ok);
-        if(!ok)return false;
+        if(!ok){
+            highlightWrongInput(QApplication::tr("Bad maxConns, must be int.")+" "+cannotSaveSettings,maxConnsLineEdit);
+            return false;
+        }
         stc->setmaxConns(mcInt);
 
         stc->setgzip(gzipCheckBox->isChecked());

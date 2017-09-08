@@ -93,8 +93,13 @@ class MainWindow;
 class MainWindowItem : public QObject {
     Q_OBJECT
     ConfigOption option;
+    QWidget* widgetToFocus;
+    QString requirementToBeValid;
 public:
-    MainWindowItem(ConfigOption option_) : option(option_) {}
+    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) : option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
+    QWidget* getWidgetToFocus(){return widgetToFocus;}
+    QString& getRequirementToBeValid() { return requirementToBeValid; }
+    ConfigOption& getConfigOption() { return option; }
     boost::any optionValue;
     virtual ~MainWindowItem(){}
     virtual void installListeners(MainWindow *mainWindow);
@@ -145,7 +150,7 @@ public:
 };
 class NonGUIOptionItem : public MainWindowItem {
 public:
-    NonGUIOptionItem(ConfigOption option_) : MainWindowItem(option_) {};
+    NonGUIOptionItem(ConfigOption option_) : MainWindowItem(option_, nullptr, QString()) {};
     virtual ~NonGUIOptionItem(){}
     virtual bool isValid() { return true; }
 };
@@ -153,7 +158,7 @@ class BaseStringItem : public MainWindowItem {
     Q_OBJECT
 public:
     QLineEdit* lineEdit;
-    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_) : MainWindowItem(option_), lineEdit(lineEdit_){};
+    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_) : MainWindowItem(option_, lineEdit_, requirementToBeValid_), lineEdit(lineEdit_){};
     virtual ~BaseStringItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual QString toString(){
@@ -175,7 +180,7 @@ class FileOrFolderChooserItem : public BaseStringItem {
 public:
     QPushButton* browsePushButton;
     FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_) :
-        BaseStringItem(option_, lineEdit_), browsePushButton(browsePushButton_) {}
+        BaseStringItem(option_, lineEdit_, QString()), browsePushButton(browsePushButton_) {}
     virtual ~FileOrFolderChooserItem(){}
 };
 class FileChooserItem : public FileOrFolderChooserItem {
@@ -201,7 +206,7 @@ public:
 class ComboBoxItem : public MainWindowItem {
 public:
     QComboBox* comboBox;
-    ComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : MainWindowItem(option_), comboBox(comboBox_){};
+    ComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : MainWindowItem(option_,comboBox_,QString()), comboBox(comboBox_){};
     virtual ~ComboBoxItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption()=0;
@@ -260,7 +265,7 @@ public:
 class CheckBoxItem : public MainWindowItem {
 public:
     QCheckBox* checkBox;
-    CheckBoxItem(ConfigOption option_, QCheckBox* checkBox_) : MainWindowItem(option_), checkBox(checkBox_){};
+    CheckBoxItem(ConfigOption option_, QCheckBox* checkBox_) : MainWindowItem(option_,checkBox_,QString()), checkBox(checkBox_){};
     virtual ~CheckBoxItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption(){
@@ -276,58 +281,77 @@ public:
 class BaseFormattedStringItem : public BaseStringItem {
 public:
     QString fieldNameTranslated;
-    BaseFormattedStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseStringItem(option_, lineEdit_), fieldNameTranslated(fieldNameTranslated_) {};
+    BaseFormattedStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, QString requirementToBeValid_) :
+        BaseStringItem(option_, lineEdit_, requirementToBeValid_), fieldNameTranslated(fieldNameTranslated_) {};
     virtual ~BaseFormattedStringItem(){}
     virtual bool isValid()=0;
 };
 class IntegerStringItem : public BaseFormattedStringItem {
 public:
     IntegerStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be a valid integer.")) {};
     virtual ~IntegerStringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toInt(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<int>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any(std::stoi(s.toStdString()));}
 };
 class UShortStringItem : public BaseFormattedStringItem {
 public:
     UShortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned short integer.")) {};
     virtual ~UShortStringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toUShort(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<unsigned short>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any((unsigned short)std::stoi(s.toStdString()));}
 };
 class UInt32StringItem : public BaseFormattedStringItem {
 public:
     UInt32StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 32-bit integer.")) {};
     virtual ~UInt32StringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toUInt(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<uint32_t>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any((uint32_t)std::stoi(s.toStdString()));}
 };
 class UInt16StringItem : public BaseFormattedStringItem {
 public:
     UInt16StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 16-bit integer.")) {};
     virtual ~UInt16StringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toUShort(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<uint16_t>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any((uint16_t)std::stoi(s.toStdString()));}
 };
 class IPAddressStringItem : public BaseFormattedStringItem {
 public:
     IPAddressStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
-    virtual bool isValid(){return true;}
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be an IPv4 address")) {};
+    virtual bool isValid(){return true;}//todo
 };
 class TCPPortStringItem : public UShortStringItem {
 public:
     TCPPortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
         UShortStringItem(option_, lineEdit_, fieldNameTranslated_) {};
-    virtual bool isValid(){return true;}
 };
 
 namespace Ui {
@@ -353,6 +377,8 @@ public:
     ~MainWindow();
 
     void setI2PController(i2p::qt::Controller* controller_);
+
+    void highlightWrongInput(QString warningText, QWidget* widgetToFocus);
 
     //typedef std::function<QString ()> DefaultValueGetter;
 
@@ -385,7 +411,7 @@ private slots:
     void runPeerTest();
     void enableTransit();
     void disableTransit();
-
+public slots:
     void showStatus_local_destinations_Page();
     void showStatus_leasesets_Page();
     void showStatus_tunnels_Page();
@@ -546,9 +572,9 @@ private:
             TunnelConfig* tc=it->second;
             tunnelConfigs.erase(it);
             delete tc;
-            SaveTunnelsConfig();
-            reloadTunnelsConfigAndUI("");
         }
+        saveAllConfigs();
+        reloadTunnelsConfigAndUI("");
     }
 
     std::string GenerateNewTunnelName() {
@@ -583,7 +609,7 @@ private:
                                                       destinationPort,
                                                       sigType);
 
-        SaveTunnelsConfig();
+        saveAllConfigs();
         reloadTunnelsConfigAndUI(name);
     }
 
@@ -622,7 +648,7 @@ private:
                                                   isUniqueLocal);
 
 
-        SaveTunnelsConfig();
+        saveAllConfigs();
         reloadTunnelsConfigAndUI(name);
     }
 

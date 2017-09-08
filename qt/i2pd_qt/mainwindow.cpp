@@ -82,6 +82,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->settingsContents->setAutoFillBackground(true);
     ui->settingsContents->setPalette(pal);
     */
+    QPalette pal(palette());
+    pal.setColor(QPalette::Background, Qt::red);
+    ui->wrongInputLabel->setAutoFillBackground(true);
+    ui->wrongInputLabel->setPalette(pal);
+    ui->wrongInputLabel->setVisible(false);
 
 #ifndef ANDROID
     createActions();
@@ -565,7 +570,7 @@ void MainWindow::initUInt16Box(ConfigOption option, QLineEdit* numberLineEdit, Q
     configItems.append(new UInt16StringItem(option, numberLineEdit, fieldNameTranslated));
 }
 void MainWindow::initStringBox(ConfigOption option, QLineEdit* lineEdit){
-    configItems.append(new BaseStringItem(option, lineEdit));
+    configItems.append(new BaseStringItem(option, lineEdit, QString()));
 }
 NonGUIOptionItem* MainWindow::initNonGUIOption(ConfigOption option) {
     NonGUIOptionItem * retValue;
@@ -623,6 +628,9 @@ void MainWindow::loadAllConfigs(){
 }
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(){
+    QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
+    ui->wrongInputLabel->setVisible(false);
+
     programOptionsWriterCurrentSection="";
     /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
     else logOption->optionValue=boost::any(std::string("stdout"));*/
@@ -632,7 +640,10 @@ bool MainWindow::saveAllConfigs(){
     std::stringstream out;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
-        if(!item->isValid()) return false;
+        if(!item->isValid()){
+            highlightWrongInput(QApplication::tr("Invalid value for")+" "+item->getConfigOption().section+"::"+item->getConfigOption().option+". "+item->getRequirementToBeValid()+" "+cannotSaveSettings, item->getWidgetToFocus());
+            return false;
+        }
     }
 
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
@@ -688,27 +699,33 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
         TunnelConfig* tunconf = it->second;
         ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
         if(stc){
-            ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc);
+            ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc, ui->wrongInputLabel, ui->wrongInputLabel, this);
             int h=tunnelPane->appendServerTunnelForm(stc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
-            qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
+            //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
-            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
+            if(name==tunnelNameToFocus){
+                tunnelPane->getNameLineEdit()->setFocus();
+                //todo ui->settingsScrollArea->###scroll
+            }
             continue;
         }
         ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
         if(ctc){
-            ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc);
+            ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc, ui->wrongInputLabel, ui->wrongInputLabel, this);
             int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
-            qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
+            //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
-            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
+            if(name==tunnelNameToFocus){
+                tunnelPane->getNameLineEdit()->setFocus();
+                //todo ui->settingsScrollArea->###scroll
+            }
             continue;
         }
         throw "unknown TunnelConfig subtype";
     }
-    qDebug() << "tun.setting height:" << height;
+    //qDebug() << "tun.setting height:" << height;
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, height));
     QList<QWidget*> childWidgets = ui->tunnelsScrollAreaWidgetContents->findChildren<QWidget*>();
     foreach(QWidget* widget, childWidgets)
@@ -748,6 +765,15 @@ void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
 void MainWindow::SaveTunnelsConfig() {
     std::stringstream out;
 
+    //validate and show red if wrong
+    for (std::list<TunnelPane*>::iterator it=tunnelPanes.begin(); it!=tunnelPanes.end(); ++it) {
+        TunnelPane* tunpane = *it;
+        if(!tunpane->applyDataFromUIToTunnelConfig()) {
+            //!valid
+            return;
+        }
+    }
+
     for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
         const std::string& name = it->first;
         TunnelConfig* tunconf = it->second;
@@ -777,7 +803,7 @@ void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::updated(std::string ol
         if(it!=mainWindow->tunnelConfigs.end())mainWindow->tunnelConfigs.erase(it);
         mainWindow->tunnelConfigs[tunConf->getName()]=tunConf;
     }
-    mainWindow->SaveTunnelsConfig();
+    mainWindow->saveAllConfigs();
 }
 
 void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::needsDeleting(std::string oldName){
@@ -832,4 +858,11 @@ void MainWindow::anchorClickedHandler(const QUrl & link) {
 
 void MainWindow::backClickedFromChild() {
     showStatusPage(statusPage);
+}
+
+void MainWindow::highlightWrongInput(QString warningText, QWidget* widgetToFocus) {
+    ui->wrongInputLabel->setVisible(true);
+    ui->wrongInputLabel->setText(warningText);
+    if(widgetToFocus)widgetToFocus->setFocus();
+    showSettingsPage();
 }

@@ -23,18 +23,28 @@ class ClientTunnelPane;
 class TunnelConfig;
 class I2CPParameters;
 
+class MainWindow;
+
 class TunnelPane : public QObject {
 
     Q_OBJECT
 
 public:
-    TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunconf);
+    TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow_);
     virtual ~TunnelPane(){}
+
+    void deleteTunnelForm();
+
+    void hideWrongInputLabel() const { wrongInputPane->setVisible(false); }
+    void highlightWrongInput(QString warningText, QWidget* controlWithWrongInput);
 
     virtual ServerTunnelPane* asServerTunnelPane()=0;
     virtual ClientTunnelPane* asClientTunnelPane()=0;
 
 protected:
+    MainWindow* mainWindow;
+    QWidget * wrongInputPane;
+    QLabel* wrongInputLabel;
     TunnelConfig* tunnelConfig;
     widgetlockregistry widgetlocks;
     TunnelsPageUpdateListener* tunnelsPageUpdateListener;
@@ -82,8 +92,10 @@ protected:
     //should be created by factory
     i2p::data::SigningKeyType readSigTypeComboboxUI(QComboBox* sigTypeComboBox);
 
+public:
     //returns false when invalid data at UI
     virtual bool applyDataFromUIToTunnelConfig() {
+        hideWrongInputLabel();
         tunnelConfig->setName(nameLineEdit->text().toStdString());
         tunnelConfig->setType(readTunnelTypeComboboxData());
         I2CPParameters& i2cpParams=tunnelConfig->getI2cpParameters();
@@ -94,7 +106,7 @@ protected:
         i2cpParams.setCrypto_tagsToSend(crypto_tagsToSendLineEdit->text());
         return true;
     }
-
+protected:
     void setupTunnelPane(
             TunnelConfig* tunnelConfig,
             QGroupBox *tunnelGroupBox,

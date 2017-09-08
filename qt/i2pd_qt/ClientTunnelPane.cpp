@@ -3,14 +3,15 @@
 #include "SignatureTypeComboboxFactory.h"
 #include "QVBoxLayout"
 
-ClientTunnelPane::ClientTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ClientTunnelConfig* tunconf):
-    TunnelPane(tunnelsPageUpdateListener, tunconf) {}
+ClientTunnelPane::ClientTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ClientTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow):
+    TunnelPane(tunnelsPageUpdateListener, tunconf, wrongInputPane_, wrongInputLabel_, mainWindow) {}
 
 void ClientTunnelPane::setGroupBoxTitle(const QString & title) {
     clientTunnelNameGroupBox->setTitle(title);
 }
 
 void ClientTunnelPane::deleteClientTunnelForm() {
+    TunnelPane::deleteTunnelForm();
     delete clientTunnelNameGroupBox;
     clientTunnelNameGroupBox=nullptr;
 
