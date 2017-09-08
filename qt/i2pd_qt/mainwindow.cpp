@@ -706,7 +706,7 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
             tunnelPanes.push_back(tunnelPane);
             if(name==tunnelNameToFocus){
                 tunnelPane->getNameLineEdit()->setFocus();
-                //todo ui->settingsScrollArea->###scroll
+                ui->tunnelsScrollArea->ensureWidgetVisible(tunnelPane->getNameLineEdit());
             }
             continue;
         }
@@ -719,7 +719,7 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
             tunnelPanes.push_back(tunnelPane);
             if(name==tunnelNameToFocus){
                 tunnelPane->getNameLineEdit()->setFocus();
-                //todo ui->settingsScrollArea->###scroll
+                ui->tunnelsScrollArea->ensureWidgetVisible(tunnelPane->getNameLineEdit());
             }
             continue;
         }
@@ -764,15 +764,6 @@ void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
 
 void MainWindow::SaveTunnelsConfig() {
     std::stringstream out;
-
-    //validate and show red if wrong
-    for (std::list<TunnelPane*>::iterator it=tunnelPanes.begin(); it!=tunnelPanes.end(); ++it) {
-        TunnelPane* tunpane = *it;
-        if(!tunpane->applyDataFromUIToTunnelConfig()) {
-            //!valid
-            return;
-        }
-    }
 
     for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
         const std::string& name = it->first;
@@ -863,6 +854,6 @@ void MainWindow::backClickedFromChild() {
 void MainWindow::highlightWrongInput(QString warningText, QWidget* widgetToFocus) {
     ui->wrongInputLabel->setVisible(true);
     ui->wrongInputLabel->setText(warningText);
-    if(widgetToFocus)widgetToFocus->setFocus();
+    if(widgetToFocus){ui->settingsScrollArea->ensureWidgetVisible(widgetToFocus);widgetToFocus->setFocus();}
     showSettingsPage();
 }

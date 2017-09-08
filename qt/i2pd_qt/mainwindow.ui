@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>908</width>
-    <height>550</height>
+    <height>554</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -50,7 +50,7 @@
       <x>10</x>
       <y>10</y>
       <width>888</width>
-      <height>555</height>
+      <height>531</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -624,7 +624,7 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="statusPage">
           <property name="sizePolicy">

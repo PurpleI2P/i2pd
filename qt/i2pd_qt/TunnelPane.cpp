@@ -2,6 +2,7 @@
 
 #include "QMessageBox"
 #include "mainwindow.h"
+#include "ui_mainwindow.h"
 
 TunnelPane::TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunnelConfig_, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow_):
     QObject(),
@@ -184,6 +185,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
 
 void TunnelPane::updated() {
     std::string oldName=tunnelConfig->getName();
+    //validate and show red if invalid
     if(!applyDataFromUIToTunnelConfig())return;
     tunnelsPageUpdateListener->updated(oldName, tunnelConfig);
 }
@@ -231,6 +233,9 @@ void TunnelPane::deleteTunnelForm() {
 void TunnelPane::highlightWrongInput(QString warningText, QWidget* controlWithWrongInput) {
     wrongInputPane->setVisible(true);
     wrongInputLabel->setText(warningText);
-    if(controlWithWrongInput)controlWithWrongInput->setFocus();
+    if(controlWithWrongInput){
+        mainWindow->ui->tunnelsScrollArea->ensureWidgetVisible(controlWithWrongInput);
+        controlWithWrongInput->setFocus();
+    }
     mainWindow->showTunnelsPage();
 }

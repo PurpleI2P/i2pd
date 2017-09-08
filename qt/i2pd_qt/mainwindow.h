@@ -441,11 +441,12 @@ private:
     QMenu *trayIconMenu;
 #endif
 
+public:
     Ui::MainWindow* ui;
     Ui::StatusButtonsForm* statusButtonsUI;
     Ui::routerCommandsWidget* routerCommandsUI;
     Ui::GeneralSettingsContentsForm* uiSettings;
-
+private:
     TextBrowserTweaked1 * textBrowser;
     QWidget * routerCommandsParent;
     PageWithBackButton * pageWithBackButton;
