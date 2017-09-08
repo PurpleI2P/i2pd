@@ -1,9 +1,6 @@
 #ifndef SERVERTUNNELPANE_H
 #define SERVERTUNNELPANE_H
 
-#include "TunnelPane.h"
-#include "TunnelsPageUpdateListener.h"
-
 #include <QtCore/QVariant>
 #include <QtWidgets/QAction>
 #include <QtWidgets/QApplication>
@@ -23,6 +20,9 @@
 
 #include "assert.h"
 
+#include "TunnelPane.h"
+#include "TunnelsPageUpdateListener.h"
+
 class ServerTunnelConfig;
 
 class ClientTunnelPane;
@@ -31,7 +31,7 @@ class ServerTunnelPane : public TunnelPane {
     Q_OBJECT
 
 public:
-    ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_);
+    ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow);
     virtual ~ServerTunnelPane(){}
 
     virtual ServerTunnelPane* asServerTunnelPane();

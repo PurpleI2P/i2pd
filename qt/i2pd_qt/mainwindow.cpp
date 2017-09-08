@@ -699,22 +699,28 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
         TunnelConfig* tunconf = it->second;
         ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
         if(stc){
-            ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc, ui->wrongInputLabel, ui->wrongInputLabel);
+            ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc, ui->wrongInputLabel, ui->wrongInputLabel, this);
             int h=tunnelPane->appendServerTunnelForm(stc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
             //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
-            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
+            if(name==tunnelNameToFocus){
+                tunnelPane->getNameLineEdit()->setFocus();
+                //todo ui->settingsScrollArea->###scroll
+            }
             continue;
         }
         ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
         if(ctc){
-            ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc, ui->wrongInputLabel, ui->wrongInputLabel);
+            ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc, ui->wrongInputLabel, ui->wrongInputLabel, this);
             int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
             //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
-            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
+            if(name==tunnelNameToFocus){
+                tunnelPane->getNameLineEdit()->setFocus();
+                //todo ui->settingsScrollArea->###scroll
+            }
             continue;
         }
         throw "unknown TunnelConfig subtype";
@@ -759,6 +765,15 @@ void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
 void MainWindow::SaveTunnelsConfig() {
     std::stringstream out;
 
+    //validate and show red if wrong
+    for (std::list<TunnelPane*>::iterator it=tunnelPanes.begin(); it!=tunnelPanes.end(); ++it) {
+        TunnelPane* tunpane = *it;
+        if(!tunpane->applyDataFromUIToTunnelConfig()) {
+            //!valid
+            return;
+        }
+    }
+
     for (std::map<std::string,TunnelConfig*>::iterator it=tunnelConfigs.begin(); it!=tunnelConfigs.end(); ++it) {
         const std::string& name = it->first;
         TunnelConfig* tunconf = it->second;
@@ -788,7 +803,7 @@ void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::updated(std::string ol
         if(it!=mainWindow->tunnelConfigs.end())mainWindow->tunnelConfigs.erase(it);
         mainWindow->tunnelConfigs[tunConf->getName()]=tunConf;
     }
-    mainWindow->SaveTunnelsConfig();
+    mainWindow->saveAllConfigs();
 }
 
 void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::needsDeleting(std::string oldName){
@@ -849,4 +864,5 @@ void MainWindow::highlightWrongInput(QString warningText, QWidget* widgetToFocus
     ui->wrongInputLabel->setVisible(true);
     ui->wrongInputLabel->setText(warningText);
     if(widgetToFocus)widgetToFocus->setFocus();
+    showSettingsPage();
 }

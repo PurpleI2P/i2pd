@@ -1,8 +1,11 @@
 #include "TunnelPane.h"
-#include "QMessageBox"
 
-TunnelPane::TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunnelConfig_, QWidget* wrongInputPane_, QLabel* wrongInputLabel_):
+#include "QMessageBox"
+#include "mainwindow.h"
+
+TunnelPane::TunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener_, TunnelConfig* tunnelConfig_, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow_):
     QObject(),
+    mainWindow(mainWindow_),
     wrongInputPane(wrongInputPane_),
     wrongInputLabel(wrongInputLabel_),
     tunnelConfig(tunnelConfig_),
@@ -181,7 +184,7 @@ void TunnelPane::appendControlsForI2CPParameters(I2CPParameters& i2cpParameters,
 
 void TunnelPane::updated() {
     std::string oldName=tunnelConfig->getName();
-    if(!applyDataFromUIToTunnelConfig())return;//TODO visualise bad input
+    if(!applyDataFromUIToTunnelConfig())return;
     tunnelsPageUpdateListener->updated(oldName, tunnelConfig);
 }
 
@@ -223,4 +226,11 @@ i2p::data::SigningKeyType TunnelPane::readSigTypeComboboxUI(QComboBox* sigTypeCo
 
 void TunnelPane::deleteTunnelForm() {
     widgetlocks.deleteListeners();
+}
+
+void TunnelPane::highlightWrongInput(QString warningText, QWidget* controlWithWrongInput) {
+    wrongInputPane->setVisible(true);
+    wrongInputLabel->setText(warningText);
+    if(controlWithWrongInput)controlWithWrongInput->setFocus();
+    mainWindow->showTunnelsPage();
 }

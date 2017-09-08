@@ -411,7 +411,7 @@ private slots:
     void runPeerTest();
     void enableTransit();
     void disableTransit();
-
+public slots:
     void showStatus_local_destinations_Page();
     void showStatus_leasesets_Page();
     void showStatus_tunnels_Page();
@@ -572,9 +572,9 @@ private:
             TunnelConfig* tc=it->second;
             tunnelConfigs.erase(it);
             delete tc;
-            SaveTunnelsConfig();
-            reloadTunnelsConfigAndUI("");
         }
+        saveAllConfigs();
+        reloadTunnelsConfigAndUI("");
     }
 
     std::string GenerateNewTunnelName() {
@@ -609,7 +609,7 @@ private:
                                                       destinationPort,
                                                       sigType);
 
-        SaveTunnelsConfig();
+        saveAllConfigs();
         reloadTunnelsConfigAndUI(name);
     }
 
@@ -648,7 +648,7 @@ private:
                                                   isUniqueLocal);
 
 
-        SaveTunnelsConfig();
+        saveAllConfigs();
         reloadTunnelsConfigAndUI(name);
     }
 

@@ -624,7 +624,7 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="statusPage">
           <property name="sizePolicy">
@@ -719,8 +719,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>80</width>
-                 <height>26</height>
+                 <width>689</width>
+                 <height>496</height>
                 </rect>
                </property>
                <property name="sizePolicy">

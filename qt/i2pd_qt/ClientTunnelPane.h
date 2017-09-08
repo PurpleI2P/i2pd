@@ -14,7 +14,7 @@ class TunnelPane;
 class ClientTunnelPane : public TunnelPane {
     Q_OBJECT
 public:
-    ClientTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ClientTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_);
+    ClientTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ClientTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow);
     virtual ~ClientTunnelPane(){}
     virtual ServerTunnelPane* asServerTunnelPane();
     virtual ClientTunnelPane* asClientTunnelPane();
