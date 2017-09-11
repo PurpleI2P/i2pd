@@ -189,6 +189,24 @@ FORMS += mainwindow.ui \
 
 LIBS += -lz
 
+macx {
+	message("using mac os x target")
+	BREWROOT=/usr/local
+	BOOSTROOT=$$BREWROOT/opt/boost
+	SSLROOT=$$BREWROOT/opt/libressl
+	UPNPROOT=$$BREWROOT/opt/miniupnpc
+	INCLUDEPATH += $$BOOSTROOT/include
+	INCLUDEPATH += $$SSLROOT/include
+	INCLUDEPATH += $$UPNPROOT/include
+	LIBS += $$SSLROOT/lib/libcrypto.a
+	LIBS += $$SSLROOT/lib/libssl.a
+	LIBS += $$BOOSTROOT/lib/libboost_system.a
+	LIBS += $$BOOSTROOT/lib/libboost_date_time.a
+	LIBS += $$BOOSTROOT/lib/libboost_filesystem.a
+	LIBS += $$BOOSTROOT/lib/libboost_program_options.a
+	LIBS += $$UPNPROOT/lib/libminiupnpc.a
+}
+
 android {
 	message("Using Android settings")
         DEFINES += ANDROID=1
