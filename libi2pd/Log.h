@@ -58,6 +58,7 @@ namespace log {
 			char m_LastDateTime[64];
 			i2p::util::Queue<std::shared_ptr<LogMsg> > m_Queue;
 			bool m_HasColors;
+			std::string m_TimeFormat;
 			volatile bool m_IsRunning;
 			std::thread * m_Thread;
 

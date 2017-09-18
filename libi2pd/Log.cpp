@@ -7,6 +7,7 @@
 */
 
 #include "Log.h"
+#include "Config.h"
 
 namespace i2p {
 namespace log {
@@ -58,7 +59,7 @@ namespace log {
 
 	Log::Log():
 	m_Destination(eLogStdout), m_MinLevel(eLogInfo),
-	m_LogStream (nullptr), m_Logfile(""), m_HasColors(true),
+	m_LogStream (nullptr), m_Logfile(""), m_HasColors(true), m_TimeFormat("%H:%M:%S"),
 	m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
@@ -73,6 +74,8 @@ namespace log {
 		if (!m_IsRunning)
 		{	
 			m_IsRunning = true;	
+                        bool logclftime; i2p::config::GetOption("logclftime", logclftime);
+                        if (logclftime) m_TimeFormat = "[%d/%b/%Y:%H:%M:%S %z]";
 			m_Thread = new std::thread (std::bind (&Log::Run, this));
 		}
 	}
@@ -118,7 +121,7 @@ namespace log {
 	
 	const char * Log::TimeAsString(std::time_t t) {
 		if (t != m_LastTimestamp) {
-			strftime(m_LastDateTime, sizeof(m_LastDateTime), "%H:%M:%S", localtime(&t));
+			strftime(m_LastDateTime, sizeof(m_LastDateTime), m_TimeFormat.c_str(), localtime(&t));
 			m_LastTimestamp = t;
 		}
 		return m_LastDateTime;
