@@ -118,7 +118,7 @@ namespace log {
 	
 	const char * Log::TimeAsString(std::time_t t) {
 		if (t != m_LastTimestamp) {
-			strftime(m_LastDateTime, sizeof(m_LastDateTime), "%H:%M:%S", localtime(&t));
+			strftime(m_LastDateTime, sizeof(m_LastDateTime), "[%d/%b/%Y:%H:%M:%S %z]", localtime(&t));
 			m_LastTimestamp = t;
 		}
 		return m_LastDateTime;
