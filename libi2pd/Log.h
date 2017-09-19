@@ -108,6 +108,12 @@ namespace log {
 			 */
 			void SendTo (std::shared_ptr<std::ostream> os);
 
+			/**
+			 * @brief  Sets format for timestamps in log
+			 * @param  format  String with timestamp format
+			 */
+			void SetTimeFormat (std::string format) { m_TimeFormat = format; };
+
 	#ifndef _WIN32
 			/**
 			 * @brief Sets log destination to syslog

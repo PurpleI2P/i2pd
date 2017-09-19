@@ -7,7 +7,6 @@
 */
 
 #include "Log.h"
-#include "Config.h"
 
 namespace i2p {
 namespace log {
@@ -74,8 +73,6 @@ namespace log {
 		if (!m_IsRunning)
 		{	
 			m_IsRunning = true;	
-                        bool logclftime; i2p::config::GetOption("logclftime", logclftime);
-                        if (logclftime) m_TimeFormat = "[%d/%b/%Y:%H:%M:%S %z]";
 			m_Thread = new std::thread (std::bind (&Log::Run, this));
 		}
 	}
