@@ -58,6 +58,7 @@ namespace log {
 			char m_LastDateTime[64];
 			i2p::util::Queue<std::shared_ptr<LogMsg> > m_Queue;
 			bool m_HasColors;
+			std::string m_TimeFormat;
 			volatile bool m_IsRunning;
 			std::thread * m_Thread;
 
@@ -106,6 +107,12 @@ namespace log {
 			 * @param os  Output stream
 			 */
 			void SendTo (std::shared_ptr<std::ostream> os);
+
+			/**
+			 * @brief  Sets format for timestamps in log
+			 * @param  format  String with timestamp format
+			 */
+			void SetTimeFormat (std::string format) { m_TimeFormat = format; };
 
 	#ifndef _WIN32
 			/**

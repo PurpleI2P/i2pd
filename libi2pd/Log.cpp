@@ -58,7 +58,7 @@ namespace log {
 
 	Log::Log():
 	m_Destination(eLogStdout), m_MinLevel(eLogInfo),
-	m_LogStream (nullptr), m_Logfile(""), m_HasColors(true),
+	m_LogStream (nullptr), m_Logfile(""), m_HasColors(true), m_TimeFormat("%H:%M:%S"),
 	m_IsRunning (false), m_Thread (nullptr)
 	{
 	}
@@ -118,7 +118,7 @@ namespace log {
 	
 	const char * Log::TimeAsString(std::time_t t) {
 		if (t != m_LastTimestamp) {
-			strftime(m_LastDateTime, sizeof(m_LastDateTime), "%H:%M:%S", localtime(&t));
+			strftime(m_LastDateTime, sizeof(m_LastDateTime), m_TimeFormat.c_str(), localtime(&t));
 			m_LastTimestamp = t;
 		}
 		return m_LastDateTime;
