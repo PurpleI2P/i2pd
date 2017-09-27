@@ -353,6 +353,7 @@ namespace crypto
 					BN_mod_mul (x, x, I, q, ctx);
 				if (BN_is_odd (x))
 					BN_sub (x, q, x);
+				BN_CTX_end (ctx);
 				return x;
 			}
 
@@ -370,7 +371,7 @@ namespace crypto
 					buf1[0] &= 0x7f; // clear highest bit
 				BIGNUM * y = BN_new ();
 				BN_bin2bn (buf1, EDDSA25519_PUBLIC_KEY_LENGTH, y);
-				auto x = RecoverX (y, ctx);
+				BIGNUM * x = RecoverX (y, ctx);
 				if (BN_is_bit_set (x, 0) != isHighestBitSet)
 					BN_sub (x, q, x); // x = q - x 
 				BIGNUM * z = BN_new (), * t = BN_new (); 
