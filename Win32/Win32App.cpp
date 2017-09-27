@@ -9,6 +9,7 @@
 #include "Tunnel.h"
 #include "version.h"
 #include "resource.h"
+#include "Daemon.h"
 #include "Win32App.h"
 #include <stdio.h>
 
@@ -21,6 +22,8 @@
 #define ID_CONSOLE 2002
 #define ID_APP 2003
 #define ID_GRACEFUL_SHUTDOWN 2004
+#define ID_STOP_GRACEFUL_SHUTDOWN 2005
+#define ID_RELOAD 2006
 
 #define ID_TRAY_ICON 2050
 #define WM_TRAYICON (WM_USER + 1)
@@ -39,7 +42,11 @@ namespace win32
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_APP, "Show app");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_ABOUT, "&About...");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_SEPARATOR, 0, NULL);
-		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_GRACEFUL_SHUTDOWN, "&Graceful shutdown");
+		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_RELOAD, "&Reload configs");
+		if (!i2p::util::DaemonWin32::Instance ().isGraceful)
+			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_GRACEFUL_SHUTDOWN, "&Graceful shutdown");
+		else
+			InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_STOP_GRACEFUL_SHUTDOWN, "&Stop graceful shutdown");
 		InsertMenu (hPopup, -1, MF_BYPOSITION | MF_STRING, ID_EXIT, "E&xit");
 		SetMenuDefaultItem (hPopup, ID_CONSOLE, FALSE);
 		SendMessage (hWnd, WM_INITMENUPOPUP, (WPARAM)hPopup, 0);
@@ -68,7 +75,7 @@ namespace win32
 		nid.uCallbackMessage = WM_TRAYICON;
 		nid.hIcon = LoadIcon (GetModuleHandle(NULL), MAKEINTRESOURCE (MAINICON));
 		strcpy (nid.szTip, "i2pd");
-		strcpy (nid.szInfo, "i2pd is running");
+		strcpy (nid.szInfo, "i2pd is starting");
 		Shell_NotifyIcon(NIM_ADD, &nid );
 	}
 
@@ -120,6 +127,7 @@ namespace win32
 
 	static void PrintMainWindowText (std::stringstream& s)
 	{
+		s << "\n";
 		s << "Status: ";
 		switch (i2p::context.GetStatus())
 		{
@@ -153,6 +161,7 @@ namespace win32
 		s << "In: " << i2p::tunnel::tunnels.CountInboundTunnels() << "; ";
 		s << "Out: " << i2p::tunnel::tunnels.CountOutboundTunnels() << "; ";
 		s << "Transit: " << i2p::tunnel::tunnels.CountTransitTunnels() << "\n";
+		s << "\n";
 	}
 
 	static LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -192,6 +201,22 @@ namespace win32
 					{
 						i2p::context.SetAcceptsTunnels (false);
 						SetTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER, 10*60*1000, nullptr); // 10 minutes
+						i2p::util::DaemonWin32::Instance ().isGraceful = true;
+						return 0;
+					}
+					case ID_STOP_GRACEFUL_SHUTDOWN:
+					{
+						i2p::context.SetAcceptsTunnels (true);
+						KillTimer (hWnd, IDT_GRACEFUL_SHUTDOWN_TIMER);
+						i2p::util::DaemonWin32::Instance ().isGraceful = false;
+						return 0;
+					}
+					case ID_RELOAD:
+					{
+						i2p::client::context.ReloadConfig();
+						std::stringstream text;
+						text << "I2Pd reloading configs...";
+						MessageBox( hWnd, TEXT(text.str ().c_str ()), TEXT("i2pd"), MB_ICONINFORMATION | MB_OK );
 						return 0;
 					}
 					case ID_CONSOLE:
@@ -322,7 +347,7 @@ namespace win32
 		wclx.lpszClassName = I2PD_WIN32_CLASSNAME;
 		RegisterClassEx (&wclx);
 		// create new window
-		if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 350, 180, NULL, NULL, hInst, NULL))
+		if (!CreateWindow(I2PD_WIN32_CLASSNAME, TEXT("i2pd"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX, 100, 100, 350, 210, NULL, NULL, hInst, NULL))
 		{
 			MessageBox(NULL, "Failed to create main window", TEXT("Warning!"), MB_ICONERROR | MB_OK | MB_TOPMOST);
 			return false;
@@ -353,5 +378,14 @@ namespace win32
 		PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_GRACEFUL_SHUTDOWN, 0), 0);
 		return hWnd;
 	}
+
+	bool StopGracefulShutdown ()
+	{
+		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+		if (hWnd)
+		PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_STOP_GRACEFUL_SHUTDOWN, 0), 0);
+		return hWnd;
+	}
+
 }
 }

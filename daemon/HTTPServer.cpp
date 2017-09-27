@@ -58,9 +58,9 @@ namespace http {
 		"  .left  { float: left; position: absolute; }\r\n"
 		"  .right { float: left; font-size: 1em; margin-left: 13em; max-width: 46em; overflow: auto; }\r\n"
 		"  .tunnel.established { color: #56B734; }\r\n"
-		"  .tunnel.expiring    { color: #D3AE3F; }\r\n"
-		"  .tunnel.failed      { color: #D33F3F; }\r\n"
-		"  .tunnel.another     { color: #434343; }\r\n"
+		"  .tunnel.expiring	{ color: #D3AE3F; }\r\n"
+		"  .tunnel.failed	  { color: #D33F3F; }\r\n"
+		"  .tunnel.another	 { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
 		"  .private { background: black; color: black; } .private:hover { background: black; color: white } \r\n"
@@ -89,7 +89,7 @@ namespace http {
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
-	static void ShowUptime (std::stringstream& s, int seconds) 
+	static void ShowUptime (std::stringstream& s, int seconds)
 	{
 		int num;
 
@@ -125,11 +125,11 @@ namespace http {
 		std::string state;
 		switch (eState) {
 			case i2p::tunnel::eTunnelStateBuildReplyReceived :
-			case i2p::tunnel::eTunnelStatePending     : state = "building"; break;
+			case i2p::tunnel::eTunnelStatePending	 : state = "building"; break;
 			case i2p::tunnel::eTunnelStateBuildFailed :
 			case i2p::tunnel::eTunnelStateTestFailed  :
-			case i2p::tunnel::eTunnelStateFailed      : state = "failed";   break;
-			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring"; break;
+			case i2p::tunnel::eTunnelStateFailed	  : state = "failed";   break;
+			case i2p::tunnel::eTunnelStateExpiring	: state = "expiring"; break;
 			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
 			default: state = "unknown"; break;
 		}
@@ -185,7 +185,7 @@ namespace http {
 		s << "<b>ERROR:</b>&nbsp;" << string << "<br>\r\n";
 	}
 
-    void ShowStatus (std::stringstream& s, bool includeHiddenContent)
+	void ShowStatus (std::stringstream& s, bool includeHiddenContent)
 	{
 		s << "<b>Uptime:</b> ";
 		ShowUptime(s, i2p::context.GetUptime ());
@@ -195,21 +195,21 @@ namespace http {
 		{
 			case eRouterStatusOK: s << "OK"; break;
 			case eRouterStatusTesting: s << "Testing"; break;
-			case eRouterStatusFirewalled: s << "Firewalled"; break; 
-			case eRouterStatusError: 
-			{	
-				s << "Error"; 
+			case eRouterStatusFirewalled: s << "Firewalled"; break;
+			case eRouterStatusError:
+			{
+				s << "Error";
 				switch (i2p::context.GetError ())
 				{
 					case eRouterErrorClockSkew:
-						s << "<br>Clock skew"; 
+						s << "<br>Clock skew";
 					break;
-					default: ;	
-				}	
+					default: ;
+				}
 				break;
-			}	
+			}
 			default: s << "Unknown";
-		} 
+		}
 		s << "<br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 		if (auto remains = Daemon.gracefulShutdownInterval) {
@@ -230,38 +230,38 @@ namespace http {
 		s << " (" << (double) i2p::transport::transports.GetOutBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Transit:</b> ";
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
-		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";		
+		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
 		s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
-        if(includeHiddenContent) {
-            s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
-            s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
-            s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
-            s << "<b>Our external address:</b>" << "<br>\r\n" ;
-            for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
-            {
-                switch (address->transportStyle)
-                {
-                    case i2p::data::RouterInfo::eTransportNTCP:
-                        if (address->host.is_v6 ())
-                            s << "NTCP6&nbsp;&nbsp;";
-                        else
-                            s << "NTCP&nbsp;&nbsp;";
-                    break;
-                    case i2p::data::RouterInfo::eTransportSSU:
-                        if (address->host.is_v6 ())
-                            s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-                        else
-                            s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-                    break;
-                    default:
-                        s << "Unknown&nbsp;&nbsp;";
-                }
-                s << address->host.to_string() << ":" << address->port << "<br>\r\n";
-            }
-        }
-        s << "</p>\r\n</div>\r\n";
-        s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
+		if(includeHiddenContent) {
+			s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
+			s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
+			s << "<b>Router Caps:</b> " << i2p::context.GetRouterInfo().GetProperty("caps") << "<br>\r\n";
+			s << "<b>Our external address:</b>" << "<br>\r\n" ;
+			for (const auto& address : i2p::context.GetRouterInfo().GetAddresses())
+			{
+				switch (address->transportStyle)
+				{
+					case i2p::data::RouterInfo::eTransportNTCP:
+						if (address->host.is_v6 ())
+							s << "NTCP6&nbsp;&nbsp;";
+						else
+							s << "NTCP&nbsp;&nbsp;";
+					break;
+					case i2p::data::RouterInfo::eTransportSSU:
+						if (address->host.is_v6 ())
+							s << "SSU6&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+						else
+							s << "SSU&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+					break;
+					default:
+						s << "Unknown&nbsp;&nbsp;";
+				}
+				s << address->host.to_string() << ":" << address->port << "<br>\r\n";
+			}
+		}
+		s << "</p>\r\n</div>\r\n";
+		s << "<b>Routers:</b> " << i2p::data::netdb.GetNumRouters () << " ";
 		s << "<b>Floodfills:</b> " << i2p::data::netdb.GetNumFloodfills () << " ";
 		s << "<b>LeaseSets:</b> " << i2p::data::netdb.GetNumLeaseSets () << "<br>\r\n";
 
@@ -273,13 +273,13 @@ namespace http {
 		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
 	}
 
-    void ShowLocalDestinations (std::stringstream& s)
+	void ShowLocalDestinations (std::stringstream& s)
 	{
 		s << "<b>Local Destinations:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetDestinations ())
 		{
-			auto ident = it.second->GetIdentHash (); 
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+			auto ident = it.second->GetIdentHash ();
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
 		}
 
@@ -291,11 +291,11 @@ namespace http {
 			{
 				auto dest = it.second->GetDestination ();
 				if (dest)
-				{	
-					auto ident = dest->GetIdentHash (); 
-					s << "<a href=\"/?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">"; 
+				{
+					auto ident = dest->GetIdentHash ();
+					s << "<a href=\"/?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">";
 					s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
-				}	
+				}
 			}
 		}
 	}
@@ -341,7 +341,7 @@ namespace http {
 		s << "<br>" << std::endl;
 	}
 
-    void  ShowLocalDestination (std::stringstream& s, const std::string& b32)
+	void ShowLocalDestination (std::stringstream& s, const std::string& b32)
 	{
 		s << "<b>Local Destination:</b><br>\r\n<br>\r\n";
 		i2p::data::IdentHash ident;
@@ -349,7 +349,7 @@ namespace http {
 		auto dest = i2p::client::context.FindLocalDestination (ident);
 		if (dest)
 		{
-			ShowLeaseSetDestination (s, dest);	
+			ShowLeaseSetDestination (s, dest);
 			// show streams
 			s << "<br>\r\n<table><caption>Streams</caption><tr>";
 			s << "<th>StreamID</th>";
@@ -377,35 +377,35 @@ namespace http {
 				s << "<td>" << it->GetRTT () << "</td>";
 				s << "<td>" << it->GetWindowSize () << "</td>";
 				s << "<td>" << (int)it->GetStatus () << "</td>";
-				s << "</tr><br>\r\n" << std::endl; 
-   		}
+				s << "</tr><br>\r\n" << std::endl;
+		}
 			s << "</table>";
 		}
 	}
 
-	static void  ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
+	static void ShowI2CPLocalDestination (std::stringstream& s, const std::string& id)
 	{
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
 		if (i2cpServer)
 		{
 			s << "<b>I2CP Local Destination:</b><br>\r\n<br>\r\n";
-			auto it = i2cpServer->GetSessions ().find (std::stoi (id)); 
+			auto it = i2cpServer->GetSessions ().find (std::stoi (id));
 			if (it != i2cpServer->GetSessions ().end ())
 				ShowLeaseSetDestination (s, it->second->GetDestination ());
 			else
-				ShowError(s, "I2CP session not found");	
+				ShowError(s, "I2CP session not found");
 		}
 		else
 			ShowError(s, "I2CP is not enabled");
 	}
 
-    void ShowLeasesSets(std::stringstream& s)
+	void ShowLeasesSets(std::stringstream& s)
 	{
 		s << "<div id='leasesets'><b>LeaseSets (click on to show info):</b></div><br>\r\n";
 		int counter = 1;
 		// for each lease set
 		i2p::data::netdb.VisitLeaseSets(
-			[&s, &counter](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet) 
+			[&s, &counter](const i2p::data::IdentHash dest, std::shared_ptr<i2p::data::LeaseSet> leaseSet)
 			{
 				// create copy of lease set so we extract leases
 				i2p::data::LeaseSet ls(leaseSet->GetBuffer(), leaseSet->GetBufferLen());
@@ -432,7 +432,7 @@ namespace http {
 		// end for each lease set
 	}
 
-    void ShowTunnels (std::stringstream& s)
+	void ShowTunnels (std::stringstream& s)
 	{
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
 
@@ -454,7 +454,7 @@ namespace http {
 		s << "<br>\r\n";
 	}
 
-    static void ShowCommands (std::stringstream& s, uint32_t token)
+	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		/* commands */
 		s << "<b>Router Commands</b><br>\r\n";
@@ -465,18 +465,20 @@ namespace http {
 		else
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_ENABLE_TRANSIT << "&token=" << token << "\">Accept transit tunnels</a><br>\r\n";
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
-		if (Daemon.gracefulShutdownInterval) 
+		if (Daemon.gracefulShutdownInterval)
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
-		else 
+		else
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Start graceful shutdown</a><br>\r\n";
-#endif
-#ifdef WIN32_APP
-		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
+#elif defined(WIN32_APP)
+		if (i2p::util::DaemonWin32::Instance().isGraceful)
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_CANCEL << "&token=" << token << "\">Cancel graceful shutdown</a><br>";
+		else
+			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
 #endif
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n";
 	}
 
-    void ShowTransitTunnels (std::stringstream& s)
+	void ShowTransitTunnels (std::stringstream& s)
 	{
 		s << "<b>Transit tunnels:</b><br>\r\n<br>\r\n";
 		for (const auto& it: i2p::tunnel::tunnels.GetTransitTunnels ())
@@ -491,10 +493,10 @@ namespace http {
 		}
 	}
 
-    void ShowTransports (std::stringstream& s)
+	void ShowTransports (std::stringstream& s)
 	{
 		s << "<b>Transports:</b><br>\r\n<br>\r\n";
-		auto ntcpServer = i2p::transport::transports.GetNTCPServer (); 
+		auto ntcpServer = i2p::transport::transports.GetNTCPServer ();
 		if (ntcpServer)
 		{
 			auto sessions = ntcpServer->GetNTCPSessions ();
@@ -577,7 +579,7 @@ namespace http {
 		}
 	}
 
-    void ShowSAMSessions (std::stringstream& s)
+	void ShowSAMSessions (std::stringstream& s)
 	{
 		auto sam = i2p::client::context.GetSAMBridge ();
 		if (!sam) {
@@ -624,13 +626,13 @@ namespace http {
 		}
 	}
 
-    void ShowI2PTunnels (std::stringstream& s)
+	void ShowI2PTunnels (std::stringstream& s)
 	{
 		s << "<b>Client Tunnels:</b><br>\r\n<br>\r\n";
 		for (auto& it: i2p::client::context.GetClientTunnels ())
 		{
 			auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << it.second->GetName () << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -639,16 +641,16 @@ namespace http {
 		if (httpProxy)
 		{
 			auto& ident = httpProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "HTTP Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
-		}	
+		}
 		auto socksProxy = i2p::client::context.GetSocksProxy ();
 		if (socksProxy)
 		{
 			auto& ident = socksProxy->GetLocalDestination ()->GetIdentHash();
-			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+			s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 			s << "SOCKS Proxy" << "</a> &#8656; ";
 			s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 			s << "<br>\r\n"<< std::endl;
@@ -659,7 +661,7 @@ namespace http {
 			for (auto& it: serverTunnels)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8658; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << ":" << it.second->GetLocalPort ();
@@ -673,7 +675,7 @@ namespace http {
 			for (auto& it: clientForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "<br>\r\n"<< std::endl;
@@ -686,7 +688,7 @@ namespace http {
 			for (auto& it: serverForwards)
 			{
 				auto& ident = it.second->GetLocalDestination ()->GetIdentHash();
-				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">"; 
+				s << "<a href=\"/?page=" << HTTP_PAGE_LOCAL_DESTINATION << "&b32=" << ident.ToBase32 () << "\">";
 				s << it.second->GetName () << "</a> &#8656; ";
 				s << i2p::client::context.GetAddressBook ().ToAddress(ident);
 				s << "<br>\r\n"<< std::endl;
@@ -756,10 +758,10 @@ namespace http {
 		}
 		/* method #2: 'Authorization' header sent */
 		auto provided = req.GetHeader ("Authorization");
-		 if (provided.length () > 0) 
-		 {
+		if (provided.length () > 0)
+		{
 			bool result = false;
-			
+
 			std::string expected = user + ":" + pass;
 			size_t b64_sz = i2p::data::Base64EncodingBufferSize(expected.length()) + 1;
 			char * b64_creds = new char[b64_sz];
@@ -802,7 +804,7 @@ namespace http {
 		} else if (req.uri.find("cmd=") != std::string::npos) {
 			HandleCommand (req, res, s);
 		} else {
-            ShowStatus (s, true);
+			ShowStatus (s, true);
 			res.add_header("Refresh", "10");
 		}
 		ShowPageTail (s);
@@ -814,7 +816,7 @@ namespace http {
 
 	std::map<uint32_t, uint32_t> HTTPConnection::m_Tokens;
 	void HTTPConnection::HandlePage (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
-  {
+	{
 		std::map<std::string, std::string> params;
 		std::string page("");
 		URL url;
@@ -840,13 +842,13 @@ namespace http {
 				else
 					++it;
 			}
-			m_Tokens[token] = ts; 
+			m_Tokens[token] = ts;
 			ShowCommands (s, token);
 		}
 		else if (page == HTTP_PAGE_TRANSIT_TUNNELS)
 			ShowTransitTunnels (s);
 		else if (page == HTTP_PAGE_LOCAL_DESTINATIONS)
-			ShowLocalDestinations (s);	
+			ShowLocalDestinations (s);
 		else if (page == HTTP_PAGE_LOCAL_DESTINATION)
 			ShowLocalDestination (s, params["b32"]);
 		else if (page == HTTP_PAGE_I2CP_LOCAL_DESTINATION)
@@ -864,7 +866,7 @@ namespace http {
 			ShowError(s, "Unknown page: " + page);
 			return;
 		}
-  }
+	}
 
 	void HTTPConnection::HandleCommand (const HTTPReq& req, HTTPRes& res, std::stringstream& s)
 	{
@@ -881,7 +883,7 @@ namespace http {
 			return;
 		}
 
-		std::string cmd = params["cmd"];	
+		std::string cmd = params["cmd"];
 		if (cmd == HTTP_COMMAND_RUN_PEER_TEST)
 			i2p::transport::transports.PeerTest ();
 		else if (cmd == HTTP_COMMAND_RELOAD_CONFIG)
@@ -894,14 +896,15 @@ namespace http {
 			i2p::context.SetAcceptsTunnels (false);
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 			Daemon.gracefulShutdownInterval = 10*60;
-#endif
-#ifdef WIN32_APP
+#elif defined(WIN32_APP)
 			i2p::win32::GracefulShutdown ();
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_CANCEL) {
 			i2p::context.SetAcceptsTunnels (true);
 #if (!defined(WIN32) && !defined(QT_GUI_LIB) && !defined(ANDROID))
 			Daemon.gracefulShutdownInterval = 0;
+#elif defined(WIN32_APP)
+			i2p::win32::StopGracefulShutdown ();
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {
 			Daemon.running = false;
@@ -940,7 +943,7 @@ namespace http {
 
 	void HTTPServer::Start ()
 	{
-		bool needAuth;    i2p::config::GetOption("http.auth", needAuth);
+		bool needAuth;	i2p::config::GetOption("http.auth", needAuth);
 		std::string user; i2p::config::GetOption("http.user", user);
 		std::string pass; i2p::config::GetOption("http.pass", pass);
 		/* generate pass if needed */
@@ -968,7 +971,7 @@ namespace http {
 		m_IsRunning = false;
 		m_Acceptor.close();
 		m_Service.stop ();
-		if (m_Thread) 
+		if (m_Thread)
 		{
 			m_Thread->join ();
 			m_Thread = nullptr;
@@ -986,7 +989,7 @@ namespace http {
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "HTTPServer: runtime exception: ", ex.what ());
-			}	
+			}
 		}
 	}
 
@@ -997,7 +1000,7 @@ namespace http {
 			boost::asio::placeholders::error, newSocket));
 	}
 
-	void HTTPServer::HandleAccept(const boost::system::error_code& ecode, 
+	void HTTPServer::HandleAccept(const boost::system::error_code& ecode,
 		std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
 		if (ecode)
@@ -1005,7 +1008,7 @@ namespace http {
 			if(newSocket) newSocket->close();
 			LogPrint(eLogError, "HTTP Server: error handling accept ", ecode.message());
 			if(ecode != boost::asio::error::operation_aborted)
-				Accept();			
+				Accept();
 			return;
 		}
 		CreateConnection(newSocket);
