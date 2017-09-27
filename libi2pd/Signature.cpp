@@ -316,6 +316,7 @@ namespace crypto
 
 			bool IsOnCurve (const EDDSAPoint& p, BN_CTX * ctx) const
 			{
+				BN_CTX_start (ctx);
 				BIGNUM * x2 = BN_CTX_get (ctx), * y2 = BN_CTX_get (ctx), * tmp = BN_CTX_get (ctx);
 				BN_sqr (x2, p.x, ctx); // x^2
 				BN_sqr (y2, p.y, ctx); // y^2
@@ -352,7 +353,7 @@ namespace crypto
 					BN_mod_mul (x, x, I, q, ctx);
 				if (BN_is_odd (x))
 					BN_sub (x, q, x);
-
+				BN_CTX_end (ctx);
 				return x;
 			}
 
