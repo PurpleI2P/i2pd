@@ -58,9 +58,9 @@ namespace http {
 		"  .left  { float: left; position: absolute; }\r\n"
 		"  .right { float: left; font-size: 1em; margin-left: 13em; max-width: 46em; overflow: auto; }\r\n"
 		"  .tunnel.established { color: #56B734; }\r\n"
-		"  .tunnel.expiring	{ color: #D3AE3F; }\r\n"
-		"  .tunnel.failed	  { color: #D33F3F; }\r\n"
-		"  .tunnel.another	 { color: #434343; }\r\n"
+		"  .tunnel.expiring    { color: #D3AE3F; }\r\n"
+		"  .tunnel.failed      { color: #D33F3F; }\r\n"
+		"  .tunnel.another     { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
 		"  .private { background: black; color: black; } .private:hover { background: black; color: white } \r\n"
@@ -83,7 +83,7 @@ namespace http {
 	const char HTTP_COMMAND_DISABLE_TRANSIT[] = "disable_transit";
 	const char HTTP_COMMAND_SHUTDOWN_START[] = "shutdown_start";
 	const char HTTP_COMMAND_SHUTDOWN_CANCEL[] = "shutdown_cancel";
-	const char HTTP_COMMAND_SHUTDOWN_NOW[]   = "terminate";
+	const char HTTP_COMMAND_SHUTDOWN_NOW[] = "terminate";
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
 	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
@@ -125,11 +125,11 @@ namespace http {
 		std::string state;
 		switch (eState) {
 			case i2p::tunnel::eTunnelStateBuildReplyReceived :
-			case i2p::tunnel::eTunnelStatePending	 : state = "building"; break;
+			case i2p::tunnel::eTunnelStatePending     : state = "building"; break;
 			case i2p::tunnel::eTunnelStateBuildFailed :
 			case i2p::tunnel::eTunnelStateTestFailed  :
-			case i2p::tunnel::eTunnelStateFailed	  : state = "failed";   break;
-			case i2p::tunnel::eTunnelStateExpiring	: state = "expiring"; break;
+			case i2p::tunnel::eTunnelStateFailed      : state = "failed";   break;
+			case i2p::tunnel::eTunnelStateExpiring    : state = "expiring"; break;
 			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
 			default: state = "unknown"; break;
 		}
@@ -943,7 +943,7 @@ namespace http {
 
 	void HTTPServer::Start ()
 	{
-		bool needAuth;	i2p::config::GetOption("http.auth", needAuth);
+		bool needAuth;    i2p::config::GetOption("http.auth", needAuth);
 		std::string user; i2p::config::GetOption("http.user", user);
 		std::string pass; i2p::config::GetOption("http.pass", pass);
 		/* generate pass if needed */
