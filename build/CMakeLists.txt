@@ -324,7 +324,7 @@ if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 else()
   if(NOT (OPENSSL_VERSION VERSION_LESS 1.1))
-    message(SEND_ERROR "Unsupported OpenSSL version: ${OPENSSL_VERSION} (required < 1.1)")
+    message(WARNING "Your OpenSSL version ${OPENSSL_VERSION} >=1.1 is experimental: build with v1.0 when possible.")
   endif()
 endif()
 
