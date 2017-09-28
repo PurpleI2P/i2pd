@@ -363,31 +363,43 @@ namespace crypto
 	// EdDSA
 	struct EDDSAPoint
 	{
-		BIGNUM * x, * y;
-		BIGNUM * z, * t; // projective coordinates
-		EDDSAPoint (): x(nullptr), y(nullptr), z(nullptr), t(nullptr) {};
-		EDDSAPoint (const EDDSAPoint& other): x(nullptr), y(nullptr), z(nullptr), t(nullptr) 
-		{ *this = other; };	
-		EDDSAPoint (EDDSAPoint&& other): x(nullptr), y(nullptr), z(nullptr), t(nullptr)  
-		{ *this = std::move (other); };	
-		EDDSAPoint (BIGNUM * x1, BIGNUM * y1, BIGNUM * z1 = nullptr, BIGNUM * t1 = nullptr): x(x1), y(y1), z(z1), t(t1) {};	
-		~EDDSAPoint () { BN_free (x); BN_free (y); BN_free(z); BN_free(t); };
+		BIGNUM * x {nullptr};
+		BIGNUM * y {nullptr};
+		BIGNUM * z {nullptr};
+		BIGNUM * t {nullptr}; // projective coordinates
+
+		EDDSAPoint () {}
+		EDDSAPoint (const EDDSAPoint& other)   { *this = other; }
+		EDDSAPoint (EDDSAPoint&& other)        { *this = std::move (other); }
+		EDDSAPoint (BIGNUM * x1, BIGNUM * y1, BIGNUM * z1 = nullptr, BIGNUM * t1 = nullptr)
+			: x(x1)
+			, y(y1)
+			, z(z1)
+			, t(t1)
+		{}
+		~EDDSAPoint () { BN_free (x); BN_free (y); BN_free(z); BN_free(t); }
 
 		EDDSAPoint& operator=(EDDSAPoint&& other) 
 		{
-			if (x) BN_free (x); x = other.x; other.x = nullptr;
-			if (y) BN_free (y); y = other.y; other.y = nullptr;
-			if (z) BN_free (z); z = other.z; other.z = nullptr;
-			if (t) BN_free (t); t = other.t; other.t = nullptr;
+			if (this != &other)
+			{
+				BN_free (x); x = other.x; other.x = nullptr;
+				BN_free (y); y = other.y; other.y = nullptr;
+				BN_free (z); z = other.z; other.z = nullptr;
+				BN_free (t); t = other.t; other.t = nullptr;
+			}
 			return *this;
 		} 	
 
 		EDDSAPoint& operator=(const EDDSAPoint& other) 
 		{
-			if (x) BN_free (x); x = other.x ? BN_dup (other.x) : nullptr;
-			if (y) BN_free (y); y = other.y ? BN_dup (other.y) : nullptr;
-			if (z) BN_free (z); z = other.z ? BN_dup (other.z) : nullptr;
-			if (t) BN_free (t); t = other.t ? BN_dup (other.t) : nullptr;
+			if (this != &other)
+			{
+				BN_free (x); x = other.x ? BN_dup (other.x) : nullptr;
+				BN_free (y); y = other.y ? BN_dup (other.y) : nullptr;
+				BN_free (z); z = other.z ? BN_dup (other.z) : nullptr;
+				BN_free (t); t = other.t ? BN_dup (other.t) : nullptr;
+			}
 			return *this;
 		}
 
