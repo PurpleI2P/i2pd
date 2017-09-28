@@ -276,8 +276,8 @@ namespace stream
 			/** set max connections per minute per destination */
 			void SetMaxConnsPerMinute(const uint32_t conns);
 
-			Packet * NewPacket () { return m_PacketsPool.Acquire (); };
-			void DeletePacket (Packet * p) { if (p) m_PacketsPool.Release (p); };		
+			Packet * NewPacket () { return m_PacketsPool.Acquire (); }
+			void DeletePacket (Packet * p) { m_PacketsPool.Release (p); }
 			
 		private:		
 
