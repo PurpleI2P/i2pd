@@ -567,6 +567,11 @@ namespace client
 						else
 						{
 							// TODO: update
+							if (ins.first->second->GetLocalDestination () != clientTunnel->GetLocalDestination ())
+							{
+								LogPrint (eLogInfo, "Clients: I2P client tunnel destination updated");
+								ins.first->second->SetLocalDestination (clientTunnel->GetLocalDestination ());
+							}
 							ins.first->second->isUpdated = true;
 							LogPrint (eLogInfo, "Clients: I2P client tunnel for endpoint ", clientEndpoint, " already exists");
 						}
@@ -673,6 +678,11 @@ namespace client
 					else
 					{
 						// TODO: update
+						if (ins.first->second->GetLocalDestination () != serverTunnel->GetLocalDestination ())
+						{
+							LogPrint (eLogInfo, "Clients: I2P server tunnel destination updated");
+							ins.first->second->SetLocalDestination (serverTunnel->GetLocalDestination ());
+						}
 						ins.first->second->isUpdated = true;
 						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
 					}
