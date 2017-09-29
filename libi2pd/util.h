@@ -33,6 +33,8 @@ namespace util
 	template<class T>
 	class MemoryPool
 	{
+		BOOST_STATIC_ASSERT_MSG(sizeof(T) >= sizeof(void*), "size cannot be less that general pointer size");
+
 		public:
 
 			MemoryPool (): m_Head (nullptr) {}
