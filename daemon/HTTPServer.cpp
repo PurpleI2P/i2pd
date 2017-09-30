@@ -943,44 +943,50 @@ namespace http {
 
 	void HTTPServer::Start ()
 	{
-		bool needAuth;    i2p::config::GetOption("http.auth", needAuth);
-		std::string user; i2p::config::GetOption("http.user", user);
-		std::string pass; i2p::config::GetOption("http.pass", pass);
-		/* generate pass if needed */
-		if (needAuth && pass == "") {
-			uint8_t random[16];
-			char alnum[] = "0123456789"
-			  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-			  "abcdefghijklmnopqrstuvwxyz";
-			pass.resize(sizeof(random));
-			RAND_bytes(random, sizeof(random));
-			for (size_t i = 0; i < sizeof(random); i++) {
-				pass[i] = alnum[random[i] % (sizeof(alnum) - 1)];
+		if (!m_IsRunning.load())
+		{
+			bool needAuth;    i2p::config::GetOption("http.auth", needAuth);
+			std::string user; i2p::config::GetOption("http.user", user);
+			std::string pass; i2p::config::GetOption("http.pass", pass);
+			/* generate pass if needed */
+			if (needAuth && pass == "") {
+				uint8_t random[16];
+				char alnum[] = "0123456789"
+				  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				  "abcdefghijklmnopqrstuvwxyz";
+				pass.resize(sizeof(random));
+				RAND_bytes(random, sizeof(random));
+				for (size_t i = 0; i < sizeof(random); i++) {
+					pass[i] = alnum[random[i] % (sizeof(alnum) - 1)];
+				}
+				i2p::config::SetOption("http.pass", pass);
+				LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
 			}
-			i2p::config::SetOption("http.pass", pass);
-			LogPrint(eLogInfo, "HTTPServer: password set to ", pass);
+			m_IsRunning.store(true);
+			m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
+			m_Acceptor.listen ();
+			Accept ();
 		}
-		m_IsRunning = true;
-		m_Thread = std::unique_ptr<std::thread>(new std::thread (std::bind (&HTTPServer::Run, this)));
-		m_Acceptor.listen ();
-		Accept ();
 	}
 
 	void HTTPServer::Stop ()
 	{
-		m_IsRunning = false;
-		m_Acceptor.close();
-		m_Service.stop ();
-		if (m_Thread)
+		if (m_IsRunning.load())
 		{
-			m_Thread->join ();
-			m_Thread = nullptr;
+			m_IsRunning.store(false);
+			m_Acceptor.close();
+			m_Service.stop ();
+			if (m_Thread)
+			{
+				m_Thread->join ();
+				m_Thread = nullptr;
+			}
 		}
 	}
 
 	void HTTPServer::Run ()
 	{
-		while (m_IsRunning)
+		while (m_IsRunning.load(std::memory_order_acquire))
 		{
 			try
 			{

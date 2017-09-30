@@ -8,6 +8,7 @@
 #include "Destination.h"
 #include "Streaming.h"
 #include <functional>
+#include <atomic>
 
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
@@ -100,35 +101,41 @@ namespace client
 
 		void Start()
 		{
-			if(m_Run) return; // already started
-			m_Server.listen(boost::asio::ip::address::from_string(m_Addr), m_Port);
-			m_Server.start_accept();
-			m_Run = true;
-			m_Thread = new std::thread([&] (){
-					while(m_Run) {
+			if (!m_Run.load())
+			{
+				m_Run.store(true);
+				m_Server.listen(boost::asio::ip::address::from_string(m_Addr), m_Port);
+				m_Server.start_accept();
+				m_Run = true;
+				m_Thread = new std::thread([&] (){
+					while (m_Run.load(std::memory_order_acquire)) {
 						try {
 							m_Server.run();
 						} catch( std::exception & ex) {
 							LogPrint(eLogError, "Websocks runtime exception: ", ex.what());
 						}
 					}
-			});
-			m_Dest->Start();
+				});
+				m_Dest->Start();
+			}
 		}
 
 		void Stop()
 		{
-			for(const auto & conn : m_Conns)
-				conn->Close();
+			if (m_Run.load())
+			{
+				for(const auto & conn : m_Conns)
+					conn->Close();
 
-			m_Dest->Stop();
-			m_Run = false;
-			m_Server.stop();
-			if(m_Thread) {
-				m_Thread->join();
-				delete m_Thread;
+				m_Dest->Stop();
+				m_Run.store(false);
+				m_Server.stop();
+				if(m_Thread) {
+					m_Thread->join();
+					delete m_Thread;
+				}
+				m_Thread = nullptr;
 			}
-			m_Thread = nullptr;
 		}
 
 		boost::asio::ip::tcp::endpoint GetLocalEndpoint()
@@ -140,7 +147,7 @@ namespace client
 
 	private:
 		std::vector<WebSocksConn_ptr> m_Conns;
-		bool m_Run;
+		std::atomic_bool m_Run;
 		ServerImpl m_Server;
 		std::string m_Addr;
 		int m_Port;

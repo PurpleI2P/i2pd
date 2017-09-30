@@ -445,19 +445,25 @@ namespace tunnel
 
 	void Tunnels::Start ()
 	{
-		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&Tunnels::Run, this));
+		if (!m_IsRunning.load())
+		{
+			m_IsRunning.store(true);
+			m_Thread = new std::thread (std::bind (&Tunnels::Run, this));
+		}
 	}
 
 	void Tunnels::Stop ()
 	{
-		m_IsRunning = false;
-		m_Queue.WakeUp ();
-		if (m_Thread)
+		if (m_IsRunning.load())
 		{
-			m_Thread->join (); 
-			delete m_Thread;
-			m_Thread = 0;
+			m_IsRunning.store(false);
+			m_Queue.WakeUp ();
+			if (m_Thread)
+			{
+				m_Thread->join ();
+				delete m_Thread;
+				m_Thread = 0;
+			}
 		}
 	}
 
@@ -466,7 +472,7 @@ namespace tunnel
 		std::this_thread::sleep_for (std::chrono::seconds(1)); // wait for other parts are ready
 
 		uint64_t lastTs = 0;
-		while (m_IsRunning)
+		while (m_IsRunning.load(std::memory_order_acquire))
 		{
 			try
 			{

@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <memory>
+#include <atomic>
 
 #include <miniupnpc/miniwget.h>
 #include <miniupnpc/miniupnpc.h>
@@ -43,8 +44,8 @@ namespace transport
 
 	private:
 	
-		bool m_IsRunning;
-        std::unique_ptr<std::thread> m_Thread;
+		std::atomic_bool m_IsRunning;
+		std::unique_ptr<std::thread> m_Thread;
 		std::condition_variable m_Started;	
 		std::mutex m_StartedMutex;	
 		boost::asio::io_service m_Service;

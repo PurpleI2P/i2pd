@@ -10,6 +10,7 @@
 #include <thread>
 #include <mutex>
 #include <memory>
+#include <atomic>
 #include "Queue.h"
 #include "Crypto.h"
 #include "TunnelConfig.h"
@@ -61,7 +62,7 @@ namespace tunnel
 #endif 
   }
 
-  
+
 	const int TUNNEL_EXPIRATION_TIMEOUT = 660; // 11 minutes	
 	const int TUNNEL_EXPIRATION_THRESHOLD = 60; // 1 minute	
 	const int TUNNEL_RECREATION_THRESHOLD = 90; // 1.5 minutes	
@@ -99,20 +100,20 @@ namespace tunnel
 			std::shared_ptr<const TunnelConfig> GetTunnelConfig () const { return m_Config; }
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetPeers () const; 
 			std::vector<std::shared_ptr<const i2p::data::IdentityEx> > GetInvertedPeers () const; 
-			TunnelState GetState () const { return m_State; };
+			TunnelState GetState () const { return m_State; }
 			void SetState (TunnelState state);
-			bool IsEstablished () const { return m_State == eTunnelStateEstablished; };
-			bool IsFailed () const { return m_State == eTunnelStateFailed; };
-			bool IsRecreated () const { return m_IsRecreated; };
-			void SetIsRecreated () { m_IsRecreated = true; };
+			bool IsEstablished () const { return m_State == eTunnelStateEstablished; }
+			bool IsFailed () const { return m_State == eTunnelStateFailed; }
+			bool IsRecreated () const { return m_IsRecreated; }
+			void SetIsRecreated () { m_IsRecreated = true; }
 			virtual bool IsInbound() const = 0;
 			
-			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };
-			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; };			
+			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; }
+			void SetTunnelPool (std::shared_ptr<TunnelPool> pool) { m_Pool = pool; }
 			
 			bool HandleTunnelBuildResponse (uint8_t * msg, size_t len);
 
-			virtual void Print (std::stringstream&) const {};
+			virtual void Print (std::stringstream&) const {}
 			
 			// implements TunnelBase
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg);
@@ -145,12 +146,12 @@ namespace tunnel
 		public:
 
 			OutboundTunnel (std::shared_ptr<const TunnelConfig> config): 
-				Tunnel (config), m_Gateway (this), m_EndpointIdentHash (config->GetLastIdentHash ()) {};
+				Tunnel (config), m_Gateway (this), m_EndpointIdentHash (config->GetLastIdentHash ()) {}
 
 			void SendTunnelDataMsg (const uint8_t * gwHash, uint32_t gwTunnel, std::shared_ptr<i2p::I2NPMessage> msg);
 			virtual void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs); // multiple messages
-			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; }; 
-			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); };
+			const i2p::data::IdentHash& GetEndpointIdentHash () const { return m_EndpointIdentHash; }
+			virtual size_t GetNumSentBytes () const { return m_Gateway.GetNumSentBytes (); }
 			void Print (std::stringstream& s) const;
 			
 			// implements TunnelBase
@@ -169,14 +170,14 @@ namespace tunnel
 	{
 		public:
 
-			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {};
+			InboundTunnel (std::shared_ptr<const TunnelConfig> config): Tunnel (config), m_Endpoint (true) {}
 			void HandleTunnelDataMsg (std::shared_ptr<const I2NPMessage> msg);
-			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); };
+			virtual size_t GetNumReceivedBytes () const { return m_Endpoint.GetNumReceivedBytes (); }
 			void Print (std::stringstream& s) const;
 			bool IsInbound() const { return true; }
 
 			// override TunnelBase
-			void Cleanup () { m_Endpoint.Cleanup (); };	
+			void Cleanup () { m_Endpoint.Cleanup (); }
 
 		private:
 
@@ -190,7 +191,7 @@ namespace tunnel
 			ZeroHopsInboundTunnel ();
 			void SendTunnelDataMsg (std::shared_ptr<i2p::I2NPMessage> msg); 
 			void Print (std::stringstream& s) const;
-			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; }
 			
 		private:
 
@@ -204,7 +205,7 @@ namespace tunnel
 			ZeroHopsOutboundTunnel ();
 			void SendTunnelDataMsg (const std::vector<TunnelMessageBlock>& msgs);
 			void Print (std::stringstream& s) const;
-			size_t GetNumSentBytes () const { return m_NumSentBytes; };
+			size_t GetNumSentBytes () const { return m_NumSentBytes; }
 			
 		private:
 
@@ -224,7 +225,7 @@ namespace tunnel
 			std::shared_ptr<OutboundTunnel> GetPendingOutboundTunnel (uint32_t replyMsgID);			
 			std::shared_ptr<InboundTunnel> GetNextInboundTunnel ();
 			std::shared_ptr<OutboundTunnel> GetNextOutboundTunnel ();
-			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; };
+			std::shared_ptr<TunnelPool> GetExploratoryPool () const { return m_ExploratoryPool; }
 			std::shared_ptr<TunnelBase> GetTunnel (uint32_t tunnelID);
 			int GetTransitTunnelsExpirationTimeout ();
 			void AddTransitTunnel (std::shared_ptr<TransitTunnel> tunnel);
@@ -266,7 +267,7 @@ namespace tunnel
 
 		private:
 
-			bool m_IsRunning;
+			std::atomic_bool m_IsRunning;
 			std::thread * m_Thread;	
 			std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels; // by replyMsgID
 			std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels; // by replyMsgID
@@ -285,24 +286,24 @@ namespace tunnel
 		public:
 
 			// for HTTP only
-			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; };
-			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; };
-			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; };
+			const decltype(m_OutboundTunnels)& GetOutboundTunnels () const { return m_OutboundTunnels; }
+			const decltype(m_InboundTunnels)& GetInboundTunnels () const { return m_InboundTunnels; }
+			const decltype(m_TransitTunnels)& GetTransitTunnels () const { return m_TransitTunnels; }
 
 			size_t CountTransitTunnels() const;
 			size_t CountInboundTunnels() const;
 			size_t CountOutboundTunnels() const;
 			
-			int GetQueueSize () { return m_Queue.GetSize (); };
+			int GetQueueSize () { return m_Queue.GetSize (); }
 			int GetTunnelCreationSuccessRate () const // in percents
 			{ 
 				int totalNum = m_NumSuccesiveTunnelCreations + m_NumFailedTunnelCreations;
 				return totalNum ? m_NumSuccesiveTunnelCreations*100/totalNum : 0;
 			}		
-	};	
+	};
 
 	extern Tunnels tunnels;
-}	
+}
 }
 
 #endif
