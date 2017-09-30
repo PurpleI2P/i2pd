@@ -22,7 +22,7 @@ using namespace i2p::transport;
 namespace i2p
 {
 namespace data
-{		
+{
 	NetDb netdb;
 
 	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_FloodfillBootstrap(nullptr), m_HiddenMode(false)
@@ -31,65 +31,70 @@ namespace data
 	
 	NetDb::~NetDb ()
 	{
-		Stop ();	
+		Stop ();
 		delete m_Reseeder;
-	}	
+	}
 
 	void NetDb::Start ()
 	{
-		m_Storage.SetPlace(i2p::fs::GetDataDir());
-		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
-		InitProfilesStorage ();
-		m_Families.LoadCertificates ();
-		Load ();
+		// separate load and store for atomic is valid here
+		// because only one thread changes m_IsRunning
+		if (!m_IsRunning.load())
+		{
+			m_Storage.SetPlace(i2p::fs::GetDataDir());
+			m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+			InitProfilesStorage ();
+			m_Families.LoadCertificates ();
+			Load ();
 
-                uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
-		if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
-			Reseed ();
+			uint16_t threshold; i2p::config::GetOption("reseed.threshold", threshold);
+			if (m_RouterInfos.size () < threshold) // reseed if # of router less than threshold
+				Reseed ();
 
-		m_IsRunning = true;
-		m_Thread = new std::thread (std::bind (&NetDb::Run, this));
+			m_IsRunning.store(true);
+			m_Thread = new std::thread (std::bind (&NetDb::Run, this));
+		}
 	}
 	
 	void NetDb::Stop ()
 	{
-		if (m_IsRunning)
-		{	
+		if (m_IsRunning.load())
+		{
 			for (auto& it: m_RouterInfos)
 				it.second->SaveProfile ();
 			DeleteObsoleteProfiles ();
 			m_RouterInfos.clear ();
 			m_Floodfills.clear ();
 			if (m_Thread)
-			{	
-				m_IsRunning = false;
+			{
+				m_IsRunning.store(false);
 				m_Queue.WakeUp ();
 				m_Thread->join (); 
 				delete m_Thread;
-				m_Thread = 0;
+				m_Thread = nullptr;
 			}
 			m_LeaseSets.clear();
 			m_Requests.Stop ();
 		}
-	}	
-  
+	}
+
 	void NetDb::Run ()
 	{
-		uint32_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
-		while (m_IsRunning)
-		{	
+		uint64_t lastSave = 0, lastPublish = 0, lastExploratory = 0, lastManageRequest = 0, lastDestinationCleanup = 0;
+		while (m_IsRunning.load(std::memory_order_acquire))
+		{
 			try
-			{	
+			{
 				auto msg = m_Queue.GetNextWithTimeout (15000); // 15 sec
 				if (msg)
-				{	
-					int numMsgs = 0;	
+				{
+					int numMsgs = 0;
 					while (msg)
 					{
 						LogPrint(eLogDebug, "NetDb: got request with type ", (int) msg->GetTypeID ());
 						switch (msg->GetTypeID ()) 
 						{
-							case eI2NPDatabaseStore:	
+							case eI2NPDatabaseStore:
 								HandleDatabaseStoreMsg (msg);
 							break;
 							case eI2NPDatabaseSearchReply:
@@ -97,7 +102,7 @@ namespace data
 							break;
 							case eI2NPDatabaseLookup:
 								HandleDatabaseLookupMsg (msg);
-							break;	
+							break;
 							default: // WTF?
 								LogPrint (eLogError, "NetDb: unexpected message type ", (int) msg->GetTypeID ());
 								//i2p::HandleI2NPMessage (msg);
@@ -105,23 +110,25 @@ namespace data
 						if (numMsgs > 100) break;
 						msg = m_Queue.Get ();
 						numMsgs++;
-					}	
-				}			
-				if (!m_IsRunning) break;
+					}
+				}
+
+				if (!m_IsRunning.load(std::memory_order_acquire))
+					break;
 
 				uint64_t ts = i2p::util::GetSecondsSinceEpoch ();
 				if (ts - lastManageRequest >= 15) // manage requests every 15 seconds
 				{
 					m_Requests.ManageRequests ();
 					lastManageRequest = ts;
-				}	
+				}
 				if (ts - lastSave >= 60) // save routers, manage leasesets and validate subscriptions every minute
 				{
 					if (lastSave)
 					{
 						SaveUpdated ();
 						ManageLeaseSets ();
-					}	
+					}
 					lastSave = ts;
 				}
 				if (ts - lastDestinationCleanup >= i2p::garlic::INCOMING_TAGS_EXPIRATION_TIMEOUT) 
@@ -129,23 +136,23 @@ namespace data
 					i2p::context.CleanupDestination ();
 					lastDestinationCleanup = ts;
 				}
-        
+
 				if (ts - lastPublish >= NETDB_PUBLISH_INTERVAL && !m_HiddenMode) // publish 
 				{
 					Publish ();
 					lastPublish = ts;
-				}	
+				}
 				if (ts - lastExploratory >= 30) // exploratory every 30 seconds
-				{	
+				{
 					auto numRouters = m_RouterInfos.size ();
 					if (numRouters == 0)
 					{
-                                                throw std::runtime_error("No known routers, reseed seems to be totally failed");
+						throw std::runtime_error("No known routers, reseed seems to be totally failed");
 					}
 					else // we have peers now
 						m_FloodfillBootstrap = nullptr;
 					if (numRouters < 2500 || ts - lastExploratory >= 90)
-					{	
+					{
 						numRouters = 800/numRouters;
 						if (numRouters < 1) numRouters = 1;
 						if (numRouters > 9) numRouters = 9;	
@@ -153,15 +160,15 @@ namespace data
 						if(!m_HiddenMode)
 							Explore (numRouters);
 						lastExploratory = ts;
-					}	
-				}	
+					}
+				}
 			}
 			catch (std::exception& ex)
 			{
 				LogPrint (eLogError, "NetDb: runtime exception: ", ex.what ());
-			}	
-		}	
-	}	
+			}
+		}
+	}
 	
 	bool NetDb::AddRouterInfo (const uint8_t * buf, int len)
 	{
@@ -171,11 +178,11 @@ namespace data
 		return false;
 	}
 
-  void NetDb::SetHidden(bool hide) {
-    // TODO: remove reachable addresses from router info
-    m_HiddenMode = hide;
-  }
-  
+	void NetDb::SetHidden(bool hide) {
+		// TODO: remove reachable addresses from router info
+		m_HiddenMode = hide;
+	}
+
 	bool NetDb::AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len)
 	{	
 		bool updated = true;	
@@ -330,7 +337,7 @@ namespace data
 			}
 		}
 
-                m_Reseeder->Bootstrap ();
+		m_Reseeder->Bootstrap ();
 	}
 
 	void NetDb::ReseedFromFloodfill(const RouterInfo & ri, int numRouters, int numFloodfills)
@@ -392,7 +399,7 @@ namespace data
 	void NetDb::VisitStoredRouterInfos(RouterInfoVisitor v)
 	{
 		m_Storage.Iterate([v] (const std::string & filename) {
-        auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
+			auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
 				v(ri);
 		});
 	}

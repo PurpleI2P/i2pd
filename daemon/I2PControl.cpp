@@ -101,19 +101,19 @@ namespace client
 
 	void I2PControlService::Start ()
 	{
-		if (!m_IsRunning)
+		if (!m_IsRunning.load())
 		{
 			Accept ();
-			m_IsRunning = true;
+			m_IsRunning.store(true);
 			m_Thread = new std::thread (std::bind (&I2PControlService::Run, this));
 		}
 	}
 
 	void I2PControlService::Stop ()
 	{
-		if (m_IsRunning)
+		if (m_IsRunning.load())
 		{
-			m_IsRunning = false;
+			m_IsRunning.store(false);
 			m_Acceptor.cancel ();
 			m_Service.stop ();
 			if (m_Thread)
@@ -127,7 +127,7 @@ namespace client
 
 	void I2PControlService::Run ()
 	{
-		while (m_IsRunning)
+		while (m_IsRunning.load(std::memory_order_acquire))
 		{
 			try {
 				m_Service.run ();
@@ -160,7 +160,7 @@ namespace client
 	void I2PControlService::Handshake (std::shared_ptr<ssl_socket> socket)
 	{
 		socket->async_handshake(boost::asio::ssl::stream_base::server,
-        	std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
+		std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
 	}
 
 	void I2PControlService::HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)

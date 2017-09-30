@@ -17,6 +17,7 @@
 #include <chrono>
 #include <memory>
 #include <thread>
+#include <atomic>
 #include "Queue.h"
 
 #ifndef _WIN32
@@ -59,7 +60,7 @@ namespace log {
 			i2p::util::Queue<std::shared_ptr<LogMsg> > m_Queue;
 			bool m_HasColors;
 			std::string m_TimeFormat;
-			volatile bool m_IsRunning;
+			std::atomic_bool m_IsRunning;
 			std::thread * m_Thread;
 
 		private:
@@ -84,8 +85,8 @@ namespace log {
 			Log ();
 			~Log ();
 
-			LogType  GetLogType  () { return m_Destination; };
-			LogLevel GetLogLevel () { return m_MinLevel; };
+			LogType  GetLogType  () { return m_Destination; }
+			LogLevel GetLogLevel () { return m_MinLevel; }
 
 			void Start ();
 			void Stop ();
@@ -112,7 +113,7 @@ namespace log {
 			 * @brief  Sets format for timestamps in log
 			 * @param  format  String with timestamp format
 			 */
-			void SetTimeFormat (std::string format) { m_TimeFormat = format; };
+			void SetTimeFormat (std::string format) { m_TimeFormat = format; }
 
 	#ifndef _WIN32
 			/**
@@ -145,8 +146,8 @@ namespace log {
 		std::string text; /**< message text as single string */
 		LogLevel level;   /**< message level */
 		std::thread::id tid; /**< id of thread that generated message */
-    
-		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {};
+
+		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {}
 	};
 
 	Log & Logger();
@@ -184,7 +185,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	std::stringstream ss("");
 
 	LogPrint (ss, std::forward<TArgs>(args)...);
-  
+
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
 	msg->tid = std::this_thread::get_id();
 	log.Append(msg);

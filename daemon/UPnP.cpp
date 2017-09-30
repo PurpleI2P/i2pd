@@ -28,10 +28,10 @@ namespace transport
 
 	void UPnP::Stop ()
 	{
-		if (m_IsRunning)
+		if (m_IsRunning.load())
 		{
 			LogPrint(eLogInfo, "UPnP: stopping");
-			m_IsRunning = false;
+			m_IsRunning.store(false);
 			m_Timer.cancel ();
 			m_Service.stop ();
 			if (m_Thread)
@@ -46,12 +46,15 @@ namespace transport
 
 	void UPnP::Start()
 	{
-		m_IsRunning = true;
-		LogPrint(eLogInfo, "UPnP: starting");
-		m_Service.post (std::bind (&UPnP::Discover, this));
-		std::unique_lock<std::mutex> l(m_StartedMutex);
-		m_Thread.reset (new std::thread (std::bind (&UPnP::Run, this)));
-		m_Started.wait_for (l, std::chrono::seconds (5)); // 5 seconds maximum
+		if (!m_IsRunning.load())
+		{
+			m_IsRunning.store(true);
+			LogPrint(eLogInfo, "UPnP: starting");
+			m_Service.post (std::bind (&UPnP::Discover, this));
+			std::unique_lock<std::mutex> l(m_StartedMutex);
+			m_Thread.reset (new std::thread (std::bind (&UPnP::Run, this)));
+			m_Started.wait_for (l, std::chrono::seconds (5)); // 5 seconds maximum
+		}
 	}
 
 	UPnP::~UPnP ()
@@ -61,7 +64,7 @@ namespace transport
 
 	void UPnP::Run ()
 	{
-		while (m_IsRunning)
+		while (m_IsRunning.load(std::memory_order_acquire))
 		{
 			try
 			{

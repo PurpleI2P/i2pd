@@ -9,6 +9,7 @@
 #include <sstream>
 #include <map>
 #include <set>
+#include <atomic>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp> 
 #include <boost/property_tree/ptree.hpp>
@@ -101,7 +102,7 @@ namespace client
 		private:
 
 			std::string m_Password;
-			bool m_IsRunning;
+			std::atomic_bool m_IsRunning;
 			std::thread * m_Thread;
 
 			boost::asio::io_service m_Service;

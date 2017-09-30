@@ -10,7 +10,6 @@
 
 namespace i2p {
 namespace log {
-	static Log logger;
 	/**
 	 * @brief Maps our loglevel to their symbolic name
 	 */
@@ -70,17 +69,21 @@ namespace log {
 
 	void Log::Start ()
 	{
-		if (!m_IsRunning)
-		{	
-			m_IsRunning = true;	
+		// separate load and store for atomic is valid here
+		// because only one thread changes m_IsRunning
+		if (!m_IsRunning.load())
+		{
+			m_IsRunning.store(true);
 			m_Thread = new std::thread (std::bind (&Log::Run, this));
 		}
 	}
 
 	void Log::Stop ()	
 	{
-		switch (m_Destination) 
+		if (m_IsRunning.load())
 		{
+			switch (m_Destination)
+			{
 #ifndef _WIN32
 			case eLogSyslog :
 				closelog();
@@ -88,20 +91,22 @@ namespace log {
 #endif
 			case eLogFile:
 			case eLogStream:
-					if (m_LogStream) m_LogStream->flush();
+				if (m_LogStream) m_LogStream->flush();
 				break;
 			default:
 				/* do nothing */
 				break;
+			}
+
+			m_IsRunning.store(false);
+			m_Queue.WakeUp ();
+			if (m_Thread)
+			{
+				m_Thread->join ();
+				delete m_Thread;
+				m_Thread = nullptr;
+			}
 		}
-		m_IsRunning = false;
-		m_Queue.WakeUp ();
-		if (m_Thread)
-		{	
-			m_Thread->join (); 
-			delete m_Thread;
-			m_Thread = nullptr;
-		}		
 	}
 
 	void Log::SetLogLevel (const std::string& level) {
@@ -162,13 +167,13 @@ namespace log {
 	void Log::Run ()
 	{
 		Reopen ();
-		while (m_IsRunning)
+		while (m_IsRunning.load(std::memory_order_acquire))
 		{
 			std::shared_ptr<LogMsg> msg;
 			while (msg = m_Queue.Get ())
 				Process (msg);
 			if (m_LogStream) m_LogStream->flush();
-			if (m_IsRunning)
+			if (m_IsRunning.load(std::memory_order_acquire))
 				m_Queue.Wait ();
 		}
 	}		
@@ -215,6 +220,7 @@ namespace log {
 	}
 
 	Log & Logger() {
+		static Log logger;
 		return logger;
 	}
 } // log

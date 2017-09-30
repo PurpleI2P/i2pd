@@ -30,7 +30,7 @@ namespace i2p
 		public:
 
 			WebsocketServerImpl(const std::string & addr, int port) :
-				m_run(false),
+				m_IsRunning(false),
 				m_ws_thread(nullptr),
 				m_ev_thread(nullptr),
 				m_WebsocketTicker(m_Service)
@@ -48,10 +48,12 @@ namespace i2p
 			}
 
 			void Start() {
-				m_run = true;
-				m_server.start_accept();
-				m_ws_thread = new std::thread([&] () {
-						while(m_run) {
+				if (!m_IsRunning.load())
+				{
+					m_IsRunning.store(true);
+					m_server.start_accept();
+					m_ws_thread = new std::thread([&] () {
+						while(m_IsRunning.load(std::memory_order_acquire)) {
 							try {
 								m_server.run();
 							} catch (std::exception & e ) {
@@ -59,8 +61,8 @@ namespace i2p
 							}
 						}
 					});
-				m_ev_thread = new std::thread([&] () {
-						while(m_run) {
+					m_ev_thread = new std::thread([&] () {
+						while(m_IsRunning.load(std::memory_order_acquire)) {
 							try {
 								m_Service.run();
 								break;
@@ -69,25 +71,29 @@ namespace i2p
 							}
 						}
 					});
-				ScheduleTick();
+					ScheduleTick();
+				}
 			}
 
 			void Stop() {
-				m_run = false;
-				m_Service.stop();
-				m_server.stop();
+				if (m_IsRunning.load())
+				{
+					m_IsRunning.store(false);
+					m_Service.stop();
+					m_server.stop();
 
-				if(m_ev_thread) {
-					m_ev_thread->join();
-					delete m_ev_thread;
-				}
-				m_ev_thread = nullptr;
+					if(m_ev_thread) {
+						m_ev_thread->join();
+						delete m_ev_thread;
+					}
+					m_ev_thread = nullptr;
 
-				if(m_ws_thread) {
-					m_ws_thread->join();
-					delete m_ws_thread;
+					if(m_ws_thread) {
+						m_ws_thread->join();
+						delete m_ws_thread;
+					}
+					m_ws_thread = nullptr;
 				}
-				m_ws_thread = nullptr;
 			}
 
 			void ConnOpened(ServerConn c)
@@ -158,7 +164,7 @@ namespace i2p
 
 		private:
 			typedef std::set<ServerConn, std::owner_less<ServerConn> > ConnList;
-			bool m_run;
+			std::atomic_bool m_IsRunning;
 			std::thread * m_ws_thread;
 			std::thread * m_ev_thread;
 			std::mutex m_connsMutex;
