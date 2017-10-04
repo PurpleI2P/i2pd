@@ -58,10 +58,7 @@ namespace client
 					}
 				}
 				it = params->find (I2CP_PARAM_INBOUND_NICKNAME);
-				if (it != params->end ())
-					m_Nickname = it->second;
-				else
-					m_Nickname = i2p::data::GetIdentHashAbbreviation (GetIdentHash ());
+				if (it != params->end ()) m_Nickname = it->second; // otherwise we set deafult nickname in Start when we know local address
 			}
 		} 
 		catch (std::exception & ex) 
@@ -119,6 +116,8 @@ namespace client
 	{
 		if (!m_IsRunning)
 		{
+			if (m_Nickname.empty ())
+				m_Nickname = i2p::data::GetIdentHashAbbreviation (GetIdentHash ()); // set default nickname
 			LoadTags ();
 			m_IsRunning = true;
 			m_Pool->SetLocalDestination (shared_from_this ());
