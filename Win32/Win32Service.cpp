@@ -15,7 +15,6 @@ I2PService *I2PService::s_service = NULL;
 BOOL I2PService::isService()
 {
 	BOOL bIsService = FALSE;
-
 	HWINSTA hWinStation = GetProcessWindowStation();
 	if (hWinStation != NULL)
 	{
@@ -31,28 +30,23 @@ BOOL I2PService::isService()
 BOOL I2PService::Run(I2PService &service)
 {
 	s_service = &service;
-
 	SERVICE_TABLE_ENTRY serviceTable[] =
 	{
 		{ service.m_name, ServiceMain },
 		{ NULL, NULL }
 	};
-
 	return StartServiceCtrlDispatcher(serviceTable);
 }
-
 
 void WINAPI I2PService::ServiceMain(DWORD dwArgc, PSTR *pszArgv)
 {
 	assert(s_service != NULL);
-
 	s_service->m_statusHandle = RegisterServiceCtrlHandler(
 		s_service->m_name, ServiceCtrlHandler);
 	if (s_service->m_statusHandle == NULL)
 	{
 		throw GetLastError();
 	}
-
 	s_service->Start(dwArgc, pszArgv);
 }
 
@@ -61,12 +55,12 @@ void WINAPI I2PService::ServiceCtrlHandler(DWORD dwCtrl)
 {
 	switch (dwCtrl)
 	{
-	case SERVICE_CONTROL_STOP: s_service->Stop(); break;
-	case SERVICE_CONTROL_PAUSE: s_service->Pause(); break;
-	case SERVICE_CONTROL_CONTINUE: s_service->Continue(); break;
-	case SERVICE_CONTROL_SHUTDOWN: s_service->Shutdown(); break;
-	case SERVICE_CONTROL_INTERROGATE: break;
-	default: break;
+		case SERVICE_CONTROL_STOP: s_service->Stop(); break;
+		case SERVICE_CONTROL_PAUSE: s_service->Pause(); break;
+		case SERVICE_CONTROL_CONTINUE: s_service->Continue(); break;
+		case SERVICE_CONTROL_SHUTDOWN: s_service->Shutdown(); break;
+		case SERVICE_CONTROL_INTERROGATE: break;
+		default: break;
 	}
 }
 
@@ -76,11 +70,8 @@ I2PService::I2PService(PSTR pszServiceName,
 	BOOL fCanPauseContinue)
 {
 	m_name = (pszServiceName == NULL) ? (PSTR)"" : pszServiceName;
-
 	m_statusHandle = NULL;
-
 	m_status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-
 	m_status.dwCurrentState = SERVICE_START_PENDING;
 
 	DWORD dwControlsAccepted = 0;
@@ -90,15 +81,13 @@ I2PService::I2PService(PSTR pszServiceName,
 		dwControlsAccepted |= SERVICE_ACCEPT_SHUTDOWN;
 	if (fCanPauseContinue)
 		dwControlsAccepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
-	m_status.dwControlsAccepted = dwControlsAccepted;
 
+	m_status.dwControlsAccepted = dwControlsAccepted;
 	m_status.dwWin32ExitCode = NO_ERROR;
 	m_status.dwServiceSpecificExitCode = 0;
 	m_status.dwCheckPoint = 0;
 	m_status.dwWaitHint = 0;
-
 	m_fStopping = FALSE;
-
 	// Create a manual-reset event that is not signaled at first to indicate
 	// the stopped signal of the service.
 	m_hStoppedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -107,7 +96,6 @@ I2PService::I2PService(PSTR pszServiceName,
 		throw GetLastError();
 	}
 }
-
 
 I2PService::~I2PService(void)
 {
@@ -118,46 +106,36 @@ I2PService::~I2PService(void)
 	}
 }
 
-
 void I2PService::Start(DWORD dwArgc, PSTR *pszArgv)
 {
 	try
 	{
 		SetServiceStatus(SERVICE_START_PENDING);
-
 		OnStart(dwArgc, pszArgv);
-
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 	catch (DWORD dwError)
 	{
 		LogPrint(eLogError, "Win32Service Start", dwError);
-
 		SetServiceStatus(SERVICE_STOPPED, dwError);
 	}
 	catch (...)
 	{
 		LogPrint(eLogError, "Win32Service failed to start.", EVENTLOG_ERROR_TYPE);
-
 		SetServiceStatus(SERVICE_STOPPED);
 	}
 }
 
-
 void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 {
 	LogPrint(eLogInfo, "Win32Service in OnStart", EVENTLOG_INFORMATION_TYPE);
-
 	Daemon.start();
-
 	//i2p::util::config::OptionParser(dwArgc, pszArgv);
 	//i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
 	//i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
 	//	i2p::util::config::GetArg("-port", 17070));
-
 	_worker = new std::thread(std::bind(&I2PService::WorkerThread, this));
 }
-
 
 void I2PService::WorkerThread()
 {
@@ -165,11 +143,9 @@ void I2PService::WorkerThread()
 	{
 		::Sleep(1000); // Simulate some lengthy operations.
 	}
-
 	// Signal the stopped event.
 	SetEvent(m_hStoppedEvent);
 }
-
 
 void I2PService::Stop()
 {
@@ -177,33 +153,26 @@ void I2PService::Stop()
 	try
 	{
 		SetServiceStatus(SERVICE_STOP_PENDING);
-
 		OnStop();
-
 		SetServiceStatus(SERVICE_STOPPED);
 	}
 	catch (DWORD dwError)
 	{
 		LogPrint(eLogInfo, "Win32Service Stop", dwError);
-
 		SetServiceStatus(dwOriginalState);
 	}
 	catch (...)
 	{
 		LogPrint(eLogError, "Win32Service failed to stop.", EVENTLOG_ERROR_TYPE);
-
 		SetServiceStatus(dwOriginalState);
 	}
 }
-
 
 void I2PService::OnStop()
 {
 	// Log a service stop message to the Application log.
 	LogPrint(eLogInfo, "Win32Service in OnStop", EVENTLOG_INFORMATION_TYPE);
-
 	Daemon.stop();
-
 	m_fStopping = TRUE;
 	if (WaitForSingleObject(m_hStoppedEvent, INFINITE) != WAIT_OBJECT_0)
 	{
@@ -213,57 +182,46 @@ void I2PService::OnStop()
 	delete _worker;
 }
 
-
 void I2PService::Pause()
 {
 	try
 	{
 		SetServiceStatus(SERVICE_PAUSE_PENDING);
-
 		OnPause();
-
 		SetServiceStatus(SERVICE_PAUSED);
 	}
 	catch (DWORD dwError)
 	{
 		LogPrint(eLogError, "Win32Service Pause", dwError);
-
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 	catch (...)
 	{
 		LogPrint(eLogError, "Win32Service failed to pause.", EVENTLOG_ERROR_TYPE);
-
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 }
 
-
 void I2PService::OnPause()
 {
 }
-
 
 void I2PService::Continue()
 {
 	try
 	{
 		SetServiceStatus(SERVICE_CONTINUE_PENDING);
-
 		OnContinue();
-
 		SetServiceStatus(SERVICE_RUNNING);
 	}
 	catch (DWORD dwError)
 	{
 		LogPrint(eLogError, "Win32Service Continue", dwError);
-
 		SetServiceStatus(SERVICE_PAUSED);
 	}
 	catch (...)
 	{
 		LogPrint(eLogError, "Win32Service failed to resume.", EVENTLOG_ERROR_TYPE);
-
 		SetServiceStatus(SERVICE_PAUSED);
 	}
 }
@@ -277,7 +235,6 @@ void I2PService::Shutdown()
 	try
 	{
 		OnShutdown();
-
 		SetServiceStatus(SERVICE_STOPPED);
 	}
 	catch (DWORD dwError)
@@ -299,11 +256,9 @@ void I2PService::SetServiceStatus(DWORD dwCurrentState,
 	DWORD dwWaitHint)
 {
 	static DWORD dwCheckPoint = 1;
-
 	m_status.dwCurrentState = dwCurrentState;
 	m_status.dwWin32ExitCode = dwWin32ExitCode;
 	m_status.dwWaitHint = dwWaitHint;
-
 	m_status.dwCheckPoint =
 		((dwCurrentState == SERVICE_RUNNING) ||
 		(dwCurrentState == SERVICE_STOPPED)) ?
@@ -328,7 +283,7 @@ void FreeHandles(SC_HANDLE schSCManager, SC_HANDLE schService)
 	}
 }
 
-void InstallService(PSTR pszServiceName, PSTR pszDisplayName, DWORD dwStartType, PSTR pszDependencies, PSTR pszAccount, PSTR pszPassword)
+void InstallService(PCSTR pszServiceName, PCSTR pszDisplayName, DWORD dwStartType, PCSTR pszDependencies, PCSTR pszAccount, PCSTR pszPassword)
 {
 	printf("Try to install Win32Service (%s).\n", pszServiceName);
 
@@ -383,7 +338,7 @@ void InstallService(PSTR pszServiceName, PSTR pszDisplayName, DWORD dwStartType,
 	FreeHandles(schSCManager, schService);
 }
 
-void UninstallService(PSTR pszServiceName)
+void UninstallService(PCSTR pszServiceName)
 {
 	printf("Try to uninstall Win32Service (%s).\n", pszServiceName);
 

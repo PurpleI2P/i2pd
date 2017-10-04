@@ -6,7 +6,6 @@
 #include "Log.h"
 
 #ifdef _WIN32
-
 #include "Win32/Win32Service.h"
 #ifdef WIN32_APP
 #include "Win32/Win32App.h"
@@ -109,4 +108,4 @@ namespace util
 	}
 }
 }
-#endif
+#endif //_WIN32

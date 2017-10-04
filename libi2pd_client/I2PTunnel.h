@@ -29,7 +29,6 @@ namespace client
 	class I2PTunnelConnection: public I2PServiceHandler, public std::enable_shared_from_this<I2PTunnelConnection>
 	{
 		public:
-
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<const i2p::data::LeaseSet> leaseSet, int port = 0); // to I2P
 			I2PTunnelConnection (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
@@ -41,7 +40,6 @@ namespace client
 			void Connect (bool isUniqueLocal = true);
 
 		protected:
-
 			void Terminate ();
 
 			void Receive ();
@@ -56,7 +54,6 @@ namespace client
 			std::shared_ptr<const boost::asio::ip::tcp::socket> GetSocket () const { return m_Socket; };
 
 		private:
-
 			uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE], m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
@@ -67,18 +64,15 @@ namespace client
 	class I2PClientTunnelConnectionHTTP: public I2PTunnelConnection
 	{
 		public:
-
 			I2PClientTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				std::shared_ptr<i2p::stream::Stream> stream):
 				I2PTunnelConnection (owner, socket, stream), m_HeaderSent (false),
 				m_ConnectionSent (false), m_ProxyConnectionSent (false) {};
 
 		protected:
-
 			void Write (const uint8_t * buf, size_t len);
 
 		private:
-
 			std::stringstream m_InHeader, m_OutHeader;
 			bool m_HeaderSent, m_ConnectionSent, m_ProxyConnectionSent;
 	};
@@ -86,17 +80,14 @@ namespace client
 	class I2PServerTunnelConnectionHTTP: public I2PTunnelConnection
 	{
 		public:
-
 			I2PServerTunnelConnectionHTTP (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
 				std::shared_ptr<boost::asio::ip::tcp::socket> socket,
 				const boost::asio::ip::tcp::endpoint& target, const std::string& host);
 
 		protected:
-
 			void Write (const uint8_t * buf, size_t len);
 
 		private:
-
 			std::string m_Host;
 			std::stringstream m_InHeader, m_OutHeader;
 			bool m_HeaderSent;
@@ -104,35 +95,30 @@ namespace client
 	};
 
 	class I2PTunnelConnectionIRC: public I2PTunnelConnection
-    {
-        public:
+	{
+		public:
+			I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
+				std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+				const boost::asio::ip::tcp::endpoint& target, const std::string& m_WebircPass);
 
-            I2PTunnelConnectionIRC (I2PService * owner, std::shared_ptr<i2p::stream::Stream> stream,
-                std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-                const boost::asio::ip::tcp::endpoint& target, const std::string& m_WebircPass);
+		protected:
+			void Write (const uint8_t * buf, size_t len);
 
-        protected:
-
-            void Write (const uint8_t * buf, size_t len);
-
-        private:
-
-            std::shared_ptr<const i2p::data::IdentityEx> m_From;
-            std::stringstream m_OutPacket, m_InPacket;
+		private:
+			std::shared_ptr<const i2p::data::IdentityEx> m_From;
+			std::stringstream m_OutPacket, m_InPacket;
 			bool m_NeedsWebIrc;
-            std::string m_WebircPass;
-    };
+			std::string m_WebircPass;
+	};
 
 
 	class I2PClientTunnel: public TCPIPAcceptor
 	{
 		protected:
-
 			// Implements TCPIPAcceptor
 			std::shared_ptr<I2PServiceHandler> CreateHandler(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
 		public:
-
 			I2PClientTunnel (const std::string& name, const std::string& destination,
 				const std::string& address, int port, std::shared_ptr<ClientDestination> localDestination, int destinationPort = 0);
 			~I2PClientTunnel () {}
@@ -143,11 +129,9 @@ namespace client
 			const char* GetName() { return m_Name.c_str (); }
 
 		private:
-
 			const i2p::data::IdentHash * GetIdentHash ();
 
 		private:
-
 			std::string m_Name, m_Destination;
 			const i2p::data::IdentHash * m_DestinationIdentHash;
 			int m_DestinationPort;
@@ -208,11 +192,11 @@ namespace client
 
 	/** server side udp tunnel, many i2p inbound to 1 ip outbound */
 	class I2PUDPServerTunnel
-  {
+	{
 		public:
 			I2PUDPServerTunnel(const std::string & name,
 				std::shared_ptr<i2p::client::ClientDestination> localDestination,
-        boost::asio::ip::address localAddress,
+				boost::asio::ip::address localAddress,
 				boost::asio::ip::udp::endpoint forwardTo, uint16_t port);
 			~I2PUDPServerTunnel();
 			/** expire stale udp conversations */
@@ -225,7 +209,6 @@ namespace client
 			void SetUniqueLocal(bool isUniqueLocal = true) { m_IsUniqueLocal = isUniqueLocal; }
 
 		private:
-
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			UDPSessionPtr ObtainUDPSession(const i2p::data::IdentityEx& from, uint16_t localPort, uint16_t remotePort);
 
@@ -256,22 +239,22 @@ namespace client
 			void ExpireStale(const uint64_t delta=I2P_UDP_SESSION_TIMEOUT);
 
 		private:
-		typedef std::pair<boost::asio::ip::udp::endpoint, uint64_t> UDPConvo;
-		void RecvFromLocal();
-		void HandleRecvFromLocal(const boost::system::error_code & e, std::size_t transferred);
+			typedef std::pair<boost::asio::ip::udp::endpoint, uint64_t> UDPConvo;
+			void RecvFromLocal();
+			void HandleRecvFromLocal(const boost::system::error_code & e, std::size_t transferred);
 			void HandleRecvFromI2P(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 			void TryResolving();
 			const std::string m_Name;
-		std::mutex m_SessionsMutex;
-		std::map<uint16_t, UDPConvo > m_Sessions; // maps i2p port -> local udp convo
+			std::mutex m_SessionsMutex;
+			std::map<uint16_t, UDPConvo > m_Sessions; // maps i2p port -> local udp convo
 			const std::string m_RemoteDest;
 			std::shared_ptr<i2p::client::ClientDestination> m_LocalDest;
 			const boost::asio::ip::udp::endpoint m_LocalEndpoint;
 			i2p::data::IdentHash * m_RemoteIdent;
 			std::thread * m_ResolveThread;
-		boost::asio::ip::udp::socket m_LocalSocket;
-		boost::asio::ip::udp::endpoint m_RecvEndpoint;
-		uint8_t m_RecvBuff[I2P_UDP_MAX_MTU];
+			boost::asio::ip::udp::socket m_LocalSocket;
+			boost::asio::ip::udp::endpoint m_RecvEndpoint;
+			uint8_t m_RecvBuff[I2P_UDP_MAX_MTU];
 			uint16_t RemotePort;
 			bool m_cancel_resolve;
 	};
@@ -279,7 +262,6 @@ namespace client
 	class I2PServerTunnel: public I2PService
 	{
 		public:
-
 			I2PServerTunnel (const std::string& name, const std::string& address, int port,
 				std::shared_ptr<ClientDestination> localDestination, int inport = 0, bool gzip = true);
 
@@ -298,10 +280,9 @@ namespace client
 
 			const char* GetName() { return m_Name.c_str (); }
 
-      void SetMaxConnsPerMinute(const uint32_t conns) { m_PortDestination->SetMaxConnsPerMinute(conns); }
+			void SetMaxConnsPerMinute(const uint32_t conns) { m_PortDestination->SetMaxConnsPerMinute(conns); }
 
-  private:
-
+		private:
 			void HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
 				std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
 
@@ -310,7 +291,6 @@ namespace client
 			virtual std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
-
 			bool m_IsUniqueLocal;
 			std::string m_Name, m_Address;
 			int m_Port;
@@ -323,37 +303,30 @@ namespace client
 	class I2PServerTunnelHTTP: public I2PServerTunnel
 	{
 		public:
-
 			I2PServerTunnelHTTP (const std::string& name, const std::string& address, int port,
 				std::shared_ptr<ClientDestination> localDestination, const std::string& host,
-			    int inport = 0, bool gzip = true);
+				int inport = 0, bool gzip = true);
 
 		private:
-
 			std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
 		private:
-
 			std::string m_Host;
 	};
 
-    class I2PServerTunnelIRC: public I2PServerTunnel
-    {
-        public:
+	class I2PServerTunnelIRC: public I2PServerTunnel
+	{
+		public:
+			I2PServerTunnelIRC (const std::string& name, const std::string& address, int port,
+				std::shared_ptr<ClientDestination> localDestination, const std::string& webircpass,
+				int inport = 0, bool gzip = true);
 
-            I2PServerTunnelIRC (const std::string& name, const std::string& address, int port,
-                std::shared_ptr<ClientDestination> localDestination, const std::string& webircpass,
-                int inport = 0, bool gzip = true);
+		private:
+			std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
 
-        private:
-
-            std::shared_ptr<I2PTunnelConnection> CreateI2PConnection (std::shared_ptr<i2p::stream::Stream> stream);
-
-        private:
-
-        	std::string m_WebircPass;
-    };
-
+		private:
+			std::string m_WebircPass;
+	};
 }
 }
 

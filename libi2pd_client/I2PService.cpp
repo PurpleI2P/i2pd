@@ -13,8 +13,8 @@ namespace client
 	I2PService::I2PService (std::shared_ptr<ClientDestination> localDestination):
 		m_LocalDestination (localDestination ? localDestination :
 			i2p::client::context.CreateNewLocalDestination (false, I2P_SERVICE_DEFAULT_KEY_TYPE)),
-    m_ReadyTimer(m_LocalDestination->GetService()),
-		m_ConnectTimeout(0),
+			m_ReadyTimer(m_LocalDestination->GetService()),
+			m_ConnectTimeout(0),
 			isUpdated (true)
 	{
 		m_LocalDestination->Acquire ();
@@ -49,7 +49,7 @@ namespace client
 	{
 		if(timeout && !m_ConnectTimeout)
 		{
-				TriggerReadyCheckTimer();
+			TriggerReadyCheckTimer();
 		}
 		else if (m_ConnectTimeout && !timeout)
 		{
@@ -104,9 +104,7 @@ namespace client
 		assert(streamRequestComplete);
 		i2p::data::IdentHash identHash;
 		if (i2p::client::context.GetAddressBook ().GetIdentHash (dest, identHash))
-		{
 			CreateStream(streamRequestComplete, identHash, port);
-		}
 		else
 		{
 			LogPrint (eLogWarning, "I2PService: Remote destination not found: ", dest);
@@ -158,16 +156,16 @@ namespace client
 	void TCPIPPipe::Terminate()
 	{
 		if(Kill()) return;
-		if (m_up) {
-			if (m_up->is_open()) {
+		if (m_up)
+		{
+			if (m_up->is_open())
 				m_up->close();
-			}
 			m_up = nullptr;
 		}
-		if (m_down) {
-			if (m_down->is_open()) {
+		if (m_down)
+		{
+			if (m_down->is_open())
 				m_down->close();
-			}
 			m_down = nullptr;
 		}
 		Done(shared_from_this());
@@ -175,103 +173,106 @@ namespace client
 
 	void TCPIPPipe::AsyncReceiveUpstream()
 	{
-		if (m_up) {
+		if (m_up)
+		{
 			m_up->async_read_some(boost::asio::buffer(m_upstream_to_down_buf, TCP_IP_PIPE_BUFFER_SIZE),
-															std::bind(&TCPIPPipe::HandleUpstreamReceived, shared_from_this(),
-																				std::placeholders::_1, std::placeholders::_2));
-		} else {
-			LogPrint(eLogError, "TCPIPPipe: upstream receive: no socket");
+				std::bind(&TCPIPPipe::HandleUpstreamReceived, shared_from_this(),
+				std::placeholders::_1, std::placeholders::_2));
 		}
+		else
+			LogPrint(eLogError, "TCPIPPipe: upstream receive: no socket");
 	}
 
 	void TCPIPPipe::AsyncReceiveDownstream()
 	{
 		if (m_down) {
 			m_down->async_read_some(boost::asio::buffer(m_downstream_to_up_buf, TCP_IP_PIPE_BUFFER_SIZE),
-															std::bind(&TCPIPPipe::HandleDownstreamReceived, shared_from_this(),
-																				std::placeholders::_1, std::placeholders::_2));
-		} else {
-			LogPrint(eLogError, "TCPIPPipe: downstream receive: no socket");
+				std::bind(&TCPIPPipe::HandleDownstreamReceived, shared_from_this(),
+				std::placeholders::_1, std::placeholders::_2));
 		}
+		else
+			LogPrint(eLogError, "TCPIPPipe: downstream receive: no socket");
 	}
 
 	void TCPIPPipe::UpstreamWrite(size_t len)
 	{
-		if (m_up) {
+		if (m_up)
+		{
 			LogPrint(eLogDebug, "TCPIPPipe: upstream: ", (int) len, " bytes written");
 			boost::asio::async_write(*m_up, boost::asio::buffer(m_upstream_buf, len),
-															 boost::asio::transfer_all(),
-															 std::bind(&TCPIPPipe::HandleUpstreamWrite,
-																				 shared_from_this(),
-																				 std::placeholders::_1)
-															 );
-		} else {
-			LogPrint(eLogError, "TCPIPPipe: upstream write: no socket");
+				boost::asio::transfer_all(),
+				std::bind(&TCPIPPipe::HandleUpstreamWrite,
+				shared_from_this(),
+				std::placeholders::_1));
 		}
+		else
+			LogPrint(eLogError, "TCPIPPipe: upstream write: no socket");
 	}
 
 	void TCPIPPipe::DownstreamWrite(size_t len)
 	{
-		if (m_down) {
+		if (m_down)
+		{
 			LogPrint(eLogDebug, "TCPIPPipe: downstream: ", (int) len, " bytes written");
 			boost::asio::async_write(*m_down, boost::asio::buffer(m_downstream_buf, len),
-															 boost::asio::transfer_all(),
-															 std::bind(&TCPIPPipe::HandleDownstreamWrite,
-																				 shared_from_this(),
-																				 std::placeholders::_1)
-															 );
-		} else {
-			LogPrint(eLogError, "TCPIPPipe: downstream write: no socket");
+				boost::asio::transfer_all(),
+				std::bind(&TCPIPPipe::HandleDownstreamWrite,
+				shared_from_this(),
+				std::placeholders::_1));
 		}
+		else
+			LogPrint(eLogError, "TCPIPPipe: downstream write: no socket");
 	}
 
 
 	void TCPIPPipe::HandleDownstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
 		LogPrint(eLogDebug, "TCPIPPipe: downstream: ", (int) bytes_transfered, " bytes received");
-		if (ecode) {
+		if (ecode)
+		{
 			LogPrint(eLogError, "TCPIPPipe: downstream read error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
 		} else {
-			if (bytes_transfered > 0 ) {
+			if (bytes_transfered > 0 )
 				memcpy(m_upstream_buf, m_downstream_to_up_buf, bytes_transfered);
-			}
 			UpstreamWrite(bytes_transfered);
 		}
 	}
 
 	void TCPIPPipe::HandleDownstreamWrite(const boost::system::error_code & ecode) {
-		if (ecode) {
+		if (ecode)
+		{
 			LogPrint(eLogError, "TCPIPPipe: downstream write error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
-		} else {
-			AsyncReceiveUpstream();
 		}
+		else
+			AsyncReceiveUpstream();
 	}
 
 	void TCPIPPipe::HandleUpstreamWrite(const boost::system::error_code & ecode) {
-		if (ecode) {
+		if (ecode)
+		{
 			LogPrint(eLogError, "TCPIPPipe: upstream write error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
-		} else {
-			AsyncReceiveDownstream();
 		}
+		else
+			AsyncReceiveDownstream();
 	}
 
 	void TCPIPPipe::HandleUpstreamReceived(const boost::system::error_code & ecode, std::size_t bytes_transfered)
 	{
 		LogPrint(eLogDebug, "TCPIPPipe: upstream ", (int)bytes_transfered, " bytes received");
-		if (ecode) {
+		if (ecode)
+		{
 			LogPrint(eLogError, "TCPIPPipe: upstream read error:" , ecode.message());
 			if (ecode != boost::asio::error::operation_aborted)
 				Terminate();
 		} else {
-			if (bytes_transfered > 0 ) {
+			if (bytes_transfered > 0 )
 				memcpy(m_downstream_buf, m_upstream_to_down_buf, bytes_transfered);
-			}
 			DownstreamWrite(bytes_transfered);
 		}
 	}
