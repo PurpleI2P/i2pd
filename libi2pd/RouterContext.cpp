@@ -203,8 +203,9 @@ namespace i2p
 		}	
 	}	
 
-	void RouterContext::SetBandwidth (char L) {
-		uint16_t limit = 0;
+	void RouterContext::SetBandwidth (char L) 
+	{
+		uint32_t limit = 0;
 		enum { low, high, extra, unlim } type = high;
 		/* detect parameters */
 		switch (L) 
@@ -215,7 +216,7 @@ namespace i2p
 			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH2  : limit =  128; type = high;  break;
 			case i2p::data::CAPS_FLAG_HIGH_BANDWIDTH3  : limit =  256; type = high;  break;
 			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH1 : limit = 2048; type = extra; break;
-			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 9999; type = unlim; break;
+			case i2p::data::CAPS_FLAG_EXTRA_BANDWIDTH2 : limit = 1000000; type = unlim; break; // 1Gbyte/s
 			default:
 				 limit =  48; type = low;
 		}
