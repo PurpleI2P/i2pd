@@ -589,8 +589,9 @@ namespace http {
 		s << "<b>SAM Sessions:</b><br>\r\n<br>\r\n";
 		for (auto& it: sam->GetSessions ())
 		{
+			auto& name = it.second->localDestination->GetNickname ();
 			s << "<a href=\"/?page=" << HTTP_PAGE_SAM_SESSION << "&sam_id=" << it.first << "\">";
-			s << it.first << "</a><br>\r\n" << std::endl;
+			s << name << " (" << it.first << ")</a><br>\r\n" << std::endl;
 		}
 	}
 
