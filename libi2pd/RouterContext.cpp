@@ -16,8 +16,8 @@ namespace i2p
 	RouterContext context;
 
 	RouterContext::RouterContext ():
-		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false), 
-		m_StartupTime (0), m_ShareRatio (100), m_Status (eRouterStatusOK), 
+		m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false),
+		m_StartupTime (0), m_ShareRatio (100), m_Status (eRouterStatusOK),
 		m_Error (eRouterErrorNone), m_NetID (I2PD_NET_ID)
 	{
 	}
@@ -33,11 +33,11 @@ namespace i2p
 
 	void RouterContext::CreateNewRouter ()
 	{
-#if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)			
+#if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 #else
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_DSA_SHA1);
-#endif		
+#endif
 		SaveKeys ();
 		NewRouterInfo ();
 	}
@@ -75,7 +75,7 @@ namespace i2p
 			std::string host = "::";
 			if (!i2p::config::IsDefault("host") && !ipv4) // override if v6 only
 				i2p::config::GetOption("host", host);
-			else if (!ifname.empty()) 
+			else if (!ifname.empty())
 				host = i2p::util::net::GetInterfaceAddress(ifname, true).to_string(); // v6
 
 			if(ifname6.size())
@@ -84,10 +84,10 @@ namespace i2p
 			routerInfo.AddSSUAddress (host.c_str(), port, routerInfo.GetIdentHash ());
 			routerInfo.AddNTCPAddress (host.c_str(), port);
 		}
-		
-		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
+
+		routerInfo.SetCaps (i2p::data::RouterInfo::eReachable |
 			i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
-        routerInfo.SetProperty ("netId", std::to_string (m_NetID));
+		routerInfo.SetProperty ("netId", std::to_string (m_NetID));
 		routerInfo.SetProperty ("router.version", I2P_VERSION);
 		routerInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
@@ -99,39 +99,39 @@ namespace i2p
 		m_RouterInfo.CreateBuffer (m_Keys);
 		m_RouterInfo.SaveToFile (i2p::fs::DataDirPath (ROUTER_INFO));
 		m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
-	}	
+	}
 
-	void RouterContext::SetStatus (RouterStatus status) 
-	{ 
+	void RouterContext::SetStatus (RouterStatus status)
+	{
 		if (status != m_Status)
-		{	
+		{
 			m_Status = status;
 			m_Error = eRouterErrorNone;
 			switch (m_Status)
-			{	
+			{
 				case eRouterStatusOK:
 					SetReachable ();
 				break;
 				case eRouterStatusFirewalled:
 					SetUnreachable ();
-				break;	
+				break;
 				default:
 					;
 			}
-		}	
+		}
 	}
-		
+
 	void RouterContext::UpdatePort (int port)
 	{
 		bool updated = false;
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
 			if (address->port != port)
-			{	
+			{
 				address->port = port;
 				updated = true;
-			}	
-		}	
+			}
+		}
 		if (updated)
 			UpdateRouterInfo ();
 	}
@@ -142,11 +142,11 @@ namespace i2p
 		for (auto& address : m_RouterInfo.GetAddresses ())
 		{
 			if (address->host != host && address->IsCompatible (host))
-			{	
+			{
 				address->host = host;
 				updated = true;
-			}	
-		}	
+			}
+		}
 		auto ts = i2p::util::GetSecondsSinceEpoch ();
 		if (updated || ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
 			UpdateRouterInfo ();
@@ -156,16 +156,16 @@ namespace i2p
 	{
 		bool ret = m_RouterInfo.AddIntroducer (introducer);
 		if (ret)
-			UpdateRouterInfo ();	
+			UpdateRouterInfo ();
 		return ret;
-	}	
+	}
 
 	void RouterContext::RemoveIntroducer (const boost::asio::ip::udp::endpoint& e)
 	{
 		if (m_RouterInfo.RemoveIntroducer (e))
 			UpdateRouterInfo ();
-	}	
-	
+	}
+
 	void RouterContext::SetFloodfill (bool floodfill)
 	{
 		m_IsFloodfill = floodfill;
@@ -195,20 +195,20 @@ namespace i2p
 		{
 			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY, family);
 			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY_SIG, signature);
-		}	
+		}
 		else
 		{
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY);
 			m_RouterInfo.DeleteProperty (i2p::data::ROUTER_INFO_PROPERTY_FAMILY_SIG);
-		}	
-	}	
+		}
+	}
 
 	void RouterContext::SetBandwidth (char L) 
 	{
 		uint32_t limit = 0;
 		enum { low, high, extra, unlim } type = high;
 		/* detect parameters */
-		switch (L) 
+		switch (L)
 		{
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH1   : limit =   12; type = low;   break;
 			case i2p::data::CAPS_FLAG_LOW_BANDWIDTH2   : limit =   48; type = low;   break;
@@ -224,7 +224,7 @@ namespace i2p
 		auto caps = m_RouterInfo.GetCaps ();
 		caps &= ~i2p::data::RouterInfo::eHighBandwidth;
 		caps &= ~i2p::data::RouterInfo::eExtraBandwidth;
-		switch (type) 
+		switch (type)
 		{
 			case low   : /* not set */; break;
 			case extra : caps |= i2p::data::RouterInfo::eExtraBandwidth; break; // 'P'
@@ -236,7 +236,7 @@ namespace i2p
 		m_BandwidthLimit = limit;
 	}
 
-	void RouterContext::SetBandwidth (int limit) 
+	void RouterContext::SetBandwidth (int limit)
 	{
 		if      (limit > 2000) { SetBandwidth('X'); }
 		else if (limit >  256) { SetBandwidth('P'); }
@@ -257,8 +257,8 @@ namespace i2p
 	bool RouterContext::IsUnreachable () const
 	{
 		return m_RouterInfo.GetCaps () & i2p::data::RouterInfo::eUnreachable;
-	}	
-		
+	}
+
 	void RouterContext::SetUnreachable ()
 	{
 		// set caps
@@ -267,7 +267,7 @@ namespace i2p
 		caps |= i2p::data::RouterInfo::eUnreachable;
 		caps &= ~i2p::data::RouterInfo::eFloodfill;	// can't be floodfill
 		caps &= ~i2p::data::RouterInfo::eSSUIntroducer; // can't be introducer
-		m_RouterInfo.SetCaps (caps); 
+		m_RouterInfo.SetCaps (caps);
 		// remove NTCP address
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto it = addresses.begin (); it != addresses.end (); ++it)
@@ -278,12 +278,12 @@ namespace i2p
 				addresses.erase (it);
 				break;
 			}
-		}	
+		}
 		// delete previous introducers
-		for (auto& addr : addresses)	
+		for (auto& addr : addresses)
 			if (addr->ssu)
 				addr->ssu->introducers.clear ();
-	
+
 		// update
 		UpdateRouterInfo ();
 	}
@@ -298,7 +298,7 @@ namespace i2p
 		if (m_IsFloodfill)
 			caps |= i2p::data::RouterInfo::eFloodfill;
 		m_RouterInfo.SetCaps (caps);
-		
+
 		// insert NTCP back
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (const auto& addr : addresses)
@@ -310,16 +310,16 @@ namespace i2p
 				m_RouterInfo.AddNTCPAddress (addr->host.to_string ().c_str (), addr->port);
 				break;
 			}
-		}		
+		}
 		// delete previous introducers
 		for (auto& addr : addresses)
 			if (addr->ssu)
 				addr->ssu->introducers.clear ();
-		
+
 		// update
 		UpdateRouterInfo ();
-	}	
-		
+	}
+
 	void RouterContext::SetSupportsV6 (bool supportsV6)
 	{
 		if (supportsV6)
@@ -328,7 +328,7 @@ namespace i2p
 			m_RouterInfo.DisableV6 ();
 		UpdateRouterInfo ();
 	}
-  	
+
 	void RouterContext::SetSupportsV4 (bool supportsV4)
 	{
 		if (supportsV4)
@@ -337,11 +337,11 @@ namespace i2p
 			m_RouterInfo.DisableV4 ();
 		UpdateRouterInfo ();
 	}
-  
+
 
 	void RouterContext::UpdateNTCPV6Address (const boost::asio::ip::address& host)
 	{
-		bool updated = false, found = false;	
+		bool updated = false, found = false;
 		int port = 0;
 		auto& addresses = m_RouterInfo.GetAddresses ();
 		for (auto& addr: addresses)
@@ -353,24 +353,24 @@ namespace i2p
 					addr->host = host;
 					updated = true;
 				}
-				found = true;	
-			}	
+				found = true;
+			}
 			else
-				port = addr->port;	
-		}	
+				port = addr->port;
+		}
 		if (!found)
 		{
 			// create new address
 			m_RouterInfo.AddNTCPAddress (host.to_string ().c_str (), port);
 			auto mtu = i2p::util::net::GetMTU (host);
 			if (mtu)
-			{	
+			{
 				LogPrint (eLogDebug, "Router: Our v6 MTU=", mtu);
 				if (mtu > 1472) { // TODO: magic constant
 					mtu = 1472;
 					LogPrint(eLogWarning, "Router: MTU dropped to upper limit of 1472 bytes");
 				}
-			}	
+			}
 			m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu ? mtu : 1472); // TODO
 			updated = true;
 		}
@@ -385,21 +385,21 @@ namespace i2p
 			// update routers and leasesets
 			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_LEASESETS, std::to_string(i2p::data::netdb.GetNumLeaseSets ()));
 			m_RouterInfo.SetProperty (i2p::data::ROUTER_INFO_PROPERTY_ROUTERS,   std::to_string(i2p::data::netdb.GetNumRouters ()));
-			UpdateRouterInfo (); 
+			UpdateRouterInfo ();
 		}
 	}
-		
+
 	bool RouterContext::Load ()
 	{
 		std::ifstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ifstream::in | std::ifstream::binary);
 		if (!fk.is_open ())	return false;
 		fk.seekg (0, std::ios::end);
 		size_t len = fk.tellg();
-		fk.seekg (0, std::ios::beg);		
+		fk.seekg (0, std::ios::beg);
 
 		if (len == sizeof (i2p::data::Keys)) // old keys file format
 		{
-			i2p::data::Keys keys;	
+			i2p::data::Keys keys;
 			fk.read ((char *)&keys, sizeof (keys));
 			m_Keys = keys;
 		}
@@ -412,7 +412,7 @@ namespace i2p
 		}
 
 		m_RouterInfo.SetRouterIdentity (GetIdentity ());
-		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO)); 
+		i2p::data::RouterInfo routerInfo(i2p::fs::DataDirPath (ROUTER_INFO));
 		if (!routerInfo.IsUnreachable ()) // router.info looks good
 		{
 			m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
@@ -427,16 +427,16 @@ namespace i2p
 		{
 			LogPrint (eLogError, ROUTER_INFO, " is malformed. Creating new");
 			NewRouterInfo ();
-		}			
+		}
 
 		if (IsUnreachable ())
 			SetReachable (); // we assume reachable until we discover firewall through peer tests
-		
+
 		return true;
 	}
 
 	void RouterContext::SaveKeys ()
-	{	
+	{
 		// save in the same format as .dat files
 		std::ofstream fk (i2p::fs::DataDirPath (ROUTER_KEYS), std::ofstream::binary | std::ofstream::out);
 		size_t len = m_Keys.GetFullLen ();
@@ -448,9 +448,9 @@ namespace i2p
 
 	std::shared_ptr<i2p::tunnel::TunnelPool> RouterContext::GetTunnelPool () const
 	{
-		return i2p::tunnel::tunnels.GetExploratoryPool (); 
-	}	
-		
+		return i2p::tunnel::tunnels.GetExploratoryPool ();
+	}
+
 	void RouterContext::HandleI2NPMessage (const uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
 		i2p::HandleI2NPMessage (CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from));
@@ -460,22 +460,22 @@ namespace i2p
 	{
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
 		i2p::garlic::GarlicDestination::ProcessGarlicMessage (msg);
-	}	
-			
+	}
+
 	void RouterContext::ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg)
 	{
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
 		i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage (msg);
-	}	
+	}
 
 	void RouterContext::CleanupDestination ()
 	{
 		std::unique_lock<std::mutex> l(m_GarlicMutex);
 		i2p::garlic::GarlicDestination::CleanupExpiredTags ();
 	}
-		
+
 	uint32_t RouterContext::GetUptime () const
 	{
 		return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
-	}	
+	}
 }

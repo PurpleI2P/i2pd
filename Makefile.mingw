@@ -47,8 +47,7 @@ ifeq ($(USE_AVX),1)
 endif
 
 ifeq ($(USE_ASLR),yes)
-	LDFLAGS += -Wl,--nxcompat -Wl,--high-entropy-va \
-	-Wl,--dynamicbase,--export-all-symbols
+	LDFLAGS += -Wl,--nxcompat -Wl,--high-entropy-va -Wl,--dynamicbase,--export-all-symbols
 endif
 
 obj/%.o : %.rc

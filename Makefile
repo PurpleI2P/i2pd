@@ -89,14 +89,14 @@ $(SHLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
 	$(CXX) $(LDFLAGS) $(LDLIBS) -shared -o $@ $^
 
 $(ARLIB): $(patsubst %.cpp,obj/%.o,$(LIB_SRC))
-	ar -r $@ $^
+	$(AR) -r $@ $^
 
 $(ARLIB_CLIENT): $(patsubst %.cpp,obj/%.o,$(LIB_CLIENT_SRC))
-	ar -r $@ $^
+	$(AR) -r $@ $^
 
 clean:
-	rm -rf obj
-	rm -rf docs/generated
+	$(RM) -r obj
+	$(RM) -r docs/generated
 	$(RM) $(I2PD) $(SHLIB) $(ARLIB) $(SHLIB_CLIENT) $(ARLIB_CLIENT)
 
 strip: $(I2PD) $(SHLIB_CLIENT) $(SHLIB)
