@@ -692,8 +692,9 @@ namespace client
 		}
 		else
 		{
-			boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+			if (m_SocketType != eSAMSocketTypeTerminated) // check for possible race condition with Terminate()
+				boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
+        			std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
 		}
 	}
 
