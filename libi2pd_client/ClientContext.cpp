@@ -54,6 +54,7 @@ namespace client
 			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
 			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
 			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype",  sigType);
+			std::string httpOutProxyURL; i2p::config::GetOption("httpproxy.outproxy",     httpOutProxyURL);
 			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
 			if (httpProxyKeys.length () > 0)
 			{
@@ -70,7 +71,7 @@ namespace client
 			}
 			try
 			{
-			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, localDestination);
+			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
 			  m_HttpProxy->Start();
 			}
 			catch (std::exception& e)
@@ -536,7 +537,8 @@ namespace client
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
 						{
 							// http proxy
-							clientTunnel = new i2p::proxy::HTTPProxy(address, port, localDestination);
+							std::string outproxy = section.second.get("outproxy", "");
+							clientTunnel = new i2p::proxy::HTTPProxy(address, port, outproxy, localDestination);
 							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)
