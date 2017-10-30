@@ -147,13 +147,20 @@ namespace transport
 	 		m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 		}
 
-                i2p::config::GetOption("nat", m_IsNAT);
-
+		i2p::config::GetOption("nat", m_IsNAT);
 		m_DHKeysPairSupplier.Start ();
 		m_IsRunning = true;
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcpproxy; i2p::config::GetOption("ntcpproxy", ntcpproxy);
 		i2p::http::URL proxyurl;
+		uint16_t softLimit, hardLimit;
+		i2p::config::GetOption("limits.ntcpsoft", softLimit);
+		i2p::config::GetOption("limits.ntcphard", hardLimit);
+		if(softLimit >= hardLimit)
+		{
+			LogPrint(eLogError, "ntcp soft limit must be less than ntcp hard limit");
+			return;
+		}
 		if(ntcpproxy.size() && enableNTCP)
 		{
 			if(proxyurl.parse(ntcpproxy))
@@ -161,12 +168,11 @@ namespace transport
 				if(proxyurl.schema == "socks" || proxyurl.schema == "http")
 				{
 					m_NTCPServer = new NTCPServer();
-
+					m_NTCPServer->SetSessionLimits(softLimit, hardLimit);
 					NTCPServer::ProxyType proxytype = NTCPServer::eSocksProxy;
 
 					if (proxyurl.schema == "http")
 						proxytype = NTCPServer::eHTTPProxy;
-
 					m_NTCPServer->UseProxy(proxytype, proxyurl.host, proxyurl.port) ;
 					m_NTCPServer->Start();
 					if(!m_NTCPServer->NetworkIsReady())
@@ -193,6 +199,7 @@ namespace transport
 			if (m_NTCPServer == nullptr && enableNTCP)
 			{
 				m_NTCPServer = new NTCPServer ();
+				m_NTCPServer->SetSessionLimits(softLimit, hardLimit);
 				m_NTCPServer->Start ();
 				if (!(m_NTCPServer->IsBoundV6() || m_NTCPServer->IsBoundV4())) {
 					/** failed to bind to NTCP */
@@ -394,20 +401,27 @@ namespace transport
 					{
 						if (!peer.router->UsesIntroducer () && !peer.router->IsUnreachable ())
 						{
-							auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
-							if(m_NTCPServer->UsingProxy())
+							if(!m_NTCPServer->ShouldLimit())
 							{
-								NTCPServer::RemoteAddressType remote = NTCPServer::eIP4Address;
-								std::string addr = address->host.to_string();
+								auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+								if(m_NTCPServer->UsingProxy())
+								{
+									NTCPServer::RemoteAddressType remote = NTCPServer::eIP4Address;
+									std::string addr = address->host.to_string();
 
-								if(address->host.is_v6())
-									remote = NTCPServer::eIP6Address;
+									if(address->host.is_v6())
+										remote = NTCPServer::eIP6Address;
 
-								m_NTCPServer->ConnectWithProxy(addr, address->port, remote, s);
+									m_NTCPServer->ConnectWithProxy(addr, address->port, remote, s);
+								}
+								else
+									m_NTCPServer->Connect (address->host, address->port, s);
+								return true;
 							}
 							else
-								m_NTCPServer->Connect (address->host, address->port, s);
-							return true;
+							{
+								LogPrint(eLogWarning, "Transports: NTCP Limit hit falling back to SSU");
+							}
 						}
 					}
 					else // we don't have address
