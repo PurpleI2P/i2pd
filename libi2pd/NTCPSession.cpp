@@ -970,7 +970,7 @@ namespace transport
 				{
 					// hit limit, close premature
 					LogPrint(eLogWarning, "NTCP: limiting with backoff session from ", ep);
-					conn->GetSocket().close();
+					conn->Terminate();
 					return;
 				}
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
@@ -1005,7 +1005,7 @@ namespace transport
 				{
 					// hit limit, close premature
 					LogPrint(eLogWarning, "NTCP: limiting with backoff on session from ", ep);
-					conn->GetSocket().close();
+					conn->Terminate();
 					return;
 				}
 
