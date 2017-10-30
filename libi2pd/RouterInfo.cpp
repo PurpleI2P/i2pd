@@ -166,7 +166,6 @@ namespace data
 		for (int i = 0; i < numAddresses; i++)
 		{
 			uint8_t supportedTransports = 0;
-			bool isValidAddress = true;
 			auto address = std::make_shared<Address>();
 			s.read ((char *)&address->cost, sizeof (address->cost));
 			s.read ((char *)&address->date, sizeof (address->date));
@@ -269,7 +268,8 @@ namespace data
 				}
 				if (!s) return;
 			}	
-			if (isValidAddress)
+			if (introducers) supportedTransports |= eSSUV4; // in case if host is not presented
+			if (supportedTransports)
 			{
 				addresses->push_back(address);
 				m_SupportedTransports |= supportedTransports;
