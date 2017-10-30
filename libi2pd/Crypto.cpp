@@ -372,6 +372,42 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}
 
+// ECICS
+	void ECICSEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
+	{
+		BN_CTX_start (ctx);
+		BIGNUM * q = BN_CTX_get (ctx);
+		EC_GROUP_get_order(curve, q, ctx);
+		int len = BN_num_bytes (q);
+		BIGNUM * k = BN_CTX_get (ctx);
+		BN_rand_range (k, q); // 0 < k < q
+		// point for shared secret
+		auto p = EC_POINT_new (curve);
+		EC_POINT_mul (curve, p, k, nullptr, nullptr, ctx);
+		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
+		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);		
+		bn2buf (x, encrypted, len);
+		bn2buf (y, encrypted + len, len);
+		RAND_bytes (encrypted + 2*len, 256 - 2*len);
+		// ecryption key
+		EC_POINT_mul (curve, p, nullptr, key, k, ctx); 
+		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
+		uint8_t keyBuf[64], shared[32]; 
+		bn2buf (x, keyBuf, len);
+		SHA256 (keyBuf, len, shared);
+		// create buffer
+		uint8_t m[256];
+		m[0] = 0xFF; m[255] = 0xFF;
+		memcpy (m+33, data, 222);
+		SHA256 (m+33, 222, m+1);
+		// encrypt
+		AES_KEY aesKey;
+		AES_set_encrypt_key (shared, 256, &aesKey);
+		AES_encrypt (m, encrypted + 256, &aesKey);
+		EC_POINT_free (p);
+		BN_CTX_end (ctx);
+	}
+
 // HMAC
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C; 			
