@@ -156,7 +156,7 @@ namespace transport
 		uint16_t softLimit, hardLimit;
 		i2p::config::GetOption("limits.ntcpsoft", softLimit);
 		i2p::config::GetOption("limits.ntcphard", hardLimit);
-		if(softLimit >= hardLimit)
+		if(softLimit > 0 && hardLimit > 0 && softLimit >= hardLimit)
 		{
 			LogPrint(eLogError, "ntcp soft limit must be less than ntcp hard limit");
 			return;
