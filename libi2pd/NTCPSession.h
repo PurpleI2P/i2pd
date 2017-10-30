@@ -167,8 +167,19 @@ namespace transport
 
 			boost::asio::io_service& GetService () { return m_Service; };
 
+			void SetSessionLimits(uint16_t softLimit, uint16_t hardLimit) { m_SoftLimit = softLimit; m_HardLimit = hardLimit; }
+			bool ShouldLimit() const { return ShouldHardLimit() || ShouldSoftLimit(); }
 		private:
 
+			/** @brief return true for hard limit */
+			bool ShouldHardLimit() const { return m_HardLimit && m_NTCPSessions.size() >= m_HardLimit; }
+
+			/** @brief return true for probabalistic soft backoff */
+			bool ShouldSoftLimit() const
+			{
+				auto sessions = m_NTCPSessions.size();
+				return sessions && m_SoftLimit && m_SoftLimit < sessions && ( rand() % sessions ) <= m_SoftLimit;
+			}
 			void Run ();
 			void HandleAccept (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
 			void HandleAcceptV6 (std::shared_ptr<NTCPSession> conn, const boost::system::error_code& error);
@@ -198,6 +209,8 @@ namespace transport
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;
 			boost::asio::ip::tcp::endpoint * m_ProxyEndpoint;
+
+			uint16_t m_SoftLimit, m_HardLimit;
 		public:
 
 			// for HTTP/I2PControl
