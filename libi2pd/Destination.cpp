@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <string>
 #include "Crypto.h"
 #include "Log.h"
 #include "FS.h"

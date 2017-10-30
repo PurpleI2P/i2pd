@@ -86,6 +86,7 @@ namespace proxy {
 			std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
 		std::shared_ptr<boost::asio::ip::tcp::socket> m_proxysock;
 		boost::asio::ip::tcp::resolver m_proxy_resolver;
+		std::string m_OutproxyUrl;
 		i2p::http::URL m_ProxyURL;
 		i2p::http::URL m_RequestURL;
 		uint8_t m_socks_buf[255+8]; // for socks request/response
@@ -99,7 +100,8 @@ namespace proxy {
 			HTTPReqHandler(HTTPProxy * parent, std::shared_ptr<boost::asio::ip::tcp::socket> sock) :
 				I2PServiceHandler(parent), m_sock(sock),
 				m_proxysock(std::make_shared<boost::asio::ip::tcp::socket>(parent->GetService())),
-				m_proxy_resolver(parent->GetService()) {}
+				m_proxy_resolver(parent->GetService()),
+				m_OutproxyUrl(parent->GetOutproxyURL()) {}
 			~HTTPReqHandler() { Terminate(); }
 			void Handle () { AsyncSockRead(); } /* overload */
 	};
@@ -324,10 +326,9 @@ namespace proxy {
 				return true; /* request processed */
 			}
 		} else {
-			std::string outproxyUrl; i2p::config::GetOption("httpproxy.outproxy", outproxyUrl);
-			if(outproxyUrl.size()) {
-				LogPrint (eLogDebug, "HTTPProxy: use outproxy ", outproxyUrl);
-				if(m_ProxyURL.parse(outproxyUrl))
+			if(m_OutproxyUrl.size()) {
+				LogPrint (eLogDebug, "HTTPProxy: use outproxy ", m_OutproxyUrl);
+				if(m_ProxyURL.parse(m_OutproxyUrl))
 					ForwardToUpstreamProxy();
 				else
 					GenericProxyError("Outproxy failure", "bad outproxy settings");
@@ -379,10 +380,19 @@ namespace proxy {
 		if (m_ProxyURL.schema == "" || m_ProxyURL.schema == "http") {
 			// handle upstream http proxy
 			if (!m_ProxyURL.port) m_ProxyURL.port = 80;
-			boost::asio::ip::tcp::resolver::query q(m_ProxyURL.host, std::to_string(m_ProxyURL.port));
-			m_proxy_resolver.async_resolve(q, std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) {
-						m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamHTTPProxyConnect, this, std::placeholders::_1));
-			}));
+			if (m_ProxyURL.is_i2p())
+			{
+				m_send_buf = m_recv_buf;
+				GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
+					shared_from_this(), std::placeholders::_1), m_ProxyURL.host, m_ProxyURL.port);
+			}
+			else
+			{
+				boost::asio::ip::tcp::resolver::query q(m_ProxyURL.host, std::to_string(m_ProxyURL.port));
+				m_proxy_resolver.async_resolve(q, std::bind(&HTTPReqHandler::HandleUpstreamProxyResolved, this, std::placeholders::_1, std::placeholders::_2, [&](boost::asio::ip::tcp::endpoint ep) {
+					m_proxysock->async_connect(ep, std::bind(&HTTPReqHandler::HandleUpstreamHTTPProxyConnect, this, std::placeholders::_1));
+				}));
+			}
 		} else if (m_ProxyURL.schema == "socks") {
 			// handle upstream socks proxy
 			if (!m_ProxyURL.port) m_ProxyURL.port = 9050; // default to tor default if not specified
@@ -572,8 +582,9 @@ namespace proxy {
 		Done (shared_from_this());
 	}
 
-	HTTPProxy::HTTPProxy(const std::string& address, int port, std::shared_ptr<i2p::client::ClientDestination> localDestination):
-		TCPIPAcceptor(address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ())
+	HTTPProxy::HTTPProxy(const std::string& address, int port, const std::string & outproxy, std::shared_ptr<i2p::client::ClientDestination> localDestination):
+		TCPIPAcceptor(address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()),
+		m_OutproxyUrl(outproxy)
 	{
 	}
 
