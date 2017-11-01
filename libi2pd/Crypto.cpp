@@ -389,11 +389,12 @@ namespace crypto
 		bn2buf (x, encrypted, len);
 		bn2buf (y, encrypted + len, len);
 		RAND_bytes (encrypted + 2*len, 256 - 2*len);
-		// ecryption key
+		// ecryption key and iv
 		EC_POINT_mul (curve, p, nullptr, key, k, ctx); 
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
-		uint8_t keyBuf[64], shared[32]; 
+		uint8_t keyBuf[64], iv[64], shared[32]; 
 		bn2buf (x, keyBuf, len);
+		bn2buf (y, iv, len);
 		SHA256 (keyBuf, len, shared);
 		// create buffer
 		uint8_t m[256];
@@ -401,9 +402,10 @@ namespace crypto
 		memcpy (m+33, data, 222);
 		SHA256 (m+33, 222, m+1);
 		// encrypt
-		AES_KEY aesKey;
-		AES_set_encrypt_key (shared, 256, &aesKey);
-		AES_encrypt (m, encrypted + 256, &aesKey);
+		CBCEncryption encryption;
+		encryption.SetKey (shared);
+		encryption.SetIV (iv);
+		encryption.Encrypt (m, 256, encrypted + 256);
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
 	}
