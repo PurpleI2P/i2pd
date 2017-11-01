@@ -460,6 +460,19 @@ namespace crypto
 		return ret;
 	}
 
+	void GenerateECICSKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub)
+	{
+		BN_CTX * ctx = BN_CTX_new ();
+		BIGNUM * q = BN_new ();
+		EC_GROUP_get_order(curve, q, ctx);
+		priv = BN_new ();
+		BN_rand_range (priv, q); 
+		pub = EC_POINT_new (curve);
+		EC_POINT_mul (curve, pub, priv, nullptr, nullptr, ctx);
+		BN_free (q);
+		BN_CTX_free (ctx);
+	}
+
 // HMAC
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C; 			
