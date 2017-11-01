@@ -410,6 +410,56 @@ namespace crypto
 		BN_CTX_end (ctx);
 	}
 
+	bool ECICSDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
+	{
+		bool ret = true;
+		BN_CTX_start (ctx);
+		BIGNUM * q = BN_CTX_get (ctx);
+		EC_GROUP_get_order(curve, q, ctx);
+		int len = BN_num_bytes (q);
+		// point for shared secret
+		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
+		BN_bin2bn (encrypted, len, x);		
+		BN_bin2bn (encrypted + len, len, y);	
+		auto p = EC_POINT_new (curve);
+		if (EC_POINT_set_affine_coordinates_GFp (curve, p, x, y, nullptr))
+		{
+			auto s = EC_POINT_new (curve);
+			EC_POINT_mul (curve, s, nullptr, p, key, ctx); 
+			EC_POINT_get_affine_coordinates_GFp (curve, s, x, y, nullptr);
+			EC_POINT_free (s);
+			uint8_t keyBuf[64], iv[64], shared[32]; 
+			bn2buf (x, keyBuf, len);
+			bn2buf (y, iv, len);
+			SHA256 (keyBuf, len, shared);
+			// decrypt
+			uint8_t m[256];
+			CBCDecryption decryption;
+			decryption.SetKey (shared);
+			decryption.SetIV (iv);
+			decryption.Decrypt (encrypted + 256, 256, m);
+			// verify and copy
+			uint8_t hash[32];
+			SHA256 (m + 33, 222, hash);		
+			if (!memcmp (m + 1, hash, 32))
+				memcpy (data, m + 33, 222);	
+			else
+			{
+				LogPrint (eLogError, "ECICS decrypt hash doesn't match");
+				ret = false;
+			}	
+		}
+		else
+		{
+			LogPrint (eLogError, "ECICS decrypt point is invalid");
+			ret = false;
+		}
+		
+		EC_POINT_free (p);
+		BN_CTX_end (ctx);
+		return ret;
+	}
+
 // HMAC
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C; 			

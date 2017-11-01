@@ -54,7 +54,7 @@ namespace crypto
 
 	// ECICS
 	void ECICSEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx); // 222 bytes data, 512 bytes encrypted
-		
+	bool ECICSDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);	
 	
 	// HMAC
 	typedef i2p::data::Tag<32> MACKey;		
