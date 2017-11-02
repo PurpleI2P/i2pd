@@ -52,6 +52,8 @@ namespace data
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
 
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
+	const uint16_t CRYPTO_KEY_TYPE_ECICS_P256_SHA256_AES256CBC = 65280; // TODO: change to actual code
+
 	const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
@@ -64,9 +66,6 @@ namespace data
 	// following signature type should never appear in netid=2
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256 = 9;
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512 = 10; // approved by FSB
-	// TODO: remove later
-	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST = 65281;
-	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST = 65282;
 
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
@@ -77,7 +76,7 @@ namespace data
 
 			IdentityEx ();
 			IdentityEx (const uint8_t * publicKey, const uint8_t * signingKey,
-				SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+				SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
 			IdentityEx (const uint8_t * buf, size_t len);
 			IdentityEx (const IdentityEx& other);
 			IdentityEx (const Identity& standard);
@@ -147,7 +146,8 @@ namespace data
 			size_t FromBase64(const std::string& s);
 			std::string ToBase64 () const;
 
-			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
+			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
 
 		private:
 

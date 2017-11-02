@@ -39,10 +39,10 @@ namespace data
 	{
 	}
 
-	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type):
+	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType):
 		m_IsVerifierCreated (false)
-	{
-		memcpy (m_StandardIdentity.publicKey, publicKey, sizeof (m_StandardIdentity.publicKey));
+	{	
+		memcpy (m_StandardIdentity.publicKey, publicKey, 256); // publicKey in awlays assumed 256 regardless actual size, padding must be taken care of
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
 			size_t excessLen = 0;
@@ -103,7 +103,6 @@ namespace data
 					break;
 				}
 				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
-				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 				{
 					// 256
 					size_t padding = 128 - i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
@@ -112,7 +111,6 @@ namespace data
 					break;
 				}
 				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
-				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:
 				{
 					// 512
 					// no padding, key length is 128
@@ -129,7 +127,7 @@ namespace data
 			// fill extended buffer
 			m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
 			htobe16buf (m_ExtendedBuffer, type);
-			htobe16buf (m_ExtendedBuffer + 2, CRYPTO_KEY_TYPE_ELGAMAL);
+			htobe16buf (m_ExtendedBuffer + 2, cryptoType);
 			if (excessLen && excessBuf)
 			{
 				memcpy (m_ExtendedBuffer + 4, excessBuf, excessLen);
@@ -397,14 +395,12 @@ namespace data
 				break;
 			}
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
-			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 			{
 				size_t padding =  128 - i2p::crypto::GOSTR3410_256_PUBLIC_KEY_LENGTH; // 64 = 128 - 64
 				UpdateVerifier (new i2p::crypto::GOSTR3410_256_Verifier (i2p::crypto::eGOSTR3410CryptoProA, m_StandardIdentity.signingKey + padding));
 				break;
 			}
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
-			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:
 			{
 				// zero padding
 				UpdateVerifier (new i2p::crypto::GOSTR3410_512_Verifier (i2p::crypto::eGOSTR3410TC26A512, m_StandardIdentity.signingKey));
@@ -553,11 +549,9 @@ namespace data
 				m_Signer.reset (new i2p::crypto::EDDSA25519Signer (m_SigningPrivateKey, m_Public->GetStandardIdentity ().certificate - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH));
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
-			case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 				m_Signer.reset (new i2p::crypto::GOSTR3410_256_Signer (i2p::crypto::eGOSTR3410CryptoProA, m_SigningPrivateKey));
 			break;
 			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
-			case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:
 				m_Signer.reset (new i2p::crypto::GOSTR3410_512_Signer (i2p::crypto::eGOSTR3410TC26A512, m_SigningPrivateKey));
 			break;
 			default:
@@ -573,7 +567,7 @@ namespace data
 			return nullptr; // TODO: implement me
 	}
 
-	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type)
+	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type, CryptoKeyType cryptoType)
 	{
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
@@ -604,11 +598,9 @@ namespace data
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
 				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256:
-				case SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST:
 					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410CryptoProA, keys.m_SigningPrivateKey, signingPublicKey);
 				break;
 				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512:
-				case SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST:
 					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, keys.m_SigningPrivateKey, signingPublicKey);
 				break;
 				default:
@@ -617,7 +609,7 @@ namespace data
 			}
 			// encryption
 			uint8_t publicKey[256];
-			i2p::crypto::GenerateElGamalKeyPair (keys.m_PrivateKey, publicKey);
+			GenerateCryptoKeyPair (cryptoType, keys.m_PrivateKey, publicKey);
 			// identity
 			keys.m_Public = std::make_shared<IdentityEx> (publicKey, signingPublicKey, type);
 
@@ -625,6 +617,37 @@ namespace data
 			return keys;
 		}
 		return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
+	}
+
+	void PrivateKeys::GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub)
+	{
+		switch (type)
+		{
+			case CRYPTO_KEY_TYPE_ELGAMAL:
+				i2p::crypto::GenerateElGamalKeyPair(priv, pub);
+			break;
+			case CRYPTO_KEY_TYPE_ECICS_P256_SHA256_AES256CBC:
+			{
+				EC_GROUP * curve = EC_GROUP_new_by_curve_name (NID_X9_62_prime256v1);
+				EC_POINT * p = nullptr; 
+				BIGNUM * key = nullptr;
+				i2p::crypto::GenerateECICSKeyPair (curve, key, p);
+				i2p::crypto::bn2buf (key, priv, 32);
+				RAND_bytes (priv + 32, 224);
+				BN_free (key);
+				BIGNUM * x = BN_new (), * y = BN_new ();
+				EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, NULL);
+				i2p::crypto::bn2buf (x, pub, 32);
+				i2p::crypto::bn2buf (y, pub + 32, 32);				
+				RAND_bytes (priv + 64, 192);
+				EC_POINT_free (p); 
+				BN_free (x); BN_free (y);
+				EC_GROUP_free (curve);	
+				break;
+			}
+			default:
+				LogPrint (eLogError, "Identity: Crypto key type ", (int)type, " is not supported");
+		}	
 	}
 
 	Keys CreateRandomKeys ()

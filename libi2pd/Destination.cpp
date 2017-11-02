@@ -709,7 +709,8 @@ namespace client
 		if (isPublic)
 			PersistTemporaryKeys ();
 		else
-			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+			i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (), 
+				m_EncryptionPrivateKey, m_EncryptionPublicKey);
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 	}
