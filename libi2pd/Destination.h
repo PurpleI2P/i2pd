@@ -50,6 +50,7 @@ namespace client
 	const int STREAM_REQUEST_TIMEOUT = 60; //in seconds
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
 	const int DEFAULT_TAGS_TO_SEND = 40;
+	const char I2CP_PARAM_INBOUND_NICKNAME[] = "inbound.nickname";
 
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";
@@ -86,6 +87,7 @@ namespace client
 
 			LeaseSetDestination (bool isPublic, const std::map<std::string, std::string> * params = nullptr);
 			~LeaseSetDestination ();
+			const std::string& GetNickname () const { return m_Nickname; };
 
 			virtual bool Start ();
 			virtual bool Stop ();
@@ -153,6 +155,7 @@ namespace client
 
 			boost::asio::deadline_timer m_PublishConfirmationTimer, m_PublishVerificationTimer,
 				m_PublishDelayTimer, m_CleanupTimer;
+			std::string m_Nickname;
 
 		public:
 

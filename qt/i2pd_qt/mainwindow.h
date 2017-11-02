@@ -24,6 +24,7 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
 #include "QVBoxLayout"
+#include "QUrl"
 
 #ifndef ANDROID
 # include <QSystemTrayIcon>
@@ -40,6 +41,7 @@
 #include "ServerTunnelPane.h"
 #include "ClientTunnelPane.h"
 #include "TunnelConfig.h"
+#include "textbrowsertweaked1.h"
 
 #include "Config.h"
 #include "FS.h"
@@ -53,6 +55,12 @@
 
 #include "DaemonQT.h"
 #include "SignatureTypeComboboxFactory.h"
+#include "pagewithbackbutton.h"
+
+#include <iostream>
+
+#include "widgetlockregistry.h"
+#include "widgetlock.h"
 
 template<typename ValueType>
 bool isType(boost::any& a) {
@@ -85,8 +93,13 @@ class MainWindow;
 class MainWindowItem : public QObject {
     Q_OBJECT
     ConfigOption option;
+    QWidget* widgetToFocus;
+    QString requirementToBeValid;
 public:
-    MainWindowItem(ConfigOption option_) : option(option_) {}
+    MainWindowItem(ConfigOption option_, QWidget* widgetToFocus_, QString requirementToBeValid_) : option(option_), widgetToFocus(widgetToFocus_), requirementToBeValid(requirementToBeValid_) {}
+    QWidget* getWidgetToFocus(){return widgetToFocus;}
+    QString& getRequirementToBeValid() { return requirementToBeValid; }
+    ConfigOption& getConfigOption() { return option; }
     boost::any optionValue;
     virtual ~MainWindowItem(){}
     virtual void installListeners(MainWindow *mainWindow);
@@ -94,7 +107,7 @@ public:
         std::string optName="";
         if(!option.section.isEmpty())optName=option.section.toStdString()+std::string(".");
         optName+=option.option.toStdString();
-        qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
+        //qDebug() << "loadFromConfigOption[" << optName.c_str() << "]";
         boost::any programOption;
         i2p::config::GetOptionAsAny(optName, programOption);
         optionValue=programOption.empty()?boost::any(std::string(""))
@@ -137,7 +150,7 @@ public:
 };
 class NonGUIOptionItem : public MainWindowItem {
 public:
-    NonGUIOptionItem(ConfigOption option_) : MainWindowItem(option_) {};
+    NonGUIOptionItem(ConfigOption option_) : MainWindowItem(option_, nullptr, QString()) {};
     virtual ~NonGUIOptionItem(){}
     virtual bool isValid() { return true; }
 };
@@ -145,7 +158,7 @@ class BaseStringItem : public MainWindowItem {
     Q_OBJECT
 public:
     QLineEdit* lineEdit;
-    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_) : MainWindowItem(option_), lineEdit(lineEdit_){};
+    BaseStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString requirementToBeValid_) : MainWindowItem(option_, lineEdit_, requirementToBeValid_), lineEdit(lineEdit_){};
     virtual ~BaseStringItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual QString toString(){
@@ -167,7 +180,7 @@ class FileOrFolderChooserItem : public BaseStringItem {
 public:
     QPushButton* browsePushButton;
     FileOrFolderChooserItem(ConfigOption option_, QLineEdit* lineEdit_, QPushButton* browsePushButton_) :
-        BaseStringItem(option_, lineEdit_), browsePushButton(browsePushButton_) {}
+        BaseStringItem(option_, lineEdit_, QString()), browsePushButton(browsePushButton_) {}
     virtual ~FileOrFolderChooserItem(){}
 };
 class FileChooserItem : public FileOrFolderChooserItem {
@@ -193,11 +206,28 @@ public:
 class ComboBoxItem : public MainWindowItem {
 public:
     QComboBox* comboBox;
-    ComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : MainWindowItem(option_), comboBox(comboBox_){};
+    ComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : MainWindowItem(option_,comboBox_,QString()), comboBox(comboBox_){};
     virtual ~ComboBoxItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption()=0;
     virtual void saveToStringStream(std::stringstream& out)=0;
+    virtual bool isValid() { return true; }
+};
+class LogDestinationComboBoxItem : public ComboBoxItem {
+public:
+    LogDestinationComboBoxItem(ConfigOption option_, QComboBox* comboBox_) : ComboBoxItem(option_, comboBox_) {};
+    virtual ~LogDestinationComboBoxItem(){}
+    virtual void loadFromConfigOption(){
+        MainWindowItem::loadFromConfigOption();
+        const char * ld = boost::any_cast<std::string>(optionValue).c_str();
+        comboBox->setCurrentText(QString(ld));
+    }
+    virtual void saveToStringStream(std::stringstream& out){
+        std::string logDest = comboBox->currentText().toStdString();
+        if(logDest==std::string("stdout"))logDest="";
+        optionValue=logDest;
+        MainWindowItem::saveToStringStream(out);
+    }
     virtual bool isValid() { return true; }
 };
 class LogLevelComboBoxItem : public ComboBoxItem {
@@ -235,7 +265,7 @@ public:
 class CheckBoxItem : public MainWindowItem {
 public:
     QCheckBox* checkBox;
-    CheckBoxItem(ConfigOption option_, QCheckBox* checkBox_) : MainWindowItem(option_), checkBox(checkBox_){};
+    CheckBoxItem(ConfigOption option_, QCheckBox* checkBox_) : MainWindowItem(option_,checkBox_,QString()), checkBox(checkBox_){};
     virtual ~CheckBoxItem(){}
     virtual void installListeners(MainWindow *mainWindow);
     virtual void loadFromConfigOption(){
@@ -251,62 +281,84 @@ public:
 class BaseFormattedStringItem : public BaseStringItem {
 public:
     QString fieldNameTranslated;
-    BaseFormattedStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseStringItem(option_, lineEdit_), fieldNameTranslated(fieldNameTranslated_) {};
+    BaseFormattedStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_, QString requirementToBeValid_) :
+        BaseStringItem(option_, lineEdit_, requirementToBeValid_), fieldNameTranslated(fieldNameTranslated_) {};
     virtual ~BaseFormattedStringItem(){}
     virtual bool isValid()=0;
 };
 class IntegerStringItem : public BaseFormattedStringItem {
 public:
     IntegerStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be a valid integer.")) {};
     virtual ~IntegerStringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toInt(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<int>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any(std::stoi(s.toStdString()));}
 };
 class UShortStringItem : public BaseFormattedStringItem {
 public:
     UShortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned short integer.")) {};
     virtual ~UShortStringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toUShort(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<unsigned short>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any((unsigned short)std::stoi(s.toStdString()));}
 };
 class UInt32StringItem : public BaseFormattedStringItem {
 public:
     UInt32StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 32-bit integer.")) {};
     virtual ~UInt32StringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toUInt(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<uint32_t>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any((uint32_t)std::stoi(s.toStdString()));}
 };
 class UInt16StringItem : public BaseFormattedStringItem {
 public:
     UInt16StringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be unsigned 16-bit integer.")) {};
     virtual ~UInt16StringItem(){}
-    virtual bool isValid(){return true;}
+    virtual bool isValid(){
+        auto str=lineEdit->text();
+        bool ok;
+        str.toUShort(&ok);
+        return ok;
+    }
     virtual QString toString(){return QString::number(boost::any_cast<uint16_t>(optionValue));}
     virtual boost::any fromString(QString s){return boost::any((uint16_t)std::stoi(s.toStdString()));}
 };
 class IPAddressStringItem : public BaseFormattedStringItem {
 public:
     IPAddressStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
-        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_) {};
-    virtual bool isValid(){return true;}
+        BaseFormattedStringItem(option_, lineEdit_, fieldNameTranslated_, QApplication::tr("Must be an IPv4 address")) {};
+    virtual bool isValid(){return true;}//todo
 };
 class TCPPortStringItem : public UShortStringItem {
 public:
     TCPPortStringItem(ConfigOption option_, QLineEdit* lineEdit_, QString fieldNameTranslated_) :
         UShortStringItem(option_, lineEdit_, fieldNameTranslated_) {};
-    virtual bool isValid(){return true;}
 };
 
 namespace Ui {
-class MainWindow;
+  class MainWindow;
+  class StatusButtonsForm;
+  class routerCommandsWidget;
+  class GeneralSettingsContentsForm;
 }
 
 using namespace i2p::client;
@@ -326,13 +378,20 @@ public:
 
     void setI2PController(i2p::qt::Controller* controller_);
 
+    void highlightWrongInput(QString warningText, QWidget* widgetToFocus);
+
     //typedef std::function<QString ()> DefaultValueGetter;
 
 //#ifndef ANDROID
 //    void setVisible(bool visible);
 //#endif
 
+private:
+    enum StatusPage {main_page, commands, local_destinations, leasesets, tunnels, transit_tunnels,
+                     transports, i2p_tunnels, sam_sessions};
 private slots:
+    void updated();
+
     void handleQuitButton();
     void handleGracefulQuitButton();
     void handleDoRestartButton();
@@ -342,13 +401,37 @@ private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
     void toggleVisibilitySlot();
 #endif
-    void showStatusPage();
+    void scheduleStatusPageUpdates();
+    void statusHtmlPageMouseReleased();
+    void statusHtmlPageSelectionChanged();
+    void updateStatusPage();
+
+    void showStatusMainPage();
+    void showStatus_commands_Page();
+    void runPeerTest();
+    void enableTransit();
+    void disableTransit();
+public slots:
+    void showStatus_local_destinations_Page();
+    void showStatus_leasesets_Page();
+    void showStatus_tunnels_Page();
+    void showStatus_transit_tunnels_Page();
+    void showStatus_transports_Page();
+    void showStatus_i2p_tunnels_Page();
+    void showStatus_sam_sessions_Page();
+
     void showSettingsPage();
     void showTunnelsPage();
     void showRestartPage();
     void showQuitPage();
 
 private:
+    StatusPage statusPage;
+    QTimer * statusPageUpdateTimer;
+    bool wasSelectingAtStatusMainPage;
+    bool showHiddenInfoStatusMainPage;
+
+    void showStatusPage(StatusPage newStatusPage);
 #ifndef ANDROID
     void createActions();
     void createTrayIcon();
@@ -358,26 +441,48 @@ private:
     QMenu *trayIconMenu;
 #endif
 
+public:
     Ui::MainWindow* ui;
+    Ui::StatusButtonsForm* statusButtonsUI;
+    Ui::routerCommandsWidget* routerCommandsUI;
+    Ui::GeneralSettingsContentsForm* uiSettings;
+    void adjustSizesAccordingToWrongLabel();
+    bool applyTunnelsUiToConfigs();
+private:
+    int settingsTitleLabelNominalHeight;
+    TextBrowserTweaked1 * textBrowser;
+    QWidget * routerCommandsParent;
+    PageWithBackButton * pageWithBackButton;
+    TextBrowserTweaked1 * childTextBrowser;
+
+    widgetlockregistry widgetlocks;
 
     i2p::qt::Controller* i2pController;
 
 protected:
+
+    void updateRouterCommandsButtons();
+
 #ifndef ANDROID
     void closeEvent(QCloseEvent *event);
 #endif
     void resizeEvent(QResizeEvent* event);
     void onResize();
 
+    void setStatusButtonsVisible(bool visible);
+
+    QString getStatusPageHtml(bool showHiddenInfo);
+
     QList<MainWindowItem*> configItems;
-    NonGUIOptionItem* logOption;
     NonGUIOptionItem* daemonOption;
     NonGUIOptionItem* serviceOption;
+    //LogDestinationComboBoxItem* logOption;
     FileChooserItem* logFileNameOption;
 
     FileChooserItem* initFileChooser(ConfigOption option, QLineEdit* fileNameLineEdit, QPushButton* fileBrowsePushButton);
     void initFolderChooser(ConfigOption option, QLineEdit* folderLineEdit, QPushButton* folderBrowsePushButton);
     //void initCombobox(ConfigOption option, QComboBox* comboBox);
+    void initLogDestinationCombobox(ConfigOption option, QComboBox* comboBox);
     void initLogLevelCombobox(ConfigOption option, QComboBox* comboBox);
     void initSignatureTypeCombobox(ConfigOption option, QComboBox* comboBox);
     void initIPAddressBox(ConfigOption option, QLineEdit* addressLineEdit, QString fieldNameTranslated);
@@ -401,6 +506,11 @@ public slots:
     void reloadTunnelsConfigAndUI() { reloadTunnelsConfigAndUI(""); }
     void addServerTunnelPushButtonReleased();
     void addClientTunnelPushButtonReleased();
+
+    void anchorClickedHandler(const QUrl & link);
+    void backClickedFromChild();
+
+    void logDestinationComboBoxValueChanged(const QString & text);
 
 private:
     QString datadir;
@@ -466,9 +576,9 @@ private:
             TunnelConfig* tc=it->second;
             tunnelConfigs.erase(it);
             delete tc;
-            SaveTunnelsConfig();
-            reloadTunnelsConfigAndUI("");
         }
+        saveAllConfigs();
+        reloadTunnelsConfigAndUI("");
     }
 
     std::string GenerateNewTunnelName() {
@@ -503,7 +613,7 @@ private:
                                                       destinationPort,
                                                       sigType);
 
-        SaveTunnelsConfig();
+        saveAllConfigs();
         reloadTunnelsConfigAndUI(name);
     }
 
@@ -542,7 +652,7 @@ private:
                                                   isUniqueLocal);
 
 
-        SaveTunnelsConfig();
+        saveAllConfigs();
         reloadTunnelsConfigAndUI(name);
     }
 
@@ -584,13 +694,17 @@ private:
                 {
                     // mandatory params
                     std::string dest;
-                    if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT)
+                    if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT || type == I2P_TUNNELS_SECTION_TYPE_UDPCLIENT) {
                         dest = section.second.get<std::string> (I2P_CLIENT_TUNNEL_DESTINATION);
+                        std::cout << "had read tunnel dest: " << dest << std::endl;
+                    }
                     int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
+                    std::cout << "had read tunnel port: " << port << std::endl;
                     // optional params
                     std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
                     std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-                    int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+                    int destinationPort = section.second.get<int>(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+                    std::cout << "had read tunnel destinationPort: " << destinationPort << std::endl;
                     i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
                     // I2CP
                     std::map<std::string, std::string> options;

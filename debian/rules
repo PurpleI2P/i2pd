@@ -12,6 +12,7 @@ PREFIX=/usr
 
 %:
 	dh $@ --parallel
+	dh_apparmor --profile-name=usr.sbin.i2pd -pi2pd
 
 override_dh_strip:
 	dh_strip --dbg-package=i2pd-dbg

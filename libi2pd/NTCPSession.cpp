@@ -791,7 +791,8 @@ namespace transport
 	NTCPServer::NTCPServer ():
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
 		m_TerminationTimer (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr),
-		m_ProxyType(eNoProxy), m_Resolver(m_Service), m_ProxyEndpoint(nullptr)
+		m_ProxyType(eNoProxy), m_Resolver(m_Service), m_ProxyEndpoint(nullptr),
+		m_SoftLimit(0), m_HardLimit(0)
 	{
 	}
 
@@ -965,6 +966,13 @@ namespace transport
 			auto ep = conn->GetSocket ().remote_endpoint(ec);
 			if (!ec)
 			{
+				if(ShouldLimit())
+				{
+					// hit limit, close premature
+					LogPrint(eLogWarning, "NTCP: limiting with backoff session from ", ep);
+					conn->Terminate();
+					return;
+				}
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
 				if (conn)
 				{
@@ -993,6 +1001,14 @@ namespace transport
 			auto ep = conn->GetSocket ().remote_endpoint(ec);
 			if (!ec)
 			{
+				if(ShouldLimit())
+				{
+					// hit limit, close premature
+					LogPrint(eLogWarning, "NTCP: limiting with backoff on session from ", ep);
+					conn->Terminate();
+					return;
+				}
+
 				LogPrint (eLogDebug, "NTCP: Connected from ", ep);
 				if (conn)
 				{

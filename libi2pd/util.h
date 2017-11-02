@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 #include <boost/asio.hpp>
 
 #ifdef ANDROID
@@ -14,7 +15,7 @@ namespace std
 template <typename T>
 std::string to_string(T value)
 {
-   return boost::lexical_cast<std::string>(value);
+	return boost::lexical_cast<std::string>(value);
 }
 
 inline int stoi(const std::string& str)
@@ -29,12 +30,14 @@ namespace i2p
 namespace util
 {
 
-	template<class T> 
+	template<class T>
 	class MemoryPool
 	{
+		//BOOST_STATIC_ASSERT_MSG(sizeof(T) >= sizeof(void*), "size cannot be less that general pointer size");
+
 		public:
 
-			MemoryPool (): m_Head (nullptr) {};
+			MemoryPool (): m_Head (nullptr) {}
 			~MemoryPool () 
 			{ 
 				while (m_Head) 
@@ -48,12 +51,12 @@ namespace util
 			template<typename... TArgs>
 			T * Acquire (TArgs&&... args)
 			{
-				if (!m_Head) return new T(args...);
+				if (!m_Head) return new T(std::forward<TArgs>(args)...);
 				else
 				{
 					auto tmp = m_Head;
 					m_Head = static_cast<T*>(*(void * *)m_Head); // next
-					return new (tmp)T(args...);
+					return new (tmp)T(std::forward<TArgs>(args)...);
 				}
 			}
 
@@ -68,14 +71,15 @@ namespace util
 			template<typename... TArgs>
 			std::unique_ptr<T, std::function<void(T*)> > AcquireUnique (TArgs&&... args)
 			{
-				return std::unique_ptr<T, std::function<void(T*)> >(Acquire (args...), 
+				return std::unique_ptr<T, std::function<void(T*)> >(Acquire (std::forward<TArgs>(args)...),
 					std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
 			}
 			
 			template<typename... TArgs>
 			std::shared_ptr<T> AcquireShared (TArgs&&... args)
 			{
-				return std::shared_ptr<T>(Acquire (args...), std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
+				return std::shared_ptr<T>(Acquire (std::forward<TArgs>(args)...),
+					std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
 			}
 
 		protected:
@@ -88,13 +92,13 @@ namespace util
 	{
 		public:
 
-			MemoryPoolMt () {};			
+			MemoryPoolMt () {}
 			template<typename... TArgs>
 			T * AcquireMt (TArgs&&... args)
 			{
-				if (!this->m_Head) return new T(args...);
+				if (!this->m_Head) return new T(std::forward<TArgs>(args)...);
 				std::lock_guard<std::mutex> l(m_Mutex);
-				return this->Acquire (args...);
+				return this->Acquire (std::forward<TArgs>(args)...);
 			}
 
 			void ReleaseMt (T * t)

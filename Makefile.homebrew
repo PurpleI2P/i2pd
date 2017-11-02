@@ -1,17 +1,29 @@
 # root directory holding homebrew
-BREWROOT = /usr/local/
+BREWROOT = /usr/local
 BOOSTROOT = ${BREWROOT}/opt/boost
 SSLROOT = ${BREWROOT}/opt/libressl
+UPNPROOT = ${BREWROOT}/opt/miniupnpc
 CXX = clang++
-CXXFLAGS = -g -Wall -std=c++11 -DMAC_OSX
-INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include
+CXXFLAGS = -g -Wall -std=c++11 -DMAC_OSX -Wno-overloaded-virtual
+INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include 
+
+ifeq ($(USE_STATIC),yes)
+LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_date_time.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a -lpthread
+else
 LDFLAGS = -L${SSLROOT}/lib -L${BOOSTROOT}/lib
 LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+endif
 
 ifeq ($(USE_UPNP),yes)
 	LDFLAGS += -ldl
 	CXXFLAGS += -DUSE_UPNP
-	LDLIBS += -lminiupnpc
+  INCFLAGS += -I${UPNPROOT}/include
+  ifeq ($(USE_STATIC),yes)
+    LDLIBS += ${UPNPROOT}/lib/libminiupnpc.a
+  else
+    LDFLAGS += -L${UPNPROOT}/lib
+    LDLIBS += -lminiupnpc
+  endif  
 endif
 
 # OSX Notes

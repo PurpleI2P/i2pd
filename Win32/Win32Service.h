@@ -4,7 +4,6 @@
 #include <thread>
 #include <windows.h>
 
-
 #ifdef _WIN32
 // Internal name of the service
 #define SERVICE_NAME             "i2pdService"
@@ -24,7 +23,6 @@
 // The password to the service account name
 #define SERVICE_PASSWORD         NULL
 #endif
-
 
 class I2PService
 {
@@ -72,13 +70,15 @@ private:
 	std::thread* _worker;
 };
 
-void InstallService(PSTR pszServiceName,
-	PSTR pszDisplayName,
+void InstallService(
+	PCSTR pszServiceName,
+	PCSTR pszDisplayName,
 	DWORD dwStartType,
-	PSTR pszDependencies,
-	PSTR pszAccount,
-	PSTR pszPassword);
+	PCSTR pszDependencies,
+	PCSTR pszAccount,
+	PCSTR pszPassword
+	);
 
-void UninstallService(PSTR pszServiceName);
+void UninstallService(PCSTR pszServiceName);
 
 #endif // WIN_32_SERVICE_H__

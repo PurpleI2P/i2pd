@@ -372,6 +372,107 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}
 
+// ECICS
+	void ECICSEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
+	{
+		BN_CTX_start (ctx);
+		BIGNUM * q = BN_CTX_get (ctx);
+		EC_GROUP_get_order(curve, q, ctx);
+		int len = BN_num_bytes (q);
+		BIGNUM * k = BN_CTX_get (ctx);
+		BN_rand_range (k, q); // 0 < k < q
+		// point for shared secret
+		auto p = EC_POINT_new (curve);
+		EC_POINT_mul (curve, p, k, nullptr, nullptr, ctx);
+		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
+		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);		
+		bn2buf (x, encrypted, len);
+		bn2buf (y, encrypted + len, len);
+		RAND_bytes (encrypted + 2*len, 256 - 2*len);
+		// ecryption key and iv
+		EC_POINT_mul (curve, p, nullptr, key, k, ctx); 
+		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
+		uint8_t keyBuf[64], iv[64], shared[32]; 
+		bn2buf (x, keyBuf, len);
+		bn2buf (y, iv, len);
+		SHA256 (keyBuf, len, shared);
+		// create buffer
+		uint8_t m[256];
+		m[0] = 0xFF; m[255] = 0xFF;
+		memcpy (m+33, data, 222);
+		SHA256 (m+33, 222, m+1);
+		// encrypt
+		CBCEncryption encryption;
+		encryption.SetKey (shared);
+		encryption.SetIV (iv);
+		encryption.Encrypt (m, 256, encrypted + 256);
+		EC_POINT_free (p);
+		BN_CTX_end (ctx);
+	}
+
+	bool ECICSDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
+	{
+		bool ret = true;
+		BN_CTX_start (ctx);
+		BIGNUM * q = BN_CTX_get (ctx);
+		EC_GROUP_get_order(curve, q, ctx);
+		int len = BN_num_bytes (q);
+		// point for shared secret
+		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
+		BN_bin2bn (encrypted, len, x);		
+		BN_bin2bn (encrypted + len, len, y);	
+		auto p = EC_POINT_new (curve);
+		if (EC_POINT_set_affine_coordinates_GFp (curve, p, x, y, nullptr))
+		{
+			auto s = EC_POINT_new (curve);
+			EC_POINT_mul (curve, s, nullptr, p, key, ctx); 
+			EC_POINT_get_affine_coordinates_GFp (curve, s, x, y, nullptr);
+			EC_POINT_free (s);
+			uint8_t keyBuf[64], iv[64], shared[32]; 
+			bn2buf (x, keyBuf, len);
+			bn2buf (y, iv, len);
+			SHA256 (keyBuf, len, shared);
+			// decrypt
+			uint8_t m[256];
+			CBCDecryption decryption;
+			decryption.SetKey (shared);
+			decryption.SetIV (iv);
+			decryption.Decrypt (encrypted + 256, 256, m);
+			// verify and copy
+			uint8_t hash[32];
+			SHA256 (m + 33, 222, hash);		
+			if (!memcmp (m + 1, hash, 32))
+				memcpy (data, m + 33, 222);	
+			else
+			{
+				LogPrint (eLogError, "ECICS decrypt hash doesn't match");
+				ret = false;
+			}	
+		}
+		else
+		{
+			LogPrint (eLogError, "ECICS decrypt point is invalid");
+			ret = false;
+		}
+		
+		EC_POINT_free (p);
+		BN_CTX_end (ctx);
+		return ret;
+	}
+
+	void GenerateECICSKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub)
+	{
+		BN_CTX * ctx = BN_CTX_new ();
+		BIGNUM * q = BN_new ();
+		EC_GROUP_get_order(curve, q, ctx);
+		priv = BN_new ();
+		BN_rand_range (priv, q); 
+		pub = EC_POINT_new (curve);
+		EC_POINT_mul (curve, pub, priv, nullptr, nullptr, ctx);
+		BN_free (q);
+		BN_CTX_free (ctx);
+	}
+
 // HMAC
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C; 			

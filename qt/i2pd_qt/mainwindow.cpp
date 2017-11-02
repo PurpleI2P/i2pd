@@ -1,5 +1,12 @@
+#include <fstream>
+#include <assert.h>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "ui_statusbuttons.h"
+#include "ui_routercommandswidget.h"
+#include "ui_generalsettingswidget.h"
+#include <sstream>
+#include <QScrollBar>
 #include <QMessageBox>
 #include <QTimer>
 #include <QFile>
@@ -8,14 +15,14 @@
 #include "Config.h"
 #include "FS.h"
 #include "Log.h"
+#include "RouterContext.h"
+#include "Transports.h"
+
+#include "HTTPServer.h"
 
 #ifndef ANDROID
 # include <QtDebug>
 #endif
-
-#include <QScrollBar>
-
-#include <fstream>
 
 #include "DaemonQT.h"
 #include "SignatureTypeComboboxFactory.h"
@@ -27,7 +34,14 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifndef ANDROID
     ,quitting(false)
 #endif
+    ,wasSelectingAtStatusMainPage(false)
+    ,showHiddenInfoStatusMainPage(false)
     ,ui(new Ui::MainWindow)
+    ,statusButtonsUI(new Ui::StatusButtonsForm)
+    ,routerCommandsUI(new Ui::routerCommandsWidget)
+    ,uiSettings(new Ui::GeneralSettingsContentsForm)
+    ,routerCommandsParent(new QWidget(this))
+    ,widgetlocks()
     ,i2pController(nullptr)
     ,configItems()
     ,datadir()
@@ -37,21 +51,31 @@ MainWindow::MainWindow(QWidget *parent) :
 
 {
     ui->setupUi(this);
+    statusButtonsUI->setupUi(ui->statusButtonsPane);
+    routerCommandsUI->setupUi(routerCommandsParent);
+    uiSettings->setupUi(ui->settingsContents);
+    routerCommandsParent->hide();
+    ui->verticalLayout_2->addWidget(routerCommandsParent);
+    //,statusHtmlUI(new Ui::StatusHtmlPaneForm)
+    //statusHtmlUI->setupUi(lastStatusWidgetui->statusWidget);
+    ui->statusButtonsPane->setFixedSize(171,300);
+    ui->verticalLayout->setGeometry(QRect(0,0,171,ui->verticalLayout->geometry().height()));
+    //ui->statusButtonsPane->adjustSize();
+    //ui->centralWidget->adjustSize();
     setWindowTitle(QApplication::translate("AppTitle","I2PD"));
 
     //TODO handle resizes and change the below into resize() call
-    setFixedSize(width(), 480);
-    ui->centralWidget->setMinimumHeight(480);
-    ui->centralWidget->setMaximumHeight(480);
+    setFixedHeight(550);
+    ui->centralWidget->setFixedHeight(550);
     onResize();
 
     ui->stackedWidget->setCurrentIndex(0);
-    ui->settingsScrollArea->resize(ui->settingsContentsGridLayout->sizeHint().width()+10,380);
+    ui->settingsScrollArea->resize(uiSettings->settingsContentsGridLayout->sizeHint().width()+10,380);
     QScrollBar* const barSett = ui->settingsScrollArea->verticalScrollBar();
-    //QSize szSettContents = ui->settingsContentsGridLayout->minimumSize();
     int w = 683;
     int h = 3060;
     ui->settingsContents->setFixedSize(w, h);
+    ui->settingsContents->setGeometry(QRect(0,0,w,h));
 
     /*
     QPalette pal(palette());
@@ -59,17 +83,55 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->settingsContents->setAutoFillBackground(true);
     ui->settingsContents->setPalette(pal);
     */
+    QPalette pal(palette());
+    pal.setColor(QPalette::Background, Qt::red);
+    ui->wrongInputLabel->setAutoFillBackground(true);
+    ui->wrongInputLabel->setPalette(pal);
+    ui->wrongInputLabel->setMaximumHeight(ui->wrongInputLabel->sizeHint().height());
+    ui->wrongInputLabel->setVisible(false);
 
-    //ui->settingsScrollArea->adjustSize();
-    /*ui->tunnelsScrollAreaWidgetContents->setFixedSize(
-                ui->tunnelsScrollArea->width() - barSett->width(), 0);*/
-
+    settingsTitleLabelNominalHeight = ui->settingsTitleLabel->height();
 #ifndef ANDROID
     createActions();
     createTrayIcon();
 #endif
 
-    QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusPage()));
+    textBrowser = new TextBrowserTweaked1(this);
+    //textBrowser->setOpenExternalLinks(false);
+    textBrowser->setOpenLinks(false);
+    /*textBrowser->setTextInteractionFlags(textBrowser->textInteractionFlags()|
+                                         Qt::LinksAccessibleByMouse|Qt::LinksAccessibleByKeyboard|
+                                         Qt::TextSelectableByMouse|Qt::TextSelectableByKeyboard);*/
+    ui->verticalLayout_2->addWidget(textBrowser);
+    childTextBrowser = new TextBrowserTweaked1(this);
+    //childTextBrowser->setOpenExternalLinks(false);
+    childTextBrowser->setOpenLinks(false);
+    connect(textBrowser, SIGNAL(anchorClicked(const QUrl&)), this, SLOT(anchorClickedHandler(const QUrl&)));
+    pageWithBackButton = new PageWithBackButton(this, childTextBrowser);
+    ui->verticalLayout_2->addWidget(pageWithBackButton);
+    pageWithBackButton->hide();
+    connect(pageWithBackButton, SIGNAL(backReleased()), this, SLOT(backClickedFromChild()));
+    scheduleStatusPageUpdates();
+
+    QObject::connect(ui->statusPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
+    showStatusMainPage();
+    QObject::connect(statusButtonsUI->mainPagePushButton, SIGNAL(released()), this, SLOT(showStatusMainPage()));
+    QObject::connect(statusButtonsUI->routerCommandsPushButton, SIGNAL(released()), this, SLOT(showStatus_commands_Page()));
+    QObject::connect(statusButtonsUI->localDestinationsPushButton, SIGNAL(released()), this, SLOT(showStatus_local_destinations_Page()));
+    QObject::connect(statusButtonsUI->leasesetsPushButton, SIGNAL(released()), this, SLOT(showStatus_leasesets_Page()));
+    QObject::connect(statusButtonsUI->tunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_tunnels_Page()));
+    QObject::connect(statusButtonsUI->transitTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_transit_tunnels_Page()));
+    QObject::connect(statusButtonsUI->transportsPushButton, SIGNAL(released()), this, SLOT(showStatus_transports_Page()));
+    QObject::connect(statusButtonsUI->i2pTunnelsPushButton, SIGNAL(released()), this, SLOT(showStatus_i2p_tunnels_Page()));
+    QObject::connect(statusButtonsUI->samSessionsPushButton, SIGNAL(released()), this, SLOT(showStatus_sam_sessions_Page()));
+
+    QObject::connect(textBrowser, SIGNAL(mouseReleased()), this, SLOT(statusHtmlPageMouseReleased()));
+    QObject::connect(textBrowser, SIGNAL(selectionChanged()), this, SLOT(statusHtmlPageSelectionChanged()));
+
+    QObject::connect(routerCommandsUI->runPeerTestPushButton, SIGNAL(released()), this, SLOT(runPeerTest()));
+    QObject::connect(routerCommandsUI->acceptTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(enableTransit()));
+    QObject::connect(routerCommandsUI->declineTransitTunnelsPushButton, SIGNAL(released()), this, SLOT(disableTransit()));
+
     QObject::connect(ui->settingsPagePushButton, SIGNAL(released()), this, SLOT(showSettingsPage()));
 
     QObject::connect(ui->tunnelsPagePushButton, SIGNAL(released()), this, SLOT(showTunnelsPage()));
@@ -83,132 +145,145 @@ MainWindow::MainWindow(QWidget *parent) :
 
 #   define OPTION(section,option,defaultValueGetter) ConfigOption(QString(section),QString(option))
 
-    initFileChooser(    OPTION("","conf",[](){return "";}), ui->configFileLineEdit, ui->configFileBrowsePushButton);
-    initFolderChooser(  OPTION("","datadir",[]{return "";}), ui->dataFolderLineEdit, ui->dataFolderBrowsePushButton);
-    initFileChooser(    OPTION("","tunconf",[](){return "";}), ui->tunnelsConfigFileLineEdit, ui->tunnelsConfigFileBrowsePushButton);
+    initFileChooser(    OPTION("","conf",[](){return "";}), uiSettings->configFileLineEdit, uiSettings->configFileBrowsePushButton);
+    initFolderChooser(  OPTION("","datadir",[]{return "";}), uiSettings->dataFolderLineEdit, uiSettings->dataFolderBrowsePushButton);
+    initFileChooser(    OPTION("","tunconf",[](){return "";}), uiSettings->tunnelsConfigFileLineEdit, uiSettings->tunnelsConfigFileBrowsePushButton);
 
-    initFileChooser(    OPTION("","pidfile",[]{return "";}), ui->pidFileLineEdit, ui->pidFileBrowsePushButton);
-    logOption=initNonGUIOption(   OPTION("","log",[]{return "";}));
+    initFileChooser(    OPTION("","pidfile",[]{return "";}), uiSettings->pidFileLineEdit, uiSettings->pidFileBrowsePushButton);
     daemonOption=initNonGUIOption(   OPTION("","daemon",[]{return "";}));
     serviceOption=initNonGUIOption(   OPTION("","service",[]{return "";}));
 
-    logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), ui->logFileLineEdit, ui->logFileBrowsePushButton);
-    initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), ui->logLevelComboBox);
+    uiSettings->logDestinationComboBox->clear();
+    uiSettings->logDestinationComboBox->insertItems(0, QStringList()
+     << QApplication::translate("MainWindow", "stdout", 0)
+     << QApplication::translate("MainWindow", "file", 0)
+    );
+    initLogDestinationCombobox(   OPTION("","log",[]{return "";}), uiSettings->logDestinationComboBox);
 
-    initIPAddressBox(   OPTION("","host",[]{return "";}), ui->routerExternalHostLineEdit, tr("Router external address -> Host"));
-    initTCPPortBox(     OPTION("","port",[]{return "";}), ui->routerExternalPortLineEdit, tr("Router external address -> Port"));
+    logFileNameOption=initFileChooser(    OPTION("","logfile",[]{return "";}), uiSettings->logFileLineEdit, uiSettings->logFileBrowsePushButton);
+    initLogLevelCombobox(OPTION("","loglevel",[]{return "";}), uiSettings->logLevelComboBox);
 
-    initCheckBox(       OPTION("","ipv6",[]{return "false";}), ui->ipv6CheckBox);
-    initCheckBox(       OPTION("","notransit",[]{return "false";}), ui->notransitCheckBox);
-    initCheckBox(       OPTION("","floodfill",[]{return "false";}), ui->floodfillCheckBox);
-    initStringBox(      OPTION("","bandwidth",[]{return "";}), ui->bandwidthLineEdit);
-    initStringBox(      OPTION("","family",[]{return "";}), ui->familyLineEdit);
-    initIntegerBox(     OPTION("","netid",[]{return "2";}), ui->netIdLineEdit, tr("NetID"));
+    initIPAddressBox(   OPTION("","host",[]{return "";}), uiSettings->routerExternalHostLineEdit, tr("Router external address -> Host"));
+    initTCPPortBox(     OPTION("","port",[]{return "";}), uiSettings->routerExternalPortLineEdit, tr("Router external address -> Port"));
+
+    initCheckBox(       OPTION("","ipv6",[]{return "false";}), uiSettings->ipv6CheckBox);
+    initCheckBox(       OPTION("","notransit",[]{return "false";}), uiSettings->notransitCheckBox);
+    initCheckBox(       OPTION("","floodfill",[]{return "false";}), uiSettings->floodfillCheckBox);
+    initStringBox(      OPTION("","bandwidth",[]{return "";}), uiSettings->bandwidthLineEdit);
+    initStringBox(      OPTION("","family",[]{return "";}), uiSettings->familyLineEdit);
+    initIntegerBox(     OPTION("","netid",[]{return "2";}), uiSettings->netIdLineEdit, tr("NetID"));
 
 #ifdef Q_OS_WIN
-    initCheckBox(       OPTION("","insomnia",[]{return "";}), ui->insomniaCheckBox);
+    initCheckBox(       OPTION("","insomnia",[]{return "";}), uiSettings->insomniaCheckBox);
     initNonGUIOption(   OPTION("","svcctl",[]{return "";}));
     initNonGUIOption(   OPTION("","close",[]{return "";}));
 #else
-    ui->insomniaCheckBox->setEnabled(false);
+    uiSettings->insomniaCheckBox->setEnabled(false);
 #endif
 
-    initCheckBox(       OPTION("http","enabled",[]{return "true";}), ui->webconsoleEnabledCheckBox);
-    initIPAddressBox(   OPTION("http","address",[]{return "";}), ui->webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
-    initTCPPortBox(     OPTION("http","port",[]{return "7070";}), ui->webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
-    initCheckBox(       OPTION("http","auth",[]{return "";}), ui->webconsoleBasicAuthCheckBox);
-    initStringBox(      OPTION("http","user",[]{return "i2pd";}), ui->webconsoleUserNameLineEditBasicAuth);
-    initStringBox(      OPTION("http","pass",[]{return "";}), ui->webconsolePasswordLineEditBasicAuth);
+    initCheckBox(       OPTION("http","enabled",[]{return "true";}), uiSettings->webconsoleEnabledCheckBox);
+    initIPAddressBox(   OPTION("http","address",[]{return "";}), uiSettings->webconsoleAddrLineEdit, tr("HTTP webconsole -> IP address"));
+    initTCPPortBox(     OPTION("http","port",[]{return "7070";}), uiSettings->webconsolePortLineEdit, tr("HTTP webconsole -> Port"));
+    initCheckBox(       OPTION("http","auth",[]{return "";}), uiSettings->webconsoleBasicAuthCheckBox);
+    initStringBox(      OPTION("http","user",[]{return "i2pd";}), uiSettings->webconsoleUserNameLineEditBasicAuth);
+    initStringBox(      OPTION("http","pass",[]{return "";}), uiSettings->webconsolePasswordLineEditBasicAuth);
 
-    initCheckBox(       OPTION("httpproxy","enabled",[]{return "";}), ui->httpProxyEnabledCheckBox);
-    initIPAddressBox(   OPTION("httpproxy","address",[]{return "";}), ui->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
-    initTCPPortBox(     OPTION("httpproxy","port",[]{return "4444";}), ui->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
-    initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), ui->httpProxyKeyFileLineEdit, ui->httpProxyKeyFilePushButton);
+    initCheckBox(       OPTION("httpproxy","enabled",[]{return "";}), uiSettings->httpProxyEnabledCheckBox);
+    initIPAddressBox(   OPTION("httpproxy","address",[]{return "";}), uiSettings->httpProxyAddressLineEdit, tr("HTTP proxy -> IP address"));
+    initTCPPortBox(     OPTION("httpproxy","port",[]{return "4444";}), uiSettings->httpProxyPortLineEdit, tr("HTTP proxy -> Port"));
+    initFileChooser(    OPTION("httpproxy","keys",[]{return "";}), uiSettings->httpProxyKeyFileLineEdit, uiSettings->httpProxyKeyFilePushButton);
 
-    initSignatureTypeCombobox(OPTION("httpproxy","signaturetype",[]{return "7";}), ui->comboBox_httpPorxySignatureType);
-    initStringBox(     OPTION("httpproxy","inbound.length",[]{return "3";}), ui->httpProxyInboundTunnelsLenLineEdit);
-    initStringBox(     OPTION("httpproxy","inbound.quantity",[]{return "5";}), ui->httpProxyInboundTunnQuantityLineEdit);
-    initStringBox(     OPTION("httpproxy","outbound.length",[]{return "3";}), ui->httpProxyOutBoundTunnLenLineEdit);
-    initStringBox(     OPTION("httpproxy","outbound.quantity",[]{return "5";}), ui->httpProxyOutboundTunnQuantityLineEdit);
+    initSignatureTypeCombobox(OPTION("httpproxy","signaturetype",[]{return "7";}), uiSettings->comboBox_httpPorxySignatureType);
+    initStringBox(     OPTION("httpproxy","inbound.length",[]{return "3";}), uiSettings->httpProxyInboundTunnelsLenLineEdit);
+    initStringBox(     OPTION("httpproxy","inbound.quantity",[]{return "5";}), uiSettings->httpProxyInboundTunnQuantityLineEdit);
+    initStringBox(     OPTION("httpproxy","outbound.length",[]{return "3";}), uiSettings->httpProxyOutBoundTunnLenLineEdit);
+    initStringBox(     OPTION("httpproxy","outbound.quantity",[]{return "5";}), uiSettings->httpProxyOutboundTunnQuantityLineEdit);
 
-    initCheckBox(       OPTION("socksproxy","enabled",[]{return "";}), ui->socksProxyEnabledCheckBox);
-    initIPAddressBox(   OPTION("socksproxy","address",[]{return "";}), ui->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
-    initTCPPortBox(     OPTION("socksproxy","port",[]{return "4447";}), ui->socksProxyPortLineEdit, tr("Socks proxy -> Port"));
-    initFileChooser(    OPTION("socksproxy","keys",[]{return "";}), ui->socksProxyKeyFileLineEdit, ui->socksProxyKeyFilePushButton);
-    initSignatureTypeCombobox(OPTION("socksproxy","signaturetype",[]{return "7";}), ui->comboBox_socksProxySignatureType);
-    initStringBox(     OPTION("socksproxy","inbound.length",[]{return "";}), ui->socksProxyInboundTunnelsLenLineEdit);
-    initStringBox(     OPTION("socksproxy","inbound.quantity",[]{return "";}), ui->socksProxyInboundTunnQuantityLineEdit);
-    initStringBox(     OPTION("socksproxy","outbound.length",[]{return "";}), ui->socksProxyOutBoundTunnLenLineEdit);
-    initStringBox(     OPTION("socksproxy","outbound.quantity",[]{return "";}), ui->socksProxyOutboundTunnQuantityLineEdit);
-    initIPAddressBox(   OPTION("socksproxy","outproxy",[]{return "";}), ui->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
-    initTCPPortBox(     OPTION("socksproxy","outproxyport",[]{return "";}), ui->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
+    initCheckBox(       OPTION("socksproxy","enabled",[]{return "";}), uiSettings->socksProxyEnabledCheckBox);
+    initIPAddressBox(   OPTION("socksproxy","address",[]{return "";}), uiSettings->socksProxyAddressLineEdit, tr("Socks proxy -> IP address"));
+    initTCPPortBox(     OPTION("socksproxy","port",[]{return "4447";}), uiSettings->socksProxyPortLineEdit, tr("Socks proxy -> Port"));
+    initFileChooser(    OPTION("socksproxy","keys",[]{return "";}), uiSettings->socksProxyKeyFileLineEdit, uiSettings->socksProxyKeyFilePushButton);
+    initSignatureTypeCombobox(OPTION("socksproxy","signaturetype",[]{return "7";}), uiSettings->comboBox_socksProxySignatureType);
+    initStringBox(     OPTION("socksproxy","inbound.length",[]{return "";}), uiSettings->socksProxyInboundTunnelsLenLineEdit);
+    initStringBox(     OPTION("socksproxy","inbound.quantity",[]{return "";}), uiSettings->socksProxyInboundTunnQuantityLineEdit);
+    initStringBox(     OPTION("socksproxy","outbound.length",[]{return "";}), uiSettings->socksProxyOutBoundTunnLenLineEdit);
+    initStringBox(     OPTION("socksproxy","outbound.quantity",[]{return "";}), uiSettings->socksProxyOutboundTunnQuantityLineEdit);
+    initIPAddressBox(   OPTION("socksproxy","outproxy",[]{return "";}), uiSettings->outproxyAddressLineEdit, tr("Socks proxy -> Outproxy address"));
+    initTCPPortBox(     OPTION("socksproxy","outproxyport",[]{return "";}), uiSettings->outproxyPortLineEdit, tr("Socks proxy -> Outproxy port"));
 
-    initCheckBox(       OPTION("sam","enabled",[]{return "false";}), ui->samEnabledCheckBox);
-    initIPAddressBox(   OPTION("sam","address",[]{return "";}), ui->samAddressLineEdit, tr("SAM -> IP address"));
-    initTCPPortBox(     OPTION("sam","port",[]{return "7656";}), ui->samPortLineEdit, tr("SAM -> Port"));
+    initCheckBox(       OPTION("sam","enabled",[]{return "false";}), uiSettings->samEnabledCheckBox);
+    initIPAddressBox(   OPTION("sam","address",[]{return "";}), uiSettings->samAddressLineEdit, tr("SAM -> IP address"));
+    initTCPPortBox(     OPTION("sam","port",[]{return "7656";}), uiSettings->samPortLineEdit, tr("SAM -> Port"));
 
-    initCheckBox(       OPTION("bob","enabled",[]{return "false";}), ui->bobEnabledCheckBox);
-    initIPAddressBox(   OPTION("bob","address",[]{return "";}), ui->bobAddressLineEdit, tr("BOB -> IP address"));
-    initTCPPortBox(     OPTION("bob","port",[]{return "2827";}), ui->bobPortLineEdit, tr("BOB -> Port"));
+    initCheckBox(       OPTION("bob","enabled",[]{return "false";}), uiSettings->bobEnabledCheckBox);
+    initIPAddressBox(   OPTION("bob","address",[]{return "";}), uiSettings->bobAddressLineEdit, tr("BOB -> IP address"));
+    initTCPPortBox(     OPTION("bob","port",[]{return "2827";}), uiSettings->bobPortLineEdit, tr("BOB -> Port"));
 
-    initCheckBox(       OPTION("i2cp","enabled",[]{return "false";}), ui->i2cpEnabledCheckBox);
-    initIPAddressBox(   OPTION("i2cp","address",[]{return "";}), ui->i2cpAddressLineEdit, tr("I2CP -> IP address"));
-    initTCPPortBox(     OPTION("i2cp","port",[]{return "7654";}), ui->i2cpPortLineEdit, tr("I2CP -> Port"));
+    initCheckBox(       OPTION("i2cp","enabled",[]{return "false";}), uiSettings->i2cpEnabledCheckBox);
+    initIPAddressBox(   OPTION("i2cp","address",[]{return "";}), uiSettings->i2cpAddressLineEdit, tr("I2CP -> IP address"));
+    initTCPPortBox(     OPTION("i2cp","port",[]{return "7654";}), uiSettings->i2cpPortLineEdit, tr("I2CP -> Port"));
 
-    initCheckBox(       OPTION("i2pcontrol","enabled",[]{return "false";}), ui->i2pControlEnabledCheckBox);
-    initIPAddressBox(   OPTION("i2pcontrol","address",[]{return "";}), ui->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
-    initTCPPortBox(     OPTION("i2pcontrol","port",[]{return "7650";}), ui->i2pControlPortLineEdit, tr("I2PControl -> Port"));
-    initStringBox(      OPTION("i2pcontrol","password",[]{return "";}), ui->i2pControlPasswordLineEdit);
-    initFileChooser(    OPTION("i2pcontrol","cert",[]{return "i2pcontrol.crt.pem";}), ui->i2pControlCertFileLineEdit, ui->i2pControlCertFileBrowsePushButton);
-    initFileChooser(    OPTION("i2pcontrol","key",[]{return "i2pcontrol.key.pem";}), ui->i2pControlKeyFileLineEdit, ui->i2pControlKeyFileBrowsePushButton);
+    initCheckBox(       OPTION("i2pcontrol","enabled",[]{return "false";}), uiSettings->i2pControlEnabledCheckBox);
+    initIPAddressBox(   OPTION("i2pcontrol","address",[]{return "";}), uiSettings->i2pControlAddressLineEdit, tr("I2PControl -> IP address"));
+    initTCPPortBox(     OPTION("i2pcontrol","port",[]{return "7650";}), uiSettings->i2pControlPortLineEdit, tr("I2PControl -> Port"));
+    initStringBox(      OPTION("i2pcontrol","password",[]{return "";}), uiSettings->i2pControlPasswordLineEdit);
+    initFileChooser(    OPTION("i2pcontrol","cert",[]{return "i2pcontrol.crt.pem";}), uiSettings->i2pControlCertFileLineEdit, uiSettings->i2pControlCertFileBrowsePushButton);
+    initFileChooser(    OPTION("i2pcontrol","key",[]{return "i2pcontrol.key.pem";}), uiSettings->i2pControlKeyFileLineEdit, uiSettings->i2pControlKeyFileBrowsePushButton);
 
-    initCheckBox(       OPTION("upnp","enabled",[]{return "true";}), ui->enableUPnPCheckBox);
-    initStringBox(      OPTION("upnp","name",[]{return "I2Pd";}), ui->upnpNameLineEdit);
+    initCheckBox(       OPTION("upnp","enabled",[]{return "true";}), uiSettings->enableUPnPCheckBox);
+    initStringBox(      OPTION("upnp","name",[]{return "I2Pd";}), uiSettings->upnpNameLineEdit);
 	
-    initCheckBox(       OPTION("precomputation","elgamal",[]{return "false";}), ui->useElGamalPrecomputedTablesCheckBox);
+    initCheckBox(       OPTION("precomputation","elgamal",[]{return "false";}), uiSettings->useElGamalPrecomputedTablesCheckBox);
 	
-    initCheckBox(       OPTION("reseed","verify",[]{return "";}), ui->reseedVerifyCheckBox);
-    initFileChooser(    OPTION("reseed","file",[]{return "";}), ui->reseedFileLineEdit, ui->reseedFileBrowsePushButton);
-    initStringBox(      OPTION("reseed","urls",[]{return "";}), ui->reseedURLsLineEdit);
+    initCheckBox(       OPTION("reseed","verify",[]{return "";}), uiSettings->reseedVerifyCheckBox);
+    initFileChooser(    OPTION("reseed","file",[]{return "";}), uiSettings->reseedFileLineEdit, uiSettings->reseedFileBrowsePushButton);
+    initStringBox(      OPTION("reseed","urls",[]{return "";}), uiSettings->reseedURLsLineEdit);
 	
-    initStringBox(      OPTION("addressbook","defaulturl",[]{return "";}), ui->addressbookDefaultURLLineEdit);
-    initStringBox(      OPTION("addressbook","subscriptions",[]{return "";}), ui->addressbookSubscriptionsURLslineEdit);
+    initStringBox(      OPTION("addressbook","defaulturl",[]{return "";}), uiSettings->addressbookDefaultURLLineEdit);
+    initStringBox(      OPTION("addressbook","subscriptions",[]{return "";}), uiSettings->addressbookSubscriptionsURLslineEdit);
 	
-    initUInt16Box(     OPTION("limits","transittunnels",[]{return "2500";}), ui->maxNumOfTransitTunnelsLineEdit, tr("maxNumberOfTransitTunnels"));
-    initUInt16Box(     OPTION("limits","openfiles",[]{return "0";}), ui->maxNumOfOpenFilesLineEdit, tr("maxNumberOfOpenFiles"));
-    initUInt32Box(     OPTION("limits","coresize",[]{return "0";}), ui->coreFileMaxSizeNumberLineEdit, tr("coreFileMaxSize"));
+    initUInt16Box(     OPTION("limits","transittunnels",[]{return "2500";}), uiSettings->maxNumOfTransitTunnelsLineEdit, tr("maxNumberOfTransitTunnels"));
+    initUInt16Box(     OPTION("limits","openfiles",[]{return "0";}), uiSettings->maxNumOfOpenFilesLineEdit, tr("maxNumberOfOpenFiles"));
+    initUInt32Box(     OPTION("limits","coresize",[]{return "0";}), uiSettings->coreFileMaxSizeNumberLineEdit, tr("coreFileMaxSize"));
 
-    initCheckBox(       OPTION("trust","enabled",[]{return "false";}), ui->checkBoxTrustEnable);
-    initStringBox(      OPTION("trust","family",[]{return "";}), ui->lineEditTrustFamily);
-    initStringBox(      OPTION("trust","routers",[]{return "";}), ui->lineEditTrustRouters);
-    initCheckBox(       OPTION("trust","hidden",[]{return "false";}), ui->checkBoxTrustHidden);
+    initCheckBox(       OPTION("trust","enabled",[]{return "false";}), uiSettings->checkBoxTrustEnable);
+    initStringBox(      OPTION("trust","family",[]{return "";}), uiSettings->lineEditTrustFamily);
+    initStringBox(      OPTION("trust","routers",[]{return "";}), uiSettings->lineEditTrustRouters);
+    initCheckBox(       OPTION("trust","hidden",[]{return "false";}), uiSettings->checkBoxTrustHidden);
 
-    initCheckBox(       OPTION("websockets","enabled",[]{return "false";}), ui->checkBoxWebsocketsEnable);
-    initIPAddressBox(   OPTION("websockets","address",[]{return "127.0.0.1";}), ui->lineEdit_webSock_addr, tr("Websocket server -> IP address"));
-    initTCPPortBox(     OPTION("websockets","port",[]{return "7666";}), ui->lineEdit_webSock_port, tr("Websocket server -> Port"));
+    initCheckBox(       OPTION("websockets","enabled",[]{return "false";}), uiSettings->checkBoxWebsocketsEnable);
+    initIPAddressBox(   OPTION("websockets","address",[]{return "127.0.0.1";}), uiSettings->lineEdit_webSock_addr, tr("Websocket server -> IP address"));
+    initTCPPortBox(     OPTION("websockets","port",[]{return "7666";}), uiSettings->lineEdit_webSock_port, tr("Websocket server -> Port"));
 
 #   undef OPTION
 
+    //widgetlocks.add(new widgetlock(widget,lockbtn));
+    widgetlocks.add(new widgetlock(uiSettings->logDestinationComboBox,uiSettings->logDestComboEditPushButton));
+    widgetlocks.add(new widgetlock(uiSettings->logLevelComboBox,uiSettings->logLevelComboEditPushButton));
+    widgetlocks.add(new widgetlock(uiSettings->comboBox_httpPorxySignatureType,uiSettings->httpProxySignTypeComboEditPushButton));
+    widgetlocks.add(new widgetlock(uiSettings->comboBox_socksProxySignatureType,uiSettings->socksProxySignTypeComboEditPushButton));
+
     loadAllConfigs();
 
-    //tunnelsFormGridLayoutWidget = new QWidget(ui->tunnelsScrollAreaWidgetContents);
-    //tunnelsFormGridLayoutWidget->setObjectName(QStringLiteral("tunnelsFormGridLayoutWidget"));
-    //tunnelsFormGridLayoutWidget->setGeometry(QRect(0, 0, 621, 451));
+    QObject::connect(uiSettings->logDestinationComboBox, SIGNAL(currentIndexChanged(const QString &)),
+                     this, SLOT(logDestinationComboBoxValueChanged(const QString &)));
+    logDestinationComboBoxValueChanged(uiSettings->logDestinationComboBox->currentText());
+
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, 451));
 
     appendTunnelForms("");
 
-    ui->configFileLineEdit->setEnabled(false);
-    ui->configFileBrowsePushButton->setEnabled(false);
-    ui->configFileLineEdit->setText(confpath);
-    ui->tunnelsConfigFileLineEdit->setText(tunconfpath);
+    uiSettings->configFileLineEdit->setEnabled(false);
+    uiSettings->configFileBrowsePushButton->setEnabled(false);
+    uiSettings->configFileLineEdit->setText(confpath);
+    uiSettings->tunnelsConfigFileLineEdit->setText(tunconfpath);
 
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         item->installListeners(this);
     }
 
-    QObject::connect(ui->tunnelsConfigFileLineEdit, SIGNAL(textChanged(const QString &)),
+    QObject::connect(uiSettings->tunnelsConfigFileLineEdit, SIGNAL(textChanged(const QString &)),
                      this, SLOT(reloadTunnelsConfigAndUI()));
 
     QObject::connect(ui->addServerTunnelPushButton, SIGNAL(released()), this, SLOT(addServerTunnelPushButtonReleased()));
@@ -226,11 +301,104 @@ MainWindow::MainWindow(QWidget *parent) :
     //QMetaObject::connectSlotsByName(this);
 }
 
-void MainWindow::showStatusPage(){ui->stackedWidget->setCurrentIndex(0);}
-void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);}
-void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);}
-void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);}
-void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);}
+void MainWindow::logDestinationComboBoxValueChanged(const QString & text) {
+    bool stdout = text==QString("stdout");
+    uiSettings->logFileLineEdit->setEnabled(!stdout);
+    uiSettings->logFileBrowsePushButton->setEnabled(!stdout);
+}
+
+
+void MainWindow::updateRouterCommandsButtons() {
+    bool acceptsTunnels = i2p::context.AcceptsTunnels ();
+    routerCommandsUI->declineTransitTunnelsPushButton->setEnabled(acceptsTunnels);
+    routerCommandsUI->acceptTransitTunnelsPushButton->setEnabled(!acceptsTunnels);
+}
+
+void MainWindow::showStatusPage(StatusPage newStatusPage){
+    ui->stackedWidget->setCurrentIndex(0);
+    setStatusButtonsVisible(true);
+    statusPage=newStatusPage;
+    showHiddenInfoStatusMainPage=false;
+    if(newStatusPage!=StatusPage::commands){
+        textBrowser->setHtml(getStatusPageHtml(false));
+        textBrowser->show();
+        routerCommandsParent->hide();
+        pageWithBackButton->hide();
+    }else{
+        routerCommandsParent->show();
+        textBrowser->hide();
+        pageWithBackButton->hide();
+        updateRouterCommandsButtons();
+    }
+    wasSelectingAtStatusMainPage=false;
+}
+void MainWindow::showSettingsPage(){ui->stackedWidget->setCurrentIndex(1);setStatusButtonsVisible(false);}
+void MainWindow::showTunnelsPage(){ui->stackedWidget->setCurrentIndex(2);setStatusButtonsVisible(false);}
+void MainWindow::showRestartPage(){ui->stackedWidget->setCurrentIndex(3);setStatusButtonsVisible(false);}
+void MainWindow::showQuitPage(){ui->stackedWidget->setCurrentIndex(4);setStatusButtonsVisible(false);}
+
+void MainWindow::setStatusButtonsVisible(bool visible) {
+    ui->statusButtonsPane->setVisible(visible);
+}
+
+// see also: HTTPServer.cpp
+QString MainWindow::getStatusPageHtml(bool showHiddenInfo) {
+    std::stringstream s;
+
+    s << "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">";
+
+    switch (statusPage) {
+    case main_page: i2p::http::ShowStatus(s, showHiddenInfo);break;
+    case commands: break;
+    case local_destinations: i2p::http::ShowLocalDestinations(s);break;
+    case leasesets: i2p::http::ShowLeasesSets(s); break;
+    case tunnels: i2p::http::ShowTunnels(s); break;
+    case transit_tunnels: i2p::http::ShowTransitTunnels(s); break;
+    case transports: i2p::http::ShowTransports(s); break;
+    case i2p_tunnels: i2p::http::ShowI2PTunnels(s); break;
+    case sam_sessions: i2p::http::ShowSAMSessions(s); break;
+    default: assert(false); break;
+    }
+
+    std::string str = s.str();
+    return QString::fromStdString(str);
+}
+
+void MainWindow::showStatusMainPage() { showStatusPage(StatusPage::main_page); }
+void MainWindow::showStatus_commands_Page() { showStatusPage(StatusPage::commands); }
+void MainWindow::showStatus_local_destinations_Page() { showStatusPage(StatusPage::local_destinations); }
+void MainWindow::showStatus_leasesets_Page() { showStatusPage(StatusPage::leasesets); }
+void MainWindow::showStatus_tunnels_Page() { showStatusPage(StatusPage::tunnels); }
+void MainWindow::showStatus_transit_tunnels_Page() { showStatusPage(StatusPage::transit_tunnels); }
+void MainWindow::showStatus_transports_Page() { showStatusPage(StatusPage::transports); }
+void MainWindow::showStatus_i2p_tunnels_Page() { showStatusPage(StatusPage::i2p_tunnels); }
+void MainWindow::showStatus_sam_sessions_Page() { showStatusPage(StatusPage::sam_sessions); }
+
+
+void MainWindow::scheduleStatusPageUpdates() {
+    statusPageUpdateTimer = new QTimer(this);
+    connect(statusPageUpdateTimer, SIGNAL(timeout()), this, SLOT(updateStatusPage()));
+    statusPageUpdateTimer->start(10*1000/*millis*/);
+}
+
+void MainWindow::statusHtmlPageMouseReleased() {
+    if(wasSelectingAtStatusMainPage){
+        QString selection = textBrowser->textCursor().selectedText();
+        if(!selection.isEmpty()&&!selection.isNull())return;
+    }
+    showHiddenInfoStatusMainPage=!showHiddenInfoStatusMainPage;
+    textBrowser->setHtml(getStatusPageHtml(showHiddenInfoStatusMainPage));
+}
+
+void MainWindow::statusHtmlPageSelectionChanged() {
+    wasSelectingAtStatusMainPage=true;
+}
+
+void MainWindow::updateStatusPage() {
+    showHiddenInfoStatusMainPage=false;
+    textBrowser->setHtml(getStatusPageHtml(showHiddenInfoStatusMainPage));
+}
+
 
 //TODO
 void MainWindow::resizeEvent(QResizeEvent *event)
@@ -352,6 +520,7 @@ void MainWindow::handleGracefulQuitTimerEvent() {
 MainWindow::~MainWindow()
 {
     qDebug("Destroying main window");
+    delete statusPageUpdateTimer;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
         item->deleteLater();
@@ -376,6 +545,9 @@ void MainWindow::initFolderChooser(ConfigOption option, QLineEdit* folderLineEdi
     configItems.append(new ComboBoxItem(option, comboBox));
     QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(saveAllConfigs()));
 }*/
+void MainWindow::initLogDestinationCombobox(ConfigOption option, QComboBox* comboBox){
+    configItems.append(new LogDestinationComboBoxItem(option, comboBox));
+}
 void MainWindow::initLogLevelCombobox(ConfigOption option, QComboBox* comboBox){
     configItems.append(new LogLevelComboBoxItem(option, comboBox));
 }
@@ -401,7 +573,7 @@ void MainWindow::initUInt16Box(ConfigOption option, QLineEdit* numberLineEdit, Q
     configItems.append(new UInt16StringItem(option, numberLineEdit, fieldNameTranslated));
 }
 void MainWindow::initStringBox(ConfigOption option, QLineEdit* lineEdit){
-    configItems.append(new BaseStringItem(option, lineEdit));
+    configItems.append(new BaseStringItem(option, lineEdit, QString()));
 }
 NonGUIOptionItem* MainWindow::initNonGUIOption(ConfigOption option) {
     NonGUIOptionItem * retValue;
@@ -430,10 +602,7 @@ void MainWindow::loadAllConfigs(){
             LogPrint(eLogWarning, "Daemon: please rename i2p.conf to i2pd.conf here: ", config);
         } else {
             config = i2p::fs::DataDirPath("i2pd.conf");
-            if (!i2p::fs::Exists (config)) {
-                // use i2pd.conf only if exists
-                config = ""; /* reset */
-            }
+            /*if (!i2p::fs::Exists (config)) {}*/
         }
     }
 
@@ -462,16 +631,20 @@ void MainWindow::loadAllConfigs(){
 }
 /** returns false iff not valid items present and save was aborted */
 bool MainWindow::saveAllConfigs(){
+    QString cannotSaveSettings = QApplication::tr("Cannot save settings.");
     programOptionsWriterCurrentSection="";
-    if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
-    else logOption->optionValue=boost::any(std::string("stdout"));
+    /*if(!logFileNameOption->lineEdit->text().trimmed().isEmpty())logOption->optionValue=boost::any(std::string("file"));
+    else logOption->optionValue=boost::any(std::string("stdout"));*/
     daemonOption->optionValue=boost::any(false);
     serviceOption->optionValue=boost::any(false);
 
     std::stringstream out;
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
         MainWindowItem* item = *it;
-        if(!item->isValid()) return false;
+        if(!item->isValid()){
+            highlightWrongInput(QApplication::tr("Invalid value for")+" "+item->getConfigOption().section+"::"+item->getConfigOption().option+". "+item->getRequirementToBeValid()+" "+cannotSaveSettings, item->getWidgetToFocus());
+            return false;
+        }
     }
 
     for(QList<MainWindowItem*>::iterator it = configItems.begin(); it!= configItems.end(); ++it) {
@@ -481,9 +654,10 @@ bool MainWindow::saveAllConfigs(){
 
     using namespace std;
 
+
     QString backup=confpath+"~";
     if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
-    QFile::rename(confpath, backup);//TODO handle errors
+    if(QFile::exists(confpath)) QFile::rename(confpath, backup);//TODO handle errors
     ofstream outfile;
     outfile.open(confpath.toStdString());//TODO handle errors
     outfile << out.str().c_str();
@@ -506,15 +680,22 @@ void FolderChooserItem::pushButtonReleased() {
 }
 
 void BaseStringItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(lineEdit, SIGNAL(textChanged(const QString &)), mainWindow, SLOT(updated()));
 }
 void ComboBoxItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(comboBox, SIGNAL(currentIndexChanged(int)), mainWindow, SLOT(updated()));
 }
 void CheckBoxItem::installListeners(MainWindow *mainWindow) {
-    QObject::connect(checkBox, SIGNAL(stateChanged(int)), mainWindow, SLOT(saveAllConfigs()));
+    QObject::connect(checkBox, SIGNAL(stateChanged(int)), mainWindow, SLOT(updated()));
 }
 
+void MainWindow::updated() {
+    ui->wrongInputLabel->setVisible(false);
+    adjustSizesAccordingToWrongLabel();
+
+    applyTunnelsUiToConfigs();
+    saveAllConfigs();
+}
 
 void MainWindowItem::installListeners(MainWindow *mainWindow) {}
 
@@ -526,27 +707,33 @@ void MainWindow::appendTunnelForms(std::string tunnelNameToFocus) {
         TunnelConfig* tunconf = it->second;
         ServerTunnelConfig* stc = tunconf->asServerTunnelConfig();
         if(stc){
-            ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc);
+            ServerTunnelPane * tunnelPane=new ServerTunnelPane(&tunnelsPageUpdateListener, stc, ui->wrongInputLabel, ui->wrongInputLabel, this);
             int h=tunnelPane->appendServerTunnelForm(stc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
-            qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
+            //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
-            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
+            if(name==tunnelNameToFocus){
+                tunnelPane->getNameLineEdit()->setFocus();
+                ui->tunnelsScrollArea->ensureWidgetVisible(tunnelPane->getNameLineEdit());
+            }
             continue;
         }
         ClientTunnelConfig* ctc = tunconf->asClientTunnelConfig();
         if(ctc){
-            ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc);
+            ClientTunnelPane * tunnelPane=new ClientTunnelPane(&tunnelsPageUpdateListener, ctc, ui->wrongInputLabel, ui->wrongInputLabel, this);
             int h=tunnelPane->appendClientTunnelForm(ctc, ui->tunnelsScrollAreaWidgetContents, tunnelPanes.size(), height);
             height+=h;
-            qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
+            //qDebug() << "tun.height:" << height << "sz:" <<  tunnelPanes.size();
             tunnelPanes.push_back(tunnelPane);
-            if(name==tunnelNameToFocus)tunnelPane->getNameLineEdit()->setFocus();
+            if(name==tunnelNameToFocus){
+                tunnelPane->getNameLineEdit()->setFocus();
+                ui->tunnelsScrollArea->ensureWidgetVisible(tunnelPane->getNameLineEdit());
+            }
             continue;
         }
         throw "unknown TunnelConfig subtype";
     }
-    qDebug() << "tun.setting height:" << height;
+    //qDebug() << "tun.setting height:" << height;
     ui->tunnelsScrollAreaWidgetContents->setGeometry(QRect(0, 0, 621, height));
     QList<QWidget*> childWidgets = ui->tunnelsScrollAreaWidgetContents->findChildren<QWidget*>();
     foreach(QWidget* widget, childWidgets)
@@ -570,6 +757,14 @@ void MainWindow::deleteTunnelForms() {
         throw "unknown TunnelPane subtype";
     }
     tunnelPanes.clear();
+}
+
+bool MainWindow::applyTunnelsUiToConfigs() {
+    for(std::list<TunnelPane*>::iterator it = tunnelPanes.begin(); it != tunnelPanes.end(); ++it) {
+        TunnelPane* tp = *it;
+        if(!tp->applyDataFromUIToTunnelConfig())return false;
+    }
+    return true;
 }
 
 void MainWindow::reloadTunnelsConfigAndUI(std::string tunnelNameToFocus) {
@@ -598,11 +793,13 @@ void MainWindow::SaveTunnelsConfig() {
 
     QString backup=tunconfpath+"~";
     if(QFile::exists(backup)) QFile::remove(backup);//TODO handle errors
-    QFile::rename(tunconfpath, backup);//TODO handle errors
+    if(QFile::exists(tunconfpath)) QFile::rename(tunconfpath, backup);//TODO handle errors
     ofstream outfile;
     outfile.open(tunconfpath.toStdString());//TODO handle errors
     outfile << out.str().c_str();
     outfile.close();
+
+    i2p::client::context.ReloadConfig();
 
 }
 
@@ -613,7 +810,7 @@ void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::updated(std::string ol
         if(it!=mainWindow->tunnelConfigs.end())mainWindow->tunnelConfigs.erase(it);
         mainWindow->tunnelConfigs[tunConf->getName()]=tunConf;
     }
-    mainWindow->SaveTunnelsConfig();
+    mainWindow->saveAllConfigs();
 }
 
 void MainWindow::TunnelsPageUpdateListenerMainWindowImpl::needsDeleting(std::string oldName){
@@ -630,4 +827,80 @@ void MainWindow::addClientTunnelPushButtonReleased() {
 
 void MainWindow::setI2PController(i2p::qt::Controller* controller_) {
     this->i2pController = controller_;
+}
+
+void MainWindow::runPeerTest() {
+    i2p::transport::transports.PeerTest();
+}
+
+void MainWindow::enableTransit() {
+    i2p::context.SetAcceptsTunnels(true);
+    updateRouterCommandsButtons();
+}
+
+void MainWindow::disableTransit() {
+    i2p::context.SetAcceptsTunnels(false);
+    updateRouterCommandsButtons();
+}
+
+void MainWindow::anchorClickedHandler(const QUrl & link) {
+    QString debugStr=QString()+"anchorClicked: "+"\""+link.toString()+"\"";
+    qDebug()<<debugStr;
+    //QMessageBox::information(this, "", debugStr);
+
+    /* /?page=local_destination&b32=xx...xx */
+    QString str=link.toString();
+#define LOCAL_DEST_B32_PREFIX "/?page=local_destination&b32="
+    static size_t LOCAL_DEST_B32_PREFIX_SZ=QString(LOCAL_DEST_B32_PREFIX).size();
+    if(str.startsWith(LOCAL_DEST_B32_PREFIX)) {
+        str = str.right(str.size()-LOCAL_DEST_B32_PREFIX_SZ);
+        qDebug () << "b32:" << str;
+        pageWithBackButton->show();
+        textBrowser->hide();
+        std::stringstream s;
+        i2p::http::ShowLocalDestination(s,str.toStdString());
+        childTextBrowser->setHtml(QString::fromStdString(s.str()));
+    }
+}
+
+void MainWindow::backClickedFromChild() {
+    showStatusPage(statusPage);
+}
+
+void MainWindow::adjustSizesAccordingToWrongLabel() {
+    if(ui->wrongInputLabel->isVisible()) {
+        int dh = ui->wrongInputLabel->height()+ui->verticalLayout_7->layout()->spacing();
+        ui->verticalLayout_7->invalidate();
+        ui->wrongInputLabel->adjustSize();
+        ui->stackedWidget->adjustSize();
+        ui->stackedWidget->setFixedHeight(531-dh);
+        ui->settingsPage->setFixedHeight(531-dh);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531-dh));
+        ui->stackedWidget->setFixedHeight(531-dh);
+        ui->settingsScrollArea->setFixedHeight(531-dh-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+        ui->settingsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+        ui->tunnelsScrollArea->setFixedHeight(531-dh-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
+        ui->tunnelsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+    }else{
+        ui->verticalLayout_7->invalidate();
+        ui->wrongInputLabel->adjustSize();
+        ui->stackedWidget->adjustSize();
+        ui->stackedWidget->setFixedHeight(531);
+        ui->settingsPage->setFixedHeight(531);
+        ui->verticalLayoutWidget_4->setGeometry(QRect(0, 0, 711, 531));
+        ui->stackedWidget->setFixedHeight(531);
+        ui->settingsScrollArea->setFixedHeight(531-settingsTitleLabelNominalHeight-ui->verticalLayout_4->spacing());
+        ui->settingsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+        ui->tunnelsScrollArea->setFixedHeight(531-settingsTitleLabelNominalHeight-ui->horizontalLayout_42->geometry().height()-2*ui->verticalLayout_4->spacing());
+        ui->tunnelsTitleLabel->setFixedHeight(settingsTitleLabelNominalHeight);
+    }
+}
+
+void MainWindow::highlightWrongInput(QString warningText, QWidget* widgetToFocus) {
+    bool redVisible = ui->wrongInputLabel->isVisible();
+    ui->wrongInputLabel->setVisible(true);
+    ui->wrongInputLabel->setText(warningText);
+    if(!redVisible)adjustSizesAccordingToWrongLabel();
+    if(widgetToFocus){ui->settingsScrollArea->ensureWidgetVisible(widgetToFocus);widgetToFocus->setFocus();}
+    showSettingsPage();
 }

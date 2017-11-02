@@ -2,8 +2,8 @@
 #include "ClientContext.h"
 #include "SignatureTypeComboboxFactory.h"
 
-ServerTunnelPane::ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf):
-    TunnelPane(tunnelsPageUpdateListener, tunconf) {}
+ServerTunnelPane::ServerTunnelPane(TunnelsPageUpdateListener* tunnelsPageUpdateListener, ServerTunnelConfig* tunconf, QWidget* wrongInputPane_, QLabel* wrongInputLabel_, MainWindow* mainWindow):
+    TunnelPane(tunnelsPageUpdateListener, tunconf, wrongInputPane_, wrongInputLabel_, mainWindow) {}
 
 void ServerTunnelPane::setGroupBoxTitle(const QString & title) {
     serverTunnelNameGroupBox->setTitle(title);
@@ -197,6 +197,9 @@ int ServerTunnelPane::appendServerTunnelForm(
         QObject::connect(sigTypeComboBox, SIGNAL(currentIndexChanged(int)),
                                  this, SLOT(updated()));
         horizontalLayout_2->addWidget(sigTypeComboBox);
+        QPushButton * lockButton2 = new QPushButton(gridLayoutWidget_2);
+        horizontalLayout_2->addWidget(lockButton2);
+        widgetlocks.add(new widgetlock(sigTypeComboBox, lockButton2));
         QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
         horizontalLayout_2->addItem(horizontalSpacer);
         tunnelGridLayout->addLayout(horizontalLayout_2);
@@ -263,6 +266,7 @@ int ServerTunnelPane::appendServerTunnelForm(
 }
 
 void ServerTunnelPane::deleteServerTunnelForm() {
+    TunnelPane::deleteTunnelForm();
     delete serverTunnelNameGroupBox;//->deleteLater();
     serverTunnelNameGroupBox=nullptr;
 

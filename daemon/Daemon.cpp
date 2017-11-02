@@ -94,8 +94,12 @@ namespace i2p
 			std::string logs     = ""; i2p::config::GetOption("log",      logs);
 			std::string logfile  = ""; i2p::config::GetOption("logfile",  logfile);
 			std::string loglevel = ""; i2p::config::GetOption("loglevel", loglevel);
+			bool logclftime;           i2p::config::GetOption("logclftime", logclftime);
 
 			/* setup logging */
+			if (logclftime)
+				i2p::log::Logger().SetTimeFormat ("[%d/%b/%Y:%H:%M:%S %z]");
+
 			if (isDaemon && (logs == "" || logs == "stdout"))
 				logs = "file";
 

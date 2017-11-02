@@ -87,7 +87,11 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../daemon/i2pd.cpp \
     ../../daemon/I2PControl.cpp \
     ../../daemon/UnixDaemon.cpp \
-    ../../daemon/UPnP.cpp
+    ../../daemon/UPnP.cpp \
+    textbrowsertweaked1.cpp \
+    pagewithbackbutton.cpp \
+    widgetlock.cpp \
+    widgetlockregistry.cpp
 
 #qt creator does not handle this well
 #SOURCES += $$files(../../libi2pd/*.cpp)
@@ -166,7 +170,11 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../daemon/Daemon.h \
     ../../daemon/HTTPServer.h \
     ../../daemon/I2PControl.h \
-    ../../daemon/UPnP.h
+    ../../daemon/UPnP.h \
+    textbrowsertweaked1.h \
+    pagewithbackbutton.h \
+    widgetlock.h \
+    widgetlockregistry.h
 
 INCLUDEPATH += ../../libi2pd
 INCLUDEPATH += ../../libi2pd_client
@@ -174,9 +182,30 @@ INCLUDEPATH += ../../daemon
 INCLUDEPATH += .
 
 FORMS += mainwindow.ui \
-    tunnelform.ui
+    tunnelform.ui \
+    statusbuttons.ui \
+    routercommandswidget.ui \
+    generalsettingswidget.ui
 
 LIBS += -lz
+
+macx {
+	message("using mac os x target")
+	BREWROOT=/usr/local
+	BOOSTROOT=$$BREWROOT/opt/boost
+	SSLROOT=$$BREWROOT/opt/libressl
+	UPNPROOT=$$BREWROOT/opt/miniupnpc
+	INCLUDEPATH += $$BOOSTROOT/include
+	INCLUDEPATH += $$SSLROOT/include
+	INCLUDEPATH += $$UPNPROOT/include
+	LIBS += $$SSLROOT/lib/libcrypto.a
+	LIBS += $$SSLROOT/lib/libssl.a
+	LIBS += $$BOOSTROOT/lib/libboost_system.a
+	LIBS += $$BOOSTROOT/lib/libboost_date_time.a
+	LIBS += $$BOOSTROOT/lib/libboost_filesystem.a
+	LIBS += $$BOOSTROOT/lib/libboost_program_options.a
+	LIBS += $$UPNPROOT/lib/libminiupnpc.a
+}
 
 android {
 	message("Using Android settings")
