@@ -59,8 +59,7 @@ namespace data
 			~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
-			void PopulateLeases (); // from buffer
-			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };			
+			void PopulateLeases (); // from buffer			
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			size_t GetBufferLen () const { return m_BufferLen; };	
@@ -76,7 +75,7 @@ namespace data
 			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }; 
 
 			// implements RoutingDestination
-			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
+			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_EncryptionKey; };
 			bool IsDestination () const { return true; };
 

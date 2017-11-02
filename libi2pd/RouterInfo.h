@@ -185,7 +185,7 @@ namespace data
       bool IsFamily(const std::string & fam) const;
       
 			// implements RoutingDestination
-			const IdentHash& GetIdentHash () const { return m_RouterIdentity->GetIdentHash (); };
+			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; };
 			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; };
 			bool IsDestination () const { return false; };
 
