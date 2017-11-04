@@ -22,13 +22,13 @@ Any of the configuration options below can be used in the \fBDAEMON_ARGS\fR vari
 Show available options.
 .TP
 \fB\-\-conf=\fR
-Config file (default: \fI~/.i2pd/i2pd.conf\fR or \fI/var/lib/i2pd/i2pd.conf\fR)
+Config file (default: \fI~/.config/i2pd/i2pd.conf\fR or \fI/var/lib/i2pd/i2pd.conf\fR)
 .BR
 This parameter will be silently ignored if the specified config file does not exist.
 Options specified on the command line take precedence over those in the config file.
 .TP
 \fB\-\-tunconf=\fR
-Tunnels config file (default: \fI~/.i2pd/tunnels.conf\fR or \fI/var/lib/i2pd/tunnels.conf\fR)
+Tunnels config file (default: \fI~/.config/i2pd/tunnels.conf\fR or \fI/var/lib/i2pd/tunnels.conf\fR)
 .TP
 \fB\-\-pidfile=\fR
 Where to write pidfile (don\'t write by default)
@@ -87,7 +87,7 @@ i2pd configuration files (when running as a system service)
 i2pd profile directory (when running as a system service, see \fB\-\-service\fR above)
 .RE
 .PP
-$HOME/.i2pd/
+$HOME/.config/i2pd/
 .RS 4
 i2pd profile directory (when running as a normal user)
 .RE
