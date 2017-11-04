@@ -81,6 +81,14 @@ namespace fs {
       dataDir = "/var/lib/" + appName;
     } else if (home != NULL && strlen(home) > 0) {
       dataDir = std::string(home) + "/." + appName;
+      if (!boost::filesystem::exists(dataDir)) {  // backward compatibility
+        char *config_home = getenv("XDG_CONFIG_HOME");
+        if (config_home != NULL && strlen(config_home) > 0) {
+          dataDir = std::string(config_home) + "/" + appName;
+        } else {
+          dataDir = std::string(home) + "/.config/" + appName;
+        }
+      }
     } else {
       dataDir = "/tmp/" + appName;
     }
@@ -90,7 +98,7 @@ namespace fs {
 
   bool Init() {
     if (!boost::filesystem::exists(dataDir))
-      boost::filesystem::create_directory(dataDir);
+      boost::filesystem::create_directories(dataDir);
     std::string destinations = DataDirPath("destinations");
     if (!boost::filesystem::exists(destinations))
       boost::filesystem::create_directory(destinations);
