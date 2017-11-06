@@ -1,9 +1,84 @@
+#include <string.h>
+#include "Log.h"
 #include "CryptoKey.h"
 
 namespace i2p
 {
 namespace crypto
 {
+	ElGamalEncryptor::ElGamalEncryptor (const uint8_t * pub)
+	{
+		memcpy (m_PublicKey, pub, 256);
+	}
+
+	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
+	{
+		BN_CTX * ctx = BN_CTX_new ();
+		ElGamalEncrypt (m_PublicKey, data, encrypted, ctx, true);
+		BN_CTX_free (ctx);
+	}
+
+	ElGamalDecryptor::ElGamalDecryptor (const uint8_t * priv)
+	{
+		memcpy (m_PrivateKey, priv, 256);
+	}
+
+	void ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data)
+	{
+		BN_CTX * ctx = BN_CTX_new ();
+		ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx, true);
+		BN_CTX_free (ctx);
+	}
+
+	ECIESP256Encryptor::ECIESP256Encryptor (const uint8_t * pub)
+	{
+		m_Curve = EC_GROUP_new_by_curve_name (NID_X9_62_prime256v1);
+		m_PublicKey = EC_POINT_new (m_Curve);
+		BIGNUM * x = BN_bin2bn (pub, 32, nullptr);
+		BIGNUM * y = BN_bin2bn (pub + 32, 32, nullptr);
+		if (!EC_POINT_set_affine_coordinates_GFp (m_Curve, m_PublicKey, x, y, nullptr))
+			LogPrint (eLogError, "ECICS P256 invalid public key");
+		BN_free (x); BN_free (y);
+	}
+
+	ECIESP256Encryptor::~ECIESP256Encryptor ()
+	{
+		if (m_Curve) EC_GROUP_free (m_Curve);
+		if (m_PublicKey) EC_POINT_free (m_PublicKey);
+	}
+
+	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
+	{
+		if (m_Curve && m_PublicKey)
+		{
+			BN_CTX * ctx = BN_CTX_new ();
+			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted, ctx);
+			BN_CTX_free (ctx);
+		}
+	}
+
+	ECIESP256Decryptor::ECIESP256Decryptor (const uint8_t * priv)
+	{
+		m_Curve = EC_GROUP_new_by_curve_name (NID_X9_62_prime256v1);
+		m_PrivateKey = BN_bin2bn (priv, 32, nullptr);
+	}
+
+	ECIESP256Decryptor::~ECIESP256Decryptor ()
+	{
+		if (m_Curve) EC_GROUP_free (m_Curve);
+		if (m_PrivateKey) BN_free (m_PrivateKey);
+	}
+
+	void ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data)
+	{
+		if (m_Curve && m_PrivateKey)
+		{
+			BN_CTX * ctx = BN_CTX_new ();
+			ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx);
+			BN_CTX_free (ctx);
+		}
+	}
+
 	void CreateECIESP256RandomKeys (uint8_t * priv, uint8_t * pub)
 	{
 		EC_GROUP * curve = EC_GROUP_new_by_curve_name (NID_X9_62_prime256v1);
