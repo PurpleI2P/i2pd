@@ -1,6 +1,7 @@
 #include <time.h>
 #include <stdio.h>
 #include "Crypto.h"
+#include "CryptoKey.h"
 #include "I2PEndian.h"
 #include "Log.h"
 #include "Identity.h"
@@ -627,24 +628,8 @@ namespace data
 				i2p::crypto::GenerateElGamalKeyPair(priv, pub);
 			break;
 			case CRYPTO_KEY_TYPE_ECICS_P256_SHA256_AES256CBC:
-			{
-				EC_GROUP * curve = EC_GROUP_new_by_curve_name (NID_X9_62_prime256v1);
-				EC_POINT * p = nullptr; 
-				BIGNUM * key = nullptr;
-				i2p::crypto::GenerateECICSKeyPair (curve, key, p);
-				i2p::crypto::bn2buf (key, priv, 32);
-				RAND_bytes (priv + 32, 224);
-				BN_free (key);
-				BIGNUM * x = BN_new (), * y = BN_new ();
-				EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, NULL);
-				i2p::crypto::bn2buf (x, pub, 32);
-				i2p::crypto::bn2buf (y, pub + 32, 32);				
-				RAND_bytes (priv + 64, 192);
-				EC_POINT_free (p); 
-				BN_free (x); BN_free (y);
-				EC_GROUP_free (curve);	
-				break;
-			}
+				i2p::crypto::CreateECIESP256RandomKeys (priv, pub);
+			break;
 			default:
 				LogPrint (eLogError, "Identity: Crypto key type ", (int)type, " is not supported");
 		}	

@@ -52,10 +52,10 @@ namespace crypto
 	bool ElGamalDecrypt (const uint8_t * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding = false);
 	void GenerateElGamalKeyPair (uint8_t * priv, uint8_t * pub);
 
-	// ECICS
-	void ECICSEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx); // 222 bytes data, 512 bytes encrypted
-	bool ECICSDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);	
-	void GenerateECICSKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub);
+	// ECIES
+	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx); // 222 bytes data, 512 bytes encrypted
+	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);	
+	void GenerateECIESKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub);
 	
 	// HMAC
 	typedef i2p::data::Tag<32> MACKey;		

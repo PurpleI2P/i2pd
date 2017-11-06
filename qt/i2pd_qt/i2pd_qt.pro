@@ -30,6 +30,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/BloomFilter.cpp \
     ../../libi2pd/Config.cpp \
     ../../libi2pd/Crypto.cpp \
+	../../libi2pd/CryptoKey.cpp \
     ../../libi2pd/Datagram.cpp \
     ../../libi2pd/Destination.cpp \
     ../../libi2pd/Event.cpp \
@@ -107,6 +108,7 @@ HEADERS  += DaemonQT.h mainwindow.h \
     ../../libi2pd/BloomFilter.h \
     ../../libi2pd/Config.h \
     ../../libi2pd/Crypto.h \
+	../../libi2pd/CryptoKey.h \
     ../../libi2pd/Datagram.h \
     ../../libi2pd/Destination.h \
     ../../libi2pd/Event.h \

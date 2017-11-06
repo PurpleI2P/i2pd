@@ -372,8 +372,8 @@ namespace crypto
 		BN_CTX_free (ctx);
 	}
 
-// ECICS
-	void ECICSEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
+// ECIES
+	void ECIESEncrypt (const EC_GROUP * curve, const EC_POINT * key, const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
 	{
 		BN_CTX_start (ctx);
 		BIGNUM * q = BN_CTX_get (ctx);
@@ -410,7 +410,7 @@ namespace crypto
 		BN_CTX_end (ctx);
 	}
 
-	bool ECICSDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
+	bool ECIESDecrypt (const EC_GROUP * curve, const BIGNUM * key, const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		bool ret = true;
 		BN_CTX_start (ctx);
@@ -460,7 +460,7 @@ namespace crypto
 		return ret;
 	}
 
-	void GenerateECICSKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub)
+	void GenerateECIESKeyPair (const EC_GROUP * curve, BIGNUM *& priv, EC_POINT *& pub)
 	{
 		BN_CTX * ctx = BN_CTX_new ();
 		BIGNUM * q = BN_new ();
