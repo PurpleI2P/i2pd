@@ -828,5 +828,11 @@ namespace data
 			m_Profile = GetRouterProfile (GetIdentHash ());
 		return m_Profile;
 	}	
+
+	void RouterInfo::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
+	{
+		// TODO: we always assume ElGamal for RouterInfo, might change later
+		i2p::crypto::ElGamalEncrypt (m_RouterIdentity->GetEncryptionPublicKey (), data, encrypted, ctx);
+	}
 }
 }

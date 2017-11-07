@@ -1,7 +1,6 @@
 #include <time.h>
 #include <stdio.h>
 #include "Crypto.h"
-#include "CryptoKey.h"
 #include "I2PEndian.h"
 #include "Log.h"
 #include "Identity.h"
@@ -443,6 +442,23 @@ namespace data
 		m_Verifier = nullptr;
 	}
 
+	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (const uint8_t * key) const
+	{
+		if (!key) key = GetEncryptionPublicKey (); // use publicKey 
+		switch (GetCryptoKeyType ())
+		{
+			case CRYPTO_KEY_TYPE_ELGAMAL:
+				return std::make_shared<i2p::crypto::ElGamalEncryptor>(key);
+			break;
+			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
+				return std::make_shared<i2p::crypto::ECIESP256Encryptor>(key);
+			break;
+			default:
+				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)GetCryptoKeyType ());
+		};
+		return nullptr;
+	}
+
 	PrivateKeys& PrivateKeys::operator=(const Keys& keys)
 	{
 		m_Public = std::make_shared<IdentityEx>(Identity (keys));
@@ -568,6 +584,23 @@ namespace data
 			return nullptr; // TODO: implement me
 	}
 
+	std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> PrivateKeys::CreateDecryptor (const uint8_t * key) const
+	{
+		if (!key) key = m_PrivateKey; // use privateKey 
+		switch (m_Public->GetCryptoKeyType ())
+		{
+			case CRYPTO_KEY_TYPE_ELGAMAL:
+				return std::make_shared<i2p::crypto::ElGamalDecryptor>(key);
+			break;
+			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
+				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
+			break;
+			default:
+				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)m_Public->GetCryptoKeyType ());
+		};
+		return nullptr;
+	}
+
 	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type, CryptoKeyType cryptoType)
 	{
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
@@ -627,7 +660,7 @@ namespace data
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				i2p::crypto::GenerateElGamalKeyPair(priv, pub);
 			break;
-			case CRYPTO_KEY_TYPE_ECICS_P256_SHA256_AES256CBC:
+			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 				i2p::crypto::CreateECIESP256RandomKeys (priv, pub);
 			break;
 			default:

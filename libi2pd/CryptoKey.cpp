@@ -11,11 +11,9 @@ namespace crypto
 		memcpy (m_PublicKey, pub, 256);
 	}
 
-	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
+	void ElGamalEncryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
 	{
-		BN_CTX * ctx = BN_CTX_new ();
 		ElGamalEncrypt (m_PublicKey, data, encrypted, ctx, true);
-		BN_CTX_free (ctx);
 	}
 
 	ElGamalDecryptor::ElGamalDecryptor (const uint8_t * priv)
@@ -23,11 +21,9 @@ namespace crypto
 		memcpy (m_PrivateKey, priv, 256);
 	}
 
-	void ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data)
+	bool ElGamalDecryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
-		BN_CTX * ctx = BN_CTX_new ();
-		ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx, true);
-		BN_CTX_free (ctx);
+		return ElGamalDecrypt (m_PrivateKey, encrypted, data, ctx, true);
 	}
 
 	ECIESP256Encryptor::ECIESP256Encryptor (const uint8_t * pub)
@@ -47,14 +43,10 @@ namespace crypto
 		if (m_PublicKey) EC_POINT_free (m_PublicKey);
 	}
 
-	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted)
+	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
 	{
 		if (m_Curve && m_PublicKey)
-		{
-			BN_CTX * ctx = BN_CTX_new ();
 			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted, ctx);
-			BN_CTX_free (ctx);
-		}
 	}
 
 	ECIESP256Decryptor::ECIESP256Decryptor (const uint8_t * priv)
@@ -69,14 +61,11 @@ namespace crypto
 		if (m_PrivateKey) BN_free (m_PrivateKey);
 	}
 
-	void ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data)
+	bool ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		if (m_Curve && m_PrivateKey)
-		{
-			BN_CTX * ctx = BN_CTX_new ();
-			ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx);
-			BN_CTX_free (ctx);
-		}
+			return ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx);
+		return false;;
 	}
 
 	void CreateECIESP256RandomKeys (uint8_t * priv, uint8_t * pub)

@@ -181,12 +181,14 @@ namespace data
 			void DeleteBuffer () { delete[] m_Buffer; m_Buffer = nullptr; };
 			bool IsNewer (const uint8_t * buf, size_t len) const;			
 
-      /** return true if we are in a router family and the signature is valid */
-      bool IsFamily(const std::string & fam) const;
+     	 	/** return true if we are in a router family and the signature is valid */
+      		bool IsFamily(const std::string & fam) const;
       
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; };
+			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; }; // deprecated
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx);			
+
 			bool IsDestination () const { return false; };
 
 		private:

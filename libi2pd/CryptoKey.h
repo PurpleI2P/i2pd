@@ -13,7 +13,7 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyEncryptor () {};
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted); // 222 bytes data, 512 bytes encrypted
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) = 0; // 222 bytes data, 512 bytes encrypted
 	};	
 
 	class CryptoKeyDecryptor 
@@ -21,40 +21,40 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyDecryptor () {};
-			virtual void Decrypt (const uint8_t * encrypted, uint8_t * data); // 512 bytes encrypted, 222 bytes data
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) = 0; // 512 bytes encrypted, 222 bytes data
 	};
 
-	class ElGamalEncryptor // for destination
+	class ElGamalEncryptor: public CryptoKeyEncryptor // for destination
 	{
 		public:
 
 			ElGamalEncryptor (const uint8_t * pub);
-			void Encrypt (const uint8_t * data, uint8_t * encrypted); 
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx); 
 
 		private:
 
 			uint8_t m_PublicKey[256];
 	};
 
-	class ElGamalDecryptor // for destination
+	class ElGamalDecryptor: public CryptoKeyDecryptor // for destination
 	{
 		public:
 
 			ElGamalDecryptor (const uint8_t * priv);
-			void Decrypt (const uint8_t * encrypted, uint8_t * data); 
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx); 
 
 		private:
 
 			uint8_t m_PrivateKey[256];
 	};
 
-	class ECIESP256Encryptor
+	class ECIESP256Encryptor: public CryptoKeyEncryptor 
 	{
 		public:
 
 			ECIESP256Encryptor (const uint8_t * pub);
 			~ECIESP256Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted); 
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx); 
 
 		private:
 
@@ -63,13 +63,13 @@ namespace crypto
 	};
 
 
-	class ECIESP256Decryptor
+	class ECIESP256Decryptor: public CryptoKeyDecryptor
 	{
 		public:
 
 			ECIESP256Decryptor (const uint8_t * priv);
 			~ECIESP256Decryptor ();
-			void Decrypt (const uint8_t * encrypted, uint8_t * data); 
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx); 
 
 		private:
 
