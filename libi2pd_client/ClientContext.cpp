@@ -280,7 +280,8 @@ namespace client
 		}
 	}
 
-	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType)
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, 
+		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
 		bool success = true;
 		std::string fullPath = i2p::fs::DataDirPath (filename);
@@ -304,7 +305,7 @@ namespace client
 		else
 		{
 			LogPrint (eLogError, "Clients: can't open file ", fullPath, " Creating new one with signature type ", sigType);
-			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
+			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();
 			uint8_t * buf = new uint8_t[len];
@@ -488,6 +489,7 @@ namespace client
 					std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
 					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 					// I2CP
 					std::map<std::string, std::string> options;
 					ReadI2CPOptions (section, options);
@@ -496,7 +498,7 @@ namespace client
 					if (keys.length () > 0)
 					{
 						i2p::data::PrivateKeys k;
-						if(LoadPrivateKeys (k, keys, sigType))
+						if(LoadPrivateKeys (k, keys, sigType, cryptoType))
 						{
 							localDestination = FindLocalDestination (k.GetPublic ()->GetIdentHash ());
 							if (!localDestination)
