@@ -208,7 +208,7 @@ namespace data
 		return ts > m_ExpirationTime;
 	}
 
-	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
+	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
 	{
 		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
 		if (encryptor)

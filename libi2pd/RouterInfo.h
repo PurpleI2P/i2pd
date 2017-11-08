@@ -186,8 +186,7 @@ namespace data
       
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_RouterIdentity; };
-			const uint8_t * GetEncryptionPublicKey () const { return m_RouterIdentity->GetStandardIdentity ().publicKey; }; // deprecated
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx);			
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const;			
 
 			bool IsDestination () const { return false; };
 

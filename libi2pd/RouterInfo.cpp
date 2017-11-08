@@ -829,10 +829,11 @@ namespace data
 		return m_Profile;
 	}	
 
-	void RouterInfo::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
+	void RouterInfo::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
 	{
-		// TODO: we always assume ElGamal for RouterInfo, might change later
-		i2p::crypto::ElGamalEncrypt (m_RouterIdentity->GetEncryptionPublicKey (), data, encrypted, ctx);
+		auto encryptor = m_RouterIdentity->CreateEncryptor (nullptr);
+		if (encryptor)
+			encryptor->Encrypt (data, encrypted, ctx);
 	}
 }
 }

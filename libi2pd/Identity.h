@@ -191,8 +191,7 @@ namespace data
 			virtual ~RoutingDestination () {};
 
 			virtual std::shared_ptr<const IdentityEx> GetIdentity ()  const = 0;
-			virtual const uint8_t * GetEncryptionPublicKey () const = 0; // deprecated
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) = 0; // encrypt data for
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const = 0; // encrypt data for
 			virtual bool IsDestination () const = 0; // for garlic
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };

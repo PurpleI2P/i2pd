@@ -189,7 +189,7 @@ namespace garlic
 			uint8_t iv[32]; // IV is first 16 bytes
 			SHA256(elGamal.preIV, 32, iv); 
 			BN_CTX * ctx = BN_CTX_new ();
-			i2p::crypto::ElGamalEncrypt (m_Destination->GetEncryptionPublicKey (), (uint8_t *)&elGamal, buf, ctx, true);	
+			m_Destination->Encrypt ((uint8_t *)&elGamal, buf, ctx);		
 			BN_CTX_free (ctx);		
 			m_Encryption.SetIV (iv);
 			buf += 514;
