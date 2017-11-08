@@ -587,7 +587,13 @@ namespace data
 	std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> PrivateKeys::CreateDecryptor (const uint8_t * key) const
 	{
 		if (!key) key = m_PrivateKey; // use privateKey 
-		switch (m_Public->GetCryptoKeyType ())
+		return CreateDecryptor (m_Public->GetCryptoKeyType (), key);
+	}
+
+	std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> PrivateKeys::CreateDecryptor (CryptoKeyType cryptoType, const uint8_t * key)
+	{	
+		if (!key) return nullptr;
+		switch (cryptoType)
 		{
 			case CRYPTO_KEY_TYPE_ELGAMAL:
 				return std::make_shared<i2p::crypto::ElGamalDecryptor>(key);
@@ -596,9 +602,9 @@ namespace data
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
 			break;
 			default:
-				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)m_Public->GetCryptoKeyType ());
+				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
 		};
-		return nullptr;
+		return nullptr;	
 	}
 
 	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type, CryptoKeyType cryptoType)

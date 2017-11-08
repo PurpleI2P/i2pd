@@ -71,7 +71,8 @@ namespace client
 			void SendMsgTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash& ident, uint32_t nonce); // called from I2CPSession
 
 			// implements LocalDestination
-			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
+			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; }; // deprecated
+			void Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Identity; };
 
 		protected:
@@ -91,6 +92,7 @@ namespace client
 			std::shared_ptr<I2CPSession> m_Owner;
 			std::shared_ptr<const i2p::data::IdentityEx> m_Identity;
 			uint8_t m_EncryptionPrivateKey[256];
+			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 			uint64_t m_LeaseSetExpirationTime;
 	};
 

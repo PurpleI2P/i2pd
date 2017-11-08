@@ -150,6 +150,7 @@ namespace data
 
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> CreateDecryptor (const uint8_t * key) const;
 
+			static std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> CreateDecryptor (CryptoKeyType cryptoType, const uint8_t * key);
 			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
 			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
 
@@ -202,7 +203,8 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual const uint8_t * GetEncryptionPrivateKey () const = 0;
+			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; // deprecated
+			virtual void Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };

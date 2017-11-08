@@ -28,6 +28,7 @@ namespace i2p
 		m_StartupTime = i2p::util::GetSecondsSinceEpoch ();
 		if (!Load ())
 			CreateNewRouter ();
+		m_Decryptor = m_Keys.CreateDecryptor (nullptr); 
 		UpdateRouterInfo ();
 	}
 
@@ -477,5 +478,11 @@ namespace i2p
 	uint32_t RouterContext::GetUptime () const
 	{
 		return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
+	}
+
+	void RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	{
+		if (m_Decryptor)
+			m_Decryptor->Decrypt (encrypted, data, ctx);
 	}
 }

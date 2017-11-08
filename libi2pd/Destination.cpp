@@ -711,6 +711,7 @@ namespace client
 		else
 			i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (), 
 				m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		m_Decryptor = m_Keys.CreateDecryptor (m_EncryptionPrivateKey); 
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 	}
@@ -952,5 +953,12 @@ namespace client
 		if (m_DatagramDestination) m_DatagramDestination->CleanUp ();
 	}
 
+	void ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	{
+		if (m_Decryptor)
+			m_Decryptor->Decrypt (encrypted, data, ctx);
+		else
+			LogPrint (eLogError, "Destinations: decryptor is not set");
+	}
 }
 }
