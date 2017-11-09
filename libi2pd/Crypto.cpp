@@ -385,10 +385,11 @@ namespace crypto
 		auto p = EC_POINT_new (curve);
 		EC_POINT_mul (curve, p, k, nullptr, nullptr, ctx);
 		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
-		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);		
-		bn2buf (x, encrypted, len);
-		bn2buf (y, encrypted + len, len);
-		RAND_bytes (encrypted + 2*len, 256 - 2*len);
+		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);	
+		encrypted[0] = 0;
+		bn2buf (x, encrypted + 1, len);
+		bn2buf (y, encrypted + 1 + len, len);
+		RAND_bytes (encrypted + 1 + 2*len, 256 - 2*len);
 		// ecryption key and iv
 		EC_POINT_mul (curve, p, nullptr, key, k, ctx); 
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, nullptr);
@@ -402,10 +403,11 @@ namespace crypto
 		memcpy (m+33, data, 222);
 		SHA256 (m+33, 222, m+1);
 		// encrypt
+		encrypted[257] = 0;
 		CBCEncryption encryption;
 		encryption.SetKey (shared);
 		encryption.SetIV (iv);
-		encryption.Encrypt (m, 256, encrypted + 256);
+		encryption.Encrypt (m, 256, encrypted + 258);
 		EC_POINT_free (p);
 		BN_CTX_end (ctx);
 	}
@@ -419,8 +421,8 @@ namespace crypto
 		int len = BN_num_bytes (q);
 		// point for shared secret
 		BIGNUM * x = BN_CTX_get (ctx), * y = BN_CTX_get (ctx);
-		BN_bin2bn (encrypted, len, x);		
-		BN_bin2bn (encrypted + len, len, y);	
+		BN_bin2bn (encrypted + 1, len, x);		
+		BN_bin2bn (encrypted + 1 + len, len, y);	
 		auto p = EC_POINT_new (curve);
 		if (EC_POINT_set_affine_coordinates_GFp (curve, p, x, y, nullptr))
 		{
@@ -437,7 +439,7 @@ namespace crypto
 			CBCDecryption decryption;
 			decryption.SetKey (shared);
 			decryption.SetIV (iv);
-			decryption.Decrypt (encrypted + 256, 256, m);
+			decryption.Decrypt (encrypted + 258, 256, m);
 			// verify and copy
 			uint8_t hash[32];
 			SHA256 (m + 33, 222, hash);		
