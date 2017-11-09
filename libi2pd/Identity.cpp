@@ -453,6 +453,9 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESP256Encryptor>(key);
 			break;
+			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
+				return std::make_shared<i2p::crypto::ECIESGOSTR3410Encryptor>(key);
+			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)GetCryptoKeyType ());
 		};
@@ -601,6 +604,9 @@ namespace data
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 				return std::make_shared<i2p::crypto::ECIESP256Decryptor>(key);
 			break;
+			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
+				return std::make_shared<i2p::crypto::ECIESGOSTR3410Decryptor>(key);
+			break;
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
 		};
@@ -668,6 +674,9 @@ namespace data
 			break;
 			case CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC:
 				i2p::crypto::CreateECIESP256RandomKeys (priv, pub);
+			break;
+			case CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC:
+				i2p::crypto::CreateECIESGOSTR3410RandomKeys (priv, pub);
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Crypto key type ", (int)type, " is not supported");

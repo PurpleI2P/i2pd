@@ -24,6 +24,7 @@ namespace crypto
 			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) = 0; // 512 bytes encrypted, 222 bytes data
 	};
 
+// ElGamal
 	class ElGamalEncryptor: public CryptoKeyEncryptor // for destination
 	{
 		public:
@@ -47,6 +48,8 @@ namespace crypto
 
 			uint8_t m_PrivateKey[256];
 	};
+
+// ECIES P256
 
 	class ECIESP256Encryptor: public CryptoKeyEncryptor 
 	{
@@ -77,7 +80,38 @@ namespace crypto
 			BIGNUM * m_PrivateKey;
 	};
 
-	void CreateECIESP256RandomKeys (uint8_t * priv, uint8_t * pub);
+	void CreateECIESP256RandomKeys (uint8_t * priv, uint8_t * pub);	
+
+// ECIES GOST R 34.10
+
+	class ECIESGOSTR3410Encryptor: public CryptoKeyEncryptor 
+	{
+		public:
+
+			ECIESGOSTR3410Encryptor (const uint8_t * pub);
+			~ECIESGOSTR3410Encryptor ();
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx); 
+
+		private:
+
+			EC_POINT * m_PublicKey;
+	};
+
+
+	class ECIESGOSTR3410Decryptor: public CryptoKeyDecryptor
+	{
+		public:
+
+			ECIESGOSTR3410Decryptor (const uint8_t * priv);
+			~ECIESGOSTR3410Decryptor ();
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx); 
+
+		private:
+
+			BIGNUM * m_PrivateKey;
+	};
+
+	void CreateECIESGOSTR3410RandomKeys (uint8_t * priv, uint8_t * pub);
 }
 }
 
