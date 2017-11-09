@@ -304,7 +304,7 @@ namespace client
 		}
 		else
 		{
-			LogPrint (eLogError, "Clients: can't open file ", fullPath, " Creating new one with signature type ", sigType);
+			LogPrint (eLogError, "Clients: can't open file ", fullPath, " Creating new one with signature type ", sigType, " crypto type ", cryptoType);
 			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 			std::ofstream f (fullPath, std::ofstream::binary | std::ofstream::out);
 			size_t len = keys.GetFullLen ();

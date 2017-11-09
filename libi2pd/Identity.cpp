@@ -657,7 +657,7 @@ namespace data
 			uint8_t publicKey[256];
 			GenerateCryptoKeyPair (cryptoType, keys.m_PrivateKey, publicKey);
 			// identity
-			keys.m_Public = std::make_shared<IdentityEx> (publicKey, signingPublicKey, type);
+			keys.m_Public = std::make_shared<IdentityEx> (publicKey, signingPublicKey, type, cryptoType);
 
 			keys.CreateSigner ();
 			return keys;
