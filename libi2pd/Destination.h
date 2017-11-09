@@ -205,8 +205,7 @@ namespace client
       i2p::datagram::DatagramDestination * CreateDatagramDestination ();
 
 			// implements LocalDestination
-			const uint8_t * GetEncryptionPrivateKey () const { return m_EncryptionPrivateKey; };
-			void Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
 
 		protected:

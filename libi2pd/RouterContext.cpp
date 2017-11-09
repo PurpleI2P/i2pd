@@ -480,9 +480,8 @@ namespace i2p
 		return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
 	}
 
-	void RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
 	{
-		if (m_Decryptor)
-			m_Decryptor->Decrypt (encrypted, data, ctx);
+		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx) : false;
 	}
 }

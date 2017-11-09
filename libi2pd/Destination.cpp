@@ -953,12 +953,13 @@ namespace client
 		if (m_DatagramDestination) m_DatagramDestination->CleanUp ();
 	}
 
-	void ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
 	{
 		if (m_Decryptor)
-			m_Decryptor->Decrypt (encrypted, data, ctx);
+			return m_Decryptor->Decrypt (encrypted, data, ctx);
 		else
 			LogPrint (eLogError, "Destinations: decryptor is not set");
+		return false;
 	}
 }
 }

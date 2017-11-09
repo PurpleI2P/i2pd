@@ -34,12 +34,13 @@ namespace client
 		m_Decryptor = i2p::data::PrivateKeys::CreateDecryptor (m_Identity->GetCryptoKeyType (), m_EncryptionPrivateKey);
 	}
 
-	void I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
 	{
 		if (m_Decryptor)
-			m_Decryptor->Decrypt (encrypted, data, ctx);
+			return m_Decryptor->Decrypt (encrypted, data, ctx);
 		else
-			LogPrint (eLogError, "I2CP: decryptor is not set");			
+			LogPrint (eLogError, "I2CP: decryptor is not set");		
+		return false;
 	}
 
 	void I2CPDestination::HandleDataMessage (const uint8_t * buf, size_t len)

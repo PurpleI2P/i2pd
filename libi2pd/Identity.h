@@ -203,8 +203,7 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual const uint8_t * GetEncryptionPrivateKey () const = 0; // deprecated
-			virtual void Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const = 0;
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };

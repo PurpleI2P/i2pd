@@ -454,7 +454,7 @@ namespace garlic
 		{
 			// tag not found. Use ElGamal
 			ElGamalBlock elGamal;
-			if (length >= 514 && i2p::crypto::ElGamalDecrypt (GetEncryptionPrivateKey (), buf, (uint8_t *)&elGamal, m_Ctx, true))
+			if (length >= 514 && Decrypt (buf, (uint8_t *)&elGamal, m_Ctx))
 			{	
 				auto decryption = std::make_shared<AESDecryption>(elGamal.sessionKey);
 				uint8_t iv[32]; // IV is first 16 bytes
