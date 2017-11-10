@@ -448,7 +448,10 @@ namespace client
 	void BOBCommandSession::GetdestCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: getdest");
-		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+		if (m_Keys.GetPublic ()) // keys are set ?
+			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+		else
+			SendReplyError ("keys are not set");
 	}	
 		
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)
