@@ -68,7 +68,7 @@ namespace client
 		
 		public:
 
-			BOBI2PInboundTunnel (int port, std::shared_ptr<ClientDestination> localDestination);
+			BOBI2PInboundTunnel (const boost::asio::ip::tcp::endpoint& ep, std::shared_ptr<ClientDestination> localDestination);
 			~BOBI2PInboundTunnel ();
 
 			void Start ();
@@ -125,7 +125,7 @@ namespace client
 			void Start ();
 			void Stop ();
 			void StopTunnels ();
-			void CreateInboundTunnel (int port);
+			void CreateInboundTunnel (int port, const std::string& address);
 			void CreateOutboundTunnel (const std::string& address, int port, bool quiet);
 			const i2p::data::PrivateKeys& GetKeys () const { return m_LocalDestination->GetPrivateKeys (); };
 			std::shared_ptr<ClientDestination> GetLocalDestination () const { return m_LocalDestination; };
