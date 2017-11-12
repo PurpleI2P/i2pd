@@ -929,7 +929,8 @@ namespace client
 		}
 
 		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
-		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (), 
+				m_EncryptionPrivateKey, m_EncryptionPublicKey);
 
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
 		if (f1) {
