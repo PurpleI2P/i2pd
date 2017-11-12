@@ -82,7 +82,7 @@ namespace crypto
 		EC_POINT_get_affine_coordinates_GFp (curve, p, x, y, NULL);
 		bn2buf (x, pub, 32);
 		bn2buf (y, pub + 32, 32);				
-		RAND_bytes (priv + 64, 192);
+		RAND_bytes (pub + 64, 192);
 		EC_POINT_free (p); 
 		BN_free (x); BN_free (y);
 		EC_GROUP_free (curve);	
