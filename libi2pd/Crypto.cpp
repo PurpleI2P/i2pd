@@ -447,13 +447,13 @@ namespace crypto
 				memcpy (data, m + 33, 222);	
 			else
 			{
-				LogPrint (eLogError, "ECICS decrypt hash doesn't match");
+				LogPrint (eLogError, "ECIES decrypt hash doesn't match");
 				ret = false;
 			}	
 		}
 		else
 		{
-			LogPrint (eLogError, "ECICS decrypt point is invalid");
+			LogPrint (eLogError, "ECIES decrypt point is invalid");
 			ret = false;
 		}
 		
