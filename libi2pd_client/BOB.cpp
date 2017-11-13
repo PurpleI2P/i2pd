@@ -8,9 +8,8 @@ namespace i2p
 {
 namespace client
 {
-	BOBI2PInboundTunnel::BOBI2PInboundTunnel (int port, std::shared_ptr<ClientDestination> localDestination): 
-		BOBI2PTunnel (localDestination), 
-		m_Acceptor (localDestination->GetService (), boost::asio::ip::tcp::endpoint (boost::asio::ip::tcp::v4(), port))
+	BOBI2PInboundTunnel::BOBI2PInboundTunnel (const boost::asio::ip::tcp::endpoint& ep, std::shared_ptr<ClientDestination> localDestination): 
+		BOBI2PTunnel (localDestination), m_Acceptor (localDestination->GetService (), ep)
 	{
 	}
 
@@ -189,10 +188,22 @@ namespace client
 		}	
 	}	
 		
-	void BOBDestination::CreateInboundTunnel (int port)
+	void BOBDestination::CreateInboundTunnel (int port, const std::string& address)
 	{
 		if (!m_InboundTunnel)
-			m_InboundTunnel = new BOBI2PInboundTunnel (port, m_LocalDestination);
+		{
+			boost::asio::ip::tcp::endpoint ep(boost::asio::ip::tcp::v4(), port);
+			if (!address.empty ())
+			{
+				boost::system::error_code ec;
+				auto addr = boost::asio::ip::address::from_string (address, ec);
+				if (!ec)
+					ep.address (addr);
+				else
+					LogPrint (eLogError, "BOB: ", ec.message ()); 
+			}			
+			m_InboundTunnel = new BOBI2PInboundTunnel (ep, m_LocalDestination);
+		}
 	}
 		
 	void BOBDestination::CreateOutboundTunnel (const std::string& address, int port, bool quiet)
@@ -365,7 +376,7 @@ namespace client
 			m_Owner.AddDestination (m_Nickname, m_CurrentDestination);
 		}	
 		if (m_InPort)
-			m_CurrentDestination->CreateInboundTunnel (m_InPort);
+			m_CurrentDestination->CreateInboundTunnel (m_InPort, m_Address);
 		if (m_OutPort && !m_Address.empty ())
 			m_CurrentDestination->CreateOutboundTunnel (m_Address, m_OutPort, m_IsQuiet);
 		m_CurrentDestination->Start ();	
@@ -448,7 +459,10 @@ namespace client
 	void BOBCommandSession::GetdestCommandHandler (const char * operand, size_t len)
 	{
 		LogPrint (eLogDebug, "BOB: getdest");
-		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+		if (m_Keys.GetPublic ()) // keys are set ?
+			SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
+		else
+			SendReplyError ("keys are not set");
 	}	
 		
 	void BOBCommandSession::OuthostCommandHandler (const char * operand, size_t len)

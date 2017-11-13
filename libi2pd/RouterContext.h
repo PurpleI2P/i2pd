@@ -48,8 +48,8 @@ namespace i2p
 			{
 				return std::shared_ptr<i2p::garlic::GarlicDestination> (this, 
 					[](i2p::garlic::GarlicDestination *) {});
-			}
-
+			}	
+			
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
@@ -89,8 +89,7 @@ namespace i2p
 
 			// implements LocalDestination
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
-			const uint8_t * GetEncryptionPrivateKey () const { return m_Keys.GetPrivateKey (); };
-			const uint8_t * GetEncryptionPublicKey () const { return GetIdentity ()->GetStandardIdentity ().publicKey; };
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }; 
 			void SetLeaseSetUpdated () {};
 
@@ -115,6 +114,7 @@ namespace i2p
 
 			i2p::data::RouterInfo m_RouterInfo;
 			i2p::data::PrivateKeys m_Keys; 
+			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 			uint64_t m_LastUpdateTime;
 			bool m_AcceptsTunnels, m_IsFloodfill;
 			uint64_t m_StartupTime; // in seconds since epoch

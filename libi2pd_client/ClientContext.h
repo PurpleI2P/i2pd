@@ -34,6 +34,7 @@ namespace client
 	const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
 	const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
 	const char I2P_CLIENT_TUNNEL_SIGNATURE_TYPE[] = "signaturetype";
+	const char I2P_CLIENT_TUNNEL_CRYPTO_TYPE[] = "cryptotype";
 	const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
 	const char I2P_CLIENT_TUNNEL_MATCH_TUNNELS[] = "matchtunnels";
   const char I2P_CLIENT_TUNNEL_CONNECT_TIMEOUT[] = "connecttimeout";
@@ -70,7 +71,9 @@ namespace client
 			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
-			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+			bool LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, 
+				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256, 
+				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };

@@ -317,6 +317,7 @@ namespace stream
 			uint64_t m_LastBanClear;
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
+			bool m_EnableDrop;
 			
 		public:
 

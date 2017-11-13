@@ -709,7 +709,9 @@ namespace client
 		if (isPublic)
 			PersistTemporaryKeys ();
 		else
-			i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+			i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (), 
+				m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		m_Decryptor = m_Keys.CreateDecryptor (m_EncryptionPrivateKey); 
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
 	}
@@ -927,7 +929,8 @@ namespace client
 		}
 
 		LogPrint (eLogInfo, "Destination: Creating new temporary keys for address ", ident, ".b32.i2p");
-		i2p::crypto::GenerateElGamalKeyPair(m_EncryptionPrivateKey, m_EncryptionPublicKey);
+		i2p::data::PrivateKeys::GenerateCryptoKeyPair(GetIdentity ()->GetCryptoKeyType (), 
+				m_EncryptionPrivateKey, m_EncryptionPublicKey);
 
 		std::ofstream f1 (path, std::ofstream::binary | std::ofstream::out);
 		if (f1) {
@@ -951,5 +954,13 @@ namespace client
 		if (m_DatagramDestination) m_DatagramDestination->CleanUp ();
 	}
 
+	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	{
+		if (m_Decryptor)
+			return m_Decryptor->Decrypt (encrypted, data, ctx);
+		else
+			LogPrint (eLogError, "Destinations: decryptor is not set");
+		return false;
+	}
 }
 }

@@ -8,6 +8,7 @@
 #include <atomic>
 #include "Base.h"
 #include "Signature.h"
+#include "CryptoKey.h"
 
 namespace i2p
 {
@@ -52,6 +53,9 @@ namespace data
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
 
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
+	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC = 65280; // TODO: change to actual code
+	const uint16_t CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC = 65281; // TODO: use GOST R 34.11 instead SHA256 and GOST 28147-89 instead AES
+
 	const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
 	const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
@@ -64,9 +68,6 @@ namespace data
 	// following signature type should never appear in netid=2
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256 = 9;
 	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512 = 10; // approved by FSB
-	// TODO: remove later
-	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_CRYPTO_PRO_A_GOSTR3411_256_TEST = 65281;
-	const uint16_t SIGNING_KEY_TYPE_GOSTR3410_TC26_A_512_GOSTR3411_512_TEST = 65282;
 
 	typedef uint16_t SigningKeyType;
 	typedef uint16_t CryptoKeyType;
@@ -77,7 +78,7 @@ namespace data
 
 			IdentityEx ();
 			IdentityEx (const uint8_t * publicKey, const uint8_t * signingKey,
-				SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+				SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
 			IdentityEx (const uint8_t * buf, size_t len);
 			IdentityEx (const IdentityEx& other);
 			IdentityEx (const Identity& standard);
@@ -89,11 +90,12 @@ namespace data
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			size_t FromBase64(const std::string& s);
 			std::string ToBase64 () const;
-    const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
+    		const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
-    const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
-    uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
+    		const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
+    		uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
+			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const; 
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
 			size_t GetSigningPrivateKeyLen () const;
@@ -137,7 +139,7 @@ namespace data
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
     uint8_t * GetPadding();
-    void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
+    		void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
 			size_t GetFullLen () const { return m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen (); };
@@ -147,7 +149,11 @@ namespace data
 			size_t FromBase64(const std::string& s);
 			std::string ToBase64 () const;
 
-			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> CreateDecryptor (const uint8_t * key) const;
+
+			static std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> CreateDecryptor (CryptoKeyType cryptoType, const uint8_t * key);
+			static PrivateKeys CreateRandomKeys (SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1, CryptoKeyType cryptoType = CRYPTO_KEY_TYPE_ELGAMAL);
+			static void GenerateCryptoKeyPair (CryptoKeyType type, uint8_t * priv, uint8_t * pub); // priv and pub are 256 bytes long
 
 		private:
 
@@ -186,9 +192,11 @@ namespace data
 			RoutingDestination () {};
 			virtual ~RoutingDestination () {};
 
-			virtual const IdentHash& GetIdentHash () const = 0;
-			virtual const uint8_t * GetEncryptionPublicKey () const = 0;
+			virtual std::shared_ptr<const IdentityEx> GetIdentity ()  const = 0;
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const = 0; // encrypt data for
 			virtual bool IsDestination () const = 0; // for garlic
+
+			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };
 	};
 
 	class LocalDestination
@@ -196,7 +204,7 @@ namespace data
 		public:
 
 			virtual ~LocalDestination() {};
-			virtual const uint8_t * GetEncryptionPrivateKey () const = 0;
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const = 0;
 			virtual std::shared_ptr<const IdentityEx> GetIdentity () const = 0;
 
 			const IdentHash& GetIdentHash () const { return GetIdentity ()->GetIdentHash (); };

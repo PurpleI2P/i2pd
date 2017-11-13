@@ -208,6 +208,13 @@ namespace data
 		return ts > m_ExpirationTime;
 	}
 
+	void LeaseSet::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) const
+	{
+		auto encryptor = m_Identity->CreateEncryptor (m_EncryptionKey);
+		if (encryptor)
+			encryptor->Encrypt (data, encrypted, ctx);
+	}
+
 	LocalLeaseSet::LocalLeaseSet (std::shared_ptr<const IdentityEx> identity, const uint8_t * encryptionPublicKey, std::vector<std::shared_ptr<i2p::tunnel::InboundTunnel> > tunnels):
 		m_ExpirationTime (0), m_Identity (identity)
 	{

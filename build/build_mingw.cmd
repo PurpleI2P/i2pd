@@ -18,22 +18,27 @@ set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=enabled_from_arguments
 set MSYSTEM=MSYS
 
+set "xSH=%WD%bash -lc"
+
 REM detecting number of processors and subtract 1.
 set /a threads=%NUMBER_OF_PROCESSORS%-1
 
 REM we must work in root of repo
 cd ..
 
+REM deleting old log files
+del /S build_*.log >> nul
+
 echo Receiving latest commit and cleaning up...
-"%WD%bash" -lc "git pull && make clean" > build/build_git.log 2>&1
+%xSH% "git pull && make clean" > build/build_git.log 2>&1
 echo.
 
 REM set to variable current commit hash
-FOR /F "usebackq" %%a IN (`%WD%bash -lc 'git describe --tags'`) DO (
+FOR /F "usebackq" %%a IN (`%xSH% 'git describe --tags'`) DO (
  set tag=%%a
 )
 
-"%WD%bash" -lc "echo To use configs and certificates, move all files and certificates folder from contrib directory here. > README.txt" >> nul
+%xSH% "echo To use configs and certificates, move all files and certificates folder from contrib directory here. > README.txt" >> nul
 
 REM starting building
 set MSYSTEM=MINGW32
@@ -55,12 +60,12 @@ exit /b 0
 :BUILDING
 echo Building i2pd %tag% for win%bitness%:
 echo Build AVX+AESNI...
-"%WD%bash" -lc "make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1
+%xSH% "make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1
 echo Build AVX...
-"%WD%bash" -lc "make USE_UPNP=yes USE_AVX=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx.log 2>&1
+%xSH% "make USE_UPNP=yes USE_AVX=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx.log 2>&1
 echo Build AESNI...
-"%WD%bash" -lc "make USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_aesni.log 2>&1
+%xSH% "make USE_UPNP=yes USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_aesni.log 2>&1
 echo Build without extensions...
-"%WD%bash" -lc "make USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%.log 2>&1
+%xSH% "make USE_UPNP=yes -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%.log 2>&1
 
 :EOF
