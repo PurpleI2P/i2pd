@@ -882,7 +882,8 @@ namespace stream
 		m_PendingIncomingTimer (m_Owner->GetService ()),
 		m_ConnTrackTimer(m_Owner->GetService()),
 		m_ConnsPerMinute(DEFAULT_MAX_CONNS_PER_MIN),
-		m_LastBanClear(i2p::util::GetMillisecondsSinceEpoch())
+		m_LastBanClear(i2p::util::GetMillisecondsSinceEpoch()),
+		m_EnableDrop(false)
 	{
 	}
 
@@ -946,7 +947,7 @@ namespace stream
 				auto incomingStream = CreateNewIncomingStream ();
 				incomingStream->HandleNextPacket (packet); // SYN
 				auto ident = incomingStream->GetRemoteIdentity();
-				if(ident)
+				if(ident && m_EnableDrop)
 				{
 					auto ih = ident->GetIdentHash();
 					if(DropNewStream(ih))
@@ -1153,6 +1154,7 @@ namespace stream
 
 	void StreamingDestination::SetMaxConnsPerMinute(const uint32_t conns)
 	{
+		m_EnableDrop = conns > 0;
 		m_ConnsPerMinute = conns;
 		LogPrint(eLogDebug, "Streaming: Set max conns per minute per destination to ", conns);
 	}
