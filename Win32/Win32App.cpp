@@ -368,6 +368,9 @@ namespace win32
 
 	void StopWin32App ()
 	{
+		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
+		if (hWnd)
+			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_EXIT, 0), 0);
 		UnregisterClass (I2PD_WIN32_CLASSNAME, GetModuleHandle(NULL));
 	}
 
@@ -375,7 +378,7 @@ namespace win32
 	{
 		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
 		if (hWnd)
-		PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_GRACEFUL_SHUTDOWN, 0), 0);
+			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_GRACEFUL_SHUTDOWN, 0), 0);
 		return hWnd;
 	}
 
@@ -383,7 +386,7 @@ namespace win32
 	{
 		HWND hWnd = FindWindow (I2PD_WIN32_CLASSNAME, TEXT("i2pd"));
 		if (hWnd)
-		PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_STOP_GRACEFUL_SHUTDOWN, 0), 0);
+			PostMessage (hWnd, WM_COMMAND, MAKEWPARAM(ID_STOP_GRACEFUL_SHUTDOWN, 0), 0);
 		return hWnd;
 	}
 
