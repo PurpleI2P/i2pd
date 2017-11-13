@@ -7,6 +7,7 @@
 - outproxy for HTTP proxy
 - initial support of ECIES crypto
 - NTCP soft and hard descriptors limits
+- Support full timestamps in logs
 ### Changed
 - Faster implmentation of GOST R 34.11 hash
 - Reject routers with RSA signtures
