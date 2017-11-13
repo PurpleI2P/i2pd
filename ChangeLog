@@ -1,6 +1,22 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.16.0] - 2017-11-13
+### Added
+- https and "Connect" method for HTTP proxy
+- outproxy for HTTP proxy
+- initial support of ECIES crypto
+- NTCP soft and hard descriptors limits
+### Changed
+- Faster implmentation of GOST R 34.11 hash
+- Reject routers with RSA signtures
+- Reload config and shudown from Windows GUI
+- Update tunnels address(destination) without restart
+### Fixed
+- BOB crashes if destination is not set
+- Correct SAM tunnel name
+- QT GUI issues
+
 ## [2.15.0] - 2017-08-17
 ### Added
 - QT GUI 
