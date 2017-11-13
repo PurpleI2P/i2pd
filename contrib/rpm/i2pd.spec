@@ -1,7 +1,7 @@
 %define build_timestamp %(date +"%Y%m%d")
 
 Name:           i2pd
-Version:        2.15.0
+Version:        2.16.0
 Release:        %{build_timestamp}git%{?dist}
 Summary:        I2P router written in C++
 
@@ -103,6 +103,20 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Mon Nov 13 2017 orignal <i2porignal@yandex.ru> - 2.16.0
+- Added https and "Connect" method for HTTP proxy
+- Added outproxy for HTTP proxy
+- Added initial support of ECIES crypto
+- Added NTCP soft and hard descriptors limits
+- Added support full timestamps in logs
+- Changed faster implmentation of GOST R 34.11 hash
+- Changed reject routers with RSA signtures
+- Changed reload config and shudown from Windows GUI
+- Changed update tunnels address(destination) without restart
+- Fixed BOB crashes if destination is not set
+- Fixed correct SAM tunnel name
+- Fixed QT GUI issues
+
 * Thu Aug 17 2017 orignal <i2porignal@yandex.ru> - 2.15.0
 - Added QT GUI 
 - Added ability add and remove I2P tunnels without restart
