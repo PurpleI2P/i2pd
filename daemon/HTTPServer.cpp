@@ -908,7 +908,11 @@ namespace http {
 			i2p::win32::StopGracefulShutdown ();
 #endif
 		} else if (cmd == HTTP_COMMAND_SHUTDOWN_NOW) {
+#ifndef WIN32_APP
 			Daemon.running = false;
+#else
+			i2p::win32::StopWin32App ();
+#endif
 		} else {
 			res.code = 400;
 			ShowError(s, "Unknown command: " + cmd);
@@ -951,8 +955,8 @@ namespace http {
 		if (needAuth && pass == "") {
 			uint8_t random[16];
 			char alnum[] = "0123456789"
-			  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-			  "abcdefghijklmnopqrstuvwxyz";
+				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				"abcdefghijklmnopqrstuvwxyz";
 			pass.resize(sizeof(random));
 			RAND_bytes(random, sizeof(random));
 			for (size_t i = 0; i < sizeof(random); i++) {

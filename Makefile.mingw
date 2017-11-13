@@ -4,8 +4,8 @@ WINDRES = windres
 CXXFLAGS = -Os -D_MT -DWIN32 -D_WINDOWS -DWIN32_LEAN_AND_MEAN
 NEEDED_CXXFLAGS = -std=c++11
 BOOST_SUFFIX = -mt
-INCFLAGS = -I/usr/include/ -I/usr/local/include/ -I. -Idaemon
-LDFLAGS = -Wl,-rpath,/usr/local/lib -Wl,-Bstatic -static-libgcc -static-libstdc++ -L/usr/local/lib
+INCFLAGS = -Idaemon -I.
+LDFLAGS = -s -Wl,-rpath,/usr/local/lib -Wl,-Bstatic -static-libgcc -static-libstdc++
 
 # UPNP Support
 ifeq ($(USE_UPNP),yes)
@@ -30,7 +30,7 @@ LDLIBS += \
 
 ifeq ($(USE_WIN32_APP), yes)
 	CXXFLAGS += -DWIN32_APP
-	LDFLAGS += -mwindows -s
+	LDFLAGS += -mwindows
 	DAEMON_RC += Win32/Resource.rc
 	DAEMON_OBJS += $(patsubst %.rc,obj/%.o,$(DAEMON_RC))
 endif
