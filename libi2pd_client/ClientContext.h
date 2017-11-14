@@ -65,11 +65,11 @@ namespace client
 
 			std::shared_ptr<ClientDestination> GetSharedLocalDestination () const { return m_SharedLocalDestination; };
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (bool isPublic = false, // transient
- 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
+				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
-			    const std::map<std::string, std::string> * params = nullptr); // used by SAM only
+				const std::map<std::string, std::string> * params = nullptr); // used by SAM only
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
-    																																const std::map<std::string, std::string> * params = nullptr);
+				const std::map<std::string, std::string> * params = nullptr);
 			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params = nullptr);
 			void DeleteLocalDestination (std::shared_ptr<ClientDestination> destination);
 			std::shared_ptr<ClientDestination> FindLocalDestination (const i2p::data::IdentHash& destination) const;
@@ -78,6 +78,7 @@ namespace client
 				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
 
 			AddressBook& GetAddressBook () { return m_AddressBook; };
+			const BOBCommandChannel * GetBOBCommandChannel () const { return m_BOBCommandChannel; };
 			const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
 			const I2CPServer * GetI2CPServer () const { return m_I2CPServer; };
 

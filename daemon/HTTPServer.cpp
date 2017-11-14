@@ -60,12 +60,14 @@ namespace http {
 		"  .tunnel.established { color: #56B734; }\r\n"
 		"  .tunnel.expiring    { color: #D3AE3F; }\r\n"
 		"  .tunnel.failed      { color: #D33F3F; }\r\n"
-		"  .tunnel.another     { color: #434343; }\r\n"
+		"  .tunnel.building    { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
-		"  .private { background: black; color: black; } .private:hover { background: black; color: white } \r\n"
-		"  .slide p, .slide [type='checkbox']{ display:none; } \r\n"
-		"  .slide [type='checkbox']:checked ~ p { display:block; } \r\n"
+		"  .slide label { color: #894C84 }\r\n"
+		"  .slide p, .slide [type='checkbox']{ display:none; }\r\n"
+		"  .slide [type='checkbox']:checked ~ p { display:block; margin-top: 0; padding: 0; }\r\n"
+		"  .disabled:after { color: #D33F3F; content: \"Disabled\" }\r\n"
+		"  .enabled:after  { color: #56B734; content: \"Enabled\"  }\r\n"
 		"</style>\r\n";
 
 	const char HTTP_PAGE_TUNNELS[] = "tunnels";
@@ -270,7 +272,17 @@ namespace http {
 		size_t transitTunnelCount = i2p::tunnel::tunnels.CountTransitTunnels();
 
 		s << "<b>Client Tunnels:</b> " << std::to_string(clientTunnelCount) << " ";
-		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n";
+		s << "<b>Transit Tunnels:</b> " << std::to_string(transitTunnelCount) << "<br>\r\n<br>\r\n";
+
+		s << "<table><caption>Services</caption><tr><th>Service</th><th>State</th></tr>\r\n";
+		s << "<tr><td>" << "HTTP Proxy"		<< "</td><td><div class='" << ((i2p::client::context.GetHttpProxy ())			? "enabled" : "disabled") << "'></td></tr>\r\n";
+		s << "<tr><td>" << "SOCKS Proxy"	<< "</td><td><div class='" << ((i2p::client::context.GetSocksProxy ())			? "enabled" : "disabled") << "'></td></tr>\r\n";
+		s << "<tr><td>" << "BOB"			<< "</td><td><div class='" << ((i2p::client::context.GetBOBCommandChannel ())	? "enabled" : "disabled") << "'></td></tr>\r\n";
+		s << "<tr><td>" << "SAM"			<< "</td><td><div class='" << ((i2p::client::context.GetSAMBridge ())			? "enabled" : "disabled") << "'></td></tr>\r\n";
+		s << "<tr><td>" << "I2CP"			<< "</td><td><div class='" << ((i2p::client::context.GetI2CPServer ())			? "enabled" : "disabled") << "'></td></tr>\r\n";
+		bool i2pcontrol; i2p::config::GetOption("i2pcontrol.enabled", i2pcontrol);
+		s << "<tr><td>" << "I2PControl" << "</td><td><div class='" << ((i2pcontrol) ? "enabled" : "disabled") << "'></td></tr>\r\n";
+		s << "</table>\r\n";
 	}
 
 	void ShowLocalDestinations (std::stringstream& s)
@@ -284,7 +296,7 @@ namespace http {
 		}
 
 		auto i2cpServer = i2p::client::context.GetI2CPServer ();
-		if (i2cpServer)
+		if (i2cpServer && !(i2cpServer->GetSessions ().empty ()))
 		{
 			s << "<br><b>I2CP Local Destinations:</b><br>\r\n<br>\r\n";
 			for (auto& it: i2cpServer->GetSessions ())
@@ -304,14 +316,14 @@ namespace http {
 	{
 		s << "<b>Base64:</b><br>\r\n<textarea readonly=\"readonly\" cols=\"64\" rows=\"11\" wrap=\"on\">";
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
-		s << "<b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i><br>\r\n";
 		if(dest->GetNumRemoteLeaseSets())
 		{
-			s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
+			s << "<div class='slide'\r\n><label for='slide1'><b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i></label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
 			for(auto& it: dest->GetLeaseSets ())
 				s << it.second->GetIdentHash ().ToBase32 () << "<br>\r\n";
 			s << "</p>\r\n</div>\r\n";
-		}
+		} else
+			s << "<b>LeaseSets:</b> <i>0</i><br>\r\n";
 		auto pool = dest->GetTunnelPool ();
 		if (pool)
 		{
@@ -401,7 +413,7 @@ namespace http {
 
 	void ShowLeasesSets(std::stringstream& s)
 	{
-		s << "<div id='leasesets'><b>LeaseSets (click on to show info):</b></div><br>\r\n";
+		s << "<b>LeaseSets:</b><br>\r\n<br>\r\n";
 		int counter = 1;
 		// for each lease set
 		i2p::data::netdb.VisitLeaseSets(
@@ -434,6 +446,7 @@ namespace http {
 
 	void ShowTunnels (std::stringstream& s)
 	{
+		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
 
 		s << "<b>Inbound tunnels:</b><br>\r\n";
@@ -457,7 +470,7 @@ namespace http {
 	static void ShowCommands (std::stringstream& s, uint32_t token)
 	{
 		/* commands */
-		s << "<b>Router Commands</b><br>\r\n";
+		s << "<b>Router Commands</b><br>\r\n<br>\r\n";
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RUN_PEER_TEST << "&token=" << token << "\">Run peer test</a><br>\r\n";
 		//s << "  <a href=\"/?cmd=" << HTTP_COMMAND_RELOAD_CONFIG << "\">Reload config</a><br>\r\n";
 		if (i2p::context.AcceptsTunnels ())
@@ -529,13 +542,13 @@ namespace http {
 				}
 				if (!tmp_s.str ().empty ())
 				{
-					s << "<b>NTCP</b> ( " << cnt << " )<br>\r\n";
-					s << tmp_s.str () << "<br>\r\n";
+					s << "<div class='slide'\r\n><label for='slide_ntcp'><b>NTCP</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_ntcp'/>\r\n<p class='content'>";
+					s << tmp_s.str () << "</p>\r\n</div>\r\n";
 				}
 				if (!tmp_s6.str ().empty ())
 				{
-					s << "<b>NTCP6</b> ( " << cnt6 << " )<br>\r\n";
-					s << tmp_s6.str () << "<br>\r\n";
+					s << "<div class='slide'\r\n><label for='slide_ntcp6'><b>NTCP6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_ntcp6'/>\r\n<p class='content'>";
+					s << tmp_s6.str () << "</p>\r\n</div>\r\n";
 				}
 			}
 		}
@@ -545,7 +558,7 @@ namespace http {
 			auto sessions = ssuServer->GetSessions ();
 			if (!sessions.empty ())
 			{
-				s << "<b>SSU</b> ( " << (int) sessions.size() << " )<br>\r\n";
+				s << "<div class='slide'\r\n><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu'/>\r\n<p class='content'>";
 				for (const auto& it: sessions)
 				{
 					auto endpoint = it.second->GetRemoteEndpoint ();
@@ -557,12 +570,12 @@ namespace http {
 						s << " [itag:" << it.second->GetRelayTag () << "]";
 					s << "<br>\r\n" << std::endl;
 				}
-				s << "<br>\r\n";
+				s << "</p>\r\n</div>\r\n";
 			}
 			auto sessions6 = ssuServer->GetSessionsV6 ();
 			if (!sessions6.empty ())
 			{
-				s << "<b>SSU6</b> ( " << (int) sessions6.size() << " )<br>\r\n";
+				s << "<div class='slide'\r\n><label for='slide_ssu6'><b>SSU6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu6'/>\r\n<p class='content'>";
 				for (const auto& it: sessions6)
 				{
 					auto endpoint = it.second->GetRemoteEndpoint ();
@@ -574,7 +587,7 @@ namespace http {
 						s << " [itag:" << it.second->GetRelayTag () << "]";
 					s << "<br>\r\n" << std::endl;
 				}
-				s << "<br>\r\n";
+				s << "</p>\r\n</div>\r\n";
 			}
 		}
 	}

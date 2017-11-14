@@ -71,12 +71,12 @@ namespace client
 			}
 			try
 			{
-			  m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy",httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
-			  m_HttpProxy->Start();
+				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
+				m_HttpProxy->Start();
 			}
 			catch (std::exception& e)
 			{
-			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
+				LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
 		}
 
@@ -107,7 +107,7 @@ namespace client
 			}
 			try
 			{
-				m_SocksProxy = new i2p::proxy::SOCKSProxy( "SOCKS", socksProxyAddr, socksProxyPort,
+				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
 	 				socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				m_SocksProxy->Start();
 			}
