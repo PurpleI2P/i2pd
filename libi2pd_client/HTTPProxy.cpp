@@ -582,9 +582,9 @@ namespace proxy {
 		Done (shared_from_this());
 	}
 
-	HTTPProxy::HTTPProxy(const std::string& address, int port, const std::string & outproxy, std::shared_ptr<i2p::client::ClientDestination> localDestination):
+	HTTPProxy::HTTPProxy(const std::string& name, const std::string& address, int port, const std::string & outproxy, std::shared_ptr<i2p::client::ClientDestination> localDestination):
 		TCPIPAcceptor(address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()),
-		m_OutproxyUrl(outproxy)
+		m_Name (name), m_OutproxyUrl(outproxy)
 	{
 	}
 

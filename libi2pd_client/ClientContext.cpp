@@ -71,7 +71,7 @@ namespace client
 			}
 			try
 			{
-			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
+			  m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy",httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
 			  m_HttpProxy->Start();
 			}
 			catch (std::exception& e)
@@ -107,7 +107,8 @@ namespace client
 			}
 			try
 			{
-				m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
+				m_SocksProxy = new i2p::proxy::SOCKSProxy( "SOCKS", socksProxyAddr, socksProxyPort,
+	 				socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				m_SocksProxy->Start();
 			}
 			catch (std::exception& e)
@@ -533,14 +534,14 @@ namespace client
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
 						{
 							// socks proxy
-							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, false, "", destinationPort, localDestination);
+							clientTunnel = new i2p::proxy::SOCKSProxy(name, address, port, false, "", destinationPort, localDestination);
 							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
 						{
 							// http proxy
 							std::string outproxy = section.second.get("outproxy", "");
-							clientTunnel = new i2p::proxy::HTTPProxy(address, port, outproxy, localDestination);
+							clientTunnel = new i2p::proxy::HTTPProxy(name, address, port, outproxy, localDestination);
 							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)

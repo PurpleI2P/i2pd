@@ -768,9 +768,10 @@ namespace proxy
 			shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 	}
 
-	SOCKSServer::SOCKSServer(const std::string& address, int port, bool outEnable, const std::string& outAddress, uint16_t outPort,
-			std::shared_ptr<i2p::client::ClientDestination> localDestination) : 
-		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ())
+	SOCKSServer::SOCKSServer(const std::string& name, const std::string& address, int port, 
+		bool outEnable, const std::string& outAddress, uint16_t outPort, 
+		std::shared_ptr<i2p::client::ClientDestination> localDestination) : 
+		TCPIPAcceptor (address, port, localDestination ? localDestination : i2p::client::context.GetSharedLocalDestination ()), m_Name (name)
 	{
 		m_UseUpstreamProxy = false;
 		if (outAddress.length() > 0 && outEnable)
