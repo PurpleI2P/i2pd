@@ -79,10 +79,11 @@ namespace transport
 
 	void UPnP::Discover ()
 	{
-		int nerror = 0;
 #if MINIUPNPC_API_VERSION >= 14
+		int nerror = 0;
 		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 2, &nerror);
-#elseif MINIUPNPC_API_VERSION >= 8
+#elif MINIUPNPC_API_VERSION >= 8
+		int nerror = 0;
 		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
 #else
 		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0);
