@@ -64,8 +64,10 @@ namespace client
 			void ReloadConfig ();
 
 			std::shared_ptr<ClientDestination> GetSharedLocalDestination () const { return m_SharedLocalDestination; };
-			std::shared_ptr<ClientDestination> CreateNewLocalDestination (bool isPublic = false, i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
-			    const std::map<std::string, std::string> * params = nullptr); // transient
+			std::shared_ptr<ClientDestination> CreateNewLocalDestination (bool isPublic = false, // transient
+ 				i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
+				i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL,
+			    const std::map<std::string, std::string> * params = nullptr); // used by SAM only
 			std::shared_ptr<ClientDestination> CreateNewLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic = true,
     																																const std::map<std::string, std::string> * params = nullptr);
 			std::shared_ptr<ClientDestination> CreateNewMatchedTunnelDestination(const i2p::data::PrivateKeys &keys, const std::string & name, const std::map<std::string, std::string> * params = nullptr);

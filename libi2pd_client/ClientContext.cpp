@@ -342,10 +342,11 @@ namespace client
 		return infos;
 	}
 
-	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
-     const std::map<std::string, std::string> * params)
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic,
+ 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
+		const std::map<std::string, std::string> * params)
 	{
-		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
+		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
