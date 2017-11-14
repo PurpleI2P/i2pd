@@ -165,7 +165,7 @@ namespace log {
 		while (m_IsRunning)
 		{
 			std::shared_ptr<LogMsg> msg;
-			while (msg = m_Queue.Get ())
+			while ((msg = m_Queue.Get ()))
 				Process (msg);
 			if (m_LogStream) m_LogStream->flush();
 			if (m_IsRunning)
