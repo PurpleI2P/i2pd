@@ -79,10 +79,10 @@ namespace transport
 
 	void UPnP::Discover ()
 	{
-#if MINIUPNPC_API_VERSION >= 14
+#if (MINIUPNPC_API_VERSION >= 14)
 		int nerror = 0;
 		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 2, &nerror);
-#elif MINIUPNPC_API_VERSION >= 8
+#elif (MINIUPNPC_API_VERSION >= 8)
 		int nerror = 0;
 		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
 #else
@@ -158,7 +158,7 @@ namespace transport
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int r;
 		std::string strDesc; i2p::config::GetOption("upnp.name", strDesc);
-#if MINIUPNPC_API_VERSION >= 8
+#if (MINIUPNPC_API_VERSION >= 8)
 		r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
 #else
 		r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
