@@ -150,7 +150,7 @@ else()
   if (MSYS OR MINGW)
     add_definitions( -DWIN32_LEAN_AND_MEAN )
   endif ()
-  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch" )
+  set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -Wno-unused-parameter" )
   set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic" )
   # TODO: The following is incompatible with static build and enabled hardening for OpenWRT.
   # Multiple definitions of __stack_chk_fail (libssp & libc)
@@ -180,7 +180,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # more tweaks
   if (NOT (MSVC OR MSYS OR APPLE))
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++" )
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter -stdlib=libstdc++" )
   endif()
 endif ()
 
