@@ -28,9 +28,10 @@ namespace log {
 	 * @note Using ISO 6429 (ANSI) color sequences
 	 */
 #ifdef _WIN32
-	static const char *LogMsgColors[] = { "", "", "", "", "" };
+	static const char *LogMsgColors[] = { "", "", "", "", "", "" };
 #else /* UNIX */
 	static const char *LogMsgColors[] = {
+		[eLogNone]      = "\033[0m",    /* reset */
 		[eLogError]     = "\033[1;31m", /* red */
 		[eLogWarning]   = "\033[1;33m", /* yellow */
 		[eLogInfo]      = "\033[1;36m", /* cyan */
