@@ -25,10 +25,11 @@
 
 enum LogLevel
 {
-	eLogError = 0,
+	eLogNone = 0,
+	eLogError,
 	eLogWarning,
 	eLogInfo,
-	eLogDebug,	
+	eLogDebug,
 	eNumLogLevels
 };
 
