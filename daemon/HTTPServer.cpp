@@ -122,7 +122,7 @@ namespace http {
 			s << numKBytes / 1024 / 1024 << " GiB";
 	}
 
-	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, int bytes)
+	static void ShowTunnelDetails (std::stringstream& s, enum i2p::tunnel::TunnelState eState, bool explr, int bytes)
 	{
 		std::string state;
 		switch (eState) {
@@ -135,7 +135,7 @@ namespace http {
 			case i2p::tunnel::eTunnelStateEstablished : state = "established"; break;
 			default: state = "unknown"; break;
 		}
-		s << "<span class=\"tunnel " << state << "\"> " << state << "</span>, ";
+		s << "<span class=\"tunnel " << state << "\"> " << state << ((explr) ? " (exploratory)" : "") << "</span>, ";
 		s << " " << (int) (bytes / 1024) << "&nbsp;KiB<br>\r\n";
 	}
 
@@ -332,7 +332,7 @@ namespace http {
 				it->Print(s);
 				if(it->LatencyIsKnown())
 					s << " ( " << it->GetMeanLatency() << "ms )";
-				ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
+				ShowTunnelDetails(s, it->GetState (), false, it->GetNumReceivedBytes ());
 			}
 			s << "<br>\r\n";
 			s << "<b>Outbound tunnels:</b><br>\r\n";
@@ -340,7 +340,7 @@ namespace http {
 				it->Print(s);
 				if(it->LatencyIsKnown())
 					s << " ( " << it->GetMeanLatency() << "ms )";
-				ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
+				ShowTunnelDetails(s, it->GetState (), false, it->GetNumSentBytes ());
 			}
 		}
 		s << "<br>\r\n";
@@ -449,12 +449,14 @@ namespace http {
 		s << "<b>Tunnels:</b><br>\r\n<br>\r\n";
 		s << "<b>Queue size:</b> " << i2p::tunnel::tunnels.GetQueueSize () << "<br>\r\n";
 
+		auto ExplPool = i2p::tunnel::tunnels.GetExploratoryPool ();
+
 		s << "<b>Inbound tunnels:</b><br>\r\n";
 		for (auto & it : i2p::tunnel::tunnels.GetInboundTunnels ()) {
 			it->Print(s);
 			if(it->LatencyIsKnown())
 				s << " ( " << it->GetMeanLatency() << "ms )";
-			ShowTunnelDetails(s, it->GetState (), it->GetNumReceivedBytes ());
+			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumReceivedBytes ());
 		}
 		s << "<br>\r\n";
 		s << "<b>Outbound tunnels:</b><br>\r\n";
@@ -462,7 +464,7 @@ namespace http {
 			it->Print(s);
 			if(it->LatencyIsKnown())
 				s << " ( " << it->GetMeanLatency() << "ms )";
-			ShowTunnelDetails(s, it->GetState (), it->GetNumSentBytes ());
+			ShowTunnelDetails(s, it->GetState (), (it->GetTunnelPool () == ExplPool), it->GetNumSentBytes ());
 		}
 		s << "<br>\r\n";
 	}
