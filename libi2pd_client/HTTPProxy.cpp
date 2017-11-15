@@ -54,7 +54,7 @@ namespace proxy {
 			void HandleSockRecv(const boost::system::error_code & ecode, std::size_t bytes_transfered);
 			void Terminate();
 			void AsyncSockRead();
-			bool ExtractAddressHelper(i2p::http::URL & url, std::string & b64);
+			bool ExtractAddressHelper(i2p::http::URL & url, std::string & b64, bool & confirm);
 			void SanitizeHTTPRequest(i2p::http::HTTPReq & req);
 			void SentHTTPFailed(const boost::system::error_code & ecode);
 			void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
@@ -182,12 +182,14 @@ namespace proxy {
 					 std::bind(&HTTPReqHandler::SentHTTPFailed, shared_from_this(), std::placeholders::_1));
 	}
 
-	bool HTTPReqHandler::ExtractAddressHelper(i2p::http::URL & url, std::string & b64)
+	bool HTTPReqHandler::ExtractAddressHelper(i2p::http::URL & url, std::string & b64, bool & confirm)
 	{
+		confirm = false;
 		const char *param = "i2paddresshelper=";
 		std::size_t pos = url.query.find(param);
 		std::size_t len = std::strlen(param);
 		std::map<std::string, std::string> params;
+
 
 		if (pos == std::string::npos)
 			return false; /* not found */
@@ -197,6 +199,8 @@ namespace proxy {
 		std::string value = params["i2paddresshelper"];
 		len += value.length();
 		b64 = i2p::http::UrlDecode(value);
+		// if we need update exists, request formed with update param
+		if (params["update"] == "true") { len += std::strlen("&update=true"); confirm = true; }
 		url.query.replace(pos, len, "");
 		return true;
 	}
@@ -242,24 +246,36 @@ namespace proxy {
 		/* parsing success, now let's look inside request */
 		LogPrint(eLogDebug, "HTTPProxy: requested: ", m_ClientRequest.uri);
 		m_RequestURL.parse(m_ClientRequest.uri);
+		bool m_Confirm;
 
-		if (ExtractAddressHelper(m_RequestURL, b64))
+		if (ExtractAddressHelper(m_RequestURL, b64, m_Confirm))
 		{
 			bool addresshelper; i2p::config::GetOption("httpproxy.addresshelper", addresshelper);
 			if (!addresshelper)
 			{
-				LogPrint(eLogWarning, "HTTPProxy: addresshelper disabled");
-				GenericProxyError("Invalid request", "adddresshelper is not supported");
+				LogPrint(eLogWarning, "HTTPProxy: addresshelper request rejected");
+				GenericProxyError("Invalid request", "addresshelper is not supported");
 				return true;
 			}
-			i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, b64);
-			LogPrint (eLogInfo, "HTTPProxy: added b64 from addresshelper for ", m_RequestURL.host);
-			std::string full_url = m_RequestURL.to_string();
-			std::stringstream ss;
-			ss << "Host " << m_RequestURL.host << " added to router's addressbook from helper. "
-			   << "Click <a href=\"" << full_url << "\">here</a> to proceed.";
-			GenericProxyInfo("Addresshelper found", ss.str().c_str());
-			return true; /* request processed */
+			if (!i2p::client::context.GetAddressBook ().FindAddress (m_RequestURL.host) || m_Confirm)
+			{
+				i2p::client::context.GetAddressBook ().InsertAddress (m_RequestURL.host, b64);
+				LogPrint (eLogInfo, "HTTPProxy: added b64 from addresshelper for ", m_RequestURL.host);
+				std::string full_url = m_RequestURL.to_string();
+				std::stringstream ss;
+				ss << "Host " << m_RequestURL.host << " added to router's addressbook from helper. "
+				   << "Click <a href=\"" << full_url << "\">here</a> to proceed.";
+				GenericProxyInfo("Addresshelper found", ss.str().c_str());
+				return true; /* request processed */
+			}
+			else
+			{
+				std::stringstream ss;
+				ss << "Host " << m_RequestURL.host << " <font color=red>already in router's addressbook</font>. "
+				   << "Click <a href=\"" << m_RequestURL.query << "?i2paddresshelper=" << b64 << "&update=true\">here</a> to update record.";
+				GenericProxyInfo("Addresshelper found", ss.str().c_str());
+				return true; /* request processed */
+			}
 		}
 		std::string dest_host;
 		uint16_t    dest_port;
@@ -570,7 +586,7 @@ namespace proxy {
 	{
 		if (!stream) {
 			LogPrint (eLogError, "HTTPProxy: error when creating the stream, check the previous warnings for more info");
-			GenericProxyError("Host is down", "Can't create connection to requested host, it may be down");
+			GenericProxyError("Host is down", "Can't create connection to requested host, it may be down. Please try again later.");
 			return;
 		}
 		if (Kill())
