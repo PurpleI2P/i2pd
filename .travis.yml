@@ -21,10 +21,10 @@ matrix:
   - os: osx
     env: BUILD_TYPE=cmake UPNP=OFF MAKE_UPNP=no
   - os: linux
-    compiler: cmake
+    compiler: clang++
     env: BUILD_TYPE=make UPNP=ON MAKE_UPNP=yes
   - os: linux
-    compiler: cmake
+    compiler: clang++
     env: BUILD_TYPE=make UPNP=OFF MAKE_UPNP=no
 addons:
   apt:
