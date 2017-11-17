@@ -1,6 +1,4 @@
-ifndef TRAVIS_OS_NAME
-  CXX = clang++
-endif
+CXX = clang++
 CXXFLAGS = -Os -Wall -std=c++11 -DMAC_OSX
 #CXXFLAGS = -g -O2 -Wall -std=c++11
 INCFLAGS = -I/usr/local/include 

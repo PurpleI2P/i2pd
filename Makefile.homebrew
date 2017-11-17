@@ -3,9 +3,12 @@ BREWROOT = /usr/local
 BOOSTROOT = ${BREWROOT}/opt/boost
 SSLROOT = ${BREWROOT}/opt/libressl
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
-CXX = clang++
 CXXFLAGS = -g -Wall -std=c++11 -DMAC_OSX -Wno-overloaded-virtual
 INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include 
+
+ifndef TRAVIS_OS_NAME
+  CXX = clang++
+endif
 
 ifeq ($(USE_STATIC),yes)
 LDLIBS = -lz ${SSLROOT}/lib/libcrypto.a ${SSLROOT}/lib/libssl.a ${BOOSTROOT}/lib/libboost_system.a ${BOOSTROOT}/lib/libboost_date_time.a ${BOOSTROOT}/lib/libboost_filesystem.a ${BOOSTROOT}/lib/libboost_program_options.a -lpthread
@@ -15,15 +18,15 @@ LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem 
 endif
 
 ifeq ($(USE_UPNP),yes)
-	LDFLAGS += -ldl
-	CXXFLAGS += -DUSE_UPNP
+  LDFLAGS += -ldl
+  CXXFLAGS += -DUSE_UPNP
   INCFLAGS += -I${UPNPROOT}/include
   ifeq ($(USE_STATIC),yes)
     LDLIBS += ${UPNPROOT}/lib/libminiupnpc.a
   else
     LDFLAGS += -L${UPNPROOT}/lib
     LDLIBS += -lminiupnpc
-  endif  
+  endif
 endif
 
 # OSX Notes
@@ -32,11 +35,11 @@ endif
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
 # note from psi: 2009 macbook does not have aesni
 #ifeq ($(USE_AESNI),yes)
-#	CXXFLAGS += -maes -DAESNI
+#  CXXFLAGS += -maes -DAESNI
 #endif
 
 # Disabled, since it will be the default make rule. I think its better
 # to define the default rule in Makefile and not Makefile.<ostype> - torkel
 #install: all
-#	test -d ${PREFIX} || mkdir -p ${PREFIX}/
-#	cp -r i2p ${PREFIX}/
+#  test -d ${PREFIX} || mkdir -p ${PREFIX}/
+#  cp -r i2p ${PREFIX}/

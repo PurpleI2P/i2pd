@@ -31,11 +31,11 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libressl miniupnpc && brew upgrade boost ; fi
 env:
   matrix:
-    - BUILD_TYPE=Release UPNP=ON
-    - BUILD_TYPE=Release UPNP=OFF
+    - BUILD_TYPE=Release UPNP=ON OSX_UPNP=yes
+    - BUILD_TYPE=Release UPNP=OFF OSX_UPNP=no
   exclude:
     - os: osx
       compiler: g++
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_UPNP=${UPNP} && make ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then make HOMEBREW=1 USE_UPNP=${UPNP} ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then make HOMEBREW=1 USE_UPNP=${OSX_UPNP} ; fi
