@@ -14,6 +14,8 @@ env:
 - BUILD_TYPE=make UPNP=OFF MAKE_UPNP=no
 - BUILD_TYPE=cmake UPNP=ON MAKE_UPNP=yes
 - BUILD_TYPE=cmake UPNP=OFF MAKE_UPNP=no
+  global:
+  - MAKEFLAGS="-j 2"
 matrix:
   exclude:
   - os: osx
@@ -41,8 +43,10 @@ addons:
     - libboost-thread-dev
     - libminiupnpc-dev
     - libssl-dev
+# needed by brew
 before_install:
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install libressl miniupnpc ; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rvm install 2.3.1 ; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libressl miniupnpc ; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated boost || brew upgrade boost ; fi
 script:
 - if [[ "$TRAVIS_OS_NAME" == "linux" && "$BUILD_TYPE" == "cmake" ]]; then cd build && cmake -DCMAKE_BUILD_TYPE=Release -DWITH_UPNP=${UPNP} && make ; fi
