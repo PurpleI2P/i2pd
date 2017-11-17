@@ -5,7 +5,7 @@ os:
   - linux
   - osx
 sudo: required
-dist: trusty
+dist: stretch
 addons:
   apt:
     packages:
@@ -22,11 +22,11 @@ addons:
       - libminiupnpc-dev
       - libssl-dev
 compiler:
-  - gcc
-  - clang
+  - g++
+  - clang++
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install boost libressl miniupnpc ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libressl miniupnpc && brew upgrade boost ; fi
   # - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew unlink boost openssl && brew link boost openssl -f ; fi
 env:
   matrix:
