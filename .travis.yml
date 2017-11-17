@@ -1,8 +1,10 @@
 language: cpp
 cache:
   apt: true
+  directories:
+    - $HOME/Library/Caches/Homebrew
 os:
-  - linux
+  # - linux
   - osx
 sudo: required
 dist: stretch
@@ -32,6 +34,9 @@ env:
   matrix:
     - BUILD_TYPE=Release UPNP=ON
     - BUILD_TYPE=Release UPNP=OFF
+  exclude:
+  - os: osx
+    compiler: g++
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_UPNP=${UPNP} && make ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then make HOMEBREW=1 USE_UPNP=${UPNP} ; fi
