@@ -46,7 +46,7 @@ addons:
     - libssl-dev
 # needed by brew
 before_install:
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then rvm install 2.3.1 ; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libressl miniupnpc ; fi
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated boost || brew upgrade boost ; fi
 script:
