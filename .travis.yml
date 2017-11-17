@@ -6,18 +6,9 @@ cache:
 os:
   - linux
   - osx
-matrix:
-  include:
-    - os: linux
-      dist: xenial
-      sudo: required
-    - os: osx
-      env: UPNP=yes
-    - os: osx
-      env: UPNP=no
-  env:
-    - BUILD_TYPE=Release UPNP=ON
-    - BUILD_TYPE=Release UPNP=OFF
+compiler:
+  - g++
+  - clang++
 addons:
   apt:
     packages:
@@ -33,13 +24,13 @@ addons:
       - libboost-thread-dev
       - libminiupnpc-dev
       - libssl-dev
-compiler:
-  - g++
-  - clang++
+env:
+  - BUILD_TYPE=Release UPNP=ON MAKE_UPNP=yes
+  - BUILD_TYPE=Release UPNP=OFF MAKE_UPNP=no
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libressl miniupnpc ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade boost ; fi
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_UPNP=${UPNP} && make ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then make HOMEBREW=1 USE_UPNP=${UPNP} ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then make HOMEBREW=1 USE_UPNP=${MAKE_UPNP} ; fi
