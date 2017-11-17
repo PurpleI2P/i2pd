@@ -10,12 +10,13 @@ compiler:
 - g++
 - clang++
 env:
-- BUILD_TYPE=make UPNP=ON MAKE_UPNP=yes
-- BUILD_TYPE=make UPNP=OFF MAKE_UPNP=no
-- BUILD_TYPE=cmake UPNP=ON MAKE_UPNP=yes
-- BUILD_TYPE=cmake UPNP=OFF MAKE_UPNP=no
   global:
   - MAKEFLAGS="-j 2"
+  matrix:
+  - BUILD_TYPE=make UPNP=ON MAKE_UPNP=yes
+  - BUILD_TYPE=make UPNP=OFF MAKE_UPNP=no
+  - BUILD_TYPE=cmake UPNP=ON MAKE_UPNP=yes
+  - BUILD_TYPE=cmake UPNP=OFF MAKE_UPNP=no
 matrix:
   exclude:
   - os: osx
