@@ -3,11 +3,13 @@ cache:
   apt: true
   directories:
     - $HOME/Library/Caches/Homebrew
-os:
-  # - linux
-  - osx
-sudo: required
-dist: xenial
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      sudo: required
+    - os: osx
+      osx_image: xcode7.2
 addons:
   apt:
     packages:
@@ -28,14 +30,12 @@ compiler:
   - clang++
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libressl miniupnpc && brew upgrade boost ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libressl miniupnpc ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew outdated <package-name> || brew upgrade <package-name> ; fi
 env:
   matrix:
-    - BUILD_TYPE=Release UPNP=ON OSX_UPNP=yes
-    - BUILD_TYPE=Release UPNP=OFF OSX_UPNP=no
-  exclude:
-    - os: osx
-      compiler: g++
+    - BUILD_TYPE=Release UPNP=ON MAKE_UPNP=yes
+    - BUILD_TYPE=Release UPNP=OFF MAKE_UPNP=no
 script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd build && cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_UPNP=${UPNP} && make ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then make HOMEBREW=1 USE_UPNP=${OSX_UPNP} ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then make HOMEBREW=1 USE_UPNP=${MAKE_UPNP} ; fi

@@ -6,7 +6,7 @@ UPNPROOT = ${BREWROOT}/opt/miniupnpc
 CXXFLAGS = -g -Wall -std=c++11 -DMAC_OSX -Wno-overloaded-virtual
 INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include 
 
-ifndef TRAVIS_OS_NAME
+ifndef TRAVIS
   CXX = clang++
 endif
 
