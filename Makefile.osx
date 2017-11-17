@@ -5,29 +5,29 @@ INCFLAGS = -I/usr/local/include
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 
 ifeq ($(USE_STATIC),yes)
-LDLIBS = -lz /usr/local/lib/libcrypto.a /usr/local/lib/libssl.a /usr/local/lib/libboost_system.a /usr/local/lib/libboost_date_time.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
+	LDLIBS = -lz /usr/local/lib/libcrypto.a /usr/local/lib/libssl.a /usr/local/lib/libboost_system.a /usr/local/lib/libboost_date_time.a /usr/local/lib/libboost_filesystem.a /usr/local/lib/libboost_program_options.a -lpthread
 else
-LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
+	LDLIBS = -lz -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread
 endif
 
 ifeq ($(USE_UPNP),yes)
-  LDFLAGS += -ldl
-  CXXFLAGS += -DUSE_UPNP
-ifeq ($(USE_STATIC),yes)
-  LDLIBS += /usr/local/lib/libminiupnpc.a
-else
-  LDLIBS += -lminiupnpc
-endif
+	LDFLAGS += -ldl
+	CXXFLAGS += -DUSE_UPNP
+	ifeq ($(USE_STATIC),yes)
+		LDLIBS += /usr/local/lib/libminiupnpc.a
+	else
+		LDLIBS += -lminiupnpc
+	endif
 endif
 
 ifeq ($(USE_AESNI),1)
-  CXXFLAGS += -maes -DAESNI
+	CXXFLAGS += -maes -DAESNI
 else
-  CXXFLAGS += -msse
+	CXXFLAGS += -msse
 endif
 
 ifeq ($(USE_AVX),1)
-  CXXFLAGS += -mavx
+	CXXFLAGS += -mavx
 endif
 
 # Disabled, since it will be the default make rule. I think its better
