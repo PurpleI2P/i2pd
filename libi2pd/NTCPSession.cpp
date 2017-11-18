@@ -1247,7 +1247,7 @@ namespace transport
 				return;
 			}
 			buff[4] = (uint8_t) addrsize;
-			memcpy(buff+4, host.c_str(), addrsize);
+			memcpy(buff+5, host.c_str(), addrsize);
 		}
 		htobe16buf(buff+sz, port);
 		sz += 2;
@@ -1259,7 +1259,7 @@ namespace transport
 			}
 		});
 
-		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, sz), [=](const boost::system::error_code & e, std::size_t transferred) {
+		boost::asio::async_read(conn->GetSocket(), boost::asio::buffer(readbuff, 10), [=](const boost::system::error_code & e, std::size_t transferred) {
 			if(e)
 			{
 				LogPrint(eLogError, "NTCP: socks proxy read error ", e.message());
