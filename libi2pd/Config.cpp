@@ -179,6 +179,7 @@ namespace config {
 			("reseed.floodfill", value<std::string>()->default_value(""), "Path to router info of floodfill to reseed from")
 			("reseed.file", value<std::string>()->default_value(""),      "Path to local .su3 file or HTTPS URL to reseed from")
 			("reseed.zipfile", value<std::string>()->default_value(""),   "Path to local .zip file to reseed from")
+			("reseed.proxy", value<std::string>()->default_value(""),     "url for reseed proxy, supports http/socks")
 			("reseed.urls", value<std::string>()->default_value(
 				"https://reseed.i2p-projekt.de/,"
 				"https://i2p.mooo.com/netDb/,"
