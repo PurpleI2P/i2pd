@@ -155,8 +155,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     uiSettings->logDestinationComboBox->clear();
     uiSettings->logDestinationComboBox->insertItems(0, QStringList()
-     << QApplication::translate("MainWindow", "stdout", 0)
-     << QApplication::translate("MainWindow", "file", 0)
+        << QApplication::translate("MainWindow", "syslog", 0)
+        << QApplication::translate("MainWindow", "stdout", 0)
+        << QApplication::translate("MainWindow", "file", 0)
     );
     initLogDestinationCombobox(   OPTION("","log",[]{return "";}), uiSettings->logDestinationComboBox);
 
@@ -302,9 +303,9 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::logDestinationComboBoxValueChanged(const QString & text) {
-    bool stdout = text==QString("stdout");
-    uiSettings->logFileLineEdit->setEnabled(!stdout);
-    uiSettings->logFileBrowsePushButton->setEnabled(!stdout);
+    bool fileEnabled = text==QString("file");
+    uiSettings->logFileLineEdit->setEnabled(fileEnabled);
+    uiSettings->logFileBrowsePushButton->setEnabled(fileEnabled);
 }
 
 
