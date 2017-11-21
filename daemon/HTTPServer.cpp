@@ -51,8 +51,8 @@ namespace http {
 	const char *cssStyles =
 		"<style>\r\n"
 		"  body { font: 100%/1.5em sans-serif; margin: 0; padding: 1.5em; background: #FAFAFA; color: #103456; }\r\n"
-		"  a { text-decoration: none; color: #894C84; }\r\n"
-		"  a:hover { color: #FAFAFA; background: #894C84; }\r\n"
+		"  a, .slide label { text-decoration: none; color: #894C84; }\r\n"
+		"  a:hover, .slide label:hover { color: #FAFAFA; background: #894C84; }\r\n"
 		"  .header { font-size: 2.5em; text-align: center; margin: 1.5em 0; color: #894C84; }\r\n"
 		"  .wrapper { margin: 0 auto; padding: 1em; max-width: 60em; }\r\n"
 		"  .left  { float: left; position: absolute; }\r\n"
@@ -63,7 +63,6 @@ namespace http {
 		"  .tunnel.building    { color: #434343; }\r\n"
 		"  caption { font-size: 1.5em; text-align: center; color: #894C84; }\r\n"
 		"  table { width: 100%; border-collapse: collapse; text-align: center; }\r\n"
-		"  .slide label { color: #894C84 }\r\n"
 		"  .slide p, .slide [type='checkbox']{ display:none; }\r\n"
 		"  .slide [type='checkbox']:checked ~ p { display:block; margin-top: 0; padding: 0; }\r\n"
 		"  .disabled:after { color: #D33F3F; content: \"Disabled\" }\r\n"
@@ -88,6 +87,7 @@ namespace http {
 	const char HTTP_COMMAND_SHUTDOWN_NOW[] = "terminate";
 	const char HTTP_COMMAND_RUN_PEER_TEST[] = "run_peer_test";
 	const char HTTP_COMMAND_RELOAD_CONFIG[] = "reload_config";
+	const char HTTP_COMMAND_LOGLEVEL[] = "set_loglevel";
 	const char HTTP_PARAM_SAM_SESSION_ID[] = "id";
 	const char HTTP_PARAM_ADDRESS[] = "address";
 
@@ -137,6 +137,18 @@ namespace http {
 		}
 		s << "<span class=\"tunnel " << state << "\"> " << state << ((explr) ? " (exploratory)" : "") << "</span>, ";
 		s << " " << (int) (bytes / 1024) << "&nbsp;KiB<br>\r\n";
+	}
+
+	static void SetLogLevel (const std::string& level)
+	{
+		LogPrint(eLogWarning, "HTTPServer: SetLogLevel ping 2!");
+		if (level == "none" || level == "error" || level == "warn" || level == "info" || level == "debug")
+			i2p::log::Logger().SetLogLevel(level);
+		else {
+			LogPrint(eLogWarning, "HTTPServer: unknown loglevel set attemped");
+			return;
+		}
+		i2p::log::Logger().Reopen ();
 	}
 
 	static void ShowPageHead (std::stringstream& s)
@@ -491,6 +503,13 @@ namespace http {
 			s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_START << "&token=" << token << "\">Graceful shutdown</a><br>\r\n";
 #endif
 		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_SHUTDOWN_NOW << "&token=" << token << "\">Force shutdown</a><br>\r\n";
+		
+		s << "<br>\r\n<b>Logging level</b><br>\r\n";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=none&token=" << token << "\">[none]</a> ";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=error&token=" << token << "\">[error]</a> ";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=warn&token=" << token << "\">[warn]</a> ";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=info&token=" << token << "\">[info]</a> ";
+		s << "  <a href=\"/?cmd=" << HTTP_COMMAND_LOGLEVEL << "&level=debug&token=" << token << "\">[debug]</a><br>\r\n";
 	}
 
 	void ShowTransitTunnels (std::stringstream& s)
@@ -713,7 +732,7 @@ namespace http {
 	}
 
 	HTTPConnection::HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket):
-				m_Socket (socket), m_Timer (socket->get_io_service ()), m_BufferLen (0)
+		m_Socket (socket), m_Timer (socket->get_io_service ()), m_BufferLen (0)
 	{
 		/* cache options */
 		i2p::config::GetOption("http.auth", needAuth);
@@ -928,6 +947,10 @@ namespace http {
 #else
 			i2p::win32::StopWin32App ();
 #endif
+		} else if (cmd == HTTP_COMMAND_LOGLEVEL){
+			LogPrint(eLogWarning, "HTTPServer: SetLogLevel ping 1!");
+			std::string level = params["level"];
+			SetLogLevel (level);
 		} else {
 			res.code = 400;
 			ShowError(s, "Unknown command: " + cmd);
