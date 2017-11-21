@@ -245,7 +245,7 @@ namespace http {
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
 		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
-		s << "<div class='slide'><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
+		s << "<div class='slide'><label for='slide-info'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide-info'/>\r\n<p class='content'>\r\n";
 		if(includeHiddenContent) {
 			s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
 			s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
@@ -357,7 +357,7 @@ namespace http {
 		s << "<br>\r\n";
 		s << "<b>Tags</b><br>Incoming: <i>" << dest->GetNumIncomingTags () << "</i><br>";
 		if (!dest->GetSessions ().empty ()) {
-			s << "<div class='slide'><label for='slide-tags'><b>Outgoing:</b></label>\r\n<input type='checkbox' id='slide-tags'/>\r\n<p class='content'>\r\n";
+			s << "<div class='slide'><label for='slide-tags'>Outgoing:</label>\r\n<input type='checkbox' id='slide-tags'/>\r\n<p class='content'>\r\n";
 			for (const auto& it: dest->GetSessions ())
 				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " " << it.second->GetNumOutgoingTags () << "<br>\r\n";
 			s << "</p>\r\n</div>\r\n";
