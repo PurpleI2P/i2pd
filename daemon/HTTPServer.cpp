@@ -141,11 +141,10 @@ namespace http {
 
 	static void SetLogLevel (const std::string& level)
 	{
-		LogPrint(eLogWarning, "HTTPServer: SetLogLevel ping 2!");
 		if (level == "none" || level == "error" || level == "warn" || level == "info" || level == "debug")
 			i2p::log::Logger().SetLogLevel(level);
 		else {
-			LogPrint(eLogWarning, "HTTPServer: unknown loglevel set attemped");
+			LogPrint(eLogError, "HTTPServer: unknown loglevel set attemped");
 			return;
 		}
 		i2p::log::Logger().Reopen ();
@@ -246,7 +245,7 @@ namespace http {
 		ShowTraffic (s, i2p::transport::transports.GetTotalTransitTransmittedBytes ());
 		s << " (" << (double) i2p::transport::transports.GetTransitBandwidth () / 1024 << " KiB/s)<br>\r\n";
 		s << "<b>Data path:</b> " << i2p::fs::GetDataDir() << "<br>\r\n";
-		s << "<div class='slide'\r\n><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
+		s << "<div class='slide'><label for='slide1'>Hidden content. Press on text to see.</label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
 		if(includeHiddenContent) {
 			s << "<b>Router Ident:</b> " << i2p::context.GetRouterInfo().GetIdentHashBase64() << "<br>\r\n";
 			s << "<b>Router Family:</b> " << i2p::context.GetRouterInfo().GetProperty("family") << "<br>\r\n";
@@ -330,7 +329,7 @@ namespace http {
 		s << dest->GetIdentity ()->ToBase64 () << "</textarea><br>\r\n<br>\r\n";
 		if(dest->GetNumRemoteLeaseSets())
 		{
-			s << "<div class='slide'\r\n><label for='slide1'><b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i></label>\r\n<input type='checkbox' id='slide1'/>\r\n<p class='content'>\r\n";
+			s << "<div class='slide'><label for='slide-lease'><b>LeaseSets:</b> <i>" << dest->GetNumRemoteLeaseSets () << "</i></label>\r\n<input type='checkbox' id='slide-lease'/>\r\n<p class='content'>\r\n";
 			for(auto& it: dest->GetLeaseSets ())
 				s << it.second->GetIdentHash ().ToBase32 () << "<br>\r\n";
 			s << "</p>\r\n</div>\r\n";
@@ -356,13 +355,15 @@ namespace http {
 			}
 		}
 		s << "<br>\r\n";
-		s << "<b>Tags</b><br>Incoming: " << dest->GetNumIncomingTags () << "<br>Outgoing:<br>" << std::endl;
-		for (const auto& it: dest->GetSessions ())
-		{
-			s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " ";
-			s << it.second->GetNumOutgoingTags () << "<br>" << std::endl;
-		}
-		s << "<br>" << std::endl;
+		s << "<b>Tags</b><br>Incoming: <i>" << dest->GetNumIncomingTags () << "</i><br>";
+		if (!dest->GetSessions ().empty ()) {
+			s << "<div class='slide'><label for='slide-tags'><b>Outgoing:</b></label>\r\n<input type='checkbox' id='slide-tags'/>\r\n<p class='content'>\r\n";
+			for (const auto& it: dest->GetSessions ())
+				s << i2p::client::context.GetAddressBook ().ToAddress(it.first) << " " << it.second->GetNumOutgoingTags () << "<br>\r\n";
+			s << "</p>\r\n</div>\r\n";
+		} else
+			s << "Outgoing: <i>0</i><br>\r\n";
+		s << "<br>\r\n";
 	}
 
 	void ShowLocalDestination (std::stringstream& s, const std::string& b32)
@@ -375,7 +376,7 @@ namespace http {
 		{
 			ShowLeaseSetDestination (s, dest);
 			// show streams
-			s << "<br>\r\n<table><caption>Streams</caption><tr>";
+			s << "<table><caption>Streams</caption>\r\n<tr>";
 			s << "<th>StreamID</th>";
 			s << "<th>Destination</th>";
 			s << "<th>Sent</th>";
@@ -386,7 +387,7 @@ namespace http {
 			s << "<th>RTT</th>";
 			s << "<th>Window</th>";
 			s << "<th>Status</th>";
-			s << "</tr>";
+			s << "</tr>\r\n";
 
 			for (const auto& it: dest->GetAllStreams ())
 			{
@@ -401,8 +402,8 @@ namespace http {
 				s << "<td>" << it->GetRTT () << "</td>";
 				s << "<td>" << it->GetWindowSize () << "</td>";
 				s << "<td>" << (int)it->GetStatus () << "</td>";
-				s << "</tr><br>\r\n" << std::endl;
-		}
+				s << "</tr>\r\n";
+			}
 			s << "</table>";
 		}
 	}
@@ -563,12 +564,12 @@ namespace http {
 				}
 				if (!tmp_s.str ().empty ())
 				{
-					s << "<div class='slide'\r\n><label for='slide_ntcp'><b>NTCP</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_ntcp'/>\r\n<p class='content'>";
+					s << "<div class='slide'><label for='slide_ntcp'><b>NTCP</b> ( " << cnt << " )</label>\r\n<input type='checkbox' id='slide_ntcp'/>\r\n<p class='content'>";
 					s << tmp_s.str () << "</p>\r\n</div>\r\n";
 				}
 				if (!tmp_s6.str ().empty ())
 				{
-					s << "<div class='slide'\r\n><label for='slide_ntcp6'><b>NTCP6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_ntcp6'/>\r\n<p class='content'>";
+					s << "<div class='slide'><label for='slide_ntcp6'><b>NTCP6</b> ( " << cnt6 << " )</label>\r\n<input type='checkbox' id='slide_ntcp6'/>\r\n<p class='content'>";
 					s << tmp_s6.str () << "</p>\r\n</div>\r\n";
 				}
 			}
@@ -579,7 +580,7 @@ namespace http {
 			auto sessions = ssuServer->GetSessions ();
 			if (!sessions.empty ())
 			{
-				s << "<div class='slide'\r\n><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu'/>\r\n<p class='content'>";
+				s << "<div class='slide'><label for='slide_ssu'><b>SSU</b> ( " << (int) sessions.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu'/>\r\n<p class='content'>";
 				for (const auto& it: sessions)
 				{
 					auto endpoint = it.second->GetRemoteEndpoint ();
@@ -596,7 +597,7 @@ namespace http {
 			auto sessions6 = ssuServer->GetSessionsV6 ();
 			if (!sessions6.empty ())
 			{
-				s << "<div class='slide'\r\n><label for='slide_ssu6'><b>SSU6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu6'/>\r\n<p class='content'>";
+				s << "<div class='slide'><label for='slide_ssu6'><b>SSU6</b> ( " << (int) sessions6.size() << " )</label>\r\n<input type='checkbox' id='slide_ssu6'/>\r\n<p class='content'>";
 				for (const auto& it: sessions6)
 				{
 					auto endpoint = it.second->GetRemoteEndpoint ();
@@ -948,7 +949,6 @@ namespace http {
 			i2p::win32::StopWin32App ();
 #endif
 		} else if (cmd == HTTP_COMMAND_LOGLEVEL){
-			LogPrint(eLogWarning, "HTTPServer: SetLogLevel ping 1!");
 			std::string level = params["level"];
 			SetLogLevel (level);
 		} else {
