@@ -284,6 +284,13 @@ namespace client
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, 
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
+		if (filename == "transient")
+		{
+			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
+			return true;
+		}
+
 		bool success = true;
 		std::string fullPath = i2p::fs::DataDirPath (filename);
 		std::ifstream s(fullPath, std::ifstream::binary);
