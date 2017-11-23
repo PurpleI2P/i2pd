@@ -144,7 +144,7 @@ namespace http {
 		if (level == "none" || level == "error" || level == "warn" || level == "info" || level == "debug")
 			i2p::log::Logger().SetLogLevel(level);
 		else {
-			LogPrint(eLogError, "HTTPServer: unknown loglevel set attemped");
+			LogPrint(eLogError, "HTTPServer: unknown loglevel set attempted");
 			return;
 		}
 		i2p::log::Logger().Reopen ();
