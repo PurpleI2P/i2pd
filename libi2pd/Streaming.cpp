@@ -242,7 +242,7 @@ namespace stream
 
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
-			uint8_t signature[512];
+			uint8_t signature[256];
 			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
 			if(signatureLen <= sizeof(signature))
 			{
