@@ -242,18 +242,25 @@ namespace stream
 
 		if (flags & PACKET_FLAG_SIGNATURE_INCLUDED)
 		{
-			uint8_t signature[256];
+			uint8_t signature[512];
 			auto signatureLen = m_RemoteIdentity->GetSignatureLen ();
-			memcpy (signature, optionData, signatureLen);
-			memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
-			if (!m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature))
+			if(signatureLen <= sizeof(signature))
 			{
-				LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
-				Close ();
-				flags |= PACKET_FLAG_CLOSE;
+				memcpy (signature, optionData, signatureLen);
+				memset (const_cast<uint8_t *>(optionData), 0, signatureLen);
+				if (!m_RemoteIdentity->Verify (packet->GetBuffer (), packet->GetLength (), signature))
+				{
+					LogPrint (eLogError, "Streaming: Signature verification failed, sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);
+					Close ();
+					flags |= PACKET_FLAG_CLOSE;
+				}
+				memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
+				optionData += signatureLen;
 			}
-			memcpy (const_cast<uint8_t *>(optionData), signature, signatureLen);
-			optionData += signatureLen;
+			else
+			{
+				LogPrint(eLogError, "Streaming: Signature too big, ", signatureLen, " bytes");
+			}
 		}
 
 		packet->offset = packet->GetPayload () - packet->buf;
