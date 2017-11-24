@@ -58,6 +58,10 @@ namespace client
 	const char I2CP_PARAM_MAX_TUNNEL_LATENCY[] = "latency.max";
 	const int DEFAULT_MAX_TUNNEL_LATENCY = 0;
 
+	// streaming
+	const char I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY[] = "i2p.streaming.initialAckDelay";
+	const int DEFAULT_INITIAL_ACK_DELAY = 200; // milliseconds
+
 	typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
 
 	class LeaseSetDestination: public i2p::garlic::GarlicDestination,
@@ -199,6 +203,7 @@ namespace client
 			void StopAcceptingStreams ();
 			bool IsAcceptingStreams () const;
 			void AcceptOnce (const i2p::stream::StreamingDestination::Acceptor& acceptor);
+			int GetStreamingAckDelay () const { return m_StreamingAckDelay; }
 
 			// datagram
       i2p::datagram::DatagramDestination * GetDatagramDestination () const { return m_DatagramDestination; };
@@ -230,6 +235,7 @@ namespace client
 			uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 
+			int m_StreamingAckDelay;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
       		i2p::datagram::DatagramDestination * m_DatagramDestination;

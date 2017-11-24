@@ -62,6 +62,7 @@ namespace stream
 		m_RemoteLeaseSet (remote), m_ReceiveTimer (m_Service), m_ResendTimer (m_Service),
 		m_AckSendTimer (m_Service),  m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (port),
 		m_WindowSize (MIN_WINDOW_SIZE), m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO),
+		m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
 		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
@@ -73,7 +74,8 @@ namespace stream
 		m_Status (eStreamStatusNew), m_IsAckSendScheduled (false), m_LocalDestination (local),
 		m_ReceiveTimer (m_Service), m_ResendTimer (m_Service), m_AckSendTimer (m_Service),
 		m_NumSentBytes (0), m_NumReceivedBytes (0), m_Port (0),  m_WindowSize (MIN_WINDOW_SIZE),
-		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
+		m_RTT (INITIAL_RTT), m_RTO (INITIAL_RTO), m_AckDelay (local.GetOwner ()->GetStreamingAckDelay ()),
+		m_LastWindowSizeIncreaseTime (0), m_NumResendAttempts (0)
 	{
 		RAND_bytes ((uint8_t *)&m_RecvStreamID, 4);
 	}
@@ -161,7 +163,7 @@ namespace stream
 				{
 					m_IsAckSendScheduled = true;
 					auto ackTimeout = m_RTT/10;
-					if (ackTimeout > ACK_SEND_TIMEOUT) ackTimeout = ACK_SEND_TIMEOUT;
+					if (ackTimeout > m_AckDelay) ackTimeout = m_AckDelay;
 					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ackTimeout));
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
@@ -199,7 +201,7 @@ namespace stream
 				{
 					// wait for SYN
 					m_IsAckSendScheduled = true;
-					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(ACK_SEND_TIMEOUT));
+					m_AckSendTimer.expires_from_now (boost::posix_time::milliseconds(SYN_TIMEOUT));
 					m_AckSendTimer.async_wait (std::bind (&Stream::HandleAckSendTimer,
 						shared_from_this (), std::placeholders::_1));
 				}
@@ -805,7 +807,7 @@ namespace stream
 		{
 			if (m_LastReceivedSequenceNumber < 0)
 			{
-				LogPrint (eLogWarning, "Streaming: SYN has not been received after ", ACK_SEND_TIMEOUT, " milliseconds after follow on, terminate rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
+				LogPrint (eLogWarning, "Streaming: SYN has not been received after ", SYN_TIMEOUT, " milliseconds after follow on, terminate rSID=", m_RecvStreamID, ", sSID=", m_SendStreamID);
 				m_Status = eStreamStatusReset;
 				Close ();
 				return;

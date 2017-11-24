@@ -715,8 +715,8 @@ namespace client
 	}
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
-		LeaseSetDestination (isPublic, params),
-		m_Keys (keys), m_DatagramDestination (nullptr), m_RefCounter (0),
+		LeaseSetDestination (isPublic, params), m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
+		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
 		if (isPublic)
@@ -727,6 +727,14 @@ namespace client
 		m_Decryptor = m_Keys.CreateDecryptor (m_EncryptionPrivateKey); 
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
+
+		// extract streaming params
+		if (params) 
+		{
+			auto it = params->find (I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY);
+			if (it != params->end ())
+				m_StreamingAckDelay = std::stoi(it->second);
+		}
 	}
 
 	ClientDestination::~ClientDestination ()

@@ -90,8 +90,8 @@ namespace client
 			template<typename Section, typename Type>
 			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
 			template<typename Section>
-			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const;
-			void ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const;
+			void ReadI2CPOptions (const Section& section, std::map<std::string, std::string>& options) const; // for tunnels
+			void ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const; // for HTTP and SOCKS proxy
 
 			void CleanupUDP(const boost::system::error_code & ecode);
 			void ScheduleCleanupUDP();
