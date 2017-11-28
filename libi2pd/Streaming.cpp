@@ -230,6 +230,13 @@ namespace stream
 		if (flags & PACKET_FLAG_FROM_INCLUDED)
 		{
 			m_RemoteIdentity = std::make_shared<i2p::data::IdentityEx>(optionData, packet->GetOptionSize ());
+			if (m_RemoteIdentity->IsRSA ())
+			{
+				LogPrint (eLogInfo, "Streaming: Incoming stream from RSA destination ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), "  Discarded");
+				m_LocalDestination.DeletePacket (packet);
+				Terminate ();
+				return;
+			}
 			optionData += m_RemoteIdentity->GetFullLen ();
 			if (!m_RemoteLeaseSet)
 				LogPrint (eLogDebug, "Streaming: Incoming stream from ", m_RemoteIdentity->GetIdentHash ().ToBase64 (), ", sSID=", m_SendStreamID, ", rSID=", m_RecvStreamID);

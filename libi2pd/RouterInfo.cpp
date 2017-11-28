@@ -133,10 +133,9 @@ namespace data
 		if (verifySignature)
 		{	
 			// reject RSA signatures
-			auto sigType = m_RouterIdentity->GetSigningKeyType ();
-			if (sigType <= SIGNING_KEY_TYPE_RSA_SHA512_4096 && sigType >= SIGNING_KEY_TYPE_RSA_SHA256_2048)
+			if (m_RouterIdentity->IsRSA ())
 			{
-				LogPrint (eLogError, "RouterInfo: RSA signature type ", sigType, " is not allowed");
+				LogPrint (eLogError, "RouterInfo: RSA signature type is not allowed");
 				m_IsUnreachable = true;
 				return;
 			}

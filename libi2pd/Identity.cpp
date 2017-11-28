@@ -324,6 +324,12 @@ namespace data
 		return SIGNING_KEY_TYPE_DSA_SHA1;
 	}
 
+	bool IdentityEx::IsRSA () const
+	{
+		auto sigType = GetSigningKeyType ();
+		return sigType <= SIGNING_KEY_TYPE_RSA_SHA512_4096 && sigType >= SIGNING_KEY_TYPE_RSA_SHA256_2048;
+	}
+
 	CryptoKeyType IdentityEx::GetCryptoKeyType () const
 	{
 		if (m_StandardIdentity.certificate[0] == CERTIFICATE_TYPE_KEY && m_ExtendedLen >= 4)

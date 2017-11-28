@@ -103,6 +103,7 @@ namespace data
 			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			SigningKeyType GetSigningKeyType () const;
+			bool IsRSA () const; // signing key type
 			CryptoKeyType GetCryptoKeyType () const;
 			void DropVerifier () const; // to save memory
 
