@@ -634,14 +634,10 @@ namespace data
 					i2p::crypto::CreateECDSAP521RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
 				case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-					i2p::crypto::CreateRSARandomKeys (i2p::crypto::RSASHA2562048_KEY_LENGTH, keys.m_SigningPrivateKey, signingPublicKey);
-				break;
 				case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-					i2p::crypto::CreateRSARandomKeys (i2p::crypto::RSASHA3843072_KEY_LENGTH, keys.m_SigningPrivateKey, signingPublicKey);
-				break;
 				case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-					i2p::crypto::CreateRSARandomKeys (i2p::crypto::RSASHA5124096_KEY_LENGTH, keys.m_SigningPrivateKey, signingPublicKey);
-				break;
+					LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Create EdDSA");
+				// no break here 
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
@@ -652,7 +648,7 @@ namespace data
 					i2p::crypto::CreateGOSTR3410RandomKeys (i2p::crypto::eGOSTR3410TC26A512, keys.m_SigningPrivateKey, signingPublicKey);
 				break;
 				default:
-					LogPrint (eLogError, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
+					LogPrint (eLogWarning, "Identity: Signing key type ", (int)type, " is not supported. Create DSA-SHA1");
 					return PrivateKeys (i2p::data::CreateRandomKeys ()); // DSA-SHA1
 			}
 			// encryption
