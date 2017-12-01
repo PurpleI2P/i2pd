@@ -1,6 +1,4 @@
 #include <string.h>
-#include <vector>
-#include <boost/algorithm/string.hpp>
 #include "Log.h"
 #include "ClientContext.h"
 #include "util.h"
@@ -435,15 +433,28 @@ namespace client
 
 	void BOBCommandSession::NewkeysCommandHandler (const char * operand, size_t len)
 	{
-		LogPrint (eLogDebug, "BOB: newkeys");
-		std::vector<std::string> params;
-        boost::split (params, operand, boost::is_any_of(" "), boost::token_compress_on);	
+		LogPrint (eLogDebug, "BOB: newkeys");	
 		i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
 		i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
-		if (params.size () > 0)
-			signatureType = std::stoi(params[0]);
-		if (params.size () > 1)	
-			cryptoType = std::stoi(params[1]);
+		if (*operand)
+		{
+			try
+			{
+				char * operand1 = (char *)strchr (operand, ' ');
+				if (operand1) 
+				{
+					*operand1 = 0; operand1++;
+					cryptoType = std::stoi(operand1);
+				}
+				signatureType = std::stoi(operand);	
+			}
+			catch (std::invalid_argument& ex)
+			{
+				LogPrint (eLogWarning, "BOB: newkeys ", ex.what ());
+			}
+		}	
+		
+			
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType);
 		SendReplyOK (m_Keys.GetPublic ()->ToBase64 ().c_str ());
 	}	
