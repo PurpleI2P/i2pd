@@ -546,18 +546,40 @@ namespace i2p
 		return msg;
 	}	
 
-	size_t GetI2NPMessageLength (const uint8_t * msg)
+	size_t GetI2NPMessageLength (const uint8_t * msg, size_t len)
 	{
-		return bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;
+		if (len < I2NP_HEADER_SIZE_OFFSET + 2)
+		{
+			LogPrint (eLogError, "I2NP: message length ", len, " is smaller than header");
+			return len;
+		}		
+		auto l = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;
+		if (l > len)
+		{
+			LogPrint (eLogError, "I2NP: message length ", l, " exceeds buffer length ", len);
+			l = len;
+		}	
+		return l;
 	}	
 	
 	void HandleI2NPMessage (uint8_t * msg, size_t len)
 	{
+		if (len < I2NP_HEADER_SIZE)
+		{
+			LogPrint (eLogError, "I2NP: message length ", len, " is smaller than header");
+			return;
+		}	
 		uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
 		uint32_t msgID = bufbe32toh (msg + I2NP_HEADER_MSGID_OFFSET);	
 		LogPrint (eLogDebug, "I2NP: msg received len=", len,", type=", (int)typeID, ", msgID=", (unsigned int)msgID);
 		uint8_t * buf = msg + I2NP_HEADER_SIZE;
-		int size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
+		auto size = bufbe16toh (msg + I2NP_HEADER_SIZE_OFFSET);
+		len -= I2NP_HEADER_SIZE;
+		if (size > len)
+		{
+			LogPrint (eLogError, "I2NP: payload size ", size, " exceeds buffer length ", len);
+			size = len;
+		}
 		switch (typeID)
 		{	
 			case eI2NPVariableTunnelBuild:
