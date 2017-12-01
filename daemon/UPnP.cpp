@@ -79,11 +79,14 @@ namespace transport
 
 	void UPnP::Discover ()
 	{
-		int nerror = 0;
 #if MINIUPNPC_API_VERSION >= 14
+		int nerror = 0;
 		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, 2, &nerror);
-#else
+#elif ( MINIUPNPC_API_VERSION >= 8 || defined(UPNPDISCOVER_SUCCESS) )
+		int nerror = 0;
 		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0, 0, &nerror);
+#else
+		m_Devlist = upnpDiscover (2000, m_MulticastIf, m_Minissdpdpath, 0);
 #endif
 		{
 			// notify satrting thread
@@ -155,7 +158,11 @@ namespace transport
 		std::string strType (GetProto (address)), strPort (std::to_string (address->port));
 		int r;
 		std::string strDesc; i2p::config::GetOption("upnp.name", strDesc);
+#ifdef UPNPDISCOVER_SUCCESS
 		r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0, "0");
+#else
+		r = UPNP_AddPortMapping (m_upnpUrls.controlURL, m_upnpData.first.servicetype, strPort.c_str (), strPort.c_str (), m_NetworkAddr, strDesc.c_str (), strType.c_str (), 0);
+#endif
 		if (r!=UPNPCOMMAND_SUCCESS)
 		{
 			LogPrint (eLogError, "UPnP: AddPortMapping (", m_NetworkAddr, ":", strPort, ") failed with code ", r);

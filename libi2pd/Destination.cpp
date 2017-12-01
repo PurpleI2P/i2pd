@@ -483,9 +483,22 @@ namespace client
 		{
 			if (m_PublishReplyToken)
 			{
-				LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT,  " seconds, will try again");
 				m_PublishReplyToken = 0;
-				Publish ();
+				if (GetIdentity ()->GetCryptoKeyType () == i2p::data::CRYPTO_KEY_TYPE_ELGAMAL)
+				{
+					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT,  " seconds, will try again");				
+					Publish ();
+				}
+				else
+				{
+					LogPrint (eLogWarning, "Destination: Publish confirmation was not received in ", PUBLISH_CONFIRMATION_TIMEOUT,  " seconds from Java floodfill for crypto type ", (int)GetIdentity ()->GetCryptoKeyType ());
+					// Java floodfill never sends confirmantion back for unknown crypto type
+					// assume it successive and try to verify
+					m_PublishVerificationTimer.expires_from_now (boost::posix_time::seconds(PUBLISH_VERIFICATION_TIMEOUT));
+					m_PublishVerificationTimer.async_wait (std::bind (&LeaseSetDestination::HandlePublishVerificationTimer,
+			shared_from_this (), std::placeholders::_1));
+					
+				}
 			}
 		}
 	}
@@ -702,8 +715,8 @@ namespace client
 	}
 
 	ClientDestination::ClientDestination (const i2p::data::PrivateKeys& keys, bool isPublic, const std::map<std::string, std::string> * params):
-		LeaseSetDestination (isPublic, params),
-		m_Keys (keys), m_DatagramDestination (nullptr), m_RefCounter (0),
+		LeaseSetDestination (isPublic, params), m_Keys (keys), m_StreamingAckDelay (DEFAULT_INITIAL_ACK_DELAY),
+		m_DatagramDestination (nullptr), m_RefCounter (0),
 		m_ReadyChecker(GetService())
 	{
 		if (isPublic)
@@ -714,6 +727,14 @@ namespace client
 		m_Decryptor = m_Keys.CreateDecryptor (m_EncryptionPrivateKey); 
 		if (isPublic)
 			LogPrint (eLogInfo, "Destination: Local address ", GetIdentHash().ToBase32 (), " created");
+
+		// extract streaming params
+		if (params) 
+		{
+			auto it = params->find (I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY);
+			if (it != params->end ())
+				m_StreamingAckDelay = std::stoi(it->second);
+		}
 	}
 
 	ClientDestination::~ClientDestination ()

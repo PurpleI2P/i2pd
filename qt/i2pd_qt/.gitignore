@@ -3,5 +3,7 @@ moc_*
 ui_*
 qrc_*
 i2pd_qt
-Makefile
+Makefile*
 *.stash
+object_script.*
+i2pd_qt_plugin_import.cpp

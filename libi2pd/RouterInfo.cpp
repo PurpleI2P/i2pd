@@ -132,6 +132,13 @@ namespace data
 		}
 		if (verifySignature)
 		{	
+			// reject RSA signatures
+			if (m_RouterIdentity->IsRSA ())
+			{
+				LogPrint (eLogError, "RouterInfo: RSA signature type is not allowed");
+				m_IsUnreachable = true;
+				return;
+			}
 			// verify signature
 			int l = m_BufferLen - m_RouterIdentity->GetSignatureLen ();	
 			if (l < 0 || !m_RouterIdentity->Verify ((uint8_t *)m_Buffer, l, (uint8_t *)m_Buffer + l))

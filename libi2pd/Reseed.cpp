@@ -489,6 +489,27 @@ namespace data
 
 	std::string Reseeder::HttpsRequest (const std::string& address)
 	{
+		i2p::http::URL proxyUrl;
+		std::string proxy; i2p::config::GetOption("reseed.proxy", proxy);
+		// check for proxy url
+		if(proxy.size()) {
+			// parse
+			if(proxyUrl.parse(proxy)) {
+				if (proxyUrl.schema == "http" && !proxyUrl.port) {
+					proxyUrl.port = 80;
+				} else if (proxyUrl.schema == "socks" && !proxyUrl.port) {
+					proxyUrl.port = 1080;
+				}
+				// check for valid proxy url schema
+				if (proxyUrl.schema != "http" && proxyUrl.schema != "socks") {
+					LogPrint(eLogError, "Reseed: bad proxy url: ", proxy);
+					return "";
+				}
+			} else {
+				LogPrint(eLogError, "Reseed: bad proxy url: ", proxy);
+				return "";
+			}
+		}
 		i2p::http::URL url;
 		if (!url.parse(address)) {
 			LogPrint(eLogError, "Reseed: failed to parse url: ", address);
@@ -500,68 +521,185 @@ namespace data
 
 		boost::asio::io_service service;
 		boost::system::error_code ecode;
-		auto it = boost::asio::ip::tcp::resolver(service).resolve (
-			boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
-		if (!ecode)
+
+		boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);
+		ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
+		boost::asio::ssl::stream<boost::asio::ip::tcp::socket> s(service, ctx);
+
+		if(proxyUrl.schema.size())
 		{
-			boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);
-			ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
-			boost::asio::ssl::stream<boost::asio::ip::tcp::socket> s(service, ctx);
-			s.lowest_layer().connect (*it, ecode);
-			if (!ecode)
+			// proxy connection
+			auto it = boost::asio::ip::tcp::resolver(service).resolve (
+				boost::asio::ip::tcp::resolver::query (proxyUrl.host, std::to_string(proxyUrl.port)), ecode);
+			if(!ecode)
 			{
-				SSL_set_tlsext_host_name(s.native_handle(), url.host.c_str ());
-				s.handshake (boost::asio::ssl::stream_base::client, ecode);
-				if (!ecode)
+				s.lowest_layer().connect(*it, ecode);
+				if(!ecode)
 				{
-					LogPrint (eLogDebug, "Reseed: Connected to ", url.host, ":", url.port);
-					i2p::http::HTTPReq req;
-					req.uri = url.to_string();
-					req.AddHeader("User-Agent", "Wget/1.11.4");
-					req.AddHeader("Connection", "close");
-					s.write_some (boost::asio::buffer (req.to_string()));
-					// read response
-					std::stringstream rs;
-					char recv_buf[1024]; size_t l = 0;
-					do {
-						l = s.read_some (boost::asio::buffer (recv_buf, sizeof(recv_buf)), ecode);
-						if (l) rs.write (recv_buf, l);
-					} while (!ecode && l);
-					// process response
-					std::string data = rs.str();
-					i2p::http::HTTPRes res;
-					int len = res.parse(data);
-					if (len <= 0) {
-						LogPrint(eLogWarning, "Reseed: incomplete/broken response from ", url.host);
-						return "";
-					}
-					if (res.code != 200) {
-						LogPrint(eLogError, "Reseed: failed to reseed from ", url.host, ", http code ", res.code);
-						return "";
-					}
-					data.erase(0, len); /* drop http headers from response */
-					LogPrint(eLogDebug, "Reseed: got ", data.length(), " bytes of data from ", url.host);
-					if (res.is_chunked()) {
-						std::stringstream in(data), out;
-						if (!i2p::http::MergeChunkedResponse(in, out)) {
-							LogPrint(eLogWarning, "Reseed: failed to merge chunked response from ", url.host);
+					auto & sock = s.next_layer();
+					if(proxyUrl.schema == "http")
+					{
+						i2p::http::HTTPReq proxyReq;
+						i2p::http::HTTPRes proxyRes;
+						proxyReq.method = "CONNECT";
+						proxyReq.version = "HTTP/1.1";
+						proxyReq.uri = url.host + ":" + std::to_string(url.port);
+
+						boost::asio::streambuf writebuf, readbuf;
+
+						std::ostream out(&writebuf);
+						out << proxyReq.to_string();
+
+						boost::asio::write(sock, writebuf.data(), boost::asio::transfer_all(), ecode);
+						if (ecode)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: HTTP CONNECT write error: ", ecode.message());
 							return "";
 						}
-						LogPrint(eLogDebug, "Reseed: got ", data.length(), "(", out.tellg(), ") bytes of data from ", url.host);
-						data = out.str();
+						boost::asio::read_until(sock, readbuf, "\r\n\r\n", ecode);
+						if (ecode)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: HTTP CONNECT read error: ", ecode.message());
+							return "";
+						}
+						if(proxyRes.parse(boost::asio::buffer_cast<const char *>(readbuf.data()), readbuf.size()) <= 0)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: HTTP CONNECT malformed reply");
+							return "";
+						}
+						if(proxyRes.code != 200)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: HTTP CONNECT got bad status: ", proxyRes.code);
+							return "";
+						}
 					}
-					return data;
+					else
+					{
+						// assume socks if not http, is checked before this for other types
+						// TODO: support username/password auth etc
+						uint8_t hs_writebuf[3] = {0x05, 0x01, 0x00};
+						uint8_t hs_readbuf[2];
+						boost::asio::write(sock, boost::asio::buffer(hs_writebuf, 3), boost::asio::transfer_all(), ecode);
+						if(ecode)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: SOCKS handshake write failed: ", ecode.message());
+							return "";
+						}
+						boost::asio::read(sock, boost::asio::buffer(hs_readbuf, 2), ecode);
+						if(ecode)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: SOCKS handshake read failed: ", ecode.message());
+							return "";
+						}
+						size_t sz = 0;
+						uint8_t buf[256];
+
+						buf[0] = 0x05;
+						buf[1] = 0x01;
+						buf[2] = 0x00;
+						buf[3] = 0x03;
+						sz += 4;
+						size_t hostsz = url.host.size();
+						if(1 + 2 + hostsz + sz > sizeof(buf))
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: SOCKS handshake failed, hostname too big: ", url.host);
+							return "";
+						}
+						buf[4] = (uint8_t) hostsz;
+						memcpy(buf+5, url.host.c_str(), hostsz);
+						sz += hostsz + 1;
+						htobe16buf(buf+sz, url.port);
+						sz += 2;
+						boost::asio::write(sock, boost::asio::buffer(buf, sz), boost::asio::transfer_all(), ecode);
+						if(ecode)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: SOCKS handshake failed writing: ", ecode.message());
+							return "";
+						}
+						boost::asio::read(sock, boost::asio::buffer(buf, 10), ecode);
+						if(ecode)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: SOCKS handshake failed reading: ", ecode.message());
+							return "";
+						}
+						if(buf[1] != 0x00)
+						{
+							sock.close();
+							LogPrint(eLogError, "Reseed: SOCKS handshake bad reply code: ", std::to_string(buf[1]));
+							return "";
+						}
+					}
 				}
-				else
-					LogPrint (eLogError, "Reseed: SSL handshake failed: ", ecode.message ());
 			}
-			else
-				LogPrint (eLogError, "Reseed: Couldn't connect to ", url.host, ": ", ecode.message ());
 		}
 		else
-			LogPrint (eLogError, "Reseed: Couldn't resolve address ", url.host, ": ", ecode.message ());
+		{
+			// direct connection
+			auto it = boost::asio::ip::tcp::resolver(service).resolve (
+				boost::asio::ip::tcp::resolver::query (url.host, std::to_string(url.port)), ecode);
+			if(!ecode)
+				s.lowest_layer().connect (*it, ecode);
+		}
+		if (!ecode)
+		{
+			SSL_set_tlsext_host_name(s.native_handle(), url.host.c_str ());
+			s.handshake (boost::asio::ssl::stream_base::client, ecode);
+			if (!ecode)
+			{
+				LogPrint (eLogDebug, "Reseed: Connected to ", url.host, ":", url.port);
+				i2p::http::HTTPReq req;
+				req.uri = url.to_string();
+				req.AddHeader("User-Agent", "Wget/1.11.4");
+				req.AddHeader("Connection", "close");
+				s.write_some (boost::asio::buffer (req.to_string()));
+				// read response
+				std::stringstream rs;
+				char recv_buf[1024]; size_t l = 0;
+				do {
+					l = s.read_some (boost::asio::buffer (recv_buf, sizeof(recv_buf)), ecode);
+					if (l) rs.write (recv_buf, l);
+				} while (!ecode && l);
+				// process response
+				std::string data = rs.str();
+				i2p::http::HTTPRes res;
+				int len = res.parse(data);
+				if (len <= 0) {
+					LogPrint(eLogWarning, "Reseed: incomplete/broken response from ", url.host);
+					return "";
+				}
+				if (res.code != 200) {
+					LogPrint(eLogError, "Reseed: failed to reseed from ", url.host, ", http code ", res.code);
+					return "";
+				}
+				data.erase(0, len); /* drop http headers from response */
+				LogPrint(eLogDebug, "Reseed: got ", data.length(), " bytes of data from ", url.host);
+				if (res.is_chunked()) {
+					std::stringstream in(data), out;
+					if (!i2p::http::MergeChunkedResponse(in, out)) {
+						LogPrint(eLogWarning, "Reseed: failed to merge chunked response from ", url.host);
+						return "";
+					}
+					LogPrint(eLogDebug, "Reseed: got ", data.length(), "(", out.tellg(), ") bytes of data from ", url.host);
+					data = out.str();
+				}
+				return data;
+			}
+			else
+				LogPrint (eLogError, "Reseed: SSL handshake failed: ", ecode.message ());
+		}
+		else
+			LogPrint (eLogError, "Reseed: Couldn't connect to ", url.host, ": ", ecode.message ());
 		return "";
-	}	
+	}
 }
 }
 

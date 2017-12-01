@@ -71,12 +71,12 @@ namespace client
 			}
 			try
 			{
-			  m_HttpProxy = new i2p::proxy::HTTPProxy(httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
-			  m_HttpProxy->Start();
+				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
+				m_HttpProxy->Start();
 			}
 			catch (std::exception& e)
 			{
-			  LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
+				LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
 			}
 		}
 
@@ -107,7 +107,8 @@ namespace client
 			}
 			try
 			{
-				m_SocksProxy = new i2p::proxy::SOCKSProxy(socksProxyAddr, socksProxyPort, socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
+				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
+	 				socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				m_SocksProxy->Start();
 			}
 			catch (std::exception& e)
@@ -283,6 +284,13 @@ namespace client
 	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, 
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
+		if (filename == "transient")
+		{
+			keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
+			LogPrint (eLogInfo, "Clients: New transient keys address ", m_AddressBook.ToAddress(keys.GetPublic ()->GetIdentHash ()), " created");
+			return true;
+		}
+
 		bool success = true;
 		std::string fullPath = i2p::fs::DataDirPath (filename);
 		std::ifstream s(fullPath, std::ifstream::binary);
@@ -341,10 +349,11 @@ namespace client
 		return infos;
 	}
 
-	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic, i2p::data::SigningKeyType sigType,
-     const std::map<std::string, std::string> * params)
+	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic,
+ 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
+		const std::map<std::string, std::string> * params)
 	{
-		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType);
+		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
 		auto localDestination = std::make_shared<ClientDestination> (keys, isPublic, params);
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		m_Destinations[localDestination->GetIdentHash ()] = localDestination;
@@ -422,6 +431,7 @@ namespace client
 		options[I2CP_PARAM_TAGS_TO_SEND] = GetI2CPOption (section, I2CP_PARAM_TAGS_TO_SEND, DEFAULT_TAGS_TO_SEND);
 		options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MIN_TUNNEL_LATENCY, DEFAULT_MIN_TUNNEL_LATENCY);
 		options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = GetI2CPOption(section, I2CP_PARAM_MAX_TUNNEL_LATENCY, DEFAULT_MAX_TUNNEL_LATENCY);
+		options[I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY] = GetI2CPOption(section, I2CP_PARAM_STREAMING_INITIAL_ACK_DELAY, DEFAULT_INITIAL_ACK_DELAY);
 	}
 
 	void ClientContext::ReadI2CPOptionsFromConfig (const std::string& prefix, std::map<std::string, std::string>& options) const
@@ -438,7 +448,7 @@ namespace client
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MIN_TUNNEL_LATENCY, value))
 			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
-			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
+			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;		
 	}
 
 	void ClientContext::ReadTunnels ()
@@ -533,14 +543,14 @@ namespace client
 						if (type == I2P_TUNNELS_SECTION_TYPE_SOCKS)
 						{
 							// socks proxy
-							clientTunnel = new i2p::proxy::SOCKSProxy(address, port, false, "", destinationPort, localDestination);
+							clientTunnel = new i2p::proxy::SOCKSProxy(name, address, port, false, "", destinationPort, localDestination);
 							clientEndpoint = ((i2p::proxy::SOCKSProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_HTTPPROXY)
 						{
 							// http proxy
 							std::string outproxy = section.second.get("outproxy", "");
-							clientTunnel = new i2p::proxy::HTTPProxy(address, port, outproxy, localDestination);
+							clientTunnel = new i2p::proxy::HTTPProxy(name, address, port, outproxy, localDestination);
 							clientEndpoint = ((i2p::proxy::HTTPProxy*)clientTunnel)->GetLocalEndpoint ();
 						}
 						else if (type == I2P_TUNNELS_SECTION_TYPE_WEBSOCKS)

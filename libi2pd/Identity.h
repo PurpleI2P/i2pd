@@ -53,7 +53,8 @@ namespace data
 	const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity); // 387 bytes
 
 	const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
-	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC = 65280; // TODO: change to actual code
+	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC = 1;
+	const uint16_t CRYPTO_KEY_TYPE_ECIES_P256_SHA256_AES256CBC_TEST = 65280; // TODO: remove later
 	const uint16_t CRYPTO_KEY_TYPE_ECIES_GOSTR3410_CRYPTO_PRO_A_SHA256_AES256CBC = 65281; // TODO: use GOST R 34.11 instead SHA256 and GOST 28147-89 instead AES
 
 	const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
@@ -102,6 +103,7 @@ namespace data
 			size_t GetSignatureLen () const;
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const;
 			SigningKeyType GetSigningKeyType () const;
+			bool IsRSA () const; // signing key type
 			CryptoKeyType GetCryptoKeyType () const;
 			void DropVerifier () const; // to save memory
 

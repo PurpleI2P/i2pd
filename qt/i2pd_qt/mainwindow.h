@@ -224,7 +224,6 @@ public:
     }
     virtual void saveToStringStream(std::stringstream& out){
         std::string logDest = comboBox->currentText().toStdString();
-        if(logDest==std::string("stdout"))logDest="";
         optionValue=logDest;
         MainWindowItem::saveToStringStream(out);
     }

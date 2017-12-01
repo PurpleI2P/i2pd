@@ -489,11 +489,15 @@ namespace client
 		ExtractParams (buf, params);
 		// extract signature type
 		i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
+		i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 		auto it = params.find (SAM_PARAM_SIGNATURE_TYPE);
 		if (it != params.end ())
 				// TODO: extract string values
 			signatureType = std::stoi(it->second);
-		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType);
+		it = params.find (SAM_PARAM_CRYPTO_TYPE);
+		if (it != params.end ())
+			cryptoType = std::stoi(it->second);
+		auto keys = i2p::data::PrivateKeys::CreateRandomKeys (signatureType, cryptoType);
 #ifdef _MSC_VER
 		size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_DEST_REPLY,
 			keys.GetPublic ()->ToBase64 ().c_str (), keys.ToBase64 ().c_str ());
@@ -911,14 +915,18 @@ namespace client
 		{
 			// extract signature type
 			i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
+			i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;	
 			if (params)
 			{
 				auto it = params->find (SAM_PARAM_SIGNATURE_TYPE);
 				if (it != params->end ())
 					// TODO: extract string values
 					signatureType = std::stoi(it->second);
+				it = params->find (SAM_PARAM_CRYPTO_TYPE);
+				if (it != params->end ())
+					cryptoType = std::stoi(it->second);
 			}
-			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, params);
+			localDestination = i2p::client::context.CreateNewLocalDestination (true, signatureType, cryptoType, params);
 		}
 		if (localDestination)
 		{

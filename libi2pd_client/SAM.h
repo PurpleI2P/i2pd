@@ -53,6 +53,7 @@ namespace client
 	const char SAM_PARAM_DESTINATION[] = "DESTINATION";
 	const char SAM_PARAM_NAME[] = "NAME";
 	const char SAM_PARAM_SIGNATURE_TYPE[] = "SIGNATURE_TYPE";
+	const char SAM_PARAM_CRYPTO_TYPE[] = "CRYPTO_TYPE";
 	const char SAM_PARAM_SIZE[] = "SIZE";
 	const char SAM_VALUE_TRANSIENT[] = "TRANSIENT";
 	const char SAM_VALUE_STREAM[] = "STREAM";
