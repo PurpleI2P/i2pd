@@ -512,12 +512,17 @@ namespace garlic
 
 	void GarlicDestination::HandleGarlicPayload (uint8_t * buf, size_t len, std::shared_ptr<i2p::tunnel::InboundTunnel> from)
 	{
-		const uint8_t * buf1 = buf;
+		if (len < 1)
+		{
+			LogPrint (eLogError, "Garlic: payload is too short");
+			return;
+		}
 		int numCloves = buf[0];
 		LogPrint (eLogDebug, "Garlic: ", numCloves," cloves");
-		buf++;
+		buf++; len--;
 		for (int i = 0; i < numCloves; i++)
 		{
+			const uint8_t * buf1 = buf;
 			// delivery instructions
 			uint8_t flag = buf[0];
 			buf++; // flag
@@ -527,17 +532,29 @@ namespace garlic
 				LogPrint (eLogWarning, "Garlic: clove encrypted");
 				buf += 32; 
 			}	
+			ptrdiff_t offset = buf - buf1;
 			GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
 			switch (deliveryType)
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint (eLogDebug, "Garlic: type local");
-					HandleI2NPMessage (buf, len, from);
+					if (offset > (int)len)
+					{
+						LogPrint (eLogError, "Garlic: message is too short");
+						break;
+					}	
+					HandleI2NPMessage (buf, len - offset, from);
 				break;	
 				case eGarlicDeliveryTypeDestination:	
 					LogPrint (eLogDebug, "Garlic: type destination");
 					buf += 32; // destination. check it later or for multiple destinations
-					HandleI2NPMessage (buf, len, from);
+					offset = buf1 - buf;
+					if (offset > (int)len)
+					{
+						LogPrint (eLogError, "Garlic: message is too short");
+						break;
+					}	
+					HandleI2NPMessage (buf, len - offset, from);		
 				break;
 				case eGarlicDeliveryTypeTunnel:
 				{	
@@ -545,9 +562,15 @@ namespace garlic
 					// gwHash and gwTunnel sequence is reverted
 					uint8_t * gwHash = buf;
 					buf += 32;
+					offset = buf1 - buf;
+					if (offset + 4 > (int)len)
+					{
+						LogPrint (eLogError, "Garlic: message is too short");
+						break;
+					}
 					uint32_t gwTunnel = bufbe32toh (buf);
-					buf += 4;
-					auto msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf), from);
+					buf += 4; offset += 4;
+					auto msg = CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len - offset), from);
 					if (from) // received through an inbound tunnel
 					{
 						std::shared_ptr<i2p::tunnel::OutboundTunnel> tunnel;
@@ -568,9 +591,17 @@ namespace garlic
 				{
 					uint8_t * ident = buf;
 					buf += 32;
+					offset = buf1 - buf;	
 					if (!from) // received directly
+					{
+						if (offset > (int)len)
+						{
+							LogPrint (eLogError, "Garlic: message is too short");
+							break;
+						}
 						i2p::transport::transports.SendMessage (ident,
-							CreateI2NPMessage (buf, GetI2NPMessageLength (buf)));
+							CreateI2NPMessage (buf, GetI2NPMessageLength (buf, len - offset)));
+					}
 					else
 						LogPrint (eLogWarning, "Garlic: type router for inbound tunnels not supported");
 					break;	
@@ -578,15 +609,22 @@ namespace garlic
 				default:
 					LogPrint (eLogWarning, "Garlic: unknown delivery type ", (int)deliveryType);
 			}
-			buf += GetI2NPMessageLength (buf); //  I2NP
+			if (offset > (int)len)
+			{
+				LogPrint (eLogError, "Garlic: message is too short");
+				break;
+			}
+			buf += GetI2NPMessageLength (buf, len - offset); //  I2NP
 			buf += 4; // CloveID
 			buf += 8; // Date
 			buf += 3; // Certificate
-			if (buf - buf1  > (int)len)
+			offset = buf1 - buf;
+			if (offset > (int)len)
 			{
 				LogPrint (eLogError, "Garlic: clove is too long");
 				break;
 			}	
+			len -= offset;
 		}	
 	}	
 	

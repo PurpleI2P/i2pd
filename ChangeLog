@@ -1,6 +1,23 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.17.0] - 2017-12-04
+### Added
+- Reseed through HTTP and SOCKS proxy
+- Show status of client services through web console
+- Change log level through web connsole
+- transient keys for tunnels
+- i2p.streaming.initialAckDelay parameter
+- CRYPTO_TYPE for SAM destination
+- signature and crypto type for newkeys BOB command
+### Changed
+- Correct publication of ECIES destinations
+- Disable RSA signatures completely
+### Fixed
+- CVE-2017-17066
+- Possible buffer overflow for RSA-4096
+- Shutdown from web console for Windows
+- Web console page layout
 ## [2.16.0] - 2017-11-13
 ### Added
 - https and "Connect" method for HTTP proxy

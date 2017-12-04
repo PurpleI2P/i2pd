@@ -1,7 +1,7 @@
 %define build_timestamp %(date +"%Y%m%d")
 
 Name:           i2pd
-Version:        2.16.0
+Version:        2.17.0
 Release:        %{build_timestamp}git%{?dist}
 Summary:        I2P router written in C++
 
@@ -103,6 +103,21 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Mon Dec 04 2017 orignal <i2porignal@yandex.ru> - 2.17.0
+- Added reseed through HTTP and SOCKS proxy
+- Added show status of client services through web console
+- Added change log level through web connsole
+- Added transient keys for tunnels
+- Added i2p.streaming.initialAckDelay parameter
+- Added CRYPTO_TYPE for SAM destination
+- Added signature and crypto type for newkeys BOB command
+- Changed - correct publication of ECIES destinations
+- Changed - disable RSA signatures completely
+- Fixed CVE-2017-17066
+- Fixed possible buffer overflow for RSA-4096
+- Fixed shutdown from web console for Windows
+- Fixed web console page layout
+
 * Mon Nov 13 2017 orignal <i2porignal@yandex.ru> - 2.16.0
 - Added https and "Connect" method for HTTP proxy
 - Added outproxy for HTTP proxy
