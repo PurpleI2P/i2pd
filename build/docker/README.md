@@ -28,7 +28,7 @@ Options are set via docker environment variables. This can be set at run with -e
 
 **Logging**
 
-Logging happens to STDOUT as the best practise with docker containers, since infrastructure systems like kubernetes with ELK integration can automaticly forward the log to say, kibana or greylog without manual setup. :)
+Logging happens to STDOUT as the best practise with docker containers, since infrastructure systems like kubernetes with ELK integration can automatically forward the log to say, kibana or greylog without manual setup. :)
 
 
 

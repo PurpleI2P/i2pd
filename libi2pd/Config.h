@@ -47,7 +47,7 @@ namespace config {
    * @brief  Load and parse given config file
    * @param  path  Path to config file
    *
-   * If error occured when opening file path is points to,
+   * If error occurred when opening file path is points to,
    * we show the error message and terminate program.
    *
    * In case of parameter misuse boost throws an exception.

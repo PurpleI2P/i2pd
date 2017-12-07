@@ -14,7 +14,7 @@ PIDFile=/var/run/i2pd/i2pd.pid
 ### Uncomment, if auto restart needed
 #Restart=on-failure
 
-### Use SIGINT for gracefull stop daemon.
+### Use SIGINT for graceful stop daemon.
 # i2pd stops accepting new tunnels and waits ~10 min while old ones do not die.
 KillSignal=SIGINT
 TimeoutStopSec=10m

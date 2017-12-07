@@ -162,12 +162,12 @@
 - Configurable limit of transit tunnels
 
 ### Changed
-- Speed-up of assymetric crypto for non-x64 platforms
+- Speed-up of asymmetric crypto for non-x64 platforms
 - Refactoring of web-console
 
 ## [2.6.0] - 2016-03-31
 ### Added
-- Gracefull shutdown on SIGINT
+- Graceful shutdown on SIGINT
 - Numeric bandwidth limits (was: by router class)
 - Jumpservices in web-console
 - Logging to syslog

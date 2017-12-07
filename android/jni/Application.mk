@@ -11,7 +11,7 @@ NDK_TOOLCHAIN_VERSION := 4.9
 # APP_STL := stlport_shared  --> does not seem to contain C++11 features
 APP_STL := gnustl_shared
 
-# Enable c++11 extentions in source code
+# Enable c++11 extensions in source code
 APP_CPPFLAGS += -std=c++11
 
 APP_CPPFLAGS += -DANDROID -D__ANDROID__ -DUSE_UPNP
