@@ -63,7 +63,7 @@ namespace transport
 			else
 			{
 				std::unique_lock<std::mutex>	l(m_AcquiredMutex);
-				m_Acquired.wait (l); // wait for element gets aquired
+				m_Acquired.wait (l); // wait for element gets acquired
 			}
 		}
 	}

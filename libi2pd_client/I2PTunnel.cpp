@@ -844,7 +844,7 @@ namespace client
 				LogPrint(eLogWarning, "UDP Client: not tracking udp session using port ", (int) toPort);
 		}
 		else
-			LogPrint(eLogWarning, "UDP Client: unwarrented traffic from ", from.GetIdentHash().ToBase32());
+			LogPrint(eLogWarning, "UDP Client: unwarranted traffic from ", from.GetIdentHash().ToBase32());
 	}
 
 	I2PUDPClientTunnel::~I2PUDPClientTunnel() {

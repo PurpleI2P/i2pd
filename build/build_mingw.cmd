@@ -6,7 +6,7 @@ REM Copyright (c) 2013-2017, The PurpleI2P Project
 REM This file is part of Purple i2pd project and licensed under BSD3
 REM See full license text in LICENSE file at top of project tree
 
-REM To use that script, you must have installed in your MSYS installation theese packages:
+REM To use that script, you must have installed in your MSYS installation these packages:
 REM Base: git make zip
 REM x86_64: mingw-w64-x86_64-boost mingw-w64-x86_64-openssl mingw-w64-x86_64-gcc
 REM i686: mingw-w64-i686-boost mingw-w64-i686-openssl mingw-w64-i686-gcc

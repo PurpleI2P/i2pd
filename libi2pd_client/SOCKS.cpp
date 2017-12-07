@@ -554,7 +554,7 @@ namespace proxy
 
 	void SOCKSHandler::HandleSockRecv(const boost::system::error_code & ecode, std::size_t len)
 	{
-		LogPrint(eLogDebug, "SOCKS: recieved ", len, " bytes");
+		LogPrint(eLogDebug, "SOCKS: received ", len, " bytes");
 		if(ecode) 
 		{
 			LogPrint(eLogWarning, "SOCKS: recv got error: ", ecode);

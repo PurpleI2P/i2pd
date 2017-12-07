@@ -320,7 +320,7 @@ namespace data
 					s.seekg (pos, std::ios::beg); // back to compressed data
 				}
 
-				LogPrint (eLogDebug, "Reseed: Proccessing file ", localFileName, " ", compressedSize, " bytes");
+				LogPrint (eLogDebug, "Reseed: Processing file ", localFileName, " ", compressedSize, " bytes");
 				if (!compressedSize)
 				{
 					LogPrint (eLogWarning, "Reseed: Unexpected size 0. Skipped");
