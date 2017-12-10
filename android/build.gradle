@@ -28,11 +28,20 @@ android {
                         jniLibs.srcDirs = ['libs']
         }
         }
-        buildTypes {
+    signingConfigs {
+        orignal {
+            storeFile file("i2pdapk.jks")
+            storePassword "android"
+            keyAlias "i2pdapk"
+            keyPassword "android"
+        }
+    }
+    buildTypes {
                 release {
                         minifyEnabled false
+                        signingConfig signingConfigs.orignal
                         proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
                 }
-        }
+    }
 }
 
