@@ -316,8 +316,9 @@ namespace http {
 				if (dest)
 				{
 					auto ident = dest->GetIdentHash ();
-					s << "<a href=\"/?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">";
-					s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n" << std::endl;
+					auto& name = dest->GetNickname ();
+					s << "<a href=\"/?page=" << HTTP_PAGE_I2CP_LOCAL_DESTINATION << "&i2cp_id=" << it.first << "\">[ ";
+					s << name << " ]</a> &#8660; " << i2p::client::context.GetAddressBook ().ToAddress(ident) <<"<br>\r\n" << std::endl;
 				}
 			}
 		}
