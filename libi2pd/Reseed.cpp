@@ -320,7 +320,7 @@ namespace data
 					s.seekg (pos, std::ios::beg); // back to compressed data
 				}
 
-				LogPrint (eLogDebug, "Reseed: Proccessing file ", localFileName, " ", compressedSize, " bytes");
+				LogPrint (eLogDebug, "Reseed: Processing file ", localFileName, " ", compressedSize, " bytes");
 				if (!compressedSize)
 				{
 					LogPrint (eLogWarning, "Reseed: Unexpected size 0. Skipped");
@@ -522,7 +522,7 @@ namespace data
 		boost::asio::io_service service;
 		boost::system::error_code ecode;
 
-		boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);
+		boost::asio::ssl::context ctx(boost::asio::ssl::context::sslv23);
 		ctx.set_verify_mode(boost::asio::ssl::context::verify_none);
 		boost::asio::ssl::stream<boost::asio::ip::tcp::socket> s(service, ctx);
 

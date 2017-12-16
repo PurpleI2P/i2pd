@@ -3,7 +3,7 @@ cache:
   apt: true
 os:
 - linux
-- osx
+#- osx
 dist: trusty
 sudo: required
 compiler:

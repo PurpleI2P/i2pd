@@ -495,7 +495,7 @@ namespace client
 					int port = section.second.get<int> (I2P_CLIENT_TUNNEL_PORT);
 					// optional params
 					bool matchTunnels = section.second.get(I2P_CLIENT_TUNNEL_MATCH_TUNNELS, false);
-					std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "");
+					std::string keys = section.second.get (I2P_CLIENT_TUNNEL_KEYS, "transient");
 					std::string address = section.second.get (I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
 					int destinationPort = section.second.get (I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_CLIENT_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);

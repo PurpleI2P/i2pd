@@ -1,0 +1,47 @@
+buildscript {
+        repositories {
+                mavenCentral()
+                jcenter()
+        }
+        dependencies {
+                classpath 'com.android.tools.build:gradle:2.1.2'
+        }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+        compileSdkVersion 25
+        buildToolsVersion "25.0.2"
+        defaultConfig {
+                applicationId "org.purplei2p.i2pd"
+                targetSdkVersion 25
+                minSdkVersion 14
+                versionCode 1
+                versionName "2.17.1"
+        }
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+                        res.srcDirs = ['res']
+                        jniLibs.srcDirs = ['libs']
+        }
+        }
+    signingConfigs {
+        orignal {
+            storeFile file("i2pdapk.jks")
+            storePassword "android"
+            keyAlias "i2pdapk"
+            keyPassword "android"
+        }
+    }
+    buildTypes {
+                release {
+                        minifyEnabled false
+                        signingConfig signingConfigs.orignal
+                        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
+                }
+    }
+}
+
