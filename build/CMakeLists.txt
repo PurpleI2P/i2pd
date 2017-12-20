@@ -27,6 +27,7 @@ set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
 # architecture
+include(TargetArch)
 target_architecture(ARCHITECTURE)
 
 set(LIBI2PD_SRC_DIR ../libi2pd)
