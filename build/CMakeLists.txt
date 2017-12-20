@@ -387,7 +387,7 @@ if (WITH_MESHNET)
 endif()
 
 if (ARCHITECTURE MATCHES "arm")
-  set(ATOMIC_LIB atomic)
+  set(ATOMIC_LIB -latomic)
 else()
   set(ATMOIC_LIB "")
 endif()
