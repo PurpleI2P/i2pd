@@ -26,6 +26,9 @@ option(WITH_WEBSOCKETS "Build with websocket ui" OFF)
 set ( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules" )
 set ( CMAKE_SOURCE_DIR ".." )
 
+# architecture
+target_architecture(ARCHITECTURE)
+
 set(LIBI2PD_SRC_DIR ../libi2pd)
 set(LIBI2PD_CLIENT_SRC_DIR ../libi2pd_client)
 
@@ -382,6 +385,12 @@ if (WITH_MESHNET)
   message(WARNING "This build will NOT work on mainline i2p")
 endif()
 
+if (ARCHITECTURE MATCHES "arm")
+  set(ATOMIC_LIB atomic)
+else()
+  set(ATMOIC_LIB "")
+endif()
+
 
 # show summary
 message(STATUS "---------------------------------------")
@@ -389,6 +398,7 @@ message(STATUS "Build type         : ${CMAKE_BUILD_TYPE}")
 message(STATUS "Compiler vendor    : ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Compiler version   : ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
+message(STATUS "Architecture       : ${ARCHITECTURE}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
@@ -448,7 +458,7 @@ if (WITH_BINARY)
   if (WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
-  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB})
+  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${ATOMIC_LIB})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set (APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
