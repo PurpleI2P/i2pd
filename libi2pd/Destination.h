@@ -51,6 +51,7 @@ namespace client
 	const char I2CP_PARAM_TAGS_TO_SEND[] = "crypto.tagsToSend";
 	const int DEFAULT_TAGS_TO_SEND = 40;
 	const char I2CP_PARAM_INBOUND_NICKNAME[] = "inbound.nickname";
+	const char I2CP_PARAM_OUTBOUND_NICKNAME[] = "outbound.nickname";
 
 	// latency
 	const char I2CP_PARAM_MIN_TUNNEL_LATENCY[] = "latency.min";

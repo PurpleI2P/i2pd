@@ -59,7 +59,13 @@ namespace client
 					}
 				}
 				it = params->find (I2CP_PARAM_INBOUND_NICKNAME);
-				if (it != params->end ()) m_Nickname = it->second; // otherwise we set deafult nickname in Start when we know local address
+				if (it != params->end ()) m_Nickname = it->second; 
+				else // try outbound
+				{	
+					it = params->find (I2CP_PARAM_OUTBOUND_NICKNAME);
+					if (it != params->end ()) m_Nickname = it->second; 
+					// otherwise we set deafult nickname in Start when we know local address
+				}
 			}
 		} 
 		catch (std::exception & ex) 
