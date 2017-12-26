@@ -82,7 +82,7 @@ namespace fs {
    *   Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd\
    *   Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd\
    *   Mac: /Library/Application Support/i2pd/ or ~/Library/Application Support/i2pd/
-   *   Unix: /var/lib/i2pd/ (system=1) >> ~/.i2pd/ or /tmp/i2pd/
+   *   Unix: /var/lib/i2pd/ (system=1) >> ~/.config/i2pd/ or /tmp/i2pd/
    */
   void DetectDataDir(const std::string & cmdline_datadir, bool isService = false);
 
