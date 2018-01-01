@@ -334,7 +334,7 @@ namespace stream
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
 		auto s = shared_from_this();
-		m_Service.post ([=](void)
+		m_Service.post ([s, buffer, handler, timeout](void)
 		{
 			if (!s->m_ReceiveQueue.empty () || s->m_Status == eStreamStatusReset)
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
