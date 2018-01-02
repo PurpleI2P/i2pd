@@ -670,10 +670,12 @@ namespace tunnel
 					{
 						if (!tunnel->IsRecreated () && ts + TUNNEL_RECREATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 						{
-							tunnel->SetIsRecreated ();
 							auto pool = tunnel->GetTunnelPool ();
-							if (pool)
+							if (pool && tunnel->GetPeers().size() == pool->GetNumOutboundHops())
+							{
+								tunnel->SetIsRecreated ();
 								pool->RecreateOutboundTunnel (tunnel);
+							}
 						}
 						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
 							tunnel->SetState (eTunnelStateExpiring);
@@ -723,8 +725,11 @@ namespace tunnel
 						{
 							tunnel->SetIsRecreated ();
 							auto pool = tunnel->GetTunnelPool ();
-							if (pool)
+							if (pool && tunnel->GetPeers().size() == pool->GetNumInboundHops())
+							{
+								tunnel->SetIsRecreated ();
 								pool->RecreateInboundTunnel (tunnel);
+							}
 						}
 
 						if (ts + TUNNEL_EXPIRATION_THRESHOLD > tunnel->GetCreationTime () + TUNNEL_EXPIRATION_TIMEOUT)
