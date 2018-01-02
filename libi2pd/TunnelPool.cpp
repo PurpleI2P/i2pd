@@ -69,6 +69,18 @@ namespace tunnel
 		m_Tests.clear ();
 	}
 
+	bool TunnelPool::Reconfigure(int inHops, int outHops, int inQuant, int outQuant)	{
+		if( inHops >= 0 && outHops >= 0 && inQuant > 0 && outQuant > 0)
+		{
+			m_NumInboundHops = inHops;
+			m_NumOutboundHops = outHops;
+			m_NumInboundTunnels = inQuant;
+			m_NumOutboundTunnels = outQuant;
+			return true;
+		}
+		return false;
+	}
+	
 	void TunnelPool::TunnelCreated (std::shared_ptr<InboundTunnel> createdTunnel)
 	{
 		if (!m_IsActive) return;

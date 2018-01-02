@@ -78,7 +78,12 @@ namespace tunnel
 
 			int GetNumInboundTunnels () const { return m_NumInboundTunnels; };
 			int GetNumOutboundTunnels () const { return m_NumOutboundTunnels; };
+			int GetNumInboundHops() const { return m_NumInboundHops; };
+			int GetNumOutboundHops() const { return m_NumOutboundHops; };
 
+			/** i2cp reconfigure */
+			bool Reconfigure(int inboundHops, int outboundHops, int inboundQuant, int outboundQuant);
+    
 			void SetCustomPeerSelector(ITunnelPeerSelector * selector);
 			void UnsetCustomPeerSelector();
 			bool HasCustomPeerSelector();
