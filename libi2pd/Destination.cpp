@@ -197,7 +197,7 @@ namespace client
 		minLatency = 0;
 		maxLatency = 0;
 		
-		for (auto opt : intOpts)
+		for (auto & opt : intOpts)
 		{
 			itr = params.find(opt.first);
 			if(itr != params.end())
