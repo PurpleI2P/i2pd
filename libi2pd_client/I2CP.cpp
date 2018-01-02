@@ -441,7 +441,7 @@ namespace client
 							//uint64_t date = bufbe64toh(buf);
 							buf += sizeof(uint64_t);
 							const uint8_t * sig = buf;
-							if(ident.Verify(body, len - sizeof(uint16_t), sig))
+							if(ident.Verify(body, len - sizeof(uint16_t) - ident.GetSignatureLen(), sig))
 							{
 								if(m_Destination->Reconfigure(opts))
 								{
