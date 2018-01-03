@@ -548,7 +548,7 @@ namespace garlic
 				case eGarlicDeliveryTypeDestination:	
 					LogPrint (eLogDebug, "Garlic: type destination");
 					buf += 32; // destination. check it later or for multiple destinations
-					offset = buf1 - buf;
+					offset = buf - buf1;
 					if (offset > (int)len)
 					{
 						LogPrint (eLogError, "Garlic: message is too short");
@@ -562,7 +562,7 @@ namespace garlic
 					// gwHash and gwTunnel sequence is reverted
 					uint8_t * gwHash = buf;
 					buf += 32;
-					offset = buf1 - buf;
+					offset = buf - buf1;
 					if (offset + 4 > (int)len)
 					{
 						LogPrint (eLogError, "Garlic: message is too short");
@@ -591,7 +591,7 @@ namespace garlic
 				{
 					uint8_t * ident = buf;
 					buf += 32;
-					offset = buf1 - buf;	
+					offset = buf - buf1;	
 					if (!from) // received directly
 					{
 						if (offset > (int)len)
@@ -618,7 +618,7 @@ namespace garlic
 			buf += 4; // CloveID
 			buf += 8; // Date
 			buf += 3; // Certificate
-			offset = buf1 - buf;
+			offset = buf - buf1;
 			if (offset > (int)len)
 			{
 				LogPrint (eLogError, "Garlic: clove is too long");
