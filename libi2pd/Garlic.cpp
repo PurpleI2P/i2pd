@@ -538,7 +538,7 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint (eLogDebug, "Garlic: type local");
-					if (offset > (int)len)
+					if (offset > (int)len || offset <= 0)
 					{
 						LogPrint (eLogError, "Garlic: message is too short");
 						break;
@@ -549,7 +549,7 @@ namespace garlic
 					LogPrint (eLogDebug, "Garlic: type destination");
 					buf += 32; // destination. check it later or for multiple destinations
 					offset = buf1 - buf;
-					if (offset > (int)len)
+					if (offset > (int)len || offset <= 0)
 					{
 						LogPrint (eLogError, "Garlic: message is too short");
 						break;
@@ -563,7 +563,7 @@ namespace garlic
 					uint8_t * gwHash = buf;
 					buf += 32;
 					offset = buf1 - buf;
-					if (offset + 4 > (int)len)
+					if (offset + 4 > (int)len || offset <= 0)
 					{
 						LogPrint (eLogError, "Garlic: message is too short");
 						break;
@@ -594,7 +594,7 @@ namespace garlic
 					offset = buf1 - buf;	
 					if (!from) // received directly
 					{
-						if (offset > (int)len)
+						if (offset > (int)len || offset <= 0)
 						{
 							LogPrint (eLogError, "Garlic: message is too short");
 							break;
@@ -609,7 +609,7 @@ namespace garlic
 				default:
 					LogPrint (eLogWarning, "Garlic: unknown delivery type ", (int)deliveryType);
 			}
-			if (offset > (int)len)
+			if (offset > (int)len || offset <= 0)
 			{
 				LogPrint (eLogError, "Garlic: message is too short");
 				break;
@@ -619,7 +619,7 @@ namespace garlic
 			buf += 8; // Date
 			buf += 3; // Certificate
 			offset = buf1 - buf;
-			if (offset > (int)len)
+			if (offset > (int)len || offset <= 0)
 			{
 				LogPrint (eLogError, "Garlic: clove is too long");
 				break;
