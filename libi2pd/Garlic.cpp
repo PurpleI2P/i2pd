@@ -619,7 +619,7 @@ namespace garlic
 			buf += 8; // Date
 			buf += 3; // Certificate
 			offset = buf1 - buf;
-			if (offset > (int)len || offset <= 0)
+			if (offset > (int)len)
 			{
 				LogPrint (eLogError, "Garlic: clove is too long");
 				break;
