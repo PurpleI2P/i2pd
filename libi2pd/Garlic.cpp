@@ -563,7 +563,7 @@ namespace garlic
 					uint8_t * gwHash = buf;
 					buf += 32;
 					offset = buf1 - buf;
-					if (offset + 4 > (int)len || offset <= 0)
+					if (offset + 4 > (int)len || offset < 4)
 					{
 						LogPrint (eLogError, "Garlic: message is too short");
 						break;
