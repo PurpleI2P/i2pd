@@ -83,7 +83,7 @@ if (WITH_WEBSOCKETS)
   find_package(websocketpp REQUIRED)
 endif ()
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
+if (WIN32 OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
 endif ()
 
@@ -194,20 +194,14 @@ if (WITH_HARDENING AND MSVC)
 endif ()
 
 # compiler flags customization (by system)
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if (UNIX)
   list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-  # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
-  add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
-elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-  # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
-  add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-  elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-      list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
-        list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp")
+  if (NOT (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR APPLE))
+    # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
+    add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
+  endif ()
+elseif (WIN32 OR MSYS)
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp")
   if (WITH_GUI)
     list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32App.cpp")
     set_source_files_properties("${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp"
@@ -262,6 +256,8 @@ endif()
 if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
+
+include(CheckLibcxxAtomic)
 
 if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
@@ -370,11 +366,13 @@ if (NOT ZLIB_FOUND )
   if (NOT WITH_STATIC)
     set ( ZLIB_LIBRARY debug zlibd optimized zlib CACHE STRING "zlib libraries" FORCE)
   endif ()
+  link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib)
+else()
+  link_directories(${ZLIB_ROOT}/lib)
 endif ()
 if (WITH_STATIC AND (MSVC OR MSYS))
   set ( ZLIB_LIBRARY debug zlibstaticd optimized zlibstatic CACHE STRING "zlib libraries" FORCE)
 endif ()
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib ${ZLIB_ROOT}/lib)
 
 # load includes
 include_directories( SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
