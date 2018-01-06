@@ -38,7 +38,7 @@ namespace data
 	struct LeaseCmp
 	{
 		bool operator() (std::shared_ptr<const Lease> l1, std::shared_ptr<const Lease> l2) const
-  		{
+		{
 			if (l1->tunnelID != l2->tunnelID)
 				return l1->tunnelID < l2->tunnelID;
 			else

@@ -96,7 +96,7 @@ namespace fs {
       boost::filesystem::create_directory(destinations);
 	std::string tags = DataDirPath("tags");
     if (!boost::filesystem::exists(tags))
-    	boost::filesystem::create_directory(tags);
+	boost::filesystem::create_directory(tags);
 	else
 		i2p::garlic::CleanUpTagsFiles ();
 
@@ -136,7 +136,7 @@ namespace fs {
     return boost::filesystem::remove(path);
   }
 
-  	bool CreateDirectory (const std::string& path)
+	bool CreateDirectory (const std::string& path)
 	{
 		if (boost::filesystem::exists(path) &&
 			boost::filesystem::is_directory (boost::filesystem::status (path))) return true;

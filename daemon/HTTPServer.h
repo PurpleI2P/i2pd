@@ -63,7 +63,7 @@ namespace http
 		private:
 
 			void Run ();
- 			void Accept ();
+			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode,
 				std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
 			void CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);

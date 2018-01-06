@@ -20,8 +20,8 @@ namespace tunnel
 		public:
 
 			TransitTunnel (uint32_t receiveTunnelID,
-			    const uint8_t * nextIdent, uint32_t nextTunnelID,
-	    		const uint8_t * layerKey,const uint8_t * ivKey);
+				const uint8_t * nextIdent, uint32_t nextTunnelID,
+				const uint8_t * layerKey,const uint8_t * ivKey);
 
 			virtual size_t GetNumTransmittedBytes () const { return 0; };
 
@@ -39,8 +39,8 @@ namespace tunnel
 		public:
 
 			TransitTunnelParticipant (uint32_t receiveTunnelID,
-			    const uint8_t * nextIdent, uint32_t nextTunnelID,
-	    		const uint8_t * layerKey,const uint8_t * ivKey):
+				const uint8_t * nextIdent, uint32_t nextTunnelID,
+				const uint8_t * layerKey,const uint8_t * ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
 				layerKey, ivKey), m_NumTransmittedBytes (0) {};
 			~TransitTunnelParticipant ();
@@ -60,8 +60,8 @@ namespace tunnel
 		public:
 
 			TransitTunnelGateway (uint32_t receiveTunnelID,
-			    const uint8_t * nextIdent, uint32_t nextTunnelID,
-	    		const uint8_t * layerKey,const uint8_t * ivKey):
+				const uint8_t * nextIdent, uint32_t nextTunnelID,
+				const uint8_t * layerKey,const uint8_t * ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID,
 				layerKey, ivKey), m_Gateway(this) {};
 
@@ -80,8 +80,8 @@ namespace tunnel
 		public:
 
 			TransitTunnelEndpoint (uint32_t receiveTunnelID,
-			    const uint8_t * nextIdent, uint32_t nextTunnelID,
-	    		const uint8_t * layerKey,const uint8_t * ivKey):
+				const uint8_t * nextIdent, uint32_t nextTunnelID,
+				const uint8_t * layerKey,const uint8_t * ivKey):
 				TransitTunnel (receiveTunnelID, nextIdent, nextTunnelID, layerKey, ivKey),
 				m_Endpoint (false) {}; // transit endpoint is always outbound
 
@@ -97,7 +97,7 @@ namespace tunnel
 
 	std::shared_ptr<TransitTunnel> CreateTransitTunnel (uint32_t receiveTunnelID,
 		const uint8_t * nextIdent, uint32_t nextTunnelID,
-	    const uint8_t * layerKey,const uint8_t * ivKey,
+		const uint8_t * layerKey,const uint8_t * ivKey,
 		bool isGateway, bool isEndpoint);
 }
 }

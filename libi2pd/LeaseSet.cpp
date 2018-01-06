@@ -194,12 +194,12 @@ namespace data
 	}
 
 	bool LeaseSet::HasExpiredLeases () const
- 	{
+	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		for (const auto& it: m_Leases)
 			if (ts >= it->endDate) return true;
 		return false;
- 	}
+	}
 
 	bool LeaseSet::IsExpired () const
 	{

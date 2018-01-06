@@ -239,7 +239,7 @@ namespace client
 			int m_StreamingAckDelay;
 			std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination; // default
 			std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
-      		i2p::datagram::DatagramDestination * m_DatagramDestination;
+			i2p::datagram::DatagramDestination * m_DatagramDestination;
 			int m_RefCounter; // how many clients(tunnels) use this destination
 
 			boost::asio::deadline_timer m_ReadyChecker;

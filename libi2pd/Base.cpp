@@ -267,14 +267,14 @@ namespace data
 				if (pos < len)
 				{
 					tmp <<= 8;
-		      		tmp |= inBuf[pos] & 0xFF;
+					tmp |= inBuf[pos] & 0xFF;
 					pos++;
-		      		bits += 8;
+					bits += 8;
 				}
 				else // last byte
 				{
 					tmp <<= (5 - bits);
-				  	bits = 5;
+					bits = 5;
 				}
 			}
 

@@ -664,7 +664,7 @@ namespace client
 				if (len > 0) // still some data
 				{
 					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len),
-        				std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+						std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
 				}
 				else // no more data
 					Terminate ("no more data");
@@ -681,7 +681,7 @@ namespace client
 			{
 				if (bytes_transferred > 0)
 					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1)); // postpone termination
+						std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1)); // postpone termination
 				else
 				{
 					auto s = shared_from_this ();
@@ -698,7 +698,7 @@ namespace client
 		{
 			if (m_SocketType != eSAMSocketTypeTerminated) // check for possible race condition with Terminate()
 				boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        			std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+					std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
 		}
 	}
 

@@ -272,7 +272,7 @@ namespace http {
   {
 	  o << method << " " << uri << " " << version << CRLF;
 	  for (auto & h : headers)
-  		o << h.first << ": " << h.second << CRLF;
+		o << h.first << ": " << h.second << CRLF;
 	  o << CRLF;
   }
 

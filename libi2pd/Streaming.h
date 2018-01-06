@@ -98,7 +98,7 @@ namespace stream
 	struct PacketCmp
 	{
 		bool operator() (const Packet * p1, const Packet * p2) const
-  		{
+		{
 			return p1->GetSeqn () < p2->GetSeqn ();
 		};
 	};

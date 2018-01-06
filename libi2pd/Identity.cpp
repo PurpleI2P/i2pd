@@ -542,7 +542,7 @@ namespace data
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		if (!m_Signer)
-  			CreateSigner();
+			CreateSigner();
 		m_Signer->Sign (buf, len, signature);
 	}
 

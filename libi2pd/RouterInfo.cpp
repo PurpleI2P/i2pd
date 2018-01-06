@@ -224,7 +224,7 @@ namespace data
 							supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;
 						else
 							supportedTransports |= (address->transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
- 					}
+					}
 				}
 				else if (!strcmp (key, "port"))
 					address->port = boost::lexical_cast<int>(value);

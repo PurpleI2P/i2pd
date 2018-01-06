@@ -86,7 +86,7 @@ namespace transport
 		DeleteAllSessions ();
 		m_IsRunning = false;
 		m_TerminationTimer.cancel ();
- 		m_TerminationTimerV6.cancel ();
+		m_TerminationTimerV6.cancel ();
 		m_Service.stop ();
 		m_Socket.close ();
 		m_ServiceV6.stop ();
@@ -357,7 +357,7 @@ namespace transport
 	{
 		if (!router) return nullptr;
 		auto address = router->GetSSUAddress (true); // v4 only
- 		if (!address) return nullptr;
+		if (!address) return nullptr;
 		auto session = FindSession (boost::asio::ip::udp::endpoint (address->host, address->port));
 		if (session || !context.SupportsV6 ())
 			return session;
@@ -747,7 +747,7 @@ namespace transport
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto& it: m_Sessions)
- 				if (it.second->IsTerminationTimeoutExpired (ts))
+				if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					auto session = it.second;
 					m_Service.post ([session]
@@ -773,7 +773,7 @@ namespace transport
 		{
 			auto ts = i2p::util::GetSecondsSinceEpoch ();
 			for (auto& it: m_SessionsV6)
- 				if (it.second->IsTerminationTimeoutExpired (ts))
+				if (it.second->IsTerminationTimeoutExpired (ts))
 				{
 					auto session = it.second;
 					m_ServiceV6.post ([session]

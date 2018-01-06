@@ -57,7 +57,7 @@ namespace transport
 	struct FragmentCmp
 	{
 		bool operator() (const std::unique_ptr<Fragment>& f1, const std::unique_ptr<Fragment>& f2) const
-  		{
+		{
 			return f1->fragmentNum < f2->fragmentNum;
 		};
 	};

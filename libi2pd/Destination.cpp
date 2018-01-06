@@ -780,7 +780,7 @@ namespace client
 				delete m_DatagramDestination;
 				m_DatagramDestination = nullptr;
 			}
-		  	return true;
+			return true;
 		}
 		else
 			return false;

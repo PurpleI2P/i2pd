@@ -655,7 +655,7 @@ namespace data
 				std::set<IdentHash> excluded;
 				excluded.insert (i2p::context.GetIdentHash ()); // don't flood to itself
 				excluded.insert (ident); // don't flood back
- 				for (int i = 0; i < 3; i++)
+				for (int i = 0; i < 3; i++)
 				{
 					auto floodfill = GetClosestFloodfill (ident, excluded);
 					if (floodfill)
@@ -866,7 +866,7 @@ namespace data
 				if (closestFloodfills.empty ())
 					LogPrint (eLogWarning, "NetDb: Requested ", key, " not found, ", numExcluded, " peers excluded");
 				replyMsg = CreateDatabaseSearchReply (ident, closestFloodfills);
-    		}
+		}
 		}
 		excluded += numExcluded * 32;
 		if (replyMsg)

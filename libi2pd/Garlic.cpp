@@ -125,7 +125,7 @@ namespace garlic
 			m_LeaseSetUpdateMsgID = 0;
 		}
 		return !m_SessionTags.empty () || !m_UnconfirmedTagsMsgs.empty ();
- 	}
+	}
 
 	bool GarlicRoutingSession::CleanupUnconfirmedTags ()
 	{

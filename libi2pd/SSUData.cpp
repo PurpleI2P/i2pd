@@ -81,7 +81,7 @@ namespace transport
 
 	void SSUData::UpdatePacketSize (const i2p::data::IdentHash& remoteIdent)
 	{
- 		auto routerInfo = i2p::data::netdb.FindRouter (remoteIdent);
+		auto routerInfo = i2p::data::netdb.FindRouter (remoteIdent);
 		if (routerInfo)
 			AdjustPacketSize (routerInfo);
 	}

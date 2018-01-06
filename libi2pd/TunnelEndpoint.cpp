@@ -54,7 +54,7 @@ namespace tunnel
 					{
 						case eDeliveryTypeLocal: // 0
 						break;
-					  	case eDeliveryTypeTunnel: // 1
+						case eDeliveryTypeTunnel: // 1
 							m.tunnelID = bufbe32toh (fragment);
 							fragment += 4; // tunnelID
 							m.hash = i2p::data::IdentHash (fragment);

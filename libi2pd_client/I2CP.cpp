@@ -280,7 +280,7 @@ namespace client
 			buf[I2CP_HEADER_TYPE_OFFSET] = type;
 			memcpy (buf + I2CP_HEADER_SIZE, payload, len);
 			boost::asio::async_write (*socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
-		    	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
+			std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
 							std::placeholders::_1, std::placeholders::_2, buf));
 		}
 		else
@@ -480,14 +480,14 @@ namespace client
 						offset += 4;
 						uint32_t nonce = bufbe32toh (buf + offset + payloadLen);
 						if (m_IsSendAccepted)
-						  SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
+							SendMessageStatusMessage (nonce, eI2CPMessageStatusAccepted); // accepted
 						m_Destination->SendMsgTo (buf + offset, payloadLen, identity.GetIdentHash (), nonce);
 					}
-      				else
-        				LogPrint(eLogError, "I2CP: cannot send message, too big");
-   				}
-    			else
-      				LogPrint(eLogError, "I2CP: invalid identity");
+					else
+						LogPrint(eLogError, "I2CP: cannot send message, too big");
+				}
+				else
+					LogPrint(eLogError, "I2CP: invalid identity");
 			}
 		}
 		else
@@ -634,7 +634,7 @@ namespace client
 		htobe32buf (buf + I2CP_HEADER_SIZE + 6, len);
 		memcpy (buf + I2CP_HEADER_SIZE + 10, payload, len);
 		boost::asio::async_write (*m_Socket, boost::asio::buffer (buf, l), boost::asio::transfer_all (),
-        	std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
+		std::bind(&I2CPSession::HandleI2CPMessageSent, shared_from_this (),
 						std::placeholders::_1, std::placeholders::_2, buf));
 	}
 

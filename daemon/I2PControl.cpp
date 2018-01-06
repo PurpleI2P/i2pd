@@ -160,7 +160,7 @@ namespace client
 	void I2PControlService::Handshake (std::shared_ptr<ssl_socket> socket)
 	{
 		socket->async_handshake(boost::asio::ssl::stream_base::server,
-        	std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
+		std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
 	}
 
 	void I2PControlService::HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)
@@ -187,7 +187,7 @@ namespace client
 	}
 
 	void I2PControlService::HandleRequestReceived (const boost::system::error_code& ecode,
- 		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket,
+		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf)
 	{
 		if (ecode)
