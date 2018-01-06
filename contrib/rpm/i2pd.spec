@@ -48,7 +48,7 @@ using dedicated user's permissions.
 
 %build
 cd build
-%if 0%{?rhel} == 7 
+%if 0%{?rhel} == 7
 %cmake3 \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
@@ -133,7 +133,7 @@ getent passwd i2pd >/dev/null || \
 - Fixed QT GUI issues
 
 * Thu Aug 17 2017 orignal <i2porignal@yandex.ru> - 2.15.0
-- Added QT GUI 
+- Added QT GUI
 - Added ability add and remove I2P tunnels without restart
 - Added ability to disable SOCKS outproxy option
 - Changed strip-out Accept-* hedaers in HTTP proxy

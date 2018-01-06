@@ -80,7 +80,7 @@ namespace client
 		public:
 
 			SAMSocket (SAMBridge& owner);
-			~SAMSocket ();			
+			~SAMSocket ();
 			void CloseStream (const char* reason); // TODO: implement it better
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
@@ -133,7 +133,7 @@ namespace client
 			SAMSocketType m_SocketType;
 			std::string m_ID; // nickname
 			bool m_IsSilent;
-			bool m_IsAccepting; // for eSAMSocketTypeAcceptor only 
+			bool m_IsAccepting; // for eSAMSocketTypeAcceptor only
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
 			std::shared_ptr<SAMSession> m_Session;
 	};

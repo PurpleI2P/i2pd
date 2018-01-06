@@ -96,7 +96,7 @@ namespace data
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
     		const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
     		uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
-			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const; 
+			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const;
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
 			size_t GetSigningPrivateKeyLen () const;

@@ -12,14 +12,14 @@ namespace i2p
 namespace data
 {
 	class RequestedDestination
-	{	
+	{
 		public:
 
 			typedef std::function<void (std::shared_ptr<RouterInfo>)> RequestComplete;
 
 			RequestedDestination (const IdentHash& destination, bool isExploratory = false):
 				m_Destination (destination), m_IsExploratory (isExploratory), m_CreationTime (0) {};
-			~RequestedDestination () { if (m_RequestComplete) m_RequestComplete (nullptr); };			
+			~RequestedDestination () { if (m_RequestComplete) m_RequestComplete (nullptr); };
 
 			const IdentHash& GetDestination () const { return m_Destination; };
 			int GetNumExcludedPeers () const { return m_ExcludedPeers.size (); };
@@ -30,12 +30,12 @@ namespace data
 			uint64_t GetCreationTime () const { return m_CreationTime; };
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (std::shared_ptr<const RouterInfo>, std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel);
 			std::shared_ptr<I2NPMessage> CreateRequestMessage (const IdentHash& floodfill);
-			
+
 			void SetRequestComplete (const RequestComplete& requestComplete) { m_RequestComplete = requestComplete; };
 			bool IsRequestComplete () const { return m_RequestComplete != nullptr; };
 			void Success (std::shared_ptr<RouterInfo> r);
 			void Fail ();
-			
+
 		private:
 
 			IdentHash m_Destination;
@@ -43,7 +43,7 @@ namespace data
 			std::set<IdentHash> m_ExcludedPeers;
 			uint64_t m_CreationTime;
 			RequestComplete m_RequestComplete;
-	};	
+	};
 
 	class NetDbRequests
 	{

@@ -190,9 +190,9 @@ namespace client
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
 
 			// ref counter
-			int Acquire () { return ++m_RefCounter; }; 
+			int Acquire () { return ++m_RefCounter; };
 			int Release () { return --m_RefCounter; };
-			int GetRefCounter () const { return m_RefCounter; }; 
+			int GetRefCounter () const { return m_RefCounter; };
 
 			// streaming
 			std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination (int port, bool gzip = true); // additional

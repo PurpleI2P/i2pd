@@ -12,7 +12,7 @@ INCFLAGS ?=
 # detect proper flag for c++11 support by compilers
 CXXVER := $(shell $(CXX) -dumpversion)
 ifeq ($(shell expr match $(CXX) 'clang'),5)
-	NEEDED_CXXFLAGS += -std=c++11 
+	NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[0-9][0-9]"),4) # gcc >= 4.10
 	NEEDED_CXXFLAGS += -std=c++11
 else ifeq ($(shell expr match ${CXXVER} "4\.[7-9]"),3) # >= 4.7

@@ -281,7 +281,7 @@ namespace client
 		}
 	}
 
-	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, 
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
 		if (filename == "transient")
@@ -448,7 +448,7 @@ namespace client
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MIN_TUNNEL_LATENCY, value))
 			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
-			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;		
+			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
 	}
 
 	void ClientContext::ReadTunnels ()

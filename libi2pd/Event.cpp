@@ -30,7 +30,7 @@ namespace i2p
 			}
 		  m_collected[key].Val += val;
 		}
-		
+
 		void EventCore::PumpCollected(EventListener * listener)
 		{
 			std::unique_lock<std::mutex> lock(m_collect_mutex);

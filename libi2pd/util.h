@@ -38,15 +38,15 @@ namespace util
 		public:
 
 			MemoryPool (): m_Head (nullptr) {}
-			~MemoryPool () 
-			{ 
-				while (m_Head) 
+			~MemoryPool ()
+			{
+				while (m_Head)
 				{
 					auto tmp = m_Head;
 					m_Head = static_cast<T*>(*(void * *)m_Head); // next
 					delete tmp;
 				}
-			} 
+			}
 
 			template<typename... TArgs>
 			T * Acquire (TArgs&&... args)
@@ -65,7 +65,7 @@ namespace util
 				if (!t) return;
 				t->~T ();
 				*(void * *)t = m_Head; // next
-				m_Head = t;	
+				m_Head = t;
 			}
 
 			template<typename... TArgs>
@@ -74,7 +74,7 @@ namespace util
 				return std::unique_ptr<T, std::function<void(T*)> >(Acquire (std::forward<TArgs>(args)...),
 					std::bind (&MemoryPool<T>::Release, this, std::placeholders::_1));
 			}
-			
+
 			template<typename... TArgs>
 			std::shared_ptr<T> AcquireShared (TArgs&&... args)
 			{
@@ -85,7 +85,7 @@ namespace util
 		protected:
 
 			T * m_Head;
-	};	
+	};
 
 	template<class T>
 	class MemoryPoolMt: public MemoryPool<T>
@@ -104,19 +104,19 @@ namespace util
 			void ReleaseMt (T * t)
 			{
 				std::lock_guard<std::mutex> l(m_Mutex);
-				this->Release (t);	
+				this->Release (t);
 			}
 
 			template<template<typename, typename...>class C, typename... R>
-			void ReleaseMt(const C<T *, R...>& c)	
+			void ReleaseMt(const C<T *, R...>& c)
 			{
 				std::lock_guard<std::mutex> l(m_Mutex);
 				for (auto& it: c)
 					this->Release (it);
-			}	
+			}
 
 		private:
-		
+
 			std::mutex m_Mutex;
 	};
 

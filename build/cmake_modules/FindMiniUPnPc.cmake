@@ -24,5 +24,5 @@ else()
   endif()
 
   mark_as_advanced(MINIUPNPC_INCLUDE_DIR MINIUPNPC_LIBRARY)
-  
+
 endif()

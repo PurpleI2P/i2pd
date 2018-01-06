@@ -44,7 +44,7 @@ enum LogType {
 
 namespace i2p {
 namespace log {
-  
+
 	struct LogMsg; /* forward declaration */
 
 	class Log
@@ -146,7 +146,7 @@ namespace log {
 		std::string text; /**< message text as single string */
 		LogLevel level;   /**< message level */
 		std::thread::id tid; /**< id of thread that generated message */
-    
+
 		LogMsg (LogLevel lvl, std::time_t ts, const std::string & txt): timestamp(ts), text(txt), level(lvl) {};
 	};
 
@@ -185,7 +185,7 @@ void LogPrint (LogLevel level, TArgs&&... args) noexcept
 	std::stringstream ss("");
 
 	LogPrint (ss, std::forward<TArgs>(args)...);
-  
+
 	auto msg = std::make_shared<i2p::log::LogMsg>(level, std::time(nullptr), ss.str());
 	msg->tid = std::this_thread::get_id();
 	log.Append(msg);
