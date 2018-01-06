@@ -1,9 +1,9 @@
-UNAME := $(shell uname -s)
+SYS := $(shell $(CXX) -dumpmachine)
 SHLIB := libi2pd.so
 ARLIB := libi2pd.a
 SHLIB_CLIENT := libi2pdclient.so
 ARLIB_CLIENT := libi2pdclient.a
-I2PD  := i2pd
+I2PD := i2pd
 GREP := grep
 DEPS := obj/make.dep
 
@@ -23,22 +23,24 @@ ifeq ($(WEBSOCKETS),1)
 	NEEDED_CXXFLAGS += -DWITH_EVENTS
 endif
 
-ifeq ($(UNAME),Darwin)
+ifneq (, $(findstring darwin, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	ifeq ($(HOMEBREW),1)
 		include Makefile.homebrew
 	else
 		include Makefile.osx
 	endif
-else ifeq ($(shell echo $(UNAME) | $(GREP) -Ec '(Free|Open)BSD'),1)
+else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
-else ifeq ($(UNAME),Linux)
+else ifneq (, $(findstring linux, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.linux
-else
+else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
 	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
 	include Makefile.mingw
+else # not supported
+$(error Not supported platform)
 endif
 
 ifeq ($(USE_MESHNET),yes)
