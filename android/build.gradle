@@ -8,26 +8,32 @@ buildscript {
         }
 }
 
+task clean(type: Delete,overwrite: true) {
+    delete 'build'
+    delete 'assets'
+}
+
 apply plugin: 'com.android.application'
 
 android {
-        compileSdkVersion 25
-        buildToolsVersion "25.0.2"
-        defaultConfig {
-                applicationId "org.purplei2p.i2pd"
-                targetSdkVersion 25
-                minSdkVersion 14
-                versionCode 1
-                versionName "2.17.1"
-        }
+    compileSdkVersion 25
+    buildToolsVersion "25.0.0"
+    defaultConfig {
+        applicationId "org.purplei2p.i2pd"
+        targetSdkVersion 25
+        minSdkVersion 14
+        versionCode 1
+        versionName "2.17.2b"
+    }
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['src']
-                        res.srcDirs = ['res']
-                        jniLibs.srcDirs = ['libs']
+            res.srcDirs = ['res']
+            jniLibs.srcDirs = ['libs']
+            assets.srcDirs = ['assets']
         }
-        }
+    }
     signingConfigs {
         orignal {
             storeFile file("i2pdapk.jks")
@@ -37,11 +43,18 @@ android {
         }
     }
     buildTypes {
-                release {
-                        minifyEnabled false
-                        signingConfig signingConfigs.orignal
-                        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
-                }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.orignal
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
+        }
     }
 }
 
+task zipCerts(type: Zip) {
+    archiveName 'certificates.zip'
+    destinationDir file('assets')
+    from (files('../contrib/certificates'))
+}
+
+preBuild.dependsOn zipCerts

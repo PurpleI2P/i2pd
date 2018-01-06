@@ -45,7 +45,16 @@ JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startDaemon
   (JNIEnv * env, jclass clazz) {
-	return env->NewStringUTF(i2p::android::start().c_str());
+
+	  int argc=5;
+	  static char* argv[]={
+		  "i2pd", "--service", "--daemon",
+		  "--conf=/sdcard/i2pd/i2pd.conf", 
+		  "--tunconf=/sdcard/i2pd/tunnels.conf", 
+		  "--datadir=/data/data/org.purplei2p.i2pd/app_data/"
+	  };
+
+	  return env->NewStringUTF(i2p::android::start(argc,argv).c_str());
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopDaemon
