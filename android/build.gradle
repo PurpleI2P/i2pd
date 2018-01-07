@@ -8,11 +8,6 @@ buildscript {
         }
 }
 
-task clean(type: Delete,overwrite: true) {
-    delete 'build'
-    delete 'assets'
-}
-
 apply plugin: 'com.android.application'
 
 android {
@@ -23,7 +18,7 @@ android {
         targetSdkVersion 25
         minSdkVersion 14
         versionCode 1
-        versionName "2.17.2c"
+        versionName "2.17.2e"
     }
     sourceSets {
         main {
@@ -51,10 +46,17 @@ android {
     }
 }
 
-task zipCerts(type: Zip) {
-    archiveName 'certificates.zip'
+task zipCerts(type:Zip) {
+    from (files('../contrib/'))
+    include 'certificates/**/*.crt'
     destinationDir file('assets')
-    from (files('../contrib/certificates'))
+    archiveName 'certificates.zip'
+    entryCompression ZipEntryCompression.STORED
+}
+preBuild.dependsOn zipCerts
+
+task clean(type: Delete,overwrite: true) {
+    delete 'build'
+    delete 'assets'
 }
 
-preBuild.dependsOn zipCerts
