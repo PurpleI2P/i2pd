@@ -14,7 +14,7 @@ namespace i2p
 namespace client
 {
 	class I2PServiceHandler;
-	class I2PService : std::enable_shared_from_this<I2PService>
+	class I2PService : public std::enable_shared_from_this<I2PService>
 	{
 		public:
 			typedef std::function<void(const boost::system::error_code &)> ReadyCallback;
