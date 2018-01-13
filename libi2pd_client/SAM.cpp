@@ -25,7 +25,7 @@ namespace client
 	SAMSocket::~SAMSocket ()
 	{
 		Terminate ("~SAMSocket()");
-	}	
+	}
 
 	void SAMSocket::CloseStream (const char* reason)
 	{
@@ -34,13 +34,13 @@ namespace client
 		{
 			m_Stream->Close ();
 			m_Stream.reset ();
-		}	
-	}	
-		
+		}
+	}
+
 	void SAMSocket::Terminate (const char* reason)
 	{
 		CloseStream (reason);
-		
+
 		switch (m_SocketType)
 		{
 			case eSAMSocketTypeSession:
@@ -217,7 +217,7 @@ namespace client
 					if (!strcmp (m_Buffer, SAM_SESSION_CREATE))
 						ProcessSessionCreate (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_CONNECT))
-						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, bytes_transferred - (eol - m_Buffer) - 1);		
+						ProcessStreamConnect (separator + 1, bytes_transferred - (separator - m_Buffer) - 1, bytes_transferred - (eol - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_STREAM_ACCEPT))
 						ProcessStreamAccept (separator + 1, bytes_transferred - (separator - m_Buffer) - 1);
 					else if (!strcmp (m_Buffer, SAM_DEST_GENERATE))
@@ -375,11 +375,11 @@ namespace client
 		if (m_Session)
 		{
 			if (rem > 0) // handle follow on data
-			{	
+			{
 				memmove (m_Buffer, buf + len + 1, rem); // buf is a pointer to m_Buffer's content
-				m_BufferOffset = rem;  
+				m_BufferOffset = rem;
 			}
-			else	
+			else
 				m_BufferOffset = 0;
 
 			auto dest = std::make_shared<i2p::data::IdentityEx> ();
@@ -442,7 +442,7 @@ namespace client
 			m_Session->AddSocket (shared_from_this ());
 			if (!m_Session->localDestination->IsAcceptingStreams ())
 			{
-				m_IsAccepting = true;	
+				m_IsAccepting = true;
 				m_Session->localDestination->AcceptOnce (std::bind (&SAMSocket::HandleI2PAccept, shared_from_this (), std::placeholders::_1));
 			}
 			SendMessageReply (SAM_STREAM_STATUS_OK, strlen(SAM_STREAM_STATUS_OK), false);
@@ -638,7 +638,7 @@ namespace client
 				    {
 						if (!ecode)
 							s->Receive ();
-						else	
+						else
 							s->m_Owner.GetService ().post ([s] { s->Terminate ("AsyncSend failed"); });
 					});
 			}
@@ -664,11 +664,11 @@ namespace client
 				if (len > 0) // still some data
 				{
 					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, len),
-        				std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+						std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
 				}
 				else // no more data
 					Terminate ("no more data");
-			}		
+			}
 		}
 	}
 
@@ -681,7 +681,7 @@ namespace client
 			{
 				if (bytes_transferred > 0)
 					boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        		std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1)); // postpone termination
+						std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1)); // postpone termination
 				else
 				{
 					auto s = shared_from_this ();
@@ -692,13 +692,13 @@ namespace client
 			{
 				auto s = shared_from_this ();
 				m_Owner.GetService ().post ([s] { s->Terminate ("stream read error (op aborted)"); });
-			}	
+			}
 		}
 		else
 		{
 			if (m_SocketType != eSAMSocketTypeTerminated) // check for possible race condition with Terminate()
 				boost::asio::async_write (m_Socket, boost::asio::buffer (m_StreamBuffer, bytes_transferred),
-        			std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
+					std::bind (&SAMSocket::HandleWriteI2PData, shared_from_this (), std::placeholders::_1));
 		}
 	}
 
@@ -915,7 +915,7 @@ namespace client
 		{
 			// extract signature type
 			i2p::data::SigningKeyType signatureType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1;
-			i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;	
+			i2p::data::CryptoKeyType cryptoType = i2p::data::CRYPTO_KEY_TYPE_ELGAMAL;
 			if (params)
 			{
 				auto it = params->find (SAM_PARAM_SIGNATURE_TYPE);

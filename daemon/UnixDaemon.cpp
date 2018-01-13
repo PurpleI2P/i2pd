@@ -163,7 +163,7 @@ namespace i2p
 			sigaction(SIGABRT, &sa, 0);
 			sigaction(SIGTERM, &sa, 0);
 			sigaction(SIGINT, &sa, 0);
-			sigaction(SIGPIPE, &sa, 0);			
+			sigaction(SIGPIPE, &sa, 0);
 
 			return Daemon_Singleton::start();
 		}

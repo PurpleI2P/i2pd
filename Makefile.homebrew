@@ -4,7 +4,7 @@ BOOSTROOT = ${BREWROOT}/opt/boost
 SSLROOT = ${BREWROOT}/opt/libressl
 UPNPROOT = ${BREWROOT}/opt/miniupnpc
 CXXFLAGS = -g -Wall -std=c++11 -DMAC_OSX -Wno-overloaded-virtual
-INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include 
+INCFLAGS = -I${SSLROOT}/include -I${BOOSTROOT}/include
 
 ifndef TRAVIS
 	CXX = clang++

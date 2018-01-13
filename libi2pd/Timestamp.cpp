@@ -40,7 +40,7 @@ namespace util
 					int i = 0;
 					while (!socket.available() && i < 10) // 10 seconds max
 					{
-						std::this_thread::sleep_for (std::chrono::seconds(1)); 
+						std::this_thread::sleep_for (std::chrono::seconds(1));
 						i++;
 					}
 					if (socket.available ())

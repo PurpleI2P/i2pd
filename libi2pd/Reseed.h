@@ -15,10 +15,10 @@ namespace data
 
 	class Reseeder
 	{
-		typedef Tag<512> PublicKey;	
-		
+		typedef Tag<512> PublicKey;
+
 		public:
-		
+
 			Reseeder();
 			~Reseeder();
                         void Bootstrap ();
@@ -28,19 +28,19 @@ namespace data
 			int ProcessZIPFile (const char * filename);
 
 			void LoadCertificates ();
-			
+
 		private:
 
 			void LoadCertificate (const std::string& filename);
-						
-			int ProcessSU3Stream (std::istream& s);	
-			int ProcessZIPStream (std::istream& s, uint64_t contentLength);	
-			
+
+			int ProcessSU3Stream (std::istream& s);
+			int ProcessZIPStream (std::istream& s, uint64_t contentLength);
+
 			bool FindZipDataDescriptor (std::istream& s);
-			
+
 			std::string HttpsRequest (const std::string& address);
 
-		private:	
+		private:
 
 			std::map<std::string, PublicKey> m_SigningKeys;
 	};

@@ -119,7 +119,7 @@ namespace transport
 		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_DHKeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
- 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
+		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
 		m_LastTransitBandwidthUpdateBytes (0), m_LastBandwidthUpdateTime (0)
 	{
@@ -144,7 +144,7 @@ namespace transport
 			m_Service = new boost::asio::io_service ();
 			m_Work = new boost::asio::io_service::work (*m_Service);
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
-	 		m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
+			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 		}
 
 		i2p::config::GetOption("nat", m_IsNAT);
@@ -623,7 +623,7 @@ namespace transport
 	void Transports::DetectExternalIP ()
 	{
 		if (RoutesRestricted())
-  		{
+		{
 			LogPrint(eLogInfo, "Transports: restricted routes enabled, not detecting ip");
 			i2p::context.SetStatus (eRouterStatusOK);
 			return;

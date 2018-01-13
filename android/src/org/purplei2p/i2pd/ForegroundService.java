@@ -50,7 +50,7 @@ public class ForegroundService extends Service {
     public void onDestroy() {
         // Cancel the persistent notification.
         notificationManager.cancel(NOTIFICATION);
-        
+
         stopForeground(true);
 
         // Tell the user we stopped.
@@ -91,7 +91,7 @@ public class ForegroundService extends Service {
         //mNM.notify(NOTIFICATION, notification);
         startForeground(NOTIFICATION, notification);
     }
-    
+
 	private final DaemonSingleton daemon = DaemonSingleton.getInstance();
 }
 

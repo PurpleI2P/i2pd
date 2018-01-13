@@ -285,7 +285,7 @@ namespace client
 			} else {
 				// forward data
 				LogPrint(eLogDebug, "websocks recv ", n);
-		
+
 				std::string str((char*)m_RecvBuf, n);
 				auto conn = m_Parent->GetConn(m_Conn);
 				if(!conn)	 {
@@ -295,7 +295,7 @@ namespace client
 				}
 				conn->send(str);
 				AsyncRecv();
-				
+
 			}
 		}
 
@@ -339,7 +339,7 @@ namespace client
 				EnterState(eWSCFailConnect);
 			}
 		}
-		
+
 		virtual void GotMessage(const websocketpp::connection_hdl & conn, WebSocksServerImpl::message_ptr msg)
 		{
 			(void) conn;
