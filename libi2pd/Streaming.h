@@ -69,7 +69,7 @@ namespace stream
 	 */
 	const uint64_t DEFAULT_BAN_INTERVAL = 60 * 60 * 1000;
 	
-	struct Packet
+	struct Packet 
 	{
 		size_t len, offset;
 		uint8_t buf[MAX_PACKET_SIZE];	
@@ -276,8 +276,8 @@ namespace stream
 			/** set max connections per minute per destination */
 			void SetMaxConnsPerMinute(const uint32_t conns);
 
-			Packet * NewPacket () { return m_PacketsPool.Acquire (); }
-			void DeletePacket (Packet * p) { m_PacketsPool.Release (p); }
+			Packet * NewPacket () { return new Packet; }
+			void DeletePacket (Packet * p) { delete p; }
 			
 		private:		
 
@@ -316,7 +316,7 @@ namespace stream
 			std::vector<i2p::data::IdentHash> m_Banned;
 			uint64_t m_LastBanClear;
 
-			i2p::util::MemoryPool<Packet> m_PacketsPool;
+      //i2p::util::MemoryPool<Packet> m_PacketsPool;
 			bool m_EnableDrop;
 			
 		public:
@@ -334,16 +334,21 @@ namespace stream
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
 		auto s = shared_from_this();
-		m_Service.post ([=](void)
+		m_Service.post ([s, buffer, handler, timeout](void)
 		{
 			if (!s->m_ReceiveQueue.empty () || s->m_Status == eStreamStatusReset)
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
 			else
 			{
-				int t = (timeout > MAX_RECEIVE_TIMEOUT) ?  MAX_RECEIVE_TIMEOUT : timeout;
+				int t = (timeout > MAX_RECEIVE_TIMEOUT) ? MAX_RECEIVE_TIMEOUT : timeout;
 				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(t));
-				s->m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
-					{ s->HandleReceiveTimer (ecode, buffer, handler, timeout - t); });
+				int left = timeout - t;
+				auto self = s->shared_from_this();
+				self->m_ReceiveTimer.async_wait (
+					[self, buffer, handler, left](const boost::system::error_code & ec)
+					{
+						self->HandleReceiveTimer(ec, buffer, handler, left);
+					});
 			}
 		});	
 	}

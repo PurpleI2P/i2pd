@@ -79,11 +79,11 @@ namespace client
 	{
 		public:
 
-			SAMSocket (SAMBridge& owner);
+			typedef boost::asio::ip::tcp::socket Socket_t;
+			SAMSocket (SAMBridge& owner, std::shared_ptr<Socket_t> socket);
 			~SAMSocket ();			
-			void CloseStream (const char* reason); // TODO: implement it better
 
-			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
+			boost::asio::ip::tcp::socket& GetSocket () { return *m_Socket; };
 			void ReceiveHandshake ();
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 			SAMSocketType GetSocketType () const { return m_SocketType; };
@@ -103,7 +103,7 @@ namespace client
 			void I2PReceive ();
 			void HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleI2PAccept (std::shared_ptr<i2p::stream::Stream> stream);
-			void HandleWriteI2PData (const boost::system::error_code& ecode);
+    void HandleWriteI2PData (const boost::system::error_code& ecode, size_t sz);
 			void HandleI2PDatagramReceive (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 			void ProcessSessionCreate (char * buf, size_t len);
@@ -122,10 +122,15 @@ namespace client
 			void HandleSessionReadinessCheckTimer (const boost::system::error_code& ecode);
 			void SendSessionCreateReplyOk ();
 
+    void WriteI2PData(size_t sz);
+    void WriteI2PDataImmediate(uint8_t * ptr, size_t sz);
+
+    void HandleWriteI2PDataImmediate(const boost::system::error_code & ec, uint8_t * buff);
+    
 		private:
 
 			SAMBridge& m_Owner;
-			boost::asio::ip::tcp::socket m_Socket;
+			std::shared_ptr<Socket_t> m_Socket;
 			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[SAM_SOCKET_BUFFER_SIZE + 1];
 			size_t m_BufferOffset;
@@ -135,7 +140,6 @@ namespace client
 			bool m_IsSilent;
 			bool m_IsAccepting; // for eSAMSocketTypeAcceptor only 
 			std::shared_ptr<i2p::stream::Stream> m_Stream;
-			std::shared_ptr<SAMSession> m_Session;
 	};
 
 	struct SAMSession
@@ -146,15 +150,15 @@ namespace client
 		std::mutex m_SocketsMutex;
 
 		/** safely add a socket to this session */
-		void AddSocket(const std::shared_ptr<SAMSocket> & sock) {
+		void AddSocket(std::shared_ptr<SAMSocket> sock) {
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
 			m_Sockets.push_back(sock);
 		}
 
 		/** safely remove a socket from this session */
-		void DelSocket(const std::shared_ptr<SAMSocket> & sock) {
+		void DelSocket(SAMSocket * sock) {
 			std::lock_guard<std::mutex> lock(m_SocketsMutex);
-			m_Sockets.remove(sock);
+			m_Sockets.remove_if([sock](const std::shared_ptr<SAMSocket> s) -> bool { return s.get() == sock; });
 		}
 
 		/** get a list holding a copy of all sam sockets from this session */
