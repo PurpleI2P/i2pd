@@ -720,7 +720,7 @@ namespace client
 		i2p::http::HTTPReq req;
 		req.AddHeader("Host", dest_host);
 		req.AddHeader("User-Agent", "Wget/1.11.4");
-		req.AddHeader("X-Accept-Encoding", "x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0\r\n");
+		req.AddHeader("X-Accept-Encoding", "x-i2p-gzip;q=1.0, identity;q=0.5, deflate;q=0, gzip;q=0, *;q=0");
 		req.AddHeader("Connection", "close");
 		if (!m_Etag.empty())
 			req.AddHeader("If-None-Match", m_Etag);
