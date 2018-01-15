@@ -37,7 +37,7 @@
 
 ## [2.15.0] - 2017-08-17
 ### Added
-- QT GUI 
+- QT GUI
 - Ability to add and remove I2P tunnels without restart
 - Ability to disable SOCKS outproxy option
 ### Changed
@@ -81,7 +81,7 @@
 - Some stats in a main window for Windows version
 ### Changed
 - Reseed servers list
-- MTU of 1488 for ipv6 
+- MTU of 1488 for ipv6
 - Android and Mac OS X versions use OpenSSL 1.1
 - New logo for Android
 ### Fixed
@@ -111,7 +111,7 @@
 ## [2.10.2] - 2016-12-04
 ### Fixed
 - Fixes UPnP discovery bug, producing excessive CPU usage
-- Fixes sudden SSU thread stop for Windows. 
+- Fixes sudden SSU thread stop for Windows.
 
 ## [2.10.1] - 2016-11-07
 ### Fixed

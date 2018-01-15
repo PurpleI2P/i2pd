@@ -41,7 +41,7 @@ namespace data
 
 	IdentityEx::IdentityEx(const uint8_t * publicKey, const uint8_t * signingKey, SigningKeyType type, CryptoKeyType cryptoType):
 		m_IsVerifierCreated (false)
-	{	
+	{
 		memcpy (m_StandardIdentity.publicKey, publicKey, 256); // publicKey in awlays assumed 256 regardless actual size, padding must be taken care of
 		if (type != SIGNING_KEY_TYPE_DSA_SHA1)
 		{
@@ -450,7 +450,7 @@ namespace data
 
 	std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> IdentityEx::CreateEncryptor (const uint8_t * key) const
 	{
-		if (!key) key = GetEncryptionPublicKey (); // use publicKey 
+		if (!key) key = GetEncryptionPublicKey (); // use publicKey
 		switch (GetCryptoKeyType ())
 		{
 			case CRYPTO_KEY_TYPE_ELGAMAL:
@@ -542,7 +542,7 @@ namespace data
 	void PrivateKeys::Sign (const uint8_t * buf, int len, uint8_t * signature) const
 	{
 		if (!m_Signer)
-  			CreateSigner();
+			CreateSigner();
 		m_Signer->Sign (buf, len, signature);
 	}
 
@@ -596,12 +596,12 @@ namespace data
 
 	std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> PrivateKeys::CreateDecryptor (const uint8_t * key) const
 	{
-		if (!key) key = m_PrivateKey; // use privateKey 
+		if (!key) key = m_PrivateKey; // use privateKey
 		return CreateDecryptor (m_Public->GetCryptoKeyType (), key);
 	}
 
 	std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> PrivateKeys::CreateDecryptor (CryptoKeyType cryptoType, const uint8_t * key)
-	{	
+	{
 		if (!key) return nullptr;
 		switch (cryptoType)
 		{
@@ -618,7 +618,7 @@ namespace data
 			default:
 				LogPrint (eLogError, "Identity: Unknown crypto key type ", (int)cryptoType);
 		};
-		return nullptr;	
+		return nullptr;
 	}
 
 	PrivateKeys PrivateKeys::CreateRandomKeys (SigningKeyType type, CryptoKeyType cryptoType)
@@ -643,7 +643,7 @@ namespace data
 				case SIGNING_KEY_TYPE_RSA_SHA384_3072:
 				case SIGNING_KEY_TYPE_RSA_SHA512_4096:
 					LogPrint (eLogWarning, "Identity: RSA signature type is not supported. Create EdDSA");
-				// no break here 
+				// no break here
 				case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
 					i2p::crypto::CreateEDDSA25519RandomKeys (keys.m_SigningPrivateKey, signingPublicKey);
 				break;
@@ -685,7 +685,7 @@ namespace data
 			break;
 			default:
 				LogPrint (eLogError, "Identity: Crypto key type ", (int)type, " is not supported");
-		}	
+		}
 	}
 
 	Keys CreateRandomKeys ()

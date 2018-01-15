@@ -28,7 +28,7 @@ namespace i2p
 		m_StartupTime = i2p::util::GetSecondsSinceEpoch ();
 		if (!Load ())
 			CreateNewRouter ();
-		m_Decryptor = m_Keys.CreateDecryptor (nullptr); 
+		m_Decryptor = m_Keys.CreateDecryptor (nullptr);
 		UpdateRouterInfo ();
 	}
 
@@ -204,7 +204,7 @@ namespace i2p
 		}
 	}
 
-	void RouterContext::SetBandwidth (char L) 
+	void RouterContext::SetBandwidth (char L)
 	{
 		uint32_t limit = 0;
 		enum { low, high, extra, unlim } type = high;

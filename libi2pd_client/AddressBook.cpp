@@ -383,9 +383,9 @@ namespace client
 					{
 						it->second = ident->GetIdentHash ();
 						m_Storage->AddAddress (ident);
-						LogPrint (eLogInfo, "Addressbook: updated host: ", name);		
+						LogPrint (eLogInfo, "Addressbook: updated host: ", name);
 					}
-				}	
+				}
 				else
 				{
 					m_Addresses.insert (std::make_pair (name, ident->GetIdentHash ()));

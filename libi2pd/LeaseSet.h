@@ -14,11 +14,11 @@ namespace i2p
 
 namespace tunnel
 {
-	class InboundTunnel;	
+	class InboundTunnel;
 }
 
 namespace data
-{	
+{
 	const int LEASE_ENDDATE_THRESHOLD = 51000; // in milliseconds
 	struct Lease
 	{
@@ -33,24 +33,24 @@ namespace data
 			if (endDate < expire) return true;
 			return (endDate - expire) < t;
 		}
-	};	
+	};
 
 	struct LeaseCmp
 	{
 		bool operator() (std::shared_ptr<const Lease> l1, std::shared_ptr<const Lease> l2) const
-  		{	
+		{
 			if (l1->tunnelID != l2->tunnelID)
-				return l1->tunnelID < l2->tunnelID; 
+				return l1->tunnelID < l2->tunnelID;
 			else
-				return l1->tunnelGateway < l2->tunnelGateway; 
+				return l1->tunnelGateway < l2->tunnelGateway;
 		};
-	};	
+	};
 
   typedef std::function<bool(const Lease & l)> LeaseInspectFunc;
-  
+
 	const size_t MAX_LS_BUFFER_SIZE = 3072;
 	const size_t LEASE_SIZE = 44; // 32 + 4 + 8
-	const uint8_t MAX_NUM_LEASES = 16;		
+	const uint8_t MAX_NUM_LEASES = 16;
 	class LeaseSet: public RoutingDestination
 	{
 		public:
@@ -59,10 +59,10 @@ namespace data
 			~LeaseSet () { delete[] m_Buffer; };
 			void Update (const uint8_t * buf, size_t len);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
-			void PopulateLeases (); // from buffer			
+			void PopulateLeases (); // from buffer
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
-			size_t GetBufferLen () const { return m_BufferLen; };	
+			size_t GetBufferLen () const { return m_BufferLen; };
 			bool IsValid () const { return m_IsValid; };
 			const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeases (bool withThreshold = true) const;
       const std::vector<std::shared_ptr<const Lease> > GetNonExpiredLeasesExcluding (LeaseInspectFunc exclude, bool withThreshold = true)  const;
@@ -71,8 +71,8 @@ namespace data
 			bool IsEmpty () const { return m_Leases.empty (); };
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
 			bool ExpiresSoon(const uint64_t dlt=1000 * 5, const uint64_t fudge = 0) const ;
-			bool operator== (const LeaseSet& other) const 
-			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); }; 
+			bool operator== (const LeaseSet& other) const
+			{ return m_BufferLen == other.m_BufferLen && !memcmp (m_Buffer, other.m_Buffer, m_BufferLen); };
 
 			// implements RoutingDestination
 			std::shared_ptr<const IdentityEx> GetIdentity () const { return m_Identity; };
@@ -83,7 +83,7 @@ namespace data
 
 			void ReadFromBuffer (bool readIdentity = true);
 			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // min expiration time
-			
+
 		private:
 
 			bool m_IsValid, m_StoreLeases; // we don't need to store leases for floodfill
@@ -93,7 +93,7 @@ namespace data
 			uint8_t m_EncryptionKey[256];
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
-	};	
+	};
 
 	class LocalLeaseSet
 	{
@@ -104,27 +104,27 @@ namespace data
 			~LocalLeaseSet () { delete[] m_Buffer; };
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
-			uint8_t * GetSignature () { return m_Buffer + m_BufferLen - GetSignatureLen (); }; 
-			size_t GetBufferLen () const { return m_BufferLen; };	
+			uint8_t * GetSignature () { return m_Buffer + m_BufferLen - GetSignatureLen (); };
+			size_t GetBufferLen () const { return m_BufferLen; };
 			size_t GetSignatureLen () const { return m_Identity->GetSignatureLen (); };
-			uint8_t * GetLeases () { return m_Leases; }; 
-			
+			uint8_t * GetLeases () { return m_Leases; };
+
 			const IdentHash& GetIdentHash () const { return m_Identity->GetIdentHash (); };
 			bool IsExpired () const;
 			uint64_t GetExpirationTime () const { return m_ExpirationTime; };
 			void SetExpirationTime (uint64_t expirationTime) { m_ExpirationTime = expirationTime; };
-			bool operator== (const LeaseSet& other) const 
-			{ return m_BufferLen == other.GetBufferLen ()  && !memcmp (other.GetBuffer (), other.GetBuffer (), m_BufferLen); }; 
+			bool operator== (const LeaseSet& other) const
+			{ return m_BufferLen == other.GetBufferLen ()  && !memcmp (other.GetBuffer (), other.GetBuffer (), m_BufferLen); };
 
 
 		private:
-			
+
 			uint64_t m_ExpirationTime; // in milliseconds
 			std::shared_ptr<const IdentityEx> m_Identity;
 			uint8_t * m_Buffer, * m_Leases;
 			size_t m_BufferLen;
-	}; 
-}		
-}	
+	};
+}
+}
 
 #endif

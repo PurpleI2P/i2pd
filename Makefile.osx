@@ -1,7 +1,7 @@
 CXX = clang++
 CXXFLAGS = -Os -Wall -std=c++11 -DMAC_OSX
 #CXXFLAGS = -g -O2 -Wall -std=c++11
-INCFLAGS = -I/usr/local/include 
+INCFLAGS = -I/usr/local/include
 LDFLAGS = -Wl,-rpath,/usr/local/lib -L/usr/local/lib
 
 ifeq ($(USE_STATIC),yes)

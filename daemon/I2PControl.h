@@ -10,7 +10,7 @@
 #include <map>
 #include <set>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp> 
+#include <boost/asio/ssl.hpp>
 #include <boost/property_tree/ptree.hpp>
 
 namespace i2p

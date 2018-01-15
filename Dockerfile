@@ -13,13 +13,13 @@ RUN mkdir /user && adduser -S -h /user i2pd && chown -R i2pd:nobody /user
 
 
 #
-# Each RUN is a layer, adding the dependencies and building i2pd in one layer takes around 8-900Mb, so to keep the 
+# Each RUN is a layer, adding the dependencies and building i2pd in one layer takes around 8-900Mb, so to keep the
 # image under 20mb we need to remove all the build dependencies in the same "RUN" / layer.
 #
 
-# 1. install deps, clone and build. 
-# 2. strip binaries. 
-# 3. Purge all dependencies and other unrelated packages, including build directory. 
+# 1. install deps, clone and build.
+# 2. strip binaries.
+# 3. Purge all dependencies and other unrelated packages, including build directory.
 RUN apk --no-cache --virtual build-dependendencies add make gcc g++ libtool boost-dev build-base openssl-dev openssl git \
     && mkdir -p /tmp/build \
     && cd /tmp/build && git clone -b ${GIT_BRANCH} https://github.com/PurpleI2P/i2pd.git \

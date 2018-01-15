@@ -18,15 +18,15 @@ namespace i2p
 {
 namespace client
 {
-	const int INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT = 3; // in minutes	
-	const int INITIAL_SUBSCRIPTION_RETRY_TIMEOUT = 1; // in minutes			
-	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720; // in minutes (12 hours)			
-	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes	
+	const int INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT = 3; // in minutes
+	const int INITIAL_SUBSCRIPTION_RETRY_TIMEOUT = 1; // in minutes
+	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720; // in minutes (12 hours)
+	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes
 	const int SUBSCRIPTION_REQUEST_TIMEOUT = 60; //in second
 
-	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;	
+	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;
 	const uint16_t ADDRESS_RESPONSE_DATAGRAM_PORT = 54;
-	
+
 	inline std::string GetB32Address(const i2p::data::IdentHash& ident) { return ident.ToBase32().append(".b32.i2p"); }
 
 	class AddressBookStorage // interface for storage
@@ -34,10 +34,10 @@ namespace client
 		public:
 
 			virtual ~AddressBookStorage () {};
-			virtual std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const = 0;	
+			virtual std::shared_ptr<const i2p::data::IdentityEx> GetAddress (const i2p::data::IdentHash& ident) const = 0;
 			virtual void AddAddress (std::shared_ptr<const i2p::data::IdentityEx> address) = 0;
 			virtual void RemoveAddress (const i2p::data::IdentHash& ident) = 0;
-		
+
 			virtual bool Init () = 0;
 			virtual int Load (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 			virtual int LoadLocal (std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
@@ -45,7 +45,7 @@ namespace client
 
 			virtual void SaveEtag (const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified) = 0;
 			virtual bool GetEtag (const i2p::data::IdentHash& subscription, std::string& etag, std::string& lastModified) = 0;
-	};			
+	};
 
 	class AddressBookSubscription;
 	class AddressResolver;
@@ -77,7 +77,7 @@ namespace client
 
 			void StartSubscriptions ();
 			void StopSubscriptions ();
-			
+
 			void LoadHosts ();
 			void LoadSubscriptions ();
 			void LoadLocal ();
@@ -87,8 +87,8 @@ namespace client
 			void StartLookups ();
 			void StopLookups ();
 			void HandleLookupResponse (const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
-			
-		private:	
+
+		private:
 
 			std::mutex m_AddressBookMutex;
 			std::map<std::string, i2p::data::IdentHash>  m_Addresses;
@@ -112,7 +112,7 @@ namespace client
 		private:
 
 			bool MakeRequest ();
-		
+
 		private:
 
 			AddressBook& m_Book;

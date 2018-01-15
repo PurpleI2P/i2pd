@@ -26,25 +26,25 @@ namespace client
 
 	const size_t I2CP_HEADER_LENGTH_OFFSET = 0;
 	const size_t I2CP_HEADER_TYPE_OFFSET = I2CP_HEADER_LENGTH_OFFSET + 4;
-	const size_t I2CP_HEADER_SIZE = I2CP_HEADER_TYPE_OFFSET + 1;	
+	const size_t I2CP_HEADER_SIZE = I2CP_HEADER_TYPE_OFFSET + 1;
 
 	const uint8_t I2CP_GET_DATE_MESSAGE = 32;
 	const uint8_t I2CP_SET_DATE_MESSAGE = 33;
 	const uint8_t I2CP_CREATE_SESSION_MESSAGE = 1;
-	const uint8_t I2CP_RECONFIGURE_SESSION_MESSAGE = 2;	
-	const uint8_t I2CP_SESSION_STATUS_MESSAGE = 20;	
+	const uint8_t I2CP_RECONFIGURE_SESSION_MESSAGE = 2;
+	const uint8_t I2CP_SESSION_STATUS_MESSAGE = 20;
 	const uint8_t I2CP_DESTROY_SESSION_MESSAGE = 3;
 	const uint8_t I2CP_REQUEST_VARIABLE_LEASESET_MESSAGE = 37;
-	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;	
+	const uint8_t I2CP_CREATE_LEASESET_MESSAGE = 4;
 	const uint8_t I2CP_SEND_MESSAGE_MESSAGE = 5;
-	const uint8_t I2CP_SEND_MESSAGE_EXPIRES_MESSAGE = 36;	
+	const uint8_t I2CP_SEND_MESSAGE_EXPIRES_MESSAGE = 36;
 	const uint8_t I2CP_MESSAGE_PAYLOAD_MESSAGE = 31;
-	const uint8_t I2CP_MESSAGE_STATUS_MESSAGE = 22;	
+	const uint8_t I2CP_MESSAGE_STATUS_MESSAGE = 22;
 	const uint8_t I2CP_HOST_LOOKUP_MESSAGE = 38;
-	const uint8_t I2CP_HOST_REPLY_MESSAGE = 39;		
+	const uint8_t I2CP_HOST_REPLY_MESSAGE = 39;
 	const uint8_t I2CP_DEST_LOOKUP_MESSAGE = 34;
-	const uint8_t I2CP_DEST_REPLY_MESSAGE = 35;	
-	const uint8_t I2CP_GET_BANDWIDTH_LIMITS_MESSAGE = 8;	
+	const uint8_t I2CP_DEST_REPLY_MESSAGE = 35;
+	const uint8_t I2CP_GET_BANDWIDTH_LIMITS_MESSAGE = 8;
 	const uint8_t I2CP_BANDWIDTH_LIMITS_MESSAGE = 23;
 
 	enum I2CPMessageStatus
@@ -56,8 +56,8 @@ namespace client
 	};
 
 	// params
-	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet";	
-	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";	
+	const char I2CP_PARAM_DONT_PUBLISH_LEASESET[] = "i2cp.dontPublishLeaseSet";
+	const char I2CP_PARAM_MESSAGE_RELIABILITY[] = "i2cp.messageReliability";
 
 	class I2CPSession;
 	class I2CPDestination: public LeaseSetDestination
@@ -83,7 +83,7 @@ namespace client
 		private:
 
 			std::shared_ptr<I2CPDestination> GetSharedFromThis ()
-			{ return std::static_pointer_cast<I2CPDestination>(shared_from_this ()); }  
+			{ return std::static_pointer_cast<I2CPDestination>(shared_from_this ()); }
 			bool SendMsg (std::shared_ptr<I2NPMessage> msg, std::shared_ptr<const i2p::data::LeaseSet> remote);
 
 		private:
@@ -100,11 +100,11 @@ namespace client
 	{
 		public:
 
-#ifdef ANDROID 
+#ifdef ANDROID
 			typedef boost::asio::local::stream_protocol proto;
 #else
 			typedef boost::asio::ip::tcp proto;
-#endif		
+#endif
 
 			I2CPSession (I2CPServer& owner, std::shared_ptr<proto::socket> socket);
 
@@ -115,9 +115,9 @@ namespace client
 			uint16_t GetSessionID () const { return m_SessionID; };
 			std::shared_ptr<const I2CPDestination> GetDestination () const { return m_Destination; };
 
-			// called from I2CPDestination	
+			// called from I2CPDestination
 			void SendI2CPMessage (uint8_t type, const uint8_t * payload, size_t len);
-			void SendMessagePayloadMessage (const uint8_t * payload, size_t len); 		
+			void SendMessagePayloadMessage (const uint8_t * payload, size_t len);
 			void SendMessageStatusMessage (uint32_t nonce, I2CPMessageStatus status);
 
 			// message handlers
@@ -133,7 +133,7 @@ namespace client
 			void GetBandwidthLimitsMessageHandler (const uint8_t * buf, size_t len);
 
 		private:
-			
+
 			void ReadProtocolByte ();
 			void ReceiveHeader ();
 			void HandleReceivedHeader (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -141,7 +141,7 @@ namespace client
 			void HandleReceivedPayload (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage ();
 			void Terminate ();
-			
+
 			void HandleI2CPMessageSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, const uint8_t * buf);
 			std::string ExtractString (const uint8_t * buf, size_t len);
 			size_t PutString (uint8_t * buf, size_t len, const std::string& str);
@@ -163,14 +163,14 @@ namespace client
 			bool m_IsSendAccepted;
 	};
 	typedef void (I2CPSession::*I2CPMessageHandler)(const uint8_t * buf, size_t len);
-	
+
 	class I2CPServer
 	{
 		public:
 
 			I2CPServer (const std::string& interface, int port);
 			~I2CPServer ();
-			
+
 			void Start ();
 			void Stop ();
 			boost::asio::io_service& GetService () { return m_Service; };
@@ -187,12 +187,12 @@ namespace client
 			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<I2CPSession::proto::socket> socket);
 
 		private:
-			
+
 			I2CPMessageHandler m_MessagesHandlers[256];
 			std::map<uint16_t, std::shared_ptr<I2CPSession> > m_Sessions;
 
 			bool m_IsRunning;
-			std::thread * m_Thread;	
+			std::thread * m_Thread;
 			boost::asio::io_service m_Service;
 			I2CPSession::proto::acceptor m_Acceptor;
 
@@ -202,7 +202,7 @@ namespace client
 
 			// for HTTP
 			const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
-	};	
+	};
 }
 }
 
