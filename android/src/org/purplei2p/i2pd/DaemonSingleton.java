@@ -62,7 +62,16 @@ public class DaemonSingleton {
 				}
 				try {
 					synchronized (DaemonSingleton.this) {
-						daemonStartResult = I2PD_JNI.startDaemon();
+                        String args[] = {
+                            "i2pd", 
+                            "--conf=/sdcard/i2pd/i2pd.conf", 
+                            "--tunconf=/sdcard/i2pd/tunnels.conf", 
+                            "--datadir=/data/data/org.purplei2p.i2pd/app_data/",
+                            "--service",
+                            "--daemon"
+                        };
+
+						daemonStartResult = I2PD_JNI.startDaemon(args);
 						if("ok".equals(daemonStartResult)){
 							state=State.startedOkay;
 							setStartedOkay(true);

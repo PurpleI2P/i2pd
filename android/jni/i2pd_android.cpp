@@ -44,18 +44,27 @@ JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
 }
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startDaemon
-  (JNIEnv * env, jclass clazz) {
+  (JNIEnv * env, jclass clazz, jobjectArray args) {
+    int argc = env->GetArrayLength(args);
+    typedef char *pchar;    
+    pchar* argv = new pchar[argc];
+    for (int i = 0; i < argc; i++) {
+        jstring arg = (jstring) env->GetObjectArrayElement(args, i);
+        const char *argStr = env->GetStringUTFChars(arg, 0);
+        size_t len = strlen(argStr);
+        argv[i] = new char[len + 1];
+        strcpy(argv[i], argStr);
+        env->ReleaseStringUTFChars(arg, argStr);
+    }
 
-     int argc=5;
-     static char* argv[]={
-         strdup("i2pd"), 
-         strdup("--conf=/sdcard/i2pd/i2pd.conf"), 
-         strdup("--tunconf=/sdcard/i2pd/tunnels.conf"), 
-         strdup("--datadir=/data/data/org.purplei2p.i2pd/app_data/"),
-         strdup("--service"), strdup("--daemon")
-     };
+    const char* result = i2p::android::start(argc,argv).c_str();
+    
+    for (int i = 0; i < argc; i++) {
+        delete [] argv[i];
+    }
+    delete [] argv;
 
-	  return env->NewStringUTF(i2p::android::start(argc,argv).c_str());
+    return env->NewStringUTF(result);
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopDaemon

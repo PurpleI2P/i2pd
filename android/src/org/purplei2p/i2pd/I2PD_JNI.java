@@ -6,7 +6,7 @@ public class I2PD_JNI {
 	 * returns error info if failed
 	 * returns "ok" if daemon initialized and started okay
 	 */
-    public static native String startDaemon();
+    public static native String startDaemon(String args[]);
     //should only be called after startDaemon() success
     public static native void stopDaemon();
     
