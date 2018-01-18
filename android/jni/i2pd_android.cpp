@@ -56,14 +56,11 @@ JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startDaemon
         strcpy(argv[i], argStr);
         env->ReleaseStringUTFChars(arg, argStr);
     }
-
     const char* result = i2p::android::start(argc,argv).c_str();
-    
     for (int i = 0; i < argc; i++) {
         delete [] argv[i];
     }
     delete [] argv;
-
     return env->NewStringUTF(result);
 }
 
