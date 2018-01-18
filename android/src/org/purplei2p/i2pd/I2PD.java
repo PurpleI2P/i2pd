@@ -66,7 +66,7 @@ public class I2PD extends Activity {
         super.onCreate(savedInstanceState);
 
 		//install certs every time
-		Decompress.unzipFromAssets(this, "certificates.zip", "/data/data/org.purplei2p.i2pd/app_data/");
+		Decompress.unzipFromAssets(this, "certificates.zip", this.getDir("data", Context.MODE_PRIVATE).toString() + "/" );
 
         textView = new TextView(this);
         setContentView(textView);

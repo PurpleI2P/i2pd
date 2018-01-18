@@ -46,6 +46,11 @@ android {
     }
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
+    options.deprecation = true
+}
+
 task zipCerts(type:Zip) {
     from (files('../contrib/'))
     include 'certificates/**/*.crt'

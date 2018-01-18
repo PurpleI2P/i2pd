@@ -38,7 +38,7 @@ public class DaemonSingleton {
 	
 	public State getState() { return state; }
 	
-	public synchronized void start() {
+    public synchronized void start(final String confDir, final String dataDir) {
 		if(state != State.uninitialized)return;
 		state = State.starting;
 		fireStateUpdate();
@@ -62,14 +62,13 @@ public class DaemonSingleton {
 				}
 				try {
 					synchronized (DaemonSingleton.this) {
-                        String args[] = {
-                            "i2pd", 
-                            "--conf=/sdcard/i2pd/i2pd.conf", 
-                            "--tunconf=/sdcard/i2pd/tunnels.conf", 
-                            "--datadir=/data/data/org.purplei2p.i2pd/app_data/",
-                            "--service",
-                            "--daemon"
-                        };
+
+						String args[] = new String[] {
+							"i2pd", "--service", "--daemon", 
+								"--datadir=" + dataDir,
+								"--conf=" + confDir + "/i2pd.conf",
+								"--tunconf=" + confDir + "/tunnels.conf"
+						};
 
 						daemonStartResult = I2PD_JNI.startDaemon(args);
 						if("ok".equals(daemonStartResult)){
