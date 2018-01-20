@@ -378,9 +378,15 @@ namespace stream
 
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
-		// TODO: check max buffer size
+		size_t sent = len;
+		while(len > MAX_PACKET_SIZE)
+		{
+			AsyncSend (buf, MAX_PACKET_SIZE, nullptr);
+			buf += MAX_PACKET_SIZE;
+			len -= MAX_PACKET_SIZE;
+		}
 		AsyncSend (buf, len, nullptr);
-		return len;
+		return sent;
 	}
 
 	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
