@@ -15,7 +15,7 @@ namespace qt
 	{
 	}
 
-	void Worker::startDaemon() 
+	void Worker::startDaemon()
 	{
 		qDebug("Performing daemon start...");
         //try{
@@ -28,7 +28,7 @@ namespace qt
             emit resultReady(true, QObject::tr("Error: unknown exception"));
         }*/
 	}
-	void Worker::restartDaemon() 
+	void Worker::restartDaemon()
 	{
 		qDebug("Performing daemon restart...");
         //try{
@@ -55,7 +55,7 @@ namespace qt
     }
 
     Controller::Controller(DaemonQTImpl& daemon):
-		m_Daemon (daemon) 
+		m_Daemon (daemon)
 	{
 		Worker *worker = new Worker (m_Daemon);
 		worker->moveToThread(&workerThread);
@@ -66,7 +66,7 @@ namespace qt
 		connect(worker, &Worker::resultReady, this, &Controller::handleResults);
 		workerThread.start();
 	}
-	Controller::~Controller() 
+	Controller::~Controller()
 	{
 		qDebug("Closing and waiting for daemon worker thread...");
 		workerThread.quit();
@@ -79,7 +79,7 @@ namespace qt
 		    qDebug("Stopped the daemon.");
 		}
 	}
-	
+
 	DaemonQTImpl::DaemonQTImpl ():
         mutex(nullptr), m_IsRunning(nullptr), m_RunningChangedCallback(nullptr)
 	{
@@ -119,7 +119,7 @@ namespace qt
 		start();
 	}
 
-	void DaemonQTImpl::setRunningCallback(runningChangedCallback cb)				
+	void DaemonQTImpl::setRunningCallback(runningChangedCallback cb)
 	{
 		m_RunningChangedCallback = cb;
 	}
@@ -132,7 +132,7 @@ namespace qt
 	void DaemonQTImpl::setRunning(bool newValue)
 	{
         bool oldValue = m_IsRunning;
-		if(oldValue!=newValue) 
+		if(oldValue!=newValue)
 		{
             m_IsRunning = newValue;
 		    if(m_RunningChangedCallback)

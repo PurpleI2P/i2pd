@@ -67,7 +67,7 @@ namespace client
 		m_MethodHandlers["NetworkSetting"] = &I2PControlService::NetworkSettingHandler;
 
 		// I2PControl
-		m_I2PControlHandlers["i2pcontrol.password"] = &I2PControlService::PasswordHandler; 
+		m_I2PControlHandlers["i2pcontrol.password"] = &I2PControlService::PasswordHandler;
 
 		// RouterInfo
 		m_RouterInfoHandlers["i2p.router.uptime"]  = &I2PControlService::UptimeHandler;
@@ -80,13 +80,13 @@ namespace client
 		m_RouterInfoHandlers["i2p.router.net.status"]         = &I2PControlService::NetStatusHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.participating"] = &I2PControlService::TunnelsParticipatingHandler;
 		m_RouterInfoHandlers["i2p.router.net.tunnels.successrate"] =
-&I2PControlService::TunnelsSuccessRateHandler;	
+&I2PControlService::TunnelsSuccessRateHandler;
 		m_RouterInfoHandlers["i2p.router.net.total.received.bytes"]  = &I2PControlService::NetTotalReceivedBytes;
 		m_RouterInfoHandlers["i2p.router.net.total.sent.bytes"]      = &I2PControlService::NetTotalSentBytes;
 
-		// RouterManager	
+		// RouterManager
 		m_RouterManagerHandlers["Reseed"]           = &I2PControlService::ReseedHandler;
-		m_RouterManagerHandlers["Shutdown"]         = &I2PControlService::ShutdownHandler; 
+		m_RouterManagerHandlers["Shutdown"]         = &I2PControlService::ShutdownHandler;
 		m_RouterManagerHandlers["ShutdownGraceful"] = &I2PControlService::ShutdownGracefulHandler;
 
 		// NetworkSetting
@@ -133,8 +133,8 @@ namespace client
 				m_Service.run ();
 			} catch (std::exception& ex) {
 				LogPrint (eLogError, "I2PControl: runtime exception: ", ex.what ());
-			}	
-		}	
+			}
+		}
 	}
 
 	void I2PControlService::Accept ()
@@ -160,7 +160,7 @@ namespace client
 	void I2PControlService::Handshake (std::shared_ptr<ssl_socket> socket)
 	{
 		socket->async_handshake(boost::asio::ssl::stream_base::server,
-        	std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
+		std::bind( &I2PControlService::HandleHandshake, this, std::placeholders::_1, socket));
 	}
 
 	void I2PControlService::HandleHandshake (const boost::system::error_code& ecode, std::shared_ptr<ssl_socket> socket)
@@ -168,7 +168,7 @@ namespace client
 		if (ecode) {
 			LogPrint (eLogError, "I2PControl: handshake error: ", ecode.message ());
 			return;
-		}	
+		}
 		//std::this_thread::sleep_for (std::chrono::milliseconds(5));
 		ReadRequest (socket);
 	}
@@ -187,15 +187,15 @@ namespace client
 	}
 
 	void I2PControlService::HandleRequestReceived (const boost::system::error_code& ecode,
- 		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket,
+		size_t bytes_transferred, std::shared_ptr<ssl_socket> socket,
 		std::shared_ptr<I2PControlBuffer> buf)
 	{
-		if (ecode) 
+		if (ecode)
 		{
 			LogPrint (eLogError, "I2PControl: read error: ", ecode.message ());
 			return;
-		} 
-		else 
+		}
+		else
 		{
 			bool isHtml = !memcmp (buf->data (), "POST", 4);
 			try
@@ -243,8 +243,8 @@ namespace client
 					response << "{\"id\":" << id << ",\"result\":{";
 					(this->*(it->second))(pt.get_child ("params"), response);
 					response << "},\"jsonrpc\":\"2.0\"}";
-				} 
-				else 
+				}
+				else
 				{
 					LogPrint (eLogWarning, "I2PControl: unknown method ", method);
 					response << "{\"id\":null,\"error\":";
@@ -337,9 +337,9 @@ namespace client
 		InsertParam (results, "API", api);
 		results << ",";
 		std::string token = boost::lexical_cast<std::string>(i2p::util::GetSecondsSinceEpoch ());
-		m_Tokens.insert (token);	
+		m_Tokens.insert (token);
 		InsertParam (results, "Token", token);
-	}	
+	}
 
 	void I2PControlService::EchoHandler (const boost::property_tree::ptree& params, std::ostringstream& results)
 	{
@@ -364,7 +364,7 @@ namespace client
 			}
 			else
 				LogPrint (eLogError, "I2PControl: I2PControl unknown request: ", it.first);
-		}	
+		}
 	}
 
 	void I2PControlService::PasswordHandler (const std::string& value)
@@ -394,28 +394,28 @@ namespace client
 
 	void I2PControlService::UptimeHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.uptime", (int)i2p::context.GetUptime ()*1000);	
+		InsertParam (results, "i2p.router.uptime", (int)i2p::context.GetUptime ()*1000);
 	}
 
 	void I2PControlService::VersionHandler (std::ostringstream& results)
 	{
 		InsertParam (results, "i2p.router.version", VERSION);
-	}	
+	}
 
 	void I2PControlService::StatusHandler (std::ostringstream& results)
 	{
 		auto dest = i2p::client::context.GetSharedLocalDestination ();
-		InsertParam (results, "i2p.router.status", (dest && dest->IsReady ()) ? "1" : "0"); 
+		InsertParam (results, "i2p.router.status", (dest && dest->IsReady ()) ? "1" : "0");
 	}
 
 	void I2PControlService::NetDbKnownPeersHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.netdb.knownpeers", i2p::data::netdb.GetNumRouters ());	
+		InsertParam (results, "i2p.router.netdb.knownpeers", i2p::data::netdb.GetNumRouters ());
 	}
 
 	void I2PControlService::NetDbActivePeersHandler (std::ostringstream& results)
 	{
-		InsertParam (results, "i2p.router.netdb.activepeers", (int)i2p::transport::transports.GetPeers ().size ());	
+		InsertParam (results, "i2p.router.netdb.activepeers", (int)i2p::transport::transports.GetPeers ().size ());
 	}
 
 	void I2PControlService::NetStatusHandler (std::ostringstream& results)
@@ -463,11 +463,11 @@ namespace client
 	{
 		for (auto it = params.begin (); it != params.end (); it++)
 		{
-			if (it != params.begin ()) results << ",";	
+			if (it != params.begin ()) results << ",";
 			LogPrint (eLogDebug, "I2PControl: RouterManager request: ", it->first);
 			auto it1 = m_RouterManagerHandlers.find (it->first);
 			if (it1 != m_RouterManagerHandlers.end ()) {
-				(this->*(it1->second))(results);	
+				(this->*(it1->second))(results);
 			} else
 				LogPrint (eLogError, "I2PControl: RouterManager unknown request: ", it->first);
 		}
@@ -516,7 +516,7 @@ namespace client
 			auto it1 = m_NetworkSettingHandlers.find (it->first);
 			if (it1 != m_NetworkSettingHandlers.end ()) {
 				if (it != params.begin ()) results << ",";
-				(this->*(it1->second))(it->second.data (), results);	
+				(this->*(it1->second))(it->second.data (), results);
 			} else
 				LogPrint (eLogError, "I2PControl: NetworkSetting unknown request: ", it->first);
 		}
@@ -538,7 +538,7 @@ namespace client
 		InsertParam (results, "i2p.router.net.bw.out", bw);
 	}
 
-	// certificate	
+	// certificate
 	void I2PControlService::CreateCertificate (const char *crt_path, const char *key_path)
 	{
 		FILE *f = NULL;

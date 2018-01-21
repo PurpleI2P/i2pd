@@ -8,6 +8,7 @@
 /CPackConfig.cmake
 /CPackSourceConfig.cmake
 /install_manifest.txt
+/arch.c
 # windows build script
 i2pd*.zip
 build*.log

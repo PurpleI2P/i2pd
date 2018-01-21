@@ -12,9 +12,9 @@
 #include "Log.h"
 #include "Gzip.h"
 
-namespace i2p 
+namespace i2p
 {
-namespace data 
+namespace data
 {
 	const size_t GZIP_CHUNK_SIZE = 16384;
 
@@ -38,7 +38,7 @@ namespace data
 		m_Inflator.next_out = out;
 		m_Inflator.avail_out = outLen;
 		int err;
-		if ((err = inflate (&m_Inflator, Z_NO_FLUSH)) == Z_STREAM_END) 
+		if ((err = inflate (&m_Inflator, Z_NO_FLUSH)) == Z_STREAM_END)
 			return outLen - m_Inflator.avail_out;
 		// else
 		LogPrint (eLogError, "Gzip: Inflate error ", err);
@@ -52,19 +52,19 @@ namespace data
 		m_Inflator.next_in = const_cast<uint8_t *>(in);
 		m_Inflator.avail_in = inLen;
 		int ret;
-		do 
+		do
 		{
 			m_Inflator.next_out = out;
 			m_Inflator.avail_out = GZIP_CHUNK_SIZE;
 			ret = inflate (&m_Inflator, Z_NO_FLUSH);
-			if (ret < 0) 
+			if (ret < 0)
 			{
 				inflateEnd (&m_Inflator);
 				os.setstate(std::ios_base::failbit);
 				break;
 			}
 			os.write ((char *)out, GZIP_CHUNK_SIZE - m_Inflator.avail_out);
-		} 
+		}
 		while (!m_Inflator.avail_out); // more data to read
 		delete[] out;
 	}
@@ -105,7 +105,7 @@ namespace data
 		m_Deflator.next_out = out;
 		m_Deflator.avail_out = outLen;
 		int err;
-		if ((err = deflate (&m_Deflator, Z_FINISH)) == Z_STREAM_END) 
+		if ((err = deflate (&m_Deflator, Z_FINISH)) == Z_STREAM_END)
 			return outLen - m_Deflator.avail_out;
 		// else
 		LogPrint (eLogError, "Gzip: Deflate error ", err);

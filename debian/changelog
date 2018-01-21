@@ -62,7 +62,7 @@ i2pd (2.10.0-1) unstable; urgency=low
 
   * updated to version 2.10.0/0.9.27
   * reseed.verify set to true by default
-  
+
  -- orignal <orignal@i2pmail.org>  Sun, 16 Oct 2016 13:55:40 +0000
 
 i2pd (2.9.0-1) unstable; urgency=low
@@ -73,7 +73,7 @@ i2pd (2.9.0-1) unstable; urgency=low
   * removed all port assigments in services files
   * fixed logrotate
   * subscriptions.txt and tunnels.conf taken from docs folder
-  
+
  -- orignal <orignal@i2pmail.org>  Fri, 12 Aug 2016 14:25:40 +0000
 
 i2pd (2.7.0-1) unstable; urgency=low

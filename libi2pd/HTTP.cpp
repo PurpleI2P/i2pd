@@ -44,7 +44,7 @@ namespace http {
     }
   }
 
-  static std::pair<std::string, std::string> parse_header_line(const std::string& line) 
+  static std::pair<std::string, std::string> parse_header_line(const std::string& line)
   {
     std::size_t pos = 0;
     std::size_t len = 2; /* strlen(": ") */
@@ -251,14 +251,14 @@ namespace http {
         uri     = tokens[1];
         version = tokens[2];
         expect = HEADER_LINE;
-      } 
-	  else 
+      }
+	  else
 	  {
         std::string line = str.substr(pos, eol - pos);
         auto p = parse_header_line(line);
 		if (p.first.length () > 0)
 			headers.push_back (p);
-		else  
+		else
             return -1;
       }
       pos = eol + strlen(CRLF);
@@ -268,11 +268,11 @@ namespace http {
     return eoh + strlen(HTTP_EOH);
   }
 
-  void HTTPReq::write(std::ostream & o) 
+  void HTTPReq::write(std::ostream & o)
   {
 	  o << method << " " << uri << " " << version << CRLF;
-	  for (auto & h : headers) 
-  		o << h.first << ": " << h.second << CRLF;
+	  for (auto & h : headers)
+		o << h.first << ": " << h.second << CRLF;
 	  o << CRLF;
   }
 
@@ -284,7 +284,7 @@ namespace http {
 	}
 
 	void HTTPReq::AddHeader (const std::string& name, const std::string& value)
-	{	
+	{
 		headers.push_back (std::make_pair(name, value));
 	}
 
@@ -295,28 +295,28 @@ namespace http {
 			{
 				it.second = value;
 				break;
-			}	
-	}	
-	
+			}
+	}
+
 	void HTTPReq::RemoveHeader (const std::string& name, const std::string& exempt)
 	{
 		for (auto it = headers.begin (); it != headers.end ();)
 		{
-			if (!it->first.compare(0, name.length (), name) && it->first != exempt)	
+			if (!it->first.compare(0, name.length (), name) && it->first != exempt)
 				it = headers.erase (it);
 			else
 				it++;
-		}	
-	}	
+		}
+	}
 
-	std::string HTTPReq::GetHeader (const std::string& name) const 
+	std::string HTTPReq::GetHeader (const std::string& name) const
 	{
 		 for (auto& it : headers)
 			if (it.first == name)
-				return it.second;	
+				return it.second;
 		return "";
-	}	
-	
+	}
+
   bool HTTPRes::is_chunked() const
  {
     auto it = headers.find("Transfer-Encoding");
@@ -335,10 +335,10 @@ namespace http {
     if (it->second.find("gzip") != std::string::npos)
       return true; /* gotcha! */
 	if (includingI2PGzip &&  it->second.find("x-i2p-gzip") != std::string::npos)
-	  return true;	  
+	  return true;
     return false;
   }
-	
+
   long int HTTPMsg::content_length() const
   {
     unsigned long int length = 0;
@@ -385,8 +385,8 @@ namespace http {
         std::string line = str.substr(pos, eol - pos);
         auto p = parse_header_line(line);
 		if (p.first.length () > 0)
-			headers.insert (p);  
-		else	  
+			headers.insert (p);
+		else
           return -1;
       }
       pos = eol + strlen(CRLF);

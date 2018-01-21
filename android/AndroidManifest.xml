@@ -23,4 +23,4 @@
         </activity>
         <service android:enabled="true" android:name=".ForegroundService"/>
     </application>
-</manifest> 
+</manifest>

@@ -93,7 +93,7 @@ namespace client
 				MapToLoopback(m_Socket, ident);
 			}
 #endif
- 			m_Socket->async_connect (m_RemoteEndpoint, std::bind (&I2PTunnelConnection::HandleConnect,
+			m_Socket->async_connect (m_RemoteEndpoint, std::bind (&I2PTunnelConnection::HandleConnect,
 				shared_from_this (), std::placeholders::_1));
 		}
 	}

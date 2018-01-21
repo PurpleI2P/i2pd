@@ -10,12 +10,12 @@
 #include <sstream>
 #include "HTTP.h"
 
-namespace i2p 
+namespace i2p
 {
-namespace http 
+namespace http
 {
-	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;		
-	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds	
+	const size_t HTTP_CONNECTION_BUFFER_SIZE = 8192;
+	const int TOKEN_EXPIRATION_TIMEOUT = 30; // in seconds
 
 	class HTTPConnection: public std::enable_shared_from_this<HTTPConnection>
 	{
@@ -23,7 +23,7 @@ namespace http
 
 			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			void Receive ();
-			
+
 		private:
 
 			void HandleReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -63,11 +63,11 @@ namespace http
 		private:
 
 			void Run ();
- 			void Accept ();
+			void Accept ();
 			void HandleAccept(const boost::system::error_code& ecode,
 				std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
 			void CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket);
-			
+
 		private:
 
 			bool m_IsRunning;

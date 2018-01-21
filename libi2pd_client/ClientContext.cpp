@@ -108,7 +108,7 @@ namespace client
 			try
 			{
 				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
-	 				socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
+					socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
 				m_SocksProxy->Start();
 			}
 			catch (std::exception& e)
@@ -158,7 +158,7 @@ namespace client
 			try
 			{
 				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort);
-			  	m_I2CPServer->Start ();
+				m_I2CPServer->Start ();
 			}
 			catch (std::exception& e)
 			{
@@ -235,7 +235,7 @@ namespace client
 		LogPrint(eLogInfo, "Clients: stopping AddressBook");
 		m_AddressBook.Stop ();
 
-    	{
+	{
 			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
 			m_ServerForwards.clear();
 			m_ClientForwards.clear();
@@ -281,7 +281,7 @@ namespace client
 		}
 	}
 
-	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, 
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
 		if (filename == "transient")
@@ -350,7 +350,7 @@ namespace client
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic,
- 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
+		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
 		const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
@@ -448,7 +448,7 @@ namespace client
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MIN_TUNNEL_LATENCY, value))
 			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
-			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;		
+			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
 	}
 
 	void ClientContext::ReadTunnels ()
@@ -653,11 +653,11 @@ namespace client
 
 					I2PServerTunnel * serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
-                    	serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
-               		else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
-                    	serverTunnel = new I2PServerTunnelIRC (name, host, port, localDestination, webircpass, inPort, gzip);
+						serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
+					else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
+						serverTunnel = new I2PServerTunnelIRC (name, host, port, localDestination, webircpass, inPort, gzip);
 					else // regular server tunnel by default
-                   		serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
+						serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
 
 					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
 					serverTunnel->SetMaxConnsPerMinute(maxConns);
@@ -665,7 +665,7 @@ namespace client
 					{
 						LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
 						serverTunnel->SetUniqueLocal(isUniqueLocal);
-          			}
+					}
 
 					if (accessList.length () > 0)
 					{
