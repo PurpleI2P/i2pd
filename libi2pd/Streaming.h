@@ -276,10 +276,9 @@ namespace stream
 			/** set max connections per minute per destination */
 			void SetMaxConnsPerMinute(const uint32_t conns);
 
-			Packet * NewPacket () { return m_PacketsPool.Acquire (); }
-			void DeletePacket (Packet * p) { m_PacketsPool.Release (p); }
+			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
+			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
 
-		private:
 
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
 
@@ -334,16 +333,21 @@ namespace stream
 	void Stream::AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout)
 	{
 		auto s = shared_from_this();
-		m_Service.post ([=](void)
+		m_Service.post ([s, buffer, handler, timeout](void)
 		{
 			if (!s->m_ReceiveQueue.empty () || s->m_Status == eStreamStatusReset)
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
 			else
 			{
-				int t = (timeout > MAX_RECEIVE_TIMEOUT) ?  MAX_RECEIVE_TIMEOUT : timeout;
+				int t = (timeout > MAX_RECEIVE_TIMEOUT) ? MAX_RECEIVE_TIMEOUT : timeout;
 				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(t));
-				s->m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
-					{ s->HandleReceiveTimer (ecode, buffer, handler, timeout - t); });
+				int left = timeout - t;
+				auto self = s->shared_from_this();
+				self->m_ReceiveTimer.async_wait (
+					[self, buffer, handler, left](const boost::system::error_code & ec)
+					{
+						self->HandleReceiveTimer(ec, buffer, handler, left);
+					});
 			}
 		});
 	}
