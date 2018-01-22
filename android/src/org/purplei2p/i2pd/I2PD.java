@@ -2,13 +2,6 @@ package org.purplei2p.i2pd;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -31,12 +24,12 @@ public class I2PD extends Activity {
 	private static final String TAG = "i2pd";
 
 	private TextView textView;
-	
+
 	private final DaemonSingleton daemon = DaemonSingleton.getInstance();
 
 	private DaemonSingleton.StateUpdateListener daemonStateUpdatedListener =
 			new DaemonSingleton.StateUpdateListener() {
-		
+
 		@Override
 		public void daemonStateUpdate() {
 			runOnUiThread(new Runnable(){
@@ -60,13 +53,10 @@ public class I2PD extends Activity {
 			});
 		}
 	};
-	
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-		//install certs every time
-		Decompress.unzipFromAssets(this, "certificates.zip", this.getDir("data", Context.MODE_PRIVATE).toString() + "/" );
 
         textView = new TextView(this);
         setContentView(textView);
@@ -133,7 +123,7 @@ public class I2PD extends Activity {
         }
     };
 
-	
+
     private boolean mIsBound;
 
     private void doBindService() {
@@ -157,7 +147,7 @@ public class I2PD extends Activity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.options_main, menu); 
+		getMenuInflater().inflate(R.menu.options_main, menu);
 		return true;
 	}
 
@@ -226,9 +216,9 @@ public class I2PD extends Activity {
 
 			    			@Override
 			    			public void run() {
-			    				quit();	
+			    				quit();
 			    			}
-			            	
+
 			            }, 10*60*1000/*milliseconds*/);
 			        }else{
 			        	quit();
@@ -237,7 +227,7 @@ public class I2PD extends Activity {
 					Log.e(TAG,"",tr);
 				}
 			}
-        	
+
         },"gracQuitInit").start();
     }
 

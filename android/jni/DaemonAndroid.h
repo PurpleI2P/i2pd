@@ -37,7 +37,7 @@ namespace android
 	 * returns "ok" if daemon init failed
 	 * returns errinfo if daemon initialized and started okay
 	 */
-    std::string start(int argc, char* argv[]);
+    std::string start();
 
     // stops the daemon
     void stop();
