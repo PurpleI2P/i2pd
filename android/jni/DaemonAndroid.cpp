@@ -126,12 +126,11 @@ namespace android
 	}
 */
 	static DaemonAndroidImpl daemon;
-	static char* argv[1]={strdup("tmp")};
 	/**
 	 * returns error details if failed
 	 * returns "ok" if daemon initialized and started okay
 	 */
-	std::string start(/*int argc, char* argv[]*/)
+	std::string start(int argc, char* argv[])
 	{
 		try
 		{
@@ -139,7 +138,7 @@ namespace android
 
 			{
 				//Log.d(TAG"Initialising the daemon...");
-				bool daemonInitSuccess = daemon.init(1,argv);
+				bool daemonInitSuccess = daemon.init(argc,argv);
 				if(!daemonInitSuccess)
 				{
 					//QMessageBox::critical(0, "Error", "Daemon init failed");

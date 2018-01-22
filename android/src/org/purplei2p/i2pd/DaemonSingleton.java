@@ -14,10 +14,10 @@ public class DaemonSingleton {
 	public static DaemonSingleton getInstance() {
 		return instance;
 	}
-
+	
 	public synchronized void addStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.add(listener); }
 	public synchronized void removeStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.remove(listener); }
-
+	
 	public synchronized void stopAcceptingTunnels() {
 		if(isStartedOkay()){
 			state=State.gracefulShutdownInProgress;
@@ -25,20 +25,21 @@ public class DaemonSingleton {
 			I2PD_JNI.stopAcceptingTunnels();
 		}
 	}
-
+	
 	public void onNetworkStateChange(boolean isConnected) {
 		I2PD_JNI.onNetworkStateChanged(isConnected);
 	}
-
+	
 	private boolean startedOkay;
 
 	public static enum State {uninitialized,starting,jniLibraryLoaded,startedOkay,startFailed,gracefulShutdownInProgress};
-
+	
 	private State state = State.uninitialized;
-
+	
 	public State getState() { return state; }
+	
+    public synchronized void start(final String confDir, final String dataDir) {
 
-	public synchronized void start() {
 		if(state != State.uninitialized)return;
 		state = State.starting;
 		fireStateUpdate();
@@ -62,7 +63,15 @@ public class DaemonSingleton {
 				}
 				try {
 					synchronized (DaemonSingleton.this) {
-						daemonStartResult = I2PD_JNI.startDaemon();
+
+						String args[] = new String[] {
+							"i2pd", "--service", "--daemon", 
+								"--datadir=" + dataDir,
+								"--conf=" + confDir + "/i2pd.conf",
+								"--tunconf=" + confDir + "/tunnels.conf"
+						};
+
+						daemonStartResult = I2PD_JNI.startDaemon(args);
 						if("ok".equals(daemonStartResult)){
 							state=State.startedOkay;
 							setStartedOkay(true);
@@ -76,9 +85,9 @@ public class DaemonSingleton {
 						fireStateUpdate();
 					}
 					return;
-				}
+				}				
 			}
-
+			
 		}, "i2pdDaemonStart").start();
 	}
 	private Throwable lastThrowable;
@@ -87,10 +96,10 @@ public class DaemonSingleton {
 	private synchronized void fireStateUpdate() {
 		Log.i(TAG, "daemon state change: "+state);
 		for(StateUpdateListener listener : stateUpdateListeners) {
-			try {
-				listener.daemonStateUpdate();
-			} catch (Throwable tr) {
-				Log.e(TAG, "exception in listener ignored", tr);
+			try { 
+				listener.daemonStateUpdate(); 
+			} catch (Throwable tr) { 
+				Log.e(TAG, "exception in listener ignored", tr); 
 			}
 		}
 	}
@@ -102,7 +111,7 @@ public class DaemonSingleton {
 	public String getDaemonStartResult() {
 		return daemonStartResult;
 	}
-
+	
 	private final Object startedOkayLock = new Object();
 
 	public boolean isStartedOkay() {
