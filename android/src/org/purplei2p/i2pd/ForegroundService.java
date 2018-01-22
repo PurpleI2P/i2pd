@@ -5,8 +5,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.content.Context;
-import android.os.Environment;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
@@ -30,20 +28,13 @@ public class ForegroundService extends Service {
         }
     }
 
-    private String dataDir;
-    private String confDir;
-
     @Override
     public void onCreate() {
         notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-        dataDir = this.getDir("data", Context.MODE_PRIVATE).toString();
-        confDir = Environment.getExternalStoragePublicDirectory("i2pd").toString();
 
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
-
-        Log.i("ForegroundService", "About to start daemon with dataDir: " + dataDir + ", confDir: " + confDir);
-        daemon.start(confDir, dataDir);
+        daemon.start();
         // Tell the user we started.
         Toast.makeText(this, R.string.i2pd_service_started, Toast.LENGTH_SHORT).show();
     }
@@ -51,7 +42,7 @@ public class ForegroundService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("ForegroundService", "Received start id " + startId + ": " + intent);
-        daemon.start(confDir, dataDir);
+        daemon.start();
         return START_STICKY;
     }
 
@@ -59,7 +50,7 @@ public class ForegroundService extends Service {
     public void onDestroy() {
         // Cancel the persistent notification.
         notificationManager.cancel(NOTIFICATION);
-        
+
         stopForeground(true);
 
         // Tell the user we stopped.
@@ -100,7 +91,7 @@ public class ForegroundService extends Service {
         //mNM.notify(NOTIFICATION, notification);
         startForeground(NOTIFICATION, notification);
     }
-    
+
 	private final DaemonSingleton daemon = DaemonSingleton.getInstance();
 }
 

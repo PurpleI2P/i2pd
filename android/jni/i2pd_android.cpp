@@ -44,24 +44,8 @@ JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_getABICompiledWith
 }
 
 JNIEXPORT jstring JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_startDaemon
-  (JNIEnv * env, jclass clazz, jobjectArray args) {
-    int argc = env->GetArrayLength(args);
-    typedef char *pchar;
-    pchar* argv = new pchar[argc];
-    for (int i = 0; i < argc; i++) {
-        jstring arg = (jstring) env->GetObjectArrayElement(args, i);
-        const char *argStr = env->GetStringUTFChars(arg, 0);
-        size_t len = strlen(argStr);
-        argv[i] = new char[len + 1];
-        strcpy(argv[i], argStr);
-        env->ReleaseStringUTFChars(arg, argStr);
-    }
-    const char* result = i2p::android::start(argc,argv).c_str();
-    for (int i = 0; i < argc; i++) {
-        delete [] argv[i];
-    }
-    delete [] argv;
-    return env->NewStringUTF(result);
+  (JNIEnv * env, jclass clazz) {
+	return env->NewStringUTF(i2p::android::start().c_str());
 }
 
 JNIEXPORT void JNICALL Java_org_purplei2p_i2pd_I2PD_1JNI_stopDaemon
