@@ -99,6 +99,8 @@ namespace client
 			template<typename Visitor>
 			void VisitTunnels (Visitor v); // Visitor: (I2PService *) -> bool, true means retain
 
+			void CreateNewSharedLocalDestination (); 
+
 		private:
 
 			std::mutex m_DestinationsMutex;

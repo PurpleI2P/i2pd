@@ -36,13 +36,7 @@ namespace client
 	void ClientContext::Start ()
 	{
 		if (!m_SharedLocalDestination)
-		{
-			m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
-			m_SharedLocalDestination->Acquire ();
-			m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
-			m_SharedLocalDestination->Start ();
-		}
-
+			CreateNewSharedLocalDestination ();
 
 		m_AddressBook.Start ();
 
@@ -267,6 +261,10 @@ namespace client
 		// delete not updated tunnels (not in config anymore)
 		VisitTunnels ([](I2PService * s)->bool { return s->isUpdated; });
 
+		// change shared local destination
+		m_SharedLocalDestination->Release ();
+		CreateNewSharedLocalDestination ();
+
 		// delete unused destinations
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		for (auto it = m_Destinations.begin (); it != m_Destinations.end ();)
@@ -405,6 +403,14 @@ namespace client
 		m_Destinations[keys.GetPublic ()->GetIdentHash ()] = localDestination;
 		localDestination->Start ();
 		return localDestination;
+	}
+
+	void ClientContext::CreateNewSharedLocalDestination ()
+	{
+		m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
+		m_SharedLocalDestination->Acquire ();
+		m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
+		m_SharedLocalDestination->Start ();
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
