@@ -280,6 +280,8 @@ namespace client
 	void TCPIPAcceptor::Start ()
 	{
 		m_Acceptor.reset (new boost::asio::ip::tcp::acceptor (GetService (), m_LocalEndpoint));
+		//update the local end point in case port has been set zero and got updated now
+		m_LocalEndpoint = m_Acceptor->local_endpoint();
 		m_Acceptor->listen ();
 		Accept ();
 	}
