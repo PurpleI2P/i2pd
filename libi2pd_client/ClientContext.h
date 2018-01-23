@@ -87,6 +87,8 @@ namespace client
 		private:
 
 			void ReadTunnels ();
+			void ReadHttpProxy ();
+			void ReadSocksProxy ();
 			template<typename Section, typename Type>
 			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
 			template<typename Section>
