@@ -87,6 +87,8 @@ namespace client
 		private:
 
 			void ReadTunnels ();
+			void ReadHttpProxy ();
+			void ReadSocksProxy ();
 			template<typename Section, typename Type>
 			std::string GetI2CPOption (const Section& section, const std::string& name, const Type& value) const;
 			template<typename Section>
@@ -98,6 +100,8 @@ namespace client
 
 			template<typename Visitor>
 			void VisitTunnels (Visitor v); // Visitor: (I2PService *) -> bool, true means retain
+
+			void CreateNewSharedLocalDestination (); 
 
 		private:
 

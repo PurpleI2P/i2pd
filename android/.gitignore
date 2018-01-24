@@ -6,7 +6,3 @@ local.properties
 build.sh
 bin
 log*
-.gradle*
-build
-assets
-gradle-app.setting

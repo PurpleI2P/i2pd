@@ -11,24 +11,23 @@ buildscript {
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.0"
-    defaultConfig {
-        applicationId "org.purplei2p.i2pd"
-        targetSdkVersion 25
-        minSdkVersion 14
-        versionCode 1
-        versionName "2.17.2e"
-    }
+        compileSdkVersion 25
+        buildToolsVersion "25.0.2"
+        defaultConfig {
+                applicationId "org.purplei2p.i2pd"
+                targetSdkVersion 25
+                minSdkVersion 14
+                versionCode 1
+                versionName "2.17.1"
+        }
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['src']
-            res.srcDirs = ['res']
-            jniLibs.srcDirs = ['libs']
-            assets.srcDirs = ['assets']
+                        res.srcDirs = ['res']
+                        jniLibs.srcDirs = ['libs']
         }
-    }
+        }
     signingConfigs {
         orignal {
             storeFile file("i2pdapk.jks")
@@ -38,30 +37,11 @@ android {
         }
     }
     buildTypes {
-        release {
-            minifyEnabled false
-            signingConfig signingConfigs.orignal
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
-        }
+                release {
+                        minifyEnabled false
+                        signingConfig signingConfigs.orignal
+                        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
+                }
     }
-}
-
-tasks.withType(JavaCompile) {
-    options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
-    options.deprecation = true
-}
-
-task zipCerts(type:Zip) {
-    from (files('../contrib/'))
-    include 'certificates/**/*.crt'
-    destinationDir file('assets')
-    archiveName 'certificates.zip'
-    entryCompression ZipEntryCompression.STORED
-}
-preBuild.dependsOn zipCerts
-
-task clean(type: Delete,overwrite: true) {
-    delete 'build'
-    delete 'assets'
 }
 
