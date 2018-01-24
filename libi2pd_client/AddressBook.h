@@ -23,7 +23,7 @@ namespace client
 	const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720; // in minutes (12 hours)
 	const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5; // in minutes
 	const int CONTINIOUS_SUBSCRIPTION_MAX_NUM_RETRIES = 10; // then update timeout
-	const int SUBSCRIPTION_REQUEST_TIMEOUT = 60; //in second
+	const int SUBSCRIPTION_REQUEST_TIMEOUT = 120; //in second
 
 	const uint16_t ADDRESS_RESOLVER_DATAGRAM_PORT = 53;
 	const uint16_t ADDRESS_RESPONSE_DATAGRAM_PORT = 54;

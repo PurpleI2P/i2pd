@@ -696,7 +696,7 @@ namespace client
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
 			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (m_Ident,
 				[&newDataReceived, &leaseSet, &newDataReceivedMutex](std::shared_ptr<i2p::data::LeaseSet> ls)
-			    {
+				{
 					leaseSet = ls;
 					std::unique_lock<std::mutex> l1(newDataReceivedMutex);
 					newDataReceived.notify_all ();
@@ -753,7 +753,7 @@ namespace client
 						end = true;
 					newDataReceived.notify_all ();
 				},
-				30); // wait for 30 seconds
+				SUBSCRIPTION_REQUEST_TIMEOUT);
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
 			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
 			{
