@@ -237,19 +237,17 @@ namespace data
 			auto it = m_LeaseSets.find(ident);
 			if (it != m_LeaseSets.end ())
 			{
-				if (it->second->IsNewer (buf, len))
+				/* make sure LS is valid before updating */
+				LeaseSet ls(buf, len, false);
+				if(!ls.IsValid())
+				{
+					LogPrint(eLogInfo, "NetDb: Updated LeaseSet is Invalid: ", ident.ToBase32());
+				}
+				else if (it->second->IsNewer (buf, len))
 				{
 					it->second->Update (buf, len);
-					if (it->second->IsValid ())
-					{
-						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
-						updated = true;
-					}
-					else
-					{
-						LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase32());
-						m_LeaseSets.erase (it);
-					}
+					LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
+					updated = true;
 				}
 				else
 					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
