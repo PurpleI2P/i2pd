@@ -81,7 +81,7 @@ namespace data
 
 		private:
 
-			void ReadFromBuffer (bool readIdentity = true);
+			void ReadFromBuffer (bool readIdentity = true, bool verifySignature = true);
 			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // min expiration time
 
 		private:

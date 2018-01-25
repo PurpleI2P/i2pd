@@ -31,7 +31,7 @@ namespace data
 		}
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer (false);
+		ReadFromBuffer (false, false); // we assume signature is verified already
 	}
 
 	void LeaseSet::PopulateLeases ()
@@ -40,7 +40,7 @@ namespace data
 		ReadFromBuffer (false);
 	}
 
-	void LeaseSet::ReadFromBuffer (bool readIdentity)
+	void LeaseSet::ReadFromBuffer (bool readIdentity, bool verifySignature)
 	{
 		if (readIdentity || !m_Identity)
 			m_Identity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
@@ -128,7 +128,7 @@ namespace data
 		}
 
 		// verify
-		if (!m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
+		if (verifySignature && !m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
 		{
 			LogPrint (eLogWarning, "LeaseSet: verification failed");
 			m_IsValid = false;
