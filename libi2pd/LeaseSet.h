@@ -57,7 +57,7 @@ namespace data
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
 			~LeaseSet () { delete[] m_Buffer; };
-			void Update (const uint8_t * buf, size_t len);
+			void Update (const uint8_t * buf, size_t len, bool verifySignature = true);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
 

@@ -21,7 +21,7 @@ namespace data
 		ReadFromBuffer ();
 	}
 
-	void LeaseSet::Update (const uint8_t * buf, size_t len)
+	void LeaseSet::Update (const uint8_t * buf, size_t len, bool verifySignature)
 	{
 		if (len > m_BufferLen)
 		{
@@ -31,7 +31,7 @@ namespace data
 		}
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer (false, false); // we assume signature is verified already
+		ReadFromBuffer (false, verifySignature);
 	}
 
 	void LeaseSet::PopulateLeases ()
