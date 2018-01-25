@@ -578,7 +578,9 @@ namespace stream
 				if (m_SentPackets.empty () && m_SendBuffer.IsEmpty ()) // nothing to send
 				{
 					m_Status = eStreamStatusClosed;
-					SendClose ();
+					// close could be called from another thread so do SendClose from the destination thread
+					// this is so m_LocalDestination.NewPacket () does not trigger a race condition
+					m_Service.post(std::bind(&Stream::SendClose, shared_from_this()));
 				}
 			break;
 			case eStreamStatusClosed:
