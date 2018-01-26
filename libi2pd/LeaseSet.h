@@ -82,7 +82,7 @@ namespace data
 		private:
 
 			void ReadFromBuffer (bool readIdentity = true, bool verifySignature = true);
-			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // min expiration time
+			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len, uint8_t& num) const; // returns max expiration time, num is number of leases
 
 		private:
 
