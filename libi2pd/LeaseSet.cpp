@@ -135,7 +135,7 @@ namespace data
 		}
 	}
 
-	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len, uint8_t& num) const
+	uint64_t LeaseSet::ExtractTimestamp (const uint8_t * buf, size_t len) const
 	{
 		if (!m_Identity) return 0;
 		size_t size = m_Identity->GetFullLen ();
@@ -143,7 +143,7 @@ namespace data
 		size += 256; // encryption key
 		size += m_Identity->GetSigningPublicKeyLen (); // unused signing key
 		if (size > len) return 0;
-		num = buf[size];
+		uint8_t num = buf[size];
 		size++; // num
 		if (size + num*LEASE_SIZE > len) return 0;
 		uint64_t timestamp= 0 ;
@@ -160,8 +160,7 @@ namespace data
 
 	bool LeaseSet::IsNewer (const uint8_t * buf, size_t len) const
 	{
-		uint8_t num1, num2;
-		return ExtractTimestamp (buf, len, num2) > ExtractTimestamp (m_Buffer, m_BufferLen, num1) || num2 < num1; // some lease might be deleted
+		return ExtractTimestamp (buf, len) > ExtractTimestamp (m_Buffer, m_BufferLen);
 	}
 
 	bool LeaseSet::ExpiresSoon(const uint64_t dlt, const uint64_t fudge) const
