@@ -70,12 +70,11 @@ See [documentation](https://i2pd.readthedocs.io/en/latest/user-guide/run/) and
 Donations
 ---------
 
-BTC: 1K7Ds6KUeR8ya287UC4rYTjvC96vXyZbDY  
-ZEC: t1cTckLuXsr1dwVrK4NDzfhehss4NvMadAJ  
-DASH: Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF  
+BTC: 3MDoGJW9TLMTCDGrR9bLgWXfm6sjmgy86f  
 LTC: LKQirrYrDeTuAPnpYq5y7LVKtywfkkHi59  
-DOGE: DNXLQKziRPAsD9H3DFNjk4fLQrdaSX893Y  
-ANC: AQJYweYYUqM1nVfLqfoSMpUMfzxvS4Xd7z  
+ETH: 0x9e5bac70d20d1079ceaa111127f4fb3bccce379d  
+DASH: Xw8YUrQpYzP9tZBmbjqxS3M97Q7v3vJKUF  
+ZEC: t1cTckLuXsr1dwVrK4NDzfhehss4NvMadAJ  
 GST: GbD2JSQHBHCKLa9WTHmigJRpyFgmBj4woG  
 
 License
