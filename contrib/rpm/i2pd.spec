@@ -4,6 +4,7 @@ Name:           i2pd
 Version:        2.17.0
 Release:        %{build_timestamp}git%{?dist}
 Summary:        I2P router written in C++
+Obsoletes:      %{name}-systemd
 
 License:        BSD
 URL:            https://github.com/PurpleI2P/i2pd
@@ -23,24 +24,11 @@ BuildRequires:  openssl-devel
 BuildRequires:  miniupnpc-devel
 BuildRequires:  systemd-units
 
-%description
-C++ implementation of I2P.
-
-
-%package systemd
-Summary:        Files to run I2P router under systemd
-Requires:	i2pd
 Requires:	systemd
 Requires(pre):  %{_sbindir}/useradd %{_sbindir}/groupadd
-Obsoletes:      %{name}-daemon
 
-
-%description systemd
+%description
 C++ implementation of I2P.
-
-This package contains systemd unit file to run i2pd as a system service
-using dedicated user's permissions.
-
 
 %prep
 %setup -q
@@ -79,22 +67,22 @@ install -d -m 700 %{buildroot}/%{_localstatedir}/log/i2pd
 ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/%{name}/certificates
 
 
-%pre systemd
+%pre
 getent group i2pd >/dev/null || %{_sbindir}/groupadd -r i2pd
 getent passwd i2pd >/dev/null || \
   %{_sbindir}/useradd -r -g i2pd -s %{_sbindir}/nologin \
                       -d %{_sharedstatedir}/i2pd -c 'I2P Service' i2pd
 
 
-%post systemd
+%post
 %systemd_post i2pd.service
 
 
-%preun systemd
+%preun
 %systemd_preun i2pd.service
 
 
-%postun systemd
+%postun
 %systemd_postun_with_restart i2pd.service
 
 
@@ -103,9 +91,6 @@ getent passwd i2pd >/dev/null || \
 %{_sbindir}/i2pd
 %{_datadir}/i2pd/certificates
 %config(noreplace) %{_sysconfdir}/i2pd/*
-
-
-%files systemd
 /%{_unitdir}/i2pd.service
 %dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
 %dir %attr(0700,i2pd,i2pd) %{_sharedstatedir}/i2pd
@@ -113,6 +98,10 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
+* Sat Jan 27 2018 l-n-s <supervillain@riseup.net> - 2.17.0-1
+- Added certificates and default configuration files
+- Merge i2pd with i2pd-systemd package
+
 * Mon Dec 04 2017 orignal <i2porignal@yandex.ru> - 2.17.0
 - Added reseed through HTTP and SOCKS proxy
 - Added show status of client services through web console
