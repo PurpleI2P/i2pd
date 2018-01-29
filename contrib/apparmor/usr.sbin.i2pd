@@ -28,4 +28,6 @@
   /usr/sbin/i2pd mr,
   /usr/share/i2pd/** r,
 
+  # user homedir (if started not by init.d or systemd)
+  owner /home/*/.i2pd/** rw,
 }
