@@ -21,10 +21,11 @@
 
   # path specific (feel free to modify if you have another paths)
   /etc/i2pd/** r,
+  /run/i2pd/i2pd.pid rw,
   /var/lib/i2pd/** rw,
-  /var/log/i2pd.log w,
+  /var/log/i2pd/i2pd.log w,
   /var/run/i2pd/i2pd.pid rw,
   /usr/sbin/i2pd mr,
-
+  /usr/share/i2pd/** r,
 
 }
