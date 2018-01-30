@@ -1,6 +1,23 @@
 # for this file format description,
 # see https://github.com/olivierlacan/keep-a-changelog
 
+## [2.18.0] - 2018-01-30
+### Added
+- Show tunnel nicknames for I2CP destination in WebUI
+- Re-create HTTP and SOCKS proxy by tunnel reload
+- Graceful shutdown as soon as no more transit tunnels
+### Changed
+- Regenerate shared local destination by tunnel reload
+- Use transient local destination by default if not specified
+- Return correct code if pid file can't be created
+- Timing and number of attempts for adressbook requests
+- Certificates list
+### Fixed
+- Malformed addressbook subsctiption request
+- Build with boost 1.66
+- Few race conditions for SAM
+- Check LeaseSet's signature before update
+
 ## [2.17.0] - 2017-12-04
 ### Added
 - Reseed through HTTP and SOCKS proxy

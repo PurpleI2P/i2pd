@@ -1,7 +1,7 @@
 %define build_timestamp %(date +"%Y%m%d")
 
 Name:           i2pd
-Version:        2.17.0
+Version:        2.18.0
 Release:        %{build_timestamp}git%{?dist}
 Summary:        I2P router written in C++
 Obsoletes:      %{name}-systemd
@@ -98,7 +98,10 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Sat Jan 30 2018 l-n-s <supervillain@riseup.net> - 2.17.0-1
+* Tue Jan 30 2018 orignal <i2porignal@yandex.ru>> - 2.18.0
+- update to 2.18.0
+
+* Sat Jan 27 2018 l-n-s <supervillain@riseup.net> - 2.17.0-1
 - Added certificates and default configuration files
 - Merge i2pd with i2pd-systemd package
 - Fixed package changelogs to comply with guidelines
