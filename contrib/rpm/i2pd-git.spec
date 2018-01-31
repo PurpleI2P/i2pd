@@ -1,15 +1,15 @@
 %define build_timestamp %(date +"%Y%m%d")
 
-Name:           i2pd
+Name:           i2pd-git
 Version:        2.18.0
 Release:        %{build_timestamp}git%{?dist}
-Summary:        I2P router written in C++
+Summary:        I2P router written in C++ (git)
 Obsoletes:      %{name}-systemd
-Conflicts:      i2pd-git
+Conflicts:      i2pd
 
 License:        BSD
 URL:            https://github.com/PurpleI2P/i2pd
-Source0:        https://github.com/PurpleI2P/i2pd/archive/%{version}/%name-%version.tar.gz
+Source0:        https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
 
 %if 0%{?rhel}  == 7
 BuildRequires:  cmake3
