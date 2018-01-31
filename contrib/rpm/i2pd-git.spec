@@ -1,9 +1,10 @@
 %define build_timestamp %(date +"%Y%m%d")
+%define git_revision %(git describe --tags)
 
 Name:           i2pd-git
-Version:        2.18.0
-Release:        %{build_timestamp}git%{?dist}
-Summary:        I2P router written in C++ (git)
+Version:        %{git_revision}
+Release:        git%{?dist}
+Summary:        I2P router written in C++
 Obsoletes:      %{name}-systemd
 Conflicts:      i2pd
 
@@ -62,9 +63,9 @@ install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}
 install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
 install -d -m 755 %{buildroot}%{_datadir}/i2pd
 %{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
-install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}/%{_unitdir}/i2pd.service
-install -d -m 700 %{buildroot}/%{_sharedstatedir}/i2pd
-install -d -m 700 %{buildroot}/%{_localstatedir}/log/i2pd
+install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
+install -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
+install -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
 ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/i2pd/certificates
 
 
