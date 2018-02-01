@@ -5,6 +5,7 @@ After=network.target
 [Service]
 User=i2pd
 Group=i2pd
+PermissionsStartOnly=True
 RuntimeDirectory=i2pd
 RuntimeDirectoryMode=0700
 Type=simple
