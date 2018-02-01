@@ -1,9 +1,9 @@
 %define build_timestamp %(date +"%Y%m%d")
-%define git_revision %(git describe --tags)
+%define git_hash %(git rev-parse HEAD | cut -c -7)
 
 Name:           i2pd-git
-Version:        %{git_revision}
-Release:        git%{?dist}
+Version:        2.18.0
+Release:        %{git_hash}git%{?dist}
 Summary:        I2P router written in C++
 Obsoletes:      %{name}-systemd
 Conflicts:      i2pd
