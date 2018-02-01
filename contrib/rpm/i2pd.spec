@@ -1,8 +1,6 @@
-%define build_timestamp %(date +"%Y%m%d")
-
 Name:           i2pd
 Version:        2.18.0
-Release:        3%{?dist}
+Release:        1%{?dist}
 Summary:        I2P router written in C++
 Obsoletes:      %{name}-systemd
 Conflicts:      i2pd-git
@@ -99,7 +97,12 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Tue Jan 30 2018 orignal <i2porignal@yandex.ru>> - 2.18.0
+* Thu Feb 01 2018 r4sas <r4sas@i2pmail.org> - 2.18.0-1
+- Added to conflicts i2pd-git package
+- Fixed release versioning
+- Fixed paths with double slashes
+
+* Tue Jan 30 2018 orignal <i2porignal@yandex.ru> - 2.18.0
 - update to 2.18.0
 
 * Sat Jan 27 2018 l-n-s <supervillain@riseup.net> - 2.17.0-1
