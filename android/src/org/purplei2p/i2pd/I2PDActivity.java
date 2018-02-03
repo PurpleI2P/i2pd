@@ -5,13 +5,11 @@ import java.io.StringWriter;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -20,7 +18,7 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class I2PD extends Activity {
+public class I2PDActivity extends Activity {
 	private static final String TAG = "i2pd";
 
 	private TextView textView;
@@ -81,11 +79,11 @@ public class I2PD extends Activity {
 			gracefulQuitTimer.cancel();
 			setGracefulQuitTimer(null);
 		}
-		try{
-            doUnbindService();
-		}catch(Throwable tr){
-			Log.e(TAG, "", tr);
-		}
+//		try{
+//            doUnbindService();
+//		}catch(Throwable tr){
+//			Log.e(TAG, "", tr);
+//		}
 	}
 
 	private CharSequence throwableToString(Throwable tr) {
@@ -126,7 +124,8 @@ public class I2PD extends Activity {
 
     private boolean mIsBound;
 
-    private void doBindService() {
+    private synchronized void doBindService() {
+		if(mIsBound)return;
         // Establish a connection with the service.  We use an explicit
         // class name because we want a specific service implementation that
         // we know will be running in our own process (and thus won't be
@@ -159,48 +158,39 @@ public class I2PD extends Activity {
 		int id = item.getItemId();
 
 		switch(id){
-        case R.id.action_quit:
-            quit();
+        case R.id.action_stop:
+            i2pdStop();
             return true;
-        case R.id.action_graceful_quit:
-            gracefulQuit();
+        case R.id.action_graceful_stop:
+            i2pdGracefulStop();
             return true;
         }
 
 		return super.onOptionsItemSelected(item);
 	}
 
-    @SuppressLint("NewApi")
-	private void quit() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                finishAndRemoveTask();
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                finishAffinity();
-            } else {
-                //moveTaskToBack(true);
-                finish();
-            }
-        }catch (Throwable tr) {
-            Log.e(TAG, "", tr);
-        }
+	private void i2pdStop() {
         try{
             daemon.stopDaemon();
 	    }catch (Throwable tr) {
 	        Log.e(TAG, "", tr);
 	    }
-        System.exit(0);
     }
 
     private Timer gracefulQuitTimer;
     private final Object gracefulQuitTimerLock = new Object();
-    private void gracefulQuit() {
+    private synchronized void i2pdGracefulStop() {
+        if(daemon.getState()==DaemonSingleton.State.stopped){
+            Toast.makeText(this, R.string.already_stopped,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
     	if(getGracefulQuitTimer()!=null){
-	        Toast.makeText(this, R.string.graceful_quit_is_already_in_progress,
+	        Toast.makeText(this, R.string.graceful_stop_is_already_in_progress,
 	        		Toast.LENGTH_SHORT).show();
     		return;
     	}
-        Toast.makeText(this, R.string.graceful_quit_is_in_progress,
+        Toast.makeText(this, R.string.graceful_stop_is_in_progress,
         		Toast.LENGTH_SHORT).show();
         new Thread(new Runnable(){
 
@@ -216,12 +206,12 @@ public class I2PD extends Activity {
 
 			    			@Override
 			    			public void run() {
-			    				quit();
+			    				i2pdStop();
 			    			}
 
 			            }, 10*60*1000/*milliseconds*/);
 			        }else{
-			        	quit();
+			        	i2pdStop();
 			        }
 				} catch(Throwable tr) {
 					Log.e(TAG,"",tr);

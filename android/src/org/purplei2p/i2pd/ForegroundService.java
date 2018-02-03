@@ -75,7 +75,7 @@ public class ForegroundService extends Service {
 
         // The PendingIntent to launch our activity if the user selects this notification
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                new Intent(this, I2PD.class), 0);
+                new Intent(this, I2PDActivity.class), 0);
 
         // Set the info for the views that show in the notification panel.
         Notification notification = new Notification.Builder(this)
