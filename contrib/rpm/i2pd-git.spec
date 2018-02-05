@@ -2,7 +2,7 @@
 
 Name:           i2pd-git
 Version:        2.18.0
-Release:        %{git_hash}.git%{?dist}
+Release:        git%{git_hash}%{?dist}
 Summary:        I2P router written in C++
 Conflicts:      i2pd
 
