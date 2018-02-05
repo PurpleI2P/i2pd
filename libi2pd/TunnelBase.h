@@ -66,7 +66,7 @@ namespace tunnel
 				return t1->GetCreationTime () > t2->GetCreationTime ();
 			else
 				return t1 < t2;
-		};
+		}
 	};
 }
 }
