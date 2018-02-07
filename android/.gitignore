@@ -6,4 +6,10 @@ local.properties
 build.sh
 bin
 log*
-.gradle android.iml build gradle gradlew gradlew.bat
+.gradle
+android.iml
+build
+gradle
+gradlew
+gradlew.bat
+
