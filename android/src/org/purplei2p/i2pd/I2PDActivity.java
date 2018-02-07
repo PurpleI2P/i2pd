@@ -12,13 +12,14 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class I2PDActivity extends Activity {
+public class I2PDActivity extends AppCompatActivity {
     private static final String TAG = "i2pdActvt";
     public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
 
