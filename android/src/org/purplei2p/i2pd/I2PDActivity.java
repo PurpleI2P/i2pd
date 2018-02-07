@@ -20,7 +20,7 @@ import android.widget.Toast;
 
 public class I2PDActivity extends Activity {
     private static final String TAG = "i2pdActvt";
-    public static final int GRACEFUL_DELAY_MILLIS = 120 * 1000;
+    public static final int GRACEFUL_DELAY_MILLIS = 10 * 60 * 1000;
 
     private TextView textView;
 
