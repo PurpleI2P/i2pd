@@ -35,7 +35,25 @@ public class DaemonSingleton {
 
 	private volatile boolean startedOkay;
 
-	public enum State {uninitialized,starting,jniLibraryLoaded,startedOkay,startFailed,gracefulShutdownInProgress,stopped};
+	public enum State {
+        uninitialized(R.string.uninitialized),
+        starting(R.string.starting),
+        jniLibraryLoaded(R.string.jniLibraryLoaded),
+        startedOkay(R.string.startedOkay),
+        startFailed(R.string.startFailed),
+        gracefulShutdownInProgress(R.string.gracefulShutdownInProgress),
+        stopped(R.string.stopped);
+
+        State(int statusStringResourceId) {
+            this.statusStringResourceId = statusStringResourceId;
+        }
+
+        private final int statusStringResourceId;
+
+        public int getStatusStringResourceId() {
+            return statusStringResourceId;
+        }
+    };
 
 	private volatile State state = State.uninitialized;
 

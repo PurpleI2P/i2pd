@@ -11,11 +11,32 @@ import android.util.Log;
 import android.widget.Toast;
 
 public class ForegroundService extends Service {
+    private static final String TAG="FgService";
+
+    private volatile boolean shown;
+
+    private final DaemonSingleton.StateUpdateListener daemonStateUpdatedListener =
+            new DaemonSingleton.StateUpdateListener() {
+
+                @Override
+                public void daemonStateUpdate() {
+                    try {
+                        synchronized (ForegroundService.this) {
+                            if (shown) cancelNotification();
+                            showNotification();
+                        }
+                    } catch (Throwable tr) {
+                        Log.e(TAG,"error ignored",tr);
+                    }
+                }
+            };
+
+
     private NotificationManager notificationManager;
 
     // Unique Identification Number for the Notification.
     // We use it on Notification start, and to cancel it.
-    private int NOTIFICATION = R.string.i2pd_started;
+    private int NOTIFICATION = 1;
 
     /**
      * Class for clients to access.  Because we know this service always
@@ -32,8 +53,10 @@ public class ForegroundService extends Service {
     public void onCreate() {
         notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
 
-        // Display a notification about us starting.  We put an icon in the status bar.
-        showNotification();
+        synchronized (this) {
+            DaemonSingleton.getInstance().addStateChangeListener(daemonStateUpdatedListener);
+            if (!shown) daemonStateUpdatedListener.daemonStateUpdate();
+        }
         // Tell the user we started.
 //        Toast.makeText(this, R.string.i2pd_service_started, Toast.LENGTH_SHORT).show();
     }
@@ -46,6 +69,11 @@ public class ForegroundService extends Service {
 
     @Override
     public void onDestroy() {
+        DaemonSingleton.getInstance().removeStateChangeListener(daemonStateUpdatedListener);
+        cancelNotification();
+    }
+
+    private synchronized void cancelNotification() {
         // Cancel the persistent notification.
         notificationManager.cancel(NOTIFICATION);
 
@@ -53,6 +81,7 @@ public class ForegroundService extends Service {
 
         // Tell the user we stopped.
 //        Toast.makeText(this, R.string.i2pd_service_stopped, Toast.LENGTH_SHORT).show();
+        shown=false;
     }
 
     @Override
@@ -67,9 +96,9 @@ public class ForegroundService extends Service {
     /**
      * Show a notification while this service is running.
      */
-    private void showNotification() {
+    private synchronized void showNotification() {
         // In this sample, we'll use the same text for the ticker and the expanded notification
-        CharSequence text = getText(R.string.i2pd_started);
+        CharSequence text = getText(DaemonSingleton.getInstance().getState().getStatusStringResourceId());
 
         // The PendingIntent to launch our activity if the user selects this notification
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
@@ -88,6 +117,7 @@ public class ForegroundService extends Service {
         // Send the notification.
         //mNM.notify(NOTIFICATION, notification);
         startForeground(NOTIFICATION, notification);
+        shown=true;
     }
 
 	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
