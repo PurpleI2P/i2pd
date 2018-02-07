@@ -34,15 +34,13 @@ public class ForegroundService extends Service {
 
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
-        daemon.start();
         // Tell the user we started.
-        Toast.makeText(this, R.string.i2pd_service_started, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, R.string.i2pd_service_started, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("ForegroundService", "Received start id " + startId + ": " + intent);
-        daemon.start();
         return START_STICKY;
     }
 
@@ -54,7 +52,7 @@ public class ForegroundService extends Service {
         stopForeground(true);
 
         // Tell the user we stopped.
-        Toast.makeText(this, R.string.i2pd_service_stopped, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, R.string.i2pd_service_stopped, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -92,6 +90,6 @@ public class ForegroundService extends Service {
         startForeground(NOTIFICATION, notification);
     }
 
-	private final DaemonSingleton daemon = DaemonSingleton.getInstance();
+	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 }
 

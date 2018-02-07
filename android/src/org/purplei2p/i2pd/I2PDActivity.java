@@ -23,9 +23,9 @@ public class I2PDActivity extends Activity {
 
 	private TextView textView;
 
-	private final DaemonSingleton daemon = DaemonSingleton.getInstance();
+	private static final DaemonSingleton daemon = DaemonSingleton.getInstance();
 
-	private DaemonSingleton.StateUpdateListener daemonStateUpdatedListener =
+	private final DaemonSingleton.StateUpdateListener daemonStateUpdatedListener =
 			new DaemonSingleton.StateUpdateListener() {
 
 		@Override
@@ -58,7 +58,7 @@ public class I2PDActivity extends Activity {
 
         textView = new TextView(this);
         setContentView(textView);
-        DaemonSingleton.getInstance().addStateChangeListener(daemonStateUpdatedListener);
+        daemon.addStateChangeListener(daemonStateUpdatedListener);
         daemonStateUpdatedListener.daemonStateUpdate();
 
         //set the app be foreground
@@ -68,22 +68,18 @@ public class I2PDActivity extends Activity {
     @Override
 	protected void onDestroy() {
 		super.onDestroy();
-		localDestroy();
-	}
-
-	private void localDestroy() {
-		textView = null;
-		DaemonSingleton.getInstance().removeStateChangeListener(daemonStateUpdatedListener);
-		Timer gracefulQuitTimer = getGracefulQuitTimer();
-		if(gracefulQuitTimer!=null) {
-			gracefulQuitTimer.cancel();
-			setGracefulQuitTimer(null);
+        textView = null;
+        daemon.removeStateChangeListener(daemonStateUpdatedListener);
+        Timer gracefulQuitTimer = getGracefulQuitTimer();
+        if(gracefulQuitTimer!=null) {
+            gracefulQuitTimer.cancel();
+            setGracefulQuitTimer(null);
+        }
+		try{
+            doUnbindService();
+		}catch(Throwable tr){
+			Log.e(TAG, "", tr);
 		}
-//		try{
-//            doUnbindService();
-//		}catch(Throwable tr){
-//			Log.e(TAG, "", tr);
-//		}
 	}
 
 	private CharSequence throwableToString(Throwable tr) {
@@ -122,24 +118,27 @@ public class I2PDActivity extends Activity {
     };
 
 
-    private boolean mIsBound;
+    private static volatile boolean mIsBound;
 
-    private synchronized void doBindService() {
-		if(mIsBound)return;
-        // Establish a connection with the service.  We use an explicit
-        // class name because we want a specific service implementation that
-        // we know will be running in our own process (and thus won't be
-        // supporting component replacement by other applications).
-        bindService(new Intent(this,
-                ForegroundService.class), mConnection, Context.BIND_AUTO_CREATE);
-        mIsBound = true;
+    private void doBindService() {
+        synchronized (I2PDActivity.class) {
+            if (mIsBound) return;
+            // Establish a connection with the service.  We use an explicit
+            // class name because we want a specific service implementation that
+            // we know will be running in our own process (and thus won't be
+            // supporting component replacement by other applications).
+            bindService(new Intent(this, ForegroundService.class), mConnection, Context.BIND_AUTO_CREATE);
+            mIsBound = true;
+        }
     }
 
     private void doUnbindService() {
-        if (mIsBound) {
-            // Detach our existing connection.
-            unbindService(mConnection);
-            mIsBound = false;
+        synchronized (I2PDActivity.class) {
+            if (mIsBound) {
+                // Detach our existing connection.
+                unbindService(mConnection);
+                mIsBound = false;
+            }
         }
     }
 
@@ -177,9 +176,9 @@ public class I2PDActivity extends Activity {
 	    }
     }
 
-    private Timer gracefulQuitTimer;
-    private final Object gracefulQuitTimerLock = new Object();
-    private synchronized void i2pdGracefulStop() {
+    private volatile Timer gracefulQuitTimer;
+
+    private void i2pdGracefulStop() {
         if(daemon.getState()==DaemonSingleton.State.stopped){
             Toast.makeText(this, R.string.already_stopped,
                     Toast.LENGTH_SHORT).show();
@@ -218,18 +217,14 @@ public class I2PDActivity extends Activity {
 				}
 			}
 
-        },"gracQuitInit").start();
+        },"gracInit").start();
     }
 
 	private Timer getGracefulQuitTimer() {
-		synchronized (gracefulQuitTimerLock) {
-			return gracefulQuitTimer;
-		}
+        return gracefulQuitTimer;
 	}
 
 	private void setGracefulQuitTimer(Timer gracefulQuitTimer) {
-    	synchronized (gracefulQuitTimerLock) {
-    		this.gracefulQuitTimer = gracefulQuitTimer;
-    	}
+   		this.gracefulQuitTimer = gracefulQuitTimer;
 	}
 }
