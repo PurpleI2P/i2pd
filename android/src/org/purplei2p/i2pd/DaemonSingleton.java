@@ -8,8 +8,8 @@ import android.util.Log;
 public class DaemonSingleton {
 	private static final String TAG="i2pd";
 	private static final DaemonSingleton instance = new DaemonSingleton();
-	public interface StateUpdateListener { void daemonStateUpdate(); }
-	private final Set<StateUpdateListener> stateUpdateListeners = new HashSet<>();
+	public static interface StateUpdateListener { void daemonStateUpdate(); }
+	private final Set<StateUpdateListener> stateUpdateListeners = new HashSet<StateUpdateListener>();
 
 	public static DaemonSingleton getInstance() {
 		return instance;
@@ -18,72 +18,63 @@ public class DaemonSingleton {
 	public synchronized void addStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.add(listener); }
 	public synchronized void removeStateChangeListener(StateUpdateListener listener) { stateUpdateListeners.remove(listener); }
 
-	private synchronized void setState(State newState) {
-		if(newState==null)throw new NullPointerException();
-		State oldState = state;
-		if(oldState==null)throw new NullPointerException();
-		if(oldState.equals(newState))return;
-		state=newState;
-		fireStateUpdate1();
-	}
 	public synchronized void stopAcceptingTunnels() {
 		if(isStartedOkay()){
-			setState(State.gracefulShutdownInProgress);
+			state=State.gracefulShutdownInProgress;
+			fireStateUpdate();
 			I2PD_JNI.stopAcceptingTunnels();
 		}
 	}
 
-	private volatile boolean startedOkay;
+	public void onNetworkStateChange(boolean isConnected) {
+		I2PD_JNI.onNetworkStateChanged(isConnected);
+	}
 
-	public enum State {
-        uninitialized(R.string.uninitialized),
-        starting(R.string.starting),
-        jniLibraryLoaded(R.string.jniLibraryLoaded),
-        startedOkay(R.string.startedOkay),
-        startFailed(R.string.startFailed),
-        gracefulShutdownInProgress(R.string.gracefulShutdownInProgress),
-        stopped(R.string.stopped);
+	private boolean startedOkay;
 
-        State(int statusStringResourceId) {
-            this.statusStringResourceId = statusStringResourceId;
-        }
+	public static enum State {uninitialized,starting,jniLibraryLoaded,startedOkay,startFailed,gracefulShutdownInProgress,stopped};
 
-        private final int statusStringResourceId;
-
-        public int getStatusStringResourceId() {
-            return statusStringResourceId;
-        }
-    };
-
-	private volatile State state = State.uninitialized;
+	private State state = State.uninitialized;
 
 	public State getState() { return state; }
 
-	{
-		setState(State.starting);
+	public synchronized void start() {
+		if(state != State.uninitialized)return;
+		state = State.starting;
+		fireStateUpdate();
 		new Thread(new Runnable(){
 
 			@Override
 			public void run() {
 				try {
 					I2PD_JNI.loadLibraries();
-					setState(State.jniLibraryLoaded);
+					synchronized (DaemonSingleton.this) {
+						state = State.jniLibraryLoaded;
+						fireStateUpdate();
+					}
 				} catch (Throwable tr) {
 					lastThrowable=tr;
-					setState(State.startFailed);
+					synchronized (DaemonSingleton.this) {
+						state = State.startFailed;
+						fireStateUpdate();
+					}
 					return;
 				}
 				try {
 					synchronized (DaemonSingleton.this) {
 						daemonStartResult = I2PD_JNI.startDaemon();
 						if("ok".equals(daemonStartResult)){
-							setState(State.startedOkay);
+							state=State.startedOkay;
 							setStartedOkay(true);
-						}else setState(State.startFailed);
+						}else state=State.startFailed;
+						fireStateUpdate();
 					}
 				} catch (Throwable tr) {
 					lastThrowable=tr;
-					setState(State.startFailed);
+					synchronized (DaemonSingleton.this) {
+						state = State.startFailed;
+						fireStateUpdate();
+					}
 					return;
 				}
 			}
@@ -93,7 +84,7 @@ public class DaemonSingleton {
 	private Throwable lastThrowable;
 	private String daemonStartResult="N/A";
 
-	private void fireStateUpdate1() {
+	private synchronized void fireStateUpdate() {
 		Log.i(TAG, "daemon state change: "+state);
 		for(StateUpdateListener listener : stateUpdateListeners) {
 			try {
@@ -130,7 +121,10 @@ public class DaemonSingleton {
 		if(isStartedOkay()){
 			try {I2PD_JNI.stopDaemon();}catch(Throwable tr){Log.e(TAG, "", tr);}
 			setStartedOkay(false);
-			setState(State.stopped);
+			synchronized (DaemonSingleton.this) {
+				state = State.stopped;
+				fireStateUpdate();
+			}
 		}
 	}
 }
