@@ -32,7 +32,7 @@ public class DaemonSingleton {
 
 	private boolean startedOkay;
 
-	public static enum State {uninitialized,starting,jniLibraryLoaded,startedOkay,startFailed,gracefulShutdownInProgress};
+	public static enum State {uninitialized,starting,jniLibraryLoaded,startedOkay,startFailed,gracefulShutdownInProgress,stopped};
 
 	private State state = State.uninitialized;
 
@@ -121,6 +121,10 @@ public class DaemonSingleton {
 		if(isStartedOkay()){
 			try {I2PD_JNI.stopDaemon();}catch(Throwable tr){Log.e(TAG, "", tr);}
 			setStartedOkay(false);
+			synchronized (DaemonSingleton.this) {
+				state = State.stopped;
+				fireStateUpdate();
+			}
 		}
 	}
 }
