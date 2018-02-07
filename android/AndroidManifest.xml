@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="org.purplei2p.i2pd"
+	  android:installLocation="auto"
       android:versionCode="1"
-      android:versionName="2.18.0"
-	  android:installLocation="auto">
+      android:versionName="2.18.0">
     <uses-sdk android:minSdkVersion="14" android:targetSdkVersion="25"/>
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-	<application android:label="@string/app_name" android:allowBackup="true" android:icon="@drawable/icon">
+	<application android:label="@string/app_name" android:allowBackup="true" android:icon="@drawable/icon" >
 	    <receiver android:name=".NetworkStateChangeReceiver">
 	        <intent-filter>
 	            <action android:name="android.net.conn.CONNECTIVITY_CHANGE"/>
 	        </intent-filter>
 	    </receiver>
-	    <activity android:name=".I2PD"
+	    <activity android:name=".I2PDActivity"
                   android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
