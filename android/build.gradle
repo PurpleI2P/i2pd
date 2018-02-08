@@ -1,11 +1,11 @@
 buildscript {
-        repositories {
-            mavenCentral()
-            jcenter()
-        }
-        dependencies {
-            classpath 'com.android.tools.build:gradle:2.3.3'
-        }
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.3.3'
+    }
 }
 
 apply plugin: 'com.android.application'
@@ -18,32 +18,31 @@ repositories {
 }
 
 dependencies {
-//    compile "com.android.support:support-v4:26.1.0"
-//    compile "com.android.support:support-v13:26.1.0"
-//    compile "com.android.support:cardview-v7:26.1.0"
-//    compile "com.android.support:appcompat-v7:26.1.0"
     compile 'com.android.support:support-v4:25.3.1'
     compile 'com.android.support:design:25.3.1'
 }
 
 android {
-        compileSdkVersion 25
-        buildToolsVersion "25.0.2"
-        defaultConfig {
-                applicationId "org.purplei2p.i2pd"
-                targetSdkVersion 25
-                minSdkVersion 14
-                versionCode 1
-                versionName "2.18.0"
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
+    defaultConfig {
+        applicationId "org.purplei2p.i2pd"
+        targetSdkVersion 25
+        minSdkVersion 14
+        versionCode 1
+        versionName "2.18.0"
+        ndk {
+            abiFilters 'armeabi-v7a'
         }
+    }
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['src']
-                        res.srcDirs = ['res']
-                        jniLibs.srcDirs = ['libs']
+            res.srcDirs = ['res']
+            jniLibs.srcDirs = ['libs']
         }
-        }
+    }
     signingConfigs {
         orignal {
             storeFile file("i2pdapk.jks")
@@ -53,11 +52,16 @@ android {
         }
     }
     buildTypes {
-                release {
-                        minifyEnabled false
-                        signingConfig signingConfigs.orignal
-                        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
-                }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.orignal
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-project.txt'
+        }
+    }
+    externalNativeBuild {
+        ndkBuild {
+            path './jni/Android.mk'
+        }
     }
 }
 
