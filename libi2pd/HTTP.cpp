@@ -21,6 +21,13 @@ namespace http {
   const std::vector<std::string> HTTP_VERSIONS = {
     "HTTP/1.0", "HTTP/1.1"
   };
+  const std::vector<const char *> weekdays = {
+    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+  };
+  const std::vector<const char *> months = {
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  };
 
   inline bool is_http_version(const std::string & str) {
     return std::find(HTTP_VERSIONS.begin(), HTTP_VERSIONS.end(), str) != std::end(HTTP_VERSIONS);
@@ -56,10 +63,14 @@ namespace http {
     return std::make_pair(line.substr(0, pos), line.substr(pos + len));
   }
 
-  void gen_rfc1123_date(std::string & out) {
+  void gen_rfc7231_date(std::string & out) {
     std::time_t now = std::time(nullptr);
     char buf[128];
-    std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+    std::tm *tm = std::gmtime(&now);
+    std::snprintf(buf, sizeof(buf), "%s, %02d %s %d %02d:%02d:%02d GMT",
+      weekdays[tm->tm_wday], tm->tm_mday, months[tm->tm_mon],
+      tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec
+    );
     out = buf;
   }
 
@@ -400,7 +411,7 @@ namespace http {
   std::string HTTPRes::to_string() {
     if (version == "HTTP/1.1" && headers.count("Date") == 0) {
       std::string date;
-      gen_rfc1123_date(date);
+      gen_rfc7231_date(date);
       add_header("Date", date.c_str());
     }
     if (status == "OK" && code != 200)
