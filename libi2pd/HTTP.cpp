@@ -99,7 +99,7 @@ namespace http {
           user = url.substr(pos_p, delim - pos_p);
           delim += 1;
           pass = url.substr(delim, pos_c - delim);
-        } else {
+        } else if(delim) {
           user = url.substr(pos_p, pos_c - pos_p);
         }
         pos_p = pos_c + 1;
