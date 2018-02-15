@@ -83,6 +83,8 @@ namespace config {
 			("http.auth", value<bool>()->default_value(false),                 "Enable Basic HTTP auth for webconsole")
 			("http.user", value<std::string>()->default_value("i2pd"),         "Username for basic auth")
 			("http.pass", value<std::string>()->default_value(""),             "Password for basic auth (default: random, see logs)")
+			("http.strictheaders", value<bool>()->default_value(true),         "Enable strict host checking on WebUI")
+			("http.hostname", value<std::string>()->default_value("localhost"),"Expected hostname for WebUI")
 		;
 
 		options_description httpproxy("HTTP Proxy options");
