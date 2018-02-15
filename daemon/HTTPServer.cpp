@@ -733,8 +733,9 @@ namespace http {
 		}
 	}
 
-	HTTPConnection::HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket):
-		m_Socket (socket), m_Timer (socket->get_io_service ()), m_BufferLen (0)
+	HTTPConnection::HTTPConnection (std::string hostname, std::shared_ptr<boost::asio::ip::tcp::socket> socket):
+		m_Socket (socket), m_Timer (socket->get_io_service ()), m_BufferLen (0),
+		expected_host(hostname)
 	{
 		/* cache options */
 		i2p::config::GetOption("http.auth", needAuth);
@@ -833,7 +834,28 @@ namespace http {
 			SendReply(res, content);
 			return;
 		}
-
+		bool strictheaders;
+		i2p::config::GetOption("http.strictheaders", strictheaders);
+		if (strictheaders)
+		{
+			std::string http_hostname;
+			i2p::config::GetOption("http.hostname", http_hostname);
+			std::string host = req.GetHeader("Host");
+			auto idx = host.find(':');
+			/* strip out port so it's just host */
+			if (idx != std::string::npos && idx > 0)
+			{
+				host = host.substr(0, idx);
+			}
+			if (!(host == expected_host || host == http_hostname))
+			{
+				/* deny request as it's from a non whitelisted hostname */
+				res.code = 403;
+				content = "host missmatch";
+				SendReply(res, content);
+				return;
+			}
+		}
 		// Html5 head start
 		ShowPageHead (s);
 		if (req.uri.find("page=") != std::string::npos) {
@@ -976,7 +998,8 @@ namespace http {
 
 	HTTPServer::HTTPServer (const std::string& address, int port):
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
-		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port))
+		m_Acceptor (m_Service, boost::asio::ip::tcp::endpoint (boost::asio::ip::address::from_string(address), port)),
+		m_Hostname(address)
 	{
 	}
 
@@ -1061,7 +1084,7 @@ namespace http {
 
 	void HTTPServer::CreateConnection(std::shared_ptr<boost::asio::ip::tcp::socket> newSocket)
 	{
-		auto conn = std::make_shared<HTTPConnection> (newSocket);
+		auto conn = std::make_shared<HTTPConnection> (m_Hostname, newSocket);
 		conn->Receive ();
 	}
 } // http

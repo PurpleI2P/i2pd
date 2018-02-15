@@ -21,7 +21,7 @@ namespace http
 	{
 		public:
 
-			HTTPConnection (std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+			HTTPConnection (std::string serverhost, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 			void Receive ();
 
 		private:
@@ -46,6 +46,7 @@ namespace http
 			bool needAuth;
 			std::string user;
 			std::string pass;
+			std::string expected_host;
 
 			static std::map<uint32_t, uint32_t> m_Tokens; // token->timestamp in seconds
 	};
@@ -75,6 +76,7 @@ namespace http
 			boost::asio::io_service m_Service;
 			boost::asio::io_service::work m_Work;
 			boost::asio::ip::tcp::acceptor m_Acceptor;
+			std::string m_Hostname;
 	};
 
     //all the below functions are also used by Qt GUI, see mainwindow.cpp -> getStatusPageHtml
