@@ -16,6 +16,7 @@
 
 #include "Base.h"
 #include "Tag.h"
+#include "CPU.h"
 
 namespace i2p
 {
@@ -68,33 +69,30 @@ namespace crypto
 
 		void operator^=(const ChipherBlock& other) // XOR
 		{
-#if defined(__AVX__) // AVX
-			__asm__
-			(
-				"vmovups (%[buf]), %%xmm0 \n"
-				"vmovups (%[other]), %%xmm1 \n"
-				"vxorps %%xmm0, %%xmm1, %%xmm0 \n"
-				"vmovups %%xmm0, (%[buf]) \n"
-				:
-				: [buf]"r"(buf), [other]"r"(other.buf)
-				: "%xmm0", "%xmm1", "memory"
-			);
-#elif defined(__SSE__) // SSE
-			__asm__
-			(
-				"movups	(%[buf]), %%xmm0 \n"
-				"movups	(%[other]), %%xmm1 \n"
-				"pxor %%xmm1, %%xmm0 \n"
-				"movups	%%xmm0, (%[buf]) \n"
-				:
-				: [buf]"r"(buf), [other]"r"(other.buf)
-				: "%xmm0", "%xmm1", "memory"
-			);
+			if (i2p::cpu::avx)
+			{
+#ifdef AVX
+				__asm__
+					(
+						"vmovups (%[buf]), %%xmm0 \n"
+						"vmovups (%[other]), %%xmm1 \n"
+						"vxorps %%xmm0, %%xmm1, %%xmm0 \n"
+						"vmovups %%xmm0, (%[buf]) \n"
+						:
+						: [buf]"r"(buf), [other]"r"(other.buf)
+						: "%xmm0", "%xmm1", "memory"
+						);
 #else
-			// TODO: implement it better
-			for (int i = 0; i < 16; i++)
-				buf[i] ^= other.buf[i];
+				for (int i = 0; i < 16; i++)
+					buf[i] ^= other.buf[i];
 #endif
+			}
+			else
+			{
+				// TODO: implement it better
+				for (int i = 0; i < 16; i++)
+					buf[i] ^= other.buf[i];
+			}
 		}
 	};
 
@@ -138,68 +136,39 @@ namespace crypto
 
 		private:
 
-			AESAlignedBuffer<240> m_KeySchedule;  // 14 rounds for AES-256, 240 bytes
+			AESAlignedBuffer<240> m_KeySchedule;	// 14 rounds for AES-256, 240 bytes
 	};
+#endif
 
-	class ECBEncryptionAESNI: public ECBCryptoAESNI
+#ifdef AESNI
+	class ECBEncryption: public ECBCryptoAESNI
+#else
+	class ECBEncryption
+#endif
 	{
 		public:
 
-			void SetKey (const AESKey& key) { ExpandKey (key); };
-			void Encrypt (const ChipherBlock * in, ChipherBlock * out);
+		void SetKey (const AESKey& key);
+		
+		void Encrypt(const ChipherBlock * in, ChipherBlock * out);
+
+	private:
+		AES_KEY m_Key;
 	};
 
-	class ECBDecryptionAESNI: public ECBCryptoAESNI
+#ifdef AESNI
+	class ECBDecryption: public ECBCryptoAESNI
+#else
+	class ECBDecryption
+#endif
 	{
 		public:
 
 			void SetKey (const AESKey& key);
 			void Decrypt (const ChipherBlock * in, ChipherBlock * out);
-	};
-
-	typedef ECBEncryptionAESNI ECBEncryption;
-	typedef ECBDecryptionAESNI ECBDecryption;
-
-#else // use openssl
-
-	class ECBEncryption
-	{
-		public:
-
-			void SetKey (const AESKey& key)
-			{
-				AES_set_encrypt_key (key, 256, &m_Key);
-			}
-			void Encrypt (const ChipherBlock * in, ChipherBlock * out)
-			{
-				AES_encrypt (in->buf, out->buf, &m_Key);
-			}
-
 		private:
-
 			AES_KEY m_Key;
 	};
-
-	class ECBDecryption
-	{
-		public:
-
-			void SetKey (const AESKey& key)
-			{
-				AES_set_decrypt_key (key, 256, &m_Key);
-			}
-			void Decrypt (const ChipherBlock * in, ChipherBlock * out)
-			{
-				AES_decrypt (in->buf, out->buf, &m_Key);
-			}
-
-		private:
-
-			AES_KEY m_Key;
-	};
-
-
-#endif
 
 	class CBCEncryption
 	{
@@ -214,6 +183,8 @@ namespace crypto
 			void Encrypt (const uint8_t * in, std::size_t len, uint8_t * out);
 			void Encrypt (const uint8_t * in, uint8_t * out); // one block
 
+			ECBEncryption & ECB() { return m_ECBEncryption; }
+		
 		private:
 
 			AESAlignedBuffer<16> m_LastBlock;
@@ -234,6 +205,8 @@ namespace crypto
 			void Decrypt (const uint8_t * in, std::size_t len, uint8_t * out);
 			void Decrypt (const uint8_t * in, uint8_t * out); // one block
 
+			ECBDecryption & ECB() { return m_ECBDecryption; }
+		
 		private:
 
 			AESAlignedBuffer<16> m_IV;
@@ -255,11 +228,7 @@ namespace crypto
 		private:
 
 			ECBEncryption m_IVEncryption;
-#ifdef AESNI
-			ECBEncryption m_LayerEncryption;
-#else
 			CBCEncryption m_LayerEncryption;
-#endif
 	};
 
 	class TunnelDecryption // with double IV encryption
@@ -277,11 +246,7 @@ namespace crypto
 		private:
 
 			ECBDecryption m_IVDecryption;
-#ifdef AESNI
-			ECBDecryption m_LayerDecryption;
-#else
 			CBCDecryption m_LayerDecryption;
-#endif
 	};
 
 	void InitCrypto (bool precomputation);

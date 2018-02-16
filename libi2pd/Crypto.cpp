@@ -479,10 +479,9 @@ namespace crypto
 	const uint64_t IPAD = 0x3636363636363636;
 	const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C;
 
-#if defined(__AVX__)
+
 	static const uint64_t ipads[] = { IPAD, IPAD, IPAD, IPAD };
 	static const uint64_t opads[] = { OPAD, OPAD, OPAD, OPAD };
-#endif
 
 	void HMACMD5Digest (uint8_t * msg, size_t len, const MACKey& key, uint8_t * digest)
 	// key is 32 bytes
@@ -491,47 +490,73 @@ namespace crypto
 	{
 		uint64_t buf[256];
 		uint64_t hash[12]; // 96 bytes
-#if defined(__AVX__) // for AVX
-		__asm__
-		(
-			"vmovups %[key], %%ymm0 \n"
-			"vmovups %[ipad], %%ymm1 \n"
-			"vmovups %%ymm1, 32(%[buf]) \n"
-			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-			"vmovups %%ymm1, (%[buf]) \n"
-			"vmovups %[opad], %%ymm1 \n"
-			"vmovups %%ymm1, 32(%[hash]) \n"
-			"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
-			"vmovups %%ymm1, (%[hash]) \n"
-			"vzeroall \n" // end of AVX
-			"movups %%xmm0, 80(%[hash]) \n" // zero last 16 bytes
-			:
-			: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads),
-				[buf]"r"(buf), [hash]"r"(hash)
-			: "memory", "%xmm0"	// TODO: change to %ymm0 later
-		);
+		if(i2p::cpu::avx)
+		{
+#ifdef AVX
+			__asm__
+				(
+					"vmovups %[key], %%ymm0 \n"
+					"vmovups %[ipad], %%ymm1 \n"
+					"vmovups %%ymm1, 32(%[buf]) \n"
+					"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
+					"vmovups %%ymm1, (%[buf]) \n"
+					"vmovups %[opad], %%ymm1 \n"
+					"vmovups %%ymm1, 32(%[hash]) \n"
+					"vxorps %%ymm0, %%ymm1, %%ymm1 \n"
+					"vmovups %%ymm1, (%[hash]) \n"
+					"vzeroall \n" // end of AVX
+					"movups %%xmm0, 80(%[hash]) \n" // zero last 16 bytes
+					:
+					: [key]"m"(*(const uint8_t *)key), [ipad]"m"(*ipads), [opad]"m"(*opads),
+						[buf]"r"(buf), [hash]"r"(hash)
+					: "memory", "%xmm0"	// TODO: change to %ymm0 later
+					);
 #else
-		// ikeypad
-		buf[0] = key.GetLL ()[0] ^ IPAD;
-		buf[1] = key.GetLL ()[1] ^ IPAD;
-		buf[2] = key.GetLL ()[2] ^ IPAD;
-		buf[3] = key.GetLL ()[3] ^ IPAD;
-		buf[4] = IPAD;
-		buf[5] = IPAD;
-		buf[6] = IPAD;
-		buf[7] = IPAD;
-		// okeypad
-		hash[0] = key.GetLL ()[0] ^ OPAD;
-		hash[1] = key.GetLL ()[1] ^ OPAD;
-		hash[2] = key.GetLL ()[2] ^ OPAD;
-		hash[3] = key.GetLL ()[3] ^ OPAD;
-		hash[4] = OPAD;
-		hash[5] = OPAD;
-		hash[6] = OPAD;
-		hash[7] = OPAD;
-		// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-		memset (hash + 10, 0, 16);
+			// ikeypad
+			buf[0] = key.GetLL ()[0] ^ IPAD;
+			buf[1] = key.GetLL ()[1] ^ IPAD;
+			buf[2] = key.GetLL ()[2] ^ IPAD;
+			buf[3] = key.GetLL ()[3] ^ IPAD;
+			buf[4] = IPAD;
+			buf[5] = IPAD;
+			buf[6] = IPAD;
+			buf[7] = IPAD;
+			// okeypad
+			hash[0] = key.GetLL ()[0] ^ OPAD;
+			hash[1] = key.GetLL ()[1] ^ OPAD;
+			hash[2] = key.GetLL ()[2] ^ OPAD;
+			hash[3] = key.GetLL ()[3] ^ OPAD;
+			hash[4] = OPAD;
+			hash[5] = OPAD;
+			hash[6] = OPAD;
+			hash[7] = OPAD;
+			// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
+			memset (hash + 10, 0, 16);
 #endif
+		}
+		else
+		{
+			// ikeypad
+			buf[0] = key.GetLL ()[0] ^ IPAD;
+			buf[1] = key.GetLL ()[1] ^ IPAD;
+			buf[2] = key.GetLL ()[2] ^ IPAD;
+			buf[3] = key.GetLL ()[3] ^ IPAD;
+			buf[4] = IPAD;
+			buf[5] = IPAD;
+			buf[6] = IPAD;
+			buf[7] = IPAD;
+			// okeypad
+			hash[0] = key.GetLL ()[0] ^ OPAD;
+			hash[1] = key.GetLL ()[1] ^ OPAD;
+			hash[2] = key.GetLL ()[2] ^ OPAD;
+			hash[3] = key.GetLL ()[3] ^ OPAD;
+			hash[4] = OPAD;
+			hash[5] = OPAD;
+			hash[6] = OPAD;
+			hash[7] = OPAD;
+			// fill last 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
+			memset (hash + 10, 0, 16);
+		}
 
 		// concatenate with msg
 		memcpy (buf + 8, msg, len);
@@ -543,8 +568,7 @@ namespace crypto
 	}
 
 // AES
-	#ifdef AESNI
-
+#ifdef AESNI
 	#define KeyExpansion256(round0,round1) \
 		"pshufd	$0xff, %%xmm2, %%xmm2 \n" \
 		"movaps	%%xmm1, %%xmm4 \n" \
@@ -567,7 +591,9 @@ namespace crypto
 		"pxor %%xmm4, %%xmm3 \n" \
 		"pxor %%xmm2, %%xmm3 \n" \
 		"movaps	%%xmm3, "#round1"(%[sched]) \n"
+#endif
 
+#ifdef AESNI
 	void ECBCryptoAESNI::ExpandKey (const AESKey& key)
 	{
 		__asm__
@@ -604,8 +630,11 @@ namespace crypto
 			: [key]"r"((const uint8_t *)key), [sched]"r"(GetKeySchedule ()) // input
 			: "%xmm1", "%xmm2", "%xmm3", "%xmm4", "memory" // clogged
 		);
-	}
+	}	
+#endif
 
+
+#if AESNI
 	#define EncryptAES256(sched) \
 		"pxor (%["#sched"]), %%xmm0 \n" \
 		"aesenc	16(%["#sched"]), %%xmm0 \n" \
@@ -622,18 +651,31 @@ namespace crypto
 		"aesenc	192(%["#sched"]), %%xmm0 \n" \
 		"aesenc	208(%["#sched"]), %%xmm0 \n" \
 		"aesenclast	224(%["#sched"]), %%xmm0 \n"
-
-	void ECBEncryptionAESNI::Encrypt (const ChipherBlock * in, ChipherBlock * out)
+#endif
+	
+	void ECBEncryption::Encrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-		__asm__
-		(
-			"movups	(%[in]), %%xmm0 \n"
-			EncryptAES256(sched)
-			"movups	%%xmm0, (%[out]) \n"
-			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
-		);
+		if(i2p::cpu::aesni)
+		{
+#ifdef AESNI
+			__asm__
+				(
+					"movups	(%[in]), %%xmm0 \n"
+					EncryptAES256(sched)
+					"movups	%%xmm0, (%[out]) \n"
+					: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
+					);
+#else
+			AES_encrypt (in->buf, out->buf, &m_Key);
+#endif
+		}
+		else
+		{
+			AES_encrypt (in->buf, out->buf, &m_Key);
+		}	
 	}
 
+#ifdef AESNI
 	#define DecryptAES256(sched) \
 		"pxor 224(%["#sched"]), %%xmm0 \n" \
 		"aesdec	208(%["#sched"]), %%xmm0 \n" \
@@ -650,79 +692,130 @@ namespace crypto
 		"aesdec	32(%["#sched"]), %%xmm0 \n" \
 		"aesdec	16(%["#sched"]), %%xmm0 \n" \
 		"aesdeclast (%["#sched"]), %%xmm0 \n"
-
-	void ECBDecryptionAESNI::Decrypt (const ChipherBlock * in, ChipherBlock * out)
+#endif
+	
+	void ECBDecryption::Decrypt (const ChipherBlock * in, ChipherBlock * out)
 	{
-		__asm__
-		(
-			"movups	(%[in]), %%xmm0 \n"
-			DecryptAES256(sched)
-			"movups	%%xmm0, (%[out]) \n"
-			: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
-		);
+		if(i2p::cpu::aesni)
+		{
+#ifdef AESNI
+			__asm__
+				(
+					"movups	(%[in]), %%xmm0 \n"
+					DecryptAES256(sched)
+					"movups	%%xmm0, (%[out]) \n"
+					: : [sched]"r"(GetKeySchedule ()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory"
+					);
+#else
+			AES_decrypt (in->buf, out->buf, &m_Key);
+#endif
+		}
+		else
+		{
+			AES_decrypt (in->buf, out->buf, &m_Key);
+		}
 	}
 
+#ifdef AESNI
 	#define CallAESIMC(offset) \
 		"movaps "#offset"(%[shed]), %%xmm0 \n"	\
 		"aesimc %%xmm0, %%xmm0 \n" \
 		"movaps %%xmm0, "#offset"(%[shed]) \n"
-
-	void ECBDecryptionAESNI::SetKey (const AESKey& key)
-	{
-		ExpandKey (key); // expand encryption key first
-		// then  invert it using aesimc
-		__asm__
-		(
-			CallAESIMC(16)
-			CallAESIMC(32)
-			CallAESIMC(48)
-			CallAESIMC(64)
-			CallAESIMC(80)
-			CallAESIMC(96)
-			CallAESIMC(112)
-			CallAESIMC(128)
-			CallAESIMC(144)
-			CallAESIMC(160)
-			CallAESIMC(176)
-			CallAESIMC(192)
-			CallAESIMC(208)
-			: : [shed]"r"(GetKeySchedule ()) : "%xmm0", "memory"
-		);
-	}
-
 #endif
+
+	void ECBEncryption::SetKey (const AESKey& key)
+	{
+		if(i2p::cpu::aesni)
+		{
+#ifdef AESNI
+			ExpandKey (key); 
+#else
+			AES_set_encrypt_key (key, 256, &m_Key);
+#endif
+		}
+		else
+		{
+			AES_set_encrypt_key (key, 256, &m_Key);
+		}
+	}
+	
+	void ECBDecryption::SetKey (const AESKey& key)
+	{
+		if(i2p::cpu::aesni)
+		{
+#ifdef AESNI
+			ExpandKey (key); // expand encryption key first
+			// then  invert it using aesimc
+			__asm__
+				(
+					CallAESIMC(16)
+					CallAESIMC(32)
+					CallAESIMC(48)
+					CallAESIMC(64)
+					CallAESIMC(80)
+					CallAESIMC(96)
+					CallAESIMC(112)
+					CallAESIMC(128)
+					CallAESIMC(144)
+					CallAESIMC(160)
+					CallAESIMC(176)
+					CallAESIMC(192)
+					CallAESIMC(208)
+					: : [shed]"r"(GetKeySchedule ()) : "%xmm0", "memory"
+					);
+#else
+			AES_set_decrypt_key (key, 256, &m_Key);
+#endif
+		}
+		else
+		{
+			AES_set_decrypt_key (key, 256, &m_Key);
+		}
+	}
 
 
 	void CBCEncryption::Encrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef AESNI
-		__asm__
-		(
-			"movups	(%[iv]), %%xmm1 \n"
-			"1: \n"
-			"movups	(%[in]), %%xmm0 \n"
-			"pxor %%xmm1, %%xmm0 \n"
-			EncryptAES256(sched)
-			"movaps	%%xmm0, %%xmm1 \n"
-			"movups	%%xmm0, (%[out]) \n"
-			"add $16, %[in] \n"
-			"add $16, %[out] \n"
-			"dec %[num] \n"
-			"jnz 1b \n"
-			"movups	%%xmm1, (%[iv]) \n"
-			:
-			: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
-			  [in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
-			: "%xmm0", "%xmm1", "cc", "memory"
-		);
-#else
-		for (int i = 0; i < numBlocks; i++)
+		if(i2p::cpu::aesni)
 		{
-			*m_LastBlock.GetChipherBlock () ^= in[i];
-			m_ECBEncryption.Encrypt (m_LastBlock.GetChipherBlock (), m_LastBlock.GetChipherBlock ());
-			out[i] = *m_LastBlock.GetChipherBlock ();
-		}
+#ifdef AESNI
+			__asm__
+				(
+					"movups	(%[iv]), %%xmm1 \n"
+					"1: \n"
+					"movups	(%[in]), %%xmm0 \n"
+					"pxor %%xmm1, %%xmm0 \n"
+					EncryptAES256(sched)
+					"movaps	%%xmm0, %%xmm1 \n"
+					"movups	%%xmm0, (%[out]) \n"
+					"add $16, %[in] \n"
+					"add $16, %[out] \n"
+					"dec %[num] \n"
+					"jnz 1b \n"
+					"movups	%%xmm1, (%[iv]) \n"
+					:
+					: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
+						[in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
+					: "%xmm0", "%xmm1", "cc", "memory"
+					);
+#else
+			for (int i = 0; i < numBlocks; i++)
+			{
+				*m_LastBlock.GetChipherBlock () ^= in[i];
+				m_ECBEncryption.Encrypt (m_LastBlock.GetChipherBlock (), m_LastBlock.GetChipherBlock ());
+				out[i] = *m_LastBlock.GetChipherBlock ();
+			}
 #endif
+		}
+		else
+		{
+			for (int i = 0; i < numBlocks; i++)
+			{
+				*m_LastBlock.GetChipherBlock () ^= in[i];
+				m_ECBEncryption.Encrypt (m_LastBlock.GetChipherBlock (), m_LastBlock.GetChipherBlock ());
+				out[i] = *m_LastBlock.GetChipherBlock ();
+			}
+		}
 	}
 
 	void CBCEncryption::Encrypt (const uint8_t * in, std::size_t len, uint8_t * out)
@@ -735,57 +828,75 @@ namespace crypto
 
 	void CBCEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
+		if(i2p::cpu::aesni)
+		{
 #ifdef AESNI
-		__asm__
-		(
-			"movups	(%[iv]), %%xmm1 \n"
-			"movups	(%[in]), %%xmm0 \n"
-			"pxor %%xmm1, %%xmm0 \n"
-			EncryptAES256(sched)
-			"movups	%%xmm0, (%[out]) \n"
-			"movups	%%xmm0, (%[iv]) \n"
-			:
-			: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
-			  [in]"r"(in), [out]"r"(out)
-			: "%xmm0", "%xmm1", "memory"
-		);
+			__asm__
+				(
+					"movups	(%[iv]), %%xmm1 \n"
+					"movups	(%[in]), %%xmm0 \n"
+					"pxor %%xmm1, %%xmm0 \n"
+					EncryptAES256(sched)
+					"movups	%%xmm0, (%[out]) \n"
+					"movups	%%xmm0, (%[iv]) \n"
+					:
+					: [iv]"r"((uint8_t *)m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule ()),
+						[in]"r"(in), [out]"r"(out)
+					: "%xmm0", "%xmm1", "memory"
+					);
 #else
-		Encrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out);
+			Encrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out);
 #endif
+		}
+		else
+			Encrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out);
 	}
 
 	void CBCDecryption::Decrypt (int numBlocks, const ChipherBlock * in, ChipherBlock * out)
 	{
-#ifdef AESNI
-		__asm__
-		(
-			"movups	(%[iv]), %%xmm1 \n"
-			"1: \n"
-			"movups	(%[in]), %%xmm0 \n"
-			"movaps %%xmm0, %%xmm2 \n"
-			DecryptAES256(sched)
-			"pxor %%xmm1, %%xmm0 \n"
-			"movups	%%xmm0, (%[out]) \n"
-			"movaps %%xmm2, %%xmm1 \n"
-			"add $16, %[in] \n"
-			"add $16, %[out] \n"
-			"dec %[num] \n"
-			"jnz 1b \n"
-			"movups	%%xmm1, (%[iv]) \n"
-			:
-			: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
-			  [in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
-			: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
-		);
-#else
-		for (int i = 0; i < numBlocks; i++)
+		if(i2p::cpu::aesni)
 		{
-			ChipherBlock tmp = in[i];
-			m_ECBDecryption.Decrypt (in + i, out + i);
-			out[i] ^= *m_IV.GetChipherBlock ();
-			*m_IV.GetChipherBlock () = tmp;
-		}
+#ifdef AESNI
+			__asm__
+				(
+					"movups	(%[iv]), %%xmm1 \n"
+					"1: \n"
+					"movups	(%[in]), %%xmm0 \n"
+					"movaps %%xmm0, %%xmm2 \n"
+					DecryptAES256(sched)
+					"pxor %%xmm1, %%xmm0 \n"
+					"movups	%%xmm0, (%[out]) \n"
+					"movaps %%xmm2, %%xmm1 \n"
+					"add $16, %[in] \n"
+					"add $16, %[out] \n"
+					"dec %[num] \n"
+					"jnz 1b \n"
+					"movups	%%xmm1, (%[iv]) \n"
+					:
+					: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
+						[in]"r"(in), [out]"r"(out), [num]"r"(numBlocks)
+					: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
+					);
+#else
+			for (int i = 0; i < numBlocks; i++)
+			{
+				ChipherBlock tmp = in[i];
+				m_ECBDecryption.Decrypt (in + i, out + i);
+				out[i] ^= *m_IV.GetChipherBlock ();
+				*m_IV.GetChipherBlock () = tmp;
+			}
 #endif
+		}
+		else
+		{
+			for (int i = 0; i < numBlocks; i++)
+			{
+				ChipherBlock tmp = in[i];
+				m_ECBDecryption.Decrypt (in + i, out + i);
+				out[i] ^= *m_IV.GetChipherBlock ();
+				*m_IV.GetChipherBlock () = tmp;
+			}
+		}
 	}
 
 	void CBCDecryption::Decrypt (const uint8_t * in, std::size_t len, uint8_t * out)
@@ -797,96 +908,121 @@ namespace crypto
 
 	void CBCDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
+		if(i2p::cpu::aesni)
+		{
 #ifdef AESNI
-		__asm__
-		(
-			"movups	(%[iv]), %%xmm1 \n"
-			"movups	(%[in]), %%xmm0 \n"
-			"movups	%%xmm0, (%[iv]) \n"
-			DecryptAES256(sched)
-			"pxor %%xmm1, %%xmm0 \n"
-			"movups	%%xmm0, (%[out]) \n"
-			:
-			: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
-			  [in]"r"(in), [out]"r"(out)
-			: "%xmm0", "%xmm1", "memory"
-		);
+			__asm__
+				(
+					"movups	(%[iv]), %%xmm1 \n"
+					"movups	(%[in]), %%xmm0 \n"
+					"movups	%%xmm0, (%[iv]) \n"
+					DecryptAES256(sched)
+					"pxor %%xmm1, %%xmm0 \n"
+					"movups	%%xmm0, (%[out]) \n"
+					:
+					: [iv]"r"((uint8_t *)m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
+						[in]"r"(in), [out]"r"(out)
+					: "%xmm0", "%xmm1", "memory"
+					);
 #else
-		Decrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out);
+			Decrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out);
 #endif
+		}
+		else
+			Decrypt (1, (const ChipherBlock *)in, (ChipherBlock *)out);
 	}
 
 	void TunnelEncryption::Encrypt (const uint8_t * in, uint8_t * out)
 	{
+		if(i2p::cpu::aesni)
+		{
 #ifdef AESNI
-		__asm__
-		(
-			// encrypt IV
-			"movups	(%[in]), %%xmm0 \n"
-			EncryptAES256(sched_iv)
-			"movaps %%xmm0, %%xmm1 \n"
-			// double IV encryption
-			EncryptAES256(sched_iv)
-			"movups %%xmm0, (%[out]) \n"
-			// encrypt data, IV is xmm1
-			"1: \n"
-			"add $16, %[in] \n"
-			"add $16, %[out] \n"
-			"movups	(%[in]), %%xmm0 \n"
-			"pxor %%xmm1, %%xmm0 \n"
-			EncryptAES256(sched_l)
-			"movaps	%%xmm0, %%xmm1 \n"
-			"movups	%%xmm0, (%[out]) \n"
-			"dec %[num] \n"
-			"jnz 1b \n"
-			:
-			: [sched_iv]"r"(m_IVEncryption.GetKeySchedule ()), [sched_l]"r"(m_LayerEncryption.GetKeySchedule ()),
-			  [in]"r"(in), [out]"r"(out), [num]"r"(63) // 63 blocks = 1008 bytes
-			: "%xmm0", "%xmm1", "cc", "memory"
-		);
+			__asm__
+				(
+					// encrypt IV
+					"movups	(%[in]), %%xmm0 \n"
+					EncryptAES256(sched_iv)
+					"movaps %%xmm0, %%xmm1 \n"
+					// double IV encryption
+					EncryptAES256(sched_iv)
+					"movups %%xmm0, (%[out]) \n"
+					// encrypt data, IV is xmm1
+					"1: \n"
+					"add $16, %[in] \n"
+					"add $16, %[out] \n"
+					"movups	(%[in]), %%xmm0 \n"
+					"pxor %%xmm1, %%xmm0 \n"
+					EncryptAES256(sched_l)
+					"movaps	%%xmm0, %%xmm1 \n"
+					"movups	%%xmm0, (%[out]) \n"
+					"dec %[num] \n"
+					"jnz 1b \n"
+					:
+					: [sched_iv]"r"(m_IVEncryption.GetKeySchedule ()), [sched_l]"r"(m_LayerEncryption.ECB().GetKeySchedule ()),
+						[in]"r"(in), [out]"r"(out), [num]"r"(63) // 63 blocks = 1008 bytes
+					: "%xmm0", "%xmm1", "cc", "memory"
+					);
 #else
-		m_IVEncryption.Encrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
-		m_LayerEncryption.SetIV (out);
-		m_LayerEncryption.Encrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
-		m_IVEncryption.Encrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
+			m_IVEncryption.Encrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
+			m_LayerEncryption.SetIV (out);
+			m_LayerEncryption.Encrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
+			m_IVEncryption.Encrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
 #endif
+		}
+		else
+		{
+			m_IVEncryption.Encrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
+			m_LayerEncryption.SetIV (out);
+			m_LayerEncryption.Encrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
+			m_IVEncryption.Encrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
+		}
 	}
 
 	void TunnelDecryption::Decrypt (const uint8_t * in, uint8_t * out)
 	{
+		if(i2p::cpu::aesni)
+		{
 #ifdef AESNI
-		__asm__
-		(
-			// decrypt IV
-			"movups	(%[in]), %%xmm0 \n"
-			DecryptAES256(sched_iv)
-			"movaps %%xmm0, %%xmm1 \n"
-			// double IV encryption
-			DecryptAES256(sched_iv)
-			"movups %%xmm0, (%[out]) \n"
-			// decrypt data, IV is xmm1
-			"1: \n"
-			"add $16, %[in] \n"
-			"add $16, %[out] \n"
-			"movups	(%[in]), %%xmm0 \n"
-			"movaps %%xmm0, %%xmm2 \n"
-			DecryptAES256(sched_l)
-			"pxor %%xmm1, %%xmm0 \n"
-			"movups	%%xmm0, (%[out]) \n"
-			"movaps %%xmm2, %%xmm1 \n"
-			"dec %[num] \n"
-			"jnz 1b \n"
-			:
-			: [sched_iv]"r"(m_IVDecryption.GetKeySchedule ()), [sched_l]"r"(m_LayerDecryption.GetKeySchedule ()),
-				[in]"r"(in), [out]"r"(out), [num]"r"(63) // 63 blocks = 1008 bytes
-			: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
-		);
+			__asm__
+				(
+					// decrypt IV
+					"movups	(%[in]), %%xmm0 \n"
+					DecryptAES256(sched_iv)
+					"movaps %%xmm0, %%xmm1 \n"
+					// double IV encryption
+					DecryptAES256(sched_iv)
+					"movups %%xmm0, (%[out]) \n"
+					// decrypt data, IV is xmm1
+					"1: \n"
+					"add $16, %[in] \n"
+					"add $16, %[out] \n"
+					"movups	(%[in]), %%xmm0 \n"
+					"movaps %%xmm0, %%xmm2 \n"
+					DecryptAES256(sched_l)
+					"pxor %%xmm1, %%xmm0 \n"
+					"movups	%%xmm0, (%[out]) \n"
+					"movaps %%xmm2, %%xmm1 \n"
+					"dec %[num] \n"
+					"jnz 1b \n"
+					:
+					: [sched_iv]"r"(m_IVDecryption.GetKeySchedule ()), [sched_l]"r"(m_LayerDecryption.ECB().GetKeySchedule ()),
+						[in]"r"(in), [out]"r"(out), [num]"r"(63) // 63 blocks = 1008 bytes
+					: "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
+					);
 #else
-		m_IVDecryption.Decrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
-		m_LayerDecryption.SetIV (out);
-		m_LayerDecryption.Decrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
-		m_IVDecryption.Decrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
+			m_IVDecryption.Decrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
+			m_LayerDecryption.SetIV (out);
+			m_LayerDecryption.Decrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
+			m_IVDecryption.Decrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
 #endif
+		}
+		else
+		{
+			m_IVDecryption.Decrypt ((const ChipherBlock *)in, (ChipherBlock *)out); // iv
+			m_LayerDecryption.SetIV (out);
+			m_LayerDecryption.Decrypt (in + 16, i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE, out + 16); // data
+			m_IVDecryption.Decrypt ((ChipherBlock *)out, (ChipherBlock *)out); // double iv
+		}
 	}
 
 /*	std::vector <std::unique_ptr<std::mutex> >  m_OpenSSLMutexes;
@@ -904,6 +1040,7 @@ namespace crypto
 
 	void InitCrypto (bool precomputation)
 	{
+		i2p::cpu::Detect ();
 		SSL_library_init ();
 /*		auto numLocks = CRYPTO_num_locks();
 		for (int i = 0; i < numLocks; i++)
