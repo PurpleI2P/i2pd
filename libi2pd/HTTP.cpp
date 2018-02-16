@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <stdio.h>
 #include "util.h"
 #include "HTTP.h"
 #include <ctime>
@@ -67,7 +68,7 @@ namespace http {
     std::time_t now = std::time(nullptr);
     char buf[128];
     std::tm *tm = std::gmtime(&now);
-    std::snprintf(buf, sizeof(buf), "%s, %02d %s %d %02d:%02d:%02d GMT",
+    snprintf(buf, sizeof(buf), "%s, %02d %s %d %02d:%02d:%02d GMT",
       weekdays[tm->tm_wday], tm->tm_mday, months[tm->tm_mon],
       tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec
     );
