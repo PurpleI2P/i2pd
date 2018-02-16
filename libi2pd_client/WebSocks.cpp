@@ -248,10 +248,15 @@ namespace client
 					m_State = eWSCTryConnect;
 					m_Parent->CreateStreamTo(m_RemoteAddr, m_RemotePort, std::bind(&WebSocksConn::ConnectResult, this, std::placeholders::_1));
 				} else if (state == eWSCDatagram) {
-					LogPrint(eLogDebug, "websocks: datagram mode initiated");
-					m_State = eWSCDatagram;
-					BeginDatagram();
-					SendResponse("");
+					if (m_RemotePort >= 0 && m_RemotePort <= 65535)
+					{
+						LogPrint(eLogDebug, "websocks: datagram mode initiated");
+						m_State = eWSCDatagram;
+						BeginDatagram();
+						SendResponse("");
+					}
+					else
+						SendResponse("invalid port");
 				} else {
 					LogPrint(eLogWarning, "websocks: invalid state change ", m_State, " -> ", state);
 				}
