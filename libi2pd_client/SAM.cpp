@@ -296,6 +296,19 @@ namespace client
 		}
 	}
 
+	static bool IsAcceptableSessionName(const std::string & str)
+	{
+		auto itr = str.begin();
+		while(itr != str.end())
+		{
+			char ch = *itr;
+			++itr;
+			if (ch == '<' || ch == '>' || ch == '"' || ch == '\'' || ch == '/')
+				return false;
+		}
+		return true;
+	}
+
 	void SAMSocket::ProcessSessionCreate (char * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SAM: session create: ", buf);
@@ -304,6 +317,13 @@ namespace client
 		std::string& style = params[SAM_PARAM_STYLE];
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
+
+		if(!IsAcceptableSessionName(id))
+		{
+			// invalid session id
+			SendMessageReply (SAM_SESSION_CREATE_INVALID_ID, strlen(SAM_SESSION_CREATE_INVALID_ID), true);
+			return;
+		}
 		m_ID = id;
 		if (m_Owner.FindSession (id))
 		{
