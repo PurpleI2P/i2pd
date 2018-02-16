@@ -171,7 +171,7 @@ namespace transport
 					return;
 				}
 			}
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)
+#if ((__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)) || defined(__NetBSD__)
 // due the bug in gcc 4.7. std::shared_future.get() is not const
 			if (!m_DHKeysPair)
 				m_DHKeysPair = transports.GetNextDHKeysPair ();
@@ -250,7 +250,7 @@ namespace transport
 		}
 		else
 		{
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)
+#if ((__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)) || defined(__NetBSD__)
 // due the bug in gcc 4.7. std::shared_future.get() is not const
 			CreateAESKey (m_Establisher->phase2.pubKey);
 			HandlePhase2 ();
