@@ -212,7 +212,7 @@ namespace client
 				ss << ".b32.i2p:";
 				ss << std::to_string(fromPort);
 				ss << "\n";
-				ss << std::string((char *)buf, len);
+				ss.write((char *)buf, len);
 				conn->send(ss.str());
 			}
 		}
