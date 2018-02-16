@@ -29,6 +29,7 @@ SOURCES += DaemonQT.cpp mainwindow.cpp \
     ../../libi2pd/Base.cpp \
     ../../libi2pd/BloomFilter.cpp \
     ../../libi2pd/Config.cpp \
+    ../../libi2pd/CPU.cpp \
     ../../libi2pd/Crypto.cpp \
 	../../libi2pd/CryptoKey.cpp \
     ../../libi2pd/Datagram.cpp \
