@@ -728,25 +728,7 @@ namespace crypto
 		if(i2p::cpu::aesni)
 		{
 #ifdef AESNI
-			ExpandKey (key); // expand encryption key first
-			// then  invert it using aesimc
-			__asm__
-				(
-					CallAESIMC(16)
-					CallAESIMC(32)
-					CallAESIMC(48)
-					CallAESIMC(64)
-					CallAESIMC(80)
-					CallAESIMC(96)
-					CallAESIMC(112)
-					CallAESIMC(128)
-					CallAESIMC(144)
-					CallAESIMC(160)
-					CallAESIMC(176)
-					CallAESIMC(192)
-					CallAESIMC(208)
-					: : [shed]"r"(GetKeySchedule ()) : "%xmm0", "memory"
-					);
+			ExpandKey (key); 
 #else
 			AES_set_encrypt_key (key, 256, &m_Key);
 #endif
