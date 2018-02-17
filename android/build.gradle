@@ -19,7 +19,6 @@ repositories {
 
 dependencies {
     compile 'com.android.support:support-v4:25.3.1'
-    compile 'com.android.support:design:25.3.1'
 }
 
 android {
@@ -33,6 +32,7 @@ android {
         versionName "2.18.0"
         ndk {
             abiFilters 'armeabi-v7a'
+            //abiFilters 'x86'
         }
     }
     sourceSets {
@@ -64,4 +64,5 @@ android {
         }
     }
 }
+
 
