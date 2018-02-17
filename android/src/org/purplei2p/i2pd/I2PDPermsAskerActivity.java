@@ -124,6 +124,8 @@ public class I2PDPermsAskerActivity extends Activity {
                 ActivityCompat.requestPermissions(I2PDPermsAskerActivity.this,
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
                         PERMISSION_WRITE_EXTERNAL_STORAGE);
+            } else {
+                finish(); //close the app
             }
         }
     }

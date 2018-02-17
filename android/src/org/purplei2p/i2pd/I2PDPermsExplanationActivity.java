@@ -1,5 +1,6 @@
 package org.purplei2p.i2pd;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
@@ -12,7 +13,8 @@ public class I2PDPermsExplanationActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_perms_explanation);
-        //getActionBar().setDisplayHomeAsUpEnabled(true);
+        ActionBar actionBar = getActionBar();
+        if(actionBar!=null)actionBar.setHomeButtonEnabled(false);
         Button button_ok = (Button) findViewById(R.id.button_ok);
         button_ok.setOnClickListener(new View.OnClickListener() {
             @Override
