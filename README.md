@@ -58,6 +58,7 @@ Build instructions:
 * Windows				- [![Build status](https://ci.appveyor.com/api/projects/status/1908qe4p48ff1x23?svg=true)](https://ci.appveyor.com/project/PurpleI2P/i2pd)
 * Mac OS X				- [![Build Status](https://travis-ci.org/PurpleI2P/i2pd.svg?branch=openssl)](https://travis-ci.org/PurpleI2P/i2pd)
 * CentOS / Fedora		- [![Build Status](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/supervillain/i2pd/package/i2pd-git/)
+* Docker image     - [![Build Status](https://dockerbuildbadges.quelltext.eu/status.svg?organization=meeh&repository=i2pd)](https://hub.docker.com/r/meeh/i2pd/builds/)
 * FreeBSD
 * Android
 * iOS
