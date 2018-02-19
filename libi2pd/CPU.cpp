@@ -3,15 +3,6 @@
 #include <cpuid.h>
 #endif
 #include "Log.h"
-
-#ifndef bit_AES
-#define bit_AES (1 << 25)
-#endif
-#ifndef bit_AVX
-#define bit_AVX (1 << 28)
-#endif
-
-
 namespace i2p
 {
 namespace cpu
