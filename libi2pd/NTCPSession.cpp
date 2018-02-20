@@ -105,6 +105,11 @@ namespace transport
 		transports.PeerConnected (shared_from_this ());
 	}
 
+	boost::asio::io_service & NTCPSession::GetService()
+	{
+		return m_Server.GetService();
+	}
+
 	void NTCPSession::ClientLogin ()
 	{
 		if (!m_DHKeysPair)
@@ -171,27 +176,14 @@ namespace transport
 					return;
 				}
 			}
-#if ((__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)) || defined(__NetBSD__)
-// due the bug in gcc 4.7. std::shared_future.get() is not const
-			if (!m_DHKeysPair)
-				m_DHKeysPair = transports.GetNextDHKeysPair ();
-			CreateAESKey (m_Establisher->phase1.pubKey);
-			SendPhase2 ();
-#else
 			// TODO: check for number of pending keys
 			auto s = shared_from_this ();
-			auto keyCreated = std::async (std::launch::async, [s] ()
-				{
+			m_Server.Work(s, [s]() -> std::function<void(void)> {
 					if (!s->m_DHKeysPair)
 						s->m_DHKeysPair = transports.GetNextDHKeysPair ();
 					s->CreateAESKey (s->m_Establisher->phase1.pubKey);
-				}).share ();
-			m_Server.GetService ().post ([s, keyCreated]()
-			{
-				keyCreated.get ();
-				s->SendPhase2 ();
+					return std::bind(&NTCPSession::SendPhase2, s);
 			});
-#endif
 		}
 	}
 
@@ -211,9 +203,8 @@ namespace transport
 		m_Decryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
 
 		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
-		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),
-					std::bind(&NTCPSession::HandlePhase2Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsB));
-
+		boost::asio::async_write(m_Socket, boost::asio::buffer (&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all(),
+			std::bind(&NTCPSession::HandlePhase2Sent, shared_from_this(), std::placeholders::_1, std::placeholders::_2, tsB));
 	}
 
 	void NTCPSession::HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB)
@@ -250,24 +241,11 @@ namespace transport
 		}
 		else
 		{
-#if ((__GNUC__ == 4) && (__GNUC_MINOR__ <= 7)) || defined(__NetBSD__)
-// due the bug in gcc 4.7. std::shared_future.get() is not const
-			CreateAESKey (m_Establisher->phase2.pubKey);
-			HandlePhase2 ();
-#else
 			auto s = shared_from_this ();
-			// create AES key in separate thread
-			auto keyCreated = std::async (std::launch::async, [s] ()
-				{
-					s->CreateAESKey (s->m_Establisher->phase2.pubKey);
-				}).share (); // TODO: use move capture in C++ 14 instead shared_future
-			// let other operations execute while a key gets created
-			m_Server.GetService ().post ([s, keyCreated]()
-				{
-					keyCreated.get (); // we might wait if no more pending operations
-					s->HandlePhase2 ();
-				});
-#endif
+			m_Server.Work(s, [s]() -> std::function<void(void)> {
+				s->CreateAESKey (s->m_Establisher->phase2.pubKey);
+				return std::bind(&NTCPSession::HandlePhase2, s);
+			});
 		}
 	}
 
@@ -788,12 +766,14 @@ namespace transport
 	}
 
 //-----------------------------------------
-	NTCPServer::NTCPServer ():
+	NTCPServer::NTCPServer (int workers):
 		m_IsRunning (false), m_Thread (nullptr), m_Work (m_Service),
 		m_TerminationTimer (m_Service), m_NTCPAcceptor (nullptr), m_NTCPV6Acceptor (nullptr),
 		m_ProxyType(eNoProxy), m_Resolver(m_Service), m_ProxyEndpoint(nullptr),
 		m_SoftLimit(0), m_HardLimit(0)
 	{
+		if(workers <= 0) workers = 1;
+		m_CryptoPool = std::make_shared<Pool>(workers);
 	}
 
 	NTCPServer::~NTCPServer ()
