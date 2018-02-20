@@ -102,7 +102,7 @@ namespace transport
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
 
 		private:
-    
+
 			NTCPServer& m_Server;
 			boost::asio::ip::tcp::socket m_Socket;
 			bool m_IsEstablished, m_IsTerminated;
@@ -133,7 +133,7 @@ namespace transport
 	{
 		public:
 
-    typedef i2p::worker::ThreadPool<NTCPSession> Pool;
+			typedef i2p::worker::ThreadPool<NTCPSession> Pool;
 
 			enum RemoteAddressType
 			{
@@ -177,7 +177,6 @@ namespace transport
 			{
 				m_CryptoPool->Offer({conn, work});
 			}
-		
 		private:
 
 			/** @brief return true for hard limit */
@@ -203,7 +202,7 @@ namespace transport
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 
 		private:
-    
+
 			bool m_IsRunning;
 			std::thread * m_Thread;
 			boost::asio::io_service m_Service;
@@ -219,8 +218,8 @@ namespace transport
 			boost::asio::ip::tcp::resolver m_Resolver;
 			boost::asio::ip::tcp::endpoint * m_ProxyEndpoint;
 
-      std::shared_ptr<Pool> m_CryptoPool;
-    
+			std::shared_ptr<Pool> m_CryptoPool;
+
 			uint16_t m_SoftLimit, m_HardLimit;
 		public:
 
