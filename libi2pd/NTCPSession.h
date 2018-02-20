@@ -56,6 +56,7 @@ namespace transport
 			void Done ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
+			boost::asio::io_service & GetService();
 			bool IsEstablished () const { return m_IsEstablished; };
 			bool IsTerminated () const { return m_IsTerminated; };
 
@@ -101,7 +102,7 @@ namespace transport
 			void HandleSent (const boost::system::error_code& ecode, std::size_t bytes_transferred, std::vector<std::shared_ptr<I2NPMessage> > msgs);
 
 		private:
-
+    
 			NTCPServer& m_Server;
 			boost::asio::ip::tcp::socket m_Socket;
 			bool m_IsEstablished, m_IsTerminated;
@@ -172,6 +173,11 @@ namespace transport
 
 			void SetSessionLimits(uint16_t softLimit, uint16_t hardLimit) { m_SoftLimit = softLimit; m_HardLimit = hardLimit; }
 			bool ShouldLimit() const { return ShouldHardLimit() || ShouldSoftLimit(); }
+			void Work(std::shared_ptr<NTCPSession> conn, Pool::WorkFunc work)
+			{
+				m_CryptoPool->Offer({conn, work});
+			}
+		
 		private:
 
 			/** @brief return true for hard limit */
@@ -196,13 +202,8 @@ namespace transport
 			void ScheduleTermination ();
 			void HandleTerminationTimer (const boost::system::error_code& ecode);
 
-      void Work(std::shared_ptr<NTCPSession> conn, Pool::WorkFunc work)
-      {
-        m_CryptoPool->Offer({conn, work});
-      }
-    
 		private:
-
+    
 			bool m_IsRunning;
 			std::thread * m_Thread;
 			boost::asio::io_service m_Service;

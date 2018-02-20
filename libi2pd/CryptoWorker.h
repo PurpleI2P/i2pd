@@ -6,7 +6,6 @@
 #include <deque>
 #include <thread>
 #include <vector>
-#include <pair>
 #include <memory>
 
 namespace i2p
@@ -17,7 +16,7 @@ namespace worker
   struct ThreadPool
   {
     typedef std::function<void(void)> ResultFunc;
-    typedef std::function<Result(void)> WorkFunc;
+    typedef std::function<ResultFunc(void)> WorkFunc;
     typedef std::pair<std::shared_ptr<Caller>, WorkFunc> Job;
     typedef std::mutex mtx_t;
     typedef std::unique_lock<mtx_t> lock_t;
@@ -30,9 +29,9 @@ namespace worker
         while(workers--)
         {
           threads.emplace_back([this] {
-              Job job;
               for (;;)
               {
+                Job job;
                 {
                   lock_t lock(this->queue_mutex);
                   this->condition.wait(
@@ -41,8 +40,9 @@ namespace worker
                   job = std::move(this->jobs.front());
                   this->jobs.pop_front();
                 }
+                ResultFunc result = job.second();
+                job.first->GetService().post(result);
               }
-              job.first->GetService().post(job.second());
           });
         }
       }

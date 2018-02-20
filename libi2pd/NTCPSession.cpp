@@ -105,6 +105,11 @@ namespace transport
 		transports.PeerConnected (shared_from_this ());
 	}
 
+	boost::asio::io_service & NTCPSession::GetService()
+	{
+		return m_Server.GetService();
+	}
+	
 	void NTCPSession::ClientLogin ()
 	{
 		if (!m_DHKeysPair)
@@ -196,11 +201,8 @@ namespace transport
 
 		m_Encryption.SetIV (y + 240);
 		m_Decryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
-		
 		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
-		boost::asio::async_write (m_Socket, boost::asio::buffer (&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all (),
-					std::bind(&NTCPSession::HandlePhase2Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsB));
-
+		boost::asio::async_write(m_Socket, boost::asio::buffer (&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all(), std::bind(&NTCPSession::HandlePhase2Sent, shared_from_this(), std::placeholders::_1, std::placeholders::_2, tsB));
 	}
 
 	void NTCPSession::HandlePhase2Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsB)
@@ -249,7 +251,6 @@ namespace transport
 	{
 		m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
 		m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
-
 		m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 		// verify
 		uint8_t xy[512];
@@ -289,7 +290,6 @@ namespace transport
 			buf += paddingSize;
 			len += paddingSize;
 		}
-
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
@@ -297,10 +297,9 @@ namespace transport
 		s.Insert (tsA);	// tsA
 		s.Insert (m_Establisher->phase2.encrypted.timestamp, 4); // tsB
 		s.Sign (keys, buf);
-
 		m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_ReceiveBuffer, len), boost::asio::transfer_all (),
-			std::bind(&NTCPSession::HandlePhase3Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsA));
+															std::bind(&NTCPSession::HandlePhase3Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsA));
 	}
 
 	void NTCPSession::HandlePhase3Sent (const boost::system::error_code& ecode, std::size_t bytes_transferred, uint32_t tsA)
