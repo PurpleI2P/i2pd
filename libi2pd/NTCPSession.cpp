@@ -252,6 +252,7 @@ namespace transport
 	{
 		m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
 		m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
+
 		m_Decryption.Decrypt((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 		// verify
 		uint8_t xy[512];
