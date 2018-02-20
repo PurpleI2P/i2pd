@@ -201,6 +201,7 @@ namespace transport
 
 		m_Encryption.SetIV (y + 240);
 		m_Decryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
+
 		m_Encryption.Encrypt ((uint8_t *)&m_Establisher->phase2.encrypted, sizeof(m_Establisher->phase2.encrypted), (uint8_t *)&m_Establisher->phase2.encrypted);
 		boost::asio::async_write(m_Socket, boost::asio::buffer (&m_Establisher->phase2, sizeof (NTCPPhase2)), boost::asio::transfer_all(),
 			std::bind(&NTCPSession::HandlePhase2Sent, shared_from_this(), std::placeholders::_1, std::placeholders::_2, tsB));
