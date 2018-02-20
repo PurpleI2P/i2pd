@@ -153,9 +153,10 @@ namespace transport
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcpproxy; i2p::config::GetOption("ntcpproxy", ntcpproxy);
 		i2p::http::URL proxyurl;
-		uint16_t softLimit, hardLimit;
+		uint16_t softLimit, hardLimit, threads;
 		i2p::config::GetOption("limits.ntcpsoft", softLimit);
 		i2p::config::GetOption("limits.ntcphard", hardLimit);
+		i2p::config::GetOption("limits.ntcpthreads", threads);
 		if(softLimit > 0 && hardLimit > 0 && softLimit >= hardLimit)
 		{
 			LogPrint(eLogError, "ntcp soft limit must be less than ntcp hard limit");
@@ -167,7 +168,7 @@ namespace transport
 			{
 				if(proxyurl.schema == "socks" || proxyurl.schema == "http")
 				{
-					m_NTCPServer = new NTCPServer();
+					m_NTCPServer = new NTCPServer(threads);
 					m_NTCPServer->SetSessionLimits(softLimit, hardLimit);
 					NTCPServer::ProxyType proxytype = NTCPServer::eSocksProxy;
 
@@ -198,7 +199,7 @@ namespace transport
 			if (!address) continue;
 			if (m_NTCPServer == nullptr && enableNTCP)
 			{
-				m_NTCPServer = new NTCPServer ();
+				m_NTCPServer = new NTCPServer (threads);
 				m_NTCPServer->SetSessionLimits(softLimit, hardLimit);
 				m_NTCPServer->Start ();
 				if (!(m_NTCPServer->IsBoundV6() || m_NTCPServer->IsBoundV4())) {

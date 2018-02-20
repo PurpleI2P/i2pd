@@ -73,6 +73,7 @@ namespace config {
 			("limits.transittunnels", value<uint16_t>()->default_value(2500), "Maximum active transit sessions (default:2500)")
 			("limits.ntcpsoft", value<uint16_t>()->default_value(0),          "Threshold to start probabalistic backoff with ntcp sessions (default: use system limit)")
 			("limits.ntcphard", value<uint16_t>()->default_value(0),          "Maximum number of ntcp sessions (default: use system limit)")
+			("limits.ntcpthreads", value<uint16_t>()->default_value(1),       "Maximum number of threads used by NTCP DH worker (default: 1)")
 		;
 
 		options_description httpserver("HTTP Server options");
