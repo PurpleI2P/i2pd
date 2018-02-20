@@ -291,6 +291,7 @@ namespace transport
 			buf += paddingSize;
 			len += paddingSize;
 		}
+
 		SignedData s;
 		s.Insert (m_Establisher->phase1.pubKey, 256); // x
 		s.Insert (m_Establisher->phase2.pubKey, 256); // y
@@ -298,6 +299,7 @@ namespace transport
 		s.Insert (tsA);	// tsA
 		s.Insert (m_Establisher->phase2.encrypted.timestamp, 4); // tsB
 		s.Sign (keys, buf);
+
 		m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);
 		boost::asio::async_write (m_Socket, boost::asio::buffer (m_ReceiveBuffer, len), boost::asio::transfer_all (),
 			std::bind(&NTCPSession::HandlePhase3Sent, shared_from_this (), std::placeholders::_1, std::placeholders::_2, tsA));
