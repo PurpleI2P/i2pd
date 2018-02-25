@@ -87,7 +87,7 @@ namespace client
 			auto itr = m_ReadyCallbacks.begin();
 			while(itr != m_ReadyCallbacks.end())
 			{
-				if(itr->second <= now)
+				if(itr->second >= now)
 				{
 					itr->first(boost::asio::error::timed_out);
 					itr = m_ReadyCallbacks.erase(itr);
