@@ -107,7 +107,7 @@ namespace client
 				std::placeholders::_1, std::placeholders::_2));
 	}
 
-	static bool SAMVersionAccceptable(const std::string & ver)
+	static bool SAMVersionAcceptable(const std::string & ver)
 	{
 		return ver == "3.0" || ver == "3.1";
 	}
@@ -117,7 +117,7 @@ namespace client
 		return ver.size() && ver[0] < '3';
 	}
 
-	static bool SAMVersionTooHigh(const std:::string & ver)
+	static bool SAMVersionTooHigh(const std::string & ver)
 	{
 		return ver.size() && ver > "3.1";
 	}
@@ -172,7 +172,7 @@ namespace client
 				{
 					version = minver;
 				}
-				else if (SAMVersionTooLow(minver) && SAMVersionIsTooHigh(maxver))
+				else if (SAMVersionTooLow(minver) && SAMVersionTooHigh(maxver))
 				{
 					version = "3.0";
 				}
