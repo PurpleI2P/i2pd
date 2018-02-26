@@ -434,14 +434,14 @@ namespace client
 						uint16_t optssize = bufbe16toh(buf);
 						if (optssize <= len - sizeof(uint16_t) - sizeof(uint64_t) - identsz - ident.GetSignatureLen() - sizeof(uint16_t))
 						{
-							buf += 2
+							buf += sizeof(uint16_t);
 							std::map<std::string, std::string> opts;
 							ExtractMapping(buf, optssize, opts);
 							buf += optssize;
 							//uint64_t date = bufbe64toh(buf);
-							buf += 8;
+							buf += sizeof(uint64_t);
 							const uint8_t * sig = buf;
-							if(ident.Verify(body, len - 2 - ident.GetSignatureLen(), sig))
+							if(ident.Verify(body, len - sizeof(uint16_t) - ident.GetSignatureLen(), sig))
 							{
 								if(m_Destination->Reconfigure(opts))
 								{
