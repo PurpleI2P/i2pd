@@ -169,6 +169,46 @@ namespace client
 			return false;
 	}
 
+	bool LeaseSetDestination::Reconfigure(std::map<std::string, std::string> params)
+	{
+		
+		auto itr = params.find("i2cp.dontPublishLeaseSet");
+		if (itr != params.end())
+		{
+			m_IsPublic = itr->second != "true";
+		}
+		
+		int inLen, outLen, inQuant, outQuant, numTags, minLatency, maxLatency;
+		std::map<std::string, int&> intOpts = {
+			{I2CP_PARAM_INBOUND_TUNNEL_LENGTH, inLen},
+			{I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH, outLen},
+			{I2CP_PARAM_INBOUND_TUNNELS_QUANTITY, inQuant},
+			{I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY, outQuant},
+			{I2CP_PARAM_TAGS_TO_SEND, numTags},
+			{I2CP_PARAM_MIN_TUNNEL_LATENCY, minLatency},
+			{I2CP_PARAM_MAX_TUNNEL_LATENCY, maxLatency}
+		};
+
+		auto pool = GetTunnelPool();
+		inLen = pool->GetNumInboundHops();
+		outLen = pool->GetNumOutboundHops();
+		inQuant = pool->GetNumInboundTunnels();
+		outQuant = pool->GetNumOutboundTunnels();
+		minLatency = 0;
+		maxLatency = 0;
+		
+		for (auto & opt : intOpts)
+		{
+			itr = params.find(opt.first);
+			if(itr != params.end())
+			{
+				opt.second = std::stoi(itr->second);
+			}
+		}
+		pool->RequireLatency(minLatency, maxLatency);
+		return pool->Reconfigure(inLen, outLen, inQuant, outQuant);
+	}
+	
 	std::shared_ptr<const i2p::data::LeaseSet> LeaseSetDestination::FindLeaseSet (const i2p::data::IdentHash& ident)
 	{
 		std::shared_ptr<i2p::data::LeaseSet> remoteLS;
