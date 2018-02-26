@@ -538,7 +538,7 @@ namespace garlic
 			{
 				case eGarlicDeliveryTypeLocal:
 					LogPrint (eLogDebug, "Garlic: type local");
-					if (offset > (int)len || offset <= 0)
+					if (offset > (int)len)
 					{
 						LogPrint (eLogError, "Garlic: message is too short");
 						break;
@@ -594,7 +594,7 @@ namespace garlic
 					offset = buf - buf1;
 					if (!from) // received directly
 					{
-						if (offset > (int)len || offset <= 0)
+						if (offset > (int)len)
 						{
 							LogPrint (eLogError, "Garlic: message is too short");
 							break;
@@ -609,7 +609,7 @@ namespace garlic
 				default:
 					LogPrint (eLogWarning, "Garlic: unknown delivery type ", (int)deliveryType);
 			}
-			if (offset > (int)len || offset <= 0)
+			if (offset > (int)len)
 			{
 				LogPrint (eLogError, "Garlic: message is too short");
 				break;
