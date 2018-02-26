@@ -18,7 +18,7 @@ namespace crypto
 	class Verifier
 	{
 		public:
-			
+
 			virtual ~Verifier () {};
 			virtual bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const = 0;
 			virtual size_t GetPublicKeyLen () const = 0;
@@ -30,12 +30,12 @@ namespace crypto
 	{
 		public:
 
-			virtual ~Signer () {};		
-			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0; 
+			virtual ~Signer () {};
+			virtual void Sign (const uint8_t * buf, int len, uint8_t * signature) const = 0;
 	};
 
 	const size_t DSA_PUBLIC_KEY_LENGTH = 128;
-	const size_t DSA_SIGNATURE_LENGTH = 40;	
+	const size_t DSA_SIGNATURE_LENGTH = 40;
 	const size_t DSA_PRIVATE_KEY_LENGTH = DSA_SIGNATURE_LENGTH/2;
 	class DSAVerifier: public Verifier
 	{
@@ -51,7 +51,7 @@ namespace crypto
 			{
 				DSA_free (m_PublicKey);
 			}
-			
+
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				// calculate SHA1 digest
@@ -64,11 +64,11 @@ namespace crypto
 				int ret = DSA_do_verify (digest, 20, sig, m_PublicKey);
 				DSA_SIG_free(sig);
 				return ret;
-			}	
+			}
 
 			size_t GetPublicKeyLen () const { return DSA_PUBLIC_KEY_LENGTH; };
 			size_t GetSignatureLen () const { return DSA_SIGNATURE_LENGTH; };
-			
+
 		private:
 
 			DSA * m_PublicKey;
@@ -89,7 +89,7 @@ namespace crypto
 			{
 				DSA_free (m_PrivateKey);
 			}
-			
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
 			{
 				uint8_t digest[20];
@@ -115,21 +115,21 @@ namespace crypto
 		DSA_get0_key(dsa, &pub_key, &priv_key);
 		bn2buf (priv_key, signingPrivateKey, DSA_PRIVATE_KEY_LENGTH);
 		bn2buf (pub_key, signingPublicKey, DSA_PUBLIC_KEY_LENGTH);
-		DSA_free (dsa);	
-	}	
+		DSA_free (dsa);
+	}
 
 	struct SHA256Hash
-	{	
+	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
 		{
 			SHA256 (buf, len, digest);
 		}
 
 		enum { hashLen = 32 };
-	};	
+	};
 
 	struct SHA384Hash
-	{	
+	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
 		{
 			SHA384 (buf, len, digest);
@@ -139,7 +139,7 @@ namespace crypto
 	};
 
 	struct SHA512Hash
-	{	
+	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
 		{
 			SHA512 (buf, len, digest);
@@ -147,10 +147,10 @@ namespace crypto
 
 		enum { hashLen = 64 };
 	};
-	
+
 	template<typename Hash, int curve, size_t keyLen>
 	class ECDSAVerifier: public Verifier
-	{		
+	{
 		public:
 
 			ECDSAVerifier (const uint8_t * signingKey)
@@ -166,7 +166,7 @@ namespace crypto
 			{
 				EC_KEY_free (m_PublicKey);
 			}
-			
+
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				uint8_t digest[Hash::hashLen];
@@ -179,12 +179,12 @@ namespace crypto
 				int ret = ECDSA_do_verify (digest, Hash::hashLen, sig, m_PublicKey);
 				ECDSA_SIG_free(sig);
 				return ret;
-			}	
-			
+			}
+
 			size_t GetPublicKeyLen () const { return keyLen; };
 			size_t GetSignatureLen () const { return keyLen; }; // signature length = key length
 
-			
+
 		private:
 
 			EC_KEY * m_PublicKey;
@@ -198,14 +198,14 @@ namespace crypto
 			ECDSASigner (const uint8_t * signingPrivateKey)
 			{
 				m_PrivateKey = EC_KEY_new_by_curve_name (curve);
-				EC_KEY_set_private_key (m_PrivateKey, BN_bin2bn (signingPrivateKey, keyLen/2, NULL));			
+				EC_KEY_set_private_key (m_PrivateKey, BN_bin2bn (signingPrivateKey, keyLen/2, NULL));
 			}
 
 			~ECDSASigner ()
 			{
 				EC_KEY_free (m_PrivateKey);
 			}
-			
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
 			{
 				uint8_t digest[Hash::hashLen];
@@ -235,18 +235,18 @@ namespace crypto
 		bn2buf (x, signingPublicKey, keyLen/2);
 		bn2buf (y, signingPublicKey + keyLen/2, keyLen/2);
 		BN_free (x); BN_free (y);
-		EC_KEY_free (signingKey);		
+		EC_KEY_free (signingKey);
 	}
 
 // ECDSA_SHA256_P256
-	const size_t ECDSAP256_KEY_LENGTH = 64;	
+	const size_t ECDSAP256_KEY_LENGTH = 64;
 	typedef ECDSAVerifier<SHA256Hash, NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH> ECDSAP256Verifier;
 	typedef ECDSASigner<SHA256Hash, NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH> ECDSAP256Signer;
 
 	inline void CreateECDSAP256RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 		CreateECDSARandomKeys (NID_X9_62_prime256v1, ECDSAP256_KEY_LENGTH, signingPrivateKey, signingPublicKey);
-	}	
+	}
 
 // ECDSA_SHA384_P384
 	const size_t ECDSAP384_KEY_LENGTH = 96;
@@ -256,7 +256,7 @@ namespace crypto
 	inline void CreateECDSAP384RandomKeys (uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
 		CreateECDSARandomKeys (NID_secp384r1, ECDSAP384_KEY_LENGTH, signingPrivateKey, signingPublicKey);
-	}	
+	}
 
 // ECDSA_SHA512_P521
 	const size_t ECDSAP521_KEY_LENGTH = 132;
@@ -269,7 +269,7 @@ namespace crypto
 	}
 
 // RSA
-	template<typename Hash, int type, size_t keyLen>	
+	template<typename Hash, int type, size_t keyLen>
 	class RSAVerifier: public Verifier
 	{
 		public:
@@ -284,23 +284,23 @@ namespace crypto
 			{
 				RSA_free (m_PublicKey);
 			}
-			
-			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const 
+
+			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				uint8_t digest[Hash::hashLen];
 				Hash::CalculateHash (buf, len, digest);
 				return RSA_verify (type, digest, Hash::hashLen, signature, GetSignatureLen (), m_PublicKey);
 			}
 			size_t GetPublicKeyLen () const { return keyLen; }
-			size_t GetSignatureLen () const { return keyLen; }	
+			size_t GetSignatureLen () const { return keyLen; }
 			size_t GetPrivateKeyLen () const { return GetSignatureLen ()*2; };
 
 		private:
-			
-			RSA * m_PublicKey;			
-	};	
 
-	
+			RSA * m_PublicKey;
+	};
+
+
 	template<typename Hash, int type, size_t keyLen>
 	class RSASigner: public Signer
 	{
@@ -317,7 +317,7 @@ namespace crypto
 			{
 				RSA_free (m_PrivateKey);
 			}
-			
+
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const
 			{
 				uint8_t digest[Hash::hashLen];
@@ -325,11 +325,11 @@ namespace crypto
 				unsigned int signatureLen = keyLen;
 				RSA_sign (type, digest, Hash::hashLen, signature, &signatureLen, m_PrivateKey);
 			}
-			
+
 		private:
 
 			RSA * m_PrivateKey;
-	};		
+	};
 
 	inline void CreateRSARandomKeys (size_t publicKeyLen, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
@@ -337,14 +337,14 @@ namespace crypto
 		BIGNUM * e = BN_dup (GetRSAE ()); // make it non-const
 		RSA_generate_key_ex (rsa, publicKeyLen*8, e, NULL);
 		const BIGNUM * n, * d, * e1;
-		RSA_get0_key (rsa, &n, &e1, &d);	
+		RSA_get0_key (rsa, &n, &e1, &d);
 		bn2buf (n, signingPrivateKey, publicKeyLen);
 		bn2buf (d, signingPrivateKey + publicKeyLen, publicKeyLen);
 		bn2buf (n, signingPublicKey, publicKeyLen);
 		BN_free (e); // this e is not assigned to rsa->e
 		RSA_free (rsa);
-	}	
-	
+	}
+
 //  RSA_SHA256_2048
 	const size_t RSASHA2562048_KEY_LENGTH = 256;
 	typedef RSAVerifier<SHA256Hash, NID_sha256, RSASHA2562048_KEY_LENGTH> RSASHA2562048Verifier;
@@ -353,7 +353,7 @@ namespace crypto
 //  RSA_SHA384_3072
 	const size_t RSASHA3843072_KEY_LENGTH = 384;
 	typedef RSAVerifier<SHA384Hash, NID_sha384, RSASHA3843072_KEY_LENGTH> RSASHA3843072Verifier;
-	typedef RSASigner<SHA384Hash, NID_sha384, RSASHA3843072_KEY_LENGTH> RSASHA3843072Signer;	
+	typedef RSASigner<SHA384Hash, NID_sha384, RSASHA3843072_KEY_LENGTH> RSASHA3843072Signer;
 
 //  RSA_SHA512_4096
 	const size_t RSASHA5124096_KEY_LENGTH = 512;
@@ -379,7 +379,7 @@ namespace crypto
 		{}
 		~EDDSAPoint () { BN_free (x); BN_free (y); BN_free(z); BN_free(t); }
 
-		EDDSAPoint& operator=(EDDSAPoint&& other) 
+		EDDSAPoint& operator=(EDDSAPoint&& other)
 		{
 			if (this != &other)
 			{
@@ -389,9 +389,9 @@ namespace crypto
 				BN_free (t); t = other.t; other.t = nullptr;
 			}
 			return *this;
-		} 	
+		}
 
-		EDDSAPoint& operator=(const EDDSAPoint& other) 
+		EDDSAPoint& operator=(const EDDSAPoint& other)
 		{
 			if (this != &other)
 			{
@@ -412,11 +412,11 @@ namespace crypto
 			if (t) { t1 = BN_dup (t); BN_set_negative (t1, !BN_is_negative (t)); };
 			return EDDSAPoint {x1, y1, z1, t1};
 		}
-	};	
+	};
 
 	const size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
 	const size_t EDDSA25519_SIGNATURE_LENGTH = 64;
-	const size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;		
+	const size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
 	class EDDSA25519Verifier: public Verifier
 	{
 		public:
@@ -429,7 +429,7 @@ namespace crypto
 
 		private:
 
-			EDDSAPoint m_PublicKey;	
+			EDDSAPoint m_PublicKey;
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 	};
 
@@ -437,14 +437,14 @@ namespace crypto
 	{
 		public:
 
-			EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey = nullptr); 
-			// we pass signingPublicKey to check if it matches private key 
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const; 
+			EDDSA25519Signer (const uint8_t * signingPrivateKey, const uint8_t * signingPublicKey = nullptr);
+			// we pass signingPublicKey to check if it matches private key
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 			const uint8_t * GetPublicKey () const { return m_PublicKeyEncoded; };
-			
+
 		private:
 
-			uint8_t m_ExpandedPrivateKey[64]; 
+			uint8_t m_ExpandedPrivateKey[64];
 			uint8_t m_PublicKeyEncoded[EDDSA25519_PUBLIC_KEY_LENGTH];
 	};
 
@@ -456,22 +456,22 @@ namespace crypto
 	}
 
 
-	// ГОСТ Р 34.11		
+	// ГОСТ Р 34.11
 	struct GOSTR3411_256_Hash
-	{	
+	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
 		{
-			GOSTR3411_2012_256 (buf, len, digest); 
+			GOSTR3411_2012_256 (buf, len, digest);
 		}
 
 		enum { hashLen = 32 };
 	};
 
 	struct GOSTR3411_512_Hash
-	{	
+	{
 		static void CalculateHash (const uint8_t * buf, size_t len, uint8_t * digest)
 		{
-			GOSTR3411_2012_512 (buf, len, digest); 
+			GOSTR3411_2012_512 (buf, len, digest);
 		}
 
 		enum { hashLen = 64 };
@@ -487,7 +487,7 @@ namespace crypto
 		public:
 
 			enum { keyLen = Hash::hashLen };
-			
+
 			GOSTR3410Verifier (GOSTR3410ParamSet paramSet, const uint8_t * signingKey):
 				m_ParamSet (paramSet)
 			{
@@ -497,7 +497,7 @@ namespace crypto
 				BN_free (x); BN_free (y);
 			}
 			~GOSTR3410Verifier () { EC_POINT_free (m_PublicKey); }
-			
+
 			bool Verify (const uint8_t * buf, size_t len, const uint8_t * signature) const
 			{
 				uint8_t digest[Hash::hashLen];
@@ -506,7 +506,7 @@ namespace crypto
 				BIGNUM * r = BN_bin2bn (signature, GetSignatureLen ()/2, NULL);
 				BIGNUM * s = BN_bin2bn (signature + GetSignatureLen ()/2, GetSignatureLen ()/2, NULL);
 				bool ret = GetGOSTR3410Curve (m_ParamSet)->Verify (m_PublicKey, d, r, s);
-				BN_free (d); BN_free (r); BN_free (s);	
+				BN_free (d); BN_free (r); BN_free (s);
 				return ret;
 			}
 
@@ -517,7 +517,7 @@ namespace crypto
 
 			GOSTR3410ParamSet m_ParamSet;
 			EC_POINT * m_PublicKey;
-	};	
+	};
 
 	template<typename Hash>
 	class GOSTR3410Signer: public Signer
@@ -525,11 +525,11 @@ namespace crypto
 		public:
 
 			enum { keyLen = Hash::hashLen };
-			
+
 			GOSTR3410Signer (GOSTR3410ParamSet paramSet, const uint8_t * signingPrivateKey):
 				m_ParamSet (paramSet)
-			{ 
-				m_PrivateKey = BN_bin2bn (signingPrivateKey, keyLen, nullptr); 
+			{
+				m_PrivateKey = BN_bin2bn (signingPrivateKey, keyLen, nullptr);
 			}
 			~GOSTR3410Signer () { BN_free (m_PrivateKey); }
 
@@ -537,19 +537,19 @@ namespace crypto
 			{
 				uint8_t digest[Hash::hashLen];
 				Hash::CalculateHash (buf, len, digest);
-				BIGNUM * d = BN_bin2bn (digest, Hash::hashLen, nullptr); 
+				BIGNUM * d = BN_bin2bn (digest, Hash::hashLen, nullptr);
 				BIGNUM * r = BN_new (), * s = BN_new ();
 				GetGOSTR3410Curve (m_ParamSet)->Sign (m_PrivateKey, d, r, s);
 				bn2buf (r, signature, keyLen);
 				bn2buf (s, signature + keyLen, keyLen);
 				BN_free (d); BN_free (r); BN_free (s);
 			}
-			
+
 		private:
 
 			GOSTR3410ParamSet m_ParamSet;
 			BIGNUM * m_PrivateKey;
-	};	
+	};
 
 	inline void CreateGOSTR3410RandomKeys (GOSTR3410ParamSet paramSet, uint8_t * signingPrivateKey, uint8_t * signingPublicKey)
 	{
@@ -557,7 +557,7 @@ namespace crypto
 		auto keyLen = curve->GetKeyLen ();
 		RAND_bytes (signingPrivateKey, keyLen);
 		BIGNUM * priv = BN_bin2bn (signingPrivateKey, keyLen, nullptr);
-		
+
 		auto pub = curve->MulP (priv);
 		BN_free (priv);
 		BIGNUM * x = BN_new (), * y = BN_new ();
@@ -565,7 +565,7 @@ namespace crypto
 		EC_POINT_free (pub);
 		bn2buf (x, signingPublicKey, keyLen);
 		bn2buf (y, signingPublicKey + keyLen, keyLen);
-		BN_free (x); BN_free (y); 
+		BN_free (x); BN_free (y);
 	}
 
 	typedef GOSTR3410Verifier<GOSTR3411_256_Hash> GOSTR3410_256_Verifier;

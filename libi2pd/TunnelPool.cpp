@@ -310,13 +310,13 @@ namespace tunnel
 			}
 			if (!failed)
 			{
- 				uint32_t msgID;
+				uint32_t msgID;
 				RAND_bytes ((uint8_t *)&msgID, 4);
 				{
 					std::unique_lock<std::mutex> l(m_TestsMutex);
- 					m_Tests[msgID] = std::make_pair (*it1, *it2);
+					m_Tests[msgID] = std::make_pair (*it1, *it2);
 				}
- 				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
+				(*it1)->SendTunnelDataMsg ((*it2)->GetNextIdentHash (), (*it2)->GetNextTunnelID (),
 					CreateDeliveryStatusMsg (msgID));
 				++it1; ++it2;
 			}

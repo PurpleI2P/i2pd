@@ -13,7 +13,7 @@
 namespace i2p
 {
 	const char ROUTER_INFO[] = "router.info";
-	const char ROUTER_KEYS[] = "router.keys";	
+	const char ROUTER_KEYS[] = "router.keys";
 	const int ROUTER_INFO_UPDATE_INTERVAL = 1800; // 30 minutes
 
 	enum RouterStatus
@@ -21,16 +21,16 @@ namespace i2p
 		eRouterStatusOK = 0,
 		eRouterStatusTesting = 1,
 		eRouterStatusFirewalled = 2,
-		eRouterStatusError = 3 
-	};	
+		eRouterStatusError = 3
+	};
 
 	enum RouterError
 	{
 		eRouterErrorNone = 0,
 		eRouterErrorClockSkew = 1
-	};	
-	
-	class RouterContext: public i2p::garlic::GarlicDestination 
+	};
+
+	class RouterContext: public i2p::garlic::GarlicDestination
 	{
 		public:
 
@@ -39,17 +39,17 @@ namespace i2p
 
 			const i2p::data::PrivateKeys& GetPrivateKeys () const { return m_Keys; };
 			i2p::data::RouterInfo& GetRouterInfo () { return m_RouterInfo; };
-			std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo () const 
-			{ 
-				return std::shared_ptr<const i2p::data::RouterInfo> (&m_RouterInfo, 
+			std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo () const
+			{
+				return std::shared_ptr<const i2p::data::RouterInfo> (&m_RouterInfo,
 					[](const i2p::data::RouterInfo *) {});
 			}
-			std::shared_ptr<i2p::garlic::GarlicDestination> GetSharedDestination () 
+			std::shared_ptr<i2p::garlic::GarlicDestination> GetSharedDestination ()
 			{
-				return std::shared_ptr<i2p::garlic::GarlicDestination> (this, 
+				return std::shared_ptr<i2p::garlic::GarlicDestination> (this,
 					[](i2p::garlic::GarlicDestination *) {});
-			}	
-			
+			}
+
 			uint32_t GetUptime () const;
 			uint32_t GetStartupTime () const { return m_StartupTime; };
 			uint64_t GetLastUpdateTime () const { return m_LastUpdateTime; };
@@ -60,17 +60,17 @@ namespace i2p
 			RouterError GetError () const { return m_Error; };
 			void SetError (RouterError error) { m_Status = eRouterStatusError; m_Error = error; };
 			int GetNetID () const { return m_NetID; };
-			void SetNetID (int netID) { m_NetID = netID; };			
+			void SetNetID (int netID) { m_NetID = netID; };
 
 			void UpdatePort (int port); // called from Daemon
 			void UpdateAddress (const boost::asio::ip::address& host);	// called from SSU or Daemon
 			bool AddIntroducer (const i2p::data::RouterInfo::Introducer& introducer);
 			void RemoveIntroducer (const boost::asio::ip::udp::endpoint& e);
 			bool IsUnreachable () const;
-			void SetUnreachable ();		
+			void SetUnreachable ();
 			void SetReachable ();
-			bool IsFloodfill () const { return m_IsFloodfill; };	
-			void SetFloodfill (bool floodfill);	
+			bool IsFloodfill () const { return m_IsFloodfill; };
+			void SetFloodfill (bool floodfill);
 			void SetFamily (const std::string& family);
 			std::string GetFamily () const;
 			void SetBandwidth (int limit); /* in kilobytes */
@@ -83,14 +83,14 @@ namespace i2p
 			void SetSupportsV6 (bool supportsV6);
 			void SetSupportsV4 (bool supportsV4);
 
-			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session		
-			void UpdateStats ();	
+			void UpdateNTCPV6Address (const boost::asio::ip::address& host); // called from NTCP session
+			void UpdateStats ();
 			void CleanupDestination ();	// garlic destination
 
 			// implements LocalDestination
 			std::shared_ptr<const i2p::data::IdentityEx> GetIdentity () const { return m_Keys.GetPublic (); };
 			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const;
-			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); }; 
+			void Sign (const uint8_t * buf, int len, uint8_t * signature) const { m_Keys.Sign (buf, len, signature); };
 			void SetLeaseSetUpdated () {};
 
 			// implements GarlicDestination
@@ -100,8 +100,8 @@ namespace i2p
 
 			// override GarlicDestination
 			void ProcessGarlicMessage (std::shared_ptr<I2NPMessage> msg);
-			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);	
-			
+			void ProcessDeliveryStatusMessage (std::shared_ptr<I2NPMessage> msg);
+
 		private:
 
 			void CreateNewRouter ();
@@ -109,11 +109,11 @@ namespace i2p
 			void UpdateRouterInfo ();
 			bool Load ();
 			void SaveKeys ();
-			
+
 		private:
 
 			i2p::data::RouterInfo m_RouterInfo;
-			i2p::data::PrivateKeys m_Keys; 
+			i2p::data::PrivateKeys m_Keys;
 			std::shared_ptr<i2p::crypto::CryptoKeyDecryptor> m_Decryptor;
 			uint64_t m_LastUpdateTime;
 			bool m_AcceptsTunnels, m_IsFloodfill;
@@ -127,6 +127,6 @@ namespace i2p
 	};
 
 	extern RouterContext context;
-}	
+}
 
 #endif

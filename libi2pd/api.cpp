@@ -28,23 +28,23 @@ namespace api
 		i2p::fs::DetectDataDir(datadir, false);
 		i2p::fs::Init();
 
-#if defined(__x86_64__)		
+#if defined(__x86_64__)
 		i2p::crypto::InitCrypto (false);
 #else
 		i2p::crypto::InitCrypto (true);
-#endif		
+#endif
 
                 int netID; i2p::config::GetOption("netid", netID);
                 i2p::context.SetNetID (netID);
 
-		i2p::context.Init ();	
+		i2p::context.Init ();
 	}
 
 	void TerminateI2P ()
 	{
 		i2p::crypto::TerminateCrypto ();
-	}	
-	
+	}
+
 	void StartI2P (std::shared_ptr<std::ostream> logStream)
 	{
 		if (logStream)
@@ -75,8 +75,8 @@ namespace api
 	void RunPeerTest ()
 	{
 		i2p::transport::transports.PeerTest ();
-	}	
-	
+	}
+
 	std::shared_ptr<i2p::client::ClientDestination> CreateLocalDestination (const i2p::data::PrivateKeys& keys, bool isPublic,
 		const std::map<std::string, std::string> * params)
 	{
@@ -119,8 +119,8 @@ namespace api
 		else
 		{
 			RequestLeaseSet (dest, remote);
-			return nullptr;	
-		}	
+			return nullptr;
+		}
 	}
 
 	void AcceptStream (std::shared_ptr<i2p::client::ClientDestination> dest, const i2p::stream::StreamingDestination::Acceptor& acceptor)

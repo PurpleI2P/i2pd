@@ -41,40 +41,40 @@ namespace stream
 
 	const size_t STREAMING_MTU = 1730;
 	const size_t MAX_PACKET_SIZE = 4096;
-	const size_t COMPRESSION_THRESHOLD_SIZE = 66;	
-	const int MAX_NUM_RESEND_ATTEMPTS = 6;	
+	const size_t COMPRESSION_THRESHOLD_SIZE = 66;
+	const int MAX_NUM_RESEND_ATTEMPTS = 6;
 	const int WINDOW_SIZE = 6; // in messages
 	const int MIN_WINDOW_SIZE = 1;
-	const int MAX_WINDOW_SIZE = 128;		
+	const int MAX_WINDOW_SIZE = 128;
 	const int INITIAL_RTT = 8000; // in milliseconds
 	const int INITIAL_RTO = 9000; // in milliseconds
 	const int SYN_TIMEOUT = 200; // how long we wait for SYN after follow-on, in milliseconds
 	const size_t MAX_PENDING_INCOMING_BACKLOG = 128;
 	const int PENDING_INCOMING_TIMEOUT = 10; // in seconds
-	const int MAX_RECEIVE_TIMEOUT = 30; // in seconds 
+	const int MAX_RECEIVE_TIMEOUT = 30; // in seconds
 
 	/** i2cp option for limiting inbound stremaing connections */
 	const char I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN[] = "maxconns";
 	/** default maximum connections attempts per minute per destination */
 	const uint32_t DEFAULT_MAX_CONNS_PER_MIN = 600;
 
-	/** 
+	/**
 	 * max banned destinations per local destination
 	 * TODO: make configurable
 	 */
 	const uint16_t MAX_BANNED_CONNS = 9999;
-	/** 
+	/**
 	 * length of a ban in ms
-	 * TODO: make configurable 
+	 * TODO: make configurable
 	 */
 	const uint64_t DEFAULT_BAN_INTERVAL = 60 * 60 * 1000;
-	
+
 	struct Packet
 	{
 		size_t len, offset;
-		uint8_t buf[MAX_PACKET_SIZE];	
+		uint8_t buf[MAX_PACKET_SIZE];
 		uint64_t sendTime;
-		
+
 		Packet (): len (0), offset (0), sendTime (0) {};
 		uint8_t * GetBuffer () { return buf + offset; };
 		size_t GetLength () const { return len - offset; };
@@ -93,15 +93,15 @@ namespace stream
 
 		bool IsSYN () const { return GetFlags () & PACKET_FLAG_SYNCHRONIZE; };
 		bool IsNoAck () const { return GetFlags () & PACKET_FLAG_NO_ACK; };
-	};	
+	};
 
 	struct PacketCmp
 	{
 		bool operator() (const Packet * p1, const Packet * p2) const
-  		{	
-			return p1->GetSeqn () < p2->GetSeqn (); 
+		{
+			return p1->GetSeqn () < p2->GetSeqn ();
 		};
-	};	
+	};
 
 	typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
 	struct SendBuffer
@@ -115,16 +115,16 @@ namespace stream
 		{
 			buf = new uint8_t[len];
 			memcpy (buf, b, len);
-		}	
+		}
 		~SendBuffer ()
 		{
 			delete[] buf;
 			if (handler) handler(boost::system::error_code ());
-		}	
+		}
 		size_t GetRemainingSize () const { return len - offset; };
-		const uint8_t * GetRemaningBuffer () const { return buf + offset; };	
+		const uint8_t * GetRemaningBuffer () const { return buf + offset; };
 		void Cancel () { if (handler) handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted)); handler = nullptr; };
-	};	
+	};
 
 	class SendBufferQueue
 	{
@@ -133,18 +133,18 @@ namespace stream
 			SendBufferQueue (): m_Size (0) {};
 			~SendBufferQueue () { CleanUp (); };
 
-			void Add (const uint8_t * buf, size_t len, SendHandler handler); 
-			size_t Get (uint8_t * buf, size_t len); 
+			void Add (const uint8_t * buf, size_t len, SendHandler handler);
+			size_t Get (uint8_t * buf, size_t len);
 			size_t GetSize () const { return m_Size; };
 			bool IsEmpty () const { return m_Buffers.empty (); };
 			void CleanUp ();
-			
-		private:	
+
+		private:
 
 			std::list<std::shared_ptr<SendBuffer> > m_Buffers;
 			size_t m_Size;
-	};	
-	
+	};
+
 	enum StreamStatus
 	{
 		eStreamStatusNew = 0,
@@ -152,16 +152,16 @@ namespace stream
 		eStreamStatusReset,
 		eStreamStatusClosing,
 		eStreamStatusClosed
-	};	
-	
+	};
+
 	class StreamingDestination;
 	class Stream: public std::enable_shared_from_this<Stream>
-	{	
+	{
 		public:
 
-			Stream (boost::asio::io_service& service, StreamingDestination& local, 
+			Stream (boost::asio::io_service& service, StreamingDestination& local,
 				std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0); // outgoing
-			Stream (boost::asio::io_service& service, StreamingDestination& local); // incoming			
+			Stream (boost::asio::io_service& service, StreamingDestination& local); // incoming
 
 			~Stream ();
 			uint32_t GetSendStreamID () const { return m_SendStreamID; };
@@ -172,15 +172,15 @@ namespace stream
 			bool IsEstablished () const { return m_SendStreamID; };
 			StreamStatus GetStatus () const { return m_Status; };
 			StreamingDestination& GetLocalDestination () { return m_LocalDestination; };
-			
+
 			void HandleNextPacket (Packet * packet);
 			size_t Send (const uint8_t * buf, size_t len);
 			void AsyncSend (const uint8_t * buf, size_t len, SendHandler handler);
-			
+
 			template<typename Buffer, typename ReceiveHandler>
 			void AsyncReceive (const Buffer& buffer, ReceiveHandler handler, int timeout = 0);
 			size_t ReadSome (uint8_t * buf, size_t len) { return ConcatenatePackets (buf, len); };
-			
+
 			void Close ();
 			void Cancel () { m_ReceiveTimer.cancel (); };
 
@@ -194,11 +194,11 @@ namespace stream
 
 			/** don't call me */
 			void Terminate ();
-						
+
 		private:
 
 			void CleanUp ();
-			
+
 			void SendBuffer ();
 			void SendQuickAck ();
 			void SendClose ();
@@ -212,14 +212,14 @@ namespace stream
 			size_t ConcatenatePackets (uint8_t * buf, size_t len);
 
 			void UpdateCurrentRemoteLease (bool expired = false);
-			
+
 			template<typename Buffer, typename ReceiveHandler>
 			void HandleReceiveTimer (const boost::system::error_code& ecode, const Buffer& buffer, ReceiveHandler handler, int remainingTimeout);
-			
+
 			void ScheduleResend ();
 			void HandleResendTimer (const boost::system::error_code& ecode);
 			void HandleAckSendTimer (const boost::system::error_code& ecode);
-			
+
 		private:
 
 			boost::asio::io_service& m_Service;
@@ -254,16 +254,16 @@ namespace stream
 			typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
 			StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort = 0, bool gzip = true);
-			~StreamingDestination ();	
+			~StreamingDestination ();
 
 			void Start ();
 			void Stop ();
 
 			std::shared_ptr<Stream> CreateNewOutgoingStream (std::shared_ptr<const i2p::data::LeaseSet> remote, int port = 0);
-			void DeleteStream (std::shared_ptr<Stream> stream);			
+			void DeleteStream (std::shared_ptr<Stream> stream);
 			void SetAcceptor (const Acceptor& acceptor);
 			void ResetAcceptor ();
-			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };	
+			bool IsAcceptorSet () const { return m_Acceptor != nullptr; };
 			void AcceptOnce (const Acceptor& acceptor);
 
 			std::shared_ptr<i2p::client::ClientDestination> GetOwner () const { return m_Owner; };
@@ -276,13 +276,12 @@ namespace stream
 			/** set max connections per minute per destination */
 			void SetMaxConnsPerMinute(const uint32_t conns);
 
-			Packet * NewPacket () { return m_PacketsPool.Acquire (); }
-			void DeletePacket (Packet * p) { m_PacketsPool.Release (p); }
-			
-		private:		
+			Packet * NewPacket () { return m_PacketsPool.Acquire(); }
+			void DeletePacket (Packet * p) { return m_PacketsPool.Release(p); }
+
 
 			void AcceptOnceAcceptor (std::shared_ptr<Stream> stream, Acceptor acceptor, Acceptor prev);
-			
+
 			void HandleNextPacket (Packet * packet);
 			std::shared_ptr<Stream> CreateNewIncomingStream ();
 			void HandlePendingIncomingTimer (const boost::system::error_code& ecode);
@@ -293,7 +292,7 @@ namespace stream
 			bool DropNewStream(const i2p::data::IdentHash & ident);
 
 			void ScheduleConnTrack();
-      
+
 		private:
 
 			std::shared_ptr<i2p::client::ClientDestination> m_Owner;
@@ -306,7 +305,7 @@ namespace stream
 			std::list<std::shared_ptr<Stream> > m_PendingIncomingStreams;
 			boost::asio::deadline_timer m_PendingIncomingTimer;
 			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
-      
+
 			std::mutex m_ConnsMutex;
 			/** how many connections per minute did each identity have */
 			std::map<i2p::data::IdentHash, uint32_t> m_Conns;
@@ -318,15 +317,15 @@ namespace stream
 
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
 			bool m_EnableDrop;
-			
+
 		public:
 
 			i2p::data::GzipInflator m_Inflator;
 			i2p::data::GzipDeflator m_Deflator;
-			
+
 			// for HTTP only
 			const decltype(m_Streams)& GetStreams () const { return m_Streams; };
-	};		
+	};
 
 //-------------------------------------------------
 
@@ -340,12 +339,17 @@ namespace stream
 				s->HandleReceiveTimer (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), buffer, handler, 0);
 			else
 			{
-				int t = (timeout > MAX_RECEIVE_TIMEOUT) ?  MAX_RECEIVE_TIMEOUT : timeout;
+				int t = (timeout > MAX_RECEIVE_TIMEOUT) ? MAX_RECEIVE_TIMEOUT : timeout;
 				s->m_ReceiveTimer.expires_from_now (boost::posix_time::seconds(t));
-				s->m_ReceiveTimer.async_wait ([=](const boost::system::error_code& ecode)
-					{ s->HandleReceiveTimer (ecode, buffer, handler, timeout - t); });
+				int left = timeout - t;
+				auto self = s->shared_from_this();
+				self->m_ReceiveTimer.async_wait (
+					[self, buffer, handler, left](const boost::system::error_code & ec)
+					{
+						self->HandleReceiveTimer(ec, buffer, handler, left);
+					});
 			}
-		});	
+		});
 	}
 
 	template<typename Buffer, typename ReceiveHandler>
@@ -355,27 +359,27 @@ namespace stream
 		if (received > 0)
 			handler (boost::system::error_code (), received);
 		else if (ecode == boost::asio::error::operation_aborted)
-		{	
-			// timeout not expired	
+		{
+			// timeout not expired
 			if (m_Status == eStreamStatusReset)
 				handler (boost::asio::error::make_error_code (boost::asio::error::connection_reset), 0);
 			else
-				handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0); 
-		}	
+				handler (boost::asio::error::make_error_code (boost::asio::error::operation_aborted), 0);
+		}
 		else
-		{	
+		{
 			// timeout expired
 			if (remainingTimeout <= 0)
 				handler (boost::asio::error::make_error_code (boost::asio::error::timed_out), received);
 			else
-			{	
+			{
 				// itermediate iterrupt
 				SendUpdatedLeaseSet (); // send our leaseset if applicable
-				AsyncReceive (buffer, handler, remainingTimeout); 
-			}	
-		}	
+				AsyncReceive (buffer, handler, remainingTimeout);
+			}
+		}
 	}
-}		
-}	
+}
+}
 
 #endif

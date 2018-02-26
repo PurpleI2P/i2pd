@@ -29,7 +29,7 @@ namespace i2p
       void CollectEvent(const std::string & type, const std::string & ident, uint64_t val);
 			void SetListener(EventListener * l);
       void PumpCollected(EventListener * l);
-      
+
 		private:
       std::mutex m_collect_mutex;
       struct CollectedEvent
@@ -41,7 +41,7 @@ namespace i2p
       std::map<std::string, CollectedEvent> m_collected;
 			EventListener * m_listener = nullptr;
 		};
-#ifdef WITH_EVENTS		
+#ifdef WITH_EVENTS
 		extern EventCore core;
 #endif
 	}

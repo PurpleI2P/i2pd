@@ -8,7 +8,7 @@
 #ifdef WIN32
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>    
+#include <stdio.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iphlpapi.h>
@@ -167,7 +167,7 @@ namespace net
     }
 
     int GetMTUWindows(const boost::asio::ip::address& localAddress, int fallback)
-    { 
+    {
 #ifdef UNICODE
         string localAddress_temporary = localAddress.to_string();
         wstring localAddressUniversal(localAddress_temporary.begin(), localAddress_temporary.end());
@@ -181,7 +181,7 @@ namespace net
             return GetMTUWindowsIpv4(inputAddress, fallback);
         } else if(localAddress.is_v6()) {
             sockaddr_in6 inputAddress;
-            inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr)); 
+            inet_pton(AF_INET6, localAddressUniversal.c_str(), &(inputAddress.sin6_addr));
             return GetMTUWindowsIpv6(inputAddress, fallback);
         } else {
             LogPrint(eLogError, "NetIface: GetMTU(): address family is not supported");
@@ -193,27 +193,27 @@ namespace net
 	int GetMTUUnix(const boost::asio::ip::address& localAddress, int fallback)
     {
         ifaddrs* ifaddr, *ifa = nullptr;
-        if(getifaddrs(&ifaddr) == -1) 
+        if(getifaddrs(&ifaddr) == -1)
 		{
             LogPrint(eLogError, "NetIface: Can't call getifaddrs(): ", strerror(errno));
             return fallback;
         }
 
         int family = 0;
-        // look for interface matching local address   
-        for(ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) 
+        // look for interface matching local address
+        for(ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
 		{
             if(!ifa->ifa_addr)
                 continue;
 
             family = ifa->ifa_addr->sa_family;
-            if(family == AF_INET && localAddress.is_v4()) 
+            if(family == AF_INET && localAddress.is_v4())
 			{
                 sockaddr_in* sa = (sockaddr_in*) ifa->ifa_addr;
                 if(!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
                     break; // address matches
-            } 
-			else if(family == AF_INET6 && localAddress.is_v6()) 
+            }
+			else if(family == AF_INET6 && localAddress.is_v6())
 			{
                 sockaddr_in6* sa = (sockaddr_in6*) ifa->ifa_addr;
                 if(!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
@@ -221,28 +221,28 @@ namespace net
             }
         }
         int mtu = fallback;
-        if(ifa && family) 
+        if(ifa && family)
 		{ // interface found?
             int fd = socket(family, SOCK_DGRAM, 0);
-            if(fd > 0) 
+            if(fd > 0)
 			{
                 ifreq ifr;
                 strncpy(ifr.ifr_name, ifa->ifa_name, IFNAMSIZ); // set interface for query
-                if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)  
+                if(ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
                     mtu = ifr.ifr_mtu; // MTU
                 else
                     LogPrint (eLogError, "NetIface: Failed to run ioctl: ", strerror(errno));
                 close(fd);
-            } 
+            }
 			else
                 LogPrint(eLogError, "NetIface: Failed to create datagram socket");
-        } 
-		else 
+        }
+		else
             LogPrint(eLogWarning, "NetIface: interface for local address", localAddress.to_string(), " not found");
        freeifaddrs(ifaddr);
 
        return mtu;
-    }	
+    }
 #endif // WIN32
 
     int GetMTU(const boost::asio::ip::address& localAddress)
@@ -256,7 +256,7 @@ namespace net
 #endif
         return fallback;
     }
-  
+
 	const boost::asio::ip::address GetInterfaceAddress(const std::string & ifname, bool ipv6)
 	{
 #ifdef WIN32
@@ -299,9 +299,9 @@ namespace net
 			LogPrint(eLogWarning, "NetIface: cannot find ipv4 address for interface ", ifname);
 		}
 		return boost::asio::ip::address::from_string(fallback);
-			
+
 #endif
 	}
-} 
+}
 } // util
 } // i2p

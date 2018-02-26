@@ -19,15 +19,15 @@ namespace transport
 		uint8_t mac[16];
 		uint8_t iv[16];
 		uint8_t flag;
-		uint8_t time[4];	
+		uint8_t time[4];
 
 		uint8_t GetPayloadType () const { return flag >> 4; };
-		bool IsExtendedOptions () const { return flag & SSU_HEADER_EXTENDED_OPTIONS_INCLUDED; };	
+		bool IsExtendedOptions () const { return flag & SSU_HEADER_EXTENDED_OPTIONS_INCLUDED; };
 	};
 
 	const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
 	const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
-	const int SSU_CLOCK_SKEW = 60; // in seconds 
+	const int SSU_CLOCK_SKEW = 60; // in seconds
 
 	// payload types (4 bits)
 	const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
@@ -45,12 +45,12 @@ namespace transport
 
 	enum SessionState
 	{
-		eSessionStateUnknown,	
+		eSessionStateUnknown,
 		eSessionStateIntroduced,
 		eSessionStateEstablished,
 		eSessionStateClosed,
 		eSessionStateFailed
-	};	
+	};
 
 	enum PeerTestParticipant
 	{
@@ -60,7 +60,7 @@ namespace transport
 		ePeerTestParticipantBob,
 		ePeerTestParticipantCharlie
 	};
-	
+
 	class SSUServer;
 	class SSUSession: public TransportSession, public std::enable_shared_from_this<SSUSession>
 	{
@@ -68,12 +68,12 @@ namespace transport
 
 			SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
 				std::shared_ptr<const i2p::data::RouterInfo> router = nullptr, bool peerTest = false);
-			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);		
+			void ProcessNextMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
 			~SSUSession ();
-			
+
 			void Connect ();
 			void WaitForConnect ();
-			void Introduce (const i2p::data::RouterInfo::Introducer& introducer, 
+			void Introduce (const i2p::data::RouterInfo::Introducer& introducer,
 				std::shared_ptr<const i2p::data::RouterInfo> to); // Alice to Charlie
 			void WaitForIntroduction ();
 			void Close ();
@@ -82,23 +82,23 @@ namespace transport
 			boost::asio::ip::udp::endpoint& GetRemoteEndpoint () { return m_RemoteEndpoint; };
 			bool IsV6 () const { return m_RemoteEndpoint.address ().is_v6 (); };
 			void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
-			void SendPeerTest (); // Alice			
+			void SendPeerTest (); // Alice
 
 			SessionState GetState () const  { return m_State; };
 			size_t GetNumSentBytes () const { return m_NumSentBytes; };
 			size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
-			
-			void SendKeepAlive ();	
-			uint32_t GetRelayTag () const { return m_RelayTag; };	
+
+			void SendKeepAlive ();
+			uint32_t GetRelayTag () const { return m_RelayTag; };
 			const i2p::data::RouterInfo::IntroKey& GetIntroKey () const { return m_IntroKey; };
 			uint32_t GetCreationTime () const { return m_CreationTime; };
 
 			void FlushData ();
-			
+
 		private:
 
 			boost::asio::io_service& GetService ();
-			void CreateAESandMacKey (const uint8_t * pubKey); 
+			void CreateAESandMacKey (const uint8_t * pubKey);
 			size_t GetSSUHeaderSize (const uint8_t * buf) const;
 			void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
 			void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
@@ -119,23 +119,23 @@ namespace transport
 			void ScheduleConnectTimer ();
 			void HandleConnectTimer (const boost::system::error_code& ecode);
 			void ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
-			void SendPeerTest (uint32_t nonce, const boost::asio::ip::address& address, uint16_t port, const uint8_t * introKey, bool toAddress = true, bool sendAddress = true); 
-			void ProcessData (uint8_t * buf, size_t len);		
+			void SendPeerTest (uint32_t nonce, const boost::asio::ip::address& address, uint16_t port, const uint8_t * introKey, bool toAddress = true, bool sendAddress = true);
+			void ProcessData (uint8_t * buf, size_t len);
 			void SendSessionDestroyed ();
 			void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
-			void Send (const uint8_t * buf, size_t size); 
-			
-			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey, 
+			void Send (const uint8_t * buf, size_t size);
+
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey,
 				const uint8_t * iv, const i2p::crypto::MACKey& macKey, uint8_t flag = 0);
-			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len); // with session key 
+			void FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len); // with session key
 			void Decrypt (uint8_t * buf, size_t len, const i2p::crypto::AESKey& aesKey);
 			void DecryptSessionKey (uint8_t * buf, size_t len);
-			bool Validate (uint8_t * buf, size_t len, const i2p::crypto::MACKey& macKey);			
+			bool Validate (uint8_t * buf, size_t len, const i2p::crypto::MACKey& macKey);
 
 			void Reset ();
-			
+
 		private:
-	
+
 			friend class SSUData; // TODO: change in later
 			SSUServer& m_Server;
 			boost::asio::ip::udp::endpoint m_RemoteEndpoint;

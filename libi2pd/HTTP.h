@@ -16,16 +16,16 @@
 #include <string>
 #include <vector>
 
-namespace i2p 
+namespace i2p
 {
-namespace http 
+namespace http
 {
   const char CRLF[] = "\r\n";         /**< HTTP line terminator */
   const char HTTP_EOH[] = "\r\n\r\n"; /**< HTTP end-of-headers mark */
   extern const std::vector<std::string> HTTP_METHODS;  /**< list of valid HTTP methods */
   extern const std::vector<std::string> HTTP_VERSIONS; /**< list of valid HTTP versions */
 
-  struct URL 
+  struct URL
   {
     std::string schema;
     std::string user;
@@ -63,7 +63,7 @@ namespace http
     bool is_i2p() const;
   };
 
-  struct HTTPMsg 
+  struct HTTPMsg
   {
     std::map<std::string, std::string> headers;
 
@@ -75,9 +75,9 @@ namespace http
     long int content_length() const;
   };
 
-  struct HTTPReq 
+  struct HTTPReq
   {
-	std::list<std::pair<std::string, std::string> > headers;  
+	std::list<std::pair<std::string, std::string> > headers;
     std::string version;
     std::string method;
     std::string uri;
@@ -97,10 +97,10 @@ namespace http
 		void write(std::ostream & o);
 
 	void AddHeader (const std::string& name, const std::string& value);
-	void UpdateHeader (const std::string& name, const std::string& value);  
+	void UpdateHeader (const std::string& name, const std::string& value);
 	void RemoveHeader (const std::string& name, const std::string& exempt); // remove all headers starting with name, but exempt
 	void RemoveHeader (const std::string& name) { RemoveHeader (name, ""); };
-	std::string GetHeader (const std::string& name) const;  
+	std::string GetHeader (const std::string& name) const;
   };
 
   struct HTTPRes : HTTPMsg {

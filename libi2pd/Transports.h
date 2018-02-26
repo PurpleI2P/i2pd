@@ -136,10 +136,10 @@ namespace transport
 
 			void NTCPResolve (const std::string& addr, const i2p::data::IdentHash& ident);
 			void HandleNTCPResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
- 				i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
+				i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
 			void SSUResolve (const std::string& addr, const i2p::data::IdentHash& ident);
 			void HandleSSUResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
- 				i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
+				i2p::data::IdentHash ident, std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
 
 			void UpdateBandwidth ();
 			void DetectExternalIP ();

@@ -106,7 +106,7 @@ namespace datagram
     DatagramDestination (std::shared_ptr<i2p::client::ClientDestination> owner);
 			~DatagramDestination ();
 
-    	void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
+	void SendDatagramTo (const uint8_t * payload, size_t len, const i2p::data::IdentHash & ident, uint16_t fromPort = 0, uint16_t toPort = 0);
 			void HandleDataMessagePayload (uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len);
 
 			void SetReceiver (const Receiver& receiver) { m_Receiver = receiver; };

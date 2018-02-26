@@ -14,7 +14,7 @@ namespace i2p
 namespace client
 {
 	class I2PServiceHandler;
-	class I2PService : std::enable_shared_from_this<I2PService>
+	class I2PService : public std::enable_shared_from_this<I2PService>
 	{
 		public:
 			typedef std::function<void(const boost::system::error_code &)> ReadyCallback;
@@ -42,11 +42,11 @@ namespace client
 
 			inline std::shared_ptr<ClientDestination> GetLocalDestination () { return m_LocalDestination; }
 			inline std::shared_ptr<const ClientDestination> GetLocalDestination () const  { return m_LocalDestination; }
-			inline void SetLocalDestination (std::shared_ptr<ClientDestination> dest) 
-			{ 
+			inline void SetLocalDestination (std::shared_ptr<ClientDestination> dest)
+			{
 				if (m_LocalDestination) m_LocalDestination->Release ();
 				if (dest) dest->Acquire ();
-				m_LocalDestination = dest; 
+				m_LocalDestination = dest;
 			}
 			void CreateStream (StreamRequestComplete streamRequestComplete, const std::string& dest, int port = 0);
 			void CreateStream(StreamRequestComplete complete, const i2p::data::IdentHash & ident, int port);

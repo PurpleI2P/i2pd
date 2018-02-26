@@ -1,9 +1,8 @@
-%define build_timestamp %(date +"%Y%m%d")
-
 Name:           i2pd
-Version:        2.17.0
-Release:        %{build_timestamp}git%{?dist}
+Version:        2.18.0
+Release:        2%{?dist}
 Summary:        I2P router written in C++
+Conflicts:      i2pd-git
 
 License:        BSD
 URL:            https://github.com/PurpleI2P/i2pd
@@ -23,24 +22,11 @@ BuildRequires:  openssl-devel
 BuildRequires:  miniupnpc-devel
 BuildRequires:  systemd-units
 
-%description
-C++ implementation of I2P.
-
-
-%package systemd
-Summary:        Files to run I2P router under systemd
-Requires:	i2pd
 Requires:	systemd
 Requires(pre):  %{_sbindir}/useradd %{_sbindir}/groupadd
-Obsoletes:      %{name}-daemon
 
-
-%description systemd
+%description
 C++ implementation of I2P.
-
-This package contains systemd unit file to run i2pd as a system service
-using dedicated user's permissions.
-
 
 %prep
 %setup -q
@@ -48,7 +34,7 @@ using dedicated user's permissions.
 
 %build
 cd build
-%if 0%{?rhel} == 7 
+%if 0%{?rhel} == 7
 %cmake3 \
     -DWITH_LIBRARY=OFF \
     -DWITH_UPNP=ON \
@@ -68,114 +54,84 @@ make %{?_smp_mflags}
 %install
 cd build
 chrpath -d i2pd
-install -D -m 755 i2pd %{buildroot}%{_bindir}/i2pd
-install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}/%{_unitdir}/i2pd.service
-install -d -m 700 %{buildroot}/%{_sharedstatedir}/i2pd
+install -D -m 755 i2pd %{buildroot}%{_sbindir}/i2pd
+install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/i2pd.conf %{buildroot}%{_sysconfdir}/i2pd/i2pd.conf
+install -D -m 755 %{_builddir}/%{name}-%{version}/contrib/tunnels.conf %{buildroot}%{_sysconfdir}/i2pd/tunnels.conf
+install -d -m 755 %{buildroot}%{_datadir}/i2pd
+%{__cp} -r %{_builddir}/%{name}-%{version}/contrib/certificates/ %{buildroot}%{_datadir}/i2pd/certificates
+install -D -m 644 %{_builddir}/%{name}-%{version}/contrib/rpm/i2pd.service %{buildroot}%{_unitdir}/i2pd.service
+install -d -m 700 %{buildroot}%{_sharedstatedir}/i2pd
+install -d -m 700 %{buildroot}%{_localstatedir}/log/i2pd
+ln -s %{_datadir}/%{name}/certificates %{buildroot}%{_sharedstatedir}/i2pd/certificates
 
 
-%pre systemd
+%pre
 getent group i2pd >/dev/null || %{_sbindir}/groupadd -r i2pd
 getent passwd i2pd >/dev/null || \
   %{_sbindir}/useradd -r -g i2pd -s %{_sbindir}/nologin \
                       -d %{_sharedstatedir}/i2pd -c 'I2P Service' i2pd
 
 
-%post systemd
+%post
 %systemd_post i2pd.service
 
 
-%preun systemd
+%preun
 %systemd_preun i2pd.service
 
 
-%postun systemd
+%postun
 %systemd_postun_with_restart i2pd.service
 
 
 %files
 %doc LICENSE README.md
-%_bindir/i2pd
-
-
-%files systemd
-/%_unitdir/i2pd.service
-%dir %attr(0700,i2pd,i2pd) %_sharedstatedir/i2pd
+%{_sbindir}/i2pd
+%{_datadir}/i2pd/certificates
+%config(noreplace) %{_sysconfdir}/i2pd/*
+/%{_unitdir}/i2pd.service
+%dir %attr(0700,i2pd,i2pd) %{_localstatedir}/log/i2pd
+%dir %attr(0700,i2pd,i2pd) %{_sharedstatedir}/i2pd
+%{_sharedstatedir}/i2pd/certificates
 
 
 %changelog
+* Mon Feb 05 2018 r4sas <r4sas@i2pmail.org> - 2.18.0-2
+- Fixed blocking system shutdown for 10 minutes (#1089)
+
+* Thu Feb 01 2018 r4sas <r4sas@i2pmail.org> - 2.18.0-1
+- Added to conflicts i2pd-git package
+- Fixed release versioning
+- Fixed paths with double slashes
+
+* Tue Jan 30 2018 orignal <i2porignal@yandex.ru> - 2.18.0
+- update to 2.18.0
+
+* Sat Jan 27 2018 l-n-s <supervillain@riseup.net> - 2.17.0-1
+- Added certificates and default configuration files
+- Merge i2pd with i2pd-systemd package
+- Fixed package changelogs to comply with guidelines
+
 * Mon Dec 04 2017 orignal <i2porignal@yandex.ru> - 2.17.0
-- Added reseed through HTTP and SOCKS proxy
-- Added show status of client services through web console
-- Added change log level through web connsole
-- Added transient keys for tunnels
-- Added i2p.streaming.initialAckDelay parameter
-- Added CRYPTO_TYPE for SAM destination
-- Added signature and crypto type for newkeys BOB command
-- Changed - correct publication of ECIES destinations
-- Changed - disable RSA signatures completely
-- Fixed CVE-2017-17066
-- Fixed possible buffer overflow for RSA-4096
-- Fixed shutdown from web console for Windows
-- Fixed web console page layout
+- update to 2.17.0
 
 * Mon Nov 13 2017 orignal <i2porignal@yandex.ru> - 2.16.0
-- Added https and "Connect" method for HTTP proxy
-- Added outproxy for HTTP proxy
-- Added initial support of ECIES crypto
-- Added NTCP soft and hard descriptors limits
-- Added support full timestamps in logs
-- Changed faster implmentation of GOST R 34.11 hash
-- Changed reject routers with RSA signtures
-- Changed reload config and shudown from Windows GUI
-- Changed update tunnels address(destination) without restart
-- Fixed BOB crashes if destination is not set
-- Fixed correct SAM tunnel name
-- Fixed QT GUI issues
+- update to 2.16.0
 
 * Thu Aug 17 2017 orignal <i2porignal@yandex.ru> - 2.15.0
-- Added QT GUI 
-- Added ability add and remove I2P tunnels without restart
-- Added ability to disable SOCKS outproxy option
-- Changed strip-out Accept-* hedaers in HTTP proxy
-- Changed peer test if nat=false
-- Changed separate output of NTCP and SSU sessions in Transports tab
-- Fixed handle lines with comments in hosts.txt file for address book
-- Fixed run router with empty netdb for testnet
-- Fixed skip expired introducers by iexp
+- update to 2.15.0
 
 * Thu Jun 01 2017 orignal <i2porignal@yandex.ru> - 2.14.0
-- Added transit traffic bandwidth limitation
-- Added NTCP connections through HTTP and SOCKS proxies
-- Added ability to disable address helper for HTTP proxy
-- Changed reseed servers list
+- update to 2.14.0
 
 * Thu Apr 06 2017 orignal <i2porignal@yandex.ru> - 2.13.0
-- Added persist local destination's tags
-- Added GOST signature types 9 and 10
-- Added exploratory tunnels configuration
-- Changed reseed servers list
-- Changed inactive NTCP sockets get closed faster
-- Changed some EdDSA speed up
-- Fixed multiple acceptors for SAM
-- Fixed follow on data after STREAM CREATE for SAM
-- Fixed memory leaks
+- update to 2.13.0
 
 * Tue Feb 14 2017 orignal <i2porignal@yandex.ru> - 2.12.0
-- Additional HTTP and SOCKS proxy tunnels
-- Reseed from ZIP archive
-- 'X' bandwidth code
-- Reduced memory and file descriptors usage
+- update to 2.12.0
 
 * Mon Dec 19 2016 orignal <i2porignal@yandex.ru> - 2.11.0
-- Full support of zero-hops tunnels
-- Tunnel configuration for HTTP and SOCKS proxy
-- Websockets support
-- Multiple acceptors for SAM destination
-- Routing path for UDP tunnels
-- Reseed through a floodfill
-- Use AVX instructions for DHT and HMAC if applicable
-- Fixed UPnP discovery bug, producing excessive CPU usage
-- Handle multiple lookups of the same LeaseSet correctly
+- update to 2.11.0
 
 * Thu Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
 - add support C7

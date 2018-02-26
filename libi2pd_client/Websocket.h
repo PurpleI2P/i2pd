@@ -7,7 +7,7 @@ namespace i2p
 	{
 
 		class WebsocketServerImpl;
-		
+
 		class WebsocketServer
 		{
 		public:
@@ -18,7 +18,7 @@ namespace i2p
 			void Stop();
 
 			EventListener * ToListener();
-			
+
 		private:
 			WebsocketServerImpl * m_impl;
 		};

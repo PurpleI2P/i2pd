@@ -35,87 +35,18 @@ namespace client
 
 	void ClientContext::Start ()
 	{
+		// shared local destination
 		if (!m_SharedLocalDestination)
-		{
-			m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
-			m_SharedLocalDestination->Acquire ();
-			m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
-			m_SharedLocalDestination->Start ();
-		}
+			CreateNewSharedLocalDestination ();
 
-
+		// addressbook	
 		m_AddressBook.Start ();
 
-		std::shared_ptr<ClientDestination> localDestination;
-		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
-		if (httproxy)
-		{
-			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
-			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
-			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
-			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype",  sigType);
-			std::string httpOutProxyURL; i2p::config::GetOption("httpproxy.outproxy",     httpOutProxyURL);
-			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
-			if (httpProxyKeys.length () > 0)
-			{
-				i2p::data::PrivateKeys keys;
-				if(LoadPrivateKeys (keys, httpProxyKeys, sigType))
-				{
-					std::map<std::string, std::string> params;
-					ReadI2CPOptionsFromConfig ("httpproxy.", params);
-					localDestination = CreateNewLocalDestination (keys, false, &params);
-					localDestination->Acquire ();
-				}
-				else
-					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
-			}
-			try
-			{
-				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
-				m_HttpProxy->Start();
-			}
-			catch (std::exception& e)
-			{
-				LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
-			}
-		}
+		// HTTP proxy
+		ReadHttpProxy ();
 
-		localDestination = nullptr;
-		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
-		if (socksproxy)
-		{
-			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",     socksProxyKeys);
-			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address",  socksProxyAddr);
-			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",     socksProxyPort);
-			bool socksOutProxy; i2p::config::GetOption("socksproxy.outproxy.enabled", socksOutProxy);
-			std::string socksOutProxyAddr; i2p::config::GetOption("socksproxy.outproxy",     socksOutProxyAddr);
-			uint16_t    socksOutProxyPort; i2p::config::GetOption("socksproxy.outproxyport", socksOutProxyPort);
-			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",  sigType);
-			LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
-			if (socksProxyKeys.length () > 0)
-			{
-				i2p::data::PrivateKeys keys;
-				if (LoadPrivateKeys (keys, socksProxyKeys, sigType))
-				{
-					std::map<std::string, std::string> params;
-					ReadI2CPOptionsFromConfig ("socksproxy.", params);
-					localDestination = CreateNewLocalDestination (keys, false, &params);
-					localDestination->Acquire ();
-				}
-				else
-					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
-			}
-			try
-			{
-				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
-	 				socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
-				m_SocksProxy->Start();
-			}
-			catch (std::exception& e)
-			{
-				LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
-			}
-		}
+		// SOCKS proxy
+		ReadSocksProxy ();
 
 		// I2P tunnels
 		ReadTunnels ();
@@ -158,7 +89,7 @@ namespace client
 			try
 			{
 				m_I2CPServer = new I2CPServer (i2cpAddr, i2cpPort);
-			  	m_I2CPServer->Start ();
+				m_I2CPServer->Start ();
 			}
 			catch (std::exception& e)
 			{
@@ -235,7 +166,7 @@ namespace client
 		LogPrint(eLogInfo, "Clients: stopping AddressBook");
 		m_AddressBook.Stop ();
 
-    	{
+	{
 			std::lock_guard<std::mutex> lock(m_ForwardsMutex);
 			m_ServerForwards.clear();
 			m_ClientForwards.clear();
@@ -267,6 +198,26 @@ namespace client
 		// delete not updated tunnels (not in config anymore)
 		VisitTunnels ([](I2PService * s)->bool { return s->isUpdated; });
 
+		// change shared local destination
+		m_SharedLocalDestination->Release ();
+		CreateNewSharedLocalDestination ();
+
+		// recreate HTTP proxy
+		if (m_HttpProxy)
+		{
+			m_HttpProxy->Stop ();
+			m_HttpProxy = nullptr;
+		}		
+		ReadHttpProxy ();
+	
+		// recreate SOCKS proxy
+		if (m_SocksProxy)
+		{
+			m_SocksProxy->Stop ();
+			m_SocksProxy = nullptr;
+		}		
+		ReadSocksProxy ();	
+
 		// delete unused destinations
 		std::unique_lock<std::mutex> l(m_DestinationsMutex);
 		for (auto it = m_Destinations.begin (); it != m_Destinations.end ();)
@@ -281,7 +232,7 @@ namespace client
 		}
 	}
 
-	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename, 
+	bool ClientContext::LoadPrivateKeys (i2p::data::PrivateKeys& keys, const std::string& filename,
 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType)
 	{
 		if (filename == "transient")
@@ -350,7 +301,7 @@ namespace client
 	}
 
 	std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination (bool isPublic,
- 		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
+		i2p::data::SigningKeyType sigType, i2p::data::CryptoKeyType cryptoType,
 		const std::map<std::string, std::string> * params)
 	{
 		i2p::data::PrivateKeys keys = i2p::data::PrivateKeys::CreateRandomKeys (sigType, cryptoType);
@@ -407,6 +358,14 @@ namespace client
 		return localDestination;
 	}
 
+	void ClientContext::CreateNewSharedLocalDestination ()
+	{
+		m_SharedLocalDestination = CreateNewLocalDestination (); // non-public, DSA
+		m_SharedLocalDestination->Acquire ();
+		m_Destinations[m_SharedLocalDestination->GetIdentity ()->GetIdentHash ()] = m_SharedLocalDestination;
+		m_SharedLocalDestination->Start ();
+	}
+
 	std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination (const i2p::data::IdentHash& destination) const
 	{
 		auto it = m_Destinations.find (destination);
@@ -448,7 +407,7 @@ namespace client
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MIN_TUNNEL_LATENCY, value))
 			options[I2CP_PARAM_MIN_TUNNEL_LATENCY] = value;
 		if (i2p::config::GetOption(prefix + I2CP_PARAM_MAX_TUNNEL_LATENCY, value))
-			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;		
+			options[I2CP_PARAM_MAX_TUNNEL_LATENCY] = value;
 	}
 
 	void ClientContext::ReadTunnels ()
@@ -653,11 +612,11 @@ namespace client
 
 					I2PServerTunnel * serverTunnel;
 					if (type == I2P_TUNNELS_SECTION_TYPE_HTTP)
-                    	serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
-               		else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
-                    	serverTunnel = new I2PServerTunnelIRC (name, host, port, localDestination, webircpass, inPort, gzip);
+						serverTunnel = new I2PServerTunnelHTTP (name, host, port, localDestination, hostOverride, inPort, gzip);
+					else if (type == I2P_TUNNELS_SECTION_TYPE_IRC)
+						serverTunnel = new I2PServerTunnelIRC (name, host, port, localDestination, webircpass, inPort, gzip);
 					else // regular server tunnel by default
-                   		serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
+						serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
 
 					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
 					serverTunnel->SetMaxConnsPerMinute(maxConns);
@@ -665,7 +624,7 @@ namespace client
 					{
 						LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
 						serverTunnel->SetUniqueLocal(isUniqueLocal);
-          			}
+					}
 
 					if (accessList.length () > 0)
 					{
@@ -714,6 +673,83 @@ namespace client
 		}
 		LogPrint (eLogInfo, "Clients: ", numClientTunnels, " I2P client tunnels created");
 		LogPrint (eLogInfo, "Clients: ", numServerTunnels, " I2P server tunnels created");
+	}
+
+	void ClientContext::ReadHttpProxy ()
+	{
+		std::shared_ptr<ClientDestination> localDestination;
+		bool httproxy; i2p::config::GetOption("httpproxy.enabled", httproxy);
+		if (httproxy)
+		{
+			std::string httpProxyKeys; i2p::config::GetOption("httpproxy.keys",    httpProxyKeys);
+			std::string httpProxyAddr; i2p::config::GetOption("httpproxy.address", httpProxyAddr);
+			uint16_t    httpProxyPort; i2p::config::GetOption("httpproxy.port",    httpProxyPort);
+			i2p::data::SigningKeyType sigType; i2p::config::GetOption("httpproxy.signaturetype",  sigType);
+			std::string httpOutProxyURL; i2p::config::GetOption("httpproxy.outproxy",     httpOutProxyURL);
+			LogPrint(eLogInfo, "Clients: starting HTTP Proxy at ", httpProxyAddr, ":", httpProxyPort);
+			if (httpProxyKeys.length () > 0)
+			{
+				i2p::data::PrivateKeys keys;
+				if(LoadPrivateKeys (keys, httpProxyKeys, sigType))
+				{
+					std::map<std::string, std::string> params;
+					ReadI2CPOptionsFromConfig ("httpproxy.", params);
+					localDestination = CreateNewLocalDestination (keys, false, &params);
+					localDestination->Acquire ();
+				}
+				else
+					LogPrint(eLogError, "Clients: failed to load HTTP Proxy key");
+			}
+			try
+			{
+				m_HttpProxy = new i2p::proxy::HTTPProxy("HTTP Proxy", httpProxyAddr, httpProxyPort, httpOutProxyURL, localDestination);
+				m_HttpProxy->Start();
+			}
+			catch (std::exception& e)
+			{
+				LogPrint(eLogError, "Clients: Exception in HTTP Proxy: ", e.what());
+			}
+		}
+	}
+	
+	void ClientContext::ReadSocksProxy ()
+	{
+		std::shared_ptr<ClientDestination> localDestination;
+		bool socksproxy; i2p::config::GetOption("socksproxy.enabled", socksproxy);
+		if (socksproxy)
+		{
+			std::string socksProxyKeys; i2p::config::GetOption("socksproxy.keys",     socksProxyKeys);
+			std::string socksProxyAddr; i2p::config::GetOption("socksproxy.address",  socksProxyAddr);
+			uint16_t    socksProxyPort; i2p::config::GetOption("socksproxy.port",     socksProxyPort);
+			bool socksOutProxy; i2p::config::GetOption("socksproxy.outproxy.enabled", socksOutProxy);
+			std::string socksOutProxyAddr; i2p::config::GetOption("socksproxy.outproxy",     socksOutProxyAddr);
+			uint16_t    socksOutProxyPort; i2p::config::GetOption("socksproxy.outproxyport", socksOutProxyPort);
+			i2p::data::SigningKeyType sigType; i2p::config::GetOption("socksproxy.signaturetype",  sigType);
+			LogPrint(eLogInfo, "Clients: starting SOCKS Proxy at ", socksProxyAddr, ":", socksProxyPort);
+			if (socksProxyKeys.length () > 0)
+			{
+				i2p::data::PrivateKeys keys;
+				if (LoadPrivateKeys (keys, socksProxyKeys, sigType))
+				{
+					std::map<std::string, std::string> params;
+					ReadI2CPOptionsFromConfig ("socksproxy.", params);
+					localDestination = CreateNewLocalDestination (keys, false, &params);
+					localDestination->Acquire ();
+				}
+				else
+					LogPrint(eLogError, "Clients: failed to load SOCKS Proxy key");
+			}
+			try
+			{
+				m_SocksProxy = new i2p::proxy::SOCKSProxy("SOCKS", socksProxyAddr, socksProxyPort,
+					socksOutProxy, socksOutProxyAddr, socksOutProxyPort, localDestination);
+				m_SocksProxy->Start();
+			}
+			catch (std::exception& e)
+			{
+				LogPrint(eLogError, "Clients: Exception in SOCKS Proxy: ", e.what());
+			}
+		}
 	}
 
 	void ClientContext::ScheduleCleanupUDP()

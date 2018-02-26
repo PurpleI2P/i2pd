@@ -21,24 +21,24 @@ namespace data
 	void Families::LoadCertificate (const std::string& filename)
 	{
 		SSL_CTX * ctx = SSL_CTX_new (TLS_method ());
-		int ret = SSL_CTX_use_certificate_file (ctx, filename.c_str (), SSL_FILETYPE_PEM); 
+		int ret = SSL_CTX_use_certificate_file (ctx, filename.c_str (), SSL_FILETYPE_PEM);
 		if (ret)
-		{	
+		{
 			SSL * ssl = SSL_new (ctx);
 			X509 * cert = SSL_get_certificate (ssl);
 			if (cert)
-			{	
+			{
 				std::shared_ptr<i2p::crypto::Verifier> verifier;
 				// extract issuer name
 				char name[100];
 				X509_NAME_oneline (X509_get_issuer_name(cert), name, 100);
 				char * cn = strstr (name, "CN=");
 				if (cn)
-				{	
+				{
 					cn += 3;
 					char * family = strstr (cn, ".family");
 					if (family) family[0] = 0;
-				}	
+				}
 				auto pkey = X509_get_pubkey (cert);
 				int keyType = EVP_PKEY_base_id (pkey);
 				switch (keyType)
@@ -65,7 +65,7 @@ namespace data
 									i2p::crypto::bn2buf (y, signingKey + 32, 32);
 									BN_free (x); BN_free (y);
 									verifier = std::make_shared<i2p::crypto::ECDSAP256Verifier>(signingKey);
-								}	
+								}
 								else
 									LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
 							}
@@ -79,12 +79,12 @@ namespace data
 				EVP_PKEY_free (pkey);
 				if (verifier && cn)
 					m_SigningKeys[cn] = verifier;
-			}	
-			SSL_free (ssl);			
-		}	
+			}
+			SSL_free (ssl);
+		}
 		else
 			LogPrint (eLogError, "Family: Can't open certificate file ", filename);
-		SSL_CTX_free (ctx);		
+		SSL_CTX_free (ctx);
 	}
 
 	void Families::LoadCertificates ()
@@ -105,11 +105,11 @@ namespace data
 			}
 			LoadCertificate (file);
 			numCertificates++;
-		}	
+		}
 		LogPrint (eLogInfo, "Family: ", numCertificates, " certificates loaded");
 	}
 
-	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident, 
+	bool Families::VerifyFamily (const std::string& family, const IdentHash& ident,
 		const char * signature, const char * key)
 	{
 		uint8_t buf[50], signatureBuf[64];
@@ -118,12 +118,12 @@ namespace data
 		{
 			LogPrint (eLogError, "Family: ", family, " is too long");
 			return false;
-		}		
+		}
 
 		memcpy (buf, family.c_str (), len);
 		memcpy (buf + len, (const uint8_t *)ident, 32);
-		len += 32;	
-		Base64ToByteStream (signature, signatureLen, signatureBuf, 64);	
+		len += 32;
+		Base64ToByteStream (signature, signatureLen, signatureBuf, 64);
 		auto it = m_SigningKeys.find (family);
 		if (it != m_SigningKeys.end ())
 			return it->second->Verify (buf, len, signatureBuf);
@@ -136,7 +136,7 @@ namespace data
 		auto filename = i2p::fs::DataDirPath("family", (family + ".key"));
 		std::string sig;
 		SSL_CTX * ctx = SSL_CTX_new (TLS_method ());
-		int ret = SSL_CTX_use_PrivateKey_file (ctx, filename.c_str (), SSL_FILETYPE_PEM); 
+		int ret = SSL_CTX_use_PrivateKey_file (ctx, filename.c_str (), SSL_FILETYPE_PEM);
 		if (ret)
 		{
 			SSL * ssl = SSL_new (ctx);
@@ -167,15 +167,15 @@ namespace data
 					}
 					else
 						LogPrint (eLogWarning, "Family: elliptic curve ", curve, " is not supported");
-				}	
-			}	
-			SSL_free (ssl);		
-		}	
+				}
+			}
+			SSL_free (ssl);
+		}
 		else
 			LogPrint (eLogError, "Family: Can't open keys file: ", filename);
-		SSL_CTX_free (ctx);	
+		SSL_CTX_free (ctx);
 		return sig;
-	}	
+	}
 }
 }
 

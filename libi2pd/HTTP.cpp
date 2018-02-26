@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <stdio.h>
 #include "util.h"
 #include "HTTP.h"
 #include <ctime>
@@ -20,6 +21,13 @@ namespace http {
   };
   const std::vector<std::string> HTTP_VERSIONS = {
     "HTTP/1.0", "HTTP/1.1"
+  };
+  const std::vector<const char *> weekdays = {
+    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+  };
+  const std::vector<const char *> months = {
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
   };
 
   inline bool is_http_version(const std::string & str) {
@@ -44,7 +52,7 @@ namespace http {
     }
   }
 
-  static std::pair<std::string, std::string> parse_header_line(const std::string& line) 
+  static std::pair<std::string, std::string> parse_header_line(const std::string& line)
   {
     std::size_t pos = 0;
     std::size_t len = 2; /* strlen(": ") */
@@ -56,10 +64,14 @@ namespace http {
     return std::make_pair(line.substr(0, pos), line.substr(pos + len));
   }
 
-  void gen_rfc1123_date(std::string & out) {
+  void gen_rfc7231_date(std::string & out) {
     std::time_t now = std::time(nullptr);
     char buf[128];
-    std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+    std::tm *tm = std::gmtime(&now);
+    snprintf(buf, sizeof(buf), "%s, %02d %s %d %02d:%02d:%02d GMT",
+      weekdays[tm->tm_wday], tm->tm_mday, months[tm->tm_mon],
+      tm->tm_year + 1900, tm->tm_hour, tm->tm_min, tm->tm_sec
+    );
     out = buf;
   }
 
@@ -88,7 +100,7 @@ namespace http {
           user = url.substr(pos_p, delim - pos_p);
           delim += 1;
           pass = url.substr(delim, pos_c - delim);
-        } else {
+        } else if(delim) {
           user = url.substr(pos_p, pos_c - pos_p);
         }
         pos_p = pos_c + 1;
@@ -251,14 +263,14 @@ namespace http {
         uri     = tokens[1];
         version = tokens[2];
         expect = HEADER_LINE;
-      } 
-	  else 
+      }
+	  else
 	  {
         std::string line = str.substr(pos, eol - pos);
         auto p = parse_header_line(line);
 		if (p.first.length () > 0)
 			headers.push_back (p);
-		else  
+		else
             return -1;
       }
       pos = eol + strlen(CRLF);
@@ -268,11 +280,11 @@ namespace http {
     return eoh + strlen(HTTP_EOH);
   }
 
-  void HTTPReq::write(std::ostream & o) 
+  void HTTPReq::write(std::ostream & o)
   {
 	  o << method << " " << uri << " " << version << CRLF;
-	  for (auto & h : headers) 
-  		o << h.first << ": " << h.second << CRLF;
+	  for (auto & h : headers)
+		o << h.first << ": " << h.second << CRLF;
 	  o << CRLF;
   }
 
@@ -284,7 +296,7 @@ namespace http {
 	}
 
 	void HTTPReq::AddHeader (const std::string& name, const std::string& value)
-	{	
+	{
 		headers.push_back (std::make_pair(name, value));
 	}
 
@@ -295,28 +307,28 @@ namespace http {
 			{
 				it.second = value;
 				break;
-			}	
-	}	
-	
+			}
+	}
+
 	void HTTPReq::RemoveHeader (const std::string& name, const std::string& exempt)
 	{
 		for (auto it = headers.begin (); it != headers.end ();)
 		{
-			if (!it->first.compare(0, name.length (), name) && it->first != exempt)	
+			if (!it->first.compare(0, name.length (), name) && it->first != exempt)
 				it = headers.erase (it);
 			else
 				it++;
-		}	
-	}	
+		}
+	}
 
-	std::string HTTPReq::GetHeader (const std::string& name) const 
+	std::string HTTPReq::GetHeader (const std::string& name) const
 	{
 		 for (auto& it : headers)
 			if (it.first == name)
-				return it.second;	
+				return it.second;
 		return "";
-	}	
-	
+	}
+
   bool HTTPRes::is_chunked() const
  {
     auto it = headers.find("Transfer-Encoding");
@@ -335,10 +347,10 @@ namespace http {
     if (it->second.find("gzip") != std::string::npos)
       return true; /* gotcha! */
 	if (includingI2PGzip &&  it->second.find("x-i2p-gzip") != std::string::npos)
-	  return true;	  
+	  return true;
     return false;
   }
-	
+
   long int HTTPMsg::content_length() const
   {
     unsigned long int length = 0;
@@ -385,8 +397,8 @@ namespace http {
         std::string line = str.substr(pos, eol - pos);
         auto p = parse_header_line(line);
 		if (p.first.length () > 0)
-			headers.insert (p);  
-		else	  
+			headers.insert (p);
+		else
           return -1;
       }
       pos = eol + strlen(CRLF);
@@ -400,7 +412,7 @@ namespace http {
   std::string HTTPRes::to_string() {
     if (version == "HTTP/1.1" && headers.count("Date") == 0) {
       std::string date;
-      gen_rfc1123_date(date);
+      gen_rfc7231_date(date);
       add_header("Date", date.c_str());
     }
     if (status == "OK" && code != 200)

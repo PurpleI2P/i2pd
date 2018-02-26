@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS = -O2
+CXXFLAGS ?= -g -Wall -Wextra -Wno-unused-parameter -pedantic -Wno-misleading-indentation
 ## NOTE: NEEDED_CXXFLAGS is here so that custom CXXFLAGS can be specified at build time
 ## **without** overwriting the CXXFLAGS which we need in order to build.
 ## For example, when adding 'hardening flags' to the build

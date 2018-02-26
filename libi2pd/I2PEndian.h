@@ -3,9 +3,9 @@
 #include <inttypes.h>
 #include <string.h>
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/endian.h>
-#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)
+#elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__) || defined(__GLIBC__)
 #include <endian.h>
 #elif defined(__APPLE__) && defined(__MACH__)
 

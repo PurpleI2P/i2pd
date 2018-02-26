@@ -13,6 +13,7 @@
 #include "Config.h"
 #include "FS.h"
 #include "Log.h"
+#include "Tunnel.h"
 #include "RouterContext.h"
 #include "ClientContext.h"
 
@@ -183,7 +184,7 @@ namespace i2p
 				if (gracefulShutdownInterval)
 				{
 					gracefulShutdownInterval--; // - 1 second
-					if (gracefulShutdownInterval <= 0)
+					if (gracefulShutdownInterval <= 0 || i2p::tunnel::tunnels.CountTransitTunnels() <= 0)
 					{
 						LogPrint(eLogInfo, "Graceful shutdown");
 						return;

@@ -18,7 +18,7 @@ namespace data
 			Families ();
 			~Families ();
 			void LoadCertificates ();
-			bool VerifyFamily (const std::string& family, const IdentHash& ident, 
+			bool VerifyFamily (const std::string& family, const IdentHash& ident,
 				const char * signature, const char * key = nullptr);
 
 		private:
@@ -28,7 +28,7 @@ namespace data
 		private:
 
 			std::map<std::string, std::shared_ptr<i2p::crypto::Verifier> > m_SigningKeys;
-	};		
+	};
 
 	std::string CreateFamilySignature (const std::string& family, const IdentHash& ident);
 	// return base64 signature of empty string in case of failure

@@ -97,7 +97,7 @@ namespace fs {
    * @param files Vector to store found files
    * @return true on success and false if directory not exists
    */
-  bool ReadDir(const std::string & path, std::vector<std::string> & files);		
+  bool ReadDir(const std::string & path, std::vector<std::string> & files);
 
   /**
    * @brief Remove file with given path
@@ -113,9 +113,9 @@ namespace fs {
    */
   bool Exists(const std::string & path);
 
-  uint32_t GetLastUpdateTime (const std::string & path); // seconds since epoch			
- 
-  bool CreateDirectory (const std::string& path);	
+  uint32_t GetLastUpdateTime (const std::string & path); // seconds since epoch
+
+  bool CreateDirectory (const std::string& path);
 
   template<typename T>
   void _ExpandPath(std::stringstream & path, T c) {
@@ -153,7 +153,7 @@ namespace fs {
 		_ExpandPath(s, filenames...);
 
 		return s.str();
-	}	
+	}
 
 } // fs
 } // i2p

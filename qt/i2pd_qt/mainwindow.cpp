@@ -233,16 +233,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     initCheckBox(       OPTION("upnp","enabled",[]{return "true";}), uiSettings->enableUPnPCheckBox);
     initStringBox(      OPTION("upnp","name",[]{return "I2Pd";}), uiSettings->upnpNameLineEdit);
-	
+
     initCheckBox(       OPTION("precomputation","elgamal",[]{return "false";}), uiSettings->useElGamalPrecomputedTablesCheckBox);
-	
+
     initCheckBox(       OPTION("reseed","verify",[]{return "";}), uiSettings->reseedVerifyCheckBox);
     initFileChooser(    OPTION("reseed","file",[]{return "";}), uiSettings->reseedFileLineEdit, uiSettings->reseedFileBrowsePushButton);
     initStringBox(      OPTION("reseed","urls",[]{return "";}), uiSettings->reseedURLsLineEdit);
-	
+
     initStringBox(      OPTION("addressbook","defaulturl",[]{return "";}), uiSettings->addressbookDefaultURLLineEdit);
     initStringBox(      OPTION("addressbook","subscriptions",[]{return "";}), uiSettings->addressbookSubscriptionsURLslineEdit);
-	
+
     initUInt16Box(     OPTION("limits","transittunnels",[]{return "2500";}), uiSettings->maxNumOfTransitTunnelsLineEdit, tr("maxNumberOfTransitTunnels"));
     initUInt16Box(     OPTION("limits","openfiles",[]{return "0";}), uiSettings->maxNumOfOpenFilesLineEdit, tr("maxNumberOfOpenFiles"));
     initUInt32Box(     OPTION("limits","coresize",[]{return "0";}), uiSettings->coreFileMaxSizeNumberLineEdit, tr("coreFileMaxSize"));

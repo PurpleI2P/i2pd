@@ -39,6 +39,7 @@ include_directories(${LIBI2PD_CLIENT_SRC_DIR})
 set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/BloomFilter.cpp"
   "${LIBI2PD_SRC_DIR}/Config.cpp"
+  "${LIBI2PD_SRC_DIR}/CPU.cpp"  
   "${LIBI2PD_SRC_DIR}/Crypto.cpp"
   "${LIBI2PD_SRC_DIR}/CryptoKey.cpp"
   "${LIBI2PD_SRC_DIR}/Garlic.cpp"
@@ -83,7 +84,7 @@ if (WITH_WEBSOCKETS)
   find_package(websocketpp REQUIRED)
 endif ()
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
+if (WIN32 OR MSYS)
   list (APPEND LIBI2PD_SRC "${CMAKE_SOURCE_DIR}/I2PEndian.cpp")
 endif ()
 
@@ -184,6 +185,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # more tweaks
   if (NOT (MSVC OR MSYS OR APPLE))
+    set (CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -stdlib=libstdc++" ) # required for <atomic>
+    list(APPEND CMAKE_REQUIRED_LIBRARIES "stdc++") # required to link with -stdlib=libstdc++
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-overloaded-virtual -Wno-c99-extensions" )
   endif()
 endif ()
@@ -194,20 +197,14 @@ if (WITH_HARDENING AND MSVC)
 endif ()
 
 # compiler flags customization (by system)
-if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if (UNIX)
   list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-  # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
-  add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
-elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-  # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
-  add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
-elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-  elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-      list (APPEND DAEMON_SRC "${DAEMON_SRC_DIR}/UnixDaemon.cpp")
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR MSYS)
-        list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp")
+  if (NOT (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR APPLE))
+    # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
+    add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
+  endif ()
+elseif (WIN32 OR MSYS)
+  list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp")
   if (WITH_GUI)
     list (APPEND DAEMON_SRC "${CMAKE_SOURCE_DIR}/Win32/Win32App.cpp")
     set_source_files_properties("${CMAKE_SOURCE_DIR}/Win32/DaemonWin32.cpp"
@@ -330,10 +327,6 @@ endif()
 find_package ( OpenSSL REQUIRED )
 if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
-else()
-  if(NOT (OPENSSL_VERSION VERSION_LESS 1.1))
-    message(WARNING "Your OpenSSL version ${OPENSSL_VERSION} >=1.1 is experimental: build with v1.0 when possible.")
-  endif()
 endif()
 
 if (WITH_UPNP)
@@ -370,11 +363,13 @@ if (NOT ZLIB_FOUND )
   if (NOT WITH_STATIC)
     set ( ZLIB_LIBRARY debug zlibd optimized zlib CACHE STRING "zlib libraries" FORCE)
   endif ()
+  link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib)
+else()
+  link_directories(${ZLIB_ROOT}/lib)
 endif ()
 if (WITH_STATIC AND (MSVC OR MSYS))
   set ( ZLIB_LIBRARY debug zlibstaticd optimized zlibstatic CACHE STRING "zlib libraries" FORCE)
 endif ()
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/zlib/lib ${ZLIB_ROOT}/lib)
 
 # load includes
 include_directories( SYSTEM ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} )
@@ -386,11 +381,7 @@ if (WITH_MESHNET)
   message(WARNING "This build will NOT work on mainline i2p")
 endif()
 
-if (ARCHITECTURE MATCHES "arm")
-  set(ATOMIC_LIB -latomic)
-else()
-  set(ATMOIC_LIB "")
-endif()
+include(CheckAtomic)
 
 
 # show summary
@@ -459,7 +450,7 @@ if (WITH_BINARY)
   if (WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
-  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${ATOMIC_LIB})
+  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set (APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")

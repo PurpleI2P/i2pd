@@ -28,7 +28,7 @@ namespace crypto
 	GOSTR3410Curve::~GOSTR3410Curve ()
 	{
 		EC_GROUP_free (m_Group);
-	}				
+	}
 
 	EC_POINT * GOSTR3410Curve::MulP (const BIGNUM * n) const
 	{
@@ -81,12 +81,12 @@ namespace crypto
 		BN_mod_inverse (h, h, q, ctx); // 1/h mod q
 		BIGNUM * z1 = BN_CTX_get (ctx);
 		BN_mod_mul (z1, s, h, q, ctx); // z1 = s/h
-		BIGNUM * z2 = BN_CTX_get (ctx);				
+		BIGNUM * z2 = BN_CTX_get (ctx);
 		BN_sub (z2, q, r); // z2 = -r
 		BN_mod_mul (z2, z2, h, q, ctx); // z2 = -r/h
 		EC_POINT * C = EC_POINT_new (m_Group);
 		EC_POINT_mul (m_Group, C, z1, pub, z2, ctx); // z1*P + z2*pub
-		BIGNUM * x = BN_CTX_get (ctx);	
+		BIGNUM * x = BN_CTX_get (ctx);
 		GetXY  (C, x, nullptr); // Cx
 		BN_mod (x, x, q, ctx); // Cx % q
 		bool ret = !BN_cmp (x, r); // Cx = r ?
@@ -94,9 +94,9 @@ namespace crypto
 		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
 		return ret;
-	}	
+	}
 
-	EC_POINT * GOSTR3410Curve::RecoverPublicKey (const BIGNUM * digest, const BIGNUM * r, const BIGNUM * s, bool isNegativeY) const 
+	EC_POINT * GOSTR3410Curve::RecoverPublicKey (const BIGNUM * digest, const BIGNUM * r, const BIGNUM * s, bool isNegativeY) const
 	{
 		// s*P = r*Q + h*C
 		BN_CTX * ctx = BN_CTX_new ();
@@ -104,7 +104,7 @@ namespace crypto
 		EC_POINT * C = EC_POINT_new (m_Group); // C = k*P = (rx, ry)
 		EC_POINT * Q  = nullptr;
 		if (EC_POINT_set_compressed_coordinates_GFp (m_Group, C, r, isNegativeY ? 1 : 0,  ctx))
-		{	
+		{
 			EC_POINT * S = EC_POINT_new (m_Group); // S = s*P
 			EC_POINT_mul (m_Group, S, s, nullptr, nullptr, ctx);
 			BIGNUM * q = BN_CTX_get (ctx);
@@ -112,28 +112,28 @@ namespace crypto
 			BIGNUM * h = BN_CTX_get (ctx);
 			BN_mod (h, digest, q, ctx); // h = digest % q
 			BN_sub (h, q, h); // h = -h
-			EC_POINT * H = EC_POINT_new (m_Group); 
+			EC_POINT * H = EC_POINT_new (m_Group);
 			EC_POINT_mul (m_Group, H, nullptr, C, h, ctx); // -h*C
 			EC_POINT_add (m_Group, C, S, H, ctx); // s*P - h*C
 			EC_POINT_free (H);
 			EC_POINT_free (S);
 			BIGNUM * r1 = BN_CTX_get (ctx);
 			BN_mod_inverse (r1, r, q, ctx);
-			Q = EC_POINT_new (m_Group); 
-			EC_POINT_mul (m_Group, Q, nullptr, C, r1, ctx); // (s*P - h*C)/r 
-		}	
+			Q = EC_POINT_new (m_Group);
+			EC_POINT_mul (m_Group, Q, nullptr, C, r1, ctx); // (s*P - h*C)/r
+		}
 		EC_POINT_free (C);
 		BN_CTX_end (ctx);
 		BN_CTX_free (ctx);
 		return Q;
-	}	
-	
+	}
+
 	static GOSTR3410Curve * CreateGOSTR3410Curve (GOSTR3410ParamSet paramSet)
 	{
-		// a, b, p, q, x, y	
-		static const char * params[eGOSTR3410NumParamSets][6] = 
+		// a, b, p, q, x, y
+		static const char * params[eGOSTR3410NumParamSets][6] =
 		{
-			{ 
+			{
 				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD94",
 				"A6",
 				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD97",
@@ -147,10 +147,10 @@ namespace crypto
 				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDC7",
 				"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF27E69532F48D89116FF22B8D4E0560609B4B38ABFAD2B85DCACDB1411F10B275",
 				"3",
-				"7503CFE87A836AE3A61B8816E25450E6CE5E1C93ACF1ABC1778064FDCBEFA921DF1626BE4FD036E93D75E6A50E3A41E98028FE5FC235F5B889A589CB5215F2A4"		
+				"7503CFE87A836AE3A61B8816E25450E6CE5E1C93ACF1ABC1778064FDCBEFA921DF1626BE4FD036E93D75E6A50E3A41E98028FE5FC235F5B889A589CB5215F2A4"
 			} // tc26-2012-paramSetA-512
-		};	
-		
+		};
+
 		BIGNUM * a = nullptr, * b = nullptr, * p = nullptr, * q =nullptr, * x = nullptr, * y = nullptr;
 		BN_hex2bn(&a, params[paramSet][0]);
 		BN_hex2bn(&b, params[paramSet][1]);
@@ -161,25 +161,25 @@ namespace crypto
 		auto curve = new GOSTR3410Curve (a, b, p, q, x, y);
 		BN_free (a); BN_free (b); BN_free (p); BN_free (q); BN_free (x); BN_free (y);
 		return curve;
-	}	
+	}
 
 	static std::array<std::unique_ptr<GOSTR3410Curve>, eGOSTR3410NumParamSets> g_GOSTR3410Curves;
 	std::unique_ptr<GOSTR3410Curve>& GetGOSTR3410Curve (GOSTR3410ParamSet paramSet)
 	{
 		if (!g_GOSTR3410Curves[paramSet])
 		{
-			auto c = CreateGOSTR3410Curve (paramSet);	
+			auto c = CreateGOSTR3410Curve (paramSet);
 			if (!g_GOSTR3410Curves[paramSet]) // make sure it was not created already
 				g_GOSTR3410Curves[paramSet].reset (c);
 			else
 				delete c;
-		}	
-		return g_GOSTR3410Curves[paramSet]; 
+		}
+		return g_GOSTR3410Curves[paramSet];
 	}
 
 // ГОСТ 34.11-2012
 
-	static const uint64_t T0[256] = 
+	static const uint64_t T0[256] =
 	{
 		0xE6F87E5C5B711FD0, 0x258377800924FA16, 0xC849E07E852EA4A8, 0x5B4686A18F06C16A,
 		0x0B32E9A2D77B416E, 0xABDA37A467815C66, 0xF61796A81A686676, 0xF5DC0B706391954B,
@@ -246,7 +246,7 @@ namespace crypto
 		0x92BDE697D67F3422, 0xC78933E10514BC61, 0xE1C1D9B975C9B54A, 0xD2266160CF1BCD80,
 		0x9A4492ED78FD8671, 0xB3CCAB2A881A9793, 0x72CEBF667FE1D088, 0xD6D45B5D985A9427
 	};
-	static const uint64_t T1[256] = 
+	static const uint64_t T1[256] =
 	{
 		0xC811A8058C3F55DE, 0x65F5B43196B50619, 0xF74F96B1D6706E43, 0x859D1E8BCB43D336,
 		0x5AAB8A85CCFA3D84, 0xF9C7BF99C295FCFD, 0xA21FD5A1DE4B630F, 0xCDB3EF763B8B456D,
@@ -313,7 +313,7 @@ namespace crypto
 		0x57B69E77B57354A0, 0x3969441D8097D0B4, 0x3330CAFBF3E2F0CF, 0xE28E77DDE0BE8CC3,
 		0x62B12E259C494F46, 0xA6CE726FB9DBD1CA, 0x41E242C1EED14DBA, 0x76032FF47AA30FB0
 	};
-	static const uint64_t T2[256] = 
+	static const uint64_t T2[256] =
 	{
 		0x45B268A93ACDE4CC, 0xAF7F0BE884549D08, 0x048354B3C1468263, 0x925435C2C80EFED2,
 		0xEE4E37F27FDFFBA7, 0x167A33920C60F14D, 0xFB123B52EA03E584, 0x4A0CAB53FDBB9007,
@@ -380,7 +380,7 @@ namespace crypto
 		0xF9DD11850420A43B, 0x4BE5BEB68A243ED6, 0x5584255F19C8D65D, 0x3B67404E633FA006,
 		0xA68DB6766C472A1F, 0xF78AC79AB4C97E21, 0xC353442E1080AAEC, 0x9A4F9DB95782E714
 	};
-	static const uint64_t T3[256] = 
+	static const uint64_t T3[256] =
 	{
 		0x05BA7BC82C9B3220, 0x31A54665F8B65E4F, 0xB1B651F77547F4D4, 0x8BFA0D857BA46682,
 		0x85A96C5AA16A98BB, 0x990FAEF908EB79C9, 0xA15E37A247F4A62D, 0x76857DCD5D27741E,
@@ -447,7 +447,7 @@ namespace crypto
 		0x77059157F359DC47, 0x1D262E3907FF492B, 0xFB582233E59AC557, 0xDDB2BCE242F8B673,
 		0x2577B76248E096CF, 0x6F99C4A6D83DA74C, 0xC1147E41EB795701, 0xF48BAF76912A9337
 	};
-	static const uint64_t T4[256] = 
+	static const uint64_t T4[256] =
 	{
 		0x3EF29D249B2C0A19, 0xE9E16322B6F8622F, 0x5536994047757F7A, 0x9F4D56D5A47B0B33,
 		0x822567466AA1174C, 0xB8F5057DEB082FB2, 0xCC48C10BF4475F53, 0x373088D4275DEC3A,
@@ -514,7 +514,7 @@ namespace crypto
 		0x6853032B59F3EE6E, 0x65B3E9C4FF073AAA, 0x772AC3399AE5EBEC, 0x87816E97F842A75B,
 		0x110E2DB2E0484A4B, 0x331277CB3DD8DEDD, 0xBD510CAC79EB9FA5, 0x352179552A91F5C7
 	};
-	static const uint64_t T5[256] = 
+	static const uint64_t T5[256] =
 	{
 		0x8AB0A96846E06A6D, 0x43C7E80B4BF0B33A, 0x08C9B3546B161EE5, 0x39F1C235EBA990BE,
 		0xC1BEF2376606C7B2, 0x2C209233614569AA, 0xEB01523B6FC3289A, 0x946953AB935ACEDD,
@@ -581,7 +581,7 @@ namespace crypto
 		0xEFEB8511D4C82766, 0x961CB6BE40D147A3, 0xAAB35F25F7B812DE, 0x76154E407044329D,
 		0x513D76B64E570693, 0xF3479AC7D2F90AA8, 0x9B8B2E4477079C85, 0x297EB99D3D85AC69
 	};
-	static const uint64_t T6[256] = 
+	static const uint64_t T6[256] =
 	{
 		0x7E37E62DFC7D40C3, 0x776F25A4EE939E5B, 0xE045C850DD8FB5AD, 0x86ED5BA711FF1952,
 		0xE91D0BD9CF616B35, 0x37E0AB256E408FFB, 0x9607F6C031025A7A, 0x0B02F5E116D23C9D,
@@ -648,7 +648,7 @@ namespace crypto
 		0xE6AB92E8D1CB8EA2, 0x3354C7F5663856F1, 0xD93EE170AF7BAE4D, 0x616BD27BC22AE67C,
 		0x92B39A10397A8370, 0xABC8B3304B8E9890, 0xBF967287630B02B2, 0x5B67D607B6FC6E15
 	};
-	static uint64_t T7[256] = 
+	static uint64_t T7[256] =
 	{
 		0xD031C397CE553FE6, 0x16BA5B01B006B525, 0xA89BADE6296E70C8, 0x6A1F525D77D3435B,
 		0x6E103570573DFA0B, 0x660EFB2A17FC95AB, 0x76327A9E97634BF6, 0x4BAD9D6462458BF5,
@@ -716,59 +716,59 @@ namespace crypto
 		0x717E7067AF4F499A, 0x938290A9ECD1DBB3, 0x88E3B293344DD172, 0x2734158C250FA3D6
 	};
 
-	static const uint64_t C_[12][8] = 
+	static const uint64_t C_[12][8] =
 	{
 		{
 			0xe9daca1eda5b08b1, 0x1f7c65c0812fcbeb, 0x16d0452e43766a2f, 0xfcc485758db84e71,
 			0x0169679291e07c4b, 0x15d360a4082a42a2, 0x234d74cc36747605, 0x0745a6f2596580dd
-		}, 
+		},
 		{
 			0x1a2f9da98ab5a36f, 0xd7b5700f469de34f, 0x982b230a72eafef3, 0x3101b5160f5ed561,
 			0x5899d6126b17b59a, 0xcaa70adbc261b55c, 0x56cdcbd71ba2dd55, 0xb79bb121700479e6
-		}, 
+		},
 		{
 			0xc72fce2bacdc74f5, 0x35843d6a28fc390a, 0x8b1f9c525f5ef106, 0x7b7b29b11475eaf2,
 			0xb19e3590e40fe2d3, 0x09db6260373ac9c1, 0x31db7a8643f4b6c2, 0xb20aba0af5961e99
-		}, 
+		},
 		{
 			0xd26615e8b3df1fef, 0xdde4715da0e148f9, 0x7d3c5c337e858e48, 0x3f355e68ad1c729d,
 			0x75d603ed822cd7a9, 0xbe0352933313b7d8, 0xf137e893a1ea5334, 0x2ed1e384bcbe0c22
-		}, 
+		},
 		{
 			0x994747adac6bea4b, 0x6323a96c0c413f9a, 0x4a1086161f1c157f, 0xbdff0f80d7359e35,
 			0xa3f53a254717cdbf, 0x161a2723b700ffdf, 0xf563eaa97ea2567a, 0x57fe6c7cfd581760
-		}, 
+		},
 		{
 			0xd9d33a1daeae4fae, 0xc039307a3bc3a46f, 0x6ca44251f9c4662d, 0xc68ef09ab49a7f18,
 			0xb4b79a1cb7a6facf, 0xb6c6bec2661ff20a, 0x354f903672c571bf, 0x6e7d64467a4068fa
-		}, 
+		},
 		{
 			0xecc5aaee160ec7f4, 0x540924bffe86ac51, 0xc987bfe6c7c69e39, 0xc9937a19333e47d3,
 			0x372c822dc5ab9209, 0x04054a2883694706, 0xf34a3ca24c451735, 0x93d4143a4d568688
-		}, 
+		},
 		{
 			0xa7c9934d425b1f9b, 0x41416e0c02aae703, 0x1ede369c71f8b74e, 0x9ac4db4d3b44b489,
 			0x90069b92cb2b89f4, 0x2fc4a5d12b8dd169, 0xd9a8515935c2ac36, 0x1ee702bfd40d7fa4
-		}, 
+		},
 		{
 			0x9b223116545a8f37, 0xde5f16ecd89a4c94, 0x244289251b3a7d3a, 0x84090de0b755d93c,
 			0xb1ceb2db0b440a80, 0x549c07a69a8a2b7b, 0x602a1fcb92dc380e, 0xdb5a238351446172
-		}, 
+		},
 		{
 			0x526f0580a6debeab, 0xf3f3e4b248e52a38, 0xdb788aff1ce74189, 0x0361331b8ae1ff1f,
 			0x4b3369af0267e79f, 0xf452763b306c1e7a, 0xc3b63b15d1fa9836, 0xed9c4598fbc7b474
-		}, 
+		},
 		{
 			0xfb89c8efd09ecd7b, 0x94fe5a63cdc60230, 0x6107abebbb6bfad8, 0x7966841421800120,
 			0xcab948eaef711d8a, 0x986e477d1dcdbaef, 0x5dd86fc04a59a2de, 0x1b2df381cda4ca6b
-		}, 
+		},
 		{
 			0xba3116f167e78e37, 0x7ab14904b08013d2, 0x771ddfbc323ca4cd, 0x9b9f2130d41220f8,
 			0x86cc91189def805d, 0x5228e188aaa41de7, 0x991bb2d9d517f4fa, 0x20d71bf14a92bc48
 		}
 	};
 
-	
+
 	union GOST3411Block // 8 bytes aligned
 	{
 		uint8_t buf[64];
@@ -780,15 +780,15 @@ namespace crypto
 			for (int i = 0; i < 8; i++)
 				ret.ll[i] = ll[i]^other.ll[i];
 			return ret;
-		}	
-		
+		}
+
 		GOST3411Block operator^(const uint64_t * other) const
 		{
 			GOST3411Block ret;
 			for (int i = 0; i < 8; i++)
 				ret.ll[i] = ll[i]^other[i];
 			return ret;
-		}	
+		}
 
 		GOST3411Block operator+(const GOST3411Block& other) const
 		{
@@ -799,7 +799,7 @@ namespace crypto
 				uint16_t sum = buf[i] + other.buf[i] + carry;
 				ret.buf[i] = sum;
 				carry = sum >> 8;
-			}	
+			}
 			return ret;
 		}
 
@@ -807,17 +807,17 @@ namespace crypto
 		{
 			for (int i = 63; i >= 0; i--)
 			{
-				if (!c) return;	
+				if (!c) return;
 				c += buf[i];
 				buf[i] = c;
-				c >>= 8;		
+				c >>= 8;
 			}
 		}
 
 		void F ()
 		{
 			uint64_t res[8];
-			for (int b=0; b<8; b++) 
+			for (int b=0; b<8; b++)
 			{
 				uint64_t r;
 				r  = T0[buf[b+56]];
@@ -843,11 +843,11 @@ namespace crypto
 				k = k^C_[i];
 				k.F ();
 				res = k^res;
-			}	
+			}
 			return res;
-		}	
+		}
 	};
-	
+
 	static GOST3411Block gN (const GOST3411Block& N, const GOST3411Block& h, const GOST3411Block& m)
 	{
 		GOST3411Block res = N ^ h;
@@ -855,12 +855,12 @@ namespace crypto
 		res = res.E (m);
 		res = res^h;
 		res = res^m;
-		return res;	
-	}	
+		return res;
+	}
 
 	static void H (const uint8_t * iv, const uint8_t * buf, size_t len, uint8_t * digest)
 	{
-		// stage 1	
+		// stage 1
 		GOST3411Block h, N, s, m;
 		memcpy (h.buf, iv, 64);
 		memset (N.buf, 0, 64);
@@ -885,15 +885,15 @@ namespace crypto
 		memcpy (m.buf + padding, buf, l);
 
 		h = gN (N, h, m);
-		N.Add (l*8);	
+		N.Add (l*8);
 		s = m + s;
-	
+
 		GOST3411Block N0;
 		memset (N0.buf, 0, 64);
 		h = gN (N0, h, N);
 		h = gN (N0, h, s);
-		
-		memcpy (digest, h.buf, 64); 
+
+		memcpy (digest, h.buf, 64);
 	}
 
 	void GOSTR3411_2012_256 (const uint8_t * buf, size_t len, uint8_t * digest)
@@ -919,7 +919,7 @@ namespace crypto
 		size_t len;
 		bool is512;
 	};
-	
+
 	GOSTR3411_2012_CTX * GOSTR3411_2012_CTX_new ()
 	{
 		return new GOSTR3411_2012_CTX;
@@ -949,7 +949,7 @@ namespace crypto
 			size_t l = 64 - ctx->len;
 			if (len < l) l = len;
 			for (size_t i = 0; i < l; i++)
-				ctx->m.buf[ctx->len + i] = buf[l-i-1]; // invert	 
+				ctx->m.buf[ctx->len + i] = buf[l-i-1]; // invert
 			ctx->len += l; len -= l; buf += l;
 
 			ctx->h = gN (ctx->N, ctx->h, ctx->m);
@@ -959,7 +959,7 @@ namespace crypto
 		while (len >= 64)
 		{
 			for (size_t i = 0; i < 64; i++)
-				ctx->m.buf[i] = buf[63-i]; // invert	
+				ctx->m.buf[i] = buf[63-i]; // invert
 			len -= 64; buf += 64;
 			ctx->h = gN (ctx->N, ctx->h, ctx->m);
 			ctx->N.Add (512);
@@ -975,7 +975,7 @@ namespace crypto
 
 	void GOSTR3411_2012_CTX_Finish (uint8_t * digest, GOSTR3411_2012_CTX * ctx)
 	{
-		GOST3411Block m;	
+		GOST3411Block m;
 		size_t padding = 64 - ctx->len;
 		if (padding)
 		{
@@ -985,14 +985,14 @@ namespace crypto
 		memcpy (m.buf + padding, ctx->m.buf, ctx->len);
 
 		ctx->h = gN (ctx->N, ctx->h, m);
-		ctx->N.Add (ctx->len*8);	
+		ctx->N.Add (ctx->len*8);
 		ctx->s = m + ctx->s;
-	
+
 		GOST3411Block N0;
 		memset (N0.buf, 0, 64);
 		ctx->h = gN (N0, ctx->h, ctx->N);
 		ctx->h = gN (N0, ctx->h, ctx->s);
-		
+
 		size_t sz = ctx->is512 ? 64 : 32;
 		for (size_t i = 0; i < sz; i++)
 			digest[i] = ctx->h.buf[sz - i - 1];

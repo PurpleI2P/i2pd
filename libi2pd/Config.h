@@ -79,10 +79,10 @@ namespace config {
   }
 
   template<typename T>
-  bool GetOption(const std::string& name, T& value) 
+  bool GetOption(const std::string& name, T& value)
   {
     return GetOption (name.c_str (), value);
-  }	
+  }
 
   bool GetOptionAsAny(const char *name, boost::any& value);
   bool GetOptionAsAny(const std::string& name, boost::any& value);

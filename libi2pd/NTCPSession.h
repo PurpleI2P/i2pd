@@ -12,6 +12,7 @@
 #include "RouterInfo.h"
 #include "I2NPProtocol.h"
 #include "TransportSession.h"
+#include "CryptoWorker.h"
 
 namespace i2p
 {
@@ -55,6 +56,7 @@ namespace transport
 			void Done ();
 
 			boost::asio::ip::tcp::socket& GetSocket () { return m_Socket; };
+			boost::asio::io_service & GetService();
 			bool IsEstablished () const { return m_IsEstablished; };
 			bool IsTerminated () const { return m_IsTerminated; };
 
@@ -131,6 +133,8 @@ namespace transport
 	{
 		public:
 
+			typedef i2p::worker::ThreadPool<NTCPSession> Pool;
+
 			enum RemoteAddressType
 			{
 				eIP4Address,
@@ -146,7 +150,7 @@ namespace transport
 			};
 
 
-			NTCPServer ();
+			NTCPServer (int workers=4);
 			~NTCPServer ();
 
 			void Start ();
@@ -169,6 +173,10 @@ namespace transport
 
 			void SetSessionLimits(uint16_t softLimit, uint16_t hardLimit) { m_SoftLimit = softLimit; m_HardLimit = hardLimit; }
 			bool ShouldLimit() const { return ShouldHardLimit() || ShouldSoftLimit(); }
+			void Work(std::shared_ptr<NTCPSession> conn, Pool::WorkFunc work)
+			{
+				m_CryptoPool->Offer({conn, work});
+			}
 		private:
 
 			/** @brief return true for hard limit */
@@ -209,6 +217,8 @@ namespace transport
 			uint16_t m_ProxyPort;
 			boost::asio::ip::tcp::resolver m_Resolver;
 			boost::asio::ip::tcp::endpoint * m_ProxyEndpoint;
+
+			std::shared_ptr<Pool> m_CryptoPool;
 
 			uint16_t m_SoftLimit, m_HardLimit;
 		public:

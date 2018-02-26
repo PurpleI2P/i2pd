@@ -35,8 +35,8 @@ public class LocalService extends Service {
 
         // Display a notification about us starting.  We put an icon in the status bar.
         showNotification();
-        
-        
+
+
     }
 
     @Override

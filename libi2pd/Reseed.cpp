@@ -2,7 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp> 
+#include <boost/asio/ssl.hpp>
 #include <boost/algorithm/string.hpp>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -23,7 +23,7 @@ namespace i2p
 {
 namespace data
 {
- 
+
 	Reseeder::Reseeder()
 	{
 	}
@@ -114,11 +114,11 @@ namespace data
 			return 0;
 		}
 	}
-	
+
 	int Reseeder::ProcessSU3File (const char * filename)
 	{
 		std::ifstream s(filename, std::ifstream::binary);
-		if (s.is_open ())	
+		if (s.is_open ())
 			return ProcessSU3Stream (s);
 		else
 		{
@@ -130,21 +130,21 @@ namespace data
 	int Reseeder::ProcessZIPFile (const char * filename)
 	{
 		std::ifstream s(filename, std::ifstream::binary);
-		if (s.is_open ())	
-		{	
+		if (s.is_open ())
+		{
 			s.seekg (0, std::ios::end);
 			auto len = s.tellg ();
 			s.seekg (0, std::ios::beg);
 			return ProcessZIPStream (s, len);
-		}	
+		}
 		else
 		{
 			LogPrint (eLogError, "Reseed: Can't open file ", filename);
 			return 0;
 		}
-	}		
-	
-	const char SU3_MAGIC_NUMBER[]="I2Psu3";	
+	}
+
+	const char SU3_MAGIC_NUMBER[]="I2Psu3";
 	int Reseeder::ProcessSU3Stream (std::istream& s)
 	{
 		char magicNumber[7];
@@ -153,7 +153,7 @@ namespace data
 		{
 			LogPrint (eLogError, "Reseed: Unexpected SU3 magic number");
 			return 0;
-		}			
+		}
 		s.seekg (1, std::ios::cur); // su3 file format version
 		SigningKeyType signatureType;
 		s.read ((char *)&signatureType, 2);  // signature type
@@ -163,16 +163,16 @@ namespace data
 		signatureLength = be16toh (signatureLength);
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t versionLength;
-		s.read ((char *)&versionLength, 1);  // version length	
+		s.read ((char *)&versionLength, 1);  // version length
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t signerIDLength;
-		s.read ((char *)&signerIDLength, 1);  // signer ID length	
+		s.read ((char *)&signerIDLength, 1);  // signer ID length
 		uint64_t contentLength;
-		s.read ((char *)&contentLength, 8);  // content length	
+		s.read ((char *)&contentLength, 8);  // content length
 		contentLength = be64toh (contentLength);
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t fileType;
-		s.read ((char *)&fileType, 1);  // file type	
+		s.read ((char *)&fileType, 1);  // file type
 		if (fileType != 0x00) //  zip file
 		{
 			LogPrint (eLogError, "Reseed: Can't handle file type ", (int)fileType);
@@ -180,7 +180,7 @@ namespace data
 		}
 		s.seekg (1, std::ios::cur); // unused
 		uint8_t contentType;
-		s.read ((char *)&contentType, 1);  // content type	
+		s.read ((char *)&contentType, 1);  // content type
 		if (contentType != 0x03) // reseed data
 		{
 			LogPrint (eLogError, "Reseed: Unexpected content type ", (int)contentType);
@@ -192,10 +192,10 @@ namespace data
 		char signerID[256];
 		s.read (signerID, signerIDLength); // signerID
 		signerID[signerIDLength] = 0;
-		
+
 		bool verify; i2p::config::GetOption("reseed.verify", verify);
 		if (verify)
-		{ 
+		{
 			//try to verify signature
 			auto it = m_SigningKeys.find (signerID);
 			if (it != m_SigningKeys.end ())
@@ -220,7 +220,7 @@ namespace data
 						BIGNUM * s = BN_new (), * n = BN_new ();
 						BN_bin2bn (signature, signatureLength, s);
 						BN_bin2bn (it->second, i2p::crypto::RSASHA5124096_KEY_LENGTH, n);
-						BN_mod_exp (s, s, i2p::crypto::GetRSAE (), n, bnctx); // s = s^e mod n 
+						BN_mod_exp (s, s, i2p::crypto::GetRSAE (), n, bnctx); // s = s^e mod n
 						uint8_t * enSigBuf = new uint8_t[signatureLength];
 						i2p::crypto::bn2buf (s, enSigBuf, signatureLength);
 						// digest is right aligned
@@ -232,8 +232,8 @@ namespace data
 						delete[] enSigBuf;
 						BN_free (s); BN_free (n);
 						BN_CTX_free (bnctx);
-					}	
-					
+					}
+
 					delete[] signature;
 					delete[] tbs;
 					s.seekg (pos, std::ios::beg);
@@ -249,21 +249,21 @@ namespace data
 		{
 			LogPrint (eLogError, "Reseed: SU3 verification failed");
 			return 0;
-		}	
+		}
 
 		// handle content
 		return ProcessZIPStream (s, contentLength);
 	}
 
 	const uint32_t ZIP_HEADER_SIGNATURE = 0x04034B50;
-	const uint32_t ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014B50;	
+	const uint32_t ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014B50;
 	const uint16_t ZIP_BIT_FLAG_DATA_DESCRIPTOR = 0x0008;
 	int Reseeder::ProcessZIPStream (std::istream& s, uint64_t contentLength)
-	{	
+	{
 		int numFiles = 0;
 		size_t contentPos = s.tellg ();
 		while (!s.eof ())
-		{	
+		{
 			uint32_t signature;
 			s.read ((char *)&signature, 4);
 			signature = le32toh (signature);
@@ -272,22 +272,22 @@ namespace data
 				// next local file
 				s.seekg (2, std::ios::cur); // version
 				uint16_t bitFlag;
-				s.read ((char *)&bitFlag, 2);	
+				s.read ((char *)&bitFlag, 2);
 				bitFlag = le16toh (bitFlag);
 				uint16_t compressionMethod;
-				s.read ((char *)&compressionMethod, 2);	
+				s.read ((char *)&compressionMethod, 2);
 				compressionMethod = le16toh (compressionMethod);
 				s.seekg (4, std::ios::cur); // skip fields we don't care about
-				uint32_t compressedSize, uncompressedSize; 
+				uint32_t compressedSize, uncompressedSize;
 				uint32_t crc_32;
 				s.read ((char *)&crc_32, 4);
 				crc_32 = le32toh (crc_32);
-				s.read ((char *)&compressedSize, 4);	
-				compressedSize = le32toh (compressedSize);	
+				s.read ((char *)&compressedSize, 4);
+				compressedSize = le32toh (compressedSize);
 				s.read ((char *)&uncompressedSize, 4);
-				uncompressedSize = le32toh (uncompressedSize);	
-				uint16_t fileNameLength, extraFieldLength; 
-				s.read ((char *)&fileNameLength, 2);	
+				uncompressedSize = le32toh (uncompressedSize);
+				uint16_t fileNameLength, extraFieldLength;
+				s.read ((char *)&fileNameLength, 2);
 				fileNameLength = le16toh (fileNameLength);
 				if ( fileNameLength > 255 ) {
 					// too big
@@ -308,13 +308,13 @@ namespace data
 					{
 						LogPrint (eLogError, "Reseed: SU3 archive data descriptor not found");
 						return numFiles;
-					}									
-					s.read ((char *)&crc_32, 4);	
+					}
+					s.read ((char *)&crc_32, 4);
 					crc_32 = le32toh (crc_32);
-					s.read ((char *)&compressedSize, 4);	
+					s.read ((char *)&compressedSize, 4);
 					compressedSize = le32toh (compressedSize) + 4; // ??? we must consider signature as part of compressed data
 					s.read ((char *)&uncompressedSize, 4);
-					uncompressedSize = le32toh (uncompressedSize);	
+					uncompressedSize = le32toh (uncompressedSize);
 
 					// now we know compressed and uncompressed size
 					s.seekg (pos, std::ios::beg); // back to compressed data
@@ -325,8 +325,8 @@ namespace data
 				{
 					LogPrint (eLogWarning, "Reseed: Unexpected size 0. Skipped");
 					continue;
-				}	
-				
+				}
+
 				uint8_t * compressed = new uint8_t[compressedSize];
 				s.read ((char *)compressed, compressedSize);
 				if (compressionMethod) // we assume Deflate
@@ -338,29 +338,29 @@ namespace data
 					inflator.next_in = compressed;
 					inflator.avail_in = compressedSize;
 					inflator.next_out = uncompressed;
-					inflator.avail_out = uncompressedSize; 
+					inflator.avail_out = uncompressedSize;
 					int err;
 					if ((err = inflate (&inflator, Z_SYNC_FLUSH)) >= 0)
-					{	
+					{
 						uncompressedSize -= inflator.avail_out;
 						if (crc32 (0, uncompressed, uncompressedSize) == crc_32)
 						{
 							i2p::data::netdb.AddRouterInfo (uncompressed, uncompressedSize);
 							numFiles++;
-						}	
+						}
 						else
 							LogPrint (eLogError, "Reseed: CRC32 verification failed");
-					}	
+					}
 					else
 						LogPrint (eLogError, "Reseed: SU3 decompression error ", err);
-					delete[] uncompressed;      
+					delete[] uncompressed;
 					inflateEnd (&inflator);
 				}
 				else // no compression
 				{
 					i2p::data::netdb.AddRouterInfo (compressed, compressedSize);
 					numFiles++;
-				}	
+				}
 				delete[] compressed;
 				if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
 					s.seekg (12, std::ios::cur); // skip data descriptor section if presented (12 = 16 - 4)
@@ -406,15 +406,15 @@ namespace data
 		return numFiles;
 	}
 
-	const uint8_t ZIP_DATA_DESCRIPTOR_SIGNATURE[] = { 0x50, 0x4B, 0x07, 0x08 };	
+	const uint8_t ZIP_DATA_DESCRIPTOR_SIGNATURE[] = { 0x50, 0x4B, 0x07, 0x08 };
 	bool Reseeder::FindZipDataDescriptor (std::istream& s)
 	{
-		size_t nextInd = 0;	
+		size_t nextInd = 0;
 		while (!s.eof ())
 		{
 			uint8_t nextByte;
 			s.read ((char *)&nextByte, 1);
-			if (nextByte == ZIP_DATA_DESCRIPTOR_SIGNATURE[nextInd])	
+			if (nextByte == ZIP_DATA_DESCRIPTOR_SIGNATURE[nextInd])
 			{
 				nextInd++;
 				if (nextInd >= sizeof (ZIP_DATA_DESCRIPTOR_SIGNATURE))
@@ -429,24 +429,24 @@ namespace data
 	void Reseeder::LoadCertificate (const std::string& filename)
 	{
 		SSL_CTX * ctx = SSL_CTX_new (TLS_method ());
-		int ret = SSL_CTX_use_certificate_file (ctx, filename.c_str (), SSL_FILETYPE_PEM); 
+		int ret = SSL_CTX_use_certificate_file (ctx, filename.c_str (), SSL_FILETYPE_PEM);
 		if (ret)
-		{	
+		{
 			SSL * ssl = SSL_new (ctx);
 			X509 * cert = SSL_get_certificate (ssl);
 			// verify
 			if (cert)
-			{	
+			{
 				// extract issuer name
 				char name[100];
 				X509_NAME_oneline (X509_get_issuer_name(cert), name, 100);
 				char * cn = strstr (name, "CN=");
 				if (cn)
-				{	
+				{
 					cn += 3;
 					char * terminator = strchr (cn, '/');
 					if (terminator) terminator[0] = 0;
-				}	
+				}
 				// extract RSA key (we need n only, e = 65537)
 				RSA * key = EVP_PKEY_get0_RSA (X509_get_pubkey (cert));
 				const BIGNUM * n, * e, * d;
@@ -457,12 +457,12 @@ namespace data
 					m_SigningKeys[cn] = value;
 				else
 					LogPrint (eLogError, "Reseed: Can't find CN field in ", filename);
-			}	
-			SSL_free (ssl);			
-		}	
+			}
+			SSL_free (ssl);
+		}
 		else
 			LogPrint (eLogError, "Reseed: Can't open certificate file ", filename);
-		SSL_CTX_free (ctx);		
+		SSL_CTX_free (ctx);
 	}
 
 	void Reseeder::LoadCertificates ()
@@ -483,9 +483,9 @@ namespace data
 			}
 			LoadCertificate (file);
 			numCertificates++;
-		}	
+		}
 		LogPrint (eLogInfo, "Reseed: ", numCertificates, " certificates loaded");
-	}	
+	}
 
 	std::string Reseeder::HttpsRequest (const std::string& address)
 	{

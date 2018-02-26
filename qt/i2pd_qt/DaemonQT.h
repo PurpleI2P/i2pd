@@ -15,7 +15,7 @@ namespace qt
     public:
 
 		DaemonQTImpl ();
-		~DaemonQTImpl ();	
+		~DaemonQTImpl ();
 
         typedef void (*runningChangedCallback)();
 
@@ -45,11 +45,11 @@ namespace qt
         Q_OBJECT
 	public:
 
-		Worker (DaemonQTImpl& daemon);		
+		Worker (DaemonQTImpl& daemon);
 
 	private:
 
-		DaemonQTImpl& m_Daemon;		
+		DaemonQTImpl& m_Daemon;
 
     public slots:
         void startDaemon();
@@ -58,7 +58,7 @@ namespace qt
 
     signals:
         void resultReady(bool failed, QString failureMessage);
-    };	
+    };
 
     class Controller : public QObject
     {
@@ -68,7 +68,7 @@ namespace qt
         Controller(DaemonQTImpl& daemon);
         ~Controller();
 	private:
-		DaemonQTImpl& m_Daemon;	
+		DaemonQTImpl& m_Daemon;
 
     public slots:
         void handleResults(bool failed, QString failureMessage){

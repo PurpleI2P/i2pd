@@ -91,12 +91,12 @@ namespace data
 			size_t ToBuffer (uint8_t * buf, size_t len) const;
 			size_t FromBase64(const std::string& s);
 			std::string ToBase64 () const;
-    		const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
+		const Identity& GetStandardIdentity () const { return m_StandardIdentity; };
 
 			const IdentHash& GetIdentHash () const { return m_IdentHash; };
-    		const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
-    		uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
-			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const; 
+		const uint8_t * GetEncryptionPublicKey () const { return m_StandardIdentity.publicKey; };
+		uint8_t * GetEncryptionPublicKeyBuffer () { return m_StandardIdentity.publicKey; };
+			std::shared_ptr<i2p::crypto::CryptoKeyEncryptor> CreateEncryptor (const uint8_t * key) const;
 			size_t GetFullLen () const { return m_ExtendedLen + DEFAULT_IDENTITY_SIZE; };
 			size_t GetSigningPublicKeyLen () const;
 			size_t GetSigningPrivateKeyLen () const;
@@ -141,7 +141,7 @@ namespace data
 			const uint8_t * GetPrivateKey () const { return m_PrivateKey; };
 			const uint8_t * GetSigningPrivateKey () const { return m_SigningPrivateKey; };
     uint8_t * GetPadding();
-    		void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
+		void RecalculateIdentHash(uint8_t * buf=nullptr) { m_Public->RecalculateIdentHash(buf); }
 			void Sign (const uint8_t * buf, int len, uint8_t * signature) const;
 
 			size_t GetFullLen () const { return m_Public->GetFullLen () + 256 + m_Public->GetSigningPrivateKeyLen (); };

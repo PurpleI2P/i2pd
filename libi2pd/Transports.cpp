@@ -119,7 +119,7 @@ namespace transport
 		m_Work (nullptr), m_PeerCleanupTimer (nullptr), m_PeerTestTimer (nullptr),
 		m_NTCPServer (nullptr), m_SSUServer (nullptr), m_DHKeysPairSupplier (5), // 5 pre-generated keys
 		m_TotalSentBytes(0), m_TotalReceivedBytes(0), m_TotalTransitTransmittedBytes (0),
- 		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
+		m_InBandwidth (0), m_OutBandwidth (0), m_TransitBandwidth(0),
 		m_LastInBandwidthUpdateBytes (0), m_LastOutBandwidthUpdateBytes (0),
 		m_LastTransitBandwidthUpdateBytes (0), m_LastBandwidthUpdateTime (0)
 	{
@@ -144,7 +144,7 @@ namespace transport
 			m_Service = new boost::asio::io_service ();
 			m_Work = new boost::asio::io_service::work (*m_Service);
 			m_PeerCleanupTimer = new boost::asio::deadline_timer (*m_Service);
-	 		m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
+			m_PeerTestTimer = new boost::asio::deadline_timer (*m_Service);
 		}
 
 		i2p::config::GetOption("nat", m_IsNAT);
@@ -153,9 +153,10 @@ namespace transport
 		m_Thread = new std::thread (std::bind (&Transports::Run, this));
 		std::string ntcpproxy; i2p::config::GetOption("ntcpproxy", ntcpproxy);
 		i2p::http::URL proxyurl;
-		uint16_t softLimit, hardLimit;
+		uint16_t softLimit, hardLimit, threads;
 		i2p::config::GetOption("limits.ntcpsoft", softLimit);
 		i2p::config::GetOption("limits.ntcphard", hardLimit);
+		i2p::config::GetOption("limits.ntcpthreads", threads);
 		if(softLimit > 0 && hardLimit > 0 && softLimit >= hardLimit)
 		{
 			LogPrint(eLogError, "ntcp soft limit must be less than ntcp hard limit");
@@ -167,7 +168,7 @@ namespace transport
 			{
 				if(proxyurl.schema == "socks" || proxyurl.schema == "http")
 				{
-					m_NTCPServer = new NTCPServer();
+					m_NTCPServer = new NTCPServer(threads);
 					m_NTCPServer->SetSessionLimits(softLimit, hardLimit);
 					NTCPServer::ProxyType proxytype = NTCPServer::eSocksProxy;
 
@@ -198,7 +199,7 @@ namespace transport
 			if (!address) continue;
 			if (m_NTCPServer == nullptr && enableNTCP)
 			{
-				m_NTCPServer = new NTCPServer ();
+				m_NTCPServer = new NTCPServer (threads);
 				m_NTCPServer->SetSessionLimits(softLimit, hardLimit);
 				m_NTCPServer->Start ();
 				if (!(m_NTCPServer->IsBoundV6() || m_NTCPServer->IsBoundV4())) {
@@ -623,7 +624,7 @@ namespace transport
 	void Transports::DetectExternalIP ()
 	{
 		if (RoutesRestricted())
-  		{
+		{
 			LogPrint(eLogInfo, "Transports: restricted routes enabled, not detecting ip");
 			i2p::context.SetStatus (eRouterStatusOK);
 			return;

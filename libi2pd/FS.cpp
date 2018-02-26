@@ -68,7 +68,7 @@ namespace fs {
 #else /* other unix */
 #if defined(ANDROID)
 	const char * ext = getenv("EXTERNAL_STORAGE");
-	if (!ext) ext = "/sdcard";	
+	if (!ext) ext = "/sdcard";
 	if (boost::filesystem::exists(ext))
 	{
 		dataDir = std::string (ext) + "/" + appName;
@@ -96,7 +96,7 @@ namespace fs {
       boost::filesystem::create_directory(destinations);
 	std::string tags = DataDirPath("tags");
     if (!boost::filesystem::exists(tags))
-    	boost::filesystem::create_directory(tags);
+	boost::filesystem::create_directory(tags);
 	else
 		i2p::garlic::CleanUpTagsFiles ();
 
@@ -123,12 +123,12 @@ namespace fs {
   }
 
   uint32_t GetLastUpdateTime (const std::string & path)
-  {	
+  {
 	 if (!boost::filesystem::exists(path)) return 0;
 	 boost::system::error_code ec;
 	 auto t = boost::filesystem::last_write_time (path, ec);
 	 return ec ? 0 : t;
-  }				
+  }
 
   bool Remove(const std::string & path) {
     if (!boost::filesystem::exists(path))
@@ -136,7 +136,7 @@ namespace fs {
     return boost::filesystem::remove(path);
   }
 
-  	bool CreateDirectory (const std::string& path)
+	bool CreateDirectory (const std::string& path)
 	{
 		if (boost::filesystem::exists(path) &&
 			boost::filesystem::is_directory (boost::filesystem::status (path))) return true;

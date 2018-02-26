@@ -23,7 +23,7 @@ public class I2PDMainActivity extends QtActivity
 	public void onCreate(Bundle savedInstanceState) {
 		I2PDMainActivity.setInstance(this);
 		super.onCreate(savedInstanceState);
-		
+
 		//set the app be foreground (do not unload when RAM needed)
 		doBindService();
 	}
@@ -45,8 +45,8 @@ public class I2PDMainActivity extends QtActivity
 	private static void setInstance(I2PDMainActivity instance) {
 		I2PDMainActivity.instance = instance;
 	}
-	
-	
+
+
 
 //	private LocalService mBoundService;
 
@@ -82,7 +82,7 @@ public class I2PDMainActivity extends QtActivity
 	    // class name because we want a specific service implementation that
 	    // we know will be running in our own process (and thus won't be
 	    // supporting component replacement by other applications).
-	    bindService(new Intent(this, 
+	    bindService(new Intent(this,
 	            LocalService.class), mConnection, Context.BIND_AUTO_CREATE);
 	    mIsBound = true;
 	}
