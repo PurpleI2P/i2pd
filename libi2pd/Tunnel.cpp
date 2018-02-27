@@ -672,7 +672,7 @@ namespace tunnel
 						{
 							auto pool = tunnel->GetTunnelPool ();
 							// let it die if the tunnel pool has been reconfigured and this is old
-							if (pool && tunnel->GetTunnelConfig()->GetNumHops() == pool->GetNumOutboundHops())
+							if (pool && tunnel->GetNumHops() == pool->GetNumOutboundHops())
 							{
 								tunnel->SetIsRecreated ();
 								pool->RecreateOutboundTunnel (tunnel);
@@ -726,7 +726,7 @@ namespace tunnel
 						{
 							auto pool = tunnel->GetTunnelPool ();
 							// let it die if the tunnel pool was reconfigured and has different number of hops
-							if (pool && tunnel->GetTunnelConfig()->GetNumHops() == pool->GetNumInboundHops())
+							if (pool && tunnel->GetNumHops() == pool->GetNumInboundHops())
 							{
 								tunnel->SetIsRecreated ();
 								pool->RecreateInboundTunnel (tunnel);
