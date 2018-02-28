@@ -10,6 +10,21 @@ namespace i2p
 {
 	namespace util
 	{
+		template <typename Type> auto getTime(void) 
+		-> decltype(std::chrono::duration_cast<Type>(
+				 std::chrono::system_clock::now().time_since_epoch()).count ())
+
+		{
+			return std::chrono::duration_cast<Type>(
+				 std::chrono::system_clock::now().time_since_epoch()).count ();
+		}
+
+		template <typename Type> auto getTime(uint64_t offset) 
+		-> decltype(getTime<Type>()){
+
+				bool Time_Correcting, Time_UseNTP; i2p::config::GetOption("time.correcting", Time_Correcting);i2p::config::GetOption("time.use_ntp", Time_UseNTP);
+				return (Time_Correcting || Time_UseNTP)  ?  getTime<Type>() + offset  :  getTime<Type>();
+		}
 
 		static int64_t g_TimeOffset = 0; // in seconds
 		inline void setTimeOffset(int64_t ts){g_TimeOffset=ts;}
@@ -20,22 +35,17 @@ namespace i2p
 
 		inline uint64_t GetSecondsSinceEpoch ()
 		{
-			bool Time_Correcting, Time_UseNTP; i2p::config::GetOption("time.correcting", Time_Correcting);i2p::config::GetOption("time.use_ntp", Time_UseNTP);
-
-			auto tmp_time = std::chrono::duration_cast<std::chrono::seconds>(
-				 std::chrono::system_clock::now().time_since_epoch()).count ();
-
-			return (Time_Correcting || Time_UseNTP)  ? tmp_time + i2p::util::g_TimeOffset  : tmp_time;
+			return getTime<std::chrono::seconds>(i2p::util::g_TimeOffset);
 		}
 
 		inline uint64_t GetMillisecondsSinceEpoch ()
 		{
-			return GetSecondsSinceEpoch()*1000;
+			return getTime<std::chrono::milliseconds>(i2p::util::g_TimeOffset*1000);
 		}
 
 		inline uint32_t GetHoursSinceEpoch ()
 		{
-			return GetSecondsSinceEpoch()/120;
+			return getTime<std::chrono::hours>(i2p::util::g_TimeOffset/120);
 		}
 
 
