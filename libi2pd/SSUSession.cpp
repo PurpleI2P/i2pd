@@ -280,8 +280,8 @@ namespace transport
 			uint32_t signedOnTime = bufbe32toh(payload);
 			if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
 			{
-				LogPrint (eLogError, "SSU: clock skew detected ", (int)ts - signedOnTime, ". Check your clock");
-				i2p::context.SetError (eRouterErrorClockSkew);
+				i2p::util::timeCorrecting(signedOnTime, ts, SSU_CLOCK_SKEW, "SSU: clock skew detected ") ? ts=i2p::util::GetSecondsSinceEpoch () : 0;
+				
 			}
 		}
 		payload += 4; // signed on time

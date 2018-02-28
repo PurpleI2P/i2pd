@@ -4,6 +4,8 @@
 #include "Log.h"
 #include "I2PEndian.h"
 #include "Timestamp.h"
+#include"RouterContext.h"
+
 
 #ifdef WIN32
 	#ifndef _WIN64
@@ -15,10 +17,32 @@ namespace i2p
 {
 namespace util
 {
-	static int64_t g_TimeOffset = 0; // in seconds
 
-	void SyncTimeWithNTP (const std::string& address)
+
+	
+
+	bool timeCorrecting(uint32_t signedOnTime, uint32_t ts, uint32_t skew, const char * ErrorMsg){
+
+				bool Time_Correcting; i2p::config::GetOption("time.correcting", Time_Correcting);
+				bool UseNTP; i2p::config::GetOption("time.ntp_server", UseNTP);
+
+				if(!Time_Correcting && !UseNTP ){
+					LogPrint (eLogError, ErrorMsg, (int)ts - signedOnTime, ". Check your clock");
+					i2p::context.SetError (eRouterErrorClockSkew);					
+					return false;
+				}
+				
+				UseNTP ? SyncTimeWithNTP() : i2p::util::setTimeOffset( signedOnTime < ts - skew ? signedOnTime : -signedOnTime );
+				return true;	
+	}
+
+
+	//TODO: ...Syncing with option
+
+	void SyncTimeWithNTP (void)
 	{
+		std::string address; i2p::config::GetOption("time.ntp_server", address);
+		
 		boost::asio::io_service service;
 		boost::asio::ip::udp::resolver::query query (boost::asio::ip::udp::v4 (), address, "ntp");
 		boost::system::error_code ec;
@@ -56,7 +80,7 @@ namespace util
 					uint32_t ts = bufbe32toh (buf + 32);
 					if (ts > 2208988800U) ts -= 2208988800U; // 1/1/1970 from 1/1/1900
 					g_TimeOffset = ts - ourTs;
-					LogPrint (eLogInfo,  address, " time offset from system time is ", g_TimeOffset, " seconds");
+					LogPrint (eLogDebug,  address, " time offset from system time is ", g_TimeOffset, " seconds");
 				}
 			}
 		}
