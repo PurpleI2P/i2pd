@@ -15,7 +15,7 @@ namespace i2p
 		inline void setTimeOffset(int64_t ts){g_TimeOffset=ts;}
 
 		bool timeCorrecting(uint32_t signedOnTime, uint32_t ts, uint32_t skew, const char * ErrorMsg);
-
+		void SyncTimeWithNTP (void);
 
 
 		inline uint64_t GetSecondsSinceEpoch ()
