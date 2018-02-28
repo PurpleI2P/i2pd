@@ -22,7 +22,9 @@ namespace i2p
 		template <typename Type> auto getTime(uint64_t offset) 
 		-> decltype(getTime<Type>()){
 
-				bool Time_Correcting, Time_UseNTP; i2p::config::GetOption("time.correcting", Time_Correcting);i2p::config::GetOption("time.use_ntp", Time_UseNTP);
+				bool Time_Correcting, Time_UseNTP; 
+				i2p::config::GetOption("time.correcting", Time_Correcting);
+				i2p::config::GetOption("time.use_ntp", Time_UseNTP);
 				return (Time_Correcting || Time_UseNTP)  ?  getTime<Type>() + offset  :  getTime<Type>();
 		}
 
