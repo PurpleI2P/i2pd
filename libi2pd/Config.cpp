@@ -254,6 +254,7 @@ namespace config {
 			.add(trust)
 			.add(websocket)
 			.add(exploratory)
+			.add(time)
 		;
 	}
 
