@@ -18,6 +18,8 @@
 
 namespace i2p {
 namespace config {
+  constexpr const char offical_ntp_server[] ="0.ca.pool.ntp.org";
+
   extern boost::program_options::variables_map m_Options;
 
   /**

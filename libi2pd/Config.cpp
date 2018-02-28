@@ -230,6 +230,12 @@ namespace config {
 			("exploratory.inbound.quantity", value<int>()->default_value(3),  "Exploratory inbound tunnels quantity")
 			("exploratory.outbound.quantity", value<int>()->default_value(3), "Exploratory outbound tunnels quantity")
 		;
+		options_description time("Time Options");
+		time.add_options()
+		("time.use_ntp", value<bool>()->default_value(false), "Use NTP")
+		("time.correcting", value<bool>()->default_value(false), "EXPEREMENTAL: Try correcting with peer, unsecurity")
+		("time.ntp_server", value<std::string>()->default_value(offical_ntp_server), "NTP Server host") 
+		;		
 
 		m_OptionsDesc
 			.add(general)
