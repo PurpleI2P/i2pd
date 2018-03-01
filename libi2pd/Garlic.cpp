@@ -34,7 +34,7 @@ namespace garlic
 		memcpy (m_SessionKey, sessionKey, 32);
 		m_Encryption.SetKey (m_SessionKey);
 		m_SessionTags.push_back (sessionTag);
-		m_SessionTags.back ().creationTime = i2p::util::GetSecondsSinceEpoch ();
+		m_SessionTags.back ().creationTime = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 	}
 
 	GarlicRoutingSession::~GarlicRoutingSession	()
@@ -44,7 +44,7 @@ namespace garlic
 	std::shared_ptr<GarlicRoutingPath> GarlicRoutingSession::GetSharedRoutingPath ()
 	{
 		if (!m_SharedRoutingPath) return nullptr;
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		if (m_SharedRoutingPath->numTimesUsed >= ROUTING_PATH_MAX_NUM_TIMES_USED ||
 		    !m_SharedRoutingPath->outboundTunnel->IsEstablished () ||
 			ts*1000LL > m_SharedRoutingPath->remoteLease->endDate ||
@@ -58,7 +58,7 @@ namespace garlic
 	{
 		if (path && path->outboundTunnel && path->remoteLease)
 		{
-			path->updateTime = i2p::util::GetSecondsSinceEpoch ();
+			path->updateTime = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 			path->numTimesUsed = 0;
 		}
 		else
@@ -69,7 +69,7 @@ namespace garlic
 	GarlicRoutingSession::UnconfirmedTags * GarlicRoutingSession::GenerateSessionTags ()
 	{
 		auto tags = new UnconfirmedTags (m_NumTags);
-		tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch ();
+		tags->tagsCreationTime = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		for (int i = 0; i < m_NumTags; i++)
 		{
 			RAND_bytes (tags->sessionTags[i], 32);
@@ -93,7 +93,7 @@ namespace garlic
 
 	void GarlicRoutingSession::TagsConfirmed (uint32_t msgID)
 	{
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		auto it = m_UnconfirmedTagsMsgs.find (msgID);
 		if (it != m_UnconfirmedTagsMsgs.end ())
 		{
@@ -109,7 +109,7 @@ namespace garlic
 
 	bool GarlicRoutingSession::CleanupExpiredTags ()
 	{
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		for (auto it = m_SessionTags.begin (); it != m_SessionTags.end ();)
 		{
 			if (ts >= it->creationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
@@ -130,7 +130,7 @@ namespace garlic
 	bool GarlicRoutingSession::CleanupUnconfirmedTags ()
 	{
 		bool ret = false;
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		// delete expired unconfirmed tags
 		for (auto it = m_UnconfirmedTagsMsgs.begin (); it != m_UnconfirmedTagsMsgs.end ();)
 		{
@@ -159,7 +159,7 @@ namespace garlic
 		SessionTag tag;
 		if (m_NumTags > 0)
 		{
-			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 			while (!m_SessionTags.empty ())
 			{
 				if (ts < m_SessionTags.front ().creationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
@@ -169,8 +169,10 @@ namespace garlic
 					tagFound = true;
 					break;
 				}
-				else
+				else{
 					m_SessionTags.pop_front (); // remove expired tag
+					LogPrint(eLogInfo, "Garlic: Remove expired tag");
+				}
 			}
 		}
 		// create message
@@ -247,7 +249,7 @@ namespace garlic
 
 	size_t GarlicRoutingSession::CreateGarlicPayload (uint8_t * payload, std::shared_ptr<const I2NPMessage> msg, UnconfirmedTags * newTags)
 	{
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();
+		uint64_t ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds) ;
 		uint32_t msgID;
 		RAND_bytes ((uint8_t *)&msgID, 4);
 		size_t size = 0;
@@ -315,7 +317,7 @@ namespace garlic
 
 	size_t GarlicRoutingSession::CreateGarlicClove (uint8_t * buf, std::shared_ptr<const I2NPMessage> msg, bool isDestination)
 	{
-		uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
+		uint64_t ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds) + 8000; // 8 sec
 		size_t size = 0;
 		if (isDestination)
 		{
@@ -373,7 +375,7 @@ namespace garlic
 				memcpy (buf + size, msg->GetBuffer (), msg->GetLength ());
 				size += msg->GetLength ();
 				// fill clove
-				uint64_t ts = i2p::util::GetMillisecondsSinceEpoch () + 8000; // 8 sec
+				uint64_t ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds) + 8000; // 8 sec
 				uint32_t cloveID;
 				RAND_bytes ((uint8_t *)&cloveID, 4);
 				htobe32buf (buf + size, cloveID); // CloveID
@@ -412,7 +414,7 @@ namespace garlic
 	{
 		if (key)
 		{
-			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 			m_Tags[SessionTag(tag, ts)] = std::make_shared<AESDecryption>(key);
 		}
 	}
@@ -480,7 +482,7 @@ namespace garlic
 				LogPrint (eLogError, "Garlic: Tag count ", tagCount, " exceeds length ", len);
 				return ;
 			}
-			uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+			uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 			for (int i = 0; i < tagCount; i++)
 				m_Tags[SessionTag(buf + i*32, ts)] = decryption;
 		}
@@ -658,7 +660,7 @@ namespace garlic
 	void GarlicDestination::CleanupExpiredTags ()
 	{
 		// incoming
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		int numExpiredTags = 0;
 		for (auto it = m_Tags.begin (); it != m_Tags.end ();)
 		{
@@ -757,7 +759,7 @@ namespace garlic
 		std::string ident = GetIdentHash().ToBase32();
 		std::string path  = i2p::fs::DataDirPath("tags", (ident + ".tags"));
 		std::ofstream f (path, std::ofstream::binary | std::ofstream::out | std::ofstream::trunc);
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		// 4 bytes timestamp, 32 bytes tag, 32 bytes key
 		for (auto it: m_Tags)
 		{
@@ -774,7 +776,7 @@ namespace garlic
 	{
 		std::string ident = GetIdentHash().ToBase32();
 		std::string path  = i2p::fs::DataDirPath("tags", (ident + ".tags"));
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		if (ts < i2p::fs::GetLastUpdateTime (path) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
 		{
 			// might contain non-expired tags
@@ -816,7 +818,7 @@ namespace garlic
 	{
 		std::vector<std::string> files;
 		i2p::fs::ReadDir (i2p::fs::DataDirPath("tags"), files);
-		uint32_t ts = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		for (auto  it: files)
 			if (ts >= i2p::fs::GetLastUpdateTime (it) + INCOMING_TAGS_EXPIRATION_TIMEOUT)
 				 i2p::fs::Remove (it);

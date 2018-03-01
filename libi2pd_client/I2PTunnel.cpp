@@ -604,12 +604,12 @@ namespace client
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
 		auto session = ObtainUDPSession(from, toPort, fromPort);
 		session->IPSocket.send_to(boost::asio::buffer(buf, len), m_RemoteEndpoint);
-		session->LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+		session->LastActivity = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 	}
 
 	void I2PUDPServerTunnel::ExpireStale(const uint64_t delta) {
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
-		uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
+		uint64_t now = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		auto itr = m_Sessions.begin();
 		while(itr != m_Sessions.end()) {
 			if(now - (*itr)->LastActivity >= delta )
@@ -621,7 +621,7 @@ namespace client
 
 	void I2PUDPClientTunnel::ExpireStale(const uint64_t delta) {
 		std::lock_guard<std::mutex> lock(m_SessionsMutex);
-		uint64_t now = i2p::util::GetMillisecondsSinceEpoch();
+		uint64_t now = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		std::vector<uint16_t> removePorts;
 		for (const auto & s : m_Sessions) {
 			if (now - s.second.second >= delta)
@@ -666,7 +666,7 @@ namespace client
 		m_Destination(localDestination->GetDatagramDestination()),
 		IPSocket(localDestination->GetService(), localEndpoint),
 		SendEndpoint(endpoint),
-		LastActivity(i2p::util::GetMillisecondsSinceEpoch()),
+		LastActivity(i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds)),
 		LocalPort(ourPort),
 		RemotePort(theirPort)
 	{
@@ -685,7 +685,7 @@ namespace client
 		if(!ecode)
 		{
 			LogPrint(eLogDebug, "UDPSession: forward ", len, "B from ", FromEndpoint);
-			LastActivity = i2p::util::GetMillisecondsSinceEpoch();
+			LastActivity = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 			m_Destination->SendDatagramTo(m_Buffer, len, Identity, LocalPort, RemotePort);
 			Receive();
 		} else {
@@ -795,7 +795,7 @@ namespace client
 		LogPrint(eLogDebug, "UDP Client: send ", transferred, " to ", m_RemoteIdent->ToBase32(), ":", RemotePort);
 		m_LocalDest->GetDatagramDestination()->SendDatagramTo(m_RecvBuff, transferred, *m_RemoteIdent, remotePort, RemotePort);
 		// mark convo as active
-		m_Sessions[remotePort].second = i2p::util::GetMillisecondsSinceEpoch();
+		m_Sessions[remotePort].second = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		RecvFromLocal();
 	}
 
@@ -837,7 +837,7 @@ namespace client
 					LogPrint(eLogDebug, "UDP Client: got ", len, "B from ", from.GetIdentHash().ToBase32());
 					m_LocalSocket.send_to(boost::asio::buffer(buf, len), itr->second.first);
 					// mark convo as active
-					itr->second.second = i2p::util::GetMillisecondsSinceEpoch();
+					itr->second.second = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 				}
 			}
 			else

@@ -44,7 +44,7 @@ namespace i2p
 		SetTypeID (msgType);
 		if (!replyMsgID) RAND_bytes ((uint8_t *)&replyMsgID, 4);
 		SetMsgID (replyMsgID);
-		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
+		SetExpiration (i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds)  + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 		UpdateSize ();
 		UpdateChks ();
 	}
@@ -54,13 +54,14 @@ namespace i2p
 		uint32_t msgID;
 		RAND_bytes ((uint8_t *)&msgID, 4);
 		SetMsgID (msgID);
-		SetExpiration (i2p::util::GetMillisecondsSinceEpoch () + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
+		SetExpiration (i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds)  + I2NP_MESSAGE_EXPIRATION_TIMEOUT);
 	}
 
 	bool I2NPMessage::IsExpired () const
 	{
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		auto exp = GetExpiration ();
+		auto ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds) ;
+
 		return (ts > exp + I2NP_MESSAGE_CLOCK_SKEW) || (ts < exp - 3*I2NP_MESSAGE_CLOCK_SKEW); // check if expired or too far in future
 	}
 
@@ -103,7 +104,7 @@ namespace i2p
 		if (msgID)
 		{
 			htobe32buf (buf + DELIVERY_STATUS_MSGID_OFFSET, msgID);
-			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, i2p::util::GetMillisecondsSinceEpoch ());
+			htobe64buf (buf + DELIVERY_STATUS_TIMESTAMP_OFFSET, i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds) );
 		}
 		else // for SSU establishment
 		{

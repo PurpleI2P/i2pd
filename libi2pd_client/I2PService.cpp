@@ -60,7 +60,7 @@ namespace client
 
 	void I2PService::AddReadyCallback(ReadyCallback cb)
 	{
-		uint32_t now = i2p::util::GetSecondsSinceEpoch();
+		uint32_t now = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 		uint32_t tm = now + m_ConnectTimeout;
 		LogPrint(eLogDebug, "I2PService::AddReadyCallback() ", tm, " ", now);
 		m_ReadyCallbacks.push_back({cb, tm});
@@ -83,7 +83,7 @@ namespace client
 		else if(!m_LocalDestination->IsReady())
 		{
 			// expire timed out requests
-			uint32_t now = i2p::util::GetSecondsSinceEpoch ();
+			uint32_t now = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds);
 			auto itr = m_ReadyCallbacks.begin();
 			while(itr != m_ReadyCallbacks.end())
 			{

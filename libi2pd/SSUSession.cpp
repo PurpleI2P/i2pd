@@ -32,7 +32,7 @@ namespace transport
 			auto address = i2p::context.GetRouterInfo ().GetSSUAddress (false);
 			if (address) m_IntroKey = address->ssu->key;
 		}
-		m_CreationTime = i2p::util::GetSecondsSinceEpoch ();
+		m_CreationTime =i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 	}
 
 	SSUSession::~SSUSession ()
@@ -98,7 +98,7 @@ namespace transport
 		{
 			if (!len) return; // ignore zero-length packets
 			if (m_State == eSessionStateEstablished)
-				m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+				m_LastActivityTimestamp =i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 
 			if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
 				DecryptSessionKey (buf, len);
@@ -276,13 +276,13 @@ namespace transport
 		payload += 4; // relayTag
 		if (i2p::context.GetStatus () == eRouterStatusTesting)
 		{
-			auto ts = i2p::util::GetSecondsSinceEpoch ();
+			auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 			uint32_t signedOnTime = bufbe32toh(payload);
 			if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
 			{
-				LogPrint (eLogError, "SSU: clock skew detected ", (int)ts - signedOnTime, ". Check your clock");
-				i2p::context.SetError (eRouterErrorClockSkew);
+				i2p::util::timeCorrecting(signedOnTime, ts, SSU_CLOCK_SKEW, "SSU: clock skew detected ");
 			}
+
 		}
 		payload += 4; // signed on time
 		// decrypt signature
@@ -324,7 +324,7 @@ namespace transport
 		SetRemoteIdentity (existing ? existing->GetRouterIdentity () : identity);
 		m_Data.UpdatePacketSize (m_RemoteIdentity->GetIdentHash ());
 		payload += identitySize; // identity
-		auto ts = i2p::util::GetSecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		uint32_t signedOnTime = bufbe32toh(payload);
 		if (signedOnTime < ts - SSU_CLOCK_SKEW || signedOnTime > ts + SSU_CLOCK_SKEW)
 		{
@@ -469,7 +469,7 @@ namespace transport
 		}
 		htobe32buf (payload, m_SentRelayTag);
 		payload += 4; // relay tag
-		htobe32buf (payload, i2p::util::GetSecondsSinceEpoch ()); // signed on time
+		htobe32buf (payload,i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ); // signed on time
 		payload += 4;
 		s.Insert (payload - 8, 4); // relayTag
 		// we have to store this signed data for session confirmed
@@ -510,7 +510,7 @@ namespace transport
 		payload += 2; // cursize
 		i2p::context.GetIdentity ()->ToBuffer (payload, identLen);
 		payload += identLen;
-		uint32_t signedOnTime = i2p::util::GetSecondsSinceEpoch ();
+		uint32_t signedOnTime =i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		htobe32buf (payload, signedOnTime); // signed on time
 		payload += 4;
 		auto signatureLen = i2p::context.GetIdentity ()->GetSignatureLen ();
@@ -721,7 +721,7 @@ namespace transport
 		SSUHeader * header = (SSUHeader *)buf;
 		memcpy (header->iv, iv, 16);
 		header->flag = flag | (payloadType << 4); // MSB is 0
-		htobe32buf (header->time, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (header->time,i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) );
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
 		i2p::crypto::CBCEncryption encryption;
@@ -745,7 +745,7 @@ namespace transport
 		RAND_bytes (header->iv, 16); // random iv
 		m_SessionKeyEncryption.SetIV (header->iv);
 		header->flag = payloadType << 4; // MSB is 0
-		htobe32buf (header->time, i2p::util::GetSecondsSinceEpoch ());
+		htobe32buf (header->time,i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) );
 		uint8_t * encrypted = &header->flag;
 		uint16_t encryptedLen = len - (encrypted - buf);
 		m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
@@ -907,7 +907,7 @@ namespace transport
 			SendPeerTest ();
 		if (m_SentRelayTag)
 			m_Server.AddRelay (m_SentRelayTag, shared_from_this ());
-		m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+		m_LastActivityTimestamp = i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 	}
 
 	void SSUSession::Failed ()
@@ -1149,7 +1149,7 @@ namespace transport
 			FillHeaderAndEncrypt (PAYLOAD_TYPE_DATA, buf, 48);
 			Send (buf, 48);
 			LogPrint (eLogDebug, "SSU: keep-alive sent");
-			m_LastActivityTimestamp = i2p::util::GetSecondsSinceEpoch ();
+			m_LastActivityTimestamp =i2p::util::getTime<std::chrono::seconds> (i2p::util::TimeType::seconds) ;
 		}
 	}
 

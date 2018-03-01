@@ -345,7 +345,7 @@ namespace client
 		auto l = version.length () + 1 + 8;
 		uint8_t * payload = new uint8_t[l];
 		// set date
-		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
+		auto ts = i2p::util::getTime<std::chrono::milliseconds> (i2p::util::TimeType::milliseconds);
 		htobe64buf (payload, ts);
 		// echo vesrion back
 		PutString (payload + 8, l - 8, version);
