@@ -57,6 +57,7 @@ namespace client
 			void InsertParam (std::ostringstream& ss, const std::string& name, int value) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, double value) const;
 			void InsertParam (std::ostringstream& ss, const std::string& name, const std::string& value) const;
+			void InsertParam (std::ostringstream& ss, const std::string& name, const boost::property_tree::ptree& value) const;
 
 			// methods
 			typedef void (I2PControlService::*MethodHandler)(const boost::property_tree::ptree& params, std::ostringstream& results);
@@ -67,6 +68,7 @@ namespace client
 			void RouterInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void RouterManagerHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 			void NetworkSettingHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
+			void ClientServicesInfoHandler (const boost::property_tree::ptree& params, std::ostringstream& results);
 
 			// I2PControl
 			typedef void (I2PControlService::*I2PControlRequestHandler)(const std::string& value);
@@ -98,6 +100,15 @@ namespace client
 			void InboundBandwidthLimit  (const std::string& value, std::ostringstream& results);
 			void OutboundBandwidthLimit (const std::string& value, std::ostringstream& results);
 
+			// ClientServicesInfo
+			typedef void (I2PControlService::*ClientServicesInfoRequestHandler)(std::ostringstream& results);
+			void I2PTunnelInfoHandler (std::ostringstream& results);
+			void HTTPProxyInfoHandler (std::ostringstream& results);
+			void SOCKSInfoHandler (std::ostringstream& results);
+			void SAMInfoHandler (std::ostringstream& results);
+			void BOBInfoHandler (std::ostringstream& results);
+			void I2CPInfoHandler (std::ostringstream& results);
+
 		private:
 
 			std::string m_Password;
@@ -115,6 +126,7 @@ namespace client
 			std::map<std::string, RouterInfoRequestHandler> m_RouterInfoHandlers;
 			std::map<std::string, RouterManagerRequestHandler> m_RouterManagerHandlers;
 			std::map<std::string, NetworkSettingRequestHandler> m_NetworkSettingHandlers;
+			std::map<std::string, ClientServicesInfoRequestHandler> m_ClientServicesInfoHandlers;
 	};
 }
 }
