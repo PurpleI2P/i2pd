@@ -97,6 +97,7 @@ set_target_properties(libi2pd PROPERTIES PREFIX "")
 install(TARGETS libi2pd
   EXPORT libi2pd
   ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
   COMPONENT Libraries)
 # TODO Make libi2pd available to 3rd party projects via CMake as imported target
 # FIXME This pulls stdafx
