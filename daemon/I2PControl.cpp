@@ -731,7 +731,7 @@ namespace client
                     {
                         boost::property_tree::ptree stream;
                         stream.put("type", socket->GetSocketType ());
-                        stream.put("remote_endpoint", socket->GetSocket ().remote_endpoint());
+                        stream.put("peer", socket->GetSocket ().remote_endpoint());
 
                         sam_session_sockets.push_back(std::make_pair("", stream));
                     }
