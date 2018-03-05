@@ -18,6 +18,7 @@ USE_AVX		:= yes
 USE_STATIC	:= no
 USE_MESHNET	:= no
 USE_UPNP	:= no
+USE_LMDB	:= yes
 
 ifeq ($(WEBSOCKETS),1)
 	NEEDED_CXXFLAGS += -DWITH_EVENTS
@@ -45,6 +46,11 @@ endif
 
 ifeq ($(USE_MESHNET),yes)
 	NEEDED_CXXFLAGS += -DMESHNET
+endif
+
+ifeq ($(USE_LMDB),yes)
+	NEEDED_CXXFLAGS += -DLMDB
+	LDLIBS += -llmdb
 endif
 
 NEEDED_CXXFLAGS += -I$(LIB_SRC_DIR) -I$(LIB_CLIENT_SRC_DIR)

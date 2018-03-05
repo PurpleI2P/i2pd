@@ -5,6 +5,10 @@
 #include <sys/types.h>
 #include <fcntl.h>
 
+#ifdef LMDB
+#include <lmdb.h>
+#endif
+
 #include "FS.h"
 #include "Identity.h"
 #include "Log.h"
@@ -68,6 +72,34 @@ private:
 	bool m_IsB32;
 };
 
+#ifdef LMDB
+class MdbIdentStorage : public IdentStorage
+{
+public:
+	MdbIdentStorage(const char *name) : m_Name(name) {}
+	virtual bool Init();
+	virtual void DeInit();
+	virtual bool BeginUpdate();
+	virtual bool EndUpdate();
+	virtual bool Store(const IdentHash &, const StorageRecord&);
+	virtual bool Remove(const IdentHash &);
+	StorageRecord Fetch(const IdentHash&);
+	virtual void Iterate(const DVisitor&);
+	virtual ~MdbIdentStorage();
+private:
+	bool InitRead();
+	void DeInitRead();
+	bool InitWrite();
+
+	bool DeInitWrite();
+	bool m_Initialized = false;
+	std::string m_Path;
+	std::string m_Name;
+	MDB_env *env;
+	MDB_dbi dbi;
+	MDB_txn *txn;
+};
+#endif
 } //ns data
 } //ns i2p
 
