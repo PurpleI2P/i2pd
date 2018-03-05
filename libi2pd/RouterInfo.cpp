@@ -34,14 +34,19 @@ namespace data
 		ReadFromFile ();
 	}
 
-	RouterInfo::RouterInfo (const uint8_t * buf, int len):
-		m_IsUpdated (true), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
+	RouterInfo::RouterInfo (const uint8_t * buf, int len, bool checkSig):
+		m_IsUpdated (false), m_IsUnreachable (false), m_SupportedTransports (0), m_Caps (0)
 	{
 		m_Addresses = boost::make_shared<Addresses>(); // create empty list
 		m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer (true);
+		ReadFromBuffer (checkSig);
+	}
+
+	RouterInfo::RouterInfo (const uint8_t * buf, int len): RouterInfo(buf, len, true)
+	{
+		m_IsUpdated = true;
 	}
 
 	RouterInfo::~RouterInfo ()
@@ -337,7 +342,7 @@ namespace data
 	}
 
   bool RouterInfo::IsFamily(const std::string & fam) const {
-    return m_Family == fam;
+	return m_Family == fam;
   }
 
 	void RouterInfo::ExtractCaps (const char * value)
@@ -551,6 +556,20 @@ namespace data
 		size_t size = m_RouterIdentity->GetFullLen ();
 		if (size + 8 > len) return false;
 		return bufbe64toh (buf + size) > m_Timestamp;
+	}
+
+	const uint8_t * RouterInfo::LoadBuffer(const uint8_t *buf, size_t len) //TODO: error handling
+	{
+		m_BufferLen = len;
+		if (m_BufferLen < 40 || m_BufferLen > MAX_RI_BUFFER_SIZE)
+		{
+			LogPrint(eLogError, "RouterInfo: File", m_FullPath, " is malformed");
+			return nullptr;
+		}
+		if (!m_Buffer)
+			m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+		memcpy(m_Buffer, buf, len);
+		return m_Buffer;
 	}
 
 	const uint8_t * RouterInfo::LoadBuffer ()

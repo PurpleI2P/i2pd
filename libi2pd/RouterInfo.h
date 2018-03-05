@@ -120,6 +120,7 @@ namespace data
 			RouterInfo (const std::string& fullPath);
 			RouterInfo (const RouterInfo& ) = default;
 			RouterInfo& operator=(const RouterInfo& ) = default;
+			RouterInfo (const uint8_t * buf, int len, bool);
 			RouterInfo (const uint8_t * buf, int len);
 			~RouterInfo ();
 
@@ -167,6 +168,7 @@ namespace data
 
 			const uint8_t * GetBuffer () const { return m_Buffer; };
 			const uint8_t * LoadBuffer (); // load if necessary
+			const uint8_t * LoadBuffer(const uint8_t *buf, size_t len); //load from memory
 			int GetBufferLen () const { return m_BufferLen; };
 			void CreateBuffer (const PrivateKeys& privateKeys);
 
