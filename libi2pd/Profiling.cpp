@@ -1,4 +1,4 @@
-#include <sys/stat.h>
+#include <memory>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Base.h"
@@ -10,7 +10,7 @@ namespace i2p
 {
 namespace data
 {
-	i2p::fs::HashedStorage m_ProfilesStorage("peerProfiles", "p", "profile-", "txt");
+	std::unique_ptr<IdentStorage> m_ProfilesStorage(nullptr);
 
 	RouterProfile::RouterProfile ():
 		m_LastUpdateTime (boost::posix_time::second_clock::local_time()),
@@ -45,12 +45,15 @@ namespace data
 		pt.put_child (PEER_PROFILE_SECTION_PARTICIPATION, participation);
 		pt.put_child (PEER_PROFILE_SECTION_USAGE, usage);
 
-		// save to file
+		// save to string stream
 		std::string ident = identHash.ToBase64 ();
-		std::string path = m_ProfilesStorage.Path(ident);
+		std::ostringstream ss;
 
 		try {
-			boost::property_tree::write_ini (path, pt);
+			boost::property_tree::write_ini (ss, pt);
+			std::string str = ss.str();
+			StorageRecord record(str.c_str(), str.length());
+			m_ProfilesStorage->Store(identHash, record);
 		} catch (std::exception& ex) {
 			/* boost exception verbose enough */
 			LogPrint (eLogError, "Profiling: ", ex.what ());
@@ -59,19 +62,20 @@ namespace data
 
 	void RouterProfile::Load (const IdentHash& identHash)
 	{
-		std::string ident = identHash.ToBase64 ();
-		std::string path = m_ProfilesStorage.Path(ident);
-		boost::property_tree::ptree pt;
+		StorageRecord record = m_ProfilesStorage->Fetch(identHash);
 
-		if (!i2p::fs::Exists(path))
+		if (!record.IsValid())
 		{
-			LogPrint(eLogWarning, "Profiling: no profile yet for ", ident);
+			LogPrint(eLogWarning, "Profiling: no profile yet for ", identHash.ToBase64());
 			return;
 		}
 
+		std::istringstream ss(std::string(record.data.get(), record.data.get() + record.len));
+		boost::property_tree::ptree pt;
+
 		try
 		{
-			boost::property_tree::read_ini (path, pt);
+			boost::property_tree::read_ini (ss, pt);
 		} catch (std::exception& ex)
 		{
 			/* boost exception verbose enough */
@@ -96,7 +100,7 @@ namespace data
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
-					LogPrint (eLogWarning, "Profiling: Missing section ", PEER_PROFILE_SECTION_PARTICIPATION, " in profile for ", ident);
+					LogPrint (eLogWarning, "Profiling: Missing section ", PEER_PROFILE_SECTION_PARTICIPATION, " in profile for ", identHash.ToBase64());
 				}
 				try
 				{
@@ -107,7 +111,7 @@ namespace data
 				}
 				catch (boost::property_tree::ptree_bad_path& ex)
 				{
-					LogPrint (eLogWarning, "Missing section ", PEER_PROFILE_SECTION_USAGE, " in profile for ", ident);
+					LogPrint (eLogWarning, "Missing section ", PEER_PROFILE_SECTION_USAGE, " in profile for ", identHash.ToBase64());
 				}
 			}
 			else
@@ -115,7 +119,7 @@ namespace data
 		}
 		catch (std::exception& ex)
 		{
-			LogPrint (eLogError, "Profiling: Can't read profile ", ident, " :", ex.what ());
+			LogPrint (eLogError, "Profiling: Can't read profile ", identHash.ToBase64(), " :", ex.what ());
 		}
 	}
 
@@ -169,27 +173,51 @@ namespace data
 
 	void InitProfilesStorage ()
 	{
-		m_ProfilesStorage.SetPlace(i2p::fs::GetDataDir());
-		m_ProfilesStorage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+		m_ProfilesStorage.reset(new FsIdentStorage("peerProfiles", "p", "profile-", "txt"));
+		m_ProfilesStorage->Init();
+
 	}
 
 	void DeleteObsoleteProfiles ()
 	{
-		struct stat st;
-		std::time_t now = std::time(nullptr);
+		boost::posix_time::ptime now = boost::posix_time::from_time_t(std::time(nullptr));
+		m_ProfilesStorage->Iterate([now](const IdentHash &ident, const StorageRecord &record) {
+			std::istringstream ss(std::string(record.data.get(), record.data.get() + record.len));
+			boost::property_tree::ptree pt;
+			try
+			{
+				boost::property_tree::read_ini (ss, pt);
+			} catch (std::exception& ex)
+			{
+				/* boost exception verbose enough */
+				LogPrint (eLogError, "Deleting obsolete profile: ", ex.what ());
+				return;
+			}
 
-		std::vector<std::string> files;
-		m_ProfilesStorage.Traverse(files);
-		for (const auto& path: files) {
-			if (stat(path.c_str(), &st) != 0) {
-				LogPrint(eLogWarning, "Profiling: Can't stat(): ", path);
-				continue;
+			auto t = pt.get (PEER_PROFILE_LAST_UPDATE_TIME, "");
+			boost::posix_time::ptime lastUpdate = now;
+			if (t.length () > 0)
+				lastUpdate = boost::posix_time::time_from_string (t);
+			if((now - lastUpdate).total_seconds()/ 3600 >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
+				LogPrint(eLogDebug, "Profiling: removing expired peer profile: ", ident.ToBase64());
+				m_ProfilesStorage->Remove(ident);
 			}
-			if (((now - st.st_mtime) / 3600) >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
-				LogPrint(eLogDebug, "Profiling: removing expired peer profile: ", path);
-				i2p::fs::Remove(path);
-			}
-		}
+		});
+	}
+
+	bool BeginProfilesStorageUpdate()
+	{
+		return m_ProfilesStorage->BeginUpdate();
+	}
+
+	bool EndProfilesStorageUpdate()
+	{
+		return m_ProfilesStorage->EndUpdate();
+	}
+
+	void DeInitProfilesStorage()
+	{
+		m_ProfilesStorage->DeInit();
 	}
 }
 }

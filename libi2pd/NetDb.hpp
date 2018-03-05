@@ -7,6 +7,7 @@
 #include <list>
 #include <string>
 #include <thread>
+#include <memory>
 #include <mutex>
 
 #include "Base.h"
@@ -19,6 +20,7 @@
 #include "Tunnel.h"
 #include "TunnelPool.h"
 #include "Reseed.h"
+#include "Storage.h"
 #include "NetDbRequests.h"
 #include "Family.h"
 
@@ -93,8 +95,6 @@ namespace data
 
 			/** visit all lease sets we currently store */
 			void VisitLeaseSets(LeaseSetVisitor v);
-			/** visit all router infos we have currently on disk, usually insanely expensive, does not access in memory RI */
-			void VisitStoredRouterInfos(RouterInfoVisitor v);
 			/** visit all router infos we have loaded in memory, cheaper than VisitLocalRouterInfos but locks access while visiting */
 			void VisitRouterInfos(RouterInfoVisitor v);
 			/** visit N random router that match using filter, then visit them with a visitor, return number of RouterInfos that were visited */
@@ -105,7 +105,7 @@ namespace data
 		private:
 
 			void Load ();
-			bool LoadRouterInfo (const std::string & path);
+			bool LoadRouterInfo (const char *buffer, size_t len);
 			void SaveUpdated ();
 			void Run (); // exploratory thread
 			void Explore (int numDestinations);
@@ -135,7 +135,7 @@ namespace data
 			GzipInflator m_Inflator;
 			Reseeder * m_Reseeder;
 			Families m_Families;
-			i2p::fs::HashedStorage m_Storage;
+			std::unique_ptr<IdentStorage> m_Storage;
 
 			friend class NetDbRequests;
 			NetDbRequests m_Requests;

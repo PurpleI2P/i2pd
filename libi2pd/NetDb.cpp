@@ -25,7 +25,7 @@ namespace data
 {
 	NetDb netdb;
 
-	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage("netDb", "r", "routerInfo-", "dat"), m_FloodfillBootstrap(nullptr), m_HiddenMode(false)
+	NetDb::NetDb (): m_IsRunning (false), m_Thread (nullptr), m_Reseeder (nullptr), m_Storage(nullptr), m_FloodfillBootstrap(nullptr), m_HiddenMode(false)
 	{
 	}
 
@@ -37,8 +37,8 @@ namespace data
 
 	void NetDb::Start ()
 	{
-		m_Storage.SetPlace(i2p::fs::GetDataDir());
-		m_Storage.Init(i2p::data::GetBase64SubstitutionTable(), 64);
+		m_Storage.reset(new FsIdentStorage("netDb", "r", "routerInfo-", "dat"));
+		m_Storage->Init();
 		InitProfilesStorage ();
 		m_Families.LoadCertificates ();
 		Load ();
@@ -55,9 +55,15 @@ namespace data
 	{
 		if (m_IsRunning)
 		{
-			for (auto& it: m_RouterInfos)
-				it.second->SaveProfile ();
-			DeleteObsoleteProfiles ();
+			if(BeginProfilesStorageUpdate()) //TODO Error handling
+			{
+				for (auto& it: m_RouterInfos)
+					it.second->SaveProfile ();
+				DeleteObsoleteProfiles();
+				EndProfilesStorageUpdate();
+			}
+			m_Storage->DeInit();
+			DeInitProfilesStorage();
 			m_RouterInfos.clear ();
 			m_Floodfills.clear ();
 			if (m_Thread)
@@ -360,9 +366,9 @@ namespace data
 		i2p::transport::transports.SendMessages(ih, requests);
 	}
 
-	bool NetDb::LoadRouterInfo (const std::string & path)
+	bool NetDb::LoadRouterInfo (const char *buffer, size_t len)
 	{
-		auto r = std::make_shared<RouterInfo>(path);
+		auto r = std::make_shared<RouterInfo>((uint8_t *)buffer, len, false);
 		if (r->GetRouterIdentity () && !r->IsUnreachable () &&
 				(!r->UsesIntroducer () || m_LastLoad < r->GetTimestamp () + NETDB_INTRODUCEE_EXPIRATION_TIMEOUT*1000LL)) // 1 hour
 		{
@@ -374,8 +380,7 @@ namespace data
 		}
 		else
 		{
-			LogPrint(eLogWarning, "NetDb: RI from ", path, " is invalid. Delete");
-			i2p::fs::Remove(path);
+			LogPrint(eLogWarning, "NetDb: RI from ", r->GetIdentHash(), " is invalid.");
 		}
 		return true;
 	}
@@ -385,14 +390,6 @@ namespace data
 		std::unique_lock<std::mutex> lock(m_LeaseSetsMutex);
 		for ( auto & entry : m_LeaseSets)
 			v(entry.first, entry.second);
-	}
-
-	void NetDb::VisitStoredRouterInfos(RouterInfoVisitor v)
-	{
-		m_Storage.Iterate([v] (const std::string & filename) {
-        auto ri = std::make_shared<i2p::data::RouterInfo>(filename);
-				v(ri);
-		});
 	}
 
 	void NetDb::VisitRouterInfos(RouterInfoVisitor v)
@@ -455,10 +452,16 @@ namespace data
 		m_Floodfills.clear ();
 
 		m_LastLoad = i2p::util::GetSecondsSinceEpoch();
-		std::vector<std::string> files;
-		m_Storage.Traverse(files);
-		for (const auto& path : files)
-			LoadRouterInfo(path);
+		m_Storage->BeginUpdate();
+		m_Storage->Iterate([&](const IdentHash &ident, const StorageRecord &record)
+		{
+			if (!LoadRouterInfo(record.data.get(), record.len))
+			{
+				if (m_Storage->Remove(ident))
+					LogPrint(eLogInfo, "Deleting invalid RI from ", ident.ToBase64());
+			}
+		});
+		m_Storage->EndUpdate();
 
 		LogPrint (eLogInfo, "NetDb: ", m_RouterInfos.size(), " routers loaded (", m_Floodfills.size (), " floodfils)");
 	}
@@ -475,13 +478,18 @@ namespace data
 			expirationTimeout = i2p::context.IsFloodfill () ? NETDB_FLOODFILL_EXPIRATION_TIMEOUT*1000LL :
 					NETDB_MIN_EXPIRATION_TIMEOUT*1000LL + (NETDB_MAX_EXPIRATION_TIMEOUT - NETDB_MIN_EXPIRATION_TIMEOUT)*1000LL*NETDB_MIN_ROUTERS/total;
 
+		m_Storage->BeginUpdate();
 		for (auto& it: m_RouterInfos)
 		{
-			std::string ident = it.second->GetIdentHashBase64();
-			std::string path  = m_Storage.Path(ident);
+			IdentHash ident = it.second->GetIdentHash();
 			if (it.second->IsUpdated ())
 			{
-				it.second->SaveToFile (path);
+				if (it.second->GetBuffer()) {
+					StorageRecord record((char *)it.second->GetBuffer(), it.second->GetBufferLen());
+					m_Storage->Store(ident, record);
+				} else {
+					LogPrint (eLogError, "RouterInfo: Can't save, m_Buffer == NULL, Bleat!", it.second->GetIdentHashBase64());
+				}
 				it.second->SetUpdated (false);
 				it.second->SetUnreachable (false);
 				it.second->DeleteBuffer ();
@@ -501,17 +509,19 @@ namespace data
 			if (it.second->IsUnreachable ())
 			{
 				// delete RI file
-				m_Storage.Remove(ident);
+				m_Storage->Remove(ident);
 				deletedCount++;
 				if (total - deletedCount < NETDB_MIN_ROUTERS) checkForExpiration = false;
 			}
 		} // m_RouterInfos iteration
+		m_Storage->EndUpdate();
 
 		if (updatedCount > 0)
 			LogPrint (eLogInfo, "NetDb: saved ", updatedCount, " new/updated routers");
 		if (deletedCount > 0)
 		{
 			LogPrint (eLogInfo, "NetDb: deleting ", deletedCount, " unreachable routers");
+			BeginProfilesStorageUpdate(); //TODO: Error handling
 			// clean up RouterInfos table
 			{
 				std::unique_lock<std::mutex> l(m_RouterInfosMutex);
@@ -526,6 +536,7 @@ namespace data
 					++it;
 				}
 			}
+			EndProfilesStorageUpdate(); //TODO: Error handling
 			// clean up expired floodfiils
 			{
 				std::unique_lock<std::mutex> l(m_FloodfillsMutex);
@@ -829,7 +840,11 @@ namespace data
 				if (router)
 				{
 					LogPrint (eLogDebug, "NetDb: requested RouterInfo ", key, " found");
-					router->LoadBuffer ();
+					if (!router->GetBuffer())
+					{
+						StorageRecord record = m_Storage->Fetch(router->GetIdentHash());
+						router->LoadBuffer((const uint8_t*)record.data.get(), record.len);
+					}
 					if (router->GetBuffer ())
 						replyMsg = CreateDatabaseStoreMsg (router);
 				}
