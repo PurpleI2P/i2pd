@@ -97,6 +97,7 @@ set_target_properties(libi2pd PROPERTIES PREFIX "")
 install(TARGETS libi2pd
   EXPORT libi2pd
   ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
   COMPONENT Libraries)
 # TODO Make libi2pd available to 3rd party projects via CMake as imported target
 # FIXME This pulls stdafx
@@ -119,7 +120,13 @@ set (CLIENT_SRC
 if(WITH_WEBSOCKETS)
   list (APPEND CLIENT_SRC "${LIBI2PD_CLIENT_SRC_DIR}/Websocket.cpp")
 endif ()
-add_library(i2pdclient ${CLIENT_SRC})
+add_library(libi2pdclient ${CLIENT_SRC})
+set_target_properties(libi2pdclient PROPERTIES PREFIX "")
+install(TARGETS libi2pdclient
+  EXPORT libi2pdclient
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  COMPONENT Libraries)
 
 set(DAEMON_SRC_DIR ../daemon)
 
@@ -303,7 +310,7 @@ if (WITH_PCH)
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       )
     target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
-    target_compile_options(i2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(libi2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
   else()
     string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
     get_directory_property(DEFS DEFINITIONS)
@@ -312,12 +319,12 @@ if (WITH_PCH)
       COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../libi2pd/stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
     )
     target_compile_options(libi2pd PRIVATE -include libi2pd/stdafx.h)
-    target_compile_options(i2pdclient PRIVATE -include libi2pd/stdafx.h)
+    target_compile_options(libi2pdclient PRIVATE -include libi2pd/stdafx.h)
   endif()
   target_link_libraries(libi2pd stdafx)
 endif()
 
-target_link_libraries(i2pdclient libi2pd)
+target_link_libraries(libi2pdclient libi2pd)
 
 find_package ( Boost COMPONENTS system filesystem program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -450,7 +457,7 @@ if (WITH_BINARY)
   if (WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
-  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
+  target_link_libraries( "${PROJECT_NAME}" libi2pd libi2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set (APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
