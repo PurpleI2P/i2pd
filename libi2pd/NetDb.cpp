@@ -37,7 +37,13 @@ namespace data
 
 	void NetDb::Start ()
 	{
-		m_Storage.reset(new FsIdentStorage("netDb", "r", "routerInfo-", "dat"));
+		std::string engine;
+		i2p::config::GetOption("storage.engine", engine);
+		if (engine == "lmdb")
+			m_Storage.reset(new MdbIdentStorage("netDb.lmdb"));
+		else
+			m_Storage.reset(new FsIdentStorage("netDb", "r", "routerInfo-", "dat"));
+
 		m_Storage->Init();
 		InitProfilesStorage ();
 		m_Families.LoadCertificates ();

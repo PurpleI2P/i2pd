@@ -2,6 +2,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include "Base.h"
+#include "Config.h"
 #include "FS.h"
 #include "Log.h"
 #include "Profiling.h"
@@ -173,7 +174,12 @@ namespace data
 
 	void InitProfilesStorage ()
 	{
-		m_ProfilesStorage.reset(new FsIdentStorage("peerProfiles", "p", "profile-", "txt"));
+		std::string engine;
+		i2p::config::GetOption("storage.engine", engine);
+		if (engine == "lmdb")
+			m_ProfilesStorage.reset(new MdbIdentStorage("peerProfiles.lmdb"));
+		else
+			m_ProfilesStorage.reset(new FsIdentStorage("peerProfiles", "p", "profile-", "txt"));
 		m_ProfilesStorage->Init();
 
 	}
