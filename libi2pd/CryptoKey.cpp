@@ -47,7 +47,7 @@ namespace crypto
 	void ECIESP256Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
 	{
 		if (m_Curve && m_PublicKey)
-			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted, ctx);
+			ECIESEncrypt (m_Curve, m_PublicKey, data, encrypted, ctx, true);
 	}
 
 	ECIESP256Decryptor::ECIESP256Decryptor (const uint8_t * priv)
@@ -65,7 +65,7 @@ namespace crypto
 	bool ECIESP256Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		if (m_Curve && m_PrivateKey)
-			return ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx);
+			return ECIESDecrypt (m_Curve, m_PrivateKey, encrypted, data, ctx, true);
 		return false;
 	}
 
@@ -107,7 +107,7 @@ namespace crypto
 	void ECIESGOSTR3410Encryptor::Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx)
 	{
 		if (m_PublicKey)
-			ECIESEncrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PublicKey, data, encrypted, ctx);
+			ECIESEncrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PublicKey, data, encrypted, ctx, true);
 	}
 
 	ECIESGOSTR3410Decryptor::ECIESGOSTR3410Decryptor (const uint8_t * priv)
@@ -123,7 +123,7 @@ namespace crypto
 	bool ECIESGOSTR3410Decryptor::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx)
 	{
 		if (m_PrivateKey)
-			return ECIESDecrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PrivateKey, encrypted, data, ctx);
+			return ECIESDecrypt (GetGOSTR3410Curve (eGOSTR3410CryptoProA)->GetGroup (), m_PrivateKey, encrypted, data, ctx, true);
 		return false;
 	}
 
