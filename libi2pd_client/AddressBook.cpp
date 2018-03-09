@@ -207,7 +207,7 @@ namespace client
 
 //---------------------------------------------------------------------
 	AddressBook::AddressBook (): m_Storage(nullptr), m_IsLoaded (false), m_IsDownloading (false),
-		m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
+		m_NumRetries (0), m_DefaultSubscription (nullptr), m_SubscriptionsUpdateTimer (nullptr)
 	{
 	}
 
@@ -486,9 +486,13 @@ namespace client
 	void AddressBook::DownloadComplete (bool success, const i2p::data::IdentHash& subscription, const std::string& etag, const std::string& lastModified)
 	{
 		m_IsDownloading = false;
-		int nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
+		m_NumRetries++;
+		int nextUpdateTimeout = m_NumRetries*CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT;
+		if (m_NumRetries > CONTINIOUS_SUBSCRIPTION_MAX_NUM_RETRIES || nextUpdateTimeout > CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT)
+			nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT;
 		if (success)
 		{
+			m_NumRetries = 0;
 			if (m_DefaultSubscription) m_DefaultSubscription = nullptr;
 			if (m_IsLoaded)
 				nextUpdateTimeout = CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT;
@@ -692,7 +696,7 @@ namespace client
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
 			i2p::client::context.GetSharedLocalDestination ()->RequestDestination (m_Ident,
 				[&newDataReceived, &leaseSet, &newDataReceivedMutex](std::shared_ptr<i2p::data::LeaseSet> ls)
-			    {
+				{
 					leaseSet = ls;
 					std::unique_lock<std::mutex> l1(newDataReceivedMutex);
 					newDataReceived.notify_all ();
@@ -749,7 +753,7 @@ namespace client
 						end = true;
 					newDataReceived.notify_all ();
 				},
-				30); // wait for 30 seconds
+				SUBSCRIPTION_REQUEST_TIMEOUT);
 			std::unique_lock<std::mutex> l(newDataReceivedMutex);
 			if (newDataReceived.wait_for (l, std::chrono::seconds (SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
 			{

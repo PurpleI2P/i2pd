@@ -378,9 +378,15 @@ namespace stream
 
 	size_t Stream::Send (const uint8_t * buf, size_t len)
 	{
-		// TODO: check max buffer size
+		size_t sent = len;
+		while(len > MAX_PACKET_SIZE)
+		{
+			AsyncSend (buf, MAX_PACKET_SIZE, nullptr);
+			buf += MAX_PACKET_SIZE;
+			len -= MAX_PACKET_SIZE;
+		}
 		AsyncSend (buf, len, nullptr);
-		return len;
+		return sent;
 	}
 
 	void Stream::AsyncSend (const uint8_t * buf, size_t len, SendHandler handler)
@@ -572,7 +578,9 @@ namespace stream
 				if (m_SentPackets.empty () && m_SendBuffer.IsEmpty ()) // nothing to send
 				{
 					m_Status = eStreamStatusClosed;
-					SendClose ();
+					// close could be called from another thread so do SendClose from the destination thread
+					// this is so m_LocalDestination.NewPacket () does not trigger a race condition
+					m_Service.post(std::bind(&Stream::SendClose, shared_from_this()));
 				}
 			break;
 			case eStreamStatusClosed:

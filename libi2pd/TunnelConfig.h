@@ -35,6 +35,7 @@ namespace tunnel
 			RAND_bytes (replyKey, 32);
 			RAND_bytes (replyIV, 16);
 			RAND_bytes ((uint8_t *)&tunnelID, 4);
+			if (!tunnelID) tunnelID = 1; // tunnelID can't be zero
 			isGateway = true;
 			isEndpoint = true;
 			ident = r;
@@ -50,6 +51,7 @@ namespace tunnel
 			nextIdent = ident;
 			isEndpoint = false;
 			RAND_bytes ((uint8_t *)&nextTunnelID, 4);
+			if (!nextTunnelID) nextTunnelID = 1; // tunnelID can't be zero
 		}
 
 		void SetReplyHop (uint32_t replyTunnelID, const i2p::data::IdentHash& replyIdent)

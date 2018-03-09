@@ -39,6 +39,7 @@ include_directories(${LIBI2PD_CLIENT_SRC_DIR})
 set (LIBI2PD_SRC
   "${LIBI2PD_SRC_DIR}/BloomFilter.cpp"
   "${LIBI2PD_SRC_DIR}/Config.cpp"
+  "${LIBI2PD_SRC_DIR}/CPU.cpp"  
   "${LIBI2PD_SRC_DIR}/Crypto.cpp"
   "${LIBI2PD_SRC_DIR}/CryptoKey.cpp"
   "${LIBI2PD_SRC_DIR}/Garlic.cpp"
@@ -96,6 +97,7 @@ set_target_properties(libi2pd PROPERTIES PREFIX "")
 install(TARGETS libi2pd
   EXPORT libi2pd
   ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
   COMPONENT Libraries)
 # TODO Make libi2pd available to 3rd party projects via CMake as imported target
 # FIXME This pulls stdafx
@@ -118,7 +120,13 @@ set (CLIENT_SRC
 if(WITH_WEBSOCKETS)
   list (APPEND CLIENT_SRC "${LIBI2PD_CLIENT_SRC_DIR}/Websocket.cpp")
 endif ()
-add_library(i2pdclient ${CLIENT_SRC})
+add_library(libi2pdclient ${CLIENT_SRC})
+set_target_properties(libi2pdclient PROPERTIES PREFIX "")
+install(TARGETS libi2pdclient
+  EXPORT libi2pdclient
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  COMPONENT Libraries)
 
 set(DAEMON_SRC_DIR ../daemon)
 
@@ -184,6 +192,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   # more tweaks
   if (NOT (MSVC OR MSYS OR APPLE))
+    set (CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -stdlib=libstdc++" ) # required for <atomic>
+    list(APPEND CMAKE_REQUIRED_LIBRARIES "stdc++") # required to link with -stdlib=libstdc++
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-overloaded-virtual -Wno-c99-extensions" )
   endif()
 endif ()
@@ -257,8 +267,6 @@ if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
-include(CheckLibcxxAtomic)
-
 if (WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
@@ -302,7 +310,7 @@ if (WITH_PCH)
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       )
     target_compile_options(libi2pd PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
-    target_compile_options(i2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
+    target_compile_options(libi2pdclient PRIVATE /FIstdafx.h /Yustdafx.h /Zm155 "/Fp${CMAKE_BINARY_DIR}/stdafx.dir/$<CONFIG>/stdafx.pch")
   else()
     string(TOUPPER ${CMAKE_BUILD_TYPE} BTU)
     get_directory_property(DEFS DEFINITIONS)
@@ -311,12 +319,12 @@ if (WITH_PCH)
       COMMAND ${CMAKE_CXX_COMPILER} ${FLAGS} -c ${CMAKE_CURRENT_SOURCE_DIR}/../libi2pd/stdafx.h -o ${CMAKE_BINARY_DIR}/stdafx.h.gch
     )
     target_compile_options(libi2pd PRIVATE -include libi2pd/stdafx.h)
-    target_compile_options(i2pdclient PRIVATE -include libi2pd/stdafx.h)
+    target_compile_options(libi2pdclient PRIVATE -include libi2pd/stdafx.h)
   endif()
   target_link_libraries(libi2pd stdafx)
 endif()
 
-target_link_libraries(i2pdclient libi2pd)
+target_link_libraries(libi2pdclient libi2pd)
 
 find_package ( Boost COMPONENTS system filesystem program_options date_time REQUIRED )
 if(NOT DEFINED Boost_INCLUDE_DIRS)
@@ -326,10 +334,6 @@ endif()
 find_package ( OpenSSL REQUIRED )
 if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
-else()
-  if(NOT (OPENSSL_VERSION VERSION_LESS 1.1))
-    message(WARNING "Your OpenSSL version ${OPENSSL_VERSION} >=1.1 is experimental: build with v1.0 when possible.")
-  endif()
 endif()
 
 if (WITH_UPNP)
@@ -384,11 +388,7 @@ if (WITH_MESHNET)
   message(WARNING "This build will NOT work on mainline i2p")
 endif()
 
-if (ARCHITECTURE MATCHES "arm")
-  set(ATOMIC_LIB -latomic)
-else()
-  set(ATMOIC_LIB "")
-endif()
+include(CheckAtomic)
 
 
 # show summary
@@ -457,7 +457,7 @@ if (WITH_BINARY)
   if (WITH_STATIC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
-  target_link_libraries( "${PROJECT_NAME}" libi2pd i2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${ATOMIC_LIB})
+  target_link_libraries( "${PROJECT_NAME}" libi2pd libi2pdclient ${DL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} ${MINGW_EXTRA} ${DL_LIB} ${CMAKE_REQUIRED_LIBRARIES})
 
   install(TARGETS "${PROJECT_NAME}" RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
   set (APPS "\${CMAKE_INSTALL_PREFIX}/bin/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}")

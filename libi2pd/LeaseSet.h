@@ -57,7 +57,7 @@ namespace data
 
 			LeaseSet (const uint8_t * buf, size_t len, bool storeLeases = true);
 			~LeaseSet () { delete[] m_Buffer; };
-			void Update (const uint8_t * buf, size_t len);
+			void Update (const uint8_t * buf, size_t len, bool verifySignature = true);
 			bool IsNewer (const uint8_t * buf, size_t len) const;
 			void PopulateLeases (); // from buffer
 
@@ -81,8 +81,8 @@ namespace data
 
 		private:
 
-			void ReadFromBuffer (bool readIdentity = true);
-			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // min expiration time
+			void ReadFromBuffer (bool readIdentity = true, bool verifySignature = true);
+			uint64_t ExtractTimestamp (const uint8_t * buf, size_t len) const; // returns max expiration time
 
 		private:
 
@@ -94,6 +94,12 @@ namespace data
 			uint8_t * m_Buffer;
 			size_t m_BufferLen;
 	};
+
+	/**
+			validate lease set buffer signature and extract expiration timestamp
+			@returns true if the leaseset is well formed and signature is valid
+	 */
+	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires);
 
 	class LocalLeaseSet
 	{

@@ -105,6 +105,7 @@ namespace tunnel
 			bool IsFailed () const { return m_State == eTunnelStateFailed; };
 			bool IsRecreated () const { return m_IsRecreated; };
 			void SetIsRecreated () { m_IsRecreated = true; };
+			int GetNumHops () const { return m_Hops.size (); };
 			virtual bool IsInbound() const = 0;
 
 			std::shared_ptr<TunnelPool> GetTunnelPool () const { return m_Pool; };

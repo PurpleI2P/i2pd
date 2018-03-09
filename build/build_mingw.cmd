@@ -58,6 +58,7 @@ pause
 exit /b 0
 
 :BUILDING
+%xSH% "make clean" >> nul
 echo Building i2pd %tag% for win%bitness%:
 echo Build AVX+AESNI...
 %xSH% "make USE_UPNP=yes USE_AVX=1 USE_AESNI=1 -j%threads% && zip -r9 build/i2pd_%tag%_win%bitness%_mingw_avx_aesni.zip i2pd.exe README.txt contrib/i2pd.conf contrib/tunnels.conf contrib/certificates && make clean" > build/build_win%bitness%_avx_aesni.log 2>&1

@@ -237,22 +237,20 @@ namespace data
 			auto it = m_LeaseSets.find(ident);
 			if (it != m_LeaseSets.end ())
 			{
-				if (it->second->IsNewer (buf, len))
+				uint64_t expires;
+				if(LeaseSetBufferValidate(buf, len, expires))
 				{
-					it->second->Update (buf, len);
-					if (it->second->IsValid ())
+					if(it->second->GetExpirationTime() < expires)
 					{
+						it->second->Update (buf, len, false); // signature is verified already
 						LogPrint (eLogInfo, "NetDb: LeaseSet updated: ", ident.ToBase32());
 						updated = true;
 					}
 					else
-					{
-						LogPrint (eLogWarning, "NetDb: LeaseSet update failed: ", ident.ToBase32());
-						m_LeaseSets.erase (it);
-					}
+						LogPrint(eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
 				}
 				else
-					LogPrint (eLogDebug, "NetDb: LeaseSet is older: ", ident.ToBase32());
+					LogPrint(eLogError, "NetDb: LeaseSet is invalid: ", ident.ToBase32());
 			}
 			else
 			{

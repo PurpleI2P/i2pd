@@ -30,12 +30,12 @@ ifneq (, $(findstring darwin, $(SYS)))
 	else
 		include Makefile.osx
 	endif
+else ifneq (, $(findstring linux, $(SYS))$(findstring gnu, $(SYS)))
+	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
+	include Makefile.linux
 else ifneq (, $(findstring freebsd, $(SYS))$(findstring openbsd, $(SYS)))
 	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
 	include Makefile.bsd
-else ifneq (, $(findstring linux, $(SYS)))
-	DAEMON_SRC += $(DAEMON_SRC_DIR)/UnixDaemon.cpp
-	include Makefile.linux
 else ifneq (, $(findstring mingw, $(SYS))$(findstring cygwin, $(SYS)))
 	DAEMON_SRC += Win32/DaemonWin32.cpp Win32/Win32Service.cpp Win32/Win32App.cpp
 	include Makefile.mingw

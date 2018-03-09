@@ -21,7 +21,7 @@ namespace data
 		ReadFromBuffer ();
 	}
 
-	void LeaseSet::Update (const uint8_t * buf, size_t len)
+	void LeaseSet::Update (const uint8_t * buf, size_t len, bool verifySignature)
 	{
 		if (len > m_BufferLen)
 		{
@@ -31,7 +31,7 @@ namespace data
 		}
 		memcpy (m_Buffer, buf, len);
 		m_BufferLen = len;
-		ReadFromBuffer (false);
+		ReadFromBuffer (false, verifySignature);
 	}
 
 	void LeaseSet::PopulateLeases ()
@@ -40,7 +40,7 @@ namespace data
 		ReadFromBuffer (false);
 	}
 
-	void LeaseSet::ReadFromBuffer (bool readIdentity)
+	void LeaseSet::ReadFromBuffer (bool readIdentity, bool verifySignature)
 	{
 		if (readIdentity || !m_Identity)
 			m_Identity = std::make_shared<IdentityEx>(m_Buffer, m_BufferLen);
@@ -128,7 +128,7 @@ namespace data
 		}
 
 		// verify
-		if (!m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
+		if (verifySignature && !m_Identity->Verify (m_Buffer, leases - m_Buffer, leases))
 		{
 			LogPrint (eLogWarning, "LeaseSet: verification failed");
 			m_IsValid = false;
@@ -264,6 +264,40 @@ namespace data
 	{
 		auto ts = i2p::util::GetMillisecondsSinceEpoch ();
 		return ts > m_ExpirationTime;
+	}
+
+	bool LeaseSetBufferValidate(const uint8_t * ptr, size_t sz, uint64_t & expires)
+	{
+		IdentityEx ident(ptr, sz);
+		size_t size = ident.GetFullLen ();
+		if (size > sz)
+		{
+			LogPrint (eLogError, "LeaseSet: identity length ", size, " exceeds buffer size ", sz);
+			return false;
+		}
+		// encryption key
+		size += 256;
+		// signing key (unused)
+		size += ident.GetSigningPublicKeyLen ();
+		uint8_t numLeases = ptr[size];
+		++size;
+		if (!numLeases || numLeases > MAX_NUM_LEASES)
+		{
+			LogPrint (eLogError, "LeaseSet: incorrect number of leases", (int)numLeases);
+			return false;
+		}
+		const uint8_t * leases = ptr + size;
+		expires = 0;
+		/** find lease with the max expiration timestamp */
+		for (int i = 0; i < numLeases; i++)
+		{
+			leases += 36; // gateway + tunnel ID
+			uint64_t endDate = bufbe64toh (leases);
+			leases += 8; // end date
+			if(endDate > expires)
+				expires = endDate;
+		}
+		return ident.Verify(ptr, leases - ptr, leases);
 	}
 }
 }

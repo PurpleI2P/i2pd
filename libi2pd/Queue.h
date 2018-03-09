@@ -32,7 +32,7 @@ namespace util
 				{
 					std::unique_lock<std::mutex>  l(m_QueueMutex);
 					for (const auto& it: vec)
-						m_Queue.push (it);
+						m_Queue.push (std::move(it));
 					m_NonEmpty.notify_one ();
 				}
 			}

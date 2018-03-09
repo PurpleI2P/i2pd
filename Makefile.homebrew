@@ -33,10 +33,13 @@ endif
 # http://www.hutsby.net/2011/08/macs-with-aes-ni.html
 # Seems like all recent Mac's have AES-NI, after firmware upgrade 2.2
 # Found no good way to detect it from command line. TODO: Might be some osx sysinfo magic
-# note from psi: 2009 macbook does not have aesni
-#ifeq ($(USE_AESNI),yes)
-#	CXXFLAGS += -maes -DAESNI
-#endif
+ifeq ($(USE_AESNI),yes)
+	CXXFLAGS += -maes -DAESNI
+endif
+ifeq ($(USE_AVX),1)
+	CXXFLAGS += -mavx
+endif
+
 
 # Disabled, since it will be the default make rule. I think its better
 # to define the default rule in Makefile and not Makefile.<ostype> - torkel
