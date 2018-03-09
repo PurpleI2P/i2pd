@@ -13,7 +13,7 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyEncryptor () {};
-			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx) = 0; // 222 bytes data, 512 bytes encrypted
+			virtual void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding) = 0; // 222 bytes data, 512/514 bytes encrypted
 	};
 
 	class CryptoKeyDecryptor
@@ -21,7 +21,7 @@ namespace crypto
 		public:
 
 			virtual ~CryptoKeyDecryptor () {};
-			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) = 0; // 512 bytes encrypted, 222 bytes data
+			virtual bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding) = 0; // 512/514 bytes encrypted, 222 bytes data
 	};
 
 // ElGamal
@@ -30,7 +30,7 @@ namespace crypto
 		public:
 
 			ElGamalEncryptor (const uint8_t * pub);
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx);
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding);
 
 		private:
 
@@ -42,7 +42,7 @@ namespace crypto
 		public:
 
 			ElGamalDecryptor (const uint8_t * priv);
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 
 		private:
 
@@ -57,7 +57,7 @@ namespace crypto
 
 			ECIESP256Encryptor (const uint8_t * pub);
 			~ECIESP256Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx);
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding);
 
 		private:
 
@@ -72,7 +72,7 @@ namespace crypto
 
 			ECIESP256Decryptor (const uint8_t * priv);
 			~ECIESP256Decryptor ();
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 
 		private:
 
@@ -90,7 +90,7 @@ namespace crypto
 
 			ECIESGOSTR3410Encryptor (const uint8_t * pub);
 			~ECIESGOSTR3410Encryptor ();
-			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx);
+			void Encrypt (const uint8_t * data, uint8_t * encrypted, BN_CTX * ctx, bool zeroPadding);
 
 		private:
 
@@ -104,7 +104,7 @@ namespace crypto
 
 			ECIESGOSTR3410Decryptor (const uint8_t * priv);
 			~ECIESGOSTR3410Decryptor ();
-			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx);
+			bool Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx, bool zeroPadding);
 
 		private:
 

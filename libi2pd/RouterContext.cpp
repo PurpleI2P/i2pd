@@ -482,6 +482,11 @@ namespace i2p
 
 	bool RouterContext::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
 	{
-		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx) : false;
+		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, true) : false;
+	}
+
+	bool RouterContext::DecryptTunnelBuildRecord (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
+	{
+		return m_Decryptor ? m_Decryptor->Decrypt (encrypted, data, ctx, false) : false;
 	}
 }
