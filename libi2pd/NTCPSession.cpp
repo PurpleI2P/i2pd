@@ -178,7 +178,8 @@ namespace transport
 			}
 			// TODO: check for number of pending keys
 			auto s = shared_from_this ();
-			m_Server.Work(s, [s]() -> std::function<void(void)> {
+ 			// TODO: we need to pass this for gcc 4.7, should be removed later on
+			m_Server.Work(s, [s, this]() -> std::function<void(void)> {
 					if (!s->m_DHKeysPair)
 						s->m_DHKeysPair = transports.GetNextDHKeysPair ();
 					s->CreateAESKey (s->m_Establisher->phase1.pubKey);
@@ -242,7 +243,8 @@ namespace transport
 		else
 		{
 			auto s = shared_from_this ();
-			m_Server.Work(s, [s]() -> std::function<void(void)> {
+			// TODO: we need to pass this for gcc 4.7, should be removed later on
+			m_Server.Work(s, [s, this]() -> std::function<void(void)> {
 				s->CreateAESKey (s->m_Establisher->phase2.pubKey);
 				return std::bind(&NTCPSession::HandlePhase2, s);
 			});
