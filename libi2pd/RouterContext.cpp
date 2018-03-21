@@ -34,11 +34,7 @@ namespace i2p
 
 	void RouterContext::CreateNewRouter ()
 	{
-#if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)
 		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
-#else
-		m_Keys = i2p::data::PrivateKeys::CreateRandomKeys (i2p::data::SIGNING_KEY_TYPE_DSA_SHA1);
-#endif
 		SaveKeys ();
 		NewRouterInfo ();
 	}
