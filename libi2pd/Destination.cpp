@@ -281,8 +281,12 @@ namespace client
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();
 		if (m_IsPublic)
 		{
-			m_PublishVerificationTimer.cancel ();
-			Publish ();
+			auto s = shared_from_this ();
+			m_Service.post ([s](void)
+			{
+				s->m_PublishVerificationTimer.cancel ();
+				s->Publish ();
+			});	
 		}
 	}
 
