@@ -840,7 +840,7 @@ namespace data
 	{
 		auto encryptor = m_RouterIdentity->CreateEncryptor (nullptr);
 		if (encryptor)
-			encryptor->Encrypt (data, encrypted, ctx);
+			encryptor->Encrypt (data, encrypted, ctx, true);
 	}
 }
 }

@@ -184,7 +184,7 @@ namespace transport
 			}
 			// TODO: check for number of pending keys
 			auto work = new NTCPWork{shared_from_this()};
-			m_Server.Work(work->session, [work]() -> std::function<void(void)> {
+			m_Server.Work(work->session, [work, this]() -> std::function<void(void)> {
 					if (!work->session->m_DHKeysPair)
 						work->session->m_DHKeysPair = transports.GetNextDHKeysPair ();
 					work->session->CreateAESKey (work->session->m_Establisher->phase1.pubKey);
@@ -250,7 +250,7 @@ namespace transport
 		else
 		{
 			auto work = new NTCPWork{shared_from_this()};
-			m_Server.Work(work->session, [work]() -> std::function<void(void)> {
+			m_Server.Work(work->session, [work, this]() -> std::function<void(void)> {
 				work->session->CreateAESKey (work->session->m_Establisher->phase2.pubKey);
 				return std::bind(&NTCPSession::HandlePhase2, work->session, work);
 			});

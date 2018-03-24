@@ -37,7 +37,7 @@ namespace client
 	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
 	{
 		if (m_Decryptor)
-			return m_Decryptor->Decrypt (encrypted, data, ctx);
+			return m_Decryptor->Decrypt (encrypted, data, ctx, true);
 		else
 			LogPrint (eLogError, "I2CP: decryptor is not set");
 		return false;
@@ -416,9 +416,60 @@ namespace client
 
 	void I2CPSession::ReconfigureSessionMessageHandler (const uint8_t * buf, size_t len)
 	{
-		// TODO: implement actual reconfiguration
-		SendSessionStatusMessage (2); // updated
-	}
+		uint8_t status = 3; // rejected
+		if(len > sizeof(uint16_t))
+		{
+			uint16_t sessionID = bufbe16toh(buf);
+			if(sessionID == m_SessionID)
+			{
+				buf += sizeof(uint16_t);
+				const uint8_t * body = buf;
+				i2p::data::IdentityEx ident;
+				if(ident.FromBuffer(buf, len - sizeof(uint16_t)))
+				{
+					if (ident == *m_Destination->GetIdentity())
+					{
+						size_t identsz = ident.GetFullLen();
+						buf += identsz;
+						uint16_t optssize = bufbe16toh(buf);
+						if (optssize <= len - sizeof(uint16_t) - sizeof(uint64_t) - identsz - ident.GetSignatureLen() - sizeof(uint16_t))
+						{
+							buf += sizeof(uint16_t);
+							std::map<std::string, std::string> opts;
+							ExtractMapping(buf, optssize, opts);
+							buf += optssize;
+							//uint64_t date = bufbe64toh(buf);
+							buf += sizeof(uint64_t);
+							const uint8_t * sig = buf;
+							if(ident.Verify(body, len - sizeof(uint16_t) - ident.GetSignatureLen(), sig))
+							{
+								if(m_Destination->Reconfigure(opts))
+								{
+									LogPrint(eLogInfo, "I2CP: reconfigured destination");
+									status = 2; // updated
+								}
+								else
+									LogPrint(eLogWarning, "I2CP: failed to reconfigure destination");
+							}
+							else
+								LogPrint(eLogError, "I2CP: invalid reconfigure message signature");
+						}
+						else
+							LogPrint(eLogError, "I2CP: mapping size missmatch");
+					}
+					else
+						LogPrint(eLogError, "I2CP: destination missmatch");
+				}
+				else
+					LogPrint(eLogError, "I2CP: malfromed destination");
+			}
+			else
+				LogPrint(eLogError, "I2CP: session missmatch");
+		}
+		else
+			LogPrint(eLogError, "I2CP: short message");
+		SendSessionStatusMessage (status); 
+	}	
 
 	void I2CPSession::SendSessionStatusMessage (uint8_t status)
 	{

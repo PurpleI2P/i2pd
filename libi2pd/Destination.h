@@ -96,6 +96,10 @@ namespace client
 
 			virtual bool Start ();
 			virtual bool Stop ();
+
+			/** i2cp reconfigure */
+			virtual bool Reconfigure(std::map<std::string, std::string> i2cpOpts);
+		
 			bool IsRunning () const { return m_IsRunning; };
 			boost::asio::io_service& GetService () { return m_Service; };
 			std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool () { return m_Pool; };
