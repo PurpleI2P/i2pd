@@ -1,87 +1,60 @@
-#ifndef DAEMON_ANDROID_H
-#define DAEMON_ANDROID_H
+#ifndef DAEMON_H__
+#define DAEMON_H__
 
+#include <memory>
 #include <string>
 
 namespace i2p
 {
-namespace android
+namespace util
 {
-    class DaemonAndroidImpl
-    {
-    public:
+	class Daemon_Singleton_Private;
+	class Daemon_Singleton
+	{
+		public:
+			virtual bool init(int argc, char* argv[]);
+			virtual bool start();
+			virtual bool stop();
+			virtual void run () {};
 
-		DaemonAndroidImpl ();
-		~DaemonAndroidImpl ();
+			bool isDaemon;
+			bool running;
 
-        //typedef void (*runningChangedCallback)();
+		protected:
+			Daemon_Singleton();
+			virtual ~Daemon_Singleton();
 
-        /**
-         * @return success
-         */
-        bool init(int argc, char* argv[]);
-        void start();
-        void stop();
-        void restart();
-        //void setRunningCallback(runningChangedCallback cb);
-        //bool isRunning();
-    private:
-        //void setRunning(bool running);
-	private:
-		//QMutex* mutex;
-        //bool m_IsRunning;
-		//runningChangedCallback m_RunningChangedCallback;
-    };
+			bool IsService () const;
 
-	/**
-	 * returns "ok" if daemon init failed
-	 * returns errinfo if daemon initialized and started okay
-	 */
-    std::string start();
+			// d-pointer for httpServer, httpProxy, etc.
+			class Daemon_Singleton_Private;
+			Daemon_Singleton_Private &d;
+	};
 
-    // stops the daemon
-    void stop();
+#if defined(ANDROID)
+#define Daemon i2p::util::DaemonAndroid::Instance()
+	class DaemonAndroid : public Daemon_Singleton
+	{
+		public:
+			static DaemonAndroid& Instance()
+			{
+				static DaemonAndroid instance;
+				return instance;
+			}
 
-    /*
-	class Worker : public QObject
-    {
-        Q_OBJECT
-	public:
+			bool start();
+			bool stop();
+			void run ();
 
-		Worker (DaemonAndroidImpl& daemon);
+		private:
+			std::string pidfile;
+			int pidFH;
 
-	private:
-
-		DaemonAndroidImpl& m_Daemon;
-
-    public slots:
-        void startDaemon();
-        void restartDaemon();
-        void stopDaemon();
-
-    signals:
-        void resultReady();
-    };
-
-    class Controller : public QObject
-    {
-        Q_OBJECT
-        QThread workerThread;
-    public:
-        Controller(DaemonAndroidImpl& daemon);
-        ~Controller();
-	private:
-		DaemonAndroidImpl& m_Daemon;
-
-    public slots:
-        void handleResults(){}
-    signals:
-        void startDaemon();
-        void stopDaemon();
-        void restartDaemon();
-    };
-    */
+		public:
+			int gracefulShutdownInterval; // in seconds
+	};
+#endif
 }
 }
 
-#endif // DAEMON_ANDROID_H
+#endif // DAEMON_H__

@@ -1,193 +1,193 @@
 #include "DaemonAndroid.h"
-#include "Daemon.h"
-#include <iostream>
-#include <boost/exception/diagnostic_information.hpp>
-#include <boost/exception_ptr.hpp>
-#include <exception>
-//#include "mainwindow.h"
+
+#ifndef _WIN32
+
+#include <signal.h>
+#include <stdlib.h>
+#include <thread>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/resource.h>
+
+#include "Config.h"
+#include "FS.h"
+#include "Log.h"
+#include "Tunnel.h"
+#include "RouterContext.h"
+#include "ClientContext.h"
+
+void handle_signal(int sig)
+{
+	switch (sig)
+	{
+		case SIGHUP:
+			LogPrint(eLogInfo, "Daemon: Got SIGHUP, reopening tunnel configuration...");
+			i2p::client::context.ReloadConfig();
+		break;
+		case SIGUSR1:
+			LogPrint(eLogInfo, "Daemon: Got SIGUSR1, reopening logs...");
+			i2p::log::Logger().Reopen ();
+		break;
+		case SIGINT:
+			if (i2p::context.AcceptsTunnels () && !Daemon.gracefulShutdownInterval)
+			{
+				i2p::context.SetAcceptsTunnels (false);
+				Daemon.gracefulShutdownInterval = 10*60; // 10 minutes
+				LogPrint(eLogInfo, "Graceful shutdown after ", Daemon.gracefulShutdownInterval, " seconds");
+			}
+			else
+				Daemon.running = 0;
+		break;
+		case SIGABRT:
+		case SIGTERM:
+			Daemon.running = 0; // Exit loop
+		break;
+		case SIGPIPE:
+			LogPrint(eLogInfo, "SIGPIPE received");
+		break;
+	}
+}
 
 namespace i2p
 {
-namespace android
-{
-/*	Worker::Worker (DaemonAndroidImpl& daemon):
-		m_Daemon (daemon)
+	namespace util
 	{
-	}
-
-	void Worker::startDaemon()
-	{
-		Log.d(TAG"Performing daemon start...");
-		m_Daemon.start();
-		Log.d(TAG"Daemon started.");
-		emit resultReady();
-	}
-	void Worker::restartDaemon()
-	{
-		Log.d(TAG"Performing daemon restart...");
-		m_Daemon.restart();
-		Log.d(TAG"Daemon restarted.");
-		emit resultReady();
-	}
-	void Worker::stopDaemon() {
-		Log.d(TAG"Performing daemon stop...");
-		m_Daemon.stop();
-		Log.d(TAG"Daemon stopped.");
-		emit resultReady();
-	}
-
-    Controller::Controller(DaemonAndroidImpl& daemon):
-		m_Daemon (daemon)
-	{
-		Worker *worker = new Worker (m_Daemon);
-		worker->moveToThread(&workerThread);
-		connect(&workerThread, &QThread::finished, worker, &QObject::deleteLater);
-		connect(this, &Controller::startDaemon, worker, &Worker::startDaemon);
-		connect(this, &Controller::stopDaemon, worker, &Worker::stopDaemon);
-		connect(this, &Controller::restartDaemon, worker, &Worker::restartDaemon);
-		connect(worker, &Worker::resultReady, this, &Controller::handleResults);
-		workerThread.start();
-	}
-	Controller::~Controller()
-	{
-		Log.d(TAG"Closing and waiting for daemon worker thread...");
-		workerThread.quit();
-		workerThread.wait();
-		Log.d(TAG"Waiting for daemon worker thread finished.");
-        if(m_Daemon.isRunning())
-        {
-		    Log.d(TAG"Stopping the daemon...");
-            m_Daemon.stop();
-		    Log.d(TAG"Stopped the daemon.");
-		}
-	}
-*/
-	DaemonAndroidImpl::DaemonAndroidImpl ()
-		//:
-        /*mutex(nullptr), */
-        //m_IsRunning(false),
-        //m_RunningChangedCallback(nullptr)
-	{
-	}
-
-	DaemonAndroidImpl::~DaemonAndroidImpl ()
-	{
-		//delete mutex;
-	}
-
-	bool DaemonAndroidImpl::init(int argc, char* argv[])
-	{
-		//mutex=new QMutex(QMutex::Recursive);
-		//setRunningCallback(0);
-        //m_IsRunning=false;
-		return Daemon.init(argc,argv);
-	}
-
-	void DaemonAndroidImpl::start()
-	{
-		//QMutexLocker locker(mutex);
-		//setRunning(true);
-		Daemon.start();
-	}
-
-	void DaemonAndroidImpl::stop()
-	{
-		//QMutexLocker locker(mutex);
-		Daemon.stop();
-		//setRunning(false);
-	}
-
-	void DaemonAndroidImpl::restart()
-	{
-		//QMutexLocker locker(mutex);
-		stop();
-		start();
-	}
-	/*
-	void DaemonAndroidImpl::setRunningCallback(runningChangedCallback cb)
-	{
-		m_RunningChangedCallback = cb;
-	}
-
-	bool DaemonAndroidImpl::isRunning()
-	{
-        return m_IsRunning;
-	}
-
-	void DaemonAndroidImpl::setRunning(bool newValue)
-	{
-        bool oldValue = m_IsRunning;
-		if(oldValue!=newValue)
+		bool DaemonAndroid::start()
 		{
-            m_IsRunning = newValue;
-		    if(m_RunningChangedCallback)
-				m_RunningChangedCallback();
-		}
-	}
-*/
-	static DaemonAndroidImpl daemon;
-	static char* argv[1]={strdup("tmp")};
-	/**
-	 * returns error details if failed
-	 * returns "ok" if daemon initialized and started okay
-	 */
-	std::string start(/*int argc, char* argv[]*/)
-	{
-		try
-		{
-			//int result;
-
+			if (isDaemon)
 			{
-				//Log.d(TAG"Initialising the daemon...");
-				bool daemonInitSuccess = daemon.init(1,argv);
-				if(!daemonInitSuccess)
-				{
-					//QMessageBox::critical(0, "Error", "Daemon init failed");
-					return "Daemon init failed";
-				}
-				//Log.d(TAG"Initialised, creating the main window...");
-				//MainWindow w;
-				//Log.d(TAG"Before main window.show()...");
-				//w.show ();
+				pid_t pid;
+				pid = fork();
+				if (pid > 0) // parent
+					::exit (EXIT_SUCCESS);
 
+				if (pid < 0) // error
 				{
-					//i2p::qt::Controller daemonQtController(daemon);
-					//Log.d(TAG"Starting the daemon...");
-					//emit daemonQtController.startDaemon();
-					//daemon.start ();
-					//Log.d(TAG"Starting GUI event loop...");
-					//result = app.exec();
-					//daemon.stop ();
-					daemon.start();
+					LogPrint(eLogError, "Daemon: could not fork: ", strerror(errno));
+					return false;
+				}
+
+				// child
+				umask(S_IWGRP | S_IRWXO); // 0027
+				int sid = setsid();
+				if (sid < 0)
+				{
+					LogPrint(eLogError, "Daemon: could not create process group.");
+					return false;
+				}
+				std::string d = i2p::fs::GetDataDir();
+				if (chdir(d.c_str()) != 0)
+				{
+					LogPrint(eLogError, "Daemon: could not chdir: ", strerror(errno));
+					return false;
+				}
+
+				// point std{in,out,err} descriptors to /dev/null
+				freopen("/dev/null", "r", stdin);
+				freopen("/dev/null", "w", stdout);
+				freopen("/dev/null", "w", stderr);
+			}
+
+			// set proc limits
+			struct rlimit limit;
+			uint16_t nfiles; i2p::config::GetOption("limits.openfiles", nfiles);
+			getrlimit(RLIMIT_NOFILE, &limit);
+			if (nfiles == 0) {
+				LogPrint(eLogInfo, "Daemon: using system limit in ", limit.rlim_cur, " max open files");
+			} else if (nfiles <= limit.rlim_max) {
+				limit.rlim_cur = nfiles;
+				if (setrlimit(RLIMIT_NOFILE, &limit) == 0) {
+					LogPrint(eLogInfo, "Daemon: set max number of open files to ",
+						nfiles, " (system limit is ", limit.rlim_max, ")");
+				} else {
+					LogPrint(eLogError, "Daemon: can't set max number of open files: ", strerror(errno));
+				}
+			} else {
+				LogPrint(eLogError, "Daemon: limits.openfiles exceeds system limit: ", limit.rlim_max);
+			}
+			uint32_t cfsize; i2p::config::GetOption("limits.coresize", cfsize);
+			if (cfsize) // core file size set
+			{
+				cfsize *= 1024;
+				getrlimit(RLIMIT_CORE, &limit);
+				if (cfsize <= limit.rlim_max) {
+					limit.rlim_cur = cfsize;
+					if (setrlimit(RLIMIT_CORE, &limit) != 0) {
+						LogPrint(eLogError, "Daemon: can't set max size of coredump: ", strerror(errno));
+					} else if (cfsize == 0) {
+						LogPrint(eLogInfo, "Daemon: coredumps disabled");
+					} else {
+						LogPrint(eLogInfo, "Daemon: set max size of core files to ", cfsize / 1024, "Kb");
+					}
+				} else {
+					LogPrint(eLogError, "Daemon: limits.coresize exceeds system limit: ", limit.rlim_max);
 				}
 			}
 
-			//QMessageBox::information(&w, "Debug", "demon stopped");
-			//Log.d(TAG"Exiting the application");
-			//return result;
-		}
-		catch (boost::exception& ex)
-		{
-			std::stringstream ss;
-		    ss << boost::diagnostic_information(ex);
-		    return ss.str();
-		}
-		catch (std::exception& ex)
-		{
-			std::stringstream ss;
-		    ss << ex.what();
-		    return ss.str();
-		}
-		catch(...)
-		{
-			return "unknown exception";
-		}
-		return "ok";
-	}
+			// Pidfile
+			// this code is c-styled and a bit ugly
+			std::string pidfile; i2p::config::GetOption("pidfile", pidfile);
+			if (pidfile == "") {
+				pidfile = i2p::fs::DataDirPath("i2pd.pid");
+			}
+			if (pidfile != "") {
+				pidFH = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
+				if (pidFH < 0)
+				{
+					LogPrint(eLogError, "Daemon: could not create pid file ", pidfile, ": ", strerror(errno));
+					return false;
+				}
+				char pid[10];
+				sprintf(pid, "%d\n", getpid());
+				ftruncate(pidFH, 0);
+				if (write(pidFH, pid, strlen(pid)) < 0)
+				{
+					LogPrint(eLogError, "Daemon: could not write pidfile: ", strerror(errno));
+					return false;
+				}
+			}
+			gracefulShutdownInterval = 0; // not specified
 
-	void stop()
-	{
-		daemon.stop();
+			// Signal handler
+			struct sigaction sa;
+			sa.sa_handler = handle_signal;
+			sigemptyset(&sa.sa_mask);
+			sa.sa_flags = SA_RESTART;
+			sigaction(SIGHUP, &sa, 0);
+			sigaction(SIGUSR1, &sa, 0);
+			sigaction(SIGABRT, &sa, 0);
+			sigaction(SIGTERM, &sa, 0);
+			sigaction(SIGINT, &sa, 0);
+			sigaction(SIGPIPE, &sa, 0);			
+
+			return Daemon_Singleton::start();
+		}
+
+		bool DaemonAndroid::stop()
+		{
+			i2p::fs::Remove(pidfile);
+
+			return Daemon_Singleton::stop();
+		}
+
+		void DaemonAndroid::run ()
+		{
+			while (running)
+			{
+				std::this_thread::sleep_for (std::chrono::seconds(1));
+				if (gracefulShutdownInterval)
+				{
+					gracefulShutdownInterval--; // - 1 second
+					if (gracefulShutdownInterval <= 0 || i2p::tunnel::tunnels.CountTransitTunnels() <= 0)
+					{
+						LogPrint(eLogInfo, "Graceful shutdown");
+						return;
+					}
+				}
+			}
+		}
 	}
 }
-}
+
+#endif
