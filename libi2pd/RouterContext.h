@@ -1,11 +1,6 @@
 #ifndef ROUTER_CONTEXT_H__
 #define ROUTER_CONTEXT_H__
 
-// i2pd_qt.pro defines this on Windows
-#ifdef WINDOWS
-#include <Winsock2.h>
-#endif
-
 #include <inttypes.h>
 #include <string>
 #include <memory>
