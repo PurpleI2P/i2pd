@@ -119,12 +119,6 @@ namespace i2p
 			}
 
 			LogPrint(eLogInfo,	"i2pd v", VERSION, " starting");
-#ifdef AESNI
-			LogPrint(eLogInfo,	"AESNI enabled");
-#endif
-#if defined(__AVX__)
-			LogPrint(eLogInfo,	"AVX enabled");
-#endif
 			LogPrint(eLogDebug, "FS: main config file: ", config);
 			LogPrint(eLogDebug, "FS: data directory: ", datadir);
 

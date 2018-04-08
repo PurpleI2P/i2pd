@@ -136,6 +136,13 @@ namespace client
 			return boost::asio::ip::tcp::endpoint(boost::asio::ip::address::from_string(m_Addr), m_Port);
 		}
 
+		i2p::datagram::DatagramDestination * GetDatagramDest() const
+		{
+			auto dgram = m_Dest->GetDatagramDestination();
+			if(!dgram) dgram = m_Dest->CreateDatagramDestination();
+			return dgram;
+		}
+		
 		WebSocks * Parent;
 
 	private:
@@ -156,6 +163,7 @@ namespace client
 			eWSCTryConnect,
 			eWSCFailConnect,
 			eWSCOkayConnect,
+			eWSCDatagram,
 			eWSCClose,
 			eWSCEnd
 		};
@@ -174,13 +182,17 @@ namespace client
 		std::string m_RemoteAddr;
 		int m_RemotePort;
 		uint8_t m_RecvBuf[2048];
+		bool m_IsDatagram;
+		i2p::datagram::DatagramDestination * m_Datagram;
 
 		WebSocksConn(const ServerConn & conn, WebSocksImpl * parent) :
 			IWebSocksConn(parent->Parent),
 			m_Conn(conn),
 			m_Stream(nullptr),
 			m_State(eWSCInitial),
-			m_Parent(parent)
+			m_Parent(parent),
+			m_IsDatagram(false),
+			m_Datagram(nullptr)
 		{
 
 		}
@@ -188,6 +200,35 @@ namespace client
 		~WebSocksConn()
 		{
 			Close();
+		}
+
+		void HandleDatagram(const i2p::data::IdentityEx& from, uint16_t fromPort, uint16_t toPort, const uint8_t * buf, size_t len)
+		{
+			auto conn = m_Parent->GetConn(m_Conn);
+			if(conn)
+			{
+				std::stringstream ss;
+				ss << from.GetIdentHash().ToBase32();
+				ss << ".b32.i2p:";
+				ss << std::to_string(fromPort);
+				ss << "\n";
+				ss.write((char *)buf, len);
+				conn->send(ss.str());
+			}
+		}
+		
+		void BeginDatagram()
+		{
+			m_Datagram = m_Parent->GetDatagramDest();
+			m_Datagram->SetReceiver(
+				std::bind(
+					&WebSocksConn::HandleDatagram,
+					this,
+					std::placeholders::_1,
+					std::placeholders::_2,
+					std::placeholders::_3,
+					std::placeholders::_4,
+					std::placeholders::_5), m_RemotePort);
 		}
 
 		void EnterState(ConnState state)
@@ -206,6 +247,16 @@ namespace client
 					// we will try to connect
 					m_State = eWSCTryConnect;
 					m_Parent->CreateStreamTo(m_RemoteAddr, m_RemotePort, std::bind(&WebSocksConn::ConnectResult, this, std::placeholders::_1));
+				} else if (state == eWSCDatagram) {
+					if (m_RemotePort >= 0 && m_RemotePort <= 65535)
+					{
+						LogPrint(eLogDebug, "websocks: datagram mode initiated");
+						m_State = eWSCDatagram;
+						BeginDatagram();
+						SendResponse("");
+					}
+					else
+						SendResponse("invalid port");
 				} else {
 					LogPrint(eLogWarning, "websocks: invalid state change ", m_State, " -> ", state);
 				}
@@ -245,6 +296,13 @@ namespace client
 					LogPrint(eLogWarning, "websocks: invalid state change ", m_State, " -> ", state);
 				}
 				return;
+			case eWSCDatagram:
+				if(state != eWSCClose) {
+					LogPrint(eLogWarning, "websocks: invalid state change ", m_State, " -> ", state);
+				}
+				m_State = eWSCClose;
+				Close();
+				return;
 			case eWSCOkayConnect:
 				if(state == eWSCClose) {
 					// graceful close
@@ -253,6 +311,7 @@ namespace client
 				} else {
 					LogPrint(eLogWarning, "websocks: invalid state change ", m_State, " -> ", state);
 				}
+				return;
 			case eWSCClose:
 				if(state == eWSCEnd) {
 					LogPrint(eLogDebug, "websocks: socket ended");
@@ -361,7 +420,36 @@ namespace client
 					m_RemotePort = std::stoi(payload.substr(itr+1));
 					m_RemoteAddr = payload.substr(0, itr);
 				}
-				EnterState(eWSCTryConnect);
+				m_IsDatagram = m_RemoteAddr == "DATAGRAM";
+				if(m_IsDatagram)
+					EnterState(eWSCDatagram);
+				else
+					EnterState(eWSCTryConnect);
+			} else if (m_State == eWSCDatagram) {
+				// send datagram
+				// format is "host:port\npayload"
+				auto idx = payload.find("\n");
+				std::string line = payload.substr(0, idx);
+				auto itr = line.find(":");
+				auto & addressbook = i2p::client::context.GetAddressBook();
+				std::string addr;
+				int port = 0;
+				if (itr == std::string::npos)
+				{
+					addr = line;
+				}
+				else
+				{
+					addr = line.substr(0, itr);
+					port = std::atoi(line.substr(itr+1).c_str());
+				}
+				i2p::data::IdentHash ident;
+				if(addressbook.GetIdentHash(addr, ident))
+				{
+					const char * data = payload.c_str() + idx + 1;
+					size_t len = payload.size() - (1 + line.size());
+					m_Datagram->SendDatagramTo((const uint8_t*)data, len, ident, m_RemotePort, port);
+				}
 			} else {
 				// wtf?
 				LogPrint(eLogWarning, "websocks: got message in invalid state ", m_State);
@@ -373,6 +461,7 @@ namespace client
 			if(m_State == eWSCClose) {
 				LogPrint(eLogDebug, "websocks: closing connection");
 				if(m_Stream) m_Stream->Close();
+				if(m_Datagram) m_Datagram->ResetReceiver(m_RemotePort);
 				m_Parent->CloseConn(m_Conn);
 				EnterState(eWSCEnd);
 			} else {

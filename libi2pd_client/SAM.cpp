@@ -107,6 +107,21 @@ namespace client
 				std::placeholders::_1, std::placeholders::_2));
 	}
 
+	static bool SAMVersionAcceptable(const std::string & ver)
+	{
+		return ver == "3.0" || ver == "3.1";
+	}
+
+	static bool SAMVersionTooLow(const std::string & ver)
+	{
+		return ver.size() && ver[0] < '3';
+	}
+
+	static bool SAMVersionTooHigh(const std::string & ver)
+	{
+		return ver.size() && ver > "3.1";
+	}
+
 	void SAMSocket::HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred)
 	{
 		if (ecode)
@@ -132,19 +147,37 @@ namespace client
 
 			if (!strcmp (m_Buffer, SAM_HANDSHAKE))
 			{
-				std::string version("3.0");
+				std::string maxver("3.1");
+				std::string minver("3.0");
 				// try to find MIN and MAX, 3.0 if not found
 				if (separator)
 				{
 					separator++;
 					std::map<std::string, std::string> params;
 					ExtractParams (separator, params);
-					//auto it = params.find (SAM_PARAM_MAX);
-					// TODO: check MIN as well
-					//if (it != params.end ())
-					//	version = it->second;
+					auto it = params.find (SAM_PARAM_MAX);
+					if (it != params.end ())
+						maxver = it->second;
+					it = params.find(SAM_PARAM_MIN);
+					if (it != params.end ())
+						minver = it->second;
 				}
-				if (version[0] == '3') // we support v3 (3.0 and 3.1) only
+				// version negotiation
+				std::string version;
+				if (SAMVersionAcceptable(maxver))
+				{
+					version = maxver;
+				}
+				else if (SAMVersionAcceptable(minver))
+				{
+					version = minver;
+				}
+				else if (SAMVersionTooLow(minver) && SAMVersionTooHigh(maxver))
+				{
+					version = "3.0";
+				}
+
+				if (SAMVersionAcceptable(version))
 				{
 #ifdef _MSC_VER
 					size_t l = sprintf_s (m_Buffer, SAM_SOCKET_BUFFER_SIZE, SAM_HANDSHAKE_REPLY, version.c_str ());
@@ -156,7 +189,7 @@ namespace client
 						std::placeholders::_1, std::placeholders::_2));
 				}
 				else
-					SendMessageReply (SAM_HANDSHAKE_I2P_ERROR, strlen (SAM_HANDSHAKE_I2P_ERROR), true);
+					SendMessageReply (SAM_HANDSHAKE_NOVERSION, strlen (SAM_HANDSHAKE_NOVERSION), true);
 			}
 			else
 			{
@@ -296,6 +329,19 @@ namespace client
 		}
 	}
 
+	static bool IsAcceptableSessionName(const std::string & str)
+	{
+		auto itr = str.begin();
+		while(itr != str.end())
+		{
+			char ch = *itr;
+			++itr;
+			if (ch == '<' || ch == '>' || ch == '"' || ch == '\'' || ch == '/')
+				return false;
+		}
+		return true;
+	}
+
 	void SAMSocket::ProcessSessionCreate (char * buf, size_t len)
 	{
 		LogPrint (eLogDebug, "SAM: session create: ", buf);
@@ -304,6 +350,13 @@ namespace client
 		std::string& style = params[SAM_PARAM_STYLE];
 		std::string& id = params[SAM_PARAM_ID];
 		std::string& destination = params[SAM_PARAM_DESTINATION];
+
+		if(!IsAcceptableSessionName(id))
+		{
+			// invalid session id
+			SendMessageReply (SAM_SESSION_CREATE_INVALID_ID, strlen(SAM_SESSION_CREATE_INVALID_ID), true);
+			return;
+		}
 		m_ID = id;
 		if (m_Owner.FindSession (id))
 		{

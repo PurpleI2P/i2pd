@@ -1,12 +1,14 @@
-Name:           i2pd
+%define git_hash %(git rev-parse HEAD | cut -c -7)
+
+Name:           i2pd-git
 Version:        2.18.0
-Release:        2%{?dist}
+Release:        git%{git_hash}%{?dist}
 Summary:        I2P router written in C++
-Conflicts:      i2pd-git
+Conflicts:      i2pd
 
 License:        BSD
 URL:            https://github.com/PurpleI2P/i2pd
-Source0:        https://github.com/PurpleI2P/i2pd/archive/%{version}/%name-%version.tar.gz
+Source0:        https://github.com/PurpleI2P/i2pd/archive/openssl/i2pd-openssl.tar.gz
 
 %if 0%{?rhel}  == 7
 BuildRequires:  cmake3
@@ -96,66 +98,5 @@ getent passwd i2pd >/dev/null || \
 
 
 %changelog
-* Mon Feb 05 2018 r4sas <r4sas@i2pmail.org> - 2.18.0-2
-- Fixed blocking system shutdown for 10 minutes (#1089)
-
-* Thu Feb 01 2018 r4sas <r4sas@i2pmail.org> - 2.18.0-1
-- Added to conflicts i2pd-git package
-- Fixed release versioning
-- Fixed paths with double slashes
-
-* Tue Jan 30 2018 orignal <i2porignal@yandex.ru> - 2.18.0
-- update to 2.18.0
-
-* Sat Jan 27 2018 l-n-s <supervillain@riseup.net> - 2.17.0-1
-- Added certificates and default configuration files
-- Merge i2pd with i2pd-systemd package
-- Fixed package changelogs to comply with guidelines
-
-* Mon Dec 04 2017 orignal <i2porignal@yandex.ru> - 2.17.0
-- update to 2.17.0
-
-* Mon Nov 13 2017 orignal <i2porignal@yandex.ru> - 2.16.0
-- update to 2.16.0
-
-* Thu Aug 17 2017 orignal <i2porignal@yandex.ru> - 2.15.0
-- update to 2.15.0
-
-* Thu Jun 01 2017 orignal <i2porignal@yandex.ru> - 2.14.0
-- update to 2.14.0
-
-* Thu Apr 06 2017 orignal <i2porignal@yandex.ru> - 2.13.0
-- update to 2.13.0
-
-* Tue Feb 14 2017 orignal <i2porignal@yandex.ru> - 2.12.0
-- update to 2.12.0
-
-* Mon Dec 19 2016 orignal <i2porignal@yandex.ru> - 2.11.0
-- update to 2.11.0
-
-* Thu Oct 20 2016 Anatolii Vorona <vorona.tolik@gmail.com> - 2.10.0-3
-- add support C7
-- move rpm-related files to contrib folder
-
-* Sun Oct 16 2016 Oleg Girko <ol@infoserver.lv> - 2.10.0-1
-- update to 2.10.0
-
-* Sun Aug 14 2016 Oleg Girko <ol@infoserver.lv> - 2.9.0-1
-- update to 2.9.0
-
-* Sun Aug 07 2016 Oleg Girko <ol@infoserver.lv> - 2.8.0-2
-- rename daemon subpackage to systemd
-
-* Sat Aug 06 2016 Oleg Girko <ol@infoserver.lv> - 2.8.0-1
-- update to 2.8.0
-- remove wrong rpath from i2pd binary
-- add daemon subpackage with systemd unit file
-
-* Sat May 21 2016 Oleg Girko <ol@infoserver.lv> - 2.7.0-1
-- update to 2.7.0
-
-* Tue Apr 05 2016 Oleg Girko <ol@infoserver.lv> - 2.6.0-1
-- update to 2.6.0
-
-* Tue Jan 26 2016 Yaroslav Sidlovsky <zawertun@gmail.com> - 2.3.0-1
-- initial package for version 2.3.0
+* Thu Feb 01 2018 r4sas <r4sas@i2pmail.org> - 2.18.0
+- Initial i2pd-git based on i2pd 2.18.0-1 spec

@@ -59,13 +59,14 @@ namespace tunnel
 
 	struct TunnelCreationTimeCmp
 	{
-		bool operator() (const std::shared_ptr<const TunnelBase> & t1, const std::shared_ptr<const TunnelBase> & t2) const
+		template<typename T>
+		bool operator() (const std::shared_ptr<T> & t1, const std::shared_ptr<T> & t2) const
 		{
 			if (t1->GetCreationTime () != t2->GetCreationTime ())
 				return t1->GetCreationTime () > t2->GetCreationTime ();
 			else
 				return t1 < t2;
-		};
+		}
 	};
 }
 }

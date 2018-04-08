@@ -21,6 +21,7 @@ namespace util
 		SetConsoleCP(1251);
 		SetConsoleOutputCP(1251);
 		setlocale(LC_ALL, "Russian");
+		setlocale(LC_TIME, "C");
 
 		if (!Daemon_Singleton::init(argc, argv))
 			return false;
@@ -68,6 +69,7 @@ namespace util
 		SetConsoleCP(1251);
 		SetConsoleOutputCP(1251);
 		setlocale(LC_ALL, "Russian");
+		setlocale(LC_TIME, "C");
 #ifdef WIN32_APP
 		if (!i2p::win32::StartWin32App ()) return false;
 
