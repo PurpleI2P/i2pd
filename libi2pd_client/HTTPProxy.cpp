@@ -282,6 +282,7 @@ namespace proxy {
 		bool useConnect = false;
 		if(m_ClientRequest.method == "CONNECT")
 		{
+			m_ClientRequest.RemoveHeader("Proxy-");
 			std::string uri(m_ClientRequest.uri);
 			auto pos = uri.find(":");
 			if(pos == std::string::npos || pos == uri.size() - 1)
@@ -392,7 +393,7 @@ namespace proxy {
 		if (m_ProxyURL.schema == "http" && (!m_ProxyURL.user.empty () || !m_ProxyURL.pass.empty ()))
 		{
 			// http proxy authorization
-			std::string s = "basic " + i2p::data::ToBase64Standard (m_ProxyURL.user + ":" + m_ProxyURL.pass);
+			std::string s = "Basic " + i2p::data::ToBase64Standard (m_ProxyURL.user + ":" + m_ProxyURL.pass);
 			m_ClientRequest.AddHeader("Proxy-Authorization", s);
 		}
 
