@@ -389,15 +389,6 @@ namespace proxy {
 		m_ClientRequestURL.host   = "";
 		m_ClientRequest.uri = m_ClientRequestURL.to_string();
 
-		if (m_ProxyURL.schema == "http" && (!m_ProxyURL.user.empty () || !m_ProxyURL.pass.empty ()))
-		{
-			// remove existing authorization if any
-			m_ClientRequest.RemoveHeader("Proxy-");
-			// add own http proxy authorization
-			std::string s = "Basic " + i2p::data::ToBase64Standard (m_ProxyURL.user + ":" + m_ProxyURL.pass);
-			m_ClientRequest.AddHeader("Proxy-Authorization", s);
-		}
-
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
 		
@@ -408,7 +399,17 @@ namespace proxy {
 			if (!m_ProxyURL.port) m_ProxyURL.port = 80;
 			if (m_ProxyURL.is_i2p())
 			{
-				m_send_buf = m_ClientRequestBuffer.str ();
+				if (!m_ProxyURL.user.empty () || !m_ProxyURL.pass.empty ())
+				{
+					// remove existing authorization if any
+					m_ClientRequest.RemoveHeader("Proxy-");
+					// add own http proxy authorization
+					std::string s = "Basic " + i2p::data::ToBase64Standard (m_ProxyURL.user + ":" + m_ProxyURL.pass);
+					m_ClientRequest.AddHeader("Proxy-Authorization", s);
+				}
+				m_send_buf = m_ClientRequest.to_string();
+				m_recv_buf.erase(0, m_req_len);
+				m_send_buf.append(m_recv_buf);
 				GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
 					shared_from_this(), std::placeholders::_1), m_ProxyURL.host, m_ProxyURL.port);
 			}
