@@ -387,6 +387,7 @@ namespace proxy {
 		LogPrint(eLogDebug, "HTTPProxy: ", m_ClientRequestURL.host);
 		m_ClientRequestURL.schema = "";
 		m_ClientRequestURL.host   = "";
+		std::string origURI = m_ClientRequest.uri; // TODO: what do we need to chage uri for?
 		m_ClientRequest.uri = m_ClientRequestURL.to_string();
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
@@ -399,6 +400,7 @@ namespace proxy {
 			if (!m_ProxyURL.port) m_ProxyURL.port = 80;
 			if (m_ProxyURL.is_i2p())
 			{
+				m_ClientRequest.uri = origURI;
 				if (!m_ProxyURL.user.empty () || !m_ProxyURL.pass.empty ())
 				{
 					// remove existing authorization if any
