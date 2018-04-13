@@ -219,7 +219,7 @@ namespace proxy {
 		/* replace headers */
 		req.UpdateHeader("User-Agent", "MYOB/6.66 (AN/ON)");
 		/* add headers */
-		req.AddHeader("Connection", "close"); /* keep-alive conns not supported yet */
+		req.UpdateHeader("Connection", "close"); /* keep-alive conns not supported yet */
 	}
 
 	/**
@@ -282,7 +282,7 @@ namespace proxy {
 		bool useConnect = false;
 		if(m_ClientRequest.method == "CONNECT")
 		{
-			m_ClientRequest.RemoveHeader("Proxy-");
+			SanitizeHTTPRequest (m_ClientRequest);
 			std::string uri(m_ClientRequest.uri);
 			auto pos = uri.find(":");
 			if(pos == std::string::npos || pos == uri.size() - 1)
@@ -399,7 +399,7 @@ namespace proxy {
 
 		m_ClientRequest.write(m_ClientRequestBuffer);
 		m_ClientRequestBuffer << m_recv_buf.substr(m_req_len);
-
+		
 		// assume http if empty schema
 		if (m_ProxyURL.schema == "" || m_ProxyURL.schema == "http") 
 		{
