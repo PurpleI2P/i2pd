@@ -408,7 +408,7 @@ namespace proxy {
 			if (!m_ProxyURL.port) m_ProxyURL.port = 80;
 			if (m_ProxyURL.is_i2p())
 			{
-				m_send_buf = m_recv_buf;
+				m_send_buf = m_ClientRequestBuffer.str ();
 				GetOwner()->CreateStream (std::bind (&HTTPReqHandler::HandleStreamRequestComplete,
 					shared_from_this(), std::placeholders::_1), m_ProxyURL.host, m_ProxyURL.port);
 			}
