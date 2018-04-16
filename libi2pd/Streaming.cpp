@@ -903,8 +903,7 @@ namespace stream
 	StreamingDestination::StreamingDestination (std::shared_ptr<i2p::client::ClientDestination> owner, uint16_t localPort, bool gzip):
 		m_Owner (owner), m_LocalPort (localPort), m_Gzip (gzip),
 		m_LastIncomingReceiveStreamID (0),
-		m_PendingIncomingTimer (m_Owner->GetService ()),
-		m_ConnTrackTimer(m_Owner->GetService())
+		m_PendingIncomingTimer (m_Owner->GetService ())
 	{
 	}
 
@@ -927,14 +926,9 @@ namespace stream
 		ResetAcceptor ();
 		m_PendingIncomingTimer.cancel ();
 		m_PendingIncomingStreams.clear ();
-		m_ConnTrackTimer.cancel();
 		{
 			std::unique_lock<std::mutex> l(m_StreamsMutex);
 			m_Streams.clear ();
-		}
-		{
-			std::unique_lock<std::mutex> l(m_ConnsMutex);
-			m_Conns.clear ();
 		}
 	}
 

@@ -280,11 +280,6 @@ namespace stream
 			boost::asio::deadline_timer m_PendingIncomingTimer;
 			std::map<uint32_t, std::list<Packet *> > m_SavedPackets; // receiveStreamID->packets, arrived before SYN
 
-			std::mutex m_ConnsMutex;
-			/** how many connections per minute did each identity have */
-			std::map<i2p::data::IdentHash, uint32_t> m_Conns;
-			boost::asio::deadline_timer m_ConnTrackTimer;
-
 			i2p::util::MemoryPool<Packet> m_PacketsPool;
 
 		public:
