@@ -567,7 +567,7 @@ namespace client
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
-					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
+
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
 					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 
@@ -618,8 +618,6 @@ namespace client
 					else // regular server tunnel by default
 						serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
 
-					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
-					serverTunnel->SetMaxConnsPerMinute(maxConns);
 					if(!isUniqueLocal)
 					{
 						LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
