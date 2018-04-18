@@ -531,6 +531,7 @@ namespace client
 							LogPrint(eLogInfo, "Clients: I2P Client tunnel connect timeout set to ", timeout);
 						}
 
+						auto clientTunnelDest = clientTunnel->GetLocalDestination (); // make copy of destination for possible update
 						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel)));
 						if (ins.second)
 						{
@@ -540,10 +541,10 @@ namespace client
 						else
 						{
 							// TODO: update
-							if (ins.first->second->GetLocalDestination () != clientTunnel->GetLocalDestination ())
+							if (ins.first->second->GetLocalDestination () != clientTunnelDest)
 							{
 								LogPrint (eLogInfo, "Clients: I2P client tunnel destination updated");
-								ins.first->second->SetLocalDestination (clientTunnel->GetLocalDestination ());
+								ins.first->second->SetLocalDestination (clientTunnelDest);
 							}
 							ins.first->second->isUpdated = true;
 							LogPrint (eLogInfo, "Clients: I2P client tunnel for endpoint ", clientEndpoint, " already exists");
@@ -639,6 +640,7 @@ namespace client
 						while (comma != std::string::npos);
 						serverTunnel->SetAccessList (idents);
 					}
+					auto serverTunnelDest = serverTunnel->GetLocalDestination ();
 					auto ins = m_ServerTunnels.insert (std::make_pair (
 							std::make_pair (localDestination->GetIdentHash (), inPort),
 					        std::unique_ptr<I2PServerTunnel>(serverTunnel)));
@@ -650,10 +652,10 @@ namespace client
 					else
 					{
 						// TODO: update
-						if (ins.first->second->GetLocalDestination () != serverTunnel->GetLocalDestination ())
+						if (ins.first->second->GetLocalDestination () != serverTunnelDest)
 						{
 							LogPrint (eLogInfo, "Clients: I2P server tunnel destination updated");
-							ins.first->second->SetLocalDestination (serverTunnel->GetLocalDestination ());
+							ins.first->second->SetLocalDestination (serverTunnelDest);
 						}
 						ins.first->second->isUpdated = true;
 						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");
