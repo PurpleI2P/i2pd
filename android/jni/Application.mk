@@ -9,14 +9,12 @@ APP_PLATFORM := android-14
 # http://stackoverflow.com/a/21386866/529442 http://stackoverflow.com/a/15616255/529442 to enable c++11 support in Eclipse
 NDK_TOOLCHAIN_VERSION := 4.9
 # APP_STL := stlport_shared  --> does not seem to contain C++11 features
-#APP_STL := gnustl_shared
-APP_STL := gnustl_static
+APP_STL := gnustl_shared
 
 # Enable c++11 extensions in source code
-APP_CPPFLAGS += -std=c++11 -fvisibility=default -fPIE
+APP_CPPFLAGS += -std=c++11
 
 APP_CPPFLAGS += -DANDROID -D__ANDROID__ -DUSE_UPNP
-APP_LDFLAGS += -rdynamic -fPIE -pie
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
 APP_CPPFLAGS += -DANDROID_ARM7A
 endif
@@ -28,7 +26,7 @@ APP_OPTIM  := debug
 # git clone https://github.com/PurpleI2P/MiniUPnP-for-Android-Prebuilt.git
 # git clone https://github.com/PurpleI2P/android-ifaddrs.git
 # change to your own
-I2PD_LIBS_PATH = /home/u/build/i2p/daemon/static.libs
+I2PD_LIBS_PATH = /path/to/libraries
 BOOST_PATH = $(I2PD_LIBS_PATH)/Boost-for-Android-Prebuilt
 OPENSSL_PATH = $(I2PD_LIBS_PATH)/OpenSSL-for-Android-Prebuilt
 MINIUPNP_PATH = $(I2PD_LIBS_PATH)/MiniUPnP-for-Android-Prebuilt
