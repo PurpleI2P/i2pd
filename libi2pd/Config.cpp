@@ -191,7 +191,7 @@ namespace config {
 				// "https://uk.reseed.i2p2.no:444/," // mamoth's shit
 				"https://i2p-0.manas.ca:8443/,"
 				"https://download.xxlspeed.com/,"
-				"https://reseed-ru.lngserv.ru/,"
+				"https://reseed-fr.i2pd.xyz/,"
 				"https://reseed.atomike.ninja/,"
 				"https://reseed.memcpy.io/,"
 				"https://reseed.onion.im/,"

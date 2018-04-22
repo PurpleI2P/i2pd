@@ -281,8 +281,12 @@ namespace client
 		i2p::garlic::GarlicDestination::SetLeaseSetUpdated ();
 		if (m_IsPublic)
 		{
-			m_PublishVerificationTimer.cancel ();
-			Publish ();
+			auto s = shared_from_this ();
+			m_Service.post ([s](void)
+			{
+				s->m_PublishVerificationTimer.cancel ();
+				s->Publish ();
+			});	
 		}
 	}
 
@@ -1024,7 +1028,7 @@ namespace client
 	bool ClientDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
 	{
 		if (m_Decryptor)
-			return m_Decryptor->Decrypt (encrypted, data, ctx);
+			return m_Decryptor->Decrypt (encrypted, data, ctx, true);
 		else
 			LogPrint (eLogError, "Destinations: decryptor is not set");
 		return false;

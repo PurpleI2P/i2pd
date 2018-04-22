@@ -24,6 +24,12 @@ namespace i2p
 {
 namespace transport
 {
+
+	struct NTCPWork
+	{
+		std::shared_ptr<NTCPSession> session;
+	};
+	
 	NTCPSession::NTCPSession (NTCPServer& server, std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter):
 		TransportSession (in_RemoteRouter, NTCP_ESTABLISH_TIMEOUT),
 		m_Server (server), m_Socket (m_Server.GetService ()),
@@ -177,18 +183,20 @@ namespace transport
 				}
 			}
 			// TODO: check for number of pending keys
-			auto s = shared_from_this ();
-			m_Server.Work(s, [s]() -> std::function<void(void)> {
-					if (!s->m_DHKeysPair)
-						s->m_DHKeysPair = transports.GetNextDHKeysPair ();
-					s->CreateAESKey (s->m_Establisher->phase1.pubKey);
-					return std::bind(&NTCPSession::SendPhase2, s);
+			auto work = new NTCPWork{shared_from_this()};
+			m_Server.Work(work->session, [work, this]() -> std::function<void(void)> {
+					if (!work->session->m_DHKeysPair)
+						work->session->m_DHKeysPair = transports.GetNextDHKeysPair ();
+					work->session->CreateAESKey (work->session->m_Establisher->phase1.pubKey);
+					return std::bind(&NTCPSession::SendPhase2, work->session, work);
 			});
 		}
 	}
 
-	void NTCPSession::SendPhase2 ()
+	void NTCPSession::SendPhase2 (NTCPWork * work)
 	{
+		if(work)
+			delete work;
 		const uint8_t * y = m_DHKeysPair->GetPublicKey ();
 		memcpy (m_Establisher->phase2.pubKey, y, 256);
 		uint8_t xy[512];
@@ -241,16 +249,17 @@ namespace transport
 		}
 		else
 		{
-			auto s = shared_from_this ();
-			m_Server.Work(s, [s]() -> std::function<void(void)> {
-				s->CreateAESKey (s->m_Establisher->phase2.pubKey);
-				return std::bind(&NTCPSession::HandlePhase2, s);
+			auto work = new NTCPWork{shared_from_this()};
+			m_Server.Work(work->session, [work, this]() -> std::function<void(void)> {
+				work->session->CreateAESKey (work->session->m_Establisher->phase2.pubKey);
+				return std::bind(&NTCPSession::HandlePhase2, work->session, work);
 			});
 		}
 	}
 
-	void NTCPSession::HandlePhase2 ()
+	void NTCPSession::HandlePhase2 (NTCPWork * work)
 	{
+		if(work) delete work;
 		m_Decryption.SetIV (m_Establisher->phase2.pubKey + 240);
 		m_Encryption.SetIV (m_Establisher->phase1.HXxorHI + 16);
 

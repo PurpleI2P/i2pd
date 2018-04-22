@@ -10,7 +10,7 @@ RuntimeDirectory=i2pd
 RuntimeDirectoryMode=0700
 LogsDirectory=i2pd
 LogsDirectoryMode=0700
-Type=simple
+Type=forking
 ExecStart=/usr/sbin/i2pd --conf=/etc/i2pd/i2pd.conf --tunconf=/etc/i2pd/tunnels.conf --pidfile=/var/run/i2pd/i2pd.pid --logfile=/var/log/i2pd/i2pd.log --daemon --service
 ExecReload=/bin/kill -HUP $MAINPID
 PIDFile=/var/run/i2pd/i2pd.pid

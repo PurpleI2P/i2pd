@@ -44,19 +44,6 @@ namespace util
 			}
 	};
 
-#elif defined(ANDROID)
-#define Daemon i2p::util::DaemonAndroid::Instance()
-	// dummy, invoked from android/jni/DaemonAndroid.*
-	class DaemonAndroid: public i2p::util::Daemon_Singleton
-	{
-		public:
-			static DaemonAndroid& Instance()
-			{
-				static DaemonAndroid instance;
-				return instance;
-			}
-	};
-
 #elif defined(_WIN32)
 #define Daemon i2p::util::DaemonWin32::Instance()
 	class DaemonWin32 : public Daemon_Singleton

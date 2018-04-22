@@ -37,7 +37,7 @@ namespace client
 	bool I2CPDestination::Decrypt (const uint8_t * encrypted, uint8_t * data, BN_CTX * ctx) const
 	{
 		if (m_Decryptor)
-			return m_Decryptor->Decrypt (encrypted, data, ctx);
+			return m_Decryptor->Decrypt (encrypted, data, ctx, true);
 		else
 			LogPrint (eLogError, "I2CP: decryptor is not set");
 		return false;

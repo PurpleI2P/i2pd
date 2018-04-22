@@ -268,8 +268,14 @@ android {
 }
 
 linux:!android {
-	message("Using Linux settings")
-	LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
+        message("Using Linux settings")
+        LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
+}
+
+windows:!android {
+        message("Using Windows settings")
+        DEFINES += BOOST_USE_WINDOWS_H WINDOWS
+        LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
 }
 
 !android:!symbian:!maemo5:!simulator {

@@ -531,6 +531,7 @@ namespace client
 							LogPrint(eLogInfo, "Clients: I2P Client tunnel connect timeout set to ", timeout);
 						}
 
+						auto clientTunnelDest = clientTunnel->GetLocalDestination (); // make copy of destination for possible update
 						auto ins = m_ClientTunnels.insert (std::make_pair (clientEndpoint,	std::unique_ptr<I2PService>(clientTunnel)));
 						if (ins.second)
 						{
@@ -540,10 +541,10 @@ namespace client
 						else
 						{
 							// TODO: update
-							if (ins.first->second->GetLocalDestination () != clientTunnel->GetLocalDestination ())
+							if (ins.first->second->GetLocalDestination () != clientTunnelDest)
 							{
 								LogPrint (eLogInfo, "Clients: I2P client tunnel destination updated");
-								ins.first->second->SetLocalDestination (clientTunnel->GetLocalDestination ());
+								ins.first->second->SetLocalDestination (clientTunnelDest);
 							}
 							ins.first->second->isUpdated = true;
 							LogPrint (eLogInfo, "Clients: I2P client tunnel for endpoint ", clientEndpoint, " already exists");
@@ -567,7 +568,7 @@ namespace client
 					bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
 					i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
 					i2p::data::CryptoKeyType cryptoType = section.second.get (I2P_CLIENT_TUNNEL_CRYPTO_TYPE, i2p::data::CRYPTO_KEY_TYPE_ELGAMAL);
-					uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
+
 					std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
 					bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 
@@ -618,8 +619,6 @@ namespace client
 					else // regular server tunnel by default
 						serverTunnel = new I2PServerTunnel (name, host, port, localDestination, inPort, gzip);
 
-					LogPrint(eLogInfo, "Clients: Set Max Conns To ", maxConns);
-					serverTunnel->SetMaxConnsPerMinute(maxConns);
 					if(!isUniqueLocal)
 					{
 						LogPrint(eLogInfo, "Clients: disabling loopback address mapping");
@@ -641,6 +640,7 @@ namespace client
 						while (comma != std::string::npos);
 						serverTunnel->SetAccessList (idents);
 					}
+					auto serverTunnelDest = serverTunnel->GetLocalDestination ();
 					auto ins = m_ServerTunnels.insert (std::make_pair (
 							std::make_pair (localDestination->GetIdentHash (), inPort),
 					        std::unique_ptr<I2PServerTunnel>(serverTunnel)));
@@ -652,10 +652,10 @@ namespace client
 					else
 					{
 						// TODO: update
-						if (ins.first->second->GetLocalDestination () != serverTunnel->GetLocalDestination ())
+						if (ins.first->second->GetLocalDestination () != serverTunnelDest)
 						{
 							LogPrint (eLogInfo, "Clients: I2P server tunnel destination updated");
-							ins.first->second->SetLocalDestination (serverTunnel->GetLocalDestination ());
+							ins.first->second->SetLocalDestination (serverTunnelDest);
 						}
 						ins.first->second->isUpdated = true;
 						LogPrint (eLogInfo, "Clients: I2P server tunnel for destination/port ",   m_AddressBook.ToAddress(localDestination->GetIdentHash ()), "/", inPort, " already exists");

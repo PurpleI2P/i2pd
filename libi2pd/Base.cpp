@@ -210,6 +210,21 @@ namespace data
 		return 4*d.quot;
 	}
 
+	std::string ToBase64Standard (const std::string& in)
+	{
+		auto len = Base64EncodingBufferSize (in.length ());	
+		char * str = new char[len+1];
+		auto l = ByteStreamToBase64 ((const uint8_t *)in.c_str (), in.length (), str, len);
+		str[l] = 0;
+		// replace '-' by '+' and '~' by '/'
+		for (size_t i = 0; i < l; i++)
+			if (str[i] == '-') str[i] = '+';
+			else if (str[i] == '~') str[i] = '/';
+		std::string s(str);
+		delete[] str;
+		return s;
+	}
+
 	/*
 	*
 	* iT64

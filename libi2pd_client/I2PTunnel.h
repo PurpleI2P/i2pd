@@ -280,8 +280,6 @@ namespace client
 
 			const char* GetName() { return m_Name.c_str (); }
 
-			void SetMaxConnsPerMinute(const uint32_t conns) { m_PortDestination->SetMaxConnsPerMinute(conns); }
-
 		private:
 			void HandleResolve (const boost::system::error_code& ecode, boost::asio::ip::tcp::resolver::iterator it,
 				std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
