@@ -148,7 +148,6 @@ public:
     std::string webircpass = section.second.get<std::string> (I2P_SERVER_TUNNEL_WEBIRC_PASSWORD, "");
     bool gzip = section.second.get (I2P_SERVER_TUNNEL_GZIP, true);
     i2p::data::SigningKeyType sigType = section.second.get (I2P_SERVER_TUNNEL_SIGNATURE_TYPE, i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-    uint32_t maxConns = section.second.get(i2p::stream::I2CP_PARAM_STREAMING_MAX_CONNS_PER_MIN, i2p::stream::DEFAULT_MAX_CONNS_PER_MIN);
     std::string address = section.second.get<std::string> (I2P_SERVER_TUNNEL_ADDRESS, "127.0.0.1");
     bool isUniqueLocal = section.second.get(I2P_SERVER_TUNNEL_ENABLE_UNIQUE_LOCAL, true);
 # * inport -- optional, i2p service port, if unset - the same as 'port'
@@ -170,7 +169,6 @@ class ServerTunnelConfig : public TunnelConfig {
     std::string webircpass;
     bool gzip;
     i2p::data::SigningKeyType sigType;
-    uint32_t maxConns;
     std::string address;
     bool isUniqueLocal;
 public:
@@ -184,7 +182,6 @@ public:
                        std::string webircpass_,
                        bool gzip_,
                        i2p::data::SigningKeyType sigType_,
-                       uint32_t maxConns_,
                        std::string address_,
                        bool isUniqueLocal_): TunnelConfig(name_, type_, i2cpParameters_),
         host(host_),
@@ -196,7 +193,6 @@ public:
         webircpass(webircpass_),
         gzip(gzip_),
         sigType(sigType_),
-        maxConns(maxConns_),
         address(address_),
         isUniqueLocal(isUniqueLocal_) {}
     std::string& gethost(){return host;}
@@ -208,7 +204,6 @@ public:
     std::string& getwebircpass(){return webircpass;}
     bool getgzip(){return gzip;}
     i2p::data::SigningKeyType getsigType(){return sigType;}
-    uint32_t getmaxConns(){return maxConns;}
     std::string& getaddress(){return address;}
     bool getisUniqueLocal(){return isUniqueLocal;}
     void sethost(const std::string& host_){host=host_;}
@@ -220,7 +215,6 @@ public:
     void setwebircpass(const std::string& webircpass_){webircpass=webircpass_;}
     void setgzip(bool gzip_){gzip=gzip_;}
     void setsigType(i2p::data::SigningKeyType sigType_){sigType=sigType_;}
-    void setmaxConns(uint32_t maxConns_){maxConns=maxConns_;}
     void setaddress(const std::string& address_){address=address_;}
     void setisUniqueLocal(bool isUniqueLocal_){isUniqueLocal=isUniqueLocal_;}
     virtual void saveToStringStream(std::stringstream& out);

@@ -48,7 +48,6 @@ void ServerTunnelConfig::saveToStringStream(std::stringstream& out) {
         << "enableuniquelocal=" << (isUniqueLocal?"true":"false") << "\n"
         << "address=" << address << "\n"
         << "hostoverride=" << hostOverride << "\n"
-        << "webircpassword=" << webircpass << "\n"
-        << "maxconns=" << maxConns << "\n";
+        << "webircpassword=" << webircpass << "\n";
 }
 
