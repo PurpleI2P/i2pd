@@ -272,10 +272,27 @@ linux:!android {
         LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
 }
 
-windows:!android {
+windows {
         message("Using Windows settings")
-        DEFINES += BOOST_USE_WINDOWS_H WINDOWS
-        LIBS += -lcrypto -lssl -lboost_system -lboost_date_time -lboost_filesystem -lboost_program_options -lpthread -lminiupnpc
+        DEFINES += BOOST_USE_WINDOWS_H WINDOWS _WINDOWS WIN32_LEAN_AND_MEAN MINIUPNP_STATICLIB
+        DEFINES -= UNICODE _UNICODE
+        BOOST_SUFFIX = -mt
+        QMAKE_LDFLAGS = -s -Wl,-rpath,/usr/local/lib -Wl,-Bstatic -static-libgcc -static-libstdc++ -mwindows
+
+        LIBS = -lminiupnpc \
+        -lboost_system$$BOOST_SUFFIX \
+        -lboost_date_time$$BOOST_SUFFIX \
+        -lboost_filesystem$$BOOST_SUFFIX \
+        -lboost_program_options$$BOOST_SUFFIX \
+        -lssl \
+        -lcrypto \
+        -lz \
+        -lwsock32 \
+        -lws2_32 \
+        -lgdi32 \
+        -liphlpapi \
+        -lstdc++ \
+        -lpthread
 }
 
 !android:!symbian:!maemo5:!simulator {
