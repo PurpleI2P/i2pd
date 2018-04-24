@@ -124,6 +124,9 @@ namespace crypto
 
 
 #ifdef AESNI
+	#ifdef ARM64AES
+		void init_aesenc(void) __attribute__((constructor));
+	#endif
 	class ECBCryptoAESNI
 	{
 		public:
