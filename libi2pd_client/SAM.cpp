@@ -810,7 +810,7 @@ namespace client
 			if (session)
 			{
 				// find more pending acceptors
-				for (auto it: m_Owner.ListSockets (m_ID))
+				for (auto & it: m_Owner.ListSockets (m_ID))
 					if (it->m_SocketType == eSAMSocketTypeAcceptor)
 					{
 						it->m_IsAccepting = true;
