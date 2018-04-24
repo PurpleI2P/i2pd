@@ -595,8 +595,8 @@ namespace crypto
 // AES
 #ifdef AESNI
         #ifdef ARM64AES
-                void init_aesenc(void) __attribute__((constructor)){
-			
+                void init_aesenc(void){
+			// TODO: Implementation
 		}
 		
         #endif
