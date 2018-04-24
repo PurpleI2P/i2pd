@@ -25,7 +25,7 @@ namespace client
 
 	SAMSocket::~SAMSocket ()
 	{
-		m_Stream.reset ();
+		m_Stream = nullptr;
 	}	
 
 	void SAMSocket::Terminate (const char* reason)
