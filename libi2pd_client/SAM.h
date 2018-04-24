@@ -182,7 +182,7 @@ namespace client
 			/** send raw data to remote endpoint from our UDP Socket */
 			void SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote);
 
-      void RemoveSocket(const SAMSocket * socket);
+    void RemoveSocket(const std::shared_ptr<SAMSocket> & socket);
     
 		private:
 
@@ -204,6 +204,7 @@ namespace client
 			boost::asio::ip::udp::socket m_DatagramSocket;
 			mutable std::mutex m_SessionsMutex;
 			std::map<std::string, std::shared_ptr<SAMSession> > m_Sessions;
+    mutable std::mutex m_OpenSocketsMutex;
     std::list<std::shared_ptr<SAMSocket> > m_OpenSockets;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
 

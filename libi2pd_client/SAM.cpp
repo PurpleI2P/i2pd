@@ -33,7 +33,7 @@ namespace client
 		if(m_Stream)
 		{
 			m_Stream->AsyncClose ();
-			m_Stream.reset ();
+			m_Stream = nullptr;
 		}
 		auto Session = m_Owner.FindSession(m_ID);
 		switch (m_SocketType)
@@ -64,7 +64,7 @@ namespace client
 			m_Socket.shutdown (boost::asio::ip::tcp::socket::shutdown_both, ec);
 			m_Socket.close ();
 		}
-		m_Owner.RemoveSocket(this);
+		m_Owner.RemoveSocket(shared_from_this());
 	}
 
 	void SAMSocket::ReceiveHandshake ()
@@ -974,9 +974,10 @@ namespace client
 			std::placeholders::_1, newSocket));
 	}
 
-	void SAMBridge::RemoveSocket(const SAMSocket * socket)
+	void SAMBridge::RemoveSocket(const std::shared_ptr<SAMSocket> & socket)
 	{
-		m_OpenSockets.remove_if([socket](const std::shared_ptr<SAMSocket> & item) -> bool { return item.get() == socket; });
+		std::unique_lock<std::mutex> lock(m_OpenSocketsMutex);
+		m_OpenSockets.remove_if([socket](const std::shared_ptr<SAMSocket> & item) -> bool { return item == socket; });
 	}
 	
 	void SAMBridge::HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<SAMSocket> socket)
@@ -988,7 +989,10 @@ namespace client
 			if (!ec)
 			{
 				LogPrint (eLogDebug, "SAM: new connection from ", ep);
-				m_OpenSockets.push_back(socket);
+				{
+					std::unique_lock<std::mutex> l(m_OpenSocketsMutex);
+					m_OpenSockets.push_back(socket);
+				}
 				socket->ReceiveHandshake ();
 			}
 			else
@@ -1074,7 +1078,7 @@ namespace client
 	{
 		std::list<std::shared_ptr<SAMSocket > > list;
 		{
-			std::unique_lock<std::mutex> l(m_SessionsMutex);
+			std::unique_lock<std::mutex> l(m_OpenSocketsMutex);
 			for (const auto & itr : m_OpenSockets)
 				if (itr->IsSession(id))
 					list.push_back(itr);
