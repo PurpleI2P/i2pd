@@ -81,10 +81,6 @@ private:
     QLabel * addressLabel;
     QLineEdit * addressLineEdit;
 
-    //maxConns
-    QLabel * maxConnsLabel;
-    QLineEdit * maxConnsLineEdit;
-
     //gzip
     QCheckBox * gzipCheckBox;
 
@@ -109,7 +105,6 @@ private:
         hostOverrideLabel->setText(QApplication::translate("srvTunForm", "Host override:", 0));
         webIRCPassLabel->setText(QApplication::translate("srvTunForm", "WebIRC password:", 0));
         addressLabel->setText(QApplication::translate("srvTunForm", "Address:", 0));
-        maxConnsLabel->setText(QApplication::translate("srvTunForm", "Max connections:", 0));
 
         gzipCheckBox->setText(QApplication::translate("srvTunForm", "GZip", 0));
         isUniqueLocalCheckBox->setText(QApplication::translate("srvTunForm", "Is unique local", 0));
@@ -151,14 +146,6 @@ protected:
         stc->setwebircpass(webIRCPassLineEdit->text().toStdString());
 
         stc->setaddress(addressLineEdit->text().toStdString());
-
-        auto mcStr=maxConnsLineEdit->text();
-        uint32_t mcInt=(uint32_t)mcStr.toInt(&ok);
-        if(!ok){
-            highlightWrongInput(QApplication::tr("Bad maxConns, must be int.")+" "+cannotSaveSettings,maxConnsLineEdit);
-            return false;
-        }
-        stc->setmaxConns(mcInt);
 
         stc->setgzip(gzipCheckBox->isChecked());
 

@@ -449,7 +449,7 @@ void MainWindow::createTrayIcon() {
 }
 
 void MainWindow::setIcon() {
-    QIcon icon(":/images/icon.png");
+    QIcon icon(":icons/mask");
     trayIcon->setIcon(icon);
     setWindowIcon(icon);
 

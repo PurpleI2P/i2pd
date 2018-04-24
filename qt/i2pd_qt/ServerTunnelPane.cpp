@@ -205,24 +205,6 @@ int ServerTunnelPane::appendServerTunnelForm(
         tunnelGridLayout->addLayout(horizontalLayout_2);
     }
     {
-        uint32_t maxConns = tunnelConfig->getmaxConns();
-        QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
-        horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
-        ui.maxConnsLabel = new QLabel(gridLayoutWidget_2);
-        maxConnsLabel->setObjectName(QStringLiteral("maxConnsLabel"));
-        horizontalLayout_2->addWidget(maxConnsLabel);
-        ui.maxConnsLineEdit = new QLineEdit(gridLayoutWidget_2);
-        maxConnsLineEdit->setObjectName(QStringLiteral("maxConnsLineEdit"));
-        maxConnsLineEdit->setText(QString::number(maxConns));
-        maxConnsLineEdit->setMaximumWidth(80);
-        QObject::connect(maxConnsLineEdit, SIGNAL(textChanged(const QString &)),
-                                 this, SLOT(updated()));
-        horizontalLayout_2->addWidget(maxConnsLineEdit);
-        QSpacerItem * horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-        horizontalLayout_2->addItem(horizontalSpacer);
-        tunnelGridLayout->addLayout(horizontalLayout_2);
-    }
-    {
         std::string address = tunnelConfig->getaddress();
         QHBoxLayout *horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QStringLiteral("horizontalLayout_2"));
