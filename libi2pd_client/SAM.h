@@ -77,24 +77,27 @@ namespace client
 
 	class SAMBridge;
 	struct SAMSession;
-	class SAMSocket: public std::enable_shared_from_this<SAMSocket>
+	class SAMSocket :public std::enable_shared_from_this<SAMSocket>
 	{
 		public:
 
 			typedef boost::asio::ip::tcp::socket Socket_t;
-			SAMSocket (SAMBridge& owner, std::shared_ptr<Socket_t> socket);
+			SAMSocket (SAMBridge& owner);
 			~SAMSocket ();			
 
-			boost::asio::ip::tcp::socket& GetSocket () { return *m_Socket; };
+			Socket_t& GetSocket () { return m_Socket; };
 			void ReceiveHandshake ();
 			void SetSocketType (SAMSocketType socketType) { m_SocketType = socketType; };
 			SAMSocketType GetSocketType () const { return m_SocketType; };
 
 			void Terminate (const char* reason);
 
+    bool IsSession(const std::string & id) const;
+    
 		 private:
-
-			void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
+      void TerminateClose() { Terminate(nullptr); }
+    
+      void HandleHandshakeReceived (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleHandshakeReplySent (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void HandleMessage (const boost::system::error_code& ecode, std::size_t bytes_transferred);
 			void SendMessageReply (const char * msg, size_t len, bool close);
@@ -128,10 +131,12 @@ namespace client
 			void WriteI2PDataImmediate(uint8_t * ptr, size_t sz);
 
 			void HandleWriteI2PDataImmediate(const boost::system::error_code & ec, uint8_t * buff);
+    void HandleStreamSend(const boost::system::error_code & ec);
+    
 		private:
 
 			SAMBridge& m_Owner;
-			std::shared_ptr<Socket_t> m_Socket;
+			Socket_t m_Socket;
 			boost::asio::deadline_timer m_Timer;
 			char m_Buffer[SAM_SOCKET_BUFFER_SIZE + 1];
 			size_t m_BufferOffset;
@@ -145,34 +150,12 @@ namespace client
 
 	struct SAMSession
 	{
+    SAMBridge & m_Bridge;
 		std::shared_ptr<ClientDestination> localDestination;
-		std::list<std::shared_ptr<SAMSocket> > m_Sockets;
 		std::shared_ptr<boost::asio::ip::udp::endpoint> UDPEndpoint;
-		std::mutex m_SocketsMutex;
+    std::string Name;
 
-		/** safely add a socket to this session */
-		void AddSocket(std::shared_ptr<SAMSocket> sock) {
-			std::lock_guard<std::mutex> lock(m_SocketsMutex);
-			m_Sockets.push_back(sock);
-		}
-
-		/** safely remove a socket from this session */
-		void DelSocket(SAMSocket * sock) {
-			std::lock_guard<std::mutex> lock(m_SocketsMutex);
-			m_Sockets.remove_if([sock](const std::shared_ptr<SAMSocket> s) -> bool { return s.get() == sock; });
-		}
-
-		/** get a list holding a copy of all sam sockets from this session */
-		std::list<std::shared_ptr<SAMSocket> > ListSockets() {
-			std::list<std::shared_ptr<SAMSocket> > l;
-			{
-				std::lock_guard<std::mutex> lock(m_SocketsMutex);
-				for(const auto& sock : m_Sockets ) l.push_back(sock);
-			}
-			return l;
-		}
-
-		SAMSession (std::shared_ptr<ClientDestination> dest);
+		SAMSession (SAMBridge & parent, const std::string & name, std::shared_ptr<ClientDestination> dest);
 		~SAMSession ();
 
 		void CloseStreams ();
@@ -194,15 +177,19 @@ namespace client
 			void CloseSession (const std::string& id);
 			std::shared_ptr<SAMSession> FindSession (const std::string& id) const;
 
+      std::list<std::shared_ptr<SAMSocket> > ListSockets(const std::string & id) const;
+
 			/** send raw data to remote endpoint from our UDP Socket */
 			void SendTo(const uint8_t * buf, size_t len, std::shared_ptr<boost::asio::ip::udp::endpoint> remote);
 
+      void RemoveSocket(const SAMSocket * socket);
+    
 		private:
 
 			void Run ();
 
 			void Accept ();
-			void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<SAMSocket> socket);
+      void HandleAccept(const boost::system::error_code& ecode, std::shared_ptr<SAMSocket> socket);
 
 			void ReceiveDatagram ();
 			void HandleReceivedDatagram (const boost::system::error_code& ecode, std::size_t bytes_transferred);
@@ -217,6 +204,7 @@ namespace client
 			boost::asio::ip::udp::socket m_DatagramSocket;
 			mutable std::mutex m_SessionsMutex;
 			std::map<std::string, std::shared_ptr<SAMSession> > m_Sessions;
+    std::list<std::shared_ptr<SAMSocket> > m_OpenSockets;
 			uint8_t m_DatagramReceiveBuffer[i2p::datagram::MAX_DATAGRAM_SIZE+1];
 
 		public:

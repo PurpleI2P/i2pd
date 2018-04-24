@@ -649,7 +649,7 @@ namespace http {
 		s << i2p::client::context.GetAddressBook ().ToAddress(ident) << "</a><br>\r\n";
 		s << "<br>\r\n";
 		s << "<b>Streams:</b><br>\r\n";
-		for (const auto& it: session->ListSockets())
+		for (const auto& it: sam->ListSockets(id))
 		{
 			switch (it->GetSocketType ())
 			{
