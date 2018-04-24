@@ -25,8 +25,7 @@ namespace client
 
 	SAMSocket::~SAMSocket ()
 	{
-		m_Stream.reset ();	
-		if (m_Socket.is_open()) m_Socket.close ();
+		m_Stream.reset ();
 	}	
 
 	void SAMSocket::Terminate (const char* reason)
@@ -59,7 +58,11 @@ namespace client
 				;
 		}
 		m_SocketType = eSAMSocketTypeTerminated;
-		if (m_Socket.is_open()) m_Socket.close ();
+		if (m_Socket.is_open ())
+		{
+			m_Socket.shutdown ();
+			m_Socket.close ();
+		}
 		m_Owner.RemoveSocket(this);
 	}
 
@@ -742,9 +745,11 @@ namespace client
 	
 	void SAMSocket::WriteI2PData(size_t sz)
 	{
-		uint8_t * sendbuff = new uint8_t[sz];
-		memcpy(sendbuff, m_StreamBuffer, sz);
-		WriteI2PDataImmediate(sendbuff, sz);
+		boost::asio::async_write (
+			m_Socket,
+			boost::asio::buffer (m_StreamBuffer, sz),
+			boost::asio::transfer_all(),
+			std::bind(&SAMSocket::HandleWriteI2PData, shared_from_this(), std::placeholders::_1));
 	}
 	
 	void SAMSocket::HandleI2PReceive (const boost::system::error_code& ecode, std::size_t bytes_transferred)
@@ -778,7 +783,8 @@ namespace client
 				{
 					WriteI2PData(bytes_transferred);
 				}
-				I2PReceive();
+				else
+					I2PReceive();
 			}
 		}
 	}
@@ -897,7 +903,6 @@ namespace client
 	
 	SAMSession::~SAMSession ()
 	{
-		CloseStreams();
 		i2p::client::context.DeleteLocalDestination (localDestination);
 	}
 
